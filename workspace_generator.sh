@@ -10,7 +10,7 @@ ENABLE_RCLONE_SYNC=false  # Defaulting to false so it doesn't error out on a fre
 # External Connections
 RCLONE_REMOTE="gdrive:master-workspace"
 GITHUB_WEBSITE_URL="https://github.com/AaronScherf/AaronScherf.github.io.git"
-GITHUB_SANDBOX_URL="https://github.com/YOUR_USERNAME/YOUR_SANDBOX_REPO_PLACEHOLDER.git"
+GITHUB_SANDBOX_URL="https://github.com/AaronScherf/ai-sandbox-master.git"
 SANDBOX_DIR="ai-sandbox"
 
 echo "🚀 Initializing Master Workspace Generation..."
