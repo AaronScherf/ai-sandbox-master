@@ -1,0 +1,22 @@
+# ==========================================================================
+# 🛑 MASTER AI-SANDBOX-MASTER GITIGNORE
+# ==========================================================================
+
+# 1. Ignore entirely Rclone/Data managed directories (No massive PDFs)
+ai-sandbox/academic-hub/01-resources/
+ai-sandbox/research/journal-articles/
+ai-sandbox/research/independent-research/notes/
+
+# 2. Ignore nested Git repositories completely
+# (Prevents them from becoming broken Git submodules)
+ai-sandbox/academic-hub/02-academic-notes-code/
+ai-sandbox/personal-website/
+ai-sandbox/research/independent-research/projects/
+
+# 3. Ignore local container environment data, environment variables, or system files
+.env
+ai-sandbox/.env
+.idea/
+.DS_Store
+Thumbs.db
+*.log

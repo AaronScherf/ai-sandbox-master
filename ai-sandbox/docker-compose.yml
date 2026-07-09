@@ -1,0 +1,19 @@
+services:
+  interpreter_sandbox:
+    build: .
+    image: python:3.11-slim
+    container_name: open_interpreter_sandbox
+    environment:
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - MODEL=gemini/gemini-2.5-flash
+      - INTERPRETER_API_KEY=${GEMINI_API_KEY}
+      # - OPENAI_API_KEY=${OPENAI_API_KEY}
+    volumes:
+      # Relative paths now point to folders directly inside this same root directory
+      - ./academic-hub/01-resources:/workspace/academic-hub/01-resources:rw
+      - ./research/journal-articles:/workspace/research/journal-articles:rw
+      - ./academic-hub/02-academic-notes-code:/workspace/academic-hub/02-academic-notes-code:rw
+      - ./personal-website:/workspace/personal-website:rw
+      - ./research/independent-research:/workspace/research/independent-research:rw
+    working_dir: /workspace
+    # command: sh -c "pip install --no-cache-dir open-interpreter&& tail -f /dev/null"
