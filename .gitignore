@@ -9,7 +9,6 @@ ai-sandbox/research/independent-research/notes/
 
 # 2. Ignore nested Git repositories completely
 # (Prevents them from becoming broken Git submodules)
-ai-sandbox/academic-hub/02-academic-notes-code/
 ai-sandbox/personal-website/
 ai-sandbox/research/independent-research/projects/
 

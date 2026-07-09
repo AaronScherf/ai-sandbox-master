@@ -24,15 +24,16 @@ ai-sandbox-master/                  <-- Parent Orchestrator (This Repository)
     │
     ├── 📚 academic-hub/
     │   ├── 🔄 01-resources/        <-- Synced via Rclone to Drive (Git-Ignored)
-    │   └── 🐙 02-academic-notes/   <-- Git Repo (Synced to private academic GitHub)
+    │   └── 🐙 02-academic-notes/   <-- Summary files and scripts for generating them based on resources; tracked through parent git repo
     │
     ├── 🌐 personal-website/
-    │   └── AaronScherf.../         <-- Git Repo (Synced to your public portfolio GitHub)
+    │   └── AaronScherf.../         <-- Personal website synced via separate Git Repo (Synced to your public portfolio GitHub)
     │
     └── 🔬 research/
-        ├── 🔄 journal-articles/   <-- Downstream Read-Only PDFs (Paperpile managed)
+        ├── 🔄 journal-articles/   <-- Downstream Read-Only PDFs (Paperpile managed), ignored by parent repo
+        ├── 📂 scripts/            <-- Scripts for generating research notes, managed by parent repo
         └── 📂 independent-res.../
-            ├── 🔄 notes/           <-- Synced via Rclone (Nebo canvas exports)
+            ├── 🔄 notes/           <-- Synced via Rclone (Nebo canvas exports), ignored by parent repo
             └── 📂 projects/        <-- Isolated Git repositories per project
 ```
 
