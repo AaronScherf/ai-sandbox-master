@@ -9,6 +9,8 @@ services:
       - INTERPRETER_API_KEY=${GEMINI_API_KEY}
       # - OPENAI_API_KEY=${OPENAI_API_KEY}
     volumes:
+      # Mounting project root directory as a volume
+      - ./:/workspace:rw
       # Relative paths now point to folders directly inside this same root directory
       - ./academic-hub/01-resources:/workspace/academic-hub/01-resources:rw
       - ./research/journal-articles:/workspace/research/journal-articles:rw
