@@ -3,14 +3,13 @@ FROM node:20-slim AS node_source
 
 # Stage 2: Your actual container build
 FROM python:3.11-slim
-
-# Copy Node.js binaries and libraries straight from the official source
-COPY --from=node_source /usr/local/bin/node /usr/local/bin/
+# Copy ONLY the node binary, not the entire bin folder contents
+COPY --from=node_source /usr/local/bin/node /usr/local/bin/node
 COPY --from=node_source /usr/local/lib/node_modules /usr/local/lib/node_modules/
 
-# Re-link npm and npx into your path
-RUN ln -s /usr/local/lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm \
-    && ln -s /usr/local/lib/node_modules/npm/bin/npx-cli.js /usr/local/bin/npx
+# Safely link npm and npx into your path
+RUN ln -sf /usr/local/lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm \
+ && ln -sf /usr/local/lib/node_modules/npm/bin/npx-cli.js /usr/local/bin/npx
 
 # Clean system utilities setup and pip configurations
 RUN apt-get update && apt-get install -y --no-install-recommends \
