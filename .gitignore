@@ -19,3 +19,8 @@ ai-sandbox/.env
 .DS_Store
 Thumbs.db
 *.log
+
+# Tesseract OCR Agent Cache Output
+extracted_chapters/
+extracted_pages/
+output_text.txt

@@ -1,0 +1,7 @@
+open-interpreter
+pypdf
+PyMuPDF
+pytesseract
+pdf2image
+Pillow
+pdfplumber
