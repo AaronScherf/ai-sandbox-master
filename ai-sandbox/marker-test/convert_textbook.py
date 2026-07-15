@@ -43,7 +43,7 @@ def run_conversion():
 
     # 1. Mount Google Drive explicitly if running in Colab
     # This exposes your Drive at /content/drive/MyDrive
-    drive_target_dir = "/content/drive/MyDrive/rclone_sync/Processed_Textbooks"
+    drive_target_dir = "/content/drive/MyDrive/academic_resources/processed_textbooks"
 
     # Fallback to local if running outside of Colab context
     if not os.path.exists("/content"):
