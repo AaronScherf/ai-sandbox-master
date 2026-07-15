@@ -10,40 +10,36 @@ def install_remote_dependencies():
     print("📦 Bootstrapping cloud instance environment packages...")
     try:
         # Install system-level dependencies for rendering
-        subprocess.run([
-            "apt-get", "update"
-        ], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        subprocess.run([
-            "apt-get", "install", "-y", "poppler-utils", "tesseract-ocr", "libgl1", "libglx-mesa0"
-        ], check=True, stdout=subprocess.DEVNULL)
+        subprocess.run(["apt-get", "update"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        subprocess.run(["apt-get", "install", "-y", "poppler-utils", "tesseract-ocr", "libgl1", "libglx-mesa0"], check=True, stdout=subprocess.DEVNULL)
 
         # Install python packages using the bundled pip tool
-        subprocess.run([
-            sys.executable, "-m", "pip", "install", "--upgrade", "pip"
-        ], check=True, stdout=subprocess.DEVNULL)
-        subprocess.run([
-            sys.executable, "-m", "pip", "install", "marker-pdf", "pypdf"
-        ], check=True, stdout=subprocess.DEVNULL)
+        subprocess.run([sys.executable, "-m", "pip", "install", "--upgrade", "pip"], check=True, stdout=subprocess.DEVNULL)
+        subprocess.run([sys.executable, "-m", "pip", "install", "marker-pdf", "pypdf"], check=True, stdout=subprocess.DEVNULL)
         print("✅ Environment successfully configured.")
     except Exception as e:
         print(f"⚠️ Warning during packaging: {e}. Attempting execution anyway...")
 
 def run_conversion():
-    # Resolve the absolute path of your active folder structure inside Colab
-    workspace = os.getcwd()
-    local_input = os.path.join(workspace, "app", "data", "textbook.pdf")
+    # Read the file path dynamically passed from the CLI
+    if len(sys.argv) < 2:
+        print("❌ Error: Missing input file argument.")
+        print("Usage: python convert_textbook.py <path_to_pdf>")
+        return
 
-    # Save the output directly into the workspace so the CLI catches it
+    local_input = os.path.abspath(sys.argv[1])
+    workspace = os.path.dirname(os.path.abspath(__file__))
+
     temp_out_dir = os.path.join(workspace, "marker_raw_output")
     final_output_zip = os.path.join(workspace, "output_package.zip")
 
     if not os.path.exists(local_input):
         print(f"❌ Error inside runner: Input file not found at {local_input}")
-        print("Current Workspace path location:", workspace)
-        print("Directory tree structure available:", os.listdir(workspace))
+        print("Current Workspace location:", workspace)
+        print("Files present in execution scope:", os.listdir(os.path.dirname(local_input) if os.path.dirname(local_input) else "."))
         return
 
-    # Clean up any lingering data blocks from broken iterations
+    # Clean up previous temporary paths
     if os.path.exists(temp_out_dir):
         shutil.rmtree(temp_out_dir)
     if os.path.exists(final_output_zip):
@@ -56,10 +52,10 @@ def run_conversion():
         "--output_dir", temp_out_dir
     ]
 
-    print("🚀 Marker engine starting on Cloud GPU...")
+    print(f"🚀 Marker engine starting on Cloud GPU for: {os.path.basename(local_input)}")
     start_time = time.time()
 
-    # Stream the output process
+    # Stream the output process in real-time
     process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
     for line in process.stdout:
         print(line, end="")
@@ -86,7 +82,6 @@ def run_conversion():
     print(f"🎉 Process complete. Package ready for automatic artifact retrieval.")
 
 if __name__ == "__main__":
-    # If executing inside Google's cloud space, bootstrap it first
     if os.path.exists("/content"):
         install_remote_dependencies()
 
