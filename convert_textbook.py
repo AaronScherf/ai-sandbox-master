@@ -3,17 +3,21 @@ import glob
 import shutil
 import subprocess
 
-# Clear, native paths for the remote Colab environment
-COLAB_INPUT = "/content/textbook.pdf"
+# Fixed target variables mapping perfectly to the Colab upload path structure
+COLAB_INPUT = "/content/app/data/textbook.pdf"  # Match the CLI upload directory path
 TEMP_OUT_DIR = "/content/marker_raw_output"
-COLAB_OUTPUT_ZIP = "/content/output_package.zip"  # Clear, native .zip target
+COLAB_OUTPUT_ZIP = "/content/output_package.zip"
 
 def run_colab_automation():
     if not os.path.exists(COLAB_INPUT):
         print(f"❌ Error inside Colab: Input file not found at {COLAB_INPUT}")
+        # Help log what files actually exist in the container to aid tracking
+        print("Available root items:", os.listdir("/content"))
+        if os.path.exists("/content/app"):
+            print("Available app items:", os.listdir("/content/app/data"))
         return
 
-    # Clean up lingering data from previous loops in the session
+    # Clean up lingering data layers from previous loops in the session
     if os.path.exists(TEMP_OUT_DIR):
         shutil.rmtree(TEMP_OUT_DIR)
     if os.path.exists(COLAB_OUTPUT_ZIP):
