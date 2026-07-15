@@ -21,19 +21,13 @@ def run_conversion():
     if len(sys.argv) < 3:
         print("❌ Error: Missing required path arguments.")
         print("Usage: colab run convert_textbook.py <RELATIVE_INPUT_PDF_PATH> <RELATIVE_OUTPUT_FOLDER_PATH>")
-        print("Example: colab run convert_textbook.py 'Books/math.pdf' 'Processed/Calculus'")
+        print("Example: colab run convert_textbook.py 'academic_resources/textbook.pdf' 'academic_resources/processed'")
         return
 
-    # 1. Mount Google Drive securely inside the cloud container
-    if os.path.exists("/content"):
-        print("🔐 Mounting Google Drive storage space securely...")
-        from google.colab import drive
-        drive.mount('/content/drive', force_remount=True)
-
-    # Define the root of your MyDrive space
+    # Define the static root of your mounted Google Drive space inside Colab
     drive_root = "/content/drive/MyDrive" if os.path.exists("/content") else os.getcwd()
 
-    # Read the text paths directly from your terminal arguments
+    # Read the clean text paths directly from your terminal arguments
     input_relative_path = sys.argv[1]
     output_relative_path = sys.argv[2]
 
@@ -41,7 +35,7 @@ def run_conversion():
     absolute_input_pdf = os.path.join(drive_root, input_relative_path)
     absolute_output_dir = os.path.join(drive_root, output_relative_path)
 
-    # Temporary working directory local to the container to avoid network sync lag
+    # Temporary working directory local to the container to avoid network sync lag during processing
     workspace = "/content" if os.path.exists("/content") else os.getcwd()
     temp_out_dir = os.path.join(workspace, "marker_raw_output")
 
@@ -52,7 +46,7 @@ def run_conversion():
     if os.path.exists(temp_out_dir):
         shutil.rmtree(temp_out_dir)
 
-    # 2. Execute Marker at full scale using the cloud GPU
+    # Execute Marker at full scale using the cloud GPU
     command = ["marker_single", absolute_input_pdf, "--output_dir", temp_out_dir]
     print(f"🚀 Marker engine starting on Cloud GPU for: {os.path.basename(absolute_input_pdf)}")
 
@@ -71,14 +65,14 @@ def run_conversion():
         print(f"❌ Marker process failed internally with exit code {process.returncode}")
         return
 
-    # 3. Locate the generated output folder inside the container
+    # Locate the generated output folder inside the container
     generated_folders = glob.glob(os.path.join(temp_out_dir, "*"))
     if not generated_folders:
         print("❌ Error: No output assets generated.")
         return
     actual_output_path = generated_folders[0]
 
-    # 4. Copy the raw unzipped Markdown and image folders straight into your target Drive path
+    # Create the target book subfolder name based on the original PDF name
     book_folder_name = os.path.splitext(os.path.basename(absolute_input_pdf))[0]
     final_destination = os.path.join(absolute_output_dir, f"Processed_{book_folder_name}")
 
