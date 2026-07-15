@@ -2,22 +2,54 @@ import os
 import glob
 import subprocess
 import zipfile
+import re
 
 # Configuration
 PDF_DIR = "./app/data"
 OUTPUT_DIR = "./output"
 REMOTE_INPUT = "textbook.pdf"
-REMOTE_OUTPUT = "output_package.zip"  # Now explicitly tracking the .zip file
+REMOTE_OUTPUT = "output_package.zip"
 CONVERSION_SCRIPT = "convert_textbook.py"
 
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
-print("Starting Colab session...")
-subprocess.run(["colab", "new", "--gpu", "T4"], check=True)
+# --- REUSABLE SESSION LOGIC (FIXED SYNTAX) ---
+print("Checking for existing, reusable Colab sessions...")
+session_id = None
 
-# Upload the conversion script once to the Colab session root environment
-print("Uploading conversion script to Colab root...")
-subprocess.run(["colab", "upload", CONVERSION_SCRIPT, CONVERSION_SCRIPT], check=True)
+# Query the official CLI for currently running container sessions
+list_result = subprocess.run(["colab", "sessions"], capture_output=True, text=True)
+
+# Parse active 6-to-8 character session hex hashes
+active_sessions = re.findall(r"([a-f0-9]{6,8})", list_result.stdout)
+
+if active_sessions:
+    # Grab the first available open session to skip boot delay
+    session_id = active_sessions[0]
+    print(f"🔄 Found an active cloud instance! Reusing Session ID: {session_id}")
+else:
+    print("✨ No active sessions found. Requesting a new T4 GPU allocation from Google...")
+    try:
+        new_result = subprocess.run(["colab", "new", "--gpu", "T4"], capture_output=True, text=True, check=True)
+        print(new_result.stdout)
+
+        session_match = re.search(r"session '([a-f0-9]+)'", new_result.stdout)
+        if session_match:
+            session_id = session_match.group(1)
+        else:
+            print("❌ Critical: Failed to parse a valid session ID string from Colab CLI.")
+            exit(1)
+    except subprocess.CalledProcessError as e:
+        print("\n❌ Google Colab GPU Allocation Limit Reached!")
+        print("Google is rate-limiting your account because lingering sessions are still shutting down.")
+        print("Please wait 5-10 minutes for the backend to reset your slot, then run this script again.\n")
+        exit(1)
+
+print(f"🎯 Connected to Session: {session_id}")
+
+# Upload the conversion script to the workspace
+print("Syncing execution dependencies to remote server...")
+subprocess.run(["colab", "upload", "-s", session_id, CONVERSION_SCRIPT, CONVERSION_SCRIPT], check=True)
 
 pdf_files = sorted(glob.glob(os.path.join(PDF_DIR, "*.pdf")))
 
@@ -27,31 +59,29 @@ for pdf_path in pdf_files:
 
     try:
         print("Uploading PDF to Colab...")
-        subprocess.run(["colab", "upload", pdf_path, REMOTE_INPUT], check=True)
+        subprocess.run(["colab", "upload", "-s", session_id, pdf_path, REMOTE_INPUT], check=True)
 
-        print("Running conversion script on Colab...")
-        subprocess.run(["colab", "exec", "-f", CONVERSION_SCRIPT], check=True)
+        print("Running conversion script on Colab GPU...")
+        subprocess.run(["colab", "exec", "-s", session_id, "-f", CONVERSION_SCRIPT], check=True)
 
-        # Define paths for downloading and extracting
+        # Paths for local file organization
         local_zip_path = os.path.join(OUTPUT_DIR, f"{base_name}.zip")
         local_extract_folder = os.path.join(OUTPUT_DIR, base_name)
 
-        print(f"Downloading archive package to {local_zip_path}...")
-        subprocess.run(["colab", "download", REMOTE_OUTPUT, local_zip_path], check=True)
+        print("Downloading archive package...")
+        subprocess.run(["colab", "download", "-s", session_id, REMOTE_OUTPUT, local_zip_path], check=True)
 
-        # Automatically extract the folder contents locally
-        print(f"Unzipping contents into: {local_extract_folder}/")
+        print(f"Extracting contents into local space: {local_extract_folder}/")
         os.makedirs(local_extract_folder, exist_ok=True)
         with zipfile.ZipFile(local_zip_path, 'r') as zip_ref:
             zip_ref.extractall(local_extract_folder)
 
-        # Clean up the local temporary zip file to keep storage tidy
+        # Clean up local temporary file block
         os.remove(local_zip_path)
-
-        print(f"✅ Successfully processed, downloaded, and extracted {base_name}")
+        print(f"✅ Successfully extracted complete assets for: {base_name}")
 
     except subprocess.CalledProcessError as e:
-        print(f"❌ Error processing {base_name}. Stopping batch. Error: {e}")
+        print(f"❌ Error processing {base_name}. Stopping batch loop execution. Error: {e}")
         break
 
-print("\nBatch processing complete. Check your './output/' directory for extracted book folders.")
+print("\nBatch pipeline finished. Keeping the Colab session open for your next execution run.")
