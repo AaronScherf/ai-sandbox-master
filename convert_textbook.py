@@ -36,54 +36,55 @@ def run_conversion():
         print("❌ Error: Missing Hex-Encoded Google Drive ID.")
         return
 
-    hex_id = sys.argv[1]
+    hex_id = sys.argv
     workspace = "/content" if os.path.exists("/content") else os.getcwd()
     local_input = os.path.join(workspace, "textbook.pdf")
+
+    # Keep the raw output local to the container to avoid Google Drive sync lag issues
     temp_out_dir = os.path.join(workspace, "marker_raw_output")
+    final_output_zip = os.path.join(workspace, "output_package.zip")
 
-    # 1. Mount Google Drive explicitly if running in Colab
-    # This exposes your Drive at /content/drive/MyDrive
-    drive_target_dir = "/content/drive/MyDrive/academic_resources/processed_textbooks"
-
-    # Fallback to local if running outside of Colab context
-    if not os.path.exists("/content"):
-        drive_target_dir = os.path.join(workspace, "output")
-
-    # Download the file and get the clean string ID
+    # Download the textbook file
     file_id = fetch_from_drive_hex(hex_id, local_input)
 
     if os.path.exists(temp_out_dir):
         shutil.rmtree(temp_out_dir)
+    if os.path.exists(final_output_zip):
+        os.remove(final_output_zip)
 
-    # 2. Run Marker at full scale
     command = ["marker_single", local_input, "--output_dir", temp_out_dir]
-    print(f"🚀 Marker engine starting on Cloud GPU...")
+    print(f"🚀 Marker engine starting on Cloud GPU for Book_{file_id}...")
 
+    # Use Popen to actively read logs and keep the terminal connection alive
     process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+
+    last_ping = time.time()
     for line in process.stdout:
         print(line, end="")
+        # Force a terminal text print every 30 seconds to prevent Jupyter connection timeouts
+        if time.time() - last_ping > 30:
+            print(f"\n[Keep-Alive Ping] Script is active. Processing math page grids...", flush=True)
+            last_ping = time.time()
+
     process.wait()
 
     if process.returncode != 0:
         print(f"❌ Marker process failed internally with exit code {process.returncode}")
         return
 
-    # 3. Locate the generated output folder
+    # Locate the generated output folder inside the container
     generated_folders = glob.glob(os.path.join(temp_out_dir, "*"))
     if not generated_folders:
         print("❌ Error: No output directories generated.")
         return
-    actual_output_path = generated_folders[0]
 
-    # 4. Copy the unzipped raw markdown and image subfolders straight into Google Drive
-    final_book_folder = os.path.join(drive_target_dir, f"Book_{file_id}")
-    print(f"📂 Saving assets directly to Google Drive folder: {final_book_folder}")
+    actual_output_path = generated_folders[0]  # Safely target the inner string path
 
-    if os.path.exists(final_book_folder):
-        shutil.rmtree(final_book_folder)
-
-    shutil.copytree(actual_output_path, final_book_folder)
-    print(f"🎉 Complete! Markdown file and extracted graph images are securely stored in your Drive.")
+    print(f"📦 Compressing assets inside: {actual_output_path}")
+    # Package into a single zip file local to the container workspace folder
+    shutil.make_archive(os.path.join(workspace, "temp_archive"), 'zip', actual_output_path)
+    shutil.move(os.path.join(workspace, "temp_archive.zip"), final_output_zip)
+    print(f"🎉 Complete! Package 'output_package.zip' is compiled and ready for retrieval.")
 
 if __name__ == "__main__":
     if os.path.exists("/content"):
