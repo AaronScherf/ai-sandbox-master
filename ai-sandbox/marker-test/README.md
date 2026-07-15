@@ -32,10 +32,6 @@ docker run --rm `
 docker build -t marker-base-env .
 
 docker run --rm \
--e TORCH_DEVICE=cpu \
--e IN_DET_BATCH_SIZE=1 \
--e OCR_BATCH_SIZE=1 \
--e MARKER_NUM_THREADS=1 \
 -v "$PWD/run_pipeline.py:/app/run_pipeline.py" \
 -v "$PWD/app/data:/app/data" \
 -v "$PWD/app/output:/app/output" \
