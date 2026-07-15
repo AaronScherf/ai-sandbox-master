@@ -1,12 +1,41 @@
 import os
+import time
 import subprocess
 from pypdf import PdfReader, PdfWriter
 
-def split_pdf(input_path, chunk_size=50):
-    print(f"Reading {input_path}...")
+
+def calculate_dynamic_chunk_size(input_path):
+    """Calculates the optimal chunk size based on file size density per page."""
+    file_size_bytes = os.path.getsize(input_path)
+    file_size_mb = file_size_bytes / (1024 * 1024)
+
     reader = PdfReader(input_path)
     total_pages = len(reader.pages)
-    print(f"Total pages found: {total_pages}. Splitting into {chunk_size}-page chunks...")
+
+    # Calculate MB density per page
+    mb_per_page = file_size_mb / total_pages
+
+    print(f"--- Document Analysis ---")
+    print(f"Total File Size: {file_size_mb:.2f} MB")
+    print(f"Total Pages: {total_pages}")
+    print(f"Density: {mb_per_page:.3f} MB per page")
+
+    # Dynamic logic based on visual/data density per page
+    if mb_per_page > 0.5:
+        chunk_size = 20
+        print("-> Detected heavy/high-res scans. Setting cautious chunk size: 20 pages.")
+    elif mb_per_page > 0.15:
+        chunk_size = 50
+        print("-> Detected standard scanned text. Setting standard chunk size: 50 pages.")
+    else:
+        chunk_size = 100
+        print("-> Detected lightweight/optimized text. Setting fast chunk size: 100 pages.")
+
+    return total_pages, chunk_size
+
+
+def split_pdf(input_path):
+    total_pages, chunk_size = calculate_dynamic_chunk_size(input_path)
 
     os.makedirs("/app/chunks", exist_ok=True)
     chunk_paths = []
@@ -40,9 +69,9 @@ def process_chunks(chunk_paths):
 
         try:
             subprocess.run(command, check=True)
-            print(f"Successfully processed chunk {idx}")
+            print(f"Successfully processed chunk {idx}\n")
         except subprocess.CalledProcessError as e:
-            print(f"Error processing chunk {idx}: {e}")
+            print(f"Error processing chunk {idx}: {e}\n")
 
 if __name__ == "__main__":
     input_book = "/app/data/textbook.pdf"
@@ -50,6 +79,22 @@ if __name__ == "__main__":
     if not os.path.exists(input_book):
         print(f"Error: Could not find your textbook at {input_book}. Did you mount your folder correctly?")
     else:
-        chunks = split_pdf(input_book, chunk_size=50)
+        # Start the execution timer
+        start_time = time.time()
+        # We need reader in global scope for split_pdf to use it cleanly
+        reader = PdfReader(input_book)
+        chunks = split_pdf(input_book)
         process_chunks(chunks)
-        print("\nAll done! Check your local folder for the markdown results.")
+
+        # Calculate the total execution time
+        end_time = time.time()
+        total_seconds = end_time - start_time
+
+        # Format the time nicely into minutes and seconds
+        minutes = int(total_seconds // 60)
+        seconds = int(total_seconds % 60)
+
+        print("==================================================")
+        print("All done! Check your output folder for the markdown results.")
+        print(f"Total Execution Time: {minutes} minutes and {seconds} seconds.")
+        print("==================================================")

@@ -24,13 +24,15 @@ docker build -t marker-base-env .
 docker run --rm `
       -v "${PWD}/run_pipeline.py:/app/run_pipeline.py" `
       -v "${PWD}/app/data:/app/data" `
-      -v "${PWD}/output:/app/output" `
+      -v "${PWD}/app/output:/app/output" `
       marker-base-env python run_pipeline.py
 
 
 #### BASH version:
+docker build -t marker-base-env .
+
 docker run --rm \
 -v "$PWD/run_pipeline.py:/app/run_pipeline.py" \
 -v "$PWD/app/data:/app/data" \
--v "$PWD/output:/app/output" \
+-v "$PWD/app/output:/app/output" \
 marker-base-env python /app/run_pipeline.py
