@@ -3,15 +3,16 @@ import time
 import gc
 from pypdf import PdfReader, PdfWriter
 
-# Explicitly force CPU execution globally before any AI packages load
+# Force single-threaded CPU processing to bypass OOM crashes
 os.environ["TORCH_DEVICE"] = "cpu"
 os.environ["IN_DET_BATCH_SIZE"] = "1"
 os.environ["OCR_BATCH_SIZE"] = "1"
 os.environ["MARKER_NUM_THREADS"] = "1"
 
-# Import marker directly into the script code to save system memory
-from marker.convert import convert_single_pdf
-from marker.models import load_all_models
+# Import modern Marker API classes
+from marker.converters.pdf import PdfConverter
+from marker.models import create_model_dict
+from marker.config.parser import ConfigParser
 
 def split_pdf(input_path, chunk_size=15):
     """Slices the book into ultra-safe, low-RAM 15-page segments"""
@@ -40,41 +41,56 @@ def split_pdf(input_path, chunk_size=15):
 def process_chunks_in_memory(chunk_paths):
     os.makedirs("/app/output", exist_ok=True)
 
-    print("Loading AI translation models into CPU memory... (This takes a moment)")
-    # Load models exactly once into the script session
-    model_lst = load_all_models()
-    print("Models successfully cached.\n")
+    print("Initializing Marker AI configurations... (This takes a moment)")
+
+    # 1. Initialize configuration variables
+    config = {
+        "output_format": "markdown",
+        "disable_image_extraction": False
+    }
+    config_parser = ConfigParser(config)
+
+    # 2. Instantiate the unified converter class natively
+    converter = PdfConverter(
+        config=config_parser.generate_config_dict(),
+        artifact_dict=create_model_dict(),
+        processor_list=config_parser.get_processors(),
+        renderer=config_parser.get_renderer()
+    )
+    print("AI Engine initialized and cached in RAM.\n")
 
     for idx, chunk_path in enumerate(chunk_paths):
         print(f"--- Processing Chunk {idx+1}/{len(chunk_paths)}: {chunk_path} ---")
         output_folder = f"/app/output/chunk_{idx}"
+        os.makedirs(output_folder, exist_ok=True)
 
         try:
-            # Native Python execution (Bypasses CLI subprocess memory overhead)
-            full_text, images, out_meta = convert_single_pdf(chunk_path, model_lst)
+            # Execute the conversion
+            rendered = converter(chunk_path)
 
-            # Create output directories for this chunk
-            os.makedirs(output_folder, exist_ok=True)
-            img_dir = os.path.join(output_folder, f"chunk_{idx}_images")
-            os.makedirs(img_dir, exist_ok=True)
+            # Access text and extracted images via properties
+            full_markdown_text = rendered.markdown
+            extracted_images = rendered.images  # Dictionary containing image files
 
             # Save the parsed markdown text file
             md_path = os.path.join(output_folder, f"chunk_{idx}.md")
             with open(md_path, "w", encoding="utf-8") as f:
-                f.write(full_text)
+                f.write(full_markdown_text)
 
-            # Save all extracted mathematical graphs and charts
-            for img_name, img_data in images.items():
-                img_path = os.path.join(img_dir, img_name)
-                img_data.save(img_path)
+            # Save all mathematical graphs/charts if images exist
+            if extracted_images:
+                img_dir = os.path.join(output_folder, f"chunk_{idx}_images")
+                os.makedirs(img_dir, exist_ok=True)
+                for img_name, img_data in extracted_images.items():
+                    img_path = os.path.join(img_dir, img_name)
+                    img_data.save(img_path)
 
             print(f"Successfully processed chunk {idx}")
 
         except Exception as e:
             print(f"Error processing chunk {idx}: {e}")
 
-        # Flush the system RAM memory buffers instantly between chunks
-        del full_text, images
+        # Flush system RAM memory buffers instantly between chunks
         gc.collect()
         print("System RAM garbage collection wiped cleanly.")
         print("--------------------------------------------------\n")
@@ -87,7 +103,7 @@ if __name__ == "__main__":
     else:
         start_time = time.time()
 
-        # Slice into 15-page blocks (Perfect sweet spot for 16GB headless systems)
+        # Slice into 15-page blocks (Sweet spot for 16GB headless systems)
         chunks = split_pdf(input_book, chunk_size=15)
         process_chunks_in_memory(chunks)
 
