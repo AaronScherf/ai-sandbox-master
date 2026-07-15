@@ -73,6 +73,27 @@ def process_chunks(chunk_paths):
         except subprocess.CalledProcessError as e:
             print(f"Error processing chunk {idx}: {e}\n")
 
+        # --- SAFE CROSS-PLATFORM CACHE CLEARING LOGIC ---
+        print("Clearing system cache memory variables...")
+        try:
+            import gc
+            import torch
+
+            # Force Python to release system variables from RAM
+            gc.collect()
+
+            # Safely check for CUDA before attempting to clear it
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
+                print("-> CUDA memory cache cleared successfully.")
+            else:
+                # If running on CPU, we rely on garbage collection
+                print("-> CPU environment detected. Memory collected successfully.")
+        except Exception as cache_err:
+            print(f"Cache clearing notice: {cache_err}")
+        print("--------------------------------------------------\n")
+
+
 if __name__ == "__main__":
     input_book = "/app/data/textbook.pdf"
 
