@@ -28,7 +28,8 @@ def run_conversion():
         return
 
     local_input = os.path.abspath(sys.argv[1])
-    workspace = os.path.dirname(os.path.abspath(__file__))
+    workspace = "/content" if os.path.exists("/content") else os.getcwd()
+
 
     temp_out_dir = os.path.join(workspace, "marker_raw_output")
     final_output_zip = os.path.join(workspace, "output_package.zip")
