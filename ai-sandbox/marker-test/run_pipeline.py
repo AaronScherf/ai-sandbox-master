@@ -47,8 +47,13 @@ def process_chunks_in_memory(chunk_paths):
     config = {
         "output_format": "markdown",
         "disable_image_extraction": False,
-        "low_mem": True
+        "low_mem": True,
+        "torch_dtype": "bfloat16",      # force smaller neural net models to free ram
+        "layout_batch_size": 1,
+        "extract_tables": False,       # Bypasses the heavy table-reconstruction step
+        "force_ocr": True             # Forces direct character tracking
     }
+
     config_parser = ConfigParser(config)
 
     # 2. Instantiate the unified converter class natively
