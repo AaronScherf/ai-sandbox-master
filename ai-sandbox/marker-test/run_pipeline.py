@@ -48,8 +48,8 @@ def process_chunks_in_memory(chunk_paths):
         "output_format": "markdown",
         "disable_image_extraction": False,
         "low_mem": True,
-        "torch_dtype": "bfloat16",      # force smaller neural net models to free ram
-        "layout_batch_size": 1,
+        "torch_dtype": "bfloat16",       # <-- CUTS MODEL RAM USAGE IN HALF
+        "layout_batch_size": 1,         # <-- STRIPS OUT PARALLEL MEMORY SPIKES
         "extract_tables": False,       # Bypasses the heavy table-reconstruction step
         "force_ocr": True             # Forces direct character tracking
     }
