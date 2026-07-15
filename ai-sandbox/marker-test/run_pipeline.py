@@ -46,7 +46,8 @@ def process_chunks_in_memory(chunk_paths):
     # 1. Initialize configuration variables
     config = {
         "output_format": "markdown",
-        "disable_image_extraction": False
+        "disable_image_extraction": False,
+        "low_mem": True
     }
     config_parser = ConfigParser(config)
 
