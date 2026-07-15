@@ -56,7 +56,7 @@ def run_conversion():
         shutil.rmtree(temp_out_dir)
 
     # 2. Run Marker at full scale
-    command = ["marker_single", local_input, "--output_dir", temp_out_dir, "--skip_existing"]
+    command = ["marker_single", local_input, "--output_dir", temp_out_dir]
     print(f"🚀 Marker engine starting on Cloud GPU...")
 
     process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
