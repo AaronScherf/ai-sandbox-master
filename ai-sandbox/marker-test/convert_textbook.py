@@ -4,6 +4,7 @@ import shutil
 import subprocess
 import time
 import sys
+import base64
 
 def install_remote_dependencies():
     print("📦 Bootstrapping cloud instance environment packages...")
@@ -16,32 +17,43 @@ def install_remote_dependencies():
     except Exception as e:
         print(f"⚠️ Warning during packaging: {e}.")
 
-def fetch_from_drive(file_id, target_path):
-    """Downloads the textbook directly from Google Drive inside Colab."""
-    print(f"📡 Fetching textbook from Google Drive (ID: {file_id})...")
-    # Uses gdown (built into Colab) to handle large file downloads securely
-    command = ["gdown", f"https://google.com{file_id}", "-O", target_path]
-    result = subprocess.run(command, capture_output=True, text=True)
-    if result.returncode == 0:
-        print("✅ Textbook successfully synced from Drive.")
-    else:
-        print(f"❌ Failed to download from Drive: {result.stderr}")
+def fetch_from_drive_encoded(encoded_id, target_path):
+    """Decodes the raw, case-sensitive Drive ID and downloads the file."""
+    try:
+        # Decode the base64 string back into the exact case-sensitive File ID
+        decoded_bytes = base64.b64decode(encoded_id.encode('utf-8'))
+        file_id = decoded_bytes.decode('utf-8')
+
+        print(f"📡 Successfully restored case-sensitive Drive ID.")
+        print(f"Downloading textbook asset via gdown...")
+
+        # Native gdown syntax using the clean --id flag
+        command = ["gdown", "--id", file_id, "-O", target_path]
+        result = subprocess.run(command, capture_output=True, text=True)
+
+        if result.returncode == 0:
+            print("✅ Textbook successfully downloaded from Drive.")
+        else:
+            print(f"❌ Failed to download from Drive: {result.stderr}")
+            sys.exit(1)
+    except Exception as decode_err:
+        print(f"❌ Token processing failure: {decode_err}")
         sys.exit(1)
 
 def run_conversion():
     if len(sys.argv) < 2:
-        print("❌ Error: Missing Google Drive File ID.")
-        print("Usage: colab run convert_textbook.py <GOOGLE_DRIVE_FILE_ID>")
+        print("❌ Error: Missing Encoded Google Drive ID.")
+        print("Usage: colab run convert_textbook.py <ENCODED_BASE64_ID>")
         return
 
-    drive_file_id = sys.argv[1]
+    encoded_id = sys.argv[1]
     workspace = "/content" if os.path.exists("/content") else os.getcwd()
     local_input = os.path.join(workspace, "textbook.pdf")
     temp_out_dir = os.path.join(workspace, "marker_raw_output")
     final_output_zip = os.path.join(workspace, "output_package.zip")
 
-    # Download from Drive right away
-    fetch_from_drive(drive_file_id, local_input)
+    # Download the file using the clean decoded ID
+    fetch_from_drive_encoded(encoded_id, local_input)
 
     if os.path.exists(temp_out_dir):
         shutil.rmtree(temp_out_dir)
