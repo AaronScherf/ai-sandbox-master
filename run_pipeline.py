@@ -1,41 +1,25 @@
 import os
 import time
-import subprocess
+import gc
 from pypdf import PdfReader, PdfWriter
 
+# Explicitly force CPU execution globally before any AI packages load
+os.environ["TORCH_DEVICE"] = "cpu"
+os.environ["IN_DET_BATCH_SIZE"] = "1"
+os.environ["OCR_BATCH_SIZE"] = "1"
+os.environ["MARKER_NUM_THREADS"] = "1"
 
-def calculate_dynamic_chunk_size(input_path):
-    """Calculates the optimal chunk size based on file size density per page."""
-    file_size_bytes = os.path.getsize(input_path)
-    file_size_mb = file_size_bytes / (1024 * 1024)
+# Import marker directly into the script code to save system memory
+from marker.convert import convert_single_pdf
+from marker.models import load_all_models
 
+def split_pdf(input_path, chunk_size=15):
+    """Slices the book into ultra-safe, low-RAM 15-page segments"""
     reader = PdfReader(input_path)
     total_pages = len(reader.pages)
 
-    # Calculate MB density per page
-    mb_per_page = file_size_mb / total_pages
-
-    print(f"--- Document Analysis ---")
-    print(f"Total File Size: {file_size_mb:.2f} MB")
-    print(f"Total Pages: {total_pages}")
-    print(f"Density: {mb_per_page:.3f} MB per page")
-
-    # Dynamic logic based on visual/data density per page
-    if mb_per_page > 0.5:
-        chunk_size = 20
-        print("-> Detected heavy/high-res scans. Setting cautious chunk size: 20 pages.")
-    elif mb_per_page > 0.15:
-        chunk_size = 50
-        print("-> Detected standard scanned text. Setting standard chunk size: 50 pages.")
-    else:
-        chunk_size = 100
-        print("-> Detected lightweight/optimized text. Setting fast chunk size: 100 pages.")
-
-    return total_pages, chunk_size
-
-
-def split_pdf(input_path):
-    total_pages, chunk_size = calculate_dynamic_chunk_size(input_path)
+    print(f"--- Document Slicing ---")
+    print(f"Total Pages: {total_pages}. Slicing into safe {chunk_size}-page chunks...")
 
     os.makedirs("/app/chunks", exist_ok=True)
     chunk_paths = []
@@ -50,72 +34,63 @@ def split_pdf(input_path):
             writer.write(f)
         chunk_paths.append(chunk_name)
 
-    print("Splitting complete.")
+    print(f"Splitting complete into {len(chunk_paths)} temporary chunks.\n")
     return chunk_paths
 
-def process_chunks(chunk_paths):
+def process_chunks_in_memory(chunk_paths):
     os.makedirs("/app/output", exist_ok=True)
 
-    for idx, chunk in enumerate(chunk_paths):
-        print(f"\n--- Processing Chunk {idx+1}/{len(chunk_paths)}: {chunk} ---")
+    print("Loading AI translation models into CPU memory... (This takes a moment)")
+    # Load models exactly once into the script session
+    model_lst = load_all_models()
+    print("Models successfully cached.\n")
 
-        # Call the marker CLI command
-        # Downloads model weights automatically on the first chunk run
-        command = [
-            "marker_single",
-            chunk,
-            "--output_dir", f"/app/output/chunk_{idx}"
-        ]
+    for idx, chunk_path in enumerate(chunk_paths):
+        print(f"--- Processing Chunk {idx+1}/{len(chunk_paths)}: {chunk_path} ---")
+        output_folder = f"/app/output/chunk_{idx}"
 
         try:
-            subprocess.run(command, check=True)
-            print(f"Successfully processed chunk {idx}\n")
-        except subprocess.CalledProcessError as e:
-            print(f"Error processing chunk {idx}: {e}\n")
+            # Native Python execution (Bypasses CLI subprocess memory overhead)
+            full_text, images, out_meta = convert_single_pdf(chunk_path, model_lst)
 
-        # --- SAFE CROSS-PLATFORM CACHE CLEARING LOGIC ---
-        print("Clearing system cache memory variables...")
-        try:
-            import gc
-            import torch
+            # Create output directories for this chunk
+            os.makedirs(output_folder, exist_ok=True)
+            img_dir = os.path.join(output_folder, f"chunk_{idx}_images")
+            os.makedirs(img_dir, exist_ok=True)
 
-            # Force Python to release system variables from RAM
-            gc.collect()
+            # Save the parsed markdown text file
+            md_path = os.path.join(output_folder, f"chunk_{idx}.md")
+            with open(md_path, "w", encoding="utf-8") as f:
+                f.write(full_text)
 
-            # Safely check for CUDA before attempting to clear it
-            if torch.cuda.is_available():
-                torch.cuda.empty_cache()
-                print("-> CUDA memory cache cleared successfully.")
-            else:
-                # If running on CPU, we rely on garbage collection
-                print("-> CPU environment detected. Memory collected successfully.")
-        except Exception as cache_err:
-            print(f"Cache clearing notice: {cache_err}")
+            # Save all extracted mathematical graphs and charts
+            for img_name, img_data in images.items():
+                img_path = os.path.join(img_dir, img_name)
+                img_data.save(img_path)
+
+            print(f"Successfully processed chunk {idx}")
+
+        except Exception as e:
+            print(f"Error processing chunk {idx}: {e}")
+
+        # Flush the system RAM memory buffers instantly between chunks
+        del full_text, images
+        gc.collect()
+        print("System RAM garbage collection wiped cleanly.")
         print("--------------------------------------------------\n")
-
 
 if __name__ == "__main__":
     input_book = "/app/data/textbook.pdf"
 
     if not os.path.exists(input_book):
-        print(f"Error: Could not find your textbook at {input_book}. Did you mount your folder correctly?")
+        print(f"Error: Could not find your textbook at {input_book}.")
     else:
-        # Start the execution timer
         start_time = time.time()
-        # We need reader in global scope for split_pdf to use it cleanly
-        reader = PdfReader(input_book)
-        chunks = split_pdf(input_book)
-        process_chunks(chunks)
 
-        # Calculate the total execution time
+        # Slice into 15-page blocks (Perfect sweet spot for 16GB headless systems)
+        chunks = split_pdf(input_book, chunk_size=15)
+        process_chunks_in_memory(chunks)
+
         end_time = time.time()
         total_seconds = end_time - start_time
-
-        # Format the time nicely into minutes and seconds
-        minutes = int(total_seconds // 60)
-        seconds = int(total_seconds % 60)
-
-        print("==================================================")
-        print("All done! Check your output folder for the markdown results.")
-        print(f"Total Execution Time: {minutes} minutes and {seconds} seconds.")
-        print("==================================================")
+        print(f"Success! Finished in {int(total_seconds // 60)}m {int(total_seconds % 60)}s.")
