@@ -25,21 +25,3 @@ WORKDIR /app
 # COPY app/run_pipeline.py .
 
 # CMD ["python", "run_pipeline.py"]
-
-# If the COPY and CMD above are not commented out:
-  # Build the Docker image
-  # docker build -t marker-cpu-test .
-  #
-  ## Run the container and mount your current directory to share the PDF and output files
-  # docker run --rm -v "${PWD}/app/data:/app/data" -v "${PWD}/output:/app/output" marker-cpu-test
-
-  # to run on a port:
-  # docker run -d -p 8080:8080 -v "${PWD}/app/data:/app/data" -v "${PWD}/output:/app/output" --name my-web-app marker-cpu-test
-
- # Or, comment the COPY and CMD commands and use the following
- # docker build -t marker-base-env .
- # docker run --rm `
-    #  -v "${PWD}/run_pipeline.py:/app/run_pipeline.py" `
-    #  -v "${PWD}/app/data:/app/data" `
-    #  -v "${PWD}/output:/app/output" `
-    #  marker-base-env python run_pipeline.py
