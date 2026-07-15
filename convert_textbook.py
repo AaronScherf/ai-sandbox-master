@@ -17,43 +17,44 @@ def install_remote_dependencies():
     except Exception as e:
         print(f"⚠️ Warning during packaging: {e}.")
 
-def decode_hex_string(hex_str, context_name):
-    try:
-        return bytes.fromhex(hex_str).decode('utf-8')
-    except Exception as e:
-        print(f"❌ Error decoding hex string for {context_name}: {e}")
-        sys.exit(1)
-
 def run_conversion():
     if len(sys.argv) < 3:
-        print("❌ Error: Missing required arguments.")
-        print("Usage: colab run convert_textbook.py <HEX_FILE_ID> <HEX_FOLDER_ID>")
+        print("❌ Error: Missing required path arguments.")
+        print("Usage: colab run convert_textbook.py <RELATIVE_INPUT_PDF_PATH> <RELATIVE_OUTPUT_FOLDER_PATH>")
+        print("Example: colab run convert_textbook.py 'Books/math.pdf' 'Processed/Calculus'")
         return
 
-    # Extract both arguments from the script parameters
-    hex_file_id = sys.argv[1]
-    hex_folder_id = sys.argv[2]
+    # 1. Mount Google Drive securely inside the cloud container
+    if os.path.exists("/content"):
+        print("🔐 Mounting Google Drive storage space securely...")
+        from google.colab import drive
+        drive.mount('/content/drive', force_remount=True)
 
-    # Safely restore case-sensitive IDs from the lowercase hex strings
-    file_id = decode_hex_string(hex_file_id, "File ID")
-    folder_id = decode_hex_string(hex_folder_id, "Folder ID")
+    # Define the root of your MyDrive space
+    drive_root = "/content/drive/MyDrive" if os.path.exists("/content") else os.getcwd()
 
+    # Read the text paths directly from your terminal arguments
+    input_relative_path = sys.argv[1]
+    output_relative_path = sys.argv[2]
+
+    # Combine paths to target your true Google Drive storage layouts
+    absolute_input_pdf = os.path.join(drive_root, input_relative_path)
+    absolute_output_dir = os.path.join(drive_root, output_relative_path)
+
+    # Temporary working directory local to the container to avoid network sync lag
     workspace = "/content" if os.path.exists("/content") else os.getcwd()
-    local_input = os.path.join(workspace, "textbook.pdf")
     temp_out_dir = os.path.join(workspace, "marker_raw_output")
 
-    print(f"📡 Downloading textbook asset via gdown...")
-    download_cmd = ["gdown", "--id", file_id, "-O", local_input]
-    if subprocess.run(download_cmd).returncode != 0:
-        print("❌ Failed to download textbook from Drive.")
-        sys.exit(1)
+    if not os.path.exists(absolute_input_pdf):
+        print(f"❌ Error: Could not find your textbook inside Google Drive at: {absolute_input_pdf}")
+        return
 
     if os.path.exists(temp_out_dir):
         shutil.rmtree(temp_out_dir)
 
-    # 1. Execute Marker at full scale using the cloud GPU
-    command = ["marker_single", local_input, "--output_dir", temp_out_dir]
-    print(f"🚀 Marker engine starting on Cloud GPU for Book_{file_id}...")
+    # 2. Execute Marker at full scale using the cloud GPU
+    command = ["marker_single", absolute_input_pdf, "--output_dir", temp_out_dir]
+    print(f"🚀 Marker engine starting on Cloud GPU for: {os.path.basename(absolute_input_pdf)}")
 
     process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
 
@@ -70,30 +71,24 @@ def run_conversion():
         print(f"❌ Marker process failed internally with exit code {process.returncode}")
         return
 
-    # 2. Locate the generated output folder inside the container
+    # 3. Locate the generated output folder inside the container
     generated_folders = glob.glob(os.path.join(temp_out_dir, "*"))
     if not generated_folders:
-        print("❌ Error: No output directories generated.")
+        print("❌ Error: No output assets generated.")
         return
     actual_output_path = generated_folders[0]
 
-    # 3. Zip the final results inside the container workspace
-    print("📦 Packing Markdown text and graph images into deployment archive...")
-    local_zip_base = os.path.join(workspace, f"Book_{file_id}")
-    shutil.make_archive(local_zip_base, 'zip', actual_output_path)
-    final_local_zip = f"{local_zip_base}.zip"
+    # 4. Copy the raw unzipped Markdown and image folders straight into your target Drive path
+    book_folder_name = os.path.splitext(os.path.basename(absolute_input_pdf))[0]
+    final_destination = os.path.join(absolute_output_dir, f"Processed_{book_folder_name}")
 
-    # 4. Upload the completed zip package directly into your target Google Drive folder!
-    print(f"⬆️ Shifting final asset package up to Google Drive target folder (ID: {folder_id})...")
-    upload_cmd = ["gdown", final_local_zip, "--folder", folder_id]
+    print(f"📂 Saving assets directly to Google Drive directory: {final_destination}")
+    os.makedirs(absolute_output_dir, exist_ok=True)
+    if os.path.exists(final_destination):
+        shutil.rmtree(final_destination)
 
-    if subprocess.run(upload_cmd).returncode == 0:
-        print("\n" + "="*50)
-        print("🎉 Complete! Conversion finished successfully.")
-        print(f"📁 Asset package uploaded securely to your custom Google Drive directory.")
-        print("="*50)
-    else:
-        print("❌ Error uploading final zip package to your target Google Drive folder.")
+    shutil.copytree(actual_output_path, final_destination)
+    print(f"\n🎉 Success! Your Markdown files and graphics folders are securely stored in your Drive.")
 
 if __name__ == "__main__":
     if os.path.exists("/content"):
