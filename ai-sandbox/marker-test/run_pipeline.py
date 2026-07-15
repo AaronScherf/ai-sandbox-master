@@ -35,7 +35,7 @@ def process_chunks(chunk_paths):
         command = [
             "marker_single",
             chunk,
-            f"/app/output/chunk_{idx}"
+            "--output_dir", f"/app/output/chunk_{idx}"
         ]
 
         try:
