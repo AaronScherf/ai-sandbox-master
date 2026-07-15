@@ -35,5 +35,19 @@ docker run --rm \
 -v "$PWD/run_pipeline.py:/app/run_pipeline.py" \
 -v "$PWD/app/data:/app/data" \
 -v "$PWD/app/output:/app/output" \
+-v "$HOME/.cache/huggingface:/root/.cache/huggingface" \
 marker-base-env python /app/run_pipeline.py
 
+
+### If needed, create swap space
+#### 1. Allocate a empty 16 Gigabyte file block
+sudo fallocate -l 16G /swapfile
+
+#### 2. Set secure file permissions
+sudo chmod 600 /swapfile
+
+#### 3. Format the block as a Linux system Swap space
+sudo mkswap /swapfile
+
+#### 4. Turn on the swap space immediately
+sudo swapon /swapfile
