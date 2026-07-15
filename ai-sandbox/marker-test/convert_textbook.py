@@ -8,13 +8,18 @@ import sys
 def install_remote_dependencies():
     print("📦 Bootstrapping cloud instance environment packages...")
     try:
+        # Install rendering engines cleanly and purge package lists immediately to save space
         subprocess.run(["apt-get", "update"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         subprocess.run(["apt-get", "install", "-y", "poppler-utils", "tesseract-ocr", "libgl1", "libglx-mesa0"], check=True, stdout=subprocess.DEVNULL)
+        subprocess.run(["apt-get", "clean"], stdout=subprocess.DEVNULL) # Clears temporary apt download files
+
+        # Install python packages using the --no-cache-dir flag to protect cloud disk limits
         subprocess.run([sys.executable, "-m", "pip", "install", "--upgrade", "pip"], check=True, stdout=subprocess.DEVNULL)
-        subprocess.run([sys.executable, "-m", "pip", "install", "marker-pdf", "pypdf"], check=True, stdout=subprocess.DEVNULL)
-        print("✅ Environment successfully configured.")
+        subprocess.run([sys.executable, "-m", "pip", "install", "--no-cache-dir", "marker-pdf", "pypdf"], check=True, stdout=subprocess.DEVNULL)
+        print("✅ Environment successfully configured within safe disk limits.")
     except Exception as e:
-        print(f"⚠️ Warning during packaging: {e}.")
+        print(f"⚠️ Warning during packaging: {e}. Attempting execution anyway...")
+
 
 def fetch_from_drive_hex(hex_id, target_path):
     """Decodes the lowercase Hex ID back into the exact case-sensitive Drive ID."""
