@@ -35,8 +35,7 @@ def process_chunks(chunk_paths):
         command = [
             "marker_single",
             chunk,
-            f"/app/output/chunk_{idx}",
-            "--batch_multiplier", "1"
+            f"/app/output/chunk_{idx}"
         ]
 
         try:
