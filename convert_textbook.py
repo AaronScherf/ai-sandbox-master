@@ -47,7 +47,13 @@ def run_conversion():
         shutil.rmtree(temp_out_dir)
 
     # Execute Marker at full scale using the cloud GPU
-    command = ["marker_single", absolute_input_pdf, "--output_dir", temp_out_dir]
+    command = ["marker_single",
+        absolute_input_pdf,
+        "--output_dir", temp_out_dir,
+        "--vram_threshold", "1",      # Forces aggressive VRAM offloading
+        "--chunk_idx", "0"            # Tells marker to process page batches sequentially
+        ]
+
     print(f"🚀 Marker engine starting on Cloud GPU for: {os.path.basename(absolute_input_pdf)}")
 
     process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
