@@ -49,8 +49,7 @@ def run_conversion():
     # Execute Marker at full scale using the cloud GPU
     command = ["marker_single",
         absolute_input_pdf,
-        "--output_dir", temp_out_dir,
-        "--page_range", "1-10"
+        "--output_dir", temp_out_dir
         ]
 
     print(f"🚀 Marker engine starting on Cloud GPU for: {os.path.basename(absolute_input_pdf)}")
