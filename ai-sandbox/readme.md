@@ -20,27 +20,35 @@ ai-sandbox/
 ├── 📚 academic-hub/
 │   ├── 🔄 01-resources/                           <-- MANAGED BY RCLONE (Synced to Drive, Read-Only for AI)
 │   │   ├── econ-101/
-│   │   │   ├── briefings/
-│   │   │   └── nebo-exports/
+│   │   │   ├── google-docs/ (gdoc)
+│   │   │   ├── textbooks/ (pdf / md)
+│   │   │   └── lecture-recordings/ (mp3)
 │   │   └── [Other Courses...]
 │   │
-│   └── 🐙 02-academic-notes-code/                 <-- MANAGED BY GIT (Synced to GitHub, Read-Write for AI)
-│       ├── econ-101/
-│       │   ├── latex/
-│       │   └── markdown/
-│       └── scripts/
+│   └── 🐙 02-academic-notes/                 <-- MANAGED BY GIT (Synced to GitHub, Read-Write)
+│           ├── courses/
+│           │   ├── econ-101/
+│           │   │     ├── markdown-notes/ (md)
+│           │   │     ├── nebo-notes/ (pdf)
+│           │   │     ├── summaries/ (md)
+│           │   │     ├── lecture-slides/ (pdf)
+│           │   │     └── lecture-transcripts/ (md)
+│           │   └── [Other Courses...]
+│           └── scripts/
 │
-├── 🌐 personal-website/                           <-- MANAGED BY GIT (Synced to GitHub, Read-Write for AI)
+├── 🌐 personal-website/                   <-- MANAGED BY GIT (Synced to GitHub, Read-Write for AI)
 │   ├── content/
 │   └── static/
 │
 └── 🔬 research/
-    ├── 🔄 journal-articles/                       <-- MANAGED BY PAPERPILE (Read-Only for AI)
+    ├── 🔄 journal-articles/    <-- MANAGED BY PAPERPILE (Read-Only for AI), synced w/ RCLONE
     │
     ├── 📂 independent-research/
     │   ├── 🔄 notes/                              <-- MANAGED BY RCLONE
-    │   └── 📂 projects/
-    │       ├── 🐙 ai-trading-bot/                 <-- MANAGED BY GIT (Read-Write for AI)
-    │       └── 🐙 neural-net-sim/                 <-- MANAGED BY GIT (Read-Write for AI)
-    │
-    └── 📂 scripts/
+    │   │     ├── nebo-exports/
+    │   │     └── markdown/
+	│   └── 📂 projects/
+	│       ├── 🐙 ai-trading-bot/           <-- MANAGED BY GIT (Read-Write for AI)
+	│       └── 🐙 neural-net-sim/           <-- MANAGED BY GIT (Read-Write for AI)
+	│
+	└── 📂 scripts/
