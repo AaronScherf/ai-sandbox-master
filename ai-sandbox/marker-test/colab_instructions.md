@@ -67,5 +67,5 @@ colab drivemount -s my_session
 colab upload -s my_session convert_textbook.py /content/convert_textbook.py
 
 colab exec -s my_session << 'EOF'
-!PYTORCH_CUDA_ALLOC_CONF=max_split_size_mb:128 python3 /content/convert_textbook.py 'academic_resources/math-camp/textbooks-and-papers/textbook.pdf' 'academic_resources/math-camp/textbooks-and-papers/processed_textbooks'
+!PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True TORCH_DEVICE=cuda python3 /content/convert_textbook.py 'academic_resources/math-camp/textbooks-and-papers/textbook.pdf' 'academic_resources/math-camp/textbooks-and-papers/processed_textbooks'
 EOF
