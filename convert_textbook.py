@@ -50,7 +50,6 @@ def run_conversion():
     command = ["marker_single",
         absolute_input_pdf,
         "--output_dir", temp_out_dir,
-        "--batch_multiplier", "1",
         "--page_range", "1-10"
         ]
 
