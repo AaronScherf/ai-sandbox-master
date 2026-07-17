@@ -50,8 +50,8 @@ def run_conversion():
     command = ["marker_single",
         absolute_input_pdf,
         "--output_dir", temp_out_dir,
-        "--vram_threshold", "1",      # Forces aggressive VRAM offloading
-        "--chunk_idx", "0"            # Tells marker to process page batches sequentially
+        "--batch_multiplier", "1",
+        "--page_range", "1-10"
         ]
 
     print(f"🚀 Marker engine starting on Cloud GPU for: {os.path.basename(absolute_input_pdf)}")
