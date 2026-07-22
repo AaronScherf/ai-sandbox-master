@@ -7,38 +7,42 @@ import sys
 import json
 import re
 
-# --- CRITICAL FIX FOR SURYA V2 IN GOOGLE COLAB ---
-# Force Surya to use its llamacpp backend. With CUDA compiled below,
-# this maps all VLM layout tasks directly onto your T4 GPU memory.
+# Ensure the environment variables are explicitly locked into the current process memory
 os.environ["SURYA_INFERENCE_BACKEND"] = "llamacpp"
+os.environ["LLAMA_CPP_BINARY"] = "/content/llama-server"
 
 def install_remote_dependencies():
-    print("📦 Bootstrapping cloud instance environment packages with CUDA acceleration...")
+    print("📦 Bootstrapping cloud instance environment packages with manual binary links...")
     try:
-        # 1. Update package managers and verify base requirements
+        # 1. Base rendering libraries
         subprocess.run(["apt-get", "update"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        subprocess.run(["apt-get", "install", "-y", "poppler-utils", "tesseract-ocr", "libgl1", "libglx-mesa0"], check=True, stdout=subprocess.DEVNULL)
+        subprocess.run(["apt-get", "install", "-y", "poppler-utils", "tesseract-ocr", "libgl1", "libglx-mesa0", "wget", "tar"], check=True, stdout=subprocess.DEVNULL)
         subprocess.run(["apt-get", "clean"], stdout=subprocess.DEVNULL)
 
         subprocess.run([sys.executable, "-m", "pip", "install", "--upgrade", "pip"], check=True, stdout=subprocess.DEVNULL)
 
-        # 2. Compile llama-cpp-python from source targeting the system's Nvidia NVCC compiler
-        print("⚙️ Compiling llama-cpp-python with explicit CUDA toolkit bindings...")
-        cuda_env = os.environ.copy()
-        cuda_env["GGML_CUDA"] = "on"  # Enables GPU acceleration within the layout server
+        # 2. Extract and mount the correct precompiled Linux x64 binary asset directly into the local workspace
+        if not os.path.exists("/content/llama-server"):
+            print("📥 Downloading official pre-compiled llama-server build asset...")
+            # Target the specific stable b10088 build layout
+            binary_url = "https://github.com"
+            tar_path = "/content/llama_bin.tar.gz"
 
-        subprocess.run(
-            [sys.executable, "-m", "pip", "install", "llama-cpp-python", "--no-cache-dir", "--force-reinstall", "--upgrade"],
-            env=cuda_env,
-            check=True,
-            stdout=subprocess.DEVNULL
-        )
+            subprocess.run(["wget", "-q", "-O", tar_path, binary_url], check=True)
+            subprocess.run(["tar", "-xzf", tar_path, "-C", "/content", "--strip-components=1"], check=True)
 
-        # 3. Clean install core processing framework items
-        subprocess.run([sys.executable, "-m", "pip", "install", "--no-cache-dir", "marker-pdf", "pypdf"], check=True, stdout=subprocess.DEVNULL)
-        print("✅ GPU Environment successfully configured.")
+            # Explicit permission enforcement step
+            subprocess.run(["chmod", "755", "/content/llama-server"], check=True)
+
+            if os.path.exists(tar_path):
+                os.remove(tar_path)
+            print("🚀 Server binary mounted and marked executable successfully.")
+
+        # 3. Target clean installations of Python libraries
+        subprocess.run([sys.executable, "-m", "pip", "install", "--no-cache-dir", "llama-cpp-python", "marker-pdf", "pypdf"], check=True, stdout=subprocess.DEVNULL)
+        print("✅ Environment successfully configured.")
     except Exception as e:
-        print(f"⚠️ Warning during packaging: {e}.")
+        print(f"⚠️ Warning during packaging setup: {e}.")
 
 def clean_string(text):
     if not text: return ""
@@ -48,6 +52,11 @@ def run_conversion():
     if len(sys.argv) < 3:
         print("Usage: python convert_textbook.py <INPUT_PDF> <OUTPUT_FOLDER> [OCR_LANG] [CHUNK_SIZE]")
         return
+
+    # Fail fast if the environment setup is missing the binary path block
+    if not os.path.exists("/content/llama-server"):
+        print("❌ Critical Error: /content/llama-server execution block not found. Re-running installer...")
+        install_remote_dependencies()
 
     is_colab = os.path.exists("/content")
     drive_root = "/content/drive/MyDrive" if is_colab else os.getcwd()
@@ -66,7 +75,7 @@ def run_conversion():
     from marker.models import create_model_dict
     from marker.output import text_from_rendered
 
-    print(f"🚀 Loading models via GPU-Accelerated llama.cpp (OCR Lang: '{ocr_language}', Chunk Size: {chunk_size})...")
+    print(f"🚀 Loading models via GPU-Linked llama.cpp server (OCR Lang: '{ocr_language}', Chunk Size: {chunk_size})...")
     converter = PdfConverter(artifact_dict=create_model_dict(), config={"langs": [ocr_language]})
 
     reader = PdfReader(absolute_input_pdf)
@@ -119,7 +128,7 @@ def run_conversion():
     lastname = "UnknownAuthor"
     if authors:
         primary = str(authors).split(",") if "," in str(authors) else str(authors).split()
-        if primary: lastname = clean_string(primary[0].split()[-1])
+        if primary: lastname = clean_string(primary[-1].split()[-1])
     year = clean_string(master_metadata.get("year", "0000")) or "0000"
     if not title: title = clean_string(os.path.splitext(os.path.basename(absolute_input_pdf))[0])
 

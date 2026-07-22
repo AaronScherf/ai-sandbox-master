@@ -73,3 +73,16 @@ colab upload -s my_session convert_textbook.py /content/convert_textbook.py
 colab exec -s my_session << 'EOF'
 !PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True TORCH_DEVICE=cuda python3 /content/convert_textbook.py 'academic_resources/math-camp/textbooks-and-papers/textbook.pdf' 'academic_resources/math-camp/textbooks-and-papers/processed_textbooks'
 EOF
+
+
+
+colab shell -s my_session << 'EOF'
+export SURYA_INFERENCE_BACKEND="llamacpp"
+export LLAMA_CPP_BINARY="/content/llama-server"
+export PYTORCH_CUDA_ALLOC_CONF="expandable_segments:True"
+export TORCH_DEVICE="cuda"
+
+python3 /content/convert_textbook.py \
+'academic_resources/math-camp/textbooks-and-papers/textbook.pdf' \
+'academic_resources/math-camp/textbooks-and-papers/processed_textbooks'
+EOF
