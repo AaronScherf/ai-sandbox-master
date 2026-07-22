@@ -1,8 +1,10 @@
 
 ## If colab is not authenticated
 
+gcloud init
+
 # 1. Update the global active gcloud developer identity profile
-gcloud auth login --disable-quota-project
+gcloud auth login
 
 gcloud config set project PROJECT_ID
 
@@ -15,6 +17,8 @@ colab drivemount
 # To execute the script
 
 colab run --gpu T4 convert_textbook.py "drive/MyDrive/academic_resources/math-camp/textbooks-and-papers/textbook.pdf" "drive/MyDrive/academic_resources/math-camp/textbooks-and-papers/processed_textbooks"
+
+cat convert_textbook.py | colab exec -s 95af5f -- python3 - "academic_resources/math-camp/textbooks-and-papers/textbook.pdf" "academic_resources/math-camp/textbooks-and-papers/processed_textbooks"
 
 
 OR 
