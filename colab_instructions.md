@@ -86,3 +86,41 @@ python3 /content/convert_textbook.py \
 'academic_resources/math-camp/textbooks-and-papers/textbook.pdf' \
 'academic_resources/math-camp/textbooks-and-papers/processed_textbooks'
 EOF
+
+
+```bash
+colab exec -s my_session << 'EOF'
+import subprocess
+import sys
+
+cmd = [
+    "python3", "/content/convert_textbook.py",
+    "academic_resources/math-camp/textbooks-and-papers/textbook.pdf",
+    "academic_resources/math-camp/textbooks-and-papers/processed_textbooks"
+]
+
+print("🚀 Launching textbook converter with real-time stream logging...\n")
+
+# Start the process with unbuffered pipe tracking
+process = subprocess.Popen(
+    cmd, 
+    stdout=subprocess.PIPE, 
+    stderr=subprocess.STDOUT, 
+    text=True, 
+    bufsize=1
+)
+
+# Stream each line to your terminal immediately as the script prints it
+for line in process.stdout:
+    print(line, end="")
+    sys.stdout.flush()
+
+process.wait()
+
+if process.returncode != 0:
+    print(f"\n❌ Script failed with exit code {process.returncode}")
+else:
+    print("\n🎉 Process completed successfully!")
+EOF
+
+```
