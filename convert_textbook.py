@@ -1,76 +1,35 @@
 #!/usr/bin/env python3
 """
 convert_textbook.py
-Extracts textbook-length PDFs into structured Markdown and images using Marker.
-Bootstraps a native vLLM server to bypass Docker requirements while retaining
-full VLM capabilities for complex mathematical formatting and tables.
+Extracts textbook-length PDFs into structured Markdown using Marker.
+Relies on PyTorch/Transformers natively to parse math and tables,
+strictly bypassing Docker.
 """
 
 import os
 import sys
+
+# ==============================================================================
+# STRICT ENVIRONMENT LOCKS (Must occur before importing marker)
+# ==============================================================================
+# Force Marker to use explicit boolean strings to disable the Docker sandbox
+os.environ["MARKER_DISABLE_DOCKER"] = "true"
+os.environ["DISABLE_DOCKER"] = "true"
+
+# Optimize PyTorch memory for Colab's T4 GPU
+os.environ["TORCH_DEVICE"] = "cuda"
+os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
+
 import gc
 import re
 import json
 import time
 import shutil
-import subprocess
-import requests
 import torch
 from pypdf import PdfReader, PdfWriter
-
-# ==============================================================================
-# ENVIRONMENT LOCKS (Must occur before importing marker modules)
-# ==============================================================================
-# Force Marker to use our manually orchestrated native server instead of Docker
-os.environ["SURYA_INFERENCE_URL"] = "http://127.0.0.1:8000/v1"
-os.environ["SURYA_INFERENCE_BACKEND"] = "vllm"
-
-
-def start_vllm_server():
-    """Spawns the Surya VLM using native vLLM to completely bypass Docker."""
-    print("==================================================")
-    print("🚀 Bootstrapping Native vLLM Server (Bypassing Docker)")
-    print("==================================================")
-
-    # We allocate 80% of the T4 VRAM to the VLM, leaving 20% for PyTorch chunking overhead
-    vllm_cmd = [
-        sys.executable, "-m", "vllm.entrypoints.openai.api_server",
-        "--model", "datalab-to/surya-ocr-2",
-        "--port", "8000",
-        "--gpu-memory-utilization", "0.8",
-        "--max-model-len", "4096",
-        "--trust-remote-code"
-    ]
-
-    # Launch in background
-    server_process = subprocess.Popen(
-        vllm_cmd,
-        stdout=subprocess.DEVNULL,  # Suppress massive vLLM token logs
-        stderr=subprocess.DEVNULL
-    )
-
-    print("⏳ Waiting for vLLM API to load model weights to VRAM (takes ~1-3 minutes)...")
-    server_ready = False
-    for i in range(150):
-        try:
-            response = requests.get("http://127.0.0.1:8000/v1/models")
-            if response.status_code == 200:
-                server_ready = True
-                break
-        except requests.exceptions.ConnectionError:
-            pass
-
-        time.sleep(2)
-        if i > 0 and i % 15 == 0:
-            print(f"   Still loading parameters... ({i*2} seconds elapsed)")
-
-    if not server_ready:
-        print("❌ Critical Error: Native vLLM server failed to start.")
-        server_process.terminate()
-        sys.exit(1)
-
-    print("✅ Local VLM Server is online and locked to port 8000!")
-    return server_process
+from marker.converters.pdf import PdfConverter
+from marker.models import create_model_dict
+from marker.output import text_from_rendered
 
 
 def sanitize_filename(text: str) -> str:
@@ -79,12 +38,7 @@ def sanitize_filename(text: str) -> str:
     return re.sub(r"[-\s]+", "_", cleaned)
 
 
-def run_conversion(vllm_process):
-    # Import Marker only after environment locks are set and server is online
-    from marker.converters.pdf import PdfConverter
-    from marker.models import create_model_dict
-    from marker.output import text_from_rendered
-
+def run_conversion():
     if len(sys.argv) < 3:
         print("Usage: python3 convert_textbook.py <INPUT_PDF> <OUTPUT_FOLDER> [OCR_LANG] [CHUNK_SIZE]")
         sys.exit(1)
@@ -104,10 +58,18 @@ def run_conversion(vllm_process):
         print(f"❌ Error: Input PDF not found at {input_pdf}")
         sys.exit(1)
 
-    print(f"\n📥 Linking Marker to active VLM (Target Language: '{ocr_language}')...")
+    print("==================================================")
+    print("🚀 Initializing Native PyTorch/Marker Pipeline")
+    print("==================================================")
+    if torch.cuda.is_available():
+        print(f"✅ GPU Acceleration Active: {torch.cuda.get_device_name(0)}")
+    else:
+        print("⚠️ Warning: CUDA device not detected. Running on CPU.")
+
+    print(f"📥 Loading native vision models (Target Language: '{ocr_language}')...")
     model_dict = create_model_dict()
 
-    # We are using the default balanced pipeline to ensure the VLM catches tables and equations
+    # Configuration allows native VLM rendering of equations and tables without Docker
     converter_config = {
         "langs": [ocr_language],
         "disable_multiprocessing": True
@@ -116,73 +78,70 @@ def run_conversion(vllm_process):
 
     reader = PdfReader(input_pdf)
     total_pages = len(reader.pages)
+    print(f"📖 Loaded document: {total_pages} total pages.")
+
     workspace = "/content" if is_colab else os.getcwd()
     temp_chunk_pdf = os.path.join(workspace, "temp_marker_slice.pdf")
 
     combined_text_segments = []
     combined_images = {}
     master_metadata = {}
+
     start_time = time.time()
 
-    try:
-        for start_page in range(0, total_pages, chunk_size):
-            end_page = min(start_page + chunk_size, total_pages)
-            print(f"\n🧩 Processing page slice: {start_page + 1} to {end_page} of {total_pages}...")
+    for start_page in range(0, total_pages, chunk_size):
+        end_page = min(start_page + chunk_size, total_pages)
+        print(f"\n🧩 Processing page slice: {start_page + 1} to {end_page} of {total_pages}...")
 
-            writer = PdfWriter()
-            for page_num in range(start_page, end_page):
-                writer.add_page(reader.pages[page_num])
+        writer = PdfWriter()
+        for page_num in range(start_page, end_page):
+            writer.add_page(reader.pages[page_num])
 
-            with open(temp_chunk_pdf, "wb") as f:
-                writer.write(f)
+        with open(temp_chunk_pdf, "wb") as f:
+            writer.write(f)
 
-            try:
-                rendered = converter(temp_chunk_pdf)
-                chunk_text, chunk_meta, chunk_images = text_from_rendered(rendered)
-                combined_text_segments.append(chunk_text)
+        try:
+            rendered = converter(temp_chunk_pdf)
+            chunk_text, chunk_meta, chunk_images = text_from_rendered(rendered)
+            combined_text_segments.append(chunk_text)
 
-                for img_key, img_bytes in chunk_images.items():
-                    combined_images[f"pg_{start_page + 1}_{img_key}"] = img_bytes
+            for img_key, img_bytes in chunk_images.items():
+                combined_images[f"pg_{start_page + 1}_{img_key}"] = img_bytes
 
-                if start_page == 0 and chunk_meta:
-                    master_metadata = chunk_meta
+            if start_page == 0 and chunk_meta:
+                master_metadata = chunk_meta
 
-            except Exception as chunk_err:
-                print(f"⚠️ Chunk failure on pages {start_page + 1}-{end_page}: {chunk_err}")
-                print("🔄 Falling back to single-page processing for isolated structural parsing...")
+        except Exception as chunk_err:
+            print(f"⚠️ Chunk failure on pages {start_page + 1}-{end_page}: {chunk_err}")
+            print("🔄 Falling back to single-page processing for isolated structural parsing...")
 
-                for single_p in range(start_page, end_page):
-                    single_pdf_path = os.path.join(workspace, f"temp_p_{single_p}.pdf")
-                    single_writer = PdfWriter()
-                    single_writer.add_page(reader.pages[single_p])
-                    with open(single_pdf_path, "wb") as pf:
-                        single_writer.write(pf)
+            for single_p in range(start_page, end_page):
+                single_pdf_path = os.path.join(workspace, f"temp_p_{single_p}.pdf")
+                single_writer = PdfWriter()
+                single_writer.add_page(reader.pages[single_p])
+                with open(single_pdf_path, "wb") as pf:
+                    single_writer.write(pf)
 
-                    try:
-                        p_rendered = converter(single_pdf_path)
-                        p_text, _, p_imgs = text_from_rendered(p_rendered)
-                        combined_text_segments.append(p_text)
-                        for img_k, img_v in p_imgs.items():
-                            combined_images[f"pg_{single_p + 1}_{img_k}"] = img_v
-                    except Exception as p_err:
-                        print(f"❌ VLM bypassed on complex page {single_p + 1} ({p_err}). Reverting to PyPDF text layer.")
-                        raw_text = reader.pages[single_p].extract_text() or ""
-                        combined_text_segments.append(f"\n\n<!-- PyPDF Fallback: Page {single_p + 1} -->\n\n{raw_text}")
-                    finally:
-                        if os.path.exists(single_pdf_path): os.remove(single_pdf_path)
-            finally:
-                if os.path.exists(temp_chunk_pdf): os.remove(temp_chunk_pdf)
-                if torch.cuda.is_available(): torch.cuda.empty_cache()
-                gc.collect()
-
-    finally:
-        print("\n🛑 Spinning down VLM server...")
-        vllm_process.terminate()
+                try:
+                    p_rendered = converter(single_pdf_path)
+                    p_text, _, p_imgs = text_from_rendered(p_rendered)
+                    combined_text_segments.append(p_text)
+                    for img_k, img_v in p_imgs.items():
+                        combined_images[f"pg_{single_p + 1}_{img_k}"] = img_v
+                except Exception as p_err:
+                    print(f"❌ PyTorch parsing bypassed on page {single_p + 1} ({p_err}). Reverting to PyPDF text layer.")
+                    raw_text = reader.pages[single_p].extract_text() or ""
+                    combined_text_segments.append(f"\n\n<!-- PyPDF Fallback: Page {single_p + 1} -->\n\n{raw_text}")
+                finally:
+                    if os.path.exists(single_pdf_path): os.remove(single_pdf_path)
+        finally:
+            if os.path.exists(temp_chunk_pdf): os.remove(temp_chunk_pdf)
+            if torch.cuda.is_available(): torch.cuda.empty_cache()
+            gc.collect()
 
     elapsed = time.time() - start_time
     print(f"\n⏱️ Extraction complete in {elapsed:.2f}s. Assembling output...")
 
-    # Data structuring and Drive sync logic remains exactly the same
     title = sanitize_filename(master_metadata.get("title", ""))
     authors = master_metadata.get("authors", "")
     lastname = sanitize_filename(str(authors).split(",")[-1].split()[-1]) if authors else "UnknownAuthor"
@@ -214,8 +173,7 @@ def run_conversion(vllm_process):
     shutil.copytree(local_build_dir, final_destination)
     shutil.rmtree(local_build_dir)
 
-    print("🎉 Success! Mathematics and tables processed successfully.")
+    print("🎉 Success! Text, math, and tables processed via PyTorch.")
 
 if __name__ == "__main__":
-    vlm_server = start_vllm_server()
-    run_conversion(vlm_server)
+    run_conversion()
