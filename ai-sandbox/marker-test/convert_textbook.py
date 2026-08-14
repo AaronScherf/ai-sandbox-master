@@ -2,18 +2,19 @@
 """
 convert_textbook.py
 Extracts textbook-length PDFs into structured Markdown using Marker.
-Relies on a locally mounted, Vulkan-accelerated llama-server to completely
-bypass Docker while maintaining full VLM mathematical parsing.
+Locks the underlying Surya VLM to the native PyTorch 'transformers' backend,
+bypassing all requirements for Docker, vLLM, or C++ binaries.
 """
 
 import os
 import sys
 
 # ==============================================================================
-# STRICT ENVIRONMENT LOCKS (Must occur before importing marker)
+# STRICT ENVIRONMENT LOCKS (Must execute before any marker/surya imports)
 # ==============================================================================
-os.environ["SURYA_INFERENCE_BACKEND"] = "llamacpp"
-os.environ["LLAMA_CPP_BINARY"] = "/content/llama-server"
+os.environ["MARKER_DISABLE_DOCKER"] = "true"
+os.environ["DISABLE_DOCKER"] = "true"
+os.environ["SURYA_INFERENCE_BACKEND"] = "transformers"
 os.environ["TORCH_DEVICE"] = "cuda"
 os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
 
@@ -30,6 +31,7 @@ from marker.output import text_from_rendered
 
 
 def sanitize_filename(text: str) -> str:
+    """Sanitize strings for filesystem safety."""
     if not text: return ""
     cleaned = re.sub(r"[^\w\s-]", "", str(text)).strip()
     return re.sub(r"[-\s]+", "_", cleaned)
@@ -56,20 +58,18 @@ def run_conversion():
         sys.exit(1)
 
     print("==================================================")
-    print("🚀 Initializing Vulkan-Accelerated Marker Pipeline")
+    print("🚀 Initializing Native PyTorch/Transformers Pipeline")
     print("==================================================")
     if torch.cuda.is_available():
-        print(f"✅ GPU Pipeline Active: {torch.cuda.get_device_name(0)}")
+        print(f"✅ GPU Acceleration Active: {torch.cuda.get_device_name(0)}")
+        print(f"   VRAM Allocated: {torch.cuda.memory_allocated(0) / 1024**2:.2f} MB")
+    else:
+        print("⚠️ Warning: CUDA device not detected. Pipeline will run on CPU.")
 
-    print(f"📥 Verifying local llama-server binary...")
-    if not os.path.exists("/content/llama-server"):
-        print("❌ Critical Error: /content/llama-server missing. Ensure the bash script downloaded it.")
-        sys.exit(1)
-
-    print(f"📥 Loading vision models (Target Language: '{ocr_language}')...")
+    print(f"📥 Loading native vision models (Target Language: '{ocr_language}')...")
     model_dict = create_model_dict()
 
-    # We maintain the default config to ensure the VLM catches tables and equations
+    # Maintain standard configuration to enable rigorous VLM extraction
     converter_config = {
         "langs": [ocr_language],
         "disable_multiprocessing": True
@@ -129,9 +129,9 @@ def run_conversion():
                     for img_k, img_v in p_imgs.items():
                         combined_images[f"pg_{single_p + 1}_{img_k}"] = img_v
                 except Exception as p_err:
-                    print(f"❌ VLM bypassed on complex page {single_p + 1} ({p_err}). Reverting to PyPDF text layer.")
+                    print(f"❌ PyTorch parsing bypassed on page {single_p + 1} ({p_err}). Reverting to standard text extraction.")
                     raw_text = reader.pages[single_p].extract_text() or ""
-                    combined_text_segments.append(f"\n\n<!-- PyPDF Fallback: Page {single_p + 1} -->\n\n{raw_text}")
+                    combined_text_segments.append(f"\n\n<!-- Raw Fallback: Page {single_p + 1} -->\n\n{raw_text}")
                 finally:
                     if os.path.exists(single_pdf_path): os.remove(single_pdf_path)
         finally:
@@ -142,6 +142,7 @@ def run_conversion():
     elapsed = time.time() - start_time
     print(f"\n⏱️ Extraction complete in {elapsed:.2f}s. Assembling output...")
 
+    # Data structuring and persistence mapping
     title = sanitize_filename(master_metadata.get("title", ""))
     authors = master_metadata.get("authors", "")
     lastname = sanitize_filename(str(authors).split(",")[-1].split()[-1]) if authors else "UnknownAuthor"
@@ -173,7 +174,7 @@ def run_conversion():
     shutil.copytree(local_build_dir, final_destination)
     shutil.rmtree(local_build_dir)
 
-    print("🎉 Success! Mathematics and tables processed cleanly via Vulkan llama-server.")
+    print("🎉 Success! Mathematics and tables processed cleanly via native PyTorch pipelines.")
 
 if __name__ == "__main__":
     run_conversion()
