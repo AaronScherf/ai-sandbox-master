@@ -1,27 +1,32 @@
-FROM python:3.10-slim
+FROM python:3.13-slim
 
-# Install modern system dependencies required for PDF rendering and OCR
-RUN apt-get update && apt-get install -y \
-    libgl1 \
-    libglx-mesa0 \
-    libglib2.0-0 \
-    poppler-utils \
-    tesseract-ocr \
-    build-essential \
+# --- Base packages -----------------------------------------------------
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        curl \
+        ca-certificates \
+        gnupg \
+        apt-transport-https \
+        bash \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Marker and its dependencies
-RUN pip install --no-cache-dir marker-pdf pypdf
+# --- Install Google Cloud SDK (gcloud) ----------------------------------
+RUN echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt cloud-sdk main" \
+        > /etc/apt/sources.list.d/google-cloud-sdk.list \
+    && curl -fsSL https://packages.cloud.google.com/apt/doc/apt-key.gpg \
+        | gpg --dearmor -o /usr/share/keyrings/cloud.google.gpg \
+    && apt-get update && apt-get install -y --no-install-recommends google-cloud-cli \
+    && rm -rf /var/lib/apt/lists/*
 
-# Set environment variables to force CPU execution and prevent RAM crashes
-ENV TORCH_DEVICE=cpu
-ENV IN_DET_BATCH_SIZE=1
-ENV OCR_BATCH_SIZE=1
-ENV MARKER_NUM_THREADS=2
+# --- Install the Google Colab CLI directly via pip -----------------------
+RUN pip install --no-cache-dir google-colab-cli
 
-WORKDIR /app
+# --- Working directory ----------------------------------------------------
+WORKDIR /workspace
 
-# Copy the execution script into the container
-# COPY app/run_pipeline.py .
+# Persist gcloud/colab CLI credentials and session metadata outside the
+# container by mounting volumes at these paths at `docker run` time:
+#   -v $HOME/.config/gcloud:/root/.config/gcloud
+#   -v $HOME/.config/colab-cli:/root/.config/colab-cli
+# This lets you avoid re-authenticating every time you restart the container.
 
-# CMD ["python", "run_pipeline.py"]
+ENTRYPOINT ["/bin/bash"]
