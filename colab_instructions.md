@@ -85,12 +85,20 @@ colab upload -s my_session convert_textbook.py /content/convert_textbook.py
 
 ```bash
 colab exec -s my_session --timeout 14400 << 'EOF'
-# 1. Install OS rendering packages
-!apt-get update -qq && apt-get install -y --no-install-recommends poppler-utils tesseract-ocr libgl1 libglx-mesa0
+# 1. Install core utilities and Vulkan GPU drivers
+!apt-get update -qq && apt-get install -y --no-install-recommends poppler-utils tesseract-ocr libgl1 libglx-mesa0 curl libvulkan1 mesa-vulkan-drivers
 
-# 2. Install Marker and PyPDF natively
+# 2. Install Marker securely
 !python -m pip install --upgrade pip
 !python -m pip install --progress-bar on marker-pdf pypdf
+
+# 3. Dynamically fetch the latest Vulkan GPU-accelerated llama-server
+!VULKAN_URL=$(curl -s https://api.github.com/repos/ggml-org/llama.cpp/releases/latest | grep "browser_download_url.*ubuntu-vulkan-x64.tar.gz" | head -n 1 | cut -d '"' -f 4) && wget -qO /content/llama.tar.gz "$VULKAN_URL"
+!mkdir -p /content/llama_tmp && tar -xzf /content/llama.tar.gz -C /content/llama_tmp
+!find /content/llama_tmp -name "llama-server" -exec mv {} /content/llama-server \;
+!chmod +x /content/llama-server
+!rm -rf /content/llama_tmp /content/llama.tar.gz
+EOF
 ```
 
 ### 3.2 Execute the conversion script
@@ -98,11 +106,6 @@ colab exec -s my_session --timeout 14400 << 'EOF'
 ```bash
 colab exec -s my_session --timeout 14400 << 'EOF'
 !python3 /content/convert_textbook.py 'academic_resources/math-camp/textbooks-and-papers/textbook.pdf' 'academic_resources/math-camp/textbooks-and-papers/processed_textbooks'
-EOF
-```
-
-# 3. Launch textbook conversion
-!PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True TORCH_DEVICE=cuda python3 /content/convert_textbook.py 'academic_resources/math-camp/textbooks-and-papers/textbook.pdf' 'academic_resources/math-camp/textbooks-and-papers/processed_textbooks'
 EOF
 ```
 
