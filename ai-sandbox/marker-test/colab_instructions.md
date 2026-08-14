@@ -79,20 +79,27 @@ colab upload -s my_session convert_textbook.py /content/convert_textbook.py
 
 ## Step 3: Execute the script within the Colab session
 
-### 3.1 Execute your script in Drive against the active session
+### 3.1 Execute package installation first
 
-Note: this will take a while to run.
+
 
 ```bash
-colab exec -s my_session << 'EOF'
-# 1. Install OS rendering packages
-!apt-get update -qq && apt-get install -y -qq poppler-utils tesseract-ocr libgl1 libglx-mesa0
+colab exec -s my_session --timeout 1800 << 'EOF'
+!apt-get update -qq && apt-get install -y -qq poppler-utils tesseract-ocr libgl1 libglx-mesa0 ghostscript graphicsmagick libmagic-dev
+!python -m pip install --upgrade pip
+!python -m pip install --progress-bar on marker-pdf pypdf
+EOF
+```
 
-# 2. Install Python packages
-!pip install --no-cache-dir --upgrade pip
-!pip install --no-cache-dir marker-pdf pypdf
+### 3.2 Execute the conversion script
 
-# 3. Execute conversion
+```bash
+colab exec -s my_session --timeout 14400 << 'EOF'
+!PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True TORCH_DEVICE=cuda python3 /content/convert_textbook.py 'academic_resources/math-camp/textbooks-and-papers/textbook.pdf' 'academic_resources/math-camp/textbooks-and-papers/processed_textbooks'
+EOF
+```
+
+# 3. Launch textbook conversion
 !PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True TORCH_DEVICE=cuda python3 /content/convert_textbook.py 'academic_resources/math-camp/textbooks-and-papers/textbook.pdf' 'academic_resources/math-camp/textbooks-and-papers/processed_textbooks'
 EOF
 ```
