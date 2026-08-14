@@ -74,6 +74,7 @@ colab drivemount -s my_session
 ### 2.3 Upload the script to the Drive root folder
 
 ```bash
+colab upload -s my_session marker_setup.sh /content/marker_setup.sh
 colab upload -s my_session convert_textbook.py /content/convert_textbook.py
 ```
 
@@ -81,16 +82,11 @@ colab upload -s my_session convert_textbook.py /content/convert_textbook.py
 
 ### 3.1 Execute package installation first
 
-
+Building the llama server takes a long time, but only need to do it once per colab session
 
 ```bash
-colab exec -s my_session --timeout 14400 << 'EOF'
-# 1. Install base OS dependencies
-!apt-get update -qq && apt-get install -y --no-install-recommends poppler-utils tesseract-ocr libgl1 libglx-mesa0
-
-# 2. Install Python packages (vLLM and llama.cpp are intentionally omitted)
-!python -m pip install --upgrade pip
-!python -m pip install --progress-bar on marker-pdf pypdf transformers accelerate huggingface_hub
+colab exec -s my_session --timeout 3600 << 'EOF'
+!bash /content/marker_setup.sh
 EOF
 ```
 
@@ -101,6 +97,8 @@ colab exec -s my_session --timeout 14400 << 'EOF'
 !python3 -u /content/convert_textbook.py 'academic_resources/math-camp/textbooks-and-papers/textbook.pdf' 'academic_resources/math-camp/textbooks-and-papers/processed_textbooks'
 EOF
 ```
+
+Execute the conversion multiple times to process multiple PDFs, without restarting the colab session, to avoid the long llama install time
 
 ## Step 4: Manually tear down the session when finished
 
