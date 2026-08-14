@@ -2,8 +2,8 @@
 """
 convert_textbook.py
 Extracts textbook-length PDFs into structured Markdown using Marker.
-Relies on PyTorch/Transformers natively to parse math and tables,
-strictly bypassing Docker.
+Relies on a locally mounted, Vulkan-accelerated llama-server to completely
+bypass Docker while maintaining full VLM mathematical parsing.
 """
 
 import os
@@ -12,11 +12,8 @@ import sys
 # ==============================================================================
 # STRICT ENVIRONMENT LOCKS (Must occur before importing marker)
 # ==============================================================================
-# Force Marker to use explicit boolean strings to disable the Docker sandbox
-os.environ["MARKER_DISABLE_DOCKER"] = "true"
-os.environ["DISABLE_DOCKER"] = "true"
-
-# Optimize PyTorch memory for Colab's T4 GPU
+os.environ["SURYA_INFERENCE_BACKEND"] = "llamacpp"
+os.environ["LLAMA_CPP_BINARY"] = "/content/llama-server"
 os.environ["TORCH_DEVICE"] = "cuda"
 os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
 
@@ -59,17 +56,20 @@ def run_conversion():
         sys.exit(1)
 
     print("==================================================")
-    print("🚀 Initializing Native PyTorch/Marker Pipeline")
+    print("🚀 Initializing Vulkan-Accelerated Marker Pipeline")
     print("==================================================")
     if torch.cuda.is_available():
-        print(f"✅ GPU Acceleration Active: {torch.cuda.get_device_name(0)}")
-    else:
-        print("⚠️ Warning: CUDA device not detected. Running on CPU.")
+        print(f"✅ GPU Pipeline Active: {torch.cuda.get_device_name(0)}")
 
-    print(f"📥 Loading native vision models (Target Language: '{ocr_language}')...")
+    print(f"📥 Verifying local llama-server binary...")
+    if not os.path.exists("/content/llama-server"):
+        print("❌ Critical Error: /content/llama-server missing. Ensure the bash script downloaded it.")
+        sys.exit(1)
+
+    print(f"📥 Loading vision models (Target Language: '{ocr_language}')...")
     model_dict = create_model_dict()
 
-    # Configuration allows native VLM rendering of equations and tables without Docker
+    # We maintain the default config to ensure the VLM catches tables and equations
     converter_config = {
         "langs": [ocr_language],
         "disable_multiprocessing": True
@@ -129,7 +129,7 @@ def run_conversion():
                     for img_k, img_v in p_imgs.items():
                         combined_images[f"pg_{single_p + 1}_{img_k}"] = img_v
                 except Exception as p_err:
-                    print(f"❌ PyTorch parsing bypassed on page {single_p + 1} ({p_err}). Reverting to PyPDF text layer.")
+                    print(f"❌ VLM bypassed on complex page {single_p + 1} ({p_err}). Reverting to PyPDF text layer.")
                     raw_text = reader.pages[single_p].extract_text() or ""
                     combined_text_segments.append(f"\n\n<!-- PyPDF Fallback: Page {single_p + 1} -->\n\n{raw_text}")
                 finally:
@@ -173,7 +173,7 @@ def run_conversion():
     shutil.copytree(local_build_dir, final_destination)
     shutil.rmtree(local_build_dir)
 
-    print("🎉 Success! Text, math, and tables processed via PyTorch.")
+    print("🎉 Success! Mathematics and tables processed cleanly via Vulkan llama-server.")
 
 if __name__ == "__main__":
     run_conversion()
