@@ -88,17 +88,16 @@ colab exec -s my_session --timeout 14400 << 'EOF'
 # 1. Install OS rendering packages
 !apt-get update -qq && apt-get install -y --no-install-recommends poppler-utils tesseract-ocr libgl1 libglx-mesa0
 
-# 2. Install Python dependencies including vLLM natively
+# 2. Install Marker and PyPDF natively
 !python -m pip install --upgrade pip
-!python -m pip install --progress-bar on marker-pdf pypdf vllm
-EOF
+!python -m pip install --progress-bar on marker-pdf pypdf
 ```
 
 ### 3.2 Execute the conversion script
 
 ```bash
 colab exec -s my_session --timeout 14400 << 'EOF'
-!PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True TORCH_DEVICE=cuda python3 /content/convert_textbook.py 'academic_resources/math-camp/textbooks-and-papers/textbook.pdf' 'academic_resources/math-camp/textbooks-and-papers/processed_textbooks'
+!python3 /content/convert_textbook.py 'academic_resources/math-camp/textbooks-and-papers/textbook.pdf' 'academic_resources/math-camp/textbooks-and-papers/processed_textbooks'
 EOF
 ```
 
