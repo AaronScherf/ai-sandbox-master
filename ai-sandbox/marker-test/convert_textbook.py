@@ -2,19 +2,20 @@
 """
 convert_textbook.py
 Extracts textbook-length PDFs into structured Markdown using Marker.
-Locks the underlying Surya VLM to the native PyTorch 'transformers' backend,
-bypassing all requirements for Docker, vLLM, or C++ binaries.
+Relies on a natively compiled, CUDA-accelerated llama-server to
+bypass Docker while maintaining full VLM mathematical parsing.
 """
 
 import os
 import sys
 
 # ==============================================================================
-# STRICT ENVIRONMENT LOCKS (Must execute before any marker/surya imports)
+# STRICT ENVIRONMENT LOCKS (Must occur before importing marker)
 # ==============================================================================
+os.environ["SURYA_INFERENCE_BACKEND"] = "llamacpp"
+os.environ["LLAMA_CPP_BINARY"] = "/content/llama-server"
 os.environ["MARKER_DISABLE_DOCKER"] = "true"
 os.environ["DISABLE_DOCKER"] = "true"
-os.environ["SURYA_INFERENCE_BACKEND"] = "transformers"
 os.environ["TORCH_DEVICE"] = "cuda"
 os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
 
@@ -32,7 +33,8 @@ from marker.output import text_from_rendered
 
 def sanitize_filename(text: str) -> str:
     """Sanitize strings for filesystem safety."""
-    if not text: return ""
+    if not text:
+        return ""
     cleaned = re.sub(r"[^\w\s-]", "", str(text)).strip()
     return re.sub(r"[-\s]+", "_", cleaned)
 
@@ -54,22 +56,23 @@ def run_conversion():
     output_dir = raw_output_path if os.path.isabs(raw_output_path) else os.path.join(drive_root, raw_output_path)
 
     if not os.path.exists(input_pdf):
-        print(f"❌ Error: Input PDF not found at {input_pdf}")
+        print(f"Critical Error: Input PDF not found at {input_pdf}")
         sys.exit(1)
 
     print("==================================================")
-    print("🚀 Initializing Native PyTorch/Transformers Pipeline")
+    print("Initializing CUDA-Accelerated Marker Pipeline")
     print("==================================================")
-    if torch.cuda.is_available():
-        print(f"✅ GPU Acceleration Active: {torch.cuda.get_device_name(0)}")
-        print(f"   VRAM Allocated: {torch.cuda.memory_allocated(0) / 1024**2:.2f} MB")
-    else:
-        print("⚠️ Warning: CUDA device not detected. Pipeline will run on CPU.")
 
-    print(f"📥 Loading native vision models (Target Language: '{ocr_language}')...")
+    if torch.cuda.is_available():
+        print(f"GPU Pipeline Active: {torch.cuda.get_device_name(0)}")
+
+    if not os.path.exists("/content/llama-server"):
+        print("Critical Error: /content/llama-server binary is missing.")
+        sys.exit(1)
+
+    print(f"Loading vision models (Target Language: '{ocr_language}')...")
     model_dict = create_model_dict()
 
-    # Maintain standard configuration to enable rigorous VLM extraction
     converter_config = {
         "langs": [ocr_language],
         "disable_multiprocessing": True
@@ -78,7 +81,7 @@ def run_conversion():
 
     reader = PdfReader(input_pdf)
     total_pages = len(reader.pages)
-    print(f"📖 Loaded document: {total_pages} total pages.")
+    print(f"Loaded document: {total_pages} total pages.")
 
     workspace = "/content" if is_colab else os.getcwd()
     temp_chunk_pdf = os.path.join(workspace, "temp_marker_slice.pdf")
@@ -91,7 +94,7 @@ def run_conversion():
 
     for start_page in range(0, total_pages, chunk_size):
         end_page = min(start_page + chunk_size, total_pages)
-        print(f"\n🧩 Processing page slice: {start_page + 1} to {end_page} of {total_pages}...")
+        print(f"\nProcessing page slice: {start_page + 1} to {end_page} of {total_pages}...")
 
         writer = PdfWriter()
         for page_num in range(start_page, end_page):
@@ -112,8 +115,8 @@ def run_conversion():
                 master_metadata = chunk_meta
 
         except Exception as chunk_err:
-            print(f"⚠️ Chunk failure on pages {start_page + 1}-{end_page}: {chunk_err}")
-            print("🔄 Falling back to single-page processing for isolated structural parsing...")
+            print(f"Chunk layout failure on pages {start_page + 1}-{end_page}: {chunk_err}")
+            print("Falling back to single-page processing for isolated structural parsing...")
 
             for single_p in range(start_page, end_page):
                 single_pdf_path = os.path.join(workspace, f"temp_p_{single_p}.pdf")
@@ -129,29 +132,33 @@ def run_conversion():
                     for img_k, img_v in p_imgs.items():
                         combined_images[f"pg_{single_p + 1}_{img_k}"] = img_v
                 except Exception as p_err:
-                    print(f"❌ PyTorch parsing bypassed on page {single_p + 1} ({p_err}). Reverting to standard text extraction.")
+                    print(f"VLM bypassed on complex page {single_p + 1} ({p_err}). Reverting to PyPDF text layer.")
                     raw_text = reader.pages[single_p].extract_text() or ""
-                    combined_text_segments.append(f"\n\n<!-- Raw Fallback: Page {single_p + 1} -->\n\n{raw_text}")
+                    combined_text_segments.append(f"\n\n<!-- PyPDF Fallback: Page {single_p + 1} -->\n\n{raw_text}")
                 finally:
-                    if os.path.exists(single_pdf_path): os.remove(single_pdf_path)
+                    if os.path.exists(single_pdf_path):
+                        os.remove(single_pdf_path)
         finally:
-            if os.path.exists(temp_chunk_pdf): os.remove(temp_chunk_pdf)
-            if torch.cuda.is_available(): torch.cuda.empty_cache()
+            if os.path.exists(temp_chunk_pdf):
+                os.remove(temp_chunk_pdf)
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
             gc.collect()
 
     elapsed = time.time() - start_time
-    print(f"\n⏱️ Extraction complete in {elapsed:.2f}s. Assembling output...")
+    print(f"\nExtraction complete in {elapsed:.2f}s. Assembling output...")
 
-    # Data structuring and persistence mapping
     title = sanitize_filename(master_metadata.get("title", ""))
     authors = master_metadata.get("authors", "")
     lastname = sanitize_filename(str(authors).split(",")[-1].split()[-1]) if authors else "UnknownAuthor"
     year = sanitize_filename(master_metadata.get("year", "0000")) or "0000"
-    if not title: title = sanitize_filename(os.path.splitext(os.path.basename(input_pdf))[0])
+    if not title:
+        title = sanitize_filename(os.path.splitext(os.path.basename(input_pdf))[0])
 
     folder_name = f"{lastname}_{title}_{year}"
     local_build_dir = os.path.join(workspace, "marker_assembly_output")
-    if os.path.exists(local_build_dir): shutil.rmtree(local_build_dir)
+    if os.path.exists(local_build_dir):
+        shutil.rmtree(local_build_dir)
     os.makedirs(local_build_dir, exist_ok=True)
 
     with open(os.path.join(local_build_dir, f"{folder_name}.md"), "w", encoding="utf-8") as f:
@@ -168,13 +175,14 @@ def run_conversion():
         json.dump(master_metadata, json_f, indent=4, ensure_ascii=False)
 
     final_destination = os.path.join(output_dir, folder_name)
-    print(f"📂 Transferring artifacts to Google Drive: {final_destination}")
+    print(f"Transferring artifacts to Google Drive: {final_destination}")
     os.makedirs(output_dir, exist_ok=True)
-    if os.path.exists(final_destination): shutil.rmtree(final_destination)
+    if os.path.exists(final_destination):
+        shutil.rmtree(final_destination)
     shutil.copytree(local_build_dir, final_destination)
     shutil.rmtree(local_build_dir)
 
-    print("🎉 Success! Mathematics and tables processed cleanly via native PyTorch pipelines.")
+    print("Conversion completed successfully.")
 
 if __name__ == "__main__":
     run_conversion()
