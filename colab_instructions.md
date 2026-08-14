@@ -12,7 +12,7 @@ Run these from PowerShell in your project directory (`Dockerfile` + `.env` + `co
 - Mounts this project dir into `/workspace` (so `convert_textbook.py` is visible inside).
 - Persists `gcloud`/`colab-cli` auth across container restarts.
 
-```powershell
+```shell
 if (docker ps -aq -f "name=^colab-container$") {
     docker start -ai colab-container
 } else {
