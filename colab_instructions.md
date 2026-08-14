@@ -84,10 +84,13 @@ colab upload -s my_session convert_textbook.py /content/convert_textbook.py
 
 
 ```bash
-colab exec -s my_session --timeout 1800 << 'EOF'
-!apt-get update -qq && apt-get install -y -qq poppler-utils tesseract-ocr libgl1 libglx-mesa0 ghostscript graphicsmagick libmagic-dev
+colab exec -s my_session --timeout 14400 << 'EOF'
+# 1. Install OS rendering packages
+!apt-get update -qq && apt-get install -y --no-install-recommends poppler-utils tesseract-ocr libgl1 libglx-mesa0
+
+# 2. Install Python dependencies including vLLM natively
 !python -m pip install --upgrade pip
-!python -m pip install --progress-bar on marker-pdf pypdf
+!python -m pip install --progress-bar on marker-pdf pypdf vllm
 EOF
 ```
 
