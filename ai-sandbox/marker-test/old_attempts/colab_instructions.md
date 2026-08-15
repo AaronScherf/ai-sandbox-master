@@ -51,40 +51,54 @@ gcloud config set project $PROJECT_ID
 gcloud auth application-default set-quota-project $PROJECT_ID
 ```
 
-## Step 2: Upload scripts to the VM instance
+## Step 2: Create Colab session and mount Google Drive, upload script
+
+### 2.1 Create a persistent named session
+Prune any existing sessions via:
 
 ```bash
-gcloud compute scp setup_gcp.sh convert_textbook.py <VM_INSTANCE_NAME>:~/ --zone=<GCP_ZONE>
+colab stop
+```
+
+Then create a new session:
+```bash
+colab new -s my_session --gpu T4
+```
+
+### 2.2 Mount your Google Drive to that specific session
+
+```bash
+colab drivemount -s my_session
+```
+
+### 2.3 Upload the script to the Drive root folder
+
+```bash
+colab upload -s my_session marker_setup.sh /content/marker_setup.sh
+colab upload -s my_session convert_textbook.py /content/convert_textbook.py
 ```
 
 ## Step 3: Execute the script within the Colab session
 
 ### 3.1 Execute package installation first
-This only needs to be done once per VM instance.
+
+Building the llama server takes a long time, but only need to do it once per colab session
 
 ```bash
-gcloud compute ssh <VM_INSTANCE_NAME> --zone=<GCP_ZONE> --command="bash -s" << 'EOF'
-bash ~/setup_gcp.sh
-# Refresh session groups to immediately apply Docker permissions
-sudo su - $USER
+colab exec -s my_session --timeout 3600 << 'EOF'
+!bash /content/marker_setup.sh
 EOF
 ```
 
 ### 3.2 Execute the conversion script
 
 ```bash
-gcloud compute ssh <VM_INSTANCE_NAME> --zone=<GCP_ZONE> --command="bash -s" << 'EOF'
-python3 -u ~/convert_textbook.py 'academic_resources/math-camp/textbooks-and-papers/textbook.pdf' 'academic_resources/math-camp/textbooks-and-papers/processed_textbooks'
+colab exec -s my_session --timeout 14400 << 'EOF'
+!python3 -u /content/convert_textbook.py 'academic_resources/math-camp/textbooks-and-papers/textbook.pdf' 'academic_resources/math-camp/textbooks-and-papers/processed_textbooks'
 EOF
 ```
 
 Execute the conversion multiple times to process multiple PDFs, without restarting the colab session, to avoid the long llama install time
-
-### 3.3 Export the output to Drive
-
-```bash
-TBD
-```
 
 ## Step 4: Manually tear down the session when finished
 
