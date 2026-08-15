@@ -1,0 +1,113 @@
+# Textbook Conversion Pipeline
+
+## Step 0: Initialize the Docker Container
+
+Execute the following script from PowerShell within the project directory (containing the `Dockerfile`, `.env`, and `convert_textbook.py`). Ensure the Docker daemon is operational prior to execution.
+
+### Step 0.1: Build and instantiate the environment
+
+* **Initial Execution:** This builds the image and instantiates a named container. The `colab-cli` dependencies have been structurally excised.
+* **Subsequent Executions:** Skips the build phase and restores the existing container via `docker start`.
+* Loads `PROJECT_ID` from the `.env` file located in the parent directory.
+* Mounts the current project directory into `/workspace` to ensure local synchronization of the extraction scripts.
+* Persists `gcloud` authentication configurations across container lifecycles via volume mounting.
+
+```powershell
+if (docker ps -aq -f "name=^gcp-container$") {
+    docker start -ai gcp-container
+} else {
+    docker build -t gcp-runner .
+    docker run -it --name gcp-container `
+        --env-file ../.env `
+        -v ${PWD}:/workspace `
+        -v gcloud-config:/root/.config/gcloud `
+        gcp-runner
+}
+
+```
+
+You are now operating within the container's interactive bash shell for all subsequent operations.
+
+### Step 0.2: Verify SDK Installation
+
+Validate the Google Cloud SDK installation.
+
+```bash
+# Verify gcloud SDK installation and active configuration
+gcloud version
+
+```
+
+## Step 1: Authenticate the SDK within the Container
+
+### 1.1 Update the global active developer identity profile
+
+```bash
+gcloud auth application-default login --disable-quota-project
+gcloud config set project $PROJECT_ID
+gcloud auth application-default set-quota-project $PROJECT_ID
+
+```
+
+## Step 2: Synchronize Scripts to the Virtual Machine
+
+Transfer the provisioning and execution scripts to the home directory of the remote Compute Engine instance.
+
+```bash
+gcloud compute scp setup_gcp.sh convert_textbook.py <VM_INSTANCE_NAME>:~/ --zone=<GCP_ZONE>
+
+```
+
+## Step 3: Execute the Extraction Pipeline
+
+### 3.1 Execute environment provisioning
+
+This provisions the OS and Python dependencies. Capitalizing on the VM's persistent disk architecture, this command only requires execution once following instance creation.
+
+```bash
+gcloud compute ssh <VM_INSTANCE_NAME> --zone=<GCP_ZONE> --command="bash -s" << 'EOF'
+bash ~/setup_gcp.sh
+# Refresh session groups to immediately instantiate Docker daemon permissions
+sudo su - $USER
+EOF
+
+```
+
+### 3.2 Convert the PDF to structured artifacts
+
+Execute the conversion. Because the underlying hardware is persistent, this command can be run iteratively to process distinct PDFs without re-provisioning the environment or recompiling binaries.
+
+```bash
+gcloud compute ssh <VM_INSTANCE_NAME> --zone=<GCP_ZONE> --command="bash -s" << 'EOF'
+python3 -u ~/convert_textbook.py 'academic_resources/math-camp/textbooks-and-papers/textbook.pdf' 'academic_resources/math-camp/textbooks-and-papers/processed_textbooks'
+EOF
+
+```
+
+### 3.3 Export the structured artifacts to the local host
+
+Google Cloud VMs do not natively mount Google Drive. To retrieve the markdown and image artifacts, execute a recursive secure copy from the VM back to the local Docker workspace. The volume mount established in Step 0.1 will automatically synchronize these files to your local Windows filesystem.
+
+```bash
+# Ensure the local target directory structure exists prior to transfer
+mkdir -p ./academic_resources/math-camp/textbooks-and-papers/
+
+# Recursively download the processed artifacts
+gcloud compute scp --recurse <VM_INSTANCE_NAME>:~/academic_resources/math-camp/textbooks-and-papers/processed_textbooks ./academic_resources/math-camp/textbooks-and-papers/ --zone=<GCP_ZONE>
+
+```
+
+## Step 4: Terminate the Compute Instance
+
+To halt billing cycles, the VM must be explicitly stopped or deleted upon completion of the pipeline.
+
+```bash
+# Option A: Stop the instance. This halts compute billing but preserves the disk 
+# (and provisioning state) for future executions. Minimal storage fees apply.
+gcloud compute instances stop <VM_INSTANCE_NAME> --zone=<GCP_ZONE>
+
+# Option B: Delete the instance entirely. This permanently destroys the disk and 
+# halts all billing mechanisms. Provisioning (Step 3.1) must be repeated upon recreation.
+gcloud compute instances delete <VM_INSTANCE_NAME> --zone=<GCP_ZONE> --quiet
+
+```
