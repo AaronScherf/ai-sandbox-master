@@ -24,8 +24,9 @@ sudo nvidia-ctk runtime configure --runtime=docker
 sudo systemctl restart docker
 sudo usermod -aG docker $USER
 
-echo "[System] Installing Python dependencies."
+echo "[System] Installing Python dependencies and syncing PyTorch/Pillow binaries."
 python3 -m pip install --upgrade pip -q
-python3 -m pip install --no-cache-dir marker-pdf pypdf -q
+python3 -m pip install --no-cache-dir "torch>=2.7.0" "torchvision" "torchaudio" --index-url https://download.pytorch.org/whl/cu121 -q
+python3 -m pip install --no-cache-dir "pillow<11,>=10.1.0" marker-pdf pypdf -q
 
 echo "[System] Environment provisioning completed successfully."
