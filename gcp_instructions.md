@@ -54,7 +54,7 @@ gcloud auth application-default set-quota-project $PROJECT_ID
 Transfer the provisioning and execution scripts to the home directory of the remote Compute Engine instance.
 
 ```bash
-gcloud compute scp setup_gcp.sh convert_textbook.py <VM_INSTANCE_NAME>:~/ --zone=<GCP_ZONE>
+gcloud compute scp setup_gcp.sh convert_textbook.py <$VM_INSTANCE_NAME>:~/ --zone=<$GCP_ZONE>
 
 ```
 
@@ -65,36 +65,41 @@ gcloud compute scp setup_gcp.sh convert_textbook.py <VM_INSTANCE_NAME>:~/ --zone
 This provisions the OS and Python dependencies. Capitalizing on the VM's persistent disk architecture, this command only requires execution once following instance creation.
 
 ```bash
-gcloud compute ssh <VM_INSTANCE_NAME> --zone=<GCP_ZONE> --command="bash -s" << 'EOF'
+gcloud compute ssh <$VM_INSTANCE_NAME> --zone=<$GCP_ZONE> --command="bash -s" << 'EOF'
 bash ~/setup_gcp.sh
 # Refresh session groups to immediately instantiate Docker daemon permissions
 sudo su - $USER
 EOF
-
 ```
 
-### 3.2 Convert the PDF to structured artifacts
+### 3.2 Stage the input document in Google Cloud Storage
+Before executing the extraction, the raw PDF must be uploaded to your GCS bucket so the remote Virtual Machine can access it.
+
+```bash
+gcloud storage cp ./academic_resources/math-camp/textbooks-and-papers/textbook.pdf gs://$BUCKET_NAME/input_documents/textbook.pdf
+```
+
+### 3.3 Convert the PDF to structured artifacts
 
 Execute the conversion. Because the underlying hardware is persistent, this command can be run iteratively to process distinct PDFs without re-provisioning the environment or recompiling binaries.
 
 ```bash
-gcloud compute ssh <VM_INSTANCE_NAME> --zone=<GCP_ZONE> --command="bash -s" << 'EOF'
-python3 -u ~/convert_textbook.py 'academic_resources/math-camp/textbooks-and-papers/textbook.pdf' 'academic_resources/math-camp/textbooks-and-papers/processed_textbooks'
+gcloud compute ssh <$VM_INSTANCE_NAME> --zone=<$GCP_ZONE> --command="bash -s" << 'EOF'
+python3 -u ~/convert_textbook.py 'gs://$BUCKET_NAME/input_documents/textbook.pdf' 'gs://$BUCKET_NAME/processed_outputs'
 EOF
 
 ```
 
-### 3.3 Export the structured artifacts to the local host
+### 3.4 Export the structured artifacts to the local host
 
 Google Cloud VMs do not natively mount Google Drive. To retrieve the markdown and image artifacts, execute a recursive secure copy from the VM back to the local Docker workspace. The volume mount established in Step 0.1 will automatically synchronize these files to your local Windows filesystem.
 
 ```bash
 # Ensure the local target directory structure exists prior to transfer
-mkdir -p ./academic_resources/math-camp/textbooks-and-papers/
+mkdir -p ./academic_resources/math-camp/textbooks-and-papers/processed_outputs/
 
-# Recursively download the processed artifacts
-gcloud compute scp --recurse <VM_INSTANCE_NAME>:~/academic_resources/math-camp/textbooks-and-papers/processed_textbooks ./academic_resources/math-camp/textbooks-and-papers/ --zone=<GCP_ZONE>
-
+# Recursively download the processed artifacts from the GCS bucket
+gcloud storage cp -r gs://$BUCKET_NAME/processed_outputs/* ./academic_resources/math-camp/textbooks-and-papers/processed_outputs/
 ```
 
 ## Step 4: Terminate the Compute Instance
@@ -104,10 +109,10 @@ To halt billing cycles, the VM must be explicitly stopped or deleted upon comple
 ```bash
 # Option A: Stop the instance. This halts compute billing but preserves the disk 
 # (and provisioning state) for future executions. Minimal storage fees apply.
-gcloud compute instances stop <VM_INSTANCE_NAME> --zone=<GCP_ZONE>
+gcloud compute instances stop <$VM_INSTANCE_NAME> --zone=<$GCP_ZONE>
 
 # Option B: Delete the instance entirely. This permanently destroys the disk and 
 # halts all billing mechanisms. Provisioning (Step 3.1) must be repeated upon recreation.
-gcloud compute instances delete <VM_INSTANCE_NAME> --zone=<GCP_ZONE> --quiet
+gcloud compute instances delete <$VM_INSTANCE_NAME> --zone=<$GCP_ZONE> --quiet
 
 ```
