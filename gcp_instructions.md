@@ -1,5 +1,7 @@
 # Textbook Conversion Pipeline
 
+
+
 ## Step 0: Initialize the Docker Container
 
 Execute the following script from PowerShell within the project directory (containing the `Dockerfile`, `.env`, and `convert_textbook.py`). Ensure the Docker daemon is operational prior to execution.
@@ -20,21 +22,27 @@ if (docker ps -aq -f "name=^gcp-container$") {
     docker run -it --name gcp-container `
         --env-file ../.env `
         -v ${PWD}:/workspace `
+        -v ${PWD}\..\academic-hub:/academic-hub `
         -v gcloud-config:/root/.config/gcloud `
         -v gcloud-ssh:/root/.ssh `
         gcp-runner
 }
 ```
 Note: To stop and remove a previously created Docker container (in case you need to reconfigure it), use:
-# Halt the active container processes
 docker stop gcp-container
-
-# Excise the container from the local registry
 docker rm gcp-container
 
 You are now operating within the container's interactive bash shell for all subsequent operations.
 
-### Step 0.2: Verify SDK Installation
+### Step 0.2: Declare textbook filename
+
+Change this to update the target textbook
+
+```bash
+export PDF_FILENAME="Book_of_Proof_Hammack_Richard_2018.pdf"
+```
+
+### Step 0.3: Verify SDK Installation
 
 Validate the Google Cloud SDK installation.
 
@@ -71,7 +79,6 @@ This provisions the OS and Python dependencies. Capitalizing on the VM's persist
 ```bash
 gcloud compute ssh $VM_INSTANCE_NAME --zone=$GCP_ZONE --tunnel-through-iap --command="bash -s" << 'EOF'
 bash ~/marker_setup.sh
-sudo su - $USER
 EOF
 ```
 
@@ -79,7 +86,7 @@ EOF
 Before executing the extraction, the raw PDF must be uploaded to your GCS bucket so the remote Virtual Machine can access it.
 
 ```bash
-gcloud storage cp ./academic_resources/math-camp/textbooks-and-papers/textbook.pdf gs://$BUCKET_NAME/input_documents/textbook.pdf
+gcloud storage cp "/academic-hub/academic_resources/math-camp/textbooks-and-papers/$PDF_FILENAME" "gs://$BUCKET_NAME/input_documents/$PDF_FILENAME"
 ```
 
 ### 3.3 Convert the PDF to structured artifacts
@@ -88,7 +95,7 @@ Execute the conversion. Because the underlying hardware is persistent, this comm
 
 ```bash
 gcloud compute ssh $VM_INSTANCE_NAME --zone=$GCP_ZONE --tunnel-through-iap --command="bash -s" << EOF
-python3 -u ~/convert_textbook.py "gs://$BUCKET_NAME/input_documents/textbook.pdf" "gs://$BUCKET_NAME/processed_outputs"
+python3 -u ~/convert_textbook.py "gs://$BUCKET_NAME/input_documents/$PDF_FILENAME" "gs://$BUCKET_NAME/processed_outputs"
 EOF
 ```
 
