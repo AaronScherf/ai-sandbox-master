@@ -95,6 +95,10 @@ Execute the conversion. Because the underlying hardware is persistent, this comm
 
 ```bash
 gcloud compute ssh $VM_INSTANCE_NAME --zone=$GCP_ZONE --tunnel-through-iap --command="bash -s" << EOF
+echo "[System] Purging residual VLM server locks."
+sudo rm -f /root/.cache/datalab/surya/vllm_server.lock
+
+echo "[System] Initiating document extraction."
 python3 -u ~/convert_textbook.py "gs://$BUCKET_NAME/input_documents/$PDF_FILENAME" "gs://$BUCKET_NAME/processed_outputs"
 EOF
 ```
