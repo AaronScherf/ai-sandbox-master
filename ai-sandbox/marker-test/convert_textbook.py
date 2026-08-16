@@ -2,7 +2,7 @@
 """
 convert_textbook.py
 Extracts textbook-length PDFs into structured Markdown using Marker.
-Optimized for GCP Compute Engine VMs executing the native vLLM Docker backend.
+Optimized for GCP Compute Engine VMs with native Google Cloud Storage (GCS) pipeline integration.
 """
 
 import os
@@ -13,6 +13,7 @@ import json
 import time
 import shutil
 import torch
+import subprocess
 from pypdf import PdfReader, PdfWriter
 from marker.converters.pdf import PdfConverter
 from marker.models import create_model_dict
@@ -20,21 +21,53 @@ from marker.output import text_from_rendered
 
 
 def sanitize_filename(text: str) -> str:
+    """Sanitizes strings to ensure filesystem compatibility."""
     if not text:
         return ""
     cleaned = re.sub(r"[^\w\s-]", "", str(text)).strip()
     return re.sub(r"[-\s]+", "_", cleaned)
 
 
-def run_conversion():
-    if len(sys.argv) < 3:
-        print("Usage: python3 convert_textbook.py <INPUT_PDF> <OUTPUT_FOLDER> [OCR_LANG] [CHUNK_SIZE]")
+def download_from_gcs(gcs_uri: str, local_path: str):
+    """Executes a subprocess to retrieve the input artifact from a GCS bucket."""
+    print(f"Synchronizing input artifact from Google Cloud Storage: {gcs_uri}")
+    try:
+        subprocess.run(["gcloud", "storage", "cp", gcs_uri, local_path], check=True)
+    except subprocess.CalledProcessError as e:
+        print(f"Critical Error: GCS retrieval failed. {e}")
         sys.exit(1)
 
-    input_pdf = os.path.abspath(sys.argv[1])
-    output_dir = os.path.abspath(sys.argv[2])
+
+def upload_to_gcs(local_dir: str, gcs_uri: str):
+    """Executes a subprocess to push the finalized directory structure to a GCS bucket."""
+    print(f"Synchronizing output artifacts to Google Cloud Storage: {gcs_uri}")
+    try:
+        subprocess.run(["gcloud", "storage", "cp", "-r", local_dir, gcs_uri], check=True)
+    except subprocess.CalledProcessError as e:
+        print(f"Critical Error: GCS upload failed. {e}")
+        sys.exit(1)
+
+
+def run_conversion():
+    if len(sys.argv) < 3:
+        print("Usage: python3 convert_textbook.py <INPUT_PDF_OR_GCS_URI> <OUTPUT_DIR_OR_GCS_URI> [OCR_LANG] [CHUNK_SIZE]")
+        sys.exit(1)
+
+    raw_input = sys.argv[1]
+    raw_output = sys.argv[2]
     ocr_language = sys.argv[3] if len(sys.argv) > 3 else "en"
     chunk_size = int(sys.argv[4]) if len(sys.argv) > 4 else 50
+
+    workspace = os.getcwd()
+    is_gcs_input = raw_input.startswith("gs://")
+    is_gcs_output = raw_output.startswith("gs://")
+
+    # 1. Resolve Input Trajectory
+    if is_gcs_input:
+        input_pdf = os.path.join(workspace, "temp_gcs_input_target.pdf")
+        download_from_gcs(raw_input, input_pdf)
+    else:
+        input_pdf = os.path.abspath(raw_input)
 
     if not os.path.exists(input_pdf):
         print(f"Critical Error: Input PDF not found at {input_pdf}")
@@ -61,7 +94,6 @@ def run_conversion():
     total_pages = len(reader.pages)
     print(f"Loaded document mapping: {total_pages} total pages.")
 
-    workspace = os.getcwd()
     temp_chunk_pdf = os.path.join(workspace, "temp_marker_slice.pdf")
 
     combined_text_segments = []
@@ -70,6 +102,7 @@ def run_conversion():
 
     start_time = time.time()
 
+    # 2. Iterative Structural Extraction
     for start_page in range(0, total_pages, chunk_size):
         end_page = min(start_page + chunk_size, total_pages)
         print(f"\nProcessing page subset: {start_page + 1} to {end_page} of {total_pages}...")
@@ -95,7 +128,6 @@ def run_conversion():
         except Exception as chunk_err:
             print(f"Structural layout parsing failure on pages {start_page + 1}-{end_page}: {chunk_err}")
 
-            # Isolated subset recovery mechanism
             for single_p in range(start_page, end_page):
                 single_pdf_path = os.path.join(workspace, f"temp_p_{single_p}.pdf")
                 single_writer = PdfWriter()
@@ -126,6 +158,7 @@ def run_conversion():
     elapsed = time.time() - start_time
     print(f"\nExtraction complete. Total computation time: {elapsed:.2f}s.")
 
+    # 3. Artifact Assembly
     title = sanitize_filename(master_metadata.get("title", ""))
     authors = master_metadata.get("authors", "")
     lastname = sanitize_filename(str(authors).split(",")[-1].split()[-1]) if authors else "UnknownAuthor"
@@ -152,14 +185,25 @@ def run_conversion():
     with open(os.path.join(local_build_dir, f"{folder_name}_metadata.json"), "w", encoding="utf-8") as json_f:
         json.dump(master_metadata, json_f, indent=4, ensure_ascii=False)
 
-    final_destination = os.path.join(output_dir, folder_name)
-    os.makedirs(output_dir, exist_ok=True)
-    if os.path.exists(final_destination):
-        shutil.rmtree(final_destination)
-    shutil.copytree(local_build_dir, final_destination)
-    shutil.rmtree(local_build_dir)
+    # 4. Resolve Output Trajectory
+    if is_gcs_output:
+        target_gcs_path = f"{raw_output.rstrip('/')}/{folder_name}"
+        upload_to_gcs(local_build_dir, target_gcs_path)
+        shutil.rmtree(local_build_dir)
+        print(f"Artifacts successfully synchronized to target destination: {target_gcs_path}")
+    else:
+        output_dir = os.path.abspath(raw_output)
+        final_destination = os.path.join(output_dir, folder_name)
+        os.makedirs(output_dir, exist_ok=True)
+        if os.path.exists(final_destination):
+            shutil.rmtree(final_destination)
+        shutil.copytree(local_build_dir, final_destination)
+        shutil.rmtree(local_build_dir)
+        print(f"Artifacts successfully synchronized to target destination: {final_destination}")
 
-    print(f"Artifacts successfully synchronized to target destination: {final_destination}")
+    # 5. Local State Cleanup
+    if is_gcs_input and os.path.exists(input_pdf):
+        os.remove(input_pdf)
 
 if __name__ == "__main__":
     run_conversion()

@@ -3,10 +3,7 @@ set -e
 
 echo "[System] Updating OS packages and rendering utilities."
 sudo apt-get update -qq
-sudo apt-get install -y -qq poppler-utils tesseract-ocr curl unzip
-
-echo "[System] Installing rclone utility for direct Drive synchronization."
-sudo -v ; curl https://rclone.org/install.sh | sudo bash
+sudo apt-get install -y -qq poppler-utils tesseract-ocr
 
 echo "[System] Verifying Docker daemon status for VLM sandboxing."
 sudo systemctl enable docker
