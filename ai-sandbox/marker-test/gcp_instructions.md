@@ -21,10 +21,16 @@ if (docker ps -aq -f "name=^gcp-container$") {
         --env-file ../.env `
         -v ${PWD}:/workspace `
         -v gcloud-config:/root/.config/gcloud `
+        -v gcloud-ssh:/root/.ssh `
         gcp-runner
 }
-
 ```
+Note: To stop and remove a previously created Docker container (in case you need to reconfigure it), use:
+# Halt the active container processes
+docker stop gcp-container
+
+# Excise the container from the local registry
+docker rm gcp-container
 
 You are now operating within the container's interactive bash shell for all subsequent operations.
 
@@ -33,9 +39,7 @@ You are now operating within the container's interactive bash shell for all subs
 Validate the Google Cloud SDK installation.
 
 ```bash
-# Verify gcloud SDK installation and active configuration
 gcloud version
-
 ```
 
 ## Step 1: Authenticate the SDK within the Container
@@ -46,16 +50,16 @@ gcloud version
 gcloud auth application-default login --disable-quota-project
 gcloud config set project $PROJECT_ID
 gcloud auth application-default set-quota-project $PROJECT_ID
-
 ```
 
 ## Step 2: Synchronize Scripts to the Virtual Machine
 
 Transfer the provisioning and execution scripts to the home directory of the remote Compute Engine instance.
 
-```bash
-gcloud compute scp setup_gcp.sh convert_textbook.py <$VM_INSTANCE_NAME>:~/ --zone=<$GCP_ZONE>
+This will trigger the SSH key metadata to update, which may require additional authentication.
 
+```bash
+gcloud compute scp marker_setup.sh convert_textbook.py $VM_INSTANCE_NAME:~/ --zone=$GCP_ZONE --tunnel-through-iap
 ```
 
 ## Step 3: Execute the Extraction Pipeline
@@ -65,9 +69,8 @@ gcloud compute scp setup_gcp.sh convert_textbook.py <$VM_INSTANCE_NAME>:~/ --zon
 This provisions the OS and Python dependencies. Capitalizing on the VM's persistent disk architecture, this command only requires execution once following instance creation.
 
 ```bash
-gcloud compute ssh <$VM_INSTANCE_NAME> --zone=<$GCP_ZONE> --command="bash -s" << 'EOF'
-bash ~/setup_gcp.sh
-# Refresh session groups to immediately instantiate Docker daemon permissions
+gcloud compute ssh $VM_INSTANCE_NAME --zone=$GCP_ZONE --tunnel-through-iap --command="bash -s" << 'EOF'
+bash ~/marker_setup.sh
 sudo su - $USER
 EOF
 ```
@@ -84,10 +87,9 @@ gcloud storage cp ./academic_resources/math-camp/textbooks-and-papers/textbook.p
 Execute the conversion. Because the underlying hardware is persistent, this command can be run iteratively to process distinct PDFs without re-provisioning the environment or recompiling binaries.
 
 ```bash
-gcloud compute ssh <$VM_INSTANCE_NAME> --zone=<$GCP_ZONE> --command="bash -s" << 'EOF'
-python3 -u ~/convert_textbook.py 'gs://$BUCKET_NAME/input_documents/textbook.pdf' 'gs://$BUCKET_NAME/processed_outputs'
+gcloud compute ssh $VM_INSTANCE_NAME --zone=$GCP_ZONE --tunnel-through-iap --command="bash -s" << EOF
+python3 -u ~/convert_textbook.py "gs://$BUCKET_NAME/input_documents/textbook.pdf" "gs://$BUCKET_NAME/processed_outputs"
 EOF
-
 ```
 
 ### 3.4 Export the structured artifacts to the local host
@@ -109,10 +111,10 @@ To halt billing cycles, the VM must be explicitly stopped or deleted upon comple
 ```bash
 # Option A: Stop the instance. This halts compute billing but preserves the disk 
 # (and provisioning state) for future executions. Minimal storage fees apply.
-gcloud compute instances stop <$VM_INSTANCE_NAME> --zone=<$GCP_ZONE>
+gcloud compute instances stop $VM_INSTANCE_NAME --zone=$GCP_ZONE
 
 # Option B: Delete the instance entirely. This permanently destroys the disk and 
 # halts all billing mechanisms. Provisioning (Step 3.1) must be repeated upon recreation.
-gcloud compute instances delete <$VM_INSTANCE_NAME> --zone=<$GCP_ZONE> --quiet
+gcloud compute instances delete $VM_INSTANCE_NAME --zone=$GCP_ZONE --quiet
 
 ```
