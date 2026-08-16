@@ -6,6 +6,7 @@ Optimized for GCP Compute Engine VMs with native Google Cloud Storage (GCS) pipe
 """
 
 import os
+import glob
 import sys
 import gc
 import re
@@ -19,6 +20,16 @@ from marker.converters.pdf import PdfConverter
 from marker.models import create_model_dict
 from marker.output import text_from_rendered
 
+def clean_stale_state():
+    # Purge stale surya lock files
+    lock_files = glob.glob('/root/.cache/datalab/surya/*.lock')
+    for lock_file in lock_files:
+        try:
+            os.remove(lock_file)
+        except OSError:
+            pass
+
+clean_stale_state()
 
 def sanitize_filename(text: str) -> str:
     """Sanitizes strings to ensure filesystem compatibility."""
