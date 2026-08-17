@@ -1,6 +1,89 @@
 #!/usr/bin/env bash
 set -e
 
+# ---------------------------------------------------------------------------
+# Idempotency: this script is meant to be run at the start of every session,
+# not just once after instance creation. SETUP_MARKER is written only after
+# every provisioning step below has succeeded; on a later run, if the marker
+# exists AND the environment it describes still actually works, we skip
+# straight to done instead of re-running apt/pip/docker installs that are
+# already satisfied on this persistent disk.
+#
+# If the marker is missing, this is treated as a fresh instance and the full
+# build runs. If the marker exists but re-verification fails (e.g. a
+# manually altered environment, or something short of a full stop/start that
+# left Docker in a bad state), we deliberately do NOT try to silently repair
+# or re-provision on top of unknown state -- we fail loudly and point at a
+# clean rebuild instead, for the same reason the torch section below refuses
+# to reinstall on top of a preinstalled stack: a repair attempt that goes
+# wrong is far harder to diagnose than a clean rebuild.
+# ---------------------------------------------------------------------------
+
+SETUP_MARKER="$HOME/.marker_setup_complete"
+
+on_error() {
+    local exit_code=$?
+    local failed_line=$1
+    echo ""
+    echo "=================================================================="
+    echo "[FATAL] Provisioning failed (exit code $exit_code, line $failed_line)."
+    echo "This VM's disk may now be in a partially-provisioned state."
+    echo ""
+    echo "Do not just rerun this script and hope -- a partial apt/pip/docker"
+    echo "install can fail in confusing, hard-to-diagnose ways on a second"
+    echo "attempt. Recommended fix: stop this VM, delete it and its disk"
+    echo "(gcp_instructions.md Step 4, Option B), recreate a fresh instance,"
+    echo "then rerun this setup script from a clean disk."
+    echo "=================================================================="
+    exit "$exit_code"
+}
+trap 'on_error $LINENO' ERR
+
+quick_verify_existing_setup() {
+    # Re-checks the pieces that actually matter at runtime rather than
+    # trusting the marker file blindly. Each check is cheap (no network
+    # pulls, since everything it touches was already pulled/installed by a
+    # prior full run) so this whole function should finish in a few seconds.
+    dpkg -s poppler-utils tesseract-ocr docker.io nvidia-container-toolkit >/dev/null 2>&1 || return 1
+    sudo docker info >/dev/null 2>&1 || return 1
+    python3 -c "import torch, torchvision, marker" >/dev/null 2>&1 || return 1
+    python3 -c "import torch, sys; sys.exit(0 if torch.cuda.is_available() else 1)" >/dev/null 2>&1 || return 1
+    # nvidia/cuda:12.9.0-base-ubuntu22.04 was already pulled as a side effect
+    # of the GPU-visibility smoke test in the full build below, so this is a
+    # cached-image run, not a fresh pull.
+    sudo docker run --rm --gpus all nvidia/cuda:12.9.0-base-ubuntu22.04 nvidia-smi >/dev/null 2>&1 || return 1
+    VLLM_DOCKER_IMAGE=$(python3 -c "from surya.settings import settings; print(settings.VLLM_DOCKER_IMAGE)" 2>/dev/null) || return 1
+    sudo docker image inspect "$VLLM_DOCKER_IMAGE" >/dev/null 2>&1 || return 1
+    return 0
+}
+
+if [ -f "$SETUP_MARKER" ]; then
+    echo "[System] Found prior provisioning marker: $SETUP_MARKER"
+    echo "[System] Re-verifying the provisioned environment before deciding whether to skip setup..."
+    if quick_verify_existing_setup; then
+        echo "[System] Environment already provisioned and verified -- skipping setup."
+        echo "[System] Marker contents:"
+        cat "$SETUP_MARKER"
+        exit 0
+    fi
+    echo ""
+    echo "=================================================================="
+    echo "[FATAL] A provisioning marker exists at $SETUP_MARKER, but the"
+    echo "environment failed re-verification (see the failed check above)."
+    echo "The disk is in an inconsistent state -- possibly a manually"
+    echo "modified environment, or a VM that lost Docker/CUDA state in a way"
+    echo "a normal stop/start shouldn't cause."
+    echo ""
+    echo "Do not let this script 'fix' it by re-running provisioning on top"
+    echo "of an unknown state. Recommended fix: stop this VM, delete it and"
+    echo "its disk (gcp_instructions.md Step 4, Option B), recreate a fresh"
+    echo "instance, then rerun this setup script from a clean disk."
+    echo "=================================================================="
+    exit 1
+fi
+
+echo "[System] No prior provisioning marker found -- running full setup."
+
 echo "[System] Updating OS packages and rendering utilities."
 sudo apt-get update -qq
 sudo apt-get install -y -qq poppler-utils tesseract-ocr curl gnupg
@@ -35,7 +118,7 @@ sudo usermod -aG docker $USER
 
 echo "[System] Verifying Docker can see the GPU (this is what surya's VLM server needs at runtime)."
 sudo docker run --rm --gpus all nvidia/cuda:12.9.0-base-ubuntu22.04 nvidia-smi \
-  || echo "WARNING: Docker cannot see the GPU yet. If this is a brand-new install, a fresh SSH session (or VM reboot) may be needed to pick up the docker group membership before the conversion script runs."
+  || { echo "[FATAL] Docker cannot see the GPU. If this is a brand-new install, a fresh SSH session (or VM reboot) may be needed to pick up the docker group membership -- reconnect and rerun this script once before treating it as a real failure."; exit 1; }
 
 # ---------------------------------------------------------------------------
 # PyTorch: this VM boots from a Deep Learning VM image that already ships a
@@ -91,13 +174,12 @@ except ImportError:
 "
 
 # ---------------------------------------------------------------------------
-# Pre-pull surya's vLLM inference server image now, during one-time setup,
-# rather than letting it happen lazily on the first conversion run. Setup
-# already only runs once per VM instance (per gcp_instructions.md Step 3.1),
-# so this doesn't cost anything extra -- it just moves a network-bound pull
-# out of the timed, GPU-billed conversion step, and keeps the per-book
-# elapsed-time figures convert_textbook.py prints from being skewed by a
-# one-time image download on whichever book happens to run first.
+# Pre-pull surya's vLLM inference server image now, during setup, rather
+# than letting it happen lazily on the first conversion run -- this keeps
+# the per-book elapsed-time figures convert_textbook.py prints from being
+# skewed by a one-time image download on whichever book happens to run
+# first. Combined with the idempotency guard above, this now only ever
+# happens once per VM disk, not once per session.
 #
 # Read the image tag from surya's own settings instead of hardcoding it, so
 # this stays correct if the pinned surya-ocr version (a transitive
@@ -107,5 +189,13 @@ echo "[System] Pre-pulling surya's vLLM inference server image."
 VLLM_DOCKER_IMAGE=$(python3 -c "from surya.settings import settings; print(settings.VLLM_DOCKER_IMAGE)")
 echo "Image: $VLLM_DOCKER_IMAGE"
 sudo docker pull "$VLLM_DOCKER_IMAGE"
+
+echo "[System] Recording successful provisioning marker: $SETUP_MARKER"
+{
+    echo "provisioned_at_utc=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+    echo "torch_version=$(python3 -c 'import torch; print(torch.__version__)')"
+    echo "marker_pdf_version=$(python3 -c 'import importlib.metadata as m; print(m.version("marker-pdf"))')"
+    echo "vllm_docker_image=$VLLM_DOCKER_IMAGE"
+} > "$SETUP_MARKER"
 
 echo "[System] Environment provisioning completed successfully."

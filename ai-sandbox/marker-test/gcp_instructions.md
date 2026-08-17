@@ -38,9 +38,8 @@ Change this list to update the batch of target textbooks. `convert_textbook.py` 
 
 ```bash
 export PDF_FILENAMES=(
-    "textbook1.pdf"
-    "textbook2.pdf"
-    "textbook3.pdf"
+    "textbook.pdf"
+    "rudin-walter-principles-of-mathematical-analysis-1976.pdf"
 )
 ```
 
@@ -62,7 +61,47 @@ gcloud config set project $PROJECT_ID
 gcloud auth application-default set-quota-project $PROJECT_ID
 ```
 
-## Step 2: Synchronize Scripts to the Virtual Machine
+## Step 2: Prepare the Virtual Machine
+
+### Step 2.1: Ensure the VM's service account has sufficient scope
+
+`convert_textbook.py` runs on the VM itself and uploads output to GCS using the VM's *attached service account*, which is subject to an instance-level OAuth scope in addition to whatever IAM roles that service account holds. A freshly created VM commonly defaults to a scope that can read GCS but not write to it -- conversion then runs to completion and fails only at the very last step (the output upload), which is a frustrating way to lose a run.
+
+This check is a single cheap `describe` call (no VM state change, no billing impact), so it's safe to run at the start of every session regardless of whether the VM is new or one you've used before:
+
+* **Scope already correct** (the common case for a VM you've already fixed once): prints a confirmation and does nothing else.
+* **Scope missing** (expected the first time a given VM instance is used): stops the VM if it's running (required -- `set-service-account` only works on a stopped instance), grants `cloud-platform` scope, and starts it back up. This only needs to happen once per VM instance; it persists across ordinary stop/start and only needs redoing if the VM is deleted and recreated (Step 4, Option B).
+
+```bash
+CURRENT_SCOPES=$(gcloud compute instances describe $VM_INSTANCE_NAME --zone=$GCP_ZONE --format="value(serviceAccounts[0].scopes)")
+
+if [[ "$CURRENT_SCOPES" == *"cloud-platform"* ]]; then
+    echo "[System] VM already has cloud-platform scope -- nothing to do."
+else
+    echo "[System] VM is missing cloud-platform scope (found: '$CURRENT_SCOPES')."
+    echo "[System] This is expected the first time this VM instance is used and needs a one-time fix."
+
+    VM_STATUS=$(gcloud compute instances describe $VM_INSTANCE_NAME --zone=$GCP_ZONE --format="value(status)")
+    if [ "$VM_STATUS" != "TERMINATED" ]; then
+        echo "[System] Stopping VM to change its service account scope (only possible while stopped)."
+        gcloud compute instances stop $VM_INSTANCE_NAME --zone=$GCP_ZONE
+    fi
+
+    PROJECT_NUMBER=$(gcloud projects describe $PROJECT_ID --format='value(projectNumber)')
+    SERVICE_ACCOUNT="${PROJECT_NUMBER}-compute@developer.gserviceaccount.com"
+
+    echo "[System] Granting cloud-platform scope to $SERVICE_ACCOUNT."
+    gcloud compute instances set-service-account $VM_INSTANCE_NAME \
+        --zone=$GCP_ZONE \
+        --service-account=$SERVICE_ACCOUNT \
+        --scopes=cloud-platform
+
+    echo "[System] Restarting VM."
+    gcloud compute instances start $VM_INSTANCE_NAME --zone=$GCP_ZONE
+fi
+```
+
+### Step 2.2: Synchronize scripts to the Virtual Machine
 
 Transfer the provisioning and execution scripts to the home directory of the remote Compute Engine instance.
 
@@ -76,7 +115,11 @@ gcloud compute scp marker_setup.sh convert_textbook.py $VM_INSTANCE_NAME:~/ --zo
 
 ### 3.1 Execute environment provisioning
 
-This provisions the OS and Python dependencies. Capitalizing on the VM's persistent disk architecture, this command only requires execution once following instance creation.
+This provisions the OS and Python dependencies. It's safe -- and recommended -- to run this at the start of every session rather than deciding for yourself whether it's needed: `marker_setup.sh` checks the VM's persistent disk for a completed, still-healthy prior setup and, if found, skips the entire build and exits in a few seconds instead of wasting compute redoing it.
+
+* **Fresh instance:** no prior setup found -- runs the full build.
+* **Already provisioned:** prior setup found and re-verified healthy -- skips straight through.
+* **Broken/partial state:** prior setup found but re-verification fails, or the build itself fails partway -- the script stops and prints an explicit message telling you to stop, delete, and recreate the VM (Step 4, Option B) rather than silently limping forward on an unknown disk state.
 
 ```bash
 gcloud compute ssh $VM_INSTANCE_NAME --zone=$GCP_ZONE --tunnel-through-iap --command="bash -s" << 'EOF'
@@ -126,19 +169,7 @@ A single book that turns out to be unusually slow or malformed no longer stalls 
 python3 -u ~/convert_textbook.py $GCS_INPUT_URIS --output "gs://$BUCKET_NAME/processed_outputs" --chunk-timeout 2400 --page-timeout 300
 ```
 
-If you get an ERROR related to scopes and authorization by GCP, try the following:
-gcloud compute instances stop $VM_INSTANCE_NAME --zone=$GCP_ZONE
-
-PROJECT_NUMBER=$(gcloud projects describe $PROJECT_ID --format='value(projectNumber)')
-SERVICE_ACCOUNT="${PROJECT_NUMBER}-compute@developer.gserviceaccount.com"
-
-gcloud compute instances set-service-account $VM_INSTANCE_NAME \
---zone=$GCP_ZONE \
---service-account=$SERVICE_ACCOUNT \
---scopes=cloud-platform
-
-gcloud compute instances start $VM_INSTANCE_NAME --zone=$GCP_ZONE
-
+If you still get an ERROR related to scopes and authorization by GCP at this step, Step 2.1's check should have already caught and fixed it -- rerun Step 2.1 (e.g. if the VM was recreated since your last session and you skipped straight to Step 3).
 
 ### 3.4 Export the structured artifacts to the local host
 
