@@ -6,6 +6,38 @@ sudo apt-get update -qq
 sudo apt-get install -y -qq poppler-utils tesseract-ocr curl gnupg
 
 # ---------------------------------------------------------------------------
+# Docker + NVIDIA Container Toolkit: required by surya-ocr's VLM inference
+# server, NOT unused cruft. On a GPU machine, surya auto-spawns its vLLM
+# backend inside a Docker container (Docker + NVIDIA Container Toolkit is
+# surya's documented GPU requirement; only the CPU/Apple-Silicon path avoids
+# Docker, via llama.cpp). Without this, marker silently falls back to plain
+# PyPDF text extraction for every page -- no OCR, no layout, no images.
+# ---------------------------------------------------------------------------
+
+echo "[System] Installing Docker daemon."
+sudo apt-get install -y -qq docker.io
+
+echo "[System] Provisioning NVIDIA Container Toolkit."
+curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey | gpg --dearmor --batch --yes -o /tmp/nvidia.gpg
+sudo mv /tmp/nvidia.gpg /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg
+
+curl -s -L https://nvidia.github.io/libnvidia-container/stable/deb/nvidia-container-toolkit.list | \
+  sed 's#deb https://#deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://#g' | \
+  sudo tee /etc/apt/sources.list.d/nvidia-container-toolkit.list > /dev/null
+
+sudo apt-get update -qq
+sudo apt-get install -y -qq nvidia-container-toolkit=1.17.8-1
+
+echo "[System] Configuring Docker Runtime."
+sudo nvidia-ctk runtime configure --runtime=docker
+sudo systemctl restart docker
+sudo usermod -aG docker $USER
+
+echo "[System] Verifying Docker can see the GPU (this is what surya's VLM server needs at runtime)."
+sudo docker run --rm --gpus all nvidia/cuda:12.9.0-base-ubuntu22.04 nvidia-smi \
+  || echo "WARNING: Docker cannot see the GPU yet. If this is a brand-new install, a fresh SSH session (or VM reboot) may be needed to pick up the docker group membership before the conversion script runs."
+
+# ---------------------------------------------------------------------------
 # PyTorch: this VM boots from a Deep Learning VM image that already ships a
 # matched torch + torchvision + torchaudio + CUDA 12.9 + driver 580 stack.
 # DO NOT pip-install torch/torchvision/torchaudio again here — a second

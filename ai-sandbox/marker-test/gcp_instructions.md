@@ -82,6 +82,18 @@ bash ~/marker_setup.sh
 EOF
 ```
 
+Debug step: Run the following to test if torchaudio is still causing problems in the current GCP VM image
+
+gcloud compute ssh $VM_INSTANCE_NAME --zone=$GCP_ZONE --tunnel-through-iap --command="bash -s" << 'EOF'
+python3 -c "import torch; import transformers; print('torch:', torch.__version__, '| transformers:', transformers.__version__, '| CUDA:', torch.cuda.is_available())"
+EOF
+
+If you need to refresh a session mid checkpoint:
+
+gcloud compute ssh $VM_INSTANCE_NAME --zone=$GCP_ZONE --tunnel-through-iap --command="bash -s" << 'EOF'
+rm -rf ~/marker_checkpoints/*
+EOF
+sd
 ### 3.2 Stage the input document in Google Cloud Storage
 Before executing the extraction, the raw PDF must be uploaded to your GCS bucket so the remote Virtual Machine can access it.
 
