@@ -1,5 +1,13 @@
 # Textbook Conversion Pipeline
 
+## Prerequisites
+
+* A GCP project with **billing enabled**, and the account running these commands has Owner/Editor on it (needed for the IAM and service-account changes in Steps 1.2/2.1).
+* **GPU quota** approved for the zone you'll use, specifically `PREEMPTIBLE_NVIDIA_L4_GPUS` (Spot VMs draw from the preemptible quota pool, a separate metric from `NVIDIA_L4_GPUS`) if you're using Step 1.3's VM creation command as-is. This is the single most common blocker on a brand-new project -- request it under IAM & Admin > Quotas in the Console *before* Step 1.3, since approval isn't always instant.
+* `gcloud` and Docker installed locally, and Docker running.
+* A copy of `.env.example` (in the parent directory of this folder) filled in as your own `.env` -- see that file for what each variable means. `.env` is gitignored; never commit your real one.
+* A folder named `academic-hub` as a sibling of this `marker-test` folder, containing a subfolder matching whatever you set `TEXTBOOK_SUBDIR` to in `.env` -- that's where your input PDFs go and where processed output lands locally.
+
 ## Step 0: Initialize the Docker Container
 
 Execute the following script from PowerShell within the project directory (containing the `Dockerfile`, `.env`, and `convert_textbook.py`). Ensure the Docker daemon is operational prior to execution.
@@ -80,6 +88,50 @@ gcloud projects add-iam-policy-binding $PROJECT_ID \
 
 If you skip this (or it's not set up yet), `convert_textbook.py` still works -- it just logs a warning per book and falls back to the regex heuristic, same as before this feature existed. Cost is negligible: each book sends a few KB of title-page text to a fast/cheap Gemini model once.
 
+### 1.3 One-time: create the GCS bucket and VM instance (skip if you already have both)
+
+Skip this entirely if `$BUCKET_NAME` and `$VM_INSTANCE_NAME` already exist. This only needs to run once ever per project -- not once per session (that's Steps 2-3).
+
+`marker_setup.sh` hard-requires a VM booted from a Deep Learning VM image with a matching torch/CUDA/driver stack already preinstalled (see the comments at the top of that file) -- it will fail fast and loudly on a generic Ubuntu image rather than silently misbehave, but you still need the right image to begin with. The command below matches the exact image family, machine type, and GPU this pipeline has been validated against.
+
+```bash
+# Bucket
+gcloud storage buckets create "gs://$BUCKET_NAME" --project=$PROJECT_ID --location="${GCP_ZONE%-*}"
+
+# VM: g2-standard-4 + a single NVIDIA L4 is the machine-type/GPU pairing this
+# pipeline expects (g2 machine types only support L4 GPUs -- if you need a
+# different GPU, e.g. for quota reasons, you'll need a different machine
+# type family too; see GCP's accelerator/machine-type compatibility docs).
+# --scopes=cloud-platform here means Step 2.1's check should find nothing to
+# fix on a VM created this way -- it stays in the instructions as a safety
+# net for VMs created some other way (Console, an older command, etc).
+gcloud compute instances create $VM_INSTANCE_NAME \
+    --project=$PROJECT_ID \
+    --zone=$GCP_ZONE \
+    --machine-type=g2-standard-4 \
+    --accelerator=type=nvidia-l4,count=1 \
+    --image-family=pytorch-2-9-cu129-ubuntu-2204-nvidia-580 \
+    --image-project=ml-images \
+    --boot-disk-size=100GB \
+    --boot-disk-type=pd-balanced \
+    --maintenance-policy=TERMINATE \
+    --provisioning-model=SPOT \
+    --instance-termination-action=STOP \
+    --scopes=cloud-platform
+```
+
+If `--tunnel-through-iap` fails later (Steps 2.2/3.1/3.3) with a connection or permission error rather than an authentication error, your project's default network may be missing the firewall rule IAP needs:
+
+```bash
+gcloud compute firewall-rules create allow-iap-ssh \
+    --project=$PROJECT_ID \
+    --network=default \
+    --direction=INGRESS \
+    --action=ALLOW \
+    --rules=tcp:22 \
+    --source-ranges=35.235.240.0/20
+```
+
 ## Step 2: Prepare the Virtual Machine
 
 ### Step 2.1: Ensure the VM's service account has sufficient scope
@@ -157,7 +209,7 @@ Before executing the extraction, each raw PDF must be uploaded to your GCS bucke
 
 ```bash
 for PDF_FILENAME in "${PDF_FILENAMES[@]}"; do
-    gcloud storage cp "/academic-hub/academic_resources/math-camp/textbooks-and-papers/$PDF_FILENAME" "gs://$BUCKET_NAME/input_documents/$PDF_FILENAME"
+    gcloud storage cp "/academic-hub/$TEXTBOOK_SUBDIR/$PDF_FILENAME" "gs://$BUCKET_NAME/input_documents/$PDF_FILENAME"
 done
 ```
 
@@ -202,10 +254,10 @@ Google Cloud VMs do not natively mount Google Drive. To retrieve the markdown an
 
 ```bash
 # Ensure the local target directory structure exists prior to transfer
-mkdir -p ../academic-hub/academic_resources/math-camp/textbooks-and-papers/processed_outputs/
+mkdir -p "../academic-hub/$TEXTBOOK_SUBDIR/processed_outputs/"
 
 # Recursively download the processed artifacts from the GCS bucket
-gcloud storage cp -r gs://$BUCKET_NAME/processed_outputs/* ../academic-hub/academic_resources/math-camp/textbooks-and-papers/processed_outputs/
+gcloud storage cp -r gs://$BUCKET_NAME/processed_outputs/* "../academic-hub/$TEXTBOOK_SUBDIR/processed_outputs/"
 
 # Empty the bucket
 gcloud storage rm -r gs://$BUCKET_NAME/processed_outputs/* gs://$BUCKET_NAME/input_documents/* --continue-on-error

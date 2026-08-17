@@ -133,6 +133,13 @@ curl -s -L https://nvidia.github.io/libnvidia-container/stable/deb/nvidia-contai
   sudo tee /etc/apt/sources.list.d/nvidia-container-toolkit.list > /dev/null
 
 sudo apt-get update -qq
+# Pinned rather than floating, for reproducibility -- but that means this
+# WILL eventually break once 1.17.8-1 ages out of the apt repo (apt keeps a
+# limited window of old package versions). If this install step starts
+# failing with "unable to locate package" or similar, check
+# `apt-cache madison nvidia-container-toolkit` for what's currently
+# available and bump this pin (and SETUP_VERSION below) accordingly --
+# this isn't something either of us can fix in advance.
 sudo apt-get install -y -qq nvidia-container-toolkit=1.17.8-1
 
 echo "[System] Configuring Docker Runtime."
