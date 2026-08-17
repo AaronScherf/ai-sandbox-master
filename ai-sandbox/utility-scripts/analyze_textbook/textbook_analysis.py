@@ -369,7 +369,7 @@ def build_parser():
     p_chat.add_argument("--top-k", type=int, default=5, help="Number of chunks to retrieve per question (default: 5).")
     p_chat.add_argument("--books", nargs="+", default=None,
                          help="Restrict retrieval to books whose title/filename matches one of these substrings.")
-    p_chat.add_argument("--chat-model", default="gemini-2.5-flash", help="Gemini chat model (default: gemini-2.5-flash).")
+    p_chat.add_argument("--chat-model", default="gemini-3.6-flash", help="Gemini chat model (default: gemini-3.6-flash).")
     p_chat.add_argument("--query", default=None,
                          help="Ask a single question non-interactively and exit (for smoke-testing the setup).")
     p_chat.set_defaults(func=cmd_chat)

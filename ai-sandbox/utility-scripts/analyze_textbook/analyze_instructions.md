@@ -114,10 +114,11 @@ Useful flags:
   whose title/filename matches, e.g. `--books Axler` to study only Linear
   Algebra Done Right.
 - `--top-k <n>` -- how many chunks to retrieve per question (default 5).
-- `--chat-model <name>` -- swap the Gemini model, e.g.
-  `--chat-model gemini-2.5-flash-lite` for faster/cheaper (still free)
-  responses, or a newer flash model if one's been released since -- see
-  https://ai.google.dev/gemini-api/docs/pricing for what's currently free.
+- `--chat-model <name>` -- swap the Gemini model (default `gemini-3.6-flash`).
+  Google retires model IDs for new users periodically -- if you get a 404
+  "no longer available" error, the error message itself names the current
+  replacement; see https://ai.google.dev/gemini-api/docs/pricing for what's
+  currently free.
 - `--query "..."` -- ask a single question non-interactively and exit
   (handy for a quick smoke test that indexing/API key are working, without
   sitting in the REPL).
