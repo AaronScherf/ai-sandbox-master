@@ -69,6 +69,9 @@ def load_checkpoint_metadata(metadata_path: str) -> dict:
         try:
             with open(metadata_path, "r", encoding="utf-8") as f:
                 data = json.load(f)
+            if not isinstance(data, dict):
+                print(f"WARNING: {metadata_path} did not contain a JSON object as expected; ignoring it.")
+                return {}
             if data:
                 print(f"Resuming with metadata captured on a previous run: {metadata_path}")
             return data
@@ -233,7 +236,11 @@ def run_conversion():
         # Capture metadata from the first chunk that actually returns any --
         # a chunk 0 that hit the per-page fallback path may return nothing,
         # so don't lock in an empty result if a later chunk has it.
-        if chunk_meta and not master_metadata:
+        # marker's text_from_rendered() doesn't reliably return a dict here
+        # (observed a plain str on one run) -- guard the type explicitly so
+        # a surprising value never crashes final assembly after all chunks
+        # have already done the expensive part of the work.
+        if isinstance(chunk_meta, dict) and chunk_meta and not master_metadata:
             master_metadata = chunk_meta
             save_checkpoint_metadata(metadata_path, master_metadata)
 
@@ -255,14 +262,11 @@ def run_conversion():
 
     # 4. Artifact Assembly (reads chunk files from disk; nothing has been
     # held in memory across the loop above)
-    title = sanitize_filename(master_metadata.get("title", ""))
-    authors = master_metadata.get("authors", "")
-    lastname = sanitize_filename(str(authors).split(",")[-1].split()[-1]) if authors else "UnknownAuthor"
-    year = sanitize_filename(master_metadata.get("year", "0000")) or "0000"
-    if not title:
-        title = sanitize_filename(os.path.splitext(os.path.basename(input_pdf))[0])
-
-    folder_name = f"{lastname}_{title}_{year}"
+    # marker's metadata dict only ever contains structural fields
+    # (table_of_contents, page_stats) -- it doesn't extract title/author/year
+    # bibliographic info, so name the output from the source filename instead
+    # of chasing fields marker never populates.
+    folder_name = sanitize_filename(os.path.splitext(os.path.basename(raw_input))[0]) or "converted_textbook"
     local_build_dir = os.path.join(workspace, "marker_assembly_output")
     if os.path.exists(local_build_dir):
         shutil.rmtree(local_build_dir)
