@@ -32,12 +32,16 @@ docker rm gcp-container
 
 You are now operating within the container's interactive bash shell for all subsequent operations.
 
-### Step 0.2: Declare textbook filename
+### Step 0.2: Declare textbook filenames
 
-Change this to update the target textbook
+Change this list to update the batch of target textbooks. `convert_textbook.py` loads Marker's vision models exactly once per invocation and reuses them across every file in this list, so batching several books here is substantially cheaper than converting them one invocation at a time -- prefer adding to this list over running the pipeline repeatedly for one book each time.
 
 ```bash
-export PDF_FILENAME="textbook.pdf"
+export PDF_FILENAMES=(
+    "textbook1.pdf"
+    "textbook2.pdf"
+    "textbook3.pdf"
+)
 ```
 
 ### Step 0.3: Verify SDK Installation
@@ -86,25 +90,40 @@ gcloud compute ssh $VM_INSTANCE_NAME --zone=$GCP_ZONE --tunnel-through-iap --com
 python3 -c "import torch; import transformers; print('torch:', torch.__version__, '| transformers:', transformers.__version__, '| CUDA:', torch.cuda.is_available())"
 EOF
 
-### 3.2 Stage the input document in Google Cloud Storage
-Before executing the extraction, the raw PDF must be uploaded to your GCS bucket so the remote Virtual Machine can access it.
+### 3.2 Stage the input documents in Google Cloud Storage
+Before executing the extraction, each raw PDF must be uploaded to your GCS bucket so the remote Virtual Machine can access it.
 
 ```bash
-gcloud storage cp "/academic-hub/academic_resources/math-camp/textbooks-and-papers/$PDF_FILENAME" "gs://$BUCKET_NAME/input_documents/$PDF_FILENAME"
+for PDF_FILENAME in "${PDF_FILENAMES[@]}"; do
+    gcloud storage cp "/academic-hub/academic_resources/math-camp/textbooks-and-papers/$PDF_FILENAME" "gs://$BUCKET_NAME/input_documents/$PDF_FILENAME"
+done
 ```
 
-### 3.3 Convert the PDF to structured artifacts
+### 3.3 Convert the PDFs to structured artifacts
 
-Execute the conversion. Because the underlying hardware is persistent, this command can be run iteratively to process distinct PDFs without re-provisioning the environment or recompiling binaries.
+Execute the conversion. Because the underlying hardware is persistent, this command can be run iteratively across separate sessions without re-provisioning the environment or recompiling binaries.
+
+All PDFs staged in Step 3.2 are passed to a single `convert_textbook.py` invocation, so the vision models load once and are reused across every book -- avoid splitting this into one `gcloud compute ssh` call per book, since that would reload the models (and re-spawn the vLLM server) each time.
 
 ```bash
+GCS_INPUT_URIS=""
+for PDF_FILENAME in "${PDF_FILENAMES[@]}"; do
+    GCS_INPUT_URIS+="gs://$BUCKET_NAME/input_documents/$PDF_FILENAME "
+done
+
 gcloud compute ssh $VM_INSTANCE_NAME --zone=$GCP_ZONE --tunnel-through-iap --command="bash -s" << EOF
 echo "[System] Purging residual VLM server locks."
 sudo rm -f /root/.cache/datalab/surya/vllm_server.lock
 
 echo "[System] Initiating document extraction."
-python3 -u ~/convert_textbook.py "gs://$BUCKET_NAME/input_documents/$PDF_FILENAME" "gs://$BUCKET_NAME/processed_outputs"
+python3 -u ~/convert_textbook.py $GCS_INPUT_URIS --output "gs://$BUCKET_NAME/processed_outputs"
 EOF
+```
+
+A single book that turns out to be unusually slow or malformed no longer stalls the whole batch indefinitely: each Marker call is bounded by `--chunk-timeout` (default 1800s per chunk) and `--page-timeout` (default 240s per page fallback) before it's treated as hung and falls back automatically, and one book failing outright is logged and skipped rather than aborting the remaining books in the list. Override the defaults if needed, e.g.:
+
+```bash
+python3 -u ~/convert_textbook.py $GCS_INPUT_URIS --output "gs://$BUCKET_NAME/processed_outputs" --chunk-timeout 2400 --page-timeout 300
 ```
 
 If you get an ERROR related to scopes and authorization by GCP, try the following:

@@ -90,4 +90,22 @@ except ImportError:
     print('OK: torchaudio absent, as expected.')
 "
 
+# ---------------------------------------------------------------------------
+# Pre-pull surya's vLLM inference server image now, during one-time setup,
+# rather than letting it happen lazily on the first conversion run. Setup
+# already only runs once per VM instance (per gcp_instructions.md Step 3.1),
+# so this doesn't cost anything extra -- it just moves a network-bound pull
+# out of the timed, GPU-billed conversion step, and keeps the per-book
+# elapsed-time figures convert_textbook.py prints from being skewed by a
+# one-time image download on whichever book happens to run first.
+#
+# Read the image tag from surya's own settings instead of hardcoding it, so
+# this stays correct if the pinned surya-ocr version (a transitive
+# dependency of marker-pdf) ever changes its default.
+# ---------------------------------------------------------------------------
+echo "[System] Pre-pulling surya's vLLM inference server image."
+VLLM_DOCKER_IMAGE=$(python3 -c "from surya.settings import settings; print(settings.VLLM_DOCKER_IMAGE)")
+echo "Image: $VLLM_DOCKER_IMAGE"
+sudo docker pull "$VLLM_DOCKER_IMAGE"
+
 echo "[System] Environment provisioning completed successfully."
