@@ -21,6 +21,14 @@ set -e
 
 SETUP_MARKER="$HOME/.marker_setup_complete"
 
+# Bump this whenever the set of things this script provisions changes (new
+# package, new pre-pulled image, etc). A marker written by an older version
+# is treated as stale rather than trusted blindly -- otherwise a VM
+# provisioned before, say, google-genai was added here would keep skipping
+# setup forever and silently never get it, degrading (not breaking) whatever
+# feature needed it.
+SETUP_VERSION="2"
+
 on_error() {
     local exit_code=$?
     local failed_line=$1
@@ -46,7 +54,7 @@ quick_verify_existing_setup() {
     # prior full run) so this whole function should finish in a few seconds.
     dpkg -s poppler-utils tesseract-ocr docker.io nvidia-container-toolkit >/dev/null 2>&1 || return 1
     sudo docker info >/dev/null 2>&1 || return 1
-    python3 -c "import torch, torchvision, marker" >/dev/null 2>&1 || return 1
+    python3 -c "import torch, torchvision, marker, google.genai" >/dev/null 2>&1 || return 1
     python3 -c "import torch, sys; sys.exit(0 if torch.cuda.is_available() else 1)" >/dev/null 2>&1 || return 1
     # nvidia/cuda:12.9.0-base-ubuntu22.04 was already pulled as a side effect
     # of the GPU-visibility smoke test in the full build below, so this is a
@@ -58,31 +66,47 @@ quick_verify_existing_setup() {
 }
 
 if [ -f "$SETUP_MARKER" ]; then
-    echo "[System] Found prior provisioning marker: $SETUP_MARKER"
-    echo "[System] Re-verifying the provisioned environment before deciding whether to skip setup..."
-    if quick_verify_existing_setup; then
-        echo "[System] Environment already provisioned and verified -- skipping setup."
-        echo "[System] Marker contents:"
-        cat "$SETUP_MARKER"
-        exit 0
-    fi
-    echo ""
-    echo "=================================================================="
-    echo "[FATAL] A provisioning marker exists at $SETUP_MARKER, but the"
-    echo "environment failed re-verification (see the failed check above)."
-    echo "The disk is in an inconsistent state -- possibly a manually"
-    echo "modified environment, or a VM that lost Docker/CUDA state in a way"
-    echo "a normal stop/start shouldn't cause."
-    echo ""
-    echo "Do not let this script 'fix' it by re-running provisioning on top"
-    echo "of an unknown state. Recommended fix: stop this VM, delete it and"
-    echo "its disk (gcp_instructions.md Step 4, Option B), recreate a fresh"
-    echo "instance, then rerun this setup script from a clean disk."
-    echo "=================================================================="
-    exit 1
-fi
+    # The marker file is a plain key=value shell snippet -- source it
+    # directly rather than parsing, to pick up setup_version and the rest.
+    setup_version=""
+    # shellcheck disable=SC1090
+    source "$SETUP_MARKER"
 
-echo "[System] No prior provisioning marker found -- running full setup."
+    if [ "$setup_version" != "$SETUP_VERSION" ]; then
+        echo "[System] Found a provisioning marker from an older setup version"
+        echo "(recorded: '${setup_version:-none}', current: '$SETUP_VERSION')."
+        echo "[System] Re-running provisioning to pick up what changed -- this is"
+        echo "expected after a script update, not a failure."
+        # Deliberately falls through to the full build below rather than
+        # exiting -- this is a benign, expected case, unlike the
+        # re-verification failure case right below it.
+    else
+        echo "[System] Found prior provisioning marker: $SETUP_MARKER"
+        echo "[System] Re-verifying the provisioned environment before deciding whether to skip setup..."
+        if quick_verify_existing_setup; then
+            echo "[System] Environment already provisioned and verified -- skipping setup."
+            echo "[System] Marker contents:"
+            cat "$SETUP_MARKER"
+            exit 0
+        fi
+        echo ""
+        echo "=================================================================="
+        echo "[FATAL] A provisioning marker exists at $SETUP_MARKER (setup_version"
+        echo "matches this script), but the environment failed re-verification"
+        echo "(see the failed check above). The disk is in an inconsistent state --"
+        echo "possibly a manually modified environment, or a VM that lost"
+        echo "Docker/CUDA state in a way a normal stop/start shouldn't cause."
+        echo ""
+        echo "Do not let this script 'fix' it by re-running provisioning on top"
+        echo "of an unknown state. Recommended fix: stop this VM, delete it and"
+        echo "its disk (gcp_instructions.md Step 4, Option B), recreate a fresh"
+        echo "instance, then rerun this setup script from a clean disk."
+        echo "=================================================================="
+        exit 1
+    fi
+else
+    echo "[System] No prior provisioning marker found -- running full setup."
+fi
 
 echo "[System] Updating OS packages and rendering utilities."
 sudo apt-get update -qq
@@ -157,9 +181,13 @@ print(f'torchvision=={torchvision.__version__}')
 " > /tmp/torch-constraints.txt
 cat /tmp/torch-constraints.txt
 
-echo "[System] Installing marker-pdf and pypdf against the frozen torch stack."
+echo "[System] Installing marker-pdf, pypdf, and google-genai against the frozen torch stack."
+# google-genai is used only for LLM-assisted bibliographic metadata extraction
+# (convert_textbook.py's --llm-bib, on by default) via Vertex AI -- it doesn't
+# touch torch/CUDA at all, but is installed under the same constraints file
+# for a single consistent resolve.
 python3 -m pip install --upgrade pip -q
-python3 -m pip install --no-cache-dir "pillow<11,>=10.1.0" pypdf marker-pdf -c /tmp/torch-constraints.txt -q
+python3 -m pip install --no-cache-dir "pillow<11,>=10.1.0" pypdf marker-pdf google-genai -c /tmp/torch-constraints.txt -q
 
 echo "[System] Re-verifying torch still resolves correctly after marker-pdf's install."
 python3 -c "import torch; print('torch OK:', torch.__version__, '| CUDA:', torch.cuda.is_available())"
@@ -192,6 +220,7 @@ sudo docker pull "$VLLM_DOCKER_IMAGE"
 
 echo "[System] Recording successful provisioning marker: $SETUP_MARKER"
 {
+    echo "setup_version=$SETUP_VERSION"
     echo "provisioned_at_utc=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
     echo "torch_version=$(python3 -c 'import torch; print(torch.__version__)')"
     echo "marker_pdf_version=$(python3 -c 'import importlib.metadata as m; print(m.version("marker-pdf"))')"

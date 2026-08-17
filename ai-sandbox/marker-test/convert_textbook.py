@@ -325,15 +325,18 @@ def is_descriptive_bibliographic_info(info: dict) -> bool:
 
 def extract_bibliographic_info_from_markdown(md_text: str) -> dict:
     """
-    Heuristic, best-effort extraction of title/author/year from the first
-    page or two of marker's own markdown output -- used only as a fallback
-    when the PDF's embedded document metadata is missing or generic.
+    Heuristic, regex-based extraction of title/author/year from the first
+    page or two of marker's own markdown output. This is the last-resort
+    tier: extract_bibliographic_info_via_llm() is tried first (when the
+    PDF's embedded document metadata is missing or generic) and only falls
+    through to this when the LLM call is unavailable, unconfigured, or
+    fails outright.
 
     This is pattern-matching on a typical title/copyright page, not real
-    parsing -- it works reasonably well on the common textbook layout
-    (title as the first heading; a "(c) YEAR by AUTHOR NAME" copyright line
-    near the top) but isn't guaranteed correct on every book. Treat it as a
-    naming convenience, not authoritative bibliographic data.
+    parsing -- it only handles the common textbook layout (title as the
+    first heading; a "(c) YEAR by AUTHOR NAME" copyright line near the top)
+    and misses anything shaped differently. Treat it as a naming
+    convenience, not authoritative bibliographic data.
     """
     info = {"title": "", "author": "", "year": ""}
     # Only look at roughly the first page or two -- title pages are short,
@@ -374,6 +377,96 @@ def extract_bibliographic_info_from_markdown(md_text: str) -> dict:
     return info
 
 
+def resolve_llm_project(explicit_project):
+    """--llm-project if given, otherwise whatever project Application Default
+    Credentials resolve to (already configured on this VM via Step 1.1 /
+    Step 2.1). Returns None if neither is available, in which case LLM
+    bibliographic extraction is skipped in favor of the regex fallback."""
+    if explicit_project:
+        return explicit_project
+    try:
+        import google.auth
+        _, detected_project = google.auth.default()
+        return detected_project
+    except Exception:
+        return None
+
+
+def extract_bibliographic_info_via_llm(md_text: str, project: str, location: str, model: str) -> dict:
+    """
+    Asks a Gemini model, via Vertex AI, to read the start of marker's own
+    markdown output and identify the book's title, author, and publication
+    year. This is the primary bibliographic-extraction tier when the PDF's
+    own metadata is missing or generic -- it handles title/copyright pages
+    that don't fit extract_bibliographic_info_from_markdown()'s fixed regex
+    shapes (e.g. an author name that isn't on a "(c) YEAR by NAME" line).
+
+    Uses Vertex AI rather than a public API key so it reuses the VM's
+    existing Application Default Credentials and the cloud-platform scope
+    already required for GCS access (see gcp_instructions.md Step 2.1) --
+    no separate secret needs to be distributed. Requires the Vertex AI API
+    enabled and the VM's service account granted Vertex AI User on the GCP
+    project (one-time, project-level setup -- see gcp_instructions.md).
+
+    Still best-effort: whatever the model reports is not independently
+    verified against the actual PDF. Any failure here (missing project,
+    package not installed, API/permission error) is caught and reported as
+    a WARNING, and the caller falls back to the regex heuristic.
+    """
+    info = {"title": "", "author": "", "year": ""}
+    if not project:
+        print("WARNING: no GCP project resolved for LLM bibliographic extraction "
+              "(pass --llm-project, or run somewhere Application Default Credentials "
+              "resolve one); falling back to regex heuristic.")
+        return info
+
+    try:
+        from google import genai
+    except ImportError:
+        print("WARNING: google-genai is not installed; falling back to regex heuristic. "
+              "(Rerun marker_setup.sh -- it now installs this.)")
+        return info
+
+    snippet = md_text[:6000]
+    prompt = (
+        "Below is the start of a textbook's front matter, extracted as Markdown by an "
+        "OCR/layout pipeline (formatting may be imperfect). Identify the book's title, "
+        "the primary author's full name, and its publication/copyright year.\n\n"
+        "Respond with ONLY a JSON object with exactly these keys: "
+        '"title", "author", "year" (a 4-digit string, or "" if not present). '
+        'Use "" for any field you cannot determine with confidence -- do not guess.\n\n'
+        f"--- MARKDOWN START ---\n{snippet}\n--- MARKDOWN END ---"
+    )
+
+    try:
+        client = genai.Client(vertexai=True, project=project, location=location)
+        response = client.models.generate_content(
+            model=model,
+            contents=prompt,
+            config={
+                "response_mime_type": "application/json",
+                "temperature": 0,
+                # Gemini 2.5 models think by default, and thinking tokens are
+                # billed as output tokens even though they never appear in
+                # the response. There's no reasoning benefit to spotting a
+                # title/author/year on a title page, so this is pure wasted
+                # cost and latency for this call -- disable it.
+                "thinking_config": {"thinking_budget": 0},
+            },
+        )
+        parsed = json.loads(response.text)
+        if isinstance(parsed, dict):
+            for key in ("title", "author", "year"):
+                value = parsed.get(key)
+                if isinstance(value, str):
+                    info[key] = value.strip()
+    except Exception as llm_err:
+        print(f"WARNING: LLM-based bibliographic extraction failed ({llm_err}); "
+              f"falling back to regex heuristic.")
+
+    return info
+
+
 def merge_bibliographic_info(primary: dict, fallback: dict) -> dict:
     """Fill in only the blank fields of `primary` from `fallback`."""
     merged = dict(primary)
@@ -383,13 +476,13 @@ def merge_bibliographic_info(primary: dict, fallback: dict) -> dict:
     return merged
 
 
-def process_one_pdf(converter, raw_input: str, raw_output: str, workspace: str,
-                     chunk_size: int, chunk_timeout_s: int, page_timeout_s: int) -> str:
+def process_one_pdf(converter, raw_input: str, raw_output: str, workspace: str, args) -> str:
     """
     Runs the full checkpointed extraction + assembly + upload pipeline for a
     single PDF, reusing the already-loaded `converter`. Returns the final
     output destination (GCS URI or local path) on success; raises on
-    unrecoverable failure.
+    unrecoverable failure. `args` is the parsed CLI namespace (chunk size,
+    timeouts, and LLM bibliographic-extraction settings).
     """
     is_gcs_input = raw_input.startswith("gs://")
     is_gcs_output = raw_output.startswith("gs://")
@@ -435,7 +528,7 @@ def process_one_pdf(converter, raw_input: str, raw_output: str, workspace: str,
         os.makedirs(chunks_dir, exist_ok=True)
         os.makedirs(images_dir, exist_ok=True)
 
-        effective_chunk_size = resolve_effective_chunk_size(checkpoint_dir, chunk_size, raw_input)
+        effective_chunk_size = resolve_effective_chunk_size(checkpoint_dir, args.chunk_size, raw_input)
 
         master_metadata = load_checkpoint_metadata(metadata_path)
 
@@ -457,7 +550,7 @@ def process_one_pdf(converter, raw_input: str, raw_output: str, workspace: str,
 
             chunk_text, chunk_meta, hit_exception = process_page_range(
                 converter, reader, workspace, start_page, end_page, images_dir,
-                chunk_timeout_s, page_timeout_s
+                args.chunk_timeout, args.page_timeout
             )
 
             # Write chunk text before the done marker, so a crash mid-write
@@ -498,15 +591,25 @@ def process_one_pdf(converter, raw_input: str, raw_output: str, workspace: str,
 
         # marker's own metadata dict only ever contains structural fields
         # (table_of_contents, page_stats) -- bibliographic info comes from a
-        # two-tier fallback instead: (1) the PDF's own document metadata
-        # (source_info, extracted above via pypdf), then (2) heuristic parsing
+        # tiered fallback instead: (1) the PDF's own document metadata
+        # (source_info, extracted above via pypdf), then (2) an LLM reading
         # of the first chunk's markdown title page if (1) wasn't descriptive
-        # enough, then (3) the filename if neither found anything usable.
+        # enough, then (3) a regex heuristic over the same text if the LLM
+        # tier is unavailable/fails, then (4) the filename if nothing found
+        # anything usable.
         markdown_info = {"title": "", "author": "", "year": ""}
         if not is_descriptive_bibliographic_info(source_info) and chunk_files:
             with open(chunk_files[0], "r", encoding="utf-8") as f:
-                first_chunk_text = f.read(4000)
-            markdown_info = extract_bibliographic_info_from_markdown(first_chunk_text)
+                first_chunk_text = f.read(6000)
+
+            if args.llm_bib:
+                markdown_info = extract_bibliographic_info_via_llm(
+                    first_chunk_text, args.llm_project, args.llm_location, args.llm_model
+                )
+
+            if not is_descriptive_bibliographic_info(markdown_info):
+                markdown_info = extract_bibliographic_info_from_markdown(first_chunk_text)
+
             if is_descriptive_bibliographic_info(markdown_info):
                 print(f"Bibliographic info parsed from markdown title page -- "
                       f"title: '{markdown_info['title']}' | author: '{markdown_info['author']}' | "
@@ -618,6 +721,27 @@ def parse_args():
              "benchmark whether it improves GPU utilization on multi-vCPU VMs; leave it off "
              "otherwise, since it's the setting this pipeline has been validated against."
     )
+    parser.add_argument(
+        "--llm-bib", action=argparse.BooleanOptionalAction, default=True,
+        help="Use a Gemini model (via Vertex AI) to read the markdown title page for "
+             "title/author/year when the PDF's own metadata is missing (default: enabled). "
+             "Falls back to a regex heuristic automatically if this fails or isn't configured "
+             "-- see gcp_instructions.md for the one-time Vertex AI project setup this needs. "
+             "Disable with --no-llm-bib to skip straight to the regex heuristic."
+    )
+    parser.add_argument(
+        "--llm-project", default=None,
+        help="GCP project for Vertex AI calls (default: resolved from Application Default "
+             "Credentials, already configured on this VM)."
+    )
+    parser.add_argument(
+        "--llm-location", default="us-central1",
+        help="Vertex AI region for the Gemini call (default: us-central1)."
+    )
+    parser.add_argument(
+        "--llm-model", default="gemini-2.5-flash",
+        help="Gemini model name for bibliographic extraction (default: gemini-2.5-flash)."
+    )
     return parser.parse_args()
 
 
@@ -645,6 +769,15 @@ def run_conversion():
         print("recreate it, and rerun Step 3.1 from a clean disk before retrying.")
         sys.exit(1)
 
+    if args.llm_bib:
+        args.llm_project = resolve_llm_project(args.llm_project)
+        if args.llm_project:
+            print(f"LLM bibliographic extraction: enabled (project='{args.llm_project}', "
+                  f"location='{args.llm_location}', model='{args.llm_model}').")
+        else:
+            print("LLM bibliographic extraction: enabled but no GCP project could be resolved -- "
+                  "will fall back to the regex heuristic for every book. Pass --llm-project to fix.")
+
     print(f"Loading vision models once for this batch of {len(args.inputs)} document(s) "
           f"(Target Language: '{args.lang}')...")
     model_dict = create_model_dict()
@@ -662,10 +795,7 @@ def run_conversion():
     for idx, raw_input in enumerate(args.inputs, start=1):
         print(f"\n{'=' * 60}\nDocument {idx}/{len(args.inputs)}: {raw_input}\n{'=' * 60}")
         try:
-            final_destination = process_one_pdf(
-                converter, raw_input, args.output, workspace,
-                args.chunk_size, args.chunk_timeout, args.page_timeout
-            )
+            final_destination = process_one_pdf(converter, raw_input, args.output, workspace, args)
             results.append((raw_input, "OK", final_destination))
         except Exception as book_err:
             # A single book's unrecoverable failure (e.g. a corrupt PDF)
