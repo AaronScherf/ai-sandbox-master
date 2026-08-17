@@ -40,6 +40,7 @@ Change this list to update the batch of target textbooks. `convert_textbook.py` 
 export PDF_FILENAMES=(
     "textbook.pdf"
     "rudin-walter-principles-of-mathematical-analysis-1976.pdf"
+    "Linear Algebra Done Right (4th edition) Axler.pdf"
 )
 ```
 
@@ -60,6 +61,24 @@ gcloud auth application-default login --disable-quota-project
 gcloud config set project $PROJECT_ID
 gcloud auth application-default set-quota-project $PROJECT_ID
 ```
+
+### 1.2 One-time: enable Vertex AI for LLM-assisted bibliographic metadata (optional)
+
+`convert_textbook.py` uses a Gemini model, via Vertex AI, to read each book's title page and identify its title/author/publication year when the PDF's own embedded metadata is missing or unreliable (regex pattern-matching is used only as a fallback if this is unavailable). It reuses the VM's existing credentials rather than needing a separate API key, but the underlying GCP project needs two things granted **once, ever**, that a VM-level fix can't provide -- these are project IAM/API settings, not anything `marker_setup.sh` or Step 2.1 touches:
+
+```bash
+# Enable the Vertex AI API on the project (idempotent -- harmless to rerun).
+gcloud services enable aiplatform.googleapis.com --project=$PROJECT_ID
+
+# Grant the VM's service account permission to call it.
+PROJECT_NUMBER=$(gcloud projects describe $PROJECT_ID --format='value(projectNumber)')
+SERVICE_ACCOUNT="${PROJECT_NUMBER}-compute@developer.gserviceaccount.com"
+gcloud projects add-iam-policy-binding $PROJECT_ID \
+    --member="serviceAccount:$SERVICE_ACCOUNT" \
+    --role="roles/aiplatform.user"
+```
+
+If you skip this (or it's not set up yet), `convert_textbook.py` still works -- it just logs a warning per book and falls back to the regex heuristic, same as before this feature existed. Cost is negligible: each book sends a few KB of title-page text to a fast/cheap Gemini model once.
 
 ## Step 2: Prepare the Virtual Machine
 
@@ -148,10 +167,13 @@ Execute the conversion. Because the underlying hardware is persistent, this comm
 
 All PDFs staged in Step 3.2 are passed to a single `convert_textbook.py` invocation, so the vision models load once and are reused across every book -- avoid splitting this into one `gcloud compute ssh` call per book, since that would reload the models (and re-spawn the vLLM server) each time.
 
+Filenames are shell-quoted with `printf %q` before being joined into one string -- this heredoc is sent as literal text to the remote `bash -s`, which re-parses it from scratch, so any spaces, parentheses, or other shell-special characters in a filename need to survive that round trip intact rather than being word-split apart.
+
 ```bash
 GCS_INPUT_URIS=""
 for PDF_FILENAME in "${PDF_FILENAMES[@]}"; do
-    GCS_INPUT_URIS+="gs://$BUCKET_NAME/input_documents/$PDF_FILENAME "
+    printf -v QUOTED_URI '%q' "gs://$BUCKET_NAME/input_documents/$PDF_FILENAME"
+    GCS_INPUT_URIS+="$QUOTED_URI "
 done
 
 gcloud compute ssh $VM_INSTANCE_NAME --zone=$GCP_ZONE --tunnel-through-iap --command="bash -s" << EOF
@@ -166,8 +188,10 @@ EOF
 A single book that turns out to be unusually slow or malformed no longer stalls the whole batch indefinitely: each Marker call is bounded by `--chunk-timeout` (default 1800s per chunk) and `--page-timeout` (default 240s per page fallback) before it's treated as hung and falls back automatically, and one book failing outright is logged and skipped rather than aborting the remaining books in the list. Override the defaults if needed, e.g.:
 
 ```bash
-python3 -u ~/convert_textbook.py $GCS_INPUT_URIS --output "gs://$BUCKET_NAME/processed_outputs" --chunk-timeout 2400 --page-timeout 300
+# python3 -u ~/convert_textbook.py $GCS_INPUT_URIS --output "gs://$BUCKET_NAME/processed_outputs" --chunk-timeout 2400 --page-timeout 300
 ```
+
+LLM-assisted bibliographic metadata (Step 1.2) is on by default and needs no flags in the common case -- it auto-detects the GCP project from the VM's credentials. If you haven't done the Step 1.2 one-time setup yet, or want to skip it for a run, add `--no-llm-bib` to go straight to the regex fallback.
 
 If you still get an ERROR related to scopes and authorization by GCP at this step, Step 2.1's check should have already caught and fixed it -- rerun Step 2.1 (e.g. if the VM was recreated since your last session and you skipped straight to Step 3).
 
@@ -199,10 +223,14 @@ Only use one block!
 gcloud compute instances stop $VM_INSTANCE_NAME --zone=$GCP_ZONE
 ```
 
-This deletes your VM instance permanently!
+This deletes your VM instance permanently! It requires typing a confirmation phrase before it will run, specifically so that copy-pasting or running through this entire document in one pass can't silently delete the instance -- if you don't type it, nothing happens.
 ```bash
 # Option B: Delete the instance entirely. This permanently destroys the disk and 
 # halts all billing mechanisms. Provisioning (Step 3.1) must be repeated upon recreation.
-gcloud compute instances delete $VM_INSTANCE_NAME --zone=$GCP_ZONE --quiet
-
+read -p "Type DELETE to permanently destroy $VM_INSTANCE_NAME and its disk: " CONFIRM_DELETE
+if [ "$CONFIRM_DELETE" = "DELETE" ]; then
+    gcloud compute instances delete $VM_INSTANCE_NAME --zone=$GCP_ZONE --quiet
+else
+    echo "Aborted -- '$VM_INSTANCE_NAME' was NOT deleted."
+fi
 ```
