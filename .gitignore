@@ -24,3 +24,6 @@ Thumbs.db
 extracted_chapters/
 extracted_pages/
 output_text.txt
+
+# Local RAG index for the textbook study assistant (regenerable from source markdown)
+ai-sandbox/utility-scripts/analyze_textbook/.index/
