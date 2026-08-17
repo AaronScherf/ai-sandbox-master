@@ -1,7 +1,5 @@
 # Textbook Conversion Pipeline
 
-
-
 ## Step 0: Initialize the Docker Container
 
 Execute the following script from PowerShell within the project directory (containing the `Dockerfile`, `.env`, and `convert_textbook.py`). Ensure the Docker daemon is operational prior to execution.
@@ -28,7 +26,7 @@ if (docker ps -aq -f "name=^gcp-container$") {
         gcp-runner
 }
 ```
-Note: To stop and remove a previously created Docker container (in case you need to reconfigure it), use:
+Note: To stop and remove a previously created Docker container (in case you need to reconfigure it or you've changed env), use:
 docker stop gcp-container
 docker rm gcp-container
 
@@ -39,7 +37,7 @@ You are now operating within the container's interactive bash shell for all subs
 Change this to update the target textbook
 
 ```bash
-export PDF_FILENAME="Book_of_Proof_Hammack_Richard_2018.pdf"
+export PDF_FILENAME="textbook.pdf"
 ```
 
 ### Step 0.3: Verify SDK Installation
@@ -82,18 +80,12 @@ bash ~/marker_setup.sh
 EOF
 ```
 
-Debug step: Run the following to test if torchaudio is still causing problems in the current GCP VM image
+Debug step if torchaudio problems: Run the following to test if torchaudio is still causing problems in the current GCP VM image
 
 gcloud compute ssh $VM_INSTANCE_NAME --zone=$GCP_ZONE --tunnel-through-iap --command="bash -s" << 'EOF'
 python3 -c "import torch; import transformers; print('torch:', torch.__version__, '| transformers:', transformers.__version__, '| CUDA:', torch.cuda.is_available())"
 EOF
 
-If you need to refresh a session mid checkpoint:
-
-gcloud compute ssh $VM_INSTANCE_NAME --zone=$GCP_ZONE --tunnel-through-iap --command="bash -s" << 'EOF'
-rm -rf ~/marker_checkpoints/*
-EOF
-sd
 ### 3.2 Stage the input document in Google Cloud Storage
 Before executing the extraction, the raw PDF must be uploaded to your GCS bucket so the remote Virtual Machine can access it.
 
@@ -115,27 +107,50 @@ python3 -u ~/convert_textbook.py "gs://$BUCKET_NAME/input_documents/$PDF_FILENAM
 EOF
 ```
 
+If you get an ERROR related to scopes and authorization by GCP, try the following:
+gcloud compute instances stop $VM_INSTANCE_NAME --zone=$GCP_ZONE
+
+PROJECT_NUMBER=$(gcloud projects describe $PROJECT_ID --format='value(projectNumber)')
+SERVICE_ACCOUNT="${PROJECT_NUMBER}-compute@developer.gserviceaccount.com"
+
+gcloud compute instances set-service-account $VM_INSTANCE_NAME \
+--zone=$GCP_ZONE \
+--service-account=$SERVICE_ACCOUNT \
+--scopes=cloud-platform
+
+gcloud compute instances start $VM_INSTANCE_NAME --zone=$GCP_ZONE
+
+
 ### 3.4 Export the structured artifacts to the local host
 
 Google Cloud VMs do not natively mount Google Drive. To retrieve the markdown and image artifacts, execute a recursive secure copy from the VM back to the local Docker workspace. The volume mount established in Step 0.1 will automatically synchronize these files to your local Windows filesystem.
 
+
 ```bash
 # Ensure the local target directory structure exists prior to transfer
-mkdir -p ./academic_resources/math-camp/textbooks-and-papers/processed_outputs/
+mkdir -p ../academic-hub/academic_resources/math-camp/textbooks-and-papers/processed_outputs/
 
 # Recursively download the processed artifacts from the GCS bucket
-gcloud storage cp -r gs://$BUCKET_NAME/processed_outputs/* ./academic_resources/math-camp/textbooks-and-papers/processed_outputs/
+gcloud storage cp -r gs://$BUCKET_NAME/processed_outputs/* ../academic-hub/academic_resources/math-camp/textbooks-and-papers/processed_outputs/
+
+# Empty the bucket
+gcloud storage rm -r gs://$BUCKET_NAME/processed_outputs/* gs://$BUCKET_NAME/input_documents/* --continue-on-error
 ```
 
 ## Step 4: Terminate the Compute Instance
 
-To halt billing cycles, the VM must be explicitly stopped or deleted upon completion of the pipeline.
+To halt billing cycles, the VM must be explicitly stopped or deleted upon completion of the pipeline. 
+
+Only use one block!
 
 ```bash
 # Option A: Stop the instance. This halts compute billing but preserves the disk 
 # (and provisioning state) for future executions. Minimal storage fees apply.
 gcloud compute instances stop $VM_INSTANCE_NAME --zone=$GCP_ZONE
+```
 
+This deletes your VM instance permanently!
+```bash
 # Option B: Delete the instance entirely. This permanently destroys the disk and 
 # halts all billing mechanisms. Provisioning (Step 3.1) must be repeated upon recreation.
 gcloud compute instances delete $VM_INSTANCE_NAME --zone=$GCP_ZONE --quiet
