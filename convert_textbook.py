@@ -629,6 +629,22 @@ def run_conversion():
     print("Initializing Native GCP Marker Pipeline")
     print("==================================================")
 
+    if not torch.cuda.is_available():
+        # Marker runs fine without CUDA, which is exactly the danger: it
+        # silently falls back to plain PyPDF text extraction for every page
+        # -- no OCR, no layout, no images -- rather than raising. That
+        # produces output that looks plausible but is badly degraded, which
+        # is worse than a loud failure here. This should never happen after
+        # a successful marker_setup.sh run; if it does, the environment is
+        # broken in a way worth stopping for rather than pushing through.
+        print("FATAL: CUDA is not available in this environment.")
+        print("Proceeding would silently degrade every page to plain PyPDF text extraction")
+        print("(no OCR, no layout, no images) instead of failing loudly.")
+        print("This usually means Step 3.1 (marker_setup.sh) hasn't completed successfully on")
+        print("this VM. Reset: stop and delete this VM (gcp_instructions.md Step 4, Option B),")
+        print("recreate it, and rerun Step 3.1 from a clean disk before retrying.")
+        sys.exit(1)
+
     print(f"Loading vision models once for this batch of {len(args.inputs)} document(s) "
           f"(Target Language: '{args.lang}')...")
     model_dict = create_model_dict()
