@@ -11,6 +11,18 @@ costs you the chunk(s) in flight -- not the whole document.
 """
 
 import os
+
+# Must be set before marker/surya are imported below -- surya reads this at
+# module-load time to decide whether its VLM inference server (a Docker
+# container on GPU machines) tears itself down on exit or stays running.
+# Leaving it running means a *later invocation of this script, within the
+# same VM session*, attaches to the already-running server instead of
+# re-pulling the container image and re-loading model weights from scratch.
+# This does NOT help the very first run after a fresh VM boot (or after
+# `gcloud compute instances stop`, which kills the container regardless) --
+# only back-to-back reruns on a VM you're keeping up between them.
+os.environ.setdefault("SURYA_INFERENCE_KEEP_ALIVE", "1")
+
 import glob
 import sys
 import gc
@@ -62,6 +74,35 @@ def upload_to_gcs(local_dir: str, gcs_uri: str):
     except subprocess.CalledProcessError as e:
         print(f"Critical Error: GCS upload failed. {e}")
         sys.exit(1)
+
+
+def delete_existing_gcs_output(gcs_uri: str):
+    """
+    Removes any prior output at this exact GCS path before uploading, so a
+    rerun of the same book replaces it there instead of leaving both
+    versions to accumulate. No-ops cleanly if nothing exists there yet
+    (expected on a book's first run).
+
+    Note: this only catches a prior version that landed under this *exact*
+    folder name. If the bibliographic-metadata extraction ever produces a
+    different name for the same book between runs (e.g. PDF metadata found
+    on one run but not another), the old differently-named folder won't be
+    caught here -- worth an occasional manual `gcloud storage ls` check if
+    that's a concern.
+    """
+    print(f"Checking for a prior version to replace at: {gcs_uri}")
+    result = subprocess.run(
+        ["gcloud", "storage", "rm", "-r", gcs_uri],
+        capture_output=True, text=True
+    )
+    if result.returncode == 0:
+        print("Removed prior version before uploading the new one.")
+    else:
+        stderr = (result.stderr or "").lower()
+        if "not found" in stderr or "no urls matched" in stderr or "no matches" in stderr:
+            print("No prior version found -- nothing to replace.")
+        else:
+            print(f"WARNING: could not check/clear prior GCS output (continuing anyway): {result.stderr.strip()}")
 
 
 def load_checkpoint_metadata(metadata_path: str) -> dict:
@@ -143,6 +184,115 @@ def process_page_range(converter, reader, workspace, start_page, end_page, image
     return chunk_text, chunk_meta, hit_exception
 
 
+def extract_source_bibliographic_info(reader: PdfReader) -> dict:
+    """
+    Best-effort extraction of title/author/year from the PDF's own document
+    metadata (via pypdf's reader.metadata) -- this is separate from, and more
+    likely to be populated than, marker's structural metadata (which only
+    ever contains table_of_contents/page_stats, never bibliographic fields).
+
+    LaTeX-produced PDFs often populate this via \\title/\\author + hyperref,
+    but plenty don't (blank, or a generic value like the LaTeX engine name
+    instead of the real author) -- every field here is optional, and callers
+    should fall back to the filename when it's empty.
+    """
+    info = {"title": "", "author": "", "year": ""}
+    try:
+        meta = reader.metadata
+    except Exception:
+        meta = None
+    if not meta:
+        return info
+
+    if meta.title and meta.title.strip():
+        info["title"] = meta.title.strip()
+    if meta.author and meta.author.strip():
+        info["author"] = meta.author.strip()
+    try:
+        if meta.creation_date:
+            info["year"] = str(meta.creation_date.year)
+    except Exception:
+        pass
+    return info
+
+
+# Values commonly left behind by PDF-generating toolchains that don't count
+# as a real, descriptive author -- e.g. many LaTeX distributions populate
+# /Author with the engine name if \\author{} was never set.
+_GENERIC_METADATA_VALUES = {
+    "latex", "tex", "pdftex", "pdflatex", "xelatex", "lualatex",
+    "miktex", "texlive", "microsoft word", "writer", "unknown", ""
+}
+
+
+def is_descriptive_bibliographic_info(info: dict) -> bool:
+    """True if info has a real title, or a real (non-generic) author."""
+    title_ok = bool(info.get("title", "").strip())
+    author = info.get("author", "").strip().lower()
+    author_ok = bool(author) and author not in _GENERIC_METADATA_VALUES
+    return title_ok or author_ok
+
+
+def extract_bibliographic_info_from_markdown(md_text: str) -> dict:
+    """
+    Heuristic, best-effort extraction of title/author/year from the first
+    page or two of marker's own markdown output -- used only as a fallback
+    when the PDF's embedded document metadata is missing or generic.
+
+    This is pattern-matching on a typical title/copyright page, not real
+    parsing -- it works reasonably well on the common textbook layout
+    (title as the first heading; a "(c) YEAR by AUTHOR NAME" copyright line
+    near the top) but isn't guaranteed correct on every book. Treat it as a
+    naming convenience, not authoritative bibliographic data.
+    """
+    info = {"title": "", "author": "", "year": ""}
+    # Only look at roughly the first page or two -- title pages are short,
+    # and scanning deeper into a large first chunk risks false-positive
+    # matches against unrelated text further into the actual book content.
+    snippet = md_text[:4000]
+
+    # Title: the first markdown heading, with marker's inline HTML (e.g. the
+    # <span id="page-0-0"></span> anchors it emits) and markdown emphasis
+    # syntax stripped out.
+    heading_match = re.search(r'^#{1,2}\s+(.+)$', snippet, re.MULTILINE)
+    if heading_match:
+        raw_title = re.sub(r'<[^>]+>', '', heading_match.group(1))
+        raw_title = re.sub(r'[*_`]', '', raw_title).strip()
+        if raw_title:
+            info["title"] = raw_title
+
+    # Year + author together: a copyright line like "(c) 2018 by Richard
+    # Hammack" is common on textbook title/copyright pages and ties both
+    # fields to one reliable match rather than guessing at them separately.
+    copyright_match = re.search(
+        r'\u00a9\s*(\d{4})\s+by\s+([A-Z][\w.\'-]+(?:\s+[A-Z][\w.\'-]+){0,3})',
+        snippet
+    )
+    if copyright_match:
+        info["year"] = copyright_match.group(1)
+        # Defensive: the name-word pattern can occasionally span a stray
+        # newline (e.g. if the next paragraph also starts with a capitalized
+        # word) -- truncate to the first line to avoid swallowing extra text.
+        info["author"] = copyright_match.group(2).split("\n")[0].strip()
+    else:
+        # Fall back to a bare year near a copyright symbol/word, without an
+        # attached author name.
+        year_match = re.search(r'\u00a9\s*(\d{4})|\bCopyright\b.{0,10}?(\d{4})', snippet)
+        if year_match:
+            info["year"] = year_match.group(1) or year_match.group(2)
+
+    return info
+
+
+def merge_bibliographic_info(primary: dict, fallback: dict) -> dict:
+    """Fill in only the blank fields of `primary` from `fallback`."""
+    merged = dict(primary)
+    for key in ("title", "author", "year"):
+        if not merged.get(key):
+            merged[key] = fallback.get(key, "")
+    return merged
+
+
 def run_conversion():
     if len(sys.argv) < 3:
         print("Usage: python3 convert_textbook.py <INPUT_PDF_OR_GCS_URI> <OUTPUT_DIR_OR_GCS_URI> [OCR_LANG] [CHUNK_SIZE]")
@@ -193,6 +343,14 @@ def run_conversion():
     reader = PdfReader(input_pdf)
     total_pages = len(reader.pages)
     print(f"Loaded document mapping: {total_pages} total pages.")
+
+    source_info = extract_source_bibliographic_info(reader)
+    if is_descriptive_bibliographic_info(source_info):
+        print(f"PDF document metadata found -- title: '{source_info['title']}' | "
+              f"author: '{source_info['author']}' | year: '{source_info['year']}'")
+    else:
+        print("No descriptive PDF document metadata found; will try parsing the "
+              "markdown title page instead once conversion finishes.")
 
     # 2. Checkpoint directory setup. Keyed off the *source* filename (the
     # GCS URI or local path the user passed in), not the local downloaded
@@ -262,17 +420,47 @@ def run_conversion():
 
     # 4. Artifact Assembly (reads chunk files from disk; nothing has been
     # held in memory across the loop above)
-    # marker's metadata dict only ever contains structural fields
-    # (table_of_contents, page_stats) -- it doesn't extract title/author/year
-    # bibliographic info, so name the output from the source filename instead
-    # of chasing fields marker never populates.
-    folder_name = sanitize_filename(os.path.splitext(os.path.basename(raw_input))[0]) or "converted_textbook"
+    chunk_files = sorted(glob.glob(os.path.join(chunks_dir, "*.md")))
+
+    # marker's own metadata dict only ever contains structural fields
+    # (table_of_contents, page_stats) -- bibliographic info comes from a
+    # two-tier fallback instead: (1) the PDF's own document metadata
+    # (source_info, extracted above via pypdf), then (2) heuristic parsing
+    # of the first chunk's markdown title page if (1) wasn't descriptive
+    # enough, then (3) the filename if neither found anything usable.
+    markdown_info = {"title": "", "author": "", "year": ""}
+    if not is_descriptive_bibliographic_info(source_info) and chunk_files:
+        with open(chunk_files[0], "r", encoding="utf-8") as f:
+            first_chunk_text = f.read(4000)
+        markdown_info = extract_bibliographic_info_from_markdown(first_chunk_text)
+        if is_descriptive_bibliographic_info(markdown_info):
+            print(f"Bibliographic info parsed from markdown title page -- "
+                  f"title: '{markdown_info['title']}' | author: '{markdown_info['author']}' | "
+                  f"year: '{markdown_info['year']}'")
+        else:
+            print("Markdown title page didn't yield usable bibliographic info either; "
+                  "naming output from the source filename.")
+
+    bib_info = merge_bibliographic_info(source_info, markdown_info)
+
+    if is_descriptive_bibliographic_info(bib_info):
+        title_part = sanitize_filename(bib_info["title"]) or \
+            sanitize_filename(os.path.splitext(os.path.basename(raw_input))[0])
+        if bib_info["author"]:
+            first_author = bib_info["author"].split(",")[0].split(" and ")[0].strip()
+            lastname_part = sanitize_filename(first_author.split()[-1]) if first_author else "UnknownAuthor"
+        else:
+            lastname_part = "UnknownAuthor"
+        year_part = bib_info["year"] or "0000"
+        folder_name = f"{lastname_part}_{title_part}_{year_part}"
+    else:
+        folder_name = sanitize_filename(os.path.splitext(os.path.basename(raw_input))[0]) or "converted_textbook"
+
     local_build_dir = os.path.join(workspace, "marker_assembly_output")
     if os.path.exists(local_build_dir):
         shutil.rmtree(local_build_dir)
     os.makedirs(local_build_dir, exist_ok=True)
 
-    chunk_files = sorted(glob.glob(os.path.join(chunks_dir, "*.md")))
     with open(os.path.join(local_build_dir, f"{folder_name}.md"), "w", encoding="utf-8") as out_f:
         for i, chunk_file in enumerate(chunk_files):
             with open(chunk_file, "r", encoding="utf-8") as in_f:
@@ -283,13 +471,19 @@ def run_conversion():
     if os.listdir(images_dir):
         shutil.copytree(images_dir, os.path.join(local_build_dir, "images"))
 
-    master_metadata.update({"total_pages_processed": total_pages, "processing_time_seconds": round(elapsed, 2)})
+    master_metadata.update({
+        "total_pages_processed": total_pages,
+        "processing_time_seconds": round(elapsed, 2),
+        "source_pdf_document_info": source_info,
+        "markdown_parsed_info": markdown_info,
+    })
     with open(os.path.join(local_build_dir, f"{folder_name}_metadata.json"), "w", encoding="utf-8") as json_f:
         json.dump(master_metadata, json_f, indent=4, ensure_ascii=False)
 
     # 5. Resolve Output Trajectory
     if is_gcs_output:
         target_gcs_path = f"{raw_output.rstrip('/')}/{folder_name}"
+        delete_existing_gcs_output(target_gcs_path)
         upload_to_gcs(local_build_dir, target_gcs_path)
         shutil.rmtree(local_build_dir)
         print(f"Artifacts successfully synchronized to target destination: {target_gcs_path}")
