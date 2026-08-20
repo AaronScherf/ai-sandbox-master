@@ -6,7 +6,7 @@
 * **GPU quota** approved for the zone you'll use, specifically `PREEMPTIBLE_NVIDIA_L4_GPUS` (Spot VMs draw from the preemptible quota pool, a separate metric from `NVIDIA_L4_GPUS`) if you're using Step 1.3's VM creation command as-is. This is the single most common blocker on a brand-new project -- request it under IAM & Admin > Quotas in the Console *before* Step 1.3, since approval isn't always instant.
 * `gcloud` and Docker installed locally, and Docker running.
 * A copy of `.env.example` (in the parent directory of this folder) filled in as your own `.env` -- see that file for what each variable means. `.env` is gitignored; never commit your real one.
-* A folder named `academic-hub` as a sibling of this `marker-conversion` folder, containing a subfolder matching whatever you set `TEXTBOOK_SUBDIR` to in `.env` -- that's where your input PDFs go and where processed output lands locally.
+* A folder named `academic-hub` as a sibling of this `marker-conversion` folder, containing a subfolder matching whatever you set `TEXTBOOK_SUBDIR` to in Step 0.2 below -- that's where your input PDFs go and where processed output lands locally.
 
 ## Step 0: Initialize the Docker Container
 
@@ -40,7 +40,16 @@ docker rm gcp-container
 
 You are now operating within the container's interactive bash shell for all subsequent operations.
 
-### Step 0.2: Declare textbook filenames
+### Step 0.2: Declare run-specific variables
+
+`TEXTBOOK_SUBDIR` and `PDF_FILENAMES` identify a particular run of the pipeline (which subject folder, which books in it) rather than durable per-machine config, so they're declared here instead of in `.env`.
+
+```bash
+# Path, relative to the academic-hub/ folder mounted into the container
+# (Step 0.1), where input PDFs live and where processed output will be
+# written back to.
+export TEXTBOOK_SUBDIR="academic_resources/math-camp/textbooks-and-papers"
+```
 
 Change this list to update the batch of target textbooks. `convert_textbook.py` loads Marker's vision models exactly once per invocation and reuses them across every file in this list, so batching several books here is substantially cheaper than converting them one invocation at a time -- prefer adding to this list over running the pipeline repeatedly for one book each time.
 
@@ -253,11 +262,16 @@ Google Cloud VMs do not natively mount Google Drive. To retrieve the markdown an
 
 
 ```bash
-# Ensure the local target directory structure exists prior to transfer
-mkdir -p "../academic-hub/$TEXTBOOK_SUBDIR/processed_outputs/"
+# Ensure the local target directory structure exists prior to transfer.
+# Uses the /academic-hub mount point directly (same convention as Step 3.2)
+# rather than a "../academic-hub" relative path -- a relative path here
+# depends on the shell's cwd still being exactly /workspace, which can
+# silently drift over a long manual session and land output in the wrong
+# place instead of erroring.
+mkdir -p "/academic-hub/$TEXTBOOK_SUBDIR/processed_outputs/"
 
 # Recursively download the processed artifacts from the GCS bucket
-gcloud storage cp -r gs://$BUCKET_NAME/processed_outputs/* "../academic-hub/$TEXTBOOK_SUBDIR/processed_outputs/"
+gcloud storage cp -r gs://$BUCKET_NAME/processed_outputs/* "/academic-hub/$TEXTBOOK_SUBDIR/processed_outputs/"
 
 # Empty the bucket
 gcloud storage rm -r gs://$BUCKET_NAME/processed_outputs/* gs://$BUCKET_NAME/input_documents/* --continue-on-error
