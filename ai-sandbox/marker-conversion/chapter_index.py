@@ -13,8 +13,14 @@ VM. Everything in this module can be, on any machine with pypdf installed.
 """
 from __future__ import annotations
 
+import difflib
+import logging
 import re
+from collections import Counter
 from dataclasses import dataclass
+
+
+_logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -262,3 +268,69 @@ def detect_printed_folio(page_text: str) -> tuple[int, bool, str] | None:
         if folio_page is not None:
             return folio_page, is_roman, raw
     return None
+
+
+def _normalize_title(title: str) -> str:
+    t = title.lower()
+    t = re.sub(r"^chapter\s+\d+[.:]?\s*", "", t)
+    t = re.sub(r"[^\w\s]", "", t)
+    return re.sub(r"\s+", " ", t).strip()
+
+
+def match_chapter_titles(
+    a: list[ChapterEntry], b: list[ChapterEntry]
+) -> list[tuple[ChapterEntry, ChapterEntry]]:
+    """
+    Fuzzy-matches titles between two chapter lists (e.g. outline-sourced
+    physical pages vs. TOC-parsed folio numbers). Returns matched pairs
+    only; unmatched entries on either side are dropped silently.
+    """
+    pairs = []
+    used_b: set[int] = set()
+    for entry_a in a:
+        norm_a = _normalize_title(entry_a.title)
+        best_idx, best_ratio = None, 0.0
+        for idx, entry_b in enumerate(b):
+            if idx in used_b:
+                continue
+            ratio = difflib.SequenceMatcher(None, norm_a, _normalize_title(entry_b.title)).ratio()
+            if ratio > best_ratio:
+                best_ratio, best_idx = ratio, idx
+        if best_idx is not None and best_ratio > 0.8:
+            pairs.append((entry_a, b[best_idx]))
+            used_b.add(best_idx)
+    return pairs
+
+
+def compute_folio_offset(
+    outline_chapters: list[ChapterEntry], toc_chapters: list[ChapterEntry]
+) -> int | None:
+    """
+    Computes physical_page - folio_page from title-matched pairs (roman
+    folios excluded -- they aren't part of the book's linear arabic
+    sequence). Returns the consensus offset if a majority of samples agree
+    within +/-1; otherwise logs a WARNING with the disagreement and returns
+    None -- callers must treat None as "don't tag folio numbers," not 0.
+    """
+    samples = []
+    for entry_a, entry_b in match_chapter_titles(outline_chapters, toc_chapters):
+        physical = entry_a.physical_page if entry_a.physical_page is not None else entry_b.physical_page
+        folio = entry_b.folio_page if entry_b.folio_page is not None else entry_a.folio_page
+        is_roman = entry_a.folio_is_roman or entry_b.folio_is_roman
+        if physical is not None and folio is not None and not is_roman:
+            samples.append(physical - folio)
+
+    if len(samples) < 2:
+        _logger.warning(
+            "Not enough matched chapter samples to compute a folio offset (%d found, need >=2).",
+            len(samples),
+        )
+        return None
+
+    counts = Counter(samples)
+    consensus_offset, _ = counts.most_common(1)[0]
+    agreeing = sum(c for value, c in counts.items() if abs(value - consensus_offset) <= 1)
+    if agreeing < len(samples):
+        _logger.warning("Folio offset samples disagree: %s -- not tagging folio numbers for this book.", dict(counts))
+        return None
+    return consensus_offset

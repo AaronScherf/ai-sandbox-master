@@ -3,7 +3,7 @@ import unittest
 
 from pypdf import PdfReader, PdfWriter
 
-from chapter_index import ChapterEntry, get_outline_chapters, _parse_folio_token, parse_printed_toc, detect_printed_folio
+from chapter_index import ChapterEntry, get_outline_chapters, _parse_folio_token, parse_printed_toc, detect_printed_folio, match_chapter_titles, compute_folio_offset
 
 
 def _pdf_with_outline(entries):
@@ -140,6 +140,42 @@ class TestDetectPrintedFolio(unittest.TestCase):
 
     def test_empty_page(self):
         self.assertIsNone(detect_printed_folio(""))
+
+
+class TestMatchAndOffset(unittest.TestCase):
+    def _outline(self):
+        return [
+            ChapterEntry(title="Vector Spaces", physical_page=14),
+            ChapterEntry(title="Finite-Dimensional Vector Spaces", physical_page=40),
+            ChapterEntry(title="Linear Maps", physical_page=64),
+        ]
+
+    def _toc(self, offset=13):
+        return [
+            ChapterEntry(title="Vector Spaces", folio_page=14 - offset, folio_is_roman=False),
+            ChapterEntry(title="Finite-Dimensional Vector Spaces", folio_page=40 - offset, folio_is_roman=False),
+            ChapterEntry(title="Linear Maps", folio_page=64 - offset, folio_is_roman=False),
+        ]
+
+    def test_match_by_fuzzy_title(self):
+        pairs = match_chapter_titles(self._outline(), self._toc())
+        self.assertEqual(len(pairs), 3)
+        self.assertEqual(pairs[0][0].title, "Vector Spaces")
+        self.assertEqual(pairs[0][1].title, "Vector Spaces")
+
+    def test_offset_consensus(self):
+        offset = compute_folio_offset(self._outline(), self._toc(offset=13))
+        self.assertEqual(offset, 13)
+
+    def test_offset_disagreement_returns_none(self):
+        toc = self._toc(offset=13)
+        toc[1].folio_page = 999  # deliberately inconsistent with the others
+        self.assertIsNone(compute_folio_offset(self._outline(), toc))
+
+    def test_too_few_samples_returns_none(self):
+        outline = [ChapterEntry(title="Only One Chapter", physical_page=14)]
+        toc = [ChapterEntry(title="Only One Chapter", folio_page=1)]
+        self.assertIsNone(compute_folio_offset(outline, toc))
 
 
 if __name__ == "__main__":
