@@ -167,10 +167,31 @@ class TestMatchAndOffset(unittest.TestCase):
         offset = compute_folio_offset(self._outline(), self._toc(offset=13))
         self.assertEqual(offset, 13)
 
-    def test_offset_disagreement_returns_none(self):
+    def test_offset_two_of_three_returns_consensus(self):
+        # Two out of three chapters agree on offset=13; this is a majority (66%)
+        # and should return the consensus, not None.
         toc = self._toc(offset=13)
-        toc[1].folio_page = 999  # deliberately inconsistent with the others
-        self.assertIsNone(compute_folio_offset(self._outline(), toc))
+        toc[1].folio_page = 999  # deliberately inconsistent: offset becomes 40-999=-959
+        offset = compute_folio_offset(self._outline(), toc)
+        self.assertEqual(offset, 13)
+
+    def test_offset_three_of_four_returns_consensus(self):
+        # Three out of four chapters agree on offset=13; this is a strong majority (75%)
+        # and should return the consensus, not None.
+        outline = [
+            ChapterEntry(title="Chapter 1", physical_page=15),
+            ChapterEntry(title="Chapter 2", physical_page=40),
+            ChapterEntry(title="Chapter 3", physical_page=65),
+            ChapterEntry(title="Chapter 4", physical_page=90),
+        ]
+        toc = [
+            ChapterEntry(title="Chapter 1", folio_page=15 - 13, folio_is_roman=False),
+            ChapterEntry(title="Chapter 2", folio_page=40 - 13, folio_is_roman=False),
+            ChapterEntry(title="Chapter 3", folio_page=65 - 13, folio_is_roman=False),
+            ChapterEntry(title="Chapter 4", folio_page=90 - 50, folio_is_roman=False),  # outlier: offset=40
+        ]
+        offset = compute_folio_offset(outline, toc)
+        self.assertEqual(offset, 13)
 
     def test_too_few_samples_returns_none(self):
         outline = [ChapterEntry(title="Only One Chapter", physical_page=14)]

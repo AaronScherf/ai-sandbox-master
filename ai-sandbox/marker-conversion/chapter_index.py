@@ -330,7 +330,7 @@ def compute_folio_offset(
     counts = Counter(samples)
     consensus_offset, _ = counts.most_common(1)[0]
     agreeing = sum(c for value, c in counts.items() if abs(value - consensus_offset) <= 1)
-    if agreeing < len(samples):
+    if agreeing < max(2, len(samples) // 2 + 1):
         _logger.warning("Folio offset samples disagree: %s -- not tagging folio numbers for this book.", dict(counts))
         return None
     return consensus_offset
