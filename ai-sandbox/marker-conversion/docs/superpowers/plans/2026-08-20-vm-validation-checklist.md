@@ -82,6 +82,23 @@ path for detecting "this page ends mid-Table/mid-Equation").
       once), that's a signal the attribute path assumed in Task 10 doesn't
       match the installed Marker version -- note the actual attribute
       shape found and update `_page_looks_unterminated` accordingly.
+- [ ] Check the opposite failure mode too, flagged by the final whole-branch
+      review: does the probe fire **too often**? The primary signal is "the
+      page's last block is a Table/Equation" -- on a math-heavy textbook a
+      large fraction of pages legitimately end with an equation, so if this
+      check works as designed it may shift most fallback boundaries, many
+      all the way to the `--max-boundary-shift` cap. Count how many
+      "shifting forward" log lines appear per book and sanity-check that
+      against how many actually looked risky by eye.
+- [ ] Sanity-check output integrity directly: `grep -c '<!-- page ' output.md`
+      should equal `total_pages_processed` from the run's metadata JSON
+      (catches both a too-low count -- the page-break regex not matching
+      Marker's real format at all -- and a too-high count -- overlapping
+      chunk boundaries duplicating pages).
+- [ ] Confirm `run_config.json`'s `boundaries` are contiguous and cover
+      `[0, total_pages)` with no gaps or overlaps (the final whole-branch
+      review found and fixed a bug here pre-VM-validation; this is the
+      regression check for it on a real run).
 
 **Findings:**
 (fill in after running)
@@ -115,17 +132,49 @@ theory:
   boundary safety probe, unlike every other non-chapter-aligned cut in the
   function -- only matters for a book with neither an embedded outline nor
   a parseable TOC.
-- Resuming against a `run_config.json` written before this feature existed
+- ~~Resuming against a `run_config.json` written before this feature existed
   (old format: `chunk_size` only, no `boundaries` key) silently recomputes
-  fresh boundaries rather than erroring -- only reachable if resuming a run
-  that predates this branch's chunking changes; unlikely in practice since
-  this is a fresh feature, but worth knowing if an old in-flight checkpoint
-  ever gets reused.
+  fresh boundaries rather than erroring~~ -- **fixed** in the final
+  whole-branch review's fix wave: an old-format `run_config.json` now
+  triggers a warning and clears the stale (incompatible-scheme) chunk files
+  before recomputing, so nothing old gets merged with the new boundary
+  scheme. Worth a VM-run spot-check if an old in-flight checkpoint from
+  before this branch ever gets resumed.
 - The raw-PyPDF last-resort fallback tier's page tag changed from
   1-indexed (`Page N+1`) to 0-indexed (`<!-- page N -->`, matching every
   other tier) as an intentional side effect of unifying the tag format --
   worth being aware of if diffing fallback-tier output against pre-change
   runs.
+
+Additional items surfaced by the final whole-branch review (after all 13
+tasks landed), deferred as Minor rather than fixed immediately:
+
+- The boundary-probe shift loop permits `max_boundary_shift + 1` shifts due
+  to an off-by-one in the loop condition (`while shifted <= max_shift`) --
+  one extra page of shift beyond the configured cap, not a correctness
+  break.
+- `_boundary_bootstrap_images` (used only for the front-matter/TOC
+  bootstrap conversion inside `compute_chunk_boundaries`) is never cleaned
+  up -- per-book cleanup only removes the main `checkpoint_dir`. Front-matter
+  images from every book in a batch accumulate on the VM disk indefinitely.
+  Worth a periodic manual `rm -rf` check on long-running VMs, or a follow-up
+  fix to clean it up at the end of `compute_chunk_boundaries` or fold it
+  into the per-book checkpoint dir instead of a shared path.
+- The two `process_page_range` calls inside `compute_chunk_boundaries` (for
+  front-matter/TOC bootstrap conversion) use hardcoded
+  `chunk_timeout_s=1800, page_timeout_s=240` rather than
+  `args.chunk_timeout`/`args.page_timeout` -- a user who overrides those
+  flags (the commented example in Step 3.3 above does exactly this) won't
+  have the override respected during the bootstrap conversion specifically.
+- If an embedded outline's first entry is physical page 0,
+  `compute_chunk_boundaries` attempts a zero-page front-matter conversion,
+  which logs an alarming-looking (but harmless) "Structural layout parsing
+  failure on pages 1-0" before returning empty text and moving on.
+- `README.md` and `convert_textbook.py`'s own module docstring still
+  describe fixed-interval chunking and don't mention the `<!-- page N -->`
+  / `<!-- folio N -->` tag output -- the most user-visible change in this
+  whole feature. Worth a documentation pass once VM validation confirms
+  the feature works as designed.
 
 ## Open questions for next session
 
