@@ -3,7 +3,7 @@ import unittest
 
 from pypdf import PdfReader, PdfWriter
 
-from chapter_index import ChapterEntry, get_outline_chapters, _parse_folio_token, parse_printed_toc
+from chapter_index import ChapterEntry, get_outline_chapters, _parse_folio_token, parse_printed_toc, detect_printed_folio
 
 
 def _pdf_with_outline(entries):
@@ -123,6 +123,23 @@ class TestParsePrintedToc(unittest.TestCase):
 
     def test_no_toc_returns_empty(self):
         self.assertEqual(parse_printed_toc("Just some ordinary prose about eigenvalues."), [])
+
+
+class TestDetectPrintedFolio(unittest.TestCase):
+    def test_arabic_footer(self):
+        page = "Some body text on this page.\n\nMore text.\n\n157"
+        self.assertEqual(detect_printed_folio(page), (157, False, "157"))
+
+    def test_roman_header_with_ocr_artifact(self):
+        page = "lX\n\nPreface text starts here and continues for a while."
+        self.assertEqual(detect_printed_folio(page), (9, True, "lX"))
+
+    def test_no_folio_present(self):
+        page = "Just a page of ordinary prose with no isolated page number."
+        self.assertIsNone(detect_printed_folio(page))
+
+    def test_empty_page(self):
+        self.assertIsNone(detect_printed_folio(""))
 
 
 if __name__ == "__main__":

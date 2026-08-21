@@ -240,3 +240,25 @@ def parse_printed_toc(markdown_text: str) -> list[ChapterEntry]:
         )
 
     return chapters
+
+
+def detect_printed_folio(page_text: str) -> tuple[int, bool, str] | None:
+    """
+    Given the markdown slice for one physical page, checks the first and
+    last non-empty lines for something that looks like a printed page
+    number (arabic or roman, <=4 chars) -- last line checked first, since
+    footers are more common than headers for page numbers in textbooks.
+    Returns (folio_page, is_roman, raw_token), or None if neither line
+    qualifies (expected for pages that don't print a folio at all, or
+    where it wasn't OCR'd cleanly).
+    """
+    lines = [ln.strip() for ln in page_text.splitlines() if ln.strip()]
+    if not lines:
+        return None
+    for candidate in (lines[-1], lines[0]):
+        if len(candidate) > 4:
+            continue
+        folio_page, is_roman, raw = _parse_folio_token(candidate)
+        if folio_page is not None:
+            return folio_page, is_roman, raw
+    return None
