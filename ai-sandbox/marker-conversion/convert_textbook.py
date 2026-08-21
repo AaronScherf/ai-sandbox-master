@@ -383,6 +383,13 @@ def compute_chunk_boundaries(converter, reader, workspace, total_pages, max_chun
         ]
         return boundaries, None, total_pages
 
+    # Shared scratch dir for any Marker conversions this function does on its
+    # own (front-matter bootstrap, TOC re-read for folio offset) -- created
+    # once up front so every process_page_range call below can rely on it
+    # existing, whether or not that call happens to produce any images.
+    images_dir = os.path.join(workspace, "marker_checkpoints", "_boundary_bootstrap_images")
+    os.makedirs(images_dir, exist_ok=True)
+
     outline_chapters = chapter_index.get_outline_chapters(reader)
     folio_offset = None
     folio_start_page = total_pages
@@ -395,8 +402,6 @@ def compute_chunk_boundaries(converter, reader, workspace, total_pages, max_chun
         rest_chapters = outline_chapters
     else:
         front_matter_cap = min(max_front_matter_pages, total_pages)
-        images_dir = os.path.join(workspace, "marker_checkpoints", "_boundary_bootstrap_images")
-        os.makedirs(images_dir, exist_ok=True)
         front_matter_text, _, _ = process_page_range(
             converter, reader, workspace, 0, front_matter_cap, images_dir,
             chunk_timeout_s=1800, page_timeout_s=240,
@@ -412,8 +417,7 @@ def compute_chunk_boundaries(converter, reader, workspace, total_pages, max_chun
     if outline_chapters:
         toc_chapters = chapter_index.parse_printed_toc(
             process_page_range(
-                converter, reader, workspace, 0, front_matter_end,
-                os.path.join(workspace, "marker_checkpoints", "_boundary_bootstrap_images"),
+                converter, reader, workspace, 0, front_matter_end, images_dir,
                 chunk_timeout_s=1800, page_timeout_s=240,
                 folio_offset=None, folio_start_page=total_pages,
             )[0]
