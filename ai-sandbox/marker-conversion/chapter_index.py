@@ -131,3 +131,112 @@ def _parse_folio_token(token: str) -> tuple[int | None, bool, str | None]:
         if value is not None:
             return value, True, token
     return None, False, None
+
+
+_CHAPTER_WORD_RE = re.compile(r"^chapter\s+\d+\b[.:]?\s*(.*)$", re.IGNORECASE)
+_CHAPTER_WORD_NUM_RE = re.compile(r"^chapter\s+(\d+)\b", re.IGNORECASE)
+_STANDALONE_CHAPTER_MARKER_RE = re.compile(r"^chapter\s+(\d+)\s*$", re.IGNORECASE)
+_BARE_CHAPTER_NUM_RE = re.compile(r"^(\d+)\.?\s+(\S.*)$")
+_TOC_LINK_RE = re.compile(r"\[([^\]]*)\]\(#page-(\d+)-\d+\)")
+
+
+def _cells_from_markdown_line(line: str) -> str:
+    """Joins a markdown table row's non-empty, non-separator cells with a
+    single space. For a non-table line, strips a leading heading marker
+    (#, ##, ...) and returns the rest unchanged."""
+    stripped = re.sub(r"^#{1,6}\s*", "", line.strip())
+    if stripped.startswith("|"):
+        cells = [c.strip() for c in stripped.strip("|").split("|")]
+        cells = [c for c in cells if c and not re.fullmatch(r"-+", c)]
+        return " ".join(cells)
+    return stripped
+
+
+def _strip_markdown_inline(text: str) -> tuple[str, int | None]:
+    """
+    Strips bold/italic markup and <b>/<i> tags. If a markdown link
+    [text](#page-N-M) is present, replaces it with its visible text and
+    separately returns the physical page N; otherwise returns
+    (cleaned_text, None).
+    """
+    physical_page = None
+    m = _TOC_LINK_RE.search(text)
+    if m:
+        physical_page = int(m.group(2))
+        text = text[: m.start()] + m.group(1) + text[m.end() :]
+    text = re.sub(r"</?b>|</?i>", "", text)
+    text = re.sub(r"[*_]{1,3}", "", text)
+    text = re.sub(r"\s+", " ", text).strip()
+    return text, physical_page
+
+
+def parse_printed_toc(markdown_text: str) -> list[ChapterEntry]:
+    """
+    Extracts chapter-level (title, physical_page, folio_page) entries from
+    a book's own rendered table of contents. Scans every line rather than
+    trying to detect a TOC "region" -- the chapter-level match itself
+    (Chapter N prefix, bare N. prefix, or a preceding standalone Chapter N
+    marker line) is specific enough not to false-positive on body prose,
+    and this also means a TOC split across multiple separate markdown
+    tables (observed in Rudin, due to a page break mid-TOC) is handled
+    without any special-casing. Subsection-level entries and non-chapter
+    front-matter entries (Preface, Acknowledgments, ...) are silently
+    skipped, not raised on -- confirmed necessary by a garbled OCR line
+    observed in Axler's own subsection entries.
+    """
+    chapters: list[ChapterEntry] = []
+    pending_chapter_num: str | None = None
+
+    for raw_line in markdown_text.splitlines():
+        joined = _cells_from_markdown_line(raw_line)
+        if not joined:
+            continue
+        text, physical_page = _strip_markdown_inline(joined)
+        if not text:
+            continue
+
+        standalone = _STANDALONE_CHAPTER_MARKER_RE.match(text)
+        if standalone:
+            pending_chapter_num = standalone.group(1)
+            continue
+
+        chapter_num, remainder = None, text
+        m = _CHAPTER_WORD_NUM_RE.match(text)
+        if m:
+            chapter_num = m.group(1)
+            remainder = _CHAPTER_WORD_RE.match(text).group(1)
+        else:
+            m = _BARE_CHAPTER_NUM_RE.match(text)
+            if m:
+                chapter_num, remainder = m.group(1), m.group(2)
+            elif pending_chapter_num is not None:
+                chapter_num, remainder = pending_chapter_num, text
+
+        pending_chapter_num = None  # consumed either way -- one shot
+
+        if chapter_num is None:
+            continue
+
+        tokens = remainder.rsplit(None, 1)
+        if len(tokens) != 2:
+            continue
+        title_text, last_token = tokens
+        folio_page, folio_is_roman, folio_raw = _parse_folio_token(last_token)
+        if folio_page is None:
+            continue
+
+        title_text = title_text.strip(" .")
+        if not title_text:
+            continue
+
+        chapters.append(
+            ChapterEntry(
+                title=title_text,
+                physical_page=physical_page,
+                folio_page=folio_page,
+                folio_is_roman=folio_is_roman,
+                folio_raw=folio_raw,
+            )
+        )
+
+    return chapters
