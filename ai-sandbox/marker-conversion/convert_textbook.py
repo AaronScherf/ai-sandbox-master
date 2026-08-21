@@ -277,6 +277,89 @@ def process_page_range(converter, reader, workspace, start_page, end_page, image
     return chunk_text, chunk_meta, hit_exception
 
 
+_UNSAFE_BLOCK_TYPES = {"Table", "TableGroup", "Equation", "Form"}
+
+
+def _page_looks_unterminated(rendered, page_text: str) -> bool:
+    """
+    Best-effort check for whether a single converted page's content looks
+    like it's mid-table or mid-formula rather than cleanly ended.
+
+    Primary signal: the page's last rendered block type, if marker's
+    rendered-document structure exposes one in a form this can walk
+    without guessing at an unconfirmed internal API. This is deliberately
+    defensive -- the exact attribute path for a single-page render wasn't
+    verified against the actual installed Marker version from outside the
+    VM (no CUDA available here); if it's not available in whatever shape
+    is expected, this silently falls through to the text-heuristic check
+    below rather than raising.
+
+    Fallback / second signal: the last non-empty line of the rendered
+    markdown contains an unclosed table row or unbalanced math delimiters.
+    """
+    try:
+        blocks = getattr(rendered, "children", None) or getattr(getattr(rendered, "block", None), "children", None)
+        if blocks:
+            last_block = blocks[-1]
+            block_type = getattr(last_block, "block_type", None) or type(last_block).__name__
+            if str(block_type) in _UNSAFE_BLOCK_TYPES:
+                return True
+    except Exception:
+        pass
+
+    lines = [ln for ln in page_text.splitlines() if ln.strip()]
+    if not lines:
+        return False
+    last_line = lines[-1]
+    if last_line.count("|") % 2 == 1:
+        return True
+    if last_line.count("$$") % 2 == 1:
+        return True
+    if "\\[" in last_line and "\\]" not in last_line:
+        return True
+    return False
+
+
+def probe_and_shift_boundary(converter, reader, workspace, candidate_end_page, max_shift, hard_limit_page):
+    """
+    Checks whether the page immediately before candidate_end_page looks
+    like it ends mid-table/mid-formula, and if so shifts the boundary
+    forward one page at a time (re-probing each time) up to max_shift
+    pages, never past hard_limit_page. Only used for chunk boundaries that
+    aren't already chapter-aligned. Returns the (possibly shifted) end
+    page -- always makes forward progress, even if still ambiguous at the
+    shift cap.
+    """
+    end_page = candidate_end_page
+    shifted = 0
+    while shifted <= max_shift and end_page - 1 >= 0 and end_page < hard_limit_page:
+        probe_page = end_page - 1
+        temp_pdf = os.path.join(workspace, "temp_boundary_probe.pdf")
+        writer = PdfWriter()
+        writer.add_page(reader.pages[probe_page])
+        with open(temp_pdf, "wb") as f:
+            writer.write(f)
+        try:
+            rendered = converter(temp_pdf)
+            page_text, _, _ = text_from_rendered(rendered)
+        except Exception as probe_err:
+            print(f"WARNING: boundary probe failed on page {probe_page + 1} ({probe_err}); keeping boundary as-is.")
+            break
+        finally:
+            if os.path.exists(temp_pdf):
+                os.remove(temp_pdf)
+
+        if not _page_looks_unterminated(rendered, page_text):
+            break
+
+        print(f"[System] Chunk boundary at page {end_page} looks unsafe (page {probe_page + 1} may end "
+              f"mid-table/mid-formula); shifting forward.")
+        end_page += 1
+        shifted += 1
+
+    return min(end_page, hard_limit_page)
+
+
 def extract_source_bibliographic_info(reader: PdfReader) -> dict:
     """
     Best-effort extraction of title/author/year from the PDF's own document
@@ -707,8 +790,26 @@ def parse_args():
     parser.add_argument("--lang", default="en", help="OCR language (default: en)")
     parser.add_argument(
         "--chunk-size", type=int, default=150,
-        help="Pages per chunk (default: 150). If a book has checkpoints from a prior run with "
-             "a different chunk size, the recorded value is used instead -- see run_config.json."
+        help="Maximum pages per chunk (soft cap, default: 150) -- chunks are aligned to chapter "
+             "boundaries when available and may be smaller. If a book has checkpoints from a "
+             "prior run with a different chunk size, the recorded value is used instead -- see "
+             "run_config.json."
+    )
+    parser.add_argument(
+        "--max-boundary-shift", type=int, default=15,
+        help="Max pages the safety probe may shift a fallback chunk boundary forward when it "
+             "looks like it lands mid-table/mid-formula (default: 15)."
+    )
+    parser.add_argument(
+        "--max-front-matter-pages", type=int, default=50,
+        help="Cap on how far the front-matter TOC bootstrap will scan before giving up when "
+             "there's no embedded PDF outline (default: 50)."
+    )
+    parser.add_argument(
+        "--no-chapter-chunking", dest="chapter_chunking", action=argparse.BooleanOptionalAction, default=True,
+        help="Disable chapter-aware chunking and fall back to pure fixed-interval chunking "
+             "(default: chapter-aware chunking is enabled). Useful for debugging or A/B "
+             "comparison against the new behavior on a real book."
     )
     parser.add_argument(
         "--chunk-timeout", type=int, default=1800,
