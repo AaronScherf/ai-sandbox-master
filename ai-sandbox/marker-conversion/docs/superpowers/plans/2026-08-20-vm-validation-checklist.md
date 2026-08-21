@@ -176,6 +176,48 @@ tasks landed), deferred as Minor rather than fixed immediately:
   whole feature. Worth a documentation pass once VM validation confirms
   the feature works as designed.
 
+Further items surfaced by the final whole-branch review's fix-wave
+re-review (all Minor, none blocking, all left deliberately unfixed since
+the re-review found no new Critical/Important breakage):
+
+- The old-format-`run_config.json` cleanup (the fix for the resume hazard
+  above) clears stale chunk `.md` files but not the book's `metadata.json`
+  or `images_dir` -- a resumed pre-feature run can end up with the OLD
+  run's `table_of_contents`/`page_stats` in the delivered
+  `{folder}_metadata.json`, and orphaned old-scheme images get shipped
+  alongside the new output. Not a correctness break (no content collision),
+  just leftover/stale metadata and unreferenced image files.
+- That same cleanup runs inside a `try` block whose `except (json.JSONDecodeError, OSError): pass`
+  would silently swallow an `OSError` from the cleanup itself, letting the
+  run proceed with stale chunk files still present -- low probability
+  (`rmtree`/`makedirs` are both already defensive), but the failure mode
+  would be invisible if it ever happened.
+- A **corrupt or truncated** `run_config.json` (possible since the write
+  isn't atomic -- a kill mid-write reproduces this) hits the same
+  `except json.JSONDecodeError: pass` as a missing-`boundaries`-key file,
+  but does NOT get the new stale-chunk-clearing treatment: Fix 4 only clears
+  chunks for the old-format case, not the corrupt-file case. Since the
+  boundary probe is explicitly documented as potentially nondeterministic,
+  a recompute here could produce different chunk tags than what's already
+  on disk, reproducing the same duplicate-content merge Fix 4 was written
+  to prevent. Worth closing before this comes up on a real interrupted run
+  -- either clear chunks on both exception paths, or write `run_config.json`
+  atomically (temp file + `os.replace`).
+- The front-matter-chunk-0 size cap (also from the fix wave) only bounds
+  the main conversion loop's chunk 0 -- the *separate* TOC re-read inside
+  `compute_chunk_boundaries` (used to compute the folio offset when an
+  embedded outline exists) still makes one unbounded
+  `process_page_range(0, front_matter_end)` call over the same page range,
+  before the subdivision logic runs. For a book whose outline's first
+  chapter sits very deep, this specific call could still be the
+  large/slow one the fix was meant to eliminate.
+- `page_markers.py`'s page-break regex, even after the braced-format fix,
+  still can't tag two page-break markers that sit back-to-back with no
+  content between them (a genuinely blank page) -- the first match
+  consumes the shared `\n\n`, leaving the second marker unmatched. Very
+  rare in practice (blank pages are usually still numbered but empty), and
+  pre-existing (not introduced by this branch's changes).
+
 ## Open questions for next session
 
 (running list -- add to this as issues turn up; don't just fix and forget,
