@@ -188,7 +188,7 @@ Transfer the provisioning and execution scripts to the home directory of the rem
 This will trigger the SSH key metadata to update, which may require additional authentication.
 
 ```bash
-gcloud compute scp marker_setup.sh convert_textbook.py $VM_INSTANCE_NAME:~/ --zone=$GCP_ZONE --tunnel-through-iap
+gcloud compute scp marker_setup.sh convert_textbook.py chapter_index.py page_markers.py $VM_INSTANCE_NAME:~/ --zone=$GCP_ZONE --tunnel-through-iap
 ```
 
 ## Step 3: Execute the Extraction Pipeline

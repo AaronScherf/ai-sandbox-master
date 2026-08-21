@@ -195,6 +195,11 @@ def _load_or_compute_boundaries(run_config_path, converter, reader, workspace, t
             if "boundaries" in saved:
                 boundaries = [tuple(pair) for pair in saved["boundaries"]]
                 return boundaries, saved.get("folio_offset"), saved.get("folio_start_page", total_pages)
+            print(f"WARNING: {run_config_path} predates chapter-aware chunking (no 'boundaries' key). "
+                  f"Existing chunk files use an incompatible scheme; discarding them and starting fresh.")
+            chunks_dir = os.path.join(os.path.dirname(run_config_path), "chunks")
+            shutil.rmtree(chunks_dir, ignore_errors=True)
+            os.makedirs(chunks_dir, exist_ok=True)
         except (json.JSONDecodeError, OSError):
             pass
 
@@ -428,15 +433,28 @@ def compute_chunk_boundaries(converter, reader, workspace, total_pages, max_chun
             folio_start_page = front_matter_end
 
     packed = chapter_index.pack_chapters_into_chunks(rest_chapters, front_matter_end, total_pages, max_chunk_size)
-
     known_chapter_pages = {c.physical_page for c in rest_chapters if c.physical_page is not None}
-    boundaries = [(0, front_matter_end)] if front_matter_end > 0 else []
-    for start, end in packed:
-        if end == total_pages or end in known_chapter_pages:
-            boundaries.append((start, end))
-        else:
-            refined_end = probe_and_shift_boundary(converter, reader, workspace, end, max_boundary_shift, total_pages)
-            boundaries.append((start, refined_end))
+
+    def _probe_fn(end, hard_limit):
+        return probe_and_shift_boundary(converter, reader, workspace, end, max_boundary_shift, hard_limit)
+
+    boundaries = chapter_index.resolve_probe_boundaries(
+        packed, front_matter_end, total_pages, known_chapter_pages, probe_fn=_probe_fn,
+    )
+
+    # Chunk 0 (front matter) is otherwise atomic -- a single (0, front_matter_end)
+    # tuple with no size cap of its own. If the first outline/TOC entry sits
+    # deep in the book, that single Marker call could span hundreds of pages,
+    # exactly the memory/timeout scenario chunking exists to avoid. Subdivide
+    # it the same way the rest of the book's fallback cuts are handled: no
+    # chapter data of its own to align to, so pure fixed-interval packing,
+    # refined by the same boundary safety probe.
+    if front_matter_end > max_chunk_size:
+        front_matter_packed = chapter_index.pack_chapters_into_chunks([], 0, front_matter_end, max_chunk_size)
+        front_matter_boundaries = chapter_index.resolve_probe_boundaries(
+            front_matter_packed, 0, front_matter_end, set(), probe_fn=_probe_fn,
+        )
+        boundaries = front_matter_boundaries + boundaries[1:]
 
     return boundaries, folio_offset, folio_start_page
 

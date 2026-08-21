@@ -18,7 +18,7 @@ from __future__ import annotations
 
 import re
 
-_MARKER_PAGE_BREAK_RE = re.compile(r"\n\n(\d+)-{48}\n\n")
+_MARKER_PAGE_BREAK_RE = re.compile(r"(?:^|\n\n)\{?(\d+)\}?-{48}\n\n")
 _SPAN_ID_RE = re.compile(r'(<span id="page-)(\d+)(-\d+"></span>)')
 _LINK_TARGET_RE = re.compile(r"(\(#page-)(\d+)(-\d+\))")
 

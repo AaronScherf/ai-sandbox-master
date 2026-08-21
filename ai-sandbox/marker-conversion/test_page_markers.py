@@ -11,6 +11,20 @@ class TestRemapPageMarkers(unittest.TestCase):
         self.assertIn("<!-- page 153 -->", result)
         self.assertNotIn("-" * 48, result)
 
+    def test_remaps_braced_page_break_marker_same_as_bare(self):
+        # Marker's real output may wrap the page number in braces
+        # ("{0}" rather than a bare "0") -- unverifiable from this
+        # machine (no marker package installed anywhere), so the regex
+        # must tolerate both forms and produce the identical result.
+        bare_text = "Some content.\n\n" + "3" + "-" * 48 + "\n\nMore content."
+        braced_text = "Some content.\n\n" + "{3}" + "-" * 48 + "\n\nMore content."
+        bare_result = remap_page_markers(bare_text, physical_offset=150, folio_offset=None, folio_start_page=0)
+        braced_result = remap_page_markers(braced_text, physical_offset=150, folio_offset=None, folio_start_page=0)
+        self.assertEqual(bare_result, braced_result)
+        self.assertIn("<!-- page 153 -->", braced_result)
+        self.assertNotIn("-" * 48, braced_result)
+        self.assertNotIn("{3}", braced_result)
+
     def test_adds_folio_tag_when_offset_known_and_past_front_matter(self):
         text = "\n\n" + "0" + "-" * 48 + "\n\n"
         result = remap_page_markers(text, physical_offset=150, folio_offset=10, folio_start_page=20)

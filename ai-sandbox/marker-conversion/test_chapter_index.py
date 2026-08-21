@@ -3,7 +3,7 @@ import unittest
 
 from pypdf import PdfReader, PdfWriter
 
-from chapter_index import ChapterEntry, get_outline_chapters, _parse_folio_token, parse_printed_toc, detect_printed_folio, match_chapter_titles, compute_folio_offset, bootstrap_chapter_index_from_front_matter, pack_chapters_into_chunks
+from chapter_index import ChapterEntry, get_outline_chapters, _parse_folio_token, parse_printed_toc, detect_printed_folio, match_chapter_titles, compute_folio_offset, bootstrap_chapter_index_from_front_matter, pack_chapters_into_chunks, resolve_probe_boundaries
 
 
 def _pdf_with_outline(entries):
@@ -198,6 +198,26 @@ class TestMatchAndOffset(unittest.TestCase):
         toc = [ChapterEntry(title="Only One Chapter", folio_page=1)]
         self.assertIsNone(compute_folio_offset(outline, toc))
 
+    def test_no_majority_agreement_returns_none(self):
+        # Four samples, split 2-2 between two different offsets (13 and
+        # 50) -- neither reaches a majority (need >= 3 of 4), so this must
+        # return None rather than picking one arbitrarily. This is the
+        # exact "agreeing < max(2, len(samples)//2+1)" branch that
+        # regressed once already (unanimity vs. majority bug).
+        outline = [
+            ChapterEntry(title="Chapter 1", physical_page=15),
+            ChapterEntry(title="Chapter 2", physical_page=40),
+            ChapterEntry(title="Chapter 3", physical_page=65),
+            ChapterEntry(title="Chapter 4", physical_page=90),
+        ]
+        toc = [
+            ChapterEntry(title="Chapter 1", folio_page=15 - 13, folio_is_roman=False),
+            ChapterEntry(title="Chapter 2", folio_page=40 - 13, folio_is_roman=False),
+            ChapterEntry(title="Chapter 3", folio_page=65 - 50, folio_is_roman=False),
+            ChapterEntry(title="Chapter 4", folio_page=90 - 50, folio_is_roman=False),
+        ]
+        self.assertIsNone(compute_folio_offset(outline, toc))
+
 
 class TestBootstrap(unittest.TestCase):
     def test_bootstraps_physical_pages_from_folio_anchor(self):
@@ -265,6 +285,77 @@ class TestPackChaptersIntoChunks(unittest.TestCase):
         ]
         chunks = pack_chapters_into_chunks(chapters, start_page=14, total_pages=100, max_chunk_size=150)
         self.assertEqual(chunks, [(14, 100)])
+
+
+class TestResolveProbeBoundaries(unittest.TestCase):
+    @staticmethod
+    def _assert_contiguous(test, boundaries, expected_start, total_pages):
+        test.assertEqual(boundaries[0][0], expected_start)
+        test.assertEqual(boundaries[-1][1], total_pages)
+        for i in range(len(boundaries) - 1):
+            test.assertEqual(
+                boundaries[i][1], boundaries[i + 1][0],
+                f"gap/overlap between {boundaries[i]} and {boundaries[i + 1]}",
+            )
+
+    def test_probe_shift_carries_forward_into_next_chunk_start(self):
+        # Basic case: two non-chapter-aligned cuts, each shifted forward by
+        # the stub probe. Under the old (buggy) code, the second tuple's
+        # start would stay at the ORIGINAL packed value (30) even though
+        # the first chunk's shifted end is 33 -- producing an overlapping
+        # chunk (30, 63) that duplicates pages 30-32. This asserts the
+        # fixed contiguity invariant instead.
+        packed = [(0, 30), (30, 60), (60, 100)]
+        probe_fn = lambda end, hard_limit: min(end + 3, hard_limit)
+        boundaries = resolve_probe_boundaries(packed, 0, 100, known_chapter_pages=set(), probe_fn=probe_fn)
+        self.assertEqual(boundaries, [(0, 33), (33, 63), (63, 100)])
+        self._assert_contiguous(self, boundaries, 0, 100)
+
+    def test_large_shift_swallows_a_subsequent_packed_cut_without_overlap(self):
+        # Reproduces the exact overlap scenario the reviewer found: a
+        # probe shift big enough that it jumps past the next packed cut
+        # entirely (10 -> 18 swallows the (10, 15) span). The old code
+        # would append (10, 23) here -- overlapping the (0, 18) chunk that
+        # already claimed pages 10-17. The fix must skip the swallowed
+        # cut and keep the boundaries list contiguous.
+        packed = [(0, 10), (10, 15), (15, 50)]
+        probe_fn = lambda end, hard_limit: min(end + 8, hard_limit)
+        boundaries = resolve_probe_boundaries(packed, 0, 50, known_chapter_pages=set(), probe_fn=probe_fn)
+        self.assertEqual(boundaries, [(0, 18), (18, 50)])
+        self._assert_contiguous(self, boundaries, 0, 50)
+
+    def test_known_chapter_boundary_and_total_pages_are_not_probed(self):
+        # A cut that lands exactly on a known chapter page, or on
+        # total_pages, is already safe and must not be shifted at all --
+        # confirmed here by a probe_fn that would corrupt the boundary
+        # (shift to 999) if it were ever called on these cuts.
+        def exploding_probe_fn(end, hard_limit):
+            raise AssertionError(f"probe_fn should not be called for a known/total_pages cut (end={end})")
+
+        packed = [(10, 40), (40, 70)]
+        boundaries = resolve_probe_boundaries(
+            packed, front_matter_end=10, total_pages=70,
+            known_chapter_pages={40}, probe_fn=exploding_probe_fn,
+        )
+        self.assertEqual(boundaries, [(0, 10), (10, 40), (40, 70)])
+        self._assert_contiguous(self, boundaries, 0, 70)
+
+    def test_hard_limit_caps_at_next_known_chapter_page_not_total_pages(self):
+        # A probe-shifted cut must never be allowed to swallow an entire
+        # chapter start -- so hard_limit passed to probe_fn should be the
+        # next known chapter page past the cut, not total_pages.
+        seen_hard_limits = []
+
+        def recording_probe_fn(end, hard_limit):
+            seen_hard_limits.append(hard_limit)
+            return end  # no-op shift; only care about what hard_limit was passed
+
+        packed = [(0, 20), (20, 100)]
+        resolve_probe_boundaries(
+            packed, front_matter_end=0, total_pages=100,
+            known_chapter_pages={50}, probe_fn=recording_probe_fn,
+        )
+        self.assertEqual(seen_hard_limits, [50])
 
 
 if __name__ == "__main__":

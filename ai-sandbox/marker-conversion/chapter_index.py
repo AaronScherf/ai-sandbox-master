@@ -426,3 +426,36 @@ def pack_chapters_into_chunks(
         chunks.append((current_start, next_cut))
         current_start = next_cut
     return chunks
+
+
+def resolve_probe_boundaries(packed, front_matter_end, total_pages, known_chapter_pages, probe_fn):
+    """
+    Walks `packed` (a contiguous partition from pack_chapters_into_chunks)
+    and calls probe_fn(end, hard_limit) -> refined_end for any cut that
+    isn't already a known chapter boundary or total_pages, carrying a
+    cursor so each chunk's start reflects where the previous chunk
+    actually ended after any shift -- never a stale, pre-shift value from
+    `packed`. Returns the final boundaries list, always: contiguous,
+    starting at front_matter_end (or 0), ending at total_pages.
+
+    A shift can swallow one or more of `packed`'s subsequent cuts
+    entirely -- any such cut (end <= cursor) is skipped rather than
+    turned into a zero-length or overlapping chunk. `hard_limit_page`
+    passed to probe_fn is capped at the next already-known chapter page
+    past `end` (or total_pages if there is none), so a probe-shifted cut
+    can never swallow an entire chapter start.
+    """
+    sorted_known = sorted(known_chapter_pages)
+    boundaries = [(0, front_matter_end)] if front_matter_end > 0 else []
+    cursor = front_matter_end
+    for _, end in packed:
+        if end <= cursor:
+            continue  # this span was fully swallowed by a previous shift
+        if end == total_pages or end in known_chapter_pages:
+            refined_end = end
+        else:
+            hard_limit = next((p for p in sorted_known if p > end), total_pages)
+            refined_end = probe_fn(end, hard_limit)
+        boundaries.append((cursor, refined_end))
+        cursor = refined_end
+    return boundaries
