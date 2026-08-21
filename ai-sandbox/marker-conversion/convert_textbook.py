@@ -46,6 +46,7 @@ from pypdf import PdfReader, PdfWriter
 from marker.converters.pdf import PdfConverter
 from marker.models import create_model_dict
 from marker.output import text_from_rendered
+from page_markers import remap_page_markers, tag_single_page
 
 def clean_stale_state():
     # Purge stale surya lock files
@@ -213,7 +214,7 @@ def resolve_effective_chunk_size(checkpoint_dir: str, requested_chunk_size: int,
 
 
 def process_page_range(converter, reader, workspace, start_page, end_page, images_dir,
-                        chunk_timeout_s, page_timeout_s):
+                        chunk_timeout_s, page_timeout_s, folio_offset, folio_start_page):
     """
     Runs Marker over a single page-range chunk, falling back to per-page
     processing (and finally raw PyPDF extraction) on failure -- including a
@@ -235,6 +236,7 @@ def process_page_range(converter, reader, workspace, start_page, end_page, image
         with time_limit(chunk_timeout_s, f"chunk pages {start_page + 1}-{end_page}"):
             rendered = converter(temp_chunk_pdf)
         chunk_text, chunk_meta, chunk_images = text_from_rendered(rendered)
+        chunk_text = remap_page_markers(chunk_text, start_page, folio_offset, folio_start_page)
         for img_key, img_data in chunk_images.items():
             img_data.save(os.path.join(images_dir, f"pg_{start_page + 1}_{img_key}"))
 
@@ -254,13 +256,14 @@ def process_page_range(converter, reader, workspace, start_page, end_page, image
                 with time_limit(page_timeout_s, f"page {single_p + 1}"):
                     p_rendered = converter(single_pdf_path)
                 p_text, _, p_imgs = text_from_rendered(p_rendered)
+                p_text = remap_page_markers(p_text, single_p, folio_offset, folio_start_page)
                 text_segments.append(p_text)
                 for img_k, img_v in p_imgs.items():
                     img_v.save(os.path.join(images_dir, f"pg_{single_p + 1}_{img_k}"))
             except Exception as p_err:
                 print(f"VLM bypassed on complex page {single_p + 1} ({p_err}). Initiating standard PyPDF fallback.")
                 raw_text = reader.pages[single_p].extract_text() or ""
-                text_segments.append(f"\n\n<!-- PyPDF Fallback: Page {single_p + 1} -->\n\n{raw_text}")
+                text_segments.append(tag_single_page(raw_text, single_p, folio_offset, folio_start_page))
             finally:
                 if os.path.exists(single_pdf_path):
                     os.remove(single_pdf_path)
@@ -534,6 +537,8 @@ def process_one_pdf(converter, raw_input: str, raw_output: str, workspace: str, 
 
         start_time = time.time()
         chunk_ranges = list(range(0, total_pages, effective_chunk_size))
+        folio_offset = None
+        folio_start_page = total_pages
 
         # Iterative Structural Extraction (resumable)
         for start_page in chunk_ranges:
@@ -550,7 +555,7 @@ def process_one_pdf(converter, raw_input: str, raw_output: str, workspace: str, 
 
             chunk_text, chunk_meta, hit_exception = process_page_range(
                 converter, reader, workspace, start_page, end_page, images_dir,
-                args.chunk_timeout, args.page_timeout
+                args.chunk_timeout, args.page_timeout, folio_offset, folio_start_page
             )
 
             # Write chunk text before the done marker, so a crash mid-write
@@ -783,6 +788,7 @@ def run_conversion():
     model_dict = create_model_dict()
     converter_config = {
         "langs": [args.lang],
+        "paginate_output": True,
         # Off by default -- this is the setting the pipeline has been
         # validated against. --enable-multiprocessing exists to benchmark
         # whether letting Marker parallelize CPU-bound pre/post-processing
