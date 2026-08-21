@@ -3,7 +3,7 @@ import unittest
 
 from pypdf import PdfReader, PdfWriter
 
-from chapter_index import ChapterEntry, get_outline_chapters, _parse_folio_token, parse_printed_toc, detect_printed_folio, match_chapter_titles, compute_folio_offset
+from chapter_index import ChapterEntry, get_outline_chapters, _parse_folio_token, parse_printed_toc, detect_printed_folio, match_chapter_titles, compute_folio_offset, bootstrap_chapter_index_from_front_matter
 
 
 def _pdf_with_outline(entries):
@@ -197,6 +197,41 @@ class TestMatchAndOffset(unittest.TestCase):
         outline = [ChapterEntry(title="Only One Chapter", physical_page=14)]
         toc = [ChapterEntry(title="Only One Chapter", folio_page=1)]
         self.assertIsNone(compute_folio_offset(outline, toc))
+
+
+class TestBootstrap(unittest.TestCase):
+    def test_bootstraps_physical_pages_from_folio_anchor(self):
+        # Front matter chunk: page 11 is the anchor (its own printed folio
+        # is "1", matching the TOC's first chapter), so offset = 11 - 1 = 10.
+        front_matter = (
+            "<!-- page 9 -->\n\nPreface text.\n\nlX\n\n"
+            "<!-- page 10 -->\n\n"
+            "## CONTENTS\n\n"
+            "| Chapter 1 The Real and Complex Number Systems | 1  |\n"
+            "| Chapter 2 Basic Topology                      | 24 |\n\n"
+            "<!-- page 11 -->\n\nThe Real and Complex Number Systems\n\nBody text.\n\n1\n\n"
+        )
+        chapters, offset = bootstrap_chapter_index_from_front_matter(front_matter)
+        self.assertEqual(offset, 10)
+        self.assertEqual(len(chapters), 2)
+        self.assertEqual(chapters[0].physical_page, 11)  # 1 + 10
+        self.assertEqual(chapters[1].physical_page, 34)  # 24 + 10
+
+    def test_no_toc_fails_gracefully(self):
+        chapters, offset = bootstrap_chapter_index_from_front_matter("<!-- page 0 -->\n\nJust prose.")
+        self.assertEqual(chapters, [])
+        self.assertIsNone(offset)
+
+    def test_no_anchor_page_found_fails_gracefully(self):
+        front_matter = (
+            "<!-- page 0 -->\n\n"
+            "## CONTENTS\n\n"
+            "| Chapter 1 Something | 1 |\n\n"
+            "<!-- page 1 -->\n\nNo isolated folio number printed on this page at all, just prose.\n\n"
+        )
+        chapters, offset = bootstrap_chapter_index_from_front_matter(front_matter)
+        self.assertEqual(chapters, [])
+        self.assertIsNone(offset)
 
 
 if __name__ == "__main__":

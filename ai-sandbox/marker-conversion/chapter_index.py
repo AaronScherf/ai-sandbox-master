@@ -334,3 +334,59 @@ def compute_folio_offset(
         _logger.warning("Folio offset samples disagree: %s -- not tagging folio numbers for this book.", dict(counts))
         return None
     return consensus_offset
+
+
+_PAGE_MARKER_RE = re.compile(r"<!-- page (\d+) -->")
+
+
+def bootstrap_chapter_index_from_front_matter(
+    front_matter_text: str,
+) -> tuple[list[ChapterEntry], int | None]:
+    """
+    Used when there's no embedded PDF outline. Given the already-converted,
+    already-page-tagged markdown of the front-matter chunk: parses its own
+    printed TOC, then finds the one physical page in that same chunk whose
+    own printed folio matches the TOC's first chapter -- from that single
+    anchor, every other TOC entry's physical page follows by arithmetic
+    (physical = folio + offset).
+    """
+    toc_chapters = parse_printed_toc(front_matter_text)
+    if not toc_chapters:
+        _logger.warning("No parseable table of contents found in front matter; falling back to no chapter awareness.")
+        return [], None
+
+    boundaries = [(m.start(), int(m.group(1))) for m in _PAGE_MARKER_RE.finditer(front_matter_text)]
+    if not boundaries:
+        _logger.warning("No page markers found in front matter text; cannot anchor TOC to physical pages.")
+        return [], None
+
+    first_folio = toc_chapters[0].folio_page
+    anchor_physical = None
+    for idx, (start, physical_page) in enumerate(boundaries):
+        end = boundaries[idx + 1][0] if idx + 1 < len(boundaries) else len(front_matter_text)
+        detected = detect_printed_folio(front_matter_text[start:end])
+        if detected is not None and detected[0] == first_folio and not detected[1]:
+            anchor_physical = physical_page
+            break
+
+    if anchor_physical is None:
+        _logger.warning(
+            "Could not find a physical page whose own printed folio matches the TOC's first "
+            "chapter (folio %s); falling back to no chapter awareness.",
+            first_folio,
+        )
+        return [], None
+
+    offset = anchor_physical - first_folio
+    resolved = [
+        ChapterEntry(
+            title=entry.title,
+            physical_page=entry.folio_page + offset,
+            folio_page=entry.folio_page,
+            folio_is_roman=False,
+            folio_raw=entry.folio_raw,
+        )
+        for entry in toc_chapters
+        if not entry.folio_is_roman and entry.folio_page is not None and entry.folio_page >= first_folio
+    ]
+    return resolved, offset
