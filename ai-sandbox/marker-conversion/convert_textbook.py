@@ -349,6 +349,7 @@ def probe_and_shift_boundary(converter, reader, workspace, candidate_end_page, m
             if os.path.exists(temp_pdf):
                 os.remove(temp_pdf)
 
+        page_text = page_text if isinstance(page_text, str) else ""
         if not _page_looks_unterminated(rendered, page_text):
             break
 
@@ -806,10 +807,11 @@ def parse_args():
              "there's no embedded PDF outline (default: 50)."
     )
     parser.add_argument(
-        "--no-chapter-chunking", dest="chapter_chunking", action=argparse.BooleanOptionalAction, default=True,
-        help="Disable chapter-aware chunking and fall back to pure fixed-interval chunking "
-             "(default: chapter-aware chunking is enabled). Useful for debugging or A/B "
-             "comparison against the new behavior on a real book."
+        "--chapter-chunking", action=argparse.BooleanOptionalAction, default=True,
+        help="Chapter-aware chunking, aligning chunk boundaries to chapter breaks when available "
+             "(default: enabled). Disable with --no-chapter-chunking to fall back to pure "
+             "fixed-interval chunking -- useful for debugging or A/B comparison against the new "
+             "behavior on a real book."
     )
     parser.add_argument(
         "--chunk-timeout", type=int, default=1800,
