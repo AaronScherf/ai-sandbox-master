@@ -3,7 +3,7 @@ import unittest
 
 from pypdf import PdfReader, PdfWriter
 
-from chapter_index import ChapterEntry, get_outline_chapters
+from chapter_index import ChapterEntry, get_outline_chapters, _parse_folio_token
 
 
 def _pdf_with_outline(entries):
@@ -35,9 +35,6 @@ class TestGetOutlineChapters(unittest.TestCase):
         buf.seek(0)
         reader = PdfReader(buf)
         self.assertEqual(get_outline_chapters(reader), [])
-
-
-from chapter_index import _parse_folio_token
 
 
 class TestParseFolioToken(unittest.TestCase):
