@@ -47,6 +47,7 @@ from marker.converters.pdf import PdfConverter
 from marker.models import create_model_dict
 from marker.output import text_from_rendered
 from page_markers import remap_page_markers, tag_single_page
+import chapter_index
 
 def clean_stale_state():
     # Purge stale surya lock files
@@ -178,39 +179,37 @@ def save_checkpoint_metadata(metadata_path: str, metadata: dict):
         json.dump(metadata, f, indent=4, ensure_ascii=False)
 
 
-def resolve_effective_chunk_size(checkpoint_dir: str, requested_chunk_size: int, raw_input: str) -> int:
+def _load_or_compute_boundaries(run_config_path, converter, reader, workspace, total_pages,
+                                 max_chunk_size, max_front_matter_pages, max_boundary_shift,
+                                 chapter_chunking_enabled):
     """
-    Chunk boundaries are baked into each chunk's filename/.done marker
-    (start_page/end_page). If a resumed run requests a different
-    --chunk-size than whatever run originally created these checkpoints,
-    the new boundaries won't line up with the old ones -- final assembly
-    (a plain sorted glob over *.md) can then silently duplicate or drop
-    pages instead of failing loudly. Pin to whatever chunk_size the
-    checkpoint was actually created with, and warn if the caller asked for
-    something else, so resuming a book always "just works" safely.
+    Loads persisted chunk boundaries and folio offset from run_config.json
+    if present (a resumed run), otherwise computes them once and persists
+    the result -- guarantees identical chunking and tagging across resumes
+    regardless of any nondeterminism in the boundary safety probe.
     """
-    run_config_path = os.path.join(checkpoint_dir, "run_config.json")
-    recorded_chunk_size = None
     if os.path.exists(run_config_path):
         try:
             with open(run_config_path, "r", encoding="utf-8") as f:
-                recorded_chunk_size = json.load(f).get("chunk_size")
+                saved = json.load(f)
+            if "boundaries" in saved:
+                boundaries = [tuple(pair) for pair in saved["boundaries"]]
+                return boundaries, saved.get("folio_offset"), saved.get("folio_start_page", total_pages)
         except (json.JSONDecodeError, OSError):
-            recorded_chunk_size = None
+            pass
 
-    if recorded_chunk_size is not None and recorded_chunk_size != requested_chunk_size:
-        print(f"WARNING: '{raw_input}' has existing checkpoints created with chunk_size="
-              f"{recorded_chunk_size}, but this run requested --chunk-size {requested_chunk_size}. "
-              f"Using {recorded_chunk_size} so the existing chunks stay valid and resumable "
-              f"(pass --chunk-size {recorded_chunk_size} to silence this warning).")
-        effective_chunk_size = recorded_chunk_size
-    else:
-        effective_chunk_size = requested_chunk_size
-
+    boundaries, folio_offset, folio_start_page = compute_chunk_boundaries(
+        converter, reader, workspace, total_pages, max_chunk_size,
+        max_front_matter_pages, max_boundary_shift, chapter_chunking_enabled,
+    )
     with open(run_config_path, "w", encoding="utf-8") as f:
-        json.dump({"chunk_size": effective_chunk_size}, f)
-
-    return effective_chunk_size
+        json.dump({
+            "chunk_size": max_chunk_size,
+            "boundaries": [list(pair) for pair in boundaries],
+            "folio_offset": folio_offset,
+            "folio_start_page": folio_start_page,
+        }, f)
+    return boundaries, folio_offset, folio_start_page
 
 
 def process_page_range(converter, reader, workspace, start_page, end_page, images_dir,
@@ -359,6 +358,83 @@ def probe_and_shift_boundary(converter, reader, workspace, candidate_end_page, m
         shifted += 1
 
     return min(end_page, hard_limit_page)
+
+
+def compute_chunk_boundaries(converter, reader, workspace, total_pages, max_chunk_size,
+                              max_front_matter_pages, max_boundary_shift, chapter_chunking_enabled):
+    """
+    Returns (boundaries, folio_offset, folio_start_page).
+
+    boundaries is a list of (start_page, end_page) tuples covering the
+    whole book. When chapter_chunking_enabled is False, this is exactly
+    today's fixed-interval behavior. Otherwise: tries the PDF's embedded
+    outline first (free); if absent, converts a capped front-matter chunk
+    and bootstraps a chapter index from its own printed TOC. Either way,
+    chapters are greedily packed into chunks up to max_chunk_size, and any
+    span that's still oversized is refined with a live Marker safety
+    probe. folio_offset/folio_start_page (both possibly None/0) are
+    returned so callers can pass them through to process_page_range for
+    page/folio tagging.
+    """
+    if not chapter_chunking_enabled:
+        boundaries = [
+            (start, min(start + max_chunk_size, total_pages))
+            for start in range(0, total_pages, max_chunk_size)
+        ]
+        return boundaries, None, total_pages
+
+    outline_chapters = chapter_index.get_outline_chapters(reader)
+    folio_offset = None
+    folio_start_page = total_pages
+
+    if outline_chapters:
+        front_matter_end = outline_chapters[0].physical_page
+        # Folio tagging is independent of chunking here -- try it purely
+        # for the dual page/folio tags, using whatever front matter ends
+        # up in the first chunk once boundaries are packed below.
+        rest_chapters = outline_chapters
+    else:
+        front_matter_cap = min(max_front_matter_pages, total_pages)
+        images_dir = os.path.join(workspace, "marker_checkpoints", "_boundary_bootstrap_images")
+        os.makedirs(images_dir, exist_ok=True)
+        front_matter_text, _, _ = process_page_range(
+            converter, reader, workspace, 0, front_matter_cap, images_dir,
+            chunk_timeout_s=1800, page_timeout_s=240,
+            folio_offset=None, folio_start_page=total_pages,
+        )
+        rest_chapters, folio_offset = chapter_index.bootstrap_chapter_index_from_front_matter(front_matter_text)
+        if rest_chapters:
+            front_matter_end = rest_chapters[0].physical_page
+            folio_start_page = front_matter_end
+        else:
+            front_matter_end = min(20, total_pages)
+
+    if outline_chapters:
+        toc_chapters = chapter_index.parse_printed_toc(
+            process_page_range(
+                converter, reader, workspace, 0, front_matter_end,
+                os.path.join(workspace, "marker_checkpoints", "_boundary_bootstrap_images"),
+                chunk_timeout_s=1800, page_timeout_s=240,
+                folio_offset=None, folio_start_page=total_pages,
+            )[0]
+        )
+        computed_offset = chapter_index.compute_folio_offset(outline_chapters, toc_chapters)
+        if computed_offset is not None:
+            folio_offset = computed_offset
+            folio_start_page = front_matter_end
+
+    packed = chapter_index.pack_chapters_into_chunks(rest_chapters, front_matter_end, total_pages, max_chunk_size)
+
+    known_chapter_pages = {c.physical_page for c in rest_chapters if c.physical_page is not None}
+    boundaries = [(0, front_matter_end)] if front_matter_end > 0 else []
+    for start, end in packed:
+        if end == total_pages or end in known_chapter_pages:
+            boundaries.append((start, end))
+        else:
+            refined_end = probe_and_shift_boundary(converter, reader, workspace, end, max_boundary_shift, total_pages)
+            boundaries.append((start, refined_end))
+
+    return boundaries, folio_offset, folio_start_page
 
 
 def extract_source_bibliographic_info(reader: PdfReader) -> dict:
@@ -615,18 +691,18 @@ def process_one_pdf(converter, raw_input: str, raw_output: str, workspace: str, 
         os.makedirs(chunks_dir, exist_ok=True)
         os.makedirs(images_dir, exist_ok=True)
 
-        effective_chunk_size = resolve_effective_chunk_size(checkpoint_dir, args.chunk_size, raw_input)
-
         master_metadata = load_checkpoint_metadata(metadata_path)
 
         start_time = time.time()
-        chunk_ranges = list(range(0, total_pages, effective_chunk_size))
-        folio_offset = None
-        folio_start_page = total_pages
+        run_config_path = os.path.join(checkpoint_dir, "run_config.json")
+        boundaries, folio_offset, folio_start_page = _load_or_compute_boundaries(
+            run_config_path, converter, reader, workspace, total_pages,
+            args.chunk_size, args.max_front_matter_pages, args.max_boundary_shift,
+            args.chapter_chunking,
+        )
 
         # Iterative Structural Extraction (resumable)
-        for start_page in chunk_ranges:
-            end_page = min(start_page + effective_chunk_size, total_pages)
+        for start_page, end_page in boundaries:
             chunk_tag = f"{start_page:05d}_{end_page:05d}"
             chunk_md_path = os.path.join(chunks_dir, f"{chunk_tag}.md")
             done_marker = os.path.join(chunks_dir, f"{chunk_tag}.done")
