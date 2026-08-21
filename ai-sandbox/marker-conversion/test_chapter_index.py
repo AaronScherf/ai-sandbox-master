@@ -3,7 +3,7 @@ import unittest
 
 from pypdf import PdfReader, PdfWriter
 
-from chapter_index import ChapterEntry, get_outline_chapters, _parse_folio_token, parse_printed_toc, detect_printed_folio, match_chapter_titles, compute_folio_offset, bootstrap_chapter_index_from_front_matter
+from chapter_index import ChapterEntry, get_outline_chapters, _parse_folio_token, parse_printed_toc, detect_printed_folio, match_chapter_titles, compute_folio_offset, bootstrap_chapter_index_from_front_matter, pack_chapters_into_chunks
 
 
 def _pdf_with_outline(entries):
@@ -232,6 +232,39 @@ class TestBootstrap(unittest.TestCase):
         chapters, offset = bootstrap_chapter_index_from_front_matter(front_matter)
         self.assertEqual(chapters, [])
         self.assertIsNone(offset)
+
+
+class TestPackChaptersIntoChunks(unittest.TestCase):
+    def test_packs_multiple_chapters_under_cap(self):
+        chapters = [
+            ChapterEntry(title="Ch1", physical_page=14),
+            ChapterEntry(title="Ch2", physical_page=40),
+            ChapterEntry(title="Ch3", physical_page=64),
+        ]
+        chunks = pack_chapters_into_chunks(chapters, start_page=14, total_pages=200, max_chunk_size=150)
+        # 40-14=26, 64-14=50, 200-14=186 (>150) -- cuts at the last chapter
+        # boundary still under the cap, then takes the rest.
+        self.assertEqual(chunks, [(14, 64), (64, 200)])
+
+    def test_oversized_single_chapter_falls_back_to_cap(self):
+        chapters = [
+            ChapterEntry(title="Huge Chapter", physical_page=0),
+            ChapterEntry(title="Ch2", physical_page=200),
+        ]
+        chunks = pack_chapters_into_chunks(chapters, start_page=0, total_pages=250, max_chunk_size=150)
+        self.assertEqual(chunks, [(0, 150), (150, 250)])
+
+    def test_no_chapters_produces_one_fixed_cap_chunk_sequence(self):
+        chunks = pack_chapters_into_chunks([], start_page=0, total_pages=320, max_chunk_size=150)
+        self.assertEqual(chunks, [(0, 150), (150, 300), (300, 320)])
+
+    def test_chapter_pages_outside_range_are_ignored(self):
+        chapters = [
+            ChapterEntry(title="Front matter chapter-like entry", physical_page=5),  # before start_page
+            ChapterEntry(title="Ch1", physical_page=20),
+        ]
+        chunks = pack_chapters_into_chunks(chapters, start_page=14, total_pages=100, max_chunk_size=150)
+        self.assertEqual(chunks, [(14, 100)])
 
 
 if __name__ == "__main__":

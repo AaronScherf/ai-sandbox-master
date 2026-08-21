@@ -390,3 +390,39 @@ def bootstrap_chapter_index_from_front_matter(
         if not entry.folio_is_roman and entry.folio_page is not None and entry.folio_page >= first_folio
     ]
     return resolved, offset
+
+
+def pack_chapters_into_chunks(
+    chapters: list[ChapterEntry], start_page: int, total_pages: int, max_chunk_size: int
+) -> list[tuple[int, int]]:
+    """
+    Greedily accumulates consecutive chapters (by physical_page) starting
+    at start_page into chunks no larger than max_chunk_size, never
+    splitting a chapter. A span that would still exceed max_chunk_size on
+    its own (an oversized single chapter, or simply no chapter data in that
+    range) falls back to a plain max_chunk_size cut -- the caller
+    (convert_textbook.py's compute_chunk_boundaries) is responsible for
+    refining any such cut with a live Marker safety probe, which this pure
+    function deliberately has no access to.
+    """
+    known = sorted(
+        {c.physical_page for c in chapters if c.physical_page is not None and start_page <= c.physical_page < total_pages}
+    )
+    boundaries = known + [total_pages]
+
+    chunks: list[tuple[int, int]] = []
+    current_start = start_page
+    i = 0
+    while current_start < total_pages:
+        while i < len(boundaries) and boundaries[i] <= current_start:
+            i += 1
+        next_cut = current_start
+        while i < len(boundaries) and boundaries[i] - current_start <= max_chunk_size:
+            next_cut = boundaries[i]
+            i += 1
+        if next_cut == current_start:
+            fallback_limit = boundaries[i] if i < len(boundaries) else total_pages
+            next_cut = min(current_start + max_chunk_size, fallback_limit)
+        chunks.append((current_start, next_cut))
+        current_start = next_cut
+    return chunks
