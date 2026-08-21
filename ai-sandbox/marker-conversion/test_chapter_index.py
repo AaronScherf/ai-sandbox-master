@@ -37,5 +37,30 @@ class TestGetOutlineChapters(unittest.TestCase):
         self.assertEqual(get_outline_chapters(reader), [])
 
 
+from chapter_index import _parse_folio_token
+
+
+class TestParseFolioToken(unittest.TestCase):
+    def test_arabic(self):
+        self.assertEqual(_parse_folio_token("157"), (157, False, "157"))
+
+    def test_roman(self):
+        self.assertEqual(_parse_folio_token("xvii"), (17, True, "xvii"))
+
+    def test_ocr_lowercase_l_for_i(self):
+        # Rudin's printed "ix" (9) was OCR'd as literal "lX".
+        self.assertEqual(_parse_folio_token("lX"), (9, True, "lX"))
+
+    def test_genuine_capital_l_not_misread(self):
+        # A real roman numeral "L" (50) is uppercase in print; a lowercase
+        # 'l' as the whole token is ambiguous OCR noise, not confidently
+        # correctable, so it's rejected outright rather than guessed at.
+        self.assertEqual(_parse_folio_token("l"), (None, False, None))
+
+    def test_not_a_folio(self):
+        self.assertEqual(_parse_folio_token("Sets"), (None, False, None))
+        self.assertEqual(_parse_folio_token("12345"), (None, False, None))  # too long to be a folio
+
+
 if __name__ == "__main__":
     unittest.main()
