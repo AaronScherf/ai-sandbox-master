@@ -419,7 +419,14 @@ def compute_chunk_boundaries(converter, reader, workspace, total_pages, max_chun
         else:
             front_matter_end = min(20, total_pages)
 
-    if outline_chapters:
+    if outline_chapters and front_matter_end > 0:
+        # A front_matter_end of 0 means the outline's first chapter starts
+        # at the very first page -- there's no front matter left to search
+        # for a printed TOC, so skip the re-read rather than asking
+        # process_page_range for an empty (0, 0) page range (which fails to
+        # even load a zero-page PDF and cascades into a confusing "not
+        # enough matched chapter samples" warning). folio_offset simply
+        # stays None, same as any other book where no TOC was found.
         toc_chapters = chapter_index.parse_printed_toc(
             process_page_range(
                 converter, reader, workspace, 0, front_matter_end, images_dir,
