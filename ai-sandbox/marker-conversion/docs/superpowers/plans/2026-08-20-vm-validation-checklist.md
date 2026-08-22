@@ -16,15 +16,30 @@ and across different textbooks, not be re-derived from scratch each time.
 
 ## Round 1: a book with a real embedded outline (Axler-like)
 
-**Status: in progress (2026-08-22).** A 380-page book with a real embedded
-outline is converting. `get_outline_chapters` found entries (confirmed --
-no "falling back to no chapter awareness" warning). Also independently
-confirmed and fixed a real bug along the way: this book's outline's first
-top-level entry starts at physical page 0, which triggered the
-`front_matter_end == 0` edge case noted below -- see that item's writeup.
-Remaining checklist items (page/folio tag verification, anchor uniqueness,
-run_config.json contents, resume behavior) not yet confirmed for this run
--- update below once the run completes and output.md can be inspected.
+**Status (2026-08-22): first batch run complete for Axler, Hammack, and
+Rudin together; output inspected directly.** Results, checked against
+`academic-hub/.../processed_outputs/` rather than just trusting logs:
+
+- ✅ `<span id="page-N-M">` anchor uniqueness: zero duplicates in any of
+  the three books (`grep -o 'id="page-[0-9]*-[0-9]*"' *.md | sort | uniq -d`
+  printed nothing for all three) -- the Critical boundary-overlap fix from
+  the final whole-branch review is holding up in production, not just in
+  its unit tests.
+- ✅ `<!-- page N -->` tag coverage: Axler 404/404, Hammack 380/380 exact;
+  Rudin 591/594 (3 short -- almost certainly the already-known,
+  already-deferred consecutive-blank-page-marker gap in
+  `page_markers.py`, not a new problem).
+- ❌ **`<!-- folio N -->` tags: zero in all three books at the time of this
+  run.** Root-caused directly (see the two-pass fix in the deferred-items
+  list below) to `front_matter_end == 0` for Axler (confirmed by pulling
+  the actual PDF outline locally) and, separately, a different root cause
+  for Rudin (see Round 3 below). Both Axler's cause and the general
+  "outline bookmarks the title page" pattern are now fixed
+  (`9d77b79`) -- **not yet re-run to confirm folio tags actually appear.**
+  Re-run Axler and/or Hammack and check `<!-- folio ` count > 0 before
+  checking this item off for real.
+- Not yet confirmed either way: `run_config.json` contents, resume
+  behavior (interrupt + rerun).
 
 
 Use a small/cheap book first if possible -- the goal here is confirming
@@ -65,16 +80,33 @@ mechanics work, not doing a full production run.
 
 ## Round 3: a scanned book with no anchors/links/outline at all (Rudin-like)
 
-- [ ] Confirm the pipeline still completes successfully end to end.
-- [ ] Confirm `<!-- page N -->` tags are present (paginate_output doesn't
+- [x] Confirm the pipeline still completes successfully end to end. --
+      **yes**, 594-page book, no crash.
+- [x] Confirm `<!-- page N -->` tags are present (paginate_output doesn't
       depend on the book having real structure) but no `<!-- folio -->`
-      tags or anchor-remapping activity (nothing to remap).
+      tags or anchor-remapping activity (nothing to remap). -- **yes**,
+      591/594 page tags (see Round 1's note on the known blank-page-marker
+      gap), zero folio tags, zero anchor spans (confirmed: Rudin's scanned
+      PDF has no embedded links/anchors for Marker to emit in the first
+      place, so there's nothing for `page_markers.py` to remap -- expected).
 - [ ] Confirm chunking either found a bootstrapped chapter index (if the
       scanned TOC parsed) or cleanly fell back to fixed-interval chunking
-      with the safety probe active -- check the log either way.
+      with the safety probe active -- check the log either way. Not yet
+      confirmed (would need the run's log output, not just the final .md).
 
-**Findings:**
-(fill in after running)
+**Findings (2026-08-22):** Root-caused the missing folio tags directly by
+reading Rudin's own converted text: Chapter 1 ("The Real and Complex
+Number Systems") starts on physical page 11, and that specific page prints
+no folio number at all -- a standard typesetting convention (chapter-opening
+pages often suppress their header/footer page number). `chapter_index.py`'s
+`bootstrap_chapter_index_from_front_matter` only ever tries to anchor on
+the *first* TOC chapter's page specifically (`detect_printed_folio` must
+find "1" on exactly that page) -- when that one page doesn't print its
+folio, as here, the whole bootstrap fails, even though every other page in
+the book almost certainly prints its folio normally. This is a real design
+gap, not a quick fix like Round 1's -- the anchor search needs to try
+multiple candidate pages/chapters, not just the first. Tracked as a
+follow-up design discussion, not fixed yet.
 
 ## The one piece needing the closest look: `probe_and_shift_boundary`
 
@@ -179,13 +211,26 @@ tasks landed), deferred as Minor rather than fixed immediately:
   have the override respected during the bootstrap conversion specifically.
 - ~~If an embedded outline's first entry is physical page 0,
   `compute_chunk_boundaries` attempts a zero-page front-matter conversion~~
-  -- **confirmed on a real VM run** (2026-08-22) and **fixed**: this
-  turned out to be worse than "alarming but harmless" log noise -- the
-  same zero-page call was also used to re-read the TOC for folio-offset
-  computation, so it silently disabled folio tagging for the *entire
-  book* (chunking itself was unaffected). Now guarded with
-  `front_matter_end > 0`; folio_offset simply stays `None` for books
-  shaped this way, same as any other book with no parseable TOC.
+  -- **confirmed on a real VM run** (2026-08-22) and **fixed in two
+  passes**. First pass: this turned out to be worse than "alarming but
+  harmless" log noise -- the same zero-page call was also used to
+  re-read the TOC for folio-offset computation, so it silently disabled
+  folio tagging for the *entire book* (chunking itself was unaffected).
+  Guarded with `front_matter_end > 0` to stop the crash-adjacent
+  cascade. Second pass, same day: that guard was itself too blunt.
+  Pulled Axler's actual PDF outline locally (`get_outline_chapters`,
+  runnable off the VM) and found `front_matter_end == 0` isn't a rare
+  case at all -- PDF outlines commonly bookmark the *title page* as
+  their first top-level entry (Axler: page 0 = "Linear Algebra Done
+  Right", page 14 = the real "Vector Spaces" chapter, seven entries
+  later). The guard was silently disabling folio tagging for exactly
+  this common, unremarkable case. Fixed by scanning
+  `max(front_matter_end, max_front_matter_pages)` instead of
+  `front_matter_end` alone for the TOC re-read -- works whether the
+  outline's first entry is a title-page bookmark or the real chapter 1.
+  Believed fixed for Axler and (same PDF-outline pattern, not yet
+  independently confirmed) Hammack; confirm folio tags actually appear
+  on the next run of either book.
 - `README.md` and `convert_textbook.py`'s own module docstring still
   describe fixed-interval chunking and don't mention the `<!-- page N -->`
   / `<!-- folio N -->` tag output -- the most user-visible change in this
