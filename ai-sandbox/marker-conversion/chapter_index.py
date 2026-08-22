@@ -302,6 +302,25 @@ def match_chapter_titles(
     return pairs
 
 
+def _consensus_offset(samples: list[int]) -> int | None:
+    """
+    Given candidate offset samples (however they were derived), returns
+    the consensus value if a majority agree within +/-1; otherwise
+    returns None. Shared by compute_folio_offset (title-matched samples)
+    and bootstrap_chapter_index_from_front_matter (folio-value-matched
+    samples) -- same statistical bar for trusting an offset either way,
+    since a lone coincidental match is exactly as risky in both callers.
+    """
+    if len(samples) < 2:
+        return None
+    counts = Counter(samples)
+    consensus_offset, _ = counts.most_common(1)[0]
+    agreeing = sum(c for value, c in counts.items() if abs(value - consensus_offset) <= 1)
+    if agreeing < max(2, len(samples) // 2 + 1):
+        return None
+    return consensus_offset
+
+
 def compute_folio_offset(
     outline_chapters: list[ChapterEntry], toc_chapters: list[ChapterEntry]
 ) -> int | None:
@@ -320,23 +339,54 @@ def compute_folio_offset(
         if physical is not None and folio is not None and not is_roman:
             samples.append(physical - folio)
 
-    if len(samples) < 2:
-        _logger.warning(
-            "Not enough matched chapter samples to compute a folio offset (%d found, need >=2).",
-            len(samples),
-        )
-        return None
-
-    counts = Counter(samples)
-    consensus_offset, _ = counts.most_common(1)[0]
-    agreeing = sum(c for value, c in counts.items() if abs(value - consensus_offset) <= 1)
-    if agreeing < max(2, len(samples) // 2 + 1):
-        _logger.warning("Folio offset samples disagree: %s -- not tagging folio numbers for this book.", dict(counts))
-        return None
-    return consensus_offset
+    offset = _consensus_offset(samples)
+    if offset is None:
+        if len(samples) < 2:
+            _logger.warning(
+                "Not enough matched chapter samples to compute a folio offset (%d found, need >=2).",
+                len(samples),
+            )
+        else:
+            _logger.warning(
+                "Folio offset samples disagree: %s -- not tagging folio numbers for this book.",
+                dict(Counter(samples)),
+            )
+    return offset
 
 
 _PAGE_MARKER_RE = re.compile(r"<!-- page (\d+) -->")
+
+
+def _find_folio_anchor_samples(front_matter_text: str, toc_chapters: list[ChapterEntry]) -> list[int]:
+    """
+    Scans every page in front_matter_text for its own printed folio number,
+    then returns an offset sample (physical_page - folio_page) for every
+    toc_chapters entry whose folio matches some scanned page's detected
+    folio. Tries every TOC chapter, not just the first -- a chapter's
+    opening page commonly suppresses its own printed folio number (a
+    standard typesetting convention), so anchoring on one specific chapter
+    is fragile; anchoring on whichever chapters happen to print normally
+    is not.
+    """
+    boundaries = [(m.start(), int(m.group(1))) for m in _PAGE_MARKER_RE.finditer(front_matter_text)]
+    if not boundaries:
+        return []
+
+    detected_folios: dict[int, int] = {}
+    for idx, (start, physical_page) in enumerate(boundaries):
+        end = boundaries[idx + 1][0] if idx + 1 < len(boundaries) else len(front_matter_text)
+        detected = detect_printed_folio(front_matter_text[start:end])
+        if detected is not None and not detected[1]:  # arabic only -- roman folios aren't part of the linear sequence
+            detected_folios[detected[0]] = physical_page
+
+    samples = []
+    for entry in toc_chapters:
+        if entry.folio_is_roman or entry.folio_page is None:
+            continue
+        physical_page = detected_folios.get(entry.folio_page)
+        if physical_page is not None:
+            samples.append(physical_page - entry.folio_page)
+    return samples
 
 
 def bootstrap_chapter_index_from_front_matter(
@@ -345,39 +395,30 @@ def bootstrap_chapter_index_from_front_matter(
     """
     Used when there's no embedded PDF outline. Given the already-converted,
     already-page-tagged markdown of the front-matter chunk: parses its own
-    printed TOC, then finds the one physical page in that same chunk whose
-    own printed folio matches the TOC's first chapter -- from that single
-    anchor, every other TOC entry's physical page follows by arithmetic
-    (physical = folio + offset).
+    printed TOC, then anchors it to physical pages by scanning every page
+    in the front matter for its own printed folio number and matching
+    against any TOC chapter's folio (not just the first -- see
+    _find_folio_anchor_samples), requiring the same majority consensus
+    compute_folio_offset uses elsewhere before trusting the result. Once a
+    confident offset is found, every TOC entry's physical page follows by
+    arithmetic (physical = folio + offset), including chapters whose own
+    page never contributed a sample.
     """
     toc_chapters = parse_printed_toc(front_matter_text)
     if not toc_chapters:
         _logger.warning("No parseable table of contents found in front matter; falling back to no chapter awareness.")
         return [], None
 
-    boundaries = [(m.start(), int(m.group(1))) for m in _PAGE_MARKER_RE.finditer(front_matter_text)]
-    if not boundaries:
-        _logger.warning("No page markers found in front matter text; cannot anchor TOC to physical pages.")
-        return [], None
-
-    first_folio = toc_chapters[0].folio_page
-    anchor_physical = None
-    for idx, (start, physical_page) in enumerate(boundaries):
-        end = boundaries[idx + 1][0] if idx + 1 < len(boundaries) else len(front_matter_text)
-        detected = detect_printed_folio(front_matter_text[start:end])
-        if detected is not None and detected[0] == first_folio and not detected[1]:
-            anchor_physical = physical_page
-            break
-
-    if anchor_physical is None:
+    samples = _find_folio_anchor_samples(front_matter_text, toc_chapters)
+    offset = _consensus_offset(samples)
+    if offset is None:
         _logger.warning(
-            "Could not find a physical page whose own printed folio matches the TOC's first "
-            "chapter (folio %s); falling back to no chapter awareness.",
-            first_folio,
+            "Could not confidently anchor the printed TOC to physical pages (%d folio "
+            "match(es) found, need >=2 in agreement); falling back to no chapter awareness.",
+            len(samples),
         )
         return [], None
 
-    offset = anchor_physical - first_folio
     resolved = [
         ChapterEntry(
             title=entry.title,
@@ -387,7 +428,7 @@ def bootstrap_chapter_index_from_front_matter(
             folio_raw=entry.folio_raw,
         )
         for entry in toc_chapters
-        if not entry.folio_is_roman and entry.folio_page is not None and entry.folio_page >= first_folio
+        if not entry.folio_is_roman and entry.folio_page is not None
     ]
     return resolved, offset
 

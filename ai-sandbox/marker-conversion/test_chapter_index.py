@@ -3,7 +3,7 @@ import unittest
 
 from pypdf import PdfReader, PdfWriter
 
-from chapter_index import ChapterEntry, get_outline_chapters, _parse_folio_token, parse_printed_toc, detect_printed_folio, match_chapter_titles, compute_folio_offset, bootstrap_chapter_index_from_front_matter, pack_chapters_into_chunks, resolve_probe_boundaries
+from chapter_index import ChapterEntry, get_outline_chapters, _parse_folio_token, parse_printed_toc, detect_printed_folio, match_chapter_titles, compute_folio_offset, bootstrap_chapter_index_from_front_matter, pack_chapters_into_chunks, resolve_probe_boundaries, _consensus_offset
 
 
 def _pdf_with_outline(entries):
@@ -220,9 +220,9 @@ class TestMatchAndOffset(unittest.TestCase):
 
 
 class TestBootstrap(unittest.TestCase):
-    def test_bootstraps_physical_pages_from_folio_anchor(self):
-        # Front matter chunk: page 11 is the anchor (its own printed folio
-        # is "1", matching the TOC's first chapter), so offset = 11 - 1 = 10.
+    def test_bootstraps_physical_pages_from_folio_anchors(self):
+        # Two anchor pages agree on offset=10 (11-1, 34-24), meeting the
+        # >=2-sample consensus bar shared with compute_folio_offset.
         front_matter = (
             "<!-- page 9 -->\n\nPreface text.\n\nlX\n\n"
             "<!-- page 10 -->\n\n"
@@ -230,12 +230,56 @@ class TestBootstrap(unittest.TestCase):
             "| Chapter 1 The Real and Complex Number Systems | 1  |\n"
             "| Chapter 2 Basic Topology                      | 24 |\n\n"
             "<!-- page 11 -->\n\nThe Real and Complex Number Systems\n\nBody text.\n\n1\n\n"
+            "<!-- page 34 -->\n\nBasic Topology\n\nBody text.\n\n24\n\n"
         )
         chapters, offset = bootstrap_chapter_index_from_front_matter(front_matter)
         self.assertEqual(offset, 10)
         self.assertEqual(len(chapters), 2)
         self.assertEqual(chapters[0].physical_page, 11)  # 1 + 10
         self.assertEqual(chapters[1].physical_page, 34)  # 24 + 10
+
+    def test_finds_anchor_via_a_later_chapter_when_first_chapters_page_has_no_folio(self):
+        # Reproduces the real Rudin failure this fix targets: chapter 1's
+        # opening page prints no folio at all (a common typesetting
+        # convention for chapter-opening pages), but chapters 2 and 3's do.
+        # The bootstrap must not depend on chapter 1's page specifically --
+        # and once consensus is reached from later chapters, chapter 1's
+        # own physical_page is still correctly derived via folio + offset,
+        # even though its page never contributed a sample.
+        front_matter = (
+            "<!-- page 9 -->\n\nPreface text.\n\nlX\n\n"
+            "<!-- page 10 -->\n\n"
+            "## CONTENTS\n\n"
+            "| Chapter 1 The Real and Complex Number Systems | 1  |\n"
+            "| Chapter 2 Basic Topology                      | 24 |\n"
+            "| Chapter 3 Numerical Sequences and Series       | 47 |\n\n"
+            "<!-- page 11 -->\n\nThe Real and Complex Number Systems\n\nNo folio printed on this page.\n\n"
+            "<!-- page 34 -->\n\nBasic Topology\n\nBody text.\n\n24\n\n"
+            "<!-- page 57 -->\n\nNumerical Sequences and Series\n\nBody text.\n\n47\n\n"
+        )
+        chapters, offset = bootstrap_chapter_index_from_front_matter(front_matter)
+        self.assertEqual(offset, 10)
+        self.assertEqual(len(chapters), 3)
+        self.assertEqual(chapters[0].physical_page, 11)  # 1 + 10, derived even though page 11 is silent
+        self.assertEqual(chapters[1].physical_page, 34)
+        self.assertEqual(chapters[2].physical_page, 57)
+
+    def test_single_matching_page_is_not_enough_for_consensus(self):
+        # Only chapter 1's folio happens to match a scanned page; chapter
+        # 2's page prints nothing. A single sample is deliberately not
+        # trusted (matches compute_folio_offset's bar elsewhere) -- a lone
+        # coincidental match could easily be wrong.
+        front_matter = (
+            "<!-- page 10 -->\n\n"
+            "## CONTENTS\n\n"
+            "| Chapter 1 Something | 1 |\n"
+            "| Chapter 2 Something Else | 24 |\n\n"
+            "<!-- page 11 -->\n\nSomething\n\nBody text.\n\n1\n\n"
+            "<!-- page 40 -->\n\nSomething Else\n\nNo folio printed here either.\n\n"
+        )
+        chapters, offset = bootstrap_chapter_index_from_front_matter(front_matter)
+        self.assertEqual(chapters, [])
+        self.assertIsNone(offset)
 
     def test_no_toc_fails_gracefully(self):
         chapters, offset = bootstrap_chapter_index_from_front_matter("<!-- page 0 -->\n\nJust prose.")
@@ -252,6 +296,21 @@ class TestBootstrap(unittest.TestCase):
         chapters, offset = bootstrap_chapter_index_from_front_matter(front_matter)
         self.assertEqual(chapters, [])
         self.assertIsNone(offset)
+
+
+class TestConsensusOffset(unittest.TestCase):
+    def test_majority_agreement(self):
+        self.assertEqual(_consensus_offset([13, 13, 13, 50]), 13)
+
+    def test_too_few_samples(self):
+        self.assertIsNone(_consensus_offset([13]))
+        self.assertIsNone(_consensus_offset([]))
+
+    def test_no_majority(self):
+        self.assertIsNone(_consensus_offset([13, 13, 50, 50]))
+
+    def test_near_agreement_within_tolerance(self):
+        self.assertEqual(_consensus_offset([13, 14, 13]), 13)
 
 
 class TestPackChaptersIntoChunks(unittest.TestCase):
