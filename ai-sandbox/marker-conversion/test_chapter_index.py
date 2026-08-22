@@ -3,7 +3,7 @@ import unittest
 
 from pypdf import PdfReader, PdfWriter
 
-from chapter_index import ChapterEntry, get_outline_chapters, _parse_folio_token, parse_printed_toc, detect_printed_folio, match_chapter_titles, compute_folio_offset, bootstrap_chapter_index_from_front_matter, pack_chapters_into_chunks, resolve_probe_boundaries, _consensus_offset
+from chapter_index import ChapterEntry, get_all_outline_entries, _parse_folio_token, parse_printed_toc, detect_printed_folio, match_chapter_titles, compute_folio_offset, resolve_chapters_from_outline_and_toc, bootstrap_chapter_index_from_front_matter, pack_chapters_into_chunks, resolve_probe_boundaries, _consensus_offset
 
 
 def _pdf_with_outline(entries):
@@ -19,13 +19,33 @@ def _pdf_with_outline(entries):
     return PdfReader(buf)
 
 
-class TestGetOutlineChapters(unittest.TestCase):
+class TestGetAllOutlineEntries(unittest.TestCase):
     def test_extracts_top_level_entries_with_physical_pages(self):
         reader = _pdf_with_outline([("Vector Spaces", 0), ("Finite-Dimensional Vector Spaces", 3)])
-        chapters = get_outline_chapters(reader)
-        self.assertEqual(len(chapters), 2)
-        self.assertEqual(chapters[0], ChapterEntry(title="Vector Spaces", physical_page=0))
-        self.assertEqual(chapters[1], ChapterEntry(title="Finite-Dimensional Vector Spaces", physical_page=3))
+        entries = get_all_outline_entries(reader)
+        self.assertEqual(len(entries), 2)
+        self.assertEqual(entries[0], ChapterEntry(title="Vector Spaces", physical_page=0))
+        self.assertEqual(entries[1], ChapterEntry(title="Finite-Dimensional Vector Spaces", physical_page=3))
+
+    def test_includes_nested_entries_not_just_top_level(self):
+        # Reproduces Hammack's real structure: top-level Parts, with real
+        # chapters nested one level underneath. get_all_outline_entries
+        # must surface both -- unlike the old top-level-only extraction,
+        # which silently dropped everything nested.
+        writer = PdfWriter()
+        for _ in range(10):
+            writer.add_blank_page(width=200, height=200)
+        part = writer.add_outline_item("I Fundamentals", 2)
+        writer.add_outline_item("Sets", 3, parent=part)
+        writer.add_outline_item("Logic", 5, parent=part)
+        buf = io.BytesIO()
+        writer.write(buf)
+        buf.seek(0)
+        reader = PdfReader(buf)
+
+        entries = get_all_outline_entries(reader)
+        titles = {e.title for e in entries}
+        self.assertEqual(titles, {"I Fundamentals", "Sets", "Logic"})
 
     def test_no_outline_returns_empty_list(self):
         writer = PdfWriter()
@@ -34,7 +54,65 @@ class TestGetOutlineChapters(unittest.TestCase):
         writer.write(buf)
         buf.seek(0)
         reader = PdfReader(buf)
-        self.assertEqual(get_outline_chapters(reader), [])
+        self.assertEqual(get_all_outline_entries(reader), [])
+
+
+class TestResolveChaptersFromOutlineAndToc(unittest.TestCase):
+    def test_filters_out_part_level_entries_that_dont_match_toc(self):
+        # Reproduces Hammack: outline entries (already flattened across
+        # depths) mix Part-level and chapter-level titles; only the ones
+        # whose titles match the printed TOC's chapters should survive.
+        outline_entries = [
+            ChapterEntry(title="Preface", physical_page=0),
+            ChapterEntry(title="I Fundamentals", physical_page=12),
+            ChapterEntry(title="Sets", physical_page=14),
+            ChapterEntry(title="Logic", physical_page=45),
+            ChapterEntry(title="Counting", physical_page=76),
+        ]
+        toc_chapters = [
+            ChapterEntry(title="Sets", folio_page=3),
+            ChapterEntry(title="Logic", folio_page=34),
+            ChapterEntry(title="Counting", folio_page=65),
+        ]
+        resolved, offset = resolve_chapters_from_outline_and_toc(outline_entries, toc_chapters)
+        self.assertEqual(offset, 11)  # 14-3, 45-34, 76-65 all agree
+        self.assertEqual([c.title for c in resolved], ["Sets", "Logic", "Counting"])
+        self.assertEqual(resolved[0].physical_page, 14)
+        self.assertEqual(resolved[0].folio_page, 3)
+
+    def test_returns_matched_chapters_even_if_offset_disagrees(self):
+        # physical_page is directly known per matched chapter (from the
+        # outline entry itself), independent of any global offset -- so
+        # resolved stays usable for chunking even when the offset samples
+        # disagree and folio tagging has to be skipped.
+        outline_entries = [
+            ChapterEntry(title="Sets", physical_page=14),
+            ChapterEntry(title="Logic", physical_page=99),
+            ChapterEntry(title="Counting", physical_page=76),
+            ChapterEntry(title="Proofs", physical_page=200),
+        ]
+        toc_chapters = [
+            ChapterEntry(title="Sets", folio_page=3),      # 14-3=11
+            ChapterEntry(title="Logic", folio_page=34),    # 99-34=65
+            ChapterEntry(title="Counting", folio_page=65), # 76-65=11
+            ChapterEntry(title="Proofs", folio_page=100),  # 200-100=100
+        ]
+        resolved, offset = resolve_chapters_from_outline_and_toc(outline_entries, toc_chapters)
+        self.assertEqual(len(resolved), 4)
+        self.assertIsNone(offset)
+
+    def test_no_matches_returns_empty_and_none(self):
+        outline_entries = [
+            ChapterEntry(title="Preface", physical_page=0),
+            ChapterEntry(title="I Fundamentals", physical_page=12),
+        ]
+        toc_chapters = [
+            ChapterEntry(title="Sets", folio_page=3),
+            ChapterEntry(title="Logic", folio_page=34),
+        ]
+        resolved, offset = resolve_chapters_from_outline_and_toc(outline_entries, toc_chapters)
+        self.assertEqual(resolved, [])
+        self.assertIsNone(offset)
 
 
 class TestParseFolioToken(unittest.TestCase):

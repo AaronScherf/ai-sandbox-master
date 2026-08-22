@@ -372,14 +372,19 @@ def compute_chunk_boundaries(converter, reader, workspace, total_pages, max_chun
 
     boundaries is a list of (start_page, end_page) tuples covering the
     whole book. When chapter_chunking_enabled is False, this is exactly
-    today's fixed-interval behavior. Otherwise: tries the PDF's embedded
-    outline first (free); if absent, converts a capped front-matter chunk
-    and bootstraps a chapter index from its own printed TOC. Either way,
-    chapters are greedily packed into chunks up to max_chunk_size, and any
-    span that's still oversized is refined with a live Marker safety
-    probe. folio_offset/folio_start_page (both possibly None/0) are
-    returned so callers can pass them through to process_page_range for
-    page/folio tagging.
+    today's fixed-interval behavior. Otherwise: converts a capped
+    front-matter chunk to read the printed TOC, then tries to resolve
+    real chapters by fuzzy-matching the PDF's embedded outline (at any
+    depth -- some books put chapters at the top level, others nest them
+    under Parts) against that TOC; if that doesn't find enough matches
+    (no outline, or its titles don't usefully match), falls back to
+    anchoring the TOC to physical pages by scanning the front matter for
+    printed folio numbers directly. Either way, chapters are greedily
+    packed into chunks up to max_chunk_size, and any span that's still
+    oversized is refined with a live Marker safety probe.
+    folio_offset/folio_start_page (both possibly None/0) are returned so
+    callers can pass them through to process_page_range for page/folio
+    tagging.
     """
     if not chapter_chunking_enabled:
         boundaries = [
@@ -395,56 +400,58 @@ def compute_chunk_boundaries(converter, reader, workspace, total_pages, max_chun
     images_dir = os.path.join(workspace, "marker_checkpoints", "_boundary_bootstrap_images")
     os.makedirs(images_dir, exist_ok=True)
 
-    outline_chapters = chapter_index.get_outline_chapters(reader)
+    # Convert the front matter exactly once, unconditionally -- both the
+    # outline-matching attempt below and the bootstrap fallback need to
+    # read the printed TOC, and this is the one call that gets it for
+    # either path. (This chunk gets converted again for real output during
+    # the main per-chunk loop later; this pass is only used to extract
+    # structure, its markdown is discarded.)
+    front_matter_cap = min(max_front_matter_pages, total_pages)
+    front_matter_text, _, _ = process_page_range(
+        converter, reader, workspace, 0, front_matter_cap, images_dir,
+        chunk_timeout_s=1800, page_timeout_s=240,
+        folio_offset=None, folio_start_page=total_pages,
+    )
+    toc_chapters = chapter_index.parse_printed_toc(front_matter_text)
+
     folio_offset = None
     folio_start_page = total_pages
+    rest_chapters: list = []
 
-    if outline_chapters:
-        front_matter_end = outline_chapters[0].physical_page
-        # Folio tagging is independent of chunking here -- try it purely
-        # for the dual page/folio tags, using whatever front matter ends
-        # up in the first chunk once boundaries are packed below.
-        rest_chapters = outline_chapters
-    else:
-        front_matter_cap = min(max_front_matter_pages, total_pages)
-        front_matter_text, _, _ = process_page_range(
-            converter, reader, workspace, 0, front_matter_cap, images_dir,
-            chunk_timeout_s=1800, page_timeout_s=240,
-            folio_offset=None, folio_start_page=total_pages,
+    all_outline_entries = chapter_index.get_all_outline_entries(reader)
+    if all_outline_entries:
+        # Confirmed on real books: a PDF's embedded outline doesn't
+        # reliably put chapters at the top level -- Axler bookmarks the
+        # title page as its first top-level entry; Hammack organizes its
+        # outline by Part, with the real chapters nested one level
+        # underneath (get_all_outline_entries flattens every depth for
+        # exactly this reason). Let the printed TOC arbitrate which
+        # entries are actually chapters via fuzzy title matching, rather
+        # than assuming any particular outline depth.
+        resolved, computed_offset = chapter_index.resolve_chapters_from_outline_and_toc(
+            all_outline_entries, toc_chapters
         )
-        rest_chapters, folio_offset = chapter_index.bootstrap_chapter_index_from_front_matter(front_matter_text)
-        if rest_chapters:
-            front_matter_end = rest_chapters[0].physical_page
-            folio_start_page = front_matter_end
-        else:
-            front_matter_end = min(20, total_pages)
-
-    if outline_chapters:
-        # Confirmed on a real run (2026-08-22, Axler): a PDF's embedded
-        # outline commonly bookmarks the title page itself as its first
-        # top-level entry -- front_matter_end (outline_chapters[0]'s
-        # physical_page) can legitimately be 0 even though the real first
-        # chapter, and the printed TOC that lists it, are still well
-        # within the first several pages. Scanning only up to
-        # front_matter_end (previously: a zero-page range, which fails to
-        # load and cascades into "not enough matched chapter samples")
-        # would miss the TOC entirely. Scan the larger of front_matter_end
-        # and max_front_matter_pages instead -- the flag that already
-        # exists for "how far to look for a printed TOC" -- so this works
-        # whether the outline's first entry is a title-page bookmark, the
-        # real chapter 1, or anything in between.
-        toc_scan_end = min(max(front_matter_end, max_front_matter_pages), total_pages)
-        toc_chapters = chapter_index.parse_printed_toc(
-            process_page_range(
-                converter, reader, workspace, 0, toc_scan_end, images_dir,
-                chunk_timeout_s=1800, page_timeout_s=240,
-                folio_offset=None, folio_start_page=total_pages,
-            )[0]
-        )
-        computed_offset = chapter_index.compute_folio_offset(outline_chapters, toc_chapters)
-        if computed_offset is not None:
+        if len(resolved) >= 2:
+            # physical_page comes directly from the matched outline entry
+            # here, not from any offset arithmetic -- resolved stays usable
+            # for chunking even when computed_offset is None (folio tagging
+            # just doesn't happen for this book).
+            rest_chapters = resolved
             folio_offset = computed_offset
-            folio_start_page = front_matter_end
+
+    if not rest_chapters:
+        # Either no outline at all, or its entries' titles didn't usefully
+        # match the printed TOC (too few matches to trust) -- fall back to
+        # anchoring the TOC to physical pages by scanning the front matter
+        # directly, reusing the same front_matter_text already converted
+        # above.
+        rest_chapters, folio_offset = chapter_index.bootstrap_chapter_index_from_front_matter(front_matter_text)
+
+    if rest_chapters:
+        front_matter_end = rest_chapters[0].physical_page
+        folio_start_page = front_matter_end
+    else:
+        front_matter_end = min(20, total_pages)
 
     packed = chapter_index.pack_chapters_into_chunks(rest_chapters, front_matter_end, total_pages, max_chunk_size)
     known_chapter_pages = {c.physical_page for c in rest_chapters if c.physical_page is not None}

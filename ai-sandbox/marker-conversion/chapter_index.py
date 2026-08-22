@@ -32,11 +32,17 @@ class ChapterEntry:
     folio_raw: str | None = None
 
 
-def get_outline_chapters(reader) -> list[ChapterEntry]:
+def get_all_outline_entries(reader) -> list[ChapterEntry]:
     """
-    Top-level (depth 1) entries from the PDF's embedded outline/bookmarks,
-    resolved to physical page numbers. Never raises: returns [] if there's
-    no outline, or if resolving any entry fails outright.
+    Every entry in the PDF's embedded outline/bookmarks, at any depth,
+    flattened into one list. Deliberately doesn't assume the top level is
+    chapter granularity -- confirmed on a real book (Hammack's Book of
+    Proof) that some PDFs organize their outline by Part, with the real
+    chapters nested one level underneath. Deciding which entries are
+    actually chapters is the caller's job (see
+    resolve_chapters_from_outline_and_toc), not this function's -- it just
+    surfaces every candidate. Never raises: returns [] if there's no
+    outline, or if resolving entries fails outright.
     """
     try:
         outline = reader.outline
@@ -45,21 +51,26 @@ def get_outline_chapters(reader) -> list[ChapterEntry]:
     if not outline:
         return []
 
-    chapters = []
-    for item in outline:
-        # pypdf represents nested outline levels as sub-lists; only take
-        # top-level Destination objects here, not nested lists (those are
-        # subsections, which chunking deliberately ignores).
-        if isinstance(item, list):
-            continue
-        try:
-            page_num = reader.get_destination_page_number(item)
-            title = str(item.title).strip()
-        except Exception:
-            continue
-        if title:
-            chapters.append(ChapterEntry(title=title, physical_page=page_num))
-    return chapters
+    def _walk(items) -> list[ChapterEntry]:
+        entries = []
+        for item in items:
+            # pypdf represents nested outline levels as sub-lists immediately
+            # following their parent item -- recurse into them rather than
+            # skipping them, since chapter granularity isn't reliably at
+            # any one fixed depth across different books.
+            if isinstance(item, list):
+                entries.extend(_walk(item))
+                continue
+            try:
+                page_num = reader.get_destination_page_number(item)
+                title = str(item.title).strip()
+            except Exception:
+                continue
+            if title:
+                entries.append(ChapterEntry(title=title, physical_page=page_num))
+        return entries
+
+    return _walk(outline)
 
 
 _ROMAN_CHARS = "ivxlcdm"
@@ -352,6 +363,44 @@ def compute_folio_offset(
                 dict(Counter(samples)),
             )
     return offset
+
+
+def resolve_chapters_from_outline_and_toc(
+    outline_entries: list[ChapterEntry], toc_chapters: list[ChapterEntry]
+) -> tuple[list[ChapterEntry], int | None]:
+    """
+    Fuzzy-matches outline entries (at any depth -- see
+    get_all_outline_entries) against the printed TOC's chapters, keeping
+    only entries that plausibly correspond to the same real chapter. This
+    is what makes a PDF outline organized at the Part level still work:
+    Part titles ("I Fundamentals") and front-matter entries ("Preface")
+    won't match anything in toc_chapters (which only ever contains real
+    numbered chapters) and fall away, while nested chapter-level entries
+    do match.
+
+    Returns (resolved_chapters, folio_offset). Each resolved chapter's
+    physical_page comes directly from its matched outline entry (exact,
+    not derived from any offset) and its folio_page from the matched TOC
+    entry -- so resolved_chapters stays usable for chunking even when
+    folio_offset comes back None (too few matched pairs, or their implied
+    offsets disagree; same consensus bar compute_folio_offset uses).
+    Sorted by physical_page.
+    """
+    pairs = match_chapter_titles(outline_entries, toc_chapters)
+    resolved = [
+        ChapterEntry(
+            title=outline_entry.title,
+            physical_page=outline_entry.physical_page,
+            folio_page=toc_entry.folio_page,
+            folio_is_roman=toc_entry.folio_is_roman,
+            folio_raw=toc_entry.folio_raw,
+        )
+        for outline_entry, toc_entry in pairs
+        if outline_entry.physical_page is not None and toc_entry.folio_page is not None
+    ]
+    resolved.sort(key=lambda c: c.physical_page)
+    offset = compute_folio_offset(outline_entries, toc_chapters)
+    return resolved, offset
 
 
 _PAGE_MARKER_RE = re.compile(r"<!-- page (\d+) -->")
