@@ -419,17 +419,24 @@ def compute_chunk_boundaries(converter, reader, workspace, total_pages, max_chun
         else:
             front_matter_end = min(20, total_pages)
 
-    if outline_chapters and front_matter_end > 0:
-        # A front_matter_end of 0 means the outline's first chapter starts
-        # at the very first page -- there's no front matter left to search
-        # for a printed TOC, so skip the re-read rather than asking
-        # process_page_range for an empty (0, 0) page range (which fails to
-        # even load a zero-page PDF and cascades into a confusing "not
-        # enough matched chapter samples" warning). folio_offset simply
-        # stays None, same as any other book where no TOC was found.
+    if outline_chapters:
+        # Confirmed on a real run (2026-08-22, Axler): a PDF's embedded
+        # outline commonly bookmarks the title page itself as its first
+        # top-level entry -- front_matter_end (outline_chapters[0]'s
+        # physical_page) can legitimately be 0 even though the real first
+        # chapter, and the printed TOC that lists it, are still well
+        # within the first several pages. Scanning only up to
+        # front_matter_end (previously: a zero-page range, which fails to
+        # load and cascades into "not enough matched chapter samples")
+        # would miss the TOC entirely. Scan the larger of front_matter_end
+        # and max_front_matter_pages instead -- the flag that already
+        # exists for "how far to look for a printed TOC" -- so this works
+        # whether the outline's first entry is a title-page bookmark, the
+        # real chapter 1, or anything in between.
+        toc_scan_end = min(max(front_matter_end, max_front_matter_pages), total_pages)
         toc_chapters = chapter_index.parse_printed_toc(
             process_page_range(
-                converter, reader, workspace, 0, front_matter_end, images_dir,
+                converter, reader, workspace, 0, toc_scan_end, images_dir,
                 chunk_timeout_s=1800, page_timeout_s=240,
                 folio_offset=None, folio_start_page=total_pages,
             )[0]
