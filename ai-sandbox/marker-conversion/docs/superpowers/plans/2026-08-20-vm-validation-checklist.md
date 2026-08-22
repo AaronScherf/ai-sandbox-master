@@ -16,36 +16,53 @@ and across different textbooks, not be re-derived from scratch each time.
 
 ## Round 1: a book with a real embedded outline (Axler-like)
 
-**Status (2026-08-22): first batch run complete for Axler, Hammack, and
-Rudin together; output inspected directly.** Results, checked against
-`academic-hub/.../processed_outputs/` rather than just trusting logs:
+**Status (2026-08-22): TWO full batch runs complete for Axler, Hammack, and
+Rudin; output inspected directly both times, not just logs.**
 
-- ✅ `<span id="page-N-M">` anchor uniqueness: zero duplicates in any of
-  the three books (`grep -o 'id="page-[0-9]*-[0-9]*"' *.md | sort | uniq -d`
-  printed nothing for all three) -- the Critical boundary-overlap fix from
-  the final whole-branch review is holding up in production, not just in
-  its unit tests.
+**Run 1 findings:** confirmed anchor-uniqueness and page-tag coverage both
+solid; folio tags were 0/0/0 across all three books, for what turned out to
+be three *different* root causes (see below).
+
+**Run 2 findings (after the front_matter_end and multi-anchor-bootstrap
+fixes):**
+- ✅ `<span id="page-N-M">` anchor uniqueness: zero duplicates in any of the
+  three books, both runs -- the Critical boundary-overlap fix from the
+  final whole-branch review continues to hold in production.
 - ✅ `<!-- page N -->` tag coverage: Axler 404/404, Hammack 380/380 exact;
-  Rudin 591/594 (3 short -- almost certainly the already-known,
-  already-deferred consecutive-blank-page-marker gap in
-  `page_markers.py`, not a new problem).
-- ❌ **`<!-- folio N -->` tags: zero in all three books at the time of this
-  run.** Root-caused directly (see the two-pass fix in the deferred-items
-  list below) to `front_matter_end == 0` for Axler (confirmed by pulling
-  the actual PDF outline locally) and, separately, a different root cause
-  for Rudin (see Round 3 below). Both Axler's cause and the general
-  "outline bookmarks the title page" pattern are now fixed
-  (`9d77b79`) -- **not yet re-run to confirm folio tags actually appear.**
-  Re-run Axler and/or Hammack and check `<!-- folio ` count > 0 before
-  checking this item off for real.
+  Rudin 591/594 both runs (3 short -- the already-known,
+  already-deferred consecutive-blank-page-marker gap in `page_markers.py`).
+- ✅ **Axler: 404/404 folio tags.** Fully fixed by the front_matter_end scan
+  range fix (`9d77b79`).
+- ✅ **Rudin: 591/591 folio tags** (matches its page-tag count exactly).
+  Fully fixed by the multi-anchor bootstrap fix (`901c2ac`).
+- ❌→✅ **Hammack: still 0/380 folio tags after run 2** -- a third, distinct
+  root cause, unrelated to either fix above: Hammack's PDF outline is
+  organized at the *Part* level (6 top-level entries: Preface,
+  Introduction, Parts I-IV), with the real 14 chapters nested one level
+  underneath. `get_outline_chapters` only ever read top-level entries, so
+  title-matching against the printed TOC's chapter titles ("Sets",
+  "Logic", "Counting"...) found zero overlap -- confirmed directly by
+  pulling Hammack's real outline locally (it's `textbook.pdf` in the input
+  folder, identified by matching page count: 380). This also meant
+  Hammack only ever got *Part*-level chunk alignment, not chapter-level --
+  a chunking-safety gap, not just a folio-tagging one. **Fixed (`a99135a`,
+  same day):** outline extraction now flattens every depth and lets the
+  printed TOC's own chapter titles arbitrate which entries are real
+  chapters via fuzzy matching, falling back to the bootstrap path when
+  matching doesn't find enough. **Not yet re-run against the real Hammack
+  PDF** -- confirm `<!-- folio ` count > 0 for Hammack specifically before
+  checking this off for real.
 - Not yet confirmed either way: `run_config.json` contents, resume
   behavior (interrupt + rerun).
-
+- Minor, not chased down: `parse_printed_toc` extracts one spurious entry
+  from Hammack's front matter (`folio=2, title='='`) -- harmless (fails to
+  fuzzy-match any real outline title, gets silently dropped), but a real
+  parser bug worth a proper fix sometime.
 
 Use a small/cheap book first if possible -- the goal here is confirming
 mechanics work, not doing a full production run.
 
-- [ ] Run with default flags. Confirm in the logs: `get_outline_chapters`
+- [ ] Run with default flags. Confirm in the logs that chapter discovery
       found entries (no "falling back to no chapter awareness" warning).
 - [ ] Confirm output markdown contains `<!-- page N -->` tags, and that N
       increases monotonically across the whole merged file (no resets at
