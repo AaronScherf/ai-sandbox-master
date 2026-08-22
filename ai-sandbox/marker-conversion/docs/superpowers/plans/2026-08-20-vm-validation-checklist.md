@@ -99,14 +99,27 @@ reading Rudin's own converted text: Chapter 1 ("The Real and Complex
 Number Systems") starts on physical page 11, and that specific page prints
 no folio number at all -- a standard typesetting convention (chapter-opening
 pages often suppress their header/footer page number). `chapter_index.py`'s
-`bootstrap_chapter_index_from_front_matter` only ever tries to anchor on
-the *first* TOC chapter's page specifically (`detect_printed_folio` must
+`bootstrap_chapter_index_from_front_matter` only ever tried to anchor on
+the *first* TOC chapter's page specifically (`detect_printed_folio` had to
 find "1" on exactly that page) -- when that one page doesn't print its
-folio, as here, the whole bootstrap fails, even though every other page in
-the book almost certainly prints its folio normally. This is a real design
-gap, not a quick fix like Round 1's -- the anchor search needs to try
-multiple candidate pages/chapters, not just the first. Tracked as a
-follow-up design discussion, not fixed yet.
+folio, as here, the whole bootstrap failed, even though every other page
+in the book almost certainly prints its folio normally.
+
+**Fixed (`901c2ac`, same day):** the bootstrap now scans every page in the
+front matter once and tries every TOC chapter's folio against it, not just
+the first, requiring the same >=2-sample majority consensus
+`compute_folio_offset` already used elsewhere before trusting an offset --
+so a single suppressed chapter-opener page no longer sinks the whole
+bootstrap, as long as at least two *other* chapters print normally.
+Locally unit-tested against a fixture that directly reproduces Rudin's
+failure shape (chapter 1's page silent, chapters 2 and 3 print normally) --
+confirmed the derived offset still correctly resolves chapter 1's physical
+page even though its own page never contributed a sample. **Not yet
+re-run against the real Rudin PDF** -- confirm `<!-- folio ` count > 0 on
+the next run before checking this off for real. Deliberately not
+addressed: a book where literally *every* chapter-opening page suppresses
+its folio (we have no evidence this happens; the current fix already
+covers the case actually observed).
 
 ## The one piece needing the closest look: `probe_and_shift_boundary`
 
