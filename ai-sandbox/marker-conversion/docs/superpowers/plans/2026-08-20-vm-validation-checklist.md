@@ -16,6 +16,17 @@ and across different textbooks, not be re-derived from scratch each time.
 
 ## Round 1: a book with a real embedded outline (Axler-like)
 
+**Status: in progress (2026-08-22).** A 380-page book with a real embedded
+outline is converting. `get_outline_chapters` found entries (confirmed --
+no "falling back to no chapter awareness" warning). Also independently
+confirmed and fixed a real bug along the way: this book's outline's first
+top-level entry starts at physical page 0, which triggered the
+`front_matter_end == 0` edge case noted below -- see that item's writeup.
+Remaining checklist items (page/folio tag verification, anchor uniqueness,
+run_config.json contents, resume behavior) not yet confirmed for this run
+-- update below once the run completes and output.md can be inspected.
+
+
 Use a small/cheap book first if possible -- the goal here is confirming
 mechanics work, not doing a full production run.
 
@@ -166,10 +177,15 @@ tasks landed), deferred as Minor rather than fixed immediately:
   `args.chunk_timeout`/`args.page_timeout` -- a user who overrides those
   flags (the commented example in Step 3.3 above does exactly this) won't
   have the override respected during the bootstrap conversion specifically.
-- If an embedded outline's first entry is physical page 0,
-  `compute_chunk_boundaries` attempts a zero-page front-matter conversion,
-  which logs an alarming-looking (but harmless) "Structural layout parsing
-  failure on pages 1-0" before returning empty text and moving on.
+- ~~If an embedded outline's first entry is physical page 0,
+  `compute_chunk_boundaries` attempts a zero-page front-matter conversion~~
+  -- **confirmed on a real VM run** (2026-08-22) and **fixed**: this
+  turned out to be worse than "alarming but harmless" log noise -- the
+  same zero-page call was also used to re-read the TOC for folio-offset
+  computation, so it silently disabled folio tagging for the *entire
+  book* (chunking itself was unaffected). Now guarded with
+  `front_matter_end > 0`; folio_offset simply stays `None` for books
+  shaped this way, same as any other book with no parseable TOC.
 - `README.md` and `convert_textbook.py`'s own module docstring still
   describe fixed-interval chunking and don't mention the `<!-- page N -->`
   / `<!-- folio N -->` tag output -- the most user-visible change in this
