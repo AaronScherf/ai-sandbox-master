@@ -1,0 +1,5 @@
+# Shell scripts run on the Linux VM via `bash script.sh` -- Windows CRLF
+# line endings break them (e.g. "set -euo pipefail\r" is an invalid
+# option, and "$'\r': command not found" on otherwise-blank lines).
+# Force LF regardless of the checkout machine's core.autocrlf setting.
+*.sh text eol=lf
