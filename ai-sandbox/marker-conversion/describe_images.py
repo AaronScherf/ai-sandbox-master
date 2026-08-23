@@ -320,7 +320,7 @@ def main():
              "containing processed_outputs/ (same value as gcp_instructions.md Step 0.2).",
     )
     parser.add_argument("--book", default=None, help="Only process this one book folder name (default: every book found).")
-    parser.add_argument("--model", default="gemini-2.5-flash")
+    parser.add_argument("--model", default="gemini-3.6-flash")
     parser.add_argument("--context-paragraphs-before", type=int, default=1)
     parser.add_argument("--context-paragraphs-after", type=int, default=1)
     parser.add_argument(
