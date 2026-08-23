@@ -55,9 +55,11 @@ Change this list to update the batch of target textbooks. `convert_textbook.py` 
 
 ```bash
 export PDF_FILENAMES=(
-    "textbook.pdf"
+    "Book of Proof.pdf"
+    "Essential_Mathematics_for_Economic_Analy.pdf"
     "rudin-walter-principles-of-mathematical-analysis-1976.pdf"
     "Linear Algebra Done Right (4th edition) Axler.pdf"
+    "Blume_Mathematics_for_Economists.pdf"
 )
 ```
 
@@ -187,6 +189,8 @@ Transfer the provisioning and execution scripts to the home directory of the rem
 
 This will trigger the SSH key metadata to update, which may require additional authentication.
 
+Note: If you get a 255 error, check to ensure the VM is running (and not stopped)
+
 ```bash
 gcloud compute scp marker_setup.sh convert_textbook.py chapter_index.py page_markers.py $VM_INSTANCE_NAME:~/ --zone=$GCP_ZONE --tunnel-through-iap
 ```
@@ -260,7 +264,6 @@ If you still get an ERROR related to scopes and authorization by GCP at this ste
 
 Google Cloud VMs do not natively mount Google Drive. To retrieve the markdown and image artifacts, execute a recursive secure copy from the VM back to the local Docker workspace. The volume mount established in Step 0.1 will automatically synchronize these files to your local Windows filesystem.
 
-
 ```bash
 # Ensure the local target directory structure exists prior to transfer.
 # Uses the /academic-hub mount point directly (same convention as Step 3.2)
@@ -269,6 +272,10 @@ Google Cloud VMs do not natively mount Google Drive. To retrieve the markdown an
 # silently drift over a long manual session and land output in the wrong
 # place instead of erroring.
 mkdir -p "/academic-hub/$TEXTBOOK_SUBDIR/processed_outputs/"
+```
+
+
+```bash
 
 # Recursively download the processed artifacts from the GCS bucket
 gcloud storage cp -r gs://$BUCKET_NAME/processed_outputs/* "/academic-hub/$TEXTBOOK_SUBDIR/processed_outputs/"
