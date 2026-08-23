@@ -1,6 +1,6 @@
 import unittest
 
-from page_markers import remap_page_markers, tag_single_page
+from page_markers import remap_image_links, remap_page_markers, tag_single_page
 
 
 class TestRemapPageMarkers(unittest.TestCase):
@@ -53,6 +53,36 @@ class TestRemapPageMarkers(unittest.TestCase):
         # The Rudin (scanned) case: nothing to remap.
         text = "Plain body text with no anchors, links, or page markers at all."
         self.assertEqual(remap_page_markers(text, physical_offset=300, folio_offset=None, folio_start_page=0), text)
+
+
+class TestRemapImageLinks(unittest.TestCase):
+    def test_remaps_bare_image_link_to_saved_filename(self):
+        # The real bug found in Hammack's output: Marker saves the image
+        # file as "pg_{page}_{img_key}" but the markdown link still
+        # references the bare img_key, so the link never resolves.
+        text = "See the figure below.\n\n![](_page_1_Picture_5.jpeg)\n\nMore text."
+        result = remap_image_links(text, physical_page=124, img_keys=["_page_1_Picture_5.jpeg"])
+        self.assertIn("![](pg_124__page_1_Picture_5.jpeg)", result)
+        self.assertNotIn("![](_page_1_Picture_5.jpeg)", result)
+
+    def test_remaps_multiple_distinct_images(self):
+        text = "![](_page_0_Figure_1.jpeg) and ![](_page_0_Figure_2.jpeg)"
+        result = remap_image_links(text, physical_page=42, img_keys=["_page_0_Figure_1.jpeg", "_page_0_Figure_2.jpeg"])
+        self.assertIn("![](pg_42__page_0_Figure_1.jpeg)", result)
+        self.assertIn("![](pg_42__page_0_Figure_2.jpeg)", result)
+
+    def test_does_not_touch_unrelated_substring_matches(self):
+        # A key that happens to be a substring of another key must not
+        # cause a spurious partial replacement -- the "](" ... ")"
+        # delimiters bound each match to the exact key.
+        text = "![](_page_0_Figure_1.jpeg) and ![](_page_0_Figure_10.jpeg)"
+        result = remap_image_links(text, physical_page=5, img_keys=["_page_0_Figure_1.jpeg"])
+        self.assertIn("![](pg_5__page_0_Figure_1.jpeg)", result)
+        self.assertIn("![](_page_0_Figure_10.jpeg)", result)
+
+    def test_no_image_links_present_is_a_no_op(self):
+        text = "Plain body text with no image links at all."
+        self.assertEqual(remap_image_links(text, physical_page=7, img_keys=["_page_0_Figure_1.jpeg"]), text)
 
 
 class TestTagSinglePage(unittest.TestCase):

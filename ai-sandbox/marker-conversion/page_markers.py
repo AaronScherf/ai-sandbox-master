@@ -47,6 +47,22 @@ def remap_page_markers(text: str, physical_offset: int, folio_offset: int | None
     return text
 
 
+def remap_image_links(text: str, physical_page: int, img_keys) -> str:
+    """
+    Rewrites each `![](img_key)` reference in `text` to the filename the
+    image was actually saved under (`pg_{physical_page}_{img_key}`).
+
+    Marker's own img_key is chunk-local (its internal page counter resets
+    per chunk), so the same key can recur across different chapters'
+    chunks in the final assembled markdown. Bounding each replacement to
+    the exact `](key)` delimiters keeps this safe even when one key is a
+    substring of another.
+    """
+    for img_key in img_keys:
+        text = text.replace(f"]({img_key})", f"](pg_{physical_page}_{img_key})")
+    return text
+
+
 def tag_single_page(text: str, physical_page: int, folio_offset: int | None, folio_start_page: int) -> str:
     """
     Prepends a page (and, where derivable, folio) tag directly -- for

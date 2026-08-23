@@ -46,7 +46,7 @@ from pypdf import PdfReader, PdfWriter
 from marker.converters.pdf import PdfConverter
 from marker.models import create_model_dict
 from marker.output import text_from_rendered
-from page_markers import remap_page_markers, tag_single_page
+from page_markers import remap_image_links, remap_page_markers, tag_single_page
 import chapter_index
 
 def clean_stale_state():
@@ -241,6 +241,7 @@ def process_page_range(converter, reader, workspace, start_page, end_page, image
             rendered = converter(temp_chunk_pdf)
         chunk_text, chunk_meta, chunk_images = text_from_rendered(rendered)
         chunk_text = remap_page_markers(chunk_text, start_page, folio_offset, folio_start_page)
+        chunk_text = remap_image_links(chunk_text, start_page + 1, chunk_images.keys())
         for img_key, img_data in chunk_images.items():
             img_data.save(os.path.join(images_dir, f"pg_{start_page + 1}_{img_key}"))
 
@@ -261,6 +262,7 @@ def process_page_range(converter, reader, workspace, start_page, end_page, image
                     p_rendered = converter(single_pdf_path)
                 p_text, _, p_imgs = text_from_rendered(p_rendered)
                 p_text = remap_page_markers(p_text, single_p, folio_offset, folio_start_page)
+                p_text = remap_image_links(p_text, single_p + 1, p_imgs.keys())
                 text_segments.append(p_text)
                 for img_k, img_v in p_imgs.items():
                     img_v.save(os.path.join(images_dir, f"pg_{single_p + 1}_{img_k}"))
