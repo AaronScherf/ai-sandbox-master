@@ -224,7 +224,7 @@ def describe_image_via_gemini(client, model: str, image_path: str, prompt: str) 
         config={
             "response_mime_type": "application/json",
             "temperature": 0,
-            "thinking_config": {"thinking_budget": 0},
+            "thinking_config": {"thinking_level": "minimal"},
         },
     )
     return parse_description_response(response.text)
