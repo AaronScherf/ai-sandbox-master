@@ -267,10 +267,7 @@ Google Cloud VMs do not natively mount Google Drive. To retrieve the markdown an
 ```bash
 # Ensure the local target directory structure exists prior to transfer.
 # Uses the /academic-hub mount point directly (same convention as Step 3.2)
-# rather than a "../academic-hub" relative path -- a relative path here
-# depends on the shell's cwd still being exactly /workspace, which can
-# silently drift over a long manual session and land output in the wrong
-# place instead of erroring.
+# rather than a "../academic-hub" relative path 
 mkdir -p "/academic-hub/$TEXTBOOK_SUBDIR/processed_outputs/"
 ```
 
@@ -328,6 +325,8 @@ Requires a `GEMINI_API_KEY` in your `.env` (see `.env.example` -- a free key fro
 Batches over every book folder found under `academic-hub/$TEXTBOOK_SUBDIR/processed_outputs/` by default -- reuse the same `$TEXTBOOK_SUBDIR` you set in Step 0.2 for this run.
 
 ```powershell
+$TEXTBOOK_SUBDIR="academic_resources/math-camp/textbooks-and-papers"
+
 python describe_images.py --textbook-subdir $TEXTBOOK_SUBDIR
 ```
 
