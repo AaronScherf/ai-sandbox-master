@@ -267,10 +267,7 @@ Google Cloud VMs do not natively mount Google Drive. To retrieve the markdown an
 ```bash
 # Ensure the local target directory structure exists prior to transfer.
 # Uses the /academic-hub mount point directly (same convention as Step 3.2)
-# rather than a "../academic-hub" relative path -- a relative path here
-# depends on the shell's cwd still being exactly /workspace, which can
-# silently drift over a long manual session and land output in the wrong
-# place instead of erroring.
+# rather than a "../academic-hub" relative path 
 mkdir -p "/academic-hub/$TEXTBOOK_SUBDIR/processed_outputs/"
 ```
 

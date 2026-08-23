@@ -980,8 +980,8 @@ def parse_args():
         help="Vertex AI region for the Gemini call (default: us-central1)."
     )
     parser.add_argument(
-        "--llm-model", default="gemini-2.5-flash",
-        help="Gemini model name for bibliographic extraction (default: gemini-2.5-flash)."
+        "--llm-model", default="gemini-3.6-flash",
+        help="Gemini model name for bibliographic extraction (default: gemini-3.6-flash)."
     )
     return parser.parse_args()
 
