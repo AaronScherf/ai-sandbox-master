@@ -654,12 +654,20 @@ def extract_bibliographic_info_via_llm(md_text: str, project: str, location: str
             config={
                 "response_mime_type": "application/json",
                 "temperature": 0,
-                # Gemini 2.5 models think by default, and thinking tokens are
+                # Gemini models think by default, and thinking tokens are
                 # billed as output tokens even though they never appear in
                 # the response. There's no reasoning benefit to spotting a
                 # title/author/year on a title page, so this is pure wasted
-                # cost and latency for this call -- disable it.
-                "thinking_config": {"thinking_budget": 0},
+                # cost and latency for this call -- keep it as low as this
+                # model generation allows. Gemini 3.x replaced the old
+                # integer thinking_budget with a thinking_level enum, and
+                # sending both in one request is a 400 -- confirmed via a
+                # real "INVALID_ARGUMENT" from the live API when this still
+                # said thinking_budget against gemini-3.6-flash. "minimal"
+                # is the lowest level Flash-tier models support (Pro-tier
+                # models can't go below "low" and can't disable thinking at
+                # all -- irrelevant here since this only ever uses Flash).
+                "thinking_config": {"thinking_level": "minimal"},
             },
         )
         parsed = json.loads(response.text)
