@@ -300,3 +300,32 @@ else
     echo "Aborted -- '$VM_INSTANCE_NAME' was NOT deleted."
 fi
 ```
+
+## Step 5: Describe Images Locally
+
+This step runs entirely on your local machine, **outside the Docker container** (exit the container's shell first, or just open a new PowerShell window) -- it needs no GPU, no VM, and no gcloud/IAP tunnel, just local files and network access to the Gemini API. There's no reason to keep billing the VM while this runs, which is why it comes after Step 4 rather than before it.
+
+For each image in a book's converted markdown, `describe_images.py` asks a Gemini model whether the image is meaningful academic content (a diagram, chart, plot, or figure) worth describing for RAG/study use, or decorative/non-informational content worth skipping (stock photos, publisher logos, cover art). Images before the book's first real chapter (cover art, title-page decoration) are filtered out for free, no LLM call needed. The result is a derived `<BookName>.rag.md` file with descriptions inserted directly beneath each kept image's link -- the original `<BookName>.md` is never modified.
+
+### Step 5.1: One-time local setup
+
+```powershell
+cd marker-conversion
+pip install google-genai python-dotenv
+```
+
+Requires a `GEMINI_API_KEY` in your `.env` (see `.env.example` -- a free key from aistudio.google.com/apikey works, or enable billing on that key for higher rate limits; either way this step's own API cost is negligible, well under $1 even for an image-heavy book).
+
+### Step 5.2: Run it
+
+Batches over every book folder found under `academic-hub/$TEXTBOOK_SUBDIR/processed_outputs/` by default -- reuse the same `$TEXTBOOK_SUBDIR` you set in Step 0.2 for this run.
+
+```powershell
+python describe_images.py --textbook-subdir $TEXTBOOK_SUBDIR
+```
+
+* Add `--book "SomeBookFolderName"` to process just one book instead of the whole batch.
+* Add `--dry-run` first to see which images would be processed (and which are already cached from a prior run) without spending any API calls.
+* Each image's result is cached in `<BookName>_image_descriptions.json` inside that book's output folder as it's produced -- if the run is interrupted (network blip, rate limit, closed terminal), rerunning the same command picks up where it left off instead of re-billing already-processed images.
+
+Note: this step depends on `run_config.json` being present in the book's output folder (written automatically by Step 3.3/3.4 as of this feature). Output converted before this feature shipped won't have it, and won't have the page-prefixed image links this script looks for either -- rerun Step 3 on those books first.

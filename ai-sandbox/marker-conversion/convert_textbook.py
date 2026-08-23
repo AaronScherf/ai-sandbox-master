@@ -858,6 +858,13 @@ def process_one_pdf(converter, raw_input: str, raw_output: str, workspace: str, 
         if os.listdir(images_dir):
             shutil.copytree(images_dir, os.path.join(local_build_dir, "images"))
 
+        # Ships the chapter-boundary/folio-offset data alongside the output
+        # so downstream local tooling (describe_images.py) can filter
+        # front-matter images without needing the VM, the source PDF, or
+        # recomputing anything -- pure filesystem read.
+        if os.path.exists(run_config_path):
+            shutil.copy2(run_config_path, os.path.join(local_build_dir, "run_config.json"))
+
         master_metadata.update({
             "total_pages_processed": total_pages,
             "processing_time_seconds": round(elapsed, 2),
