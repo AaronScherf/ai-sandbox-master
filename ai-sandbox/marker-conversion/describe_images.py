@@ -354,7 +354,12 @@ def main():
 
     try:
         from dotenv import load_dotenv
-        load_dotenv(dotenv_path=Path(__file__).resolve().parent.parent / ".env")
+        # override=True: .env is meant to be authoritative here -- without
+        # it, load_dotenv() silently leaves any pre-existing environment
+        # variable in place (a stale Windows User/Machine-level
+        # GEMINI_API_KEY, or one set earlier in the same shell session),
+        # which looks identical to .env just not being read at all.
+        load_dotenv(dotenv_path=Path(__file__).resolve().parent.parent / ".env", override=True)
     except ImportError:
         print("WARNING: python-dotenv not installed (pip install python-dotenv); "
               "relying on GEMINI_API_KEY already being set in the environment.")
