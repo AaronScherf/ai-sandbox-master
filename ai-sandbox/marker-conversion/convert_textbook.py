@@ -758,7 +758,7 @@ def process_one_pdf(converter, raw_input: str, raw_output: str, workspace: str, 
 
             print(f"\nProcessing page subset: {start_page + 1} to {end_page} of {total_pages}...")
 
-            chunk_text, chunk_meta, hit_exception = process_page_range(
+            chunk_text, chunk_meta, _hit_exception = process_page_range(
                 converter, reader, workspace, start_page, end_page, images_dir,
                 args.chunk_timeout, args.page_timeout, folio_offset, folio_start_page
             )
@@ -785,11 +785,16 @@ def process_one_pdf(converter, raw_input: str, raw_output: str, workspace: str, 
             gc.collect()
             # torch.cuda.empty_cache() releases PyTorch's cached CUDA memory
             # blocks back to the driver, forcing the next chunk to cudaMalloc
-            # fresh instead of reusing the cache -- real overhead if you're not
-            # actually under memory pressure. Only clear it after a chunk that
-            # hit the exception/fallback path, where memory pressure is more
-            # plausible. If you see OOMs even so, call it unconditionally here.
-            if hit_exception and torch.cuda.is_available():
+            # fresh instead of reusing the cache -- real overhead per chunk,
+            # but negligible next to a chunk's own processing time (minutes).
+            # Unconditional rather than exception-only: a real VM run hit
+            # repeated "Inference error: Connection error" ~620 pages into a
+            # 5-book/899-page batch in one continuous process (with
+            # SURYA_INFERENCE_KEEP_ALIVE keeping the inference server warm
+            # the whole time) -- consistent with VRAM accumulating across
+            # many successful chunks and eventually starving that server,
+            # not with any single chunk being too large on its own.
+            if torch.cuda.is_available():
                 torch.cuda.empty_cache()
 
         elapsed = time.time() - start_time
