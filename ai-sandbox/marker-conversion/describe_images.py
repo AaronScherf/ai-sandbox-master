@@ -230,7 +230,29 @@ def describe_image_via_gemini(client, model: str, image_path: str, prompt: str) 
     return parse_description_response(response.text)
 
 
-def _call_with_retries(fn, retries: int = 3, backoff_seconds: float = 5.0):
+_RETRY_DELAY_PATTERNS = (
+    re.compile(r"retryDelay[^0-9]*(\d+(?:\.\d+)?)s", re.IGNORECASE),
+    re.compile(r"retry in (\d+(?:\.\d+)?)s", re.IGNORECASE),
+)
+
+
+def _extract_retry_delay_seconds(error) -> float | None:
+    """
+    Pulls the API's own suggested wait time out of a 429 RESOURCE_EXHAUSTED
+    error, e.g. "'retryDelay': '52s'" or "Please retry in 52.6s." -- a real
+    quota-window reset (per-minute limits) is typically 40-60s, far longer
+    than any fixed backoff schedule would guess, so honoring it avoids
+    burning through all retries before the quota actually clears.
+    """
+    text = str(error)
+    for pattern in _RETRY_DELAY_PATTERNS:
+        match = pattern.search(text)
+        if match:
+            return float(match.group(1))
+    return None
+
+
+def _call_with_retries(fn, retries: int = 3, backoff_seconds: float = 5.0, max_wait_seconds: float = 90.0):
     last_err: Exception = RuntimeError("no attempts were made")
     for attempt in range(retries):
         try:
@@ -238,7 +260,8 @@ def _call_with_retries(fn, retries: int = 3, backoff_seconds: float = 5.0):
         except Exception as err:
             last_err = err
             if attempt < retries - 1:
-                wait = backoff_seconds * (attempt + 1)
+                suggested = _extract_retry_delay_seconds(err)
+                wait = min(suggested + 1, max_wait_seconds) if suggested is not None else backoff_seconds * (attempt + 1)
                 print(f"WARNING: Gemini call failed (attempt {attempt + 1}/{retries}): {err}. Retrying in {wait:.0f}s.")
                 time.sleep(wait)
     raise last_err

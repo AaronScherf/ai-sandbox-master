@@ -5,6 +5,7 @@ import unittest
 import json
 
 from describe_images import (
+    _extract_retry_delay_seconds,
     build_description_prompt,
     build_rag_markdown,
     extract_paragraph_context,
@@ -195,6 +196,28 @@ class TestLoadFrontMatterEnd(unittest.TestCase):
             with open(path, "w", encoding="utf-8") as f:
                 json.dump({"folio_offset": None}, f)
             self.assertIsNone(load_front_matter_end(tmp))
+
+
+class TestExtractRetryDelaySeconds(unittest.TestCase):
+    def test_parses_retryDelay_field_from_real_429_response(self):
+        # Verbatim shape from a real 429 hit against gemini-3.6-flash.
+        error_text = (
+            "429 RESOURCE_EXHAUSTED. {'error': {'code': 429, "
+            "'details': [{'@type': 'type.googleapis.com/google.rpc.RetryInfo', "
+            "'retryDelay': '52s'}]}}"
+        )
+        self.assertEqual(_extract_retry_delay_seconds(error_text), 52.0)
+
+    def test_parses_fractional_retry_in_phrasing(self):
+        error_text = "Please retry in 45.368129527s."
+        self.assertAlmostEqual(_extract_retry_delay_seconds(error_text), 45.368129527)
+
+    def test_returns_none_when_no_delay_present(self):
+        self.assertIsNone(_extract_retry_delay_seconds("some unrelated error"))
+
+    def test_accepts_exception_object_not_just_string(self):
+        error = RuntimeError("429 RESOURCE_EXHAUSTED ... 'retryDelay': '16s' ...")
+        self.assertEqual(_extract_retry_delay_seconds(error), 16.0)
 
 
 class TestDescriptionCache(unittest.TestCase):
