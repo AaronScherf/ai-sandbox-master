@@ -105,17 +105,27 @@ Run 1 found folio tags at 0/0/0 across all three books, for three
 
 ## TODO -- pending before calling this fully validated
 
-- [ ] **Re-run all three books** (or at least Hammack) and confirm
-      `<!-- folio ` count > 0 for Hammack specifically -- this is the one
-      shipped fix that hasn't been proven against the real PDF yet.
-- [ ] Confirm `run_config.json` contents and resume/interrupt behavior on
-      a real run -- neither has been checked yet, only asserted by design.
-- [ ] Confirm whether `probe_and_shift_boundary`'s structured block-type
+- [x] **Re-run all three books** (or at least Hammack) and confirm
+      `<!-- folio ` count > 0 for Hammack specifically. **Confirmed**: a
+      later real run (part of the 5-book batch described in
+      `docs/2026-08-23-image-description-status.md`) showed 366/380
+      (96%) folio tag coverage for Hammack -- the outline-flattening fix
+      holds in production. Axler, Rudin, and Sydsæter (a fourth book,
+      not in the original 3-book validation set) all landed in the
+      96-98% range too.
+- [x] Confirm `run_config.json` contents and resume/interrupt behavior on
+      a real run. **Confirmed**: contents read correctly by
+      `describe_images.py` across all 5 books in the later batch; resume
+      behavior was exercised for real when a VRAM crash (see the
+      image-description status doc) required killing and re-running the
+      pipeline mid-batch -- already-completed books and chunks were
+      correctly skipped on rerun.
+- [x] Confirm whether `probe_and_shift_boundary`'s structured block-type
       check actually fires on the real installed Marker version, and
-      whether it fires *too often* (a math-heavy book's pages routinely
-      end with an equation, which is the primary trigger signal) -- this
-      was flagged as the single most uncertain piece of the whole design
-      from day one, since it couldn't be verified off the VM.
+      whether it fires *too often*. **Confirmed firing correctly**: a
+      real run logged `"[System] Chunk boundary at page 470 looks unsafe
+      (page 470 may end mid-table/mid-formula); shifting forward."` --
+      exactly once for that book, not excessively.
 - [ ] Fix a real, low-stakes parser bug found during Hammack's diagnosis:
       `parse_printed_toc` extracts one spurious entry from Hammack's front
       matter (`folio=2, title='='`). Harmless today (fails to fuzzy-match
@@ -133,5 +143,4 @@ Run 1 found folio tags at 0/0/0 across all three books, for three
 
 Image-to-text description for the `images/` folders, so a RAG/study
 pipeline can consume figure descriptions directly instead of an opaque
-image reference. Being tracked as a new, separate piece of work -- see
-whatever branch/plan follows this one.
+image reference -- **done**, see `docs/2026-08-23-image-description-status.md`.
