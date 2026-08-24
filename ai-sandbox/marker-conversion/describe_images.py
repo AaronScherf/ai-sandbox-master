@@ -20,9 +20,16 @@ import mimetypes
 import os
 import re
 import sys
-import time
 from dataclasses import dataclass
 from pathlib import Path
+
+from gemini_utils import (
+    call_with_retries,
+    get_gemini_client,
+    load_dotenv_override,
+    load_json_cache,
+    save_json_cache,
+)
 
 _IMAGE_REF_RE = re.compile(r"!\[\]\((pg_(\d+)_[^)]+)\)")
 _TAG_ONLY_RE = re.compile(r"^(?:\s*<!--.*?-->\s*)+$")
@@ -135,23 +142,6 @@ def parse_description_response(response_text: str) -> dict:
     return {"skip": skip, "description": description}
 
 
-def load_description_cache(path: str) -> dict:
-    if os.path.exists(path):
-        try:
-            with open(path, "r", encoding="utf-8") as f:
-                data = json.load(f)
-            if isinstance(data, dict):
-                return data
-        except (json.JSONDecodeError, OSError):
-            pass
-    return {}
-
-
-def save_description_cache(path: str, data: dict) -> None:
-    with open(path, "w", encoding="utf-8") as f:
-        json.dump(data, f, indent=4, ensure_ascii=False)
-
-
 def load_front_matter_end(book_dir: str) -> int | None:
     """
     Reads the front-matter/chapter-1 boundary that convert_textbook.py
@@ -230,43 +220,6 @@ def describe_image_via_gemini(client, model: str, image_path: str, prompt: str) 
     return parse_description_response(response.text)
 
 
-_RETRY_DELAY_PATTERNS = (
-    re.compile(r"retryDelay[^0-9]*(\d+(?:\.\d+)?)s", re.IGNORECASE),
-    re.compile(r"retry in (\d+(?:\.\d+)?)s", re.IGNORECASE),
-)
-
-
-def _extract_retry_delay_seconds(error) -> float | None:
-    """
-    Pulls the API's own suggested wait time out of a 429 RESOURCE_EXHAUSTED
-    error, e.g. "'retryDelay': '52s'" or "Please retry in 52.6s." -- a real
-    quota-window reset (per-minute limits) is typically 40-60s, far longer
-    than any fixed backoff schedule would guess, so honoring it avoids
-    burning through all retries before the quota actually clears.
-    """
-    text = str(error)
-    for pattern in _RETRY_DELAY_PATTERNS:
-        match = pattern.search(text)
-        if match:
-            return float(match.group(1))
-    return None
-
-
-def _call_with_retries(fn, retries: int = 3, backoff_seconds: float = 5.0, max_wait_seconds: float = 90.0):
-    last_err: Exception = RuntimeError("no attempts were made")
-    for attempt in range(retries):
-        try:
-            return fn()
-        except Exception as err:
-            last_err = err
-            if attempt < retries - 1:
-                suggested = _extract_retry_delay_seconds(err)
-                wait = min(suggested + 1, max_wait_seconds) if suggested is not None else backoff_seconds * (attempt + 1)
-                print(f"WARNING: Gemini call failed (attempt {attempt + 1}/{retries}): {err}. Retrying in {wait:.0f}s.")
-                time.sleep(wait)
-    raise last_err
-
-
 def process_book(
     book_dir: str,
     client,
@@ -290,7 +243,7 @@ def process_book(
     print(f"[{folder_name}] {len(refs)} candidate image(s) past front matter "
           f"(front_matter_end={front_matter_end}).")
 
-    cache = load_description_cache(cache_path)
+    cache = load_json_cache(cache_path)
 
     if dry_run:
         for ref in refs:
@@ -306,7 +259,7 @@ def process_book(
         if not os.path.exists(image_path):
             print(f"  WARNING: {ref.filename} referenced in markdown but missing from images/; skipping.")
             cache[ref.filename] = {"skip": True, "description": ""}
-            save_description_cache(cache_path, cache)
+            save_json_cache(cache_path, cache)
             continue
 
         before, after = extract_paragraph_context(text, ref, paragraphs_before, paragraphs_after)
@@ -314,7 +267,7 @@ def process_book(
         prompt = build_description_prompt(before, after, heading)
 
         try:
-            result = _call_with_retries(
+            result = call_with_retries(
                 lambda: describe_image_via_gemini(client, model, image_path, prompt)
             )
         except Exception as err:
@@ -322,7 +275,7 @@ def process_book(
             continue
 
         cache[ref.filename] = result
-        save_description_cache(cache_path, cache)
+        save_json_cache(cache_path, cache)
         tag = "described" if not result["skip"] else "skipped (decorative)"
         print(f"  [{i}/{len(refs)}] page {ref.physical_page}: {ref.filename} -- {tag}")
 
@@ -352,17 +305,7 @@ def main():
     )
     args = parser.parse_args()
 
-    try:
-        from dotenv import load_dotenv
-        # override=True: .env is meant to be authoritative here -- without
-        # it, load_dotenv() silently leaves any pre-existing environment
-        # variable in place (a stale Windows User/Machine-level
-        # GEMINI_API_KEY, or one set earlier in the same shell session),
-        # which looks identical to .env just not being read at all.
-        load_dotenv(dotenv_path=Path(__file__).resolve().parent.parent / ".env", override=True)
-    except ImportError:
-        print("WARNING: python-dotenv not installed (pip install python-dotenv); "
-              "relying on GEMINI_API_KEY already being set in the environment.")
+    load_dotenv_override()
 
     academic_hub_dir = Path(__file__).resolve().parent.parent / "academic-hub"
     processed_outputs_dir = academic_hub_dir / args.textbook_subdir / "processed_outputs"
@@ -373,17 +316,9 @@ def main():
 
     client = None
     if not args.dry_run:
-        api_key = os.environ.get("GEMINI_API_KEY")
-        if not api_key:
-            print("ERROR: GEMINI_API_KEY not set (checked the environment and ../.env). "
-                  "Get a key at aistudio.google.com/apikey and add it to ai-sandbox/.env.")
+        client = get_gemini_client()
+        if client is None:
             sys.exit(1)
-        try:
-            from google import genai
-        except ImportError:
-            print("ERROR: google-genai is not installed. Run: pip install google-genai")
-            sys.exit(1)
-        client = genai.Client(api_key=api_key)
 
     for book_dir in book_dirs:
         process_book(
