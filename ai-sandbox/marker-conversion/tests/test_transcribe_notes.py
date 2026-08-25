@@ -70,6 +70,26 @@ class TestBuildAccumulatedContext(unittest.TestCase):
         self.assertIn("Page one.", context)
         self.assertIn("Page three.", context)
 
+    def test_window_excludes_pages_older_than_the_window(self):
+        cache = {"1": "Page one.", "2": "Page two.", "3": "Page three.", "4": "Page four."}
+        context = build_accumulated_context(cache, up_to_page=5, window=2)
+        self.assertNotIn("Page one.", context)
+        self.assertNotIn("Page two.", context)
+        self.assertIn("Page three.", context)
+        self.assertIn("Page four.", context)
+
+    def test_window_larger_than_available_history_includes_everything(self):
+        cache = {"1": "Page one.", "2": "Page two."}
+        context = build_accumulated_context(cache, up_to_page=3, window=10)
+        self.assertIn("Page one.", context)
+        self.assertIn("Page two.", context)
+
+    def test_window_none_still_includes_full_history(self):
+        cache = {"1": "Page one.", "5": "Page five."}
+        context = build_accumulated_context(cache, up_to_page=6, window=None)
+        self.assertIn("Page one.", context)
+        self.assertIn("Page five.", context)
+
 
 class TestBuildTranscriptionPrompt(unittest.TestCase):
     def test_includes_context_and_hint_and_page_numbers(self):

@@ -10,13 +10,16 @@ textbook scale), this renders each page to an image and asks a
 vision-capable Gemini model to transcribe it directly -- typed and/or
 handwritten, whatever's actually on the page, no pre-classification.
 
-Full accumulating context: every already-transcribed page is included as
-context for the next page's call, not just the immediately preceding
-one. This matters specifically for OneNote exports, where the page's
-internal layout window can split a paragraph non-adjacently rather than
-at a clean page boundary. This requires strictly sequential processing
-(page N's call needs pages 1..N-1 already transcribed) -- see
-process_pdf().
+Accumulating context: each page's call includes the last
+_ACCUMULATION_WINDOW already-transcribed pages as context, not just the
+immediately preceding one. This matters specifically for OneNote
+exports, where the page's internal layout window can split a paragraph
+non-adjacently rather than at a clean page boundary -- a small trailing
+window (rather than the whole document, which was confirmed to grow
+input tokens quadratically with page count on a real file) is enough
+since that splitting only ever spans adjacent pages. This requires
+strictly sequential processing (page N's call needs pages 1..N-1
+already transcribed) -- see process_pdf().
 
 Everything except the actual PyMuPDF rendering, the Gemini network
 call, and the CLI driver is pure-Python and independently unit-tested
@@ -124,6 +127,16 @@ _DPI_HANDWRITING = 200
 
 _MODEL_TYPESET = "gemini-3.1-flash-lite"
 _MODEL_HANDWRITING = "gemini-3.6-flash"
+
+# How many immediately-preceding pages to include as context for
+# messy-export (Nebo/MyScript/OneNote) documents, instead of the entire
+# transcribed-so-far document. The paragraph-splitting behavior this
+# accumulation exists to handle (see module docstring) only ever spans
+# adjacent pages, so a small trailing window preserves the same
+# continuity while turning input-token growth from quadratic (full
+# accumulation, confirmed against a real 5-page file: 1817 -> 7364
+# input tokens per call) into flat per-call cost.
+_ACCUMULATION_WINDOW = 3
 
 
 def has_reliable_pagination(metadata) -> bool:
@@ -290,14 +303,19 @@ def discover_pdf_files(notes_dir: str, file_filter: str | None = None) -> list[s
     return files
 
 
-def build_accumulated_context(cache: dict, up_to_page: int) -> str:
+def build_accumulated_context(cache: dict, up_to_page: int, window: int | None = None) -> str:
     """
-    Joins every already-transcribed page before up_to_page, in order.
-    A gap (a page that failed and was never cached) is silently omitted
-    rather than raising -- graceful degradation, not a hard requirement.
+    Joins already-transcribed pages before up_to_page, in order. A gap (a
+    page that failed and was never cached) is silently omitted rather
+    than raising -- graceful degradation, not a hard requirement.
+
+    window=None (default) includes every prior page. A positive window
+    includes only the trailing `window` pages, e.g. window=3 at
+    up_to_page=10 includes pages 7, 8, 9 -- see _ACCUMULATION_WINDOW.
     """
+    start_page = 1 if window is None else max(1, up_to_page - window)
     parts = []
-    for page_num in range(1, up_to_page):
+    for page_num in range(start_page, up_to_page):
         text = cache.get(str(page_num))
         if text:
             parts.append(f"--- Page {page_num} ---\n{text}")
@@ -445,6 +463,23 @@ def render_page_to_image_bytes(pdf_path: str, page_index: int, dpi: int = 200) -
         doc.close()
 
 
+_TOKEN_USAGE_TOTALS = {"input": 0, "output": 0}
+
+
+def _log_token_usage(response) -> None:
+    """Diagnostic only -- prints per-call token counts and keeps a running
+    per-process total so a single-document run can report a real cost
+    figure instead of a character-count guess."""
+    usage = getattr(response, "usage_metadata", None)
+    if usage is None:
+        return
+    input_tokens = getattr(usage, "prompt_token_count", None) or 0
+    output_tokens = getattr(usage, "candidates_token_count", None) or 0
+    _TOKEN_USAGE_TOTALS["input"] += input_tokens
+    _TOKEN_USAGE_TOTALS["output"] += output_tokens
+    print(f"    [tokens] input={input_tokens} output={output_tokens} (running total: input={_TOKEN_USAGE_TOTALS['input']} output={_TOKEN_USAGE_TOTALS['output']})")
+
+
 def transcribe_page_via_gemini(client, model: str, image_bytes: bytes, prompt: str) -> str:
     """Only function in this module that touches the network -- not unit-tested locally."""
     from google.genai import types
@@ -460,6 +495,7 @@ def transcribe_page_via_gemini(client, model: str, image_bytes: bytes, prompt: s
             "thinking_config": {"thinking_level": "minimal"},
         },
     )
+    _log_token_usage(response)
     return parse_transcription_response(response.text)
 
 
@@ -483,6 +519,7 @@ def transcribe_batch_via_gemini(client, model: str, images: list[bytes], prompt:
             "thinking_config": {"thinking_level": "minimal"},
         },
     )
+    _log_token_usage(response)
     return response.text or ""
 
 
@@ -638,7 +675,10 @@ def process_pdf(pdf_path: str, client, model_override: str | None, dry_run: bool
             continue
 
         hint_text = reader.pages[page_num - 1].extract_text() or ""
-        accumulated_context = build_accumulated_context(cache, page_num) if use_accumulation else ""
+        accumulated_context = (
+            build_accumulated_context(cache, page_num, window=_ACCUMULATION_WINDOW)
+            if use_accumulation else ""
+        )
         prompt = build_transcription_prompt(
             accumulated_context, hint_text, page_num, total_pages,
             hint_is_high_confidence=reliable_pagination,
