@@ -122,7 +122,7 @@ _MAX_BATCH_SIZE = 12
 _DPI_TYPESET = 150
 _DPI_HANDWRITING = 200
 
-_MODEL_TYPESET = "gemini-3.6-flash-lite"
+_MODEL_TYPESET = "gemini-3.1-flash-lite"
 _MODEL_HANDWRITING = "gemini-3.6-flash"
 
 
