@@ -59,13 +59,65 @@ _MESSY_EXPORT_MARKERS = ("nebo", "myscript", "onenote")
 # OneNote exports too, since Producer/Creator both mention "Microsoft".
 _RELIABLE_PAGINATION_MARKERS = ("latex", "pdftex", "word", "libreoffice", "openoffice")
 
-# The observed failure mode for a PDF whose math font lacks a proper
-# ToUnicode mapping: prose extracts perfectly, but every math
-# symbol/variable comes through as a bare '?' (confirmed identically via
-# both pypdf and pymupdf against LN_Analysis.pdf -- not a library
-# weakness, a broken font encoding in the PDF itself). A ratio this low
-# only trips on genuine garbling, not a document's occasional real "?".
-_MAX_GARBLING_RATIO = 0.05
+# The real, confirmed failure mode for machine-generated PDFs: an
+# extensible delimiter glyph (a big matrix bracket or summation/integral
+# sign, built from several stacked glyph pieces) frequently lacks a
+# correct ToUnicode mapping, and PDF layout can also collapse word
+# spacing entirely in some paragraph runs. Both produce the same
+# structural symptom -- an abnormally long, unbroken character run -- no
+# real English/math word is this long. Confirmed against two real pages
+# (LN_Analysis.pdf page 88, LN_Linear Algebra.pdf page 170) that produced
+# *different* garbage characters ('Õ' in one, '«'/'ﬁﬁﬁﬁﬁ' in the other),
+# which is why this checks a structural invariant rather than a
+# blocklist of specific bad characters -- different font packages
+# produce different garbage.
+_MAX_WORD_LENGTH = 25
+
+# Unicode ranges legitimately expected in an English math document --
+# used by page_looks_defective's second check (delimiter-glyph
+# corruption doesn't produce long words, it produces short garbage
+# tokens on their own line, so word-length alone misses it). Validated
+# against a real 294-page document: an earlier, narrower version of this
+# allowlist flagged 148/294 pages, mostly false positives from missing
+# entire categories of legitimate notation -- Greek letters (Δ Φ ...),
+# angle brackets (⟨ ⟩, inner-product notation), prime marks (f′), and
+# single ligature characters (ﬁ, completely normal in words like
+# "significant" -- see _has_suspicious_repeated_char_run for how a
+# *repeated* ligature run like 'ﬁﬁﬁﬁﬁ' is still caught separately).
+_ALLOWED_MATH_RANGES = (
+    (0x1D400, 0x1D7FF),  # Mathematical Alphanumeric Symbols (𝐴, 𝑓, 𝜉, ...)
+    (0x2200, 0x22FF),    # Mathematical Operators (∈ ∉ ⊆ ∀ ∇ ∂ − ∥ ...)
+    (0x2100, 0x214F),    # Letterlike Symbols (ℝ ℂ ℤ ℕ ℚ ...)
+    (0x2190, 0x21FF),    # Arrows
+    (0x2A00, 0x2AFF),    # Supplemental Mathematical Operators
+    (0x0370, 0x03FF),    # Greek and Coptic (α β Δ θ λ π Σ φ Φ Ω ...)
+    (0x27C0, 0x27EF),    # Miscellaneous Mathematical Symbols-A (⟨ ⟩ ...)
+    (0x2980, 0x29FF),    # Miscellaneous Mathematical Symbols-B
+    (0xFB00, 0xFB06),    # Alphabetic Presentation Forms (ligatures ﬀ ﬁ ﬂ ﬃ ﬄ)
+)
+_ALLOWED_EXTRA_CHARS = set("—–‘’“”…°±×÷·∘‗†′″‴")
+_MAX_UNEXPECTED_CHARS = 3
+
+# Corruption signal independent of the allowlist above: the *same*
+# non-whitespace character repeated 3+ times with no separation is
+# essentially never legitimate prose or math (confirmed real cases:
+# 'ﬁﬁﬁﬁﬁ', '›››››' both from a corrupted matrix bracket) -- except a
+# small set of characters that legitimately do repeat this way (ellipsis
+# dots in a matrix, table rules, underscored blanks).
+_LEGITIMATE_REPEATABLE_CHARS = set(".-=_*#·")
+_REPEATED_CHAR_RUN_RE = re.compile(r"(\S)\1{2,}")
+
+# Above this fraction of a document's pages scoring as defective, treat
+# it as not a good hybrid-repair candidate at all -- fall back to
+# transcribing every page via Gemini instead of piecemeal-repairing a
+# document that's mostly broken locally.
+_MAX_DEFECT_RATIO_FOR_HYBRID = 0.35
+
+# Cap on how many consecutive defective pages go into one batched repair
+# call -- bounds both the blast radius of one failed/malformed batch and
+# the risk of the model losing track of per-page delimiters in a very
+# large response.
+_MAX_BATCH_SIZE = 12
 
 _DPI_TYPESET = 150
 _DPI_HANDWRITING = 200
@@ -93,30 +145,138 @@ def has_reliable_pagination(metadata) -> bool:
     return any(marker in combined for marker in _RELIABLE_PAGINATION_MARKERS)
 
 
-def should_use_local_extraction(page_texts: list[str], max_garbling_ratio: float = _MAX_GARBLING_RATIO) -> bool:
-    """
-    True when this document's own pypdf text extraction looks clean
-    enough to trust outright, skipping Gemini entirely. Purely
-    content-based (unlike has_reliable_pagination) -- a "machine-
-    generated" document can still fail this if its math font is broken,
-    which is exactly the real case that motivated this split.
+def _is_expected_char(c: str) -> bool:
+    if ord(c) < 128:
+        return True
+    if c in _ALLOWED_EXTRA_CHARS:
+        return True
+    cp = ord(c)
+    return any(lo <= cp <= hi for lo, hi in _ALLOWED_MATH_RANGES)
 
-    Callers MUST pass every page's text, not a sparse sample: an earlier
-    sampled version of this check (5 evenly-spaced pages) missed real
-    garbling in two different real documents purely by landing on
-    unrepresentative pages -- title/blank pages in one case, math-light
-    pages in the other. A full-document scan costs under 10 seconds even
-    on a 294-page PDF, so there's no real reason to sample.
+
+def _has_suspicious_repeated_char_run(text: str) -> bool:
+    for m in _REPEATED_CHAR_RUN_RE.finditer(text):
+        ch = m.group(1)
+        if ch.isascii() and ch.isalnum():
+            # Plain ASCII digits/letters repeating are routinely
+            # legitimate -- page numbers ("111"), Roman numerals
+            # ("Analysis III") -- confirmed real false positives against
+            # LN_Analysis.pdf's own table of contents and references.
+            continue
+        if ch in _LEGITIMATE_REPEATABLE_CHARS:
+            continue
+        return True
+    return False
+
+
+def _has_collapsed_prose_run(text: str) -> bool:
     """
-    total_words = 0
-    garbled_words = 0
-    for text in page_texts:
-        words = text.split()
-        total_words += len(words)
-        garbled_words += sum(1 for w in words if "?" in w)
-    if total_words == 0:
-        return False
-    return (garbled_words / total_words) <= max_garbling_ratio
+    A long word made up ENTIRELY of plain ASCII letters is almost
+    certainly collapsed prose spacing, not a legitimate dense equation.
+    Deliberately not just "is this word long": a real equation like
+    "𝑓(𝑎+ℎ)=𝑓(𝑎)+∇𝑓(𝑎)·ℎ+𝑜(∥ℎ∥)" (confirmed real, correct content from
+    LN_Analysis.pdf page 100) has no internal whitespace either -- that's
+    normal for math notation -- but mixes in parentheses, operators, and
+    non-ASCII math symbols, which real collapsed English prose doesn't.
+    """
+    return any(len(w) > _MAX_WORD_LENGTH and w.isascii() and w.isalpha() for w in text.split())
+
+
+def page_looks_defective(text: str) -> bool:
+    """
+    True when this page's local pypdf text extraction shows any of the
+    three structural defect signatures confirmed against real documents:
+    1. A long run of plain ASCII letters with no internal whitespace
+       (word-spacing collapse) -- real prose doesn't do this; a real
+       equation can look similarly unspaced but isn't pure letters.
+    2. More than a handful of characters outside the expected range for
+       an English math document -- e.g. Private Use Area characters,
+       which have no legitimate meaning at all and are a strong,
+       specific corruption signal on their own.
+    3. The same character repeated 3+ times with no separation (e.g.
+       'ﬁﬁﬁﬁﬁ', '›››››') -- catches delimiter-glyph corruption even when
+       every individual character involved is otherwise a legitimate
+       symbol (a single 'ﬁ' ligature is completely normal in a word like
+       "significant"; five in a row with no letters between them is not).
+    A blank/near-empty page is not defective -- that's a legitimate
+    spacer page, not corrupted content.
+    """
+    if _has_collapsed_prose_run(text):
+        return True
+    unexpected = sum(1 for c in text if not c.isspace() and not _is_expected_char(c))
+    if unexpected > _MAX_UNEXPECTED_CHARS:
+        return True
+    return _has_suspicious_repeated_char_run(text)
+
+
+def group_into_runs(page_numbers: list[int]) -> list[list[int]]:
+    """Groups a sorted list of page numbers into maximal runs of consecutive integers."""
+    if not page_numbers:
+        return []
+    runs = []
+    current = [page_numbers[0]]
+    for p in page_numbers[1:]:
+        if p == current[-1] + 1:
+            current.append(p)
+        else:
+            runs.append(current)
+            current = [p]
+    runs.append(current)
+    return runs
+
+
+def split_run_into_batches(run: list[int], max_batch_size: int) -> list[list[int]]:
+    """Splits a run of consecutive page numbers into capped-size batches, in order."""
+    return [run[i:i + max_batch_size] for i in range(0, len(run), max_batch_size)]
+
+
+def get_bookend_context(all_page_texts: list[str], run: list[int]) -> tuple[str, str]:
+    """
+    Nearest-neighbor local text immediately before/after a run of
+    defective pages. Correct by construction, not a search: since
+    group_into_runs produces maximal runs, the page immediately outside
+    a run's boundary cannot itself be defective, or it would already be
+    part of the run.
+    """
+    before_idx = run[0] - 2
+    after_idx = run[-1]
+    before = all_page_texts[before_idx] if before_idx >= 0 else ""
+    after = all_page_texts[after_idx] if after_idx < len(all_page_texts) else ""
+    return before, after
+
+
+def derive_folder_category(pdf_path: str) -> str:
+    """The input PDF's immediate parent folder name (e.g. 'ta_notes') -- purely mechanical, no LLM judgment."""
+    return os.path.basename(os.path.dirname(pdf_path))
+
+
+def _yaml_scalar(value) -> str:
+    if isinstance(value, bool):
+        return "true" if value else "false"
+    if isinstance(value, (int, float)):
+        return str(value)
+    if isinstance(value, list):
+        return "[" + ", ".join(_yaml_scalar(v) for v in value) + "]"
+    text = str(value)
+    if not text:
+        return '""'
+    if any(c in text for c in ':#[]{},&*!|>\'"%@`') or text.strip() != text:
+        return f'"{text.replace(chr(34), chr(92) + chr(34))}"'
+    return text
+
+
+def build_frontmatter(metadata: dict) -> str:
+    """
+    Renders a minimal YAML frontmatter block for a flat metadata dict
+    (str/int/float/bool/list-of-primitives values) -- sufficient for
+    this project's own metadata, not a general-purpose YAML serializer,
+    so no new dependency (PyYAML) for something this narrow.
+    """
+    lines = ["---"]
+    for key, value in metadata.items():
+        lines.append(f"{key}: {_yaml_scalar(value)}")
+    lines.append("---")
+    return "\n".join(lines) + "\n\n"
 
 
 def discover_pdf_files(notes_dir: str, file_filter: str | None = None) -> list[str]:
@@ -155,9 +315,9 @@ def build_transcription_prompt(
     if hint_is_high_confidence:
         hint_block = (
             "This page's PDF-embedded text layer, from a machine-generated document -- "
-            "generally reliable for prose wording, but math symbols/variables may appear "
-            "corrupted as a literal '?' due to a broken font encoding. Trust it for "
-            f"prose, and use the image to identify what each '?' should actually be:\n{hint_text}\n\n"
+            "generally reliable, though large delimiter glyphs (matrix brackets, big "
+            "summation/integral signs) can sometimes extract as garbage characters. Trust "
+            f"it as a strong prior and use the image to verify/correct any such spots:\n{hint_text}\n\n"
             if hint_text else ""
         )
     else:
@@ -193,6 +353,65 @@ def parse_transcription_response(response_text) -> str:
     if match:
         text = match.group(1).strip()
     return text
+
+
+def build_batch_transcription_prompt(
+    page_numbers: list[int], before_context: str, after_context: str, total_pages: int,
+) -> str:
+    """Prompt for repairing a run of consecutive defective pages in one call (see process_pdf)."""
+    before_block = (
+        f"Text from the page immediately before this batch, for continuity:\n{before_context}\n\n"
+        if before_context else ""
+    )
+    after_block = (
+        f"Text from the page immediately after this batch, for continuity:\n{after_context}\n\n"
+        if after_context else ""
+    )
+    page_list = ", ".join(str(p) for p in page_numbers)
+    return (
+        f"This is a batch of {len(page_numbers)} consecutive pages (page numbers {page_list} "
+        f"of {total_pages} total) from a machine-generated academic document, attached as "
+        "images in that exact order. Each page's own local text extraction showed signs of "
+        "corruption -- most likely a broken font encoding for extensible delimiter glyphs "
+        "(large matrix brackets, big summation/integral signs are built from several stacked "
+        "glyph pieces that often lack a correct Unicode mapping), or PDF word-spacing "
+        "collapse. Transcribe each page from its image into clean markdown: preserve "
+        "problem/part numbering, mathematical notation (LaTeX-style, e.g. $...$ or $$...$$, "
+        "with correctly reconstructed matrices/sums/integrals), and reading order.\n\n"
+        f"{before_block}{after_block}"
+        "Respond with each page's transcription clearly separated using this exact format, "
+        "one section per page, in page order, using exactly these page numbers as headers: "
+        f"{page_list}.\n"
+        "--- PAGE <number> ---\n"
+        "<transcribed markdown for that page>\n\n"
+        "No commentary, no code fences, nothing outside these page sections.\n"
+    )
+
+
+_BATCH_PAGE_DELIMITER_RE = re.compile(r"---\s*PAGE\s+(\d+)\s*---\s*\n", re.IGNORECASE)
+
+
+def parse_batch_transcription_response(response_text, expected_page_numbers: list[int]) -> dict[int, str]:
+    """
+    Splits a batched multi-page response back into per-page
+    transcriptions using the '--- PAGE N ---' delimiters requested in
+    the prompt. Forgiving by design: returns whatever pages it can
+    actually parse rather than raising -- callers detect a partial or
+    malformed response (an expected page number missing from the
+    result) and fall back to processing those pages individually rather
+    than trusting a corrupted batch parse.
+    """
+    text = response_text or ""
+    matches = list(_BATCH_PAGE_DELIMITER_RE.finditer(text))
+    result = {}
+    for i, m in enumerate(matches):
+        page_num = int(m.group(1))
+        if page_num not in expected_page_numbers:
+            continue
+        start = m.end()
+        end = matches[i + 1].start() if i + 1 < len(matches) else len(text)
+        result[page_num] = parse_transcription_response(text[start:end])
+    return result
 
 
 def build_final_markdown(cache: dict, total_pages: int) -> str:
@@ -236,6 +455,48 @@ def transcribe_page_via_gemini(client, model: str, image_bytes: bytes, prompt: s
     return parse_transcription_response(response.text)
 
 
+def transcribe_batch_via_gemini(client, model: str, images: list[bytes], prompt: str) -> str:
+    """
+    Sends multiple page images in one call for batched defective-run
+    repair -- see build_batch_transcription_prompt/
+    parse_batch_transcription_response. Not unit-tested locally (network
+    call); returns the raw response text, since splitting it into
+    per-page transcriptions is parse_batch_transcription_response's job,
+    not this function's.
+    """
+    from google.genai import types
+
+    contents = [prompt] + [types.Part.from_bytes(data=img, mime_type="image/png") for img in images]
+    response = client.models.generate_content(
+        model=model,
+        contents=contents,
+        config={
+            "temperature": 0,
+            "thinking_config": {"thinking_level": "minimal"},
+        },
+    )
+    return response.text or ""
+
+
+def _repair_batch(client, model: str, pdf_path: str, batch: list[int], prompt: str) -> dict[int, str]:
+    """One capped batch's worth of defective pages, repaired in a single call."""
+    images = [render_page_to_image_bytes(pdf_path, p - 1, dpi=_DPI_TYPESET) for p in batch]
+    response_text = transcribe_batch_via_gemini(client, model, images, prompt)
+    parsed = parse_batch_transcription_response(response_text, batch)
+    if set(parsed.keys()) != set(batch):
+        missing = sorted(set(batch) - set(parsed.keys()))
+        raise ValueError(f"batch response missing page(s) {missing}")
+    return parsed
+
+
+def _repair_page_individually(client, model: str, pdf_path: str, page_num: int, hint_text: str, total_pages: int) -> str:
+    image_bytes = render_page_to_image_bytes(pdf_path, page_num - 1, dpi=_DPI_TYPESET)
+    prompt = build_transcription_prompt(
+        "", hint_text, page_num, total_pages, hint_is_high_confidence=True,
+    )
+    return call_with_retries(lambda: transcribe_page_via_gemini(client, model, image_bytes, prompt))
+
+
 def process_pdf(pdf_path: str, client, model_override: str | None, dry_run: bool = False) -> None:
     from pypdf import PdfReader
 
@@ -247,38 +508,109 @@ def process_pdf(pdf_path: str, client, model_override: str | None, dry_run: bool
 
     reader = PdfReader(pdf_path)
     total_pages = len(reader.pages)
+    folder_category = derive_folder_category(pdf_path)
+    base_metadata = {
+        "source_pdf": os.path.basename(pdf_path),
+        "folder_category": folder_category,
+        "total_pages": total_pages,
+    }
 
-    # Local extraction is only ever considered for documents with
-    # positive metadata evidence of normal pagination -- a Nebo/MyScript
-    # export never reaches the (content-based) garbling check at all,
-    # regardless of what any single page's text happens to look like.
-    # Confirmed necessary against a real file: a Nebo export with several
-    # near-blank spacer pages would otherwise pass the garbling check on
-    # sampled text alone.
+    # Defect scoring is only ever attempted for documents with positive
+    # metadata evidence of normal pagination -- a Nebo/MyScript/OneNote
+    # export never reaches it at all, regardless of what any single
+    # page's text happens to look like. Confirmed necessary against a
+    # real file: a Nebo export with several near-blank spacer pages
+    # would otherwise look "clean" on a naive per-page check.
     reliable_pagination = has_reliable_pagination(reader.metadata)
     all_page_texts = None
-    use_local = False
+    defective_page_numbers: list[int] = []
     if reliable_pagination:
         all_page_texts = [reader.pages[i].extract_text() or "" for i in range(total_pages)]
-        use_local = should_use_local_extraction(all_page_texts)
+        defective_page_numbers = [
+            n for n in range(1, total_pages + 1) if page_looks_defective(all_page_texts[n - 1])
+        ]
+    defect_ratio = (len(defective_page_numbers) / total_pages) if (reliable_pagination and total_pages) else 1.0
 
-    if use_local:
+    # --- Tier 1: fully clean, reliably-paginated -- pure local extraction, 0 API calls. ---
+    if reliable_pagination and not defective_page_numbers:
         print(f"[{base_name}] {total_pages} page(s) -- clean machine-generated text "
               f"detected, using free local extraction (0 API calls).")
         if dry_run:
             print(f"  would extract all {total_pages} pages locally, no API calls needed.")
             return
-        assert all_page_texts is not None  # use_local implies reliable_pagination populated it
-        pages_text = {
-            str(n): all_page_texts[n - 1].strip()
-            for n in range(1, total_pages + 1)
-        }
+        assert all_page_texts is not None
+        pages_text = {str(n): all_page_texts[n - 1].strip() for n in range(1, total_pages + 1)}
         final_md = build_final_markdown(pages_text, total_pages)
+        frontmatter = build_frontmatter({
+            **base_metadata, "routing": "local", "pages_repaired": 0, "repaired_pages": [], "tags": [],
+        })
         with open(md_path, "w", encoding="utf-8") as f:
-            f.write(final_md)
+            f.write(frontmatter + final_md)
         print(f"[{base_name}] wrote {md_path} (local extraction, 0 API calls)")
         return
 
+    # --- Tier 2: reliably-paginated, some pages defective, not too many -- hybrid repair. ---
+    if reliable_pagination and defect_ratio <= _MAX_DEFECT_RATIO_FOR_HYBRID:
+        assert all_page_texts is not None
+        model = model_override or _MODEL_TYPESET
+        runs = group_into_runs(defective_page_numbers)
+        print(f"[{base_name}] {total_pages} page(s) -- {len(defective_page_numbers)} "
+              f"({defect_ratio:.0%}) need repair across {len(runs)} run(s), rest clean locally.")
+
+        cache = load_json_cache(cache_path)
+
+        if dry_run:
+            for run in runs:
+                for batch in split_run_into_batches(run, _MAX_BATCH_SIZE):
+                    status = "cached" if all(str(p) in cache for p in batch) else "would call Gemini (batch)"
+                    print(f"  pages {batch[0]}-{batch[-1]}: {status}")
+            return
+
+        for run in runs:
+            before_ctx, after_ctx = get_bookend_context(all_page_texts, run)
+            for batch in split_run_into_batches(run, _MAX_BATCH_SIZE):
+                if all(str(p) in cache for p in batch):
+                    continue
+                prompt = build_batch_transcription_prompt(batch, before_ctx, after_ctx, total_pages)
+                try:
+                    parsed = call_with_retries(
+                        lambda: _repair_batch(client, model, pdf_path, batch, prompt)
+                    )
+                    for p, text in parsed.items():
+                        cache[str(p)] = text
+                    save_json_cache(cache_path, cache)
+                    print(f"  pages {batch[0]}-{batch[-1]}: repaired via batch ({len(batch)} pages)")
+                except Exception as err:
+                    print(f"  WARNING: batch repair failed for pages {batch} ({err}); "
+                          f"falling back to individual per-page calls.")
+                    for p in batch:
+                        if str(p) in cache:
+                            continue
+                        try:
+                            cache[str(p)] = _repair_page_individually(
+                                client, model, pdf_path, p, all_page_texts[p - 1], total_pages,
+                            )
+                            save_json_cache(cache_path, cache)
+                            print(f"    page {p}: repaired individually")
+                        except Exception as page_err:
+                            print(f"    WARNING: giving up on page {p} after retries ({page_err}); "
+                                  f"keeping its local text as-is -- rerun to retry.")
+
+        pages_text = {str(n): all_page_texts[n - 1].strip() for n in range(1, total_pages + 1)}
+        pages_text.update(cache)
+        final_md = build_final_markdown(pages_text, total_pages)
+        frontmatter = build_frontmatter({
+            **base_metadata, "routing": "hybrid", "model": model,
+            "pages_repaired": len(defective_page_numbers), "repaired_pages": defective_page_numbers,
+            "tags": [],
+        })
+        with open(md_path, "w", encoding="utf-8") as f:
+            f.write(frontmatter + final_md)
+        print(f"[{base_name}] wrote {md_path} (hybrid: {len(defective_page_numbers)}/{total_pages} pages repaired)")
+        return
+
+    # --- Tier 3: not reliably paginated (handwritten/messy export), or too many
+    # defects to make hybrid repair worthwhile -- transcribe every page via Gemini.
     use_accumulation = not reliable_pagination
     dpi = _DPI_TYPESET if reliable_pagination else _DPI_HANDWRITING
     model = model_override or (_MODEL_TYPESET if reliable_pagination else _MODEL_HANDWRITING)
@@ -330,8 +662,14 @@ def process_pdf(pdf_path: str, client, model_override: str | None, dry_run: bool
         print(f"  [{page_num}/{total_pages}] transcribed ({len(transcription)} chars)")
 
     final_md = build_final_markdown(cache, total_pages)
+    frontmatter = build_frontmatter({
+        **base_metadata,
+        "routing": "gemini_accumulating" if use_accumulation else "gemini_full",
+        "model": model,
+        "tags": [],
+    })
     with open(md_path, "w", encoding="utf-8") as f:
-        f.write(final_md)
+        f.write(frontmatter + final_md)
     print(f"[{base_name}] wrote {md_path}")
 
 
