@@ -121,6 +121,20 @@ class TestParseTranscriptionResponse(unittest.TestCase):
         response = "# Problem 1\n\nNo fence here."
         self.assertEqual(parse_transcription_response(response), "# Problem 1\n\nNo fence here.")
 
+    def test_replaces_unicode_replacement_character_with_em_dash(self):
+        # Real, repeated pattern from live responses (LN_Analysis.pdf,
+        # LN_Optimization.pdf): the model's own em-dash comes back as the
+        # Unicode replacement character (U+FFFD) instead, consistently
+        # where "Title — Subtitle" or "clause — continuation" belongs.
+        # U+FFFD is never a legitimate intentional character -- it only
+        # ever means "a byte sequence couldn't be decoded" -- so this
+        # substitution is safe regardless of exact root cause.
+        response = "Theorem 6.5 � Equality of Mixed Second Partial Derivatives"
+        self.assertEqual(
+            parse_transcription_response(response),
+            "Theorem 6.5 — Equality of Mixed Second Partial Derivatives",
+        )
+
     def test_handles_none_gracefully(self):
         self.assertEqual(parse_transcription_response(None), "")
 

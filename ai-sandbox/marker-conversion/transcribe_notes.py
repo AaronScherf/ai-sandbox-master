@@ -352,6 +352,14 @@ def parse_transcription_response(response_text) -> str:
     match = _CODE_FENCE_RE.match(text)
     if match:
         text = match.group(1).strip()
+    # U+FFFD (the Unicode replacement character) is never a legitimate
+    # intentional character -- it only ever means a byte sequence
+    # couldn't be decoded. Observed repeatedly in live responses
+    # (LN_Analysis.pdf, LN_Optimization.pdf), consistently standing in
+    # for the model's own em-dash ("Theorem 6.5 <replaced> Equality of
+    # ..."), so this substitution is safe regardless of the exact root
+    # cause on the API/SDK side.
+    text = text.replace("�", "—")
     return text
 
 
