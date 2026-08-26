@@ -181,19 +181,59 @@ preserving free local extraction on a document that's already shown real
 defects, since any confirmed defect is evidence about that specific PDF's
 own production quirks (font encoding, or the same kind of intrinsic
 notation loss item 2 describes) that plausibly affects other pages too,
-not just the ones any one heuristic happened to flag. Checked against
-real per-document defect rates before picking 10%: the distribution is
-sharply bimodal, not a continuum needing a finely-tuned cutoff -- documents
-are either genuinely clean (0% on every signal: `old_exam_2021.pdf`,
-`old_exam_2025.pdf`, `old_problem_set.pdf`, `Real Analysis Problem
-Set_Solutions.pdf`) or clearly over any reasonable threshold (23-29%
-corruption-only on all three already-hybrid-repaired `LN_*.pdf` lecture
-files, even before counting the new lost-exponent signal; 63% on Practice
-Sheet once it's counted). At 10%, all three `LN_*.pdf` files and Practice
-Sheet now escalate to whole-document batching; the previously-untested
-"too defective for hybrid" fallback branch (flagged in the prior version
-of this doc as never having been exercised live) is now exercised for
-real, via Practice Sheet.
+not just the ones any one heuristic happened to flag.
+
+*Correction (2026-08-26), caught during a completion review:* the
+original version of this paragraph claimed `old_exam_2021.pdf`,
+`old_exam_2025.pdf`, `old_problem_set.pdf`, and `Real Analysis Problem
+Set_Solutions.pdf` were "genuinely clean (0% on every signal)" documents
+demonstrating a bimodal defect-rate distribution. That was wrong, and the
+error was in how the check was done: those percentages came from running
+the defect regexes directly against `PyMuPDF`-extracted text in a
+standalone script, without first checking whether `has_reliable_pagination()`
+would even let the document reach that check in the real pipeline. Re-run
+via `--dry-run` against the actual `process_pdf()` code: all four of those
+files -- along with `Linear Algebra Problem Set.pdf`,
+`Linear Algebra Problem Set AMS Solutions.pdf`, and all six "Part I/II"
+files -- are Nebo or OneNote exports (`/Creator: Nebo` /
+`Microsoft(R) OneNote(R)`), so `has_reliable_pagination()` is `False` for
+every one of them; they were never candidates for local extraction or the
+defect-ratio check at all, and were already fully transcribed via Tier 3
+(`gemini_accumulating`) independent of anything in this section.
+
+The real picture, re-verified live against the current code: of the
+documents in this corpus, only six are actually `reliable_pagination=True`
+(machine-generated, LaTeX-sourced) at all -- `Analysis_Exercises.pdf`,
+`Practice Sheet.pdf`, and the four `LN_*.pdf` lecture-note files. **All
+six** cross the 10% threshold: `Analysis_Exercises.pdf` 73%,
+`Practice Sheet.pdf` 63%, `LN_Probability.pdf` 36%,
+`LN_Linear Algebra.pdf` 32%, `LN_Optimization.pdf` 20%,
+`LN_Analysis.pdf` 17% (these last three differ from the 23-29%
+corruption-only figures reported earlier in this doc, both because they
+now include the lost-exponent signal and because the PyMuPDF extraction
+switch changed the corruption-only count too -- some of the old
+corruption hits were the word-spacing-collapse bug that switch already
+fixed). There is currently no real document in this corpus that
+demonstrates the free-local (Tier 1) or narrow hybrid-repair band (both
+still exist in the code, and would fire for a sufficiently clean
+LaTeX/Word document) -- every typeset document actually on hand needs
+full transcription, and every non-typeset document was already routed
+around this logic entirely. The previously-untested "too defective for
+hybrid" fallback branch (flagged in an earlier version of this doc as
+never having been exercised live) is now exercised for real, via
+Practice Sheet.
+
+**Not yet done:** `LN_Analysis.pdf`, `LN_Linear Algebra.pdf`,
+`LN_Optimization.pdf`, and `LN_Probability.pdf` were dry-run-verified
+above but not re-processed -- their `processed_outputs/*.md` files on disk
+still reflect the *old* hybrid-tier run (pre-PyMuPDF-switch, ~20-30% of
+pages repaired, the rest local text with collapsed spacing and lost
+exponents throughout). Re-running all four via the new whole-document-batched
+path would cost an estimated $0.30-0.40 total (scaling from Practice
+Sheet's measured $0.024/43 pages across their combined 647 pages) and
+would bring them to the same quality bar Practice Sheet is now at. Not
+done automatically since it's a real (if small) API spend across four
+files -- left as a decision for whoever's driving this next.
 
 The new path (Tier 2, whole-document batched) reuses the exact batching
 machinery already built for hybrid repair (`split_run_into_batches`,
@@ -301,6 +341,18 @@ Roughly in the order they were hit:
 
 ## Remaining open items
 
+- **`LN_Analysis.pdf`, `LN_Linear Algebra.pdf`, `LN_Optimization.pdf`,
+  `LN_Probability.pdf` need re-processing** to get the whole-document-batched
+  quality Practice Sheet now has -- their current `processed_outputs/*.md`
+  predate this session's PyMuPDF/lost-exponent/threshold changes. Estimated
+  $0.30-0.40 total for all four combined; not run automatically, see the
+  "Not yet done" note above.
+- A doc-accuracy correction was needed 2026-08-26: an earlier version of
+  this doc mischaracterized several Nebo/OneNote-export files as
+  "genuinely clean, stays local" documents, when they're actually not
+  reliably-paginated at all and were already being fully Gemini-transcribed
+  via a completely different rule. See the "Correction" note above -- worth
+  reading if citing this doc's numbers elsewhere.
 - ~~The Tier 3 "reliably paginated but too defective for hybrid" fallback
   branch... has never been exercised live~~ -- **resolved 2026-08-25**: that
   branch no longer exists as page-by-page transcription; it's now the
