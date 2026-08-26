@@ -111,12 +111,14 @@ Also added in this pass: real per-call token-usage logging
 
 | Document | Pages | Tier | Result |
 |---|---:|---|---|
-| `LN_Analysis.pdf` | 155 | Hybrid | 36/155 pages repaired across 22 batches, 100% first-try batch success, 0 individual-repair fallbacks |
-| `LN_Optimization.pdf` | 112 | Hybrid | 31/112 pages repaired across 21 batches, 100% first-try batch success, 0 individual-repair fallbacks |
-| `LN_Linear Algebra.pdf` | 294 | Hybrid | Defect detection validated (28.9% defect rate after heuristic tuning); full live repair run not separately re-confirmed after the accumulation-window change (unaffected -- hybrid tier doesn't accumulate) |
+| `LN_Analysis.pdf` | 155 | Hybrid (pre-dict-mode; **on hold, see below**) | 36/155 pages repaired across 22 batches, 100% first-try batch success, 0 individual-repair fallbacks. Not re-run since -- current `.md` on disk still reflects this state. |
+| `LN_Linear Algebra.pdf` | 294 | Hybrid (pre-dict-mode; **on hold, see below**) | Defect detection validated (28.9% defect rate after heuristic tuning); full live repair run not separately re-confirmed after the accumulation-window change (unaffected -- hybrid tier doesn't accumulate). Not re-run since -- current `.md` on disk still reflects this state. |
 | `Aug 17 Analysis.pdf` (Nebo) | 25 | Full/accumulating | First real transcription of this file; spot-checked accurate at both ends of the document |
 | `Lecture_Notes_Aug_24_Probability Lecture.pdf` (OneNote) | 5 | Full/accumulating | Confirmed OneNote correctly forced to Tier 3 regardless of decent per-page local text, because local extraction silently drops all math content (see below) |
-| `Practice Sheet.pdf` | 43 | Whole-document batched (2026-08-25) | 63% defect ratio (2 corruption + 27 lost-exponent) crossed the new 10% threshold; 4/4 batches succeeded first try, 43/43 pages transcribed, $0.024 total (48,527 input + 7,613 output tokens) |
+| `LN_Optimization.pdf` | 112 | Whole-document batched (2026-08-26) | 20% defect ratio crossed the 10% threshold; 10 batches, one batch (pages 1-12) came back missing pages and correctly fell back to individual per-page calls, rest succeeded first try; 112/112 pages transcribed |
+| `LN_Probability.pdf` | 86 | Whole-document batched (2026-08-26) | 36% defect ratio crossed the 10% threshold; 8 batches, one batch (pages 1-12) came back missing pages and correctly fell back to individual per-page calls, rest succeeded first try; 86/86 pages transcribed |
+| `Practice Sheet.pdf` | 43 | Whole-document batched, then **reclassified to Hybrid after the dict-mode fix (2026-08-26)** | Originally: 63% defect ratio crossed the 10% threshold, 4/4 batches succeeded first try, 43/43 pages transcribed, $0.024 total. After dict-mode recovered most lost exponents locally: defect ratio dropped to 5%, correctly re-routing to targeted hybrid repair (2 pages); re-run for real at zero additional cost since both defective pages were already cached |
+| `Analysis_Exercises.pdf` | 11 | Hybrid (2026-08-26, dict-mode) | Predates the hybrid/local-tier feature entirely (originally 100% full-Gemini, no frontmatter). After dict-mode: defect ratio 9% (down from a hypothetical 73% under the old plain-text heuristic), correctly routes to hybrid (1 page); re-run for real at zero additional cost (already cached) -- also gained frontmatter it never had before |
 
 Content quality spot-checks across these runs found correct LaTeX
 reconstruction of summations, multi-index Taylor's theorem, Lagrangian and
@@ -201,39 +203,30 @@ every one of them; they were never candidates for local extraction or the
 defect-ratio check at all, and were already fully transcribed via Tier 3
 (`gemini_accumulating`) independent of anything in this section.
 
-The real picture, re-verified live against the current code: of the
-documents in this corpus, only six are actually `reliable_pagination=True`
-(machine-generated, LaTeX-sourced) at all -- `Analysis_Exercises.pdf`,
-`Practice Sheet.pdf`, and the four `LN_*.pdf` lecture-note files. **All
-six** cross the 10% threshold: `Analysis_Exercises.pdf` 73%,
-`Practice Sheet.pdf` 63%, `LN_Probability.pdf` 36%,
-`LN_Linear Algebra.pdf` 32%, `LN_Optimization.pdf` 20%,
-`LN_Analysis.pdf` 17% (these last three differ from the 23-29%
-corruption-only figures reported earlier in this doc, both because they
-now include the lost-exponent signal and because the PyMuPDF extraction
-switch changed the corruption-only count too -- some of the old
-corruption hits were the word-spacing-collapse bug that switch already
-fixed). There is currently no real document in this corpus that
-demonstrates the free-local (Tier 1) or narrow hybrid-repair band (both
-still exist in the code, and would fire for a sufficiently clean
-LaTeX/Word document) -- every typeset document actually on hand needs
-full transcription, and every non-typeset document was already routed
-around this logic entirely. The previously-untested "too defective for
-hybrid" fallback branch (flagged in an earlier version of this doc as
-never having been exercised live) is now exercised for real, via
-Practice Sheet.
+The real picture, as it stood before the dict-mode work below (2026-08-26
+superseded this -- see that section): of the documents in this corpus,
+only six are actually `reliable_pagination=True` (machine-generated,
+LaTeX-sourced) at all -- `Analysis_Exercises.pdf`, `Practice Sheet.pdf`,
+and the four `LN_*.pdf` lecture-note files. At that point all six crossed
+the 10% threshold: `Analysis_Exercises.pdf` 73%, `Practice Sheet.pdf` 63%,
+`LN_Probability.pdf` 36%, `LN_Linear Algebra.pdf` 32%,
+`LN_Optimization.pdf` 20%, `LN_Analysis.pdf` 17% (these last three differ
+from the 23-29% corruption-only figures reported earlier in this doc, both
+because they now include the lost-exponent signal and because the PyMuPDF
+extraction switch changed the corruption-only count too). The
+previously-untested "too defective for hybrid" fallback branch (flagged in
+an earlier version of this doc as never having been exercised live) was
+exercised for real via Practice Sheet at this point.
 
-**Not yet done:** `LN_Analysis.pdf`, `LN_Linear Algebra.pdf`,
-`LN_Optimization.pdf`, and `LN_Probability.pdf` were dry-run-verified
-above but not re-processed -- their `processed_outputs/*.md` files on disk
-still reflect the *old* hybrid-tier run (pre-PyMuPDF-switch, ~20-30% of
-pages repaired, the rest local text with collapsed spacing and lost
-exponents throughout). Re-running all four via the new whole-document-batched
-path would cost an estimated $0.30-0.40 total (scaling from Practice
-Sheet's measured $0.024/43 pages across their combined 647 pages) and
-would bring them to the same quality bar Practice Sheet is now at. Not
-done automatically since it's a real (if small) API spend across four
-files -- left as a decision for whoever's driving this next.
+**Status update (2026-08-26): two of the four `LN_*.pdf` files are now
+processed, two remain on hold.** `LN_Probability.pdf` and
+`LN_Optimization.pdf` were re-run via the whole-document-batched path --
+both succeeded (see the Real-world validation table below; `LN_Probability`
+exercised the individual-repair fallback for real for the first time, after
+its first batch's response came back missing pages). `LN_Analysis.pdf` and
+`LN_Linear Algebra.pdf` remain untouched -- deliberately put on hold
+pending a final review before spending more on API calls, not because of
+any known issue. See "Remaining open items."
 
 The new path (Tier 2, whole-document batched) reuses the exact batching
 machinery already built for hybrid repair (`split_run_into_batches`,
@@ -244,6 +237,105 @@ accumulation (reliable_pagination still means pages are independent). This
 also replaces what used to be an untested, page-by-page-only fallback
 loop with something that shares real, already-validated code. New routing
 value: `gemini_batched`.
+
+## PyMuPDF dict-mode: recovering sub/superscripts locally, for free (2026-08-26)
+
+Item 2 above ("plain-text extraction cannot represent a superscript or
+subscript at all") was treated as a hard structural limit when it was
+written. It isn't -- PyMuPDF's structured `"dict"` text mode exposes
+per-span font size and vertical position, and a real span-level check
+(`reconstruct_line_with_scripts()`) recovers the large majority of lost
+exponents/subscripts locally, for zero API cost, rather than only
+detecting their absence and routing to Gemini.
+
+**Signal, confirmed on real spans from two different font families**
+(Practice Sheet.pdf's Computer Modern, LN_Linear Algebra.pdf's TeXGyrePagellaX):
+a genuine script span is both smaller than its line's dominant
+(most-characters) size by more than `_SCRIPT_SIZE_RATIO` (0.85 -- real
+cases measured ~0.73-0.77x) and vertically offset from that size's
+baseline by more than `_SCRIPT_OFFSET_RATIO` (0.08 of the dominant size).
+Size alone isn't sufficient: a real counter-case (`LN_Linear Algebra.pdf`,
+a symbol font rendering "K" at 11.49pt against 10.91pt body text, same
+baseline) confirmed a differently-sized span isn't necessarily script.
+Consecutive same-direction spans group into one `^{...}`/`_{...}` run, so
+a multi-character exponent doesn't come out as separate single-character
+groups. Falls back to plain concatenation when no dominant size is
+determinable -- can only add fidelity over the old plain-text behavior,
+never regress it.
+
+**Validated against real ground truth, not just spot-checked.** Practice
+Sheet.pdf pages 1-2 and all 11 pages of `Analysis_Exercises.pdf` were
+extracted via the new function and diffed against their already-correct
+Gemini transcriptions (both documents' `.md` output was fully
+Gemini-transcribed before this feature existed, so real ground truth was
+sitting right there at zero additional cost). Every sub/superscript across
+all 13 pages checked matched the ground truth in substance -- `D^5`,
+`P_4`, `x^2/x^3/x^4`, `(I+D)^{-1}`, `R^n`, `x_1`, `f_x(0,0)`, `D_v f(0,0)`,
+`H_f(x)`, `K_1 \supseteq K_2 \supseteq K_3` and more, across two different
+documents/font families. Differences from Gemini's version are cosmetic,
+not accuracy problems: no semantic LaTeX macros (`\mathbb{R}`/`\to`
+instead of raw `R`/`→`), no `$...$` math-mode wrapping, no markdown
+section headers -- dict mode reconstructs literal glyphs plus script
+wrapping, it doesn't do semantic LaTeX translation the way Gemini does.
+
+**A real bug found and fixed during validation:** `reconstruct_line_with_scripts()`
+doesn't recursively re-nest a script inside another script -- a compound
+subscript like `B_{infinity,r1}(x)` comes out as one flat group rather
+than the fully-nested `B_{infinity,r_1}(x)`. This was making the residual
+`_LOST_EXPONENT_OR_SUBSCRIPT_RE` check double-flag content that was
+already fixed (just not maximally nested), inflating
+`Analysis_Exercises.pdf`'s apparent remaining defect count from 1 page to
+4. Fixed via `_has_lost_exponent_outside_scripts()`, which strips
+already-produced `^{}`/`_{}` groups before that residual check runs.
+
+**Known, accepted gap: fractions aren't recovered.** A fraction is a 2D
+vertically-stacked structure spanning multiple PyMuPDF "lines" (numerator
+and denominator as separate line objects), not a same-line span issue --
+confirmed on Practice Sheet.pdf page 1, `v_+ = 1` / `2(v + Tv),` still
+splits across lines. Not a regression: the original plain-text extraction
+had this exact same problem before any of this session's changes.
+
+**A new, previously-uncatalogued silent-corruption category found while
+validating, not yet investigated further:** on `Analysis_Exercises.pdf`
+page 6, a radical/square-root sign extracts as a plain ASCII `p`
+(confirmed as the real codepoint, U+0070 -- not a console-rendering
+artifact like the earlier em-dash false alarm). This evades all four
+current `page_looks_defective()` signals: not a long run, not an
+unexpected character (`p` is plain ASCII), not repeated, no adjacent
+digit. A font-encoding/ToUnicode-mapping issue, predating this session's
+work and not something dict-mode introduced -- it would have been present
+in plain-text extraction too. Doesn't affect any real output currently
+(`Analysis_Exercises.md` uses the correct cached Gemini content for that
+page, unaffected). Scope/prevalence beyond this one instance not yet
+investigated -- noted for the post-processing subproject (see "What's
+next").
+
+**Real effect on tier classification.** `Practice Sheet.pdf`'s defect
+ratio dropped from 63% to 5%, and `Analysis_Exercises.pdf`'s from 73% to
+9% -- both now correctly route to targeted hybrid repair instead of
+whole-document batching. The four `LN_*.pdf` files barely moved (14-35%,
+down from 17-36%), staying well over the 10% threshold, since their
+defects are corruption-dominated rather than exponent-loss-dominated (on
+`LN_Linear Algebra.pdf`, 70 of 93 originally-defective pages were
+corruption-only, versus 13 exponent-loss-only). This confirms the 10%
+threshold itself doesn't need adjusting -- the real gap between "should
+stay local-ish" and "needs full Gemini" is still clean (5-9% vs. 14-35%),
+just shifted from the original 5-9% vs. 17-36%.
+
+**`Practice Sheet.pdf` and `Analysis_Exercises.pdf` were re-run for real
+(local-only, zero new API calls)** to pick up the corrected tier
+classification and frontmatter. One nuance worth recording: because both
+files' caches already covered every page from their earlier full-Gemini
+runs, the hybrid tier's `pages_text.update(cache)` step overrides the
+freshly-extracted local text with the cached (already Gemini-correct)
+content for every page -- so the re-run corrected the `routing`/
+`pages_repaired` frontmatter to accurately reflect these are now
+lightly- not heavily-defective documents, but the actual page *content*
+in both files is unchanged, still sourced from the original full-Gemini
+transcriptions (which are equal-or-better quality than dict-mode alone
+would produce anyway, given the fraction-recovery gap above). Dict mode's
+own quality is validated separately, above, via the direct
+extraction-vs-ground-truth comparison.
 
 ## A real finding that shaped the design: local text isn't uniformly useful
 
@@ -341,38 +433,71 @@ Roughly in the order they were hit:
 
 ## Remaining open items
 
-- **`LN_Analysis.pdf`, `LN_Linear Algebra.pdf`, `LN_Optimization.pdf`,
-  `LN_Probability.pdf` need re-processing** to get the whole-document-batched
-  quality Practice Sheet now has -- their current `processed_outputs/*.md`
-  predate this session's PyMuPDF/lost-exponent/threshold changes. Estimated
-  $0.30-0.40 total for all four combined; not run automatically, see the
-  "Not yet done" note above.
+- **`LN_Analysis.pdf` and `LN_Linear Algebra.pdf` need re-processing**
+  (`LN_Optimization.pdf` and `LN_Probability.pdf` are done, see the table
+  above) to get the whole-document-batched quality the other four
+  reliably-paginated documents now have -- their current
+  `processed_outputs/*.md` predate this session's PyMuPDF/dict-mode/
+  threshold changes. Estimated well under $0.30 total for both combined
+  (scaling from the other two files' real cost). **Deliberately on hold as
+  of 2026-08-26** -- paused mid-run at the user's request pending a final
+  review, not because of any known issue with either file.
+- **Radical/square-root signs can silently extract as plain ASCII
+  characters** (`p` observed on `Analysis_Exercises.pdf` page 6, confirmed
+  as the real codepoint) -- a font-encoding/ToUnicode-mapping issue
+  invisible to all four current `page_looks_defective()` signals (not a
+  long run, not an unexpected character, not repeated, no adjacent digit).
+  Predates this session, not a regression. Prevalence beyond this one
+  instance not yet investigated. Earmarked for the post-processing
+  subproject below rather than another bespoke detection regex --
+  see "What's next."
 - A doc-accuracy correction was needed 2026-08-26: an earlier version of
   this doc mischaracterized several Nebo/OneNote-export files as
   "genuinely clean, stays local" documents, when they're actually not
   reliably-paginated at all and were already being fully Gemini-transcribed
   via a completely different rule. See the "Correction" note above -- worth
   reading if citing this doc's numbers elsewhere.
+- ~~Recovering real exponent/subscript structure... would need PyMuPDF's
+  structured dict mode... Not built~~ -- **resolved 2026-08-26**: built,
+  tested, and validated against real ground truth -- see "PyMuPDF
+  dict-mode" above.
 - ~~The Tier 3 "reliably paginated but too defective for hybrid" fallback
   branch... has never been exercised live~~ -- **resolved 2026-08-25**: that
   branch no longer exists as page-by-page transcription; it's now the
   whole-document-batched Tier 2 path, exercised live and confirmed working
-  against `Practice Sheet.pdf` (see above).
-- The lost-exponent/subscript signal (`_LOST_EXPONENT_OR_SUBSCRIPT_RE`) is a
-  known-partial proxy by design: it only catches a digit standing alone
-  between word boundaries (`D5`, `R2`), not one sandwiched inside a longer
-  token (`x2y` for x²y). Widening it would reopen the hash-string
-  false-positive risk that motivated anchoring it in the first place (see
-  above). Not planned to be fixed further -- accepted as a known gap.
-- Recovering real exponent/subscript structure (rather than just detecting
-  its absence) would need PyMuPDF's structured (`"dict"`/`"rawdict"`) text
-  mode, which exposes per-span font size and baseline position -- a
-  genuinely local, free fix, but a substantially bigger feature than the
-  detection heuristic above. Not built; flagged here as a real option if
-  the Gemini-routing approach ever needs to be cheaper still.
+  against `Practice Sheet.pdf`, `LN_Optimization.pdf`, and
+  `LN_Probability.pdf`.
+- The lost-exponent/subscript signal (`_LOST_EXPONENT_OR_SUBSCRIPT_RE`,
+  now a residual check behind dict-mode reconstruction rather than the
+  primary defense) is a known-partial proxy by design: it only catches a
+  digit standing alone between word boundaries (`D5`, `R2`), not one
+  sandwiched inside a longer token (`x2y` for x²y). Widening it would
+  reopen the hash-string false-positive risk that motivated anchoring it
+  in the first place (see above). Not planned to be fixed further --
+  accepted as a known gap.
 - `marker-conversion-notes-transcription` has not been merged back into
   `marker-conversion` (or `main`, which is the branch linked from the public
-  website).
+  website). **Deliberately held until the post-processing subproject below
+  is further along** -- per-user decision 2026-08-26.
 - No live quality comparison against a dedicated OCR provider (Mathpix,
   Mistral) has been run -- the cost analysis above is pricing-based, not an
   empirical accuracy comparison.
+
+## What's next
+
+A post-processing/error-correction subproject, scoped to notes-transcription
+only (the textbook pipeline's output is expected to be meaningfully cleaner
+already, given Marker's dedicated OCR and cleaner source typesetting --
+though within- or across-textbook cross-validation is a real idea for
+later). Motivation: several rounds of this session added increasingly
+specific detection heuristics (word-boundary-anchored regexes, font-size/
+baseline thresholds) each tuned against a handful of real examples --
+useful, but a pattern worth stepping back from rather than continuing
+indefinitely. Under discussion instead: a downstream correction pass over
+already-produced `.md` output using a small text-only LLM, possibly
+combining/cross-referencing multiple documents, perplexity-based
+flagging of statistically anomalous passages, and using documents already
+known well-transcribed (via `routing`/`pages_repaired` frontmatter) as
+reference material. Brainstorming paused before a design was settled on
+(scope confirmed: notes-transcription only) -- to resume on a new,
+dedicated branch rather than continuing here.
