@@ -21,9 +21,17 @@ since that splitting only ever spans adjacent pages. This requires
 strictly sequential processing (page N's call needs pages 1..N-1
 already transcribed) -- see process_pdf().
 
-Everything except the actual PyMuPDF rendering, the Gemini network
-call, and the CLI driver is pure-Python and independently unit-tested
-(tests/test_transcribe_notes.py) -- no torch/marker dependency, matching
+Local text extraction (Tier 1/2, and Tier 3's per-page hint) goes through
+PyMuPDF rather than pypdf's PdfReader.extract_text(): pypdf was confirmed
+on a real file to collapse inter-word spacing on some font/kerning setups
+("LetVbe a finite-dimensional...") that PyMuPDF's layout-aware extraction
+preserves correctly ("Let V be a finite-dimensional...") -- pypdf itself
+stays in use only for page count and metadata (has_reliable_pagination).
+
+Everything except the actual PyMuPDF calls (page-image rendering, local
+text extraction), the Gemini network call, and the CLI driver is
+pure-Python and independently unit-tested (tests/test_transcribe_notes.py)
+-- no torch/marker dependency, matching
 chapter_index.py/page_markers.py/describe_images.py.
 """
 from __future__ import annotations
@@ -110,11 +118,40 @@ _MAX_UNEXPECTED_CHARS = 3
 _LEGITIMATE_REPEATABLE_CHARS = set(".-=_*#·")
 _REPEATED_CHAR_RUN_RE = re.compile(r"(\S)\1{2,}")
 
+# Not a corruption signal -- a different, unfixable-by-extraction-choice
+# failure mode: plain text extraction (pypdf or PyMuPDF, doesn't matter
+# which) has no way to represent a superscript/subscript at all, so a
+# single-character exponent like D^5 or a set like R^2 comes out as bare
+# "D5"/"R2" -- confirmed real, in both cases genuine content loss, not a
+# spacing bug. Deliberately \b-anchored on both ends (the whole 2-char
+# token must be bounded by non-word characters): a looser
+# letter-immediately-followed-by-digit check was confirmed to false-
+# positive constantly against embedded hyperlink hash IDs (e.g.
+# "...app/06b7ab97dac5cbbb>"), which alternate letters and digits with no
+# boundary anywhere inside the run. Known gap, not exhaustive: this only
+# catches a digit sitting alone between boundaries ("D5 = 0"), not one
+# sandwiched inside a longer token ("x2y" for x²y) -- widening it to catch
+# that case would reopen the same hash-string false-positive risk.
+_LOST_EXPONENT_OR_SUBSCRIPT_RE = re.compile(r"\b[A-Za-z]\d\b")
+
 # Above this fraction of a document's pages scoring as defective, treat
-# it as not a good hybrid-repair candidate at all -- fall back to
-# transcribing every page via Gemini instead of piecemeal-repairing a
-# document that's mostly broken locally.
-_MAX_DEFECT_RATIO_FOR_HYBRID = 0.35
+# it as not a good hybrid-repair candidate at all -- batch the whole
+# document through Gemini instead of piecemeal-repairing just the flagged
+# pages. Lowered from an initial 0.35 to 0.10 once real per-page cost was
+# measured at ~$0.0007/page (gemini-3.1-flash-lite): full transcription of
+# a ~40-page document costs a few cents either way, so there's little to
+# gain from preserving free local extraction on a document that's already
+# shown real problems -- any confirmed defect is evidence about that PDF's
+# own production quirks (font encoding, or genuine content plain-text
+# extraction can't represent at all, e.g. _LOST_EXPONENT_OR_SUBSCRIPT_RE)
+# that plausibly affects pages beyond the specific ones any one heuristic
+# happened to flag. Confirmed against real documents this project has
+# processed: at 0.10, all three already-hybrid-repaired lecture-note files
+# (23-29% corruption-only defect rates) and Practice Sheet.pdf (63% once
+# the lost-exponent signal is counted) cross this threshold, while
+# genuinely clean documents (old exams, short in-class handout PDFs) stay
+# at 0% and are unaffected.
+_MAX_DEFECT_RATIO_FOR_HYBRID = 0.10
 
 # Cap on how many consecutive defective pages go into one batched repair
 # call -- bounds both the blast radius of one failed/malformed batch and
@@ -197,8 +234,10 @@ def _has_collapsed_prose_run(text: str) -> bool:
 
 def page_looks_defective(text: str) -> bool:
     """
-    True when this page's local pypdf text extraction shows any of the
-    three structural defect signatures confirmed against real documents:
+    True when this page's local text extraction shows any of the four
+    defect signatures confirmed against real documents. The first three
+    are corruption (garbled/wrong output); the fourth is a different
+    category -- genuine, unfixable-by-extraction-choice information loss:
     1. A long run of plain ASCII letters with no internal whitespace
        (word-spacing collapse) -- real prose doesn't do this; a real
        equation can look similarly unspaced but isn't pure letters.
@@ -211,6 +250,10 @@ def page_looks_defective(text: str) -> bool:
        every individual character involved is otherwise a legitimate
        symbol (a single 'ﬁ' ligature is completely normal in a word like
        "significant"; five in a row with no letters between them is not).
+    4. A lost exponent/subscript on an isolated variable ("D5" for D^5,
+       "R2" for R^2) -- see _LOST_EXPONENT_OR_SUBSCRIPT_RE. Unlike 1-3,
+       this isn't corrupted text; it's real content plain-text extraction
+       cannot represent at all, from either pypdf or PyMuPDF.
     A blank/near-empty page is not defective -- that's a legitimate
     spacer page, not corrupted content.
     """
@@ -219,7 +262,9 @@ def page_looks_defective(text: str) -> bool:
     unexpected = sum(1 for c in text if not c.isspace() and not _is_expected_char(c))
     if unexpected > _MAX_UNEXPECTED_CHARS:
         return True
-    return _has_suspicious_repeated_char_run(text)
+    if _has_suspicious_repeated_char_run(text):
+        return True
+    return bool(_LOST_EXPONENT_OR_SUBSCRIPT_RE.search(text))
 
 
 def group_into_runs(page_numbers: list[int]) -> list[list[int]]:
@@ -451,7 +496,7 @@ def build_final_markdown(cache: dict, total_pages: int) -> str:
 
 
 def render_page_to_image_bytes(pdf_path: str, page_index: int, dpi: int = 200) -> bytes:
-    """Only function in this module that touches PyMuPDF -- not unit-tested locally."""
+    """Touches PyMuPDF -- not unit-tested locally, like the other PyMuPDF functions below."""
     import pymupdf
 
     doc = pymupdf.open(pdf_path)
@@ -459,6 +504,44 @@ def render_page_to_image_bytes(pdf_path: str, page_index: int, dpi: int = 200) -
         page = doc[page_index]
         pix = page.get_pixmap(dpi=dpi)
         return pix.tobytes("png")
+    finally:
+        doc.close()
+
+
+def extract_all_page_texts(pdf_path: str, total_pages: int) -> list[str]:
+    """
+    Local page text via PyMuPDF rather than pypdf's PdfReader.extract_text().
+    Confirmed on a real file (Practice Sheet.pdf) that pypdf collapses
+    inter-word spacing on some font/kerning setups -- "LetVbe a
+    finite-dimensional real vector space and letT:V->Vsatisfy" -- while
+    PyMuPDF's layout-aware extraction preserves the same content correctly:
+    "Let V be a finite-dimensional real vector space and let T : V ->V
+    satisfy". Neither library's output is corrupted text needing Gemini
+    repair -- pypdf just loses whitespace pypdf itself never encoded as
+    text -- so this is a free, local fix, not a defect-detection issue.
+    Opens the document once for every page rather than once per page.
+    Touches PyMuPDF -- not unit-tested locally.
+    """
+    import pymupdf
+
+    doc = pymupdf.open(pdf_path)
+    try:
+        # get_text()'s return type is a Union keyed off its "output" param
+        # (default "text"); coerced to str defensively since this file has
+        # already hit an unreliable PyMuPDF/Marker return shape once before
+        # (see probe_and_shift_boundary in convert_textbook.py).
+        return [str(doc[i].get_text()) for i in range(total_pages)]
+    finally:
+        doc.close()
+
+
+def extract_page_text(pdf_path: str, page_index: int) -> str:
+    """Single-page counterpart to extract_all_page_texts, for call sites that need only one page's text (e.g. Tier 3's per-page hint). Touches PyMuPDF -- not unit-tested locally."""
+    import pymupdf
+
+    doc = pymupdf.open(pdf_path)
+    try:
+        return str(doc[page_index].get_text())
     finally:
         doc.close()
 
@@ -570,7 +653,7 @@ def process_pdf(pdf_path: str, client, model_override: str | None, dry_run: bool
     all_page_texts = None
     defective_page_numbers: list[int] = []
     if reliable_pagination:
-        all_page_texts = [reader.pages[i].extract_text() or "" for i in range(total_pages)]
+        all_page_texts = extract_all_page_texts(pdf_path, total_pages)
         defective_page_numbers = [
             n for n in range(1, total_pages + 1) if page_looks_defective(all_page_texts[n - 1])
         ]
@@ -654,15 +737,87 @@ def process_pdf(pdf_path: str, client, model_override: str | None, dry_run: bool
         print(f"[{base_name}] wrote {md_path} (hybrid: {len(defective_page_numbers)}/{total_pages} pages repaired)")
         return
 
-    # --- Tier 3: not reliably paginated (handwritten/messy export), or too many
-    # defects to make hybrid repair worthwhile -- transcribe every page via Gemini.
-    use_accumulation = not reliable_pagination
-    dpi = _DPI_TYPESET if reliable_pagination else _DPI_HANDWRITING
-    model = model_override or (_MODEL_TYPESET if reliable_pagination else _MODEL_HANDWRITING)
+    # --- Tier 2 (whole-document batched): reliably-paginated, but over
+    # _MAX_DEFECT_RATIO_FOR_HYBRID -- batch every page through Gemini
+    # rather than trusting local extraction for the pages no heuristic
+    # happened to flag. Reuses the same batching machinery as hybrid
+    # repair (split_run_into_batches/_repair_batch), just applied to the
+    # whole page range instead of only the flagged runs. No bookend
+    # context (build_batch_transcription_prompt's before/after params) --
+    # there's no "known clean neighbor" to borrow from anymore since every
+    # page is being sent -- and no accumulation, for the same reason Tier
+    # 1/hybrid don't need it: reliable_pagination means pages are
+    # independent, with no risk of a paragraph split non-adjacently across
+    # a page boundary (that's specifically a messy-export failure mode,
+    # handled by Tier 3 below).
+    if reliable_pagination:
+        model = model_override or _MODEL_TYPESET
+        all_pages = list(range(1, total_pages + 1))
+        batches = split_run_into_batches(all_pages, _MAX_BATCH_SIZE)
+        print(f"[{base_name}] {total_pages} page(s) -- {len(defective_page_numbers)} "
+              f"({defect_ratio:.0%}) defective, over the {_MAX_DEFECT_RATIO_FOR_HYBRID:.0%} "
+              f"hybrid-repair threshold -- batching the whole document instead "
+              f"({len(batches)} batch(es)).")
+
+        cache = load_json_cache(cache_path)
+
+        if dry_run:
+            for batch in batches:
+                status = "cached" if all(str(p) in cache for p in batch) else "would call Gemini (batch)"
+                print(f"  pages {batch[0]}-{batch[-1]}: {status}")
+            return
+
+        for batch in batches:
+            if all(str(p) in cache for p in batch):
+                continue
+            prompt = build_batch_transcription_prompt(batch, "", "", total_pages)
+            try:
+                parsed = call_with_retries(
+                    lambda: _repair_batch(client, model, pdf_path, batch, prompt)
+                )
+                for p, text in parsed.items():
+                    cache[str(p)] = text
+                save_json_cache(cache_path, cache)
+                print(f"  pages {batch[0]}-{batch[-1]}: transcribed via batch ({len(batch)} pages)")
+            except Exception as err:
+                print(f"  WARNING: batch transcription failed for pages {batch} ({err}); "
+                      f"falling back to individual per-page calls.")
+                for p in batch:
+                    if str(p) in cache:
+                        continue
+                    try:
+                        assert all_page_texts is not None
+                        cache[str(p)] = _repair_page_individually(
+                            client, model, pdf_path, p, all_page_texts[p - 1], total_pages,
+                        )
+                        save_json_cache(cache_path, cache)
+                        print(f"    page {p}: transcribed individually")
+                    except Exception as page_err:
+                        print(f"    WARNING: giving up on page {p} after retries ({page_err}); "
+                              f"local text is already known unreliable so it's omitted "
+                              f"entirely rather than used as a fallback -- rerun to retry.")
+
+        final_md = build_final_markdown(cache, total_pages)
+        frontmatter = build_frontmatter({
+            **base_metadata, "routing": "gemini_batched", "model": model,
+            "pages_repaired": len(defective_page_numbers), "repaired_pages": defective_page_numbers,
+            "tags": [],
+        })
+        with open(md_path, "w", encoding="utf-8") as f:
+            f.write(frontmatter + final_md)
+        print(f"[{base_name}] wrote {md_path} (whole-document batched, {len(cache)}/{total_pages} pages transcribed)")
+        return
+
+    # --- Tier 3: not reliably paginated -- handwritten, or a messy app
+    # export (Nebo/MyScript/OneNote). Every reliably-paginated case is
+    # already handled above (Tier 1, hybrid repair, or whole-document
+    # batching), so reliable_pagination is always False by this point.
+    dpi = _DPI_HANDWRITING
+    model = model_override or _MODEL_HANDWRITING
 
     cache = load_json_cache(cache_path)
     print(f"[{base_name}] {total_pages} page(s) ({len(cache)} already cached). "
-          f"model={model}, accumulation={'on' if use_accumulation else 'off'}, dpi={dpi}.")
+          f"model={model}, accumulation=on, dpi={dpi}.")
 
     if dry_run:
         for page_num in range(1, total_pages + 1):
@@ -674,14 +829,11 @@ def process_pdf(pdf_path: str, client, model_override: str | None, dry_run: bool
         if str(page_num) in cache:
             continue
 
-        hint_text = reader.pages[page_num - 1].extract_text() or ""
-        accumulated_context = (
-            build_accumulated_context(cache, page_num, window=_ACCUMULATION_WINDOW)
-            if use_accumulation else ""
-        )
+        hint_text = extract_page_text(pdf_path, page_num - 1)
+        accumulated_context = build_accumulated_context(cache, page_num, window=_ACCUMULATION_WINDOW)
         prompt = build_transcription_prompt(
             accumulated_context, hint_text, page_num, total_pages,
-            hint_is_high_confidence=reliable_pagination,
+            hint_is_high_confidence=False,
         )
 
         try:
@@ -690,20 +842,12 @@ def process_pdf(pdf_path: str, client, model_override: str | None, dry_run: bool
                 lambda: transcribe_page_via_gemini(client, model, image_bytes, prompt)
             )
         except Exception as err:
-            if use_accumulation:
-                # Full accumulating context means later pages depend on
-                # this one -- skipping ahead would silently degrade
-                # every subsequent page's context. Stop instead; a
-                # rerun resumes from this exact page.
-                print(f"  WARNING: giving up on page {page_num} after retries ({err}); "
-                      f"stopping here (later pages need this one's context) -- rerun to resume.")
-                break
-            else:
-                # No accumulation means pages are independent -- a
-                # rerun fills in just this one page later.
-                print(f"  WARNING: giving up on page {page_num} after retries ({err}); "
-                      f"skipping (no accumulation needed) -- rerun to fill it in.")
-                continue
+            # Accumulating context means later pages depend on this one --
+            # skipping ahead would silently degrade every subsequent
+            # page's context. Stop instead; a rerun resumes from here.
+            print(f"  WARNING: giving up on page {page_num} after retries ({err}); "
+                  f"stopping here (later pages need this one's context) -- rerun to resume.")
+            break
 
         cache[str(page_num)] = transcription
         save_json_cache(cache_path, cache)
@@ -712,7 +856,7 @@ def process_pdf(pdf_path: str, client, model_override: str | None, dry_run: bool
     final_md = build_final_markdown(cache, total_pages)
     frontmatter = build_frontmatter({
         **base_metadata,
-        "routing": "gemini_accumulating" if use_accumulation else "gemini_full",
+        "routing": "gemini_accumulating",
         "model": model,
         "tags": [],
     })

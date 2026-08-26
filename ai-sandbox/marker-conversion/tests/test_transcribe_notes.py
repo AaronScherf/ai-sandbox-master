@@ -280,6 +280,33 @@ class TestPageLooksDefective(unittest.TestCase):
         text = "V. A. Zorich, Mathematical Analysis III, 2nd ed., Universitext, 2015."
         self.assertFalse(page_looks_defective(text))
 
+    def test_lost_exponent_on_isolated_variable_is_defective(self):
+        # Real pattern from Practice Sheet.pdf page 34 -- plain-text
+        # extraction (pypdf or PyMuPDF, either one) has no way to represent
+        # a superscript at all, so "D^5" comes out as bare "D5". Unlike the
+        # word-spacing bug, no extraction library can fix this -- it's
+        # information genuinely absent from the text stream.
+        text = "(d) Show that I + D is invertible. (c) Explain why D5 = 0."
+        self.assertTrue(page_looks_defective(text))
+
+    def test_lost_exponent_on_set_notation_is_defective(self):
+        # Real pattern from LN_Linear Algebra.pdf -- "R^2" (Euclidean
+        # plane) losing its superscript reads as bare "R2".
+        text = "Let v1, v2 be vectors that span R2."
+        self.assertTrue(page_looks_defective(text))
+
+    def test_embedded_hex_hash_is_not_flagged_as_lost_exponent(self):
+        # Regression: real false positive found against Real Analysis
+        # Problem Set_Solutions.pdf -- an embedded comment-link's hex hash
+        # ID (e.g. "...app/06b7ab97dac5cbbb>") alternates letters and
+        # digits constantly and would trip a naive letter-immediately-
+        # followed-by-digit check on nearly every page. A real lost
+        # exponent is always a short, boundary-delimited token ("D5", "R2")
+        # standing on its own between spaces/punctuation, not embedded
+        # inside a much longer unbroken alphanumeric run.
+        text = "See the comment thread at https://mail.google.com/app/06b7ab97dac5cbbb> for context."
+        self.assertFalse(page_looks_defective(text))
+
 
 class TestGroupIntoRuns(unittest.TestCase):
     def test_empty_list_returns_empty(self):
