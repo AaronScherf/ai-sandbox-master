@@ -19,24 +19,26 @@ metadata and (where safe) per-page local text extraction -- never a blanket
 "always call the API" or "always try local first":
 
 - **Tier 1 -- pure local extraction, 0 API calls.** Reliably-paginated
-  (LaTeX/Word/LibreOffice), machine-generated, and every page's local
-  `pypdf` text scores as clean. The PDF's own embedded text layer is trusted
-  outright.
-- **Tier 2 -- hybrid batched repair.** Reliably paginated, but some pages'
-  local text is corrupted (garbled ligatures, dropped glyphs from large
-  delimiter symbols, etc.) -- up to 35% of the document
-  (`_MAX_DEFECT_RATIO_FOR_HYBRID`). Only the defective pages are sent to
-  Gemini, grouped into contiguous runs and batched (up to 12 pages per call,
-  `_MAX_BATCH_SIZE`) with bookend context from the surrounding clean pages,
-  so a single document never needs more than a handful of API calls
-  regardless of page count.
-- **Tier 3 -- full Gemini transcription.** Either not reliably paginated
-  (handwritten/messy exports: Nebo, MyScript, OneNote) or reliably paginated
-  but too defective for hybrid repair to be worth it. Handwritten/messy
-  documents use `gemini-3.6-flash` at 200 DPI with a sliding accumulating
-  context window (see below); the too-defective-typeset case uses
-  `gemini-3.1-flash-lite` at 150 DPI with no accumulation, since each page is
-  independent once it's known to be machine-generated.
+  (LaTeX/Word/LibreOffice), machine-generated, and every page's local text
+  scores as clean. The PDF's own embedded text layer is trusted outright.
+  As of 2026-08-25, local extraction goes through PyMuPDF rather than
+  pypdf -- see "Local extraction fidelity" below.
+- **Tier 2 -- hybrid batched repair, or whole-document batching.** Reliably
+  paginated, but some pages' local text is defective (garbled ligatures,
+  dropped glyphs from large delimiter symbols, or -- as of 2026-08-25 -- a
+  lost exponent/subscript no plain-text extraction can represent). Up to
+  `_MAX_DEFECT_RATIO_FOR_HYBRID` (10% as of 2026-08-25, was 35%) of the
+  document, only the defective pages are batched to Gemini (up to 12 pages
+  per call, `_MAX_BATCH_SIZE`) with bookend context from the surrounding
+  clean pages. Over that threshold, the whole document is batched through
+  Gemini instead -- see "Local extraction fidelity" below for why.
+- **Tier 3 -- full Gemini transcription, accumulating context.** Not
+  reliably paginated (handwritten/messy exports: Nebo, MyScript, OneNote).
+  Uses `gemini-3.6-flash` at 200 DPI with a sliding accumulating context
+  window (see below). As of 2026-08-25 this tier is exclusively the
+  messy-export case -- the reliably-paginated-but-too-defective case that
+  used to fall through to here (page-by-page, no accumulation) now has its
+  own whole-document-batched Tier 2 path instead.
 
 Every tier writes a YAML frontmatter block (`source_pdf`, `folder_category`,
 `total_pages`, `routing`, `model`, `pages_repaired`/`repaired_pages`, a `tags:
@@ -44,9 +46,10 @@ Every tier writes a YAML frontmatter block (`source_pdf`, `folder_category`,
 so a downstream RAG indexer can filter or weight documents by how they were
 produced without re-deriving that from content.
 
-Everything except PyMuPDF page rendering, the Gemini network calls, and the
-CLI driver is pure Python and independently unit-tested
-(`tests/test_transcribe_notes.py`) -- 147 tests across the whole project as
+Everything except the PyMuPDF calls (page rendering and, as of 2026-08-25,
+local text extraction -- see below), the Gemini network calls, and the CLI
+driver is pure Python and independently unit-tested
+(`tests/test_transcribe_notes.py`) -- 150 tests across the whole project as
 of this writing, all passing.
 
 ## How the routing decision actually gets made
@@ -113,11 +116,94 @@ Also added in this pass: real per-call token-usage logging
 | `LN_Linear Algebra.pdf` | 294 | Hybrid | Defect detection validated (28.9% defect rate after heuristic tuning); full live repair run not separately re-confirmed after the accumulation-window change (unaffected -- hybrid tier doesn't accumulate) |
 | `Aug 17 Analysis.pdf` (Nebo) | 25 | Full/accumulating | First real transcription of this file; spot-checked accurate at both ends of the document |
 | `Lecture_Notes_Aug_24_Probability Lecture.pdf` (OneNote) | 5 | Full/accumulating | Confirmed OneNote correctly forced to Tier 3 regardless of decent per-page local text, because local extraction silently drops all math content (see below) |
+| `Practice Sheet.pdf` | 43 | Whole-document batched (2026-08-25) | 63% defect ratio (2 corruption + 27 lost-exponent) crossed the new 10% threshold; 4/4 batches succeeded first try, 43/43 pages transcribed, $0.024 total (48,527 input + 7,613 output tokens) |
 
 Content quality spot-checks across these runs found correct LaTeX
 reconstruction of summations, multi-index Taylor's theorem, Lagrangian and
 envelope-theorem notation, and matrices; the model has also spontaneously
 described figures inline during repair calls without being asked to.
+
+## Local extraction fidelity: PyMuPDF, a fourth defect signal, and whole-document batching (2026-08-25)
+
+Manually reviewing `Practice Sheet.pdf`'s Tier 2 (hybrid) output surfaced
+two separate, real quality problems with what the local-extraction tiers
+had been shipping as "clean" text -- neither was a false negative in the
+sense of prior bugs (garbled/wrong output that should have been caught);
+both were content that read as perfectly normal prose but was silently
+worse than it should have been.
+
+**1. pypdf collapses inter-word spacing that PyMuPDF preserves.** Confirmed
+directly: pypdf's `PdfReader.extract_text()` on `Practice Sheet.pdf` page 1
+produced `"LetVbe a finite-dimensional real vector space and letT:V->Vsatisfy"`
+-- every space between certain word/symbol boundaries silently dropped.
+PyMuPDF's `page.get_text()` on the identical page produced the correct
+`"Let V be a finite-dimensional real vector space and let T : V ->V satisfy"`.
+Measured across ~1,150 real pages spanning 10 documents (this project's
+own problem sets and LaTeX-sourced lecture notes): PyMuPDF was **never**
+worse than pypdf, and recovered the bug entirely on documents where pypdf
+had it badly (88->0 hits on Practice Sheet, 152->0 on `LN_Linear Algebra.pdf`,
+77->2 on `LN_Analysis.pdf`, using a `[a-z]{2,}[A-Z]` collapsed-boundary
+proxy check). The two residual "ties" found (`dimG`, `imA`) are identical
+in both extractions -- the PDF itself never encodes a space there at all,
+so no text-extraction library can recover it locally. Local extraction
+(Tier 1/2, and Tier 3's per-page hint) now goes through PyMuPDF instead of
+pypdf; pypdf stays in use only for page count and metadata
+(`has_reliable_pagination`). See `extract_all_page_texts`/`extract_page_text`.
+
+**2. Plain-text extraction cannot represent a superscript or subscript at
+all**, regardless of which library does the extracting -- this is a
+structural limitation, not a bug either library could fix. `D^5` and `R^2`
+both extract as bare `D5`/`R2`; the vertical-offset/font-size information
+that would distinguish an exponent from ordinary adjacent characters
+simply isn't in plain-text output. A regex proxy for this
+(`\b[A-Za-z]\d\b`, word-boundary-anchored on both ends) was tuned against
+real documents before shipping: a looser, unanchored version
+(`[A-Za-z]\d`) was confirmed to false-positive constantly against embedded
+comment/hyperlink hash IDs in `Real Analysis Problem Set_Solutions.pdf`
+(e.g. `...app/06b7ab97dac5cbbb>`, which alternates letters and digits with
+no boundary anywhere inside the run) -- inflating that file's apparent
+defect rate from a true 0% to a spurious 50%. The word-boundary-anchored
+version eliminated that false positive entirely while still catching every
+real case checked by hand (`x2`->x², `D5`->D^5, `R2`->R^2, `P4`->P₄, `K2`->K₂).
+Known, accepted gap: it only catches a digit standing alone between
+boundaries, not one sandwiched inside a longer token (`x2y` for x²y) --
+widening it to catch that case would reopen the same hash-string
+false-positive risk. Added as a fourth signal in `page_looks_defective()`
+(alongside the three existing corruption checks), via
+`_LOST_EXPONENT_OR_SUBSCRIPT_RE`.
+
+**3. `_MAX_DEFECT_RATIO_FOR_HYBRID` lowered from 0.35 to 0.10, and the
+"too defective for hybrid" fallback now batches the whole document instead
+of looping page-by-page.** Reasoning: with real per-page cost measured at
+~$0.0007/page (`gemini-3.1-flash-lite`), fully transcribing a ~40-page
+document costs a few cents regardless -- there's little to gain from
+preserving free local extraction on a document that's already shown real
+defects, since any confirmed defect is evidence about that specific PDF's
+own production quirks (font encoding, or the same kind of intrinsic
+notation loss item 2 describes) that plausibly affects other pages too,
+not just the ones any one heuristic happened to flag. Checked against
+real per-document defect rates before picking 10%: the distribution is
+sharply bimodal, not a continuum needing a finely-tuned cutoff -- documents
+are either genuinely clean (0% on every signal: `old_exam_2021.pdf`,
+`old_exam_2025.pdf`, `old_problem_set.pdf`, `Real Analysis Problem
+Set_Solutions.pdf`) or clearly over any reasonable threshold (23-29%
+corruption-only on all three already-hybrid-repaired `LN_*.pdf` lecture
+files, even before counting the new lost-exponent signal; 63% on Practice
+Sheet once it's counted). At 10%, all three `LN_*.pdf` files and Practice
+Sheet now escalate to whole-document batching; the previously-untested
+"too defective for hybrid" fallback branch (flagged in the prior version
+of this doc as never having been exercised live) is now exercised for
+real, via Practice Sheet.
+
+The new path (Tier 2, whole-document batched) reuses the exact batching
+machinery already built for hybrid repair (`split_run_into_batches`,
+`_repair_batch`, `build_batch_transcription_prompt`) applied to every page
+of the document instead of only the flagged runs -- no bookend context
+(there's no "known-clean neighbor" left to borrow from) and no
+accumulation (reliable_pagination still means pages are independent). This
+also replaces what used to be an untested, page-by-page-only fallback
+loop with something that shares real, already-validated code. New routing
+value: `gemini_batched`.
 
 ## A real finding that shaped the design: local text isn't uniformly useful
 
@@ -215,14 +301,26 @@ Roughly in the order they were hit:
 
 ## Remaining open items
 
-- The Tier 3 "reliably paginated but too defective for hybrid" fallback
-  branch (`defect_ratio > _MAX_DEFECT_RATIO_FOR_HYBRID`) is unit-tested but
-  has never been exercised live -- no real document tested so far has
-  exceeded ~29% defective.
+- ~~The Tier 3 "reliably paginated but too defective for hybrid" fallback
+  branch... has never been exercised live~~ -- **resolved 2026-08-25**: that
+  branch no longer exists as page-by-page transcription; it's now the
+  whole-document-batched Tier 2 path, exercised live and confirmed working
+  against `Practice Sheet.pdf` (see above).
+- The lost-exponent/subscript signal (`_LOST_EXPONENT_OR_SUBSCRIPT_RE`) is a
+  known-partial proxy by design: it only catches a digit standing alone
+  between word boundaries (`D5`, `R2`), not one sandwiched inside a longer
+  token (`x2y` for x²y). Widening it would reopen the hash-string
+  false-positive risk that motivated anchoring it in the first place (see
+  above). Not planned to be fixed further -- accepted as a known gap.
+- Recovering real exponent/subscript structure (rather than just detecting
+  its absence) would need PyMuPDF's structured (`"dict"`/`"rawdict"`) text
+  mode, which exposes per-span font size and baseline position -- a
+  genuinely local, free fix, but a substantially bigger feature than the
+  detection heuristic above. Not built; flagged here as a real option if
+  the Gemini-routing approach ever needs to be cheaper still.
 - `marker-conversion-notes-transcription` has not been merged back into
   `marker-conversion` (or `main`, which is the branch linked from the public
-  website). As of this writing the branch also has one local commit (the
-  sliding-window change) not yet pushed to its remote.
+  website).
 - No live quality comparison against a dedicated OCR provider (Mathpix,
   Mistral) has been run -- the cost analysis above is pricing-based, not an
   empirical accuracy comparison.
