@@ -16,6 +16,7 @@ from transcribe_notes import (
     page_looks_defective,
     parse_batch_transcription_response,
     parse_transcription_response,
+    reconstruct_line_with_scripts,
     split_run_into_batches,
 )
 
@@ -307,6 +308,18 @@ class TestPageLooksDefective(unittest.TestCase):
         text = "See the comment thread at https://mail.google.com/app/06b7ab97dac5cbbb> for context."
         self.assertFalse(page_looks_defective(text))
 
+    def test_lost_exponent_inside_an_already_reconstructed_script_group_is_not_defective(self):
+        # Real case from Analysis_Exercises.pdf page 1 (post dict-mode
+        # fix): reconstruct_line_with_scripts() correctly wraps a compound
+        # subscript as one group, but doesn't recursively re-nest a
+        # sub-subscript within it -- "B_{infinity,r1}(x)" instead of the
+        # fully-nested "B_{infinity,r_1}(x)". The bare "r1" inside that
+        # group is not a still-lost exponent (the content IS already
+        # inside a script group); re-flagging it would be a false
+        # positive that inflates the defect ratio for no real problem.
+        text = "B_{∞,r1}(x) ⊆ B_{2,r}(x)."
+        self.assertFalse(page_looks_defective(text))
+
 
 class TestGroupIntoRuns(unittest.TestCase):
     def test_empty_list_returns_empty(self):
@@ -470,6 +483,94 @@ class TestBuildFrontmatter(unittest.TestCase):
         self.assertEqual(parsed["total_pages"], 42)
         self.assertEqual(parsed["repaired_pages"], [1, 2, 3])
         self.assertEqual(parsed["tags"], [])
+
+
+def _span(text, size, origin_y, origin_x=0.0):
+    """Builds a PyMuPDF-shaped span dict with just the fields reconstruct_line_with_scripts reads."""
+    return {"text": text, "size": size, "origin": (origin_x, origin_y)}
+
+
+class TestReconstructLineWithScripts(unittest.TestCase):
+    def test_plain_line_is_unchanged(self):
+        spans = [_span("This is a normal sentence.", 10.91, 100.0)]
+        self.assertEqual(reconstruct_line_with_scripts(spans), "This is a normal sentence.")
+
+    def test_empty_line_returns_empty_string(self):
+        self.assertEqual(reconstruct_line_with_scripts([]), "")
+
+    def test_real_superscript_case_is_wrapped(self):
+        # Real span data from Practice Sheet.pdf page 2: "Explain why D^5 = 0."
+        # -- the "5" is smaller (7.97 vs 10.91) and raised (origin_y 151.18
+        # vs the surrounding baseline 155.14).
+        spans = [
+            _span("why ", 10.91, 155.14),
+            _span("D", 10.91, 155.14),
+            _span("5", 7.97, 151.18),
+            _span(" = 0.", 10.91, 155.14),
+        ]
+        self.assertEqual(reconstruct_line_with_scripts(spans), "why D^{5} = 0.")
+
+    def test_real_subscript_case_is_wrapped(self):
+        # Real span data from Practice Sheet.pdf page 2: "Let V = P_4(R)"
+        # -- the "4" is smaller (7.97 vs 10.91) and lowered (origin_y 94.83
+        # vs the surrounding baseline 93.20).
+        spans = [
+            _span("Let V = ", 10.91, 93.20),
+            _span("P", 10.91, 93.20),
+            _span("4", 7.97, 94.83),
+            _span("(R)", 10.91, 93.20),
+        ]
+        self.assertEqual(reconstruct_line_with_scripts(spans), "Let V = P_{4}(R)")
+
+    def test_multi_character_exponent_is_grouped_into_one_run(self):
+        spans = [
+            _span("x", 10.91, 100.0),
+            _span("1", 7.97, 96.0),
+            _span("2", 7.97, 96.0),
+            _span(" is large", 10.91, 100.0),
+        ]
+        self.assertEqual(reconstruct_line_with_scripts(spans), "x^{12} is large")
+
+    def test_smaller_symbol_at_same_baseline_is_not_wrapped(self):
+        # Real case from LN_Linear Algebra.pdf: a symbol font renders "K"
+        # larger (11.49) than the surrounding body text (10.91) with no
+        # vertical offset at all -- confirms size alone isn't sufficient;
+        # this test covers the mirror case (smaller, but same baseline).
+        spans = [
+            _span("multiplication with multiplication in", 10.91, 100.0),
+            _span(" small", 8.0, 100.0),
+            _span(" text", 10.91, 100.0),
+        ]
+        self.assertEqual(
+            reconstruct_line_with_scripts(spans),
+            "multiplication with multiplication in small text",
+        )
+
+    def test_larger_symbol_at_same_baseline_is_not_wrapped(self):
+        # Real case from LN_Linear Algebra.pdf page 5: a blackboard-bold
+        # "K" rendered at 11.49pt inline with 10.91pt body text, same
+        # origin_y -- must not be treated as a script just for being a
+        # different size.
+        spans = [
+            _span("multiplication in", 10.91, 100.0),
+            _span(" K", 11.49, 100.0),
+            _span(":", 10.91, 100.0),
+        ]
+        self.assertEqual(reconstruct_line_with_scripts(spans), "multiplication in K:")
+
+    def test_non_adjacent_subscripts_are_wrapped_separately(self):
+        # Real pattern from LN_Linear Algebra.pdf page 7: "x_1, . . . , x_n"
+        # -- two separate single-span subscripts, not one combined run.
+        spans = [
+            _span("x", 10.91, 100.0),
+            _span("1", 7.97, 101.6),
+            _span(", . . . , x", 10.91, 100.0),
+            _span("n", 7.97, 101.6),
+        ]
+        self.assertEqual(reconstruct_line_with_scripts(spans), "x_{1}, . . . , x_{n}")
+
+    def test_single_span_line_is_unchanged(self):
+        self.assertEqual(reconstruct_line_with_scripts([_span("Solo line.", 10.91, 42.0)]), "Solo line.")
 
 
 if __name__ == "__main__":

@@ -119,11 +119,16 @@ _LEGITIMATE_REPEATABLE_CHARS = set(".-=_*#·")
 _REPEATED_CHAR_RUN_RE = re.compile(r"(\S)\1{2,}")
 
 # Not a corruption signal -- a different, unfixable-by-extraction-choice
-# failure mode: plain text extraction (pypdf or PyMuPDF, doesn't matter
-# which) has no way to represent a superscript/subscript at all, so a
+# failure mode: PLAIN-mode text extraction (pypdf, or PyMuPDF's default
+# get_text()) has no way to represent a superscript/subscript at all, so a
 # single-character exponent like D^5 or a set like R^2 comes out as bare
 # "D5"/"R2" -- confirmed real, in both cases genuine content loss, not a
-# spacing bug. Deliberately \b-anchored on both ends (the whole 2-char
+# spacing bug. reconstruct_line_with_scripts() below now recovers most of
+# these locally via PyMuPDF's structured "dict" text mode, so this regex
+# is now a residual-only signal -- it still exists to catch whatever
+# reconstruction doesn't (a page with no detectable dominant-size/baseline
+# signal, or a case just under its offset threshold), not as the primary
+# defense anymore. Deliberately \b-anchored on both ends (the whole 2-char
 # token must be bounded by non-word characters): a looser
 # letter-immediately-followed-by-digit check was confirmed to false-
 # positive constantly against embedded hyperlink hash IDs (e.g.
@@ -133,6 +138,111 @@ _REPEATED_CHAR_RUN_RE = re.compile(r"(\S)\1{2,}")
 # sandwiched inside a longer token ("x2y" for x²y) -- widening it to catch
 # that case would reopen the same hash-string false-positive risk.
 _LOST_EXPONENT_OR_SUBSCRIPT_RE = re.compile(r"\b[A-Za-z]\d\b")
+
+# reconstruct_line_with_scripts() doesn't recursively re-nest a script
+# inside another script -- a compound subscript like B_{infinity,r1}(x)
+# comes out as one flat group rather than the fully-nested
+# B_{infinity,r_1}(x) (confirmed real: Analysis_Exercises.pdf page 1).
+# Stripped out before the lost-exponent check below runs, so a bare
+# digit-after-letter *inside* an already-produced script group isn't
+# re-flagged as still lost -- it's real, if imperfectly nested, content,
+# not a case reconstruction missed entirely. Single-level only (no nested
+# braces expected from reconstruct_line_with_scripts's own output).
+_SCRIPT_GROUP_RE = re.compile(r"[\^_]\{[^{}]*\}")
+
+
+def _has_lost_exponent_outside_scripts(text: str) -> bool:
+    return bool(_LOST_EXPONENT_OR_SUBSCRIPT_RE.search(_SCRIPT_GROUP_RE.sub("", text)))
+
+
+# reconstruct_line_with_scripts() thresholds, tuned against real spans
+# from Practice Sheet.pdf and LN_Linear Algebra.pdf (different font
+# families, same pattern held): a genuine sub/superscript span was
+# consistently ~0.73-0.77x the surrounding line's dominant font size, and
+# offset from its baseline by ~15-36% of that dominant size. Size alone
+# isn't sufficient -- confirmed a real case (a blackboard-bold "K"
+# rendered at 11.49pt against 10.91pt body text, same baseline) where a
+# differently-sized span is NOT a script; only size-and-offset together
+# discriminate correctly.
+_SCRIPT_SIZE_RATIO = 0.85
+_SCRIPT_OFFSET_RATIO = 0.08
+
+
+def _dominant_size_and_baseline(spans: list[dict]) -> tuple[float | None, float | None]:
+    """
+    The line's dominant font size -- by total character count, not span
+    count, so a short body-text run doesn't lose to two single-character
+    exponent spans -- and that size's baseline (first occurrence's
+    origin_y). Returns (None, None) for an empty span list.
+    """
+    char_counts: dict[float, int] = {}
+    first_origin_y: dict[float, float] = {}
+    for s in spans:
+        size = s.get("size")
+        if size is None:
+            continue
+        text = s.get("text", "")
+        char_counts[size] = char_counts.get(size, 0) + len(text)
+        if size not in first_origin_y:
+            first_origin_y[size] = s["origin"][1]
+    if not char_counts:
+        return None, None
+    dominant_size = max(char_counts, key=lambda sz: char_counts[sz])
+    return dominant_size, first_origin_y[dominant_size]
+
+
+def reconstruct_line_with_scripts(spans: list[dict]) -> str:
+    """
+    Reconstructs one line's text from PyMuPDF dict-mode spans, wrapping
+    detected superscript/subscript spans in ^{...}/_{...} instead of
+    losing them to plain concatenation (see _SCRIPT_SIZE_RATIO/
+    _SCRIPT_OFFSET_RATIO above for the real data behind the thresholds).
+    Consecutive same-direction script spans are grouped into one run, so
+    a multi-character exponent doesn't come out as separate ^{1}^{2}.
+    Falls back to plain concatenation for an empty list or a line with no
+    determinable dominant size -- safe by construction, never worse than
+    plain get_text() would have produced.
+    """
+    dominant_size, baseline_y = _dominant_size_and_baseline(spans)
+    if dominant_size is None:
+        return "".join(s.get("text", "") for s in spans)
+
+    size_threshold = dominant_size * _SCRIPT_SIZE_RATIO
+    offset_threshold = dominant_size * _SCRIPT_OFFSET_RATIO
+
+    parts: list[str] = []
+    pending: list[str] = []
+    pending_dir: str | None = None
+
+    def flush() -> None:
+        if pending:
+            marker = "^" if pending_dir == "sup" else "_"
+            parts.append(f"{marker}{{{''.join(pending)}}}")
+            pending.clear()
+
+    for s in spans:
+        text = s.get("text", "")
+        size = s.get("size")
+        direction = None
+        if size is not None and size < size_threshold:
+            offset = s["origin"][1] - baseline_y
+            if offset < -offset_threshold:
+                direction = "sup"
+            elif offset > offset_threshold:
+                direction = "sub"
+
+        if direction is not None and direction == pending_dir:
+            pending.append(text)
+        else:
+            flush()
+            if direction is not None:
+                pending.append(text)
+                pending_dir = direction
+            else:
+                parts.append(text)
+                pending_dir = None
+    flush()
+    return "".join(parts)
 
 # Above this fraction of a document's pages scoring as defective, treat
 # it as not a good hybrid-repair candidate at all -- batch the whole
@@ -251,9 +361,11 @@ def page_looks_defective(text: str) -> bool:
        symbol (a single 'ﬁ' ligature is completely normal in a word like
        "significant"; five in a row with no letters between them is not).
     4. A lost exponent/subscript on an isolated variable ("D5" for D^5,
-       "R2" for R^2) -- see _LOST_EXPONENT_OR_SUBSCRIPT_RE. Unlike 1-3,
-       this isn't corrupted text; it's real content plain-text extraction
-       cannot represent at all, from either pypdf or PyMuPDF.
+       "R2" for R^2) outside any ^{...}/_{...} group already produced by
+       reconstruct_line_with_scripts() -- see
+       _LOST_EXPONENT_OR_SUBSCRIPT_RE/_has_lost_exponent_outside_scripts.
+       Unlike 1-3, this isn't corrupted text; it's real content plain
+       (non-structured) text extraction cannot represent at all.
     A blank/near-empty page is not defective -- that's a legitimate
     spacer page, not corrupted content.
     """
@@ -264,7 +376,7 @@ def page_looks_defective(text: str) -> bool:
         return True
     if _has_suspicious_repeated_char_run(text):
         return True
-    return bool(_LOST_EXPONENT_OR_SUBSCRIPT_RE.search(text))
+    return _has_lost_exponent_outside_scripts(text)
 
 
 def group_into_runs(page_numbers: list[int]) -> list[list[int]]:
@@ -508,17 +620,42 @@ def render_page_to_image_bytes(pdf_path: str, page_index: int, dpi: int = 200) -
         doc.close()
 
 
+def _page_text_from_dict(page) -> str:
+    """
+    Structured-mode counterpart to page.get_text(): walks PyMuPDF's "dict"
+    text mode (blocks -> lines -> spans, with per-span font size and
+    position) and reconstructs each line through
+    reconstruct_line_with_scripts(), recovering sub/superscripts that
+    plain-mode extraction silently drops. Lines are joined within a block
+    with "\n" and blocks with "\n\n", approximating plain get_text()'s own
+    paragraph spacing. A block with no text lines (e.g. an image) is
+    skipped naturally rather than specially -- Touches PyMuPDF -- not
+    unit-tested locally (the reconstruction logic itself is).
+    """
+    text_dict = page.get_text("dict")
+    block_texts = []
+    for block in text_dict.get("blocks", []):
+        line_texts = [
+            reconstruct_line_with_scripts(line.get("spans", []))
+            for line in block.get("lines", [])
+        ]
+        if line_texts:
+            block_texts.append("\n".join(line_texts))
+    return "\n\n".join(block_texts)
+
+
 def extract_all_page_texts(pdf_path: str, total_pages: int) -> list[str]:
     """
-    Local page text via PyMuPDF rather than pypdf's PdfReader.extract_text().
-    Confirmed on a real file (Practice Sheet.pdf) that pypdf collapses
-    inter-word spacing on some font/kerning setups -- "LetVbe a
-    finite-dimensional real vector space and letT:V->Vsatisfy" -- while
-    PyMuPDF's layout-aware extraction preserves the same content correctly:
-    "Let V be a finite-dimensional real vector space and let T : V ->V
-    satisfy". Neither library's output is corrupted text needing Gemini
-    repair -- pypdf just loses whitespace pypdf itself never encoded as
-    text -- so this is a free, local fix, not a defect-detection issue.
+    Local page text via PyMuPDF's structured "dict" mode (see
+    _page_text_from_dict/reconstruct_line_with_scripts) rather than pypdf's
+    PdfReader.extract_text() or PyMuPDF's own plain get_text(). Confirmed
+    on a real file (Practice Sheet.pdf) that pypdf collapses inter-word
+    spacing on some font/kerning setups -- "LetVbe a finite-dimensional
+    real vector space and letT:V->Vsatisfy" -- while PyMuPDF's
+    layout-aware extraction preserves the same content correctly: "Let V
+    be a finite-dimensional real vector space and let T : V ->V satisfy".
+    That spacing fix alone doesn't need dict mode (plain get_text() already
+    has it); dict mode buys the additional sub/superscript recovery on top.
     Opens the document once for every page rather than once per page.
     Touches PyMuPDF -- not unit-tested locally.
     """
@@ -526,11 +663,7 @@ def extract_all_page_texts(pdf_path: str, total_pages: int) -> list[str]:
 
     doc = pymupdf.open(pdf_path)
     try:
-        # get_text()'s return type is a Union keyed off its "output" param
-        # (default "text"); coerced to str defensively since this file has
-        # already hit an unreliable PyMuPDF/Marker return shape once before
-        # (see probe_and_shift_boundary in convert_textbook.py).
-        return [str(doc[i].get_text()) for i in range(total_pages)]
+        return [_page_text_from_dict(doc[i]) for i in range(total_pages)]
     finally:
         doc.close()
 
@@ -541,7 +674,7 @@ def extract_page_text(pdf_path: str, page_index: int) -> str:
 
     doc = pymupdf.open(pdf_path)
     try:
-        return str(doc[page_index].get_text())
+        return _page_text_from_dict(doc[page_index])
     finally:
         doc.close()
 
