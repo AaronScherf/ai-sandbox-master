@@ -139,6 +139,19 @@ Run 1 found folio tags at 0/0/0 across all three books, for three
       describes fixed-interval chunking with no mention of the new tag
       output. None of these block anything; they're just not fixed yet.
 
+**Revisit note (2026-08-26):** both items above are still open. Neither
+needs code changes that require the VM -- the `parse_printed_toc` fix and
+the stale README/docstring are pure local edits -- but *confirming* any
+fix for the boundary-shift/timeout/cleanup items needs a real run, since
+`convert_textbook.py`/`chapter_index.py` import `torch`/`marker` at
+module scope and only execute against Marker/Surya on the GPU VM; none of
+it is testable locally. Deliberately not picked up on
+`marker-conversion-notes-transcription` (this branch is notes-transcription
+scope only, and touching the textbook pipeline here would mean spinning up
+the GCP VM to validate anything, unrelated to what this branch is for) --
+revisit on a branch scoped to the textbook pipeline, with a VM run
+available to validate against.
+
 ## What's next
 
 Image-to-text description for the `images/` folders, so a RAG/study
