@@ -109,3 +109,29 @@ def search_reference_documents(
             matches.append({"document": doc_path, "context": text[ctx_start:ctx_end]})
             start = idx + len(term)
     return matches
+
+
+def build_changelog_entry(
+    page: int,
+    flagged_text: str,
+    corrected_text: str | None,
+    signal_sources: list[str],
+    confidence: str,
+    reasoning: str,
+) -> dict:
+    """
+    One record of a postprocess run's decision about a single candidate
+    -- an applied fix, a confirmed-clean check, or an unresolved
+    low-confidence/unverifiable finding. Mirrors the shape written to
+    <name>_postprocess_log.json, the companion audit file the design
+    spec requires for every in-place edit -- nothing is silently altered
+    without a record.
+    """
+    return {
+        "page": page,
+        "flagged_text": flagged_text,
+        "corrected_text": corrected_text,
+        "signal_sources": signal_sources,
+        "confidence": confidence,
+        "reasoning": reasoning,
+    }

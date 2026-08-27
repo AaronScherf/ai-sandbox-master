@@ -1,6 +1,7 @@
 import unittest
 
 from postprocess_findings import (
+    build_changelog_entry,
     documents_needing_review,
     find_isolated_candidate_spans,
     group_findings_by_signature,
@@ -114,6 +115,29 @@ class TestSearchReferenceDocuments(unittest.TestCase):
 
     def test_blank_term_returns_empty_list(self):
         self.assertEqual(search_reference_documents("   ", {"a.md": "text"}), [])
+
+
+class TestBuildChangelogEntry(unittest.TestCase):
+    def test_builds_a_high_confidence_applied_fix_record(self):
+        entry = build_changelog_entry(
+            page=6, flagged_text="p", corrected_text="\\sqrt{h^2+k^2}",
+            signal_sources=["structural"], confidence="high",
+            reasoning="re-verified against source image; text differed, applied correction",
+        )
+        self.assertEqual(entry["page"], 6)
+        self.assertEqual(entry["flagged_text"], "p")
+        self.assertEqual(entry["corrected_text"], "\\sqrt{h^2+k^2}")
+        self.assertEqual(entry["signal_sources"], ["structural"])
+        self.assertEqual(entry["confidence"], "high")
+
+    def test_unverifiable_entry_has_no_corrected_text(self):
+        entry = build_changelog_entry(
+            page=6, flagged_text="p", corrected_text=None,
+            signal_sources=["masked_lm"], confidence="unverifiable",
+            reasoning="source PDF not found",
+        )
+        self.assertIsNone(entry["corrected_text"])
+        self.assertEqual(entry["confidence"], "unverifiable")
 
 
 if __name__ == "__main__":
