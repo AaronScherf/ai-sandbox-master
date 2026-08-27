@@ -78,3 +78,34 @@ def documents_needing_review(grouped: dict[str, list[dict]], threshold: int) -> 
         if len(group_findings) >= threshold:
             documents.update(f["document"] for f in group_findings)
     return sorted(documents)
+
+
+def search_reference_documents(
+    term: str, reference_texts: dict[str, str], context_chars: int = 80,
+) -> list[dict]:
+    """
+    Plain substring search for `term` across every reference document's
+    text, returning each match's surrounding context -- deliberately not
+    semantic/vector search, since RAG Analysis (this project's sibling
+    for that) isn't built yet; see the design spec's explicit decision to
+    keep this self-contained rather than depend on it. Case-insensitive,
+    since the same term can legitimately vary in case across documents
+    written by different people. `reference_texts` maps document path to
+    its full text.
+    """
+    term_lower = term.lower()
+    if not term_lower.strip():
+        return []
+    matches = []
+    for doc_path, text in reference_texts.items():
+        text_lower = text.lower()
+        start = 0
+        while True:
+            idx = text_lower.find(term_lower, start)
+            if idx == -1:
+                break
+            ctx_start = max(0, idx - context_chars)
+            ctx_end = min(len(text), idx + len(term) + context_chars)
+            matches.append({"document": doc_path, "context": text[ctx_start:ctx_end]})
+            start = idx + len(term)
+    return matches

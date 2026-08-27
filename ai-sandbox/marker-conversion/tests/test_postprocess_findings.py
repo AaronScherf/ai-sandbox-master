@@ -5,6 +5,7 @@ from postprocess_findings import (
     find_isolated_candidate_spans,
     group_findings_by_signature,
     is_allowlisted_span,
+    search_reference_documents,
 )
 
 
@@ -87,6 +88,32 @@ class TestDocumentsNeedingReview(unittest.TestCase):
 
     def test_no_findings_returns_empty_list(self):
         self.assertEqual(documents_needing_review({}, threshold=5), [])
+
+
+class TestSearchReferenceDocuments(unittest.TestCase):
+    def test_finds_term_with_surrounding_context(self):
+        refs = {"textbook.md": "The Hessian matrix H_f(x) is symmetric under mild conditions."}
+        matches = search_reference_documents("Hessian", refs, context_chars=10)
+        self.assertEqual(len(matches), 1)
+        self.assertEqual(matches[0]["document"], "textbook.md")
+        self.assertIn("Hessian", matches[0]["context"])
+
+    def test_case_insensitive(self):
+        refs = {"a.md": "the hessian matrix"}
+        matches = search_reference_documents("Hessian", refs)
+        self.assertEqual(len(matches), 1)
+
+    def test_finds_multiple_occurrences_across_documents(self):
+        refs = {"a.md": "Hessian here.", "b.md": "Hessian there too."}
+        matches = search_reference_documents("Hessian", refs)
+        self.assertEqual(len(matches), 2)
+
+    def test_no_match_returns_empty_list(self):
+        refs = {"a.md": "no relevant content"}
+        self.assertEqual(search_reference_documents("Hessian", refs), [])
+
+    def test_blank_term_returns_empty_list(self):
+        self.assertEqual(search_reference_documents("   ", {"a.md": "text"}), [])
 
 
 if __name__ == "__main__":
