@@ -1,7 +1,10 @@
+import os
+import tempfile
 import unittest
 
 from postprocess_discovery import (
     derive_eligible_pages,
+    discover_markdown_files,
     is_correction_target,
     parse_frontmatter,
     split_pages_by_tag,
@@ -89,6 +92,43 @@ class TestIsCorrectionTarget(unittest.TestCase):
 
     def test_textbook_output_without_routing_is_not_a_target(self):
         self.assertFalse(is_correction_target({"total_pages": 300}))
+
+
+class TestDiscoverMarkdownFiles(unittest.TestCase):
+    def test_finds_md_files_only_under_processed_outputs_folders(self):
+        with tempfile.TemporaryDirectory() as root:
+            po1 = os.path.join(root, "problem_sets", "processed_outputs")
+            po2 = os.path.join(root, "ta_notes", "processed_outputs")
+            os.makedirs(po1)
+            os.makedirs(po2)
+            open(os.path.join(po1, "Practice Sheet.md"), "w").close()
+            open(os.path.join(po2, "LN_Analysis.md"), "w").close()
+            # A markdown file OUTSIDE any processed_outputs/ folder must not
+            # be picked up -- e.g. a stray README living under the same root.
+            open(os.path.join(root, "README.md"), "w").close()
+
+            found = discover_markdown_files([root])
+
+            self.assertEqual(len(found), 2)
+            self.assertTrue(any(f.endswith("Practice Sheet.md") for f in found))
+            self.assertTrue(any(f.endswith("LN_Analysis.md") for f in found))
+
+    def test_multiple_root_dirs_in_one_call(self):
+        with tempfile.TemporaryDirectory() as root1, tempfile.TemporaryDirectory() as root2:
+            po1 = os.path.join(root1, "processed_outputs")
+            po2 = os.path.join(root2, "processed_outputs")
+            os.makedirs(po1)
+            os.makedirs(po2)
+            open(os.path.join(po1, "a.md"), "w").close()
+            open(os.path.join(po2, "b.md"), "w").close()
+
+            found = discover_markdown_files([root1, root2])
+
+            self.assertEqual(len(found), 2)
+
+    def test_no_processed_outputs_folder_returns_empty_list(self):
+        with tempfile.TemporaryDirectory() as root:
+            self.assertEqual(discover_markdown_files([root]), [])
 
 
 if __name__ == "__main__":

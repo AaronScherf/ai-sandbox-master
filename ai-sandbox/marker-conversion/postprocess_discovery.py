@@ -8,6 +8,7 @@ pattern in this project.
 """
 from __future__ import annotations
 
+import os
 import re
 
 import yaml
@@ -76,3 +77,24 @@ def is_correction_target(frontmatter: dict) -> bool:
     post-processing pass.
     """
     return "routing" in frontmatter and not frontmatter.get("postprocessed", False)
+
+
+def discover_markdown_files(root_dirs: list[str]) -> list[str]:
+    """
+    Recursively finds every .md file under any processed_outputs/ folder
+    beneath the given root directories -- so problem_sets, ta_notes,
+    handwritten_notes, and any future course folder are all picked up in
+    one call without enumerating them by name. Deliberately narrow (only
+    inside processed_outputs/ folders) to avoid accidentally picking up
+    unrelated markdown files (READMEs, design specs) that happen to live
+    under the same root.
+    """
+    found = []
+    for root_dir in root_dirs:
+        for dirpath, _dirnames, filenames in os.walk(root_dir):
+            if os.path.basename(dirpath) != "processed_outputs":
+                continue
+            for name in sorted(filenames):
+                if name.lower().endswith(".md"):
+                    found.append(os.path.join(dirpath, name))
+    return sorted(found)
