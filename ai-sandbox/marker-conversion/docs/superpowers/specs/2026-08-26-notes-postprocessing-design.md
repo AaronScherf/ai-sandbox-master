@@ -1,5 +1,15 @@
 # Local-first post-processing for notes-transcription output
 
+**Local-inference stack: HuggingFace `transformers` (PyTorch, CPU-only).**
+Ollama was the original candidate (see the project's notes-transcription
+status doc for that decision) but was dropped once verified against
+Ollama's own official docs that neither its native nor OpenAI-compatible
+API supports scoring caller-provided text (no `echo`/prompt-logprobs mode)
+-- only probabilities for tokens the model generates itself, which doesn't
+support the masked/perplexity scoring this design needs. `transformers`
+was confirmed to support exactly this directly (see "Real-world
+validation" below).
+
 ## Problem
 
 `transcribe_notes.py`'s local-extraction tiers -- `routing: local` documents
@@ -188,12 +198,13 @@ candidate list:
    operator/delimiter glyph looks like once mis-mapped. Zero cost, directly
    targets the root cause of the one confirmed real bug rather than an
    indirect statistical proxy.
-2. **Masked bidirectional LM scoring** (small local model via
-   `transformers`, CPU inference -- start with `distilbert-base-cased`, not
+2. **Masked bidirectional LM scoring** -- small local model loaded via the
+   **HuggingFace `transformers` library** (PyTorch CPU backend), the same
+   stack the spike was built on. Start with `distilbert-base-cased`, not
    the `-uncased` variant the spike used: math notation is case-sensitive
    (`K` a field vs. `k` an index), and uncased scoring is blind to that
    distinction entirely; not retested in the spike, flag for verification
-   during implementation). Masks each candidate token/span and reads the
+   during implementation. Masks each candidate token/span and reads the
    model's own probability for what's actually there.
 3. **Causal local-window z-score** (kept as a secondary, cheaper-per-pass
    signal, despite masked scoring's cleaner spike results) -- a single
