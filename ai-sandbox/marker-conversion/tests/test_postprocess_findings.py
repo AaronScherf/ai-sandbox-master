@@ -1,6 +1,11 @@
 import unittest
 
-from postprocess_findings import find_isolated_candidate_spans, is_allowlisted_span
+from postprocess_findings import (
+    documents_needing_review,
+    find_isolated_candidate_spans,
+    group_findings_by_signature,
+    is_allowlisted_span,
+)
 
 
 class TestIsAllowlistedSpan(unittest.TestCase):
@@ -42,6 +47,46 @@ class TestFindIsolatedCandidateSpans(unittest.TestCase):
 
     def test_empty_lines_list_returns_empty(self):
         self.assertEqual(find_isolated_candidate_spans([]), [])
+
+
+class TestGroupFindingsBySignature(unittest.TestCase):
+    def test_groups_same_text_same_document_together(self):
+        findings = [
+            {"document": "a.md", "flagged_text": "p"},
+            {"document": "a.md", "flagged_text": "p"},
+            {"document": "a.md", "flagged_text": "q"},
+        ]
+        grouped = group_findings_by_signature(findings)
+        self.assertEqual(len(grouped["a.md::p"]), 2)
+        self.assertEqual(len(grouped["a.md::q"]), 1)
+
+    def test_same_text_different_documents_stay_separate(self):
+        findings = [
+            {"document": "a.md", "flagged_text": "p"},
+            {"document": "b.md", "flagged_text": "p"},
+        ]
+        grouped = group_findings_by_signature(findings)
+        self.assertEqual(len(grouped), 2)
+
+
+class TestDocumentsNeedingReview(unittest.TestCase):
+    def test_document_crossing_threshold_is_flagged(self):
+        grouped = {
+            "a.md::p": [{"document": "a.md", "flagged_text": "p"}] * 5,
+        }
+        self.assertEqual(documents_needing_review(grouped, threshold=5), ["a.md"])
+
+    def test_document_below_threshold_is_not_flagged(self):
+        # This is the explicit requirement this design exists to satisfy:
+        # don't surface a review for every single potentially-corrupted
+        # character, only for a real pattern.
+        grouped = {
+            "a.md::p": [{"document": "a.md", "flagged_text": "p"}] * 2,
+        }
+        self.assertEqual(documents_needing_review(grouped, threshold=5), [])
+
+    def test_no_findings_returns_empty_list(self):
+        self.assertEqual(documents_needing_review({}, threshold=5), [])
 
 
 if __name__ == "__main__":

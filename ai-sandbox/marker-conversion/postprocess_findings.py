@@ -49,3 +49,32 @@ def find_isolated_candidate_spans(lines: list[list[dict]]) -> list[dict]:
         if len(text) == 1:
             candidates.append({"text": text, "origin": spans[0].get("origin")})
     return candidates
+
+
+def group_findings_by_signature(findings: list[dict]) -> dict[str, list[dict]]:
+    """
+    Groups low-confidence findings by document + flagged text, so
+    repeated instances of the same kind of thing in the same document
+    cluster together rather than each counting as its own isolated data
+    point.
+    """
+    groups: dict[str, list[dict]] = {}
+    for finding in findings:
+        key = f"{finding['document']}::{finding['flagged_text']}"
+        groups.setdefault(key, []).append(finding)
+    return groups
+
+
+def documents_needing_review(grouped: dict[str, list[dict]], threshold: int) -> list[str]:
+    """
+    Documents where at least one finding signature recurs `threshold`+
+    times -- a genuine pattern, not an isolated one-off. Below that, a
+    finding is logged (see build_changelog_entry) but never surfaced --
+    the explicit requirement this exists to satisfy: don't review every
+    single potentially-corrupted character across hundreds of pages.
+    """
+    documents = set()
+    for group_findings in grouped.values():
+        if len(group_findings) >= threshold:
+            documents.update(f["document"] for f in group_findings)
+    return sorted(documents)
