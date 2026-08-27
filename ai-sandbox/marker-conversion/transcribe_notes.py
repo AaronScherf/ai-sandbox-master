@@ -95,7 +95,7 @@ _MAX_WORD_LENGTH = 25
 # single ligature characters (ﬁ, completely normal in words like
 # "significant" -- see _has_suspicious_repeated_char_run for how a
 # *repeated* ligature run like 'ﬁﬁﬁﬁﬁ' is still caught separately).
-_ALLOWED_MATH_RANGES = (
+ALLOWED_MATH_RANGES = (
     (0x1D400, 0x1D7FF),  # Mathematical Alphanumeric Symbols (𝐴, 𝑓, 𝜉, ...)
     (0x2200, 0x22FF),    # Mathematical Operators (∈ ∉ ⊆ ∀ ∇ ∂ − ∥ ...)
     (0x2100, 0x214F),    # Letterlike Symbols (ℝ ℂ ℤ ℕ ℚ ...)
@@ -305,13 +305,13 @@ def has_reliable_pagination(metadata) -> bool:
     return any(marker in combined for marker in _RELIABLE_PAGINATION_MARKERS)
 
 
-def _is_expected_char(c: str) -> bool:
+def is_expected_char(c: str) -> bool:
     if ord(c) < 128:
         return True
     if c in _ALLOWED_EXTRA_CHARS:
         return True
     cp = ord(c)
-    return any(lo <= cp <= hi for lo, hi in _ALLOWED_MATH_RANGES)
+    return any(lo <= cp <= hi for lo, hi in ALLOWED_MATH_RANGES)
 
 
 def _has_suspicious_repeated_char_run(text: str) -> bool:
@@ -371,7 +371,7 @@ def page_looks_defective(text: str) -> bool:
     """
     if _has_collapsed_prose_run(text):
         return True
-    unexpected = sum(1 for c in text if not c.isspace() and not _is_expected_char(c))
+    unexpected = sum(1 for c in text if not c.isspace() and not is_expected_char(c))
     if unexpected > _MAX_UNEXPECTED_CHARS:
         return True
     if _has_suspicious_repeated_char_run(text):
@@ -739,7 +739,7 @@ def transcribe_batch_via_gemini(client, model: str, images: list[bytes], prompt:
     return response.text or ""
 
 
-def _repair_batch(client, model: str, pdf_path: str, batch: list[int], prompt: str) -> dict[int, str]:
+def repair_batch(client, model: str, pdf_path: str, batch: list[int], prompt: str) -> dict[int, str]:
     """One capped batch's worth of defective pages, repaired in a single call."""
     images = [render_page_to_image_bytes(pdf_path, p - 1, dpi=_DPI_TYPESET) for p in batch]
     response_text = transcribe_batch_via_gemini(client, model, images, prompt)
@@ -750,7 +750,7 @@ def _repair_batch(client, model: str, pdf_path: str, batch: list[int], prompt: s
     return parsed
 
 
-def _repair_page_individually(client, model: str, pdf_path: str, page_num: int, hint_text: str, total_pages: int) -> str:
+def repair_page_individually(client, model: str, pdf_path: str, page_num: int, hint_text: str, total_pages: int) -> str:
     image_bytes = render_page_to_image_bytes(pdf_path, page_num - 1, dpi=_DPI_TYPESET)
     prompt = build_transcription_prompt(
         "", hint_text, page_num, total_pages, hint_is_high_confidence=True,
@@ -835,7 +835,7 @@ def process_pdf(pdf_path: str, client, model_override: str | None, dry_run: bool
                 prompt = build_batch_transcription_prompt(batch, before_ctx, after_ctx, total_pages)
                 try:
                     parsed = call_with_retries(
-                        lambda: _repair_batch(client, model, pdf_path, batch, prompt)
+                        lambda: repair_batch(client, model, pdf_path, batch, prompt)
                     )
                     for p, text in parsed.items():
                         cache[str(p)] = text
@@ -848,7 +848,7 @@ def process_pdf(pdf_path: str, client, model_override: str | None, dry_run: bool
                         if str(p) in cache:
                             continue
                         try:
-                            cache[str(p)] = _repair_page_individually(
+                            cache[str(p)] = repair_page_individually(
                                 client, model, pdf_path, p, all_page_texts[p - 1], total_pages,
                             )
                             save_json_cache(cache_path, cache)
@@ -874,7 +874,7 @@ def process_pdf(pdf_path: str, client, model_override: str | None, dry_run: bool
     # _MAX_DEFECT_RATIO_FOR_HYBRID -- batch every page through Gemini
     # rather than trusting local extraction for the pages no heuristic
     # happened to flag. Reuses the same batching machinery as hybrid
-    # repair (split_run_into_batches/_repair_batch), just applied to the
+    # repair (split_run_into_batches/repair_batch), just applied to the
     # whole page range instead of only the flagged runs. No bookend
     # context (build_batch_transcription_prompt's before/after params) --
     # there's no "known clean neighbor" to borrow from anymore since every
@@ -906,7 +906,7 @@ def process_pdf(pdf_path: str, client, model_override: str | None, dry_run: bool
             prompt = build_batch_transcription_prompt(batch, "", "", total_pages)
             try:
                 parsed = call_with_retries(
-                    lambda: _repair_batch(client, model, pdf_path, batch, prompt)
+                    lambda: repair_batch(client, model, pdf_path, batch, prompt)
                 )
                 for p, text in parsed.items():
                     cache[str(p)] = text
@@ -920,7 +920,7 @@ def process_pdf(pdf_path: str, client, model_override: str | None, dry_run: bool
                         continue
                     try:
                         assert all_page_texts is not None
-                        cache[str(p)] = _repair_page_individually(
+                        cache[str(p)] = repair_page_individually(
                             client, model, pdf_path, p, all_page_texts[p - 1], total_pages,
                         )
                         save_json_cache(cache_path, cache)
