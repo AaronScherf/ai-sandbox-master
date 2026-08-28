@@ -106,7 +106,7 @@ treats `academic-hub/` as the corpus root:
   "has_solutions": false,
   "page_count": 404,
   "embedding": [0.0123, -0.0456, ...],
-  "embedding_model": "<gemini embedding model id, pinned>",
+  "embedding_model": "gemini-embedding-001:768",
   "source_updated_at": "2026-08-27T00:00:00Z",
   "needs_indexing": false
 }
@@ -127,9 +127,13 @@ treats `academic-hub/` as the corpus root:
   original PDF page when a markdown transcription looks garbled or an
   image/diagram didn't survive conversion well. Never indexed/embedded
   itself — purely a backreference.
-- `doc_type` is one of: `textbook`, `problem_set`, `ta_notes`,
-  `handwritten_notes`, or the raw `folder_category` string if it doesn't map
-  to a known type — never fails closed.
+- `doc_type` is one of: `textbook`, `problem_set`, `exam`, `ta_notes`,
+  `handwritten_notes`, or the raw `folder_category` string if the LLM's
+  classification doesn't map to a known type — never fails closed. `exam`
+  is called out explicitly because the corpus already has a concrete case
+  a folder-only classification gets wrong: `old_exam_2021.md` and
+  `old_exam_2025.md` sit inside `problem_sets/`, but are exams, not
+  practice sets — see §4.
 - `topics` starts as `[]` at card generation and is populated (and later
   possibly changed) **only** by the corpus-wide `retag` pass — see §5. It
   is never guessed by the per-file generation call in §4.
@@ -207,13 +211,21 @@ pipelines rather than duplicating LLM-prompt logic in each:
 
 ```python
 def generate_index_card(
-    path: str, source_pdf_path: str, course: str, doc_type: str,
+    path: str, source_pdf_path: str, course: str, folder_category: str,
     content_sample: str,  # what the LLM sees — see below
-    client,  # from gemini_utils.get_gemini_client()
+    client,  # already constructed — see §4.1, caller-specific
 ) -> dict: ...
 
 def write_card(course: str, card: dict) -> None: ...   # updates <course>.json + courses.json
 ```
+
+`folder_category` (the mechanical, no-judgment path segment `derive_folder_category()`-style
+logic already produces — never itself LLM-derived) is a **fallback hint passed into the
+prompt**, not the card's final `doc_type`. The LLM's own classification wins whenever it maps
+to a known type; `folder_category` is only used verbatim when it doesn't. This matters
+concretely: `old_exam_2021.md` sits in a `problem_sets/` folder today but is content-wise an
+exam, and only a classification that actually looks at content (not just the folder it happens
+to live in) gets that right.
 
 **`content_sample` differs by caller, deliberately kept cheap regardless of
 source length:**
@@ -228,27 +240,74 @@ source length:**
   enough, and this keeps card-generation cost roughly constant regardless
   of book length.
 
-One `client.models.generate_content()` call (reusing
-`gemini_utils.get_gemini_client()` / `call_with_retries()`) returns
-structured JSON: `{title, doc_type, summary, level, has_solutions}` —
-**no `topics`**, that's §5's job, deliberately kept separate so a
-single-document call is never what decides a file's tags (`level` and
-`has_solutions` stay here because, unlike tags, they're properties of the
-one document in front of the LLM, not something that needs sibling files
-to judge correctly). `page_count` is copied from metadata the calling
-pipeline already computed — no LLM involvement. The `title+summary` text
-is embedded with one embedding call (same client, Gemini's embedding
-endpoint) to produce `embedding`. The card is written with `topics: []`.
+One `client.models.generate_content()` call, model `gemini-3.6-flash`
+(matching the model already used for generation calls throughout this
+project — `describe_images.py`, `transcribe_notes.py`,
+`extract_bibliographic_info_via_llm()`), via `call_with_retries()`,
+`config={"response_mime_type": "application/json", "temperature": 0,
+"thinking_config": {"thinking_level": "minimal"}}` (the same structured-
+JSON pattern `extract_bibliographic_info_via_llm()` in
+`convert_textbook.py` already uses at line 654, reused rather than
+invented fresh), returns structured JSON: `{title, doc_type, summary,
+level, has_solutions}` — **no `topics`**, that's §5's job, deliberately
+kept separate so a single-document call is never what decides a file's
+tags (`level` and `has_solutions` stay here because, unlike tags, they're
+properties of the one document in front of the LLM, not something that
+needs sibling files to judge correctly). `page_count` is copied from
+metadata the calling pipeline already computed — no LLM involvement.
+
+The `title+summary` text is embedded with one `client.models.embed_content()`
+call, model `gemini-embedding-001` with `config=EmbedContentConfig(
+output_dimensionality=768)` — confirmed live against the real API: the
+model accepts and honors `output_dimensionality=768` (vs. its 3072-dim
+default, unnecessarily large for this corpus's scale), and returned
+vectors are **not** pre-normalized (a real call returned L2 norm ≈ 0.59,
+not 1.0) — cosine similarity code anywhere in this system (§5, §6) must
+normalize vectors itself, never assume unit length. `embedding_model` is
+stored per-card as `"gemini-embedding-001:768"` so a future change to
+either the model or the requested dimensionality is detectable rather
+than silently comparing incompatible vectors. The card is written with
+`topics: []`.
 
 ### 4.1 Hook insertion points
+
+`generate_index_card()` takes an already-constructed `client` rather than
+building one itself, specifically because the two pipelines run in
+different environments and already use two different, incompatible
+client-construction paths for their own existing LLM calls — confirmed by
+reading both files, not assumed:
+
+- `transcribe_notes.py` runs locally (no GCP VM) and already builds its
+  client via `gemini_utils.get_gemini_client()` (Developer API key from
+  `.env`) — `process_pdf()` receives this `client` as a parameter already.
+- `convert_textbook.py` runs on a GCP VM and already builds its own
+  bibliographic-extraction client via `genai.Client(vertexai=True,
+  project=..., location=...)` in `extract_bibliographic_info_via_llm()`
+  (line 650), using Application Default Credentials, specifically so it
+  doesn't need a separately-distributed API key on the VM. It never uses
+  `gemini_utils` at all today.
+
+Both clients come from the same `google-genai` SDK and expose the same
+`models.generate_content()` / `models.embed_content()` methods, so
+`generate_index_card()` works unmodified against either — but this means
+the embedding call has only been exercised against the Developer API key
+backend so far (confirmed live: `gemini-embedding-001` returns 3072-dim
+vectors, not pre-normalized; `output_dimensionality=768` is accepted and
+verified working). Whether Vertex-backed calls to the same model/method
+behave identically is a reasonable assumption backed by using the same
+SDK, not something verified in this environment (no Vertex/GCP access here) —
+worth a real check the first time the textbook-pipeline hook actually runs.
 
 - `transcribe_notes.py`, in `process_pdf()`: the frontmatter dict currently
   finalized with `"tags": []` (e.g. around the block at line 844 and its
   siblings near 904/975/1032) is a separate, optional follow-up (§9) —
-  not touched by this indexer directly. The indexer hook goes immediately
-  after that frontmatter/markdown is finalized and written to disk: call
-  `generate_index_card()` with the finished markdown as `content_sample`,
-  then `write_card()`.
+  not touched by this indexer directly. `process_pdf()` has four separate
+  exit points (one per routing tier), each currently ending in its own
+  `with open(md_path, "w"...) as f: f.write(...)` block before an early
+  `return` — the indexer hook factors that repeated block into one shared
+  helper (called from all four places instead of duplicated four times)
+  that writes the markdown file and then calls `generate_index_card()`
+  with the finished markdown as `content_sample`, then `write_card()`.
 - `convert_textbook.py`, in `process_one_pdf()`: immediately after
   `master_metadata` is finalized and `_metadata.json` is written (~line
   881-888), call `generate_index_card()` with `master_metadata`'s
