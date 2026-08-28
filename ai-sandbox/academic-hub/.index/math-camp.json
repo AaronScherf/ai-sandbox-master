@@ -7,7 +7,6 @@
     "doc_type": "ta_notes",
     "title": "Analysis and Calculus Review: Compactness, Continuity, and Differentiability",
     "summary": "This document provides a comprehensive review of core concepts in real analysis, including the properties of compact sets, the Heine-Borel theorem, and the behavior of continuous functions. It further explores the relationship between linear maps, Lipschitz continuity, and the proof that differentiability implies continuity.",
-    "topics": [],
     "level": "intermediate",
     "has_solutions": false,
     "page_count": null,
@@ -784,7 +783,8 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-08-28T19:38:11.302963+00:00",
-    "needs_indexing": false
+    "needs_indexing": false,
+    "tags": []
   },
   {
     "file_id": "db9713b58af98bd6",
@@ -794,7 +794,6 @@
     "doc_type": "ta_notes",
     "title": "Probability Lecture Notes: Axioms, Distributions, and Expectations",
     "summary": "These lecture notes cover fundamental probability concepts including Kolmogorov axioms, conditional probability, Bayes' Rule, and the properties of random variables. The document also details joint distributions, marginal densities, expectation, variance, and the law of iterated expectations.",
-    "topics": [],
     "level": "intermediate",
     "has_solutions": false,
     "page_count": null,
@@ -1571,7 +1570,8 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-08-28T19:38:12.626208+00:00",
-    "needs_indexing": false
+    "needs_indexing": false,
+    "tags": []
   },
   {
     "file_id": "7c4d5fc6024b51b8",
@@ -1581,7 +1581,6 @@
     "doc_type": "problem_set",
     "title": "Analysis: Guided Exercises",
     "summary": "This document contains a series of guided exercises covering topology, continuity, compactness, differentiability, and the inverse/implicit function theorems in the context of multivariate calculus. It emphasizes proof-based learning, providing hints and structured steps to help students derive fundamental results in analysis.",
-    "topics": [],
     "level": "advanced",
     "has_solutions": false,
     "page_count": null,
@@ -2358,7 +2357,8 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-08-28T19:38:13.658304+00:00",
-    "needs_indexing": false
+    "needs_indexing": false,
+    "tags": []
   },
   {
     "file_id": "baa86e501ed95a9e",
@@ -2368,7 +2368,6 @@
     "doc_type": "problem_set",
     "title": "Linear Algebra: Guided Review and Exercises",
     "summary": "This document provides a comprehensive review of linear algebra topics including linear systems, rank-nullity, linear maps, eigenvalues, and Gram-Schmidt orthogonalization. It combines mini-lectures with practice problems and includes detailed handwritten solutions for each exercise.",
-    "topics": [],
     "level": "intermediate",
     "has_solutions": true,
     "page_count": null,
@@ -3145,7 +3144,8 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-08-28T19:38:15.136252+00:00",
-    "needs_indexing": false
+    "needs_indexing": false,
+    "tags": []
   },
   {
     "file_id": "9364de4f92394680",
@@ -3155,7 +3155,6 @@
     "doc_type": "problem_set",
     "title": "Linear Algebra: Guided Review and Exercises",
     "summary": "This document provides a comprehensive review of linear algebra topics including linear systems, rank, null space, linear maps, eigenvalues, and orthogonality. It combines mini-lectures with worked examples and practice problems, including detailed proofs and step-by-step solutions for exercises.",
-    "topics": [],
     "level": "intermediate",
     "has_solutions": true,
     "page_count": null,
@@ -3932,7 +3931,8 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-08-28T19:38:16.495153+00:00",
-    "needs_indexing": false
+    "needs_indexing": false,
+    "tags": []
   },
   {
     "file_id": "35446af83fba22f7",
@@ -3942,7 +3942,6 @@
     "doc_type": "problem_set",
     "title": "PhD Mathematics Camp Comprehensive Practice Sheet",
     "summary": "This document contains a comprehensive collection of 42 practice problems covering linear algebra, topology, differential calculus, and optimization theory. It is designed for independent study, providing theoretical proofs and computational exercises for advanced mathematics students.",
-    "topics": [],
     "level": "advanced",
     "has_solutions": false,
     "page_count": null,
@@ -4719,7 +4718,8 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-08-28T19:38:17.609118+00:00",
-    "needs_indexing": false
+    "needs_indexing": false,
+    "tags": []
   },
   {
     "file_id": "d2811cb3930265fb",
@@ -4729,7 +4729,6 @@
     "doc_type": "problem_set",
     "title": "Real Analysis Problem Set: Topology, Differentiability, and Compactness",
     "summary": "This document contains a series of guided exercises covering fundamental concepts in real analysis, including topology in R^n, compactness, the Extreme Value Theorem, differentiability, and the Inverse/Implicit Function Theorems. It provides detailed proofs and explanations for properties of open/closed sets, continuous functions, and the behavior of derivatives.",
-    "topics": [],
     "level": "advanced",
     "has_solutions": true,
     "page_count": null,
@@ -5506,7 +5505,8 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-08-28T19:38:19.147812+00:00",
-    "needs_indexing": false
+    "needs_indexing": false,
+    "tags": []
   },
   {
     "file_id": "021506e46835d3ee",
@@ -5516,7 +5516,6 @@
     "doc_type": "problem_set",
     "title": "Advanced Mathematics for Economics Problem Set",
     "summary": "This document contains a comprehensive problem set covering topics in real analysis, linear algebra, and optimization. It includes theoretical proofs regarding metric spaces and sequences, matrix diagonalization, properties of homogeneous functions, and constrained optimization using Lagrange multipliers.",
-    "topics": [],
     "level": "advanced",
     "has_solutions": true,
     "page_count": null,
@@ -6293,7 +6292,8 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-08-28T19:38:20.250164+00:00",
-    "needs_indexing": false
+    "needs_indexing": false,
+    "tags": []
   },
   {
     "file_id": "15621241c7f53594",
@@ -6303,7 +6303,6 @@
     "doc_type": "problem_set",
     "title": "Advanced Analysis and Linear Algebra Problem Set",
     "summary": "This document contains a comprehensive set of problems covering metric spaces, topology (specifically discrete metrics), linear algebra (eigenvalues and spectral decomposition), multivariable calculus (Jacobians and Taylor approximations), and optimization. It includes detailed, worked-out solutions for the first two problems, demonstrating proofs for properties of metric spaces and the discrete metric.",
-    "topics": [],
     "level": "advanced",
     "has_solutions": true,
     "page_count": null,
@@ -7080,7 +7079,8 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-08-28T19:38:21.389731+00:00",
-    "needs_indexing": false
+    "needs_indexing": false,
+    "tags": []
   },
   {
     "file_id": "ce7e03d9a8fd5406",
@@ -7090,7 +7090,6 @@
     "doc_type": "problem_set",
     "title": "Multivariate Calculus and Linear Algebra Problem Set",
     "summary": "This document contains a comprehensive set of practice problems covering multivariate calculus (homogeneity, convexity, partial derivatives, integration, and the implicit function theorem) and linear algebra (subspaces, norms, linear independence, rank, and diagonalization). It includes some worked solutions for specific problems, such as partial derivative calculations and systems of linear equations.",
-    "topics": [],
     "level": "intermediate",
     "has_solutions": true,
     "page_count": null,
@@ -7867,7 +7866,8 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-08-28T19:38:22.505885+00:00",
-    "needs_indexing": false
+    "needs_indexing": false,
+    "tags": []
   },
   {
     "file_id": "9d08ec3a3280ca4a",
@@ -7877,7 +7877,6 @@
     "doc_type": "problem_set",
     "title": "Linear Algebra Problem Set with Solutions",
     "summary": "This document contains a series of linear algebra exercises covering systems of equations, vector subspaces, diagonalization, and matrix definiteness. Each exercise is followed by a detailed, step-by-step solution providing proofs, calculations, and theoretical explanations.",
-    "topics": [],
     "level": "intermediate",
     "has_solutions": true,
     "page_count": null,
@@ -8654,7 +8653,8 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-08-28T19:38:23.633804+00:00",
-    "needs_indexing": false
+    "needs_indexing": false,
+    "tags": []
   },
   {
     "file_id": "a681e922bf34727f",
@@ -8664,7 +8664,6 @@
     "doc_type": "problem_set",
     "title": "Linear Algebra Problem Set with Solutions",
     "summary": "This document contains a set of four multi-part exercises covering core linear algebra topics including systems of equations, vector subspaces, diagonalization of matrices, and matrix definiteness. Each exercise is followed by detailed worked solutions.",
-    "topics": [],
     "level": "intermediate",
     "has_solutions": true,
     "page_count": null,
@@ -9441,7 +9440,8 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-08-28T19:38:25.293376+00:00",
-    "needs_indexing": false
+    "needs_indexing": false,
+    "tags": []
   },
   {
     "file_id": "caa0f05bd72e38e6",
@@ -9451,7 +9451,6 @@
     "doc_type": "problem_set",
     "title": "Linear Algebra Exercises: Change of Basis, Inner Products, and Projections",
     "summary": "This document contains a set of linear algebra exercises covering change of basis, inner product spaces, and idempotent matrices. It includes detailed step-by-step solutions for exercises on coordinate transformations, Gram-Schmidt orthogonalization, Cholesky decomposition, and properties of projection matrices.",
-    "topics": [],
     "level": "intermediate",
     "has_solutions": true,
     "page_count": null,
@@ -10228,7 +10227,8 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-08-28T19:38:26.244395+00:00",
-    "needs_indexing": false
+    "needs_indexing": false,
+    "tags": []
   },
   {
     "file_id": "78f473bbc8cb1daf",
@@ -10238,7 +10238,6 @@
     "doc_type": "problem_set",
     "title": "Linear Algebra Exercises: Basis, Change of Basis, and Inner Product Spaces",
     "summary": "This document contains a series of linear algebra exercises covering column spaces, kernels, change of basis matrices, and inner product spaces. It includes problem statements followed by detailed worked solutions for each exercise.",
-    "topics": [],
     "level": "intermediate",
     "has_solutions": true,
     "page_count": null,
@@ -11015,7 +11014,8 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-08-28T19:38:28.003906+00:00",
-    "needs_indexing": false
+    "needs_indexing": false,
+    "tags": []
   },
   {
     "file_id": "c8ff65cabf657347",
@@ -11025,7 +11025,6 @@
     "doc_type": "textbook",
     "title": "PhD Math Camp 2026 Syllabus",
     "summary": "This document outlines the syllabus for the 2026 Columbia University Economics PhD Math Camp. It details the course objectives, schedule, recommended reading list, and evaluation criteria for incoming graduate students.",
-    "topics": [],
     "level": "advanced",
     "has_solutions": false,
     "page_count": null,
@@ -11802,7 +11801,8 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-08-28T19:38:29.044639+00:00",
-    "needs_indexing": false
+    "needs_indexing": false,
+    "tags": []
   },
   {
     "file_id": "ff87e7bbf8f32e24",
@@ -11812,7 +11812,6 @@
     "doc_type": "textbook",
     "title": "Analysis in Euclidean Spaces",
     "summary": "This document provides a comprehensive introduction to analysis in Euclidean spaces, covering topics such as completeness, convergence, compactness, and differential calculus. It also explores fixed-point theorems, monotone comparative statics, and integration, serving as a foundational text for advanced mathematical study.",
-    "topics": [],
     "level": "advanced",
     "has_solutions": false,
     "page_count": null,
@@ -12589,7 +12588,8 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-08-28T19:38:30.497543+00:00",
-    "needs_indexing": false
+    "needs_indexing": false,
+    "tags": []
   },
   {
     "file_id": "40bdcffc053227ac",
@@ -12599,7 +12599,6 @@
     "doc_type": "textbook",
     "title": "Linear Algebra (PhD Math Camp)",
     "summary": "This document provides a comprehensive introduction to linear algebra, covering vector spaces, linear maps, matrices, determinants, eigenvalues, and inner product spaces. It emphasizes the structural relationships between abstract linear maps and their coordinate-based matrix representations.",
-    "topics": [],
     "level": "advanced",
     "has_solutions": false,
     "page_count": null,
@@ -13376,7 +13375,8 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-08-28T19:38:32.213459+00:00",
-    "needs_indexing": false
+    "needs_indexing": false,
+    "tags": []
   },
   {
     "file_id": "95125b42840c4b9e",
@@ -13386,7 +13386,6 @@
     "doc_type": "ta_notes",
     "title": "Part III: Optimization, Convexity and Correspondences",
     "summary": "These lecture notes provide a comprehensive overview of optimization theory, covering convex geometry, optimality conditions, and value functions. The document also explores fixed-point theorems and their application to equilibrium existence in economic models.",
-    "topics": [],
     "level": "advanced",
     "has_solutions": false,
     "page_count": null,
@@ -14163,7 +14162,8 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-08-28T19:38:34.298548+00:00",
-    "needs_indexing": false
+    "needs_indexing": false,
+    "tags": []
   },
   {
     "file_id": "aadfa2a4c5ffc04b",
@@ -14173,7 +14173,6 @@
     "doc_type": "ta_notes",
     "title": "Part IV: Probability Theory (2026 PhD Math Camp)",
     "summary": "These lecture notes provide a comprehensive overview of probability theory, covering topics from basic probability spaces and random variables to limit theorems and stochastic processes. The document bridges elementary computational methods with rigorous measure-theoretic foundations, serving as a foundational text for PhD-level economics students.",
-    "topics": [],
     "level": "advanced",
     "has_solutions": false,
     "page_count": null,
@@ -14950,7 +14949,8 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-08-28T19:38:36.295562+00:00",
-    "needs_indexing": false
+    "needs_indexing": false,
+    "tags": []
   },
   {
     "file_id": "f95513f05df19bd2",
@@ -14960,7 +14960,6 @@
     "doc_type": "ta_notes",
     "title": "Empty Document",
     "summary": "The provided document is empty and contains no content to summarize. It is categorized as a placeholder or empty file.",
-    "topics": [],
     "level": "introductory",
     "has_solutions": false,
     "page_count": null,
@@ -15737,7 +15736,8 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-08-28T19:38:37.375089+00:00",
-    "needs_indexing": false
+    "needs_indexing": false,
+    "tags": []
   },
   {
     "file_id": "741e0f3f3bfc73eb",
@@ -15747,7 +15747,6 @@
     "doc_type": "ta_notes",
     "title": "Empty Document",
     "summary": "The provided document is empty and contains no content to summarize. It is categorized as a placeholder or empty file.",
-    "topics": [],
     "level": "introductory",
     "has_solutions": false,
     "page_count": null,
@@ -16524,7 +16523,8 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-08-28T19:38:38.609097+00:00",
-    "needs_indexing": false
+    "needs_indexing": false,
+    "tags": []
   },
   {
     "file_id": "adca894ee9215532",
@@ -16534,7 +16534,6 @@
     "doc_type": "ta_notes",
     "title": "Empty Document",
     "summary": "The provided document is empty and contains no content to summarize. It is categorized as a placeholder or empty file.",
-    "topics": [],
     "level": "introductory",
     "has_solutions": false,
     "page_count": null,
@@ -17311,7 +17310,8 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-08-28T19:38:39.620316+00:00",
-    "needs_indexing": false
+    "needs_indexing": false,
+    "tags": []
   },
   {
     "file_id": "a39af0ff13b9be90",
@@ -17321,7 +17321,6 @@
     "doc_type": "ta_notes",
     "title": "Empty Document",
     "summary": "The provided document is empty and contains no content to summarize. It is categorized as a placeholder or empty file.",
-    "topics": [],
     "level": "introductory",
     "has_solutions": false,
     "page_count": null,
@@ -18098,7 +18097,8 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-08-28T19:38:42.937939+00:00",
-    "needs_indexing": false
+    "needs_indexing": false,
+    "tags": []
   },
   {
     "file_id": "6d6958f96759b4a8",
@@ -18108,7 +18108,6 @@
     "doc_type": "ta_notes",
     "title": "Empty Document",
     "summary": "The provided document is empty and contains no content to summarize. It is categorized as a placeholder or empty file.",
-    "topics": [],
     "level": "introductory",
     "has_solutions": false,
     "page_count": null,
@@ -18885,7 +18884,8 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-08-28T19:38:43.818835+00:00",
-    "needs_indexing": false
+    "needs_indexing": false,
+    "tags": []
   },
   {
     "file_id": "19eebd5f6bd9e536",
@@ -18895,7 +18895,6 @@
     "doc_type": "ta_notes",
     "title": "Empty Document",
     "summary": "The provided document is empty and contains no content to summarize. It is categorized as a placeholder or empty file.",
-    "topics": [],
     "level": "introductory",
     "has_solutions": false,
     "page_count": null,
@@ -19672,7 +19671,8 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-08-28T19:38:44.772481+00:00",
-    "needs_indexing": false
+    "needs_indexing": false,
+    "tags": []
   },
   {
     "file_id": "6079eedf2fe26b0a",
@@ -19682,7 +19682,6 @@
     "doc_type": "textbook",
     "title": "Linear Algebra Done Right",
     "summary": "This is a comprehensive mathematics textbook focused on abstract vector spaces and linear maps, intended for students who have had a previous introductory exposure to the subject. It covers core topics including eigenvalues, inner product spaces, operators, and determinants, emphasizing deep conceptual understanding through proofs and definitions.",
-    "topics": [],
     "level": "intermediate",
     "has_solutions": false,
     "page_count": 404,
@@ -20459,7 +20458,8 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-08-28T19:38:45.960092+00:00",
-    "needs_indexing": false
+    "needs_indexing": false,
+    "tags": []
   },
   {
     "file_id": "e0e471ca794ddda7",
@@ -20469,7 +20469,6 @@
     "doc_type": "textbook",
     "title": "Book of Proof",
     "summary": "This textbook provides a comprehensive introduction to mathematical proof techniques for undergraduate students. It covers fundamental topics including set theory, logic, counting, various proof strategies, relations, functions, and cardinality.",
-    "topics": [],
     "level": "intermediate",
     "has_solutions": true,
     "page_count": 380,
@@ -21246,7 +21245,8 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-08-28T19:38:47.185852+00:00",
-    "needs_indexing": false
+    "needs_indexing": false,
+    "tags": []
   },
   {
     "file_id": "828d123595b86256",
@@ -21256,7 +21256,6 @@
     "doc_type": "textbook",
     "title": "Principles of Mathematical Analysis",
     "summary": "This is a classic undergraduate-level textbook on real analysis by Walter Rudin. It covers fundamental topics including the real and complex number systems, topology, sequences and series, continuity, differentiation, integration, and the Lebesgue theory.",
-    "topics": [],
     "level": "advanced",
     "has_solutions": false,
     "page_count": 594,
@@ -22033,7 +22032,8 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-08-28T19:38:48.448087+00:00",
-    "needs_indexing": false
+    "needs_indexing": false,
+    "tags": []
   },
   {
     "file_id": "50d66a4f6210de73",
@@ -22043,7 +22043,6 @@
     "doc_type": "textbook",
     "title": "Mathematics for Economists",
     "summary": "This document is the table of contents and introductory material for a comprehensive textbook on mathematical methods used in economic theory. It covers topics ranging from one-variable calculus and linear algebra to the calculus of several variables, with specific applications to economic models.",
-    "topics": [],
     "level": "intermediate",
     "has_solutions": false,
     "page_count": 899,
@@ -22820,7 +22819,8 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-08-28T19:38:49.625462+00:00",
-    "needs_indexing": false
+    "needs_indexing": false,
+    "tags": []
   },
   {
     "file_id": "0b7af9b2e917032f",
@@ -22830,7 +22830,6 @@
     "doc_type": "textbook",
     "title": "Essential Mathematics for Economic Analysis",
     "summary": "This document is the front matter and table of contents for the fourth edition of a comprehensive mathematics textbook designed for economics students. It covers fundamental mathematical concepts ranging from basic algebra and equations to functions and their properties.",
-    "topics": [],
     "level": "introductory",
     "has_solutions": false,
     "page_count": 766,
@@ -23607,6 +23606,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-08-28T19:38:50.907743+00:00",
-    "needs_indexing": false
+    "needs_indexing": false,
+    "tags": []
   }
 ]

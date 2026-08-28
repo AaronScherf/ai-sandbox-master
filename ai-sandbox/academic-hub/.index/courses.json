@@ -2,7 +2,6 @@
   {
     "course": "math-camp",
     "title": "Math Camp",
-    "predominant_topics": [],
     "file_count": 30,
     "embedding": [
       0.005029089521333334,
@@ -773,6 +772,7 @@
       0.0026632729388333335,
       0.036011028133333345,
       -0.02261124816666667
-    ]
+    ],
+    "predominant_tags": []
   }
 ]

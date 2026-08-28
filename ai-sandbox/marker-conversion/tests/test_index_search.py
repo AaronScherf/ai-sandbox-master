@@ -175,7 +175,7 @@ def _card(file_id, embedding, **overrides):
     card = {
         "file_id": file_id, "path": f"{file_id}.md", "source_pdf_path": f"{file_id}.pdf",
         "course": "math-camp", "doc_type": "textbook", "title": file_id,
-        "summary": f"summary for {file_id}", "topics": [], "level": "introductory",
+        "summary": f"summary for {file_id}", "tags": [], "level": "introductory",
         "has_solutions": False, "page_count": 10, "rag_md_path": None, "embedding": embedding,
         "embedding_model": "gemini-embedding-001:768", "source_updated_at": "2026-01-01T00:00:00Z",
         "needs_indexing": False,

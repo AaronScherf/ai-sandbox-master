@@ -137,26 +137,26 @@ class TestRecomputeCourseEntry(unittest.TestCase):
     def test_computes_centroid_and_file_count_from_shard_cards(self):
         with tempfile.TemporaryDirectory() as tmp:
             save_shard(tmp, "math-camp", [
-                {"file_id": "a", "embedding": [1.0, 0.0], "topics": ["linear-algebra"]},
-                {"file_id": "b", "embedding": [0.0, 1.0], "topics": ["linear-algebra", "real-analysis"]},
+                {"file_id": "a", "embedding": [1.0, 0.0], "tags": ["linear-algebra"]},
+                {"file_id": "b", "embedding": [0.0, 1.0], "tags": ["linear-algebra", "real-analysis"]},
             ])
             recompute_course_entry(tmp, "math-camp")
             courses = load_courses(tmp)
             self.assertEqual(courses["math-camp"]["file_count"], 2)
             self.assertEqual(courses["math-camp"]["embedding"], [0.5, 0.5])
-            self.assertIn("linear-algebra", courses["math-camp"]["predominant_topics"])
+            self.assertIn("linear-algebra", courses["math-camp"]["predominant_tags"])
 
     def test_title_is_a_readable_form_of_the_course_id(self):
         with tempfile.TemporaryDirectory() as tmp:
-            save_shard(tmp, "math-camp", [{"file_id": "a", "embedding": [1.0], "topics": []}])
+            save_shard(tmp, "math-camp", [{"file_id": "a", "embedding": [1.0], "tags": []}])
             recompute_course_entry(tmp, "math-camp")
             self.assertEqual(load_courses(tmp)["math-camp"]["title"], "Math Camp")
 
     def test_excludes_orphaned_cards_from_rollup(self):
         with tempfile.TemporaryDirectory() as tmp:
             save_shard(tmp, "math-camp", [
-                {"file_id": "a", "embedding": [1.0, 0.0], "topics": [], "orphaned": True},
-                {"file_id": "b", "embedding": [0.0, 1.0], "topics": []},
+                {"file_id": "a", "embedding": [1.0, 0.0], "tags": [], "orphaned": True},
+                {"file_id": "b", "embedding": [0.0, 1.0], "tags": []},
             ])
             recompute_course_entry(tmp, "math-camp")
             courses = load_courses(tmp)
@@ -165,19 +165,19 @@ class TestRecomputeCourseEntry(unittest.TestCase):
 
     def test_removes_course_entry_when_shard_becomes_empty(self):
         with tempfile.TemporaryDirectory() as tmp:
-            save_shard(tmp, "math-camp", [{"file_id": "a", "embedding": [1.0], "topics": []}])
+            save_shard(tmp, "math-camp", [{"file_id": "a", "embedding": [1.0], "tags": []}])
             recompute_course_entry(tmp, "math-camp")
             save_shard(tmp, "math-camp", [])
             recompute_course_entry(tmp, "math-camp")
             self.assertNotIn("math-camp", load_courses(tmp))
 
-    def test_cards_missing_topics_are_missing_from_the_embedding_but_not_a_crash(self):
+    def test_cards_missing_tags_are_missing_from_the_embedding_but_not_a_crash(self):
         # needs_indexing cards (Task 2) have embedding: [] -- must not
         # poison the centroid computation.
         with tempfile.TemporaryDirectory() as tmp:
             save_shard(tmp, "math-camp", [
-                {"file_id": "a", "embedding": [], "topics": [], "needs_indexing": True},
-                {"file_id": "b", "embedding": [1.0, 0.0], "topics": []},
+                {"file_id": "a", "embedding": [], "tags": [], "needs_indexing": True},
+                {"file_id": "b", "embedding": [1.0, 0.0], "tags": []},
             ])
             recompute_course_entry(tmp, "math-camp")
             courses = load_courses(tmp)
@@ -207,7 +207,7 @@ class TestGenerateIndexCard(unittest.TestCase):
         self.assertEqual(card["page_count"], 404)
         self.assertEqual(card["embedding"], [0.1, 0.2, 0.3])
         self.assertEqual(card["embedding_model"], "gemini-embedding-001:768")
-        self.assertEqual(card["topics"], [])
+        self.assertEqual(card["tags"], [])
         self.assertFalse(card["needs_indexing"])
         self.assertIsNone(card["rag_md_path"])
         self.assertNotIn("orphaned", card)
@@ -282,7 +282,7 @@ class TestFindCardByFileId(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             self.assertIsNone(find_card_by_file_id(tmp, "x"))
 
-    def test_ignores_courses_json_and_topics_json(self):
+    def test_ignores_courses_json_and_tags_json(self):
         with tempfile.TemporaryDirectory() as tmp:
             save_courses(tmp, {"math-camp": {"course": "math-camp", "file_count": 0}})
             self.assertIsNone(find_card_by_file_id(tmp, "math-camp"))

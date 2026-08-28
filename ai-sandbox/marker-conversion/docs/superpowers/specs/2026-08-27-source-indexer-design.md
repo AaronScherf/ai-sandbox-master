@@ -34,12 +34,12 @@ tutoring content from the selected sources is explicitly out of scope here.
   way that makes it slow or expensive.
 - Index cards regenerate automatically as new files are produced by either
   pipeline (no separate manual step to remember).
-- Tags (`topics`) are assigned with corpus-wide awareness, not guessed per
+- Tags (`tags`) are assigned with corpus-wide awareness, not guessed per
   file in isolation — `tags: []` has sat permanently empty in
   `transcribe_notes.py` specifically because per-file tagging without that
   awareness was rejected earlier; §5 is what it was left empty for.
-- Lay groundwork (topic vocabulary, embeddings) reusable by the eventual
-  RAG model and by future cross-corpus "web of knowledge" topic queries.
+- Lay groundwork (tag vocabulary, embeddings) reusable by the eventual
+  RAG model and by future cross-corpus "web of knowledge" tag queries.
 
 **Non-goals**
 - No vector DB / ANN index (FAISS, Chroma, ...) — brute-force cosine
@@ -49,7 +49,7 @@ tutoring content from the selected sources is explicitly out of scope here.
   §5 uses a similarity graph as an internal mechanism to decide which tags
   to mint, but that graph is rebuilt from scratch each `retag` run and
   discarded immediately after — only its output (tags on cards) persists.
-  Querying the graph itself, or any richer topic-relationship browsing, is
+  Querying the graph itself, or any richer tag-relationship browsing, is
   future work (§9).
 - No query-time LLM reasoning — matching (§6) is embeddings + cosine only.
 - No chunk-level (paragraph/section) indexing — this indexer resolves to
@@ -62,7 +62,7 @@ tutoring content from the selected sources is explicitly out of scope here.
 
 ```
 academic-hub/.index/
-  topics.json          # canonical topic vocabulary (flat list, grown only by retag — see §5)
+  tags.json          # canonical tag vocabulary (flat list, grown only by retag — see §5)
   courses.json          # one entry per course (see §3.2)
   math-camp.json         # one entry per file in that course (see §3.1)
   econ-101.json
@@ -101,7 +101,7 @@ treats `academic-hub/` as the corpus root:
   "doc_type": "textbook",
   "title": "Linear Algebra Done Right",
   "summary": "Undergraduate linear algebra textbook covering vector spaces, linear maps, eigenvalues, inner product spaces, and spectral theory, with an emphasis on basis-free proofs.",
-  "topics": ["linear-algebra", "vector-spaces", "eigenvalues", "inner-product-spaces"],
+  "tags": ["linear-algebra", "vector-spaces", "eigenvalues", "inner-product-spaces"],
   "level": "introductory",
   "has_solutions": false,
   "page_count": 404,
@@ -137,7 +137,7 @@ treats `academic-hub/` as the corpus root:
   and `old_exam_2025.md` as `problem_set` without being told to, and
   there isn't enough semantic difference between the two for a RAG
   consumer to warrant a separate category.
-- `topics` starts as `[]` at card generation and is populated (and later
+- `tags` starts as `[]` at card generation and is populated (and later
   possibly changed) **only** by the corpus-wide `retag` pass — see §5. It
   is never guessed by the per-file generation call in §4.
 - `level` (`introductory` / `intermediate` / `advanced`, in that fixed
@@ -146,7 +146,7 @@ treats `academic-hub/` as the corpus root:
   opposed to bare problem statements or unworked exercises) are both
   inferred in the same per-file LLM call as `summary` (§4), from that
   same file's own `content_sample` — never from its filename. Unlike
-  `topics`, a document's own difficulty and whether it shows its work are
+  `tags`, a document's own difficulty and whether it shows its work are
   self-contained properties that don't need corpus-wide awareness to
   judge, so there's no reason to defer them to `retag`. Caveat: for the
   textbook pipeline, `content_sample` is only title/author/year + TOC
@@ -172,7 +172,7 @@ treats `academic-hub/` as the corpus root:
   was last generated.
 - `orphaned: true` (omitted otherwise) marks a card whose `file_id` a
   rebuild sweep couldn't match to any PDF on disk — see §4.3/§7. Excluded
-  from search results and from its course's centroid/topic-count rollup,
+  from search results and from its course's centroid/tag-count rollup,
   and from tag mining, while flagged.
 
 ### 3.2 Course-level entry (one per course, in `courses.json`)
@@ -181,7 +181,7 @@ treats `academic-hub/` as the corpus root:
 {
   "course": "math-camp",
   "title": "Math Camp",
-  "predominant_topics": ["linear-algebra", "real-analysis", "probability", "optimization"],
+  "predominant_tags": ["linear-algebra", "real-analysis", "probability", "optimization"],
   "file_count": 14,
   "embedding": [0.0089, -0.0321, ...]
 }
@@ -191,29 +191,29 @@ Computed **entirely from that course's own file-level cards, with no
 additional LLM or embedding call**:
 - `embedding` = the centroid (elementwise mean) of every file card's
   `embedding` in that course's shard.
-- `predominant_topics` = the most frequent entries in the union of those
-  cards' `topics`.
+- `predominant_tags` = the most frequent entries in the union of those
+  cards' `tags`.
 
 This is a free byproduct of writing any file card — recomputed each time a
 card is added/updated in that course, and again after every `retag` run
 (§5), keeping `courses.json` always in sync without a separate generation
-step. Until the first `retag` run, `predominant_topics` is simply empty for
-every course, since no card has any `topics` yet.
+step. Until the first `retag` run, `predominant_tags` is simply empty for
+every course, since no card has any `tags` yet.
 
 This also directly answers "identify mutually reinforcing synergies
 between courses" without any further mechanism: comparing two courses'
-`predominant_topics` overlap, or their centroid `embedding` similarity,
-surfaces cross-course overlap (e.g. math-camp's `optimization` topic
+`predominant_tags` overlap, or their centroid `embedding` similarity,
+surfaces cross-course overlap (e.g. math-camp's `optimization` tag
 resurfacing in an econometrics course) using data this spec already
 produces as a byproduct of §5.
 
-### 3.3 Topic vocabulary (`topics.json`)
+### 3.3 Tag vocabulary (`tags.json`)
 
-Flat list of canonical topic strings (kebab-case, e.g. `linear-algebra`,
+Flat list of canonical tag strings (kebab-case, e.g. `linear-algebra`,
 `eigenvalues`, `real-analysis`). Entries are added **only** by the `retag`
 pass (§5) — never proposed per-file — which is what keeps this list free of
 near-duplicate fragments (`linear-algebra` vs `Linear Algebra` vs
-`lin-alg`) and keeps `topics` usable as graph edges (§9).
+`lin-alg`) and keeps `tags` usable as graph edges (§9).
 
 ## 4. Card generation
 
@@ -273,7 +273,7 @@ structured-JSON config used below. Via `call_with_retries()`,
 JSON pattern `extract_bibliographic_info_via_llm()` in
 `convert_textbook.py` already uses at line 654, reused rather than
 invented fresh), returns structured JSON: `{title, doc_type, summary,
-level, has_solutions}` — **no `topics`**, that's §5's job, deliberately
+level, has_solutions}` — **no `tags`**, that's §5's job, deliberately
 kept separate so a single-document call is never what decides a file's
 tags (`level` and `has_solutions` stay here because, unlike tags, they're
 properties of the one document in front of the LLM, not something that
@@ -291,7 +291,7 @@ normalize vectors itself, never assume unit length. `embedding_model` is
 stored per-card as `"gemini-embedding-001:768"` so a future change to
 either the model or the requested dimensionality is detectable rather
 than silently comparing incompatible vectors. The card is written with
-`topics: []`.
+`tags: []`.
 
 ### 4.1 Hook insertion points
 
@@ -387,8 +387,8 @@ the currently-derived `course`:
   style logic reads as the course, or a folder nested under a different
   course). Move the card from the old course's shard to the new one, update
   `path`/`source_pdf_path`/`course`, and recompute `courses.json`
-  centroid/topic-counts for *both* the old and new course (still purely
-  mechanical — no LLM or embedding call, since `summary`/`topics`/
+  centroid/tag-counts for *both* the old and new course (still purely
+  mechanical — no LLM or embedding call, since `summary`/`tags`/
   `embedding` don't change).
 - **No match anywhere:** genuinely new content — generate a fresh card as
   in §4 (this is the only path that costs an LLM + embedding call).
@@ -457,7 +457,7 @@ persists — only its output, tags on cards, does):
    third, similar enough file joins them.
 4. For each qualifying cluster, **one LLM call** (not one per file) takes
    the member files' titles + summaries and proposes a canonical tag name,
-   fuzzy-matched against `topics.json` (merging into an existing tag where
+   fuzzy-matched against `tags.json` (merging into an existing tag where
    appropriate, same normalization intent as before, just moved here)
    before being added as new.
 5. That tag is written to **every file card in the cluster** — including
@@ -467,7 +467,7 @@ persists — only its output, tags on cards, does):
    too-small cluster of older, always-similar files over the threshold —
    either way, the tag gets minted now and applied to the old files too,
    not just the new ones.
-6. `courses.json` `predominant_topics` is recomputed for every affected
+6. `courses.json` `predominant_tags` is recomputed for every affected
    course afterward (§3.2's free rollup).
 
 **Tags are not permanent once assigned.** Because the graph is rebuilt
@@ -501,7 +501,7 @@ def search(
    above a similarity threshold (or top-N courses), not a hardcoded
    include/exclude list — this is what makes "linear algebra" score a
    Spanish course near zero and pull in math-camp (and any other course
-   that genuinely shares topics, e.g. econometrics) automatically.
+   that genuinely shares tags, e.g. econometrics) automatically.
 3. **File filter**: load only the selected courses' shards, apply
    `doc_type`/`has_solutions`/`max_level` as hard filters over the cards
    **before** ranking, then brute-force cosine similarity over what's left
@@ -557,7 +557,7 @@ during a rebuild sweep (the source PDF was deleted, or its content was
 replaced — a content change produces a different hash, which is correctly
 treated as a new file rather than silently reusing the old card) is flagged
 `orphaned: true` rather than deleted immediately. `rebuild --prune` removes
-confirmed orphans (and rolls their old course's centroid/topic-counts back)
+confirmed orphans (and rolls their old course's centroid/tag-counts back)
 as an explicit, separate action — nothing disappears from the index as a
 side effect of an ordinary rebuild.
 
@@ -589,13 +589,13 @@ previewing without writing.
   chapter it complements). `has_solutions` (§3.1) tells a RAG layer
   whether *one* file has solutions inline, but not which *other* file is
   its companion. Detecting that is a different mechanism from both §4
-  (per-file, no sibling awareness) and §5 (groups by broad topical
+  (per-file, no sibling awareness) and §5 (groups by broad tag-level
   similarity via `title+summary` embeddings, not by "this is specifically
   the solved version of that") — a real, useful capability, but its own
   design pass once the base system is proven, not built here. Worth
   recording now while fresh: cluster co-membership (§5) alone won't be
   precise enough to find a specific pair, since a true pair will usually
-  sit inside a cluster with several other same-topic files pulled in by
+  sit inside a cluster with several other same-tag files pulled in by
   the same broad summary similarity. A workable approach would (1) treat
   a file's similarity to a candidate partner as a *local outlier* —
   meaningfully higher than that file's similarity to every other member
@@ -606,19 +606,19 @@ previewing without writing.
   comparison limited to that shortlist — full-text embedding for the
   whole corpus would be a much larger cost than anything else in this
   spec, so it should stay scoped to confirmation, not first-pass search.
-- **Prerequisite/topic ordering**, extending the topic-graph idea below
+- **Prerequisite/tag ordering**, extending the tag-graph idea below
   with directionality (e.g. "eigenvalues" typically presumes
   "vector-spaces") rather than the undirected co-occurrence §5 already
   produces — useful for study-plan sequencing specifically, but ordering
   is a materially harder claim than co-occurrence and deserves its own
   validation before being trusted for that use.
-- **Richer topic-graph browsing.** §5 uses a similarity graph purely as an
+- **Richer tag-graph browsing.** §5 uses a similarity graph purely as an
   internal, throwaway mechanism to decide which tags to mint — it's never
   persisted or exposed for querying. A future layer could persist
   co-occurrence structure (e.g. "eigenvalues" and "characteristic
   polynomial" co-occurring across sources even outside the same course
   folder) for actual graph browsing/traversal, directly on top of the
-  normalized `topics` this spec already produces — no schema change
+  normalized `tags` this spec already produces — no schema change
   required, just a new read path.
 - **Chunk-level embeddings for the actual RAG retrieval step.** The
   embedding infrastructure built here (client setup, embedding calls,
@@ -634,7 +634,7 @@ previewing without writing.
   rather than broad domain fine-tuning. This indexer is a prerequisite for
   that direction, not a part of this spec's scope.
 - Optional: backfilling the notes pipeline's own frontmatter `tags: []`
-  field from the card's (post-`retag`) `topics` list, so the human-readable
+  field from the card's (post-`retag`) `tags` list, so the human-readable
   file itself carries the same tags as its index card. Not required for
   search to work (the card is the system of record), so left as a
   follow-up — and only sensible to build after `retag` exists, since

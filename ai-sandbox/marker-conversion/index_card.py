@@ -133,15 +133,15 @@ def recompute_course_entry(academic_hub_root: str, course: str) -> None:
     embeddings = [c["embedding"] for c in cards if c.get("embedding")]
     centroid = np.array(embeddings, dtype=float).mean(axis=0).tolist() if embeddings else []
 
-    topic_counts: Counter[str] = Counter()
+    tag_counts: Counter[str] = Counter()
     for c in cards:
-        topic_counts.update(c.get("topics") or [])
-    predominant = [topic for topic, _ in topic_counts.most_common(10)]
+        tag_counts.update(c.get("tags") or [])
+    predominant = [tag for tag, _ in tag_counts.most_common(10)]
 
     courses[course] = {
         "course": course,
         "title": course.replace("-", " ").title(),
-        "predominant_topics": predominant,
+        "predominant_tags": predominant,
         "file_count": len(cards),
         "embedding": centroid,
     }
@@ -171,7 +171,7 @@ def generate_index_card(
     content_sample: str, page_count: int, client,
 ) -> dict:
     """One structured-JSON generation call plus one embedding call. Never
-    proposes `topics` -- that's the corpus-wide retag pass's job (spec §5),
+    proposes `tags` -- that's the corpus-wide retag pass's job (spec §5),
     kept deliberately out of scope for a single-document call."""
     prompt = _PROMPT_TEMPLATE.format(folder_category=folder_category, content_sample=content_sample)
     response = call_with_retries(lambda: client.models.generate_content(
@@ -210,7 +210,7 @@ def generate_index_card(
         "doc_type": doc_type,
         "title": title,
         "summary": summary,
-        "topics": [],
+        "tags": [],
         "level": level,
         "has_solutions": has_solutions,
         "page_count": page_count,
@@ -234,7 +234,7 @@ def make_failure_card(file_id: str, path: str, source_pdf_path: str, course: str
         "doc_type": folder_category,
         "title": "",
         "summary": "",
-        "topics": [],
+        "tags": [],
         "level": None,
         "has_solutions": None,
         "page_count": None,
@@ -251,7 +251,7 @@ def find_card_by_file_id(academic_hub_root: str, file_id: str) -> tuple[str, dic
     if not os.path.isdir(index_dir):
         return None
     for name in sorted(os.listdir(index_dir)):
-        if not name.endswith(".json") or name in ("courses.json", "topics.json"):
+        if not name.endswith(".json") or name in ("courses.json", "tags.json"):
             continue
         course = name[:-len(".json")]
         for card in load_shard(academic_hub_root, course):
