@@ -48,6 +48,8 @@ from marker.models import create_model_dict
 from marker.output import text_from_rendered
 from page_markers import remap_image_links, remap_page_markers, tag_single_page
 import chapter_index
+from index_card import TEXTBOOK_CONTENT_SAMPLE_CHARS, compute_file_id, derive_course, reconcile_and_write
+from gemini_utils import get_gemini_client, load_dotenv_override
 
 def clean_stale_state():
     # Purge stale surya lock files
@@ -878,14 +880,54 @@ def process_one_pdf(converter, raw_input: str, raw_output: str, workspace: str, 
         if os.path.exists(run_config_path):
             shutil.copy2(run_config_path, os.path.join(local_build_dir, "run_config.json"))
 
+        academic_hub_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "academic-hub"))
+        # Cheap local hashing, no network call -- computed and recorded
+        # unconditionally, independent of whether the LLM-dependent
+        # indexing call below succeeds. This is what lets rebuild()
+        # (index_search.py) and describe_images.py's hook find this
+        # book's source PDF later without any filename guessing -- the
+        # ambiguity that made textbook backfill unreliable before this
+        # field existed (processed_outputs/<FolderName>/ folder names
+        # don't correspond to their source PDF's filename).
+        file_id = compute_file_id(input_pdf)
+        rel_pdf_path = os.path.relpath(input_pdf, academic_hub_root).replace(os.sep, "/")
+
         master_metadata.update({
             "total_pages_processed": total_pages,
             "processing_time_seconds": round(elapsed, 2),
             "source_pdf_document_info": source_info,
             "markdown_parsed_info": markdown_info,
+            "source_pdf_path": rel_pdf_path,
+            "source_pdf_file_id": file_id,
         })
         with open(os.path.join(local_build_dir, f"{folder_name}_metadata.json"), "w", encoding="utf-8") as json_f:
             json.dump(master_metadata, json_f, indent=4, ensure_ascii=False)
+
+        try:
+            load_dotenv_override()
+            index_client = get_gemini_client()
+            if index_client is None:
+                raise RuntimeError("GEMINI_API_KEY not available -- see gemini_utils.get_gemini_client()")
+            md_output_path = os.path.join(local_build_dir, f"{folder_name}.md")
+            with open(md_output_path, "r", encoding="utf-8") as f:
+                content_sample = f.read(TEXTBOOK_CONTENT_SAMPLE_CHARS)
+            course = derive_course(rel_pdf_path)
+            # local_build_dir is a temp assembly directory uploaded to raw_output
+            # afterward (see "Resolve Output Trajectory" below) -- the card's
+            # `path` records where the file will live once uploaded, under
+            # academic-hub's own processed_outputs convention, not this temp path.
+            rel_md_path = (
+                f"{rel_pdf_path.rsplit('/', 1)[0]}/processed_outputs/{folder_name}/{folder_name}.md"
+            )
+            reconcile_and_write(
+                academic_hub_root, file_id=file_id, path=rel_md_path, source_pdf_path=rel_pdf_path,
+                course=course, folder_category="textbooks-and-papers", content_sample=content_sample,
+                page_count=total_pages, client=index_client,
+            )
+        except Exception as index_err:
+            print(f"WARNING: source-indexer update failed for {folder_name} ({index_err}); "
+                  f"the converted textbook output above is unaffected -- rerun the indexer "
+                  f"separately later to catch it up.")
 
         # Resolve Output Trajectory
         if is_gcs_output:
