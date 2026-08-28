@@ -128,13 +128,15 @@ treats `academic-hub/` as the corpus root:
   original PDF page when a markdown transcription looks garbled or an
   image/diagram didn't survive conversion well. Never indexed/embedded
   itself — purely a backreference.
-- `doc_type` is one of: `textbook`, `problem_set`, `exam`, `ta_notes`,
+- `doc_type` is one of: `textbook`, `problem_set`, `ta_notes`,
   `handwritten_notes`, or the raw `folder_category` string if the LLM's
-  classification doesn't map to a known type — never fails closed. `exam`
-  is called out explicitly because the corpus already has a concrete case
-  a folder-only classification gets wrong: `old_exam_2021.md` and
-  `old_exam_2025.md` sit inside `problem_sets/`, but are exams, not
-  practice sets — see §4.
+  classification doesn't map to a known type — never fails closed.
+  Exams are deliberately folded into `problem_set` rather than kept as
+  their own category — confirmed against the real corpus (a live
+  `rebuild` run, §7) that the LLM already classifies `old_exam_2021.md`
+  and `old_exam_2025.md` as `problem_set` without being told to, and
+  there isn't enough semantic difference between the two for a RAG
+  consumer to warrant a separate category.
 - `topics` starts as `[]` at card generation and is populated (and later
   possibly changed) **only** by the corpus-wide `retag` pass — see §5. It
   is never guessed by the per-file generation call in §4.
@@ -231,10 +233,8 @@ def write_card(course: str, card: dict) -> None: ...   # updates <course>.json +
 `folder_category` (the mechanical, no-judgment path segment `derive_folder_category()`-style
 logic already produces — never itself LLM-derived) is a **fallback hint passed into the
 prompt**, not the card's final `doc_type`. The LLM's own classification wins whenever it maps
-to a known type; `folder_category` is only used verbatim when it doesn't. This matters
-concretely: `old_exam_2021.md` sits in a `problem_sets/` folder today but is content-wise an
-exam, and only a classification that actually looks at content (not just the folder it happens
-to live in) gets that right.
+to a known type; `folder_category` is only used verbatim when it doesn't — content decides,
+not just the folder a file happens to live in.
 
 **`content_sample` differs by caller, deliberately kept cheap regardless of
 source length:**

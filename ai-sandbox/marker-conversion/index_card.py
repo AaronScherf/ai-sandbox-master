@@ -26,7 +26,7 @@ EMBEDDING_DIMENSIONALITY = 768
 EMBEDDING_MODEL_ID = f"{EMBEDDING_MODEL}:{EMBEDDING_DIMENSIONALITY}"
 GENERATION_MODEL = "gemini-3.1-flash-lite"
 
-KNOWN_DOC_TYPES = {"textbook", "problem_set", "exam", "ta_notes", "handwritten_notes"}
+KNOWN_DOC_TYPES = {"textbook", "problem_set", "ta_notes", "handwritten_notes"}
 KNOWN_LEVELS = ("introductory", "intermediate", "advanced")
 
 # Cap on how much of an assembled textbook markdown gets read as
@@ -151,12 +151,11 @@ def recompute_course_entry(academic_hub_root: str, course: str) -> None:
 _PROMPT_TEMPLATE = """You are cataloging one document from a personal study corpus for a search index.
 
 The document's containing folder is categorized as '{folder_category}', but classify based on \
-the actual content below, not the folder name alone -- e.g. a file that is actually an exam \
-should be classified "exam" even if it lives in a folder named for practice problem sets.
+the actual content below, not the folder name alone.
 
 Respond with ONLY a JSON object with exactly these keys:
 "title" (string, the document's own title or a short descriptive name),
-"doc_type" (one of: "textbook", "problem_set", "exam", "ta_notes", "handwritten_notes"),
+"doc_type" (one of: "textbook", "problem_set", "ta_notes", "handwritten_notes"),
 "summary" (2-3 sentences describing what this document covers),
 "level" (one of: "introductory", "intermediate", "advanced"),
 "has_solutions" (boolean -- true only if THIS document itself shows worked solutions/answers, \
