@@ -30,6 +30,7 @@ from gemini_utils import (
     load_json_cache,
     save_json_cache,
 )
+from index_card import set_rag_md_path
 
 _IMAGE_REF_RE = re.compile(r"!\[\]\((pg_(\d+)_[^)]+)\)")
 _TAG_ONLY_RE = re.compile(r"^(?:\s*<!--.*?-->\s*)+$")
@@ -220,10 +221,48 @@ def describe_image_via_gemini(client, model: str, image_path: str, prompt: str) 
     return parse_description_response(response.text)
 
 
+def link_rag_md(book_dir: str, folder_name: str, rag_path: str, academic_hub_root: str) -> bool:
+    """Called by process_book() right after it writes .rag.md. Records the
+    linkage in _metadata.json unconditionally (independent of whether a
+    matching index card exists yet), and updates the card's rag_md_path
+    when one does. Never raises -- a linkage failure must not affect the
+    .rag.md file this runs after, or abort process_book()'s caller's loop
+    over the rest of the books being processed."""
+    metadata_path = os.path.join(book_dir, f"{folder_name}_metadata.json")
+    try:
+        with open(metadata_path, "r", encoding="utf-8") as f:
+            metadata = json.load(f)
+    except (OSError, json.JSONDecodeError) as err:
+        print(f"WARNING: [{folder_name}] could not read {metadata_path} ({err}); "
+              f"skipping .rag.md linkage.")
+        return False
+
+    file_id = metadata.get("source_pdf_file_id")
+    if not file_id:
+        print(f"WARNING: [{folder_name}] no source_pdf_file_id in {metadata_path} "
+              f"(converted before this field existed) -- skipping .rag.md linkage. "
+              f"Re-run convert_textbook.py on its PDF, or add the field by hand, "
+              f"then rerun describe_images.py.")
+        return False
+
+    rel_rag_path = os.path.relpath(rag_path, academic_hub_root).replace(os.sep, "/")
+    metadata["rag_md_path"] = rel_rag_path
+    with open(metadata_path, "w", encoding="utf-8") as f:
+        json.dump(metadata, f, indent=4, ensure_ascii=False)
+
+    found = set_rag_md_path(academic_hub_root, file_id, rel_rag_path)
+    if not found:
+        print(f"WARNING: [{folder_name}] no index card found for file_id {file_id} yet -- "
+              f"_metadata.json's rag_md_path is recorded regardless; rerun "
+              f"`python index_search.py rebuild` later to pick it up.")
+    return found
+
+
 def process_book(
     book_dir: str,
     client,
     model: str,
+    academic_hub_root: str,
     paragraphs_before: int = 1,
     paragraphs_after: int = 1,
     dry_run: bool = False,
@@ -284,6 +323,8 @@ def process_book(
         f.write(rag_text)
     print(f"[{folder_name}] wrote {rag_path}")
 
+    link_rag_md(book_dir, folder_name, rag_path, academic_hub_root)
+
 
 def main():
     parser = argparse.ArgumentParser(
@@ -322,7 +363,7 @@ def main():
 
     for book_dir in book_dirs:
         process_book(
-            book_dir, client, args.model,
+            book_dir, client, args.model, str(academic_hub_dir),
             args.context_paragraphs_before, args.context_paragraphs_after,
             dry_run=args.dry_run,
         )

@@ -1,6 +1,7 @@
 import os
 import tempfile
 import unittest
+from unittest.mock import patch
 
 import json
 
@@ -10,6 +11,7 @@ from describe_images import (
     extract_paragraph_context,
     filter_front_matter,
     find_image_references,
+    link_rag_md,
     load_front_matter_end,
     nearest_preceding_heading,
     parse_description_response,
@@ -236,6 +238,62 @@ class TestBuildRagMarkdown(unittest.TestCase):
         self.assertIn("Second figure.", rag_text)
         self.assertLess(rag_text.index("First figure."), rag_text.index("Middle paragraph."))
         self.assertLess(rag_text.index("Middle paragraph."), rag_text.index("Second figure."))
+
+
+class TestLinkRagMd(unittest.TestCase):
+    def _book_dir_with_metadata(self, tmp, metadata):
+        book_dir = os.path.join(tmp, "processed_outputs", "SomeBook_2025")
+        os.makedirs(book_dir)
+        with open(os.path.join(book_dir, "SomeBook_2025_metadata.json"), "w", encoding="utf-8") as f:
+            json.dump(metadata, f)
+        return book_dir
+
+    def test_writes_rag_md_path_into_metadata_and_the_matching_card(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            book_dir = self._book_dir_with_metadata(tmp, {"source_pdf_file_id": "fid1"})
+            rag_path = os.path.join(book_dir, "SomeBook_2025.rag.md")
+
+            with patch("describe_images.set_rag_md_path", return_value=True) as mock_set:
+                found = link_rag_md(book_dir, "SomeBook_2025", rag_path, tmp)
+
+            self.assertTrue(found)
+            mock_set.assert_called_once()
+            self.assertEqual(mock_set.call_args[0][0], tmp)
+            self.assertEqual(mock_set.call_args[0][1], "fid1")
+            self.assertEqual(mock_set.call_args[0][2], "processed_outputs/SomeBook_2025/SomeBook_2025.rag.md")
+
+            with open(os.path.join(book_dir, "SomeBook_2025_metadata.json"), encoding="utf-8") as f:
+                metadata = json.load(f)
+            self.assertEqual(metadata["rag_md_path"], "processed_outputs/SomeBook_2025/SomeBook_2025.rag.md")
+            self.assertEqual(metadata["source_pdf_file_id"], "fid1")  # untouched
+
+    def test_returns_false_when_metadata_has_no_source_pdf_file_id_yet(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            book_dir = self._book_dir_with_metadata(tmp, {})  # predates this field
+            rag_path = os.path.join(book_dir, "SomeBook_2025.rag.md")
+            with patch("describe_images.set_rag_md_path") as mock_set:
+                found = link_rag_md(book_dir, "SomeBook_2025", rag_path, tmp)
+            self.assertFalse(found)
+            mock_set.assert_not_called()
+
+    def test_returns_false_but_still_writes_metadata_when_no_card_exists_yet(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            book_dir = self._book_dir_with_metadata(tmp, {"source_pdf_file_id": "fid1"})
+            rag_path = os.path.join(book_dir, "SomeBook_2025.rag.md")
+            with patch("describe_images.set_rag_md_path", return_value=False):
+                found = link_rag_md(book_dir, "SomeBook_2025", rag_path, tmp)
+            self.assertFalse(found)
+            with open(os.path.join(book_dir, "SomeBook_2025_metadata.json"), encoding="utf-8") as f:
+                metadata = json.load(f)
+            self.assertEqual(metadata["rag_md_path"], "processed_outputs/SomeBook_2025/SomeBook_2025.rag.md")
+
+    def test_missing_metadata_file_returns_false_not_a_crash(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            book_dir = os.path.join(tmp, "processed_outputs", "SomeBook_2025")
+            os.makedirs(book_dir)  # no _metadata.json written at all
+            rag_path = os.path.join(book_dir, "SomeBook_2025.rag.md")
+            found = link_rag_md(book_dir, "SomeBook_2025", rag_path, tmp)
+            self.assertFalse(found)
 
 
 if __name__ == "__main__":
