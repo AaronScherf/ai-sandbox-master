@@ -4,7 +4,7 @@ import unittest
 from unittest.mock import MagicMock
 
 from index_card import load_shard, load_tags, save_shard
-from retag import assign_tags, discover_tags, fuzzy_match_tag, retag
+from retag import assign_tags, discover_tags, ensure_minimum_coverage, fuzzy_match_tag, retag
 
 
 class TestFuzzyMatchTag(unittest.TestCase):
@@ -182,6 +182,18 @@ class TestAssignTags(unittest.TestCase):
             self.assertIn("preview", stats)
             self.assertEqual(stats["preview"]["math-camp"]["a"], ["linear-algebra"])
 
+    def test_preview_is_returned_even_when_not_dry_run(self):
+        # retag() (spec §5.4) needs this run's fresh per-card tags
+        # in-memory, without a disk re-read that would be stale in
+        # dry_run mode -- so preview is always populated, not just under
+        # dry_run.
+        with tempfile.TemporaryDirectory() as tmp:
+            save_shard(tmp, "math-camp", [{"file_id": "a", "embedding": [1.0, 0.0], "tags": []}])
+            known = [{"tag": "linear-algebra", "embedding": [1.0, 0.0]}]
+            all_cards = [("math-camp", {"file_id": "a", "embedding": [1.0, 0.0]})]
+            stats = assign_tags(tmp, all_cards, known)
+            self.assertEqual(stats["preview"]["math-camp"]["a"], ["linear-algebra"])
+
 
 class TestRetag(unittest.TestCase):
     def test_end_to_end_mints_and_assigns(self):
@@ -224,6 +236,89 @@ class TestRetag(unittest.TestCase):
             self.assertEqual(load_tags(tmp), [])        # but nothing persisted
             for card in load_shard(tmp, "math-camp"):
                 self.assertEqual(card["tags"], [])       # cards untouched
+
+
+def _fake_fallback_client(tag="syllabus", definition="A course syllabus."):
+    client = MagicMock()
+    gen_response = MagicMock()
+    gen_response.text = json.dumps({"tag": tag, "definition": definition})
+    client.models.generate_content.return_value = gen_response
+    embed_response = MagicMock()
+    embedding = MagicMock()
+    embedding.values = [0.3, 0.3]
+    embed_response.embeddings = [embedding]
+    client.models.embed_content.return_value = embed_response
+    return client
+
+
+class TestEnsureMinimumCoverage(unittest.TestCase):
+    def test_untagged_card_gets_a_new_fallback_tag(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            save_shard(tmp, "math-camp", [{"file_id": "a", "embedding": [9.0, 9.0], "tags": []}])
+            all_cards = [("math-camp", {"file_id": "a", "title": "Summer Camp", "summary": "Overview.", "tags": []})]
+            client = _fake_fallback_client(tag="syllabus")
+
+            updated_tags, stats = ensure_minimum_coverage(tmp, all_cards, [], client)
+
+            self.assertEqual(stats["fallback_tags_minted"], 1)
+            self.assertEqual(stats["cards_covered"], 1)
+            self.assertEqual([t["tag"] for t in updated_tags], ["syllabus"])
+            self.assertEqual(load_shard(tmp, "math-camp")[0]["tags"], ["syllabus"])
+
+    def test_assigned_regardless_of_anchor_similarity_to_the_card(self):
+        # The anchor was derived to describe THIS card specifically --
+        # requiring it to also clear a similarity threshold against the
+        # same card would reintroduce the exact anchor-vs-document gap
+        # §5.2 already had to fix (spec §5.4). The card's embedding
+        # ([-5.0, 0.001]) and the fake anchor ([0.3, 0.3], from
+        # _fake_fallback_client) point in near-opposite directions
+        # (negative cosine similarity) -- deliberately, to prove the tag
+        # still gets assigned even though a similarity check would fail.
+        with tempfile.TemporaryDirectory() as tmp:
+            save_shard(tmp, "math-camp", [{"file_id": "a", "embedding": [-5.0, 0.001], "tags": []}])
+            all_cards = [("math-camp", {"file_id": "a", "title": "T", "summary": "S", "tags": []})]
+            client = _fake_fallback_client(tag="syllabus")
+            ensure_minimum_coverage(tmp, all_cards, [], client)
+            self.assertEqual(load_shard(tmp, "math-camp")[0]["tags"], ["syllabus"])
+
+    def test_already_tagged_cards_are_left_alone(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            save_shard(tmp, "math-camp", [{"file_id": "a", "embedding": [1.0, 0.0], "tags": ["linear-algebra"]}])
+            all_cards = [("math-camp", {"file_id": "a", "title": "T", "summary": "S", "tags": ["linear-algebra"]})]
+            client = MagicMock()
+            _, stats = ensure_minimum_coverage(tmp, all_cards, [{"tag": "linear-algebra", "embedding": [1.0, 0.0]}], client)
+            self.assertEqual(stats["cards_covered"], 0)
+            client.models.generate_content.assert_not_called()
+            self.assertEqual(load_shard(tmp, "math-camp")[0]["tags"], ["linear-algebra"])
+
+    def test_two_untagged_cards_proposing_the_same_fallback_converge_on_one_tag(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            save_shard(tmp, "math-camp", [
+                {"file_id": "a", "embedding": [1.0, 0.0], "tags": []},
+                {"file_id": "b", "embedding": [0.0, 1.0], "tags": []},
+            ])
+            all_cards = [
+                ("math-camp", {"file_id": "a", "title": "T1", "summary": "S1", "tags": []}),
+                ("math-camp", {"file_id": "b", "title": "T2", "summary": "S2", "tags": []}),
+            ]
+            client = _fake_fallback_client(tag="syllabus")  # both proposals return the same tag
+            updated_tags, stats = ensure_minimum_coverage(tmp, all_cards, [], client)
+            self.assertEqual(stats["fallback_tags_minted"], 1)
+            self.assertEqual(stats["fallback_tags_reused"], 1)
+            self.assertEqual(len(updated_tags), 1)
+            cards = {c["file_id"]: c for c in load_shard(tmp, "math-camp")}
+            self.assertEqual(cards["a"]["tags"], ["syllabus"])
+            self.assertEqual(cards["b"]["tags"], ["syllabus"])
+
+    def test_dry_run_writes_nothing(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            save_shard(tmp, "math-camp", [{"file_id": "a", "embedding": [1.0, 0.0], "tags": []}])
+            all_cards = [("math-camp", {"file_id": "a", "title": "T", "summary": "S", "tags": []})]
+            client = _fake_fallback_client(tag="syllabus")
+            _, stats = ensure_minimum_coverage(tmp, all_cards, [], client, dry_run=True)
+            self.assertEqual(stats["fallback_tags_minted"], 1)
+            self.assertEqual(load_shard(tmp, "math-camp")[0]["tags"], [])  # unchanged
+            self.assertEqual(load_tags(tmp), [])  # unchanged
 
 
 if __name__ == "__main__":

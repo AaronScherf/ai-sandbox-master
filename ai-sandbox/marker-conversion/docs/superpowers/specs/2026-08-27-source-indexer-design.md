@@ -580,7 +580,40 @@ the full assignment result without writing anything — lets
 `TAG_ASSIGNMENT_THRESHOLD` be sanity-checked against the real corpus
 before trusting a run that mutates every course shard at once.
 
-## 6. Search algorithm (two-stage)
+### 5.4 Minimum coverage — every file gets at least one tag
+
+Confirmed live: 5.2's conservative minting bar (`MIN_TAG_CLUSTER_SIZE`)
+correctly avoids inventing subject tags from too little real evidence,
+but it also means a genuinely unique document (the only syllabus in the
+corpus, a one-off course overview) can never earn a shared subject tag
+on its own — 2 of 24 real cards ended up with zero tags in the same live
+test that validated §5.2's redesign. An untagged file — no descriptor
+at all — is a worse outcome than one single-file tag like `syllabus`
+that will never clear the corpus-wide bar and isn't meant to.
+
+After discovery (§5.2) and assignment (§5.3) complete, run one more
+pass: for every card whose `tags` list is still empty, one per-file LLM
+call proposes a tag specifically for *that document alone* (e.g.
+`syllabus`), fuzzy-matched against the vocabulary first (§5.2's
+`fuzzy_match_tag()`, reused as-is) so two similar one-off files converge
+on the same tag rather than fragmenting. Unlike §5.2's candidates, a
+minimum-coverage tag is **never subject to the empirical match-count
+validation** — it's explicitly a single-file exception, not a claim
+about corpus-wide structure, and is assigned directly to its originating
+card regardless of the anchor's computed similarity to that card (the
+anchor was derived to describe this exact file, so requiring it to also
+clear a similarity threshold against that same file would reintroduce
+§5.2's original anchor-vs-single-document gap for no reason). If a new
+tag is minted this way, it's appended to `tags.json` like any other —
+future `retag` runs' discovery-phase fuzzy matching, and even normal
+assignment, can naturally reuse it if the corpus later grows enough
+similar content to justify it properly.
+
+This pass runs every time, not just once: a card that got a
+minimum-coverage tag in an earlier run and *still* has zero tags from
+discovery+assignment this run keeps getting covered; a card that now
+has a real corpus-driven tag is skipped, consistent with §5.3's "tags
+are not permanent."
 
 ```python
 def search(

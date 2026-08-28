@@ -183,6 +183,11 @@ def assign_tags(
             stats["tag_assignments"] += len(matched)
         by_course.setdefault(course, {})[card["file_id"]] = matched
 
+    # `preview` is always populated (not just under dry_run) -- retag()
+    # uses it directly, in-memory, to see this run's fresh tags for the
+    # minimum-coverage pass (spec §5.4) without a stale disk re-read,
+    # which would be wrong specifically in dry_run mode (nothing written
+    # yet) and wasteful otherwise.
     if dry_run:
         return stats | {"preview": by_course}
 
@@ -198,12 +203,95 @@ def assign_tags(
             save_shard(academic_hub_root, course, cards)
             recompute_course_entry(academic_hub_root, course)
 
-    return stats
+    return stats | {"preview": by_course}
+
+
+_FALLBACK_TAG_PROMPT = """This document has no matching tags in the corpus's shared tag \
+vocabulary -- likely because it's a unique document type in this corpus (e.g. the only \
+syllabus), or its subject area doesn't have enough other documents yet to justify a shared tag.
+
+Propose ONE short, useful, kebab-case tag that specifically describes THIS document -- e.g. \
+"syllabus" for a course syllabus, even though nothing else in the corpus needs that tag yet.
+
+Respond with ONLY a JSON object with exactly two keys:
+"tag" (a short, kebab-case tag name),
+"definition" (one sentence defining what it means, for use as its own semantic anchor).
+
+Title: {title}
+Summary: {summary}"""
+
+
+def _propose_fallback_tag(card: dict, client) -> tuple[str, str]:
+    prompt = _FALLBACK_TAG_PROMPT.format(title=card.get("title", ""), summary=card.get("summary", ""))
+    response = call_with_retries(lambda: client.models.generate_content(
+        model=GENERATION_MODEL,
+        contents=prompt,
+        config={
+            "response_mime_type": "application/json",
+            "temperature": 0,
+            "thinking_config": {"thinking_level": "minimal"},
+        },
+    ))
+    parsed = json.loads(response.text)
+    tag = str(parsed.get("tag") or "").strip().lower().replace(" ", "-")
+    definition = str(parsed.get("definition") or "").strip()
+    return tag, definition
+
+
+def ensure_minimum_coverage(
+    academic_hub_root: str, all_cards: list[tuple[str, dict]], known_tags: list[dict], client,
+    dry_run: bool = False,
+) -> tuple[list[dict], dict]:
+    """Safety net (spec §5.4): after discovery+assignment, any card still
+    without a tag gets one from a per-file proposal -- an untagged file
+    is worse than a single-file tag like "syllabus" that will never
+    clear §5.2's corpus-wide minting bar and isn't meant to. Deliberately
+    skips the similarity check entirely when assigning: the anchor was
+    derived to describe this exact card, so requiring it to also clear a
+    threshold against that same card would reintroduce the anchor-vs-
+    document gap §5.2 already had to fix."""
+    stats = {"fallback_tags_minted": 0, "fallback_tags_reused": 0, "cards_covered": 0}
+    updated_tags = list(known_tags)
+    by_course: dict[str, dict[str, str]] = {}
+
+    for course, card in all_cards:
+        if card.get("tags"):
+            continue
+        proposed_tag, definition = _propose_fallback_tag(card, client)
+        existing = fuzzy_match_tag(proposed_tag, updated_tags)
+        if existing is not None:
+            tag_name = existing["tag"]
+            stats["fallback_tags_reused"] += 1
+        else:
+            anchor = _embed_tag(proposed_tag, definition, client)
+            updated_tags.append({"tag": proposed_tag, "embedding": anchor})
+            tag_name = proposed_tag
+            stats["fallback_tags_minted"] += 1
+        by_course.setdefault(course, {})[card["file_id"]] = tag_name
+        stats["cards_covered"] += 1
+
+    if dry_run or not by_course:
+        return updated_tags, stats
+
+    for course, file_tag_map in by_course.items():
+        cards = load_shard(academic_hub_root, course)
+        changed = False
+        for c in cards:
+            fid = c.get("file_id")
+            if fid in file_tag_map:
+                c["tags"] = [file_tag_map[fid]]
+                changed = True
+        if changed:
+            save_shard(academic_hub_root, course, cards)
+            recompute_course_entry(academic_hub_root, course)
+
+    return updated_tags, stats
 
 
 def _load_all_cards(academic_hub_root: str) -> list[tuple[str, dict]]:
     """(course, card) for every non-orphaned, embedded card across all
-    shards -- what both discovery and assignment operate over."""
+    shards -- what discovery, assignment, and minimum-coverage all
+    operate over."""
     result = []
     for course in list_courses(academic_hub_root):
         for card in load_shard(academic_hub_root, course):
@@ -228,7 +316,19 @@ def retag(
         academic_hub_root, all_cards, updated_tags, threshold=assignment_threshold, dry_run=dry_run,
     )
 
+    # Reflect this run's fresh assignment onto the in-memory cards before
+    # the minimum-coverage pass decides which are still untagged --
+    # reading back from disk here would be stale in dry_run mode
+    # (nothing written yet).
+    preview = assignment_stats["preview"]
+    for course, card in all_cards:
+        card["tags"] = preview.get(course, {}).get(card["file_id"], [])
+
+    updated_tags, coverage_stats = ensure_minimum_coverage(
+        academic_hub_root, all_cards, updated_tags, client, dry_run=dry_run,
+    )
+
     if not dry_run:
         save_tags(academic_hub_root, updated_tags)
 
-    return discovery_stats | assignment_stats
+    return discovery_stats | assignment_stats | coverage_stats
