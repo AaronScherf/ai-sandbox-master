@@ -79,6 +79,7 @@ corpus root:
 
 ```json
 {
+  "file_id": "9f2a6c1d4e8b0a3f",
   "path": "academic_resources/math-camp/textbooks-and-papers/processed_outputs/Axler_Linear_Algebra_Done_Right_2026/Axler_Linear_Algebra_Done_Right_2026.md",
   "course": "math-camp",
   "doc_type": "textbook",
@@ -92,6 +93,15 @@ corpus root:
 }
 ```
 
+- `file_id` is the true identity of a card — a truncated SHA-256 hash of
+  the **original source PDF's bytes**, not derived from `path` at all. See
+  §4.3: this is what makes the index robust to renaming/moving/nesting
+  course folders, since `path` and `course` are free to change on an
+  existing card without that card being treated as a new file. PDFs are
+  confirmed to stay on disk alongside their processed outputs (checked
+  directly in `academic_resources/math-camp/textbooks-and-papers/` and
+  `academic_notes/math-camp/ta_notes/`), so this hash can be recomputed
+  identically at any future rebuild, not just at first generation.
 - `doc_type` is one of: `textbook`, `problem_set`, `ta_notes`,
   `handwritten_notes`, or the raw `folder_category` string if it doesn't map
   to a known type — never fails closed.
@@ -102,6 +112,10 @@ corpus root:
 - `source_updated_at` is the source `.md`'s mtime at card-generation time,
   used by the rebuild pass to detect files that changed since their card
   was last generated.
+- `orphaned: true` (omitted otherwise) marks a card whose `file_id` a
+  rebuild sweep couldn't match to any PDF on disk — see §4.3/§6. Excluded
+  from search results and from its course's centroid/topic-count rollup
+  while flagged.
 
 ### 3.2 Course-level entry (one per course, in `courses.json`)
 
@@ -196,6 +210,32 @@ caught, logged as a warning, and a minimal card with `needs_indexing: true`
 (path/course/doc_type only, no summary/topics/embedding) is written instead,
 so the file is at least known to exist and picked up by the rebuild pass.
 
+### 4.3 Reconciliation by `file_id` (robustness to folder reorganization)
+
+Neither the hook nor the rebuild pass treats `path` as a stable identifier.
+Before generating anything, both compute `file_id` from the source PDF's
+bytes and look it up **across every course shard**, not just the shard for
+the currently-derived `course`:
+
+- **Match in the same course's shard, `path` unchanged:** nothing to do.
+- **Match in the same course's shard, `path` changed:** the file moved
+  within the same course (e.g. reorganized into a new subfolder) — update
+  `path`/`source_updated_at` on the existing card in place. No LLM or
+  embedding call.
+- **Match in a different course's shard:** the file moved to a different
+  course (e.g. a folder rename that changes what `derive_folder_category`-
+  style logic reads as the course, or a folder nested under a different
+  course). Move the card from the old course's shard to the new one, update
+  `path`/`course`, and recompute `courses.json` centroid/topic-counts for
+  *both* the old and new course (still purely mechanical — no LLM or
+  embedding call, since `summary`/`topics`/`embedding` don't change).
+- **No match anywhere:** genuinely new content — generate a fresh card as
+  in §4 (this is the only path that costs an LLM + embedding call).
+
+This means a course-folder rename or nesting change costs exactly one
+rebuild pass worth of PDF hashing (cheap — no network calls) to reconcile
+every affected card in place, not a full regeneration of the corpus.
+
 ## 5. Search algorithm (two-stage)
 
 ```python
@@ -230,12 +270,22 @@ the two-stage structure — not needed now (YAGNI).
 
 Because the 39 files that exist today predate this system, and because
 hook failures leave `needs_indexing: true` stragglers, a rebuild pass walks
-`academic-hub/` and calls the same `generate_index_card()` /
-`write_card()` path in bulk for any file that has no card, has
-`needs_indexing: true`, or whose source `.md` mtime is newer than its
-card's `source_updated_at`. This is not a second mechanism competing with
-the hook — it's the same generation logic, invoked in bulk, used for
-initial backfill and for recovering from any failed hook calls.
+`academic-hub/` and, for every source PDF found, runs the §4.3 reconciliation
+(hash → look up `file_id` across all shards → update-in-place, move-between-
+shards, or generate fresh) — the same generation/reconciliation logic used
+by the hook, invoked in bulk rather than per-file. This is also what makes
+the index robust to reorganization end-to-end: renaming, moving, or nesting
+a course folder doesn't break search or leave dead paths behind, it just
+requires one rebuild pass to catch up.
+
+**Orphan handling:** a card whose `file_id` isn't matched to any PDF found
+during a rebuild sweep (the source PDF was deleted, or its content was
+replaced — a content change produces a different hash, which is correctly
+treated as a new file rather than silently reusing the old card) is flagged
+`orphaned: true` rather than deleted immediately. `rebuild --prune` removes
+confirmed orphans (and rolls their old course's centroid/topic-counts back)
+as an explicit, separate action — nothing disappears from the index as a
+side effect of an ordinary rebuild.
 
 ## 7. CLI
 
@@ -245,12 +295,13 @@ future RAG model can import `search()` directly:
 
 ```
 python index_search.py query "teach me about linear algebra" [--course math-camp] [--top-k 5]
-python index_search.py rebuild [--course math-camp] [--force]
+python index_search.py rebuild [--course math-camp] [--force] [--prune]
 ```
 
 `query` prints ranked `path, course, doc_type, score, summary` rows.
-`rebuild` runs §6's backfill pass, `--force` regenerating even cards that
-look up to date.
+`rebuild` runs §6's backfill/reconciliation pass, `--force` regenerating
+even cards that look up to date, `--prune` additionally clearing confirmed
+orphans (see §6).
 
 ## 8. Future extensions (explicitly not built now)
 
