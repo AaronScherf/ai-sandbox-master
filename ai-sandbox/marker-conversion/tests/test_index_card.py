@@ -1,6 +1,7 @@
 import os
 import tempfile
 import unittest
+from unittest.mock import MagicMock
 
 from index_card import (
     compute_file_id,
@@ -10,7 +11,28 @@ from index_card import (
     save_courses,
     save_shard,
     cosine_similarity,
+    generate_index_card,
+    make_failure_card,
 )
+
+
+def _fake_client(doc_type="textbook", has_solutions=False, level="introductory"):
+    client = MagicMock()
+    gen_response = MagicMock()
+    gen_response.text = (
+        '{"title": "Linear Algebra Done Right", "doc_type": "%s", '
+        '"summary": "Covers vector spaces and eigenvalues.", '
+        '"level": "%s", "has_solutions": %s}'
+        % (doc_type, level, str(has_solutions).lower())
+    )
+    client.models.generate_content.return_value = gen_response
+
+    embed_response = MagicMock()
+    embedding = MagicMock()
+    embedding.values = [0.1, 0.2, 0.3]
+    embed_response.embeddings = [embedding]
+    client.models.embed_content.return_value = embed_response
+    return client
 
 
 class TestComputeFileId(unittest.TestCase):
@@ -105,6 +127,85 @@ class TestCosineSimilarity(unittest.TestCase):
 
     def test_empty_vector_scores_zero_not_a_crash(self):
         self.assertEqual(cosine_similarity([], [1.0, 2.0]), 0.0)
+
+
+class TestGenerateIndexCard(unittest.TestCase):
+    def test_builds_a_complete_card_from_llm_and_embedding_responses(self):
+        client = _fake_client()
+        card = generate_index_card(
+            file_id="abc123",
+            path="academic_resources/math-camp/textbooks-and-papers/processed_outputs/Axler/Axler.md",
+            source_pdf_path="academic_resources/math-camp/textbooks-and-papers/Axler.pdf",
+            course="math-camp",
+            folder_category="textbooks-and-papers",
+            content_sample="Chapter 1: Vector Spaces...",
+            page_count=404,
+            client=client,
+        )
+        self.assertEqual(card["file_id"], "abc123")
+        self.assertEqual(card["title"], "Linear Algebra Done Right")
+        self.assertEqual(card["doc_type"], "textbook")
+        self.assertEqual(card["summary"], "Covers vector spaces and eigenvalues.")
+        self.assertEqual(card["level"], "introductory")
+        self.assertFalse(card["has_solutions"])
+        self.assertEqual(card["page_count"], 404)
+        self.assertEqual(card["embedding"], [0.1, 0.2, 0.3])
+        self.assertEqual(card["embedding_model"], "gemini-embedding-001:768")
+        self.assertEqual(card["topics"], [])
+        self.assertFalse(card["needs_indexing"])
+        self.assertIsNone(card["rag_md_path"])
+        self.assertNotIn("orphaned", card)
+
+    def test_falls_back_to_folder_category_when_llm_doc_type_is_unrecognized(self):
+        client = _fake_client(doc_type="something_weird")
+        card = generate_index_card(
+            file_id="x", path="p.md", source_pdf_path="p.pdf", course="math-camp",
+            folder_category="ta_notes", content_sample="text", page_count=10, client=client,
+        )
+        self.assertEqual(card["doc_type"], "ta_notes")
+
+    def test_falls_back_to_introductory_when_llm_level_is_unrecognized(self):
+        client = _fake_client(level="expert-plus")
+        card = generate_index_card(
+            file_id="x", path="p.md", source_pdf_path="p.pdf", course="math-camp",
+            folder_category="ta_notes", content_sample="text", page_count=10, client=client,
+        )
+        self.assertEqual(card["level"], "introductory")
+
+    def test_embeds_title_and_summary_not_raw_content(self):
+        client = _fake_client()
+        generate_index_card(
+            file_id="x", path="p.md", source_pdf_path="p.pdf", course="math-camp",
+            folder_category="ta_notes", content_sample="a" * 50000, page_count=10, client=client,
+        )
+        embed_call = client.models.embed_content.call_args
+        self.assertIn("Linear Algebra Done Right", embed_call.kwargs["contents"])
+        self.assertIn("Covers vector spaces", embed_call.kwargs["contents"])
+        self.assertNotIn("a" * 50000, embed_call.kwargs["contents"])
+
+    def test_prompt_mentions_folder_category_as_a_hint_not_a_verdict(self):
+        client = _fake_client()
+        generate_index_card(
+            file_id="x", path="p.md", source_pdf_path="p.pdf", course="math-camp",
+            folder_category="problem_sets", content_sample="text", page_count=10, client=client,
+        )
+        prompt = client.models.generate_content.call_args.kwargs["contents"]
+        self.assertIn("problem_sets", prompt)
+
+
+class TestMakeFailureCard(unittest.TestCase):
+    def test_minimal_card_carries_enough_to_be_reconciled_later(self):
+        card = make_failure_card(
+            file_id="abc123", path="p.md", source_pdf_path="p.pdf",
+            course="math-camp", folder_category="ta_notes",
+        )
+        self.assertEqual(card["file_id"], "abc123")
+        self.assertEqual(card["path"], "p.md")
+        self.assertEqual(card["source_pdf_path"], "p.pdf")
+        self.assertEqual(card["course"], "math-camp")
+        self.assertEqual(card["doc_type"], "ta_notes")
+        self.assertTrue(card["needs_indexing"])
+        self.assertEqual(card["embedding"], [])
 
 
 if __name__ == "__main__":

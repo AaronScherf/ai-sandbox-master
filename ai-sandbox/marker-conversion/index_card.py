@@ -18,6 +18,9 @@ from datetime import datetime, timezone
 
 import numpy as np
 
+from gemini_utils import call_with_retries
+from google.genai import types
+
 EMBEDDING_MODEL = "gemini-embedding-001"
 EMBEDDING_DIMENSIONALITY = 768
 EMBEDDING_MODEL_ID = f"{EMBEDDING_MODEL}:{EMBEDDING_DIMENSIONALITY}"
@@ -112,3 +115,102 @@ def cosine_similarity(a: list[float], b: list[float]) -> float:
     if denom == 0.0:
         return 0.0
     return float(np.dot(arr_a, arr_b) / denom)
+
+
+_PROMPT_TEMPLATE = """You are cataloging one document from a personal study corpus for a search index.
+
+The document's containing folder is categorized as '{folder_category}', but classify based on \
+the actual content below, not the folder name alone -- e.g. a file that is actually an exam \
+should be classified "exam" even if it lives in a folder named for practice problem sets.
+
+Respond with ONLY a JSON object with exactly these keys:
+"title" (string, the document's own title or a short descriptive name),
+"doc_type" (one of: "textbook", "problem_set", "exam", "ta_notes", "handwritten_notes"),
+"summary" (2-3 sentences describing what this document covers),
+"level" (one of: "introductory", "intermediate", "advanced"),
+"has_solutions" (boolean -- true only if THIS document itself shows worked solutions/answers, \
+not just problem statements).
+
+--- DOCUMENT START ---
+{content_sample}
+--- DOCUMENT END ---"""
+
+
+def generate_index_card(
+    file_id: str, path: str, source_pdf_path: str, course: str, folder_category: str,
+    content_sample: str, page_count: int, client,
+) -> dict:
+    """One structured-JSON generation call plus one embedding call. Never
+    proposes `topics` -- that's the corpus-wide retag pass's job (spec §5),
+    kept deliberately out of scope for a single-document call."""
+    prompt = _PROMPT_TEMPLATE.format(folder_category=folder_category, content_sample=content_sample)
+    response = call_with_retries(lambda: client.models.generate_content(
+        model=GENERATION_MODEL,
+        contents=prompt,
+        config={
+            "response_mime_type": "application/json",
+            "temperature": 0,
+            "thinking_config": {"thinking_level": "minimal"},
+        },
+    ))
+    parsed = json.loads(response.text)
+
+    title = str(parsed.get("title") or "").strip()
+    doc_type = parsed.get("doc_type")
+    if doc_type not in KNOWN_DOC_TYPES:
+        doc_type = folder_category
+    summary = str(parsed.get("summary") or "").strip()
+    level = parsed.get("level")
+    if level not in KNOWN_LEVELS:
+        level = "introductory"
+    has_solutions = bool(parsed.get("has_solutions", False))
+
+    embed_response = client.models.embed_content(
+        model=EMBEDDING_MODEL,
+        contents=f"{title}\n\n{summary}",
+        config=types.EmbedContentConfig(output_dimensionality=EMBEDDING_DIMENSIONALITY),
+    )
+    embedding = list(embed_response.embeddings[0].values)
+
+    return {
+        "file_id": file_id,
+        "path": path,
+        "source_pdf_path": source_pdf_path,
+        "course": course,
+        "doc_type": doc_type,
+        "title": title,
+        "summary": summary,
+        "topics": [],
+        "level": level,
+        "has_solutions": has_solutions,
+        "page_count": page_count,
+        "rag_md_path": None,
+        "embedding": embedding,
+        "embedding_model": EMBEDDING_MODEL_ID,
+        "source_updated_at": now_iso(),
+        "needs_indexing": False,
+    }
+
+
+def make_failure_card(file_id: str, path: str, source_pdf_path: str, course: str, folder_category: str) -> dict:
+    """Written when generate_index_card() raises -- keeps file_id/path so
+    §4.3 reconciliation can find and complete this exact card on a later
+    rebuild, rather than mistaking it for a new file each time."""
+    return {
+        "file_id": file_id,
+        "path": path,
+        "source_pdf_path": source_pdf_path,
+        "course": course,
+        "doc_type": folder_category,
+        "title": "",
+        "summary": "",
+        "topics": [],
+        "level": None,
+        "has_solutions": None,
+        "page_count": None,
+        "rag_md_path": None,
+        "embedding": [],
+        "embedding_model": None,
+        "source_updated_at": now_iso(),
+        "needs_indexing": True,
+    }
