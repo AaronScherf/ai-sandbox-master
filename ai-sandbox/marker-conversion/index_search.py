@@ -9,16 +9,89 @@ from __future__ import annotations
 
 import json
 import os
+from dataclasses import dataclass
+
+from google.genai import types
 
 from index_card import (
     TEXTBOOK_CONTENT_SAMPLE_CHARS,
+    EMBEDDING_DIMENSIONALITY,
+    EMBEDDING_MODEL,
+    KNOWN_LEVELS,
     compute_file_id,
+    cosine_similarity,
     derive_course,
+    load_courses,
     load_shard,
     recompute_course_entry,
     reconcile_and_write,
     save_shard,
 )
+
+DEFAULT_COURSE_CANDIDATES = 3
+
+
+@dataclass
+class SearchResult:
+    path: str
+    course: str
+    doc_type: str
+    score: float
+    reason: str
+
+
+def _embed_query(query: str, client) -> list[float]:
+    response = client.models.embed_content(
+        model=EMBEDDING_MODEL, contents=query,
+        config=types.EmbedContentConfig(output_dimensionality=EMBEDDING_DIMENSIONALITY),
+    )
+    return list(response.embeddings[0].values)
+
+
+def _candidate_courses(academic_hub_root: str, query_embedding: list[float], course: str | None) -> list[str]:
+    if course is not None:
+        return [course]
+    courses = load_courses(academic_hub_root)
+    scored = sorted(
+        courses.values(),
+        key=lambda entry: cosine_similarity(query_embedding, entry.get("embedding") or []),
+        reverse=True,
+    )
+    return [entry["course"] for entry in scored[:DEFAULT_COURSE_CANDIDATES]]
+
+
+def search(
+    academic_hub_root: str, query: str, client, course: str | None = None, top_k: int = 5,
+    doc_type: str | None = None, has_solutions: bool | None = None, max_level: str | None = None,
+) -> list[SearchResult]:
+    query_embedding = _embed_query(query, client)
+    candidate_courses = _candidate_courses(academic_hub_root, query_embedding, course)
+
+    scored: list[SearchResult] = []
+    for c in candidate_courses:
+        for card in load_shard(academic_hub_root, c):
+            if card.get("orphaned") or card.get("needs_indexing") or not card.get("embedding"):
+                continue
+            if doc_type is not None and card.get("doc_type") != doc_type:
+                continue
+            if has_solutions is not None and card.get("has_solutions") != has_solutions:
+                continue
+            if max_level is not None:
+                card_level = card.get("level")
+                if card_level not in KNOWN_LEVELS or KNOWN_LEVELS.index(card_level) > KNOWN_LEVELS.index(max_level):
+                    continue
+            score = cosine_similarity(query_embedding, card["embedding"])
+            # .rag.md is the same content plus inlined image descriptions --
+            # strictly more useful to a text-only consumer, so always
+            # preferred over the plain .md when set (spec §3.1/§4.4).
+            result_path = card.get("rag_md_path") or card["path"]
+            scored.append(SearchResult(
+                path=result_path, course=card["course"], doc_type=card["doc_type"],
+                score=score, reason=card.get("summary", ""),
+            ))
+
+    scored.sort(key=lambda r: r.score, reverse=True)
+    return scored[:top_k]
 
 
 def _notes_pdf_paths(academic_hub_root: str, course_filter: str | None):

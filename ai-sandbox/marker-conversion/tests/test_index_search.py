@@ -4,8 +4,8 @@ import tempfile
 import unittest
 from unittest.mock import MagicMock
 
-from index_card import load_courses, load_shard, save_shard
-from index_search import rebuild
+from index_card import load_courses, load_shard, save_shard, recompute_course_entry
+from index_search import rebuild, search
 
 
 def _fake_client():
@@ -159,6 +159,126 @@ class TestRebuild(unittest.TestCase):
             prompt = client.models.generate_content.call_args.kwargs["contents"]
             self.assertLessEqual(len(prompt), 50000)  # the 50000-char body did NOT go in whole
             self.assertIn("x" * TEXTBOOK_CONTENT_SAMPLE_CHARS, prompt)
+
+
+def _fake_query_client(query_embedding):
+    client = MagicMock()
+    embed_response = MagicMock()
+    embedding = MagicMock()
+    embedding.values = query_embedding
+    embed_response.embeddings = [embedding]
+    client.models.embed_content.return_value = embed_response
+    return client
+
+
+def _card(file_id, embedding, **overrides):
+    card = {
+        "file_id": file_id, "path": f"{file_id}.md", "source_pdf_path": f"{file_id}.pdf",
+        "course": "math-camp", "doc_type": "textbook", "title": file_id,
+        "summary": f"summary for {file_id}", "topics": [], "level": "introductory",
+        "has_solutions": False, "page_count": 10, "rag_md_path": None, "embedding": embedding,
+        "embedding_model": "gemini-embedding-001:768", "source_updated_at": "2026-01-01T00:00:00Z",
+        "needs_indexing": False,
+    }
+    card.update(overrides)
+    return card
+
+
+class TestSearch(unittest.TestCase):
+    def test_ranks_by_cosine_similarity_to_query(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            save_shard(tmp, "math-camp", [
+                _card("close", [1.0, 0.0]),
+                _card("far", [0.0, 1.0]),
+            ])
+            recompute_course_entry(tmp, "math-camp")
+            results = search(tmp, "linear algebra", client=_fake_query_client([1.0, 0.0]))
+            self.assertEqual(results[0].path, "close.md")
+            self.assertGreater(results[0].score, results[1].score)
+
+    def test_reason_is_the_cards_own_summary(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            save_shard(tmp, "math-camp", [_card("x", [1.0, 0.0])])
+            recompute_course_entry(tmp, "math-camp")
+            results = search(tmp, "q", client=_fake_query_client([1.0, 0.0]))
+            self.assertEqual(results[0].reason, "summary for x")
+
+    def test_prefers_rag_md_path_over_path_when_set(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            save_shard(tmp, "math-camp", [
+                _card("x", [1.0, 0.0], rag_md_path="x.rag.md"),
+            ])
+            recompute_course_entry(tmp, "math-camp")
+            results = search(tmp, "q", client=_fake_query_client([1.0, 0.0]))
+            self.assertEqual(results[0].path, "x.rag.md")
+
+    def test_falls_back_to_path_when_rag_md_path_is_unset(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            save_shard(tmp, "math-camp", [_card("x", [1.0, 0.0])])  # rag_md_path defaults to None
+            recompute_course_entry(tmp, "math-camp")
+            results = search(tmp, "q", client=_fake_query_client([1.0, 0.0]))
+            self.assertEqual(results[0].path, "x.md")
+
+    def test_course_scope_skips_other_courses_entirely(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            save_shard(tmp, "math-camp", [_card("m", [1.0, 0.0])])
+            save_shard(tmp, "spanish-101", [_card("s", [1.0, 0.0])])
+            recompute_course_entry(tmp, "math-camp")
+            recompute_course_entry(tmp, "spanish-101")
+            results = search(tmp, "q", client=_fake_query_client([1.0, 0.0]), course="math-camp")
+            self.assertEqual([r.path for r in results], ["m.md"])
+
+    def test_top_k_limits_results(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            save_shard(tmp, "math-camp", [_card(str(i), [1.0, 0.0]) for i in range(10)])
+            recompute_course_entry(tmp, "math-camp")
+            results = search(tmp, "q", client=_fake_query_client([1.0, 0.0]), top_k=3)
+            self.assertEqual(len(results), 3)
+
+    def test_doc_type_filter_applies_before_truncation(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            cards = [_card(f"p{i}", [1.0, 0.0], doc_type="problem_set") for i in range(5)]
+            cards.append(_card("t", [0.99, 0.01], doc_type="textbook"))
+            save_shard(tmp, "math-camp", cards)
+            recompute_course_entry(tmp, "math-camp")
+            results = search(tmp, "q", client=_fake_query_client([1.0, 0.0]), top_k=2, doc_type="textbook")
+            self.assertEqual([r.path for r in results], ["t.md"])
+
+    def test_has_solutions_filter(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            save_shard(tmp, "math-camp", [
+                _card("solved", [1.0, 0.0], has_solutions=True),
+                _card("unsolved", [1.0, 0.0], has_solutions=False),
+            ])
+            recompute_course_entry(tmp, "math-camp")
+            results = search(tmp, "q", client=_fake_query_client([1.0, 0.0]), has_solutions=False)
+            self.assertEqual([r.path for r in results], ["unsolved.md"])
+
+    def test_max_level_filter_excludes_harder_sources(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            save_shard(tmp, "math-camp", [
+                _card("easy", [1.0, 0.0], level="introductory"),
+                _card("hard", [1.0, 0.0], level="advanced"),
+            ])
+            recompute_course_entry(tmp, "math-camp")
+            results = search(tmp, "q", client=_fake_query_client([1.0, 0.0]), max_level="introductory")
+            self.assertEqual([r.path for r in results], ["easy.md"])
+
+    def test_excludes_orphaned_and_needs_indexing_cards(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            save_shard(tmp, "math-camp", [
+                _card("good", [1.0, 0.0]),
+                _card("orphan", [1.0, 0.0], orphaned=True),
+                _card("pending", [], needs_indexing=True),
+            ])
+            recompute_course_entry(tmp, "math-camp")
+            results = search(tmp, "q", client=_fake_query_client([1.0, 0.0]))
+            self.assertEqual([r.path for r in results], ["good.md"])
+
+    def test_no_courses_indexed_yet_returns_empty_list_not_a_crash(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            results = search(tmp, "q", client=_fake_query_client([1.0, 0.0]))
+            self.assertEqual(results, [])
 
 
 if __name__ == "__main__":
