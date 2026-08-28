@@ -137,10 +137,15 @@ treats `academic-hub/` as the corpus root:
   order — what `max_level` in §6's `search()` filters against) and
   `has_solutions` (does this file contain worked solutions/answers, as
   opposed to bare problem statements or unworked exercises) are both
-  inferred in the same per-file LLM call as `summary` (§4) — unlike
+  inferred in the same per-file LLM call as `summary` (§4), from that
+  same file's own `content_sample` — never from its filename. Unlike
   `topics`, a document's own difficulty and whether it shows its work are
   self-contained properties that don't need corpus-wide awareness to
-  judge, so there's no reason to defer them to `retag`.
+  judge, so there's no reason to defer them to `retag`. Caveat: for the
+  textbook pipeline, `content_sample` is only title/author/year + TOC
+  (§4), so `has_solutions` there leans on the LLM's background knowledge
+  of the named book rather than reading actual content — same tradeoff
+  already accepted for `summary`/`level` on textbooks.
 - `page_count` costs nothing extra to capture — both pipelines already
   compute it (`total_pages` in the notes pipeline's frontmatter,
   `total_pages_processed` in the textbook pipeline's `master_metadata`) —
@@ -428,9 +433,23 @@ previewing without writing.
   chapter it complements). `has_solutions` (§3.1) tells a RAG layer
   whether *one* file has solutions inline, but not which *other* file is
   its companion. Detecting that is a different mechanism from both §4
-  (per-file, no sibling awareness) and §5 (groups by topical similarity,
-  not by "this is the solved version of that") — a real, useful capability,
-  but its own design pass once the base system is proven, not built here.
+  (per-file, no sibling awareness) and §5 (groups by broad topical
+  similarity via `title+summary` embeddings, not by "this is specifically
+  the solved version of that") — a real, useful capability, but its own
+  design pass once the base system is proven, not built here. Worth
+  recording now while fresh: cluster co-membership (§5) alone won't be
+  precise enough to find a specific pair, since a true pair will usually
+  sit inside a cluster with several other same-topic files pulled in by
+  the same broad summary similarity. A workable approach would (1) treat
+  a file's similarity to a candidate partner as a *local outlier* —
+  meaningfully higher than that file's similarity to every other member
+  of its own cluster, not just above a fixed threshold — as a cheap
+  candidate filter reusing this spec's existing shards/embeddings, then
+  (2) confirm shortlisted candidates with either one LLM call comparing
+  the two documents directly, or a full-text (not summary-level) embedding
+  comparison limited to that shortlist — full-text embedding for the
+  whole corpus would be a much larger cost than anything else in this
+  spec, so it should stay scoped to confirmation, not first-pass search.
 - **Prerequisite/topic ordering**, extending the topic-graph idea below
   with directionality (e.g. "eigenvalues" typically presumes
   "vector-spaces") rather than the undirected co-occurrence §5 already
