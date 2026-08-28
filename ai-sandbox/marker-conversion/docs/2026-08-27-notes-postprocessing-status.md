@@ -1,11 +1,13 @@
 # Notes Post-Processing: Status Summary
 
 **Status: in progress.** The pipeline is built, unit-tested, and validated
-end-to-end against one real, reproduced bug -- but only against one small
-document so far. This doc will be updated once a broader corpus run
-(multiple subdirectories, the longer `LN_*.pdf`-scale documents) has
-happened; see "Remaining open items" for exactly what that's expected to
-tell us.
+end-to-end against one real, reproduced bug, and has now also been run
+against the full `ta_notes` and `problem_sets` corpora (multiple documents,
+including a 155-page `LN_*.pdf`-scale document). That broader run surfaced
+a real extraction bug (word-spacing collapse, now fixed) and a separate,
+still-open precision problem in the causal z-score signal on math-heavy
+prose (mitigated, not solved) -- see "Real-world validation" and
+"Remaining open items" below.
 
 Start here for "what happened and where do we stand" on the post-processing
 subproject -- `postprocess_notes.py`, a downstream correction pass over
@@ -88,9 +90,10 @@ generates itself, which doesn't support the masked-scoring this design
 needs.
 
 Everything except the PyMuPDF/`transformers`/network-touching pieces is
-pure Python and independently unit-tested -- 197 tests across the whole
-project as of this writing (37 new: 17 in `test_postprocess_discovery.py`,
-20 in `test_postprocess_findings.py`), all passing.
+pure Python and independently unit-tested -- 203 tests across the whole
+project as of this writing, all passing. That count includes 4 later
+additions covering `reconstruct_line_with_scripts()`'s gap-based
+synthetic-space fix (see "Real-world validation" below).
 
 ## The design spike, briefly
 
@@ -120,6 +123,8 @@ Full numbers and reasoning: the design spec linked above.
 |---|---|
 | `Practice Sheet.md` (dry-run, 41 eligible pages, already known-clean) | Before fixing the detection layering: 28 of 41 pages flagged, all from unnarrowed causal z-score alone -- false positives on an already-verified-correct document. After layering causal z-score as a narrowing pass ahead of masked-LM confirmation (matching the design spec's actual intent, which the first implementation had deviated from): 0 pages flagged. Also ~10x+ faster -- caching model loads and narrowing the masked-LM candidate set both mattered. |
 | `Analysis_Exercises.md` (real run, page 6's cache entry cleared to force the real bug to reproduce from fresh local extraction) | Found and correctly fixed the actual radical-as-`p` bug (`page 6` now reads `$$\sqrt{h^2 + k^2}$$`, re-verified against the source image). 9 other flagged candidates across the same document were independently re-verified and correctly left untouched (source-image check matched existing text). 10 real Gemini verification calls total, well under a cent. |
+| `ta_notes` corpus dry-run (`LN_Analysis.pdf` 155pp, `LN_Optimization.pdf` 112pp, `LN_Probability.pdf` 86pp) | First pass (before the spacing fix): `LN_Analysis.pdf`'s local/hybrid pages showed ~93 pages of `causal_then_masked` noise. Sampling found every flagged word was correct but sitting directly against a math variable with no space -- `"that𝑓𝑘→𝑓uniformly"` instead of `"that 𝑓_{𝑘} → 𝑓 uniformly"`. Root-caused to `reconstruct_line_with_scripts()` (in `transcribe_notes.py`) never checking for position-only gaps between PyMuPDF spans -- a common LaTeX/PDF pattern (justified text using kerning-level offsets instead of a literal space glyph). Fixed via a gap-based synthetic-space threshold (`_WORD_GAP_RATIO`); confirmed against the real motivating page. Second pass (after the fix, all three docs regenerated): all three documents ended up `routing: gemini_batched` (LN_Analysis's defect ratio, itself reduced 36→21 defective pages by the fix, still exceeded the 10% hybrid threshold and triggered a full 13-batch Gemini regeneration) -- so the corpus no longer exercises local extraction at all, and the dry-run came back with 0 candidates across all 353 pages. A clean result, but it validates fully-Gemini-transcribed text's precision, not the spacing fix's effect on locally-extracted text. |
+| `Practice Sheet.md` dry-run, re-run after the ta_notes result above (43 pages, `routing: hybrid`, never had the spacing bug) | Used to isolate the causal z-score signal's precision independent of any extraction defect. At the original threshold (3.0): candidates across 40/43 pages (~89 total). Every sampled candidate was a genuinely correct word ("For", "Show", "space", "subject", "compact", "Let", "explicitly") -- terse, LaTeX-heavy problem-set prose reads as high-surprisal to GPT-2 regardless of correctness. Dumping the raw z-score distribution showed no clean cutoff: even at 6.0, correct words like "Let" (z=11.60) and "subject" (z=5.91-6.27) still cleared the bar. Raised `_CAUSAL_ZSCORE_THRESHOLD` to 5.0 as a data-driven middle ground; re-tested and confirmed a real ~62% reduction (89 candidates/40 pages -> 34 candidates/22 pages) survives the downstream masked-LM confirmation pass. A mitigation, not a fix -- see "Remaining open items". |
 
 ## Key errors encountered and overcome
 
@@ -166,12 +171,21 @@ tests):
 
 ## Remaining open items
 
-- **Only validated against one small (11-page) document.** The
-  `_MASKED_PROBABILITY_THRESHOLD` (0.01) and `_CAUSAL_ZSCORE_THRESHOLD`
-  (3.0) constants in `postprocess_notes.py` are still first-guess
-  defaults, not yet exercised against a longer or more diverse document
-  (e.g. the 100+ page `LN_*.pdf` lecture-note files). A broader run is the
-  natural next step before trusting these at scale.
+- **The causal z-score signal has an unresolved precision problem on
+  math-heavy prose, independent of any extraction defect.** Raising
+  `_CAUSAL_ZSCORE_THRESHOLD` to 5.0 cut real-world noise by ~62% (see
+  `Practice Sheet.md` above) but did not eliminate it, and the raw
+  distribution shows no threshold in a reasonable range fully separates
+  correct terse math vocabulary from genuine anomalies -- correct words
+  still clear even a 6.0 bar. Two options were raised but not pursued this
+  session: a domain-adapted or math-aware model (the design spike already
+  found Qwen2.5-0.5B made this worse, not better -- see "The design spike,
+  briefly" above, so this isn't guaranteed to help), or accepting the
+  noise since source-image verification catches false positives before
+  any bad edit is made on a real (non-dry-run) pass -- the cost is wasted
+  Gemini verification calls, not incorrect output.
+  `_MASKED_PROBABILITY_THRESHOLD` (0.01) has not been similarly
+  data-driven yet.
 - **Never run across multiple subdirectories in one invocation** (e.g.
   `problem_sets` + `ta_notes` + `handwritten_notes` together) -- the
   mechanism supports it (`--root` is repeatable), just not exercised for
@@ -179,15 +193,25 @@ tests):
 - **The pattern-review threshold (5+ similar low-confidence findings
   in one document) has never actually fired** -- logic is unit-tested,
   but no real run so far has produced enough low-confidence volume to
-  trigger it.
+  trigger it. Note that `dry_run` mode can never trigger it either way --
+  `process_document` only appends to `unresolved` on the real
+  (non-dry-run) verification path, so a dry-run's candidate counts and the
+  pattern-review threshold are observing two different things.
 - **Cross-reference search's real-world impact is unverified.** It's
   wired into the verification hint and unit-tested in isolation, but
   wasn't the deciding factor in the one real fix made so far (the
   source-image check was) -- its actual value-add hasn't been specifically
   observed yet.
-- **`LN_Analysis.pdf` and `LN_Linear Algebra.pdf` remain on hold** from the
-  notes-transcription subproject (see that doc) -- unrelated to
-  post-processing directly, but still an open item in the same corpus.
+- **No real (non-dry-run, API-spending) pass has been run against the
+  broader `ta_notes`/`problem_sets` corpora yet** -- only the one earlier
+  `Analysis_Exercises.md` real run and this session's dry-runs. Given the
+  remaining causal z-score noise above, a real pass against `Practice
+  Sheet.md` today would trigger on the order of 22 pages' worth of
+  (harmless but real-cost) verification calls.
+- **`LN_Linear Algebra.pdf` remains on hold** from the notes-transcription
+  subproject (see that doc) -- unrelated to post-processing directly.
+  `LN_Analysis.pdf` is no longer on hold: regenerated this session as
+  `routing: gemini_batched` (155/155 pages, 13 Gemini batches).
 - `marker-conversion-post-processing` has been merged locally into
   `marker-conversion-notes-transcription` (fast-forward, tests green) but
   not yet pushed to `origin`. `marker-conversion-notes-transcription`
