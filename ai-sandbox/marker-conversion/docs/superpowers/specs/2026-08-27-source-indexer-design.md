@@ -105,6 +105,7 @@ treats `academic-hub/` as the corpus root:
   "level": "introductory",
   "has_solutions": false,
   "page_count": 404,
+  "rag_md_path": null,
   "embedding": [0.0123, -0.0456, ...],
   "embedding_model": "gemini-embedding-001:768",
   "source_updated_at": "2026-08-27T00:00:00Z",
@@ -154,6 +155,14 @@ treats `academic-hub/` as the corpus root:
   compute it (`total_pages` in the notes pipeline's frontmatter,
   `total_pages_processed` in the textbook pipeline's `master_metadata`) —
   it's just never been surfaced on a searchable record before.
+- `rag_md_path` (nullable, textbooks only) is set by a separate hook into
+  `describe_images.py` — see §4.4 — once that script produces
+  `{folder_name}.rag.md` (image descriptions inlined as text). Per-request
+  decision: `.rag.md` is always preferred over `.md` when present, since
+  it's identical content plus inlined descriptions, strictly more useful
+  to a text-only RAG consumer — §6's search results return `rag_md_path`
+  in place of `path` whenever it's set, rather than requiring a caller to
+  check both fields.
 - `needs_indexing: true` marks a card whose generation failed partway
   (LLM/embedding call error) — see §7 for how this gets swept up.
 - `source_updated_at` is the source `.md`'s mtime at card-generation time,
@@ -250,10 +259,15 @@ source length:**
   touching several function signatures and the persisted `run_config.json`
   schema, for a signal a markdown prefix already provides more simply).
 
-One `client.models.generate_content()` call, model `gemini-3.6-flash`
-(matching the model already used for generation calls throughout this
-project — `describe_images.py`, `transcribe_notes.py`,
-`extract_bibliographic_info_via_llm()`), via `call_with_retries()`,
+One `client.models.generate_content()` call, model `gemini-3.1-flash-lite`
+— this is a pure text-in/JSON-out classification+summarization call, no
+vision/multimodal input, so it uses this project's existing *cheap* text
+tier (`_MODEL_TYPESET` in `transcribe_notes.py`, already used there for
+exactly this kind of non-handwriting, text-only work), not the pricier
+`gemini-3.6-flash` tier reserved elsewhere in this project for vision
+tasks (image description, handwriting transcription). Confirmed live
+against the real API that `gemini-3.1-flash-lite` supports the same
+structured-JSON config used below. Via `call_with_retries()`,
 `config={"response_mime_type": "application/json", "temperature": 0,
 "thinking_config": {"thinking_level": "minimal"}}` (the same structured-
 JSON pattern `extract_bibliographic_info_via_llm()` in
@@ -282,31 +296,36 @@ than silently comparing incompatible vectors. The card is written with
 ### 4.1 Hook insertion points
 
 `generate_index_card()` takes an already-constructed `client` rather than
-building one itself, specifically because the two pipelines run in
-different environments and already use two different, incompatible
-client-construction paths for their own existing LLM calls — confirmed by
-reading both files, not assumed:
+building one itself. All three pipelines that touch `index_card.py`
+(`transcribe_notes.py`, `convert_textbook.py`, and `describe_images.py`
+— see §4.4) use the **same** client-construction path for their indexing
+calls specifically: `gemini_utils.get_gemini_client()` (Developer API key
+from `.env`), matching what `describe_images.py` and `transcribe_notes.py`
+already use for their own existing LLM calls today — confirmed by reading
+both files.
 
-- `transcribe_notes.py` runs locally (no GCP VM) and already builds its
-  client via `gemini_utils.get_gemini_client()` (Developer API key from
-  `.env`) — `process_pdf()` receives this `client` as a parameter already.
-- `convert_textbook.py` runs on a GCP VM and already builds its own
-  bibliographic-extraction client via `genai.Client(vertexai=True,
-  project=..., location=...)` in `extract_bibliographic_info_via_llm()`
-  (line 650), using Application Default Credentials, specifically so it
-  doesn't need a separately-distributed API key on the VM. It never uses
-  `gemini_utils` at all today.
-
-Both clients come from the same `google-genai` SDK and expose the same
-`models.generate_content()` / `models.embed_content()` methods, so
-`generate_index_card()` works unmodified against either — but this means
-the embedding call has only been exercised against the Developer API key
-backend so far (confirmed live: `gemini-embedding-001` returns 3072-dim
-vectors, not pre-normalized; `output_dimensionality=768` is accepted and
-verified working). Whether Vertex-backed calls to the same model/method
-behave identically is a reasonable assumption backed by using the same
-SDK, not something verified in this environment (no Vertex/GCP access here) —
-worth a real check the first time the textbook-pipeline hook actually runs.
+`convert_textbook.py` runs on a GCP VM and separately builds a *different*
+client, `genai.Client(vertexai=True, project=..., location=...)`, for its
+own existing bibliographic-extraction call in
+`extract_bibliographic_info_via_llm()` (line 650) — using Application
+Default Credentials specifically so that one call doesn't need a
+separately-distributed API key on the VM. That reasoning is specific to
+running unattended on a VM with no interactive way to manage a secret;
+the indexing hook doesn't inherit it automatically, and using the same
+Developer-API-key path as every other indexing call (rather than a third
+client-construction pattern) is simpler and keeps the embedding call
+exercised against only the one backend it was actually verified against
+live (`gemini-embedding-001` returning 3072-dim vectors, not
+pre-normalized; `output_dimensionality=768` accepted and verified
+working). This does mean `GEMINI_API_KEY` (or `.env`) needs to be
+reachable from wherever `convert_textbook.py` actually runs — true today
+for `describe_images.py`, which already depends on exactly that, so this
+isn't a new requirement being introduced, just extended to a second
+script. If the VM `convert_textbook.py` runs on doesn't have `.env`/the
+key available when this runs, `get_gemini_client()` prints an error and
+returns `None` rather than raising — the existing failure-isolation
+around the indexing call (§4.2) still degrades this to a warning, never
+blocking the actual textbook conversion.
 
 - `transcribe_notes.py`, in `process_pdf()`: the frontmatter dict currently
   finalized with `"tags": []` (e.g. around the block at line 844 and its
@@ -323,6 +342,20 @@ worth a real check the first time the textbook-pipeline hook actually runs.
   881-888), call `generate_index_card()` with `bib_info` (line 844) and a
   bounded prefix of the just-written `{folder_name}.md` as
   `content_sample`, then `write_card()`.
+
+  Before that indexing call — and unconditionally, independent of whether
+  it succeeds — `master_metadata` also gains two new fields written
+  straight into `_metadata.json`: `source_pdf_path` (relative to
+  `academic-hub/`) and `source_pdf_file_id` (the same `file_id` computed
+  for the card). This is valuable bookkeeping on its own merit, not just
+  indexer plumbing: it's what makes §4.4's `describe_images.py` hook able
+  to find "which card does this `.rag.md` belong to" without needing to
+  re-locate or re-hash a PDF from inside a different script, and it's
+  what finally makes textbook backfill in §7 tractable for cards that
+  predate this system — see §7's updated note. `file_id`/`rel_pdf_path`
+  computation is trivial local hashing (no network call, effectively
+  never fails), so writing these fields is not wrapped in the same
+  try/except as the LLM/embedding-dependent indexing call below it.
 
 ### 4.2 Failure isolation
 
@@ -364,6 +397,40 @@ This means a course-folder rename or nesting change costs exactly one
 rebuild pass worth of PDF hashing (cheap — no network calls) to reconcile
 every affected card in place, not a full regeneration of the corpus.
 
+### 4.4 `describe_images.py` hook (`.rag.md` linkage)
+
+`describe_images.py` is a third, separate script (confirmed: it already
+runs locally on `gemini_utils.get_gemini_client()`, the same Developer
+API key path §4.1 now uses uniformly) that produces
+`{folder_name}.rag.md` from an already-converted textbook's `.md`, run
+independently and later than `convert_textbook.py` — its own hook cannot
+assume `.rag.md` exists at `convert_textbook.py`'s hook point (§4.1), and
+doesn't need to: it adds a *second* hook of its own, in `process_book()`,
+immediately after `rag_path` is written (existing code, `rag_text`
+written to `rag_path`) and before the function returns:
+
+1. Read the sibling `_metadata.json` (same `book_dir`) for
+   `source_pdf_file_id` (§4.1's new field). If absent — true for any
+   book converted before this change, until backfilled per §7 — log a
+   warning and stop; the `.rag.md` file itself is unaffected either way,
+   since this hook runs after it's already written.
+2. Write `rag_md_path` (relative to `academic-hub/`) into that same
+   `_metadata.json`, alongside `source_pdf_file_id` — mirroring
+   `convert_textbook.py`'s own linkage fields, so `_metadata.json`
+   carries the full chain (PDF → `.md` → `.rag.md`) independent of
+   whether the index card update below succeeds.
+3. Call a new, narrower `index_card.py` function —
+   `set_rag_md_path(academic_hub_root: str, file_id: str, rag_md_path: str) -> bool`
+   — that finds the card by `file_id` (§4.3's `find_card_by_file_id()`,
+   reused rather than duplicated) and sets its `rag_md_path` field,
+   returning `False` (logged as a warning, not raised) if no card exists
+   yet for that `file_id` — e.g. the textbook hasn't been indexed yet,
+   or generation failed and left a `needs_indexing` card, which still
+   has a `file_id` and can still be found and updated.
+
+Like every other indexing touchpoint, this is wrapped so a failure here
+never affects the actual `.rag.md` output, which this hook only runs
+after.
 ## 5. Tag mining (`retag` — corpus-wide, graph-based)
 
 This is what `tags: []` was always deferred for: tags are assigned only
@@ -439,11 +506,13 @@ def search(
    `doc_type`/`has_solutions`/`max_level` as hard filters over the cards
    **before** ranking, then brute-force cosine similarity over what's left
    and return the top `top_k` as `SearchResult(path, course, doc_type,
-   score, reason)` where `reason` is simply that card's stored `summary`
-   — no query-time LLM call needed to explain a match. Filtering before
-   truncation, not after, matters: e.g. "unsolved practice problems on
-   linear algebra" with `has_solutions=False` should return the best `k`
-   *unsolved* matches, not whatever's left after throwing away solved
+   score, reason)` — where `path` is `rag_md_path` when the card has one
+   (§3.1/§4.4), falling back to `path` otherwise, so a caller never has to
+   check both fields itself — and `reason` is simply that card's stored
+   `summary` — no query-time LLM call needed to explain a match. Filtering
+   before truncation, not after, matters: e.g. "unsolved practice problems
+   on linear algebra" with `has_solutions=False` should return the best
+   `k` *unsolved* matches, not whatever's left after throwing away solved
    ones from an unfiltered top `k`.
 
 No persistent ANN/vector-DB structure — the scan itself is the query. At
@@ -465,6 +534,23 @@ the index robust to reorganization end-to-end: renaming, moving, or nesting
 a course folder doesn't break search or leave dead paths behind, it just
 requires one rebuild pass to catch up. `rebuild` does not run `retag` (§5)
 itself — reconciliation and tag mining are separate, explicit passes.
+
+**Textbook backfill.** For the notes pipeline, matching a PDF to its
+markdown is deterministic by construction (§4.1's fixed
+`<category>/processed_outputs/<basename>.md` convention). For textbooks,
+it isn't — a `processed_outputs/<FolderName>/` folder's name has no
+reliable relationship to the PDF filename that produced it (e.g. `Book of
+Proof.pdf` → `Hammack_Book_of_Proof_2025/`). §4.1's new
+`source_pdf_path`/`source_pdf_file_id` fields in `_metadata.json` solve
+this going forward — every *new* textbook conversion records its own
+source unambiguously. `rebuild` reads that field back out of each book's
+`_metadata.json` when present; a book folder whose `_metadata.json`
+predates this change (true for the 5 converted before this spec revision)
+is skipped with a clear message rather than guessed at — those 5 need
+`source_pdf_path` (a plain relative-path string, not a hash — trivial to
+add by hand once, since only a human who already knows which PDF matches
+which folder can supply it correctly) added to their `_metadata.json`
+once, after which the same `rebuild` picks them up automatically.
 
 **Orphan handling:** a card whose `file_id` isn't matched to any PDF found
 during a rebuild sweep (the source PDF was deleted, or its content was
@@ -495,18 +581,6 @@ previewing without writing.
 
 ## 9. Future extensions (explicitly not built now)
 
-- **Preferring `.rag.md` over `.md` for textbooks, once it exists.**
-  Confirmed: `describe_images.py` (a third, separate script — not part of
-  either pipeline this spec hooks) produces `{folder_name}.rag.md` from
-  `{folder_name}.md` after the fact, inlining image descriptions as text —
-  arguably the better file for a text-only RAG consumer to actually read,
-  since it doesn't exist yet at `convert_textbook.py`'s hook point (§4.1).
-  Not designed here: whether/how a card's `path` should later switch from
-  `.md` to `.rag.md` once `describe_images.py` has run (a third hook, a
-  reconciliation-style update-in-place via §4.3's existing `file_id`
-  match, or left alone) is an open decision, not a gap silently papered
-  over — Plan 1 indexes `.md` only, consistently, since that's what
-  exists when its hooks fire.
 - **Document relationship/pairing detection.** Confirmed directly in the
   corpus: `Linear Algebra Problem Set.md` and
   `Linear Algebra Problem Set AMS Solutions.md` exist as two separate
