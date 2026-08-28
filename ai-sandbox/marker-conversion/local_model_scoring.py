@@ -16,11 +16,42 @@ check this was built against.
 """
 from __future__ import annotations
 
+import functools
 import statistics
 
 
+@functools.lru_cache(maxsize=4)
+def _load_masked_model(model_name: str):
+    """
+    Cached model+tokenizer load, keyed by model_name. Confirmed necessary
+    against a real corpus run: without caching, score_masked_candidates
+    reloaded the model from scratch on every single call (once per page),
+    which dominated real end-to-end runtime far more than the actual
+    scoring work itself. lru_cache is safe here since a single
+    postprocess_notes.py run only ever uses a small, fixed set of model
+    names (maxsize=4 comfortably covers masked + causal, plus headroom).
+    """
+    from transformers import AutoModelForMaskedLM, AutoTokenizer
+
+    tokenizer = AutoTokenizer.from_pretrained(model_name)
+    model = AutoModelForMaskedLM.from_pretrained(model_name)
+    model.eval()
+    return tokenizer, model
+
+
+@functools.lru_cache(maxsize=4)
+def _load_causal_model(model_name: str):
+    """Cached counterpart to _load_masked_model for score_causal_zscore's causal LM."""
+    from transformers import AutoModelForCausalLM, AutoTokenizer
+
+    tokenizer = AutoTokenizer.from_pretrained(model_name)
+    model = AutoModelForCausalLM.from_pretrained(model_name)
+    model.eval()
+    return tokenizer, model
+
+
 def score_masked_candidates(
-    model_name: str, text: str, candidate_spans: list[tuple[int, int]],
+    model_name: str, text: str, candidate_spans: list[tuple[int, int]], window_chars: int = 200,
 ) -> list[dict]:
     """
     For each (start, end) character span in `text`, masks exactly that
@@ -32,13 +63,20 @@ def score_masked_candidates(
     masked scoring needs a different approach than single-token
     probability lookup; out of scope here). Returns one dict per scored
     span: {"start", "end", "text", "probability", "rank"}.
+
+    Scores against a local window (window_chars on each side of the
+    span), not the full `text` -- confirmed necessary against a real
+    page from Analysis_Exercises.pdf that tokenized to 554 tokens,
+    past DistilBERT's fixed 512-token position-embedding limit. A short
+    page (window comfortably covers the whole thing) behaves exactly as
+    before; this only changes behavior for pages long enough to have
+    hit the crash. Windowing also keeps every call fast regardless of
+    page length, consistent with the design spike's own finding that
+    nearby context carries the signal, not the whole page.
     """
     import torch
-    from transformers import AutoModelForMaskedLM, AutoTokenizer
 
-    tokenizer = AutoTokenizer.from_pretrained(model_name)
-    model = AutoModelForMaskedLM.from_pretrained(model_name)
-    model.eval()
+    tokenizer, model = _load_masked_model(model_name)
 
     results = []
     for start, end in candidate_spans:
@@ -46,8 +84,13 @@ def score_masked_candidates(
         target_ids = tokenizer(target_text, add_special_tokens=False)["input_ids"]
         if len(target_ids) != 1:
             continue
-        masked_text = text[:start] + tokenizer.mask_token + text[end:]
-        inputs = tokenizer(masked_text, return_tensors="pt")
+        window_start = max(0, start - window_chars)
+        window_end = min(len(text), end + window_chars)
+        local_start = start - window_start
+        local_end = end - window_start
+        windowed_text = text[window_start:window_end]
+        masked_text = windowed_text[:local_start] + tokenizer.mask_token + windowed_text[local_end:]
+        inputs = tokenizer(masked_text, return_tensors="pt", truncation=True, max_length=512)
         mask_positions = (inputs["input_ids"][0] == tokenizer.mask_token_id).nonzero()
         if len(mask_positions) == 0:
             continue
@@ -78,11 +121,8 @@ def score_causal_zscore(model_name: str, text: str, window: int = 10) -> list[di
     token: {"text", "start", "end", "surprisal", "z_score"}.
     """
     import torch
-    from transformers import AutoModelForCausalLM, AutoTokenizer
 
-    tokenizer = AutoTokenizer.from_pretrained(model_name)
-    model = AutoModelForCausalLM.from_pretrained(model_name)
-    model.eval()
+    tokenizer, model = _load_causal_model(model_name)
 
     enc = tokenizer(text, return_tensors="pt", return_offsets_mapping=True)
     input_ids = enc["input_ids"]
