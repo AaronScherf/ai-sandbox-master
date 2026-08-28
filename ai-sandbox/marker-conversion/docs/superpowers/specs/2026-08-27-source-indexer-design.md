@@ -209,9 +209,13 @@ produces as a byproduct of §5.
 
 ### 3.3 Tag vocabulary (`tags.json`)
 
-Flat list of canonical tag strings (kebab-case, e.g. `linear-algebra`,
-`eigenvalues`, `real-analysis`). Entries are added **only** by the `retag`
-pass (§5) — never proposed per-file — which is what keeps this list free of
+A list of `{tag, embedding}` entries — `tag` a canonical kebab-case
+string (e.g. `linear-algebra`, `eigenvalues`, `real-analysis`);
+`embedding` a semantic anchor computed once, from the tag's own name +
+short definition, when it's minted (see §5.1 for why this is more
+stable than deriving it from whichever documents happened to found the
+tag). Entries are added **only** by the `retag` pass (§5) — never
+proposed per-file — which is what keeps this vocabulary free of
 near-duplicate fragments (`linear-algebra` vs `Linear Algebra` vs
 `lin-alg`) and keeps `tags` usable as graph edges (§9).
 
@@ -431,7 +435,7 @@ written to `rag_path`) and before the function returns:
 Like every other indexing touchpoint, this is wrapped so a failure here
 never affects the actual `.rag.md` output, which this hook only runs
 after.
-## 5. Tag mining (`retag` — corpus-wide, graph-based)
+## 5. Tag mining (`retag` — corpus-wide, two-phase)
 
 This is what `tags: []` was always deferred for: tags are assigned only
 with visibility across the *whole* corpus, not guessed per file at
@@ -439,47 +443,94 @@ generation time (§4). Run via `index_search.py retag` (§8) — an explicit,
 separate, occasionally-run pass, not part of every `rebuild`, since it's
 corpus-wide rather than per-course/per-file.
 
-**Algorithm**, run fresh each time (nothing about the graph itself
-persists — only its output, tags on cards, does):
+Discovering *which tags should exist* and deciding *which files get a
+given tag* are two different questions with two different right answers —
+conflating them (tag = "you're in this cluster") is what produces at most
+one tag per file, and actively wrong results for any file that
+legitimately bridges two subjects: connected components are transitive,
+so a file similar to both a linear-algebra cluster and a probability
+cluster doesn't get two tags, it *merges the two clusters into one bad
+one*. Splitting into discovery (mint new tags, conservatively) and
+assignment (apply any tag in the vocabulary, liberally, to any matching
+file) fixes both problems at once and is the actual algorithm:
 
-1. Load every non-orphaned file card's `embedding` across all course
-   shards.
+### 5.1 Tag vocabulary now carries a real semantic anchor
+
+`tags.json` (spec §3.3) stores `{tag, embedding}` pairs, not bare
+strings — `embedding` is computed **once, when a tag is minted**, from
+the tag's own name/short definition (e.g. embedding the text
+"eigenvectors — eigenvectors and eigenvalues of linear operators"), not
+from the mean of whichever documents happened to found it. This anchor
+is durable: it's what lets `retag` compare *every* file against *every*
+known tag on every run without re-embedding anything for tags that
+already exist, and it's a more stable "meaning" for the tag than a
+cluster centroid would be — a centroid drifts with whatever documents
+happened to seed it; an embedding of the tag's own definition doesn't.
+It also gets the "related words" behavior for free: an embedding of
+"eigenvectors" already sits close to "eigenvalues" and "spectral
+theorem" in embedding space, no manual synonym list needed.
+
+### 5.2 Discovery — mint new tags, conservatively
+
+Run fresh each time (nothing here persists except its output — new
+entries in `tags.json`):
+
+1. Load every non-orphaned, embedded file card's `embedding` across all
+   course shards.
 2. Build a similarity graph: an edge between two files if their cosine
-   similarity exceeds a threshold `τ` (starting default `0.78` — a
-   tunable constant expected to need empirical adjustment against the
-   real corpus, same as `_CAUSAL_ZSCORE_THRESHOLD` elsewhere in this
-   project; `retag` logs the resulting cluster sizes/composition so this
-   can be sanity-checked rather than trusted blindly).
+   similarity exceeds `CLUSTER_SIMILARITY_THRESHOLD` (starting default
+   `0.78` — a tunable constant expected to need empirical adjustment
+   against the real corpus, same as `_CAUSAL_ZSCORE_THRESHOLD` elsewhere
+   in this project; `retag` logs the resulting cluster sizes/composition
+   so this can be sanity-checked rather than trusted blindly).
 3. Take **connected components** as candidate tag clusters. A component
-   only becomes a tag if it has at least `MIN_TAG_CLUSTER_SIZE` (starting
-   default `3`) member files — this is the direct mechanism for "singleton
-   tags aren't useful": a pair of similar files stays untagged until a
-   third, similar enough file joins them.
-4. For each qualifying cluster, **one LLM call** (not one per file) takes
-   the member files' titles + summaries and proposes a canonical tag name,
-   fuzzy-matched against `tags.json` (merging into an existing tag where
-   appropriate, same normalization intent as before, just moved here)
-   before being added as new.
-5. That tag is written to **every file card in the cluster** — including
-   cards that existed long before this run and never had it. This is the
-   "back-apply" behavior: adding five new files about topology either
-   forms a new qualifying cluster on its own, or pushes a previously
-   too-small cluster of older, always-similar files over the threshold —
-   either way, the tag gets minted now and applied to the old files too,
-   not just the new ones.
-6. `courses.json` `predominant_tags` is recomputed for every affected
-   course afterward (§3.2's free rollup).
+   only qualifies to mint a new tag if it has at least
+   `MIN_TAG_CLUSTER_SIZE` (starting default `3`) member files — this is
+   the mechanism for "singleton tags aren't useful": a pair of similar
+   files doesn't invent a new tag until a third, similar enough file
+   joins them. This bar applies **only to minting** — see §5.3 for why an
+   already-established tag can still apply to a single matching file.
+4. For each qualifying cluster, fuzzy-match a proposed name (from one LLM
+   call over the member files' titles + summaries) against the existing
+   `tags.json` vocabulary. If it matches an existing tag closely enough,
+   nothing new is minted. Otherwise: one embedding call over the tag's own
+   name + short definition produces its anchor, and `{tag, embedding}` is
+   appended to `tags.json`.
 
-**Tags are not permanent once assigned.** Because the graph is rebuilt
-from scratch each run, a later `retag` can drop a tag from a file if the
-corpus's structure has shifted enough that it's no longer part of a
-qualifying cluster — tags track current corpus structure, not a one-time
-decision.
+### 5.3 Assignment — apply any known tag, liberally, to any matching file
 
-`retag --dry-run` prints the clusters and proposed tag names/back-apply
-lists without writing anything — lets `τ` and `MIN_TAG_CLUSTER_SIZE` be
-sanity-checked against the real corpus before trusting a run that mutates
-every course shard at once.
+For **every** non-orphaned, embedded file card (not just this run's
+cluster members), independently compare its `embedding` against **every**
+tag anchor in the (now-updated) `tags.json` vocabulary — old tags and
+ones just minted in §5.2 alike. Above `TAG_ASSIGNMENT_THRESHOLD`
+(starting default equal to `CLUSTER_SIMILARITY_THRESHOLD`, independently
+tunable), the tag is added to that card. A card's `tags` list is fully
+**replaced** by this run's result, not appended to — this is what makes
+tags non-permanent (§ below) and is also what makes back-apply correct:
+a five-year-old file that was always similar to a tag that only just
+crossed the minting bar gets that tag applied the same as a brand new
+file would.
+
+This is genuinely many-to-many: a file can match several tag anchors
+(the actual fix for the original one-tag-per-file problem), a tag can
+match files anywhere in the corpus regardless of which cluster minted it,
+and — because minting (§5.2, conservative) and assignment (§5.3,
+liberal) use different bars — a single relevant file can pick up an
+already-established tag even though one file alone could never have
+minted a brand-new one.
+
+`courses.json`'s `predominant_tags` (§3.2's free rollup) is recomputed
+for every affected course after assignment completes.
+
+**Tags are not permanent once assigned.** Because both phases run fresh
+from the current corpus every time, a later `retag` can add or drop a
+tag from any file as the corpus's embeddings and the tag vocabulary
+change — tags track current corpus structure, not a one-time decision.
+
+`retag --dry-run` prints the discovery clusters, proposed/reused tag
+names, and the full assignment result without writing anything — lets
+both thresholds be sanity-checked against the real corpus before
+trusting a run that mutates every course shard at once.
 
 ## 6. Search algorithm (two-stage)
 
