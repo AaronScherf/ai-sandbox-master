@@ -186,6 +186,36 @@ tests):
   Gemini verification calls, not incorrect output.
   `_MASKED_PROBABILITY_THRESHOLD` (0.01) has not been similarly
   data-driven yet.
+- **More reference material (e.g. the textbook corpus) is unlikely to help
+  the precision problem above as the pipeline is currently architected --
+  worth revisiting once a full RAG model exists over the combined
+  corpora.** Checked this directly: neither detection layer consumes any
+  document-external text at all. The structural pre-filter is pure
+  PyMuPDF span geometry, and the causal/masked scoring is intrinsic
+  perplexity from GPT-2/DistilBERT's own generic pretraining, not
+  conditioned on any corpus context -- more `.md` files wouldn't change
+  what those functions see. `search_reference_documents` (see "Cross-
+  reference search's real-world impact is unverified" above) is the only
+  place reference text is used at all, and it only folds snippets into
+  the Gemini re-verification *hint* downstream of detection -- it could
+  sharpen a correction once something's already flagged, never reduce the
+  flagging noise itself. Textbook output specifically was also never in
+  scope of any `--root` used this session (`academic_resources/...`
+  vs. `academic_notes/...` -- different top-level folders), so this is an
+  architectural limit, not just an unexercised option. The nearest thing
+  actually tried to "give the model more domain context" -- a math-
+  adapted model, Qwen2.5-0.5B, in the design spike -- made detection
+  *worse*, not better (see "The design spike, briefly" above): broader
+  domain exposure makes a model less surprised by unusual tokens
+  generally, correct or not, diluting the exact signal being exploited.
+  So blanket domain adaptation from more corpus material cuts the wrong
+  way. The more promising version of this idea, once the **RAG Analysis**
+  project (`/projects/rag_analysis/` on the personal site) exists as a
+  real retrieval layer over the combined textbook+notes corpus: condition
+  a flagged candidate's score on a small set of *specifically retrieved*,
+  validated-similar passages, rather than broad fine-tuning against the
+  whole corpus -- closer to how the existing cross-reference hint already
+  works for verification, just applied earlier, to detection itself.
 - **Never run across multiple subdirectories in one invocation** (e.g.
   `problem_sets` + `ta_notes` + `handwritten_notes` together) -- the
   mechanism supports it (`--root` is repeatable), just not exercised for
