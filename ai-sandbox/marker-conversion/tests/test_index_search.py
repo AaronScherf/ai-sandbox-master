@@ -5,7 +5,7 @@ import unittest
 from unittest.mock import MagicMock
 
 from index_card import load_courses, load_shard, save_shard, recompute_course_entry
-from index_search import rebuild, search
+from index_search import build_arg_parser, rebuild, search
 
 
 def _fake_client():
@@ -279,6 +279,42 @@ class TestSearch(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             results = search(tmp, "q", client=_fake_query_client([1.0, 0.0]))
             self.assertEqual(results, [])
+
+
+class TestCLIArgParsing(unittest.TestCase):
+    def test_query_subcommand_defaults(self):
+        args = build_arg_parser().parse_args(["query", "teach me linear algebra"])
+        self.assertEqual(args.command, "query")
+        self.assertEqual(args.query, "teach me linear algebra")
+        self.assertIsNone(args.course)
+        self.assertEqual(args.top_k, 5)
+        self.assertIsNone(args.doc_type)
+        self.assertIsNone(args.has_solutions)
+        self.assertIsNone(args.max_level)
+
+    def test_query_subcommand_with_filters(self):
+        args = build_arg_parser().parse_args([
+            "query", "eigenvalues", "--course", "math-camp", "--top-k", "3",
+            "--doc-type", "problem_set", "--has-solutions", "false", "--max-level", "intermediate",
+        ])
+        self.assertEqual(args.course, "math-camp")
+        self.assertEqual(args.top_k, 3)
+        self.assertEqual(args.doc_type, "problem_set")
+        self.assertFalse(args.has_solutions)
+        self.assertEqual(args.max_level, "intermediate")
+
+    def test_rebuild_subcommand_defaults(self):
+        args = build_arg_parser().parse_args(["rebuild"])
+        self.assertEqual(args.command, "rebuild")
+        self.assertIsNone(args.course)
+        self.assertFalse(args.force)
+        self.assertFalse(args.prune)
+
+    def test_rebuild_subcommand_with_flags(self):
+        args = build_arg_parser().parse_args(["rebuild", "--course", "math-camp", "--force", "--prune"])
+        self.assertEqual(args.course, "math-camp")
+        self.assertTrue(args.force)
+        self.assertTrue(args.prune)
 
 
 if __name__ == "__main__":

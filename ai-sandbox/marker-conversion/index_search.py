@@ -7,12 +7,14 @@ Spec: docs/superpowers/specs/2026-08-27-source-indexer-design.md
 """
 from __future__ import annotations
 
+import argparse
 import json
 import os
 from dataclasses import dataclass
 
 from google.genai import types
 
+from gemini_utils import get_gemini_client, load_dotenv_override
 from index_card import (
     TEXTBOOK_CONTENT_SAMPLE_CHARS,
     EMBEDDING_DIMENSIONALITY,
@@ -263,3 +265,56 @@ def _flag_or_prune_orphans(academic_hub_root, seen_file_ids, course_filter, prun
         if changed:
             save_shard(academic_hub_root, shard_course, kept)
             recompute_course_entry(academic_hub_root, shard_course)
+
+
+def _bool_arg(value: str) -> bool:
+    if value.lower() in ("true", "1", "yes"):
+        return True
+    if value.lower() in ("false", "0", "no"):
+        return False
+    raise argparse.ArgumentTypeError(f"expected true/false, got {value!r}")
+
+
+def build_arg_parser() -> argparse.ArgumentParser:
+    default_root = os.path.join(os.path.dirname(__file__), "..", "academic-hub")
+    parser = argparse.ArgumentParser(description="Search and maintain the academic-hub source index.")
+    parser.add_argument("--academic-hub", default=default_root, help="Path to the academic-hub root.")
+    subparsers = parser.add_subparsers(dest="command", required=True)
+
+    query = subparsers.add_parser("query", help="Search the index for relevant sources.")
+    query.add_argument("query")
+    query.add_argument("--course", default=None)
+    query.add_argument("--top-k", type=int, default=5)
+    query.add_argument("--doc-type", default=None)
+    query.add_argument("--has-solutions", type=_bool_arg, default=None)
+    query.add_argument("--max-level", default=None, choices=list(KNOWN_LEVELS))
+
+    rebuild_p = subparsers.add_parser("rebuild", help="Backfill/reconcile index cards.")
+    rebuild_p.add_argument("--course", default=None)
+    rebuild_p.add_argument("--force", action="store_true")
+    rebuild_p.add_argument("--prune", action="store_true")
+
+    return parser
+
+
+def main() -> None:
+    args = build_arg_parser().parse_args()
+    load_dotenv_override()
+    client = get_gemini_client()
+    if client is None:
+        raise SystemExit(1)
+
+    if args.command == "query":
+        results = search(
+            args.academic_hub, args.query, client, course=args.course, top_k=args.top_k,
+            doc_type=args.doc_type, has_solutions=args.has_solutions, max_level=args.max_level,
+        )
+        for r in results:
+            print(f"{r.score:.3f}  [{r.course}/{r.doc_type}]  {r.path}\n    {r.reason}")
+    elif args.command == "rebuild":
+        stats = rebuild(args.academic_hub, client, course=args.course, force=args.force, prune=args.prune)
+        print(stats)
+
+
+if __name__ == "__main__":
+    main()
