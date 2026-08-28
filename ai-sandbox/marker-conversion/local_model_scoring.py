@@ -119,12 +119,22 @@ def score_causal_zscore(model_name: str, text: str, window: int = 10) -> list[di
     for an entire page, versus one pass per candidate span for masked
     scoring, so it's a cheaper first coarse pass. Returns one dict per
     token: {"text", "start", "end", "surprisal", "z_score"}.
+
+    Truncated to GPT-2's own 1024-token position-embedding limit --
+    confirmed necessary against a real corpus run (a dense LaTeX-typeset
+    page in ta_notes/LN_Linear Algebra.pdf crashed with "IndexError:
+    index out of range in self" without this). Unlike
+    score_masked_candidates's local-window fix, this scores the whole
+    page to find *where* anomalies are in the first place, so there's no
+    single candidate span to window around yet -- truncation means a
+    page longer than 1024 tokens only gets scored on its first ~1024,
+    a known, accepted gap rather than a crash.
     """
     import torch
 
     tokenizer, model = _load_causal_model(model_name)
 
-    enc = tokenizer(text, return_tensors="pt", return_offsets_mapping=True)
+    enc = tokenizer(text, return_tensors="pt", return_offsets_mapping=True, truncation=True, max_length=1024)
     input_ids = enc["input_ids"]
     offsets = enc["offset_mapping"][0].tolist()[1:]
     with torch.no_grad():
