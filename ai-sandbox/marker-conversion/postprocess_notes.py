@@ -42,7 +42,18 @@ from transcribe_notes import (
 _MASKED_MODEL = "distilbert-base-cased"
 _CAUSAL_MODEL = "gpt2"
 _MASKED_PROBABILITY_THRESHOLD = 0.01
-_CAUSAL_ZSCORE_THRESHOLD = 3.0
+# Raised from 3.0 after real-corpus testing against Practice Sheet.pdf (a
+# document with no known transcription defects): at 3.0, GPT-2's causal
+# z-score flagged ~60 tokens across a 12-page sample, and every single one
+# sampled downstream was a genuinely correct word ("subject", "space",
+# "compact", "Let", "near") -- LaTeX-heavy, terse problem-set prose reads as
+# high-surprisal to GPT-2 regardless of correctness. Raising to 5.0 cuts
+# that sample's raw hits to 20/2150 (~67% reduction) without a clean cutoff
+# fully separating signal from noise -- some correct words (e.g. "subject",
+# z=5.91-6.27) still clear even this bar. This is a noise-volume mitigation,
+# not a fix for the underlying precision problem; see
+# docs/2026-08-27-notes-postprocessing-status.md.
+_CAUSAL_ZSCORE_THRESHOLD = 5.0
 _PATTERN_REVIEW_THRESHOLD = 5
 
 
