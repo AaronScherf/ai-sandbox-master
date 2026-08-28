@@ -1,13 +1,20 @@
 """
 retag.py
 Corpus-wide, two-phase tag mining for the academic-hub source indexer
-(spec §5): discovery (mint new tags, conservatively, via connected
-components over the corpus's card embeddings) and assignment (apply any
+(spec §5): discovery (propose candidate tags holistically, validate each
+against real card embeddings before minting) and assignment (apply any
 tag in the vocabulary to any matching file, independently -- no
 cluster-membership restriction, which is what makes this genuinely
-many-to-many instead of one-tag-per-file; see spec §5 for why plain
-connected-components alone actively merges clusters for any file that
-bridges two subjects, rather than just under-tagging it).
+many-to-many instead of one-tag-per-file).
+
+Discovery originally built a similarity graph and took connected
+components as candidate clusters -- tested live against the real corpus
+and rejected (spec §5.2): connected components are transitive, so any
+document bridging two subjects merges their clusters into one, and no
+similarity threshold swept (0.78-0.90) produced a clean subject split --
+just one giant blob, a cluster grouped by document format instead of
+subject, or nothing. Discovery now asks once, holistically, instead of
+inferring indirectly from a similarity graph.
 
 Deliberately separate from index_card.py (per-file generation) and
 index_search.py (query-time search/rebuild) -- tag mining looks at the
@@ -34,40 +41,12 @@ from index_card import (
     save_tags,
 )
 
-CLUSTER_SIMILARITY_THRESHOLD = 0.78
-TAG_ASSIGNMENT_THRESHOLD = 0.78
+TAG_ASSIGNMENT_THRESHOLD = 0.65  # confirmed live: an anchor's similarity to
+# individual founding documents (0.65-0.76) runs measurably lower than to
+# their centroid (0.82) -- this is the low end of that observed range,
+# used identically at discovery-time validation and assignment (spec §5.2).
 MIN_TAG_CLUSTER_SIZE = 3
 TAG_FUZZY_MATCH_THRESHOLD = 85  # rapidfuzz token_sort_ratio, 0-100
-
-
-def build_clusters(embeddings: list[list[float]], threshold: float) -> list[list[int]]:
-    """Connected components over a similarity graph -- index i adjacent to
-    j if cosine_similarity(embeddings[i], embeddings[j]) > threshold."""
-    n = len(embeddings)
-    adjacency: list[list[int]] = [[] for _ in range(n)]
-    for i in range(n):
-        for j in range(i + 1, n):
-            if cosine_similarity(embeddings[i], embeddings[j]) > threshold:
-                adjacency[i].append(j)
-                adjacency[j].append(i)
-
-    visited = [False] * n
-    clusters: list[list[int]] = []
-    for start in range(n):
-        if visited[start]:
-            continue
-        stack = [start]
-        visited[start] = True
-        component = []
-        while stack:
-            node = stack.pop()
-            component.append(node)
-            for neighbor in adjacency[node]:
-                if not visited[neighbor]:
-                    visited[neighbor] = True
-                    stack.append(neighbor)
-        clusters.append(component)
-    return clusters
 
 
 def fuzzy_match_tag(proposed: str, known_tags: list[dict]) -> dict | None:
@@ -88,19 +67,27 @@ def fuzzy_match_tag(proposed: str, known_tags: list[dict]) -> dict | None:
     return None
 
 
-_TAG_NAMING_PROMPT = """You are naming a topic tag shared by {n} related documents from a personal \
-study corpus. Below is each document's title and summary.
+_TAG_DISCOVERY_PROMPT = """You are analyzing a personal study corpus to propose canonical subject \
+tags. Below is the title and summary of every document currently in the corpus.
 
-Respond with ONLY a JSON object with exactly two keys:
-"tag" (a short, kebab-case tag name, e.g. "linear-algebra" or "real-analysis"),
-"definition" (one sentence defining what this tag means, for use as its own semantic anchor).
+Propose a set of tags that would meaningfully partition this content by subject -- broad enough \
+that each tag plausibly covers several documents, specific enough to be useful for finding \
+material on a topic (e.g. "linear-algebra" and "real-analysis" as separate tags, not one tag \
+for both, and not one tag per individual document).
+
+Respond with ONLY a JSON object with exactly one key, "tags": a list of objects, each with \
+"tag" (a short, kebab-case tag name) and "definition" (one sentence defining what it means, \
+for use as its own semantic anchor).
 
 {documents}"""
 
 
-def _name_cluster(cards: list[dict], client) -> tuple[str, str]:
+def _propose_candidate_tags(cards: list[dict], client) -> list[tuple[str, str]]:
+    """One holistic LLM call over every card's title+summary -- proposes
+    candidate subject tags directly, rather than reactively naming
+    whatever a similarity graph happened to produce (spec §5.2)."""
     documents = "\n\n".join(f"- {c.get('title', '')}: {c.get('summary', '')}" for c in cards)
-    prompt = _TAG_NAMING_PROMPT.format(n=len(cards), documents=documents)
+    prompt = _TAG_DISCOVERY_PROMPT.format(documents=documents)
     response = call_with_retries(lambda: client.models.generate_content(
         model=GENERATION_MODEL,
         contents=prompt,
@@ -111,16 +98,20 @@ def _name_cluster(cards: list[dict], client) -> tuple[str, str]:
         },
     ))
     parsed = json.loads(response.text)
-    tag = str(parsed.get("tag") or "").strip().lower().replace(" ", "-")
-    definition = str(parsed.get("definition") or "").strip()
-    return tag, definition
+    candidates = []
+    for entry in parsed.get("tags") or []:
+        tag = str(entry.get("tag") or "").strip().lower().replace(" ", "-")
+        definition = str(entry.get("definition") or "").strip()
+        if tag:
+            candidates.append((tag, definition))
+    return candidates
 
 
 def _embed_tag(tag: str, definition: str, client) -> list[float]:
     """The tag's semantic anchor -- an embedding of its own name+definition,
-    not the mean of whichever cards happened to found it (spec §5.1): a
-    stable meaning that doesn't drift with the founding cluster, and gets
-    related terms (eigenvalues near eigenvectors) for free."""
+    not the mean of whichever cards happened to inspire it (spec §5.1): a
+    stable meaning that doesn't drift with whichever documents proposed
+    it, and gets related terms (eigenvalues near eigenvectors) for free."""
     response = client.models.embed_content(
         model=EMBEDDING_MODEL,
         contents=f"{tag}: {definition}",
@@ -131,35 +122,41 @@ def _embed_tag(tag: str, definition: str, client) -> list[float]:
 
 def discover_tags(
     all_cards: list[tuple[str, dict]], known_tags: list[dict], client,
-    threshold: float = CLUSTER_SIMILARITY_THRESHOLD, min_cluster_size: int = MIN_TAG_CLUSTER_SIZE,
+    threshold: float = TAG_ASSIGNMENT_THRESHOLD, min_matches: int = MIN_TAG_CLUSTER_SIZE,
 ) -> tuple[list[dict], dict]:
-    """Phase 1 (spec §5.2): mints new tags from qualifying clusters,
-    conservatively. Pure function -- does not read or write any files,
-    does not mutate `known_tags` in place. Returns (updated_known_tags,
-    stats); the caller (retag()) is responsible for persisting."""
-    stats = {"clusters_found": 0, "tags_minted": 0, "tags_reused": 0}
+    """Phase 1 (spec §5.2): proposes candidate tags holistically (one call
+    over the whole corpus), then empirically validates each candidate
+    against real card embeddings before minting -- only kept if at least
+    `min_matches` cards actually match its anchor above `threshold`. A
+    candidate the LLM proposed but that doesn't correspond to enough real
+    content gets rejected, not minted on the LLM's say-so alone. Pure
+    function -- does not read or write any files, does not mutate
+    `known_tags` in place. Returns (updated_known_tags, stats); the
+    caller (retag()) is responsible for persisting."""
+    stats = {"candidates_proposed": 0, "tags_minted": 0, "tags_reused": 0, "candidates_rejected": 0}
     if not all_cards:
         return list(known_tags), stats
 
     cards_only = [c for _, c in all_cards]
-    embeddings = [c["embedding"] for c in cards_only]
-    clusters = build_clusters(embeddings, threshold)
+    candidates = _propose_candidate_tags(cards_only, client)
+    stats["candidates_proposed"] = len(candidates)
 
     updated_tags = list(known_tags)
-    for cluster_indices in clusters:
-        if len(cluster_indices) < min_cluster_size:
-            continue
-        stats["clusters_found"] += 1
-        cluster_cards = [cards_only[i] for i in cluster_indices]
-
-        proposed_tag, definition = _name_cluster(cluster_cards, client)
+    for proposed_tag, definition in candidates:
         existing = fuzzy_match_tag(proposed_tag, updated_tags)
         if existing is not None:
             stats["tags_reused"] += 1
             continue
 
-        embedding = _embed_tag(proposed_tag, definition, client)
-        updated_tags.append({"tag": proposed_tag, "embedding": embedding})
+        anchor = _embed_tag(proposed_tag, definition, client)
+        match_count = sum(
+            1 for c in cards_only if cosine_similarity(anchor, c["embedding"]) > threshold
+        )
+        if match_count < min_matches:
+            stats["candidates_rejected"] += 1
+            continue
+
+        updated_tags.append({"tag": proposed_tag, "embedding": anchor})
         stats["tags_minted"] += 1
 
     return updated_tags, stats
@@ -218,15 +215,14 @@ def _load_all_cards(academic_hub_root: str) -> list[tuple[str, dict]]:
 
 def retag(
     academic_hub_root: str, client, dry_run: bool = False,
-    cluster_threshold: float = CLUSTER_SIMILARITY_THRESHOLD,
     assignment_threshold: float = TAG_ASSIGNMENT_THRESHOLD,
-    min_cluster_size: int = MIN_TAG_CLUSTER_SIZE,
+    min_matches: int = MIN_TAG_CLUSTER_SIZE,
 ) -> dict:
     all_cards = _load_all_cards(academic_hub_root)
     known_tags = load_tags(academic_hub_root)
 
     updated_tags, discovery_stats = discover_tags(
-        all_cards, known_tags, client, threshold=cluster_threshold, min_cluster_size=min_cluster_size,
+        all_cards, known_tags, client, threshold=assignment_threshold, min_matches=min_matches,
     )
     assignment_stats = assign_tags(
         academic_hub_root, all_cards, updated_tags, threshold=assignment_threshold, dry_run=dry_run,

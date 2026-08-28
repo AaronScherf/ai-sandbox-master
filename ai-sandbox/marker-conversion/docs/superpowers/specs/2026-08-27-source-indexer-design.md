@@ -470,41 +470,89 @@ It also gets the "related words" behavior for free: an embedding of
 "eigenvectors" already sits close to "eigenvalues" and "spectral
 theorem" in embedding space, no manual synonym list needed.
 
-### 5.2 Discovery — mint new tags, conservatively
+### 5.2 Discovery — propose candidate tags holistically, validate empirically
+
+**Revised 2026-08-28 against real data.** The original design built a
+similarity graph over card embeddings and took connected components as
+candidate clusters — reactively naming whatever clustering happened to
+produce. Tested live against the real corpus (24 cards) and rejected:
+connected components are transitive, so any document that legitimately
+bridges two subjects (a mixed problem set touching both linear algebra
+and real analysis) merges their clusters into one. No similarity
+threshold fixed it — sweeping `0.78` through `0.90` against the real
+corpus produced either one 16-of-24-card blob (low end), a cluster of 5
+that grouped by **document format** (exams and problem sets) rather than
+by subject (mid-range), or nothing at all (high end). Connected
+components on whole-document embeddings simply don't have the
+resolution to find subject boundaries at this corpus scale — confirmed,
+not assumed.
+
+**Replacement:** ask directly, once, rather than infer indirectly from a
+similarity graph — the same way a person skimming a list of file titles
+would recognize "there's linear algebra here, there's real analysis
+there," not by computing pairwise similarity at all.
 
 Run fresh each time (nothing here persists except its output — new
 entries in `tags.json`):
 
-1. Load every non-orphaned, embedded file card's `embedding` across all
-   course shards.
-2. Build a similarity graph: an edge between two files if their cosine
-   similarity exceeds `CLUSTER_SIMILARITY_THRESHOLD` (starting default
-   `0.78` — a tunable constant expected to need empirical adjustment
-   against the real corpus, same as `_CAUSAL_ZSCORE_THRESHOLD` elsewhere
-   in this project; `retag` logs the resulting cluster sizes/composition
-   so this can be sanity-checked rather than trusted blindly).
-3. Take **connected components** as candidate tag clusters. A component
-   only qualifies to mint a new tag if it has at least
-   `MIN_TAG_CLUSTER_SIZE` (starting default `3`) member files — this is
-   the mechanism for "singleton tags aren't useful": a pair of similar
-   files doesn't invent a new tag until a third, similar enough file
-   joins them. This bar applies **only to minting** — see §5.3 for why an
-   already-established tag can still apply to a single matching file.
-4. For each qualifying cluster, fuzzy-match a proposed name (from one LLM
-   call over the member files' titles + summaries) against the existing
-   `tags.json` vocabulary. If it matches an existing tag closely enough,
-   nothing new is minted. Otherwise: one embedding call over the tag's own
-   name + short definition produces its anchor, and `{tag, embedding}` is
-   appended to `tags.json`.
+1. Load every non-orphaned, embedded file card's `embedding`, `title`,
+   and `summary` across all course shards.
+2. **One LLM call**, holistic — not one per cluster, and no similarity
+   graph involved at all — takes every card's title + summary at once
+   and proposes a set of candidate subject tags that would meaningfully
+   partition the corpus (broad enough to plausibly cover several
+   documents, specific enough to be useful — "linear-algebra" and
+   "real-analysis" as separate tags, not one tag for both or one tag per
+   document). This is what avoids the transitivity problem entirely
+   instead of tuning around it: the LLM sees the whole corpus at once
+   and isn't constrained by pairwise-similarity chains.
+3. For each candidate, fuzzy-match its proposed name against the
+   existing `tags.json` vocabulary first (unchanged from before) — a
+   match means nothing new is minted, `tags_reused` instead.
+4. For genuinely new candidates: one embedding call over the tag's own
+   name + short definition produces its anchor (§5.1, unchanged), then
+   **empirically validate** it against real data before minting — count
+   how many cards actually have cosine similarity above
+   `TAG_ASSIGNMENT_THRESHOLD` (§5.3's threshold, reused here rather than
+   a separate constant, since this is the same comparison assignment
+   will make) against that anchor. Only minted (`{tag, embedding}`
+   appended to `tags.json`) if at least `MIN_TAG_CLUSTER_SIZE` (starting
+   default `3`, same conservative-minting principle as before) cards
+   clear the bar. This is still "singleton tags aren't useful," just
+   checked against real embeddings instead of a similarity-graph
+   cluster's raw size — a candidate the LLM proposed but that doesn't
+   actually correspond to enough real content gets rejected, not minted
+   on the LLM's say-so alone.
+
+This also fixed a second real bug found in the same live test: with the
+old design, `TAG_ASSIGNMENT_THRESHOLD` defaulted to the *same* value as
+the old `CLUSTER_SIMILARITY_THRESHOLD` (`0.78`) — but an anchor's
+similarity to individual documents runs measurably lower than its
+similarity to a cluster centroid (confirmed live: `0.82` to the
+centroid, only `0.65`–`0.76` to any individual founding member, for the
+same tag). A tag could be minted from real evidence and then match
+*nothing*, including the very documents that inspired it. `CLUSTER_SIMILARITY_THRESHOLD`
+no longer exists as a separate constant (nothing builds a similarity
+graph anymore); `TAG_ASSIGNMENT_THRESHOLD`'s default is lowered to
+`0.65` — the low end of the real observed range — since it's now the
+only threshold in the system and is used identically at both discovery
+(validating a candidate) and assignment (applying an approved tag).
+
+**Known scaling caveat, not solved here:** step 2's holistic call puts
+every card's title+summary in one prompt — fine at today's scale
+(dozens of files) but will need chunking or sampling once the corpus
+reaches the hundreds this project expects to grow into (§1's Goals).
+Not built now — YAGNI relative to the corpus size that actually exists.
 
 ### 5.3 Assignment — apply any known tag, liberally, to any matching file
 
-For **every** non-orphaned, embedded file card (not just this run's
-cluster members), independently compare its `embedding` against **every**
-tag anchor in the (now-updated) `tags.json` vocabulary — old tags and
-ones just minted in §5.2 alike. Above `TAG_ASSIGNMENT_THRESHOLD`
-(starting default equal to `CLUSTER_SIMILARITY_THRESHOLD`, independently
-tunable), the tag is added to that card. A card's `tags` list is fully
+For **every** non-orphaned, embedded file card (not just cards that
+happened to inspire a candidate in §5.2), independently compare its
+`embedding` against **every** tag anchor in the (now-updated)
+`tags.json` vocabulary — old tags and ones just minted in §5.2 alike.
+Above `TAG_ASSIGNMENT_THRESHOLD` (starting default `0.65` — see §5.2 for
+where that number comes from), the tag is added to that card. A card's
+`tags` list is fully
 **replaced** by this run's result, not appended to — this is what makes
 tags non-permanent (§ below) and is also what makes back-apply correct:
 a five-year-old file that was always similar to a tag that only just
@@ -527,10 +575,10 @@ from the current corpus every time, a later `retag` can add or drop a
 tag from any file as the corpus's embeddings and the tag vocabulary
 change — tags track current corpus structure, not a one-time decision.
 
-`retag --dry-run` prints the discovery clusters, proposed/reused tag
-names, and the full assignment result without writing anything — lets
-both thresholds be sanity-checked against the real corpus before
-trusting a run that mutates every course shard at once.
+`retag --dry-run` prints the proposed/reused/rejected candidate tags and
+the full assignment result without writing anything — lets
+`TAG_ASSIGNMENT_THRESHOLD` be sanity-checked against the real corpus
+before trusting a run that mutates every course shard at once.
 
 ## 6. Search algorithm (two-stage)
 
