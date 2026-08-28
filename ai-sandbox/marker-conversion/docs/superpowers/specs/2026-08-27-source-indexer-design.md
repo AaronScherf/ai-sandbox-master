@@ -232,13 +232,23 @@ source length:**
 - Notes pipeline (`transcribe_notes.py`): the finished markdown itself —
   these documents are short (tens of pages at most), so passing the whole
   thing is cheap.
-- Textbook pipeline (`convert_textbook.py`): **only** the title/author/year
-  already in `master_metadata` plus the chapter/TOC entries
-  `chapter_index.py` extracts during `compute_chunk_boundaries()` — never
-  the full text. A 900-page book doesn't need to be read for a summary; an
-  LLM's own knowledge of a named textbook plus its real chapter list is
-  enough, and this keeps card-generation cost roughly constant regardless
-  of book length.
+- Textbook pipeline (`convert_textbook.py`): the resolved `bib_info`
+  (title/author/year — the local variable at line 844, *not*
+  `master_metadata`, which only ever holds marker's structural fields
+  per the comment at line 815) plus the **first ~12,000 characters of the
+  finished assembled markdown** (`local_build_dir/{folder_name}.md`,
+  written at line 864, already on disk by the hook point at line 881) —
+  never the full text. This reuses the same "bounded prefix of the
+  assembled markdown" pattern `extract_bibliographic_info_via_llm()`
+  already relies on (`chunk_files[0]`, `f.read(6000)`, line 825-826) for
+  the same reason: a book's front matter, including its own printed table
+  of contents, is reliably near the start regardless of the book's total
+  length, so this keeps card-generation cost roughly constant whether the
+  book is 200 or 900 pages, without needing to plumb `chapter_index.py`'s
+  internal `ChapterEntry` list out of `compute_chunk_boundaries()` (it's
+  never returned past that function today — extracting it would mean
+  touching several function signatures and the persisted `run_config.json`
+  schema, for a signal a markdown prefix already provides more simply).
 
 One `client.models.generate_content()` call, model `gemini-3.6-flash`
 (matching the model already used for generation calls throughout this
@@ -310,8 +320,9 @@ worth a real check the first time the textbook-pipeline hook actually runs.
   with the finished markdown as `content_sample`, then `write_card()`.
 - `convert_textbook.py`, in `process_one_pdf()`: immediately after
   `master_metadata` is finalized and `_metadata.json` is written (~line
-  881-888), call `generate_index_card()` with `master_metadata`'s
-  title/author/year plus the chapter list, then `write_card()`.
+  881-888), call `generate_index_card()` with `bib_info` (line 844) and a
+  bounded prefix of the just-written `{folder_name}.md` as
+  `content_sample`, then `write_card()`.
 
 ### 4.2 Failure isolation
 
@@ -484,6 +495,18 @@ previewing without writing.
 
 ## 9. Future extensions (explicitly not built now)
 
+- **Preferring `.rag.md` over `.md` for textbooks, once it exists.**
+  Confirmed: `describe_images.py` (a third, separate script — not part of
+  either pipeline this spec hooks) produces `{folder_name}.rag.md` from
+  `{folder_name}.md` after the fact, inlining image descriptions as text —
+  arguably the better file for a text-only RAG consumer to actually read,
+  since it doesn't exist yet at `convert_textbook.py`'s hook point (§4.1).
+  Not designed here: whether/how a card's `path` should later switch from
+  `.md` to `.rag.md` once `describe_images.py` has run (a third hook, a
+  reconciliation-style update-in-place via §4.3's existing `file_id`
+  match, or left alone) is an open decision, not a gap silently papered
+  over — Plan 1 indexes `.md` only, consistently, since that's what
+  exists when its hooks fire.
 - **Document relationship/pairing detection.** Confirmed directly in the
   corpus: `Linear Algebra Problem Set.md` and
   `Linear Algebra Problem Set AMS Solutions.md` exist as two separate
