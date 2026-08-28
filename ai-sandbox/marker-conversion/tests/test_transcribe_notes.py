@@ -1,6 +1,7 @@
 import os
 import tempfile
 import unittest
+from unittest.mock import MagicMock, patch
 
 from transcribe_notes import (
     build_accumulated_context,
@@ -18,6 +19,7 @@ from transcribe_notes import (
     parse_transcription_response,
     reconstruct_line_with_scripts,
     split_run_into_batches,
+    _write_markdown_and_index,
 )
 
 
@@ -620,6 +622,48 @@ class TestReconstructLineWithScripts(unittest.TestCase):
         # insertion is simply skipped for that pair, same as before.
         spans = [_span("Let V", 10.91, 100.0), _span(" be", 10.91, 100.0)]
         self.assertEqual(reconstruct_line_with_scripts(spans), "Let V be")
+
+
+class TestWriteMarkdownAndIndex(unittest.TestCase):
+    def test_writes_file_then_calls_reconcile_and_write(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            md_path = os.path.join(tmp, "out.md")
+            pdf_path = os.path.join(tmp, "academic_notes", "math-camp", "ta_notes", "foo.pdf")
+            os.makedirs(os.path.dirname(pdf_path))
+            with open(pdf_path, "wb") as f:
+                f.write(b"fake pdf")
+
+            with patch("transcribe_notes.reconcile_and_write") as mock_reconcile:
+                _write_markdown_and_index(
+                    md_path=md_path, frontmatter="---\nx: 1\n---\n\n", final_md="content",
+                    pdf_path=pdf_path, academic_hub_root=tmp, folder_category="ta_notes",
+                    total_pages=3, client=MagicMock(),
+                )
+
+            with open(md_path, "r", encoding="utf-8") as f:
+                self.assertEqual(f.read(), "---\nx: 1\n---\n\ncontent")
+            self.assertEqual(mock_reconcile.call_count, 1)
+            _, kwargs = mock_reconcile.call_args
+            self.assertEqual(kwargs["course"], "math-camp")
+            self.assertEqual(kwargs["folder_category"], "ta_notes")
+            self.assertEqual(kwargs["page_count"], 3)
+            self.assertEqual(kwargs["content_sample"], "content")
+
+    def test_indexing_failure_does_not_raise_or_block_the_write(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            md_path = os.path.join(tmp, "out.md")
+            pdf_path = os.path.join(tmp, "academic_notes", "math-camp", "ta_notes", "foo.pdf")
+            os.makedirs(os.path.dirname(pdf_path))
+            with open(pdf_path, "wb") as f:
+                f.write(b"fake pdf")
+
+            with patch("transcribe_notes.reconcile_and_write", side_effect=RuntimeError("boom")):
+                _write_markdown_and_index(  # must not raise
+                    md_path=md_path, frontmatter="", final_md="content", pdf_path=pdf_path,
+                    academic_hub_root=tmp, folder_category="ta_notes", total_pages=3, client=MagicMock(),
+                )
+            with open(md_path, "r", encoding="utf-8") as f:
+                self.assertEqual(f.read(), "content")  # file still written
 
 
 if __name__ == "__main__":

@@ -49,6 +49,7 @@ from gemini_utils import (
     load_json_cache,
     save_json_cache,
 )
+from index_card import compute_file_id, derive_course, reconcile_and_write
 
 _CODE_FENCE_RE = re.compile(r"^```(?:markdown)?\s*\n(.*)\n```\s*$", re.DOTALL)
 
@@ -796,7 +797,31 @@ def repair_page_individually(client, model: str, pdf_path: str, page_num: int, h
     return call_with_retries(lambda: transcribe_page_via_gemini(client, model, image_bytes, prompt))
 
 
-def process_pdf(pdf_path: str, client, model_override: str | None, dry_run: bool = False) -> None:
+def _write_markdown_and_index(md_path, frontmatter, final_md, pdf_path, academic_hub_root,
+                               folder_category, total_pages, client):
+    with open(md_path, "w", encoding="utf-8") as f:
+        f.write(frontmatter + final_md)
+
+    try:
+        file_id = compute_file_id(pdf_path)
+        rel_md_path = os.path.relpath(md_path, academic_hub_root).replace(os.sep, "/")
+        rel_pdf_path = os.path.relpath(pdf_path, academic_hub_root).replace(os.sep, "/")
+        course = derive_course(rel_pdf_path)
+        reconcile_and_write(
+            academic_hub_root, file_id=file_id, path=rel_md_path, source_pdf_path=rel_pdf_path,
+            course=course, folder_category=folder_category, content_sample=final_md,
+            page_count=total_pages, client=client,
+        )
+    except Exception as err:
+        # Indexing must never block or corrupt the actual transcription
+        # output (spec §4.2) -- the markdown file above is already
+        # written and complete regardless of what happens here.
+        print(f"WARNING: source-indexer update failed for {md_path} ({err}); "
+              f"rerun `python index_search.py rebuild` later to catch it up.")
+
+
+def process_pdf(pdf_path: str, client, model_override: str | None, academic_hub_root: str,
+                 dry_run: bool = False) -> None:
     from pypdf import PdfReader
 
     base_name = os.path.splitext(os.path.basename(pdf_path))[0]
@@ -843,8 +868,10 @@ def process_pdf(pdf_path: str, client, model_override: str | None, dry_run: bool
         frontmatter = build_frontmatter({
             **base_metadata, "routing": "local", "pages_repaired": 0, "repaired_pages": [], "tags": [],
         })
-        with open(md_path, "w", encoding="utf-8") as f:
-            f.write(frontmatter + final_md)
+        _write_markdown_and_index(
+            md_path, frontmatter, final_md, pdf_path, academic_hub_root,
+            folder_category, total_pages, client,
+        )
         print(f"[{base_name}] wrote {md_path} (local extraction, 0 API calls)")
         return
 
@@ -903,8 +930,10 @@ def process_pdf(pdf_path: str, client, model_override: str | None, dry_run: bool
             "pages_repaired": len(defective_page_numbers), "repaired_pages": defective_page_numbers,
             "tags": [],
         })
-        with open(md_path, "w", encoding="utf-8") as f:
-            f.write(frontmatter + final_md)
+        _write_markdown_and_index(
+            md_path, frontmatter, final_md, pdf_path, academic_hub_root,
+            folder_category, total_pages, client,
+        )
         print(f"[{base_name}] wrote {md_path} (hybrid: {len(defective_page_numbers)}/{total_pages} pages repaired)")
         return
 
@@ -974,8 +1003,10 @@ def process_pdf(pdf_path: str, client, model_override: str | None, dry_run: bool
             "pages_repaired": len(defective_page_numbers), "repaired_pages": defective_page_numbers,
             "tags": [],
         })
-        with open(md_path, "w", encoding="utf-8") as f:
-            f.write(frontmatter + final_md)
+        _write_markdown_and_index(
+            md_path, frontmatter, final_md, pdf_path, academic_hub_root,
+            folder_category, total_pages, client,
+        )
         print(f"[{base_name}] wrote {md_path} (whole-document batched, {len(cache)}/{total_pages} pages transcribed)")
         return
 
@@ -1031,8 +1062,10 @@ def process_pdf(pdf_path: str, client, model_override: str | None, dry_run: bool
         "model": model,
         "tags": [],
     })
-    with open(md_path, "w", encoding="utf-8") as f:
-        f.write(frontmatter + final_md)
+    _write_markdown_and_index(
+        md_path, frontmatter, final_md, pdf_path, academic_hub_root,
+        folder_category, total_pages, client,
+    )
     print(f"[{base_name}] wrote {md_path}")
 
 
@@ -1074,7 +1107,7 @@ def main():
             sys.exit(1)
 
     for pdf_path in pdf_paths:
-        process_pdf(pdf_path, client, args.model, dry_run=args.dry_run)
+        process_pdf(pdf_path, client, args.model, str(academic_hub_dir), dry_run=args.dry_run)
 
 
 if __name__ == "__main__":
