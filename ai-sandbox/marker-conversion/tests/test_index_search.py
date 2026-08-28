@@ -81,6 +81,27 @@ class TestRebuild(unittest.TestCase):
             self.assertEqual(stats["generated"], 0)
             self.assertEqual(load_shard(tmp, "math-camp"), [])
 
+    def test_skips_zero_byte_markdown_and_orphans_any_existing_card(self):
+        # Real-corpus finding (docs/2026-08-28-known-errors-todo.md): a
+        # 0-byte .md next to a real, un-transcribed source PDF must not
+        # get a vacuous "this is empty" card generated for it, and any
+        # such card from before this fix existed should get cleaned up
+        # by the normal orphan-flagging pass, not left behind silently.
+        with tempfile.TemporaryDirectory() as tmp:
+            pdf_path = _make_notes_pdf(tmp, "math-camp", "ta_notes", "untranscribed")
+            client = _fake_client()
+            stats = rebuild(tmp, client=client)
+            self.assertEqual(stats["generated"], 1)  # the normal-content fixture .md indexes fine
+
+            # Now simulate the real-corpus case: truncate the .md to 0 bytes.
+            md_path = os.path.join(os.path.dirname(pdf_path), "processed_outputs", "untranscribed.md")
+            open(md_path, "w").close()
+
+            stats = rebuild(tmp, client=client)
+            self.assertEqual(stats["skipped_empty_md"], 1)
+            self.assertEqual(client.models.generate_content.call_count, 1)  # not called again
+            self.assertTrue(load_shard(tmp, "math-camp")[0]["orphaned"])
+
     def test_second_run_with_no_changes_leaves_cards_unchanged(self):
         with tempfile.TemporaryDirectory() as tmp:
             _make_notes_pdf(tmp, "math-camp", "ta_notes", "LN_Analysis")

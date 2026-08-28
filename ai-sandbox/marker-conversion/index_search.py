@@ -177,7 +177,7 @@ def rebuild(academic_hub_root: str, client, course: str | None = None,
             force: bool = False, prune: bool = False) -> dict:
     stats = {
         "generated": 0, "updated": 0, "unchanged": 0, "moved": 0,
-        "orphaned": 0, "pruned": 0, "skipped_no_source_pdf": 0,
+        "orphaned": 0, "pruned": 0, "skipped_no_source_pdf": 0, "skipped_empty_md": 0,
     }
     seen_file_ids: set[str] = set()
 
@@ -186,6 +186,19 @@ def rebuild(academic_hub_root: str, client, course: str | None = None,
         md_path = os.path.join(os.path.dirname(pdf_path), "processed_outputs", f"{basename}.md")
         if not os.path.exists(md_path):
             continue  # not converted yet -- nothing to index
+        if os.path.getsize(md_path) == 0:
+            # A 0-byte .md with a real source PDF sitting next to it means
+            # the PDF was never actually transcribed (see
+            # docs/2026-08-28-known-errors-todo.md) -- generating a card
+            # from it would just produce a vacuous "this is empty" summary.
+            # Not added to seen_file_ids: if a vacuous card already exists
+            # from an earlier run, this lets the normal orphan-flagging
+            # pass below clean it up rather than inventing a second
+            # "this card is bad" mechanism.
+            print(f"WARNING: {md_path} is empty (0 bytes) but its source PDF exists -- "
+                  f"skipping. The PDF likely hasn't been transcribed yet.")
+            stats["skipped_empty_md"] += 1
+            continue
 
         file_id = compute_file_id(pdf_path)
         seen_file_ids.add(file_id)
