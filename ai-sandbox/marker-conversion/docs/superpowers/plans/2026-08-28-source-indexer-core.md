@@ -2,9 +2,9 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Build the core source indexer — per-file index cards generated from `transcribe_notes.py`/`convert_textbook.py`, reconciled by content hash (not path), and searchable via a two-stage embedding-similarity CLI/function — so a query like "teach me about linear algebra" returns ranked, relevant files from `academic-hub`.
+**Goal:** Build the core source indexer — per-file index cards generated from `transcribe_notes.py`/`convert_textbook.py`, linked to their `.rag.md` once `describe_images.py` produces one, reconciled by content hash (not path), and searchable via a two-stage embedding-similarity CLI/function — so a query like "teach me about linear algebra" returns ranked, relevant files from `academic-hub`.
 
-**Architecture:** A new torch/marker-free module `index_card.py` owns card generation, shard I/O, and `file_id`-based reconciliation (mirroring how `chapter_index.py` is already kept free of `convert_textbook.py`'s heavy imports so it stays independently testable). A new `index_search.py` owns two-stage search and the notes-pipeline rebuild/backfill pass, plus the CLI. Both existing pipelines get a minimal hook calling into `index_card.py`.
+**Architecture:** A new torch/marker-free module `index_card.py` owns card generation, shard I/O, and `file_id`-based reconciliation (mirroring how `chapter_index.py` is already kept free of `convert_textbook.py`'s heavy imports so it stays independently testable). A new `index_search.py` owns two-stage search and the rebuild/backfill pass (notes unconditionally, textbooks once `source_pdf_path` is recorded), plus the CLI. All three existing pipelines (`transcribe_notes.py`, `convert_textbook.py`, `describe_images.py`) get a minimal hook calling into `index_card.py`, all using the same Developer-API-key client construction.
 
 **Tech Stack:** Python 3.13, `google-genai` 2.9.0 (already installed), `numpy` 2.5.2 (already installed), stdlib `hashlib`/`json`/`unittest`. **No new dependencies** — tag mining (which needs `rapidfuzz`) is out of scope for this plan; see Plan 2.
 
@@ -12,25 +12,28 @@
 
 ## Global Constraints
 
-- Generation model: `gemini-3.6-flash` (matches every existing generation call in this project — `describe_images.py`, `transcribe_notes.py`, `extract_bibliographic_info_via_llm()`).
+- Generation model: `gemini-3.1-flash-lite` — pure text-in/JSON-out (no vision), so this uses the project's existing cheap text tier (`_MODEL_TYPESET` in `transcribe_notes.py`), not `gemini-3.6-flash` (reserved elsewhere for vision tasks). Confirmed live it supports the same structured-JSON config below.
 - Embedding model: `gemini-embedding-001`, `output_dimensionality=768` — confirmed live against the real API (spec §4). Stored per-card as `embedding_model: "gemini-embedding-001:768"`. Returned vectors are **not pre-normalized** — every cosine-similarity computation must normalize itself.
 - Structured-JSON generation calls use `config={"response_mime_type": "application/json", "temperature": 0, "thinking_config": {"thinking_level": "minimal"}}` — the exact pattern already established in `extract_bibliographic_info_via_llm()` (`convert_textbook.py:654`), reused rather than reinvented.
-- `path`/`source_pdf_path` on every card are relative to `academic-hub/`, never absolute.
+- **Client construction: `gemini_utils.get_gemini_client()` (Developer API key) uniformly, for every indexing call in all three pipelines** (`transcribe_notes.py`, `convert_textbook.py`, `describe_images.py`) — matching what `describe_images.py` and `transcribe_notes.py` already use for their own existing calls today. `convert_textbook.py` separately keeps its own Vertex-backed client for its *existing*, unrelated bibliographic-extraction call (`extract_bibliographic_info_via_llm()`) — that choice was specific to not distributing a secret to the VM for that one call, and the indexing hook doesn't inherit it. This means `.env`/`GEMINI_API_KEY` needs to be reachable wherever `convert_textbook.py` runs — already true for `describe_images.py`, so not a new requirement, just extended to a second script; if unavailable, `get_gemini_client()` returns `None` and the existing failure-isolation around the indexing call degrades that to a warning, never blocking the actual conversion.
+- `path`/`source_pdf_path`/`rag_md_path` on every card are relative to `academic-hub/`, never absolute.
 - Tests use plain `unittest` (not pytest — not installed in this environment) and are run via `cd marker-conversion && python -m unittest tests.test_<module> -v` — confirmed working against this repo's existing tests.
-- `convert_textbook.py` cannot be imported in this development environment (`import torch` / `import marker` both fail — confirmed; only `chapter_index.py`'s already-established torch-free extraction pattern is testable here). Task 9 (the `convert_textbook.py` hook) is therefore verified by careful code review of the diff, not by an executable test — every other task's logic lives in `index_card.py`/`index_search.py` and is fully unit-tested.
-- `rebuild` (Task 5) backfills the notes pipeline only. Backfilling the 5 already-converted textbooks is explicitly out of scope for this plan (see Task 5's note) — new textbook conversions are unaffected, since the live hook (Task 9) has no matching ambiguity.
+- `convert_textbook.py` cannot be imported in this development environment (`import torch` / `import marker` both fail — confirmed). Task 9 (its hook) is therefore verified by careful code review of the diff, not by an executable test. `transcribe_notes.py` and `describe_images.py` have no such dependency (both confirmed to import cleanly here) and are fully unit-tested — Tasks 8 and 10 follow normal TDD.
+- `rebuild` (Task 5) backfills the notes pipeline unconditionally, and the textbook pipeline conditionally — only for book folders whose `_metadata.json` already has `source_pdf_path` (written automatically by Task 9 for every new conversion; the 5 pre-existing books need it added by hand once, a plain relative-path string, not a hash — see Task 5's note).
 
 ---
 
 ## File Structure
 
-- Create: `marker-conversion/index_card.py` — card schema, `file_id` computation, course derivation, shard I/O, card generation (LLM + embedding calls), `file_id`-based reconciliation, course-level rollup.
-- Create: `marker-conversion/index_search.py` — two-stage search, notes-pipeline rebuild/backfill, CLI (`query`/`rebuild` subcommands).
+- Create: `marker-conversion/index_card.py` — card schema, `file_id` computation, course derivation, shard I/O, card generation (LLM + embedding calls), `file_id`-based reconciliation, course-level rollup, `rag_md_path` linkage.
+- Create: `marker-conversion/index_search.py` — two-stage search, rebuild/backfill (notes unconditionally, textbooks conditionally), CLI (`query`/`rebuild` subcommands).
 - Modify: `marker-conversion/transcribe_notes.py` — replace the 4 duplicated "write markdown file" blocks in `process_pdf()` with one shared helper that writes the file and then calls into `index_card.py`.
-- Modify: `marker-conversion/convert_textbook.py` — one hook call in `process_one_pdf()`, immediately after `_metadata.json` is written.
+- Modify: `marker-conversion/convert_textbook.py` — write `source_pdf_path`/`source_pdf_file_id` into `_metadata.json` unconditionally, then one hook call in `process_one_pdf()`, immediately after.
+- Modify: `marker-conversion/describe_images.py` — a new `link_rag_md()` helper, called once from `process_book()` immediately after `.rag.md` is written, linking it back to its card and `_metadata.json`.
 - Create: `marker-conversion/tests/test_index_card.py`
 - Create: `marker-conversion/tests/test_index_search.py`
 - Modify: `marker-conversion/tests/test_transcribe_notes.py` — add coverage for the new shared write-and-index helper.
+- Modify: `marker-conversion/tests/test_describe_images.py` — add coverage for `link_rag_md()`.
 
 ---
 
@@ -191,10 +194,17 @@ import numpy as np
 EMBEDDING_MODEL = "gemini-embedding-001"
 EMBEDDING_DIMENSIONALITY = 768
 EMBEDDING_MODEL_ID = f"{EMBEDDING_MODEL}:{EMBEDDING_DIMENSIONALITY}"
-GENERATION_MODEL = "gemini-3.6-flash"
+GENERATION_MODEL = "gemini-3.1-flash-lite"
 
 KNOWN_DOC_TYPES = {"textbook", "problem_set", "exam", "ta_notes", "handwritten_notes"}
 KNOWN_LEVELS = ("introductory", "intermediate", "advanced")
+
+# Cap on how much of an assembled textbook markdown gets read as
+# content_sample -- a book's front matter/TOC is reliably near the start
+# regardless of the book's total length (spec §4), and this same constant
+# is reused by both the live convert_textbook.py hook (Task 9) and
+# rebuild's textbook-backfill path (Task 5) so they stay consistent.
+TEXTBOOK_CONTENT_SAMPLE_CHARS = 12000
 
 
 def now_iso() -> str:
@@ -492,6 +502,7 @@ def generate_index_card(
         "level": level,
         "has_solutions": has_solutions,
         "page_count": page_count,
+        "rag_md_path": None,
         "embedding": embedding,
         "embedding_model": EMBEDDING_MODEL_ID,
         "source_updated_at": now_iso(),
@@ -515,6 +526,7 @@ def make_failure_card(file_id: str, path: str, source_pdf_path: str, course: str
         "level": None,
         "has_solutions": None,
         "page_count": None,
+        "rag_md_path": None,
         "embedding": [],
         "embedding_model": None,
         "source_updated_at": now_iso(),
@@ -670,7 +682,7 @@ git commit -m "feat(indexer): add free course-level centroid/topic rollup"
 
 **Interfaces:**
 - Consumes: everything from Tasks 1-3.
-- Produces: `find_card_by_file_id(academic_hub_root: str, file_id: str) -> tuple[str, dict] | None`, `reconcile_and_write(academic_hub_root: str, file_id: str, path: str, source_pdf_path: str, course: str, folder_category: str, content_sample: str, page_count: int, client) -> dict`. This is the **single function both pipeline hooks call** (Tasks 8 and 9) and the one Task 5 (rebuild) calls per file.
+- Produces: `find_card_by_file_id(academic_hub_root: str, file_id: str) -> tuple[str, dict] | None`, `reconcile_and_write(academic_hub_root: str, file_id: str, path: str, source_pdf_path: str, course: str, folder_category: str, content_sample: str, page_count: int, client) -> dict`, `set_rag_md_path(academic_hub_root: str, file_id: str, rag_md_path: str) -> bool`. `reconcile_and_write` is the **single function both pipeline hooks call** (Tasks 8 and 9) and the one Task 5 (rebuild) calls per file; `set_rag_md_path` is the one Task 10 (`describe_images.py`'s hook) calls.
 
 - [ ] **Step 1: Write the failing tests**
 
@@ -773,6 +785,33 @@ class TestReconcileAndWrite(unittest.TestCase):
             save_shard(tmp, "math-camp", cards)
             reconcile_and_write(tmp, **self._card_kwargs(client=client))
             self.assertNotIn("orphaned", load_shard(tmp, "math-camp")[0])
+
+
+class TestSetRagMdPath(unittest.TestCase):
+    def test_sets_rag_md_path_on_the_matching_card(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            reconcile_and_write(tmp, file_id="fid1", path="a.md", source_pdf_path="a.pdf",
+                                 course="math-camp", folder_category="textbooks-and-papers",
+                                 content_sample="text", page_count=10, client=_fake_client())
+            found = set_rag_md_path(tmp, "fid1", "a.rag.md")
+            self.assertTrue(found)
+            self.assertEqual(load_shard(tmp, "math-camp")[0]["rag_md_path"], "a.rag.md")
+
+    def test_returns_false_and_writes_nothing_when_no_card_matches(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            found = set_rag_md_path(tmp, "no-such-file-id", "a.rag.md")
+            self.assertFalse(found)
+
+    def test_works_on_a_needs_indexing_card_which_still_has_a_file_id(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            bad_client = MagicMock()
+            bad_client.models.generate_content.side_effect = RuntimeError("quota exceeded")
+            reconcile_and_write(tmp, file_id="fid1", path="a.md", source_pdf_path="a.pdf",
+                                 course="math-camp", folder_category="textbooks-and-papers",
+                                 content_sample="text", page_count=10, client=bad_client)
+            found = set_rag_md_path(tmp, "fid1", "a.rag.md")
+            self.assertTrue(found)
+            self.assertEqual(load_shard(tmp, "math-camp")[0]["rag_md_path"], "a.rag.md")
 ```
 
 - [ ] **Step 2: Run the tests to verify they fail**
@@ -863,33 +902,53 @@ def reconcile_and_write(
     save_shard(academic_hub_root, course, cards)
     recompute_course_entry(academic_hub_root, course)
     return card
+
+
+def set_rag_md_path(academic_hub_root: str, file_id: str, rag_md_path: str) -> bool:
+    """Called by describe_images.py's hook (Task 10) once it produces
+    .rag.md -- finds the existing card by file_id (reusing
+    find_card_by_file_id rather than duplicating the shard scan) and sets
+    rag_md_path on it, without touching anything else on the card (no
+    regeneration). Returns False (never raises) if no card exists yet for
+    this file_id -- the caller logs that as a warning, same failure-
+    isolation philosophy as everywhere else in this module."""
+    found = find_card_by_file_id(academic_hub_root, file_id)
+    if found is None:
+        return False
+    course, card = found
+    updated = dict(card)
+    updated["rag_md_path"] = rag_md_path
+    save_shard(academic_hub_root, course, _replace_card(
+        load_shard(academic_hub_root, course), file_id, updated,
+    ))
+    return True
 ```
 
 - [ ] **Step 4: Run the tests to verify they pass**
 
 Run: `cd marker-conversion && python -m unittest tests.test_index_card -v`
-Expected: PASS (30 tests)
+Expected: PASS (33 tests)
 
 - [ ] **Step 5: Commit**
 
 ```bash
 git add marker-conversion/index_card.py marker-conversion/tests/test_index_card.py
-git commit -m "feat(indexer): add file_id reconciliation across renames, moves, and course changes"
+git commit -m "feat(indexer): add file_id reconciliation and rag_md_path linkage"
 ```
 
 ---
 
-### Task 5: Rebuild / backfill pass (notes pipeline)
+### Task 5: Rebuild / backfill pass (notes + textbook pipelines)
 
 **Files:**
 - Create: `marker-conversion/index_search.py`
 - Test: `marker-conversion/tests/test_index_search.py`
 
 **Interfaces:**
-- Consumes: `compute_file_id`, `derive_course`, `reconcile_and_write`, `load_shard`, `save_shard`, `recompute_course_entry` (Task 1-4).
-- Produces: `rebuild(academic_hub_root: str, client, force: bool = False, prune: bool = False) -> dict` (returns a stats dict: `{"generated": int, "updated": int, "unchanged": int, "moved": int, "orphaned": int, "pruned": int}`). Consumed by Task 7's CLI.
+- Consumes: `compute_file_id`, `derive_course`, `reconcile_and_write`, `load_shard`, `save_shard`, `recompute_course_entry`, `TEXTBOOK_CONTENT_SAMPLE_CHARS` (Task 1-4).
+- Produces: `rebuild(academic_hub_root: str, client, force: bool = False, prune: bool = False) -> dict` (returns a stats dict: `{"generated": int, "updated": int, "unchanged": int, "moved": int, "orphaned": int, "pruned": int, "skipped_no_source_pdf": int}`). Consumed by Task 7's CLI.
 
-**Note on a smaller accuracy gap:** backfilled cards get `page_count=None`
+**Note on a smaller accuracy gap:** backfilled *notes* cards get `page_count=None`
 rather than the real value, since `rebuild` doesn't parse the existing
 YAML frontmatter's `total_pages` field back out of each `.md` file (no
 parser for it exists yet, and the project's own `build_frontmatter()`
@@ -899,7 +958,24 @@ generated live by Task 8's hook are unaffected — they already receive the
 real `total_pages` directly from `process_pdf()`. Worth a follow-up if
 backfilled `page_count` accuracy matters in practice.
 
-**Note on scope:** walks `academic_notes/<course>/<category>/*.pdf` only — for every such PDF, its markdown sibling is at the deterministic path `<category>/processed_outputs/<basename>.md` (matching `transcribe_notes.py`'s own `process_pdf()` convention exactly). Backfilling `academic_resources/.../textbooks-and-papers/` is **not** included: there is no reliable existing link from an already-converted `processed_outputs/<FolderName>/` output back to which of the PDFs in that folder produced it (filenames don't correspond — e.g. `Book of Proof.pdf` → `Hammack_Book_of_Proof_2025/` — and `_metadata.json` doesn't record a source filename). Guessing via fuzzy title matching risks silently attaching a card to the wrong book. This is a real, bounded gap in backfill coverage for the 5 textbooks already converted as of this writing — new textbook conversions are unaffected, since Task 9's live hook runs inside the exact conversion that produces the file, with no matching ambiguity at all.
+**Note on textbook backfill scope:** matching a notes PDF to its markdown
+is deterministic by construction — `<category>/processed_outputs/<basename>.md`.
+For textbooks it isn't — a `processed_outputs/<FolderName>/` folder's
+name has no reliable relationship to the PDF filename that produced it
+(e.g. `Book of Proof.pdf` → `Hammack_Book_of_Proof_2025/`). Task 9 now
+writes `source_pdf_path` into every *new* textbook conversion's
+`_metadata.json`, which `rebuild` reads back out to resolve this
+unambiguously going forward. For the 5 textbooks converted before that
+change, `_metadata.json` doesn't have it yet — `rebuild` skips such a
+book folder (counted in `stats["skipped_no_source_pdf"]`, with a printed
+message naming it) rather than guess via fuzzy filename matching, which
+risked silently attaching a card to the wrong book. Since
+`convert_textbook.py` checkpoints its work, simply **re-running it** on
+those 5 PDFs is the cleanest fix — it resumes past the already-completed
+marker/GPU extraction and just redoes the final assembly/metadata write,
+picking up the new fields automatically; hand-editing `_metadata.json`
+to add `source_pdf_path` (a plain relative-path string) is a fallback if
+re-running isn't preferred.
 
 - [ ] **Step 1: Write the failing tests**
 
@@ -941,6 +1017,33 @@ def _make_notes_pdf(academic_hub_root, course, category, basename, write_markdow
         os.makedirs(out_dir, exist_ok=True)
         with open(os.path.join(out_dir, f"{basename}.md"), "w", encoding="utf-8") as f:
             f.write("---\ntotal_pages: 3\n---\n\nSome content.")
+    return pdf_path
+
+
+def _make_textbook(academic_hub_root, course, pdf_basename, folder_name, with_source_pdf_path=True):
+    """Mirrors convert_textbook.py's real output layout: the PDF sits in
+    textbooks-and-papers/ directly, its processed_outputs/<folder_name>/
+    subfolder is NOT named after the PDF's filename (real corpus example:
+    'Book of Proof.pdf' -> 'Hammack_Book_of_Proof_2025/'), and (once
+    Task 9 lands) _metadata.json carries source_pdf_path back to it."""
+    tp_dir = os.path.join(academic_hub_root, "academic_resources", course, "textbooks-and-papers")
+    os.makedirs(tp_dir, exist_ok=True)
+    pdf_path = os.path.join(tp_dir, f"{pdf_basename}.pdf")
+    with open(pdf_path, "wb") as f:
+        f.write(f"fake pdf bytes for {pdf_basename}".encode())
+
+    book_dir = os.path.join(tp_dir, "processed_outputs", folder_name)
+    os.makedirs(book_dir, exist_ok=True)
+    with open(os.path.join(book_dir, f"{folder_name}.md"), "w", encoding="utf-8") as f:
+        f.write("# Title\n\nChapter 1: Introduction...")
+
+    metadata = {"total_pages_processed": 42}
+    if with_source_pdf_path:
+        rel_pdf_path = os.path.relpath(pdf_path, academic_hub_root).replace(os.sep, "/")
+        metadata["source_pdf_path"] = rel_pdf_path
+    with open(os.path.join(book_dir, f"{folder_name}_metadata.json"), "w", encoding="utf-8") as f:
+        import json
+        json.dump(metadata, f)
     return pdf_path
 
 
@@ -1006,6 +1109,39 @@ class TestRebuild(unittest.TestCase):
             self.assertEqual(stats["pruned"], 1)
             self.assertEqual(load_shard(tmp, "math-camp"), [])
             self.assertNotIn("math-camp", load_courses(tmp))
+
+    def test_generates_a_textbook_card_when_source_pdf_path_is_present(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            _make_textbook(tmp, "math-camp", "Book of Proof", "Hammack_Book_of_Proof_2025")
+            stats = rebuild(tmp, client=_fake_client())
+            self.assertEqual(stats["generated"], 1)
+            cards = load_shard(tmp, "math-camp")
+            self.assertEqual(len(cards), 1)
+            self.assertTrue(cards[0]["path"].endswith("Hammack_Book_of_Proof_2025.md"))
+            self.assertTrue(cards[0]["source_pdf_path"].endswith("Book of Proof.pdf"))
+
+    def test_skips_textbook_with_no_source_pdf_path_yet(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            _make_textbook(tmp, "math-camp", "Book of Proof", "Hammack_Book_of_Proof_2025",
+                            with_source_pdf_path=False)
+            stats = rebuild(tmp, client=_fake_client())
+            self.assertEqual(stats["generated"], 0)
+            self.assertEqual(stats["skipped_no_source_pdf"], 1)
+            self.assertEqual(load_shard(tmp, "math-camp"), [])
+
+    def test_textbook_content_sample_is_capped(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            _make_textbook(tmp, "math-camp", "Big Book", "BigBook_2025")
+            md_path = os.path.join(tmp, "academic_resources", "math-camp", "textbooks-and-papers",
+                                    "processed_outputs", "BigBook_2025", "BigBook_2025.md")
+            with open(md_path, "w", encoding="utf-8") as f:
+                f.write("x" * 50000)
+            client = _fake_client()
+            rebuild(tmp, client=client)
+            from index_card import TEXTBOOK_CONTENT_SAMPLE_CHARS
+            prompt = client.models.generate_content.call_args.kwargs["contents"]
+            self.assertLessEqual(len(prompt), 50000)  # the 50000-char body did NOT go in whole
+            self.assertIn("x" * TEXTBOOK_CONTENT_SAMPLE_CHARS, prompt)
 ```
 
 - [ ] **Step 2: Run the tests to verify they fail**
@@ -1026,9 +1162,11 @@ Spec: docs/superpowers/specs/2026-08-27-source-indexer-design.md
 """
 from __future__ import annotations
 
+import json
 import os
 
 from index_card import (
+    TEXTBOOK_CONTENT_SAMPLE_CHARS,
     compute_file_id,
     derive_course,
     load_shard,
@@ -1057,9 +1195,69 @@ def _notes_pdf_paths(academic_hub_root: str, course_filter: str | None):
                     yield course, category, os.path.join(category_dir, name)
 
 
+def _textbook_book_dirs(academic_hub_root: str, course_filter: str | None):
+    resources_root = os.path.join(academic_hub_root, "academic_resources")
+    if not os.path.isdir(resources_root):
+        return
+    for course in sorted(os.listdir(resources_root)):
+        if course_filter and course != course_filter:
+            continue
+        processed_outputs_dir = os.path.join(
+            resources_root, course, "textbooks-and-papers", "processed_outputs",
+        )
+        if not os.path.isdir(processed_outputs_dir):
+            continue
+        for folder_name in sorted(os.listdir(processed_outputs_dir)):
+            book_dir = os.path.join(processed_outputs_dir, folder_name)
+            if os.path.isdir(book_dir):
+                yield course, folder_name, book_dir
+
+
+def _reconcile_one(academic_hub_root, course_name, folder_category, file_id, rel_path,
+                    rel_pdf_path, content_sample, page_count, client, force, stats):
+    existing = None
+    for c in load_shard(academic_hub_root, course_name):
+        if c.get("file_id") == file_id:
+            existing = c
+            break
+    already_current = (
+        existing is not None and not force and not existing.get("needs_indexing")
+        and existing.get("path") == rel_path
+    )
+    if already_current:
+        stats["unchanged"] += 1
+        return
+
+    was_new = existing is None
+    # force=True on an existing, otherwise-current card still needs a
+    # fresh generate_index_card() call -- reconcile_and_write() only
+    # regenerates on a true no-match, so force removes the old card
+    # first to force that path.
+    if force and existing is not None:
+        remaining = [c for c in load_shard(academic_hub_root, course_name) if c.get("file_id") != file_id]
+        save_shard(academic_hub_root, course_name, remaining)
+        recompute_course_entry(academic_hub_root, course_name)
+        was_new = True
+
+    reconcile_and_write(
+        academic_hub_root, file_id=file_id, path=rel_path, source_pdf_path=rel_pdf_path,
+        course=course_name, folder_category=folder_category, content_sample=content_sample,
+        page_count=page_count, client=client,
+    )
+    if was_new:
+        stats["generated"] += 1
+    elif existing is not None and existing.get("course") != course_name:
+        stats["moved"] += 1
+    else:
+        stats["updated"] += 1
+
+
 def rebuild(academic_hub_root: str, client, course: str | None = None,
             force: bool = False, prune: bool = False) -> dict:
-    stats = {"generated": 0, "updated": 0, "unchanged": 0, "moved": 0, "orphaned": 0, "pruned": 0}
+    stats = {
+        "generated": 0, "updated": 0, "unchanged": 0, "moved": 0,
+        "orphaned": 0, "pruned": 0, "skipped_no_source_pdf": 0,
+    }
     seen_file_ids: set[str] = set()
 
     for course_name, category, pdf_path in _notes_pdf_paths(academic_hub_root, course):
@@ -1070,48 +1268,49 @@ def rebuild(academic_hub_root: str, client, course: str | None = None,
 
         file_id = compute_file_id(pdf_path)
         seen_file_ids.add(file_id)
-
         rel_md_path = os.path.relpath(md_path, academic_hub_root).replace(os.sep, "/")
         rel_pdf_path = os.path.relpath(pdf_path, academic_hub_root).replace(os.sep, "/")
-
-        existing = None
-        for c in load_shard(academic_hub_root, course_name):
-            if c.get("file_id") == file_id:
-                existing = c
-                break
-        already_current = (
-            existing is not None and not force and not existing.get("needs_indexing")
-            and existing.get("path") == rel_md_path
-        )
-        if already_current:
-            stats["unchanged"] += 1
-            continue
 
         with open(md_path, "r", encoding="utf-8") as f:
             content_sample = f.read()
 
-        was_new = existing is None
-        # force=True on an existing, otherwise-current card still needs a
-        # fresh generate_index_card() call -- reconcile_and_write() only
-        # regenerates on a true no-match, so force removes the old card
-        # first to force that path.
-        if force and existing is not None:
-            remaining = [c for c in load_shard(academic_hub_root, course_name) if c.get("file_id") != file_id]
-            save_shard(academic_hub_root, course_name, remaining)
-            recompute_course_entry(academic_hub_root, course_name)
-            was_new = True
+        _reconcile_one(academic_hub_root, course_name, category, file_id, rel_md_path,
+                       rel_pdf_path, content_sample, None, client, force, stats)
 
-        reconcile_and_write(
-            academic_hub_root, file_id=file_id, path=rel_md_path, source_pdf_path=rel_pdf_path,
-            course=course_name, folder_category=category, content_sample=content_sample,
-            page_count=None, client=client,
-        )
-        if was_new:
-            stats["generated"] += 1
-        elif existing is not None and existing.get("course") != course_name:
-            stats["moved"] += 1
-        else:
-            stats["updated"] += 1
+    for course_name, folder_name, book_dir in _textbook_book_dirs(academic_hub_root, course):
+        metadata_path = os.path.join(book_dir, f"{folder_name}_metadata.json")
+        if not os.path.exists(metadata_path):
+            continue
+        with open(metadata_path, "r", encoding="utf-8") as f:
+            metadata = json.load(f)
+        source_pdf_path = metadata.get("source_pdf_path")
+        if not source_pdf_path:
+            print(f"WARNING: {folder_name} has no source_pdf_path in its _metadata.json yet "
+                  f"(converted before this field existed) -- skipping. Re-run convert_textbook.py "
+                  f"on its PDF, or add source_pdf_path by hand, then rerun rebuild.")
+            stats["skipped_no_source_pdf"] += 1
+            continue
+
+        pdf_path = os.path.join(academic_hub_root, source_pdf_path)
+        if not os.path.exists(pdf_path):
+            print(f"WARNING: {folder_name}'s source_pdf_path ({source_pdf_path}) does not exist "
+                  f"on disk -- skipping.")
+            stats["skipped_no_source_pdf"] += 1
+            continue
+
+        file_id = compute_file_id(pdf_path)
+        seen_file_ids.add(file_id)
+        course_name = derive_course(source_pdf_path)  # trust the PDF's own path, not the folder walk
+
+        md_path = os.path.join(book_dir, f"{folder_name}.md")
+        with open(md_path, "r", encoding="utf-8") as f:
+            content_sample = f.read(TEXTBOOK_CONTENT_SAMPLE_CHARS)
+
+        rel_md_path = os.path.relpath(md_path, academic_hub_root).replace(os.sep, "/")
+        page_count = metadata.get("total_pages_processed")
+
+        _reconcile_one(academic_hub_root, course_name, "textbooks-and-papers", file_id, rel_md_path,
+                       source_pdf_path, content_sample, page_count, client, force, stats)
 
     _flag_or_prune_orphans(academic_hub_root, seen_file_ids, course, prune, stats)
     return stats
@@ -1151,13 +1350,13 @@ def _flag_or_prune_orphans(academic_hub_root, seen_file_ids, course_filter, prun
 - [ ] **Step 4: Run the tests to verify they pass**
 
 Run: `cd marker-conversion && python -m unittest tests.test_index_search -v`
-Expected: PASS (7 tests)
+Expected: PASS (11 tests)
 
 - [ ] **Step 5: Commit**
 
 ```bash
 git add marker-conversion/index_search.py marker-conversion/tests/test_index_search.py
-git commit -m "feat(indexer): add notes-pipeline rebuild/backfill with orphan flagging and prune"
+git commit -m "feat(indexer): add notes+textbook rebuild/backfill with orphan flagging and prune"
 ```
 
 ---
@@ -1194,7 +1393,7 @@ def _card(file_id, embedding, **overrides):
         "file_id": file_id, "path": f"{file_id}.md", "source_pdf_path": f"{file_id}.pdf",
         "course": "math-camp", "doc_type": "textbook", "title": file_id,
         "summary": f"summary for {file_id}", "topics": [], "level": "introductory",
-        "has_solutions": False, "page_count": 10, "embedding": embedding,
+        "has_solutions": False, "page_count": 10, "rag_md_path": None, "embedding": embedding,
         "embedding_model": "gemini-embedding-001:768", "source_updated_at": "2026-01-01T00:00:00Z",
         "needs_indexing": False,
     }
@@ -1222,6 +1421,24 @@ class TestSearch(unittest.TestCase):
             recompute_course_entry(tmp, "math-camp")
             results = search(tmp, "q", client=_fake_query_client([1.0, 0.0]))
             self.assertEqual(results[0].reason, "summary for x")
+
+    def test_prefers_rag_md_path_over_path_when_set(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            save_shard(tmp, "math-camp", [
+                _card("x", [1.0, 0.0], rag_md_path="x.rag.md"),
+            ])
+            from index_card import recompute_course_entry
+            recompute_course_entry(tmp, "math-camp")
+            results = search(tmp, "q", client=_fake_query_client([1.0, 0.0]))
+            self.assertEqual(results[0].path, "x.rag.md")
+
+    def test_falls_back_to_path_when_rag_md_path_is_unset(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            save_shard(tmp, "math-camp", [_card("x", [1.0, 0.0])])  # rag_md_path defaults to None
+            from index_card import recompute_course_entry
+            recompute_course_entry(tmp, "math-camp")
+            results = search(tmp, "q", client=_fake_query_client([1.0, 0.0]))
+            self.assertEqual(results[0].path, "x.md")
 
     def test_course_scope_skips_other_courses_entirely(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -1358,8 +1575,12 @@ def search(
                 if card_level not in KNOWN_LEVELS or KNOWN_LEVELS.index(card_level) > KNOWN_LEVELS.index(max_level):
                     continue
             score = cosine_similarity(query_embedding, card["embedding"])
+            # .rag.md is the same content plus inlined image descriptions --
+            # strictly more useful to a text-only consumer, so always
+            # preferred over the plain .md when set (spec §3.1/§4.4).
+            result_path = card.get("rag_md_path") or card["path"]
             scored.append(SearchResult(
-                path=card["path"], course=card["course"], doc_type=card["doc_type"],
+                path=result_path, course=card["course"], doc_type=card["doc_type"],
                 score=score, reason=card.get("summary", ""),
             ))
 
@@ -1370,7 +1591,7 @@ def search(
 - [ ] **Step 4: Run the tests to verify they pass**
 
 Run: `cd marker-conversion && python -m unittest tests.test_index_search -v`
-Expected: PASS (16 tests)
+Expected: PASS (22 tests)
 
 - [ ] **Step 5: Commit**
 
@@ -1504,7 +1725,7 @@ if __name__ == "__main__":
 - [ ] **Step 4: Run the tests to verify they pass**
 
 Run: `cd marker-conversion && python -m unittest tests.test_index_search -v`
-Expected: PASS (20 tests)
+Expected: PASS (26 tests)
 
 - [ ] **Step 5: Commit**
 
@@ -1669,14 +1890,14 @@ git commit -m "feat(indexer): hook transcribe_notes.py's 4 write paths into the 
 
 ---
 
-### Task 9: Hook into `convert_textbook.py`
+### Task 9: `_metadata.json` linkage fields + hook into `convert_textbook.py`
 
 **Files:**
 - Modify: `marker-conversion/convert_textbook.py`
 
 **Interfaces:**
-- Consumes: `index_card.compute_file_id`, `index_card.derive_course`, `index_card.reconcile_and_write` (Tasks 1/4).
-- Produces: nothing new consumed elsewhere — this is the last integration point.
+- Consumes: `index_card.compute_file_id`, `index_card.derive_course`, `index_card.reconcile_and_write`, `index_card.TEXTBOOK_CONTENT_SAMPLE_CHARS` (Tasks 1/4).
+- Produces: `_metadata.json` gains `source_pdf_path`/`source_pdf_file_id` — consumed by Task 5's `rebuild()` (textbook backfill) and Task 10 (`describe_images.py`'s hook).
 
 **Testing note:** per the Global Constraints, `convert_textbook.py` cannot be imported in this environment (`import torch` fails at module scope — confirmed). Every function this task calls (`compute_file_id`, `derive_course`, `reconcile_and_write`) is already fully unit-tested by Tasks 1 and 4. This task's own correctness is verified by careful review of the diff against the real function below (already read in full during planning), not by running a test here — consistent with how `chapter_index.py` was already split out of this exact file for the same reason.
 
@@ -1685,12 +1906,13 @@ git commit -m "feat(indexer): hook transcribe_notes.py's 4 write paths into the 
 Add near the top of `marker-conversion/convert_textbook.py`, alongside its other local imports:
 
 ```python
-from index_card import compute_file_id, derive_course, reconcile_and_write
+from index_card import TEXTBOOK_CONTENT_SAMPLE_CHARS, compute_file_id, derive_course, reconcile_and_write
+from gemini_utils import get_gemini_client, load_dotenv_override
 ```
 
-- [ ] **Step 2: Add the hook call**
+- [ ] **Step 2: Write the PDF linkage fields and add the hook call**
 
-In `process_one_pdf()`, immediately after the existing metadata write (currently lines 881-888):
+In `process_one_pdf()`, replace the existing metadata write (currently lines 881-888):
 
 ```python
         master_metadata.update({
@@ -1703,22 +1925,40 @@ In `process_one_pdf()`, immediately after the existing metadata write (currently
             json.dump(master_metadata, json_f, indent=4, ensure_ascii=False)
 ```
 
-add:
+with:
 
 ```python
-        try:
-            from google import genai as _genai  # local import: convert_textbook.py never
-            # imports google.genai at module scope (extract_bibliographic_info_via_llm()
-            # imports it locally too, at line 632, for the same reason -- google-genai
-            # isn't a hard dependency when --no-llm-bib is used) -- mirroring that
-            # existing pattern rather than adding a new module-level import.
+        academic_hub_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "academic-hub"))
+        # Cheap local hashing, no network call -- computed and recorded
+        # unconditionally, independent of whether the LLM-dependent
+        # indexing call below succeeds. This is what lets rebuild()
+        # (Task 5) and describe_images.py's hook (Task 10) find this
+        # book's source PDF later without any filename guessing -- the
+        # ambiguity that made textbook backfill unreliable before this
+        # field existed (processed_outputs/<FolderName>/ folder names
+        # don't correspond to their source PDF's filename).
+        file_id = compute_file_id(input_pdf)
+        rel_pdf_path = os.path.relpath(input_pdf, academic_hub_root).replace(os.sep, "/")
 
-            academic_hub_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "academic-hub"))
+        master_metadata.update({
+            "total_pages_processed": total_pages,
+            "processing_time_seconds": round(elapsed, 2),
+            "source_pdf_document_info": source_info,
+            "markdown_parsed_info": markdown_info,
+            "source_pdf_path": rel_pdf_path,
+            "source_pdf_file_id": file_id,
+        })
+        with open(os.path.join(local_build_dir, f"{folder_name}_metadata.json"), "w", encoding="utf-8") as json_f:
+            json.dump(master_metadata, json_f, indent=4, ensure_ascii=False)
+
+        try:
+            load_dotenv_override()
+            index_client = get_gemini_client()
+            if index_client is None:
+                raise RuntimeError("GEMINI_API_KEY not available -- see gemini_utils.get_gemini_client()")
             md_output_path = os.path.join(local_build_dir, f"{folder_name}.md")
             with open(md_output_path, "r", encoding="utf-8") as f:
-                content_sample = f.read(12000)
-            file_id = compute_file_id(input_pdf)
-            rel_pdf_path = os.path.relpath(input_pdf, academic_hub_root).replace(os.sep, "/")
+                content_sample = f.read(TEXTBOOK_CONTENT_SAMPLE_CHARS)
             course = derive_course(rel_pdf_path)
             # local_build_dir is a temp assembly directory uploaded to raw_output
             # afterward (see "Resolve Output Trajectory" below) -- the card's
@@ -1727,7 +1967,6 @@ add:
             rel_md_path = (
                 f"{rel_pdf_path.rsplit('/', 1)[0]}/processed_outputs/{folder_name}/{folder_name}.md"
             )
-            index_client = _genai.Client(vertexai=True, project=args.llm_project, location=args.llm_location)
             reconcile_and_write(
                 academic_hub_root, file_id=file_id, path=rel_md_path, source_pdf_path=rel_pdf_path,
                 course=course, folder_category="textbooks-and-papers", content_sample=content_sample,
@@ -1739,24 +1978,236 @@ add:
                   f"separately later to catch it up.")
 ```
 
-**Note on the Vertex client:** this constructs a fresh `genai.Client(vertexai=True, ...)` rather than reusing `extract_bibliographic_info_via_llm()`'s internal client, since that function doesn't expose the client it builds internally (line 650) — mirrors the same construction call already used there, including the local `from google import genai` import. If `args.llm_bib` was disabled (`--no-llm-bib`) or `args.llm_project` never resolved, this call will fail the same way the existing bibliographic-extraction call would in that case; the `try`/`except` above already treats that as non-fatal to the conversion, consistent with spec §4.2. Whether Vertex-backed `embed_content()` calls behave identically to the Developer-API-key calls this was tested against (Task 2) is a reasonable assumption from using the same SDK, not something verified in this environment (no Vertex/GCP access here) — worth confirming the first time this actually runs on the GCP VM.
+**Note on the client:** uses `gemini_utils.get_gemini_client()` (Developer API key), matching every other indexing call in this plan (Global Constraints) — not the Vertex-backed client `extract_bibliographic_info_via_llm()` builds for its own, separate, existing bibliographic-extraction call. This requires `.env`/`GEMINI_API_KEY` to be reachable from wherever `convert_textbook.py` runs; if it isn't, `get_gemini_client()` returns `None`, which is turned into a `RuntimeError` and caught by the same `try`/`except` as any other indexing failure — never blocking the actual conversion, consistent with spec §4.2.
 
 - [ ] **Step 3: Manually review the diff**
 
 Run: `cd marker-conversion && git diff convert_textbook.py`
-Confirm: the added block sits after the existing metadata write, before "Resolve Output Trajectory"; no existing line was altered; indentation matches the surrounding `try:` block (this code is inside `process_one_pdf()`'s outer `try:`, same indentation level as the `master_metadata.update(...)` call above it).
+Confirm: `source_pdf_path`/`source_pdf_file_id` are written into `master_metadata` before the `_metadata.json` dump (so they're present even if the `try` block below fails); the indexing hook sits after that write, before "Resolve Output Trajectory"; no unrelated line was altered; indentation matches the surrounding block (this code is inside `process_one_pdf()`'s outer `try:`, same indentation level as the original `master_metadata.update(...)` call).
 
 - [ ] **Step 4: Commit**
 
 ```bash
 git add marker-conversion/convert_textbook.py
-git commit -m "feat(indexer): hook convert_textbook.py into the source indexer"
+git commit -m "feat(indexer): record source PDF linkage in _metadata.json, hook into the indexer"
+```
+
+---
+
+### Task 10: `.rag.md` linkage in `describe_images.py`
+
+**Files:**
+- Modify: `marker-conversion/describe_images.py`
+- Test: `marker-conversion/tests/test_describe_images.py`
+
+**Interfaces:**
+- Consumes: `index_card.set_rag_md_path` (Task 4).
+- Produces: `link_rag_md(book_dir: str, folder_name: str, rag_path: str, academic_hub_root: str) -> bool`. Called once by `process_book()`, immediately after it writes `.rag.md`. Last integration point in this plan.
+
+**Note:** `describe_images.py` has no torch/marker dependency (confirmed: imports cleanly in this environment) and already has its own test file, unlike `convert_textbook.py` — this task follows normal TDD, not Task 9's diff-review approach. Per this module's own established pattern (small pure functions, thin `process_book()` orchestration — matching every other function already in `test_describe_images.py`), the new logic is extracted into its own testable function rather than inlined into `process_book()`.
+
+- [ ] **Step 1: Write the failing tests**
+
+```python
+# append to marker-conversion/tests/test_describe_images.py
+from unittest.mock import patch
+
+# `os`, `tempfile`, `unittest`, `json` are already imported at the top of
+# this file. Add `link_rag_md` to the existing
+# `from describe_images import (...)` block rather than a separate import.
+
+
+class TestLinkRagMd(unittest.TestCase):
+    def _book_dir_with_metadata(self, tmp, metadata):
+        book_dir = os.path.join(tmp, "processed_outputs", "SomeBook_2025")
+        os.makedirs(book_dir)
+        with open(os.path.join(book_dir, "SomeBook_2025_metadata.json"), "w", encoding="utf-8") as f:
+            json.dump(metadata, f)
+        return book_dir
+
+    def test_writes_rag_md_path_into_metadata_and_the_matching_card(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            book_dir = self._book_dir_with_metadata(tmp, {"source_pdf_file_id": "fid1"})
+            rag_path = os.path.join(book_dir, "SomeBook_2025.rag.md")
+
+            with patch("describe_images.set_rag_md_path", return_value=True) as mock_set:
+                found = link_rag_md(book_dir, "SomeBook_2025", rag_path, tmp)
+
+            self.assertTrue(found)
+            mock_set.assert_called_once()
+            self.assertEqual(mock_set.call_args[0][0], tmp)
+            self.assertEqual(mock_set.call_args[0][1], "fid1")
+            self.assertEqual(mock_set.call_args[0][2], "processed_outputs/SomeBook_2025/SomeBook_2025.rag.md")
+
+            with open(os.path.join(book_dir, "SomeBook_2025_metadata.json"), encoding="utf-8") as f:
+                metadata = json.load(f)
+            self.assertEqual(metadata["rag_md_path"], "processed_outputs/SomeBook_2025/SomeBook_2025.rag.md")
+            self.assertEqual(metadata["source_pdf_file_id"], "fid1")  # untouched
+
+    def test_returns_false_when_metadata_has_no_source_pdf_file_id_yet(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            book_dir = self._book_dir_with_metadata(tmp, {})  # predates this field
+            rag_path = os.path.join(book_dir, "SomeBook_2025.rag.md")
+            with patch("describe_images.set_rag_md_path") as mock_set:
+                found = link_rag_md(book_dir, "SomeBook_2025", rag_path, tmp)
+            self.assertFalse(found)
+            mock_set.assert_not_called()
+
+    def test_returns_false_but_still_writes_metadata_when_no_card_exists_yet(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            book_dir = self._book_dir_with_metadata(tmp, {"source_pdf_file_id": "fid1"})
+            rag_path = os.path.join(book_dir, "SomeBook_2025.rag.md")
+            with patch("describe_images.set_rag_md_path", return_value=False):
+                found = link_rag_md(book_dir, "SomeBook_2025", rag_path, tmp)
+            self.assertFalse(found)
+            with open(os.path.join(book_dir, "SomeBook_2025_metadata.json"), encoding="utf-8") as f:
+                metadata = json.load(f)
+            self.assertEqual(metadata["rag_md_path"], "processed_outputs/SomeBook_2025/SomeBook_2025.rag.md")
+
+    def test_missing_metadata_file_returns_false_not_a_crash(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            book_dir = os.path.join(tmp, "processed_outputs", "SomeBook_2025")
+            os.makedirs(book_dir)  # no _metadata.json written at all
+            rag_path = os.path.join(book_dir, "SomeBook_2025.rag.md")
+            found = link_rag_md(book_dir, "SomeBook_2025", rag_path, tmp)
+            self.assertFalse(found)
+```
+
+- [ ] **Step 2: Run the tests to verify they fail**
+
+Run: `cd marker-conversion && python -m unittest tests.test_describe_images -v`
+Expected: FAIL — `ImportError: cannot import name 'link_rag_md'`
+
+- [ ] **Step 3: Write the implementation**
+
+Add near the top of `marker-conversion/describe_images.py`, alongside its other local imports:
+
+```python
+from index_card import set_rag_md_path
+```
+
+Add this new function immediately before `process_book()` (before line 223):
+
+```python
+def link_rag_md(book_dir: str, folder_name: str, rag_path: str, academic_hub_root: str) -> bool:
+    """Called by process_book() right after it writes .rag.md. Records the
+    linkage in _metadata.json unconditionally (independent of whether a
+    matching index card exists yet), and updates the card's rag_md_path
+    when one does. Never raises -- a linkage failure must not affect the
+    .rag.md file this runs after, or abort process_book()'s caller's loop
+    over the rest of the books being processed."""
+    metadata_path = os.path.join(book_dir, f"{folder_name}_metadata.json")
+    try:
+        with open(metadata_path, "r", encoding="utf-8") as f:
+            metadata = json.load(f)
+    except (OSError, json.JSONDecodeError) as err:
+        print(f"WARNING: [{folder_name}] could not read {metadata_path} ({err}); "
+              f"skipping .rag.md linkage.")
+        return False
+
+    file_id = metadata.get("source_pdf_file_id")
+    if not file_id:
+        print(f"WARNING: [{folder_name}] no source_pdf_file_id in {metadata_path} "
+              f"(converted before this field existed) -- skipping .rag.md linkage. "
+              f"Re-run convert_textbook.py on its PDF, or add the field by hand, "
+              f"then rerun describe_images.py.")
+        return False
+
+    rel_rag_path = os.path.relpath(rag_path, academic_hub_root).replace(os.sep, "/")
+    metadata["rag_md_path"] = rel_rag_path
+    with open(metadata_path, "w", encoding="utf-8") as f:
+        json.dump(metadata, f, indent=4, ensure_ascii=False)
+
+    found = set_rag_md_path(academic_hub_root, file_id, rel_rag_path)
+    if not found:
+        print(f"WARNING: [{folder_name}] no index card found for file_id {file_id} yet -- "
+              f"_metadata.json's rag_md_path is recorded regardless; rerun "
+              f"`python index_search.py rebuild` later to pick it up.")
+    return found
+```
+
+Then thread `academic_hub_root` through `process_book()` and call `link_rag_md()` after the existing `.rag.md` write. `process_book()`'s signature (currently line 223-230), from:
+```python
+def process_book(
+    book_dir: str,
+    client,
+    model: str,
+    paragraphs_before: int = 1,
+    paragraphs_after: int = 1,
+    dry_run: bool = False,
+) -> None:
+```
+to:
+```python
+def process_book(
+    book_dir: str,
+    client,
+    model: str,
+    academic_hub_root: str,
+    paragraphs_before: int = 1,
+    paragraphs_after: int = 1,
+    dry_run: bool = False,
+) -> None:
+```
+
+Its body (currently lines 282-285), from:
+```python
+    rag_text = build_rag_markdown(text, cache)
+    with open(rag_path, "w", encoding="utf-8") as f:
+        f.write(rag_text)
+    print(f"[{folder_name}] wrote {rag_path}")
+```
+to:
+```python
+    rag_text = build_rag_markdown(text, cache)
+    with open(rag_path, "w", encoding="utf-8") as f:
+        f.write(rag_text)
+    print(f"[{folder_name}] wrote {rag_path}")
+
+    link_rag_md(book_dir, folder_name, rag_path, academic_hub_root)
+```
+
+And its call site in `main()` (currently line 324-328), from:
+```python
+    for book_dir in book_dirs:
+        process_book(
+            book_dir, client, args.model,
+            args.context_paragraphs_before, args.context_paragraphs_after,
+            dry_run=args.dry_run,
+        )
+```
+to (reusing `academic_hub_dir`, already computed at line 310 for `processed_outputs_dir`):
+```python
+    for book_dir in book_dirs:
+        process_book(
+            book_dir, client, args.model, str(academic_hub_dir),
+            args.context_paragraphs_before, args.context_paragraphs_after,
+            dry_run=args.dry_run,
+        )
+```
+
+- [ ] **Step 4: Run the tests to verify they pass**
+
+Run: `cd marker-conversion && python -m unittest tests.test_describe_images -v`
+Expected: PASS (all existing tests plus the 4 new ones)
+
+- [ ] **Step 5: Manually review the `process_book()`/`main()` diff**
+
+Run: `cd marker-conversion && git diff describe_images.py`
+Confirm: `academic_hub_root` is threaded through both the signature and its one call site; `link_rag_md(...)` is called after the existing `.rag.md` write and its print statement, not before; no existing line altered besides the signature/call-site edits.
+
+- [ ] **Step 6: Commit**
+
+```bash
+git add marker-conversion/describe_images.py marker-conversion/tests/test_describe_images.py
+git commit -m "feat(indexer): link .rag.md back to its index card and _metadata.json"
 ```
 
 ---
 
 ## Self-Review Notes
 
-- **Spec coverage:** §3 (schema) → Tasks 1-3. §4 (generation, hooks, failure isolation, reconciliation) → Tasks 2, 4, 8, 9. §6 (search) → Task 6. §7 (rebuild/backfill, orphans) → Task 5 (notes-only; textbook backfill explicitly scoped out, see Task 5's note and Global Constraints). §8 (CLI) → Task 7. §5 (retag/tag mining) is **not** in this plan — it's Plan 2, since nothing here depends on `topics` being populated (search ranks purely by embedding similarity).
-- **Type consistency checked:** `reconcile_and_write`'s parameter names/order match across Task 4 (definition), Task 5 (`rebuild`'s call), Task 8 (`_write_markdown_and_index`'s call), and Task 9's call — all use the same keyword arguments (`file_id`, `path`, `source_pdf_path`, `course`, `folder_category`, `content_sample`, `page_count`, `client`). `SearchResult`'s fields (`path`, `course`, `doc_type`, `score`, `reason`) match spec §6 exactly. `KNOWN_LEVELS` ordering (`introductory` < `intermediate` < `advanced`) is defined once in `index_card.py` and consumed identically by Task 6's `max_level` filter and Task 7's CLI `choices`.
-- **No placeholders:** every step has runnable code; the one deliberately unbuilt piece (textbook-side `rebuild` backfill) is called out explicitly with its reason, not left as a vague TODO.
+- **Spec coverage:** §3 (schema, including `rag_md_path`) → Tasks 1-3. §4 (generation, hooks, failure isolation, reconciliation) → Tasks 2, 4, 8, 9. §4.4 (`.rag.md` linkage) → Task 10. §6 (search, including `rag_md_path` preference) → Task 6. §7 (rebuild/backfill, orphans, conditional textbook backfill via `source_pdf_path`) → Task 5. §8 (CLI) → Task 7. §5 (retag/tag mining) is **not** in this plan — it's Plan 2, since nothing here depends on `topics` being populated (search ranks purely by embedding similarity).
+- **Type consistency checked:** `reconcile_and_write`'s parameter names/order match across Task 4 (definition), Task 5 (`_reconcile_one`'s call, both notes and textbook paths), Task 8 (`_write_markdown_and_index`'s call), and Task 9's call — all use the same keyword arguments (`file_id`, `path`, `source_pdf_path`, `course`, `folder_category`, `content_sample`, `page_count`, `client`). `set_rag_md_path`'s signature matches between Task 4 (definition) and Task 10 (`link_rag_md`'s call). `SearchResult`'s fields (`path`, `course`, `doc_type`, `score`, `reason`) match spec §6 exactly, with `path` resolving `rag_md_path` first. `KNOWN_LEVELS` ordering (`introductory` < `intermediate` < `advanced`) is defined once in `index_card.py` and consumed identically by Task 6's `max_level` filter and Task 7's CLI `choices`. `TEXTBOOK_CONTENT_SAMPLE_CHARS` (Task 1) is the same constant used by both Task 5's textbook backfill and Task 9's live hook, so they read the same amount of content.
+- **Client construction consistency:** every indexing call (Tasks 2's `generate_index_card`/`embed_content`, Task 6's query embedding) takes a caller-supplied `client`; every caller (Task 7's CLI, Task 8's `transcribe_notes.py` hook, Task 9's `convert_textbook.py` hook, Task 10 reusing `describe_images.py`'s existing `client` parameter) builds it via `gemini_utils.get_gemini_client()` — no Vertex path anywhere in this plan (Global Constraints).
+- **No placeholders:** every step has runnable code; the one deliberately unbuilt piece (textbook backfill for the 5 books that predate `source_pdf_path`) is called out explicitly with its reason and its fix (re-run `convert_textbook.py`), not left as a vague TODO.
