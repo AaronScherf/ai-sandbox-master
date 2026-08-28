@@ -13,6 +13,7 @@ from index_card import (
     cosine_similarity,
     generate_index_card,
     make_failure_card,
+    recompute_course_entry,
 )
 
 
@@ -127,6 +128,58 @@ class TestCosineSimilarity(unittest.TestCase):
 
     def test_empty_vector_scores_zero_not_a_crash(self):
         self.assertEqual(cosine_similarity([], [1.0, 2.0]), 0.0)
+
+
+class TestRecomputeCourseEntry(unittest.TestCase):
+    def test_computes_centroid_and_file_count_from_shard_cards(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            save_shard(tmp, "math-camp", [
+                {"file_id": "a", "embedding": [1.0, 0.0], "topics": ["linear-algebra"]},
+                {"file_id": "b", "embedding": [0.0, 1.0], "topics": ["linear-algebra", "real-analysis"]},
+            ])
+            recompute_course_entry(tmp, "math-camp")
+            courses = load_courses(tmp)
+            self.assertEqual(courses["math-camp"]["file_count"], 2)
+            self.assertEqual(courses["math-camp"]["embedding"], [0.5, 0.5])
+            self.assertIn("linear-algebra", courses["math-camp"]["predominant_topics"])
+
+    def test_title_is_a_readable_form_of_the_course_id(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            save_shard(tmp, "math-camp", [{"file_id": "a", "embedding": [1.0], "topics": []}])
+            recompute_course_entry(tmp, "math-camp")
+            self.assertEqual(load_courses(tmp)["math-camp"]["title"], "Math Camp")
+
+    def test_excludes_orphaned_cards_from_rollup(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            save_shard(tmp, "math-camp", [
+                {"file_id": "a", "embedding": [1.0, 0.0], "topics": [], "orphaned": True},
+                {"file_id": "b", "embedding": [0.0, 1.0], "topics": []},
+            ])
+            recompute_course_entry(tmp, "math-camp")
+            courses = load_courses(tmp)
+            self.assertEqual(courses["math-camp"]["file_count"], 1)
+            self.assertEqual(courses["math-camp"]["embedding"], [0.0, 1.0])
+
+    def test_removes_course_entry_when_shard_becomes_empty(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            save_shard(tmp, "math-camp", [{"file_id": "a", "embedding": [1.0], "topics": []}])
+            recompute_course_entry(tmp, "math-camp")
+            save_shard(tmp, "math-camp", [])
+            recompute_course_entry(tmp, "math-camp")
+            self.assertNotIn("math-camp", load_courses(tmp))
+
+    def test_cards_missing_topics_are_missing_from_the_embedding_but_not_a_crash(self):
+        # needs_indexing cards (Task 2) have embedding: [] -- must not
+        # poison the centroid computation.
+        with tempfile.TemporaryDirectory() as tmp:
+            save_shard(tmp, "math-camp", [
+                {"file_id": "a", "embedding": [], "topics": [], "needs_indexing": True},
+                {"file_id": "b", "embedding": [1.0, 0.0], "topics": []},
+            ])
+            recompute_course_entry(tmp, "math-camp")
+            courses = load_courses(tmp)
+            self.assertEqual(courses["math-camp"]["embedding"], [1.0, 0.0])
+            self.assertEqual(courses["math-camp"]["file_count"], 2)
 
 
 class TestGenerateIndexCard(unittest.TestCase):

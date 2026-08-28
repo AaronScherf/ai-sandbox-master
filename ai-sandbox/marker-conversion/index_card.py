@@ -117,6 +117,37 @@ def cosine_similarity(a: list[float], b: list[float]) -> float:
     return float(np.dot(arr_a, arr_b) / denom)
 
 
+def recompute_course_entry(academic_hub_root: str, course: str) -> None:
+    """Free byproduct of writing any card in this course -- no LLM or
+    embedding call (spec §3.2). Excludes orphaned and not-yet-embedded
+    (needs_indexing) cards from the centroid so a failed/pending card
+    can't skew course-level ranking."""
+    cards = [c for c in load_shard(academic_hub_root, course) if not c.get("orphaned")]
+    courses = load_courses(academic_hub_root)
+
+    if not cards:
+        courses.pop(course, None)
+        save_courses(academic_hub_root, courses)
+        return
+
+    embeddings = [c["embedding"] for c in cards if c.get("embedding")]
+    centroid = np.array(embeddings, dtype=float).mean(axis=0).tolist() if embeddings else []
+
+    topic_counts: Counter[str] = Counter()
+    for c in cards:
+        topic_counts.update(c.get("topics") or [])
+    predominant = [topic for topic, _ in topic_counts.most_common(10)]
+
+    courses[course] = {
+        "course": course,
+        "title": course.replace("-", " ").title(),
+        "predominant_topics": predominant,
+        "file_count": len(cards),
+        "embedding": centroid,
+    }
+    save_courses(academic_hub_root, courses)
+
+
 _PROMPT_TEMPLATE = """You are cataloging one document from a personal study corpus for a search index.
 
 The document's containing folder is categorized as '{folder_category}', but classify based on \
