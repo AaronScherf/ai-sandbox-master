@@ -103,6 +103,36 @@ def save_courses(academic_hub_root: str, courses: dict[str, dict]) -> None:
         json.dump(list(courses.values()), f, indent=2, ensure_ascii=False)
 
 
+def list_courses(academic_hub_root: str) -> list[str]:
+    index_dir = _index_dir(academic_hub_root)
+    if not os.path.isdir(index_dir):
+        return []
+    return [
+        name[:-len(".json")]
+        for name in sorted(os.listdir(index_dir))
+        if name.endswith(".json") and name not in ("courses.json", "tags.json")
+    ]
+
+
+def tags_path(academic_hub_root: str) -> str:
+    return os.path.join(_index_dir(academic_hub_root), "tags.json")
+
+
+def load_tags(academic_hub_root: str) -> list[dict]:
+    path = tags_path(academic_hub_root)
+    if not os.path.exists(path):
+        return []
+    with open(path, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+
+def save_tags(academic_hub_root: str, tags: list[dict]) -> None:
+    path = tags_path(academic_hub_root)
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(tags, f, indent=2, ensure_ascii=False)
+
+
 def cosine_similarity(a: list[float], b: list[float]) -> float:
     """Gemini's embedding API does not return unit-normalized vectors
     (confirmed live: a real call returned L2 norm ~0.59, not 1.0) --
@@ -247,13 +277,7 @@ def make_failure_card(file_id: str, path: str, source_pdf_path: str, course: str
 
 
 def find_card_by_file_id(academic_hub_root: str, file_id: str) -> tuple[str, dict] | None:
-    index_dir = _index_dir(academic_hub_root)
-    if not os.path.isdir(index_dir):
-        return None
-    for name in sorted(os.listdir(index_dir)):
-        if not name.endswith(".json") or name in ("courses.json", "tags.json"):
-            continue
-        course = name[:-len(".json")]
+    for course in list_courses(academic_hub_root):
         for card in load_shard(academic_hub_root, course):
             if card.get("file_id") == file_id:
                 return course, card

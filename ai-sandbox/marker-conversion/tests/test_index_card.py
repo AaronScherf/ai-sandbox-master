@@ -17,6 +17,9 @@ from index_card import (
     find_card_by_file_id,
     reconcile_and_write,
     set_rag_md_path,
+    list_courses,
+    load_tags,
+    save_tags,
 )
 
 
@@ -385,6 +388,32 @@ class TestSetRagMdPath(unittest.TestCase):
             found = set_rag_md_path(tmp, "fid1", "a.rag.md")
             self.assertTrue(found)
             self.assertEqual(load_shard(tmp, "math-camp")[0]["rag_md_path"], "a.rag.md")
+
+
+class TestListCourses(unittest.TestCase):
+    def test_lists_course_shards_only(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            save_shard(tmp, "math-camp", [{"file_id": "a"}])
+            save_shard(tmp, "econ-101", [{"file_id": "b"}])
+            save_courses(tmp, {"math-camp": {"course": "math-camp", "file_count": 1}})
+            save_tags(tmp, [{"tag": "linear-algebra", "embedding": [1.0]}])
+            self.assertEqual(sorted(list_courses(tmp)), ["econ-101", "math-camp"])
+
+    def test_empty_when_no_index_dir_exists_yet(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            self.assertEqual(list_courses(tmp), [])
+
+
+class TestTagVocabularyIO(unittest.TestCase):
+    def test_load_missing_tags_returns_empty_list(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            self.assertEqual(load_tags(tmp), [])
+
+    def test_save_then_load_round_trips(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            tags = [{"tag": "linear-algebra", "embedding": [0.1, 0.2]}]
+            save_tags(tmp, tags)
+            self.assertEqual(load_tags(tmp), tags)
 
 
 if __name__ == "__main__":
