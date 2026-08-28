@@ -1,2 +1,19 @@
 ai-sandbox/personal-website/
-ai-sandbox/academic-hub/
+
+# academic-hub holds copyrighted PDFs and their full-text conversions --
+# these specific patterns are ignored to avoid uploading large files and
+# IP-protected text (deny-list, not a blanket directory ignore: negating
+# individual files back out of a fully-excluded directory tree is a known
+# git gitignore pitfall -- a parent directory match blocks descent into it
+# regardless of later "!" rules on files inside). Everything else under
+# academic-hub -- scripts, the source-indexer's .index/, per-book
+# _metadata.json, _image_descriptions.json, marker's run_config.json --
+# is a derivative, not a reproduction of the full text, and stays tracked.
+ai-sandbox/academic-hub/**/*.pdf
+ai-sandbox/academic-hub/**/*.md
+ai-sandbox/academic-hub/**/images/
+ai-sandbox/academic-hub/**/*_pages_cache.json
+# Raw notebook source (OneNote), not a derivative index/metadata file --
+# treated the same as the source PDFs, not tracked.
+ai-sandbox/academic-hub/**/*.one
+ai-sandbox/academic-hub/**/*.onetoc2

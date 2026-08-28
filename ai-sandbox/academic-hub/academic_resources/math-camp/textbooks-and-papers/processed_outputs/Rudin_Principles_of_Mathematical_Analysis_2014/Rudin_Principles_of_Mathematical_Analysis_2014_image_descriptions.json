@@ -1,0 +1,22 @@
+{
+    "pg_311__page_44_Picture_0.jpeg": {
+        "skip": true,
+        "description": ""
+    },
+    "pg_311__page_46_Picture_0.jpeg": {
+        "skip": true,
+        "description": ""
+    },
+    "pg_311__page_126_Figure_2.jpeg": {
+        "skip": false,
+        "description": "A cobweb diagram illustrating the process of finding a fixed point through iteration on a coordinate plane with horizontal and vertical axes. Two main lines intersect: a line with a positive slope passing through the origin (y = x) and a line with a negative slope. Starting from a point P1 on the negatively sloped line, horizontal and vertical line segments step sequentially through points P2, P3, P4, P5, and P6, spiraling inward toward the intersection of the two lines, which represents the fixed point."
+    },
+    "pg_461__page_42_Picture_2.jpeg": {
+        "skip": false,
+        "description": "A diagram illustrating the setup for the Brouwer fixed-point theorem inside a closed disk. A circular boundary contains a directed line segment pointing from a top-left point labeled f(x) through a point x on the segment down to a point g(x) located on the boundary of the circle."
+    },
+    "pg_461__page_122_Picture_0.jpeg": {
+        "skip": true,
+        "description": ""
+    }
+}

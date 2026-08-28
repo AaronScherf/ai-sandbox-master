@@ -1,0 +1,16 @@
+{
+    "total_pages_processed": 594,
+    "processing_time_seconds": 902.91,
+    "source_pdf_document_info": {
+        "title": "",
+        "author": "",
+        "year": "2014"
+    },
+    "markdown_parsed_info": {
+        "title": "Principles of Mathematical Analysis",
+        "author": "Walter Rudin",
+        "year": "1976"
+    },
+    "source_pdf_path": "academic_resources/math-camp/textbooks-and-papers/rudin-walter-principles-of-mathematical-analysis-1976.pdf",
+    "source_pdf_file_id": "828d123595b86256"
+}

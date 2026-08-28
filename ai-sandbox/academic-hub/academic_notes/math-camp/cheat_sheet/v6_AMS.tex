@@ -1,0 +1,449 @@
+\documentclass[8pt,letterpaper]{article}
+% ============================================================
+%  Math Camp Formula Sheet -- TWO PAGES (US Letter, front & back)
+%  Compile: pdflatex cheatsheet2.tex
+%  DENSITY KNOB: \bodysize below. Smaller number = more fits.
+%    6.6 -> roomy | 6.2 -> current | 5.8 -> very tight
+% ============================================================
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[letterpaper,margin=0.30in]{geometry}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{multicol}
+\usepackage{enumitem}
+\usepackage{xcolor}
+\usepackage{array}
+\usepackage{mathtools}
+
+\makeatletter
+\pagestyle{empty}
+\clubpenalty=10000
+\widowpenalty=10000
+\displaywidowpenalty=10000
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0pt}
+\setlength{\columnsep}{9pt}
+\setlength{\columnseprule}{0.3pt}
+\renewcommand{\columnseprulecolor}{\color{gray}}
+\setlength{\abovedisplayskip}{1.5pt}
+\setlength{\belowdisplayskip}{1.5pt}
+\setlength{\abovedisplayshortskip}{1pt}
+\setlength{\belowdisplayshortskip}{1pt}
+
+\newcommand{\bodysize}{\fontsize{6.5}{7.0}\selectfont}
+
+\newcommand{\sect}[1]{%
+  \vspace{2.2pt}%
+  \noindent\colorbox{black}{\parbox{\dimexpr\linewidth-2\fboxsep}{%
+    \color{white}\bfseries\scshape\fontsize{6.4}{7.4}\selectfont
+    \hyphenpenalty=10000\exhyphenpenalty=10000\raggedright #1}}%
+  \vspace{1.4pt}\par\nopagebreak\@afterheading}
+
+\newcommand{\keybox}[2]{%
+  \vspace{1.5pt}%
+  \noindent\fbox{\parbox{\dimexpr\linewidth-2\fboxsep-2\fboxrule}{%
+    \bodysize\textbf{\textsc{#1}}\ #2}}%
+  \vspace{1.5pt}\par}
+
+\newenvironment{tl}
+  {\begin{itemize}[leftmargin=6pt,itemsep=0.3pt,topsep=1pt,parsep=0pt,
+                   partopsep=0pt,label=\textcolor{gray}{\tiny$\bullet$}]}
+  {\end{itemize}}
+
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\Rn}{\mathbb{R}^n}
+\newcommand{\F}{\mathbb{F}}
+\newcommand{\E}{\mathbb{E}}
+\newcommand{\PP}{\mathbb{P}}
+\newcommand{\Var}{\operatorname{Var}}
+\newcommand{\Cov}{\operatorname{Cov}}
+\newcommand{\tr}{\operatorname{tr}}
+\newcommand{\rank}{\operatorname{rank}}
+\newcommand{\Ker}{\operatorname{Ker}}
+\newcommand{\Ima}{\operatorname{Im}}
+\newcommand{\spn}{\operatorname{span}}
+\newcommand{\intr}{\operatorname{int}}
+\newcommand{\Dd}{D}
+\newcommand{\tp}{^{\!\top}}
+\newcommand{\ip}[2]{\langle #1,#2\rangle}
+\newcommand{\nm}[1]{\lVert #1\rVert}
+
+\makeatother
+\begin{document}
+\bodysize
+
+\begin{multicols}{3}
+\bodysize
+
+% ================= LINEAR ALGEBRA =================
+\sect{1. Spaces, Span, Independence}
+\begin{tl}
+\item \textbf{Subspace} $W\subseteq V$: $0\in W$, closed under $+$ and scalar $\cdot$. Intersections are subspaces; unions usually not.
+\item $\spn\{v_1\dots v_m\}=\{\sum a_iv_i\}$ = smallest subspace containing them.
+\item \textbf{LI}: $\sum a_iv_i=0\Rightarrow$ all $a_i=0$. \textbf{LD} $\iff$ some $v_j\in\spn$ of the others.
+\item \textbf{Basis} = LI + spanning $\iff$ every $v$ has a \emph{unique} representation. $\dim V=\#$basis.
+\item Any LI list $\le$ any spanning list. In $\dim n$: $n$ LI $\Rightarrow$ basis; $n$ spanning $\Rightarrow$ basis.
+\item $\dim(U+W)=\dim U+\dim W-\dim(U\cap W)$.
+\item \textbf{Direct sum} $V=U\oplus W$. Equivalent characterizations: (i) $V=U+W$ \emph{and} $U\cap W=\{0\}$; (ii) every $v\in V$ has a \emph{unique} $v=u+w$; (iii) the only way to write $0=u+w$ is $u=w=0$; (iv) $V=U+W$ and $\dim V=\dim U+\dim W$.
+\item Basis of $U$ $\cup$ basis of $W$ is a basis of $U\oplus W$. Standard instances: $P^2=P\Rightarrow V=\Ker P\oplus\Ima P$; $V=U\oplus U^\perp$ for any subspace $U$ (orthogonal decomposition).
+\end{tl}
+
+\sect{2. Linear Maps}
+\begin{tl}
+\item $T(\alpha u+\beta v)=\alpha Tu+\beta Tv$; $\Ker T=\{v:Tv=0\}$, $\Ima T=T(V)$.
+\item \textbf{$T$ injective $\iff \Ker T=\{0\}$.} Surjective $\iff \Ima T=W$.
+\item \textbf{Rank--nullity:} $\dim V=\dim\Ker T+\dim\Ima T$.
+\item $T:V\to V$, $\dim V<\infty$: \textbf{injective $\iff$ surjective $\iff$ invertible} (fails in $\infty$ dim).
+\item Trick: $T(z_1\dots z_m)=\sum z_iv_i$. $\{v_i\}$ spans $\iff T$ onto; $\{v_i\}$ LI $\iff T$ 1-1.
+\item $P^2=P\Rightarrow V=\Ker P\oplus\Ima P$, $v=(v-Pv)+Pv$.
+\end{tl}
+
+\sect{3. Matrices, Rank, Systems}
+\begin{tl}
+\item $\rank A=\#$pivots$=\dim\operatorname{Col}A=$ row rank $=$ col rank; $\dim\operatorname{Nul}A=n-\rank A$.
+\item $Ax=b$ consistent $\iff \rank A=\rank[A|b] \iff b\in\operatorname{Col}A$. Solutions $=x_p+\operatorname{Nul}A$.
+\item Basis of $\operatorname{Col}A$ = \emph{original} pivot columns. Basis of $\operatorname{Nul}A$: set each free var $=1$ in turn.
+\item \textbf{$\rank A=1\iff A=cd\tp$}, i.e.\ $A_{jk}=c_jd_k$.
+\item $\rank(AB)\le\min(\rank A,\rank B)$; $\rank A=\rank A\tp=\rank(A\tp A)$.
+\item $(AB)\tp=B\tp A\tp$; $(AB)^{-1}=B^{-1}A^{-1}$.
+\end{tl}
+
+\keybox{Invertible $A$ ($n\times n$) --- all equivalent}{%
+$\det A\neq0$ $\cdot$ $\rank n$ $\cdot$ $Ax=0$ only $x=0$ $\cdot$ $Ax=b$ unique $\forall b$ $\cdot$ cols LI $\cdot$ cols span $\F^n$ $\cdot$ $0$ not an eigenvalue $\cdot$ $A\tp$ invertible $\cdot$ $n$ pivots.}
+
+\textbf{\textsc{Determinant / trace.}}
+\begin{tl}
+\item $\det(AB)=\det A\det B$; $\det A\tp=\det A$; $\det A^{-1}=1/\det A$; $\det(cA)=c^n\det A$.
+\item Row swap flips sign; scaling a row by $c$ scales $\det$ by $c$; adding a multiple of a row: no change.
+\item \textbf{Triangular/diagonal:} $\det=\prod$ diag., eigenvalues $=$ diagonal entries.
+\item $2\times2$: $\det=ad-bc$, $A^{-1}=\frac{1}{\det}\left(\begin{smallmatrix}d&-b\\-c&a\end{smallmatrix}\right)$.
+\item $3\times3$: $\det A=a_{11}(a_{22}a_{33}-a_{23}a_{32})-a_{12}(a_{21}a_{33}-a_{23}a_{31})+a_{13}(a_{21}a_{32}-a_{22}a_{31})$; for $A=\left(\begin{smallmatrix}a&b&c\\d&e&f\\g&h&i\end{smallmatrix}\right)$, $A^{-1}=\frac{1}{\det A}\left(\begin{smallmatrix}ei-fh&ch-bi&bf-ce\\fg-di&ai-cg&cd-af\\dh-eg&bg-ah&ae-bd\end{smallmatrix}\right)$.
+\item $\tr A=\sum a_{ii}=\sum\lambda_i$; $\det A=\prod\lambda_i$; $\tr(AB)=\tr(BA)$.
+\item \textbf{Symmetric} $A=A\tp$; \textbf{orthogonal} $Q\tp Q=I$ ($Q^{-1}=Q\tp$, $\det=\pm1$, preserves norms); \textbf{idempotent} $P^2=P$ ($\lambda\in\{0,1\}$).
+\end{tl}
+
+\sect{4. Eigenvalues \& Diagonalization}
+\begin{tl}
+\item $Av=\lambda v$, $v\neq0$. \textbf{Eigenvalue $\iff$ kernel:}
+$\lambda\text{ eigenvalue}\ \iff\ \Ker(A-\lambda I)\neq\{0\}\\
+\iff\ A-\lambda I\ \text{singular}\\
+\iff\ \det(A-\lambda I)=0.$
+\item So $E_\lambda=\Ker(A-\lambda I)$ and geo.\ mult.\ $=\dim\Ker(A-\lambda I)=n-\rank(A-\lambda I)$.
+\item Special case $\lambda=0$: $0\in\sigma(A)\iff\Ker A\neq\{0\}\iff A$ \emph{not} invertible. Eigenvectors for $\lambda=0$ are exactly the nonzero elements of $\Ker A$.
+\item $2\times2$: $\lambda^2-(\tr A)\lambda+\det A=0$.
+\item Distinct $\lambda$ $\Rightarrow$ eigenvectors LI $\Rightarrow$ $n$ distinct $\lambda\Rightarrow$ diagonalizable (\emph{sufficient, not necessary}).
+\item $1\le$ geo.\ mult.\ $(\dim E_\lambda)\le$ alg.\ mult. \textbf{Diagonalizable $\iff$ geo $=$ alg for every $\lambda$ $\iff$ $n$ LI eigenvectors.} Repeated $\lambda$ alone decides nothing ($I$ vs $\left(\begin{smallmatrix}0&1\\0&0\end{smallmatrix}\right)$).
+\item $X=[v_1\cdots v_n]$ (eigenvectors in \emph{columns}), $D=\operatorname{diag}(\lambda_i)$ \emph{in the same order}. $AX=XD$, $A=XDX^{-1}$, \textbf{$A^k=XD^kX^{-1}$}.
+\item \textbf{Similarity} $B=S^{-1}AS$: same $\lambda,\det,\tr,\rank$, char.\ poly. $Av=\lambda v\Rightarrow B(S^{-1}v)=\lambda(S^{-1}v)$.
+\item \textbf{Spectral thm (real symmetric):} $\lambda$ all real; eigenvectors of distinct $\lambda$ are $\perp$; $A=Q\Lambda Q\tp$.
+\item \textbf{Nilpotent:} $A^k=0$ some $k$ $\Rightarrow$ all $\lambda=0$; never invertible, never diagonalizable unless $A=0$. \textbf{Neumann:} $(I-N)^{-1}=I+N+\cdots+N^{k-1}$; $(I+N)^{-1}=I-N+\cdots+(-1)^{k-1}N^{k-1}$.
+\item \textbf{Involution:} $T^2=I$ ($T=T^{-1}$) $\Rightarrow\lambda=\pm1$ only.
+\item \textbf{Invariant subspace:} $W\subseteq V$ invariant under $T$ iff $T(W)\subseteq W$; eigenspaces $E_\lambda$ are the canonical example.
+\end{tl}
+\vspace{\baselineskip}
+
+\sect{5. Quadratic Forms \& Definiteness}
+$Q(x)=x\tp Ax$, $A$ symmetric (else use $\tfrac12(A+A\tp)$).
+\begin{center}\fontsize{5.9}{6.8}\selectfont
+\begin{tabular}{@{}p{0.13\linewidth}p{0.28\linewidth}p{0.45\linewidth}@{}}
+\hline
+ & eigenvalues & minors\\ \hline
+PD & all $\lambda>0$ & leading $D_k>0$\\
+ND & all $\lambda<0$ & $D_1<0,D_2>0,\dots$\\
+PSD & all $\lambda\ge0$ & \emph{all} principal minors $\ge0$\\
+NSD & all $\lambda\le0$ & $(-1)^k\cdot$minor $\ge0$\\ \hline
+\end{tabular}
+\end{center}
+\begin{tl}
+\item \textbf{Sylvester's criterion} (definite case only): $A$ sym.\ is PD $\iff D_1>0,\dots,D_n>0$, where $D_k=\det$ of the top-left $k\times k$ block. ND: apply to $-A$, i.e.\ signs alternate $D_1<0,D_2>0,\dots$
+\item \textbf{Leading} $D_k$: only the $n$ top-left blocks. \textbf{Principal} minor: pick \emph{any} index set, keep those rows \emph{and} the same columns ($2^n-1$ of them). Leading $\subset$ principal.
+\item \colorbox{black!12}{Sylvester with $\ge$ is FALSE.} $\operatorname{diag}(0,-1)$: $D_1=D_2=0\ge0$ but it is NSD. The principal minor $\{2\}=-1$ catches it. So \textbf{PSD requires all principal minors $\ge0$}, not just leading.
+\item $2\times2$ shortcut: PD $\iff a>0$ and $\det>0$; ND $\iff a<0$ and $\det>0$; indefinite $\iff\det<0$.
+\item Eigenvalue test never has this trap --- use it when $\lambda$ are cheap. $A\tp A$ always PSD; PD $\iff A$ has LI columns.
+\end{tl}
+
+\sect{6. Inner Products, Gram--Schmidt, Projection}
+\begin{tl}
+\item \textbf{Euclidean inner product} on $\Rn$: $\ip{u}{v}=\sum_i u_iv_i=u\tp v$, $\nm{v}=\sqrt{\ip{v}{v}}$. Axioms: linear in 1st arg, (conj.-)symmetric, $\ip{v}{v}>0$ for $v\neq0$. Other instances: $\ip{p}{q}=\int_0^1pq\,dx$ on $P_2(\R)$ ($\int_0^1x^k=\frac1{k+1}$); $\ip{X}{Y}=\E[XY]$ on random variables.
+\item $u\perp v\iff\ip{u}{v}=0$. $U^\perp=\{v:\ip{v}{u}=0\ \forall u\in U\}$ is a subspace; $V=U\oplus U^\perp$.
+\item \textbf{Cauchy--Schwarz} $|\ip{u}{v}|\le\nm{u}\nm{v}$ (= iff LD). \textbf{Triangle} $\nm{u+v}\le\nm{u}+\nm{v}$. \textbf{Reverse} $\big|\nm{u}-\nm{v}\big|\le\nm{u-v}$.
+\item $u\perp v\Rightarrow\nm{u+v}^2=\nm{u}^2+\nm{v}^2$.
+\item \textbf{Operator norm} $\nm{A}=\max_{\nm{v}=1}\nm{Av}$, so $\nm{Ah}\le\nm{A}\nm{h}$ (\emph{not} Cauchy--Schwarz: matrix $\times$ vector, not an inner product).
+\item \textbf{Gram--Schmidt} (subtract the projection onto each previous vector):
+$u_1=v_1$,
+$u_k=v_k-\sum_{j<k}\frac{\ip{v_k}{u_j}}{\ip{u_j}{u_j}}\,u_j,
+e_k=u_k/\nm{u_k}$.
+ $\spn\{u_1..u_k\}=\spn\{v_1..v_k\}$ at every step.
+\item \textbf{Projection} onto $U$, o.n.\ basis: $P_Ub=\sum_j\ip{b}{e_j}e_j$. Residual $b-P_Ub\perp U$; $P_Ub$ unique closest point of $U$ to $b$.
+\item Least squares: $A\tp A\hat x=A\tp b$, $P=A(A\tp A)^{-1}A\tp$.
+\item \textbf{Idempotent} $P^2=P\Rightarrow\lambda\in\{0,1\}$. For $P=X(X\tp X)^{-1}X\tp$ ($X$: $n\times k$): $\tr P=k$; residual $M=I_n-P$: $\tr M=n-k$.
+\item \textbf{$\ip{u}{v}=0\iff\nm{u}\le\nm{u+av}\ \forall a$} --- the least-squares FOC.
+\end{tl}
+
+% ================= TOPOLOGY =================
+\sect{7. Norms, Sequences, sup/inf}
+\begin{tl}
+\item $\nm{x}_\infty\le\nm{x}_2\le\sqrt n\,\nm{x}_\infty$. All norms on $\Rn$ equivalent $\Rightarrow$ same convergent sequences, open sets, continuous functions.
+\item \textbf{$x_k\to x$}: $\forall\varepsilon>0\ \exists N: k\ge N\Rightarrow\nm{x_k-x}<\varepsilon$. In $\Rn$ $\iff$ coordinatewise.
+\item Limits unique; convergent $\Rightarrow$ bounded; every subsequence has the same limit.
+\item \textbf{$x_k\not\to x$} (negation, used constantly): $\exists\varepsilon>0$ and a subsequence with $\nm{x_{k_j}-x}\ge\varepsilon\ \forall j$.
+\item \textbf{Cauchy}: $\forall\varepsilon\ \exists N: m,k\ge N\Rightarrow\nm{x_m-x_k}<\varepsilon$. $\Rn$ complete: Cauchy $\iff$ convergent.
+\item \textbf{Bolzano--Weierstrass:} every bounded sequence in $\Rn$ has a convergent subsequence.
+\item Monotone $+$ bounded (in $\R$) $\Rightarrow$ convergent.
+\item \textbf{$m=\inf S$}: (i) $m\le s\ \forall s\in S$; (ii) $m$ is the \emph{greatest} such. Working form: $\forall\varepsilon>0\ \exists s\in S$, $s<m+\varepsilon$ (take $\varepsilon=1/k$ to get $s_k\to m$). Sup mirrors. Inf need not be attained: $\inf(0,1]=0\notin(0,1]$.
+\item Completeness axiom: nonempty $S\subseteq\R$ bounded below has $\inf S\in\R$.
+\end{tl}
+
+\sect{8. Open, Closed, Closure}
+\begin{tl}
+\item $B_\varepsilon(x)=\{y:\nm{y-x}<\varepsilon\}$. \textbf{$A$ open} $\iff\forall x\in A\ \exists\varepsilon>0$, $B_\varepsilon(x)\subseteq A$.
+\item \textbf{$A$ closed} $\iff A^c$ open $\iff$ ($x_k\in A$, $x_k\to x\Rightarrow x\in A$) $\iff$ \textbf{$A=\bar A$}.
+\item \textbf{Interior} $\intr A$ = largest open set $\subseteq A$ = $\{x: \exists\varepsilon, B_\varepsilon(x)\subseteq A\}$. \textbf{$A$ open $\iff A=\intr A$.}
+\item \textbf{Closure} $\bar A$ = smallest closed set $\supseteq A$ = $A\cup A'$ = $\{x: \forall\varepsilon,\ B_\varepsilon(x)\cap A\ne\emptyset\}$ = all limits of sequences in $A$.
+\item \textbf{Boundary} $\partial A=\bar A\setminus\intr A=\{x:\forall\varepsilon,\ B_\varepsilon(x)$ meets both $A$ and $A^c\}$. Always closed. $\bar A=A\cup\partial A$.
+\item \textbf{Limit (accumulation) point} $x\in A'$: every $B_\varepsilon(x)$ contains a point of $A$ other than $x$. \textbf{Isolated}: some $B_\varepsilon(x)\cap A=\{x\}$.
+\item \textbf{Set algebra:} $A\cup B=B\cup A$, $A\cap B=B\cap A$ (comm.); $A\cap(B\cup C)=(A\cap B)\cup(A\cap C)$ (distrib.). \textbf{De Morgan:} $(A\cup B)^c=A^c\cap B^c$, $(A\cap B)^c=A^c\cup B^c$; general $\left(\bigcup_iA_i\right)^c=\bigcap_iA_i^c$.
+\item $\overline{A^c}=(\intr A)^c$; $\intr(A^c)=(\bar A)^c$ (De Morgan for topology).
+\item Arbitrary $\bigcup$ of open is open; finite $\bigcap$ of open is open (dually for closed). $\emptyset,\Rn$ are both open and closed.
+\item \colorbox{black!12}{Infinite $\bigcap$ of open need not be open:} $\bigcap_k(-\frac1k,\frac1k)=\{0\}$.
+\item \textbf{Bounded}: $\exists M$ with $\nm{x}\le M\ \forall x\in A$. \textbf{Dense}: $\bar A=\Rn$ (e.g.\ $\mathbb Q$ in $\R$).
+\end{tl}
+
+\sect{9. Compactness}
+\begin{tl}
+\item \textbf{Compact} (Heine--Borel in $\Rn$): closed \emph{and} bounded $\iff$ every open cover has a finite subcover $\iff$ every sequence has a subsequence converging \emph{in} the set.
+\item Closed subset of compact is compact (bounded from $K$; limit retained by closedness of $F$).
+\item Nested nonempty compacts $K_1\supseteq K_2\supseteq\cdots\Rightarrow\bigcap K_k\neq\emptyset$.
+\item Compact $\Rightarrow$ $\sup$ and $\inf$ are attained (belong to the set).
+\item \textbf{Separating Hyperplane:} disjoint nonempty convex $C_1,C_2\subseteq\Rn$, one compact and the other closed $\Rightarrow\exists p\neq0,c\in\R$ with $p\tp x\le c\le p\tp y\ \forall x\in C_1,y\in C_2$.
+\end{tl}
+
+\sect{10. Limits \& Continuity}
+\begin{tl}
+\item $\lim_{x\to a}f(x)=L$: $\forall\varepsilon>0\ \exists\delta>0: 0<\nm{x-a}<\delta\Rightarrow\nm{f(x)-L}<\varepsilon$.
+\item \textbf{$f$ continuous at $a$}: $\forall\varepsilon\ \exists\delta:\nm{x-a}<\delta\Rightarrow\nm{f(x)-f(a)}<\varepsilon$ $\iff$ $x_k\to a\Rightarrow f(x_k)\to f(a)$.
+\item \textbf{Global:} $f$ continuous $\iff f^{-1}(\text{open})$ open $\iff f^{-1}(\text{closed})$ closed. \colorbox{black!12}{Preimages, not images.}
+\item Corollaries: $\{f>c\},\{f<c\}$ open; $\{f\ge c\},\{f\le c\},\{f=c\}$ closed.
+\item Sums, products, quotients (nonzero denom.), compositions of continuous are continuous.
+\item \textbf{Weierstrass (EVT):} $K$ compact, $f$ cont.\ $\Rightarrow f(K)$ compact $\Rightarrow$ ($m=1$) max and min attained.
+\item \textbf{IVT} ($n=m=1$): $f$ cont.\ on $[a,b]$, $y$ between $f(a),f(b)$ $\Rightarrow\exists c$ with $f(c)=y$.
+\item Continuous bijection on compact $K$ $\Rightarrow f^{-1}$ continuous.
+\item \textbf{Uniform continuity}: $\delta$ independent of $x$. Continuous on compact $\Rightarrow$ uniformly continuous. \textbf{Lipschitz}: $\nm{f(x)-f(y)}\le L\nm{x-y}$ $\Rightarrow$ unif.\ cont.
+\item $d(x,A)=\inf_{a\in A}\nm{x-a}$ is 1-Lipschitz; $d(x,A)=0\iff x\in\bar A$.
+\end{tl}
+
+% ================= ONE-VARIABLE CALCULUS =================
+\sect{11. One-Variable Calculus}
+\begin{tl}
+\item $f'(a)=\lim_{h\to0}\frac{f(a+h)-f(a)}{h}$. Differentiable $\Rightarrow$ continuous (converse false: $|x|$ at $0$).
+\item \textbf{Product:} $(fg)'=f'g+fg'$. \textbf{Quotient:} $\left(\frac fg\right)'=\frac{f'g-fg'}{g^2}$. \textbf{Chain:} $(f\circ g)'(x)=f'(g(x))g'(x)$.
+\item \textbf{Inverse:} $(f^{-1})'(y)=\dfrac{1}{f'(f^{-1}(y))}$, valid when $f'\ne0$ there.
+\item \textbf{Common Derivatives:}
+{\setlength{\multicolsep}{1pt} % Removes padding above and below
+\begin{multicols}{2}
+\begin{itemize}
+     \item $x^a: ax^{a-1}$
+     \item $e^x: e^x$
+     \item $a^x: a^x\ln a$
+     \item $\ln x: 1/x$
+     \item $\log_a x: 1/(x\ln a)$
+     \item $\sin x: \cos x$
+     \item $\cos x: -\sin x$
+     \item $\tan x: sec^{2}x$ 
+\end{itemize}
+\end{multicols}}
+    
+\item \textbf{Rolle:} $f$ cont.\ $[a,b]$, diff.\ $(a,b)$, $f(a)=f(b)$ $\Rightarrow\exists c\in(a,b)$, $f'(c)=0$.
+\item \textbf{MVT:} same hypotheses $\Rightarrow\exists c\in(a,b)$ with $f'(c)=\dfrac{f(b)-f(a)}{b-a}$.
+\item Consequences: $f'\equiv0\Rightarrow f$ const; $f'>0\Rightarrow$ strictly increasing; $|f'|\le L\Rightarrow$ $L$-Lipschitz.
+\item \textbf{Taylor (1D, Lagrange remainder):} $f(a+h)=\sum_{j=0}^{n}\frac{f^{(j)}(a)}{j!}h^j+\frac{f^{(n+1)}(a+\theta h)}{(n+1)!}h^{n+1}$, $\theta\in(0,1)$.
+\item \textbf{L'H\^opital:} $\frac00$ or $\frac\infty\infty$ $\Rightarrow\lim\frac fg=\lim\frac{f'}{g'}$ when the latter exists.
+\item \textbf{FTC:} $\frac{d}{dx}\int_a^xf=f(x)$; $\int_a^bf'=f(b)-f(a)$. \textbf{Leibniz:} $\frac{d}{dx}\int_{a(x)}^{b(x)}f(x,t)dt=f(x,b)b'-f(x,a)a'+\int_a^b f_x\,dt$.
+\item Integration by parts $\int u\,dv=uv-\int v\,du$; substitution $\int f(g)g'=\int f(u)du$.
+\end{tl}
+
+% ================= MULTIVARIABLE =================
+\sect{12. Differentiation in $\Rn$}
+\begin{tl}
+\item \textbf{Definition:} $f(x+h)=f(x)+\Dd f(x)h+r(h)$, $\nm{r(h)}/\nm{h}\to0$. \textbf{$\Dd f$ unique} (put $h=tv$, divide by $t$, $t\to0$; then $(A-B)v=0\ \forall v$).
+\item Read it as: \emph{$f$ is affine to first order near $x$}; $\Dd f(x)h$ is the predicted change, $r(h)$ the leftover.
+\end{tl}
+\keybox{Jacobian ($m\times n$)}{%
+$\Dd f(x)=\begin{pmatrix}
+\partial_1f_1 & \cdots & \partial_nf_1\\
+\vdots & & \vdots\\
+\partial_1f_m & \cdots & \partial_nf_m\end{pmatrix}$,
+entry $(i,j)=\dfrac{\partial f_i}{\partial x_j}$}
+\keybox{Hessian ($n\times n$)}{%
+$H_f(x)=\Dd(\nabla f)(x)=\begin{pmatrix}
+f_{11} & \cdots & f_{1n}\\
+\vdots & & \vdots\\
+f_{n1} & \cdots & f_{nn}\end{pmatrix}$,
+$f_{ij}=\dfrac{\partial^2f}{\partial x_i\partial x_j}$. \textbf{Symmetric if $f\in C^2$}}
+\begin{tl}
+\item \textbf{Directional:} $D_vf(x)=\lim_{t\to0}\frac{f(x+tv)-f(x)}{t}$. If differentiable, $D_vf=\Dd f(x)v$ (\emph{linear in $v$}). Partials $=D_{e_j}f$.
+\item \textbf{Max Rate Incr Directional:} $\max_{|v|=1} D_vf(x) = |\nabla f(x)|$, attained at $v = \nabla f(x)/|\nabla f(x)|$
+\item \textbf{Directional 2nd Der:} $D_v^2f(x) = v^\top H_f(x)v$
+\item Differentiable $\Rightarrow$ continuous. Partials exist $\nRightarrow$ continuous.
+\item \textbf{$C^1\Rightarrow$ differentiable}: split the increment one variable at a time, MVT on each piece $\Rightarrow f_x(\xi,b+k)h+f_y(a,\eta)k$; subtract $f_x(a,b)h+f_y(a,b)k$; bound by $(|\Delta f_x|+|\Delta f_y|)\sqrt{h^2+k^2}$; continuity kills each $\Delta$.
+\item \textbf{Chain rule:} $\Dd(g\circ f)(x)=\Dd g(f(x))\,\Dd f(x)$, sizes $(p\times m)(m\times n)=p\times n$. Order matters; outer evaluated \emph{at} $f(x)$. Inner Jacobian has \textbf{one column per independent variable}.
+\item Scalar form: $\dfrac{\partial (g\circ f)}{\partial x_j}=\sum_i\dfrac{\partial g}{\partial y_i}\dfrac{\partial f_i}{\partial x_j}$. If $x$ enters twice, both paths contribute (total vs partial derivative).
+\item $\nabla(a\tp x)=a$; $\Dd(Ax)=A$; $\nabla(x\tp Ax)=(A+A\tp)x=2Ax$ if $A$ sym.; $H(x\tp Ax)=2A$.
+\item $\nabla f$ points in the direction of steepest ascent; $\nabla f\perp$ level set $\{f=c\}$.
+\end{tl}
+
+\sect{13. Restrict to a Line}
+$g(t)=f(a+t(b-a))$, $t\in[0,1]$: \emph{multivariate $\to$ segment $\to$ one-variable calculus.}
+\begin{tl}
+\item $g'(t)=\Dd f(a+t(b-a))(b-a)$.
+\item \textbf{MVT:} $f$ real-valued $\Rightarrow\exists c$ on the segment with $f(b)-f(a)=\Dd f(c)(b-a)$. \colorbox{black!12}{Fails for $m\ge2$} (each component gets its own $c$); use $|f(b)-f(a)|\le\sup_{z\in[a,b]}\nm{\Dd f(z)}\nm{b-a}$.
+\item $U$ convex, $\Dd f\equiv0\Rightarrow f$ constant. $H_f\equiv0\Rightarrow\Dd(\nabla f)\equiv0\Rightarrow\nabla f\equiv a\Rightarrow f(x)=a\tp x+b$ (apply the previous line to $g(x)=f(x)-a\tp x$).
+\item \textbf{Second-order Taylor approximation} (the working form): for $h$ small,
+\[ f(x+h)\;\approx\; f(x)+\nabla f(x)\tp h+\tfrac12\,h\tp H_f(x)\,h, \]
+with error $o(\nm{h}^2)$. First-order: $f(x+h)\approx f(x)+\nabla f(x)\tp h$ (the tangent plane).
+\item Everything is evaluated \emph{at $x$}: gradient $\nabla f(x)$ (a vector, paired with $h$) and Hessian $H_f(x)$ (a matrix, sandwiched as $h\tp H h$). The second-order term is a \emph{scalar quadratic form} because $f$ is scalar-valued.
+\item At a critical point $\nabla f(x^*)=0$, so $f(x^*+h)-f(x^*)\approx\frac12h\tp H_fh$: the sign of the quadratic form \emph{is} the local min/max verdict. That is why definiteness is the SOC.
+\end{tl}
+
+\sect{14. Inverse \& Implicit Function Theorems}
+\keybox{Inverse FT}{$f:\Rn\to\Rn$ $C^1$ near $x_0$, $\det \Dd f(x_0)\neq0$ $\Rightarrow$ $\exists$ open $U\ni x_0$, $V\ni f(x_0)$ with $f:U\to V$ a $C^1$ bijection and
+\[\Dd(f^{-1})(f(x_0))=[\Dd f(x_0)]^{-1}.\]
+\textbf{Local only; sufficient, not necessary.}}
+\begin{tl}
+\item $F(x,y)=(e^x\cos y,e^x\sin y)$: $\det \Dd F=e^{2x}\neq0$ everywhere, yet $F(x,y+2\pi)=F(x,y)$ --- locally 1-1, not globally. IFT is local.
+\item $f(x)=x^3$: $f'(0)=0$ but globally 1-1; $f^{-1}=x^{1/3}$ \emph{not} differentiable at $0$. Singular $\Dd f$ rules out a \emph{differentiable} inverse, not injectivity.
+\item \textbf{Steps:} (1) confirm $f\in C^1$ near $x_0$; (2) compute $\Dd f(x_0)$, check $\det\neq0$; (3) conclude local $C^1$ bijection $U\to V$; (4) invert the Jacobian for $\Dd(f^{-1})(f(x_0))$; (5) local only --- check global injectivity separately (e.g.\ periodicity).
+\end{tl}
+\keybox{Implicit FT}{$F:\R^n\times\R^m\to\R^m$, $F(x_0,y_0)=0$, $F\in C^1$, $\Dd_yF(x_0,y_0)$ \emph{invertible} $\Rightarrow$ locally a unique $C^1$ map $y=g(x)$ with $g(x_0)=y_0$ and
+\[\Dd g(x)=-[\Dd_yF]^{-1}\Dd_xF.\]
+Scalar case $F(x,y,z)=0$, $F_z\ne0$: $g_x=-F_x/F_z$, $g_y=-F_y/F_z$.}
+\begin{tl}
+\item Derive by chain rule, not memory: $F(x,y,g(x,y))=0\Rightarrow F_x+F_zg_x=0$.
+\item $GL_n=\det^{-1}(\R\setminus\{0\})$ is open $\Rightarrow$ $\Dd f(x^*)$ invertible $\Rightarrow \Dd f(x)$ invertible nearby.
+\item \textbf{Steps:} (1) confirm $F(x_0,y_0)=0$; (2) compute $\Dd_yF$, check $\det\neq0$ (scalar: $F_y\ne0$); (3) conclude unique $C^1$ $y=g(x)$ near $x_0$; (4) chain rule on $F(x,g(x))\equiv0\Rightarrow \Dd g=-[\Dd_yF]^{-1}\Dd_xF$; (5) evaluate at $(x_0,y_0)$ for the numeric derivative.
+\item \textbf{Step4 ext:} $$\frac{d}{dx} \left[ F(x, g(x)) \right] = D_x F(x, y) + D_y F(x, y) \cdot D g(x) = \mathbf{0}$$; $$D g(x) = -[D_y F(x, y)]^{-1} D_x F(x, y)$$
+\item \textbf{Scalar case:} $$F_x + F_y \frac{dy}{dx} = 0$$; $$\frac{dy}{dx} = -\frac{F_x}{F_y}$$
+\end{tl}
+
+% ================= OPTIMIZATION =================
+\sect{15. Unconstrained Optimization}
+\begin{tl}
+\item \textbf{FOC:} interior local extremum $+$ differentiable $\Rightarrow\nabla f(x^*)=0$.
+\item \textbf{SOC:} $H_f(x^*)$ PD $\Rightarrow$ strict local min; ND $\Rightarrow$ strict local max; indefinite $\Rightarrow$ saddle; semidefinite $\Rightarrow$ inconclusive.
+\item \textbf{Convexity:} $f$ convex on convex $U\iff H_f$ PSD $\iff f(y)\ge f(x)+\nabla f(x)\tp(y-x)$ (\emph{graph above tangent}) $\iff f(\lambda x+(1-\lambda)y)\le\lambda f(x)+(1-\lambda)f(y)$ (\emph{chord above graph}). Then $\nabla f(x^*)=0\Rightarrow$ \textbf{global} min; the set of minimizers is convex; every local min is global; no saddles or strict local maxima in the interior. Concave: mirror for max. \colorbox{black!12}{Strict definiteness $\Rightarrow$ strict convexity, not converse} (e.g.\ $x^4$ strictly convex, $H_f(0)=0$).
+\item Existence: $f$ continuous on compact $\Rightarrow$ max and min attained.
+\end{tl}
+
+\sect{16. Lagrange \& KKT}
+\textbf{Equality constraints.} $\max f(x)$ s.t.\ $h_j(x)=0$: $\mathcal L=f-\sum\lambda_jh_j$; FOC $\nabla f=\sum\lambda_j\nabla h_j$, $h_j=0$; $\lambda$ free in sign; CQ: $\{\nabla h_j\}$ LI at $x^*$.
+\keybox{KKT --- $\max f(x)$ s.t.\ $g_i(x)\ge0$}{$\mathcal L=f(x)+\sum_i\lambda_ig_i(x)$\\[1pt]
+(1) \textbf{Stationarity} $\nabla f(x^*)+\sum_i\lambda_i\nabla g_i(x^*)=0$\\
+(2) \textbf{Primal feas.} $g_i(x^*)\ge0$\\
+(3) \textbf{Dual feas.} $\lambda_i\ge0$\\
+(4) \textbf{Compl.\ slackness} $\lambda_ig_i(x^*)=0$\\[1pt]
+$\lambda_i>0\Rightarrow$ constraint binds; slack $\Rightarrow\lambda_i=0$.}
+\begin{tl}
+\item For a \textbf{min}: minimize $-f$, or use $\mathcal L=f-\sum\lambda_ig_i$ with the same signs on $\lambda,g$.
+\item Rewrite every constraint as $g\ge0$ first (e.g.\ $w-px\ge0$, $x\ge0$) so the conventions hold.
+\item Case method: guess which constraints bind, solve, then \emph{check} $\lambda\ge0$ and $g\ge0$.
+\item \textbf{Solving a Lagrangian --- Steps:} (1) $\mathcal L=f(x)-\lambda\tp h(x)+\mu\tp g(x)$. (2) FOC: $\nabla_x\mathcal L=0$. (3) Guess slack ($\mu=0$) for      
+  constraints expected non-binding; solve, check $g(x)\ge0$. (4) If infeasible, set binding $g_i(x)=0$, re-solve treating $\mu_i$ unknown. (5) Verify compl.\ slack.\   
+  $\mu_ig_i=0$, dual feas.\ $\mu\ge0$, primal feas.\ $g\ge0,h=0$. (6) Confirm optimum: bordered Hessian / SOC, or concavity+Slater $\Rightarrow$ KKT suff.
+\item \textbf{LICQ:} gradients of the binding constraints ($\nabla h_j$ all $j$, $\nabla g_i$ for binding $i$) linearly independent at $x^*$ $\Rightarrow$ KKT \emph{necessary}. \textbf{Slater} (convex probs): $\exists\hat x$ with $g_i(\hat x)>0\ \forall i$, $h_j(\hat x)=0$ --- weaker than LICQ.
+\item $f$ concave, $g_i$ concave (feasible set convex) $\Rightarrow$ KKT also \textbf{sufficient}, global max.
+\item \textbf{Multiplier:} $\lambda_i=\partial V/\partial c_i$ = shadow price. \textbf{Envelope:} $dV/d\theta=\partial\mathcal L/\partial\theta$ at $(x^*,\lambda^*)$.
+\item \textbf{Bordered Hessian} ($n$ vars, $m$ constraints): check the last $n-m$ leading principal minors of $\bar H=\left(\begin{smallmatrix}0&\Dd h\\ \Dd h\tp&H_{\mathcal L}\end{smallmatrix}\right)$. Max: signs alternate starting $(-1)^{m+1}$. Min: all of sign $(-1)^m$.
+\item \textbf{Homogeneous/homothetic:} $f(tx)=t^kf(x)\Rightarrow$ homog.\ degree $k$. Homothetic = strictly monotonic transform of a homogeneous function.
+\item \textbf{Log-linearization:} near a steady state, use \% deviations $\hat z=(z-z^*)/z^*$.
+\end{tl}
+
+% ================= PROBABILITY =================
+\sect{17. Probability Basics}
+\begin{tl}
+\item Sample space $\Omega$, events $\mathcal F$, measure $\PP$: $\PP(A)\ge0$, $\PP(\Omega)=1$, countable additivity on disjoint sets.
+\item $\PP(A^c)=1-\PP(A)$; $\PP(A\cup B)=\PP(A)+\PP(B)-\PP(A\cap B)$; monotone: $A\subseteq B\Rightarrow\PP(A)\le\PP(B)$.
+\item \textbf{Conditional:} $\PP(A\mid B)=\dfrac{\PP(A\cap B)}{\PP(B)}$, $\PP(B)>0$. \textbf{Multiplication:} $\PP(A\cap B)=\PP(A\mid B)\PP(B)$.
+\item \textbf{Independence:} $\PP(A\cap B)=\PP(A)\PP(B)\iff\PP(A\mid B)=\PP(A)$. Pairwise $\nRightarrow$ mutual.
+\item \textbf{Total probability:} $\{B_i\}$ a partition $\Rightarrow\PP(A)=\sum_i\PP(A\mid B_i)\PP(B_i)$.
+\item \textbf{Bayes:} $\PP(B_j\mid A)=\dfrac{\PP(A\mid B_j)\PP(B_j)}{\sum_i\PP(A\mid B_i)\PP(B_i)}$.
+\item \textbf{CDF} $F(x)=\PP(X\le x)$: nondecreasing, right-continuous, $F(-\infty)=0$, $F(\infty)=1$. Continuous case $f=F'$, $\PP(a<X\le b)=F(b)-F(a)$.
+\end{tl}
+
+\sect{18. Expectation \& Moments}
+\begin{tl}
+\item $\E[X]=\sum_x x\,p(x)$ or $\int x f(x)dx$. \textbf{LOTUS:} $\E[g(X)]=\int g(x)f(x)dx$ --- no need for the density of $g(X)$.
+\item \textbf{Linearity} $\E[aX+bY+c]=a\E X+b\E Y+c$ \emph{always} (no independence needed).
+\item $\Var X=\E[(X-\E X)^2]=\E[X^2]-(\E X)^2\ge0$; $\Var(aX+b)=a^2\Var X$.
+\item \textbf{Covariance:} $\Cov(X,Y)=\E[(X-\E X)(Y-\E Y)]=\E[XY]-\E X\,\E Y$; $\Cov(X,X)=\Var X$; symmetric and bilinear: $\Cov(aX+b,cY+d)=ac\,\Cov(X,Y)$. $\Var(X+Y)=\Var X+\Var Y+2\Cov(X,Y)$; general: $\Var(\sum a_iX_i)=\sum_i\sum_j a_ia_j\Cov(X_i,X_j)$.
+\item Independent $\Rightarrow$ $\E[XY]=\E X\E Y$ $\Rightarrow\Cov=0$. \colorbox{black!12}{Converse false} ($X\sim N(0,1)$, $Y=X^2$).
+\item $\rho=\dfrac{\Cov(X,Y)}{\sigma_X\sigma_Y}\in[-1,1]$ (Cauchy--Schwarz); $|\rho|=1\iff$ $Y$ affine in $X$ a.s.
+\item \textbf{Jensen:} $g$ convex $\Rightarrow\E[g(X)]\ge g(\E X)$ (concave: reverse). E.g.\ $\E[X^2]\ge(\E X)^2$.
+\item \textbf{Markov:} $X\ge0$, $a>0$ $\Rightarrow\PP(X\ge a)\le\E X/a$. \textbf{Chebyshev:} $\PP(|X-\mu|\ge k\sigma)\le1/k^2$.
+\item \textbf{MGF} $M_X(t)=\E[e^{tX}]$; $M^{(k)}(0)=\E[X^k]$; determines the distribution; independent $\Rightarrow M_{X+Y}=M_XM_Y$.
+\item \textbf{Sample variance:} $S_n^2=\frac1{n-1}\sum(X_i-\bar X_n)^2$ is unbiased, $\E[S_n^2]=\sigma^2$ ($n-1$, not $n$, corrects for estimating $\mu$ by $\bar X_n$).
+\end{tl}
+
+\keybox{Law of Iterated Expectations (LIE)}{%
+\[\E[X]=\E\big[\E[X\mid Y]\big]\]
+More generally $\E[X\mid Z]=\E\big[\E[X\mid Y,Z]\mid Z\big]$ .\\[1pt]
+Key facts: $\E[X\mid Y]$ is a \emph{random variable} (a function of $Y$); $\E[g(Y)X\mid Y]=g(Y)\E[X\mid Y]$ (\emph{taking out what is known}); $X\perp Y\Rightarrow\E[X\mid Y]=\E X$.\\[1pt]
+\textbf{Law of total variance:} $\Var X=\E[\Var(X\mid Y)]+\Var(\E[X\mid Y])$.}
+\begin{tl}
+\item $\E[X\mid Y]$ is the best predictor of $X$ given $Y$ in mean square: it minimizes $\E[(X-g(Y))^2]$ over all $g$. Residual $X-\E[X\mid Y]$ is uncorrelated with any $g(Y)$ --- the projection/orthogonality logic of \S6.
+\item Discrete form: $\E[X]=\sum_y\E[X\mid Y=y]\PP(Y=y)$.
+\item Normal: $X\sim N(\mu,\sigma^2)\Rightarrow aX+b\sim N(a\mu+b,a^2\sigma^2)$; sums of independent normals are normal.
+\item \textbf{LLN:} $\bar X_n\to\mu$ (in probability / a.s.). \textbf{CLT:} $\sqrt n(\bar X_n-\mu)\xrightarrow{d}N(0,\sigma^2)$.
+\end{tl}
+
+
+\sect{20. Counterexample Bank}
+\begin{tl}
+\item \textbf{Partials exist, not differentiable/continuous:} $f=\frac{xy}{x^2+y^2}$, $f(0,0)=0$: $f_x=f_y=0$ at $0$ but $f\to\frac12$ along $y=x$. (Polar: $f=\frac12\sin2\theta$, constant on rays.)
+\item \textbf{All directional derivatives, still not differentiable:} $f=\frac{x^2y}{x^2+y^2}$, $f(0,0)=0$; $D_vf(0,0)=\frac{a^2b}{a^2+b^2}$ is \emph{not linear} in $v$.
+\item \textbf{Continuous image of closed need not be closed:} $\frac{1}{1+x^2}$ on $\R$ gives $(0,1]$.
+\item \textbf{Continuous image of bounded need not be bounded:} $1/x$ on $(0,1)$.
+\item \textbf{No max:} $x$ on $(0,1)$ (bounded, not closed); $x$ on $[0,\infty)$ (closed, not bounded); $1/x$ on $(0,1]$ with $f(0)=0$ (compact, discontinuous).
+\item \textbf{Continuous bijection, discontinuous inverse:} $t\mapsto(\cos t,\sin t)$ on $[0,2\pi)$ --- domain not compact.
+\item \textbf{$\Dd f$ singular but 1-1:} $x^3$. \textbf{$\Dd f$ invertible, not globally 1-1:} $e^x(\cos y,\sin y)$.
+\item \textbf{Not diagonalizable:} $\left(\begin{smallmatrix}0&1\\0&0\end{smallmatrix}\right)$ over $\mathbb C^2$.
+\item \textbf{Uncorrelated but dependent:} $X\sim N(0,1)$, $Y=X^2$.
+\end{tl}
+
+\sect{21. Diagnose the Statement}
+\begin{center}\fontsize{5.9}{6.9}\selectfont
+\begin{tabular}{@{}p{0.84\linewidth}@{}p{0.08\linewidth}@{}}
+\hline
+claim & \\ \hline
+differentiable $\Rightarrow$ continuous & T\\
+all partials exist $\Rightarrow$ differentiable & F\\
+all directional derivatives exist $\Rightarrow$ diff. & F\\
+partials near $x$ $+$ continuous at $x$ $\Rightarrow$ diff. & T\\
+continuous image of compact is compact & T\\
+continuous image of closed is closed & F\\
+closed subset of compact is compact & T\\
+$\Dd f(x)$ invertible $\Rightarrow$ globally 1-1 & F\\
+$\Dd f(x)$ singular $\Rightarrow$ no \emph{diff.} local inverse & T\\
+$\Dd f(x)$ singular $\Rightarrow$ not locally 1-1 & F\\
+convex $U$, $\Dd f\equiv0\Rightarrow f$ constant & T\\
+convex $U$, $H_f\equiv0\Rightarrow f$ affine & T\\ 
+$\text{rank}(A^T A) = \text{rank}(A)$ & \text{T} \\
+$f \in C^2 \text{ strictly convex} \implies \nabla^2 f(x) \succ 0$ & \text{F} \\
+$X_n \xrightarrow{\text{a.s.}} X \implies X_n \xrightarrow{p} X$ & \text{T} \\ \hline
+\end{tabular}
+\end{center}
+
+\sect{22. Proof Moves}
+\begin{tl}
+\item Neighborhood property fails $\Rightarrow$ \textbf{build a sequence} with $\varepsilon=1/k$, extract, converge.
+\item Set open/closed $\Rightarrow$ write it as $f^{-1}(\text{open/closed})$ for continuous $f$. Never form an image.
+\item \textbf{Preimage skeleton:} $a\in f^{-1}(V)$ means $f(a)\in V$; openness of $V$ gives $\varepsilon$; continuity gives $\delta$; then $x\in B_\delta(a)\Rightarrow f(x)\in B_\varepsilon(f(a))\subseteq V\Rightarrow x\in f^{-1}(V)$. Conclude $B_\delta(a)\subseteq f^{-1}(V)$.
+\item $x_k\not\to x$ $\Rightarrow$ $\exists\varepsilon>0$ and a subsequence bounded away; compactness gives a \emph{further} convergent subsequence; contradict via uniqueness of limits $+$ injectivity.
+\item Bounding an $\inf$ you cannot evaluate: fix an arbitrary element, derive the inequality for all of them, then take $\inf$ on the side that does not depend on it.
+\item $A=B$ for linear maps $\Rightarrow$ show $(A-B)v=0$ for all $v$.
+\item Multivariate statement $\Rightarrow$ restrict to a line, use MVT or 1-D Taylor.
+\item $a=b$ $\Rightarrow$ prove $\le$ and $\ge$, or $|a-b|<\varepsilon$ for every $\varepsilon>0$.
+\item Showing something is \emph{not} linear: exhibit $v_1,v_2$ with $T(v_1+v_2)\ne T(v_1)+T(v_2)$.
+\end{tl}
+
+\end{multicols}
+\end{document}

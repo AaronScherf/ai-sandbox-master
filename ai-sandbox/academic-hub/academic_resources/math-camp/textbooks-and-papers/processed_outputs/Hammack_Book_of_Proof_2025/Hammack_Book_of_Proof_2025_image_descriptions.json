@@ -1,0 +1,530 @@
+{
+    "pg_15__page_3_Figure_8.jpeg": {
+        "skip": false,
+        "description": "A horizontal number line marked with tick marks labeled with integers from -4 to 4, centered around 0. Arrows at both ends indicate that the line extends indefinitely in both directions."
+    },
+    "pg_15__page_6_Diagram_5.jpeg": {
+        "skip": false,
+        "description": "A schematic diagram illustrating the Cartesian product of set A and set B, labeled A × B. At the bottom, set A is enclosed in a horizontal rounded box containing the elements k, ℓ, and m arranged horizontally. To the left, set B is enclosed in a vertical rounded box containing the elements r and q arranged vertically. Above set A and to the right of set B, a large rounded box represents A × B containing a 2x3 grid of ordered pairs: the top row contains (k, r), (ℓ, r), and (m, r); the bottom row contains (k, q), (ℓ, q), and (m, q)."
+    },
+    "pg_15__page_6_Diagram_10.jpeg": {
+        "skip": false,
+        "description": "A diagram illustrating the Cartesian product A × A for the set A of the six faces of a die (with values 1 through 6 represented as die faces).\n\nBelow the main grid, a horizontal box representing set A contains six die faces in increasing order from left to right: [1], [2], [3], [4], [5], and [6].\n\nTo the left of the main grid, a vertical box representing set A contains six die faces in decreasing order from top to bottom: [6], [5], [4], [3], [2], and [1].\n\nA large box labeled A × A contains a 6x6 grid of 36 ordered pairs (x, y), where x is the first roll (from the horizontal set A) and y is the second roll (from the vertical set A). Each pair is formatted as (die_face_x, die_face_y):\n- Row 1 (top): ([1], [6]), ([2], [6]), ([3], [6]), ([4], [6]), ([5], [6]), ([6], [6])\n- Row 2: ([1], [5]), ([2], [5]), ([3], [5]), ([4], [5]), ([5], [5]), ([6], [5])\n- Row 3: ([1], [4]), ([2], [4]), ([3], [4]), ([4], [4]), ([5], [4]), ([6], [4])\n- Row 4: ([1], [3]), ([2], [3]), ([3], [3]), ([4], [3]), ([5], [3]), ([6], [3])\n- Row 5: ([1], [2]), ([2], [2]), ([3], [2]), ([4], [2]), ([5], [2]), ([6], [2])\n- Row 6 (bottom): ([1], [1]), ([2], [1]), ([3], [1]), ([4], [1]), ([5], [1]), ([6], [1])"
+    },
+    "pg_15__page_7_Figure_3.jpeg": {
+        "skip": false,
+        "description": "Figure 1.2 displays three diagrams illustrating different Cartesian products on the 2D Cartesian coordinate plane:\n\n(a) Shows the Cartesian product R × R, represented as a solid shaded rectangular region covering the entire visible area around the origin, indicating all real number coordinate pairs (x, y).\n\n(b) Shows the Cartesian product R × N, represented as a series of evenly spaced parallel horizontal lines lying above the x-axis, illustrating points where x can be any real number and y is restricted to natural numbers.\n\n(c) Shows the Cartesian product N × N, represented as a grid of discrete black dots located strictly in the upper right (first) quadrant above and to the right of the axes, representing points where both x and y are natural numbers."
+    },
+    "pg_15__page_10_Diagram_3.jpeg": {
+        "skip": false,
+        "description": "A decision tree diagram titled 'Figure 1.3. A \"tree\" for listing subsets' illustrating how to construct all eight subsets of the set B = {a, b, c}.\n\n- Root level: Begins at the far left with the empty set {}\n- Step 1 ('Insert a?'): Branching into 'No' (leading to {}) and 'Yes' (leading to {a}).\n- Step 2 ('Insert b?'):\n  - From {}, branching into 'No' (leading to {}) and 'Yes' (leading to {b}).\n  - From {a}, branching into 'No' (leading to {a}) and 'Yes' (leading to {a, b}).\n- Step 3 ('Insert c?'):\n  - From {}, branching into 'No' -> {} and 'Yes' -> {c}.\n  - From {b}, branching into 'No' -> {b} and 'Yes' -> {b, c}.\n  - From {a}, branching into 'No' -> {a} and 'Yes' -> {a, c}.\n  - From {a, b}, branching into 'No' -> {a, b} and 'Yes' -> {a, b, c}.\n\nThe far right column lists all 8 resulting subsets: {}, {c}, {b}, {b, c}, {a}, {a, c}, {a, b}, and {a, b, c}."
+    },
+    "pg_15__page_14_Figure_2.jpeg": {
+        "skip": false,
+        "description": "Figure 1.4 shows three Cartesian coordinate planes labeled (a), (b), and (c), representing subsets of R^2 in the power set P(R^2). Graph (a) shows two distinct plotted points vertically aligned in the first quadrant. Graph (b) shows a continuous parabola opening upward with its vertex at the origin. Graph (c) shows the word 'INFINITE' spelled out across the x-axis in thin capital letters, treated as a geometric subset of points on the plane."
+    },
+    "pg_15__page_16_Figure_3.jpeg": {
+        "skip": false,
+        "description": "Figure 1.5 contains four sub-graphs labeled (a), (b), (c), and (d), illustrating set operations on Cartesian plots of two functions: a parabola A given by y = x^2 and a straight line B given by y = x + 2.\n\n- Subfigure (a): Shows both thin curves on the x-y axes, with curve A labeled as the parabola opening upwards from the origin and curve B labeled as the line passing through the left and right sides of the parabola, intersecting at two points.\n- Subfigure (b): Shows the union A ∪ B, highlighted with bold black lines covering both the entire parabola A and the entire line B.\n- Subfigure (c): Shows the intersection A ∩ B, consisting solely of two solid black dots representing the two discrete intersection points: (-1, 1) in the second quadrant and (2, 4) in the first quadrant.\n- Subfigure (d): Shows the set difference A - B, highlighted as the bold parabola curve with white open circles (holes) at the two intersection points where line B intersects parabola A."
+    },
+    "pg_15__page_18_Figure_6.jpeg": {
+        "skip": false,
+        "description": "Two graphs illustrating a set and its complement in the Cartesian plane R^2:\n\n(a) Graph labeled \"A\": Shows a standard coordinate plane with black x- and y-axes intersecting at the origin. Set A is depicted as the solid black curve of the parabola y = x^2 opening upwards from the origin.\n\n(b) Graph labeled \"A bar\" (the complement of A): Shows the same coordinate plane where the parabola curve y = x^2 is drawn in white. The complement set A bar is represented by the entire region of R^2 outside of this white parabolic line, which is shaded grey."
+    },
+    "pg_15__page_19_Diagram_4.jpeg": {
+        "skip": false,
+        "description": "Three Venn diagrams labeled (a), (b), and (c), each showing two overlapping circles representing sets A (left) and B (right).\n- Diagram (a) depicts the union $A \\cup B$, where the entire area inside both circles A and B, including their overlapping region, is shaded gray.\n- Diagram (b) depicts the intersection $A \\cap B$, where only the central overlapping region between circles A and B is shaded gray.\n- Diagram (c) depicts the set difference $A - B$, where only the portion of circle A that does not overlap with circle B is shaded gray."
+    },
+    "pg_15__page_19_Diagram_8.jpeg": {
+        "skip": false,
+        "description": "Two Venn diagrams illustrating operations on three sets, labeled A (bottom-left), B (bottom-right), and C (top).\n\nIn diagram (a), titled 'A ∪ B ∪ C', the entire region spanned by all three overlapping circles A, B, and C is shaded gray, representing the union of all three sets.\n\nIn diagram (b), titled 'A ∩ B ∩ C', only the central region where all three circles overlap is shaded gray, representing the intersection of all three sets.\n\nThe sub-figures are labeled (a) and (b), respectively."
+    },
+    "pg_15__page_20_Figure_5.jpeg": {
+        "skip": false,
+        "description": "Figure 1.9 shows two Venn diagrams with three intersecting circles labeled A, B, and C, illustrating the set expression (A ∪ B) ∩ C.\n\nLeft diagram (Intermediate step):\n- Circle C is filled with vertical hatching lines.\n- Circles A and B together (A ∪ B) are filled with horizontal hatching lines.\n- The regions where C intersects with A or B are cross-hatched, showing the intersection (A ∪ B) ∩ C.\n\nRight diagram (Final result):\n- Only the region corresponding to (A ∪ B) ∩ C is shaded in solid gray. This includes the intersection of A and C, the intersection of B and C, and the central intersection of all three sets A, B, and C."
+    },
+    "pg_15__page_20_Figure_8.jpeg": {
+        "skip": false,
+        "description": "Two Venn diagrams illustrating three sets, A, B, and C, labeled near each circle. In the left diagram, set A is shaded with horizontal lines, and the intersection of set B and set C (B ∩ C) is shaded with vertical lines, creating a grid pattern where they overlap. In the right diagram, the region corresponding to the union A ∪ (B ∩ C) is completely shaded in solid gray, combining the entire area of circle A and the intersection area of circles B and C."
+    },
+    "pg_15__page_21_Diagram_9.jpeg": {
+        "skip": false,
+        "description": "Four Venn diagrams numbered 11 through 14, each showing three intersecting sets labeled A, B, and C arranged with C on top, A on the bottom left, and B on the bottom right.\n\n- Diagram 11: The shaded region consists of the part of set C that intersects with set B, excluding set A (i.e., (C ∩ B) \\ A).\n- Diagram 12: The shaded regions consist of two parts: the region in set A that is outside both set B and set C, and the region representing the intersection of set B and set C outside set A (i.e., (A \\ (B ∪ C)) ∪ ((B ∩ C) \\ A)).\n- Diagram 13: The shaded region includes set A, set B, and set C, except for the region containing elements in exactly two of the sets or all three sets; specifically, it shades the outer portions of sets A, B, and C as well as the intersection of C with A and B, but leaves the center intersection and lower overlaps unshaded (representing the symmetric difference or a combination of set operations).\n- Diagram 14: The shaded region consists of the portion of set A that is outside sets B and C, together with the intersection of set A and set C outside set B (i.e., (A \\ B))."
+    },
+    "pg_15__page_24_Figure_3.jpeg": {
+        "skip": false,
+        "description": "A Cartesian graph showing the representation of the set A_alpha on the xy-plane. The vertical axis shows tick marks at alpha, 1, and 2. The horizontal axis shows tick marks at alpha, 1, and 2. A dotted line represents the diagonal y = x passing from (0,0) to (2,2). A dotted vertical line goes up from x = 2 to y = 2. A gray shaded rectangle labeled A_alpha is bounded horizontally from x = alpha to x = 2 on the x-axis, and vertically from y = 0 to y = alpha, with its upper-left corner meeting the dotted line y = x at (alpha, alpha)."
+    },
+    "pg_15__page_24_Figure_4.jpeg": {
+        "skip": false,
+        "description": "A Cartesian coordinate graph illustrating a shaded rectangular region denoted as A_3/4. The horizontal x-axis has tick marks at 0, 3/4, 1, and 2. The vertical y-axis has tick marks at 0, 3/4, 1, and 2. A dotted line extends diagonally from the origin (0,0) to the point (2,2). A gray shaded rectangle A_3/4 is bounded horizontally between x = 3/4 and x = 2, and vertically between the x-axis (y = 0) and y = 3/4. A dashed gray line extends horizontally from y = 3/4 on the vertical axis to the top-left vertex of the rectangle at (3/4, 3/4) on the diagonal dotted line. A vertical dotted line extends from x = 2 up to the point (2,2)."
+    },
+    "pg_15__page_24_Figure_5.jpeg": {
+        "skip": false,
+        "description": "A set of four Cartesian coordinate graphs illustrating regions labeled $A_\\alpha$, $A_{\\frac{3}{4}}$, $A_1$, and $A_{\\sqrt{2}}$. Each graph shows a right triangle bounded by the x-axis from $x=0$ to $x=2$ and the line $y=x$ up to $(2,2)$ depicted with a dotted diagonal. Shaded rectangular areas depict indexed sets $A_a$ defined for different values of $a$:\n1. $A_\\alpha$: A shaded rectangle at the bottom spanning from $x=\\alpha$ to $x=2$ under $y=\\alpha$.\n2. $A_{\\frac{3}{4}}$: A shaded rectangle with a base from $x=\\frac{3}{4}$ to $x=2$ and height $y=\\frac{3}{4}$.\n3. $A_1$: A shaded rectangle with a base from $x=1$ to $x=2$ and height $y=1$.\n4. $A_{\\sqrt{2}}$: A shaded rectangle with a base from $x=\\sqrt{2}$ to $x=2$ and height $y=\\sqrt{2}$."
+    },
+    "pg_15__page_24_Figure_6.jpeg": {
+        "skip": false,
+        "description": "A Cartesian coordinate graph illustrating a region labeled $A_{\\sqrt{2}}$ on the $xy$-plane. The axes show tick marks at $1$, $\\sqrt{2}$, and $2$ on the $x$-axis, and $1$, $\\sqrt{2}$, and $2$ on the $y$-axis. A dotted diagonal line goes from the origin $(0,0)$ to the point $(2,2)$. A vertical dotted line extends from $(2,0)$ up to $(2,2)$. A dashed horizontal line connects $(0,\\sqrt{2})$ to the diagonal line at $(\\sqrt{2},\\sqrt{2})$. A gray shaded rectangular region, labeled $A_{\\sqrt{2}}$, is bounded on the left by $x = \\sqrt{2}$, on the right by $x = 2$, on the bottom by $y = 0$, and on the top by $y = \\sqrt{2}$."
+    },
+    "pg_15__page_24_Figure_9.jpeg": {
+        "skip": false,
+        "description": "A 2D Cartesian coordinate graph showing a shaded triangular region representing the union of indexed sets, labeled as \\bigcup_{\\alpha \\in I} A_{\\alpha}. The horizontal axis (x-axis) has tick marks at 1 and 2. The vertical axis (y-axis) has tick marks at 1 and 2. The shaded region is a right triangle bounded by the x-axis from x = 0 to x = 2, the line y = x from (0,0) to (2,2), and the vertical line segment from (2,0) to (2,2)."
+    },
+    "pg_15__page_25_Picture_6.jpeg": {
+        "skip": false,
+        "description": "Two 3D coordinate system diagrams showing planes in space (Figure 1.11).\n\nLeft diagram: Shows a single vertical plane labeled P_{(1,2)} intersecting the 3D x-y-z coordinate space along a line passing through the origin and the point (-2, 1, 0) in the horizontal xy-plane. The z-axis is directed upward, x-axis to the right, and y-axis into the depth.\n\nRight diagram: Shows multiple intersecting vertical planes around the z-axis, forming a fan-like arrangement of planes P_{(a,b)}, all containing the vertical z-axis."
+    },
+    "pg_15__page_64_Diagram_5.jpeg": {
+        "skip": false,
+        "description": "A tree diagram representing a decision process for constructing lists of length three, labeled 'Figure 3.1.'\n\n- First choice: Branches into three nodes labeled a, b, and c.\n- Second choice: Each first-choice node (a, b, c) branches into two nodes labeled 5 and 7.\n- Third choice: Each second-choice node (5, 7) branches into two nodes labeled a and x.\n\nAt the far right, under the header 'Resulting list', each terminal node corresponds to a 3-tuple path:\n- From a: (a, 5, a), (a, 5, x), (a, 7, a), (a, 7, x)\n- From b: (b, 5, a), (b, 5, x), (b, 7, a), (b, 7, x)\n- From c: (c, 5, a), (c, 5, x), (c, 7, a), (c, 7, x)\n\nIn total, there are 12 distinct outcomes resulting from 3 × 2 × 2 choices."
+    },
+    "pg_15__page_65_Diagram_5.jpeg": {
+        "skip": false,
+        "description": "A tree diagram illustrating the process of making ordered permutations from four distinct letters: a, b, c, and d, without repetition.\n\n- Start (Root): Splits into four branches for the '1st choice' (a, b, c, or d).\n- 1st choice: Four options (a, b, c, d). Each branches into three options for the '2nd choice'.\n- 2nd choice: For each first choice, three remaining letters can be chosen. Each branches into two options for the '3rd choice'.\n- 3rd choice: For each pair of first and second choices, two remaining letters can be chosen. Each leads to a single remaining option for the '4th choice'.\n- 4th choice: The last remaining letter is selected, completing a 4-letter sequence.\n- Resulting list: Shows all 24 possible permutations listed vertically on the right:\n  1. abcd\n  2. abdc\n  3. acbd\n  4. acdb\n  5. adbc\n  6. adcb\n  7. bacd\n  8. badc\n  9. bcad\n  10. bcda\n  11. bdac\n  12. bdca\n  13. cabd\n  14. cadb\n  15. cbad\n  16. cbda\n  17. cdab\n  18. cdba\n  19. dabc\n  20. dacb\n  21. dbac\n  22. dbca\n  23. dcab\n  24. dcba"
+    },
+    "pg_15__page_67_Diagram_6.jpeg": {
+        "skip": false,
+        "description": "An illustration showing a 4-tuple represented as parentheses containing four empty square boxes separated by commas: `( [ ], [ ], [ ], [ ] )`. Underneath each box, an upward-pointing arrow points from text that reads \"7 choices\", indicating that each position in the list can be filled in 7 different ways."
+    },
+    "pg_15__page_67_Diagram_9.jpeg": {
+        "skip": false,
+        "description": "A diagram illustrating the number of choices for filling a four-element tuple without repetition, formatted as `( [ ], [ ], [ ], [ ] )`. Arrows point upward from text labels to each of the four square boxes in order:\n- Beneath the first box: \"7 choices\"\n- Beneath the second box: \"6 choices\"\n- Beneath the third box: \"5 choices\"\n- Beneath the fourth box: \"4 choices\""
+    },
+    "pg_15__page_67_Diagram_12.jpeg": {
+        "skip": false,
+        "description": "An illustration showing four types of length-4 ordered lists representing choices for each position when 'E' is fixed in a specific spot.\n\n- Type 1: Diagram format (E, [ ], [ ], [ ]). The three open square positions indicate '6 choices', '5 choices', and '4 choices' sequentially from left to right.\n- Type 2: Diagram format ([ ], E, [ ], [ ]). The remaining positions indicate '6 choices' for the first position, followed by '5 choices' and '4 choices' for the third and fourth positions.\n- Type 3: Diagram format ([ ], [ ], E, [ ]). The remaining positions indicate '6 choices' and '5 choices' for the first two positions, and '4 choices' for the last position.\n- Type 4: Diagram format ([ ], [ ], [ ], E). The first three positions indicate '6 choices', '5 choices', and '4 choices' respectively."
+    },
+    "pg_15__page_68_Diagram_5.jpeg": {
+        "skip": false,
+        "description": "A diagram illustrating four types of length-4 ordered lists containing the letter E, representing an incorrect attempt at counting combinations with repetition:\n\n- **Type 1**: Defined as `(E, [_], [_], [_])`, where the second, third, and fourth positions each pointing to text reading \"7 choices\".\n- **Type 2**: Defined as `([_], E, [_], [_])`, where the first, third, and fourth positions each point to text reading \"7 choices\".\n- **Type 3**: Defined as `([_], [_], E, [_])`, where the first, second, and fourth positions each point to text reading \"7 choices\".\n- **Type 4**: Defined as `([_], [_], [_], E)`, where the first, second, and third positions each point to text reading \"7 choices\".\n\nEach empty slot `[_]` has an arrow pointing to it from below with the label \"7 choices\"."
+    },
+    "pg_15__page_69_Diagram_5.jpeg": {
+        "skip": false,
+        "description": "An illustration showing a 5-element tuple represented as five square boxes separated by commas inside parentheses: ( [ ], [ ], [ ], [ ], [ ] ). An arrow points to the first box from below with the text \"3 choices\"."
+    },
+    "pg_15__page_69_Diagram_7.jpeg": {
+        "skip": false,
+        "description": "A diagram illustrating the setup for filling five ordered boxes in a tuple representation: ( [ ] , [ ] , [ ] , [ ] , [ ] ). Arrows point from text labels below to the first four boxes. The labels indicate: 3 choices for the first box, 6 choices for the second box, 5 choices for the third box, and 4 choices for the fourth box. The fifth box has no arrow or choice count labeled."
+    },
+    "pg_15__page_69_Diagram_10.jpeg": {
+        "skip": false,
+        "description": "A mathematical diagram showing a 5-tuple represented as parentheses containing five empty square boxes separated by commas: `( [ ], [ ], [ ], [ ], [ ] )`. An arrow pointing to the first box is labeled '3 choices'. An arrow pointing to the fifth (last) box is labeled '2 choices'."
+    },
+    "pg_15__page_69_Diagram_12.jpeg": {
+        "skip": false,
+        "description": "A diagram illustrating the choices for filling a 5-element list represented as five square boxes separated by commas inside parentheses: ( [ ], [ ], [ ], [ ], [ ] ). Arrows point up to each box indicating the number of choices for each position: 3 choices for the 1st box, 5 choices for the 2nd box, 4 choices for the 3rd box, 3 choices for the 4th box, and 2 choices for the 5th box."
+    },
+    "pg_15__page_71_Diagram_7.jpeg": {
+        "skip": false,
+        "description": "A Venn-like diagram illustrating the partition of a set X into n mutually disjoint subsets labeled X_1, X_2, X_3, X_4, X_5, ..., X_n. The entire set X is represented as a rounded horizontal capsule-like container, divided into distinct non-overlapping polygonal regions by straight boundary lines."
+    },
+    "pg_15__page_73_Diagram_3.jpeg": {
+        "skip": false,
+        "description": "A Venn diagram showing a universal set U represented as a large shaded ellipse. Inside U, on the right side, there is a smaller unshaded oval set labeled X. The shaded region outside set X within set U is labeled U - X, illustrating the complement of set X."
+    },
+    "pg_15__page_83_Diagram_7.jpeg": {
+        "skip": false,
+        "description": "A table illustrating the relationship between combinations and permutations for choosing 3 elements from a set of 5 elements, {a, b, c, d, e}.\n\nAt the top, a double-headed horizontal arrow labeled with the combination binom(5, 3) spans across 10 columns representing all 3-element subsets:\n{a, b, c}, {a, b, d}, {a, b, e}, {a, c, d}, {a, c, e}, {a, d, e}, {b, c, d}, {b, c, e}, {b, d, e}, and {c, d, e}.\n\nOn the left side, a double-headed vertical arrow labeled 3! indicates 6 rows representing the 6 permutations for each subset:\n- Column 1 ({a, b, c}): abc, acb, bac, bca, cba, cab\n- Column 2 ({a, b, d}): abd, adb, bad, bda, dba, dab\n- Column 3 ({a, b, e}): abe, aeb, bae, bea, eba, eab\n- Column 4 ({a, c, d}): acd, adc, cad, cda, dca, dac\n- Column 5 ({a, c, e}): ace, aec, cae, cea, eca, eac\n- Column 6 ({a, d, e}): ade, aed, dae, dea, eda, ead\n- Column 7 ({b, c, d}): bcd, bdc, cbd, cdb, dcb, dbc\n- Column 8 ({b, c, e}): bce, bec, cbe, ceb, ecb, ebc\n- Column 9 ({b, d, e}): bde, bed, dbe, deb, edb, ebd\n- Column 10 ({c, d, e}): cde, ced, dce, dec, edc, ecd"
+    },
+    "pg_15__page_87_Diagram_8.jpeg": {
+        "skip": false,
+        "description": "Figure 3.3 shows Pascal's triangle displayed in two side-by-side versions from rows n = 0 through n = 7.\n\nOn the left, the triangle is written using binomial coefficient notation, \\binom{n}{k}:\n- Row 0 (apex): \\binom{0}{0}\n- Row 1: \\binom{1}{0}, \\binom{1}{1}\n- Row 2: \\binom{2}{0}, \\binom{2}{1}, \\binom{2}{2}\n- Row 3: \\binom{3}{0}, \\binom{3}{1}, \\binom{3}{2}, \\binom{3}{3}\n- Row 4: \\binom{4}{0}, \\binom{4}{1}, \\binom{4}{2}, \\binom{4}{3}, \\binom{4}{4}\n- Row 5: \\binom{5}{0}, \\binom{5}{1}, \\binom{5}{2}, \\binom{5}{3}, \\binom{5}{4}, \\binom{5}{5}\n- Row 6: \\binom{6}{0}, \\binom{6}{1}, \\binom{6}{2}, \\binom{6}{3}, \\binom{6}{4}, \\binom{6}{5}, \\binom{6}{6}\n- Row 7: \\binom{7}{0}, \\binom{7}{1}, \\binom{7}{2}, \\binom{7}{3}, \\binom{7}{4}, \\binom{7}{5}, \\binom{7}{6}, \\binom{7}{7}\nEllipses extend diagonally down to the left, straight down from the middle, and diagonally down to the right, indicating the infinite continuation of the pattern.\n\nOn the right, the triangle displays the corresponding numerical values for each binomial coefficient:\n- Row 0: 1\n- Row 1: 1, 1\n- Row 2: 1, 2, 1\n- Row 3: 1, 3, 3, 1\n- Row 4: 1, 4, 6, 4, 1\n- Row 5: 1, 5, 10, 10, 5, 1\n- Row 6: 1, 6, 15, 20, 15, 6, 1\n- Row 7: 1, 7, 21, 35, 35, 21, 7, 1\nSimilar ellipses extend below row 7."
+    },
+    "pg_15__page_90_Diagram_5.jpeg": {
+        "skip": false,
+        "description": "A Venn diagram showing two overlapping circles representing sets A and B. Set A is on the left, set B is on the right, and they share an overlapping central region representing their intersection."
+    },
+    "pg_15__page_91_Diagram_9.jpeg": {
+        "skip": false,
+        "description": "A Venn diagram showing three overlapping sets labeled A, B, and C. Set A is located on the bottom left, set B is on the bottom right, and set C is positioned at the top center. The three circles intersect each other, forming distinct overlapping regions for pairwise intersections (A and B, A and C, B and C) as well as a central intersection region shared by all three sets (A, B, and C)."
+    },
+    "pg_15__page_98_Diagram_6.jpeg": {
+        "skip": false,
+        "description": "A diagram demonstrating the mapping of permutations containing distinct lowercase/uppercase 'o' and 'O' characters to their corresponding capitalized word forms. Inside a large rounded rectangular box, there are 12 vertical columns separated by dashed lines. Each column contains two variations of a 4-letter arrangement of the letters B, O, o, K (e.g., 'BOoK' and 'BoOK' in the first column; 'KOoB' and 'KoOB' in the second column). Below each column, an arrow points down to a single 4-letter uppercase word (e.g., 'BOOK', 'KOOB', 'OOKB', 'OOBK', 'OBOK', 'OKOB', 'OKBO', 'OBKO', 'BKOO', 'KBOO', 'KOBO', 'BOKO'), showing that each pair of distinct arrangements corresponds to 1 unique permutation when the two 'O's are identical."
+    },
+    "pg_15__page_99_Diagram_2.jpeg": {
+        "skip": false,
+        "description": "A diagram illustrating the permutations of the distinct letters in the multiset indexed version of the word BANANA (B, A1, N1, A2, N2, A3). A large rounded box contains columns separated by dashed lines. The first column lists 12 permutations that spell 'BANANA' when indices are ignored (e.g., B A1 N1 A2 N2 A3, B A1 N1 A3 N2 A2, etc.), pointing down to the text 'BANANA'. The second column lists 12 permutations that spell 'ABNANA' (e.g., A1 B N1 A2 N2 A3, A1 B N1 A3 N2 A2, etc.), pointing down to the text 'ABNANA'. Further columns with ellipses indicate additional listings, totaling 720 permutations of B A1 N1 A2 N2 A3."
+    },
+    "pg_15__page_102_Picture_9.jpeg": {
+        "skip": false,
+        "description": "An illustration showing five open boxes arranged side by side. Each box is labeled on its front face with a pair of numbers that sum to 9: the first box is labeled \"0, 9\", the second \"1, 8\", the third \"2, 7\", the fourth \"3, 6\", and the fifth \"4, 5\"."
+    },
+    "pg_15__page_103_Picture_4.jpeg": {
+        "skip": false,
+        "description": "A simple line drawing of an open rectangular box labeled with the word \"RED\" on its front face."
+    },
+    "pg_15__page_103_Picture_5.jpeg": {
+        "skip": false,
+        "description": "An illustration showing four open cubic boxes lined up horizontally. Each box is labeled on its front face with a color name, from left to right: RED, GREEN, BLUE, and WHITE."
+    },
+    "pg_15__page_103_Picture_6.jpeg": {
+        "skip": false,
+        "description": "A line drawing of an open rectangular box or bin labeled \"BLUE\" on its front face."
+    },
+    "pg_15__page_103_Picture_7.jpeg": {
+        "skip": false,
+        "description": "A line drawing of an open rectangular box labeled 'WHITE' on its front face, representing one of the color-coded containers used to illustrate the Pigeonhole Principle problem."
+    },
+    "pg_15__page_104_Figure_3.jpeg": {
+        "skip": false,
+        "description": "A right-angled triangle with base length 1 and height 1. Inside the triangle, nine dots representing randomly placed points are scattered throughout the interior. Brackets along the vertical right side and horizontal bottom side indicate that both legs of the right triangle have a length of 1."
+    },
+    "pg_15__page_104_Picture_6.jpeg": {
+        "skip": false,
+        "description": "A geometric diagram showing a right isosceles triangle with both vertical height and horizontal base labeled as length 1 using curly braces. The triangle is subdivided by dashed line segments into four smaller congruent right isosceles triangles of base 1/2 and height 1/2. Within the overall triangle, there are 9 black dot points distributed across the regions. In the top-most smaller triangle, 3 points are enclosed by a shaded gray triangular region, demonstrating that at least three points fall within one sub-triangle according to the Pigeonhole Principle."
+    },
+    "pg_15__page_109_Picture_0.jpeg": {
+        "skip": true,
+        "description": ""
+    },
+    "pg_15__page_115_Picture_15.jpeg": {
+        "skip": true,
+        "description": ""
+    },
+    "pg_149__page_1_Picture_11.jpeg": {
+        "skip": true,
+        "description": ""
+    },
+    "pg_149__page_9_Picture_0.jpeg": {
+        "skip": true,
+        "description": ""
+    },
+    "pg_149__page_44_Diagram_9.jpeg": {
+        "skip": false,
+        "description": "An illustration titled \"The Simple Idea Behind Mathematical Induction\" explaining the concept using dominoes labeled S1, S2, S3, S4, S5, S6, ..., Sk, Sk+1, Sk+2, Sk+3, Sk+4, ...\n\n1. Top panel: \"Statements are lined up like dominoes.\" Shows all dominoes standing upright in a straight line.\n2. Second panel: \"(1) Suppose the first statement falls (is proved true);\" Shows a finger pushing domino S1, which begins to tip over toward S2 while the rest remain standing.\n3. Third panel: \"(2) Suppose the kth falling always causes the (k + 1)th to fall;\" Shows dominoes S1 through S6 already fallen over in a chain reaction, and in the second group, domino Sk falling into domino Sk+1.\n4. Bottom panel: \"Then all must fall (all are proved true).\" Shows all dominoes in both groups fully fallen over sequentially."
+    },
+    "pg_149__page_52_Diagram_3.jpeg": {
+        "skip": false,
+        "description": "Figure 10.1 shows four examples of graphs consisting of vertices (represented by solid black dots) and edges (connecting line segments):\n\n1. First graph (labeled vertices): A pentagon-like layout with vertices labeled $v_0$ (top), $v_1$ (upper left), $v_2$ (lower left), $v_3$ (lower right), and $v_4$ (upper right). The edges form a outer 5-cycle ($v_0-v_1-v_2-v_3-v_4-v_0$) with an additional horizontal edge connecting $v_1$ and $v_4$.\n\n2. Second graph: A central vertex connected to 5 surrounding outer vertices in a star-like shape, plus an additional edge connecting two adjacent outer vertices (the top vertex and the upper-right vertex), forming a triangle with the center.\n\n3. Third graph: A standard star graph (or $K_{1,5}$) with one central vertex connected to 5 outer vertices by radial edges.\n\n4. Fourth graph: A graph with 6 vertices arranged in two rows. Three edges emanate from a top-center vertex to three bottom/left vertices, continuing in a zigzag pattern to connect all 6 vertices into a single connected tree/path structure."
+    },
+    "pg_149__page_52_Diagram_7.jpeg": {
+        "skip": false,
+        "description": "Figure 10.2 shows a tree graph consisting of numerous black circular vertices connected by straight line segments (edges). The graph branches outward from a single stem/root node at the bottom into a dense, tree-like structure with various sub-branches of different lengths and vertex counts, illustrating a complex tree graph structure."
+    },
+    "pg_149__page_53_Diagram_6.jpeg": {
+        "skip": false,
+        "description": "Two diagrams illustrating the removal of an edge from a tree graph. The top diagram shows a tree T consisting of two subtrees connected by an edge labelled 'e'. Each subtree is enclosed in a dashed circle with internal nodes and edges branching out, with dots indicating further unspecified structure. The bottom diagram shows the same tree after the edge 'e' has been removed, represented by a dotted line between the original endpoints. The two resulting disconnected subtrees are labeled T_1 on the left and T_2 on the right."
+    },
+    "pg_149__page_59_Diagram_5.jpeg": {
+        "skip": false,
+        "description": "A diagram demonstrating how summing along shallow diagonals of Pascal's triangle yields the Fibonacci numbers. Pascal's triangle is arranged with rows corresponding to combinations, starting from row 0 at the top (containing a single 1) down to row 8 at the bottom. Several parallel arrows are drawn pointing up and to the right along shallow diagonals that pass through circled numbers in the triangle: the first diagonal touches a single 1, summing to 1; the second touches a single 1, summing to 1; the third passes through 1 and 1, summing to 2; the fourth passes through 1 and 2, summing to 3; the fifth passes through 1, 3, and 1, summing to 5; the sixth passes through 1, 4, 3, summing to 8; the seventh passes through 1, 5, 6, 1, summing to 13; the eighth passes through 1, 6, 10, 4, summing to 21; and the ninth passes through 1, 7, 15, 10, 1, summing to 34. The sums at the ends of the arrowed diagonal lines form the Fibonacci sequence: 1, 1, 2, 3, 5, 8, 13, 21, 34."
+    },
+    "pg_149__page_61_Picture_0.jpeg": {
+        "skip": true,
+        "description": ""
+    },
+    "pg_149__page_63_Picture_0.jpeg": {
+        "skip": true,
+        "description": ""
+    },
+    "pg_149__page_66_Diagram_6.jpeg": {
+        "skip": false,
+        "description": "A directed graph representing a relation U on a set of six vertices labeled 0, 1, 2, 3, 4, 5. The vertices are arranged in two horizontal rows: 0, 1, 2 in the top row, and 3, 4, 5 directly below them in the bottom row. The directed edges (arrows) are as follows:\n- Vertex 0 has no incoming or outgoing edges.\n- An arrow points from vertex 1 to vertex 3.\n- An arrow points from vertex 4 to vertex 2.\n- Vertex 3 has a self-loop (an arrow pointing from 3 to 3).\n- There is a bi-directional set of arrows between vertex 2 and vertex 5: one arrow points from 2 down to 5, and another arrow points from 5 up to 2."
+    },
+    "pg_149__page_66_Diagram_8.jpeg": {
+        "skip": false,
+        "description": "A directed graph representing a relation on the set {a, b, c, d}. The four vertices are arranged in a square layout: vertex 'a' at the top-left, 'd' at the top-right, 'b' at the bottom-left, and 'c' at the bottom-right. Directed edges (arrows) indicate the pairs in the relation R = {(a, b), (a, c), (a, d), (b, c), (b, d), (c, d)}:\n- From 'a': arrows point to 'b' (down), 'c' (diagonal down-right), and 'd' (right).\n- From 'b': arrows point to 'c' (right) and 'd' (diagonal up-right).\n- From 'c': an arrow points to 'd' (up)."
+    },
+    "pg_149__page_67_Diagram_4.jpeg": {
+        "skip": false,
+        "description": "A directed graph representing a binary relation R on set A. The set consists of 6 vertices: three in the top row labeled 0, 1, 2 (from left to right) and three in the bottom row labeled 3, 4, 5 (from left to right).\n\nEach vertex has a self-loop: (0,0), (1,1), (2,2), (3,3), (4,4), and (5,5).\n\nDirected edges between different vertices include:\n- From vertex 0: arrows to vertex 3 and vertex 4.\n- From vertex 1: arrows to vertex 0, vertex 3, vertex 4, vertex 2, and vertex 5.\n- From vertex 2: arrows to vertex 1, vertex 4, and vertex 5.\n- From vertex 3: an arrow to vertex 1.\n- From vertex 4: an arrow to vertex 1.\n- From vertex 5: an arrow to vertex 4."
+    },
+    "pg_149__page_67_Diagram_6.jpeg": {
+        "skip": false,
+        "description": "A directed graph representing a relation R on a set A = {0, 1, 2, 3, 4, 5}. The vertices (nodes) are labeled 0 through 5. The directed edges (arrows) in the graph are:\n- From 1 to 2\n- From 2 to 5\n- From 4 to 2\n- From 4 to 3\n- From 5 to 0\n- A self-loop on node 3 (from 3 to 3)."
+    },
+    "pg_149__page_67_Figure_9.jpeg": {
+        "skip": false,
+        "description": "A graph on a Cartesian coordinate plane illustrating a shaded region R. The line bounding the shaded region passes through the origin (0,0) with a positive slope of 1, representing the line y = x. The region below and to the right of this line, where y ≤ x, is shaded gray."
+    },
+    "pg_149__page_67_Figure_10.jpeg": {
+        "skip": false,
+        "description": "Diagram for problem 13 showing a shaded square region $R$ centered on a Cartesian coordinate plane with black horizontal and vertical axes (with arrows on both ends). A white solid line extends diagonally from the bottom-left corner to the top-right corner, dividing the region into upper and lower sections."
+    },
+    "pg_149__page_67_Figure_11.jpeg": {
+        "skip": false,
+        "description": "A coordinate plane grid of dots labeled 14 and 15, divided into four quadrants by a horizontal line and a vertical line. Solid dark-filled dots represent points in a region bounded by a boundary line. In the upper-left quadrant extending into the upper-right and lower-left, filled dots indicate the solution set to an inequality, while open circles represent points outside the region."
+    },
+    "pg_149__page_67_Figure_12.jpeg": {
+        "skip": false,
+        "description": "An image labeled '15.' showing a 9 by 9 grid of dots centered around a horizontal and a vertical coordinate axis. Some dots are open circles (light gray) while others are filled circles (dark gray with black outlines). On the central horizontal axis line, dark dots appear at x = -3, x = 0, and x = 3 relative to the center origin. On the central vertical axis line, dark dots appear at y = -3, y = 3, and y = 4 (or relative positions). Across the grid, dark dots form a repeating structured pattern symmetric about the axes, representing a relation graphed on a discrete set of lattice points."
+    },
+    "pg_149__page_69_Diagram_8.jpeg": {
+        "skip": false,
+        "description": "A directed graph representing the relation R on the set {b, c, d, e}. Node e is isolated in the center with no arrows or loops. Nodes b, c, and d form a triangular configuration. Each of nodes b, c, and d has a self-loop. Additionally, there are directed edges (arrows) connecting the pair (c, d) in both directions (c to d, d to c), the pair (c, b) in both directions (c to b, b to c), and the pair (d, b) in both directions (d to b, b to d)."
+    },
+    "pg_149__page_70_Diagram_3.jpeg": {
+        "skip": false,
+        "description": "Diagram illustration for rule 1 of relation properties on a directed graph:\nText: \"1. A relation is reflexive if for each point x ... ...there is a loop at x:\"\nVisuals:\n- On the left: a single point labeled \"x\".\n- On the right: a point labeled \"x\" with a self-loop (a directed edge going from x back to x)."
+    },
+    "pg_149__page_70_Diagram_4.jpeg": {
+        "skip": false,
+        "description": "A visual explanation of a symmetric relation. Item number 2 states: 'A relation is symmetric if whenever there is an arrow from x to y ... [diagram showing node x with a single curved arrow pointing to node y] ...there is also an arrow from y back to x: [diagram showing node x and node y with two arrows between them, one pointing from x to y and one pointing back from y to x]'."
+    },
+    "pg_149__page_70_Diagram_5.jpeg": {
+        "skip": false,
+        "description": "A diagram titled '3.' illustrating the definition of a transitive relation using directed graphs:\n\n1. Upper Case (General Transitivity):\n   - Left text: 'A relation is transitive if whenever there are arrows from x to y and y to z ...'\n   - Left graph: Show nodes x, y, and z with directed arrows from x to y and y to z.\n   - Right text: '...there is also an arrow from x to z:'\n   - Right graph: Shows the same configuration with an additional direct arrow added from x to z, forming a closed triangle.\n\n2. Lower Case (Special Case where x = z):\n   - Left text: '(If x = z, this means that if there are arrows from x to y and from y to x ...'\n   - Left graph: Shows nodes x and y with a two-way connection (an arrow from x to y and an arrow from y to x).\n   - Right text: '...there is also a loop from x back to x.)'\n   - Right graph: Shows the same two-way connection between x and y, plus a self-loop arrow at node x."
+    },
+    "pg_149__page_85_Diagram_3.jpeg": {
+        "skip": false,
+        "description": "A Venn-style diagram illustrating a relation from set A to set B (Figure 11.3).\n\nSet A is depicted on the left as a vertical oval containing elements 1 and 2, represented by filled dots.\nSet B is depicted on the right as a larger rounded rectangle labeled with elements represented by filled dots: empty set symbol (\\emptyset), {1}, {2}, and {1, 2}.\n\nDirected arrows indicate the relation pairs:\n- An arrow points from 1 in A to {1} in B.\n- An arrow points from 1 in A to {1, 2} in B.\n- An arrow points from 2 in A to {2} in B.\n- An arrow points from 2 in A to {1, 2} in B.\n\nThe empty set element \\emptyset in set B has no incoming arrows."
+    },
+    "pg_149__page_86_Figure_6.jpeg": {
+        "skip": false,
+        "description": "A plot of the function f(x) = x^2 in the Cartesian plane R x R. The background is shaded grey, representing the domain/codomain space R x R. A vertical axis and a horizontal axis are shown, both labeled R. A upward-opening parabola represents the graph of the function. A point on the parabola is marked with a black dot labeled (x, x^2). A vertical dotted line extends down from this point to the horizontal axis, intersecting it at a point labeled x."
+    },
+    "pg_149__page_87_Figure_3.jpeg": {
+        "skip": false,
+        "description": "A grid illustration representing the graph of the function f(n) = |n| + 2 from the set of integers Z to the set of natural numbers N. The horizontal axis represents Z, with tick marks labeled from -4 to 4. The vertical axis represents N, labeled from 1 to 6. Grid points are drawn at integer coordinate pairs (n, y) where n is in {-4, ..., 4} and y is in {1, ..., 6}. Most points are represented as open circles, while points corresponding to the function values f(n) = |n| + 2 are filled black circles. These filled points are at (-4, 6), (-3, 5), (-2, 4), (-1, 3), (0, 2), (1, 3), (2, 4), (3, 5), and (4, 6), forming a V-shape."
+    },
+    "pg_149__page_89_Diagram_2.jpeg": {
+        "skip": false,
+        "description": "The image consists of two visual representations of a relation/function labeled (a) and (b), corresponding to the function f = {(p, 0), (q, 1), (r, 2), (s, 2)} between domain set A = {p, q, r, s} and codomain set B = {0, 1, 2}.\n\nIn part (a), the Cartesian product set A x B is shown as a 4 by 3 grid of ordered pairs with set B arranged vertically on the left containing elements 0, 1, 2 and set A arranged horizontally at the bottom containing elements p, q, r, s. The elements of f, namely (p, 0), (q, 1), (r, 2), and (s, 2), are enclosed together within a single dashed boundary line representing the subset of ordered pairs forming the relation.\n\nIn part (b), an arrow diagram (bipartite mapping) is shown. On the left, set A is depicted as an elongated oval containing elements p, q, r, s from bottom to top. On the right, set B is depicted as an elongated oval containing elements 0, 1, 2 from top to bottom. Directed arrows map each element in A to an element in B: an arrow goes from p to 0, from q to 1, from r to 2, and from s to 2."
+    },
+    "pg_149__page_92_Diagram_2.jpeg": {
+        "skip": false,
+        "description": "A diagram illustrating the concepts of injective and surjective functions using Venn-like set diagrams for domain A and codomain B.\n\nTop panel (Injective):\n- Left side: Shows a set A with elements 'a' and 'a'', and a set B with two separate points. An arrow goes from 'a' to the top point, and another arrow goes from 'a'' to the bottom point. Text says: 'Injective means that for any two a, a' \\in A, this happens...'\n- Right side: Shows set A with elements 'a' and 'a'', and set B with two points. Both arrows from 'a' and 'a'' point to the same bottom point in B. Text label: '...and not this:'\n\nBottom panel (Surjective):\n- Left side: Shows empty set A and set B containing an element 'b'. Text says: 'Surjective means that for any b \\in B...'\n- Right side: Shows set A containing an element 'a' pointing via an arrow to element 'b' in set B. Text label: '...this happens:'"
+    },
+    "pg_149__page_92_Diagram_6.jpeg": {
+        "skip": false,
+        "description": "A 2x2 grid diagram illustrating the four combinations of injectivity and surjectivity for functions from domain A to codomain B.\n\nColumns are labeled:\n- Injective\n- Not injective\n\nRows are labeled:\n- Surjective\n- Not surjective\n\nTop-Left Cell (Injective, Surjective / Bijective):\n- Domain A = {1, 2, 3}, Codomain B = {4, 5, 6}.\n- Mappings: 1 -> 5, 2 -> 4, 3 -> 6.\n- Every element in B is mapped to exactly once.\n\nTop-Right Cell (Not injective, Surjective):\n- Domain A = {1, 2, 3}, Codomain B = {4, 5}.\n- Mappings: 1 -> 5, 2 -> 4, 3 -> 5.\n- Every element in B is mapped to at least once, but 5 is mapped to by both 1 and 3.\n\nBottom-Left Cell (Injective, Not surjective):\n- Domain A = {1, 2}, Codomain B = {4, 5, 6}.\n- Mappings: 1 -> 5, 2 -> 4.\n- Each element in A maps to a distinct element in B, but 6 in B is not mapped to.\n\nBottom-Right Cell (Not injective, Not surjective):\n- Domain A = {1, 2, 3}, Codomain B = {4, 5, 6}.\n- Mappings: 1 -> 5, 2 -> 4, 3 -> 5.\n- Element 5 is mapped to by both 1 and 3 (not injective), and element 6 is not mapped to (not surjective)."
+    },
+    "pg_149__page_96_Diagram_5.jpeg": {
+        "skip": false,
+        "description": "The image shows two diagrams labeled (a) and (b), illustrating the Pigeonhole Principle using function mappings from a set of 'Pigeons' to a set of 'Pigeonholes'.\n\nIn diagram (a):\n- The domain 'Pigeons' on the left contains 5 elements (represented by black dots).\n- The codomain 'Pigeonholes' on the right contains 4 elements (represented by square boxes).\n- Arrows representing the function $f$ map each pigeon to a pigeonhole. Since there are 5 pigeons and 4 pigeonholes, two pigeons (the 4th and 5th from the top) map to the same bottom pigeonhole, illustrating that at least one pigeonhole must contain more than one pigeon when $|A| > |B|$.\n\nIn diagram (b):\n- The domain 'Pigeons' on the left contains 4 elements (black dots).\n- The codomain 'Pigeonholes' on the right contains 5 elements (square boxes).\n- Arrows map each of the 4 pigeons to a unique pigeonhole. The 5th pigeonhole at the bottom remains empty, illustrating that when $|A| < |B|$, not all pigeonholes can be filled if the mapping is one-to-one (the function cannot be surjective)."
+    },
+    "pg_149__page_99_Diagram_3.jpeg": {
+        "skip": false,
+        "description": "Diagram illustrating the composition of two functions, $f$ and $g$, denoted as $g \\circ f$.\n\nThe top diagram shows three sets labeled $A$, $B$, and $C$, with arrows representing mappings:\n- Set $A = \\{0, 1, 2, 3\\}$\n- Set $B = \\{1, 2, 3\\}$\n- Set $C = \\{4, 5, 6, 7\\}$\n- Function $f: A \\to B$ maps $0 \\to 2$, $1 \\to 3$, $2 \\to 2$, and $3 \\to 3$.\n- Function $g: B \\to C$ maps $1 \\to 7$, $2 \\to 4$, and $3 \\to 5$.\n\nThe bottom diagram shows the direct composite function $g \\circ f: A \\to C$:\n- $0$ maps to $4$ (since $f(0)=2$ and $g(2)=4$)\n- $1$ maps to $5$ (since $f(1)=3$ and $g(3)=5$)\n- $2$ maps to $4$ (since $f(2)=2$ and $g(2)=4$)\n- $3$ maps to $5$ (since $f(3)=3$ and $g(3)=5$)"
+    },
+    "pg_149__page_102_Diagram_5.jpeg": {
+        "skip": false,
+        "description": "Two arrow diagrams comparing a function $f$ and its inverse relation $f^{-1}$ between sets $A = \\{a, b, c\\}$ and $B = \\{1, 2, 3\\}$.\n\n1. On the left, the diagram for function $f = \\{(a,2), (b,3), (c,1)\\}$ shows arrows directed from set $A$ to set $B$:\n   - $a \\rightarrow 2$\n   - $b \\rightarrow 3$\n   - $c \\rightarrow 1$\n\n2. On the right, the diagram for the inverse function $f^{-1} = \\{(2,a), (3,b), (1,c)\\}$ shows the exact same elements in sets $A$ and $B$, but with the arrows reversed, pointing from set $B$ to set $A$:\n   - $2 \\rightarrow a$\n   - $3 \\rightarrow b$\n   - $1 \\rightarrow c$"
+    },
+    "pg_149__page_102_Diagram_7.jpeg": {
+        "skip": false,
+        "description": "Two Venn-like mapping diagrams illustrating a relation $g$ and its inverse $g^{-1}$ between sets $A = \\{a, b, c\\}$ and $B = \\{1, 2, 3\\}.\n\nOn the left, the diagram for $g = \\{(a, 2), (b, 3), (c, 3)\\}$ shows set $A$ on the left and set $B$ on the right. Arrows point from $a$ to $2$, from $b$ to $3$, and from $c$ to $3$.\n\nOn the right, the diagram for $g^{-1} = \\{(2, a), (3, b), (3, c)\\}$ shows set $A$ on the left and set $B$ on the right, with arrows pointing in the reverse direction: from $2$ in $B$ to $a$ in $A$, from $3$ in $B$ to $b$ in $A$, and from $3$ in $B$ to $c$ in $A$."
+    },
+    "pg_149__page_108_Diagram_8.jpeg": {
+        "skip": false,
+        "description": "A number line diagram illustrating the triangle inequality for three real numbers x, y, and z arranged in order from left to right. The distance between x and y is labeled above with a bracket as |x - y|. The distance between y and z is labeled above with a bracket as |z - y|. The total distance from x to z is labeled below with a bracket as |x - z|, demonstrating that the total distance |x - z| is equal to the sum of the two sub-distances |x - y| + |z - y|."
+    },
+    "pg_149__page_108_Diagram_9.jpeg": {
+        "skip": false,
+        "description": "A number line diagram illustrating absolute value as distance between points. The horizontal line contains three ordered points labeled $y$, $x$, and $z$ from left to right. Above the number line, curly braces indicate the distance between $y$ and $x$ labeled as $|x-y|$, and the distance between $x$ and $z$ labeled as $|x-z|$. Below the number line, a single curly brace spans from $y$ to $z$, showing the total distance labeled as $|z-y|$."
+    },
+    "pg_149__page_108_Diagram_10.jpeg": {
+        "skip": false,
+        "description": "A number line diagram illustrating absolute value distances between three points: z, x, and y, arranged from left to right. A bracket above the segment between z and x is labeled |x - z|. A bracket above the segment between x and y is labeled |x - y|. A larger bracket below the entire segment from z to y is labeled |z - y|, demonstrating that the total distance |z - y| is equal to the sum of the distances |x - z| + |x - y|."
+    },
+    "pg_149__page_108_Diagram_11.jpeg": {
+        "skip": false,
+        "description": "A number line diagram illustrating the triangle inequality for three points x, z, and y positioned in order from left to right. A brace above the segment between x and z is labeled |x - z|, representing the distance between x and z. A brace above the segment between z and y is labeled |z - y|, representing the distance between z and y. A brace below the full segment from x to y is labeled |x - y|, representing the total distance between x and y. The image visually demonstrates that |x - y| = |x - z| + |z - y| when z lies between x and y."
+    },
+    "pg_149__page_108_Diagram_12.jpeg": {
+        "skip": false,
+        "description": "A horizontal number line illustrating absolute values as distances between three points: y, z, and x, ordered from left to right. A top curly brace between y and z represents the distance |z - y|. A top curly brace between z and x represents the distance |x - z|. A bottom curly brace spanning from y to x represents the total distance |x - y|."
+    },
+    "pg_149__page_108_Diagram_13.jpeg": {
+        "skip": false,
+        "description": "A horizontal number line illustrating the triangle inequality for real numbers. Three points are marked on the line from left to right as z, y, and x. Above the line, curly braces indicate the distance between z and y as |z - y| and the distance between y and x as |x - y|. Below the line, a single curly brace spans from z to x, indicating the total distance as |x - z|."
+    },
+    "pg_149__page_109_Figure_4.jpeg": {
+        "skip": false,
+        "description": "Two graphs illustrating the concept of a limit of a function as x approaches c.\n\nLeft Graph:\nShows a continuous curve y = f(x) with a hole (open circle) at x = c and y = L. Dashed lines connect the point (c, L) to c on the horizontal x-axis and to L on the vertical y-axis.\n\nRight Graph:\nIllustrates the behavior as x approaches c from both left and right. Vertical lines extend from points x < c and x > c on the x-axis up to the curve y = f(x), and horizontal lines extend to the y-axis showing the corresponding values f(x). Arrows show x approaching c along the x-axis from both sides, causing f(x) to approach L along the y-axis. The formula lim_{x -> c} f(x) = L is written alongside the graph."
+    },
+    "pg_149__page_110_Diagram_3.jpeg": {
+        "skip": false,
+        "description": "A number line illustrating an open interval centered at c with radius delta. An arrowed line stretches horizontally, marked with points c - delta (open circle), c (solid point), x (solid point), and c + delta (open circle) from left to right. A bracket above the segment between c - delta and c is labeled with delta, and a bracket above the segment between c and c + delta is also labeled with delta, showing that x lies within delta units of c."
+    },
+    "pg_149__page_110_Figure_10.jpeg": {
+        "skip": false,
+        "description": "A graph on a Cartesian coordinate plane illustrating the formal epsilon-delta definition of a limit: $\\lim_{x \\to c} f(x) = L$.\n\n- **Axes:** The horizontal axis is labeled $x$, and the vertical axis is labeled $y$.\n- **Function Curve:** A smooth, monotonically increasing curve labeled $y = f(x)$ passes through the plane.\n- **Epsilon Band (Vertical Interval):** On the $y$-axis, a target value $L$ is shown with a dashed open circle at $(c, L)$ on the curve. An interval $(L - \\varepsilon, L + \\varepsilon)$ around $L$ creates a horizontal shaded band bounded by upper and lower dashed lines at $y = L + \\varepsilon$ and $y = L - \\varepsilon$.\n- **Delta Interval (Horizontal Interval):** On the $x$-axis, an open interval around $c$ is marked from $c - \\delta$ to $c + \\delta$. Vertical shading lines connect the interval $(c - \\delta, c + \\delta)$ on the $x$-axis to the function curve.\n- **Point $(x, f(x))$:** A specific point $x$ is chosen within the delta interval $(c, c + \\delta)$. The corresponding point on the curve is marked with a solid black dot labeled $(x, f(x))$, which maps directly to $f(x)$ on the $y$-axis within the epsilon band $(L, L + \\varepsilon)$."
+    },
+    "pg_149__page_112_Figure_21.jpeg": {
+        "skip": false,
+        "description": "A coordinate graph illustrating the formal epsilon-delta proof showing that a limit does not exist for a piecewise/discontinuous function $y = f(x)$ near $x = 2$. \n\nThe horizontal axis is labeled $x$, with key marked points at $2 - \\delta$, $a$, $2$, $b$, and $2 + \\delta$. The vertical axis is labeled $y$, with key marked points at $f(a)$, $2$, $L - \\varepsilon$, $L$, $L + \\varepsilon$, $4$, and $f(b)$. A shaded horizontal band represents the interval $(L - \\varepsilon, L + \\varepsilon)$ around a proposed limit value $L$.\n\nThe function $f(x)$ consists of two linear segments separated by a jump discontinuity at $x = 2$:\n1. The left piece rises linearly from the lower-left, passing through $(a, f(a))$ and ending in an open circle at $(2, 2)$.\n2. The right piece starts at an open circle at $(2, 4)$ and rises linearly to the upper-right, passing through $(b, f(b))$.\n\nVertical and horizontal reference lines show that for points $x \\in (2 - \\delta, 2 + \\delta)$, such as $x = a$ and $x = b$, the corresponding function values $f(a) \\le 2$ and $f(b) \\ge 4$ lie completely outside the shaded band $(L - \\varepsilon, L + \\varepsilon)$, demonstrating that no single limit value $L$ satisfies the $\\varepsilon$-$\\delta$ definition as $x$ approaches $2$."
+    },
+    "pg_149__page_113_Figure_5.jpeg": {
+        "skip": false,
+        "description": "A plot of the function y = sin(1/x) shown on a Cartesian coordinate system with x and y axes. As x approaches 0 from both the positive and negative sides, the curve oscillates between y = 1 and y = -1 with rapidly increasing frequency, forming a dense band of vertical-like lines near the y-axis."
+    },
+    "pg_149__page_119_Figure_13.jpeg": {
+        "skip": false,
+        "description": "Five graphs illustrating the three conditions for continuity of a function f(x) at x = c:\n1. f(c) is defined.\n2. The limit of f(x) as x approaches c exists.\n3. The limit of f(x) as x approaches c equals f(c).\n\nFrom left to right, the graphs show:\n- Graph 1 (1,3 fail): A curve with an open circle at x = c and no filled point, so f(c) is undefined and condition 3 fails.\n- Graph 2 (3 fails): A curve with an open circle at x = c and a filled dot directly above it at a different y-value, so f(c) exists and the limit exists, but they are not equal (condition 3 fails).\n- Graph 3 (2,3 fail): A jump discontinuity where the left portion ends at an open circle at x = c and the right portion begins at a filled dot above it at x = c; the limit does not exist (condition 2 fails) and condition 3 fails.\n- Graph 4 (1,2,3 fail): A jump discontinuity where the left portion ends at an open circle at x = c and the right portion begins at an open circle above it at x = c, with no filled dot present; conditions 1, 2, and 3 all fail.\n- Graph 5 (1,2,3 all hold): A smooth unbroken curve passing through a filled dot at x = c; all three conditions hold, making f(x) continuous at x = c.\n\nThe first four graphs are grouped together with a brace labeled 'f(x) is discontinuous at x = c', while the fifth graph points to the label 'f(x) is continuous at x = c'."
+    },
+    "pg_149__page_121_Figure_6.jpeg": {
+        "skip": false,
+        "description": "A Cartesian plot illustrating the limit at infinity and horizontal asymptotes for a function y = f(x). The graph features two horizontal dashed lines representing asymptotes: one at y = 2 and another at y = -1. As x extends far to the right towards positive infinity, the curve y = f(x) decreases from a peak and approaches the horizontal asymptote y = 2 from above. Thin vertical lines from points on the x-axis (marked with rightward arrows showing x approaching infinity) connect to the curve, which in turn projects horizontally onto the y-axis (marked with a downward arrow showing f(x) approaching 2). As x extends far to the left towards negative infinity, the curve approaches the lower horizontal asymptote y = -1."
+    },
+    "pg_149__page_122_Figure_2.jpeg": {
+        "skip": false,
+        "description": "A geometric visualization of the formal definition of a limit at infinity, showing the curve y = f(x). A horizontal dashed line represents y = L, surrounded by a gray horizontal band bounded above by L + ε and below by L - ε. To the right, a vertical gray shaded region begins at x = N and extends to the right for all x > N. A point x > N is marked on the x-axis, with a corresponding point (x, f(x)) on the function curve that falls strictly inside the horizontal band between L - ε and L + ε, demonstrating that for x > N, |f(x) - L| < ε."
+    },
+    "pg_149__page_122_Figure_10.jpeg": {
+        "skip": false,
+        "description": "A 2D Cartesian coordinate plot showing the function y = sin(x)/x, also known as the sinc function. The vertical axis is labeled y and has a tick mark at 1, where there is an open circle at (0, 1) representing a removable discontinuity. The horizontal axis is labeled x with arrows at both ends indicating infinity in both directions. The curve reaches a peak near y = 1 as x approaches 0, and as x moves further away from 0 in both positive and negative directions, the graph oscillates above and below the x-axis with progressively decreasing amplitude, visually illustrating that the limit of sin(x)/x as x approaches infinity (and negative infinity) is 0."
+    },
+    "pg_149__page_124_Figure_17.jpeg": {
+        "skip": false,
+        "description": "A plot representing the sequence a_n = 1 - 1/n plotted for positive integers n from 1 to 34 on a horizontal axis, extending towards infinity indicated by an ellipsis. The vertical axis shows values from 0 up to 1, with 1/2 labeled. For n = 1, the dot lies at (1, 0). For n = 2, the dot is at (2, 1/2). As n increases to 3, 4, 5, and beyond, the discrete black dots form a discrete curve approaching the horizontal line at 1 from below."
+    },
+    "pg_149__page_125_Figure_9.jpeg": {
+        "skip": false,
+        "description": "A plot illustrating the limit definition of a sequence, with sequence index n on the horizontal axis and sequence term value a_n on the vertical axis. The vertical axis shows a target limit value L indicated by a dashed horizontal line, bounded above by L + ε and below by L - ε, creating a gray shaded band representing the interval (L - ε, L + ε). Individual sequence values are plotted as black dots for n = 1 through 34. For small n, the sequence values fluctuate outside the shaded band (both below and above). At n = 17, marked by a vertical line labeled N with an upward arrow, the terms enter the shaded band. For all n > N (n ≥ 18), all plotted sequence terms lie strictly inside the gray region between L - ε and L + ε, approaching the limit line L."
+    },
+    "pg_149__page_126_Figure_4.jpeg": {
+        "skip": false,
+        "description": "A plot of the sequence a_n = (-1)^(n+1) * (n+1)/n against the integer index n from 1 to 34 on the horizontal axis. The vertical axis shows values ranging from below -1 to above 1, with horizontal dashed reference lines at y = 1 and y = -1. The sequence points alternate between positive and negative values: odd terms (n = 1, 3, 5, ...) are positive and approach 1 from above (starting at 2 for n=1), while even terms (n = 2, 4, 6, ...) are negative and approach -1 from below (starting at -1.5 for n=2). As n increases, the points get closer to the lines y = 1 and y = -1, illustrating oscillation and divergence."
+    },
+    "pg_281__page_0_Diagram_8.jpeg": {
+        "skip": false,
+        "description": "A mapping diagram representing a bijection $f$ between set $A$ and set $B$. Set $A$ contains elements $a, b, c, d, e$, and set $B$ contains elements $0, 1, 2, 3, 4$. Arrows labeled with function $f$ point directly from each element in $A$ to a unique corresponding element in $B$: $a$ maps to $0$, $b$ maps to $1$, $c$ maps to $2$, $d$ maps to $3$, and $e$ maps to $4$."
+    },
+    "pg_281__page_1_Diagram_3.jpeg": {
+        "skip": false,
+        "description": "A mapping diagram illustrating a function f from set A to set B. Set A contains elements a, b, c, and d. Set B contains elements 0, 1, 2, 3, and 4. Directed arrows show the following mappings: a maps to 0, b maps to 1, c maps to 2, and d maps to 3. The element 4 in set B is not mapped to by any element in set A, demonstrating an injective (one-to-one) function that is not surjective (onto)."
+    },
+    "pg_281__page_1_Diagram_4.jpeg": {
+        "skip": false,
+        "description": "A mapping diagram illustrating a function $f$ from set $A$ to set $B$. Set $A$ contains elements $a, b, c, d, e$, and set $B$ contains elements $0, 1, 2, 3$. Directed arrows show the mappings: $a \\mapsto 0$, $b \\mapsto 1$, $c \\mapsto 2$, $d \\mapsto 3$, and $e \\mapsto 3$. The function is surjective (onto) as every element in set $B$ is mapped to, but not injective (one-to-one) because both $d$ and $e$ map to $3$."
+    },
+    "pg_281__page_3_Figure_13.jpeg": {
+        "skip": false,
+        "description": "Geometric diagram illustrating a bijection f from the interval (0, infinity) on the x-axis to the interval (0, 1) on the y-axis, labeled as Figure 14.1. Point P is located at coordinates (-1, 1). A straight line segment originates from P, passes through the vertical y-axis at height f(x), and intersects the horizontal x-axis at x. Thin light-grey rays emanate from P across the first quadrant towards the x-axis and extending toward infinity, depicting how every point x in (0, infinity) corresponds to a unique point f(x) in (0, 1) via projection from point P."
+    },
+    "pg_281__page_9_Diagram_10.jpeg": {
+        "skip": false,
+        "description": "A diagram illustrating that the Cartesian product of two countably infinite sets, A and B, is also countably infinite by displaying a grid of ordered pairs and a serpentine path winding through them. Set A is listed horizontally at the bottom with elements a1, a2, a3, a4, a5, a6, a7, ..., and set B is listed vertically on the left with elements b1, b2, b3, b4, b5, b6, b7, ... inside large oval set indicators. The grid contains ordered pairs (a_i, b_j) matching each combination. A continuous grey ribbon-like path snake-wraps back and forth through the elements starting from (a1, b1), tracing upward to (a1, b2), across and down to (a2, b1), through (a3, b1) and along expanding square-like concentric serpentine layers that cover all grid elements (a_i, b_j) systematically, proving the product set can be listed sequentially."
+    },
+    "pg_281__page_12_Diagram_2.jpeg": {
+        "skip": false,
+        "description": "A mapping diagram representing an injective function f from set A to set B. Set A contains four elements: a, b, c, and d. Set B contains five elements: 0, 1, 2, 3, and 4. Directed arrows show the function mappings: a maps to 0, b maps to 1, c maps to 2, and d maps to 3. The element 4 in set B is not mapped to by any element in A, illustrating an injective (one-to-one) function that is not surjective (onto), demonstrating that set A has a strictly smaller cardinality than set B."
+    },
+    "pg_281__page_15_Picture_8.jpeg": {
+        "skip": false,
+        "description": "An illustration showing two set representations labeled A and B. Set A on the left is shaded gray and drawn roughly in the shape of a trapezoid reminiscent of the letter 'A'. Set B on the right is white with a black outline, shaped like the letter 'B' with two rounded rightward bumps."
+    },
+    "pg_281__page_16_Picture_2.jpeg": {
+        "skip": false,
+        "description": "A diagram illustrating two injective mappings between two sets represented geometrically as shape A (a shaded trapezoid) and shape B (a letter 'B' outline). On the left, an arrow labeled f points from the shaded trapezoid A into a smaller copy of the shaded trapezoid contained within the set B, showing an injective function f: A -> B. On the right, an arrow labeled g points from the set B into a smaller copy of the white set B contained within the shaded trapezoid A, showing an injective function g: B -> A. Below the second mapping, a dotted arrow pointing in the reverse direction is labeled g^{-1}."
+    },
+    "pg_281__page_16_Picture_5.jpeg": {
+        "skip": false,
+        "description": "Figure 14.5 illustrates an infinite chain of alternating injections $g$ and $f$ between sets represented visually as geometric shapes, labeled B (a B-shaped region) and A (a shaded trapezoidal region). The chain begins with set B on the far left. An arrow labeled $g$ maps set B into set A, where B appears embedded inside A. Next, an arrow labeled $f$ maps the upper region of set A into a larger set B, embedding set A (which contains B) inside B. An arrow labeled $g$ then maps this compound shape into set A, embedding it deeper inside set A. This pattern alternates continuously with $f$ and $g$ mapping increasingly nested copies of A and B into each other, leading to an infinite sequence denoted by '...' on the right."
+    },
+    "pg_281__page_17_Picture_3.jpeg": {
+        "skip": true,
+        "description": ""
+    },
+    "pg_281__page_23_Figure_20.jpeg": {
+        "skip": false,
+        "description": "A Cartesian coordinate plane displaying a shaded square region in the first quadrant. The x-axis ranges from -3 to 3, and the y-axis ranges from -2 to 2. The shaded region corresponds to x values from 1 to 2 and y values from 1 to 2, representing the set {(x,y): x in [1,2], y in [1,2]}."
+    },
+    "pg_281__page_23_Figure_21.jpeg": {
+        "skip": false,
+        "description": "A Cartesian coordinate graph with x-axis ranging from -3 to 3 and y-axis ranging from -2 to 2. A thick horizontal line segment is plotted along y = 1, extending from x = -1 to x = 1."
+    },
+    "pg_281__page_23_Figure_22.jpeg": {
+        "skip": false,
+        "description": "A Cartesian coordinate system graph displaying two vertical line segments representing impulses or discrete points. The x-axis ranges from -3 to 3, and the y-axis ranges from -2 to 2. The first vertical segment goes from (x = -2, y = 0) to (x = -2, y = 1). The second vertical segment goes from (x = 2, y = 0) to (x = 2, y = 1)."
+    },
+    "pg_281__page_23_Figure_24.jpeg": {
+        "skip": false,
+        "description": "A Cartesian coordinate graph showing a circle centered at the origin (0,0) with a radius of 1 unit. The x-axis extends from -3 to 3, and the y-axis extends from -2 to 2. The circle intersects the axes at (1,0), (-1,0), (0,1), and (0,-1)."
+    },
+    "pg_281__page_23_Figure_25.jpeg": {
+        "skip": false,
+        "description": "A Cartesian coordinate system showing a shaded region bounded by a parabola opening upward. The x-axis ranges from -3 to 3, and the y-axis ranges from -2 to 3. The vertex of the boundary parabola is at (0, -1), and it passes through the x-intercepts (-1, 0) and (1, 0). The region above and inside the parabola is shaded gray."
+    },
+    "pg_281__page_23_Figure_26.jpeg": {
+        "skip": false,
+        "description": "A Cartesian coordinate system graph displaying a family of parallel diagonal lines with a slope of 1. The horizontal x-axis and vertical y-axis both range from -3 to 3. The lines are evenly spaced, passing through integer intercepts such as (0, 0), (0, 1), (0, 2), (0, 3), (0, -1), (0, -2), and (0, -3), filling the visible grid area."
+    },
+    "pg_281__page_24_Figure_2.jpeg": {
+        "skip": false,
+        "description": "A Cartesian coordinate graph illustrating the solution set for the equation (y - x)(y + x) = 0. Both axes are labeled from -3 to 3. The graph consists of two intersecting straight diagonal lines passing through the origin (0, 0): the line y = x extending from the lower-left quadrant to the upper-right quadrant, and the line y = -x extending from the upper-left quadrant to the lower-right quadrant, forming an 'X' shape."
+    },
+    "pg_281__page_24_Figure_18.jpeg": {
+        "skip": false,
+        "description": "A Cartesian coordinate graph illustrating the Cartesian product set {1, 2, 3} × {-1, 0, 1}. The x-axis ranges from -3 to 3, and the y-axis ranges from -2 to 2. Black dots represent the 9 discrete points of the set, located at the intersections of x = 1, 2, 3 and y = -1, 0, 1: (1, -1), (1, 0), (1, 1), (2, -1), (2, 0), (2, 1), (3, -1), (3, 0), and (3, 1)."
+    },
+    "pg_281__page_24_Figure_20.jpeg": {
+        "skip": false,
+        "description": "A Cartesian coordinate system graph illustrating the region corresponding to the Cartesian product [0,1] x [0,1]. The x-axis ranges from -3 to 3 and the y-axis ranges from -2 to 2. A shaded gray square represents the region, bounded by x = 0, x = 1, y = 0, and y = 1 in the first quadrant."
+    },
+    "pg_281__page_24_Figure_22.jpeg": {
+        "skip": false,
+        "description": "A Cartesian coordinate system graph illustrating the Cartesian product {1, 1.5, 2} x [1, 2]. The x-axis ranges from -3 to 3 and the y-axis ranges from -2 to 2. The graph consists of three solid vertical line segments located at x = 1, x = 1.5, and x = 2, each extending vertically from y = 1 to y = 2."
+    },
+    "pg_281__page_25_Figure_3.jpeg": {
+        "skip": true,
+        "description": ""
+    },
+    "pg_281__page_25_Figure_5.jpeg": {
+        "skip": false,
+        "description": "A Cartesian coordinate graph illustrating a set of discrete points representing a subset of the Cartesian product. The x-axis has labels from -3 to 3, and the y-axis has labels from -2 to 2. Black dots are plotted at all integer coordinates (x, y) where x is a positive integer (x = 1, 2, 3, ...) and y is any integer (..., -2, -1, 0, 1, 2, ...), extending infinitely upwards, downwards, and to the right."
+    },
+    "pg_281__page_25_Figure_7.jpeg": {
+        "skip": false,
+        "description": "A 3D Cartesian coordinate system with three axes showing a unit cube corresponding to the Cartesian product $[0, 1] \\times [0, 1] \\times [0, 1]$. The horizontal axis is labeled with tick marks at -3, -2, -1, 1, 2, and 3. The vertical axis is labeled at -2, -1, 1, and 2. The cube is located in the first octant with one vertex at the origin $(0, 0, 0)$ and its sides extending to 1 along each axis."
+    },
+    "pg_281__page_26_Figure_27.jpeg": {
+        "skip": false,
+        "description": "Five coordinate planes showing set operations on two regions $X = [1,3] \\times [1,3]$ and $Y = [2,4] \\times [2,4]$ in $\\mathbb{R}^2$:\n1. First plot shows $X$ as a solid grey square covering $[1,3] \\times [1,3]$ and $Y$ as a hatched square covering $[2,4] \\times [2,4]$, overlapping on $[2,3] \\times [2,3]$.\n2. Second plot shows $X \\cup Y$, shaded in grey covering the combined L-shapes and overlap region from $x,y=1$ to $4$.\n3. Third plot shows $X \\cap Y$, shaded in grey as a $1 \\times 1$ square region $[2,3] \\times [2,3]$.\n4. Fourth plot shows $X - Y$, shaded in grey as an L-shaped region consisting of $[1,3] \\times [1,2]$ and $[1,2] \\times [2,3]$.\n5. Fifth plot shows $Y - X$, shaded in grey as an L-shaped region labeled $Y-X$ covering $[2,4] \\times [3,4]$ and $[3,4] \\times [2,3]$."
+    },
+    "pg_281__page_26_Figure_29.jpeg": {
+        "skip": false,
+        "description": "Five 2D Cartesian coordinate plane plots demonstrating set operations between a disk $X$ centered at the origin with radius 1 ($x^2 + y^2 \\le 1$) and a half-plane $Y$ ($x \\ge 0$).\n\n1. First plot (leftmost): Shows $X$ as a hatched circle of radius 1 centered at the origin, and $Y$ as a shaded region occupying the right half-plane ($x \\ge 0$).\n2. Second plot ($X \\cup Y$): Shaded region includes the entire right half-plane ($x \\ge 0$) plus the left half of the unit disk ($x < 0, x^2 + y^2 \\le 1$).\n3. Third plot ($X \\cap Y$): Shaded region consists of the right half of the unit disk ($x \\ge 0, x^2 + y^2 \\le 1$).\n4. Fourth plot ($X - Y$): Shaded region consists of the left half of the unit disk ($x < 0, x^2 + y^2 \\le 1$).\n5. Fifth plot ($Y - X$): Shaded region consists of the right half-plane ($x \\ge 0$) with the right half of the unit disk removed ($x^2 + y^2 > 1$)."
+    },
+    "pg_281__page_27_Figure_5.jpeg": {
+        "skip": false,
+        "description": "Three Cartesian coordinate plane plots side-by-side illustrating sets in R^2:\n\n1. First plot (labeled X): Shows a gray rectangle with vertices at x from 1 to 3 and y from 1 to 2, representing the set X = [1,3] x [1,2].\n2. Second plot (labeled \\bar{X}): Shows the complement of set X in the plane. The region of the entire plane is shaded gray except for an unshaded white rectangle corresponding to X = [1,3] x [1,2].\n3. Third plot (labeled \\bar{X} \\cap ([0,2] \\times [0,3])): Shows the intersection of the complement of X with the box [0,2] x [0,3]. The region x \\in [0,2], y \\in [0,3] is shaded gray, with a cutout on its right side where x \\in [1,2] and y \\in [1,2] is left unshaded."
+    },
+    "pg_281__page_27_Figure_7.jpeg": {
+        "skip": false,
+        "description": "Two Cartesian coordinate planes depicting the set $X$ and its complement $\\overline{X}$. \n\nThe left graph shows set $X$, which is an annulus (a ring-shaped region) centered at the origin, bounded by an inner circle of radius 1 and an outer circle of radius 2. The region between $r=1$ and $r=2$ is shaded gray.\n\nThe right graph shows the complement set $\\overline{X}$. The region inside the circle of radius 1 ($r \\leq 1$) is shaded gray, the annulus between $r=1$ and $r=2$ is white (unshaded), and the entire region outside the circle of radius 2 ($r \\geq 2$) is shaded gray."
+    },
+    "pg_281__page_27_Picture_9.jpeg": {
+        "skip": false,
+        "description": "A Venn diagram showing a universal set U represented by a rectangle. Inside rectangle U is a circle labeled set A, which is white (unshaded). The area inside rectangle U that is outside circle A is shaded gray, representing the complement of set A, labeled \\bar{A} (shaded)."
+    },
+    "pg_281__page_27_Figure_14.jpeg": {
+        "skip": false,
+        "description": "Two Venn diagrams illustrating set operations involving three sets labeled A, B, and C arranged in a standard three-circle overlap pattern.\n\nThe left diagram shows the scratch work:\n- Set A minus B (A - B) is shaded with vertical lines, covering the region of circle A that does not overlap with circle B.\n- Set C is shaded with horizontal lines, covering the entire circle C.\n- The cross-hatched region (grid pattern) represents the intersection of (A - B) and C, which consists of the region where set C overlaps with set A excluding set B.\n\nThe right diagram shows the final result:\n- The set (A - B) \\cap C is shaded in solid gray, highlighting the precise region inside both circle A and circle C that excludes circle B, which corresponds to the region with cross-hatched shading in the left diagram."
+    },
+    "pg_281__page_28_Picture_2.jpeg": {
+        "skip": false,
+        "description": "A Venn diagram showing three overlapping sets labeled A (bottom-left circle), B (bottom-right circle), and C (top circle). The shaded region represents the set operation A ∪ (B ∩ C), which includes the entire circle A, as well as the intersection of circles B and C (B ∩ C)."
+    },
+    "pg_281__page_28_Picture_5.jpeg": {
+        "skip": false,
+        "description": "A Venn diagram showing a universal set U represented by a large rectangle enclosing two overlapping circles labeled A and B. The entire region inside the rectangle is shaded gray except for the central oval intersection of sets A and B, which is white (unshaded)."
+    },
+    "pg_281__page_28_Picture_7.jpeg": {
+        "skip": false,
+        "description": "A Venn diagram consisting of three overlapping circles labeled A (bottom-left), B (bottom-right), and C (top). The shaded region represents the part of the intersection of sets A and B that lies entirely outside of set C, which corresponds to the set expression (A ∩ B) \\ C."
+    },
+    "pg_281__page_44_Diagram_2.jpeg": {
+        "skip": false,
+        "description": "A diagram illustrating the choices for the elements in a 3-element subset. A sequence of numbers from 0 to n + 1 is shown horizontally: 0, 1, 2, ..., k - 1, k, k + 1, k + 2, k + 3, ..., n, n + 1. The central element k is labeled 'middle' with an upward arrow pointing to k. To the left, an underbrace spans from 0 to k - 1 and is labeled 'k choices for j'. To the right, an underbrace spans from k + 1 to n + 1 and is labeled 'n + 1 - k choices for \\ell'."
+    },
+    "pg_281__page_73_Figure_4.jpeg": {
+        "skip": false,
+        "description": "A geometric diagram illustrating the addition of a vertical line, labeled l (dashed), intersecting four existing non-parallel lines in a plane. The dashed vertical line l is divided into five segments (labeled 1 through 5 from bottom to top) by its four intersection points with the four existing lines, demonstrating how adding line l creates five new regions in the plane."
+    },
+    "pg_281__page_75_Diagram_12.jpeg": {
+        "skip": false,
+        "description": "A directed graph representing a binary relation on the set {0, 1, 2, 3, 4, 5}. Six vertices labeled 0 through 5 are arranged in a circular formation, numbered counterclockwise from 0 at the middle right, 1 at top right, 2 at top left, 3 at middle left, 4 at bottom left, and 5 at bottom right. Directed edges (arrows) point from higher-numbered vertices to lower-numbered vertices, illustrating the strict greater-than relation '>'. Specifically, arrows point from 5 to 4, 3, 2, 1, 0; from 4 to 3, 2, 1, 0; from 3 to 2, 1, 0; from 2 to 1, 0; and from 1 to 0."
+    },
+    "pg_281__page_75_Diagram_15.jpeg": {
+        "skip": false,
+        "description": "A directed graph representation of a binary relation on the set {0, 1, 2, 3, 4, 5}. Six vertices labeled 0 through 5 are arranged in a circle. Each vertex contains a self-loop (e.g., from 0 to 0, 1 to 1, up to 5 to 5). Additional directed edges connect various pairs of vertices across and along the circle: arrows point from 3 to 0, 3 to 1, 3 to 2; from 4 to 0, 4 to 1, 4 to 2, 4 to 3; from 5 to 0, 5 to 1, 5 to 2, 5 to 3, 5 to 4; from 2 to 0, 2 to 1; and from 1 to 0."
+    },
+    "pg_281__page_76_Diagram_20.jpeg": {
+        "skip": false,
+        "description": "A grid of 16 directed graphs representing all possible binary relations on a two-element set A = {a, b}. The 16 graphs are organized in a 4x4 matrix:\n\n- Columns represent self-loop configurations:\n  - Column 1: No self-loops on either a or b.\n  - Column 2: Self-loop on node a only.\n  - Column 3: Self-loop on node b only.\n  - Column 4: Self-loops on both nodes a and b.\n\n- Rows represent directed edges between distinct nodes a and b:\n  - Row 1: No directed edges between a and b.\n  - Row 2: A single directed edge pointing from a to b.\n  - Row 3: A single directed edge pointing from b to a.\n  - Row 4: Two directed edges, one pointing from a to b and one from b to a."
+    }
+}

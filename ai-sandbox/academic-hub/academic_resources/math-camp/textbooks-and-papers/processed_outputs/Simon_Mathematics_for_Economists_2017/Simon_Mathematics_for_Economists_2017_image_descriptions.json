@@ -1,0 +1,818 @@
+{
+    "pg_21__page_5_Figure_12.jpeg": {
+        "skip": false,
+        "description": "A two-dimensional Cartesian coordinate plane representing commodity space, labeled 'Figure 1.1'. The horizontal axis is labeled $x_1$ (representing the quantity of gadgets) and the vertical axis is labeled $x_2$ (representing the quantity of widgets). Two distinct points (commodity bundles) are plotted as solid black dots on the plane:\n1. A point labeled $(2, 6)$ in the upper-left region, with dashed reference lines extending vertically to the horizontal axis at $x_1 = 2$ and horizontally to the vertical axis at $x_2 = 6$.\n2. A point labeled $(5, 3)$ in the lower-right region, with dashed reference lines extending vertically to the horizontal axis at $x_1 = 5$ and horizontally to the vertical axis at $x_2 = 3$."
+    },
+    "pg_21__page_6_Figure_10.jpeg": {
+        "skip": false,
+        "description": "A graph titled Figure 1.2 showing indifference curves in a two-dimensional commodity space. The vertical axis is labeled 'W' and the horizontal axis is labeled 'G'. Three convex, downward-sloping curves represent different levels of utility: the innermost curve is labeled 'u = 1', the middle curve is labeled 'u = 6', and the outermost curve is labeled 'u = 10'. An arrow points outward from the 'u = 1' curve toward the higher utility curves, indicating increasing utility as one moves away from the origin."
+    },
+    "pg_21__page_7_Figure_12.jpeg": {
+        "skip": false,
+        "description": "A two-dimensional economic graph illustrating a consumer's budget constraint and indifference curves. The vertical axis represents one good (with intercept labeled D), the horizontal axis represents another good (with intercept labeled A), and the origin is labeled 0. A straight line connects D on the vertical axis to A on the horizontal axis, forming a shaded triangular budget set beneath it. Three downward-sloping, convex indifference curves are shown; the middle curve, labeled 'u', is tangent to the budget line segment DA at a point labeled 'c'. This point 'c' represents the utility-maximizing consumption bundle subject to the budget constraint."
+    },
+    "pg_21__page_8_Figure_9.jpeg": {
+        "skip": false,
+        "description": "A two-dimensional microeconomic graph illustrating budget constraints and indifference curves. The vertical axis starts at origin O, and the horizontal axis represents quantities of a commodity. Two budget lines are shown: line DA connecting point D on the vertical axis to point A on the horizontal axis, and line D'A' connecting point D' to point A', situated further out from the origin. Three downward-sloping, convex indifference curves are depicted. Budget line DA is tangent to an indifference curve at point C. Budget line D'A' is tangent to a higher indifference curve at point C', showing a shift to a higher level of utility as the budget constraint expands."
+    },
+    "pg_21__page_8_Figure_12.jpeg": {
+        "skip": false,
+        "description": "A microeconomics graph illustrating indifference curves and budget lines for consumer choice. The vertical axis starts at origin 0 and has an intercept labeled D. Two downward-sloping, convex indifference curves are shown. From point D on the vertical axis, two budget lines extend downward to the horizontal axis: line DA ends at point A on the horizontal axis, and line DA' ends at point A' on the horizontal axis closer to the origin. Budget line DA is tangent to the higher indifference curve at point C. Budget line DA' is tangent to the lower indifference curve at point C'."
+    },
+    "pg_21__page_11_Figure_197.jpeg": {
+        "skip": false,
+        "description": "A horizontal number line representing the real numbers (R^1). It extends endlessly in both directions, indicated by arrows at both ends. Centered at 0, the line includes marked integers ranging from -6 to 6, with negative numbers labeled to the left of 0 and positive numbers labeled to the right."
+    },
+    "pg_21__page_13_Figure_11.jpeg": {
+        "skip": false,
+        "description": "A Cartesian coordinate graph showing a straight line with a positive slope. The line passes through the y-axis at approximately (0, 1) and through the x-axis at approximately (-1, 0), extending infinitely in both directions across the four quadrants."
+    },
+    "pg_21__page_13_Figure_12.jpeg": {
+        "skip": false,
+        "description": "A Cartesian coordinate plane showing a continuous line passing through the origin (0,0). For x < 0, the line has a steeper slope, rising quickly as it approaches zero from the left. For x >= 0, the line continues into the first quadrant with a slightly less steep slope, illustrating a piecewise linear continuous function that is strictly increasing everywhere."
+    },
+    "pg_21__page_13_Figure_13.jpeg": {
+        "skip": false,
+        "description": "A graph of a parabola opening upwards with its vertex at the origin (0, 0) on a Cartesian coordinate plane. The curve is symmetric about the y-axis, located entirely in the first and second quadrants where y is greater than or equal to 0."
+    },
+    "pg_21__page_13_Figure_14.jpeg": {
+        "skip": false,
+        "description": "A plot of a strictly decreasing function $f(x)$ on a Cartesian coordinate plane. The curve descends from the upper-left quadrant, flattens horizontally at its inflection point where it crosses the origin $(0,0)$ with a derivative equal to zero ($f'(0) = 0$), and then continues downwards into the lower-right quadrant. This illustrates a function that is strictly decreasing throughout its domain even though its derivative is zero at a single point."
+    },
+    "pg_21__page_13_Figure_15.jpeg": {
+        "skip": false,
+        "description": "A Cartesian coordinate graph illustrating a downward-opening parabola with its vertex centered at the origin (0, 0). The curve is symmetric across the vertical y-axis and extends downwards into the third and fourth quadrants."
+    },
+    "pg_21__page_13_Figure_17.jpeg": {
+        "skip": false,
+        "description": "A 2D Cartesian coordinate plane showing a graph of a smooth, U-shaped convex curve (parabola-like function f). The curve reaches its lowest point, marked with a solid black dot, at x-coordinate x_0 and y-coordinate f(x_0). Dashed lines project from the minimum point to the y-axis at f(x_0) and down toward x_0 on the x-axis, illustrating the local/global minimum of the function."
+    },
+    "pg_21__page_14_Figure_2.jpeg": {
+        "skip": false,
+        "description": "A plot showing a continuous curve $g(z)$ opening downward (concave down) on a Cartesian coordinate system. The vertex of the curve is at a maximum point marked with a solid dot at coordinates $(z_0, g(z_0))$. Dashed projection lines extend from the vertex down to $z_0$ on the horizontal axis and left to $g(z_0)$ on the vertical axis."
+    },
+    "pg_21__page_17_Figure_11.jpeg": {
+        "skip": false,
+        "description": "A Cartesian coordinate graph illustrating three straight lines labeled l_1, l_2, and l_3 to demonstrate the concept of line slopes.\n\n- Line l_1 is a steep line sloping upward from left to right. It passes through the marked points (1, 0) and (2, 3). Annotations show a horizontal change (run) of 1 unit between x = 1 and x = 2, and a vertical change (rise) of 3 units between y = 0 and y = 3, illustrating a slope of 3.\n- Line l_2 is a line sloping upward at a 45-degree angle, representing a slope of +1.\n- Line l_3 is a line sloping downward from left to right at a -45-degree angle, representing a slope of -1."
+    },
+    "pg_21__page_18_Figure_1.jpeg": {
+        "skip": false,
+        "description": "A Cartesian coordinate graph illustrating the slope of a line passing through four distinct points across different quadrants. The line passes through points marked (x_1, y_1), (x_1 + 1, y_1'), (x_2, y_2), (x_2 + 1, y_2'), (x_3, y_3), and (x_4, y_4). Three right-angled triangles labeled #1, #2, and #3 are constructed along the line to demonstrate slope equality using similar triangles. Triangle #1 has a horizontal base of length 1 and a vertical height of y_1' - y_1. Triangle #2 has a horizontal base of length 1 and a vertical height of y_2' - y_2. Triangle #3, located in the first quadrant between (x_3, y_3) and (x_4, y_4), has a horizontal base of length x_4 - x_3 and a vertical height of y_4 - y_3."
+    },
+    "pg_21__page_21_Figure_89.jpeg": {
+        "skip": false,
+        "description": "Figure 2.7 shows four lines labeled (a), (b), (c), and (d) in the plane:\n- Line (a) slopes upwards from left to right at a moderate positive slope.\n- Line (b) slopes downwards from left to right at a negative slope.\n- Line (c) is a horizontal line with a slope of zero.\n- Line (d) is a steeply rising line sloping upwards from left to right with a large positive slope."
+    },
+    "pg_21__page_22_Figure_8.jpeg": {
+        "skip": false,
+        "description": "A graph of a smooth, wave-like function $f(x)$ plotted on a Cartesian coordinate system with $x$ and $y$ axes. On the upper-left curve of the function, a specific point is marked with a black dot corresponding to the horizontal coordinate $x_0$ and vertical value $f(x_0)$. A straight line tangent to the curve is drawn through this point, illustrating the geometric concept of the derivative (slope of the tangent line) at $x_0$."
+    },
+    "pg_21__page_23_Figure_177.jpeg": {
+        "skip": false,
+        "description": "A graph illustrating the concepts of tangent and non-tangent lines on the cubic curve y = x^3. The coordinate axes intersect at the origin (0,0). The curve y = x^3 passes through the origin, where the x-axis acts as a tangent line that crosses through the curve. Point A lies in the first quadrant on the curve, where a non-tangent line with a negative slope intersects the curve at point A and passes through it."
+    },
+    "pg_21__page_24_Figure_13.jpeg": {
+        "skip": false,
+        "description": "A graph illustrating secant lines converging toward a tangent line on a curve f(x). The horizontal axis shows x-values labeled x_0, x_0 + h_3, x_0 + h_2, and x_0 + h_1 from left to right. A smooth, downward-concave curve passes through the base point (x_0, f(x_0)) and three points to its right: (x_0 + h_3, f(x_0 + h_3)), (x_0 + h_2, f(x_0 + h_2)), and (x_0 + h_1, f(x_0 + h_1)). Three secant lines, labeled \\ell_3, \\ell_2, and \\ell_1, each pass through (x_0, f(x_0)) and one of the respective points on the curve. As the step size h_n decreases from h_1 to h_3, the secant lines become progressively steeper, approaching the tangent line at (x_0, f(x_0))."
+    },
+    "pg_21__page_25_Figure_103.jpeg": {
+        "skip": false,
+        "description": "A Cartesian plot showing a parabola given by $f(x) = x^2$ with its vertex at the origin $(0,0)$. On the right branch of the parabola, a point is plotted at $(3,9)$. A straight tangent line is drawn passing through the point $(3,9)$ and touching the parabola at that location."
+    },
+    "pg_21__page_30_Figure_93.jpeg": {
+        "skip": false,
+        "description": "A graph of the absolute value function, y = |x|, plotted on Cartesian coordinates with horizontal x-axis and vertical y-axis. The graph forms a V-shape symmetric about the y-axis, with its vertex at the origin (0,0), demonstrating a sharp corner or non-smooth point where the derivative does not exist."
+    },
+    "pg_21__page_30_Figure_101.jpeg": {
+        "skip": false,
+        "description": "A geometric plot on a Cartesian coordinate plane illustrating the graph of the absolute value function, $y = |x|$, along with several secant lines passing through the origin $(0,0)$. The V-shaped graph of $|x|$ opens upwards from the origin into the upper two quadrants. Three distinct lines, labeled $\\ell_1$, $\\ell_2$, and $\\ell_3$, pass through the origin at varying slopes. Line $\\ell_1$ has a small positive slope, line $\\ell_2$ has a smaller negative slope closer to horizontal, and line $\\ell_3$ has a steeper negative slope. Each line extends into both opposite quadrants across the origin, demonstrating different secant lines approaching the origin from different directions."
+    },
+    "pg_21__page_31_Figure_132.jpeg": {
+        "skip": false,
+        "description": "A graph of a piecewise function g showing a discontinuity at x = 0. For x < 0, the curve decreases smoothly toward a lower point on the y-axis (leaving an open gap/end at x = 0 below the x-axis). For x >= 0, there is a solid black dot above the x-axis on the y-axis, from which a straight line extends upward and to the right into the first quadrant."
+    },
+    "pg_21__page_37_Figure_8.jpeg": {
+        "skip": false,
+        "description": "A mathematical graph illustrating differential approximation on a coordinate system with axes labeled x and an unlabeled vertical axis (y-axis). A curve representing a function f(x) and its tangent line at a point x_0 are shown.\n\nKey elements:\n- On the horizontal x-axis, two points are marked: x_0 and x_0 + \\Delta x.\n- On the vertical axis, three y-values are marked with dashed horizontal projection lines:\n  - f(x_0) corresponding to x_0 on the curve.\n  - f(x_0 + \\Delta x) corresponding to x_0 + \\Delta x on the curve.\n  - f(x_0) + f'(x_0) \\Delta x corresponding to x_0 + \\Delta x on the tangent line.\n- Points marked on the plot:\n  - A black dot at (x_0, f(x_0)) where the tangent line touches the curve f(x).\n  - A black dot on the curve at x_0 + \\Delta x, corresponding to height f(x_0 + \\Delta x).\n  - A black dot on the tangent line at x_0 + \\Delta x, corresponding to height f(x_0) + f'(x_0) \\Delta x.\n- Vertical increments:\n  - \\Delta y = f(x_0 + \\Delta x) - f(x_0) is shown with a brace indicating the change in the actual function's y-value from x_0 to x_0 + \\Delta x.\n  - dy = f'(x_0) \\Delta x is shown with a brace indicating the vertical change along the tangent line from x_0 to x_0 + \\Delta x."
+    },
+    "pg_21__page_40_Figure_7.jpeg": {
+        "skip": false,
+        "description": "A Cartesian coordinate graph displaying an exponential growth curve y = b^x (where b > 1). The graph shows an increasing function passing through the y-intercept at (0, 1), marked with a solid dot. Additional solid dots are plotted along the curve at both negative and positive x-values, demonstrating how the curve approaches the horizontal x-axis asymptotically to the left and rises steeply to the right."
+    },
+    "pg_21__page_41_Figure_0.jpeg": {
+        "skip": false,
+        "description": "A Cartesian coordinate graph illustrating three exponential functions: y = 10^x (represented by a long-dashed line), y = 3^x (represented by a dotted line), and y = 2^x (represented by a solid line). All three curves pass through the common y-intercept point at (0, 1). For x > 0, the curve y = 10^x rises the steepest, followed by y = 3^x, and then y = 2^x. For x < 0, all three curves approach the horizontal asymptote y = 0 as x goes to negative infinity, with y = 10^x closest to the x-axis."
+    },
+    "pg_21__page_41_Figure_7.jpeg": {
+        "skip": false,
+        "description": "A plot showing the graph of the exponential function y = (1/2)^x. The vertical y-axis and horizontal x-axis intersect at the origin (0,0). The curve drops steeply from the upper-left quadrant, passing through marked points at x = -3 (y = 8), x = -2 (y = 4), x = -1 (y = 2), the y-intercept at (0, 1), and continues through x = 1 (y = 1/2), x = 2 (y = 1/4), and x = 3 (y = 1/8), approaching the positive x-axis as a horizontal asymptote."
+    },
+    "pg_21__page_46_Figure_151.jpeg": {
+        "skip": false,
+        "description": "A Cartesian coordinate graph illustrating the inverse relationship between the exponential function y = 10^x and the logarithmic function y = Log x. The graph shows three curves/lines:\n1. The curve y = 10^x in the upper-left to upper-right area, passing through the y-intercept dot at (0, 1) and approaching the negative x-axis asymptotically.\n2. The diagonal line y = x passing through the origin (0, 0), acting as the axis of symmetry.\n3. The curve y = Log x in the lower-left to lower-right area, passing through the x-intercept dot at (1, 0) and approaching the negative y-axis asymptotically. The graph visually shows that y = Log x is the reflection of y = 10^x across the line y = x."
+    },
+    "pg_21__page_54_Figure_1.jpeg": {
+        "skip": false,
+        "description": "A 2D Cartesian coordinate graph showing a bell-shaped curve representing a standard normal-like exponential function, specifically $y = e^{-x^2/2}$. The horizontal x-axis has tick marks with labeled points at -1, 0, and 1. The vertical y-axis is labeled with values around 0.6 and 1. Three prominent solid black dots mark key coordinates on the curve: the peak at $(0, 1)$, and two inflection points symmetric about the y-axis at $(-1, e^{-1/2} \\approx 0.6)$ and $(1, e^{-1/2} \\approx 0.6)$. The curve smoothly approaches the x-axis asymptotically as $x$ goes to positive or negative infinity."
+    },
+    "pg_171__page_5_Figure_7.jpeg": {
+        "skip": false,
+        "description": "A portion of a horizontal real number line (Figure 10.1) displaying integer values marked from -6 on the left to 6 on the right, centered around 0."
+    },
+    "pg_171__page_6_Figure_146.jpeg": {
+        "skip": false,
+        "description": "A Cartesian coordinate system diagram demonstrating how a point in the plane is identified by an ordered pair (a, b). The origin (0, 0) is at the intersection of the horizontal x-axis and vertical y-axis, with tick marks indicating integer values -1, 0, 1, 2, and 3 along the x-axis, and -1 and 1 along the y-axis. A vertical dashed line labeled l_1 passes through x = a on the x-axis, where a is approximately -2.5. A horizontal dashed line labeled l_2 passes through y = b on the y-axis, where b is approximately 2.5. The point of intersection of lines l_1 and l_2 in the upper-left quadrant (Quadrant II) is plotted with a solid black dot and labeled with the ordered pair (a, b)."
+    },
+    "pg_171__page_6_Figure_152.jpeg": {
+        "skip": false,
+        "description": "A 2D Cartesian coordinate plane plot showing four plotted points with dashed grid projection lines. The horizontal axis ranges from -4 to 4, and the vertical axis ranges from -3 to 3, intersecting at the origin (0, 0).\n\nThe four plotted points are:\n1. Top-left quadrant (Quadrant II): Point labeled (-2, 2) located at x = -2, y = 2.\n2. Bottom-left quadrant (Quadrant III): Point labeled (-2, -1) located at x = -2, y = -1.\n3. Top-right quadrant (Quadrant I): Point labeled (3, 2) located at x = 3, y = 2.\n4. Bottom-right quadrant (Quadrant IV): Point labeled (3, -1) located at x = 3, y = -1."
+    },
+    "pg_171__page_7_Figure_5.jpeg": {
+        "skip": false,
+        "description": "A 3D Cartesian coordinate system with three axes labeled x_1, x_2, and x_3. The x_2 axis is drawn horizontally, with x_2 extending to the right and left with regularly spaced tick marks. The x_3 axis is drawn vertically, with positive x_3 extending upward and negative x_3 extending downward, marked with tick marks and a highlighted thick vertical segment along the positive x_3 axis. The x_1 axis extends forward and down-left (drawn as a solid line in the third quadrant) and is extended backward into the upper-right quadrant as a dashed line. The axes intersect at the origin (0, 0, 0)."
+    },
+    "pg_171__page_7_Figure_8.jpeg": {
+        "skip": false,
+        "description": "A 3D Cartesian coordinate system with axes labeled x_1, x_2, and x_3. The diagram illustrates how a point in 3D space is located by moving along each coordinate direction. Eight vertices of a rectangular prism (cuboid) are marked with black dots and labeled with their coordinates: (0,0,c), (0,b,c), (0,b,0), (a,0,c), (a,b,c), (a,0,0), and (a,b,0). Line segments representing lengths along or parallel to the axes are labeled 'a' (parallel to the x_1-axis), 'b' (parallel to the x_3-axis), and 'c' (parallel to the x_2-axis), showing the vector displacement components from the origin or projections onto planes."
+    },
+    "pg_171__page_9_Figure_2.jpeg": {
+        "skip": false,
+        "description": "Figure 10.6 illustrates multiple identical displacement vectors on a Cartesian coordinate plane. Four parallel arrows of equal length and direction point up and to the right, each representing the vector displacement (3, 2). One vector starts at the origin (0, 0) and ends at (3, 2). A second vector starts at point P and ends at point Q, labeled as vector v. Two other vectors are shown starting at different initial points in the second and third quadrants, demonstrating that the same displacement vector can be applied at various initial positions across the plane."
+    },
+    "pg_171__page_10_Figure_1.jpeg": {
+        "skip": false,
+        "description": "A 2D Cartesian coordinate plane showing five vectors originating from the origin (0,0):\n1. A vector pointing to (-4, -2) in the third quadrant.\n2. A vector pointing to (-2, 2) in the second quadrant.\n3. A vector pointing to (1, 3) in the first quadrant.\n4. A vector pointing to (2, 1) in the first quadrant.\n5. A vector pointing along the positive x-axis to (4, 0)."
+    },
+    "pg_171__page_11_Figure_10.jpeg": {
+        "skip": false,
+        "description": "A geometric vector diagram in a 2D Cartesian coordinate system showing vector addition u + v. The origin (0,0) serves as the starting point. Vector u extends from the origin to point (a, b), marked with label 'u'. Vector v is shown starting at the origin going to (c, d), and also translated so its tail is at the head of u, ending at (a + c, b + d). The resultant vector u + v is drawn as a diagonal vector starting from the origin directly to the point (a + c, b + d). The x-axis shows marked ticks at c, a, and a + c. The y-axis shows marked ticks at d, b, and b + d."
+    },
+    "pg_171__page_12_Picture_1.jpeg": {
+        "skip": false,
+        "description": "A vector diagram illustrating the commutative law of vector addition, u + v = v + u, using a parallelogram. Originating from a common starting point at the bottom-left corner on a two-dimensional coordinate system, vector u forms the bottom side pointing right and slightly up, while vector v forms the left side pointing up and to the right. Following vector v with vector u (top side) leads to the same terminal point at the top-right corner as following vector u with vector v (right side). The diagonal vector stretching from the origin to the top-right corner is labeled as both u + v (above the diagonal) and v + u (below the diagonal)."
+    },
+    "pg_171__page_13_Figure_4.jpeg": {
+        "skip": false,
+        "description": "A vector diagram in a 2D Cartesian coordinate plane showing vector subtraction as triangle completion. Vector y starts at the origin (0,0) and points up and to the right into the first quadrant. Vector x also starts at the origin (0,0) and extends further to the right with a gentler upward slope. The vector x - y starts at the terminal point (arrowhead) of vector y and extends down and to the right to meet the terminal point (arrowhead) of vector x, illustrating that y + (x - y) = x."
+    },
+    "pg_171__page_14_Picture_13.jpeg": {
+        "skip": false,
+        "description": "A 2D Cartesian coordinate plane illustrating scalar multiplication of vectors. The origin is at the center with several vectors plotted in different quadrants:\n\n1. In the first quadrant, vector x points up and right. In the third quadrant, its scalar multiple -2x points in the exact opposite direction and is twice as long.\n2. In the first quadrant, a vector u points shallowly upwards and to the right, with a shorter vector marked as (1/2)u along the same ray.\n3. In the second quadrant, vector w points up and left, and extending along the same direction to twice its length is vector 2w.\n4. In the fourth quadrant, vector v points down and right, and extending along the same ray to four times its length is vector 4v."
+    },
+    "pg_171__page_15_Diagram_1.jpeg": {
+        "skip": false,
+        "description": "A geometric vector diagram illustrating the associative property of vector addition: u + (v + w) = (u + v) + w. The diagram shows three consecutive directed vectors forming a polygon: vector u goes up and right from the origin; vector v continues nearly horizontally to the right from the tip of u; and vector w goes down and right from the tip of v to a final endpoint on the horizontal line.\n\nTwo intermediate diagonal vectors demonstrate the grouping of addition:\n1. The vector labeled 'u + v' points directly from the origin to the tip of vector v.\n2. The vector labeled 'v + w' points directly from the tip of vector u to the final endpoint (tip of vector w).\n\nThe resultant vector going straight along the bottom from the origin to the final endpoint represents both '(u + v) + w' and 'u + (v + w)', visually confirming that both groupings yield the exact same sum vector."
+    },
+    "pg_171__page_16_Diagram_14.jpeg": {
+        "skip": false,
+        "description": "A horizontal line segment lying at $y = b$ connects two points, $P(a_1, b)$ on the left and $Q(a_2, b)$ on the right. A vertical axis on the left indicates the $y$-value $b$ with a tick mark aligning with the horizontal segment."
+    },
+    "pg_171__page_16_Diagram_15.jpeg": {
+        "skip": false,
+        "description": "A horizontal number line intersected by a vertical axis at the origin (0). Two points are marked along the positive horizontal axis to the right of the vertical axis, labeled a1 and a2, with a1 located closer to the origin and a2 located further to the right."
+    },
+    "pg_171__page_16_Diagram_18.jpeg": {
+        "skip": false,
+        "description": "A Cartesian coordinate graph illustrating a vertical line segment connecting two points. The horizontal x-axis shows a mark at x = a. The vertical y-axis shows marks at y = b_1 and y = b_2. Point P is plotted at (a, b_1) and point Q is plotted at (a, b_2). A thick vertical line segment connects P and Q, representing the distance between two points that share the same x-coordinate."
+    },
+    "pg_171__page_16_Diagram_21.jpeg": {
+        "skip": false,
+        "description": "A geometric diagram on a Cartesian coordinate plane illustrating the distance between two points, P and Q. Point P is located at horizontal coordinate a_1 and vertical coordinate b_1. Point R is directly to the right of P at coordinate (a_2, b_1), forming a horizontal segment PR with length m. Point Q is directly above R at coordinate (a_2, b_2), forming a vertical segment QR with length n. The segment PQ is the hypotenuse of the right triangle PQR with length l, extending from P(a_1, b_1) to Q(a_2, b_2). The vertical axis on the left marks b_1 and b_2, and the horizontal axis below marks a_1 and a_2."
+    },
+    "pg_171__page_17_Picture_9.jpeg": {
+        "skip": false,
+        "description": "A 3D coordinate system diagram illustrating a geometric construction used to calculate distance in three dimensions using the Pythagorean theorem. The axes are labeled with ticks for $a_1, a_2$ along one inclined axis, $b_1, b_2$ along the horizontal axis, and $c_1, c_2$ along the vertical axis. A set of connected line segments forming right triangles connects points labeled $S$, $P$, $Q$, $R$, and $T$. Specifically, point $S$ lies at height $c_1$, line $SR$ is horizontal, line $QR$ is vertical, and right triangle right angles are marked at vertex $S$ and vertex $R$, illustrating orthogonal components for distance calculations."
+    },
+    "pg_171__page_21_Picture_14.jpeg": {
+        "skip": false,
+        "description": "A 3D coordinate system showing a plane embedded in space containing two vectors, u and v, originating from the same point at the origin. An arc indicates the angle theta (\\theta) measured between the two vectors within the plane."
+    },
+    "pg_171__page_21_Picture_20.jpeg": {
+        "skip": false,
+        "description": "A geometric diagram showing an acute angle theta formed by vertex A, ray AC (the horizontal baseline), and line segment AB. Point D lies on the horizontal baseline line AC directly beneath point B, forming a right triangle BAD with angle theta at vertex A."
+    },
+    "pg_171__page_21_Picture_23.jpeg": {
+        "skip": false,
+        "description": "A geometric diagram showing a horizontal line passing through points D, A, and C from left to right. A vertical line segment BD extends upward from point D, forming a right triangle BDA. A line segment BA forms the hypotenuse. The angle supplementary to angle DAB, measured on the right side of line segment BA at point A relative to the horizontal line segment AC, is labeled with the Greek letter theta (θ). An arrow curved counterclockwise points to the segment BA."
+    },
+    "pg_171__page_23_Picture_1.jpeg": {
+        "skip": false,
+        "description": "A geometric vector diagram in a 2D coordinate system with origin 0. Vector u points from origin 0 to point P, forming an angle theta with vector v, which extends from origin 0 towards point Q. Point R lies on the line along vector v such that the line segment PR is perpendicular to vector v, indicated by a right-angle symbol at R. The vector from 0 to R is labeled tv, and the dashed vector from R to P is labeled u - tv. Line segment PR is also pointing to a label m."
+    },
+    "pg_171__page_23_Picture_9.jpeg": {
+        "skip": false,
+        "description": "A 3D Cartesian coordinate system diagram illustrating four vectors originating from the origin (0, 0, 0). Three basis vectors lie along the axes: vector u1 pointing to point (c, 0, 0) along the x-axis, vector u2 pointing to point (0, c, 0) along the y-axis, and vector u3 pointing to point (0, 0, c) along the z-axis. A space diagonal vector d points from the origin to the opposite corner of a cube at point (c, c, c). Dashed lines illustrate the cubic grid structure in three dimensions."
+    },
+    "pg_171__page_24_Figure_9.jpeg": {
+        "skip": false,
+        "description": "A geometric vector diagram showing vector addition using the triangle law on a two-dimensional coordinate system. A vector labelled 'u' extends pointing up and to the right from an initial point. From the terminal point of 'u', a second vector labelled 'v' extends pointing down and to the right. A third vector labelled 'u + v' goes directly from the initial point of 'u' to the terminal point of 'v', forming a triangle."
+    },
+    "pg_171__page_27_Picture_13.jpeg": {
+        "skip": false,
+        "description": "A geometric vector diagram showing a rhombus labeled with side vectors u and v. The bottom horizontal side is labeled vector 'u' and the left side pointing up and to the right is labeled vector 'v'. The top horizontal side is also labeled 'u' and the right side is labeled 'v'. The long diagonal connecting the bottom-left corner to the top-right corner represents the vector sum 'u + v'. The short diagonal connects the top-left corner to the bottom-right corner, intersecting the long diagonal."
+    },
+    "pg_171__page_28_Picture_6.jpeg": {
+        "skip": false,
+        "description": "A geometric diagram showing a parallelogram spanned by two vectors, u and v, originating from the same vertex at an angle theta (θ). Vector u points upward and to the right, forming the left side of the parallelogram. Vector v points to the right along the base. A dashed perpendicular height line, labeled h, drops from the tip of vector u to the base vector v."
+    },
+    "pg_171__page_29_Figure_1.jpeg": {
+        "skip": false,
+        "description": "A 2D Cartesian coordinate plane depicting two lines labeled 'a' and 'v'. Line 'a' is an inclined line passing through marked points (1, -1), (2, 0) on the x-axis, (4, 2), and (5, 3), with a y-intercept at (0, -2). Line 'v' is a vertical line located at x = 3.5 (passing through x = 3.5 on the horizontal axis)."
+    },
+    "pg_171__page_29_Figure_6.jpeg": {
+        "skip": false,
+        "description": "A 2D coordinate system diagram showing the vector representation of a line. An initial position vector, labeled x_0, points from the origin to a point on the line. Starting from the head of x_0, a direction vector labeled v extends along the line. A point on the line farther along this direction is labeled with a solid dot and the expression x_0 + tv."
+    },
+    "pg_171__page_32_Picture_11.jpeg": {
+        "skip": false,
+        "description": "A 3D coordinate system showing a plane passing through the origin 0, defined by three axes x_1, x_2, and x_3. Two linearly independent vectors, labeled v and w, originate from the origin 0 and lie entirely within the plane, illustrating how two vectors span a plane through the origin."
+    },
+    "pg_171__page_33_Picture_1.jpeg": {
+        "skip": false,
+        "description": "A 3D coordinate system with axes x_1, x_2, and x_3 intersecting at the origin labeled 0. A position vector p points from the origin to a point p on a tilted plane suspended above the origin (a plane not passing through 0). Originating from point p, two direction vectors v and w lie within the plane, spanning it in two independent directions. The dashed vector represents the vector p pointing from the origin to the plane's base point p."
+    },
+    "pg_171__page_34_Figure_1.jpeg": {
+        "skip": false,
+        "description": "A 3D coordinate system with axes x1, x2, and x3 meeting at the origin O. Three points labeled p, q, and r form a shaded triangular region (representing a 2D plane/simplex segment) in the space. Vector arrows originate from the origin O to points p and r. The directed edge from point p to point q is labeled with the vector difference q - p. A dashed line/label near the edge from p to r indicates the vector difference r - p."
+    },
+    "pg_171__page_35_Picture_1.jpeg": {
+        "skip": false,
+        "description": "A 3D coordinate system showing axes x1, x2, and x3 with origin 0. A plane is shown floating in 3D space. A dashed position vector p points from the origin 0 to a point p on the plane. A normal vector n is drawn perpendicular to the plane at point p, indicated by a right-angle symbol. Another point x lies on the plane, connected to p by the vector x - p along the surface of the plane."
+    },
+    "pg_171__page_38_Figure_165.jpeg": {
+        "skip": false,
+        "description": "A two-dimensional coordinate plot showing a consumer's budget set in commodity space. The horizontal axis represents quantity x1 and the vertical axis represents quantity x2. A downward-sloping line represents the budget line equation p1*x1 + p2*x2 = I. The shaded region bounded by the vertical x2-axis, the horizontal x1-axis, and the budget line represents the budget set where p1*x1 + p2*x2 <= I. An arrow perpendicular to the budget line pointing upward and to the right indicates the normal vector p = (p1, p2), representing the price vector."
+    },
+    "pg_171__page_39_Figure_23.jpeg": {
+        "skip": false,
+        "description": "A 3D coordinate system showing the standard 2-simplex (probability simplex for n = 3) in three-dimensional space. The vertices of the triangular surface are located at the points (1,0,0) on the x-axis, (0,1,0) on the y-axis, and (0,0,1) on the z-axis. The shaded triangular plane represents the set of points where non-negative coordinates sum to one."
+    },
+    "pg_171__page_41_Figure_8.jpeg": {
+        "skip": false,
+        "description": "A standard IS-LM model graph plotted on a two-dimensional Cartesian plane. The horizontal axis represents output/income, labeled 'Y', and the vertical axis represents the interest rate, labeled 'r'. A downward-sloping line labeled 'IS' intersects an upward-sloping line labeled 'LM'. Their point of intersection is marked with a filled black circle, which corresponds to the equilibrium output 'Y*' on the horizontal axis and the equilibrium interest rate 'r*' on the vertical axis."
+    },
+    "pg_171__page_41_Figure_11.jpeg": {
+        "skip": false,
+        "description": "An IS-LM graph showing the effect of an increase in government spending (G) or investment (I*). The vertical axis represents the interest rate (r) and the horizontal axis represents output/income (Y). An upward-sloping LM curve intersects two parallel, downward-sloping IS curves, labeled IS_0 and IS_1. The shift rightward/upward from IS_0 to IS_1 moves the equilibrium point along the LM curve from (Y_0*, r_0*) to a higher equilibrium point at (Y_1*, r_1*), indicating an increase in both interest rate and output."
+    },
+    "pg_171__page_44_Figure_94.jpeg": {
+        "skip": false,
+        "description": "A 2D Cartesian coordinate plot showing two axes labeled x1 (horizontal) and x2 (vertical). A line passing through the origin in the first and third quadrants is labeled L[v]. On this line, in the first quadrant, a bold arrow representing a vector originates from the origin and points along the line, labeled v. This illustrates the line generated (or spanned) by the vector v = (1, 1) in R^2."
+    },
+    "pg_171__page_44_Figure_102.jpeg": {
+        "skip": false,
+        "description": "A 3D coordinate system graph with axes labeled $x_1$ (horizontal axis pointing right), $x_2$ (vertical axis pointing up), and $x_3$ (axis projecting forward-left). A line passing through the origin is labeled $\\mathcal{L}[\\mathbf{v}_1, \\mathbf{v}_2]$. Along this line, starting from the origin, two collinear vectors in the first octant are depicted: a shorter vector labeled $\\mathbf{v}_2$ and a longer vector extending further along the line with a bracket indicating the full vector labeled $\\mathbf{v}_1$. This illustrates two linearly dependent vectors spanning a single line."
+    },
+    "pg_171__page_45_Picture_1.jpeg": {
+        "skip": false,
+        "description": "A 3D coordinate system graph showing axes x1, x2, and x3. The origin is at the center where the three axes meet (x3 axis is dashed near the origin). A two-dimensional plane, labeled L[v1, v2], passes through the origin. Two vectors, labeled bold v1 and bold v2, originate from the center (origin) and lie within this plane, pointing upwards into different directions within the plane to illustrate the linear span of the vectors v1 and v2."
+    },
+    "pg_171__page_46_Picture_5.jpeg": {
+        "skip": false,
+        "description": "A geometric diagram showing three vectors, labeled v1, v3, and v2, all originating from a single common vertex inside a parallelogram (representing a 2D plane). All three vectors extend upward and terminate at different points along the top edge of the parallelogram, illustrating that three non-zero vectors lying in the same plane are linearly dependent."
+    },
+    "pg_171__page_65_Figure_7.jpeg": {
+        "skip": false,
+        "description": "A 2D Cartesian coordinate plane illustration showing two vectors originating from the origin (0,0). One vector points to the point labeled (x_1, x_2) with a solid arrow, and the second vector points to the point labeled (y_1, y_2) with a solid arrow. A dashed line segment connects the endpoints (x_1, x_2) and (y_1, y_2), labeled with the Euclidean distance ||x - y||."
+    },
+    "pg_171__page_67_Figure_106.jpeg": {
+        "skip": false,
+        "description": "Figure 12.3 illustrates the sequence of points x_1, x_2, x_3, x_4, x_5 in the two-dimensional Cartesian plane converging towards the origin (0,0) in a clockwise spiral pattern. Point x_1 is located farthest out in the first quadrant (top-right). Point x_2 is closer to the origin in the fourth quadrant (bottom-right). Point x_3 is in the third quadrant (bottom-left). Point x_4 is in the second quadrant (top-left). Point x_5 is back in the first quadrant, very close to the origin, demonstrating the clockwise spiraling sequence converging to the origin."
+    },
+    "pg_171__page_70_Figure_129.jpeg": {
+        "skip": false,
+        "description": "Figure 12.4 illustrates why a line in R^2 is not an open set. It shows a straight line with a negative slope intersecting the Cartesian coordinate axes. A point on the line in the fourth quadrant is encircled by an open ball (a small shaded circular region). The ball extends beyond the line into the surrounding plane, visually demonstrating that any neighborhood around a point on the line contains points in R^2 that do not lie on the line."
+    },
+    "pg_171__page_71_Picture_4.jpeg": {
+        "skip": false,
+        "description": "A geometric diagram depicting open balls in a metric space or Euclidean space to illustrate the inclusion of nested balls. A large outer circle represents an epsilon-neighborhood centered at a point x, labeled B_ε(x). A thick line segment passes through x (near the center of the outer circle) to the boundary. Another point y lies along this segment at a distance delta (δ) from x, labeled with a bracket showing the length δ between x and y. A smaller circle centered at y represents a ball with radius ε - δ, denoted B_{ε-δ}(y), which fits entirely inside the larger ball B_ε(x) and touches its outer boundary. Another bracket shows the length ε along the lower portion of the segment."
+    },
+    "pg_171__page_82_Figure_16.jpeg": {
+        "skip": false,
+        "description": "A 3D coordinate plot illustrating the graph of the paraboloid function f(x, y) = x^2 + y^2. The vertical z-axis extends upward from the origin, while the x-axis points outward to the lower-left and the y-axis extends to the right. The surface forms a bowl-like shape opening upward with its vertex at the origin (0,0,0). Four specific points on the surface are highlighted with black dots and labeled with their coordinates: the origin (0,0,0), (1,0,1) along the x-z curve, (0,2,4) along the y-z curve, and an interior point (1,1,2)."
+    },
+    "pg_171__page_83_Figure_10.jpeg": {
+        "skip": false,
+        "description": "A 3D coordinate system graph illustrating a saddle-like surface representing a function of two variables z = f(x, y). The origin (0,0,0) is labeled at a central local extremum/saddle point where the x, y, and z axes intersect. The surface curves upwards along the y-axis, passing through a labeled point (0, 1, 1), and curves downwards along the x-axis. Another point (1, 2, 3) is marked in space off the surface to indicate coordinates."
+    },
+    "pg_171__page_83_Figure_15.jpeg": {
+        "skip": false,
+        "description": "Figure 13.5 shows five separate cross-sectional plots in the x-z plane corresponding to constant y-values: {y = -2}, {y = -1}, {y = 0}, {y = 1}, and {y = 2}. Each plot depicts an upward-opening parabola z(x). At y = 0, the vertex of the parabola touches the x-axis at z = 0. For y = -1 and y = 1, the parabolas are shifted upwards by 1 unit so their vertices lie above the origin at z = 1. For y = -2 and y = 2, the parabolas are shifted upwards even further, with their vertices located higher along the z-axis at z = 4."
+    },
+    "pg_171__page_84_Figure_8.jpeg": {
+        "skip": false,
+        "description": "An illustration showing a series of parallel vertical planar slices intersecting a three-dimensional surface (a hyperbolic paraboloid or saddle-like surface, composed of parabolas). Each vertical plane displays a bold parabolic cross-section (a trace or slice), while a continuous curved line connects the vertices/bases of these parabolas across the planes to demonstrate how two-dimensional slices combine to form the 3D surface."
+    },
+    "pg_171__page_84_Figure_11.jpeg": {
+        "skip": false,
+        "description": "A sequence of five plots showing the cross-sections (restrictions) of the surface z = y^2 - x^2 on vertical planes defined by constant y-values: {y = -2}, {y = -1}, {y = 0}, {y = 1}, and {y = 2}. Each plot shows a downward-opening parabola in the x-z coordinate plane. As y changes from 0 outward to -2 and 2, the vertex of the parabola moves upward along the vertical z-axis: at y = 0, the vertex is at z = 0; at y = -1 and y = 1, the vertex is higher (z = 1); and at y = -2 and y = 2, the vertex reaches its highest position in the set (z = 4)."
+    },
+    "pg_171__page_84_Figure_14.jpeg": {
+        "skip": false,
+        "description": "A 3D mathematical illustration showing a family of cross-sectional slices that together trace out a saddle-like or parabolic surface. Multiple parallel planes (represented by dashed rectangular outlines) are aligned along an axis, each containing an inverted parabolic curve (opening downwards) shown as a thick black line. The peak heights of these individual downward-opening parabolas follow a U-shaped curve (a upward-opening parabola), demonstrating how a surface z = f(x,y) is constructed by assembling 2D slices (traces)."
+    },
+    "pg_171__page_85_Figure_18.jpeg": {
+        "skip": false,
+        "description": "A contour plot of the function f(x, y) = x^2 + y^2 showing concentric circles centered at the origin on a Cartesian coordinate grid. The origin itself is labeled as the single point f^-1(0). Surrounding the origin are four circular level curves labeled from innermost to outermost: f^-1(1), f^-1(4), f^-1(5), and f^-1(9), illustrating that the radius of each level curve corresponds to the square root of the function value."
+    },
+    "pg_171__page_86_Figure_10.jpeg": {
+        "skip": false,
+        "description": "A simplified map of the contiguous United States showing regional temperature ranges represented as numerical bands in the 10s through 70s (Fahrenheit). Key cities with marked locations include Boise, Billings, Fargo, Las Vegas, Phoenix, Dallas, Chicago, Detroit, Atlanta, New York, Boston, and Miami. Temperatures generally increase from north to south, starting with '10s' near North Dakota, '20s' in Montana and Wisconsin/New York, '30s' in Wyoming/Nebraska and Pennsylvania, '40s' across the middle band (Oregon, Arizona, Missouri, Virginia), '50s' in Texas and the South, '60s' in California, southern New Mexico, and Alabama/Mississippi, and '70s' in southern Texas and Florida."
+    },
+    "pg_171__page_87_Figure_11.jpeg": {
+        "skip": false,
+        "description": "A contour map showing topographic level curves labeled with elevation values: 680, 690, 700, 710, 720, and 730. Several points are plotted on or near the contour lines: Point C is on the outer 680 contour line; Point D is near the bottom right on the 680 line; Point G is on the top part of the 690 contour line; Point A is on the 700 contour line; Point E lies between the 690 and 700 contour lines; Point B is on a closed contour surrounding the elevated peak on the right; Point F is near the top of the peak with a downward arrow drawn from it towards the inner 730 contour region. The map shows two distinct local high regions: a lower hill on the left with a 710 contour ring, and a steeper, higher hill on the right with nested contour lines reaching 730."
+    },
+    "pg_171__page_88_Figure_11.jpeg": {
+        "skip": false,
+        "description": "A contour map depicting level curves (topographical contours or isoquants/indifference curves) with elevation/value labels ranging from 680 to 730 in increments of 10. The outermost contour line is labeled 680, moving inward to 690, 700, 710, 720, and 730 at the peak region on the right. Several labeled points are located on or between contours: point C is on the 680 contour; point D is near the 680 contour at the lower right; point G is on the 690 contour at the top; point E is located between the 690 and 700 contours in the lower-right area; point A is on the 700 contour; point B is on the 700 contour near the right peak; point F is near the upper edge of the 700/710 contour near the right peak, with a small arrow pointing inward toward higher elevation (710/720). A secondary peak region containing a 710 contour loop is shown to the left."
+    },
+    "pg_171__page_89_Figure_10.jpeg": {
+        "skip": false,
+        "description": "A plot showing four downward-sloping, convex-to-the-origin curves representing isoquants (level sets) of a production function in two variables (x and y). The curves shift outward to the upper right as production increases. The second curve from the left is labeled I_5 (for Q = 5) and contains marked points. The third curve is labeled I_10 (for Q = 10) and also contains marked points along its length."
+    },
+    "pg_171__page_90_Figure_12.jpeg": {
+        "skip": false,
+        "description": "A 3D coordinate system graph representing Figure 13.11, showing level surfaces (level sets) of the function $f(x_1, x_2, x_3) = x_3 - x_1^2 - x_2^2 = C$ for three different constant values $C$. The graph displays three nested, concentric, upward-opening paraboloids centered along the vertical $x_3$-axis, illustrating how the level sets form a family of nested paraboloidal surfaces in three-dimensional space with axes $x_1$, $x_2$, and $x_3$."
+    },
+    "pg_171__page_90_Figure_17.jpeg": {
+        "skip": false,
+        "description": "A geometric diagram representing a level set or nested region model in three dimensions (likely a 3-simplex or coordinate octant section). The figure shows three concentric triangular layers radiating from a central vertex along three axes. The innermost triangular face is shaded solid black, the middle triangular layer is shaded with a checkered/mesh pattern, and the outermost triangular layer is unshaded (white) with a black outline."
+    },
+    "pg_171__page_91_Figure_12.jpeg": {
+        "skip": false,
+        "description": "A 2D Cartesian coordinate plane depicting a line sloping downwards from left to right. The axes are marked with tick marks representing unit intervals. The line passes through two marked points: one at (2, 1) and the x-intercept at (2.5, 0) or (3, 0) consistent with the parameterized line equation f(t) = (1 + t, 3 - 2t). The vertical axis is the y-axis (or x2-axis) and the horizontal axis is the x-axis (or x1-axis)."
+    },
+    "pg_171__page_91_Figure_15.jpeg": {
+        "skip": false,
+        "description": "A plot showing a cuspidal curve with a sharp point (cusp) pointing to the left on a horizontal axis. The curve lies in the right half of the plot and opens towards the right, with symmetrical top and bottom branches curving away from the horizontal axis. It visually represents the parameterized curve (t^2, t^3), where the cusp occurs at the origin (0,0)."
+    },
+    "pg_171__page_92_Figure_28.jpeg": {
+        "skip": false,
+        "description": "A 3D coordinate system showing a circular helix or spiral curve winding around a horizontal axis extending to the right. The curve forms four complete loops along the horizontal axis, illustrating a space curve parameterized by a single variable, typically represented as a vector-valued function in three dimensions."
+    },
+    "pg_171__page_96_Picture_13.jpeg": {
+        "skip": false,
+        "description": "Figure 13.16 illustrates conic sections created by the intersection of a plane with a double-napped cone. The diagram shows two pairs of vertically opposite double cones (nappes). On the left, two conic sections are shown: a horizontal plane intersecting the upper cone produces a Circle, while an inclined plane intersecting only one nappe of the lower cone produces an Ellipse. On the right, steep vertical/near-vertical planes intersecting both the upper and lower nappes produce two branches of a Hyperbola."
+    },
+    "pg_171__page_99_Figure_12.jpeg": {
+        "skip": false,
+        "description": "Figure 13.17 illustrates the sequence definition of function continuity on a 2D Cartesian coordinate plane. A smooth, continuous curve representing a function f is plotted above the horizontal x-axis. On the x-axis, a sequence of points x_n converges rightward toward a limit point x_0. For each point x_n along the x-axis, vertical dashed projection lines connect to corresponding points (x_n, f(x_n)) marked with black dots on the function's curve. As the x_n values on the x-axis approach x_0, the corresponding points on the curve approach the point (x_0, f(x_0))."
+    },
+    "pg_171__page_100_Figure_15.jpeg": {
+        "skip": false,
+        "description": "A 2D Cartesian coordinate plane illustrating the graph of a piecewise step function (Figure 13.18). For non-positive x-values (x ≤ 0), the graph lies on the horizontal x-axis, with a solid filled circle at the origin (0, 0), indicating f(0) = 0. For positive x-values (x > 0), the graph shifts upward to a horizontal line segment parallel to the x-axis at a positive y-value (y = 1), demonstrating a jump discontinuity at x = 0."
+    },
+    "pg_171__page_102_Figure_13.jpeg": {
+        "skip": false,
+        "description": "A graph illustrating concepts of image and inverse image sets for a non-monotonic continuous function $f(x)$ plotted on Cartesian axes. The function curve has a local maximum and a local minimum, creating a region where horizontal lines intersect the graph at up to three points. The horizontal axis (domain) marks several sets and intervals including $U$, $U_1$, $U_2$, and the pre-image $f^{-1}(f(U))$ consisting of multiple disjoint sub-intervals connected by dotted lines to the label $f^{-1}(f(U))$. The vertical axis (codomain) marks corresponding image sets such as $f(U)$, $f(U_1)$, $f(U_2)$, as well as sets $f^{-1}(V_1)$ and $f^{-1}(V_2)$. Dashed horizontal and vertical reference lines map intervals from the x-axis to the function curve and onto the y-axis, visually demonstrating how forward images and inverse images interact for non-injective functions."
+    },
+    "pg_171__page_104_Diagram_25.jpeg": {
+        "skip": false,
+        "description": "Venn-style diagram illustrating the composition of functions $g \\circ f$. On the left is set $A$. In the middle, set $B$ is shown contained within set $C$. On the right is set $D$. An arrow labeled $f$ goes from set $A$ into set $B$ (inside $C$). An arrow labeled $g$ goes from set $C$ to set $D$. A long arrow at the bottom, labeled $g \\circ f$, points directly from set $A$ to set $D$."
+    },
+    "pg_171__page_112_Figure_11.jpeg": {
+        "skip": false,
+        "description": "A 3D coordinate system showing the axes x, y, and z, illustrating the geometric interpretation of partial derivatives. A surface represents the \"Graph of f\". A vertical plane parallel to the x-z plane intersects the y-axis at point b, labeled as the \"Slice {y = b}\". The intersection curve on the surface is labeled \"Graph of x -> f(x,b)\". A tangent line l is drawn to this intersection curve at the point corresponding to x = a on the x-axis, representing the partial derivative with respect to x at the point (a, b)."
+    },
+    "pg_171__page_112_Figure_15.jpeg": {
+        "skip": false,
+        "description": "A 3D coordinate system showing axes x, y, and z, representing the geometric interpretation of a partial derivative. A surface graph z = f(x, y) is displayed. A vertical rectangular plane slicing through the surface parallel to the y-z plane at a constant x-value x = a is labeled 'Slice {x = a}'. The intersection of this slice plane and the surface forms a 1D curve, labeled 'Graph of y -> f(a, y)'. A specific point is highlighted on this intersection curve, demonstrating how fixing x = a reduces the function of two variables to a function of one variable (y) to determine the partial derivative with respect to y."
+    },
+    "pg_171__page_113_Figure_9.jpeg": {
+        "skip": false,
+        "description": "A contour plot of a multivariable function f(x, y) with level curves labeled f = 5, f = 10, f = 15, f = 20, and f = 25. The horizontal axis is labeled x, and the vertical axis is labeled y. A vertical line at x = a is marked as {x = a}, with a point a labeled on the x-axis. On the vertical line x = a, a point is labeled (a, b) lying on the level curve f = 15. Another point (a', b') is marked on the level curve f = 15 to the left of x = a, corresponding to x = a' on the x-axis. The level curves are wave-like curves that peak on the left and curve downward toward the right before turning slightly upward again."
+    },
+    "pg_171__page_115_Figure_11.jpeg": {
+        "skip": false,
+        "description": "A line graph illustrating the geometric interpretation of a first-order Taylor approximation (tangent line approximation) for a concave function f(x). The horizontal axis shows x-values including x* and x* + h, while the vertical axis represents functional values. A downward-concave curve labeled 'Graph' represents f(x). A straight line labeled 'Tangent line' touches the curve at x = x* with corresponding height f(x*). At the position x* + h, vertical dashed lines show two distinct points: the lower point on the curve corresponding to f(x* + h), and the higher point on the tangent line corresponding to f(x*) + f'(x*)h."
+    },
+    "pg_171__page_115_Picture_17.jpeg": {
+        "skip": false,
+        "description": "A geometric illustration showing a tangent plane intersecting a curved surface at a single region/point. The curved surface is shaded with a dot pattern, sloping downward towards the foreground, while the flat tangent plane (a parallelogram outline in white) sits flatly atop the surface."
+    },
+    "pg_171__page_120_Figure_15.jpeg": {
+        "skip": false,
+        "description": "A 2D Cartesian coordinate plot showing a line segment in the first quadrant corresponding to the parametric curve x(t) = t, y(t) = t for 0 <= t <= 1. The horizontal axis is labeled x and the vertical axis is labeled y. The segment starts at a filled black dot on the origin (0,0) and extends diagonally upward and to the right at a 45-degree angle to a filled black dot at (1,1), marked by tick marks on both axes."
+    },
+    "pg_171__page_120_Figure_23.jpeg": {
+        "skip": false,
+        "description": "A geometric diagram illustrating the definition of a tangent vector x'(t_0) to a curve x(t) as the limit of secant vectors. A smooth curve is plotted in a Cartesian coordinate system, passing through a point x(t_0) located near the vertical axis on the horizontal line. Two other points on the curve, x(t_0 + h_2) and x(t_0 + h_1), are marked further along the curve. Vectors originate from x(t_0) and point toward these points, scaled as (1 / h_2) * (x(t_0 + h_2) - x(t_0)) and (1 / h_1) * (x(t_0 + h_1) - x(t_0)). As the step size h approaches 0 (with h_2 < h_1), these secant-like vectors approach the true tangent vector x'(t_0), which is drawn pointing steeply upward, tangent to the curve at x(t_0)."
+    },
+    "pg_171__page_122_Figure_15.jpeg": {
+        "skip": false,
+        "description": "A plot of a curve with a cusp at the origin in the xy-plane, labeled as Figure 14.8. The curve extends into the upper-left and upper-right quadrants, coming to a sharp point or cusp at (0,0) where the tangent is vertical. In the first quadrant, a specific point on the curve is marked with a filled black circle, and a tangent vector (represented as a ray with an arrow) originates from this point pointing up and to the right."
+    },
+    "pg_171__page_128_Picture_13.jpeg": {
+        "skip": false,
+        "description": "Diagram labeled Figure 14.9 illustrating two vectors originating from a base point labeled x*. One vector points upward and to the right, labeled F(x*). The second vector extends nearly horizontally to the right, labeled v. The angle between vector F(x*) and vector v is denoted as θ with an arc."
+    },
+    "pg_171__page_129_Figure_11.jpeg": {
+        "skip": false,
+        "description": "A contour graph illustrating level curves of a production or multivariable function on a coordinate plane with horizontal axis K and vertical axis L. An axis mark on L is labeled 625, and an axis mark on K is labeled 10,000. Four parallel-like convex level curves curve downward from left to right. On the second curve from the bottom, above K = 10,000, a point is marked with a black dot. From this point, a vector arrow points perpendicularly outward across the upper curves toward the direction of steepest increase. The vector is labeled with the column vector matrix notation top 1.5, bottom 8."
+    },
+    "pg_171__page_143_Figure_12.jpeg": {
+        "skip": false,
+        "description": "A graph illustrating the unit circle centered at the origin on the xy-plane. The top portion of the circle around the point (0,1) is highlighted with a thick black arc labeled y = sqrt(1 - x^2). The point (0,1) at the top vertex is marked with a filled black dot."
+    },
+    "pg_171__page_143_Figure_15.jpeg": {
+        "skip": true,
+        "description": ""
+    },
+    "pg_321__page_0_Figure_22.jpeg": {
+        "skip": false,
+        "description": "A two-dimensional Cartesian plot illustrating a geometric region for a mathematical proof involving the function G(x, y). The horizontal axis is labeled x and the vertical axis is labeled y.\n\nThe horizontal axis shows marked values at x0 - ε, x0, x1, and x0 + ε. The vertical axis shows marked values at y0 - ε, y0, and y0 + ε.\n\nA square region centered around (x0, y0) is outlined in bold, bounded vertically between y0 - ε and y0 + ε, and horizontally between x0 - ε and x0 + ε. A solid black dot marks the center point (x0, y0).\n\nKey annotations include:\n1. A dashed top horizontal segment indicating 'G > 0 on {y = y0 + ε}'.\n2. A dashed bottom horizontal segment indicating 'G < 0 on {y = y0 - ε}'.\n3. A vertical line segment inside the square at x = x1, spanning from y = y0 - ε to y = y0 + ε, labeled as 'G is strictly increasing on ℓ_{x1}'."
+    },
+    "pg_321__page_2_Figure_22.jpeg": {
+        "skip": false,
+        "description": "A 2D Cartesian coordinate plane displaying concentric circles centered at the origin, representing level curves of the function G(x, y) = x^2 + y^2. On the y-axis, a point at (0, 1) is marked with a black dot, and a bold arrow pointing upwards along the y-axis represents the gradient vector G(0, 1). On the x-axis, a point at (1, 0) is marked with a black dot, and a bold arrow pointing rightwards along the x-axis represents the gradient vector G(1, 0). The gradient vectors are perpendicular to the circular level curves at those points."
+    },
+    "pg_321__page_5_Picture_14.jpeg": {
+        "skip": false,
+        "description": "Figure 15.5 illustrates a unit sphere centered at the origin in three-dimensional space, defined by x^2 + y^2 + z^2 = 1. A point is marked at the north pole with coordinates (0, 0, 1). Arising from this point is a vertical arrow representing the gradient vector F(0, 0, 1), which points directly upward along the z-axis, perpendicular to the surface of the sphere."
+    },
+    "pg_321__page_30_Figure_15.jpeg": {
+        "skip": false,
+        "description": "Figure 16.1 consists of two 2D Cartesian coordinate graphs illustrating quadratic forms in two variables with axes labeled x_1 (horizontal) and x_2 (vertical), meeting at the origin (0).\n\n1. Left Graph: Shows an upward-opening parabola with its vertex at the origin (0, 0), demonstrating a positive definite quadratic form where x_2 > 0 for all x_1 != 0.\n\n2. Right Graph: Shows a downward-opening parabola with its vertex at the origin (0, 0), demonstrating a negative definite quadratic form where x_2 < 0 for all x_1 != 0."
+    },
+    "pg_321__page_31_Figure_19.jpeg": {
+        "skip": false,
+        "description": "Figure 16.2 illustrates the 3D graph of a positive definite quadratic form, Q_1(x_1, x_2) = x_1^2 + x_2^2. The graph is a bowl-shaped paraboloid opening upwards, centered at the origin of the 3D coordinate system defined by axes x_1, x_2, and x_3 (where x_3 = Q_1(x_1, x_2)). The minimum point of the bowl rests exactly at the origin (0,0,0)."
+    },
+    "pg_321__page_32_Figure_9.jpeg": {
+        "skip": false,
+        "description": "A 3D coordinate plot illustrating a paraboloid opening downward in three-dimensional space with axes labeled x_1, x_2, and x_3. The peak (vertex) of the surface touches the origin (0,0,0) where the three axes intersect. The x_3-axis extends vertically through the center of the surface, with a dashed segment indicating the interior height down to the circular/elliptical base. The x_1-axis projects forward and to the left, while the x_2-axis extends horizontally to the right."
+    },
+    "pg_321__page_32_Figure_12.jpeg": {
+        "skip": false,
+        "description": "A 3D coordinate plot illustrating an indefinite quadratic form surface (a hyperbolic paraboloid or saddle shape) on axes labeled x_1, x_2, and x_3. Along the x_1 direction, the surface curves downwards like an inverted parabola, while along the x_2 direction, the surface curves upwards like a standard parabola, meeting at a saddle point at the origin."
+    },
+    "pg_321__page_32_Figure_15.jpeg": {
+        "skip": false,
+        "description": "A 3D coordinate plot illustrating a parabolic cylinder surface in the variables $x_1$, $x_2$, and $x_3$. The $x_3$-axis points vertically, the $x_2$-axis extends to the right, and the $x_1$-axis extends forward to the left. The surface forms a U-shaped trough (parabola) extending along the $x_1$-axis, symmetric about the vertical $x_3$-axis."
+    },
+    "pg_321__page_33_Figure_12.jpeg": {
+        "skip": false,
+        "description": "A 3D surface plot representing the negative semidefinite quadratic form Q_5(x_1, x_2) = -(x_1 + x_2)^2. The plot shows three axes labeled x_1, x_2, and x_3. The surface forms an inverted parabolic cylinder (a rounded ridge or arch shape) extending along a line in the x_1-x_2 plane. The peak ridge line lies in the x_1-x_2 plane where x_3 = 0, corresponding to x_1 + x_2 = 0, and the surface curves downwards into negative values of x_3 for all other points, illustrating that the function is always less than or equal to zero."
+    },
+    "pg_321__page_34_Picture_20.jpeg": {
+        "skip": false,
+        "description": "Figure 16.7 consists of two 3D surface diagrams illustrating how the horizontal plane {x_3 = 1} intersects different quadratic surfaces.\n\nTop Diagram: Shows an upward-opening paraboloid intersected by a horizontal plane labeled {x_3 = 1}. The intersection forms a closed ellipse (or circle), highlighted with a thick dark boundary curve around the surface where it meets the plane.\n\nBottom Diagram: Shows a saddle-like / hyperbolic surface intersected by a horizontal plane labeled {x_3 = 1}. The intersection forms two hyperbolic curves on opposite sides of the surface, outlined with thick dark lines, demonstrating how the level set produces hyperbolas."
+    },
+    "pg_321__page_57_Figure_13.jpeg": {
+        "skip": false,
+        "description": "A level set diagram illustrating a function F with level curves labeled by numerical values. On the left, centered around point A (labeled with value 3), there are concentric circular level curves labeled 2 and 1, surrounded by a level curve labeled 0. Point A represents a local maximum with value 3. On the right, curved lines represent higher values ranging from -3, -2, -1, 0, 1, 2, 3, up to 4. Point B lies on the level curve labeled 4, demonstrating a global point where the function reaches a higher value (4) than at the local maximum point A (3)."
+    },
+    "pg_321__page_61_Figure_13.jpeg": {
+        "skip": false,
+        "description": "A scatter plot illustration depicting a linear regression line y = ax + b and three data points: (x1, y1) below the line, (x2, y2) above the line, and (x3, y3) below the line. Dotted vertical line segments represent the vertical errors or distances between each data point and its corresponding point on the line: distance d1 corresponds to |y1 - (ax1 + b)| at point (x1, ax1 + b); distance d2 corresponds to |y2 - (ax2 + b)| at point (x2, ax2 + b); and distance d3 corresponds to |y3 - (ax3 + b)| at point (x3, ax3 + b)."
+    },
+    "pg_321__page_68_Figure_12.jpeg": {
+        "skip": false,
+        "description": "A geometric plot illustrating utility maximization / constrained optimization with two variables. The figure shows a straight line constraint curve labeled 'C' with a negative slope, intersecting three downward-sloping, convex indifference/level curves. Point 'b' marks an intersection where the straight line crosses the lowest level curve. Point 'x*' marks the optimal point where the constraint line 'C' is tangent to the middle level curve, demonstrating that at the constrained maximum x*, the highest attainable level curve of f is tangent to the constraint set C."
+    },
+    "pg_321__page_71_Figure_14.jpeg": {
+        "skip": false,
+        "description": "Figure 18.2 shows two geometric diagrams illustrating the relationship between the gradient of the objective function, grad f(x*), and the gradient of the constraint function, grad h(x*), at a point x* along a constraint curve C.\n\nLeft Diagram: The constraint curve C passes through the point x*. At x*, the gradient vector grad f(x*) and the gradient vector grad h(x*) are both pointing in the exact same direction (parallel vectors), orthogonal to the tangent line of the constraint curve C.\n\nRight Diagram: The constraint curve C passes through the point x*. At x*, the gradient vector grad f(x*) points up and to the right, while the gradient vector grad h(x*) points in the opposite direction, down and to the left (anti-parallel vectors). Both remain orthogonal to the tangent of the curve C.\n\nTogether, the diagrams demonstrate that grad f(x*) = mu* * grad h(x*), where the multiplier mu* is positive when the gradients point in the same direction and negative when they point in opposite directions."
+    },
+    "pg_321__page_76_Picture_18.jpeg": {
+        "skip": false,
+        "description": "A 3D geometric diagram illustrating a cylinder intersected horizontally by a plane. The vertical cylinder passes through a parallelogram representing a two-dimensional slicing plane, showing the cross-sectional intersection region."
+    },
+    "pg_321__page_79_Figure_13.jpeg": {
+        "skip": false,
+        "description": "A geometric illustration of optimization with a single inequality constraint in two dimensions. A thick line labeled g(x, y) = b separates the plane, with a shaded region below it representing the feasible set g(x, y) <= b. Multiple curved level sets of an objective function f are drawn above the constraint boundary. At point p on the boundary line, two gradient vectors are plotted pointing in the same direction into the region g(x, y) >= b: the gradient of the constraint, del g(p), and the gradient of the objective function, del f(p). This demonstrates that at a maximum on the boundary of the feasible region, del f(p) and del g(p) must point in the same direction, implying a non-negative Lagrange multiplier lambda >= 0."
+    },
+    "pg_321__page_80_Figure_19.jpeg": {
+        "skip": false,
+        "description": "A geometric diagram illustrating constrained optimization with one inequality constraint $g(x,y) \\le b$. Concentric elliptical level curves of a objective function $f(x,y)$ are drawn around a local minimum point labeled $\\mathbf{q}$. A shaded feasible region represents $g(x,y) \\le b$, bounded by the curve $g(x,y) = b$. At point $\\mathbf{r}$ on the boundary where an outer level curve of $f$ is tangent to the boundary $g(x,y) = b$, two gradient vectors are shown: the gradient vector $\\nabla g(\\mathbf{r})$ points outward (away from the interior of the feasible region), while the gradient vector $\\nabla f(\\mathbf{r})$ points inward toward $\\mathbf{q}$. The two gradient vectors point in opposite directions, demonstrating that $\\nabla f(\\mathbf{r}) = -\\lambda \\nabla g(\\mathbf{r})$ with $\\lambda > 0$ at the optimal point $\\mathbf{r}$ on the constraint boundary."
+    },
+    "pg_321__page_112_Figure_13.jpeg": {
+        "skip": false,
+        "description": "A line graph showing a U-shaped marginal cost curve (MC) plotted on a coordinate system with price (p) on the vertical axis and quantity (q) on the horizontal axis. A horizontal dashed line at price p intersects the MC curve at two points, corresponding to quantities q1 on the downward-sloping segment and q2 on the upward-sloping segment. Vertical dashed lines drop from these intersection points to the horizontal axis. The quantity q2 is labeled as the 'Profit maximizer'. A bracket beneath the horizontal axis spanning from the minimum point of the MC curve to the right is labeled 'Increasing MC'."
+    },
+    "pg_321__page_128_Figure_25.jpeg": {
+        "skip": false,
+        "description": "A plot on the Cartesian xy-plane showing a curve with a cusp at the origin (0,0). The curve lies entirely in the second and third quadrants (x ≤ 0). As x moves to the left (more negative), the curve splits into two branches: one going upwards into quadrant II and one going downwards into quadrant III, forming a sharp point or cusp pointing to the right at the origin."
+    },
+    "pg_321__page_142_Figure_11.jpeg": {
+        "skip": false,
+        "description": "A two-dimensional plot showing radial expansion of level sets (isoquants) for a homogeneous function. The horizontal axis is labeled x1 and the vertical axis is labeled x2. Two curved isoquants convex to the origin are plotted. Along the inner isoquant lie four points labeled x1, x2, x3, and x4. Four dashed rays emanate from the origin (0,0), each passing through one of the points xi on the inner curve and extending outward through corresponding points w1, w2, w3, and w4 on the outer isoquant curve. This demonstrates how points on an outer isoquant are scaled versions along rays from the origin of points on an inner isoquant."
+    },
+    "pg_321__page_143_Figure_9.jpeg": {
+        "skip": false,
+        "description": "A graph illustrating the properties of isoquants for a homogeneous production function. The vertical axis represents Capital (K) and the horizontal axis represents Labor (L). Three convex-to-the-origin isoquants (curves sloping downward from left to right) are shown at increasing levels of output. Two dashed rays originate from the origin (0,0) and extend outward across all three isoquants. At the points where each ray intersects the isoquants, short tangent line segments are drawn. The tangents along any single ray from the origin are parallel to one another, visually demonstrating that the Marginal Rate of Technical Substitution (MRTS)—represented by the slope of the isoquant—is constant along any ray passing through the origin."
+    },
+    "pg_321__page_143_Figure_13.jpeg": {
+        "skip": false,
+        "description": "A two-dimensional microeconomic graph illustrating utility maximization at two different income levels, I_0 and I_1, with fixed prices p_1 and p_2. The horizontal axis represents quantity x_1 and the vertical axis represents quantity x_2.\n\nTwo parallel budget lines are shown with intercepts on the axes:\n- The lower budget line has intercepts I_0 / p_2 on the vertical axis and I_0 / p_1 on the horizontal axis.\n- The upper budget line has intercepts I_1 / p_2 on the vertical axis and I_1 / p_1 on the horizontal axis.\n\nTwo convex indifference curves (level curves of the utility function) are plotted:\n- The lower indifference curve is tangent to the lower budget line at point x(I_0).\n- The upper indifference curve is tangent to the upper budget line at point x(I_1).\n\nA dashed ray extending from the origin passes through both optimal consumption bundles, x(I_0) and x(I_1), showing that as income increases from I_0 to I_1 at constant prices, the optimal bundle expands along a straight ray from the origin (an income expansion path)."
+    },
+    "pg_472__page_9_Figure_18.jpeg": {
+        "skip": true,
+        "description": ""
+    },
+    "pg_472__page_9_Figure_20.jpeg": {
+        "skip": true,
+        "description": ""
+    },
+    "pg_472__page_9_Figure_22.jpeg": {
+        "skip": false,
+        "description": "Geometric diagram illustrating a non-convex domain, represented as an annulus (a ring-shaped region between two concentric circles). The outer region between the two circles is shaded. Two black dots representing points are located within the shaded region on opposite sides of the inner circle. A straight line segment connects the two points; part of this segment (shown as a dashed line) passes through the unshaded inner circle, demonstrating that the straight path between these two points leaves the shaded domain, which violates the definition of a convex set."
+    },
+    "pg_472__page_9_Figure_24.jpeg": {
+        "skip": false,
+        "description": "A geometric diagram of a five-pointed star representing a set. A line segment connects two points (black dots) located inside two different arms on the left side of the star. A portion of the line segment passes outside the star's boundary through the inner notch between the two arms, demonstrating that a star shape is a non-convex set."
+    },
+    "pg_472__page_10_Figure_11.jpeg": {
+        "skip": false,
+        "description": "A 2D coordinate graph illustrating the geometric definition of a concave function. The x-axis shows three labeled points: $y$, a linear combination $tx + (1-t)y$ between $y$ and $x$, and $x$. A concave curve opens downward, passing through points $(y, f(y))$ and $(x, f(x))$, which are marked with solid dots and connected by a straight secant line segment. Vertical dashed lines extend up to the curve and the secant line from $tx + (1-t)y$. On the y-axis, the height of the curve at this point is labeled $f(tx + (1-t)y)$, which lies strictly above the height of the secant line at the same x-value, labeled $tf(x) + (1-t)f(y)$. Below these is $f(y)$ on the y-axis, corresponding to the point at $y$."
+    },
+    "pg_472__page_10_Figure_16.jpeg": {
+        "skip": false,
+        "description": "A Cartesian coordinate graph displaying the parabola y = x^2 opening upwards with its vertex at the origin (0, 0). Two points on the left branch of the parabola (in the second quadrant) are marked with black dots and connected by a straight line segment (a secant line). The secant line lies entirely above the curve between the two points, illustrating a key geometric property of a convex function."
+    },
+    "pg_472__page_11_Figure_12.jpeg": {
+        "skip": false,
+        "description": "A 3D coordinate plot illustrating a convex surface (a paraboloid) opening upwards with its vertex at the origin. The vertical axis is labeled z, and the horizontal axes representing the domain are labeled x_1 (pointing diagonally down-left) and x_2 (pointing horizontally right)."
+    },
+    "pg_472__page_16_Figure_10.jpeg": {
+        "skip": true,
+        "description": ""
+    },
+    "pg_472__page_23_Figure_11.jpeg": {
+        "skip": false,
+        "description": "A mathematical graph illustrating a convex set $C_{x_0}$ defined relative to a level curve or indifference curve $C$. The graph shows axes with a shaded region representing $C_{x_0}$, which lies above a series of downward-sloping, convex level curves. Key points $A$, $x_0$, $B$, and the curve labeled $C$ are marked along the lower boundary curve that bounds the shaded region. Point $A$ is positioned higher along the left portion of the boundary curve, $x_0$ sits near the middle curve region, and $B$ lies further down to the right along curve $C$."
+    },
+    "pg_472__page_27_Figure_13.jpeg": {
+        "skip": false,
+        "description": "A graph illustrating the L-shaped level sets (indifference curves) of a Leontief (fixed-coefficient) production function Q(x, y) = min{ax, by} in the first quadrant of an x-y coordinate plane. Several right-angled, L-shaped lines nest within each other, extending vertically upward parallel to the y-axis and horizontally to the right parallel to the x-axis. The region above and to the right of the innermost L-shaped level set is shaded, demonstrating that the upper contour set is a convex set, which confirms that the function is quasiconcave."
+    },
+    "pg_472__page_28_Figure_13.jpeg": {
+        "skip": false,
+        "description": "A 2D coordinate graph illustrating an increasing function f(x) on R^1 to demonstrate quasiconcavity and quasiconvexity. A solid curve representing f(x) monotonically increases from the bottom-left to the top-right. A point on the domain x* is marked on the horizontal axis, with a dashed vertical line dropping to the curve at point (x*, f(x*)). A dashed horizontal line connects this point across to the vertical y-axis, where the value f(x*) is plotted on the axis with a solid dot. Above the horizontal axis, horizontal curly braces divide the x-axis into two regions relative to x*: to the left, the interval represents the set {x | f(x) <= f(x*)}; to the right, the interval represents the set {x | f(x) >= f(x*)}."
+    },
+    "pg_472__page_28_Figure_16.jpeg": {
+        "skip": false,
+        "description": "A graph of a symmetric, bell-shaped function y = f(x) plotted on a coordinate axis system. A point x_0 is marked on the positive horizontal axis. A dashed vertical line extends upwards from x_0 to intersect the curve, and a horizontal dashed line projects across to the vertical y-axis to mark the height f(x_0) with a filled dot. By symmetry, the horizontal line intersects the curve at two symmetric points. The interval on the x-axis corresponding to values where the curve is above or at height f(x_0) is indicated with a curly bracket below the horizontal axis, labeled as the superlevel set {x | f(x) >= f(x_0)}."
+    },
+    "pg_472__page_44_Figure_19.jpeg": {
+        "skip": false,
+        "description": "Figure 21.10 shows the level sets (indifference curves) of a monotone, quasiconcave utility function plotted in two dimensions. Several smooth, downward-sloping, convex curves curve away from the origin toward the upper-right. On one of the central curves, a filled black dot represents a point, from which a normal vector arrow labeled 'u' points outwards perpendicular to the curve into the direction of increasing utility (up and to the right)."
+    },
+    "pg_472__page_89_Picture_28.jpeg": {
+        "skip": false,
+        "description": "A geometric diagram showing a rotated ellipse centered at the origin of a two-dimensional Cartesian coordinate system. The original horizontal and vertical axes are labeled x and y, respectively. A secondary rotated coordinate system with dashed lines is labeled X and Y, representing the principal axes of the ellipse. The major axis of the ellipse lies along the rotated X-axis, and the minor axis lies along the rotated Y-axis."
+    },
+    "pg_472__page_115_Figure_18.jpeg": {
+        "skip": false,
+        "description": "Geometric representation of a complex number a + ib on the complex plane (Figure 23.2). The horizontal axis is labeled x and the vertical axis is labeled y. A point represents the complex number a + ib at coordinates (a, b). A line segment of length r connects the origin (0,0) to the point a + ib, forming an angle θ with the positive x-axis. A vertical dashed line extends from the point down to the x-axis, creating a right-angled triangle with a horizontal side of length a and a vertical side of length b."
+    },
+    "pg_472__page_148_Figure_18.jpeg": {
+        "skip": false,
+        "description": "A plot of solutions y(t) against t showing logistic convergence to a carrying capacity. The horizontal axis is labeled t and the vertical axis is labeled y. A horizontal line represents the carrying capacity where k = 0. Above this horizontal asymptote, the curve for k < 0 decreases monotonically from top left toward the asymptote as t increases. Below the asymptote, the curve for k > 0 is S-shaped (logistic), rising monotonically from near y = 0 at the bottom left, crossing the vertical y-axis, and approaching the horizontal line k = 0 from below as t goes to infinity."
+    },
+    "pg_621__page_12_Figure_15.jpeg": {
+        "skip": false,
+        "description": "A direction field (slope field) plotted on a Cartesian coordinate plane with a horizontal axis and a vertical axis labeled y. The plot shows several small tangent line segments centered at specific point dots scattered across the four quadrants and along the y-axis. On the y-axis (where the horizontal variable t = 0), the line segments are perfectly horizontal. In the first quadrant (positive t, positive y), the slopes are positive and steepen as distance from the origin increases. In the second quadrant (negative t, positive y), the slopes are negative. In the third quadrant (negative t, negative y), the slopes are positive. In the fourth quadrant (positive t, negative y), the slopes are negative. This symmetric pattern illustrates the behavior of the differential equation y' = 2ty."
+    },
+    "pg_621__page_13_Figure_14.jpeg": {
+        "skip": false,
+        "description": "A graph on a Cartesian coordinate system with a horizontal axis labeled t and a vertical axis labeled y. The graph displays two hyperbolic curves representing a direction field or solution curves for a differential equation. One curve lies in the first quadrant, starting near the positive y-axis and decreasing toward the positive t-axis. The other curve lies in the third quadrant, starting near the negative t-axis and decreasing toward the negative y-axis. Both curves are marked with small, evenly spaced hash marks along their lengths indicating slope segments."
+    },
+    "pg_621__page_14_Figure_6.jpeg": {
+        "skip": false,
+        "description": "A sketch showing the direction field of the differential equation y' = 2ty. The graph is plotted on a coordinate plane with a vertical axis y and a horizontal axis t represented by a dashed line. Four hyperbolic-like curved lines are depicted, symmetric across both axes, curving inward towards the vertical axis and flattening horizontally away from it. Short perpendicular tick marks (isoclines/direction field segments) are drawn regularly along each curve to indicate the slope of the solution curves at various points."
+    },
+    "pg_621__page_14_Figure_9.jpeg": {
+        "skip": false,
+        "description": "A diagram displaying solution curves and orthogonal trajectories (or direction field integral curves) plotted on a coordinate plane with a vertical axis labeled 'y' and a horizontal axis labeled 't'. The top and bottom halves of the graph show family of hyperbolic curves asymptotic to the horizontal line t (a dashed line). Thicker solution curves bend away from the t-axis into the upper and lower regions, while a family of intersecting curves with tick marks along them cross orthogonally, forming a grid of curved coordinate lines symmetric about the y-axis."
+    },
+    "pg_621__page_15_Figure_12.jpeg": {
+        "skip": false,
+        "description": "A direction field plot on a Cartesian coordinate plane with axes labeled 't' (horizontal) and 'y' (vertical). The plot features four concentric circles centered at the origin, representing the level sets (isoclines) of $y^2 + t^2 = a$. Across each circle, short line segments representing direction field slopes are drawn tangent to or angled along the circles: the innermost circle has smaller slope segments, while larger outer circles show progressively steeper slope segments."
+    },
+    "pg_621__page_16_Figure_9.jpeg": {
+        "skip": false,
+        "description": "A plot showing concentric circles centered at the origin of a (t, y) coordinate system, representing level curves (isoclines) of $y^2 + t^2 = C$. Along each circle, small tick marks represent the slope direction field. Multiple smooth solution curves, indicated by thick dark lines, flow through the field from lower-left/bottom toward upper-right/top, demonstrating the behavior of solutions to the differential equation $\\dot{y} = y^2 + t^2$."
+    },
+    "pg_621__page_17_Figure_9.jpeg": {
+        "skip": false,
+        "description": "A direction field (slope field) plotted on axes labeled y (vertical axis) and t (horizontal axis). The slope segments are arranged horizontally across constant y-values:\n- At y = 3.0 and y = 2.5, the slope segments are negative (slanted downwards to the right).\n- At y = 2.0, the slope segments are horizontal (slope = 0, represented as a dashed horizontal line).\n- At y = 1.5, y = 1.0, and y = 0.5, the slope segments are positive (slanted upwards to the right), with the steepest positive slopes around y = 1.0.\n- At y = 0, the slope segments are horizontal (slope = 0, represented as a dashed horizontal line).\n- At y = -0.5 and y = -1.0, the slope segments are negative (slanted downwards to the right).\n\nThe slopes depend only on the y-coordinate, remaining constant along horizontal lines of equal y."
+    },
+    "pg_621__page_17_Figure_12.jpeg": {
+        "skip": false,
+        "description": "A direction field and family of solution curves plotted on a coordinate plane with horizontal axis t and vertical axis y. The direction field shows small line segments with negative slopes above y = 2 and below y = 0, and positive slopes between y = 0 and y = 2. Two equilibrium solutions are depicted as horizontal lines: y = 2 (an asymptotically stable equilibrium) and y = 0 (an unstable equilibrium). Solution curves in the region y > 2 decay monotonically toward y = 2 as t increases. Solution curves in the region 0 < y < 2 are S-shaped (logistic-style) curves that increase from near y = 0 toward y = 2 as t increases. Solution curves in the region y < 0 decrease monotonically away from y = 0 as t increases."
+    },
+    "pg_621__page_19_Figure_14.jpeg": {
+        "skip": false,
+        "description": "A phase portrait along a horizontal line labeled y. There are two equilibrium points represented by solid dots at y = 0 and y = 2. Arrowheads indicate the direction of flow along the line: for y < 0, an arrow points to the left (away from 0); for 0 < y < 2, an arrow points to the right (away from 0 and toward 2); for y > 2, an arrow points to the left (toward 2). This shows that y = 0 is an unstable equilibrium point and y = 2 is a stable equilibrium point."
+    },
+    "pg_621__page_19_Figure_19.jpeg": {
+        "skip": false,
+        "description": "Graph of the differential equation y-dot = f(y) = y(2 - y) plotted against the y-axis (horizontal). The curve is a downward-opening parabola with roots at y = 0 and y = 2. On the horizontal y-axis, equilibrium points are marked at 0 and 2 with black dots. Arrows on the y-axis indicate direction of motion along the phase line: pointing left for y < 0 (where f(y) < 0), pointing right between y = 0 and y = 2 (where f(y) > 0), and pointing left for y > 2 (where f(y) < 0)."
+    },
+    "pg_621__page_20_Figure_17.jpeg": {
+        "skip": false,
+        "description": "A phase portrait diagram for the autonomous differential equation dy/dt = y - y^3, plotted on a graph showing y vs. dy/dt. The horizontal axis represents y, marked with equilibrium points at y = -1, y = 0, and y = 1, indicated by solid black dots. A cubic curve intersects the horizontal axis at these three points, starting high on the left, dipping below the axis between -1 and 0, rising above the axis between 0 and 1, and falling sharply below the axis to the right of 1. Arrows along the horizontal line indicate the direction of flow: pointing right toward -1 from the far left, pointing left toward -1 from the interval (-1, 0), pointing right toward 1 from the interval (0, 1), and pointing left toward 1 from the far right. This shows stable equilibrium points at y = -1 and y = 1 (attractors) and an unstable equilibrium point at y = 0 (repeller)."
+    },
+    "pg_621__page_21_Figure_15.jpeg": {
+        "skip": false,
+        "description": "Two horizontal phase line diagrams labeled (a) and (b), each featuring a central equilibrium point labeled y_0.\n\nDiagram (a) shows an asymptotically stable equilibrium: arrows on the horizontal line point inward toward y_0 from both the left (pointing right) and the right (pointing left).\n\nDiagram (b) shows an unstable equilibrium: arrows on the horizontal line point outward away from y_0 toward the left (pointing left) and toward the right (pointing right)."
+    },
+    "pg_621__page_22_Figure_15.jpeg": {
+        "skip": false,
+        "description": "Figure 24.14 illustrates uncommon types of equilibria on a one-dimensional phase line divided into three horizontal lines:\n1. Top line: Represents a semi-stable (unstable) equilibrium point (black dot) where arrows on both the left and right sides point to the right (toward the point from the left, away to the right).\n2. Middle line: Represents a semi-stable equilibrium point (black dot) where arrows on both sides point to the left (away from the point to the left, toward it from the right).\n3. Bottom line: Shows a line with a sequence of dense rest points (black dots) converging towards a central equilibrium point, illustrating a neutrally stable equilibrium."
+    },
+    "pg_621__page_43_Figure_19.jpeg": {
+        "skip": false,
+        "description": "A 2D Cartesian coordinate plane showing a vector field representation for the system of differential equations x_dot = y, y_dot = -x. The axes are labeled x (horizontal) and y (vertical). Several vector arrows are plotted at various points in all four quadrants and along the axes: at (2,0), a downward vector represents (0, -2); at (3,2), a vector points down and right representing (2, -3); at (1,-2), a vector points down and left representing (-2, -1). Additional vectors on the positive y-axis point to the right, vectors on the negative y-axis point to the left, vectors on the negative x-axis point upward, and vectors in the fourth quadrant point downward, together illustrating a clockwise circular flow around the origin."
+    },
+    "pg_621__page_44_Figure_14.jpeg": {
+        "skip": false,
+        "description": "A vector field plot in two dimensions showing the direction and relative magnitudes of vectors for the uncoupled linear differential system x' = 2x and y' = -2y. The Cartesian coordinate axes x and y intersect at the origin (0,0). Vectors pointing towards the x-axis indicate motion approaching y = 0 as time increases, while vectors pointing away from the y-axis show motion expanding outward in the x-direction. Key labeled sample points include (0,1) with a vertically downward vector (0, -2), (1,1) with a vector pointing down and to the right (2, -2), and (2,0) with a horizontal vector pointing to the right (4, 0)."
+    },
+    "pg_621__page_45_Figure_10.jpeg": {
+        "skip": false,
+        "description": "A sketch of a two-dimensional vector field plotted on a Cartesian coordinate plane with horizontal and vertical axes crossing at the origin. The vector field consists of numerous short directed arrows arranged across all four quadrants and along the axes. Every arrow points generally upward and to the right (positive slope), but the steepness varies depending on location: along the vertical axis, the arrows are nearly vertical (pointing almost straight up), while further away from the vertical axis, the arrows tilt more horizontally toward the upper right."
+    },
+    "pg_621__page_46_Figure_23.jpeg": {
+        "skip": false,
+        "description": "A phase portrait showing concentric circular trajectories centered at the origin of a Cartesian coordinate system with horizontal x-axis and vertical y-axis. Three concentric circles are shown with arrows indicating a clockwise direction of flow. At the top of each circle (positive y-axis), arrows point to the right; on the right (positive x-axis), arrows point downwards; at the bottom (negative y-axis), arrows point to the left."
+    },
+    "pg_621__page_48_Figure_10.jpeg": {
+        "skip": false,
+        "description": "A phase portrait diagram on a Cartesian coordinate plane illustrating a saddle point behavior at the origin (0,0). The vertical y-axis has arrows pointing toward the origin from both above and below, representing the stable manifold. The horizontal x-axis has arrows pointing away from the origin to both the left and right, representing the unstable manifold. Hyperbolic trajectory curves in all four quadrants follow this flow: in the upper-left quadrant, trajectories move downward and leftward; in the upper-right quadrant, trajectories move downward and rightward; in the lower-left quadrant, trajectories move upward and leftward; and in the lower-right quadrant, trajectories move upward and rightward."
+    },
+    "pg_621__page_49_Figure_8.jpeg": {
+        "skip": false,
+        "description": "A 2D Cartesian coordinate plane showing a straight line with a negative slope intersecting the vertical axis (y-axis) and the horizontal axis (x-axis). Hash marks (ticks) are placed along the sloped line to represent direction or speed vectors/intervals along the nullcline or trajectory. The vertical axis is drawn as a dashed line with tick marks, and the horizontal axis is a solid line."
+    },
+    "pg_621__page_50_Figure_9.jpeg": {
+        "skip": false,
+        "description": "A Cartesian coordinate graph illustrating an isocline where dy/dt = 0 for a differential system. A single straight line with a steep negative slope passes through the y-axis in the upper half-plane and crosses the horizontal x-axis in the lower right quadrant. Short horizontal hash marks (tick marks) are drawn regularly along the entire length of the sloped line, indicating that the vector field along this line has horizontal vectors (zero vertical velocity component, dy/dt = 0)."
+    },
+    "pg_621__page_51_Figure_9.jpeg": {
+        "skip": false,
+        "description": "Figure 25.8 shows a phase plane divided into eleven sectors (labeled with uppercase letters A through K) by four intersecting straight lines acting as isoclines, with hash marks indicating vector orientations along the lines. The segments of these lines bounding the sectors are labeled with lowercase letters a through p:\n\n- Vertical line (x-dot = 0 or y-dot = 0 isocline): labeled with segments l (middle-left), n (upper-middle), p (top), j (bottom).\n- Horizontal line: labeled with segments k (far left), g (middle-left), f (middle-right), e (far right).\n- Steeper negatively-sloped line: labeled with segments i (bottom), a (middle), d (upper-middle), o (top).\n- Less steep negatively-sloped line: labeled with segments h (bottom-right), b (middle-right), c (middle-left), m (upper-left).\n\nThe regions between these intersecting lines are labeled as sectors:\n- Region A: bounded by segments l, g, a, and c.\n- Region B: bounded by segments a, f, and b.\n- Region C: bounded by segments n, c, and d.\n- Region D: upper right sector above lines b and d.\n- Region E: far right wedge below line b/h and above horizontal line e.\n- Region F: bottom right sector below lines e and b/h.\n- Region G: bottom middle sector bounded by j, g, and i.\n- Region H: bottom left quadrant bounded by j and k.\n- Region I: left middle sector bounded by k, l, and m.\n- Region J: upper left sector bounded by m, n, and o.\n- Region K: top left wedge above line p and line o."
+    },
+    "pg_621__page_52_Figure_10.jpeg": {
+        "skip": false,
+        "description": "A phase portrait diagram in the first quadrant of a Cartesian plane showing vector field directions across different regions and boundary lines (isoclines). Two downward-sloping lines intersect each other in the first quadrant, dividing the space into multiple sectors labeled A, D, and boundary segments marked with letters a, b, c, d, p. Arrows indicate the direction of the vector field: pointing inward from region D toward the origin (southwest), pointing up and right in region A, downward on segment b, rightward on segment f, upward on the vertical axis segment below p, and downward on the vertical axis segment near p."
+    },
+    "pg_621__page_53_Figure_8.jpeg": {
+        "skip": false,
+        "description": "A phase portrait diagram for a system of differential equations showing nullclines/isoclines, equilibrium points, and directional field vector arrows across various regions. Three straight lines (representing nullclines) intersect on a Cartesian-like plane, forming distinct sectors. Solid dots mark the equilibrium points at the intersections of these lines (including points on the vertical axis, horizontal axis, and an interior intersection). Arrows along and between the lines indicate the vector field dynamics: vertical and horizontal directional arrows show how solution trajectories behave in each region, directing flow toward or away from the equilibrium points. Several L-shaped corner indicators with arrows illustrate the orientation of trajectory movement within specific sectors."
+    },
+    "pg_621__page_54_Figure_8.jpeg": {
+        "skip": false,
+        "description": "A phase portrait showing trajectory curves in the positive quadrant for a competing species system (sector D). The graph displays coordinate axes with axes tick marks and straight line boundaries representing nullclines or equilibrium lines. Trajectories marked with directional arrows flow from the upper right region downwards toward the boundaries. Key equilibrium points are indicated by solid black dots on the axes (including points on the y-axis, the x-axis, and an unstable saddle point at the intersection of lines). Labels 'd' and 'b' identify specific segments along the diagonal boundary lines where trajectories cross, illustrating how different initial conditions lead trajectories to converge toward either the x-axis equilibrium or the y-axis equilibrium."
+    },
+    "pg_621__page_55_Figure_12.jpeg": {
+        "skip": false,
+        "description": "A phase portrait diagram depicting a two-dimensional dynamical system representing competing species, likely showing a saddle point inside the positive quadrant. The coordinate axes feature fixed points marked by solid black circles at the origin, on the positive y-axis, and on the positive x-axis, with an interior equilibrium point where the nullclines cross. Nullcline lines with tick marks divide the phase space into regions. Trajectories with directional arrows illustrate the flow of solutions throughout the positive quadrant D, showing convergence towards certain equilibria along stable manifolds and divergence along unstable manifolds, with labeled curves and key regions marked (such as d, b, and D)."
+    },
+    "pg_621__page_59_Figure_9.jpeg": {
+        "skip": false,
+        "description": "A phase portrait diagram showing the vector field directions for a predator-prey system in the first quadrant of the xy-plane. The horizontal axis is labeled x with an origin at 0, and a key point labeled C/D. The vertical axis is labeled y, with a key point labeled A/B.\n\nTwo dashed lines intersect at the point (C/D, A/B). The horizontal dashed line y = A/B contains downward-pointing arrows to the left of x = C/D and upward-pointing arrows to the right of x = C/D. The vertical dashed line x = C/D contains leftward-pointing arrows above y = A/B and rightward-pointing arrows below y = A/B. The axes themselves act as boundary lines with vector direction arrows: along the y-axis (x = 0), trajectories move downwards toward the origin (0,0); along the x-axis (y = 0), trajectories move to the right away from the origin."
+    },
+    "pg_621__page_60_Figure_15.jpeg": {
+        "skip": false,
+        "description": "A phase portrait diagram showing trajectories in a predator-prey system. The axes represent prey and predator populations. On the vertical axis (predator axis when prey population is zero), arrows point downward toward the origin, indicating a declining predator population without prey. On the horizontal axis (prey axis when predator population is zero), arrows point to the right away from the origin, showing growing prey population without predators. The origin is marked with a solid equilibrium dot. In the interior of the first quadrant, a central equilibrium point is surrounded by concentric, closed oval trajectories with arrows indicating a counterclockwise motion. This illustrates periodic, neutral stability oscillations of predator and prey populations around the central equilibrium point."
+    },
+    "pg_621__page_61_Figure_10.jpeg": {
+        "skip": false,
+        "description": "A line graph titled 'Time in years' on the x-axis (ranging from 1845 to 1935 in 10-year increments) and 'Number in thousands' on the y-axis (ranging from 0 to 160 in increments of 20). The graph tracks the population sizes of two species over time: the Hare (represented by a solid black line) and the Lynx (represented by a dotted black line). Both populations exhibit repeating, cyclical fluctuations (oscillations) roughly every 9 to 10 years. Peaks in the hare population (such as major spikes reaching over 150,000 around 1863, 130,000 around 1885, and smaller peaks throughout) are consistently followed shortly after by corresponding peaks in the lynx population (which reach between 40,000 and 80,000). Similarly, drops in the hare population lead to subsequent drops in the lynx population."
+    },
+    "pg_621__page_63_Figure_10.jpeg": {
+        "skip": false,
+        "description": "Phase portrait of a pendulum system plotted on a phase plane with position (x-axis) and velocity (y-axis). Along the horizontal axis, fixed points are marked at -2π, -π, 0, π, and 2π. The points at 0 and ±2π are center stationary points surrounded by closed, concentric, counterclockwise periodic orbits representing frictionless oscillations. The points at ±π are saddle points with intersecting separatrices forming eye-like heteroclinic orbits that enclose the periodic oscillations. Above and below the separatrix loops are wavy, unbounded trajectories moving horizontally across the phase plane, directed from left to right in the upper half-plane and from right to left in the lower half-plane."
+    },
+    "pg_621__page_66_Figure_15.jpeg": {
+        "skip": false,
+        "description": "A phase portrait diagram depicting the trajectory of a damped pendulum system in the phase plane. The horizontal axis represents position x with critical points marked at -3\\pi, -2\\pi, -\\pi, 0, and \\pi. Saddle points (unstable equilibrium points) with crossing separatrix curves are located at odd multiples of \\pi (-3\\pi, -\\pi, \\pi). Stable spiral points (attractors) are located at even multiples of \\pi (-2\\pi, 0), where trajectories spiral inward in a counterclockwise direction towards the equilibrium dots. Outer trajectories above and below the libration region show wavy continuous flow lines with arrows indicating motion from left to right at the top and right to left at the bottom."
+    },
+    "pg_621__page_117_Picture_16.jpeg": {
+        "skip": false,
+        "description": "A 3D geometric diagram illustrating a vector translation of a subspace, representing Figure 27.1. It shows a 3D coordinate system containing two parallel planes. The lower plane, labeled V, represents a subspace passing through the origin (0,0,0). A vector labeled c originates from the origin on plane V and points up and to the left to a point on the upper shaded plane. The upper parallel plane is labeled c + V, demonstrating that translating the subspace V by the vector c shifts the entire plane away from the origin into an affine subspace."
+    },
+    "pg_621__page_118_Figure_13.jpeg": {
+        "skip": false,
+        "description": "A 2D Cartesian coordinate plane showing a family of parallel line affine subspaces defined by equations of the form x_1 + x_2 = b. The horizontal axis is labeled x_1 and the vertical axis is labeled x_2. Four parallel lines with negative slope (-1) are plotted:\n- The bottom-left line corresponds to x_1 + x_2 = -1, passing through (0, -1) and (-1, 0).\n- The line passing through the origin (0, 0) corresponds to x_1 + x_2 = 0, representing the null space.\n- The line above it corresponds to x_1 + x_2 = 1, passing through (1, 0) and (0, 1).\n- The top-right line corresponds to x_1 + x_2 = 2, passing through (2, 0) and (0, 2)."
+    },
+    "pg_621__page_131_Figure_27.jpeg": {
+        "skip": false,
+        "description": "A coordinate plane showing a system of two linear equations with one unique solution. Two straight lines with positive slopes intersect at a single distinct point in the first quadrant (where x > 0 and y > 0). One line has a steeper slope and a negative y-intercept, while the other line has a gentler slope and a positive y-intercept."
+    },
+    "pg_621__page_131_Figure_30.jpeg": {
+        "skip": false,
+        "description": "A Cartesian coordinate graph illustrating a system of linear equations with no solutions. The graph shows two parallel lines with positive slopes in the x-y plane. Both lines slope upward from left to right, never intersecting."
+    },
+    "pg_621__page_131_Figure_33.jpeg": {
+        "skip": false,
+        "description": "A Cartesian coordinate graph displaying two lines plotted directly on top of each other, appearing as a single thick diagonal line with a positive slope. The line crosses the vertical y-axis below the origin (negative y-intercept) and crosses the horizontal x-axis to the right of the origin (positive x-intercept), illustrating a system of linear equations with infinitely many solutions."
+    },
+    "pg_621__page_132_Picture_19.jpeg": {
+        "skip": false,
+        "description": "Geometric illustration showing three possible spatial configurations of two planes in three-dimensional space, labeled (a), (b), and (c):\n\n- Figure (a): \"2 planes intersect in line\" - Shows two non-parallel planes crossing each other, intersecting along a single straight line.\n- Figure (b): \"2 parallel planes\" - Shows two distinct parallel planes lying one above the other without intersecting.\n- Figure (c): \"2 coincident planes = (\"thick\" plane)\" - Shows a single plane representing two perfectly overlapping (coincident) planes."
+    },
+    "pg_621__page_134_Picture_9.jpeg": {
+        "skip": false,
+        "description": "Diagram titled 'Three planes in R³' displaying six geometric configurations (a) through (f) of three planes in three-dimensional space:\n- (a) '3 planes intersect in single point': Three perpendicular/intersecting planes sharing one common point of intersection.\n- (b) '3 planes intersect in single line': Three planes sharing a single common line of intersection (like pages of an open book).\n- (c) '3 planes on top of each other': Three coincident (identical) planes stacked directly on top of each other.\n- (d) '2 parallel planes meet a third': Two parallel horizontal planes intersected simultaneously by a third inclined plane, creating two parallel lines of intersection.\n- (e) '3 planes with no common intersection': Three planes intersecting pairwise to form a triangular prism shape, with three parallel intersection lines and no single point or line common to all three.\n- (f) '3 parallel planes': Three distinct planes stacked parallel to each other with no intersections."
+    },
+    "pg_621__page_148_Figure_12.jpeg": {
+        "skip": false,
+        "description": "A 3D coordinate diagram illustrating the efficient set in a three-commodity general Leontief model (Figure 28.4). The diagram shows three coordinate axes representing three produced commodities. A triangular shaded surface spans across the positive octant, intersecting each of the three axes at a vertex to form a triangular face representing the boundary of efficient production combinations."
+    },
+    "pg_771__page_9_Picture_13.jpeg": {
+        "skip": false,
+        "description": "Figure 29.1 depicts an annulus in two-dimensional space, represented as a shaded ring-shaped region lying between two concentric circles. The inner circular area is unshaded and white, illustrating a subset of the plane formed by subtracting a smaller open ball B_{r/2}(x) from a larger open ball B_r(x)."
+    },
+    "pg_771__page_11_Figure_25.jpeg": {
+        "skip": false,
+        "description": "A diagram illustrating the Manhattan or taxicab distance on a 2D grid. Point (x1, x2) is located at the left end of a thick horizontal line segment representing the distance along the x-axis, labeled |y1 - x1|. From the right end of this horizontal segment, a thick vertical line segment extends upwards to point (y1, y2), representing the distance along the y-axis, labeled |y2 - x2|. Together, the horizontal and vertical path components illustrate the total taxicab distance between (x1, x2) and (y1, y2)."
+    },
+    "pg_771__page_18_Picture_16.jpeg": {
+        "skip": false,
+        "description": "A geometric diagram demonstrating the recursive subdivision of a 2D square (cube in the plane) into smaller sub-squares (quadrants). The large square is initially divided into four equal quadrants. The top-left quadrant is further divided into four smaller sub-squares. Continuing this process, the center-inner sub-square is divided again into four even smaller squares, illustrating the nested sequence of shrinking closed cubes (or sub-intervals) used in proof techniques like the Heine-Borel Theorem or bisection methods."
+    },
+    "pg_771__page_24_Figure_17.jpeg": {
+        "skip": false,
+        "description": "A graph illustrating the Mean Value Theorem on an xy-coordinate plane. A smooth, downward-concave curve representing a function f(x) passes through three key points corresponding to x-values a, c, and b, marked along the horizontal axis with dashed vertical reference lines extending up to the curve.\n\nA secant line l1 connects the point (a, f(a)) and (b, f(b)), labeled with \"Slope (f(b) - f(a)) / (b - a)\".\n\nA tangent line l2 touches the curve at x = c (between a and b), labeled with \"Slope f'(c)\". The tangent line l2 is parallel to the secant line l1, visually demonstrating that f'(c) = (f(b) - f(a)) / (b - a)."
+    },
+    "pg_771__page_49_Picture_16.jpeg": {
+        "skip": false,
+        "description": "Geometric diagram labeled Figure A1.1 showing an isosceles triangle PQR with top vertex P, bottom-left vertex Q, and bottom-right vertex R. Side PQ and side PR each have a single tick mark indicating they are equal in length. An arc is drawn inside the angle at vertex Q and vertex R, showing that angle PQR equals angle PRQ."
+    },
+    "pg_771__page_57_Picture_13.jpeg": {
+        "skip": false,
+        "description": "A geometric diagram showing an angle labeled with the Greek letter theta (θ) at vertex A. The angle is formed by two rays meeting at point A: an initial ray labeled l_1 and a terminal ray labeled l_2. An arrow indicates the counterclockwise rotation from ray l_1 to ray l_2. The caption below states: \"Angle θ is formed by rotating ray l_1 to l_2.\""
+    },
+    "pg_771__page_58_Picture_15.jpeg": {
+        "skip": false,
+        "description": "Figure A2.2 illustrates an acute angle θ with vertex A, formed by an initial ray ℓ1 along the bottom and a terminal ray ℓ2 extending upward to the right. A point B is located on ray ℓ2. A line segment n is drawn from point B perpendicular to ray ℓ1, intersecting ray ℓ1 at point C, indicated by a right-angle symbol at C. This forms a right triangle ABC with angle θ at vertex A."
+    },
+    "pg_771__page_59_Picture_16.jpeg": {
+        "skip": false,
+        "description": "A geometric diagram showing two rays, l1 and l2, originating from vertex A and forming an angle theta (θ). Ray l1 lies below ray l2. On ray l2, two distinct points are marked: B and B' (further from A). From point B, a line segment n drops perpendicularly to ray l1, intersecting it at point C and forming right-angled triangle ABC. From point B', a parallel line segment n' drops perpendicularly to ray l1, intersecting it at point C' and forming a larger right-angled triangle AB'C'. Right-angle symbols are marked at vertices C and C'."
+    },
+    "pg_771__page_60_Picture_12.jpeg": {
+        "skip": false,
+        "description": "A geometric diagram depicting the unit circle centered at the origin A in a Cartesian coordinate system. An angle theta is formed between the positive x-axis (labeled line l1) and a terminal ray (labeled line l2) extending into the first quadrant. A point B lies on the unit circle along line l2, at a distance of 1 unit from the origin A. A line segment drops vertically from B to point C on the positive x-axis, forming a right triangle ABC with the right-angle mark at C. The horizontal distance from A to C is labeled as b1, and the vertical distance from C to B is labeled as b2."
+    },
+    "pg_771__page_61_Figure_12.jpeg": {
+        "skip": false,
+        "description": "A line plot depicting the graph of the sine function, y = sin(theta), showing two complete periods ranging from -180 degrees to 540 degrees on the horizontal axis and -1 to +1 on the vertical axis. The curve passes through (0, 0), reaches a maximum of +1 at 90 degrees, intersects the x-axis at 180 degrees, reaches a minimum of -1 at 270 degrees, and completes one full cycle at 360 degrees, continuing the same sinusoidal pattern into both positive and negative directions."
+    },
+    "pg_771__page_62_Figure_12.jpeg": {
+        "skip": false,
+        "description": "A plot showing the cosine curve, $y = \\cos(\\theta)$, with the horizontal axis representing angle $\\theta$ in degrees and the vertical axis representing values from $-1$ to $+1$. The graph displays a continuous sinusoidal wave passing through key points: a peak at $(0^\\circ, 1)$, a zero crossing at $(90^\\circ, 0)$, a trough at $(180^\\circ, -1)$, a zero crossing at $(270^\\circ, 0)$, another peak at $(360^\\circ, 1)$, and another zero crossing at $(450^\\circ, 0)$. To the left, it extends to a zero crossing at $(-90^\\circ, 0)$."
+    },
+    "pg_771__page_62_Figure_15.jpeg": {
+        "skip": false,
+        "description": "A plot of the tangent function y = tan(x) shown over multiple periods. The graph consists of repeating, S-shaped curves passing through the x-axis and increasing vertically between dashed vertical asymptotes."
+    },
+    "pg_771__page_63_Picture_21.jpeg": {
+        "skip": false,
+        "description": "A right triangle labeled with standard side notation. The horizontal leg at the bottom is labeled 'a', the vertical leg on the right is labeled 'b', and the hypotenuse is labeled 'c'. A right-angle square marker is present at the bottom-right vertex between sides 'a' and 'b'."
+    },
+    "pg_771__page_64_Picture_24.jpeg": {
+        "skip": false,
+        "description": "A right-angled triangle OBC set within an angle ray system. Vertex O is located at the origin at the bottom left, with an acute angle of 45 degrees between the horizontal line OC and the inclined ray OB. The right angle is located at vertex C on the horizontal line, indicated by a square angle symbol. The segment BC is perpendicular to OC and has a tick mark indicating a length marker. The angle at vertex B, inside the triangle OBC between line segment OB and vertical line segment BC, is also labeled as 45 degrees."
+    },
+    "pg_771__page_65_Picture_18.jpeg": {
+        "skip": false,
+        "description": "A geometric diagram of an equilateral triangle ABC with base AC and top vertex B. An altitude BD is drawn from vertex B perpendicular to base AC at point D, forming right angles at D (indicated by right-angle symbols). The interior angles at vertices A and C are both labeled as 60 degrees."
+    },
+    "pg_771__page_67_Figure_25.jpeg": {
+        "skip": false,
+        "description": "A line graph showing the wave function y = sin(x) plotted on a Cartesian coordinate plane with x measured in radians from -2π to beyond 7π. The vertical y-axis ranges from -1 to +1, with tick marks at 1, 0, and -1. The horizontal x-axis shows labeled tick marks at intervals of π: -2π, -π, 0, π, 2π, 3π, 4π, 5π, 6π, and 7π. The sinusoidal curve starts at (0,0), rises to a peak of 1 near π/2, crosses the x-axis at π, drops to a minimum of -1 near 3π/2, and completes one full cycle of period 2π at 2π, repeating continuously across the domain."
+    },
+    "pg_771__page_68_Picture_20.jpeg": {
+        "skip": false,
+        "description": "A geometric diagram depicting a unit circle centered at the origin O on a Cartesian coordinate plane. A ray extends from the origin O into the first quadrant, passing through point B on the unit circle at a distance of 1 from the origin (radius OB = 1). From point B, a vertical line segment drops perpendicularly to the x-axis, meeting it at point C, forming a right-angled triangle OBC with a horizontal leg of length b_1 along the x-axis and a vertical leg BC of height b_2. The ray intersects the unit circle at point B, and point D is the intersection of the circle with the positive x-axis, showing arc BD."
+    },
+    "pg_771__page_71_Picture_16.jpeg": {
+        "skip": false,
+        "description": "Geometric diagram on a Cartesian coordinate plane featuring a unit circle centered at the origin O with radius 1. An acute angle theta is formed between the positive x-axis and a terminal ray passing through point B on the circle and extending to point D. Point A is at (1, 0) on the x-axis, which is the intersection of the unit circle and the positive x-axis. Segment BC is perpendicular to the x-axis from B to point C. Segment AD is perpendicular to the x-axis from A to point D on the terminal ray, forming right angles at C and A. Segments OB, AB, and line OD are drawn to illustrate the relationship between the areas of triangle OBA, sector OBA, and triangle ODA."
+    },
+    "pg_771__page_78_Figure_15.jpeg": {
+        "skip": false,
+        "description": "A diagram of the complex plane showing a complex number represented as a point. The horizontal axis is labeled 'Real axis', and the vertical axis is labeled 'Imaginary axis'. A point labeled 'a + bi' is plotted in the first quadrant. A vertical dashed line extends downwards from the point to 'a' on the real axis, and a horizontal dashed line extends leftwards from the point to 'b' on the imaginary axis."
+    },
+    "pg_771__page_79_Figure_18.jpeg": {
+        "skip": false,
+        "description": "A geometric diagram in the complex plane illustrating the polar coordinate representation of a complex number $a + bi$. The horizontal axis represents the real part and the vertical axis represents the imaginary part. A point is plotted at $(a, b)$ labeled $a + bi$, represented as a solid dot connected to the origin by a line segment of length $r$ (the modulus). The line segment forms an angle $\\theta$ (the argument) with the positive real axis. Brackets indicate the real component length $a$ along the horizontal axis and the imaginary component length $b$ along the vertical dashed line drop from the point to the horizontal axis."
+    },
+    "pg_771__page_79_Figure_21.jpeg": {
+        "skip": false,
+        "description": "A geometric representation of squaring a complex number in the complex plane. The origin is marked at the intersection of the horizontal (real) and vertical (imaginary) axes. A vector of length $r$ makes an angle $\\theta$ with the positive real axis, terminating at a point labeled $a + bi$. A second, longer vector of length $r^2$ extends from the origin at an angle of $2\\theta$ from the positive real axis, terminating at a point labeled $(a + bi)^2$."
+    },
+    "pg_771__page_89_Figure_12.jpeg": {
+        "skip": true,
+        "description": ""
+    },
+    "pg_771__page_89_Figure_17.jpeg": {
+        "skip": false,
+        "description": "A line graph titled 'An inverse demand function' illustrating the approximation of the area under a curve using rectangles (Riemann sum).\n\n- Axes: The vertical axis represents price 'p' and the horizontal axis represents quantity 'q'.\n- Curve: A downward-sloping, continuous curve labeled 'p = f(q)' extends from top-left to bottom-right.\n- Rectangles and Approximation: \n  - Along the horizontal axis, points '0', 'q_1', 'q_2', 'q_3', 'q_4', ..., 'q_N' are marked with equal interval widths labeled '\\Delta q'.\n  - The first shaded vertical rectangle extends from '0' to 'q_1' with a height reaching 'p_1'. It is annotated with 'Area = (q_1 - 0) * f(q_1)'.\n  - The second shaded vertical rectangle extends from 'q_1' to 'q_2' with a height reaching 'p_2'. It is annotated with 'Area = (q_2 - q_1) * f(q_2)'."
+    }
+}

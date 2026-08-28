@@ -1,0 +1,111 @@
+[
+  {
+    "page": 1,
+    "flagged_text": "",
+    "corrected_text": null,
+    "signal_sources": [
+      "causal_then_masked",
+      "structural"
+    ],
+    "confidence": "high",
+    "reasoning": "re-verified against source image; matched existing text, no change needed"
+  },
+  {
+    "page": 2,
+    "flagged_text": "",
+    "corrected_text": null,
+    "signal_sources": [
+      "causal_then_masked",
+      "structural"
+    ],
+    "confidence": "high",
+    "reasoning": "re-verified against source image; matched existing text, no change needed"
+  },
+  {
+    "page": 3,
+    "flagged_text": "",
+    "corrected_text": null,
+    "signal_sources": [
+      "causal_then_masked",
+      "structural"
+    ],
+    "confidence": "high",
+    "reasoning": "re-verified against source image; matched existing text, no change needed"
+  },
+  {
+    "page": 4,
+    "flagged_text": "",
+    "corrected_text": null,
+    "signal_sources": [
+      "causal_then_masked",
+      "structural"
+    ],
+    "confidence": "high",
+    "reasoning": "re-verified against source image; matched existing text, no change needed"
+  },
+  {
+    "page": 6,
+    "flagged_text": "2. Show that, for suitable intermediate points \u03be and \u03b7,\n\nf(a + h, b + k) \u2212f(a, b) = f_{x}(\u03be, b + k)h + f_{y}(a, \u03b7)k.\n\n3. Subtract\nf_{x}(a, b)h + f_{y}(a, b)k.\n\n4. Bound the absolute value of the resulting remainder by\n\n|f_{x}(\u03be, b + k) \u2212f_{x}(a, b)| |h| + |f_{y}(a, \u03b7) \u2212f_{y}(a, b)| |k| .\n\n5. Divide by\np\n\nh^{2} + k^{2}\n\nand complete the proof.\n\nIndicate precisely where continuity of the partial derivatives is used.\n\n4\nRestricting Multivariate Problems to Lines\n\nProblem 10. The multivariate mean-value idea\n\nLet\n\nf : U \u2286R^{n} \u2192R\n\nbe differentiable, and suppose the entire line segment joining a and b lies in U.\n\nDefine\n\ng(t) = f\n\n\u0000\n\na + t(b \u2212a)\n\n\u0001\n\n,\n0 \u2264t \u22641.\n\n(a) Prove that\n\ng^{\u2032}(t) = Df\n\n\u0000\n\na + t(b \u2212a)\n\n\u0001\n\n(b \u2212a).\n\n(b) Apply the one-dimensional mean value theorem to show that there exists a point c on the\n\nsegment from a to b such that\n\nf(b) \u2212f(a) = Df(c)(b \u2212a).\n\n(c) Deduce the bound\n\n|f(b) \u2212f(a)| \u2264sup\n\nz\u2208[a,b]\n\n\u2225Df(z)\u2225\u2225b \u2212a\u2225.\n\n(d) Suppose now that U is convex and\n\nDf(x) = 0\nfor every x \u2208U.\n\nProve that f is constant on U.\n\nProof technique to remember. A useful strategy in multivariate calculus is\n\nmultivariate problem \u2212\u2192restrict to a line \u2212\u2192apply one-variable calculus.\n\n6",
+    "corrected_text": "2. Show that, for suitable intermediate points $\\xi$ and $\\eta$,\n\n$$f(a + h, b + k) - f(a, b) = f_{x}(\\xi, b + k)h + f_{y}(a, \\eta)k.$$\n\n3. Subtract\n$$f_{x}(a, b)h + f_{y}(a, b)k.$$\n\n4. Bound the absolute value of the resulting remainder by\n\n$$|f_{x}(\\xi, b + k) - f_{x}(a, b)| |h| + |f_{y}(a, \\eta) - f_{y}(a, b)| |k|.$$\n\n5. Divide by\n$$\\sqrt{h^2 + k^2}$$\nand complete the proof.\n\nIndicate precisely where continuity of the partial derivatives is used.\n\n## 4 Restricting Multivariate Problems to Lines\n\n### Problem 10. The multivariate mean-value idea\n\nLet\n$$f : U \\subseteq \\mathbb{R}^n \\to \\mathbb{R}$$\nbe differentiable, and suppose the entire line segment joining $a$ and $b$ lies in $U$.\n\nDefine\n$$g(t) = f(a + t(b - a)), \\quad 0 \\le t \\le 1.$$\n\n(a) Prove that\n$$g'(t) = Df(a + t(b - a))(b - a).$$\n\n(b) Apply the one-dimensional mean value theorem to show that there exists a point $c$ on the segment from $a$ to $b$ such that\n$$f(b) - f(a) = Df(c)(b - a).$$\n\n(c) Deduce the bound\n$$|f(b) - f(a)| \\le \\sup_{z \\in [a,b]} \\|Df(z)\\| \\|b - a\\|.$$\n\n(d) Suppose now that $U$ is convex and\n$$Df(x) = 0 \\quad \\text{for every } x \\in U.$$\nProve that $f$ is constant on $U$.\n\n*Proof technique to remember.* A useful strategy in multivariate calculus is\n$$\\text{multivariate problem} \\longrightarrow \\text{restrict to a line} \\longrightarrow \\text{apply one-variable calculus.}$$\n\n6",
+    "signal_sources": [
+      "causal_then_masked",
+      "structural"
+    ],
+    "confidence": "high",
+    "reasoning": "re-verified against source image; text differed, applied correction"
+  },
+  {
+    "page": 7,
+    "flagged_text": "",
+    "corrected_text": null,
+    "signal_sources": [
+      "causal_then_masked",
+      "structural"
+    ],
+    "confidence": "high",
+    "reasoning": "re-verified against source image; matched existing text, no change needed"
+  },
+  {
+    "page": 8,
+    "flagged_text": "",
+    "corrected_text": null,
+    "signal_sources": [
+      "causal_then_masked",
+      "structural"
+    ],
+    "confidence": "high",
+    "reasoning": "re-verified against source image; matched existing text, no change needed"
+  },
+  {
+    "page": 9,
+    "flagged_text": "",
+    "corrected_text": null,
+    "signal_sources": [
+      "causal_then_masked",
+      "structural"
+    ],
+    "confidence": "high",
+    "reasoning": "re-verified against source image; matched existing text, no change needed"
+  },
+  {
+    "page": 10,
+    "flagged_text": "",
+    "corrected_text": null,
+    "signal_sources": [
+      "causal_then_masked",
+      "structural"
+    ],
+    "confidence": "high",
+    "reasoning": "re-verified against source image; matched existing text, no change needed"
+  },
+  {
+    "page": 11,
+    "flagged_text": "",
+    "corrected_text": null,
+    "signal_sources": [
+      "causal_then_masked"
+    ],
+    "confidence": "high",
+    "reasoning": "re-verified against source image; matched existing text, no change needed"
+  }
+]

@@ -1,0 +1,146 @@
+{
+    "pg_15__page_0_Picture_5.jpeg": {
+        "skip": true,
+        "description": ""
+    },
+    "pg_15__page_7_Picture_24.jpeg": {
+        "skip": false,
+        "description": "A diagram illustrating a position vector in two-dimensional Cartesian space. A red arrow representing vector 'v' originates at the origin (0, 0) and extends into the first quadrant, terminating with an arrowhead at the point labeled (a, b)."
+    },
+    "pg_15__page_7_Picture_26.jpeg": {
+        "skip": false,
+        "description": "Two parallel red arrows (vectors) of equal length and pointing in the same direction, both labeled with the italicized letter 'v'. This illustrates that vectors in Euclidean space are equivalent regardless of their starting position, representing both magnitude and direction."
+    },
+    "pg_15__page_7_Picture_29.jpeg": {
+        "skip": false,
+        "description": "A vector addition diagram illustrating the triangle rule. Vector u points diagonally up and to the right from the origin. Vector v starts from the terminal point of u and points down and to the right. The resultant vector, labeled u + v, starts from the origin (tail of u) and points directly to the terminal point of v, completing the triangle."
+    },
+    "pg_15__page_8_Picture_24.jpeg": {
+        "skip": false,
+        "description": "Two parallel red vector arrows. The upper arrow points up and to the right and is labeled 'x'. The lower arrow points down and to the left in the exact opposite direction with the same length, labeled '-x'."
+    },
+    "pg_15__page_8_Picture_34.jpeg": {
+        "skip": false,
+        "description": "A diagram illustrating scalar multiplication of a vector x. On the left is a red vector arrow pointing upward and to the right labeled 'x'. In the middle is a shorter red vector arrow pointing in the same direction, half the length of 'x', labeled '\\frac{1}{2}x'. On the right is a red vector arrow pointing in the opposite direction (downward and to the left), 1.5 times the length of 'x', labeled '-\\frac{3}{2}x'."
+    },
+    "pg_15__page_26_Picture_7.jpeg": {
+        "skip": false,
+        "description": "Photograph of the main building of the Institute for Advanced Study in Princeton, New Jersey. The building is a multi-story red brick structure with large arched windows on the lower levels, a central pediment, and a prominent white clock tower topped with a green steeple."
+    },
+    "pg_15__page_50_Picture_8.jpeg": {
+        "skip": false,
+        "description": "A wide photograph of Dankwarderode Castle, a twelfth-century Romanesque building in Brunswick (Braunschweig), Germany. The building features light brown stone walls, a red-tiled roof, arched windows, and a tall slender tower with a spired roof on the right. In the cobblestone courtyard in front of the castle stands a stone pedestal topped with a dark statue of a lion (the Brunswick Lion)."
+    },
+    "pg_15__page_98_Figure_31.jpeg": {
+        "skip": false,
+        "description": "A 2D Cartesian coordinate plane showing a subspace U and its translate (17, 20) + U. The subspace U is represented as a red line passing through the origin (0,0) and the point (10, 20), extending with arrowheads in both directions. Parallel to U is a shifted red line passing through the points (7, 0) on the x-axis and (17, 20), labeled as (17, 20) + U. Key tick marks on the x-axis indicate 10 and 17, and a tick mark on the y-axis indicates 20. Below the graph, the caption reads: '(17, 20) + U is parallel to the subspace U.'"
+    },
+    "pg_15__page_118_Picture_7.jpeg": {
+        "skip": false,
+        "description": "A stone statue depicting the Persian mathematician and poet Omar Khayyam (1048–1131), seated in traditional robes and holding a book upright in his lap. Near his feet lies a pitcher and another open book."
+    },
+    "pg_15__page_120_Picture_51.jpeg": {
+        "skip": false,
+        "description": "A geometric vector diagram showing the triangle inequality in the complex plane. A red arrow representing vector w starts at the origin and points up and right. From the tip of vector w, a second red arrow representing vector z points down and right. A third red arrow, labeled w + z, goes directly from the origin to the tip of vector z, completing the triangle to visually demonstrate vector addition."
+    },
+    "pg_146__page_0_Picture_6.jpeg": {
+        "skip": true,
+        "description": ""
+    },
+    "pg_146__page_49_Picture_6.jpeg": {
+        "skip": true,
+        "description": ""
+    },
+    "pg_146__page_50_Picture_24.jpeg": {
+        "skip": false,
+        "description": "A 2D Cartesian coordinate plane showing a vector v starting at the origin (0,0) and pointing to the point (a, b) in the first quadrant. The vector is drawn as a red arrow labeled v."
+    },
+    "pg_146__page_56_Picture_19.jpeg": {
+        "skip": false,
+        "description": "A vector diagram illustrating an orthogonal decomposition of a vector u. From a common origin point, vector u points upwards and slightly right, while vector v points up and to the right. The vector u is shown as the sum of a scalar multiple of v (which extends further along the direction of v) and a vector w that points from the tip of the extended v vector back to the tip of vector u."
+    },
+    "pg_146__page_56_Figure_28.jpeg": {
+        "skip": false,
+        "description": "Theorem box 6.13 titled 'an orthogonal decomposition'. It states:\nSuppose u, v \\in V, with v \\neq 0. Set c = \\frac{\\langle u, v \\rangle}{\\|v\\|^2} and w = u - \\frac{\\langle u, v \\rangle}{\\|v\\|^2}v. Then\nu = cv + w and \\langle w, v \\rangle = 0."
+    },
+    "pg_146__page_58_Picture_26.jpeg": {
+        "skip": false,
+        "description": "A geometric vector diagram showing a triangle formed by three vectors: vector u pointing up and to the right, vector v starting from the tip of u and pointing down and to the right, and the resultant vector u + v connecting the origin of u directly to the tip of v. Below the diagram, text reads: 'In this triangle, the length of u + v is less than the length of u plus the length of v.', illustrating the geometric intuition behind the triangle inequality."
+    },
+    "pg_146__page_59_Diagram_21.jpeg": {
+        "skip": false,
+        "description": "A vector diagram depicting a parallelogram formed by vectors u and v. The bottom side is a horizontal vector pointing right labeled u, and the top side is an identical horizontal vector pointing right labeled u. The left side is an inclined vector pointing up and right labeled v, and the right side is an identical parallel vector pointing up and right labeled v. Two diagonals are shown: the main diagonal pointing from the bottom-left vertex to the top-right vertex is labeled u + v, and the other diagonal pointing from the top-left vertex to the bottom-right vertex is labeled u - v."
+    },
+    "pg_146__page_63_Picture_31.jpeg": {
+        "skip": false,
+        "description": "A geometric diagram of a triangle illustrating Apollonius's theorem. The main triangle has sides of length 'a' on the left, 'b' on the right, and a base of length 'c' at the bottom. A median line segment of length 'd' extends from the top vertex to the midpoint of the base side 'c'. The image corresponds to the formula printed above it: a^2 + b^2 = (1/2)c^2 + 2d^2."
+    },
+    "pg_146__page_86_Picture_21.jpeg": {
+        "skip": false,
+        "description": "A geometric vector diagram depicting orthogonal projection onto a subspace. A straight line representing a subspace U passes through the origin 0. A vector v extends from the origin 0 to a point labelled v outside the subspace U. From point v, a line segment drops orthogonally to the line U, meeting it at the point P_U v, which represents the orthogonal projection of vector v onto the subspace U."
+    },
+    "pg_146__page_87_Figure_3.jpeg": {
+        "skip": false,
+        "description": "A plot over the interval [-\\pi, \\pi] displaying two nearly overlapping curves ranging in value from -1 to 1: the sine function (in red) and its best fifth-degree polynomial approximation (in blue). The two curves are almost indistinguishable on this scale, passing through the origin (0,0), reaching a maximum near 1 at \\pi/2 and a minimum near -1 at -\\pi/2, and returning to 0 at \\pi and -\\pi."
+    },
+    "pg_146__page_87_Figure_9.jpeg": {
+        "skip": false,
+        "description": "A 2D line plot over the interval [-π, π] displaying two curves: the sine function in red and its Taylor polynomial approximation in blue. The red sine curve oscillates smoothly from 0 at -π, down to -1 at -π/2, through 0 at the origin, up to 1 at π/2, and back to 0 at π. The blue polynomial curve closely overlaps the red curve around the origin and peak values, but diverges slightly near the endpoints -π and π, flattening out above 0 at π and below 0 at -π."
+    },
+    "pg_241__page_0_Picture_7.jpeg": {
+        "skip": false,
+        "description": "A photograph showing the Market Square in Lviv, featuring historical multi-story European buildings in shades of yellow and beige lining a stone-paved street, with a stone statue fountain standing in the right foreground."
+    },
+    "pg_241__page_60_Figure_28.jpeg": {
+        "skip": false,
+        "description": "A 2D plot showing a unit disk (the ball B in R^2) shaded in light blue, centered at the origin (0,0) with a radius of 1. The horizontal and vertical axes are labeled with ticks at -1 and 1."
+    },
+    "pg_241__page_60_Figure_35.jpeg": {
+        "skip": false,
+        "description": "A 2D Cartesian coordinate plot displaying a filled light blue ellipse centered at the origin (0,0). The horizontal semi-major axis extends along the x-axis from -2 to 2. The vertical semi-minor axis extends along the y-axis from -1 to 1. The plot includes labeled tick marks at x = -2, x = 2, y = -1, and y = 1."
+    },
+    "pg_241__page_60_Figure_37.jpeg": {
+        "skip": false,
+        "description": "A 2D Cartesian coordinate plot showing a shaded light-blue ellipse centered at the origin, rotated at an angle of 45 degrees relative to the axes. The ellipse intersects the y-axis at y = \\sqrt{2} and y = -\\sqrt{2}, and intersects the x-axis at x = \\sqrt{2} and x = -\\sqrt{2}. Tick marks with labels \\sqrt{2} and -\\sqrt{2} are indicated on both the x-axis and y-axis."
+    },
+    "pg_241__page_61_Figure_23.jpeg": {
+        "skip": false,
+        "description": "A 3D plot of a smooth ellipsoid centered at the origin within a bounding rectangular box. The axes show dimensions extending along three perpendicular directions, corresponding to semi-axes of lengths 4, 3, and 2 along the standard basis vectors of R^3."
+    },
+    "pg_241__page_62_Figure_43.jpeg": {
+        "skip": false,
+        "description": "A 2D Cartesian coordinate grid displaying a blue shaded parallelogram representing a 2-dimensional parallelepiped (a parallelogram). The origin/vertex of the parallelogram starts at the point (0.3, 0.5). Two vectors extend from this vertex: vector v1 points horizontally to the right, ending at (1.3, 0.5), having a displacement vector of (1, 0). Vector v2 points diagonally up and to the right to (1.3, 1.5), having a displacement vector of (1, 1). The shaded blue region is bounded by these two vectors and their corresponding parallel opposite sides, reaching a top-right corner at (2.3, 1.5). The x-axis shows ticks at 0.3, 1.3, and 2.3, while the y-axis shows ticks at 0.5 and 1.5."
+    },
+    "pg_241__page_62_Picture_46.jpeg": {
+        "skip": false,
+        "description": "A 3D geometric diagram illustrating a parallelepiped defined by three spanning vectors originating from a common vertex at the bottom-left. The vector pointing downwards and to the right is labeled $v_1$. The vector pointing horizontally to the right is labeled $v_2$. The vector pointing upwards and to the left is labeled $v_3$. Together, these three linearly independent vectors form the edges of a slanted three-dimensional prism with parallelograms for faces."
+    },
+    "pg_241__page_63_Figure_35.jpeg": {
+        "skip": false,
+        "description": "A 2D coordinate plot illustrating a rotated square region (parallelepiped/box) in the xy-plane. The bottom vertex of the square is located at $(1, 0)$ on the x-axis. From $(1, 0)$, two orthogonal vector arrows define the edges of the box: vector $\\sqrt{2}e_1$ points up and to the right to the vertex $(2, 1)$, and vector $\\sqrt{2}e_2$ points up and to the left to the vertex $(0, 1)$. The top vertex of the shaded blue square is at $(1, 2)$."
+    },
+    "pg_241__page_63_Picture_37.jpeg": {
+        "skip": false,
+        "description": "A 3D geometric illustration of a rectangular parallelepiped (box) $P(e_1, 2e_2, e_3)$ in three-dimensional space $\\mathbb{R}^3$. The front bottom-left vertex serves as the origin. Three edge vectors define the box from this vertex: $e_1$ pointing along the front-bottom edge to the right, $2e_2$ pointing along the bottom edge extending back and up into the depth of the box, and $e_3$ pointing vertically upward along the front-left vertical edge. The faces of the box are shaded in light translucent colors to give a 3D perspective view."
+    },
+    "pg_241__page_65_Picture_17.jpeg": {
+        "skip": false,
+        "description": "A 2D geometric illustration showing a light blue circle overlaid with five rectangular regions, illustrating an area approximation. At the center is a large light blue square, flanked by four narrower white rectangles positioned symmetrically on its top, bottom, left, and right sides. The outer corners of these four rectangles extend to touch the boundary of the circle, showing how a collection of rectangular boxes can approximate the shape and volume of a ball."
+    },
+    "pg_241__page_65_Picture_24.jpeg": {
+        "skip": false,
+        "description": "An oval-like ellipse filled with light blue, oriented horizontally. Overlapping and extending beyond the edges of the ellipse are five rectangular boxes: a large central blue rectangle covering most of the ellipse, flanked by two smaller vertical rectangular boxes protruding from its left and right sides, and two smaller horizontal rectangular boxes protruding from its top and bottom sides. This represents a transformed approximation of a region composed of mapped rectangular boxes forming an ellipsoid."
+    },
+    "pg_241__page_70_Picture_7.jpeg": {
+        "skip": true,
+        "description": ""
+    },
+    "pg_241__page_93_Figure_27.jpeg": {
+        "skip": false,
+        "description": "A geometric vector diagram representing a complex number z in polar coordinates. A vertical axis forms the reference line. An arrow of length r extends from the origin at an angle theta relative to the vertical line, pointing towards the top right and labeled z at the arrow tip."
+    },
+    "pg_346__page_0_Picture_7.jpeg": {
+        "skip": true,
+        "description": ""
+    }
+}
