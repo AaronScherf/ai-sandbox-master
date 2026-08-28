@@ -316,6 +316,15 @@ class TestCLIArgParsing(unittest.TestCase):
         self.assertTrue(args.force)
         self.assertTrue(args.prune)
 
+    def test_retag_subcommand_defaults(self):
+        args = build_arg_parser().parse_args(["retag"])
+        self.assertEqual(args.command, "retag")
+        self.assertFalse(args.dry_run)
+
+    def test_retag_subcommand_with_dry_run(self):
+        args = build_arg_parser().parse_args(["retag", "--dry-run"])
+        self.assertTrue(args.dry_run)
+
 
 if __name__ == "__main__":
     unittest.main()

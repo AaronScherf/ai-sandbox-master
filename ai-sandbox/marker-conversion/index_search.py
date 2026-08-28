@@ -29,6 +29,7 @@ from index_card import (
     reconcile_and_write,
     save_shard,
 )
+from retag import retag
 
 DEFAULT_COURSE_CANDIDATES = 3
 
@@ -294,6 +295,9 @@ def build_arg_parser() -> argparse.ArgumentParser:
     rebuild_p.add_argument("--force", action="store_true")
     rebuild_p.add_argument("--prune", action="store_true")
 
+    retag_p = subparsers.add_parser("retag", help="Mine and apply tags across the whole corpus.")
+    retag_p.add_argument("--dry-run", action="store_true")
+
     return parser
 
 
@@ -313,6 +317,9 @@ def main() -> None:
             print(f"{r.score:.3f}  [{r.course}/{r.doc_type}]  {r.path}\n    {r.reason}")
     elif args.command == "rebuild":
         stats = rebuild(args.academic_hub, client, course=args.course, force=args.force, prune=args.prune)
+        print(stats)
+    elif args.command == "retag":
+        stats = retag(args.academic_hub, client, dry_run=args.dry_run)
         print(stats)
 
 

@@ -1,7 +1,9 @@
+import tempfile
 import unittest
 from unittest.mock import MagicMock
 
-from retag import build_clusters, fuzzy_match_tag, discover_tags
+from index_card import load_shard, load_tags, save_shard
+from retag import assign_tags, build_clusters, discover_tags, fuzzy_match_tag, retag
 
 
 class TestBuildClusters(unittest.TestCase):
@@ -138,6 +140,105 @@ class TestDiscoverTags(unittest.TestCase):
         self.assertEqual(stats["clusters_found"], 2)
         self.assertEqual(stats["tags_minted"], 2)
         self.assertEqual(sorted(t["tag"] for t in updated), ["linear-algebra", "real-analysis"])
+
+
+class TestAssignTags(unittest.TestCase):
+    def test_card_matching_one_tag_gets_tagged(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            save_shard(tmp, "math-camp", [{"file_id": "a", "embedding": [1.0, 0.0], "tags": []}])
+            known = [{"tag": "linear-algebra", "embedding": [1.0, 0.0]}]
+            all_cards = [("math-camp", {"file_id": "a", "embedding": [1.0, 0.0]})]
+            assign_tags(tmp, all_cards, known)
+            self.assertEqual(load_shard(tmp, "math-camp")[0]["tags"], ["linear-algebra"])
+
+    def test_card_matching_multiple_tags_gets_all_of_them(self):
+        # The actual fix for one-tag-per-file: a card similar to two
+        # unrelated tag anchors gets both, with no cluster-membership
+        # restriction at all (spec §5.3).
+        with tempfile.TemporaryDirectory() as tmp:
+            save_shard(tmp, "math-camp", [{"file_id": "a", "embedding": [0.7, 0.7], "tags": []}])
+            known = [
+                {"tag": "linear-algebra", "embedding": [1.0, 0.0]},
+                {"tag": "probability", "embedding": [0.0, 1.0]},
+            ]
+            all_cards = [("math-camp", {"file_id": "a", "embedding": [0.7, 0.7]})]
+            assign_tags(tmp, all_cards, known, threshold=0.5)
+            self.assertEqual(
+                sorted(load_shard(tmp, "math-camp")[0]["tags"]), ["linear-algebra", "probability"],
+            )
+
+    def test_card_matching_no_tags_gets_empty_list(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            save_shard(tmp, "math-camp", [{"file_id": "a", "embedding": [1.0, 0.0], "tags": ["stale"]}])
+            known = [{"tag": "real-analysis", "embedding": [0.0, 1.0]}]
+            all_cards = [("math-camp", {"file_id": "a", "embedding": [1.0, 0.0]})]
+            assign_tags(tmp, all_cards, known)
+            self.assertEqual(load_shard(tmp, "math-camp")[0]["tags"], [])
+
+    def test_tags_are_replaced_not_appended(self):
+        # spec §5.3: a card's tags list is fully replaced each run, not
+        # accumulated -- this is what makes tags non-permanent.
+        with tempfile.TemporaryDirectory() as tmp:
+            save_shard(tmp, "math-camp", [
+                {"file_id": "a", "embedding": [1.0, 0.0], "tags": ["old-unrelated-tag"]},
+            ])
+            known = [{"tag": "linear-algebra", "embedding": [1.0, 0.0]}]
+            all_cards = [("math-camp", {"file_id": "a", "embedding": [1.0, 0.0]})]
+            assign_tags(tmp, all_cards, known)
+            self.assertEqual(load_shard(tmp, "math-camp")[0]["tags"], ["linear-algebra"])
+
+    def test_dry_run_writes_nothing(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            save_shard(tmp, "math-camp", [{"file_id": "a", "embedding": [1.0, 0.0], "tags": []}])
+            known = [{"tag": "linear-algebra", "embedding": [1.0, 0.0]}]
+            all_cards = [("math-camp", {"file_id": "a", "embedding": [1.0, 0.0]})]
+            stats = assign_tags(tmp, all_cards, known, dry_run=True)
+            self.assertEqual(load_shard(tmp, "math-camp")[0]["tags"], [])  # unchanged
+            self.assertIn("preview", stats)
+            self.assertEqual(stats["preview"]["math-camp"]["a"], ["linear-algebra"])
+
+
+class TestRetag(unittest.TestCase):
+    def test_end_to_end_mints_and_assigns(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            cards = [
+                {"file_id": f"f{i}", "title": f"T{i}", "summary": f"S{i}",
+                 "embedding": [1.0, 0.0], "tags": []}
+                for i in range(3)
+            ]
+            save_shard(tmp, "math-camp", cards)
+            client = _fake_naming_client(tag="linear-algebra")
+
+            # assignment_threshold lowered to match this test's mock anchor
+            # embedding ([0.5, 0.5], cosine similarity ~0.71 with the cards'
+            # [1.0, 0.0]) -- the default (0.78) is calibrated for real
+            # embeddings, not this synthetic fixture.
+            stats = retag(tmp, client, assignment_threshold=0.5)
+
+            self.assertEqual(stats["tags_minted"], 1)
+            self.assertEqual(stats["cards_tagged"], 3)
+            tags_on_disk = load_tags(tmp)
+            self.assertEqual(len(tags_on_disk), 1)
+            self.assertEqual(tags_on_disk[0]["tag"], "linear-algebra")
+            for card in load_shard(tmp, "math-camp"):
+                self.assertEqual(card["tags"], ["linear-algebra"])
+
+    def test_dry_run_mints_nothing_persisted_and_writes_no_cards(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            cards = [
+                {"file_id": f"f{i}", "title": f"T{i}", "summary": f"S{i}",
+                 "embedding": [1.0, 0.0], "tags": []}
+                for i in range(3)
+            ]
+            save_shard(tmp, "math-camp", cards)
+            client = _fake_naming_client(tag="linear-algebra")
+
+            stats = retag(tmp, client, dry_run=True)
+
+            self.assertEqual(stats["tags_minted"], 1)  # discovery still ran/reported
+            self.assertEqual(load_tags(tmp), [])        # but nothing persisted
+            for card in load_shard(tmp, "math-camp"):
+                self.assertEqual(card["tags"], [])       # cards untouched
 
 
 if __name__ == "__main__":
