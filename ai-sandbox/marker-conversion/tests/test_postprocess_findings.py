@@ -50,6 +50,23 @@ class TestFindIsolatedCandidateSpans(unittest.TestCase):
     def test_empty_lines_list_returns_empty(self):
         self.assertEqual(find_isolated_candidate_spans([]), [])
 
+    def test_isolated_digit_is_not_a_candidate(self):
+        # Real false-positive found at scale against LN_Analysis.pdf: a
+        # matrix entry or equation-numbering digit routinely sits alone
+        # on its own PyMuPDF "line" in dense LaTeX layout -- completely
+        # normal, not corruption. The confirmed real bug (a corrupted
+        # delimiter glyph mapping to a stray letter) never showed this
+        # pattern with digits, only letters -- see the project's own
+        # theory in transcribe_notes.py's _LOST_EXPONENT_OR_SUBSCRIPT_RE
+        # comment: delimiter-glyph corruption produces letters, not
+        # digits (digits/punctuation are simple, non-extensible glyphs).
+        lines = [[{"text": "0", "origin": (0.0, 0.0)}]]
+        self.assertEqual(find_isolated_candidate_spans(lines), [])
+
+    def test_isolated_punctuation_is_not_a_candidate(self):
+        lines = [[{"text": "!", "origin": (0.0, 0.0)}]]
+        self.assertEqual(find_isolated_candidate_spans(lines), [])
+
 
 class TestGroupFindingsBySignature(unittest.TestCase):
     def test_groups_same_text_same_document_together(self):

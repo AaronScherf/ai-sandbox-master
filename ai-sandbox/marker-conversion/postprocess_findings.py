@@ -31,22 +31,32 @@ def is_allowlisted_span(text: str) -> bool:
 def find_isolated_candidate_spans(lines: list[list[dict]]) -> list[dict]:
     """
     Structural pre-filter: a line consisting of exactly one span, whose
-    text (stripped) is exactly one character, is structurally what a
-    stripped operator/delimiter glyph looks like once mis-mapped to an
-    ordinary character (confirmed real case: Analysis_Exercises.pdf page
-    6, a radical sign extracting as a standalone "p" on its own line).
-    `lines` is a list of PyMuPDF dict-mode lines, each a list of span
-    dicts (the same shape reconstruct_line_with_scripts() already
-    consumes). Zero-cost, no model involved -- this is one of three
-    complementary detection signals (see local_model_scoring.py for the
-    other two), not expected to be the only one.
+    text (stripped) is exactly one *alphabetic* character, is
+    structurally what a stripped operator/delimiter glyph looks like
+    once mis-mapped to an ordinary letter (confirmed real case:
+    Analysis_Exercises.pdf page 6, a radical sign extracting as a
+    standalone "p" on its own line). Deliberately restricted to letters,
+    not any single character: confirmed at real scale against
+    LN_Analysis.pdf that isolated digits/punctuation ("0", "1", "!", ".")
+    are overwhelmingly matrix entries, equation numbers, and other
+    completely normal artifacts of dense LaTeX layout being split into
+    many small PyMuPDF "lines" -- not corruption. This also matches the
+    project's own established theory (see transcribe_notes.py's
+    _LOST_EXPONENT_OR_SUBSCRIPT_RE comment): delimiter-glyph corruption
+    produces stray letters, not digits or punctuation, which are simple,
+    non-extensible glyphs that don't fail the same way. `lines` is a
+    list of PyMuPDF dict-mode lines, each a list of span dicts (the same
+    shape reconstruct_line_with_scripts() already consumes). Zero-cost,
+    no model involved -- one of three complementary detection signals
+    (see local_model_scoring.py for the other two), not expected to be
+    the only one.
     """
     candidates = []
     for spans in lines:
         if len(spans) != 1:
             continue
         text = spans[0].get("text", "").strip()
-        if len(text) == 1:
+        if len(text) == 1 and text.isalpha():
             candidates.append({"text": text, "origin": spans[0].get("origin")})
     return candidates
 
