@@ -485,9 +485,12 @@ class TestBuildFrontmatter(unittest.TestCase):
         self.assertEqual(parsed["tags"], [])
 
 
-def _span(text, size, origin_y, origin_x=0.0):
+def _span(text, size, origin_y, origin_x=0.0, bbox=None):
     """Builds a PyMuPDF-shaped span dict with just the fields reconstruct_line_with_scripts reads."""
-    return {"text": text, "size": size, "origin": (origin_x, origin_y)}
+    span = {"text": text, "size": size, "origin": (origin_x, origin_y)}
+    if bbox is not None:
+        span["bbox"] = bbox
+    return span
 
 
 class TestReconstructLineWithScripts(unittest.TestCase):
@@ -571,6 +574,52 @@ class TestReconstructLineWithScripts(unittest.TestCase):
 
     def test_single_span_line_is_unchanged(self):
         self.assertEqual(reconstruct_line_with_scripts([_span("Solo line.", 10.91, 42.0)]), "Solo line.")
+
+    def test_position_only_gap_gets_a_synthetic_space(self):
+        # Real span data from LN_Analysis.pdf page 59: "f" ends at
+        # bbox x=206.42, "uniformly." starts at x=211.39 -- a 4.97pt gap
+        # (~0.46x the 10.91pt body size) with NO space character in the
+        # PDF's own content stream at all, just a positional offset (a
+        # common LaTeX/PDF pattern: justified text using kerning-level
+        # positioning instead of literal space glyphs). Plain span-text
+        # concatenation silently drops this, producing "funiformly.".
+        spans = [
+            _span("f", 10.91, 498.78, bbox=(203.39, 498.78, 206.42, 509.69)),
+            _span("uniformly.", 10.91, 499.57, bbox=(211.39, 499.57, 261.68, 510.58)),
+        ]
+        self.assertEqual(reconstruct_line_with_scripts(spans), "f uniformly.")
+
+    def test_tight_attachment_gap_gets_no_synthetic_space(self):
+        # Real span data from the same page: "f" ends at x=178.52, its
+        # own subscript "k" starts at x=178.92 -- a 0.40pt gap (~0.04x
+        # the body size), two orders of magnitude smaller than the real
+        # word-boundary gap above. Must not get a space inserted --
+        # "f_{k}" is correct, "f _{k}" is not.
+        spans = [
+            _span("f", 10.91, 401.53, bbox=(175.28, 401.53, 178.52, 412.44)),
+            _span("k", 7.97, 405.60, bbox=(178.92, 405.60, 182.46, 413.57)),
+        ]
+        self.assertEqual(reconstruct_line_with_scripts(spans), "f_{k}")
+
+    def test_explicit_space_span_is_not_doubled(self):
+        # Real span data: "that" ends at x=170.58, an explicit space span
+        # (text=" ") occupies 170.58 to 175.49, then "f" starts at
+        # exactly 175.49 -- the gap check on either side of the real
+        # space span is ~0, so no synthetic space should be added on top
+        # of the real one already there.
+        spans = [
+            _span("that", 10.91, 499.57, bbox=(85.89, 499.57, 170.58, 510.58)),
+            _span(" ", 10.91, 498.78, bbox=(170.58, 498.78, 175.49, 509.69)),
+            _span("f", 10.91, 498.78, bbox=(175.49, 498.78, 178.52, 509.69)),
+        ]
+        self.assertEqual(reconstruct_line_with_scripts(spans), "that f")
+
+    def test_missing_bbox_falls_back_to_no_gap_check(self):
+        # Spans without a "bbox" key (e.g. synthetic/test spans built
+        # before this feature existed) must not crash -- gap-based space
+        # insertion is simply skipped for that pair, same as before.
+        spans = [_span("Let V", 10.91, 100.0), _span(" be", 10.91, 100.0)]
+        self.assertEqual(reconstruct_line_with_scripts(spans), "Let V be")
 
 
 if __name__ == "__main__":

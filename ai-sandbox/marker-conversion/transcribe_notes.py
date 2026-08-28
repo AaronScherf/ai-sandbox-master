@@ -167,6 +167,19 @@ def _has_lost_exponent_outside_scripts(text: str) -> bool:
 _SCRIPT_SIZE_RATIO = 0.85
 _SCRIPT_OFFSET_RATIO = 0.08
 
+# reconstruct_line_with_scripts()'s gap-based synthetic-space threshold,
+# as a fraction of the line's dominant font size. Tuned against real
+# spans from LN_Analysis.pdf: a genuine word-boundary gap with no space
+# *character* in the PDF's own content stream (a common LaTeX/PDF
+# pattern -- justified text using kerning-level positioning instead of a
+# literal space glyph, confirmed real case: "f" directly followed by
+# "uniformly." with a 4.97pt gap, ~0.46x the 10.91pt body size, and no
+# space span between them at all) is roughly an order of magnitude
+# larger than a tight script attachment's own gap (~0.4pt, ~0.04x, e.g.
+# a subscript sitting right against its base variable). 0.15 sits
+# comfortably between the two with real margin on both sides.
+_WORD_GAP_RATIO = 0.15
+
 
 def _dominant_size_and_baseline(spans: list[dict]) -> tuple[float | None, float | None]:
     """
@@ -196,12 +209,14 @@ def reconstruct_line_with_scripts(spans: list[dict]) -> str:
     Reconstructs one line's text from PyMuPDF dict-mode spans, wrapping
     detected superscript/subscript spans in ^{...}/_{...} instead of
     losing them to plain concatenation (see _SCRIPT_SIZE_RATIO/
-    _SCRIPT_OFFSET_RATIO above for the real data behind the thresholds).
-    Consecutive same-direction script spans are grouped into one run, so
-    a multi-character exponent doesn't come out as separate ^{1}^{2}.
-    Falls back to plain concatenation for an empty list or a line with no
-    determinable dominant size -- safe by construction, never worse than
-    plain get_text() would have produced.
+    _SCRIPT_OFFSET_RATIO above for the real data behind the thresholds),
+    and inserting a synthetic space between two spans separated by a real
+    positional gap with no space character of their own (see
+    _WORD_GAP_RATIO above). Consecutive same-direction script spans are
+    grouped into one run, so a multi-character exponent doesn't come out
+    as separate ^{1}^{2}. Falls back to plain concatenation for an empty
+    list or a line with no determinable dominant size -- safe by
+    construction, never worse than plain get_text() would have produced.
     """
     dominant_size, baseline_y = _dominant_size_and_baseline(spans)
     if dominant_size is None:
@@ -209,10 +224,12 @@ def reconstruct_line_with_scripts(spans: list[dict]) -> str:
 
     size_threshold = dominant_size * _SCRIPT_SIZE_RATIO
     offset_threshold = dominant_size * _SCRIPT_OFFSET_RATIO
+    gap_threshold = dominant_size * _WORD_GAP_RATIO
 
     parts: list[str] = []
     pending: list[str] = []
     pending_dir: str | None = None
+    prev_bbox_right: float | None = None
 
     def flush() -> None:
         if pending:
@@ -220,9 +237,30 @@ def reconstruct_line_with_scripts(spans: list[dict]) -> str:
             parts.append(f"{marker}{{{''.join(pending)}}}")
             pending.clear()
 
+    def last_output_char() -> str:
+        if pending:
+            return pending[-1][-1:]
+        if parts:
+            return parts[-1][-1:]
+        return ""
+
     for s in spans:
         text = s.get("text", "")
         size = s.get("size")
+        bbox = s.get("bbox")
+
+        if (
+            prev_bbox_right is not None and bbox is not None
+            and not text.startswith((" ", "\n"))
+            and last_output_char() not in (" ", "\n", "")
+        ):
+            if bbox[0] - prev_bbox_right > gap_threshold:
+                flush()
+                parts.append(" ")
+                pending_dir = None
+        if bbox is not None:
+            prev_bbox_right = bbox[2]
+
         direction = None
         if size is not None and size < size_threshold:
             offset = s["origin"][1] - baseline_y
