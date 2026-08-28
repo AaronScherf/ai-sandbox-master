@@ -784,7 +784,9 @@
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-08-28T19:38:11.302963+00:00",
     "needs_indexing": false,
-    "tags": []
+    "tags": [
+      "real-analysis"
+    ]
   },
   {
     "file_id": "db9713b58af98bd6",
@@ -1571,7 +1573,9 @@
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-08-28T19:38:12.626208+00:00",
     "needs_indexing": false,
-    "tags": []
+    "tags": [
+      "probability-lecture-notes"
+    ]
   },
   {
     "file_id": "7c4d5fc6024b51b8",
@@ -2358,7 +2362,9 @@
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-08-28T19:38:13.658304+00:00",
     "needs_indexing": false,
-    "tags": []
+    "tags": [
+      "real-analysis"
+    ]
   },
   {
     "file_id": "baa86e501ed95a9e",
@@ -3145,7 +3151,9 @@
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-08-28T19:38:15.136252+00:00",
     "needs_indexing": false,
-    "tags": []
+    "tags": [
+      "linear-algebra"
+    ]
   },
   {
     "file_id": "9364de4f92394680",
@@ -3932,7 +3940,9 @@
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-08-28T19:38:16.495153+00:00",
     "needs_indexing": false,
-    "tags": []
+    "tags": [
+      "linear-algebra"
+    ]
   },
   {
     "file_id": "35446af83fba22f7",
@@ -4719,7 +4729,10 @@
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-08-28T19:38:17.609118+00:00",
     "needs_indexing": false,
-    "tags": []
+    "tags": [
+      "real-analysis",
+      "economics-mathematics"
+    ]
   },
   {
     "file_id": "d2811cb3930265fb",
@@ -5506,7 +5519,9 @@
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-08-28T19:38:19.147812+00:00",
     "needs_indexing": false,
-    "tags": []
+    "tags": [
+      "real-analysis"
+    ]
   },
   {
     "file_id": "021506e46835d3ee",
@@ -6293,7 +6308,11 @@
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-08-28T19:38:20.250164+00:00",
     "needs_indexing": false,
-    "tags": []
+    "tags": [
+      "real-analysis",
+      "optimization-theory",
+      "economics-mathematics"
+    ]
   },
   {
     "file_id": "15621241c7f53594",
@@ -7080,7 +7099,10 @@
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-08-28T19:38:21.389731+00:00",
     "needs_indexing": false,
-    "tags": []
+    "tags": [
+      "real-analysis",
+      "linear-algebra"
+    ]
   },
   {
     "file_id": "ce7e03d9a8fd5406",
@@ -7867,7 +7889,10 @@
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-08-28T19:38:22.505885+00:00",
     "needs_indexing": false,
-    "tags": []
+    "tags": [
+      "linear-algebra",
+      "economics-mathematics"
+    ]
   },
   {
     "file_id": "9d08ec3a3280ca4a",
@@ -8654,7 +8679,9 @@
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-08-28T19:38:23.633804+00:00",
     "needs_indexing": false,
-    "tags": []
+    "tags": [
+      "linear-algebra"
+    ]
   },
   {
     "file_id": "a681e922bf34727f",
@@ -9441,7 +9468,9 @@
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-08-28T19:38:25.293376+00:00",
     "needs_indexing": false,
-    "tags": []
+    "tags": [
+      "linear-algebra"
+    ]
   },
   {
     "file_id": "caa0f05bd72e38e6",
@@ -10228,7 +10257,9 @@
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-08-28T19:38:26.244395+00:00",
     "needs_indexing": false,
-    "tags": []
+    "tags": [
+      "linear-algebra"
+    ]
   },
   {
     "file_id": "78f473bbc8cb1daf",
@@ -11015,7 +11046,9 @@
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-08-28T19:38:28.003906+00:00",
     "needs_indexing": false,
-    "tags": []
+    "tags": [
+      "linear-algebra"
+    ]
   },
   {
     "file_id": "c8ff65cabf657347",
@@ -11802,7 +11835,9 @@
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-08-28T19:38:29.044639+00:00",
     "needs_indexing": false,
-    "tags": []
+    "tags": [
+      "math-camp-syllabus"
+    ]
   },
   {
     "file_id": "ff87e7bbf8f32e24",
@@ -12589,7 +12624,11 @@
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-08-28T19:38:30.497543+00:00",
     "needs_indexing": false,
-    "tags": []
+    "tags": [
+      "real-analysis",
+      "optimization-theory",
+      "economics-mathematics"
+    ]
   },
   {
     "file_id": "40bdcffc053227ac",
@@ -13376,7 +13415,9 @@
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-08-28T19:38:32.213459+00:00",
     "needs_indexing": false,
-    "tags": []
+    "tags": [
+      "linear-algebra"
+    ]
   },
   {
     "file_id": "95125b42840c4b9e",
@@ -14163,7 +14204,10 @@
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-08-28T19:38:34.298548+00:00",
     "needs_indexing": false,
-    "tags": []
+    "tags": [
+      "optimization-theory",
+      "economics-mathematics"
+    ]
   },
   {
     "file_id": "aadfa2a4c5ffc04b",
@@ -14950,7 +14994,9 @@
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-08-28T19:38:36.295562+00:00",
     "needs_indexing": false,
-    "tags": []
+    "tags": [
+      "real-analysis"
+    ]
   },
   {
     "file_id": "f95513f05df19bd2",
@@ -15737,7 +15783,8 @@
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-08-28T19:38:37.375089+00:00",
     "needs_indexing": false,
-    "tags": []
+    "tags": [],
+    "orphaned": true
   },
   {
     "file_id": "741e0f3f3bfc73eb",
@@ -16524,7 +16571,8 @@
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-08-28T19:38:38.609097+00:00",
     "needs_indexing": false,
-    "tags": []
+    "tags": [],
+    "orphaned": true
   },
   {
     "file_id": "adca894ee9215532",
@@ -17311,7 +17359,8 @@
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-08-28T19:38:39.620316+00:00",
     "needs_indexing": false,
-    "tags": []
+    "tags": [],
+    "orphaned": true
   },
   {
     "file_id": "a39af0ff13b9be90",
@@ -18098,7 +18147,8 @@
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-08-28T19:38:42.937939+00:00",
     "needs_indexing": false,
-    "tags": []
+    "tags": [],
+    "orphaned": true
   },
   {
     "file_id": "6d6958f96759b4a8",
@@ -18885,7 +18935,8 @@
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-08-28T19:38:43.818835+00:00",
     "needs_indexing": false,
-    "tags": []
+    "tags": [],
+    "orphaned": true
   },
   {
     "file_id": "19eebd5f6bd9e536",
@@ -19672,7 +19723,8 @@
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-08-28T19:38:44.772481+00:00",
     "needs_indexing": false,
-    "tags": []
+    "tags": [],
+    "orphaned": true
   },
   {
     "file_id": "6079eedf2fe26b0a",
@@ -20459,7 +20511,9 @@
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-08-28T19:38:45.960092+00:00",
     "needs_indexing": false,
-    "tags": []
+    "tags": [
+      "linear-algebra"
+    ]
   },
   {
     "file_id": "e0e471ca794ddda7",
@@ -21246,7 +21300,9 @@
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-08-28T19:38:47.185852+00:00",
     "needs_indexing": false,
-    "tags": []
+    "tags": [
+      "real-analysis"
+    ]
   },
   {
     "file_id": "828d123595b86256",
@@ -22033,7 +22089,9 @@
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-08-28T19:38:48.448087+00:00",
     "needs_indexing": false,
-    "tags": []
+    "tags": [
+      "real-analysis"
+    ]
   },
   {
     "file_id": "50d66a4f6210de73",
@@ -22820,7 +22878,10 @@
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-08-28T19:38:49.625462+00:00",
     "needs_indexing": false,
-    "tags": []
+    "tags": [
+      "real-analysis",
+      "economics-mathematics"
+    ]
   },
   {
     "file_id": "0b7af9b2e917032f",
@@ -23607,6 +23668,8 @@
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-08-28T19:38:50.907743+00:00",
     "needs_indexing": false,
-    "tags": []
+    "tags": [
+      "economics-mathematics"
+    ]
   }
 ]
