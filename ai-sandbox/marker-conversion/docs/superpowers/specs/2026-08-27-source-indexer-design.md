@@ -23,6 +23,12 @@ tutoring content from the selected sources is explicitly out of scope here.
 **Goals**
 - Given a query, return ranked `(path, course, doc_type, score, reason)`
   results, scanning all courses by default, scopable to one course.
+- Carry enough per-file metadata (§3.1: `level`, `has_solutions`,
+  `page_count`) that a downstream RAG model can do more than pick sources
+  by topic — e.g. avoid sourcing practice problems from a file that
+  already has solutions inline, or sequence a study plan by difficulty —
+  without needing a second lookup or a query-time LLM call to get that
+  information.
 - Stay cheap and fast as the corpus grows into the hundreds of files across
   many courses — query cost must not scale linearly with corpus size in a
   way that makes it slow or expensive.
@@ -96,6 +102,9 @@ treats `academic-hub/` as the corpus root:
   "title": "Linear Algebra Done Right",
   "summary": "Undergraduate linear algebra textbook covering vector spaces, linear maps, eigenvalues, inner product spaces, and spectral theory, with an emphasis on basis-free proofs.",
   "topics": ["linear-algebra", "vector-spaces", "eigenvalues", "inner-product-spaces"],
+  "level": "introductory",
+  "has_solutions": false,
+  "page_count": 404,
   "embedding": [0.0123, -0.0456, ...],
   "embedding_model": "<gemini embedding model id, pinned>",
   "source_updated_at": "2026-08-27T00:00:00Z",
@@ -124,6 +133,18 @@ treats `academic-hub/` as the corpus root:
 - `topics` starts as `[]` at card generation and is populated (and later
   possibly changed) **only** by the corpus-wide `retag` pass — see §5. It
   is never guessed by the per-file generation call in §4.
+- `level` (`introductory` / `intermediate` / `advanced`, in that fixed
+  order — what `max_level` in §6's `search()` filters against) and
+  `has_solutions` (does this file contain worked solutions/answers, as
+  opposed to bare problem statements or unworked exercises) are both
+  inferred in the same per-file LLM call as `summary` (§4) — unlike
+  `topics`, a document's own difficulty and whether it shows its work are
+  self-contained properties that don't need corpus-wide awareness to
+  judge, so there's no reason to defer them to `retag`.
+- `page_count` costs nothing extra to capture — both pipelines already
+  compute it (`total_pages` in the notes pipeline's frontmatter,
+  `total_pages_processed` in the textbook pipeline's `master_metadata`) —
+  it's just never been surfaced on a searchable record before.
 - `needs_indexing: true` marks a card whose generation failed partway
   (LLM/embedding call error) — see §7 for how this gets swept up.
 - `source_updated_at` is the source `.md`'s mtime at card-generation time,
@@ -158,6 +179,13 @@ card is added/updated in that course, and again after every `retag` run
 (§5), keeping `courses.json` always in sync without a separate generation
 step. Until the first `retag` run, `predominant_topics` is simply empty for
 every course, since no card has any `topics` yet.
+
+This also directly answers "identify mutually reinforcing synergies
+between courses" without any further mechanism: comparing two courses'
+`predominant_topics` overlap, or their centroid `embedding` similarity,
+surfaces cross-course overlap (e.g. math-camp's `optimization` topic
+resurfacing in an econometrics course) using data this spec already
+produces as a byproduct of §5.
 
 ### 3.3 Topic vocabulary (`topics.json`)
 
@@ -197,11 +225,15 @@ source length:**
 
 One `client.models.generate_content()` call (reusing
 `gemini_utils.get_gemini_client()` / `call_with_retries()`) returns
-structured JSON: `{title, doc_type, summary}` — **no `topics`**, that's
-§5's job, deliberately kept separate so a single-document call is never
-what decides a file's tags. The `title+summary` text is embedded with one
-embedding call (same client, Gemini's embedding endpoint) to produce
-`embedding`. The card is written with `topics: []`.
+structured JSON: `{title, doc_type, summary, level, has_solutions}` —
+**no `topics`**, that's §5's job, deliberately kept separate so a
+single-document call is never what decides a file's tags (`level` and
+`has_solutions` stay here because, unlike tags, they're properties of the
+one document in front of the LLM, not something that needs sibling files
+to judge correctly). `page_count` is copied from metadata the calling
+pipeline already computed — no LLM involvement. The `title+summary` text
+is embedded with one embedding call (same client, Gemini's embedding
+endpoint) to produce `embedding`. The card is written with `topics: []`.
 
 ### 4.1 Hook insertion points
 
@@ -310,7 +342,11 @@ every course shard at once.
 ## 6. Search algorithm (two-stage)
 
 ```python
-def search(query: str, course: str | None = None, top_k: int = 5) -> list[SearchResult]: ...
+def search(
+    query: str, course: str | None = None, top_k: int = 5,
+    doc_type: str | None = None, has_solutions: bool | None = None,
+    max_level: str | None = None,
+) -> list[SearchResult]: ...
 ```
 
 1. Embed `query` once (same embedding model as card generation — the model
@@ -324,11 +360,16 @@ def search(query: str, course: str | None = None, top_k: int = 5) -> list[Search
    include/exclude list — this is what makes "linear algebra" score a
    Spanish course near zero and pull in math-camp (and any other course
    that genuinely shares topics, e.g. econometrics) automatically.
-3. **File filter**: load only the selected courses' shards, brute-force
-   cosine similarity against every file card's `embedding`, return the
-   top `top_k` as `SearchResult(path, course, doc_type, score, reason)`
-   where `reason` is simply that card's stored `summary` — no query-time
-   LLM call needed to explain a match.
+3. **File filter**: load only the selected courses' shards, apply
+   `doc_type`/`has_solutions`/`max_level` as hard filters over the cards
+   **before** ranking, then brute-force cosine similarity over what's left
+   and return the top `top_k` as `SearchResult(path, course, doc_type,
+   score, reason)` where `reason` is simply that card's stored `summary`
+   — no query-time LLM call needed to explain a match. Filtering before
+   truncation, not after, matters: e.g. "unsolved practice problems on
+   linear algebra" with `has_solutions=False` should return the best `k`
+   *unsolved* matches, not whatever's left after throwing away solved
+   ones from an unfiltered top `k`.
 
 No persistent ANN/vector-DB structure — the scan itself is the query. At
 the target scale (hundreds of files, low thousands of vectors) a NumPy
@@ -379,6 +420,23 @@ previewing without writing.
 
 ## 9. Future extensions (explicitly not built now)
 
+- **Document relationship/pairing detection.** Confirmed directly in the
+  corpus: `Linear Algebra Problem Set.md` and
+  `Linear Algebra Problem Set AMS Solutions.md` exist as two separate
+  files with no link between them today, and this pattern likely repeats
+  (a problem set and its solutions, or a lecture note and the textbook
+  chapter it complements). `has_solutions` (§3.1) tells a RAG layer
+  whether *one* file has solutions inline, but not which *other* file is
+  its companion. Detecting that is a different mechanism from both §4
+  (per-file, no sibling awareness) and §5 (groups by topical similarity,
+  not by "this is the solved version of that") — a real, useful capability,
+  but its own design pass once the base system is proven, not built here.
+- **Prerequisite/topic ordering**, extending the topic-graph idea below
+  with directionality (e.g. "eigenvalues" typically presumes
+  "vector-spaces") rather than the undirected co-occurrence §5 already
+  produces — useful for study-plan sequencing specifically, but ordering
+  is a materially harder claim than co-occurrence and deserves its own
+  validation before being trusted for that use.
 - **Richer topic-graph browsing.** §5 uses a similarity graph purely as an
   internal, throwaway mechanism to decide which tags to mint — it's never
   persisted or exposed for querying. A future layer could persist
