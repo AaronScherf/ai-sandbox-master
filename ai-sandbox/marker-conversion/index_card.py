@@ -245,3 +245,104 @@ def make_failure_card(file_id: str, path: str, source_pdf_path: str, course: str
         "source_updated_at": now_iso(),
         "needs_indexing": True,
     }
+
+
+def find_card_by_file_id(academic_hub_root: str, file_id: str) -> tuple[str, dict] | None:
+    index_dir = _index_dir(academic_hub_root)
+    if not os.path.isdir(index_dir):
+        return None
+    for name in sorted(os.listdir(index_dir)):
+        if not name.endswith(".json") or name in ("courses.json", "topics.json"):
+            continue
+        course = name[:-len(".json")]
+        for card in load_shard(academic_hub_root, course):
+            if card.get("file_id") == file_id:
+                return course, card
+    return None
+
+
+def _replace_card(cards: list[dict], file_id: str, updated: dict) -> list[dict]:
+    return [updated if c.get("file_id") == file_id else c for c in cards]
+
+
+def reconcile_and_write(
+    academic_hub_root: str, file_id: str, path: str, source_pdf_path: str, course: str,
+    folder_category: str, content_sample: str, page_count: int, client,
+) -> dict:
+    """The single entry point both pipeline hooks (and rebuild) call.
+    Implements spec §4.3: never treats `path` as identity -- reconciles by
+    `file_id` across every shard before ever generating anything new."""
+    found = find_card_by_file_id(academic_hub_root, file_id)
+
+    if found is not None:
+        old_course, old_card = found
+        changed = (
+            old_card.get("path") != path
+            or old_card.get("source_pdf_path") != source_pdf_path
+            or old_card.get("orphaned")
+        )
+        updated = dict(old_card)
+        updated["path"] = path
+        updated["source_pdf_path"] = source_pdf_path
+        updated["course"] = course
+        updated.pop("orphaned", None)
+        if changed:
+            updated["source_updated_at"] = now_iso()
+
+        if old_course == course:
+            if changed:
+                save_shard(academic_hub_root, course, _replace_card(
+                    load_shard(academic_hub_root, course), file_id, updated,
+                ))
+                recompute_course_entry(academic_hub_root, course)
+            return updated
+
+        # Moved to a different course.
+        remaining = [c for c in load_shard(academic_hub_root, old_course) if c.get("file_id") != file_id]
+        save_shard(academic_hub_root, old_course, remaining)
+        new_course_cards = load_shard(academic_hub_root, course)
+        new_course_cards.append(updated)
+        save_shard(academic_hub_root, course, new_course_cards)
+        recompute_course_entry(academic_hub_root, old_course)
+        recompute_course_entry(academic_hub_root, course)
+        return updated
+
+    # No match anywhere -- genuinely new content (spec §4.3).
+    try:
+        card = generate_index_card(
+            file_id=file_id, path=path, source_pdf_path=source_pdf_path, course=course,
+            folder_category=folder_category, content_sample=content_sample,
+            page_count=page_count, client=client,
+        )
+    except Exception as err:
+        print(f"WARNING: index card generation failed for {path} ({err}); writing needs_indexing card.")
+        card = make_failure_card(
+            file_id=file_id, path=path, source_pdf_path=source_pdf_path,
+            course=course, folder_category=folder_category,
+        )
+
+    cards = load_shard(academic_hub_root, course)
+    cards.append(card)
+    save_shard(academic_hub_root, course, cards)
+    recompute_course_entry(academic_hub_root, course)
+    return card
+
+
+def set_rag_md_path(academic_hub_root: str, file_id: str, rag_md_path: str) -> bool:
+    """Called by describe_images.py's hook (Task 10) once it produces
+    .rag.md -- finds the existing card by file_id (reusing
+    find_card_by_file_id rather than duplicating the shard scan) and sets
+    rag_md_path on it, without touching anything else on the card (no
+    regeneration). Returns False (never raises) if no card exists yet for
+    this file_id -- the caller logs that as a warning, same failure-
+    isolation philosophy as everywhere else in this module."""
+    found = find_card_by_file_id(academic_hub_root, file_id)
+    if found is None:
+        return False
+    course, card = found
+    updated = dict(card)
+    updated["rag_md_path"] = rag_md_path
+    save_shard(academic_hub_root, course, _replace_card(
+        load_shard(academic_hub_root, course), file_id, updated,
+    ))
+    return True

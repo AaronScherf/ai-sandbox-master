@@ -14,6 +14,9 @@ from index_card import (
     generate_index_card,
     make_failure_card,
     recompute_course_entry,
+    find_card_by_file_id,
+    reconcile_and_write,
+    set_rag_md_path,
 )
 
 
@@ -259,6 +262,129 @@ class TestMakeFailureCard(unittest.TestCase):
         self.assertEqual(card["doc_type"], "ta_notes")
         self.assertTrue(card["needs_indexing"])
         self.assertEqual(card["embedding"], [])
+
+
+class TestFindCardByFileId(unittest.TestCase):
+    def test_finds_across_shards_not_just_one_course(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            save_shard(tmp, "math-camp", [{"file_id": "x", "path": "a.md"}])
+            save_shard(tmp, "econ-101", [{"file_id": "y", "path": "b.md"}])
+            found = find_card_by_file_id(tmp, "y")
+            self.assertEqual(found[0], "econ-101")
+            self.assertEqual(found[1]["path"], "b.md")
+
+    def test_returns_none_when_not_found(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            save_shard(tmp, "math-camp", [{"file_id": "x", "path": "a.md"}])
+            self.assertIsNone(find_card_by_file_id(tmp, "nope"))
+
+    def test_returns_none_when_index_dir_does_not_exist_yet(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            self.assertIsNone(find_card_by_file_id(tmp, "x"))
+
+    def test_ignores_courses_json_and_topics_json(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            save_courses(tmp, {"math-camp": {"course": "math-camp", "file_count": 0}})
+            self.assertIsNone(find_card_by_file_id(tmp, "math-camp"))
+
+
+class TestReconcileAndWrite(unittest.TestCase):
+    def _card_kwargs(self, **overrides):
+        kwargs = dict(
+            file_id="fid1", path="a.md", source_pdf_path="a.pdf", course="math-camp",
+            folder_category="ta_notes", content_sample="text", page_count=5, client=_fake_client(),
+        )
+        kwargs.update(overrides)
+        return kwargs
+
+    def test_no_match_generates_a_fresh_card(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            card = reconcile_and_write(tmp, **self._card_kwargs())
+            self.assertEqual(card["file_id"], "fid1")
+            self.assertFalse(card["needs_indexing"])
+            self.assertEqual(load_shard(tmp, "math-camp")[0]["file_id"], "fid1")
+            self.assertEqual(load_courses(tmp)["math-camp"]["file_count"], 1)
+
+    def test_generation_failure_writes_a_minimal_card_not_a_crash(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            bad_client = MagicMock()
+            bad_client.models.generate_content.side_effect = RuntimeError("quota exceeded")
+            card = reconcile_and_write(tmp, **self._card_kwargs(client=bad_client))
+            self.assertTrue(card["needs_indexing"])
+            self.assertEqual(load_shard(tmp, "math-camp")[0]["file_id"], "fid1")
+
+    def test_match_same_course_unchanged_path_is_a_no_op(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            reconcile_and_write(tmp, **self._card_kwargs())
+            before = load_shard(tmp, "math-camp")[0]
+            reconcile_and_write(tmp, **self._card_kwargs())  # identical path/course
+            after = load_shard(tmp, "math-camp")[0]
+            self.assertEqual(before, after)  # no regeneration, no field churn
+
+    def test_match_same_course_changed_path_updates_in_place_without_regenerating(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            client = _fake_client()
+            reconcile_and_write(tmp, **self._card_kwargs(client=client))
+            self.assertEqual(client.models.generate_content.call_count, 1)
+            reconcile_and_write(tmp, **self._card_kwargs(
+                path="moved/a.md", source_pdf_path="moved/a.pdf", client=client,
+            ))
+            self.assertEqual(client.models.generate_content.call_count, 1)  # still 1 -- no regen
+            cards = load_shard(tmp, "math-camp")
+            self.assertEqual(len(cards), 1)
+            self.assertEqual(cards[0]["path"], "moved/a.md")
+
+    def test_match_different_course_moves_card_and_recomputes_both_rollups(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            client = _fake_client()
+            reconcile_and_write(tmp, **self._card_kwargs(client=client, course="math-camp"))
+            reconcile_and_write(tmp, **self._card_kwargs(
+                client=client, course="econ-101", path="moved/a.md", source_pdf_path="moved/a.pdf",
+            ))
+            self.assertEqual(client.models.generate_content.call_count, 1)  # still no regen
+            self.assertEqual(load_shard(tmp, "math-camp"), [])
+            self.assertNotIn("math-camp", load_courses(tmp))
+            moved_cards = load_shard(tmp, "econ-101")
+            self.assertEqual(len(moved_cards), 1)
+            self.assertEqual(moved_cards[0]["course"], "econ-101")
+            self.assertEqual(load_courses(tmp)["econ-101"]["file_count"], 1)
+
+    def test_reconciliation_clears_a_prior_orphaned_flag(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            client = _fake_client()
+            reconcile_and_write(tmp, **self._card_kwargs(client=client))
+            cards = load_shard(tmp, "math-camp")
+            cards[0]["orphaned"] = True
+            save_shard(tmp, "math-camp", cards)
+            reconcile_and_write(tmp, **self._card_kwargs(client=client))
+            self.assertNotIn("orphaned", load_shard(tmp, "math-camp")[0])
+
+
+class TestSetRagMdPath(unittest.TestCase):
+    def test_sets_rag_md_path_on_the_matching_card(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            reconcile_and_write(tmp, file_id="fid1", path="a.md", source_pdf_path="a.pdf",
+                                 course="math-camp", folder_category="textbooks-and-papers",
+                                 content_sample="text", page_count=10, client=_fake_client())
+            found = set_rag_md_path(tmp, "fid1", "a.rag.md")
+            self.assertTrue(found)
+            self.assertEqual(load_shard(tmp, "math-camp")[0]["rag_md_path"], "a.rag.md")
+
+    def test_returns_false_and_writes_nothing_when_no_card_matches(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            found = set_rag_md_path(tmp, "no-such-file-id", "a.rag.md")
+            self.assertFalse(found)
+
+    def test_works_on_a_needs_indexing_card_which_still_has_a_file_id(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            bad_client = MagicMock()
+            bad_client.models.generate_content.side_effect = RuntimeError("quota exceeded")
+            reconcile_and_write(tmp, file_id="fid1", path="a.md", source_pdf_path="a.pdf",
+                                 course="math-camp", folder_category="textbooks-and-papers",
+                                 content_sample="text", page_count=10, client=bad_client)
+            found = set_rag_md_path(tmp, "fid1", "a.rag.md")
+            self.assertTrue(found)
+            self.assertEqual(load_shard(tmp, "math-camp")[0]["rag_md_path"], "a.rag.md")
 
 
 if __name__ == "__main__":
