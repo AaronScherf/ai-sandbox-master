@@ -23,6 +23,8 @@ whole corpus at once, on its own explicit schedule, never per-file.
 from __future__ import annotations
 
 import json
+import os
+import re
 
 from rapidfuzz import fuzz
 from google.genai import types
@@ -299,6 +301,53 @@ def ensure_minimum_coverage(
     return updated_tags, stats
 
 
+_FRONTMATTER_RE = re.compile(r"\A(---\n.*?\n---\n)", re.DOTALL)
+_TAGS_LINE_RE = re.compile(r"(?m)^tags:.*$")
+
+
+def write_tags_to_frontmatter(academic_hub_root: str) -> dict:
+    """Patches each card's own .md file frontmatter `tags:` line in place
+    with its current tags from the index (spec §5.5), so a reader of the
+    raw file sees real tags without needing to consult the index. Reads
+    tags fresh from each shard on disk rather than trusting any
+    in-memory card state a caller might pass in, since by the time this
+    runs (end of a real retag()) the shards are the source of truth and
+    the only thing guaranteed to be fully up to date. Pure local file
+    I/O -- no LLM or embedding calls, so this is cheap even at this
+    corpus's current file count.
+
+    A card whose .md has no leading `---...---` frontmatter block (predates
+    frontmatter support entirely, or is a textbook's .rag.md, which never
+    had one) is skipped rather than having a block invented -- this isn't
+    the place to guess at source_pdf/routing/model metadata this function
+    doesn't have."""
+    stats = {"frontmatter_updated": 0, "skipped_no_frontmatter": 0}
+    for course in list_courses(academic_hub_root):
+        for card in load_shard(academic_hub_root, course):
+            if card.get("orphaned") or not card.get("path"):
+                continue
+            md_path = os.path.join(academic_hub_root, card["path"])
+            if not os.path.exists(md_path):
+                continue
+
+            with open(md_path, "r", encoding="utf-8") as f:
+                content = f.read()
+            match = _FRONTMATTER_RE.match(content)
+            if not match or not _TAGS_LINE_RE.search(match.group(1)):
+                stats["skipped_no_frontmatter"] += 1
+                continue
+
+            rendered = "[" + ", ".join(card.get("tags") or []) + "]"
+            new_frontmatter = _TAGS_LINE_RE.sub(f"tags: {rendered}", match.group(1), count=1)
+            if new_frontmatter == match.group(1):
+                continue
+
+            with open(md_path, "w", encoding="utf-8") as f:
+                f.write(new_frontmatter + content[match.end():])
+            stats["frontmatter_updated"] += 1
+    return stats
+
+
 def _load_all_cards(academic_hub_root: str) -> list[tuple[str, dict]]:
     """(course, card) for every non-orphaned, embedded card across all
     shards -- what discovery, assignment, and minimum-coverage all
@@ -339,7 +388,9 @@ def retag(
         academic_hub_root, all_cards, updated_tags, client, dry_run=dry_run,
     )
 
+    frontmatter_stats = {}
     if not dry_run:
         save_tags(academic_hub_root, updated_tags)
+        frontmatter_stats = write_tags_to_frontmatter(academic_hub_root)
 
-    return discovery_stats | assignment_stats | coverage_stats
+    return discovery_stats | assignment_stats | coverage_stats | frontmatter_stats

@@ -635,6 +635,32 @@ discovery+assignment this run keeps getting covered; a card that now
 has a real corpus-driven tag is skipped, consistent with §5.3's "tags
 are not permanent."
 
+### 5.5 Frontmatter write-back — real tags visible without the index
+
+Added 2026-08-29, per user request: after a real (non-dry-run) `retag`
+finishes and `tags.json` is saved, `write_tags_to_frontmatter()`
+patches every card's own `.md` file, replacing its frontmatter's
+`tags:` line with that card's current tags from the index — so a
+reader of the raw file sees real tags without needing to consult
+`.index/*.json` separately. Purely local file I/O (read, regex-patch
+one line, write) with no LLM or embedding calls, so it's cheap
+regardless of corpus size.
+
+Reads each card's tags fresh from its shard on disk (not from any
+in-memory card list a caller might pass in) — by the time this runs,
+the shards are the only guaranteed-current source, since
+`ensure_minimum_coverage` (§5.4) writes its fallback assignments
+straight to disk without necessarily updating every in-memory card
+object the caller holds.
+
+Only the `tags:` line changes; every other frontmatter field and the
+entire document body are preserved byte-for-byte. A card whose `.md`
+has no leading `---...---` frontmatter block at all — predates
+frontmatter support in `transcribe_notes.py` entirely, or is a
+textbook's `.rag.md`, which never had one — is skipped rather than
+having a block invented; this function has no source_pdf/routing/model
+metadata to invent one correctly with.
+
 ```python
 def search(
     query: str, course: str | None = None, top_k: int = 5,

@@ -1,10 +1,14 @@
 import json
+import os
 import tempfile
 import unittest
 from unittest.mock import MagicMock
 
 from index_card import load_shard, load_tags, save_shard
-from retag import assign_tags, discover_tags, ensure_minimum_coverage, fuzzy_match_tag, retag
+from retag import (
+    assign_tags, discover_tags, ensure_minimum_coverage, fuzzy_match_tag, retag,
+    write_tags_to_frontmatter,
+)
 
 
 class TestFuzzyMatchTag(unittest.TestCase):
@@ -337,6 +341,75 @@ class TestEnsureMinimumCoverage(unittest.TestCase):
             self.assertEqual(stats["fallback_tags_minted"], 1)
             self.assertEqual(load_shard(tmp, "math-camp")[0]["tags"], [])  # unchanged
             self.assertEqual(load_tags(tmp), [])  # unchanged
+
+
+def _write_md(tmp, rel_path, content):
+    full_path = os.path.join(tmp, rel_path)
+    os.makedirs(os.path.dirname(full_path), exist_ok=True)
+    with open(full_path, "w", encoding="utf-8") as f:
+        f.write(content)
+    return full_path
+
+
+class TestWriteTagsToFrontmatter(unittest.TestCase):
+    def test_patches_the_tags_line_in_place(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            md_path = _write_md(
+                tmp, "notes/a.md",
+                "---\nsource_pdf: a.pdf\nrouting: hybrid\ntags: []\n---\n\nBody content.\n",
+            )
+            save_shard(tmp, "math-camp", [{"file_id": "a", "path": "notes/a.md",
+                                            "tags": ["linear-algebra", "real-analysis"]}])
+            stats = write_tags_to_frontmatter(tmp)
+            self.assertEqual(stats["frontmatter_updated"], 1)
+            with open(md_path, encoding="utf-8") as f:
+                content = f.read()
+            self.assertIn("tags: [linear-algebra, real-analysis]", content)
+            self.assertIn("source_pdf: a.pdf", content)  # other frontmatter fields untouched
+            self.assertIn("routing: hybrid", content)
+            self.assertIn("Body content.", content)  # body untouched
+
+    def test_empty_tags_list_renders_as_empty_brackets(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            md_path = _write_md(tmp, "notes/a.md", "---\ntags: []\n---\n\nBody.\n")
+            save_shard(tmp, "math-camp", [{"file_id": "a", "path": "notes/a.md", "tags": []}])
+            write_tags_to_frontmatter(tmp)
+            with open(md_path, encoding="utf-8") as f:
+                self.assertIn("tags: []", f.read())
+
+    def test_file_with_no_frontmatter_is_skipped_not_invented(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            md_path = _write_md(tmp, "notes/a.md", "<!-- page 1 -->\n\nNo frontmatter here.\n")
+            save_shard(tmp, "math-camp", [{"file_id": "a", "path": "notes/a.md", "tags": ["linear-algebra"]}])
+            stats = write_tags_to_frontmatter(tmp)
+            self.assertEqual(stats["skipped_no_frontmatter"], 1)
+            self.assertEqual(stats["frontmatter_updated"], 0)
+            with open(md_path, encoding="utf-8") as f:
+                self.assertEqual(f.read(), "<!-- page 1 -->\n\nNo frontmatter here.\n")
+
+    def test_already_up_to_date_file_is_not_rewritten(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            md_path = _write_md(tmp, "notes/a.md", "---\ntags: [linear-algebra]\n---\n\nBody.\n")
+            save_shard(tmp, "math-camp", [{"file_id": "a", "path": "notes/a.md", "tags": ["linear-algebra"]}])
+            mtime_before = os.path.getmtime(md_path)
+            stats = write_tags_to_frontmatter(tmp)
+            self.assertEqual(stats["frontmatter_updated"], 0)
+            self.assertEqual(os.path.getmtime(md_path), mtime_before)
+
+    def test_orphaned_card_is_skipped(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            save_shard(tmp, "math-camp", [{"file_id": "a", "path": "notes/a.md",
+                                            "tags": ["linear-algebra"], "orphaned": True}])
+            stats = write_tags_to_frontmatter(tmp)
+            self.assertEqual(stats["frontmatter_updated"], 0)
+            self.assertEqual(stats["skipped_no_frontmatter"], 0)
+
+    def test_missing_md_file_is_skipped_gracefully(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            save_shard(tmp, "math-camp", [{"file_id": "a", "path": "notes/does-not-exist.md",
+                                            "tags": ["linear-algebra"]}])
+            stats = write_tags_to_frontmatter(tmp)  # must not raise
+            self.assertEqual(stats["frontmatter_updated"], 0)
 
 
 if __name__ == "__main__":
