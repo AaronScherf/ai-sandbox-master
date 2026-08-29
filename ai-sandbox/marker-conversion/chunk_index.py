@@ -143,3 +143,15 @@ def _detect_problem_boundaries(body: str) -> list[_Span] | None:
             problem_label=_problem_label_at(body, start),
         ))
     return spans
+
+
+def _split_by_pages(body: str) -> list[_Span]:
+    markers = _page_markers(body)
+    if not markers:
+        return [_Span(start=0, end=len(body), tier="page")]
+
+    spans = []
+    for i, (_, offset) in enumerate(markers):
+        end = markers[i + 1][1] if i + 1 < len(markers) else len(body)
+        spans.append(_Span(start=offset, end=end, tier="page"))
+    return spans

@@ -5,7 +5,7 @@ import unittest
 from chunk_index import (
     chunks_path, load_chunks, save_chunks,
     _page_markers, _strip_front_matter_by_page, _strip_yaml_frontmatter,
-    _Span, _split_by_headings, _detect_problem_boundaries,
+    _Span, _split_by_headings, _detect_problem_boundaries, _split_by_pages,
 )
 
 
@@ -160,6 +160,22 @@ class TestDetectProblemBoundaries(unittest.TestCase):
 
     def test_no_matches_returns_none(self):
         self.assertIsNone(_detect_problem_boundaries("No numbered problems in here."))
+
+
+class TestSplitByPages(unittest.TestCase):
+    def test_one_span_per_page_marker(self):
+        body = "<!-- page 1 -->\n\nFirst.\n\n<!-- page 2 -->\n\nSecond."
+        spans = _split_by_pages(body)
+        self.assertEqual(len(spans), 2)
+        self.assertTrue(all(s.tier == "page" for s in spans))
+        self.assertEqual(body[spans[0].start:spans[0].end], "<!-- page 1 -->\n\nFirst.\n\n")
+
+    def test_no_page_markers_returns_one_span_covering_everything(self):
+        body = "Just some text with nothing structural in it at all."
+        spans = _split_by_pages(body)
+        self.assertEqual(len(spans), 1)
+        self.assertEqual(spans[0].start, 0)
+        self.assertEqual(spans[0].end, len(body))
 
 
 if __name__ == "__main__":
