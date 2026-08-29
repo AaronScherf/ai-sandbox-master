@@ -2,7 +2,15 @@
   {
     "course": "math-camp",
     "title": "Math Camp",
-    "predominant_tags": [],
+    "predominant_tags": [
+      "linear-algebra",
+      "real-analysis",
+      "economics-mathematics",
+      "mathematical-economics",
+      "optimization-theory",
+      "probability-foundations",
+      "probability-theory-notes"
+    ],
     "file_count": 30,
     "embedding": [
       0.005056220968666666,

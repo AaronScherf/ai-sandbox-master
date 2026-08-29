@@ -7,7 +7,9 @@
     "doc_type": "ta_notes",
     "title": "Analysis and Calculus Refresher: Compactness, Continuity, and Differentiability",
     "summary": "These notes provide a rigorous overview of real analysis concepts, focusing on compactness in Euclidean space, the properties of linear operators, and the relationship between differentiability and continuity. The document includes detailed proofs regarding the Lipschitz continuity of linear maps and the sequential characterization of limits.",
-    "tags": [],
+    "tags": [
+      "real-analysis"
+    ],
     "level": "advanced",
     "has_solutions": false,
     "page_count": null,
@@ -794,7 +796,9 @@
     "doc_type": "ta_notes",
     "title": "Probability Lecture Notes: Foundations and Expectations",
     "summary": "These notes cover fundamental concepts in probability theory, including Kolmogorov axioms, conditional probability, Bayes' Rule, and the properties of random variables. They further detail joint distributions, marginal densities, expectation, variance, and the law of iterated expectations.",
-    "tags": [],
+    "tags": [
+      "probability-foundations"
+    ],
     "level": "intermediate",
     "has_solutions": false,
     "page_count": null,
@@ -1581,7 +1585,12 @@
     "doc_type": "problem_set",
     "title": "Analysis: Guided Exercises",
     "summary": "This document contains a series of guided exercises covering fundamental concepts in real analysis, including topology in R^n, compactness, differentiability, and the inverse/implicit function theorems. It is designed to build the mathematical foundation necessary for graduate-level economics.",
-    "tags": [],
+    "tags": [
+      "real-analysis",
+      "optimization-theory",
+      "economics-mathematics",
+      "mathematical-economics"
+    ],
     "level": "advanced",
     "has_solutions": false,
     "page_count": null,
@@ -2368,7 +2377,9 @@
     "doc_type": "problem_set",
     "title": "Linear Algebra: Guided Review and Exercises",
     "summary": "This document provides a comprehensive review of linear algebra topics including linear systems, rank, null space, linear maps, and diagonalization. It includes mini-lectures, practice problems, and detailed handwritten solutions for each section.",
-    "tags": [],
+    "tags": [
+      "linear-algebra"
+    ],
     "level": "intermediate",
     "has_solutions": true,
     "page_count": null,
@@ -3155,7 +3166,9 @@
     "doc_type": "problem_set",
     "title": "Linear Algebra: Guided Review and Exercises",
     "summary": "This document provides a comprehensive review of linear algebra topics, including solving linear systems, rank-nullity, linear maps, and diagonalization. It combines mini-lectures with worked examples and practice problems, including proofs and computational exercises.",
-    "tags": [],
+    "tags": [
+      "linear-algebra"
+    ],
     "level": "intermediate",
     "has_solutions": true,
     "page_count": null,
@@ -3942,7 +3955,10 @@
     "doc_type": "problem_set",
     "title": "PhD Mathematics Camp Comprehensive Practice Sheet",
     "summary": "This document contains a comprehensive collection of 42 practice problems covering linear algebra, topology, differential calculus, and optimization theory. It is designed for independent study and includes theoretical proofs, computational exercises, and conceptual diagnostic questions.",
-    "tags": [],
+    "tags": [
+      "real-analysis",
+      "economics-mathematics"
+    ],
     "level": "advanced",
     "has_solutions": false,
     "page_count": null,
@@ -4729,7 +4745,9 @@
     "doc_type": "problem_set",
     "title": "Real Analysis: Guided Exercises",
     "summary": "This document provides a series of guided exercises covering topology, continuity, compactness, differentiability, and the inverse/implicit function theorems in the context of multivariate calculus. It includes proofs for norm equivalence, properties of open/closed sets, the Extreme Value Theorem, and the uniqueness of the derivative.",
-    "tags": [],
+    "tags": [
+      "real-analysis"
+    ],
     "level": "advanced",
     "has_solutions": true,
     "page_count": null,
@@ -5516,7 +5534,12 @@
     "doc_type": "problem_set",
     "title": "Advanced Mathematical Economics Problem Set with Solutions",
     "summary": "This document contains a comprehensive problem set covering topics in real analysis, linear algebra, and optimization, including metric spaces, matrix diagonalization, homogeneity, and constrained optimization. It provides detailed proofs and worked solutions for the first section of theoretical questions, while outlining subsequent problems related to economic modeling.",
-    "tags": [],
+    "tags": [
+      "real-analysis",
+      "optimization-theory",
+      "economics-mathematics",
+      "mathematical-economics"
+    ],
     "level": "advanced",
     "has_solutions": true,
     "page_count": null,
@@ -6303,7 +6326,11 @@
     "doc_type": "problem_set",
     "title": "Analysis and Linear Algebra Problem Set",
     "summary": "This document contains a collection of advanced mathematics problems covering metric spaces, linear algebra (eigenvalues and spectral decomposition), multivariable calculus (Jacobians and Taylor approximations), and constrained optimization. It includes detailed, step-by-step solutions for several of the problems, particularly those involving the discrete metric and metric space properties.",
-    "tags": [],
+    "tags": [
+      "real-analysis",
+      "linear-algebra",
+      "optimization-theory"
+    ],
     "level": "advanced",
     "has_solutions": true,
     "page_count": null,
@@ -7090,7 +7117,10 @@
     "doc_type": "problem_set",
     "title": "Multivariate Calculus and Linear Algebra Problem Set",
     "summary": "This document contains a collection of practice problems covering multivariate calculus (homogeneity, concavity, implicit function theorem, integration) and linear algebra (subspaces, linear independence, matrix rank, diagonalization). It includes some worked solutions for specific problems, particularly in the sections on partial derivatives and systems of linear equations.",
-    "tags": [],
+    "tags": [
+      "linear-algebra",
+      "economics-mathematics"
+    ],
     "level": "intermediate",
     "has_solutions": true,
     "page_count": null,
@@ -7877,7 +7907,9 @@
     "doc_type": "problem_set",
     "title": "Linear Algebra Problem Set with Solutions",
     "summary": "This document contains a set of linear algebra exercises covering systems of equations, vector subspaces, diagonalization, and matrix definiteness. Each exercise is followed by a detailed, step-by-step solution explaining the underlying mathematical concepts and proofs.",
-    "tags": [],
+    "tags": [
+      "linear-algebra"
+    ],
     "level": "intermediate",
     "has_solutions": true,
     "page_count": null,
@@ -8664,7 +8696,9 @@
     "doc_type": "problem_set",
     "title": "Linear Algebra Problem Set with Solutions",
     "summary": "This document contains a set of four multi-part linear algebra exercises covering systems of equations, vector subspaces, diagonalization of matrices, and matrix definiteness. Each exercise is followed by detailed worked solutions.",
-    "tags": [],
+    "tags": [
+      "linear-algebra"
+    ],
     "level": "intermediate",
     "has_solutions": true,
     "page_count": null,
@@ -9451,7 +9485,9 @@
     "doc_type": "problem_set",
     "title": "Linear Algebra Exercises: Change of Basis, Inner Products, and Projections",
     "summary": "This document contains a set of advanced linear algebra exercises covering change of basis, inner product spaces, and idempotent matrices. It provides detailed step-by-step solutions for exercises on coordinate transformations, Gram-Schmidt orthogonalization, Cholesky decomposition, and properties of projection matrices.",
-    "tags": [],
+    "tags": [
+      "linear-algebra"
+    ],
     "level": "advanced",
     "has_solutions": true,
     "page_count": null,
@@ -10238,7 +10274,9 @@
     "doc_type": "problem_set",
     "title": "Linear Algebra Exercises: Basis, Change of Basis, and Inner Product Spaces",
     "summary": "This document contains a set of linear algebra exercises covering column spaces, kernels, change of basis transformations, and inner product spaces. It includes problem statements followed by detailed solutions for each exercise.",
-    "tags": [],
+    "tags": [
+      "linear-algebra"
+    ],
     "level": "intermediate",
     "has_solutions": true,
     "page_count": null,
@@ -11025,7 +11063,9 @@
     "doc_type": "textbook",
     "title": "PhD Math Camp 2026 Syllabus",
     "summary": "This document outlines the syllabus for the 2026 Columbia University Economics PhD Math Camp. It details the course structure, learning objectives, recommended references, and a comprehensive list of mathematical topics covered, including linear algebra, analysis, calculus, optimization, and probability.",
-    "tags": [],
+    "tags": [
+      "economics-mathematics"
+    ],
     "level": "intermediate",
     "has_solutions": false,
     "page_count": null,
@@ -11812,7 +11852,12 @@
     "doc_type": "textbook",
     "title": "Analysis in Euclidean Spaces",
     "summary": "This document provides a comprehensive introduction to analysis in Euclidean spaces, covering topics such as completeness, convergence, compactness, and differential calculus. It also explores fixed-point theorems, monotone comparative statics, and integration, with a focus on applications in economic modeling.",
-    "tags": [],
+    "tags": [
+      "real-analysis",
+      "optimization-theory",
+      "economics-mathematics",
+      "mathematical-economics"
+    ],
     "level": "advanced",
     "has_solutions": false,
     "page_count": null,
@@ -12599,7 +12644,11 @@
     "doc_type": "textbook",
     "title": "Part III: Optimization, Convexity and Correspondences",
     "summary": "This document provides a comprehensive overview of optimization theory, covering convex geometry, concave functions, and constrained optimization. It also explores the use of fixed-point theorems and correspondences in economic modeling, including the Maximum Theorem and Nash equilibrium existence.",
-    "tags": [],
+    "tags": [
+      "optimization-theory",
+      "economics-mathematics",
+      "mathematical-economics"
+    ],
     "level": "advanced",
     "has_solutions": false,
     "page_count": null,
@@ -13386,7 +13435,9 @@
     "doc_type": "ta_notes",
     "title": "Part IV: Probability Theory",
     "summary": "These lecture notes provide a comprehensive overview of probability theory, covering fundamental concepts from probability spaces and random variables to limit theorems and stochastic processes. The document balances computational methods with measure-theoretic rigor, serving as a foundational text for PhD-level economics students.",
-    "tags": [],
+    "tags": [
+      "probability-theory-notes"
+    ],
     "level": "advanced",
     "has_solutions": false,
     "page_count": null,
@@ -14173,7 +14224,9 @@
     "doc_type": "ta_notes",
     "title": "Linear Algebra: Vector Spaces, Bases, and Linear Maps",
     "summary": "These notes provide a foundational overview of linear algebra, covering vector spaces, subspaces, linear independence, and span. They further explain the concepts of basis, change of basis matrices, and the representation of linear maps as matrices between vector spaces.",
-    "tags": [],
+    "tags": [
+      "linear-algebra"
+    ],
     "level": "intermediate",
     "has_solutions": false,
     "page_count": null,
@@ -14960,7 +15013,9 @@
     "doc_type": "ta_notes",
     "title": "Linear Algebra: Rank, Change of Basis, and Determinants",
     "summary": "These notes cover fundamental concepts in linear algebra, including the Rank-Nullity Theorem, invariant subspaces, and the mechanics of changing bases for linear transformations. The document also explores the distinction between matrix equivalence and similarity, the properties of direct sums of subspaces, and the geometric interpretation of determinants.",
-    "tags": [],
+    "tags": [
+      "linear-algebra"
+    ],
     "level": "intermediate",
     "has_solutions": false,
     "page_count": null,
@@ -15747,7 +15802,9 @@
     "doc_type": "ta_notes",
     "title": "Linear Algebra: Invariant Subspaces, Eigenvalues, and Inner Product Spaces",
     "summary": "These notes cover fundamental concepts in linear algebra, including invariant subspaces, eigenvalues, eigenvectors, and the process of diagonalization. The document also introduces inner product spaces, defining norms, orthogonality, and the Cauchy-Schwarz inequality.",
-    "tags": [],
+    "tags": [
+      "linear-algebra"
+    ],
     "level": "intermediate",
     "has_solutions": false,
     "page_count": null,
@@ -16534,7 +16591,9 @@
     "doc_type": "ta_notes",
     "title": "Linear Algebra: Spectral Theorem and Quadratic Forms",
     "summary": "These notes cover advanced linear algebra topics including the Cauchy-Schwarz inequality, the Gram-Schmidt process for orthonormal bases, and the Spectral Theorem for real symmetric matrices. It further explores the application of the Spectral Theorem to quadratic forms and the use of principal minor criteria to determine matrix definiteness.",
-    "tags": [],
+    "tags": [
+      "linear-algebra"
+    ],
     "level": "advanced",
     "has_solutions": false,
     "page_count": null,
@@ -17321,7 +17380,9 @@
     "doc_type": "ta_notes",
     "title": "Analysis in Euclidean Spaces: Bounds, Completeness, and Convergence",
     "summary": "These notes cover fundamental concepts in real analysis, specifically focusing on the completeness of the real numbers, supremum and infimum definitions, and the Archimedean property. The document also introduces norms, metrics, and the definition of sequence convergence in Euclidean space.",
-    "tags": [],
+    "tags": [
+      "real-analysis"
+    ],
     "level": "intermediate",
     "has_solutions": false,
     "page_count": null,
@@ -18108,7 +18169,9 @@
     "doc_type": "ta_notes",
     "title": "Analysis in Euclidean Spaces: Sequences, Topology, and Continuity",
     "summary": "These notes cover fundamental concepts in real analysis within Euclidean spaces, including sequence convergence, point-set topology (open/closed sets, compactness), and the continuity of mappings. It includes formal definitions, proofs for properties of limits, and the topological characterization of continuous functions.",
-    "tags": [],
+    "tags": [
+      "real-analysis"
+    ],
     "level": "intermediate",
     "has_solutions": false,
     "page_count": null,
@@ -18895,7 +18958,9 @@
     "doc_type": "textbook",
     "title": "Linear Algebra Done Right",
     "summary": "This is a comprehensive mathematics textbook focused on abstract vector spaces and linear maps, intended for students who have had a previous introductory exposure to the subject. It emphasizes deep conceptual understanding through rigorous definitions, theorems, and proofs, notably avoiding the use of determinants until the final chapters.",
-    "tags": [],
+    "tags": [
+      "linear-algebra"
+    ],
     "level": "intermediate",
     "has_solutions": false,
     "page_count": 404,
@@ -19682,7 +19747,9 @@
     "doc_type": "textbook",
     "title": "Book of Proof",
     "summary": "This textbook provides a comprehensive introduction to mathematical proof techniques, covering fundamental topics such as set theory, logic, counting, and various methods of proof including induction and contradiction. It is designed for undergraduate mathematics students to transition from computational mathematics to rigorous proof-based reasoning.",
-    "tags": [],
+    "tags": [
+      "real-analysis"
+    ],
     "level": "introductory",
     "has_solutions": true,
     "page_count": 380,
@@ -20469,7 +20536,9 @@
     "doc_type": "textbook",
     "title": "Principles of Mathematical Analysis",
     "summary": "This is a classic undergraduate-level textbook on real analysis by Walter Rudin. It covers fundamental topics including the real and complex number systems, topology, sequences and series, differentiation, integration, and the Lebesgue theory.",
-    "tags": [],
+    "tags": [
+      "real-analysis"
+    ],
     "level": "advanced",
     "has_solutions": false,
     "page_count": 594,
@@ -21256,7 +21325,11 @@
     "doc_type": "textbook",
     "title": "Mathematics for Economists",
     "summary": "This document is the table of contents and introductory material for a comprehensive textbook on mathematical methods used in economic theory. It covers foundational topics including one-variable calculus, linear algebra, and the calculus of several variables, with specific applications to economic models.",
-    "tags": [],
+    "tags": [
+      "real-analysis",
+      "economics-mathematics",
+      "mathematical-economics"
+    ],
     "level": "intermediate",
     "has_solutions": false,
     "page_count": 899,
@@ -22043,7 +22116,10 @@
     "doc_type": "textbook",
     "title": "Essential Mathematics for Economic Analysis",
     "summary": "This document is the front matter and table of contents for the fourth edition of a comprehensive mathematics textbook designed for economics students. It outlines the foundational algebraic, functional, and logical topics covered in the text, ranging from basic arithmetic to advanced mathematical modeling.",
-    "tags": [],
+    "tags": [
+      "economics-mathematics",
+      "mathematical-economics"
+    ],
     "level": "intermediate",
     "has_solutions": false,
     "page_count": 766,
@@ -22830,7 +22906,9 @@
     "doc_type": "ta_notes",
     "title": "Part I: Linear Algebra (2026 PhD Math Camp)",
     "summary": "These lecture notes provide a comprehensive overview of linear algebra, covering vector spaces, linear maps, matrices, rank, determinants, eigenvalues, and inner product spaces. The document emphasizes the structural relationship between abstract linear maps and their coordinate-based matrix representations.",
-    "tags": [],
+    "tags": [
+      "linear-algebra"
+    ],
     "level": "intermediate",
     "has_solutions": false,
     "page_count": null,
