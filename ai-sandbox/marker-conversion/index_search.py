@@ -45,6 +45,7 @@ class SearchResult:
     doc_type: str
     score: float
     reason: str
+    file_id: str
 
 
 def _embed_query(query: str, client) -> list[float]:
@@ -94,7 +95,7 @@ def search(
             result_path = card.get("rag_md_path") or card["path"]
             scored.append(SearchResult(
                 path=result_path, course=card["course"], doc_type=card["doc_type"],
-                score=score, reason=card.get("summary", ""),
+                score=score, reason=card.get("summary", ""), file_id=card["file_id"],
             ))
 
     scored.sort(key=lambda r: r.score, reverse=True)

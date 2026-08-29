@@ -444,6 +444,13 @@ class TestSearch(unittest.TestCase):
             results = search(tmp, "q", client=_fake_query_client([1.0, 0.0]), top_k=3)
             self.assertEqual(len(results), 3)
 
+    def test_result_carries_file_id(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            save_shard(tmp, "math-camp", [_card("xyz789", [1.0, 0.0])])
+            recompute_course_entry(tmp, "math-camp")
+            results = search(tmp, "query", client=_fake_query_client([1.0, 0.0]))
+            self.assertEqual(results[0].file_id, "xyz789")
+
     def test_doc_type_filter_applies_before_truncation(self):
         with tempfile.TemporaryDirectory() as tmp:
             cards = [_card(f"p{i}", [1.0, 0.0], doc_type="problem_set") for i in range(5)]
