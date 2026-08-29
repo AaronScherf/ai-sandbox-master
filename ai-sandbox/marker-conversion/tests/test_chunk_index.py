@@ -1,13 +1,16 @@
 import os
 import tempfile
 import unittest
+from unittest.mock import MagicMock
+
+from index_card import save_shard
 
 from chunk_index import (
     chunks_path, load_chunks, save_chunks,
     _page_markers, _strip_front_matter_by_page, _strip_yaml_frontmatter,
     _Span, _split_by_headings, _detect_problem_boundaries, _split_by_pages,
     _CHUNK_MAX_CHARS, _subdivide_oversized, _page_range_for_span, _finalize_chunks,
-    chunk_file,
+    chunk_file, _folder_category_from_path, generate_chunks_for_file,
 )
 
 
@@ -301,6 +304,128 @@ class TestChunkFile(unittest.TestCase):
         chunks = chunk_file(text, doc_type="ta_notes", folder_category="ta_notes", front_matter_end=14)
         all_text = " ".join(c["text"] for c in chunks)
         self.assertIn("real notes content", all_text)
+
+
+class TestFolderCategoryFromPath(unittest.TestCase):
+    def test_notes_path(self):
+        path = "academic_notes/math-camp/recitation_slides/processed_outputs/a.md"
+        self.assertEqual(_folder_category_from_path(path), "recitation_slides")
+
+    def test_textbook_path(self):
+        path = "academic_resources/math-camp/textbooks-and-papers/processed_outputs/Axler/Axler.rag.md"
+        self.assertEqual(_folder_category_from_path(path), "textbooks-and-papers")
+
+    def test_path_with_no_processed_outputs_segment_returns_empty_string(self):
+        self.assertEqual(_folder_category_from_path("weird/path.md"), "")
+
+
+def _fake_embed_client(dim=3):
+    client = MagicMock()
+    def embed_content(model, contents, config):
+        response = MagicMock()
+        embedding = MagicMock()
+        embedding.values = [0.1] * dim
+        response.embeddings = [embedding]
+        return response
+    client.models.embed_content.side_effect = embed_content
+    return client
+
+
+def _write_notes_md(tmp, rel_path, content):
+    full_path = os.path.join(tmp, rel_path)
+    os.makedirs(os.path.dirname(full_path), exist_ok=True)
+    with open(full_path, "w", encoding="utf-8") as f:
+        f.write(content)
+    return full_path
+
+
+_A_MD = "academic_notes/math-camp/ta_notes/processed_outputs/a.md"
+_B_MD = "academic_notes/math-camp/ta_notes/processed_outputs/b.md"
+
+# Deliberately >> _CHUNK_MIN_CHARS (80) on its own, so a heading + this
+# sentence always clears the minimum-length filter regardless of heading
+# text length -- avoids the exact fixture-too-short mistake this task's
+# tests hit on the first pass (fixed here, not worked around).
+_LONG = "This section has plenty of real content in it, well over the eighty character minimum length threshold for sure."
+
+
+def _two_section_doc(word_a="First", word_b="Second"):
+    return f"# One\n\n{word_a}. {_LONG}\n\n# Two\n\n{word_b}. {_LONG}"
+
+
+class TestGenerateChunksForFile(unittest.TestCase):
+    def test_writes_chunks_for_a_new_file(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            _write_notes_md(tmp, _A_MD, _two_section_doc())
+            card = {"file_id": "abc123", "path": _A_MD, "doc_type": "ta_notes", "content_hash": "hash1"}
+            client = _fake_embed_client()
+            stats = generate_chunks_for_file(tmp, "math-camp", card, client)
+            self.assertEqual(stats["chunks_written"], 2)
+            chunks = load_chunks(tmp, "math-camp")
+            self.assertEqual(len(chunks), 2)
+            self.assertEqual(chunks[0]["file_id"], "abc123")
+            self.assertEqual(chunks[0]["chunk_id"], "abc123-000")
+            self.assertEqual(chunks[0]["content_hash"], "hash1")
+            self.assertEqual(chunks[0]["embedding"], [0.1, 0.1, 0.1])
+
+    def test_up_to_date_chunks_are_skipped_without_calling_the_api(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            _write_notes_md(tmp, _A_MD, _two_section_doc())
+            card = {"file_id": "abc123", "path": _A_MD, "doc_type": "ta_notes", "content_hash": "hash1"}
+            client = _fake_embed_client()
+            generate_chunks_for_file(tmp, "math-camp", card, client)
+            client.models.embed_content.reset_mock()
+
+            stats = generate_chunks_for_file(tmp, "math-camp", card, client)
+            self.assertEqual(stats["chunks_written"], 0)
+            client.models.embed_content.assert_not_called()
+
+    def test_stale_content_hash_regenerates_all_chunks_for_that_file(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            md_path = _write_notes_md(tmp, _A_MD, _two_section_doc())
+            card = {"file_id": "abc123", "path": _A_MD, "doc_type": "ta_notes", "content_hash": "hash1"}
+            client = _fake_embed_client()
+            generate_chunks_for_file(tmp, "math-camp", card, client)
+
+            with open(md_path, "w", encoding="utf-8") as f:
+                f.write(f"# One\n\nDifferent first. {_LONG}\n\n# Two\n\nDifferent second. {_LONG}\n\n# Three\n\nA new third section. {_LONG}")
+            card["content_hash"] = "hash2"
+            stats = generate_chunks_for_file(tmp, "math-camp", card, client)
+            self.assertEqual(stats["chunks_written"], 3)
+            chunks = load_chunks(tmp, "math-camp")
+            self.assertEqual(len(chunks), 3)  # old 2 replaced, not appended to
+            self.assertTrue(all(c["content_hash"] == "hash2" for c in chunks))
+
+    def test_other_files_chunks_are_left_untouched(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            _write_notes_md(tmp, _A_MD, _two_section_doc())
+            _write_notes_md(tmp, _B_MD, _two_section_doc("Third", "Fourth"))
+            client = _fake_embed_client()
+            generate_chunks_for_file(tmp, "math-camp",
+                {"file_id": "aaa", "path": _A_MD, "doc_type": "ta_notes", "content_hash": "h1"}, client)
+            generate_chunks_for_file(tmp, "math-camp",
+                {"file_id": "bbb", "path": _B_MD, "doc_type": "ta_notes", "content_hash": "h2"}, client)
+            file_ids = {c["file_id"] for c in load_chunks(tmp, "math-camp")}
+            self.assertEqual(file_ids, {"aaa", "bbb"})
+
+    def test_embedding_failure_leaves_existing_chunks_untouched(self):
+        # Atomicity (spec §5): a partial failure must not leave a
+        # half-updated, inconsistent chunk set for this file.
+        with tempfile.TemporaryDirectory() as tmp:
+            md_path = _write_notes_md(tmp, _A_MD, _two_section_doc())
+            card = {"file_id": "abc123", "path": _A_MD, "doc_type": "ta_notes", "content_hash": "hash1"}
+            good_client = _fake_embed_client()
+            generate_chunks_for_file(tmp, "math-camp", card, good_client)
+            original = load_chunks(tmp, "math-camp")
+
+            with open(md_path, "w", encoding="utf-8") as f:
+                f.write(_two_section_doc("Rewritten", "Also rewritten"))
+            card["content_hash"] = "hash2"
+            bad_client = MagicMock()
+            bad_client.models.embed_content.side_effect = RuntimeError("quota exceeded")
+            with self.assertRaises(RuntimeError):
+                generate_chunks_for_file(tmp, "math-camp", card, bad_client)
+            self.assertEqual(load_chunks(tmp, "math-camp"), original)
 
 
 if __name__ == "__main__":

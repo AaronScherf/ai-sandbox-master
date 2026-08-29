@@ -20,6 +20,11 @@ import os
 import re
 from dataclasses import dataclass
 
+from google.genai import types
+
+from gemini_utils import call_with_retries
+from index_card import EMBEDDING_DIMENSIONALITY, EMBEDDING_MODEL, EMBEDDING_MODEL_ID
+
 
 def chunks_dir(academic_hub_root: str) -> str:
     return os.path.join(academic_hub_root, ".index", "chunks")
@@ -255,3 +260,78 @@ def chunk_file(
 
     spans = _subdivide_oversized(spans, body)
     return _finalize_chunks(spans, body)
+
+
+def _folder_category_from_path(path: str) -> str:
+    """The literal folder segment two levels up from processed_outputs/
+    (e.g. "recitation_slides", "textbooks-and-papers") -- cards don't
+    store this directly (only the LLM-classified doc_type, a separate,
+    imperfect signal), so it's re-derived from the path exactly the way
+    index_search.py's rebuild() computes it when a file is first
+    discovered. Card paths are always stored with "/" separators
+    regardless of OS."""
+    parts = path.split("/")
+    if "processed_outputs" not in parts:
+        return ""
+    idx = parts.index("processed_outputs")
+    return parts[idx - 1] if idx >= 1 else ""
+
+
+def _embed_chunk_text(client, text: str) -> list[float]:
+    response = client.models.embed_content(
+        model=EMBEDDING_MODEL, contents=text,
+        config=types.EmbedContentConfig(output_dimensionality=EMBEDDING_DIMENSIONALITY),
+    )
+    return list(response.embeddings[0].values)
+
+
+def generate_chunks_for_file(academic_hub_root: str, course: str, card: dict, client) -> dict:
+    """Chunk + embed one file's content, atomically (spec §5): parses
+    structure locally first (no API cost via chunk_file()), then embeds
+    every resulting chunk one at a time through call_with_retries (each
+    call already retried/backed-off independently -- if any single
+    chunk's embedding call ultimately fails after retries, the whole
+    file's update is abandoned before anything is written, so a partial
+    failure never leaves a half-updated, inconsistent set for this file
+    in .index/chunks/<course>.json). Skips entirely (no API calls at
+    all) when the file's chunks are already up to date with its current
+    content_hash."""
+    file_id = card["file_id"]
+    existing = load_chunks(academic_hub_root, course)
+    current_for_file = [c for c in existing if c["file_id"] == file_id]
+    if current_for_file and all(c["content_hash"] == card["content_hash"] for c in current_for_file):
+        return {"chunks_written": 0}
+
+    md_path = os.path.join(academic_hub_root, card["path"])
+    with open(md_path, "r", encoding="utf-8") as f:
+        text = f.read()
+
+    front_matter_end = None
+    if card["doc_type"] == "textbook":
+        from describe_images import load_front_matter_end
+        book_dir = os.path.dirname(md_path)
+        front_matter_end = load_front_matter_end(book_dir)
+
+    folder_category = _folder_category_from_path(card["path"])
+    raw_chunks = chunk_file(text, card["doc_type"], folder_category, front_matter_end)
+
+    new_chunks = []
+    for i, raw in enumerate(raw_chunks):
+        embedding = call_with_retries(lambda t=raw["text"]: _embed_chunk_text(client, t))
+        new_chunks.append({
+            "chunk_id": f"{file_id}-{i:03d}",
+            "file_id": file_id,
+            "chunk_index": i,
+            "tier": raw["tier"],
+            "heading_path": raw["heading_path"],
+            "problem_label": raw["problem_label"],
+            "page_range": raw["page_range"],
+            "text": raw["text"],
+            "embedding": embedding,
+            "embedding_model": EMBEDDING_MODEL_ID,
+            "content_hash": card["content_hash"],
+        })
+
+    remaining = [c for c in existing if c["file_id"] != file_id]
+    save_chunks(academic_hub_root, course, remaining + new_chunks)
+    return {"chunks_written": len(new_chunks)}
