@@ -18,6 +18,7 @@ from __future__ import annotations
 import json
 import os
 import re
+from dataclasses import dataclass
 
 
 def chunks_dir(academic_hub_root: str) -> str:
@@ -68,3 +69,42 @@ def _strip_front_matter_by_page(body: str, front_matter_end: int) -> str:
         if page > front_matter_end:
             return body[offset:]
     return body  # nothing past the boundary was found -- keep everything
+
+
+@dataclass
+class _Span:
+    start: int
+    end: int
+    tier: str
+    heading_path: list[str] | None = None
+    problem_label: str | None = None
+
+
+_HEADING_RE = re.compile(r"(?m)^(#{1,6})\s+(.*)$")
+_MIN_HEADING_MATCHES = 2  # confirmed live: old_exam_2021.md has exactly 1
+# real heading in 22 pages -- not real document structure. 2+ is the
+# floor for "this file is actually organized into headed sections."
+
+
+def _split_by_headings(body: str) -> list[_Span] | None:
+    matches = list(_HEADING_RE.finditer(body))
+    if len(matches) < _MIN_HEADING_MATCHES:
+        return None
+
+    spans = []
+    stack: list[tuple[int, str]] = []  # (heading level, heading text)
+    for i, m in enumerate(matches):
+        level = len(m.group(1))
+        heading_text = m.group(2).strip()
+        start = m.start()
+        end = matches[i + 1].start() if i + 1 < len(matches) else len(body)
+
+        while stack and stack[-1][0] >= level:
+            stack.pop()
+        stack.append((level, heading_text))
+
+        spans.append(_Span(
+            start=start, end=end, tier="heading",
+            heading_path=[h for _, h in stack],
+        ))
+    return spans

@@ -5,6 +5,7 @@ import unittest
 from chunk_index import (
     chunks_path, load_chunks, save_chunks,
     _page_markers, _strip_front_matter_by_page, _strip_yaml_frontmatter,
+    _Span, _split_by_headings,
 )
 
 
@@ -67,6 +68,51 @@ class TestPageMarkers(unittest.TestCase):
 
     def test_no_markers_returns_empty_list(self):
         self.assertEqual(_page_markers("no markers here"), [])
+
+
+class TestSplitByHeadings(unittest.TestCase):
+    def test_splits_at_each_heading_with_correct_spans(self):
+        body = "# One\n\nFirst section.\n\n# Two\n\nSecond section."
+        spans = _split_by_headings(body)
+        self.assertEqual(len(spans), 2)
+        self.assertEqual(body[spans[0].start:spans[0].end], "# One\n\nFirst section.\n\n")
+        self.assertEqual(body[spans[1].start:spans[1].end], "# Two\n\nSecond section.")
+
+    def test_nested_headings_build_a_heading_path(self):
+        body = (
+            "# 3 Optimization in Euclidean Space\n\nIntro.\n\n"
+            "## 3.7 Optimization over a Convex Set\n\nContent."
+        )
+        spans = _split_by_headings(body)
+        self.assertEqual(spans[0].heading_path, ["3 Optimization in Euclidean Space"])
+        self.assertEqual(
+            spans[1].heading_path,
+            ["3 Optimization in Euclidean Space", "3.7 Optimization over a Convex Set"],
+        )
+
+    def test_sibling_after_deeper_heading_pops_the_stack(self):
+        body = (
+            "# One\n\nA.\n\n## One point one\n\nB.\n\n# Two\n\nC."
+        )
+        spans = _split_by_headings(body)
+        # "Two" is a sibling of "One", not nested under "One point one"
+        self.assertEqual(spans[2].heading_path, ["Two"])
+
+    def test_every_span_tagged_with_heading_tier(self):
+        body = "# One\n\nA.\n\n# Two\n\nB."
+        spans = _split_by_headings(body)
+        self.assertTrue(all(s.tier == "heading" for s in spans))
+        self.assertTrue(all(s.problem_label is None for s in spans))
+
+    def test_too_few_headings_returns_none(self):
+        # Confirmed live: old_exam_2021.md has exactly 1 heading in a
+        # 22-page document -- not real structure, must fall through to
+        # the next tier rather than produce one giant "chunk".
+        body = "Some text.\n\n### Standard Counterexamples\n\nMore text."
+        self.assertIsNone(_split_by_headings(body))
+
+    def test_no_headings_returns_none(self):
+        self.assertIsNone(_split_by_headings("Just plain text, no headings at all."))
 
 
 if __name__ == "__main__":
