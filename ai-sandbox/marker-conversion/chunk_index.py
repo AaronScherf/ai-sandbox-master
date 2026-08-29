@@ -155,3 +155,75 @@ def _split_by_pages(body: str) -> list[_Span]:
         end = markers[i + 1][1] if i + 1 < len(markers) else len(body)
         spans.append(_Span(start=offset, end=end, tier="page"))
     return spans
+
+
+_CHUNK_MAX_CHARS = 3000  # confirmed live against LN_Optimization.md's 112 real
+# sections: median 678 chars, p90 1,937, but a real max of 34,054 -- this
+# sits above the real p90 (rarely fires on well-structured content) while
+# firmly bounding the outlier tail.
+_CHUNK_MIN_CHARS = 80  # drops a heading immediately followed by another
+# heading with no real content between them -- noise, not retrievable content.
+
+_PARAGRAPH_BREAK_RE = re.compile(r"\n\s*\n")
+
+
+def _subdivide_oversized(spans: list[_Span], body: str) -> list[_Span]:
+    result = []
+    for span in spans:
+        if span.end - span.start <= _CHUNK_MAX_CHARS:
+            result.append(span)
+            continue
+        result.extend(_split_span_by_paragraph(span, body))
+    return result
+
+
+def _split_span_by_paragraph(span: _Span, body: str) -> list[_Span]:
+    """Greedily fills each sub-span up to _CHUNK_MAX_CHARS, cutting only
+    at blank-line paragraph breaks -- the one structural boundary
+    guaranteed to exist regardless of which tier produced the oversized
+    span (a lettered sub-part like "(a)"/"(b)" is itself normally
+    paragraph-separated already, so this one rule covers both cases
+    without separate sub-part-detection logic)."""
+    text = body[span.start:span.end]
+    break_ends = [0] + [m.end() for m in _PARAGRAPH_BREAK_RE.finditer(text)] + [len(text)]
+
+    boundaries = [break_ends[0]]
+    chunk_start = break_ends[0]
+    for i in range(1, len(break_ends)):
+        if break_ends[i] - chunk_start > _CHUNK_MAX_CHARS and break_ends[i - 1] > chunk_start:
+            boundaries.append(break_ends[i - 1])
+            chunk_start = break_ends[i - 1]
+    boundaries.append(break_ends[-1])
+
+    return [
+        _Span(
+            start=span.start + boundaries[i], end=span.start + boundaries[i + 1],
+            tier=span.tier, heading_path=span.heading_path, problem_label=span.problem_label,
+        )
+        for i in range(len(boundaries) - 1)
+    ]
+
+
+def _page_range_for_span(start: int, end: int, markers: list[tuple[int, int]]) -> list[int] | None:
+    in_span = [page for page, offset in markers if start <= offset < end]
+    if in_span:
+        return [min(in_span), max(in_span)]
+    before = [page for page, offset in markers if offset <= start]
+    return [before[-1], before[-1]] if before else None
+
+
+def _finalize_chunks(spans: list[_Span], body: str) -> list[dict]:
+    markers = _page_markers(body)
+    result = []
+    for span in spans:
+        text = body[span.start:span.end].strip()
+        if len(text) < _CHUNK_MIN_CHARS:
+            continue
+        result.append({
+            "text": text,
+            "tier": span.tier,
+            "heading_path": span.heading_path,
+            "problem_label": span.problem_label,
+            "page_range": _page_range_for_span(span.start, span.end, markers),
+        })
+    return result

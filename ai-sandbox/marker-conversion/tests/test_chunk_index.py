@@ -6,6 +6,7 @@ from chunk_index import (
     chunks_path, load_chunks, save_chunks,
     _page_markers, _strip_front_matter_by_page, _strip_yaml_frontmatter,
     _Span, _split_by_headings, _detect_problem_boundaries, _split_by_pages,
+    _CHUNK_MAX_CHARS, _subdivide_oversized, _page_range_for_span, _finalize_chunks,
 )
 
 
@@ -176,6 +177,69 @@ class TestSplitByPages(unittest.TestCase):
         self.assertEqual(len(spans), 1)
         self.assertEqual(spans[0].start, 0)
         self.assertEqual(spans[0].end, len(body))
+
+
+class TestSubdivideOversized(unittest.TestCase):
+    def test_span_under_the_cap_is_untouched(self):
+        body = "# One\n\n" + ("x" * 100)
+        spans = [_Span(0, len(body), "heading", heading_path=["One"])]
+        result = _subdivide_oversized(spans, body)
+        self.assertEqual(result, spans)
+
+    def test_oversized_span_splits_at_paragraph_breaks(self):
+        # Confirmed live: LN_Optimization.md has a real 34,054-char
+        # section with no sub-headings -- must not become one giant chunk.
+        paragraph = "x" * 1500
+        body = f"{paragraph}\n\n{paragraph}\n\n{paragraph}"  # ~4500 chars, 3 paragraphs
+        spans = [_Span(0, len(body), "heading", heading_path=["Big Section"])]
+        result = _subdivide_oversized(spans, body)
+        self.assertGreater(len(result), 1)
+        for s in result:
+            self.assertLessEqual(s.end - s.start, _CHUNK_MAX_CHARS)
+            self.assertEqual(s.heading_path, ["Big Section"])  # metadata carried through
+
+    def test_oversized_span_with_no_paragraph_breaks_stays_one_span(self):
+        # No structural boundary to split at -- can't manufacture one,
+        # so the size cap is a best-effort, not an absolute guarantee.
+        body = "x" * (_CHUNK_MAX_CHARS + 500)
+        spans = [_Span(0, len(body), "page")]
+        result = _subdivide_oversized(spans, body)
+        self.assertEqual(len(result), 1)
+
+
+class TestPageRangeForSpan(unittest.TestCase):
+    def test_span_spanning_multiple_pages(self):
+        body = "<!-- page 44 -->\n\nA.\n\n<!-- page 45 -->\n\nB."
+        markers = _page_markers(body)
+        self.assertEqual(_page_range_for_span(0, len(body), markers), [44, 45])
+
+    def test_span_starting_mid_page_uses_preceding_marker(self):
+        body = "<!-- page 44 -->\n\nA.\n\nB."
+        markers = _page_markers(body)
+        mid_start = body.index("B.")
+        self.assertEqual(_page_range_for_span(mid_start, len(body), markers), [44, 44])
+
+    def test_no_markers_at_all_returns_none(self):
+        self.assertEqual(_page_range_for_span(0, 10, []), None)
+
+
+class TestFinalizeChunks(unittest.TestCase):
+    def test_extracts_text_and_attaches_page_range(self):
+        body = "<!-- page 1 -->\n\n# One\n\nReal content here, long enough to clear the minimum length filter and be kept."
+        spans = [_Span(body.index("# One"), len(body), "heading", heading_path=["One"])]
+        chunks = _finalize_chunks(spans, body)
+        self.assertEqual(len(chunks), 1)
+        self.assertIn("Real content here", chunks[0]["text"])
+        self.assertEqual(chunks[0]["page_range"], [1, 1])
+        self.assertEqual(chunks[0]["heading_path"], ["One"])
+        self.assertIsNone(chunks[0]["problem_label"])
+
+    def test_drops_chunks_under_the_minimum_length(self):
+        body = "# One\n\n# Two\n\nReal content, long enough to clear the minimum length filter of 80 characters easily."
+        spans = _split_by_headings(body)  # "# One" section is empty -- just the heading itself
+        chunks = _finalize_chunks(spans, body)
+        self.assertEqual(len(chunks), 1)
+        self.assertIn("Two", chunks[0]["heading_path"])
 
 
 if __name__ == "__main__":
