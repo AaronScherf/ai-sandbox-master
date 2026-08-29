@@ -5,7 +5,7 @@ import time
 import unittest
 from unittest.mock import MagicMock
 
-from index_card import load_courses, load_shard, save_shard, recompute_course_entry
+from index_card import load_courses, load_shard, load_tags, save_shard, save_tags, recompute_course_entry
 from index_search import _is_stale, build_arg_parser, rebuild, search
 
 
@@ -203,6 +203,24 @@ class TestRebuild(unittest.TestCase):
             stats = rebuild(tmp, client=_fake_client())
             self.assertEqual(stats["orphaned"], 1)
             self.assertTrue(load_shard(tmp, "math-camp")[0]["orphaned"])
+
+    def test_rebuild_never_touches_tags_json(self):
+        # Real bug, caught live: _flag_or_prune_orphans excluded the old
+        # pre-rename filename "topics.json" instead of "tags.json"
+        # (spec's topics -> tags rename), so every rebuild treated the
+        # tag vocabulary as a course shard of file-cards -- stamping a
+        # meaningless orphaned: True onto every tag entry (harmless by
+        # itself, since nothing reads it), and would silently delete the
+        # entire tag vocabulary the first time anyone ran
+        # `rebuild --prune`, since a tag entry never has a file_id and so
+        # can never be "seen".
+        with tempfile.TemporaryDirectory() as tmp:
+            _make_notes_pdf(tmp, "math-camp", "ta_notes", "LN_Analysis")
+            save_tags(tmp, [{"tag": "real-analysis", "embedding": [1.0, 0.0]}])
+            rebuild(tmp, client=_fake_client())
+            tags = load_tags(tmp)
+            self.assertEqual(len(tags), 1)
+            self.assertNotIn("orphaned", tags[0])
 
     def test_prune_removes_confirmed_orphans_and_rolls_back_rollup(self):
         with tempfile.TemporaryDirectory() as tmp:

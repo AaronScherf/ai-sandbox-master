@@ -293,7 +293,7 @@ def _flag_or_prune_orphans(academic_hub_root, seen_file_ids, course_filter, prun
     if not os.path.isdir(index_dir):
         return
     for name in sorted(os.listdir(index_dir)):
-        if not name.endswith(".json") or name in ("courses.json", "topics.json"):
+        if not name.endswith(".json") or name in ("courses.json", "tags.json"):
             continue
         shard_course = name[:-len(".json")]
         if course_filter and shard_course != course_filter:
