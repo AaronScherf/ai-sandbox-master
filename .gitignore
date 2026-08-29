@@ -6,9 +6,10 @@ ai-sandbox/personal-website/
 # individual files back out of a fully-excluded directory tree is a known
 # git gitignore pitfall -- a parent directory match blocks descent into it
 # regardless of later "!" rules on files inside). Everything else under
-# academic-hub -- scripts, the source-indexer's .index/, per-book
-# _metadata.json, _image_descriptions.json, marker's run_config.json --
-# is a derivative, not a reproduction of the full text, and stays tracked.
+# academic-hub -- scripts, the source-indexer's file-level .index/ cards,
+# per-book _metadata.json, _image_descriptions.json, marker's
+# run_config.json -- is a derivative (titles/summaries/tags, not the
+# original prose), not a reproduction of the full text, and stays tracked.
 ai-sandbox/academic-hub/**/*.pdf
 ai-sandbox/academic-hub/**/*.md
 ai-sandbox/academic-hub/**/images/
@@ -17,3 +18,12 @@ ai-sandbox/academic-hub/**/*_pages_cache.json
 # treated the same as the source PDFs, not tracked.
 ai-sandbox/academic-hub/**/*.one
 ai-sandbox/academic-hub/**/*.onetoc2
+# Passage-level chunks (.index/chunks/) are NOT the same category as the
+# file-level cards above -- each chunk stores verbatim excerpted text
+# from the source (up to ~3000 chars) plus a dense per-passage embedding
+# of that exact text, not an LLM-authored summary. That's a direct
+# reproduction of copyrighted material, not a derivative description of
+# it -- confirmed live this repo is public on GitHub, so this stays
+# local-only and regenerable via `index_search.py chunk` rather than
+# tracked (spec: docs/superpowers/specs/2026-08-29-passage-embeddings-design.md).
+ai-sandbox/academic-hub/.index/chunks/
