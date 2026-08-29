@@ -28,6 +28,18 @@ textbooks. At a ~2000-3000 char chunk target this is roughly
 requirement here, not an optimization, and this will keep scaling with
 textbook count specifically as the corpus grows.
 
+**Cost, confirmed against Google's own pricing page (2026-08-29):**
+`gemini-embedding-001` is $0.15/1M input tokens at the standard paid
+rate ($0.075/1M via Gemini's separate async Batch API -- a different,
+not-yet-designed-for execution mode; the "batched calls" in §5 reduce
+call *count*/latency risk, not the per-token price). At ~4 chars/token
+(a standard estimate, not a measured token count), 8.8MB of content is
+roughly 2.2M tokens -- **under $1 for the whole current corpus** (~$0.33
+standard, ~$0.17 batch), regardless of exact chunk count, since pricing
+is purely per-token. Cheap enough that cost isn't a reason to stage the
+rollout; it would take roughly 300x today's corpus size before this
+becomes a real budget line.
+
 ## 2. Architecture
 
 A new module, `chunk_index.py`, deliberately separate from
