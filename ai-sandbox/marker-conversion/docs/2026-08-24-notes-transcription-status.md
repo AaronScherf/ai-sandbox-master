@@ -44,7 +44,11 @@ Every tier writes a YAML frontmatter block (`source_pdf`, `folder_category`,
 `total_pages`, `routing`, `model`, `pages_repaired`/`repaired_pages`, a `tags:
 []` placeholder left for a future indexing pass) ahead of the markdown body,
 so a downstream RAG indexer can filter or weight documents by how they were
-produced without re-deriving that from content.
+produced without re-deriving that from content. **That future indexing pass
+now exists** -- see "The source indexer and tag system" below; the
+frontmatter's own `tags: []` is a legacy per-file placeholder this pipeline
+still writes but the indexer no longer reads, since tags are computed
+corpus-wide, not per-document (see below for why).
 
 Everything except the PyMuPDF calls (page rendering and, as of 2026-08-25,
 local text extraction -- see below), the Gemini network calls, and the CLI
@@ -482,6 +486,70 @@ Roughly in the order they were hit:
 - No live quality comparison against a dedicated OCR provider (Mathpix,
   Mistral) has been run -- the cost analysis above is pricing-based, not an
   empirical accuracy comparison.
+- ~~Six files in `ta_notes/processed_outputs/` were 0 bytes with no cache~~
+  -- **resolved 2026-08-28**: confirmed as pre-`44bcfe2` stale artifacts, not
+  a live bug; re-transcribed for real. See "2026-08-28: six 0-byte `.md`
+  files..." above and `docs/2026-08-28-known-errors-todo.md`.
+
+## 2026-08-28: six 0-byte `.md` files were pre-fix stale artifacts, now re-transcribed
+
+While validating the source indexer's `retag` step against the real corpus,
+six files in `academic_notes/math-camp/ta_notes/processed_outputs/` turned
+up as exactly 0 bytes with no matching `_pages_cache.json` (full writeup and
+investigation trail: `docs/2026-08-28-known-errors-todo.md`). Root cause,
+confirmed rather than assumed: both the `.pdf` and `.md` files' mtimes
+(2026-08-17) predate commit `44bcfe2` (2026-08-24), the commit that added
+the `_MESSY_EXPORT_MARKERS` denylist (`nebo`, `myscript`, `onenote`) this doc
+describes under "How the routing decision actually gets made" above. All six
+are Nebo/OneNote exports of the kind that guard exists to force into Tier 3
+-- these particular `.md` files were produced (or left empty) by a version
+of `transcribe_notes.py` that predated that guard, not by the current code.
+Re-running the current pipeline against all six PDFs for real produced full,
+correct transcriptions -- no code changes were needed in
+`transcribe_notes.py` itself; the fix had already shipped four days earlier
+and simply hadn't been re-run against these specific files.
+
+Running this recovery for real also exercised several source-indexer code
+paths for the first time end-to-end (staleness detection when a `.md`'s
+content changes but its `file_id`/`path` don't; retrying a card previously
+marked `needs_indexing`; a list-wrapped LLM JSON response) and surfaced
+three real bugs in the indexer, all fixed the same session -- see the
+indexer's own docs/commit history (`Fix rebuild never noticing .md content
+changed...`, `Unwrap list-wrapped LLM responses...`, `Fix needs_indexing
+cards never actually being retried...`) rather than duplicating that detail
+here, since none of it is specific to notes-transcription.
+
+## The source indexer and tag system
+
+A separate subsystem, `index_card.py` / `index_search.py` / `retag.py`
+(design: `docs/superpowers/specs/2026-08-27-source-indexer-design.md`),
+reads every `.md` this pipeline (and `convert_textbook.py`) produces and
+builds a searchable per-file "index card" (title, summary, embedding, plus
+the frontmatter's `source_pdf`/`routing` metadata) -- this is the "future
+indexing pass" the frontmatter's `tags: []` placeholder was left for.
+
+Tags specifically are **not** generated per-file the way the rest of a card
+is. `retag.py` runs corpus-wide, on its own explicit schedule (not
+per-document, and not automatically after every transcription), in two
+phases: it proposes candidate subject tags holistically from every card's
+title+summary at once (so tags reflect the actual shape of the whole
+corpus, not one document's guess at its own topic), validates each
+candidate against real card embeddings before minting it, then assigns any
+tag in the resulting vocabulary to any card whose embedding is similar
+enough -- independently per tag, so one document can carry several tags
+(`linear-algebra` and `mathematical-economics` on the same file) with no
+one-tag-per-file restriction. A document that doesn't match any corpus-wide
+tag still gets a single-document fallback tag (e.g. `syllabus`) rather than
+shipping untagged; that fallback is deliberately excluded from ever being
+reused against a different document (fixed 2026-08-28, after being caught
+live: a fallback tag minted for one syllabus scored 0.73 similarity against
+an unrelated Linear Algebra file, well above the assignment threshold).
+
+Net effect for this pipeline specifically: the per-file `tags: []` this
+pipeline writes into frontmatter is inert -- harmless to keep writing, but
+the real, current tags for any file live in `academic-hub/.index/*.json`,
+not in that file's own frontmatter, and only appear after someone runs
+`python index_search.py retag`.
 
 ## What's next
 

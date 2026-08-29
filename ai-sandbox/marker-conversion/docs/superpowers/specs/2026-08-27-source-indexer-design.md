@@ -548,9 +548,11 @@ Not built now — YAGNI relative to the corpus size that actually exists.
 
 For **every** non-orphaned, embedded file card (not just cards that
 happened to inspire a candidate in §5.2), independently compare its
-`embedding` against **every** tag anchor in the (now-updated)
-`tags.json` vocabulary — old tags and ones just minted in §5.2 alike.
-Above `TAG_ASSIGNMENT_THRESHOLD` (starting default `0.65` — see §5.2 for
+`embedding` against every tag anchor in the (now-updated) `tags.json`
+vocabulary **except tags marked `origin: "fallback"`** (§5.4 — those
+describe exactly one document and are never candidates for reuse
+elsewhere) — old tags and ones just minted in §5.2 alike. Above
+`TAG_ASSIGNMENT_THRESHOLD` (starting default `0.65` — see §5.2 for
 where that number comes from), the tag is added to that card. A card's
 `tags` list is fully
 **replaced** by this run's result, not appended to — this is what makes
@@ -604,10 +606,28 @@ card regardless of the anchor's computed similarity to that card (the
 anchor was derived to describe this exact file, so requiring it to also
 clear a similarity threshold against that same file would reintroduce
 §5.2's original anchor-vs-single-document gap for no reason). If a new
-tag is minted this way, it's appended to `tags.json` like any other —
-future `retag` runs' discovery-phase fuzzy matching, and even normal
-assignment, can naturally reuse it if the corpus later grows enough
-similar content to justify it properly.
+tag is minted this way, it's appended to `tags.json` marked
+`origin: "fallback"`, and future `retag` runs' discovery-phase fuzzy
+matching can still reuse it by name for another proposal that lands on
+the same slug.
+
+**Revised 2026-08-28 against real data:** this section originally said
+normal §5.3 assignment could "naturally reuse" a minimum-coverage tag
+too, once the corpus grew enough similar content. Confirmed live that
+this was wrong: because a fallback tag's anchor was never validated
+against the corpus (deliberately, per above), it's just a generic
+paraphrase of one document, and in a small or topically-homogeneous
+corpus that anchor can cross `TAG_ASSIGNMENT_THRESHOLD` against
+completely unrelated cards — a `syllabus`-style fallback tag minted for
+the corpus's one syllabus scored 0.73 similarity against an unrelated
+Linear Algebra lecture-notes file, which §5.3's assignment would have
+happily applied. §5.3's assignment now explicitly **excludes** any tag
+with `origin: "fallback"` — a fallback tag only ever describes the
+single card it was minted for, permanently, unless the corpus's content
+itself changes and a *later* discovery run (§5.2) independently proposes
+and empirically validates the same concept as a real corpus-wide tag
+(which mints a fresh, non-fallback entry — the fallback entry is not
+"promoted" in place).
 
 This pass runs every time, not just once: a card that got a
 minimum-coverage tag in an earlier run and *still* has zero tags from
