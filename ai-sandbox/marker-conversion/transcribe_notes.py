@@ -341,14 +341,33 @@ _MAX_OUTPUT_TOKENS_SINGLE_PAGE = 8192
 _MAX_OUTPUT_TOKENS_BATCH = 16384
 
 # Applied only on the single retry after a detected repetition loop (see
-# transcribe_page_via_gemini) -- directly penalizes the model for
-# repeating tokens it has already produced, which targets this failure
-# mode more precisely than raising temperature would (temperature adds
-# randomness everywhere in the response, including the parts that were
-# transcribing correctly). Not applied on first attempts, to avoid any
-# quality risk to normal transcription from an untested-at-scale
-# generation parameter.
-_REPETITION_RETRY_FREQUENCY_PENALTY = 1.0
+# transcribe_page_via_gemini). frequency_penalty was tried first as a
+# more surgical lever than temperature (penalizing repeated tokens
+# specifically, rather than adding randomness everywhere in the
+# response) -- confirmed live it doesn't work: gemini-3.1-flash-lite
+# rejects it outright with a real 400 INVALID_ARGUMENT, "Penalty is not
+# enabled for this model". Temperature is the fallback because it's the
+# most universally-supported sampling parameter; nonzero but modest,
+# enough randomness to break a greedy-decoding (temperature=0) loop
+# without destabilizing an otherwise-correct transcription. Not applied
+# on first attempts, to keep normal transcription fully deterministic.
+_REPETITION_RETRY_TEMPERATURE = 0.4
+
+# Appended to the prompt only on the retry -- directly names the
+# specific pattern confirmed live to trigger this failure (dot-leader
+# table-of-contents entries), since the model has concrete instructions
+# to follow this time rather than just different sampling parameters.
+_REPETITION_RETRY_PROMPT_SUFFIX = (
+    "\n\nIMPORTANT: a previous attempt at this exact page degenerated into "
+    "repeating the same character or short phrase (e.g. dot-leader table-of-"
+    "contents entries: \"Introduction . . . . . . .\") far more times than "
+    "the page actually shows. If this page contains a dot-leader table of "
+    "contents or similar repeated-punctuation formatting, transcribe each "
+    "entry with a short, bounded run of separator characters (e.g. \"...\") "
+    "rather than reproducing the exact printed spacing, and move on to the "
+    "next entry -- never repeat the same character or phrase more than a "
+    "few times in a row."
+)
 
 # A real transcription never repeats one exact short token 25+ times
 # consecutively (even a legitimate sequence like "1, 1, 1, ..." doesn't
@@ -778,23 +797,22 @@ def _log_token_usage(response) -> None:
 
 
 def _call_gemini_single_page(
-    client, model: str, image_bytes: bytes, prompt: str, frequency_penalty: float | None = None,
+    client, model: str, image_bytes: bytes, prompt: str,
+    temperature: float = 0, prompt_suffix: str = "",
 ) -> str:
     from google.genai import types
 
     config = {
-        "temperature": 0,
+        "temperature": temperature,
         "thinking_config": {"thinking_level": "minimal"},
         "max_output_tokens": _MAX_OUTPUT_TOKENS_SINGLE_PAGE,
     }
-    if frequency_penalty is not None:
-        config["frequency_penalty"] = frequency_penalty
 
     response = client.models.generate_content(
         model=model,
         contents=[
             types.Part.from_bytes(data=image_bytes, mime_type="image/png"),
-            prompt,
+            prompt + prompt_suffix,
         ],
         config=config,
     )
@@ -808,9 +826,10 @@ def transcribe_page_via_gemini(client, model: str, image_bytes: bytes, prompt: s
     repair_page_individually (both the hybrid/whole-doc-batched fallback
     and, transitively, retag's batch-fallback path). Guards against the
     runaway-repetition failure mode (_looks_like_repetition_loop): a
-    degenerate first response gets one retry with frequency_penalty
-    applied (not used on the first attempt -- see
-    _REPETITION_RETRY_FREQUENCY_PENALTY), and a still-degenerate result
+    degenerate first response gets one retry with a nonzero temperature
+    and a prompt addendum naming the specific pattern (not used on the
+    first attempt -- see _REPETITION_RETRY_TEMPERATURE/
+    _REPETITION_RETRY_PROMPT_SUFFIX), and a still-degenerate result
     after that raises rather than being returned, so every existing
     caller's own exception handling (which already exists for network
     errors) treats it as a failed page rather than silently keeping
@@ -818,15 +837,16 @@ def transcribe_page_via_gemini(client, model: str, image_bytes: bytes, prompt: s
     text = _call_gemini_single_page(client, model, image_bytes, prompt)
     if _looks_like_repetition_loop(text):
         print(f"    WARNING: output looks like a runaway repetition loop "
-              f"({len(text)} chars); retrying with frequency_penalty.")
+              f"({len(text)} chars); retrying with higher temperature.")
         text = _call_gemini_single_page(
             client, model, image_bytes, prompt,
-            frequency_penalty=_REPETITION_RETRY_FREQUENCY_PENALTY,
+            temperature=_REPETITION_RETRY_TEMPERATURE,
+            prompt_suffix=_REPETITION_RETRY_PROMPT_SUFFIX,
         )
         if _looks_like_repetition_loop(text):
             raise ValueError(
                 f"output still looks like a runaway repetition loop after "
-                f"retry with frequency_penalty ({len(text)} chars)"
+                f"retry with higher temperature ({len(text)} chars)"
             )
     return text
 

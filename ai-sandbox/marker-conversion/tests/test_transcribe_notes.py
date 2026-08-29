@@ -482,7 +482,7 @@ class TestTranscribePageViaGemini(unittest.TestCase):
         self.assertEqual(result, "Clean transcribed content.")
         self.assertEqual(client.models.generate_content.call_count, 1)
 
-    def test_degenerate_first_response_retries_with_frequency_penalty(self):
+    def test_degenerate_first_response_retries_with_higher_temperature_and_prompt_addendum(self):
         client = MagicMock()
         degenerate = "Introduction " + ". " * 100
         client.models.generate_content.side_effect = [
@@ -492,10 +492,15 @@ class TestTranscribePageViaGemini(unittest.TestCase):
         result = transcribe_page_via_gemini(client, "model", b"img", "prompt")
         self.assertEqual(result, "Recovered clean content on retry.")
         self.assertEqual(client.models.generate_content.call_count, 2)
-        first_config = client.models.generate_content.call_args_list[0].kwargs["config"]
-        retry_config = client.models.generate_content.call_args_list[1].kwargs["config"]
-        self.assertNotIn("frequency_penalty", first_config)
-        self.assertIn("frequency_penalty", retry_config)
+        first_call = client.models.generate_content.call_args_list[0]
+        retry_call = client.models.generate_content.call_args_list[1]
+        self.assertEqual(first_call.kwargs["config"]["temperature"], 0)
+        self.assertGreater(retry_call.kwargs["config"]["temperature"], 0)
+        first_prompt = first_call.kwargs["contents"][1]
+        retry_prompt = retry_call.kwargs["contents"][1]
+        self.assertEqual(first_prompt, "prompt")
+        self.assertIn("prompt", retry_prompt)
+        self.assertGreater(len(retry_prompt), len(first_prompt))
 
     def test_still_degenerate_after_retry_raises(self):
         client = MagicMock()
