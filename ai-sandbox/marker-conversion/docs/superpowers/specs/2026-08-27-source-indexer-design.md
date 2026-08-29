@@ -401,6 +401,33 @@ This means a course-folder rename or nesting change costs exactly one
 rebuild pass worth of PDF hashing (cheap — no network calls) to reconcile
 every affected card in place, not a full regeneration of the corpus.
 
+**Staleness signal is `content_hash`, not mtime (revised 2026-08-29
+against real data).** `_is_stale()` originally compared the `.md` file's
+own mtime against the card's `source_updated_at` — this shipped, but a
+real rebuild later reported 14 cards "updated" in one run even though
+nothing had actually changed, traced to something (a container/session
+remount) resetting every `.md`'s mtime to the same instant, independent
+of content. Every card now also carries `content_hash` (truncated
+SHA-256 of the `.md` file's own bytes, computed fresh on every rebuild
+and every pipeline-hook write); `_is_stale()` treats it as decisive
+whenever a card has one, and only falls back to the old mtime comparison
+for a legacy card that predates this field — which `rebuild()` then
+backfills onto that card immediately (cheap, local-only, no LLM call),
+so the mtime bridge never fires for it again.
+
+**`.rag.md` linkage is now self-healing on every rebuild.** §4.4's
+`link_rag_md()` writes `rag_md_path` into `_metadata.json`
+unconditionally but only reaches the index card itself if one already
+existed at that exact moment — confirmed live against the real corpus:
+all 5 textbook cards had `rag_md_path: null` despite every one of their
+`_metadata.json` files already recording the real path (the hook had
+run before, or independent of, a rebuild that would have created the
+matching card). `rebuild()`'s textbook loop now reconciles
+`rag_md_path` from `_metadata.json` onto the card every time it differs
+— `_metadata.json` is the durable record, so this closes the gap
+without needing `describe_images.py` and `rebuild()` to run in any
+particular order relative to each other.
+
 ### 4.4 `describe_images.py` hook (`.rag.md` linkage)
 
 `describe_images.py` is a third, separate script (confirmed: it already

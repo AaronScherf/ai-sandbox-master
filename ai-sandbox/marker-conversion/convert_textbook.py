@@ -48,7 +48,10 @@ from marker.models import create_model_dict
 from marker.output import text_from_rendered
 from page_markers import remap_image_links, remap_page_markers, tag_single_page
 import chapter_index
-from index_card import TEXTBOOK_CONTENT_SAMPLE_CHARS, compute_file_id, derive_course, reconcile_and_write
+from index_card import (
+    TEXTBOOK_CONTENT_SAMPLE_CHARS, compute_content_hash, compute_file_id, derive_course,
+    reconcile_and_write,
+)
 from gemini_utils import get_gemini_client, load_dotenv_override
 
 def clean_stale_state():
@@ -923,6 +926,7 @@ def process_one_pdf(converter, raw_input: str, raw_output: str, workspace: str, 
                 academic_hub_root, file_id=file_id, path=rel_md_path, source_pdf_path=rel_pdf_path,
                 course=course, folder_category="textbooks-and-papers", content_sample=content_sample,
                 page_count=total_pages, client=index_client,
+                content_hash=compute_content_hash(md_output_path),
             )
         except Exception as index_err:
             print(f"WARNING: source-indexer update failed for {folder_name} ({index_err}); "

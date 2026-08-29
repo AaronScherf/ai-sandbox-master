@@ -49,7 +49,7 @@ from gemini_utils import (
     load_json_cache,
     save_json_cache,
 )
-from index_card import compute_file_id, derive_course, reconcile_and_write
+from index_card import compute_content_hash, compute_file_id, derive_course, reconcile_and_write
 
 _CODE_FENCE_RE = re.compile(r"^```(?:markdown)?\s*\n(.*)\n```\s*$", re.DOTALL)
 
@@ -925,7 +925,7 @@ def _write_markdown_and_index(md_path, frontmatter, final_md, pdf_path, academic
         reconcile_and_write(
             academic_hub_root, file_id=file_id, path=rel_md_path, source_pdf_path=rel_pdf_path,
             course=course, folder_category=folder_category, content_sample=final_md,
-            page_count=total_pages, client=client,
+            page_count=total_pages, client=client, content_hash=compute_content_hash(md_path),
         )
     except Exception as err:
         # Indexing must never block or corrupt the actual transcription

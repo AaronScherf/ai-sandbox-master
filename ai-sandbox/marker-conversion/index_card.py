@@ -49,6 +49,22 @@ def compute_file_id(pdf_path: str) -> str:
     return digest[:16]
 
 
+def compute_content_hash(md_path: str) -> str:
+    """Truncated SHA-256 of the .md file's own bytes -- the staleness
+    signal (spec §4.3), immune to anything that touches a file's mtime
+    without changing its content (a container/session remount, a sync
+    tool, a backup restore -- confirmed live: a real rebuild once
+    reported 14 spuriously "updated" cards after something reset every
+    .md's mtime to the same instant, none of which had actually
+    changed). Reads the file directly rather than reusing
+    `content_sample` -- the textbook loop truncates that sample to
+    TEXTBOOK_CONTENT_SAMPLE_CHARS for the LLM prompt, which would miss a
+    real change past that point."""
+    with open(md_path, "rb") as f:
+        digest = hashlib.sha256(f.read()).hexdigest()
+    return digest[:16]
+
+
 def derive_course(relative_path: str) -> str:
     """The course segment of a path relative to academic-hub/, e.g.
     'academic_notes/math-camp/ta_notes/foo.pdf' -> 'math-camp'. Distinct
@@ -198,7 +214,7 @@ not just problem statements).
 
 def generate_index_card(
     file_id: str, path: str, source_pdf_path: str, course: str, folder_category: str,
-    content_sample: str, page_count: int, client,
+    content_sample: str, page_count: int, client, content_hash: str | None = None,
 ) -> dict:
     """One structured-JSON generation call plus one embedding call. Never
     proposes `tags` -- that's the corpus-wide retag pass's job (spec §5),
@@ -257,11 +273,15 @@ def generate_index_card(
         "embedding": embedding,
         "embedding_model": EMBEDDING_MODEL_ID,
         "source_updated_at": now_iso(),
+        "content_hash": content_hash,
         "needs_indexing": False,
     }
 
 
-def make_failure_card(file_id: str, path: str, source_pdf_path: str, course: str, folder_category: str) -> dict:
+def make_failure_card(
+    file_id: str, path: str, source_pdf_path: str, course: str, folder_category: str,
+    content_hash: str | None = None,
+) -> dict:
     """Written when generate_index_card() raises -- keeps file_id/path so
     §4.3 reconciliation can find and complete this exact card on a later
     rebuild, rather than mistaking it for a new file each time."""
@@ -281,6 +301,7 @@ def make_failure_card(file_id: str, path: str, source_pdf_path: str, course: str
         "embedding": [],
         "embedding_model": None,
         "source_updated_at": now_iso(),
+        "content_hash": content_hash,
         "needs_indexing": True,
     }
 
@@ -300,6 +321,7 @@ def _replace_card(cards: list[dict], file_id: str, updated: dict) -> list[dict]:
 def reconcile_and_write(
     academic_hub_root: str, file_id: str, path: str, source_pdf_path: str, course: str,
     folder_category: str, content_sample: str, page_count: int, client,
+    content_hash: str | None = None,
 ) -> dict:
     """The single entry point both pipeline hooks (and rebuild) call.
     Implements spec §4.3: never treats `path` as identity -- reconciles by
@@ -317,6 +339,7 @@ def reconcile_and_write(
         updated["path"] = path
         updated["source_pdf_path"] = source_pdf_path
         updated["course"] = course
+        updated["content_hash"] = content_hash
         updated.pop("orphaned", None)
         if changed:
             updated["source_updated_at"] = now_iso()
@@ -344,13 +367,13 @@ def reconcile_and_write(
         card = generate_index_card(
             file_id=file_id, path=path, source_pdf_path=source_pdf_path, course=course,
             folder_category=folder_category, content_sample=content_sample,
-            page_count=page_count, client=client,
+            page_count=page_count, client=client, content_hash=content_hash,
         )
     except Exception as err:
         print(f"WARNING: index card generation failed for {path} ({err}); writing needs_indexing card.")
         card = make_failure_card(
             file_id=file_id, path=path, source_pdf_path=source_pdf_path,
-            course=course, folder_category=folder_category,
+            course=course, folder_category=folder_category, content_hash=content_hash,
         )
 
     cards = load_shard(academic_hub_root, course)

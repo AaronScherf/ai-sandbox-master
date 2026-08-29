@@ -21,14 +21,17 @@ from index_card import (
     EMBEDDING_DIMENSIONALITY,
     EMBEDDING_MODEL,
     KNOWN_LEVELS,
+    compute_content_hash,
     compute_file_id,
     cosine_similarity,
     derive_course,
+    find_card_by_file_id,
     load_courses,
     load_shard,
     recompute_course_entry,
     reconcile_and_write,
     save_shard,
+    set_rag_md_path,
 )
 from retag import retag
 
@@ -135,14 +138,27 @@ def _textbook_book_dirs(academic_hub_root: str, course_filter: str | None):
                 yield course, folder_name, book_dir
 
 
-def _is_stale(existing: dict, source_mtime: float) -> bool:
-    """True if the .md file's own mtime is newer than the existing card's
-    source_updated_at -- i.e. the file's content changed (e.g. a fixed
-    transcription pipeline was re-run) even though its file_id (derived
-    from the unchanged PDF) and path didn't move, so reconciliation would
-    otherwise never notice. Missing/unparseable source_updated_at is
-    treated as stale (regenerate) rather than silently trusting a card
-    with no comparable timestamp."""
+def _is_stale(existing: dict, source_mtime: float, content_hash: str) -> bool:
+    """True if the .md file's content actually changed since this card
+    was last written -- i.e. its file_id (derived from the unchanged
+    PDF) and path didn't move, so reconciliation would otherwise never
+    notice (e.g. a fixed transcription pipeline was re-run against the
+    same PDF).
+
+    content_hash is the real signal, primary and decisive whenever a
+    card has one. mtime is only a one-time migration bridge for a
+    legacy card indexed before content_hash existed -- confirmed live
+    that mtime alone is unsafe as an ongoing signal: something (a
+    container/session remount) once reset every .md's mtime to the same
+    instant in one real corpus, and a plain mtime comparison would have
+    spuriously regenerated cards whose content hadn't actually changed.
+    Every reconciliation stores content_hash going forward (see
+    reconcile_and_write and _reconcile_one's backfill-on-unchanged
+    path), so the mtime branch only ever fires once per card."""
+    stored_hash = existing.get("content_hash")
+    if stored_hash is not None:
+        return stored_hash != content_hash
+
     raw = existing.get("source_updated_at")
     if not raw:
         return True
@@ -154,21 +170,40 @@ def _is_stale(existing: dict, source_mtime: float) -> bool:
     return md_time > card_time
 
 
+def _backfill_content_hash(academic_hub_root: str, course: str, file_id: str, content_hash: str) -> None:
+    """Cheap, local-only patch (no LLM/embedding call) for a card that
+    the mtime bridge in _is_stale just verified is NOT actually stale,
+    but that has no content_hash yet (a legacy card, or one that's never
+    been touched since content_hash was added) -- migrates it onto
+    hash-based tracking so it never needs the mtime bridge again."""
+    cards = load_shard(academic_hub_root, course)
+    changed = False
+    for c in cards:
+        if c.get("file_id") == file_id and c.get("content_hash") != content_hash:
+            c["content_hash"] = content_hash
+            changed = True
+    if changed:
+        save_shard(academic_hub_root, course, cards)
+
+
 def _reconcile_one(academic_hub_root, course_name, folder_category, file_id, rel_path,
-                    rel_pdf_path, content_sample, page_count, client, force, stats, source_mtime):
+                    rel_pdf_path, content_sample, page_count, client, force, stats, source_mtime,
+                    content_hash):
     existing = None
     for c in load_shard(academic_hub_root, course_name):
         if c.get("file_id") == file_id:
             existing = c
             break
 
-    stale = existing is not None and _is_stale(existing, source_mtime)
+    stale = existing is not None and _is_stale(existing, source_mtime, content_hash)
     already_current = (
         existing is not None and not force and not stale
         and not existing.get("needs_indexing")
         and existing.get("path") == rel_path
     )
     if already_current:
+        if existing.get("content_hash") is None:
+            _backfill_content_hash(academic_hub_root, course_name, file_id, content_hash)
         stats["unchanged"] += 1
         return
 
@@ -199,7 +234,7 @@ def _reconcile_one(academic_hub_root, course_name, folder_category, file_id, rel
     reconcile_and_write(
         academic_hub_root, file_id=file_id, path=rel_path, source_pdf_path=rel_pdf_path,
         course=course_name, folder_category=folder_category, content_sample=content_sample,
-        page_count=page_count, client=client,
+        page_count=page_count, client=client, content_hash=content_hash,
     )
     if is_first_time:
         stats["generated"] += 1
@@ -246,7 +281,8 @@ def rebuild(academic_hub_root: str, client, course: str | None = None,
 
         _reconcile_one(academic_hub_root, course_name, category, file_id, rel_md_path,
                        rel_pdf_path, content_sample, None, client, force, stats,
-                       source_mtime=os.path.getmtime(md_path))
+                       source_mtime=os.path.getmtime(md_path),
+                       content_hash=compute_content_hash(md_path))
 
     for course_name, folder_name, book_dir in _textbook_book_dirs(academic_hub_root, course):
         metadata_path = os.path.join(book_dir, f"{folder_name}_metadata.json")
@@ -282,7 +318,22 @@ def rebuild(academic_hub_root: str, client, course: str | None = None,
 
         _reconcile_one(academic_hub_root, course_name, "textbooks-and-papers", file_id, rel_md_path,
                        source_pdf_path, content_sample, page_count, client, force, stats,
-                       source_mtime=os.path.getmtime(md_path))
+                       source_mtime=os.path.getmtime(md_path),
+                       content_hash=compute_content_hash(md_path))
+
+        # Real-corpus finding: describe_images.py's link_rag_md() writes
+        # rag_md_path into _metadata.json unconditionally, but only sets
+        # it on the index card if one already existed at that exact
+        # moment -- if it ran before (or independent of) a rebuild, the
+        # card's own rag_md_path is silently left None forever with no
+        # automatic way to catch up. _metadata.json is the durable
+        # record, so reconcile from it here every time; cheap local I/O,
+        # no LLM/embedding call, safe to repeat even when already correct.
+        rag_md_path = metadata.get("rag_md_path")
+        if rag_md_path:
+            found = find_card_by_file_id(academic_hub_root, file_id)
+            if found is not None and found[1].get("rag_md_path") != rag_md_path:
+                set_rag_md_path(academic_hub_root, file_id, rag_md_path)
 
     _flag_or_prune_orphans(academic_hub_root, seen_file_ids, course, prune, stats)
     return stats

@@ -3,9 +3,13 @@ import os
 import tempfile
 import time
 import unittest
+from datetime import datetime, timezone
 from unittest.mock import MagicMock
 
-from index_card import load_courses, load_shard, load_tags, save_shard, save_tags, recompute_course_entry
+from index_card import (
+    compute_file_id, load_courses, load_shard, load_tags, save_shard, save_tags,
+    recompute_course_entry,
+)
 from index_search import _is_stale, build_arg_parser, rebuild, search
 
 
@@ -66,21 +70,35 @@ def _make_textbook(academic_hub_root, course, pdf_basename, folder_name, with_so
 
 
 class TestIsStale(unittest.TestCase):
-    def test_md_mtime_after_card_time_is_stale(self):
-        card = {"source_updated_at": "2026-01-01T00:00:00+00:00"}
-        newer_mtime = time.mktime(time.strptime("2026-01-02", "%Y-%m-%d"))
-        self.assertTrue(_is_stale(card, newer_mtime))
+    def test_matching_content_hash_is_not_stale_regardless_of_mtime(self):
+        # content_hash is decisive whenever the card has one -- mtime
+        # doesn't even get consulted. Real motivation: a container/session
+        # remount can reset every .md's mtime to the same future instant
+        # without touching a single byte of content.
+        card = {"source_updated_at": "2026-01-01T00:00:00+00:00", "content_hash": "abc123"}
+        far_future_mtime = time.mktime(time.strptime("2099-01-01", "%Y-%m-%d"))
+        self.assertFalse(_is_stale(card, far_future_mtime, "abc123"))
 
-    def test_md_mtime_before_card_time_is_not_stale(self):
+    def test_differing_content_hash_is_stale_regardless_of_mtime(self):
+        card = {"source_updated_at": "2099-01-01T00:00:00+00:00", "content_hash": "abc123"}
+        very_old_mtime = time.mktime(time.strptime("2000-01-01", "%Y-%m-%d"))
+        self.assertTrue(_is_stale(card, very_old_mtime, "different-hash"))
+
+    def test_no_stored_hash_falls_back_to_mtime_comparison_stale(self):
+        card = {"source_updated_at": "2026-01-01T00:00:00+00:00"}  # legacy card, no content_hash key
+        newer_mtime = time.mktime(time.strptime("2026-01-02", "%Y-%m-%d"))
+        self.assertTrue(_is_stale(card, newer_mtime, "irrelevant-hash"))
+
+    def test_no_stored_hash_falls_back_to_mtime_comparison_not_stale(self):
         card = {"source_updated_at": "2026-01-05T00:00:00+00:00"}
         older_mtime = time.mktime(time.strptime("2026-01-01", "%Y-%m-%d"))
-        self.assertFalse(_is_stale(card, older_mtime))
+        self.assertFalse(_is_stale(card, older_mtime, "irrelevant-hash"))
 
     def test_missing_source_updated_at_is_treated_as_stale(self):
-        self.assertTrue(_is_stale({}, time.time()))
+        self.assertTrue(_is_stale({}, time.time(), "irrelevant-hash"))
 
     def test_unparseable_source_updated_at_is_treated_as_stale(self):
-        self.assertTrue(_is_stale({"source_updated_at": "not-a-date"}, time.time()))
+        self.assertTrue(_is_stale({"source_updated_at": "not-a-date"}, time.time(), "irrelevant-hash"))
 
 
 class TestRebuild(unittest.TestCase):
@@ -179,6 +197,60 @@ class TestRebuild(unittest.TestCase):
             self.assertEqual(stats["updated"], 1)
             self.assertEqual(client.models.generate_content.call_count, 2)  # regenerated
 
+    def test_touching_mtime_without_changing_content_does_not_regenerate(self):
+        # Real bug, caught live: something (a container/session remount)
+        # once reset every .md's mtime to the same instant in the real
+        # corpus, and a plain mtime-based staleness check spuriously
+        # regenerated cards whose content hadn't actually changed --
+        # wasting real LLM/embedding calls. content_hash must be the
+        # decisive signal once a card has one, regardless of mtime.
+        with tempfile.TemporaryDirectory() as tmp:
+            pdf_path = _make_notes_pdf(tmp, "math-camp", "ta_notes", "untouched")
+            md_path = os.path.join(os.path.dirname(pdf_path), "processed_outputs", "untouched.md")
+
+            client = _fake_client()
+            rebuild(tmp, client=client)
+            self.assertEqual(client.models.generate_content.call_count, 1)
+
+            future = time.time() + 10
+            os.utime(md_path, (future, future))  # mtime bumped, content byte-for-byte unchanged
+
+            stats = rebuild(tmp, client=client)
+            self.assertEqual(stats["unchanged"], 1)
+            self.assertEqual(stats["updated"], 0)
+            self.assertEqual(client.models.generate_content.call_count, 1)  # not called again
+
+    def test_legacy_card_without_content_hash_migrates_on_next_rebuild(self):
+        # A card indexed before content_hash existed has no such field.
+        # As long as the old mtime bridge agrees it's not actually stale,
+        # rebuild must backfill content_hash onto it (cheap, no LLM call)
+        # so it never needs the mtime bridge again.
+        with tempfile.TemporaryDirectory() as tmp:
+            pdf_path = _make_notes_pdf(tmp, "math-camp", "ta_notes", "legacy")
+            md_path = os.path.join(os.path.dirname(pdf_path), "processed_outputs", "legacy.md")
+            file_id = compute_file_id(pdf_path)
+            rel_md_path = os.path.relpath(md_path, tmp).replace(os.sep, "/")
+            rel_pdf_path = os.path.relpath(pdf_path, tmp).replace(os.sep, "/")
+            future = time.time() + 3600
+            save_shard(tmp, "math-camp", [{
+                "file_id": file_id, "path": rel_md_path, "source_pdf_path": rel_pdf_path,
+                "course": "math-camp", "embedding": [0.1, 0.2], "tags": [],
+                "source_updated_at": datetime.fromtimestamp(future, tz=timezone.utc).isoformat(),
+                # no content_hash key -- simulates a pre-migration card
+            }])
+
+            client = _fake_client()
+            stats = rebuild(tmp, client=client)
+            self.assertEqual(stats["unchanged"], 1)  # mtime bridge: card time is in the future, not stale
+            self.assertIsNotNone(load_shard(tmp, "math-camp")[0]["content_hash"])
+            client.models.generate_content.assert_not_called()  # backfill is local-only, no LLM call
+
+            # Now that it's migrated, an mtime bump alone must not regenerate it.
+            os.utime(md_path, (future + 10, future + 10))
+            stats = rebuild(tmp, client=client)
+            self.assertEqual(stats["unchanged"], 1)
+            client.models.generate_content.assert_not_called()
+
     def test_force_regenerates_even_unchanged_cards(self):
         with tempfile.TemporaryDirectory() as tmp:
             _make_notes_pdf(tmp, "math-camp", "ta_notes", "LN_Analysis")
@@ -242,6 +314,37 @@ class TestRebuild(unittest.TestCase):
             self.assertEqual(len(cards), 1)
             self.assertTrue(cards[0]["path"].endswith("Hammack_Book_of_Proof_2025.md"))
             self.assertTrue(cards[0]["source_pdf_path"].endswith("Book of Proof.pdf"))
+
+    def test_backfills_rag_md_path_from_metadata_when_card_is_missing_it(self):
+        # Real-corpus finding: describe_images.py's link_rag_md() writes
+        # rag_md_path into _metadata.json unconditionally, but only sets
+        # it on the index card if one already existed at that moment --
+        # if describe_images.py ran before (or without) a later rebuild,
+        # the card's own rag_md_path is silently left None forever with
+        # no automatic way to catch up. rebuild must reconcile this from
+        # _metadata.json itself, since that's the durable record.
+        with tempfile.TemporaryDirectory() as tmp:
+            pdf_path = _make_textbook(tmp, "math-camp", "Axler", "Axler_Linear_Algebra_2026")
+            rebuild(tmp, client=_fake_client())
+            cards = load_shard(tmp, "math-camp")
+            self.assertIsNone(cards[0]["rag_md_path"])
+
+            metadata_path = os.path.join(
+                os.path.dirname(pdf_path), "processed_outputs",
+                "Axler_Linear_Algebra_2026", "Axler_Linear_Algebra_2026_metadata.json",
+            )
+            with open(metadata_path, encoding="utf-8") as f:
+                metadata = json.load(f)
+            metadata["rag_md_path"] = (
+                "academic_resources/math-camp/textbooks-and-papers/processed_outputs/"
+                "Axler_Linear_Algebra_2026/Axler_Linear_Algebra_2026.rag.md"
+            )
+            with open(metadata_path, "w", encoding="utf-8") as f:
+                json.dump(metadata, f)
+
+            rebuild(tmp, client=_fake_client())
+            cards = load_shard(tmp, "math-camp")
+            self.assertEqual(cards[0]["rag_md_path"], metadata["rag_md_path"])
 
     def test_skips_textbook_with_no_source_pdf_path_yet(self):
         with tempfile.TemporaryDirectory() as tmp:
