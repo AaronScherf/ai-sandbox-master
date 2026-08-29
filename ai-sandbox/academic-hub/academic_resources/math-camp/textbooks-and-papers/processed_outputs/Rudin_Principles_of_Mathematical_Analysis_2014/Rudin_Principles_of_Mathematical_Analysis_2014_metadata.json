@@ -12,5 +12,6 @@
         "year": "1976"
     },
     "source_pdf_path": "academic_resources/math-camp/textbooks-and-papers/rudin-walter-principles-of-mathematical-analysis-1976.pdf",
-    "source_pdf_file_id": "828d123595b86256"
+    "source_pdf_file_id": "828d123595b86256",
+    "rag_md_path": "academic_resources/math-camp/textbooks-and-papers/processed_outputs/Rudin_Principles_of_Mathematical_Analysis_2014/Rudin_Principles_of_Mathematical_Analysis_2014.rag.md"
 }

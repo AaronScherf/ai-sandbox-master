@@ -12,5 +12,6 @@
         "year": ""
     },
     "source_pdf_path": "academic_resources/math-camp/textbooks-and-papers/Linear Algebra Done Right (4th edition) Axler.pdf",
-    "source_pdf_file_id": "6079eedf2fe26b0a"
+    "source_pdf_file_id": "6079eedf2fe26b0a",
+    "rag_md_path": "academic_resources/math-camp/textbooks-and-papers/processed_outputs/Axler_Linear_Algebra_Done_Right_2026/Axler_Linear_Algebra_Done_Right_2026.rag.md"
 }

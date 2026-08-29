@@ -12,5 +12,6 @@
         "year": "2018"
     },
     "source_pdf_path": "academic_resources/math-camp/textbooks-and-papers/Book of Proof.pdf",
-    "source_pdf_file_id": "e0e471ca794ddda7"
+    "source_pdf_file_id": "e0e471ca794ddda7",
+    "rag_md_path": "academic_resources/math-camp/textbooks-and-papers/processed_outputs/Hammack_Book_of_Proof_2025/Hammack_Book_of_Proof_2025.rag.md"
 }

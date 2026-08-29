@@ -12,5 +12,6 @@
         "year": "1994"
     },
     "source_pdf_path": "academic_resources/math-camp/textbooks-and-papers/Blume_Mathematics_for_Economists.pdf",
-    "source_pdf_file_id": "50d66a4f6210de73"
+    "source_pdf_file_id": "50d66a4f6210de73",
+    "rag_md_path": "academic_resources/math-camp/textbooks-and-papers/processed_outputs/Simon_Mathematics_for_Economists_2017/Simon_Mathematics_for_Economists_2017.rag.md"
 }
