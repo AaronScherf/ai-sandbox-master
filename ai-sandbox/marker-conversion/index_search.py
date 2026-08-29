@@ -11,6 +11,7 @@ import argparse
 import json
 import os
 from dataclasses import dataclass
+from datetime import datetime, timezone
 
 from google.genai import types
 
@@ -134,38 +135,65 @@ def _textbook_book_dirs(academic_hub_root: str, course_filter: str | None):
                 yield course, folder_name, book_dir
 
 
+def _is_stale(existing: dict, source_mtime: float) -> bool:
+    """True if the .md file's own mtime is newer than the existing card's
+    source_updated_at -- i.e. the file's content changed (e.g. a fixed
+    transcription pipeline was re-run) even though its file_id (derived
+    from the unchanged PDF) and path didn't move, so reconciliation would
+    otherwise never notice. Missing/unparseable source_updated_at is
+    treated as stale (regenerate) rather than silently trusting a card
+    with no comparable timestamp."""
+    raw = existing.get("source_updated_at")
+    if not raw:
+        return True
+    try:
+        card_time = datetime.fromisoformat(raw)
+    except ValueError:
+        return True
+    md_time = datetime.fromtimestamp(source_mtime, tz=timezone.utc)
+    return md_time > card_time
+
+
 def _reconcile_one(academic_hub_root, course_name, folder_category, file_id, rel_path,
-                    rel_pdf_path, content_sample, page_count, client, force, stats):
+                    rel_pdf_path, content_sample, page_count, client, force, stats, source_mtime):
     existing = None
     for c in load_shard(academic_hub_root, course_name):
         if c.get("file_id") == file_id:
             existing = c
             break
+
+    stale = existing is not None and _is_stale(existing, source_mtime)
     already_current = (
-        existing is not None and not force and not existing.get("needs_indexing")
+        existing is not None and not force and not stale
+        and not existing.get("needs_indexing")
         and existing.get("path") == rel_path
     )
     if already_current:
         stats["unchanged"] += 1
         return
 
-    was_new = existing is None
-    # force=True on an existing, otherwise-current card still needs a
-    # fresh generate_index_card() call -- reconcile_and_write() only
-    # regenerates on a true no-match, so force removes the old card
-    # first to force that path.
-    if force and existing is not None:
+    is_first_time = existing is None
+    # force=True, or a stale existing card (its .md content changed even
+    # though file_id/path didn't -- e.g. a fixed transcription pipeline
+    # was re-run against the same PDF; see _is_stale), both need a fresh
+    # generate_index_card() call -- reconcile_and_write() only
+    # regenerates on a true no-match (it finds this file_id's existing
+    # card and just patches path/orphaned otherwise), so the old card is
+    # removed first to force that path either way. Doesn't affect
+    # `is_first_time`, which the stats classification below still needs
+    # to reflect accurately -- "updated", not "generated", for a file
+    # that was already indexed.
+    if (force or stale) and existing is not None:
         remaining = [c for c in load_shard(academic_hub_root, course_name) if c.get("file_id") != file_id]
         save_shard(academic_hub_root, course_name, remaining)
         recompute_course_entry(academic_hub_root, course_name)
-        was_new = True
 
     reconcile_and_write(
         academic_hub_root, file_id=file_id, path=rel_path, source_pdf_path=rel_pdf_path,
         course=course_name, folder_category=folder_category, content_sample=content_sample,
         page_count=page_count, client=client,
     )
-    if was_new:
+    if is_first_time:
         stats["generated"] += 1
     elif existing is not None and existing.get("course") != course_name:
         stats["moved"] += 1
@@ -209,7 +237,8 @@ def rebuild(academic_hub_root: str, client, course: str | None = None,
             content_sample = f.read()
 
         _reconcile_one(academic_hub_root, course_name, category, file_id, rel_md_path,
-                       rel_pdf_path, content_sample, None, client, force, stats)
+                       rel_pdf_path, content_sample, None, client, force, stats,
+                       source_mtime=os.path.getmtime(md_path))
 
     for course_name, folder_name, book_dir in _textbook_book_dirs(academic_hub_root, course):
         metadata_path = os.path.join(book_dir, f"{folder_name}_metadata.json")
@@ -244,7 +273,8 @@ def rebuild(academic_hub_root: str, client, course: str | None = None,
         page_count = metadata.get("total_pages_processed")
 
         _reconcile_one(academic_hub_root, course_name, "textbooks-and-papers", file_id, rel_md_path,
-                       source_pdf_path, content_sample, page_count, client, force, stats)
+                       source_pdf_path, content_sample, page_count, client, force, stats,
+                       source_mtime=os.path.getmtime(md_path))
 
     _flag_or_prune_orphans(academic_hub_root, seen_file_ids, course, prune, stats)
     return stats

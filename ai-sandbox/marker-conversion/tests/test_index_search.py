@@ -1,11 +1,12 @@
 import json
 import os
 import tempfile
+import time
 import unittest
 from unittest.mock import MagicMock
 
 from index_card import load_courses, load_shard, save_shard, recompute_course_entry
-from index_search import build_arg_parser, rebuild, search
+from index_search import _is_stale, build_arg_parser, rebuild, search
 
 
 def _fake_client():
@@ -64,6 +65,24 @@ def _make_textbook(academic_hub_root, course, pdf_basename, folder_name, with_so
     return pdf_path
 
 
+class TestIsStale(unittest.TestCase):
+    def test_md_mtime_after_card_time_is_stale(self):
+        card = {"source_updated_at": "2026-01-01T00:00:00+00:00"}
+        newer_mtime = time.mktime(time.strptime("2026-01-02", "%Y-%m-%d"))
+        self.assertTrue(_is_stale(card, newer_mtime))
+
+    def test_md_mtime_before_card_time_is_not_stale(self):
+        card = {"source_updated_at": "2026-01-05T00:00:00+00:00"}
+        older_mtime = time.mktime(time.strptime("2026-01-01", "%Y-%m-%d"))
+        self.assertFalse(_is_stale(card, older_mtime))
+
+    def test_missing_source_updated_at_is_treated_as_stale(self):
+        self.assertTrue(_is_stale({}, time.time()))
+
+    def test_unparseable_source_updated_at_is_treated_as_stale(self):
+        self.assertTrue(_is_stale({"source_updated_at": "not-a-date"}, time.time()))
+
+
 class TestRebuild(unittest.TestCase):
     def test_generates_cards_for_pdfs_with_a_markdown_sibling(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -111,6 +130,31 @@ class TestRebuild(unittest.TestCase):
             self.assertEqual(stats["generated"], 0)
             self.assertEqual(stats["unchanged"], 1)
             self.assertEqual(client.models.generate_content.call_count, 1)  # not called again
+
+    def test_regenerates_when_md_content_changes_even_if_pdf_and_path_are_unchanged(self):
+        # Real-corpus finding: fixing a transcription bug and re-running
+        # produces a .md with genuinely different content, but the same
+        # PDF (same file_id) and the same path -- rebuild must notice the
+        # content changed via the .md's mtime and regenerate, not silently
+        # keep serving a stale card forever just because file_id/path
+        # never moved.
+        with tempfile.TemporaryDirectory() as tmp:
+            pdf_path = _make_notes_pdf(tmp, "math-camp", "ta_notes", "was_stale")
+            md_path = os.path.join(os.path.dirname(pdf_path), "processed_outputs", "was_stale.md")
+
+            client = _fake_client()
+            rebuild(tmp, client=client)
+            self.assertEqual(client.models.generate_content.call_count, 1)
+
+            with open(md_path, "w", encoding="utf-8") as f:
+                f.write("---\ntotal_pages: 3\n---\n\nGenuinely different content now.")
+            future = time.time() + 10  # force strictly-newer mtime, not relying on clock resolution
+            os.utime(md_path, (future, future))
+
+            stats = rebuild(tmp, client=client)
+            self.assertEqual(stats["unchanged"], 0)
+            self.assertEqual(stats["updated"], 1)
+            self.assertEqual(client.models.generate_content.call_count, 2)  # regenerated
 
     def test_force_regenerates_even_unchanged_cards(self):
         with tempfile.TemporaryDirectory() as tmp:
