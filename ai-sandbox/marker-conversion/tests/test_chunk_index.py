@@ -10,7 +10,7 @@ from chunk_index import (
     _page_markers, _strip_front_matter_by_page, _strip_yaml_frontmatter,
     _Span, _split_by_headings, _detect_problem_boundaries, _split_by_pages,
     _CHUNK_MAX_CHARS, _subdivide_oversized, _page_range_for_span, _finalize_chunks,
-    chunk_file, _folder_category_from_path, generate_chunks_for_file,
+    chunk_file, _folder_category_from_path, generate_chunks_for_file, chunk,
 )
 
 
@@ -426,6 +426,88 @@ class TestGenerateChunksForFile(unittest.TestCase):
             with self.assertRaises(RuntimeError):
                 generate_chunks_for_file(tmp, "math-camp", card, bad_client)
             self.assertEqual(load_chunks(tmp, "math-camp"), original)
+
+
+_MISSING_MD = "academic_notes/math-camp/ta_notes/processed_outputs/missing.md"
+
+
+def _make_card(file_id, path, doc_type="ta_notes", content_hash="h1", embedding=None):
+    # No folder_category key -- real cards don't have one (see Task 8's
+    # "Real interface note"); generate_chunks_for_file() derives it from
+    # `path` via _folder_category_from_path().
+    return {
+        "file_id": file_id, "path": path, "course": "math-camp",
+        "doc_type": doc_type, "content_hash": content_hash, "embedding": embedding or [0.1, 0.2],
+        "orphaned": False, "needs_indexing": False,
+    }
+
+
+class TestChunkOrchestration(unittest.TestCase):
+    def test_chunks_every_indexed_file(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            _write_notes_md(tmp, _A_MD, _two_section_doc())
+            save_shard(tmp, "math-camp", [_make_card("aaa", _A_MD)])
+            stats = chunk(tmp, client=_fake_embed_client())
+            self.assertEqual(stats["chunked"], 1)
+            self.assertEqual(len(load_chunks(tmp, "math-camp")), 2)
+
+    def test_second_run_with_no_changes_is_a_no_op(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            _write_notes_md(tmp, _A_MD, _two_section_doc())
+            save_shard(tmp, "math-camp", [_make_card("aaa", _A_MD)])
+            client = _fake_embed_client()
+            chunk(tmp, client=client)
+            client.models.embed_content.reset_mock()
+
+            stats = chunk(tmp, client=client)
+            self.assertEqual(stats["chunked"], 0)
+            self.assertEqual(stats["unchanged"], 1)
+            client.models.embed_content.assert_not_called()
+
+    def test_skips_cards_with_no_embedding_yet(self):
+        # A needs_indexing card has no embedding -- nothing to chunk yet.
+        with tempfile.TemporaryDirectory() as tmp:
+            save_shard(tmp, "math-camp", [{
+                "file_id": "aaa", "path": _A_MD, "course": "math-camp",
+                "doc_type": "ta_notes", "content_hash": None, "embedding": [], "needs_indexing": True,
+            }])
+            stats = chunk(tmp, client=_fake_embed_client())
+            self.assertEqual(stats["skipped_no_embedding"], 1)
+            self.assertEqual(stats["chunked"], 0)
+
+    def test_one_file_failure_does_not_abort_the_rest(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            _write_notes_md(tmp, _A_MD, _two_section_doc())
+            # _MISSING_MD deliberately not written -- generate_chunks_for_file
+            # will fail to open it.
+            save_shard(tmp, "math-camp", [
+                _make_card("aaa", _A_MD), _make_card("bbb", _MISSING_MD),
+            ])
+            stats = chunk(tmp, client=_fake_embed_client())
+            self.assertEqual(stats["chunked"], 1)
+            self.assertEqual(stats["failed"], 1)
+            file_ids = {c["file_id"] for c in load_chunks(tmp, "math-camp")}
+            self.assertEqual(file_ids, {"aaa"})  # a.md's chunks still written
+
+    def test_dry_run_calls_no_api_and_writes_nothing(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            _write_notes_md(tmp, _A_MD, _two_section_doc())
+            save_shard(tmp, "math-camp", [_make_card("aaa", _A_MD)])
+            client = _fake_embed_client()
+            stats = chunk(tmp, client=client, dry_run=True)
+            client.models.embed_content.assert_not_called()
+            self.assertEqual(load_chunks(tmp, "math-camp"), [])
+            self.assertEqual(stats["chunked"], 1)  # reports what WOULD be chunked
+
+    def test_scoped_to_one_course(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            _write_notes_md(tmp, _A_MD, _two_section_doc())
+            _write_notes_md(tmp, _B_MD, _two_section_doc("Third", "Fourth"))
+            save_shard(tmp, "math-camp", [_make_card("aaa", _A_MD)])
+            save_shard(tmp, "econ-101", [_make_card("bbb", _B_MD)])
+            stats = chunk(tmp, client=_fake_embed_client(), course="math-camp")
+            self.assertEqual(stats["chunked"], 1)
+            self.assertEqual(load_chunks(tmp, "econ-101"), [])
 
 
 if __name__ == "__main__":

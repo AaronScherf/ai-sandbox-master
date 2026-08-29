@@ -23,7 +23,7 @@ from dataclasses import dataclass
 from google.genai import types
 
 from gemini_utils import call_with_retries
-from index_card import EMBEDDING_DIMENSIONALITY, EMBEDDING_MODEL, EMBEDDING_MODEL_ID
+from index_card import EMBEDDING_DIMENSIONALITY, EMBEDDING_MODEL, EMBEDDING_MODEL_ID, list_courses, load_shard
 
 
 def chunks_dir(academic_hub_root: str) -> str:
@@ -335,3 +335,50 @@ def generate_chunks_for_file(academic_hub_root: str, course: str, card: dict, cl
     remaining = [c for c in existing if c["file_id"] != file_id]
     save_chunks(academic_hub_root, course, remaining + new_chunks)
     return {"chunks_written": len(new_chunks)}
+
+
+def chunk(
+    academic_hub_root: str, client, course: str | None = None,
+    file: str | None = None, dry_run: bool = False,
+) -> dict:
+    """Iterates every non-orphaned, embedded card (needs_indexing cards
+    have no embedding yet -- nothing to chunk) and calls
+    generate_chunks_for_file() for each. One file's failure is logged
+    and skipped, never aborts the pass (same failure-isolation
+    philosophy as index_search.py's rebuild()). dry_run reports what
+    WOULD be (re-)chunked without calling the API or writing anything."""
+    stats = {"chunked": 0, "unchanged": 0, "failed": 0, "skipped_no_embedding": 0}
+
+    for course_name in list_courses(academic_hub_root):
+        if course is not None and course_name != course:
+            continue
+        for card in load_shard(academic_hub_root, course_name):
+            if card.get("orphaned") or card.get("needs_indexing") or not card.get("embedding"):
+                stats["skipped_no_embedding"] += 1
+                continue
+            if file is not None and not card["path"].endswith(file):
+                continue
+
+            if dry_run:
+                existing = load_chunks(academic_hub_root, course_name)
+                current = [c for c in existing if c["file_id"] == card["file_id"]]
+                if current and all(c["content_hash"] == card["content_hash"] for c in current):
+                    stats["unchanged"] += 1
+                else:
+                    stats["chunked"] += 1
+                continue
+
+            try:
+                result = generate_chunks_for_file(academic_hub_root, course_name, card, client)
+            except Exception as err:
+                print(f"WARNING: chunking failed for {card['path']} ({err}); "
+                      f"rerun `python index_search.py chunk` later to retry.")
+                stats["failed"] += 1
+                continue
+
+            if result["chunks_written"] > 0:
+                stats["chunked"] += 1
+            else:
+                stats["unchanged"] += 1
+
+    return stats
