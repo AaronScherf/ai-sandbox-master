@@ -227,3 +227,31 @@ def _finalize_chunks(spans: list[_Span], body: str) -> list[dict]:
             "page_range": _page_range_for_span(span.start, span.end, markers),
         })
     return result
+
+
+_PROBLEM_TIER_FOLDER_CATEGORIES = ("problem_sets", "recitation_slides")
+
+
+def chunk_file(
+    text: str, doc_type: str, folder_category: str, front_matter_end: int | None = None,
+) -> list[dict]:
+    """Tiered chunking (spec §4): headings first, numbered-problem
+    detection second (problem_sets/recitation_slides only, empirically
+    validated before being trusted), page-based fallback always
+    available. Every tier's output goes through the same size cap and
+    minimum-length filter. Pure function -- no file I/O, no network
+    calls; front_matter_end is computed by the caller (generation
+    happens in generate_chunks_for_file, which has filesystem access)
+    via describe_images.py's existing load_front_matter_end()."""
+    body = _strip_yaml_frontmatter(text)
+    if doc_type == "textbook" and front_matter_end is not None:
+        body = _strip_front_matter_by_page(body, front_matter_end)
+
+    spans = _split_by_headings(body)
+    if spans is None and folder_category in _PROBLEM_TIER_FOLDER_CATEGORIES:
+        spans = _detect_problem_boundaries(body)
+    if spans is None:
+        spans = _split_by_pages(body)
+
+    spans = _subdivide_oversized(spans, body)
+    return _finalize_chunks(spans, body)
