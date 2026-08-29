@@ -369,12 +369,16 @@ _REPETITION_RETRY_PROMPT_SUFFIX = (
     "few times in a row."
 )
 
-# A real transcription never repeats one exact short token 25+ times
-# consecutively (even a legitimate sequence like "1, 1, 1, ..." doesn't
-# reach this) -- orders of magnitude below the tens of thousands of
-# repeats seen in the real failures above, and above anything
-# legitimate.
-_REPETITION_LOOP_RE = re.compile(r"(\S{1,20})(?:\s+\1){24,}")
+# Threshold confirmed against real data, not guessed: an earlier version
+# of this used 25, which turned out to be a real false positive --
+# LN_Analysis.pdf's own genuine, correctly-transcribed page 3 legitimately
+# contains a 50-dot leader (". . . . ." x50, a long section title padded
+# to a page-width right-aligned page number). Measured the true max
+# across every already-recovered, verified-correct page in this corpus:
+# 50. 150 sits 3x above that real legitimate maximum, while staying
+# roughly 400x below the real failures (tens of thousands of repeats,
+# confirmed live on three files) -- comfortable margin on both sides.
+_REPETITION_LOOP_RE = re.compile(r"(\S{1,20})(?:\s+\1){149,}")
 
 
 def _looks_like_repetition_loop(text: str) -> bool:

@@ -445,7 +445,7 @@ class TestLooksLikeRepetitionLoop(unittest.TestCase):
     def test_dot_leader_toc_style_repetition_is_flagged(self):
         # The real failure: "Introduction . . . . . . ..." repeated tens
         # of thousands of times, confirmed live on three real files.
-        text = "Introduction " + ". " * 100
+        text = "Introduction " + ". " * 1000
         self.assertTrue(_looks_like_repetition_loop(text))
 
     def test_normal_prose_is_not_flagged(self):
@@ -461,6 +461,15 @@ class TestLooksLikeRepetitionLoop(unittest.TestCase):
         # (e.g. defining a constant sequence) -- well under the
         # threshold that only real failures reach.
         text = "Consider the constant sequence 1, 1, 1, 1, 1, 1."
+        self.assertFalse(_looks_like_repetition_loop(text))
+
+    def test_a_genuine_long_dot_leader_is_not_flagged(self):
+        # Real false positive, caught live: LN_Analysis.pdf page 3's
+        # genuine, correctly-transcribed table-of-contents entry has a
+        # 50-dot leader (a long section title padded to a page-width
+        # right-aligned page number) -- an earlier threshold of 25 wrongly
+        # flagged this real page as a repetition loop and discarded it.
+        text = "6.7 Normal samples, chi-square, and Student's t " + ". " * 50 + "52"
         self.assertFalse(_looks_like_repetition_loop(text))
 
     def test_empty_text_is_not_flagged(self):
@@ -484,7 +493,7 @@ class TestTranscribePageViaGemini(unittest.TestCase):
 
     def test_degenerate_first_response_retries_with_higher_temperature_and_prompt_addendum(self):
         client = MagicMock()
-        degenerate = "Introduction " + ". " * 100
+        degenerate = "Introduction " + ". " * 1000
         client.models.generate_content.side_effect = [
             _fake_gemini_response(degenerate),
             _fake_gemini_response("Recovered clean content on retry."),
@@ -504,7 +513,7 @@ class TestTranscribePageViaGemini(unittest.TestCase):
 
     def test_still_degenerate_after_retry_raises(self):
         client = MagicMock()
-        degenerate = "Introduction " + ". " * 100
+        degenerate = "Introduction " + ". " * 1000
         client.models.generate_content.side_effect = [
             _fake_gemini_response(degenerate),
             _fake_gemini_response(degenerate),
@@ -519,7 +528,7 @@ class TestRepairBatch(unittest.TestCase):
         # repair_batch reuses the existing "missing page(s)" fallback --
         # a degenerate page must look exactly like a missing one to the
         # caller, not be silently kept.
-        degenerate = "Introduction " + ". " * 100
+        degenerate = "Introduction " + ". " * 1000
         response_text = (
             "--- PAGE 1 ---\nClean page one.\n\n"
             f"--- PAGE 2 ---\n{degenerate}\n"
