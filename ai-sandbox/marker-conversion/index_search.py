@@ -15,7 +15,7 @@ from datetime import datetime, timezone
 
 from google.genai import types
 
-from chunk_index import load_chunks
+from chunk_index import chunk, load_chunks
 from gemini_utils import get_gemini_client, load_dotenv_override
 from index_card import (
     TEXTBOOK_CONTENT_SAMPLE_CHARS,
@@ -452,6 +452,8 @@ def build_arg_parser() -> argparse.ArgumentParser:
     query.add_argument("--doc-type", default=None)
     query.add_argument("--has-solutions", type=_bool_arg, default=None)
     query.add_argument("--max-level", default=None, choices=list(KNOWN_LEVELS))
+    query.add_argument("--passages", action="store_true",
+                        help="Return passage-level results instead of file-level results.")
 
     rebuild_p = subparsers.add_parser("rebuild", help="Backfill/reconcile index cards.")
     rebuild_p.add_argument("--course", default=None)
@@ -460,6 +462,11 @@ def build_arg_parser() -> argparse.ArgumentParser:
 
     retag_p = subparsers.add_parser("retag", help="Mine and apply tags across the whole corpus.")
     retag_p.add_argument("--dry-run", action="store_true")
+
+    chunk_p = subparsers.add_parser("chunk", help="Chunk and embed indexed files into citable passages.")
+    chunk_p.add_argument("--course", default=None)
+    chunk_p.add_argument("--file", default=None)
+    chunk_p.add_argument("--dry-run", action="store_true")
 
     return parser
 
@@ -472,17 +479,25 @@ def main() -> None:
         raise SystemExit(1)
 
     if args.command == "query":
-        results = search(
-            args.academic_hub, args.query, client, course=args.course, top_k=args.top_k,
-            doc_type=args.doc_type, has_solutions=args.has_solutions, max_level=args.max_level,
-        )
-        for r in results:
-            print(f"{r.score:.3f}  [{r.course}/{r.doc_type}]  {r.path}\n    {r.reason}")
+        if args.passages:
+            results = search_passages(args.academic_hub, args.query, client, course=args.course, top_k=args.top_k)
+            for r in results:
+                print(f"{r.score:.3f}  [{r.course}]  {r.path}  ({r.citation})\n    {r.text[:200]}")
+        else:
+            results = search(
+                args.academic_hub, args.query, client, course=args.course, top_k=args.top_k,
+                doc_type=args.doc_type, has_solutions=args.has_solutions, max_level=args.max_level,
+            )
+            for r in results:
+                print(f"{r.score:.3f}  [{r.course}/{r.doc_type}]  {r.path}\n    {r.reason}")
     elif args.command == "rebuild":
         stats = rebuild(args.academic_hub, client, course=args.course, force=args.force, prune=args.prune)
         print(stats)
     elif args.command == "retag":
         stats = retag(args.academic_hub, client, dry_run=args.dry_run)
+        print(stats)
+    elif args.command == "chunk":
+        stats = chunk(args.academic_hub, client, course=args.course, file=args.file, dry_run=args.dry_run)
         print(stats)
 
 

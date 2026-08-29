@@ -542,6 +542,27 @@ class TestCLIArgParsing(unittest.TestCase):
         args = build_arg_parser().parse_args(["retag", "--dry-run"])
         self.assertTrue(args.dry_run)
 
+    def test_chunk_subcommand_defaults(self):
+        args = build_arg_parser().parse_args(["chunk"])
+        self.assertEqual(args.command, "chunk")
+        self.assertIsNone(args.course)
+        self.assertIsNone(args.file)
+        self.assertFalse(args.dry_run)
+
+    def test_chunk_subcommand_with_flags(self):
+        args = build_arg_parser().parse_args(["chunk", "--course", "math-camp", "--file", "a.md", "--dry-run"])
+        self.assertEqual(args.course, "math-camp")
+        self.assertEqual(args.file, "a.md")
+        self.assertTrue(args.dry_run)
+
+    def test_query_passages_flag(self):
+        args = build_arg_parser().parse_args(["query", "something", "--passages"])
+        self.assertTrue(args.passages)
+
+    def test_query_passages_flag_defaults_false(self):
+        args = build_arg_parser().parse_args(["query", "something"])
+        self.assertFalse(args.passages)
+
 
 class TestRenderCitation(unittest.TestCase):
     def test_heading_tier_citation(self):
