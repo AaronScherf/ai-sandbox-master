@@ -182,6 +182,23 @@ class TestAssignTags(unittest.TestCase):
             self.assertIn("preview", stats)
             self.assertEqual(stats["preview"]["math-camp"]["a"], ["linear-algebra"])
 
+    def test_fallback_origin_tags_are_never_assigned_to_other_cards(self):
+        # A fallback tag (spec §5.4) was minted to describe ONE specific
+        # document -- its anchor is a generic paraphrase of that single
+        # card's title+summary, so in a small, topically-homogeneous
+        # corpus it can drift above TAG_ASSIGNMENT_THRESHOLD against
+        # unrelated cards too (confirmed live: a "syllabus" fallback tag
+        # scored 0.73 against an unrelated Linear Algebra card). Fallback
+        # tags must never leak onto a different document via assign_tags,
+        # no matter how similar -- that's what distinguishes them from
+        # tags that cleared discover_tags' corpus-wide validation.
+        with tempfile.TemporaryDirectory() as tmp:
+            save_shard(tmp, "math-camp", [{"file_id": "a", "embedding": [1.0, 0.0], "tags": []}])
+            known = [{"tag": "syllabus", "embedding": [1.0, 0.0], "origin": "fallback"}]
+            all_cards = [("math-camp", {"file_id": "a", "embedding": [1.0, 0.0]})]
+            assign_tags(tmp, all_cards, known)
+            self.assertEqual(load_shard(tmp, "math-camp")[0]["tags"], [])
+
     def test_preview_is_returned_even_when_not_dry_run(self):
         # retag() (spec §5.4) needs this run's fresh per-card tags
         # in-memory, without a disk re-read that would be stale in
@@ -263,6 +280,7 @@ class TestEnsureMinimumCoverage(unittest.TestCase):
             self.assertEqual(stats["fallback_tags_minted"], 1)
             self.assertEqual(stats["cards_covered"], 1)
             self.assertEqual([t["tag"] for t in updated_tags], ["syllabus"])
+            self.assertEqual(updated_tags[0]["origin"], "fallback")
             self.assertEqual(load_shard(tmp, "math-camp")[0]["tags"], ["syllabus"])
 
     def test_assigned_regardless_of_anchor_similarity_to_the_card(self):

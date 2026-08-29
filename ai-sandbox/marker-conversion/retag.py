@@ -169,14 +169,23 @@ def assign_tags(
     """Phase 2 (spec §5.3): for every card, independently checks every tag
     anchor and replaces the card's tags list with this run's fresh
     result. Many-to-many by construction -- no cluster-membership
-    restriction at all, which is the actual fix for one-tag-per-file."""
+    restriction at all, which is the actual fix for one-tag-per-file.
+
+    Excludes fallback-origin tags (spec §5.4): a fallback tag's anchor is
+    a generic paraphrase of one specific document, never validated
+    against the corpus the way discover_tags' >=min_matches bar requires
+    -- confirmed live to drift above threshold against unrelated cards
+    in a small, topically-homogeneous corpus (a "syllabus" fallback tag
+    scored 0.73 against an unrelated Linear Algebra card). A fallback
+    tag only ever describes the one card it was minted for."""
     stats = {"cards_tagged": 0, "tag_assignments": 0}
     by_course: dict[str, dict[str, list[str]]] = {}
 
     for course, card in all_cards:
         matched = [
             entry["tag"] for entry in known_tags
-            if cosine_similarity(card["embedding"], entry["embedding"]) > threshold
+            if entry.get("origin") != "fallback"
+            and cosine_similarity(card["embedding"], entry["embedding"]) > threshold
         ]
         if matched:
             stats["cards_tagged"] += 1
@@ -249,7 +258,9 @@ def ensure_minimum_coverage(
     skips the similarity check entirely when assigning: the anchor was
     derived to describe this exact card, so requiring it to also clear a
     threshold against that same card would reintroduce the anchor-vs-
-    document gap §5.2 already had to fix."""
+    document gap §5.2 already had to fix. Newly-minted fallback tags are
+    marked origin="fallback" so a later assign_tags() run never reuses
+    them against a different card (see assign_tags docstring)."""
     stats = {"fallback_tags_minted": 0, "fallback_tags_reused": 0, "cards_covered": 0}
     updated_tags = list(known_tags)
     by_course: dict[str, dict[str, str]] = {}
@@ -264,7 +275,7 @@ def ensure_minimum_coverage(
             stats["fallback_tags_reused"] += 1
         else:
             anchor = _embed_tag(proposed_tag, definition, client)
-            updated_tags.append({"tag": proposed_tag, "embedding": anchor})
+            updated_tags.append({"tag": proposed_tag, "embedding": anchor, "origin": "fallback"})
             tag_name = proposed_tag
             stats["fallback_tags_minted"] += 1
         by_course.setdefault(course, {})[card["file_id"]] = tag_name
