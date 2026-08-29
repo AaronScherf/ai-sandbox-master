@@ -42,6 +42,27 @@ def _fake_client(doc_type="textbook", has_solutions=False, level="introductory")
     return client
 
 
+def _fake_list_wrapped_client():
+    # Real finding: gemini-3.1-flash-lite sometimes wraps an otherwise
+    # perfectly-formed response object in a one-element JSON array,
+    # despite response_mime_type="application/json" and prompt
+    # instructions asking for a bare object. Reproduced live against
+    # LN_Linear Algebra.md.
+    client = MagicMock()
+    gen_response = MagicMock()
+    gen_response.text = (
+        '[{"title": "Linear Algebra Notes", "doc_type": "ta_notes", '
+        '"summary": "Covers vector spaces.", "level": "intermediate", "has_solutions": false}]'
+    )
+    client.models.generate_content.return_value = gen_response
+    embed_response = MagicMock()
+    embedding = MagicMock()
+    embedding.values = [0.1, 0.2, 0.3]
+    embed_response.embeddings = [embedding]
+    client.models.embed_content.return_value = embed_response
+    return client
+
+
 class TestComputeFileId(unittest.TestCase):
     def test_same_bytes_produce_same_id_regardless_of_path(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -250,6 +271,18 @@ class TestGenerateIndexCard(unittest.TestCase):
         )
         prompt = client.models.generate_content.call_args.kwargs["contents"]
         self.assertIn("problem_sets", prompt)
+
+    def test_unwraps_a_list_wrapped_response(self):
+        client = _fake_list_wrapped_client()
+        card = generate_index_card(
+            file_id="x", path="p.md", source_pdf_path="p.pdf", course="math-camp",
+            folder_category="ta_notes", content_sample="text", page_count=10, client=client,
+        )
+        self.assertEqual(card["title"], "Linear Algebra Notes")
+        self.assertEqual(card["doc_type"], "ta_notes")
+        self.assertEqual(card["summary"], "Covers vector spaces.")
+        self.assertEqual(card["level"], "intermediate")
+        self.assertFalse(card["needs_indexing"])
 
 
 class TestMakeFailureCard(unittest.TestCase):

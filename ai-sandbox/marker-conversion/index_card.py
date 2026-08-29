@@ -214,6 +214,15 @@ def generate_index_card(
         },
     ))
     parsed = json.loads(response.text)
+    if isinstance(parsed, list):
+        # Confirmed live: despite response_mime_type="application/json"
+        # and prompt instructions asking for a bare object,
+        # gemini-3.1-flash-lite sometimes wraps an otherwise
+        # well-formed response in a one-element array (reproduced
+        # against LN_Linear Algebra.md). Unwrap rather than crash --
+        # every field below already falls back gracefully if the
+        # unwrapped value isn't a dict either.
+        parsed = parsed[0] if parsed and isinstance(parsed[0], dict) else {}
 
     title = str(parsed.get("title") or "").strip()
     doc_type = parsed.get("doc_type")
