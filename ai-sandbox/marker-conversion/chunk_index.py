@@ -108,3 +108,38 @@ def _split_by_headings(body: str) -> list[_Span] | None:
             heading_path=[h for _, h in stack],
         ))
     return spans
+
+
+_PROBLEM_BOUNDARY_PATTERNS = [
+    re.compile(r"(?m)^\d+\.\s"),
+    re.compile(r"(?m)^\*\*Practice Problem \d+"),
+    re.compile(r"(?m)^Problem \d+"),
+    re.compile(r"(?m)^Question \d+"),
+]
+_MIN_PROBLEM_MATCHES = 3  # same reasoning as retag.py's MIN_TAG_CLUSTER_SIZE:
+# a weak/sparse match count isn't trusted as real document structure.
+_PROBLEM_LABEL_RE = re.compile(r"^\**\s*(?:Practice Problem|Problem|Question)?\s*(\d+)", re.IGNORECASE)
+
+
+def _problem_label_at(body: str, start: int) -> str:
+    first_line = body[start:start + 80].split("\n", 1)[0]
+    m = _PROBLEM_LABEL_RE.match(first_line)
+    return f"Problem {m.group(1)}" if m else "Problem"
+
+
+def _detect_problem_boundaries(body: str) -> list[_Span] | None:
+    starts = set()
+    for pattern in _PROBLEM_BOUNDARY_PATTERNS:
+        starts.update(m.start() for m in pattern.finditer(body))
+    if len(starts) < _MIN_PROBLEM_MATCHES:
+        return None
+
+    ordered = sorted(starts)
+    spans = []
+    for i, start in enumerate(ordered):
+        end = ordered[i + 1] if i + 1 < len(ordered) else len(body)
+        spans.append(_Span(
+            start=start, end=end, tier="problem_number",
+            problem_label=_problem_label_at(body, start),
+        ))
+    return spans

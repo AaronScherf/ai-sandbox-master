@@ -5,7 +5,7 @@ import unittest
 from chunk_index import (
     chunks_path, load_chunks, save_chunks,
     _page_markers, _strip_front_matter_by_page, _strip_yaml_frontmatter,
-    _Span, _split_by_headings,
+    _Span, _split_by_headings, _detect_problem_boundaries,
 )
 
 
@@ -113,6 +113,53 @@ class TestSplitByHeadings(unittest.TestCase):
 
     def test_no_headings_returns_none(self):
         self.assertIsNone(_split_by_headings("Just plain text, no headings at all."))
+
+
+class TestDetectProblemBoundaries(unittest.TestCase):
+    def test_plain_numbered_problems(self):
+        # Real convention confirmed live in old_problem_set.md.
+        body = (
+            "1. For each of the following functions, state...\n\n"
+            "2. Consider a production function...\n\n"
+            "3. In an economy with n goods...\n\n"
+        )
+        spans = _detect_problem_boundaries(body)
+        self.assertEqual(len(spans), 3)
+        self.assertEqual(spans[0].problem_label, "Problem 1")
+        self.assertEqual(spans[2].problem_label, "Problem 3")
+        self.assertTrue(all(s.tier == "problem_number" for s in spans))
+
+    def test_bold_practice_problem_convention(self):
+        # Real convention confirmed live in Practice Sheet.md -- doesn't
+        # match a bare "N." pattern since it's wrapped in ** and has a title.
+        body = (
+            "**Practice Problem 1. Involutions**\n\nLet V be...\n\n"
+            "**Practice Problem 2. Norms**\n\nShow that...\n\n"
+            "**Practice Problem 3. Rank**\n\nDetermine...\n\n"
+        )
+        spans = _detect_problem_boundaries(body)
+        self.assertEqual(len(spans), 3)
+        self.assertEqual(spans[0].problem_label, "Problem 1")
+
+    def test_points_annotated_problems(self):
+        # Real convention confirmed live in old_exam_2021.md.
+        body = (
+            "1. **(40 points)** Are the following statements true or false?\n\n"
+            "2. **(15 points)** Consider the following matrix\n\n"
+            "3. **(15 points)**. Consider the following function\n\n"
+        )
+        spans = _detect_problem_boundaries(body)
+        self.assertEqual(len(spans), 3)
+
+    def test_too_few_matches_returns_none(self):
+        # A single accidental match (e.g. one stray "1." in prose) must
+        # not be trusted as real document structure -- same "empirically
+        # validate before trusting" bar retag.py's discovery phase uses.
+        body = "Some prose that happens to mention item 1. and nothing else numbered."
+        self.assertIsNone(_detect_problem_boundaries(body))
+
+    def test_no_matches_returns_none(self):
+        self.assertIsNone(_detect_problem_boundaries("No numbered problems in here."))
 
 
 if __name__ == "__main__":
