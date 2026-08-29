@@ -93,6 +93,29 @@ class TestRebuild(unittest.TestCase):
             self.assertEqual(len(cards), 1)
             self.assertEqual(cards[0]["doc_type"], "ta_notes")
 
+    def test_a_needs_indexing_card_is_retried_on_the_next_plain_rebuild(self):
+        # Real finding: a card left as needs_indexing=True after a failed
+        # generation attempt correctly bypasses "already current" on the
+        # next rebuild, but was never actually retried -- reconcile_and_write()
+        # finds the old card by file_id and just patches its metadata
+        # unless the caller explicitly removes it first to force a true
+        # regeneration, which rebuild only did for force/stale, not for
+        # needs_indexing.
+        with tempfile.TemporaryDirectory() as tmp:
+            _make_notes_pdf(tmp, "math-camp", "ta_notes", "flaky")
+            bad_client = MagicMock()
+            bad_client.models.generate_content.side_effect = RuntimeError("quota exceeded")
+            rebuild(tmp, client=bad_client)
+            self.assertTrue(load_shard(tmp, "math-camp")[0]["needs_indexing"])
+
+            good_client = _fake_client()
+            stats = rebuild(tmp, client=good_client)
+            self.assertEqual(stats["updated"], 1)
+            cards = load_shard(tmp, "math-camp")
+            self.assertEqual(len(cards), 1)
+            self.assertFalse(cards[0]["needs_indexing"])
+            self.assertEqual(cards[0]["doc_type"], "ta_notes")
+
     def test_skips_pdfs_with_no_markdown_output_yet(self):
         with tempfile.TemporaryDirectory() as tmp:
             _make_notes_pdf(tmp, "math-camp", "ta_notes", "not_converted_yet", write_markdown=False)

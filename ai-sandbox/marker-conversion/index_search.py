@@ -173,17 +173,25 @@ def _reconcile_one(academic_hub_root, course_name, folder_category, file_id, rel
         return
 
     is_first_time = existing is None
-    # force=True, or a stale existing card (its .md content changed even
-    # though file_id/path didn't -- e.g. a fixed transcription pipeline
-    # was re-run against the same PDF; see _is_stale), both need a fresh
-    # generate_index_card() call -- reconcile_and_write() only
-    # regenerates on a true no-match (it finds this file_id's existing
-    # card and just patches path/orphaned otherwise), so the old card is
-    # removed first to force that path either way. Doesn't affect
-    # `is_first_time`, which the stats classification below still needs
-    # to reflect accurately -- "updated", not "generated", for a file
-    # that was already indexed.
-    if (force or stale) and existing is not None:
+    # Three reasons need a fresh generate_index_card() call, not just a
+    # metadata patch: force=True; a stale existing card (its .md content
+    # changed even though file_id/path didn't -- e.g. a fixed
+    # transcription pipeline was re-run against the same PDF; see
+    # _is_stale); or a needs_indexing card (a previous generation attempt
+    # failed and was never actually retried -- confirmed live: it
+    # correctly bypasses "already current" above, but without this,
+    # reconcile_and_write() still finds the old card by file_id and just
+    # patches its metadata, never calling generate_index_card() again).
+    # reconcile_and_write() only regenerates on a true no-match, so the
+    # old card is removed first to force that path in all three cases.
+    # A plain path change (file moved, content genuinely unchanged) is
+    # deliberately NOT included here -- reconcile_and_write()'s cheap
+    # patch-only path is correct for that case, not a bug to route
+    # around. Doesn't affect `is_first_time`, which the stats
+    # classification below still needs to reflect accurately --
+    # "updated", not "generated", for a file that was already indexed.
+    needs_retry = existing is not None and existing.get("needs_indexing")
+    if (force or stale or needs_retry) and existing is not None:
         remaining = [c for c in load_shard(academic_hub_root, course_name) if c.get("file_id") != file_id]
         save_shard(academic_hub_root, course_name, remaining)
         recompute_course_entry(academic_hub_root, course_name)
