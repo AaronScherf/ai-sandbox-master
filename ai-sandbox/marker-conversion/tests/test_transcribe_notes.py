@@ -18,7 +18,10 @@ from transcribe_notes import (
     parse_batch_transcription_response,
     parse_transcription_response,
     reconstruct_line_with_scripts,
+    repair_batch,
     split_run_into_batches,
+    transcribe_page_via_gemini,
+    _looks_like_repetition_loop,
     _write_markdown_and_index,
 )
 
@@ -436,6 +439,98 @@ class TestParseBatchTranscriptionResponse(unittest.TestCase):
 
     def test_empty_response_returns_empty_dict(self):
         self.assertEqual(parse_batch_transcription_response("", expected_page_numbers=[1, 2]), {})
+
+
+class TestLooksLikeRepetitionLoop(unittest.TestCase):
+    def test_dot_leader_toc_style_repetition_is_flagged(self):
+        # The real failure: "Introduction . . . . . . ..." repeated tens
+        # of thousands of times, confirmed live on three real files.
+        text = "Introduction " + ". " * 100
+        self.assertTrue(_looks_like_repetition_loop(text))
+
+    def test_normal_prose_is_not_flagged(self):
+        text = "Let V be a finite-dimensional real vector space and let T : V -> V satisfy..."
+        self.assertFalse(_looks_like_repetition_loop(text))
+
+    def test_normal_math_notation_is_not_flagged(self):
+        text = r"The sequence $x_1, x_2, \ldots, x_n$ converges to $L$ as $n \to \infty$."
+        self.assertFalse(_looks_like_repetition_loop(text))
+
+    def test_a_short_legitimate_repeat_is_not_flagged(self):
+        # Real content can repeat a short token a handful of times
+        # (e.g. defining a constant sequence) -- well under the
+        # threshold that only real failures reach.
+        text = "Consider the constant sequence 1, 1, 1, 1, 1, 1."
+        self.assertFalse(_looks_like_repetition_loop(text))
+
+    def test_empty_text_is_not_flagged(self):
+        self.assertFalse(_looks_like_repetition_loop(""))
+
+
+def _fake_gemini_response(text: str):
+    response = MagicMock()
+    response.text = text
+    response.usage_metadata = None
+    return response
+
+
+class TestTranscribePageViaGemini(unittest.TestCase):
+    def test_normal_output_returns_after_one_call(self):
+        client = MagicMock()
+        client.models.generate_content.return_value = _fake_gemini_response("Clean transcribed content.")
+        result = transcribe_page_via_gemini(client, "model", b"img", "prompt")
+        self.assertEqual(result, "Clean transcribed content.")
+        self.assertEqual(client.models.generate_content.call_count, 1)
+
+    def test_degenerate_first_response_retries_with_frequency_penalty(self):
+        client = MagicMock()
+        degenerate = "Introduction " + ". " * 100
+        client.models.generate_content.side_effect = [
+            _fake_gemini_response(degenerate),
+            _fake_gemini_response("Recovered clean content on retry."),
+        ]
+        result = transcribe_page_via_gemini(client, "model", b"img", "prompt")
+        self.assertEqual(result, "Recovered clean content on retry.")
+        self.assertEqual(client.models.generate_content.call_count, 2)
+        first_config = client.models.generate_content.call_args_list[0].kwargs["config"]
+        retry_config = client.models.generate_content.call_args_list[1].kwargs["config"]
+        self.assertNotIn("frequency_penalty", first_config)
+        self.assertIn("frequency_penalty", retry_config)
+
+    def test_still_degenerate_after_retry_raises(self):
+        client = MagicMock()
+        degenerate = "Introduction " + ". " * 100
+        client.models.generate_content.side_effect = [
+            _fake_gemini_response(degenerate),
+            _fake_gemini_response(degenerate),
+        ]
+        with self.assertRaises(ValueError):
+            transcribe_page_via_gemini(client, "model", b"img", "prompt")
+        self.assertEqual(client.models.generate_content.call_count, 2)
+
+
+class TestRepairBatch(unittest.TestCase):
+    def test_a_degenerate_page_in_the_batch_is_dropped_and_raises_missing(self):
+        # repair_batch reuses the existing "missing page(s)" fallback --
+        # a degenerate page must look exactly like a missing one to the
+        # caller, not be silently kept.
+        degenerate = "Introduction " + ". " * 100
+        response_text = (
+            "--- PAGE 1 ---\nClean page one.\n\n"
+            f"--- PAGE 2 ---\n{degenerate}\n"
+        )
+        with patch("transcribe_notes.render_page_to_image_bytes", return_value=b"img"), \
+             patch("transcribe_notes.transcribe_batch_via_gemini", return_value=response_text):
+            with self.assertRaises(ValueError) as ctx:
+                repair_batch(MagicMock(), "model", "fake.pdf", [1, 2], "prompt")
+        self.assertIn("2", str(ctx.exception))
+
+    def test_all_clean_pages_return_normally(self):
+        response_text = "--- PAGE 1 ---\nClean page one.\n\n--- PAGE 2 ---\nClean page two.\n"
+        with patch("transcribe_notes.render_page_to_image_bytes", return_value=b"img"), \
+             patch("transcribe_notes.transcribe_batch_via_gemini", return_value=response_text):
+            result = repair_batch(MagicMock(), "model", "fake.pdf", [1, 2], "prompt")
+        self.assertEqual(result, {1: "Clean page one.", 2: "Clean page two."})
 
 
 class TestDeriveFolderCategory(unittest.TestCase):

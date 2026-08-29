@@ -324,6 +324,48 @@ _MODEL_HANDWRITING = "gemini-3.6-flash"
 # input tokens per call) into flat per-call cost.
 _ACCUMULATION_WINDOW = 3
 
+# Hard output caps against a runaway-repetition failure (see
+# _looks_like_repetition_loop below): confirmed live on three real files
+# (LN_Analysis.pdf, LN_Optimization.pdf, LN_Probability.pdf) whose
+# printed table-of-contents pages (dot leaders -- a naturally repetitive
+# visual pattern) sent temperature=0 greedy decoding into an unbroken
+# ". . . ." loop that ran to ~131,000 characters (tens of thousands of
+# tokens) before the model's own internal ceiling stopped it. Real page
+# content across this corpus's 772 already-cached pages has a median of
+# 1,327 characters and a p95 of 2,118 -- these caps sit an order of
+# magnitude above any real single page's needs and well below what a
+# genuine repetition loop consumes, so a looping page gets cut off
+# before completing (missing its closing content), not silently allowed
+# to run to completion.
+_MAX_OUTPUT_TOKENS_SINGLE_PAGE = 8192
+_MAX_OUTPUT_TOKENS_BATCH = 16384
+
+# Applied only on the single retry after a detected repetition loop (see
+# transcribe_page_via_gemini) -- directly penalizes the model for
+# repeating tokens it has already produced, which targets this failure
+# mode more precisely than raising temperature would (temperature adds
+# randomness everywhere in the response, including the parts that were
+# transcribing correctly). Not applied on first attempts, to avoid any
+# quality risk to normal transcription from an untested-at-scale
+# generation parameter.
+_REPETITION_RETRY_FREQUENCY_PENALTY = 1.0
+
+# A real transcription never repeats one exact short token 25+ times
+# consecutively (even a legitimate sequence like "1, 1, 1, ..." doesn't
+# reach this) -- orders of magnitude below the tens of thousands of
+# repeats seen in the real failures above, and above anything
+# legitimate.
+_REPETITION_LOOP_RE = re.compile(r"(\S{1,20})(?:\s+\1){24,}")
+
+
+def _looks_like_repetition_loop(text: str) -> bool:
+    """True if `text` degenerated into the same short token repeated
+    many times in a row -- a known temperature=0 greedy-decoding failure
+    mode, confirmed live specifically on printed table-of-contents pages
+    (dot leaders). See _REPETITION_LOOP_RE and _MAX_OUTPUT_TOKENS_*
+    above for the evidence behind the threshold."""
+    return bool(_REPETITION_LOOP_RE.search(text or ""))
+
 
 def has_reliable_pagination(metadata) -> bool:
     """
@@ -735,9 +777,18 @@ def _log_token_usage(response) -> None:
     print(f"    [tokens] input={input_tokens} output={output_tokens} (running total: input={_TOKEN_USAGE_TOTALS['input']} output={_TOKEN_USAGE_TOTALS['output']})")
 
 
-def transcribe_page_via_gemini(client, model: str, image_bytes: bytes, prompt: str) -> str:
-    """Only function in this module that touches the network -- not unit-tested locally."""
+def _call_gemini_single_page(
+    client, model: str, image_bytes: bytes, prompt: str, frequency_penalty: float | None = None,
+) -> str:
     from google.genai import types
+
+    config = {
+        "temperature": 0,
+        "thinking_config": {"thinking_level": "minimal"},
+        "max_output_tokens": _MAX_OUTPUT_TOKENS_SINGLE_PAGE,
+    }
+    if frequency_penalty is not None:
+        config["frequency_penalty"] = frequency_penalty
 
     response = client.models.generate_content(
         model=model,
@@ -745,13 +796,39 @@ def transcribe_page_via_gemini(client, model: str, image_bytes: bytes, prompt: s
             types.Part.from_bytes(data=image_bytes, mime_type="image/png"),
             prompt,
         ],
-        config={
-            "temperature": 0,
-            "thinking_config": {"thinking_level": "minimal"},
-        },
+        config=config,
     )
     _log_token_usage(response)
     return parse_transcription_response(response.text)
+
+
+def transcribe_page_via_gemini(client, model: str, image_bytes: bytes, prompt: str) -> str:
+    """The only function in this module that calls generate_content for a
+    single page -- shared by Tier 3's accumulating loop and by
+    repair_page_individually (both the hybrid/whole-doc-batched fallback
+    and, transitively, retag's batch-fallback path). Guards against the
+    runaway-repetition failure mode (_looks_like_repetition_loop): a
+    degenerate first response gets one retry with frequency_penalty
+    applied (not used on the first attempt -- see
+    _REPETITION_RETRY_FREQUENCY_PENALTY), and a still-degenerate result
+    after that raises rather than being returned, so every existing
+    caller's own exception handling (which already exists for network
+    errors) treats it as a failed page rather than silently keeping
+    garbage."""
+    text = _call_gemini_single_page(client, model, image_bytes, prompt)
+    if _looks_like_repetition_loop(text):
+        print(f"    WARNING: output looks like a runaway repetition loop "
+              f"({len(text)} chars); retrying with frequency_penalty.")
+        text = _call_gemini_single_page(
+            client, model, image_bytes, prompt,
+            frequency_penalty=_REPETITION_RETRY_FREQUENCY_PENALTY,
+        )
+        if _looks_like_repetition_loop(text):
+            raise ValueError(
+                f"output still looks like a runaway repetition loop after "
+                f"retry with frequency_penalty ({len(text)} chars)"
+            )
+    return text
 
 
 def transcribe_batch_via_gemini(client, model: str, images: list[bytes], prompt: str) -> str:
@@ -772,6 +849,7 @@ def transcribe_batch_via_gemini(client, model: str, images: list[bytes], prompt:
         config={
             "temperature": 0,
             "thinking_config": {"thinking_level": "minimal"},
+            "max_output_tokens": _MAX_OUTPUT_TOKENS_BATCH,
         },
     )
     _log_token_usage(response)
@@ -779,10 +857,23 @@ def transcribe_batch_via_gemini(client, model: str, images: list[bytes], prompt:
 
 
 def repair_batch(client, model: str, pdf_path: str, batch: list[int], prompt: str) -> dict[int, str]:
-    """One capped batch's worth of defective pages, repaired in a single call."""
+    """One capped batch's worth of defective pages, repaired in a single
+    call. Any page whose text looks like a runaway repetition loop
+    (_looks_like_repetition_loop) is dropped from the result before the
+    completeness check below, rather than trusted -- this reuses the
+    existing "missing page(s)" ValueError/fallback path (process_pdf
+    retries a missing page individually, where transcribe_page_via_gemini
+    has its own detect-and-retry guard) instead of needing a separate
+    repair mechanism for batch responses specifically."""
     images = [render_page_to_image_bytes(pdf_path, p - 1, dpi=_DPI_TYPESET) for p in batch]
     response_text = transcribe_batch_via_gemini(client, model, images, prompt)
     parsed = parse_batch_transcription_response(response_text, batch)
+    for page_num, text in list(parsed.items()):
+        if _looks_like_repetition_loop(text):
+            print(f"  WARNING: page {page_num} in this batch looks like a "
+                  f"runaway repetition loop ({len(text)} chars); dropping it "
+                  f"so it's retried individually.")
+            del parsed[page_num]
     if set(parsed.keys()) != set(batch):
         missing = sorted(set(batch) - set(parsed.keys()))
         raise ValueError(f"batch response missing page(s) {missing}")
