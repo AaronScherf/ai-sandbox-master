@@ -6,11 +6,12 @@ import unittest
 from datetime import datetime, timezone
 from unittest.mock import MagicMock
 
+from chunk_index import save_chunks
 from index_card import (
     compute_file_id, load_courses, load_shard, load_tags, save_shard, save_tags,
     recompute_course_entry,
 )
-from index_search import _is_stale, build_arg_parser, rebuild, search
+from index_search import _is_stale, build_arg_parser, rebuild, search, search_passages, _render_citation
 
 
 def _fake_client():
@@ -540,6 +541,69 @@ class TestCLIArgParsing(unittest.TestCase):
     def test_retag_subcommand_with_dry_run(self):
         args = build_arg_parser().parse_args(["retag", "--dry-run"])
         self.assertTrue(args.dry_run)
+
+
+class TestRenderCitation(unittest.TestCase):
+    def test_heading_tier_citation(self):
+        chunk = {"tier": "heading", "heading_path": ["3", "3.7 Optimization"], "page_range": [44, 44], "problem_label": None}
+        self.assertEqual(_render_citation(chunk), "§3.7 Optimization, p. 44")
+
+    def test_problem_number_tier_citation(self):
+        chunk = {"tier": "problem_number", "heading_path": None, "page_range": [12, 12], "problem_label": "Problem 4"}
+        self.assertEqual(_render_citation(chunk), "Problem 4, p. 12")
+
+    def test_page_tier_citation(self):
+        chunk = {"tier": "page", "heading_path": None, "page_range": [8, 8], "problem_label": None}
+        self.assertEqual(_render_citation(chunk), "p. 8")
+
+    def test_multi_page_range_renders_as_a_span(self):
+        chunk = {"tier": "page", "heading_path": None, "page_range": [8, 9], "problem_label": None}
+        self.assertEqual(_render_citation(chunk), "p. 8-9")
+
+    def test_no_page_range_falls_back_to_heading_or_label_only(self):
+        chunk = {"tier": "heading", "heading_path": ["Intro"], "page_range": None, "problem_label": None}
+        self.assertEqual(_render_citation(chunk), "§Intro")
+
+
+class TestSearchPassages(unittest.TestCase):
+    def test_ranks_passages_within_the_top_files(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            save_shard(tmp, "math-camp", [_card("aaa", [1.0, 0.0])])
+            recompute_course_entry(tmp, "math-camp")
+            save_chunks(tmp, "math-camp", [
+                {"chunk_id": "aaa-000", "file_id": "aaa", "chunk_index": 0, "tier": "page",
+                 "heading_path": None, "problem_label": None, "page_range": [1, 1],
+                 "text": "close match", "embedding": [0.9, 0.1], "embedding_model": "m", "content_hash": "h"},
+                {"chunk_id": "aaa-001", "file_id": "aaa", "chunk_index": 1, "tier": "page",
+                 "heading_path": None, "problem_label": None, "page_range": [2, 2],
+                 "text": "far match", "embedding": [0.0, 1.0], "embedding_model": "m", "content_hash": "h"},
+            ])
+            results = search_passages(tmp, "query", client=_fake_query_client([1.0, 0.0]))
+            self.assertEqual(results[0].text, "close match")
+            self.assertGreater(results[0].score, results[1].score)
+            self.assertEqual(results[0].file_id, "aaa")
+            self.assertEqual(results[0].chunk_id, "aaa-000")
+
+    def test_file_with_no_chunks_yet_is_skipped_not_an_error(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            save_shard(tmp, "math-camp", [_card("aaa", [1.0, 0.0])])
+            recompute_course_entry(tmp, "math-camp")
+            # No save_chunks() call at all -- chunk hasn't been run yet.
+            results = search_passages(tmp, "query", client=_fake_query_client([1.0, 0.0]))
+            self.assertEqual(results, [])
+
+    def test_top_k_limits_results(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            save_shard(tmp, "math-camp", [_card("aaa", [1.0, 0.0])])
+            recompute_course_entry(tmp, "math-camp")
+            save_chunks(tmp, "math-camp", [
+                {"chunk_id": f"aaa-{i:03d}", "file_id": "aaa", "chunk_index": i, "tier": "page",
+                 "heading_path": None, "problem_label": None, "page_range": [i, i],
+                 "text": f"chunk {i}", "embedding": [1.0, 0.0], "embedding_model": "m", "content_hash": "h"}
+                for i in range(5)
+            ])
+            results = search_passages(tmp, "query", client=_fake_query_client([1.0, 0.0]), top_k=2)
+            self.assertEqual(len(results), 2)
 
 
 if __name__ == "__main__":

@@ -15,6 +15,7 @@ from datetime import datetime, timezone
 
 from google.genai import types
 
+from chunk_index import load_chunks
 from gemini_utils import get_gemini_client, load_dotenv_override
 from index_card import (
     TEXTBOOK_CONTENT_SAMPLE_CHARS,
@@ -96,6 +97,65 @@ def search(
             scored.append(SearchResult(
                 path=result_path, course=card["course"], doc_type=card["doc_type"],
                 score=score, reason=card.get("summary", ""), file_id=card["file_id"],
+            ))
+
+    scored.sort(key=lambda r: r.score, reverse=True)
+    return scored[:top_k]
+
+
+@dataclass
+class PassageResult:
+    chunk_id: str
+    file_id: str
+    path: str
+    course: str
+    score: float
+    text: str
+    citation: str
+
+
+def _render_citation(chunk: dict) -> str:
+    parts = []
+    if chunk.get("heading_path"):
+        parts.append(f"§{chunk['heading_path'][-1]}")
+    elif chunk.get("problem_label"):
+        parts.append(chunk["problem_label"])
+    page_range = chunk.get("page_range")
+    if page_range:
+        start, end = page_range
+        parts.append(f"p. {start}" if start == end else f"p. {start}-{end}")
+    return ", ".join(parts)
+
+
+def search_passages(
+    academic_hub_root: str, query: str, client, course: str | None = None,
+    top_k: int = 5, file_top_k: int = 5,
+) -> list[PassageResult]:
+    """Three-stage funnel (spec §6): reuses search() for the file-level
+    pass (100% of the existing course-then-file filtering, not
+    duplicated), then ranks that shortlist's chunks by cosine similarity
+    to the same query embedding. A file with no chunks yet (chunk
+    hasn't been run against it) contributes nothing and is silently
+    skipped, not an error -- degrades gracefully during the transition
+    period before `chunk` has been run corpus-wide."""
+    file_results = search(academic_hub_root, query, client, course=course, top_k=file_top_k)
+    if not file_results:
+        return []
+
+    query_embedding = _embed_query(query, client)
+    chunks_by_course: dict[str, list[dict]] = {}
+    scored: list[PassageResult] = []
+    for file_result in file_results:
+        if file_result.course not in chunks_by_course:
+            chunks_by_course[file_result.course] = load_chunks(academic_hub_root, file_result.course)
+        for c in chunks_by_course[file_result.course]:
+            if c["file_id"] != file_result.file_id:
+                continue
+            score = cosine_similarity(query_embedding, c["embedding"])
+            scored.append(PassageResult(
+                chunk_id=c["chunk_id"], file_id=c["file_id"], path=file_result.path,
+                course=file_result.course, score=score, text=c["text"],
+                citation=_render_citation(c),
             ))
 
     scored.sort(key=lambda r: r.score, reverse=True)
