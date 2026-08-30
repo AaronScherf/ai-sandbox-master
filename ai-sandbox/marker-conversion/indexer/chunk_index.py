@@ -22,8 +22,8 @@ from dataclasses import dataclass
 
 from google.genai import types
 
-from gemini_utils import call_with_retries
-from index_card import EMBEDDING_DIMENSIONALITY, EMBEDDING_MODEL, EMBEDDING_MODEL_ID, list_courses, load_shard
+from common.gemini_utils import call_with_retries
+from indexer.index_card import EMBEDDING_DIMENSIONALITY, EMBEDDING_MODEL, EMBEDDING_MODEL_ID, list_courses, load_shard
 
 
 def chunks_dir(academic_hub_root: str) -> str:
@@ -308,7 +308,7 @@ def generate_chunks_for_file(academic_hub_root: str, course: str, card: dict, cl
 
     front_matter_end = None
     if card["doc_type"] == "textbook":
-        from describe_images import load_front_matter_end
+        from textbook.describe_images import load_front_matter_end
         book_dir = os.path.dirname(md_path)
         front_matter_end = load_front_matter_end(book_dir)
 

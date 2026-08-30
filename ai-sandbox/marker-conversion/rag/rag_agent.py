@@ -13,9 +13,9 @@ import argparse
 import os
 from dataclasses import dataclass
 
-from gemini_utils import call_with_retries, get_gemini_client, load_dotenv_override
-from index_card import GENERATION_MODEL
-from index_search import PassageResult, search_passages
+from common.gemini_utils import call_with_retries, get_gemini_client, load_dotenv_override
+from indexer.index_card import GENERATION_MODEL
+from indexer.index_search import PassageResult, search_passages
 
 
 @dataclass
@@ -156,7 +156,7 @@ def answer_question(
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Interactive tutor grounded in the academic-hub corpus.")
-    parser.add_argument("--academic-hub", default=os.path.join(os.path.dirname(__file__), "..", "academic-hub"))
+    parser.add_argument("--academic-hub", default=os.path.join(os.path.dirname(__file__), "..", "..", "academic-hub"))
     parser.add_argument("--course", default=None)
     args = parser.parse_args()
 

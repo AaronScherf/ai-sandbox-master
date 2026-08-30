@@ -15,16 +15,16 @@ import argparse
 import json
 import os
 
-from gemini_utils import get_gemini_client, load_dotenv_override
-from local_model_scoring import score_causal_zscore, score_masked_candidates
-from postprocess_discovery import (
+from common.gemini_utils import get_gemini_client, load_dotenv_override
+from postprocessing.local_model_scoring import score_causal_zscore, score_masked_candidates
+from postprocessing.postprocess_discovery import (
     derive_eligible_pages,
     discover_markdown_files,
     is_correction_target,
     parse_frontmatter,
     split_pages_by_tag,
 )
-from postprocess_findings import (
+from postprocessing.postprocess_findings import (
     build_changelog_entry,
     documents_needing_review,
     find_isolated_candidate_spans,
@@ -32,7 +32,7 @@ from postprocess_findings import (
     is_allowlisted_span,
     search_reference_documents,
 )
-from transcribe_notes import (
+from notes.transcribe_notes import (
     _MODEL_TYPESET,
     build_final_markdown,
     build_frontmatter,

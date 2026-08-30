@@ -14,10 +14,33 @@ See [`gcp_instructions.md`](gcp_instructions.md) for the full step-by-step guide
 
 ## Key files
 
-- `convert_textbook.py` -- orchestrates the Marker conversion and optional LLM-assisted bibliographic metadata lookup; runs on the VM.
+- `textbook/convert_textbook.py` -- orchestrates the Marker conversion and optional LLM-assisted bibliographic metadata lookup; runs on the VM.
 - `marker_setup.sh` -- provisions the VM's Python/CUDA/Marker environment; safe to re-run every session.
 - `Dockerfile` -- local container image with `gcloud` and SSH for driving the pipeline from Windows/PowerShell.
 - `gcp_instructions.md` -- full step-by-step usage instructions.
+
+## Repository layout
+
+Scripts are grouped by subproject, each a Python package (`__init__.py`), with two shared modules that
+almost everything else depends on. Run any script as a module from this directory, e.g.
+`python -m notes.transcribe_notes --notes-subdir ...` or `python -m indexer.index_search query "..."` --
+not as a bare file path, since the package-qualified imports below need this directory on `sys.path`
+(`python -m` does that automatically; `pytest`/`python -m unittest` work too via the root `conftest.py`).
+
+- `common/` -- `gemini_utils.py`: Gemini client setup, retry/backoff, `.env` loading. Used by every subproject.
+- `indexer/` -- `index_card.py` (per-file card generation), `index_search.py` (rebuild/search CLI),
+  `chunk_index.py` (passage-level chunking/embedding), `retag.py` (corpus-wide tag mining). The
+  source-indexer subproject; also depended on by every conversion pipeline below for its indexing hooks.
+- `textbook/` -- `convert_textbook.py`, `chapter_index.py`, `page_markers.py` (all VM/GPU-touching --
+  see `gcp_instructions.md`), plus `describe_images.py` (local-only figure description). The only files
+  that need to be deployed to the GCP VM (along with `common/` and `indexer/`, which they import).
+- `notes/` -- `transcribe_notes.py`: local, Gemini-vision-based transcription for problem sets, TA notes,
+  exams, and handwritten scans. See `notes_instructions.md`.
+- `postprocessing/` -- `postprocess_notes.py` and its supporting modules: a downstream correction pass
+  over `notes/transcribe_notes.py`'s output. Depends on `notes/`.
+- `rag/` -- `rag_agent.py`: the multi-turn tutoring agent grounded in passage retrieval. Depends on `indexer/`.
+- `tests/` -- flat (not mirrored by subproject); imports are package-qualified to match the layout above.
+- `old_attempts/` -- superseded, unmaintained prototypes; not part of the active pipeline.
 
 ## Requirements
 

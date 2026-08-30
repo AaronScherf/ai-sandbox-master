@@ -3,9 +3,9 @@ import tempfile
 import unittest
 from unittest.mock import MagicMock
 
-from index_card import save_shard
+from indexer.index_card import save_shard
 
-from chunk_index import (
+from indexer.chunk_index import (
     chunks_path, load_chunks, save_chunks,
     _page_markers, _strip_front_matter_by_page, _strip_yaml_frontmatter,
     _Span, _split_by_headings, _detect_problem_boundaries, _split_by_pages,

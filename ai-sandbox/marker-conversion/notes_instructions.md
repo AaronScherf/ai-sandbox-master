@@ -45,7 +45,7 @@ Batches over every PDF found directly under
 ```powershell
 $NOTES_SUBDIR="academic_notes/math-camp/problem_sets"
 
-python transcribe_notes.py --notes-subdir $NOTES_SUBDIR
+python -m notes.transcribe_notes --notes-subdir $NOTES_SUBDIR
 ```
 
 * Add `--file "Linear Algebra Problem Set.pdf"` to process just one file

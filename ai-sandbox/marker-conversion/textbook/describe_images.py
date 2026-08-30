@@ -23,14 +23,14 @@ import sys
 from dataclasses import dataclass
 from pathlib import Path
 
-from gemini_utils import (
+from common.gemini_utils import (
     call_with_retries,
     get_gemini_client,
     load_dotenv_override,
     load_json_cache,
     save_json_cache,
 )
-from index_card import set_rag_md_path
+from indexer.index_card import set_rag_md_path
 
 _IMAGE_REF_RE = re.compile(r"!\[\]\((pg_(\d+)_[^)]+)\)")
 _TAG_ONLY_RE = re.compile(r"^(?:\s*<!--.*?-->\s*)+$")
@@ -348,7 +348,7 @@ def main():
 
     load_dotenv_override()
 
-    academic_hub_dir = Path(__file__).resolve().parent.parent / "academic-hub"
+    academic_hub_dir = Path(__file__).resolve().parent.parent.parent / "academic-hub"
     processed_outputs_dir = academic_hub_dir / args.textbook_subdir / "processed_outputs"
     book_dirs = discover_book_dirs(str(processed_outputs_dir), args.book)
     if not book_dirs:

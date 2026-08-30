@@ -192,8 +192,16 @@ This will trigger the SSH key metadata to update, which may require additional a
 Note: If you get a 255 error, check to ensure the VM is running (and not stopped)
 
 ```bash
-gcloud compute scp marker_setup.sh convert_textbook.py chapter_index.py page_markers.py $VM_INSTANCE_NAME:~/ --zone=$GCP_ZONE --tunnel-through-iap
+gcloud compute scp marker_setup.sh $VM_INSTANCE_NAME:~/ --zone=$GCP_ZONE --tunnel-through-iap
+gcloud compute scp --recurse common indexer textbook $VM_INSTANCE_NAME:~/marker-conversion/ --zone=$GCP_ZONE --tunnel-through-iap
 ```
+
+`common/`, `indexer/`, and `textbook/` are copied recursively so `convert_textbook.py`'s package-qualified
+imports (`from common.gemini_utils import ...`, `from indexer.index_card import ...`, `from textbook.page_markers import ...`)
+resolve on the VM the same way they do locally. `notes/`, `postprocessing/`, and `rag/` aren't needed here --
+nothing under `textbook/` imports them. (This also fixes a real, previously-undocumented gap: `index_card.py`
+and `gemini_utils.py` were never actually transferred to the VM by the old per-file `scp` line above, despite
+`convert_textbook.py` importing both.)
 
 ## Step 3: Execute the Extraction Pipeline
 
@@ -246,14 +254,14 @@ echo "[System] Purging residual VLM server locks."
 sudo rm -f /root/.cache/datalab/surya/vllm_server.lock
 
 echo "[System] Initiating document extraction."
-python3 -u ~/convert_textbook.py $GCS_INPUT_URIS --output "gs://$BUCKET_NAME/processed_outputs"
+cd ~/marker-conversion && python3 -u -m textbook.convert_textbook $GCS_INPUT_URIS --output "gs://$BUCKET_NAME/processed_outputs"
 EOF
 ```
 
 A single book that turns out to be unusually slow or malformed no longer stalls the whole batch indefinitely: each Marker call is bounded by `--chunk-timeout` (default 1800s per chunk) and `--page-timeout` (default 240s per page fallback) before it's treated as hung and falls back automatically, and one book failing outright is logged and skipped rather than aborting the remaining books in the list. Override the defaults if needed, e.g.:
 
 ```bash
-# python3 -u ~/convert_textbook.py $GCS_INPUT_URIS --output "gs://$BUCKET_NAME/processed_outputs" --chunk-timeout 2400 --page-timeout 300
+# python3 -u -m textbook.convert_textbook $GCS_INPUT_URIS --output "gs://$BUCKET_NAME/processed_outputs" --chunk-timeout 2400 --page-timeout 300
 ```
 
 LLM-assisted bibliographic metadata (Step 1.2) is on by default and needs no flags in the common case -- it auto-detects the GCP project from the VM's credentials. If you haven't done the Step 1.2 one-time setup yet, or want to skip it for a run, add `--no-llm-bib` to go straight to the regex fallback.
@@ -327,7 +335,7 @@ Batches over every book folder found under `academic-hub/$TEXTBOOK_SUBDIR/proces
 ```powershell
 $TEXTBOOK_SUBDIR="academic_resources/math-camp/textbooks-and-papers"
 
-python describe_images.py --textbook-subdir $TEXTBOOK_SUBDIR
+python -m textbook.describe_images --textbook-subdir $TEXTBOOK_SUBDIR
 ```
 
 * Add `--book "SomeBookFolderName"` to process just one book instead of the whole batch.

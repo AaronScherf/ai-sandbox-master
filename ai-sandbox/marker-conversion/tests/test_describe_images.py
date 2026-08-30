@@ -5,7 +5,7 @@ from unittest.mock import patch
 
 import json
 
-from describe_images import (
+from textbook.describe_images import (
     build_description_prompt,
     build_rag_markdown,
     extract_paragraph_context,
@@ -253,7 +253,7 @@ class TestLinkRagMd(unittest.TestCase):
             book_dir = self._book_dir_with_metadata(tmp, {"source_pdf_file_id": "fid1"})
             rag_path = os.path.join(book_dir, "SomeBook_2025.rag.md")
 
-            with patch("describe_images.set_rag_md_path", return_value=True) as mock_set:
+            with patch("textbook.describe_images.set_rag_md_path", return_value=True) as mock_set:
                 found = link_rag_md(book_dir, "SomeBook_2025", rag_path, tmp)
 
             self.assertTrue(found)
@@ -271,7 +271,7 @@ class TestLinkRagMd(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             book_dir = self._book_dir_with_metadata(tmp, {})  # predates this field
             rag_path = os.path.join(book_dir, "SomeBook_2025.rag.md")
-            with patch("describe_images.set_rag_md_path") as mock_set:
+            with patch("textbook.describe_images.set_rag_md_path") as mock_set:
                 found = link_rag_md(book_dir, "SomeBook_2025", rag_path, tmp)
             self.assertFalse(found)
             mock_set.assert_not_called()
@@ -280,7 +280,7 @@ class TestLinkRagMd(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             book_dir = self._book_dir_with_metadata(tmp, {"source_pdf_file_id": "fid1"})
             rag_path = os.path.join(book_dir, "SomeBook_2025.rag.md")
-            with patch("describe_images.set_rag_md_path", return_value=False):
+            with patch("textbook.describe_images.set_rag_md_path", return_value=False):
                 found = link_rag_md(book_dir, "SomeBook_2025", rag_path, tmp)
             self.assertFalse(found)
             with open(os.path.join(book_dir, "SomeBook_2025_metadata.json"), encoding="utf-8") as f:

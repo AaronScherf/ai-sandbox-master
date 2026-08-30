@@ -6,12 +6,12 @@ import unittest
 from datetime import datetime, timezone
 from unittest.mock import MagicMock
 
-from chunk_index import save_chunks
-from index_card import (
+from indexer.chunk_index import save_chunks
+from indexer.index_card import (
     compute_file_id, load_courses, load_shard, load_tags, save_shard, save_tags,
     recompute_course_entry,
 )
-from index_search import _is_stale, build_arg_parser, rebuild, search, search_passages, _render_citation
+from indexer.index_search import _is_stale, build_arg_parser, rebuild, search, search_passages, _render_citation
 
 
 def _fake_client():
@@ -365,7 +365,7 @@ class TestRebuild(unittest.TestCase):
                 f.write("x" * 50000)
             client = _fake_client()
             rebuild(tmp, client=client)
-            from index_card import TEXTBOOK_CONTENT_SAMPLE_CHARS
+            from indexer.index_card import TEXTBOOK_CONTENT_SAMPLE_CHARS
             prompt = client.models.generate_content.call_args.kwargs["contents"]
             self.assertLessEqual(len(prompt), 50000)  # the 50000-char body did NOT go in whole
             self.assertIn("x" * TEXTBOOK_CONTENT_SAMPLE_CHARS, prompt)

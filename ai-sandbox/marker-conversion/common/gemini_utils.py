@@ -81,7 +81,7 @@ def load_dotenv_override() -> None:
     """
     try:
         from dotenv import load_dotenv
-        load_dotenv(dotenv_path=Path(__file__).resolve().parent.parent / ".env", override=True)
+        load_dotenv(dotenv_path=Path(__file__).resolve().parent.parent.parent / ".env", override=True)
     except ImportError:
         print("WARNING: python-dotenv not installed (pip install python-dotenv); "
               "relying on GEMINI_API_KEY already being set in the environment.")

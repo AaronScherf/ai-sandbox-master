@@ -46,13 +46,13 @@ from pypdf import PdfReader, PdfWriter
 from marker.converters.pdf import PdfConverter
 from marker.models import create_model_dict
 from marker.output import text_from_rendered
-from page_markers import remap_image_links, remap_page_markers, tag_single_page
-import chapter_index
-from index_card import (
+from textbook.page_markers import remap_image_links, remap_page_markers, tag_single_page
+from textbook import chapter_index
+from indexer.index_card import (
     TEXTBOOK_CONTENT_SAMPLE_CHARS, compute_content_hash, compute_file_id, derive_course,
     reconcile_and_write,
 )
-from gemini_utils import get_gemini_client, load_dotenv_override
+from common.gemini_utils import get_gemini_client, load_dotenv_override
 
 def clean_stale_state():
     # Purge stale surya lock files
@@ -883,7 +883,7 @@ def process_one_pdf(converter, raw_input: str, raw_output: str, workspace: str, 
         if os.path.exists(run_config_path):
             shutil.copy2(run_config_path, os.path.join(local_build_dir, "run_config.json"))
 
-        academic_hub_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "academic-hub"))
+        academic_hub_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "academic-hub"))
         # Cheap local hashing, no network call -- computed and recorded
         # unconditionally, independent of whether the LLM-dependent
         # indexing call below succeeds. This is what lets rebuild()

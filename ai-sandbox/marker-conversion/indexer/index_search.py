@@ -15,9 +15,9 @@ from datetime import datetime, timezone
 
 from google.genai import types
 
-from chunk_index import chunk, load_chunks
-from gemini_utils import get_gemini_client, load_dotenv_override
-from index_card import (
+from indexer.chunk_index import chunk, load_chunks
+from common.gemini_utils import get_gemini_client, load_dotenv_override
+from indexer.index_card import (
     TEXTBOOK_CONTENT_SAMPLE_CHARS,
     EMBEDDING_DIMENSIONALITY,
     EMBEDDING_MODEL,
@@ -34,7 +34,7 @@ from index_card import (
     save_shard,
     set_rag_md_path,
 )
-from retag import retag
+from indexer.retag import retag
 
 DEFAULT_COURSE_CANDIDATES = 3
 
@@ -440,7 +440,7 @@ def _bool_arg(value: str) -> bool:
 
 
 def build_arg_parser() -> argparse.ArgumentParser:
-    default_root = os.path.join(os.path.dirname(__file__), "..", "academic-hub")
+    default_root = os.path.join(os.path.dirname(__file__), "..", "..", "academic-hub")
     parser = argparse.ArgumentParser(description="Search and maintain the academic-hub source index.")
     parser.add_argument("--academic-hub", default=default_root, help="Path to the academic-hub root.")
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -504,7 +504,7 @@ def main() -> None:
         stats = chunk(args.academic_hub, client, course=args.course, file=args.file, dry_run=args.dry_run)
         print(stats)
     elif args.command == "ask":
-        from rag_agent import answer_question
+        from rag.rag_agent import answer_question
         result = answer_question(args.academic_hub, args.question, client, course=args.course)
         print(result.answer)
         for c in result.citations:

@@ -42,14 +42,14 @@ import re
 import sys
 from pathlib import Path
 
-from gemini_utils import (
+from common.gemini_utils import (
     call_with_retries,
     get_gemini_client,
     load_dotenv_override,
     load_json_cache,
     save_json_cache,
 )
-from index_card import compute_content_hash, compute_file_id, derive_course, reconcile_and_write
+from indexer.index_card import compute_content_hash, compute_file_id, derive_course, reconcile_and_write
 
 _CODE_FENCE_RE = re.compile(r"^```(?:markdown)?\s*\n(.*)\n```\s*$", re.DOTALL)
 
@@ -1208,7 +1208,7 @@ def main():
 
     load_dotenv_override()
 
-    academic_hub_dir = Path(__file__).resolve().parent.parent / "academic-hub"
+    academic_hub_dir = Path(__file__).resolve().parent.parent.parent / "academic-hub"
     notes_dir = academic_hub_dir / args.notes_subdir
     pdf_paths = discover_pdf_files(str(notes_dir), args.file)
     if not pdf_paths:

@@ -4,8 +4,8 @@ import tempfile
 import unittest
 from unittest.mock import MagicMock
 
-from index_card import load_shard, load_tags, save_shard
-from retag import (
+from indexer.index_card import load_shard, load_tags, save_shard
+from indexer.retag import (
     assign_tags, discover_tags, ensure_minimum_coverage, fuzzy_match_tag, retag,
     write_tags_to_frontmatter,
 )

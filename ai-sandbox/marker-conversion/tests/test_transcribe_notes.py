@@ -3,7 +3,7 @@ import tempfile
 import unittest
 from unittest.mock import MagicMock, patch
 
-from transcribe_notes import (
+from notes.transcribe_notes import (
     build_accumulated_context,
     build_batch_transcription_prompt,
     build_final_markdown,
@@ -533,16 +533,16 @@ class TestRepairBatch(unittest.TestCase):
             "--- PAGE 1 ---\nClean page one.\n\n"
             f"--- PAGE 2 ---\n{degenerate}\n"
         )
-        with patch("transcribe_notes.render_page_to_image_bytes", return_value=b"img"), \
-             patch("transcribe_notes.transcribe_batch_via_gemini", return_value=response_text):
+        with patch("notes.transcribe_notes.render_page_to_image_bytes", return_value=b"img"), \
+             patch("notes.transcribe_notes.transcribe_batch_via_gemini", return_value=response_text):
             with self.assertRaises(ValueError) as ctx:
                 repair_batch(MagicMock(), "model", "fake.pdf", [1, 2], "prompt")
         self.assertIn("2", str(ctx.exception))
 
     def test_all_clean_pages_return_normally(self):
         response_text = "--- PAGE 1 ---\nClean page one.\n\n--- PAGE 2 ---\nClean page two.\n"
-        with patch("transcribe_notes.render_page_to_image_bytes", return_value=b"img"), \
-             patch("transcribe_notes.transcribe_batch_via_gemini", return_value=response_text):
+        with patch("notes.transcribe_notes.render_page_to_image_bytes", return_value=b"img"), \
+             patch("notes.transcribe_notes.transcribe_batch_via_gemini", return_value=response_text):
             result = repair_batch(MagicMock(), "model", "fake.pdf", [1, 2], "prompt")
         self.assertEqual(result, {1: "Clean page one.", 2: "Clean page two."})
 
@@ -742,7 +742,7 @@ class TestWriteMarkdownAndIndex(unittest.TestCase):
             with open(pdf_path, "wb") as f:
                 f.write(b"fake pdf")
 
-            with patch("transcribe_notes.reconcile_and_write") as mock_reconcile:
+            with patch("notes.transcribe_notes.reconcile_and_write") as mock_reconcile:
                 _write_markdown_and_index(
                     md_path=md_path, frontmatter="---\nx: 1\n---\n\n", final_md="content",
                     pdf_path=pdf_path, academic_hub_root=tmp, folder_category="ta_notes",
@@ -766,7 +766,7 @@ class TestWriteMarkdownAndIndex(unittest.TestCase):
             with open(pdf_path, "wb") as f:
                 f.write(b"fake pdf")
 
-            with patch("transcribe_notes.reconcile_and_write", side_effect=RuntimeError("boom")):
+            with patch("notes.transcribe_notes.reconcile_and_write", side_effect=RuntimeError("boom")):
                 _write_markdown_and_index(  # must not raise
                     md_path=md_path, frontmatter="", final_md="content", pdf_path=pdf_path,
                     academic_hub_root=tmp, folder_category="ta_notes", total_pages=3, client=MagicMock(),

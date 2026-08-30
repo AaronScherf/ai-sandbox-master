@@ -3,7 +3,7 @@ import unittest
 
 from pypdf import PdfReader, PdfWriter
 
-from chapter_index import ChapterEntry, get_all_outline_entries, _parse_folio_token, parse_printed_toc, detect_printed_folio, match_chapter_titles, compute_folio_offset, resolve_chapters_from_outline_and_toc, bootstrap_chapter_index_from_front_matter, pack_chapters_into_chunks, resolve_probe_boundaries, _consensus_offset
+from textbook.chapter_index import ChapterEntry, get_all_outline_entries, _parse_folio_token, parse_printed_toc, detect_printed_folio, match_chapter_titles, compute_folio_offset, resolve_chapters_from_outline_and_toc, bootstrap_chapter_index_from_front_matter, pack_chapters_into_chunks, resolve_probe_boundaries, _consensus_offset
 
 
 def _pdf_with_outline(entries):

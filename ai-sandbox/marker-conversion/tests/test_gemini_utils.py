@@ -2,7 +2,7 @@ import os
 import tempfile
 import unittest
 
-from gemini_utils import (
+from common.gemini_utils import (
     extract_retry_delay_seconds,
     load_json_cache,
     save_json_cache,

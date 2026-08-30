@@ -18,7 +18,7 @@ from datetime import datetime, timezone
 
 import numpy as np
 
-from gemini_utils import call_with_retries
+from common.gemini_utils import call_with_retries
 from google.genai import types
 
 EMBEDDING_MODEL = "gemini-embedding-001"

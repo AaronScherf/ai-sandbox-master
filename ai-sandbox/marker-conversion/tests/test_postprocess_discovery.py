@@ -2,7 +2,7 @@ import os
 import tempfile
 import unittest
 
-from postprocess_discovery import (
+from postprocessing.postprocess_discovery import (
     derive_eligible_pages,
     discover_markdown_files,
     is_correction_target,

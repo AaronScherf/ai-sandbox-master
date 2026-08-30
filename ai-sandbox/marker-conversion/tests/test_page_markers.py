@@ -1,6 +1,6 @@
 import unittest
 
-from page_markers import remap_image_links, remap_page_markers, tag_single_page
+from textbook.page_markers import remap_image_links, remap_page_markers, tag_single_page
 
 
 class TestRemapPageMarkers(unittest.TestCase):
