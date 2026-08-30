@@ -152,6 +152,113 @@ not after.
   `docs/2026-08-30-rag-agent-status.md` in full; summarized in "What's
   next" below since they're this project's most immediate next steps.
 
+## Outstanding TODOs and known bugs, consolidated
+
+Every documented, not-yet-fixed item found across all subproject docs, so
+nothing gets lost between them. None of these are blocking current use of
+the pipeline -- if they were, they'd be in "Where each subproject stands"
+above instead. Pulled from each doc's own "Remaining open items"/"What's
+next"/checklist sections on 2026-08-30; add new ones here going forward
+rather than letting them live only in a subproject doc no one revisits.
+
+**Chapter-aware chunking** (`docs/2026-08-22-chapter-aware-chunking-status.md`,
+`docs/superpowers/plans/2026-08-20-vm-validation-checklist.md`):
+- `parse_printed_toc` extracts one spurious entry from Hammack's front
+  matter (`folio=2, title='='`) -- harmless today (fails to fuzzy-match,
+  silently dropped) but never actually fixed.
+- `README.md` and `convert_textbook.py`'s own module docstring still
+  describe fixed-interval chunking and never mention the `<!-- page N -->`
+  / `<!-- folio N -->` tag output -- the most user-visible change of that
+  whole feature is undocumented in the two places a new reader would look.
+- A cluster of low-stakes VM-checklist items, none independently
+  confirmed to matter in practice: an off-by-one letting the boundary-shift
+  probe shift one page past its configured cap; `_boundary_bootstrap_images`
+  never cleaned up, accumulating on VM disk across a batch; two
+  `process_page_range` bootstrap calls inside `compute_chunk_boundaries`
+  ignore the user's `--chunk-timeout`/`--page-timeout` overrides
+  (hardcoded 1800s/240s); a corrupt/truncated `run_config.json` (possible
+  since the write isn't atomic) hits the same silent-`pass` exception
+  handler as the already-fixed old-format case, but does **not** get the
+  stale-chunk-clearing treatment -- worth closing (atomic write, or extend
+  the clearing fix to this exception path) before a real interrupted run
+  hits it, since the failure mode is a silent duplicate-content merge.
+
+**Image description** (`docs/2026-08-23-image-description-status.md`):
+- The front-matter filter only excludes images *before* the first real
+  chapter -- back matter (index, appendix, bibliography) isn't specifically
+  filtered, left entirely to the per-image LLM skip decision instead. Not
+  shown to be a real problem in the 5-book validation, so not prioritized,
+  but untested against a book with a large back-matter image section.
+
+**Notes transcription** (`docs/2026-08-24-notes-transcription-status.md`):
+- **`LN_Analysis.pdf` and `LN_Linear Algebra.pdf` still need
+  re-processing** through the whole-document-batched path the other four
+  reliably-paginated documents already have -- deliberately paused
+  2026-08-26 pending a final review, not blocked on anything technical.
+  Estimated well under $0.30 total for both. This is the single most
+  concrete "just go run it" item in the whole project.
+- **Radical/square-root signs can silently extract as plain ASCII**
+  (confirmed real: `Analysis_Exercises.pdf` page 6, a `√` extracting as
+  literal `p`) -- invisible to all four `page_looks_defective()` signals.
+  Doesn't affect current output (that page's cached Gemini transcription is
+  correct), but prevalence beyond this one instance was never investigated.
+  This is the motivating bug for the post-processing subproject below, not
+  a transcription-pipeline fix in its own right.
+- No live transcription-quality comparison against a dedicated OCR
+  provider (Mathpix, Mistral) has ever been run -- the conclusion that
+  Gemini is cheaper is pricing-based only, not empirical accuracy.
+- Accepted, not-planned-to-fix gap: the lost-exponent/subscript regex only
+  catches a digit standing alone between word boundaries (`D5`), not one
+  embedded in a longer token (`x2y`) -- widening it would reopen a
+  real false-positive risk against embedded hash IDs, already hit once.
+
+**Notes post-processing** (`docs/2026-08-27-notes-postprocessing-status.md`,
+still the project's one **paused, in-progress** subsystem -- see
+`[[project_notes_postprocessing_paused]]` memory):
+- **The causal z-score precision problem is the headline open item.**
+  Raising the threshold to 5.0 cut false-positive noise ~62% but did not
+  eliminate it -- no threshold in a reasonable range fully separates
+  correct terse math vocabulary from real anomalies. `_MASKED_PROBABILITY_THRESHOLD`
+  (0.01) hasn't been data-driven the same way yet either. Most promising
+  unpursued direction: condition detection on retrieved, validated-similar
+  passages instead of a fixed threshold -- now newly *possible* since
+  passage embeddings exist (they didn't when this was last worked), not
+  yet attempted.
+- No real (non-dry-run, API-spending) pass has been run against the
+  broader `ta_notes`/`problem_sets` corpora -- a real pass against
+  `Practice Sheet.md` today would trigger on the order of 22 pages' worth
+  of verification calls at current noise levels.
+- Never exercised across multiple `--root` directories in one invocation
+  (mechanism supports it, untested).
+- The pattern-review threshold (5+ similar low-confidence findings in one
+  document, meant to surface a review prompt) has never actually fired in
+  any real run -- logic is unit-tested but unobserved live.
+- Cross-reference search's real-world value-add is unverified -- wired in
+  and unit-tested, but wasn't the deciding factor in the one real fix made
+  so far.
+- Housekeeping note, resolved by inspection while writing this doc: the
+  status doc's own "not yet pushed" / "held pending post-processing"
+  branch notes are stale. `origin/marker-conversion-notes-transcription`
+  has zero commits not already in `marker-conversion` (confirmed via
+  `git log marker-conversion..origin/marker-conversion-notes-transcription`),
+  and neither `marker-conversion-notes-transcription` nor
+  `marker-conversion-post-processing` exist as local branches anymore --
+  this session's `transcription-fix` branch superseded and merged that
+  work already. No action needed beyond deleting the stale remote branch
+  ref at some point.
+
+**Source indexer** (`docs/2026-08-29-source-indexer-status.md`, its own
+"What's next"):
+- **Document-pairing detection is a confirmed real gap**, not just
+  deferred scope -- `Linear Algebra Problem Set.md` and `...AMS
+  Solutions.md` have no link today despite being an obvious pair. Flagged
+  by the user as worth keeping in mind, not urgent. Directly relevant to
+  the problem-set subsystem's lookup mode below.
+- Tag-graph browsing (persisting the co-occurrence structure `retag`'s
+  discovery phase already computes and discards) is cheap to build but
+  parked as a low-priority navigation aid, not something that moves any
+  current goal forward.
+
 ## What's next
 
 In two groups: the extensions to the *existing* RAG agent already
