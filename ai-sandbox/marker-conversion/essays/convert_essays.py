@@ -22,6 +22,14 @@ import re
 import sys
 from pathlib import Path
 
+from common.gemini_utils import get_gemini_client, load_dotenv_override
+from indexer.index_card import (
+    compute_content_hash,
+    compute_file_id,
+    derive_course,
+    reconcile_and_write,
+)
+
 # mammoth's markdown writer defensively backslash-escapes every occurrence
 # of these characters in ordinary text (not just where it would matter,
 # e.g. a literal "1." at the start of a line) -- see
@@ -46,6 +54,13 @@ def _unescape_markdown(text: str) -> str:
     return text.replace("\\\\", "\\")
 
 
+def derive_folder_category(docx_path: str) -> str:
+    """The input .docx's immediate parent folder name (e.g.
+    'application_essays') -- purely mechanical, same convention as
+    notes/transcribe_notes.py's derive_folder_category."""
+    return os.path.basename(os.path.dirname(docx_path))
+
+
 def discover_docx_files(essays_dir: str, file_filter: str | None = None) -> list[str]:
     if not os.path.isdir(essays_dir):
         return []
@@ -62,6 +77,8 @@ def _yaml_scalar(value) -> str:
         return "true" if value else "false"
     if isinstance(value, (int, float)):
         return str(value)
+    if isinstance(value, list):
+        return "[" + ", ".join(_yaml_scalar(v) for v in value) + "]"
     text = str(value)
     if not text:
         return '""'
@@ -97,9 +114,39 @@ def convert_docx_to_markdown(docx_path: str) -> tuple[str, list[str]]:
     return _unescape_markdown(result.value.strip()) + "\n", warnings
 
 
-def process_docx(docx_path: str, output_dir: str) -> str:
+def _index_essay(docx_path: str, md_path: str, markdown: str, index_root: str, client) -> None:
+    """Best-effort source-indexer hook, mirroring notes/transcribe_notes.py's
+    _write_markdown_and_index: reconciles this essay into its own index
+    card under `index_root`'s .index/ (course derived from the essay's
+    path relative to index_root -- e.g. every file under
+    independent-research/notes/** resolves to course 'notes', regardless
+    of whether it's nested in application_essays/ or sits directly in
+    notes/). Indexing must never block or corrupt the actual conversion
+    output -- the .md file is already written and complete regardless of
+    what happens here, same failure-isolation philosophy as the notes
+    pipeline's own hook."""
+    try:
+        file_id = compute_file_id(docx_path)
+        rel_md_path = os.path.relpath(md_path, index_root).replace(os.sep, "/")
+        rel_docx_path = os.path.relpath(docx_path, index_root).replace(os.sep, "/")
+        course = derive_course(rel_docx_path)
+        reconcile_and_write(
+            index_root, file_id=file_id, path=rel_md_path, source_pdf_path=rel_docx_path,
+            course=course, folder_category=derive_folder_category(docx_path),
+            content_sample=markdown, page_count=None, client=client,
+            content_hash=compute_content_hash(md_path),
+        )
+    except Exception as err:
+        print(f"  WARNING: source-indexer update failed for {md_path} ({err}); "
+              f"rerun `python -m indexer.index_search rebuild --academic-hub {index_root}` "
+              f"later to catch it up.")
+
+
+def process_docx(docx_path: str, output_dir: str, index_root: str | None = None, client=None) -> str:
     """Converts one .docx and writes it to <output_dir>/<basename>.md with
-    a small YAML frontmatter block. Returns the path written."""
+    a small YAML frontmatter block. If index_root and client are given,
+    also reconciles a source-indexer card for it (see _index_essay).
+    Returns the path written."""
     os.makedirs(output_dir, exist_ok=True)
     base_name = os.path.splitext(os.path.basename(docx_path))[0]
     md_path = os.path.join(output_dir, f"{base_name}.md")
@@ -109,6 +156,7 @@ def process_docx(docx_path: str, output_dir: str) -> str:
         "source_docx": os.path.basename(docx_path),
         "word_count": len(markdown.split()),
         "conversion_warnings": len(warnings),
+        "tags": [],
     })
 
     with open(md_path, "w", encoding="utf-8") as f:
@@ -117,6 +165,10 @@ def process_docx(docx_path: str, output_dir: str) -> str:
     for warning in warnings:
         print(f"  WARNING: {warning}")
     print(f"[{base_name}] wrote {md_path} ({len(markdown.split())} words)")
+
+    if index_root and client:
+        _index_essay(docx_path, md_path, markdown, index_root, client)
+
     return md_path
 
 
@@ -144,6 +196,16 @@ def main():
         "--dry-run", action="store_true",
         help="List which .docx files would be converted without actually converting them.",
     )
+    default_index_root = Path(__file__).resolve().parent.parent.parent / "research"
+    parser.add_argument(
+        "--index-root", default=str(default_index_root),
+        help="Root for this corpus's own source-indexer .index/ (sibling of academic-hub/'s own "
+             f"root, same reconcile_and_write() the notes/textbook pipelines use). Default: {default_index_root}",
+    )
+    parser.add_argument(
+        "--no-index", action="store_true",
+        help="Skip the source-indexer hook entirely (no Gemini calls) -- just convert.",
+    )
     args = parser.parse_args()
 
     docx_paths = discover_docx_files(args.essays_dir, args.file)
@@ -158,8 +220,16 @@ def main():
             print(f"  would convert {os.path.basename(docx_path)}")
         return
 
+    client = None
+    if not args.no_index:
+        load_dotenv_override()
+        client = get_gemini_client()
+        if client is None:
+            print("WARNING: no Gemini client available -- converting without indexing "
+                  "(pass --no-index to silence this).")
+
     for docx_path in docx_paths:
-        process_docx(docx_path, output_dir)
+        process_docx(docx_path, output_dir, index_root=args.index_root, client=client)
 
 
 if __name__ == "__main__":
