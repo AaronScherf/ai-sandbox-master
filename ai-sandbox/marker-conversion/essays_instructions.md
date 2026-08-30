@@ -28,7 +28,11 @@ python -m essays.convert_essays
   file instead of the whole folder.
 * Add `--dry-run` to see which files would be converted without writing
   anything.
-* Output: `processed_outputs/<name>.md`, one file per input `.docx` --
+* Add `--output-dir <path>` to write output somewhere other than
+  `<essays-dir>/processed_outputs` -- useful for consolidating several
+  `--essays-dir` subfolders (e.g. `application_essays/` and other
+  folders under a shared `notes/` parent) into one output location.
+* Output: `processed_outputs/<name>.md` (or `--output-dir`), one file per input `.docx` --
   a small YAML frontmatter block (`source_docx`, `word_count`,
   `conversion_warnings`) followed by the converted Markdown body, same
   `processed_outputs/`-alongside-the-input convention as the notes

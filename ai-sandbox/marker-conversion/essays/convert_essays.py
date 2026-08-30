@@ -135,6 +135,12 @@ def main():
     )
     parser.add_argument("--file", default=None, help="Only process this one .docx filename (default: every .docx found).")
     parser.add_argument(
+        "--output-dir", default=None,
+        help="Where to write the converted .md files. Default: a 'processed_outputs' folder "
+             "created inside --essays-dir. Override this to consolidate output from several "
+             "--essays-dir folders (e.g. subfolders of a shared parent) into one place.",
+    )
+    parser.add_argument(
         "--dry-run", action="store_true",
         help="List which .docx files would be converted without actually converting them.",
     )
@@ -145,7 +151,7 @@ def main():
         print(f"No .docx files found under {args.essays_dir}.")
         sys.exit(1)
 
-    output_dir = os.path.join(args.essays_dir, "processed_outputs")
+    output_dir = args.output_dir or os.path.join(args.essays_dir, "processed_outputs")
 
     if args.dry_run:
         for docx_path in docx_paths:
