@@ -1,8 +1,9 @@
 import unittest
 from unittest.mock import MagicMock
 
+from index_card import GENERATION_MODEL
 from index_search import PassageResult
-from rag_agent import Turn, Citation, AnswerResult, _diversify_by_file
+from rag_agent import Turn, Citation, AnswerResult, _diversify_by_file, _reformulate_query
 
 
 def _passage(chunk_id, file_id, text="text", citation="p. 1"):
@@ -30,6 +31,38 @@ class TestDiversifyByFile(unittest.TestCase):
 
     def test_empty_input_returns_empty(self):
         self.assertEqual(_diversify_by_file([], max_per_file=3), [])
+
+
+def _fake_generate_client(response_text):
+    client = MagicMock()
+    response = MagicMock()
+    response.text = response_text
+    client.models.generate_content.return_value = response
+    return client
+
+
+class TestReformulateQuery(unittest.TestCase):
+    def test_uses_generation_model(self):
+        client = _fake_generate_client("What is the spectral theorem proof?")
+        history = [Turn(role="user", text="Explain the spectral theorem"),
+                   Turn(role="assistant", text="It states that...")]
+        result = _reformulate_query("explain the proof differently", history, client)
+        self.assertEqual(result, "What is the spectral theorem proof?")
+        self.assertEqual(client.models.generate_content.call_args.kwargs["model"], GENERATION_MODEL)
+
+    def test_includes_recent_history_in_prompt(self):
+        client = _fake_generate_client("standalone question")
+        history = [Turn(role="user", text="Explain eigenvalues"), Turn(role="assistant", text="An eigenvalue is...")]
+        _reformulate_query("what about eigenvectors", history, client)
+        prompt = client.models.generate_content.call_args.kwargs["contents"]
+        self.assertIn("Explain eigenvalues", prompt)
+        self.assertIn("An eigenvalue is...", prompt)
+        self.assertIn("what about eigenvectors", prompt)
+
+    def test_falls_back_to_original_question_on_empty_response(self):
+        client = _fake_generate_client("")
+        result = _reformulate_query("explain that again", [Turn(role="user", text="x")], client)
+        self.assertEqual(result, "explain that again")
 
 
 if __name__ == "__main__":
