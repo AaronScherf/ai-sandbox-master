@@ -35,6 +35,17 @@ Source indexer (index_card.py / index_search.py / retag.py / chunk_index.py)
 rag_agent.py -- multi-turn tutoring, grounded citations, no persistent memory
 ```
 
+**Repository layout (as of 2026-08-30):** the scripts above now live in
+per-subproject packages -- `common/`, `indexer/`, `textbook/`, `notes/`,
+`postprocessing/`, `rag/` -- run via `python -m <package>.<module>`, e.g.
+`python -m notes.transcribe_notes`, `python -m indexer.index_search query
+"..."`. Previously a flat folder of ~15 top-level scripts. See
+`README.md`'s "Repository layout" section for the full breakdown; the VM
+deployment step in `gcp_instructions.md` was updated to match (a
+`--recurse` copy of `common/`+`indexer/`+`textbook/` instead of
+cherry-picked flat files, which also fixed a real pre-existing gap where
+`index_card.py`/`gemini_utils.py` were never actually deployed to the VM).
+
 Every stage after the raw PDF is markdown-first: each pipeline stage reads
 the previous stage's `.md`/`.rag.md` output and its own YAML frontmatter or
 JSON sidecar state, never re-parses the PDF. This is why re-running any one
@@ -278,6 +289,29 @@ still the project's one **paused, in-progress** subsystem -- see
   discovery phase already computes and discards) is cheap to build but
   parked as a low-priority navigation aid, not something that moves any
   current goal forward.
+
+### Priority and sequencing (decided 2026-08-30)
+
+Before any new subsystem work starts. Grouped by effort/risk/dependency,
+not strictly by issue number:
+
+1. **Tier 0 -- trivial, do first:** #6 (finish LN_* reprocessing -- just
+   run it, <$0.30, zero code risk), #2 (stale README/docstring, 5-min doc
+   fix).
+2. **Tier 1 -- cheap, real fixes:** #3 (`run_config.json` atomicity --
+   genuine data-integrity risk, small fix), #1 (Hammack TOC parser bug,
+   trivial), #4 (minor VM-pipeline cluster).
+3. **Tier 2 -- the actual blocker, real effort:** #9 (causal z-score
+   precision). This is the one that determines whether notes-postprocessing
+   can resume at all -- worth a dedicated spike on retrieval-conditioned
+   scoring (now possible since passage embeddings exist) before touching
+   #10/#11.
+4. **Tier 3 -- depends on #9, batch together once unblocked:** #10, #11.
+5. **Tier 4 -- low priority, no urgency:** #5, #7 (likely subsumed once
+   #9/#10 land), #8.
+6. **Tier 5 -- defer to when the relevant new subsystem starts:** #12 (do
+   right before/during problem-set subsystem work), #13 (parked
+   indefinitely).
 
 ## What's next
 
