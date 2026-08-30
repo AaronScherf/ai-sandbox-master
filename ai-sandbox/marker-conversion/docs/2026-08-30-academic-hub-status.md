@@ -46,6 +46,24 @@ deployment step in `gcp_instructions.md` was updated to match (a
 cherry-picked flat files, which also fixed a real pre-existing gap where
 `index_card.py`/`gemini_utils.py` were never actually deployed to the VM).
 
+**Branch housekeeping (2026-08-30, important for continuity):** the
+`marker-conversion` branch this whole project's work lived on was renamed
+directly to `main` -- `main` and `marker-conversion` turned out to have no
+common ancestor commit (`git merge-tree` refused: "fatal: refusing to
+merge unrelated histories", almost certainly a side effect of the earlier
+`git filter-repo` history rewrite on `passage-embeddings`), so a real merge
+was never viable; renaming was the permanent fix. **`main` is now the one
+working branch** -- future feature branches fork from and merge back into
+`main` directly, not a separate `marker-conversion`. The old, 242-commits-
+stale `main` (no real content, confirmed zero copyrighted material) is
+preserved under `main-archive-2026-08-30` if ever needed. `origin/marker-conversion`
+was deleted as redundant once `main` carried the same content.
+
+A separate `essays/` subproject (`convert_essays.py`, `.docx`-to-Markdown
+via `mammoth`) was started the same day by a different agent working
+concurrently in the same repo -- not covered by this doc; see its own
+commits/docs if picking that up.
+
 Every stage after the raw PDF is markdown-first: each pipeline stage reads
 the previous stage's `.md`/`.rag.md` output and its own YAML frontmatter or
 JSON sidecar state, never re-parses the PDF. This is why re-running any one
@@ -144,6 +162,9 @@ not after.
 - **Notes transcription**: shipped, 3-tier router validated against the
   real corpus including a full repetition-loop defense system added this
   session. No open blockers on the transcription pipeline itself.
+  `LN_Analysis.pdf`/`LN_Linear Algebra.pdf` finished reprocessing
+  2026-08-30 (see #6 below) -- all six reliably-paginated documents in the
+  corpus now have whole-document-batched quality.
 - **Notes post-processing**: **in progress, explicitly paused.** Built,
   unit-tested, and validated against one real reproduced bug (the
   radical-as-`p` case) and a broader corpus run that fixed a real
@@ -177,34 +198,43 @@ issues #1-13, filed 2026-08-30) -- each bullet below links its issue.
 Two items were deliberately **not** filed as issues: the lost-exponent
 regex gap under notes-transcription (explicitly not-planned-to-fix, listed
 here only for completeness) and the branch-state housekeeping note under
-notes-postprocessing (already resolved, nothing to track).
+notes-postprocessing (already resolved, nothing to track). **6 of the 13
+are now resolved and closed** (#1, #2, #3, #4, #6, plus 2 of 3 sub-items
+under #11) -- see "Priority and sequencing" below for the current
+breakdown. The GitHub token's Issues permission was also fixed
+2026-08-30 (was create-only, 403 on comment/close) -- future work can
+comment/close directly rather than needing this doc as the record of
+truth.
 
 **Chapter-aware chunking** (`docs/2026-08-22-chapter-aware-chunking-status.md`,
 `docs/superpowers/plans/2026-08-20-vm-validation-checklist.md`):
 - [#1](https://github.com/AaronScherf/ai-sandbox-master/issues/1)
-  `parse_printed_toc` extracts one spurious entry from Hammack's front
-  matter (`folio=2, title='='`) -- harmless today (fails to fuzzy-match,
-  silently dropped) but never actually fixed.
+  **RESOLVED 2026-08-30** (`main` commit `826703a`). `parse_printed_toc`
+  extracted one spurious entry from Hammack's front matter (`folio=2,
+  title='='`) -- fixed by requiring a title to have >=1 alphanumeric
+  character (a real title is never pure punctuation); regression test
+  added reproducing the actual trigger shape (a `"1 = 2"`-style table row).
 - [#2](https://github.com/AaronScherf/ai-sandbox-master/issues/2)
-  `README.md` and `convert_textbook.py`'s own module docstring still
-  describe fixed-interval chunking and never mention the `<!-- page N -->`
-  / `<!-- folio N -->` tag output -- the most user-visible change of that
-  whole feature is undocumented in the two places a new reader would look.
-- [#3](https://github.com/AaronScherf/ai-sandbox-master/issues/3) A
-  corrupt/truncated `run_config.json` (possible since the write isn't
-  atomic) hits the same silent-`pass` exception handler as the
-  already-fixed old-format case, but does **not** get the stale-chunk-
-  clearing treatment -- worth closing (atomic write, or extend the
-  clearing fix to this exception path) before a real interrupted run hits
-  it, since the failure mode is a silent duplicate-content merge.
-- [#4](https://github.com/AaronScherf/ai-sandbox-master/issues/4) A
-  cluster of lower-stakes VM-checklist items, none independently
-  confirmed to matter in practice: an off-by-one letting the boundary-shift
-  probe shift one page past its configured cap; `_boundary_bootstrap_images`
-  never cleaned up, accumulating on VM disk across a batch; two
-  `process_page_range` bootstrap calls inside `compute_chunk_boundaries`
-  ignore the user's `--chunk-timeout`/`--page-timeout` overrides
-  (hardcoded 1800s/240s).
+  **RESOLVED 2026-08-30** (`826703a`). `README.md` and
+  `convert_textbook.py`'s module docstring now describe chapter-aware
+  chunking and the `<!-- page N -->`/`<!-- folio N -->` tag output.
+- [#3](https://github.com/AaronScherf/ai-sandbox-master/issues/3)
+  **RESOLVED 2026-08-30** (`826703a`). A corrupt/truncated `run_config.json`
+  now gets the same stale-chunk-clearing treatment as the old-format case
+  (shared `_discard_stale_chunks` helper); the write itself is also now
+  atomic (temp file + `os.replace`), preventing the corruption at the
+  source rather than just handling it gracefully after the fact.
+- [#4](https://github.com/AaronScherf/ai-sandbox-master/issues/4)
+  **RESOLVED 2026-08-30** (`826703a`). All three: `probe_and_shift_boundary`'s
+  off-by-one fixed (`shifted <= max_shift` -> `shifted < max_shift`); the
+  bootstrap scratch images directory is cleaned up right after use instead
+  of accumulating across a batch; `--chunk-timeout`/`--page-timeout` are
+  now threaded through to the bootstrap conversion instead of hardcoded.
+  All four (#1-#4) share one regression-test file,
+  `tests/test_convert_textbook.py` -- the first local test coverage for
+  `convert_textbook.py` ever, made possible by stubbing the `marker`
+  submodules in `sys.modules` before import so its pure-logic functions
+  (no Marker/GPU call of their own) can be exercised without a VM.
 
 **Image description** (`docs/2026-08-23-image-description-status.md`):
 - [#5](https://github.com/AaronScherf/ai-sandbox-master/issues/5) The
@@ -216,12 +246,12 @@ notes-postprocessing (already resolved, nothing to track).
 
 **Notes transcription** (`docs/2026-08-24-notes-transcription-status.md`):
 - [#6](https://github.com/AaronScherf/ai-sandbox-master/issues/6)
-  **`LN_Analysis.pdf` and `LN_Linear Algebra.pdf` still need
-  re-processing** through the whole-document-batched path the other four
-  reliably-paginated documents already have -- deliberately paused
-  2026-08-26 pending a final review, not blocked on anything technical.
-  Estimated well under $0.30 total for both. This is the single most
-  concrete "just go run it" item in the whole project.
+  **RESOLVED 2026-08-30.** `LN_Analysis.pdf` and `LN_Linear Algebra.pdf`
+  reprocessed for real through the whole-document-batched path -- both
+  were already fully cached from the earlier paused run, so actual cost
+  was **$0**, not the estimated $0.30. Confirmed `routing: gemini_batched`
+  in frontmatter, 155/155 and 294/294 pages transcribed. Source index
+  rebuilt afterward to pick up the new content hashes (10 cards updated).
 - [#7](https://github.com/AaronScherf/ai-sandbox-master/issues/7)
   **Radical/square-root signs can silently extract as plain ASCII**
   (confirmed real: `Analysis_Exercises.pdf` page 6, a `√` extracting as
@@ -258,13 +288,21 @@ still the project's one **paused, in-progress** subsystem -- see
   `ta_notes`/`problem_sets` corpora -- a real pass against `Practice
   Sheet.md` today would trigger on the order of 22 pages' worth of
   verification calls at current noise levels. Blocked on #9 first.
-- [#11](https://github.com/AaronScherf/ai-sandbox-master/issues/11) Three
-  grouped "implemented but never observed live" gaps: never exercised
-  across multiple `--root` directories in one invocation; the
-  pattern-review threshold (5+ similar low-confidence findings) has never
-  actually fired in any real run; cross-reference search's real-world
-  value-add is unverified (wasn't the deciding factor in the one real fix
-  made so far).
+- [#11](https://github.com/AaronScherf/ai-sandbox-master/issues/11)
+  **2 of 3 sub-items RESOLVED 2026-08-30** (`main` commit `52c83b2`).
+  Multi-root support and the pattern-review threshold turned out to
+  already be unit-tested at the function level (`discover_markdown_files`,
+  `documents_needing_review`) -- the real gap was that `postprocess_notes.py`
+  had **zero** test coverage of its CLI orchestration (`main()`) at all.
+  New `tests/test_postprocess_notes.py` (first coverage for this file)
+  invokes `main()` end-to-end with two `--root` dirs, mocking only the
+  network/local-model boundary, and confirms targets from both roots
+  process correctly, the cross-reference pool spans both roots' files,
+  and the threshold fires for a genuinely-crossing document while staying
+  silent for one that doesn't. **Still open:** cross-reference search's
+  real-world value-add -- that one genuinely needs observation from a real
+  corpus run with real transcription defects, not something a fabricated
+  test can honestly answer. Issue stays open for this remaining piece.
 - Not filed as an issue -- already resolved: this doc's own "not yet
   pushed" / "held pending post-processing" branch notes turned out to be
   stale. `origin/marker-conversion-notes-transcription` has zero commits
@@ -290,40 +328,49 @@ still the project's one **paused, in-progress** subsystem -- see
   parked as a low-priority navigation aid, not something that moves any
   current goal forward.
 
-### Priority and sequencing (decided 2026-08-30)
+### Priority and sequencing (decided 2026-08-30, updated same day)
 
 Before any new subsystem work starts. Grouped by effort/risk/dependency,
-not strictly by issue number:
+not strictly by issue number.
 
-1. **Tier 0 -- trivial, do first:** #6 (finish LN_* reprocessing -- just
-   run it, <$0.30, zero code risk -- still open), ~~#2~~ (stale
-   README/docstring, 5-min doc fix -- **fixed** `826703a`).
-2. **Tier 1 -- cheap, real fixes:** ~~#3~~ (`run_config.json` atomicity --
-   genuine data-integrity risk, small fix -- **fixed** `826703a`), ~~#1~~
-   (Hammack TOC parser bug, trivial -- **fixed** `826703a`), ~~#4~~ (minor
-   VM-pipeline cluster -- **fixed** `826703a`).
+**Resolved and closed today (6 of 13 issues, all on `main`):**
+- ~~#6~~ LN_Analysis.pdf/LN_Linear Algebra.pdf reprocessing -- done for
+  real, $0 cost (fully cached already), index rebuilt.
+- ~~#2~~ Stale README/docstring -- fixed.
+- ~~#3~~ `run_config.json` atomicity -- fixed (stale-chunk clearing +
+  atomic write).
+- ~~#1~~ Hammack TOC parser bug -- fixed.
+- ~~#4~~ Minor VM-pipeline cluster (off-by-one, image cleanup, timeout
+  override) -- fixed.
+- #1/#2/#3/#4 all in commit `826703a`; #6's rebuild in `7714845`. Added
+  `tests/test_convert_textbook.py`, first local coverage for
+  `convert_textbook.py` (via stubbing `marker` in `sys.modules` before
+  import). 438 tests pass (was 417 at the start of the day).
+- ~~#11~~ **(2 of its 3 sub-items)** -- multi-root support and the
+  pattern-review threshold proven end-to-end via new
+  `tests/test_postprocess_notes.py` (commit `52c83b2`), first coverage
+  for `postprocess_notes.py`'s CLI orchestration. Issue stays **open**
+  for its third sub-item (cross-reference search's real-world value --
+  needs a real corpus run to answer).
 
-   **#1-#4 fixed 2026-08-30**, commit `826703a` on `marker-conversion`
-   (local, not yet pushed) -- 425 tests pass (was 417; added
-   `tests/test_convert_textbook.py`, the first local test coverage for
-   `convert_textbook.py`, made possible by stubbing the `marker` submodules
-   in `sys.modules` before import so its pure-logic functions -- no
-   Marker/GPU call of their own -- can be exercised without a VM). GitHub
-   issue comments were attempted but rejected (403, token lacks comment
-   permission on this repo) -- issues #1-#4 are not yet marked closed on
-   GitHub; close manually or re-run once the branch is pushed and the
-   token's permissions allow it.
-3. **Tier 2 -- the actual blocker, real effort:** #9 (causal z-score
+GitHub issue tracking (comment/close, not just create) was blocked by a
+token-permission gap most of the day (403) -- fixed at the very end, so
+future sessions can manage issues directly rather than needing this doc
+as the record of truth.
+
+**Still open, unchanged tiers:**
+1. **Tier 2 -- the actual blocker, real effort:** #9 (causal z-score
    precision). This is the one that determines whether notes-postprocessing
    can resume at all -- worth a dedicated spike on retrieval-conditioned
    scoring (now possible since passage embeddings exist) before touching
-   #10/#11.
-4. **Tier 3 -- depends on #9, batch together once unblocked:** #10, #11.
-5. **Tier 4 -- low priority, no urgency:** #5, #7 (likely subsumed once
-   #9/#10 land), #8.
-6. **Tier 5 -- defer to when the relevant new subsystem starts:** #12 (do
-   right before/during problem-set subsystem work), #13 (parked
-   indefinitely).
+   #10/#11's remaining sub-item.
+2. **Tier 3 -- depends on #9:** #10, and #11's remaining "cross-reference
+   value" sub-item.
+3. **Tier 4 -- low priority, no urgency:** #5 (deliberately left open,
+   speculative), #7 (likely subsumed once #9/#10 land), #8.
+4. **Tier 5 -- defer to when the relevant new subsystem starts:** #12
+   (deliberately held for the problem-set subsystem phase, not folded in
+   early), #13 (parked indefinitely).
 
 ## What's next
 
