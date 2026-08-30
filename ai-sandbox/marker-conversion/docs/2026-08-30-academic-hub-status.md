@@ -296,11 +296,23 @@ Before any new subsystem work starts. Grouped by effort/risk/dependency,
 not strictly by issue number:
 
 1. **Tier 0 -- trivial, do first:** #6 (finish LN_* reprocessing -- just
-   run it, <$0.30, zero code risk), #2 (stale README/docstring, 5-min doc
-   fix).
-2. **Tier 1 -- cheap, real fixes:** #3 (`run_config.json` atomicity --
-   genuine data-integrity risk, small fix), #1 (Hammack TOC parser bug,
-   trivial), #4 (minor VM-pipeline cluster).
+   run it, <$0.30, zero code risk -- still open), ~~#2~~ (stale
+   README/docstring, 5-min doc fix -- **fixed** `826703a`).
+2. **Tier 1 -- cheap, real fixes:** ~~#3~~ (`run_config.json` atomicity --
+   genuine data-integrity risk, small fix -- **fixed** `826703a`), ~~#1~~
+   (Hammack TOC parser bug, trivial -- **fixed** `826703a`), ~~#4~~ (minor
+   VM-pipeline cluster -- **fixed** `826703a`).
+
+   **#1-#4 fixed 2026-08-30**, commit `826703a` on `marker-conversion`
+   (local, not yet pushed) -- 425 tests pass (was 417; added
+   `tests/test_convert_textbook.py`, the first local test coverage for
+   `convert_textbook.py`, made possible by stubbing the `marker` submodules
+   in `sys.modules` before import so its pure-logic functions -- no
+   Marker/GPU call of their own -- can be exercised without a VM). GitHub
+   issue comments were attempted but rejected (403, token lacks comment
+   permission on this repo) -- issues #1-#4 are not yet marked closed on
+   GitHub; close manually or re-run once the branch is pushed and the
+   token's permissions allow it.
 3. **Tier 2 -- the actual blocker, real effort:** #9 (causal z-score
    precision). This is the one that determines whether notes-postprocessing
    can resume at all -- worth a dedicated spike on retrieval-conditioned
