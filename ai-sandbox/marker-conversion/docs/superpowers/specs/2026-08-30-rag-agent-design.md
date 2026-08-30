@@ -352,6 +352,24 @@ functions).
 - **Local/open-weight generation via Ollama** (§1) -- investigated and
   rejected for now on both cost and usability grounds without a GPU;
   revisit if hardware changes.
+- **Swapping the generation backend to a non-metered path** (discussed
+  2026-08-30, deliberately deferred, not rejected): the user has a paid
+  Gemini API key (already in use throughout this project) and a Claude
+  Pro subscription. Two real, not-yet-designed alternatives exist for
+  *generation* specifically if per-query API cost ever becomes a real
+  concern under continuous (not just personal-study) usage: (1) Gemini
+  CLI's personal-Google-account OAuth login, which is a genuinely
+  different, apparently-free-quota auth path from this project's paid
+  API key (confirmed live: Google's own rate-limit docs say limits
+  apply per-project, so the CLI-vs-SDK distinction itself doesn't
+  matter -- the OAuth-vs-API-key auth mechanism is what would); (2)
+  shelling out to `claude -p` under the existing Pro subscription.
+  Neither covers retrieval -- Anthropic has no embeddings API, so
+  `gemini-embedding-001` (already validated, genuinely cheap per §2)
+  would stay regardless of what happens to generation. Explicit
+  decision: keep the paid Gemini key for now: `TUTOR_MODEL` stays a
+  provider-swappable constant precisely so this remains a contained
+  change later, not a reason to design around it speculatively today.
 - **A vector database or orchestration framework** (§1) -- the existing
   flat-JSON + NumPy retrieval is reused as-is.
 - **MCP server / HTTP API wrapper** (§6) -- `answer_question()` is
