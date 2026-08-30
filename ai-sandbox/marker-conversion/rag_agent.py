@@ -77,3 +77,41 @@ def _reformulate_query(question: str, history: list[Turn], client) -> str:
         config={"temperature": 0, "thinking_config": {"thinking_level": "minimal"}},
     ))
     return (response.text or question).strip()
+
+
+TUTOR_MODEL = "gemini-3.6-flash"  # confirmed live (spec §2): $0.75/1M input,
+# $3.75/1M output through end of 2026 -- a real step up from
+# index_card.GENERATION_MODEL (this project's cheap/mechanical tier),
+# justified because tutoring is a genuinely reasoning-heavy task, and
+# the cost difference is trivial at personal-study volume either way.
+
+_ANSWER_PROMPT_TEMPLATE = """You are tutoring a student using ONLY the excerpts below, drawn from \
+their own course materials. Answer their question clearly and thoroughly, the way a good TA would \
+explain it -- but do not introduce any claim, fact, or worked step that isn't supported by the \
+excerpts. If the excerpts don't actually contain enough to answer the question, say so plainly \
+rather than filling the gap from general knowledge.
+
+When you use something from an excerpt, cite it inline using the citation label given with it \
+(e.g. "(§3.7, p. 44)"), so the student can find it in their own materials.
+{history_block}
+Excerpts:
+{excerpts_block}
+
+Question: {question}
+
+Answer:"""
+
+
+def _generate_answer(question: str, history: list[Turn], passages: list[PassageResult], client) -> str:
+    excerpts_block = "\n\n".join(f"[{p.citation}]\n{p.text}" for p in passages)
+    history_block = ""
+    if history:
+        recent = "\n".join(f"{t.role}: {t.text}" for t in history[-6:])
+        history_block = f"\nRecent conversation, for continuity:\n{recent}\n"
+    prompt = _ANSWER_PROMPT_TEMPLATE.format(
+        history_block=history_block, excerpts_block=excerpts_block, question=question,
+    )
+    response = call_with_retries(lambda: client.models.generate_content(
+        model=TUTOR_MODEL, contents=prompt, config={"temperature": 0.2},
+    ))
+    return (response.text or "").strip()

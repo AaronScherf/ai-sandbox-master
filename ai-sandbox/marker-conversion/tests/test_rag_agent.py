@@ -3,7 +3,10 @@ from unittest.mock import MagicMock
 
 from index_card import GENERATION_MODEL
 from index_search import PassageResult
-from rag_agent import Turn, Citation, AnswerResult, _diversify_by_file, _reformulate_query
+from rag_agent import (
+    Turn, Citation, AnswerResult, _diversify_by_file, _reformulate_query,
+    TUTOR_MODEL, _generate_answer,
+)
 
 
 def _passage(chunk_id, file_id, text="text", citation="p. 1"):
@@ -63,6 +66,37 @@ class TestReformulateQuery(unittest.TestCase):
         client = _fake_generate_client("")
         result = _reformulate_query("explain that again", [Turn(role="user", text="x")], client)
         self.assertEqual(result, "explain that again")
+
+
+class TestGenerateAnswer(unittest.TestCase):
+    def test_uses_tutor_model(self):
+        client = _fake_generate_client("The spectral theorem states...")
+        passages = [_passage("aaa-000", "aaa", text="Content about eigenvalues.", citation="§3.7, p. 44")]
+        answer = _generate_answer("what is the spectral theorem", [], passages, client)
+        self.assertEqual(answer, "The spectral theorem states...")
+        self.assertEqual(client.models.generate_content.call_args.kwargs["model"], TUTOR_MODEL)
+
+    def test_includes_excerpt_text_and_citation_in_prompt(self):
+        client = _fake_generate_client("answer")
+        passages = [_passage("aaa-000", "aaa", text="Content about eigenvalues.", citation="§3.7, p. 44")]
+        _generate_answer("q", [], passages, client)
+        prompt = client.models.generate_content.call_args.kwargs["contents"]
+        self.assertIn("Content about eigenvalues.", prompt)
+        self.assertIn("§3.7, p. 44", prompt)
+
+    def test_no_history_block_on_first_turn(self):
+        client = _fake_generate_client("answer")
+        _generate_answer("q", [], [], client)
+        prompt = client.models.generate_content.call_args.kwargs["contents"]
+        self.assertNotIn("Recent conversation", prompt)
+
+    def test_includes_history_block_on_follow_up(self):
+        client = _fake_generate_client("answer")
+        history = [Turn(role="user", text="Explain eigenvalues"), Turn(role="assistant", text="An eigenvalue is...")]
+        _generate_answer("q", history, [], client)
+        prompt = client.models.generate_content.call_args.kwargs["contents"]
+        self.assertIn("Recent conversation", prompt)
+        self.assertIn("Explain eigenvalues", prompt)
 
 
 if __name__ == "__main__":
