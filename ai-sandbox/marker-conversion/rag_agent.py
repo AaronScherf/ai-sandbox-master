@@ -13,7 +13,7 @@ from dataclasses import dataclass
 
 from gemini_utils import call_with_retries
 from index_card import GENERATION_MODEL
-from index_search import PassageResult
+from index_search import PassageResult, search_passages
 
 
 @dataclass
@@ -115,3 +115,29 @@ def _generate_answer(question: str, history: list[Turn], passages: list[PassageR
         model=TUTOR_MODEL, contents=prompt, config={"temperature": 0.2},
     ))
     return (response.text or "").strip()
+
+
+def answer_question(
+    academic_hub_root: str, question: str, client,
+    history: list[Turn] | None = None, course: str | None = None,
+    top_k: int = 6, max_per_file: int = 3,
+) -> AnswerResult:
+    """The core function serving both usage modes (spec §3/§6): a
+    callable utility (call once, use the AnswerResult, done) and the
+    interactive chat below (thread .history back in on the next call).
+    Stateless per call -- history is an explicit input/output, not
+    owned internally, which is what lets both modes share this one
+    function without a database or session files."""
+    history = history or []
+    retrieval_query = _reformulate_query(question, history, client) if history else question
+
+    passages = search_passages(academic_hub_root, retrieval_query, client, course=course, top_k=top_k * 2)
+    passages = _diversify_by_file(passages, max_per_file)[:top_k]
+
+    answer = _generate_answer(question, history, passages, client)
+    citations = [
+        Citation(chunk_id=p.chunk_id, file_id=p.file_id, path=p.path, citation=p.citation)
+        for p in passages
+    ]
+    updated_history = history + [Turn(role="user", text=question), Turn(role="assistant", text=answer)]
+    return AnswerResult(answer=answer, citations=citations, history=updated_history)
