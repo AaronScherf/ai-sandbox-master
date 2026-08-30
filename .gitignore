@@ -27,3 +27,10 @@ ai-sandbox/academic-hub/**/*.onetoc2
 # local-only and regenerable via `index_search.py chunk` rather than
 # tracked (spec: docs/superpowers/specs/2026-08-29-passage-embeddings-design.md).
 ai-sandbox/academic-hub/.index/chunks/
+#Prevent git workspace conflicts with obsidian
+# Vault root is ai-sandbox/, one level below this .gitignore -- a pattern
+# with a slash anywhere but the end (like ".obsidian/workspace*") is
+# anchored to the .gitignore's own directory, not matched at any depth
+# below it, so this needs the explicit prefix to actually reach the vault.
+ai-sandbox/.obsidian/workspace*
+ai-sandbox/.obsidian/cache
