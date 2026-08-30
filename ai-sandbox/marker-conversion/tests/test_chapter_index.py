@@ -178,6 +178,18 @@ class TestParsePrintedToc(unittest.TestCase):
         self.assertEqual(chapters[1].title, "Logic")
         self.assertEqual(chapters[1].folio_page, 34)
 
+    def test_skips_bare_number_line_with_no_real_title(self):
+        # Real bug (issue #1): a front-matter table row like "1 = 2" hits
+        # _BARE_CHAPTER_NUM_RE (chapter_num="1"), leaving remainder="= 2" --
+        # title_text ends up "=" (pure punctuation, not a real chapter
+        # title) with folio_page=2. Confirmed from Hammack's own front
+        # matter, where this spurious entry harmlessly failed to
+        # fuzzy-match any real outline title -- but it shouldn't be
+        # produced as a chapter entry at all.
+        text = "| 1. Sets | 3 |\n\n1 = 2\n"
+        chapters = parse_printed_toc(text)
+        self.assertEqual([c.title for c in chapters], ["Sets"])
+
     def test_rudin_style_two_block_table_chapter_word_prefix(self):
         # Real excerpt shape from Rudin_Principles_of_Mathematical_Analysis_2014.md:
         # the TOC is rendered as two separate markdown tables (a page break

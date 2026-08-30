@@ -15,6 +15,13 @@ costs you the chunk(s) in flight -- not the whole document. This also means
 Spot VM preemption mid-batch only costs the in-flight chunk of the in-flight
 book; already-finished books and already-finished chunks of the current book
 are untouched on resume.
+
+Chunking: chunk boundaries align to real chapter breaks by default (sourced
+from the PDF's embedded outline or its own printed table of contents;
+--no-chapter-chunking falls back to plain fixed-page-count intervals for
+debugging/comparison). Every output page also carries a <!-- page N -->
+tag (physical PDF page index) and, where derivable, a <!-- folio N --> tag
+(the book's own printed page number) -- see chapter_index.py/page_markers.py.
 """
 
 import os
@@ -184,9 +191,20 @@ def save_checkpoint_metadata(metadata_path: str, metadata: dict):
         json.dump(metadata, f, indent=4, ensure_ascii=False)
 
 
+def _discard_stale_chunks(run_config_path):
+    """Clears any already-written chunk files next to run_config_path --
+    used whenever boundaries are about to be recomputed, since the new
+    boundaries (from a different scheme, or from a nondeterministic probe
+    re-run) could disagree with whatever chunks are already on disk,
+    reproducing the duplicate-content-merge bug this exists to prevent."""
+    chunks_dir = os.path.join(os.path.dirname(run_config_path), "chunks")
+    shutil.rmtree(chunks_dir, ignore_errors=True)
+    os.makedirs(chunks_dir, exist_ok=True)
+
+
 def _load_or_compute_boundaries(run_config_path, converter, reader, workspace, total_pages,
                                  max_chunk_size, max_front_matter_pages, max_boundary_shift,
-                                 chapter_chunking_enabled):
+                                 chapter_chunking_enabled, chunk_timeout_s=1800, page_timeout_s=240):
     """
     Loads persisted chunk boundaries and folio offset from run_config.json
     if present (a resumed run), otherwise computes them once and persists
@@ -202,23 +220,35 @@ def _load_or_compute_boundaries(run_config_path, converter, reader, workspace, t
                 return boundaries, saved.get("folio_offset"), saved.get("folio_start_page", total_pages)
             print(f"WARNING: {run_config_path} predates chapter-aware chunking (no 'boundaries' key). "
                   f"Existing chunk files use an incompatible scheme; discarding them and starting fresh.")
-            chunks_dir = os.path.join(os.path.dirname(run_config_path), "chunks")
-            shutil.rmtree(chunks_dir, ignore_errors=True)
-            os.makedirs(chunks_dir, exist_ok=True)
+            _discard_stale_chunks(run_config_path)
         except (json.JSONDecodeError, OSError):
-            pass
+            # A corrupt/truncated file (e.g. an interrupted write) is just as
+            # untrustworthy as the old-format case above -- whatever chunks
+            # are already on disk were written against boundaries we can no
+            # longer read back, so they need the same discard treatment
+            # before we recompute and potentially disagree with them.
+            print(f"WARNING: {run_config_path} is corrupt or unreadable; "
+                  f"discarding any existing chunk files and starting fresh.")
+            _discard_stale_chunks(run_config_path)
 
     boundaries, folio_offset, folio_start_page = compute_chunk_boundaries(
         converter, reader, workspace, total_pages, max_chunk_size,
         max_front_matter_pages, max_boundary_shift, chapter_chunking_enabled,
+        chunk_timeout_s=chunk_timeout_s, page_timeout_s=page_timeout_s,
     )
-    with open(run_config_path, "w", encoding="utf-8") as f:
+    # Written atomically (temp file + os.replace) so a kill mid-write can
+    # never leave a corrupt/truncated run_config.json behind in the first
+    # place -- the failure mode the except branch above now also handles
+    # gracefully, but prevention beats a graceful catch.
+    tmp_path = run_config_path + ".tmp"
+    with open(tmp_path, "w", encoding="utf-8") as f:
         json.dump({
             "chunk_size": max_chunk_size,
             "boundaries": [list(pair) for pair in boundaries],
             "folio_offset": folio_offset,
             "folio_start_page": folio_start_page,
         }, f)
+    os.replace(tmp_path, run_config_path)
     return boundaries, folio_offset, folio_start_page
 
 
@@ -343,7 +373,7 @@ def probe_and_shift_boundary(converter, reader, workspace, candidate_end_page, m
     """
     end_page = candidate_end_page
     shifted = 0
-    while shifted <= max_shift and end_page - 1 >= 0 and end_page < hard_limit_page:
+    while shifted < max_shift and end_page - 1 >= 0 and end_page < hard_limit_page:
         probe_page = end_page - 1
         temp_pdf = os.path.join(workspace, "temp_boundary_probe.pdf")
         writer = PdfWriter()
@@ -373,7 +403,8 @@ def probe_and_shift_boundary(converter, reader, workspace, candidate_end_page, m
 
 
 def compute_chunk_boundaries(converter, reader, workspace, total_pages, max_chunk_size,
-                              max_front_matter_pages, max_boundary_shift, chapter_chunking_enabled):
+                              max_front_matter_pages, max_boundary_shift, chapter_chunking_enabled,
+                              chunk_timeout_s=1800, page_timeout_s=240):
     """
     Returns (boundaries, folio_offset, folio_start_page).
 
@@ -416,9 +447,13 @@ def compute_chunk_boundaries(converter, reader, workspace, total_pages, max_chun
     front_matter_cap = min(max_front_matter_pages, total_pages)
     front_matter_text, _, _ = process_page_range(
         converter, reader, workspace, 0, front_matter_cap, images_dir,
-        chunk_timeout_s=1800, page_timeout_s=240,
+        chunk_timeout_s=chunk_timeout_s, page_timeout_s=page_timeout_s,
         folio_offset=None, folio_start_page=total_pages,
     )
+    # Purely scratch output -- nothing later in this function (or its
+    # caller) reads from images_dir again, so there's no reason to let it
+    # accumulate across a whole batch the way the shared path used to.
+    shutil.rmtree(images_dir, ignore_errors=True)
     toc_chapters = chapter_index.parse_printed_toc(front_matter_text)
 
     folio_offset = None
@@ -756,7 +791,7 @@ def process_one_pdf(converter, raw_input: str, raw_output: str, workspace: str, 
         boundaries, folio_offset, folio_start_page = _load_or_compute_boundaries(
             run_config_path, converter, reader, workspace, total_pages,
             args.chunk_size, args.max_front_matter_pages, args.max_boundary_shift,
-            args.chapter_chunking,
+            args.chapter_chunking, args.chunk_timeout, args.page_timeout,
         )
 
         # Iterative Structural Extraction (resumable)

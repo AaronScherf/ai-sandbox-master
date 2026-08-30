@@ -243,7 +243,10 @@ def parse_printed_toc(markdown_text: str) -> list[ChapterEntry]:
             continue
 
         title_text = title_text.strip(" .")
-        if not title_text:
+        if not title_text or not any(ch.isalnum() for ch in title_text):
+            # A real chapter title always has at least one letter/digit --
+            # pure punctuation (e.g. "=") is a table/formatting artifact
+            # that happened to sit before a folio-shaped token, not a title.
             continue
 
         chapters.append(
