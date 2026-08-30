@@ -36,6 +36,9 @@ not as a bare file path, since the package-qualified imports below need this dir
   that need to be deployed to the GCP VM (along with `common/` and `indexer/`, which they import).
 - `notes/` -- `transcribe_notes.py`: local, Gemini-vision-based transcription for problem sets, TA notes,
   exams, and handwritten scans. See `notes_instructions.md`.
+- `essays/` -- `convert_essays.py`: local, mammoth-based conversion of `.docx` essays (e.g. PhD
+  application statements of purpose) straight to Markdown -- no OCR/vision needed, the `.docx` already
+  carries its own structure. See `essays_instructions.md`.
 - `postprocessing/` -- `postprocess_notes.py` and its supporting modules: a downstream correction pass
   over `notes/transcribe_notes.py`'s output. Depends on `notes/`.
 - `rag/` -- `rag_agent.py`: the multi-turn tutoring agent grounded in passage retrieval. Depends on `indexer/`.
