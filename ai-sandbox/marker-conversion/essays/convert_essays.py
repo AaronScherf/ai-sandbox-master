@@ -114,6 +114,18 @@ def convert_docx_to_markdown(docx_path: str) -> tuple[str, list[str]]:
     return _unescape_markdown(result.value.strip()) + "\n", warnings
 
 
+# The academic-hub corpus's own doc_type vocabulary (indexer.index_card.
+# KNOWN_DOC_TYPES) is textbook/problem_set/ta_notes/handwritten_notes --
+# none of those fit a personal essay or a loose research-brainstorming
+# document. Confirmed live (2026-08-30) against the real 19-file essays
+# corpus before this constant existed: every single card got force-fit
+# into "textbook" or "handwritten_notes", since generate_index_card()'s
+# prompt hard-codes that enum -- passing a corpus-appropriate vocabulary
+# here (reconcile_and_write's known_doc_types) fixes it at the source
+# rather than just the post-hoc validation.
+_ESSAY_DOC_TYPES = frozenset({"personal_essay", "research_notes"})
+
+
 def _index_essay(docx_path: str, md_path: str, markdown: str, index_root: str, client) -> None:
     """Best-effort source-indexer hook, mirroring notes/transcribe_notes.py's
     _write_markdown_and_index: reconciles this essay into its own index
@@ -134,7 +146,7 @@ def _index_essay(docx_path: str, md_path: str, markdown: str, index_root: str, c
             index_root, file_id=file_id, path=rel_md_path, source_pdf_path=rel_docx_path,
             course=course, folder_category=derive_folder_category(docx_path),
             content_sample=markdown, page_count=None, client=client,
-            content_hash=compute_content_hash(md_path),
+            content_hash=compute_content_hash(md_path), known_doc_types=_ESSAY_DOC_TYPES,
         )
     except Exception as err:
         print(f"  WARNING: source-indexer update failed for {md_path} ({err}); "
