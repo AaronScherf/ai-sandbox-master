@@ -58,13 +58,23 @@ just a hypothetical risk.
 ## 2. Cost, confirmed live (2026-08-29/30)
 
 `gemini-embedding-001` (retrieval, already in use): $0.15/1M input
-tokens. `gemini-3.6-flash` (generation, this spec's choice): $0.75/1M
+tokens. `gemini-3.6-flash` (originally chosen for generation): $0.75/1M
 input, $3.75/1M output through end of 2026 (rising to $1.50/$7.50 in
 2027, per Google's own pricing page). A typical tutoring exchange
 (~3,000 input tokens of retrieved context + question, ~800 output
 tokens) costs roughly **$0.005** -- even heavy daily personal use (50-100
 exchanges/day) lands around $10-16/month. Not a reason to compromise on
 model quality or to reach for local inference.
+
+**Revised 2026-08-30 against real output (§5):** `gemini-3.6-flash` was
+chosen here on an untested heuristic ("tutoring is reasoning-heavy,
+step up from the cheap tier") -- a real side-by-side comparison (same
+question, same retrieved passages) showed `gemini-3.1-flash-lite`
+producing comparably correct, well-cited answers. `TUTOR_MODEL` is now
+`gemini-3.1-flash-lite` ($0.30/1M input, $2.50/1M output) -- roughly
+$0.003/exchange, cheaper still, with no observed quality loss. The
+cost conclusion above (trivial either way) is unchanged; the model
+choice itself was corrected.
 
 ## 3. Architecture
 
@@ -204,12 +214,17 @@ new parameter threaded through it.
 ## 5. Generation
 
 ```python
-TUTOR_MODEL = "gemini-3.6-flash"  # confirmed live (§2): $0.75/1M input,
-# $3.75/1M output through end of 2026 -- a real step up from
-# index_card.GENERATION_MODEL (gemini-3.1-flash-lite, this project's
-# cheap/mechanical tier), justified because tutoring is a genuinely
-# reasoning-heavy task, and the cost difference is trivial at personal-
-# study volume either way (~$0.005 vs ~$0.003 per exchange).
+TUTOR_MODEL = "gemini-3.1-flash-lite"  # revised 2026-08-30 (§2): originally
+# gemini-3.6-flash, on the untested assumption that tutoring's reasoning
+# demands needed a step up from index_card.GENERATION_MODEL (this
+# project's cheap/mechanical tier). A real side-by-side comparison --
+# same question, same retrieved passages -- showed no meaningful
+# quality or coverage difference. Switched back to the cheaper tier;
+# the model this constant now equals is literally
+# index_card.GENERATION_MODEL's value, kept as its own named constant
+# here rather than importing that one directly, since the two are
+# conceptually distinct choices that happen to currently agree, not
+# the same setting reused.
 
 _ANSWER_PROMPT_TEMPLATE = """You are tutoring a student using ONLY the excerpts below, drawn from \
 their own course materials. Answer their question clearly and thoroughly, the way a good TA would \

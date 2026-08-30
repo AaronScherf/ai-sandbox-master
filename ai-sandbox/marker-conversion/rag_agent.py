@@ -81,11 +81,20 @@ def _reformulate_query(question: str, history: list[Turn], client) -> str:
     return (response.text or question).strip()
 
 
-TUTOR_MODEL = "gemini-3.6-flash"  # confirmed live (spec §2): $0.75/1M input,
-# $3.75/1M output through end of 2026 -- a real step up from
-# index_card.GENERATION_MODEL (this project's cheap/mechanical tier),
-# justified because tutoring is a genuinely reasoning-heavy task, and
-# the cost difference is trivial at personal-study volume either way.
+TUTOR_MODEL = "gemini-3.1-flash-lite"  # revised 2026-08-30, confirmed live:
+# originally set to gemini-3.6-flash on the assumption that tutoring's
+# reasoning demands needed a step up from this project's cheap tier --
+# untested at the time, just a heuristic. A real side-by-side comparison
+# (same question, same retrieved passages, both models) showed no
+# meaningful quality or coverage difference -- correct math, accurate
+# citations, same key points covered either way. Switched back to the
+# cheaper tier; the assumption that a pricier model was *necessary*
+# didn't hold up against actual output. Kept as its own constant here
+# (not importing index_card.GENERATION_MODEL directly, even though the
+# value is currently identical) since tutoring and card-generation are
+# conceptually distinct choices that happen to agree right now, not one
+# setting reused -- they could diverge again later without this being
+# a stale/forgotten duplicate.
 
 _ANSWER_PROMPT_TEMPLATE = """You are tutoring a student using ONLY the excerpts below, drawn from \
 their own course materials. Answer their question clearly and thoroughly, the way a good TA would \
