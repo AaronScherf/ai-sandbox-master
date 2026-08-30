@@ -1,0 +1,266 @@
+# Academic Hub: Project-Wide Status Summary
+
+Start here for "where does the whole project stand" -- a synthesis across
+every subproject's own status doc, not a replacement for any of them. Read
+the linked doc for a given piece's full history; this page is the map.
+
+**Subproject docs, in build order:**
+1. `docs/2026-08-22-chapter-aware-chunking-status.md` -- textbook chunking/page tracking
+2. `docs/2026-08-23-image-description-status.md` -- textbook figure descriptions
+3. `docs/2026-08-24-notes-transcription-status.md` -- non-textbook PDF transcription
+4. `docs/2026-08-27-notes-postprocessing-status.md` -- downstream transcription correction (in progress, paused)
+5. `docs/2026-08-29-source-indexer-status.md` -- tags, cards, file-level search
+6. `docs/2026-08-30-rag-agent-status.md` -- passage retrieval + tutoring agent
+7. `docs/2026-08-28-known-errors-todo.md` -- cross-cutting bug tracker
+
+## The pipeline, end to end
+
+```
+PDFs (textbooks, problem sets, exams, notes)
+  |
+  |-- convert_textbook.py  (Marker + chapter-aware chunking + page/folio tags)
+  |     -> describe_images.py  (figure descriptions, .rag.md)
+  |
+  |-- transcribe_notes.py  (3-tier router: local / hybrid-batch / full-Gemini)
+  |     -> postprocess_notes.py  (downstream correction pass, IN PROGRESS)
+  |
+  v
+Source indexer (index_card.py / index_search.py / retag.py / chunk_index.py)
+  - per-file cards (file_id, doc_type, tags, embeddings)
+  - corpus-wide tag vocabulary (retag)
+  - file-level two-stage search
+  - passage-level chunks + embeddings (chunk_index.py)
+  |
+  v
+rag_agent.py -- multi-turn tutoring, grounded citations, no persistent memory
+```
+
+Every stage after the raw PDF is markdown-first: each pipeline stage reads
+the previous stage's `.md`/`.rag.md` output and its own YAML frontmatter or
+JSON sidecar state, never re-parses the PDF. This is why re-running any one
+stage after a fix (e.g. re-transcribing after the Nebo-guard fix, or
+re-tagging after the fallback-leak fix) has consistently been cheap and
+safe throughout the project -- each stage's output is a stable, inspectable
+artifact, not a black box.
+
+## Real-corpus state today (2026-08-30)
+
+One course in the corpus so far, `math-camp`:
+- **30 index cards**, all healthy: 0 orphaned, 0 `needs_indexing`, 0
+  untagged, 30/30 have `content_hash`, 5/5 textbooks linked to their
+  `.rag.md`.
+- **14 tags** in the corpus-wide vocabulary (10 corpus-validated, 4
+  single-document fallback tags, all correctly isolated from cross-leak).
+- **5 textbooks** fully chapter-chunked, page/folio-tagged, and
+  image-described (793 candidate figures, 764 described, 29 correctly
+  skipped as decorative).
+- **~15 notes/problem-set documents** transcribed via the 3-tier router;
+  the 6 that were stale pre-fix artifacts have been re-transcribed for
+  real.
+- **Passage-level chunks + embeddings** generated for the full corpus
+  (`.index/chunks/math-camp.json`, gitignored -- see "IP and security
+  posture" below).
+- **RAG tutor** validated against real multi-turn queries on this corpus.
+
+Everything above is one course. Nothing about cross-course behavior (tag
+vocabulary scaling, cross-course retrieval ranking, whether one course's
+fallback tags could drift toward relevance in another) has been exercised
+against real data yet -- see "Between-course retrieval" below.
+
+## Cross-cutting patterns worth carrying forward
+
+These showed up independently across nearly every subproject and are worth
+treating as house style, not one-off lessons:
+
+- **Real-evidence-driven correction over untested heuristics.** Threshold
+  values (repetition-loop regex, causal z-score, defect ratio), model
+  choices (`TUTOR_MODEL`, image-description model), and even whole
+  detection approaches (tag clustering, causal-only vs. causal+masked
+  scoring) were repeatedly set on a first-pass heuristic, then measured
+  against real corpus data, then corrected when the evidence disagreed.
+  Several of these corrections were prompted by the user directly
+  questioning an unvalidated assumption ("why are we using a 3.6 gemini?").
+  Default to testing before asserting a quality/capability claim.
+- **Dependency-free core modules.** `chapter_index.py`, `page_markers.py`,
+  `describe_images.py`'s parsing/caching logic, `chunk_index.py`, and most
+  of `rag_agent.py` deliberately avoid importing `torch`/`marker` (GPU-only
+  deps) or making network calls at module scope, so the logic is unit
+  testable on a plain machine. `convert_textbook.py` itself is the
+  exception (GPU-bound, VM-only) -- everything downstream of it was
+  designed not to inherit that constraint.
+- **Two-stage bugs: real ones, and stale artifacts mistaken for real
+  ones.** More than once (the 6 zero-byte `.md` files, the mtime-reset
+  false "14 cards updated") the investigation had to distinguish "this is
+  a live bug" from "this is leftover state from before a fix shipped."
+  Confirming via commit timestamps and direct re-runs, rather than
+  patching defensively, kept the fix count honest.
+- **A cross-stage bug class: state written but never reconciled onto the
+  card that's supposed to reflect it.** `rag_md_path` (image-description ->
+  index card) and `content_hash`/`needs_indexing` (retag/rebuild
+  interactions) both had this shape -- one stage's sidecar JSON updates
+  correctly, but the index card that's supposed to summarize it doesn't
+  get told. Worth checking for this shape specifically if a future stage
+  adds its own sidecar state.
+
+## IP and security posture (load-bearing, do not relax silently)
+
+The GitHub repo `AaronScherf/ai-sandbox-master` is **public**. The corpus
+contains copyrighted PDFs/textbooks. Current policy, enforced via a
+deny-list `.gitignore` (not a blanket directory ignore):
+- Source PDFs, converted `.md`/`.rag.md`, `images/`, page caches, and raw
+  OneNote exports are all gitignored under `academic-hub/**`.
+- `.index/chunks/` (passage text + embeddings) is gitignored -- added after
+  a real incident where verbatim chunk text and embeddings of that exact
+  text were briefly pushed public, then purged via a scoped
+  `git filter-repo` history rewrite.
+- File-level index **cards** (`doc_type`, LLM-authored title/summary,
+  tags) are treated as genuinely derivative and are not gitignored --
+  the distinction that matters is verbatim-reproduction risk (chunk text,
+  embeddings of chunk text) vs. LLM-authored description of a document.
+
+Any future subproject that stores or transmits corpus text more granular
+than a card-level summary (new problem-set text, journal-article chunks,
+YouTube transcript excerpts) needs this same check before its first commit,
+not after.
+
+## Where each subproject stands
+
+- **Chapter-aware chunking**: shipped, VM-validated across 3+ books. A
+  handful of low-stakes deferred items (stale docstring, minor off-by-ones)
+  remain, explicitly non-blocking.
+- **Image description**: shipped, validated against all 5 real textbooks
+  (764/793 figures described, spot-checked accurate). No open blockers.
+- **Notes transcription**: shipped, 3-tier router validated against the
+  real corpus including a full repetition-loop defense system added this
+  session. No open blockers on the transcription pipeline itself.
+- **Notes post-processing**: **in progress, explicitly paused.** Built,
+  unit-tested, and validated against one real reproduced bug (the
+  radical-as-`p` case) and a broader corpus run that fixed a real
+  word-spacing extraction bug. Left open: the causal z-score signal still
+  has an unresolved precision problem on math-heavy prose (mitigated
+  ~62% via a threshold raise, not solved) -- see
+  `docs/2026-08-27-notes-postprocessing-status.md` and the
+  `project_notes_postprocessing_paused` memory. The most promising
+  unpursued direction is conditioning detection on retrieved,
+  validated-similar passages -- which now has a real prerequisite in
+  place (passage embeddings exist), making this a plausible thing to
+  revisit rather than a purely speculative future idea.
+- **Source indexer**: shipped (core + retag + passage chunking), real
+  corpus healthy per the snapshot above. No open blockers.
+- **RAG tutoring agent**: shipped, validated against real multi-turn
+  queries. Explicit, honestly-scoped limitations -- see
+  `docs/2026-08-30-rag-agent-status.md` in full; summarized in "What's
+  next" below since they're this project's most immediate next steps.
+
+## What's next
+
+In two groups: the extensions to the *existing* RAG agent already
+identified in its own status doc, and the three new project ideas raised
+alongside this stocktaking. None of these are spec'd yet -- this section
+is goals/ordering, not a plan.
+
+### Extending the RAG agent (carried over from its status doc)
+
+1. **Persistent conversation/activity history.** The real prerequisite for
+   everything context-aware below -- scheduled tasks that need to know
+   "what did I already cover," multi-day study continuity. Not yet spec'd.
+2. **Problem-set subsystem**, as two distinct modes per the user's own
+   framing: a **lookup** mode (retrieve real existing problems, using
+   linked solutions where the corpus already has them -- note
+   document-pairing detection, e.g. linking `Linear Algebra Problem
+   Set.md` to `...AMS Solutions.md`, is a confirmed real gap today, listed
+   in the source-indexer status doc as unbuilt) and a **generate-new** mode
+   (style/difficulty-matched novel problems, which needs a different
+   prompt shape than the tutor's own -- the tutor's anti-hallucination
+   guardrail actively works against generating anything novel by design).
+3. **Extended/structured report generation.** A different retrieval+
+   generation shape than single-question tutoring -- more passages, likely
+   multiple retrieval passes across sub-topics, a multi-section prompt
+   template. "Summarize chapter 7" is probably already workable today;
+   "summarize everything I've covered this week" is not, and also depends
+   on persistent history (#1) to know what "this week" covered.
+4. **Study-plan agent.** Needs course-level structural awareness (closer
+   to the indexer's file-level `search()` and course rollups than to
+   passage retrieval) plus real sequencing/pacing logic that doesn't exist
+   anywhere yet, and something like a syllabus or target timeline as
+   input. Matches the original project framing: a study-plan agent that
+   *calls* the RAG agent as one building block, not an extension of it.
+5. **Between-course retrieval validation.** Deferred until a second course
+   actually enters the corpus (see below) -- `search_passages()`'s
+   course-level pre-filter and cross-course ranking are implemented but
+   have literally never run against more than one course's data.
+6. **Scheduling.** Mechanically solved today for any fixed, non-contextual
+   question (`index_search.py ask "..."` is already a plain
+   non-interactive CLI command a scheduled job can run) -- what's missing
+   is exclusively the context-awareness that #1 unlocks, not scheduling
+   infrastructure itself.
+
+### New corpus growth: additional courses
+
+The corpus has only ever contained `math-camp`. Adding new courses is a
+stated near-term plan, not a new subsystem -- it should mostly exercise
+existing infrastructure (transcription/conversion pipelines, retag's
+corpus-wide tag mining, course-level search) rather than requiring new
+code, but it's the first real test of a few things designed for multi-course
+use and never yet observed: `retag`'s tag vocabulary at a larger, more
+topically diverse scale (does the 0.65 assignment threshold still isolate
+cleanly, or was it implicitly tuned against a topically homogeneous single
+course?), and #5 above.
+
+### New project idea: journal-article transcription
+
+Framed by the user as needing something structurally *between* the
+textbook and notes pipelines: journal articles share the textbook
+pipeline's printed-text reliability and citation/reference-heavy structure
+(so likely closer to `convert_textbook.py`'s Marker-based OCR than
+`transcribe_notes.py`'s per-page vision transcription), but lack chapter
+structure entirely and are short enough that the chapter-aware chunking
+machinery (built specifically for 300-600-page books) is probably
+unnecessary overhead. Likely candidate shape: single-chunk (or
+section-heading-based, reusing `chunk_index.py`'s existing heading-split
+tier rather than `chapter_index.py`'s book-oriented one) conversion with
+citation/reference-list-aware structure the existing pipelines don't need
+to think about. Not yet brainstormed in any depth -- this is a starting
+hypothesis, not a design.
+
+### New project idea: YouTube lecture summarization
+
+Pull lecture video links, send them to a Gemini API (which has native
+video/audio understanding for YouTube URLs) to generate content summaries.
+Structurally the most self-contained of the three new ideas -- no PDF
+involved, no dependency on the chunking/indexing pipeline's assumptions
+about document structure, plausibly a fairly short subproject (fetch link
+-> Gemini call -> structured summary -> index as a new `doc_type` alongside
+existing ones so it's searchable/citable the same way). The main open
+questions are probably about output shape (summary granularity,
+timestamp-linked notes vs. a single rollup) and whether/how a video-derived
+summary should be treated differently from a source's own text for the
+verbatim-content IP policy above (a Gemini-authored summary of a lecture is
+likely in the same "derivative, not verbatim" bucket as an index card, not
+the chunk-text bucket -- but worth confirming explicitly when this is
+actually designed, not assumed).
+
+### New project idea: literature review / gap analysis / research ideation
+
+Uses the journal-article corpus (once it exists) to do literature review,
+identify gaps, and brainstorm new research directions. The most
+architecturally novel of the three -- unlike the RAG tutor (answer a
+question from existing material) or a study-plan agent (sequence existing
+material), this one's job is synthesizing *across* many articles and
+producing genuinely novel output (a gap, a research idea) that by
+definition isn't sitting in any single retrieved passage. Closest existing
+precedent in this project is the RAG agent's own "not designed for
+generating new problem sets" limitation -- the same tension (grounded
+citation vs. novel generation) applies here at a larger scale, and
+whatever prompt/retrieval shape ends up solving problem-set generation is
+worth revisiting as a starting point for this, rather than solving the
+grounded-vs-novel tension twice independently. Depends on the
+journal-article pipeline existing first.
+
+## Explicitly not re-litigated here
+
+Backend/hosting choices (paid Gemini key, kept for now; Gemini CLI OAuth
+free tier and `claude -p` under Claude Pro noted as viable later swaps via
+the `TUTOR_MODEL` constant) and public-deployment fair-use questions (real
+legal question, not an engineering one) are covered in full in
+`docs/2026-08-30-rag-agent-status.md` and not repeated here.
