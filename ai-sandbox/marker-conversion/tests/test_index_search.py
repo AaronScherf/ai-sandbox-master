@@ -563,6 +563,16 @@ class TestCLIArgParsing(unittest.TestCase):
         args = build_arg_parser().parse_args(["query", "something"])
         self.assertFalse(args.passages)
 
+    def test_ask_subcommand_defaults(self):
+        args = build_arg_parser().parse_args(["ask", "what is the spectral theorem"])
+        self.assertEqual(args.command, "ask")
+        self.assertEqual(args.question, "what is the spectral theorem")
+        self.assertIsNone(args.course)
+
+    def test_ask_subcommand_with_course(self):
+        args = build_arg_parser().parse_args(["ask", "q", "--course", "math-camp"])
+        self.assertEqual(args.course, "math-camp")
+
 
 class TestRenderCitation(unittest.TestCase):
     def test_heading_tier_citation(self):

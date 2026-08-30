@@ -9,9 +9,11 @@ history an explicit input/output rather than internally-owned state.
 """
 from __future__ import annotations
 
+import argparse
+import os
 from dataclasses import dataclass
 
-from gemini_utils import call_with_retries
+from gemini_utils import call_with_retries, get_gemini_client, load_dotenv_override
 from index_card import GENERATION_MODEL
 from index_search import PassageResult, search_passages
 
@@ -141,3 +143,32 @@ def answer_question(
     ]
     updated_history = history + [Turn(role="user", text=question), Turn(role="assistant", text=answer)]
     return AnswerResult(answer=answer, citations=citations, history=updated_history)
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description="Interactive tutor grounded in the academic-hub corpus.")
+    parser.add_argument("--academic-hub", default=os.path.join(os.path.dirname(__file__), "..", "academic-hub"))
+    parser.add_argument("--course", default=None)
+    args = parser.parse_args()
+
+    load_dotenv_override()
+    client = get_gemini_client()
+    if client is None:
+        raise SystemExit(1)
+
+    history: list[Turn] = []
+    print("Ask a question (Ctrl+C to exit).")
+    while True:
+        question = input("> ").strip()
+        if not question:
+            continue
+        result = answer_question(args.academic_hub, question, client, history=history, course=args.course)
+        print(f"\n{result.answer}\n")
+        for c in result.citations:
+            print(f"  - {c.path} ({c.citation})")
+        print()
+        history = result.history
+
+
+if __name__ == "__main__":
+    main()

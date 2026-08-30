@@ -468,6 +468,10 @@ def build_arg_parser() -> argparse.ArgumentParser:
     chunk_p.add_argument("--file", default=None)
     chunk_p.add_argument("--dry-run", action="store_true")
 
+    ask_p = subparsers.add_parser("ask", help="Ask a single grounded question (no conversation memory).")
+    ask_p.add_argument("question")
+    ask_p.add_argument("--course", default=None)
+
     return parser
 
 
@@ -499,6 +503,12 @@ def main() -> None:
     elif args.command == "chunk":
         stats = chunk(args.academic_hub, client, course=args.course, file=args.file, dry_run=args.dry_run)
         print(stats)
+    elif args.command == "ask":
+        from rag_agent import answer_question
+        result = answer_question(args.academic_hub, args.question, client, course=args.course)
+        print(result.answer)
+        for c in result.citations:
+            print(f"  - {c.path} ({c.citation})")
 
 
 if __name__ == "__main__":
