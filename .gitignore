@@ -1,18 +1,32 @@
 ai-sandbox/personal-website/
 
-# academic-hub holds copyrighted PDFs and their full-text conversions --
-# these specific patterns are ignored to avoid uploading large files and
+# academic-hub/**/textbooks-and-papers/ holds actual copyrighted published
+# textbooks (PDFs) and their full-text Markdown conversions -- these
+# specific patterns are ignored to avoid uploading large files and
 # IP-protected text (deny-list, not a blanket directory ignore: negating
 # individual files back out of a fully-excluded directory tree is a known
 # git gitignore pitfall -- a parent directory match blocks descent into it
-# regardless of later "!" rules on files inside). Everything else under
-# academic-hub -- scripts, the source-indexer's file-level .index/ cards,
-# per-book _metadata.json, _image_descriptions.json, marker's
-# run_config.json -- is a derivative (titles/summaries/tags, not the
-# original prose), not a reproduction of the full text, and stays tracked.
-ai-sandbox/academic-hub/**/*.pdf
-ai-sandbox/academic-hub/**/*.md
-ai-sandbox/academic-hub/**/images/
+# regardless of later "!" rules on files inside).
+#
+# Fixed 2026-08-31: this used to match academic-hub/**/*.md unscoped, which
+# also silently excluded academic_notes/ -- the user's own TA notes, problem
+# sets, exams, and handwritten-note transcriptions. Those aren't third-party
+# copyrighted material and were never meant to be excluded; only the
+# textbooks-and-papers/ subtree needs protecting. academic_resources/'s
+# other subfolders (lecture-slides/, lecture-recordings/) may also warrant
+# protection (institution/professor-owned, not the user's own authorship) --
+# deliberately left untouched here pending an explicit decision on those,
+# rather than silently exposing them by omission.
+#
+# Everything else under academic-hub -- scripts, the source-indexer's
+# file-level .index/ cards, per-book _metadata.json, _image_descriptions.json,
+# marker's run_config.json, and now academic_notes/'s own .md output -- is
+# either a derivative (titles/summaries/tags, not the original prose) or the
+# user's own authored content, not a reproduction of copyrighted text, and
+# stays tracked.
+ai-sandbox/academic-hub/**/textbooks-and-papers/**/*.pdf
+ai-sandbox/academic-hub/**/textbooks-and-papers/**/*.md
+ai-sandbox/academic-hub/**/textbooks-and-papers/**/images/
 ai-sandbox/academic-hub/**/*_pages_cache.json
 # Raw notebook source (OneNote), not a derivative index/metadata file --
 # treated the same as the source PDFs, not tracked.
@@ -27,6 +41,21 @@ ai-sandbox/academic-hub/**/*.onetoc2
 # local-only and regenerable via `index_search.py chunk` rather than
 # tracked (spec: docs/superpowers/specs/2026-08-29-passage-embeddings-design.md).
 ai-sandbox/academic-hub/.index/chunks/
+
+# research/journal-articles/ holds published journal articles (PDFs) and
+# their full-text Markdown conversions -- same category of risk as
+# academic-hub's textbooks-and-papers/ above (real, third-party copyrighted
+# material), so the same deny-list treatment applies. research/'s other
+# content -- independent-research/ (the user's own essays and research
+# notes), and the source-indexer's own .index/ cards under research/ -- is
+# the user's own authored content or a derivative summary of it, not a
+# reproduction of someone else's copyrighted text, and stays trackable.
+ai-sandbox/research/journal-articles/**/*.pdf
+ai-sandbox/research/journal-articles/**/*.md
+ai-sandbox/research/journal-articles/**/images/
+ai-sandbox/research/**/*_pages_cache.json
+ai-sandbox/research/.index/chunks/
+
 #Prevent git workspace conflicts with obsidian
 # Vault root is ai-sandbox/, one level below this .gitignore -- a pattern
 # with a slash anywhere but the end (like ".obsidian/workspace*") is
