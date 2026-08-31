@@ -167,3 +167,44 @@ speculative design:
   would matter if research/ ever needs a "catch up anything indexed
   before a schema change" backfill the way academic-hub's `rebuild`
   provides.
+
+## 2026-08-31 update: journal articles reuse notes/transcribe_notes.py directly
+
+`journal_articles/convert_journal_articles.py` — a third `research/`
+subproject, converting academic journal-article PDFs — needed almost no
+new code at all: it calls `notes/transcribe_notes.py`'s `process_pdf()`
+completely unchanged, since that function already does exactly what a
+journal article needs (tiered cost-routing, content-hash caching,
+indexing hook). Two small, real generalizations made that reuse work:
+
+- **`process_pdf()`/`_write_markdown_and_index()` gained the same
+  `known_doc_types` passthrough** `index_card.py`'s `generate_index_card()`
+  already had — mirrors the essays fix one layer up the call stack.
+  Default unchanged (academic-hub's own vocabulary); this script passes
+  `{journal_article}`.
+- **`has_reliable_pagination()`'s marker list now recognizes Apache FOP
+  and XEP**, two real academic-publisher PDF renderers behind 2 of the
+  first 3 real papers tested — previously only LaTeX/Word/LibreOffice
+  were recognized, misrouting genuinely clean papers to full-page vision
+  transcription. Benefits academic-hub's own notes pipeline too, not
+  scoped to journal articles.
+
+A user-driven design decision, not a technical one: the corpus briefly
+contained a 402-page monograph mis-filed alongside genuine ~20-page
+papers. Rather than have this pipeline auto-escalate an oversized
+document to the GPU/Marker textbook pipeline, it flags and **skips**
+anything over `--max-pages` (default 150) entirely — the GPU VM is the
+most expensive part of this whole project, and the user was explicit
+that it should only ever run on files actually sitting in
+`academic-hub/`'s own folder structure, never triggered automatically
+from elsewhere.
+
+One real finding *not* acted on: `page_looks_defective()` (tuned
+against LaTeX-typeset math lecture notes) flags 32-43% of pages across
+every one of the first 3 real papers tested, enough to push all of them
+into whole-document Gemini batching instead of the cheaper hybrid-repair
+tier — likely citation/footnote/DOI conventions this checker has never
+seen. Left as-is: batching is still correct and still cheap (~$0.02/paper
+at measured per-page rates), and retuning defect detection for
+academic-paper prose specifically is a separable question from getting
+journal articles into the corpus at all.

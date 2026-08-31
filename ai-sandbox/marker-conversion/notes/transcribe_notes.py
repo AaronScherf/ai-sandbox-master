@@ -49,7 +49,13 @@ from common.gemini_utils import (
     load_json_cache,
     save_json_cache,
 )
-from indexer.index_card import compute_content_hash, compute_file_id, derive_course, reconcile_and_write
+from indexer.index_card import (
+    KNOWN_DOC_TYPES,
+    compute_content_hash,
+    compute_file_id,
+    derive_course,
+    reconcile_and_write,
+)
 
 _CODE_FENCE_RE = re.compile(r"^```(?:markdown)?\s*\n(.*)\n```\s*$", re.DOTALL)
 
@@ -69,7 +75,15 @@ _MESSY_EXPORT_MARKERS = ("nebo", "myscript", "onenote")
 # Deliberately narrow (no bare "microsoft" or "tex") to avoid stray
 # substring matches -- a bare "microsoft" previously misclassified
 # OneNote exports too, since Producer/Creator both mention "Microsoft".
-_RELIABLE_PAGINATION_MARKERS = ("latex", "pdftex", "word", "libreoffice", "openoffice")
+# "apache fop" and "xep" added 2026-08-31: confirmed against real journal
+# articles (research/journal-articles) -- academic publishers commonly
+# render their PDFs with Apache FOP or RenderX's XEP (both XML-to-PDF
+# engines), which produce the same reliably-paginated, cleanly-extractable
+# text as LaTeX/Word but weren't recognized before, routing genuinely
+# clean papers to expensive full-page vision transcription for no reason.
+_RELIABLE_PAGINATION_MARKERS = (
+    "latex", "pdftex", "word", "libreoffice", "openoffice", "apache fop", "xep",
+)
 
 # The real, confirmed failure mode for machine-generated PDFs: an
 # extensible delimiter glyph (a big matrix bracket or summation/integral
@@ -913,7 +927,7 @@ def repair_page_individually(client, model: str, pdf_path: str, page_num: int, h
 
 
 def _write_markdown_and_index(md_path, frontmatter, final_md, pdf_path, academic_hub_root,
-                               folder_category, total_pages, client):
+                               folder_category, total_pages, client, known_doc_types=KNOWN_DOC_TYPES):
     with open(md_path, "w", encoding="utf-8") as f:
         f.write(frontmatter + final_md)
 
@@ -926,6 +940,7 @@ def _write_markdown_and_index(md_path, frontmatter, final_md, pdf_path, academic
             academic_hub_root, file_id=file_id, path=rel_md_path, source_pdf_path=rel_pdf_path,
             course=course, folder_category=folder_category, content_sample=final_md,
             page_count=total_pages, client=client, content_hash=compute_content_hash(md_path),
+            known_doc_types=known_doc_types,
         )
     except Exception as err:
         # Indexing must never block or corrupt the actual transcription
@@ -936,7 +951,7 @@ def _write_markdown_and_index(md_path, frontmatter, final_md, pdf_path, academic
 
 
 def process_pdf(pdf_path: str, client, model_override: str | None, academic_hub_root: str,
-                 dry_run: bool = False) -> None:
+                 dry_run: bool = False, known_doc_types=KNOWN_DOC_TYPES) -> None:
     from pypdf import PdfReader
 
     base_name = os.path.splitext(os.path.basename(pdf_path))[0]
@@ -985,7 +1000,7 @@ def process_pdf(pdf_path: str, client, model_override: str | None, academic_hub_
         })
         _write_markdown_and_index(
             md_path, frontmatter, final_md, pdf_path, academic_hub_root,
-            folder_category, total_pages, client,
+            folder_category, total_pages, client, known_doc_types=known_doc_types,
         )
         print(f"[{base_name}] wrote {md_path} (local extraction, 0 API calls)")
         return
@@ -1047,7 +1062,7 @@ def process_pdf(pdf_path: str, client, model_override: str | None, academic_hub_
         })
         _write_markdown_and_index(
             md_path, frontmatter, final_md, pdf_path, academic_hub_root,
-            folder_category, total_pages, client,
+            folder_category, total_pages, client, known_doc_types=known_doc_types,
         )
         print(f"[{base_name}] wrote {md_path} (hybrid: {len(defective_page_numbers)}/{total_pages} pages repaired)")
         return
@@ -1120,7 +1135,7 @@ def process_pdf(pdf_path: str, client, model_override: str | None, academic_hub_
         })
         _write_markdown_and_index(
             md_path, frontmatter, final_md, pdf_path, academic_hub_root,
-            folder_category, total_pages, client,
+            folder_category, total_pages, client, known_doc_types=known_doc_types,
         )
         print(f"[{base_name}] wrote {md_path} (whole-document batched, {len(cache)}/{total_pages} pages transcribed)")
         return
@@ -1179,7 +1194,7 @@ def process_pdf(pdf_path: str, client, model_override: str | None, academic_hub_
     })
     _write_markdown_and_index(
         md_path, frontmatter, final_md, pdf_path, academic_hub_root,
-        folder_category, total_pages, client,
+        folder_category, total_pages, client, known_doc_types=known_doc_types,
     )
     print(f"[{base_name}] wrote {md_path}")
 

@@ -39,6 +39,9 @@ not as a bare file path, since the package-qualified imports below need this dir
 - `essays/` -- `convert_essays.py`: local, mammoth-based conversion of `.docx` essays (e.g. PhD
   application statements of purpose) straight to Markdown -- no OCR/vision needed, the `.docx` already
   carries its own structure. See `essays_instructions.md`.
+- `journal_articles/` -- `convert_journal_articles.py`: local, journal-article PDFs reusing
+  `notes/transcribe_notes.py`'s tiered pipeline unchanged (just a different `known_doc_types` and a
+  recursive, thematic-subfolder-aware discovery). Depends on `notes/`. See `journal_articles_instructions.md`.
 - `postprocessing/` -- `postprocess_notes.py` and its supporting modules: a downstream correction pass
   over `notes/transcribe_notes.py`'s output. Depends on `notes/`.
 - `rag/` -- `rag_agent.py`: the multi-turn tutoring agent grounded in passage retrieval. Depends on `indexer/`.

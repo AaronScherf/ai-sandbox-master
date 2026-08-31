@@ -3,6 +3,8 @@ import tempfile
 import unittest
 from unittest.mock import MagicMock, patch
 
+from indexer.index_card import KNOWN_DOC_TYPES
+
 from notes.transcribe_notes import (
     build_accumulated_context,
     build_batch_transcription_prompt,
@@ -226,6 +228,21 @@ class TestHasReliablePagination(unittest.TestCase):
     def test_missing_metadata_defaults_to_unreliable(self):
         self.assertFalse(has_reliable_pagination(None))
         self.assertFalse(has_reliable_pagination({}))
+
+    def test_apache_fop_creator_is_reliable(self):
+        # Real metadata from a research/journal-articles paper (Alatorre
+        # et al. 2025) -- an academic-publisher XML-to-PDF renderer,
+        # producing the same reliably-paginated, cleanly-extractable
+        # text as LaTeX/Word.
+        metadata = {"/Creator": "Apache FOP Version 2.8", "/Producer": "Apache FOP Version 2.8"}
+        self.assertTrue(has_reliable_pagination(metadata))
+
+    def test_xep_creator_is_reliable(self):
+        # Real metadata from another journal-articles paper (Li et al.
+        # 2025) -- RenderX's XEP, a different but equally reliable
+        # academic-publisher PDF renderer.
+        metadata = {"/Creator": "XEP 3.8.4 Server Stamped", "/Producer": "XEP PDF Generator, RenderX, Inc."}
+        self.assertTrue(has_reliable_pagination(metadata))
 
 
 class TestPageLooksDefective(unittest.TestCase):
@@ -757,6 +774,38 @@ class TestWriteMarkdownAndIndex(unittest.TestCase):
             self.assertEqual(kwargs["folder_category"], "ta_notes")
             self.assertEqual(kwargs["page_count"], 3)
             self.assertEqual(kwargs["content_sample"], "content")
+
+    def test_known_doc_types_defaults_to_academic_hub_vocabulary(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            md_path = os.path.join(tmp, "out.md")
+            pdf_path = os.path.join(tmp, "academic_notes", "math-camp", "ta_notes", "foo.pdf")
+            os.makedirs(os.path.dirname(pdf_path))
+            with open(pdf_path, "wb") as f:
+                f.write(b"fake pdf")
+
+            with patch("notes.transcribe_notes.reconcile_and_write") as mock_reconcile:
+                _write_markdown_and_index(
+                    md_path=md_path, frontmatter="", final_md="content", pdf_path=pdf_path,
+                    academic_hub_root=tmp, folder_category="ta_notes", total_pages=3, client=MagicMock(),
+                )
+            self.assertEqual(mock_reconcile.call_args.kwargs["known_doc_types"], KNOWN_DOC_TYPES)
+
+    def test_known_doc_types_is_forwarded_when_given(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            md_path = os.path.join(tmp, "out.md")
+            pdf_path = os.path.join(tmp, "journal-articles", "economics", "foo.pdf")
+            os.makedirs(os.path.dirname(pdf_path))
+            with open(pdf_path, "wb") as f:
+                f.write(b"fake pdf")
+
+            custom_types = frozenset({"journal_article"})
+            with patch("notes.transcribe_notes.reconcile_and_write") as mock_reconcile:
+                _write_markdown_and_index(
+                    md_path=md_path, frontmatter="", final_md="content", pdf_path=pdf_path,
+                    academic_hub_root=tmp, folder_category="economics", total_pages=3, client=MagicMock(),
+                    known_doc_types=custom_types,
+                )
+            self.assertEqual(mock_reconcile.call_args.kwargs["known_doc_types"], custom_types)
 
     def test_indexing_failure_does_not_raise_or_block_the_write(self):
         with tempfile.TemporaryDirectory() as tmp:
