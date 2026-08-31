@@ -83,6 +83,7 @@ class _Span:
     tier: str
     heading_path: list[str] | None = None
     problem_label: str | None = None
+    paragraph_range: list[int] | None = None
 
 
 _HEADING_RE = re.compile(r"(?m)^(#{1,6})\s+(.*)$")
@@ -209,6 +210,40 @@ def _split_span_by_paragraph(span: _Span, body: str) -> list[_Span]:
     ]
 
 
+def _split_by_paragraphs(body: str) -> list[_Span]:
+    """Fallback tier for content with no heading structure AND no page
+    markers at all -- e.g. a short .docx-derived essay, which has
+    neither (unlike the PDF pipelines this module was originally built
+    for). Without this, _split_by_pages's own no-markers fallback
+    produces one giant tier="page" span with no actual page number,
+    which _render_citation then prints as an empty label -- confirmed
+    live against the real research/ corpus (2026-08-30). Groups
+    paragraphs into chunks using the same greedy-fill-at-blank-line-
+    breaks rule as _split_span_by_paragraph's oversized-span
+    subdivision, but starting fresh from the whole document and
+    tracking 1-indexed paragraph numbers so citations can read like
+    '¶3' or '¶2-4' -- a locator that actually means something for a
+    one-or-two-page document, unlike a page number it doesn't have."""
+    break_ends = [0] + [m.end() for m in _PARAGRAPH_BREAK_RE.finditer(body)] + [len(body)]
+    total_paragraphs = len(break_ends) - 1  # break_ends[i] is paragraph i's start (0-indexed)
+
+    boundaries = [0]  # paragraph indices where each chunk starts
+    chunk_start = 0
+    for i in range(1, total_paragraphs):
+        if break_ends[i + 1] - break_ends[chunk_start] > _CHUNK_MAX_CHARS and i > chunk_start:
+            boundaries.append(i)
+            chunk_start = i
+    boundaries.append(total_paragraphs)
+
+    return [
+        _Span(
+            start=break_ends[boundaries[i]], end=break_ends[boundaries[i + 1]], tier="paragraph",
+            paragraph_range=[boundaries[i] + 1, boundaries[i + 1]],  # 1-indexed, inclusive
+        )
+        for i in range(len(boundaries) - 1)
+    ]
+
+
 def _page_range_for_span(start: int, end: int, markers: list[tuple[int, int]]) -> list[int] | None:
     in_span = [page for page, offset in markers if start <= offset < end]
     if in_span:
@@ -230,6 +265,7 @@ def _finalize_chunks(spans: list[_Span], body: str) -> list[dict]:
             "heading_path": span.heading_path,
             "problem_label": span.problem_label,
             "page_range": _page_range_for_span(span.start, span.end, markers),
+            "paragraph_range": span.paragraph_range,
         })
     return result
 
@@ -242,12 +278,15 @@ def chunk_file(
 ) -> list[dict]:
     """Tiered chunking (spec §4): headings first, numbered-problem
     detection second (problem_sets/recitation_slides only, empirically
-    validated before being trusted), page-based fallback always
-    available. Every tier's output goes through the same size cap and
-    minimum-length filter. Pure function -- no file I/O, no network
-    calls; front_matter_end is computed by the caller (generation
-    happens in generate_chunks_for_file, which has filesystem access)
-    via describe_images.py's existing load_front_matter_end()."""
+    validated before being trusted), page-based fallback when the
+    content actually has page markers, paragraph-based fallback when
+    it doesn't (a .docx-derived document like a short essay has neither
+    headings nor pages -- see _split_by_paragraphs). Every tier's
+    output goes through the same size cap and minimum-length filter.
+    Pure function -- no file I/O, no network calls; front_matter_end is
+    computed by the caller (generation happens in
+    generate_chunks_for_file, which has filesystem access) via
+    describe_images.py's existing load_front_matter_end()."""
     body = _strip_yaml_frontmatter(text)
     if doc_type == "textbook" and front_matter_end is not None:
         body = _strip_front_matter_by_page(body, front_matter_end)
@@ -256,7 +295,7 @@ def chunk_file(
     if spans is None and folder_category in _PROBLEM_TIER_FOLDER_CATEGORIES:
         spans = _detect_problem_boundaries(body)
     if spans is None:
-        spans = _split_by_pages(body)
+        spans = _split_by_pages(body) if _page_markers(body) else _split_by_paragraphs(body)
 
     spans = _subdivide_oversized(spans, body)
     return _finalize_chunks(spans, body)
@@ -326,6 +365,7 @@ def generate_chunks_for_file(academic_hub_root: str, course: str, card: dict, cl
             "heading_path": raw["heading_path"],
             "problem_label": raw["problem_label"],
             "page_range": raw["page_range"],
+            "paragraph_range": raw["paragraph_range"],
             "text": raw["text"],
             "embedding": embedding,
             "embedding_model": EMBEDDING_MODEL_ID,

@@ -8,7 +8,7 @@ from indexer.index_card import save_shard
 from indexer.chunk_index import (
     chunks_path, load_chunks, save_chunks,
     _page_markers, _strip_front_matter_by_page, _strip_yaml_frontmatter,
-    _Span, _split_by_headings, _detect_problem_boundaries, _split_by_pages,
+    _Span, _split_by_headings, _detect_problem_boundaries, _split_by_pages, _split_by_paragraphs,
     _CHUNK_MAX_CHARS, _subdivide_oversized, _page_range_for_span, _finalize_chunks,
     chunk_file, _folder_category_from_path, generate_chunks_for_file, chunk,
 )
@@ -183,6 +183,39 @@ class TestSplitByPages(unittest.TestCase):
         self.assertEqual(spans[0].end, len(body))
 
 
+class TestSplitByParagraphs(unittest.TestCase):
+    def test_short_body_stays_one_span_covering_every_paragraph(self):
+        body = "First paragraph.\n\nSecond paragraph.\n\nThird paragraph."
+        spans = _split_by_paragraphs(body)
+        self.assertEqual(len(spans), 1)
+        self.assertEqual(spans[0].tier, "paragraph")
+        self.assertEqual(spans[0].paragraph_range, [1, 3])
+        self.assertEqual(spans[0].start, 0)
+        self.assertEqual(spans[0].end, len(body))
+
+    def test_single_paragraph_gets_range_one_to_one(self):
+        body = "Just one paragraph, nothing else."
+        spans = _split_by_paragraphs(body)
+        self.assertEqual(len(spans), 1)
+        self.assertEqual(spans[0].paragraph_range, [1, 1])
+
+    def test_oversized_body_splits_at_paragraph_boundaries_with_correct_ranges(self):
+        paragraph = "x" * 1500
+        # Five ~1500-char paragraphs (~7500 chars) -- must split into
+        # multiple paragraph-tier chunks, each within _CHUNK_MAX_CHARS.
+        body = "\n\n".join([paragraph] * 5)
+        spans = _split_by_paragraphs(body)
+        self.assertGreater(len(spans), 1)
+        for s in spans:
+            self.assertEqual(s.tier, "paragraph")
+            self.assertLessEqual(s.end - s.start, _CHUNK_MAX_CHARS)
+        # Ranges are contiguous and cover all 5 paragraphs with no gaps/overlap.
+        self.assertEqual(spans[0].paragraph_range[0], 1)
+        self.assertEqual(spans[-1].paragraph_range[1], 5)
+        for i in range(len(spans) - 1):
+            self.assertEqual(spans[i].paragraph_range[1] + 1, spans[i + 1].paragraph_range[0])
+
+
 class TestSubdivideOversized(unittest.TestCase):
     def test_span_under_the_cap_is_untouched(self):
         body = "# One\n\n" + ("x" * 100)
@@ -245,6 +278,13 @@ class TestFinalizeChunks(unittest.TestCase):
         self.assertEqual(len(chunks), 1)
         self.assertIn("Two", chunks[0]["heading_path"])
 
+    def test_attaches_paragraph_range_and_leaves_page_range_none(self):
+        body = "Real content here, long enough to clear the minimum length filter and be kept for sure."
+        spans = [_Span(0, len(body), "paragraph", paragraph_range=[1, 1])]
+        chunks = _finalize_chunks(spans, body)
+        self.assertEqual(chunks[0]["paragraph_range"], [1, 1])
+        self.assertIsNone(chunks[0]["page_range"])
+
 
 class TestChunkFile(unittest.TestCase):
     def test_strips_yaml_frontmatter_before_chunking(self):
@@ -272,18 +312,32 @@ class TestChunkFile(unittest.TestCase):
     def test_does_not_attempt_problem_number_tier_outside_problem_sets(self):
         # Same numbered-looking content, but not a problem_sets file --
         # tier 2 is scoped to problem_sets/recitation_slides only (spec §4).
+        # No page markers either, so this falls all the way to the
+        # paragraph tier (see test_falls_back_to_paragraph_tier_when_there_
+        # are_no_page_markers for that tier's own dedicated coverage).
         text = (
             "1. First point, long enough to clear the minimum length filter easily here.\n\n"
             "2. Second point, long enough to clear the minimum length filter easily here.\n\n"
             "3. Third point, long enough to clear the minimum length filter easily here.\n\n"
         )
         chunks = chunk_file(text, doc_type="ta_notes", folder_category="ta_notes")
-        self.assertTrue(all(c["tier"] == "page" for c in chunks))
+        self.assertTrue(all(c["tier"] == "paragraph" for c in chunks))
 
     def test_falls_back_to_page_tier_when_nothing_else_matches(self):
         text = "<!-- page 1 -->\n\nJust some unstructured prose, long enough to keep as a chunk here for sure."
         chunks = chunk_file(text, doc_type="problem_set", folder_category="problem_sets")
         self.assertTrue(all(c["tier"] == "page" for c in chunks))
+
+    def test_falls_back_to_paragraph_tier_when_there_are_no_page_markers(self):
+        # The real case this tier exists for: a .docx-derived essay has
+        # no <!-- page N --> markers at all (those only ever come from
+        # the PDF pipelines), so it must not silently become a
+        # meaningless tier="page" span with no actual page number.
+        text = "Just some unstructured prose, long enough to keep as a chunk here for sure, with no page markers anywhere."
+        chunks = chunk_file(text, doc_type="personal_essay", folder_category="application_essays")
+        self.assertTrue(all(c["tier"] == "paragraph" for c in chunks))
+        self.assertEqual(chunks[0]["paragraph_range"], [1, 1])
+        self.assertIsNone(chunks[0]["page_range"])
 
     def test_textbook_front_matter_is_skipped(self):
         text = (

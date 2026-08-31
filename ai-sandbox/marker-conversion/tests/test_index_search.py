@@ -667,6 +667,22 @@ class TestRenderCitation(unittest.TestCase):
         chunk = {"tier": "heading", "heading_path": ["Intro"], "page_range": None, "problem_label": None}
         self.assertEqual(_render_citation(chunk), "§Intro")
 
+    def test_paragraph_tier_citation(self):
+        chunk = {"tier": "paragraph", "heading_path": None, "problem_label": None,
+                 "page_range": None, "paragraph_range": [3, 3]}
+        self.assertEqual(_render_citation(chunk), "¶3")
+
+    def test_multi_paragraph_range_renders_as_a_span(self):
+        chunk = {"tier": "paragraph", "heading_path": None, "problem_label": None,
+                 "page_range": None, "paragraph_range": [2, 4]}
+        self.assertEqual(_render_citation(chunk), "¶2-4")
+
+    def test_missing_paragraph_range_key_does_not_crash(self):
+        # A chunk from before this field existed (or any non-paragraph
+        # tier) simply has no paragraph_range key at all.
+        chunk = {"tier": "page", "heading_path": None, "problem_label": None, "page_range": [8, 8]}
+        self.assertEqual(_render_citation(chunk), "p. 8")
+
 
 class TestSearchPassages(unittest.TestCase):
     def test_ranks_passages_within_the_top_files(self):

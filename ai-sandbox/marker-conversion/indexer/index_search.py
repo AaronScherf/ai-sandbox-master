@@ -134,6 +134,10 @@ def _render_citation(chunk: dict) -> str:
     if page_range:
         start, end = page_range
         parts.append(f"p. {start}" if start == end else f"p. {start}-{end}")
+    paragraph_range = chunk.get("paragraph_range")
+    if paragraph_range:
+        start, end = paragraph_range
+        parts.append(f"¶{start}" if start == end else f"¶{start}-{end}")
     return ", ".join(parts)
 
 
