@@ -152,6 +152,38 @@ than a card-level summary (new problem-set text, journal-article chunks,
 YouTube transcript excerpts) needs this same check before its first commit,
 not after.
 
+## GCP VM cost policy (load-bearing, do not relax silently)
+
+`gcp_instructions.md` Step 4 now defaults to **deleting** the textbook-
+conversion VM (and its Persistent Disk) at the end of every session,
+rather than stopping it. This matters because a Persistent Disk bills for
+its full provisioned size for as long as it exists, whether the VM is
+running, stopped, or detached -- "stopped" only halts *compute* billing,
+not storage. For a pipeline run roughly once a month, a stopped-but-kept
+disk quietly costs real money (~$0.10/GB/month) for weeks of pure idle
+time.
+
+Deleting is safe because nothing on that disk is irreplaceable: input
+PDFs and converted output only ever flow through the GCS bucket and the
+local machine (`gcp_instructions.md` Steps 3.2-3.4), never the VM's own
+disk, and everything `marker_setup.sh` provisions there (apt packages, pip
+packages, the pulled vLLM Docker image) is mechanically re-derived from
+public sources on the next run -- that's the entire point of its
+provisioning-marker/re-verify logic. Recreating the VM from the same
+`--image-family` (Step 1.3) gets you back to a working state automatically.
+
+**Stop instead of delete** only when planning a same-day rerun, where
+paying a few hours of storage cost buys back the few minutes
+`marker_setup.sh` would otherwise spend reprovisioning. It is not the
+default end-of-session step anymore.
+
+Relatedly, Step 0.2's `PDF_FILENAMES` is no longer a hand-maintained list
+-- it's now auto-populated by globbing the `.pdf` files directly inside
+whatever `TEXTBOOK_SUBDIR` points at. This was specifically motivated by
+running the pipeline against multiple different course directories going
+forward: switching courses is now just changing `TEXTBOOK_SUBDIR`, not
+also retyping every filename in that course's folder.
+
 ## Where each subproject stands
 
 - **Chapter-aware chunking**: shipped, VM-validated across 3+ books. A

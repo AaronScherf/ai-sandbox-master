@@ -51,17 +51,25 @@ You are now operating within the container's interactive bash shell for all subs
 export TEXTBOOK_SUBDIR="academic_resources/math-camp/textbooks-and-papers"
 ```
 
-Change this list to update the batch of target textbooks. `convert_textbook.py` loads Marker's vision models exactly once per invocation and reuses them across every file in this list, so batching several books here is substantially cheaper than converting them one invocation at a time -- prefer adding to this list over running the pipeline repeatedly for one book each time.
+`PDF_FILENAMES` is populated automatically from whatever `.pdf` files sit directly inside `TEXTBOOK_SUBDIR` -- change which books get converted by changing what's in that folder, not by editing a list here. This is what makes running this same pipeline against a new course directory (set `TEXTBOOK_SUBDIR` above, drop that course's PDFs in the folder) a one-line change instead of also needing every filename retyped. `convert_textbook.py` loads Marker's vision models exactly once per invocation and reuses them across every file found, so batching a whole course's books together here is substantially cheaper than converting them one invocation at a time.
 
 ```bash
-export PDF_FILENAMES=(
-    "Book of Proof.pdf"
-    "Essential_Mathematics_for_Economic_Analy.pdf"
-    "rudin-walter-principles-of-mathematical-analysis-1976.pdf"
-    "Linear Algebra Done Right (4th edition) Axler.pdf"
-    "Blume_Mathematics_for_Economists.pdf"
-)
+shopt -s nullglob
+PDF_FILENAMES=()
+for pdf_path in "/academic-hub/$TEXTBOOK_SUBDIR"/*.pdf; do
+    PDF_FILENAMES+=("$(basename "$pdf_path")")
+done
+export PDF_FILENAMES
+
+if [ ${#PDF_FILENAMES[@]} -eq 0 ]; then
+    echo "[FATAL] No .pdf files found directly under /academic-hub/$TEXTBOOK_SUBDIR -- check TEXTBOOK_SUBDIR." >&2
+else
+    echo "[System] Found ${#PDF_FILENAMES[@]} PDF(s) in $TEXTBOOK_SUBDIR:"
+    printf '  %s\n' "${PDF_FILENAMES[@]}"
+fi
 ```
+
+This only looks directly inside `TEXTBOOK_SUBDIR` (not its `processed_outputs/` subfolder), so re-running against the same folder won't try to re-ingest already-converted output.
 
 ### Step 0.3: Verify SDK Installation
 
@@ -99,9 +107,11 @@ gcloud projects add-iam-policy-binding $PROJECT_ID \
 
 If you skip this (or it's not set up yet), `convert_textbook.py` still works -- it just logs a warning per book and falls back to the regex heuristic, same as before this feature existed. Cost is negligible: each book sends a few KB of title-page text to a fast/cheap Gemini model once.
 
-### 1.3 One-time: create the GCS bucket and VM instance (skip if you already have both)
+### 1.3 Create the GCS bucket (one-time) and VM instance (recreate each session)
 
-Skip this entirely if `$BUCKET_NAME` and `$VM_INSTANCE_NAME` already exist. This only needs to run once ever per project -- not once per session (that's Steps 2-3).
+The bucket only needs to be created once ever per project -- skip that part if `$BUCKET_NAME` already exists.
+
+The VM is a different story if you're following Step 4's recommended workflow of deleting the instance after every session (see the cost rationale there): a Persistent Disk is billed for its full provisioned size for as long as it exists, whether the VM is running, stopped, or deleted-but-disk-kept -- there's no way to pause that charge short of not having the disk at all. For a pipeline run about once a month, recreating the VM from scratch each time (this command) genuinely costs $0 between sessions, versus a stopped instance's disk quietly billing ~$0.10/GB/month the whole time it sits idle. Nothing on the disk is worth paying to avoid this: input/output data always flows through the GCS bucket, never the VM disk (Steps 3.2-3.4), and everything `marker_setup.sh` installs (apt packages, pip packages, the pulled vLLM Docker image) is re-derived automatically from public sources on the next run -- see Step 3.1's idempotency note. So run this VM-creation command at the start of every session that follows a Step 4 deletion, not just the first time ever.
 
 `marker_setup.sh` hard-requires a VM booted from a Deep Learning VM image with a matching torch/CUDA/driver stack already preinstalled (see the comments at the top of that file) -- it will fail fast and loudly on a generic Ubuntu image rather than silently misbehave, but you still need the right image to begin with. The command below matches the exact image family, machine type, and GPU this pipeline has been validated against.
 
@@ -291,20 +301,27 @@ gcloud storage rm -r gs://$BUCKET_NAME/processed_outputs/* gs://$BUCKET_NAME/inp
 
 ## Step 4: Terminate the Compute Instance
 
-To halt billing cycles, the VM must be explicitly stopped or deleted upon completion of the pipeline. 
+To halt billing cycles, the VM must be explicitly stopped or deleted upon completion of the pipeline.
+
+**Default to Option B (delete)** for the usage pattern this pipeline is actually run under -- occasional, roughly-monthly conversion batches. A Persistent Disk bills for its full provisioned size the entire time it exists, regardless of whether the VM attached to it is running or stopped -- "stopped" halts *compute* billing only, not storage. For a disk that then sits idle for weeks between runs, that's real, avoidable monthly cost for no benefit: nothing on the disk is data you'd miss (books/outputs only ever live in the GCS bucket or your local machine, per Steps 3.2-3.4), and everything the disk's provisioning represents (Step 3.1) is mechanically reproduced from public package sources the next time `marker_setup.sh` runs. Deleting gives you a real $0 between sessions; stopping does not.
 
 Only use one block!
 
+Reach for **Option A (stop)** only in the one case where paying to keep the disk actually saves you something real: you expect to run the pipeline again **later the same day** (or otherwise before your next natural stopping point), and want to skip re-running `marker_setup.sh`'s few-minutes of provisioning in between. It's a short-lived convenience, not the default end-of-session step.
 ```bash
-# Option A: Stop the instance. This halts compute billing but preserves the disk 
-# (and provisioning state) for future executions. Minimal storage fees apply.
+# Option A: Stop the instance. This halts compute billing but preserves the disk
+# (and provisioning state) for a same-day rerun. Storage fees continue to
+# accrue for as long as the disk exists, even while stopped.
 gcloud compute instances stop $VM_INSTANCE_NAME --zone=$GCP_ZONE
 ```
 
 This deletes your VM instance permanently! It requires typing a confirmation phrase before it will run, specifically so that copy-pasting or running through this entire document in one pass can't silently delete the instance -- if you don't type it, nothing happens.
 ```bash
-# Option B: Delete the instance entirely. This permanently destroys the disk and 
-# halts all billing mechanisms. Provisioning (Step 3.1) must be repeated upon recreation.
+# Option B (default/recommended): Delete the instance entirely. This
+# permanently destroys the disk and halts all billing mechanisms, compute
+# and storage alike. Recreate it via Step 1.3's VM-creation command next
+# time -- provisioning (Step 3.1) runs again automatically at that point,
+# same as it would on any fresh instance.
 read -p "Type DELETE to permanently destroy $VM_INSTANCE_NAME and its disk: " CONFIRM_DELETE
 if [ "$CONFIRM_DELETE" = "DELETE" ]; then
     gcloud compute instances delete $VM_INSTANCE_NAME --zone=$GCP_ZONE --quiet
