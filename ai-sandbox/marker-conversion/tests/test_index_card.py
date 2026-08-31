@@ -252,6 +252,44 @@ class TestGenerateIndexCard(unittest.TestCase):
         )
         self.assertEqual(card["level"], "introductory")
 
+    def test_custom_known_doc_types_accepts_a_value_outside_the_default_vocabulary(self):
+        # Confirmed live (2026-08-30): with the default academic-hub
+        # vocabulary, a personal essay corpus got every single card
+        # force-fit into "textbook"/"handwritten_notes" -- a corpus
+        # passing its own known_doc_types must be able to accept a value
+        # the default vocabulary doesn't recognize at all.
+        client = _fake_client(doc_type="personal_essay")
+        card = generate_index_card(
+            file_id="x", path="p.md", source_pdf_path="p.pdf", course="notes",
+            folder_category="application_essays", content_sample="text", page_count=None,
+            client=client, known_doc_types=frozenset({"personal_essay", "research_notes"}),
+        )
+        self.assertEqual(card["doc_type"], "personal_essay")
+
+    def test_custom_known_doc_types_still_falls_back_when_llm_answer_is_outside_it(self):
+        # "textbook" is valid under the *default* vocabulary but not
+        # under this custom one -- proves the fallback check uses the
+        # passed-in set, not the module-level KNOWN_DOC_TYPES constant.
+        client = _fake_client(doc_type="textbook")
+        card = generate_index_card(
+            file_id="x", path="p.md", source_pdf_path="p.pdf", course="notes",
+            folder_category="application_essays", content_sample="text", page_count=None,
+            client=client, known_doc_types=frozenset({"personal_essay", "research_notes"}),
+        )
+        self.assertEqual(card["doc_type"], "application_essays")
+
+    def test_prompt_sent_to_llm_reflects_the_custom_doc_type_vocabulary(self):
+        client = _fake_client(doc_type="personal_essay")
+        generate_index_card(
+            file_id="x", path="p.md", source_pdf_path="p.pdf", course="notes",
+            folder_category="application_essays", content_sample="text", page_count=None,
+            client=client, known_doc_types=frozenset({"personal_essay", "research_notes"}),
+        )
+        sent_prompt = client.models.generate_content.call_args.kwargs["contents"]
+        self.assertIn('"personal_essay"', sent_prompt)
+        self.assertIn('"research_notes"', sent_prompt)
+        self.assertNotIn('"textbook"', sent_prompt)
+
     def test_embeds_title_and_summary_not_raw_content(self):
         client = _fake_client()
         generate_index_card(
@@ -340,6 +378,14 @@ class TestReconcileAndWrite(unittest.TestCase):
             self.assertFalse(card["needs_indexing"])
             self.assertEqual(load_shard(tmp, "math-camp")[0]["file_id"], "fid1")
             self.assertEqual(load_courses(tmp)["math-camp"]["file_count"], 1)
+
+    def test_known_doc_types_is_forwarded_on_the_genuinely_new_content_path(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            client = _fake_client(doc_type="personal_essay")
+            card = reconcile_and_write(tmp, **self._card_kwargs(
+                client=client, known_doc_types=frozenset({"personal_essay", "research_notes"}),
+            ))
+            self.assertEqual(card["doc_type"], "personal_essay")
 
     def test_generation_failure_writes_a_minimal_card_not_a_crash(self):
         with tempfile.TemporaryDirectory() as tmp:

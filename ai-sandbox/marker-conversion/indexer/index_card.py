@@ -26,7 +26,7 @@ EMBEDDING_DIMENSIONALITY = 768
 EMBEDDING_MODEL_ID = f"{EMBEDDING_MODEL}:{EMBEDDING_DIMENSIONALITY}"
 GENERATION_MODEL = "gemini-3.1-flash-lite"
 
-KNOWN_DOC_TYPES = {"textbook", "problem_set", "ta_notes", "handwritten_notes"}
+KNOWN_DOC_TYPES = frozenset({"textbook", "problem_set", "ta_notes", "handwritten_notes"})
 KNOWN_LEVELS = ("introductory", "intermediate", "advanced")
 
 # Cap on how much of an assembled textbook markdown gets read as
@@ -201,7 +201,7 @@ the actual content below, not the folder name alone.
 
 Respond with ONLY a JSON object with exactly these keys:
 "title" (string, the document's own title or a short descriptive name),
-"doc_type" (one of: "textbook", "problem_set", "ta_notes", "handwritten_notes"),
+"doc_type" (one of: {doc_type_options}),
 "summary" (2-3 sentences describing what this document covers),
 "level" (one of: "introductory", "intermediate", "advanced"),
 "has_solutions" (boolean -- true only if THIS document itself shows worked solutions/answers, \
@@ -215,11 +215,25 @@ not just problem statements).
 def generate_index_card(
     file_id: str, path: str, source_pdf_path: str, course: str, folder_category: str,
     content_sample: str, page_count: int, client, content_hash: str | None = None,
+    known_doc_types: frozenset[str] = KNOWN_DOC_TYPES,
 ) -> dict:
     """One structured-JSON generation call plus one embedding call. Never
     proposes `tags` -- that's the corpus-wide retag pass's job (spec §5),
-    kept deliberately out of scope for a single-document call."""
-    prompt = _PROMPT_TEMPLATE.format(folder_category=folder_category, content_sample=content_sample)
+    kept deliberately out of scope for a single-document call.
+
+    known_doc_types defaults to the academic-hub vocabulary
+    (KNOWN_DOC_TYPES) but is a plain parameter, not a hardcoded
+    constant -- a different corpus (e.g. essays/convert_essays.py's
+    personal-essay corpus) passes its own set so the LLM isn't forced
+    to squeeze non-academic content into an academic-hub-shaped bucket
+    (confirmed live: every essay in a first real run got force-fit into
+    "textbook" or "handwritten_notes", neither of which is remotely
+    correct -- the four-value enum was baked into the prompt string
+    itself, not just the post-hoc validation)."""
+    doc_type_options = ", ".join(f'"{t}"' for t in sorted(known_doc_types))
+    prompt = _PROMPT_TEMPLATE.format(
+        folder_category=folder_category, content_sample=content_sample, doc_type_options=doc_type_options,
+    )
     response = call_with_retries(lambda: client.models.generate_content(
         model=GENERATION_MODEL,
         contents=prompt,
@@ -242,7 +256,7 @@ def generate_index_card(
 
     title = str(parsed.get("title") or "").strip()
     doc_type = parsed.get("doc_type")
-    if doc_type not in KNOWN_DOC_TYPES:
+    if doc_type not in known_doc_types:
         doc_type = folder_category
     summary = str(parsed.get("summary") or "").strip()
     level = parsed.get("level")
@@ -321,11 +335,14 @@ def _replace_card(cards: list[dict], file_id: str, updated: dict) -> list[dict]:
 def reconcile_and_write(
     academic_hub_root: str, file_id: str, path: str, source_pdf_path: str, course: str,
     folder_category: str, content_sample: str, page_count: int, client,
-    content_hash: str | None = None,
+    content_hash: str | None = None, known_doc_types: frozenset[str] = KNOWN_DOC_TYPES,
 ) -> dict:
     """The single entry point both pipeline hooks (and rebuild) call.
     Implements spec §4.3: never treats `path` as identity -- reconciles by
-    `file_id` across every shard before ever generating anything new."""
+    `file_id` across every shard before ever generating anything new.
+    known_doc_types is forwarded to generate_index_card() only on the
+    genuinely-new-content path below -- reconciling an existing card
+    never re-derives doc_type, so it's a no-op there."""
     found = find_card_by_file_id(academic_hub_root, file_id)
 
     if found is not None:
@@ -368,6 +385,7 @@ def reconcile_and_write(
             file_id=file_id, path=path, source_pdf_path=source_pdf_path, course=course,
             folder_category=folder_category, content_sample=content_sample,
             page_count=page_count, client=client, content_hash=content_hash,
+            known_doc_types=known_doc_types,
         )
     except Exception as err:
         print(f"WARNING: index card generation failed for {path} ({err}); writing needs_indexing card.")
