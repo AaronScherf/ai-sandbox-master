@@ -13,7 +13,7 @@
 # repo itself. That's redundant now that this script ships as a tracked
 # file inside ai-sandbox-master -- a normal `git clone`/`git pull` of this
 # repo already gets you this script, the code, and everything this repo
-# actually tracks (marker-conversion, academic-hub's derivative index/
+# actually tracks (academic-rag-model, academic-hub's derivative index/
 # metadata, your own academic_notes/ and research writing). Run this
 # script *after* cloning, to fill in the gap git leaves on purpose.
 # ==========================================================================
@@ -140,7 +140,7 @@ if [ ! -f "$SANDBOX_DIR/readme.md" ]; then
 
 Root directory for academic, research, and web-portfolio infrastructure. See
 the top-level `README.md` (one level up) for the full architecture map and
-`marker-conversion/README.md` for the actual conversion/indexing pipelines.
+`academic-rag-model/README.md` for the actual conversion/indexing pipelines.
 
 ## What's tracked vs. gitignored
 Code, derivative index/metadata (titles, summaries, tags -- not full text),

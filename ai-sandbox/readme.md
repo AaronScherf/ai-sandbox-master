@@ -3,7 +3,7 @@
 Root directory for academic, research, and web-portfolio infrastructure. See
 the top-level `README.md` (one level up) for the full architecture map,
 what's tracked vs. gitignored and why, and how to stand up your own copy.
-See [`marker-conversion/README.md`](marker-conversion/README.md) for the
+See [`academic-rag-model/README.md`](academic-rag-model/README.md) for the
 actual conversion/indexing/RAG pipelines.
 
 ## Directory map
@@ -13,9 +13,9 @@ ai-sandbox/
 ├── .env                                <-- GEMINI_API_KEY (gitignored)
 ├── readme.md                           <-- this file
 │
-├── marker-conversion/                  <-- conversion/indexing/RAG pipelines (tracked)
+├── academic-rag-model/                 <-- conversion/indexing/RAG pipelines (tracked)
 │
-├── academic-hub/
+├── academic-hub/                       <-- see academic-hub/README.md
 │   ├── academic_notes/<course>/        <-- your own TA notes, problem sets, exams (tracked)
 │   ├── academic_resources/<course>/
 │   │   ├── textbooks/                  <-- copyrighted PDFs + full-text .md (gitignored)
@@ -23,7 +23,7 @@ ai-sandbox/
 │   │   └── lecture-recordings/         <-- gitignored
 │   └── .index/                         <-- source-indexer cards (tracked); .index/chunks/ gitignored
 │
-├── research/
+├── research/                           <-- see research/README.md
 │   ├── independent-research/           <-- your own essays, research notes (tracked)
 │   ├── journal-articles/               <-- copyrighted PDFs + full-text .md (gitignored)
 │   └── .index/                         <-- same tracked/gitignored split as above

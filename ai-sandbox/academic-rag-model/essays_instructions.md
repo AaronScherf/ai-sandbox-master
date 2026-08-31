@@ -13,7 +13,7 @@ generation call + one embedding call per new/changed file -- pass
 ## Step 1: One-time local setup
 
 ```powershell
-cd marker-conversion
+cd academic-rag-model
 pip install mammoth
 ```
 

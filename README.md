@@ -3,7 +3,7 @@
 Root orchestrator repository for an academic productivity suite: PDF/document
 conversion pipelines, a searchable cross-course index, a grounded tutoring
 agent, independent research writing, and a personal-website portfolio. The
-actual conversion/indexing code lives in [`ai-sandbox/marker-conversion/`](ai-sandbox/marker-conversion/README.md)
+actual conversion/indexing code lives in [`ai-sandbox/academic-rag-model/`](ai-sandbox/academic-rag-model/README.md)
 — start there for the pipelines themselves. This file covers the repo as a
 whole: what's tracked, what isn't, and how to stand up your own copy.
 
@@ -18,9 +18,9 @@ ai-sandbox-master/                       <-- this repo
     ├── .env                             <-- GEMINI_API_KEY (gitignored)
     ├── readme.md                        <-- ai-sandbox-level map, generated if missing
     │
-    ├── marker-conversion/               <-- conversion/indexing/RAG pipelines (tracked)
+    ├── academic-rag-model/              <-- conversion/indexing/RAG pipelines (tracked)
     │
-    ├── academic-hub/
+    ├── academic-hub/                    <-- see academic-hub/README.md
     │   ├── academic_notes/<course>/     <-- your own TA notes, problem sets, exams (tracked)
     │   ├── academic_resources/<course>/
     │   │   ├── textbooks/               <-- copyrighted textbook PDFs + full-text .md (gitignored)
@@ -28,7 +28,7 @@ ai-sandbox-master/                       <-- this repo
     │   │   └── lecture-recordings/      <-- gitignored
     │   └── .index/                      <-- source-indexer cards + tags (tracked); .index/chunks/ (gitignored — verbatim excerpts)
     │
-    ├── research/
+    ├── research/                        <-- see research/README.md
     │   ├── independent-research/        <-- your own essays, research notes, index cards (tracked)
     │   ├── journal-articles/            <-- published journal-article PDFs + full-text .md (gitignored)
     │   └── .index/                      <-- same tracked/gitignored split as academic-hub's
@@ -59,8 +59,8 @@ full text (published textbooks, journal articles) is not.** See the root
    fills the gap `.gitignore` leaves on purpose, it doesn't reimplement
    `git clone`.
 5. Drop your own PDFs into the scaffolded folders and run the
-   `marker-conversion` pipelines against them — see
-   [`ai-sandbox/marker-conversion/README.md`](ai-sandbox/marker-conversion/README.md).
+   `academic-rag-model` pipelines against them — see
+   [`ai-sandbox/academic-rag-model/README.md`](ai-sandbox/academic-rag-model/README.md).
 
 Nothing about steps 3-5 requires sharing any of the original author's actual
 PDFs or notes — only the code, prompts, and pipeline structure are shared;
@@ -74,7 +74,7 @@ your content stays local (and gitignored) throughout.
   Open-Interpreter/Claude-based tutor agent once that design is settled, but
   there's no current `docker-compose.yml` to keep in sync, so none is
   generated. Flagged here rather than silently dropped.
-- **Tutor/study agent.** [`marker-conversion/rag/`](ai-sandbox/marker-conversion/rag/README.md)
+- **Tutor/study agent.** [`academic-rag-model/rag/`](ai-sandbox/academic-rag-model/rag/README.md)
   is a working grounded Q&A CLI today; a fuller agentic tutor (Open
   Interpreter or a Claude-based framework) is still an open design question,
   not yet built.

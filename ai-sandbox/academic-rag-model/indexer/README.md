@@ -9,10 +9,10 @@ tutor itself. Every other conversion pipeline in this repo (`textbook/`,
 converted document gets indexed as a normal side effect of that pipeline
 running, not a separate step someone has to remember.
 
-Run any script here as a module from the `marker-conversion/` root, e.g.
+Run any script here as a module from the `academic-rag-model/` root, e.g.
 `python -m indexer.index_search query "..."` — see the root
 [`README.md`](../README.md) for why (package-qualified imports need
-`marker-conversion/` on `sys.path`).
+`academic-rag-model/` on `sys.path`).
 
 ## Key files
 

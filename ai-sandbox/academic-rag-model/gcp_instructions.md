@@ -6,7 +6,7 @@
 * **GPU quota** approved for the zone you'll use, specifically `PREEMPTIBLE_NVIDIA_L4_GPUS` (Spot VMs draw from the preemptible quota pool, a separate metric from `NVIDIA_L4_GPUS`) if you're using Step 1.3's VM creation command as-is. This is the single most common blocker on a brand-new project -- request it under IAM & Admin > Quotas in the Console *before* Step 1.3, since approval isn't always instant.
 * `gcloud` and Docker installed locally, and Docker running.
 * A copy of `.env.example` (in the parent directory of this folder) filled in as your own `.env` -- see that file for what each variable means. `.env` is gitignored; never commit your real one.
-* A folder named `academic-hub` as a sibling of this `marker-conversion` folder, containing a subfolder matching whatever you set `TEXTBOOK_SUBDIR` to in Step 0.2 below -- that's where your input PDFs go and where processed output lands locally.
+* A folder named `academic-hub` as a sibling of this `academic-rag-model` folder, containing a subfolder matching whatever you set `TEXTBOOK_SUBDIR` to in Step 0.2 below -- that's where your input PDFs go and where processed output lands locally.
 
 ## Step 0: Initialize the Docker Container
 
@@ -203,7 +203,7 @@ Note: If you get a 255 error, check to ensure the VM is running (and not stopped
 
 ```bash
 gcloud compute scp marker_setup.sh $VM_INSTANCE_NAME:~/ --zone=$GCP_ZONE --tunnel-through-iap
-gcloud compute scp --recurse common indexer textbook $VM_INSTANCE_NAME:~/marker-conversion/ --zone=$GCP_ZONE --tunnel-through-iap
+gcloud compute scp --recurse common indexer textbook $VM_INSTANCE_NAME:~/academic-rag-model/ --zone=$GCP_ZONE --tunnel-through-iap
 ```
 
 `common/`, `indexer/`, and `textbook/` are copied recursively so `convert_textbook.py`'s package-qualified
@@ -264,7 +264,7 @@ echo "[System] Purging residual VLM server locks."
 sudo rm -f /root/.cache/datalab/surya/vllm_server.lock
 
 echo "[System] Initiating document extraction."
-cd ~/marker-conversion && python3 -u -m textbook.convert_textbook $GCS_INPUT_URIS --output "gs://$BUCKET_NAME/processed_outputs"
+cd ~/academic-rag-model && python3 -u -m textbook.convert_textbook $GCS_INPUT_URIS --output "gs://$BUCKET_NAME/processed_outputs"
 EOF
 ```
 
@@ -339,7 +339,7 @@ For each image in a book's converted markdown, `describe_images.py` asks a Gemin
 ### Step 5.1: One-time local setup
 
 ```powershell
-cd marker-conversion
+cd academic-rag-model
 pip install google-genai python-dotenv
 ```
 

@@ -5,7 +5,7 @@ from whatever's been converted and indexed — textbooks, notes, essays,
 journal articles — usable directly as a multi-turn chat, or as a stateless
 function other code can call.
 
-Run as a module from the `marker-conversion/` root:
+Run as a module from the `academic-rag-model/` root:
 
 ```powershell
 python -m rag.rag_agent --root ../academic-hub

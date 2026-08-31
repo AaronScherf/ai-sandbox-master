@@ -14,7 +14,7 @@ pointed at a different folder with a different `known_doc_types`.
 Same dependencies as `notes/transcribe_notes.py` -- no new ones.
 
 ```powershell
-cd marker-conversion
+cd academic-rag-model
 pip install google-genai python-dotenv pymupdf pypdf
 ```
 
