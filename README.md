@@ -1,112 +1,89 @@
-# 🚀 Master AI Sandbox Workspace Orchestrator
+# 🚀 ai-sandbox-master
 
-Welcome to the **Master AI Sandbox Workspace Orchestrator** (`ai-sandbox-master`). This repository acts as the central control plane and backup engine for your entire academic productivity suite, independent research, and web portfolio infrastructure.
+Root orchestrator repository for an academic productivity suite: PDF/document
+conversion pipelines, a searchable cross-course index, a grounded tutoring
+agent, independent research writing, and a personal-website portfolio. The
+actual conversion/indexing code lives in [`ai-sandbox/marker-conversion/`](ai-sandbox/marker-conversion/README.md)
+— start there for the pipelines themselves. This file covers the repo as a
+whole: what's tracked, what isn't, and how to stand up your own copy.
 
-It is designed to cleanly manage, synchronize, and secure your files, providing an isolated containerized workspace for AI-driven synthesis (using Open Interpreter or other local models) without exposing sensitive credentials or interfering with nested Git subprojects.
-
----
-
-## 📂 Architecture Map
-
-By decoupling the parent orchestrator from the nested child directories, the project maintains a clean separation of concerns:
+## Architecture map
 
 ```text
-ai-sandbox-master/                  <-- Parent Orchestrator (This Repository)
-├── .git/                           <-- Master Version Tracking (Private GitHub Backup)
-├── .gitignore                      <-- Prevents nested repos/data from leaking into Master
-├── workspace_generator.sh          <-- Master Setup, Generation, and Sync Script
-├── Instructions for Starting...    <-- Human-readable Setup Blueprint
-├── README.md                       <-- Main Directory Documentation (This File)
-└── ai-sandbox/                     <-- Isolated containerized workspace
-    ├── .env                        <-- SECURE Local variables & API Keys (Git-Ignored)
-    ├── docker-compose.yml          <-- Container architecture setup (Git-Tracked)
-    ├── readme.md                   <-- Sandbox Workspace Registry
+ai-sandbox-master/                       <-- this repo
+├── .gitignore                           <-- excludes copyrighted PDFs/full-text (see its own comments)
+├── workspace_generator.sh               <-- scaffolds the folders .gitignore excludes; see below
+├── README.md                            <-- this file
+└── ai-sandbox/
+    ├── .env                             <-- GEMINI_API_KEY (gitignored)
+    ├── readme.md                        <-- ai-sandbox-level map, generated if missing
     │
-    ├── 📚 academic-hub/
-    │   ├── 🔄 01-resources/        <-- Synced via Rclone to Drive (Git-Ignored)
-    │   └── 🐙 02-academic-notes/   <-- Summary files and scripts for generating them based on resources; tracked through parent git repo
+    ├── marker-conversion/               <-- conversion/indexing/RAG pipelines (tracked)
     │
-    ├── 🌐 personal-website/
-    │   └── AaronScherf.../         <-- Personal website synced via separate Git Repo (Synced to your public portfolio GitHub)
+    ├── academic-hub/
+    │   ├── academic_notes/<course>/     <-- your own TA notes, problem sets, exams (tracked)
+    │   ├── academic_resources/<course>/
+    │   │   ├── textbooks/               <-- copyrighted textbook PDFs + full-text .md (gitignored)
+    │   │   ├── lecture-slides/          <-- gitignored (institution/professor-owned)
+    │   │   └── lecture-recordings/      <-- gitignored
+    │   └── .index/                      <-- source-indexer cards + tags (tracked); .index/chunks/ (gitignored — verbatim excerpts)
     │
-    └── 🔬 research/
-        ├── 🔄 journal-articles/   <-- Downstream Read-Only PDFs (Paperpile managed), ignored by parent repo
-        ├── 📂 scripts/            <-- Scripts for generating research notes, managed by parent repo
-        └── 📂 independent-res.../
-            ├── 🔄 notes/           <-- Synced via Rclone (Nebo canvas exports), ignored by parent repo
-            └── 📂 projects/        <-- Isolated Git repositories per project
+    ├── research/
+    │   ├── independent-research/        <-- your own essays, research notes, index cards (tracked)
+    │   ├── journal-articles/            <-- published journal-article PDFs + full-text .md (gitignored)
+    │   └── .index/                      <-- same tracked/gitignored split as academic-hub's
+    │
+    └── personal-website/
+        └── AaronScherf.github.io/       <-- separate git repo, Hugo/HugoBlox portfolio site
 ```
 
----
+The dividing line throughout: **your own authored content and derivative
+metadata (titles, summaries, tags) are tracked; other people's copyrighted
+full text (published textbooks, journal articles) is not.** See the root
+`.gitignore`'s own comments for the exact patterns and reasoning.
 
-## ⚙️ How `workspace_generator.sh` Works
+## Getting started (your own copy, your own content)
 
-The `workspace_generator.sh` is an automated bash script that safely bootstraps, updates, and synchronizes your environment. Here is a breakdown of its core pipeline:
+1. `git clone` this repo.
+2. Copy `ai-sandbox/.env.example` to `ai-sandbox/.env` and add your own
+   `GEMINI_API_KEY`.
+3. Create your own `academic-hub/academic_notes/<course>/` folder(s) for
+   whatever courses you're tracking — there's nothing to inherit here, this
+   is where you establish your own course list.
+4. Run `bash workspace_generator.sh` from the repo root. It scaffolds the
+   gitignored `academic_resources/<course>/{textbooks,lecture-slides,lecture-recordings}/`
+   folders for each course you created in step 3, plus `research/journal-articles/`,
+   and pulls updates for any child git repos (the personal website, your own
+   independent project repos). See the script's own header comments for
+   exactly what it does and doesn't do — it's deliberately narrow now: it
+   fills the gap `.gitignore` leaves on purpose, it doesn't reimplement
+   `git clone`.
+5. Drop your own PDFs into the scaffolded folders and run the
+   `marker-conversion` pipelines against them — see
+   [`ai-sandbox/marker-conversion/README.md`](ai-sandbox/marker-conversion/README.md).
 
-### 1. Master Git Pull & Clone Sync
-* **Pull Mode**: If the parent `.git` exists, it queries GitHub and fetches any script or manual updates, pulling them down before any folders are modified.
-* **Clone Mode**: If `.git` doesn't exist but `GITHUB_SANDBOX_URL` is configured, it automatically initializes and checkouts the master orchestrator repo.
+Nothing about steps 3-5 requires sharing any of the original author's actual
+PDFs or notes — only the code, prompts, and pipeline structure are shared;
+your content stays local (and gitignored) throughout.
 
-### 2. Scaffold Missing Directory Tree
-* Re-scaffolds the entire academic, research, and personal-website folder architectures cleanly.
-* Because `mkdir -p` is used, **no existing local data, PDFs, notes, or files are ever overwritten or deleted**.
+## Open decisions
 
-### 3. Smart Universal Child Git Update
-* Clones your portfolio repository (`AaronScherf.github.io`) if it isn't present.
-* Scans recursively starting at depth 2 inside `ai-sandbox` to find **every** nested subdirectory containing a `.git` folder, automatically performing a `git pull` to update your notes, website, and research projects.
+- **Docker.** Not currently part of the day-to-day workflow — everything
+  above runs directly with a Python venv and a Gemini API key. Worth
+  revisiting for reproducibility and as a possible host for a future
+  Open-Interpreter/Claude-based tutor agent once that design is settled, but
+  there's no current `docker-compose.yml` to keep in sync, so none is
+  generated. Flagged here rather than silently dropped.
+- **Tutor/study agent.** [`marker-conversion/rag/`](ai-sandbox/marker-conversion/rag/README.md)
+  is a working grounded Q&A CLI today; a fuller agentic tutor (Open
+  Interpreter or a Claude-based framework) is still an open design question,
+  not yet built.
 
-### 4. Inject System Manuals & Safeguard Local Configs
-* Updates and injects standard system markdown manuals (`readme.md` files) across the directories.
-* **API Protection**: Checks if `ai-sandbox/.env` or `ai-sandbox/docker-compose.yml` already exist. If found, it **skips** generating them to preserve your active API keys and custom container modifications.
+## Backing up gitignored content
 
-### 5. Automated Repository Publisher (using `gh`)
-* If run on a new system where `.git` is missing, it initializes Git, adds all files, makes an initial commit, and checks for the GitHub CLI (`gh`).
-* If logged in, it auto-creates a private `ai-sandbox-master` repository on your GitHub account and pushes to it instantly. If not, it displays clear manual instructions.
-
-### 6. Rclone Bisync Syncing (Optional)
-* If `ENABLE_RCLONE_SYNC` is toggled to `true`, it initiates a background bidirectional sync using `rclone bisync` to mirror your handwritten notes (`independent-research/notes`) and textbook resources (`academic-hub/01-resources`) with Google Drive.
-
----
-
-## 🔒 Security & Best Practices
-
-### 🔑 Secret Lockdown (`.env`)
-To prevent accidental exposure of your Google Gemini API keys (or other LLM backend credentials), all secrets are migrated out of `docker-compose.yml` into `ai-sandbox/.env`. 
-* **`ai-sandbox/.env`**: Contains your raw `GEMINI_API_KEY=...`.
-* **`ai-sandbox/docker-compose.yml`**: References variables using `${GEMINI_API_KEY}`, keeping the file safe to publish.
-* **Git Safeguard**: Both `.env` and `ai-sandbox/.env` are hardcoded into the master `.gitignore` to guarantee your keys can never be leaked to GitHub.
-
-### 🔀 Avoiding Nested Repository Corruption
-Commiting a folder containing a `.git` directory inside another Git repository normally causes "embedded submodule" warnings, breaking push histories. 
-* The parent `.gitignore` explicitly ignores `personal-website/`, `research/.../projects/`, and `academic-hub/02-academic-notes-code/`.
-* This keeps the parent orchestrator and each sub-project completely decoupled, enabling you to commit and push to them independently without interference.
-
----
-
-## 🚀 Quick Start
-
-1. **Verify or Configure Variables**:
-   Open `workspace_generator.sh` and ensure your switches and links are correct:
-   ```bash
-   ENABLE_GIT_UPDATES=true
-   ENABLE_RCLONE_SYNC=false
-   GITHUB_SANDBOX_URL="https://github.com/AaronScherf/ai-sandbox-master.git"
-   ```
-
-2. **Execute the Sync**:
-   Run the orchestrator from Git Bash or your terminal:
-   ```bash
-   bash workspace_generator.sh
-   ```
-
-3. **Provide API Credentials**:
-   Open `ai-sandbox/.env` and paste your Google Gemini key:
-   ```text
-   GEMINI_API_KEY=your_actual_key_here
-   ```
-
-4. **Spin up your Container**:
-   ```bash
-   cd ai-sandbox
-   docker compose up -d
-   ```
+Large PDFs (textbooks, journal articles) aren't tracked in git and need
+their own backup. `ENABLE_RCLONE_SYNC` in `workspace_generator.sh` (off by
+default) bisyncs just those folders — `academic_resources/<course>/textbooks/`
+and `research/journal-articles/` — to a configured rclone remote. It does not
+sync lecture slides/recordings or anything else; narrow it further or widen
+it in the script if your own setup differs.

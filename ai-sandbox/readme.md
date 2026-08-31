@@ -1,54 +1,55 @@
-# 🗺️ Master Workspace Registry (AI Sandbox Root)
+# 🗺️ AI Sandbox Root
 
-This is the root directory for all academic, research, and web portfolio infrastructure. 
+Root directory for academic, research, and web-portfolio infrastructure. See
+the top-level `README.md` (one level up) for the full architecture map,
+what's tracked vs. gitignored and why, and how to stand up your own copy.
+See [`marker-conversion/README.md`](marker-conversion/README.md) for the
+actual conversion/indexing/RAG pipelines.
 
-## 🤖 The Docker Sandbox & Workspace Generator
-Everything within this `ai-sandbox` folder is designed to be **containerized via Docker** to provide a secure environment for Open Interpreter and the Google Gen AI API. 
-* The configuration dictating how the AI views these folders can be found in `docker-compose.yml`.
-* **Workspace Generator:** This entire directory tree, along with all `.git` updates and `rclone` syncs, is maintained by `workspace_generator.sh`. Running that script will safely generate missing folders, pull down external repository updates, and refresh these instructional manuals without overwriting your files.
+## Directory map
 
-## 📐 The Golden Architecture Rules
-1. **The Code Ecosystem (GIT):** Managed entirely through Git and pushed to GitHub. Never allow cloud sync engines to touch these folders.
-2. **The Data Ecosystem (RCLONE):** Managed by background Rclone bisync scripts mirroring data to Google Drive. Never initialize Git repos inside these folders.
-3. **Naming Convention:** All directories and files must use lowercase alphanumeric characters separated by hyphens (`lower-kebab-case`).
-
-## 📂 Directory Architecture Map
+```text
 ai-sandbox/
-├── 🐳 docker-compose.yml                          <-- Core Docker container configuration
-├── 📝 readme.md                                   <-- Master Workspace Registry
+├── .env                                <-- GEMINI_API_KEY (gitignored)
+├── readme.md                           <-- this file
 │
-├── 📚 academic-hub/
-│   ├── 🔄 01-resources/                           <-- MANAGED BY RCLONE (Synced to Drive, Read-Only for AI)
-│   │   ├── econ-101/
-│   │   │   ├── google-docs/ (gdoc)
-│   │   │   ├── textbooks/ (pdf / md)
-│   │   │   └── lecture-recordings/ (mp3)
-│   │   └── [Other Courses...]
-│   │
-│   └── 🐙 02-academic-notes/                 <-- MANAGED BY GIT (Synced to GitHub, Read-Write)
-│           ├── courses/
-│           │   ├── econ-101/
-│           │   │     ├── markdown-notes/ (md)
-│           │   │     ├── nebo-notes/ (pdf)
-│           │   │     ├── summaries/ (md)
-│           │   │     ├── lecture-slides/ (pdf)
-│           │   │     └── lecture-transcripts/ (md)
-│           │   └── [Other Courses...]
-│           └── scripts/
+├── marker-conversion/                  <-- conversion/indexing/RAG pipelines (tracked)
 │
-├── 🌐 personal-website/                   <-- MANAGED BY GIT (Synced to GitHub, Read-Write for AI)
-│   ├── content/
-│   └── static/
+├── academic-hub/
+│   ├── academic_notes/<course>/        <-- your own TA notes, problem sets, exams (tracked)
+│   ├── academic_resources/<course>/
+│   │   ├── textbooks/                  <-- copyrighted PDFs + full-text .md (gitignored)
+│   │   ├── lecture-slides/             <-- gitignored
+│   │   └── lecture-recordings/         <-- gitignored
+│   └── .index/                         <-- source-indexer cards (tracked); .index/chunks/ gitignored
 │
-└── 🔬 research/
-    ├── 🔄 journal-articles/    <-- MANAGED BY PAPERPILE (Read-Only for AI), synced w/ RCLONE
-    │
-    ├── 📂 independent-research/
-    │   ├── 🔄 notes/                              <-- MANAGED BY RCLONE
-    │   │     ├── nebo-exports/
-    │   │     └── markdown/
-	│   └── 📂 projects/
-	│       ├── 🐙 ai-trading-bot/           <-- MANAGED BY GIT (Read-Write for AI)
-	│       └── 🐙 neural-net-sim/           <-- MANAGED BY GIT (Read-Write for AI)
-	│
-	└── 📂 scripts/
+├── research/
+│   ├── independent-research/           <-- your own essays, research notes (tracked)
+│   ├── journal-articles/               <-- copyrighted PDFs + full-text .md (gitignored)
+│   └── .index/                         <-- same tracked/gitignored split as above
+│
+└── personal-website/
+    └── AaronScherf.github.io/          <-- separate git repo
+```
+
+## Golden rules
+
+1. **Tracked vs. gitignored is about copyright, not about git vs. rclone.**
+   Your own authored content (notes, essays, index metadata) is tracked in
+   this repo regardless of size. Other people's copyrighted full text
+   (textbook PDFs, journal-article PDFs, and their full-text conversions) is
+   gitignored regardless of format — see the root `.gitignore`'s own
+   comments for the exact patterns.
+2. **Gitignored PDFs are your responsibility to back up.** `workspace_generator.sh`
+   (one level up) can optionally rclone-bisync just the gitignored
+   `academic_resources/<course>/textbooks/` and `research/journal-articles/`
+   folders to a remote — off by default (`ENABLE_RCLONE_SYNC=false`), narrow
+   in scope (not lecture slides/recordings, not a blanket sync).
+3. **Never `git init` inside a gitignored or child-repo folder** — the
+   personal website and any of your own independent project repos
+   (`research/independent-research/projects/**`) are deliberately separate
+   git repos, kept out of this one so each has its own independent history.
+4. **Naming convention:** directories and files use lowercase alphanumeric
+   characters separated by hyphens (`lower-kebab-case`), except where an
+   existing tool's own convention overrides it (e.g. Python packages use
+   `snake_case`).
