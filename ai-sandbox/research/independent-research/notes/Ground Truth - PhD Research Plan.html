@@ -1,0 +1,643 @@
+<title>Ground Truth</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,500;0,600;0,700;1,400&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+  :root{
+    --bg:      #f6f5ee;
+    --surface: #fdfcf7;
+    --ink:     #1c2a20;
+    --ink-soft:#4f5c50;
+    --ink-faint:#8a9187;
+    --line:    #ddd8c6;
+    --line-soft:#e9e5d4;
+    --green:   #2f5d42;
+    --green-soft: #e4ecdf;
+    --blue:    #2f5c78;
+    --blue-soft: #e2ebf0;
+    --gold:    #a8752c;
+    --gold-soft: #f1e7d3;
+    --code-bg: #eeead9;
+  }
+
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:      #12160f;
+      --surface: #191f16;
+      --ink:     #e8e6d8;
+      --ink-soft:#b7bcae;
+      --ink-faint:#767d70;
+      --line:    #313827;
+      --line-soft:#262d1e;
+      --green:   #7fbf98;
+      --green-soft: #1c2b21;
+      --blue:    #86b3cc;
+      --blue-soft: #1a2730;
+      --gold:    #d9a854;
+      --gold-soft: #2b2213;
+      --code-bg: #1f2519;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:      #12160f;
+    --surface: #191f16;
+    --ink:     #e8e6d8;
+    --ink-soft:#b7bcae;
+    --ink-faint:#767d70;
+    --line:    #313827;
+    --line-soft:#262d1e;
+    --green:   #7fbf98;
+    --green-soft: #1c2b21;
+    --blue:    #86b3cc;
+    --blue-soft: #1a2730;
+    --gold:    #d9a854;
+    --gold-soft: #2b2213;
+    --code-bg: #1f2519;
+  }
+
+  *{box-sizing:border-box;}
+  body{
+    background:var(--bg);
+    color:var(--ink);
+    font-family:'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif;
+    font-size:16px;
+    line-height:1.6;
+    -webkit-font-smoothing:antialiased;
+  }
+
+  ::selection{ background:var(--gold-soft); }
+
+  a{ color:var(--green); text-decoration-thickness:1px; text-underline-offset:2px; }
+  a:focus-visible, button:focus-visible{ outline:2px solid var(--blue); outline-offset:2px; }
+
+  .mono{ font-family:'IBM Plex Mono', ui-monospace, monospace; }
+
+  /* ---------- Top bar / nav ---------- */
+  .topbar{
+    position:sticky; top:0; z-index:20;
+    background:color-mix(in srgb, var(--bg) 88%, transparent);
+    backdrop-filter:blur(6px);
+    border-bottom:1px solid var(--line);
+  }
+  .topbar-inner{
+    max-width:840px; margin:0 auto; padding:12px 28px;
+    display:flex; align-items:baseline; gap:22px; flex-wrap:wrap;
+  }
+  .topbar-mark{
+    font-family:'Spectral', serif; font-weight:600; font-size:0.95rem;
+    color:var(--ink); white-space:nowrap;
+  }
+  .topbar-mark em{ font-style:italic; color:var(--green); }
+  .topnav{ display:flex; gap:16px; flex-wrap:wrap; }
+  .topnav a{
+    font-family:'IBM Plex Mono', monospace; font-size:0.7rem; letter-spacing:.06em;
+    text-transform:uppercase; color:var(--ink-soft); text-decoration:none;
+    border-bottom:1px solid transparent; padding-bottom:2px;
+  }
+  .topnav a:hover{ color:var(--green); border-bottom-color:var(--green); }
+
+  /* ---------- Page shell ---------- */
+  .page{ max-width:840px; margin:0 auto; padding:0 28px 96px; }
+
+  header.hero{ padding:56px 0 40px; border-bottom:1px solid var(--line); }
+  .eyebrow{
+    font-family:'IBM Plex Mono', monospace; font-size:0.72rem; letter-spacing:.08em;
+    text-transform:uppercase; color:var(--green); margin-bottom:14px;
+    display:flex; align-items:center; gap:10px;
+  }
+  .eyebrow::before{ content:""; width:22px; height:1px; background:var(--green); display:inline-block; }
+  h1.title{
+    font-family:'Spectral', serif; font-weight:600; font-size:2.7rem;
+    line-height:1.08; margin:0 0 14px; text-wrap:balance; color:var(--ink);
+  }
+  h1.title em{ font-style:italic; font-weight:400; color:var(--ink-soft); }
+  .dek{
+    font-size:1.08rem; color:var(--ink-soft); max-width:62ch; margin:0 0 22px;
+  }
+  .meta-row{
+    display:flex; flex-wrap:wrap; gap:8px 10px; margin-top:18px;
+  }
+  .meta-pill{
+    font-family:'IBM Plex Mono', monospace; font-size:0.72rem; color:var(--ink-soft);
+    border:1px solid var(--line); border-radius:3px; padding:4px 9px;
+  }
+
+  section{ padding:52px 0; border-bottom:1px solid var(--line-soft); }
+  section:last-of-type{ border-bottom:none; }
+
+  .sec-head{ display:flex; align-items:baseline; gap:14px; margin-bottom:8px; }
+  .sec-index{
+    font-family:'IBM Plex Mono', monospace; font-size:0.78rem; color:var(--ink-faint);
+    letter-spacing:.04em;
+  }
+  h2.sec-title{
+    font-family:'Spectral', serif; font-weight:600; font-size:1.55rem; margin:0;
+    color:var(--ink); text-wrap:balance;
+  }
+  .sec-intro{ max-width:66ch; color:var(--ink-soft); margin:14px 0 30px; }
+
+  p{ max-width:66ch; margin:0 0 16px; }
+  h3{
+    font-family:'Spectral', serif; font-weight:600; font-size:1.18rem; margin:0 0 6px;
+    color:var(--ink);
+  }
+
+  /* ---------- Theme cards ---------- */
+  .theme{
+    padding:22px 0; border-top:1px solid var(--line-soft);
+  }
+  .theme:first-of-type{ border-top:none; padding-top:0; }
+  .theme-head{
+    display:flex; justify-content:space-between; align-items:baseline; gap:16px; flex-wrap:wrap;
+  }
+  .theme-num{ font-family:'IBM Plex Mono',monospace; color:var(--green); font-size:0.85rem; margin-right:8px;}
+  .coverage{ display:flex; align-items:center; gap:8px; min-width:150px; }
+  .bar-track{ width:100px; height:5px; background:var(--line-soft); border-radius:3px; overflow:hidden; }
+  .bar-fill{ height:100%; background:var(--green); border-radius:3px; }
+  .bar-label{ font-family:'IBM Plex Mono', monospace; font-size:0.68rem; color:var(--ink-faint); white-space:nowrap;}
+  .theme-body{ margin-top:10px; }
+  .cited{ margin-top:10px; display:flex; flex-wrap:wrap; gap:6px; }
+  .tag{
+    font-family:'IBM Plex Mono', monospace; font-size:0.66rem; color:var(--ink-soft);
+    background:var(--code-bg); border-radius:3px; padding:2px 7px;
+  }
+
+  /* ---------- Direction cards ---------- */
+  .direction{
+    background:var(--surface); border:1px solid var(--line); border-radius:6px;
+    padding:26px 26px 24px; margin-bottom:20px;
+  }
+  .direction-head{ display:flex; align-items:baseline; gap:12px; margin-bottom:10px; }
+  .direction-num{
+    font-family:'Spectral', serif; font-style:italic; font-size:1.3rem; color:var(--gold);
+    flex:none;
+  }
+  .direction h3{ margin:0; }
+  .direction .role{
+    font-family:'IBM Plex Mono', monospace; font-size:0.7rem; color:var(--blue);
+    text-transform:uppercase; letter-spacing:.05em; margin:2px 0 12px;
+  }
+  .facwrap{
+    margin-top:14px; padding-top:12px; border-top:1px dashed var(--line);
+    font-size:0.92rem; color:var(--ink-soft);
+  }
+  .facwrap b{ color:var(--ink); font-weight:600; }
+
+  /* ---------- Project cards ---------- */
+  .project{
+    display:grid; grid-template-columns:34px 1fr; gap:16px;
+    padding:22px 0; border-top:1px solid var(--line-soft);
+  }
+  .project:first-of-type{ border-top:none; padding-top:0; }
+  .project-id{
+    font-family:'IBM Plex Mono', monospace; font-size:0.78rem; color:var(--ink-faint);
+    padding-top:3px;
+  }
+  .project h3{ margin-bottom:8px; }
+  .spec-grid{
+    display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr));
+    gap:12px 20px; margin:14px 0 4px; padding:14px 16px; background:var(--code-bg);
+    border-radius:5px;
+  }
+  .spec dt{
+    font-family:'IBM Plex Mono', monospace; font-size:0.64rem; text-transform:uppercase;
+    letter-spacing:.06em; color:var(--ink-faint); margin-bottom:3px;
+  }
+  .spec dd{ margin:0; font-size:0.9rem; color:var(--ink-soft); }
+  .risk{
+    display:inline-block; margin-top:12px; font-family:'IBM Plex Mono', monospace;
+    font-size:0.68rem; text-transform:uppercase; letter-spacing:.05em;
+    padding:3px 8px; border-radius:3px;
+  }
+  .risk.low{ background:var(--green-soft); color:var(--green); }
+  .risk.med{ background:var(--gold-soft); color:var(--gold); }
+
+  /* ---------- Tension / closing ---------- */
+  .callout{
+    border-left:3px solid var(--blue); background:var(--blue-soft);
+    padding:18px 22px; border-radius:0 6px 6px 0; margin:18px 0;
+  }
+  .callout p:last-child{ margin-bottom:0; }
+  ol.reclist{ margin:0; padding-left:22px; }
+  ol.reclist li{ margin-bottom:10px; max-width:64ch; color:var(--ink-soft); }
+  ol.reclist li b{ color:var(--ink); }
+
+  footer{
+    padding:36px 0 10px; font-family:'IBM Plex Mono', monospace; font-size:0.72rem;
+    color:var(--ink-faint); display:flex; justify-content:space-between; flex-wrap:wrap; gap:8px;
+  }
+
+  /* ---------- People / outreach lists ---------- */
+  ul.people{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:12px; }
+  ul.people li{ padding-left:14px; border-left:2px solid var(--line); }
+  ul.people li b{ color:var(--ink); }
+  ul.people li .dept{
+    font-family:'IBM Plex Mono', monospace; font-size:0.68rem; color:var(--ink-faint);
+    display:block; margin-top:3px; text-transform:uppercase; letter-spacing:.04em;
+  }
+  .tier{ margin-bottom:26px; }
+  .tier-label{
+    font-family:'IBM Plex Mono', monospace; font-size:0.7rem; text-transform:uppercase;
+    letter-spacing:.06em; color:var(--green); margin-bottom:6px; display:block;
+  }
+  .tier-note{ font-size:0.92rem; color:var(--ink-soft); margin-top:8px; }
+
+  /* ---------- Timeline ---------- */
+  .timeline-month{ padding:20px 0; border-top:1px solid var(--line-soft); }
+  .timeline-month:first-of-type{ border-top:none; padding-top:0; }
+  .month-head{ display:flex; align-items:baseline; gap:10px; margin-bottom:10px; }
+  .month-title{
+    font-family:'Spectral', serif; font-style:italic; font-weight:600; font-size:1.08rem;
+    color:var(--ink); margin:0;
+  }
+  .month-tag{ font-family:'IBM Plex Mono', monospace; font-size:0.68rem; color:var(--ink-faint); }
+  .month-list{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:9px; }
+  .month-list li{ display:flex; gap:10px; align-items:baseline; max-width:66ch; }
+  .chip{
+    flex:none; font-family:'IBM Plex Mono', monospace; font-size:0.6rem; text-transform:uppercase;
+    letter-spacing:.05em; padding:2px 6px; border-radius:3px; white-space:nowrap; margin-top:3px;
+  }
+  .chip.research{ background:var(--green-soft); color:var(--green); }
+  .chip.outreach{ background:var(--blue-soft); color:var(--blue); }
+  .chip.portfolio{ background:var(--gold-soft); color:var(--gold); }
+  .month-list .txt{ color:var(--ink-soft); font-size:0.94rem; }
+
+  @media (max-width:600px){
+    h1.title{ font-size:2.05rem; }
+    .page{ padding:0 18px 72px; }
+    .topbar-inner{ padding:10px 18px; }
+    .direction{ padding:20px 18px; }
+  }
+</style>
+
+<div class="topbar">
+  <div class="topbar-inner">
+    <span class="topbar-mark">Ground <em>Truth</em></span>
+    <nav class="topnav">
+      <a href="#sources">Sources</a>
+      <a href="#themes">Themes</a>
+      <a href="#directions">Directions</a>
+      <a href="#outreach">Outreach</a>
+      <a href="#timeline">Timeline</a>
+      <a href="#projects">Projects</a>
+      <a href="#tensions">Open Questions</a>
+    </nav>
+  </div>
+</div>
+
+<div class="page">
+
+  <header class="hero">
+    <div class="eyebrow">Research Planning Memo</div>
+    <h1 class="title">Ground Truth</h1>
+    <p class="dek">A synthesis of nineteen statements of purpose and research notes written over the last application cycle — read together for what they keep saying, independent of which school each one was addressed to — mapped onto research directions and first-year projects for a PhD in Sustainable Development at Columbia SIPA.</p>
+    <div class="meta-row">
+      <span class="meta-pill">18 SoPs / faculty statements + 1 notes file</span>
+      <span class="meta-pill">Prepared 2026-08-31</span>
+      <span class="meta-pill">Source: research/independent-research/notes</span>
+    </div>
+  </header>
+
+  <div class="callout" style="margin-top:36px;border-left-color:var(--gold);background:var(--gold-soft);">
+    <p><b>Revision — first-year plan added.</b> This pass folds in the actual courseload (a standard micro / macro / econometrics sequence, an added environmental science course, and a seminar on open-source data for conflict analysis), drops the Ukraine agribusiness RCT project entirely — that evaluation was canceled and the underlying material is government-sensitive regardless — and reframes the flagship. Rather than digital finance with displacement as a secondary chapter, <b>climate adaptation, migration, and cash transfers under conflict</b> is now the direction the reputation gets built around, with the causal-ML and remote-sensing toolkit serving that agenda rather than standing alone. Two new sections — <a href="#outreach">Outreach</a> and <a href="#timeline">Timeline</a> — turn that into an actual calendar.</p>
+  </div>
+
+  <section id="sources">
+    <div class="sec-head"><span class="sec-index">01</span><h2 class="sec-title">Sources &amp; how this was built</h2></div>
+    <p class="sec-intro">Every Markdown file in <span class="mono">processed_outputs/</span> was read in full: the Columbia SIPA statement of purpose and faculty-alignment note, full-length statements for Stanford (E-IPER, two supplements), Berkeley ARE (two drafts plus a faculty-preference note), MIT, Cornell, Harvard, Northwestern, NYU, Princeton, Michigan (two programs), American, the New School, Tufts/Fletcher, and the free-form <span class="mono">Research Ideas.md</span> working notes. <span class="mono">Research Ideas.docx</span> in the parent folder was already converted and current — no re-run of the conversion pipeline was needed.</p>
+    <p>Because roughly a dozen of these essays are close variants of one core research pitch, adapted school to school, the counts below reflect distinct <em>essays</em> that carry a theme, not independent confirmations — repetition across near-duplicate drafts is a sign of how settled an idea is in your thinking, not eighteen separate people agreeing with you. That distinction matters for reading the coverage bars honestly.</p>
+  </section>
+
+  <section id="themes">
+    <div class="sec-head"><span class="sec-index">02</span><h2 class="sec-title">Recurrent themes</h2></div>
+    <p class="sec-intro">Six threads show up often enough to be load-bearing, plus one strand that recurs but pulls in a different methodological direction from the rest.</p>
+
+    <div class="theme">
+      <div class="theme-head">
+        <div><span class="theme-num">01</span><h3 style="display:inline">Climate-adaptive agriculture for smallholder farmers</h3></div>
+        <div class="coverage"><div class="bar-track"><div class="bar-fill" style="width:67%"></div></div><span class="bar-label">12 / 18</span></div>
+      </div>
+      <div class="theme-body">
+        <p>The default subject of nearly every essay: farmers in the global south facing yield loss from drought, heat, and water stress, and the technologies (seeds, irrigation, extension advice) that could offset it. It's the one constant across otherwise very different program pitches — agricultural economics, environment and resources, straight economics.</p>
+        <div class="cited"><span class="tag">Columbia</span><span class="tag">Stanford E-IPER</span><span class="tag">Berkeley ARE</span><span class="tag">Cornell</span><span class="tag">Fletcher</span><span class="tag">Northwestern</span><span class="tag">NYU</span><span class="tag">Michigan</span></div>
+      </div>
+    </div>
+
+    <div class="theme">
+      <div class="theme-head">
+        <div><span class="theme-num">02</span><h3 style="display:inline">Remote sensing &amp; satellite ML as the empirical backbone</h3></div>
+        <div class="coverage"><div class="bar-track"><div class="bar-fill" style="width:78%"></div></div><span class="bar-label">14 / 18</span></div>
+      </div>
+      <div class="theme-body">
+        <p>Satellite imagery, MOSAIKS-style embeddings, drone-based land classification, and mobile-phone traces appear as the default source of covariates and outcome proxies almost everywhere, not as a novelty but as infrastructure — the thing that makes every other idea on this list measurable at scale and low cost. Your own applied track record (the Berkeley Food Institute evapotranspiration model, the Colombia land-titling computer-vision pipeline, the wheat-yield thesis) is what makes this credible rather than aspirational.</p>
+        <div class="cited"><span class="tag">Columbia</span><span class="tag">Faculty Alignment</span><span class="tag">Berkeley ARE</span><span class="tag">Cornell</span><span class="tag">MIT</span><span class="tag">Northwestern</span><span class="tag">Princeton</span><span class="tag">Stanford Supp 1</span></div>
+      </div>
+    </div>
+
+    <div class="theme">
+      <div class="theme-head">
+        <div><span class="theme-num">03</span><h3 style="display:inline">Digital credit &amp; insurance for the underbanked</h3></div>
+        <div class="coverage"><div class="bar-track"><div class="bar-fill" style="width:28%"></div></div><span class="bar-label">5 / 18</span></div>
+      </div>
+      <div class="theme-body">
+        <p>The application layer that sits on top of themes 01 and 02: fusing geospatial and mobile data into credit scores and insurance pricing so farmers can borrow against a real risk profile instead of collateral they don't have. It's the narrowest and most concrete theme, and it's specifically the one the Columbia SoP is built around — pairing it with Daniel Björkegren's manipulation-robust prediction work and Jack Willis's crop-insurance and value-chain-finance research.</p>
+        <div class="cited"><span class="tag">Columbia</span><span class="tag">NYU</span><span class="tag">Northwestern</span><span class="tag">Cornell</span><span class="tag">Faculty Alignment</span></div>
+      </div>
+    </div>
+
+    <div class="theme">
+      <div class="theme-head">
+        <div><span class="theme-num">04</span><h3 style="display:inline">Causal ML for scaling pilots into national policy</h3></div>
+        <div class="coverage"><div class="bar-track"><div class="bar-fill" style="width:44%"></div></div><span class="bar-label">8 / 18</span></div>
+      </div>
+      <div class="theme-body">
+        <p>A specific, recurring methodological stack: fuse RCT panel data with high-dimensional spatiotemporal covariates, estimate heterogeneous treatment effects with double-machine-learning or causal forests, pool related trials through hierarchical meta-analysis (explicitly modeled on CEGA's IDEAL framework), and feed debiased estimates into a Bayesian or general-equilibrium model as priors for out-of-sample prediction. This is the most technically developed idea in the whole set — it shows up with near-identical mechanics in half a dozen essays for different schools, which means it's a settled methodological identity, not a one-off pitch.</p>
+        <div class="cited"><span class="tag">Berkeley ARE</span><span class="tag">MIT</span><span class="tag">Cornell</span><span class="tag">Northwestern</span><span class="tag">Princeton</span><span class="tag">Stanford Supp 1</span></div>
+      </div>
+    </div>
+
+    <div class="theme">
+      <div class="theme-head">
+        <div><span class="theme-num">05</span><h3 style="display:inline">Climate- and conflict-driven displacement</h3></div>
+        <div class="coverage"><div class="bar-track"><div class="bar-fill" style="width:28%"></div></div><span class="bar-label">5 / 18</span></div>
+      </div>
+      <div class="theme-body">
+        <p>Migration and forced displacement as the downstream consequence of the crises above — sharpened by direct experience in Ukraine and Colombia, and echoed in the Michigan and Princeton pitches on migrant integration and cash transfers. Alexander de Sherbinin's climate-forced-displacement work is named specifically in the Columbia faculty-alignment note, so the thread is already partly wired into your Columbia application even though it wasn't the headline there. <b style="color:var(--ink)">It is now</b> — see <a href="#directions">Directions</a> below.</p>
+        <div class="cited"><span class="tag">Michigan</span><span class="tag">Michigan Joint</span><span class="tag">Princeton</span><span class="tag">Fletcher</span><span class="tag">Faculty Alignment</span></div>
+      </div>
+    </div>
+
+    <div class="theme">
+      <div class="theme-head">
+        <div><span class="theme-num">06</span><h3 style="display:inline">Practitioner tools over papers alone</h3></div>
+        <div class="coverage"><div class="bar-track"><div class="bar-fill" style="width:39%"></div></div><span class="bar-label">7 / 18, explicit</span></div>
+      </div>
+      <div class="theme-body">
+        <p>A recurring commitment, not just a topic: reproducible codebases, an "Adaptation Atlas"-style interactive tool, in-silico policy experiments that let a World Bank or FAO practitioner plug in a location and get a recommendation. It shows up explicitly as a stated deliverable — not implied, but written out — in about a third of the essays, and implicitly in most of the rest.</p>
+        <div class="cited"><span class="tag">Stanford Supp 1</span><span class="tag">Berkeley ARE</span><span class="tag">Cornell</span><span class="tag">NYU</span><span class="tag">Northwestern</span><span class="tag">Stanford E&amp;R</span></div>
+      </div>
+    </div>
+
+    <div class="callout">
+      <p><b>The strand that doesn't fit the rest.</b> American University, the New School notes, and the free-form <span class="mono">Research Ideas.md</span> file describe a genuinely different research identity — post-Keynesian agent-based models, feminist and anti-imperialist critiques of development economics, non-parametric optimization (DEA, shape-constrained estimation) as an alternative to structural econometrics, and a standalone note questioning whether deep-learning global approximations quietly smooth over the ecological tipping points a causal-ML dissertation would need to respect. These aren't undeveloped ideas — the DEA and spectral-bias notes in particular are technically sharp — but they pull toward a heterodox, theory-first identity that sits at odds with the applied-causal-inference track that dominates the other sixteen essays. See <a href="#tensions">Open Questions</a> below for what to do with this before it costs you a year.</p>
+    </div>
+  </section>
+
+  <section id="directions">
+    <div class="sec-head"><span class="sec-index">03</span><h2 class="sec-title">Promising directions for the dissertation</h2></div>
+    <p class="sec-intro">Reordered around the reputation you actually want: climate adaptation, migration, and cash transfers in conflict-vulnerable settings as the throughline, with the digital-finance and causal-ML work serving that agenda rather than standing as a separate pitch. All four still share one underlying toolkit — the same fused geospatial-plus-panel-data infrastructure — so building it once pays for every direction below.</p>
+
+    <div class="direction">
+      <div class="direction-head"><span class="direction-num">I</span><h3>Climate adaptation, migration &amp; cash transfers under conflict</h3></div>
+      <div class="role">The flagship — what your reputation gets built on</div>
+      <p>The piece none of the eighteen essays fully commits to, but that your actual career already does: what happens to climate adaptation and social-protection programming when the setting isn't just poor but actively insecure? Cash transfers, crop insurance, and resilience investments are designed and evaluated almost entirely in stable settings; Colombia, Ukraine, and South Sudan taught you that conflict changes who can be reached, what data can be trusted, and whether a program's effects hold once displacement starts. The core question: does investment in climate-adaptive resilience reduce the probability that a shock becomes a displacement event, and does that relationship change — or break down — once you condition on active conflict? Lead with this in every faculty conversation from here on; the other three directions become the evidence for it, not competitors to it.</p>
+      <div class="facwrap"><b>Columbia fit —</b> de Sherbinin's climate-forced-displacement work anchors it directly. It also reaches past your original faculty-alignment note into political science and conflict scholarship — see <a href="#outreach">Outreach</a> for names worth adding.</div>
+    </div>
+
+    <div class="direction">
+      <div class="direction-head"><span class="direction-num">II</span><h3>Digital credit &amp; insurance as adaptation infrastructure in fragile settings</h3></div>
+      <div class="role">The applied instrument, narrowed to fit the flagship</div>
+      <p>The manipulation-robust credit-scoring and insurance pitch from your actual Columbia SoP, narrowed on purpose: not smallholder farmers in the global south generally, but farmers in places where conflict has already disrupted markets, land records, or physical access — where remote sensing and mobile data aren't a convenience, they're often the only measurement available. That narrowing is a feature, not a loss for a dissertation chapter: it's the version of this project nobody in a standard agricultural-finance track is positioned to do, and it gives direction I a concrete instrument to study rather than an abstract claim.</p>
+      <div class="facwrap"><b>Columbia fit —</b> Björkegren's manipulation-robust prediction work is the direct methodological anchor; Willis's crop-insurance and value-chain-microfinance research is the applied complement; Sachs and Bajpai's e-agriculture and ICT-policy work gives it a policy audience beyond academic economics.</div>
+    </div>
+
+    <div class="direction">
+      <div class="direction-head"><span class="direction-num">III</span><h3>A general toolkit for scaling pilots into national policy</h3></div>
+      <div class="role">The connective methodology, and specifically necessary here</div>
+      <p>The double-ML / causal-forest / hierarchical-meta-analysis / Bayesian-prior stack that recurs across six essays isn't tied to agriculture specifically — it's a general answer to "how do you responsibly turn a 400-household pilot into a national program." It matters more in conflict-affected settings than in stable ones: RCT panel data from fragile contexts is thin, unevenly measured, and rarely nationally representative — precisely the conditions hierarchical meta-analysis and debiased ML exist to handle. Built once as a reusable methods chapter, it powers directions I and II both.</p>
+      <div class="facwrap"><b>Columbia fit —</b> not directly tied to a named SIPA faculty member, which is worth treating as a real gap. Worth raising with your advisor about a methods committee member outside SIPA — economics or the Data Science Institute — if this becomes more than a supporting chapter.</div>
+    </div>
+
+    <div class="direction">
+      <div class="direction-head"><span class="direction-num">IV</span><h3>Chatbot-elicited survey data in access-constrained settings</h3></div>
+      <div class="role">The compact, publishable-first piece</div>
+      <p>The "AI-powered mobile survey" detail from the Columbia SoP, treated as its own contribution and sharpened for the flagship: can an LLM-administered survey elicit richer, more truthful investment-decision data than a structured questionnaire, and does that advantage grow specifically where enumerator teams can't safely or reliably travel — the exact condition that defines conflict-affected fieldwork? That's a genuine methods contribution to humanitarian and displacement research, not just a data-collection detail. It's self-contained, methodologically crisp, and doesn't require years of panel data to say something real.</p>
+      <div class="facwrap"><b>Columbia fit —</b> the natural first paper to bring to Björkegren, and the most realistic candidate for an actual first dissertation chapter given the timeline below.</div>
+    </div>
+  </section>
+
+  <section id="outreach">
+    <div class="sec-head"><span class="sec-index">04</span><h2 class="sec-title">Faculty outreach</h2></div>
+    <p class="sec-intro">The five faculty named in your original faculty-alignment note are a starting list, not the full map — especially now that conflict and displacement are the headline rather than a secondary thread. Three tiers, sequenced: listen before you pitch.</p>
+
+    <div class="tier">
+      <span class="tier-label">Tier 1 — already identified, deepen the relationship</span>
+      <ul class="people">
+        <li><b>Daniel Björkegren</b> — manipulation-robust prediction, AI &amp; Development. The direct anchor for directions II and IV.<span class="dept">SIPA / AI and Development Initiative</span></li>
+        <li><b>Jack Willis</b> — crop insurance, value-chain microfinance. The applied complement to direction II.<span class="dept">Economics (Barnard) / SIPA-affiliated</span></li>
+        <li><b>Alexander de Sherbinin</b> — climate-forced displacement. The direct anchor for direction I, the flagship.<span class="dept">CIESIN, Columbia Climate School</span></li>
+        <li><b>Jeffrey Sachs &amp; Nirupam Bajpai</b> — e-agriculture, ICT policy for development. The policy-audience bridge beyond academic economics.<span class="dept">Center for Sustainable Development</span></li>
+      </ul>
+    </div>
+
+    <div class="tier">
+      <span class="tier-label">Tier 2 — conflict &amp; political-economy adjacent, new given the flagship</span>
+      <ul class="people">
+        <li><b>Page Fortna</b> — civil war, peacekeeping, conflict duration and recurrence.<span class="dept">Political Science</span></li>
+        <li><b>Macartan Humphreys</b> — conflict, natural resources, and institutions in fragile states, with an experimental-methods bent that pairs well with your causal-inference toolkit.<span class="dept">Political Science</span></li>
+        <li><b>Suresh Naidu</b> — political economy, labor, institutions — a useful theory anchor for the macro/institutional side of conflict-affected development.<span class="dept">Economics / SIPA</span></li>
+        <li><b>Eric Verhoogen</b> — international development economics, informality, firm and market disruption.<span class="dept">Economics / SIPA</span></li>
+      </ul>
+      <p class="tier-note">Verify current titles, appointments, and availability against SIPA's, Political Science's, and Economics's live directories before emailing anyone in this tier — faculty rosters shift, and this list reflects general knowledge of the department rather than a check done today.</p>
+    </div>
+
+    <div class="tier">
+      <span class="tier-label">Tier 3 — institutes and seminar series to scout, not a single name</span>
+      <ul class="people">
+        <li><b>International Research Institute for Climate and Society (IRI)</b> — climate risk and index insurance for smallholders; institutional lineage running through the R4 Rural Resilience Initiative. Directly relevant to direction II.</li>
+        <li><b>CIESIN</b> — de Sherbinin's home base; population, displacement, and vulnerability data infrastructure.</li>
+        <li><b>Saltzman Institute of War and Peace Studies</b> — the conflict-scholarship seminar series; the fastest way to find who at Columbia actually studies conflict beyond the four names above.</li>
+        <li><b>Data Science Institute — AI &amp; Development Initiative</b> — Björkegren's methods community; likely home for direction III collaborators.</li>
+        <li><b>Mailman School — Program on Forced Migration and Health</b> — public-health-side displacement expertise; a good interdisciplinary bridge for direction I that sits outside economics entirely.</li>
+      </ul>
+    </div>
+
+    <p><b>Cadence:</b> September is for attending, not emailing — sit in on talks, keep a one-line log per event (who, what, where your interests overlapped). First meetings with Tier 1 in October–November, framed as learning about their work, not pitching yours. Tier 2 waits until December–January, once <a href="#projects">Project 01</a> or the evidence map exists to show. A second, more direct round in February–March raises summer RA work and second-year advising explicitly. Keep it in a simple spreadsheet — name, unit, event or paper, overlap note, meeting date, follow-up — it's the kind of low-effort tracking that makes six months of scattered conversations look like a deliberate search when you sit down to pick an advisor.</p>
+  </section>
+
+  <section id="timeline">
+    <div class="sec-head"><span class="sec-index">05</span><h2 class="sec-title">Month by month</h2></div>
+    <p class="sec-intro">September 2026 through May 2027, on top of coursework — not instead of it. <span class="chip research" style="display:inline">research</span> <span class="chip outreach" style="display:inline">outreach</span> <span class="chip portfolio" style="display:inline">portfolio</span> mark which lane each item belongs to.</p>
+
+    <div class="timeline-month">
+      <div class="month-head"><h3 class="month-title">September 2026</h3></div>
+      <ul class="month-list">
+        <li><span class="chip research">research</span><span class="txt">Set up a reference manager and reading log; open three literature lanes — climate adaptation &amp; agriculture, forced displacement/conflict economics, cash transfers &amp; social protection in fragile settings. Target 15–20 anchor papers per lane by month end.</span></li>
+        <li><span class="chip research">research</span><span class="txt">Scope the open-source-conflict-data seminar's term project around the climate–conflict–displacement fusion idea (Project 02 below), so coursework and portfolio work are the same hours.</span></li>
+        <li><span class="chip outreach">outreach</span><span class="txt">Attend, don't email — SIPA sustainable development seminar, Saltzman Institute's conflict series, one IRI or CIESIN talk. Log what you hear.</span></li>
+        <li><span class="chip portfolio">portfolio</span><span class="txt">Register a domain and stand up a bare portfolio site — even a single "in progress" page — so every finished project has somewhere to land.</span></li>
+      </ul>
+    </div>
+
+    <div class="timeline-month">
+      <div class="month-head"><h3 class="month-title">October 2026</h3></div>
+      <ul class="month-list">
+        <li><span class="chip research">research</span><span class="txt">Close first-pass literature maps; write one "gap statement" per lane — the sentence you'd say if a faculty member asked what's missing.</span></li>
+        <li><span class="chip research">research</span><span class="txt">Start Project 01, the evidence map, cataloguing existing RCTs and quasi-experiments at the climate-adaptation × cash-transfer × conflict intersection.</span></li>
+        <li><span class="chip outreach">outreach</span><span class="txt">First meetings — Björkegren and de Sherbinin — framed as learning about their work, not pitching yours.</span></li>
+      </ul>
+    </div>
+
+    <div class="timeline-month">
+      <div class="month-head"><h3 class="month-title">November 2026</h3></div>
+      <ul class="month-list">
+        <li><span class="chip research">research</span><span class="txt">Build out Project 02 (ACLED + IDMC + climate + cash-transfer program data fusion); midpoint check against the seminar's own milestones.</span></li>
+        <li><span class="chip research">research</span><span class="txt">Draft research-statement v0.1 — a living one-pager reflecting what's actually been learned this semester, distinct from the admissions SoP.</span></li>
+        <li><span class="chip outreach">outreach</span><span class="txt">Meet Willis and Sachs/Bajpai; scout one Tier 2 talk (Fortna, Humphreys, Naidu, or Verhoogen).</span></li>
+        <li><span class="chip portfolio">portfolio</span><span class="txt">Publish Project 01 (evidence map) as a v1 — spreadsheet or simple dashboard is enough. First concrete artifact.</span></li>
+      </ul>
+    </div>
+
+    <div class="timeline-month">
+      <div class="month-head"><h3 class="month-title">December 2026</h3></div>
+      <ul class="month-list">
+        <li><span class="chip research">research</span><span class="txt">Finish and submit the conflict-data seminar term paper — this is Project 02's first full draft. Wrap fall coursework.</span></li>
+        <li><span class="chip research">research</span><span class="txt">Draft the IRB protocol for the chatbot-survey pilot (Project 03) over break, so it's ready to submit day one of spring.</span></li>
+        <li><span class="chip outreach">outreach</span><span class="txt">Finals period — skip new meetings, but send Tier 1 faculty you've met a short "here's what I built this semester" note with a link to Project 01. Low-pressure, high-signal.</span></li>
+        <li><span class="chip portfolio">portfolio</span><span class="txt">Publish Project 02 as a GitHub repo plus short write-up.</span></li>
+      </ul>
+    </div>
+
+    <div class="timeline-month">
+      <div class="month-head"><h3 class="month-title">January 2027</h3></div>
+      <ul class="month-list">
+        <li><span class="chip research">research</span><span class="txt">Submit the Project 03 IRB protocol at the start of spring; start the reusable fusion-pipeline packaging (Project 04) while waiting on approval.</span></li>
+        <li><span class="chip outreach">outreach</span><span class="txt">First Tier 2 meetings, now with Project 01 and Project 02 to show instead of just intentions.</span></li>
+      </ul>
+    </div>
+
+    <div class="timeline-month">
+      <div class="month-head"><h3 class="month-title">February 2027</h3></div>
+      <ul class="month-list">
+        <li><span class="chip research">research</span><span class="txt">Run the Project 03 pilot once IRB clears; begin analysis.</span></li>
+        <li><span class="chip research">research</span><span class="txt">Revisit the three lit-lane gap statements against a full semester of micro/macro/econometrics — sharpen the theoretical framing now that the toolkit exists to support it.</span></li>
+        <li><span class="chip outreach">outreach</span><span class="txt">Ask one or two target faculty — likely de Sherbinin and a Tier 2 name — about summer RA or pre-doc-style work.</span></li>
+        <li><span class="chip portfolio">portfolio</span><span class="txt">Publish Project 04 (toolkit) once stable.</span></li>
+      </ul>
+    </div>
+
+    <div class="timeline-month">
+      <div class="month-head"><h3 class="month-title">March 2027</h3></div>
+      <ul class="month-list">
+        <li><span class="chip research">research</span><span class="txt">Finish the Project 03 write-up as a short methods note.</span></li>
+        <li><span class="chip research">research</span><span class="txt">Draft the internal memo narrowing the four directions to the flagship plus one supporting thread — the decision <a href="#tensions">Open Questions</a> asks you to make.</span></li>
+        <li><span class="chip outreach">outreach</span><span class="txt">Second-round "decision" meetings — bring the narrowed framing, ask directly about advising fit for second year.</span></li>
+        <li><span class="chip portfolio">portfolio</span><span class="txt">Publish Project 03.</span></li>
+      </ul>
+    </div>
+
+    <div class="timeline-month">
+      <div class="month-head"><h3 class="month-title">April 2027</h3></div>
+      <ul class="month-list">
+        <li><span class="chip research">research</span><span class="txt">Present one project informally — a SIPA student seminar, brown-bag, or working-paper slot — for practice and visibility before finals absorb the calendar.</span></li>
+        <li><span class="chip outreach">outreach</span><span class="txt">Confirm summer plans — an RA line, fieldwork, or continuing one project — with an identified faculty mentor.</span></li>
+        <li><span class="chip portfolio">portfolio</span><span class="txt">Site now carries four finished projects, a lit-synthesis memo per lane, and a one-page research statement.</span></li>
+      </ul>
+    </div>
+
+    <div class="timeline-month">
+      <div class="month-head"><h3 class="month-title">May 2027</h3></div>
+      <ul class="month-list">
+        <li><span class="chip research">research</span><span class="txt">Wrap coursework; write a short end-of-year retrospective — what changed since September, what the flagship direction looks like concretely now. Useful for you and for whichever faculty member becomes your advisor.</span></li>
+        <li><span class="chip outreach">outreach</span><span class="txt">Advisor fit should be substantially resolved heading into summer / second year.</span></li>
+        <li><span class="chip portfolio">portfolio</span><span class="txt">Final pass — every project links from the homepage with a one-line "why this matters" framed around the conflict-vulnerable climate/migration/cash-transfer throughline, not as disconnected exercises.</span></li>
+      </ul>
+    </div>
+  </section>
+
+  <section id="projects">
+    <div class="sec-head"><span class="sec-index">06</span><h2 class="sec-title">Self-contained projects for year one</h2></div>
+    <p class="sec-intro">None of these require a new RCT, years of field access, or anything touching sensitive USAID material — the constraint that would otherwise dominate a first-year timeline. Each is scoped to a semester or less, and each is built explicitly around the conflict-vulnerable climate/migration/cash-transfer throughline rather than as a generic methods demo.</p>
+
+    <div class="project">
+      <span class="project-id mono">01</span>
+      <div>
+        <h3>An evidence map: climate adaptation, cash transfers &amp; conflict</h3>
+        <p>A structured, public catalogue of existing RCTs and quasi-experimental evaluations sitting at the intersection of climate-adaptive agriculture, cash transfers/social protection, and conflict or forced displacement — coded by intervention type, setting, conflict-exposure level, method, and outcome, drawn from 3ie's, J-PAL's, and WFP's evaluation registries plus existing systematic reviews. This is the literature-gap exercise you need to do anyway, turned into a shareable artifact: the intersection itself is thin enough that a well-organized map of it is a genuine, citable contribution, not just a study aid.</p>
+        <dl class="spec-grid">
+          <div class="spec"><dt>Data</dt><dd>3ie / J-PAL / WFP registries, published reviews</dd></div>
+          <div class="spec"><dt>Output</dt><dd>Public spreadsheet or dashboard + a "what's missing" memo</dd></div>
+          <div class="spec"><dt>Timeline</dt><dd>Starts October, living document after</dd></div>
+        </dl>
+        <span class="risk low">Low risk — desk research, no IRB</span>
+      </div>
+    </div>
+
+    <div class="project">
+      <span class="project-id mono">02</span>
+      <div>
+        <h3>Climate shocks, conflict &amp; displacement: a fused public-data study</h3>
+        <p>Fuse ACLED conflict-event data, IDMC displacement figures, a climate-shock indicator (SPEI or CHIRPS-based drought measures), and public cash-transfer program locations (WFP/HDX) into a subnational panel, to test how climate shocks translate into displacement conditional on conflict intensity, and whether social-protection presence moderates that relationship. This is the term project for the open-source-conflict-data seminar, done properly enough to also stand alone — coursework and portfolio work sharing the same hours instead of competing for them.</p>
+        <dl class="spec-grid">
+          <div class="spec"><dt>Data</dt><dd>ACLED, IDMC, SPEI/CHIRPS, WFP/HDX</dd></div>
+          <div class="spec"><dt>Output</dt><dd>Seminar paper → working paper + reproducible notebook</dd></div>
+          <div class="spec"><dt>Timeline</dt><dd>September–December, one semester</dd></div>
+        </dl>
+        <p>This is direction I, made concrete and small, and direction III's fusion method proven on real data before there's a dissertation-scale dataset to apply it to.</p>
+        <span class="risk low">Low risk — public data, no IRB</span>
+      </div>
+    </div>
+
+    <div class="project">
+      <span class="project-id mono">03</span>
+      <div>
+        <h3>Pilot: chatbot survey vs. structured survey, head to head</h3>
+        <p>A small (n≈50–150) methods pilot administering both an AI-chatbot survey and a standard structured questionnaire to the same respondents on investment or displacement decisions, testing whether the chatbot elicits richer qualitative detail and holds up under manipulation-robustness checks in the spirit of Björkegren's work. Framing it explicitly around access-constrained settings — where an enumerator team may not be able to travel safely — is what turns this from a generic survey-methods exercise into evidence for direction IV.</p>
+        <dl class="spec-grid">
+          <div class="spec"><dt>Data</dt><dd>New, small — partner NGO or panel sample</dd></div>
+          <div class="spec"><dt>Output</dt><dd>Methods paper, candidate first dissertation chapter</dd></div>
+          <div class="spec"><dt>Timeline</dt><dd>January–March, plus IRB lead time</dd></div>
+        </dl>
+        <p>The most direct way to open a working relationship with Björkegren in year one rather than year three.</p>
+        <span class="risk med">Medium risk — needs IRB approval and a small budget</span>
+      </div>
+    </div>
+
+    <div class="project">
+      <span class="project-id mono">04</span>
+      <div>
+        <h3>Publish an open-source climate–conflict data-fusion toolkit</h3>
+        <p>Package the ACLED/IDMC/climate/program-data fusion pipeline from Project 02 as a small, documented, reusable library rather than a one-off notebook — the "accessible tool for practitioners" goal that several of your essays name explicitly as a deliverable, done as a public artifact instead of a promise. It becomes the shared infrastructure under Project 02 and, later, direction I.</p>
+        <dl class="spec-grid">
+          <div class="spec"><dt>Data</dt><dd>Same as Project 02, generalized</dd></div>
+          <div class="spec"><dt>Output</dt><dd>Public GitHub package + short write-up</dd></div>
+          <div class="spec"><dt>Timeline</dt><dd>January–February, alongside Project 03</dd></div>
+        </dl>
+        <span class="risk low">Low risk — engineering effort, not new research risk</span>
+      </div>
+    </div>
+
+    <div class="project">
+      <span class="project-id mono">05</span>
+      <div>
+        <h3 style="color:var(--ink-soft)">Optional — a short note resolving the heterodox-vs-mainstream question</h3>
+        <p>A scoping essay, written for yourself and an advisor rather than for publication, that positions agent-based modeling, non-parametric/shape-constrained estimation, and causal-ML approaches against each other for the specific problem of scaling pilot interventions in fragile settings. Its job isn't to be a paper — it's to force the decision in <a href="#tensions">Open Questions</a> below onto paper before it gets decided by default.</p>
+        <span class="risk low">Low risk — internal deliverable</span>
+      </div>
+    </div>
+  </section>
+
+  <section id="tensions">
+    <div class="sec-head"><span class="sec-index">07</span><h2 class="sec-title">Two things worth resolving early</h2></div>
+
+    <div class="callout">
+      <p><b>Heterodox identity vs. applied-causal-inference identity.</b> Sixteen of eighteen essays describe an applied-microeconomics, causal-inference, remote-sensing research program. Three sources — American, the New School, and the <span class="mono">Research Ideas.md</span> notes — describe a structurally different one: agent-based post-Keynesian modeling, feminist and anti-imperialist critique, non-parametric optimization as a rejection of structural econometrics. Both are real interests, but they call for different advisors, different committees, and arguably different departments. SIPA's Sustainable Development faculty — Björkegren, Willis, Sachs, de Sherbinin — sit solidly in the applied-empirical camp, which suggests the heterodox strand is better treated as a secondary intellectual interest (a second-year field paper, a reading group, a minor field) than as competition for the dissertation spine. Worth naming explicitly to your advisor rather than letting it surface as scope creep in year two.</p>
+    </div>
+
+    <div class="callout">
+      <p><b>Breadth of applications vs. one flagship thread.</b> Across eighteen essays the same toolkit gets pointed at credit scoring, crop insurance, cash transfers, migration, and foreign-aid policy design — five different applications riding the same causal-ML-plus-remote-sensing engine. That range was an asset for admissions, where each school wanted to see fit with its own faculty. It's a liability for a dissertation, which needs one flagship application to anchor around. Direction I — climate adaptation, migration, and cash transfers under conflict — is now that anchor; direction II (digital credit and insurance) becomes the concrete instrument studied inside it, and direction III (the general scaling toolkit) is the methods contribution that makes both possible.</p>
+    </div>
+
+    <ol class="reclist">
+      <li><b>Start Project 02</b> (the climate–conflict–displacement fusion) in September — it's already your seminar's term project, so it costs no extra hours and produces the first real evidence for the flagship direction.</li>
+      <li><b>Build Project 01</b> (the evidence map) in parallel — it's desk research, needs no approvals, and is the literature-gap exercise you need to do regardless, turned into something citable.</li>
+      <li><b>Queue Project 03</b> (the chatbot pilot) for January so the IRB clock runs over winter break instead of eating into semester time.</li>
+      <li><b>Have the heterodox conversation with your advisor in the first semester</b>, not the third — it's cheap to resolve now and expensive to resolve after a year of work has already leaned one way.</li>
+    </ol>
+  </section>
+
+  <footer>
+    <span>Ground Truth — research planning memo</span>
+    <span>Sources: 19 files, research/independent-research/notes/processed_outputs</span>
+  </footer>
+
+</div>
