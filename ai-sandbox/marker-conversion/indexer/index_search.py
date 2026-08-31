@@ -47,6 +47,7 @@ class SearchResult:
     score: float
     reason: str
     file_id: str
+    root: str
 
 
 def _embed_query(query: str, client) -> list[float]:
@@ -57,28 +58,36 @@ def _embed_query(query: str, client) -> list[float]:
     return list(response.embeddings[0].values)
 
 
-def _candidate_courses(academic_hub_root: str, query_embedding: list[float], course: str | None) -> list[str]:
+def _candidate_courses(
+    roots: list[str], query_embedding: list[float], course: str | None,
+) -> list[tuple[str, str]]:
+    """Returns (root, course) pairs, not bare course names -- two
+    different corpora can each have a course with the same name (e.g.
+    both academic-hub and research/ could have a 'notes' course), so a
+    candidate is only unambiguous once qualified by which root it came
+    from. With an explicit course filter, every given root is checked
+    for that course name rather than picking one root arbitrarily."""
     if course is not None:
-        return [course]
-    courses = load_courses(academic_hub_root)
-    scored = sorted(
-        courses.values(),
-        key=lambda entry: cosine_similarity(query_embedding, entry.get("embedding") or []),
-        reverse=True,
-    )
-    return [entry["course"] for entry in scored[:DEFAULT_COURSE_CANDIDATES]]
+        return [(root, course) for root in roots]
+    scored: list[tuple[float, str, str]] = []
+    for root in roots:
+        for entry in load_courses(root).values():
+            score = cosine_similarity(query_embedding, entry.get("embedding") or [])
+            scored.append((score, root, entry["course"]))
+    scored.sort(key=lambda t: t[0], reverse=True)
+    return [(root, c) for _, root, c in scored[:DEFAULT_COURSE_CANDIDATES]]
 
 
 def search(
-    academic_hub_root: str, query: str, client, course: str | None = None, top_k: int = 5,
+    roots: list[str], query: str, client, course: str | None = None, top_k: int = 5,
     doc_type: str | None = None, has_solutions: bool | None = None, max_level: str | None = None,
 ) -> list[SearchResult]:
     query_embedding = _embed_query(query, client)
-    candidate_courses = _candidate_courses(academic_hub_root, query_embedding, course)
+    candidate_courses = _candidate_courses(roots, query_embedding, course)
 
     scored: list[SearchResult] = []
-    for c in candidate_courses:
-        for card in load_shard(academic_hub_root, c):
+    for root, c in candidate_courses:
+        for card in load_shard(root, c):
             if card.get("orphaned") or card.get("needs_indexing") or not card.get("embedding"):
                 continue
             if doc_type is not None and card.get("doc_type") != doc_type:
@@ -96,7 +105,7 @@ def search(
             result_path = card.get("rag_md_path") or card["path"]
             scored.append(SearchResult(
                 path=result_path, course=card["course"], doc_type=card["doc_type"],
-                score=score, reason=card.get("summary", ""), file_id=card["file_id"],
+                score=score, reason=card.get("summary", ""), file_id=card["file_id"], root=root,
             ))
 
     scored.sort(key=lambda r: r.score, reverse=True)
@@ -112,6 +121,7 @@ class PassageResult:
     score: float
     text: str
     citation: str
+    root: str
 
 
 def _render_citation(chunk: dict) -> str:
@@ -128,7 +138,7 @@ def _render_citation(chunk: dict) -> str:
 
 
 def search_passages(
-    academic_hub_root: str, query: str, client, course: str | None = None,
+    roots: list[str], query: str, client, course: str | None = None,
     top_k: int = 5, file_top_k: int = 5,
 ) -> list[PassageResult]:
     """Three-stage funnel (spec §6): reuses search() for the file-level
@@ -138,24 +148,25 @@ def search_passages(
     hasn't been run against it) contributes nothing and is silently
     skipped, not an error -- degrades gracefully during the transition
     period before `chunk` has been run corpus-wide."""
-    file_results = search(academic_hub_root, query, client, course=course, top_k=file_top_k)
+    file_results = search(roots, query, client, course=course, top_k=file_top_k)
     if not file_results:
         return []
 
     query_embedding = _embed_query(query, client)
-    chunks_by_course: dict[str, list[dict]] = {}
+    chunks_by_root_course: dict[tuple[str, str], list[dict]] = {}
     scored: list[PassageResult] = []
     for file_result in file_results:
-        if file_result.course not in chunks_by_course:
-            chunks_by_course[file_result.course] = load_chunks(academic_hub_root, file_result.course)
-        for c in chunks_by_course[file_result.course]:
+        key = (file_result.root, file_result.course)
+        if key not in chunks_by_root_course:
+            chunks_by_root_course[key] = load_chunks(file_result.root, file_result.course)
+        for c in chunks_by_root_course[key]:
             if c["file_id"] != file_result.file_id:
                 continue
             score = cosine_similarity(query_embedding, c["embedding"])
             scored.append(PassageResult(
                 chunk_id=c["chunk_id"], file_id=c["file_id"], path=file_result.path,
                 course=file_result.course, score=score, text=c["text"],
-                citation=_render_citation(c),
+                citation=_render_citation(c), root=file_result.root,
             ))
 
     scored.sort(key=lambda r: r.score, reverse=True)
@@ -441,8 +452,13 @@ def _bool_arg(value: str) -> bool:
 
 def build_arg_parser() -> argparse.ArgumentParser:
     default_root = os.path.join(os.path.dirname(__file__), "..", "..", "academic-hub")
-    parser = argparse.ArgumentParser(description="Search and maintain the academic-hub source index.")
-    parser.add_argument("--academic-hub", default=default_root, help="Path to the academic-hub root.")
+    parser = argparse.ArgumentParser(description="Search and maintain a source index (academic-hub, research, or any other corpus root).")
+    parser.add_argument(
+        "--root", action="append", default=None,
+        help="Path to a corpus root's own .index/ (repeatable, e.g. --root academic-hub --root "
+             f"research -- query/ask search across every root given). Default if omitted: [{default_root}]. "
+             "rebuild/retag/chunk are per-corpus maintenance operations and require exactly one --root.",
+    )
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     query = subparsers.add_parser("query", help="Search the index for relevant sources.")
@@ -475,6 +491,23 @@ def build_arg_parser() -> argparse.ArgumentParser:
     return parser
 
 
+_DEFAULT_ROOT = os.path.join(os.path.dirname(__file__), "..", "..", "academic-hub")
+
+
+def _single_root(args) -> str:
+    """rebuild/retag/chunk are per-corpus maintenance operations, not
+    query-time federation -- each writes into exactly one root's own
+    .index/, so more than one --root is a usage error, not something
+    to silently pick the first of."""
+    roots = args.root or [_DEFAULT_ROOT]
+    if len(roots) > 1:
+        raise SystemExit(
+            f"'{args.command}' operates on one corpus root at a time, got {len(roots)} "
+            f"(--root {', '.join(roots)}). Pass exactly one --root."
+        )
+    return roots[0]
+
+
 def main() -> None:
     args = build_arg_parser().parse_args()
     load_dotenv_override()
@@ -482,33 +515,34 @@ def main() -> None:
     if client is None:
         raise SystemExit(1)
 
+    roots = args.root or [_DEFAULT_ROOT]
     if args.command == "query":
         if args.passages:
-            results = search_passages(args.academic_hub, args.query, client, course=args.course, top_k=args.top_k)
+            results = search_passages(roots, args.query, client, course=args.course, top_k=args.top_k)
             for r in results:
-                print(f"{r.score:.3f}  [{r.course}]  {r.path}  ({r.citation})\n    {r.text[:200]}")
+                print(f"{r.score:.3f}  [{r.root}:{r.course}]  {r.path}  ({r.citation})\n    {r.text[:200]}")
         else:
             results = search(
-                args.academic_hub, args.query, client, course=args.course, top_k=args.top_k,
+                roots, args.query, client, course=args.course, top_k=args.top_k,
                 doc_type=args.doc_type, has_solutions=args.has_solutions, max_level=args.max_level,
             )
             for r in results:
-                print(f"{r.score:.3f}  [{r.course}/{r.doc_type}]  {r.path}\n    {r.reason}")
+                print(f"{r.score:.3f}  [{r.root}:{r.course}/{r.doc_type}]  {r.path}\n    {r.reason}")
     elif args.command == "rebuild":
-        stats = rebuild(args.academic_hub, client, course=args.course, force=args.force, prune=args.prune)
+        stats = rebuild(_single_root(args), client, course=args.course, force=args.force, prune=args.prune)
         print(stats)
     elif args.command == "retag":
-        stats = retag(args.academic_hub, client, dry_run=args.dry_run)
+        stats = retag(_single_root(args), client, dry_run=args.dry_run)
         print(stats)
     elif args.command == "chunk":
-        stats = chunk(args.academic_hub, client, course=args.course, file=args.file, dry_run=args.dry_run)
+        stats = chunk(_single_root(args), client, course=args.course, file=args.file, dry_run=args.dry_run)
         print(stats)
     elif args.command == "ask":
         from rag.rag_agent import answer_question
-        result = answer_question(args.academic_hub, args.question, client, course=args.course)
+        result = answer_question(roots, args.question, client, course=args.course)
         print(result.answer)
         for c in result.citations:
-            print(f"  - {c.path} ({c.citation})")
+            print(f"  - [{c.root}] {c.path} ({c.citation})")
 
 
 if __name__ == "__main__":

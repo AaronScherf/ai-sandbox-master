@@ -11,7 +11,10 @@ from indexer.index_card import (
     compute_file_id, load_courses, load_shard, load_tags, save_shard, save_tags,
     recompute_course_entry,
 )
-from indexer.index_search import _is_stale, build_arg_parser, rebuild, search, search_passages, _render_citation
+from indexer.index_search import (
+    _DEFAULT_ROOT, _is_stale, _single_root, build_arg_parser, rebuild, search, search_passages,
+    _render_citation,
+)
 
 
 def _fake_client():
@@ -402,7 +405,7 @@ class TestSearch(unittest.TestCase):
                 _card("far", [0.0, 1.0]),
             ])
             recompute_course_entry(tmp, "math-camp")
-            results = search(tmp, "linear algebra", client=_fake_query_client([1.0, 0.0]))
+            results = search([tmp], "linear algebra", client=_fake_query_client([1.0, 0.0]))
             self.assertEqual(results[0].path, "close.md")
             self.assertGreater(results[0].score, results[1].score)
 
@@ -410,7 +413,7 @@ class TestSearch(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             save_shard(tmp, "math-camp", [_card("x", [1.0, 0.0])])
             recompute_course_entry(tmp, "math-camp")
-            results = search(tmp, "q", client=_fake_query_client([1.0, 0.0]))
+            results = search([tmp], "q", client=_fake_query_client([1.0, 0.0]))
             self.assertEqual(results[0].reason, "summary for x")
 
     def test_prefers_rag_md_path_over_path_when_set(self):
@@ -419,14 +422,14 @@ class TestSearch(unittest.TestCase):
                 _card("x", [1.0, 0.0], rag_md_path="x.rag.md"),
             ])
             recompute_course_entry(tmp, "math-camp")
-            results = search(tmp, "q", client=_fake_query_client([1.0, 0.0]))
+            results = search([tmp], "q", client=_fake_query_client([1.0, 0.0]))
             self.assertEqual(results[0].path, "x.rag.md")
 
     def test_falls_back_to_path_when_rag_md_path_is_unset(self):
         with tempfile.TemporaryDirectory() as tmp:
             save_shard(tmp, "math-camp", [_card("x", [1.0, 0.0])])  # rag_md_path defaults to None
             recompute_course_entry(tmp, "math-camp")
-            results = search(tmp, "q", client=_fake_query_client([1.0, 0.0]))
+            results = search([tmp], "q", client=_fake_query_client([1.0, 0.0]))
             self.assertEqual(results[0].path, "x.md")
 
     def test_course_scope_skips_other_courses_entirely(self):
@@ -435,21 +438,21 @@ class TestSearch(unittest.TestCase):
             save_shard(tmp, "spanish-101", [_card("s", [1.0, 0.0])])
             recompute_course_entry(tmp, "math-camp")
             recompute_course_entry(tmp, "spanish-101")
-            results = search(tmp, "q", client=_fake_query_client([1.0, 0.0]), course="math-camp")
+            results = search([tmp], "q", client=_fake_query_client([1.0, 0.0]), course="math-camp")
             self.assertEqual([r.path for r in results], ["m.md"])
 
     def test_top_k_limits_results(self):
         with tempfile.TemporaryDirectory() as tmp:
             save_shard(tmp, "math-camp", [_card(str(i), [1.0, 0.0]) for i in range(10)])
             recompute_course_entry(tmp, "math-camp")
-            results = search(tmp, "q", client=_fake_query_client([1.0, 0.0]), top_k=3)
+            results = search([tmp], "q", client=_fake_query_client([1.0, 0.0]), top_k=3)
             self.assertEqual(len(results), 3)
 
     def test_result_carries_file_id(self):
         with tempfile.TemporaryDirectory() as tmp:
             save_shard(tmp, "math-camp", [_card("xyz789", [1.0, 0.0])])
             recompute_course_entry(tmp, "math-camp")
-            results = search(tmp, "query", client=_fake_query_client([1.0, 0.0]))
+            results = search([tmp], "query", client=_fake_query_client([1.0, 0.0]))
             self.assertEqual(results[0].file_id, "xyz789")
 
     def test_doc_type_filter_applies_before_truncation(self):
@@ -458,7 +461,7 @@ class TestSearch(unittest.TestCase):
             cards.append(_card("t", [0.99, 0.01], doc_type="textbook"))
             save_shard(tmp, "math-camp", cards)
             recompute_course_entry(tmp, "math-camp")
-            results = search(tmp, "q", client=_fake_query_client([1.0, 0.0]), top_k=2, doc_type="textbook")
+            results = search([tmp], "q", client=_fake_query_client([1.0, 0.0]), top_k=2, doc_type="textbook")
             self.assertEqual([r.path for r in results], ["t.md"])
 
     def test_has_solutions_filter(self):
@@ -468,7 +471,7 @@ class TestSearch(unittest.TestCase):
                 _card("unsolved", [1.0, 0.0], has_solutions=False),
             ])
             recompute_course_entry(tmp, "math-camp")
-            results = search(tmp, "q", client=_fake_query_client([1.0, 0.0]), has_solutions=False)
+            results = search([tmp], "q", client=_fake_query_client([1.0, 0.0]), has_solutions=False)
             self.assertEqual([r.path for r in results], ["unsolved.md"])
 
     def test_max_level_filter_excludes_harder_sources(self):
@@ -478,7 +481,7 @@ class TestSearch(unittest.TestCase):
                 _card("hard", [1.0, 0.0], level="advanced"),
             ])
             recompute_course_entry(tmp, "math-camp")
-            results = search(tmp, "q", client=_fake_query_client([1.0, 0.0]), max_level="introductory")
+            results = search([tmp], "q", client=_fake_query_client([1.0, 0.0]), max_level="introductory")
             self.assertEqual([r.path for r in results], ["easy.md"])
 
     def test_excludes_orphaned_and_needs_indexing_cards(self):
@@ -489,16 +492,85 @@ class TestSearch(unittest.TestCase):
                 _card("pending", [], needs_indexing=True),
             ])
             recompute_course_entry(tmp, "math-camp")
-            results = search(tmp, "q", client=_fake_query_client([1.0, 0.0]))
+            results = search([tmp], "q", client=_fake_query_client([1.0, 0.0]))
             self.assertEqual([r.path for r in results], ["good.md"])
 
     def test_no_courses_indexed_yet_returns_empty_list_not_a_crash(self):
         with tempfile.TemporaryDirectory() as tmp:
-            results = search(tmp, "q", client=_fake_query_client([1.0, 0.0]))
+            results = search([tmp], "q", client=_fake_query_client([1.0, 0.0]))
             self.assertEqual(results, [])
+
+    def test_multiple_roots_both_contribute_results(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root_a, root_b = os.path.join(tmp, "a"), os.path.join(tmp, "b")
+            save_shard(root_a, "notes", [_card("from-a", [1.0, 0.0])])
+            save_shard(root_b, "notes", [_card("from-b", [1.0, 0.0])])
+            recompute_course_entry(root_a, "notes")
+            recompute_course_entry(root_b, "notes")
+            results = search([root_a, root_b], "q", client=_fake_query_client([1.0, 0.0]))
+            self.assertEqual({r.path for r in results}, {"from-a.md", "from-b.md"})
+            self.assertEqual({r.root for r in results}, {root_a, root_b})
+
+    def test_same_course_name_in_two_roots_does_not_collide(self):
+        # The actual point of qualifying candidates by (root, course):
+        # two unrelated corpora can each have a course literally called
+        # "notes" without one shadowing or merging into the other.
+        with tempfile.TemporaryDirectory() as tmp:
+            root_a, root_b = os.path.join(tmp, "a"), os.path.join(tmp, "b")
+            save_shard(root_a, "notes", [_card("x", [1.0, 0.0], title="from root a")])
+            save_shard(root_b, "notes", [_card("x", [1.0, 0.0], title="from root b")])
+            recompute_course_entry(root_a, "notes")
+            recompute_course_entry(root_b, "notes")
+            results = search([root_a, root_b], "q", client=_fake_query_client([1.0, 0.0]))
+            self.assertEqual(len(results), 2)
+            by_root = {r.root: r for r in results}
+            self.assertEqual(load_shard(root_a, "notes")[0]["title"], "from root a")
+            self.assertEqual(load_shard(root_b, "notes")[0]["title"], "from root b")
+            self.assertEqual(set(by_root.keys()), {root_a, root_b})
+
+    def test_course_filter_checks_every_given_root(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root_a, root_b = os.path.join(tmp, "a"), os.path.join(tmp, "b")
+            save_shard(root_a, "notes", [_card("from-a", [1.0, 0.0])])
+            save_shard(root_b, "notes", [_card("from-b", [1.0, 0.0])])
+            results = search([root_a, root_b], "q", client=_fake_query_client([1.0, 0.0]), course="notes")
+            self.assertEqual({r.root for r in results}, {root_a, root_b})
+
+    def test_single_root_behaves_exactly_as_before(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            save_shard(tmp, "math-camp", [_card("x", [1.0, 0.0])])
+            recompute_course_entry(tmp, "math-camp")
+            results = search([tmp], "q", client=_fake_query_client([1.0, 0.0]))
+            self.assertEqual(results[0].root, tmp)
+
+
+class TestSingleRoot(unittest.TestCase):
+    def test_defaults_when_no_root_given(self):
+        args = build_arg_parser().parse_args(["rebuild"])
+        self.assertEqual(_single_root(args), _DEFAULT_ROOT)
+
+    def test_returns_the_one_given_root(self):
+        args = build_arg_parser().parse_args(["--root", "/x", "rebuild"])
+        self.assertEqual(_single_root(args), "/x")
+
+    def test_raises_on_more_than_one_root(self):
+        # rebuild/retag/chunk write into exactly one root's own .index/ --
+        # more than one --root is a usage error, not something to
+        # silently resolve by picking the first.
+        args = build_arg_parser().parse_args(["--root", "/x", "--root", "/y", "rebuild"])
+        with self.assertRaises(SystemExit):
+            _single_root(args)
 
 
 class TestCLIArgParsing(unittest.TestCase):
+    def test_root_defaults_to_none_when_omitted(self):
+        args = build_arg_parser().parse_args(["query", "q"])
+        self.assertIsNone(args.root)
+
+    def test_root_is_repeatable(self):
+        args = build_arg_parser().parse_args(["--root", "a", "--root", "b", "query", "q"])
+        self.assertEqual(args.root, ["a", "b"])
+
     def test_query_subcommand_defaults(self):
         args = build_arg_parser().parse_args(["query", "teach me linear algebra"])
         self.assertEqual(args.command, "query")
@@ -609,7 +681,7 @@ class TestSearchPassages(unittest.TestCase):
                  "heading_path": None, "problem_label": None, "page_range": [2, 2],
                  "text": "far match", "embedding": [0.0, 1.0], "embedding_model": "m", "content_hash": "h"},
             ])
-            results = search_passages(tmp, "query", client=_fake_query_client([1.0, 0.0]))
+            results = search_passages([tmp], "query", client=_fake_query_client([1.0, 0.0]))
             self.assertEqual(results[0].text, "close match")
             self.assertGreater(results[0].score, results[1].score)
             self.assertEqual(results[0].file_id, "aaa")
@@ -620,7 +692,7 @@ class TestSearchPassages(unittest.TestCase):
             save_shard(tmp, "math-camp", [_card("aaa", [1.0, 0.0])])
             recompute_course_entry(tmp, "math-camp")
             # No save_chunks() call at all -- chunk hasn't been run yet.
-            results = search_passages(tmp, "query", client=_fake_query_client([1.0, 0.0]))
+            results = search_passages([tmp], "query", client=_fake_query_client([1.0, 0.0]))
             self.assertEqual(results, [])
 
     def test_top_k_limits_results(self):
@@ -633,8 +705,35 @@ class TestSearchPassages(unittest.TestCase):
                  "text": f"chunk {i}", "embedding": [1.0, 0.0], "embedding_model": "m", "content_hash": "h"}
                 for i in range(5)
             ])
-            results = search_passages(tmp, "query", client=_fake_query_client([1.0, 0.0]), top_k=2)
+            results = search_passages([tmp], "query", client=_fake_query_client([1.0, 0.0]), top_k=2)
             self.assertEqual(len(results), 2)
+
+    def test_multiple_roots_with_colliding_file_id_stay_separate(self):
+        # Same course name AND same file_id in both roots -- the strongest
+        # version of the collision risk (root, course) keying exists to
+        # prevent: without it, chunks_by_root_course would key purely by
+        # course name, and file_id "x"'s chunks from whichever root loaded
+        # second would silently shadow or merge with the first.
+        with tempfile.TemporaryDirectory() as tmp:
+            root_a, root_b = os.path.join(tmp, "a"), os.path.join(tmp, "b")
+            save_shard(root_a, "notes", [_card("x", [1.0, 0.0], course="notes")])
+            save_shard(root_b, "notes", [_card("x", [1.0, 0.0], course="notes")])
+            recompute_course_entry(root_a, "notes")
+            recompute_course_entry(root_b, "notes")
+            save_chunks(root_a, "notes", [
+                {"chunk_id": "x-000", "file_id": "x", "chunk_index": 0, "tier": "page",
+                 "heading_path": None, "problem_label": None, "page_range": [1, 1],
+                 "text": "root a content", "embedding": [1.0, 0.0], "embedding_model": "m", "content_hash": "h"},
+            ])
+            save_chunks(root_b, "notes", [
+                {"chunk_id": "x-000", "file_id": "x", "chunk_index": 0, "tier": "page",
+                 "heading_path": None, "problem_label": None, "page_range": [1, 1],
+                 "text": "root b content", "embedding": [1.0, 0.0], "embedding_model": "m", "content_hash": "h"},
+            ])
+            results = search_passages([root_a, root_b], "query", client=_fake_query_client([1.0, 0.0]))
+            self.assertEqual(len(results), 2)
+            self.assertEqual({r.text for r in results}, {"root a content", "root b content"})
+            self.assertEqual({r.root for r in results}, {root_a, root_b})
 
 
 if __name__ == "__main__":

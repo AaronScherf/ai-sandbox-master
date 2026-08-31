@@ -134,3 +134,36 @@ user 2026-08-29 which to tackle first:
 
 Brainstorming for passage-level embeddings starts on a new branch,
 forked from `marker-conversion` per this repo's usual branch topology.
+
+## 2026-08-30 update: a second corpus, and multi-root search
+
+`essays/convert_essays.py` (a new, separate subproject converting
+`.docx` application essays/research notes under `research/`, sibling
+of `academic-hub/`) reuses this entire subsystem unmodified except for
+two generalizations, both driven by real corpus friction rather than
+speculative design:
+
+- **`doc_type` vocabulary is now a parameter**, not a hardcoded enum —
+  `generate_index_card()`'s prompt forced every essay into
+  `textbook`/`handwritten_notes` (the academic-hub vocabulary) before
+  this; `known_doc_types` now defaults to that same set (no change for
+  academic-hub) but a caller can pass its own (`essays/convert_essays.py`
+  passes `{personal_essay, research_notes}`).
+- **Query-side functions are multi-root**: `search`/`search_passages`/
+  `answer_question` take a list of roots, not one, so a query can span
+  academic-hub and research/ (or more) in one call. Candidates are now
+  `(root, course)` pairs, not bare course names — two corpora can each
+  have a course called `notes` without colliding. `SearchResult`/
+  `PassageResult`/`Citation` all gained a `root` field. `rebuild`/
+  `retag`/`chunk` deliberately stayed single-root (`--root`, required
+  exactly one) — those write into one corpus's own `.index/`, so
+  federating them has no meaning the way federating a *query* does.
+  CLI: `--academic-hub` (singular) is now `--root` (repeatable).
+- **`rebuild`'s directory-walk was *not* generalized** — still hardcoded
+  to `academic_notes/`/`academic_resources/`, won't discover
+  `research/`'s `.docx` corpus. Not needed yet since
+  `convert_essays.py`'s live per-file hook (mirroring
+  `notes/transcribe_notes.py`'s own) covers every conversion already;
+  would matter if research/ ever needs a "catch up anything indexed
+  before a schema change" backfill the way academic-hub's `rebuild`
+  provides.

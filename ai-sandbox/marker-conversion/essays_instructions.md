@@ -74,10 +74,12 @@ derived from the essay's path relative to `--index-root`
 everything under `independent-research/notes/**` resolves to course
 `notes`, regardless of nesting.
 
-Once indexed, `python -m indexer.index_search --academic-hub research
-{query,retag,chunk,ask}` all work unmodified against this corpus (that
-flag is just a root path, not literally tied to the academic-hub
-folder). Confirmed live against the full 19-file real corpus
+Once indexed, `python -m indexer.index_search --root research
+{query,retag,chunk,ask}` all work unmodified against this corpus (`--root`
+is repeatable -- `--root academic-hub --root research query "..."` searches
+both corpora together; `retag`/`chunk`/`rebuild` are per-corpus
+maintenance and take exactly one `--root`). Confirmed live against the
+full 19-file real corpus
 (2026-08-30): `retag` produced 5 real tags (`phd-admissions`,
 `development-economics`, `climate-adaptation`, `data-science-methods`,
 `heterodox-economics`) covering every card with 0 fallbacks, and

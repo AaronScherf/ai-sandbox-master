@@ -30,6 +30,7 @@ class Citation:
     file_id: str
     path: str
     citation: str
+    root: str
 
 
 @dataclass
@@ -129,7 +130,7 @@ def _generate_answer(question: str, history: list[Turn], passages: list[PassageR
 
 
 def answer_question(
-    academic_hub_root: str, question: str, client,
+    roots: list[str], question: str, client,
     history: list[Turn] | None = None, course: str | None = None,
     top_k: int = 6, max_per_file: int = 3,
 ) -> AnswerResult:
@@ -138,16 +139,18 @@ def answer_question(
     interactive chat below (thread .history back in on the next call).
     Stateless per call -- history is an explicit input/output, not
     owned internally, which is what lets both modes share this one
-    function without a database or session files."""
+    function without a database or session files. roots is a list so a
+    tutoring question can be grounded in passages from more than one
+    corpus at once (e.g. academic-hub and research/ together)."""
     history = history or []
     retrieval_query = _reformulate_query(question, history, client) if history else question
 
-    passages = search_passages(academic_hub_root, retrieval_query, client, course=course, top_k=top_k * 2)
+    passages = search_passages(roots, retrieval_query, client, course=course, top_k=top_k * 2)
     passages = _diversify_by_file(passages, max_per_file)[:top_k]
 
     answer = _generate_answer(question, history, passages, client)
     citations = [
-        Citation(chunk_id=p.chunk_id, file_id=p.file_id, path=p.path, citation=p.citation)
+        Citation(chunk_id=p.chunk_id, file_id=p.file_id, path=p.path, citation=p.citation, root=p.root)
         for p in passages
     ]
     updated_history = history + [Turn(role="user", text=question), Turn(role="assistant", text=answer)]
@@ -155,10 +158,16 @@ def answer_question(
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Interactive tutor grounded in the academic-hub corpus.")
-    parser.add_argument("--academic-hub", default=os.path.join(os.path.dirname(__file__), "..", "..", "academic-hub"))
+    parser = argparse.ArgumentParser(description="Interactive tutor grounded in one or more indexed corpora.")
+    parser.add_argument(
+        "--root", action="append", default=None,
+        help="Path to a corpus root's own .index/ (repeatable, e.g. --root academic-hub --root "
+             "research -- grounds answers in passages from every root given). Default if omitted: "
+             "[academic-hub].",
+    )
     parser.add_argument("--course", default=None)
     args = parser.parse_args()
+    roots = args.root or [os.path.join(os.path.dirname(__file__), "..", "..", "academic-hub")]
 
     load_dotenv_override()
     client = get_gemini_client()
@@ -171,10 +180,10 @@ def main() -> None:
         question = input("> ").strip()
         if not question:
             continue
-        result = answer_question(args.academic_hub, question, client, history=history, course=args.course)
+        result = answer_question(roots, question, client, history=history, course=args.course)
         print(f"\n{result.answer}\n")
         for c in result.citations:
-            print(f"  - {c.path} ({c.citation})")
+            print(f"  - [{c.root}] {c.path} ({c.citation})")
         print()
         history = result.history
 

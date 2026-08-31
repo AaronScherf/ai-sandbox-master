@@ -9,10 +9,10 @@ from rag.rag_agent import (
 )
 
 
-def _passage(chunk_id, file_id, text="text", citation="p. 1"):
+def _passage(chunk_id, file_id, text="text", citation="p. 1", root="/root"):
     return PassageResult(
         chunk_id=chunk_id, file_id=file_id, path=f"{file_id}.md", course="math-camp",
-        score=1.0, text=text, citation=citation,
+        score=1.0, text=text, citation=citation, root=root,
     )
 
 
@@ -104,9 +104,9 @@ class TestAnswerQuestion(unittest.TestCase):
         client = _fake_generate_client("The answer.")
         passages = [_passage("aaa-000", "aaa")]
         with patch("rag.rag_agent.search_passages", return_value=passages) as mock_search:
-            answer_question("/root", "what is X", client)
+            answer_question(["/root"], "what is X", client)
         self.assertEqual(client.models.generate_content.call_count, 1)  # only the answer call, no reformulation
-        mock_search.assert_called_once_with("/root", "what is X", client, course=None, top_k=12)
+        mock_search.assert_called_once_with(["/root"], "what is X", client, course=None, top_k=12)
 
     def test_follow_up_uses_reformulated_query_for_retrieval(self):
         client = MagicMock()
@@ -116,21 +116,28 @@ class TestAnswerQuestion(unittest.TestCase):
         passages = [_passage("aaa-000", "aaa")]
         history = [Turn(role="user", text="explain X"), Turn(role="assistant", text="X is...")]
         with patch("rag.rag_agent.search_passages", return_value=passages) as mock_search:
-            answer_question("/root", "explain differently", client, history=history)
-        mock_search.assert_called_once_with("/root", "standalone question", client, course=None, top_k=12)
+            answer_question(["/root"], "explain differently", client, history=history)
+        mock_search.assert_called_once_with(["/root"], "standalone question", client, course=None, top_k=12)
 
     def test_citations_match_diversified_passages(self):
         client = _fake_generate_client("answer")
         passages = [_passage(f"aaa-{i:03d}", "aaa", text=f"text {i}", citation=f"p. {i}") for i in range(5)]
         with patch("rag.rag_agent.search_passages", return_value=passages):
-            result = answer_question("/root", "q", client, max_per_file=2, top_k=6)
+            result = answer_question(["/root"], "q", client, max_per_file=2, top_k=6)
         self.assertEqual(len(result.citations), 2)  # capped by max_per_file, only one file present
         self.assertEqual(result.citations[0].chunk_id, "aaa-000")
+
+    def test_citations_carry_the_passages_own_root_across_multiple_roots(self):
+        client = _fake_generate_client("answer")
+        passages = [_passage("a-000", "a", root="/root-a"), _passage("b-000", "b", root="/root-b")]
+        with patch("rag.rag_agent.search_passages", return_value=passages):
+            result = answer_question(["/root-a", "/root-b"], "q", client)
+        self.assertEqual({c.root for c in result.citations}, {"/root-a", "/root-b"})
 
     def test_history_appends_new_exchange(self):
         client = _fake_generate_client("The answer.")
         with patch("rag.rag_agent.search_passages", return_value=[]):
-            result = answer_question("/root", "what is X", client)
+            result = answer_question(["/root"], "what is X", client)
         self.assertEqual(result.history, [
             Turn(role="user", text="what is X"), Turn(role="assistant", text="The answer."),
         ])
@@ -140,7 +147,7 @@ class TestAnswerQuestion(unittest.TestCase):
         client.models.generate_content.side_effect = [MagicMock(text="standalone q"), MagicMock(text="new answer")]
         prior_history = [Turn(role="user", text="q1"), Turn(role="assistant", text="a1")]
         with patch("rag.rag_agent.search_passages", return_value=[]):
-            result = answer_question("/root", "q2", client, history=prior_history)
+            result = answer_question(["/root"], "q2", client, history=prior_history)
         self.assertEqual(len(result.history), 4)
 
 
