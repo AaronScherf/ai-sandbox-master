@@ -81,3 +81,5 @@ ai-sandbox/research/.index/chunks/
 # below it, so this needs the explicit prefix to actually reach the vault.
 ai-sandbox/.obsidian/workspace*
 ai-sandbox/.obsidian/cache
+# Claude Code personal/local settings (not shared)
+.claude/settings.local.json
