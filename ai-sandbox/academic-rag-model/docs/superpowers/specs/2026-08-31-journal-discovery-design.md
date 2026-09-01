@@ -24,11 +24,29 @@ faculty name or topic query into full-text PDFs on disk under
 
 **Goals**
 - Given a faculty name (`--faculty`, repeatable) or a topic/keyword query
-  (`--topic`, repeatable), resolve candidate works via the OpenAlex API and
-  fetch full text for as many as possible.
-- Resolve full text in tiers: Unpaywall (open access) → arXiv (preprints) →
-  Columbia EZProxy (gated, using a manually-supplied session cookie).
-  Anything unresolved is flagged `needs_manual_download`, never guessed at.
+  (`--topic`, repeatable), resolve candidate works via the OpenAlex API.
+- Bound volume with two layered controls, applied to every candidate
+  regardless of whether it was reached via `--faculty` or `--topic`
+  (an author's own body of work can span unrelated subfields too):
+  1. **Relevance threshold (primary filter).** A user-supplied
+     `--relevance-prompt` (a free-text description of what you're actually
+     looking for, not just an author/topic name) is embedded once per run;
+     each candidate's OpenAlex abstract is embedded and compared by cosine
+     similarity, and anything below `--relevance-threshold` (default
+     `0.5`, tune empirically — see §3) is dropped *before* any full-text
+     access is attempted, saving a wasted Unpaywall/EZProxy call on a
+     paper that wouldn't have been kept anyway.
+  2. **Numeric ceiling (backstop).** Candidates are paged from OpenAlex in
+     batches (`--batch-size`, default 25) and scored as they arrive;
+     paging stops once `--max-results` (default 100) candidates have
+     passed the relevance threshold, or once `--max-examined` (default
+     300) candidates have been scored regardless of how many passed —
+     the second cap bounds cost on a query that matches poorly rather
+     than paging through OpenAlex indefinitely.
+- Resolve full text, for whatever passed both gates, in tiers: Unpaywall
+  (open access) → arXiv (preprints) → Columbia EZProxy (gated, using a
+  manually-supplied session cookie). Anything unresolved is flagged
+  `needs_manual_download`, never guessed at.
 - Route each fetched paper into a topic subfolder derived from its OpenAlex
   concept, auto-creating a new subfolder when no existing one fits.
   A `.meta.json` sidecar per PDF (title/authors/year/DOI/concepts/source)
@@ -41,8 +59,10 @@ faculty name or topic query into full-text PDFs on disk under
   folder, item metadata + PDF attachment).
 - Stay a pure PDF-acquisition step: it never calls into `indexer/` or
   `convert_journal_articles.py` itself. A discovery run costs network
-  calls only, never Gemini API spend — conversion is a separate, explicit,
-  reviewable step, same as it is today for manually-added papers.
+  calls only, never Gemini API spend — relevance scoring uses a local
+  embedding model precisely so this stays true (see §3) — and conversion
+  is a separate, explicit, reviewable step, same as it is today for
+  manually-added papers.
 
 **Non-goals**
 - No re-implementation of PDF→Markdown conversion, chunking, embedding, or
@@ -51,10 +71,12 @@ faculty name or topic query into full-text PDFs on disk under
 - No automated EZProxy login (browser automation, SSO/2FA handling) — the
   session cookie is supplied manually via `.env`; automating institutional
   login is future work if the manual hand-off proves too brittle.
-- No embedding-model changes, no tagging-system changes — both are real,
-  related questions (see §9) but touch the shared `indexer/` core across
-  the *entire* existing corpus, not just newly-discovered journal articles,
-  and need their own scoped evaluation.
+- No changes to `indexer/`'s shared embedding model or tagging system —
+  both are real, related questions (see §9) but touch the shared
+  `indexer/` core across the *entire* existing corpus, not just newly-
+  discovered journal articles, and need their own scoped evaluation. (This
+  is distinct from `relevance.py`'s own local embedding model in §3, which
+  is private to this subproject and never touches `.index/`.)
 - No orchestration wrapper that chains discovery + conversion automatically
   (approach C from brainstorming) — worth adding later as a thin
   convenience layer once discovery alone is working.
@@ -72,8 +94,11 @@ only contract with the rest of the pipeline is the same one
 from the `academic-rag-model/` root, matching every other subproject:
 
 ```powershell
-python -m journal_discovery.discover --faculty "Alexander de Sherbinin"
-python -m journal_discovery.discover --topic "climate-forced displacement"
+python -m journal_discovery.discover --faculty "Alexander de Sherbinin" `
+  --relevance-prompt "climate-forced displacement and migration vulnerability"
+python -m journal_discovery.discover --topic "climate-forced displacement" `
+  --relevance-prompt "empirical measurement of displacement, not policy commentary" `
+  --max-results 50
 ```
 
 ## 3. Components
@@ -81,10 +106,24 @@ python -m journal_discovery.discover --topic "climate-forced displacement"
 - **`discovery.py`** — `resolve_works()` is the shared core; `--faculty`
   resolves an OpenAlex author ID (Columbia ROR-filtered, falling back to
   unfiltered search if no ROR match), then fetches that author's top-cited/
-  recent works. `--topic` runs an OpenAlex works search on the given
-  keywords, optionally ROR- and date-filtered. Both flags are repeatable
-  and can be combined in one run, each producing its own list of works
-  merged before dedup.
+  recent works, paged in `--batch-size` pages. `--topic` runs an OpenAlex
+  works search on the given keywords the same way, optionally ROR- and
+  date-filtered. Both flags are repeatable and can be combined in one run,
+  each producing its own list of works merged before dedup and scoring.
+- **`relevance.py`** — embeds `--relevance-prompt` once per run using a
+  local `sentence-transformers` model (new dependency for this subproject
+  only; e.g. `all-MiniLM-L6-v2` — the smallest model that's a reasonable
+  starting point, tune against real query/abstract pairs before trusting
+  the default threshold the way every other model choice in this project
+  has been). Each candidate's OpenAlex abstract (reconstructed from
+  `abstract_inverted_index`) is embedded the same way and compared by
+  cosine similarity; a work with no abstract available can't be scored and
+  is deprioritized to the tail of the batch rather than dropped outright,
+  so it only fills a slot if the numeric ceiling isn't already met by
+  scoreable candidates. This embedding space is private to this one
+  scoring step — it is never written to `.index/` and never compared
+  against anything `indexer/` produces, so it carries none of the shared-
+  corpus re-embedding risk discussed in §9.
 - **`access.py`** — per work, tries in order: Unpaywall
   (`best_oa_location.url_for_pdf`) → arXiv (if an arXiv ID is present) →
   EZProxy (`https://ezproxy.cul.columbia.edu/login?url=...` with a session
@@ -112,22 +151,27 @@ python -m journal_discovery.discover --topic "climate-forced displacement"
 
 ## 4. Data flow
 
-1. `discover --faculty ... / --topic ...` → `resolve_works()` returns a
-   merged list of OpenAlex work records.
-2. For each work, key on DOI (falling back to OpenAlex work ID when no DOI
-   exists) and check the dedup manifest (§5) — skip immediately if already
-   `fetched` or `needs_manual`.
-3. `access.py` attempts full-text resolution (OA → arXiv → EZProxy → flag).
-4. `topic_routing.py` determines the destination folder from the work's top
+1. `discover --faculty ... / --topic ... --relevance-prompt "..."` →
+   `resolve_works()` pages OpenAlex results in `--batch-size` batches.
+2. Each candidate in a batch is scored by `relevance.py` against the
+   embedded relevance prompt; candidates below `--relevance-threshold` are
+   dropped. Paging stops once `--max-results` candidates have passed, or
+   `--max-examined` candidates have been scored, whichever comes first.
+3. For each surviving work, key on DOI (falling back to OpenAlex work ID
+   when no DOI exists) and check the dedup manifest (§5) — skip
+   immediately if already `fetched` or `needs_manual`.
+4. `access.py` attempts full-text resolution (OA → arXiv → EZProxy → flag).
+5. `topic_routing.py` determines the destination folder from the work's top
    concept, auto-creating it if new.
-5. PDF saved to `research/journal-articles/<topic>/<key>.pdf`; `.meta.json`
-   sidecar written alongside.
-6. Dedup manifest updated with the outcome (fetched, needs_manual, or
+6. PDF saved to `research/journal-articles/<topic>/<key>.pdf`; `.meta.json`
+   sidecar (including its relevance score) written alongside.
+7. Dedup manifest updated with the outcome (fetched, needs_manual, or
    skipped-oversized — see §6).
-7. If Zotero sync is enabled, push the item + attachment.
-8. Print a run summary: counts of fetched / flagged / already-seen.
-9. Separately, the user runs `convert_journal_articles.py --dry-run` first
-   (as already documented), then for real, exactly as today.
+8. If Zotero sync is enabled, push the item + attachment.
+9. Print a run summary: counts examined / passed relevance / fetched /
+   flagged / already-seen.
+10. Separately, the user runs `convert_journal_articles.py --dry-run` first
+    (as already documented), then for real, exactly as today.
 
 ## 5. Dedup
 
@@ -165,6 +209,11 @@ paper already flagged `needs_manual_download` isn't re-flagged every run
   documented reasoning (`journal_articles_instructions.md`).
 - A Zotero sync failure never discards or blocks a PDF that's already
   safely on disk.
+- A candidate with no OpenAlex abstract (so no relevance score) is never
+  silently dropped or silently kept — it's deprioritized behind scored
+  candidates for the remaining `--max-results` slots (§3), and its
+  `.meta.json` records `relevance_score: null` so it's visibly
+  distinguishable later from a paper that was actually scored and kept.
 
 ## 7. Testing
 
@@ -173,6 +222,10 @@ via the root `conftest.py`):
 
 - `discovery.py` / `access.py`: mocked HTTP responses, no real network
   calls in tests.
+- `relevance.py`: unit tests for the scoring/ceiling logic (mocked
+  embedding calls, not the real model) — threshold cutoff,
+  `--max-results`/`--max-examined` stop conditions, and the no-abstract
+  deprioritization path.
 - `topic_routing.py`: pure unit tests for sanitization and auto-create
   logic.
 - Dedup manifest: pure unit tests for read/update/skip logic.
@@ -216,7 +269,13 @@ swapping models means either a full re-embed or maintaining two
 incompatible spaces. Needs its own quality-vs-cost evaluation first (same
 practice already used for `rag_agent`'s generation-model choice: tested
 side-by-side against real output before switching, per
-`2026-08-30-rag-agent-design.md`).
+`2026-08-30-rag-agent-design.md`). Note this is a distinct question from
+`journal_discovery`'s own local `relevance.py` embeddings (§3) — that
+usage is a private, run-scoped, self-contained comparison (prompt vs.
+candidate abstracts) that's never written to `.index/` and never compared
+against a `chunk_index.py`/`index_card.py` embedding, so adopting a local
+model there resolves nothing about, and carries none of the risk of,
+this shared-corpus question.
 
 **Tagging: `retag.py` vs. OpenAlex concepts.** These solve the same problem
 in opposite ways:
