@@ -26,6 +26,7 @@ almost everything else depends on.
 - [`notes/`](notes/README.md) — local, cost-routed transcription for TA notes, problem sets, exams, and handwritten scans. See [`notes_instructions.md`](notes_instructions.md).
 - [`essays/`](essays/README.md) — local, `.docx`-to-Markdown conversion for application essays and loose research notes. See [`essays_instructions.md`](essays_instructions.md).
 - [`journal_articles/`](journal_articles/README.md) — local, reuses `notes/`'s tiered pipeline unchanged for academic journal-article PDFs. See [`journal_articles_instructions.md`](journal_articles_instructions.md).
+- [`journal_discovery/`](journal_discovery/) — resolves a faculty name or topic query (OpenAlex, locally-scored relevance, paced Unpaywall/arXiv/EZProxy access) into full-text PDFs under `research/journal-articles/<topic>/`, ready for `journal_articles/` to pick up. See [`journal_discovery_instructions.md`](journal_discovery_instructions.md).
 - [`postprocessing/`](postprocessing/) — `postprocess_notes.py`: a downstream correction pass over `notes/`'s output. Depends on `notes/`.
 - [`rag/`](rag/README.md) — the multi-turn tutoring agent grounded in passage retrieval. Depends on `indexer/`.
 - `tests/` — flat (not mirrored by subproject); imports are package-qualified to match the layout above.
