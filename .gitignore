@@ -83,3 +83,6 @@ ai-sandbox/.obsidian/workspace*
 ai-sandbox/.obsidian/cache
 # Claude Code personal/local settings (not shared)
 .claude/settings.local.json
+
+# Local git worktrees (superpowers:using-git-worktrees)
+.worktrees/
