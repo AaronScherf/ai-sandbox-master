@@ -46,7 +46,10 @@ faculty name or topic query into full-text PDFs on disk under
 - Resolve full text, for whatever passed both gates, in tiers: Unpaywall
   (open access) → arXiv (preprints) → Columbia EZProxy (gated, using a
   manually-supplied session cookie). Anything unresolved is flagged
-  `needs_manual_download`, never guessed at.
+  `needs_manual_download`, never guessed at. Every download attempt is
+  paced (`--pace-per-hour`, see §3) to protect the user's own
+  institutional access from automated-abuse detection, not just for
+  politeness.
 - Route each fetched paper into a topic subfolder derived from its OpenAlex
   concept, auto-creating a new subfolder when no existing one fits.
   A `.meta.json` sidecar per PDF (title/authors/year/DOI/concepts/source)
@@ -130,7 +133,19 @@ python -m journal_discovery.discover --topic "climate-forced displacement" `
   cookie read from `.env`, e.g. `EZPROXY_SESSION_COOKIE`). A response whose
   `Content-Type` isn't `application/pdf` (an EZProxy login wall on an
   expired cookie) is never written to disk — the work is marked
-  `needs_manual_download` and the run continues.
+  `needs_manual_download` and the run continues. Every full-text download
+  attempt, regardless of tier, is paced by `--pace-per-hour` (default
+  **25**): internally `min_interval = 3600 / pace_per_hour`, and the
+  actual sleep before each attempt is `min_interval` jittered ±30%
+  (`random.uniform(0.7, 1.3)`) so the request cadence isn't perfectly
+  periodic. `--pace-per-hour 0` disables pacing, for local testing against
+  a mocked endpoint only. This exists to protect the user's own
+  institutional standing, not just politeness: an EZProxy session that
+  trips a university's automated-abuse detection can get the underlying
+  account suspended, a real, self-inflicted risk worth designing around
+  from the start rather than after it happens. Pacing is proactive
+  spacing *before* a request; it's independent of and composes with the
+  reactive retry/backoff in §6.
 - **`topic_routing.py`** — sanitizes a work's top OpenAlex concept into a
   folder name and auto-creates `research/journal-articles/<concept>/` if it
   doesn't already exist.
@@ -302,7 +317,13 @@ in opposite ways:
 the simplest thing that could work, but session cookies expire; if gated-
 paper volume turns out to matter, semi-automated browser login (Playwright
 driving Columbia SSO, captured cookies) is the natural next step — deferred
-here since it was explicitly out of scope for this pass.
+here since it was explicitly out of scope for this pass. The implementation
+plan should validate the cookie approach empirically before building the
+rest of `access.py` around it: manually fetch a handful of real gated
+papers at the actual target pace (`--pace-per-hour 25`, over roughly an
+hour) and confirm the cookie survives and never gets challenged. If it
+doesn't hold up at that pace, that's the concrete signal to revisit
+browser-automation as a fast-follow, rather than discovering it mid-build.
 
 **Orchestration wrapper.** A thin command chaining `discover` →
 `convert_journal_articles --dry-run` → (human confirms) → real conversion,
