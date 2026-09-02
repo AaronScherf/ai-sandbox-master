@@ -314,11 +314,52 @@ preview for every converted paper -- so folder-appropriateness can be
 checked against what a paper actually says, not just its OpenAlex
 concept tags.
 
-**In progress as of this writing:** the real corpus (~17 PDFs needing
-fresh or re-routed conversion, including a 104-page World Bank paper
-needing 9 Gemini-vision batches) is being converted now; reconciliation
-and the content-based folder review will run right after and get their
-own results noted here.
+**Conversion + reconciliation completed, 2026-09-02.** 21 papers
+converted, 760 pages total. Model usage split exactly along the
+existing routing tiers, not chosen independently: every
+`gemini_batched` (whole-document batching, used when >10% of a
+document's pages extract as defective) document used
+**gemini-3.1-flash-lite** (12 files, 503 pages, 66.2%); every
+`gemini_accumulating` (clean per-page transcription) document used
+**gemini-3.6-flash** (9 files, 257 pages, 33.8%). One transient
+runaway-repetition-loop output was auto-retried successfully, no
+manual intervention needed.
+
+`reconcile_needs_manual.py`'s first real run: of the 15 outstanding
+`needs_manual` papers, **12 confirmed downloaded and converted**
+(title-matched against real content), dropped from the worklist
+automatically. 3 genuinely remain (`needs_manual_downloads.md` now
+correctly shows only these): "Nostalgic Demand" (never downloaded at
+all), plus two with real, interesting content-based explanations rather
+than a missing download:
+
+- **"AI is transforming the economy — understanding its impact requires
+  both data and imagination"** (the Nature *News* piece) has a real PDF
+  and real converted content, but its actual printed subtitle
+  ("...and studying it will require fresh approaches") doesn't match
+  OpenAlex's stored title for that DOI -- a metadata-drift case the
+  reconciler's exact-title matching correctly declined to force-match.
+- **"Scoping for Competition in Network Industries..."** (`ssrn.3049364`)
+  has a downloaded PDF, but its actual content is "Competition in
+  Network Industries: Evidence from the Rwandan Mobile Phone Network"
+  (`ssrn.3527028`) -- confirmed by near-identical file size (4,431,238 vs.
+  4,431,243 bytes). Two different SSRN listing IDs, almost certainly the
+  same underlying paper (a preliminary "scoping" SSRN posting vs. a later
+  revision) -- the user likely got redirected to the same PDF from both
+  links. Real evidence that discovery-time exact-title dedup (S9's known
+  limitation) can't catch every duplicate: these two had genuinely
+  different registered titles, so nothing before download could have
+  flagged them as the same paper.
+
+One correction made and worth recording honestly: mid-session, a check
+of `Björkegren`'s name across converted files appeared to show literal
+U+FFFD replacement characters (real corruption) -- retracted after
+checking the actual codepoint directly (`0xF6`, correctly "ö"). What
+looked like corruption was this session's own terminal failing to
+*display* the character, not a bug in the conversion pipeline. Recorded
+as a reminder to verify a suspected data-corruption claim against the
+actual bytes/codepoints before reporting it, not against how a terminal
+renders it.
 
 ## Open issue: charts/plots lose their underlying data on conversion
 
