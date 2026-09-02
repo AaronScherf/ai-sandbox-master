@@ -59,13 +59,26 @@ python -m journal_discovery.discover --topic "climate-forced displacement" `
 ## EZProxy setup
 
 `EZPROXY_SESSION_COOKIE` is a manually-obtained session cookie, not
-automated login -- log into `https://ezproxy.cul.columbia.edu` in a real
-browser, then copy the session cookie's value from DevTools. It will
-expire; when gated-paper fetches start failing (`needs_manual_download`
-climbing), re-obtain it the same way. Semi-automated browser login is a
-deliberate non-goal for now (see the design spec's S9) -- revisit only if
-the manual hand-off proves too brittle in practice, per the validation
-below.
+automated login. **Confirmed live:** visiting the bare
+`https://ezproxy.cul.columbia.edu` does *not* prompt a login -- it just
+serves a menu of proxied resources, since EZProxy only authenticates when
+asked to proxy a specific target. To actually get a session cookie, visit
+the same URL shape the code itself builds, for one real article you have
+legitimate access to:
+
+```
+https://ezproxy.cul.columbia.edu/login?url=https://doi.org/<a-real-gated-doi>
+```
+
+That routes through Columbia's SSO (CAS/Shibboleth, with 2FA) and lands
+you on the article via the proxy -- at which point the session cookie is
+set for `ezproxy.cul.columbia.edu` in your browser. Copy its value from
+DevTools (Application/Storage -> Cookies -> `ezproxy.cul.columbia.edu`).
+It will expire; when gated-paper fetches start failing
+(`needs_manual_download` climbing), re-obtain it the same way. Semi-
+automated browser login is a deliberate non-goal for now (see the design
+spec's S9) -- revisit only if the manual hand-off proves too brittle in
+practice, per the validation below.
 
 Before relying on this for a real discovery run, validate it manually:
 
