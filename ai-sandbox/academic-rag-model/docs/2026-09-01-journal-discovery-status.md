@@ -6,7 +6,11 @@ name or topic query into full-text PDFs under
 `research/journal-articles/<topic>/`. Design reference:
 `docs/superpowers/specs/2026-08-31-journal-discovery-design.md`;
 implementation plan: `docs/superpowers/plans/2026-09-01-journal-discovery-plan.md`.
-Merged into `main` 2026-09-01 (commit `bb94cbb`), 545 tests passing.
+Merged into `main` 2026-09-01 (commit `bb94cbb`), 545 tests passing at
+merge; 586 passing as of the latest commit below (`8e27c24`) after a
+day-two round of real-usage fixes and features. No dedicated feature
+branch exists anymore -- all work since the merge has landed directly
+on `main`.
 
 ## What shipped
 
@@ -250,6 +254,72 @@ candidates is not safe when one of them might be a non-paper record --
 prefer whichever candidate has the more informative `work_type` (or
 simply isn't `"dataset"`) when one exists.
 
+## Folder-naming fix and manual-download workflow, 2026-09-02
+
+Per direct user report ("grasp", "competition-biology" as folder names
+looked wrong): confirmed via the OpenAlex API that `topic_routing.py`'s
+folder name came from `Work.concepts[0]`, which was sorted purely by
+score -- and the top-scored concept is often a narrow, homonym-prone
+level-2/3 concept (e.g. "GRASP" the metaheuristic algorithm for a paper
+merely using the word "grasp"; "Competition (biology)" for a paper about
+market competition) even when a sensible, broad level-0 field
+("Sociology", "Business") is also present in the same list, just scored
+lower. Fixed (commit `82e9883`): concept sorting now prefers any
+level-0 concept over score ranking among narrower ones, falling back to
+plain score ranking only when no level-0 concept exists at all.
+
+**Applied retroactively, not just to future runs:** every existing
+manifest entry was re-routed under the fixed logic via a one-time
+script (re-querying OpenAlex per DOI), and the 4 real auto-fetched
+files plus all 12 of the user's own manually-downloaded PDFs (already
+sitting in the *old*, worse folder names) were physically moved into
+their corrected folders (`business`, `computer-science`,
+`environmental-science`, `sociology`, `geography`, `physics`), with old
+now-empty folders removed. One residual known limitation: when a
+paper's *only* level-0 concept is very weakly scored (e.g. "Nostalgic
+Demand" -> "physics" at score 0.17, OpenAlex's classifier simply didn't
+find good concepts for it), the result can still look odd -- not
+regressed from before, just not fully solved either.
+
+**A real cost bug found and fixed while auditing the corpus for
+conversion (commit `3c86c47`):** the user's own Zotero library is
+synced into this same directory tree, putting its own attachment copies
+under `research/journal-articles/zotero/storage/<hash>/` -- structurally
+indistinguishable from a topic folder to `convert_journal_articles.py`'s
+recursive discovery, and in at least two cases (`Li et al. 2025`,
+`Alatorre et al. 2025`) duplicating a PDF already converted elsewhere in
+the tree. Left alone, conversion would have paid to re-process content
+already on hand. `local/` held a similar stray duplicate. Both excluded
+from discovery by directory name, at any depth.
+
+**Checkbox tracking added to the worklist** (commit `ef25073`), per user
+request: each entry is now `- [ ] [Title](link)`, and regenerating the
+file (every `discover` run) preserves existing checkmarks by reading the
+current file before rewriting -- a user's own manual progress-tracking
+survives, distinct from the automatic removal the reconciler (below)
+does once a download is actually confirmed by content.
+
+**`reconcile_needs_manual.py` added** (commit `8e27c24`) -- the
+explicit, human-run bridge between `journal_discovery`'s manifest and
+`journal_articles`' converted output, since neither subproject calls the
+other. A manually-downloaded PDF's filename is arbitrary (never matches
+anything the pipeline would have generated), so matching is
+content-based: a DOI substring match against the converted `.md` first,
+a normalized-title substring match as fallback for papers that don't
+print their DOI in the visible text. A confirmed match moves the
+manifest entry to `status="downloaded"` (recording which `.md` matched)
+and drops out of the regenerated worklist automatically. The script also
+prints a folder/content review -- folder name next to a real content
+preview for every converted paper -- so folder-appropriateness can be
+checked against what a paper actually says, not just its OpenAlex
+concept tags.
+
+**In progress as of this writing:** the real corpus (~17 PDFs needing
+fresh or re-routed conversion, including a 104-page World Bank paper
+needing 9 Gemini-vision batches) is being converted now; reconciliation
+and the content-based folder review will run right after and get their
+own results noted here.
+
 ## What's next
 
 Not currently planned as active work -- recorded here as the honest
@@ -261,7 +331,12 @@ answer if gated-paper coverage becomes a real bottleneck later:
 2. **CORE.ac.uk as a third OA-discovery tier** and **Columbia's Academic
    Commons repository check** -- both still open ideas from the
    brainstorm below, not picked for this round.
-3. Otherwise, no change: the existing OA -> Semantic Scholar -> arXiv ->
+3. **A combined convenience wrapper** chaining discovery -> conversion ->
+   reconciliation in one command (approach C from the original
+   brainstorming session) -- the three exist as separate, focused
+   scripts today by design; a thin wrapper is a cheap follow-on if
+   running them separately proves tedious in practice.
+4. Otherwise, no change: the existing OA -> Semantic Scholar -> arXiv ->
    EZProxy-with-manual-fallback pipeline is the correct, working design
    as shipped.
 
