@@ -51,8 +51,39 @@ class TestGenerateVisualizationTemplatePath(unittest.TestCase):
 
     def test_no_template_match_returns_none_for_now(self):
         with tempfile.TemporaryDirectory() as tmp:
-            with patch("viz.viz_agent.match_template", return_value=None):
+            with patch("viz.viz_agent.match_template", return_value=None), \
+                 patch("viz.llm_fallback.generate_via_llm", return_value=None):
                 result = generate_visualization("unmatched concept", academic_hub_root=tmp)
+        self.assertIsNone(result)
+
+
+class TestGenerateVisualizationFallbackPath(unittest.TestCase):
+    def test_no_template_match_falls_back_to_llm(self):
+        fake_result = VizResult(html_path="/x/y.html", title="unknown concept", source="llm_fallback")
+        with tempfile.TemporaryDirectory() as tmp:
+            with patch("viz.viz_agent.match_template", return_value=None), \
+                 patch("viz.llm_fallback.generate_via_llm", return_value=fake_result) as mock_llm:
+                result = generate_visualization("unknown concept", context="ctx", academic_hub_root=tmp, course="math-camp")
+        mock_llm.assert_called_once()
+        args, kwargs = mock_llm.call_args
+        self.assertEqual(args[0], "unknown concept")
+        self.assertEqual(args[1], "ctx")
+        self.assertEqual(result, fake_result)
+
+    def test_fallback_receives_the_same_output_path_the_template_path_would_use(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            with patch("viz.viz_agent.match_template", return_value=None), \
+                 patch("viz.llm_fallback.generate_via_llm", return_value=None) as mock_llm:
+                generate_visualization("unknown concept", academic_hub_root=tmp, course="math-camp")
+        args, kwargs = mock_llm.call_args
+        output_path = args[2]
+        self.assertTrue(output_path.startswith(os.path.join(tmp, ".viz", "math-camp")))
+
+    def test_fallback_failure_propagates_none(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            with patch("viz.viz_agent.match_template", return_value=None), \
+                 patch("viz.llm_fallback.generate_via_llm", return_value=None):
+                result = generate_visualization("unknown concept", academic_hub_root=tmp)
         self.assertIsNone(result)
 
 

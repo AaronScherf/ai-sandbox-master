@@ -44,4 +44,8 @@ def generate_visualization(
         fig.write_html(output_path, include_plotlyjs="inline")
         return VizResult(html_path=output_path, title=template.name, source="template")
 
-    return None  # Task 7 replaces this with the Ollama fallback call
+    from viz.llm_fallback import generate_via_llm  # function-scoped: keeps the Ollama/
+    # subprocess-dependent module out of the import path for callers that only ever hit
+    # the template path (e.g. plain-Q&A callers of answer_question() that never set
+    # visualize=True at all -- see Task 9)
+    return generate_via_llm(concept, context, output_path, os.path.join(viz_root, ".cache"))
