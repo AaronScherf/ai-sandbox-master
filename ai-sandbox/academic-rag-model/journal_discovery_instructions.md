@@ -65,6 +65,33 @@ python -m journal_discovery.discover --topic "climate-forced displacement" `
   Run that separately (`--dry-run` first, as its own docs already say)
   once you're happy with what landed on disk.
 
+## Step 3: Reconcile manual downloads
+
+After you've downloaded some of `needs_manual_downloads.md`'s papers by
+hand and run `convert_journal_articles.py`, run:
+
+```powershell
+python -m reconcile_needs_manual
+```
+
+A manually-downloaded PDF's filename is arbitrary -- it never matches
+anything this pipeline would have generated -- so this matches by real
+content instead: a DOI substring match against the converted `.md`
+first, a normalized-title match as fallback. Confirmed papers are
+marked `status="downloaded"` in the manifest and drop out of
+`needs_manual_downloads.md` automatically, so the list always reflects
+what you actually still need. It also prints a folder/content review
+(folder name next to a real content preview for every converted paper)
+so you can sanity-check folder-appropriateness against what a paper is
+actually about, not just its OpenAlex concept tags.
+
+A paper can stay listed even with a real PDF downloaded if its content
+doesn't match what was expected for that DOI (checked, not guessed) --
+seen for real: an OpenAlex title that didn't match the actual PDF's
+subtitle, and two different SSRN listing IDs that turned out to be the
+same underlying paper. Worth a manual look rather than assuming the
+reconciler missed something.
+
 ## EZProxy setup
 
 `EZPROXY_SESSION_COOKIE` is a manually-obtained session cookie, not
