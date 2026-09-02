@@ -7,10 +7,12 @@ name or topic query into full-text PDFs under
 `docs/superpowers/specs/2026-08-31-journal-discovery-design.md`;
 implementation plan: `docs/superpowers/plans/2026-09-01-journal-discovery-plan.md`.
 Merged into `main` 2026-09-01 (commit `bb94cbb`), 545 tests passing at
-merge; 586 passing as of the latest commit below (`8e27c24`) after a
-day-two round of real-usage fixes and features. No dedicated feature
-branch exists anymore -- all work since the merge has landed directly
-on `main`.
+merge; 586 passing after a day-two round of real-usage fixes and
+features (commit `8e27c24`); 616 passing as of `2f287d2` after adding
+and live-validating citation snowball sampling (see that section
+below). No dedicated feature branch exists anymore -- all work since the
+original merge has landed directly on `main` (the snowball work used a
+temporary worktree/branch, merged and deleted the same day).
 
 ## What shipped
 
@@ -394,6 +396,91 @@ prompt specifically instructing structured data extraction from charts,
 or a separate image-description pass -- both real engineering lifts, not
 attempted here.
 
+## Citation snowball sampling: implemented and live-tested, 2026-09-02
+
+Spec: `docs/superpowers/specs/2026-09-02-journal-discovery-snowball-design.md`;
+plan: `docs/superpowers/plans/2026-09-02-journal-discovery-snowball-plan.md`.
+Built as a new `journal_discovery/snowball.py` module with a two-phase
+`propose`/`confirm` CLI, on an isolated worktree/branch, merged to `main`
+(commits `8fd1835` through `047379d`, 616 tests passing at merge). Never
+auto-fetches: `propose` seeds from every `fetched`/`downloaded` paper in
+the corpus (or `--seed-doi`, repeatable), follows OpenAlex's forward
+"cited by" graph, scores candidates through the same relevance gate as
+`discover.py`, and writes a checkbox worklist
+(`snowball_candidates.md`); `confirm` fetches only what's checked,
+through the identical access chain as any other route. Website project
+page updated to describe the new route.
+
+**Two real bugs found on the very first live `propose` run, both fixed
+same-day:**
+
+1. **Crash on `None` relevance scores** (commit `662a28c`).
+   `select_relevant_works()` can legitimately return a `ScoredWork` with
+   `score=None` (a candidate with no abstract, kept as a filler); the
+   snowball worklist writer tried to `:.2f`-format it unconditionally
+   and crashed. Fixed with a null guard, regression test added.
+2. **The no-abstract-fallback design itself was the deeper problem**
+   (commit `2f287d2`). The first real `propose` run (prompt: development
+   economics / mobile money / market competition, seeded from the 16
+   already-fetched corpus papers) returned 50 candidates -- but 43 of
+   them traced to one heavily-cited, completely off-topic seed paper
+   (an urban-climate-resilience article) and carried `score=None`,
+   because the old `select_relevant_works()` design let any
+   no-abstract candidate fill leftover `--max-results` slots
+   *regardless of relevance*, purely because nothing else was
+   available to score. Root-caused two of these `None`-score
+   candidates directly against the live OpenAlex API: both were
+   closed-access Elsevier articles (*Economic Systems*,
+   *Technology in Society*) with no `abstract_inverted_index` in
+   OpenAlex's own record at all -- a publisher-side metadata gap
+   (Elsevier not sharing abstracts through Crossref/OpenAlex for
+   non-OA content), not a parsing bug here. Fixed by having
+   `score_work()` fall back to the work's title when no abstract
+   exists, returning a real (if weaker) similarity score instead of
+   `None`; `select_relevant_works()` was simplified to run every
+   candidate through the *same* threshold check, abstract- or
+   title-scored, with the old "unscored candidates bypass the
+   threshold" bucket removed entirely. A new `ScoredWork.scored_from`
+   field ("abstract" or "title") flags the weaker signal, surfaced in
+   the worklist as "(scored from title only, no abstract)". Net effect
+   on the live data: of the 50 original candidates, only 2 were
+   genuinely on-topic (relevance-scored 0.50 and 0.63); the other 46
+   noise entries were purged from the manifest by hand as a one-time
+   cleanup (the new scoring logic wouldn't have proposed them).
+
+**Confirm run, real papers:** the two genuinely-relevant candidates
+("Mobile Money, Interoperability, and Financial Inclusion", and
+"Digital and Data Infrastructure...") were checked and run through
+`confirm`. Both landed in `needs_manual` -- not open access, and (unlike
+this doc's earlier Cloudflare finding) this time the user confirmed
+directly that Columbia's own ScienceDirect access did not cover either
+article at all when attempting the manual download. **Distinct failure
+mode worth naming precisely:** the earlier EZProxy finding was a
+publisher-side bot-detection block despite valid institutional access;
+this is a genuine subscription-coverage gap -- Columbia simply doesn't
+license these specific journals/articles. Both are real, different
+reasons a paper can end up permanently `needs_manual`, and neither is
+fixable by this pipeline.
+
+**Housekeeping caught during the follow-up convert/reconcile pass:**
+two of the user's manual downloads (`ssrn-3049364 (1).pdf`,
+`d41586-025-04053-w (1).pdf`) were confirmed byte-identical re-downloads
+of papers already converted -- deleted before conversion to avoid
+wasted Gemini spend. The one genuinely new download ("Nostalgic Demand",
+Björkegren) converted and reconciled cleanly, closing out one of this
+doc's own previously-open `needs_manual` entries -- though it landed in
+the `physics` folder, a live instance of the weak-level-0-concept-score
+limitation already documented above ("Folder-naming fix" section), not
+a new issue.
+
+**Assessed as a feasible stopping point for this round.** The
+propose/confirm loop, relevance scoring, and worklist mechanics are all
+validated against real data, not just unit tests. What remains in
+`needs_manual_downloads.md` is entirely pre-existing/expected: the two
+ScienceDirect subscription gaps above, plus the already-documented
+Nature-title-mismatch and SSRN-duplicate-listing cases (see "Conversion
++ reconciliation completed" above).
+
 ## What's next
 
 Not currently planned as active work -- recorded here as the honest
@@ -410,25 +497,13 @@ answer if gated-paper coverage becomes a real bottleneck later:
    brainstorming session) -- the three exist as separate, focused
    scripts today by design; a thin wrapper is a cheap follow-on if
    running them separately proves tedious in practice.
-4. **Citation/bibliography-based snowball sampling, a new idea flagged
-   2026-09-02, not scoped.** Every converted paper's reference list is
-   sitting right there in its `.md` content -- extracting cited works
-   (titles, and DOIs where printed) from papers already in the corpus
-   and feeding them back into `journal_discovery` as new candidate
-   queries (or direct DOI lookups, bypassing author/topic search
-   entirely) would let the corpus grow by citation network rather than
-   only by author/topic search -- a classic, well-established literature-
-   review technique (snowball sampling) that this pipeline doesn't do at
-   all today. Real open questions before scoping it: how reliably a
-   bibliography's plain-text entries can be parsed back into
-   matchable titles/DOIs from Gemini-transcribed markdown (no
-   structured citation format to rely on), and whether to look up
-   citations forward (papers that cite this one, via OpenAlex's own
-   citation graph, no parsing needed) instead of or alongside backward
-   (this paper's own reference list, needs parsing) -- forward citation
-   lookup is likely the cheaper, more reliable starting point since
-   OpenAlex already has that graph structured, no text-parsing required.
-5. Otherwise, no change: the existing OA -> Semantic Scholar -> arXiv ->
+4. ~~Citation/bibliography-based snowball sampling.~~ **Implemented and
+   live-tested, 2026-09-02 -- see "Citation snowball sampling" section
+   below.** Built as forward-only (papers citing the corpus via
+   OpenAlex's own citation graph), not backward bibliography-parsing, per
+   the reasoning originally flagged here.
+5. The tags and folder organization follow the OpenAlex conventions but haven't been tested against the indexer system for the academic hub, which pulls out tags semantically based on the content of the entire knowledge graph. It would be worth testing the standard convention tags used by OpenAlex against the academic hub system once the corpus of research journals is larger, then consolidating the two systems so they can cross reference each other better.
+6. Otherwise, no change: the existing OA -> Semantic Scholar -> arXiv ->
    EZProxy-with-manual-fallback pipeline is the correct, working design
    as shipped.
 
