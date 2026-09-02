@@ -118,15 +118,24 @@ class TestRun(unittest.TestCase):
             self.assertIn("research/journal-articles/climate-change/", content)
 
     @patch("journal_discovery.discover.load_relevance_model", return_value=MagicMock())
-    @patch("journal_discovery.discover.resolve_works", return_value=iter([]))
+    @patch("journal_discovery.discover.resolve_works")
     @patch("journal_discovery.discover.select_relevant_works")
     @patch("journal_discovery.discover.resolve_full_text")
-    def test_already_seen_work_is_skipped_without_fetch_attempt(
+    def test_already_seen_work_is_filtered_before_relevance_scoring(
         self, mock_resolve_full_text, mock_select, mock_resolve_works, mock_load_model
     ):
+        # Confirmed real 2026-09-02: filtering already-seen candidates
+        # AFTER select_relevant_works (the old design) wastes a
+        # --max-results slot re-selecting the same already-seen DOI on
+        # every rerun of the same author/topic query, before any new
+        # candidate is even considered. select_relevant_works must never
+        # see an already-seen work at all -- forward whatever it's given
+        # so this test proves the filtering happened upstream of it, not
+        # inside it.
         with tempfile.TemporaryDirectory() as tmp:
-            work = _work(3)
-            mock_select.return_value = [ScoredWork(work=work, score=0.9)]
+            work = _work(3)  # doi="10.1/abc"
+            mock_resolve_works.return_value = iter([work])
+            mock_select.side_effect = lambda works, *a, **kw: [ScoredWork(work=w, score=1.0) for w in works]
 
             from journal_discovery.manifest import manifest_path, record_outcome, save_manifest, load_manifest
             path = manifest_path(tmp)
@@ -137,6 +146,7 @@ class TestRun(unittest.TestCase):
             counts = run(_args(articles_dir=tmp, mailto="me@example.com", ezproxy_cookie=None))
 
             self.assertEqual(counts["already_seen"], 1)
+            self.assertEqual(counts["examined"], 0)
             mock_resolve_full_text.assert_not_called()
 
     @patch("journal_discovery.discover.load_relevance_model", return_value=MagicMock())

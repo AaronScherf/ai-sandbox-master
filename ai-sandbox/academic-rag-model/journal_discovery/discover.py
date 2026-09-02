@@ -49,6 +49,19 @@ def _doi_url(work) -> str:
     return work.openalex_id
 
 
+def _skip_already_seen(works, manifest: dict, counts: dict):
+    """Filters out already-seen candidates BEFORE they ever reach
+    relevance scoring. Confirmed real 2026-09-02: filtering after
+    select_relevant_works (the old design) let a rerun of the same
+    author/topic query burn --max-results slots re-selecting the same
+    already-seen DOIs before reaching any new candidate at all."""
+    for work in works:
+        if is_seen(manifest, manifest_key(work)):
+            counts["already_seen"] += 1
+            continue
+        yield work
+
+
 def _sync_zotero_if_configured(work, pdf_path, topic_folder: str, args) -> None:
     library_id = getattr(args, "zotero_library_id", None) or os.environ.get("ZOTERO_LIBRARY_ID")
     api_key = getattr(args, "zotero_api_key", None) or os.environ.get("ZOTERO_API_KEY")
@@ -65,23 +78,22 @@ def run(args: argparse.Namespace) -> dict:
     mailto = getattr(args, "mailto", None) or os.environ.get("OPENALEX_CONTACT_EMAIL")
     ezproxy_cookie = getattr(args, "ezproxy_cookie", None) or os.environ.get("EZPROXY_SESSION_COOKIE")
 
-    model = load_relevance_model()
-    works = resolve_works(args.faculty, args.topic, mailto, args.batch_size)
-    scored = select_relevant_works(
-        works, model, args.relevance_prompt, args.relevance_threshold,
-        args.max_results, args.max_examined,
-    )
-
     manifest_file = manifest_path(args.articles_dir)
     manifest = load_manifest(manifest_file)
+    counts = {"examined": 0, "already_seen": 0, "fetched": 0, "needs_manual": 0}
 
-    counts = {"examined": len(scored), "already_seen": 0, "fetched": 0, "needs_manual": 0}
+    model = load_relevance_model()
+    works = resolve_works(args.faculty, args.topic, mailto, args.batch_size)
+    unseen_works = _skip_already_seen(works, manifest, counts)
+    scored = select_relevant_works(
+        unseen_works, model, args.relevance_prompt, args.relevance_threshold,
+        args.max_results, args.max_examined,
+    )
+    counts["examined"] = len(scored)
+
     for scored_work in scored:
         work = scored_work.work
         key = manifest_key(work)
-        if is_seen(manifest, key):
-            counts["already_seen"] += 1
-            continue
 
         result = resolve_full_text(work, mailto, ezproxy_cookie, args.pace_per_hour)
         if result.status == "fetched":
