@@ -503,7 +503,26 @@ answer if gated-paper coverage becomes a real bottleneck later:
    OpenAlex's own citation graph), not backward bibliography-parsing, per
    the reasoning originally flagged here.
 5. The tags and folder organization follow the OpenAlex conventions but haven't been tested against the indexer system for the academic hub, which pulls out tags semantically based on the content of the entire knowledge graph. It would be worth testing the standard convention tags used by OpenAlex against the academic hub system once the corpus of research journals is larger, then consolidating the two systems so they can cross reference each other better.
-6. Otherwise, no change: the existing OA -> Semantic Scholar -> arXiv ->
+6. **A metadata/folder audit process against full text, flagged
+   2026-09-02, not scoped.** Checked what exists today and found a real
+   gap: `reconcile_needs_manual.py` already prints a folder/content
+   preview for every converted paper (not just `needs_manual` ones), but
+   that's read-only -- nothing re-files a mis-routed paper automatically
+   (the one real fix, the "grasp"/"competition-biology" folder
+   cleanup, was a one-off manual script, not a repeatable tool). More
+   importantly, **no metadata gets checked against full text at all**:
+   `.meta.json` sidecars (title/authors/year/concepts/relevance score)
+   are written once at discovery time, from OpenAlex data, before the
+   full text even exists, and are never revisited once real content is
+   available. A wrong title, mis-attributed author, or stale concept
+   list would never surface through anything that runs today. Worth
+   scoping as its own small project: extend the reconciler (or a new
+   script) to flag metadata/folder mismatches once full text exists,
+   with correction likely staying human-confirmed rather than fully
+   automatic, given how much judgment "does this concept tag actually
+   fit" already requires (see item 5 above, and the OpenAlex
+   homonym-prone-concept findings elsewhere in this doc).
+7. Otherwise, no change: the existing OA -> Semantic Scholar -> arXiv ->
    EZProxy-with-manual-fallback pipeline is the correct, working design
    as shipped.
 
