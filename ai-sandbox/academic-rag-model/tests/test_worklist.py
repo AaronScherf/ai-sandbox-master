@@ -2,7 +2,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from journal_discovery.worklist import write_needs_manual_worklist
+from journal_discovery.worklist import write_needs_manual_worklist, write_snowball_candidates_worklist
 
 
 class TestWriteNeedsManualWorklist(unittest.TestCase):
@@ -114,6 +114,83 @@ class TestWriteNeedsManualWorklist(unittest.TestCase):
             content = path.read_text(encoding="utf-8")
             self.assertIn("- [x] [A Paper](https://doi.org/10.1/abc)", content)
             self.assertIn("- [ ] [New Paper](https://doi.org/10.1/new)", content)
+
+
+class TestWriteSnowballCandidatesWorklist(unittest.TestCase):
+    def test_writes_titled_links_with_target_folder(self):
+        manifest = {
+            "10.1/abc": {
+                "status": "proposed", "title": "A Candidate", "folder": "business",
+                "doi_url": "https://doi.org/10.1/abc",
+            },
+        }
+        with tempfile.TemporaryDirectory() as tmp:
+            path = write_snowball_candidates_worklist(manifest, tmp)
+
+            self.assertEqual(path, Path(tmp) / "snowball_candidates.md")
+            content = path.read_text(encoding="utf-8")
+            self.assertIn("- [ ] [A Candidate](https://doi.org/10.1/abc)", content)
+            self.assertIn("research/journal-articles/business/", content)
+
+    def test_shows_relevance_score_and_cited_seed_when_present(self):
+        manifest = {
+            "10.1/abc": {
+                "status": "proposed", "title": "A Candidate", "folder": "business",
+                "doi_url": "https://doi.org/10.1/abc", "relevance_score": 0.62,
+                "cites_seed": "10.1/seed-paper",
+            },
+        }
+        with tempfile.TemporaryDirectory() as tmp:
+            path = write_snowball_candidates_worklist(manifest, tmp)
+            content = path.read_text(encoding="utf-8")
+            self.assertIn("0.62", content)
+            self.assertIn("10.1/seed-paper", content)
+
+    def test_excludes_needs_manual_entries(self):
+        manifest = {
+            "10.1/manual": {"status": "needs_manual", "title": "Not This One"},
+            "10.1/proposed": {"status": "proposed", "title": "This One"},
+        }
+        with tempfile.TemporaryDirectory() as tmp:
+            path = write_snowball_candidates_worklist(manifest, tmp)
+            content = path.read_text(encoding="utf-8")
+            self.assertNotIn("Not This One", content)
+            self.assertIn("This One", content)
+
+    def test_preserves_checked_state_across_regeneration(self):
+        manifest = {
+            "10.1/abc": {"status": "proposed", "title": "A Candidate", "doi_url": "https://doi.org/10.1/abc"},
+        }
+        with tempfile.TemporaryDirectory() as tmp:
+            path = write_snowball_candidates_worklist(manifest, tmp)
+            path.write_text(
+                path.read_text(encoding="utf-8").replace("- [ ] [A Candidate]", "- [x] [A Candidate]"),
+                encoding="utf-8",
+            )
+
+            write_snowball_candidates_worklist(manifest, tmp)
+
+            self.assertIn("- [x] [A Candidate](https://doi.org/10.1/abc)", path.read_text(encoding="utf-8"))
+
+    def test_needs_manual_and_snowball_worklists_track_checks_independently(self):
+        manifest = {
+            "10.1/manual": {"status": "needs_manual", "title": "Manual One", "doi_url": "https://doi.org/10.1/manual"},
+            "10.1/proposed": {"status": "proposed", "title": "Proposed One", "doi_url": "https://doi.org/10.1/proposed"},
+        }
+        with tempfile.TemporaryDirectory() as tmp:
+            manual_path = write_needs_manual_worklist(manifest, tmp)
+            snowball_path = write_snowball_candidates_worklist(manifest, tmp)
+
+            manual_path.write_text(
+                manual_path.read_text(encoding="utf-8").replace("- [ ] [Manual One]", "- [x] [Manual One]"),
+                encoding="utf-8",
+            )
+
+            write_needs_manual_worklist(manifest, tmp)
+            write_snowball_candidates_worklist(manifest, tmp)
+
+            self.assertIn("- [x] [Manual One]", manual_path.read_text(encoding="utf-8"))
+            self.assertIn("- [ ] [Proposed One]", snowball_path.read_text(encoding="utf-8"))
 
 
 if __name__ == "__main__":

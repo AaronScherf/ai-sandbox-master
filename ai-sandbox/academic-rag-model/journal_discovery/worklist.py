@@ -38,28 +38,19 @@ def _read_checked_links(path: Path) -> set[str]:
     return checked
 
 
-def write_needs_manual_worklist(manifest: dict, articles_dir) -> Path:
+def _write_checkbox_worklist(
+    manifest: dict, articles_dir, filename: str, heading_lines: list[str], status_filter: str,
+) -> Path:
     entries = [
         (key, entry) for key, entry in manifest.items()
-        if entry.get("status") == "needs_manual" and entry.get("work_type") != "dataset"
+        if entry.get("status") == status_filter and entry.get("work_type") != "dataset"
     ]
     entries.sort(key=lambda kv: kv[1].get("title") or kv[0])
 
-    path = Path(articles_dir) / "needs_manual_downloads.md"
+    path = Path(articles_dir) / filename
     previously_checked = _read_checked_links(path)
 
-    lines = [
-        "# Papers needing manual download",
-        "",
-        "Auto-fetch couldn't reach these (gated, bot-blocked, or otherwise",
-        "unavailable to a scripted request). Open each link in your own",
-        "authenticated browser, download the PDF, and save it into the",
-        "folder listed underneath -- `convert_journal_articles.py` picks up",
-        "anything sitting there automatically. Check a box to track your own",
-        "progress; once conversion confirms a download landed, the reconciler",
-        "removes that entry from this list entirely.",
-        "",
-    ]
+    lines = list(heading_lines) + [""]
     for key, entry in entries:
         title = entry.get("title") or key
         link = _link_for(key, entry)
@@ -70,8 +61,43 @@ def write_needs_manual_worklist(manifest: dict, articles_dir) -> Path:
             lines.append(f"  - Save to: `research/journal-articles/{folder}/`")
         else:
             lines.append("  - Save to: `research/journal-articles/misc/` (no folder recorded yet)")
+        if "relevance_score" in entry:
+            lines.append(f"  - Relevance score: {entry['relevance_score']:.2f}")
+        if "cites_seed" in entry:
+            lines.append(f"  - Cites: {entry['cites_seed']}")
     lines.append("")
 
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text("\n".join(lines), encoding="utf-8")
     return path
+
+
+def write_needs_manual_worklist(manifest: dict, articles_dir) -> Path:
+    heading = [
+        "# Papers needing manual download",
+        "",
+        "Auto-fetch couldn't reach these (gated, bot-blocked, or otherwise",
+        "unavailable to a scripted request). Open each link in your own",
+        "authenticated browser, download the PDF, and save it into the",
+        "folder listed underneath -- `convert_journal_articles.py` picks up",
+        "anything sitting there automatically. Check a box to track your own",
+        "progress; once conversion confirms a download landed, the reconciler",
+        "removes that entry from this list entirely.",
+    ]
+    return _write_checkbox_worklist(manifest, articles_dir, "needs_manual_downloads.md", heading, "needs_manual")
+
+
+def write_snowball_candidates_worklist(manifest: dict, articles_dir) -> Path:
+    heading = [
+        "# Snowball-sampled candidates awaiting review",
+        "",
+        "Found by following citations from papers already in your corpus,",
+        "via OpenAlex's own citation graph, then narrowed by your",
+        "--relevance-prompt. Nothing here has been downloaded yet. Check the",
+        "papers you actually want, then run:",
+        "",
+        "    python -m journal_discovery.snowball confirm",
+        "",
+        "to fetch just those.",
+    ]
+    return _write_checkbox_worklist(manifest, articles_dir, "snowball_candidates.md", heading, "proposed")
