@@ -41,10 +41,12 @@ python -m journal_discovery.discover --topic "climate-forced displacement" `
   `--max-examined` (default `300`) control the two-layer volume cap from
   the spec's S1 -- tune the threshold empirically against a few real runs
   before trusting the default.
-- `--pace-per-hour` (default `25`) paces every full-text download attempt,
-  jittered +/-30%. This protects your own institutional EZProxy access
-  from automated-abuse detection, not just publisher politeness -- don't
-  raise it casually.
+- `--pace-per-hour` (default `25`, jittered +/-30%) applies **only to the
+  EZProxy tier** -- confirmed 2026-09-02 that OA/arXiv downloads carry
+  none of the account-safety risk this exists for (they hit diverse,
+  unrelated hosts, not Columbia's proxy), so they're never paced. Don't
+  raise this casually; it protects your own institutional EZProxy access
+  from automated-abuse detection.
 - `--zotero` additionally pushes fetched papers into a Zotero collection
   matching the topic folder.
 - Output: PDFs land in `research/journal-articles/<topic>/`, auto-created

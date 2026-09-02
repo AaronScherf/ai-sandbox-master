@@ -63,7 +63,9 @@ class TestResolveFullText(unittest.TestCase):
         result = resolve_full_text(work, "me@example.com", ezproxy_cookie=None, pace_per_hour=25)
 
         self.assertEqual(result, AccessResult(status="fetched", content=b"oa-content", tier="open_access"))
-        mock_pace.assert_called_once_with(25)
+        # OA hosts carry none of the EZProxy account-safety risk pacing
+        # exists for -- confirmed 2026-09-02, only the EZProxy tier paces.
+        mock_pace.assert_called_once_with(0)
 
     @patch("journal_discovery.access.paced_sleep")
     @patch("journal_discovery.access.fetch_with_retries")
@@ -78,6 +80,7 @@ class TestResolveFullText(unittest.TestCase):
 
         self.assertEqual(result.tier, "arxiv")
         self.assertEqual(result.content, b"arxiv-content")
+        mock_pace.assert_called_once_with(0)
 
     @patch("journal_discovery.access.paced_sleep")
     @patch("journal_discovery.access.fetch_with_retries")
@@ -95,6 +98,9 @@ class TestResolveFullText(unittest.TestCase):
 
         self.assertEqual(result.tier, "ezproxy")
         self.assertEqual(result.content, b"ezproxy-content")
+        # The EZProxy tier is the only one where account-safety pacing
+        # actually matters -- the real --pace-per-hour value is used here.
+        mock_pace.assert_called_once_with(25)
 
     @patch("journal_discovery.access.paced_sleep")
     @patch("journal_discovery.access.fetch_with_retries")

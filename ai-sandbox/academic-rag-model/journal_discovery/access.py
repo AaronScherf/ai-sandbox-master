@@ -3,9 +3,14 @@ access.py
 Full-text resolution per spec S1/S3/S6: Unpaywall (open access) -> arXiv
 (preprints) -> Columbia EZProxy (gated, manual session cookie). A
 response that isn't actually application/pdf (an EZProxy login wall on
-an expired cookie) is never written to disk. Every real download
-attempt is paced (paced_sleep) to protect the user's own institutional
-EZProxy standing, not just publisher politeness.
+an expired cookie) is never written to disk.
+
+Pacing (paced_sleep) applies to the EZProxy tier only, per real usage
+2026-09-02: its purpose is protecting the user's own Columbia account
+from automated-abuse detection, which simply doesn't apply to OA/arXiv
+downloads -- those hit diverse, unrelated hosts, not Columbia's proxy.
+Pacing every tier uniformly (the original design) made OA-heavy batches
+needlessly slow with no actual safety benefit.
 """
 from __future__ import annotations
 
@@ -70,13 +75,13 @@ def resolve_full_text(
 ) -> AccessResult:
     oa_url = work.oa_url or try_unpaywall(work.doi, mailto)
     if oa_url:
-        content = _download(oa_url, pace_per_hour)
+        content = _download(oa_url, 0)  # OA hosts carry none of the EZProxy account-safety risk
         if content:
             return AccessResult(status="fetched", content=content, tier="open_access")
 
     arxiv_url = try_arxiv_url(work.arxiv_id)
     if arxiv_url:
-        content = _download(arxiv_url, pace_per_hour)
+        content = _download(arxiv_url, 0)  # arXiv is a real API, not a scraping target
         if content:
             return AccessResult(status="fetched", content=content, tier="arxiv")
 

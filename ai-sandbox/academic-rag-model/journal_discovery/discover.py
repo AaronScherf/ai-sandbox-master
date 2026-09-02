@@ -136,8 +136,9 @@ def main():
     parser.add_argument("--max-results", type=int, default=_DEFAULT_MAX_RESULTS)
     parser.add_argument("--max-examined", type=int, default=_DEFAULT_MAX_EXAMINED)
     parser.add_argument("--pace-per-hour", type=float, default=_DEFAULT_PACE_PER_HOUR,
-                         help="Full-text download attempts per hour, jittered +/-30%%. 0 disables pacing "
-                              "(local testing against a mocked endpoint only).")
+                         help="EZProxy download attempts per hour, jittered +/-30%% -- protects your own "
+                              "Columbia account from automated-abuse detection. Does not affect OA/arXiv "
+                              "downloads, which carry none of that risk and are never paced.")
     parser.add_argument("--zotero", action="store_true", help="Also sync fetched papers into Zotero.")
     default_articles_dir = Path(__file__).resolve().parent.parent.parent / "research" / "journal-articles"
     parser.add_argument("--articles-dir", default=str(default_articles_dir))
