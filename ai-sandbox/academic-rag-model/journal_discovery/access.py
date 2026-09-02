@@ -12,7 +12,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from journal_discovery.discovery import Work
-from journal_discovery.http_utils import fetch_with_retries, is_pdf_response, paced_sleep
+from journal_discovery.http_utils import FetchError, fetch_with_retries, is_pdf_response, paced_sleep
 
 _UNPAYWALL_BASE = "https://api.unpaywall.org/v2"
 _EZPROXY_PREFIX = "https://ezproxy.cul.columbia.edu/login?url="
@@ -28,7 +28,12 @@ class AccessResult:
 def try_unpaywall(doi: str | None, mailto: str) -> str | None:
     if not doi:
         return None
-    response = fetch_with_retries("GET", f"{_UNPAYWALL_BASE}/{doi}", params={"email": mailto})
+    try:
+        response = fetch_with_retries("GET", f"{_UNPAYWALL_BASE}/{doi}", params={"email": mailto})
+    except FetchError:
+        # A DOI Unpaywall doesn't recognize returns 404 -- a permanent,
+        # non-retryable failure, not a bug -- just no OA record for it.
+        return None
     if response.status_code != 200:
         return None
     return (response.json().get("best_oa_location") or {}).get("url_for_pdf")
@@ -46,7 +51,15 @@ def build_ezproxy_url(target_url: str) -> str:
 
 def _download(url: str, pace_per_hour: float, cookies: dict | None = None) -> bytes | None:
     paced_sleep(pace_per_hour)
-    response = fetch_with_retries("GET", url, cookies=cookies, timeout=30)
+    try:
+        response = fetch_with_retries("GET", url, cookies=cookies, timeout=30)
+    except FetchError:
+        # Confirmed live 2026-09-02: a real "open access" URL (aeaweb.org)
+        # returned a permanent 403 -- fetch_with_retries() raises rather
+        # than returning a response for a non-retryable status. This tier
+        # simply didn't work for this paper; the caller falls through to
+        # the next tier / needs_manual, exactly like a non-PDF response.
+        return None
     if response.status_code != 200 or not is_pdf_response(response):
         return None
     return response.content

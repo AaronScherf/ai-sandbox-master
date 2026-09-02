@@ -116,6 +116,23 @@ class TestResolveFullText(unittest.TestCase):
         self.assertEqual(result, AccessResult(status="needs_manual"))
         mock_pace.assert_not_called()
 
+    @patch("journal_discovery.access.paced_sleep")
+    @patch("journal_discovery.access.fetch_with_retries")
+    def test_terminal_http_error_falls_through_instead_of_crashing(self, mock_fetch, mock_pace):
+        # Confirmed live 2026-09-02: a real OA link (aeaweb.org) returned a
+        # permanent 403. fetch_with_retries() raises FetchError for a
+        # non-retryable status like this rather than returning a response
+        # -- _download() must catch that and treat it as "this tier
+        # failed," not let it crash the whole run.
+        from journal_discovery.http_utils import FetchError
+        mock_fetch.side_effect = FetchError("GET https://x.com/p.pdf failed with status 403 after 3 attempts")
+        work = _work(oa_url="https://x.com/p.pdf")
+
+        result = resolve_full_text(work, "me@example.com", ezproxy_cookie=None, pace_per_hour=25)
+
+        self.assertEqual(result.status, "needs_manual")
+        self.assertIsNone(result.content)
+
 
 if __name__ == "__main__":
     unittest.main()
