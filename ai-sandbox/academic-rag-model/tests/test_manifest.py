@@ -10,6 +10,7 @@ from journal_discovery.manifest import (
     manifest_path,
     record_outcome,
     save_manifest,
+    skip_already_seen,
 )
 
 
@@ -85,6 +86,24 @@ class TestIsSeenAndRecordOutcome(unittest.TestCase):
         manifest = {}
         record_outcome(manifest, "10.1/abc", "fetched", folder="mobile-money")
         self.assertNotIn("title", manifest["10.1/abc"])
+
+
+class TestSkipAlreadySeen(unittest.TestCase):
+    def test_filters_seen_and_counts_them(self):
+        manifest = {"10.1/seen": {"status": "fetched"}}
+        works = [_work(doi="10.1/seen"), _work(doi="10.1/new")]
+        counts = {"already_seen": 0}
+        result = list(skip_already_seen(works, manifest, counts))
+        self.assertEqual([w.doi for w in result], ["10.1/new"])
+        self.assertEqual(counts["already_seen"], 1)
+
+    def test_proposed_status_also_treated_as_seen(self):
+        manifest = {"10.1/proposed": {"status": "proposed"}}
+        works = [_work(doi="10.1/proposed")]
+        counts = {"already_seen": 0}
+        result = list(skip_already_seen(works, manifest, counts))
+        self.assertEqual(result, [])
+        self.assertEqual(counts["already_seen"], 1)
 
 
 if __name__ == "__main__":

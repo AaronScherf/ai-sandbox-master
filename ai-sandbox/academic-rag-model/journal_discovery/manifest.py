@@ -50,3 +50,17 @@ def record_outcome(
     if metadata:
         entry.update(metadata)
     manifest[key] = entry
+
+
+def skip_already_seen(works, manifest: dict, counts: dict):
+    """Filters out already-seen candidates (fetched/needs_manual/
+    downloaded/proposed) BEFORE they reach relevance scoring. Shared by
+    discover.py's author/topic routes and snowball.py's citation route
+    -- confirmed real 2026-09-02 that filtering after scoring wastes
+    --max-results slots re-selecting already-seen candidates on a
+    rerun."""
+    for work in works:
+        if is_seen(manifest, manifest_key(work)):
+            counts["already_seen"] += 1
+            continue
+        yield work

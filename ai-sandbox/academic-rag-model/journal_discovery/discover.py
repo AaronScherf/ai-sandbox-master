@@ -18,12 +18,12 @@ from common.gemini_utils import load_dotenv_override
 from journal_discovery.access import resolve_full_text
 from journal_discovery.discovery import doi_url, resolve_works
 from journal_discovery.manifest import (
-    is_seen,
     load_manifest,
     manifest_key,
     manifest_path,
     record_outcome,
     save_manifest,
+    skip_already_seen,
 )
 from journal_discovery.metadata_sidecar import write_sidecar
 from journal_discovery.relevance import load_relevance_model, select_relevant_works
@@ -36,19 +36,6 @@ _DEFAULT_MAX_RESULTS = 100
 _DEFAULT_MAX_EXAMINED = 300
 _DEFAULT_RELEVANCE_THRESHOLD = 0.5
 _DEFAULT_PACE_PER_HOUR = 25.0
-
-
-def _skip_already_seen(works, manifest: dict, counts: dict):
-    """Filters out already-seen candidates BEFORE they ever reach
-    relevance scoring. Confirmed real 2026-09-02: filtering after
-    select_relevant_works (the old design) let a rerun of the same
-    author/topic query burn --max-results slots re-selecting the same
-    already-seen DOIs before reaching any new candidate at all."""
-    for work in works:
-        if is_seen(manifest, manifest_key(work)):
-            counts["already_seen"] += 1
-            continue
-        yield work
 
 
 def _sync_zotero_if_configured(work, pdf_path, topic_folder: str, args) -> None:
@@ -73,7 +60,7 @@ def run(args: argparse.Namespace) -> dict:
 
     model = load_relevance_model()
     works = resolve_works(args.faculty, args.topic, mailto, args.batch_size)
-    unseen_works = _skip_already_seen(works, manifest, counts)
+    unseen_works = skip_already_seen(works, manifest, counts)
     scored = select_relevant_works(
         unseen_works, model, args.relevance_prompt, args.relevance_threshold,
         args.max_results, args.max_examined,
