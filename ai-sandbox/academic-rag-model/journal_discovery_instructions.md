@@ -94,9 +94,13 @@ for 5 DOIs). Record the outcome below.
 
 ## EZProxy validation results
 
-<!-- Not yet run. Fill in after using manual_validate_ezproxy.py above:
-date tested, how many of N real gated DOIs succeeded, and whether the
-cookie held for the full paced session. If any failed, note whether it
-was a cookie problem or a genuinely unavailable paper -- and if the
-cookie itself didn't hold up, that's the signal (spec S9) to revisit
-browser-automated login rather than relying on the manual hand-off. -->
+**Tested live 2026-09-01 -- see `docs/2026-09-01-journal-discovery-status.md`
+for the full write-up.** Short version: the blocker in practice isn't
+cookie freshness -- it's that major publishers (confirmed against both
+Taylor & Francis and Elsevier/ScienceDirect) front their sites with
+Cloudflare bot protection that blocks a scripted request's fingerprint
+directly, before EZProxy/Columbia authorization is even the limiting
+factor. Expect `needs_manual_download` often for gated papers; that
+fallback is correct, working behavior, not a bug. OA/arXiv tiers are
+unaffected. Working around Cloudflare's bot detection itself is out of
+scope (see the status doc for why).
