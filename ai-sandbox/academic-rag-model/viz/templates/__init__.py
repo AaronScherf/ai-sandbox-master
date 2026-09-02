@@ -36,3 +36,8 @@ def match_template(concept: str) -> Template | None:
             if keyword in lowered:
                 return template
     return None
+
+
+from viz.templates.spectral_decomposition import TEMPLATE as _spectral_decomposition
+
+TEMPLATE_REGISTRY.append(_spectral_decomposition)

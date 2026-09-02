@@ -34,5 +34,26 @@ class TestMatchTemplate(unittest.TestCase):
             self.assertIsNone(match_template("anything"))
 
 
+from viz.templates import spectral_decomposition
+
+
+class TestSpectralDecompositionTemplate(unittest.TestCase):
+    def test_render_returns_four_traces(self):
+        fig = spectral_decomposition.render()
+        self.assertEqual(len(fig.data), 4)  # 2 eigenvectors x (original + transformed)
+
+    def test_template_metadata(self):
+        self.assertIn("spectral decomposition", spectral_decomposition.TEMPLATE.keywords)
+        self.assertIs(spectral_decomposition.TEMPLATE.render, spectral_decomposition.render)
+
+    def test_registered_in_global_registry(self):
+        from viz.templates import TEMPLATE_REGISTRY
+        self.assertIn(spectral_decomposition.TEMPLATE, TEMPLATE_REGISTRY)
+
+    def test_matches_via_full_registry(self):
+        from viz.templates import match_template
+        self.assertIs(match_template("teach me about spectral decomposition"), spectral_decomposition.TEMPLATE)
+
+
 if __name__ == "__main__":
     unittest.main()
