@@ -320,6 +320,39 @@ needing 9 Gemini-vision batches) is being converted now; reconciliation
 and the content-based folder review will run right after and get their
 own results noted here.
 
+## Open issue: charts/plots lose their underlying data on conversion
+
+Checked directly against real converted output, 2026-09-02. Confirmed
+first that `transcribe_notes.py`'s actual prompts (`build_transcription_prompt`,
+`build_batch_transcription_prompt`) contain **no instruction at all**
+about how to handle non-text visual elements -- "transcribe into clean
+markdown... preserve reading order" is the whole instruction. What
+happens with figures is Gemini's own emergent choice, not a designed,
+guaranteed-consistent pipeline feature:
+
+- **Data tables convert cleanly and losslessly** -- real numeric values,
+  full row/column structure, e.g. a real converted table
+  (`ssrn-3049364.md`): `| Switching Cost | $s$ | $36.09 | Hypothetical
+  switching exercises |`.
+- **Charts/plots get a bracketed caption-style description only** -- axis
+  labels, variable names, sometimes tick-value ranges -- e.g.
+  `[Graph 1: Call Price ($p^F/p^{base}$) vs Interconnection Rate ($0.15,
+  0.10, 0.05, 0.00$)]`. The underlying curve/data points are **not**
+  extracted. If a paper's key result lives only in a scatter plot or
+  time series with no companion table, that result is effectively lost
+  to the text representation the RAG/indexer layers will ever see.
+- **Logos and decorative images** get a generic placeholder (`[Image of
+  EconStor header and license information]`) noting presence only, which
+  is fine -- there's no real content there to lose.
+
+**Assessed as acceptable for now, not urgent** -- most quantitative
+results in these papers also appear in a table or in-text statistic, so
+the loss is real but partial, not sweeping. Left open rather than fixed:
+a real fix would mean either a different (more expensive) transcription
+prompt specifically instructing structured data extraction from charts,
+or a separate image-description pass -- both real engineering lifts, not
+attempted here.
+
 ## What's next
 
 Not currently planned as active work -- recorded here as the honest
@@ -336,7 +369,25 @@ answer if gated-paper coverage becomes a real bottleneck later:
    brainstorming session) -- the three exist as separate, focused
    scripts today by design; a thin wrapper is a cheap follow-on if
    running them separately proves tedious in practice.
-4. Otherwise, no change: the existing OA -> Semantic Scholar -> arXiv ->
+4. **Citation/bibliography-based snowball sampling, a new idea flagged
+   2026-09-02, not scoped.** Every converted paper's reference list is
+   sitting right there in its `.md` content -- extracting cited works
+   (titles, and DOIs where printed) from papers already in the corpus
+   and feeding them back into `journal_discovery` as new candidate
+   queries (or direct DOI lookups, bypassing author/topic search
+   entirely) would let the corpus grow by citation network rather than
+   only by author/topic search -- a classic, well-established literature-
+   review technique (snowball sampling) that this pipeline doesn't do at
+   all today. Real open questions before scoping it: how reliably a
+   bibliography's plain-text entries can be parsed back into
+   matchable titles/DOIs from Gemini-transcribed markdown (no
+   structured citation format to rely on), and whether to look up
+   citations forward (papers that cite this one, via OpenAlex's own
+   citation graph, no parsing needed) instead of or alongside backward
+   (this paper's own reference list, needs parsing) -- forward citation
+   lookup is likely the cheaper, more reliable starting point since
+   OpenAlex already has that graph structured, no text-parsing required.
+5. Otherwise, no change: the existing OA -> Semantic Scholar -> arXiv ->
    EZProxy-with-manual-fallback pipeline is the correct, working design
    as shipped.
 
