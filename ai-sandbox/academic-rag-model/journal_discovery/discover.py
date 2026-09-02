@@ -28,6 +28,7 @@ from journal_discovery.manifest import (
 from journal_discovery.metadata_sidecar import write_sidecar
 from journal_discovery.relevance import load_relevance_model, select_relevant_works
 from journal_discovery.topic_routing import route_to_folder, sanitize_topic_name
+from journal_discovery.worklist import write_needs_manual_worklist
 from journal_discovery.zotero_sync import sync_to_zotero
 
 _DEFAULT_BATCH_SIZE = 25
@@ -40,6 +41,12 @@ _DEFAULT_PACE_PER_HOUR = 25.0
 def _pdf_filename(work) -> str:
     key = work.doi or work.openalex_id or work.title
     return f"{sanitize_topic_name(key)[:80] or 'paper'}.pdf"
+
+
+def _doi_url(work) -> str:
+    if work.doi:
+        return f"https://doi.org/{work.doi}"
+    return work.openalex_id
 
 
 def _sync_zotero_if_configured(work, pdf_path, topic_folder: str, args) -> None:
@@ -87,10 +94,17 @@ def run(args: argparse.Namespace) -> dict:
             if args.zotero:
                 _sync_zotero_if_configured(work, pdf_path, folder.name, args)
         else:
-            record_outcome(manifest, key, "needs_manual")
+            folder = route_to_folder(args.articles_dir, work)
+            record_outcome(manifest, key, "needs_manual", folder=folder.name, metadata={
+                "title": work.title,
+                "authors": work.authors,
+                "year": work.year,
+                "doi_url": _doi_url(work),
+            })
             counts["needs_manual"] += 1
 
     save_manifest(manifest_file, manifest)
+    write_needs_manual_worklist(manifest, args.articles_dir)
     return counts
 
 
@@ -131,6 +145,8 @@ def main():
     print(f"Already seen (skipped): {counts['already_seen']}")
     print(f"Fetched: {counts['fetched']}")
     print(f"Needs manual download: {counts['needs_manual']}")
+    if counts["needs_manual"] or counts["already_seen"]:
+        print(f"Manual-download worklist: {Path(args.articles_dir) / 'needs_manual_downloads.md'}")
 
 
 if __name__ == "__main__":

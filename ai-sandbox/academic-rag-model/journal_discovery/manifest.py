@@ -41,8 +41,12 @@ def is_seen(manifest: dict, key: str) -> bool:
     return key in manifest
 
 
-def record_outcome(manifest: dict, key: str, status: str, folder: str | None = None) -> None:
+def record_outcome(
+    manifest: dict, key: str, status: str, folder: str | None = None, metadata: dict | None = None
+) -> None:
     entry = {"status": status, "fetched_at": datetime.now(timezone.utc).isoformat()}
     if folder is not None:
         entry["folder"] = folder
+    if metadata:
+        entry.update(metadata)
     manifest[key] = entry

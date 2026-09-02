@@ -52,6 +52,13 @@ python -m journal_discovery.discover --topic "climate-forced displacement" `
   with a `.meta.json` sidecar (title/authors/year/DOI/concepts/relevance
   score). A `research/journal-articles/.discovery/seen.json` manifest
   tracks what's already been fetched or flagged, across runs.
+- Every run also (re)writes `research/journal-articles/needs_manual_downloads.md`
+  from the *entire* current manifest, not just this run's results -- a
+  click-through Markdown list of every paper auto-fetch couldn't reach
+  (title linking to its DOI, and exactly which auto-created topic folder
+  to save the PDF into once you download it by hand). A paper you drop
+  into that folder is picked up automatically the next time
+  `convert_journal_articles.py` runs -- no separate step needed.
 - This step never calls into `indexer/` or `convert_journal_articles.py`.
   Run that separately (`--dry-run` first, as its own docs already say)
   once you're happy with what landed on disk.

@@ -64,6 +64,28 @@ class TestIsSeenAndRecordOutcome(unittest.TestCase):
         self.assertEqual(manifest["10.1/abc"]["status"], "needs_manual")
         self.assertNotIn("folder", manifest["10.1/abc"])
 
+    def test_record_outcome_merges_metadata(self):
+        # Per user request 2026-09-02: needs_manual entries should carry
+        # enough info (title, link, folder) to build a click-through
+        # worklist without re-querying OpenAlex later.
+        manifest = {}
+        record_outcome(
+            manifest, "10.1/abc", "needs_manual", folder="mobile-money",
+            metadata={"title": "A Paper", "authors": ["Jane Doe"], "year": 2024,
+                      "doi_url": "https://doi.org/10.1/abc"},
+        )
+        entry = manifest["10.1/abc"]
+        self.assertEqual(entry["title"], "A Paper")
+        self.assertEqual(entry["authors"], ["Jane Doe"])
+        self.assertEqual(entry["year"], 2024)
+        self.assertEqual(entry["doi_url"], "https://doi.org/10.1/abc")
+        self.assertEqual(entry["folder"], "mobile-money")
+
+    def test_record_outcome_without_metadata_unaffected(self):
+        manifest = {}
+        record_outcome(manifest, "10.1/abc", "fetched", folder="mobile-money")
+        self.assertNotIn("title", manifest["10.1/abc"])
+
 
 if __name__ == "__main__":
     unittest.main()

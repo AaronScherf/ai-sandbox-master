@@ -75,6 +75,52 @@ class TestRun(unittest.TestCase):
     @patch("journal_discovery.discover.resolve_works", return_value=iter([]))
     @patch("journal_discovery.discover.select_relevant_works")
     @patch("journal_discovery.discover.resolve_full_text")
+    def test_needs_manual_work_still_gets_a_folder_and_link(
+        self, mock_resolve_full_text, mock_select, mock_resolve_works, mock_load_model
+    ):
+        # Per user request 2026-09-02: even without a PDF, a needs_manual
+        # entry should record enough (folder, doi_url, title) to build a
+        # click-through worklist -- the folder is also pre-created so
+        # the user has somewhere obvious to drop the file by hand.
+        with tempfile.TemporaryDirectory() as tmp:
+            work = _work(2)
+            mock_select.return_value = [ScoredWork(work=work, score=0.9)]
+            mock_resolve_full_text.return_value = AccessResult(status="needs_manual")
+
+            run(_args(articles_dir=tmp, mailto="me@example.com", ezproxy_cookie=None))
+
+            from journal_discovery.manifest import load_manifest, manifest_path
+            manifest = load_manifest(manifest_path(tmp))
+            entry = manifest["10.1/abc"]
+            self.assertEqual(entry["folder"], "climate-change")
+            self.assertEqual(entry["doi_url"], "https://doi.org/10.1/abc")
+            self.assertEqual(entry["title"], "Paper 2")
+            self.assertTrue((Path(tmp) / "climate-change").is_dir())
+
+    @patch("journal_discovery.discover.load_relevance_model", return_value=MagicMock())
+    @patch("journal_discovery.discover.resolve_works", return_value=iter([]))
+    @patch("journal_discovery.discover.select_relevant_works")
+    @patch("journal_discovery.discover.resolve_full_text")
+    def test_run_writes_needs_manual_worklist(
+        self, mock_resolve_full_text, mock_select, mock_resolve_works, mock_load_model
+    ):
+        with tempfile.TemporaryDirectory() as tmp:
+            work = _work(2)
+            mock_select.return_value = [ScoredWork(work=work, score=0.9)]
+            mock_resolve_full_text.return_value = AccessResult(status="needs_manual")
+
+            run(_args(articles_dir=tmp, mailto="me@example.com", ezproxy_cookie=None))
+
+            worklist = Path(tmp) / "needs_manual_downloads.md"
+            self.assertTrue(worklist.exists())
+            content = worklist.read_text(encoding="utf-8")
+            self.assertIn("[Paper 2](https://doi.org/10.1/abc)", content)
+            self.assertIn("research/journal-articles/climate-change/", content)
+
+    @patch("journal_discovery.discover.load_relevance_model", return_value=MagicMock())
+    @patch("journal_discovery.discover.resolve_works", return_value=iter([]))
+    @patch("journal_discovery.discover.select_relevant_works")
+    @patch("journal_discovery.discover.resolve_full_text")
     def test_already_seen_work_is_skipped_without_fetch_attempt(
         self, mock_resolve_full_text, mock_select, mock_resolve_works, mock_load_model
     ):
