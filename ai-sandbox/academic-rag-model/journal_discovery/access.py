@@ -1,9 +1,11 @@
 """
 access.py
-Full-text resolution per spec S1/S3/S6: Unpaywall (open access) -> arXiv
-(preprints) -> Columbia EZProxy (gated, manual session cookie). A
-response that isn't actually application/pdf (an EZProxy login wall on
-an expired cookie) is never written to disk.
+Full-text resolution per spec S1/S3/S6: Unpaywall -> Semantic Scholar
+(both open-access discovery, added 2026-09-02 since Unpaywall's own
+OA-repository coverage is incomplete) -> arXiv (preprints) -> Columbia
+EZProxy (gated, manual session cookie). A response that isn't actually
+application/pdf (an EZProxy login wall on an expired cookie) is never
+written to disk.
 
 Pacing (paced_sleep) applies to the EZProxy tier only, per real usage
 2026-09-02: its purpose is protecting the user's own Columbia account
@@ -20,6 +22,7 @@ from journal_discovery.discovery import Work
 from journal_discovery.http_utils import FetchError, fetch_with_retries, is_pdf_response, paced_sleep
 
 _UNPAYWALL_BASE = "https://api.unpaywall.org/v2"
+_SEMANTIC_SCHOLAR_BASE = "https://api.semanticscholar.org/graph/v1/paper"
 _EZPROXY_PREFIX = "https://ezproxy.cul.columbia.edu/login?url="
 
 
@@ -42,6 +45,25 @@ def try_unpaywall(doi: str | None, mailto: str) -> str | None:
     if response.status_code != 200:
         return None
     return (response.json().get("best_oa_location") or {}).get("url_for_pdf")
+
+
+def try_semantic_scholar(doi: str | None) -> str | None:
+    """A second, independent free OA-discovery source alongside
+    Unpaywall -- real API, not scraping, no bot-detection risk. Added
+    2026-09-02 since Unpaywall's own OA-repository coverage is
+    incomplete; Semantic Scholar's crawl sometimes catches a green-OA
+    copy Unpaywall hasn't indexed."""
+    if not doi:
+        return None
+    try:
+        response = fetch_with_retries(
+            "GET", f"{_SEMANTIC_SCHOLAR_BASE}/DOI:{doi}", params={"fields": "openAccessPdf"},
+        )
+    except FetchError:
+        return None
+    if response.status_code != 200:
+        return None
+    return (response.json().get("openAccessPdf") or {}).get("url")
 
 
 def try_arxiv_url(arxiv_id: str | None) -> str | None:
@@ -73,7 +95,7 @@ def _download(url: str, pace_per_hour: float, cookies: dict | None = None) -> by
 def resolve_full_text(
     work: Work, mailto: str, ezproxy_cookie: str | None, pace_per_hour: float
 ) -> AccessResult:
-    oa_url = work.oa_url or try_unpaywall(work.doi, mailto)
+    oa_url = work.oa_url or try_unpaywall(work.doi, mailto) or try_semantic_scholar(work.doi)
     if oa_url:
         content = _download(oa_url, 0)  # OA hosts carry none of the EZProxy account-safety risk
         if content:

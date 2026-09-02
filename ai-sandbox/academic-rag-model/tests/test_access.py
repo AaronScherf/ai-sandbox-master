@@ -6,6 +6,7 @@ from journal_discovery.access import (
     build_ezproxy_url,
     resolve_full_text,
     try_arxiv_url,
+    try_semantic_scholar,
     try_unpaywall,
 )
 from journal_discovery.discovery import Work
@@ -36,6 +37,31 @@ class TestTryUnpaywall(unittest.TestCase):
 
     def test_none_without_doi(self):
         self.assertIsNone(try_unpaywall(None, "me@example.com"))
+
+
+class TestTrySemanticScholar(unittest.TestCase):
+    @patch("journal_discovery.access.fetch_with_retries")
+    def test_returns_open_access_pdf_url(self, mock_fetch):
+        response = MagicMock(status_code=200)
+        response.json.return_value = {"openAccessPdf": {"url": "https://x.com/s2.pdf"}}
+        mock_fetch.return_value = response
+        self.assertEqual(try_semantic_scholar("10.1/abc"), "https://x.com/s2.pdf")
+
+    @patch("journal_discovery.access.fetch_with_retries")
+    def test_none_when_no_open_access_pdf(self, mock_fetch):
+        response = MagicMock(status_code=200)
+        response.json.return_value = {"openAccessPdf": None}
+        mock_fetch.return_value = response
+        self.assertIsNone(try_semantic_scholar("10.1/abc"))
+
+    def test_none_without_doi(self):
+        self.assertIsNone(try_semantic_scholar(None))
+
+    @patch("journal_discovery.access.fetch_with_retries")
+    def test_none_on_terminal_error(self, mock_fetch):
+        from journal_discovery.http_utils import FetchError
+        mock_fetch.side_effect = FetchError("not found")
+        self.assertIsNone(try_semantic_scholar("10.1/unknown"))
 
 
 class TestTryArxivUrl(unittest.TestCase):
@@ -69,6 +95,22 @@ class TestResolveFullText(unittest.TestCase):
 
     @patch("journal_discovery.access.paced_sleep")
     @patch("journal_discovery.access.fetch_with_retries")
+    def test_falls_back_to_semantic_scholar_when_unpaywall_has_no_oa(self, mock_fetch, mock_pace):
+        no_oa_response = MagicMock(status_code=200)
+        no_oa_response.json.return_value = {"best_oa_location": None}
+        s2_response = MagicMock(status_code=200)
+        s2_response.json.return_value = {"openAccessPdf": {"url": "https://x.com/s2.pdf"}}
+        mock_fetch.side_effect = [no_oa_response, s2_response, _pdf_response(b"s2-content")]
+        work = _work(doi="10.1/abc", oa_url=None, arxiv_id=None)
+
+        result = resolve_full_text(work, "me@example.com", ezproxy_cookie=None, pace_per_hour=25)
+
+        self.assertEqual(result.tier, "open_access")
+        self.assertEqual(result.content, b"s2-content")
+        mock_pace.assert_called_once_with(0)
+
+    @patch("journal_discovery.access.paced_sleep")
+    @patch("journal_discovery.access.fetch_with_retries")
     def test_falls_back_to_arxiv(self, mock_fetch, mock_pace):
         # doi=None short-circuits try_unpaywall() before it makes any
         # fetch_with_retries call, so the single mocked response below is
@@ -86,12 +128,14 @@ class TestResolveFullText(unittest.TestCase):
     @patch("journal_discovery.access.fetch_with_retries")
     def test_falls_back_to_ezproxy_with_cookie(self, mock_fetch, mock_pace):
         # A doi is required to build the EZProxy URL, so try_unpaywall()
-        # *does* make a real fetch_with_retries call here -- the first
-        # mocked response represents Unpaywall reporting no OA location,
-        # the second represents the EZProxy PDF download.
+        # and try_semantic_scholar() *do* make real fetch_with_retries
+        # calls here -- the first two mocked responses represent both
+        # reporting no OA location, the third is the EZProxy PDF download.
         no_oa_response = MagicMock(status_code=200)
         no_oa_response.json.return_value = {"best_oa_location": None}
-        mock_fetch.side_effect = [no_oa_response, _pdf_response(b"ezproxy-content")]
+        no_s2_response = MagicMock(status_code=200)
+        no_s2_response.json.return_value = {"openAccessPdf": None}
+        mock_fetch.side_effect = [no_oa_response, no_s2_response, _pdf_response(b"ezproxy-content")]
         work = _work(doi="10.1/abc", oa_url=None, arxiv_id=None)
 
         result = resolve_full_text(work, "me@example.com", ezproxy_cookie="session123", pace_per_hour=25)
