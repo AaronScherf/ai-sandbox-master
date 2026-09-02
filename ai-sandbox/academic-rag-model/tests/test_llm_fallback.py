@@ -66,6 +66,14 @@ class TestRunGeneratedCode(unittest.TestCase):
             code = "import time\ntime.sleep(5)\nimport plotly.graph_objects as go\nfig = go.Figure()"
             self.assertFalse(_run_generated_code(code, output_path, timeout=1))
 
+    @patch("viz.llm_fallback.subprocess.run", side_effect=OSError("spawn failed"))
+    def test_subprocess_spawn_failure_returns_false(self, mock_run):
+        with tempfile.TemporaryDirectory() as tmp:
+            output_path = os.path.join(tmp, "out.html")
+            code = "import plotly.graph_objects as go\nfig = go.Figure()"
+            self.assertFalse(_run_generated_code(code, output_path))
+            self.assertFalse(os.path.exists(output_path))
+
 
 class TestGenerateViaLlm(unittest.TestCase):
     def test_returns_none_when_ollama_unreachable(self):

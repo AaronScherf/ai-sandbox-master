@@ -100,25 +100,34 @@ def _run_generated_code(code: str, output_path: str, timeout: int = EXECUTION_TI
     except subprocess.TimeoutExpired:
         print(f"WARNING: generated visualization script timed out after {timeout}s")
         return False
+    except Exception as err:
+        print(f"WARNING: generated visualization script raised an unexpected error: {err}")
+        return False
     finally:
         os.unlink(script_path)
 
 
 def generate_via_llm(concept: str, context: str, output_path: str, cache_dir: str) -> VizResult | None:
-    os.makedirs(cache_dir, exist_ok=True)
-    cached_path = os.path.join(cache_dir, f"{_cache_key(concept, context)}.html")
+    """Generates a visualization via the local Ollama fallback, or returns
+    None on any failure -- never raises past its caller (spec §4)."""
+    try:
+        os.makedirs(cache_dir, exist_ok=True)
+        cached_path = os.path.join(cache_dir, f"{_cache_key(concept, context)}.html")
 
-    if not os.path.exists(cached_path):
-        response_text = _call_ollama(concept, context)
-        if response_text is None:
-            return None
-        code = _extract_code(response_text)
-        if code is None:
-            print("WARNING: Ollama response contained no ```python code block")
-            return None
-        if not _run_generated_code(code, cached_path):
-            return None
+        if not os.path.exists(cached_path):
+            response_text = _call_ollama(concept, context)
+            if response_text is None:
+                return None
+            code = _extract_code(response_text)
+            if code is None:
+                print("WARNING: Ollama response contained no ```python code block")
+                return None
+            if not _run_generated_code(code, cached_path):
+                return None
 
-    os.makedirs(os.path.dirname(output_path), exist_ok=True)
-    shutil.copyfile(cached_path, output_path)
-    return VizResult(html_path=output_path, title=concept, source="llm_fallback")
+        os.makedirs(os.path.dirname(output_path), exist_ok=True)
+        shutil.copyfile(cached_path, output_path)
+        return VizResult(html_path=output_path, title=concept, source="llm_fallback")
+    except Exception as err:
+        print(f"WARNING: LLM fallback failed unexpectedly ({err})")
+        return None
