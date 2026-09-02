@@ -61,7 +61,7 @@ def _write_checkbox_worklist(
             lines.append(f"  - Save to: `research/journal-articles/{folder}/`")
         else:
             lines.append("  - Save to: `research/journal-articles/misc/` (no folder recorded yet)")
-        if "relevance_score" in entry:
+        if entry.get("relevance_score") is not None:
             lines.append(f"  - Relevance score: {entry['relevance_score']:.2f}")
         if "cites_seed" in entry:
             lines.append(f"  - Cites: {entry['cites_seed']}")

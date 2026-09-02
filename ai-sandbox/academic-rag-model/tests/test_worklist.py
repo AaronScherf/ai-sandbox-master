@@ -132,6 +132,23 @@ class TestWriteSnowballCandidatesWorklist(unittest.TestCase):
             self.assertIn("- [ ] [A Candidate](https://doi.org/10.1/abc)", content)
             self.assertIn("research/journal-articles/business/", content)
 
+    def test_handles_none_relevance_score_gracefully(self):
+        # Confirmed live 2026-09-02: select_relevant_works() can hand back
+        # a ScoredWork with score=None (a filler candidate with no
+        # abstract to score), and propose() records that None straight
+        # into relevance_score -- formatting it as a float must not crash.
+        manifest = {
+            "10.1/abc": {
+                "status": "proposed", "title": "A Candidate", "folder": "business",
+                "doi_url": "https://doi.org/10.1/abc", "relevance_score": None,
+            },
+        }
+        with tempfile.TemporaryDirectory() as tmp:
+            path = write_snowball_candidates_worklist(manifest, tmp)
+            content = path.read_text(encoding="utf-8")
+            self.assertIn("A Candidate", content)
+            self.assertNotIn("Relevance score: None", content)
+
     def test_shows_relevance_score_and_cited_seed_when_present(self):
         manifest = {
             "10.1/abc": {
