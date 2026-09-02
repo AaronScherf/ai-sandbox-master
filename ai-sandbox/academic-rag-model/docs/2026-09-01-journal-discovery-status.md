@@ -197,6 +197,59 @@ was one-time backfilled with real OpenAlex data (title/authors/folder/
 work_type) so the very first generated worklist was immediately useful,
 not just future runs.
 
+## Efficiency ideas acted on, 2026-09-02
+
+Of the brainstormed list below, four were picked for immediate
+implementation after user feedback (the other two -- CORE.ac.uk, and the
+author-mis-attribution check -- stayed open ideas, not built):
+
+1. **Dedup before relevance scoring, not after** (commit `6483594`).
+   `select_relevant_works()` used to see already-seen candidates in
+   OpenAlex's own list order and burn `--max-results` slots re-selecting
+   them before ever reaching new candidates -- exactly why the second
+   Björkegren run needed `--max-results 90` to find only 5 new ones.
+   `discover.py` now filters already-seen works out of the raw
+   `resolve_works()` stream before it ever reaches scoring.
+2. **Tier-specific pacing** (commit `49085f8`). Pacing's real purpose --
+   protecting the user's own Columbia account from automated-abuse
+   detection -- never applied to OA/arXiv downloads, which hit diverse,
+   unrelated hosts, not Columbia's proxy. Uniform pacing across every
+   tier is why the Björkegren batch needed `--pace-per-hour` manually
+   bumped to 300 just to finish in reasonable time. OA and arXiv
+   downloads are now unpaced by default; only the EZProxy tier honors
+   `--pace-per-hour`.
+3. **Semantic Scholar as a second OA-discovery tier** (commit `6a582ac`).
+   A real, free, keyless API -- same shape and risk profile as Unpaywall
+   -- tried after `work.oa_url`/Unpaywall and before arXiv/EZProxy, to
+   catch a green-OA copy Unpaywall's own crawl hasn't indexed.
+4. **Exact-normalized-title duplicate detection** (commit `8372d9e`), per
+   direct user report of repeats in the generated worklist. Real
+   duplicates confirmed this session: "Causal Inference from Hypothetical
+   Evaluations" under two SSRN revision DOIs; a World Bank and an SSRN
+   copy of the same mobile-phone-credit paper. `select_relevant_works()`
+   now tracks normalized (lowercased, punctuation-stripped) titles
+   already selected and skips an exact match -- deliberately exact-match
+   only, not fuzzy, to avoid any risk of merging genuinely different
+   papers with similar titles (a real limitation: it does *not* catch a
+   true near-duplicate like "...Predicts Credit Repayment" vs
+   "...Predicts Loan Repayment", which differ by one word).
+
+**A real mistake made and caught during the one-time manifest cleanup
+that accompanied idea 4:** the cleanup script grouped existing
+`needs_manual` entries by normalized title and kept the alphabetically-
+first DOI per group -- for one group this kept an RCT-registration
+record (`10.1257/rct.4649-1.1`, `type="dataset"`, already excluded from
+the worklist) and silently dropped the actual real, fetchable preprint
+(`10.26085/c36k5w`, `type="article"`, "Manipulation-Proof Machine
+Learning") that happened to share its title. Caught by checking the
+regenerated worklist against the prior one before considering the
+cleanup done, not by any automated check -- restored by re-fetching the
+dropped DOI's real metadata from OpenAlex and re-inserting it. **How to
+apply:** an alphabetical or arbitrary tiebreak between duplicate
+candidates is not safe when one of them might be a non-paper record --
+prefer whichever candidate has the more informative `work_type` (or
+simply isn't `"dataset"`) when one exists.
+
 ## What's next
 
 Not currently planned as active work -- recorded here as the honest
@@ -205,57 +258,43 @@ answer if gated-paper coverage becomes a real bottleneck later:
 1. **Semi-automated Playwright-driven login and download**, if the
    `needs_manual_download` volume from real usage turns out to matter
    enough to justify the engineering cost. Not spec'd.
-2. Otherwise, no change: the existing OA -> arXiv -> EZProxy-with-manual-
-   fallback pipeline is the correct, working design as shipped.
+2. **CORE.ac.uk as a third OA-discovery tier** and **Columbia's Academic
+   Commons repository check** -- both still open ideas from the
+   brainstorm below, not picked for this round.
+3. Otherwise, no change: the existing OA -> Semantic Scholar -> arXiv ->
+   EZProxy-with-manual-fallback pipeline is the correct, working design
+   as shipped.
 
-## Open ideas for improving discovery/download efficiency (not decided)
+## Original brainstorm, 2026-09-02 (superseded by "acted on" above)
 
-Brainstormed 2026-09-02 against what this session's real runs actually
-revealed -- none of these are committed to; flagging for discussion
-before any get scoped into a real design:
+The six ideas as originally brainstormed, before user feedback picked
+four for immediate implementation. Kept verbatim for the record; see
+"Efficiency ideas acted on" above for what actually shipped and how.
 
-1. **Move the dedup check before relevance scoring, not after.**
-   Confirmed real cost: `select_relevant_works()` scores and selects
-   candidates in OpenAlex's own list order with no awareness of the
-   manifest, so a rerun against the same author/topic re-spends
-   `--max-results` slots re-selecting *already-seen* candidates before
-   ever reaching new ones -- this is exactly why the second Björkegren
-   run needed `--max-results 90` to find only 5 genuinely new
-   candidates. Checking `is_seen()` earlier (in `resolve_works()` or at
-   the top of `select_relevant_works()`'s loop) would let the same
-   `--max-results` budget reach further into new territory on a rerun.
-   Contained fix, no new dependencies.
-2. **Pace only the EZProxy tier, not OA/arXiv.** The pacing's real
-   purpose (protect the user's own Columbia account from automated-abuse
-   detection) doesn't apply to OA/arXiv downloads at all -- they hit
-   diverse, unrelated hosts, not Columbia's proxy. Today's uniform
-   `paced_sleep()` on every tier is why an OA-heavy batch needed
-   `--pace-per-hour` manually bumped to 300 just to finish in reasonable
-   time. Splitting pacing by tier (strict for EZProxy, light or none for
-   OA/arXiv) would make OA-dominated batches fast by default without
-   weakening the actual protection.
-3. **Add CORE.ac.uk and/or Semantic Scholar as additional free
-   OA-discovery tiers, before EZProxy.** Unpaywall doesn't have perfect
-   OA-repository coverage (several `needs_manual` results this session
-   may have a green-OA copy Unpaywall simply hasn't indexed). Both are
-   real, free APIs -- not scraping, no bot-detection risk, same category
-   as Unpaywall.
-4. **Check Columbia's own institutional repository (Academic Commons)
-   as an additional tier for Columbia-affiliated authors.** Likely to
-   have green-OA copies of exactly the kind of faculty output this
-   pipeline targets; a targeted, probably-high-value win specific to
-   this user's actual use case.
-5. **Detect near-duplicate candidates and prefer the most fetchable
-   venue.** Real duplicates showed up this session ("Causal Inference
-   from Hypothetical Evaluations" under two SSRN revision DOIs; a World
-   Bank and an SSRN copy of the same mobile-phone-credit paper) --
-   fuzzy-matching titles and trying the OA/arXiv copy before an SSRN/WB
-   mirror of the same work would cut wasted attempts.
+1. ~~Move the dedup check before relevance scoring, not after.~~
+   **Implemented, commit `6483594`.**
+2. ~~Pace only the EZProxy tier, not OA/arXiv.~~
+   **Implemented, commit `49085f8`.**
+3. ~~Add CORE.ac.uk and/or Semantic Scholar as additional free
+   OA-discovery tiers, before EZProxy.~~ **Semantic Scholar implemented,
+   commit `6a582ac`. CORE.ac.uk remains open** -- requires a free API-key
+   registration step the user would need to do, unlike Semantic Scholar's
+   keyless access, which is why it wasn't picked up in this round.
+4. **Check Columbia's own institutional repository (Academic Commons) as
+   an additional tier for Columbia-affiliated authors. Still open.**
+   Likely to have green-OA copies of exactly the kind of faculty output
+   this pipeline targets; a targeted, probably-high-value win specific to
+   this user's actual use case, not yet scoped.
+5. ~~Detect near-duplicate candidates and prefer the most fetchable
+   venue.~~ **Implemented (exact-title match only, not fuzzy), commit
+   `8372d9e`.** Fuzzy matching (to also catch a true near-duplicate like
+   "...Predicts Credit Repayment" vs "...Predicts Loan Repayment", which
+   differ by one word) remains a real, not-yet-built refinement.
 6. **A lightweight author-profile sanity check against OpenAlex
-   mis-attribution.** Two of Björkegren's "papers" this session looked
-   like a different person's work merged into the same OpenAlex author
-   ID (topically unrelated to his real research area). Comparing a
-   candidate's concepts against the author's own dominant concept
-   profile (from their other works) and flagging outliers is a rougher,
-   more speculative payoff than the others above -- noted for
-   completeness, not a strong recommendation.
+   mis-attribution. Still open, explicitly the weakest idea of the six**
+   (per direct user feedback declining it for this round). Two of
+   Björkegren's "papers" this session looked like a different person's
+   work merged into the same OpenAlex author ID (topically unrelated to
+   his real research area) -- comparing a candidate's concepts against
+   the author's own dominant concept profile and flagging outliers is a
+   rougher, more speculative payoff than the others above.
