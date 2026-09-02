@@ -44,6 +44,14 @@ _DEFAULT_MAX_PAGES = 150  # confirmed real: a 402-page monograph mis-filed
 # exactly the case this guards against -- comfortably above any real
 # journal article's length, comfortably below a full book's.
 
+# Confirmed real 2026-09-02: a Zotero library synced into this same
+# directory tree puts its own attachment copies under zotero/storage/
+# <hash>/ -- not a topic folder, and often a duplicate of a PDF already
+# converted elsewhere in the tree (re-processing it would be pure wasted
+# API cost). local/ is a similar stray, non-topic folder confirmed real
+# in this same corpus. Excluded by directory name at any depth.
+_EXCLUDED_DIR_NAMES = frozenset({"zotero", "local"})
+
 
 def discover_pdf_files(articles_dir: str, file_filter: str | None = None) -> list[str]:
     """Recursively walks articles_dir for .pdf files -- unlike notes/
@@ -55,7 +63,7 @@ def discover_pdf_files(articles_dir: str, file_filter: str | None = None) -> lis
         return []
     files = []
     for dirpath, dirnames, filenames in os.walk(articles_dir):
-        dirnames.sort()
+        dirnames[:] = [d for d in sorted(dirnames) if d.lower() not in _EXCLUDED_DIR_NAMES]
         for name in sorted(filenames):
             if name.lower().endswith(".pdf"):
                 if file_filter is None or name == file_filter:

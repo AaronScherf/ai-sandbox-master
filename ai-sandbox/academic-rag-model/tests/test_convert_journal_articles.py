@@ -58,6 +58,28 @@ class TestDiscoverPdfFiles(unittest.TestCase):
             files = discover_pdf_files(tmp)
             self.assertEqual(files, sorted(files))
 
+    def test_excludes_zotero_storage_folder(self):
+        # Confirmed real 2026-09-02: a Zotero library synced into this
+        # same directory tree puts its own attachment copies under
+        # zotero/storage/<hash>/ -- not a topic folder, and often a
+        # duplicate of a PDF already converted elsewhere in the tree.
+        # Recursive discovery must not treat Zotero's own storage as a
+        # source of new papers to convert.
+        with tempfile.TemporaryDirectory() as tmp:
+            _write_fake_pdf(os.path.join(tmp, "misc", "a.pdf"))
+            _write_fake_pdf(os.path.join(tmp, "zotero", "storage", "ABCD1234", "a.pdf"))
+            files = discover_pdf_files(tmp)
+            self.assertEqual(len(files), 1)
+            self.assertTrue(files[0].endswith(os.path.join("misc", "a.pdf")))
+
+    def test_excludes_local_folder(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            _write_fake_pdf(os.path.join(tmp, "misc", "a.pdf"))
+            _write_fake_pdf(os.path.join(tmp, "local", "a.pdf"))
+            files = discover_pdf_files(tmp)
+            self.assertEqual(len(files), 1)
+            self.assertTrue(files[0].endswith(os.path.join("misc", "a.pdf")))
+
 
 class TestPageCount(unittest.TestCase):
     def test_counts_pages_of_a_real_pdf(self):
