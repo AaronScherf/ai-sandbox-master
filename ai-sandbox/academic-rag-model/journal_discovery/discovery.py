@@ -72,7 +72,18 @@ def _extract_arxiv_id(record: dict) -> str | None:
 
 
 def _work_from_openalex(record: dict) -> Work:
-    concepts = sorted(record.get("concepts") or [], key=lambda c: c.get("score", 0), reverse=True)
+    # Confirmed live 2026-09-02: the top-scored concept is often a
+    # narrow, homonym-prone level-2/3 concept (e.g. "GRASP" the
+    # metaheuristic algorithm, for a paper merely using the word
+    # "grasp") even when a sensible, broad level-0 field ("Sociology",
+    # "Computer science") is also present, just scored lower. Since
+    # topic_routing.py uses concepts[0] for the folder name, a level-0
+    # concept wins whenever one exists, regardless of score ranking
+    # among narrower ones; falls back to plain score ranking otherwise.
+    concepts = sorted(
+        record.get("concepts") or [],
+        key=lambda c: (c.get("level") != 0, -(c.get("score") or 0)),
+    )
     open_access = record.get("open_access") or {}
     return Work(
         openalex_id=record.get("id"),

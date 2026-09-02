@@ -11,7 +11,8 @@ from journal_discovery.discovery import (
 )
 
 
-def _openalex_work(title="Untitled", doi="https://doi.org/10.1/abc", arxiv_url=None, work_type="article"):
+def _openalex_work(title="Untitled", doi="https://doi.org/10.1/abc", arxiv_url=None, work_type="article",
+                    concepts=None):
     return {
         "id": "https://openalex.org/W1",
         "doi": doi,
@@ -20,9 +21,9 @@ def _openalex_work(title="Untitled", doi="https://doi.org/10.1/abc", arxiv_url=N
         "publication_year": 2024,
         "authorships": [{"author": {"display_name": "Jane Doe"}}],
         "abstract_inverted_index": {"Climate": [0], "displacement": [1]},
-        "concepts": [
-            {"display_name": "Climate change", "score": 0.9},
-            {"display_name": "Economics", "score": 0.4},
+        "concepts": concepts if concepts is not None else [
+            {"display_name": "Climate change", "score": 0.9, "level": 2},
+            {"display_name": "Economics", "score": 0.4, "level": 0},
         ],
         "open_access": {"is_oa": True, "oa_url": "https://example.com/paper.pdf"},
         "locations": [{"landing_page_url": arxiv_url}] if arxiv_url else [],
@@ -84,7 +85,9 @@ class TestIterAuthorWorks(unittest.TestCase):
         self.assertEqual(work.title, "Untitled")
         self.assertEqual(work.authors, ["Jane Doe"])
         self.assertEqual(work.abstract, "Climate displacement")
-        self.assertEqual(work.concepts, ["Climate change", "Economics"])
+        # "Economics" (level 0) sorts ahead of "Climate change" (level 2,
+        # higher score) -- see test_prefers_level_zero_concept_for_ordering.
+        self.assertEqual(work.concepts, ["Economics", "Climate change"])
         self.assertTrue(work.is_oa)
         self.assertEqual(work.oa_url, "https://example.com/paper.pdf")
         self.assertIsNone(work.arxiv_id)
@@ -113,6 +116,39 @@ class TestIterAuthorWorks(unittest.TestCase):
         ]
         works = list(iter_author_works("https://openalex.org/A1", "me@example.com", batch_size=25))
         self.assertEqual([w.doi for w in works], ["10.1/real-paper"])
+
+    @patch("journal_discovery.discovery.fetch_with_retries")
+    def test_prefers_level_zero_concept_for_ordering(self, mock_fetch):
+        # Confirmed live 2026-09-02: OpenAlex's top-scored concept is
+        # often a narrow, homonym-prone level-2 concept (e.g. "GRASP" the
+        # algorithm for a paper just using the word "grasp") even when a
+        # sensible, broad level-0 field ("Computer science") is also
+        # present, just scored lower. Folder routing uses concepts[0], so
+        # a level-0 concept should win when one exists, regardless of
+        # score ranking among the narrower ones.
+        mock_fetch.side_effect = [
+            _response({"results": [_openalex_work(concepts=[
+                {"display_name": "GRASP", "score": 0.93, "level": 2},
+                {"display_name": "Work (physics)", "score": 0.61, "level": 2},
+                {"display_name": "Sociology", "score": 0.41, "level": 0},
+                {"display_name": "Computer science", "score": 0.37, "level": 0},
+            ])]}),
+            _response({"results": []}),
+        ]
+        works = list(iter_author_works("https://openalex.org/A1", "me@example.com", batch_size=25))
+        self.assertEqual(works[0].concepts[0], "Sociology")
+
+    @patch("journal_discovery.discovery.fetch_with_retries")
+    def test_falls_back_to_top_score_without_any_level_zero_concept(self, mock_fetch):
+        mock_fetch.side_effect = [
+            _response({"results": [_openalex_work(concepts=[
+                {"display_name": "Transformative learning", "score": 0.74, "level": 2},
+                {"display_name": "Psychological resilience", "score": 0.61, "level": 2},
+            ])]}),
+            _response({"results": []}),
+        ]
+        works = list(iter_author_works("https://openalex.org/A1", "me@example.com", batch_size=25))
+        self.assertEqual(works[0].concepts[0], "Transformative learning")
 
 
 class TestIterTopicWorks(unittest.TestCase):
