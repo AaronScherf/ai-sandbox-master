@@ -188,6 +188,8 @@ def main() -> None:
              "[academic-hub].",
     )
     parser.add_argument("--course", default=None)
+    parser.add_argument("--visualize", action="store_true",
+                         help="Also generate an interactive visualization for each question's concept.")
     args = parser.parse_args()
     roots = args.root or [os.path.join(os.path.dirname(__file__), "..", "..", "academic-hub")]
 
@@ -202,10 +204,14 @@ def main() -> None:
         question = input("> ").strip()
         if not question:
             continue
-        result = answer_question(roots, question, client, history=history, course=args.course)
+        result = answer_question(
+            roots, question, client, history=history, course=args.course, visualize=args.visualize,
+        )
         print(f"\n{result.answer}\n")
         for c in result.citations:
             print(f"  - [{c.root}] {c.path} ({c.citation})")
+        if result.visualization:
+            print(f"  visualization: {result.visualization.html_path}")
         print()
         history = result.history
 
