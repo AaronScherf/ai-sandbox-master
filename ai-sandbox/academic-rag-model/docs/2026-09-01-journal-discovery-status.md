@@ -108,6 +108,95 @@ before authentication would be checked.
   dependency, browser install, 2FA handling) -- not attempted in this
   pass.
 
+## Bugs found and fixed via real usage, 2026-09-02
+
+Both found on the very first live runs, not by inspection -- exactly
+what real-corpus validation is for.
+
+1. **Crash on a terminal HTTP error.** The first real run
+   (`--topic "climate shock adaptation"`) hit a genuinely OA-flagged URL
+   (`aeaweb.org`) that returned a permanent 403. `fetch_with_retries()`
+   raises `FetchError` for a non-retryable status rather than returning
+   a response, but `_download()`/`try_unpaywall()` in `access.py` didn't
+   catch it -- the whole run died instead of falling through to the next
+   tier / `needs_manual`, as designed. Fixed (commit `92d226f`, regression
+   test added): both functions now treat `FetchError` the same as a
+   non-PDF response.
+2. **OpenAlex's author-works list includes non-paper records.** A real
+   author-seeded batch (Daniel Björkegren, 20 examined) included 7
+   RCT-registry entries and a replication-data record (OpenAlex
+   `type="dataset"`) alongside real papers -- confirmed directly via the
+   OpenAlex API for two of them ("Manipulation-Proof Machine Learning"
+   trial registration, and a replication-data record). These can never
+   have a fetchable PDF and were burning
+   `--max-results`/`--max-examined` candidate slots for nothing. Fixed
+   (commit `6e52f3f`): `iter_author_works()`/`iter_topic_works()` now
+   filter out `type="dataset"` records before they ever reach relevance
+   scoring.
+
+## Real end-to-end runs, 2026-09-02
+
+**Open-access topic search** (`--topic "climate shock adaptation"`,
+`--max-results 3`): after the crash fix, ran clean -- 1 fetched, 2
+correctly flagged `needs_manual`. The fetch: "Anticipatory Learning for
+Climate Change Adaptation and Resilience" (Tschakert & Dietrich, 2010),
+a real, valid 365KB PDF (`%PDF-1.6` header confirmed), correct
+`.meta.json` sidecar, relevance score 0.51 against threshold 0.5. Its
+auto-created folder (`resilience-materials-science`) is itself a live
+example of an OpenAlex concept-ranking quirk: the paper's top-ranked
+concept was literally "Resilience (materials science)" -- a homonym
+collision, not the social/ecological sense the paper is actually about
+-- more on-topic concepts ("Climate change adaptation") were ranked
+lower by OpenAlex itself.
+
+**Faculty-seeded batch, Daniel Björkegren** (two runs, `--max-results 20`
+then `90`, `--pace-per-hour` raised to 120 then 300 for the batch since
+OA-dominated output carries none of the EZProxy account-safety risk the
+default pacing protects against): found and exhausted essentially his
+entire relevant OpenAlex-indexed output -- 19 genuine (non-dataset)
+candidates total, of which **3 fetched**, 16 flagged `needs_manual`
+(mostly SSRN-hosted working papers, which Unpaywall doesn't index as OA
+and whose own site is presumably similarly bot-protected; a couple of
+AEA journal articles hitting the same Cloudflare pattern already
+documented above; World Bank policy papers with no indexed OA copy; one
+Nature *News* piece merely mentioning him). The run stopped well short
+of the `--max-results` cap both times -- not a partial sample, but
+essentially the full reachable-and-relevant slice of his record. Two of
+the "his papers" results were also flagged as likely OpenAlex
+author-disambiguation errors (climate/agricultural-econometrics papers
+with no topical relation to his actual digital-credit/mobile-money
+research) -- a different person's work probably merged into the same
+author ID, a known limitation class of automated author disambiguation,
+not something this pipeline can detect on its own today.
+
+**Takeaway confirmed by real numbers, not just the earlier EZProxy
+test:** for real applied-economics authors, a meaningful fetch ceiling
+around 15-20% of total output is realistic given current publisher
+access patterns (SSRN, AEA, Elsevier, Taylor & Francis all presenting
+some form of bot protection or non-indexed-OA gap) -- `needs_manual` at
+volume is the expected steady state, not a signal something is broken.
+
+## Needs-manual worklist, 2026-09-02
+
+Per user request, closing the loop on "what do I do with all these
+`needs_manual` entries": `record_outcome()` (commit `b92693f`) now
+captures title/authors/year/DOI-link and a pre-created target folder for
+`needs_manual` entries too, not just successful fetches (previously only
+`.meta.json` sidecars, written solely on the fetched path, carried this
+information at all). Every run regenerates
+`research/journal-articles/needs_manual_downloads.md` from the *entire*
+current manifest -- a click-through Markdown list, each paper's title
+linking to its DOI, with the exact `research/journal-articles/<topic>/`
+folder to save it into once downloaded by hand, so
+`convert_journal_articles.py` picks it up automatically afterward with
+no extra sorting step. A follow-up fix (commit `8757d0f`) excludes
+stale dataset-type entries (recorded before the filter above existed)
+from the generated worklist too, via a backfilled `work_type` tag, so
+old RCT-registration noise doesn't clutter it. The existing manifest
+was one-time backfilled with real OpenAlex data (title/authors/folder/
+work_type) so the very first generated worklist was immediately useful,
+not just future runs.
+
 ## What's next
 
 Not currently planned as active work -- recorded here as the honest
@@ -118,3 +207,55 @@ answer if gated-paper coverage becomes a real bottleneck later:
    enough to justify the engineering cost. Not spec'd.
 2. Otherwise, no change: the existing OA -> arXiv -> EZProxy-with-manual-
    fallback pipeline is the correct, working design as shipped.
+
+## Open ideas for improving discovery/download efficiency (not decided)
+
+Brainstormed 2026-09-02 against what this session's real runs actually
+revealed -- none of these are committed to; flagging for discussion
+before any get scoped into a real design:
+
+1. **Move the dedup check before relevance scoring, not after.**
+   Confirmed real cost: `select_relevant_works()` scores and selects
+   candidates in OpenAlex's own list order with no awareness of the
+   manifest, so a rerun against the same author/topic re-spends
+   `--max-results` slots re-selecting *already-seen* candidates before
+   ever reaching new ones -- this is exactly why the second Björkegren
+   run needed `--max-results 90` to find only 5 genuinely new
+   candidates. Checking `is_seen()` earlier (in `resolve_works()` or at
+   the top of `select_relevant_works()`'s loop) would let the same
+   `--max-results` budget reach further into new territory on a rerun.
+   Contained fix, no new dependencies.
+2. **Pace only the EZProxy tier, not OA/arXiv.** The pacing's real
+   purpose (protect the user's own Columbia account from automated-abuse
+   detection) doesn't apply to OA/arXiv downloads at all -- they hit
+   diverse, unrelated hosts, not Columbia's proxy. Today's uniform
+   `paced_sleep()` on every tier is why an OA-heavy batch needed
+   `--pace-per-hour` manually bumped to 300 just to finish in reasonable
+   time. Splitting pacing by tier (strict for EZProxy, light or none for
+   OA/arXiv) would make OA-dominated batches fast by default without
+   weakening the actual protection.
+3. **Add CORE.ac.uk and/or Semantic Scholar as additional free
+   OA-discovery tiers, before EZProxy.** Unpaywall doesn't have perfect
+   OA-repository coverage (several `needs_manual` results this session
+   may have a green-OA copy Unpaywall simply hasn't indexed). Both are
+   real, free APIs -- not scraping, no bot-detection risk, same category
+   as Unpaywall.
+4. **Check Columbia's own institutional repository (Academic Commons)
+   as an additional tier for Columbia-affiliated authors.** Likely to
+   have green-OA copies of exactly the kind of faculty output this
+   pipeline targets; a targeted, probably-high-value win specific to
+   this user's actual use case.
+5. **Detect near-duplicate candidates and prefer the most fetchable
+   venue.** Real duplicates showed up this session ("Causal Inference
+   from Hypothetical Evaluations" under two SSRN revision DOIs; a World
+   Bank and an SSRN copy of the same mobile-phone-credit paper) --
+   fuzzy-matching titles and trying the OA/arXiv copy before an SSRN/WB
+   mirror of the same work would cut wasted attempts.
+6. **A lightweight author-profile sanity check against OpenAlex
+   mis-attribution.** Two of Björkegren's "papers" this session looked
+   like a different person's work merged into the same OpenAlex author
+   ID (topically unrelated to his real research area). Comparing a
+   candidate's concepts against the author's own dominant concept
+   profile (from their other works) and flagging outliers is a rougher,
+   more speculative payoff than the others above -- noted for
+   completeness, not a strong recommendation.
