@@ -92,6 +92,40 @@ subtitle, and two different SSRN listing IDs that turned out to be the
 same underlying paper. Worth a manual look rather than assuming the
 reconciler missed something.
 
+## Route 3: Citation snowball sampling
+
+A third way to find papers, alongside `--faculty`/`--topic`: follow
+citations from what's already in your corpus, via OpenAlex's own
+"cited by" graph. Two steps, deliberately never auto-fetching anything:
+
+```powershell
+python -m journal_discovery.snowball propose --relevance-prompt "climate-forced displacement and adaptation policy"
+```
+
+Seeds from every paper already `fetched`/`downloaded` in your corpus
+(or `--seed-doi`, repeatable, to scope it to specific papers), finds
+what cites them, scores each candidate through the same relevance gate
+`discover.py` uses, and writes `snowball_candidates.md` -- a checkbox
+list, nothing downloaded yet. Each entry shows its relevance score and
+which corpus paper it cites, so you have context for *why* it was
+proposed. Check the ones you actually want, then:
+
+```powershell
+python -m journal_discovery.snowball confirm
+```
+
+Fetches full text only for checked candidates, through the same
+Unpaywall -> Semantic Scholar -> arXiv -> EZProxy chain as any other
+route. A confirmed candidate that can't be auto-fetched lands in
+`needs_manual_downloads.md` exactly like any other route's outcome --
+nothing downstream treats a snowball-sourced paper any differently once
+you've confirmed it.
+
+An unchecked candidate is never re-proposed on a later `propose` run --
+leaving it unchecked *is* the reject; there's no separate action
+needed. Change your mind later by checking it before your next
+`confirm`.
+
 ## EZProxy setup
 
 `EZPROXY_SESSION_COOKIE` is a manually-obtained session cookie, not
