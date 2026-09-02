@@ -29,3 +29,12 @@ def route_to_folder(articles_dir, work: Work) -> Path:
     folder = Path(articles_dir) / folder_name
     folder.mkdir(parents=True, exist_ok=True)
     return folder
+
+
+def pdf_filename(work: Work) -> str:
+    """Lives here, not in discovery.py alongside Work, specifically to
+    avoid a circular import: this needs sanitize_topic_name(), and
+    discovery.py must never import from topic_routing.py (which already
+    imports Work from discovery.py)."""
+    key = work.doi or work.openalex_id or work.title
+    return f"{sanitize_topic_name(key)[:80] or 'paper'}.pdf"

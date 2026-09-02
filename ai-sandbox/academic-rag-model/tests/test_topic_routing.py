@@ -3,7 +3,7 @@ import unittest
 from pathlib import Path
 
 from journal_discovery.discovery import Work
-from journal_discovery.topic_routing import route_to_folder, sanitize_topic_name
+from journal_discovery.topic_routing import pdf_filename, route_to_folder, sanitize_topic_name
 
 
 class TestSanitizeTopicName(unittest.TestCase):
@@ -45,6 +45,16 @@ class TestRouteToFolder(unittest.TestCase):
             )
             folder = route_to_folder(tmp, work)
             self.assertEqual(folder, Path(tmp) / "climate-change")
+
+
+class TestPdfFilename(unittest.TestCase):
+    def test_uses_sanitized_doi(self):
+        work = Work(openalex_id="W1", doi="10.1/abc", title="T", authors=[], year=2024, abstract=None)
+        self.assertEqual(pdf_filename(work), "10-1-abc.pdf")
+
+    def test_falls_back_to_openalex_id_without_doi(self):
+        work = Work(openalex_id="W1", doi=None, title="T", authors=[], year=2024, abstract=None)
+        self.assertEqual(pdf_filename(work), "w1.pdf")
 
 
 if __name__ == "__main__":

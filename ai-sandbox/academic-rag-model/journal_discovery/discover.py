@@ -16,7 +16,7 @@ from pathlib import Path
 
 from common.gemini_utils import load_dotenv_override
 from journal_discovery.access import resolve_full_text
-from journal_discovery.discovery import resolve_works
+from journal_discovery.discovery import doi_url, resolve_works
 from journal_discovery.manifest import (
     is_seen,
     load_manifest,
@@ -27,7 +27,7 @@ from journal_discovery.manifest import (
 )
 from journal_discovery.metadata_sidecar import write_sidecar
 from journal_discovery.relevance import load_relevance_model, select_relevant_works
-from journal_discovery.topic_routing import route_to_folder, sanitize_topic_name
+from journal_discovery.topic_routing import pdf_filename, route_to_folder
 from journal_discovery.worklist import write_needs_manual_worklist
 from journal_discovery.zotero_sync import sync_to_zotero
 
@@ -36,17 +36,6 @@ _DEFAULT_MAX_RESULTS = 100
 _DEFAULT_MAX_EXAMINED = 300
 _DEFAULT_RELEVANCE_THRESHOLD = 0.5
 _DEFAULT_PACE_PER_HOUR = 25.0
-
-
-def _pdf_filename(work) -> str:
-    key = work.doi or work.openalex_id or work.title
-    return f"{sanitize_topic_name(key)[:80] or 'paper'}.pdf"
-
-
-def _doi_url(work) -> str:
-    if work.doi:
-        return f"https://doi.org/{work.doi}"
-    return work.openalex_id
 
 
 def _skip_already_seen(works, manifest: dict, counts: dict):
@@ -98,7 +87,7 @@ def run(args: argparse.Namespace) -> dict:
         result = resolve_full_text(work, mailto, ezproxy_cookie, args.pace_per_hour)
         if result.status == "fetched":
             folder = route_to_folder(args.articles_dir, work)
-            pdf_path = folder / _pdf_filename(work)
+            pdf_path = folder / pdf_filename(work)
             pdf_path.write_bytes(result.content)
             write_sidecar(pdf_path, work, scored_work.score, result.tier)
             record_outcome(manifest, key, "fetched", folder=folder.name)
@@ -111,7 +100,7 @@ def run(args: argparse.Namespace) -> dict:
                 "title": work.title,
                 "authors": work.authors,
                 "year": work.year,
-                "doi_url": _doi_url(work),
+                "doi_url": doi_url(work),
             })
             counts["needs_manual"] += 1
 

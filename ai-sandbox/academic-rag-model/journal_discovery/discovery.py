@@ -10,7 +10,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass, field
 
-from journal_discovery.http_utils import fetch_with_retries
+from journal_discovery.http_utils import FetchError, fetch_with_retries
 
 _OPENALEX_BASE = "https://api.openalex.org"
 COLUMBIA_ROR = "https://ror.org/00hj8s172"
@@ -37,6 +37,12 @@ class Work:
     is_oa: bool = False
     arxiv_id: str | None = None
     page_count: int | None = None
+
+
+def doi_url(work: Work) -> str:
+    if work.doi:
+        return f"https://doi.org/{work.doi}"
+    return work.openalex_id
 
 
 def reconstruct_abstract(inverted_index: dict[str, list[int]] | None) -> str | None:
@@ -146,6 +152,38 @@ def iter_topic_works(keywords: str, mailto: str, batch_size: int, ror: str | Non
             search_filter += f",institutions.ror:{ror}"
         params = {
             "filter": search_filter,
+            "per-page": batch_size,
+            "page": page,
+            "mailto": mailto,
+        }
+        response = fetch_with_retries("GET", f"{_OPENALEX_BASE}/works", params=params)
+        results = response.json().get("results", [])
+        if not results:
+            return
+        for record in results:
+            if record.get("type") in _EXCLUDED_WORK_TYPES:
+                continue
+            yield _work_from_openalex(record)
+        page += 1
+
+
+def resolve_work_by_doi(doi: str, mailto: str) -> Work | None:
+    try:
+        response = fetch_with_retries(
+            "GET", f"{_OPENALEX_BASE}/works/https://doi.org/{doi}", params={"mailto": mailto},
+        )
+    except FetchError:
+        return None
+    if response.status_code != 200:
+        return None
+    return _work_from_openalex(response.json())
+
+
+def iter_citing_works(openalex_id: str, mailto: str, batch_size: int):
+    page = 1
+    while True:
+        params = {
+            "filter": f"cites:{openalex_id}",
             "per-page": batch_size,
             "page": page,
             "mailto": mailto,
