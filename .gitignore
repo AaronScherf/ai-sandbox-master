@@ -73,6 +73,12 @@ ai-sandbox/research/journal-articles/**/*.md
 ai-sandbox/research/journal-articles/**/images/
 ai-sandbox/research/**/*_pages_cache.json
 ai-sandbox/research/.index/chunks/
+# Visualization sub-agent output (.viz/) is derivative of corpus content the
+# same way .index/chunks/ is -- gitignored by default rather than judging
+# verbatim-reproduction risk per template/concept (academic-hub-status doc's
+# IP posture).
+ai-sandbox/academic-hub/.viz/
+ai-sandbox/research/.viz/
 
 #Prevent git workspace conflicts with obsidian
 # Vault root is ai-sandbox/, one level below this .gitignore -- a pattern
