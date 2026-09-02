@@ -41,17 +41,33 @@ drive this design directly:
 - Only audit papers not yet audited by default, tracked via a new
   `audited_at` field on each manifest entry (an override flag re-runs
   everything).
+- **Run automatically, not as a separate step to remember.** Revisited
+  during spec review: the audit has no LLM/Gemini calls (only a free,
+  keyless OpenAlex lookup for the folder check), so it's genuinely cheap
+  -- there's no real reason to make it a fully separate manual habit.
+  Chained onto the end of `reconcile_needs_manual.py`'s own run rather
+  than `convert_journal_articles.py`'s: reconcile is the one point where
+  *every* paper's manifest `status` and on-disk path are guaranteed
+  resolvable together (a manually-downloaded paper doesn't flip from
+  `needs_manual` to `downloaded`, with `matched_md_path` recorded, until
+  reconcile's own content-matching runs). This also keeps
+  `convert_journal_articles.py` itself free of any new network
+  dependency, and avoids moving a file mid-conversion while `os.walk`
+  might still be traversing the tree.
 
 **Goals**
-- A new root-level script, `audit_metadata.py`, run manually and
-  periodically (like `reconcile_needs_manual.py`, not on every `discover`
-  run), that re-checks each converted paper's folder, tags, title, authors,
-  and DOI against its real full text and fresh OpenAlex data.
+- A new root-level script, `audit_metadata.py`, importable as a function
+  (`audit()`) that `reconcile_needs_manual.py` calls automatically as its
+  own final step, and runnable standalone
+  (`python -m audit_metadata --recheck-all`) for a full forced re-audit.
+  Re-checks each converted paper's folder, tags, title, authors, and DOI
+  against its real full text and fresh OpenAlex data.
 - Auto-apply corrections that have a well-defined right answer (folder
   re-routing, tag-frontmatter sync); write everything else to a new
   checkbox worklist, `metadata_audit_flags.md`, with evidence.
 - Skip papers already audited (`audited_at` set) unless `--recheck-all` is
-  passed.
+  passed -- this is what keeps the automatic per-reconcile invocation
+  cheap: a run where nothing new was converted does effectively no work.
 - Retire `reconcile_needs_manual.py`'s now-redundant read-only
   folder/content preview loop — this script supersedes it with a real
   fresh-OpenAlex source of truth and actual correction, not just a preview.
@@ -77,9 +93,21 @@ A new root-level script, `audit_metadata.py`, alongside
 `journal_discovery`'s manifest, `journal_articles`' converted output, and
 (new for this script) the academic-hub indexer under `indexer/`.
 
+Two entry points, both exercising the same `audit()` function:
+
+- **Automatic:** `reconcile_needs_manual.py`'s own `main()` calls
+  `audit_metadata.audit(articles_dir, index_root, mailto, recheck_all=False)`
+  as its last step, after saving the manifest and regenerating
+  `needs_manual_downloads.md`. This is the normal way the audit runs day
+  to day — no separate command to remember.
+- **Manual:** `python -m audit_metadata [--recheck-all]` — for an
+  out-of-band run, and the only way to force a full re-check (e.g. after
+  fixing a flagged paper by hand, or after changing detection logic
+  itself).
+
 ```powershell
-python -m audit_metadata
-python -m audit_metadata --recheck-all
+python -m reconcile_needs_manual          # runs reconcile, then audit automatically
+python -m audit_metadata --recheck-all    # forced full re-audit, standalone
 ```
 
 ## 3. New and changed components
@@ -105,16 +133,18 @@ python -m audit_metadata --recheck-all
     `topic_routing.sanitize_topic_name()` against the entry's current
     `folder`. Skipped (not flagged) when `key` isn't a DOI (bare OpenAlex
     ID entries) — noted explicitly in run output, per §7.
-  - `check_tag_sync(academic_hub_root, pdf_path, md_path) -> TagSyncResult`
+  - `check_tag_sync(index_root, pdf_path, md_path) -> TagSyncResult`
     — `index_card.compute_file_id(pdf_path)` +
     `index_card.find_card_by_file_id()` to get the index's real tags;
     compares against the `.md`'s current frontmatter `tags:` line.
   - `check_title(entry, text) -> AuditFlag | None`,
     `check_authors(entry, text) -> AuditFlag | None`,
     `check_doi(key, entry, text) -> AuditFlag | None` — text-only checks,
-    reusing `reconcile_needs_manual._normalize()` and the same
-    substring-match approach `is_confirmed_downloaded()` already uses for
-    titles/DOIs (imported, not duplicated).
+    the same substring-match approach `is_confirmed_downloaded()` already
+    uses for titles/DOIs, built on `journal_discovery.text_match.normalize()`
+    (new, see below) rather than importing from `reconcile_needs_manual.py`
+    — needed to avoid a circular import now that `reconcile_needs_manual.py`
+    itself imports `audit_metadata` (see that bullet below).
   - `apply_folder_correction(...)` — moves `.pdf`, `.meta.json` (if
     present — only `fetched` entries have one; manual `downloaded` entries
     never got a sidecar written), `processed_outputs/*.md`, and
@@ -125,15 +155,32 @@ python -m audit_metadata --recheck-all
     line to match the index card, same rendering
     (`"[" + ", ".join(tags) + "]"`) `retag.write_tags_to_frontmatter()`
     already uses, reused rather than reimplemented.
-  - `audit(articles_dir, academic_hub_root, mailto, recheck_all) -> dict`
+  - `audit(articles_dir, index_root, mailto, recheck_all) -> dict`
     — orchestrates all of the above per selected entry, sets `audited_at`
     (only after both the filesystem move and the index-card update
     succeed, per §7), collects `audit_flags`, saves the manifest, calls
     `worklist.write_metadata_audit_flags_worklist()`. Returns counts for
     CLI reporting, matching `reconcile()`'s and `discover.run()`'s own
-    return-dict shape.
-  - `main()` — thin CLI wrapper, same `argparse` shape as
-    `reconcile_needs_manual.py`.
+    return-dict shape. `index_root` here is the same generic parameter
+    `convert_journal_articles.py`'s own `--index-root` already passes
+    positionally as `academic_hub_root` into `index_card.*` functions
+    (confirmed via `tests/test_convert_journal_articles.py`'s own
+    comment) — not literally the `academic-hub/` folder, despite that
+    parameter name inside `index_card.py`.
+  - `main()` — thin CLI wrapper: `--articles-dir` and `--index-root`
+    (same default as `convert_journal_articles.py`'s own —
+    `research/`, sibling of `academic-hub/`), `--recheck-all`, and
+    `mailto` read from `OPENALEX_CONTACT_EMAIL` the same way
+    `discover.py`/`snowball.py` already do.
+
+- **`journal_discovery/text_match.py` (new).** `normalize(text) -> str`
+  — the same lowercase/strip-non-alphanumeric normalization
+  `reconcile_needs_manual.py`'s private `_normalize()` already does,
+  promoted to a small shared module (mirrors how `manifest.py`'s
+  `skip_already_seen()` was promoted out of `discover.py` for
+  `snowball.py` to share, per that spec's own precedent) so both
+  `reconcile_needs_manual.py` and `audit_metadata.py` can depend on it
+  without depending on *each other* in the wrong direction.
 
 - **`journal_discovery/discovery.py`, `journal_discovery/topic_routing.py`:**
   no changes — `resolve_work_by_doi()` and `sanitize_topic_name()` are
@@ -167,16 +214,32 @@ python -m audit_metadata --recheck-all
   cleanup that did this by hand was never committed (confirmed via `git
   log`), so this is new, but genuinely reusable beyond this one script.
 
-- **`reconcile_needs_manual.py` (changed):** remove the "Folder/content
-  review" print loop (current lines 111-115) and its docstring mention —
-  superseded by `audit_metadata.py`'s real fresh-OpenAlex comparison and
-  actual correction. `reconcile()`'s own job (confirming `needs_manual` ->
-  `downloaded` by content match) is unchanged.
+- **`reconcile_needs_manual.py` (changed):**
+  - Remove the "Folder/content review" print loop (current lines 111-115)
+    and its docstring mention — superseded by `audit_metadata.py`'s real
+    fresh-OpenAlex comparison and actual correction. `reconcile()`'s own
+    job (confirming `needs_manual` -> `downloaded` by content match) is
+    unchanged.
+  - Its private `_normalize()` is removed in favor of importing
+    `journal_discovery.text_match.normalize()`.
+  - Gains a new `--index-root` CLI argument (same default
+    `convert_journal_articles.py` already uses), and reads `mailto` from
+    `OPENALEX_CONTACT_EMAIL` the same way `discover.py`/`snowball.py` do.
+  - `main()` calls `audit_metadata.audit(args.articles_dir,
+    args.index_root, mailto, recheck_all=False)` as its final step (see
+    §7 for what happens if `OPENALEX_CONTACT_EMAIL` isn't set), and
+    prints its returned counts alongside reconcile's own
+    confirmed/still-pending output.
+  - `reconcile()` itself (the importable function, distinct from `main()`)
+    stays audit-free — only `main()` chains the two, so any code already
+    calling `reconcile()` directly (e.g. tests) is unaffected by this
+    change.
 
 - **`journal_discovery_instructions.md` / `journal_articles_instructions.md`:**
-  add a short "Step 4: Audit metadata & folders" section (mirrors how
-  Step 3 documents `reconcile_needs_manual.py` today), and remove the
-  folder/content-review mention from Step 3's description.
+  update Step 3 to describe the audit as automatic (running right after
+  reconciliation, not a separate step), remove the folder/content-review
+  mention, and add one short note on `python -m audit_metadata --recheck-all`
+  for a forced full re-audit.
 
 ## 4. Checks and correction behavior
 
@@ -198,7 +261,7 @@ resolved in practice (`reconcile_needs_manual.py`'s own doc history).
 ## 5. Data flow
 
 ```
-audit_metadata.audit(articles_dir, academic_hub_root, mailto, recheck_all):
+audit_metadata.audit(articles_dir, index_root, mailto, recheck_all):
   1. manifest = load_manifest(manifest_path(articles_dir))
   2. targets = select_audit_targets(manifest, recheck_all)
   3. for key, entry in targets:
@@ -210,7 +273,7 @@ audit_metadata.audit(articles_dir, academic_hub_root, mailto, recheck_all):
        if folder_result.mismatch:
            apply_folder_correction(...)   # updates pdf_path/md_path too
 
-       tag_result = check_tag_sync(academic_hub_root, pdf_path, md_path)
+       tag_result = check_tag_sync(index_root, pdf_path, md_path)
        if tag_result.mismatch:
            apply_tag_sync(md_path, tag_result.index_tags)
 
@@ -225,6 +288,20 @@ audit_metadata.audit(articles_dir, academic_hub_root, mailto, recheck_all):
   4. save_manifest(...)
   5. worklist.write_metadata_audit_flags_worklist(manifest, articles_dir)
   6. return counts (folder_corrections, tag_syncs, flagged, skipped, audited)
+```
+
+**Caller, automatic path:**
+
+```
+reconcile_needs_manual.main():
+  1. result = reconcile(args.articles_dir)          # unchanged
+  2. print reconcile's own confirmed/still-pending summary   # unchanged
+  3. mailto = os.environ.get("OPENALEX_CONTACT_EMAIL")
+     if mailto:
+         audit_result = audit_metadata.audit(args.articles_dir, args.index_root, mailto, recheck_all=False)
+         print audit_result's summary
+     else:
+         print a warning that the audit step was skipped, and why
 ```
 
 ## 6. State model (manifest field additions)
@@ -279,6 +356,16 @@ filter (`entry.get("audit_flags")`) a plain truthiness check.
 - **Missing converted `.md`** (shouldn't happen for a `status="fetched"`/
   `"downloaded"` entry, but the filesystem could have changed since):
   logged, skipped, `audited_at` left unset so it's retried.
+- **`OPENALEX_CONTACT_EMAIL` not set** when `reconcile_needs_manual.py`
+  runs: this is new as of automatic chaining — reconcile's own job never
+  needed this env var before, and shouldn't start hard-failing over it.
+  `main()` prints a clear warning ("audit step skipped: set
+  OPENALEX_CONTACT_EMAIL to enable it") and skips calling `audit()`
+  entirely for that run; `reconcile()`'s own matching/worklist-regen
+  output is printed and the command still exits successfully. The
+  standalone `python -m audit_metadata` CLI, by contrast, still hard-fails
+  on a missing `mailto` (matching `discover.py`/`snowball.py`'s existing
+  convention for a command whose entire purpose needs it).
 
 ## 8. Testing
 
@@ -311,7 +398,16 @@ precedent):
   per-file-independence test already covering
   `write_needs_manual_worklist`/`write_snowball_candidates_worklist`).
 - `tests/test_reconcile_needs_manual.py` (updated): remove/adjust any
-  assertion covering the retired folder/content-preview print loop.
+  assertion covering the retired folder/content-preview print loop; new
+  tests confirming `main()` calls `audit_metadata.audit()` (mocked) after
+  `reconcile()` when `OPENALEX_CONTACT_EMAIL` is set, skips it with a
+  printed warning (and still exits successfully) when it isn't, and that
+  `reconcile()` itself — called directly, not through `main()` — never
+  touches `audit_metadata` at all.
+- `tests/test_text_match.py` (new): `normalize()` — same cases
+  `test_reconcile_needs_manual.py` already covers for the old private
+  `_normalize()` (case folding, punctuation stripping), moved here rather
+  than duplicated.
 
 ## 9. Follow-on discussion (open, not decided by this spec)
 
