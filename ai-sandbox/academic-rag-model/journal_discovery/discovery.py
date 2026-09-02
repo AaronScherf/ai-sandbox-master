@@ -17,6 +17,12 @@ COLUMBIA_ROR = "https://ror.org/00hj8s172"
 
 _ARXIV_URL_RE = re.compile(r"arxiv\.org/abs/([\w.\-]+)", re.IGNORECASE)
 
+# Confirmed live 2026-09-02: an author's OpenAlex works list includes
+# RCT trial registrations and replication-data records (type="dataset")
+# alongside real papers -- these can never have a fetchable PDF and
+# shouldn't burn a --max-results/--max-examined candidate slot.
+_EXCLUDED_WORK_TYPES = frozenset({"dataset"})
+
 
 @dataclass
 class Work:
@@ -115,6 +121,8 @@ def iter_author_works(author_id: str, mailto: str, batch_size: int):
         if not results:
             return
         for record in results:
+            if record.get("type") in _EXCLUDED_WORK_TYPES:
+                continue
             yield _work_from_openalex(record)
         page += 1
 
@@ -136,6 +144,8 @@ def iter_topic_works(keywords: str, mailto: str, batch_size: int, ror: str | Non
         if not results:
             return
         for record in results:
+            if record.get("type") in _EXCLUDED_WORK_TYPES:
+                continue
             yield _work_from_openalex(record)
         page += 1
 
