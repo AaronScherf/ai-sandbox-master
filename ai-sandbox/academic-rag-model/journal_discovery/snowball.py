@@ -10,8 +10,24 @@ worklist machinery unchanged.
 """
 from __future__ import annotations
 
-from journal_discovery.discovery import iter_citing_works, resolve_work_by_doi
-from journal_discovery.manifest import manifest_key, skip_already_seen
+from journal_discovery.discovery import doi_url, iter_citing_works, resolve_work_by_doi
+from journal_discovery.manifest import (
+    load_manifest,
+    manifest_key,
+    manifest_path,
+    record_outcome,
+    save_manifest,
+    skip_already_seen,
+)
+from journal_discovery.relevance import load_relevance_model, select_relevant_works
+from journal_discovery.topic_routing import route_to_folder
+from journal_discovery.worklist import write_snowball_candidates_worklist
+
+_DEFAULT_BATCH_SIZE = 25
+_DEFAULT_MAX_RESULTS = 50
+_DEFAULT_MAX_EXAMINED = 200
+_DEFAULT_RELEVANCE_THRESHOLD = 0.5
+_DEFAULT_PACE_PER_HOUR = 25.0
 
 
 def iter_seed_openalex_ids(manifest: dict, mailto: str, seed_dois: list[str] | None = None):
@@ -50,3 +66,38 @@ def iter_snowball_candidates(
         for work in skip_already_seen(citing, manifest, counts):
             seed_map.setdefault(manifest_key(work), seed_key)
             yield work
+
+
+def propose(args) -> dict:
+    manifest_file = manifest_path(args.articles_dir)
+    manifest = load_manifest(manifest_file)
+    counts = {"examined": 0, "already_seen": 0, "proposed": 0}
+    seed_map: dict[str, str] = {}
+
+    model = load_relevance_model()
+    candidates = iter_snowball_candidates(
+        manifest, args.mailto, args.batch_size, counts, seed_map, args.seed_doi or None,
+    )
+    scored = select_relevant_works(
+        candidates, model, args.relevance_prompt, args.relevance_threshold,
+        args.max_results, args.max_examined,
+    )
+    counts["examined"] = len(scored)
+
+    for scored_work in scored:
+        work = scored_work.work
+        key = manifest_key(work)
+        folder = route_to_folder(args.articles_dir, work)
+        record_outcome(manifest, key, "proposed", folder=folder.name, metadata={
+            "title": work.title,
+            "authors": work.authors,
+            "year": work.year,
+            "doi_url": doi_url(work),
+            "relevance_score": scored_work.score,
+            "cites_seed": seed_map.get(key),
+        })
+        counts["proposed"] += 1
+
+    save_manifest(manifest_file, manifest)
+    write_snowball_candidates_worklist(manifest, args.articles_dir)
+    return counts

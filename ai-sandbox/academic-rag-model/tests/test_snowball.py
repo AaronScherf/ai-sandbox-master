@@ -1,8 +1,12 @@
+import argparse
+import tempfile
 import unittest
+from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 from journal_discovery.discovery import Work
-from journal_discovery.snowball import iter_seed_openalex_ids, iter_snowball_candidates
+from journal_discovery.relevance import ScoredWork
+from journal_discovery.snowball import iter_seed_openalex_ids, iter_snowball_candidates, propose
 
 
 def _work(idx, doi=None, openalex_id=None):
@@ -88,6 +92,78 @@ class TestIterSnowballCandidates(unittest.TestCase):
         self.assertEqual(candidates, [])
         self.assertEqual(counts["already_seen"], 1)
         self.assertNotIn("10.1/already-seen", seed_map)
+
+
+def _propose_args(**overrides):
+    defaults = dict(
+        relevance_prompt="climate", relevance_threshold=0.5, batch_size=25,
+        max_results=50, max_examined=200, seed_doi=[],
+    )
+    defaults.update(overrides)
+    return argparse.Namespace(**defaults)
+
+
+class TestPropose(unittest.TestCase):
+    @patch("journal_discovery.snowball.load_relevance_model", return_value=MagicMock())
+    @patch("journal_discovery.snowball.iter_snowball_candidates")
+    @patch("journal_discovery.snowball.select_relevant_works")
+    def test_records_scored_candidates_as_proposed(self, mock_select, mock_candidates, mock_load_model):
+        with tempfile.TemporaryDirectory() as tmp:
+            work = _work(1, doi="10.1/citer")
+            mock_candidates.return_value = iter([work])
+            mock_select.return_value = [ScoredWork(work=work, score=0.75)]
+
+            counts = propose(_propose_args(articles_dir=tmp, mailto="me@example.com"))
+
+            self.assertEqual(counts["proposed"], 1)
+
+            from journal_discovery.manifest import load_manifest, manifest_path
+            manifest = load_manifest(manifest_path(tmp))
+            entry = manifest["10.1/citer"]
+            self.assertEqual(entry["status"], "proposed")
+            self.assertEqual(entry["relevance_score"], 0.75)
+            self.assertEqual(entry["title"], "Paper 1")
+            self.assertIn("folder", entry)
+
+    @patch("journal_discovery.snowball.load_relevance_model", return_value=MagicMock())
+    @patch("journal_discovery.snowball.iter_snowball_candidates")
+    @patch("journal_discovery.snowball.select_relevant_works")
+    def test_writes_worklist(self, mock_select, mock_candidates, mock_load_model):
+        with tempfile.TemporaryDirectory() as tmp:
+            work = _work(1, doi="10.1/citer")
+            mock_candidates.return_value = iter([work])
+            mock_select.return_value = [ScoredWork(work=work, score=0.75)]
+
+            propose(_propose_args(articles_dir=tmp, mailto="me@example.com"))
+
+            worklist = Path(tmp) / "snowball_candidates.md"
+            self.assertTrue(worklist.exists())
+            self.assertIn("Paper 1", worklist.read_text(encoding="utf-8"))
+
+    @patch("journal_discovery.snowball.load_relevance_model", return_value=MagicMock())
+    @patch("journal_discovery.snowball.iter_snowball_candidates")
+    @patch("journal_discovery.snowball.select_relevant_works")
+    def test_records_cites_seed_from_seed_map(self, mock_select, mock_candidates, mock_load_model):
+        with tempfile.TemporaryDirectory() as tmp:
+            work = _work(1, doi="10.1/citer")
+
+            def fake_candidates(manifest, mailto, batch_size, counts, seed_map, seed_dois=None):
+                # Not a generator: a generator's body wouldn't run until
+                # something iterates it, and the mocked select_relevant_works
+                # below never does that (it returns a canned result without
+                # touching its argument) -- so the seed_map write has to
+                # happen eagerly, on call, to be visible to the assertion.
+                seed_map["10.1/citer"] = "10.1/seed-paper"
+                return iter([work])
+
+            mock_candidates.side_effect = fake_candidates
+            mock_select.return_value = [ScoredWork(work=work, score=0.75)]
+
+            propose(_propose_args(articles_dir=tmp, mailto="me@example.com"))
+
+            from journal_discovery.manifest import load_manifest, manifest_path
+            manifest = load_manifest(manifest_path(tmp))
+            self.assertEqual(manifest["10.1/citer"]["cites_seed"], "10.1/seed-paper")
 
 
 if __name__ == "__main__":
