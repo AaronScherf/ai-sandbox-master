@@ -11,9 +11,9 @@ from journal_discovery.relevance import (
 )
 
 
-def _work(idx, abstract="a real abstract"):
+def _work(idx, abstract="a real abstract", title=None):
     return Work(
-        openalex_id=f"W{idx}", doi=f"10.1/{idx}", title=f"Paper {idx}", authors=[],
+        openalex_id=f"W{idx}", doi=f"10.1/{idx}", title=title or f"Paper {idx}", authors=[],
         year=2024, abstract=abstract,
     )
 
@@ -127,6 +127,50 @@ class TestSelectRelevantWorks(unittest.TestCase):
 
         self.assertEqual(len(selected), 2)
         self.assertTrue(all(sw.score is not None for sw in selected))
+
+    def test_exact_duplicate_title_skipped(self):
+        # Confirmed real 2026-09-02: the same paper legitimately shows up
+        # under different DOIs (an SSRN working-paper revision vs. its
+        # published version) -- only the first-encountered copy should
+        # ever reach selection, so the resulting worklist never shows the
+        # same paper twice.
+        model = self._model_scoring({"prompt": [1.0, 0.0], "on topic": [1.0, 0.0]})
+        works = [
+            _work(1, "on topic", title="Causal Inference from Hypothetical Evaluations"),
+            _work(2, "on topic", title="Causal Inference From Hypothetical Evaluations!"),
+        ]
+
+        selected = select_relevant_works(
+            works, model, "prompt", threshold=0.5, max_results=10, max_examined=10,
+        )
+
+        self.assertEqual([sw.work.openalex_id for sw in selected], ["W1"])
+
+    def test_distinct_titles_both_kept(self):
+        model = self._model_scoring({"prompt": [1.0, 0.0], "on topic": [1.0, 0.0]})
+        works = [
+            _work(1, "on topic", title="Paper One"),
+            _work(2, "on topic", title="Paper Two"),
+        ]
+
+        selected = select_relevant_works(
+            works, model, "prompt", threshold=0.5, max_results=10, max_examined=10,
+        )
+
+        self.assertEqual([sw.work.openalex_id for sw in selected], ["W1", "W2"])
+
+    def test_duplicate_title_among_unscored_also_skipped(self):
+        model = self._model_scoring({"prompt": [1.0, 0.0]})
+        works = [
+            _work(1, None, title="Same Title"),
+            _work(2, None, title="same title"),
+        ]
+
+        selected = select_relevant_works(
+            works, model, "prompt", threshold=0.5, max_results=10, max_examined=10,
+        )
+
+        self.assertEqual([sw.work.openalex_id for sw in selected], ["W1"])
 
 
 if __name__ == "__main__":

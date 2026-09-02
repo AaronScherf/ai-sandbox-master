@@ -14,12 +14,23 @@ this one scoring step, never compared against anything indexer/ produces
 from __future__ import annotations
 
 import math
+import re
 from dataclasses import dataclass
 from typing import Iterable
 
 from journal_discovery.discovery import Work
 
 _DEFAULT_MODEL_NAME = "all-MiniLM-L6-v2"
+_NON_ALNUM_RE = re.compile(r"[^a-z0-9]+")
+
+
+def _normalize_title(title: str) -> str:
+    """Confirmed real 2026-09-02: the same paper legitimately appears
+    under multiple DOIs (an SSRN working-paper revision vs. its journal
+    version) -- normalizing catches an exact title match regardless of
+    case or punctuation, without the false-positive risk a fuzzy/edit-
+    distance match would carry between genuinely different papers."""
+    return _NON_ALNUM_RE.sub("", title.lower())
 
 
 @dataclass
@@ -73,6 +84,7 @@ def select_relevant_works(
     prompt_embedding = embed_text(model, relevance_prompt)
     scored: list[ScoredWork] = []
     unscored: list[ScoredWork] = []
+    seen_titles: set[str] = set()
     examined = 0
 
     for work in works:
@@ -80,11 +92,17 @@ def select_relevant_works(
             break
         examined += 1
 
+        normalized_title = _normalize_title(work.title)
+        if normalized_title in seen_titles:
+            continue
+
         score = score_work(model, prompt_embedding, work)
         if score is None:
             unscored.append(ScoredWork(work=work, score=None))
+            seen_titles.add(normalized_title)
         elif score >= threshold:
             scored.append(ScoredWork(work=work, score=score))
+            seen_titles.add(normalized_title)
             if len(scored) >= max_results:
                 break
 
