@@ -55,5 +55,47 @@ class TestSpectralDecompositionTemplate(unittest.TestCase):
         self.assertIs(match_template("teach me about spectral decomposition"), spectral_decomposition.TEMPLATE)
 
 
+import math
+
+from viz.templates import gradient_descent, distributions, convergence
+
+
+class TestGradientDescentTemplate(unittest.TestCase):
+    def test_render_returns_two_traces(self):
+        fig = gradient_descent.render()
+        self.assertEqual(len(fig.data), 2)  # contour surface + descent path
+
+    def test_template_metadata(self):
+        self.assertIn("gradient descent", gradient_descent.TEMPLATE.keywords)
+
+
+class TestDistributionsTemplate(unittest.TestCase):
+    def test_render_returns_two_traces(self):
+        fig = distributions.render()
+        self.assertEqual(len(fig.data), 2)  # binomial bars + normal curve
+
+    def test_binomial_pmf_sums_to_one(self):
+        _, pmf = distributions._binomial_pmf(n=40, p=0.5)
+        self.assertAlmostEqual(sum(pmf), 1.0, places=6)
+
+    def test_template_metadata(self):
+        self.assertIn("central limit theorem", distributions.TEMPLATE.keywords)
+
+
+class TestConvergenceTemplate(unittest.TestCase):
+    def test_render_returns_two_traces(self):
+        fig = convergence.render()
+        self.assertEqual(len(fig.data), 2)  # partial sums + limit line
+
+    def test_template_metadata(self):
+        self.assertIn("convergence", convergence.TEMPLATE.keywords)
+
+
+class TestAllTemplatesRegistered(unittest.TestCase):
+    def test_registry_has_four_templates(self):
+        from viz.templates import TEMPLATE_REGISTRY
+        self.assertEqual(len(TEMPLATE_REGISTRY), 4)
+
+
 if __name__ == "__main__":
     unittest.main()
