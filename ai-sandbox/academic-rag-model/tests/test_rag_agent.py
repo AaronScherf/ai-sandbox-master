@@ -151,5 +151,43 @@ class TestAnswerQuestion(unittest.TestCase):
         self.assertEqual(len(result.history), 4)
 
 
+class TestAnswerQuestionVisualize(unittest.TestCase):
+    def test_visualize_false_never_calls_generate_visualization(self):
+        client = _fake_generate_client("answer")
+        with patch("rag.rag_agent.search_passages", return_value=[]), \
+             patch("viz.viz_agent.generate_visualization") as mock_viz:
+            result = answer_question(["/root"], "q", client)
+        mock_viz.assert_not_called()
+        self.assertIsNone(result.visualization)
+
+    def test_visualize_true_calls_generate_visualization_with_passage_text(self):
+        client = _fake_generate_client("answer")
+        passages = [_passage("a-000", "a", text="eigenvalue content", root="/root")]
+        fake_result = MagicMock()
+        with patch("rag.rag_agent.search_passages", return_value=passages), \
+             patch("viz.viz_agent.generate_visualization", return_value=fake_result) as mock_viz:
+            result = answer_question(["/root"], "what is X", client, visualize=True)
+        mock_viz.assert_called_once()
+        args, kwargs = mock_viz.call_args
+        self.assertEqual(args[0], "what is X")
+        self.assertIn("eigenvalue content", kwargs["context"])
+        self.assertEqual(kwargs["academic_hub_root"], "/root")
+        self.assertEqual(result.visualization, fake_result)
+
+    def test_visualize_true_passes_course_through(self):
+        client = _fake_generate_client("answer")
+        with patch("rag.rag_agent.search_passages", return_value=[]), \
+             patch("viz.viz_agent.generate_visualization", return_value=None) as mock_viz:
+            answer_question(["/root"], "q", client, course="math-camp", visualize=True)
+        self.assertEqual(mock_viz.call_args.kwargs["course"], "math-camp")
+
+    def test_visualize_true_with_no_visualization_result_is_none(self):
+        client = _fake_generate_client("answer")
+        with patch("rag.rag_agent.search_passages", return_value=[]), \
+             patch("viz.viz_agent.generate_visualization", return_value=None):
+            result = answer_question(["/root"], "q", client, visualize=True)
+        self.assertIsNone(result.visualization)
+
+
 if __name__ == "__main__":
     unittest.main()

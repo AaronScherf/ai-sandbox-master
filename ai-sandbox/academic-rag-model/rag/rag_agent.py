@@ -38,6 +38,10 @@ class AnswerResult:
     answer: str
     citations: list[Citation]
     history: list[Turn]
+    visualization: VizResult | None = None  # viz.viz_agent.VizResult -- not imported at
+    # module level (see answer_question()'s function-scoped import below); resolvable
+    # here only because this file already has `from __future__ import annotations`,
+    # which makes every annotation a lazily-evaluated string.
 
 
 def _diversify_by_file(results: list[PassageResult], max_per_file: int) -> list[PassageResult]:
@@ -132,7 +136,7 @@ def _generate_answer(question: str, history: list[Turn], passages: list[PassageR
 def answer_question(
     roots: list[str], question: str, client,
     history: list[Turn] | None = None, course: str | None = None,
-    top_k: int = 6, max_per_file: int = 3,
+    top_k: int = 6, max_per_file: int = 3, visualize: bool = False,
 ) -> AnswerResult:
     """The core function serving both usage modes (spec §3/§6): a
     callable utility (call once, use the AnswerResult, done) and the
@@ -141,7 +145,13 @@ def answer_question(
     owned internally, which is what lets both modes share this one
     function without a database or session files. roots is a list so a
     tutoring question can be grounded in passages from more than one
-    corpus at once (e.g. academic-hub and research/ together)."""
+    corpus at once (e.g. academic-hub and research/ together).
+    visualize=True additionally generates an interactive visualization
+    for the question's concept (viz/, spec:
+    docs/superpowers/specs/2026-09-02-visualization-agent-design.md) --
+    grounded in the first root in `roots`, since a single concept's
+    illustrative example doesn't need multi-root grounding the way
+    citation retrieval does."""
     history = history or []
     retrieval_query = _reformulate_query(question, history, client) if history else question
 
@@ -154,7 +164,19 @@ def answer_question(
         for p in passages
     ]
     updated_history = history + [Turn(role="user", text=question), Turn(role="assistant", text=answer)]
-    return AnswerResult(answer=answer, citations=citations, history=updated_history)
+
+    visualization = None
+    if visualize:
+        from viz.viz_agent import generate_visualization  # function-scoped: keeps viz/'s
+        # plotly (and, transitively on the fallback path, subprocess/network) dependency
+        # out of every plain-Q&A caller's import path, matching index_search.py's own
+        # function-scoped import of answer_question() for the same reason.
+        viz_context = "\n\n".join(p.text for p in passages)
+        visualization = generate_visualization(
+            question, context=viz_context, academic_hub_root=roots[0], course=course,
+        )
+
+    return AnswerResult(answer=answer, citations=citations, history=updated_history, visualization=visualization)
 
 
 def main() -> None:
