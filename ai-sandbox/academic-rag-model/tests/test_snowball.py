@@ -4,9 +4,10 @@ import unittest
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
+from journal_discovery.access import AccessResult
 from journal_discovery.discovery import Work
 from journal_discovery.relevance import ScoredWork
-from journal_discovery.snowball import iter_seed_openalex_ids, iter_snowball_candidates, propose
+from journal_discovery.snowball import confirm, iter_seed_openalex_ids, iter_snowball_candidates, propose
 
 
 def _work(idx, doi=None, openalex_id=None):
@@ -164,6 +165,96 @@ class TestPropose(unittest.TestCase):
             from journal_discovery.manifest import load_manifest, manifest_path
             manifest = load_manifest(manifest_path(tmp))
             self.assertEqual(manifest["10.1/citer"]["cites_seed"], "10.1/seed-paper")
+
+
+def _confirm_args(**overrides):
+    defaults = dict(pace_per_hour=25.0)
+    defaults.update(overrides)
+    return argparse.Namespace(**defaults)
+
+
+class TestConfirm(unittest.TestCase):
+    @patch("journal_discovery.snowball.resolve_work_by_doi")
+    @patch("journal_discovery.snowball.resolve_full_text")
+    def test_fetches_checked_proposed_entry(self, mock_resolve_full_text, mock_resolve_by_doi):
+        with tempfile.TemporaryDirectory() as tmp:
+            from journal_discovery.manifest import manifest_path, load_manifest, save_manifest, record_outcome
+            from journal_discovery.worklist import write_snowball_candidates_worklist
+
+            path = manifest_path(tmp)
+            manifest = load_manifest(path)
+            record_outcome(manifest, "10.1/citer", "proposed", folder="business", metadata={
+                "title": "A Candidate", "doi_url": "https://doi.org/10.1/citer", "relevance_score": 0.7,
+            })
+            save_manifest(path, manifest)
+            worklist_path = write_snowball_candidates_worklist(manifest, tmp)
+            worklist_path.write_text(
+                worklist_path.read_text(encoding="utf-8").replace("- [ ] [A Candidate]", "- [x] [A Candidate]"),
+                encoding="utf-8",
+            )
+
+            mock_resolve_by_doi.return_value = _work(1, doi="10.1/citer")
+            mock_resolve_full_text.return_value = AccessResult(status="fetched", content=b"%PDF-1.4", tier="open_access")
+
+            counts = confirm(_confirm_args(articles_dir=tmp, mailto="me@example.com", ezproxy_cookie=None))
+
+            self.assertEqual(counts["confirmed"], 1)
+            self.assertEqual(counts["fetched"], 1)
+
+            manifest = load_manifest(path)
+            self.assertEqual(manifest["10.1/citer"]["status"], "fetched")
+            pdfs = list((Path(tmp) / "business").glob("*.pdf"))
+            self.assertEqual(len(pdfs), 1)
+
+    @patch("journal_discovery.snowball.resolve_work_by_doi")
+    @patch("journal_discovery.snowball.resolve_full_text")
+    def test_unchecked_proposed_entry_left_untouched(self, mock_resolve_full_text, mock_resolve_by_doi):
+        with tempfile.TemporaryDirectory() as tmp:
+            from journal_discovery.manifest import manifest_path, load_manifest, save_manifest, record_outcome
+            from journal_discovery.worklist import write_snowball_candidates_worklist
+
+            path = manifest_path(tmp)
+            manifest = load_manifest(path)
+            record_outcome(manifest, "10.1/citer", "proposed", folder="business", metadata={
+                "title": "A Candidate", "doi_url": "https://doi.org/10.1/citer",
+            })
+            save_manifest(path, manifest)
+            write_snowball_candidates_worklist(manifest, tmp)  # left unchecked
+
+            counts = confirm(_confirm_args(articles_dir=tmp, mailto="me@example.com", ezproxy_cookie=None))
+
+            self.assertEqual(counts["confirmed"], 0)
+            mock_resolve_full_text.assert_not_called()
+            manifest = load_manifest(path)
+            self.assertEqual(manifest["10.1/citer"]["status"], "proposed")
+
+    @patch("journal_discovery.snowball.resolve_work_by_doi")
+    @patch("journal_discovery.snowball.resolve_full_text")
+    def test_confirmed_but_unfetchable_lands_in_needs_manual_worklist(self, mock_resolve_full_text, mock_resolve_by_doi):
+        with tempfile.TemporaryDirectory() as tmp:
+            from journal_discovery.manifest import manifest_path, load_manifest, save_manifest, record_outcome
+            from journal_discovery.worklist import write_snowball_candidates_worklist
+
+            path = manifest_path(tmp)
+            manifest = load_manifest(path)
+            record_outcome(manifest, "10.1/citer", "proposed", folder="business", metadata={
+                "title": "A Candidate", "doi_url": "https://doi.org/10.1/citer",
+            })
+            save_manifest(path, manifest)
+            worklist_path = write_snowball_candidates_worklist(manifest, tmp)
+            worklist_path.write_text(
+                worklist_path.read_text(encoding="utf-8").replace("- [ ] [A Candidate]", "- [x] [A Candidate]"),
+                encoding="utf-8",
+            )
+
+            mock_resolve_by_doi.return_value = _work(1, doi="10.1/citer")
+            mock_resolve_full_text.return_value = AccessResult(status="needs_manual")
+
+            counts = confirm(_confirm_args(articles_dir=tmp, mailto="me@example.com", ezproxy_cookie=None))
+
+            self.assertEqual(counts["needs_manual"], 1)
+            needs_manual_content = (Path(tmp) / "needs_manual_downloads.md").read_text(encoding="utf-8")
+            self.assertIn("A Candidate", needs_manual_content)
 
 
 if __name__ == "__main__":
