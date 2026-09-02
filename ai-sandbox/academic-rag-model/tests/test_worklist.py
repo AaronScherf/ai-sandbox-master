@@ -75,6 +75,46 @@ class TestWriteNeedsManualWorklist(unittest.TestCase):
             path = write_needs_manual_worklist({}, tmp)
             self.assertTrue(path.exists())
 
+    def test_writes_unchecked_checkbox_by_default(self):
+        manifest = {"10.1/abc": {"status": "needs_manual", "title": "A Paper", "doi_url": "https://doi.org/10.1/abc"}}
+        with tempfile.TemporaryDirectory() as tmp:
+            path = write_needs_manual_worklist(manifest, tmp)
+            content = path.read_text(encoding="utf-8")
+            self.assertIn("- [ ] [A Paper](https://doi.org/10.1/abc)", content)
+
+    def test_preserves_checked_state_across_regeneration(self):
+        # Per user request 2026-09-02: the worklist is regenerated on
+        # every discover run, so a user manually checking a box (to track
+        # "I've downloaded this one" before conversion confirms it) must
+        # survive the next regeneration, not get silently wiped.
+        manifest = {"10.1/abc": {"status": "needs_manual", "title": "A Paper", "doi_url": "https://doi.org/10.1/abc"}}
+        with tempfile.TemporaryDirectory() as tmp:
+            path = write_needs_manual_worklist(manifest, tmp)
+            checked_content = path.read_text(encoding="utf-8").replace(
+                "- [ ] [A Paper]", "- [x] [A Paper]"
+            )
+            path.write_text(checked_content, encoding="utf-8")
+
+            write_needs_manual_worklist(manifest, tmp)
+
+            self.assertIn("- [x] [A Paper](https://doi.org/10.1/abc)", path.read_text(encoding="utf-8"))
+
+    def test_new_entry_defaults_unchecked_even_when_others_are_checked(self):
+        manifest = {"10.1/abc": {"status": "needs_manual", "title": "A Paper", "doi_url": "https://doi.org/10.1/abc"}}
+        with tempfile.TemporaryDirectory() as tmp:
+            path = write_needs_manual_worklist(manifest, tmp)
+            path.write_text(
+                path.read_text(encoding="utf-8").replace("- [ ] [A Paper]", "- [x] [A Paper]"),
+                encoding="utf-8",
+            )
+
+            manifest["10.1/new"] = {"status": "needs_manual", "title": "New Paper", "doi_url": "https://doi.org/10.1/new"}
+            write_needs_manual_worklist(manifest, tmp)
+
+            content = path.read_text(encoding="utf-8")
+            self.assertIn("- [x] [A Paper](https://doi.org/10.1/abc)", content)
+            self.assertIn("- [ ] [New Paper](https://doi.org/10.1/new)", content)
+
 
 if __name__ == "__main__":
     unittest.main()
