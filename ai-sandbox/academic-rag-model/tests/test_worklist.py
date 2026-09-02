@@ -132,6 +132,18 @@ class TestWriteSnowballCandidatesWorklist(unittest.TestCase):
             self.assertIn("- [ ] [A Candidate](https://doi.org/10.1/abc)", content)
             self.assertIn("research/journal-articles/business/", content)
 
+    def test_flags_title_only_scores_as_weaker_signal(self):
+        manifest = {
+            "10.1/abc": {
+                "status": "proposed", "title": "A Candidate", "folder": "business",
+                "doi_url": "https://doi.org/10.1/abc", "relevance_score": 0.55, "scored_from": "title",
+            },
+        }
+        with tempfile.TemporaryDirectory() as tmp:
+            path = write_snowball_candidates_worklist(manifest, tmp)
+            content = path.read_text(encoding="utf-8")
+            self.assertIn("0.55 (scored from title only, no abstract)", content)
+
     def test_handles_none_relevance_score_gracefully(self):
         # Confirmed live 2026-09-02: select_relevant_works() can hand back
         # a ScoredWork with score=None (a filler candidate with no

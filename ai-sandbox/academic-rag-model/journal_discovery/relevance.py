@@ -36,7 +36,8 @@ def _normalize_title(title: str) -> str:
 @dataclass
 class ScoredWork:
     work: Work
-    score: float | None  # None means no abstract was available to score
+    score: float | None  # None only if neither an abstract nor a title was available to score
+    scored_from: str = "abstract"  # "title" flags a weaker, title-only signal
 
 
 def cosine_similarity(a: list[float], b: list[float]) -> float:
@@ -62,10 +63,18 @@ def embed_text(model, text: str) -> list[float]:
     return model.encode(text, normalize_embeddings=True).tolist()
 
 
-def score_work(model, prompt_embedding: list[float], work: Work) -> float | None:
-    if not work.abstract:
-        return None
-    return cosine_similarity(prompt_embedding, embed_text(model, work.abstract))
+def score_work(model, prompt_embedding: list[float], work: Work) -> tuple[float, str] | tuple[None, None]:
+    """Falls back to the title when there's no abstract to score --
+    confirmed real 2026-09-02 that closed-access Elsevier articles often
+    have no abstract_inverted_index in OpenAlex at all (a publisher
+    licensing gap, not a parsing bug); a title-based score is a real,
+    if weaker, signal, flagged via the returned scored_from so callers
+    can show reduced confidence rather than treating it as unscorable."""
+    if work.abstract:
+        return cosine_similarity(prompt_embedding, embed_text(model, work.abstract)), "abstract"
+    if work.title:
+        return cosine_similarity(prompt_embedding, embed_text(model, work.title)), "title"
+    return None, None
 
 
 def select_relevant_works(
@@ -78,12 +87,14 @@ def select_relevant_works(
 ) -> list[ScoredWork]:
     """Consumes `works` lazily (spec S4 step 2): stops examining candidates
     once max_examined have been scored, or once max_results have passed
-    the threshold, whichever comes first. A work with no abstract can't
-    be scored and is deprioritized -- collected separately and only used
-    to fill slots max_results didn't otherwise reach (spec S6)."""
+    the threshold, whichever comes first. Every candidate -- abstract- or
+    title-scored -- goes through the same threshold check; nothing is
+    admitted just because it couldn't be scored well (confirmed real
+    2026-09-02: the old no-abstract-fills-leftover-slots behavior let
+    completely off-topic candidates flood the worklist whenever one
+    heavily-cited seed paper's citers mostly lacked abstracts)."""
     prompt_embedding = embed_text(model, relevance_prompt)
     scored: list[ScoredWork] = []
-    unscored: list[ScoredWork] = []
     seen_titles: set[str] = set()
     examined = 0
 
@@ -96,17 +107,11 @@ def select_relevant_works(
         if normalized_title in seen_titles:
             continue
 
-        score = score_work(model, prompt_embedding, work)
-        if score is None:
-            unscored.append(ScoredWork(work=work, score=None))
-            seen_titles.add(normalized_title)
-        elif score >= threshold:
-            scored.append(ScoredWork(work=work, score=score))
+        score, scored_from = score_work(model, prompt_embedding, work)
+        if score is not None and score >= threshold:
+            scored.append(ScoredWork(work=work, score=score, scored_from=scored_from))
             seen_titles.add(normalized_title)
             if len(scored) >= max_results:
                 break
 
-    remaining_slots = max_results - len(scored)
-    if remaining_slots > 0:
-        scored.extend(unscored[:remaining_slots])
     return scored

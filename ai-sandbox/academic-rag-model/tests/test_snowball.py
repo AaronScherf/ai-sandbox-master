@@ -123,6 +123,7 @@ class TestPropose(unittest.TestCase):
             entry = manifest["10.1/citer"]
             self.assertEqual(entry["status"], "proposed")
             self.assertEqual(entry["relevance_score"], 0.75)
+            self.assertEqual(entry["scored_from"], "abstract")
             self.assertEqual(entry["title"], "Paper 1")
             self.assertIn("folder", entry)
 

@@ -106,6 +106,7 @@ def propose(args) -> dict:
             "year": work.year,
             "doi_url": doi_url(work),
             "relevance_score": scored_work.score,
+            "scored_from": scored_work.scored_from,
             "cites_seed": seed_map.get(key),
         })
         counts["proposed"] += 1
