@@ -55,6 +55,21 @@ class TestWriteNeedsManualWorklist(unittest.TestCase):
             content = path.read_text(encoding="utf-8")
             self.assertIn("no folder recorded yet", content)
 
+    def test_excludes_stale_dataset_type_entries(self):
+        # Entries recorded before the discovery.py dataset-type filter
+        # existed (RCT registrations, replication-data records) may still
+        # carry a backfilled work_type -- these were never real papers
+        # and shouldn't clutter a click-through worklist.
+        manifest = {
+            "10.1/rct": {"status": "needs_manual", "title": "A Trial Registration", "work_type": "dataset"},
+            "10.1/real": {"status": "needs_manual", "title": "A Real Paper", "work_type": "article"},
+        }
+        with tempfile.TemporaryDirectory() as tmp:
+            path = write_needs_manual_worklist(manifest, tmp)
+            content = path.read_text(encoding="utf-8")
+            self.assertNotIn("A Trial Registration", content)
+            self.assertIn("A Real Paper", content)
+
     def test_empty_manifest_still_writes_a_file(self):
         with tempfile.TemporaryDirectory() as tmp:
             path = write_needs_manual_worklist({}, tmp)

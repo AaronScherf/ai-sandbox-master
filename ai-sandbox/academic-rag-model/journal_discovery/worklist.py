@@ -21,7 +21,10 @@ def _link_for(key: str, entry: dict) -> str:
 
 
 def write_needs_manual_worklist(manifest: dict, articles_dir) -> Path:
-    entries = [(key, entry) for key, entry in manifest.items() if entry.get("status") == "needs_manual"]
+    entries = [
+        (key, entry) for key, entry in manifest.items()
+        if entry.get("status") == "needs_manual" and entry.get("work_type") != "dataset"
+    ]
     entries.sort(key=lambda kv: kv[1].get("title") or kv[0])
 
     lines = [
