@@ -325,3 +325,85 @@ though still only two real trials total -- not enough to estimate a
 steady-state success rate, but the specific, concretely-observed gap
 this fix targeted is now closed and directly confirmed against the
 exact query that exposed it.
+
+## Current status (2026-09-03, end of session)
+
+Consolidated picture for anyone starting from here, superseding the
+now-stale bits of "Specific limitations" and "What's next" above (left
+in place as the historical record of how each finding was actually
+reached, not deleted or rewritten).
+
+**Working today:** both tiers, exercised against the real corpus, both
+now succeed on every query tried. Template path: instant, deterministic
+(spectral decomposition, confirmed real eigendecomposition data).
+Ollama fallback: `qwen2.5-coder:7b`, now hardened with a 3-attempt
+validate-and-retry loop, a tightened prompt, and a timeout/unreachable
+distinction -- 3 for 3 real queries across this session (spectral
+decomposition via template; eigenvectors/eigenvalues and the
+intermediate value theorem via the fallback, the latter two both
+previously-failing queries that now succeed).
+
+**Bugs found and fixed this session, all via real usage, not
+speculation:**
+1. Template keyword over-matching -- `convergence.py`'s bare
+   `"convergence"`/`"divergence"` keywords stole unrelated concepts
+   (convergence in probability, the divergence theorem) from the Ollama
+   fallback; tightened to specific phrases, tested against the real
+   template registry.
+2. A paid API key (`GEMINI_API_KEY`) was reachable from LLM-generated
+   code's subprocess environment; the subprocess now runs with a
+   minimal, explicit environment and a scratch working directory.
+3. The Ollama-generated code produced invalid Plotly properties on 2/2
+   early real trials ("Bad property path: bold", then "z") -- addressed
+   with the retry loop plus a prompt tightened to steer away from
+   exotic/speculative properties.
+4. A long question could overflow Windows's filename length limit and
+   crash the template path *after* the tutor's paid Gemini answer call
+   had already succeeded, discarding it -- the template path now caps
+   the slug length and is wrapped in the same never-raises guarantee
+   the fallback path already had.
+5. A slow-but-live Ollama call was indistinguishable from a genuinely
+   unreachable one, so it got one shot at a 180s timeout instead of the
+   retry budget the design intended -- `_call_ollama` now returns a
+   distinct timeout sentinel so the retry loop can tell the two apart.
+
+**Real limitations that still stand, honestly:**
+- **Output is a standalone `.html` file only -- not embedded in a
+  larger report.** `generate_visualization()` returns just a
+  `VizResult(html_path, title, source)`; the CLI prints a bare
+  `visualization: <path>` line alongside the separately-printed text
+  answer and citations. Nothing currently combines the explanation
+  text, citations, and the interactive plot into one document -- a
+  student gets a terminal answer and a separate file to open by hand.
+  **Building a combined report (text + citations + plot in one place)
+  is explicitly the next thing to design**, not built here.
+- Only four template-covered concepts; every other concept still
+  depends on the (now-hardened, but not infallible) Ollama path.
+- No parameter extraction from retrieved content -- templates render a
+  generic illustrative example, never the specific numbers from
+  whatever passage was actually retrieved.
+- No automatic "does this question deserve a visualization" logic --
+  `visualize` is caller-set.
+- Average/worst-case latency for the Ollama path is still unmeasured
+  beyond a handful of real trials (67.6s, 2m24s, 4m24s, and one 3m8s
+  timeout-then-give-up before the timeout fix) -- not enough real
+  volume yet to know a steady-state distribution, and the timeout fix's
+  own accepted tradeoff (worst case up to ~9 min for a
+  consistently-slow query, vs. ~3 min before) hasn't been stress-tested
+  against a run that actually times out on every attempt.
+
+**What's next, in the order this session's findings suggest:**
+1. **Combined report** -- fold the text explanation, citations, and the
+   interactive plot into one document instead of three disconnected
+   outputs (a printed answer, a printed citation list, a separate file
+   path). Explicitly queued as the next design conversation.
+2. Measure real Ollama-path timing (average and worst case) across more
+   real queries, and decide whether the retry budget or the per-request
+   timeout need tuning based on actual data rather than the four data
+   points gathered so far.
+3. Grow template coverage reactively, as real questions keep falling
+   through to the slower fallback path.
+4. Revisit automatic `visualize` decision logic once there's real usage
+   data on which questions actually benefit from a plot.
+5. Parameter extraction from retrieved content, if generic illustrative
+   examples turn out to be a real limitation in practice.
