@@ -88,33 +88,43 @@ class TestRunGeneratedCode(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             output_path = os.path.join(tmp, "out.html")
             code = "import plotly.graph_objects as go\nfig = go.Figure(data=[go.Scatter(x=[1, 2], y=[1, 2])])"
-            self.assertTrue(_run_generated_code(code, output_path))
+            success, error = _run_generated_code(code, output_path)
+            self.assertTrue(success)
+            self.assertIsNone(error)
             self.assertTrue(os.path.exists(output_path))
 
     def test_broken_code_returns_false(self):
         with tempfile.TemporaryDirectory() as tmp:
             output_path = os.path.join(tmp, "out.html")
-            self.assertFalse(_run_generated_code("this is not valid python(((", output_path))
+            success, error = _run_generated_code("this is not valid python(((", output_path)
+            self.assertFalse(success)
+            self.assertIsNotNone(error)
             self.assertFalse(os.path.exists(output_path))
 
     def test_code_with_no_fig_variable_returns_false(self):
         with tempfile.TemporaryDirectory() as tmp:
             output_path = os.path.join(tmp, "out.html")
-            self.assertFalse(_run_generated_code("x = 1 + 1", output_path))
+            success, error = _run_generated_code("x = 1 + 1", output_path)
+            self.assertFalse(success)
+            self.assertIsNotNone(error)
             self.assertFalse(os.path.exists(output_path))
 
     def test_timeout_returns_false(self):
         with tempfile.TemporaryDirectory() as tmp:
             output_path = os.path.join(tmp, "out.html")
             code = "import time\ntime.sleep(5)\nimport plotly.graph_objects as go\nfig = go.Figure()"
-            self.assertFalse(_run_generated_code(code, output_path, timeout=1))
+            success, error = _run_generated_code(code, output_path, timeout=1)
+            self.assertFalse(success)
+            self.assertIn("timed out", error)
 
     @patch("viz.llm_fallback.subprocess.run", side_effect=OSError("spawn failed"))
     def test_subprocess_spawn_failure_returns_false(self, mock_run):
         with tempfile.TemporaryDirectory() as tmp:
             output_path = os.path.join(tmp, "out.html")
             code = "import plotly.graph_objects as go\nfig = go.Figure()"
-            self.assertFalse(_run_generated_code(code, output_path))
+            success, error = _run_generated_code(code, output_path)
+            self.assertFalse(success)
+            self.assertIsNotNone(error)
             self.assertFalse(os.path.exists(output_path))
 
     def test_generated_code_cannot_see_a_secret_env_var_present_in_the_test_process(self):
@@ -137,7 +147,9 @@ class TestRunGeneratedCode(unittest.TestCase):
                 "title = 'ABSENT' if seen is None else f'LEAKED:{seen}'\n"
                 "fig = go.Figure(layout=dict(title=title))\n"
             )
-            self.assertTrue(_run_generated_code(code, output_path))
+            success, error = _run_generated_code(code, output_path)
+            self.assertTrue(success)
+            self.assertIsNone(error)
             with open(output_path, "r", encoding="utf-8") as f:
                 html = f.read()
             self.assertIn("ABSENT", html)
@@ -148,7 +160,8 @@ class TestRunGeneratedCode(unittest.TestCase):
             output_path = os.path.join(tmp, "out.html")
             code = "import plotly.graph_objects as go\nfig = go.Figure()"
             with patch("viz.llm_fallback.subprocess.run", wraps=__import__("subprocess").run) as mock_run:
-                self.assertTrue(_run_generated_code(code, output_path))
+                success, error = _run_generated_code(code, output_path)
+            self.assertTrue(success)
             _, kwargs = mock_run.call_args
             self.assertIn("env", kwargs)
             self.assertNotEqual(kwargs["env"], dict(os.environ))
@@ -159,7 +172,8 @@ class TestRunGeneratedCode(unittest.TestCase):
             output_path = os.path.join(tmp, "out.html")
             code = "import plotly.graph_objects as go\nfig = go.Figure()"
             with patch("viz.llm_fallback.subprocess.run", wraps=__import__("subprocess").run) as mock_run:
-                self.assertTrue(_run_generated_code(code, output_path))
+                success, error = _run_generated_code(code, output_path)
+            self.assertTrue(success)
             _, kwargs = mock_run.call_args
             self.assertIn("cwd", kwargs)
             self.assertNotEqual(os.path.abspath(kwargs["cwd"]), os.path.abspath(os.getcwd()))

@@ -125,16 +125,20 @@ def _minimal_subprocess_env() -> dict[str, str]:
     return {key: os.environ[key] for key in keys if key in os.environ}
 
 
-def _run_generated_code(code: str, output_path: str, timeout: int = EXECUTION_TIMEOUT_SECONDS) -> bool:
+def _run_generated_code(
+    code: str, output_path: str, timeout: int = EXECUTION_TIMEOUT_SECONDS,
+) -> tuple[bool, str | None]:
     """Executes `code` in a fresh subprocess that pre-imports only
     plotly/numpy, then appends a fig.write_html(output_path) call and
     enforces `timeout`. The subprocess runs with a minimal, explicit
     environment (see _minimal_subprocess_env -- no inherited secrets)
     and a scratch working directory (the temp dir holding its own
     generated script), not the caller's cwd, so a stray file write from
-    generated code can't land in the project tree. Returns True only if
-    the file actually got written -- never raises past its caller
-    (spec §4)."""
+    generated code can't land in the project tree. Returns (True, None)
+    only if the file actually got written; otherwise (False, <error
+    text>) -- the error is fed back to the model on a retry (see
+    generate_via_llm) in addition to being printed as a WARNING here.
+    Never raises past its caller (spec §4)."""
     abs_output_path = os.path.abspath(output_path)
     script = (
         "import plotly.graph_objects as go\n"
@@ -152,15 +156,22 @@ def _run_generated_code(code: str, output_path: str, timeout: int = EXECUTION_TI
             env=_minimal_subprocess_env(), cwd=os.path.dirname(script_path),
         )
         if result.returncode != 0:
+            error = f"the script failed:\n{result.stderr[-500:]}"
             print(f"WARNING: generated visualization script failed:\n{result.stderr[-500:]}")
-            return False
-        return os.path.exists(abs_output_path)
+            return False, error
+        if not os.path.exists(abs_output_path):
+            error = "the script ran without error but never produced the output file -- was `fig` assigned?"
+            print(f"WARNING: {error}")
+            return False, error
+        return True, None
     except subprocess.TimeoutExpired:
+        error = f"the script timed out after {timeout}s -- avoid expensive computation or infinite loops"
         print(f"WARNING: generated visualization script timed out after {timeout}s")
-        return False
+        return False, error
     except Exception as err:
+        error = f"the script raised an unexpected error before it could run: {err}"
         print(f"WARNING: generated visualization script raised an unexpected error: {err}")
-        return False
+        return False, error
     finally:
         try:
             os.unlink(script_path)
