@@ -46,6 +46,11 @@ Requirements:
 - Assign the finished figure to a variable named exactly `fig` (a plotly.graph_objects.Figure).
 - Do not call fig.show(), fig.write_html(), or write any file yourself -- the caller handles that.
 - Do not import anything other than plotly (as go or px) and numpy.
+- Prefer simple, well-documented trace types: go.Scatter, go.Bar, go.Contour, go.Surface. Stick to
+  basic layout options: fig.update_layout(title=...), axis labels via xaxis_title/yaxis_title.
+- Do NOT use speculative or exotic Plotly properties you are not certain exist (e.g. text styling
+  properties like "bold", or a "z" property on a trace type that does not support one). If unsure
+  whether a property exists, leave it out rather than guessing.
 - Respond with ONLY one fenced ```python code block, nothing else.
 """
 
@@ -61,11 +66,38 @@ def _extract_code(response_text: str) -> str | None:
     return match.group(1).strip() if match else None
 
 
-def _call_ollama(concept: str, context: str) -> str | None:
+def _build_prompt(
+    concept: str, context: str,
+    previous_code: str | None = None, previous_error: str | None = None,
+) -> str:
+    """Composes the prompt sent to Ollama. First attempt (previous_error
+    is None): the base concept+context prompt. Retry attempt
+    (previous_error set): the same base prompt plus the previous
+    attempt's code (if any -- omitted when extraction itself failed,
+    since there's no code to show) and the exact error it produced,
+    asking for a corrected script (spec:
+    docs/superpowers/specs/2026-09-03-viz-ollama-retry-hardening-design.md
+    §3)."""
+    context_block = f"Background from the student's own course materials:\n{context}\n" if context else ""
+    base = _PROMPT_TEMPLATE.format(concept=concept, context_block=context_block)
+    if previous_error is None:
+        return base
+    previous_code_block = (
+        f"Your previous attempt produced this script:\n```python\n{previous_code}\n```\n"
+        if previous_code else ""
+    )
+    return (
+        f"{base}\n"
+        f"{previous_code_block}"
+        f"That failed with:\n{previous_error}\n"
+        f"Write a corrected script that fixes this specific problem. Respond with ONLY one "
+        f"fenced ```python code block, nothing else."
+    )
+
+
+def _call_ollama(prompt: str) -> str | None:
     print(f"Generating a visualization via the local Ollama model ({OLLAMA_MODEL}) -- "
           f"this can take up to a minute...")
-    context_block = f"Background from the student's own course materials:\n{context}\n" if context else ""
-    prompt = _PROMPT_TEMPLATE.format(concept=concept, context_block=context_block)
     payload = json.dumps({"model": OLLAMA_MODEL, "prompt": prompt, "stream": False}).encode("utf-8")
     request = urllib.request.Request(
         OLLAMA_URL, data=payload, headers={"Content-Type": "application/json"},

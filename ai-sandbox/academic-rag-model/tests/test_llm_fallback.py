@@ -5,7 +5,7 @@ import unittest
 from unittest.mock import MagicMock, patch
 
 from viz.llm_fallback import (
-    _cache_key, _extract_code, _call_ollama, _run_generated_code, generate_via_llm,
+    _cache_key, _extract_code, _build_prompt, _call_ollama, _run_generated_code, generate_via_llm,
 )
 
 
@@ -33,18 +33,54 @@ class TestExtractCode(unittest.TestCase):
         self.assertIsNone(_extract_code("no code here"))
 
 
+class TestBuildPrompt(unittest.TestCase):
+    def test_first_attempt_has_no_retry_content(self):
+        prompt = _build_prompt("spectral decomposition", "")
+        self.assertNotIn("previous attempt", prompt)
+        self.assertNotIn("That failed with", prompt)
+
+    def test_retry_attempt_includes_previous_code_and_error(self):
+        prompt = _build_prompt(
+            "spectral decomposition", "",
+            previous_code="fig = go.Figure(layout=dict(bold=True))",
+            previous_error="Bad property path:\nbold",
+        )
+        self.assertIn("fig = go.Figure(layout=dict(bold=True))", prompt)
+        self.assertIn("Bad property path:\nbold", prompt)
+
+    def test_retry_without_previous_code_still_includes_error(self):
+        prompt = _build_prompt(
+            "spectral decomposition", "",
+            previous_code=None,
+            previous_error="the response contained no ```python code block",
+        )
+        self.assertIn("no ```python code block", prompt)
+
+    def test_context_included_when_provided(self):
+        prompt = _build_prompt("concept", "some course context")
+        self.assertIn("some course context", prompt)
+
+    def test_context_omitted_when_empty(self):
+        prompt = _build_prompt("concept", "")
+        self.assertNotIn("Background from the student", prompt)
+
+    def test_base_prompt_warns_against_exotic_properties(self):
+        prompt = _build_prompt("concept", "")
+        self.assertIn("Do NOT use speculative or exotic Plotly properties", prompt)
+
+
 class TestCallOllama(unittest.TestCase):
     @patch("viz.llm_fallback.urllib.request.urlopen")
     def test_returns_response_text_on_success(self, mock_urlopen):
         mock_response = MagicMock()
         mock_response.read.return_value = json.dumps({"response": "```python\nfig = go.Figure()\n```"}).encode()
         mock_urlopen.return_value.__enter__.return_value = mock_response
-        result = _call_ollama("spectral decomposition", "")
+        result = _call_ollama("some composed prompt")
         self.assertIn("fig = go.Figure()", result)
 
     @patch("viz.llm_fallback.urllib.request.urlopen", side_effect=OSError("connection refused"))
     def test_returns_none_on_connection_failure(self, mock_urlopen):
-        self.assertIsNone(_call_ollama("concept", ""))
+        self.assertIsNone(_call_ollama("some composed prompt"))
 
 
 class TestRunGeneratedCode(unittest.TestCase):
