@@ -103,3 +103,41 @@ def _write(store_dir: str, records: list[ExampleRecord]) -> None:
     os.makedirs(store_dir, exist_ok=True)
     with open(path, "w", encoding="utf-8") as f:
         json.dump([asdict(r) for r in records], f, indent=2, ensure_ascii=False)
+
+
+EXAMPLE_SIMILARITY_THRESHOLD = 0.85  # deliberately high -- a related-but-distinct
+    # topic (e.g. "eigenvalues" vs. "singular values") surfacing as a worked
+    # example is worse than showing none at all
+MAX_EXAMPLES = 2
+
+
+def find_examples(concept: str, context: str, store_dir: str) -> list[ExampleRecord]:
+    """Returns up to MAX_EXAMPLES past successful generations relevant to
+    (concept, context): embedding similarity >= EXAMPLE_SIMILARITY_THRESHOLD
+    if any clear it, else keyword-overlap fallback, else []. Never raises --
+    any failure degrades to "no examples available" (spec §4)."""
+    try:
+        records = _load(store_dir)
+        if not records:
+            return []
+        query_text = f"{concept}\n{context}"
+        query_embedding = _embed(query_text)
+        if query_embedding is not None:
+            scored = [(_cosine_similarity(query_embedding, r.embedding), r) for r in records]
+            above_threshold = [(score, r) for score, r in scored if score >= EXAMPLE_SIMILARITY_THRESHOLD]
+            if above_threshold:
+                above_threshold.sort(key=lambda pair: pair[0], reverse=True)
+                return [r for _, r in above_threshold[:MAX_EXAMPLES]]
+        query_words = _derive_keywords(query_text)
+        overlapping = [
+            (len(query_words & set(r.keywords)), i, r)
+            for i, r in enumerate(records)
+            if query_words & set(r.keywords)
+        ]
+        if overlapping:
+            overlapping.sort(key=lambda triple: (-triple[0], triple[1]))
+            return [r for _, _, r in overlapping[:MAX_EXAMPLES]]
+        return []
+    except Exception as err:
+        print(f"WARNING: example lookup failed unexpectedly ({err}) -- proceeding without examples")
+        return []
