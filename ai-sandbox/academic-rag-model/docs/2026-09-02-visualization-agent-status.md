@@ -185,3 +185,99 @@ Not spec'd, in rough order a future session might pick up:
    second attempt (or a narrower prompt constraint on allowed
    properties) might plausibly avoid. Not done here since one data
    point isn't enough to justify the added complexity yet.
+
+## Retry-hardening validation (2026-09-03)
+
+Item 4 above was picked up after two real-usage failures on 2026-09-02
+and 2026-09-03 both hit the same invalid-Plotly-property class ("Bad
+property path: bold" above, and a separate "Bad property path: z"
+observed live in a 2026-09-03 session against the "eigenvectors and
+eigenvalues" phrasing). Design:
+`docs/superpowers/specs/2026-09-03-viz-ollama-retry-hardening-design.md`;
+plan: `docs/superpowers/plans/2026-09-03-viz-ollama-retry-hardening.md`.
+Shipped: a bounded `MAX_GENERATION_ATTEMPTS = 3` validate-and-retry loop
+in `generate_via_llm()` (each retry gets the previous attempt's exact
+code and error fed back via `_build_prompt()`), plus a tightened base
+prompt steering the model away from exotic/speculative Plotly
+properties -- the specific mistake class both real failures hit.
+
+**Full automated suite:** `732 tests, OK` on two of three consecutive
+runs; one run showed a single transient error that did not reproduce on
+immediate re-run and was not traced to anything in this change (most
+likely a race with a concurrently-active peer session's own commits to
+this shared repo, per this project's multi-session working style) --
+not treated as a real regression.
+
+**Re-run of the previously-failing "intermediate value theorem" query**
+(the exact query and phrasing from the Step 3 trial above):
+```
+.\.venv\Scripts\python.exe -m indexer.index_search --root ../academic-hub ask "explain the intermediate value theorem" --course math-camp --visualize
+```
+Wall clock: **3 min 8 s.** Outcome: **still no visualization**, but for
+a different and new reason than before -- only one "Generating a
+visualization..." line printed (i.e. no retry actually fired), and the
+console showed:
+```
+WARNING: Ollama call failed (timed out) -- is `ollama serve` running and has `ollama pull qwen2.5-coder:7b` been run?
+```
+This is `_call_ollama`'s own 180-second HTTP client timeout expiring --
+this particular generation was simply slow (close to 3x the ~68s
+observed for the same query before hardening), not a bad-code failure.
+Per the retry-hardening design's own §4, `_call_ollama` returning `None`
+(network/HTTP failure) is explicitly treated as non-retryable ("Ollama
+unreachable... retrying here just triples the wait before the same
+inevitable `None`, for no benefit") -- but that reasoning assumed a
+categorically down/unreachable server, not a live server that's simply
+being slow on a particular generation. **This is a real gap the design
+didn't anticipate**: a slow-but-eventually-answering Ollama call is
+currently bucketed with "genuinely unreachable" and never gets a retry,
+even though a second attempt might well complete in normal time. The
+tutor's text answer was still returned normally either way -- the
+never-raises contract held -- but this specific query still doesn't get
+a visualization, just from a different failure mode than the one this
+hardening pass targeted.
+
+**Re-run of the "eigenvectors and eigenvalues" query** (the exact
+phrasing that failed live in this session with "Bad property path: z"):
+```
+.\.venv\Scripts\python.exe -m indexer.index_search --root ../academic-hub ask "Give me a lesson summarizing eigenvectors and eigenvalues: what they are, geometric intuition, and how to compute them." --course math-camp --visualize
+```
+Wall clock: **2 min 24 s.** **Succeeded on the first attempt** -- no
+retry needed. Output ended with:
+```
+visualization: ../academic-hub\.viz\math-camp\give-me-a-lesson-summarizing-eigenvectors-and-eigenvalues-what-they-are-geometri.html
+```
+Directly inspected the generated `.html` (4.3 MB, real
+`Plotly.newPlot(...)` call, not a placeholder): title `"Effect of Basis
+Change on Linear Operator"` with `"Input"`/`"Output"` subplot titles --
+a genuinely topical, sensible visualization for the concept, not a
+generic or mismatched one. This is the same query, same wording, that
+failed with an invalid-property error earlier this session before this
+hardening pass -- the tightened base prompt (steering away from exotic
+properties like the `bold`/`z` mistakes both prior failures hit) appears
+to have been sufficient on its own here, without the retry loop needing
+to fire at all.
+
+**Assessment:** 1 of 2 previously-failing real queries is now fixed
+outright by the tightened prompt (no retry needed); the other traded
+one failure mode (bad code) for a different one (the HTTP client
+timeout) that this hardening pass didn't target and that its own
+non-retry-on-`None` rule actively prevents from getting a second
+chance. Two data points, in opposite directions, on the same design --
+not enough to conclude the retry loop itself works as intended (neither
+real trial actually exercised a mid-loop recovery; that path is only
+proven by the mocked unit tests in `test_llm_fallback.py`), only that
+the prompt tightening alone already closes some of the observed gap,
+and that the unreachable-vs-slow distinction in §4 is a real,
+now-observed weak point worth revisiting before drawing broader
+conclusions about reliability.
+
+**Immediate follow-up candidate, surfaced by this validation and not
+in the original design:** either raise `_call_ollama`'s 180s HTTP
+timeout (a slow-but-live generation currently gets one shot, at a much
+tighter budget than the loop's own ~3-attempt/~3-minutes-each intent
+suggests), or -- more precisely -- distinguish a genuine connection
+failure (retry-proof) from a client-side timeout (plausibly worth one
+retry) inside `_call_ollama`'s own exception handling, rather than
+collapsing both into the same `None` return the retry loop then treats
+identically.
