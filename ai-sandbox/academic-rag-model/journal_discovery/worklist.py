@@ -102,3 +102,34 @@ def write_snowball_candidates_worklist(manifest: dict, articles_dir) -> Path:
         "to fetch just those.",
     ]
     return _write_checkbox_worklist(manifest, articles_dir, "snowball_candidates.md", heading, "proposed")
+
+
+def write_metadata_audit_flags_worklist(manifest: dict, articles_dir) -> Path:
+    entries = [(key, entry) for key, entry in manifest.items() if entry.get("audit_flags")]
+    entries.sort(key=lambda kv: kv[1].get("title") or kv[0])
+
+    path = Path(articles_dir) / "metadata_audit_flags.md"
+    previously_checked = _read_checked_links(path)
+
+    lines = [
+        "# Papers flagged by the metadata/folder audit",
+        "",
+        "audit_metadata.py found a mismatch it can't safely auto-correct --",
+        "each needs a human look. Resolve by hand (fix the sidecar, re-file,",
+        "whatever's right), then run `python -m audit_metadata --recheck-all`",
+        "to clear the flag once it no longer reproduces. Checking a box here",
+        "only tracks your own review progress; it does not clear the flag.",
+        "",
+    ]
+    for key, entry in entries:
+        title = entry.get("title") or key
+        link = _link_for(key, entry)
+        checkbox = "x" if link in previously_checked else " "
+        lines.append(f"- [{checkbox}] [{title}]({link})")
+        for flag in entry["audit_flags"]:
+            lines.append(f"  - **{flag['type']}**: {flag['detail']}")
+    lines.append("")
+
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text("\n".join(lines), encoding="utf-8")
+    return path

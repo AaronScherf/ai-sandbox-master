@@ -2,7 +2,11 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from journal_discovery.worklist import write_needs_manual_worklist, write_snowball_candidates_worklist
+from journal_discovery.worklist import (
+    write_metadata_audit_flags_worklist,
+    write_needs_manual_worklist,
+    write_snowball_candidates_worklist,
+)
 
 
 class TestWriteNeedsManualWorklist(unittest.TestCase):
@@ -220,6 +224,57 @@ class TestWriteSnowballCandidatesWorklist(unittest.TestCase):
 
             self.assertIn("- [x] [Manual One]", manual_path.read_text(encoding="utf-8"))
             self.assertIn("- [ ] [Proposed One]", snowball_path.read_text(encoding="utf-8"))
+
+
+class TestWriteMetadataAuditFlagsWorklist(unittest.TestCase):
+    def test_only_entries_with_flags_appear(self):
+        manifest = {
+            "10.1/flagged": {
+                "status": "fetched", "title": "Flagged Paper", "doi_url": "https://doi.org/10.1/flagged",
+                "audit_flags": [{"type": "title_mismatch", "detail": "stored title not found in text"}],
+            },
+            "10.1/clean": {"status": "fetched", "title": "Clean Paper", "audited_at": "2026-09-03T00:00:00+00:00"},
+        }
+        with tempfile.TemporaryDirectory() as tmp:
+            path = write_metadata_audit_flags_worklist(manifest, tmp)
+            self.assertEqual(path, Path(tmp) / "metadata_audit_flags.md")
+            content = path.read_text(encoding="utf-8")
+            self.assertIn("Flagged Paper", content)
+            self.assertNotIn("Clean Paper", content)
+
+    def test_shows_flag_detail(self):
+        manifest = {
+            "10.1/flagged": {
+                "status": "fetched", "title": "Flagged Paper", "doi_url": "https://doi.org/10.1/flagged",
+                "audit_flags": [{"type": "author_mismatch", "detail": "none of ['A. Nobody'] found in text"}],
+            },
+        }
+        with tempfile.TemporaryDirectory() as tmp:
+            path = write_metadata_audit_flags_worklist(manifest, tmp)
+            content = path.read_text(encoding="utf-8")
+            self.assertIn("author_mismatch", content)
+            self.assertIn("none of ['A. Nobody'] found in text", content)
+
+    def test_preserves_checked_state_across_regeneration(self):
+        manifest = {
+            "10.1/flagged": {
+                "status": "fetched", "title": "Flagged Paper", "doi_url": "https://doi.org/10.1/flagged",
+                "audit_flags": [{"type": "doi_mismatch", "detail": "..."}],
+            },
+        }
+        with tempfile.TemporaryDirectory() as tmp:
+            path = write_metadata_audit_flags_worklist(manifest, tmp)
+            path.write_text(
+                path.read_text(encoding="utf-8").replace("- [ ] [Flagged Paper]", "- [x] [Flagged Paper]"),
+                encoding="utf-8",
+            )
+            write_metadata_audit_flags_worklist(manifest, tmp)
+            self.assertIn("- [x] [Flagged Paper]", path.read_text(encoding="utf-8"))
+
+    def test_empty_manifest_still_writes_a_file(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = write_metadata_audit_flags_worklist({}, tmp)
+            self.assertTrue(path.exists())
 
 
 if __name__ == "__main__":
