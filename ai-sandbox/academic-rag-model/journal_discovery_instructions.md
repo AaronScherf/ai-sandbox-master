@@ -189,3 +189,13 @@ factor. Expect `needs_manual_download` often for gated papers; that
 fallback is correct, working behavior, not a bug. OA/arXiv tiers are
 unaffected. Working around Cloudflare's bot detection itself is out of
 scope (see the status doc for why).
+
+**Update, 2026-09-03:** a real instance of this same failure class
+(a CORE.ac.uk `downloadUrl`, not EZProxy) turned out to be fixable with
+just a realistic `User-Agent` header -- `_download()` now always sends
+one, benefiting every tier automatically, EZProxy included. This is a
+real, low-cost improvement, but the original EZProxy test above predates
+the fix and hasn't been re-run, so it's not confirmed whether a UA alone
+would clear EZProxy's specific wall too (the original finding pointed at
+TLS/JS fingerprinting as well, not just the UA string) -- worth
+re-testing if EZProxy volume ever becomes worth revisiting.
