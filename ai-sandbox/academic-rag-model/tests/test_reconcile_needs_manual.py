@@ -1,6 +1,9 @@
+import os
+import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from reconcile_needs_manual import (
     extract_preview,
@@ -142,6 +145,31 @@ class TestReconcile(unittest.TestCase):
 
             self.assertEqual(result["confirmed"], [])
             self.assertEqual(result["still_pending"], [])
+
+
+class TestMainChainsAudit(unittest.TestCase):
+    def test_main_calls_audit_when_mailto_set(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            with patch.object(sys, "argv", ["reconcile_needs_manual", "--articles-dir", tmp,
+                                             "--index-root", tmp]), \
+                 patch.dict(os.environ, {"OPENALEX_CONTACT_EMAIL": "me@example.com"}), \
+                 patch("reconcile_needs_manual.audit_metadata.audit") as mock_audit:
+                mock_audit.return_value = {
+                    "audited": 0, "folder_corrections": 0, "tag_syncs": 0, "flagged": 0, "skipped": 0,
+                }
+                import reconcile_needs_manual
+                reconcile_needs_manual.main()
+                mock_audit.assert_called_once_with(tmp, tmp, "me@example.com", recheck_all=False)
+
+    def test_main_skips_audit_and_still_succeeds_without_mailto(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            env_without_mailto = {k: v for k, v in os.environ.items() if k != "OPENALEX_CONTACT_EMAIL"}
+            with patch.object(sys, "argv", ["reconcile_needs_manual", "--articles-dir", tmp]), \
+                 patch.dict(os.environ, env_without_mailto, clear=True), \
+                 patch("reconcile_needs_manual.audit_metadata.audit") as mock_audit:
+                import reconcile_needs_manual
+                reconcile_needs_manual.main()
+                mock_audit.assert_not_called()
 
 
 if __name__ == "__main__":

@@ -10,9 +10,10 @@ confirm which needs_manual papers actually got downloaded and converted
 by searching their *real content* (a manually-downloaded PDF's filename
 almost never matches anything this pipeline would have generated, so
 filename matching isn't viable), mark those resolved, and regenerate
-the worklist so it's a living reflection of current status. Also prints
-a folder/content review so folder-appropriateness can be checked
-against what a paper actually says, not just its OpenAlex concept tags.
+the worklist so it's a living reflection of current status. Also runs
+audit_metadata.py's metadata/folder audit automatically as its last
+step (skipped with a warning if OPENALEX_CONTACT_EMAIL isn't set) --
+see docs/superpowers/specs/2026-09-02-metadata-folder-audit-design.md.
 
 Run after convert_journal_articles.py, from the academic-rag-model root:
     python -m reconcile_needs_manual
@@ -20,9 +21,11 @@ Run after convert_journal_articles.py, from the academic-rag-model root:
 from __future__ import annotations
 
 import argparse
+import os
 import re
 from pathlib import Path
 
+import audit_metadata
 from journal_discovery.manifest import load_manifest, manifest_path, save_manifest
 from journal_discovery.text_match import normalize
 from journal_discovery.worklist import write_needs_manual_worklist
@@ -91,7 +94,9 @@ def reconcile(articles_dir) -> dict:
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     default_articles_dir = Path(__file__).resolve().parent.parent / "research" / "journal-articles"
+    default_index_root = Path(__file__).resolve().parent.parent / "research"
     parser.add_argument("--articles-dir", default=str(default_articles_dir))
+    parser.add_argument("--index-root", default=str(default_index_root))
     args = parser.parse_args()
 
     result = reconcile(args.articles_dir)
@@ -104,11 +109,16 @@ def main():
     for key, title in result["still_pending"]:
         print(f"  - {title or key}")
 
-    print("\nFolder/content review (check these match what the paper is actually about):")
-    for md_path in find_converted_md_files(args.articles_dir):
-        folder = md_path.parent.parent.name
-        preview = extract_preview(md_path, max_chars=150).replace("\n", " ")
-        print(f"  [{folder}] {md_path.stem}: {preview}")
+    mailto = os.environ.get("OPENALEX_CONTACT_EMAIL")
+    if not mailto:
+        print("\nAudit step skipped: set OPENALEX_CONTACT_EMAIL to enable it.")
+        return
+
+    audit_result = audit_metadata.audit(args.articles_dir, args.index_root, mailto, recheck_all=False)
+    print(f"\nAudited {audit_result['audited']} paper(s): "
+          f"{audit_result['folder_corrections']} folder correction(s), "
+          f"{audit_result['tag_syncs']} tag sync(s), {audit_result['flagged']} flagged, "
+          f"{audit_result['skipped']} skipped.")
 
 
 if __name__ == "__main__":
