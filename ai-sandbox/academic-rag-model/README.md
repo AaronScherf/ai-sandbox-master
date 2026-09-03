@@ -29,6 +29,7 @@ almost everything else depends on.
 - [`journal_discovery/`](journal_discovery/) — resolves a faculty name or topic query (OpenAlex, locally-scored relevance, paced Unpaywall/arXiv/EZProxy access) into full-text PDFs under `research/journal-articles/<topic>/`, ready for `journal_articles/` to pick up. See [`journal_discovery_instructions.md`](journal_discovery_instructions.md).
 - [`postprocessing/`](postprocessing/) — `postprocess_notes.py`: a downstream correction pass over `notes/`'s output. Depends on `notes/`.
 - [`rag/`](rag/README.md) — the multi-turn tutoring agent grounded in passage retrieval. Depends on `indexer/`.
+- [`viz/`](viz/README.md) — interactive Plotly HTML visualizations for concepts: a keyword-matched template library first, a local Ollama model (`qwen2.5-coder:7b`) as fallback for concepts with no template. No paid API calls anywhere in this package. Wired into `rag/` as an opt-in `--visualize` flag.
 - `tests/` — flat (not mirrored by subproject); imports are package-qualified to match the layout above.
 - `old_attempts/` — superseded, unmaintained prototypes; not part of the active pipeline.
 - `docs/` — narrative status docs and specs for each subproject's real design history (bugs found and fixed, generalizations made, evidence behind the numbers) — start with the most recently dated file per subproject if you want the "why," not just the "what."
@@ -37,4 +38,5 @@ almost everything else depends on.
 
 - **Baseline** (`notes/`, `essays/`, `journal_articles/`, `indexer/`, `rag/`): a `GEMINI_API_KEY` in `../.env` (copy from `../.env.example`). `essays/`'s own conversion needs no API key at all — only its optional indexing hook does.
 - **Textbook pipeline only** (`textbook/`): a GCP project with billing enabled and GPU quota approved (`PREEMPTIBLE_NVIDIA_L4_GPUS`), plus `gcloud` and Docker installed and running locally. See [`gcp_instructions.md`](gcp_instructions.md) for full setup.
+- **Visualization sub-agent only** (`viz/`, reached via `rag/`'s opt-in `--visualize` flag): `plotly` installed in the venv. Its Ollama fallback tier additionally needs a local Ollama install (`ollama serve`) with `qwen2.5-coder:7b` pulled (`ollama pull qwen2.5-coder:7b`) — optional, and only reached when no template matches; degrades to returning `None` with a printed warning if unavailable, no `GEMINI_API_KEY` or other paid API involved either way.
 - A sibling `academic-hub/<TEXTBOOK_SUBDIR>/` folder (matching `.env`'s `TEXTBOOK_SUBDIR`) for the textbook/notes corpus, and/or a sibling `research/` folder for the essays/journal-articles corpus — the indexer's multi-root search (`--root`, repeatable) can query across both in one call. Either is optional; use whichever corpus you're actually populating.

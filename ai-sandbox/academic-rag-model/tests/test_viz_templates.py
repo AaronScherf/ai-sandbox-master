@@ -88,7 +88,46 @@ class TestConvergenceTemplate(unittest.TestCase):
         self.assertEqual(len(fig.data), 2)  # partial sums + limit line
 
     def test_template_metadata(self):
-        self.assertIn("convergence", convergence.TEMPLATE.keywords)
+        self.assertIn("series convergence", convergence.TEMPLATE.keywords)
+        # The bare, over-broad "convergence"/"divergence" keywords were
+        # removed (see TestConvergenceTemplateNearMisses below) -- neither
+        # should reappear as a standalone keyword.
+        self.assertNotIn("convergence", convergence.TEMPLATE.keywords)
+        self.assertNotIn("divergence", convergence.TEMPLATE.keywords)
+
+    def test_genuine_match_via_full_registry(self):
+        from viz.templates import match_template
+        self.assertIs(match_template("explain series convergence"), convergence.TEMPLATE)
+        self.assertIs(match_template("does this series converge?"), convergence.TEMPLATE)
+        self.assertIs(match_template("what is an alternating series"), convergence.TEMPLATE)
+
+
+class TestConvergenceTemplateNearMisses(unittest.TestCase):
+    """Near-miss tests against the REAL, full TEMPLATE_REGISTRY (no
+    mocking) -- these four phrasings are all real over-matches the
+    original bare "convergence"/"divergence" keywords caused, verified
+    against this exact registry. None of them are about the alternating
+    harmonic series, so none should fire the convergence template."""
+
+    def test_convergence_in_distribution_does_not_match_series_convergence(self):
+        from viz.templates import match_template
+        result = match_template("what is convergence in distribution?")
+        self.assertIsNot(result, convergence.TEMPLATE)
+
+    def test_convergence_in_probability_does_not_match_series_convergence(self):
+        from viz.templates import match_template
+        result = match_template("explain convergence in probability")
+        self.assertIsNot(result, convergence.TEMPLATE)
+
+    def test_em_algorithm_convergence_does_not_match_series_convergence(self):
+        from viz.templates import match_template
+        result = match_template("does the EM algorithm converge? discuss its convergence")
+        self.assertIsNot(result, convergence.TEMPLATE)
+
+    def test_divergence_theorem_does_not_match_series_convergence(self):
+        from viz.templates import match_template
+        result = match_template("explain the divergence theorem")
+        self.assertIsNot(result, convergence.TEMPLATE)
 
 
 class TestAllTemplatesRegistered(unittest.TestCase):

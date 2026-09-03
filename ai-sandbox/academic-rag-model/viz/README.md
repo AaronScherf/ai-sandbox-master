@@ -23,11 +23,17 @@ Or via the tutor's own `--visualize` flag — see [`../rag/README.md`](../rag/RE
   `templates/__init__.py`.
 - `llm_fallback.py` — sends the concept + retrieved context to a local Ollama
   model (`qwen2.5-coder:7b` by default, override with `VIZ_OLLAMA_MODEL`),
-  extracts the generated Plotly script, runs it in a subprocess with a
-  timeout and a restricted import set, and caches the result on disk keyed
-  by a hash of (concept, context). Requires Ollama running locally
-  (`ollama serve`) with the model pulled (`ollama pull qwen2.5-coder:7b`) —
-  degrades to returning `None` with a printed warning if it isn't.
+  extracts the generated Plotly script, and runs it in a subprocess with an
+  execution timeout, a minimal/stripped environment (no inherited secrets —
+  in particular, the subprocess never sees `GEMINI_API_KEY`), and a scratch
+  working directory, then caches the result on disk keyed by a hash of
+  (concept, context). Plotly/numpy are pre-imported into the generated
+  script's own preamble for convenience, but generated code can still import
+  anything else and has full network access — this is execution isolation
+  (timeout, no secrets, no shared cwd), not a sandbox that restricts which
+  modules it can import. Requires Ollama running locally (`ollama serve`)
+  with the model pulled (`ollama pull qwen2.5-coder:7b`) — degrades to
+  returning `None` with a printed warning if it isn't.
 
 Output goes to `<root>/.viz/<course>/<slug>.html`, gitignored by default
 (see the root `.gitignore`) — same IP posture as `.index/chunks/`.

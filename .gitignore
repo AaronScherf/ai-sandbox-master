@@ -79,6 +79,12 @@ ai-sandbox/research/.index/chunks/
 # IP posture).
 ai-sandbox/academic-hub/.viz/
 ai-sandbox/research/.viz/
+# Broader, unanchored catch-all: generate_visualization()'s own default
+# academic_hub_root=".." resolves to ai-sandbox/.viz/ when run from
+# academic-rag-model/ (exactly what viz/README.md's own example one-liner
+# does without an explicit --root) -- not covered by either named pattern
+# above. This covers .viz/ under any current or future corpus root.
+**/.viz/
 
 #Prevent git workspace conflicts with obsidian
 # Vault root is ai-sandbox/, one level below this .gitignore -- a pattern

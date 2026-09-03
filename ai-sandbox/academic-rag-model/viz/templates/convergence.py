@@ -34,6 +34,9 @@ def render() -> go.Figure:
 
 TEMPLATE = Template(
     name="Series convergence",
-    keywords=["convergence", "divergence", "partial sum", "alternating series", "series converges"],
+    keywords=[
+        "series convergence", "convergence of a series", "partial sum",
+        "alternating series", "series converge", "series diverges",
+    ],
     render=render,
 )

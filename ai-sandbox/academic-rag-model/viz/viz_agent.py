@@ -22,8 +22,12 @@ class VizResult:
     source: str  # "template" | "llm_fallback"
 
 
+_SLUG_MAX_LENGTH = 80
+
+
 def _slugify(concept: str) -> str:
     slug = re.sub(r"[^a-z0-9]+", "-", concept.lower()).strip("-")
+    slug = slug[:_SLUG_MAX_LENGTH].strip("-")
     return slug or "concept"
 
 
@@ -39,10 +43,14 @@ def generate_visualization(
 
     template = match_template(concept)
     if template is not None:
-        os.makedirs(output_dir, exist_ok=True)
-        fig = template.render()
-        fig.write_html(output_path, include_plotlyjs="inline")
-        return VizResult(html_path=output_path, title=template.name, source="template")
+        try:
+            os.makedirs(output_dir, exist_ok=True)
+            fig = template.render()
+            fig.write_html(output_path, include_plotlyjs="inline")
+            return VizResult(html_path=output_path, title=template.name, source="template")
+        except Exception as err:
+            print(f"WARNING: template visualization failed unexpectedly ({err})")
+            return None
 
     from viz.llm_fallback import generate_via_llm  # function-scoped: keeps the Ollama/
     # subprocess-dependent module out of the import path for callers that only ever hit

@@ -25,9 +25,15 @@ Two-tier resolution, both free of any paid API call:
 2. **Ollama fallback** (`viz.llm_fallback.generate_via_llm()`) -- only
    reached when no template matches. Sends the concept plus retrieved
    passage context to a local `qwen2.5-coder:7b` model, extracts the
-   generated Plotly script, runs it in a subprocess with a timeout and
-   a restricted pre-imported module set, and caches the result on disk
-   keyed by a hash of (concept, context).
+   generated Plotly script, and runs it in a subprocess with an
+   execution timeout, a minimal/stripped environment (no inherited
+   secrets -- the subprocess never sees `GEMINI_API_KEY`), and a
+   scratch working directory, then caches the result on disk keyed by
+   a hash of (concept, context). Plotly/numpy are pre-imported into
+   the generated script's own preamble for convenience only -- this is
+   execution isolation (timeout / no secrets / no shared cwd), not a
+   restriction on which modules the generated code can import (it
+   still has full network access and can import anything else).
 
 ## Real-corpus validation
 

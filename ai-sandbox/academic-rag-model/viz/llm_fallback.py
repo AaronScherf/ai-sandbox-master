@@ -3,10 +3,14 @@ llm_fallback.py
 Local Ollama code-generation fallback for concepts with no matching
 template (spec §4). Sends `concept`+`context` to a local Ollama model,
 extracts the generated Plotly script, and runs it in a subprocess with
-a timeout and a restricted set of pre-importable modules. Results are
-cached on disk keyed by a hash of (concept, context) -- a repeated
-request for the same concept+context shouldn't re-invoke a 30-60s+
-local-model call.
+an execution timeout, a minimal/stripped environment (no inherited
+secrets -- see _minimal_subprocess_env), and a scratch working
+directory -- plotly/numpy are pre-imported into the script's own
+preamble for convenience, but this does NOT restrict which modules the
+generated code itself can import; it still has full network access.
+Results are cached on disk keyed by a hash of (concept, context) -- a
+repeated request for the same concept+context shouldn't re-invoke a
+30-60s+ local-model call.
 
 Touches network (Ollama's local HTTP API) and subprocess execution --
 _call_ollama itself is tested only with the network call mocked,
@@ -45,7 +49,7 @@ Requirements:
 - Respond with ONLY one fenced ```python code block, nothing else.
 """
 
-_CODE_BLOCK_PATTERN = re.compile(r"```python\s*(.*?)```", re.DOTALL)
+_CODE_BLOCK_PATTERN = re.compile(r"```(?:python)?\s*(.*?)```", re.DOTALL)
 
 
 def _cache_key(concept: str, context: str) -> str:
@@ -58,6 +62,8 @@ def _extract_code(response_text: str) -> str | None:
 
 
 def _call_ollama(concept: str, context: str) -> str | None:
+    print(f"Generating a visualization via the local Ollama model ({OLLAMA_MODEL}) -- "
+          f"this can take up to a minute...")
     context_block = f"Background from the student's own course materials:\n{context}\n" if context else ""
     prompt = _PROMPT_TEMPLATE.format(concept=concept, context_block=context_block)
     payload = json.dumps({"model": OLLAMA_MODEL, "prompt": prompt, "stream": False}).encode("utf-8")
@@ -74,17 +80,36 @@ def _call_ollama(concept: str, context: str) -> str | None:
         return None
 
 
+def _minimal_subprocess_env() -> dict[str, str]:
+    """A fresh, explicit environment for the generated-code subprocess --
+    deliberately NOT the parent's os.environ. The parent process may hold
+    paid API credentials (GEMINI_API_KEY, loaded via
+    load_dotenv_override() elsewhere in this project); generated code
+    (from a small local model that can produce broken or untrusted
+    output) must never see secrets or get full inherited network/env
+    context. Only the handful of variables Python itself needs to start
+    up and run on Windows are passed through -- no secrets among them."""
+    keys = ("PATH", "SYSTEMROOT", "PATHEXT", "TEMP", "TMP", "COMSPEC")
+    return {key: os.environ[key] for key in keys if key in os.environ}
+
+
 def _run_generated_code(code: str, output_path: str, timeout: int = EXECUTION_TIMEOUT_SECONDS) -> bool:
     """Executes `code` in a fresh subprocess that pre-imports only
     plotly/numpy, then appends a fig.write_html(output_path) call and
-    enforces `timeout`. Returns True only if the file actually got
-    written -- never raises past its caller (spec §4)."""
+    enforces `timeout`. The subprocess runs with a minimal, explicit
+    environment (see _minimal_subprocess_env -- no inherited secrets)
+    and a scratch working directory (the temp dir holding its own
+    generated script), not the caller's cwd, so a stray file write from
+    generated code can't land in the project tree. Returns True only if
+    the file actually got written -- never raises past its caller
+    (spec §4)."""
+    abs_output_path = os.path.abspath(output_path)
     script = (
         "import plotly.graph_objects as go\n"
         "import plotly.express as px\n"
         "import numpy as np\n"
         f"{code}\n"
-        f"fig.write_html({output_path!r}, include_plotlyjs='inline')\n"
+        f"fig.write_html({abs_output_path!r}, include_plotlyjs='inline')\n"
     )
     with tempfile.NamedTemporaryFile("w", suffix=".py", delete=False, encoding="utf-8") as f:
         f.write(script)
@@ -92,11 +117,12 @@ def _run_generated_code(code: str, output_path: str, timeout: int = EXECUTION_TI
     try:
         result = subprocess.run(
             [sys.executable, script_path], capture_output=True, text=True, timeout=timeout,
+            env=_minimal_subprocess_env(), cwd=os.path.dirname(script_path),
         )
         if result.returncode != 0:
             print(f"WARNING: generated visualization script failed:\n{result.stderr[-500:]}")
             return False
-        return os.path.exists(output_path)
+        return os.path.exists(abs_output_path)
     except subprocess.TimeoutExpired:
         print(f"WARNING: generated visualization script timed out after {timeout}s")
         return False
@@ -104,7 +130,10 @@ def _run_generated_code(code: str, output_path: str, timeout: int = EXECUTION_TI
         print(f"WARNING: generated visualization script raised an unexpected error: {err}")
         return False
     finally:
-        os.unlink(script_path)
+        try:
+            os.unlink(script_path)
+        except OSError:
+            pass
 
 
 def generate_via_llm(concept: str, context: str, output_path: str, cache_dir: str) -> VizResult | None:

@@ -3,8 +3,10 @@ import tempfile
 import unittest
 from unittest.mock import MagicMock, patch
 
+import plotly.graph_objects as go
+
 from viz.templates import Template
-from viz.viz_agent import VizResult, generate_visualization
+from viz.viz_agent import VizResult, generate_visualization, _slugify
 
 
 def _fake_template(fig, keywords=("fake concept",)):
@@ -54,6 +56,51 @@ class TestGenerateVisualizationTemplatePath(unittest.TestCase):
             with patch("viz.viz_agent.match_template", return_value=None), \
                  patch("viz.llm_fallback.generate_via_llm", return_value=None):
                 result = generate_visualization("unmatched concept", academic_hub_root=tmp)
+        self.assertIsNone(result)
+
+    def test_slug_is_capped_at_a_bounded_length(self):
+        long_concept = "why does the sequence eventually converge to a finite limit " * 5
+        self.assertLessEqual(len(_slugify(long_concept)), 80)
+
+    def test_very_long_concept_through_template_path_returns_none_instead_of_raising(self):
+        """Reproduces the original bug end-to-end: a long question
+        (~260+ characters) through the template-match path used to
+        overflow Windows's per-component filename length limit inside
+        fig.write_html(), raising an uncaught OSError that would
+        otherwise destroy an already-paid-for Gemini answer. Uses a REAL
+        go.Figure() (not a MagicMock) so write_html() actually touches
+        the filesystem. This exercises the length cap alone (the
+        176-char concept below produces an 80-char capped slug, well
+        under any filename limit)."""
+        long_concept = (
+            "why does the sequence defined by the following complicated recursive "
+            "relation involving nested summations and alternating signs eventually "
+            "converge to a finite limit as n approaches infinity"
+        )
+        self.assertGreater(len(long_concept), 150)
+        real_template = Template(name="Fake", keywords=[long_concept.lower()], render=lambda: go.Figure())
+        with tempfile.TemporaryDirectory() as tmp:
+            with patch("viz.viz_agent.match_template", return_value=real_template):
+                result = generate_visualization(long_concept, academic_hub_root=tmp)
+        self.assertIsNotNone(result)
+        self.assertEqual(result.source, "template")
+
+    def test_template_render_or_write_failure_is_isolated_and_returns_none(self):
+        """Isolates the error-handling half of the fix from the length
+        cap: even with an already-short, already-capped slug, a
+        filesystem-level failure inside the template-match branch
+        (os.makedirs / template.render() / fig.write_html()) must be
+        caught and surfaced as None, not propagate and destroy an
+        already-paid-for answer. Forces the same OSError the original
+        bug hit by patching _slugify to return an over-long slug
+        directly, bypassing the cap so the try/except is what's under
+        test here, not the cap."""
+        real_template = Template(name="Fake", keywords=["fake concept"], render=lambda: go.Figure())
+        overlong_slug = "x" * 300
+        with tempfile.TemporaryDirectory() as tmp:
+            with patch("viz.viz_agent.match_template", return_value=real_template), \
+                 patch("viz.viz_agent._slugify", return_value=overlong_slug):
+                result = generate_visualization("fake concept", academic_hub_root=tmp)
         self.assertIsNone(result)
 
 

@@ -22,6 +22,13 @@ class TestExtractCode(unittest.TestCase):
         text = "Here you go:\n```python\nfig = go.Figure()\n```\nEnjoy."
         self.assertEqual(_extract_code(text), "fig = go.Figure()")
 
+    def test_extracts_bare_fenced_block_with_no_language_tag(self):
+        """Task 11's real trial showed this small local model can be
+        unreliable -- a response using a bare ``` fence (no `python` tag)
+        should still have its code extracted, not silently fail."""
+        text = "Here you go:\n```\nfig = go.Figure()\n```\nEnjoy."
+        self.assertEqual(_extract_code(text), "fig = go.Figure()")
+
     def test_returns_none_when_no_code_block(self):
         self.assertIsNone(_extract_code("no code here"))
 
@@ -73,6 +80,53 @@ class TestRunGeneratedCode(unittest.TestCase):
             code = "import plotly.graph_objects as go\nfig = go.Figure()"
             self.assertFalse(_run_generated_code(code, output_path))
             self.assertFalse(os.path.exists(output_path))
+
+    def test_generated_code_cannot_see_a_secret_env_var_present_in_the_test_process(self):
+        """A paid API key (GEMINI_API_KEY, loaded via load_dotenv_override()
+        elsewhere in this project) must never reach LLM-generated code's
+        subprocess. Sets a marker env var in THIS test process's own
+        os.environ, then has the generated script report (via a real
+        plotly figure's title, inspected by reading the written HTML)
+        whether it can see that var -- confirming the subprocess does
+        not inherit the parent's environment."""
+        marker_name = "VIZ_TEST_SECRET_MARKER"
+        os.environ[marker_name] = "leaked-if-inherited"
+        self.addCleanup(os.environ.pop, marker_name, None)
+        with tempfile.TemporaryDirectory() as tmp:
+            output_path = os.path.join(tmp, "out.html")
+            code = (
+                "import os\n"
+                "import plotly.graph_objects as go\n"
+                f"seen = os.environ.get({marker_name!r})\n"
+                "title = 'ABSENT' if seen is None else f'LEAKED:{seen}'\n"
+                "fig = go.Figure(layout=dict(title=title))\n"
+            )
+            self.assertTrue(_run_generated_code(code, output_path))
+            with open(output_path, "r", encoding="utf-8") as f:
+                html = f.read()
+            self.assertIn("ABSENT", html)
+            self.assertNotIn("leaked-if-inherited", html)
+
+    def test_subprocess_runs_with_a_minimal_env_not_the_full_os_environ(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            output_path = os.path.join(tmp, "out.html")
+            code = "import plotly.graph_objects as go\nfig = go.Figure()"
+            with patch("viz.llm_fallback.subprocess.run", wraps=__import__("subprocess").run) as mock_run:
+                self.assertTrue(_run_generated_code(code, output_path))
+            _, kwargs = mock_run.call_args
+            self.assertIn("env", kwargs)
+            self.assertNotEqual(kwargs["env"], dict(os.environ))
+            self.assertNotIn("GEMINI_API_KEY", kwargs["env"])
+
+    def test_subprocess_runs_with_a_scratch_cwd_not_the_caller_cwd(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            output_path = os.path.join(tmp, "out.html")
+            code = "import plotly.graph_objects as go\nfig = go.Figure()"
+            with patch("viz.llm_fallback.subprocess.run", wraps=__import__("subprocess").run) as mock_run:
+                self.assertTrue(_run_generated_code(code, output_path))
+            _, kwargs = mock_run.call_args
+            self.assertIn("cwd", kwargs)
+            self.assertNotEqual(os.path.abspath(kwargs["cwd"]), os.path.abspath(os.getcwd()))
 
 
 class TestGenerateViaLlm(unittest.TestCase):
