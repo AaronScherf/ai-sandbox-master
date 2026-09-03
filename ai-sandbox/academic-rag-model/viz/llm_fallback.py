@@ -30,14 +30,27 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import urllib.error
 import urllib.request
 
 from viz.viz_agent import VizResult
 
 OLLAMA_URL = "http://localhost:11434/api/generate"
 OLLAMA_MODEL = os.environ.get("VIZ_OLLAMA_MODEL", "qwen2.5-coder:7b")
+OLLAMA_REQUEST_TIMEOUT_SECONDS = 180
 EXECUTION_TIMEOUT_SECONDS = 60
 MAX_GENERATION_ATTEMPTS = 3
+
+
+class _OllamaTimeout:
+    """Sentinel returned by _call_ollama when the HTTP request to Ollama
+    itself times out -- distinct from None (a genuine connection
+    failure/unreachable server). A live-but-slow Ollama call is
+    plausibly worth a retry, unlike a server that isn't running at all;
+    generate_via_llm's retry loop treats the two differently."""
+
+
+_OLLAMA_TIMEOUT = _OllamaTimeout()
 
 _PROMPT_TEMPLATE = """Write a single self-contained Python script that uses the `plotly` and \
 `numpy` libraries to create an interactive visualization illustrating this concept: {concept}
@@ -96,7 +109,7 @@ def _build_prompt(
     )
 
 
-def _call_ollama(prompt: str) -> str | None:
+def _call_ollama(prompt: str) -> str | None | _OllamaTimeout:
     print(f"Generating a visualization via the local Ollama model ({OLLAMA_MODEL}) -- "
           f"this can take up to a minute...")
     payload = json.dumps({"model": OLLAMA_MODEL, "prompt": prompt, "stream": False}).encode("utf-8")
@@ -104,10 +117,17 @@ def _call_ollama(prompt: str) -> str | None:
         OLLAMA_URL, data=payload, headers={"Content-Type": "application/json"},
     )
     try:
-        with urllib.request.urlopen(request, timeout=180) as response:
+        with urllib.request.urlopen(request, timeout=OLLAMA_REQUEST_TIMEOUT_SECONDS) as response:
             body = json.loads(response.read().decode("utf-8"))
         return body.get("response")
     except Exception as err:
+        timed_out = isinstance(err, TimeoutError) or (
+            isinstance(err, urllib.error.URLError) and isinstance(err.reason, TimeoutError)
+        )
+        if timed_out:
+            print(f"WARNING: Ollama call timed out after {OLLAMA_REQUEST_TIMEOUT_SECONDS}s -- "
+                  f"the model may just be slow on this request")
+            return _OLLAMA_TIMEOUT
         print(f"WARNING: Ollama call failed ({err}) -- is `ollama serve` running and "
               f"has `ollama pull {OLLAMA_MODEL}` been run?")
         return None
@@ -199,6 +219,15 @@ def generate_via_llm(concept: str, context: str, output_path: str, cache_dir: st
                 response_text = _call_ollama(prompt)
                 if response_text is None:
                     return None  # Ollama unreachable -- not worth retrying (spec §4)
+                if response_text is _OLLAMA_TIMEOUT:
+                    # A live-but-slow Ollama call is plausibly worth a retry, unlike a
+                    # genuinely unreachable server -- see _OllamaTimeout's own docstring.
+                    previous_code, previous_error = None, (
+                        f"the request to Ollama itself timed out after "
+                        f"{OLLAMA_REQUEST_TIMEOUT_SECONDS}s -- the model may just be slow; "
+                        f"try to respond more concisely"
+                    )
+                    continue
                 code = _extract_code(response_text)
                 if code is None:
                     previous_code, previous_error = None, "the response contained no ```python code block"

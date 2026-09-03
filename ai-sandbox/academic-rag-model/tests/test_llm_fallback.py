@@ -6,7 +6,7 @@ from unittest.mock import MagicMock, patch
 
 from viz.llm_fallback import (
     _cache_key, _extract_code, _build_prompt, _call_ollama, _run_generated_code,
-    generate_via_llm, MAX_GENERATION_ATTEMPTS,
+    generate_via_llm, MAX_GENERATION_ATTEMPTS, _OLLAMA_TIMEOUT,
 )
 
 
@@ -82,6 +82,13 @@ class TestCallOllama(unittest.TestCase):
     @patch("viz.llm_fallback.urllib.request.urlopen", side_effect=OSError("connection refused"))
     def test_returns_none_on_connection_failure(self, mock_urlopen):
         self.assertIsNone(_call_ollama("some composed prompt"))
+
+    @patch("viz.llm_fallback.urllib.request.urlopen", side_effect=TimeoutError("timed out"))
+    def test_returns_timeout_sentinel_on_timeout(self, mock_urlopen):
+        """A live-but-slow Ollama call must be distinguishable from a
+        genuinely unreachable one -- generate_via_llm's retry loop treats
+        the two differently (retry vs. give up immediately)."""
+        self.assertIs(_call_ollama("some composed prompt"), _OLLAMA_TIMEOUT)
 
 
 class TestRunGeneratedCode(unittest.TestCase):
@@ -191,6 +198,35 @@ class TestGenerateViaLlm(unittest.TestCase):
     def test_returns_none_when_no_code_block_extracted_after_exhausting_all_attempts(self):
         with tempfile.TemporaryDirectory() as tmp:
             with patch("viz.llm_fallback._call_ollama", return_value="no code here") as mock_call:
+                result = generate_via_llm("concept", "", os.path.join(tmp, "out.html"), os.path.join(tmp, "cache"))
+            self.assertIsNone(result)
+            self.assertEqual(mock_call.call_count, MAX_GENERATION_ATTEMPTS)
+
+    def test_retries_after_ollama_timeout_then_succeeds(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            cache_dir = os.path.join(tmp, "cache")
+            output_path = os.path.join(tmp, "out.html")
+
+            def fake_run(code, path, timeout=60):
+                with open(path, "w", encoding="utf-8") as f:
+                    f.write("<html>fake</html>")
+                return True, None
+
+            with patch(
+                "viz.llm_fallback._call_ollama",
+                side_effect=[_OLLAMA_TIMEOUT, "```python\nfig = go.Figure()\n```"],
+            ) as mock_call, patch("viz.llm_fallback._run_generated_code", side_effect=fake_run):
+                result = generate_via_llm("concept", "", output_path, cache_dir)
+
+            self.assertIsNotNone(result)
+            self.assertEqual(result.source, "llm_fallback")
+            self.assertEqual(mock_call.call_count, 2)
+            second_prompt = mock_call.call_args_list[1].args[0]
+            self.assertIn("timed out", second_prompt)
+
+    def test_returns_none_when_ollama_times_out_on_every_attempt(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            with patch("viz.llm_fallback._call_ollama", return_value=_OLLAMA_TIMEOUT) as mock_call:
                 result = generate_via_llm("concept", "", os.path.join(tmp, "out.html"), os.path.join(tmp, "cache"))
             self.assertIsNone(result)
             self.assertEqual(mock_call.call_count, MAX_GENERATION_ATTEMPTS)
