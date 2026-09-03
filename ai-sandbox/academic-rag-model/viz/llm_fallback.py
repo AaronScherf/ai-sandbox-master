@@ -33,6 +33,8 @@ import tempfile
 import urllib.error
 import urllib.request
 
+from viz import example_store
+from viz.example_store import ExampleRecord
 from viz.viz_agent import VizResult
 
 OLLAMA_URL = "http://localhost:11434/api/generate"
@@ -56,6 +58,7 @@ _PROMPT_TEMPLATE = """Write a single self-contained Python script that uses the 
 `numpy` libraries to create an interactive visualization illustrating this concept: {concept}
 
 {context_block}
+{examples_block}
 Requirements:
 - Assign the finished figure to a variable named exactly `fig` (a plotly.graph_objects.Figure).
 - Do not call fig.show(), fig.write_html(), or write any file yourself -- the caller handles that.
@@ -80,20 +83,38 @@ def _extract_code(response_text: str) -> str | None:
     return match.group(1).strip() if match else None
 
 
+def _build_examples_block(examples: list[ExampleRecord] | None) -> str:
+    if not examples:
+        return ""
+    parts = [
+        "Here are examples of visualizations you generated successfully for related "
+        "concepts -- follow similar patterns (trace types, layout options) where they "
+        "fit this new concept:\n"
+    ]
+    for i, example in enumerate(examples, start=1):
+        parts.append(f'Example {i} (concept: "{example.concept}"):\n```python\n{example.script}\n```\n')
+    return "\n".join(parts) + "\n"
+
+
 def _build_prompt(
     concept: str, context: str,
     previous_code: str | None = None, previous_error: str | None = None,
+    examples: list[ExampleRecord] | None = None,
 ) -> str:
     """Composes the prompt sent to Ollama. First attempt (previous_error
-    is None): the base concept+context prompt. Retry attempt
+    is None): the base concept+context+examples prompt. Retry attempt
     (previous_error set): the same base prompt plus the previous
     attempt's code (if any -- omitted when extraction itself failed,
     since there's no code to show) and the exact error it produced,
     asking for a corrected script (spec:
     docs/superpowers/specs/2026-09-03-viz-ollama-retry-hardening-design.md
-    §3)."""
+    §3). `examples`, when given, are past successful generations for a
+    similar concept (spec:
+    docs/superpowers/specs/2026-09-03-viz-example-store-design.md §5) --
+    included on every attempt of a call, not just the first."""
     context_block = f"Background from the student's own course materials:\n{context}\n" if context else ""
-    base = _PROMPT_TEMPLATE.format(concept=concept, context_block=context_block)
+    examples_block = _build_examples_block(examples)
+    base = _PROMPT_TEMPLATE.format(concept=concept, context_block=context_block, examples_block=examples_block)
     if previous_error is None:
         return base
     previous_code_block = (
@@ -200,22 +221,29 @@ def _run_generated_code(
             pass
 
 
-def generate_via_llm(concept: str, context: str, output_path: str, cache_dir: str) -> VizResult | None:
+def generate_via_llm(concept: str, context: str, output_path: str, cache_dir: str, examples_dir: str) -> VizResult | None:
     """Generates a visualization via the local Ollama fallback, retrying
     up to MAX_GENERATION_ATTEMPTS times with the previous failure fed
     back to the model as a corrective prompt, or returns None on any
     failure -- never raises past its caller (spec §4, hardened per
     docs/superpowers/specs/2026-09-03-viz-ollama-retry-hardening-design.md
-    §2/§4)."""
+    §2/§4). Looks up past successful examples once per call (not once per
+    attempt) via example_store.find_examples(), and saves the final
+    successful attempt's code via example_store.save() (spec:
+    docs/superpowers/specs/2026-09-03-viz-example-store-design.md §5) --
+    both of those calls are skipped entirely on a cache hit, since no
+    Ollama call happens in that case either."""
     try:
         os.makedirs(cache_dir, exist_ok=True)
         cached_path = os.path.join(cache_dir, f"{_cache_key(concept, context)}.html")
 
         if not os.path.exists(cached_path):
+            examples = example_store.find_examples(concept, context, examples_dir)
             previous_code, previous_error = None, None
             succeeded = False
+            final_code = None
             for _ in range(MAX_GENERATION_ATTEMPTS):
-                prompt = _build_prompt(concept, context, previous_code, previous_error)
+                prompt = _build_prompt(concept, context, previous_code, previous_error, examples)
                 response_text = _call_ollama(prompt)
                 if response_text is None:
                     return None  # Ollama unreachable -- not worth retrying (spec §4)
@@ -235,10 +263,12 @@ def generate_via_llm(concept: str, context: str, output_path: str, cache_dir: st
                 success, error = _run_generated_code(code, cached_path)
                 if success:
                     succeeded = True
+                    final_code = code
                     break
                 previous_code, previous_error = code, error
             if not succeeded:
                 return None
+            example_store.save(concept, context, final_code, examples_dir)
 
         os.makedirs(os.path.dirname(output_path), exist_ok=True)
         shutil.copyfile(cached_path, output_path)
