@@ -21,6 +21,7 @@ import re
 from datetime import datetime, timezone
 from pathlib import Path
 
+from common.gemini_utils import load_dotenv_override
 from journal_discovery.discovery import resolve_work_by_doi
 from journal_discovery.manifest import load_manifest, manifest_path, save_manifest
 from journal_discovery.text_match import normalize
@@ -265,6 +266,7 @@ def main():
     parser.add_argument("--recheck-all", action="store_true")
     args = parser.parse_args()
 
+    load_dotenv_override()
     mailto = os.environ.get("OPENALEX_CONTACT_EMAIL")
     if not mailto:
         print("ERROR: OPENALEX_CONTACT_EMAIL must be set in .env (required by OpenAlex).")

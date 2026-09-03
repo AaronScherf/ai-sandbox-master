@@ -26,6 +26,7 @@ import re
 from pathlib import Path
 
 import audit_metadata
+from common.gemini_utils import load_dotenv_override
 from journal_discovery.manifest import load_manifest, manifest_path, save_manifest
 from journal_discovery.text_match import normalize
 from journal_discovery.worklist import write_needs_manual_worklist
@@ -109,6 +110,7 @@ def main():
     for key, title in result["still_pending"]:
         print(f"  - {title or key}")
 
+    load_dotenv_override()
     mailto = os.environ.get("OPENALEX_CONTACT_EMAIL")
     if not mailto:
         print("\nAudit step skipped: set OPENALEX_CONTACT_EMAIL to enable it.")
