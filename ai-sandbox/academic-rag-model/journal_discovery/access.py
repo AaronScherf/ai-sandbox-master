@@ -34,6 +34,17 @@ _SEMANTIC_SCHOLAR_BASE = "https://api.semanticscholar.org/graph/v1/paper"
 _CORE_BASE = "https://api.core.ac.uk/v3/search/works"
 _EZPROXY_PREFIX = "https://ezproxy.cul.columbia.edu/login?url="
 
+# Confirmed live 2026-09-03: a real CORE.ac.uk downloadUrl 403'd with
+# requests' own default User-Agent -- a Cloudflare "Just a moment..."
+# bot challenge, the same failure class already documented for EZProxy
+# -- but succeeded with a real browser User-Agent string. Every download
+# (not just CORE's) sends one now, since a default python-requests/x.x
+# UA is exactly the kind of fingerprint this class of block targets.
+_USER_AGENT = (
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+    "(KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36"
+)
+
 
 @dataclass
 class AccessResult:
@@ -112,7 +123,9 @@ def build_ezproxy_url(target_url: str) -> str:
 def _download(url: str, pace_per_hour: float, cookies: dict | None = None) -> bytes | None:
     paced_sleep(pace_per_hour)
     try:
-        response = fetch_with_retries("GET", url, cookies=cookies, timeout=30)
+        response = fetch_with_retries(
+            "GET", url, cookies=cookies, headers={"User-Agent": _USER_AGENT}, timeout=30,
+        )
     except FetchError:
         # Confirmed live 2026-09-02: a real "open access" URL (aeaweb.org)
         # returned a permanent 403 -- fetch_with_retries() raises rather

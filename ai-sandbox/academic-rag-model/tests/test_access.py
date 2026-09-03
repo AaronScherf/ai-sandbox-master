@@ -143,6 +143,23 @@ class TestResolveFullText(unittest.TestCase):
 
     @patch("journal_discovery.access.paced_sleep")
     @patch("journal_discovery.access.fetch_with_retries")
+    def test_download_sends_a_realistic_user_agent(self, mock_fetch, mock_pace):
+        # Confirmed live 2026-09-03: a real CORE.ac.uk downloadUrl 403'd
+        # with default requests' own User-Agent (a Cloudflare "Just a
+        # moment..." bot challenge, the same failure class already
+        # documented for EZProxy) but succeeded with a real browser
+        # User-Agent string -- _download() must always send one.
+        mock_fetch.return_value = _pdf_response(b"oa-content")
+        work = _work(oa_url="https://x.com/p.pdf")
+
+        resolve_full_text(work, "me@example.com", ezproxy_cookie=None, pace_per_hour=25)
+
+        _, kwargs = mock_fetch.call_args
+        self.assertIn("User-Agent", kwargs["headers"])
+        self.assertNotIn("python-requests", kwargs["headers"]["User-Agent"])
+
+    @patch("journal_discovery.access.paced_sleep")
+    @patch("journal_discovery.access.fetch_with_retries")
     def test_falls_back_to_semantic_scholar_when_unpaywall_has_no_oa(self, mock_fetch, mock_pace):
         no_oa_response = MagicMock(status_code=200)
         no_oa_response.json.return_value = {"best_oa_location": None}
