@@ -751,6 +751,24 @@ class TestSearchPassages(unittest.TestCase):
             self.assertEqual({r.text for r in results}, {"root a content", "root b content"})
             self.assertEqual({r.root for r in results}, {root_a, root_b})
 
+    def test_doc_type_filter_restricts_which_files_contribute_chunks(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            save_shard(tmp, "math-camp", [
+                _card("p", [1.0, 0.0], doc_type="problem_set"),
+                _card("t", [1.0, 0.0], doc_type="textbook"),
+            ])
+            recompute_course_entry(tmp, "math-camp")
+            save_chunks(tmp, "math-camp", [
+                {"chunk_id": "p-000", "file_id": "p", "chunk_index": 0, "tier": "page",
+                 "heading_path": None, "problem_label": None, "page_range": [1, 1],
+                 "text": "problem set chunk", "embedding": [1.0, 0.0], "embedding_model": "m", "content_hash": "h"},
+                {"chunk_id": "t-000", "file_id": "t", "chunk_index": 0, "tier": "page",
+                 "heading_path": None, "problem_label": None, "page_range": [1, 1],
+                 "text": "textbook chunk", "embedding": [1.0, 0.0], "embedding_model": "m", "content_hash": "h"},
+            ])
+            results = search_passages([tmp], "query", client=_fake_query_client([1.0, 0.0]), doc_type="textbook")
+            self.assertEqual([r.text for r in results], ["textbook chunk"])
+
 
 if __name__ == "__main__":
     unittest.main()
