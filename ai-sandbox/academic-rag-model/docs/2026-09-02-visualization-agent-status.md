@@ -326,6 +326,80 @@ steady-state success rate, but the specific, concretely-observed gap
 this fix targeted is now closed and directly confirmed against the
 exact query that exposed it.
 
+## Local example store (2026-09-03, same session)
+
+Picked up as a deliberate accuracy-first follow-on to the two hardening
+passes above, not a bug fix: every Ollama fallback call started from the
+same fixed base prompt with zero memory of what this specific model had
+actually gotten right before, re-deriving valid Plotly usage from
+scratch on every single concept. Design:
+`docs/superpowers/specs/2026-09-03-viz-example-store-design.md`; plan:
+`docs/superpowers/plans/2026-09-03-viz-example-store.md`.
+
+Shipped: a new sibling module, `viz/example_store.py`, giving the
+fallback a local, free memory of its own past successes. Before each
+Ollama call, `find_examples(concept, context, examples_dir)` looks up
+up to 2 relevant past successes -- local-Ollama embedding similarity
+(`nomic-embed-text`, high `0.85` threshold, deliberately strict so a
+related-but-distinct topic never surfaces as a worked example) falling
+back to auto-derived-keyword overlap when nothing clears that
+threshold, falling back to nothing. `_build_prompt()` injects any found
+examples as worked-example code blocks ahead of the requirements list.
+On a genuinely successful generation (first attempt or a retry),
+`save(concept, context, script, examples_dir)` appends the validated
+script to a flat JSON store at `<root>/.viz/.examples/examples.json`.
+This is explicitly the **unverified** tier ("ran successfully" is the
+only bar) -- kept structurally separate from `viz/templates/*.py`, the
+hand-written **verified** tier, so a future promotion path stays
+possible without conflating the two. Direct reuse (skipping the Ollama
+call entirely on a close match) was explicitly scoped out of this pass,
+per the user's own sequencing call: build the corpus first, since a
+close match is only likely once it has real size.
+
+**Full automated suite:** `767 tests, OK` (all 6 plan tasks, each its
+own RED→GREEN→commit cycle -- no fix rounds needed, no flaky reruns
+this time).
+
+**Real-corpus validation**, run from `ai-sandbox/academic-rag-model`
+against `../academic-hub` (`math-camp`), with `ollama serve` running
+and both `qwen2.5-coder:7b` and a newly-pulled `nomic-embed-text`
+present:
+
+```
+.\.venv\Scripts\python.exe -c "from viz.viz_agent import generate_visualization; print(generate_visualization('the mean value theorem', academic_hub_root='../academic-hub', course='math-camp'))"
+```
+Result: **`None`**, after all 3 attempts failed with the same
+`NameError: name 'fig' is not defined` -- the model never actually
+assigned the `fig` variable the prompt requires. This is a pre-existing
+`qwen2.5-coder:7b` reliability class already documented above, not
+something this change introduced: the example store was empty for this
+first-ever real run, so `find_examples` correctly returned `[]` and the
+prompt sent was identical to the pre-existing base prompt. The failure
+degraded exactly as designed -- no crash, no cache entry, `save()`
+correctly never called since nothing succeeded.
+
+```
+.\.venv\Scripts\python.exe -c "from viz.viz_agent import generate_visualization; print(generate_visualization('the law of large numbers', academic_hub_root='../academic-hub', course='math-camp'))"
+```
+Result: **succeeded on the first attempt** --
+`VizResult(html_path='...the-law-of-large-numbers.html', source='llm_fallback')`.
+Directly inspected `../academic-hub/.viz/.examples/examples.json`
+afterward: a real record was written, with a genuine 768-dimension
+`nomic-embed-text` embedding vector and auto-derived keywords
+`["large", "law", "numbers"]` (stopwords "the"/"of" and the too-short
+word correctly dropped) -- confirming `save()` wires correctly into
+`generate_via_llm()`'s success path end to end, not just in the mocked
+unit tests.
+
+**Assessment:** the new wiring itself behaved correctly on both real
+trials (empty-store lookup, successful-attempt save), but the store now
+holds exactly one real example -- nowhere near enough volume yet to
+observe whether few-shot examples actually reduce the failure rate seen
+on "the mean value theorem" and earlier real trials. That question can
+only be answered with more real usage accumulating in the store over
+time, which is precisely why this was sequenced as "build the corpus
+first."
+
 ## Current status (2026-09-03, end of session)
 
 Consolidated picture for anyone starting from here, superseding the
@@ -333,15 +407,20 @@ now-stale bits of "Specific limitations" and "What's next" above (left
 in place as the historical record of how each finding was actually
 reached, not deleted or rewritten).
 
-**Working today:** both tiers, exercised against the real corpus, both
-now succeed on every query tried. Template path: instant, deterministic
-(spectral decomposition, confirmed real eigendecomposition data).
-Ollama fallback: `qwen2.5-coder:7b`, now hardened with a 3-attempt
-validate-and-retry loop, a tightened prompt, and a timeout/unreachable
-distinction -- 3 for 3 real queries across this session (spectral
-decomposition via template; eigenvectors/eigenvalues and the
-intermediate value theorem via the fallback, the latter two both
-previously-failing queries that now succeed).
+**Working today:** both tiers, exercised against the real corpus.
+Template path: instant, deterministic (spectral decomposition,
+confirmed real eigendecomposition data). Ollama fallback:
+`qwen2.5-coder:7b`, hardened with a 3-attempt validate-and-retry loop, a
+tightened prompt, a timeout/unreachable distinction, and -- as of this
+update -- a local example store (`viz/example_store.py`) that feeds
+past successful generations back into the prompt as few-shot examples
+via `nomic-embed-text` embedding similarity, falling back to
+keyword overlap. 4 for 5 real queries across this session succeeded
+(spectral decomposition via template; eigenvectors/eigenvalues, the
+intermediate value theorem, and the law of large numbers via the
+fallback); one query ("the mean value theorem") still failed on a
+pre-existing model-reliability issue (`fig` never assigned) that
+neither hardening pass has addressed yet.
 
 **Bugs found and fixed this session, all via real usage, not
 speculation:**
@@ -391,19 +470,39 @@ speculation:**
   own accepted tradeoff (worst case up to ~9 min for a
   consistently-slow query, vs. ~3 min before) hasn't been stress-tested
   against a run that actually times out on every attempt.
+- **The example store holds exactly one real record.** It's real and
+  wired correctly end to end, but one record is nowhere near enough to
+  observe whether few-shot examples actually move the fallback's
+  failure rate -- that only shows up with real usage accumulating over
+  time. "The mean value theorem" failing (unrelated pre-existing
+  `fig`-not-assigned issue) is a reminder the example store doesn't fix
+  every failure class, only ones a worked example can plausibly steer
+  the model away from.
+- **Direct reuse (skipping Ollama entirely on a close match) is not
+  built.** Deliberately deferred (spec §7) until the example corpus has
+  enough real volume that a genuinely close match is likely -- right
+  now every fallback call still hits Ollama, few-shot examples or not.
+- **No example -> template promotion path.** An example that proves
+  itself (matched and reused repeatedly, or manually reviewed) has no
+  way to graduate into the hand-written, verified `viz/templates/*.py`
+  tier yet -- needs its own design for what "proven itself" means.
 
 **What's next, in the order this session's findings suggest:**
 1. **Combined report** -- fold the text explanation, citations, and the
    interactive plot into one document instead of three disconnected
    outputs (a printed answer, a printed citation list, a separate file
    path). Explicitly queued as the next design conversation.
-2. Measure real Ollama-path timing (average and worst case) across more
+2. Let the example store accumulate real usage, then revisit whether
+   few-shot examples are measurably reducing the fallback's failure
+   rate -- and whether the corpus has grown large enough to make direct
+   reuse (skip Ollama on a close match) worth designing.
+3. Measure real Ollama-path timing (average and worst case) across more
    real queries, and decide whether the retry budget or the per-request
    timeout need tuning based on actual data rather than the four data
    points gathered so far.
-3. Grow template coverage reactively, as real questions keep falling
+4. Grow template coverage reactively, as real questions keep falling
    through to the slower fallback path.
-4. Revisit automatic `visualize` decision logic once there's real usage
+5. Revisit automatic `visualize` decision logic once there's real usage
    data on which questions actually benefit from a plot.
-5. Parameter extraction from retrieved content, if generic illustrative
+6. Parameter extraction from retrieved content, if generic illustrative
    examples turn out to be a real limitation in practice.
