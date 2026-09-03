@@ -262,5 +262,112 @@ class TestApplyTagSync(unittest.TestCase):
             self.assertIn("source_pdf: a.pdf", content)
 
 
+from journal_discovery.manifest import load_manifest, manifest_path, record_outcome, save_manifest
+from audit_metadata import audit
+
+
+def _write_pdf_and_md(folder: Path, stem: str, md_text: str) -> tuple[Path, Path]:
+    pdf_path = folder / f"{stem}.pdf"
+    pdf_path.parent.mkdir(parents=True, exist_ok=True)
+    pdf_path.write_bytes(b"%PDF-1.4 fake")
+    md_path = folder / "processed_outputs" / f"{stem}.md"
+    md_path.parent.mkdir(parents=True, exist_ok=True)
+    md_path.write_text(md_text, encoding="utf-8")
+    return pdf_path, md_path
+
+
+class TestAudit(unittest.TestCase):
+    @patch("audit_metadata.resolve_work_by_doi")
+    def test_clean_paper_gets_audited_with_no_flags(self, mock_resolve):
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp = Path(tmp)
+            stem = "10-1-abc"
+            _write_pdf_and_md(
+                tmp / "business", stem,
+                "---\ntags: []\n---\n\nA Real Paper. DOI: 10.1/abc. By Jane Doe.",
+            )
+            manifest_file = manifest_path(tmp)
+            manifest = load_manifest(manifest_file)
+            record_outcome(manifest, "10.1/abc", "fetched", folder="business",
+                            metadata={"title": "A Real Paper", "authors": ["Jane Doe"]})
+            save_manifest(manifest_file, manifest)
+
+            from journal_discovery.discovery import Work
+            mock_resolve.return_value = Work(openalex_id="https://openalex.org/W1", doi="10.1/abc",
+                                              title="A Real Paper", authors=[], year=2024, abstract=None,
+                                              concepts=["Business"])
+
+            result = audit(tmp, str(tmp), "me@example.com", recheck_all=False)
+
+            self.assertEqual(result["audited"], 1)
+            self.assertEqual(result["flagged"], 0)
+            updated = load_manifest(manifest_file)
+            self.assertIn("audited_at", updated["10.1/abc"])
+            self.assertNotIn("audit_flags", updated["10.1/abc"])
+
+    @patch("audit_metadata.resolve_work_by_doi")
+    def test_title_mismatch_gets_flagged_and_written_to_worklist(self, mock_resolve):
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp = Path(tmp)
+            stem = "10-1-abc"
+            _write_pdf_and_md(
+                tmp / "business", stem,
+                "---\ntags: []\n---\n\nCompletely different content. DOI: 10.1/abc.",
+            )
+            manifest_file = manifest_path(tmp)
+            manifest = load_manifest(manifest_file)
+            record_outcome(manifest, "10.1/abc", "fetched", folder="business",
+                            metadata={"title": "A Title Never Printed", "doi_url": "https://doi.org/10.1/abc"})
+            save_manifest(manifest_file, manifest)
+
+            from journal_discovery.discovery import Work
+            mock_resolve.return_value = Work(openalex_id="https://openalex.org/W1", doi="10.1/abc",
+                                              title="A Title Never Printed", authors=[], year=2024,
+                                              abstract=None, concepts=["Business"])
+
+            result = audit(tmp, str(tmp), "me@example.com", recheck_all=False)
+
+            self.assertEqual(result["flagged"], 1)
+            updated = load_manifest(manifest_file)
+            self.assertEqual(updated["10.1/abc"]["audit_flags"][0]["type"], "title_mismatch")
+            worklist = (tmp / "metadata_audit_flags.md").read_text(encoding="utf-8")
+            self.assertIn("A Title Never Printed", worklist)
+
+    def test_already_audited_paper_skipped_by_default(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp = Path(tmp)
+            manifest_file = manifest_path(tmp)
+            manifest = load_manifest(manifest_file)
+            record_outcome(manifest, "10.1/abc", "fetched", folder="business",
+                            metadata={"title": "X", "audited_at": "2026-09-01T00:00:00+00:00"})
+            save_manifest(manifest_file, manifest)
+
+            result = audit(tmp, str(tmp), "me@example.com", recheck_all=False)
+            self.assertEqual(result["audited"], 0)
+
+    @patch("audit_metadata.resolve_work_by_doi")
+    def test_folder_mismatch_moves_files_and_counts_correction(self, mock_resolve):
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp = Path(tmp)
+            stem = "10-1-abc"
+            _write_pdf_and_md(tmp / "grasp", stem, "---\ntags: []\n---\n\nA Real Paper. DOI: 10.1/abc.")
+            manifest_file = manifest_path(tmp)
+            manifest = load_manifest(manifest_file)
+            record_outcome(manifest, "10.1/abc", "fetched", folder="grasp", metadata={"title": "A Real Paper"})
+            save_manifest(manifest_file, manifest)
+
+            from journal_discovery.discovery import Work
+            mock_resolve.return_value = Work(openalex_id="https://openalex.org/W1", doi="10.1/abc",
+                                              title="A Real Paper", authors=[], year=2024, abstract=None,
+                                              concepts=["Sociology"])
+
+            result = audit(tmp, str(tmp), "me@example.com", recheck_all=False)
+
+            self.assertEqual(result["folder_corrections"], 1)
+            self.assertTrue((tmp / "sociology" / f"{stem}.pdf").exists())
+            updated = load_manifest(manifest_file)
+            self.assertEqual(updated["10.1/abc"]["folder"], "sociology")
+
+
 if __name__ == "__main__":
     unittest.main()

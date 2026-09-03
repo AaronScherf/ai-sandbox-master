@@ -15,12 +15,17 @@ day); or standalone for a forced full re-audit:
 """
 from __future__ import annotations
 
+import argparse
+import os
 import re
+from datetime import datetime, timezone
 from pathlib import Path
 
 from journal_discovery.discovery import resolve_work_by_doi
+from journal_discovery.manifest import load_manifest, manifest_path, save_manifest
 from journal_discovery.text_match import normalize
 from journal_discovery.topic_routing import sanitize_topic_name
+from journal_discovery.worklist import write_metadata_audit_flags_worklist
 from indexer.index_card import compute_file_id, find_card_by_file_id, move_card
 
 # Mirrors indexer/retag.py's own _FRONTMATTER_RE/_TAGS_LINE_RE exactly -- a
@@ -190,5 +195,87 @@ def apply_tag_sync(md_path: Path, tags: list[str]) -> None:
     md_path.write_text(new_frontmatter + content[match.end():], encoding="utf-8")
 
 
+def audit(articles_dir, index_root, mailto: str, recheck_all: bool = False) -> dict:
+    manifest_file = manifest_path(articles_dir)
+    manifest = load_manifest(manifest_file)
+    targets = select_audit_targets(manifest, recheck_all)
+
+    counts = {"audited": 0, "folder_corrections": 0, "tag_syncs": 0, "flagged": 0, "skipped": 0}
+
+    for key, entry in targets:
+        pdf_path, md_path = resolve_paper_paths(articles_dir, key, entry)
+        label = entry.get("title") or key
+        if pdf_path is None or md_path is None or not md_path.exists():
+            print(f"  [skip] {label}: converted .md not found")
+            counts["skipped"] += 1
+            continue
+
+        try:
+            folder_result = check_folder(key, entry, mailto)
+            if folder_result["error"]:
+                print(f"  [warn] {label}: folder check skipped ({folder_result['error']})")
+            elif folder_result["mismatch"]:
+                old_folder = entry.get("folder")
+                pdf_path, md_path = apply_folder_correction(
+                    articles_dir, index_root, entry, pdf_path, md_path, folder_result["new_folder"],
+                )
+                print(f"  [folder] {label}: {old_folder} -> {folder_result['new_folder']}")
+                counts["folder_corrections"] += 1
+        except Exception as exc:
+            # Broad on purpose: a failure anywhere in apply_folder_correction
+            # (a file-move permission error, or move_card() failing after
+            # files already moved) must never crash the whole run or leave
+            # audited_at set on a half-migrated paper -- it just gets
+            # retried on the next run, whatever the exact exception type.
+            print(f"  [error] {label}: folder correction failed ({exc}); will retry next run")
+            counts["skipped"] += 1
+            continue
+
+        tag_result = check_tag_sync(index_root, pdf_path, md_path)
+        if not tag_result["found_card"]:
+            print(f"  [warn] {label}: no index card found, tag-sync check skipped")
+        elif tag_result["mismatch"]:
+            apply_tag_sync(md_path, tag_result["index_tags"])
+            print(f"  [tags] {label}: synced to {tag_result['index_tags']}")
+            counts["tag_syncs"] += 1
+
+        text = md_path.read_text(encoding="utf-8", errors="ignore")
+        flags = [f for f in (check_title(entry, text), check_authors(entry, text), check_doi(key, entry, text)) if f]
+
+        entry["audited_at"] = datetime.now(timezone.utc).isoformat()
+        if flags:
+            entry["audit_flags"] = flags
+            counts["flagged"] += 1
+            print(f"  [flag] {label}: {', '.join(f['type'] for f in flags)}")
+        elif "audit_flags" in entry:
+            del entry["audit_flags"]
+        counts["audited"] += 1
+
+    save_manifest(manifest_file, manifest)
+    write_metadata_audit_flags_worklist(manifest, articles_dir)
+    return counts
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    default_articles_dir = Path(__file__).resolve().parent.parent / "research" / "journal-articles"
+    default_index_root = Path(__file__).resolve().parent.parent / "research"
+    parser.add_argument("--articles-dir", default=str(default_articles_dir))
+    parser.add_argument("--index-root", default=str(default_index_root))
+    parser.add_argument("--recheck-all", action="store_true")
+    args = parser.parse_args()
+
+    mailto = os.environ.get("OPENALEX_CONTACT_EMAIL")
+    if not mailto:
+        print("ERROR: OPENALEX_CONTACT_EMAIL must be set in .env (required by OpenAlex).")
+        return
+
+    result = audit(args.articles_dir, args.index_root, mailto, recheck_all=args.recheck_all)
+    print(f"\nAudited {result['audited']} paper(s): "
+          f"{result['folder_corrections']} folder correction(s), "
+          f"{result['tag_syncs']} tag sync(s), {result['flagged']} flagged, "
+          f"{result['skipped']} skipped.")
+
+
 if __name__ == "__main__":
-    pass
+    main()
