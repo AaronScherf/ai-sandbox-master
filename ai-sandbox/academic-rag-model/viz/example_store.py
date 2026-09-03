@@ -14,7 +14,15 @@ ever used as prompt context, never rendered or returned directly.
 """
 from __future__ import annotations
 
+import json
+import os
 import re
+import urllib.error
+import urllib.request
+from dataclasses import asdict, dataclass
+
+EMBEDDING_MODEL = "nomic-embed-text"
+EMBEDDING_URL = "http://localhost:11434/api/embeddings"
 
 _STOPWORDS = {
     "the", "and", "for", "with", "that", "this", "from", "into", "your",
@@ -43,3 +51,55 @@ def _cosine_similarity(a: list[float], b: list[float]) -> float:
     if norm_a == 0 or norm_b == 0:
         return 0.0
     return dot / (norm_a * norm_b)
+
+
+@dataclass
+class ExampleRecord:
+    concept: str
+    context: str
+    keywords: list[str]
+    embedding: list[float]
+    script: str
+    created_at: str  # ISO 8601, UTC
+
+
+def _store_path(store_dir: str) -> str:
+    return os.path.join(store_dir, "examples.json")
+
+
+def _embed(text: str) -> list[float] | None:
+    """POSTs to Ollama's local embeddings endpoint. Returns None on any
+    network/HTTP failure (logged as a WARNING) -- never raises, mirroring
+    llm_fallback.py's _call_ollama."""
+    payload = json.dumps({"model": EMBEDDING_MODEL, "prompt": text}).encode("utf-8")
+    request = urllib.request.Request(
+        EMBEDDING_URL, data=payload, headers={"Content-Type": "application/json"},
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=30) as response:
+            body = json.loads(response.read().decode("utf-8"))
+        return body.get("embedding")
+    except Exception as err:
+        print(f"WARNING: Ollama embedding call failed ({err}) -- is `ollama serve` running "
+              f"and has `ollama pull {EMBEDDING_MODEL}` been run?")
+        return None
+
+
+def _load(store_dir: str) -> list[ExampleRecord]:
+    path = _store_path(store_dir)
+    if not os.path.exists(path):
+        return []
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            raw = json.load(f)
+        return [ExampleRecord(**entry) for entry in raw]
+    except Exception as err:
+        print(f"WARNING: example store at {path} is unreadable ({err}) -- treating as empty")
+        return []
+
+
+def _write(store_dir: str, records: list[ExampleRecord]) -> None:
+    path = _store_path(store_dir)
+    os.makedirs(store_dir, exist_ok=True)
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump([asdict(r) for r in records], f, indent=2, ensure_ascii=False)
