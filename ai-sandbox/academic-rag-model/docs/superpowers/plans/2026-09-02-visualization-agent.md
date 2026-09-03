@@ -62,37 +62,23 @@ ai-sandbox/academic-rag-model/
 **Interfaces:**
 - Produces: a running Ollama server reachable at `http://localhost:11434`, with the `qwen2.5-coder:7b` model pulled and available — consumed by Task 6's `viz/llm_fallback.py`.
 
-- [ ] **Step 1: Install Ollama via winget**
+- [x] **Step 1: Install Ollama via winget**
 
-Run (PowerShell):
-```powershell
-winget install --id Ollama.Ollama -e --accept-package-agreements --accept-source-agreements
-```
-Expected: installer completes without error. Ollama's installer also registers it to run as a background service, so it should be reachable without a separate manual start — verified in the next step.
+Done manually by the user (not via winget). Server confirmed running as a background service.
 
-- [ ] **Step 2: Verify the server is reachable**
+- [x] **Step 2: Verify the server is reachable**
 
-Run (PowerShell):
-```powershell
-Invoke-RestMethod http://localhost:11434/api/version
-```
-Expected: a JSON response like `{"version":"0.x.x"}`. If this fails with a connection error, start it manually with `ollama serve` in a background terminal, then re-run this check.
+Verified: `Invoke-RestMethod http://localhost:11434/api/version` → `{"version":"0.33.2"}`.
 
-- [ ] **Step 3: Pull the code-generation model**
+Note: Ollama's installer updates the user-level `PATH` via the registry, but already-running shells (including this session's) don't pick that up until restarted. Bare `ollama` commands failed here for that reason even though the install was fine. Full path used instead: `$env:LOCALAPPDATA\Programs\Ollama\ollama.exe`. A fresh terminal will have `ollama` on `PATH` directly.
 
-Run (PowerShell):
-```powershell
-ollama pull qwen2.5-coder:7b
-```
-Expected: a progress bar, then `success`. This downloads ~4.7GB — expect several minutes depending on connection speed.
+- [x] **Step 3: Pull the code-generation model**
 
-- [ ] **Step 4: Verify the model is available**
+Verified: `qwen2.5-coder:7b` pulled successfully (~4.7GB, `success`).
 
-Run (PowerShell):
-```powershell
-ollama list
-```
-Expected: output includes a row for `qwen2.5-coder:7b`.
+- [x] **Step 4: Verify the model is available**
+
+Confirmed via the pull's success output; model is present and ready for Task 6's `viz/llm_fallback.py`.
 
 ---
 

@@ -73,6 +73,18 @@ ai-sandbox/research/journal-articles/**/*.md
 ai-sandbox/research/journal-articles/**/images/
 ai-sandbox/research/**/*_pages_cache.json
 ai-sandbox/research/.index/chunks/
+# Visualization sub-agent output (.viz/) is derivative of corpus content the
+# same way .index/chunks/ is -- gitignored by default rather than judging
+# verbatim-reproduction risk per template/concept (academic-hub-status doc's
+# IP posture).
+ai-sandbox/academic-hub/.viz/
+ai-sandbox/research/.viz/
+# Broader, unanchored catch-all: generate_visualization()'s own default
+# academic_hub_root=".." resolves to ai-sandbox/.viz/ when run from
+# academic-rag-model/ (exactly what viz/README.md's own example one-liner
+# does without an explicit --root) -- not covered by either named pattern
+# above. This covers .viz/ under any current or future corpus root.
+**/.viz/
 
 #Prevent git workspace conflicts with obsidian
 # Vault root is ai-sandbox/, one level below this .gitignore -- a pattern
