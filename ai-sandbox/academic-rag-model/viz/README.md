@@ -34,6 +34,18 @@ Or via the tutor's own `--visualize` flag — see [`../rag/README.md`](../rag/RE
   modules it can import. Requires Ollama running locally (`ollama serve`)
   with the model pulled (`ollama pull qwen2.5-coder:7b`) — degrades to
   returning `None` with a printed warning if it isn't.
+- `example_store.py` — a local, free memory of past successful `llm_fallback.py`
+  generations, used for few-shot prompting only (never rendered or matched
+  directly). Before each Ollama call, looks up up to 2 past successes for a
+  similar concept — via local embedding similarity (`nomic-embed-text`, high
+  threshold) falling back to auto-derived-keyword overlap — and injects them
+  into the prompt as worked examples. Every genuinely successful generation is
+  appended to the store afterward. This is the **unverified** tier (only bar:
+  "it ran without error") — deliberately kept separate from `templates/`'s
+  **verified**, human-reviewed tier. Storage: a flat JSON file at
+  `<root>/.viz/.examples/examples.json`, same gitignore posture as the cache.
+  Requires a second local Ollama model (`ollama pull nomic-embed-text`),
+  independent of the generation model.
 
 Output goes to `<root>/.viz/<course>/<slug>.html`, gitignored by default
 (see the root `.gitignore`) — same IP posture as `.index/chunks/`.

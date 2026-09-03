@@ -6,6 +6,10 @@ Each template module exports one Template; importing this package
 builds TEMPLATE_REGISTRY by importing every template module explicitly
 -- adding a new concept is one new file plus one import at the bottom
 of this file, no separate registration step to remember.
+
+This is the VERIFIED tier (hand-written, human-reviewed); see
+viz/example_store.py for the separate UNVERIFIED tier of auto-generated
+examples, which never populates this registry.
 """
 from __future__ import annotations
 

@@ -56,4 +56,7 @@ def generate_visualization(
     # subprocess-dependent module out of the import path for callers that only ever hit
     # the template path (e.g. plain-Q&A callers of answer_question() that never set
     # visualize=True at all -- see Task 9)
-    return generate_via_llm(concept, context, output_path, os.path.join(viz_root, ".cache"))
+    return generate_via_llm(
+        concept, context, output_path,
+        os.path.join(viz_root, ".cache"), os.path.join(viz_root, ".examples"),
+    )
