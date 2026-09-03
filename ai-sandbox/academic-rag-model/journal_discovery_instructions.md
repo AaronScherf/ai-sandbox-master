@@ -80,10 +80,21 @@ content instead: a DOI substring match against the converted `.md`
 first, a normalized-title match as fallback. Confirmed papers are
 marked `status="downloaded"` in the manifest and drop out of
 `needs_manual_downloads.md` automatically, so the list always reflects
-what you actually still need. It also prints a folder/content review
-(folder name next to a real content preview for every converted paper)
-so you can sanity-check folder-appropriateness against what a paper is
-actually about, not just its OpenAlex concept tags.
+what you actually still need.
+
+Right after reconciling, this also runs a metadata/folder audit
+automatically (`audit_metadata.py`, requires `OPENALEX_CONTACT_EMAIL` --
+skipped with a warning if that's not set) -- re-checking every newly
+converted paper's folder placement and tag sync against fresh OpenAlex
+data and the academic-hub index (both auto-corrected when there's a
+well-defined right answer), and flagging title/author/DOI mismatches it
+can't safely auto-fix into `metadata_audit_flags.md`. Already-audited
+papers are skipped on later runs. For a full forced re-audit (e.g.
+after fixing a flagged paper by hand):
+
+```powershell
+python -m audit_metadata --recheck-all
+```
 
 A paper can stay listed even with a real PDF downloaded if its content
 doesn't match what was expected for that DOI (checked, not guessed) --
