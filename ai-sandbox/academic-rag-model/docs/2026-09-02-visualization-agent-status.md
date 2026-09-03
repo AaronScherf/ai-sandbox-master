@@ -281,3 +281,47 @@ failure (retry-proof) from a client-side timeout (plausibly worth one
 retry) inside `_call_ollama`'s own exception handling, rather than
 collapsing both into the same `None` return the retry loop then treats
 identically.
+
+## Timeout-vs-unreachable fix (2026-09-03, same session)
+
+Picked up immediately: `_call_ollama` now returns a distinct
+`_OLLAMA_TIMEOUT` sentinel on a `TimeoutError` (direct or wrapped in
+`URLError`), separate from `None`. `generate_via_llm`'s retry loop
+retries on the sentinel (feeding back a "you were too slow" hint) while
+a genuine `None` (connection refused, server not running) still
+short-circuits immediately, unchanged. The previously-inline `180`
+magic number is now the named `OLLAMA_REQUEST_TIMEOUT_SECONDS`
+constant. Accepted tradeoff, confirmed with the user: no separate,
+smaller retry cap for timeouts -- the existing `MAX_GENERATION_ATTEMPTS
+= 3` budget applies, so a consistently-slow query's worst case rose
+from ~3 min (one timeout, no retry) to ~9 min (up to 3 timeouts in a
+row). Average/worst-case timing to be measured later, once there's more
+real usage data.
+
+**Re-ran the intermediate value theorem query** immediately after
+shipping the fix (same exact command as both prior trials):
+```
+.\.venv\Scripts\python.exe -m indexer.index_search --root ../academic-hub ask "explain the intermediate value theorem" --course math-camp --visualize
+```
+Wall clock: **4 min 24 s.** Console output confirmed the fix's intended
+behavior directly: attempt 1 hit the same 180s timeout as the earlier
+trial ("Ollama call timed out after 180s -- the model may just be slow
+on this request"), but this time the loop **retried instead of giving
+up** -- a second "Generating a visualization..." line printed, and
+attempt 2 succeeded. Output ended with:
+```
+visualization: ../academic-hub\.viz\math-camp\explain-the-intermediate-value-theorem.html
+```
+Directly inspected the generated `.html` (4.3 MB, real
+`Plotly.newPlot(...)` call): title `"Intermediate Value Theorem"` with
+`"x"`/`"f(x)"` axis labels -- topically correct, not a placeholder.
+
+**Both of the two real queries that failed pre-hardening now succeed**:
+eigenvectors/eigenvalues on the first attempt (prompt tightening alone
+was sufficient), intermediate value theorem after one timeout-triggered
+retry (this fix was necessary -- without it, this query would still be
+failing exactly as it did in the trial immediately above). Two for two,
+though still only two real trials total -- not enough to estimate a
+steady-state success rate, but the specific, concretely-observed gap
+this fix targeted is now closed and directly confirmed against the
+exact query that exposed it.
