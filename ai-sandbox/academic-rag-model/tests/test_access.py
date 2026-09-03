@@ -6,6 +6,7 @@ from journal_discovery.access import (
     build_ezproxy_url,
     resolve_full_text,
     try_arxiv_url,
+    try_core,
     try_semantic_scholar,
     try_unpaywall,
 )
@@ -64,6 +65,53 @@ class TestTrySemanticScholar(unittest.TestCase):
         self.assertIsNone(try_semantic_scholar("10.1/unknown"))
 
 
+class TestTryCore(unittest.TestCase):
+    @patch("journal_discovery.access.fetch_with_retries")
+    def test_returns_download_url(self, mock_fetch):
+        response = MagicMock(status_code=200)
+        response.json.return_value = {"results": [{"downloadUrl": "https://core.ac.uk/download/123.pdf"}]}
+        mock_fetch.return_value = response
+        self.assertEqual(try_core("10.1/abc", "my-api-key"), "https://core.ac.uk/download/123.pdf")
+
+    @patch("journal_discovery.access.fetch_with_retries")
+    def test_falls_back_to_source_fulltext_urls(self, mock_fetch):
+        response = MagicMock(status_code=200)
+        response.json.return_value = {
+            "results": [{"downloadUrl": None, "sourceFulltextUrls": ["https://example.com/repo/123.pdf"]}],
+        }
+        mock_fetch.return_value = response
+        self.assertEqual(try_core("10.1/abc", "my-api-key"), "https://example.com/repo/123.pdf")
+
+    @patch("journal_discovery.access.fetch_with_retries")
+    def test_none_when_no_results(self, mock_fetch):
+        response = MagicMock(status_code=200)
+        response.json.return_value = {"results": []}
+        mock_fetch.return_value = response
+        self.assertIsNone(try_core("10.1/abc", "my-api-key"))
+
+    def test_none_without_doi(self):
+        self.assertIsNone(try_core(None, "my-api-key"))
+
+    def test_none_without_api_key(self):
+        self.assertIsNone(try_core("10.1/abc", None))
+
+    @patch("journal_discovery.access.fetch_with_retries")
+    def test_none_on_terminal_error(self, mock_fetch):
+        from journal_discovery.http_utils import FetchError
+        mock_fetch.side_effect = FetchError("not found")
+        self.assertIsNone(try_core("10.1/unknown", "my-api-key"))
+
+    @patch("journal_discovery.access.fetch_with_retries")
+    def test_sends_bearer_auth_and_doi_query(self, mock_fetch):
+        response = MagicMock(status_code=200)
+        response.json.return_value = {"results": []}
+        mock_fetch.return_value = response
+        try_core("10.1/abc", "my-api-key")
+        _, kwargs = mock_fetch.call_args
+        self.assertEqual(kwargs["headers"], {"Authorization": "Bearer my-api-key"})
+        self.assertEqual(kwargs["params"], {"q": 'doi:"10.1/abc"'})
+
+
 class TestTryArxivUrl(unittest.TestCase):
     def test_builds_pdf_url(self):
         self.assertEqual(try_arxiv_url("2401.12345"), "https://arxiv.org/pdf/2401.12345.pdf")
@@ -108,6 +156,43 @@ class TestResolveFullText(unittest.TestCase):
         self.assertEqual(result.tier, "open_access")
         self.assertEqual(result.content, b"s2-content")
         mock_pace.assert_called_once_with(0)
+
+    @patch("journal_discovery.access.paced_sleep")
+    @patch("journal_discovery.access.fetch_with_retries")
+    def test_falls_back_to_core_when_semantic_scholar_has_no_oa(self, mock_fetch, mock_pace):
+        no_oa_response = MagicMock(status_code=200)
+        no_oa_response.json.return_value = {"best_oa_location": None}
+        no_s2_response = MagicMock(status_code=200)
+        no_s2_response.json.return_value = {"openAccessPdf": None}
+        core_response = MagicMock(status_code=200)
+        core_response.json.return_value = {"results": [{"downloadUrl": "https://core.ac.uk/download/123.pdf"}]}
+        mock_fetch.side_effect = [no_oa_response, no_s2_response, core_response, _pdf_response(b"core-content")]
+        work = _work(doi="10.1/abc", oa_url=None, arxiv_id=None)
+
+        result = resolve_full_text(
+            work, "me@example.com", ezproxy_cookie=None, pace_per_hour=25, core_api_key="my-api-key",
+        )
+
+        self.assertEqual(result.tier, "open_access")
+        self.assertEqual(result.content, b"core-content")
+        mock_pace.assert_called_once_with(0)
+
+    @patch("journal_discovery.access.paced_sleep")
+    @patch("journal_discovery.access.fetch_with_retries")
+    def test_core_skipped_without_api_key_falls_through_to_arxiv(self, mock_fetch, mock_pace):
+        no_oa_response = MagicMock(status_code=200)
+        no_oa_response.json.return_value = {"best_oa_location": None}
+        no_s2_response = MagicMock(status_code=200)
+        no_s2_response.json.return_value = {"openAccessPdf": None}
+        mock_fetch.side_effect = [no_oa_response, no_s2_response, _pdf_response(b"arxiv-content")]
+        work = _work(doi="10.1/abc", oa_url=None, arxiv_id="2401.12345")
+
+        result = resolve_full_text(
+            work, "me@example.com", ezproxy_cookie=None, pace_per_hour=25, core_api_key=None,
+        )
+
+        self.assertEqual(result.tier, "arxiv")
+        self.assertEqual(result.content, b"arxiv-content")
 
     @patch("journal_discovery.access.paced_sleep")
     @patch("journal_discovery.access.fetch_with_retries")

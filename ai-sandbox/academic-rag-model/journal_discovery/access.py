@@ -1,11 +1,19 @@
 """
 access.py
-Full-text resolution per spec S1/S3/S6: Unpaywall -> Semantic Scholar
-(both open-access discovery, added 2026-09-02 since Unpaywall's own
-OA-repository coverage is incomplete) -> arXiv (preprints) -> Columbia
-EZProxy (gated, manual session cookie). A response that isn't actually
-application/pdf (an EZProxy login wall on an expired cookie) is never
-written to disk.
+Full-text resolution per spec S1/S3/S6: Unpaywall -> Semantic Scholar ->
+CORE.ac.uk (all three open-access discovery; Semantic Scholar and
+CORE.ac.uk added 2026-09-02/03 since Unpaywall's own OA-repository
+coverage is incomplete) -> arXiv (preprints) -> Columbia EZProxy
+(gated, manual session cookie). CORE.ac.uk requires a free API key
+(CORE_API_KEY) registered at core.ac.uk/services/api -- skipped
+silently, same as EZProxy without a cookie, when unset. Columbia's own
+Academic Commons repository was considered as a fourth tier alongside
+CORE.ac.uk but deliberately not built: it has no single-DOI lookup API
+(OAI-PMH is harvest-only; its REST API's search shape is undocumented),
+and its content is already harvested into CORE.ac.uk's own index, so a
+dedicated integration would add real engineering cost for likely
+redundant coverage. A response that isn't actually application/pdf (an
+EZProxy login wall on an expired cookie) is never written to disk.
 
 Pacing (paced_sleep) applies to the EZProxy tier only, per real usage
 2026-09-02: its purpose is protecting the user's own Columbia account
@@ -23,6 +31,7 @@ from journal_discovery.http_utils import FetchError, fetch_with_retries, is_pdf_
 
 _UNPAYWALL_BASE = "https://api.unpaywall.org/v2"
 _SEMANTIC_SCHOLAR_BASE = "https://api.semanticscholar.org/graph/v1/paper"
+_CORE_BASE = "https://api.core.ac.uk/v3/search/works"
 _EZPROXY_PREFIX = "https://ezproxy.cul.columbia.edu/login?url="
 
 
@@ -66,6 +75,30 @@ def try_semantic_scholar(doi: str | None) -> str | None:
     return (response.json().get("openAccessPdf") or {}).get("url")
 
 
+def try_core(doi: str | None, api_key: str | None) -> str | None:
+    """A third, independent free OA-discovery source alongside Unpaywall
+    and Semantic Scholar. Requires a free API key (CORE_API_KEY,
+    registered at core.ac.uk/services/api) -- skipped entirely, same as
+    EZProxy without a session cookie, when unset. Returns the first
+    result's direct downloadUrl, falling back to the first entry in
+    sourceFulltextUrls when downloadUrl is absent."""
+    if not doi or not api_key:
+        return None
+    try:
+        response = fetch_with_retries(
+            "GET", _CORE_BASE, params={"q": f'doi:"{doi}"'}, headers={"Authorization": f"Bearer {api_key}"},
+        )
+    except FetchError:
+        return None
+    if response.status_code != 200:
+        return None
+    results = response.json().get("results") or []
+    if not results:
+        return None
+    result = results[0]
+    return result.get("downloadUrl") or next(iter(result.get("sourceFulltextUrls") or []), None)
+
+
 def try_arxiv_url(arxiv_id: str | None) -> str | None:
     if not arxiv_id:
         return None
@@ -93,9 +126,12 @@ def _download(url: str, pace_per_hour: float, cookies: dict | None = None) -> by
 
 
 def resolve_full_text(
-    work: Work, mailto: str, ezproxy_cookie: str | None, pace_per_hour: float
+    work: Work, mailto: str, ezproxy_cookie: str | None, pace_per_hour: float, core_api_key: str | None = None,
 ) -> AccessResult:
-    oa_url = work.oa_url or try_unpaywall(work.doi, mailto) or try_semantic_scholar(work.doi)
+    oa_url = (
+        work.oa_url or try_unpaywall(work.doi, mailto) or try_semantic_scholar(work.doi)
+        or try_core(work.doi, core_api_key)
+    )
     if oa_url:
         content = _download(oa_url, 0)  # OA hosts carry none of the EZProxy account-safety risk
         if content:
