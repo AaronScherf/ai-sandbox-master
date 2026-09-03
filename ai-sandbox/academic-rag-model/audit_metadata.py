@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
 audit_metadata.py
-Re-checks each converted journal article's folder, tags, title, authors,
-and DOI against its real full text and fresh OpenAlex data -- the gap
+Re-checks each converted journal article's folder, tags, title, and
+authors against its real full text and fresh OpenAlex data -- the gap
 flagged in docs/2026-09-01-journal-discovery-status.md point 6:
 .meta.json sidecars are written once at discovery time and never
 revisited, and reconcile_needs_manual.py's folder/content preview was
@@ -97,14 +97,6 @@ def check_authors(entry: dict, text: str) -> dict | None:
         if surname and normalize(surname) in normalized_text:
             return None
     return {"type": "author_mismatch", "detail": f"none of {authors} found in text"}
-
-
-def check_doi(key: str, entry: dict, text: str) -> dict | None:
-    if key.startswith("http"):
-        return None
-    if key.lower() in text.lower():
-        return None
-    return {"type": "doi_mismatch", "detail": f"stored DOI ({key}) not found in text"}
 
 
 def check_folder(key: str, entry: dict, mailto: str) -> dict:
@@ -241,7 +233,7 @@ def audit(articles_dir, index_root, mailto: str, recheck_all: bool = False) -> d
             counts["tag_syncs"] += 1
 
         text = md_path.read_text(encoding="utf-8", errors="ignore")
-        flags = [f for f in (check_title(entry, text), check_authors(entry, text), check_doi(key, entry, text)) if f]
+        flags = [f for f in (check_title(entry, text), check_authors(entry, text)) if f]
 
         entry["audited_at"] = datetime.now(timezone.utc).isoformat()
         if flags:

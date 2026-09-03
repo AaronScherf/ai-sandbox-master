@@ -87,7 +87,7 @@ automatically (`audit_metadata.py`, requires `OPENALEX_CONTACT_EMAIL` --
 skipped with a warning if that's not set) -- re-checking every newly
 converted paper's folder placement and tag sync against fresh OpenAlex
 data and the academic-hub index (both auto-corrected when there's a
-well-defined right answer), and flagging title/author/DOI mismatches it
+well-defined right answer), and flagging title/author mismatches it
 can't safely auto-fix into `metadata_audit_flags.md`. Already-audited
 papers are skipped on later runs. For a full forced re-audit (e.g.
 after fixing a flagged paper by hand):

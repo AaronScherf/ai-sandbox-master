@@ -2,7 +2,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from audit_metadata import check_authors, check_doi, check_title, resolve_paper_paths, select_audit_targets
+from audit_metadata import check_authors, check_title, resolve_paper_paths, select_audit_targets
 
 
 class TestSelectAuditTargets(unittest.TestCase):
@@ -89,18 +89,6 @@ class TestCheckAuthors(unittest.TestCase):
 
     def test_none_when_no_authors_stored(self):
         self.assertIsNone(check_authors({}, "any text"))
-
-
-class TestCheckDoi(unittest.TestCase):
-    def test_none_when_doi_found(self):
-        self.assertIsNone(check_doi("10.1/abc", {}, "Some paper. DOI: 10.1/abc. More text."))
-
-    def test_flags_when_doi_missing(self):
-        flag = check_doi("10.1/abc", {}, "Completely unrelated text with no DOI mentioned.")
-        self.assertEqual(flag["type"], "doi_mismatch")
-
-    def test_none_for_non_doi_key(self):
-        self.assertIsNone(check_doi("https://openalex.org/W1", {}, "any text"))
 
 
 from unittest.mock import patch
