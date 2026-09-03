@@ -1,13 +1,13 @@
-import json
 import os
 import tempfile
 import unittest
 from unittest.mock import MagicMock, patch
 
+from common.ollama_utils import OLLAMA_TIMEOUT
 from viz.example_store import ExampleRecord
 from viz.llm_fallback import (
-    _cache_key, _extract_code, _build_prompt, _call_ollama, _run_generated_code,
-    generate_via_llm, MAX_GENERATION_ATTEMPTS, _OLLAMA_TIMEOUT,
+    _cache_key, _extract_code, _build_prompt, _run_generated_code,
+    generate_via_llm, MAX_GENERATION_ATTEMPTS,
 )
 
 
@@ -88,27 +88,6 @@ class TestBuildPrompt(unittest.TestCase):
     def test_examples_block_absent_when_examples_empty_list(self):
         prompt = _build_prompt("eigenvalues", "", examples=[])
         self.assertNotIn("generated successfully", prompt)
-
-
-class TestCallOllama(unittest.TestCase):
-    @patch("viz.llm_fallback.urllib.request.urlopen")
-    def test_returns_response_text_on_success(self, mock_urlopen):
-        mock_response = MagicMock()
-        mock_response.read.return_value = json.dumps({"response": "```python\nfig = go.Figure()\n```"}).encode()
-        mock_urlopen.return_value.__enter__.return_value = mock_response
-        result = _call_ollama("some composed prompt")
-        self.assertIn("fig = go.Figure()", result)
-
-    @patch("viz.llm_fallback.urllib.request.urlopen", side_effect=OSError("connection refused"))
-    def test_returns_none_on_connection_failure(self, mock_urlopen):
-        self.assertIsNone(_call_ollama("some composed prompt"))
-
-    @patch("viz.llm_fallback.urllib.request.urlopen", side_effect=TimeoutError("timed out"))
-    def test_returns_timeout_sentinel_on_timeout(self, mock_urlopen):
-        """A live-but-slow Ollama call must be distinguishable from a
-        genuinely unreachable one -- generate_via_llm's retry loop treats
-        the two differently (retry vs. give up immediately)."""
-        self.assertIs(_call_ollama("some composed prompt"), _OLLAMA_TIMEOUT)
 
 
 class TestRunGeneratedCode(unittest.TestCase):
@@ -212,7 +191,7 @@ class TestGenerateViaLlm(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             with patch("viz.llm_fallback.example_store.find_examples", return_value=[]), \
                  patch("viz.llm_fallback.example_store.save"), \
-                 patch("viz.llm_fallback._call_ollama", return_value=None) as mock_call:
+                 patch("viz.llm_fallback.call_ollama", return_value=None) as mock_call:
                 result = generate_via_llm(
                     "concept", "", os.path.join(tmp, "out.html"),
                     os.path.join(tmp, "cache"), os.path.join(tmp, "examples"),
@@ -224,7 +203,7 @@ class TestGenerateViaLlm(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             with patch("viz.llm_fallback.example_store.find_examples", return_value=[]), \
                  patch("viz.llm_fallback.example_store.save"), \
-                 patch("viz.llm_fallback._call_ollama", return_value="no code here") as mock_call:
+                 patch("viz.llm_fallback.call_ollama", return_value="no code here") as mock_call:
                 result = generate_via_llm(
                     "concept", "", os.path.join(tmp, "out.html"),
                     os.path.join(tmp, "cache"), os.path.join(tmp, "examples"),
@@ -246,8 +225,8 @@ class TestGenerateViaLlm(unittest.TestCase):
             with patch("viz.llm_fallback.example_store.find_examples", return_value=[]), \
                  patch("viz.llm_fallback.example_store.save"), \
                  patch(
-                    "viz.llm_fallback._call_ollama",
-                    side_effect=[_OLLAMA_TIMEOUT, "```python\nfig = go.Figure()\n```"],
+                    "viz.llm_fallback.call_ollama",
+                    side_effect=[OLLAMA_TIMEOUT, "```python\nfig = go.Figure()\n```"],
                  ) as mock_call, \
                  patch("viz.llm_fallback._run_generated_code", side_effect=fake_run):
                 result = generate_via_llm("concept", "", output_path, cache_dir, examples_dir)
@@ -262,7 +241,7 @@ class TestGenerateViaLlm(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             with patch("viz.llm_fallback.example_store.find_examples", return_value=[]), \
                  patch("viz.llm_fallback.example_store.save"), \
-                 patch("viz.llm_fallback._call_ollama", return_value=_OLLAMA_TIMEOUT) as mock_call:
+                 patch("viz.llm_fallback.call_ollama", return_value=OLLAMA_TIMEOUT) as mock_call:
                 result = generate_via_llm(
                     "concept", "", os.path.join(tmp, "out.html"),
                     os.path.join(tmp, "cache"), os.path.join(tmp, "examples"),
@@ -283,7 +262,7 @@ class TestGenerateViaLlm(unittest.TestCase):
 
             with patch("viz.llm_fallback.example_store.find_examples", return_value=[]), \
                  patch("viz.llm_fallback.example_store.save"), \
-                 patch("viz.llm_fallback._call_ollama", return_value="```python\nfig = go.Figure()\n```"), \
+                 patch("viz.llm_fallback.call_ollama", return_value="```python\nfig = go.Figure()\n```"), \
                  patch("viz.llm_fallback._run_generated_code", side_effect=fake_run):
                 result = generate_via_llm("concept", "", output_path, cache_dir, examples_dir)
             self.assertIsNotNone(result)
@@ -302,7 +281,7 @@ class TestGenerateViaLlm(unittest.TestCase):
 
             with patch("viz.llm_fallback.example_store.find_examples") as mock_find, \
                  patch("viz.llm_fallback.example_store.save") as mock_save, \
-                 patch("viz.llm_fallback._call_ollama") as mock_call:
+                 patch("viz.llm_fallback.call_ollama") as mock_call:
                 result = generate_via_llm("concept", "", output_path, cache_dir, examples_dir)
             mock_call.assert_not_called()
             mock_find.assert_not_called()
@@ -330,7 +309,7 @@ class TestGenerateViaLlm(unittest.TestCase):
 
             with patch("viz.llm_fallback.example_store.find_examples", return_value=[]), \
                  patch("viz.llm_fallback.example_store.save"), \
-                 patch("viz.llm_fallback._call_ollama", side_effect=responses) as mock_call, \
+                 patch("viz.llm_fallback.call_ollama", side_effect=responses) as mock_call, \
                  patch("viz.llm_fallback._run_generated_code", side_effect=fake_run):
                 result = generate_via_llm("concept", "", output_path, cache_dir, examples_dir)
 
@@ -362,7 +341,7 @@ class TestGenerateViaLlm(unittest.TestCase):
 
             with patch("viz.llm_fallback.example_store.find_examples", return_value=[]), \
                  patch("viz.llm_fallback.example_store.save"), \
-                 patch("viz.llm_fallback._call_ollama", side_effect=responses), \
+                 patch("viz.llm_fallback.call_ollama", side_effect=responses), \
                  patch("viz.llm_fallback._run_generated_code", side_effect=fake_run):
                 result = generate_via_llm("concept", "", output_path, cache_dir, examples_dir)
 
@@ -393,7 +372,7 @@ class TestGenerateViaLlm(unittest.TestCase):
             with patch("viz.llm_fallback.example_store.find_examples", return_value=[example]), \
                  patch("viz.llm_fallback.example_store.save"), \
                  patch(
-                    "viz.llm_fallback._call_ollama",
+                    "viz.llm_fallback.call_ollama",
                     return_value="```python\nfig = go.Figure()\n```",
                  ) as mock_call, \
                  patch("viz.llm_fallback._run_generated_code", side_effect=fake_run):
@@ -423,7 +402,7 @@ class TestGenerateViaLlm(unittest.TestCase):
 
             with patch("viz.llm_fallback.example_store.find_examples", return_value=[]) as mock_find, \
                  patch("viz.llm_fallback.example_store.save"), \
-                 patch("viz.llm_fallback._call_ollama", side_effect=responses), \
+                 patch("viz.llm_fallback.call_ollama", side_effect=responses), \
                  patch("viz.llm_fallback._run_generated_code", side_effect=fake_run):
                 generate_via_llm("concept", "", output_path, cache_dir, examples_dir)
 
@@ -449,7 +428,7 @@ class TestGenerateViaLlm(unittest.TestCase):
 
             with patch("viz.llm_fallback.example_store.find_examples", return_value=[]), \
                  patch("viz.llm_fallback.example_store.save") as mock_save, \
-                 patch("viz.llm_fallback._call_ollama", side_effect=responses), \
+                 patch("viz.llm_fallback.call_ollama", side_effect=responses), \
                  patch("viz.llm_fallback._run_generated_code", side_effect=fake_run):
                 generate_via_llm("concept", "", output_path, cache_dir, examples_dir)
 
@@ -462,7 +441,7 @@ class TestGenerateViaLlm(unittest.TestCase):
             output_path = os.path.join(tmp, "out.html")
             with patch("viz.llm_fallback.example_store.find_examples", return_value=[]), \
                  patch("viz.llm_fallback.example_store.save") as mock_save, \
-                 patch("viz.llm_fallback._call_ollama", return_value="no code here"):
+                 patch("viz.llm_fallback.call_ollama", return_value="no code here"):
                 generate_via_llm("concept", "", output_path, cache_dir, examples_dir)
             mock_save.assert_not_called()
 

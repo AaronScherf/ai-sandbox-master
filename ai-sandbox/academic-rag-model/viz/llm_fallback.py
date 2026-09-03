@@ -23,36 +23,22 @@ this module's own tests.
 from __future__ import annotations
 
 import hashlib
-import json
 import os
 import re
 import shutil
 import subprocess
 import sys
 import tempfile
-import urllib.error
-import urllib.request
 
+from common.ollama_utils import OLLAMA_TIMEOUT, call_ollama
 from viz import example_store
 from viz.example_store import ExampleRecord
 from viz.viz_agent import VizResult
 
-OLLAMA_URL = "http://localhost:11434/api/generate"
 OLLAMA_MODEL = os.environ.get("VIZ_OLLAMA_MODEL", "qwen2.5-coder:7b")
 OLLAMA_REQUEST_TIMEOUT_SECONDS = 180
 EXECUTION_TIMEOUT_SECONDS = 60
 MAX_GENERATION_ATTEMPTS = 3
-
-
-class _OllamaTimeout:
-    """Sentinel returned by _call_ollama when the HTTP request to Ollama
-    itself times out -- distinct from None (a genuine connection
-    failure/unreachable server). A live-but-slow Ollama call is
-    plausibly worth a retry, unlike a server that isn't running at all;
-    generate_via_llm's retry loop treats the two differently."""
-
-
-_OLLAMA_TIMEOUT = _OllamaTimeout()
 
 _PROMPT_TEMPLATE = """Write a single self-contained Python script that uses the `plotly` and \
 `numpy` libraries to create an interactive visualization illustrating this concept: {concept}
@@ -128,30 +114,6 @@ def _build_prompt(
         f"Write a corrected script that fixes this specific problem. Respond with ONLY one "
         f"fenced ```python code block, nothing else."
     )
-
-
-def _call_ollama(prompt: str) -> str | None | _OllamaTimeout:
-    print(f"Generating a visualization via the local Ollama model ({OLLAMA_MODEL}) -- "
-          f"this can take up to a minute...")
-    payload = json.dumps({"model": OLLAMA_MODEL, "prompt": prompt, "stream": False}).encode("utf-8")
-    request = urllib.request.Request(
-        OLLAMA_URL, data=payload, headers={"Content-Type": "application/json"},
-    )
-    try:
-        with urllib.request.urlopen(request, timeout=OLLAMA_REQUEST_TIMEOUT_SECONDS) as response:
-            body = json.loads(response.read().decode("utf-8"))
-        return body.get("response")
-    except Exception as err:
-        timed_out = isinstance(err, TimeoutError) or (
-            isinstance(err, urllib.error.URLError) and isinstance(err.reason, TimeoutError)
-        )
-        if timed_out:
-            print(f"WARNING: Ollama call timed out after {OLLAMA_REQUEST_TIMEOUT_SECONDS}s -- "
-                  f"the model may just be slow on this request")
-            return _OLLAMA_TIMEOUT
-        print(f"WARNING: Ollama call failed ({err}) -- is `ollama serve` running and "
-              f"has `ollama pull {OLLAMA_MODEL}` been run?")
-        return None
 
 
 def _minimal_subprocess_env() -> dict[str, str]:
@@ -244,12 +206,15 @@ def generate_via_llm(concept: str, context: str, output_path: str, cache_dir: st
             final_code = None
             for _ in range(MAX_GENERATION_ATTEMPTS):
                 prompt = _build_prompt(concept, context, previous_code, previous_error, examples)
-                response_text = _call_ollama(prompt)
+                print(f"Generating a visualization via the local Ollama model ({OLLAMA_MODEL}) -- "
+                      f"this can take up to a minute...")
+                response_text = call_ollama(prompt, OLLAMA_MODEL, OLLAMA_REQUEST_TIMEOUT_SECONDS)
                 if response_text is None:
                     return None  # Ollama unreachable -- not worth retrying (spec §4)
-                if response_text is _OLLAMA_TIMEOUT:
+                if response_text is OLLAMA_TIMEOUT:
                     # A live-but-slow Ollama call is plausibly worth a retry, unlike a
-                    # genuinely unreachable server -- see _OllamaTimeout's own docstring.
+                    # genuinely unreachable server -- see OllamaTimeout's own docstring
+                    # (common/ollama_utils.py).
                     previous_code, previous_error = None, (
                         f"the request to Ollama itself timed out after "
                         f"{OLLAMA_REQUEST_TIMEOUT_SECONDS}s -- the model may just be slow; "
