@@ -24,15 +24,11 @@ import re
 from pathlib import Path
 
 from journal_discovery.manifest import load_manifest, manifest_path, save_manifest
+from journal_discovery.text_match import normalize
 from journal_discovery.worklist import write_needs_manual_worklist
 
-_NON_ALNUM_RE = re.compile(r"[^a-z0-9]+")
 _FRONTMATTER_RE = re.compile(r"^---\n.*?\n---\n", re.DOTALL)
 _HTML_COMMENT_RE = re.compile(r"<!--.*?-->", re.DOTALL)
-
-
-def _normalize(text: str) -> str:
-    return _NON_ALNUM_RE.sub("", text.lower())
 
 
 def find_converted_md_files(articles_dir) -> list[Path]:
@@ -47,12 +43,12 @@ def is_confirmed_downloaded(doi: str | None, title: str, md_files: list[Path]) -
     (unambiguous when present), a normalized-title substring match as
     fallback for papers that don't print their DOI in the visible text.
     None means still needs a manual download."""
-    normalized_title = _normalize(title) if title else None
+    normalized_title = normalize(title) if title else None
     for md_path in md_files:
         content = md_path.read_text(encoding="utf-8", errors="ignore")
         if doi and doi.lower() in content.lower():
             return md_path
-        if normalized_title and normalized_title in _normalize(content):
+        if normalized_title and normalized_title in normalize(content):
             return md_path
     return None
 
