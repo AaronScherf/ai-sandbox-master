@@ -15,12 +15,20 @@ day); or standalone for a forced full re-audit:
 """
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
 from journal_discovery.discovery import resolve_work_by_doi
 from journal_discovery.text_match import normalize
 from journal_discovery.topic_routing import sanitize_topic_name
-from indexer.index_card import compute_file_id, move_card
+from indexer.index_card import compute_file_id, find_card_by_file_id, move_card
+
+# Mirrors indexer/retag.py's own _FRONTMATTER_RE/_TAGS_LINE_RE exactly -- a
+# deliberate small duplication rather than importing private names from
+# retag.py, matching the pattern this module already follows for
+# reconcile_needs_manual.py's own regex constants.
+_FRONTMATTER_RE = re.compile(r"\A(---\n.*?\n---\n)", re.DOTALL)
+_TAGS_LINE_RE = re.compile(r"(?m)^tags:.*$")
 
 
 def select_audit_targets(manifest: dict, recheck_all: bool) -> list[tuple[str, dict]]:
@@ -138,6 +146,48 @@ def apply_folder_correction(
     move_card(index_root, file_id, new_folder)
     entry["folder"] = new_folder
     return new_pdf_path, new_md_path
+
+
+def _current_frontmatter_tags(content: str) -> list[str] | None:
+    match = _FRONTMATTER_RE.match(content)
+    if not match:
+        return None
+    tags_match = _TAGS_LINE_RE.search(match.group(1))
+    if not tags_match:
+        return None
+    bracket_match = re.search(r"\[(.*)\]", tags_match.group(0))
+    if not bracket_match:
+        return []
+    inner = bracket_match.group(1).strip()
+    if not inner:
+        return []
+    return [t.strip() for t in inner.split(",")]
+
+
+def check_tag_sync(index_root, pdf_path: Path, md_path: Path) -> dict:
+    file_id = compute_file_id(str(pdf_path))
+    found = find_card_by_file_id(index_root, file_id)
+    if found is None:
+        return {"mismatch": False, "index_tags": None, "found_card": False}
+    _, card = found
+    index_tags = card.get("tags") or []
+
+    content = md_path.read_text(encoding="utf-8")
+    current_tags = _current_frontmatter_tags(content)
+    if current_tags is None:
+        return {"mismatch": False, "index_tags": index_tags, "found_card": True}
+
+    return {"mismatch": sorted(current_tags) != sorted(index_tags), "index_tags": index_tags, "found_card": True}
+
+
+def apply_tag_sync(md_path: Path, tags: list[str]) -> None:
+    content = md_path.read_text(encoding="utf-8")
+    match = _FRONTMATTER_RE.match(content)
+    if not match:
+        return
+    rendered = "[" + ", ".join(tags) + "]"
+    new_frontmatter = _TAGS_LINE_RE.sub(f"tags: {rendered}", match.group(1), count=1)
+    md_path.write_text(new_frontmatter + content[match.end():], encoding="utf-8")
 
 
 if __name__ == "__main__":

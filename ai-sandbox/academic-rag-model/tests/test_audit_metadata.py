@@ -189,5 +189,78 @@ class TestApplyFolderCorrection(unittest.TestCase):
             self.assertTrue(new_md.exists())
 
 
+from audit_metadata import apply_tag_sync, check_tag_sync
+
+
+class TestCheckTagSync(unittest.TestCase):
+    def test_no_mismatch_when_frontmatter_already_matches_index(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp = Path(tmp)
+            pdf_path = tmp / "a.pdf"
+            pdf_path.write_bytes(b"%PDF-1.4 fake")
+            md_path = tmp / "a.md"
+            md_path.write_text("---\ntags: [economics, mobile-money]\n---\n\nBody text.", encoding="utf-8")
+
+            file_id = compute_file_id(str(pdf_path))
+            save_shard(str(tmp), "misc", [{"file_id": file_id, "tags": ["economics", "mobile-money"]}])
+
+            result = check_tag_sync(str(tmp), pdf_path, md_path)
+            self.assertFalse(result["mismatch"])
+            self.assertTrue(result["found_card"])
+
+    def test_mismatch_when_frontmatter_out_of_sync(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp = Path(tmp)
+            pdf_path = tmp / "a.pdf"
+            pdf_path.write_bytes(b"%PDF-1.4 fake")
+            md_path = tmp / "a.md"
+            md_path.write_text("---\ntags: []\n---\n\nBody text.", encoding="utf-8")
+
+            file_id = compute_file_id(str(pdf_path))
+            save_shard(str(tmp), "misc", [{"file_id": file_id, "tags": ["real-tag"]}])
+
+            result = check_tag_sync(str(tmp), pdf_path, md_path)
+            self.assertTrue(result["mismatch"])
+            self.assertEqual(result["index_tags"], ["real-tag"])
+
+    def test_no_card_found(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp = Path(tmp)
+            pdf_path = tmp / "a.pdf"
+            pdf_path.write_bytes(b"%PDF-1.4 fake")
+            md_path = tmp / "a.md"
+            md_path.write_text("---\ntags: []\n---\n\nBody text.", encoding="utf-8")
+
+            result = check_tag_sync(str(tmp), pdf_path, md_path)
+            self.assertFalse(result["found_card"])
+            self.assertFalse(result["mismatch"])
+
+    def test_no_frontmatter_tags_line_skips_gracefully(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp = Path(tmp)
+            pdf_path = tmp / "a.pdf"
+            pdf_path.write_bytes(b"%PDF-1.4 fake")
+            md_path = tmp / "a.md"
+            md_path.write_text("no frontmatter at all here", encoding="utf-8")
+
+            file_id = compute_file_id(str(pdf_path))
+            save_shard(str(tmp), "misc", [{"file_id": file_id, "tags": ["real-tag"]}])
+
+            result = check_tag_sync(str(tmp), pdf_path, md_path)
+            self.assertFalse(result["mismatch"])
+
+
+class TestApplyTagSync(unittest.TestCase):
+    def test_rewrites_frontmatter_tags_line(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            md_path = Path(tmp) / "a.md"
+            md_path.write_text("---\nsource_pdf: a.pdf\ntags: []\n---\n\nBody text.", encoding="utf-8")
+            apply_tag_sync(md_path, ["economics", "mobile-money"])
+            content = md_path.read_text(encoding="utf-8")
+            self.assertIn("tags: [economics, mobile-money]", content)
+            self.assertIn("Body text.", content)
+            self.assertIn("source_pdf: a.pdf", content)
+
+
 if __name__ == "__main__":
     unittest.main()
