@@ -136,7 +136,7 @@ def confirm(args) -> dict:
             counts["confirmed"] -= 1
             continue
 
-        result = resolve_full_text(work, args.mailto, args.ezproxy_cookie, args.pace_per_hour)
+        result = resolve_full_text(work, args.mailto, args.ezproxy_cookie, args.pace_per_hour, args.core_api_key)
         # Reuse the folder/title/authors/year already recorded at propose
         # time rather than re-deriving from `work` here -- confirmed real
         # 2026-09-02 that re-resolving by DOI can hand back a work with
@@ -210,6 +210,7 @@ def main():
         print("ERROR: OPENALEX_CONTACT_EMAIL must be set in .env (required by OpenAlex).")
         sys.exit(1)
     args.ezproxy_cookie = os.environ.get("EZPROXY_SESSION_COOKIE")
+    args.core_api_key = os.environ.get("CORE_API_KEY")
 
     if args.command == "propose":
         counts = propose(args)

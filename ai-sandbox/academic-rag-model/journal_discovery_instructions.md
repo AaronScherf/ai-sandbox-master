@@ -19,6 +19,10 @@ Add to `ai-sandbox/.env` (copy the placeholders from `.env.example`):
 - `EZPROXY_SESSION_COOKIE` -- optional. Only needed for gated (non-open-
   access, non-arXiv) papers. See "EZProxy setup" below before relying on
   this for real use.
+- `CORE_API_KEY` -- optional. A fourth, free open-access-discovery tier
+  (tried after Semantic Scholar, before arXiv). Register a free key at
+  [core.ac.uk/services/api](https://core.ac.uk/services/api); the tier
+  is silently skipped, same as EZProxy without a cookie, when unset.
 - `ZOTERO_LIBRARY_ID` / `ZOTERO_API_KEY` -- optional, only needed with `--zotero`.
 
 ## Step 2: Run it
@@ -126,8 +130,8 @@ python -m journal_discovery.snowball confirm
 ```
 
 Fetches full text only for checked candidates, through the same
-Unpaywall -> Semantic Scholar -> arXiv -> EZProxy chain as any other
-route. A confirmed candidate that can't be auto-fetched lands in
+Unpaywall -> Semantic Scholar -> CORE.ac.uk -> arXiv -> EZProxy chain
+as any other route. A confirmed candidate that can't be auto-fetched lands in
 `needs_manual_downloads.md` exactly like any other route's outcome --
 nothing downstream treats a snowball-sourced paper any differently once
 you've confirmed it.

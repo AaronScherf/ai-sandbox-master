@@ -53,6 +53,7 @@ def _sync_zotero_if_configured(work, pdf_path, topic_folder: str, args) -> None:
 def run(args: argparse.Namespace) -> dict:
     mailto = getattr(args, "mailto", None) or os.environ.get("OPENALEX_CONTACT_EMAIL")
     ezproxy_cookie = getattr(args, "ezproxy_cookie", None) or os.environ.get("EZPROXY_SESSION_COOKIE")
+    core_api_key = getattr(args, "core_api_key", None) or os.environ.get("CORE_API_KEY")
 
     manifest_file = manifest_path(args.articles_dir)
     manifest = load_manifest(manifest_file)
@@ -71,7 +72,7 @@ def run(args: argparse.Namespace) -> dict:
         work = scored_work.work
         key = manifest_key(work)
 
-        result = resolve_full_text(work, mailto, ezproxy_cookie, args.pace_per_hour)
+        result = resolve_full_text(work, mailto, ezproxy_cookie, args.pace_per_hour, core_api_key)
         if result.status == "fetched":
             folder = route_to_folder(args.articles_dir, work)
             pdf_path = folder / pdf_filename(work)

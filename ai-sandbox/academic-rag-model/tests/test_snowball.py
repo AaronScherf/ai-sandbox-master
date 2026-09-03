@@ -169,7 +169,7 @@ class TestPropose(unittest.TestCase):
 
 
 def _confirm_args(**overrides):
-    defaults = dict(pace_per_hour=25.0)
+    defaults = dict(pace_per_hour=25.0, core_api_key=None)
     defaults.update(overrides)
     return argparse.Namespace(**defaults)
 
