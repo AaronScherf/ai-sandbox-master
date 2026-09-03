@@ -103,5 +103,91 @@ class TestCheckDoi(unittest.TestCase):
         self.assertIsNone(check_doi("https://openalex.org/W1", {}, "any text"))
 
 
+from unittest.mock import patch
+
+from indexer.index_card import compute_file_id, load_courses, load_shard, save_shard
+from audit_metadata import apply_folder_correction, check_folder
+
+
+def _fake_work(concepts):
+    from journal_discovery.discovery import Work
+    return Work(openalex_id="https://openalex.org/W1", doi="10.1/abc", title="T",
+                authors=[], year=2024, abstract=None, concepts=concepts)
+
+
+class TestCheckFolder(unittest.TestCase):
+    @patch("audit_metadata.resolve_work_by_doi")
+    def test_no_mismatch_when_folder_already_matches(self, mock_resolve):
+        mock_resolve.return_value = _fake_work(["Business"])
+        result = check_folder("10.1/abc", {"folder": "business"}, "me@example.com")
+        self.assertFalse(result["mismatch"])
+        self.assertEqual(result["new_folder"], "business")
+
+    @patch("audit_metadata.resolve_work_by_doi")
+    def test_mismatch_when_concept_now_differs(self, mock_resolve):
+        mock_resolve.return_value = _fake_work(["Sociology"])
+        result = check_folder("10.1/abc", {"folder": "grasp"}, "me@example.com")
+        self.assertTrue(result["mismatch"])
+        self.assertEqual(result["new_folder"], "sociology")
+
+    def test_skipped_for_non_doi_key(self):
+        result = check_folder("https://openalex.org/W1", {"folder": "misc"}, "me@example.com")
+        self.assertFalse(result["mismatch"])
+        self.assertIsNotNone(result["error"])
+
+    @patch("audit_metadata.resolve_work_by_doi")
+    def test_error_when_lookup_fails(self, mock_resolve):
+        mock_resolve.return_value = None
+        result = check_folder("10.1/abc", {"folder": "misc"}, "me@example.com")
+        self.assertFalse(result["mismatch"])
+        self.assertIsNotNone(result["error"])
+
+
+class TestApplyFolderCorrection(unittest.TestCase):
+    def test_moves_files_and_updates_index_card(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp = Path(tmp)
+            pdf_path = tmp / "misc" / "paper.pdf"
+            pdf_path.parent.mkdir(parents=True)
+            pdf_path.write_bytes(b"%PDF-1.4 fake")
+            meta_path = pdf_path.with_suffix(".meta.json")
+            meta_path.write_text("{}", encoding="utf-8")
+            md_path = tmp / "misc" / "processed_outputs" / "paper.md"
+            md_path.parent.mkdir(parents=True)
+            md_path.write_text("content", encoding="utf-8")
+
+            file_id = compute_file_id(str(pdf_path))
+            save_shard(str(tmp), "misc", [{"file_id": file_id, "path": "misc/processed_outputs/paper.md",
+                                            "source_pdf_path": "misc/paper.pdf", "course": "misc",
+                                            "embedding": [1.0], "tags": []}])
+
+            entry = {"folder": "misc"}
+            new_pdf, new_md = apply_folder_correction(tmp, str(tmp), entry, pdf_path, md_path, "business")
+
+            self.assertTrue(new_pdf.exists())
+            self.assertTrue(new_md.exists())
+            self.assertFalse(pdf_path.exists())
+            self.assertTrue((tmp / "business" / "paper.meta.json").exists())
+            self.assertEqual(entry["folder"], "business")
+            self.assertEqual(load_shard(str(tmp), "business")[0]["course"], "business")
+            self.assertEqual(load_courses(str(tmp))["business"]["file_count"], 1)
+
+    def test_moves_without_meta_json_for_manually_downloaded_papers(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp = Path(tmp)
+            pdf_path = tmp / "misc" / "weird-name.pdf"
+            pdf_path.parent.mkdir(parents=True)
+            pdf_path.write_bytes(b"%PDF-1.4 fake")
+            md_path = tmp / "misc" / "processed_outputs" / "weird-name.md"
+            md_path.parent.mkdir(parents=True)
+            md_path.write_text("content", encoding="utf-8")
+
+            entry = {"folder": "misc"}
+            new_pdf, new_md = apply_folder_correction(tmp, str(tmp), entry, pdf_path, md_path, "sociology")
+
+            self.assertTrue(new_pdf.exists())
+            self.assertTrue(new_md.exists())
+
+
 if __name__ == "__main__":
     unittest.main()

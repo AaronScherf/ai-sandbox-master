@@ -17,8 +17,10 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from journal_discovery.discovery import resolve_work_by_doi
 from journal_discovery.text_match import normalize
 from journal_discovery.topic_routing import sanitize_topic_name
+from indexer.index_card import compute_file_id, move_card
 
 
 def select_audit_targets(manifest: dict, recheck_all: bool) -> list[tuple[str, dict]]:
@@ -89,6 +91,53 @@ def check_doi(key: str, entry: dict, text: str) -> dict | None:
     if key.lower() in text.lower():
         return None
     return {"type": "doi_mismatch", "detail": f"stored DOI ({key}) not found in text"}
+
+
+def check_folder(key: str, entry: dict, mailto: str) -> dict:
+    if key.startswith("http"):
+        return {"mismatch": False, "new_folder": None, "error": "non-DOI key, folder check skipped"}
+    work = resolve_work_by_doi(key, mailto)
+    if work is None:
+        return {"mismatch": False, "new_folder": None, "error": "resolve_work_by_doi failed"}
+    top_concept = work.concepts[0] if work.concepts else None
+    new_folder = sanitize_topic_name(top_concept)
+    current_folder = entry.get("folder")
+    return {"mismatch": new_folder != current_folder, "new_folder": new_folder, "error": None}
+
+
+def apply_folder_correction(
+    articles_dir, index_root, entry: dict, pdf_path: Path, md_path: Path, new_folder: str,
+) -> tuple[Path, Path]:
+    """Moves every file belonging to this paper into its corrected
+    folder and relocates its index card to match. Lets any filesystem
+    or index-update exception propagate -- audit()'s caller (Task 8) is
+    responsible for catching it and leaving audited_at unset so the
+    paper is retried on the next run, rather than silently left
+    half-migrated."""
+    dest_folder = Path(articles_dir) / new_folder
+    dest_folder.mkdir(parents=True, exist_ok=True)
+
+    file_id = compute_file_id(str(pdf_path))
+
+    new_pdf_path = dest_folder / pdf_path.name
+    pdf_path.rename(new_pdf_path)
+
+    meta_path = pdf_path.with_suffix(".meta.json")
+    if meta_path.exists():
+        meta_path.rename(dest_folder / meta_path.name)
+
+    new_processed_dir = dest_folder / "processed_outputs"
+    new_processed_dir.mkdir(exist_ok=True)
+    new_md_path = new_processed_dir / md_path.name
+    md_path.rename(new_md_path)
+
+    cache_path = md_path.parent / f"{md_path.stem}_pages_cache.json"
+    if cache_path.exists():
+        cache_path.rename(new_processed_dir / cache_path.name)
+
+    move_card(index_root, file_id, new_folder)
+    entry["folder"] = new_folder
+    return new_pdf_path, new_md_path
 
 
 if __name__ == "__main__":
