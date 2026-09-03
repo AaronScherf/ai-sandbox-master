@@ -571,13 +571,38 @@ Researched both APIs directly before building anything:
   since `fetch_with_retries()` already retries a 429 with backoff/
   `Retry-After` respect generically, the same mechanism every other
   unpaced lookup call in this file already relies on.
-- Not yet live-tested against the real corpus (no `CORE_API_KEY` was
-  available this session) -- 9 new unit tests cover `try_core()` and its
-  place in the fallback chain, but real-world validation (does CORE's
-  actual response shape match what was inferred from third-party client
-  source code, since CORE's own docs pages 403'd to direct fetches)
-  is still open. Worth a live check the first time a real discovery run
-  uses a real key.
+**Live-tested 2026-09-03, once a real `CORE_API_KEY` was registered and
+added to `.env` -- found and fixed one more real bug.**
+
+- **Response shape confirmed correct.** A direct real API call showed
+  the exact envelope inferred from third-party client source
+  (`totalHits`/`limit`/`offset`/`results`/`searchId`) -- `try_core()`'s
+  parsing needed no changes.
+- **`try_core()` itself works against real data.** Of 5 real
+  `needs_manual` DOIs from the actual corpus (Elsevier, Nature, a World
+  Bank chapter, SSRN), all 5 came back empty -- expected, not a bug;
+  these are exactly the hard-to-reach papers that motivated adding this
+  tier in the first place, and CORE's own green-OA crawl doesn't happen
+  to cover them. Tested against 5 already-`fetched` (confirmed
+  open-access) DOIs instead to validate the positive path: 2 of 5
+  returned a real `downloadUrl`.
+- **A real bug found and fixed: both real `downloadUrl`s 403'd.**
+  Fetching either with a plain `requests.get()` (no custom headers, just
+  what `_download()` was sending) returned a Cloudflare "Just a
+  moment..." bot-challenge page -- the *same failure class* already
+  documented for EZProxy/Taylor & Francis/ScienceDirect, but this time
+  the fix was simple and confirmed working: adding a real browser
+  `User-Agent` header (Bearer auth on the download URL itself did **not**
+  help, confirmed by testing it directly) got a genuine `200`,
+  `application/pdf`, real `%PDF-1.3`/`%PDF-1.6` bytes (2.4MB and 560KB)
+  for both. Fixed in `_download()` (commit shortly after this entry) --
+  every tier's downloads now send a realistic UA, not just CORE's, since
+  a default `python-requests/x.x` string is exactly the kind of
+  fingerprint this class of block targets. **How to apply:** a 403 with
+  an HTML "Just a moment..." body from an otherwise-correct URL is
+  Cloudflare bot detection, not a real access denial -- check the
+  request's own client fingerprint (User-Agent first, cheapest to fix)
+  before assuming the resource itself is unreachable.
 
 ## What's next
 
@@ -608,12 +633,10 @@ answer if gated-paper coverage becomes a real bottleneck later:
 7. Otherwise, no change: the existing OA -> Semantic Scholar -> arXiv ->
    EZProxy-with-manual-fallback pipeline is the correct, working design
    as shipped.
-8. **Live-validate the new CORE.ac.uk tier**, flagged 2026-09-03 -- no
-   `CORE_API_KEY` was available this session, so `try_core()`'s actual
-   request/response handling is unit-tested (mocked against third-party
-   client source, since CORE's own docs pages 403'd to direct fetches)
-   but not yet run against the real API. Do this the first time a real
-   `CORE_API_KEY` is available.
+8. ~~Live-validate the new CORE.ac.uk tier.~~ **Done, 2026-09-03 -- see
+   "CORE.ac.uk discovery tier" section above.** Found and fixed a real
+   bug in the process (missing User-Agent header, same Cloudflare
+   bot-challenge class already documented for EZProxy).
 9. **Charts/plots losing their underlying data on transcription** --
    marked as the next thing to solve, per user decision 2026-09-02. See
    "Open issue: charts/plots lose their underlying data on conversion"
