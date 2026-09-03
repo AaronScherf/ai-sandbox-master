@@ -37,6 +37,7 @@ from viz.viz_agent import VizResult
 OLLAMA_URL = "http://localhost:11434/api/generate"
 OLLAMA_MODEL = os.environ.get("VIZ_OLLAMA_MODEL", "qwen2.5-coder:7b")
 EXECUTION_TIMEOUT_SECONDS = 60
+MAX_GENERATION_ATTEMPTS = 3
 
 _PROMPT_TEMPLATE = """Write a single self-contained Python script that uses the `plotly` and \
 `numpy` libraries to create an interactive visualization illustrating this concept: {concept}
@@ -180,21 +181,34 @@ def _run_generated_code(
 
 
 def generate_via_llm(concept: str, context: str, output_path: str, cache_dir: str) -> VizResult | None:
-    """Generates a visualization via the local Ollama fallback, or returns
-    None on any failure -- never raises past its caller (spec §4)."""
+    """Generates a visualization via the local Ollama fallback, retrying
+    up to MAX_GENERATION_ATTEMPTS times with the previous failure fed
+    back to the model as a corrective prompt, or returns None on any
+    failure -- never raises past its caller (spec §4, hardened per
+    docs/superpowers/specs/2026-09-03-viz-ollama-retry-hardening-design.md
+    §2/§4)."""
     try:
         os.makedirs(cache_dir, exist_ok=True)
         cached_path = os.path.join(cache_dir, f"{_cache_key(concept, context)}.html")
 
         if not os.path.exists(cached_path):
-            response_text = _call_ollama(concept, context)
-            if response_text is None:
-                return None
-            code = _extract_code(response_text)
-            if code is None:
-                print("WARNING: Ollama response contained no ```python code block")
-                return None
-            if not _run_generated_code(code, cached_path):
+            previous_code, previous_error = None, None
+            succeeded = False
+            for _ in range(MAX_GENERATION_ATTEMPTS):
+                prompt = _build_prompt(concept, context, previous_code, previous_error)
+                response_text = _call_ollama(prompt)
+                if response_text is None:
+                    return None  # Ollama unreachable -- not worth retrying (spec §4)
+                code = _extract_code(response_text)
+                if code is None:
+                    previous_code, previous_error = None, "the response contained no ```python code block"
+                    continue
+                success, error = _run_generated_code(code, cached_path)
+                if success:
+                    succeeded = True
+                    break
+                previous_code, previous_error = code, error
+            if not succeeded:
                 return None
 
         os.makedirs(os.path.dirname(output_path), exist_ok=True)
