@@ -17,6 +17,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from journal_discovery.text_match import normalize
 from journal_discovery.topic_routing import sanitize_topic_name
 
 
@@ -57,6 +58,37 @@ def resolve_paper_paths(articles_dir, key: str, entry: dict) -> tuple[Path | Non
     pdf_path = Path(articles_dir) / folder / f"{stem}.pdf"
     md_path = Path(articles_dir) / folder / "processed_outputs" / f"{stem}.md"
     return pdf_path, md_path
+
+
+def check_title(entry: dict, text: str) -> dict | None:
+    title = entry.get("title")
+    if not title:
+        return None
+    if normalize(title) in normalize(text):
+        return None
+    excerpt = " ".join(text.split())[:200]
+    return {"type": "title_mismatch",
+            "detail": f'stored title "{title}" not found in text (excerpt: "{excerpt}")'}
+
+
+def check_authors(entry: dict, text: str) -> dict | None:
+    authors = entry.get("authors") or []
+    if not authors:
+        return None
+    normalized_text = normalize(text)
+    for author in authors:
+        surname = author.strip().split()[-1] if author.strip() else ""
+        if surname and normalize(surname) in normalized_text:
+            return None
+    return {"type": "author_mismatch", "detail": f"none of {authors} found in text"}
+
+
+def check_doi(key: str, entry: dict, text: str) -> dict | None:
+    if key.startswith("http"):
+        return None
+    if key.lower() in text.lower():
+        return None
+    return {"type": "doi_mismatch", "detail": f"stored DOI ({key}) not found in text"}
 
 
 if __name__ == "__main__":

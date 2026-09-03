@@ -2,7 +2,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from audit_metadata import resolve_paper_paths, select_audit_targets
+from audit_metadata import check_authors, check_doi, check_title, resolve_paper_paths, select_audit_targets
 
 
 class TestSelectAuditTargets(unittest.TestCase):
@@ -56,6 +56,51 @@ class TestResolvePaperPaths(unittest.TestCase):
     def test_downloaded_entry_without_matched_md_path_returns_none_none(self):
         entry = {"status": "downloaded"}
         self.assertEqual(resolve_paper_paths("/articles", "10.1/x", entry), (None, None))
+
+
+class TestCheckTitle(unittest.TestCase):
+    def test_none_when_title_found_in_text(self):
+        entry = {"title": "Causal Inference from Hypothetical Evaluations"}
+        text = "CAUSAL INFERENCE, FROM Hypothetical-Evaluations!! An abstract follows."
+        self.assertIsNone(check_title(entry, text))
+
+    def test_flags_when_title_not_found(self):
+        entry = {"title": "A Title That Was Never Printed"}
+        text = "This paper is actually about something completely different."
+        flag = check_title(entry, text)
+        self.assertEqual(flag["type"], "title_mismatch")
+        self.assertIn("A Title That Was Never Printed", flag["detail"])
+
+    def test_none_when_no_title_stored(self):
+        self.assertIsNone(check_title({}, "any text"))
+
+
+class TestCheckAuthors(unittest.TestCase):
+    def test_none_when_an_author_surname_found(self):
+        entry = {"authors": ["Daniel Bjorkegren", "Jane Smith"]}
+        text = "This paper, by Bjorkegren and coauthors, studies mobile money."
+        self.assertIsNone(check_authors(entry, text))
+
+    def test_flags_when_no_author_found_at_all(self):
+        entry = {"authors": ["A. Nobody", "B. Nobody"]}
+        text = "This paper was actually written by someone else entirely."
+        flag = check_authors(entry, text)
+        self.assertEqual(flag["type"], "author_mismatch")
+
+    def test_none_when_no_authors_stored(self):
+        self.assertIsNone(check_authors({}, "any text"))
+
+
+class TestCheckDoi(unittest.TestCase):
+    def test_none_when_doi_found(self):
+        self.assertIsNone(check_doi("10.1/abc", {}, "Some paper. DOI: 10.1/abc. More text."))
+
+    def test_flags_when_doi_missing(self):
+        flag = check_doi("10.1/abc", {}, "Completely unrelated text with no DOI mentioned.")
+        self.assertEqual(flag["type"], "doi_mismatch")
+
+    def test_none_for_non_doi_key(self):
+        self.assertIsNone(check_doi("https://openalex.org/W1", {}, "any text"))
 
 
 if __name__ == "__main__":
