@@ -481,6 +481,58 @@ ScienceDirect subscription gaps above, plus the already-documented
 Nature-title-mismatch and SSRN-duplicate-listing cases (see "Conversion
 + reconciliation completed" above).
 
+## Metadata/folder audit: implemented and live-tested, 2026-09-02
+
+Spec: `docs/superpowers/specs/2026-09-02-metadata-folder-audit-design.md`;
+plan: `docs/superpowers/plans/2026-09-02-metadata-folder-audit-plan.md`.
+Built as `audit_metadata.py` (folder placement and tag-frontmatter sync
+auto-correct when there's a mechanically well-defined right answer;
+title/author mismatches flag into `metadata_audit_flags.md` for human
+review), chained automatically onto `reconcile_needs_manual.py`'s own
+run rather than a separate command. 714 tests passing at merge.
+
+**Two real bugs found on the very first live run against the actual
+corpus, both fixed same-day:**
+
+1. **Neither `audit_metadata.py` nor `reconcile_needs_manual.py` ever
+   loaded `.env`.** Both checked `os.environ.get("OPENALEX_CONTACT_EMAIL")`
+   directly without calling `common.gemini_utils.load_dotenv_override()`
+   first, unlike `discover.py`/`snowball.py`'s own established
+   convention -- so a real run always hit the "not set" branch even with
+   a real `.env` in place. Unit tests never caught this because they
+   patch `os.environ` directly rather than exercising real `.env`
+   loading. Fixed by adding the missing `load_dotenv_override()` call to
+   both scripts' `main()`s.
+2. **The DOI check (`check_doi()`) was designed on a false assumption
+   and removed entirely.** It flagged a paper whenever its own stored
+   DOI didn't appear as literal text in its converted body -- but the
+   very first real run flagged 14 of 17 audited papers (82%) this way.
+   Root-caused by reading one flagged paper's actual converted text
+   directly: its own DOI genuinely never appears anywhere in its body --
+   only *other* papers' DOIs, in its own reference list, do. Real
+   academic papers routinely don't self-print their own DOI in visible
+   text at all (it's typically publisher-stamped metadata, not prose).
+   This was already known and documented elsewhere in this very
+   codebase -- `reconcile_needs_manual.py`'s own `is_confirmed_downloaded()`
+   docstring explicitly calls out "papers that don't print their DOI in
+   the visible text" as the reason it falls back to title-matching --
+   but wasn't applied when `check_doi()` was designed. Since `check_title()`
+   already provides a reliable, corroborated identity signal on its own,
+   `check_doi()` added no real value and pure noise; removed rather than
+   patched, since no minor tweak fixes an unreliable-by-design signal.
+   **How to apply:** before trusting "does X appear as literal text in a
+   real converted paper" as a signal, check it against a few real
+   converted files first -- title and author names tend to appear near a
+   paper's own header reliably; bibliographic identifiers like DOIs
+   often don't, except in citations *of other papers*.
+
+After both fixes, a clean re-run against the real corpus: 17 papers
+audited (1 skipped -- a fetched-but-not-yet-converted PDF, correctly
+left for a later run), 0 folder corrections needed (the folder-naming
+fix from earlier this session already holds), 0 tag syncs needed
+(frontmatter already in sync with the index), 0 flags -- a genuinely
+clean corpus, not an audit that found nothing because it's broken.
+
 ## What's next
 
 Not currently planned as active work -- recorded here as the honest
@@ -503,25 +555,9 @@ answer if gated-paper coverage becomes a real bottleneck later:
    OpenAlex's own citation graph), not backward bibliography-parsing, per
    the reasoning originally flagged here.
 5. The tags and folder organization follow the OpenAlex conventions but haven't been tested against the indexer system for the academic hub, which pulls out tags semantically based on the content of the entire knowledge graph. It would be worth testing the standard convention tags used by OpenAlex against the academic hub system once the corpus of research journals is larger, then consolidating the two systems so they can cross reference each other better.
-6. **A metadata/folder audit process against full text, flagged
-   2026-09-02, not scoped.** Checked what exists today and found a real
-   gap: `reconcile_needs_manual.py` already prints a folder/content
-   preview for every converted paper (not just `needs_manual` ones), but
-   that's read-only -- nothing re-files a mis-routed paper automatically
-   (the one real fix, the "grasp"/"competition-biology" folder
-   cleanup, was a one-off manual script, not a repeatable tool). More
-   importantly, **no metadata gets checked against full text at all**:
-   `.meta.json` sidecars (title/authors/year/concepts/relevance score)
-   are written once at discovery time, from OpenAlex data, before the
-   full text even exists, and are never revisited once real content is
-   available. A wrong title, mis-attributed author, or stale concept
-   list would never surface through anything that runs today. Worth
-   scoping as its own small project: extend the reconciler (or a new
-   script) to flag metadata/folder mismatches once full text exists,
-   with correction likely staying human-confirmed rather than fully
-   automatic, given how much judgment "does this concept tag actually
-   fit" already requires (see item 5 above, and the OpenAlex
-   homonym-prone-concept findings elsewhere in this doc).
+6. ~~A metadata/folder audit process against full text, flagged
+   2026-09-02, not scoped.~~ **Implemented and live-tested, 2026-09-02 --
+   see "Metadata/folder audit" section above.**
 7. Otherwise, no change: the existing OA -> Semantic Scholar -> arXiv ->
    EZProxy-with-manual-fallback pipeline is the correct, working design
    as shipped.
