@@ -34,6 +34,10 @@ not new spend introduced by this subproject.
   student's own real problems on that topic (style/difficulty anchor)
   and their own textbook content on that topic (correctness anchor),
   then generate a new problem plus a worked solution via a local model.
+- Resolve which course to search reliably when the student names it in
+  free text (e.g. "for my microeconomics course") rather than relying
+  purely on embedding-similarity course selection, which risks pooling
+  style examples from the wrong course (§3).
 - Self-verify the generated solution actually solves the generated
   problem before returning it; retry with the failure fed back to the
   model, rather than silently returning a wrong or ill-posed problem.
@@ -188,6 +192,61 @@ reformulated standalone version on a follow-up turn — same string
 the same choice `viz/`'s integration made for template matching (spec
 §6 there): no separate LLM call to isolate a clean topic phrase out of
 the full sentence.
+
+**Course scoping.** `search()`'s existing `_candidate_courses()` step
+(`index_search.py`) already restricts to exactly one course when
+`course` is given explicitly; when it isn't, it picks the **top 3**
+most similar courses by embedding similarity and pools file-level
+results across all of them. That's an acceptable default for plain
+Q&A's citations, but too loose for style examples specifically — a
+stray problem from a semantically-adjacent but wrong course (wrong
+notation, wrong subject, wrong level) actively corrupts what gets
+generated, in a way a stray citation in a text answer doesn't.
+
+Raised and decided with the user 2026-09-03: when `course` isn't given
+explicitly, `generate_problem()` first checks the question text against
+the corpus's own known course list before falling back to the existing
+similarity-based candidates — a cheap, free substring match, same style
+as the intent-detection heuristic (§5), added as a private helper in
+`problem_gen/generator.py` (not `rag_agent.py` or the indexer, since
+this tightened resolution is specific to how much problem generation
+cares about getting the course exactly right, not a change to general
+Q&A's course handling):
+
+```python
+from indexer.index_card import load_courses
+
+def _match_known_course(question: str, roots: list[str]) -> str | None:
+    """Substring-matches the question against every known course name
+    across the given roots (normalizing '-'/' ' so 'math camp' and
+    'math-camp' both match) -- returns the first hit, or None if no
+    known course name appears in the text, in which case
+    generate_problem() falls through to search()'s own top-3
+    similarity-based candidate selection unchanged."""
+    known = set()
+    for root in roots:
+        known.update(load_courses(root).keys())
+    normalized_question = question.lower().replace("-", " ")
+    for course in known:
+        if course.lower().replace("-", " ") in normalized_question:
+            return course
+    return None
+```
+
+`generate_problem()` calls this only when its own `course` parameter is
+`None`:
+
+```python
+def generate_problem(query, roots, client, course=None, ...):
+    if course is None:
+        course = _match_known_course(query, roots)
+    style_passages = search_passages(roots, query, client, course=course, doc_type="problem_set", top_k=style_top_k)
+    ...
+```
+
+An explicit `course=` argument (e.g. the REPL's `--course` flag) always
+wins and skips this matching entirely — it's a fallback for free-text
+mentions, not a second-guessing of an explicit caller choice.
 
 ## 4. Generation + self-verification (local Ollama, no sandboxing)
 
@@ -367,7 +426,12 @@ reason fed back; success on a later attempt; `MAX_ATTEMPTS` exhausted →
 requested for the style pool and `doc_type="textbook"` for the content
 pool; an empty style pool returns `None` without calling generation at
 all; sources come back tagged `role="style"`/`role="content"`
-correctly.
+correctly. `_match_known_course` gets its own table-driven cases
+(known course named plainly, named with a hyphen/space variant, no
+known course mentioned at all → `None`, question mentioning two known
+courses → first match is deterministic, not asserted to be either in
+particular) plus an integration case asserting an explicit `course=`
+argument skips the matcher entirely (mocked to detect if it's called).
 
 `rag_agent.answer_question()` — `_looks_like_problem_request` gets a
 table of trigger/non-trigger phrases (including near-misses that
