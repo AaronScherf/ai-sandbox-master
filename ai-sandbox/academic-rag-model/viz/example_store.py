@@ -20,6 +20,7 @@ import re
 import urllib.error
 import urllib.request
 from dataclasses import asdict, dataclass
+from datetime import datetime, timezone
 
 EMBEDDING_MODEL = "nomic-embed-text"
 EMBEDDING_URL = "http://localhost:11434/api/embeddings"
@@ -141,3 +142,27 @@ def find_examples(concept: str, context: str, store_dir: str) -> list[ExampleRec
     except Exception as err:
         print(f"WARNING: example lookup failed unexpectedly ({err}) -- proceeding without examples")
         return []
+
+
+def save(concept: str, context: str, script: str, store_dir: str) -> None:
+    """Appends a validated (concept, context, script) triple to the
+    example store. Never raises -- a failure to save is logged as a
+    WARNING and otherwise ignored; it must never turn a successful
+    generation into a failed generate_via_llm() call (spec §2)."""
+    try:
+        query_text = f"{concept}\n{context}"
+        embedding = _embed(query_text)
+        if embedding is None:
+            print("WARNING: could not save example -- embedding unavailable")
+            return
+        record = ExampleRecord(
+            concept=concept, context=context,
+            keywords=sorted(_derive_keywords(query_text)),
+            embedding=embedding, script=script,
+            created_at=datetime.now(timezone.utc).isoformat(),
+        )
+        records = _load(store_dir)
+        records.append(record)
+        _write(store_dir, records)
+    except Exception as err:
+        print(f"WARNING: failed to save example ({err})")

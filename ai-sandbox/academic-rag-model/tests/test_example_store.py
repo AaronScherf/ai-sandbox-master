@@ -6,7 +6,7 @@ from unittest.mock import MagicMock, patch
 
 from viz.example_store import (
     EXAMPLE_SIMILARITY_THRESHOLD, MAX_EXAMPLES, ExampleRecord, _cosine_similarity,
-    _derive_keywords, _embed, _load, _store_path, _write, find_examples,
+    _derive_keywords, _embed, _load, _store_path, _write, find_examples, save,
 )
 
 
@@ -162,6 +162,41 @@ class TestFindExamples(unittest.TestCase):
             # insertion order breaks the tie, so first comes before second; third
             # overlaps on only {"shared"} (1 word) and loses to both on overlap count.
             self.assertEqual(result, [first, second])
+
+
+class TestSave(unittest.TestCase):
+    @patch("viz.example_store._embed", return_value=[0.1, 0.2, 0.3])
+    def test_appends_new_record(self, mock_embed):
+        with tempfile.TemporaryDirectory() as store_dir:
+            save("eigenvalues", "some context", "fig = go.Figure()", store_dir)
+            records = _load(store_dir)
+            self.assertEqual(len(records), 1)
+            self.assertEqual(records[0].concept, "eigenvalues")
+            self.assertEqual(records[0].context, "some context")
+            self.assertEqual(records[0].script, "fig = go.Figure()")
+            self.assertEqual(records[0].embedding, [0.1, 0.2, 0.3])
+            self.assertIn("eigenvalues", records[0].keywords)
+
+    @patch("viz.example_store._embed", return_value=[0.1, 0.2, 0.3])
+    def test_appends_to_existing_records(self, mock_embed):
+        with tempfile.TemporaryDirectory() as store_dir:
+            save("eigenvalues", "", "fig = go.Figure()", store_dir)
+            save("gradient descent", "", "fig = go.Figure()", store_dir)
+            records = _load(store_dir)
+            self.assertEqual(len(records), 2)
+            self.assertEqual(records[1].concept, "gradient descent")
+
+    @patch("viz.example_store._embed", return_value=None)
+    def test_does_not_save_when_embedding_unavailable(self, mock_embed):
+        with tempfile.TemporaryDirectory() as store_dir:
+            save("eigenvalues", "", "fig = go.Figure()", store_dir)
+            self.assertEqual(_load(store_dir), [])
+
+    def test_never_raises_on_unexpected_error(self):
+        with tempfile.TemporaryDirectory() as store_dir:
+            with patch("viz.example_store._embed", side_effect=RuntimeError("boom")):
+                save("eigenvalues", "", "fig = go.Figure()", store_dir)  # must not raise
+            self.assertEqual(_load(store_dir), [])
 
 
 if __name__ == "__main__":
