@@ -396,6 +396,10 @@ prompt specifically instructing structured data extraction from charts,
 or a separate image-description pass -- both real engineering lifts, not
 attempted here.
 
+**Marked as the next thing to solve, per user decision 2026-09-02** --
+once the discovery-tier work above (CORE.ac.uk, Academic Commons) lands,
+this is next in line rather than staying indefinitely deferred.
+
 ## Citation snowball sampling: implemented and live-tested, 2026-09-02
 
 Spec: `docs/superpowers/specs/2026-09-02-journal-discovery-snowball-design.md`;
@@ -542,8 +546,8 @@ answer if gated-paper coverage becomes a real bottleneck later:
    `needs_manual_download` volume from real usage turns out to matter
    enough to justify the engineering cost. Not spec'd.
 2. **CORE.ac.uk as a third OA-discovery tier** and **Columbia's Academic
-   Commons repository check** -- both still open ideas from the
-   brainstorm below, not picked for this round.
+   Commons repository check** -- picked up 2026-09-02, in progress. See
+   this doc for updates once built.
 3. **A combined convenience wrapper** chaining discovery -> conversion ->
    reconciliation in one command (approach C from the original
    brainstorming session) -- the three exist as separate, focused
@@ -554,7 +558,7 @@ answer if gated-paper coverage becomes a real bottleneck later:
    below.** Built as forward-only (papers citing the corpus via
    OpenAlex's own citation graph), not backward bibliography-parsing, per
    the reasoning originally flagged here.
-5. The tags and folder organization follow the OpenAlex conventions but haven't been tested against the indexer system for the academic hub, which pulls out tags semantically based on the content of the entire knowledge graph. It would be worth testing the standard convention tags used by OpenAlex against the academic hub system once the corpus of research journals is larger, then consolidating the two systems so they can cross reference each other better.
+5. The tags and folder organization follow the OpenAlex conventions but haven't been tested against the indexer system for the academic hub, which pulls out tags semantically based on the content of the entire knowledge graph. It would be worth testing the standard convention tags used by OpenAlex against the academic hub system once the corpus of research journals is larger, then consolidating the two systems so they can cross reference each other better. **Explicitly deferred by user decision, 2026-09-02** -- the metadata/folder audit's own tag-sync check (see "Metadata/folder audit" section above) only confirms frontmatter matches the index card, not whether the underlying tag choices themselves are good; that deeper comparison stays parked until the corpus is meaningfully larger than today's ~20 papers.
 6. ~~A metadata/folder audit process against full text, flagged
    2026-09-02, not scoped.~~ **Implemented and live-tested, 2026-09-02 --
    see "Metadata/folder audit" section above.**
