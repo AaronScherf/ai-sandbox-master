@@ -98,3 +98,7 @@ ai-sandbox/.obsidian/cache
 
 # Local git worktrees (superpowers:using-git-worktrees)
 .worktrees/
+
+# Subagent-driven-development scratch workspace (ledgers, briefs, review
+# packages) -- regenerable, not project output.
+.superpowers/
