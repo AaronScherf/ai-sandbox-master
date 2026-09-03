@@ -537,6 +537,48 @@ fix from earlier this session already holds), 0 tag syncs needed
 (frontmatter already in sync with the index), 0 flags -- a genuinely
 clean corpus, not an audit that found nothing because it's broken.
 
+## CORE.ac.uk discovery tier: implemented, 2026-09-03
+
+Picked up per user request 2026-09-02/03, alongside re-evaluating
+Columbia's Academic Commons repository as a possible fifth tier.
+Researched both APIs directly before building anything:
+
+- **CORE.ac.uk** (`https://api.core.ac.uk/v3/search/works`) fits the
+  existing per-DOI tier pattern cleanly -- `q=doi:"<doi>"`, `Authorization:
+  Bearer <key>`, response gives a direct `downloadUrl` (or
+  `sourceFulltextUrls` as fallback). Requires a free API key registered
+  at core.ac.uk/services/api (the user's own action, not something this
+  session could do). Implemented as `try_core()` in `access.py`, joining
+  the OA group before arXiv: `work.oa_url -> Unpaywall -> Semantic
+  Scholar -> CORE -> arXiv -> EZProxy`. Gated behind `CORE_API_KEY` --
+  skipped with zero network calls when unset, mirroring exactly how
+  EZProxy behaves without a session cookie. Wired through both
+  `discover.py` and `snowball.py`.
+- **Academic Commons was researched and deliberately not built.** Two
+  real findings ruled it out: (1) it has no single-DOI lookup API at all
+  -- OAI-PMH (confirmed live against its `Identify` endpoint) is a
+  harvest-only protocol with no arbitrary per-item query, and its REST
+  API's actual search/query shape couldn't be confirmed from any public
+  documentation; (2) more decisively, **Academic Commons' own content is
+  already harvested into CORE.ac.uk's index** -- confirmed by a live
+  CORE search returning real `academiccommons.columbia.edu` items. A
+  dedicated integration would mean real reverse-engineering effort
+  against an undocumented API for coverage the CORE tier above likely
+  already provides. Revisit only if a real gap in Columbia-specific
+  coverage shows up in practice once CORE is in real use.
+- CORE's free tier is rate-limited tighter than the other OA tiers
+  (~5 requests/10 seconds) -- no new pacing logic was added for this,
+  since `fetch_with_retries()` already retries a 429 with backoff/
+  `Retry-After` respect generically, the same mechanism every other
+  unpaced lookup call in this file already relies on.
+- Not yet live-tested against the real corpus (no `CORE_API_KEY` was
+  available this session) -- 9 new unit tests cover `try_core()` and its
+  place in the fallback chain, but real-world validation (does CORE's
+  actual response shape match what was inferred from third-party client
+  source code, since CORE's own docs pages 403'd to direct fetches)
+  is still open. Worth a live check the first time a real discovery run
+  uses a real key.
+
 ## What's next
 
 Not currently planned as active work -- recorded here as the honest
@@ -545,9 +587,10 @@ answer if gated-paper coverage becomes a real bottleneck later:
 1. **Semi-automated Playwright-driven login and download**, if the
    `needs_manual_download` volume from real usage turns out to matter
    enough to justify the engineering cost. Not spec'd.
-2. **CORE.ac.uk as a third OA-discovery tier** and **Columbia's Academic
-   Commons repository check** -- picked up 2026-09-02, in progress. See
-   this doc for updates once built.
+2. ~~CORE.ac.uk as a third OA-discovery tier and Columbia's Academic
+   Commons repository check.~~ **CORE.ac.uk implemented, 2026-09-03 --
+   see "CORE.ac.uk discovery tier" section below. Academic Commons
+   deliberately not built** -- same section explains why.
 3. **A combined convenience wrapper** chaining discovery -> conversion ->
    reconciliation in one command (approach C from the original
    brainstorming session) -- the three exist as separate, focused
@@ -565,6 +608,16 @@ answer if gated-paper coverage becomes a real bottleneck later:
 7. Otherwise, no change: the existing OA -> Semantic Scholar -> arXiv ->
    EZProxy-with-manual-fallback pipeline is the correct, working design
    as shipped.
+8. **Live-validate the new CORE.ac.uk tier**, flagged 2026-09-03 -- no
+   `CORE_API_KEY` was available this session, so `try_core()`'s actual
+   request/response handling is unit-tested (mocked against third-party
+   client source, since CORE's own docs pages 403'd to direct fetches)
+   but not yet run against the real API. Do this the first time a real
+   `CORE_API_KEY` is available.
+9. **Charts/plots losing their underlying data on transcription** --
+   marked as the next thing to solve, per user decision 2026-09-02. See
+   "Open issue: charts/plots lose their underlying data on conversion"
+   above for the full detail.
 
 ## Original brainstorm, 2026-09-02 (superseded by "acted on" above)
 
