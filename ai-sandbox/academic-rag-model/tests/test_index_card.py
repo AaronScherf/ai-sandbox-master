@@ -13,6 +13,7 @@ from indexer.index_card import (
     cosine_similarity,
     generate_index_card,
     make_failure_card,
+    move_card,
     recompute_course_entry,
     find_card_by_file_id,
     reconcile_and_write,
@@ -360,6 +361,54 @@ class TestFindCardByFileId(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             save_courses(tmp, {"math-camp": {"course": "math-camp", "file_count": 0}})
             self.assertIsNone(find_card_by_file_id(tmp, "math-camp"))
+
+
+class TestMoveCard(unittest.TestCase):
+    def test_moves_card_between_shards_and_updates_course_field(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            save_shard(tmp, "misc", [
+                {"file_id": "x", "path": "misc/processed_outputs/a.md",
+                 "source_pdf_path": "misc/a.pdf", "course": "misc",
+                 "embedding": [1.0, 0.0], "tags": ["some-tag"]},
+            ])
+            result = move_card(tmp, "x", "business")
+
+            self.assertTrue(result)
+            self.assertEqual(load_shard(tmp, "misc"), [])
+            moved = load_shard(tmp, "business")
+            self.assertEqual(len(moved), 1)
+            self.assertEqual(moved[0]["course"], "business")
+            self.assertEqual(moved[0]["path"], "business/processed_outputs/a.md")
+            self.assertEqual(moved[0]["source_pdf_path"], "business/a.pdf")
+
+    def test_recomputes_course_entry_for_both_old_and_new_course(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            save_shard(tmp, "misc", [
+                {"file_id": "x", "path": "misc/processed_outputs/a.md",
+                 "source_pdf_path": "misc/a.pdf", "course": "misc",
+                 "embedding": [1.0, 0.0], "tags": []},
+                {"file_id": "y", "path": "misc/processed_outputs/b.md",
+                 "source_pdf_path": "misc/b.pdf", "course": "misc",
+                 "embedding": [0.0, 1.0], "tags": []},
+            ])
+            move_card(tmp, "x", "business")
+
+            self.assertEqual(load_courses(tmp)["misc"]["file_count"], 1)
+            self.assertEqual(load_courses(tmp)["business"]["file_count"], 1)
+
+    def test_returns_false_when_card_not_found(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            save_shard(tmp, "misc", [{"file_id": "x", "path": "a.md", "course": "misc",
+                                       "embedding": [1.0], "tags": []}])
+            self.assertFalse(move_card(tmp, "nonexistent", "business"))
+
+    def test_no_op_when_already_in_target_course(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            save_shard(tmp, "misc", [{"file_id": "x", "path": "misc/a.md", "source_pdf_path": "misc/a.pdf",
+                                       "course": "misc", "embedding": [1.0], "tags": []}])
+            result = move_card(tmp, "x", "misc")
+            self.assertTrue(result)
+            self.assertEqual(len(load_shard(tmp, "misc")), 1)
 
 
 class TestReconcileAndWrite(unittest.TestCase):

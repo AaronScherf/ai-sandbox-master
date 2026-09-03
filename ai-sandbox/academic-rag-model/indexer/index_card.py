@@ -332,6 +332,38 @@ def _replace_card(cards: list[dict], file_id: str, updated: dict) -> list[dict]:
     return [updated if c.get("file_id") == file_id else c for c in cards]
 
 
+def move_card(academic_hub_root: str, file_id: str, new_course: str) -> bool:
+    """Moves a card between course shards when a paper's folder gets
+    corrected (audit_metadata.py's folder check). Updates the card's own
+    course/path/source_pdf_path fields to match its new location, and
+    recomputes both the old and new course's rollup entry in
+    courses.json so centroid/predominant_tags stay correct on both
+    sides. A no-op (still True) when the card is already in new_course."""
+    found = find_card_by_file_id(academic_hub_root, file_id)
+    if found is None:
+        return False
+    old_course, card = found
+    if old_course == new_course:
+        return True
+
+    old_cards = [c for c in load_shard(academic_hub_root, old_course) if c["file_id"] != file_id]
+    save_shard(academic_hub_root, old_course, old_cards)
+    recompute_course_entry(academic_hub_root, old_course)
+
+    card = dict(card)
+    card["course"] = new_course
+    if card.get("path"):
+        card["path"] = card["path"].replace(f"{old_course}/", f"{new_course}/", 1)
+    if card.get("source_pdf_path"):
+        card["source_pdf_path"] = card["source_pdf_path"].replace(f"{old_course}/", f"{new_course}/", 1)
+
+    new_cards = load_shard(academic_hub_root, new_course)
+    new_cards.append(card)
+    save_shard(academic_hub_root, new_course, new_cards)
+    recompute_course_entry(academic_hub_root, new_course)
+    return True
+
+
 def reconcile_and_write(
     academic_hub_root: str, file_id: str, path: str, source_pdf_path: str, course: str,
     folder_category: str, content_sample: str, page_count: int, client,
