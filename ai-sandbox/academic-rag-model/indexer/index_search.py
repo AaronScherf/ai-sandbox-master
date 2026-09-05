@@ -493,6 +493,9 @@ def build_arg_parser() -> argparse.ArgumentParser:
     ask_p.add_argument("--course", default=None)
     ask_p.add_argument("--visualize", action="store_true",
                         help="Also generate an interactive visualization for the question's concept.")
+    ask_p.add_argument("--report", action="store_true",
+                        help="Also combine the answer, citations, and visualization (if any) into one "
+                             "self-contained HTML report.")
 
     return parser
 
@@ -545,12 +548,17 @@ def main() -> None:
         print(stats)
     elif args.command == "ask":
         from rag.rag_agent import answer_question
-        result = answer_question(roots, args.question, client, course=args.course, visualize=args.visualize)
+        result = answer_question(
+            roots, args.question, client, course=args.course,
+            visualize=args.visualize, report=args.report,
+        )
         print(result.answer)
         for c in result.citations:
             print(f"  - [{c.root}] {c.path} ({c.citation})")
         if result.visualization:
             print(f"  visualization: {result.visualization.html_path}")
+        if result.report_path:
+            print(f"  report: {result.report_path}")
 
 
 if __name__ == "__main__":
