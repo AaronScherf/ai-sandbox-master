@@ -16,24 +16,41 @@ def _fake_template(fig, keywords=("fake concept",)):
 class TestGenerateVisualizationTemplatePath(unittest.TestCase):
     def test_template_match_writes_html_and_returns_result(self):
         fake_fig = MagicMock()
+        fake_fig.to_html.return_value = "<div>fake plot</div>"
         template = _fake_template(fake_fig)
         with tempfile.TemporaryDirectory() as tmp:
             with patch("viz.viz_agent.match_template", return_value=template):
                 result = generate_visualization("fake concept", academic_hub_root=tmp, course="math-camp")
-        fake_fig.write_html.assert_called_once()
+        fake_fig.to_html.assert_called_once()
         self.assertEqual(result.source, "template")
         self.assertEqual(result.title, "Fake")
+        self.assertEqual(result.fragment_html, "<div>fake plot</div>")
         self.assertTrue(result.html_path.startswith(os.path.join(tmp, ".viz", "math-camp")))
         self.assertTrue(result.html_path.endswith(".html"))
 
-    def test_write_html_called_with_inline_plotlyjs(self):
+    def test_to_html_called_with_inline_plotlyjs_and_fragment_mode(self):
         fake_fig = MagicMock()
+        fake_fig.to_html.return_value = "<div>fake plot</div>"
         template = _fake_template(fake_fig)
         with tempfile.TemporaryDirectory() as tmp:
             with patch("viz.viz_agent.match_template", return_value=template):
                 generate_visualization("fake concept", academic_hub_root=tmp)
-        _, kwargs = fake_fig.write_html.call_args
+        _, kwargs = fake_fig.to_html.call_args
         self.assertEqual(kwargs["include_plotlyjs"], "inline")
+        self.assertFalse(kwargs["full_html"])
+
+    def test_output_file_is_wrapped_but_fragment_html_is_not(self):
+        fake_fig = MagicMock()
+        fake_fig.to_html.return_value = "<div>fake plot</div>"
+        template = _fake_template(fake_fig)
+        with tempfile.TemporaryDirectory() as tmp:
+            with patch("viz.viz_agent.match_template", return_value=template):
+                result = generate_visualization("fake concept", academic_hub_root=tmp)
+            with open(result.html_path, "r", encoding="utf-8") as f:
+                written = f.read()
+        self.assertIn("<html>", written)
+        self.assertIn("<div>fake plot</div>", written)
+        self.assertNotIn("<html>", result.fragment_html)
 
     def test_course_none_uses_uncategorized_folder(self):
         fake_fig = MagicMock()
@@ -106,7 +123,10 @@ class TestGenerateVisualizationTemplatePath(unittest.TestCase):
 
 class TestGenerateVisualizationFallbackPath(unittest.TestCase):
     def test_no_template_match_falls_back_to_llm(self):
-        fake_result = VizResult(html_path="/x/y.html", title="unknown concept", source="llm_fallback")
+        fake_result = VizResult(
+            html_path="/x/y.html", title="unknown concept", source="llm_fallback",
+            fragment_html="<div>x</div>",
+        )
         with tempfile.TemporaryDirectory() as tmp:
             with patch("viz.viz_agent.match_template", return_value=None), \
                  patch("viz.llm_fallback.generate_via_llm", return_value=fake_result) as mock_llm:
@@ -132,6 +152,14 @@ class TestGenerateVisualizationFallbackPath(unittest.TestCase):
                  patch("viz.llm_fallback.generate_via_llm", return_value=None):
                 result = generate_visualization("unknown concept", academic_hub_root=tmp)
         self.assertIsNone(result)
+
+
+class TestWrapFragment(unittest.TestCase):
+    def test_wraps_fragment_in_minimal_html_shell(self):
+        from viz.viz_agent import _wrap_fragment
+        wrapped = _wrap_fragment("<div>plot</div>")
+        self.assertIn("<html>", wrapped)
+        self.assertIn("<div>plot</div>", wrapped)
 
 
 if __name__ == "__main__":

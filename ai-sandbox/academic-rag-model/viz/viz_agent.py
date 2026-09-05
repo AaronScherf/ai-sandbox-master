@@ -20,6 +20,9 @@ class VizResult:
     html_path: str
     title: str
     source: str  # "template" | "llm_fallback"
+    fragment_html: str  # the raw embeddable <div>/<script> fragment (plotly.js inlined,
+    # no surrounding document tags) -- html_path's file is this fragment wrapped via
+    # _wrap_fragment(); report_builder.py embeds this field directly, never html_path's file
 
 
 _SLUG_MAX_LENGTH = 80
@@ -29,6 +32,17 @@ def _slugify(concept: str) -> str:
     slug = re.sub(r"[^a-z0-9]+", "-", concept.lower()).strip("-")
     slug = slug[:_SLUG_MAX_LENGTH].strip("-")
     return slug or "concept"
+
+
+def _wrap_fragment(fragment: str) -> str:
+    """Wraps an embeddable Plotly fragment (a <div>/<script> pair, no
+    surrounding document tags) in a minimal standalone document, for the
+    direct-open .html files this module and llm_fallback.py both write
+    to their `output_path` -- the fragment itself (not this wrapped
+    form) is what report_builder.py embeds into a combined report
+    (spec: docs/superpowers/specs/2026-09-05-combined-report-design.md
+    §3)."""
+    return f"<html><body>{fragment}</body></html>"
 
 
 def generate_visualization(
@@ -46,8 +60,10 @@ def generate_visualization(
         try:
             os.makedirs(output_dir, exist_ok=True)
             fig = template.render()
-            fig.write_html(output_path, include_plotlyjs="inline")
-            return VizResult(html_path=output_path, title=template.name, source="template")
+            fragment = fig.to_html(include_plotlyjs="inline", full_html=False)
+            with open(output_path, "w", encoding="utf-8") as f:
+                f.write(_wrap_fragment(fragment))
+            return VizResult(html_path=output_path, title=template.name, source="template", fragment_html=fragment)
         except Exception as err:
             print(f"WARNING: template visualization failed unexpectedly ({err})")
             return None
