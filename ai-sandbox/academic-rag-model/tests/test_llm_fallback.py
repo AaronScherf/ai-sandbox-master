@@ -121,6 +121,16 @@ class TestRunGeneratedCode(unittest.TestCase):
             self.assertIsNone(error)
             self.assertTrue(os.path.exists(output_path))
 
+    def test_successful_script_writes_fragment_not_full_document(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            output_path = os.path.join(tmp, "out.html")
+            code = "import plotly.graph_objects as go\nfig = go.Figure(data=[go.Scatter(x=[1, 2], y=[1, 2])])"
+            success, error = _run_generated_code(code, output_path)
+            self.assertTrue(success)
+            with open(output_path, "r", encoding="utf-8") as f:
+                written = f.read()
+            self.assertNotIn("<html", written.lower())
+
     def test_broken_code_returns_false(self):
         with tempfile.TemporaryDirectory() as tmp:
             output_path = os.path.join(tmp, "out.html")
@@ -208,6 +218,53 @@ class TestRunGeneratedCode(unittest.TestCase):
 
 
 class TestGenerateViaLlm(unittest.TestCase):
+    def test_output_file_is_wrapped_and_fragment_html_is_the_raw_cached_content(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            cache_dir = os.path.join(tmp, "cache")
+            examples_dir = os.path.join(tmp, "examples")
+            output_path = os.path.join(tmp, "out.html")
+
+            def fake_run(code, path, timeout=60):
+                with open(path, "w", encoding="utf-8") as f:
+                    f.write("<div>fake plot</div>")
+                return True, None
+
+            with patch("viz.llm_fallback.example_store.find_examples", return_value=[]), \
+                 patch("viz.llm_fallback.example_store.save"), \
+                 patch("viz.llm_fallback._call_ollama", return_value="```python\nfig = go.Figure()\n```"), \
+                 patch("viz.llm_fallback._run_generated_code", side_effect=fake_run):
+                result = generate_via_llm("concept", "", output_path, cache_dir, examples_dir)
+
+            self.assertIsNotNone(result)
+            self.assertEqual(result.fragment_html, "<div>fake plot</div>")
+            with open(output_path, "r", encoding="utf-8") as f:
+                written = f.read()
+            self.assertIn("<html>", written)
+            self.assertIn("<div>fake plot</div>", written)
+
+    def test_cache_hit_populates_fragment_html_from_cached_content(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            cache_dir = os.path.join(tmp, "cache")
+            examples_dir = os.path.join(tmp, "examples")
+            os.makedirs(cache_dir)
+            key = _cache_key("concept", "")
+            with open(os.path.join(cache_dir, f"{key}.html"), "w", encoding="utf-8") as f:
+                f.write("<div>cached plot</div>")
+            output_path = os.path.join(tmp, "out.html")
+
+            with patch("viz.llm_fallback.example_store.find_examples") as mock_find, \
+                 patch("viz.llm_fallback.example_store.save") as mock_save, \
+                 patch("viz.llm_fallback._call_ollama") as mock_call:
+                result = generate_via_llm("concept", "", output_path, cache_dir, examples_dir)
+            mock_call.assert_not_called()
+            mock_find.assert_not_called()
+            mock_save.assert_not_called()
+            self.assertEqual(result.fragment_html, "<div>cached plot</div>")
+            with open(output_path, "r", encoding="utf-8") as f:
+                written = f.read()
+            self.assertIn("<html>", written)
+            self.assertIn("<div>cached plot</div>", written)
+
     def test_returns_none_when_ollama_unreachable(self):
         with tempfile.TemporaryDirectory() as tmp:
             with patch("viz.llm_fallback.example_store.find_examples", return_value=[]), \

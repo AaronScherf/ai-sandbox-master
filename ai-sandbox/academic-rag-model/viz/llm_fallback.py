@@ -26,7 +26,6 @@ import hashlib
 import json
 import os
 import re
-import shutil
 import subprocess
 import sys
 import tempfile
@@ -35,7 +34,7 @@ import urllib.request
 
 from viz import example_store
 from viz.example_store import ExampleRecord
-from viz.viz_agent import VizResult
+from viz.viz_agent import VizResult, _wrap_fragment
 
 OLLAMA_URL = "http://localhost:11434/api/generate"
 OLLAMA_MODEL = os.environ.get("VIZ_OLLAMA_MODEL", "qwen2.5-coder:7b")
@@ -187,7 +186,7 @@ def _run_generated_code(
         "import plotly.express as px\n"
         "import numpy as np\n"
         f"{code}\n"
-        f"fig.write_html({abs_output_path!r}, include_plotlyjs='inline')\n"
+        f"fig.write_html({abs_output_path!r}, include_plotlyjs='inline', full_html=False)\n"
     )
     with tempfile.NamedTemporaryFile("w", suffix=".py", delete=False, encoding="utf-8") as f:
         f.write(script)
@@ -270,9 +269,12 @@ def generate_via_llm(concept: str, context: str, output_path: str, cache_dir: st
                 return None
             example_store.save(concept, context, final_code, examples_dir)
 
+        with open(cached_path, "r", encoding="utf-8") as f:
+            fragment = f.read()
         os.makedirs(os.path.dirname(output_path), exist_ok=True)
-        shutil.copyfile(cached_path, output_path)
-        return VizResult(html_path=output_path, title=concept, source="llm_fallback")
+        with open(output_path, "w", encoding="utf-8") as f:
+            f.write(_wrap_fragment(fragment))
+        return VizResult(html_path=output_path, title=concept, source="llm_fallback", fragment_html=fragment)
     except Exception as err:
         print(f"WARNING: LLM fallback failed unexpectedly ({err})")
         return None
