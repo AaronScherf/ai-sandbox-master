@@ -5,7 +5,7 @@ from indexer.index_card import GENERATION_MODEL
 from indexer.index_search import PassageResult
 from rag.rag_agent import (
     Turn, Citation, AnswerResult, _diversify_by_file, _reformulate_query,
-    TUTOR_MODEL, _generate_answer, answer_question,
+    TUTOR_MODEL, _generate_answer, answer_question, _looks_like_problem_request,
 )
 
 
@@ -187,6 +187,76 @@ class TestAnswerQuestionVisualize(unittest.TestCase):
              patch("viz.viz_agent.generate_visualization", return_value=None):
             result = answer_question(["/root"], "q", client, visualize=True)
         self.assertIsNone(result.visualization)
+
+
+class TestLooksLikeProblemRequest(unittest.TestCase):
+    def test_matches_practice_problem_phrasing(self):
+        self.assertTrue(_looks_like_problem_request("Can you give me a practice problem on eigenvalues?"))
+
+    def test_matches_give_me_a_problem(self):
+        self.assertTrue(_looks_like_problem_request("give me a problem about convergence"))
+
+    def test_matches_quiz_me(self):
+        self.assertTrue(_looks_like_problem_request("quiz me on the spectral theorem"))
+
+    def test_matches_another_exercise(self):
+        self.assertTrue(_looks_like_problem_request("can I get another exercise like that"))
+
+    def test_matches_test_my_understanding(self):
+        self.assertTrue(_looks_like_problem_request("test my understanding of gradient descent"))
+
+    def test_does_not_match_plain_question(self):
+        self.assertFalse(_looks_like_problem_request("what is the spectral theorem"))
+
+    def test_does_not_match_a_question_that_merely_contains_the_word_problem(self):
+        self.assertFalse(_looks_like_problem_request("what's the problem with this proof"))
+
+
+class TestAnswerQuestionProblemGeneration(unittest.TestCase):
+    def test_matching_question_routes_to_generate_problem(self):
+        client = _fake_generate_client("unused")
+        fake_generated = MagicMock(problem_text="Find X.", sources=[])
+        with patch("problem_gen.generator.generate_problem", return_value=fake_generated) as mock_generate, \
+             patch("rag.rag_agent.search_passages") as mock_search:
+            result = answer_question(["/root"], "give me a practice problem on eigenvalues", client)
+        mock_generate.assert_called_once()
+        mock_search.assert_not_called()
+        self.assertEqual(result.answer, "Find X.")
+        self.assertEqual(result.generated_problem, fake_generated)
+
+    def test_non_matching_question_never_calls_generate_problem(self):
+        client = _fake_generate_client("answer")
+        with patch("rag.rag_agent.search_passages", return_value=[]), \
+             patch("problem_gen.generator.generate_problem") as mock_generate:
+            result = answer_question(["/root"], "what is X", client)
+        mock_generate.assert_not_called()
+        self.assertIsNone(result.generated_problem)
+
+    def test_matching_question_falls_back_to_qa_when_generation_returns_none(self):
+        client = _fake_generate_client("The fallback answer.")
+        with patch("problem_gen.generator.generate_problem", return_value=None) as mock_generate, \
+             patch("rag.rag_agent.search_passages", return_value=[]) as mock_search:
+            result = answer_question(["/root"], "give me a practice problem on eigenvalues", client)
+        mock_generate.assert_called_once()
+        mock_search.assert_called_once()
+        self.assertEqual(result.answer, "The fallback answer.")
+        self.assertIsNone(result.generated_problem)
+
+    def test_generated_problem_citations_come_from_sources(self):
+        client = _fake_generate_client("unused")
+        source = MagicMock(chunk_id="s-000", file_id="s", path="s.md", citation="Problem 1", root="/root")
+        fake_generated = MagicMock(problem_text="Find X.", sources=[source])
+        with patch("problem_gen.generator.generate_problem", return_value=fake_generated):
+            result = answer_question(["/root"], "give me a practice problem on eigenvalues", client)
+        self.assertEqual(len(result.citations), 1)
+        self.assertEqual(result.citations[0].chunk_id, "s-000")
+
+    def test_history_appends_generated_problem_text(self):
+        client = _fake_generate_client("unused")
+        fake_generated = MagicMock(problem_text="Find X.", sources=[])
+        with patch("problem_gen.generator.generate_problem", return_value=fake_generated):
+            result = answer_question(["/root"], "give me a practice problem on eigenvalues", client)
+        self.assertEqual(result.history[-1], Turn(role="assistant", text="Find X."))
 
 
 if __name__ == "__main__":

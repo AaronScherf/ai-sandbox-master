@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import argparse
 import os
+import re
 from dataclasses import dataclass
 
 from common.gemini_utils import call_with_retries, get_gemini_client, load_dotenv_override
@@ -42,6 +43,11 @@ class AnswerResult:
     # module level (see answer_question()'s function-scoped import below); resolvable
     # here only because this file already has `from __future__ import annotations`,
     # which makes every annotation a lazily-evaluated string.
+    generated_problem: GeneratedProblem | None = None  # problem_gen.generator.GeneratedProblem --
+    # not imported at module level either, same reasoning as visualization above. No
+    # import or alias is needed for this to resolve: `from __future__ import annotations`
+    # (top of this file) makes every annotation a lazily-evaluated string, exactly like
+    # `visualization: VizResult | None` above needs none either.
 
 
 def _diversify_by_file(results: list[PassageResult], max_per_file: int) -> list[PassageResult]:
@@ -57,6 +63,25 @@ def _diversify_by_file(results: list[PassageResult], max_per_file: int) -> list[
         per_file_count[r.file_id] = per_file_count.get(r.file_id, 0) + 1
         kept.append(r)
     return kept
+
+
+_PROBLEM_REQUEST_PATTERNS = [
+    re.compile(r"\bpractice problem", re.IGNORECASE),
+    re.compile(r"\bgive me a problem", re.IGNORECASE),
+    re.compile(r"\bquiz me", re.IGNORECASE),
+    re.compile(r"\banother (?:problem|exercise|question)\b", re.IGNORECASE),
+    re.compile(r"\b(?:example|practice) (?:problem|question|exercise)", re.IGNORECASE),
+    re.compile(r"\btest my (?:understanding|knowledge)", re.IGNORECASE),
+]
+
+
+def _looks_like_problem_request(question: str) -> bool:
+    """Cheap keyword/regex intent check routing a question to
+    problem_gen instead of the normal retrieval-and-answer flow (spec
+    §5) -- checked against the raw question as typed, before any
+    follow-up reformulation (reformulation exists to make a retrieval
+    query standalone, which is orthogonal to classifying intent)."""
+    return any(p.search(question) for p in _PROBLEM_REQUEST_PATTERNS)
 
 
 _REFORMULATE_PROMPT_TEMPLATE = """Given this recent conversation and a follow-up question, rewrite \
@@ -155,6 +180,28 @@ def answer_question(
     history = history or []
     retrieval_query = _reformulate_query(question, history, client) if history else question
 
+    if _looks_like_problem_request(question):
+        from problem_gen.generator import generate_problem  # function-scoped import,
+        # same circular-import-avoidance / dependency-isolation pattern as viz's own
+        # integration -- keeps this package's Ollama dependency out of every plain Q&A
+        # caller's import path.
+        generated = generate_problem(retrieval_query, roots, client, course=course)
+        if generated is not None:
+            problem_citations = [
+                Citation(chunk_id=s.chunk_id, file_id=s.file_id, path=s.path, citation=s.citation, root=s.root)
+                for s in generated.sources
+            ]
+            updated_history = history + [
+                Turn(role="user", text=question), Turn(role="assistant", text=generated.problem_text),
+            ]
+            return AnswerResult(
+                answer=generated.problem_text, citations=problem_citations,
+                history=updated_history, generated_problem=generated,
+            )
+        # generated is None (no style examples on this topic/course, or Ollama
+        # unavailable/never verified) -- fall through to the normal Q&A path below on
+        # this same question, same graceful-degradation principle as visualize=None.
+
     passages = search_passages(roots, retrieval_query, client, course=course, top_k=top_k * 2)
     passages = _diversify_by_file(passages, max_per_file)[:top_k]
 
@@ -210,6 +257,8 @@ def main() -> None:
         print(f"\n{result.answer}\n")
         for c in result.citations:
             print(f"  - [{c.root}] {c.path} ({c.citation})")
+        if result.generated_problem:
+            print(f"\n--- Solution ---\n{result.generated_problem.solution_text}\n")
         if result.visualization:
             print(f"  visualization: {result.visualization.html_path}")
         print()
