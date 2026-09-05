@@ -400,7 +400,66 @@ only be answered with more real usage accumulating in the store over
 time, which is precisely why this was sequenced as "build the corpus
 first."
 
-## Current status (2026-09-03, end of session)
+## Combined report (2026-09-05)
+
+Picked up as the explicitly-queued next step from the previous section:
+until now, `generate_visualization()`'s output was a standalone `.html`
+file the CLI printed a bare path to, disconnected from the tutor's
+separately-printed answer text and citation list. Design:
+`docs/superpowers/specs/2026-09-05-combined-report-design.md`; plan:
+`docs/superpowers/plans/2026-09-05-combined-report.md`.
+
+Shipped: both viz tiers now render an embeddable Plotly **fragment**
+(`full_html=False`) as their canonical output instead of a full
+standalone document -- `VizResult` gained a `fragment_html` field
+carrying that fragment directly, while `html_path` still points to a
+thin `_wrap_fragment()`-wrapped standalone file for direct-open use,
+unchanged for existing consumers. A new module,
+`rag/report_builder.py`, combines the question, answer text, citations,
+and (when present) that fragment into one self-contained HTML file --
+no external dependency, no CDN, plain string interpolation, escaped via
+stdlib `html.escape()`. `answer_question()` gained an independent
+`report: bool = False` parameter (a report can be text+citations-only
+if no visualization exists, whether that's because `visualize=False` or
+the fallback degraded to `None`), and both CLI consumers got a matching
+`--report` flag, printing a `report: <path>` line. Report files live at
+a new sibling tree, `<root>/.reports/<course>/<slug>.html`.
+
+**Full automated suite:** `784 tests, OK` (all 5 plan tasks, each its
+own RED→GREEN→commit cycle -- no fix rounds needed).
+
+**Real-corpus validation**, run from `ai-sandbox/academic-rag-model`
+against `../academic-hub` (`math-camp`):
+
+```
+.\.venv\Scripts\python.exe -m indexer.index_search --root ../academic-hub ask "explain the mean value theorem" --course math-camp --visualize --report
+```
+Outcome, real and unplanned: the local embedding call hit a **new**
+failure mode -- `WARNING: Ollama embedding call failed (HTTP Error 500:
+Internal Server Error)` -- and separately, all 3 Ollama generation
+attempts timed out (180s each), so `visualization` came back `None`.
+Despite that, **the report was still produced** --
+`report: ../academic-hub\.reports\math-camp\explain-the-mean-value-theorem.html`
+-- containing the real (correctly HTML-escaped) answer text and all 6
+real citations, with the Visualization section cleanly and entirely
+absent (confirmed by direct inspection, not just a missing print line).
+This is exactly the report=True-independent-of-visualize graceful
+degradation the design called for, confirmed against a real failure
+this session hadn't previously seen (an embedding-endpoint HTTP 500,
+not the connection-refused/timeout failure modes already handled) --
+`example_store.find_examples()` swallowed it correctly and the
+generation loop proceeded (and still ultimately failed on its own,
+unrelated timeout issue).
+
+A second validation run (to confirm the success-with-embedded-plot
+path directly) was started but stopped before completing, at the
+user's request, to free up local compute for a concurrent Ollama-based
+process running elsewhere on the same machine -- **the report+plot
+success path is therefore still only confirmed by the mocked unit
+tests, not a real end-to-end trial**, and remains open for the next
+session to pick up.
+
+## Current status (2026-09-05, end of session)
 
 Consolidated picture for anyone starting from here, superseding the
 now-stale bits of "Specific limitations" and "What's next" above (left
@@ -411,16 +470,22 @@ reached, not deleted or rewritten).
 Template path: instant, deterministic (spectral decomposition,
 confirmed real eigendecomposition data). Ollama fallback:
 `qwen2.5-coder:7b`, hardened with a 3-attempt validate-and-retry loop, a
-tightened prompt, a timeout/unreachable distinction, and -- as of this
-update -- a local example store (`viz/example_store.py`) that feeds
-past successful generations back into the prompt as few-shot examples
-via `nomic-embed-text` embedding similarity, falling back to
-keyword overlap. 4 for 5 real queries across this session succeeded
-(spectral decomposition via template; eigenvectors/eigenvalues, the
-intermediate value theorem, and the law of large numbers via the
-fallback); one query ("the mean value theorem") still failed on a
-pre-existing model-reliability issue (`fig` never assigned) that
-neither hardening pass has addressed yet.
+tightened prompt, a timeout/unreachable distinction, and a local
+example store (`viz/example_store.py`) that feeds past successful
+generations back into the prompt as few-shot examples. As of this
+update, both tiers render embeddable fragments, and `answer_question()`
+can combine the answer, citations, and any visualization into one
+self-contained report file (`rag/report_builder.py`) via `report=True`,
+independent of `visualize`. 4 for 6 real queries across this session
+succeeded end to end (spectral decomposition via template;
+eigenvectors/eigenvalues, the intermediate value theorem, and the law
+of large numbers via the fallback); two queries -- both "the mean value
+theorem," on separate real trials -- failed on pre-existing
+model-reliability issues (`fig` never assigned; all 3 attempts timing
+out) that neither hardening pass has addressed yet. Both of those
+failures still degraded safely, including -- newly confirmed this
+session -- producing a valid text+citations-only report when the
+visualization itself failed.
 
 **Bugs found and fixed this session, all via real usage, not
 speculation:**
@@ -447,15 +512,20 @@ speculation:**
    distinct timeout sentinel so the retry loop can tell the two apart.
 
 **Real limitations that still stand, honestly:**
-- **Output is a standalone `.html` file only -- not embedded in a
-  larger report.** `generate_visualization()` returns just a
-  `VizResult(html_path, title, source)`; the CLI prints a bare
-  `visualization: <path>` line alongside the separately-printed text
-  answer and citations. Nothing currently combines the explanation
-  text, citations, and the interactive plot into one document -- a
-  student gets a terminal answer and a separate file to open by hand.
-  **Building a combined report (text + citations + plot in one place)
-  is explicitly the next thing to design**, not built here.
+- **The report+embedded-plot success path is unconfirmed by a real
+  trial.** `rag/report_builder.py` and the fragment-rendering switch in
+  both viz tiers are fully unit-tested, and a real trial confirmed the
+  no-visualization degradation path end to end -- but no real run has
+  yet produced a report containing an actual embedded, interactive
+  plot. The one real attempt at this was stopped early to free up
+  local compute for a concurrent process; open for a future session.
+- **A new Ollama embedding failure mode surfaced in real usage**: an
+  HTTP 500 from the `/api/embeddings` endpoint (distinct from the
+  connection-refused/timeout modes already handled). It degraded
+  correctly -- `find_examples()` returned `[]`, no crash -- but its
+  root cause (is this a transient overload, e.g. from a concurrent
+  Ollama process competing for the same local resources, or something
+  the embedding call itself should retry?) is unexplored.
 - Only four template-covered concepts; every other concept still
   depends on the (now-hardened, but not infallible) Ollama path.
 - No parameter extraction from retrieved content -- templates render a
@@ -488,21 +558,24 @@ speculation:**
   tier yet -- needs its own design for what "proven itself" means.
 
 **What's next, in the order this session's findings suggest:**
-1. **Combined report** -- fold the text explanation, citations, and the
-   interactive plot into one document instead of three disconnected
-   outputs (a printed answer, a printed citation list, a separate file
-   path). Explicitly queued as the next design conversation.
-2. Let the example store accumulate real usage, then revisit whether
+1. **Confirm the report+embedded-plot success path with a real trial**
+   -- the one thing this session's validation didn't get to. Should be
+   quick once local compute isn't contended with another process.
+2. Investigate the new embedding-endpoint HTTP 500 -- reproduce
+   deliberately (e.g. under concurrent Ollama load) to tell a
+   genuine-overload case apart from something the fallback should
+   itself handle differently (e.g. its own retry).
+3. Let the example store accumulate real usage, then revisit whether
    few-shot examples are measurably reducing the fallback's failure
    rate -- and whether the corpus has grown large enough to make direct
    reuse (skip Ollama on a close match) worth designing.
-3. Measure real Ollama-path timing (average and worst case) across more
+4. Measure real Ollama-path timing (average and worst case) across more
    real queries, and decide whether the retry budget or the per-request
    timeout need tuning based on actual data rather than the four data
    points gathered so far.
-4. Grow template coverage reactively, as real questions keep falling
+5. Grow template coverage reactively, as real questions keep falling
    through to the slower fallback path.
-5. Revisit automatic `visualize` decision logic once there's real usage
+6. Revisit automatic `visualize` decision logic once there's real usage
    data on which questions actually benefit from a plot.
-6. Parameter extraction from retrieved content, if generic illustrative
+7. Parameter extraction from retrieved content, if generic illustrative
    examples turn out to be a real limitation in practice.
