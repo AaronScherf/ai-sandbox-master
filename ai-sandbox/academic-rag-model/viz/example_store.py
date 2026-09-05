@@ -71,7 +71,7 @@ def _store_path(store_dir: str) -> str:
 def _embed(text: str) -> list[float] | None:
     """POSTs to Ollama's local embeddings endpoint. Returns None on any
     network/HTTP failure (logged as a WARNING) -- never raises, mirroring
-    llm_fallback.py's _call_ollama."""
+    common.ollama_utils.call_ollama."""
     payload = json.dumps({"model": EMBEDDING_MODEL, "prompt": text}).encode("utf-8")
     request = urllib.request.Request(
         EMBEDDING_URL, data=payload, headers={"Content-Type": "application/json"},

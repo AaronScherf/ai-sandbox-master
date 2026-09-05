@@ -41,7 +41,7 @@ needed.
   (`ollama serve`) with the model pulled
   (`ollama pull qwen2-math:7b`) — degrades to returning `None` with a
   printed warning if it isn't. On CPU-only Ollama, expect single
-  requests to take several minutes, and up to 20+ minutes in the worst
+  requests to take several minutes, and up to ~30 minutes in the worst
   case (retries × two model calls each) — see
   `../docs/2026-09-05-problem-generation-status.md` for real measured
   timings on real math-camp topics.

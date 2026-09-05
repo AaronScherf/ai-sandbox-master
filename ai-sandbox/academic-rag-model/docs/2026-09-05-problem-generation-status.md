@@ -131,3 +131,46 @@ allowed 3 generate+verify attempts. Both READMEs (`README.md`,
 `problem_gen/README.md`) now set this expectation explicitly rather
 than reusing `viz/`'s much shorter "~1 minute" framing, which does not
 transfer to this module's longer expected output.
+
+## Follow-up candidates from final review
+
+Real-evidence-driven ideas for a future pass — not fixed here, not
+required for this branch to merge.
+
+1. **The verification-timeout retry path regenerates instead of
+   re-verifying.** In `problem_gen/llm_gen.py`'s `generate_and_verify`,
+   the branch handling a verification call's `OLLAMA_TIMEOUT` composes
+   feedback text saying "the verification request itself timed out" and
+   feeds that into the *next generation attempt's* prompt. That framing
+   is nonsensical — a network timeout isn't something to "fix" in a
+   math solution — and the retry discards a possibly-good
+   problem/solution pair and regenerates the whole thing from scratch.
+   A cheaper, more correct fix would just re-verify the existing pair
+   instead of regenerating it.
+2. **`_parse_verdict`'s loose prefix check can fail both open and
+   closed.** `problem_gen/llm_gen.py`'s `_parse_verdict` checks
+   `stripped.upper().startswith("VALID")`, which would incorrectly
+   accept a response like "VALIDATION FAILED: ..." as valid (fail-open),
+   while a formatted response like "**VALID**" would incorrectly fall
+   through to the "unexpected format" branch (fail-closed, wasting a
+   full retry on a verdict that was actually fine). A word-boundary
+   regex match would handle both cases correctly.
+3. **`_extract_problem_and_solution` takes the leftmost `## Problem`/
+   `## Solution` match, which the prompt's own template skeleton could
+   trigger.** The generation prompt in `problem_gen/llm_gen.py` itself
+   contains a literal `## Problem` / `## Solution` template skeleton
+   (the instructions to the model). A small model that echoes part of
+   its instructions before answering could have that literal
+   placeholder text extracted by `_SECTION_PATTERN` instead of its real
+   answer, since the regex takes the first match in the response text.
+   Taking the last match instead of the first, or rejecting a body
+   that's just a `<placeholder>`-shaped marker, would be more robust.
+4. **The generated solution text never enters conversation history.**
+   By deliberate design choice, only `problem_text` is appended to
+   history in `rag/rag_agent.py`'s `answer_question()` — `solution_text`
+   is returned to the caller but never stored. This means a natural
+   follow-up like "walk me through step 2" has no solution text in
+   context to work from. This is a known, disclaimed non-goal (no
+   conversation-state work was in scope for this feature), not a
+   defect — but it's a real seam worth a future design pass if
+   follow-up-on-a-generated-problem becomes a real use case.

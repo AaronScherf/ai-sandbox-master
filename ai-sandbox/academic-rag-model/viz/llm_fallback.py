@@ -13,9 +13,10 @@ repeated request for the same concept+context shouldn't re-invoke a
 30-60s+ local-model call.
 
 Touches network (Ollama's local HTTP API) and subprocess execution --
-_call_ollama itself is tested only with the network call mocked,
-matching this project's established split for network-dependent code
-(the real Gemini calls elsewhere in this project are the same way);
+common.ollama_utils.call_ollama itself is tested only with the network
+call mocked, matching this project's established split for
+network-dependent code (the real Gemini calls elsewhere in this project
+are the same way);
 _run_generated_code and generate_via_llm's orchestration logic ARE
 exercised for real (no network involved, fast, deterministic) -- see
 this module's own tests.

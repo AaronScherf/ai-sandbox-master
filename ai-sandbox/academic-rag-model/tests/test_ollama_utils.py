@@ -30,10 +30,10 @@ class TestCallOllama(unittest.TestCase):
         mock_response = MagicMock()
         mock_response.read.return_value = json.dumps({"response": "ok"}).encode()
         mock_urlopen.return_value.__enter__.return_value = mock_response
-        call_ollama("my prompt", "qwen2.5-math:7b", 30)
+        call_ollama("my prompt", "qwen2-math:7b", 30)
         request_arg = mock_urlopen.call_args.args[0]
         body = json.loads(request_arg.data.decode("utf-8"))
-        self.assertEqual(body["model"], "qwen2.5-math:7b")
+        self.assertEqual(body["model"], "qwen2-math:7b")
         self.assertEqual(body["prompt"], "my prompt")
 
 

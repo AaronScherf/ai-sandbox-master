@@ -35,18 +35,23 @@ class GeneratedProblem:
 def _match_known_course(question: str, roots: list[str]) -> str | None:
     """Substring-matches the question against every known course name
     across the given roots (normalizing '-'/' ' so 'math camp' and
-    'math-camp' both match) -- returns the first hit, or None if no
-    known course name appears in the text, in which case
-    generate_problem() falls through to search()'s own top-3
-    similarity-based candidate selection unchanged."""
+    'math-camp' both match) -- returns the longest matching course name
+    (so a more specific match like 'math-camp' wins over a shorter
+    overlapping one like 'math'), ties broken alphabetically for full
+    determinism. Returns None if no known course name appears in the
+    text, in which case generate_problem() falls through to search()'s
+    own top-3 similarity-based candidate selection unchanged."""
     known: set[str] = set()
     for root in roots:
         known.update(load_courses(root).keys())
     normalized_question = question.lower().replace("-", " ")
-    for course in known:
-        if course.lower().replace("-", " ") in normalized_question:
-            return course
-    return None
+    matches = [
+        course for course in sorted(known)
+        if course.lower().replace("-", " ") in normalized_question
+    ]
+    if not matches:
+        return None
+    return sorted(matches, key=lambda course: (-len(course), course))[0]
 
 
 def generate_problem(
