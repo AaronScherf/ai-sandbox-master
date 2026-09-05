@@ -14,7 +14,11 @@ import re
 
 from common.ollama_utils import OLLAMA_TIMEOUT, call_ollama
 
-PROBLEMGEN_OLLAMA_MODEL = os.environ.get("PROBLEMGEN_OLLAMA_MODEL", "qwen2.5-math:7b")
+PROBLEMGEN_OLLAMA_MODEL = os.environ.get("PROBLEMGEN_OLLAMA_MODEL", "qwen2-math:7b")  # corrected
+# 2026-09-05 during real-corpus validation (see docs/2026-09-05-problem-generation-status.md):
+# the design's original choice, "qwen2.5-math:7b", is not a real pullable Ollama library
+# model -- only a community upload under a different namespace, or this older-generation
+# official one, actually exist. qwen2-math:7b is the one confirmed to pull and run.
 OLLAMA_REQUEST_TIMEOUT_SECONDS = 180
 MAX_ATTEMPTS = 3
 

@@ -32,14 +32,14 @@ needed.
   `None` (no hard failure) when there are no style examples on this
   topic/course, or when generation never produces a verified problem.
 - `llm_gen.py` — sends the topic plus both retrieved pools to a local
-  Ollama model (`qwen2.5-math:7b` by default, override with
+  Ollama model (`qwen2-math:7b` by default, override with
   `PROBLEMGEN_OLLAMA_MODEL`), extracts the generated problem and worked
   solution, then sends the pair back to the model a second time to
   verify the solution is actually correct — retrying with the specific
   failure fed back (an extraction failure or an `INVALID` verdict) up
   to 3 attempts before giving up. Requires Ollama running locally
   (`ollama serve`) with the model pulled
-  (`ollama pull qwen2.5-math:7b`) — degrades to returning `None` with a
+  (`ollama pull qwen2-math:7b`) — degrades to returning `None` with a
   printed warning if it isn't.
 
 Nothing is written to disk — every request generates a fresh problem,
