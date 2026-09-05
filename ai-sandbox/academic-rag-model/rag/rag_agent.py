@@ -42,6 +42,8 @@ class AnswerResult:
     # module level (see answer_question()'s function-scoped import below); resolvable
     # here only because this file already has `from __future__ import annotations`,
     # which makes every annotation a lazily-evaluated string.
+    report_path: str | None = None  # rag.report_builder.build_report()'s return value --
+    # None whenever report=False (default) or report generation itself failed
 
 
 def _diversify_by_file(results: list[PassageResult], max_per_file: int) -> list[PassageResult]:
@@ -136,7 +138,7 @@ def _generate_answer(question: str, history: list[Turn], passages: list[PassageR
 def answer_question(
     roots: list[str], question: str, client,
     history: list[Turn] | None = None, course: str | None = None,
-    top_k: int = 6, max_per_file: int = 3, visualize: bool = False,
+    top_k: int = 6, max_per_file: int = 3, visualize: bool = False, report: bool = False,
 ) -> AnswerResult:
     """The core function serving both usage modes (spec §3/§6): a
     callable utility (call once, use the AnswerResult, done) and the
@@ -151,7 +153,13 @@ def answer_question(
     docs/superpowers/specs/2026-09-02-visualization-agent-design.md) --
     grounded in the first root in `roots`, since a single concept's
     illustrative example doesn't need multi-root grounding the way
-    citation retrieval does."""
+    citation retrieval does. report=True additionally combines the
+    answer, citations, and (if present) the visualization into one
+    self-contained HTML document (rag/report_builder.py, spec:
+    docs/superpowers/specs/2026-09-05-combined-report-design.md) --
+    independent of visualize: a report can be text+citations-only if no
+    visualization exists, whether that's because it wasn't requested or
+    the fallback degraded to None."""
     history = history or []
     retrieval_query = _reformulate_query(question, history, client) if history else question
 
@@ -176,7 +184,20 @@ def answer_question(
             question, context=viz_context, academic_hub_root=roots[0], course=course,
         )
 
-    return AnswerResult(answer=answer, citations=citations, history=updated_history, visualization=visualization)
+    report_path_value = None
+    if report:
+        from rag.report_builder import build_report, report_path  # function-scoped: keeps
+        # report_builder.py's (and, when a visualization exists, transitively viz/'s) import
+        # surface out of every caller that never sets report=True, matching this file's own
+        # existing function-scoped import of generate_visualization above for the same reason.
+        reports_root = os.path.join(roots[0], ".reports")
+        output_path = report_path(question, reports_root, course)
+        report_path_value = build_report(question, answer, citations, visualization, output_path)
+
+    return AnswerResult(
+        answer=answer, citations=citations, history=updated_history,
+        visualization=visualization, report_path=report_path_value,
+    )
 
 
 def main() -> None:

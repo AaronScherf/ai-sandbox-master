@@ -1,3 +1,4 @@
+import os
 import unittest
 from unittest.mock import MagicMock, patch
 
@@ -187,6 +188,46 @@ class TestAnswerQuestionVisualize(unittest.TestCase):
              patch("viz.viz_agent.generate_visualization", return_value=None):
             result = answer_question(["/root"], "q", client, visualize=True)
         self.assertIsNone(result.visualization)
+
+
+class TestAnswerQuestionReport(unittest.TestCase):
+    def test_report_false_never_calls_build_report(self):
+        client = _fake_generate_client("answer")
+        with patch("rag.rag_agent.search_passages", return_value=[]), \
+             patch("rag.report_builder.build_report") as mock_build:
+            result = answer_question(["/root"], "q", client)
+        mock_build.assert_not_called()
+        self.assertIsNone(result.report_path)
+
+    def test_report_true_without_visualize_still_builds_report(self):
+        client = _fake_generate_client("answer")
+        with patch("rag.rag_agent.search_passages", return_value=[]), \
+             patch("rag.report_builder.build_report", return_value="/x/report.html") as mock_build:
+            result = answer_question(["/root"], "q", client, report=True)
+        mock_build.assert_called_once()
+        args, kwargs = mock_build.call_args
+        self.assertEqual(args[0], "q")
+        self.assertIsNone(args[3])  # visualization
+        self.assertEqual(result.report_path, "/x/report.html")
+
+    def test_report_true_with_visualize_passes_visualization_through(self):
+        client = _fake_generate_client("answer")
+        fake_viz = MagicMock()
+        with patch("rag.rag_agent.search_passages", return_value=[]), \
+             patch("viz.viz_agent.generate_visualization", return_value=fake_viz), \
+             patch("rag.report_builder.build_report", return_value="/x/report.html") as mock_build:
+            answer_question(["/root"], "q", client, visualize=True, report=True)
+        args, kwargs = mock_build.call_args
+        self.assertEqual(args[3], fake_viz)
+
+    def test_report_path_uses_reports_root_under_first_given_root(self):
+        client = _fake_generate_client("answer")
+        with patch("rag.rag_agent.search_passages", return_value=[]), \
+             patch("rag.report_builder.build_report", return_value=None), \
+             patch("rag.report_builder.report_path") as mock_path:
+            mock_path.return_value = "/root-a/.reports/math-camp/q.html"
+            answer_question(["/root-a", "/root-b"], "q", client, course="math-camp", report=True)
+        mock_path.assert_called_once_with("q", os.path.join("/root-a", ".reports"), "math-camp")
 
 
 if __name__ == "__main__":

@@ -85,6 +85,10 @@ ai-sandbox/research/.viz/
 # does without an explicit --root) -- not covered by either named pattern
 # above. This covers .viz/ under any current or future corpus root.
 **/.viz/
+# Combined-report output (.reports/) is the same kind of derivative,
+# corpus-grounded generated content as .viz/ -- same IP posture, same
+# any-root coverage rationale.
+**/.reports/
 
 #Prevent git workspace conflicts with obsidian
 # Vault root is ai-sandbox/, one level below this .gitignore -- a pattern
