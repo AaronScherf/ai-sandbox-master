@@ -19,7 +19,20 @@ PROBLEMGEN_OLLAMA_MODEL = os.environ.get("PROBLEMGEN_OLLAMA_MODEL", "qwen2-math:
 # the design's original choice, "qwen2.5-math:7b", is not a real pullable Ollama library
 # model -- only a community upload under a different namespace, or this older-generation
 # official one, actually exist. qwen2-math:7b is the one confirmed to pull and run.
-OLLAMA_REQUEST_TIMEOUT_SECONDS = 180
+OLLAMA_REQUEST_TIMEOUT_SECONDS = 300
+# 2026-09-05, corrected during real-corpus validation (see
+# docs/2026-09-05-problem-generation-status.md): the original value (180s,
+# copied from viz/llm_fallback.py's own constant) was too short for this
+# module's actual workload -- every real call on CPU-only inference hit
+# the timeout. A real run measured on this machine's CPU-only Ollama
+# (qwen2-math:7b, no GPU) took 22m43s wall-clock for one full
+# generate-then-verify cycle (2 generation attempts + 2 verification
+# calls) -- consistent with individual calls averaging several minutes
+# each for this module's longer expected output (a full problem
+# statement plus a full worked solution, vs viz's shorter code snippet).
+# 300s is a real-evidence-backed increase, not a guess; a slow machine
+# can still hit it on a verbose response, in which case the existing
+# OLLAMA_TIMEOUT retry path (not a hard failure) handles it.
 MAX_ATTEMPTS = 3
 
 _GENERATION_PROMPT_TEMPLATE = """You are writing a NEW practice problem for a student studying {topic}, in \
