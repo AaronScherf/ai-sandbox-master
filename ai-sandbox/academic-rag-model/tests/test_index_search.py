@@ -73,6 +73,18 @@ def _make_textbook(academic_hub_root, course, pdf_basename, folder_name, with_so
     return pdf_path
 
 
+def _make_video_lecture_note(academic_hub_root, course, slug, member_video_ids,
+                              markdown="# Real Analysis\n\nSome content."):
+    lecture_notes_dir = os.path.join(academic_hub_root, "academic_notes", course, "lecture-notes")
+    os.makedirs(lecture_notes_dir, exist_ok=True)
+    md_path = os.path.join(lecture_notes_dir, f"{slug}.md")
+    with open(md_path, "w", encoding="utf-8") as f:
+        f.write(markdown)
+    with open(os.path.join(lecture_notes_dir, f"{slug}.meta.json"), "w", encoding="utf-8") as f:
+        json.dump({"member_video_ids": member_video_ids}, f)
+    return md_path
+
+
 class TestIsStale(unittest.TestCase):
     def test_matching_content_hash_is_not_stale_regardless_of_mtime(self):
         # content_hash is decisive whenever the card has one -- mtime
@@ -395,6 +407,46 @@ def _card(file_id, embedding, **overrides):
     }
     card.update(overrides)
     return card
+
+
+class TestRebuildVideoLectureNotes(unittest.TestCase):
+    def test_generates_a_card_for_a_lecture_note_with_a_sidecar(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            _make_video_lecture_note(tmp, "math-camp", "real-analysis", ["A", "B"])
+            stats = rebuild(tmp, client=_fake_client())
+            self.assertEqual(stats["generated"], 1)
+            cards = load_shard(tmp, "math-camp")
+            self.assertEqual(len(cards), 1)
+            self.assertEqual(cards[0]["source_pdf_path"], "academic_notes/math-camp/lecture-notes/real-analysis.meta.json")
+
+    def test_missing_sidecar_is_skipped_not_crashed(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            lecture_notes_dir = os.path.join(tmp, "academic_notes", "math-camp", "lecture-notes")
+            os.makedirs(lecture_notes_dir)
+            with open(os.path.join(lecture_notes_dir, "orphaned.md"), "w", encoding="utf-8") as f:
+                f.write("# No sidecar")
+            stats = rebuild(tmp, client=_fake_client())
+            self.assertEqual(stats["generated"], 0)
+
+    def test_unchanged_note_is_not_regenerated_on_second_rebuild(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            _make_video_lecture_note(tmp, "math-camp", "real-analysis", ["A", "B"])
+            rebuild(tmp, client=_fake_client())
+            stats = rebuild(tmp, client=_fake_client())
+            self.assertEqual(stats["unchanged"], 1)
+            self.assertEqual(stats["generated"], 0)
+
+    def test_a_lecture_note_survives_prune_when_still_on_disk(self):
+        # Regression guard for the bug this task exists to prevent: before
+        # _video_lecture_note_paths() existed, a lecture note's card was
+        # invisible to rebuild()'s file-discovery walk and would have been
+        # flagged/pruned as an orphan even though the note was still there.
+        with tempfile.TemporaryDirectory() as tmp:
+            _make_video_lecture_note(tmp, "math-camp", "real-analysis", ["A", "B"])
+            rebuild(tmp, client=_fake_client())
+            stats = rebuild(tmp, client=_fake_client(), prune=True)
+            self.assertEqual(stats["pruned"], 0)
+            self.assertEqual(len(load_shard(tmp, "math-camp")), 1)
 
 
 class TestSearch(unittest.TestCase):

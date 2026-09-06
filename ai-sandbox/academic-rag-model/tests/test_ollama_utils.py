@@ -2,7 +2,7 @@ import json
 import unittest
 from unittest.mock import MagicMock, patch
 
-from common.ollama_utils import call_ollama, OLLAMA_TIMEOUT
+from common.ollama_utils import call_ollama, call_ollama_embeddings, OLLAMA_TIMEOUT
 
 
 class TestCallOllama(unittest.TestCase):
@@ -35,6 +35,24 @@ class TestCallOllama(unittest.TestCase):
         body = json.loads(request_arg.data.decode("utf-8"))
         self.assertEqual(body["model"], "qwen2-math:7b")
         self.assertEqual(body["prompt"], "my prompt")
+
+
+class TestCallOllamaEmbeddings(unittest.TestCase):
+    @patch("common.ollama_utils.urllib.request.urlopen")
+    def test_returns_embedding_vector_on_success(self, mock_urlopen):
+        mock_response = MagicMock()
+        mock_response.read.return_value = json.dumps({"embedding": [0.1, 0.2, 0.3]}).encode()
+        mock_urlopen.return_value.__enter__.return_value = mock_response
+        result = call_ollama_embeddings("some text", "nomic-embed-text", 30)
+        self.assertEqual(result, [0.1, 0.2, 0.3])
+
+    @patch("common.ollama_utils.urllib.request.urlopen", side_effect=OSError("connection refused"))
+    def test_returns_none_on_connection_failure(self, mock_urlopen):
+        self.assertIsNone(call_ollama_embeddings("some text", "nomic-embed-text", 30))
+
+    @patch("common.ollama_utils.urllib.request.urlopen", side_effect=TimeoutError("timed out"))
+    def test_returns_timeout_sentinel_on_timeout(self, mock_urlopen):
+        self.assertIs(call_ollama_embeddings("some text", "nomic-embed-text", 30), OLLAMA_TIMEOUT)
 
 
 if __name__ == "__main__":

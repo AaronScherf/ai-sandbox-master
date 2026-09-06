@@ -21,6 +21,7 @@ from indexer.index_card import (
     list_courses,
     load_tags,
     save_tags,
+    compute_id_from_parts,
 )
 
 
@@ -542,6 +543,19 @@ class TestTagVocabularyIO(unittest.TestCase):
             tags = [{"tag": "linear-algebra", "embedding": [0.1, 0.2]}]
             save_tags(tmp, tags)
             self.assertEqual(load_tags(tmp), tags)
+
+
+class TestComputeIdFromParts(unittest.TestCase):
+    def test_order_independent(self):
+        self.assertEqual(compute_id_from_parts(["b", "a"]), compute_id_from_parts(["a", "b"]))
+
+    def test_different_parts_produce_different_ids(self):
+        self.assertNotEqual(compute_id_from_parts(["a"]), compute_id_from_parts(["b"]))
+
+    def test_returns_16_char_hex_string(self):
+        result = compute_id_from_parts(["a", "b", "c"])
+        self.assertEqual(len(result), 16)
+        int(result, 16)  # raises ValueError if not valid hex
 
 
 if __name__ == "__main__":
