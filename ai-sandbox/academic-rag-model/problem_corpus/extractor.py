@@ -24,7 +24,17 @@ from problem_corpus.boundaries import detect_spans
 from problem_corpus.llm_extract import extract_record
 from problem_corpus.store import load_records, save_file_records
 
-_PROBLEM_BEARING_FOLDER_CATEGORIES = ("problem_sets", "textbooks", "recitation_slides")
+_PROBLEM_BEARING_FOLDER_CATEGORIES = ("problem_sets", "textbooks", "textbooks-and-papers", "recitation_slides")
+# "textbooks-and-papers" included alongside "textbooks" for the same
+# reason the root .gitignore lists both explicitly: some courses'
+# textbook folders were renamed from "textbooks-and-papers" to
+# "textbooks" and some weren't (confirmed live during this tool's own
+# 2026-09-06 real validation run -- math-camp's indexed cards still
+# carry the pre-rename "textbooks-and-papers" path, even though the
+# folder on disk is now "textbooks"; without this alias, those 5 cards
+# were silently filtered out here as "not problem-bearing" before ever
+# reaching the file-level try/except that would have correctly reported
+# them as failed-with-a-clear-reason instead).
 
 # Duplicated from indexer/chunk_index.py's own _FRONTMATTER_RE, per this
 # package's module-boundary convention (see boundaries.py's own docstring).

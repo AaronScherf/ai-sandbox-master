@@ -24,6 +24,7 @@ def _write_md(tmp, rel_path, content):
 _PROBLEM_SET_MD = "academic_notes/math-camp/problem_sets/processed_outputs/set.md"
 _MISSING_MD = "academic_notes/math-camp/problem_sets/processed_outputs/missing.md"
 _TEXTBOOK_MD = "academic_resources/math-camp/textbooks/processed_outputs/book.md"
+_TEXTBOOK_AND_PAPERS_MD = "academic_resources/math-camp/textbooks-and-papers/processed_outputs/book.md"
 _NOTES_MD = "academic_notes/math-camp/ta_notes/processed_outputs/notes.md"
 
 _THREE_PROBLEMS = (
@@ -60,6 +61,9 @@ class TestFolderCategoryFromPath(unittest.TestCase):
 
     def test_textbook_path(self):
         self.assertEqual(_folder_category_from_path(_TEXTBOOK_MD), "textbooks")
+
+    def test_textbook_and_papers_path(self):
+        self.assertEqual(_folder_category_from_path(_TEXTBOOK_AND_PAPERS_MD), "textbooks-and-papers")
 
     def test_path_with_no_processed_outputs_segment_returns_empty_string(self):
         self.assertEqual(_folder_category_from_path("some/other/path.md"), "")
@@ -206,6 +210,23 @@ class TestExtractProblems(unittest.TestCase):
                 stats = extract_problems(tmp, _fake_client())
             mock_extract.assert_not_called()
             self.assertEqual(stats["extracted"], 0)
+
+    def test_textbooks_and_papers_alias_is_not_filtered_out(self):
+        # Real finding from this tool's own 2026-09-06 validation run:
+        # math-camp's indexed textbook cards still carry the pre-rename
+        # "textbooks-and-papers" path segment even though the folder on
+        # disk is now "textbooks" -- this alias must still be treated as
+        # problem-bearing (matching the root .gitignore's own dual-name
+        # handling), or these cards get silently dropped before the
+        # file-level try/except ever gets a chance to report the real
+        # stale-path issue as a failure.
+        with tempfile.TemporaryDirectory() as tmp:
+            _write_md(tmp, _TEXTBOOK_AND_PAPERS_MD, _THREE_PROBLEMS)
+            save_shard(tmp, "math-camp", [_make_card("aaa", _TEXTBOOK_AND_PAPERS_MD)])
+            extracted = ExtractedRecord(problem_text="p", solution_text=None, topic_tag="t")
+            with patch("problem_corpus.extractor.extract_record", return_value=extracted):
+                stats = extract_problems(tmp, _fake_client())
+            self.assertEqual(stats["extracted"], 1)
 
     def test_orphaned_cards_are_skipped(self):
         with tempfile.TemporaryDirectory() as tmp:
