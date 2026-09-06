@@ -65,25 +65,35 @@ instead of the normal retrieval-and-answer flow, generating a new practice
 problem plus a worked solution grounded in the student's own problem sets
 and textbooks rather than answering the question as asked.
 
-Generation runs on a local Ollama model (`qwen2-math:7b` by default) — set
-it up the same way as `--visualize`'s Ollama dependency (`ollama serve`
-running locally), but pull the different model this sub-agent needs:
-`ollama pull qwen2-math:7b`. Expect this to be much slower than
-`--visualize`'s ~1 minute: on CPU-only Ollama, a single request took
-**9–23 minutes** across two real end-to-end trials (up to `MAX_ATTEMPTS=3`
-retries, each attempt making up to 2 model calls — one to generate, one to
-verify) — see
+Generation defaults to Gemini (`gemini-3.1-flash-lite`) — the same
+`GEMINI_API_KEY` this project already requires for retrieval, no extra
+setup, and fast: real spike testing (9 trials across 3 topics, all
+passed) completed in seconds per call. 2026-09-06, defaulted to Gemini
+after that spike found it dramatically more reliable at honoring an
+explicit technique constraint than the original local-only design —
+see
 [`../docs/2026-09-05-problem-generation-status.md`](../docs/2026-09-05-problem-generation-status.md)
-for the real measured runs. The worst case is up to **~30 minutes**
-(3 attempts × 2 calls × the 300s per-call timeout), not just "several
-minutes."
+for the full real-corpus comparison.
+
+Local Ollama generation is still available as an opt-in
+(`PROBLEMGEN_BACKEND=ollama` — set it up the same way as
+`--visualize`'s Ollama dependency, but pull the different model this
+sub-agent needs: `ollama pull qwen2-math:7b`) for fully free/private
+generation. Expect this path to be much slower than `--visualize`'s
+~1 minute: on CPU-only Ollama, a single request took **9–23 minutes**
+across real end-to-end trials (up to `MAX_ATTEMPTS=5` retries, each
+attempt making up to 2 model calls — one to generate, one to verify),
+worst case up to **~50 minutes** — and per that same real testing,
+it never once succeeded on a technique-constrained request even with a
+working technique-check, so it's kept available but not recommended as
+a default.
 
 Generation is never a hard dependency: when there are no style examples
-for the resolved topic/course, Ollama is unreachable, or verification
-never passes within the retry budget, the sub-agent returns `None` and
-the tutor falls back to answering the same question normally — a normal,
-expected outcome, not an error, exactly like `--visualize`'s own
-graceful degradation above.
+for the resolved topic/course, the configured backend is unreachable,
+or verification never passes within the retry budget, the sub-agent
+returns `None` and the tutor falls back to answering the same question
+normally — a normal, expected outcome, not an error, exactly like
+`--visualize`'s own graceful degradation above.
 
 **Visualizing a generated problem:** since problem generation has no flag
 of its own to combine with `--visualize`, a visualization here is

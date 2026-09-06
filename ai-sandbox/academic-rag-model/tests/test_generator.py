@@ -64,11 +64,12 @@ class TestGenerateProblem(unittest.TestCase):
 
     def test_content_pool_empty_still_generates(self):
         style = [_passage("s-000", "s")]
+        client = MagicMock()
         with patch("problem_gen.generator.search_passages", side_effect=[style, []]), \
              patch("problem_gen.generator.generate_and_verify", return_value=("P", "S")) as mock_generate:
-            result = generate_problem("q", ["/root"], MagicMock(), course="math-camp")
+            result = generate_problem("q", ["/root"], client, course="math-camp")
         self.assertIsNotNone(result)
-        mock_generate.assert_called_once_with("q", ["text"], [])
+        mock_generate.assert_called_once_with("q", ["text"], [], client)
 
     def test_sources_tagged_by_role(self):
         style = [_passage("s-000", "s", text="style text")]

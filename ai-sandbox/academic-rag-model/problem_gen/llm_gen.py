@@ -1,19 +1,32 @@
 """
 llm_gen.py
-Local Ollama generation of a new practice problem plus a worked
-solution, with self-verification and retry-with-feedback (spec:
+Generation of a new practice problem plus a worked solution, with
+self-verification and retry-with-feedback (spec:
 docs/superpowers/specs/2026-09-03-problem-generation-design.md §4).
 Much simpler than viz/llm_fallback.py by design: the output here is
 text (a problem and a solution), not executable code, so there is no
 subprocess execution or sandboxing involved at all.
+
+Two backends: Gemini (default) and local Ollama (opt-in via
+PROBLEMGEN_BACKEND=ollama). 2026-09-06, defaulted to Gemini after a
+real feasibility spike (see docs/2026-09-05-problem-generation-status.md):
+local qwen2-math:7b never once produced an accepted result across two
+independent real trials on a technique-constrained request, while
+gemini-3.1-flash-lite passed 9/9 across three different topics in the
+same testing, at negligible real cost and dramatically faster (seconds
+vs 10-50 minutes per attempt). Local generation stays available as an
+opt-in for fully free/private use.
 """
 from __future__ import annotations
 
 import os
 import re
 
-from common.ollama_utils import OLLAMA_TIMEOUT, call_ollama
+from common.gemini_utils import call_with_retries
+from common.ollama_utils import OLLAMA_TIMEOUT, OllamaTimeout, call_ollama
 
+PROBLEMGEN_BACKEND = os.environ.get("PROBLEMGEN_BACKEND", "gemini")  # "gemini" | "ollama"
+PROBLEMGEN_GEMINI_MODEL = os.environ.get("PROBLEMGEN_GEMINI_MODEL", "gemini-3.1-flash-lite")
 PROBLEMGEN_OLLAMA_MODEL = os.environ.get("PROBLEMGEN_OLLAMA_MODEL", "qwen2-math:7b")  # corrected
 # 2026-09-05 during real-corpus validation (see docs/2026-09-05-problem-generation-status.md):
 # the design's original choice, "qwen2.5-math:7b", is not a real pullable Ollama library
@@ -185,23 +198,58 @@ def _parse_verdict(response_text: str) -> str | None:
     return "; ".join(reasons) if reasons else None
 
 
+def _call_gemini(prompt: str, client) -> str | None:
+    """Calls the configured Gemini model, relying on
+    common.gemini_utils.call_with_retries for transient-failure retry/
+    backoff (the same mechanism every other Gemini call in this project
+    already uses) -- returns None only once those retries are
+    exhausted, never raises."""
+    try:
+        response = call_with_retries(lambda: client.models.generate_content(
+            model=PROBLEMGEN_GEMINI_MODEL, contents=prompt, config={"temperature": 0.2},
+        ))
+        return (response.text or "").strip()
+    except Exception as err:
+        print(f"WARNING: Gemini call to model '{PROBLEMGEN_GEMINI_MODEL}' failed after retries ({err})")
+        return None
+
+
+def _call_model(prompt: str, client) -> str | None | OllamaTimeout:
+    """Dispatches to the configured backend (PROBLEMGEN_BACKEND) --
+    Gemini by default, local Ollama if explicitly selected. Both return
+    the same shape (str | None | OllamaTimeout) so generate_and_verify's
+    retry loop doesn't need to know which backend is active: Gemini's
+    own call_with_retries already handles transient retries internally,
+    so its path never produces OLLAMA_TIMEOUT, only None (exhausted) or
+    a real response -- the OLLAMA_TIMEOUT branch below simply never
+    triggers when the Gemini backend is active."""
+    if PROBLEMGEN_BACKEND == "ollama":
+        print(f"Generating a practice problem via the local Ollama model ({PROBLEMGEN_OLLAMA_MODEL}) -- "
+              f"this can take a while...")
+        return call_ollama(prompt, PROBLEMGEN_OLLAMA_MODEL, OLLAMA_REQUEST_TIMEOUT_SECONDS)
+    print(f"Generating a practice problem via the Gemini API ({PROBLEMGEN_GEMINI_MODEL})...")
+    return _call_gemini(prompt, client)
+
+
 def generate_and_verify(
-    topic: str, style_examples: list[str], content_excerpts: list[str],
+    topic: str, style_examples: list[str], content_excerpts: list[str], client,
 ) -> tuple[str, str] | None:
     """Returns (problem_text, solution_text) once verification confirms
-    the solution is correct, or None if Ollama is unreachable or
-    verification never passes within MAX_ATTEMPTS. Never raises."""
+    the solution is correct, or None if the configured backend is
+    unreachable or verification never passes within MAX_ATTEMPTS. Never
+    raises. `client` is the Gemini client (unused when
+    PROBLEMGEN_BACKEND=ollama, but always required so callers -- which
+    already hold a Gemini client for retrieval embeddings -- don't need
+    to branch on backend themselves)."""
     try:
         previous_problem, previous_solution, previous_error = None, None, None
         for _ in range(MAX_ATTEMPTS):
             prompt = _build_generation_prompt(
                 topic, style_examples, content_excerpts, previous_problem, previous_solution, previous_error,
             )
-            print(f"Generating a practice problem via the local Ollama model ({PROBLEMGEN_OLLAMA_MODEL}) -- "
-                  f"this can take a while...")
-            response = call_ollama(prompt, PROBLEMGEN_OLLAMA_MODEL, OLLAMA_REQUEST_TIMEOUT_SECONDS)
+            response = _call_model(prompt, client)
             if response is None:
-                return None  # Ollama unreachable -- not worth retrying
+                return None  # backend unreachable -- not worth retrying
             if response is OLLAMA_TIMEOUT:
                 previous_problem, previous_solution = None, None
                 previous_error = (
@@ -218,7 +266,7 @@ def generate_and_verify(
             problem_text, solution_text = extracted
 
             verify_prompt = _build_verification_prompt(topic, problem_text, solution_text)
-            verify_response = call_ollama(verify_prompt, PROBLEMGEN_OLLAMA_MODEL, OLLAMA_REQUEST_TIMEOUT_SECONDS)
+            verify_response = _call_model(verify_prompt, client)
             if verify_response is None:
                 return None
             if verify_response is OLLAMA_TIMEOUT:

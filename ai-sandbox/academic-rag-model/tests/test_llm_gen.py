@@ -1,10 +1,10 @@
 import unittest
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from common.ollama_utils import OLLAMA_TIMEOUT
 from problem_gen.llm_gen import (
-    MAX_ATTEMPTS, _build_generation_prompt, _build_verification_prompt,
-    _extract_problem_and_solution, _parse_verdict, generate_and_verify,
+    MAX_ATTEMPTS, PROBLEMGEN_GEMINI_MODEL, _build_generation_prompt, _build_verification_prompt,
+    _call_gemini, _extract_problem_and_solution, _parse_verdict, generate_and_verify,
 )
 
 
@@ -145,17 +145,50 @@ class TestParseVerdict(unittest.TestCase):
         self.assertEqual(result, "the solution is incorrect or incomplete")
 
 
-class TestGenerateAndVerify(unittest.TestCase):
+class TestCallGemini(unittest.TestCase):
+    def test_returns_response_text_on_success(self):
+        client = MagicMock()
+        client.models.generate_content.return_value = MagicMock(text="## Problem\nFind X.")
+        result = _call_gemini("prompt", client)
+        self.assertEqual(result, "## Problem\nFind X.")
+
+    def test_uses_the_configured_model(self):
+        client = MagicMock()
+        client.models.generate_content.return_value = MagicMock(text="response")
+        _call_gemini("prompt", client)
+        self.assertEqual(client.models.generate_content.call_args.kwargs["model"], PROBLEMGEN_GEMINI_MODEL)
+
+    def test_passes_the_prompt_through(self):
+        client = MagicMock()
+        client.models.generate_content.return_value = MagicMock(text="response")
+        _call_gemini("my specific prompt", client)
+        self.assertEqual(client.models.generate_content.call_args.kwargs["contents"], "my specific prompt")
+
+    def test_strips_whitespace_from_response(self):
+        client = MagicMock()
+        client.models.generate_content.return_value = MagicMock(text="  response with padding  \n")
+        result = _call_gemini("prompt", client)
+        self.assertEqual(result, "response with padding")
+
+    def test_returns_none_when_call_with_retries_raises(self):
+        client = MagicMock()
+        with patch("problem_gen.llm_gen.call_with_retries", side_effect=Exception("quota exceeded")):
+            result = _call_gemini("prompt", client)
+        self.assertIsNone(result)
+
+
+@patch("problem_gen.llm_gen.PROBLEMGEN_BACKEND", "ollama")
+class TestGenerateAndVerifyOllamaBackend(unittest.TestCase):
     def test_returns_none_when_ollama_unreachable(self):
         with patch("problem_gen.llm_gen.call_ollama", return_value=None) as mock_call:
-            result = generate_and_verify("eigenvalues", ["example"], [])
+            result = generate_and_verify("eigenvalues", ["example"], [], MagicMock())
         self.assertIsNone(result)
         self.assertEqual(mock_call.call_count, 1)  # unreachable Ollama isn't worth retrying
 
     def test_succeeds_on_first_attempt_when_verification_passes(self):
         responses = ["## Problem\nFind X.\n\n## Solution\nX = 1.", "TECHNIQUE: YES\nCORRECTNESS: VALID"]
         with patch("problem_gen.llm_gen.call_ollama", side_effect=responses) as mock_call:
-            result = generate_and_verify("eigenvalues", ["example"], [])
+            result = generate_and_verify("eigenvalues", ["example"], [], MagicMock())
         self.assertEqual(result, ("Find X.", "X = 1."))
         self.assertEqual(mock_call.call_count, 2)
 
@@ -166,7 +199,7 @@ class TestGenerateAndVerify(unittest.TestCase):
             "TECHNIQUE: YES\nCORRECTNESS: VALID",                   # attempt 2 verification
         ]
         with patch("problem_gen.llm_gen.call_ollama", side_effect=responses) as mock_call:
-            result = generate_and_verify("eigenvalues", ["example"], [])
+            result = generate_and_verify("eigenvalues", ["example"], [], MagicMock())
         self.assertEqual(result, ("Find X.", "X = 1."))
         self.assertEqual(mock_call.call_count, 3)
         second_prompt = mock_call.call_args_list[1].args[0]
@@ -180,7 +213,7 @@ class TestGenerateAndVerify(unittest.TestCase):
             "TECHNIQUE: YES\nCORRECTNESS: VALID",                            # attempt 2 verification
         ]
         with patch("problem_gen.llm_gen.call_ollama", side_effect=responses) as mock_call:
-            result = generate_and_verify("eigenvalues", ["example"], [])
+            result = generate_and_verify("eigenvalues", ["example"], [], MagicMock())
         self.assertEqual(result, ("Find X.", "X = 1."))
         self.assertEqual(mock_call.call_count, 4)
         third_prompt = mock_call.call_args_list[2].args[0]
@@ -194,7 +227,7 @@ class TestGenerateAndVerify(unittest.TestCase):
             "TECHNIQUE: YES\nCORRECTNESS: VALID",                          # attempt 2 verification
         ]
         with patch("problem_gen.llm_gen.call_ollama", side_effect=responses) as mock_call:
-            result = generate_and_verify("must use epsilon-delta", ["example"], [])
+            result = generate_and_verify("must use epsilon-delta", ["example"], [], MagicMock())
         self.assertEqual(result, ("Find X.", "Epsilon-delta proof."))
         self.assertEqual(mock_call.call_count, 4)
         third_prompt = mock_call.call_args_list[2].args[0]
@@ -206,26 +239,106 @@ class TestGenerateAndVerify(unittest.TestCase):
             OLLAMA_TIMEOUT, "## Problem\nFind X.\n\n## Solution\nX = 1.", "TECHNIQUE: YES\nCORRECTNESS: VALID",
         ]
         with patch("problem_gen.llm_gen.call_ollama", side_effect=responses) as mock_call:
-            result = generate_and_verify("eigenvalues", ["example"], [])
+            result = generate_and_verify("eigenvalues", ["example"], [], MagicMock())
         self.assertEqual(result, ("Find X.", "X = 1."))
         self.assertEqual(mock_call.call_count, 3)
 
     def test_returns_none_when_max_attempts_exhausted(self):
         with patch("problem_gen.llm_gen.call_ollama", return_value="never valid sections") as mock_call:
-            result = generate_and_verify("eigenvalues", ["example"], [])
+            result = generate_and_verify("eigenvalues", ["example"], [], MagicMock())
         self.assertIsNone(result)
         self.assertEqual(mock_call.call_count, MAX_ATTEMPTS)
 
     def test_generation_and_verification_prompts_carry_the_expected_content(self):
         responses = ["## Problem\nFind X.\n\n## Solution\nX = 1.", "TECHNIQUE: YES\nCORRECTNESS: VALID"]
         with patch("problem_gen.llm_gen.call_ollama", side_effect=responses) as mock_call:
-            generate_and_verify("eigenvalues", ["example"], [])
+            generate_and_verify("eigenvalues", ["example"], [], MagicMock())
         first_call_prompt = mock_call.call_args_list[0].args[0]
         second_call_prompt = mock_call.call_args_list[1].args[0]
         self.assertIn("eigenvalues", first_call_prompt)
         self.assertIn("eigenvalues", second_call_prompt)  # topic now also checked during verification
         self.assertIn("Find X.", second_call_prompt)
         self.assertIn("X = 1.", second_call_prompt)
+
+
+class TestGenerateAndVerifyGeminiBackend(unittest.TestCase):
+    """PROBLEMGEN_BACKEND defaults to "gemini" (no patching needed) --
+    see docs/2026-09-05-problem-generation-status.md's 2026-09-06 entry:
+    a real feasibility spike found gemini-3.1-flash-lite passed 9/9
+    trials across three technique-constrained topics where the local
+    Ollama model never once succeeded. Mocks _call_gemini directly
+    (the single dispatch point), mirroring how the Ollama-backend tests
+    above mock call_ollama, rather than reaching into the Gemini SDK's
+    own client mock -- consistent with this project's established
+    network-code testing convention."""
+
+    def test_succeeds_on_first_attempt_when_verification_passes(self):
+        client = MagicMock()
+        responses = ["## Problem\nFind X.\n\n## Solution\nX = 1.", "TECHNIQUE: YES\nCORRECTNESS: VALID"]
+        with patch("problem_gen.llm_gen._call_gemini", side_effect=responses) as mock_call:
+            result = generate_and_verify("eigenvalues", ["example"], [], client)
+        self.assertEqual(result, ("Find X.", "X = 1."))
+        self.assertEqual(mock_call.call_count, 2)
+
+    def test_client_is_threaded_through_to_call_gemini(self):
+        client = MagicMock()
+        responses = ["## Problem\nFind X.\n\n## Solution\nX = 1.", "TECHNIQUE: YES\nCORRECTNESS: VALID"]
+        with patch("problem_gen.llm_gen._call_gemini", side_effect=responses) as mock_call:
+            generate_and_verify("eigenvalues", ["example"], [], client)
+        self.assertEqual(mock_call.call_args_list[0].args[1], client)
+        self.assertEqual(mock_call.call_args_list[1].args[1], client)
+
+    def test_returns_none_when_gemini_unreachable(self):
+        client = MagicMock()
+        with patch("problem_gen.llm_gen._call_gemini", return_value=None) as mock_call:
+            result = generate_and_verify("eigenvalues", ["example"], [], client)
+        self.assertIsNone(result)
+        self.assertEqual(mock_call.call_count, 1)  # unreachable isn't worth retrying, same as Ollama
+
+    def test_retries_after_extraction_failure_then_succeeds(self):
+        client = MagicMock()
+        responses = [
+            "no sections here",
+            "## Problem\nFind X.\n\n## Solution\nX = 1.",
+            "TECHNIQUE: YES\nCORRECTNESS: VALID",
+        ]
+        with patch("problem_gen.llm_gen._call_gemini", side_effect=responses) as mock_call:
+            result = generate_and_verify("eigenvalues", ["example"], [], client)
+        self.assertEqual(result, ("Find X.", "X = 1."))
+        self.assertEqual(mock_call.call_count, 3)
+
+    def test_retries_after_technique_mismatch_with_reason_fed_back(self):
+        client = MagicMock()
+        responses = [
+            "## Problem\nFind X.\n\n## Solution\nOpen-cover proof.",
+            "TECHNIQUE: NO - used open-cover instead\nCORRECTNESS: VALID",
+            "## Problem\nFind X.\n\n## Solution\nEpsilon-delta proof.",
+            "TECHNIQUE: YES\nCORRECTNESS: VALID",
+        ]
+        with patch("problem_gen.llm_gen._call_gemini", side_effect=responses) as mock_call:
+            result = generate_and_verify("must use epsilon-delta", ["example"], [], client)
+        self.assertEqual(result, ("Find X.", "Epsilon-delta proof."))
+        self.assertEqual(mock_call.call_count, 4)
+        third_prompt = mock_call.call_args_list[2].args[0]
+        self.assertIn("does not use the required technique", third_prompt)
+
+    def test_returns_none_when_max_attempts_exhausted(self):
+        client = MagicMock()
+        with patch("problem_gen.llm_gen._call_gemini", return_value="never valid sections") as mock_call:
+            result = generate_and_verify("eigenvalues", ["example"], [], client)
+        self.assertIsNone(result)
+        self.assertEqual(mock_call.call_count, MAX_ATTEMPTS)
+
+    def test_never_touches_ollama(self):
+        """The Gemini backend must never call call_ollama at all --
+        confirms the dispatch is a clean either/or, not an accidental
+        fallthrough."""
+        client = MagicMock()
+        responses = ["## Problem\nFind X.\n\n## Solution\nX = 1.", "TECHNIQUE: YES\nCORRECTNESS: VALID"]
+        with patch("problem_gen.llm_gen._call_gemini", side_effect=responses), \
+             patch("problem_gen.llm_gen.call_ollama") as mock_ollama:
+            generate_and_verify("eigenvalues", ["example"], [], client)
+        mock_ollama.assert_not_called()
 
 
 if __name__ == "__main__":

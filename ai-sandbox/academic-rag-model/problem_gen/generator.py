@@ -2,9 +2,10 @@
 generator.py
 Retrieves the student's own real problems (style anchor) and textbook
 content (correctness anchor) for a topic, then generates a new,
-self-verified practice problem via a local Ollama model (spec:
-docs/superpowers/specs/2026-09-03-problem-generation-design.md). One
-public entry point, generate_problem().
+self-verified practice problem via Gemini by default, or a local
+Ollama model as an opt-in alternative (see llm_gen.py's
+PROBLEMGEN_BACKEND; spec: docs/superpowers/specs/2026-09-03-problem-generation-design.md).
+One public entry point, generate_problem().
 """
 from __future__ import annotations
 
@@ -77,7 +78,7 @@ def generate_problem(
     )
 
     generated = generate_and_verify(
-        query, [p.text for p in style_passages], [p.text for p in content_passages],
+        query, [p.text for p in style_passages], [p.text for p in content_passages], client,
     )
     if generated is None:
         return None
