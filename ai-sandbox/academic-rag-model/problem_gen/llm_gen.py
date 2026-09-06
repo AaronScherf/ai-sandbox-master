@@ -222,12 +222,12 @@ def _call_model(prompt: str, client) -> str | None | OllamaTimeout:
     own call_with_retries already handles transient retries internally,
     so its path never produces OLLAMA_TIMEOUT, only None (exhausted) or
     a real response -- the OLLAMA_TIMEOUT branch below simply never
-    triggers when the Gemini backend is active."""
+    triggers when the Gemini backend is active. No status print here --
+    this dispatcher is also used for the verification call, which isn't
+    "generating a practice problem"; see generate_and_verify's own
+    announcement before its generation call only."""
     if PROBLEMGEN_BACKEND == "ollama":
-        print(f"Generating a practice problem via the local Ollama model ({PROBLEMGEN_OLLAMA_MODEL}) -- "
-              f"this can take a while...")
         return call_ollama(prompt, PROBLEMGEN_OLLAMA_MODEL, OLLAMA_REQUEST_TIMEOUT_SECONDS)
-    print(f"Generating a practice problem via the Gemini API ({PROBLEMGEN_GEMINI_MODEL})...")
     return _call_gemini(prompt, client)
 
 
@@ -247,6 +247,11 @@ def generate_and_verify(
             prompt = _build_generation_prompt(
                 topic, style_examples, content_excerpts, previous_problem, previous_solution, previous_error,
             )
+            if PROBLEMGEN_BACKEND == "ollama":
+                print(f"Generating a practice problem via the local Ollama model ({PROBLEMGEN_OLLAMA_MODEL}) -- "
+                      f"this can take a while...")
+            else:
+                print(f"Generating a practice problem via the Gemini API ({PROBLEMGEN_GEMINI_MODEL})...")
             response = _call_model(prompt, client)
             if response is None:
                 return None  # backend unreachable -- not worth retrying
