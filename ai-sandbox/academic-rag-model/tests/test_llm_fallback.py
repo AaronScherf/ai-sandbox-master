@@ -6,8 +6,8 @@ from unittest.mock import MagicMock, patch
 from common.ollama_utils import OLLAMA_TIMEOUT
 from viz.example_store import ExampleRecord
 from viz.llm_fallback import (
-    _cache_key, _extract_code, _build_prompt, _run_generated_code,
-    generate_via_llm, MAX_GENERATION_ATTEMPTS,
+    _cache_key, _extract_code, _build_prompt, _call_gemini, _run_generated_code,
+    generate_via_llm, MAX_GENERATION_ATTEMPTS, VIZ_GEMINI_MODEL,
 )
 
 
@@ -220,7 +220,13 @@ class TestRunGeneratedCode(unittest.TestCase):
             self.assertNotEqual(os.path.abspath(kwargs["cwd"]), os.path.abspath(os.getcwd()))
 
 
-class TestGenerateViaLlm(unittest.TestCase):
+@patch("viz.llm_fallback.VIZ_BACKEND", "ollama")
+class TestGenerateViaLlmOllamaBackend(unittest.TestCase):
+    """VIZ_BACKEND defaults to "gemini" as of 2026-09-06 (see
+    TestGenerateViaLlmGeminiBackend below) -- these tests pin the
+    backend back to "ollama" to keep exercising that path, mirroring
+    test_llm_gen.py's own TestGenerateAndVerifyOllamaBackend."""
+
     def test_output_file_is_wrapped_and_fragment_html_is_the_raw_cached_content(self):
         with tempfile.TemporaryDirectory() as tmp:
             cache_dir = os.path.join(tmp, "cache")
@@ -525,6 +531,92 @@ class TestGenerateViaLlm(unittest.TestCase):
                  patch("viz.llm_fallback.call_ollama", return_value="no code here"):
                 generate_via_llm("concept", "", output_path, cache_dir, examples_dir)
             mock_save.assert_not_called()
+
+
+class TestCallGemini(unittest.TestCase):
+    def test_returns_response_text_on_success(self):
+        client = MagicMock()
+        client.models.generate_content.return_value = MagicMock(text="```python\nfig = go.Figure()\n```")
+        result = _call_gemini("prompt", client)
+        self.assertEqual(result, "```python\nfig = go.Figure()\n```")
+
+    def test_uses_the_configured_model(self):
+        client = MagicMock()
+        client.models.generate_content.return_value = MagicMock(text="response")
+        _call_gemini("prompt", client)
+        self.assertEqual(client.models.generate_content.call_args.kwargs["model"], VIZ_GEMINI_MODEL)
+
+    def test_passes_the_prompt_through(self):
+        client = MagicMock()
+        client.models.generate_content.return_value = MagicMock(text="response")
+        _call_gemini("my specific prompt", client)
+        self.assertEqual(client.models.generate_content.call_args.kwargs["contents"], "my specific prompt")
+
+    def test_strips_whitespace_from_response(self):
+        client = MagicMock()
+        client.models.generate_content.return_value = MagicMock(text="  response with padding  \n")
+        result = _call_gemini("prompt", client)
+        self.assertEqual(result, "response with padding")
+
+    def test_returns_none_when_call_with_retries_raises(self):
+        client = MagicMock()
+        with patch("viz.llm_fallback.call_with_retries", side_effect=Exception("quota exceeded")):
+            result = _call_gemini("prompt", client)
+        self.assertIsNone(result)
+
+
+@patch("viz.llm_fallback.VIZ_BACKEND", "gemini")
+class TestGenerateViaLlmGeminiBackend(unittest.TestCase):
+    """VIZ_BACKEND defaults to "gemini" as of 2026-09-06 (kept explicit
+    here via the class decorator rather than relying on the default, so
+    these tests stay correct even if the default changes again) -- a
+    real end-to-end trial of the problem-generation path's visualization
+    request had just failed twice on the Ollama backend (two timeouts,
+    then a broken script), the same reliability pattern that already
+    drove problem_gen's own Gemini switch; a follow-up real trial with
+    this Gemini backend then succeeded 2/2 (see
+    docs/2026-09-02-visualization-agent-status.md), which is why the
+    default was flipped rather than just adding Gemini as opt-in. Mocks
+    _call_gemini directly (the single dispatch point), mirroring
+    test_llm_gen.py's own TestGenerateAndVerifyGeminiBackend."""
+
+    def test_succeeds_via_gemini_and_threads_client_through(self):
+        client = MagicMock()
+        with tempfile.TemporaryDirectory() as tmp:
+            cache_dir = os.path.join(tmp, "cache")
+            examples_dir = os.path.join(tmp, "examples")
+            output_path = os.path.join(tmp, "out.html")
+
+            def fake_run(code, path, timeout=60):
+                with open(path, "w", encoding="utf-8") as f:
+                    f.write("<div>fake plot</div>")
+                return True, None
+
+            with patch("viz.llm_fallback.example_store.find_examples", return_value=[]), \
+                 patch("viz.llm_fallback.example_store.save"), \
+                 patch(
+                    "viz.llm_fallback._call_gemini",
+                    return_value="```python\nfig = go.Figure()\n```",
+                 ) as mock_call, \
+                 patch("viz.llm_fallback.call_ollama") as mock_ollama, \
+                 patch("viz.llm_fallback._run_generated_code", side_effect=fake_run):
+                result = generate_via_llm("concept", "", output_path, cache_dir, examples_dir, client)
+
+            self.assertIsNotNone(result)
+            mock_ollama.assert_not_called()
+            self.assertEqual(mock_call.call_args.args[1], client)
+
+    def test_returns_none_when_gemini_exhausted(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            with patch("viz.llm_fallback.example_store.find_examples", return_value=[]), \
+                 patch("viz.llm_fallback.example_store.save"), \
+                 patch("viz.llm_fallback._call_gemini", return_value=None) as mock_call:
+                result = generate_via_llm(
+                    "concept", "", os.path.join(tmp, "out.html"),
+                    os.path.join(tmp, "cache"), os.path.join(tmp, "examples"), MagicMock(),
+                )
+            self.assertIsNone(result)
+            self.assertEqual(mock_call.call_count, 1)  # exhausted retries aren't worth retrying again
 
 
 if __name__ == "__main__":

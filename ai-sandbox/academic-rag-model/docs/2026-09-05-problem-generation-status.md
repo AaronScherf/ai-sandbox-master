@@ -412,6 +412,74 @@ Local generation remains free and fully private, which still matters
 for some use cases, but is not the better default for requests that
 carry an explicit technique constraint.
 
+## 2026-09-06 (continued): Gemini becomes the default backend
+
+Direct follow-through on the feasibility spike above: `PROBLEMGEN_BACKEND`
+now defaults to `"gemini"` (was previously Ollama-only, no toggle).
+`generate_and_verify()` and `generate_problem()` thread a `client`
+parameter through so the dispatcher (`_call_model()`) can call either
+backend without callers branching on which one is active. Local Ollama
+generation remains available as an explicit opt-in
+(`PROBLEMGEN_BACKEND=ollama`) for fully free/private generation, with the
+reliability caveat from the spike above carried into the README.
+`root/README.md`, `problem_gen/README.md`, and `rag/README.md` updated to
+describe the new default, the opt-in, and real measured timing/cost for
+each.
+
+## 2026-09-06 (continued): report_builder integration gap + real end-to-end validation
+
+**Bug found (not from this session's own testing — user dogfooding):**
+the problem-generation branch in `rag/rag_agent.py` never called
+`rag/report_builder.py`'s `build_report()` at all, regardless of
+`report=True` — the same category of integration gap `--visualize` had
+on this same branch until its own earlier fix (see
+`docs/2026-09-02-visualization-agent-status.md`'s "Combined report"
+section). A generated problem's `report=True` call silently produced no
+report file.
+
+**Fix:** wired `build_report()`/`report_path()` into the
+problem-generation branch, and extended `build_report()` with a new
+optional `solution` parameter — rendered as its own `<h2>Solution</h2>`
+section — so a generated problem's worked solution shows up in the
+combined report alongside the problem statement, citations, and (if
+present) a visualization. New tests in `test_report_builder.py` (the
+`solution` parameter) and `test_rag_agent.py`
+(`TestAnswerQuestionProblemGenerationReport`, 4 tests).
+
+**Real end-to-end validation**, run from `ai-sandbox/academic-rag-model`
+against `../academic-hub` (`math-camp`), the same compactness/epsilon-delta
+request used throughout this doc, now with `report=True` and an explicit
+"Visualize this." request:
+
+1. **Trial 1** (Ollama viz, then-default): problem generation succeeded
+   via Gemini in 2 attempts, correctly using an epsilon-delta proof via
+   the distance-function-to-a-compact-set technique (not the open-cover
+   technique this doc's earlier local-model trials struggled to avoid) —
+   consistent with the spike's 9/9 constraint-following result. The
+   report was built correctly: problem, solution as its own section, and
+   all 7 real citations present, with the Visualization section cleanly
+   and entirely absent after the local Ollama viz fallback failed (two
+   180s timeouts, then a script using an invalid Plotly property).
+2. **Trial 2** (Ollama viz, then-default): same outcome shape — correct
+   problem generation and report again, viz again failed on Ollama (two
+   more timeouts, then a script with a numpy broadcasting error).
+3. **Trial 3** (after adding `VIZ_BACKEND=gemini`, see the viz sub-agent's
+   own status doc for the full detail): same correct problem generation
+   and report, and this time the visualization succeeded on the first
+   attempt — a real Plotly line chart embedded correctly in the combined
+   report (4.3MB self-contained HTML file, one `<h2>Visualization</h2>`
+   section, a real `Plotly.newPlot` call with binary-encoded trace data).
+
+This confirms, for the first time with a real trial rather than mocked
+tests, that the full pipeline — problem generation, self-verification,
+report building with a solution section, and an embedded visualization —
+works end to end. It also surfaced that `viz`'s own LLM fallback had the
+same Ollama-reliability problem this doc already found for problem
+generation, on the very first real attempt to exercise it against a
+freshly-generated (never-templated) problem/solution pair — see
+`docs/2026-09-02-visualization-agent-status.md`'s "Gemini fallback
+backend, made the default" section for that fix.
+
 ## Future development ideas (flagged, not implemented — revisit once a Gemini path exists)
 
 Raised by the user while reviewing these results. Recorded here as a

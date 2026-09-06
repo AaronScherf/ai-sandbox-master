@@ -45,14 +45,18 @@ generates an interactive Plotly HTML visualization for each question's
 concept via the [Visualization Sub-Agent](../viz/) — off by default, so
 nothing about a plain question-answering call changes unless you ask for it.
 It tries a small keyword-matched template library first (near-instant, no
-paid API call); when no template matches, it falls back to a local Ollama
-model, which adds up to ~1 minute of local generation time on CPU (~68s
-observed for a real, unmatched concept — see
-[`../docs/2026-09-02-visualization-agent-status.md`](../docs/2026-09-02-visualization-agent-status.md))
-and requires Ollama running locally with a model pulled — see the
-[Visualization Sub-Agent's own README](../viz/README.md) for setup. Either
-way, a missing visualization is a normal outcome (e.g. Ollama not running,
-or the local model produced a broken script) — `result.visualization` is
+paid API call); when no template matches, it falls back to an LLM, Gemini
+(`gemini-3.1-flash-lite`) by default as of 2026-09-06 — the same
+`GEMINI_API_KEY` this project already requires for retrieval, no extra
+setup. Local Ollama generation is still available as an opt-in
+(`VIZ_BACKEND=ollama`), which adds up to ~1 minute of local generation time
+on CPU (~68s observed for a real, unmatched concept) and requires Ollama
+running locally with a model pulled — see the
+[Visualization Sub-Agent's own README](../viz/README.md) for setup and the
+full Gemini-vs-Ollama comparison
+([`../docs/2026-09-02-visualization-agent-status.md`](../docs/2026-09-02-visualization-agent-status.md)).
+Either way, a missing visualization is a normal outcome (e.g. the backend
+unreachable, or it produced a broken script) — `result.visualization` is
 just `None`, never a hard failure of the question-answering call itself.
 
 ## Practice problems

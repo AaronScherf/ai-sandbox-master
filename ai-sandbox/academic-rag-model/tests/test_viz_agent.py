@@ -153,6 +153,14 @@ class TestGenerateVisualizationFallbackPath(unittest.TestCase):
                 result = generate_visualization("unknown concept", academic_hub_root=tmp)
         self.assertIsNone(result)
 
+    def test_client_is_threaded_through_to_the_llm_fallback(self):
+        client = object()
+        with tempfile.TemporaryDirectory() as tmp:
+            with patch("viz.viz_agent.match_template", return_value=None), \
+                 patch("viz.llm_fallback.generate_via_llm", return_value=None) as mock_llm:
+                generate_visualization("unknown concept", academic_hub_root=tmp, client=client)
+        self.assertEqual(mock_llm.call_args.args[-1], client)
+
 
 class TestWrapFragment(unittest.TestCase):
     def test_wraps_fragment_in_minimal_html_shell(self):

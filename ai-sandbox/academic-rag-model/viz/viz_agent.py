@@ -4,7 +4,8 @@ Generates interactive Plotly HTML visualizations for academic-hub
 concepts (spec: docs/superpowers/specs/2026-09-02-visualization-agent-design.md).
 One public entry point, generate_visualization() -- tries the
 keyword-matched template library (viz.templates) first; falls back to
-a local Ollama model (viz.llm_fallback) only when no template matches.
+an LLM (viz.llm_fallback, Gemini by default, local Ollama if
+VIZ_BACKEND=ollama) only when no template matches.
 """
 from __future__ import annotations
 
@@ -46,11 +47,16 @@ def _wrap_fragment(fragment: str) -> str:
 
 
 def generate_visualization(
-    concept: str, context: str = "", academic_hub_root: str = "..", course: str | None = None,
+    concept: str, context: str = "", academic_hub_root: str = "..", course: str | None = None, client=None,
 ) -> VizResult | None:
     """Returns None if no template matches and the LLM fallback also
     fails -- callers must treat a missing visualization as a normal,
-    expected outcome, never a hard dependency (spec §2)."""
+    expected outcome, never a hard dependency (spec §2). `client` is the
+    Gemini client, used by the LLM fallback's default Gemini backend
+    (unused when VIZ_BACKEND=ollama) -- added 2026-09-06 alongside that
+    backend option, mirroring problem_gen's own client-threading
+    precedent; the same day, VIZ_BACKEND's default flipped to "gemini"
+    after two real trials found the Ollama backend unreliable here too."""
     viz_root = os.path.join(academic_hub_root, ".viz")
     output_dir = os.path.join(viz_root, course or "uncategorized")
     output_path = os.path.join(output_dir, f"{_slugify(concept)}.html")
@@ -74,5 +80,5 @@ def generate_visualization(
     # visualize=True at all -- see Task 9)
     return generate_via_llm(
         concept, context, output_path,
-        os.path.join(viz_root, ".cache"), os.path.join(viz_root, ".examples"),
+        os.path.join(viz_root, ".cache"), os.path.join(viz_root, ".examples"), client,
     )

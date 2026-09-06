@@ -1,22 +1,26 @@
 """
 llm_fallback.py
-Local Ollama code-generation fallback for concepts with no matching
-template (spec §4). Sends `concept`+`context` to a local Ollama model,
-extracts the generated Plotly script, and runs it in a subprocess with
-an execution timeout, a minimal/stripped environment (no inherited
-secrets -- see _minimal_subprocess_env), and a scratch working
-directory -- plotly/numpy are pre-imported into the script's own
-preamble for convenience, but this does NOT restrict which modules the
-generated code itself can import; it still has full network access.
-Results are cached on disk keyed by a hash of (concept, context) -- a
-repeated request for the same concept+context shouldn't re-invoke a
-30-60s+ local-model call.
+LLM code-generation fallback for concepts with no matching template
+(spec §4). Sends `concept`+`context` to the configured backend
+(VIZ_BACKEND -- Gemini by default, local Ollama if explicitly
+selected; 2026-09-06, flipped the default the same way problem_gen
+already had, after two real trials found the Ollama backend
+unreliable on this same visualization request too -- see
+docs/2026-09-02-visualization-agent-status.md), extracts the generated
+Plotly script, and runs it in a subprocess with an execution timeout,
+a minimal/stripped environment (no inherited secrets -- see
+_minimal_subprocess_env), and a scratch working directory --
+plotly/numpy are pre-imported into the script's own preamble for
+convenience, but this does NOT restrict which modules the generated
+code itself can import; it still has full network access. Results are
+cached on disk keyed by a hash of (concept, context) -- a repeated
+request for the same concept+context shouldn't re-invoke the model.
 
-Touches network (Ollama's local HTTP API) and subprocess execution --
-common.ollama_utils.call_ollama itself is tested only with the network
-call mocked, matching this project's established split for
-network-dependent code (the real Gemini calls elsewhere in this project
-are the same way);
+Touches network (Ollama's local HTTP API, or the Gemini API) and
+subprocess execution -- common.ollama_utils.call_ollama and
+common.gemini_utils.call_with_retries are each tested only with the
+network call mocked, matching this project's established split for
+network-dependent code;
 _run_generated_code and generate_via_llm's orchestration logic ARE
 exercised for real (no network involved, fast, deterministic) -- see
 this module's own tests.
@@ -30,11 +34,14 @@ import subprocess
 import sys
 import tempfile
 
-from common.ollama_utils import OLLAMA_TIMEOUT, call_ollama
+from common.gemini_utils import call_with_retries
+from common.ollama_utils import OLLAMA_TIMEOUT, OllamaTimeout, call_ollama
 from viz import example_store
 from viz.example_store import ExampleRecord
 from viz.viz_agent import VizResult, _wrap_fragment
 
+VIZ_BACKEND = os.environ.get("VIZ_BACKEND", "gemini")  # "gemini" | "ollama"
+VIZ_GEMINI_MODEL = os.environ.get("VIZ_GEMINI_MODEL", "gemini-3.1-flash-lite")
 OLLAMA_MODEL = os.environ.get("VIZ_OLLAMA_MODEL", "qwen2.5-coder:7b")
 OLLAMA_REQUEST_TIMEOUT_SECONDS = 180
 EXECUTION_TIMEOUT_SECONDS = 60
@@ -225,18 +232,61 @@ def _run_generated_code(
             pass
 
 
-def generate_via_llm(concept: str, context: str, output_path: str, cache_dir: str, examples_dir: str) -> VizResult | None:
-    """Generates a visualization via the local Ollama fallback, retrying
-    up to MAX_GENERATION_ATTEMPTS times with the previous failure fed
-    back to the model as a corrective prompt, or returns None on any
-    failure -- never raises past its caller (spec §4, hardened per
+def _call_gemini(prompt: str, client) -> str | None:
+    """Calls the configured Gemini model, relying on
+    common.gemini_utils.call_with_retries for transient-failure retry/
+    backoff (the same mechanism every other Gemini call in this project
+    already uses) -- returns None only once those retries are
+    exhausted, never raises. Mirrors problem_gen/llm_gen.py's own
+    _call_gemini, added here 2026-09-06 after two real trials of
+    generate_via_llm's Ollama path both failed (timeouts and a broken
+    script) on the same problem-generation visualization request that
+    motivated problem_gen's own Gemini-default switch."""
+    try:
+        response = call_with_retries(lambda: client.models.generate_content(
+            model=VIZ_GEMINI_MODEL, contents=prompt, config={"temperature": 0.2},
+        ))
+        return (response.text or "").strip()
+    except Exception as err:
+        print(f"WARNING: Gemini call to model '{VIZ_GEMINI_MODEL}' failed after retries ({err})")
+        return None
+
+
+def _call_model(prompt: str, client) -> str | None | OllamaTimeout:
+    """Dispatches to the configured backend (VIZ_BACKEND) -- Gemini by
+    default, local Ollama if explicitly selected (2026-09-06: flipped
+    the default the same way problem_gen already had, after two real
+    trials found the Ollama backend unreliable here too -- see
+    docs/2026-09-02-visualization-agent-status.md). Both return the
+    same shape (str | None | OllamaTimeout) so generate_via_llm's retry
+    loop doesn't need to know which backend is active: Gemini's own
+    call_with_retries already handles transient retries internally, so
+    its path never produces OLLAMA_TIMEOUT, only None (exhausted) or a
+    real response."""
+    if VIZ_BACKEND == "ollama":
+        return call_ollama(prompt, OLLAMA_MODEL, OLLAMA_REQUEST_TIMEOUT_SECONDS)
+    return _call_gemini(prompt, client)
+
+
+def generate_via_llm(
+    concept: str, context: str, output_path: str, cache_dir: str, examples_dir: str, client=None,
+) -> VizResult | None:
+    """Generates a visualization via the configured LLM fallback backend
+    (VIZ_BACKEND -- Gemini by default, local Ollama if explicitly
+    selected), retrying up to MAX_GENERATION_ATTEMPTS times with the
+    previous failure fed back to the model as a corrective prompt, or
+    returns None on any failure -- never raises past its caller (spec
+    §4, hardened per
     docs/superpowers/specs/2026-09-03-viz-ollama-retry-hardening-design.md
-    §2/§4). Looks up past successful examples once per call (not once per
-    attempt) via example_store.find_examples(), and saves the final
-    successful attempt's code via example_store.save() (spec:
+    §2/§4). `client` is the Gemini client (unused when VIZ_BACKEND is
+    set to "ollama", but always required so callers -- which already
+    hold a Gemini client for retrieval -- don't need to branch on
+    backend themselves). Looks up past successful examples once per call
+    (not once per attempt) via example_store.find_examples(), and saves
+    the final successful attempt's code via example_store.save() (spec:
     docs/superpowers/specs/2026-09-03-viz-example-store-design.md §5) --
     both of those calls are skipped entirely on a cache hit, since no
-    Ollama call happens in that case either."""
+    model call happens in that case either."""
     try:
         os.makedirs(cache_dir, exist_ok=True)
         cached_path = os.path.join(cache_dir, f"{_cache_key(concept, context)}.html")
@@ -248,11 +298,14 @@ def generate_via_llm(concept: str, context: str, output_path: str, cache_dir: st
             final_code = None
             for _ in range(MAX_GENERATION_ATTEMPTS):
                 prompt = _build_prompt(concept, context, previous_code, previous_error, examples)
-                print(f"Generating a visualization via the local Ollama model ({OLLAMA_MODEL}) -- "
-                      f"this can take up to a minute...")
-                response_text = call_ollama(prompt, OLLAMA_MODEL, OLLAMA_REQUEST_TIMEOUT_SECONDS)
+                if VIZ_BACKEND == "gemini":
+                    print(f"Generating a visualization via the Gemini API ({VIZ_GEMINI_MODEL})...")
+                else:
+                    print(f"Generating a visualization via the local Ollama model ({OLLAMA_MODEL}) -- "
+                          f"this can take up to a minute...")
+                response_text = _call_model(prompt, client)
                 if response_text is None:
-                    return None  # Ollama unreachable -- not worth retrying (spec §4)
+                    return None  # backend unreachable, or Gemini retries exhausted -- not worth retrying (spec §4)
                 if response_text is OLLAMA_TIMEOUT:
                     # A live-but-slow Ollama call is plausibly worth a retry, unlike a
                     # genuinely unreachable server -- see OllamaTimeout's own docstring

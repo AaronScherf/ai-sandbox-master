@@ -1,8 +1,9 @@
 # Visualization Sub-Agent
 
 Generates interactive Plotly HTML visualizations for academic-hub concepts —
-a keyword-matched template library first, a local Ollama model as fallback
-for concepts with no template. No paid API calls anywhere in this package.
+a keyword-matched template library first, an LLM fallback (Gemini by
+default) for concepts with no template. Local Ollama is available as an
+opt-in fallback backend — see `llm_fallback.py` below.
 
 Run directly:
 
@@ -21,19 +22,31 @@ Or via the tutor's own `--visualize` flag — see [`../rag/README.md`](../rag/RE
   keyword/alias list, a `render() -> plotly.graph_objects.Figure`). Adding a
   new concept is one new file plus one import at the bottom of
   `templates/__init__.py`.
-- `llm_fallback.py` — sends the concept + retrieved context to a local Ollama
-  model (`qwen2.5-coder:7b` by default, override with `VIZ_OLLAMA_MODEL`),
-  extracts the generated Plotly script, and runs it in a subprocess with an
-  execution timeout, a minimal/stripped environment (no inherited secrets —
-  in particular, the subprocess never sees `GEMINI_API_KEY`), and a scratch
-  working directory, then caches the result on disk keyed by a hash of
-  (concept, context). Plotly/numpy are pre-imported into the generated
-  script's own preamble for convenience, but generated code can still import
-  anything else and has full network access — this is execution isolation
-  (timeout, no secrets, no shared cwd), not a sandbox that restricts which
-  modules it can import. Requires Ollama running locally (`ollama serve`)
-  with the model pulled (`ollama pull qwen2.5-coder:7b`) — degrades to
-  returning `None` with a printed warning if it isn't.
+- `llm_fallback.py` — sends the concept + retrieved context to the configured
+  backend (`VIZ_BACKEND`, default `gemini`), extracts the generated Plotly
+  script, and runs it in a subprocess with an execution timeout, a
+  minimal/stripped environment (no inherited secrets — in particular, the
+  subprocess never sees `GEMINI_API_KEY`), and a scratch working directory,
+  then caches the result on disk keyed by a hash of (concept, context).
+  Plotly/numpy are pre-imported into the generated script's own preamble for
+  convenience, but generated code can still import anything else and has
+  full network access — this is execution isolation (timeout, no secrets, no
+  shared cwd), not a sandbox that restricts which modules it can import.
+  Generation defaults to Gemini (`gemini-3.1-flash-lite`, override with
+  `VIZ_GEMINI_MODEL`) — the same `GEMINI_API_KEY` this project already
+  requires for retrieval, no extra setup. 2026-09-06, defaulted to Gemini
+  after two real end-to-end trials of the problem-generation path's
+  visualization request both failed on the local Ollama backend (two
+  timeouts, then a broken script), then a follow-up real trial with Gemini
+  succeeded 2/2 on the first attempt — the same reliability pattern (and
+  same fix) as `problem_gen`'s own Gemini default; see
+  [`../docs/2026-09-02-visualization-agent-status.md`](../docs/2026-09-02-visualization-agent-status.md)
+  for the full comparison. Local Ollama generation is still available as an
+  opt-in (`VIZ_BACKEND=ollama`, model `qwen2.5-coder:7b` by default, override
+  with `VIZ_OLLAMA_MODEL`) for fully free/private generation — requires
+  Ollama running locally (`ollama serve`) with the model pulled (`ollama
+  pull qwen2.5-coder:7b`). Either backend degrades to returning `None` with
+  a printed warning on failure, never a hard dependency.
 - `example_store.py` — a local, free memory of past successful `llm_fallback.py`
   generations, used for few-shot prompting only (never rendered or matched
   directly). Before each Ollama call, looks up up to 2 past successes for a

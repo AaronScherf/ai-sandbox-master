@@ -234,7 +234,7 @@ def answer_question(
                 # dependency-isolation reasoning as the normal Q&A path's own import below.
                 viz_context = f"{generated.problem_text}\n\n{generated.solution_text}"
                 problem_visualization = generate_visualization(
-                    question, context=viz_context, academic_hub_root=roots[0], course=course,
+                    question, context=viz_context, academic_hub_root=roots[0], course=course, client=client,
                 )
             problem_report_path = None
             if report:
@@ -276,7 +276,7 @@ def answer_question(
         # function-scoped import of answer_question() for the same reason.
         viz_context = "\n\n".join(p.text for p in passages)
         visualization = generate_visualization(
-            question, context=viz_context, academic_hub_root=roots[0], course=course,
+            question, context=viz_context, academic_hub_root=roots[0], course=course, client=client,
         )
 
     report_path_value = None

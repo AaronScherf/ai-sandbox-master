@@ -459,6 +459,104 @@ success path is therefore still only confirmed by the mocked unit
 tests, not a real end-to-end trial**, and remains open for the next
 session to pick up.
 
+## Complex-number sanitization fix (2026-09-06)
+
+Found via a real full-demo trial: a generated script computed eigenvalues
+via `numpy.linalg.eig()`, which returns complex128 dtype even when the
+true eigenvalues are real -- Plotly's JSON encoder can't serialize a raw
+Python `complex` object, so `fig.write_html()` raised `TypeError: Object
+of type complex is not JSON serializable` inside the subprocess.
+
+Root-caused via systematic-debugging (four fix attempts failed before the
+fifth worked, each ruled out via direct interactive testing rather than
+guessing):
+1. `setattr(trace, axis, real_array)` after an `np.iscomplexobj()` check
+   -- missed the case entirely, because Plotly stores complex trace data
+   as a `dtype=object` array of raw Python `complex` scalars, not native
+   `complex128`, so the dtype-based check never triggers.
+2. Added the `dtype == object` check plus `.astype(complex)`
+   normalization, still via `setattr` -- had no effect on the live trace.
+3. `trace.update({...})` instead of `setattr` -- same silent no-op.
+4. `fig.update_traces(x=...)` at the figure level -- same silent no-op.
+
+All four confirmed (via direct interactive testing) that mutating an
+*existing* trace's properties, by any method, doesn't re-validate or
+re-coerce already-complex-dtype data -- only a *fresh* `Figure`
+constructed from already-real data behaves correctly. The fix that
+worked: convert the whole figure to its `to_plotly_json()` dict form,
+recursively sanitize (any `complex` scalar or complex/object-dtype array
+becomes real), and rebuild a fresh `go.Figure()` from the sanitized dict
+(`_SANITIZE_COMPLEX_SNIPPET` in `llm_fallback.py`, applied right before
+`fig.write_html()`). Defense-in-depth: also added a prompt requirement
+telling the model to take `.real` after an `eig()`-family call -- a
+follow-up real trial confirmed the model proactively cast both
+eigenvalues and eigenvectors to real on its own, but the harness-level
+sanitization is the fix that's guaranteed regardless of whether the model
+follows the hint (this project has repeatedly found small local models
+don't reliably follow embedded instructions -- see
+`docs/2026-09-05-problem-generation-status.md`). Covered by a
+deterministic unit test (`test_complex_valued_trace_data_is_sanitized_to_real`)
+that constructs a complex-dtype array directly, bypassing the LLM's own
+non-determinism, since the first live-Ollama reproduction attempt didn't
+reliably reproduce the exact failure.
+
+## Gemini fallback backend, made the default (2026-09-06)
+
+Picked up the previous section's flagged open item -- "the
+report+embedded-plot success path is unconfirmed by a real trial" -- by
+running the problem-generation path's own report+visualize flow
+end to end (`give me a practice problem on the compactness of sets that
+requires an epsilon-delta proof. Visualize this.`, `report=True`).
+
+**First two real trials, unmodified Ollama fallback (`qwen2.5-coder:7b`,
+default at the time):** both failed to produce a visualization.
+Trial 1: two attempts timed out at 180s each, the third produced a
+script using an invalid Plotly property (`zaxis_title` instead of
+`scene.zaxis.title`). Trial 2: two more 180s timeouts, then a script
+that crashed with a numpy broadcasting error
+(`operands could not be broadcast together with shapes (2,1) (100,1)`).
+Both trials still correctly produced the combined report (problem,
+worked solution as its own section, all real citations) with the
+Visualization section cleanly and entirely absent -- confirming the
+report=True-independent-of-visualize degradation this doc's previous
+section had left unconfirmed, and separately confirming
+`rag/report_builder.py`'s new `solution` parameter (added the same day,
+see `docs/2026-09-05-problem-generation-status.md`) renders correctly
+against a real generated problem.
+
+**Response:** added `VIZ_BACKEND` (mirroring `problem_gen`'s own
+`PROBLEMGEN_BACKEND`) with a new Gemini path in `llm_fallback.py`
+(`_call_gemini`, `_call_model` dispatcher, `client` threaded through
+`generate_visualization()` from `rag_agent.py`'s existing Gemini
+client) -- initially opt-in (`VIZ_BACKEND=gemini`), default left at
+`ollama` pending real evidence.
+
+**Two follow-up real trials with `VIZ_BACKEND=gemini`:** both succeeded
+on the **first attempt**, no retries needed -- a real Plotly line chart
+(`f(x) = x^2`, binary-encoded trace data) embedded correctly in the
+combined report both times. Model: `gemini-3.1-flash-lite` (confirmed --
+not `gemini-3.1-flash` or `-pro`), same `VIZ_GEMINI_MODEL` default
+`problem_gen` already established for its own Gemini calls.
+
+**Decision:** flipped `VIZ_BACKEND`'s default to `"gemini"` (0/2 Ollama
+vs. 2/2 Gemini, both on the same real request) -- the same reliability
+pattern, and the same fix, that already drove `problem_gen`'s own
+Gemini default on 2026-09-06. Local Ollama remains available as an
+opt-in (`VIZ_BACKEND=ollama`) for fully free/private generation. Test
+coverage: the pre-existing Ollama-path test class now pins
+`VIZ_BACKEND="ollama"` via a class-level patch (mirroring
+`test_llm_gen.py`'s own `TestGenerateAndVerifyOllamaBackend`), plus new
+`TestCallGemini` and `TestGenerateViaLlmGeminiBackend` classes. Full
+suite: `941 tests, OK`.
+
+**Still open:** unlike `problem_gen`'s 9-trial, 3-topic feasibility
+spike before its own default flip, this decision rests on 2 trials on a
+single topic -- real signal (a 0/2 vs. 2/2 split on the same request
+that failed twice with two different real failure modes isn't noise),
+but not the same breadth of evidence. Worth a broader spike (multiple
+topics/concepts) if Gemini's viz reliability ever looks shakier in
+practice than these two trials suggest.
+
 ## Current status (2026-09-05, end of session)
 
 Consolidated picture for anyone starting from here, superseding the
