@@ -49,6 +49,17 @@ def compute_file_id(pdf_path: str) -> str:
     return digest[:16]
 
 
+def compute_id_from_parts(parts: list[str]) -> str:
+    """Truncated SHA-256 of sorted, joined string parts -- the same
+    content-addressed-identity idea as compute_file_id, for content
+    whose stable identity isn't a single file's bytes (e.g. a
+    lecture-notes group's identity is its member video IDs, not its
+    derived, re-synthesizable Markdown -- see
+    video_notes/note_indexing.py)."""
+    joined = ",".join(sorted(parts))
+    return hashlib.sha256(joined.encode("utf-8")).hexdigest()[:16]
+
+
 def compute_content_hash(md_path: str) -> str:
     """Truncated SHA-256 of the .md file's own bytes -- the staleness
     signal (spec §4.3), immune to anything that touches a file's mtime
