@@ -33,7 +33,16 @@ OLLAMA_REQUEST_TIMEOUT_SECONDS = 300
 # 300s is a real-evidence-backed increase, not a guess; a slow machine
 # can still hit it on a verbose response, in which case the existing
 # OLLAMA_TIMEOUT retry path (not a hard failure) handles it.
-MAX_ATTEMPTS = 3
+MAX_ATTEMPTS = 5
+# 2026-09-06, bumped from 3 during real-corpus validation of the split
+# TECHNIQUE/CORRECTNESS verification (see
+# docs/2026-09-05-problem-generation-status.md): a real trial exhausted
+# all 3 attempts with only 2 of them actually reaching a real generated
+# response (the third was consumed entirely by an OLLAMA_TIMEOUT retry,
+# not a bad proof) -- both real attempts were then correctly rejected
+# for using the wrong technique, but there was no attempt left to see
+# whether the model could ever produce a compliant one. 5 gives real
+# headroom for that question without doubling the worst case.
 
 _GENERATION_PROMPT_TEMPLATE = """You are writing a NEW practice problem for a student studying {topic}, in \
 the same style, notation, and difficulty as their own course's problem sets. Do NOT copy any of the example \
