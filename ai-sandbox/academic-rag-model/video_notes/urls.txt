@@ -1,5 +1,7 @@
-# One YouTube video URL per line (not playlist links -- use --playlist
-# on the command line for those instead). Blank lines and lines
-# starting with # are ignored.
+# One YouTube URL per line -- individual videos and playlist links can
+# both go here. Blank lines and lines starting with # are ignored.
 #
 # https://youtube.com/watch?v=...
+# https://youtube.com/playlist?list=...
+
+

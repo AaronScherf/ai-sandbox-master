@@ -15,6 +15,7 @@ import argparse
 import dataclasses
 import os
 import shutil
+from urllib.parse import urlparse
 
 from video_notes.audio_download import delete_audio, download_audio
 from video_notes.grouping import embed_transcripts, group_videos
@@ -34,16 +35,27 @@ def _transcript_cache_path(video_notes_root: str, video_id: str) -> str:
     return os.path.join(video_notes_root, ".cache", "transcripts", f"{video_id}.json")
 
 
-def _read_urls_file(path: str) -> list[str]:
-    """Reads one video URL per line, skipping blank lines and lines
-    starting with `#` (a comment) -- lets a batch be edited as a plain
-    unstructured list rather than typed on the command line each time.
-    Playlist URLs don't belong in this file -- use --playlist instead,
-    since a playlist URL routed through fetch_video_metadata() (what
-    these get merged into) doesn't resolve the same way."""
+def _is_playlist_url(url: str) -> bool:
+    """A YouTube playlist page's path is exactly `/playlist` (e.g.
+    `youtube.com/playlist?list=...`) -- distinct from a video URL that
+    happens to carry a `list=` param too (`watch?v=...&list=...`,
+    a video played from within a playlist), which stays a single video,
+    same as --urls already treats it."""
+    return urlparse(url).path.rstrip("/") == "/playlist"
+
+
+def _read_urls_file(path: str) -> tuple[list[str], list[str]]:
+    """Reads one URL per line, skipping blank lines and lines starting
+    with `#` (a comment) -- lets a batch be edited as a plain unstructured
+    list rather than typed on the command line each time. Returns
+    (video_urls, playlist_urls): a playlist link is routed the same way
+    --playlist would handle it, expanding to every video in it."""
     with open(path, "r", encoding="utf-8") as f:
         lines = [line.strip() for line in f]
-    return [line for line in lines if line and not line.startswith("#")]
+    urls = [line for line in lines if line and not line.startswith("#")]
+    video_urls = [url for url in urls if not _is_playlist_url(url)]
+    playlist_urls = [url for url in urls if _is_playlist_url(url)]
+    return video_urls, playlist_urls
 
 
 def _ensure_transcribed(video, course: str, video_notes_root: str, transcripts_by_id: dict) -> None:
@@ -150,15 +162,18 @@ def main() -> None:
     parser.add_argument("--course", required=True, help="Matches an existing academic_notes/<course>/ folder.")
     parser.add_argument("--urls", nargs="+", default=[], help="Individual YouTube video URLs.")
     parser.add_argument("--playlist", action="append", default=[], dest="playlists", help="A YouTube playlist URL (repeatable).")
-    parser.add_argument("--urls-file", help="A text file with one video URL per line, not playlists (blank lines and #-comments are skipped).")
+    parser.add_argument("--urls-file", help="A text file with one URL per line, video or playlist (blank lines and #-comments are skipped).")
     parser.add_argument("--academic-hub-root", default=DEFAULT_ACADEMIC_HUB_ROOT)
     args = parser.parse_args()
 
     urls = list(args.urls)
+    playlists = list(args.playlists)
     if args.urls_file:
-        urls.extend(_read_urls_file(args.urls_file))
+        file_video_urls, file_playlist_urls = _read_urls_file(args.urls_file)
+        urls.extend(file_video_urls)
+        playlists.extend(file_playlist_urls)
 
-    if not urls and not args.playlists:
+    if not urls and not playlists:
         parser.error("pass at least one --urls URL, --urls-file path, or --playlist URL")
 
     if shutil.which("ffmpeg") is None:
@@ -171,7 +186,7 @@ def main() -> None:
         parser.error("GEMINI_API_KEY is required to index the synthesized notes -- see ../.env.example")
 
     video_notes_root = os.path.dirname(os.path.abspath(__file__))
-    summary = run_pipeline(args.course, urls, args.playlists, args.academic_hub_root, video_notes_root, client)
+    summary = run_pipeline(args.course, urls, playlists, args.academic_hub_root, video_notes_root, client)
     print(f"Done: {summary}")
 
 

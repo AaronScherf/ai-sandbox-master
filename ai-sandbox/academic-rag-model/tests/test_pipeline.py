@@ -95,26 +95,53 @@ class TestRunPipeline(unittest.TestCase):
 
 
 class TestReadUrlsFile(unittest.TestCase):
-    def test_reads_one_url_per_line(self):
+    def test_reads_one_video_url_per_line(self):
         with tempfile.TemporaryDirectory() as tmp:
             path = os.path.join(tmp, "urls.txt")
             with open(path, "w", encoding="utf-8") as f:
                 f.write("https://youtube.com/watch?v=AAA\nhttps://youtube.com/watch?v=BBB\n")
-            self.assertEqual(
-                _read_urls_file(path),
-                ["https://youtube.com/watch?v=AAA", "https://youtube.com/watch?v=BBB"],
-            )
+            video_urls, playlist_urls = _read_urls_file(path)
+            self.assertEqual(video_urls, ["https://youtube.com/watch?v=AAA", "https://youtube.com/watch?v=BBB"])
+            self.assertEqual(playlist_urls, [])
 
     def test_skips_blank_lines_and_comments(self):
         with tempfile.TemporaryDirectory() as tmp:
             path = os.path.join(tmp, "urls.txt")
             with open(path, "w", encoding="utf-8") as f:
                 f.write("# a comment\n\nhttps://youtube.com/watch?v=AAA\n   \n# another\n")
-            self.assertEqual(_read_urls_file(path), ["https://youtube.com/watch?v=AAA"])
+            video_urls, playlist_urls = _read_urls_file(path)
+            self.assertEqual(video_urls, ["https://youtube.com/watch?v=AAA"])
+            self.assertEqual(playlist_urls, [])
 
     def test_strips_surrounding_whitespace(self):
         with tempfile.TemporaryDirectory() as tmp:
             path = os.path.join(tmp, "urls.txt")
             with open(path, "w", encoding="utf-8") as f:
                 f.write("  https://youtube.com/watch?v=AAA  \n")
-            self.assertEqual(_read_urls_file(path), ["https://youtube.com/watch?v=AAA"])
+            video_urls, _ = _read_urls_file(path)
+            self.assertEqual(video_urls, ["https://youtube.com/watch?v=AAA"])
+
+    def test_routes_playlist_links_separately_from_video_links(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = os.path.join(tmp, "urls.txt")
+            with open(path, "w", encoding="utf-8") as f:
+                f.write(
+                    "https://youtube.com/watch?v=AAA\n"
+                    "https://youtube.com/playlist?list=PL123\n"
+                    "https://www.youtube.com/watch?v=BBB\n"
+                )
+            video_urls, playlist_urls = _read_urls_file(path)
+            self.assertEqual(video_urls, ["https://youtube.com/watch?v=AAA", "https://www.youtube.com/watch?v=BBB"])
+            self.assertEqual(playlist_urls, ["https://youtube.com/playlist?list=PL123"])
+
+    def test_a_video_url_with_a_list_param_is_still_treated_as_a_video(self):
+        # watch?v=...&list=... is a video played from within a playlist,
+        # not a playlist link itself -- stays routed as a single video,
+        # same as --urls already treats such a URL.
+        with tempfile.TemporaryDirectory() as tmp:
+            path = os.path.join(tmp, "urls.txt")
+            with open(path, "w", encoding="utf-8") as f:
+                f.write("https://youtube.com/watch?v=AAA&list=PL123\n")
+            video_urls, playlist_urls = _read_urls_file(path)
+            self.assertEqual(video_urls, ["https://youtube.com/watch?v=AAA&list=PL123"])
+            self.assertEqual(playlist_urls, [])

@@ -16,10 +16,11 @@ Run directly:
 .\.venv\Scripts\python.exe -m video_notes.pipeline --course math-camp --urls-file video_notes/urls.txt
 ```
 
-`--urls-file` points at a plain text file, one video URL per line (blank
+`--urls-file` points at a plain text file, one URL per line (blank
 lines and `#`-comments skipped) — a `video_notes/urls.txt` template is
-included to drop links into. It's for individual video URLs only, same
-as `--urls`; playlist links still go through `--playlist`.
+included to drop links into. Individual video links and playlist links
+can both go in the same file; a playlist link (`youtube.com/playlist?list=...`)
+is detected and expanded to every video in it, same as `--playlist`.
 
 ## Requirements
 
