@@ -13,7 +13,13 @@ Run directly:
 ```powershell
 .\.venv\Scripts\python.exe -m video_notes.pipeline --course econometrics --urls "https://youtube.com/watch?v=..." "https://youtube.com/watch?v=..."
 .\.venv\Scripts\python.exe -m video_notes.pipeline --course math-camp --playlist "https://youtube.com/playlist?list=..."
+.\.venv\Scripts\python.exe -m video_notes.pipeline --course math-camp --urls-file video_notes/urls.txt
 ```
+
+`--urls-file` points at a plain text file, one video URL per line (blank
+lines and `#`-comments skipped) — a `video_notes/urls.txt` template is
+included to drop links into. It's for individual video URLs only, same
+as `--urls`; playlist links still go through `--playlist`.
 
 ## Requirements
 

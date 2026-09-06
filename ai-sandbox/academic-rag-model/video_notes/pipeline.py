@@ -7,6 +7,7 @@ Spec: docs/superpowers/specs/2026-09-06-video-lecture-notes-design.md.
 Run as a module from academic-rag-model/:
     python -m video_notes.pipeline --course econometrics --urls URL1 URL2
     python -m video_notes.pipeline --course math-camp --playlist PLAYLIST_URL
+    python -m video_notes.pipeline --course math-camp --urls-file video_notes/urls.txt
 """
 from __future__ import annotations
 
@@ -31,6 +32,18 @@ DEFAULT_ACADEMIC_HUB_ROOT = "../academic-hub"
 
 def _transcript_cache_path(video_notes_root: str, video_id: str) -> str:
     return os.path.join(video_notes_root, ".cache", "transcripts", f"{video_id}.json")
+
+
+def _read_urls_file(path: str) -> list[str]:
+    """Reads one video URL per line, skipping blank lines and lines
+    starting with `#` (a comment) -- lets a batch be edited as a plain
+    unstructured list rather than typed on the command line each time.
+    Playlist URLs don't belong in this file -- use --playlist instead,
+    since a playlist URL routed through fetch_video_metadata() (what
+    these get merged into) doesn't resolve the same way."""
+    with open(path, "r", encoding="utf-8") as f:
+        lines = [line.strip() for line in f]
+    return [line for line in lines if line and not line.startswith("#")]
 
 
 def _ensure_transcribed(video, course: str, video_notes_root: str, transcripts_by_id: dict) -> None:
@@ -137,11 +150,16 @@ def main() -> None:
     parser.add_argument("--course", required=True, help="Matches an existing academic_notes/<course>/ folder.")
     parser.add_argument("--urls", nargs="+", default=[], help="Individual YouTube video URLs.")
     parser.add_argument("--playlist", action="append", default=[], dest="playlists", help="A YouTube playlist URL (repeatable).")
+    parser.add_argument("--urls-file", help="A text file with one video URL per line, not playlists (blank lines and #-comments are skipped).")
     parser.add_argument("--academic-hub-root", default=DEFAULT_ACADEMIC_HUB_ROOT)
     args = parser.parse_args()
 
-    if not args.urls and not args.playlists:
-        parser.error("pass at least one --urls URL or --playlist URL")
+    urls = list(args.urls)
+    if args.urls_file:
+        urls.extend(_read_urls_file(args.urls_file))
+
+    if not urls and not args.playlists:
+        parser.error("pass at least one --urls URL, --urls-file path, or --playlist URL")
 
     if shutil.which("ffmpeg") is None:
         print("WARNING: ffmpeg not found on PATH -- audio extraction will fail. Install ffmpeg and retry.")
@@ -153,7 +171,7 @@ def main() -> None:
         parser.error("GEMINI_API_KEY is required to index the synthesized notes -- see ../.env.example")
 
     video_notes_root = os.path.dirname(os.path.abspath(__file__))
-    summary = run_pipeline(args.course, args.urls, args.playlists, args.academic_hub_root, video_notes_root, client)
+    summary = run_pipeline(args.course, urls, args.playlists, args.academic_hub_root, video_notes_root, client)
     print(f"Done: {summary}")
 
 

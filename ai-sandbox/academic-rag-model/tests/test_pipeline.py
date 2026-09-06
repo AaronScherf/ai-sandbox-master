@@ -1,9 +1,10 @@
+import os
 import tempfile
 import unittest
 from unittest.mock import MagicMock, patch
 
 from video_notes.grouping import Group
-from video_notes.pipeline import run_pipeline
+from video_notes.pipeline import _read_urls_file, run_pipeline
 from video_notes.transcribe import TranscriptSegment
 from video_notes.youtube_metadata import VideoMetadata
 
@@ -91,3 +92,29 @@ class TestRunPipeline(unittest.TestCase):
         self.assertEqual(summary["groups_synthesized"], 0)
         mock_synthesize.assert_called_once()
         mock_download.assert_called_once()
+
+
+class TestReadUrlsFile(unittest.TestCase):
+    def test_reads_one_url_per_line(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = os.path.join(tmp, "urls.txt")
+            with open(path, "w", encoding="utf-8") as f:
+                f.write("https://youtube.com/watch?v=AAA\nhttps://youtube.com/watch?v=BBB\n")
+            self.assertEqual(
+                _read_urls_file(path),
+                ["https://youtube.com/watch?v=AAA", "https://youtube.com/watch?v=BBB"],
+            )
+
+    def test_skips_blank_lines_and_comments(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = os.path.join(tmp, "urls.txt")
+            with open(path, "w", encoding="utf-8") as f:
+                f.write("# a comment\n\nhttps://youtube.com/watch?v=AAA\n   \n# another\n")
+            self.assertEqual(_read_urls_file(path), ["https://youtube.com/watch?v=AAA"])
+
+    def test_strips_surrounding_whitespace(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = os.path.join(tmp, "urls.txt")
+            with open(path, "w", encoding="utf-8") as f:
+                f.write("  https://youtube.com/watch?v=AAA  \n")
+            self.assertEqual(_read_urls_file(path), ["https://youtube.com/watch?v=AAA"])

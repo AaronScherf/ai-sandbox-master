@@ -1,0 +1,5 @@
+# One YouTube video URL per line (not playlist links -- use --playlist
+# on the command line for those instead). Blank lines and lines
+# starting with # are ignored.
+#
+# https://youtube.com/watch?v=...
