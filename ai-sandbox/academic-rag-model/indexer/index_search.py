@@ -24,6 +24,7 @@ from indexer.index_card import (
     KNOWN_LEVELS,
     compute_content_hash,
     compute_file_id,
+    compute_id_from_parts,
     cosine_similarity,
     derive_course,
     find_card_by_file_id,
@@ -215,6 +216,28 @@ def _textbook_book_dirs(academic_hub_root: str, course_filter: str | None):
             book_dir = os.path.join(processed_outputs_dir, folder_name)
             if os.path.isdir(book_dir):
                 yield course, folder_name, book_dir
+
+
+def _video_lecture_note_paths(academic_hub_root: str, course_filter: str | None):
+    notes_root = os.path.join(academic_hub_root, "academic_notes")
+    if not os.path.isdir(notes_root):
+        return
+    for course in sorted(os.listdir(notes_root)):
+        if course_filter and course != course_filter:
+            continue
+        lecture_notes_dir = os.path.join(notes_root, course, "lecture-notes")
+        if not os.path.isdir(lecture_notes_dir):
+            continue
+        for name in sorted(os.listdir(lecture_notes_dir)):
+            if not name.lower().endswith(".md"):
+                continue
+            slug = name[:-3]
+            meta_path = os.path.join(lecture_notes_dir, f"{slug}.meta.json")
+            if not os.path.exists(meta_path):
+                print(f"WARNING: {os.path.join(lecture_notes_dir, name)} has no sidecar "
+                      f"{slug}.meta.json -- skipping.")
+                continue
+            yield course, os.path.join(lecture_notes_dir, name), meta_path
 
 
 def _is_stale(existing: dict, source_mtime: float, content_hash: str) -> bool:
@@ -413,6 +436,27 @@ def rebuild(academic_hub_root: str, client, course: str | None = None,
             found = find_card_by_file_id(academic_hub_root, file_id)
             if found is not None and found[1].get("rag_md_path") != rag_md_path:
                 set_rag_md_path(academic_hub_root, file_id, rag_md_path)
+
+    for course_name, md_path, meta_path in _video_lecture_note_paths(academic_hub_root, course):
+        with open(meta_path, "r", encoding="utf-8") as f:
+            sidecar = json.load(f)
+        member_video_ids = sidecar.get("member_video_ids") or []
+        if not member_video_ids:
+            print(f"WARNING: {meta_path} has no member_video_ids -- skipping.")
+            continue
+
+        file_id = compute_id_from_parts(member_video_ids)
+        seen_file_ids.add(file_id)
+        rel_md_path = os.path.relpath(md_path, academic_hub_root).replace(os.sep, "/")
+        rel_meta_path = os.path.relpath(meta_path, academic_hub_root).replace(os.sep, "/")
+
+        with open(md_path, "r", encoding="utf-8") as f:
+            content_sample = f.read()
+
+        _reconcile_one(academic_hub_root, course_name, "lecture-notes", file_id, rel_md_path,
+                       rel_meta_path, content_sample, None, client, force, stats,
+                       source_mtime=os.path.getmtime(md_path),
+                       content_hash=compute_content_hash(md_path))
 
     _flag_or_prune_orphans(academic_hub_root, seen_file_ids, course, prune, stats)
     return stats
