@@ -44,6 +44,23 @@ class TestBuildGenerationPrompt(unittest.TestCase):
         )
         self.assertIn("did not contain both", prompt)
 
+    def test_topic_stated_as_an_explicit_required_constraint(self):
+        prompt = _build_generation_prompt("must use an epsilon-delta argument", [], [])
+        self.assertIn("Required constraint", prompt)
+        self.assertEqual(prompt.count("must use an epsilon-delta argument"), 2)
+
+
+class TestBuildVerificationPrompt(unittest.TestCase):
+    def test_includes_topic_problem_and_solution(self):
+        prompt = _build_verification_prompt("must use an epsilon-delta argument", "Find X.", "X = 1.")
+        self.assertIn("must use an epsilon-delta argument", prompt)
+        self.assertIn("Find X.", prompt)
+        self.assertIn("X = 1.", prompt)
+
+    def test_instructs_checking_constraint_satisfaction(self):
+        prompt = _build_verification_prompt("topic", "p", "s")
+        self.assertIn("satisfies the student's original request", prompt)
+
 
 class TestExtractProblemAndSolution(unittest.TestCase):
     def test_extracts_both_sections(self):
@@ -145,6 +162,7 @@ class TestGenerateAndVerify(unittest.TestCase):
         first_call_prompt = mock_call.call_args_list[0].args[0]
         second_call_prompt = mock_call.call_args_list[1].args[0]
         self.assertIn("eigenvalues", first_call_prompt)
+        self.assertIn("eigenvalues", second_call_prompt)  # topic now also checked during verification
         self.assertIn("Find X.", second_call_prompt)
         self.assertIn("X = 1.", second_call_prompt)
 

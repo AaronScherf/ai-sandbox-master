@@ -7,6 +7,7 @@ from indexer.index_search import PassageResult
 from rag.rag_agent import (
     Turn, Citation, AnswerResult, _diversify_by_file, _reformulate_query,
     TUTOR_MODEL, _generate_answer, answer_question, _looks_like_problem_request,
+    _looks_like_visualize_request,
 )
 
 
@@ -298,6 +299,84 @@ class TestAnswerQuestionProblemGeneration(unittest.TestCase):
         with patch("problem_gen.generator.generate_problem", return_value=fake_generated):
             result = answer_question(["/root"], "give me a practice problem on eigenvalues", client)
         self.assertEqual(result.history[-1], Turn(role="assistant", text="Find X."))
+
+
+class TestLooksLikeVisualizeRequest(unittest.TestCase):
+    def test_matches_visualize(self):
+        self.assertTrue(_looks_like_visualize_request("can you visualize this for me"))
+
+    def test_matches_visualise_british_spelling(self):
+        self.assertTrue(_looks_like_visualize_request("please visualise this concept"))
+
+    def test_matches_make_a_graph(self):
+        self.assertTrue(_looks_like_visualize_request("make a graph of it"))
+
+    def test_matches_make_me_a_plot(self):
+        self.assertTrue(_looks_like_visualize_request("make me a plot"))
+
+    def test_matches_show_me_a_diagram(self):
+        self.assertTrue(_looks_like_visualize_request("show me a diagram"))
+
+    def test_matches_graph_this(self):
+        self.assertTrue(_looks_like_visualize_request("graph this please"))
+
+    def test_does_not_match_plain_problem_request(self):
+        self.assertFalse(_looks_like_visualize_request("give me a practice problem on eigenvalues"))
+
+
+class TestAnswerQuestionProblemGenerationVisualize(unittest.TestCase):
+    def test_visualize_phrase_triggers_visualization_on_problem_path(self):
+        client = _fake_generate_client("unused")
+        fake_generated = MagicMock(problem_text="Find X.", solution_text="X = 1.", sources=[])
+        fake_viz = MagicMock()
+        with patch("problem_gen.generator.generate_problem", return_value=fake_generated), \
+             patch("viz.viz_agent.generate_visualization", return_value=fake_viz) as mock_viz:
+            result = answer_question(
+                ["/root"], "give me a practice problem on eigenvalues, and visualize it", client,
+            )
+        mock_viz.assert_called_once()
+        self.assertEqual(result.visualization, fake_viz)
+
+    def test_visualize_context_uses_generated_problem_and_solution(self):
+        client = _fake_generate_client("unused")
+        fake_generated = MagicMock(problem_text="Find X.", solution_text="X = 1.", sources=[])
+        with patch("problem_gen.generator.generate_problem", return_value=fake_generated), \
+             patch("viz.viz_agent.generate_visualization", return_value=None) as mock_viz:
+            answer_question(["/root"], "give me a practice problem, please visualize it", client)
+        args, kwargs = mock_viz.call_args
+        self.assertIn("Find X.", kwargs["context"])
+        self.assertIn("X = 1.", kwargs["context"])
+
+    def test_no_visualize_phrase_and_flag_false_never_calls_generate_visualization(self):
+        client = _fake_generate_client("unused")
+        fake_generated = MagicMock(problem_text="Find X.", solution_text="X = 1.", sources=[])
+        with patch("problem_gen.generator.generate_problem", return_value=fake_generated), \
+             patch("viz.viz_agent.generate_visualization") as mock_viz:
+            result = answer_question(["/root"], "give me a practice problem on eigenvalues", client)
+        mock_viz.assert_not_called()
+        self.assertIsNone(result.visualization)
+
+    def test_visualize_flag_true_triggers_visualization_even_without_phrase(self):
+        client = _fake_generate_client("unused")
+        fake_generated = MagicMock(problem_text="Find X.", solution_text="X = 1.", sources=[])
+        fake_viz = MagicMock()
+        with patch("problem_gen.generator.generate_problem", return_value=fake_generated), \
+             patch("viz.viz_agent.generate_visualization", return_value=fake_viz) as mock_viz:
+            result = answer_question(
+                ["/root"], "give me a practice problem on eigenvalues", client, visualize=True,
+            )
+        mock_viz.assert_called_once()
+        self.assertEqual(result.visualization, fake_viz)
+
+    def test_generation_failure_never_calls_generate_visualization(self):
+        client = _fake_generate_client("The fallback answer.")
+        with patch("problem_gen.generator.generate_problem", return_value=None), \
+             patch("rag.rag_agent.search_passages", return_value=[]), \
+             patch("viz.viz_agent.generate_visualization") as mock_viz:
+            answer_question(
+                ["/root"], "give me a practice problem, and visualize it", client,
+            )
+        mock_viz.assert_not_called()
 
 
 if __name__ == "__main__":

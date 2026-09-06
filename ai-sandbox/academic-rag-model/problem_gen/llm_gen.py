@@ -38,6 +38,10 @@ MAX_ATTEMPTS = 3
 _GENERATION_PROMPT_TEMPLATE = """You are writing a NEW practice problem for a student studying {topic}, in \
 the same style, notation, and difficulty as their own course's problem sets. Do NOT copy any of the example \
 problems below verbatim -- write an original problem that tests the same kind of technique.
+
+Required constraint from the student's own request: "{topic}"
+You MUST satisfy this constraint exactly, even if it means using a different technique or approach than \
+the style examples below use.
 {style_block}{content_block}
 Respond in exactly this format, with both sections present:
 
@@ -48,8 +52,11 @@ Respond in exactly this format, with both sections present:
 <a full, correct, worked solution to the problem you just wrote>
 """
 
-_VERIFICATION_PROMPT_TEMPLATE = """Check whether the solution below is actually correct and complete for the \
-stated problem.
+_VERIFICATION_PROMPT_TEMPLATE = """Check two things: (1) whether the solution below is actually correct and \
+complete for the stated problem, and (2) whether the problem itself actually satisfies the student's \
+original request.
+
+Student's original request: "{topic}"
 
 Problem:
 {problem_text}
@@ -57,8 +64,9 @@ Problem:
 Solution:
 {solution_text}
 
-Respond with exactly "VALID" if the solution is correct and complete, or "INVALID: <short reason>" if it is \
-wrong, incomplete, or the problem itself is ill-posed. Respond with nothing else."""
+Respond with exactly "VALID" only if the solution is correct and complete AND the problem satisfies the \
+student's original request, or "INVALID: <short reason>" if the solution is wrong, incomplete, the problem \
+is ill-posed, or the problem does not actually satisfy the student's request. Respond with nothing else."""
 
 _SECTION_PATTERN = re.compile(r"##\s*Problem\s*\n(.*?)\n##\s*Solution\s*\n(.*)", re.IGNORECASE | re.DOTALL)
 _INVALID_PATTERN = re.compile(r"INVALID:\s*(.*)", re.IGNORECASE | re.DOTALL)
@@ -104,8 +112,8 @@ def _build_generation_prompt(
     )
 
 
-def _build_verification_prompt(problem_text: str, solution_text: str) -> str:
-    return _VERIFICATION_PROMPT_TEMPLATE.format(problem_text=problem_text, solution_text=solution_text)
+def _build_verification_prompt(topic: str, problem_text: str, solution_text: str) -> str:
+    return _VERIFICATION_PROMPT_TEMPLATE.format(topic=topic, problem_text=problem_text, solution_text=solution_text)
 
 
 def _extract_problem_and_solution(response_text: str) -> tuple[str, str] | None:
@@ -164,7 +172,7 @@ def generate_and_verify(
                 continue
             problem_text, solution_text = extracted
 
-            verify_prompt = _build_verification_prompt(problem_text, solution_text)
+            verify_prompt = _build_verification_prompt(topic, problem_text, solution_text)
             verify_response = call_ollama(verify_prompt, PROBLEMGEN_OLLAMA_MODEL, OLLAMA_REQUEST_TIMEOUT_SECONDS)
             if verify_response is None:
                 return None

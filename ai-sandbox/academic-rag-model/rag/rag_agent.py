@@ -86,6 +86,28 @@ def _looks_like_problem_request(question: str) -> bool:
     return any(p.search(question) for p in _PROBLEM_REQUEST_PATTERNS)
 
 
+_VISUALIZE_REQUEST_PATTERNS = [
+    re.compile(r"\bvisuali[sz]e\b", re.IGNORECASE),
+    re.compile(r"\bmake (?:a|me a) (?:graph|plot|diagram|chart)\b", re.IGNORECASE),
+    re.compile(r"\bshow me a (?:graph|plot|diagram|chart|picture)\b", re.IGNORECASE),
+    re.compile(r"\b(?:graph|plot|diagram|chart) (?:this|it)\b", re.IGNORECASE),
+]
+
+
+def _looks_like_visualize_request(question: str) -> bool:
+    """Cheap keyword/regex check, mirroring _looks_like_problem_request,
+    scoped specifically to the problem-generation branch of
+    answer_question(). The normal Q&A path's `visualize` stays a pure
+    caller-set flag (viz's own non-goal: deciding *when* a question
+    warrants a visualization is left to the caller there) -- but
+    problem generation itself is intent-routed, not flag-gated, so a
+    student asking for a practice problem has no separate flag to set
+    at all. An explicit in-text request is the only way to opt in on
+    that path, alongside the existing `visualize` flag for callers that
+    already set it (e.g. the REPL's --visualize)."""
+    return any(p.search(question) for p in _VISUALIZE_REQUEST_PATTERNS)
+
+
 _REFORMULATE_PROMPT_TEMPLATE = """Given this recent conversation and a follow-up question, rewrite \
 the follow-up as a standalone question that makes sense with no other context -- preserve its \
 intent exactly, just make it self-contained. Respond with ONLY the rewritten question, nothing else.
@@ -202,9 +224,18 @@ def answer_question(
             updated_history = history + [
                 Turn(role="user", text=question), Turn(role="assistant", text=generated.problem_text),
             ]
+            problem_visualization = None
+            if visualize or _looks_like_visualize_request(question):
+                from viz.viz_agent import generate_visualization  # function-scoped: same
+                # dependency-isolation reasoning as the normal Q&A path's own import below.
+                viz_context = f"{generated.problem_text}\n\n{generated.solution_text}"
+                problem_visualization = generate_visualization(
+                    question, context=viz_context, academic_hub_root=roots[0], course=course,
+                )
             return AnswerResult(
                 answer=generated.problem_text, citations=problem_citations,
                 history=updated_history, generated_problem=generated,
+                visualization=problem_visualization,
             )
         # generated is None (no style examples on this topic/course, or Ollama
         # unavailable/never verified) -- fall through to the normal Q&A path below on

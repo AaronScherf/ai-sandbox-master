@@ -85,10 +85,16 @@ the tutor falls back to answering the same question normally — a normal,
 expected outcome, not an error, exactly like `--visualize`'s own
 graceful degradation above.
 
-**Current behavior worth knowing:** if `visualize=True` is also passed
-and the question matches the problem-generation intent check, the
-visualization step is silently skipped — the early-return path taken for
-a successfully generated problem never calls `generate_visualization` at
-all, so `result.visualization` comes back `None` even though
-`--visualize` was requested. This is documented current behavior, not a
-bug fixed in this pass.
+**Visualizing a generated problem:** since problem generation has no flag
+of its own to combine with `--visualize`, a visualization here is
+triggered by an explicit in-text request instead — phrases like
+"visualize this", "make a graph", "show me a diagram" — checked the same
+way the problem-request intent itself is (a cheap regex, not an LLM
+call). The existing `visualize=True` flag still works too (e.g. a
+`--visualize` CLI caller), so either the flag or the phrase turns it on.
+The visualization is grounded in the newly generated problem and
+solution text (not the corpus passages, since a fresh problem has no
+retrieved passages of its own) via the same
+[Visualization Sub-Agent](../viz/) used on the normal Q&A path, with the
+same graceful degradation — a missing visualization is `None`, never a
+hard failure of the generated problem itself.
