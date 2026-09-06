@@ -84,8 +84,14 @@ the stated problem, independent of which technique it uses?
 Respond with nothing else besides these two lines."""
 
 _SECTION_PATTERN = re.compile(r"##\s*Problem\s*\n(.*?)\n##\s*Solution\s*\n(.*)", re.IGNORECASE | re.DOTALL)
-_TECHNIQUE_LINE_PATTERN = re.compile(r"TECHNIQUE:\s*(YES|NO)\s*[:\-]?\s*(.*)", re.IGNORECASE)
-_CORRECTNESS_LINE_PATTERN = re.compile(r"CORRECTNESS:\s*(VALID|INVALID)\s*[:\-]?\s*(.*)", re.IGNORECASE)
+_TECHNIQUE_LINE_PATTERN = re.compile(r"TECHNIQUE:[ \t]*(YES|NO)[ \t]*[:\-]?[ \t]*(.*)", re.IGNORECASE)
+_CORRECTNESS_LINE_PATTERN = re.compile(r"CORRECTNESS:[ \t]*(VALID|INVALID)[ \t]*[:\-]?[ \t]*(.*)", re.IGNORECASE)
+# [ \t]* (not \s*) between the YES/NO or VALID/INVALID token and its trailing detail --
+# \s* also matches newlines, which let a bare "TECHNIQUE: NO" with nothing else on its own
+# line swallow the *entire next line* (a separate "CORRECTNESS: ..." line) into its own
+# detail capture, corrupting retry feedback with garbage like "used instead: CORRECTNESS:
+# VALID" fed into the next generation attempt -- confirmed in a real trial, see
+# docs/2026-09-05-problem-generation-status.md's 2026-09-06 entry.
 
 
 def _build_generation_prompt(

@@ -129,6 +129,21 @@ class TestParseVerdict(unittest.TestCase):
         self.assertIn("TECHNIQUE", result)
         self.assertIn("CORRECTNESS", result)
 
+    def test_bare_technique_no_does_not_swallow_the_next_line(self):
+        """Real trial found this: a bare 'TECHNIQUE: NO' with nothing
+        else on its own line, immediately followed by a CORRECTNESS
+        line, must not have that next line captured as if it were the
+        technique's own detail -- that corrupted retry feedback fed
+        into later attempts with the literal text 'used instead:
+        CORRECTNESS: VALID' (see
+        docs/2026-09-05-problem-generation-status.md's 2026-09-06 entry)."""
+        result = _parse_verdict("TECHNIQUE: NO\nCORRECTNESS: VALID")
+        self.assertEqual(result, "the solution does not use the required technique")
+
+    def test_bare_correctness_invalid_does_not_swallow_a_preceding_technique_line(self):
+        result = _parse_verdict("TECHNIQUE: YES\nCORRECTNESS: INVALID")
+        self.assertEqual(result, "the solution is incorrect or incomplete")
+
 
 class TestGenerateAndVerify(unittest.TestCase):
     def test_returns_none_when_ollama_unreachable(self):

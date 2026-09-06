@@ -234,3 +234,98 @@ watching for in future real trials, not something a regex-based
 extraction filter was added to chase here (per this project's general
 preference for prompt-level fixes over guessing at every possible
 hallucinated phrasing).
+
+## 2026-09-06 (continued): split TECHNIQUE/CORRECTNESS verification — does it actually help?
+
+Per the option chosen with the user (cheapest experiment first: a
+narrower, separately-judged verification check, before considering a
+model swap or paid-API batching): `_build_verification_prompt` now asks
+for two independently-judged, separately-labeled lines instead of one
+combined verdict — `TECHNIQUE: YES/NO` and `CORRECTNESS: VALID/INVALID:
+<reason>` — in the same single call (not two network round-trips, to
+avoid doubling an already multi-minute-per-call workload).
+`_parse_verdict` combines both into one retry-feedback reason, fails
+closed on either line being unparseable, and tolerates markdown bold
+formatting.
+
+**Real trial #1 (MAX_ATTEMPTS still 3).** Re-ran the same epsilon-delta
+compactness request. Result: `None` after exhausting all 3 attempts —
+but the instrumented trace showed the fix *is* doing its job: on the
+one attempt that reached a clean verification response, the model
+explicitly said `TECHNIQUE: NO — the solution does not use an
+epsilon-delta style argument or the sequential/metric definition of
+compactness, as required` while `CORRECTNESS: valid` — exactly the
+case the old combined verdict got wrong (a mathematically valid proof
+using the wrong technique, previously rubber-stamped `VALID`). The
+technique failure alone now correctly forces rejection, independent of
+correctness passing. The run failed to produce a final result only
+because one of the 3 attempts was entirely consumed by an
+`OLLAMA_TIMEOUT` retry, not a bad proof — real evidence, not a guess,
+motivating the `MAX_ATTEMPTS` bump below.
+
+**`MAX_ATTEMPTS` bumped 3 → 5** on this evidence (real headroom for the
+technique-check to actually get enough real attempts, without doubling
+the worst case).
+
+**Real trial #2 (MAX_ATTEMPTS=5, instrumented with full prompt/response
+logging).** All 5 attempts got a real shot this time (no timeouts
+wasted). Result: still `None` — every attempt was correctly rejected by
+the technique check, and the model never settled into reliably
+satisfying the constraint:
+
+- Attempts 1–3 used open-cover/closure arguments dressed up with
+  claims like "we will use the sequential definition of compactness"
+  in their opening sentence, without the actual proof mechanics
+  matching that claim. The verifier correctly said `TECHNIQUE: NO` each
+  time (though its own stated reasoning was sometimes confused — e.g.
+  once describing the constraint backwards, "uses sequential... instead
+  of open cover" when open-cover was the *unwanted* technique — a
+  reminder that the verifier's judgment, while directionally right here,
+  is itself an unreliable small-model judgment, consistent with the
+  known self-verification limitation logged above).
+- **Attempt 4 was the closest real progress observed**: the solution
+  introduced an actual sequence `{x_n}` and invoked sequential
+  compactness ("every sequence in a compact set has a convergent
+  subsequence whose limit is in the set") as its key step — genuinely
+  using the requested characterization, just without literal
+  epsilon-delta notation. It was still rejected, via a terse,
+  unexplained `TECHNIQUE: NO` / `CORRECTNESS: VALID` with zero
+  justification — plausibly a defensible call (no literal ε/δ
+  formalism), plausibly just verifier noise. Real ambiguity, not a bug.
+- Attempt 5 regenerated a near-identical proof to attempts 2–3
+  (open-cover dressed as "sequential"), rejected the same way.
+
+**A genuine parsing bug found and fixed from this trial's raw log**:
+when a verification response had a *bare* `TECHNIQUE: NO` with nothing
+else on that line, immediately followed by a `CORRECTNESS: ...` line,
+the old regex's `\s*` (which also matches newlines) swallowed the line
+break and captured the **entire next line** as the technique's own
+"detail" — producing corrupted retry feedback fed into the next
+generation attempt: *"does not use the required technique (used
+instead: CORRECTNESS: VALID)"*. Fixed by restricting the connective
+whitespace around each label's value to `[ \t]*` (never crossing a
+newline). Covering tests:
+`test_bare_technique_no_does_not_swallow_the_next_line`,
+`test_bare_correctness_invalid_does_not_swallow_a_preceding_technique_line`.
+Full suite re-run: 856/856 pass. A related, lower-priority parsing gap
+was also observed but not fixed: a response phrased `CORRECTNESS:
+isValid` (rather than a clean `VALID`) failed to parse — safely
+fail-closed in that instance (technique had already said `NO`), but a
+residual robustness gap worth revisiting if it recurs and actually
+changes an outcome.
+
+**Conclusion — local feasibility for this class of request.** Two
+independent real trials (3 attempts, then 5 clean attempts with no
+wasted timeouts) never produced an accepted result for this specific
+highly technique-constrained request, despite the verification fix
+correctly catching every clear technique violation. This is now solid
+evidence — not a single anecdote — that **the bottleneck is this local
+7B model's capability, not the retry budget, not Ollama flakiness, and
+not (any longer) the verification logic.** Attempt 4's partial success
+suggests the model *can* occasionally get close, but not reliably.
+Continuing to tune the local retry/verification loop further looks like
+it has genuinely diminishing returns for this kind of request; the
+next real levers are the ones already on the table with the user — a
+larger/different local model, or Gemini API batching (with its real
+cost tradeoff) for constraint-sensitive requests specifically, rather
+than further prompt or parsing iteration on the current model.
