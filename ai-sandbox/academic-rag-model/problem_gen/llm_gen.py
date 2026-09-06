@@ -52,9 +52,10 @@ Respond in exactly this format, with both sections present:
 <a full, correct, worked solution to the problem you just wrote>
 """
 
-_VERIFICATION_PROMPT_TEMPLATE = """Check two things: (1) whether the solution below is actually correct and \
-complete for the stated problem, and (2) whether the problem itself actually satisfies the student's \
-original request.
+_VERIFICATION_PROMPT_TEMPLATE = """Judge the problem and solution below on two SEPARATE questions -- answer \
+each one independently, without letting your judgment on one influence the other. A single combined \
+judgment tends to let an easy correctness call paper over a harder, unaddressed technique mismatch, so \
+judge them one at a time.
 
 Student's original request: "{topic}"
 
@@ -64,12 +65,18 @@ Problem:
 Solution:
 {solution_text}
 
-Respond with exactly "VALID" only if the solution is correct and complete AND the problem satisfies the \
-student's original request, or "INVALID: <short reason>" if the solution is wrong, incomplete, the problem \
-is ill-posed, or the problem does not actually satisfy the student's request. Respond with nothing else."""
+Respond with EXACTLY two lines, in this format:
+TECHNIQUE: YES or NO -- does the solution actually use the specific technique or approach the student's \
+request requires, not merely some other valid proof of the same fact? If NO, briefly say which technique \
+it used instead.
+CORRECTNESS: VALID, or INVALID: <short reason> -- is the solution mathematically correct and complete for \
+the stated problem, independent of which technique it uses?
+
+Respond with nothing else besides these two lines."""
 
 _SECTION_PATTERN = re.compile(r"##\s*Problem\s*\n(.*?)\n##\s*Solution\s*\n(.*)", re.IGNORECASE | re.DOTALL)
-_INVALID_PATTERN = re.compile(r"INVALID:\s*(.*)", re.IGNORECASE | re.DOTALL)
+_TECHNIQUE_LINE_PATTERN = re.compile(r"TECHNIQUE:\s*(YES|NO)\s*[:\-]?\s*(.*)", re.IGNORECASE)
+_CORRECTNESS_LINE_PATTERN = re.compile(r"CORRECTNESS:\s*(VALID|INVALID)\s*[:\-]?\s*(.*)", re.IGNORECASE)
 
 
 def _build_generation_prompt(
@@ -129,17 +136,38 @@ def _extract_problem_and_solution(response_text: str) -> tuple[str, str] | None:
 
 
 def _parse_verdict(response_text: str) -> str | None:
-    """Returns None when the solution is verified VALID, or a short
-    reason string when INVALID -- the reason is fed back into the next
-    generation attempt's prompt. An unparseable response is treated as
-    invalid (fail closed) rather than silently trusted as valid."""
-    stripped = response_text.strip()
-    if stripped.upper().startswith("VALID"):
-        return None
-    match = _INVALID_PATTERN.match(stripped)
-    if match:
-        return match.group(1).strip() or "the verification response gave no reason"
-    return "the verification response was not in the expected VALID/INVALID format"
+    """Returns None only when both the TECHNIQUE and CORRECTNESS lines
+    pass, or a short combined reason string otherwise -- fed back into
+    the next generation attempt's prompt. Judged as two separately
+    labeled lines rather than one combined verdict: a real trial showed
+    a single combined verdict kept passing solutions that ignored an
+    explicit technique constraint, since an easy correctness judgment
+    could paper over a harder, unaddressed technique mismatch (see
+    docs/2026-09-05-problem-generation-status.md's 2026-09-06 entry).
+    Either line missing or unparseable fails closed for that check
+    rather than being silently trusted as passing. Tolerates markdown
+    bold markers (e.g. "**VALID**") around either label or value."""
+    normalized = response_text.replace("*", "")  # tolerate markdown bold around either label or value
+    reasons: list[str] = []
+
+    technique_match = _TECHNIQUE_LINE_PATTERN.search(normalized)
+    if technique_match is None:
+        reasons.append("the response did not include a parseable 'TECHNIQUE: YES/NO' line")
+    elif technique_match.group(1).upper() == "NO":
+        detail = technique_match.group(2).strip(" -")
+        reasons.append(
+            f"the solution does not use the required technique"
+            f"{f' (used instead: {detail})' if detail else ''}"
+        )
+
+    correctness_match = _CORRECTNESS_LINE_PATTERN.search(normalized)
+    if correctness_match is None:
+        reasons.append("the response did not include a parseable 'CORRECTNESS: VALID/INVALID' line")
+    elif correctness_match.group(1).upper() == "INVALID":
+        detail = correctness_match.group(2).strip(" -")
+        reasons.append(f"the solution is incorrect or incomplete{f': {detail}' if detail else ''}")
+
+    return "; ".join(reasons) if reasons else None
 
 
 def generate_and_verify(

@@ -65,9 +65,10 @@ class TestBuildVerificationPrompt(unittest.TestCase):
         self.assertIn("Find X.", prompt)
         self.assertIn("X = 1.", prompt)
 
-    def test_instructs_checking_constraint_satisfaction(self):
+    def test_instructs_two_separate_technique_and_correctness_judgments(self):
         prompt = _build_verification_prompt("topic", "p", "s")
-        self.assertIn("satisfies the student's original request", prompt)
+        self.assertIn("TECHNIQUE:", prompt)
+        self.assertIn("CORRECTNESS:", prompt)
 
 
 class TestExtractProblemAndSolution(unittest.TestCase):
@@ -91,22 +92,42 @@ class TestExtractProblemAndSolution(unittest.TestCase):
 
 
 class TestParseVerdict(unittest.TestCase):
-    def test_valid_returns_none(self):
-        self.assertIsNone(_parse_verdict("VALID"))
+    def test_both_pass_returns_none(self):
+        self.assertIsNone(_parse_verdict("TECHNIQUE: YES\nCORRECTNESS: VALID"))
 
-    def test_valid_case_insensitive(self):
-        self.assertIsNone(_parse_verdict("valid"))
+    def test_case_insensitive(self):
+        self.assertIsNone(_parse_verdict("technique: yes\ncorrectness: valid"))
 
-    def test_invalid_returns_reason(self):
-        self.assertEqual(_parse_verdict("INVALID: the answer sign is wrong"), "the answer sign is wrong")
+    def test_tolerates_markdown_bold_formatting(self):
+        self.assertIsNone(_parse_verdict("**TECHNIQUE:** YES\n**CORRECTNESS:** VALID"))
 
-    def test_invalid_with_no_reason_gets_a_generic_one(self):
-        self.assertEqual(_parse_verdict("INVALID:"), "the verification response gave no reason")
+    def test_technique_no_returns_reason_with_detail(self):
+        result = _parse_verdict("TECHNIQUE: NO - used open-cover instead of epsilon-delta\nCORRECTNESS: VALID")
+        self.assertIn("does not use the required technique", result)
+        self.assertIn("open-cover", result)
 
-    def test_unparseable_response_treated_as_invalid(self):
+    def test_correctness_invalid_returns_reason_with_detail(self):
+        result = _parse_verdict("TECHNIQUE: YES\nCORRECTNESS: INVALID: sign error in step 2")
+        self.assertIn("incorrect or incomplete", result)
+        self.assertIn("sign error in step 2", result)
+
+    def test_both_fail_combines_both_reasons(self):
+        result = _parse_verdict("TECHNIQUE: NO - wrong approach\nCORRECTNESS: INVALID: bad algebra")
+        self.assertIn("does not use the required technique", result)
+        self.assertIn("incorrect or incomplete", result)
+
+    def test_missing_technique_line_fails_closed(self):
+        result = _parse_verdict("CORRECTNESS: VALID")
+        self.assertIn("TECHNIQUE", result)
+
+    def test_missing_correctness_line_fails_closed(self):
+        result = _parse_verdict("TECHNIQUE: YES")
+        self.assertIn("CORRECTNESS", result)
+
+    def test_completely_unparseable_response_fails_both(self):
         result = _parse_verdict("I think it's probably fine")
-        self.assertIsNotNone(result)
-        self.assertIn("not in the expected", result)
+        self.assertIn("TECHNIQUE", result)
+        self.assertIn("CORRECTNESS", result)
 
 
 class TestGenerateAndVerify(unittest.TestCase):
@@ -117,7 +138,7 @@ class TestGenerateAndVerify(unittest.TestCase):
         self.assertEqual(mock_call.call_count, 1)  # unreachable Ollama isn't worth retrying
 
     def test_succeeds_on_first_attempt_when_verification_passes(self):
-        responses = ["## Problem\nFind X.\n\n## Solution\nX = 1.", "VALID"]
+        responses = ["## Problem\nFind X.\n\n## Solution\nX = 1.", "TECHNIQUE: YES\nCORRECTNESS: VALID"]
         with patch("problem_gen.llm_gen.call_ollama", side_effect=responses) as mock_call:
             result = generate_and_verify("eigenvalues", ["example"], [])
         self.assertEqual(result, ("Find X.", "X = 1."))
@@ -127,7 +148,7 @@ class TestGenerateAndVerify(unittest.TestCase):
         responses = [
             "no sections here",                                    # attempt 1 generation
             "## Problem\nFind X.\n\n## Solution\nX = 1.",           # attempt 2 generation
-            "VALID",                                                # attempt 2 verification
+            "TECHNIQUE: YES\nCORRECTNESS: VALID",                   # attempt 2 verification
         ]
         with patch("problem_gen.llm_gen.call_ollama", side_effect=responses) as mock_call:
             result = generate_and_verify("eigenvalues", ["example"], [])
@@ -138,10 +159,10 @@ class TestGenerateAndVerify(unittest.TestCase):
 
     def test_retries_after_invalid_verification_with_reason_fed_back(self):
         responses = [
-            "## Problem\nFind X.\n\n## Solution\nX = 2.",           # attempt 1 generation
-            "INVALID: X should equal 1, not 2",                     # attempt 1 verification
-            "## Problem\nFind X.\n\n## Solution\nX = 1.",           # attempt 2 generation
-            "VALID",                                                # attempt 2 verification
+            "## Problem\nFind X.\n\n## Solution\nX = 2.",                    # attempt 1 generation
+            "TECHNIQUE: YES\nCORRECTNESS: INVALID: X should equal 1, not 2", # attempt 1 verification
+            "## Problem\nFind X.\n\n## Solution\nX = 1.",                    # attempt 2 generation
+            "TECHNIQUE: YES\nCORRECTNESS: VALID",                            # attempt 2 verification
         ]
         with patch("problem_gen.llm_gen.call_ollama", side_effect=responses) as mock_call:
             result = generate_and_verify("eigenvalues", ["example"], [])
@@ -150,8 +171,25 @@ class TestGenerateAndVerify(unittest.TestCase):
         third_prompt = mock_call.call_args_list[2].args[0]
         self.assertIn("X should equal 1, not 2", third_prompt)
 
+    def test_retries_after_technique_mismatch_with_reason_fed_back(self):
+        responses = [
+            "## Problem\nFind X.\n\n## Solution\nOpen-cover proof.",        # attempt 1 generation
+            "TECHNIQUE: NO - used open-cover instead\nCORRECTNESS: VALID",  # attempt 1 verification
+            "## Problem\nFind X.\n\n## Solution\nEpsilon-delta proof.",     # attempt 2 generation
+            "TECHNIQUE: YES\nCORRECTNESS: VALID",                          # attempt 2 verification
+        ]
+        with patch("problem_gen.llm_gen.call_ollama", side_effect=responses) as mock_call:
+            result = generate_and_verify("must use epsilon-delta", ["example"], [])
+        self.assertEqual(result, ("Find X.", "Epsilon-delta proof."))
+        self.assertEqual(mock_call.call_count, 4)
+        third_prompt = mock_call.call_args_list[2].args[0]
+        self.assertIn("does not use the required technique", third_prompt)
+        self.assertIn("used open-cover instead", third_prompt)
+
     def test_retries_after_ollama_timeout(self):
-        responses = [OLLAMA_TIMEOUT, "## Problem\nFind X.\n\n## Solution\nX = 1.", "VALID"]
+        responses = [
+            OLLAMA_TIMEOUT, "## Problem\nFind X.\n\n## Solution\nX = 1.", "TECHNIQUE: YES\nCORRECTNESS: VALID",
+        ]
         with patch("problem_gen.llm_gen.call_ollama", side_effect=responses) as mock_call:
             result = generate_and_verify("eigenvalues", ["example"], [])
         self.assertEqual(result, ("Find X.", "X = 1."))
@@ -164,7 +202,7 @@ class TestGenerateAndVerify(unittest.TestCase):
         self.assertEqual(mock_call.call_count, MAX_ATTEMPTS)
 
     def test_generation_and_verification_prompts_carry_the_expected_content(self):
-        responses = ["## Problem\nFind X.\n\n## Solution\nX = 1.", "VALID"]
+        responses = ["## Problem\nFind X.\n\n## Solution\nX = 1.", "TECHNIQUE: YES\nCORRECTNESS: VALID"]
         with patch("problem_gen.llm_gen.call_ollama", side_effect=responses) as mock_call:
             generate_and_verify("eigenvalues", ["example"], [])
         first_call_prompt = mock_call.call_args_list[0].args[0]
