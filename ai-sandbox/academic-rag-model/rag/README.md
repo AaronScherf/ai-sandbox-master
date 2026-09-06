@@ -108,3 +108,10 @@ retrieved passages of its own) via the same
 [Visualization Sub-Agent](../viz/) used on the normal Q&A path, with the
 same graceful degradation — a missing visualization is `None`, never a
 hard failure of the generated problem itself.
+
+**Combined reports** (`report=True`) also work on a generated problem,
+same as the normal Q&A path — the report additionally includes the
+worked solution as its own section, not just the problem statement.
+This was a real integration gap until 2026-09-06: the problem-generation
+branch didn't call the report builder at all regardless of `report=True`,
+the same kind of gap `--visualize` had until its own fix above.

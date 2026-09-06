@@ -206,7 +206,11 @@ def answer_question(
     docs/superpowers/specs/2026-09-05-combined-report-design.md) --
     independent of visualize: a report can be text+citations-only if no
     visualization exists, whether that's because it wasn't requested or
-    the fallback degraded to None."""
+    the fallback degraded to None. Also applies on the problem-generation
+    path (below), where it additionally includes the worked solution as
+    its own section -- discovered missing entirely on that path and
+    fixed 2026-09-06, the same integration gap visualize had until its
+    own fix just above it."""
     history = history or []
     retrieval_query = _reformulate_query(question, history, client) if history else question
 
@@ -232,10 +236,23 @@ def answer_question(
                 problem_visualization = generate_visualization(
                     question, context=viz_context, academic_hub_root=roots[0], course=course,
                 )
+            problem_report_path = None
+            if report:
+                from rag.report_builder import build_report, report_path  # function-scoped,
+                # same dependency-isolation reasoning as the normal Q&A path's own import
+                # below -- this branch previously never built a report at all regardless of
+                # report=True, an integration gap discovered and fixed 2026-09-06 the same
+                # way the visualize gap above was.
+                reports_root = os.path.join(roots[0], ".reports")
+                output_path = report_path(question, reports_root, course)
+                problem_report_path = build_report(
+                    question, generated.problem_text, problem_citations, problem_visualization,
+                    output_path, solution=generated.solution_text,
+                )
             return AnswerResult(
                 answer=generated.problem_text, citations=problem_citations,
                 history=updated_history, generated_problem=generated,
-                visualization=problem_visualization,
+                visualization=problem_visualization, report_path=problem_report_path,
             )
         # generated is None (no style examples on this topic/course, or Ollama
         # unavailable/never verified) -- fall through to the normal Q&A path below on

@@ -66,6 +66,32 @@ class TestBuildReport(unittest.TestCase):
                 content = f.read()
         self.assertNotIn("Visualization", content)
 
+    def test_solution_included_when_given(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            output_path = os.path.join(tmp, "report.html")
+            build_report("Find X.", "Find X.", [], None, output_path, solution="X = 1.")
+            with open(output_path, "r", encoding="utf-8") as f:
+                content = f.read()
+        self.assertIn("Solution", content)
+        self.assertIn("X = 1.", content)
+
+    def test_solution_omitted_when_not_given(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            output_path = os.path.join(tmp, "report.html")
+            build_report("What is X?", "X is Y.", [], None, output_path)
+            with open(output_path, "r", encoding="utf-8") as f:
+                content = f.read()
+        self.assertNotIn("Solution", content)
+
+    def test_solution_html_special_characters_are_escaped(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            output_path = os.path.join(tmp, "report.html")
+            build_report("q", "a", [], None, output_path, solution="<script>bad</script>")
+            with open(output_path, "r", encoding="utf-8") as f:
+                content = f.read()
+        self.assertNotIn("<script>bad</script>", content)
+        self.assertIn(html.escape("<script>bad</script>"), content)
+
     def test_html_special_characters_are_escaped(self):
         citations = [_FakeCitation(
             chunk_id="a-0", file_id="a", path="a.md", citation="<script>bad</script>", root="/root",

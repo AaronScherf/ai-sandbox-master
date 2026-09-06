@@ -379,5 +379,63 @@ class TestAnswerQuestionProblemGenerationVisualize(unittest.TestCase):
         mock_viz.assert_not_called()
 
 
+class TestAnswerQuestionProblemGenerationReport(unittest.TestCase):
+    def test_report_false_never_calls_build_report(self):
+        client = _fake_generate_client("unused")
+        fake_generated = MagicMock(problem_text="Find X.", solution_text="X = 1.", sources=[])
+        with patch("problem_gen.generator.generate_problem", return_value=fake_generated), \
+             patch("rag.report_builder.build_report") as mock_build:
+            result = answer_question(["/root"], "give me a practice problem on eigenvalues", client)
+        mock_build.assert_not_called()
+        self.assertIsNone(result.report_path)
+
+    def test_report_true_builds_report_with_problem_and_solution(self):
+        client = _fake_generate_client("unused")
+        fake_generated = MagicMock(problem_text="Find X.", solution_text="X = 1.", sources=[])
+        with patch("problem_gen.generator.generate_problem", return_value=fake_generated), \
+             patch("rag.report_builder.build_report", return_value="/x/report.html") as mock_build:
+            result = answer_question(
+                ["/root"], "give me a practice problem on eigenvalues", client, report=True,
+            )
+        mock_build.assert_called_once()
+        args, kwargs = mock_build.call_args
+        self.assertEqual(args[1], "Find X.")  # answer -- the problem text
+        self.assertIsNone(args[3])  # visualization
+        self.assertEqual(kwargs["solution"], "X = 1.")
+        self.assertEqual(result.report_path, "/x/report.html")
+
+    def test_report_true_with_visualize_passes_visualization_through(self):
+        client = _fake_generate_client("unused")
+        fake_generated = MagicMock(problem_text="Find X.", solution_text="X = 1.", sources=[])
+        fake_viz = MagicMock()
+        with patch("problem_gen.generator.generate_problem", return_value=fake_generated), \
+             patch("viz.viz_agent.generate_visualization", return_value=fake_viz), \
+             patch("rag.report_builder.build_report", return_value="/x/report.html") as mock_build:
+            answer_question(
+                ["/root"], "give me a practice problem, and visualize it", client, report=True,
+            )
+        args, kwargs = mock_build.call_args
+        self.assertEqual(args[3], fake_viz)
+
+    def test_generation_failure_builds_report_from_the_fallback_qa_only_once(self):
+        """When generation fails, control falls through to the normal
+        Q&A path below, which builds its own report there (report=True
+        still applies to the fallback answer). This asserts build_report
+        is called exactly once, with the fallback answer -- confirming
+        the problem-generation branch's own report-building code was
+        correctly skipped, not that report-building never happens at all."""
+        client = _fake_generate_client("The fallback answer.")
+        with patch("problem_gen.generator.generate_problem", return_value=None), \
+             patch("rag.rag_agent.search_passages", return_value=[]), \
+             patch("rag.report_builder.build_report", return_value="/x/report.html") as mock_build:
+            result = answer_question(
+                ["/root"], "give me a practice problem on eigenvalues", client, report=True,
+            )
+        mock_build.assert_called_once()
+        args, kwargs = mock_build.call_args
+        self.assertEqual(args[1], "The fallback answer.")
+        self.assertEqual(result.report_path, "/x/report.html")
+
+
 if __name__ == "__main__":
     unittest.main()

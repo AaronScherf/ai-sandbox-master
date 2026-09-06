@@ -37,24 +37,32 @@ def report_path(question: str, reports_root: str, course: str | None) -> str:
 
 def build_report(
     question: str, answer: str, citations: list[Citation], visualization: VizResult | None,
-    output_path: str,
+    output_path: str, solution: str | None = None,
 ) -> str | None:
     """Writes one self-contained HTML file combining question, answer,
     citations, and (if given) the visualization's embedded fragment.
-    Never raises past its caller -- any failure is logged as a WARNING
-    and this returns None, leaving the rest of the answer untouched
-    (spec §6)."""
+    `solution`, when given (e.g. a generated practice problem's worked
+    solution), renders as its own section rather than being folded into
+    `answer` -- kept separate the same way AnswerResult.generated_problem
+    .solution_text is kept separate from AnswerResult.answer elsewhere
+    in this project. Never raises past its caller -- any failure is
+    logged as a WARNING and this returns None, leaving the rest of the
+    answer untouched (spec §6)."""
     try:
         citations_html = "\n".join(
             f"  <li>[{html.escape(c.root)}] {html.escape(c.path)} ({html.escape(c.citation)})</li>"
             for c in citations
         )
+        solution_block = ""
+        if solution is not None:
+            solution_block = f"<h2>Solution</h2>\n<p>{html.escape(solution)}</p>\n"
         visualization_block = ""
         if visualization is not None:
             visualization_block = f"<h2>Visualization</h2>\n{visualization.fragment_html}\n"
         document = (
             f"<h1>{html.escape(question)}</h1>\n"
             f"<p>{html.escape(answer)}</p>\n"
+            f"{solution_block}"
             f"<h2>Citations</h2>\n"
             f"<ul>\n{citations_html}\n</ul>\n"
             f"{visualization_block}"
