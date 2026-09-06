@@ -54,3 +54,41 @@ and requires Ollama running locally with a model pulled — see the
 way, a missing visualization is a normal outcome (e.g. Ollama not running,
 or the local model produced a broken script) — `result.visualization` is
 just `None`, never a hard failure of the question-answering call itself.
+
+## Practice problems
+
+Unlike `--visualize`, this is **automatic — no flag required**. A cheap
+regex intent check runs against every question's raw text (phrases like
+"give me a practice problem on...", "quiz me on...", "another exercise");
+a match routes the question to the [Problem Generation Sub-Agent](../problem_gen/)
+instead of the normal retrieval-and-answer flow, generating a new practice
+problem plus a worked solution grounded in the student's own problem sets
+and textbooks rather than answering the question as asked.
+
+Generation runs on a local Ollama model (`qwen2-math:7b` by default) — set
+it up the same way as `--visualize`'s Ollama dependency (`ollama serve`
+running locally), but pull the different model this sub-agent needs:
+`ollama pull qwen2-math:7b`. Expect this to be much slower than
+`--visualize`'s ~1 minute: on CPU-only Ollama, a single request took
+**9–23 minutes** across two real end-to-end trials (up to `MAX_ATTEMPTS=3`
+retries, each attempt making up to 2 model calls — one to generate, one to
+verify) — see
+[`../docs/2026-09-05-problem-generation-status.md`](../docs/2026-09-05-problem-generation-status.md)
+for the real measured runs. The worst case is up to **~30 minutes**
+(3 attempts × 2 calls × the 300s per-call timeout), not just "several
+minutes."
+
+Generation is never a hard dependency: when there are no style examples
+for the resolved topic/course, Ollama is unreachable, or verification
+never passes within the retry budget, the sub-agent returns `None` and
+the tutor falls back to answering the same question normally — a normal,
+expected outcome, not an error, exactly like `--visualize`'s own
+graceful degradation above.
+
+**Current behavior worth knowing:** if `visualize=True` is also passed
+and the question matches the problem-generation intent check, the
+visualization step is silently skipped — the early-return path taken for
+a successfully generated problem never calls `generate_visualization` at
+all, so `result.visualization` comes back `None` even though
+`--visualize` was requested. This is documented current behavior, not a
+bug fixed in this pass.

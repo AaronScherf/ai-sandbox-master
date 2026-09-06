@@ -143,7 +143,7 @@ def _render_citation(chunk: dict) -> str:
 
 def search_passages(
     roots: list[str], query: str, client, course: str | None = None,
-    top_k: int = 5, file_top_k: int = 5,
+    top_k: int = 5, file_top_k: int = 5, doc_type: str | None = None,
 ) -> list[PassageResult]:
     """Three-stage funnel (spec §6): reuses search() for the file-level
     pass (100% of the existing course-then-file filtering, not
@@ -151,8 +151,11 @@ def search_passages(
     to the same query embedding. A file with no chunks yet (chunk
     hasn't been run against it) contributes nothing and is silently
     skipped, not an error -- degrades gracefully during the transition
-    period before `chunk` has been run corpus-wide."""
-    file_results = search(roots, query, client, course=course, top_k=file_top_k)
+    period before `chunk` has been run corpus-wide. doc_type filters
+    which files are eligible at the file-level pass (e.g. "problem_set"
+    vs "textbook" -- see problem_gen/generator.py's two-pool retrieval,
+    docs/superpowers/specs/2026-09-03-problem-generation-design.md §3)."""
+    file_results = search(roots, query, client, course=course, top_k=file_top_k, doc_type=doc_type)
     if not file_results:
         return []
 
