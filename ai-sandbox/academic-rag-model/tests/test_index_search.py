@@ -409,6 +409,22 @@ def _card(file_id, embedding, **overrides):
     return card
 
 
+def _fake_client_returning_doc_type(doc_type):
+    client = MagicMock()
+    gen_response = MagicMock()
+    gen_response.text = (
+        '{"title": "T", "doc_type": "%s", "summary": "S.", '
+        '"level": "introductory", "has_solutions": false}' % doc_type
+    )
+    client.models.generate_content.return_value = gen_response
+    embed_response = MagicMock()
+    embedding = MagicMock()
+    embedding.values = [0.1, 0.2]
+    embed_response.embeddings = [embedding]
+    client.models.embed_content.return_value = embed_response
+    return client
+
+
 class TestRebuildVideoLectureNotes(unittest.TestCase):
     def test_generates_a_card_for_a_lecture_note_with_a_sidecar(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -418,6 +434,26 @@ class TestRebuildVideoLectureNotes(unittest.TestCase):
             cards = load_shard(tmp, "math-camp")
             self.assertEqual(len(cards), 1)
             self.assertEqual(cards[0]["source_pdf_path"], "academic_notes/math-camp/lecture-notes/real-analysis.meta.json")
+
+    def test_never_classified_into_the_shared_corpus_doc_types(self):
+        # Regression guard: generate_index_card()'s prompt only ever lets
+        # the LLM pick from the known_doc_types it's given, so a lecture
+        # note must be reconciled with its own known_doc_types (not the
+        # shared KNOWN_DOC_TYPES) or it gets miscategorized as whichever
+        # of textbook/problem_set/ta_notes/handwritten_notes looks closest
+        # -- confirmed live against a real playlist before this fix.
+        with tempfile.TemporaryDirectory() as tmp:
+            _make_video_lecture_note(tmp, "math-camp", "real-analysis", ["A", "B"])
+            rebuild(tmp, client=_fake_client_returning_doc_type("ta_notes"))
+            cards = load_shard(tmp, "math-camp")
+            self.assertNotIn(cards[0]["doc_type"], {"textbook", "problem_set", "ta_notes", "handwritten_notes"})
+
+    def test_classified_as_lecture_notes_when_the_model_complies(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            _make_video_lecture_note(tmp, "math-camp", "real-analysis", ["A", "B"])
+            rebuild(tmp, client=_fake_client_returning_doc_type("lecture_notes"))
+            cards = load_shard(tmp, "math-camp")
+            self.assertEqual(cards[0]["doc_type"], "lecture_notes")
 
     def test_missing_sidecar_is_skipped_not_crashed(self):
         with tempfile.TemporaryDirectory() as tmp:

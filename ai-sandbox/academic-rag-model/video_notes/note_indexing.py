@@ -11,7 +11,7 @@ from __future__ import annotations
 import json
 import os
 
-from indexer.index_card import compute_content_hash, compute_id_from_parts, reconcile_and_write
+from indexer.index_card import LECTURE_NOTE_DOC_TYPES, compute_content_hash, compute_id_from_parts, reconcile_and_write
 
 
 def write_group_note(academic_hub_root: str, course: str, slug: str, markdown: str, sidecar: dict) -> tuple[str, str]:
@@ -55,4 +55,5 @@ def index_group_note(
         academic_hub_root, file_id=file_id, path=rel_md_path, source_pdf_path=rel_meta_path,
         course=course, folder_category="lecture-notes", content_sample=content_sample,
         page_count=None, client=client, content_hash=content_hash,
+        known_doc_types=LECTURE_NOTE_DOC_TYPES,
     )

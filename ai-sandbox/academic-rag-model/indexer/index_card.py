@@ -29,6 +29,15 @@ GENERATION_MODEL = "gemini-3.1-flash-lite"
 KNOWN_DOC_TYPES = frozenset({"textbook", "problem_set", "ta_notes", "handwritten_notes"})
 KNOWN_LEVELS = ("introductory", "intermediate", "advanced")
 
+# generate_index_card()'s prompt only ever lets the LLM pick a doc_type
+# from the known_doc_types it's given -- it never falls through to
+# folder_category in practice (confirmed live: a synthesized lecture
+# note was classified "handwritten_notes", the closest of the four
+# KNOWN_DOC_TYPES, not "lecture-notes"). video_notes/note_indexing.py
+# and indexer/index_search.py's lecture-notes rebuild loop both pass
+# this instead, so a lecture note is always correctly classified.
+LECTURE_NOTE_DOC_TYPES = frozenset({"lecture_notes"})
+
 # Cap on how much of an assembled textbook markdown gets read as
 # content_sample -- a book's front matter/TOC is reliably near the start
 # regardless of the book's total length (spec §4), and this same constant

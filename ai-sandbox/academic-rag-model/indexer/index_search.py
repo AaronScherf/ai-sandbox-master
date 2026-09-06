@@ -21,7 +21,9 @@ from indexer.index_card import (
     TEXTBOOK_CONTENT_SAMPLE_CHARS,
     EMBEDDING_DIMENSIONALITY,
     EMBEDDING_MODEL,
+    KNOWN_DOC_TYPES,
     KNOWN_LEVELS,
+    LECTURE_NOTE_DOC_TYPES,
     compute_content_hash,
     compute_file_id,
     compute_id_from_parts,
@@ -290,7 +292,7 @@ def _backfill_content_hash(academic_hub_root: str, course: str, file_id: str, co
 
 def _reconcile_one(academic_hub_root, course_name, folder_category, file_id, rel_path,
                     rel_pdf_path, content_sample, page_count, client, force, stats, source_mtime,
-                    content_hash):
+                    content_hash, known_doc_types=KNOWN_DOC_TYPES):
     existing = None
     for c in load_shard(academic_hub_root, course_name):
         if c.get("file_id") == file_id:
@@ -337,6 +339,7 @@ def _reconcile_one(academic_hub_root, course_name, folder_category, file_id, rel
         academic_hub_root, file_id=file_id, path=rel_path, source_pdf_path=rel_pdf_path,
         course=course_name, folder_category=folder_category, content_sample=content_sample,
         page_count=page_count, client=client, content_hash=content_hash,
+        known_doc_types=known_doc_types,
     )
     if is_first_time:
         stats["generated"] += 1
@@ -456,7 +459,8 @@ def rebuild(academic_hub_root: str, client, course: str | None = None,
         _reconcile_one(academic_hub_root, course_name, "lecture-notes", file_id, rel_md_path,
                        rel_meta_path, content_sample, None, client, force, stats,
                        source_mtime=os.path.getmtime(md_path),
-                       content_hash=compute_content_hash(md_path))
+                       content_hash=compute_content_hash(md_path),
+                       known_doc_types=LECTURE_NOTE_DOC_TYPES)
 
     _flag_or_prune_orphans(academic_hub_root, seen_file_ids, course, prune, stats)
     return stats

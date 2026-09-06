@@ -4,6 +4,7 @@ import tempfile
 import unittest
 from unittest.mock import MagicMock, patch
 
+from indexer.index_card import LECTURE_NOTE_DOC_TYPES
 from video_notes.note_indexing import index_group_note, write_group_note
 
 
@@ -32,3 +33,4 @@ class TestIndexGroupNote(unittest.TestCase):
             self.assertEqual(kwargs["content_sample"], "# Notes")
             self.assertEqual(kwargs["path"], rel_md)
             self.assertEqual(kwargs["source_pdf_path"], rel_meta)
+            self.assertEqual(kwargs["known_doc_types"], LECTURE_NOTE_DOC_TYPES)
