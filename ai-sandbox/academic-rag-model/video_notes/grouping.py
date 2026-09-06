@@ -8,9 +8,14 @@ then content-clustering fallback (added by Task 7), then singleton.
 """
 from __future__ import annotations
 
+import os
 import re
 from dataclasses import dataclass
 
+import numpy as np
+from sklearn.cluster import AgglomerativeClustering
+
+from common.ollama_utils import call_ollama_embeddings
 from video_notes.youtube_metadata import VideoMetadata
 
 _SERIES_PATTERN = re.compile(r"(?i)\b(?:lecture|lec|part|week)\.?\s*#?\s*(\d+)\b")
@@ -93,6 +98,45 @@ def _make_group(group_id: str, members: list[VideoMetadata], slug_source: str, t
     return Group(group_id=group_id, member_video_ids=[v.video_id for v in ordered], slug=slugify(slug_source), tier=tier)
 
 
+VIDEONOTES_EMBED_MODEL = os.environ.get("VIDEONOTES_EMBED_MODEL", "nomic-embed-text")
+VIDEONOTES_EMBED_TIMEOUT_SECONDS = int(os.environ.get("VIDEONOTES_EMBED_TIMEOUT", "60"))
+
+
+def embed_transcripts(transcripts_by_id: dict, model: str = VIDEONOTES_EMBED_MODEL) -> dict[str, list[float] | None]:
+    """One local Ollama embedding call per video's transcript text. A
+    video whose call fails/times out maps to None -- treated as
+    un-clusterable, falling back to its own singleton group rather than
+    being silently excluded or force-merged (spec §8)."""
+    embeddings: dict[str, list[float] | None] = {}
+    for video_id, segments in transcripts_by_id.items():
+        text = " ".join(segment.text for segment in segments)[:8000]
+        result = call_ollama_embeddings(text, model, VIDEONOTES_EMBED_TIMEOUT_SECONDS)
+        embeddings[video_id] = result if isinstance(result, list) else None
+    return embeddings
+
+
+def _cluster_by_content(
+    videos: list[VideoMetadata], embeddings: dict[str, list[float] | None], similarity_threshold: float,
+) -> list[list[VideoMetadata]]:
+    embeddable = [v for v in videos if embeddings.get(v.video_id) is not None]
+    non_embeddable = [v for v in videos if embeddings.get(v.video_id) is None]
+    clusters: list[list[VideoMetadata]] = [[v] for v in non_embeddable]
+
+    if len(embeddable) == 1:
+        clusters.append(embeddable)
+    elif len(embeddable) > 1:
+        vectors = np.array([embeddings[v.video_id] for v in embeddable])
+        labels = AgglomerativeClustering(
+            n_clusters=None, distance_threshold=1 - similarity_threshold, metric="cosine", linkage="average",
+        ).fit_predict(vectors)
+        buckets: dict[int, list[VideoMetadata]] = {}
+        for video, label in zip(embeddable, labels):
+            buckets.setdefault(label, []).append(video)
+        clusters.extend(buckets.values())
+
+    return clusters
+
+
 def group_videos(
     videos: list[VideoMetadata], embeddings: dict[str, list[float] | None] | None = None,
     similarity_threshold: float = 0.75,
@@ -120,10 +164,11 @@ def group_videos(
             counter += 1
             groups.append(_make_group(f"g_{counter:04d}", members, stem, "title_series"))
 
-        for video in unmatched:
-            # Tier 3 (content clustering) is added by Task 7; until
-            # then every leftover becomes its own singleton group.
-            counter += 1
-            groups.append(_make_group(f"g_{counter:04d}", [video], video.title, "singleton"))
+        if unmatched:
+            for cluster_members in _cluster_by_content(unmatched, embeddings or {}, similarity_threshold):
+                counter += 1
+                tier = "content_cluster" if len(cluster_members) > 1 else "singleton"
+                slug_source = cluster_members[0].playlist_title or cluster_members[0].title
+                groups.append(_make_group(f"g_{counter:04d}", cluster_members, slug_source, tier))
 
     return groups

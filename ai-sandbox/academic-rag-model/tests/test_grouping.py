@@ -1,6 +1,8 @@
 import unittest
+from unittest.mock import patch
 
-from video_notes.grouping import group_videos, slugify
+from video_notes.grouping import embed_transcripts, group_videos, slugify
+from video_notes.transcribe import TranscriptSegment
 from video_notes.youtube_metadata import VideoMetadata
 
 
@@ -94,3 +96,43 @@ class TestGroupVideosScopeIsolation(unittest.TestCase):
         self.assertEqual(len(groups), 2)
         member_sets = sorted(tuple(g.member_video_ids) for g in groups)
         self.assertEqual(member_sets, [("A", "B"), ("C", "D")])
+
+
+class TestClusterByContent(unittest.TestCase):
+    def test_similar_embeddings_cluster_together(self):
+        videos = [_video("A", "Talk 1", channel_id="UC1"), _video("B", "Talk 2", channel_id="UC1")]
+        embeddings = {"A": [1.0, 0.0], "B": [0.99, 0.01]}
+        groups = group_videos(videos, embeddings=embeddings, similarity_threshold=0.9)
+        self.assertEqual(len(groups), 1)
+        self.assertEqual(groups[0].tier, "content_cluster")
+        self.assertEqual(set(groups[0].member_video_ids), {"A", "B"})
+
+    def test_dissimilar_embeddings_stay_separate(self):
+        videos = [_video("A", "Talk 1", channel_id="UC1"), _video("B", "Talk 2", channel_id="UC1")]
+        embeddings = {"A": [1.0, 0.0], "B": [0.0, 1.0]}
+        groups = group_videos(videos, embeddings=embeddings, similarity_threshold=0.9)
+        self.assertEqual({g.tier for g in groups}, {"singleton"})
+        self.assertEqual(len(groups), 2)
+
+    def test_a_video_with_no_embedding_falls_back_to_singleton(self):
+        videos = [_video("A", "Talk 1", channel_id="UC1"), _video("B", "Talk 2", channel_id="UC1")]
+        embeddings = {"A": [1.0, 0.0], "B": None}
+        groups = group_videos(videos, embeddings=embeddings, similarity_threshold=0.9)
+        self.assertEqual(len(groups), 2)
+        self.assertEqual({g.tier for g in groups}, {"singleton"})
+
+
+class TestEmbedTranscripts(unittest.TestCase):
+    @patch("video_notes.grouping.call_ollama_embeddings")
+    def test_maps_each_video_to_its_embedding(self, mock_call):
+        mock_call.return_value = [0.1, 0.2]
+        transcripts = {"A": [TranscriptSegment(0.0, 1.0, "hello")]}
+        result = embed_transcripts(transcripts, model="nomic-embed-text")
+        self.assertEqual(result, {"A": [0.1, 0.2]})
+
+    @patch("video_notes.grouping.call_ollama_embeddings")
+    def test_failed_call_maps_to_none(self, mock_call):
+        mock_call.return_value = None
+        transcripts = {"A": [TranscriptSegment(0.0, 1.0, "hello")]}
+        result = embed_transcripts(transcripts, model="nomic-embed-text")
+        self.assertIsNone(result["A"])
