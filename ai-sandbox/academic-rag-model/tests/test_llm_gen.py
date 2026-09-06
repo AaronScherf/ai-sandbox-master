@@ -49,6 +49,14 @@ class TestBuildGenerationPrompt(unittest.TestCase):
         self.assertIn("Required constraint", prompt)
         self.assertEqual(prompt.count("must use an epsilon-delta argument"), 2)
 
+    def test_retry_instructs_not_to_reference_the_correction_process(self):
+        prompt = _build_generation_prompt(
+            "eigenvalues", [], [], previous_problem="Find X.", previous_solution="X = 5.",
+            previous_error="the verification response was not in the expected VALID/INVALID format",
+        )
+        self.assertIn("Do not mention this correction", prompt)
+        self.assertIn("as if this were your first and only attempt", prompt)
+
 
 class TestBuildVerificationPrompt(unittest.TestCase):
     def test_includes_topic_problem_and_solution(self):

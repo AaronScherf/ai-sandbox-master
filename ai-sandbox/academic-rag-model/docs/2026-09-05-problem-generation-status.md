@@ -174,3 +174,63 @@ required for this branch to merge.
    conversation-state work was in scope for this feature), not a
    defect — but it's a real seam worth a future design pass if
    follow-up-on-a-generated-problem becomes a real use case.
+
+## 2026-09-06: user dogfooding — constraint enforcement, visualize toggle, and a real meta-commentary bug
+
+Two follow-ups were built after the user tried the shipped feature
+themselves and found the model ignoring an explicit request ("must use
+an epsilon-delta proof") in favor of the open-cover technique used by
+the retrieved style examples:
+
+1. **Constraint enforcement**: `_build_generation_prompt` now restates
+   the student's literal request a second time as a separately labeled,
+   imperative "Required constraint" block (verbatim, not parsed/split
+   from the topic string), and `_build_verification_prompt` now also
+   checks whether the generated problem actually satisfies that
+   constraint, not just whether the math is correct.
+2. **Visualize toggle on the problem-generation path**: `rag_agent.py`
+   can now trigger a visualization for a generated problem via an
+   explicit in-text request ("visualize this", "make a graph") or the
+   existing `visualize=True` flag — previously this was silently
+   unreachable on that code path (see Follow-up candidate above about
+   this same integration gap, now closed).
+
+**Real re-trial after the constraint-enforcement fix.** Re-ran the same
+compactness/epsilon-delta request that originally motivated the fix.
+Result: **the constraint was still not honored.** The style pool this
+time genuinely retrieved a "Sequential Definition of Compactness" chunk
+from the student's own notes — the right material was available — but
+the model still produced an open-cover proof anyway (for a different
+example problem: non-compactness of ℚ∩[0,1]). This upgrades the earlier
+hypothesis to a confirmed finding: **prompt-level emphasis alone is not
+enough to override this 7B model's tendency to imitate the dominant
+technique in its retrieved style examples.** Restating a constraint more
+forcefully in the prompt is necessary but evidently not sufficient here;
+further prompt iteration on this specific point looks like it has
+diminishing returns without changing the model or the retrieval
+strategy (e.g. filtering style examples toward the requested technique
+before generation, or using a larger/instruction-tuned model for
+constraint-sensitive requests). Options for addressing this are being
+discussed with the user next, not decided here.
+
+The same re-trial also surfaced a genuine, previously-unseen bug: the
+accepted solution's text ended with *"The verification response was not
+in the expected VALID/invalid format. The solution has been corrected
+to provide a clear, valid proof."* — a near-verbatim echo of
+`_parse_verdict`'s own internal fallback message. **Root cause:** the
+retry prompt tells the model `"That attempt failed with: {previous_error}
+... Write a corrected problem and solution"` but never told it not to
+*narrate* that correction in its actual answer — so the model included
+a sign-off sentence referencing the internal feedback text, which then
+got extracted as part of the "real" solution. **Fixed** by adding an
+explicit instruction to the retry prompt: not to mention the correction,
+the previous attempt, or the verification process anywhere in the
+answer, and to write as if it were the first and only attempt. Covering
+test: `TestBuildGenerationPrompt.test_retry_instructs_not_to_reference_the_correction_process`.
+Full suite re-run: 849/849 pass. This fix reduces the *likelihood* of
+this specific leak; it does not structurally prevent a small model from
+narrating in some other, differently-worded way — a residual risk worth
+watching for in future real trials, not something a regex-based
+extraction filter was added to chase here (per this project's general
+preference for prompt-level fixes over guessing at every possible
+hallucinated phrasing).

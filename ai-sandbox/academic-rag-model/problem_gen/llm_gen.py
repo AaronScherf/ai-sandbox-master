@@ -108,7 +108,9 @@ def _build_generation_prompt(
         f"{previous_block}"
         f"That attempt failed with: {previous_error}\n"
         f"Write a corrected problem and solution that fixes this specific issue. Respond in exactly the "
-        f"same '## Problem' / '## Solution' format."
+        f"same '## Problem' / '## Solution' format. Do not mention this correction, the previous attempt, "
+        f"or the verification process anywhere in your answer -- write the corrected problem and solution "
+        f"as if this were your first and only attempt."
     )
 
 
