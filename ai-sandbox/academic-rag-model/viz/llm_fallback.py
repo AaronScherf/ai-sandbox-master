@@ -54,8 +54,49 @@ Requirements:
 - Do NOT use speculative or exotic Plotly properties you are not certain exist (e.g. text styling
   properties like "bold", or a "z" property on a trace type that does not support one). If unsure
   whether a property exists, leave it out rather than guessing.
+- If you compute eigenvalues/eigenvectors (e.g. via numpy.linalg.eig), remember it returns complex
+  dtype by default even when the true values are real -- take `.real` before using the result in
+  any trace's x/y/z data, since Plotly cannot serialize a raw complex number.
 - Respond with ONLY one fenced ```python code block, nothing else.
 """
+
+_SANITIZE_COMPLEX_SNIPPET = (
+    "def _sanitize_complex(_obj):\n"
+    "    if isinstance(_obj, dict):\n"
+    "        return {_k: _sanitize_complex(_v) for _k, _v in _obj.items()}\n"
+    "    if isinstance(_obj, (list, tuple)):\n"
+    "        return [_sanitize_complex(_v) for _v in _obj]\n"
+    "    if isinstance(_obj, complex):\n"
+    "        return _obj.real\n"
+    "    if isinstance(_obj, np.ndarray):\n"
+    "        if _obj.dtype == object:\n"
+    "            return [_sanitize_complex(_v) for _v in _obj.tolist()]\n"
+    "        if np.iscomplexobj(_obj):\n"
+    "            return _obj.real.tolist()\n"
+    "        return _obj.tolist()\n"
+    "    return _obj\n"
+    "fig = go.Figure(_sanitize_complex(fig.to_plotly_json()))\n"
+)
+# Defense-in-depth alongside the prompt requirement above: numpy.linalg.eig()-family
+# functions return complex dtype by default even for real-valued results, and Plotly's
+# JSON encoder cannot serialize a raw `complex` object -- fig.write_html() then raises
+# "TypeError: Object of type complex is not JSON serializable" inside the subprocess.
+# A prompt instruction alone isn't reliable (this project has repeatedly found small
+# local models don't consistently follow embedded instructions -- see
+# docs/2026-09-05-problem-generation-status.md), so this harness-level sanitization
+# (real trial: docs/2026-09-05-problem-generation-status.md's 2026-09-06 entry) casts
+# any complex value to real before the figure is ever serialized, succeeding
+# regardless of whether the generated code took the prompt's hint.
+#
+# Rebuilds the figure from its own to_plotly_json() dict rather than mutating trace
+# properties in place (e.g. `trace.x = real_array`) -- confirmed by direct
+# investigation that in-place mutation (via setattr, trace.update(), and
+# fig.update_traces(), all three tried) silently fails to take effect once a trace
+# was originally constructed with complex-dtype data: Plotly coerces a complex input
+# array into an object-dtype array of raw Python `complex` scalars at construction
+# time, and subsequent property reassignment doesn't re-validate/re-coerce it. Only a
+# fresh Figure built from already-real data behaves correctly, hence sanitizing the
+# plain-dict form and reconstructing from it rather than patching the live objects.
 
 _CODE_BLOCK_PATTERN = re.compile(r"```(?:python)?\s*(.*?)```", re.DOTALL)
 
@@ -149,6 +190,7 @@ def _run_generated_code(
         "import plotly.express as px\n"
         "import numpy as np\n"
         f"{code}\n"
+        f"{_SANITIZE_COMPLEX_SNIPPET}"
         f"fig.write_html({abs_output_path!r}, include_plotlyjs='inline', full_html=False)\n"
     )
     with tempfile.NamedTemporaryFile("w", suffix=".py", delete=False, encoding="utf-8") as f:

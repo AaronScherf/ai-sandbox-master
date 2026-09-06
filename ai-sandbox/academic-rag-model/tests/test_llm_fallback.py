@@ -110,6 +110,30 @@ class TestRunGeneratedCode(unittest.TestCase):
                 written = f.read()
             self.assertNotIn("<html", written.lower())
 
+    def test_complex_valued_trace_data_is_sanitized_to_real(self):
+        """Real trial found this: numpy.linalg.eig()-family functions
+        return complex dtype by default even when the actual eigenvalues
+        are real, and Plotly's JSON encoder can't serialize a raw
+        `complex` object -- fig.write_html() then raises
+        `TypeError: Object of type complex is not JSON serializable`
+        inside the subprocess (see
+        docs/2026-09-05-problem-generation-status.md's 2026-09-06 entry).
+        Reproduces the exact mechanism deterministically (a complex-typed
+        trace array), bypassing the LLM's own non-determinism."""
+        with tempfile.TemporaryDirectory() as tmp:
+            output_path = os.path.join(tmp, "out.html")
+            code = (
+                "import numpy as np\n"
+                "import plotly.graph_objects as go\n"
+                "x = np.array([1+0j, 2+0j, 3+0j])\n"  # complex dtype, zero imaginary part
+                "y = np.array([1.0, 2.0, 3.0])\n"
+                "fig = go.Figure(data=[go.Scatter(x=x, y=y)])\n"
+            )
+            success, error = _run_generated_code(code, output_path)
+            self.assertTrue(success, f"expected success, got error: {error}")
+            self.assertIsNone(error)
+            self.assertTrue(os.path.exists(output_path))
+
     def test_broken_code_returns_false(self):
         with tempfile.TemporaryDirectory() as tmp:
             output_path = os.path.join(tmp, "out.html")
