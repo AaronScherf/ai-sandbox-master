@@ -106,7 +106,7 @@ The two real notes committed to the corpus from this test
 this known gap — no timestamp links, otherwise accurate and reasonably
 structured.
 
-## What this confirms end-to-end
+## What pass 1 confirms end-to-end
 
 Metadata fetch, audio download (`yt-dlp` + winget-installed `ffmpeg`),
 local CPU transcription (`faster-whisper`, `small`/`int8`, real
@@ -118,3 +118,32 @@ registration all work end-to-end against real YouTube content. The
 100+-video full-playlist run, and the playlist-merge grouping tier, are
 both still unvalidated against real data — natural next real-world
 checks once the citation question above is revisited.
+
+## Pass 2: next 6 videos from the same playlist (in progress, 2026-09-06)
+
+Started once pass 1's fixes landed, to check the pipeline holds up at a
+larger batch size (2 → 6 videos in one run) and against a title pattern
+pass 1 didn't cover: `Lecture 1(B)`, `Lecture 2(A)`, `Lecture 2(B)`,
+`Lecture 3(A)`, `Lecture 3(B)`, `Lecture 4(A)` — every title here
+matches the `Lecture N` series regex (spec §4 tier 2), unlike pass 1's
+"2021 Introductory Remarks" (no match at all).
+
+- Run via `--urls` again (6 individually-resolved video URLs), not
+  `--playlist` — same reason as pass 1 (avoid pulling the full 105-video
+  playlist) and still means the playlist-merge default tier (§4 tier 1)
+  stays unexercised by real data.
+- Because none of these 6 titles share the *same* `(A)`/`(B)` suffix
+  combination twice (`_title_stem()` keeps `(A)`/`(B)` in the stem, so
+  `Lecture 1(B)` and `Lecture 2(B)` produce different stems, not a
+  shared 2+-member one), and there's no playlist context to trigger the
+  playlist-default rule either, every video here is expected to land in
+  tier 3 (content-clustering) or tier 4 (singleton) rather than tier 2
+  (title-series) — worth checking whether that matches what actually
+  happens once results are in, since these lectures *are* genuinely
+  sequential/related content that a human would probably group.
+- Model: `qwen2.5:7b-instruct` (now the locally-pulled default, no
+  re-pull needed this time).
+
+Results (transcription success/failure per video, which grouping tier
+each landed in, synthesis quality, indexing correctness) to be added
+here once the run completes.
