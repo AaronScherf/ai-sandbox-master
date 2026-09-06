@@ -329,3 +329,135 @@ next real levers are the ones already on the table with the user — a
 larger/different local model, or Gemini API batching (with its real
 cost tradeoff) for constraint-sensitive requests specifically, rather
 than further prompt or parsing iteration on the current model.
+
+## 2026-09-06 (continued): Gemini Flash-Lite feasibility spike
+
+**Setup.** A throwaway spike script (not committed, not wired into
+`problem_gen`) reused the *exact same* prompt-building and
+verification-parsing functions from `llm_gen.py`
+(`_build_generation_prompt`, `_extract_problem_and_solution`,
+`_build_verification_prompt`, `_parse_verdict`) for a fair,
+apples-to-apples comparison — only the backend model changed, from
+local Ollama to `gemini-3.1-flash-lite` via the existing
+`common/gemini_utils.py` client. Three independent, single-shot trials
+(no retry loop — a raw first-attempt reliability read) were run per
+topic, each with an explicit technique constraint chosen to fight the
+retrieved style examples' "obvious default" approach, the same shape of
+test that broke the local model:
+
+- **Real analysis / compactness** (from the earlier local trials):
+  epsilon-delta/sequential proof, not open-cover.
+- **Linear algebra**: diagonalizability of an operator with $T^2 = I$
+  (or $T^2 = T$), proof by contradiction, not direct eigenvalue
+  computation or the spectral theorem.
+- **Probability theory**: convergence in probability proven directly
+  from the $\epsilon$-$N$ definition, not by citing the Weak Law of
+  Large Numbers, CLT, or Chebyshev's inequality as a black box.
+
+(A fourth topic, econometrics, was dropped before running — that
+course has zero indexed content of any kind in this corpus, not just
+missing problem sets, so it couldn't test anything about the model.)
+
+**Results: 9/9 passed verification across all three topics**, and every
+proof was checked by hand — all mathematically correct. This is a
+dramatic contrast with the local model, which never once produced an
+accepted result across two independent real trials (8+ real attempts
+total) on the comparably-constrained compactness request.
+
+**Two real nuances found (not correctness failures):**
+1. All three linear algebra proofs technically satisfied "prove by
+   contradiction" — assume ¬P, then derive P directly, note the
+   contradiction — but never actually *used* the negated assumption's
+   structure to derive an absurdity. That's logically valid but a
+   mechanical, fairly vacuous form of "by contradiction" (most
+   mathematicians would just call it a direct proof). Verification
+   only checks whether the labeled technique nominally appears, not
+   whether it's doing genuine logical work — the same class of gap as
+   the compactness trial's "problem doesn't actually need compactness"
+   finding from earlier in this doc.
+2. Probability trials 1 and 3 generated **nearly word-for-word
+   identical problems** (same distribution, same setup) despite being
+   independent calls; trial 2 varied it. Repeated calls aren't
+   guaranteed to be diverse — relevant to the "give me another one" use
+   case, since low diversity across calls would undercut the point of
+   deliberately not caching (§1/§7 of the design spec).
+
+**Speed and cost, measured against the same real-evidence standard as
+the local trials.** The entire spike — retrieval for 3 topics plus 3
+trials × 2 calls (generation + verification) per topic, 18 Gemini calls
+total — completed in **under two minutes**, versus 10–50 minutes for a
+*single* local attempt sequence. Real cost was negligible: every trial
+passed on the first attempt (no retries), so actual spend was a small
+fraction of a cent per problem at Flash-Lite's real pricing ($0.25/1M
+input, $1.50/1M output tokens, confirmed against Google's own pricing
+page 2026-09-06). The earlier worst-case estimate (assuming up to 5
+attempts, the local `MAX_ATTEMPTS`) was ~$0.01/problem for Flash-Lite,
+~$0.03 for Flash, ~$0.08 for Pro — all now corroborated by a real run
+rather than a guess.
+
+**Tradeoff summary:**
+
+| | Local (`qwen2-math:7b` via Ollama) | Gemini Flash-Lite |
+|---|---|---|
+| Cost | Free (electricity only) | ~$0.001–0.01 per problem |
+| Speed | 9–50 min per problem (real measurements) | Seconds per call, whole spike <2 min |
+| Reliability on constraint-heavy requests | 0/2 real trials succeeded, even with a working technique-check and 5 attempts | 9/9 across 3 different topics |
+| Network/privacy | Fully local, no data leaves the machine | Requires network + the existing `GEMINI_API_KEY` (already a project dependency for retrieval embeddings) |
+| Verification reliability | Verifier itself is a small, sometimes-confused model | Same self-verification limitation in principle, but not observed misfiring in this testing |
+
+**Conclusion:** for this class of technique-constrained request, Gemini
+Flash-Lite is both cheaper in practice (given how much local compute
+time a single local attempt burns) and dramatically more reliable.
+Local generation remains free and fully private, which still matters
+for some use cases, but is not the better default for requests that
+carry an explicit technique constraint.
+
+## Future development ideas (flagged, not implemented — revisit once a Gemini path exists)
+
+Raised by the user while reviewing these results. Recorded here as a
+real-evidence-informed roadmap, not decided or built:
+
+1. **Extract a structured example-problem corpus from the textbooks and
+   problem sets already in the corpus.** Textbooks and past exams
+   already contain plenty of problems the student's own materials treat
+   as valid, and some (e.g. textbook odd-numbered exercises with
+   answers in the back) have solutions that are already verified by the
+   textbook itself, not just self-reported by an LLM. Extracting these
+   into a structured format (topic tag, problem formulation, solution(s),
+   course(s)) would give this subsystem a real, growing bank of
+   known-good examples to draw on, rather than only the same passage-level
+   chunks retrieval happens to surface.
+2. **Two uses for that structured corpus**: (a) richer, curated few-shot
+   examples in the generation prompt (more reliable "style anchors" than
+   whatever raw chunk retrieval turns up), or (b) served directly to the
+   student when a good match already exists in the corpus — no
+   generation call needed at all.
+3. **Backfilling missing solutions.** For textbook problems that don't
+   have a solution in the corpus yet, generate just the solution (not a
+   whole new problem) via a Gemini call — a narrower, likely easier and
+   more reliable task than generating a full problem+solution pair from
+   scratch, since the problem itself is already fixed and doesn't need
+   inventing.
+4. **Grow the corpus with usage.** Save Gemini-generated problems (and
+   backfilled solutions) into this same structured store, explicitly
+   tagged as LLM-generated rather than original course content — so the
+   available example pool grows over time instead of staying fixed at
+   whatever's already in the student's own materials.
+5. **A tiered pipeline**, once a Gemini path exists: **Tier 1** —
+   check the existing (and growing) structured problem corpus for
+   something that already matches the student's request; local, free,
+   no LLM call at all if a good match exists. **Tier 2** — Gemini
+   generation for anything genuinely new; likely the default tier for a
+   request with no good existing match.
+6. **A middle ground between the two tiers**: retrieve a few *similar*
+   existing problems for the specific request (not just topically
+   similar, but close to what was actually asked), and pass those to
+   Gemini as concrete prompt-examples to adapt with the specific changes
+   the student's request calls for — closer to templated modification
+   of a known-good problem than free-form generation from a style-pool
+   of loosely-related examples.
+
+None of this is built yet. It's recorded here so the reasoning behind
+it (why a structured, growing, provenance-tagged corpus matters, and
+why it pairs naturally with a Gemini-backed generation tier) survives
+until it's actually picked up.
