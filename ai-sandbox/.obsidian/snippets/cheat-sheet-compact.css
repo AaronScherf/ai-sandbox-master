@@ -1,0 +1,84 @@
+/*
+ * Compact 2-column print layout.
+ * Applies to any note with `cssclasses: cheat-sheet-compact` in its YAML frontmatter.
+ * Screen preview gets a modest size reduction; @media print (used for both the
+ * in-app print dialog and "Export to PDF") switches to a tight 2-column layout
+ * with reduced margins so a dense reference sheet fits in fewer pages.
+ */
+
+/* -- Screen / reading view: slightly smaller so it's a fair preview of print -- */
+.cheat-sheet-compact {
+  font-size: 10pt;
+  line-height: 1.25;
+}
+
+/* -- Print / PDF export -- */
+@media print {
+  @page {
+    size: A4 landscape;
+    margin-top: 0.1in;
+    margin-bottom: 0.1in;
+    margin-left: 0.15in;
+    margin-right: 0.15in;
+  }
+
+  .cheat-sheet-compact {
+    font-size: 7.5pt;
+    line-height: 1.15;
+    column-count: 2;
+    column-gap: 12pt;
+    column-rule: 0.5pt solid #bbb;
+    orphans: 2;
+    widows: 2;
+  }
+
+  .cheat-sheet-compact h1 {
+    font-size: 13pt;
+    margin: 0 0 4pt 0;
+    column-span: all;
+  }
+
+  .cheat-sheet-compact h2 {
+    font-size: 10.5pt;
+    margin: 6pt 0 3pt 0;
+    break-after: avoid;
+  }
+
+  .cheat-sheet-compact h3 {
+    font-size: 9pt;
+    margin: 5pt 0 2pt 0;
+    break-after: avoid;
+  }
+
+  .cheat-sheet-compact h4 {
+    font-size: 8pt;
+    margin: 4pt 0 2pt 0;
+    break-after: avoid;
+  }
+
+  .cheat-sheet-compact p {
+    margin: 2pt 0;
+  }
+
+  .cheat-sheet-compact ul,
+  .cheat-sheet-compact ol {
+    margin: 1pt 0;
+    padding-left: 11pt;
+  }
+
+  .cheat-sheet-compact li {
+    margin: 0.5pt 0;
+    break-inside: avoid;
+  }
+
+  .cheat-sheet-compact hr {
+    margin: 3pt 0;
+    break-after: avoid;
+  }
+
+  /* MathJax/KaTeX inline math: don't let it inflate line height */
+  .cheat-sheet-compact .MathJax,
+  .cheat-sheet-compact mjx-container {
+    font-size: 100% !important;
+  }
+}
