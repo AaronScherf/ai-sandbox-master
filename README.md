@@ -44,13 +44,23 @@ full text (published textbooks, journal articles) is not.** See the root
 
 ## Getting started (your own copy, your own content)
 
+This covers two different situations: **replicating your own existing setup
+onto another machine** (your courses, notes, and independent-research repos
+are already tracked/listed — steps 2 and 5 are no-ops there, git clone
+already brought them down) and **starting a genuinely new instance** (a new
+user, or you adding a course/project that doesn't exist yet — steps 2 and 5
+are where you establish that).
+
 1. `git clone` this repo.
-2. Create your own `academic-hub/academic_notes/<course>/` folder(s) for
-   whatever courses you're tracking — there's nothing to inherit here, this
-   is where you establish your own course list.
+2. **Only if adding a course that doesn't exist yet:** create
+   `academic-hub/academic_notes/<course>/` folder(s) for whatever courses
+   you're tracking. If you already have course folders — this is your own
+   existing setup, e.g. on another machine — they came down with step 1;
+   nothing to do here.
 3. Run `bash workspace_generator.sh` from the repo root. It scaffolds the
    gitignored `academic_resources/<course>/{textbooks,lecture-slides,lecture-recordings}/`
-   folders for each course you created in step 2, plus `research/journal-articles/`;
+   folders for every course folder under `academic_notes/` — whether it came
+   down with the clone or you just created it in step 2 — plus `research/journal-articles/`;
    clones the personal website and every independent research/thesis repo
    listed in the script's own `INDEPENDENT_RESEARCH_REPOS` array (first run
    only — a normal `git pull` after that), and pulls updates for any other
@@ -62,12 +72,14 @@ full text (published textbooks, journal articles) is not.** See the root
 4. Fill in your own values in `ai-sandbox/.env` — at minimum `GEMINI_API_KEY`;
    see the file's own comments for what each pipeline (textbook conversion,
    `journal_discovery`, `analyze_textbook`) needs.
-5. Replicating this project with your own independent research/thesis repos
-   (rather than the original author's) means editing `INDEPENDENT_RESEARCH_REPOS`
-   in `workspace_generator.sh` first — each entry is `path/relative/to/projects/|git-url`.
-   They're deliberately kept as separate child repos (own history), not
-   embedded in this one; step 3 clones (or pulls) whatever's listed there.
-6. Drop your own PDFs into the scaffolded folders and run the
+5. **Only if adding a project repo that isn't already listed:** edit
+   `INDEPENDENT_RESEARCH_REPOS` in `workspace_generator.sh` — each entry is
+   `path/relative/to/projects/|git-url`. Repos already listed there (your own
+   existing setup) just get cloned/pulled automatically by step 3; they're
+   deliberately kept as separate child repos (own history), not embedded in
+   this one.
+6. Drop your own PDFs into the scaffolded folders (or pull down existing ones
+   via rclone — see "Backing up gitignored content" below) and run the
    `academic-rag-model` pipelines against them — see
    [`ai-sandbox/academic-rag-model/README.md`](ai-sandbox/academic-rag-model/README.md).
 
