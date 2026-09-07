@@ -170,13 +170,19 @@ overridable via `AUDIOGEN_NARRATE_OLLAMA_MODEL` (same override pattern as
 
 **Reliability — per-chunk sanity check, retry, then fallback (never a hard
 failure):** mirrors `problem_gen`'s existing self-verify-and-retry pattern.
-After each chunk's rewrite:
-1. If the rewrite's length is suspiciously short relative to the input
+After each chunk's rewrite, respecting the exact distinction
+`OllamaTimeout`'s own docstring (`common/ollama_utils.py`) establishes —
+a slow-but-alive server is worth retrying, a server that isn't running at
+all is not:
+1. `call_ollama` returns `None` (server unreachable): **no retry** —
+   immediately return that chunk's original text unmodified. A second call
+   milliseconds later against a server that isn't running cannot succeed.
+2. `call_ollama` returns `OLLAMA_TIMEOUT` (request itself timed out) **or**
+   a real response whose length is suspiciously short relative to the input
    (a cheap proxy for "the model summarized or dropped content" — exact
    ratio threshold is a real-content-tuning question, flagged in §9, not a
-   guessed constant to trust blindly) or `call_ollama` returns `None`/
-   `OLLAMA_TIMEOUT`, retry once.
-2. If the retry also fails the check, **return that chunk's original,
+   guessed constant to trust blindly): retry once.
+3. If the retry also fails the check, **return that chunk's original,
    unmodified text** — no rewriting attempted, raw `$...$` spans and all.
    `narrate.py` never generates its own fallback text; it simply declines to
    touch what it couldn't verify. `pipeline.py`'s next step,
@@ -293,12 +299,12 @@ inside their subproject packages, and note the `tests/test_discovery.py`/
 - `narrate.py`: mocked `call_ollama` throughout (no real Ollama calls in
   tests, matching this project's established testing philosophy) —
   chunking-boundary behavior (never splits mid-sentence, mid-equation, or
-  through a fenced code block), the sanity-check/retry sequence
-  (short-output triggers one retry; a second short output, or an immediate
-  `None`/`OLLAMA_TIMEOUT` with no retry, makes `narrate_for_speech()` return
-  that chunk's original text unmodified — asserting *narrate.py's own
-  output*, not any regex wrap, which is `cleaner.py`'s separate,
-  already-tested concern applied afterward by `pipeline.py`), and that the
+  through a fenced code block); `None` (server unreachable) falls back
+  immediately with no retry; `OLLAMA_TIMEOUT` and a too-short real response
+  each retry exactly once, then fall back if the retry still fails —
+  asserting *narrate.py's own output* (the chunk's original text
+  unmodified), not any regex wrap, which is `cleaner.py`'s separate,
+  already-tested concern applied afterward by `pipeline.py`; and that the
   final `.narrated.md` written by `pipeline.py` matches what was actually
   passed to `engine.synthesize_speech()`.
 - `engine.py`: Integration test with a mocked engine to confirm input text passed to engine matches cleaned text.
