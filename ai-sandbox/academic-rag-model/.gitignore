@@ -3,3 +3,4 @@ __pycache__/
 *.pyc
 video_notes/.state/
 video_notes/.cache/
+audio_generator/.cache/
