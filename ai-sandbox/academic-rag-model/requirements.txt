@@ -28,3 +28,8 @@ onnxruntime
 # Audio Generator
 markdown
 beautifulsoup4
+piper-tts
+kokoro-onnx
+soundfile
+pydub
+audioop-lts  # pydub needs this on Python 3.13+, whose stdlib dropped audioop (PEP 594)

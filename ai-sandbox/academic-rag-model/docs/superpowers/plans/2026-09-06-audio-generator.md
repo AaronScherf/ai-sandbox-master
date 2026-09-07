@@ -660,12 +660,13 @@ piper-tts
 kokoro-onnx
 soundfile
 pydub
+audioop-lts  # pydub needs this on Python 3.13+, whose stdlib dropped audioop (PEP 594)
 ```
 
 - [ ] **Step 2: Install the new dependencies**
 
-Run: `./.venv/Scripts/python.exe -m pip install piper-tts kokoro-onnx soundfile pydub`
-Expected: all install successfully. (Actual Piper/Kokoro model files are not downloaded here — see Task 5's final manual-verification step for where real model files matter; this task's tests mock both engines entirely.)
+Run: `./.venv/Scripts/python.exe -m pip install piper-tts kokoro-onnx soundfile pydub audioop-lts`
+Expected: all install successfully. (Actual Piper/Kokoro model files are not downloaded here — see Task 5's final manual-verification step for where real model files matter; this task's tests mock both engines entirely. `audioop-lts` was discovered as a real, necessary dependency during execution, not anticipated when this plan was written: `pydub` imports the stdlib `audioop` module, removed from Python 3.13's standard library — without this backport, `import pydub` itself raises `ModuleNotFoundError: No module named 'pyaudioop'`. Verified against the actually-installed `piper-tts`/`kokoro-onnx` packages that `PiperVoice.load`/`synthesize_wav` and `Kokoro`/`create` match the signatures `engine.py` below uses.)
 
 - [ ] **Step 3: Add the downloaded-model directory to `.gitignore`**
 

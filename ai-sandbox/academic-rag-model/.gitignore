@@ -4,3 +4,4 @@ __pycache__/
 video_notes/.state/
 video_notes/.cache/
 audio_generator/.cache/
+audio_generator/models/
