@@ -19,9 +19,15 @@ import shutil
 from audio_generator.cleaner import clean_markdown_for_speech
 from audio_generator.discovery import CONTENT_TYPES, discover_source_files
 from audio_generator.engine import ENGINES, synthesize_speech
+from audio_generator.narrate import narrate_for_speech
 from audio_generator.state import compute_content_hash, load_state, needs_regeneration, save_state
 
 DEFAULT_ACADEMIC_HUB_ROOT = "../academic-hub"
+
+
+def _narrated_md_path(abs_md_path: str) -> str:
+    base, _ext = os.path.splitext(abs_md_path)
+    return f"{base}.narrated.md"
 
 
 def run_pipeline(
@@ -39,7 +45,8 @@ def run_pipeline(
 
         with open(source.abs_md_path, "r", encoding="utf-8") as f:
             md_text = f.read()
-        text = clean_markdown_for_speech(md_text)
+        narrated_md = narrate_for_speech(md_text)
+        text = clean_markdown_for_speech(narrated_md)
         if not text:
             print(f"WARNING: {source.rel_md_path} has no speakable text after cleaning -- skipping.")
             summary["skipped_empty"] += 1
@@ -51,6 +58,9 @@ def run_pipeline(
             print(f"WARNING: failed to synthesize {source.rel_md_path}: {err}")
             summary["failed"] += 1
             continue
+
+        with open(_narrated_md_path(source.abs_md_path), "w", encoding="utf-8") as f:
+            f.write(text)
 
         state[source.rel_md_path] = current_hash
         summary["generated"] += 1

@@ -41,6 +41,23 @@ Override any model path via `AUDIOGEN_PIPER_MODEL_PATH`,
 `AUDIOGEN_PIPER_CONFIG_PATH`, `AUDIOGEN_KOKORO_MODEL_PATH`,
 `AUDIOGEN_KOKORO_VOICES_PATH`, `AUDIOGEN_KOKORO_VOICE`.
 
+## LaTeX narration
+
+Math notation (`$...$`/`$$...$$`) is rewritten into natural spoken prose by
+a local Ollama call before synthesis (`qwen2-math:7b` by default), chunked
+per-file. Requires `ollama serve` running with that model pulled
+(`ollama pull qwen2-math:7b`) for full-quality narration; if Ollama is
+unreachable, or a chunk's rewrite fails a sanity check twice, that chunk
+degrades to the old literal-LaTeX-wrapped narration instead of failing the
+file.
+
+The final narration text (after all cleaning) is written to a sibling
+`<name>.narrated.md` next to `<name>.md`/`<name>.mp3` — useful for spot-
+checking translation quality without listening to the audio.
+
+Override the model or its per-chunk timeout via `AUDIOGEN_NARRATE_OLLAMA_MODEL`
+/ `AUDIOGEN_NARRATE_OLLAMA_TIMEOUT` (seconds, default `300`).
+
 ## Non-goals (see spec for rationale)
 
 Journal-articles, auto-triggering from other pipelines, reading
