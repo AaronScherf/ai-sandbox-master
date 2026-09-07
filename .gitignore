@@ -89,6 +89,11 @@ ai-sandbox/research/.viz/
 # corpus-grounded generated content as .viz/ -- same IP posture, same
 # any-root coverage rationale.
 **/.reports/
+# Extracted problem corpus (.problem_corpus/) contains problem text
+# pulled directly from the corpus (textbooks, problem sets) -- closer to
+# .index/chunks/'s "direct reproduction of copyrighted material" concern
+# than .viz/'s generated charts, and gitignored for that same reason.
+**/.problem_corpus/
 
 #Prevent git workspace conflicts with obsidian
 # Vault root is ai-sandbox/, one level below this .gitignore -- a pattern
