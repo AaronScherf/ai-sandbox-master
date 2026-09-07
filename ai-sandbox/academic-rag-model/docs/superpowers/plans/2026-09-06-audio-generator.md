@@ -1318,7 +1318,7 @@ from __future__ import annotations
 import os
 import re
 
-from common.ollama_utils import OLLAMA_TIMEOUT, call_ollama
+from common.ollama_utils import call_ollama
 
 AUDIOGEN_NARRATE_OLLAMA_MODEL = os.environ.get("AUDIOGEN_NARRATE_OLLAMA_MODEL", "qwen2-math:7b")
 AUDIOGEN_NARRATE_OLLAMA_TIMEOUT_SECONDS = int(os.environ.get("AUDIOGEN_NARRATE_OLLAMA_TIMEOUT", "300"))
@@ -1389,11 +1389,11 @@ def _narrate_chunk(chunk: str) -> str:
     chunk's original, unmodified text on any failure that survives a
     retry (spec §3.1) -- this module never invents its own fallback text."""
     prompt = _PROMPT_TEMPLATE.format(chunk=chunk)
-    for _attempt in range(2):
+    for _ in range(2):
         result = call_ollama(prompt, AUDIOGEN_NARRATE_OLLAMA_MODEL, AUDIOGEN_NARRATE_OLLAMA_TIMEOUT_SECONDS)
         if result is None:
             return chunk  # server unreachable -- not worth retrying
-        if result is not OLLAMA_TIMEOUT and _passes_sanity_check(chunk, result):
+        if isinstance(result, str) and _passes_sanity_check(chunk, result):
             return result
         # OLLAMA_TIMEOUT, or a real response that failed the sanity check -- retry once
     return chunk
