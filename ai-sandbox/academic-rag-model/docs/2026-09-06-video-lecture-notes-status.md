@@ -103,11 +103,31 @@ transcript. Full test suite (1017 tests, including new coverage in
 request payload actually carrying `num_ctx`) passes with the fix in.
 
 **Re-verification of the citation question, now that the real bug is
-fixed, is in progress** (a single-video, ~4,200-token re-run against
-`qwen2.5:7b-instruct` with the fix applied) — results below once it
-completes. The original "ship without citations, revisit later" user
-decision may no longer be the right call once this is confirmed; the
-two committed notes from pass 1 will be regenerated if so.
+fixed:** re-ran the same single-video, ~4,200-token prompt against
+`qwen2.5:7b-instruct` with the fix applied. Result: dramatically better
+structure and content coverage (proper `##`/`###` headers throughout,
+correctly covers the lecture's actual sequence of topics — special
+number sets, n-tuple notation, worked examples, a takeaways section —
+none of which survived the old truncated version). Citations improved
+from **zero to one**, but that one citation is a single generic
+"review the provided timestamps" link tacked on at the very end,
+pointing at `t=0s` (the transcript's very first timestamp) — not the
+per-concept inline citations the prompt actually asks for. So: the
+context-truncation bug was real and explains the bulk of pass 1 and 2's
+damage (confirmed by the dramatic quality jump once fixed), but a
+smaller, separate instruction-following gap remains on top of it — the
+model now demonstrably *knows* citation links exist and are citable
+(it named the mechanism explicitly in its own output) but still doesn't
+weave them in per-concept as instructed. The two original prompt-
+redesign ideas from the (partially superseded) original write-up still
+apply to this smaller remaining gap: isolate+exemplify the citation
+instruction, or insert citations programmatically post-generation.
+Given the scope of real-world testing already done this session, that
+remaining gap is left as the next concrete follow-up rather than
+iterated on further here. The pass-1 notes have not yet been
+regenerated with the fix — worth doing before relying on them, since
+their content coverage (not just citations) was affected by the same
+bug.
 
 **New finding from the fix itself: CPU cost scales badly with the
 now-correct larger `num_ctx`.** The 3-video, ~22,000-token prompt from
