@@ -39,6 +39,16 @@ almost everything else depends on.
 
 ## Requirements
 
+- **Python 3.13+** (pinned in `.python-version`). `requirements.txt`'s
+  `audioop-lts` entry exists specifically because Python 3.13's stdlib
+  dropped the `audioop` module `pydub` needs (PEP 594) — on an older
+  interpreter it either won't install cleanly or will fail at import time
+  instead, not a graceful degradation. One-time setup per machine:
+  ```bash
+  python -m venv .venv
+  source .venv/bin/activate   # .venv\Scripts\activate on Windows
+  pip install -r requirements.txt
+  ```
 - **Baseline** (`notes/`, `essays/`, `journal_articles/`, `indexer/`, `rag/`): a `GEMINI_API_KEY` in `../.env` (copy from `../.env.example`). `essays/`'s own conversion needs no API key at all — only its optional indexing hook does.
 - **Textbook pipeline only** (`textbook/`): a GCP project with billing enabled and GPU quota approved (`PREEMPTIBLE_NVIDIA_L4_GPUS`), plus `gcloud` and Docker installed and running locally. See [`gcp_instructions.md`](gcp_instructions.md) for full setup.
 - **Visualization sub-agent only** (`viz/`, reached via `rag/`'s opt-in `--visualize` flag): `plotly` installed in the venv. Its LLM fallback tier (only reached when no template matches) defaults to Gemini (`gemini-3.1-flash-lite`), using the same `GEMINI_API_KEY` as the Baseline row above — no extra setup. Set `VIZ_BACKEND=ollama` to opt into fully local, free generation instead — a local Ollama install (`ollama serve`) with `qwen2.5-coder:7b` pulled (`ollama pull qwen2.5-coder:7b`); real testing found it unreliable (timeouts and broken scripts) on the same request Gemini handled cleanly. Either backend degrades to returning `None` with a printed warning if unavailable — see `docs/2026-09-02-visualization-agent-status.md` for the full comparison.
