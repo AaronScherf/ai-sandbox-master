@@ -34,6 +34,20 @@ class TestBuildSynthesisPrompt(unittest.TestCase):
         self.assertIn("[Lecture 1 @ 00:00](https://youtube.com/watch?v=A&t=0s): first", prompt)
         self.assertIn("[Lecture 2 @ 01:05](https://youtube.com/watch?v=B&t=65s): second", prompt)
 
+    def test_min_citations_scales_with_member_count(self):
+        videos_by_id = {
+            "A": _video("A", "Real Analysis 1", "https://youtube.com/watch?v=A"),
+            "B": _video("B", "Real Analysis 2", "https://youtube.com/watch?v=B"),
+        }
+        transcripts_by_id = {
+            "A": [TranscriptSegment(0.0, 1.0, "first")],
+            "B": [TranscriptSegment(65.0, 70.0, "second")],
+        }
+        single_prompt = build_synthesis_prompt("x", ["A"], videos_by_id, {"A": transcripts_by_id["A"]})
+        multi_prompt = build_synthesis_prompt("x", ["A", "B"], videos_by_id, transcripts_by_id)
+        self.assertIn("at least 3 inline citation", single_prompt)
+        self.assertIn("at least 6 inline citation", multi_prompt)
+
 
 class TestSynthesizeGroupNote(unittest.TestCase):
     @patch("video_notes.synthesize.call_ollama")

@@ -19,17 +19,32 @@ for "{group_title}", embedded with chronological timeline links back to their so
 Synthesize the core theoretical framework, main results, and structural takeaways into a polished, \
 scannable academic report covering all the lectures together as one cohesive whole.
 
-STRICT FORMATTING RULES:
+FORMATTING RULES:
 1. Use clear Markdown headers and bullet points.
 2. Wrap all mathematical variables, expressions, and formulas in LaTeX delimiters \
 (inline `$x^2$`, block `$$ ... $$`).
-3. Cite the provided timestamp links inline at the end of the sentence introducing each key concept, \
-theorem, or step transition, exactly as given (they already identify which lecture they come from), \
-so the reader can click through to that exact moment.
+
+MANDATORY CITATION RULE: every bullet point or sentence that introduces a new concept, theorem, or \
+step must end with its own timestamp link, copied exactly from the transcript line it's drawn from \
+-- one citation per point, attached directly to that point. Never collect citations into a single \
+list or "references" section at the end.
+
+Example. Given this transcript line:
+[Lecture 1 @ 04:12](https://youtu.be/abc123&t=252s): so the eigenvalue of this matrix is 3
+
+...your note should include something shaped like this, with the citation attached directly to the \
+specific point it supports:
+"The eigenvalue of the matrix is 3 ([04:12](https://youtu.be/abc123&t=252s))."
+
+Your finished note must include at least {min_citations} inline citation links like this, each one \
+attached to a different point -- a note with fewer than {min_citations} is incomplete and must be \
+revised before you finish.
 
 --- TRANSCRIPT START ---
 {transcript_block}
 --- TRANSCRIPT END ---"""
+
+_MIN_CITATIONS_PER_VIDEO = 3
 
 
 def _format_timestamp(seconds: int) -> str:
@@ -59,7 +74,10 @@ def build_synthesis_prompt(
             timestamp = _format_timestamp(seconds)
             url = _timestamp_url(video.url, seconds)
             lines.append(f"[{label} @ {timestamp}]({url}): {segment.text.strip()}")
-    return _PROMPT_TEMPLATE.format(group_title=group_title, transcript_block="\n".join(lines))
+    min_citations = max(_MIN_CITATIONS_PER_VIDEO, _MIN_CITATIONS_PER_VIDEO * len(member_video_ids))
+    return _PROMPT_TEMPLATE.format(
+        group_title=group_title, transcript_block="\n".join(lines), min_citations=min_citations,
+    )
 
 
 def synthesize_group_note(
