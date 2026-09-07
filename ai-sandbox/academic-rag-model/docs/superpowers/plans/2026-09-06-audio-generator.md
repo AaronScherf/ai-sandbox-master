@@ -2,11 +2,19 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
+**Status (2026-09-07):** Tasks 1-5 below are complete and shipped (commits
+`d3adf7a`, `834a528`, `89ce42b`, `2b064a3`, `e3822c1`, `7cccb14`, all on
+`main`, pushed to `origin`) — kept here as the historical record of v1.
+**Task 6 onward is new work** for the spec's LLM-based LaTeX narration
+revision (§3.1), added after real-corpus testing showed v1's regex
+`Equation: <raw LaTeX>` wrap passes literal, unpronounceable LaTeX command
+syntax straight through on real equation-dense notes.
+
 **Goal:** Build `audio_generator/`, a subproject that converts a course's Markdown notes and converted textbooks into local, offline-playable MP3 narration, writing each `.mp3` as a sibling of its source `.md` in the hub so a student's own sync tooling picks it up for passive/commute listening.
 
-**Architecture:** Four independent modules feeding one orchestrator: `cleaner.py` (Markdown → narration-ready prose), `discovery.py` (finds source `.md` files across the `notes`/`textbook` content types), `state.py` (SHA-256 content-hash idempotency, so a re-run only regenerates what changed), and `engine.py` (Piper primary / Kokoro-ONNX secondary TTS, converted to MP3 via pydub+ffmpeg). `pipeline.py` ties these together and is both the library entry point (`run_pipeline()`) and the CLI (`main()`), matching `video_notes/pipeline.py`'s convention rather than the spec's separate `cli.py` sketch — this project's actual most-recent precedent keeps CLI parsing in the same file as orchestration, and `discovery.py`/`state.py` are split out the same way `video_notes/pipeline_state.py` is split from `video_notes/pipeline.py`, rather than folded into one large `pipeline.py`. `discovery.py` yields one `SourceFile` per source `.md` (never per-chapter), so a later chapter-aware pipeline (explicitly deferred, not part of this plan) only has to change what `state.py` tracks and how many `.mp3`s get written per source — not how sources are found.
+**Architecture:** Four independent modules feeding one orchestrator: `cleaner.py` (Markdown → narration-ready prose), `discovery.py` (finds source `.md` files across the `notes`/`textbook` content types), `state.py` (SHA-256 content-hash idempotency, so a re-run only regenerates what changed), and `engine.py` (Piper primary / Kokoro-ONNX secondary TTS, converted to MP3 via pydub+ffmpeg). `pipeline.py` ties these together and is both the library entry point (`run_pipeline()`) and the CLI (`main()`), matching `video_notes/pipeline.py`'s convention rather than the spec's separate `cli.py` sketch — this project's actual most-recent precedent keeps CLI parsing in the same file as orchestration, and `discovery.py`/`state.py` are split out the same way `video_notes/pipeline_state.py` is split from `video_notes/pipeline.py`, rather than folded into one large `pipeline.py`. `discovery.py` yields one `SourceFile` per source `.md` (never per-chapter), so a later chapter-aware pipeline (explicitly deferred, not part of this plan) only has to change what `state.py` tracks and how many `.mp3`s get written per source — not how sources are found. **Revision (Task 6+):** a fifth module, `narrate.py`, runs *before* `cleaner.py` on the raw `.md`, chunking it and rewriting LaTeX math into natural language via a local Ollama call (`common/ollama_utils.py`, already shared by `viz/`/`problem_gen/`) — deliberately with zero dependency on `cleaner.py` in either direction (§3.1's design rationale below), so `cleaner.py` needs no code or test changes at all. A chunk `narrate.py` can't successfully rewrite is returned unmodified, and `cleaner.py`'s existing (unchanged) regex wrap catches whatever raw LaTeX survives downstream — the pre-revision behavior, now reached only by narration failures instead of every equation.
 
-**Tech Stack:** Python 3, `unittest` + `unittest.mock` (this project's existing test stack, run via `pytest` or `python -m unittest`), `markdown` + `beautifulsoup4` (new deps, Markdown→prose), `piper-tts` (new dep, default TTS engine), `kokoro-onnx` + `soundfile` (new deps, secondary TTS engine), `pydub` (new dep, WAV→MP3, requires `ffmpeg` on `PATH`).
+**Tech Stack:** Python 3, `unittest` + `unittest.mock` (this project's existing test stack, run via `pytest` or `python -m unittest`), `markdown` + `beautifulsoup4` (new deps, Markdown→prose), `piper-tts` (new dep, default TTS engine), `kokoro-onnx` + `soundfile` (new deps, secondary TTS engine), `pydub` (new dep, WAV→MP3, requires `ffmpeg` on `PATH`). **Revision (Task 6+):** no new dependencies — `narrate.py` only needs `common/ollama_utils.py`, already installed.
 
 **Spec:** `docs/superpowers/specs/2026-09-06-audio-generator-design.md`
 
@@ -25,6 +33,17 @@
 - A textbook's `.rag.md` sibling (confirmed present alongside every real `<name>.md` under `processed_outputs/<book>/`, e.g. `Axler_Linear_Algebra_Done_Right_2026.rag.md`) must never be picked up as a second source file.
 - Tests mirror the project's existing flat `tests/` convention (package-qualified imports via the root `conftest.py`) and mock every external boundary — no real Piper/Kokoro model files, no real `ffmpeg` invocation, no real network access in tests (spec §8).
 - Two module names collide with existing subprojects' own generically-named modules in the flat `tests/` directory: `discovery.py` (`journal_discovery` already has one, tested by `tests/test_discovery.py`) and `pipeline.py` (`video_notes` already has one, tested by `tests/test_pipeline.py`). This was caught during execution after `tests/test_discovery.py` was accidentally overwritten and had to be restored from git history — the corrected, disambiguated names used throughout this plan are `tests/test_audio_generator_discovery.py` and `tests/test_audio_generator_pipeline.py`.
+
+**Revision constraints (Task 6+, spec §3.1):**
+- `narrate.py` does not import from `cleaner.py`, and `cleaner.py` is not modified — zero code or test changes to `cleaner.py` in this revision. Confirmed before writing any code: no `tests/test_narrate.py` already exists in this repo (unlike `discovery.py`/`pipeline.py` above), but this revision still uses the same disambiguated-naming convention for consistency: `tests/test_audio_generator_narrate.py`.
+- `pipeline.py` calls `narrate.narrate_for_speech(md_text)` **first**, on the raw `.md`, then feeds its output into the existing `cleaner.clean_markdown_for_speech()` exactly as before — this specific order is required; the reverse would let `cleaner.py`'s own LaTeX regex mangle the text before `narrate.py` ever saw it.
+- Retry semantics follow `common/ollama_utils.py`'s own `OllamaTimeout` docstring exactly: `call_ollama` returning `None` (server unreachable) never retries — an immediate second call cannot succeed either — and returns that chunk's original text unmodified right away. `call_ollama` returning `OLLAMA_TIMEOUT` (slow-but-alive), or a real response that fails the length-ratio sanity check, retries exactly once; if the retry also fails, return the chunk's original text unmodified. `narrate.py` never invents its own fallback text.
+- `call_ollama`'s real signature (verified against `common/ollama_utils.py` and its real call sites in `video_notes/synthesize.py:86`, `problem_gen/llm_gen.py:230`, `viz/llm_fallback.py:267`): `call_ollama(prompt: str, model: str, request_timeout: int, url: str = OLLAMA_URL, num_ctx: int | None = None) -> str | None | OllamaTimeout`, called positionally as `call_ollama(prompt, model, request_timeout)`.
+- A fenced code block is never split internally and never sent to the LLM at all — `narrate.py` runs before `cleaner.py` has stripped code blocks, and dropping a code sample into a "rewrite as spoken prose" prompt would only confuse the model.
+- The fully-cleaned narration text — `narrate_for_speech()`'s output *after* it has already been through `cleaner.clean_markdown_for_speech()`, i.e. exactly what gets handed to `engine.synthesize_speech()` — is written to a new sibling `<name>.narrated.md`, gated by the exact same source-content-hash check that already gates `<name>.mp3`. No new caching schema.
+- `discovery.py`'s `_is_real_md_file()` must exclude `*.narrated.md` in addition to the existing `*.rag.md` exclusion, or the next pipeline run would rediscover it as a new source file.
+- Model default `qwen2-math:7b` (math-specialized, matching `problem_gen`'s own choice), overridable via `AUDIOGEN_NARRATE_OLLAMA_MODEL` — same override pattern as `PROBLEMGEN_OLLAMA_MODEL`/`VIDEONOTES_OLLAMA_MODEL`. Timeout default follows `video_notes`'s env-var-overridable-constant pattern (`VIDEONOTES_OLLAMA_TIMEOUT_SECONDS`), not `problem_gen`'s/`viz`'s hardcoded constants, since per-chunk CPU timing here is a genuinely unmeasured unknown (Task 8's manual verification step) that may need real-world tuning without a code change.
+- No real Ollama calls in tests — `call_ollama` is mocked throughout, matching this project's established testing philosophy (spec §8).
 
 ---
 
@@ -1160,6 +1179,653 @@ pending work without requiring TTS model files or ffmpeg.
 
 Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_01N77F8Q3KtxtyKjUu7rtud7
+EOF
+)"
+```
+
+---
+
+## Revision: LLM-based LaTeX narration (spec §3.1)
+
+Real-corpus testing against `academic_notes/math-camp/ta_notes/processed_outputs/LN_Probability.md`
+(997 `$`-delimited spans) showed Task 1's regex `Equation: <raw LaTeX>` wrap
+— validated only against the brainstorm's trivial `$$x^2+y^2=z^2$$` example —
+passes literal, unpronounceable LaTeX command syntax straight through, e.g.
+`\mathbb{E}[X] = \sum_{x} x \mathbb{P}(X = x)` read verbatim. Tasks 6-8 below
+replace that step with a chunked, LLM-based rewrite. See the Global
+Constraints' "Revision constraints (Task 6+)" section above for the design
+rules every task here follows.
+
+### Task 6: `narrate.py` — chunked LLM-based LaTeX narration
+
+**Files:**
+- Create: `audio_generator/narrate.py`
+- Test: `tests/test_audio_generator_narrate.py`
+
+**Interfaces:**
+- Consumes: `common.ollama_utils.call_ollama(prompt: str, model: str, request_timeout: int) -> str | None | OllamaTimeout`, `common.ollama_utils.OLLAMA_TIMEOUT`.
+- Produces: `narrate_for_speech(md_text: str) -> str`. Task 8 (`pipeline.py`) calls this first, before `cleaner.clean_markdown_for_speech()`.
+
+- [ ] **Step 1: Write the failing tests**
+
+Create `tests/test_audio_generator_narrate.py`:
+
+```python
+import unittest
+from unittest.mock import patch
+
+from common.ollama_utils import OLLAMA_TIMEOUT
+
+from audio_generator.narrate import narrate_for_speech
+
+_LONG_PARAGRAPH_A = "Consider the random variable X. " * 60  # ~2000 chars
+_LONG_PARAGRAPH_B = "Its expectation is written as follows. " * 60  # ~2400 chars
+
+
+class TestNarrateForSpeechChunking(unittest.TestCase):
+    @patch("audio_generator.narrate.call_ollama")
+    def test_calls_ollama_once_per_paragraph_when_short(self, mock_call):
+        mock_call.return_value = "A rewritten sentence long enough to pass the sanity check easily here."
+        md_text = "First short paragraph.\n\nSecond short paragraph."
+        narrate_for_speech(md_text)
+        self.assertEqual(mock_call.call_count, 1)  # both paragraphs fit in one ~2-3K chunk together
+
+    @patch("audio_generator.narrate.call_ollama")
+    def test_splits_into_multiple_chunks_when_content_is_large(self, mock_call):
+        mock_call.return_value = "A rewritten passage, long enough to pass the sanity check easily. " * 30
+        md_text = f"{_LONG_PARAGRAPH_A}\n\n{_LONG_PARAGRAPH_B}\n\n{_LONG_PARAGRAPH_A}"
+        narrate_for_speech(md_text)
+        self.assertGreater(mock_call.call_count, 1)
+
+    @patch("audio_generator.narrate.call_ollama")
+    def test_never_sends_a_code_block_to_the_llm(self, mock_call):
+        mock_call.return_value = None  # doesn't matter -- assert it's never called with code content
+        md_text = "Before the code.\n\n```python\nprint('should never reach the LLM')\n```\n\nAfter the code."
+        result = narrate_for_speech(md_text)
+        for call_args in mock_call.call_args_list:
+            self.assertNotIn("print(", call_args[0][0])
+        self.assertIn("print('should never reach the LLM')", result)  # passed through untouched
+
+
+class TestNarrateForSpeechRetryAndFallback(unittest.TestCase):
+    @patch("audio_generator.narrate.call_ollama")
+    def test_successful_rewrite_is_used(self, mock_call):
+        mock_call.return_value = "The expected value of X is written as follows, a nice long rewrite."
+        result = narrate_for_speech("Short original text with $E[X]$ in it.")
+        self.assertEqual(result, mock_call.return_value)
+        self.assertEqual(mock_call.call_count, 1)
+
+    @patch("audio_generator.narrate.call_ollama")
+    def test_none_response_falls_back_immediately_with_no_retry(self, mock_call):
+        mock_call.return_value = None
+        original = "Some original text with $E[X]$ that the LLM can't reach."
+        result = narrate_for_speech(original)
+        self.assertEqual(result, original)
+        self.assertEqual(mock_call.call_count, 1)  # no retry against an unreachable server
+
+    @patch("audio_generator.narrate.call_ollama")
+    def test_timeout_retries_once_then_succeeds(self, mock_call):
+        mock_call.side_effect = [OLLAMA_TIMEOUT, "The rewritten version, long enough to pass the sanity check."]
+        result = narrate_for_speech("Some original text with $E[X]$ in it, long enough for a ratio check.")
+        self.assertEqual(result, "The rewritten version, long enough to pass the sanity check.")
+        self.assertEqual(mock_call.call_count, 2)
+
+    @patch("audio_generator.narrate.call_ollama")
+    def test_timeout_retries_once_then_falls_back(self, mock_call):
+        mock_call.side_effect = [OLLAMA_TIMEOUT, OLLAMA_TIMEOUT]
+        original = "Some original text with $E[X]$ that keeps timing out on every attempt made."
+        result = narrate_for_speech(original)
+        self.assertEqual(result, original)
+        self.assertEqual(mock_call.call_count, 2)
+
+    @patch("audio_generator.narrate.call_ollama")
+    def test_too_short_response_retries_once_then_falls_back(self, mock_call):
+        original = "A" * 200  # long original
+        mock_call.side_effect = ["no", "no"]  # both far too short relative to `original`
+        result = narrate_for_speech(original)
+        self.assertEqual(result, original)
+        self.assertEqual(mock_call.call_count, 2)
+
+    @patch("audio_generator.narrate.call_ollama")
+    def test_too_short_response_retries_once_then_succeeds(self, mock_call):
+        original = "A" * 200
+        mock_call.side_effect = ["no", "B" * 150]  # second attempt passes the ratio check
+        result = narrate_for_speech(original)
+        self.assertEqual(result, "B" * 150)
+        self.assertEqual(mock_call.call_count, 2)
+```
+
+- [ ] **Step 2: Run the tests to verify they fail**
+
+Run: `python -m pytest tests/test_audio_generator_narrate.py -v`
+Expected: FAIL with `ModuleNotFoundError: No module named 'audio_generator.narrate'`
+
+- [ ] **Step 3: Implement `narrate.py`**
+
+Create `audio_generator/narrate.py`:
+
+```python
+"""
+narrate.py
+Chunked, holistic LaTeX-to-narration rewrite via a local LLM, running
+before cleaner.py on the raw .md (spec §3.1). Deliberately has zero
+dependency on cleaner.py in either direction: a chunk this module can't
+successfully rewrite is returned unmodified, and cleaner.py's existing
+(unchanged) regex wrap catches whatever raw LaTeX survives downstream.
+"""
+from __future__ import annotations
+
+import os
+import re
+
+from common.ollama_utils import OLLAMA_TIMEOUT, call_ollama
+
+AUDIOGEN_NARRATE_OLLAMA_MODEL = os.environ.get("AUDIOGEN_NARRATE_OLLAMA_MODEL", "qwen2-math:7b")
+AUDIOGEN_NARRATE_OLLAMA_TIMEOUT_SECONDS = int(os.environ.get("AUDIOGEN_NARRATE_OLLAMA_TIMEOUT", "300"))
+
+_CODE_BLOCK_PATTERN = re.compile(r"```[\s\S]*?```")
+_PARAGRAPH_SPLIT_PATTERN = re.compile(r"\n\s*\n")
+_CHUNK_TARGET_SIZE = 2500
+_MIN_LENGTH_RATIO = 0.5
+
+_PROMPT_TEMPLATE = """Rewrite this passage as natural spoken prose for audio narration. \
+Describe mathematical notation in words rather than symbols. Do not omit or summarize any \
+content -- rewrite every sentence, changing only how notation is expressed.
+
+--- PASSAGE START ---
+{chunk}
+--- PASSAGE END ---"""
+
+
+def _split_into_pieces(md_text: str) -> list[str]:
+    """Splits on paragraph boundaries, treating a fenced code block as one
+    atomic piece regardless of blank lines inside it (spec §3.1)."""
+    pieces = []
+    pos = 0
+    for match in _CODE_BLOCK_PATTERN.finditer(md_text):
+        before = md_text[pos:match.start()]
+        pieces.extend(p for p in _PARAGRAPH_SPLIT_PATTERN.split(before) if p.strip())
+        pieces.append(match.group())
+        pos = match.end()
+    pieces.extend(p for p in _PARAGRAPH_SPLIT_PATTERN.split(md_text[pos:]) if p.strip())
+    return pieces
+
+
+def _group_into_chunks(pieces: list[str]) -> list[str]:
+    """Groups paragraph pieces into ~_CHUNK_TARGET_SIZE-character chunks.
+    A code-block piece is never merged with anything else -- it always
+    becomes its own chunk (spec §3.1)."""
+    chunks: list[str] = []
+    current: list[str] = []
+    current_len = 0
+    for piece in pieces:
+        if _CODE_BLOCK_PATTERN.fullmatch(piece):
+            if current:
+                chunks.append("\n\n".join(current))
+                current, current_len = [], 0
+            chunks.append(piece)
+            continue
+        if current and current_len + len(piece) > _CHUNK_TARGET_SIZE:
+            chunks.append("\n\n".join(current))
+            current, current_len = [], 0
+        current.append(piece)
+        current_len += len(piece)
+    if current:
+        chunks.append("\n\n".join(current))
+    return chunks
+
+
+def _passes_sanity_check(original: str, rewritten) -> bool:
+    """Cheap proxy for 'did the model drop/summarize content' (spec §3.1,
+    §9 -- exact ratio flagged as needing real tuning, not a validated
+    constant)."""
+    if not isinstance(rewritten, str) or not rewritten.strip():
+        return False
+    return len(rewritten) >= _MIN_LENGTH_RATIO * len(original)
+
+
+def _narrate_chunk(chunk: str) -> str:
+    """Rewrites one chunk via the local LLM. Never raises; returns the
+    chunk's original, unmodified text on any failure that survives a
+    retry (spec §3.1) -- this module never invents its own fallback text."""
+    prompt = _PROMPT_TEMPLATE.format(chunk=chunk)
+    for _attempt in range(2):
+        result = call_ollama(prompt, AUDIOGEN_NARRATE_OLLAMA_MODEL, AUDIOGEN_NARRATE_OLLAMA_TIMEOUT_SECONDS)
+        if result is None:
+            return chunk  # server unreachable -- not worth retrying
+        if result is not OLLAMA_TIMEOUT and _passes_sanity_check(chunk, result):
+            return result
+        # OLLAMA_TIMEOUT, or a real response that failed the sanity check -- retry once
+    return chunk
+
+
+def narrate_for_speech(md_text: str) -> str:
+    """Entry point pipeline.py calls first, on raw .md text, before
+    cleaner.clean_markdown_for_speech() (spec §3.1)."""
+    chunks = _group_into_chunks(_split_into_pieces(md_text))
+    narrated = [
+        chunk if _CODE_BLOCK_PATTERN.fullmatch(chunk) else _narrate_chunk(chunk)
+        for chunk in chunks
+    ]
+    return "\n\n".join(narrated)
+```
+
+- [ ] **Step 4: Run the tests to verify they pass**
+
+Run: `python -m pytest tests/test_audio_generator_narrate.py -v`
+Expected: PASS (9 tests)
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add audio_generator/narrate.py tests/test_audio_generator_narrate.py
+git commit -m "$(cat <<'EOF'
+feat(audio_generator): add chunked LLM-based LaTeX narration
+
+Real-corpus testing (LN_Probability.md, 997 LaTeX spans) showed the
+regex Equation-wrap step passes raw, unpronounceable LaTeX command
+syntax straight through. narrate_for_speech() chunks raw .md on paragraph
+boundaries (never through a fenced code block, never sent to the LLM),
+rewrites each chunk via a local Ollama call, and falls back to that
+chunk's original text on any failure a retry doesn't resolve -- zero
+dependency on cleaner.py in either direction; its existing regex wrap
+catches whatever raw LaTeX survives downstream.
+
+Retry semantics follow common/ollama_utils.py's own OllamaTimeout
+docstring: None (server unreachable) never retries, OLLAMA_TIMEOUT
+(slow-but-alive) retries once, matching problem_gen's established
+pattern.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_012utPaFRMX7eLAtcGdRJhcE
+EOF
+)"
+```
+
+---
+
+### Task 7: `discovery.py` — exclude the new `.narrated.md` sibling
+
+**Files:**
+- Modify: `audio_generator/discovery.py:33-38` (`_is_real_md_file`)
+- Test: `tests/test_audio_generator_discovery.py`
+
+**Interfaces:**
+- Consumes: nothing new.
+- Produces: no change to `discover_source_files`'s signature or behavior for existing content — only narrows what counts as a real source `.md`.
+
+- [ ] **Step 1: Write the failing test**
+
+In `tests/test_audio_generator_discovery.py`, add this test method to the
+existing `TestDiscoverNotes` class (alongside `test_ignores_non_md_sidecar_files`):
+
+```python
+    def test_excludes_the_narrated_md_sibling(self):
+        with tempfile.TemporaryDirectory() as hub:
+            _touch(os.path.join(hub, "academic_notes", "math-camp", "lecture-notes", "real-analysis.md"))
+            _touch(os.path.join(hub, "academic_notes", "math-camp", "lecture-notes", "real-analysis.narrated.md"))
+            sources = discover_source_files(hub, "math-camp", ["notes"])
+            self.assertEqual(len(sources), 1)
+            self.assertTrue(sources[0].rel_md_path.endswith("real-analysis.md"))
+            self.assertFalse(sources[0].rel_md_path.endswith(".narrated.md"))
+```
+
+- [ ] **Step 2: Run the test to verify it fails**
+
+Run: `python -m pytest tests/test_audio_generator_discovery.py -v -k narrated`
+Expected: FAIL — `real-analysis.narrated.md` is currently discovered as a second source, so `len(sources)` is 2, not 1.
+
+- [ ] **Step 3: Fix `_is_real_md_file`**
+
+In `audio_generator/discovery.py`, change:
+
+```python
+def _is_real_md_file(name: str) -> bool:
+    """True for a real source .md -- excludes the textbook pipeline's
+    `.rag.md` sibling variant (a separate, differently-formatted file that
+    happens to also end in ".md")."""
+    lower = name.lower()
+    return lower.endswith(".md") and not lower.endswith(".rag.md")
+```
+
+to:
+
+```python
+def _is_real_md_file(name: str) -> bool:
+    """True for a real source .md -- excludes both the textbook pipeline's
+    `.rag.md` sibling variant and audio_generator's own `.narrated.md`
+    sibling (spec §3.1), each a separate, differently-formatted file that
+    happens to also end in ".md"."""
+    lower = name.lower()
+    return lower.endswith(".md") and not lower.endswith((".rag.md", ".narrated.md"))
+```
+
+- [ ] **Step 4: Run the full discovery test suite to verify everything passes**
+
+Run: `python -m pytest tests/test_audio_generator_discovery.py -v`
+Expected: PASS (10 tests — the 9 already shipped, plus this new one)
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add audio_generator/discovery.py tests/test_audio_generator_discovery.py
+git commit -m "$(cat <<'EOF'
+fix(audio_generator): exclude .narrated.md from source discovery
+
+Task 8 will write <name>.narrated.md as a sibling of every processed
+source .md (spec §3.1). Without this exclusion, the next pipeline run
+would discover that sibling as a brand-new source .md and generate audio
+from it too -- the same class of bug the existing .rag.md exclusion
+already guards against for the textbook pipeline.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_012utPaFRMX7eLAtcGdRJhcE
+EOF
+)"
+```
+
+---
+
+### Task 8: `pipeline.py` integration, README, and real CPU-timing measurement
+
+**Files:**
+- Modify: `audio_generator/pipeline.py`
+- Modify: `audio_generator/README.md`
+- Modify: `tests/test_audio_generator_pipeline.py`
+
+**Interfaces:**
+- Consumes: `narrate.narrate_for_speech(md_text: str) -> str` (Task 6).
+- Produces: `run_pipeline()`'s existing signature is unchanged; it now also writes `<name>.narrated.md` as a sibling of `<name>.mp3` whenever it (re)generates audio.
+
+- [ ] **Step 1: Update the existing tests to mock the new call, then add new coverage**
+
+Replace `tests/test_audio_generator_pipeline.py` in full:
+
+```python
+import os
+import tempfile
+import unittest
+from unittest.mock import patch
+
+from audio_generator.discovery import SourceFile
+from audio_generator.pipeline import run_pipeline
+from audio_generator.state import load_state
+
+
+def _make_source(hub: str, rel_md: str = "academic_notes/math-camp/lecture-notes/a.md", content: str = "hello world") -> SourceFile:
+    abs_md = os.path.join(hub, rel_md.replace("/", os.sep))
+    os.makedirs(os.path.dirname(abs_md), exist_ok=True)
+    with open(abs_md, "w", encoding="utf-8") as f:
+        f.write(content)
+    return SourceFile(
+        course="math-camp", content_type="notes",
+        rel_md_path=rel_md, abs_md_path=abs_md,
+        rel_mp3_path=rel_md[:-3] + ".mp3", abs_mp3_path=abs_md[:-3] + ".mp3",
+    )
+
+
+class TestRunPipeline(unittest.TestCase):
+    @patch("audio_generator.pipeline.synthesize_speech")
+    @patch("audio_generator.pipeline.narrate_for_speech", side_effect=lambda text: text)
+    @patch("audio_generator.pipeline.discover_source_files")
+    def test_generates_audio_for_a_new_source(self, mock_discover, mock_narrate, mock_synthesize):
+        with tempfile.TemporaryDirectory() as hub, tempfile.TemporaryDirectory() as audio_generator_root:
+            source = _make_source(hub)
+            mock_discover.return_value = [source]
+
+            summary = run_pipeline("math-camp", hub, audio_generator_root, ["notes"], engine="piper")
+
+            self.assertEqual(summary["generated"], 1)
+            mock_synthesize.assert_called_once()
+            self.assertEqual(mock_synthesize.call_args[0][1], source.abs_mp3_path)
+            state = load_state(audio_generator_root)
+            self.assertIn(source.rel_md_path, state)
+
+    @patch("audio_generator.pipeline.synthesize_speech")
+    @patch("audio_generator.pipeline.narrate_for_speech", side_effect=lambda text: text)
+    @patch("audio_generator.pipeline.discover_source_files")
+    def test_skips_a_source_whose_mp3_is_already_up_to_date(self, mock_discover, mock_narrate, mock_synthesize):
+        with tempfile.TemporaryDirectory() as hub, tempfile.TemporaryDirectory() as audio_generator_root:
+            source = _make_source(hub)
+            mock_discover.return_value = [source]
+            with open(source.abs_mp3_path, "wb") as f:
+                f.write(b"fake mp3")
+
+            run_pipeline("math-camp", hub, audio_generator_root, ["notes"], engine="piper")
+            mock_synthesize.reset_mock()
+            summary = run_pipeline("math-camp", hub, audio_generator_root, ["notes"], engine="piper")
+
+            self.assertEqual(summary["skipped_unchanged"], 1)
+            mock_synthesize.assert_not_called()
+
+    @patch("audio_generator.pipeline.synthesize_speech")
+    @patch("audio_generator.pipeline.narrate_for_speech", side_effect=lambda text: text)
+    @patch("audio_generator.pipeline.discover_source_files")
+    def test_a_source_with_no_speakable_text_is_skipped_not_failed(self, mock_discover, mock_narrate, mock_synthesize):
+        with tempfile.TemporaryDirectory() as hub, tempfile.TemporaryDirectory() as audio_generator_root:
+            # A bare image reference has no text node for BeautifulSoup's
+            # get_text() to return -- unlike a code block, which cleaner.py
+            # deliberately replaces with a non-empty "[Code snippet
+            # omitted.]" placeholder (see test_cleaner.py).
+            source = _make_source(hub, content="![diagram](img.png)")
+            mock_discover.return_value = [source]
+
+            summary = run_pipeline("math-camp", hub, audio_generator_root, ["notes"], engine="piper")
+
+            self.assertEqual(summary["skipped_empty"], 1)
+            mock_synthesize.assert_not_called()
+
+    @patch("audio_generator.pipeline.synthesize_speech", side_effect=RuntimeError("engine crashed"))
+    @patch("audio_generator.pipeline.narrate_for_speech", side_effect=lambda text: text)
+    @patch("audio_generator.pipeline.discover_source_files")
+    def test_a_failed_synthesis_is_recorded_and_does_not_raise(self, mock_discover, mock_narrate, mock_synthesize):
+        with tempfile.TemporaryDirectory() as hub, tempfile.TemporaryDirectory() as audio_generator_root:
+            source = _make_source(hub)
+            mock_discover.return_value = [source]
+
+            summary = run_pipeline("math-camp", hub, audio_generator_root, ["notes"], engine="piper")
+
+            self.assertEqual(summary["failed"], 1)
+            state = load_state(audio_generator_root)
+            self.assertNotIn(source.rel_md_path, state)
+            self.assertFalse(os.path.exists(source.abs_md_path[:-3] + ".narrated.md"))
+
+    @patch("audio_generator.pipeline.synthesize_speech")
+    @patch("audio_generator.pipeline.narrate_for_speech", side_effect=lambda text: text)
+    @patch("audio_generator.pipeline.discover_source_files")
+    def test_a_changed_source_is_regenerated(self, mock_discover, mock_narrate, mock_synthesize):
+        with tempfile.TemporaryDirectory() as hub, tempfile.TemporaryDirectory() as audio_generator_root:
+            source = _make_source(hub, content="version one")
+            mock_discover.return_value = [source]
+            run_pipeline("math-camp", hub, audio_generator_root, ["notes"], engine="piper")
+
+            with open(source.abs_mp3_path, "wb") as f:
+                f.write(b"fake mp3")
+            with open(source.abs_md_path, "w", encoding="utf-8") as f:
+                f.write("version two, changed")
+            mock_synthesize.reset_mock()
+
+            summary = run_pipeline("math-camp", hub, audio_generator_root, ["notes"], engine="piper")
+            self.assertEqual(summary["generated"], 1)
+            mock_synthesize.assert_called_once()
+
+    @patch("audio_generator.pipeline.synthesize_speech")
+    @patch("audio_generator.pipeline.narrate_for_speech")
+    @patch("audio_generator.pipeline.discover_source_files")
+    def test_narrate_runs_before_clean_and_result_is_written_to_a_sibling_file(
+        self, mock_discover, mock_narrate, mock_synthesize,
+    ):
+        mock_narrate.return_value = "# Heading\n\nThe expected value of X is three."
+        with tempfile.TemporaryDirectory() as hub, tempfile.TemporaryDirectory() as audio_generator_root:
+            source = _make_source(hub, content="Some raw markdown with $E[X]$ in it.")
+            mock_discover.return_value = [source]
+
+            run_pipeline("math-camp", hub, audio_generator_root, ["notes"], engine="piper")
+
+            mock_narrate.assert_called_once_with("Some raw markdown with $E[X]$ in it.")
+            narrated_path = source.abs_md_path[:-3] + ".narrated.md"
+            self.assertTrue(os.path.exists(narrated_path))
+            with open(narrated_path, "r", encoding="utf-8") as f:
+                written = f.read()
+            # The written file is cleaner.py's output (markup stripped),
+            # not narrate.py's raw markdown-with-heading return value --
+            # confirms clean_markdown_for_speech() ran on narrate.py's
+            # output, in that order (spec §3.1).
+            self.assertNotIn("#", written)
+            self.assertIn("The expected value of X is three.", written)
+            self.assertEqual(mock_synthesize.call_args[0][0], written)
+```
+
+- [ ] **Step 2: Run the tests to verify the new/changed ones fail as expected**
+
+Run: `python -m pytest tests/test_audio_generator_pipeline.py -v`
+Expected: the 5 pre-existing tests FAIL with
+`AttributeError: <module 'audio_generator.pipeline'> does not have the attribute 'narrate_for_speech'`
+(the `@patch` target doesn't exist yet); the new
+`test_narrate_runs_before_clean_and_result_is_written_to_a_sibling_file`
+fails the same way.
+
+- [ ] **Step 3: Integrate `narrate_for_speech` into `run_pipeline`**
+
+In `audio_generator/pipeline.py`, add the import and a small path helper,
+and update `run_pipeline`:
+
+```python
+from audio_generator.cleaner import clean_markdown_for_speech
+from audio_generator.discovery import CONTENT_TYPES, discover_source_files
+from audio_generator.engine import ENGINES, synthesize_speech
+from audio_generator.narrate import narrate_for_speech
+from audio_generator.state import compute_content_hash, load_state, needs_regeneration, save_state
+
+DEFAULT_ACADEMIC_HUB_ROOT = "../academic-hub"
+
+
+def _narrated_md_path(abs_md_path: str) -> str:
+    base, _ext = os.path.splitext(abs_md_path)
+    return f"{base}.narrated.md"
+
+
+def run_pipeline(
+    course: str, academic_hub_root: str, audio_generator_root: str, content_types: list, engine: str = "piper",
+) -> dict:
+    sources = discover_source_files(academic_hub_root, course, content_types)
+    state = load_state(audio_generator_root)
+    summary = {"generated": 0, "skipped_unchanged": 0, "skipped_empty": 0, "failed": 0}
+
+    for source in sources:
+        current_hash = compute_content_hash(source.abs_md_path)
+        if not needs_regeneration(state, source, current_hash):
+            summary["skipped_unchanged"] += 1
+            continue
+
+        with open(source.abs_md_path, "r", encoding="utf-8") as f:
+            md_text = f.read()
+        narrated_md = narrate_for_speech(md_text)
+        text = clean_markdown_for_speech(narrated_md)
+        if not text:
+            print(f"WARNING: {source.rel_md_path} has no speakable text after cleaning -- skipping.")
+            summary["skipped_empty"] += 1
+            continue
+
+        try:
+            synthesize_speech(text, source.abs_mp3_path, engine=engine)
+        except Exception as err:
+            print(f"WARNING: failed to synthesize {source.rel_md_path}: {err}")
+            summary["failed"] += 1
+            continue
+
+        with open(_narrated_md_path(source.abs_md_path), "w", encoding="utf-8") as f:
+            f.write(text)
+
+        state[source.rel_md_path] = current_hash
+        summary["generated"] += 1
+
+    save_state(audio_generator_root, state)
+    return summary
+```
+
+(`main()` below `run_pipeline` in this file is unchanged — it already
+just calls `run_pipeline()` and doesn't need to know about `narrate.py`.)
+
+- [ ] **Step 4: Run the tests to verify they pass**
+
+Run: `python -m pytest tests/test_audio_generator_pipeline.py -v`
+Expected: PASS (6 tests)
+
+- [ ] **Step 5: Update the README**
+
+In `audio_generator/README.md`, add a new subsection after `## Setup` (before
+`## Non-goals`):
+
+```markdown
+## LaTeX narration
+
+Math notation (`$...$`/`$$...$$`) is rewritten into natural spoken prose by
+a local Ollama call before synthesis (`qwen2-math:7b` by default), chunked
+per-file. Requires `ollama serve` running with that model pulled
+(`ollama pull qwen2-math:7b`) for full-quality narration; if Ollama is
+unreachable, or a chunk's rewrite fails a sanity check twice, that chunk
+degrades to the old literal-LaTeX-wrapped narration instead of failing the
+file.
+
+The final narration text (after all cleaning) is written to a sibling
+`<name>.narrated.md` next to `<name>.md`/`<name>.mp3` — useful for spot-
+checking translation quality without listening to the audio.
+
+Override the model or its per-chunk timeout via `AUDIOGEN_NARRATE_OLLAMA_MODEL`
+/ `AUDIOGEN_NARRATE_OLLAMA_TIMEOUT` (seconds, default `300`).
+```
+
+- [ ] **Step 6: Measure real CPU timing against the actual equation-dense file (spec §9's flagged unknown)**
+
+This spec explicitly flags per-chunk CPU timing as unmeasured, not
+guessed — measure it for real rather than assuming a number. Requires
+`ollama serve` running with `qwen2-math:7b` pulled:
+
+```bash
+ollama pull qwen2-math:7b   # skip if already pulled
+```
+
+```python
+# Run via: ./.venv/Scripts/python.exe -c "<paste below>"
+import time
+
+from audio_generator.narrate import narrate_for_speech
+
+with open("../academic-hub/academic_notes/math-camp/ta_notes/processed_outputs/LN_Probability.md", "r", encoding="utf-8") as f:
+    md_text = f.read()
+
+start = time.monotonic()
+result = narrate_for_speech(md_text)
+elapsed = time.monotonic() - start
+print(f"Input: {len(md_text)} chars. Output: {len(result)} chars. Elapsed: {elapsed:.1f}s ({elapsed / 60:.1f} min).")
+```
+
+Expected: completes and prints real elapsed time (no target to hit — this
+is a measurement, not a pass/fail check). Report the actual number
+observed; if it's impractically slow for a full-course batch (many files
+this size), note that as a real, now-measured constraint rather than
+leaving it a guess — this is exactly the kind of finding this project's
+other subprojects (`problem_gen`, `video_notes`) have recorded in their own
+status docs after their own first real timing runs, not a blocker to fix
+in this same task.
+
+- [ ] **Step 7: Commit**
+
+```bash
+git add audio_generator/pipeline.py audio_generator/README.md tests/test_audio_generator_pipeline.py
+git commit -m "$(cat <<'EOF'
+feat(audio_generator): wire LLM-based LaTeX narration into the pipeline
+
+run_pipeline() now calls narrate_for_speech() on the raw .md before
+clean_markdown_for_speech(), and writes the final (post-cleaning)
+narration text to a new <name>.narrated.md sibling -- gated by the same
+content-hash check that already gates <name>.mp3, no new caching schema.
+README documents the new env var overrides and the Ollama-unreachable
+degrade-gracefully behavior.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_012utPaFRMX7eLAtcGdRJhcE
 EOF
 )"
 ```
