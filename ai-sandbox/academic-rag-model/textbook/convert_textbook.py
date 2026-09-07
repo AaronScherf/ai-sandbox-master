@@ -957,9 +957,16 @@ def process_one_pdf(converter, raw_input: str, raw_output: str, workspace: str, 
             rel_md_path = (
                 f"{rel_pdf_path.rsplit('/', 1)[0]}/processed_outputs/{folder_name}/{folder_name}.md"
             )
+            # Derived from the PDF's own path rather than hardcoded, so this
+            # never goes stale again if a course's textbook folder gets
+            # renamed (real finding, 2026-09-06: math-camp's was renamed from
+            # "textbooks-and-papers" to "textbooks" on disk while this stayed
+            # hardcoded to the old name, and index_search.py's rebuild()
+            # needed a folder-name-alias workaround to compensate).
+            folder_category = rel_pdf_path.rsplit("/", 2)[-2]
             reconcile_and_write(
                 academic_hub_root, file_id=file_id, path=rel_md_path, source_pdf_path=rel_pdf_path,
-                course=course, folder_category="textbooks-and-papers", content_sample=content_sample,
+                course=course, folder_category=folder_category, content_sample=content_sample,
                 page_count=total_pages, client=index_client,
                 content_hash=compute_content_hash(md_output_path),
             )

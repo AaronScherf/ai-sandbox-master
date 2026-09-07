@@ -48,7 +48,7 @@ You are now operating within the container's interactive bash shell for all subs
 # Path, relative to the academic-hub/ folder mounted into the container
 # (Step 0.1), where input PDFs live and where processed output will be
 # written back to.
-export TEXTBOOK_SUBDIR="academic_resources/math-camp/textbooks-and-papers"
+export TEXTBOOK_SUBDIR="academic_resources/math-camp/textbooks"
 ```
 
 `PDF_FILENAMES` is populated automatically from whatever `.pdf` files sit directly inside `TEXTBOOK_SUBDIR` -- change which books get converted by changing what's in that folder, not by editing a list here. This is what makes running this same pipeline against a new course directory (set `TEXTBOOK_SUBDIR` above, drop that course's PDFs in the folder) a one-line change instead of also needing every filename retyped. `convert_textbook.py` loads Marker's vision models exactly once per invocation and reuses them across every file found, so batching a whole course's books together here is substantially cheaper than converting them one invocation at a time.
@@ -350,7 +350,7 @@ Requires a `GEMINI_API_KEY` in your `.env` (see `.env.example` -- a free key fro
 Batches over every book folder found under `academic-hub/$TEXTBOOK_SUBDIR/processed_outputs/` by default -- reuse the same `$TEXTBOOK_SUBDIR` you set in Step 0.2 for this run.
 
 ```powershell
-$TEXTBOOK_SUBDIR="academic_resources/math-camp/textbooks-and-papers"
+$TEXTBOOK_SUBDIR="academic_resources/math-camp/textbooks"
 
 python -m textbook.describe_images --textbook-subdir $TEXTBOOK_SUBDIR
 ```
