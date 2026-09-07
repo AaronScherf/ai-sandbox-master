@@ -912,7 +912,13 @@ class TestRunPipeline(unittest.TestCase):
     @patch("audio_generator.pipeline.discover_source_files")
     def test_a_source_with_no_speakable_text_is_skipped_not_failed(self, mock_discover, mock_synthesize):
         with tempfile.TemporaryDirectory() as hub, tempfile.TemporaryDirectory() as audio_generator_root:
-            source = _make_source(hub, content="```\ncode only\n```")
+            # A bare image reference has no text node for BeautifulSoup's
+            # get_text() to return -- unlike a code block, which cleaner.py
+            # deliberately replaces with a non-empty "[Code snippet
+            # omitted.]" placeholder (see test_cleaner.py). Caught during
+            # execution: the original fixture here used a code-block-only
+            # source, which never actually produces empty text.
+            source = _make_source(hub, content="![diagram](img.png)")
             mock_discover.return_value = [source]
 
             summary = run_pipeline("math-camp", hub, audio_generator_root, ["notes"], engine="piper")
