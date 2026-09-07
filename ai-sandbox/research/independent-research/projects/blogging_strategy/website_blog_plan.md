@@ -87,3 +87,59 @@ Three different models here — treat them differently rather than one generic "
 
 **Tutoring** — a different revenue stream entirely, selling teaching rather than research output.
 - [Cambridge Coaching](https://cambridgecoaching.com/) — high-end academic tutoring and PhD-application coaching. The pitch here is pedagogy, not research output: the "pedagogy" post type already named in the Methods section above is what's worth pointing them to, not the project posts. Worth a direct application once 2-3 pedagogy-flavored posts exist to demonstrate teaching voice.
+
+## Appendix: Pasted Notes (Columbia Secondary Job Plan)
+
+*Raw notes pasted in from an earlier Gemini conversation, de-duplicated and reformatted but not yet integrated into the sections above.*
+
+### Steps
+
+1. Update LinkedIn.
+2. Announce PhD on LinkedIn.
+3. Update website to viewable level (hide pages not yet populated).
+4. Update GitHub for public viewing.
+5. Connect with Columbia folks on LinkedIn.
+6. Reach out to USAID network.
+7. Start following network on Bluesky and Medium.
+8. Start asking current PhD students about secondary jobs.
+9. Start populating GitHub projects and add to website.
+10. Start Medium, cross-post to LinkedIn and Bluesky.
+
+### Income paths, roughly by $/hour
+
+Given your background, you're sitting on something pretty rare: USAID FSO field experience, an MS in Computer Science, econometrics chops, and a PhD track at Columbia. That combination opens up several NYC-specific paths worth different amounts of your time.
+
+- **Expert networks — best pure hourly rate for minimal time commitment.** GLG (Gerson Lehrman Group) is headquartered in New York, and it, AlphaSights, and Guidepoint all connect subject-matter experts with hedge funds, consultancies, and PE firms for paid one-off calls. Rates typically run $500–$1,500+/hour, and GLG has no official cap — some specialists reportedly charge as much as $5,000/hour. USAID infrastructure/electrical-grid work in Ukraine and development-finance/credit-facilitation experience are exactly the kind of niche, hard-to-source expertise these platforms pay a premium for (investors doing due diligence on Ukraine reconstruction, ag-credit fintechs, USAID-adjacent contractors, etc.). You set your own rate per engagement, and it's genuinely passive — you get pinged when a project matches your profile. Worth registering with GLG and AlphaSights now, even before the income is needed.
+- **High-end test prep / grad-level tutoring.** NYC test prep firms that recruit from Ivy/grad-student pools (Cambridge Coaching, Menlo Coaching, Atlantic GMAT) pay tutors starting around $160/hour, with senior/independent tutors in the city commonly billed at $360/hour and market rates generally clustering around $175–$225/hour for solid GMAT tutors. Berkeley GSI experience teaching Stata and Python is a strong fit not just for GMAT/GRE quant, but specifically for grad-level stats/econometrics/coding tutoring — MPP/MBA/MPA students at Columbia SIPA, NYU Wagner, and local MBA programs regularly need help with regression, causal inference, and Python/R, with far less competition than generic GMAT prep. Cambridge Coaching explicitly recruits from Columbia/Harvard/Yale PhD programs for this.
+- **Development/impact consulting firms with NYC offices.** Dalberg Advisors is the most natural fit — headquartered in New York at 155 W 23rd St, recent clients include the Gates Foundation, the World Bank, the Inter-American Development Bank, UNICEF, and UNEP, spanning climate, financial inclusion, and global health — essentially the USAID portfolio. They also explicitly support consultants who go on to graduate school, so a part-time or project-based arrangement while at Columbia isn't a strange ask. Similar firms to check: IDinsight, Palladium, Zinc Network, NORC-affiliated research consultants — several take on part-time senior advisors for RCT design, M&E, and data work, squarely in-lane given the $1.5M RCT experience.
+- **UN / multilateral individual consultant contracts.** FSO background and multilateral relationships from USAID make for a strong candidate profile for UN Individual Consultant (IC) roles — UNDP, UN DESA, and UNICEF HQ are all NYC-based and regularly post short-term consultancies (a few weeks to a few months) on inspira.un.org and UNDP's jobs site for M&E, budget analysis, or AI/data systems work. These pay well by consulting-day rates and look good on an academic CV pointed toward multilateral/development economics work.
+- **Adjacent to the PhD itself.** Worth asking Columbia directly about: TA/instructor work through SIPA or the Center for Sustainable Development (Jeffrey Sachs' center, which works in exactly this PhD's subject matter), or teaching a Python/data-science lab the way you did at Berkeley — pays less per hour but builds the academic CV and keeps you inside the network the PhD itself needs.
+
+A reasonable portfolio: register with GLG/AlphaSights now (low effort, high $/hr, good while ramping up), pick up a few grad-stats tutoring clients through Cambridge Coaching or word of mouth (steady, decent rate, plays to teaching strength), and pursue one Dalberg or UN IC engagement per semester as the higher-effort, career-aligned piece.
+
+### GitHub portfolio project ideas
+
+To capture the attention of Dalberg Advisors and elite expert networks, the portfolio should showcase complex, multi-country Monitoring & Evaluation (M&E) frameworks translated into code. Since the target is causal econometrics, projects should focus on proving true attribution (did the program cause the change?) rather than simple contribution (did change happen over time?). Three targeted projects integrate Ukraine/Colombia field history, the climate/agriculture focus, and the existing technical stack:
+
+**1. Synthetic Controls for Agricultural Resilience in Ukraine**
+- Problem: measuring the impact of war-torn landscape disruptions or agricultural aid programs on crop yields when traditional control groups are impossible to find.
+- Method: Synthetic Controls or Generalized Synthetic Controls (GSC).
+- Stack: R or Julia (`Synth` or `CausalInference.jl`), paired with JavaScript for Google Earth Engine.
+- Project: use satellite imagery (NDVI/EVI indices) to track crop health across Ukrainian oblasts affected by recent supply-chain or infrastructure disruptions; construct a "Synthetic Ukraine" from pre-disruption data in similar Eastern European agricultural zones; estimate the causal impact of localized agricultural-support interventions on food security and crop-yield resilience.
+- Why it lands: a real-world geopolitical and climate issue, a cutting-edge econometric technique, and unconventional high-frequency spatial data, together.
+
+**2. High-Performance Climate Risk & Crop Allocation Optimization**
+- Problem: farmers in climate-vulnerable zones (e.g., Colombia's coffee and cocoa regions) must adapt to changing rainfall patterns, but traditional simulation software is too slow for complex, dynamic economic constraints.
+- Method: Dynamic Stochastic General Equilibrium (DSGE) or constrained non-linear optimization.
+- Stack: Julia (`JuMP.jl`, `Optim.jl`).
+- Project: build a dynamic structural model simulating a Colombian farmer's crop-switching decisions over a 10-year horizon under escalating climate volatility, parameterized with historical climate data, optimizing land allocation for food security and income stability under budget constraints.
+- Why it lands: validates the advanced math background and Julia proficiency directly — asset managers and ag-trading firms hire Julia-fluent PhDs for proprietary climate-risk algorithms.
+
+**3. LLM-Assisted Causal DAG Generator for M&E**
+- Problem: development projects collect thousands of pages of qualitative evaluation text, but translating that into a rigorous quantitative causal model (a DAG) is manual, slow, and bias-prone.
+- Method: causal discovery from text, combined with generative AI.
+- Stack: Python, Hugging Face Transformers (e.g., Llama/Mistral fine-tunes), OpenAI/Anthropic APIs.
+- Project: ingest unstructured USAID M&E reports from Colombia and Ukraine; use an LLM with structured (JSON-schema) outputs to extract stated causal links (e.g., "irrigation subsidy → increased yield → mitigated migration"); compile extractions into a programmatic causal DAG via NetworkX or CausalGraphicalModels.
+- Why it lands: professional-grade LLM/Hugging Face engineering applied to a structural, academic causal-inference problem rather than a generic chatbot.
+
+**README framing:** lead each repo with an executive-summary table — Business/Policy Mandate, Causal/Math Engine, Data Sources, Primary Skill Proved — so a recruiter or PM can assess fit in seconds.
