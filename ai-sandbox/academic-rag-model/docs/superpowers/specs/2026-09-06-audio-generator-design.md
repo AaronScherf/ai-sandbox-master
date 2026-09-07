@@ -323,6 +323,17 @@ inside their subproject packages, and note the `tests/test_discovery.py`/
   real timing on one real equation-dense file before assuming a full course
   batch is practical to run in one sitting — same "measure before trusting
   at scale" pattern `problem_gen` and `video_notes` both followed.
+  **Attempted 2026-09-07** against the real `LN_Probability.md` on the
+  primary dev machine (16GB RAM total): the run was OOM-killed before
+  completing, not merely slow — with IDEA (~2GB), several Chrome tabs, and
+  Obsidian already open, under ~500MB was free when `qwen2-math:7b`
+  (a 4.4GB model) needed to load into memory alongside everything else.
+  **This changes the open question**: the real constraint this revision
+  needs validated data on may be memory headroom during normal concurrent
+  use, not just wall-clock speed in isolation — a full-course batch could
+  fail outright on a memory-constrained machine even if it would eventually
+  finish, time-wise, on a quieter one. Deferred to a second machine with
+  more free memory; still unresolved.
 - **The per-chunk sanity-check length-ratio threshold (§3.1) needs empirical
   tuning** against real rewritten output, exactly as flagged for
   `journal_discovery`'s relevance threshold and `video_notes`'s

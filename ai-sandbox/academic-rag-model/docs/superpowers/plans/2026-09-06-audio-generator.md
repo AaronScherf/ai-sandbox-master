@@ -1778,8 +1778,21 @@ Override the model or its per-chunk timeout via `AUDIOGEN_NARRATE_OLLAMA_MODEL`
 
 - [ ] **Step 6: Measure real CPU timing against the actual equation-dense file (spec §9's flagged unknown)**
 
-This spec explicitly flags per-chunk CPU timing as unmeasured, not
-guessed — measure it for real rather than assuming a number. Requires
+**Status: attempted 2026-09-07 on the primary dev machine, OOM-killed
+before completing — deferred to a second machine with more free RAM.**
+With IDEA (~2GB), several Chrome tabs, and Obsidian already open on a
+16GB-RAM machine, under ~500MB was free when `qwen2-math:7b` (4.4GB)
+needed to load — the process was killed for low memory, not just slow.
+This is itself the finding worth recording (spec §9, updated): the real
+constraint may be memory headroom during normal concurrent use, not only
+wall-clock speed. Whoever runs this next should check free memory first:
+
+```powershell
+Get-CimInstance Win32_OperatingSystem | Select-Object FreePhysicalMemory, TotalVisibleMemorySize
+```
+
+Expected several GB free (comfortably more than `qwen2-math:7b`'s 4.4GB)
+before proceeding — close other heavy applications first if not. Requires
 `ollama serve` running with `qwen2-math:7b` pulled:
 
 ```bash
