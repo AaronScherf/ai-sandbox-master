@@ -7,6 +7,8 @@ actual conversion/indexing code lives in [`ai-sandbox/academic-rag-model/`](ai-s
 — start there for the pipelines themselves. This file covers the repo as a
 whole: what's tracked, what isn't, and how to stand up your own copy.
 
+TESTING
+
 ## Architecture map
 
 ```text
