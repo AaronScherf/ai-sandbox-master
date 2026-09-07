@@ -202,6 +202,17 @@ def _notes_pdf_paths(academic_hub_root: str, course_filter: str | None):
                     yield course, category, os.path.join(category_dir, name)
 
 
+# Real-corpus finding (2026-09-06): math-camp's textbook folder was
+# renamed on disk from "textbooks-and-papers" to "textbooks" at some
+# point, but every other course still uses "textbooks-and-papers".
+# Recognizing only the old name here made this walk silently see zero
+# book dirs for math-camp -- rebuild() never touched those files again,
+# with no error to signal it (see docs/2026-09-06-problem-corpus-extraction-status.md).
+# Checking both aliases makes the walk match whichever name a course
+# actually uses on disk.
+_TEXTBOOK_FOLDER_NAMES = ("textbooks", "textbooks-and-papers")
+
+
 def _textbook_book_dirs(academic_hub_root: str, course_filter: str | None):
     resources_root = os.path.join(academic_hub_root, "academic_resources")
     if not os.path.isdir(resources_root):
@@ -209,15 +220,16 @@ def _textbook_book_dirs(academic_hub_root: str, course_filter: str | None):
     for course in sorted(os.listdir(resources_root)):
         if course_filter and course != course_filter:
             continue
-        processed_outputs_dir = os.path.join(
-            resources_root, course, "textbooks-and-papers", "processed_outputs",
-        )
-        if not os.path.isdir(processed_outputs_dir):
-            continue
-        for folder_name in sorted(os.listdir(processed_outputs_dir)):
-            book_dir = os.path.join(processed_outputs_dir, folder_name)
-            if os.path.isdir(book_dir):
-                yield course, folder_name, book_dir
+        for category_folder_name in _TEXTBOOK_FOLDER_NAMES:
+            processed_outputs_dir = os.path.join(
+                resources_root, course, category_folder_name, "processed_outputs",
+            )
+            if not os.path.isdir(processed_outputs_dir):
+                continue
+            for folder_name in sorted(os.listdir(processed_outputs_dir)):
+                book_dir = os.path.join(processed_outputs_dir, folder_name)
+                if os.path.isdir(book_dir):
+                    yield course, category_folder_name, folder_name, book_dir
 
 
 def _video_lecture_note_paths(academic_hub_root: str, course_filter: str | None):
@@ -389,7 +401,7 @@ def rebuild(academic_hub_root: str, client, course: str | None = None,
                        source_mtime=os.path.getmtime(md_path),
                        content_hash=compute_content_hash(md_path))
 
-    for course_name, folder_name, book_dir in _textbook_book_dirs(academic_hub_root, course):
+    for course_name, category_folder_name, folder_name, book_dir in _textbook_book_dirs(academic_hub_root, course):
         metadata_path = os.path.join(book_dir, f"{folder_name}_metadata.json")
         if not os.path.exists(metadata_path):
             continue
@@ -421,7 +433,7 @@ def rebuild(academic_hub_root: str, client, course: str | None = None,
         rel_md_path = os.path.relpath(md_path, academic_hub_root).replace(os.sep, "/")
         page_count = metadata.get("total_pages_processed")
 
-        _reconcile_one(academic_hub_root, course_name, "textbooks-and-papers", file_id, rel_md_path,
+        _reconcile_one(academic_hub_root, course_name, category_folder_name, file_id, rel_md_path,
                        source_pdf_path, content_sample, page_count, client, force, stats,
                        source_mtime=os.path.getmtime(md_path),
                        content_hash=compute_content_hash(md_path))

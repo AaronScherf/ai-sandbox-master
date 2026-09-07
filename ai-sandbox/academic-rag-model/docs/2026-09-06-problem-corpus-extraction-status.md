@@ -150,12 +150,7 @@ started.
 
 ## Known limitations
 
-- **No textbook content extracted yet.** All 5 math-camp textbook files
-  are blocked by a pre-existing stale index-card path (see above) —
-  fixable via `python index_search.py rebuild`, which is out of scope
-  for this subproject. Axler's own solution-less convention (confirmed
-  during this design's original corpus inspection) remains unverified
-  by a real trial as a result.
+- ~~No textbook content extracted yet~~ — **fixed 2026-09-06, see below.**
 - **Boundary detection over-splits on numbered content embedded inside
   a problem's own body** (numbered sub-statements, guided-walkthrough
   steps) — see the Findings section above. Affects 6 of 8 real files
@@ -174,3 +169,68 @@ started.
 - This subproject stops at the stored corpus; nothing yet consumes
   `.problem_corpus/<course>.json` (see the five other future-development
   ideas flagged in `docs/2026-09-05-problem-generation-status.md`).
+
+## 2026-09-06 (continued): fixed the actual indexer bug behind the stale path
+
+The "out of scope, run `index_search.py rebuild`" note above turned out
+to be wrong on inspection: **running `rebuild` alone would not have
+fixed anything.** The real root cause was in the indexer itself, not
+just stale data.
+
+`indexer/index_search.py`'s `_textbook_book_dirs()` hardcoded the folder
+name it walks under `academic_resources/<course>/` to the literal string
+`"textbooks-and-papers"`. Math-camp's folder was renamed to `textbooks/`
+on disk at some point; every other course (`econometrics`, `env-science`,
+`interm_spanish`, `intro_spanish`) still uses `textbooks-and-papers/`.
+Because the walk only recognized the old name, it silently produced zero
+book directories for math-camp — `rebuild()` never saw these 5 textbooks
+to reconcile, no matter how many times it ran, with no warning at all.
+This is the same shape of bug as the `_PROBLEM_BEARING_FOLDER_CATEGORIES`
+fix documented above, one layer deeper: that fix let `problem_corpus`
+correctly *notice* the folder-alias mismatch and report `failed: 5`;
+this fix addresses why the underlying index cards were stale in the
+first place.
+
+**Fix:** widened `_textbook_book_dirs()` to check both
+`_TEXTBOOK_FOLDER_NAMES = ("textbooks", "textbooks-and-papers")` and
+yield which alias matched, threading that real folder name into
+`rebuild()`'s `_reconcile_one(...)` call in place of the old hardcoded
+literal (`indexer/index_search.py`). Added two regression tests
+(`test_generates_a_textbook_card_under_the_textbooks_folder_alias`,
+`test_both_textbook_folder_aliases_are_picked_up_in_the_same_course`).
+Full suite: `1011 tests, OK`.
+
+**Real validation.** Running `index_search.py rebuild --course math-camp`
+after the code fix found the 5 book directories, but surfaced a second,
+independent staleness problem: each textbook's own
+`processed_outputs/<book>/<book>_metadata.json` — the durable record
+`rebuild()` trusts for `source_pdf_path` and `rag_md_path` — still
+pointed at the old `textbooks-and-papers/` location for both fields,
+left over from before the on-disk rename. `rebuild` correctly reported
+this as `skipped_no_source_pdf: 5` with an explicit "does not exist on
+disk" warning per file, rather than failing silently. Fixed by
+correcting `source_pdf_path`/`rag_md_path` in all 5 metadata.json files
+to the current `textbooks/` location (each verified to exist on disk
+before writing). Re-running `rebuild --course math-camp` then reported
+`{'updated': 5, 'orphaned': 0, 'skipped_no_source_pdf': 0}` — all 5
+cards now carry correct, current paths.
+
+`problem_corpus.extractor extract --course math-camp --dry-run`
+afterward reported `{'extracted': 15, 'unchanged': 0, 'failed': 0}` —
+zero failures, up from the prior `failed: 5`. A real (non-dry-run)
+extraction scoped to one textbook (`Hammack_Book_of_Proof_2025.md`)
+produced 62 real records with correct citations and honest
+`solution_provenance: null` throughout — confirming the whole pipeline
+now works for textbook content, not just problem sets.
+
+**New finding, not fixed (out of scope for this bug fix):** a quick
+inspection of the Book of Proof records found several with thin
+problem_text (e.g. a single `$$\phi$$`) — `boundaries.py`'s
+numbered-list detector is tuned for problem-set-style "Problem N."
+prose and appears to also catch textbook end-of-chapter exercise lists
+that are more terse/symbolic. This is a boundary-detection precision
+question specific to textbook content, distinct from both the path bug
+fixed here and the fragmentation limitation documented above — worth a
+closer look before textbook records are trusted for downstream use
+(e.g. few-shot examples), but not a blocker for the bug this session
+targeted.

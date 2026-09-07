@@ -47,13 +47,18 @@ def _make_notes_pdf(academic_hub_root, course, category, basename, write_markdow
     return pdf_path
 
 
-def _make_textbook(academic_hub_root, course, pdf_basename, folder_name, with_source_pdf_path=True):
+def _make_textbook(academic_hub_root, course, pdf_basename, folder_name, with_source_pdf_path=True,
+                    category_folder_name="textbooks-and-papers"):
     """Mirrors convert_textbook.py's real output layout: the PDF sits in
     textbooks-and-papers/ directly, its processed_outputs/<folder_name>/
     subfolder is NOT named after the PDF's filename (real corpus example:
     'Book of Proof.pdf' -> 'Hammack_Book_of_Proof_2025/'), and (once
-    Task 9 lands) _metadata.json carries source_pdf_path back to it."""
-    tp_dir = os.path.join(academic_hub_root, "academic_resources", course, "textbooks-and-papers")
+    Task 9 lands) _metadata.json carries source_pdf_path back to it.
+
+    category_folder_name defaults to the long-standing name but accepts
+    "textbooks" too, to exercise the folder-name alias math-camp uses on
+    disk (see docs/2026-09-06-problem-corpus-extraction-status.md)."""
+    tp_dir = os.path.join(academic_hub_root, "academic_resources", course, category_folder_name)
     os.makedirs(tp_dir, exist_ok=True)
     pdf_path = os.path.join(tp_dir, f"{pdf_basename}.pdf")
     with open(pdf_path, "wb") as f:
@@ -330,6 +335,32 @@ class TestRebuild(unittest.TestCase):
             self.assertEqual(len(cards), 1)
             self.assertTrue(cards[0]["path"].endswith("Hammack_Book_of_Proof_2025.md"))
             self.assertTrue(cards[0]["source_pdf_path"].endswith("Book of Proof.pdf"))
+
+    def test_generates_a_textbook_card_under_the_textbooks_folder_alias(self):
+        # Real-corpus finding: math-camp's textbook folder was renamed on
+        # disk from "textbooks-and-papers" to "textbooks", but the walk
+        # in _textbook_book_dirs() only recognized the old name --
+        # rebuild() silently saw zero book dirs for the whole course,
+        # with no warning or failure to signal it.
+        with tempfile.TemporaryDirectory() as tmp:
+            _make_textbook(tmp, "math-camp", "Book of Proof", "Hammack_Book_of_Proof_2025",
+                            category_folder_name="textbooks")
+            stats = rebuild(tmp, client=_fake_client())
+            self.assertEqual(stats["generated"], 1)
+            cards = load_shard(tmp, "math-camp")
+            self.assertEqual(len(cards), 1)
+            self.assertTrue(cards[0]["path"].endswith("Hammack_Book_of_Proof_2025.md"))
+            self.assertIn("/textbooks/", cards[0]["path"])
+
+    def test_both_textbook_folder_aliases_are_picked_up_in_the_same_course(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            _make_textbook(tmp, "econometrics", "Old Style", "OldStyle_2020",
+                            category_folder_name="textbooks-and-papers")
+            _make_textbook(tmp, "econometrics", "New Style", "NewStyle_2026",
+                            category_folder_name="textbooks")
+            stats = rebuild(tmp, client=_fake_client())
+            self.assertEqual(stats["generated"], 2)
+            self.assertEqual(len(load_shard(tmp, "econometrics")), 2)
 
     def test_backfills_rag_md_path_from_metadata_when_card_is_missing_it(self):
         # Real-corpus finding: describe_images.py's link_rag_md() writes
