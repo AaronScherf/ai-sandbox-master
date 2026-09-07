@@ -1,0 +1,346 @@
+{
+  "10.1016/j.ecosys.2026.101420": {
+    "authors": [
+      "Diego Vallarino"
+    ],
+    "doi_url": "https://doi.org/10.1016/j.ecosys.2026.101420",
+    "fetched_at": "2026-09-02T18:35:34.035528+00:00",
+    "folder": "business",
+    "status": "needs_manual",
+    "title": "Successful investment projects are contagious: Social learning and network effects in industrial policy",
+    "year": 2026
+  },
+  "10.1016/j.jdeveco.2021.102762": {
+    "audited_at": "2026-09-03T03:41:23.110154+00:00",
+    "fetched_at": "2026-09-02T02:27:21.846552+00:00",
+    "folder": "business",
+    "status": "fetched"
+  },
+  "10.1016/j.techsoc.2024.102646": {
+    "authors": [
+      "C. Nguyen",
+      "Nhung Vu Thi Hong",
+      "Thi Thu Tra Pham",
+      "Richard Ramsawak",
+      "Nhan Nguyen Thien"
+    ],
+    "doi_url": "https://doi.org/10.1016/j.techsoc.2024.102646",
+    "fetched_at": "2026-09-02T18:35:35.012927+00:00",
+    "folder": "economics",
+    "status": "needs_manual",
+    "title": "Re-examining the effects of information and communication technology on economic growth",
+    "year": 2024
+  },
+  "10.1038/d41586-025-04053-w": {
+    "authors": [
+      "Daniel Bj\u00f6rkegren"
+    ],
+    "doi_url": "https://doi.org/10.1038/d41586-025-04053-w",
+    "fetched_at": "2026-09-02T02:50:55.776805+00:00",
+    "folder": "sociology",
+    "status": "needs_manual",
+    "title": "AI is transforming the economy \u2014 understanding its impact requires both data and imagination",
+    "work_type": "article",
+    "year": 2025
+  },
+  "10.1080/02697459.2013.787695": {
+    "audited_at": "2026-09-03T03:41:23.459332+00:00",
+    "authors": [
+      "Simin Davoudi",
+      "Elizabeth Brooks",
+      "Abid Mehmood"
+    ],
+    "doi_url": "https://doi.org/10.1080/02697459.2013.787695",
+    "fetched_at": "2026-09-02T02:50:56.336087+00:00",
+    "folder": "sociology",
+    "matched_md_path": "C:\\Users\\theaa\\ai-sandbox-master\\ai-sandbox\\research\\journal-articles\\sociology\\processed_outputs\\Evolutionary Resilience and Strategies for Climate Adaptation.md",
+    "status": "downloaded",
+    "title": "Evolutionary Resilience and Strategies for Climate Adaptation",
+    "work_type": "article",
+    "year": 2013
+  },
+  "10.1093/wber/lhz006": {
+    "audited_at": "2026-09-03T03:41:23.820661+00:00",
+    "fetched_at": "2026-09-02T02:25:08.597704+00:00",
+    "folder": "business",
+    "status": "fetched"
+  },
+  "10.1257/pandp.20181032": {
+    "audited_at": "2026-09-03T03:41:24.139839+00:00",
+    "authors": [
+      "Daniel Bj\u00f6rkegren",
+      "Darrell Grissen"
+    ],
+    "doi_url": "https://doi.org/10.1257/pandp.20181032",
+    "fetched_at": "2026-09-02T02:50:57.093770+00:00",
+    "folder": "business",
+    "matched_md_path": "C:\\Users\\theaa\\ai-sandbox-master\\ai-sandbox\\research\\journal-articles\\business\\processed_outputs\\10-1093-wber-lhz006.md",
+    "status": "downloaded",
+    "title": "The Potential of Digital Credit to Bank the Poor",
+    "work_type": "article",
+    "year": 2018
+  },
+  "10.1257/pol.20130025": {
+    "audited_at": "2026-09-03T03:41:24.499011+00:00",
+    "authors": [
+      "Marshall Burke",
+      "Kyle Emerick"
+    ],
+    "doi_url": "https://doi.org/10.1257/pol.20130025",
+    "fetched_at": "2026-09-02T02:50:57.703820+00:00",
+    "folder": "environmental-science",
+    "matched_md_path": "C:\\Users\\theaa\\ai-sandbox-master\\ai-sandbox\\research\\journal-articles\\environmental-science\\processed_outputs\\burke-emerick-2016-adaptation-to-climate-change-evidence-from-us-agriculture.md",
+    "status": "downloaded",
+    "title": "Adaptation to Climate Change: Evidence from US Agriculture",
+    "work_type": "article",
+    "year": 2016
+  },
+  "10.1257/rct.4649-1.1": {
+    "authors": [
+      "Joshua Blumenstock",
+      "Daniel Bj\u00f6rkegren"
+    ],
+    "doi_url": "https://doi.org/10.1257/rct.4649-1.1",
+    "fetched_at": "2026-09-02T02:50:58.266503+00:00",
+    "folder": "computer-science",
+    "status": "needs_manual",
+    "title": "Manipulation-Proof Machine Learning",
+    "work_type": "dataset",
+    "year": 2019
+  },
+  "10.1257/rct.4885": {
+    "authors": [
+      "Daniel Bj\u00f6rkegren"
+    ],
+    "doi_url": "https://doi.org/10.1257/rct.4885",
+    "fetched_at": "2026-09-02T02:50:58.934098+00:00",
+    "folder": "environmental-science",
+    "status": "needs_manual",
+    "title": "Estimating the Causal Effect of Matching on Fundraising Velocity",
+    "work_type": "dataset",
+    "year": 2019
+  },
+  "10.1257/rct.5029": {
+    "authors": [
+      "Joshua Blumenstock",
+      "Suraj R Nair",
+      "Daniel Bj\u00f6rkegren"
+    ],
+    "doi_url": "https://doi.org/10.1257/rct.5029",
+    "fetched_at": "2026-09-02T02:51:00.616343+00:00",
+    "folder": "business",
+    "status": "needs_manual",
+    "title": "Welfare Impacts of Micro-Loans in Nigeria",
+    "work_type": "dataset",
+    "year": 2019
+  },
+  "10.1596/1813-9450-11229": {
+    "audited_at": "2026-09-03T03:41:24.956172+00:00",
+    "authors": [
+      "Daniel Bj\u00f6rkegren",
+      "Alice Duhaut",
+      "Geetika Nagpal",
+      "Nick Tsivanidis"
+    ],
+    "doi_url": "https://doi.org/10.1596/1813-9450-11229",
+    "fetched_at": "2026-09-02T02:51:02.484177+00:00",
+    "folder": "misc",
+    "matched_md_path": "C:\\Users\\theaa\\ai-sandbox-master\\ai-sandbox\\research\\journal-articles\\misc\\processed_outputs\\IDU-5f3db442-ec32-4ae0-91ca-cefb8c56e2c3.md",
+    "status": "downloaded",
+    "title": "Public and Private Transit: Evidence from Lagos",
+    "work_type": "report",
+    "year": 2025
+  },
+  "10.1596/1813-9450-9074": {
+    "audited_at": "2026-09-03T03:41:25.283034+00:00",
+    "authors": [
+      "Daniel Bj\u00f6rkegren",
+      "Darrell Grissen"
+    ],
+    "doi_url": "https://doi.org/10.1596/1813-9450-9074",
+    "fetched_at": "2026-09-02T02:51:03.090765+00:00",
+    "folder": "business",
+    "matched_md_path": "C:\\Users\\theaa\\ai-sandbox-master\\ai-sandbox\\research\\journal-articles\\business\\processed_outputs\\10-1016-j-jdeveco-2021-102762.md",
+    "status": "downloaded",
+    "title": "Behavior Revealed in Mobile Phone Usage Predicts Credit Repayment",
+    "work_type": "report",
+    "year": 2019
+  },
+  "10.1596/978-1-4648-1737-3_ch4": {
+    "authors": [
+      "Tania Begazo",
+      "Moussa P. Blimpo",
+      "Mark A. Dutz"
+    ],
+    "doi_url": "https://doi.org/10.1596/978-1-4648-1737-3_ch4",
+    "fetched_at": "2026-09-02T21:08:12.650409+00:00",
+    "folder": "business",
+    "status": "needs_manual",
+    "title": "Digital and Data Infrastructure: Stimulating Greater Availability and Use through Policy and Regulatory Reforms",
+    "year": 2023
+  },
+  "10.2139/ssrn.2611775": {
+    "audited_at": "2026-09-03T03:41:25.601924+00:00",
+    "authors": [
+      "Daniel Bj\u00f6rkegren",
+      "Darrell Grissen"
+    ],
+    "doi_url": "https://doi.org/10.2139/ssrn.2611775",
+    "fetched_at": "2026-09-02T02:51:03.647148+00:00",
+    "folder": "business",
+    "matched_md_path": "C:\\Users\\theaa\\ai-sandbox-master\\ai-sandbox\\research\\journal-articles\\business\\processed_outputs\\bj\u00f6rkegren-grissen-2018-the-potential-of-digital-credit-to-bank-the-poor.md",
+    "status": "downloaded",
+    "title": "Behavior Revealed in Mobile Phone Usage Predicts Loan Repayment",
+    "work_type": "preprint",
+    "year": 2015
+  },
+  "10.2139/ssrn.2616524": {
+    "audited_at": "2026-09-03T03:41:25.956395+00:00",
+    "authors": [
+      "Daniel Bj\u00f6rkegren"
+    ],
+    "doi_url": "https://doi.org/10.2139/ssrn.2616524",
+    "fetched_at": "2026-09-02T02:51:04.218575+00:00",
+    "folder": "business",
+    "matched_md_path": "C:\\Users\\theaa\\ai-sandbox-master\\ai-sandbox\\research\\journal-articles\\business\\processed_outputs\\10-1016-j-jdeveco-2021-102762.md",
+    "status": "downloaded",
+    "title": "The Adoption of Network Goods: Evidence from the Spread of Mobile Phones in Rwanda",
+    "work_type": "preprint",
+    "year": 2015
+  },
+  "10.2139/ssrn.3049364": {
+    "authors": [
+      "Daniel Bj\u00f6rkegren"
+    ],
+    "doi_url": "https://doi.org/10.2139/ssrn.3049364",
+    "fetched_at": "2026-09-02T02:51:04.778380+00:00",
+    "folder": "business",
+    "status": "needs_manual",
+    "title": "Scoping for Competition in Network Industries: Evidence from Mobile Telecommunications in Rwanda",
+    "work_type": "preprint",
+    "year": 2017
+  },
+  "10.2139/ssrn.3220583": {
+    "audited_at": "2026-09-03T03:41:26.330120+00:00",
+    "authors": [
+      "Daniel Bj\u00f6rkegren"
+    ],
+    "doi_url": "https://doi.org/10.2139/ssrn.3220583",
+    "fetched_at": "2026-09-02T02:51:05.400793+00:00",
+    "folder": "physics",
+    "matched_md_path": "C:\\Users\\theaa\\ai-sandbox-master\\ai-sandbox\\research\\journal-articles\\physics\\processed_outputs\\ssrn-3220583.md",
+    "status": "downloaded",
+    "title": "Nostalgic Demand",
+    "work_type": "preprint",
+    "year": 2018
+  },
+  "10.2139/ssrn.3527028": {
+    "audited_at": "2026-09-03T03:41:26.645252+00:00",
+    "authors": [
+      "Daniel Bj\u00f6rkegren"
+    ],
+    "doi_url": "https://doi.org/10.2139/ssrn.3527028",
+    "fetched_at": "2026-09-02T02:51:05.993371+00:00",
+    "folder": "business",
+    "matched_md_path": "C:\\Users\\theaa\\ai-sandbox-master\\ai-sandbox\\research\\journal-articles\\business\\processed_outputs\\10-1016-j-jdeveco-2021-102762.md",
+    "status": "downloaded",
+    "title": "Competition in Network Industries: Evidence from the Rwandan Mobile Phone Network",
+    "work_type": "preprint",
+    "year": 2020
+  },
+  "10.2139/ssrn.3992180": {
+    "audited_at": "2026-09-03T03:41:27.023359+00:00",
+    "authors": [
+      "B. Douglas Bernheim",
+      "Daniel Bj\u00f6rkegren",
+      "Jeffrey Naecker",
+      "Michael Pollmann"
+    ],
+    "doi_url": "https://doi.org/10.2139/ssrn.3992180",
+    "fetched_at": "2026-09-02T02:51:06.560841+00:00",
+    "folder": "computer-science",
+    "matched_md_path": "C:\\Users\\theaa\\ai-sandbox-master\\ai-sandbox\\research\\journal-articles\\computer-science\\processed_outputs\\ssrn-3992180.md",
+    "status": "downloaded",
+    "title": "Causal Inference from Hypothetical Evaluations",
+    "work_type": "preprint",
+    "year": 2021
+  },
+  "10.2139/ssrn.4385266": {
+    "audited_at": "2026-09-03T03:41:27.418429+00:00",
+    "authors": [
+      "Daniel Bj\u00f6rkegren",
+      "Joshua Blumenstock",
+      "Suraj Nair",
+      "Jacqueline Mauro",
+      "Omowunmi Folajimi-Senjobi"
+    ],
+    "doi_url": "https://doi.org/10.2139/ssrn.4385266",
+    "fetched_at": "2026-09-02T02:51:07.739051+00:00",
+    "folder": "business",
+    "matched_md_path": "C:\\Users\\theaa\\ai-sandbox-master\\ai-sandbox\\research\\journal-articles\\business\\processed_outputs\\10-48550-arxiv-2202-13540.md",
+    "status": "downloaded",
+    "title": "Instant Loans Can Lift Subjective Well-Being: A Randomized Evaluation of Digital Credit in Nigeria",
+    "work_type": "preprint",
+    "year": 2023
+  },
+  "10.26085/c36k5w": {
+    "audited_at": "2026-09-03T03:41:27.781352+00:00",
+    "authors": [
+      "Daniel Bj\u00f6rkegren",
+      "Blumenstock Joshua E.",
+      "Samsun Knight"
+    ],
+    "doi_url": "https://doi.org/10.26085/c36k5w",
+    "fetched_at": "2026-09-02T03:20:05.493899+00:00",
+    "folder": "computer-science",
+    "matched_md_path": "C:\\Users\\theaa\\ai-sandbox-master\\ai-sandbox\\research\\journal-articles\\computer-science\\processed_outputs\\eScholarship UC item 6tp4q9zv.md",
+    "status": "downloaded",
+    "title": "Manipulation-Proof Machine Learning",
+    "work_type": "article",
+    "year": 2020
+  },
+  "10.3386/w31696": {
+    "fetched_at": "2026-09-02T21:08:14.630810+00:00",
+    "folder": "business",
+    "status": "fetched"
+  },
+  "10.3886/e114443v1": {
+    "authors": [
+      "Daniel Bj\u00f6rkegren",
+      "Darrell Grissen"
+    ],
+    "doi_url": "https://doi.org/10.3886/e114443v1",
+    "fetched_at": "2026-09-02T02:51:08.999543+00:00",
+    "folder": "business",
+    "status": "needs_manual",
+    "title": "Replication data for: The Potential of Digital Credit to Bank the Poor",
+    "work_type": "dataset",
+    "year": 2018
+  },
+  "10.48550/arxiv.2202.13540": {
+    "audited_at": "2026-09-03T03:41:28.121959+00:00",
+    "fetched_at": "2026-09-02T02:23:17.543405+00:00",
+    "folder": "business",
+    "status": "fetched"
+  },
+  "10.5751/es-03335-150211": {
+    "audited_at": "2026-09-03T03:41:28.493988+00:00",
+    "fetched_at": "2026-09-02T02:12:21.370512+00:00",
+    "folder": "geography",
+    "status": "fetched"
+  },
+  "https://openalex.org/W3156587858": {
+    "audited_at": "2026-09-03T03:41:28.502065+00:00",
+    "authors": [
+      "Daniel Bj\u00f6rkegren"
+    ],
+    "doi_url": "https://openalex.org/W3156587858",
+    "fetched_at": "2026-09-02T02:51:09.544720+00:00",
+    "folder": "computer-science",
+    "matched_md_path": "C:\\Users\\theaa\\ai-sandbox-master\\ai-sandbox\\research\\journal-articles\\business\\processed_outputs\\10-1093-wber-lhz006.md",
+    "status": "downloaded",
+    "title": "'Big Data' for Development",
+    "work_type": "article",
+    "year": 2010
+  }
+}
