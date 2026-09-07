@@ -56,55 +56,72 @@ in `tests/test_note_indexing.py` and `tests/test_index_search.py`
 `textbook`/`problem_set`/`ta_notes`/`handwritten_notes`, and one
 confirming it lands on `"lecture_notes"` when the model complies).
 
-## Known limitation: local models don't reliably cite timestamps
+## Bug #2 (superseding the "known limitation" originally recorded here): `call_ollama` silently truncated every prompt to ~2048 tokens
 
-**Finding:** three different local Ollama models — `qwen2-math:7b`,
-`qwen2.5-coder:7b`, and `qwen2.5:7b-instruct` (the design's own default)
-— were each tried against the same real, verified-correct synthesis
-prompt (confirmed to contain properly formed
-`[label @ timestamp](url)` lines throughout, ~16,700 chars /
-~4,200 tokens for a single ~13-minute lecture). All three produced
-factually accurate, reasonably well-organized Markdown — but **none of
-them included a single timestamp citation**, despite it being an
-explicit, numbered instruction in the prompt (spec §6's whole reason
-for embedding per-segment links in the first place).
+**Original, incorrect conclusion (2026-09-06, pass 1):** three different
+local Ollama models — `qwen2-math:7b`, `qwen2.5-coder:7b`, and
+`qwen2.5:7b-instruct` — were each tried against the same real synthesis
+prompt (~16,700 chars / ~4,200 tokens for a single ~13-minute lecture).
+All three produced accurate Markdown but **none included a single
+timestamp citation**. Context-window size looked ruled out at the time
+because `qwen2.5-coder:7b` (32K) and `qwen2.5:7b-instruct` (32K) both
+had, on paper, enormous headroom over a 4,200-token prompt — so this was
+initially written up as a model/prompt instruction-following limitation
+and shipped as a known, unfixed gap.
 
-**Ruled out:** context-window truncation. `qwen2-math:7b`'s 4096-token
-window plausibly explained *its* complete lack of any formatting at all
-(headers, LaTeX, bullets were also entirely absent for that model) —
-but `qwen2.5-coder:7b` (32K context) and `qwen2.5:7b-instruct` both had
-enormous headroom, produced proper headers/bullets/bold text and
-mathematically accurate LaTeX-style notation (`\(...\)`/`\[...\]`, not
-quite the requested `$...$`/`$$...$$` delimiter but structurally
-correct), and *still* dropped every citation. This rules out context
-size as the cause for the citation gap specifically — it's model/prompt
-instruction-following, not truncation.
+**That conclusion was wrong, and pass 2 is what caught it.** A 3-video
+group's combined synthesis prompt (~89,000 chars / ~22,000 estimated
+tokens) came back as a note whose content matched only the *last*
+video's material — the other two videos' content was entirely absent,
+despite `qwen2.5:7b-instruct`'s advertised 32K context comfortably
+covering the real prompt size. Querying Ollama's raw
+`/api/generate` response directly (not through `call_ollama`) exposed
+the actual mechanism: **`prompt_eval_count` came back `2050`** for that
+~22,000-token prompt. `common/ollama_utils.py`'s `call_ollama()` never
+set `options.num_ctx` in its request — Ollama silently defaults to
+~2048 tokens of context when it's omitted, *regardless of the model's
+real maximum*, and llama.cpp keeps the **tail** of a prompt that
+overflows `num_ctx`, not the head. That single mechanism explains both
+findings at once: pass 1's citation/formatting instructions sit at the
+very *top* of every prompt, so a ~4,200-token prompt truncated to its
+last ~2,048 tokens would drop those instructions before the model ever
+saw them; pass 2's 3-video prompt truncated to its last ~2,048 tokens
+kept only a fragment of the final video's transcript, explaining why
+the note only reflected that video's content.
 
-**Working theory:** citation instructions asked the model to weave
-literal URLs into freely-generated prose as bullet point #3 of 3 in a
-numbered list — a harder, more easily-dropped task for 7B-class local
-models than pure stylistic formatting (headers/bullets), which all
-three models did follow.
+**Fix:** `call_ollama()`/`call_ollama_embeddings()` now default
+`num_ctx` to an estimate sized to the actual prompt (`_estimate_num_ctx`
+in `common/ollama_utils.py`: ~4 chars/token, plus response headroom,
+rounded up to a 2048-token step), overridable via an explicit `num_ctx`
+argument. This is a **shared-infrastructure fix** — `problem_gen/` and
+`viz/` call the same `call_ollama()` and were silently exposed to the
+same truncation for any prompt over ~2048 tokens; neither had reported
+symptoms, most likely because their prompts (a style/content retrieval
+pool, a viz code-gen request) typically run smaller than a full lecture
+transcript. Full test suite (1017 tests, including new coverage in
+`tests/test_ollama_utils.py` for the estimate scaling/rounding and the
+request payload actually carrying `num_ctx`) passes with the fix in.
 
-**Decision (user, 2026-09-06):** ship without citations for now, revisit
-later. Two concrete directions already identified for that future work,
-not implemented:
-1. Redesign the prompt to isolate the citation instruction and give a
-   concrete few-shot example of an already-cited sentence, rather than
-   listing it as the last of three general formatting rules.
-2. Insert citations programmatically instead of relying on the LLM:
-   let the model write clean, citation-free prose, then attach the
-   nearest matching timestamp to each generated sentence afterward via
-   text-similarity matching against the original transcript segments —
-   removes the instruction-following burden entirely for a task three
-   different local models all failed at.
+**Re-verification of the citation question, now that the real bug is
+fixed, is in progress** (a single-video, ~4,200-token re-run against
+`qwen2.5:7b-instruct` with the fix applied) — results below once it
+completes. The original "ship without citations, revisit later" user
+decision may no longer be the right call once this is confirmed; the
+two committed notes from pass 1 will be regenerated if so.
 
-The two real notes committed to the corpus from this test
-(`academic_notes/math-camp/lecture-notes/2021-introductory-remarks.md`,
-`.../lecture-1-a-sets-and-n-tuples.md`) were generated with
-`qwen2.5:7b-instruct` (the best of the three real trials) and reflect
-this known gap — no timestamp links, otherwise accurate and reasonably
-structured.
+**New finding from the fix itself: CPU cost scales badly with the
+now-correct larger `num_ctx`.** The 3-video, ~22,000-token prompt from
+pass 2, re-run with a correctly-sized `num_ctx` (24,576, set manually
+for this diagnostic), did not complete within a 1200s (20-minute)
+timeout on CPU-only Ollama — correctness and speed are in real tension
+here: the *previous*, buggy behavior was fast specifically because it
+was silently discarding nearly all of the input. A multi-video group
+whose combined transcript is large may simply not be practical to
+synthesize in one shot on CPU-only hardware; worth revisiting as a
+map-reduce-style synthesis (summarize each video individually first,
+then combine the short per-video summaries in a second, much
+smaller-context pass) rather than one giant concatenated prompt, if
+large multi-video groups turn out to be common in practice.
 
 ## What pass 1 confirms end-to-end
 
@@ -144,6 +161,44 @@ matches the `Lecture N` series regex (spec §4 tier 2), unlike pass 1's
 - Model: `qwen2.5:7b-instruct` (now the locally-pulled default, no
   re-pull needed this time).
 
-Results (transcription success/failure per video, which grouping tier
-each landed in, synthesis quality, indexing correctness) to be added
-here once the run completes.
+## Pass 2 results
+
+All 6 videos downloaded and transcribed with zero failures
+(`{'videos_transcribed': 6, 'videos_failed': 0, 'groups_synthesized': 3,
+'groups_unchanged': 0, 'groups_failed': 0}`).
+
+**Grouping:** the hypothesis above was wrong in an interesting way — 6
+videos produced **3 groups**, not 6 singletons:
+- `{Lecture 1(B), Lecture 4(A), Lecture 2(B)}` — three videos with
+  different lecture numbers, clustered by transcript-embedding
+  similarity (tier 3).
+- `{Lecture 2(A)}` — alone (its own `(B)` counterpart landed in the
+  group above instead of with it).
+- `{Lecture 3(A), Lecture 3(B)}` — correctly paired, the same lecture's
+  two parts.
+
+Tier 3 clustering is doing *something* real (it's not random), but the
+first group's membership doesn't match the naive expectation that
+`(A)`/`(B)` pairs of the *same* lecture number should cluster together
+— instead it grouped across different lecture numbers, and split one
+genuine `(A)`/`(B)` pair (`2(A)`/`2(B)`) across two different groups.
+Plausible explanation: this is foundational math content where
+"sets," "functions," and "n-tuples" are recurring vocabulary across
+many consecutive lectures (a review-heavy math camp), so whole-transcript
+embedding similarity may be picking up shared terminology-density rather
+than "these two videos are parts of the same lecture." This is exactly
+the empirical tuning the original design spec (§10) flagged as needed
+for the `0.75` similarity threshold, now with a concrete real example
+to tune against — not fixed here.
+
+**Synthesis quality:** this is what surfaced Bug #2 above — the 3-video
+group's note only reflected one video's content, traced to `call_ollama`
+silently truncating the ~22,000-token combined prompt to its last
+~2,048 tokens. The two smaller groups (1 and 2 videos respectively, both
+comfortably under the old silent 2048-token ceiling once headroom is
+accounted for) were less affected by truncation but still relevant to
+the citation question being re-verified above.
+
+**Indexing:** all 3 new cards correctly landed as `doc_type:
+"lecture_notes"` (Bug #1's fix holding up under a second, larger real
+run).

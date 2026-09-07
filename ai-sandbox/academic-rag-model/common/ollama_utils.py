@@ -25,12 +25,46 @@ class OllamaTimeout:
 
 OLLAMA_TIMEOUT = OllamaTimeout()
 
+_CHARS_PER_TOKEN_ESTIMATE = 4
+_NUM_CTX_STEP = 2048
+_NUM_CTX_RESPONSE_HEADROOM = 2048
 
-def call_ollama(prompt: str, model: str, request_timeout: int, url: str = OLLAMA_URL) -> str | None | OllamaTimeout:
+
+def _estimate_num_ctx(prompt: str) -> int:
+    """Ollama silently defaults to ~2048 tokens of context when a
+    request doesn't set `options.num_ctx` -- confirmed live: an
+    ~88,000-char (~22,000-token) prompt was processed as just its last
+    ~2,050 tokens (`prompt_eval_count` in the raw API response), no
+    error or warning, because llama.cpp keeps the *tail* of a prompt
+    that overflows num_ctx rather than rejecting it. For call_ollama's
+    single-shot, non-conversational use (every caller sends one
+    complete prompt, never a running chat history), the right context
+    size is simply "big enough for this exact prompt plus room to
+    respond" -- estimated at ~4 chars/token (a standard rough estimate,
+    not a measured tokenizer count) and rounded up to a clean 2048-token
+    step, since num_ctx allocation is inherently approximate anyway."""
+    estimated_prompt_tokens = len(prompt) // _CHARS_PER_TOKEN_ESTIMATE
+    needed = estimated_prompt_tokens + _NUM_CTX_RESPONSE_HEADROOM
+    return ((needed // _NUM_CTX_STEP) + 1) * _NUM_CTX_STEP
+
+
+def call_ollama(
+    prompt: str, model: str, request_timeout: int, url: str = OLLAMA_URL, num_ctx: int | None = None,
+) -> str | None | OllamaTimeout:
     """POSTs `prompt` to a local Ollama model's HTTP API (non-streaming).
     Returns the response text, None if the server is unreachable, or
-    OLLAMA_TIMEOUT if the request itself timed out. Never raises."""
-    payload = json.dumps({"model": model, "prompt": prompt, "stream": False}).encode("utf-8")
+    OLLAMA_TIMEOUT if the request itself timed out. Never raises.
+    `num_ctx` defaults to an estimate sized to `prompt` itself (see
+    _estimate_num_ctx) rather than Ollama's own much smaller default,
+    so a long prompt's beginning (often exactly where formatting/task
+    instructions live) doesn't silently fall outside the context
+    window. Pass an explicit value to override (e.g. to match a specific
+    model's known maximum)."""
+    if num_ctx is None:
+        num_ctx = _estimate_num_ctx(prompt)
+    payload = json.dumps({
+        "model": model, "prompt": prompt, "stream": False, "options": {"num_ctx": num_ctx},
+    }).encode("utf-8")
     request = urllib.request.Request(url, data=payload, headers={"Content-Type": "application/json"})
     try:
         with urllib.request.urlopen(request, timeout=request_timeout) as response:
@@ -53,13 +87,16 @@ OLLAMA_EMBEDDINGS_URL = "http://localhost:11434/api/embeddings"
 
 
 def call_ollama_embeddings(
-    text: str, model: str, request_timeout: int, url: str = OLLAMA_EMBEDDINGS_URL,
+    text: str, model: str, request_timeout: int, url: str = OLLAMA_EMBEDDINGS_URL, num_ctx: int | None = None,
 ) -> list[float] | None | OllamaTimeout:
     """Same error-handling contract as call_ollama (spec:
     docs/superpowers/specs/2026-09-06-video-lecture-notes-design.md
     §7) -- POSTs to Ollama's embeddings endpoint instead of its
-    generate endpoint."""
-    payload = json.dumps({"model": model, "prompt": text}).encode("utf-8")
+    generate endpoint. Same num_ctx auto-sizing as call_ollama, for the
+    same reason (see _estimate_num_ctx)."""
+    if num_ctx is None:
+        num_ctx = _estimate_num_ctx(text)
+    payload = json.dumps({"model": model, "prompt": text, "options": {"num_ctx": num_ctx}}).encode("utf-8")
     request = urllib.request.Request(url, data=payload, headers={"Content-Type": "application/json"})
     try:
         with urllib.request.urlopen(request, timeout=request_timeout) as response:
