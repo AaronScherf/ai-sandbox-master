@@ -270,14 +270,20 @@ def generate_and_verify(
                 continue
             problem_text, solution_text = extracted
 
+            # A verification-call timeout says nothing about whether problem_text/
+            # solution_text is any good -- retrying the SAME verification (bounded
+            # to MAX_ATTEMPTS tries) instead of falling through to the outer loop
+            # avoids discarding a possibly-good pair and burning a whole
+            # regeneration attempt on a problem that was never actually judged.
             verify_prompt = _build_verification_prompt(topic, problem_text, solution_text)
-            verify_response = _call_model(verify_prompt, client)
+            for _ in range(MAX_ATTEMPTS):
+                verify_response = _call_model(verify_prompt, client)
+                if verify_response is not OLLAMA_TIMEOUT:
+                    break
+            else:
+                return None  # verification never got a real response -- give up
             if verify_response is None:
                 return None
-            if verify_response is OLLAMA_TIMEOUT:
-                previous_problem, previous_solution = problem_text, solution_text
-                previous_error = "the verification request itself timed out"
-                continue
 
             invalid_reason = _parse_verdict(verify_response)
             if invalid_reason is None:

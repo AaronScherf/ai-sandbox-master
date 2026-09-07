@@ -243,6 +243,30 @@ class TestGenerateAndVerifyOllamaBackend(unittest.TestCase):
         self.assertEqual(result, ("Find X.", "X = 1."))
         self.assertEqual(mock_call.call_count, 3)
 
+    def test_reverifies_the_same_pair_after_a_verification_timeout_instead_of_regenerating(self):
+        responses = [
+            "## Problem\nFind X.\n\n## Solution\nX = 1.",  # attempt 1 generation
+            OLLAMA_TIMEOUT,                                  # attempt 1 verification -- times out
+            "TECHNIQUE: YES\nCORRECTNESS: VALID",            # re-verification of the SAME pair
+        ]
+        with patch("problem_gen.llm_gen.call_ollama", side_effect=responses) as mock_call:
+            result = generate_and_verify("eigenvalues", ["example"], [], MagicMock())
+        self.assertEqual(result, ("Find X.", "X = 1."))
+        # Exactly 3 calls (not 4): a fourth call would mean the timeout discarded
+        # "Find X." / "X = 1." and regenerated a brand new problem instead of
+        # re-verifying the one already produced.
+        self.assertEqual(mock_call.call_count, 3)
+        third_prompt = mock_call.call_args_list[2].args[0]
+        self.assertIn("Find X.", third_prompt)
+        self.assertIn("X = 1.", third_prompt)
+
+    def test_gives_up_when_verification_keeps_timing_out(self):
+        responses = ["## Problem\nFind X.\n\n## Solution\nX = 1."] + [OLLAMA_TIMEOUT] * MAX_ATTEMPTS
+        with patch("problem_gen.llm_gen.call_ollama", side_effect=responses) as mock_call:
+            result = generate_and_verify("eigenvalues", ["example"], [], MagicMock())
+        self.assertIsNone(result)
+        self.assertEqual(mock_call.call_count, 1 + MAX_ATTEMPTS)
+
     def test_returns_none_when_max_attempts_exhausted(self):
         with patch("problem_gen.llm_gen.call_ollama", return_value="never valid sections") as mock_call:
             result = generate_and_verify("eigenvalues", ["example"], [], MagicMock())

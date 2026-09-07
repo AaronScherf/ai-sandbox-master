@@ -480,21 +480,90 @@ freshly-generated (never-templated) problem/solution pair — see
 `docs/2026-09-02-visualization-agent-status.md`'s "Gemini fallback
 backend, made the default" section for that fix.
 
-## Future development ideas (flagged, not implemented — revisit once a Gemini path exists)
+## 2026-09-06 (continued): fixed the verification-timeout retry; triaged the rest into a to-do list
+
+Picked up from this doc's own "Follow-up candidates from final review"
+section above, after the `problem_corpus` folder-alias bug fix (see
+`docs/2026-09-06-problem-corpus-extraction-status.md`) prompted a fresh
+look at what else was still open.
+
+**Fixed:** follow-up candidate #1, the verification-timeout retry path.
+`problem_gen/llm_gen.py`'s `generate_and_verify()` previously treated an
+`OLLAMA_TIMEOUT` on the *verification* call the same as any other
+retry-with-feedback case — it discarded the already-generated
+`problem_text`/`solution_text` and regenerated a brand new problem from
+scratch, with feedback text ("the verification request itself timed
+out") that made no sense fed into the next generation prompt. Fixed to
+retry the same verification call for the same problem/solution pair
+(bounded to `MAX_ATTEMPTS` tries) instead, only giving up entirely if
+verification itself never gets a real response. Two new tests
+(`test_reverifies_the_same_pair_after_a_verification_timeout_instead_of_regenerating`,
+`test_gives_up_when_verification_keeps_timing_out`); full suite green.
+
+**Already resolved, no longer a to-do:** follow-up candidate #2 (the
+loose `stripped.upper().startswith("VALID")` prefix check that could
+fail both open and closed) turned out to be stale — the "split
+TECHNIQUE/CORRECTNESS verification" rework earlier in this doc already
+replaced it with anchored `(YES|NO)`/`(VALID|INVALID)` regexes
+(`_TECHNIQUE_LINE_PATTERN`, `_CORRECTNESS_LINE_PATTERN`) that don't have
+the substring-match problem. No action needed.
+
+### To-do (not fixed, real-evidence-driven — revisit if usage shows they matter)
+
+**`problem_gen`:**
+1. **`_extract_problem_and_solution` takes the first `## Problem`/`##
+   Solution` match** (follow-up candidate #3). `_SECTION_PATTERN`'s
+   trailing group is greedy-to-end-of-string, so a chatty small model
+   that echoes part of its own instructional template before the real
+   answer could pollute or entirely misdirect the extracted solution
+   text. Needs actual design thought (e.g. stripping known template
+   lines before searching, or rejecting a body that's just the
+   placeholder shape) — not a one-line first/last-match swap.
+2. **Self-verification does not reliably catch subtle math errors** —
+   a small (~7B) local model grading its own math is a real capability
+   limit, not a control-flow bug. Candidate fix: an independent, larger,
+   or differently-prompted checker.
+3. **No relevance threshold on style-pool retrieval** — a topic with
+   weak/no real corpus coverage still returns "closest available"
+   examples with no signal to the caller.
+4. **Generated solution text never enters conversation history** — a
+   disclaimed non-goal, not a defect, but a real seam if
+   follow-up-on-a-generated-problem becomes a real use case.
+
+**`problem_corpus`** (see
+`docs/2026-09-06-problem-corpus-extraction-status.md` for full detail):
+5. **Boundary detection over-splits on numbered content embedded inside
+   a problem's own body** (numbered sub-statements, guided-walkthrough
+   steps) — produces duplicate-labeled records on 6/8 real problem-set
+   files.
+6. **Boundary detection also under-performs on textbook-style terse
+   exercise lists** — found during the folder-alias fix's real
+   validation; some Book of Proof records extracted to a single bare
+   symbol (e.g. `$$\phi$$`) instead of the actual exercise text. Same
+   family as #5 but a distinct failure mode (over-triggering on
+   textbook content shape, not fragmenting problem-set prose) — both
+   share the regex duplicated from `indexer/chunk_index.py`, so a fix
+   needs regression coverage across both consumers.
+
+## Future development ideas (idea #1 shipped as `problem_corpus`; #2-6 not implemented — revisit once a Gemini path exists)
 
 Raised by the user while reviewing these results. Recorded here as a
 real-evidence-informed roadmap, not decided or built:
 
-1. **Extract a structured example-problem corpus from the textbooks and
-   problem sets already in the corpus.** Textbooks and past exams
-   already contain plenty of problems the student's own materials treat
-   as valid, and some (e.g. textbook odd-numbered exercises with
-   answers in the back) have solutions that are already verified by the
-   textbook itself, not just self-reported by an LLM. Extracting these
-   into a structured format (topic tag, problem formulation, solution(s),
-   course(s)) would give this subsystem a real, growing bank of
-   known-good examples to draw on, rather than only the same passage-level
-   chunks retrieval happens to surface.
+1. **DONE (`problem_corpus/`, 2026-09-06).** ~~Extract a structured
+   example-problem corpus from the textbooks and problem sets already
+   in the corpus.~~ Textbooks and past exams already contain plenty of
+   problems the student's own materials treat as valid, and some (e.g.
+   textbook odd-numbered exercises with answers in the back) have
+   solutions that are already verified by the textbook itself, not just
+   self-reported by an LLM. Extracting these into a structured format
+   (topic tag, problem formulation, solution(s), course(s)) gives this
+   subsystem a real, growing bank of known-good examples to draw on,
+   rather than only the same passage-level chunks retrieval happens to
+   surface. Shipped without a "verified" tier, though — see the spec's
+   own real-corpus finding that no such tier exists yet
+   (`docs/superpowers/specs/2026-09-06-problem-corpus-extraction-design.md`).
+   Ideas #2-6 below all depend on this corpus and remain unstarted.
 2. **Two uses for that structured corpus**: (a) richer, curated few-shot
    examples in the generation prompt (more reliable "style anchors" than
    whatever raw chunk retrieval turns up), or (b) served directly to the

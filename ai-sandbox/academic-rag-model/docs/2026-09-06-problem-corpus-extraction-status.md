@@ -234,3 +234,27 @@ fixed here and the fragmentation limitation documented above — worth a
 closer look before textbook records are trusted for downstream use
 (e.g. few-shot examples), but not a blocker for the bug this session
 targeted.
+
+## To-do (not fixed, tracked for a future pass)
+
+1. **Boundary detection over-splits problem-set prose on numbered
+   sub-statements/guided-walkthrough steps** — see the Findings section
+   above (6/8 real files affected).
+2. **Boundary detection also under-performs on textbook-style terse
+   exercise lists** — see the finding immediately above (new this
+   session, from the first real textbook extraction).
+
+Both share the regex duplicated from `indexer/chunk_index.py`'s own
+`_detect_problem_boundaries`, so a real fix needs regression coverage
+across both consumers, not just this package's `boundaries.py`.
+
+**Future development plans** (idea #1, this subproject, is now done —
+see `docs/2026-09-05-problem-generation-status.md`'s "Future
+development ideas" section for the full list and status): richer
+few-shot examples / direct-serve matching from this corpus, Gemini-based
+solution backfilling for textbook problems that lack one, growing the
+corpus with provenance-tagged LLM-generated problems, a tiered
+local-corpus-first-then-Gemini generation pipeline, and
+similar-problems-as-templates for guided generation. None started yet;
+all depend on this corpus being trustworthy enough first, which is why
+the two to-do items above matter before any of them get picked up.
