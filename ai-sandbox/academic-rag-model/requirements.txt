@@ -1,0 +1,30 @@
+# Core Dependencies
+google-genai
+python-dotenv
+requests
+httpx
+mammoth
+markdown-it-py
+
+# Video Notes & Audio
+yt-dlp
+faster-whisper
+av
+
+# Visualization
+plotly
+
+# Testing
+pytest
+pytest-patch
+
+# Utilities (observed in venv)
+tqdm
+typer
+transformers
+numpy
+onnxruntime
+
+# Audio Generator
+markdown
+beautifulsoup4
