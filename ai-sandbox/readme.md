@@ -10,13 +10,13 @@ actual conversion/indexing/RAG pipelines.
 
 ```text
 ai-sandbox/
-├── .env                                <-- GEMINI_API_KEY (gitignored)
+├── .env                                <-- GEMINI_API_KEY + GCP/journal_discovery vars, from .env.example (gitignored)
 ├── readme.md                           <-- this file
 │
 ├── academic-rag-model/                 <-- conversion/indexing/RAG pipelines (tracked)
 │
 ├── academic-hub/                       <-- see academic-hub/README.md
-│   ├── academic_notes/<course>/        <-- your own TA notes, problem sets, exams (tracked)
+│   ├── academic_notes/<course>/        <-- your own TA notes, problem sets, exams (tracked); audio_generator's *.mp3 siblings here are gitignored
 │   ├── academic_resources/<course>/
 │   │   ├── textbooks/                  <-- copyrighted PDFs + full-text .md (gitignored)
 │   │   ├── lecture-slides/             <-- gitignored
@@ -24,7 +24,7 @@ ai-sandbox/
 │   └── .index/                         <-- source-indexer cards (tracked); .index/chunks/ gitignored
 │
 ├── research/                           <-- see research/README.md
-│   ├── independent-research/           <-- your own essays, research notes (tracked)
+│   ├── independent-research/           <-- your own essays, research notes (tracked); projects/** are separate child git repos
 │   ├── journal-articles/               <-- copyrighted PDFs + full-text .md (gitignored)
 │   └── .index/                         <-- same tracked/gitignored split as above
 │
@@ -46,9 +46,11 @@ ai-sandbox/
    folders to a remote — off by default (`ENABLE_RCLONE_SYNC=false`), narrow
    in scope (not lecture slides/recordings, not a blanket sync).
 3. **Never `git init` inside a gitignored or child-repo folder** — the
-   personal website and any of your own independent project repos
-   (`research/independent-research/projects/**`) are deliberately separate
-   git repos, kept out of this one so each has its own independent history.
+   personal website and your independent project repos
+   (`research/independent-research/projects/**`, listed in
+   `workspace_generator.sh`'s `INDEPENDENT_RESEARCH_REPOS`) are deliberately
+   separate git repos, kept out of this one so each has its own independent
+   history.
 4. **Naming convention:** directories and files use lowercase alphanumeric
    characters separated by hyphens (`lower-kebab-case`), except where an
    existing tool's own convention overrides it (e.g. Python packages use

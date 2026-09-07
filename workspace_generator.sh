@@ -28,6 +28,17 @@ RCLONE_REMOTE="gdrive:master-workspace"
 GITHUB_WEBSITE_URL="https://github.com/AaronScherf/AaronScherf.github.io.git"
 SANDBOX_DIR="ai-sandbox"
 
+# Aaron-specific convenience -- your own independent research/thesis repos
+# (own git history, deliberately not embedded in this repo, same reasoning
+# as GITHUB_WEBSITE_URL above -- see golden rule 3 in ai-sandbox/readme.md).
+# Each entry is "path/relative/to/research/independent-research/projects/|git-url".
+# Replicating this project with your own projects means replacing this list;
+# adding a new project of your own later means appending a line here.
+INDEPENDENT_RESEARCH_REPOS=(
+    "berkeley_thesis/wheat_yield_prediction_gee|https://github.com/AaronScherf/wheat_yield_prediction_gee.git"
+    "math_thesis/Novel-Omnibus-Normality-Test-and-Power-Comparison-with-the-Shapiro-Wilk-Test|https://github.com/AaronScherf/Novel-Omnibus-Normality-Test-and-Power-Comparison-with-the-Shapiro-Wilk-Test.git"
+)
+
 echo "🚀 Scaffolding gitignored folders and syncing child repos..."
 
 # ==========================================================================
@@ -58,8 +69,8 @@ mkdir -p "$SANDBOX_DIR/research/journal-articles"
 echo "✅ Gitignored content folders ready for your own PDFs."
 
 # ==========================================================================
-# 2. CHILD GIT REPOS: CLONE/PULL (personal-website + any of your own
-#    independent project repos, e.g. under research/independent-research/projects/)
+# 2. CHILD GIT REPOS: CLONE/PULL (personal-website + the independent
+#    research/thesis project repos listed in INDEPENDENT_RESEARCH_REPOS above)
 # ==========================================================================
 if [ "$ENABLE_GIT_UPDATES" = true ]; then
     echo "🐙 Processing child git repositories..."
@@ -71,6 +82,20 @@ if [ "$ENABLE_GIT_UPDATES" = true ]; then
         echo "   -> Cloning personal website repository for the first time..."
         git clone "$GITHUB_WEBSITE_URL" "$SANDBOX_DIR/personal-website/AaronScherf.github.io"
     fi
+
+    # Same idea for INDEPENDENT_RESEARCH_REPOS above -- clone each one on
+    # first run so a fresh machine doesn't need every project repo cloned by
+    # hand. Still kept as separate child repos (own history), never embedded.
+    for entry in "${INDEPENDENT_RESEARCH_REPOS[@]}"; do
+        repo_relpath="${entry%%|*}"
+        repo_url="${entry#*|}"
+        repo_dest="$SANDBOX_DIR/research/independent-research/projects/$repo_relpath"
+        if [ ! -d "$repo_dest/.git" ]; then
+            echo "   -> Cloning independent-research project for the first time: $repo_relpath..."
+            mkdir -p "$(dirname "$repo_dest")"
+            git clone "$repo_url" "$repo_dest"
+        fi
+    done
 
     # Find every directory in the sandbox with its own .git and pull it --
     # covers the personal website above and any of your own standalone
@@ -95,6 +120,11 @@ if [ "$ENABLE_GIT_UPDATES" = true ]; then
         )
     done
     echo "✅ Child git repositories processed."
+    echo "   ℹ️  Note: only repos listed in INDEPENDENT_RESEARCH_REPOS above (plus"
+    echo "      the personal website) get cloned automatically. A project repo of"
+    echo "      your own that isn't listed there yet still needs a manual 'git"
+    echo "      clone' once -- add it to the list afterward and future runs will"
+    echo "      pick it up on their own."
 else
     echo "⏭️ Git updates are disabled in config. Skipping child-repo sync..."
 fi
@@ -113,13 +143,25 @@ fi
 echo "📝 Generating local config and docs where missing..."
 
 if [ ! -f "$SANDBOX_DIR/.env" ]; then
-    echo "   -> ai-sandbox/.env not found. Generating from .env.example convention..."
-    cat << 'EOF' > "$SANDBOX_DIR/.env"
+    if [ -f "$SANDBOX_DIR/.env.example" ]; then
+        echo "   -> ai-sandbox/.env not found. Copying from .env.example..."
+        cp "$SANDBOX_DIR/.env.example" "$SANDBOX_DIR/.env"
+        echo "      Fill in your own values in ai-sandbox/.env before running the pipelines."
+    else
+        # Fallback only -- .env.example ships tracked in this repo, so this
+        # branch shouldn't normally run. Copying .env.example (above) is
+        # preferred over hand-maintaining a second copy of its variable list
+        # here, which drifted silently out of sync before (this used to
+        # generate a GEMINI_API_KEY-only stub, missing the GCP/journal_discovery
+        # vars .env.example has grown since -- confirmed live 2026-09-07).
+        echo "   -> ai-sandbox/.env not found and .env.example is missing too. Generating a minimal stub..."
+        cat << 'EOF' > "$SANDBOX_DIR/.env"
 # ==========================================================================
 # 🔑 SECURE LOCAL ENVIRONMENT VARIABLES (IGNORED BY GIT)
 # ==========================================================================
 GEMINI_API_KEY=YOUR_ACTUAL_GEMINI_KEY_HERE
 EOF
+    fi
 else
     echo "   -> ai-sandbox/.env already exists. Skipping."
 fi

@@ -19,10 +19,10 @@ ai-sandbox/personal-website/
 # literal folder name "textbooks-and-papers", which broke the moment
 # math-camp's copy of that folder got renamed to "textbooks" -- confirmed
 # live, this silently would have let Book of Proof.pdf, Axler, and their
-# full-text .md conversions become trackable again. econ-101/env-101/
-# interm_spanish/intro_spanish still use the old name as of this fix, so
-# both are matched explicitly rather than guessing at a single "current"
-# name -- confirmed, not assumed, per this repo's usual standard.
+# full-text .md conversions become trackable again. Every course has since
+# been renamed to "textbooks" (confirmed 2026-09-07), but both patterns stay
+# matched explicitly rather than guessing at a single "current" name --
+# confirmed, not assumed, per this repo's usual standard.
 #
 # academic_resources/'s lecture-slides/ and lecture-recordings/ are
 # precautionary-protected too as of this same fix: real PDF files were
@@ -100,6 +100,10 @@ ai-sandbox/research/.viz/
 # with a slash anywhere but the end (like ".obsidian/workspace*") is
 # anchored to the .gitignore's own directory, not matched at any depth
 # below it, so this needs the explicit prefix to actually reach the vault.
+# Everything else under .obsidian/ (plugins, snippets, appearance.json,
+# core/community-plugins.json) is tracked on purpose -- it's the vault's
+# own config, not per-machine session state, so it travels with the repo
+# when replicating this setup on another machine.
 ai-sandbox/.obsidian/workspace*
 ai-sandbox/.obsidian/cache
 # Claude Code personal/local settings (not shared)
@@ -111,3 +115,29 @@ ai-sandbox/.obsidian/cache
 # Subagent-driven-development scratch workspace (ledgers, briefs, review
 # packages) -- regenerable, not project output.
 .superpowers/
+
+# ==========================================================================
+# LOCAL MACHINE / TOOL STATE -- secrets and per-machine config that must
+# never leave this machine, as opposed to the copyright-driven exclusions
+# above (found missing 2026-09-07: both READMEs already claimed ai-sandbox/.env
+# was gitignored, but no pattern actually existed -- a plain `git add -A`
+# would have staged a real GEMINI_API_KEY).
+# ==========================================================================
+ai-sandbox/.env
+# Gemini CLI's own local settings -- same category as .env, not project content.
+ai-sandbox/.gemini/
+# JetBrains IDE project metadata -- machine-specific, not shared.
+.idea/
+
+# audio_generator writes each narration as a sibling <name>.mp3 next to its
+# source .md, directly inside academic_notes/<course>/ and
+# academic_resources/<course>/textbooks/ (see audio_generator/README.md's
+# "Output" section) -- no dedicated output folder to scope a directory-level
+# ignore to. A synthesized full-text reading of notes/textbook content is
+# the same "derivative but verbatim-reproducing" category .index/chunks/,
+# .viz/, .reports/, and .problem_corpus/ are already excluded for above
+# (worse, in the textbooks case: audio of a copyrighted textbook's full
+# text), and large besides -- excluded by extension since it can land
+# anywhere under either tree.
+ai-sandbox/academic-hub/**/*.mp3
+ai-sandbox/research/**/*.mp3
