@@ -23,7 +23,11 @@ tqdm
 typer
 transformers
 numpy
-onnxruntime
+onnxruntime==1.20.1  # newer builds crash on CPUs without AVX512 (e.g. Kaby Lake) with a DLL init error
+pypdf
+pyzotero
+rapidfuzz
+scikit-learn
 
 # Audio Generator
 markdown
@@ -32,4 +36,4 @@ piper-tts
 kokoro-onnx
 soundfile
 pydub
-audioop-lts  # pydub needs this on Python 3.13+, whose stdlib dropped audioop (PEP 594)
+audioop-lts; python_version >= "3.13"  # pydub needs this on Python 3.13+, whose stdlib dropped audioop (PEP 594)
