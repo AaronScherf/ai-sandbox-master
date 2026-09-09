@@ -386,13 +386,22 @@ inside their subproject packages, and note the `tests/test_discovery.py`/
   number is *why* v3 exists (§1, §3.1) — impractical for any real batch
   use, which is the whole reason narration moved to the Gemini API.
   `qwen2-math:7b`/local Ollama is no longer part of this pipeline's design.
-- **NEW (v3): real API timing and per-file cost are unmeasured.** The
-  Gemini API should be dramatically faster than the ~6h local-CPU number
-  above (no local model load, no CPU-bound generation), but that's an
-  expectation, not a measurement yet — the plan should time and cost at
-  least one real run against `LN_Probability.md` (comparable to v2's
-  measurement) before assuming the tiered-API design is practical at the
-  intended volume (a few files/week).
+- **RESOLVED (v3): real API timing, measured 2026-09-09.** Same file as
+  v2's measurement (`LN_Probability.md`, 121,637 input chars): **777.3s
+  (13.0 min)** end-to-end via the tiered Gemini path — roughly **28x
+  faster** than v2's ~6h local-CPU number. Output was 198,693 chars, notably
+  more verbose than v2's 127,558-char local-model rewrite of the same
+  input (both passed the same length-ratio sanity check, so this isn't a
+  failure — Gemini's rewrite style is simply more expansive; worth
+  watching if narrated audio ends up longer than expected, but not
+  investigated further here). Rough per-file cost at ~30.4K input /
+  ~49.7K output tokens (chars ÷ 4), blended across the light/heavy tiers
+  (exact tier mix for this file wasn't logged) using
+  `gemini-3.1-flash-lite` ($0.25/$1.50 per M tokens) and `gemini-2.5-flash`
+  ($0.30/$2.50 per M tokens): **roughly $0.08-$0.13 per file** — at the
+  target volume of 3-4 files/week (~15/month), call it **$1-2/month**.
+  Confirms the tiered-API design is practical at the intended volume; the
+  local-CPU approach (§1, ~6h/file) is not.
 - **NEW (v3): the tier-classifier density thresholds
   (`AUDIOGEN_NARRATE_MATH_RATIO_THRESHOLD`/`_COMMAND_THRESHOLD`, §3.1) are a
   starting guess, not validated values** — needs checking against real
