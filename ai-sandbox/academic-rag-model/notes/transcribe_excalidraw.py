@@ -98,3 +98,36 @@ def transcribe_chunks(client, model: str, chunk_bytes: list[bytes]) -> dict[str,
         except Exception as err:
             print(f"WARNING: chunk {chunk_index + 1}/{total_chunks} failed after retries ({err}); skipping.")
     return cache
+
+
+def build_expansion_prompt(raw_markdown: str, retrieved_passages: list[str] | None = None) -> str:
+    grounding_block = ""
+    if retrieved_passages:
+        joined = "\n\n".join(retrieved_passages)
+        grounding_block = (
+            "Relevant passages from the course's own textbook material, for grounding and "
+            f"terminology consistency (cite/connect to these where genuinely relevant, don't "
+            f"force a connection that isn't there):\n{joined}\n\n"
+        )
+    return (
+        "The following is a terse, shorthand transcription of a student's handwritten math/"
+        "economics lecture notes -- LaTeX-heavy, abbreviated, written for the student's own "
+        "quick reference, not for someone else to read. Rewrite it into a cohesive, "
+        "self-contained prose explanation: expand abbreviations, spell out the reasoning "
+        "between steps, and preserve every piece of mathematical content (do not drop or "
+        "simplify any equation) while making it directly understandable to someone who "
+        "wasn't in the room. Keep LaTeX notation ($...$, $$...$$) for all math.\n\n"
+        f"{grounding_block}"
+        f"Shorthand transcription:\n{raw_markdown}\n\n"
+        "Respond with ONLY the expanded markdown -- no commentary, no code fence.\n"
+    )
+
+
+def expand_via_gemini(client, model: str, raw_markdown: str, retrieved_passages: list[str] | None = None) -> str:
+    prompt = build_expansion_prompt(raw_markdown, retrieved_passages)
+    response = client.models.generate_content(
+        model=model,
+        contents=[prompt],
+        config={"temperature": 0, "thinking_config": {"thinking_level": "minimal"}},
+    )
+    return (response.text or "").strip()

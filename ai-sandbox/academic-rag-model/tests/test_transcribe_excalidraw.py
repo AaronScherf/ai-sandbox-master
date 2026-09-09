@@ -111,3 +111,38 @@ def test_transcribe_chunks_skips_a_chunk_that_fails_after_retries():
             cache = transcribe_chunks(client=object(), model="gemini-3.6-flash", chunk_bytes=[b"img0", b"img1", b"img2"])
 
     assert cache == {"0": "ok text", "2": "ok text"}
+
+
+from notes.transcribe_excalidraw import build_expansion_prompt, expand_via_gemini
+
+
+def test_build_expansion_prompt_includes_raw_text():
+    prompt = build_expansion_prompt("$$x + y = z$$")
+    assert "$$x + y = z$$" in prompt
+    assert "cohesive" in prompt.lower() or "prose" in prompt.lower()
+
+
+def test_build_expansion_prompt_includes_retrieved_passages_when_given():
+    prompt = build_expansion_prompt("shorthand notes", retrieved_passages=["Textbook passage about norms."])
+    assert "Textbook passage about norms." in prompt
+
+
+def test_build_expansion_prompt_omits_grounding_block_when_none():
+    prompt = build_expansion_prompt("shorthand notes", retrieved_passages=None)
+    assert "textbook" not in prompt.lower()
+
+
+def test_expand_via_gemini_returns_response_text():
+    class FakeResponse:
+        text = "Expanded prose explaining the shorthand."
+        usage_metadata = None
+
+    class FakeModels:
+        def generate_content(self, model, contents, config):
+            return FakeResponse()
+
+    class FakeClient:
+        models = FakeModels()
+
+    result = expand_via_gemini(FakeClient(), model="gemini-3.1-flash-lite", raw_markdown="shorthand")
+    assert result == "Expanded prose explaining the shorthand."
