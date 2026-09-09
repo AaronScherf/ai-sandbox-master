@@ -121,7 +121,14 @@ ALLOWED_MATH_RANGES = (
     (0x2980, 0x29FF),    # Miscellaneous Mathematical Symbols-B
     (0xFB00, 0xFB06),    # Alphabetic Presentation Forms (ligatures ﬀ ﬁ ﬂ ﬃ ﬄ)
 )
-_ALLOWED_EXTRA_CHARS = set("—–‘’“”…°±×÷·∘‗†′″‴")
+_ALLOWED_EXTRA_CHARS = set("—–‘’“”…°±×÷·∘‗†′″‴•​")
+# U+2022 (bullet) and U+200B (zero-width space) added 2026-09-09: confirmed
+# real, both pypdf- and PyMuPDF-agreeing, non-corrupted characters in a
+# resume PDF (resume_manager's actual resume.pdf, a Skia/PDF headless-Chrome
+# export) -- ordinary bullet-list markup this allowlist, tuned for LaTeX
+# math lecture notes, had never needed to recognize before. Same "extend
+# the allowlist for a real, legitimate document class" fix already applied
+# once for Apache FOP/XEP-produced journal articles.
 _MAX_UNEXPECTED_CHARS = 3
 
 # Corruption signal independent of the allowlist above: the *same*

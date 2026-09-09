@@ -330,6 +330,35 @@ class TestPageLooksDefective(unittest.TestCase):
         text = "See the comment thread at https://mail.google.com/app/06b7ab97dac5cbbb> for context."
         self.assertFalse(page_looks_defective(text))
 
+    def test_prose_bullet_points_are_not_defective(self):
+        # Real pattern from resume_manager's actual resume.pdf (a
+        # Skia/PDF headless-Chrome export, not LaTeX/math notes): U+2022
+        # BULLET is a completely ordinary character in any bulleted list,
+        # but wasn't in _ALLOWED_EXTRA_CHARS (tuned for math lecture
+        # notes), so a resume's 16-62 bullet points per page tripped the
+        # "too many unexpected characters" check even though nothing was
+        # actually corrupted or lost -- confirmed both pypdf's and
+        # PyMuPDF's extraction agree the character is a plain U+2022, not
+        # a mis-decoded glyph.
+        text = (
+            "• Managed portfolio of 20 program evaluations.\n"
+            "• Developed country research plan and designed 12 context assessments.\n"
+            "• Developed analytics system to track infrastructure support.\n"
+            "• Led the design and context research for four programs.\n"
+        )
+        self.assertFalse(page_looks_defective(text))
+
+    def test_repeated_zero_width_space_is_not_defective(self):
+        # Real pattern from the same resume.pdf, page 2 -- a zero-width
+        # space (U+200B) used repeatedly as an invisible field separator
+        # by the source resume-builder tool (dozens of occurrences across
+        # a real page). Legitimate, invisible formatting, not corruption.
+        text = "​".join([
+            "Georgia Institute of Technology", "Master of Science", "in Computer Science",
+            "GPA: 3.88", "Atlanta, GA, USA", "01/2022", "12/2025",
+        ])
+        self.assertFalse(page_looks_defective(text))
+
     def test_lost_exponent_inside_an_already_reconstructed_script_group_is_not_defective(self):
         # Real case from Analysis_Exercises.pdf page 1 (post dict-mode
         # fix): reconstruct_line_with_scripts() correctly wraps a compound
