@@ -1,10 +1,10 @@
 """
 convert_resume.py
 One-off bootstrap: copies the source resume PDF into resume-manager/,
-extracts + normalizes it into the master resume's Markdown convention,
-and verifies the reformat before trusting it (spec §3). Not part of
-the per-application pipeline -- run once, or re-run if the source PDF
-changes.
+extracts it locally, extracts it into the structured schema via a local
+LLM call, and verifies that extraction before trusting it (spec §3
+Revision 2). Not part of the per-application pipeline -- run once, or
+re-run if the source PDF changes.
 """
 from __future__ import annotations
 
@@ -13,8 +13,11 @@ import os
 import shutil
 from pathlib import Path
 
+import yaml
+
 from resume_manager.extract import DefectivePageError, extract_resume_text
-from resume_manager.normalize import normalize_resume_text, verify_normalization
+from resume_manager.normalize import extract_resume_schema, verify_extraction
+from resume_manager.schema import assign_ids
 
 _DEFAULT_SOURCE_PDF = (
     Path(__file__).resolve().parent.parent.parent / "personal-website" / "AaronScherf.github.io"
@@ -29,9 +32,9 @@ _DEFAULT_RESUME_MANAGER_DIR = (
 def bootstrap_resume(source_pdf: str, resume_manager_dir: str) -> str:
     """Runs the full bootstrap (spec §3) and returns a one-line status
     message. A DefectivePageError from extraction propagates -- that's
-    meant to stop the run for the user's direct attention (spec §8). A
-    normalization-verification mismatch does NOT raise -- that's the
-    expected "flag for review" path."""
+    meant to stop the run for the user's direct attention (spec §8). An
+    extraction-verification mismatch does NOT raise -- that's the expected
+    "flag for review" path."""
     os.makedirs(resume_manager_dir, exist_ok=True)
     dest_pdf = os.path.join(resume_manager_dir, "resume.pdf")
     shutil.copyfile(source_pdf, dest_pdf)
@@ -43,33 +46,36 @@ def bootstrap_resume(source_pdf: str, resume_manager_dir: str) -> str:
     with open(raw_path, "w", encoding="utf-8") as f:
         f.write(raw_text)
 
-    normalized_text = normalize_resume_text(raw_text)
-    if normalized_text is None:
+    parsed = extract_resume_schema(raw_text)
+    if parsed is None:
         return (
-            f"Extraction wrote {raw_path}, but the local Ollama normalization call failed -- "
-            f"is `ollama serve` running?"
+            f"Extraction wrote {raw_path}, but the local Ollama extraction call failed or "
+            f"returned invalid YAML -- is `ollama serve` running?"
         )
 
-    problems = verify_normalization(raw_text, normalized_text)
-    master_path = os.path.join(resume_manager_dir, "resume_master.md")
+    assign_ids(parsed.get("work_experience") or [], "org")
+    assign_ids(parsed.get("education") or [], "institution")
+
+    problems = verify_extraction(parsed, raw_text)
+    master_path = os.path.join(resume_manager_dir, "resume_master.yaml")
     if not problems:
         with open(master_path, "w", encoding="utf-8") as f:
-            f.write(normalized_text)
-        return f"Wrote {master_path} (normalization verified clean)."
+            yaml.safe_dump(parsed, f, sort_keys=False, allow_unicode=True)
+        return f"Wrote {master_path} (extraction verified clean)."
 
-    review_path = os.path.join(resume_manager_dir, "resume_master.review.md")
+    review_path = os.path.join(resume_manager_dir, "resume_master.review.yaml")
     with open(review_path, "w", encoding="utf-8") as f:
-        f.write(normalized_text)
+        yaml.safe_dump(parsed, f, sort_keys=False, allow_unicode=True)
     report = "\n".join(f"- {p}" for p in problems)
     return (
-        f"Normalization verification flagged {len(problems)} issue(s) -- wrote {review_path} "
+        f"Extraction verification flagged {len(problems)} issue(s) -- wrote {review_path} "
         f"for manual review instead of {master_path}:\n{report}"
     )
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="One-off bootstrap: convert resume.pdf into the master resume Markdown.",
+        description="One-off bootstrap: convert resume.pdf into the structured master resume.",
     )
     parser.add_argument("--source-pdf", default=str(_DEFAULT_SOURCE_PDF))
     parser.add_argument("--resume-manager-dir", default=str(_DEFAULT_RESUME_MANAGER_DIR))
