@@ -1,7 +1,9 @@
 # audio_generator
 
-Converts a course's Markdown notes and converted textbooks into local,
-offline MP3 narration for passive/commute listening — no cloud API, no GPU.
+Converts a course's Markdown notes and converted textbooks into local MP3
+narration for passive/commute listening — no GPU. Discovery, cleaning, and
+TTS synthesis are fully offline; LaTeX narration (see below) is the one
+step that calls a cloud API (Gemini).
 
 Spec: `docs/superpowers/specs/2026-09-06-audio-generator-design.md`
 
@@ -43,20 +45,36 @@ Override any model path via `AUDIOGEN_PIPER_MODEL_PATH`,
 
 ## LaTeX narration
 
-Math notation (`$...$`/`$$...$$`) is rewritten into natural spoken prose by
-a local Ollama call before synthesis (`qwen2-math:7b` by default), chunked
-per-file. Requires `ollama serve` running with that model pulled
-(`ollama pull qwen2-math:7b`) for full-quality narration; if Ollama is
-unreachable, or a chunk's rewrite fails a sanity check twice, that chunk
-degrades to the old literal-LaTeX-wrapped narration instead of failing the
-file.
+Math notation (`$...$`/`$$...$$`) is rewritten into natural spoken prose,
+chunked per-file, by the **Gemini API** — the only step in this pipeline
+that leaves your machine; everything else (discovery, cleaning, TTS
+synthesis) stays fully local. Requires `GEMINI_API_KEY` set in
+`ai-sandbox/.env` (see `../.env.example`; get a key at
+aistudio.google.com/apikey).
+
+Each chunk is classified by LaTeX density before anything is sent anywhere:
+
+| Tier | Trigger | Model | Cost |
+|---|---|---|---|
+| Skip | No `$...$`/`$$...$$` spans and no stray Greek/math Unicode chars | — | Free — no API call at all |
+| Light | Sparse/simple notation | `gemini-3.1-flash-lite` | Cheap |
+| Heavy | Dense equations, many backslash commands, or a `\begin`/`\end` environment | `gemini-2.5-flash` | More expensive, used only when needed |
+
+A plain-prose file (no math) costs nothing to narrate. If `GEMINI_API_KEY`
+is missing/invalid, or a chunk's rewrite fails a sanity check (its length
+relative to the original), that chunk degrades to the old literal-LaTeX-
+wrapped narration instead of failing the file — no local fallback model is
+used (a prior local-Ollama design was measured at ~6h for one
+equation-dense file and dropped for this API-based approach).
 
 The final narration text (after all cleaning) is written to a sibling
 `<name>.narrated.md` next to `<name>.md`/`<name>.mp3` — useful for spot-
 checking translation quality without listening to the audio.
 
-Override the model or its per-chunk timeout via `AUDIOGEN_NARRATE_OLLAMA_MODEL`
-/ `AUDIOGEN_NARRATE_OLLAMA_TIMEOUT` (seconds, default `300`).
+Override the classifier thresholds or model choice via
+`AUDIOGEN_NARRATE_MATH_RATIO_THRESHOLD` (default `0.15`),
+`AUDIOGEN_NARRATE_MATH_COMMAND_THRESHOLD` (default `3`),
+`AUDIOGEN_NARRATE_GEMINI_LIGHT_MODEL`, `AUDIOGEN_NARRATE_GEMINI_HEAVY_MODEL`.
 
 ## Non-goals (see spec for rationale)
 
