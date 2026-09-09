@@ -3,16 +3,27 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
+import yaml
+
 from resume_manager.tailor_resume import run_tailoring
+
+_MASTER = {
+    "contact": {"name": "Aaron"},
+    "work_experience": [{
+        "id": "acme-1", "org": "Acme", "role": "Engineer", "location": "NYC",
+        "start_date": "2020", "end_date": "Present", "bullets": ["Did a thing"],
+    }],
+    "education": [], "awards": [], "publications": [], "skills": [],
+}
 
 
 class TestRunTailoring(unittest.TestCase):
     def _setup(self, tmp):
         resume_manager_dir = os.path.join(tmp, "resume-manager")
         os.makedirs(resume_manager_dir, exist_ok=True)
-        master_path = os.path.join(resume_manager_dir, "resume_master.md")
+        master_path = os.path.join(resume_manager_dir, "resume_master.yaml")
         with open(master_path, "w", encoding="utf-8") as f:
-            f.write("## Experience\n### Acme — Engineer (2020 – Present)\n- Did a thing\n")
+            yaml.safe_dump(_MASTER, f)
         jd_path = os.path.join(tmp, "jd.txt")
         with open(jd_path, "w", encoding="utf-8") as f:
             f.write("Looking for an engineer.")
@@ -21,7 +32,7 @@ class TestRunTailoring(unittest.TestCase):
     @patch("resume_manager.tailor_resume.render_resume_pdf")
     @patch(
         "resume_manager.tailor_resume.tailor_resume",
-        return_value="## Experience\n### Acme — Engineer (2020 – Present)\n- Did a thing\n",
+        return_value={"included_ids": ["acme-1"], "bullets_by_id": {"acme-1": ["Did a rewritten thing"]}},
     )
     def test_writes_all_application_outputs(self, mock_tailor, mock_render):
         with tempfile.TemporaryDirectory() as tmp:
@@ -34,7 +45,12 @@ class TestRunTailoring(unittest.TestCase):
             self.assertTrue(app_dirs[0].endswith("-acme-corp"))
             app_dir = os.path.join(resume_manager_dir, "applications", app_dirs[0])
             self.assertTrue(os.path.exists(os.path.join(app_dir, "job_description.txt")))
-            self.assertTrue(os.path.exists(os.path.join(app_dir, "tailored_resume.md")))
+            tailored_path = os.path.join(app_dir, "tailored_resume.yaml")
+            self.assertTrue(os.path.exists(tailored_path))
+            with open(tailored_path, encoding="utf-8") as f:
+                tailored = yaml.safe_load(f)
+            self.assertEqual(tailored["work_experience"][0]["bullets"], ["Did a rewritten thing"])
+            self.assertEqual(tailored["work_experience"][0]["org"], "Acme")
             self.assertTrue(os.path.exists(os.path.join(app_dir, "validation_report.txt")))
             mock_render.assert_called_once()
 
@@ -47,7 +63,7 @@ class TestRunTailoring(unittest.TestCase):
 
             with self.assertRaises(FileNotFoundError):
                 run_tailoring(
-                    os.path.join(resume_manager_dir, "resume_master.md"), jd_path, "acme", resume_manager_dir,
+                    os.path.join(resume_manager_dir, "resume_master.yaml"), jd_path, "acme", resume_manager_dir,
                 )
 
     def test_missing_jd_file_raises(self):
