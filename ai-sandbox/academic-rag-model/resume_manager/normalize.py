@@ -1,59 +1,111 @@
 """
 normalize.py
-One local-LLM reformat pass turning the raw page-tagged extraction
-(extract.py) into the master resume's structured Markdown convention
-(## section headings, ### <Org> — <Role> (<dates>) entries, bullets)
--- replaces hand-transcription, per spec §3 steps 3-4. Verified
-against the raw extraction before being trusted.
+One local-LLM extraction pass turning the raw page-tagged extraction
+(extract.py) into the master resume's structured schema (schema.py) --
+Revision 2 of spec §3 steps 3-4. Verified against the raw extraction
+before being trusted.
 """
 from __future__ import annotations
 
 import os
 
+import yaml
+
 from common.ollama_utils import call_ollama
-from resume_manager.fact_diff import extract_entries, extract_metrics, metrics_not_traceable
+from resume_manager.schema import (
+    AWARDS_REQUIRED, CONTACT_REQUIRED, EDUCATION_REQUIRED, PUBLICATIONS_REQUIRED,
+    SKILLS_LIST_FIELDS, SKILLS_REQUIRED, WORK_EXPERIENCE_LIST_FIELDS, WORK_EXPERIENCE_REQUIRED,
+    verify_entry_fields,
+)
 
 OLLAMA_MODEL = os.environ.get("RESUMEMANAGER_OLLAMA_MODEL", "qwen2.5:7b-instruct")
-OLLAMA_TIMEOUT_SECONDS = int(os.environ.get("RESUMEMANAGER_OLLAMA_TIMEOUT", "300"))
+OLLAMA_TIMEOUT_SECONDS = int(os.environ.get("RESUMEMANAGER_OLLAMA_TIMEOUT", "1800"))
 
-_SYSTEM_PROMPT = """You are reformatting a resume's raw extracted text into a strict Markdown structure.
+_SCHEMA_TEMPLATE = """contact:
+  name: str
+  location: str
+  email: str
+  linkedin_url: str
+  github_url: str
+  website_url: str
+work_experience:
+  - org: str
+    role: str
+    location: str
+    start_date: str
+    end_date: str  # or "Present"
+    bullets: [str]
+education:
+  - institution: str
+    degree: str
+    gpa: str            # omit this key entirely if not present in the source
+    location: str
+    start_date: str
+    end_date: str
+    thesis: str          # omit this key entirely if not present in the source
+awards:
+  - name: str
+    description: str
+    date: str
+publications:
+  - title: str
+    date: str
+    venue: str
+    link: str             # omit this key entirely if not present in the source
+skills:
+  - category: str
+    items: [str]"""
+
+_SYSTEM_PROMPT = f"""You are extracting a resume's raw text into a strict YAML structure.
 CRITICAL RULES:
 1. Preserve every word, number, and date exactly as written. Do not summarize, paraphrase, or reword anything.
-2. Do not add or remove any content -- no new bullets, no dropped bullets, no invented information.
-3. Use "## " for each major section (e.g. Work Experience, Education, Skills), matching the input's own section boundaries.
-4. Use "### <Org> — <Role> (<Start> – <End or \"Present\">)" for each Experience/Education entry.
-5. Use "- " for bullet points under each entry.
-6. Output ONLY the reformatted Markdown -- no commentary, no conversational text."""
+2. Do not invent a value for any field the raw text doesn't contain -- omit optional fields (gpa, thesis, link) instead of guessing.
+3. Follow this exact schema (field names and nesting):
+{_SCHEMA_TEMPLATE}
+4. Output ONLY valid YAML -- no commentary, no markdown code fences."""
 
 
-def normalize_resume_text(raw_text: str, model: str = OLLAMA_MODEL) -> str | None:
-    """Returns the reformatted Markdown, or None if the local Ollama
-    call itself failed/timed out (spec §8) -- caller decides what to
-    do."""
+def _strip_code_fence(text: str) -> str:
+    text = text.strip()
+    if text.startswith("```"):
+        lines = text.splitlines()
+        if lines and lines[0].startswith("```"):
+            lines = lines[1:]
+        if lines and lines[-1].strip() == "```":
+            lines = lines[:-1]
+        text = "\n".join(lines)
+    return text
+
+
+def extract_resume_schema(raw_text: str, model: str = OLLAMA_MODEL) -> dict | None:
+    """Calls a local Ollama model to extract raw_text into the schema
+    above, returning the parsed dict, or None if the Ollama call failed/
+    timed out or the response wasn't valid YAML (spec §3 step 3, §8)."""
     prompt = f"{_SYSTEM_PROMPT}\n\n### RAW EXTRACTED RESUME TEXT:\n{raw_text}"
     result = call_ollama(prompt, model, OLLAMA_TIMEOUT_SECONDS)
-    return result if isinstance(result, str) else None
+    if not isinstance(result, str):
+        return None
+    try:
+        parsed = yaml.safe_load(_strip_code_fence(result))
+    except yaml.YAMLError:
+        return None
+    return parsed if isinstance(parsed, dict) else None
 
 
-def verify_normalization(raw_text: str, normalized_text: str) -> list[str]:
-    """Bidirectional fact-preservation check (spec §3 step 4): metrics
-    get a full bidirectional substring check (works on any text,
-    structured or not); org/role names are checked only in the
-    "invented" direction, since raw text has no ### headings to
-    enumerate entries from in the first place -- a silently dropped
-    entry is instead caught if any of its metrics disappear. Returns a
-    list of human-readable mismatch descriptions; empty means a clean
-    pass."""
+def verify_extraction(parsed: dict, raw_text: str) -> list[str]:
+    """Schema-level verification (spec §3 step 4): every required field on
+    every entry must be non-empty and traceable to raw_text. Returns a
+    list of human-readable problems; empty means a clean pass."""
     problems: list[str] = []
-
-    for metric in sorted(m for m in extract_metrics(raw_text) if m not in normalized_text):
-        problems.append(f"metric '{metric}' found in raw extraction but missing from normalized output")
-
-    for metric in metrics_not_traceable(normalized_text, raw_text):
-        problems.append(f"metric '{metric}' appears in normalized output but not in raw extraction")
-
-    for entry in extract_entries(normalized_text):
-        if entry.org not in raw_text or entry.role not in raw_text:
-            problems.append(f"entry '{entry.org} — {entry.role}' not clearly traceable to raw extraction")
-
+    problems += verify_entry_fields(parsed.get("contact") or {}, raw_text, CONTACT_REQUIRED)
+    for entry in parsed.get("work_experience") or []:
+        problems += verify_entry_fields(entry, raw_text, WORK_EXPERIENCE_REQUIRED, WORK_EXPERIENCE_LIST_FIELDS)
+    for entry in parsed.get("education") or []:
+        problems += verify_entry_fields(entry, raw_text, EDUCATION_REQUIRED)
+    for entry in parsed.get("awards") or []:
+        problems += verify_entry_fields(entry, raw_text, AWARDS_REQUIRED)
+    for entry in parsed.get("publications") or []:
+        problems += verify_entry_fields(entry, raw_text, PUBLICATIONS_REQUIRED)
+    for entry in parsed.get("skills") or []:
+        problems += verify_entry_fields(entry, raw_text, SKILLS_REQUIRED, SKILLS_LIST_FIELDS)
     return problems
