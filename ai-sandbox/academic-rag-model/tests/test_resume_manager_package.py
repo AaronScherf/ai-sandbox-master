@@ -12,3 +12,6 @@ class TestResumeManagerPackageScaffolding(unittest.TestCase):
 
     def test_markdown_is_installed(self):
         import markdown  # noqa: F401
+
+    def test_pyyaml_is_installed(self):
+        import yaml  # noqa: F401

@@ -43,3 +43,4 @@ pillow
 
 # Resume Manager
 xhtml2pdf
+pyyaml
