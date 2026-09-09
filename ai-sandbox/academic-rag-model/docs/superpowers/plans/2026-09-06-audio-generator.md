@@ -1776,9 +1776,33 @@ Override the model or its per-chunk timeout via `AUDIOGEN_NARRATE_OLLAMA_MODEL`
 / `AUDIOGEN_NARRATE_OLLAMA_TIMEOUT` (seconds, default `300`).
 ```
 
-- [ ] **Step 6: Measure real CPU timing against the actual equation-dense file (spec §9's flagged unknown)**
+- [x] **Step 6: Measure real CPU timing against the actual equation-dense file (spec §9's flagged unknown)**
 
-**Status: attempted three times, still incomplete.**
+**Status: measured (2026-09-09). Real result: 21,758.5s (362.6 min, ~6h 2m)
+for one file (121,637 input chars -> 127,558 output chars).**
+
+This is the headline finding for spec §9: **narrating one equation-dense
+notes file takes roughly six hours** on this machine's CPU-only
+`qwen2-math:7b` setup. 42 separate "timed out after 300s" warnings fired
+during the run (`common/ollama_utils.py`'s `OLLAMA_TIMEOUT` path, retried
+once each per `narrate.py`'s retry semantics) -- a large fraction of the
+~50 chunks needed at least one retry against the 300s-per-chunk timeout.
+Output being longer than input (not shrunk) indicates most chunks were
+genuinely rewritten rather than falling back to unmodified text. At this
+rate, a full course's worth of notes/textbook files is not practical to
+narrate serially on hardware like this -- a real, now-measured constraint
+(not a guess) worth flagging for anyone scoping a batch run, exactly the
+kind of finding `problem_gen`/`video_notes` have recorded after their own
+first real timing runs.
+
+The three prior attempts below were superseded once the measurement was
+run outside the Claude Code harness's background-task supervision (a
+plain terminal window the user ran directly) -- confirming the harness's
+own memory-safety guard, not genuine resource exhaustion, was what killed
+attempts 2 and 3. `ollama`/`llama-server` were never touched in any
+attempt.
+
+**Prior attempts (history, all superseded):**
 
 **Attempt 1 (2026-09-07, primary dev machine):** OOM-killed before
 completing. With IDEA (~2GB), several Chrome tabs, and Obsidian already
@@ -1856,14 +1880,10 @@ elapsed = time.monotonic() - start
 print(f"Input: {len(md_text)} chars. Output: {len(result)} chars. Elapsed: {elapsed:.1f}s ({elapsed / 60:.1f} min).")
 ```
 
-Expected: completes and prints real elapsed time (no target to hit — this
-is a measurement, not a pass/fail check). Report the actual number
-observed; if it's impractically slow for a full-course batch (many files
-this size), note that as a real, now-measured constraint rather than
-leaving it a guess — this is exactly the kind of finding this project's
-other subprojects (`problem_gen`, `video_notes`) have recorded in their own
-status docs after their own first real timing runs, not a blocker to fix
-in this same task.
+**Result (2026-09-09, run directly in a plain terminal, outside harness
+supervision):** `Input: 121637 chars. Output: 127558 chars. Elapsed:
+21758.5s (362.6 min).` See the summary above this script for the full
+finding and its implications.
 
 - [ ] **Step 7: Commit**
 
