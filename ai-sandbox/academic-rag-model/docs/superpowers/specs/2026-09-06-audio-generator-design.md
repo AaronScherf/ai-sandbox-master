@@ -1,8 +1,13 @@
 # Audio Generator — Design Spec
 
-Date: 2026-09-06 (revised 2026-09-07: LLM-based LaTeX narration)
+Date: 2026-09-06 (revised 2026-09-07: LLM-based LaTeX narration; revised
+2026-09-09: tiered Gemini API narration, replacing local Ollama)
 Status: v1 implemented and shipped (commits d3adf7a..7cccb14, on `main`).
-This revision (§3.1, replacing the naive regex LaTeX-to-prose step) is
+The 2026-09-07 local-LLM revision (§3.1 v2) was also implemented and
+shipped (commits e375d2a..83daa83), then measured: real CPU timing on the
+real equation-dense `LN_Probability.md` came back at **~6 hours for one
+file** (§9) — impractical for any real batch use. §3.1 v3 (this revision)
+replaces the local `qwen2-math:7b` call with a tiered Gemini API call,
 approved in brainstorming, not yet planned/implemented.
 
 ## 1. Problem & goals
@@ -12,9 +17,11 @@ The academic-hub corpus is entirely text/image-based (markdown notes, textbooks,
 This spec designs **`audio_generator`**: a new subproject that converts hub markdown content into high-quality, locally-generated audio MP3 files, optimized for passive listening.
 
 **Goals**
-- Locally generated on commodity CPUs (no GPU, no external APIs) — a local
-  Ollama call (§3.1) is still "local," not an external API, same posture as
-  `problem_gen`'s and `video_notes`'s existing Ollama dependencies.
+- Every step **except LaTeX narration** runs locally on commodity CPUs, no
+  GPU, no external API: discovery, cleaning, idempotency, and TTS synthesis
+  (Piper/Kokoro-ONNX) are all unchanged by this revision and remain fully
+  offline. **LaTeX narration itself (§3.1) now calls the Gemini Developer
+  API**, a deliberate, measured trade-off — see below.
 - High performance (Piper TTS for speed, Kokoro-ONNX for audiobook-grade quality).
 - Markdown-to-prose conversion: smart stripping of code blocks and markdown
   structure, plus LLM-based narration of LaTeX math (§3.1), to ensure the
@@ -26,15 +33,24 @@ This spec designs **`audio_generator`**: a new subproject that converts hub mark
   997 `$`-delimited spans) and produced literal, unpronounceable LaTeX
   command syntax in the output (e.g. `\mathbb{E}[X] = \sum_{x} x \mathbb{P}(X
   = x)` passed through verbatim) — exactly the "sounds like a machine
-  reading raw syntax" failure this goal exists to prevent. §3.1 replaces that
-  step.
+  reading raw syntax" failure this goal exists to prevent. §3.1 v2 (local
+  `qwen2-math:7b`) fixed the correctness problem but introduced a practical
+  one: **real-corpus finding (2026-09-09)** — measured end-to-end against
+  the same `LN_Probability.md` file, the local-LLM rewrite took **21,758.5s
+  (~6 hours) for one 121,637-character file**, entirely CPU-bound (no GPU
+  available on this hardware). At that rate, narrating a course's worth of
+  notes/textbook files serially is not practical. §3.1 v3 (this revision)
+  moves narration to the Gemini API — still narrowly scoped to this one
+  step, with everything else in the pipeline staying local — and adds
+  complexity tiers so plain-prose content costs nothing and only genuinely
+  LaTeX-heavy content pays for the stronger (more expensive) model.
 - Covers three content types, all of which live under `academic_hub_root` and are addressable by `--course` (§5): the student's own notes (`academic_notes/<course>/`, all categories — this already includes `video_notes`'s synthesized lecture notes, since those are written to `academic_notes/<course>/lecture-notes/`), and converted textbooks (`academic_resources/<course>/{textbooks,textbooks-and-papers}/processed_outputs/`, both folder-name aliases, matching the indexer's existing handling of the same rename — `indexer/index_search.py:206-213`).
 - Idempotent batch pipeline: only re-generates audio when the underlying `.md` file changes (tracked by content hash).
 - Output MP3s land in the hub content repo, next to the source note they were generated from, so a folder-sync tool (Syncthing, a phone's file-sync app, etc.) picks them up the same way it already picks up the student's markdown notes — never inside `academic-rag-model`'s own gitignored caches.
 - Integration: invoked manually per course via CLI (§6) — not auto-triggered as a follow-on of other pipelines in v1 (see Non-goals).
 
 **Non-goals**
-- Cloud TTS APIs (ElevenLabs, OpenAI).
+- Cloud TTS APIs (ElevenLabs, OpenAI) — TTS synthesis (§4) stays local Piper/Kokoro-ONNX; only LaTeX narration (§3.1) calls a cloud API, and only Gemini (this project's existing `common/gemini_utils.py`, not a new provider).
 - Real-time/GPU-heavy model training.
 - Interactive audio features (e.g., in-audio navigation markers beyond standard MP3 seeking).
 - **Indexer/RAG registration.** Unlike `video_notes`'s synthesized lecture notes (which are new, otherwise-unindexed content and so need a new `index_search.py` discovery path), an MP3 here is a derived, downstream rendering of a `.md` file that's already indexed. The source `.md` remains the single retrieval unit; the tutor never needs to know an audio version exists. No `indexer/index_search.py` changes.
@@ -71,8 +87,10 @@ first, on the raw `.md`, then feeds its output into the existing
 `cleaner.clean_markdown_for_speech()` exactly as before (§3.1 explains why
 this specific ordering, and not the reverse, is the only one that works).
 `narrate.py` adds this subproject's first dependency on
-`common/ollama_utils.py` (`call_ollama`/`OLLAMA_TIMEOUT`), already shared by
-`viz/` and `problem_gen/`.
+`common/gemini_utils.py` (`get_gemini_client`/`call_with_retries`/
+`load_dotenv_override`), already shared by `indexer/`, `viz/`, and
+`textbook/` — not `common/ollama_utils.py` (§3.1 v2's local-LLM approach,
+superseded by this revision after real timing showed it impractical).
 
 Like every other subproject that touches hub content, `pipeline.py` takes an
 `academic_hub_root` argument and defaults it the same way `video_notes/pipeline.py`
@@ -122,7 +140,7 @@ of every equation in the corpus.
    strip remaining syntax (including images/figures, silently — §1 non-goal).
 5. **Normalize:** Strip excessive whitespace.
 
-## 3.1. LaTeX-to-narration via local LLM (`narrate.py`)
+## 3.1. LaTeX-to-narration via tiered Gemini API calls (`narrate.py`)
 
 **Why not regex:** LaTeX's structure (arbitrary nesting, `\begin`/`\end`
 environments, context-dependent notation) is exactly what regex substitution
@@ -137,62 +155,99 @@ across the math-camp corpus) — an unmaintained, unverified dependency was
 judged riskier than building a small, tested module against this project's
 own content.
 
+**Why not local (v2 → v3 change, 2026-09-09):** v2 (a local `qwen2-math:7b`
+call via `common/ollama_utils.py`) fixed the correctness problem — see §1 —
+but real timing against the same file, measured end-to-end, came back at
+~6 hours for one 121,637-character file (§9). That is not usable for any
+real batch: even a handful of files a week each cost most of a workday of
+wall-clock time on this hardware (no GPU). v3 (this revision) replaces the
+local model with the Gemini Developer API, using this project's existing
+`common/gemini_utils.py` (`get_gemini_client`/`call_with_retries`) exactly
+as `viz/llm_fallback.py`'s `_call_gemini` and `indexer/index_card.py`
+already do — no new dependency, no new API-key convention, just a second
+caller of an integration this project already has. Everything else in the
+pipeline (discovery, cleaning, idempotency, TTS synthesis) stays local and
+unchanged — this is a narrowly-scoped substitution, not a broader move to
+cloud infrastructure (§1 goals).
+
 **Approach — chunked, holistic rewrite, not per-equation extraction, running
-on raw `.md` *before* `cleaner.py` (§3):** `narrate_for_speech(md_text) ->
-str` is the new call `pipeline.py` makes first, on the untouched source
-text. Content is split into ~2-3K character chunks on paragraph boundaries
-— never mid-sentence, mid-equation, **or through a fenced code block**
-(a code block is treated as an atomic, untouched pass-through unit and
-never sent to the LLM at all, since `cleaner.py` hasn't stripped it yet at
-this point and a code sample dropped into a "rewrite as spoken prose"
-prompt would only confuse the model). Each remaining chunk is sent as one
-`call_ollama` prompt: *"Rewrite this passage as natural spoken prose for
-audio narration. Describe mathematical notation in words rather than
-symbols. Do not omit or summarize any content — rewrite every sentence,
-changing only how notation is expressed."* This was chosen over two
-alternatives considered and rejected:
-- **Per-equation extraction + one batched prompt per file:** cheaper, but
-  requires the model to return exactly N correctly-ordered rewrites for N
-  extracted spans in one response — a single skipped/merged list item
-  silently misaligns every rewrite after it. Rejected: correctness risk on
-  exactly the equation-dense files (900+ spans) this is meant to fix.
-- **Regex-first, LLM-fallback only for unrecognized macros:** cheaper in
-  theory, but this corpus's real macro-frequency data (§1) shows `\begin`/
-  `\end` environments — the genuinely hard, structural case — occurring
-  thousands of times across the corpus, not as a rare edge case. The
-  fallback would fire on a large fraction of real content, eroding most of
-  the theoretical savings while adding a second code path to maintain.
+on raw `.md` *before* `cleaner.py` (§3):** unchanged from v2.
+`narrate_for_speech(md_text) -> str` is the call `pipeline.py` makes first,
+on the untouched source text. Content is split into ~2-3K character chunks
+on paragraph boundaries — never mid-sentence, mid-equation, **or through a
+fenced code block** (a code block is an atomic, untouched pass-through unit,
+never sent to the model at all). This chunking-and-prompt design was already
+validated against the real corpus in v2 and is unaffected by which model
+answers the prompt; what changes in v3 is *which* prompt gets sent for a
+given chunk, and to *which* model. Rejected alternatives (per-equation
+extraction with one batched prompt; regex-first with LLM-fallback only for
+unrecognized macros) are unchanged from v2 — see the historical spec text
+in version control for the full rejection rationale, still valid here.
 
-**Model:** `qwen2-math:7b` by default (math-specialized, already
-`problem_gen`'s choice for the same reason) via `common.ollama_utils.call_ollama`,
-overridable via `AUDIOGEN_NARRATE_OLLAMA_MODEL` (same override pattern as
-`PROBLEMGEN_OLLAMA_MODEL`/`VIDEONOTES_OLLAMA_MODEL`).
+**New in v3 — per-chunk complexity tiering, so plain prose costs nothing:**
+before sending a chunk anywhere, `narrate.py` classifies it into one of
+three tiers by scanning for LaTeX markers (`$...$`/`$$...$$` spans,
+backslash commands like `\frac`/`\sum`/`\begin`, and stray Greek-letter/
+math-symbol Unicode characters outside any `$` delimiter — notes sometimes
+type "α" or "β" directly as prose, not as LaTeX):
 
-**Reliability — per-chunk sanity check, retry, then fallback (never a hard
-failure):** mirrors `problem_gen`'s existing self-verify-and-retry pattern.
-After each chunk's rewrite, respecting the exact distinction
-`OllamaTimeout`'s own docstring (`common/ollama_utils.py`) establishes —
-a slow-but-alive server is worth retrying, a server that isn't running at
-all is not:
-1. `call_ollama` returns `None` (server unreachable): **no retry** —
-   immediately return that chunk's original text unmodified. A second call
-   milliseconds later against a server that isn't running cannot succeed.
-2. `call_ollama` returns `OLLAMA_TIMEOUT` (request itself timed out) **or**
-   a real response whose length is suspiciously short relative to the input
-   (a cheap proxy for "the model summarized or dropped content" — exact
-   ratio threshold is a real-content-tuning question, flagged in §9, not a
-   guessed constant to trust blindly): retry once.
-3. If the retry also fails the check, **return that chunk's original,
-   unmodified text** — no rewriting attempted, raw `$...$` spans and all.
-   `narrate.py` never generates its own fallback text; it simply declines to
-   touch what it couldn't verify. `pipeline.py`'s next step,
-   `cleaner.clean_markdown_for_speech()` (§3, unchanged), then applies its
-   own existing regex wrap to whatever raw LaTeX survived — the pre-revision
-   behavior, now reached only by narration failures instead of every
-   equation. Worse narration for that one passage, never a failure of the
-   whole file, consistent with every other subproject's "one bad item
-   degrades, never blocks the batch" convention (`video_notes`,
-   `problem_gen`).
+1. **No math (skip):** zero LaTeX markers and no stray math-Unicode chars
+   found at all. The chunk is returned unmodified, with **no API call
+   whatsoever** — `narrate.py`'s whole job is narrating LaTeX; a chunk with
+   none needs nothing from it, and `cleaner.py`'s existing pipeline already
+   handles plain markdown fine. This is the majority case for most
+   machine-generated notes (mostly prose, with occasional light notation),
+   and it's the tier that makes the cost model work at scale: a file with no
+   equations costs literally $0 to narrate.
+2. **Light math (cheap model):** LaTeX markers are present but sparse — below
+   a density threshold on both signals (fraction of chunk characters inside
+   `$...$`/`$$...$$` spans, and count of distinct backslash-command
+   occurrences), and no `\begin{...}`/`\end{...}` environment (the
+   genuinely hard, structural case — see v2's rejected-alternatives
+   reasoning above). Sent to **`gemini-3.1-flash-lite`** via
+   `client.models.generate_content()`.
+3. **Heavy math (capable model):** either density signal crosses the
+   threshold, or a `\begin`/`\end` environment is present anywhere in the
+   chunk. Sent to **`gemini-2.5-flash`**.
+
+Both threshold constants and both model names are overridable via env vars
+(`AUDIOGEN_NARRATE_MATH_RATIO_THRESHOLD`, `AUDIOGEN_NARRATE_MATH_COMMAND_THRESHOLD`,
+`AUDIOGEN_NARRATE_GEMINI_LIGHT_MODEL`, `AUDIOGEN_NARRATE_GEMINI_HEAVY_MODEL`)
+— the exact density thresholds are a starting guess, not a validated value,
+flagged in §9 for empirical tuning against real chunks the same way v2's
+sanity-check ratio was. Both model names were confirmed live against the
+Gemini API directly (not assumed from documentation or third-party pricing
+pages, which can lag or misname what's actually deployed) on 2026-09-09.
+
+**Prompt:** unchanged from v2 — *"Rewrite this passage as natural spoken
+prose for audio narration. Describe mathematical notation in words rather
+than symbols. Do not omit or summarize any content — rewrite every
+sentence, changing only how notation is expressed."*
+
+**Reliability — sanity check, then fallback (never a hard failure, no
+local fallback):** `common.gemini_utils.call_with_retries` already handles
+transient failures (network errors, rate limits, honoring the API's own
+suggested retry-after delay) internally, the same way every other Gemini
+caller in this project relies on it — `narrate.py` doesn't reimplement
+retry/backoff. On top of that, one content-quality check, mirroring v2's:
+1. `call_with_retries` exhausts its retries and raises, or the API key/SDK
+   is missing (`get_gemini_client()` returns `None`): **return that chunk's
+   original text unmodified.** v2's local-Ollama fallback tier was
+   considered and explicitly **dropped** in this revision — no local model
+   is called if Gemini is unreachable, keeping exactly one code path to
+   maintain instead of two. A missing/invalid `GEMINI_API_KEY` degrades
+   every chunk to raw-LaTeX-passthrough (caught downstream by `cleaner.py`'s
+   regex wrap, as before), never crashes the batch.
+2. A real response whose length is suspiciously short relative to the input
+   (same cheap proxy as v2, same flagged-for-tuning ratio, §9): treated as a
+   failed rewrite, **return the chunk's original text unmodified** — no
+   second attempt at the content-quality check itself (unlike v2, which
+   retried a failed sanity check once locally; here, `call_with_retries`
+   already retried transient failures before this check ever runs, so a
+   sanity-check failure means the model *did* respond, just badly, and a
+   second identical prompt to the same model is unlikely to fare
+   differently). `narrate.py` still never generates its own fallback text —
+   it declines to touch what it couldn't verify, exactly as v2 did.
 
 **Persistence — a sibling `.narrated.md`, not a new cache format:** what gets
 written to `<name>.narrated.md` is the *final* text — `narrate_for_speech()`'s
@@ -273,10 +328,11 @@ python -m audio_generator.pipeline --course math-camp \
 
 | Situation | Behavior |
 |---|---|
-| LaTeX-heavy file | Handled by `narrate.py`'s chunked LLM rewrite (§3.1); a chunk that fails its sanity check twice falls back to the old regex wrap for that chunk only, never the whole file. |
+| LaTeX-heavy file | Handled by `narrate.py`'s chunked, tiered rewrite (§3.1); a chunk whose rewrite fails the sanity check falls back to the old regex wrap for that chunk only, never the whole file. |
+| Plain-prose file, no math | Every chunk hits tier 1 (skip) — no API call made, no cost, passed straight through to `cleaner.py` (§3.1). |
 | File with no speakable text | `cleaner.py` returns empty/whitespace; pipeline skips and logs a warning. |
 | `ffmpeg` missing | Pipeline pre-flight check fails gracefully, logs instructions to install `ffmpeg`. |
-| Ollama unreachable (server not running) | Every chunk falls back to the regex wrap (§3.1) — degrades to the pre-revision behavior, never fails the file or the batch, same `None`-vs-`OLLAMA_TIMEOUT` distinction `call_ollama` already provides elsewhere. |
+| Gemini unreachable / `GEMINI_API_KEY` missing or invalid | Every math-containing chunk falls back to the regex wrap (§3.1) after `call_with_retries` exhausts its retries or `get_gemini_client()` returns `None` — degrades gracefully, never fails the file or the batch. No local fallback model (v2's Ollama path was dropped in v3). |
 | Image-heavy textbook page / figure | Images and their surrounding markup are silently skipped by `cleaner.py` (§1 non-goal) — no attempt to narrate `describe_images.py` output in v1. |
 | `video_notes` note with dense inline citations | Citations stripped before narration (§3); no per-sentence "at timestamp X" clutter. |
 | Very long source file (full textbook chapter, long article) | No length cap in v1 — produces one correspondingly long MP3 (§1 non-goal). |
@@ -296,14 +352,18 @@ inside their subproject packages, and note the `tests/test_discovery.py`/
 - `cleaner.py`: **entirely unchanged by this revision** — same fixtures,
   same tests, including the existing LaTeX-regex-wrap tests (which still
   cover its behavior directly, on synthetic input, exactly as before).
-- `narrate.py`: mocked `call_ollama` throughout (no real Ollama calls in
-  tests, matching this project's established testing philosophy) —
-  chunking-boundary behavior (never splits mid-sentence, mid-equation, or
-  through a fenced code block); `None` (server unreachable) falls back
-  immediately with no retry; `OLLAMA_TIMEOUT` and a too-short real response
-  each retry exactly once, then fall back if the retry still fails —
-  asserting *narrate.py's own output* (the chunk's original text
-  unmodified), not any regex wrap, which is `cleaner.py`'s separate,
+- `narrate.py`: mocked `client.models.generate_content` throughout (no real
+  Gemini calls in tests, matching how `tests/test_llm_fallback.py` and
+  `tests/test_llm_gen.py` already mock the same client shape for other
+  Gemini callers in this project) — chunking-boundary behavior unchanged
+  from v2 (never splits mid-sentence, mid-equation, or through a fenced
+  code block); the tier classifier (no-math chunks make zero calls to
+  `generate_content`; light/heavy chunks are routed to the correct model
+  name); `call_with_retries` exhausting its retries, or `get_gemini_client()`
+  returning `None`, each fall back to the chunk's original text unmodified;
+  a too-short real response is treated as a failed sanity check with no
+  further retry — asserting *narrate.py's own output* (the chunk's original
+  text unmodified), not any regex wrap, which is `cleaner.py`'s separate,
   already-tested concern applied afterward by `pipeline.py`; and that the
   final `.narrated.md` written by `pipeline.py` matches what was actually
   passed to `engine.synthesize_speech()`.
@@ -316,24 +376,30 @@ inside their subproject packages, and note the `tests/test_discovery.py`/
 
 ## 9. Open questions / follow-on (not decided by this spec)
 
-- **Real CPU timing for the chunked LLM rewrite (§3.1) is unmeasured.** A
-  122KB real note produces roughly 40-60 chunks at the proposed ~2-3K
-  character size; this project's own status docs have repeatedly found
-  CPU-only local-model calls take real minutes each. The plan should measure
-  real timing on one real equation-dense file before assuming a full course
-  batch is practical to run in one sitting — same "measure before trusting
-  at scale" pattern `problem_gen` and `video_notes` both followed.
-  **Attempted 2026-09-07** against the real `LN_Probability.md` on the
-  primary dev machine (16GB RAM total): the run was OOM-killed before
-  completing, not merely slow — with IDEA (~2GB), several Chrome tabs, and
-  Obsidian already open, under ~500MB was free when `qwen2-math:7b`
-  (a 4.4GB model) needed to load into memory alongside everything else.
-  **This changes the open question**: the real constraint this revision
-  needs validated data on may be memory headroom during normal concurrent
-  use, not just wall-clock speed in isolation — a full-course batch could
-  fail outright on a memory-constrained machine even if it would eventually
-  finish, time-wise, on a quieter one. Deferred to a second machine with
-  more free memory; still unresolved.
+- **RESOLVED (v2, superseded by v3): real CPU timing for the local-LLM
+  chunked rewrite.** Measured end-to-end on 2026-09-09 (after three prior
+  attempts were each killed by memory pressure — see git history on this
+  spec/plan pair for the full account, including the finding that the
+  kills came from the Claude Code harness's own background-task
+  memory-safety guard, not genuine Windows OOM): **21,758.5s (~6h 2m) for
+  one 121,637-character file**, CPU-only, no GPU on this hardware. This
+  number is *why* v3 exists (§1, §3.1) — impractical for any real batch
+  use, which is the whole reason narration moved to the Gemini API.
+  `qwen2-math:7b`/local Ollama is no longer part of this pipeline's design.
+- **NEW (v3): real API timing and per-file cost are unmeasured.** The
+  Gemini API should be dramatically faster than the ~6h local-CPU number
+  above (no local model load, no CPU-bound generation), but that's an
+  expectation, not a measurement yet — the plan should time and cost at
+  least one real run against `LN_Probability.md` (comparable to v2's
+  measurement) before assuming the tiered-API design is practical at the
+  intended volume (a few files/week).
+- **NEW (v3): the tier-classifier density thresholds
+  (`AUDIOGEN_NARRATE_MATH_RATIO_THRESHOLD`/`_COMMAND_THRESHOLD`, §3.1) are a
+  starting guess, not validated values** — needs checking against real
+  chunks to confirm the light/heavy split actually separates "occasional
+  Greek letter" content from "genuinely equation-dense" content the way
+  it's intended to, the same empirical-tuning pattern already flagged below
+  for the sanity-check ratio.
 - **The per-chunk sanity-check length-ratio threshold (§3.1) needs empirical
   tuning** against real rewritten output, exactly as flagged for
   `journal_discovery`'s relevance threshold and `video_notes`'s
