@@ -229,3 +229,47 @@ def test_write_outputs_creates_both_files_with_frontmatter(tmp_path):
     assert "expanded prose text" in rag_content
 
     mock_reconcile.assert_called_once()  # only the .rag.md gets indexed
+
+
+from notes.transcribe_excalidraw import process_excalidraw_note
+
+
+def test_process_excalidraw_note_dry_run_does_not_call_apis(tmp_path):
+    md_path = tmp_path / "Drawing.excalidraw.md"
+    png_path = tmp_path / "Drawing.excalidraw.png"
+    md_path.write_text("---\n---\n")
+    png_path.write_bytes(b"fake-png")
+
+    with patch("notes.transcribe_excalidraw.transcribe_chunks") as mock_transcribe, \
+         patch("notes.transcribe_excalidraw.expand_transcription") as mock_expand:
+        process_excalidraw_note(
+            str(md_path), str(png_path), client=None, model="gemini-3.6-flash",
+            expand_backend="gemini", academic_hub_root=str(tmp_path), dry_run=True,
+        )
+
+    mock_transcribe.assert_not_called()
+    mock_expand.assert_not_called()
+
+
+def test_process_excalidraw_note_runs_full_pipeline(tmp_path):
+    from PIL import Image
+    md_path = tmp_path / "Drawing.excalidraw.md"
+    png_path = tmp_path / "Drawing.excalidraw.png"
+    md_path.write_text("---\n---\n")
+    Image.new("RGB", (100, 100), color=(255, 255, 255)).save(png_path)
+
+    with patch("notes.transcribe_excalidraw.chunk_image", return_value=["chunk_image_1", "chunk_image_2"]), \
+         patch("notes.transcribe_excalidraw.resize_chunk_for_api", side_effect=[b"bytes1", b"bytes2"]), \
+         patch("notes.transcribe_excalidraw.transcribe_chunks", return_value={"0": "raw text 0", "1": "raw text 1"}), \
+         patch("notes.transcribe_excalidraw.expand_transcription", return_value=("expanded text", {"expansion_backend": "gemini", "expansion_model": "gemini-3.1-flash-lite", "grounded": False})), \
+         patch("notes.transcribe_excalidraw.write_outputs", return_value=("raw.md", "raw.rag.md")) as mock_write:
+        process_excalidraw_note(
+            str(md_path), str(png_path), client=object(), model="gemini-3.6-flash",
+            expand_backend="gemini", academic_hub_root=str(tmp_path), dry_run=False,
+        )
+
+    mock_write.assert_called_once()
+    call_kwargs = mock_write.call_args.kwargs
+    assert call_kwargs["raw_markdown"] == "<!-- chunk 1 -->\n\nraw text 0\n\n<!-- chunk 2 -->\n\nraw text 1"
+    assert call_kwargs["expanded_markdown"] == "expanded text"
+    assert call_kwargs["num_chunks"] == 2

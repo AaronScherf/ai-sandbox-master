@@ -8,7 +8,12 @@ section for why). Spec: docs/superpowers/specs/2026-09-09-excalidraw-notes-trans
 """
 from __future__ import annotations
 
+import argparse
 import os
+import sys
+from pathlib import Path
+
+from PIL import Image
 
 from common.gemini_utils import call_with_retries
 from common.ollama_utils import call_ollama
@@ -19,6 +24,7 @@ from indexer.index_card import (
     derive_course,
     reconcile_and_write,
 )
+from notes.excalidraw_chunking import chunk_image, resize_chunk_for_api
 from notes.transcribe_notes import build_frontmatter, transcribe_page_via_gemini
 
 _EXPANSION_MODEL_GEMINI = "gemini-3.1-flash-lite"  # text-only reasoning task, matches
@@ -221,3 +227,89 @@ def write_outputs(
               f"rerun `python -m indexer.index_search rebuild` later to catch it up.")
 
     return raw_path, rag_path
+
+
+_TRANSCRIBE_MODEL = "gemini-3.6-flash"  # same tier as transcribe_notes.py's
+                                         # _MODEL_HANDWRITING -- these are all
+                                         # handwriting-heavy vision transcription
+
+
+def process_excalidraw_note(
+    excalidraw_md_path: str, png_path: str, client, model: str,
+    expand_backend: str, academic_hub_root: str, use_grounding: bool = False, dry_run: bool = False,
+) -> None:
+    print(f"Processing {os.path.basename(excalidraw_md_path)}...")
+    if dry_run:
+        print("  (dry run -- would chunk, transcribe, expand, and write outputs)")
+        return
+
+    image = Image.open(png_path)
+    chunks = chunk_image(image)
+    print(f"  {len(chunks)} chunks")
+    chunk_bytes = [resize_chunk_for_api(c) for c in chunks]
+
+    cache = transcribe_chunks(client, model, chunk_bytes)
+    raw_markdown = assemble_raw_markdown(cache, total_chunks=len(chunks))
+
+    retrieved_passages = None
+    if use_grounding:
+        from indexer.index_search import search_passages
+        course = derive_course(os.path.relpath(excalidraw_md_path, academic_hub_root).replace(os.sep, "/"))
+        results = search_passages([academic_hub_root], query=raw_markdown[:500], client=client, course=course, top_k=3)
+        retrieved_passages = [r.text for r in results] if results else None
+
+    expanded_markdown, expansion_meta = expand_transcription(client, raw_markdown, expand_backend, retrieved_passages)
+
+    write_outputs(
+        excalidraw_md_path=excalidraw_md_path, png_path=png_path,
+        raw_markdown=raw_markdown, expanded_markdown=expanded_markdown or "",
+        transcription_model=model, expansion_meta=expansion_meta,
+        num_chunks=len(chunks), academic_hub_root=academic_hub_root, client=client,
+    )
+    print(f"  wrote outputs to {os.path.dirname(excalidraw_md_path)}/processed_outputs/")
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="Transcribe and expand Excalidraw handwritten-notes canvases into markdown."
+    )
+    parser.add_argument(
+        "--notes-subdir", required=True,
+        help="Path, relative to the academic-hub/ folder next to this project, e.g. "
+             "'academic_notes/math_methods/lecture_notes'.",
+    )
+    parser.add_argument("--file", default=None, help="Only process this one .excalidraw.md filename.")
+    parser.add_argument("--model", default=_TRANSCRIBE_MODEL, help=f"Gemini vision model. Default: {_TRANSCRIBE_MODEL}.")
+    parser.add_argument(
+        "--expand-backend", default="gemini", choices=("gemini", "ollama"),
+        help="Expansion backend (default: gemini). 'ollama' falls back to Gemini if unreachable.",
+    )
+    parser.add_argument("--grounding", action="store_true", help="Retrieve textbook passages to ground the expansion.")
+    parser.add_argument("--dry-run", action="store_true", help="List files that would be processed without calling any API.")
+    args = parser.parse_args()
+
+    from common.gemini_utils import get_gemini_client, load_dotenv_override
+    load_dotenv_override()
+
+    academic_hub_dir = Path(__file__).resolve().parent.parent.parent / "academic-hub"
+    notes_dir = academic_hub_dir / args.notes_subdir
+    pairs = discover_excalidraw_files(str(notes_dir), args.file)
+    if not pairs:
+        print(f"No .excalidraw.md/.png pairs found under {notes_dir}.")
+        sys.exit(1)
+
+    client = None
+    if not args.dry_run:
+        client = get_gemini_client()
+        if client is None:
+            sys.exit(1)
+
+    for md_path, png_path in pairs:
+        process_excalidraw_note(
+            md_path, png_path, client, args.model, args.expand_backend,
+            str(academic_hub_dir), use_grounding=args.grounding, dry_run=args.dry_run,
+        )
+
+
+if __name__ == "__main__":
+    main()
