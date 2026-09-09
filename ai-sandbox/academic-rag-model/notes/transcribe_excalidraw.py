@@ -11,7 +11,15 @@ from __future__ import annotations
 import os
 
 from common.gemini_utils import call_with_retries
+from common.ollama_utils import call_ollama
 from notes.transcribe_notes import transcribe_page_via_gemini
+
+_EXPANSION_MODEL_GEMINI = "gemini-3.1-flash-lite"  # text-only reasoning task, matches
+                                                     # problem_gen's/viz's own default tier
+_EXPANSION_MODEL_OLLAMA = "qwen2.5:7b-instruct"     # general-purpose, not qwen2-math --
+                                                     # expansion spans math AND econ notes,
+                                                     # same reasoning video_notes used for
+                                                     # its own synthesis model choice
 
 _ACCUMULATION_WINDOW = 3  # same value as transcribe_notes.py's Tier 3 -- see that
                           # module's _ACCUMULATION_WINDOW docstring for why a
@@ -131,3 +139,32 @@ def expand_via_gemini(client, model: str, raw_markdown: str, retrieved_passages:
         config={"temperature": 0, "thinking_config": {"thinking_level": "minimal"}},
     )
     return (response.text or "").strip()
+
+
+def expand_via_ollama(
+    raw_markdown: str, model: str = _EXPANSION_MODEL_OLLAMA, request_timeout: int = 300,
+    retrieved_passages: list[str] | None = None,
+) -> str | None:
+    prompt = build_expansion_prompt(raw_markdown, retrieved_passages)
+    result = call_ollama(prompt, model=model, request_timeout=request_timeout)
+    if isinstance(result, str):
+        return result.strip()
+    return None  # unreachable server or timeout -- caller decides whether to fall back
+
+
+def expand_transcription(
+    client, raw_markdown: str, backend: str = "gemini", retrieved_passages: list[str] | None = None,
+) -> tuple[str | None, dict]:
+    """backend='gemini' (default) or 'ollama' (opt-in, matches
+    VIZ_BACKEND/PROBLEMGEN_BACKEND's existing env-var pattern at the CLI
+    layer -- see main()). Falls back to Gemini if Ollama is requested but
+    unreachable, printing a warning, rather than failing the whole
+    document."""
+    grounded = bool(retrieved_passages)
+    if backend == "ollama":
+        text = expand_via_ollama(raw_markdown, retrieved_passages=retrieved_passages)
+        if text is not None:
+            return text, {"expansion_backend": "ollama", "expansion_model": _EXPANSION_MODEL_OLLAMA, "grounded": grounded}
+        print("WARNING: Ollama expansion backend unreachable; falling back to Gemini.")
+    text = expand_via_gemini(client, _EXPANSION_MODEL_GEMINI, raw_markdown, retrieved_passages)
+    return text, {"expansion_backend": "gemini", "expansion_model": _EXPANSION_MODEL_GEMINI, "grounded": grounded}

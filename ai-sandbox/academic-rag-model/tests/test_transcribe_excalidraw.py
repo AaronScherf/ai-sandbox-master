@@ -146,3 +146,51 @@ def test_expand_via_gemini_returns_response_text():
 
     result = expand_via_gemini(FakeClient(), model="gemini-3.1-flash-lite", raw_markdown="shorthand")
     assert result == "Expanded prose explaining the shorthand."
+
+
+from common.ollama_utils import OLLAMA_TIMEOUT
+from notes.transcribe_excalidraw import expand_transcription, expand_via_ollama
+
+
+def test_expand_via_ollama_returns_response_text():
+    with patch("notes.transcribe_excalidraw.call_ollama", return_value="Expanded via Ollama."):
+        result = expand_via_ollama("shorthand", model="qwen2.5:7b-instruct")
+    assert result == "Expanded via Ollama."
+
+
+def test_expand_via_ollama_returns_none_on_timeout():
+    with patch("notes.transcribe_excalidraw.call_ollama", return_value=OLLAMA_TIMEOUT):
+        result = expand_via_ollama("shorthand", model="qwen2.5:7b-instruct")
+    assert result is None
+
+
+def test_expand_transcription_gemini_backend():
+    with patch("notes.transcribe_excalidraw.expand_via_gemini", return_value="Gemini prose"):
+        text, meta = expand_transcription(client=object(), raw_markdown="shorthand", backend="gemini")
+    assert text == "Gemini prose"
+    assert meta["expansion_backend"] == "gemini"
+    assert meta["grounded"] is False
+
+
+def test_expand_transcription_ollama_backend_success():
+    with patch("notes.transcribe_excalidraw.expand_via_ollama", return_value="Ollama prose"):
+        text, meta = expand_transcription(client=object(), raw_markdown="shorthand", backend="ollama")
+    assert text == "Ollama prose"
+    assert meta["expansion_backend"] == "ollama"
+
+
+def test_expand_transcription_ollama_falls_back_to_gemini_when_unreachable():
+    with patch("notes.transcribe_excalidraw.expand_via_ollama", return_value=None), \
+         patch("notes.transcribe_excalidraw.expand_via_gemini", return_value="Gemini fallback prose"):
+        text, meta = expand_transcription(client=object(), raw_markdown="shorthand", backend="ollama")
+    assert text == "Gemini fallback prose"
+    assert meta["expansion_backend"] == "gemini"
+
+
+def test_expand_transcription_marks_grounded_when_passages_given():
+    with patch("notes.transcribe_excalidraw.expand_via_gemini", return_value="Gemini prose"):
+        _text, meta = expand_transcription(
+            client=object(), raw_markdown="shorthand", backend="gemini",
+            retrieved_passages=["some textbook passage"],
+        )
+    assert meta["grounded"] is True
