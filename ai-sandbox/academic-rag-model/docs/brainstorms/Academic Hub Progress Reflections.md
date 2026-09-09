@@ -51,7 +51,10 @@ Goals:
 		* (DONE) Convert figures to written descriptions
 			* Status: [[2026-08-23-image-description-status]] — all 5 real textbooks processed (793 candidate figures, 764 described, 29 correctly skipped as decorative); no open blockers
 	* (DONE) Handwritten notes conversion to md [[2026-08-24-notes-transcription-status]]
-		* (Brainstormed, paused — no examples yet) Capture-pipeline redesign for handwritten_notes specifically: retire the OneNote screenshot→web-Gemini→paste round-trip (confirmed as the source of repeated colored-LaTeX blocks in the current output, not a transcription bug) in favor of Excalidraw notes in the Obsidian vault, transcribed then expanded to prose before hitting the corpus. See [[2026-08-24-notes-transcription-status]]'s "2026-09-07" section. Paused pending real Excalidraw examples (plugin not yet installed).
+		* (DONE) Capture-pipeline redesign for handwritten_notes specifically: retired the OneNote screenshot→web-Gemini→paste round-trip (confirmed as the source of repeated colored-LaTeX blocks in the old output, not a transcription bug) in favor of Excalidraw notes synced from the tablet vault (own gitignored, private repo, `academic-hub/academic_notes/`), transcribed then expanded to prose before hitting the corpus. Shipped as `notes/excalidraw_chunking.py` + `notes/transcribe_excalidraw.py`; real-corpus validated against both real tablet files (`.rag.md` output spot-checked faithful to source, new source-indexer shards created for two brand-new courses). Untested: Ollama expansion backend, textbook-retrieval grounding.
+			* Spec: [[2026-09-09-excalidraw-notes-transcription-design]]
+			* Plan: [[2026-09-09-excalidraw-notes-transcription]]
+			* Status: [[2026-08-24-notes-transcription-status]] — see "2026-09-07"/"2026-09-09" sections
 		* (Paused, in progress) Post processing to clean up notes, expand where necessary: 
 			* Spec: [[2026-08-26-notes-postprocessing-design]]
 			* Plan: [[2026-08-26-notes-postprocessing]]

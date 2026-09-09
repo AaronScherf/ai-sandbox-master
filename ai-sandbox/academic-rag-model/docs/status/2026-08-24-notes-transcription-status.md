@@ -699,3 +699,42 @@ no measured token/accuracy cost) -- not because either was shown to help.
 promoting the spike's chunking algorithm to real code, `<name>.md` (raw) +
 `<name>.rag.md` (expanded) output reusing the existing `.rag.md`
 convention from `describe_images.py`. Implementation plan not yet written.
+
+**2026-09-09, implemented and real-corpus validated:**
+`notes/excalidraw_chunking.py` + `notes/transcribe_excalidraw.py`, per
+`docs/superpowers/plans/2026-09-09-excalidraw-notes-transcription.md`
+(11 tasks, TDD throughout). One real interface-reuse assumption from the
+plan was wrong and caught by a failing test, not assumed correct:
+`transcribe_notes.py`'s `build_accumulated_context` hardcodes a 1-based
+page-number floor, which silently drops chunk 0's context when called
+with 0-based chunk indices -- fixed with a small local 0-based equivalent
+(`_accumulated_chunk_context`) instead of forcing the mismatched reuse.
+Full test suite (1102 tests) passes with no regressions.
+
+Ran for real (not mocked) against both real tablet files:
+- `math_methods/lecture_notes/Drawing 2026-09-08 11.51.12.excalidraw.md`
+  -- 5 chunks, 10,134 input + 2,099 output tokens total across the
+  transcription stage (`gemini-3.6-flash`).
+- `microecon/lecture_notes/Drawing 2026-09-07 19.53.03.excalidraw.md` --
+  3 chunks, 4,545 input + 629 output tokens.
+
+Both produced a `.rag.md` whose expanded prose was spot-checked against
+the source PNG and matched faithfully -- every equation/concept visible
+in the canvas appeared in the output, nothing invented, and the prose
+read as genuinely more useful standalone material than the raw
+transcription (e.g. the microecon output reconstructed the handwritten
+Calvin/Ayn choice-data grid as a proper markdown table, correctly
+preserving the $J>K>L>J$ inconsistency argument). `expand_backend=gemini`
+only was tested this session -- the Ollama backend's viability for this
+task remains genuinely untested, as the spec flagged. Both files were
+also registered with the source indexer for real: new
+`.index/math_methods.json` and `.index/microecon.json` shards were
+created (these are the corpus's first two non-math-camp courses).
+No compression/resize applied in this run (2000px default never
+triggered on these 785px-wide canvases, as expected from the Task 3
+experiment above).
+
+Not yet done: the raw/expanded output files above have been written to
+disk but not yet committed into the `academic-notes-vault` tablet-sync
+repo (a separate decision for the user, since that repo two-way-syncs
+with the tablet) -- only this project's own code/docs are committed here.

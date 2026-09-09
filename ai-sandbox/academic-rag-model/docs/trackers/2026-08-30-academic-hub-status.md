@@ -201,14 +201,18 @@ also retyping every filename in that course's folder.
   session. No open blockers on the transcription pipeline itself.
   `LN_Analysis.pdf`/`LN_Linear Algebra.pdf` finished reprocessing
   2026-08-30 (see #6 below) -- all six reliably-paginated documents in the
-  corpus now have whole-document-batched quality. **2026-09-07:** a
-  capture-pipeline redesign for `handwritten_notes` specifically
-  (retiring the OneNote round-trip in favor of Excalidraw-in-Obsidian plus
-  a new transcribe-then-expand step) was brainstormed but explicitly
-  paused pending real Excalidraw examples -- see
-  `docs/status/2026-08-24-notes-transcription-status.md`'s "2026-09-07"
-  section. Not a defect in the shipped pipeline; a proposed new capture
-  front-end for one subfolder.
+  corpus now have whole-document-batched quality. **2026-09-07/09:** a
+  capture-pipeline redesign for handwritten notes (retiring the OneNote
+  round-trip in favor of Excalidraw-in-Obsidian plus a new
+  transcribe-then-expand step) was brainstormed, spiked, spec'd, planned,
+  and **shipped** as `notes/excalidraw_chunking.py` +
+  `notes/transcribe_excalidraw.py` -- real-corpus validated against both
+  real tablet files (5 and 3 chunks respectively, zero hard cuts, `.rag.md`
+  output spot-checked faithful to source), and registered with the source
+  indexer for real (new `math_methods`/`microecon` course shards). See
+  `docs/status/2026-08-24-notes-transcription-status.md`'s "2026-09-09"
+  sections for full detail. Untested: the Ollama expansion backend and
+  textbook-retrieval grounding, both wired but not yet exercised for real.
 - **Notes post-processing**: **in progress, explicitly paused.** Built,
   unit-tested, and validated against one real reproduced bug (the
   radical-as-`p` case) and a broader corpus run that fixed a real
