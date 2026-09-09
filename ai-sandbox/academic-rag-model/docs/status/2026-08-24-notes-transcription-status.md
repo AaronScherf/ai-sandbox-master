@@ -734,7 +734,7 @@ No compression/resize applied in this run (2000px default never
 triggered on these 785px-wide canvases, as expected from the Task 3
 experiment above).
 
-Not yet done: the raw/expanded output files above have been written to
-disk but not yet committed into the `academic-notes-vault` tablet-sync
-repo (a separate decision for the user, since that repo two-way-syncs
-with the tablet) -- only this project's own code/docs are committed here.
+**2026-09-09, outputs committed to the tablet-sync repo:** the raw/expanded
+output files above were committed and pushed to `academic-notes-vault`
+(`main`, `0831e15`) at the user's request, so the user's tablet will pick
+them up on its next Obsidian Git pull.
