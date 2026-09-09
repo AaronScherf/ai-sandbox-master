@@ -1778,14 +1778,34 @@ Override the model or its per-chunk timeout via `AUDIOGEN_NARRATE_OLLAMA_MODEL`
 
 - [ ] **Step 6: Measure real CPU timing against the actual equation-dense file (spec §9's flagged unknown)**
 
-**Status: attempted 2026-09-07 on the primary dev machine, OOM-killed
-before completing — deferred to a second machine with more free RAM.**
-With IDEA (~2GB), several Chrome tabs, and Obsidian already open on a
-16GB-RAM machine, under ~500MB was free when `qwen2-math:7b` (4.4GB)
-needed to load — the process was killed for low memory, not just slow.
-This is itself the finding worth recording (spec §9, updated): the real
-constraint may be memory headroom during normal concurrent use, not only
-wall-clock speed. Whoever runs this next should check free memory first:
+**Status: attempted twice, still incomplete.**
+
+**Attempt 1 (2026-09-07, primary dev machine):** OOM-killed before
+completing. With IDEA (~2GB), several Chrome tabs, and Obsidian already
+open on a 16GB-RAM machine, under ~500MB was free when `qwen2-math:7b`
+(4.4GB) needed to load — the process was killed for low memory, not just
+slow.
+
+**Attempt 2 (2026-09-08/09, same machine, ~9.7GB free at start):** killed
+again, but for a different reason. Free memory was comfortably above
+`qwen2-math:7b`'s 4.4GB footprint when the run started, `ollama serve` and
+the model loaded fine, and the run proceeded without error for **~76
+minutes** — well past attempt 1's near-instant failure — before free
+memory had drifted down to ~3.6GB (unrelated background activity:
+Windows Update's `TiWorker`, rising memory-compression pressure) and the
+process was killed defensively. `ollama`/`llama-server` themselves stayed
+up throughout; only the Python driver process was killed. The run never
+printed its timing line, so still no real elapsed-time number for the
+full file.
+
+Combined finding (spec §9, updated): this measurement's real constraint
+is sustained memory headroom over a long wall-clock window (tens of
+minutes for one equation-dense file), not just the headroom at the
+moment the model loads. A machine can pass the "several GB free" check
+below at the start and still lose the run to unrelated background
+activity before it finishes. Whoever retries this should either run on a
+machine that stays quiet for the full duration, or watch free memory
+through the run rather than checking it only once up front:
 
 ```powershell
 Get-CimInstance Win32_OperatingSystem | Select-Object FreePhysicalMemory, TotalVisibleMemorySize
