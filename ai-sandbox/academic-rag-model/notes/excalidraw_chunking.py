@@ -10,6 +10,8 @@ No network calls, no filesystem writes -- pure image processing.
 """
 from __future__ import annotations
 
+import io
+
 import numpy as np
 from PIL import Image
 
@@ -89,3 +91,23 @@ def chunk_image(
         chunks.append(rgb.crop((0, prev, width, cut)))
         prev = cut
     return chunks
+
+
+def resize_chunk_for_api(image: Image.Image, max_width: int = 2000, jpeg_quality: int = 85) -> bytes:
+    """Encodes a chunk for the Gemini API call -- caps width (height
+    scaled proportionally) and re-encodes as JPEG. max_width defaults to
+    2000px, well above real Excalidraw canvases (~785px wide observed),
+    because a real experiment found resizing/compressing bought no
+    measured token-cost or accuracy benefit at that scale -- Gemini's
+    vision tokenization is resolution-bucketed, not byte-size-driven, and
+    these canvases already fall in a small bucket (see
+    docs/status/2026-08-24-notes-transcription-status.md's 2026-09-09
+    compression-experiment entry). The high default is a safety net for
+    an unusually wide future canvas, not a routine resize; JPEG
+    re-encoding is kept purely for a smaller upload payload."""
+    if image.width > max_width:
+        ratio = max_width / image.width
+        image = image.resize((max_width, int(image.height * ratio)))
+    buf = io.BytesIO()
+    image.convert("RGB").save(buf, format="JPEG", quality=jpeg_quality)
+    return buf.getvalue()

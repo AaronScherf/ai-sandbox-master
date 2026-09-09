@@ -37,3 +37,6 @@ kokoro-onnx
 soundfile
 pydub
 audioop-lts; python_version >= "3.13"  # pydub needs this on Python 3.13+, whose stdlib dropped audioop (PEP 594)
+
+# Excalidraw Notes (chunking Excalidraw canvas PNGs for transcription)
+pillow

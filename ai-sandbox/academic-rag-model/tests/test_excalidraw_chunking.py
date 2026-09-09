@@ -76,3 +76,31 @@ def test_chunk_image_splits_at_a_real_gap_not_through_ink():
     assert chunks[0].size == (10, 12)  # cut at gap midpoint (5+20)//2=12
     total_height = sum(c.size[1] for c in chunks)
     assert total_height == 30
+
+
+import io
+
+from notes.excalidraw_chunking import resize_chunk_for_api
+
+
+def test_resize_chunk_for_api_caps_width_and_returns_jpeg_bytes():
+    wide = Image.new("RGB", (3000, 500), color=(255, 255, 255))
+    data = resize_chunk_for_api(wide, max_width=1200, jpeg_quality=85)
+    result = Image.open(io.BytesIO(data))
+    assert result.format == "JPEG"
+    assert result.width == 1200
+    assert result.height == 200  # 500 * (1200/3000)
+
+
+def test_resize_chunk_for_api_no_op_resize_when_already_narrow():
+    # real canvases are ~785px wide -- well under the default max_width
+    # (2000px, chosen after a real experiment found no cost/accuracy
+    # benefit to resizing at this scale; see
+    # docs/status/2026-08-24-notes-transcription-status.md's 2026-09-09
+    # compression-experiment entry). Still re-encoded to JPEG for a
+    # smaller upload payload.
+    narrow = Image.new("RGB", (785, 3000), color=(255, 255, 255))
+    data = resize_chunk_for_api(narrow)
+    result = Image.open(io.BytesIO(data))
+    assert result.format == "JPEG"
+    assert result.size == (785, 3000)

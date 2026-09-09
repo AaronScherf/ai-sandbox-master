@@ -609,13 +609,93 @@ expanded prose is the artifact that reaches the RAG corpus -- confirmed with
 the user that the raw shorthand form adds little to the knowledge corpus
 once expanded, so it doesn't need to be separately indexed.
 
-**Explicitly paused:** the user has not created any Excalidraw notes yet
-(the Obsidian Excalidraw plugin isn't even installed in the vault), so the
-exact rendering/cropping/batching approach is being left undesigned until
-real examples exist to test against -- consistent with this project's
-general pattern of tuning designs against real corpus data rather than
-guessed-in-advance assumptions. Resume from this section (and
-`docs/status/2026-08-27-notes-postprocessing-status.md`'s cross-reference
-note) once a handful of real `.excalidraw.md` files exist. See also the
+**Explicitly paused (as of 2026-09-07):** the user had not created any
+Excalidraw notes yet (the Obsidian Excalidraw plugin wasn't even installed
+in the vault), so the exact rendering/cropping/batching approach was left
+undesigned until real examples existed to test against -- consistent with
+this project's general pattern of tuning designs against real corpus data
+rather than guessed-in-advance assumptions. See also the
 `[[Academic Hub Progress Reflections]]` brainstorm doc and the
-`project_notes_postprocessing_paused` memory pattern this follows.
+`project_notes_postprocessing_paused` memory pattern this followed.
+
+## 2026-09-09: real examples arrived; chunking approach spiked and validated
+
+Real setup, confirmed live: `academic-hub/academic_notes/` is now its own
+standalone git repo (`academic-notes-vault` on GitHub), gitignored from
+this project's root repo, synced from the user's tablet Obsidian vault via
+the Obsidian Git plugin on both ends. Two real drawings pulled:
+`math_methods/lecture_notes/Drawing 2026-09-08 11.51.12.excalidraw.{md,png}`
+and `microecon/lecture_notes/Drawing 2026-09-07 19.53.03.excalidraw.{md,png}`.
+
+**Confirmed directly on real files:** the `.excalidraw.md` itself is not a
+usable transcription input -- both files have an empty `## Text Elements`
+section (100% freedraw ink, no typed Excalidraw text elements) and a
+`## Drawing` section that's just an opaque `compressed-json` blob, not
+parseable without reimplementing Excalidraw's own decompression. The
+Obsidian Excalidraw plugin's auto-exported `.png` (confirmed already being
+written on every save, no configuration needed) is the real artifact. Also
+confirmed: the redundant colored-LaTeX-block problem that motivated this
+whole redesign does not exist at all in this capture method -- both PNGs
+are pure handwriting, nothing pasted onto the canvas.
+
+**New problem found, not present in the PDF pipeline:** Excalidraw canvases
+are unbounded-height infinite scrolls, not fixed-size pages --
+`math_methods` rendered at 785x**13,860px**, `microecon` at 786x**7,049px**
+(aspect ratios of roughly 1:17 and 1:9). A generic vision-LLM suggestion to
+downscale to fit a 1024x1024 box (raised by the user from an outside
+source) was checked against these real dimensions and would shrink the
+short side to ~58px -- illegible. Confirms chunking is genuinely needed
+here, unlike a typical diagram/photo.
+
+**Spike: whitespace-gap chunking on the rendered PNG, not the Excalidraw
+JSON.** Rather than decompressing the proprietary `compressed-json` scene
+to cluster elements by coordinates, a throwaway script scanned the
+already-rendered PNG row-by-row for near-white (no-ink) bands and cut at
+the gap closest to a ~3000px target height, capped at 4500px. Real results,
+both files, zero hard cuts (every cut landed inside a real whitespace gap,
+never through content):
+- `math_methods` (13,860px): 84 gaps detected -> 5 chunks, heights 3020 /
+  3086 / 3069 / 2792 / 1893px.
+- `microecon` (7,049px): 28 gaps detected -> 3 chunks, heights 3063 / 2954
+  / 1032px.
+
+Several chunks visually spot-checked -- legible, no equation or line cut
+across a chunk boundary. Approach validated on real data; gap density on
+both real files was high enough (a gap roughly every 150-250px) that a
+reasonable cut was always available near the target height.
+
+**Not yet built:** per-chunk resize/compression before the Gemini call,
+trailing-context accumulation across chunk boundaries (a chunk boundary can
+still split a derivation mid-thought the same way a OneNote page boundary
+used to -- mirrors Tier 3's existing `_ACCUMULATION_WINDOW` sliding window,
+just adapted from PDF pages to gap-detected chunks), and the actual new
+module wiring this into `transcribe_notes.py`'s existing Gemini-calling
+machinery. This is a validated direction, not an implementation -- next
+step is a real design/plan before any of this lands in the pipeline for
+real, not writing production code off the spike script directly.
+
+**2026-09-09, compression/resize experiment (Task 3 of the implementation
+plan):** tested 3 variants of the same real chunk (original PNG, JPEG q85,
+JPEG q85 downscaled to 500px width) against `gemini-3.6-flash`, on two
+different real chunks from `math_methods/lecture_notes/Drawing 2026-09-08
+11.51.12.excalidraw.png`. **Input token count was identical across all
+three variants on both chunks** (1122 tokens and 1073 tokens respectively,
+unchanged by format or resolution) -- Gemini's vision tokenization is
+evidently resolution-bucketed, not byte-size-driven, and these 785px-wide
+canvases all fall in the same bucket regardless of resizing. Transcription
+completeness looked comparable across all three variants on both chunks
+(spot-checked by reading the output, not a rigorous accuracy score).
+**Conclusion: resizing/compressing these real canvases buys no measured
+cost or accuracy benefit** -- the generic "always downscale large images"
+advice doesn't apply once canvases are already this narrow. Implementation
+uses a high `max_width` default (2000px) that won't trigger on real data
+today, kept only as a safety net for an unusually wide future canvas, and
+JPEG re-encoding purely for a smaller upload payload (~30% smaller bytes,
+no measured token/accuracy cost) -- not because either was shown to help.
+
+**2026-09-09, spec written:**
+`docs/superpowers/specs/2026-09-09-excalidraw-notes-transcription-design.md`
+-- five-stage design (chunk -> transcribe -> assemble -> expand -> write),
+promoting the spike's chunking algorithm to real code, `<name>.md` (raw) +
+`<name>.rag.md` (expanded) output reusing the existing `.rag.md`
+convention from `describe_images.py`. Implementation plan not yet written.
