@@ -40,7 +40,7 @@
 **Interfaces:**
 - Produces: `find_gaps(gray: "numpy.ndarray", ink_row_threshold: int = 245, min_gap_rows: int = 8) -> list[tuple[int, int]]` -- returns `(start_row, end_row)` for every contiguous blank-row run of at least `min_gap_rows` rows. `gray` is a 2D array, one row per image row, values 0-255 (darker = more ink).
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```python
 # tests/test_excalidraw_chunking.py
@@ -79,12 +79,12 @@ def test_find_gaps_no_gaps_in_solid_ink():
     assert find_gaps(gray, ink_row_threshold=245, min_gap_rows=8) == []
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `.venv/Scripts/python.exe -m pytest tests/test_excalidraw_chunking.py -v` (from `academic-rag-model/`)
 Expected: FAIL with `ModuleNotFoundError: No module named 'notes.excalidraw_chunking'`
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 ```python
 # notes/excalidraw_chunking.py
@@ -125,12 +125,12 @@ def find_gaps(gray: np.ndarray, ink_row_threshold: int = 245, min_gap_rows: int 
     return gaps
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `.venv/Scripts/python.exe -m pytest tests/test_excalidraw_chunking.py -v`
 Expected: PASS (4 tests)
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add notes/excalidraw_chunking.py tests/test_excalidraw_chunking.py
@@ -151,7 +151,7 @@ git commit -m "feat(excalidraw): add whitespace-gap detection for canvas chunkin
   - `choose_cuts(height: int, gaps: list[tuple[int, int]], target_chunk_height: int = 3000, max_chunk_height: int = 4500) -> list[tuple[int, bool]]` -- ordered list of `(cut_row, is_hard_cut)`, not including the final implicit cut at `height`.
   - `chunk_image(image: "PIL.Image.Image", target_chunk_height: int = 3000, max_chunk_height: int = 4500, ink_row_threshold: int = 245, min_gap_rows: int = 8) -> list["PIL.Image.Image"]` -- the full canvas, cropped into ordered chunk images.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```python
 # tests/test_excalidraw_chunking.py (add to existing file)
@@ -200,12 +200,12 @@ def test_chunk_image_splits_at_a_real_gap_not_through_ink():
     assert total_height == 30
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `.venv/Scripts/python.exe -m pytest tests/test_excalidraw_chunking.py -v`
 Expected: FAIL with `ImportError: cannot import name 'choose_cuts'`
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 ```python
 # notes/excalidraw_chunking.py (append)
@@ -269,12 +269,12 @@ def chunk_image(
     return chunks
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `.venv/Scripts/python.exe -m pytest tests/test_excalidraw_chunking.py -v`
 Expected: PASS. If the exact expected height in `test_chunk_image_splits_at_a_real_gap_not_through_ink` doesn't match your gap-midpoint arithmetic, fix the assertion to the actual computed value -- the important invariant is "2 chunks, total height 30, cut falls inside rows 5-19," not the exact midpoint pixel.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add notes/excalidraw_chunking.py tests/test_excalidraw_chunking.py
@@ -295,7 +295,7 @@ This task is empirical, not TDD in the usual sense: the spec explicitly defers t
 **Interfaces:**
 - Produces: `resize_chunk_for_api(image: "PIL.Image.Image", max_width: int = 1200, jpeg_quality: int = 85) -> bytes` -- returns JPEG-encoded bytes, width capped at `max_width` (height scaled proportionally), no-op resize if already narrower.
 
-- [ ] **Step 1: Run the real experiment**
+- [x] **Step 1: Run the real experiment**
 
 Using two or three real chunks from `academic-hub/academic_notes/math_methods/lecture_notes/` (produced by pulling the tablet-sync repo and running `chunk_image` interactively, or reusing the Task 2 spike approach), write and run a throwaway script that sends each of 3 variants of the same chunk to Gemini and prints `usage_metadata`:
 
@@ -356,13 +356,13 @@ Run: `.venv/Scripts/python.exe scratch_resize_experiment.py "../academic-hub/aca
 
 Record, in `docs/status/2026-08-24-notes-transcription-status.md`, a new dated entry: bytes/tokens per variant, and a manual read of whether the transcription preview looks equally accurate across variants. Pick `max_width` and `jpeg_quality` from what you observe -- if narrower width or JPEG compression measurably hurts transcription of small handwriting or dense matrices, keep the original PNG and skip resizing entirely (a valid outcome, not a failure of this task).
 
-- [ ] **Step 2: Delete the scratch script**
+- [x] **Step 2: Delete the scratch script**
 
 ```bash
 rm scratch_resize_experiment.py
 ```
 
-- [ ] **Step 3: Write the failing test for the chosen implementation**
+- [x] **Step 3: Write the failing test for the chosen implementation**
 
 ```python
 # tests/test_excalidraw_chunking.py (add to existing file)
@@ -391,12 +391,12 @@ def test_resize_chunk_for_api_no_op_when_already_narrow():
 
 Adjust `max_width`/`jpeg_quality` defaults in both the test and Step 4's implementation to whatever Step 1's experiment concluded -- 1200/85 above are starting points, not the measured answer.
 
-- [ ] **Step 4: Run test to verify it fails**
+- [x] **Step 4: Run test to verify it fails**
 
 Run: `.venv/Scripts/python.exe -m pytest tests/test_excalidraw_chunking.py -v -k resize`
 Expected: FAIL with `ImportError: cannot import name 'resize_chunk_for_api'`
 
-- [ ] **Step 5: Write minimal implementation**
+- [x] **Step 5: Write minimal implementation**
 
 ```python
 # notes/excalidraw_chunking.py (append)
@@ -417,12 +417,12 @@ def resize_chunk_for_api(image: Image.Image, max_width: int = 1200, jpeg_quality
     return buf.getvalue()
 ```
 
-- [ ] **Step 6: Run test to verify it passes**
+- [x] **Step 6: Run test to verify it passes**
 
 Run: `.venv/Scripts/python.exe -m pytest tests/test_excalidraw_chunking.py -v`
 Expected: PASS (all tests in the file)
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add notes/excalidraw_chunking.py tests/test_excalidraw_chunking.py docs/status/2026-08-24-notes-transcription-status.md
@@ -440,7 +440,7 @@ git commit -m "feat(excalidraw): add chunk resize/compression, tuned from a real
 **Interfaces:**
 - Produces: `discover_excalidraw_files(notes_dir: str, file_filter: str | None = None) -> list[tuple[str, str]]` -- list of `(excalidraw_md_path, png_path)` pairs, sorted by filename. Skips any `.excalidraw.md` with no matching `.png` sibling (auto-export may not have run yet), printing a warning rather than raising.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```python
 # tests/test_transcribe_excalidraw.py
@@ -489,12 +489,12 @@ def test_discover_excalidraw_files_missing_dir_returns_empty():
     assert discover_excalidraw_files("/no/such/dir") == []
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `.venv/Scripts/python.exe -m pytest tests/test_transcribe_excalidraw.py -v`
 Expected: FAIL with `ModuleNotFoundError: No module named 'notes.transcribe_excalidraw'`
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 ```python
 # notes/transcribe_excalidraw.py
@@ -536,12 +536,12 @@ def discover_excalidraw_files(notes_dir: str, file_filter: str | None = None) ->
     return pairs
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `.venv/Scripts/python.exe -m pytest tests/test_transcribe_excalidraw.py -v`
 Expected: PASS (4 tests)
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add notes/transcribe_excalidraw.py tests/test_transcribe_excalidraw.py
@@ -561,7 +561,7 @@ git commit -m "feat(excalidraw): add .excalidraw.md/.png discovery"
   - `build_chunk_transcription_prompt(accumulated_context: str, chunk_index: int, total_chunks: int) -> str`
   - `assemble_raw_markdown(cache: dict, total_chunks: int) -> str` -- same shape as `transcribe_notes.py`'s `build_final_markdown(cache, total_pages)`, keyed by chunk index (0-based) instead of page number (1-based).
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```python
 # tests/test_transcribe_excalidraw.py (add to existing file)
@@ -596,12 +596,12 @@ def test_assemble_raw_markdown_skips_missing_chunks():
     assert result == "<!-- chunk 1 -->\n\nfirst chunk text"
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `.venv/Scripts/python.exe -m pytest tests/test_transcribe_excalidraw.py -v -k "prompt or assemble"`
 Expected: FAIL with `ImportError`
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 ```python
 # notes/transcribe_excalidraw.py (append)
@@ -635,12 +635,12 @@ def assemble_raw_markdown(cache: dict, total_chunks: int) -> str:
     return "\n\n".join(parts)
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `.venv/Scripts/python.exe -m pytest tests/test_transcribe_excalidraw.py -v`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add notes/transcribe_excalidraw.py tests/test_transcribe_excalidraw.py
@@ -659,7 +659,7 @@ git commit -m "feat(excalidraw): add chunk transcription prompt and raw-transcri
 - Consumes: `notes.transcribe_notes.transcribe_page_via_gemini(client, model, image_bytes, prompt) -> str` (reused as-is -- it's already generic over "an image and a prompt," not PDF-specific), `common.gemini_utils.call_with_retries`.
 - Produces: `_accumulated_chunk_context(cache, chunk_index, window) -> str` (**not** a reuse of `transcribe_notes.py`'s `build_accumulated_context` -- real testing found that function's hardcoded 1-based floor silently drops chunk 0 from a 0-based scheme; see Step 3), `transcribe_chunks(client, model: str, chunk_bytes: list[bytes]) -> dict[str, str]` -- cache dict keyed by chunk index as a string, one entry per successfully-transcribed chunk. A chunk that raises after retries is logged and skipped, not fatal to the whole document (matches `process_pdf`'s per-page resilience).
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```python
 # tests/test_transcribe_excalidraw.py (add to existing file)
@@ -702,12 +702,12 @@ def test_transcribe_chunks_skips_a_chunk_that_fails_after_retries():
     assert cache == {"0": "ok text", "2": "ok text"}
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `.venv/Scripts/python.exe -m pytest tests/test_transcribe_excalidraw.py -v -k transcribe_chunks`
 Expected: FAIL with `ImportError`
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 ```python
 # notes/transcribe_excalidraw.py (add imports near the top, then append)
@@ -751,12 +751,12 @@ def transcribe_chunks(client, model: str, chunk_bytes: list[bytes]) -> dict[str,
 
 **Real deviation from the original plan, caught by Step 4's test run, not assumed in advance:** the plan originally called for reusing `transcribe_notes.py`'s `build_accumulated_context` directly. Running the tests below found it drops chunk 0 from a 0-based scheme (its start-page floor is hardcoded to 1, assuming pages start at 1). Wrote a small local 0-based equivalent instead of forcing an interface mismatch.
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `.venv/Scripts/python.exe -m pytest tests/test_transcribe_excalidraw.py -v`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add notes/transcribe_excalidraw.py tests/test_transcribe_excalidraw.py
@@ -777,7 +777,7 @@ git commit -m "feat(excalidraw): transcribe chunks via Gemini with cross-chunk a
   - `build_expansion_prompt(raw_markdown: str, retrieved_passages: list[str] | None = None) -> str`
   - `expand_via_gemini(client, model: str, raw_markdown: str, retrieved_passages: list[str] | None = None) -> str`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```python
 # tests/test_transcribe_excalidraw.py (add to existing file)
@@ -816,12 +816,12 @@ def test_expand_via_gemini_returns_response_text():
     assert result == "Expanded prose explaining the shorthand."
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `.venv/Scripts/python.exe -m pytest tests/test_transcribe_excalidraw.py -v -k expansion`
 Expected: FAIL with `ImportError`
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 ```python
 # notes/transcribe_excalidraw.py (append)
@@ -858,12 +858,12 @@ def expand_via_gemini(client, model: str, raw_markdown: str, retrieved_passages:
     return (response.text or "").strip()
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `.venv/Scripts/python.exe -m pytest tests/test_transcribe_excalidraw.py -v`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add notes/transcribe_excalidraw.py tests/test_transcribe_excalidraw.py
@@ -884,7 +884,7 @@ git commit -m "feat(excalidraw): add expansion prompt and Gemini expansion backe
   - `expand_via_ollama(raw_markdown: str, model: str, request_timeout: int = 300, retrieved_passages: list[str] | None = None) -> str | None`
   - `expand_transcription(client, raw_markdown: str, backend: str, retrieved_passages: list[str] | None = None) -> tuple[str | None, dict]` -- returns `(expanded_text, metadata)` where `metadata` is `{"expansion_backend": ..., "expansion_model": ..., "grounded": bool}`; falls back to Gemini if Ollama is requested but unreachable (matches `viz`/`problem_gen`'s existing degrade-to-Gemini-or-warn pattern).
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```python
 # tests/test_transcribe_excalidraw.py (add to existing file)
@@ -938,12 +938,12 @@ def test_expand_transcription_marks_grounded_when_passages_given():
     assert meta["grounded"] is True
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `.venv/Scripts/python.exe -m pytest tests/test_transcribe_excalidraw.py -v -k "ollama or dispatcher or expand_transcription"`
 Expected: FAIL with `ImportError`
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 ```python
 # notes/transcribe_excalidraw.py (add imports near the top, then append)
@@ -986,12 +986,12 @@ def expand_transcription(
     return text, {"expansion_backend": "gemini", "expansion_model": _EXPANSION_MODEL_GEMINI, "grounded": grounded}
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `.venv/Scripts/python.exe -m pytest tests/test_transcribe_excalidraw.py -v`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add notes/transcribe_excalidraw.py tests/test_transcribe_excalidraw.py
@@ -1011,7 +1011,7 @@ git commit -m "feat(excalidraw): add Ollama expansion backend with Gemini fallba
 - Consumes: `notes.transcribe_notes.build_frontmatter(metadata: dict) -> str` (reused as-is), `indexer.index_card.compute_file_id`, `compute_content_hash`, `derive_course`, `reconcile_and_write` (reused exactly as `transcribe_notes.py`'s `_write_markdown_and_index` uses them), the new `EXCALIDRAW_DOC_TYPES`.
 - Produces: `write_outputs(excalidraw_md_path: str, png_path: str, raw_markdown: str, expanded_markdown: str, transcription_model: str, expansion_meta: dict, num_chunks: int, academic_hub_root: str, client) -> tuple[str, str]` -- writes `<name>.md` and `<name>.rag.md` under a sibling `processed_outputs/` directory, returns their paths. Only the `.rag.md` is registered with the source indexer (it's the RAG-canonical artifact per the spec).
 
-- [ ] **Step 1: Add the new doc type**
+- [x] **Step 1: Add the new doc type**
 
 In `indexer/index_card.py`, right after the existing `LECTURE_NOTE_DOC_TYPES` line:
 
@@ -1021,7 +1021,7 @@ LECTURE_NOTE_DOC_TYPES = frozenset({"lecture_notes"})
 EXCALIDRAW_DOC_TYPES = frozenset({"excalidraw_notes"})
 ```
 
-- [ ] **Step 2: Write the failing test**
+- [x] **Step 2: Write the failing test**
 
 ```python
 # tests/test_transcribe_excalidraw.py (add to existing file)
@@ -1063,12 +1063,12 @@ def test_write_outputs_creates_both_files_with_frontmatter(tmp_path):
     mock_reconcile.assert_called_once()  # only the .rag.md gets indexed
 ```
 
-- [ ] **Step 3: Run test to verify it fails**
+- [x] **Step 3: Run test to verify it fails**
 
 Run: `.venv/Scripts/python.exe -m pytest tests/test_transcribe_excalidraw.py -v -k write_outputs`
 Expected: FAIL with `ImportError`
 
-- [ ] **Step 4: Write minimal implementation**
+- [x] **Step 4: Write minimal implementation**
 
 ```python
 # notes/transcribe_excalidraw.py (add imports near the top, then append)
@@ -1128,12 +1128,12 @@ def write_outputs(
     return raw_path, rag_path
 ```
 
-- [ ] **Step 5: Run test to verify it passes**
+- [x] **Step 5: Run test to verify it passes**
 
 Run: `.venv/Scripts/python.exe -m pytest tests/test_transcribe_excalidraw.py -v`
 Expected: PASS
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add indexer/index_card.py notes/transcribe_excalidraw.py tests/test_transcribe_excalidraw.py
@@ -1152,7 +1152,7 @@ git commit -m "feat(excalidraw): write raw+expanded outputs and register with th
 - Consumes: everything from Tasks 1-9 (`chunk_image`, `resize_chunk_for_api`, `discover_excalidraw_files`, `transcribe_chunks`, `assemble_raw_markdown`, `expand_transcription`, `write_outputs`), plus `indexer.index_search.search_passages` (optional grounding) and `PIL.Image.open`.
 - Produces: `process_excalidraw_note(excalidraw_md_path: str, png_path: str, client, model: str, expand_backend: str, academic_hub_root: str, use_grounding: bool = False, dry_run: bool = False) -> None`, `main()`.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```python
 # tests/test_transcribe_excalidraw.py (add to existing file)
@@ -1202,12 +1202,12 @@ def test_process_excalidraw_note_runs_full_pipeline(tmp_path):
     assert call_kwargs["num_chunks"] == 2
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `.venv/Scripts/python.exe -m pytest tests/test_transcribe_excalidraw.py -v -k process_excalidraw_note`
 Expected: FAIL with `ImportError`
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 ```python
 # notes/transcribe_excalidraw.py (add import near the top, then append)
@@ -1301,17 +1301,17 @@ if __name__ == "__main__":
     main()
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `.venv/Scripts/python.exe -m pytest tests/test_transcribe_excalidraw.py -v`
 Expected: PASS (full file)
 
-- [ ] **Step 5: Run the full test suite to check for regressions**
+- [x] **Step 5: Run the full test suite to check for regressions**
 
 Run: `.venv/Scripts/python.exe -m pytest -v`
 Expected: PASS (all tests, including every other subproject's)
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add notes/transcribe_excalidraw.py tests/test_transcribe_excalidraw.py
@@ -1327,7 +1327,7 @@ Every subproject in this project gets validated against real data before being c
 **Files:**
 - Modify: `docs/status/2026-08-24-notes-transcription-status.md`
 
-- [ ] **Step 1: Run for real against both real tablet files**
+- [x] **Step 1: Run for real against both real tablet files**
 
 ```bash
 cd academic-rag-model
@@ -1335,19 +1335,19 @@ cd academic-rag-model
 .venv/Scripts/python.exe -m notes.transcribe_excalidraw --notes-subdir academic_notes/microecon/lecture_notes
 ```
 
-- [ ] **Step 2: Spot-check both `.rag.md` outputs against the source PNGs**
+- [x] **Step 2: Spot-check both `.rag.md` outputs against the source PNGs**
 
 Open each `<name>.excalidraw.rag.md` next to its source `.png` and confirm: every equation/concept visible in the image appears in the expanded text, nothing was invented that isn't on the canvas, and the prose is genuinely more useful as a standalone explanation than the raw `.md` (not just the same text reworded).
 
-- [ ] **Step 3: Record real findings**
+- [x] **Step 3: Record real findings**
 
 Add a new dated section to `docs/status/2026-08-24-notes-transcription-status.md` (following the existing "2026-09-07"/"2026-09-09" section style): chunk counts observed, any transcription errors found, whether the expansion felt accurate vs. over-confident, actual token/cost numbers from `_log_token_usage`-style output if you wire that in, and whether the Gemini-vs-Ollama expansion backend choice held up (if you also test `--expand-backend ollama` for comparison -- worth doing once, given the spec left this genuinely undetermined).
 
-- [ ] **Step 4: Update the tracker and reflections docs**
+- [x] **Step 4: Update the tracker and reflections docs**
 
 Update `docs/trackers/2026-08-30-academic-hub-status.md`'s notes-transcription bullet and `docs/brainstorms/Academic Hub Progress Reflections.md`'s handwritten-notes sub-bullet from "spec written, not yet planned/built" to "shipped, real-corpus validated" (or, honestly, whatever the Step 3 findings actually support -- if real testing surfaces a blocking gap, say so instead of overclaiming, matching this project's own established pattern).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add docs/status/2026-08-24-notes-transcription-status.md docs/trackers/2026-08-30-academic-hub-status.md "docs/brainstorms/Academic Hub Progress Reflections.md"
