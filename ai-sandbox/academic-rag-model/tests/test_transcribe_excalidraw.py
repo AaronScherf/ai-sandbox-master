@@ -194,3 +194,38 @@ def test_expand_transcription_marks_grounded_when_passages_given():
             retrieved_passages=["some textbook passage"],
         )
     assert meta["grounded"] is True
+
+
+from notes.transcribe_excalidraw import write_outputs
+
+
+def test_write_outputs_creates_both_files_with_frontmatter(tmp_path):
+    course_dir = tmp_path / "academic-hub" / "academic_notes" / "math_methods" / "lecture_notes"
+    course_dir.mkdir(parents=True)
+    md_path = course_dir / "Drawing 2026-09-08.excalidraw.md"
+    png_path = course_dir / "Drawing 2026-09-08.excalidraw.png"
+    md_path.write_text("---\n---\n")
+    png_path.write_bytes(b"fake-png")
+
+    with patch("notes.transcribe_excalidraw.reconcile_and_write") as mock_reconcile:
+        raw_path, rag_path = write_outputs(
+            excalidraw_md_path=str(md_path), png_path=str(png_path),
+            raw_markdown="raw shorthand text", expanded_markdown="expanded prose text",
+            transcription_model="gemini-3.6-flash",
+            expansion_meta={"expansion_backend": "gemini", "expansion_model": "gemini-3.1-flash-lite", "grounded": False},
+            num_chunks=3, academic_hub_root=str(tmp_path / "academic-hub"), client=object(),
+        )
+
+    assert os.path.basename(raw_path) == "Drawing 2026-09-08.excalidraw.md"
+    assert os.path.basename(rag_path) == "Drawing 2026-09-08.excalidraw.rag.md"
+    assert os.path.dirname(raw_path).endswith("processed_outputs")
+
+    raw_content = open(raw_path, encoding="utf-8").read()
+    assert "routing: excalidraw_chunked" in raw_content
+    assert "raw shorthand text" in raw_content
+
+    rag_content = open(rag_path, encoding="utf-8").read()
+    assert "expansion_backend: gemini" in rag_content
+    assert "expanded prose text" in rag_content
+
+    mock_reconcile.assert_called_once()  # only the .rag.md gets indexed

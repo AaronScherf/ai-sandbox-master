@@ -38,6 +38,12 @@ KNOWN_LEVELS = ("introductory", "intermediate", "advanced")
 # this instead, so a lecture note is always correctly classified.
 LECTURE_NOTE_DOC_TYPES = frozenset({"lecture_notes"})
 
+# Same reasoning as LECTURE_NOTE_DOC_TYPES above, for the Excalidraw
+# notes-transcription pipeline's expanded (.rag.md) output -- see
+# notes/transcribe_excalidraw.py and
+# docs/superpowers/specs/2026-09-09-excalidraw-notes-transcription-design.md.
+EXCALIDRAW_DOC_TYPES = frozenset({"excalidraw_notes"})
+
 # Cap on how much of an assembled textbook markdown gets read as
 # content_sample -- a book's front matter/TOC is reliably near the start
 # regardless of the book's total length (spec §4), and this same constant

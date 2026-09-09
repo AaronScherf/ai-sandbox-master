@@ -12,7 +12,14 @@ import os
 
 from common.gemini_utils import call_with_retries
 from common.ollama_utils import call_ollama
-from notes.transcribe_notes import transcribe_page_via_gemini
+from indexer.index_card import (
+    EXCALIDRAW_DOC_TYPES,
+    compute_content_hash,
+    compute_file_id,
+    derive_course,
+    reconcile_and_write,
+)
+from notes.transcribe_notes import build_frontmatter, transcribe_page_via_gemini
 
 _EXPANSION_MODEL_GEMINI = "gemini-3.1-flash-lite"  # text-only reasoning task, matches
                                                      # problem_gen's/viz's own default tier
@@ -168,3 +175,49 @@ def expand_transcription(
         print("WARNING: Ollama expansion backend unreachable; falling back to Gemini.")
     text = expand_via_gemini(client, _EXPANSION_MODEL_GEMINI, raw_markdown, retrieved_passages)
     return text, {"expansion_backend": "gemini", "expansion_model": _EXPANSION_MODEL_GEMINI, "grounded": grounded}
+
+
+def write_outputs(
+    excalidraw_md_path: str, png_path: str, raw_markdown: str, expanded_markdown: str,
+    transcription_model: str, expansion_meta: dict, num_chunks: int, academic_hub_root: str, client,
+) -> tuple[str, str]:
+    base_name = os.path.basename(excalidraw_md_path)[: -len(".excalidraw.md")]
+    output_dir = os.path.join(os.path.dirname(excalidraw_md_path), "processed_outputs")
+    os.makedirs(output_dir, exist_ok=True)
+
+    common_meta = {
+        "source_excalidraw": os.path.basename(excalidraw_md_path),
+        "source_png": os.path.basename(png_path),
+        "folder_category": "excalidraw_notes",
+        "routing": "excalidraw_chunked",
+        "chunks": num_chunks,
+        "model": transcription_model,
+        "tags": [],
+    }
+
+    raw_path = os.path.join(output_dir, f"{base_name}.excalidraw.md")
+    with open(raw_path, "w", encoding="utf-8") as f:
+        f.write(build_frontmatter(common_meta) + raw_markdown)
+
+    rag_meta = dict(common_meta)
+    rag_meta.update(expansion_meta)
+    rag_path = os.path.join(output_dir, f"{base_name}.excalidraw.rag.md")
+    with open(rag_path, "w", encoding="utf-8") as f:
+        f.write(build_frontmatter(rag_meta) + expanded_markdown)
+
+    try:
+        file_id = compute_file_id(excalidraw_md_path)
+        rel_rag_path = os.path.relpath(rag_path, academic_hub_root).replace(os.sep, "/")
+        rel_source_path = os.path.relpath(excalidraw_md_path, academic_hub_root).replace(os.sep, "/")
+        course = derive_course(rel_source_path)
+        reconcile_and_write(
+            academic_hub_root, file_id=file_id, path=rel_rag_path, source_pdf_path=rel_source_path,
+            course=course, folder_category="excalidraw_notes", content_sample=expanded_markdown,
+            page_count=num_chunks, client=client, content_hash=compute_content_hash(rag_path),
+            known_doc_types=EXCALIDRAW_DOC_TYPES,
+        )
+    except Exception as err:
+        print(f"WARNING: source-indexer update failed for {rag_path} ({err}); "
+              f"rerun `python -m indexer.index_search rebuild` later to catch it up.")
+
+    return raw_path, rag_path
