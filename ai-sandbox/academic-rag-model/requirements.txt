@@ -40,3 +40,6 @@ audioop-lts; python_version >= "3.13"  # pydub needs this on Python 3.13+, whose
 
 # Excalidraw Notes (chunking Excalidraw canvas PNGs for transcription)
 pillow
+
+# Resume Manager
+xhtml2pdf
