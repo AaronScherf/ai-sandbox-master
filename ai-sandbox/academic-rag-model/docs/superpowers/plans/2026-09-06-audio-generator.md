@@ -1904,3 +1904,325 @@ Claude-Session: https://claude.ai/code/session_012utPaFRMX7eLAtcGdRJhcE
 EOF
 )"
 ```
+
+---
+
+### Task 9: Replace local Ollama narration with tiered Gemini API calls (spec §3.1 v3)
+
+**Why:** Task 8 Step 6's real measurement came back at ~6h for one
+equation-dense file on local CPU-only `qwen2-math:7b` — impractical for
+any real batch. This task swaps `narrate.py`'s LLM backend to the Gemini
+Developer API, reusing `common/gemini_utils.py` exactly as
+`viz/llm_fallback.py`/`indexer/index_card.py` already do (no new
+dependency — `google-genai` and `python-dotenv` are already in
+`requirements.txt` via those subprojects). Adds per-chunk complexity
+tiering (skip/light/heavy) so plain-prose content costs nothing. Drops the
+local-Ollama fallback tier entirely — see spec §3.1 v3 for full rationale.
+
+**Files:**
+- Modify: `audio_generator/narrate.py`
+- Modify: `audio_generator/README.md`
+- Test: `tests/test_audio_generator_narrate.py` (rewritten)
+
+**Interfaces:**
+- Consumes: `common.gemini_utils.get_gemini_client`/`call_with_retries`/`load_dotenv_override`.
+- Produces: `narrate_for_speech(md_text: str) -> str` — **signature
+  unchanged from v2**, so `pipeline.py` needs zero code changes; it already
+  calls this exact function first, before `cleaner.clean_markdown_for_speech()`.
+
+- [ ] **Step 1: Write the failing classifier tests**
+
+Add to `tests/test_audio_generator_narrate.py` (new import:
+`from audio_generator.narrate import _classify_chunk`):
+
+```python
+class TestClassifyChunk(unittest.TestCase):
+    def test_pure_prose_is_skip(self):
+        self.assertEqual(_classify_chunk("Just plain prose, no math at all here."), "skip")
+
+    def test_stray_greek_letter_outside_dollar_signs_is_not_skip(self):
+        self.assertNotEqual(_classify_chunk("The parameter α controls the rate."), "skip")
+
+    def test_sparse_simple_inline_math_is_light(self):
+        chunk = "Consider the random variable X. " * 20 + "Its mean is $E[X]$."
+        self.assertEqual(_classify_chunk(chunk), "light")
+
+    def test_dense_dollar_spans_is_heavy(self):
+        chunk = "$" + "x^2 + y^2 = z^2 " * 40 + "$"
+        self.assertEqual(_classify_chunk(chunk), "heavy")
+
+    def test_many_backslash_commands_is_heavy(self):
+        chunk = "Short text. $\\mathbb{E}[X] = \\sum_{x} x \\mathbb{P}(X = x) \\cdot \\int f(x)$."
+        self.assertEqual(_classify_chunk(chunk), "heavy")
+
+    def test_begin_environment_is_always_heavy_regardless_of_ratio(self):
+        chunk = "Short lead-in. $\\begin{align} x &= 1 \\end{align}$"
+        self.assertEqual(_classify_chunk(chunk), "heavy")
+```
+
+- [ ] **Step 2: Run to verify they fail**
+
+Run: `python -m pytest tests/test_audio_generator_narrate.py -k Classify -v`
+Expected: FAIL with `ImportError: cannot import name '_classify_chunk'`.
+
+- [ ] **Step 3: Implement the classifier**
+
+In `audio_generator/narrate.py`, add (near the existing pattern constants):
+
+```python
+_LATEX_SPAN_PATTERN = re.compile(r"\$\$[^\$]+\$\$|\$[^\$]+\$")
+_LATEX_COMMAND_PATTERN = re.compile(r"\\[a-zA-Z]+")
+_LATEX_ENV_PATTERN = re.compile(r"\\begin\{[^}]+\}")
+# Greek letters + common math-operator/arrow ranges, for notation typed as
+# literal Unicode rather than LaTeX (e.g. "the parameter α" in prose).
+_MATH_UNICODE_PATTERN = re.compile("[\u0370-\u03ff\u2190-\u21ff\u2200-\u22ff]")
+
+AUDIOGEN_NARRATE_MATH_RATIO_THRESHOLD = float(os.environ.get("AUDIOGEN_NARRATE_MATH_RATIO_THRESHOLD", "0.15"))
+AUDIOGEN_NARRATE_MATH_COMMAND_THRESHOLD = int(os.environ.get("AUDIOGEN_NARRATE_MATH_COMMAND_THRESHOLD", "3"))
+
+
+def _classify_chunk(chunk: str) -> str:
+    """Returns "skip" | "light" | "heavy" (spec §3.1 v3) -- thresholds are
+    a starting guess, flagged in spec §9 for empirical tuning."""
+    spans = _LATEX_SPAN_PATTERN.findall(chunk)
+    if not spans and not _MATH_UNICODE_PATTERN.search(chunk):
+        return "skip"
+    if _LATEX_ENV_PATTERN.search(chunk):
+        return "heavy"
+    ratio = sum(len(s) for s in spans) / len(chunk) if chunk else 0.0
+    command_count = len(_LATEX_COMMAND_PATTERN.findall(chunk))
+    if ratio >= AUDIOGEN_NARRATE_MATH_RATIO_THRESHOLD or command_count >= AUDIOGEN_NARRATE_MATH_COMMAND_THRESHOLD:
+        return "heavy"
+    return "light"
+```
+
+- [ ] **Step 4: Run to verify the classifier tests pass**
+
+Run: `python -m pytest tests/test_audio_generator_narrate.py -k Classify -v`
+Expected: PASS (6 tests).
+
+- [ ] **Step 5: Write the failing `_call_gemini` tests**
+
+Add to `tests/test_audio_generator_narrate.py` (new imports:
+`from unittest.mock import MagicMock, patch` (extend existing import),
+`from audio_generator.narrate import _call_gemini`):
+
+```python
+class TestCallGemini(unittest.TestCase):
+    def test_returns_response_text_on_success(self):
+        client = MagicMock()
+        client.models.generate_content.return_value = MagicMock(text="A rewritten passage.")
+        result = _call_gemini("prompt", "gemini-3.1-flash-lite", client)
+        self.assertEqual(result, "A rewritten passage.")
+
+    def test_passes_the_given_model_and_prompt(self):
+        client = MagicMock()
+        client.models.generate_content.return_value = MagicMock(text="response")
+        _call_gemini("my specific prompt", "gemini-2.5-flash", client)
+        kwargs = client.models.generate_content.call_args.kwargs
+        self.assertEqual(kwargs["model"], "gemini-2.5-flash")
+        self.assertEqual(kwargs["contents"], "my specific prompt")
+
+    def test_returns_none_when_call_with_retries_raises(self):
+        client = MagicMock()
+        with patch("audio_generator.narrate.call_with_retries", side_effect=Exception("quota exceeded")):
+            result = _call_gemini("prompt", "gemini-3.1-flash-lite", client)
+        self.assertIsNone(result)
+```
+
+- [ ] **Step 6: Run to verify they fail, then implement `_call_gemini`**
+
+Run: `python -m pytest tests/test_audio_generator_narrate.py -k CallGemini -v`
+Expected: FAIL with `ImportError`.
+
+In `audio_generator/narrate.py`, replace the `common.ollama_utils` import
+and add:
+
+```python
+from common.gemini_utils import call_with_retries, get_gemini_client, load_dotenv_override
+
+AUDIOGEN_NARRATE_GEMINI_LIGHT_MODEL = os.environ.get("AUDIOGEN_NARRATE_GEMINI_LIGHT_MODEL", "gemini-3.1-flash-lite")
+AUDIOGEN_NARRATE_GEMINI_HEAVY_MODEL = os.environ.get("AUDIOGEN_NARRATE_GEMINI_HEAVY_MODEL", "gemini-2.5-flash")
+_TIER_MODELS = {"light": AUDIOGEN_NARRATE_GEMINI_LIGHT_MODEL, "heavy": AUDIOGEN_NARRATE_GEMINI_HEAVY_MODEL}
+
+
+def _call_gemini(prompt: str, model: str, client) -> str | None:
+    """Mirrors viz/llm_fallback.py's _call_gemini exactly -- relies on
+    common.gemini_utils.call_with_retries for transient-failure retry/
+    backoff, the same mechanism every other Gemini call in this project
+    already uses. Returns None only once retries are exhausted, never
+    raises."""
+    try:
+        response = call_with_retries(lambda: client.models.generate_content(
+            model=model, contents=prompt, config={"temperature": 0.2},
+        ))
+        return (response.text or "").strip()
+    except Exception as err:
+        print(f"WARNING: Gemini call to model '{model}' failed after retries ({err})")
+        return None
+```
+
+Run: `python -m pytest tests/test_audio_generator_narrate.py -k CallGemini -v`
+Expected: PASS (3 tests).
+
+- [ ] **Step 7: Update the existing chunking/retry tests for the Gemini backend**
+
+Replace every `@patch("audio_generator.narrate.call_ollama")` test in
+`TestNarrateForSpeechChunking`/`TestNarrateForSpeechRetryAndFallback` with
+the Gemini-client-shaped equivalent. Pattern for each (illustrated on two
+representative cases -- apply the same shape to the rest):
+
+```python
+from unittest.mock import MagicMock, patch
+
+class TestNarrateForSpeechChunking(unittest.TestCase):
+    @patch("audio_generator.narrate.get_gemini_client")
+    @patch("audio_generator.narrate.load_dotenv_override")
+    def test_calls_gemini_once_per_paragraph_when_short(self, mock_dotenv, mock_get_client):
+        client = MagicMock()
+        client.models.generate_content.return_value = MagicMock(
+            text="A rewritten sentence long enough to pass the sanity check easily here.",
+        )
+        mock_get_client.return_value = client
+        md_text = "First short paragraph with $x$.\n\nSecond short paragraph with $y$."
+        narrate_for_speech(md_text)
+        self.assertEqual(client.models.generate_content.call_count, 1)
+
+    @patch("audio_generator.narrate.get_gemini_client")
+    @patch("audio_generator.narrate.load_dotenv_override")
+    def test_no_client_falls_back_to_unmodified_text(self, mock_dotenv, mock_get_client):
+        mock_get_client.return_value = None  # missing/invalid GEMINI_API_KEY
+        original = "Some text with $E[X]$ in it that needs a client to rewrite."
+        result = narrate_for_speech(original)
+        self.assertEqual(result, original)
+```
+
+Notes for the remaining cases:
+- The old "code block never reaches the LLM" test still applies unchanged
+  (that check happens before `_narrate_chunk` is ever called) — just
+  update its `@patch` target the same way.
+- The old `OLLAMA_TIMEOUT`-retry-then-succeed/-then-fall-back tests
+  **do not have a direct v3 equivalent** — `call_with_retries` (Step 6)
+  now owns all transient-failure retries internally, so `narrate.py`
+  itself no longer retries. Replace those two tests with: (a) a
+  `_narrate_chunk`-level test that a too-short response is *not* retried a
+  second time by `narrate.py` (`client.models.generate_content.call_count == 1`
+  even though the sanity check fails), and (b) keep one success-path test
+  and one `_call_gemini`-raises-so-narrate-falls-back test (already
+  covered by Step 5's `TestCallGemini`, but add one at the
+  `narrate_for_speech` level too for end-to-end coverage).
+- Every test's input text must contain at least one `$...$` span (or
+  Greek-letter Unicode) — otherwise `_classify_chunk` returns `"skip"` and
+  `generate_content` is never called at all, which would make these tests
+  assert the wrong thing.
+
+- [ ] **Step 8: Implement the tiered `_narrate_chunk` and updated `narrate_for_speech`**
+
+In `audio_generator/narrate.py`:
+
+```python
+def _narrate_chunk(chunk: str, client) -> str:
+    """Rewrites one chunk via the tier-appropriate Gemini model (spec
+    §3.1 v3). No local fallback if client is None or the call fails --
+    just the chunk's original, unmodified text, exactly as v2 behaved on
+    an unreachable server."""
+    tier = _classify_chunk(chunk)
+    if tier == "skip" or client is None:
+        return chunk
+    prompt = _PROMPT_TEMPLATE.format(chunk=chunk)
+    result = _call_gemini(prompt, _TIER_MODELS[tier], client)
+    if result is not None and _passes_sanity_check(chunk, result):
+        return result
+    return chunk
+
+
+def narrate_for_speech(md_text: str) -> str:
+    """Entry point pipeline.py calls first, on raw .md text, before
+    cleaner.clean_markdown_for_speech() (spec §3.1). Builds one Gemini
+    client per file (not per chunk) -- get_gemini_client() is cheap
+    (no network call itself), and this keeps pipeline.py's call site
+    completely unchanged from v2."""
+    load_dotenv_override()
+    client = get_gemini_client()
+    chunks = _group_into_chunks(_split_into_pieces(md_text))
+    narrated = [
+        chunk if _CODE_BLOCK_PATTERN.fullmatch(chunk) else _narrate_chunk(chunk, client)
+        for chunk in chunks
+    ]
+    return "\n\n".join(narrated)
+```
+
+Remove the old `AUDIOGEN_NARRATE_OLLAMA_MODEL`/
+`AUDIOGEN_NARRATE_OLLAMA_TIMEOUT_SECONDS` constants and the
+`from common.ollama_utils import call_ollama` import entirely -- v3 has
+no local-Ollama code path (spec §3.1 v3, dropped by design).
+
+- [ ] **Step 9: Run the full narrate test suite**
+
+Run: `python -m pytest tests/test_audio_generator_narrate.py -v`
+Expected: PASS (all tests, updated + new).
+
+- [ ] **Step 10: Update the README's LaTeX narration section**
+
+In `audio_generator/README.md`, replace the existing "LaTeX narration"
+subsection (added in Task 8 Step 5) with one documenting: the three tiers
+and their default models (`gemini-3.1-flash-lite`/`gemini-2.5-flash`),
+that `GEMINI_API_KEY` must be set in `ai-sandbox/.env` (point to
+`../.env.example`, matching every other Gemini-calling subproject's own
+README convention), that a missing/invalid key degrades gracefully to
+raw-LaTeX-passthrough rather than failing the batch, and the four
+overridable env vars (`AUDIOGEN_NARRATE_MATH_RATIO_THRESHOLD`,
+`AUDIOGEN_NARRATE_MATH_COMMAND_THRESHOLD`,
+`AUDIOGEN_NARRATE_GEMINI_LIGHT_MODEL`, `AUDIOGEN_NARRATE_GEMINI_HEAVY_MODEL`).
+
+- [ ] **Step 11: Real verification against the actual equation-dense file**
+
+Same file as Task 8 Step 6
+(`../academic-hub/academic_notes/math-camp/ta_notes/processed_outputs/LN_Probability.md`),
+but timing the Gemini-backed path this time -- expected to be dramatically
+faster than v2's measured ~6h, but that's an expectation, not yet a
+number (spec §9). Requires `GEMINI_API_KEY` set in `ai-sandbox/.env`.
+
+```python
+# Run via: PYTHONPATH=<academic-rag-model dir> ./.venv/Scripts/python.exe this_script.py
+import time
+
+from audio_generator.narrate import narrate_for_speech
+
+with open("../academic-hub/academic_notes/math-camp/ta_notes/processed_outputs/LN_Probability.md", "r", encoding="utf-8") as f:
+    md_text = f.read()
+
+start = time.monotonic()
+result = narrate_for_speech(md_text)
+elapsed = time.monotonic() - start
+print(f"Input: {len(md_text)} chars. Output: {len(result)} chars. Elapsed: {elapsed:.1f}s ({elapsed / 60:.1f} min).")
+```
+
+Report the real elapsed time, and record it in spec §9 (the "NEW (v3):
+real API timing and per-file cost are unmeasured" bullet) alongside a
+rough cost estimate from the actual input/output character counts at
+`gemini-3.1-flash-lite`/`gemini-2.5-flash`'s per-token pricing.
+
+- [ ] **Step 12: Commit**
+
+```bash
+git add audio_generator/narrate.py audio_generator/README.md tests/test_audio_generator_narrate.py
+git commit -m "$(cat <<'EOF'
+feat(audio_generator): replace local Ollama narration with tiered Gemini API
+
+v2's local qwen2-math:7b rewrite measured at ~6h for one equation-dense
+file (Task 8 Step 6) -- impractical for real batch use. narrate.py now
+classifies each chunk (skip/light/heavy by LaTeX density) and routes
+light chunks to gemini-3.1-flash-lite, heavy chunks to gemini-2.5-flash,
+via this project's existing common/gemini_utils.py (already used by
+indexer/, viz/, textbook/) -- no new dependency. No-math chunks make zero
+API calls. narrate_for_speech()'s signature is unchanged, so pipeline.py
+needed no code changes. Drops the local-Ollama fallback entirely: a
+missing/invalid GEMINI_API_KEY now degrades straight to cleaner.py's
+regex wrap, same as any other failed rewrite.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01BaWkFCR7CdMinG5BxgB6uu
+EOF
+)"
+```
