@@ -1778,7 +1778,7 @@ Override the model or its per-chunk timeout via `AUDIOGEN_NARRATE_OLLAMA_MODEL`
 
 - [ ] **Step 6: Measure real CPU timing against the actual equation-dense file (spec §9's flagged unknown)**
 
-**Status: attempted twice, still incomplete.**
+**Status: attempted three times, still incomplete.**
 
 **Attempt 1 (2026-09-07, primary dev machine):** OOM-killed before
 completing. With IDEA (~2GB), several Chrome tabs, and Obsidian already
@@ -1798,14 +1798,36 @@ up throughout; only the Python driver process was killed. The run never
 printed its timing line, so still no real elapsed-time number for the
 full file.
 
-Combined finding (spec §9, updated): this measurement's real constraint
-is sustained memory headroom over a long wall-clock window (tens of
-minutes for one equation-dense file), not just the headroom at the
-moment the model loads. A machine can pass the "several GB free" check
-below at the start and still lose the run to unrelated background
-activity before it finishes. Whoever retries this should either run on a
-machine that stays quiet for the full duration, or watch free memory
-through the run rather than checking it only once up front:
+**Attempt 3 (2026-09-09, same machine, ~8.2GB free at start, `TiWorker`
+confirmed not running, IDE/Obsidian confirmed closed):** killed again.
+Free memory dropped faster than attempt 2 at first (8.2GB -> ~3.9GB within
+~10 minutes) with no single process visibly ballooning (`llama-server`'s
+own working set stayed ~760MB the whole time — most of the model appears
+memory-mapped rather than fully resident), then plateaued around
+3.5-3.6GB for the next ~40 minutes before finally being killed at ~3.37GB
+free, ~65 minutes in. Only the Python driver processes were killed;
+`ollama`/`llama-server` survived again.
+
+All three kills were issued by the Claude Code harness's own background-
+task memory-safety guard (the task notification says so explicitly), not
+a Windows-native OOM condition -- Windows itself pages to disk under
+memory pressure rather than killing processes outright, unless its
+commit limit is truly exhausted, which was never observed here (`ollama`/
+`llama-server` were never touched). The three kills landed at free-memory
+readings of <500MB, ~3.6GB, and ~3.37GB respectively -- consistent with a
+harness-side threshold somewhere around 20% of this machine's 16.6GB
+total, triggered on the absolute reading rather than the trend (attempt 3
+had plateaued for ~40 minutes before still getting killed).
+
+Updated finding (spec §9): on this machine, a full-file run of
+`narrate_for_speech()` reliably drives free memory down into a range that
+trips the harness's own safety guard well before the narration finishes,
+regardless of what else is or isn't running. The next attempt should run
+outside the harness's background-task supervision entirely (a plain
+terminal window the harness isn't monitoring) so only Windows' own memory
+management applies -- or run on a machine with meaningfully more RAM.
+Watching free memory through the run (as below) is still useful for
+diagnosis, but has not by itself been enough to avoid the kill:
 
 ```powershell
 Get-CimInstance Win32_OperatingSystem | Select-Object FreePhysicalMemory, TotalVisibleMemorySize
