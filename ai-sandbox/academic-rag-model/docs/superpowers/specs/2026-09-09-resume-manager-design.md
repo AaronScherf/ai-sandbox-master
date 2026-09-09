@@ -10,29 +10,38 @@ Today the user's resume exists only as a single PDF
 there's no editable source, no way to keep a longer "everything I've ever
 done" version, and tailoring it to a specific job description means manual
 rewriting from scratch each time. This spec designs **`resume_manager`**: a
-new subproject that converts the existing resume PDF into Markdown using the
-academic-rag-model's established journal-article/notes conversion pipeline,
-establishes a hand-maintained "master resume" Markdown file the user keeps
-expanding over time, and adds a local-LLM pipeline that tailors the master
-to a specific job description and renders the result to a polished PDF —
-adapted from the user's own brainstorm
-(`docs/brainstorms/resume_manager_brainstorm.md`), with two changes driven
-by this project's existing conventions: reuse `notes/transcribe_notes.py`'s
-`process_pdf()` for conversion instead of a bespoke script, and reuse
-`common/ollama_utils.py` for the tailoring LLM call instead of the brainstorm
-draft's raw `ollama.generate()` (which lacks the `num_ctx` sizing fix that
-`common/ollama_utils.py` already carries — see
-`docs/status/2026-09-06-video-lecture-notes-status.md` for the bug this
-avoids repeating).
+new subproject that converts the existing resume PDF into Markdown, builds a
+**master resume** Markdown file the user keeps expanding over time, and adds
+a local-LLM pipeline that tailors the master to a specific job description
+and renders the result to a polished PDF — adapted from the user's own
+brainstorm (`docs/brainstorms/resume_manager_brainstorm.md`), with changes
+driven by this project's existing conventions and by two real properties of
+the user's actual resume PDF, confirmed by inspection (§3):
+
+1. Its extraction quality doesn't need `notes/transcribe_notes.py:process_pdf`'s
+   full tiered pipeline (built for a heterogeneous, unknown-provenance notes
+   corpus) — its own reliable-pagination check would actually misroute this
+   specific file to the expensive handwriting/messy-export fallback (§3), so
+   conversion reuses that module's local-extraction primitives directly
+   instead of its tier-routing wrapper.
+2. Its layout is regular enough that the raw-to-master reformatting step can
+   itself be automated (a local LLM call + verification), rather than
+   requiring the user to hand-transcribe it (§3).
+3. Tailoring reuses `common/ollama_utils.py` for its LLM calls instead of the
+   brainstorm draft's raw `ollama.generate()` (which lacks the `num_ctx`
+   sizing fix that `common/ollama_utils.py` already carries — see
+   `docs/status/2026-09-06-video-lecture-notes-status.md` for the bug this
+   avoids repeating).
 
 **Goals**
-- Bootstrap-convert `resume.pdf` into Markdown once, using the same tiered
-  free-extraction/hybrid-repair/Gemini-vision pipeline already used for
-  journal articles and notes (`notes/transcribe_notes.py:process_pdf`).
-- Store a hand-maintained **master resume** Markdown file under
+- Bootstrap-convert `resume.pdf` into Markdown once, purely locally (no paid
+  API calls in the normal case — §3), then automatically reformat it into
+  the master resume's structured convention, verified against the raw
+  extraction so no content is silently dropped or invented.
+- Store a **master resume** Markdown file under
   `research/independent-research/projects/resume-manager/` that the user
   keeps expanding into a long, comprehensive record of everything they've
-  done — never overwritten by tooling.
+  done — never overwritten by tooling once it exists.
 - Given the master resume and a job-description text file, use a local
   Ollama model to produce a tailored Markdown resume that mirrors the JD's
   vocabulary without inventing experience, dates, or metrics.
@@ -54,9 +63,10 @@ avoids repeating).
 - No indexing of the resume or its tailored variants into the shared
   academic-hub source-indexer (`research/.index/`) used for journal articles
   and notes — a personal resume has no place in that corpus's embedding
-  space or doc-type vocabulary. `process_pdf()`'s own indexing side effect
-  is deliberately pointed at an isolated location so it never touches
-  `research/.index/` (see §3).
+  space or doc-type vocabulary. Conversion deliberately bypasses
+  `process_pdf()`'s tier-routing wrapper (see §3), which is also where its
+  indexing side effect lives, so there's no indexing call to suppress in the
+  first place.
 - No hard-blocking validation — the automated fact-diff check (§5) flags
   discrepancies for manual review; it never refuses to render a PDF.
 
@@ -64,10 +74,15 @@ avoids repeating).
 
 A new sibling package, `resume_manager/`, alongside `video_notes/`,
 `problem_gen/`, `journal_articles/`, `notes/` in `academic-rag-model/`.
-Depends on `notes/transcribe_notes.py:process_pdf` (conversion, reused
-unchanged) and `common/ollama_utils.py:call_ollama` (tailoring, reused
-unchanged). Run as modules from the `academic-rag-model/` root, matching
-every other subproject:
+Depends on `notes/transcribe_notes.py`'s local-extraction primitives
+(`extract_all_page_texts`, `page_looks_defective`, `build_final_markdown`,
+`build_frontmatter` — reused unchanged; its `process_pdf()` tier-routing
+wrapper is deliberately *not* used, see §3) and
+`common/ollama_utils.py:call_ollama` (reused unchanged for both
+normalization and tailoring). Unlike `journal_articles`/`notes`, conversion
+has no dependency on `common/gemini_utils.py` or a paid API at all in the
+normal case — see §3. Run as modules from the `academic-rag-model/` root,
+matching every other subproject:
 
 ```powershell
 # One-time bootstrap (see §3)
@@ -82,40 +97,75 @@ python -m resume_manager.tailor_resume `
 ## 3. Conversion (bootstrap step)
 
 `convert_resume.py` is a one-off script, run once (or re-run if the source
-PDF changes), not part of the per-application pipeline:
+PDF changes), not part of the per-application pipeline.
 
+**Why this doesn't call `process_pdf()` wholesale.** `process_pdf()`'s tier
+routing (`has_reliable_pagination()`) exists to handle a heterogeneous,
+unknown-provenance notes corpus: it sniffs `/Creator`/`/Producer` metadata
+for LaTeX/Word/LibreOffice/FOP/XEP markers and fails safe to "not reliably
+paginated" for anything else, routing straight to Tier 3 — the branch
+handling "handwritten, or a messy app export" via full per-page Gemini
+vision at handwriting DPI/model. Confirmed against the real file: the
+user's `resume.pdf` has `/Producer: Skia/PDF m124` (a headless-Chrome
+print-to-PDF export, from whatever resume-builder tool generated it) — not
+on that marker list — even though its extracted text is in fact clean and
+well-ordered (verified by inspection: consistent ALL-CAPS section header
+lines like `WORK EXPERIENCE`, `Org … dates` / `Role … Location` line pairs,
+bullet lines). Routing it
+through `process_pdf()` as-is would send a perfectly typeset resume through
+the handwriting-transcription fallback purely on an unrecognized metadata
+string. A resume is also a single, manually-verified file — unlike a batch
+notes corpus, there's no need for a generic per-file heuristic at all.
+
+**Steps:**
 1. Copies `personal-website/AaronScherf.github.io/static/uploads/resume.pdf`
    into `research/independent-research/projects/resume-manager/resume.pdf`,
    so the source PDF and everything derived from it live together,
    independent of the personal-website repo's own layout.
-2. Calls `process_pdf(pdf_path, client, model_override, academic_hub_root,
-   known_doc_types={"resume"})` exactly as `journal_articles/
-   convert_journal_articles.py` already does for its own corpus — same
-   `get_gemini_client()` / `load_dotenv_override()` setup from
-   `common/gemini_utils.py`. `academic_hub_root` is passed as the
-   `resume-manager/` folder itself (not `research/`), so `process_pdf`'s
-   indexing side effect writes an isolated `.index/` under `resume-manager/`
-   rather than the shared one journal articles and notes use — a resume
-   card has no business in that corpus, per §1's non-goals, and
-   `_write_markdown_and_index`'s indexing failure path is already
-   non-fatal (a warning, never blocks the Markdown output) if this ever
-   errors.
-3. `process_pdf` writes its usual output to
-   `resume-manager/processed_outputs/resume.md` (its own
-   `processed_outputs/` sibling-folder convention, unchanged).
+2. Extracts text directly via `extract_all_page_texts()` (PyMuPDF
+   layout-aware extraction — the same primitive Tier 1 itself uses) and
+   checks each page with `page_looks_defective()`. If every page passes,
+   builds the raw Markdown via `build_final_markdown()` /
+   `build_frontmatter()` (same page-tagged formatting convention as the
+   rest of the corpus) and writes it to
+   `resume-manager/processed_outputs/resume_raw.md` — 0 API calls, no
+   Gemini dependency at all. If any page *fails* `page_looks_defective()`,
+   conversion stops with a clear error instead of silently escalating to
+   Gemini vision — a 1-2 page resume is short enough that a defective page
+   deserves the user's direct attention (re-export the source PDF, or
+   transcribe just that page by hand), not the handwriting-fallback
+   machinery built for a different problem.
+3. **Normalize via local LLM.** `resume_raw.md`'s content is sent to
+   `common.ollama_utils.call_ollama` with a strict, narrow prompt: reformat
+   into the master convention below (`##` section headings, `### <Org> —
+   <Role> (<Start> – <End>)` entry headings, bullet points) — preserving
+   every word, number, and date exactly; no summarizing, no paraphrasing, no
+   added or removed content. Same `RESUMEMANAGER_OLLAMA_MODEL` model/timeout
+   conventions as tailoring (§4).
+4. **Verify before trusting the reformat.** The same fact-diff technique as
+   §5 (entry headings + numeric-metric tokens) runs in *both* directions
+   between `resume_raw.md` and the normalized output — every entry/metric in
+   the raw extraction must be traceable in the normalized output (catches
+   dropped content) and every entry/metric in the normalized output must be
+   traceable in the raw extraction (catches invented content). A clean pass
+   writes the normalized output straight to `resume_master.md`. Any flagged
+   mismatch writes it to `resume_master.review.md` instead, alongside a
+   report of exactly what didn't match, and the user reconciles only that
+   flagged content by hand — manual work is the exception path triggered by
+   a real discrepancy, not the default expectation.
 
-The user then hand-copies/cleans that raw conversion into
-`resume-manager/resume_master.md` — a resume's layout (columns, dense
-bullets) converts messier than prose, so this step is deliberately manual,
-not automated. `resume_master.md` is the file the user keeps expanding over
-time into the long, comprehensive master record; `processed_outputs/
-resume.md` is left as-is as a reference of the original bootstrap.
+`resume_master.md` (once written, by whichever path) is the file the user
+keeps expanding over time into the long, comprehensive master record, never
+overwritten by a re-run of this bootstrap; `resume_raw.md` is left as-is as
+a permanent reference of the original extraction and the normalization
+step's own verification input.
 
 **Required structure for `resume_master.md`** (so §5's fact-diff check has
-something reliable to parse): each Experience/Education entry is an `### `
-heading of the form `### <Org> — <Role> (<Start> – <End or "Present">)`,
-followed by bullet points. Other sections (Skills, Projects, etc.) are
-freeform. This convention is documented in the subproject's `README.md` and
+something reliable to parse, and what step 3's prompt targets): each
+Experience/Education entry is an `### ` heading of the form `### <Org> —
+<Role> (<Start> – <End or "Present">)`, followed by bullet points. Other
+sections (Skills, Projects, etc.) are freeform. This convention is
+documented in the subproject's `README.md` and
 `resume_manager_instructions.md`.
 
 ## 4. Tailoring
@@ -187,8 +237,9 @@ by the three separably-testable modules above rather than one script.
 ```
 research/independent-research/projects/resume-manager/
   resume.pdf                        # copied source (bootstrap)
-  processed_outputs/resume.md       # raw bootstrap conversion (reference only)
-  resume_master.md                  # hand-maintained master, expanded over time
+  processed_outputs/resume_raw.md   # raw local extraction (reference + verification input)
+  resume_master.md                  # master resume, expanded by hand over time
+  resume_master.review.md           # only present if normalization verification flagged something
   applications/
     2026-09-09-acme-corp/
       job_description.txt           # user-provided input
@@ -208,8 +259,12 @@ research/independent-research/projects/resume-manager/
 - `validate.py` never raises on its own — a parse mismatch (e.g. a
   malformed `### ` heading) is reported as "could not parse" for that entry
   rather than crashing the pipeline; rendering proceeds regardless (§5).
-- `process_pdf`'s existing indexing-failure handling (catch + warn, never
-  blocks the Markdown write) is reused unchanged for the bootstrap step.
+- Conversion (§3) stops with a clear, actionable error if any page fails
+  `page_looks_defective()` — never falls back to a Gemini call the user
+  didn't ask for.
+- Normalization's verification check (§3 step 4) never blocks — a flagged
+  mismatch produces `resume_master.review.md` plus a report instead of
+  either silently trusting the LLM output or crashing the bootstrap run.
 
 ## 9. Testing
 
@@ -229,11 +284,15 @@ boundary (no real Ollama, Gemini, or weasyprint calls in unit tests):
   non-empty PDF via `weasyprint` (real library call — the one exception to
   "mock every external boundary," since there's no meaningful mock for PDF
   byte output and the library itself needs no network/model).
-- `convert_resume.py`: thin — verifies it calls `process_pdf` with the
-  expected `academic_hub_root` (the isolated `resume-manager/` path, not
-  `research/`) and `known_doc_types={"resume"}`; `process_pdf`'s own
-  conversion-tier logic is already covered by `notes/`'s and
-  `journal_articles/`'s existing tests and isn't re-tested here.
+- `convert_resume.py`: verifies the extraction step calls
+  `extract_all_page_texts()`/`page_looks_defective()` directly (never
+  `process_pdf()`, never `common/gemini_utils.py`) and stops with an error
+  when a page is flagged defective, using a synthetic "defective page"
+  fixture. The normalize step's verification logic (bidirectional
+  entry/metric matching between raw and normalized text) is the highest-
+  value target here, parallel to `validate.py`'s own tests: a clean match
+  (writes `resume_master.md`), a dropped entry (flagged), and a fabricated
+  entry (flagged), all against mocked `call_ollama` output.
 - Real end-to-end run against the user's actual resume and one real job
   description as manual validation before trusting the pipeline, the same
   way other subprojects' status docs record a first real-corpus pass before
@@ -241,11 +300,14 @@ boundary (no real Ollama, Gemini, or weasyprint calls in unit tests):
 
 ## 10. Open questions / follow-on (not decided by this spec)
 
-- **Metric-extraction regex coverage** (§5) is necessarily heuristic —
-  real resumes phrase numbers in more ways than `%`/`$`/`x` (e.g. "reduced
-  latency by half", "team of 12"). The plan should collect a handful of
-  real bullets from the user's own resume to validate the pattern set
-  against, rather than guessing patterns without real examples.
+- **Metric-extraction regex coverage** (§5, and §3 step 4's identical
+  technique applied to normalization) is necessarily heuristic — real
+  resumes phrase numbers in more ways than `%`/`$`/`x` (e.g. "reduced
+  latency by half", "team of 12"), and the user's own bullets above already
+  show cases like `$1.5M`, `$450M`, `20 program evaluations`, `12 context
+  assessments` that mix the two. The plan should validate the pattern set
+  directly against the real extracted text (§3) before trusting either use
+  of it, rather than guessing patterns without real examples.
 - **Cover-letter generation** and **JD URL scraping** are both explicitly
   deferred (§1) — worth revisiting once the core tailor/validate/render
   loop is proven on real applications.
