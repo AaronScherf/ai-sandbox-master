@@ -2,36 +2,35 @@ import unittest
 
 from resume_manager.validate import format_report, validate_tailored
 
-_MASTER = """## Experience
-
-### Acme Corp — Engineer (2020 – Present)
-- Grew revenue 30%.
-
-### Old Co — Analyst (2015 – 2018)
-- Built reports.
-"""
+_MASTER = {
+    "work_experience": [
+        {"id": "acme-1", "bullets": ["Grew revenue 30%"]},
+        {"id": "globex-1", "bullets": ["Built reports"]},
+    ],
+}
 
 
 class TestValidateTailored(unittest.TestCase):
-    def test_matching_entry_and_metric_not_flagged(self):
-        tailored = "## Experience\n### Acme Corp — Engineer (2020 – Present)\n- Grew revenue 30%.\n"
-        self.assertEqual(validate_tailored(_MASTER, tailored), [])
-
-    def test_dropping_a_master_entry_is_not_flagged(self):
-        # "Old Co" is entirely absent from `tailored` -- expected
-        # behavior for a shorter, targeted resume (spec §5).
-        tailored = "## Experience\n### Acme Corp — Engineer (2020 – Present)\n- Grew revenue 30%.\n"
-        self.assertEqual(validate_tailored(_MASTER, tailored), [])
-
-    def test_fabricated_entry_is_flagged(self):
-        tailored = "## Experience\n### New Corp — Director (2022 – Present)\n- Led team.\n"
-        problems = validate_tailored(_MASTER, tailored)
-        self.assertTrue(any("New Corp" in p for p in problems))
+    def test_matching_metric_is_not_flagged(self):
+        tailoring_result = {"included_ids": ["acme-1"], "bullets_by_id": {"acme-1": ["Grew revenue 30% via new pricing"]}}
+        self.assertEqual(validate_tailored(_MASTER, tailoring_result), [])
 
     def test_invented_metric_is_flagged(self):
-        tailored = "## Experience\n### Acme Corp — Engineer (2020 – Present)\n- Grew revenue 75%.\n"
-        problems = validate_tailored(_MASTER, tailored)
+        tailoring_result = {"included_ids": ["acme-1"], "bullets_by_id": {"acme-1": ["Grew revenue 75%"]}}
+        problems = validate_tailored(_MASTER, tailoring_result)
         self.assertTrue(any("75%" in p for p in problems))
+
+    def test_metric_is_checked_against_its_own_entry_only_not_the_whole_master(self):
+        # "30%" belongs to acme-1's original bullets, not globex-1's --
+        # globex-1's rewrite claiming it must still be flagged.
+        tailoring_result = {"included_ids": ["globex-1"], "bullets_by_id": {"globex-1": ["Grew revenue 30%"]}}
+        problems = validate_tailored(_MASTER, tailoring_result)
+        self.assertTrue(any("30%" in p for p in problems))
+
+    def test_unknown_included_id_is_flagged(self):
+        tailoring_result = {"included_ids": ["nonexistent"], "bullets_by_id": {}}
+        problems = validate_tailored(_MASTER, tailoring_result)
+        self.assertTrue(any("nonexistent" in p for p in problems))
 
 
 class TestFormatReport(unittest.TestCase):
