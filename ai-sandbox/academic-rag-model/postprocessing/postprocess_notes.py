@@ -52,7 +52,7 @@ _MASKED_PROBABILITY_THRESHOLD = 0.01
 # fully separating signal from noise -- some correct words (e.g. "subject",
 # z=5.91-6.27) still clear even this bar. This is a noise-volume mitigation,
 # not a fix for the underlying precision problem; see
-# docs/2026-08-27-notes-postprocessing-status.md.
+# docs/status/2026-08-27-notes-postprocessing-status.md.
 _CAUSAL_ZSCORE_THRESHOLD = 5.0
 _PATTERN_REVIEW_THRESHOLD = 5
 

@@ -4,7 +4,7 @@ Start here for "what happened and where do we stand" on the image-description
 subproject -- the RAG-ready `.rag.md` output that adds text descriptions of
 each book's figures/diagrams alongside `convert_textbook.py`'s existing
 markdown conversion. Follows on from the chapter-aware chunking work (see
-`docs/2026-08-22-chapter-aware-chunking-status.md`).
+`docs/status/2026-08-22-chapter-aware-chunking-status.md`).
 
 ## What this project built
 

@@ -8,7 +8,7 @@ embeddings — no separate setup), with local Ollama available as an
 opt-in, fully free/private alternative
 (`PROBLEMGEN_BACKEND=ollama`). 2026-09-06, defaulted to Gemini after a
 real feasibility spike (see
-`../docs/2026-09-05-problem-generation-status.md`): local
+`../docs/status/2026-09-05-problem-generation-status.md`): local
 `qwen2-math:7b` never once produced an accepted result across two
 independent real trials on a technique-constrained request, while
 `gemini-3.1-flash-lite` passed 9/9 across three different topics in
@@ -64,7 +64,7 @@ needed.
     with a working technique-check and 5 attempts). Kept available for
     fully free/private generation, not as the recommended default.
   - Either backend degrades to returning `None` with a printed warning
-    if unreachable — see `../docs/2026-09-05-problem-generation-status.md`
+    if unreachable — see `../docs/status/2026-09-05-problem-generation-status.md`
     for the full real-corpus validation history of both paths.
 
 Nothing is written to disk — every request generates a fresh problem,

@@ -787,7 +787,7 @@ previewing without writing.
 ## 9. Future extensions (explicitly not built now)
 
 **Recommended order, decided with the user 2026-08-29** (full reasoning
-in `docs/2026-08-29-source-indexer-status.md`, "What's next"):
+in `docs/status/2026-08-29-source-indexer-status.md`, "What's next"):
 passage/chunk-level embeddings first — it's the actual retrieval
 granularity an interactive tutor needs, and retrieval-conditioned
 scoring below explicitly depends on it existing. Tag-graph browsing is

@@ -11,7 +11,7 @@ faculty name or a topic query, both resolved via OpenAlex (spec
 what's *already in it* -- a well-established literature-review technique
 (snowball sampling: find new work by following citations from papers you
 already have) that this pipeline doesn't do at all. Flagged as an open
-idea in `docs/2026-09-01-journal-discovery-status.md` point 4.
+idea in `docs/status/2026-09-01-journal-discovery-status.md` point 4.
 
 This spec designs a third route: **`journal_discovery/snowball.py`**,
 seeded from every paper already fetched into the corpus, using
@@ -53,7 +53,7 @@ downloaded.
 
 **Non-goals**
 - No backward-reference parsing (a paper's own bibliography) --
-  deferred; noted in `docs/2026-09-01-journal-discovery-status.md` as a
+  deferred; noted in `docs/status/2026-09-01-journal-discovery-status.md` as a
   harder, unparsed-format problem, out of scope for this pass.
 - No new access tier, no new folder-routing logic, no new
   `.meta.json`/dedup mechanism -- this route feeds the *existing*

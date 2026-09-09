@@ -494,7 +494,7 @@ eigenvalues and eigenvectors to real on its own, but the harness-level
 sanitization is the fix that's guaranteed regardless of whether the model
 follows the hint (this project has repeatedly found small local models
 don't reliably follow embedded instructions -- see
-`docs/2026-09-05-problem-generation-status.md`). Covered by a
+`docs/status/2026-09-05-problem-generation-status.md`). Covered by a
 deterministic unit test (`test_complex_valued_trace_data_is_sanitized_to_real`)
 that constructs a complex-dtype array directly, bypassing the LLM's own
 non-determinism, since the first live-Ollama reproduction attempt didn't
@@ -521,7 +521,7 @@ Visualization section cleanly and entirely absent -- confirming the
 report=True-independent-of-visualize degradation this doc's previous
 section had left unconfirmed, and separately confirming
 `rag/report_builder.py`'s new `solution` parameter (added the same day,
-see `docs/2026-09-05-problem-generation-status.md`) renders correctly
+see `docs/status/2026-09-05-problem-generation-status.md`) renders correctly
 against a real generated problem.
 
 **Response:** added `VIZ_BACKEND` (mirroring `problem_gen`'s own

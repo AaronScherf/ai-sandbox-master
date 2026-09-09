@@ -5,7 +5,7 @@ subproject -- `transcribe_notes.py`, which converts short, non-textbook academic
 PDFs (problem sets, TA lecture notes, recitation slides, syllabi, handwritten
 notes) into RAG-ready markdown. Sibling to `convert_textbook.py` (Marker-based,
 tuned for printed-text OCR at textbook scale) and `describe_images.py` (see
-`docs/2026-08-23-image-description-status.md`), but architecturally distinct:
+`docs/status/2026-08-23-image-description-status.md`), but architecturally distinct:
 this renders each page to an image and asks a vision-capable Gemini model to
 transcribe it directly, since these documents have no table of contents, are
 often too short to need chapter-aware chunking, and frequently mix typed and
@@ -489,14 +489,14 @@ Roughly in the order they were hit:
 - ~~Six files in `ta_notes/processed_outputs/` were 0 bytes with no cache~~
   -- **resolved 2026-08-28**: confirmed as pre-`44bcfe2` stale artifacts, not
   a live bug; re-transcribed for real. See "2026-08-28: six 0-byte `.md`
-  files..." above and `docs/2026-08-28-known-errors-todo.md`.
+  files..." above and `docs/trackers/2026-08-30-academic-hub-status.md`.
 
 ## 2026-08-28: six 0-byte `.md` files were pre-fix stale artifacts, now re-transcribed
 
 While validating the source indexer's `retag` step against the real corpus,
 six files in `academic_notes/math-camp/ta_notes/processed_outputs/` turned
 up as exactly 0 bytes with no matching `_pages_cache.json` (full writeup and
-investigation trail: `docs/2026-08-28-known-errors-todo.md`). Root cause,
+investigation trail: `docs/trackers/2026-08-30-academic-hub-status.md`). Root cause,
 confirmed rather than assumed: both the `.pdf` and `.md` files' mtimes
 (2026-08-17) predate commit `44bcfe2` (2026-08-24), the commit that added
 the `_MESSY_EXPORT_MARKERS` denylist (`nebo`, `myscript`, `onenote`) this doc
@@ -569,3 +569,53 @@ known well-transcribed (via `routing`/`pages_repaired` frontmatter) as
 reference material. Brainstorming paused before a design was settled on
 (scope confirmed: notes-transcription only) -- to resume on a new,
 dedicated branch rather than continuing here.
+
+## 2026-09-07: capture-pipeline redesign brainstormed for handwritten notes (paused, no real examples yet)
+
+Prompted by two real observations on `academic_notes/math-camp/handwritten_notes/`:
+only 2 of 13 source PDFs had `processed_outputs/`, and the 2 that did
+contained runs of single-phrase `$$\begin{color}{#1E90FF}{...}\end{color}$$`
+blocks repeated line after line.
+
+**Both diagnosed, neither is a `transcribe_notes.py` bug:**
+- **The backlog gap is very likely just an unrun batch, not a defect.**
+  `--notes-subdir` with no `--file` processes every PDF in a folder in one
+  call; the 2 existing outputs match the 2 oldest PDFs in the folder, and
+  everything newer was added later and probably just hasn't been run yet.
+- **The repeated colored-LaTeX blocks are Tier 3 working correctly on
+  genuinely redundant page content**, not a handwriting/LaTeX confusion in
+  the vision model. The user's capture process was: screenshot handwritten
+  notes -> paste into web Gemini -> copy Gemini's per-line markdown/LaTeX
+  output back into OneNote -> export to PDF. That process itself renders
+  one colored `$$...$$` block per short phrase onto the page as real visible
+  content, and OneNote's pagination can split it further. Tier 3 is
+  faithfully transcribing a page that already contains that redundancy --
+  the fix belongs upstream of this pipeline, in how notes are captured, not
+  in transcription logic.
+
+**Proposed direction (brainstormed, not designed or built):** retire the
+screenshot -> web-Gemini -> paste-into-OneNote loop in favor of Excalidraw
+notes living directly in the Obsidian vault (`.excalidraw.md` files) as the
+primary handwriting asset, with a new pipeline entry point (not yet named)
+that: (1) parses the Excalidraw scene's freedraw stroke data and rasterizes
+just the ink -- tightly cropped to content, not a full page -- locally with
+plain PIL rather than a headless-browser render or relying on the Excalidraw
+plugin's own PNG auto-export, keeping both local memory and per-call image
+size small relative to today's full-page 200 DPI renders; (2) sends that
+crop to Gemini vision for a first-pass raw transcription (shorthand/LaTeX),
+reusing this project's existing Gemini-calling machinery; (3) runs a second
+LLM pass that expands the terse transcription into cohesive prose. Only the
+expanded prose is the artifact that reaches the RAG corpus -- confirmed with
+the user that the raw shorthand form adds little to the knowledge corpus
+once expanded, so it doesn't need to be separately indexed.
+
+**Explicitly paused:** the user has not created any Excalidraw notes yet
+(the Obsidian Excalidraw plugin isn't even installed in the vault), so the
+exact rendering/cropping/batching approach is being left undesigned until
+real examples exist to test against -- consistent with this project's
+general pattern of tuning designs against real corpus data rather than
+guessed-in-advance assumptions. Resume from this section (and
+`docs/status/2026-08-27-notes-postprocessing-status.md`'s cross-reference
+note) once a handful of real `.excalidraw.md` files exist. See also the
+`[[Academic Hub Progress Reflections]]` brainstorm doc and the
+`project_notes_postprocessing_paused` memory pattern this follows.

@@ -13,7 +13,7 @@ published papers rather than course notes. `process_pdf()` needed no
 changes to be reused here except a `known_doc_types` passthrough, the
 same generalization `index_card.py`'s `generate_index_card()` already
 got for `essays/convert_essays.py` (see
-`docs/2026-09-01-research-notes-conversion-status.md`).
+`docs/status/2026-09-01-research-notes-conversion-status.md`).
 
 ## What shipped
 
@@ -91,7 +91,7 @@ Both the essays and journal-article corpora are still fixed local
 folders, hand-run rather than watching a live source. The plan is to
 fold in a proper literature-review workflow once there are enough
 papers indexed to make one worth building -- see
-`docs/2026-09-01-research-notes-conversion-status.md`'s "What's next"
+`docs/status/2026-09-01-research-notes-conversion-status.md`'s "What's next"
 for the shared roadmap. A separate `journal_discovery/` subproject
 (automatically finding and downloading candidate papers, rather than
 hand-populating this folder) is in active development and not yet

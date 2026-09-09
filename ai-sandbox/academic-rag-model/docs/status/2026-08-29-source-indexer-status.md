@@ -79,8 +79,8 @@ each has a regression test.
    (2026-08-28 and 2026-08-29): both are `transcribe_notes.py` pipeline
    bugs, not indexer bugs, but were both *discovered* while validating
    `retag`/`rebuild` against real content — full writeups live in
-   `docs/2026-08-28-known-errors-todo.md` and
-   `docs/2026-08-24-notes-transcription-status.md`. Mentioned here only
+   `docs/trackers/2026-08-30-academic-hub-status.md` and
+   `docs/status/2026-08-24-notes-transcription-status.md`. Mentioned here only
    because fixing them required re-transcribing and re-indexing most of
    the corpus, which is what followed in items 7-8.
 7. **Staleness detection was mtime-only, and mtime is not a safe signal**

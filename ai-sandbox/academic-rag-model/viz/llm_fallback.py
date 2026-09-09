@@ -6,7 +6,7 @@ LLM code-generation fallback for concepts with no matching template
 selected; 2026-09-06, flipped the default the same way problem_gen
 already had, after two real trials found the Ollama backend
 unreliable on this same visualization request too -- see
-docs/2026-09-02-visualization-agent-status.md), extracts the generated
+docs/status/2026-09-02-visualization-agent-status.md), extracts the generated
 Plotly script, and runs it in a subprocess with an execution timeout,
 a minimal/stripped environment (no inherited secrets -- see
 _minimal_subprocess_env), and a scratch working directory --
@@ -90,8 +90,8 @@ _SANITIZE_COMPLEX_SNIPPET = (
 # "TypeError: Object of type complex is not JSON serializable" inside the subprocess.
 # A prompt instruction alone isn't reliable (this project has repeatedly found small
 # local models don't consistently follow embedded instructions -- see
-# docs/2026-09-05-problem-generation-status.md), so this harness-level sanitization
-# (real trial: docs/2026-09-05-problem-generation-status.md's 2026-09-06 entry) casts
+# docs/status/2026-09-05-problem-generation-status.md), so this harness-level sanitization
+# (real trial: docs/status/2026-09-05-problem-generation-status.md's 2026-09-06 entry) casts
 # any complex value to real before the figure is ever serialized, succeeding
 # regardless of whether the generated code took the prompt's hint.
 #
@@ -257,7 +257,7 @@ def _call_model(prompt: str, client) -> str | None | OllamaTimeout:
     default, local Ollama if explicitly selected (2026-09-06: flipped
     the default the same way problem_gen already had, after two real
     trials found the Ollama backend unreliable here too -- see
-    docs/2026-09-02-visualization-agent-status.md). Both return the
+    docs/status/2026-09-02-visualization-agent-status.md). Both return the
     same shape (str | None | OllamaTimeout) so generate_via_llm's retry
     loop doesn't need to know which backend is active: Gemini's own
     call_with_retries already handles transient retries internally, so

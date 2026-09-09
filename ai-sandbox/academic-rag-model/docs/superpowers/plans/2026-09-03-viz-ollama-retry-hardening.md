@@ -36,7 +36,7 @@ ai-sandbox/academic-rag-model/
     test_llm_fallback.py                            # MODIFIED -- new TestBuildPrompt class; updated
                                                      # TestCallOllama, TestRunGeneratedCode,
                                                      # TestGenerateViaLlm tests
-  docs/2026-09-02-visualization-agent-status.md      # MODIFIED (Task 4) -- retry-hardening
+  docs/status/2026-09-02-visualization-agent-status.md      # MODIFIED (Task 4) -- retry-hardening
                                                      # real-corpus validation section appended
 ```
 
@@ -618,7 +618,7 @@ git commit -m "feat(viz): wire a bounded validate-and-retry loop into generate_v
 ## Task 4: Real-corpus validation and status doc update
 
 **Files:**
-- Modify: `ai-sandbox/academic-rag-model/docs/2026-09-02-visualization-agent-status.md`
+- Modify: `ai-sandbox/academic-rag-model/docs/status/2026-09-02-visualization-agent-status.md`
 
 **Interfaces:** None — manual validation and documentation, closing out this plan the same way the original visualization-agent plan's Task 11 did.
 
@@ -645,7 +645,7 @@ This phrasing doesn't match the `spectral_decomposition` template's keywords, so
 
 - [ ] **Step 4: Append findings to the status doc**
 
-Add a new section to the end of `docs/2026-09-02-visualization-agent-status.md`:
+Add a new section to the end of `docs/status/2026-09-02-visualization-agent-status.md`:
 
 ```markdown
 ## Retry-hardening validation (2026-09-XX)
@@ -674,6 +674,6 @@ Fill in the `## Retry-hardening validation` section's body with what Steps 2-3 a
 - [ ] **Step 5: Commit**
 
 ```powershell
-git add ai-sandbox/academic-rag-model/docs/2026-09-02-visualization-agent-status.md
+git add ai-sandbox/academic-rag-model/docs/status/2026-09-02-visualization-agent-status.md
 git commit -m "docs(viz): record retry-hardening real-corpus validation results"
 ```

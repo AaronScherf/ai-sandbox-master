@@ -12,7 +12,7 @@ prose (mitigated, not solved) -- see "Real-world validation" and
 Start here for "what happened and where do we stand" on the post-processing
 subproject -- `postprocess_notes.py`, a downstream correction pass over
 `transcribe_notes.py`'s already-produced `.md` output. Sibling to
-`docs/2026-08-24-notes-transcription-status.md` (that pipeline's own status
+`docs/status/2026-08-24-notes-transcription-status.md` (that pipeline's own status
 doc) and directly motivated by a gap found while writing it: local-only
 pages (pages that never reached a vision model, either because a whole
 document was `routing: local` or because a page fell outside a hybrid
@@ -247,3 +247,18 @@ tests):
   not yet pushed to `origin`. `marker-conversion-notes-transcription`
   itself remains unmerged into `marker-conversion`/`main` -- a separate,
   still-pending decision.
+
+## 2026-09-07: scope clarification -- handwritten-notes redundancy is a capture issue, not a post-processing target
+
+Investigating a real artifact in `handwritten_notes/processed_outputs/`
+(repeated single-phrase colored-LaTeX blocks) initially looked like it
+might be exactly the kind of downstream defect this subproject exists to
+catch. It isn't: the content is genuinely present on the source PDF page
+(baked in by the user's screenshot -> web-Gemini -> paste-into-OneNote
+capture workflow), so `transcribe_notes.py` transcribing it faithfully is
+correct behavior, not a candidate for this pipeline's correction pass. The
+actual fix is a capture-side redesign (Excalidraw-in-Obsidian, plus a new
+expand-before-ingestion step) -- see
+`docs/status/2026-08-24-notes-transcription-status.md`'s "2026-09-07"
+section for the full brainstorm. Noted here only so a future pass over
+`handwritten_notes` doesn't re-flag the same pattern as an in-scope defect.

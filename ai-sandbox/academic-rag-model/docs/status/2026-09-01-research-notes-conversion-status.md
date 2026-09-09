@@ -107,7 +107,7 @@ folder, hand-run rather than watching a live source. The plan is to
 pull loose-form research-idea essays directly from Google Drive instead
 of a manually-populated folder, and to fold in a proper literature-review
 workflow once there are enough papers indexed (see
-`docs/2026-09-01-journal-article-transcription-status.md`) to make one
+`docs/status/2026-09-01-journal-article-transcription-status.md`) to make one
 worth building. The document-type vocabulary is already built to be
 extended per corpus rather than shared, so whatever comes next slots in
 the same way `personal_essay`/`research_notes` already did, with no

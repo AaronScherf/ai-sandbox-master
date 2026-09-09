@@ -40,7 +40,7 @@ Or via the tutor's own `--visualize` flag — see [`../rag/README.md`](../rag/RE
   timeouts, then a broken script), then a follow-up real trial with Gemini
   succeeded 2/2 on the first attempt — the same reliability pattern (and
   same fix) as `problem_gen`'s own Gemini default; see
-  [`../docs/2026-09-02-visualization-agent-status.md`](../docs/2026-09-02-visualization-agent-status.md)
+  [`../docs/status/2026-09-02-visualization-agent-status.md`](../docs/status/2026-09-02-visualization-agent-status.md)
   for the full comparison. Local Ollama generation is still available as an
   opt-in (`VIZ_BACKEND=ollama`, model `qwen2.5-coder:7b` by default, override
   with `VIZ_OLLAMA_MODEL`) for fully free/private generation — requires

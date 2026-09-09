@@ -5,7 +5,7 @@ Status: approved in brainstorming, not yet planned/implemented
 
 ## 1. Problem & goals
 
-Flagged as an open gap in `docs/2026-09-01-journal-discovery-status.md` point
+Flagged as an open gap in `docs/status/2026-09-01-journal-discovery-status.md` point
 6. Two real problems exist today, both confirmed against the live code
 rather than assumed:
 
@@ -424,6 +424,6 @@ precedent):
   mis-attribution check** (comparing a candidate's concepts against the
   querying faculty member's own dominant concept profile at *discovery*
   time, before a paper ever enters the corpus) — both already tracked as
-  open ideas in `docs/2026-09-01-journal-discovery-status.md`, distinct
+  open ideas in `docs/status/2026-09-01-journal-discovery-status.md`, distinct
   from this audit (which only runs *after* conversion) and not
   duplicated here.

@@ -57,7 +57,7 @@ def _make_textbook(academic_hub_root, course, pdf_basename, folder_name, with_so
 
     category_folder_name defaults to the long-standing name but accepts
     "textbooks" too, to exercise the folder-name alias math-camp uses on
-    disk (see docs/2026-09-06-problem-corpus-extraction-status.md)."""
+    disk (see docs/status/2026-09-06-problem-corpus-extraction-status.md)."""
     tp_dir = os.path.join(academic_hub_root, "academic_resources", course, category_folder_name)
     os.makedirs(tp_dir, exist_ok=True)
     pdf_path = os.path.join(tp_dir, f"{pdf_basename}.pdf")
@@ -163,7 +163,7 @@ class TestRebuild(unittest.TestCase):
             self.assertEqual(load_shard(tmp, "math-camp"), [])
 
     def test_skips_zero_byte_markdown_and_orphans_any_existing_card(self):
-        # Real-corpus finding (docs/2026-08-28-known-errors-todo.md): a
+        # Real-corpus finding (docs/trackers/2026-08-30-academic-hub-status.md): a
         # 0-byte .md next to a real, un-transcribed source PDF must not
         # get a vacuous "this is empty" card generated for it, and any
         # such card from before this fix existed should get cleaned up

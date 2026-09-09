@@ -168,7 +168,7 @@ started.
   free tier, dominated by rate-limit backoff rather than extraction work.
 - This subproject stops at the stored corpus; nothing yet consumes
   `.problem_corpus/<course>.json` (see the five other future-development
-  ideas flagged in `docs/2026-09-05-problem-generation-status.md`).
+  ideas flagged in `docs/status/2026-09-05-problem-generation-status.md`).
 
 ## 2026-09-06 (continued): fixed the actual indexer bug behind the stale path
 
@@ -249,7 +249,7 @@ Both share the regex duplicated from `indexer/chunk_index.py`'s own
 across both consumers, not just this package's `boundaries.py`.
 
 **Future development plans** (idea #1, this subproject, is now done —
-see `docs/2026-09-05-problem-generation-status.md`'s "Future
+see `docs/status/2026-09-05-problem-generation-status.md`'s "Future
 development ideas" section for the full list and status): richer
 few-shot examples / direct-serve matching from this corpus, Gemini-based
 solution backfilling for textbook problems that lack one, growing the

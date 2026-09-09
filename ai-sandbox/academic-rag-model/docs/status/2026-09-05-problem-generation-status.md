@@ -433,7 +433,7 @@ the problem-generation branch in `rag/rag_agent.py` never called
 `rag/report_builder.py`'s `build_report()` at all, regardless of
 `report=True` — the same category of integration gap `--visualize` had
 on this same branch until its own earlier fix (see
-`docs/2026-09-02-visualization-agent-status.md`'s "Combined report"
+`docs/status/2026-09-02-visualization-agent-status.md`'s "Combined report"
 section). A generated problem's `report=True` call silently produced no
 report file.
 
@@ -477,14 +477,14 @@ works end to end. It also surfaced that `viz`'s own LLM fallback had the
 same Ollama-reliability problem this doc already found for problem
 generation, on the very first real attempt to exercise it against a
 freshly-generated (never-templated) problem/solution pair — see
-`docs/2026-09-02-visualization-agent-status.md`'s "Gemini fallback
+`docs/status/2026-09-02-visualization-agent-status.md`'s "Gemini fallback
 backend, made the default" section for that fix.
 
 ## 2026-09-06 (continued): fixed the verification-timeout retry; triaged the rest into a to-do list
 
 Picked up from this doc's own "Follow-up candidates from final review"
 section above, after the `problem_corpus` folder-alias bug fix (see
-`docs/2026-09-06-problem-corpus-extraction-status.md`) prompted a fresh
+`docs/status/2026-09-06-problem-corpus-extraction-status.md`) prompted a fresh
 look at what else was still open.
 
 **Fixed:** follow-up candidate #1, the verification-timeout retry path.
@@ -531,7 +531,7 @@ the substring-match problem. No action needed.
    follow-up-on-a-generated-problem becomes a real use case.
 
 **`problem_corpus`** (see
-`docs/2026-09-06-problem-corpus-extraction-status.md` for full detail):
+`docs/status/2026-09-06-problem-corpus-extraction-status.md` for full detail):
 5. **Boundary detection over-splits on numbered content embedded inside
    a problem's own body** (numbered sub-statements, guided-walkthrough
    steps) — produces duplicate-labeled records on 6/8 real problem-set

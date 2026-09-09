@@ -45,6 +45,6 @@ Run any script here as a module from the `academic-rag-model/` root, e.g.
 ## Design docs
 
 `docs/superpowers/specs/2026-08-27-source-indexer-design.md` for the schema;
-`docs/2026-08-29-source-indexer-status.md` for narrative history — real bugs
+`docs/status/2026-08-29-source-indexer-status.md` for narrative history — real bugs
 found and fixed, and the generalizations that let a second and third corpus
 (essays, journal articles) reuse this unchanged.

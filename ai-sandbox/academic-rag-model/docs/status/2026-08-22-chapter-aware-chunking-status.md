@@ -108,7 +108,7 @@ Run 1 found folio tags at 0/0/0 across all three books, for three
 - [x] **Re-run all three books** (or at least Hammack) and confirm
       `<!-- folio ` count > 0 for Hammack specifically. **Confirmed**: a
       later real run (part of the 5-book batch described in
-      `docs/2026-08-23-image-description-status.md`) showed 366/380
+      `docs/status/2026-08-23-image-description-status.md`) showed 366/380
       (96%) folio tag coverage for Hammack -- the outline-flattening fix
       holds in production. Axler, Rudin, and Sydsæter (a fourth book,
       not in the original 3-book validation set) all landed in the
@@ -156,4 +156,4 @@ available to validate against.
 
 Image-to-text description for the `images/` folders, so a RAG/study
 pipeline can consume figure descriptions directly instead of an opaque
-image reference -- **done**, see `docs/2026-08-23-image-description-status.md`.
+image reference -- **done**, see `docs/status/2026-08-23-image-description-status.md`.

@@ -207,7 +207,7 @@ def _notes_pdf_paths(academic_hub_root: str, course_filter: str | None):
 # point, but every other course still uses "textbooks-and-papers".
 # Recognizing only the old name here made this walk silently see zero
 # book dirs for math-camp -- rebuild() never touched those files again,
-# with no error to signal it (see docs/2026-09-06-problem-corpus-extraction-status.md).
+# with no error to signal it (see docs/status/2026-09-06-problem-corpus-extraction-status.md).
 # Checking both aliases makes the walk match whichever name a course
 # actually uses on disk.
 _TEXTBOOK_FOLDER_NAMES = ("textbooks", "textbooks-and-papers")
@@ -377,7 +377,7 @@ def rebuild(academic_hub_root: str, client, course: str | None = None,
         if os.path.getsize(md_path) == 0:
             # A 0-byte .md with a real source PDF sitting next to it means
             # the PDF was never actually transcribed (see
-            # docs/2026-08-28-known-errors-todo.md) -- generating a card
+            # docs/trackers/2026-08-30-academic-hub-status.md) -- generating a card
             # from it would just produce a vacuous "this is empty" summary.
             # Not added to seen_file_ids: if a vacuous card already exists
             # from an earlier run, this lets the normal orphan-flagging

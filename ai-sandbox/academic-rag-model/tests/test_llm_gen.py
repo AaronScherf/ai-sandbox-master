@@ -136,7 +136,7 @@ class TestParseVerdict(unittest.TestCase):
         technique's own detail -- that corrupted retry feedback fed
         into later attempts with the literal text 'used instead:
         CORRECTNESS: VALID' (see
-        docs/2026-09-05-problem-generation-status.md's 2026-09-06 entry)."""
+        docs/status/2026-09-05-problem-generation-status.md's 2026-09-06 entry)."""
         result = _parse_verdict("TECHNIQUE: NO\nCORRECTNESS: VALID")
         self.assertEqual(result, "the solution does not use the required technique")
 
@@ -287,7 +287,7 @@ class TestGenerateAndVerifyOllamaBackend(unittest.TestCase):
 
 class TestGenerateAndVerifyGeminiBackend(unittest.TestCase):
     """PROBLEMGEN_BACKEND defaults to "gemini" (no patching needed) --
-    see docs/2026-09-05-problem-generation-status.md's 2026-09-06 entry:
+    see docs/status/2026-09-05-problem-generation-status.md's 2026-09-06 entry:
     a real feasibility spike found gemini-3.1-flash-lite passed 9/9
     trials across three technique-constrained topics where the local
     Ollama model never once succeeded. Mocks _call_gemini directly

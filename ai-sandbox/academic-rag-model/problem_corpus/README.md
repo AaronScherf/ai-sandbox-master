@@ -4,7 +4,7 @@ Extracts a structured, persistent corpus of practice problems (topic
 tag, problem text, solution text if present, course, provenance) from
 math-camp's own problem sets, textbooks, and recitation slides. First
 of six future-development ideas flagged in
-[`../docs/2026-09-05-problem-generation-status.md`](../docs/2026-09-05-problem-generation-status.md)'s
+[`../docs/status/2026-09-05-problem-generation-status.md`](../docs/status/2026-09-05-problem-generation-status.md)'s
 "Future development ideas" section — the one everything else there
 depends on.
 

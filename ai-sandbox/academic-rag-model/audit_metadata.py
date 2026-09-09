@@ -3,7 +3,7 @@
 audit_metadata.py
 Re-checks each converted journal article's folder, tags, title, and
 authors against its real full text and fresh OpenAlex data -- the gap
-flagged in docs/2026-09-01-journal-discovery-status.md point 6:
+flagged in docs/status/2026-09-01-journal-discovery-status.md point 6:
 .meta.json sidecars are written once at discovery time and never
 revisited, and reconcile_needs_manual.py's folder/content preview was
 read-only. Design: docs/superpowers/specs/2026-09-02-metadata-folder-audit-design.md.
