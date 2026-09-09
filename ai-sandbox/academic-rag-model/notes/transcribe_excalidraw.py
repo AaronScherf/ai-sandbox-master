@@ -31,3 +31,33 @@ def discover_excalidraw_files(notes_dir: str, file_filter: str | None = None) ->
             continue
         pairs.append((md_path, png_path))
     return pairs
+
+
+def build_chunk_transcription_prompt(accumulated_context: str, chunk_index: int, total_chunks: int) -> str:
+    context_block = (
+        f"Already-transcribed content from earlier chunks of this same canvas, for continuity "
+        f"(a chunk boundary can split a derivation or sentence mid-thought):\n{accumulated_context}\n\n"
+        if accumulated_context else ""
+    )
+    return (
+        f"This is chunk {chunk_index + 1} of {total_chunks} from a single tall, continuous "
+        "handwritten-notes canvas (an Excalidraw drawing, cropped at a whitespace gap -- not a "
+        "page boundary). Transcribe everything on this chunk into clean markdown: preserve "
+        "problem/part numbering, mathematical notation (LaTeX-style, e.g. $...$ or $$...$$), "
+        "and reading order. Keep this transcription terse and faithful to the shorthand as "
+        "written -- do not expand abbreviations or add explanation; that happens in a later "
+        "pass.\n\n"
+        f"{context_block}"
+        "Respond with ONLY the transcribed markdown for THIS chunk -- no commentary, no code "
+        "fence, no repetition of earlier chunks' content.\n"
+    )
+
+
+def assemble_raw_markdown(cache: dict, total_chunks: int) -> str:
+    parts = []
+    for chunk_index in range(total_chunks):
+        text = cache.get(str(chunk_index))
+        if text is None:
+            continue
+        parts.append(f"<!-- chunk {chunk_index + 1} -->\n\n{text}")
+    return "\n\n".join(parts)
