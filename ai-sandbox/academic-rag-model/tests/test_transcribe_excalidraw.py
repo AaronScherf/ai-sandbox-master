@@ -72,3 +72,42 @@ def test_assemble_raw_markdown_skips_missing_chunks():
     cache = {"0": "first chunk text"}  # chunk 1 never transcribed (failed)
     result = assemble_raw_markdown(cache, total_chunks=2)
     assert result == "<!-- chunk 1 -->\n\nfirst chunk text"
+
+
+from unittest.mock import patch
+
+from notes.transcribe_excalidraw import transcribe_chunks
+
+
+def test_transcribe_chunks_builds_cache_keyed_by_index():
+    with patch("notes.transcribe_excalidraw.transcribe_page_via_gemini") as mock_transcribe:
+        mock_transcribe.side_effect = ["first chunk text", "second chunk text"]
+        cache = transcribe_chunks(client=object(), model="gemini-3.6-flash", chunk_bytes=[b"img0", b"img1"])
+    assert cache == {"0": "first chunk text", "1": "second chunk text"}
+
+
+def test_transcribe_chunks_passes_accumulated_context_from_prior_chunks():
+    captured_prompts = []
+
+    def fake_transcribe(client, model, image_bytes, prompt):
+        captured_prompts.append(prompt)
+        return f"text for chunk with prompt len {len(prompt)}"
+
+    with patch("notes.transcribe_excalidraw.transcribe_page_via_gemini", side_effect=fake_transcribe):
+        transcribe_chunks(client=object(), model="gemini-3.6-flash", chunk_bytes=[b"img0", b"img1"])
+
+    # second call's prompt must include the first chunk's already-transcribed text
+    assert "text for chunk with prompt len" in captured_prompts[1]
+
+
+def test_transcribe_chunks_skips_a_chunk_that_fails_after_retries():
+    def fake_transcribe(client, model, image_bytes, prompt):
+        if image_bytes == b"img1":
+            raise ValueError("simulated repetition-loop failure")
+        return "ok text"
+
+    with patch("notes.transcribe_excalidraw.transcribe_page_via_gemini", side_effect=fake_transcribe):
+        with patch("notes.transcribe_excalidraw.call_with_retries", side_effect=lambda fn: fn()):
+            cache = transcribe_chunks(client=object(), model="gemini-3.6-flash", chunk_bytes=[b"img0", b"img1", b"img2"])
+
+    assert cache == {"0": "ok text", "2": "ok text"}

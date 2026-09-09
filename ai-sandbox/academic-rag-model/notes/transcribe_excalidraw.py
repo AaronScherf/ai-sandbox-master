@@ -10,6 +10,29 @@ from __future__ import annotations
 
 import os
 
+from common.gemini_utils import call_with_retries
+from notes.transcribe_notes import transcribe_page_via_gemini
+
+_ACCUMULATION_WINDOW = 3  # same value as transcribe_notes.py's Tier 3 -- see that
+                          # module's _ACCUMULATION_WINDOW docstring for why a
+                          # trailing window (not full-document accumulation) is used
+
+
+def _accumulated_chunk_context(cache: dict, chunk_index: int, window: int) -> str:
+    """0-based equivalent of transcribe_notes.py's build_accumulated_context.
+    Not reused directly: that function assumes 1-based page numbers (its
+    start-page floor is hardcoded to 1), which silently drops chunk 0's
+    context when called with 0-based chunk indices -- caught by a real
+    failing test (test_transcribe_chunks_passes_accumulated_context_from_prior_chunks),
+    not assumed in advance. Same trailing-window behavior, just 0-based."""
+    start = max(0, chunk_index - window)
+    parts = []
+    for i in range(start, chunk_index):
+        text = cache.get(str(i))
+        if text:
+            parts.append(f"--- Chunk {i + 1} ---\n{text}")
+    return "\n\n".join(parts)
+
 
 def discover_excalidraw_files(notes_dir: str, file_filter: str | None = None) -> list[tuple[str, str]]:
     """Finds every `.excalidraw.md` directly under notes_dir with a
@@ -61,3 +84,17 @@ def assemble_raw_markdown(cache: dict, total_chunks: int) -> str:
             continue
         parts.append(f"<!-- chunk {chunk_index + 1} -->\n\n{text}")
     return "\n\n".join(parts)
+
+
+def transcribe_chunks(client, model: str, chunk_bytes: list[bytes]) -> dict[str, str]:
+    cache: dict[str, str] = {}
+    total_chunks = len(chunk_bytes)
+    for chunk_index, image_bytes in enumerate(chunk_bytes):
+        accumulated_context = _accumulated_chunk_context(cache, chunk_index, window=_ACCUMULATION_WINDOW)
+        prompt = build_chunk_transcription_prompt(accumulated_context, chunk_index, total_chunks)
+        try:
+            text = call_with_retries(lambda: transcribe_page_via_gemini(client, model, image_bytes, prompt))
+            cache[str(chunk_index)] = text
+        except Exception as err:
+            print(f"WARNING: chunk {chunk_index + 1}/{total_chunks} failed after retries ({err}); skipping.")
+    return cache
