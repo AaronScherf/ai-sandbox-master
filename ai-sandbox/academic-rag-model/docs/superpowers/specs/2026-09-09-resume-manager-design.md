@@ -220,10 +220,17 @@ prints a warning report — it never blocks rendering (§1 non-goals):
 
 ## 6. Rendering
 
-`render.py`, carried over from the brainstorm draft largely as-is:
-Markdown → HTML via the `markdown` library → styled PDF via `weasyprint`,
-using the letter-size/margin/heading CSS block already drafted in
-`docs/brainstorms/resume_manager_brainstorm.md`. Output:
+`render.py`: Markdown → HTML via the `markdown` library → styled PDF via
+`xhtml2pdf`, using the letter-size/margin/heading CSS block adapted from
+`docs/brainstorms/resume_manager_brainstorm.md`. **Not** `weasyprint` as the
+brainstorm draft suggested — confirmed during planning that `weasyprint`
+fails to import on this machine (`OSError: cannot load library
+'libgobject-2.0-0'`; it depends on the Pango/GTK native libraries, which
+aren't installed and aren't a plain `pip install` on Windows — exactly the
+risk the brainstorm draft's own note flagged). `xhtml2pdf` is pure Python
+(reportlab-based), installs cleanly via `pip install xhtml2pdf`, and was
+verified during planning to render the same HTML+CSS shape (headings,
+borders, lists, `@page` size/margins) to a valid PDF. Output:
 `resume-manager/applications/<YYYY-MM-DD>-<application-name>/
 Tailored_Resume.pdf`.
 
@@ -281,7 +288,7 @@ boundary (no real Ollama, Gemini, or weasyprint calls in unit tests):
   tailored (flagged), and a master entry dropped from tailored (no flag,
   per §5).
 - `render.py`: a smoke test that a small known Markdown input produces a
-  non-empty PDF via `weasyprint` (real library call — the one exception to
+  non-empty PDF via `xhtml2pdf` (real library call — the one exception to
   "mock every external boundary," since there's no meaningful mock for PDF
   byte output and the library itself needs no network/model).
 - `convert_resume.py`: verifies the extraction step calls
