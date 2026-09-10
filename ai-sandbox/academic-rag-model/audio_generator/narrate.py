@@ -1,25 +1,48 @@
 """
 narrate.py
-Chunked, holistic LaTeX-to-narration rewrite via a local LLM, running
-before cleaner.py on the raw .md (spec §3.1). Deliberately has zero
+Chunked, holistic LaTeX-to-narration rewrite via the Gemini API, running
+before cleaner.py on the raw .md (spec §3.1 v3). Deliberately has zero
 dependency on cleaner.py in either direction: a chunk this module can't
 successfully rewrite is returned unmodified, and cleaner.py's existing
 (unchanged) regex wrap catches whatever raw LaTeX survives downstream.
+
+v3 (2026-09-09) replaces v2's local qwen2-math:7b call (measured at ~6h
+for one equation-dense file -- impractical for real batch use) with
+tiered Gemini API calls: a chunk with no LaTeX/math markers at all makes
+zero API calls (free), a chunk with sparse/simple notation is routed to a
+cheap model, and a chunk with dense equations or \\begin/\\end
+environments is routed to a more capable model. No local-Ollama fallback
+tier -- a missing/invalid GEMINI_API_KEY or an exhausted-retries API call
+both degrade straight to the chunk's original, unmodified text.
 """
 from __future__ import annotations
 
+import concurrent.futures
 import os
 import re
 
-from common.ollama_utils import call_ollama
+from common.gemini_utils import call_with_retries, get_gemini_client, load_dotenv_override
 
-AUDIOGEN_NARRATE_OLLAMA_MODEL = os.environ.get("AUDIOGEN_NARRATE_OLLAMA_MODEL", "qwen2-math:7b")
-AUDIOGEN_NARRATE_OLLAMA_TIMEOUT_SECONDS = int(os.environ.get("AUDIOGEN_NARRATE_OLLAMA_TIMEOUT", "300"))
+AUDIOGEN_NARRATE_MAX_WORKERS = int(os.environ.get("AUDIOGEN_NARRATE_MAX_WORKERS", "5"))
+
+AUDIOGEN_NARRATE_GEMINI_LIGHT_MODEL = os.environ.get("AUDIOGEN_NARRATE_GEMINI_LIGHT_MODEL", "gemini-3.1-flash-lite")
+AUDIOGEN_NARRATE_GEMINI_HEAVY_MODEL = os.environ.get("AUDIOGEN_NARRATE_GEMINI_HEAVY_MODEL", "gemini-2.5-flash")
+_TIER_MODELS = {"light": AUDIOGEN_NARRATE_GEMINI_LIGHT_MODEL, "heavy": AUDIOGEN_NARRATE_GEMINI_HEAVY_MODEL}
+
+AUDIOGEN_NARRATE_MATH_RATIO_THRESHOLD = float(os.environ.get("AUDIOGEN_NARRATE_MATH_RATIO_THRESHOLD", "0.15"))
+AUDIOGEN_NARRATE_MATH_COMMAND_THRESHOLD = int(os.environ.get("AUDIOGEN_NARRATE_MATH_COMMAND_THRESHOLD", "3"))
 
 _CODE_BLOCK_PATTERN = re.compile(r"```[\s\S]*?```")
 _PARAGRAPH_SPLIT_PATTERN = re.compile(r"\n\s*\n")
 _CHUNK_TARGET_SIZE = 2500
 _MIN_LENGTH_RATIO = 0.5
+
+_LATEX_SPAN_PATTERN = re.compile(r"\$\$[^\$]+\$\$|\$[^\$]+\$")
+_LATEX_COMMAND_PATTERN = re.compile(r"\\[a-zA-Z]+")
+_LATEX_ENV_PATTERN = re.compile(r"\\begin\{[^}]+\}")
+# Greek letters + common math-operator/arrow ranges, for notation typed as
+# literal Unicode rather than LaTeX (e.g. "the parameter α" in prose).
+_MATH_UNICODE_PATTERN = re.compile("[\u0370-\u03ff\u2190-\u21ff\u2200-\u22ff]")
 
 _PROMPT_TEMPLATE = """Rewrite this passage as natural spoken prose for audio narration. \
 Describe mathematical notation in words rather than symbols. Do not omit or summarize any \
@@ -68,6 +91,21 @@ def _group_into_chunks(pieces: list[str]) -> list[str]:
     return chunks
 
 
+def _classify_chunk(chunk: str) -> str:
+    """Returns "skip" | "light" | "heavy" (spec §3.1 v3) -- thresholds are
+    a starting guess, flagged in spec §9 for empirical tuning."""
+    spans = _LATEX_SPAN_PATTERN.findall(chunk)
+    if not spans and not _MATH_UNICODE_PATTERN.search(chunk):
+        return "skip"
+    if _LATEX_ENV_PATTERN.search(chunk):
+        return "heavy"
+    ratio = sum(len(s) for s in spans) / len(chunk) if chunk else 0.0
+    command_count = len(_LATEX_COMMAND_PATTERN.findall(chunk))
+    if ratio >= AUDIOGEN_NARRATE_MATH_RATIO_THRESHOLD or command_count >= AUDIOGEN_NARRATE_MATH_COMMAND_THRESHOLD:
+        return "heavy"
+    return "light"
+
+
 def _passes_sanity_check(original: str, rewritten) -> bool:
     """Cheap proxy for 'did the model drop/summarize content' (spec §3.1,
     §9 -- exact ratio flagged as needing real tuning, not a validated
@@ -77,27 +115,78 @@ def _passes_sanity_check(original: str, rewritten) -> bool:
     return len(rewritten) >= _MIN_LENGTH_RATIO * len(original)
 
 
-def _narrate_chunk(chunk: str) -> str:
-    """Rewrites one chunk via the local LLM. Never raises; returns the
-    chunk's original, unmodified text on any failure that survives a
-    retry (spec §3.1) -- this module never invents its own fallback text."""
+def _call_gemini(prompt: str, model: str, client) -> str | None:
+    """Mirrors viz/llm_fallback.py's _call_gemini exactly -- relies on
+    common.gemini_utils.call_with_retries for transient-failure retry/
+    backoff, the same mechanism every other Gemini call in this project
+    already uses. Returns None only once retries are exhausted, never
+    raises."""
+    try:
+        response = call_with_retries(lambda: client.models.generate_content(
+            model=model, contents=prompt, config={"temperature": 0.2},
+        ))
+        return (response.text or "").strip()
+    except Exception as err:
+        print(f"WARNING: Gemini call to model '{model}' failed after retries ({err})")
+        return None
+
+
+def _narrate_chunk(chunk: str, client) -> str:
+    """Rewrites one chunk via the tier-appropriate Gemini model (spec
+    §3.1 v3). No local fallback if client is None or the call fails --
+    just the chunk's original, unmodified text, exactly as v2 behaved on
+    an unreachable server."""
+    tier = _classify_chunk(chunk)
+    if tier == "skip" or client is None:
+        return chunk
     prompt = _PROMPT_TEMPLATE.format(chunk=chunk)
-    for _ in range(2):
-        result = call_ollama(prompt, AUDIOGEN_NARRATE_OLLAMA_MODEL, AUDIOGEN_NARRATE_OLLAMA_TIMEOUT_SECONDS)
-        if result is None:
-            return chunk  # server unreachable -- not worth retrying
-        if isinstance(result, str) and _passes_sanity_check(chunk, result):
-            return result
-        # OLLAMA_TIMEOUT, or a real response that failed the sanity check -- retry once
+    result = _call_gemini(prompt, _TIER_MODELS[tier], client)
+    if result is not None and _passes_sanity_check(chunk, result):
+        return result
     return chunk
 
 
+def chunk_for_narration(md_text: str) -> list[str]:
+    """Public wrapper around this module's paragraph/code-block-aware
+    chunking (spec §3.1). Exposed so a caller processing multiple
+    documents' worth of text at once (spec §3.2's per-section narration)
+    can chunk each piece separately, flatten every piece's chunks into one
+    list, and dispatch all of them through a single narrate_chunks() call
+    -- rather than each piece paying for its own separate, serialized
+    narrate_for_speech() call and thread-pool spin-up."""
+    return _group_into_chunks(_split_into_pieces(md_text))
+
+
+def narrate_chunks(chunks: list[str], client=None) -> list[str]:
+    """Narrates a flat list of already-chunked pieces concurrently
+    (AUDIOGEN_NARRATE_MAX_WORKERS threads, default 5), returning results
+    in the same order regardless of which chunk's network call actually
+    finishes first (ThreadPoolExecutor.map() preserves input order in its
+    results). Builds its own client if none is given -- narrate_for_speech()'s
+    own use, one client per document -- but accepts one so a caller
+    narrating chunks from *multiple* documents/sections (spec §3.2) can
+    share a single client and a single concurrency budget across all of
+    them, instead of each one separately competing for API rate limits
+    with its own thread pool."""
+    if client is None:
+        load_dotenv_override()
+        client = get_gemini_client()
+
+    def _process(chunk: str) -> str:
+        return chunk if _CODE_BLOCK_PATTERN.fullmatch(chunk) else _narrate_chunk(chunk, client)
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=AUDIOGEN_NARRATE_MAX_WORKERS) as executor:
+        return list(executor.map(_process, chunks))
+
+
 def narrate_for_speech(md_text: str) -> str:
-    """Entry point pipeline.py calls first, on raw .md text, before
-    cleaner.clean_markdown_for_speech() (spec §3.1)."""
-    chunks = _group_into_chunks(_split_into_pieces(md_text))
-    narrated = [
-        chunk if _CODE_BLOCK_PATTERN.fullmatch(chunk) else _narrate_chunk(chunk)
-        for chunk in chunks
-    ]
+    """Entry point pipeline.py calls first (for textbook content -- spec
+    §3.2 scopes section-aware narration to notes only), on raw .md text,
+    before cleaner.clean_markdown_for_speech() (spec §3.1). Unlike v2,
+    which had no spare CPU/GPU capacity to parallelize local-model calls
+    against, the Gemini API serves concurrent requests fine, and each
+    chunk's rewrite is independent of every other chunk's -- see
+    narrate_chunks() for the concurrent-dispatch mechanics."""
+    chunks = chunk_for_narration(md_text)
+    narrated = narrate_chunks(chunks)
     return "\n\n".join(narrated)

@@ -1776,16 +1776,82 @@ Override the model or its per-chunk timeout via `AUDIOGEN_NARRATE_OLLAMA_MODEL`
 / `AUDIOGEN_NARRATE_OLLAMA_TIMEOUT` (seconds, default `300`).
 ```
 
-- [ ] **Step 6: Measure real CPU timing against the actual equation-dense file (spec §9's flagged unknown)**
+- [x] **Step 6: Measure real CPU timing against the actual equation-dense file (spec §9's flagged unknown)**
 
-**Status: attempted 2026-09-07 on the primary dev machine, OOM-killed
-before completing — deferred to a second machine with more free RAM.**
-With IDEA (~2GB), several Chrome tabs, and Obsidian already open on a
-16GB-RAM machine, under ~500MB was free when `qwen2-math:7b` (4.4GB)
-needed to load — the process was killed for low memory, not just slow.
-This is itself the finding worth recording (spec §9, updated): the real
-constraint may be memory headroom during normal concurrent use, not only
-wall-clock speed. Whoever runs this next should check free memory first:
+**Status: measured (2026-09-09). Real result: 21,758.5s (362.6 min, ~6h 2m)
+for one file (121,637 input chars -> 127,558 output chars).**
+
+This is the headline finding for spec §9: **narrating one equation-dense
+notes file takes roughly six hours** on this machine's CPU-only
+`qwen2-math:7b` setup. 42 separate "timed out after 300s" warnings fired
+during the run (`common/ollama_utils.py`'s `OLLAMA_TIMEOUT` path, retried
+once each per `narrate.py`'s retry semantics) -- a large fraction of the
+~50 chunks needed at least one retry against the 300s-per-chunk timeout.
+Output being longer than input (not shrunk) indicates most chunks were
+genuinely rewritten rather than falling back to unmodified text. At this
+rate, a full course's worth of notes/textbook files is not practical to
+narrate serially on hardware like this -- a real, now-measured constraint
+(not a guess) worth flagging for anyone scoping a batch run, exactly the
+kind of finding `problem_gen`/`video_notes` have recorded after their own
+first real timing runs.
+
+The three prior attempts below were superseded once the measurement was
+run outside the Claude Code harness's background-task supervision (a
+plain terminal window the user ran directly) -- confirming the harness's
+own memory-safety guard, not genuine resource exhaustion, was what killed
+attempts 2 and 3. `ollama`/`llama-server` were never touched in any
+attempt.
+
+**Prior attempts (history, all superseded):**
+
+**Attempt 1 (2026-09-07, primary dev machine):** OOM-killed before
+completing. With IDEA (~2GB), several Chrome tabs, and Obsidian already
+open on a 16GB-RAM machine, under ~500MB was free when `qwen2-math:7b`
+(4.4GB) needed to load — the process was killed for low memory, not just
+slow.
+
+**Attempt 2 (2026-09-08/09, same machine, ~9.7GB free at start):** killed
+again, but for a different reason. Free memory was comfortably above
+`qwen2-math:7b`'s 4.4GB footprint when the run started, `ollama serve` and
+the model loaded fine, and the run proceeded without error for **~76
+minutes** — well past attempt 1's near-instant failure — before free
+memory had drifted down to ~3.6GB (unrelated background activity:
+Windows Update's `TiWorker`, rising memory-compression pressure) and the
+process was killed defensively. `ollama`/`llama-server` themselves stayed
+up throughout; only the Python driver process was killed. The run never
+printed its timing line, so still no real elapsed-time number for the
+full file.
+
+**Attempt 3 (2026-09-09, same machine, ~8.2GB free at start, `TiWorker`
+confirmed not running, IDE/Obsidian confirmed closed):** killed again.
+Free memory dropped faster than attempt 2 at first (8.2GB -> ~3.9GB within
+~10 minutes) with no single process visibly ballooning (`llama-server`'s
+own working set stayed ~760MB the whole time — most of the model appears
+memory-mapped rather than fully resident), then plateaued around
+3.5-3.6GB for the next ~40 minutes before finally being killed at ~3.37GB
+free, ~65 minutes in. Only the Python driver processes were killed;
+`ollama`/`llama-server` survived again.
+
+All three kills were issued by the Claude Code harness's own background-
+task memory-safety guard (the task notification says so explicitly), not
+a Windows-native OOM condition -- Windows itself pages to disk under
+memory pressure rather than killing processes outright, unless its
+commit limit is truly exhausted, which was never observed here (`ollama`/
+`llama-server` were never touched). The three kills landed at free-memory
+readings of <500MB, ~3.6GB, and ~3.37GB respectively -- consistent with a
+harness-side threshold somewhere around 20% of this machine's 16.6GB
+total, triggered on the absolute reading rather than the trend (attempt 3
+had plateaued for ~40 minutes before still getting killed).
+
+Updated finding (spec §9): on this machine, a full-file run of
+`narrate_for_speech()` reliably drives free memory down into a range that
+trips the harness's own safety guard well before the narration finishes,
+regardless of what else is or isn't running. The next attempt should run
+outside the harness's background-task supervision entirely (a plain
+terminal window the harness isn't monitoring) so only Windows' own memory
+management applies -- or run on a machine with meaningfully more RAM.
+Watching free memory through the run (as below) is still useful for
+diagnosis, but has not by itself been enough to avoid the kill:
 
 ```powershell
 Get-CimInstance Win32_OperatingSystem | Select-Object FreePhysicalMemory, TotalVisibleMemorySize
@@ -1814,14 +1880,10 @@ elapsed = time.monotonic() - start
 print(f"Input: {len(md_text)} chars. Output: {len(result)} chars. Elapsed: {elapsed:.1f}s ({elapsed / 60:.1f} min).")
 ```
 
-Expected: completes and prints real elapsed time (no target to hit — this
-is a measurement, not a pass/fail check). Report the actual number
-observed; if it's impractically slow for a full-course batch (many files
-this size), note that as a real, now-measured constraint rather than
-leaving it a guess — this is exactly the kind of finding this project's
-other subprojects (`problem_gen`, `video_notes`) have recorded in their own
-status docs after their own first real timing runs, not a blocker to fix
-in this same task.
+**Result (2026-09-09, run directly in a plain terminal, outside harness
+supervision):** `Input: 121637 chars. Output: 127558 chars. Elapsed:
+21758.5s (362.6 min).` See the summary above this script for the full
+finding and its implications.
 
 - [ ] **Step 7: Commit**
 
@@ -1839,6 +1901,759 @@ degrade-gracefully behavior.
 
 Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_012utPaFRMX7eLAtcGdRJhcE
+EOF
+)"
+```
+
+---
+
+### Task 9: Replace local Ollama narration with tiered Gemini API calls (spec §3.1 v3)
+
+**Why:** Task 8 Step 6's real measurement came back at ~6h for one
+equation-dense file on local CPU-only `qwen2-math:7b` — impractical for
+any real batch. This task swaps `narrate.py`'s LLM backend to the Gemini
+Developer API, reusing `common/gemini_utils.py` exactly as
+`viz/llm_fallback.py`/`indexer/index_card.py` already do (no new
+dependency — `google-genai` and `python-dotenv` are already in
+`requirements.txt` via those subprojects). Adds per-chunk complexity
+tiering (skip/light/heavy) so plain-prose content costs nothing. Drops the
+local-Ollama fallback tier entirely — see spec §3.1 v3 for full rationale.
+
+**Files:**
+- Modify: `audio_generator/narrate.py`
+- Modify: `audio_generator/README.md`
+- Test: `tests/test_audio_generator_narrate.py` (rewritten)
+
+**Interfaces:**
+- Consumes: `common.gemini_utils.get_gemini_client`/`call_with_retries`/`load_dotenv_override`.
+- Produces: `narrate_for_speech(md_text: str) -> str` — **signature
+  unchanged from v2**, so `pipeline.py` needs zero code changes; it already
+  calls this exact function first, before `cleaner.clean_markdown_for_speech()`.
+
+- [ ] **Step 1: Write the failing classifier tests**
+
+Add to `tests/test_audio_generator_narrate.py` (new import:
+`from audio_generator.narrate import _classify_chunk`):
+
+```python
+class TestClassifyChunk(unittest.TestCase):
+    def test_pure_prose_is_skip(self):
+        self.assertEqual(_classify_chunk("Just plain prose, no math at all here."), "skip")
+
+    def test_stray_greek_letter_outside_dollar_signs_is_not_skip(self):
+        self.assertNotEqual(_classify_chunk("The parameter α controls the rate."), "skip")
+
+    def test_sparse_simple_inline_math_is_light(self):
+        chunk = "Consider the random variable X. " * 20 + "Its mean is $E[X]$."
+        self.assertEqual(_classify_chunk(chunk), "light")
+
+    def test_dense_dollar_spans_is_heavy(self):
+        chunk = "$" + "x^2 + y^2 = z^2 " * 40 + "$"
+        self.assertEqual(_classify_chunk(chunk), "heavy")
+
+    def test_many_backslash_commands_is_heavy(self):
+        chunk = "Short text. $\\mathbb{E}[X] = \\sum_{x} x \\mathbb{P}(X = x) \\cdot \\int f(x)$."
+        self.assertEqual(_classify_chunk(chunk), "heavy")
+
+    def test_begin_environment_is_always_heavy_regardless_of_ratio(self):
+        chunk = "Short lead-in. $\\begin{align} x &= 1 \\end{align}$"
+        self.assertEqual(_classify_chunk(chunk), "heavy")
+```
+
+- [ ] **Step 2: Run to verify they fail**
+
+Run: `python -m pytest tests/test_audio_generator_narrate.py -k Classify -v`
+Expected: FAIL with `ImportError: cannot import name '_classify_chunk'`.
+
+- [ ] **Step 3: Implement the classifier**
+
+In `audio_generator/narrate.py`, add (near the existing pattern constants):
+
+```python
+_LATEX_SPAN_PATTERN = re.compile(r"\$\$[^\$]+\$\$|\$[^\$]+\$")
+_LATEX_COMMAND_PATTERN = re.compile(r"\\[a-zA-Z]+")
+_LATEX_ENV_PATTERN = re.compile(r"\\begin\{[^}]+\}")
+# Greek letters + common math-operator/arrow ranges, for notation typed as
+# literal Unicode rather than LaTeX (e.g. "the parameter α" in prose).
+_MATH_UNICODE_PATTERN = re.compile("[\u0370-\u03ff\u2190-\u21ff\u2200-\u22ff]")
+
+AUDIOGEN_NARRATE_MATH_RATIO_THRESHOLD = float(os.environ.get("AUDIOGEN_NARRATE_MATH_RATIO_THRESHOLD", "0.15"))
+AUDIOGEN_NARRATE_MATH_COMMAND_THRESHOLD = int(os.environ.get("AUDIOGEN_NARRATE_MATH_COMMAND_THRESHOLD", "3"))
+
+
+def _classify_chunk(chunk: str) -> str:
+    """Returns "skip" | "light" | "heavy" (spec §3.1 v3) -- thresholds are
+    a starting guess, flagged in spec §9 for empirical tuning."""
+    spans = _LATEX_SPAN_PATTERN.findall(chunk)
+    if not spans and not _MATH_UNICODE_PATTERN.search(chunk):
+        return "skip"
+    if _LATEX_ENV_PATTERN.search(chunk):
+        return "heavy"
+    ratio = sum(len(s) for s in spans) / len(chunk) if chunk else 0.0
+    command_count = len(_LATEX_COMMAND_PATTERN.findall(chunk))
+    if ratio >= AUDIOGEN_NARRATE_MATH_RATIO_THRESHOLD or command_count >= AUDIOGEN_NARRATE_MATH_COMMAND_THRESHOLD:
+        return "heavy"
+    return "light"
+```
+
+- [ ] **Step 4: Run to verify the classifier tests pass**
+
+Run: `python -m pytest tests/test_audio_generator_narrate.py -k Classify -v`
+Expected: PASS (6 tests).
+
+- [ ] **Step 5: Write the failing `_call_gemini` tests**
+
+Add to `tests/test_audio_generator_narrate.py` (new imports:
+`from unittest.mock import MagicMock, patch` (extend existing import),
+`from audio_generator.narrate import _call_gemini`):
+
+```python
+class TestCallGemini(unittest.TestCase):
+    def test_returns_response_text_on_success(self):
+        client = MagicMock()
+        client.models.generate_content.return_value = MagicMock(text="A rewritten passage.")
+        result = _call_gemini("prompt", "gemini-3.1-flash-lite", client)
+        self.assertEqual(result, "A rewritten passage.")
+
+    def test_passes_the_given_model_and_prompt(self):
+        client = MagicMock()
+        client.models.generate_content.return_value = MagicMock(text="response")
+        _call_gemini("my specific prompt", "gemini-2.5-flash", client)
+        kwargs = client.models.generate_content.call_args.kwargs
+        self.assertEqual(kwargs["model"], "gemini-2.5-flash")
+        self.assertEqual(kwargs["contents"], "my specific prompt")
+
+    def test_returns_none_when_call_with_retries_raises(self):
+        client = MagicMock()
+        with patch("audio_generator.narrate.call_with_retries", side_effect=Exception("quota exceeded")):
+            result = _call_gemini("prompt", "gemini-3.1-flash-lite", client)
+        self.assertIsNone(result)
+```
+
+- [ ] **Step 6: Run to verify they fail, then implement `_call_gemini`**
+
+Run: `python -m pytest tests/test_audio_generator_narrate.py -k CallGemini -v`
+Expected: FAIL with `ImportError`.
+
+In `audio_generator/narrate.py`, replace the `common.ollama_utils` import
+and add:
+
+```python
+from common.gemini_utils import call_with_retries, get_gemini_client, load_dotenv_override
+
+AUDIOGEN_NARRATE_GEMINI_LIGHT_MODEL = os.environ.get("AUDIOGEN_NARRATE_GEMINI_LIGHT_MODEL", "gemini-3.1-flash-lite")
+AUDIOGEN_NARRATE_GEMINI_HEAVY_MODEL = os.environ.get("AUDIOGEN_NARRATE_GEMINI_HEAVY_MODEL", "gemini-2.5-flash")
+_TIER_MODELS = {"light": AUDIOGEN_NARRATE_GEMINI_LIGHT_MODEL, "heavy": AUDIOGEN_NARRATE_GEMINI_HEAVY_MODEL}
+
+
+def _call_gemini(prompt: str, model: str, client) -> str | None:
+    """Mirrors viz/llm_fallback.py's _call_gemini exactly -- relies on
+    common.gemini_utils.call_with_retries for transient-failure retry/
+    backoff, the same mechanism every other Gemini call in this project
+    already uses. Returns None only once retries are exhausted, never
+    raises."""
+    try:
+        response = call_with_retries(lambda: client.models.generate_content(
+            model=model, contents=prompt, config={"temperature": 0.2},
+        ))
+        return (response.text or "").strip()
+    except Exception as err:
+        print(f"WARNING: Gemini call to model '{model}' failed after retries ({err})")
+        return None
+```
+
+Run: `python -m pytest tests/test_audio_generator_narrate.py -k CallGemini -v`
+Expected: PASS (3 tests).
+
+- [ ] **Step 7: Update the existing chunking/retry tests for the Gemini backend**
+
+Replace every `@patch("audio_generator.narrate.call_ollama")` test in
+`TestNarrateForSpeechChunking`/`TestNarrateForSpeechRetryAndFallback` with
+the Gemini-client-shaped equivalent. Pattern for each (illustrated on two
+representative cases -- apply the same shape to the rest):
+
+```python
+from unittest.mock import MagicMock, patch
+
+class TestNarrateForSpeechChunking(unittest.TestCase):
+    @patch("audio_generator.narrate.get_gemini_client")
+    @patch("audio_generator.narrate.load_dotenv_override")
+    def test_calls_gemini_once_per_paragraph_when_short(self, mock_dotenv, mock_get_client):
+        client = MagicMock()
+        client.models.generate_content.return_value = MagicMock(
+            text="A rewritten sentence long enough to pass the sanity check easily here.",
+        )
+        mock_get_client.return_value = client
+        md_text = "First short paragraph with $x$.\n\nSecond short paragraph with $y$."
+        narrate_for_speech(md_text)
+        self.assertEqual(client.models.generate_content.call_count, 1)
+
+    @patch("audio_generator.narrate.get_gemini_client")
+    @patch("audio_generator.narrate.load_dotenv_override")
+    def test_no_client_falls_back_to_unmodified_text(self, mock_dotenv, mock_get_client):
+        mock_get_client.return_value = None  # missing/invalid GEMINI_API_KEY
+        original = "Some text with $E[X]$ in it that needs a client to rewrite."
+        result = narrate_for_speech(original)
+        self.assertEqual(result, original)
+```
+
+Notes for the remaining cases:
+- The old "code block never reaches the LLM" test still applies unchanged
+  (that check happens before `_narrate_chunk` is ever called) — just
+  update its `@patch` target the same way.
+- The old `OLLAMA_TIMEOUT`-retry-then-succeed/-then-fall-back tests
+  **do not have a direct v3 equivalent** — `call_with_retries` (Step 6)
+  now owns all transient-failure retries internally, so `narrate.py`
+  itself no longer retries. Replace those two tests with: (a) a
+  `_narrate_chunk`-level test that a too-short response is *not* retried a
+  second time by `narrate.py` (`client.models.generate_content.call_count == 1`
+  even though the sanity check fails), and (b) keep one success-path test
+  and one `_call_gemini`-raises-so-narrate-falls-back test (already
+  covered by Step 5's `TestCallGemini`, but add one at the
+  `narrate_for_speech` level too for end-to-end coverage).
+- Every test's input text must contain at least one `$...$` span (or
+  Greek-letter Unicode) — otherwise `_classify_chunk` returns `"skip"` and
+  `generate_content` is never called at all, which would make these tests
+  assert the wrong thing.
+
+- [ ] **Step 8: Implement the tiered `_narrate_chunk` and updated `narrate_for_speech`**
+
+In `audio_generator/narrate.py`:
+
+```python
+def _narrate_chunk(chunk: str, client) -> str:
+    """Rewrites one chunk via the tier-appropriate Gemini model (spec
+    §3.1 v3). No local fallback if client is None or the call fails --
+    just the chunk's original, unmodified text, exactly as v2 behaved on
+    an unreachable server."""
+    tier = _classify_chunk(chunk)
+    if tier == "skip" or client is None:
+        return chunk
+    prompt = _PROMPT_TEMPLATE.format(chunk=chunk)
+    result = _call_gemini(prompt, _TIER_MODELS[tier], client)
+    if result is not None and _passes_sanity_check(chunk, result):
+        return result
+    return chunk
+
+
+def narrate_for_speech(md_text: str) -> str:
+    """Entry point pipeline.py calls first, on raw .md text, before
+    cleaner.clean_markdown_for_speech() (spec §3.1). Builds one Gemini
+    client per file (not per chunk) -- get_gemini_client() is cheap
+    (no network call itself), and this keeps pipeline.py's call site
+    completely unchanged from v2."""
+    load_dotenv_override()
+    client = get_gemini_client()
+    chunks = _group_into_chunks(_split_into_pieces(md_text))
+    narrated = [
+        chunk if _CODE_BLOCK_PATTERN.fullmatch(chunk) else _narrate_chunk(chunk, client)
+        for chunk in chunks
+    ]
+    return "\n\n".join(narrated)
+```
+
+Remove the old `AUDIOGEN_NARRATE_OLLAMA_MODEL`/
+`AUDIOGEN_NARRATE_OLLAMA_TIMEOUT_SECONDS` constants and the
+`from common.ollama_utils import call_ollama` import entirely -- v3 has
+no local-Ollama code path (spec §3.1 v3, dropped by design).
+
+- [ ] **Step 9: Run the full narrate test suite**
+
+Run: `python -m pytest tests/test_audio_generator_narrate.py -v`
+Expected: PASS (all tests, updated + new).
+
+- [ ] **Step 10: Update the README's LaTeX narration section**
+
+In `audio_generator/README.md`, replace the existing "LaTeX narration"
+subsection (added in Task 8 Step 5) with one documenting: the three tiers
+and their default models (`gemini-3.1-flash-lite`/`gemini-2.5-flash`),
+that `GEMINI_API_KEY` must be set in `ai-sandbox/.env` (point to
+`../.env.example`, matching every other Gemini-calling subproject's own
+README convention), that a missing/invalid key degrades gracefully to
+raw-LaTeX-passthrough rather than failing the batch, and the four
+overridable env vars (`AUDIOGEN_NARRATE_MATH_RATIO_THRESHOLD`,
+`AUDIOGEN_NARRATE_MATH_COMMAND_THRESHOLD`,
+`AUDIOGEN_NARRATE_GEMINI_LIGHT_MODEL`, `AUDIOGEN_NARRATE_GEMINI_HEAVY_MODEL`).
+
+- [ ] **Step 11: Real verification against the actual equation-dense file**
+
+Same file as Task 8 Step 6
+(`../academic-hub/academic_notes/math-camp/ta_notes/processed_outputs/LN_Probability.md`),
+but timing the Gemini-backed path this time -- expected to be dramatically
+faster than v2's measured ~6h, but that's an expectation, not yet a
+number (spec §9). Requires `GEMINI_API_KEY` set in `ai-sandbox/.env`.
+
+```python
+# Run via: PYTHONPATH=<academic-rag-model dir> ./.venv/Scripts/python.exe this_script.py
+import time
+
+from audio_generator.narrate import narrate_for_speech
+
+with open("../academic-hub/academic_notes/math-camp/ta_notes/processed_outputs/LN_Probability.md", "r", encoding="utf-8") as f:
+    md_text = f.read()
+
+start = time.monotonic()
+result = narrate_for_speech(md_text)
+elapsed = time.monotonic() - start
+print(f"Input: {len(md_text)} chars. Output: {len(result)} chars. Elapsed: {elapsed:.1f}s ({elapsed / 60:.1f} min).")
+```
+
+Report the real elapsed time, and record it in spec §9 (the "NEW (v3):
+real API timing and per-file cost are unmeasured" bullet) alongside a
+rough cost estimate from the actual input/output character counts at
+`gemini-3.1-flash-lite`/`gemini-2.5-flash`'s per-token pricing.
+
+- [ ] **Step 12: Commit**
+
+```bash
+git add audio_generator/narrate.py audio_generator/README.md tests/test_audio_generator_narrate.py
+git commit -m "$(cat <<'EOF'
+feat(audio_generator): replace local Ollama narration with tiered Gemini API
+
+v2's local qwen2-math:7b rewrite measured at ~6h for one equation-dense
+file (Task 8 Step 6) -- impractical for real batch use. narrate.py now
+classifies each chunk (skip/light/heavy by LaTeX density) and routes
+light chunks to gemini-3.1-flash-lite, heavy chunks to gemini-2.5-flash,
+via this project's existing common/gemini_utils.py (already used by
+indexer/, viz/, textbook/) -- no new dependency. No-math chunks make zero
+API calls. narrate_for_speech()'s signature is unchanged, so pipeline.py
+needed no code changes. Drops the local-Ollama fallback entirely: a
+missing/invalid GEMINI_API_KEY now degrades straight to cleaner.py's
+regex wrap, same as any other failed rewrite.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01BaWkFCR7CdMinG5BxgB6uu
+EOF
+)"
+```
+
+---
+
+### Task 10: Section-aware episode splitting for `notes` (spec §3.2)
+
+**Why:** running v3 end-to-end against the real `LN_Probability.md`
+(outside this plan's tests, as a manual demo) produced a correct but
+impractical 3h22m single MP3. This task splits a long note into multiple
+episodes targeting 10-20 minutes each, using a real measured
+chars-per-minute calibration (969, from that same 202.5-minute run)
+rather than a fixed header depth. Scoped to `notes` only — `textbook`
+chapter-reuse (`chapter_index.py`) is a separate, unstarted investigation
+(spec §9).
+
+**Files:**
+- Create: `audio_generator/sections.py`
+- Modify: `audio_generator/pipeline.py`
+- Modify: `audio_generator/state.py`
+- Modify: `audio_generator/README.md`
+- Test: `tests/test_sections.py` (new — no existing `test_sections.py` in
+  the flat `tests/` dir, confirmed before picking this name)
+
+**Interfaces:**
+- Produces: `Section`/`NarratedSection`/`Episode` dataclasses;
+  `split_into_sections(md_text: str) -> list[Section]`;
+  `narrate_sections(sections: list[Section]) -> list[NarratedSection]`
+  (thin wrapper reusing `narrate.narrate_for_speech`/
+  `cleaner.clean_markdown_for_speech`, unchanged);
+  `group_sections_into_episodes(narrated_sections, chars_per_minute=..., target_min_minutes=10, target_max_minutes=20) -> list[Episode]`.
+- Consumes (in `pipeline.py`): all of the above, plus the existing
+  `state.py` functions (extended, see Step 6).
+
+- [ ] **Step 1: Write the failing `split_into_sections` tests**
+
+Create `tests/test_sections.py`:
+
+```python
+import unittest
+
+from audio_generator.sections import Section, split_into_sections
+
+
+class TestSplitIntoSections(unittest.TestCase):
+    def test_no_headers_produces_one_titleless_section(self):
+        sections = split_into_sections("Just plain prose, no headers here at all.")
+        self.assertEqual(len(sections), 1)
+        self.assertIsNone(sections[0].title)
+        self.assertIn("Just plain prose", sections[0].body)
+
+    def test_splits_at_every_header_level(self):
+        md = "# Chapter One\nBody one.\n\n## 1.1 Subsection\nBody two.\n\n# Chapter Two\nBody three."
+        sections = split_into_sections(md)
+        self.assertEqual([s.title for s in sections], ["Chapter One", "1.1 Subsection", "Chapter Two"])
+
+    def test_content_before_first_header_becomes_titleless_leading_section(self):
+        md = "Some preamble text.\n\n# First Real Header\nBody."
+        sections = split_into_sections(md)
+        self.assertEqual(len(sections), 2)
+        self.assertIsNone(sections[0].title)
+        self.assertIn("preamble", sections[0].body)
+        self.assertEqual(sections[1].title, "First Real Header")
+
+    def test_body_excludes_the_header_line_itself(self):
+        md = "# A Title\nThe body text."
+        sections = split_into_sections(md)
+        self.assertNotIn("# A Title", sections[0].body)
+        self.assertIn("The body text.", sections[0].body)
+
+    def test_a_section_body_runs_up_to_but_not_into_the_next_header(self):
+        md = "# One\nBody one.\n\n# Two\nBody two."
+        sections = split_into_sections(md)
+        self.assertNotIn("Two", sections[0].body)
+```
+
+- [ ] **Step 2: Run to verify they fail**
+
+Run: `python -m pytest tests/test_sections.py -v`
+Expected: FAIL with `ModuleNotFoundError: No module named 'audio_generator.sections'`.
+
+- [ ] **Step 3: Implement `split_into_sections`**
+
+Create `audio_generator/sections.py`:
+
+```python
+"""
+sections.py
+Section-aware episode splitting for audio_generator (spec §3.2): splits a
+raw .md at every header level, narrates/cleans each section independently
+(reusing narrate.py/cleaner.py completely unchanged), then groups
+consecutive sections into episodes targeting a real, measured listening
+length instead of one unbounded MP3 per source file. notes content type
+only -- textbook has its own separate, PDF-anchored chapter-boundary
+system (textbook/chapter_index.py) worth investigating for reuse instead
+of duplicating this header-based approach (spec §9).
+"""
+from __future__ import annotations
+
+import os
+import re
+from dataclasses import dataclass, field
+
+from audio_generator.cleaner import clean_markdown_for_speech
+from audio_generator.narrate import narrate_for_speech
+
+AUDIOGEN_SECTIONS_CHARS_PER_MINUTE = int(os.environ.get("AUDIOGEN_SECTIONS_CHARS_PER_MINUTE", "969"))
+AUDIOGEN_SECTIONS_TARGET_MIN_MINUTES = int(os.environ.get("AUDIOGEN_SECTIONS_TARGET_MIN_MINUTES", "10"))
+AUDIOGEN_SECTIONS_TARGET_MAX_MINUTES = int(os.environ.get("AUDIOGEN_SECTIONS_TARGET_MAX_MINUTES", "20"))
+
+_HEADER_PATTERN = re.compile(r"^(#{1,6})[ \t]+(.+)$", re.MULTILINE)
+
+
+@dataclass
+class Section:
+    title: str | None  # None for content before the first header
+    body: str  # raw markdown, header line itself excluded
+
+
+@dataclass
+class NarratedSection:
+    title: str  # already narrated+cleaned; "" if the section had no title
+    text: str  # already narrated+cleaned body
+
+
+@dataclass
+class Episode:
+    text: str  # concatenated title+body for every section in this episode
+    section_titles: list[str] = field(default_factory=list)
+
+
+def split_into_sections(md_text: str) -> list[Section]:
+    """Splits raw markdown at every ATX header line, any depth (spec
+    §3.2 -- grouping, not header depth, controls final output length)."""
+    matches = list(_HEADER_PATTERN.finditer(md_text))
+    if not matches:
+        return [Section(title=None, body=md_text)]
+
+    sections: list[Section] = []
+    if matches[0].start() > 0 and md_text[:matches[0].start()].strip():
+        sections.append(Section(title=None, body=md_text[:matches[0].start()]))
+
+    for i, match in enumerate(matches):
+        start = match.end()
+        end = matches[i + 1].start() if i + 1 < len(matches) else len(md_text)
+        sections.append(Section(title=match.group(2).strip(), body=md_text[start:end]))
+    return sections
+```
+
+- [ ] **Step 4: Run to verify the section-splitting tests pass**
+
+Run: `python -m pytest tests/test_sections.py -v`
+Expected: PASS (5 tests).
+
+- [ ] **Step 5: Write the failing `group_sections_into_episodes` tests, then implement it**
+
+Add to `tests/test_sections.py`:
+
+```python
+from audio_generator.sections import Episode, NarratedSection, group_sections_into_episodes
+
+
+def _narrated(title: str, char_count: int) -> NarratedSection:
+    return NarratedSection(title=title, text="x" * char_count)
+
+
+class TestGroupSectionsIntoEpisodes(unittest.TestCase):
+    def test_short_sections_are_grouped_into_one_episode(self):
+        sections = [_narrated("A", 1000), _narrated("B", 1000)]
+        episodes = group_sections_into_episodes(sections, chars_per_minute=1000, target_min_minutes=10, target_max_minutes=20)
+        self.assertEqual(len(episodes), 1)
+
+    def test_stops_grouping_once_the_minimum_is_met_and_the_max_would_be_exceeded(self):
+        # chars_per_minute=1000, min=10min (10000 chars), max=20min (20000 chars).
+        # First section alone hits the minimum; a second big section would blow past the max.
+        sections = [_narrated("A", 11000), _narrated("B", 15000)]
+        episodes = group_sections_into_episodes(sections, chars_per_minute=1000, target_min_minutes=10, target_max_minutes=20)
+        self.assertEqual(len(episodes), 2)
+        self.assertEqual(episodes[0].section_titles, ["A"])
+        self.assertEqual(episodes[1].section_titles, ["B"])
+
+    def test_keeps_grouping_past_the_max_if_the_minimum_has_not_yet_been_met(self):
+        # A single section far exceeding target-max, on its own, still becomes one episode
+        # (never split inside a section -- spec §3.2).
+        sections = [_narrated("Huge", 50000)]
+        episodes = group_sections_into_episodes(sections, chars_per_minute=1000, target_min_minutes=10, target_max_minutes=20)
+        self.assertEqual(len(episodes), 1)
+        self.assertEqual(episodes[0].section_titles, ["Huge"])
+
+    def test_preserves_section_order_within_and_across_episodes(self):
+        sections = [_narrated("A", 500), _narrated("B", 500), _narrated("C", 30000)]
+        episodes = group_sections_into_episodes(sections, chars_per_minute=1000, target_min_minutes=10, target_max_minutes=20)
+        all_titles = [t for ep in episodes for t in ep.section_titles]
+        self.assertEqual(all_titles, ["A", "B", "C"])
+```
+
+Run: `python -m pytest tests/test_sections.py -k Group -v`
+Expected: FAIL with `ImportError`.
+
+In `audio_generator/sections.py`, add:
+
+```python
+def narrate_sections(sections: list[Section]) -> list[NarratedSection]:
+    """Narrates and cleans each section's body independently, reusing
+    narrate.py/cleaner.py completely unchanged (spec §3.2). A section's
+    title is cleaned (regex-only, no LLM call -- titles are short and
+    essentially never equation-dense) but never sent through
+    narrate_for_speech(): headers must be resolved before any text reaches
+    the LLM, not recovered from its output."""
+    result = []
+    for section in sections:
+        title = clean_markdown_for_speech(section.title) if section.title else ""
+        text = clean_markdown_for_speech(narrate_for_speech(section.body))
+        result.append(NarratedSection(title=title, text=text))
+    return result
+
+
+def _episode_text(parts: list[NarratedSection]) -> str:
+    pieces = [f"{p.title}. {p.text}".strip() if p.title else p.text for p in parts if p.title or p.text]
+    return "\n\n".join(pieces)
+
+
+def group_sections_into_episodes(
+    narrated_sections: list[NarratedSection],
+    chars_per_minute: int = AUDIOGEN_SECTIONS_CHARS_PER_MINUTE,
+    target_min_minutes: int = AUDIOGEN_SECTIONS_TARGET_MIN_MINUTES,
+    target_max_minutes: int = AUDIOGEN_SECTIONS_TARGET_MAX_MINUTES,
+) -> list[Episode]:
+    """Greedily groups consecutive sections (order preserved) into
+    episodes targeting a [target_min_minutes, target_max_minutes] band of
+    resulting audio, using chars_per_minute as the (real, measured --
+    spec §3.2) conversion. A section already past target_min on its own
+    is never merged with the next if that would exceed target_max; a
+    section that hasn't yet reached target_min is merged regardless of
+    target_max, so a single section longer than target_max on its own
+    still becomes its own (over-length) episode -- this never splits
+    inside one section (spec §3.2, flagged §9 as a known limitation)."""
+    min_chars = chars_per_minute * target_min_minutes
+    max_chars = chars_per_minute * target_max_minutes
+
+    episodes: list[Episode] = []
+    current: list[NarratedSection] = []
+    current_len = 0
+    for section in narrated_sections:
+        section_len = len(section.title) + len(section.text)
+        if current and current_len >= min_chars and current_len + section_len > max_chars:
+            episodes.append(Episode(text=_episode_text(current), section_titles=[s.title for s in current if s.title]))
+            current, current_len = [], 0
+        current.append(section)
+        current_len += section_len
+    if current:
+        episodes.append(Episode(text=_episode_text(current), section_titles=[s.title for s in current if s.title]))
+    return episodes
+```
+
+- [ ] **Step 6: Run to verify all of `test_sections.py` passes**
+
+Run: `python -m pytest tests/test_sections.py -v`
+Expected: PASS (9 tests).
+
+- [ ] **Step 7: Extend `state.py` for per-episode idempotency**
+
+**Files:** Modify `audio_generator/state.py`, `tests/test_state.py`.
+
+State keys change shape from `rel_md_path` to `f"{rel_md_path}::part{NN:02d}"`
+(zero-padded), but the value is still just the *whole source file's*
+content hash (spec §3.2's deliberate simplification — a change anywhere
+in the source regenerates every part for that file, not just the changed
+one). Add a small helper so `pipeline.py` doesn't hand-format this key
+inline in two places:
+
+```python
+def episode_state_key(rel_md_path: str, part_number: int) -> str:
+    """part_number is 1-indexed, matching the __partNN filename suffix."""
+    return f"{rel_md_path}::part{part_number:02d}"
+```
+
+Add one test asserting the exact zero-padded format
+(`episode_state_key("a/b.md", 1) == "a/b.md::part01"`,
+`episode_state_key("a/b.md", 12) == "a/b.md::part12"`). `needs_regeneration()`
+and `compute_content_hash()` need no changes — they're already generic
+over whatever key/path is passed in.
+
+- [ ] **Step 8: Update `pipeline.py`'s `run_pipeline()` for `notes` content**
+
+This step only changes behavior for `content_type == "notes"` —
+`textbook` sources keep today's exact one-file-one-MP3 path unchanged
+(spec §3.2's scope).
+
+```python
+from audio_generator.sections import group_sections_into_episodes, narrate_sections, split_into_sections
+from audio_generator.state import episode_state_key
+
+def _run_notes_source(source, state, engine, summary):
+    current_hash = compute_content_hash(source.abs_md_path)
+    with open(source.abs_md_path, "r", encoding="utf-8") as f:
+        md_text = f.read()
+
+    sections = split_into_sections(md_text)
+    narrated_sections = narrate_sections(sections)
+    episodes = group_sections_into_episodes(narrated_sections)
+
+    base, _ext = os.path.splitext(source.abs_md_path)
+    for i, episode in enumerate(episodes, start=1):
+        key = episode_state_key(source.rel_md_path, i)
+        abs_mp3_path = f"{base}__part{i:02d}.mp3"
+        # needs_regeneration() takes a SourceFile for its .abs_mp3_path check --
+        # build a lightweight stand-in with this episode's actual output path.
+        episode_source = replace(source, abs_mp3_path=abs_mp3_path, rel_md_path=key)
+        if not needs_regeneration(state, episode_source, current_hash):
+            summary["skipped_unchanged"] += 1
+            continue
+        if not episode.text:
+            summary["skipped_empty"] += 1
+            continue
+        try:
+            synthesize_speech(episode.text, abs_mp3_path, engine=engine)
+        except Exception as err:
+            print(f"WARNING: failed to synthesize {key}: {err}")
+            summary["failed"] += 1
+            continue
+        with open(f"{base}__part{i:02d}.narrated.md", "w", encoding="utf-8") as f:
+            f.write(episode.text)
+        state[key] = current_hash
+        summary["generated"] += 1
+
+    _write_index_manifest(base, episodes)
+```
+
+(`replace` is `dataclasses.replace` — `SourceFile` is already a
+`@dataclass`, Task 2. `_write_index_manifest(base, episodes)` writes
+`f"{base}__index.md"`, a plain table of part number -> included section
+titles -> estimated duration in minutes, from `len(episode.text) /
+AUDIOGEN_SECTIONS_CHARS_PER_MINUTE`.) Wire `_run_notes_source` into
+`run_pipeline()`'s existing loop, branching on `source.content_type ==
+"notes"` vs. the unchanged `textbook` path.
+
+- [ ] **Step 9: Write/update `tests/test_audio_generator_pipeline.py` for the new notes path**
+
+Cover: a short single-section note still produces exactly one
+`__part01.mp3` (no behavior change for short notes); a note with enough
+header-delimited content to span two episodes produces `__part01.mp3` and
+`__part02.mp3`; re-running with no source change skips all parts; editing
+the source regenerates all parts (the documented simplification, spec
+§3.2); `__index.md` lists the right section titles per part; `textbook`
+sources are completely unaffected (still exactly one `<name>.mp3`, no
+`__partNN` suffix).
+
+- [ ] **Step 10: Update discovery.py's exclusion check if needed**
+
+Confirm (test, don't just assume) that `_is_real_md_file()`'s existing
+`.narrated.md` exclusion (Task 6) already covers `<name>__part01.narrated.md`
+and `<name>__index.md` — both end in `.md` and need to stay excluded from
+the next run's source discovery. Add a test if the existing suffix check
+doesn't already generalize correctly.
+
+- [ ] **Step 11: Update the README**
+
+Document the `notes`-only episode-splitting behavior, the three new env
+vars (`AUDIOGEN_SECTIONS_CHARS_PER_MINUTE`, `_TARGET_MIN_MINUTES`,
+`_TARGET_MAX_MINUTES`), the `__partNN.mp3`/`__index.md` output shape, and
+that existing single-file `<name>.mp3`/`<name>.narrated.md` outputs from
+before this revision become orphaned (not auto-deleted or migrated).
+
+- [x] **Step 12: Real verification against `LN_Probability.md`**
+
+**Done, 2026-09-09.** Two real end-to-end runs were needed, not one — the
+first surfaced a real concurrency bug (below), fixed before the second,
+final run.
+
+**Run 1 (pre-fix):** the initial `narrate_sections()` implementation
+called `narrate_for_speech()` once per section in a sequential loop.
+Real-world timing exposed why that's wrong: each call had its own
+internal concurrency across that section's chunks, but sections were
+processed one after another, confining parallelism to one section's
+batch at a time — a document with many small sections (this file has 74)
+ends up *slower* than the original whole-file design, not faster. Fixed
+by exposing `narrate.chunk_for_narration()`/`narrate.narrate_chunks()` as
+public functions and flattening every section's chunks into one list
+before a single shared dispatch (commit `fb6fd8d`) — fully
+backward-compatible, all 20 existing `narrate.py` tests passed unchanged.
+Episode-level TTS synthesis was parallelized the same pass
+(`AUDIOGEN_SECTIONS_SYNTH_MAX_WORKERS`, default 3).
+
+**Run 2 (post-fix, final numbers):**
+- Narration: **227.1s (3.8 min)** for 74 header-delimited sections (down
+  from 777.3s/13.0 min for the old single-whole-file v3 measurement).
+- Grouped into **9 episodes**.
+- Synthesis: **1165.3s (19.4 min) wall-clock** across 3 concurrent Piper
+  workers (vs. 3353.0s/55.9 min summed sequentially — ~2.9x speedup).
+- **Total: 1392.5s (23.2 min) end to end.**
+- `__index.md` correctly lists each part's real section titles.
+- **One real limitation confirmed, not a regression:** Part 02 came out
+  at 60,389 chars (~62 min), 3x the 20-minute target — source section
+  "1.5 Probability measures" spans 711 raw lines with zero sub-headers,
+  a genuinely undivided block the algorithm correctly refused to split
+  (spec §3.2's documented "never split inside one section" rule). Spec
+  §9 had flagged this as "expected to be rare" — confirmed real on the
+  very first file tested. **Deliberately left unfixed** — the user wants
+  to listen to the 9 real output files and compare against the source
+  content first, before deciding whether to add paragraph-level fallback
+  splitting for an over-long leaf section.
+
+Full narrative, per-episode breakdown table, and the "this test exercised
+the hard case, not the primary intended use case" scope note:
+`docs/2026-09-09-audio-generator-status.md`.
+
+- [ ] **Step 13: Commit**
+
+```bash
+git add audio_generator/sections.py audio_generator/pipeline.py audio_generator/state.py audio_generator/README.md tests/test_sections.py tests/test_state.py tests/test_audio_generator_pipeline.py
+git commit -m "$(cat <<'EOF'
+feat(audio_generator): add section-aware episode splitting for notes
+
+Running v3's Gemini narration end-to-end against the real
+LN_Probability.md produced a correct but impractical 3h22m single MP3.
+notes sources now split at every header level, narrate/clean each
+section independently, and greedily group consecutive sections into
+10-20 minute episodes using a real measured calibration (969 chars/min,
+from that same 202.5-minute run) -- not a fixed header depth, which real
+inspection showed would still yield 30-60+ minute files for this corpus.
+
+Idempotency tracks per-episode but hashes the whole source file, not
+per-section -- a deliberate simplification (spec §3.2), not the finest-
+grained possible design. textbook content is unaffected -- still one
+MP3 per source file; reusing chapter_index.py's PDF-anchored chapter
+boundaries for textbook is a separate, unstarted investigation.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01BaWkFCR7CdMinG5BxgB6uu
 EOF
 )"
 ```

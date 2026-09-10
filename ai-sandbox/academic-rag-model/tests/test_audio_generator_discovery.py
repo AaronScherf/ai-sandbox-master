@@ -46,6 +46,22 @@ class TestDiscoverNotes(unittest.TestCase):
             self.assertTrue(sources[0].rel_md_path.endswith("real-analysis.md"))
             self.assertFalse(sources[0].rel_md_path.endswith(".narrated.md"))
 
+    def test_excludes_the_per_episode_narrated_md_sibling(self):
+        with tempfile.TemporaryDirectory() as hub:
+            _touch(os.path.join(hub, "academic_notes", "math-camp", "lecture-notes", "real-analysis.md"))
+            _touch(os.path.join(hub, "academic_notes", "math-camp", "lecture-notes", "real-analysis__part01.narrated.md"))
+            sources = discover_source_files(hub, "math-camp", ["notes"])
+            self.assertEqual(len(sources), 1)
+            self.assertTrue(sources[0].rel_md_path.endswith("real-analysis.md"))
+
+    def test_excludes_the_episode_index_manifest(self):
+        with tempfile.TemporaryDirectory() as hub:
+            _touch(os.path.join(hub, "academic_notes", "math-camp", "lecture-notes", "real-analysis.md"))
+            _touch(os.path.join(hub, "academic_notes", "math-camp", "lecture-notes", "real-analysis__index.md"))
+            sources = discover_source_files(hub, "math-camp", ["notes"])
+            self.assertEqual(len(sources), 1)
+            self.assertTrue(sources[0].rel_md_path.endswith("real-analysis.md"))
+
     def test_missing_course_returns_empty_list(self):
         with tempfile.TemporaryDirectory() as hub:
             self.assertEqual(discover_source_files(hub, "nonexistent-course", ["notes"]), [])

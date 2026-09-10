@@ -38,12 +38,15 @@ class SourceFile:
 
 
 def _is_real_md_file(name: str) -> bool:
-    """True for a real source .md -- excludes both the textbook pipeline's
-    `.rag.md` sibling variant and audio_generator's own `.narrated.md`
-    sibling (spec §3.1), each a separate, differently-formatted file that
-    happens to also end in ".md"."""
+    """True for a real source .md -- excludes the textbook pipeline's
+    `.rag.md` sibling variant, audio_generator's own `.narrated.md`
+    sibling (spec §3.1, and its per-episode `__partNN.narrated.md` form,
+    spec §3.2 -- already covered by the same `.narrated.md` suffix check),
+    and the per-episode `__index.md` manifest (spec §3.2) -- each a
+    separate, differently-formatted file that happens to also end in
+    ".md"."""
     lower = name.lower()
-    return lower.endswith(".md") and not lower.endswith((".rag.md", ".narrated.md"))
+    return lower.endswith(".md") and not lower.endswith((".rag.md", ".narrated.md", "__index.md"))
 
 
 def _make_source_file(academic_hub_root: str, course: str, content_type: str, abs_md_path: str) -> SourceFile:
