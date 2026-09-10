@@ -1,14 +1,23 @@
 # Audio Generator — Design Spec
 
 Date: 2026-09-06 (revised 2026-09-07: LLM-based LaTeX narration; revised
-2026-09-09: tiered Gemini API narration, replacing local Ollama)
+2026-09-09: tiered Gemini API narration, replacing local Ollama; revised
+2026-09-09 again: section-aware episode splitting, §3.2)
 Status: v1 implemented and shipped (commits d3adf7a..7cccb14, on `main`).
 The 2026-09-07 local-LLM revision (§3.1 v2) was also implemented and
 shipped (commits e375d2a..83daa83), then measured: real CPU timing on the
 real equation-dense `LN_Probability.md` came back at **~6 hours for one
-file** (§9) — impractical for any real batch use. §3.1 v3 (this revision)
-replaces the local `qwen2-math:7b` call with a tiered Gemini API call,
-approved in brainstorming, not yet planned/implemented.
+file** (§9) — impractical for any real batch use. §3.1 v3 (tiered Gemini
+API narration, replacing local Ollama) was implemented and shipped
+(commits 0795d7f, 92041a2), then measured at **13.0 minutes for the same
+file** (§9) — confirming it's practical. Running v3 end-to-end against the
+real file also surfaced a *new* problem this spec hadn't addressed: the
+resulting single MP3 was **3h22m long** (no length cap, spec §1's original
+non-goal) — technically correct, not actually useful for commute-length
+listening. §3.2 (this revision) adds section-aware episode splitting,
+approved in brainstorming, not yet planned/implemented. Scoped to the
+`notes` content type only — `textbook` chapter-reuse is a separate,
+deferred investigation (§3.2, §9).
 
 ## 1. Problem & goals
 
@@ -57,7 +66,7 @@ This spec designs **`audio_generator`**: a new subproject that converts hub mark
 - **Journal articles.** `research/journal-articles/<field>/processed_outputs/` is a genuinely different shape from the other three content types: it lives in a separate sibling repo (`../research`, not `../academic-hub`) and is organized by academic field, not by `--course`. Rather than bolt on a second, mutually-exclusive scoping key (`--field` alongside `--course`) before the core pipeline is proven, this is deferred as a follow-on (§9).
 - **Auto-triggering as a follow-on pass.** `postprocessing`/`viz` hook into other pipelines' completion; `audio_generator` v1 is manual-CLI-only (§6) to keep the first version simple. Revisit once the manual flow is proven (§9).
 - **Reading image/figure descriptions aloud.** `textbook/describe_images.py` already generates descriptions for diagrams in converted textbook markdown, but wiring `cleaner.py` to find and narrate them is deferred (§9) — v1 silently skips images/figures the same way it skips code blocks.
-- **A length cap on generated audio.** A full textbook chapter or long article becomes one MP3 with no length limit — matches the existing 1:1 sibling-file design (§5). Chapter-splitting is already a deferred follow-on (§9), not a v1 concern.
+- **A length cap on generated audio, for `textbook` content.** A full textbook chapter or long article still becomes one MP3 with no length limit — matches the original 1:1 sibling-file design (§5). (For `notes` content, §3.2's episode-splitting revision replaces the 1:1 assumption entirely — see below; `textbook` chapter-reuse is a separate, deferred investigation, §3.2/§9.)
 
 ## 2. Architecture
 
@@ -289,6 +298,118 @@ established evidence-driven pattern (per `problem_gen`'s own spec).
 — without this, the next pipeline run would discover `<name>.narrated.md` as
 a brand-new source `.md` and generate audio from it too.
 
+## 3.2. Section-aware episode splitting (`sections.py`)
+
+**Why:** running v3 end-to-end against the real `LN_Probability.md`
+produced one continuous, correct MP3 — 3h22m long (§9). No length cap was
+an explicit v1 non-goal (§1), but a real listening test makes clear that
+"technically one file per source note" and "actually useful for a
+commute" are different goals once a note is long enough. This revision
+splits a long note into multiple, shorter **episodes**, each targeting a
+practical listening length, instead of raising or removing the cap.
+
+**Scope: `notes` content type only.** `textbook` content already has a
+separate, more sophisticated chapter-boundary system
+(`textbook/chapter_index.py`, anchored to PDF page numbers/outlines during
+conversion) — reusing that data, if it's preserved anywhere accessible
+after conversion, would likely beat reinventing header-based detection for
+textbook markdown (which may not have the same clean, consistent header
+structure real course notes do). That's a separate investigation, not
+part of this revision (§9).
+
+**Why length-target-driven, not a fixed header level:** an earlier draft
+of this design considered simply splitting at a fixed header depth (e.g.
+always at `#`, or always at `#`+`##`). Real inspection of `LN_Probability.md`
+showed why that's the wrong lever: it has only 4 top-level (`#`) headers,
+each spanning hundreds of lines — splitting only at `#` would still
+produce 30-60+ minute files, not much better than today's single 3h22m
+file. Splitting at every header level regardless of depth, then **grouping**
+consecutive sections by their actual resulting audio length until hitting
+a target duration band, decouples the output length (what a listener
+actually experiences) from how any particular file happens to use
+headers (which varies a lot across a real corpus and isn't something this
+spec should assume).
+
+**Calibration — measured, not guessed:** `LN_Probability.narrated.md`
+(196,109 chars, the real post-narration, post-cleaning text from §3.1 v3's
+real run) produced a 12,148.46s (202.5 min) MP3 via Piper
+(`en_US-lessac-medium`). That's **~969 characters of final text per minute
+of resulting audio** — a real, measured ratio, not an assumed speaking
+rate. `AUDIOGEN_SECTIONS_CHARS_PER_MINUTE` (default `969`) makes this
+overridable, since it's a single data point from one file and one
+engine/voice — flagged in §9 for validation against more files, and it
+will need re-measuring if the default TTS engine/voice ever changes (a
+different Piper voice, or the Kokoro-ONNX engine, likely speaks at a
+different pace).
+
+**Algorithm:**
+1. `split_into_sections(md_text) -> list[Section]` (new module
+   `sections.py`) splits the **raw** `.md` at every ATX header line
+   (`#` through `######`, any depth) — never at `##`/`###` specifically,
+   at *every* header, since grouping (step 3) is what actually controls
+   output length. `Section.title` is the header text (leading `#`s and
+   whitespace stripped); `Section.body` is the raw text from just after
+   that header to just before the next one (or EOF). Content before the
+   first header, if any, becomes a title-less leading `Section`. **A file
+   with no headers at all produces exactly one `Section`** — the whole
+   file — which is exactly today's (pre-this-revision) behavior, so this
+   is a strict superset, not a breaking change for headerless notes.
+2. Each `Section.body` is narrated and cleaned **independently**, reusing
+   `narrate.narrate_for_speech()` and `cleaner.clean_markdown_for_speech()`
+   completely unchanged — same reason `narrate.py` doesn't import
+   `cleaner.py` (§3.1): splitting is a new pipeline-orchestration concern,
+   not a reason to touch either already-tested module. Headers are
+   deliberately **not** included in what gets sent to `narrate_for_speech()`
+   — a header line folded into a chunk `narrate.py` sends to Gemini for
+   "rewrite as spoken prose" is not guaranteed to survive as a clean,
+   literal marker in the response, so section boundaries must be resolved
+   *before* any text reaches the LLM, on the untouched raw source, never
+   recovered from narrated/cleaned output. A section's spoken title is
+   produced separately and cheaply — `cleaner.clean_markdown_for_speech(section.title)`
+   (regex-only, no LLM call — titles are short and essentially never
+   equation-dense) — and prepended to that section's cleaned body.
+3. `group_sections_into_episodes(narrated_sections, target_min_minutes=10, target_max_minutes=20, chars_per_minute=AUDIOGEN_SECTIONS_CHARS_PER_MINUTE) -> list[Episode]`
+   greedily packs consecutive narrated sections (order preserved) until
+   adding the next one would exceed the target-max character equivalent,
+   *unless* the current episode hasn't yet reached the target-min
+   equivalent (in which case it's included anyway — the same
+   floor-then-ceiling shape `narrate.py`'s own `_group_into_chunks` uses,
+   just with a floor as well as a ceiling). **A single section that alone
+   exceeds the target-max on its own becomes its own, over-length episode
+   — this revision never splits *inside* one section.** Expected to be
+   rare (most real course notes subdivide well below 10-20 minutes'
+   worth of text per header), but a genuinely long, headerless chapter
+   would hit this; flagged in §9 as a known limitation, not solved here.
+4. One `synthesize_speech()` call per `Episode`, writing
+   `<name>__part01.mp3`, `<name>__part02.mp3`, etc. (zero-padded,
+   sibling of the source, same directory — §5's existing sibling-output
+   convention, just multiplied). A per-source `<name>__index.md` sibling
+   lists each part's included section titles and estimated duration, for
+   a student to jump to the right part without listening through all of
+   them — a plain-text manifest, not audio metadata (embedding real MP3
+   chapter markers via ID3 tags was considered and deferred as unnecessary
+   complexity for v1).
+
+**Idempotency — a deliberate simplification, not the finest-grained
+possible design:** state tracking moves from one entry per source file to
+one entry per `(rel_md_path, part_index)` pair, but **still keyed off the
+whole file's content hash**, not a per-section hash. A content change
+anywhere in the source regenerates *every* part for that file, even if
+only one section actually changed. This trades some real efficiency for
+avoiding a much harder problem: a per-section hash would need to handle a
+small edit shifting which sections land in which part (since grouping is
+duration-based, not fixed-boundary), which could ripple into every
+downstream part even under finer tracking anyway. Flagged in §9 as a
+possible future refinement, not attempted in this revision — matches this
+project's established pattern of shipping the workable version first.
+
+**What happens to existing single-file `.mp3`/`.narrated.md` outputs from
+before this revision:** they become orphaned (their `rel_md_path` key in
+`state.json` won't match the new `(rel_md_path, part_index)` shape, so
+they're simply never touched again) — not automatically deleted or
+migrated, consistent with the orphaned-MP3-cleanup non-goal already in
+§1/§9. A user can delete them manually.
+
 ## 4. Synthesis Engines (`engine.py`)
 
 - **Piper TTS (Primary):** ~20–60MB, ~10× real-time on CPU. Best for batch processing.
@@ -417,6 +538,33 @@ inside their subproject packages, and note the `tests/test_discovery.py`/
   target volume of 3-4 files/week (~15/month), call it **$1-2/month**.
   Confirms the tiered-API design is practical at the intended volume; the
   local-CPU approach (§1, ~6h/file) is not.
+- **NEW (§3.2): the `AUDIOGEN_SECTIONS_CHARS_PER_MINUTE` calibration
+  (default `969`) is a single real data point** — one file, one Piper
+  voice (`en_US-lessac-medium`). Needs validation against more real files
+  before trusting the 10-20 minute episode target is actually landing
+  where intended, and will need re-measuring if the default engine/voice
+  ever changes (Kokoro-ONNX, or a different Piper voice, likely speaks at
+  a different pace).
+- **NEW (§3.2): idempotency is tracked per-episode but hashed on the
+  whole source file**, not per-section — a deliberate simplification
+  (§3.2 explains the tradeoff) that means any edit anywhere in a source
+  regenerates every episode for that file, not just the one that
+  changed. Revisit only if real usage shows the wasted regeneration
+  matters at the intended volume (a few files/week makes this unlikely to
+  bite in practice).
+- **NEW (§3.2): a single header-delimited section longer than the
+  target-max on its own becomes its own over-length episode** — this
+  revision never splits inside one section. Not expected to be common in
+  practice (most real course notes subdivide well below a 20-minute
+  chunk per header), but unverified against a broad sample of the actual
+  corpus.
+- **NEW (§3.2): `textbook` chapter-splitting reuse is unexplored** —
+  whether `textbook/chapter_index.py`'s PDF-anchored chapter boundaries
+  survive textbook conversion anywhere `audio_generator` could read them
+  (a metadata sidecar, embedded markers in the `.md`, etc.) hasn't been
+  checked. If they don't, `textbook` content would need its own
+  header-based (or other) splitting heuristic, not simply a scope
+  extension of §3.2's `notes`-only design.
 - **NEW (v3): the tier-classifier density thresholds
   (`AUDIOGEN_NARRATE_MATH_RATIO_THRESHOLD`/`_COMMAND_THRESHOLD`, §3.1) are a
   starting guess, not validated values** — needs checking against real
@@ -449,9 +597,14 @@ inside their subproject packages, and note the `tests/test_discovery.py`/
   output where present, instead of silently skipping images (§1 non-goal) —
   first needs checking how/whether those descriptions are actually embedded in
   the `.md` today.
-- **Chapter-level audio splitting:** Automatically splitting long notes/textbook
-  chapters into per-chapter MP3s (using the chunking work already done),
-  instead of one long MP3 per source file (§1 non-goal).
+- **RESOLVED for `notes` (§3.2, this revision):** episode splitting by
+  header-delimited sections, grouped to a 10-20 minute target using a
+  real measured chars-per-minute calibration. **Still open for
+  `textbook`:** reusing `textbook/chapter_index.py`'s existing
+  PDF-anchored chapter-boundary detection, rather than reinventing
+  header-based splitting for textbook markdown, needs its own
+  investigation into whether that boundary data survives conversion
+  anywhere accessible.
 - **In-audio navigation:** Injecting chapter-titles/section-headings via silent-gap injection.
 - **Advanced inflection:** Using a more capable local model for emphasis (if hardware allows).
 - **Orphaned-MP3 cleanup:** if a source `.md` is deleted or renamed, decide whether/how to prune or rename its sibling `.mp3` (§7) — not designed here.
