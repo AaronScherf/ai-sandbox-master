@@ -354,20 +354,36 @@ different pace).
    with no headers at all produces exactly one `Section`** — the whole
    file — which is exactly today's (pre-this-revision) behavior, so this
    is a strict superset, not a breaking change for headerless notes.
-2. Each `Section.body` is narrated and cleaned **independently**, reusing
-   `narrate.narrate_for_speech()` and `cleaner.clean_markdown_for_speech()`
-   completely unchanged — same reason `narrate.py` doesn't import
-   `cleaner.py` (§3.1): splitting is a new pipeline-orchestration concern,
-   not a reason to touch either already-tested module. Headers are
-   deliberately **not** included in what gets sent to `narrate_for_speech()`
-   — a header line folded into a chunk `narrate.py` sends to Gemini for
-   "rewrite as spoken prose" is not guaranteed to survive as a clean,
-   literal marker in the response, so section boundaries must be resolved
-   *before* any text reaches the LLM, on the untouched raw source, never
-   recovered from narrated/cleaned output. A section's spoken title is
-   produced separately and cheaply — `cleaner.clean_markdown_for_speech(section.title)`
+2. Every `Section.body` is chunked (reusing `narrate.py`'s existing
+   paragraph/code-block-aware chunking, exposed as `narrate.chunk_for_narration()`),
+   and **every section's chunks are flattened into one list before
+   narrating anything** — dispatched through a single shared
+   `narrate.narrate_chunks()` call (one client, one concurrency budget for
+   the *whole document*), not one `narrate_for_speech()` call per section.
+   The first working version of this design did call
+   `narrate_for_speech()` per section in a loop; each call had its own
+   internal concurrency across that section's chunks, but sections were
+   still processed one after another, confining each section's
+   parallelism to its own separate, serialized batch — a document with
+   many small sections would have ended up *slower* than the original
+   whole-file design, not faster. Flattening first and dispatching once
+   fixes this: `narrate_chunks()`'s results are regrouped back into
+   per-section text by position afterward (order-preserving, the same
+   guarantee it already provides for individual chunks — §3.1). Headers
+   are deliberately **not** included in what gets flattened and sent to
+   Gemini — a header line folded into a chunk sent for "rewrite as spoken
+   prose" is not guaranteed to survive as a clean, literal marker in the
+   response, so section boundaries must be resolved *before* any text
+   reaches the LLM, on the untouched raw source, never recovered from
+   narrated/cleaned output. A section's spoken title is produced
+   separately and cheaply — `cleaner.clean_markdown_for_speech(section.title)`
    (regex-only, no LLM call — titles are short and essentially never
-   equation-dense) — and prepended to that section's cleaned body.
+   equation-dense) — and prepended to that section's cleaned body. Each
+   section's regrouped, narrated body is then cleaned via
+   `cleaner.clean_markdown_for_speech()`, completely unchanged — same
+   reason `narrate.py` doesn't import `cleaner.py` (§3.1): splitting is a
+   pipeline-orchestration concern, not a reason to touch either
+   already-tested module.
 3. `group_sections_into_episodes(narrated_sections, target_min_minutes=10, target_max_minutes=20, chars_per_minute=AUDIOGEN_SECTIONS_CHARS_PER_MINUTE) -> list[Episode]`
    greedily packs consecutive narrated sections (order preserved) until
    adding the next one would exceed the target-max character equivalent,
@@ -383,12 +399,19 @@ different pace).
 4. One `synthesize_speech()` call per `Episode`, writing
    `<name>__part01.mp3`, `<name>__part02.mp3`, etc. (zero-padded,
    sibling of the source, same directory — §5's existing sibling-output
-   convention, just multiplied). A per-source `<name>__index.md` sibling
-   lists each part's included section titles and estimated duration, for
-   a student to jump to the right part without listening through all of
-   them — a plain-text manifest, not audio metadata (embedding real MP3
-   chapter markers via ID3 tags was considered and deferred as unnecessary
-   complexity for v1).
+   convention, just multiplied). These calls also run **concurrently**
+   (`AUDIOGEN_SECTIONS_SYNTH_MAX_WORKERS`, default 3 — lower than
+   narration's default since TTS is CPU-bound, not network-bound, so more
+   threads than spare cores would add contention rather than speed), each
+   in its own worker thread that returns a plain outcome value rather than
+   mutating the pipeline's shared summary/state dicts directly — those are
+   only ever written back on the main thread once every worker completes,
+   avoiding a real lost-update race on concurrent dict increments. A
+   per-source `<name>__index.md` sibling lists each part's included
+   section titles and estimated duration, for a student to jump to the
+   right part without listening through all of them — a plain-text
+   manifest, not audio metadata (embedding real MP3 chapter markers via
+   ID3 tags was considered and deferred as unnecessary complexity for v1).
 
 **Idempotency — a deliberate simplification, not the finest-grained
 possible design:** state tracking moves from one entry per source file to
