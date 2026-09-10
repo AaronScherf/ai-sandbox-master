@@ -9,9 +9,8 @@ from __future__ import annotations
 
 import os
 
-import yaml
-
 from common.ollama_utils import call_ollama
+from resume_manager.llm_yaml import parse_llm_yaml
 from resume_manager.schema import (
     AWARDS_REQUIRED, CONTACT_REQUIRED, EDUCATION_REQUIRED, PUBLICATIONS_REQUIRED,
     SKILLS_LIST_FIELDS, SKILLS_REQUIRED, WORK_EXPERIENCE_LIST_FIELDS, WORK_EXPERIENCE_REQUIRED,
@@ -59,22 +58,10 @@ skills:
 _SYSTEM_PROMPT = f"""You are extracting a resume's raw text into a strict YAML structure.
 CRITICAL RULES:
 1. Preserve every word, number, and date exactly as written. Do not summarize, paraphrase, or reword anything.
-2. Do not invent a value for any field the raw text doesn't contain -- omit optional fields (gpa, thesis, link) instead of guessing.
+2. Do not invent a value for any field the raw text doesn't contain -- omit optional fields (gpa, thesis, link) instead of guessing. Never write a bare "-" as a field's value.
 3. Follow this exact schema (field names and nesting):
 {_SCHEMA_TEMPLATE}
 4. Output ONLY valid YAML -- no commentary, no markdown code fences."""
-
-
-def _strip_code_fence(text: str) -> str:
-    text = text.strip()
-    if text.startswith("```"):
-        lines = text.splitlines()
-        if lines and lines[0].startswith("```"):
-            lines = lines[1:]
-        if lines and lines[-1].strip() == "```":
-            lines = lines[:-1]
-        text = "\n".join(lines)
-    return text
 
 
 def extract_resume_schema(raw_text: str, model: str = OLLAMA_MODEL) -> dict | None:
@@ -85,10 +72,7 @@ def extract_resume_schema(raw_text: str, model: str = OLLAMA_MODEL) -> dict | No
     result = call_ollama(prompt, model, OLLAMA_TIMEOUT_SECONDS)
     if not isinstance(result, str):
         return None
-    try:
-        parsed = yaml.safe_load(_strip_code_fence(result))
-    except yaml.YAMLError:
-        return None
+    parsed = parse_llm_yaml(result)
     return parsed if isinstance(parsed, dict) else None
 
 

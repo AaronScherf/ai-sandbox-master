@@ -11,9 +11,8 @@ from __future__ import annotations
 
 import os
 
-import yaml
-
 from common.ollama_utils import call_ollama
+from resume_manager.llm_yaml import parse_llm_yaml
 
 RESUMEMANAGER_OLLAMA_MODEL = os.environ.get("RESUMEMANAGER_OLLAMA_MODEL", "qwen2.5:7b-instruct")
 RESUMEMANAGER_OLLAMA_TIMEOUT_SECONDS = int(os.environ.get("RESUMEMANAGER_OLLAMA_TIMEOUT", "1800"))
@@ -29,18 +28,6 @@ included_ids: [id1, id2, ...]
 bullets_by_id:
   id1: [rewritten bullet, rewritten bullet]
   id2: [rewritten bullet]"""
-
-
-def _strip_code_fence(text: str) -> str:
-    text = text.strip()
-    if text.startswith("```"):
-        lines = text.splitlines()
-        if lines and lines[0].startswith("```"):
-            lines = lines[1:]
-        if lines and lines[-1].strip() == "```":
-            lines = lines[:-1]
-        text = "\n".join(lines)
-    return text
 
 
 def _build_entry_context(work_experience: list[dict]) -> str:
@@ -65,10 +52,7 @@ def tailor_resume(master: dict, job_description: str, model: str = RESUMEMANAGER
     result = call_ollama(prompt, model, RESUMEMANAGER_OLLAMA_TIMEOUT_SECONDS)
     if not isinstance(result, str):
         return None
-    try:
-        parsed = yaml.safe_load(_strip_code_fence(result))
-    except yaml.YAMLError:
-        return None
+    parsed = parse_llm_yaml(result)
     if not isinstance(parsed, dict) or "included_ids" not in parsed or "bullets_by_id" not in parsed:
         return None
     return parsed
