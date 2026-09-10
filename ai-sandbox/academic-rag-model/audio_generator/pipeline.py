@@ -13,6 +13,7 @@ Run as a module from academic-rag-model/:
 from __future__ import annotations
 
 import argparse
+import concurrent.futures
 import dataclasses
 import os
 import shutil
@@ -30,6 +31,11 @@ from audio_generator.sections import (
 from audio_generator.state import compute_content_hash, episode_state_key, load_state, needs_regeneration, save_state
 
 DEFAULT_ACADEMIC_HUB_ROOT = "../academic-hub"
+
+# TTS synthesis is CPU-bound (unlike narration's network-bound API calls),
+# so this defaults much lower than AUDIOGEN_NARRATE_MAX_WORKERS -- more
+# threads than spare CPU cores would just add contention, not speed.
+AUDIOGEN_SECTIONS_SYNTH_MAX_WORKERS = int(os.environ.get("AUDIOGEN_SECTIONS_SYNTH_MAX_WORKERS", "3"))
 
 
 def _narrated_md_path(abs_md_path: str) -> str:
@@ -52,13 +58,34 @@ def _write_index_manifest(base: str, episodes: list) -> None:
         f.write("\n".join(lines) + "\n")
 
 
+def _synthesize_episode(base: str, i: int, episode, engine: str) -> dict:
+    """Runs in a worker thread (spec §3.2) -- returns a plain outcome
+    dict rather than mutating summary/state directly, so those shared
+    dicts are only ever written back on the main thread after every
+    future completes. Two threads racing to do `summary["generated"] += 1`
+    concurrently is a real lost-update risk (read-modify-write, not
+    atomic) that this sidesteps entirely rather than needing a lock."""
+    if not episode.text:
+        return {"i": i, "status": "skipped_empty"}
+    abs_mp3_path = f"{base}__part{i:02d}.mp3"
+    try:
+        synthesize_speech(episode.text, abs_mp3_path, engine=engine)
+    except Exception as err:
+        return {"i": i, "status": "failed", "error": err}
+    with open(f"{base}__part{i:02d}.narrated.md", "w", encoding="utf-8") as f:
+        f.write(episode.text)
+    return {"i": i, "status": "generated"}
+
+
 def _run_notes_source(source, state: dict, engine: str, summary: dict) -> None:
     """Episode-aware path for notes sources (spec §3.2): splits the raw
-    .md at every header level, narrates/cleans each section
-    independently, then groups sections into 10-20 minute episodes,
-    writing one <name>__partNN.mp3 per episode. Idempotency is tracked
-    per-episode but still hashed on the whole source file (a deliberate
-    simplification -- spec §3.2/§9)."""
+    .md at every header level, narrates/cleans each section via one
+    shared concurrent dispatch (narrate_sections()), groups sections into
+    10-20 minute episodes, then synthesizes each episode's MP3
+    concurrently too (AUDIOGEN_SECTIONS_SYNTH_MAX_WORKERS threads) --
+    TTS is independent per episode, same reasoning as narration's own
+    concurrency. Idempotency is tracked per-episode but still hashed on
+    the whole source file (a deliberate simplification -- spec §3.2/§9)."""
     current_hash = compute_content_hash(source.abs_md_path)
     with open(source.abs_md_path, "r", encoding="utf-8") as f:
         md_text = f.read()
@@ -68,30 +95,32 @@ def _run_notes_source(source, state: dict, engine: str, summary: dict) -> None:
     episodes = group_sections_into_episodes(narrated_sections)
 
     base, _ext = os.path.splitext(source.abs_md_path)
+
+    to_synthesize = []
     for i, episode in enumerate(episodes, start=1):
         key = episode_state_key(source.rel_md_path, i)
         abs_mp3_path = f"{base}__part{i:02d}.mp3"
         episode_source = dataclasses.replace(source, rel_md_path=key, abs_mp3_path=abs_mp3_path)
-
         if not needs_regeneration(state, episode_source, current_hash):
             summary["skipped_unchanged"] += 1
             continue
-        if not episode.text:
-            summary["skipped_empty"] += 1
-            continue
+        to_synthesize.append((i, episode))
 
-        try:
-            synthesize_speech(episode.text, abs_mp3_path, engine=engine)
-        except Exception as err:
-            print(f"WARNING: failed to synthesize {key}: {err}")
-            summary["failed"] += 1
-            continue
-
-        with open(f"{base}__part{i:02d}.narrated.md", "w", encoding="utf-8") as f:
-            f.write(episode.text)
-
-        state[key] = current_hash
-        summary["generated"] += 1
+    if to_synthesize:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=AUDIOGEN_SECTIONS_SYNTH_MAX_WORKERS) as executor:
+            futures = [executor.submit(_synthesize_episode, base, i, episode, engine) for i, episode in to_synthesize]
+            for future in concurrent.futures.as_completed(futures):
+                result = future.result()
+                i = result["i"]
+                key = episode_state_key(source.rel_md_path, i)
+                if result["status"] == "skipped_empty":
+                    summary["skipped_empty"] += 1
+                elif result["status"] == "failed":
+                    print(f"WARNING: failed to synthesize {key}: {result['error']}")
+                    summary["failed"] += 1
+                else:
+                    state[key] = current_hash
+                    summary["generated"] += 1
 
     _write_index_manifest(base, episodes)
 

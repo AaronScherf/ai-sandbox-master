@@ -111,6 +111,14 @@ Idempotency is tracked per-episode but still hashed on the whole source
 file — a deliberate simplification: editing any part of a note
 regenerates every episode for that file, not just the changed section.
 
+**Parallelized end to end, not just within one narration call:** every
+section's chunks across the *entire* document are flattened and narrated
+through one shared concurrent dispatch (not one `narrate_for_speech()`
+call per section, which would serialize sections against each other), and
+every episode's TTS synthesis also runs concurrently
+(`AUDIOGEN_SECTIONS_SYNTH_MAX_WORKERS`, default `3` — lower than
+narration's default since TTS is CPU-bound, not network-bound).
+
 Override the episode-length target via `AUDIOGEN_SECTIONS_CHARS_PER_MINUTE`,
 `AUDIOGEN_SECTIONS_TARGET_MIN_MINUTES` (default `10`),
 `AUDIOGEN_SECTIONS_TARGET_MAX_MINUTES` (default `20`).

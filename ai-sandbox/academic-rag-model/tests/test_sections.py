@@ -1,10 +1,12 @@
 import unittest
+from unittest.mock import MagicMock, patch
 
 from audio_generator.sections import (
     Episode,
     NarratedSection,
     Section,
     group_sections_into_episodes,
+    narrate_sections,
     split_into_sections,
 )
 
@@ -84,3 +86,55 @@ class TestGroupSectionsIntoEpisodes(unittest.TestCase):
         sections = [NarratedSection(title="", text="some body text")]
         episodes = group_sections_into_episodes(sections, chars_per_minute=1000, target_min_minutes=10, target_max_minutes=20)
         self.assertEqual(episodes[0].text, "some body text")
+
+
+@patch("audio_generator.sections.load_dotenv_override")
+@patch("audio_generator.sections.get_gemini_client")
+class TestNarrateSections(unittest.TestCase):
+    def test_dispatches_every_sections_chunks_through_one_shared_call(self, mock_get_client, mock_dotenv):
+        client = MagicMock()
+        client.models.generate_content.return_value = MagicMock(
+            text="Rewritten text long enough to pass the sanity check nicely here yes indeed.",
+        )
+        mock_get_client.return_value = client
+
+        sections = [
+            Section(title="A", body="Body A with $x$ in it. " * 10),
+            Section(title="B", body="Body B with $y$ in it. " * 10),
+        ]
+        with patch("audio_generator.sections.narrate_chunks", side_effect=lambda chunks, client=None: chunks) as mock_narrate_chunks:
+            narrate_sections(sections)
+
+        mock_narrate_chunks.assert_called_once()  # one shared call, not one per section
+        flat_chunks_arg = mock_narrate_chunks.call_args[0][0]
+        self.assertEqual(len(flat_chunks_arg), 2)  # both sections' (single, short) chunks flattened together
+
+    def test_regroups_narrated_chunks_back_into_the_right_sections_in_order(self, mock_get_client, mock_dotenv):
+        client = MagicMock()
+
+        def _side_effect(*, model, contents, config):
+            if "BODY-A-MARKER" in contents:
+                return MagicMock(text="Rewritten A, long enough to pass the sanity check. " * 20)
+            return MagicMock(text="Rewritten B, long enough to pass the sanity check. " * 20)
+
+        client.models.generate_content.side_effect = _side_effect
+        mock_get_client.return_value = client
+
+        sections = [
+            Section(title="A", body="BODY-A-MARKER with $x$ in it. " * 20),
+            Section(title="B", body="BODY-B-MARKER with $y$ in it. " * 20),
+        ]
+        result = narrate_sections(sections)
+
+        self.assertIn("Rewritten A", result[0].text)
+        self.assertNotIn("Rewritten B", result[0].text)
+        self.assertIn("Rewritten B", result[1].text)
+        self.assertNotIn("Rewritten A", result[1].text)
+
+    def test_titleless_section_produces_empty_title(self, mock_get_client, mock_dotenv):
+        client = MagicMock()
+        client.models.generate_content.return_value = MagicMock(text="irrelevant")
+        mock_get_client.return_value = client
+
+        result = narrate_sections([Section(title=None, body="Plain prose, no math at all.")])
+        self.assertEqual(result[0].title, "")

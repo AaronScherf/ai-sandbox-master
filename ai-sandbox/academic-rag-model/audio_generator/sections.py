@@ -15,8 +15,10 @@ import os
 import re
 from dataclasses import dataclass, field
 
+from common.gemini_utils import get_gemini_client, load_dotenv_override
+
 from audio_generator.cleaner import clean_markdown_for_speech
-from audio_generator.narrate import narrate_for_speech
+from audio_generator.narrate import chunk_for_narration, narrate_chunks
 
 AUDIOGEN_SECTIONS_CHARS_PER_MINUTE = int(os.environ.get("AUDIOGEN_SECTIONS_CHARS_PER_MINUTE", "969"))
 AUDIOGEN_SECTIONS_TARGET_MIN_MINUTES = int(os.environ.get("AUDIOGEN_SECTIONS_TARGET_MIN_MINUTES", "10"))
@@ -62,16 +64,36 @@ def split_into_sections(md_text: str) -> list[Section]:
 
 
 def narrate_sections(sections: list[Section]) -> list[NarratedSection]:
-    """Narrates and cleans each section's body independently, reusing
-    narrate.py/cleaner.py completely unchanged (spec §3.2). A section's
-    title is cleaned (regex-only, no LLM call -- titles are short and
-    essentially never equation-dense) but never sent through
-    narrate_for_speech(): headers must be resolved before any text reaches
+    """Narrates and cleans every section's body via ONE shared, concurrent
+    dispatch across the whole document's chunks (spec §3.2) -- every
+    section's chunks are flattened into a single list *before* narrating
+    anything, rather than looping section-by-section and calling
+    narrate_for_speech() once per section (which would confine each
+    section's concurrency to its own separate, serialized batch instead of
+    giving the whole document's chunks one shared concurrency budget).
+    Results are regrouped back into per-section text by position after the
+    single narrate_chunks() call returns -- order-preserving, not
+    completion-order-dependent, same guarantee narrate_chunks() itself
+    provides for individual chunks.
+
+    A section's title is cleaned (regex-only, no LLM call -- titles are
+    short and essentially never equation-dense) but never flattened in
+    with body chunks: headers must be resolved before any text reaches
     the LLM, not recovered from its output."""
+    load_dotenv_override()
+    client = get_gemini_client()
+
+    chunk_lists = [chunk_for_narration(section.body) for section in sections]
+    flat_chunks = [chunk for chunks in chunk_lists for chunk in chunks]
+    flat_narrated = narrate_chunks(flat_chunks, client=client)
+
     result = []
-    for section in sections:
+    pos = 0
+    for section, chunks in zip(sections, chunk_lists):
+        narrated_chunks = flat_narrated[pos:pos + len(chunks)]
+        pos += len(chunks)
         title = clean_markdown_for_speech(section.title) if section.title else ""
-        text = clean_markdown_for_speech(narrate_for_speech(section.body))
+        text = clean_markdown_for_speech("\n\n".join(narrated_chunks))
         result.append(NarratedSection(title=title, text=text))
     return result
 

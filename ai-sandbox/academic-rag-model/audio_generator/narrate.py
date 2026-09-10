@@ -146,28 +146,47 @@ def _narrate_chunk(chunk: str, client) -> str:
     return chunk
 
 
-def narrate_for_speech(md_text: str) -> str:
-    """Entry point pipeline.py calls first, on raw .md text, before
-    cleaner.clean_markdown_for_speech() (spec §3.1). Builds one Gemini
-    client per file (not per chunk) -- get_gemini_client() is cheap
-    (no network call itself), and this keeps pipeline.py's call site
-    completely unchanged from v2.
+def chunk_for_narration(md_text: str) -> list[str]:
+    """Public wrapper around this module's paragraph/code-block-aware
+    chunking (spec §3.1). Exposed so a caller processing multiple
+    documents' worth of text at once (spec §3.2's per-section narration)
+    can chunk each piece separately, flatten every piece's chunks into one
+    list, and dispatch all of them through a single narrate_chunks() call
+    -- rather than each piece paying for its own separate, serialized
+    narrate_for_speech() call and thread-pool spin-up."""
+    return _group_into_chunks(_split_into_pieces(md_text))
 
-    Chunks are dispatched concurrently (AUDIOGEN_NARRATE_MAX_WORKERS
-    threads, default 5) rather than one at a time -- unlike v2's local
-    model, which had no spare CPU/GPU capacity to parallelize against, the
-    Gemini API serves concurrent requests fine, and each chunk's rewrite
-    is independent of every other chunk's. ThreadPoolExecutor.map()
-    preserves input order in its results regardless of which chunk's
-    network call actually finishes first, so the document is reassembled
-    correctly even when completion order differs from submission order."""
-    load_dotenv_override()
-    client = get_gemini_client()
-    chunks = _group_into_chunks(_split_into_pieces(md_text))
+
+def narrate_chunks(chunks: list[str], client=None) -> list[str]:
+    """Narrates a flat list of already-chunked pieces concurrently
+    (AUDIOGEN_NARRATE_MAX_WORKERS threads, default 5), returning results
+    in the same order regardless of which chunk's network call actually
+    finishes first (ThreadPoolExecutor.map() preserves input order in its
+    results). Builds its own client if none is given -- narrate_for_speech()'s
+    own use, one client per document -- but accepts one so a caller
+    narrating chunks from *multiple* documents/sections (spec §3.2) can
+    share a single client and a single concurrency budget across all of
+    them, instead of each one separately competing for API rate limits
+    with its own thread pool."""
+    if client is None:
+        load_dotenv_override()
+        client = get_gemini_client()
 
     def _process(chunk: str) -> str:
         return chunk if _CODE_BLOCK_PATTERN.fullmatch(chunk) else _narrate_chunk(chunk, client)
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=AUDIOGEN_NARRATE_MAX_WORKERS) as executor:
-        narrated = list(executor.map(_process, chunks))
+        return list(executor.map(_process, chunks))
+
+
+def narrate_for_speech(md_text: str) -> str:
+    """Entry point pipeline.py calls first (for textbook content -- spec
+    §3.2 scopes section-aware narration to notes only), on raw .md text,
+    before cleaner.clean_markdown_for_speech() (spec §3.1). Unlike v2,
+    which had no spare CPU/GPU capacity to parallelize local-model calls
+    against, the Gemini API serves concurrent requests fine, and each
+    chunk's rewrite is independent of every other chunk's -- see
+    narrate_chunks() for the concurrent-dispatch mechanics."""
+    chunks = chunk_for_narration(md_text)
+    narrated = narrate_chunks(chunks)
     return "\n\n".join(narrated)
