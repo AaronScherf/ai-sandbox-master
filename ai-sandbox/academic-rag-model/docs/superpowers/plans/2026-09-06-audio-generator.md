@@ -2629,7 +2629,7 @@ Episode-level TTS synthesis was parallelized the same pass
 
 Full narrative, per-episode breakdown table, and the "this test exercised
 the hard case, not the primary intended use case" scope note:
-`docs/2026-09-09-audio-generator-status.md`.
+`docs/status/2026-09-09-audio-generator-status.md`.
 
 - [ ] **Step 13: Commit**
 

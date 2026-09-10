@@ -21,7 +21,7 @@ against the same file: **227.1s narration + 1165.3s parallel synthesis =
 one 3h22m file. One real limitation was confirmed in the process (§9: an
 undivided 711-line section produced a 62-minute over-length episode) —
 deliberately left unfixed pending a listening-quality review. Full
-real-world validation narrative: `docs/2026-09-09-audio-generator-status.md`.
+real-world validation narrative: `docs/status/2026-09-09-audio-generator-status.md`.
 Scoped to the `notes` content type only — `textbook` chapter-reuse is a
 separate, deferred investigation (§3.2, §9). **Important scope note
 (§9): every real test so far, including this one, has exercised the
@@ -593,7 +593,7 @@ inside their subproject packages, and note the `tests/test_discovery.py`/
   end-to-end run against `LN_Probability.md` hit this: one section
   ("1.5 Probability measures," 711 raw lines with zero sub-headers)
   produced a 60,389-char (~62 min) episode, 3x the 20-minute target — see
-  `docs/2026-09-09-audio-generator-status.md` for the full account. Not
+  `docs/status/2026-09-09-audio-generator-status.md` for the full account. Not
   common-in-theory turned out to be real-in-practice on the first try.
   **Not fixed yet, deliberately** — deferred pending a listening-quality
   review of the real files this run produced, per the user's explicit
@@ -626,7 +626,7 @@ inside their subproject packages, and note the `tests/test_discovery.py`/
   designed or built — `audio_generator` today only has one entry point
   (`pipeline.py`'s discovery-driven, raw-`.md`-in flow) with no way to
   hand it already-narration-ready text directly. Full details in
-  `docs/2026-09-09-audio-generator-status.md`.
+  `docs/status/2026-09-09-audio-generator-status.md`.
 - **NEW (v3): the tier-classifier density thresholds
   (`AUDIOGEN_NARRATE_MATH_RATIO_THRESHOLD`/`_COMMAND_THRESHOLD`, §3.1) are a
   starting guess, not validated values** — needs checking against real
