@@ -45,3 +45,29 @@ class TestParseLlmYaml(unittest.TestCase):
         result = parse_llm_yaml(text)
         self.assertEqual(result["contact"]["location"], "-")
         self.assertEqual(result["publications"][0]["link"], "-")
+
+    def test_unquoted_value_containing_colon_space_is_quoted_not_a_parse_failure(self):
+        # Real, confirmed pattern from a live Ollama response (2026-09-09):
+        # the model wrote "venue: UC Berkeley: Data for Human Mobility
+        # Lab" -- a genuine, colon-containing venue name from the actual
+        # resume, left unquoted. Raw yaml.safe_load rejects this
+        # ("mapping values are not allowed here") because YAML treats any
+        # unescaped ": " as introducing a nested mapping key, ambiguous
+        # with a scalar that happens to contain one.
+        text = "title: A Paper\nvenue: UC Berkeley: Data for Human Mobility Lab\ndate: 12/2019"
+        result = parse_llm_yaml(text)
+        self.assertEqual(result["venue"], "UC Berkeley: Data for Human Mobility Lab")
+
+    def test_url_value_with_colon_slash_slash_is_not_touched(self):
+        # "https://..." has no colon-followed-by-*space*, so it's already
+        # unambiguous, valid YAML -- confirm the sanitizer leaves it alone
+        # (quoting it would still be harmless, but this proves the
+        # sanitizer isn't over-matching every colon in a value).
+        text = "link: https://www.econstor.eu/handle/10419/231442"
+        result = parse_llm_yaml(text)
+        self.assertEqual(result["link"], "https://www.econstor.eu/handle/10419/231442")
+
+    def test_nested_list_item_with_unquoted_colon_value_is_quoted(self):
+        text = "publications:\n  - title: A Paper\n    venue: UC Berkeley: Data for Human Mobility Lab\n"
+        result = parse_llm_yaml(text)
+        self.assertEqual(result["publications"][0]["venue"], "UC Berkeley: Data for Human Mobility Lab")
