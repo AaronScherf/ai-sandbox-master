@@ -9,6 +9,16 @@ and needs no changes — the schema change only touches what happens *after*
 raw text extraction. Tasks below are renumbered from scratch to reflect the
 new module set; see the design spec's Revision 2 note for why.
 
+**Revision 3 — a further, in-place update to Task 4 only** (`normalize.py`):
+replaces Revision 2's LLM-based extraction with deterministic, section-aware
+parsing, after Revision 2's own first real run took 90+ minutes, needed five
+follow-on formatting fixes, and still produced two real content bugs. See
+Task 4's own "Superseded from Revision 2" note and
+`docs/status/2026-09-09-resume-manager-status.md` for the full evidence.
+Tasks 1-3 and 5-10 are unaffected — `schema.py`, `fact_diff.py`, and
+everything from `convert_resume.py` onward keep the same interfaces Revision
+2 gave them (Task 5's only change is its failure-message text).
+
 **Goal:** Replace `resume_manager`'s freeform-Markdown master resume and
 whole-document LLM tailoring with a structured YAML schema (`resume_master.yaml`)
 and a tailoring mechanism where the LLM never emits a metadata field at all —
@@ -34,12 +44,17 @@ usage elsewhere in this project to a load-bearing one here), `common/ollama_util
 `call_ollama`, `markdown` + `xhtml2pdf` (unchanged from the original plan).
 
 **Spec:** `docs/superpowers/specs/2026-09-09-resume-manager-design.md`
-(Revision 2)
+(Revision 3)
 
 ## Global Constraints
 
 - `extract.py` is unchanged by this revision — reused exactly as shipped, no
   task below touches it (spec §3 steps 1-2).
+- **(Revision 3)** Bootstrap extraction (`normalize.py`, `convert_resume.py`)
+  has no LLM call, no network, and no sampling variance — a value is either
+  extracted from a recognized section/line shape or `ResumeParseError`
+  names exactly what didn't match (spec §3). `common/ollama_utils.py` is
+  used only by `tailor.py` now.
 - The LLM never emits a metadata field (org/role/location/dates/gpa/thesis/
   contact/education/awards/publications/skills) during **tailoring** — only
   `included_ids` and `bullets_by_id` (spec §4). Metadata fabrication during
@@ -435,232 +450,75 @@ EOF
 
 ---
 
-### Task 4: `normalize.py` — schema-driven local-LLM extraction + verification
+### Task 4 (Revision 3): `normalize.py` — deterministic extraction + verification
+
+> **Superseded from Revision 2.** Revision 2's version of this task (below,
+> struck through in spirit if not in markdown) shipped and ran once for
+> real: the run took over 90 minutes of CPU-only Ollama calls, needed five
+> separate follow-on fixes just to parse the model's own YAML output
+> (`llm_yaml.py`'s bare-dash and colon-value sanitizers, whitespace/
+> zero-width-space/case normalization in `schema.py`, an honest
+> `"Not specified"` placeholder), and *still* produced two further real
+> content bugs: a role miscategorized into `education` with its bullets
+> dropped entirely, and a thesis present in the raw text written as
+> `"Not specified"`. Full narrative:
+> `docs/status/2026-09-09-resume-manager-status.md`. This task's content
+> below is the Revision 3 replacement, actually shipped.
 
 **Files:**
-- Modify: `resume_manager/normalize.py` (full rewrite)
-- Modify: `tests/test_resume_normalize.py` (full rewrite)
+- Modify: `resume_manager/normalize.py` (full rewrite — no LLM, no
+  `common/ollama_utils.py`, no `pyyaml` import; only `re` and `rapidfuzz`)
+- Modify: `tests/test_resume_normalize.py` (full rewrite — no mocking at
+  all; every test calls the real parser against a representative excerpt
+  of the *actual* resume's raw extraction)
 
 **Interfaces:**
-- Consumes: `common.ollama_utils.call_ollama`; `resume_manager.schema.*`
-  (all field-list constants and `verify_entry_fields`).
-- Produces: `extract_resume_schema(raw_text: str, model: str = ...) -> dict | None`,
+- Consumes: `rapidfuzz.fuzz.ratio`; `resume_manager.schema.*` (all
+  field-list constants and `verify_entry_fields`).
+- Produces: `ResumeParseError` (exception), `match_section_header(line: str) -> str | None`,
+  `extract_resume_schema(raw_text: str) -> dict | None`,
   `verify_extraction(parsed: dict, raw_text: str) -> list[str]`. Task 5
-  (`convert_resume.py`) calls both.
+  (`convert_resume.py`) calls `extract_resume_schema`/`verify_extraction`
+  with the exact same signatures as Revision 2 (`model` parameter dropped
+  — never passed by any caller), so Task 5 needs no changes beyond its
+  failure-message text.
 
 - [ ] **Step 1: Replace the test file**
 
-Replace the contents of `tests/test_resume_normalize.py` entirely with:
-
-```python
-import unittest
-from unittest.mock import patch
-
-from resume_manager.normalize import extract_resume_schema, verify_extraction
-
-_VALID_YAML_RESPONSE = """
-contact:
-  name: Aaron Scherf
-  location: USA
-  email: a@example.com
-  linkedin_url: https://linkedin.com/in/a
-  github_url: https://github.com/a
-  website_url: https://a.dev
-work_experience:
-  - org: Acme Corp
-    role: Engineer
-    location: NYC
-    start_date: "2020"
-    end_date: Present
-    bullets:
-      - Did a thing
-education: []
-awards: []
-publications: []
-skills: []
-"""
-
-
-class TestExtractResumeSchema(unittest.TestCase):
-    @patch("resume_manager.normalize.call_ollama", return_value=_VALID_YAML_RESPONSE)
-    def test_parses_valid_yaml_response(self, mock_call):
-        result = extract_resume_schema("raw text", model="qwen2.5:7b-instruct")
-        self.assertEqual(result["contact"]["name"], "Aaron Scherf")
-        self.assertEqual(result["work_experience"][0]["org"], "Acme Corp")
-
-    @patch("resume_manager.normalize.call_ollama", return_value="```yaml\n" + _VALID_YAML_RESPONSE + "```")
-    def test_strips_code_fence_before_parsing(self, mock_call):
-        result = extract_resume_schema("raw text")
-        self.assertEqual(result["contact"]["name"], "Aaron Scherf")
-
-    @patch("resume_manager.normalize.call_ollama", return_value=None)
-    def test_returns_none_when_ollama_call_fails(self, mock_call):
-        self.assertIsNone(extract_resume_schema("raw text"))
-
-    @patch("resume_manager.normalize.call_ollama", return_value="not: [valid: yaml: at all")
-    def test_returns_none_on_invalid_yaml(self, mock_call):
-        self.assertIsNone(extract_resume_schema("raw text"))
-
-
-class TestVerifyExtraction(unittest.TestCase):
-    def test_clean_extraction_has_no_problems(self):
-        raw = (
-            "Acme Corp\nEngineer\nNYC\n2020\nDid a thing\n"
-            "Aaron Scherf\nUSA\na@example.com\n"
-            "https://linkedin.com/in/a\nhttps://github.com/a\nhttps://a.dev"
-        )
-        parsed = {
-            "contact": {
-                "name": "Aaron Scherf", "location": "USA", "email": "a@example.com",
-                "linkedin_url": "https://linkedin.com/in/a", "github_url": "https://github.com/a",
-                "website_url": "https://a.dev",
-            },
-            "work_experience": [{
-                "id": "acme-1", "org": "Acme Corp", "role": "Engineer", "location": "NYC",
-                "start_date": "2020", "end_date": "Present", "bullets": ["Did a thing"],
-            }],
-            "education": [], "awards": [], "publications": [], "skills": [],
-        }
-        self.assertEqual(verify_extraction(parsed, raw), [])
-
-    def test_untraceable_field_is_flagged(self):
-        raw = "Acme Corp\nEngineer\nNYC\n2020"
-        parsed = {
-            "contact": {
-                "name": "", "location": "", "email": "", "linkedin_url": "", "github_url": "", "website_url": "",
-            },
-            "work_experience": [{
-                "id": "acme-1", "org": "Acme Corp", "role": "Engineer", "location": "Los Angeles",
-                "start_date": "2020", "end_date": "Present", "bullets": [],
-            }],
-            "education": [], "awards": [], "publications": [], "skills": [],
-        }
-        problems = verify_extraction(parsed, raw)
-        self.assertTrue(any("location" in p for p in problems))
-```
+Replace the contents of `tests/test_resume_normalize.py` entirely — see
+the actual, real fixture (a representative excerpt of the resume's real
+raw extraction, covering every section shape) and full test list in the
+shipped file: `tests/test_resume_normalize.py`. Highlights: exact and
+fuzzy-synonym header matching (`TestMatchSectionHeader`); every
+extraction shape including the two real bugs this must not reproduce
+(`test_multiple_roles_under_one_employer_become_separate_entries_with_shared_org`,
+`test_graduate_student_instructor_is_work_experience_not_education`,
+`test_thesis_line_attaches_to_the_entry_immediately_before_it`); the
+zero-recognized-sections failure path
+(`TestExtractResumeSchemaFailureMode`); and a defense-in-depth check that
+deterministically-parsed output always verifies clean
+(`TestVerifyExtraction`).
 
 - [ ] **Step 2: Run the tests to verify they fail**
 
 Run: `python -m unittest tests.test_resume_normalize -v`
-Expected: FAIL — `extract_resume_schema`/`verify_extraction` don't exist yet
-in `resume_manager/normalize.py` (it currently exports
-`normalize_resume_text`/`verify_normalization` from v1).
+Expected: FAIL — `ResumeParseError`/`match_section_header` don't exist yet
+in `resume_manager/normalize.py` (it currently exports the Revision 2
+LLM-based `extract_resume_schema(raw_text, model=...)`).
 
 - [ ] **Step 3: Replace `resume_manager/normalize.py` entirely**
 
-```python
-"""
-normalize.py
-One local-LLM extraction pass turning the raw page-tagged extraction
-(extract.py) into the master resume's structured schema (schema.py) --
-Revision 2 of spec §3 steps 3-4. Verified against the raw extraction
-before being trusted.
-"""
-from __future__ import annotations
-
-import os
-
-import yaml
-
-from common.ollama_utils import call_ollama
-from resume_manager.schema import (
-    AWARDS_REQUIRED, CONTACT_REQUIRED, EDUCATION_REQUIRED, PUBLICATIONS_REQUIRED,
-    SKILLS_LIST_FIELDS, SKILLS_REQUIRED, WORK_EXPERIENCE_LIST_FIELDS, WORK_EXPERIENCE_REQUIRED,
-    verify_entry_fields,
-)
-
-OLLAMA_MODEL = os.environ.get("RESUMEMANAGER_OLLAMA_MODEL", "qwen2.5:7b-instruct")
-OLLAMA_TIMEOUT_SECONDS = int(os.environ.get("RESUMEMANAGER_OLLAMA_TIMEOUT", "1800"))
-
-_SCHEMA_TEMPLATE = """contact:
-  name: str
-  location: str
-  email: str
-  linkedin_url: str
-  github_url: str
-  website_url: str
-work_experience:
-  - org: str
-    role: str
-    location: str
-    start_date: str
-    end_date: str  # or "Present"
-    bullets: [str]
-education:
-  - institution: str
-    degree: str
-    gpa: str            # omit this key entirely if not present in the source
-    location: str
-    start_date: str
-    end_date: str
-    thesis: str          # omit this key entirely if not present in the source
-awards:
-  - name: str
-    description: str
-    date: str
-publications:
-  - title: str
-    date: str
-    venue: str
-    link: str             # omit this key entirely if not present in the source
-skills:
-  - category: str
-    items: [str]"""
-
-_SYSTEM_PROMPT = f"""You are extracting a resume's raw text into a strict YAML structure.
-CRITICAL RULES:
-1. Preserve every word, number, and date exactly as written. Do not summarize, paraphrase, or reword anything.
-2. Do not invent a value for any field the raw text doesn't contain -- omit optional fields (gpa, thesis, link) instead of guessing.
-3. Follow this exact schema (field names and nesting):
-{_SCHEMA_TEMPLATE}
-4. Output ONLY valid YAML -- no commentary, no markdown code fences."""
-
-
-def _strip_code_fence(text: str) -> str:
-    text = text.strip()
-    if text.startswith("```"):
-        lines = text.splitlines()
-        if lines and lines[0].startswith("```"):
-            lines = lines[1:]
-        if lines and lines[-1].strip() == "```":
-            lines = lines[:-1]
-        text = "\n".join(lines)
-    return text
-
-
-def extract_resume_schema(raw_text: str, model: str = OLLAMA_MODEL) -> dict | None:
-    """Calls a local Ollama model to extract raw_text into the schema
-    above, returning the parsed dict, or None if the Ollama call failed/
-    timed out or the response wasn't valid YAML (spec §3 step 3, §8)."""
-    prompt = f"{_SYSTEM_PROMPT}\n\n### RAW EXTRACTED RESUME TEXT:\n{raw_text}"
-    result = call_ollama(prompt, model, OLLAMA_TIMEOUT_SECONDS)
-    if not isinstance(result, str):
-        return None
-    try:
-        parsed = yaml.safe_load(_strip_code_fence(result))
-    except yaml.YAMLError:
-        return None
-    return parsed if isinstance(parsed, dict) else None
-
-
-def verify_extraction(parsed: dict, raw_text: str) -> list[str]:
-    """Schema-level verification (spec §3 step 4): every required field on
-    every entry must be non-empty and traceable to raw_text. Returns a
-    list of human-readable problems; empty means a clean pass."""
-    problems: list[str] = []
-    problems += verify_entry_fields(parsed.get("contact") or {}, raw_text, CONTACT_REQUIRED)
-    for entry in parsed.get("work_experience") or []:
-        problems += verify_entry_fields(entry, raw_text, WORK_EXPERIENCE_REQUIRED, WORK_EXPERIENCE_LIST_FIELDS)
-    for entry in parsed.get("education") or []:
-        problems += verify_entry_fields(entry, raw_text, EDUCATION_REQUIRED)
-    for entry in parsed.get("awards") or []:
-        problems += verify_entry_fields(entry, raw_text, AWARDS_REQUIRED)
-    for entry in parsed.get("publications") or []:
-        problems += verify_entry_fields(entry, raw_text, PUBLICATIONS_REQUIRED)
-    for entry in parsed.get("skills") or []:
-        problems += verify_entry_fields(entry, raw_text, SKILLS_REQUIRED, SKILLS_LIST_FIELDS)
-    return problems
-```
+See the shipped file, `resume_manager/normalize.py`, for the full,
+current implementation: `match_section_header()` (fuzzy `rapidfuzz.fuzz.ratio`
+match against `_SECTION_SYNONYMS`, threshold 80, rejecting bullets and
+lines over 60 chars); `_split_into_sections()`/`_extract_name()` (section
+boundaries + the document's first non-header line as the name);
+`_parse_work_experience()`/`_parse_education()`/`_parse_awards()`/
+`_parse_publications()`/`_parse_skills()` (one function per category,
+each matching that category's small set of real, observed line-shapes —
+see spec §3 for the shapes themselves); and `extract_resume_schema()`/
+`verify_extraction()` tying it together with the same `dict | None` /
+`list[str]` return contracts Task 5 already expects.
 
 - [ ] **Step 4: Run the tests to verify they pass**
 
@@ -672,12 +530,29 @@ Expected: PASS
 ```bash
 git add resume_manager/normalize.py tests/test_resume_normalize.py
 git commit -m "$(cat <<'EOF'
-refactor(resume_manager): rewrite normalize.py for schema-driven extraction
+refactor(resume_manager): replace LLM extraction with deterministic parsing
 
-Replaces v1's freeform-Markdown reformat prompt with a schema-driven
-YAML extraction prompt + schema.py-based field verification (spec §3
-Revision 2). RESUMEMANAGER_OLLAMA_TIMEOUT default raised to 1800s,
-matching the real CPU-only timing the first bootstrap run needed.
+Revision 3: every real bug found in the bootstrap (a role miscategorized
+as an education entry with its bullets dropped, a thesis present in the
+raw text but written as "Not specified", plus ~90 minutes of CPU-only
+Ollama calls and several YAML-formatting fixes) traced to the same root
+cause -- the LLM had to freely DECIDE section membership, entry
+boundaries, and field placement. A machine-generated, regularly-formatted
+resume doesn't need that: section headers are fuzzy-matched against known
+synonyms (rapidfuzz, already a project dependency -- not hardcoded to one
+exact phrase, so a differently-worded resume export can still be
+recognized), and each section's entries follow a small, fixed number of
+line-shapes, parsed by explicit rules. A shape the parser doesn't
+recognize raises ResumeParseError naming exactly what didn't match,
+rather than silently guessing.
+
+Tailoring is unaffected -- rewriting bullets to match a job description's
+vocabulary is inherently a language task, not a chunking one, and still
+uses the local LLM via tailor.py.
+
+Verified against the real resume's actual raw extraction (used as the
+test fixture): both real bugs above are fixed, and the parser reproduces
+every other field correctly with zero API calls and no sampling variance.
 
 Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_01XMPj3X98CBxd3PsEL63e3U
@@ -810,10 +685,10 @@ target names that don't exist there yet.
 """
 convert_resume.py
 One-off bootstrap: copies the source resume PDF into resume-manager/,
-extracts it locally, extracts it into the structured schema via a local
-LLM call, and verifies that extraction before trusting it (spec §3
-Revision 2). Not part of the per-application pipeline -- run once, or
-re-run if the source PDF changes.
+extracts it locally, deterministically parses it into the structured
+schema (no LLM call -- spec §3 Revision 3), and verifies that parse
+before trusting it. Not part of the per-application pipeline -- run once,
+or re-run if the source PDF changes.
 """
 from __future__ import annotations
 
@@ -858,8 +733,10 @@ def bootstrap_resume(source_pdf: str, resume_manager_dir: str) -> str:
     parsed = extract_resume_schema(raw_text)
     if parsed is None:
         return (
-            f"Extraction wrote {raw_path}, but the local Ollama extraction call failed or "
-            f"returned invalid YAML -- is `ollama serve` running?"
+            f"Extraction wrote {raw_path}, but the deterministic parser didn't recognize this "
+            f"document's structure -- see the WARNING above for exactly which section/line "
+            f"didn't match, and either adjust the source PDF's formatting or extend "
+            f"resume_manager/normalize.py's parsing rules."
         )
 
     assign_ids(parsed.get("work_experience") or [], "org")
@@ -1790,6 +1667,15 @@ EOF
 ---
 
 ### Task 10: Documentation
+
+> **Revision 3 note:** the content below is Revision 2's. All three files
+> (plus the root `README.md`'s Requirements-section bullet) received a
+> further, in-place Revision 3 pass — every mention of a local Ollama call
+> for bootstrap extraction replaced with "deterministic, no LLM call," and
+> a pointer added to
+> `docs/status/2026-09-09-resume-manager-status.md` for the full
+> narrative. See the shipped files for current content; not re-embedded
+> here to avoid drift between two copies of the same prose.
 
 **Files:**
 - Modify: `resume_manager/README.md`

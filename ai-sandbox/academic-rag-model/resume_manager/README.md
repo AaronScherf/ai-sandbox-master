@@ -12,10 +12,12 @@ subproject.
 .\.venv\Scripts\python.exe -m resume_manager.convert_resume
 ```
 
-Copies the source resume PDF, extracts its text locally (0 API calls),
-extracts it into the structured schema via a local Ollama call, and
+Copies the source resume PDF, extracts its text locally (0 API calls), and
+deterministically parses it into the structured schema — no LLM call, no
+network, no sampling variance (~1-2 seconds). A defense-in-depth check
 verifies every required field's traceability against the raw extraction
-before writing `resume_master.yaml`. A verification mismatch writes
+before writing `resume_master.yaml`; a real mismatch here would mean a
+parser bug, not a fabrication. If it fires, it writes
 `resume_master.review.yaml` instead, for manual reconciliation of just the
 flagged field(s).
 
@@ -40,8 +42,10 @@ unchanged by code, never re-emitted by the LLM. Writes
 
 - A local Ollama install (`ollama serve`) with `qwen2.5:7b-instruct` pulled
   (`ollama pull qwen2.5:7b-instruct`) — overridable via
-  `RESUMEMANAGER_OLLAMA_MODEL`. CPU-only inference on this model can take
-  up to `RESUMEMANAGER_OLLAMA_TIMEOUT` seconds (default `1800`).
+  `RESUMEMANAGER_OLLAMA_MODEL`. Needed for **tailoring only**; the
+  bootstrap has no Ollama dependency at all. CPU-only inference on this
+  model can take up to `RESUMEMANAGER_OLLAMA_TIMEOUT` seconds (default
+  `1800`).
 - No `GEMINI_API_KEY` needed anywhere in this subproject.
 
 ## Key files
@@ -51,8 +55,9 @@ unchanged by code, never re-emitted by the LLM. Writes
   tier-routing wrapper — see the design spec's §3 for why).
 - `schema.py` — the structured master-resume schema's field lists, stable
   id assignment, and generic required-field/traceability verification.
-- `normalize.py` — local-LLM extraction of the raw text into that schema,
-  verified via `schema.py` before being trusted.
+- `normalize.py` — deterministic, section-aware parsing of the raw text
+  into that schema (fuzzy section-header matching + per-section line-shape
+  rules; no LLM), verified via `schema.py` before being trusted.
 - `fact_diff.py` — free-text numeric-metric extraction/traceability, used
   by `validate.py` to scope a check to one entry's own original bullets.
 - `convert_resume.py` — the one-time bootstrap CLI.
@@ -64,6 +69,8 @@ unchanged by code, never re-emitted by the LLM. Writes
 - `tailor_resume.py` — the per-application CLI, orchestrating
   tailor → validate → render.
 
-See the design spec for the full reasoning (Revision 2 note at the top
-covers what changed and why):
-`../docs/superpowers/specs/2026-09-09-resume-manager-design.md`.
+See the design spec (Revision 3 note at the top covers what changed and
+why) and the status doc (full real-run narrative and evidence) for the
+full reasoning:
+`../docs/superpowers/specs/2026-09-09-resume-manager-design.md`,
+`../docs/status/2026-09-09-resume-manager-status.md`.

@@ -4,8 +4,9 @@ Companion to `journal_articles_instructions.md`/`notes_instructions.md`,
 but for a single, personal, hand-curated document rather than a corpus:
 the user's resume. Two independent runs — a one-time bootstrap, and a
 per-application tailoring pipeline. **Revision 2**: the master resume is a
-structured YAML file, not freeform Markdown — see "How it works" below for
-why.
+structured YAML file, not freeform Markdown. **Revision 3**: the bootstrap
+parses that structure deterministically — no LLM call at all. See "How it
+works" below for why on both.
 
 ## Step 1: One-time bootstrap
 
@@ -25,12 +26,17 @@ python -m resume_manager.convert_resume
   reliable signal for a document that's already known to be typeset. A page
   that fails the local "does this look defective" check stops the run for
   your direct attention instead of silently escalating to a vision model.
-* The raw extraction is parsed into the structured schema (below) via one
-  local Ollama call, then every required field is checked for
-  traceability against the raw extraction before being trusted — a clean
-  check writes `resume_master.yaml` directly; a flagged mismatch writes
-  `resume_master.review.yaml` instead so you only reconcile the flagged
-  field(s) by hand.
+* The raw extraction is parsed into the structured schema (below)
+  deterministically — no LLM call, no network (~1-2 seconds total):
+  section headers are fuzzy-matched against known synonyms, and each
+  section's entries are extracted by explicit line-shape rules (see "How
+  it works"). A defense-in-depth check then confirms every required
+  field is traceable to the raw extraction before trusting it — a clean
+  check writes `resume_master.yaml` directly; a flagged mismatch (in
+  practice, a parser bug) writes `resume_master.review.yaml` instead so
+  you only reconcile the flagged field(s) by hand. A document the parser
+  can't make sense of at all fails loudly, naming exactly which
+  section/line didn't match, rather than guessing.
 * Re-running this bootstrap never overwrites an existing
   `resume_master.yaml` — only run it again if the *source PDF* changes;
   ongoing edits to your master resume are yours to make directly in
@@ -114,9 +120,25 @@ python -m resume_manager.tailor_resume --jd-file "job_description.txt" --applica
   instead — an ambiguity a single freeform text slot had no way to avoid.
   Named fields remove the ambiguity entirely, and verification becomes a
   direct field check instead of a heuristic.
+* **Deterministic bootstrap parsing, not an LLM call (Revision 3).**
+  Revision 2's own first real run took over 90 minutes of CPU-only Ollama
+  calls, needed five separate fixes just to get valid YAML back, and
+  *still* miscategorized a role into the wrong section (dropping its
+  bullets) and dropped a thesis that was right there in the raw text. The
+  common cause: the LLM had to freely decide section membership and entry
+  boundaries. A machine-generated resume doesn't need that decided
+  freshly each time — section headers are fuzzy-matched (`rapidfuzz`)
+  against known synonyms (not hardcoded to this one resume's exact
+  wording, so a differently-worded export can still be recognized), and
+  each section's entries follow a small, fixed number of line-shapes,
+  matched by explicit rules. See
+  `../docs/status/2026-09-09-resume-manager-status.md` for the full
+  evidence and every bug found along the way.
 * **Tailoring never lets the LLM touch metadata**, for the same reason:
   not "the LLM was told not to change it," but "the LLM's response has no
-  field to put it in even if it wanted to."
+  field to put it in even if it wanted to." Tailoring still uses a local
+  Ollama call (rewriting bullets to match a job description is a language
+  task, unlike bootstrap extraction).
 * **Reuses `notes/transcribe_notes.py`'s extraction primitives, not its
   `process_pdf()` wrapper.** That wrapper's tier-routing decision sniffs
   `/Creator`/`/Producer` metadata for LaTeX/Word/LibreOffice/Apache
@@ -124,9 +146,9 @@ python -m resume_manager.tailor_resume --jd-file "job_description.txt" --applica
   anything else. Confirmed against the user's real `resume.pdf`: its
   `/Producer` is `Skia/PDF m124` (headless-Chrome print-to-PDF),
   unrecognized by that check, even though the extracted text is clean.
-* **No paid API call anywhere in this subproject** — extraction is local
-  PyMuPDF, schema extraction and tailoring are local Ollama.
-  `GEMINI_API_KEY` is never read.
+* **No paid API call anywhere in this subproject** — extraction and schema
+  parsing are local PyMuPDF/Python (no LLM at all), tailoring is local
+  Ollama. `GEMINI_API_KEY` is never read.
 * **Rendering uses `xhtml2pdf`, not `weasyprint`.** `weasyprint` depends
   on the Pango/GTK native libraries, which aren't a plain `pip install` on
   Windows and were confirmed not to import on this machine. `xhtml2pdf` is
