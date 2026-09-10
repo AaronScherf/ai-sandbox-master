@@ -2588,17 +2588,48 @@ vars (`AUDIOGEN_SECTIONS_CHARS_PER_MINUTE`, `_TARGET_MIN_MINUTES`,
 that existing single-file `<name>.mp3`/`<name>.narrated.md` outputs from
 before this revision become orphaned (not auto-deleted or migrated).
 
-- [ ] **Step 12: Real verification against `LN_Probability.md`**
+- [x] **Step 12: Real verification against `LN_Probability.md`**
 
-Re-run the already-generated `LN_Probability.narrated.md`/`.mp3` demo
-through the new episode-aware path (same source file) and confirm: each
-resulting `__partNN.mp3` actually falls in the 10-20 minute band (allowing
-the documented single-oversized-section exception), the `__index.md`
-correctly lists which of the file's real headers landed in which part,
-and total combined audio length roughly matches the original 3h22m
-single-file run (sanity check that no content was silently dropped by
-the splitting/grouping step itself, as opposed to narrate.py's own
-already-tested sanity checks).
+**Done, 2026-09-09.** Two real end-to-end runs were needed, not one — the
+first surfaced a real concurrency bug (below), fixed before the second,
+final run.
+
+**Run 1 (pre-fix):** the initial `narrate_sections()` implementation
+called `narrate_for_speech()` once per section in a sequential loop.
+Real-world timing exposed why that's wrong: each call had its own
+internal concurrency across that section's chunks, but sections were
+processed one after another, confining parallelism to one section's
+batch at a time — a document with many small sections (this file has 74)
+ends up *slower* than the original whole-file design, not faster. Fixed
+by exposing `narrate.chunk_for_narration()`/`narrate.narrate_chunks()` as
+public functions and flattening every section's chunks into one list
+before a single shared dispatch (commit `fb6fd8d`) — fully
+backward-compatible, all 20 existing `narrate.py` tests passed unchanged.
+Episode-level TTS synthesis was parallelized the same pass
+(`AUDIOGEN_SECTIONS_SYNTH_MAX_WORKERS`, default 3).
+
+**Run 2 (post-fix, final numbers):**
+- Narration: **227.1s (3.8 min)** for 74 header-delimited sections (down
+  from 777.3s/13.0 min for the old single-whole-file v3 measurement).
+- Grouped into **9 episodes**.
+- Synthesis: **1165.3s (19.4 min) wall-clock** across 3 concurrent Piper
+  workers (vs. 3353.0s/55.9 min summed sequentially — ~2.9x speedup).
+- **Total: 1392.5s (23.2 min) end to end.**
+- `__index.md` correctly lists each part's real section titles.
+- **One real limitation confirmed, not a regression:** Part 02 came out
+  at 60,389 chars (~62 min), 3x the 20-minute target — source section
+  "1.5 Probability measures" spans 711 raw lines with zero sub-headers,
+  a genuinely undivided block the algorithm correctly refused to split
+  (spec §3.2's documented "never split inside one section" rule). Spec
+  §9 had flagged this as "expected to be rare" — confirmed real on the
+  very first file tested. **Deliberately left unfixed** — the user wants
+  to listen to the 9 real output files and compare against the source
+  content first, before deciding whether to add paragraph-level fallback
+  splitting for an over-long leaf section.
+
+Full narrative, per-episode breakdown table, and the "this test exercised
+the hard case, not the primary intended use case" scope note:
+`docs/2026-09-09-audio-generator-status.md`.
 
 - [ ] **Step 13: Commit**
 

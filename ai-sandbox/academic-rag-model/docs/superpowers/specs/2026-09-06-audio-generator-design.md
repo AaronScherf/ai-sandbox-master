@@ -14,10 +14,21 @@ file** (§9) — confirming it's practical. Running v3 end-to-end against the
 real file also surfaced a *new* problem this spec hadn't addressed: the
 resulting single MP3 was **3h22m long** (no length cap, spec §1's original
 non-goal) — technically correct, not actually useful for commute-length
-listening. §3.2 (this revision) adds section-aware episode splitting,
-approved in brainstorming, not yet planned/implemented. Scoped to the
-`notes` content type only — `textbook` chapter-reuse is a separate,
-deferred investigation (§3.2, §9).
+listening. §3.2 (section-aware episode splitting) was implemented and
+shipped (commits b40cb10, fb6fd8d, c46bd30), then validated end-to-end
+against the same file: **227.1s narration + 1165.3s parallel synthesis =
+23.2 min total**, producing 9 separately listenable episodes instead of
+one 3h22m file. One real limitation was confirmed in the process (§9: an
+undivided 711-line section produced a 62-minute over-length episode) —
+deliberately left unfixed pending a listening-quality review. Full
+real-world validation narrative: `docs/2026-09-09-audio-generator-status.md`.
+Scoped to the `notes` content type only — `textbook` chapter-reuse is a
+separate, deferred investigation (§3.2, §9). **Important scope note
+(§9): every real test so far, including this one, has exercised the
+harder secondary use case (raw LaTeX-heavy notes/textbook → audio)
+rather than the intended primary one (LLM-generated summary text → audio,
+not yet designed) — see §9 for why that distinction matters for
+`narrate.py`'s role going forward.**
 
 ## 1. Problem & goals
 
@@ -575,12 +586,19 @@ inside their subproject packages, and note the `tests/test_discovery.py`/
   changed. Revisit only if real usage shows the wasted regeneration
   matters at the intended volume (a few files/week makes this unlikely to
   bite in practice).
-- **NEW (§3.2): a single header-delimited section longer than the
-  target-max on its own becomes its own over-length episode** — this
-  revision never splits inside one section. Not expected to be common in
-  practice (most real course notes subdivide well below a 20-minute
-  chunk per header), but unverified against a broad sample of the actual
-  corpus.
+- **CONFIRMED (§3.2), real (2026-09-09): a single header-delimited section
+  longer than the target-max on its own becomes its own over-length
+  episode** — this revision never splits inside one section. Originally
+  flagged as "not expected to be common," but the very first real
+  end-to-end run against `LN_Probability.md` hit this: one section
+  ("1.5 Probability measures," 711 raw lines with zero sub-headers)
+  produced a 60,389-char (~62 min) episode, 3x the 20-minute target — see
+  `docs/2026-09-09-audio-generator-status.md` for the full account. Not
+  common-in-theory turned out to be real-in-practice on the first try.
+  **Not fixed yet, deliberately** — deferred pending a listening-quality
+  review of the real files this run produced, per the user's explicit
+  request, before deciding whether/how to add paragraph-level fallback
+  splitting for an over-long leaf section.
 - **NEW (§3.2): `textbook` chapter-splitting reuse is unexplored** —
   whether `textbook/chapter_index.py`'s PDF-anchored chapter boundaries
   survive textbook conversion anywhere `audio_generator` could read them
@@ -588,6 +606,27 @@ inside their subproject packages, and note the `tests/test_discovery.py`/
   checked. If they don't, `textbook` content would need its own
   header-based (or other) splitting heuristic, not simply a scope
   extension of §3.2's `notes`-only design.
+- **NEW (2026-09-09): every real-world validation of this pipeline so far
+  has exercised the wrong primary use case.** `LN_Probability.md` is raw,
+  unedited course notes — chosen deliberately as a hard correctness
+  stress-test for `narrate.py`'s LaTeX handling, not representative of
+  where this pipeline is actually expected to spend most of its time.
+  The planned primary consumer is **LLM-generated summary text** (e.g. a
+  weekly per-course summary synthesized from several notes/textbook
+  chapters — the "notes + textbook chapters → weekly summary → mp3"
+  pipeline discussed but not yet designed, see the project's own
+  conversation history). Such text is already plain, spoken-friendly
+  prose by construction — an LLM writing an explanatory summary has no
+  reason to emit raw `$\mathbb{E}[X]$`-style LaTeX unless specifically
+  asked to reproduce it. **Routing LLM-generated summary text through
+  `narrate.py`'s Gemini rewrite would be a second, unnecessary API call**
+  on text that's already narration-ready — that path should likely go
+  straight from `cleaner.clean_markdown_for_speech()` to
+  `engine.synthesize_speech()`, skipping `narrate.py` entirely. Not
+  designed or built — `audio_generator` today only has one entry point
+  (`pipeline.py`'s discovery-driven, raw-`.md`-in flow) with no way to
+  hand it already-narration-ready text directly. Full details in
+  `docs/2026-09-09-audio-generator-status.md`.
 - **NEW (v3): the tier-classifier density thresholds
   (`AUDIOGEN_NARRATE_MATH_RATIO_THRESHOLD`/`_COMMAND_THRESHOLD`, §3.1) are a
   starting guess, not validated values** — needs checking against real
