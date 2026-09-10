@@ -184,6 +184,21 @@ extraction with one batched prompt; regex-first with LLM-fallback only for
 unrecognized macros) are unchanged from v2 — see the historical spec text
 in version control for the full rejection rationale, still valid here.
 
+**New in v3 — chunks are dispatched concurrently, not sequentially:**
+v2's local model had exactly one CPU/GPU worth of inference capacity to
+run against, so processing chunks one at a time was the only sensible
+option — concurrent local calls would have only added contention. The
+Gemini API has no such constraint: each chunk's rewrite is independent of
+every other chunk's, and the API serves concurrent requests fine. v3 runs
+chunks through a thread pool (`AUDIOGEN_NARRATE_MAX_WORKERS`, default 5)
+instead of a plain loop, using `ThreadPoolExecutor.map()` specifically
+because it preserves input order in its results regardless of which
+chunk's network call actually completes first — the document is
+reassembled in original order even when completion order differs. This is
+a meaningful share of why the real measurement (§9) came back at 13
+minutes rather than something closer to 50 chunks × several seconds each
+run serially.
+
 **New in v3 — per-chunk complexity tiering, so plain prose costs nothing:**
 before sending a chunk anywhere, `narrate.py` classifies it into one of
 three tiers by scanning for LaTeX markers (`$...$`/`$$...$$` spans,

@@ -71,6 +71,13 @@ The final narration text (after all cleaning) is written to a sibling
 `<name>.narrated.md` next to `<name>.md`/`<name>.mp3` — useful for spot-
 checking translation quality without listening to the audio.
 
+Chunks within a file are narrated concurrently (`AUDIOGEN_NARRATE_MAX_WORKERS`
+threads, default `5`) rather than one at a time — measured at 13.0 minutes
+for one real 122K-character equation-dense file, ~28x faster than the prior
+local-model design's ~6h for the same file. Raise
+`AUDIOGEN_NARRATE_MAX_WORKERS` for more parallelism (watch for API rate
+limits at very high values) or lower it to reduce load.
+
 Override the classifier thresholds or model choice via
 `AUDIOGEN_NARRATE_MATH_RATIO_THRESHOLD` (default `0.15`),
 `AUDIOGEN_NARRATE_MATH_COMMAND_THRESHOLD` (default `3`),

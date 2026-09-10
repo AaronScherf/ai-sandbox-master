@@ -17,10 +17,13 @@ both degrade straight to the chunk's original, unmodified text.
 """
 from __future__ import annotations
 
+import concurrent.futures
 import os
 import re
 
 from common.gemini_utils import call_with_retries, get_gemini_client, load_dotenv_override
+
+AUDIOGEN_NARRATE_MAX_WORKERS = int(os.environ.get("AUDIOGEN_NARRATE_MAX_WORKERS", "5"))
 
 AUDIOGEN_NARRATE_GEMINI_LIGHT_MODEL = os.environ.get("AUDIOGEN_NARRATE_GEMINI_LIGHT_MODEL", "gemini-3.1-flash-lite")
 AUDIOGEN_NARRATE_GEMINI_HEAVY_MODEL = os.environ.get("AUDIOGEN_NARRATE_GEMINI_HEAVY_MODEL", "gemini-2.5-flash")
@@ -148,12 +151,23 @@ def narrate_for_speech(md_text: str) -> str:
     cleaner.clean_markdown_for_speech() (spec §3.1). Builds one Gemini
     client per file (not per chunk) -- get_gemini_client() is cheap
     (no network call itself), and this keeps pipeline.py's call site
-    completely unchanged from v2."""
+    completely unchanged from v2.
+
+    Chunks are dispatched concurrently (AUDIOGEN_NARRATE_MAX_WORKERS
+    threads, default 5) rather than one at a time -- unlike v2's local
+    model, which had no spare CPU/GPU capacity to parallelize against, the
+    Gemini API serves concurrent requests fine, and each chunk's rewrite
+    is independent of every other chunk's. ThreadPoolExecutor.map()
+    preserves input order in its results regardless of which chunk's
+    network call actually finishes first, so the document is reassembled
+    correctly even when completion order differs from submission order."""
     load_dotenv_override()
     client = get_gemini_client()
     chunks = _group_into_chunks(_split_into_pieces(md_text))
-    narrated = [
-        chunk if _CODE_BLOCK_PATTERN.fullmatch(chunk) else _narrate_chunk(chunk, client)
-        for chunk in chunks
-    ]
+
+    def _process(chunk: str) -> str:
+        return chunk if _CODE_BLOCK_PATTERN.fullmatch(chunk) else _narrate_chunk(chunk, client)
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=AUDIOGEN_NARRATE_MAX_WORKERS) as executor:
+        narrated = list(executor.map(_process, chunks))
     return "\n\n".join(narrated)

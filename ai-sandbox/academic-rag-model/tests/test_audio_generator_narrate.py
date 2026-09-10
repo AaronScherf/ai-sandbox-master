@@ -1,3 +1,4 @@
+import time
 import unittest
 from unittest.mock import MagicMock, patch
 
@@ -128,3 +129,44 @@ class TestNarrateForSpeechFallback(unittest.TestCase):
         result = narrate_for_speech(original)
         self.assertEqual(result, original)
         self.assertEqual(client.models.generate_content.call_count, 1)  # no local retry -- call_with_retries already tried
+
+
+@patch("audio_generator.narrate.load_dotenv_override")
+@patch("audio_generator.narrate.get_gemini_client")
+class TestNarrateForSpeechParallelDispatch(unittest.TestCase):
+    def test_preserves_chunk_order_even_when_the_first_chunk_finishes_last(self, mock_get_client, mock_dotenv):
+        client = MagicMock()
+
+        def _side_effect(*, model, contents, config):
+            if "FIRST-CHUNK-MARKER" in contents:
+                time.sleep(0.05)  # finishes after the second chunk despite being submitted first
+                return MagicMock(text="Rewritten first chunk, long enough to pass the sanity check. " * 20)
+            return MagicMock(text="Rewritten second chunk, long enough to pass the sanity check. " * 20)
+
+        client.models.generate_content.side_effect = _side_effect
+        mock_get_client.return_value = client
+
+        first_chunk = "FIRST-CHUNK-MARKER with $x$ in it. " * 60
+        second_chunk = "SECOND-CHUNK-MARKER with $y$ in it. " * 60
+        result = narrate_for_speech(f"{first_chunk}\n\n{second_chunk}")
+
+        self.assertLess(result.index("Rewritten first"), result.index("Rewritten second"))
+
+    def test_dispatches_chunks_concurrently_not_one_at_a_time(self, mock_get_client, mock_dotenv):
+        client = MagicMock()
+
+        def _side_effect(*, model, contents, config):
+            time.sleep(0.15)
+            return MagicMock(text="A rewritten passage long enough to pass the sanity check easily here yes.")
+
+        client.models.generate_content.side_effect = _side_effect
+        mock_get_client.return_value = client
+
+        md_text = "\n\n".join(f"Chunk number {i} with $x_{i}$ in it. " * 60 for i in range(5))
+        start = time.monotonic()
+        narrate_for_speech(md_text)
+        elapsed = time.monotonic() - start
+
+        # 5 chunks x 0.15s each: sequential would take >= 0.75s; concurrent (up to
+        # AUDIOGEN_NARRATE_MAX_WORKERS=5 at once, the default) should be well under that.
+        self.assertLess(elapsed, 0.5)
