@@ -286,6 +286,43 @@ rather than restructuring the prompt to add context it already has).
    `tailor_resume.py`'s flow the questions surface and how answers get
    threaded into `tailor.py`'s prompt.
 
+### 12. Two of §11's requests fixed: blank placeholders, repeated bullet openings
+
+**Blank rendering.** `render.py` now shares `schema.py`'s
+`MISSING_VALUE_PLACEHOLDERS` (promoted from a private constant) via a new
+`_display()` helper, applied everywhere a placeholder can appear (contact
+fields, education gpa/thesis, publication links, award descriptions). A
+date range with both sides missing omits the parenthetical entirely
+instead of leaving a dangling `( – )`; `"Present"` is confirmed untouched
+since it's real content, not a placeholder. 9 new tests.
+
+**Repeated bullet openings.** `validate.py` now flags any 6-word opening
+phrase shared by two or more rewritten bullets anywhere in the tailored
+resume (same entry or different entries) — long enough to avoid flagging
+two bullets that just happen to share a short, generic action-verb start
+(confirmed via a dedicated test). `tailor.py`'s prompt gained an explicit
+rule: since every included entry's bullets already arrive in the same
+request, vary sentence openings across all of them, and don't echo the
+job description's own repeated phrasing verbatim.
+
+**Re-run after both fixes (same real JD, same real master resume,
+2026-09-10):** manual inspection of the new rewrite confirms no repeated
+6-word openings — each bullet's opening is now genuinely distinct (one
+milder case, two different bullets both starting "Designed and
+implemented", diverges by the 4th word, correctly left unflagged per the
+6-word threshold's own design). Separately, this run's sampling dropped
+`$1.5M`, `$450M`, and `$5B` again — all three, worse than the previous
+run's partial preservation — and the bidirectional metric check correctly
+flagged all three. This is expected, not a regression in the fix just
+made: `tailor.py`'s prompt now carries two competing pulls on the same
+call (preserve every number vs. vary phrasing to avoid repetition), local
+CPU-only sampling varies run to run, and the pipeline's own design
+principle is to flag for manual review rather than guarantee a
+zero-defect rewrite on every call. The metric-preservation instruction
+(§10) is doing real work on some runs and not others — worth watching
+across more real applications rather than treating any single run's
+result as conclusive either way.
+
 ## Known, not yet fixed / open items
 
 - **Dropped named entities (awards, tool names) aren't caught
@@ -295,10 +332,10 @@ rather than restructuring the prompt to add context it already has).
   need named-entity-style matching, not metric-token matching. Manual
   review of rewritten bullets is still recommended before submitting any
   real application.
-- **Repeated bullet-opening phrasing across different roles** (§11) --
-  reproducible real example now on record; not yet fixed.
-- **`"Not specified"` renders literally on the PDF** (§11) -- a `render.py`
-  fix, not yet made.
+- **Metric preservation is inconsistent run-to-run** (§12) — the prompt
+  instruction helps but doesn't guarantee it every call; the bidirectional
+  check catches the failures when they happen, which is the intended
+  safety net, not a fix for the underlying sampling variance.
 - **The deterministic parser (Revision 3) is tuned to one real resume.**
   `match_section_header()`'s synonym list and each section's line-shape
   rules are grounded in this one document. Explicitly deferred (spec §10)
@@ -317,21 +354,18 @@ rather than restructuring the prompt to add context it already has).
 
 ## What's next
 
-1. `render.py`: skip a field entirely when its value is the
-   `"Not specified"`/placeholder sentinel, rather than printing it.
-2. Reduce repeated bullet-opening phrasing across roles (§11) — candidate
-   approaches: a stronger anti-repetition instruction in `tailor.py`'s
-   existing single-call prompt, or a post-generation pass that checks for
-   and rewrites duplicate openings.
-3. Brainstorm the clarifying-question flow (§11 item 5) as its own design
+1. Brainstorm the clarifying-question flow (§11 item 5) as its own design
    pass before implementing — where in `tailor_resume.py` questions
    surface, how answers thread into `tailor.py`'s prompt.
-4. Page-limit-aware selection and a paired cover-letter generator, per the
+2. Page-limit-aware selection and a paired cover-letter generator, per the
    design spec's §10 and §11's re-confirmation.
-5. Consider a named-entity-style check (award titles, tool names) if
+3. Consider a named-entity-style check (award titles, tool names) if
    dropped-named-entity issues keep recurring across more real tailoring
    runs — not solved speculatively now, per §10.
-6. Once a second real resume (different layout) is available, extend
+4. Watch metric-preservation consistency (§12) across more real tailoring
+   runs before deciding whether the prompt instruction needs strengthening
+   further or the bidirectional check is sufficient as the safety net.
+5. Once a second real resume (different layout) is available, extend
    `match_section_header()`'s synonyms and `normalize.py`'s per-section
    line-shape rules to cover it, rather than speculatively generalizing
    now.
