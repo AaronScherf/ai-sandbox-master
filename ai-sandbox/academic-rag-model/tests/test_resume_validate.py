@@ -49,6 +49,66 @@ class TestValidateTailored(unittest.TestCase):
         }
         self.assertEqual(validate_tailored(master, tailoring_result), [])
 
+    def test_repeated_bullet_opening_across_different_entries_is_flagged(self):
+        # Real, confirmed case (2026-09-09): a real tailoring run's first
+        # bullet for two different roles both opened with "Researches,
+        # analyzes, consolidates, and presents information..." -- echoing
+        # the job description's own repeated phrasing rather than varying
+        # language across bullets. tailor.py already sends every entry in
+        # one prompt/one call, so this isn't a missing-context problem.
+        master = {"work_experience": [
+            {"id": "acme-1", "bullets": ["Did thing one"]},
+            {"id": "globex-1", "bullets": ["Did thing two"]},
+        ]}
+        tailoring_result = {
+            "included_ids": ["acme-1", "globex-1"],
+            "bullets_by_id": {
+                "acme-1": ["Researches, analyzes, consolidates, and presents information on topic A."],
+                "globex-1": ["Researches, analyzes, consolidates, and presents information on topic B."],
+            },
+        }
+        problems = validate_tailored(master, tailoring_result)
+        self.assertTrue(any("repeated" in p.lower() and "opening" in p.lower() for p in problems))
+
+    def test_repeated_opening_within_the_same_entry_is_also_flagged(self):
+        master = {"work_experience": [{"id": "acme-1", "bullets": ["Did thing one", "Did thing two"]}]}
+        tailoring_result = {
+            "included_ids": ["acme-1"],
+            "bullets_by_id": {"acme-1": [
+                "Led the design and development of program A for the region.",
+                "Led the design and development of program B for the region.",
+            ]},
+        }
+        problems = validate_tailored(master, tailoring_result)
+        self.assertTrue(any("repeated" in p.lower() and "opening" in p.lower() for p in problems))
+
+    def test_short_generic_shared_start_is_not_flagged(self):
+        # Two bullets both starting with a common short action verb
+        # shouldn't be flagged as "repetitive" -- only a long, specific
+        # shared opening phrase is a real signal.
+        master = {"work_experience": [{"id": "acme-1", "bullets": ["Did thing one", "Did thing two"]}]}
+        tailoring_result = {
+            "included_ids": ["acme-1"],
+            "bullets_by_id": {"acme-1": [
+                "Led the design of a new evaluation framework for the region.",
+                "Led a cross-functional team of six analysts on a separate initiative.",
+            ]},
+        }
+        problems = validate_tailored(master, tailoring_result)
+        self.assertFalse(any("repeated" in p.lower() and "opening" in p.lower() for p in problems))
+
+    def test_distinct_openings_are_not_flagged(self):
+        master = {"work_experience": [{"id": "acme-1", "bullets": ["Did thing one", "Did thing two"]}]}
+        tailoring_result = {
+            "included_ids": ["acme-1"],
+            "bullets_by_id": {"acme-1": [
+                "Led the design and development of program A for the region.",
+                "Coordinated implementation of program B across three countries.",
+            ]},
+        }
+        problems = validate_tailored(master, tailoring_result)
+        self.assertFalse(any("repeated" in p.lower() and "opening" in p.lower() for p in problems))
+
 
 class TestFormatReport(unittest.TestCase):
     def test_empty_problems_reports_clean(self):

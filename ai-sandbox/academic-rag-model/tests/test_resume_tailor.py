@@ -49,6 +49,21 @@ class TestTailorResume(unittest.TestCase):
         self.assertIn("named award", prompt_arg)
         self.assertIn("Do NOT add any outcome, result, or claim", prompt_arg)
 
+    @patch("resume_manager.tailor.call_ollama")
+    def test_prompt_forbids_repeated_bullet_openings(self, mock_call):
+        # Real, confirmed gap (2026-09-09): a real tailoring run opened
+        # two different roles' first bullet with the near-identical
+        # "Researches, analyzes, consolidates, and presents information...",
+        # echoing the job description's own repeated phrasing rather than
+        # varying language -- the prompt never told the model not to.
+        mock_call.return_value = "included_ids: [acme-1]\nbullets_by_id:\n  acme-1: [rewritten bullet]"
+
+        tailor_resume(_MASTER, "a job description")
+
+        prompt_arg = mock_call.call_args[0][0]
+        self.assertIn("Do NOT start two different bullets", prompt_arg)
+        self.assertIn("vary sentence openings", prompt_arg)
+
     @patch("resume_manager.tailor.call_ollama", return_value="included_ids: [acme-1]\nbullets_by_id:\n  acme-1: [x]")
     def test_returns_parsed_yaml_dict(self, mock_call):
         result = tailor_resume(_MASTER, "jd")

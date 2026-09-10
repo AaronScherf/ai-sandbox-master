@@ -23,8 +23,9 @@ CRITICAL RULES:
 2. Choose which entries are most relevant to the job description -- you do not need to include every entry.
 3. For each entry you include, rewrite its bullets to mirror the job description's vocabulary and keywords. Do NOT invent, hallucinate, or exaggerate any experience, skill, or metric not already present in that entry's original bullets. Do NOT add any outcome, result, or claim that isn't stated in the original bullets, even if it sounds plausible.
 4. Preserve every specific number, dollar amount, percentage, named tool or technology, and named award or recognition from the original bullets -- carry each one into your rewrite rather than summarizing it away. If you combine two original bullets into one, make sure every such detail from both survives in the result; if you cannot fit them all, keep the bullets separate instead of merging.
-5. Do NOT return org, role, dates, or location -- only ids and rewritten bullets.
-6. Output ONLY valid YAML in exactly this shape, no commentary, no markdown code fences:
+5. You will see every included entry's bullets together in this same request -- use that to vary sentence openings across ALL of them. Do NOT start two different bullets (whether in the same entry or different entries) with the same opening phrase, even when the job description itself repeats that phrase across multiple duty statements. Echoing the job description's own repeated wording verbatim into more than one bullet is exactly what this rule forbids -- mirror its vocabulary and keywords (rule 3), not its sentence-opening pattern.
+6. Do NOT return org, role, dates, or location -- only ids and rewritten bullets.
+7. Output ONLY valid YAML in exactly this shape, no commentary, no markdown code fences:
 included_ids: [id1, id2, ...]
 bullets_by_id:
   id1: [rewritten bullet, rewritten bullet]
