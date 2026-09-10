@@ -25,9 +25,16 @@ python -m audio_generator.pipeline --course math-camp --dry-run
 
 ## Output
 
-Each source `<name>.md` gets a sibling `<name>.mp3` in the same hub
-directory — no new folder taxonomy, so any existing sync tool that already
-watches the student's notes picks up the audio too.
+**`textbook` content:** each source `<name>.md` gets a sibling `<name>.mp3`
+— no new folder taxonomy, so any existing sync tool that already watches
+the student's notes picks up the audio too.
+
+**`notes` content:** split into one or more **episodes** targeting 10-20
+minutes of listening each (see "Episode splitting" below), instead of one
+unbounded MP3 — `<name>__part01.mp3`, `<name>__part02.mp3`, etc., plus a
+`<name>__index.md` manifest listing which section titles landed in which
+part. A short note with no headers (or headers that fit in one 10-20
+minute episode) still produces exactly one `<name>__part01.mp3`.
 
 ## Setup
 
@@ -83,9 +90,38 @@ Override the classifier thresholds or model choice via
 `AUDIOGEN_NARRATE_MATH_COMMAND_THRESHOLD` (default `3`),
 `AUDIOGEN_NARRATE_GEMINI_LIGHT_MODEL`, `AUDIOGEN_NARRATE_GEMINI_HEAVY_MODEL`.
 
+## Episode splitting (`notes` only)
+
+A long note (e.g. a full lecture-notes file) is split at every Markdown
+header level, each section is narrated/cleaned independently, and
+consecutive sections are grouped into episodes targeting 10-20 minutes of
+resulting audio — using a real, measured conversion (`AUDIOGEN_SECTIONS_CHARS_PER_MINUTE`,
+default `969` characters of final text per minute, calibrated against one
+real Piper run) rather than a fixed header depth. A single section that's
+already longer than the target on its own becomes its own (over-length)
+episode — this never splits inside one section.
+
+`textbook` content is unaffected (still exactly one `<name>.mp3` per
+source) — it has its own separate, more sophisticated chapter-boundary
+system (`textbook/chapter_index.py`) that's a better fit than reusing
+this header-based approach; reusing it here is a separate, not-yet-started
+investigation.
+
+Idempotency is tracked per-episode but still hashed on the whole source
+file — a deliberate simplification: editing any part of a note
+regenerates every episode for that file, not just the changed section.
+
+Override the episode-length target via `AUDIOGEN_SECTIONS_CHARS_PER_MINUTE`,
+`AUDIOGEN_SECTIONS_TARGET_MIN_MINUTES` (default `10`),
+`AUDIOGEN_SECTIONS_TARGET_MAX_MINUTES` (default `20`).
+
+Existing single-file `<name>.mp3`/`<name>.narrated.md` outputs generated
+before this feature become orphaned (not auto-deleted or migrated) — safe
+to delete manually.
+
 ## Non-goals (see spec for rationale)
 
 Journal-articles, auto-triggering from other pipelines, reading
 image/figure descriptions aloud, indexer/RAG registration, and
-chapter-level audio splitting are all explicitly out of scope for this
+`textbook` chapter-boundary reuse are all explicitly out of scope for this
 version.

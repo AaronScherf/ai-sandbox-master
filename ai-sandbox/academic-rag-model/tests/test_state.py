@@ -3,7 +3,7 @@ import tempfile
 import unittest
 
 from audio_generator.discovery import SourceFile
-from audio_generator.state import compute_content_hash, load_state, needs_regeneration, save_state
+from audio_generator.state import compute_content_hash, episode_state_key, load_state, needs_regeneration, save_state
 
 
 def _source(hub_dir: str, rel_md: str = "academic_notes/math-camp/lecture-notes/a.md") -> SourceFile:
@@ -72,3 +72,11 @@ class TestNeedsRegeneration(unittest.TestCase):
                 f.write(b"fake mp3")
             state = {source.rel_md_path: "oldhash"}
             self.assertTrue(needs_regeneration(state, source, "newhash"))
+
+
+class TestEpisodeStateKey(unittest.TestCase):
+    def test_zero_pads_single_digit_part_numbers(self):
+        self.assertEqual(episode_state_key("a/b.md", 1), "a/b.md::part01")
+
+    def test_does_not_pad_beyond_two_digits(self):
+        self.assertEqual(episode_state_key("a/b.md", 12), "a/b.md::part12")

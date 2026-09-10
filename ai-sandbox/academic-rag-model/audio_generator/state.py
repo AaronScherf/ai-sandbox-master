@@ -49,3 +49,12 @@ def needs_regeneration(state: dict, source, current_hash: str) -> bool:
     if not os.path.exists(source.abs_mp3_path):
         return True
     return state.get(source.rel_md_path) != current_hash
+
+
+def episode_state_key(rel_md_path: str, part_number: int) -> str:
+    """Key for one episode's state entry (spec §3.2) -- part_number is
+    1-indexed, matching the __partNN filename suffix. Still hashed on the
+    whole source file's content, not per-section (a deliberate
+    simplification, spec §3.2/§9): a change anywhere in the source
+    regenerates every episode for that file, not just the changed one."""
+    return f"{rel_md_path}::part{part_number:02d}"
