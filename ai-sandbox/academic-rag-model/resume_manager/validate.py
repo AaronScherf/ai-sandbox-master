@@ -5,6 +5,16 @@ token in a rewritten bullet that isn't traceable to that SAME entry's
 original bullets -- narrower and stronger than v1's whole-document check,
 made possible by knowing exactly which master entry a rewritten bullet
 came from. Never blocks rendering.
+
+Bidirectional as of the first real tailoring run (2026-09-09): the
+original design only checked the invented direction. That run's rewrite
+compressed three bullets into two and lost every one of their $ figures
+along the way ($1.5M, $450M, $5Bn) -- not a fabrication, but a real
+quality loss the invented-only check couldn't see. Now also flags a
+metric present in the original bullets that doesn't survive into ANY
+rewritten bullet for that entry (checked against all of them jointly, so
+splitting one bullet's content across two rewritten bullets doesn't
+falsely look like a drop).
 """
 from __future__ import annotations
 
@@ -29,6 +39,8 @@ def validate_tailored(master: dict, tailoring_result: dict) -> list[str]:
         rewritten_text = "\n".join(bullets_by_id.get(entry_id) or [])
         for metric in metrics_not_traceable(rewritten_text, original_text):
             problems.append(f"{entry_id}: possible invented metric '{metric}' not found in original bullets")
+        for metric in metrics_not_traceable(original_text, rewritten_text):
+            problems.append(f"{entry_id}: possible dropped metric '{metric}' from original bullets not found in rewritten bullets")
     return problems
 
 

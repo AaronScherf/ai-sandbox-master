@@ -32,6 +32,23 @@ class TestValidateTailored(unittest.TestCase):
         problems = validate_tailored(_MASTER, tailoring_result)
         self.assertTrue(any("nonexistent" in p for p in problems))
 
+    def test_dropped_metric_is_flagged(self):
+        # Real, confirmed case (2026-09-09): a rewrite compressed three
+        # bullets into two and lost every one of their $ figures along the
+        # way. validate.py's original design only checked for INVENTED
+        # metrics; this checks the other direction too.
+        tailoring_result = {"included_ids": ["acme-1"], "bullets_by_id": {"acme-1": ["Grew revenue via new pricing"]}}
+        problems = validate_tailored(_MASTER, tailoring_result)
+        self.assertTrue(any("dropped" in p and "30%" in p for p in problems))
+
+    def test_metric_present_in_at_least_one_rewritten_bullet_is_not_flagged_as_dropped(self):
+        master = {"work_experience": [{"id": "acme-1", "bullets": ["Grew revenue 30%", "Cut costs 10%"]}]}
+        tailoring_result = {
+            "included_ids": ["acme-1"],
+            "bullets_by_id": {"acme-1": ["Grew revenue 30% via new pricing", "Cut costs 10% via automation"]},
+        }
+        self.assertEqual(validate_tailored(master, tailoring_result), [])
+
 
 class TestFormatReport(unittest.TestCase):
     def test_empty_problems_reports_clean(self):

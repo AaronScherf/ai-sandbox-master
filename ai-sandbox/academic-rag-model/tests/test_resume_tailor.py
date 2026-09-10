@@ -33,6 +33,22 @@ class TestTailorResume(unittest.TestCase):
         self.assertNotIn("NYC", prompt_arg)
         self.assertNotIn("2020", prompt_arg)
 
+    @patch("resume_manager.tailor.call_ollama")
+    def test_prompt_requires_preserving_metrics_and_forbids_unsupported_claims(self, mock_call):
+        # Real, confirmed gap (2026-09-09): a real tailoring run dropped
+        # every $ figure from a compressed bullet and added an outcome
+        # claim not present in the original -- the prompt only forbade
+        # invention, never required preservation.
+        mock_call.return_value = "included_ids: [acme-1]\nbullets_by_id:\n  acme-1: [rewritten bullet]"
+
+        tailor_resume(_MASTER, "a job description")
+
+        prompt_arg = mock_call.call_args[0][0]
+        self.assertIn("Preserve every specific number", prompt_arg)
+        self.assertIn("named tool or technology", prompt_arg)
+        self.assertIn("named award", prompt_arg)
+        self.assertIn("Do NOT add any outcome, result, or claim", prompt_arg)
+
     @patch("resume_manager.tailor.call_ollama", return_value="included_ids: [acme-1]\nbullets_by_id:\n  acme-1: [x]")
     def test_returns_parsed_yaml_dict(self, mock_call):
         result = tailor_resume(_MASTER, "jd")
