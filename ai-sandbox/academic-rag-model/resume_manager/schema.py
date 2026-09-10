@@ -16,6 +16,23 @@ def slugify(text: str) -> str:
     return slug or "entry"
 
 
+_WHITESPACE_RE = re.compile(r"\s+")
+
+
+def _normalize_for_comparison(text: str) -> str:
+    """Collapses any run of whitespace (including non-breaking spaces and
+    line-wrap newlines) to a single space, and lowercases, before a
+    traceability comparison. Confirmed real (2026-09-09) against the
+    actual resume bootstrap: the source PDF's text layer line-wraps
+    mid-sentence and uses non-breaking/doubled spacing in places, which
+    the LLM correctly normalizes when extracting flowing prose -- a
+    literal substring check flagged that faithful normalization as
+    "invented" on nearly every bullet and degree line. Lowercasing too,
+    since the LLM also legitimately re-capitalizes a sentence-initial
+    word when lifting a parenthetical into its own field."""
+    return _WHITESPACE_RE.sub(" ", text).strip().lower()
+
+
 CONTACT_REQUIRED = ["name", "location", "email", "linkedin_url", "github_url", "website_url"]
 WORK_EXPERIENCE_REQUIRED = ["org", "role", "location", "start_date", "end_date"]
 WORK_EXPERIENCE_LIST_FIELDS = ["bullets"]
@@ -49,6 +66,7 @@ def verify_entry_fields(
     for an ongoing role has nothing to trace that sentinel to. Entry
     identified in messages by its 'id' if present."""
     label = entry.get("id") or "<entry>"
+    normalized_raw = _normalize_for_comparison(raw_text)
     problems: list[str] = []
     for field in required_fields:
         value = entry.get(field)
@@ -57,12 +75,12 @@ def verify_entry_fields(
             continue
         if field == "end_date" and value == "Present":
             continue
-        if str(value) not in raw_text:
+        if _normalize_for_comparison(str(value)) not in normalized_raw:
             problems.append(f"{label}: field '{field}' value '{value}' not found in raw extraction")
     for field in list_fields:
         for item in entry.get(field) or []:
             if not item:
                 problems.append(f"{label}: an item in '{field}' is empty")
-            elif str(item) not in raw_text:
+            elif _normalize_for_comparison(str(item)) not in normalized_raw:
                 problems.append(f"{label}: '{field}' item '{item}' not found in raw extraction")
     return problems

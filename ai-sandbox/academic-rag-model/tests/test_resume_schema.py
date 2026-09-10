@@ -62,3 +62,41 @@ class TestVerifyEntryFields(unittest.TestCase):
         raw = "Acme\nEngineer"
         problems = verify_entry_fields(entry, raw, [], ["bullets"])
         self.assertTrue(any("bullets" in p for p in problems))
+
+    def test_mid_word_line_wrap_in_raw_text_is_not_flagged(self):
+        # Real, confirmed false positive against the actual resume
+        # bootstrap (2026-09-09): the source PDF line-wraps mid-sentence
+        # ("...randomized control\ntrial to evaluate..."), and the LLM
+        # correctly joins it into flowing prose with a single space. A
+        # literal substring check flags this as "invented" even though
+        # every word is faithfully preserved.
+        entry = {"id": "acme-1", "bullets": ["...randomized control trial to evaluate..."]}
+        raw = "...randomized control\ntrial to evaluate..."
+        problems = verify_entry_fields(entry, raw, [], ["bullets"])
+        self.assertEqual(problems, [])
+
+    def test_non_breaking_space_and_double_spacing_in_raw_text_is_not_flagged(self):
+        # Real, confirmed false positive: the source PDF's text layer uses
+        # non-breaking spaces and doubled spacing between words in some
+        # sections ("Natural\xa0\xa0Language\xa0\xa0Processing"), which the
+        # LLM correctly normalizes to single ordinary spaces.
+        entry = {"id": "s-1", "category": "x", "items": ["Natural Language Processing"]}
+        raw = "Natural\xa0\xa0Language\xa0\xa0Processing"
+        problems = verify_entry_fields(entry, raw, [], ["items"])
+        self.assertEqual(problems, [])
+
+    def test_capitalization_difference_is_not_flagged(self):
+        # Real, confirmed false positive: the LLM capitalized the first
+        # letter of an extracted description sentence
+        # ("in partnership..." -> "In partnership...") -- faithful
+        # content, trivial cosmetic normalization.
+        entry = {"id": "a-1", "description": "In partnership with Amnesty International"}
+        raw = "Humanity in Action Senior Fellow (in partnership with Amnesty International)"
+        problems = verify_entry_fields(entry, raw, ["description"])
+        self.assertEqual(problems, [])
+
+    def test_genuinely_fabricated_value_is_still_flagged_despite_normalization(self):
+        entry = {"id": "acme-1", "role": "Chief Executive Officer"}
+        raw = "Acme\nSenior Engineer\n2020"
+        problems = verify_entry_fields(entry, raw, ["role"])
+        self.assertTrue(any("role" in p for p in problems))
