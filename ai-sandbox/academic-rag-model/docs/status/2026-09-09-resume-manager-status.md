@@ -228,6 +228,64 @@ different mechanism than metric-token matching — recorded below as an
 open item, not solved here, to keep scope proportionate to what's been
 validated so far.
 
+### 11. User review of the real tailored PDF: contact info filled in, five follow-on requests
+
+**Contact info hand-fill confirms the intended workflow.** The user
+filled in `resume_master.yaml`'s `contact` block by hand directly
+(`name`, `location`, `email`, `linkedin_url`, `github_url`,
+`website_url`) — exactly the workflow the design intends
+(`resume_master.yaml` is a hand-maintained file the bootstrap never
+overwrites once it exists). No tooling change needed; recorded here as
+the open contact-info item now being real, resolved data for this user
+rather than a lingering gap.
+
+**Reviewing the actual rendered PDF (not just the YAML) surfaced a real,
+new finding: repeated bullet-opening phrasing across different roles.**
+From the UN Economist tailoring run (§10): the first bullet of both the
+first and second USAID entries opens with nearly identical language --
+`"Researches, analyzes, consolidates, and presents information and data
+on emerging best practices in SDG acceleration, particularly related
+to..."` and `"...including..."`. Worth noting precisely: `tailor.py`
+already sends every Work Experience entry to the model in a single
+prompt/single call (not one call per entry), so this isn't a case of the
+model lacking context about what it already wrote elsewhere in the same
+response -- it's echoing the job description's own repeated phrasing
+(the JD itself opens several duty bullets with "Researches, analyzes,
+consolidates and presents...") too literally across multiple resume
+bullets rather than varying sentence structure. Not yet fixed; the
+distinction matters for how to fix it (a stronger anti-repetition
+instruction the model can act on with its existing full-response context,
+rather than restructuring the prompt to add context it already has).
+
+**Five follow-on requests from this review round, none implemented yet:**
+
+1. **Render `"Not specified"` as blank on the PDF, not the literal
+   string.** Currently a genuinely-missing field (e.g. `gpa: Not
+   specified`) prints the literal placeholder text in the rendered
+   resume. `resume_master.yaml`/`tailored_resume.yaml` should keep storing
+   the explicit placeholder (needed for the honest-missing-value
+   traceability exemption, §3-7), but `render.py`'s `build_markdown()`
+   should skip a field entirely when its value is the placeholder, not
+   print it.
+2. **Page-limit-aware output formatting.** Already recorded as deferred in
+   the design spec (§10) and above -- re-confirmed here as a real,
+   standing want after seeing actual rendered output length.
+3. **Cross-bullet awareness to reduce repetitive language** -- see the
+   finding above. A real, reproducible example now exists to test a fix
+   against (unlike a purely speculative "bullets might repeat" concern).
+4. **A cover-letter generator, paired with the resume pipeline.** Already
+   a non-goal for this version (design spec §1) -- re-confirmed as wanted
+   as a follow-on subproject, not solved here.
+5. **A back-and-forth clarifying-question model before tailoring**, similar
+   to the brainstorming skill's own question-and-answer flow: let the user
+   answer a few questions grounded in the job description (e.g. which
+   experience to foreground, what to downplay) before the LLM selects
+   entries and rewrites bullets, rather than the LLM inferring relevance
+   from the JD text alone. This is a new, not-yet-designed feature --
+   would need its own brainstorming pass to work out where in
+   `tailor_resume.py`'s flow the questions surface and how answers get
+   threaded into `tailor.py`'s prompt.
+
 ## Known, not yet fixed / open items
 
 - **Dropped named entities (awards, tool names) aren't caught
@@ -237,12 +295,10 @@ validated so far.
   need named-entity-style matching, not metric-token matching. Manual
   review of rewritten bullets is still recommended before submitting any
   real application.
-- **Contact info is genuinely absent from the source PDF.** `location`,
-  `email`, `linkedin_url`, `github_url`, `website_url` are all
-  `"Not specified"` in the real `resume_master.yaml` — confirmed across
-  every run that the resume's extracted text simply doesn't contain this
-  information. Needs a one-time manual fill-in by the user; not a parser
-  bug.
+- **Repeated bullet-opening phrasing across different roles** (§11) --
+  reproducible real example now on record; not yet fixed.
+- **`"Not specified"` renders literally on the PDF** (§11) -- a `render.py`
+  fix, not yet made.
 - **The deterministic parser (Revision 3) is tuned to one real resume.**
   `match_section_header()`'s synonym list and each section's line-shape
   rules are grounded in this one document. Explicitly deferred (spec §10)
@@ -253,18 +309,29 @@ validated so far.
   recognizes `%`/`$`/`x`-suffixed tokens; a bullet like "reduced latency by
   half" or "team of 12" isn't caught either way. Not yet validated against
   a real tailored bullet with this kind of phrasing.
-- **Page-limit-aware selection and non-Work-Experience tailoring** remain
-  explicitly deferred per the design spec's §10 (both were raised during
-  design discussion as real future wants, not solved speculatively here).
+- **Page-limit-aware selection, non-Work-Experience tailoring, cover-letter
+  generation, and a clarifying-question flow before tailoring** all remain
+  explicitly deferred (design spec §10 for the first two; §11 above for
+  the latter two, re-confirmed as real wants after real use) — none solved
+  speculatively here.
 
 ## What's next
 
-1. Fill in real contact info (`location`/`email`/`linkedin_url`/
-   `github_url`/`website_url`) in `resume_master.yaml` by hand.
-2. Consider a named-entity-style check (award titles, tool names) if
+1. `render.py`: skip a field entirely when its value is the
+   `"Not specified"`/placeholder sentinel, rather than printing it.
+2. Reduce repeated bullet-opening phrasing across roles (§11) — candidate
+   approaches: a stronger anti-repetition instruction in `tailor.py`'s
+   existing single-call prompt, or a post-generation pass that checks for
+   and rewrites duplicate openings.
+3. Brainstorm the clarifying-question flow (§11 item 5) as its own design
+   pass before implementing — where in `tailor_resume.py` questions
+   surface, how answers thread into `tailor.py`'s prompt.
+4. Page-limit-aware selection and a paired cover-letter generator, per the
+   design spec's §10 and §11's re-confirmation.
+5. Consider a named-entity-style check (award titles, tool names) if
    dropped-named-entity issues keep recurring across more real tailoring
    runs — not solved speculatively now, per §10.
-3. Once a second real resume (different layout) is available, extend
+6. Once a second real resume (different layout) is available, extend
    `match_section_header()`'s synonyms and `normalize.py`'s per-section
    line-shape rules to cover it, rather than speculatively generalizing
    now.
