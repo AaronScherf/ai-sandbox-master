@@ -95,6 +95,19 @@ class TestVerifyEntryFields(unittest.TestCase):
         problems = verify_entry_fields(entry, raw, ["description"])
         self.assertEqual(problems, [])
 
+    def test_zero_width_space_embedded_in_raw_words_is_not_flagged(self):
+        # Real, confirmed false positive against the actual resume
+        # bootstrap (2026-09-09): the Skills section's raw text embeds a
+        # zero-width space (U+200B) between words ("Natural ​Language
+        # ​Processing"). U+200B is Unicode category Cf (format), not
+        # Zs (separator), so Python's \s regex -- and therefore the plain
+        # whitespace-collapse normalization -- does not match it; it must
+        # be stripped explicitly.
+        entry = {"id": "s-1", "category": "x", "items": ["Natural Language Processing"]}
+        raw = "Natural ​Language ​Processing"
+        problems = verify_entry_fields(entry, raw, [], ["items"])
+        self.assertEqual(problems, [])
+
     def test_genuinely_fabricated_value_is_still_flagged_despite_normalization(self):
         entry = {"id": "acme-1", "role": "Chief Executive Officer"}
         raw = "Acme\nSenior Engineer\n2020"

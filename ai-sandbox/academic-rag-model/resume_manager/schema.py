@@ -17,19 +17,24 @@ def slugify(text: str) -> str:
 
 
 _WHITESPACE_RE = re.compile(r"\s+")
+_ZERO_WIDTH_SPACE = "​"
 
 
 def _normalize_for_comparison(text: str) -> str:
-    """Collapses any run of whitespace (including non-breaking spaces and
-    line-wrap newlines) to a single space, and lowercases, before a
-    traceability comparison. Confirmed real (2026-09-09) against the
-    actual resume bootstrap: the source PDF's text layer line-wraps
-    mid-sentence and uses non-breaking/doubled spacing in places, which
-    the LLM correctly normalizes when extracting flowing prose -- a
-    literal substring check flagged that faithful normalization as
-    "invented" on nearly every bullet and degree line. Lowercasing too,
-    since the LLM also legitimately re-capitalizes a sentence-initial
-    word when lifting a parenthetical into its own field."""
+    """Strips zero-width spaces, collapses any run of whitespace
+    (including non-breaking spaces and line-wrap newlines) to a single
+    space, and lowercases, before a traceability comparison. Confirmed
+    real (2026-09-09) against the actual resume bootstrap: the source
+    PDF's text layer line-wraps mid-sentence, uses non-breaking/doubled
+    spacing in places, and embeds zero-width spaces (U+200B) between
+    words in its Skills section -- all faithfully normalized away by the
+    LLM when extracting flowing prose, but a literal substring check
+    flagged every one of them as "invented." U+200B needs its own
+    explicit strip step: it's Unicode category Cf (format), not
+    Zs (separator), so \\s does not match it. Lowercasing too, since the
+    LLM also legitimately re-capitalizes a sentence-initial word when
+    lifting a parenthetical into its own field."""
+    text = text.replace(_ZERO_WIDTH_SPACE, "")
     return _WHITESPACE_RE.sub(" ", text).strip().lower()
 
 
