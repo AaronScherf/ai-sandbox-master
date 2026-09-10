@@ -1,10 +1,10 @@
 """
 convert_resume.py
 One-off bootstrap: copies the source resume PDF into resume-manager/,
-extracts it locally, extracts it into the structured schema via a local
-LLM call, and verifies that extraction before trusting it (spec §3
-Revision 2). Not part of the per-application pipeline -- run once, or
-re-run if the source PDF changes.
+extracts it locally, deterministically parses it into the structured
+schema (no LLM call -- spec §3 Revision 3), and verifies that parse
+before trusting it. Not part of the per-application pipeline -- run once,
+or re-run if the source PDF changes.
 """
 from __future__ import annotations
 
@@ -49,8 +49,10 @@ def bootstrap_resume(source_pdf: str, resume_manager_dir: str) -> str:
     parsed = extract_resume_schema(raw_text)
     if parsed is None:
         return (
-            f"Extraction wrote {raw_path}, but the local Ollama extraction call failed or "
-            f"returned invalid YAML -- is `ollama serve` running?"
+            f"Extraction wrote {raw_path}, but the deterministic parser didn't recognize this "
+            f"document's structure -- see the WARNING above for exactly which section/line "
+            f"didn't match, and either adjust the source PDF's formatting or extend "
+            f"resume_manager/normalize.py's parsing rules."
         )
 
     assign_ids(parsed.get("work_experience") or [], "org")
