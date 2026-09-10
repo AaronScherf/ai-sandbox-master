@@ -1,0 +1,669 @@
+# Academic Hub: Project-Wide Status Summary
+
+Start here for "where does the whole project stand" -- a synthesis across
+every subproject's own status doc, not a replacement for any of them. Read
+the linked doc for a given piece's full history; this page is the map.
+Individual subproject status docs live under `docs/status/`; project-wide
+trackers like this one live under `docs/trackers/` (both folders introduced
+2026-09-07 to declutter `docs/`, no content changes from the move itself).
+This doc also now carries the cross-cutting known-bugs tracker, folded in
+2026-09-07 from the former standalone `docs/2026-08-28-known-errors-todo.md`
+-- see "Known Errors / TODO" below.
+
+**Subproject docs, in build order:**
+1. `docs/status/2026-08-22-chapter-aware-chunking-status.md` -- textbook chunking/page tracking
+2. `docs/status/2026-08-23-image-description-status.md` -- textbook figure descriptions
+3. `docs/status/2026-08-24-notes-transcription-status.md` -- non-textbook PDF transcription
+4. `docs/status/2026-08-27-notes-postprocessing-status.md` -- downstream transcription correction (in progress, paused)
+5. `docs/status/2026-08-29-source-indexer-status.md` -- tags, cards, file-level search
+6. `docs/status/2026-08-30-rag-agent-status.md` -- passage retrieval + tutoring agent
+
+## The pipeline, end to end
+
+```
+PDFs (textbooks, problem sets, exams, notes)
+  |
+  |-- convert_textbook.py  (Marker + chapter-aware chunking + page/folio tags)
+  |     -> describe_images.py  (figure descriptions, .rag.md)
+  |
+  |-- transcribe_notes.py  (3-tier router: local / hybrid-batch / full-Gemini)
+  |     -> postprocess_notes.py  (downstream correction pass, IN PROGRESS)
+  |
+  v
+Source indexer (index_card.py / index_search.py / retag.py / chunk_index.py)
+  - per-file cards (file_id, doc_type, tags, embeddings)
+  - corpus-wide tag vocabulary (retag)
+  - file-level two-stage search
+  - passage-level chunks + embeddings (chunk_index.py)
+  |
+  v
+rag_agent.py -- multi-turn tutoring, grounded citations, no persistent memory
+```
+
+**Repository layout (as of 2026-08-30):** the scripts above now live in
+per-subproject packages -- `common/`, `indexer/`, `textbook/`, `notes/`,
+`postprocessing/`, `rag/` -- run via `python -m <package>.<module>`, e.g.
+`python -m notes.transcribe_notes`, `python -m indexer.index_search query
+"..."`. Previously a flat folder of ~15 top-level scripts. See
+`README.md`'s "Repository layout" section for the full breakdown; the VM
+deployment step in `gcp_instructions.md` was updated to match (a
+`--recurse` copy of `common/`+`indexer/`+`textbook/` instead of
+cherry-picked flat files, which also fixed a real pre-existing gap where
+`index_card.py`/`gemini_utils.py` were never actually deployed to the VM).
+
+**Branch housekeeping (2026-08-30, important for continuity):** the
+`marker-conversion` branch this whole project's work lived on was renamed
+directly to `main` -- `main` and `marker-conversion` turned out to have no
+common ancestor commit (`git merge-tree` refused: "fatal: refusing to
+merge unrelated histories", almost certainly a side effect of the earlier
+`git filter-repo` history rewrite on `passage-embeddings`), so a real merge
+was never viable; renaming was the permanent fix. **`main` is now the one
+working branch** -- future feature branches fork from and merge back into
+`main` directly, not a separate `marker-conversion`. The old, 242-commits-
+stale `main` (no real content, confirmed zero copyrighted material) is
+preserved under `main-archive-2026-08-30` if ever needed. `origin/marker-conversion`
+was deleted as redundant once `main` carried the same content.
+
+A separate `essays/` subproject (`convert_essays.py`, `.docx`-to-Markdown
+via `mammoth`) was started the same day by a different agent working
+concurrently in the same repo -- not covered by this doc; see its own
+commits/docs if picking that up.
+
+Every stage after the raw PDF is markdown-first: each pipeline stage reads
+the previous stage's `.md`/`.rag.md` output and its own YAML frontmatter or
+JSON sidecar state, never re-parses the PDF. This is why re-running any one
+stage after a fix (e.g. re-transcribing after the Nebo-guard fix, or
+re-tagging after the fallback-leak fix) has consistently been cheap and
+safe throughout the project -- each stage's output is a stable, inspectable
+artifact, not a black box.
+
+## Real-corpus state today (2026-08-30)
+
+One course in the corpus so far, `math-camp`:
+- **30 index cards**, all healthy: 0 orphaned, 0 `needs_indexing`, 0
+  untagged, 30/30 have `content_hash`, 5/5 textbooks linked to their
+  `.rag.md`.
+- **14 tags** in the corpus-wide vocabulary (10 corpus-validated, 4
+  single-document fallback tags, all correctly isolated from cross-leak).
+- **5 textbooks** fully chapter-chunked, page/folio-tagged, and
+  image-described (793 candidate figures, 764 described, 29 correctly
+  skipped as decorative).
+- **~15 notes/problem-set documents** transcribed via the 3-tier router;
+  the 6 that were stale pre-fix artifacts have been re-transcribed for
+  real.
+- **Passage-level chunks + embeddings** generated for the full corpus
+  (`.index/chunks/math-camp.json`, gitignored -- see "IP and security
+  posture" below).
+- **RAG tutor** validated against real multi-turn queries on this corpus.
+
+Everything above is one course. Nothing about cross-course behavior (tag
+vocabulary scaling, cross-course retrieval ranking, whether one course's
+fallback tags could drift toward relevance in another) has been exercised
+against real data yet -- see "Between-course retrieval" below.
+
+## Cross-cutting patterns worth carrying forward
+
+These showed up independently across nearly every subproject and are worth
+treating as house style, not one-off lessons:
+
+- **Real-evidence-driven correction over untested heuristics.** Threshold
+  values (repetition-loop regex, causal z-score, defect ratio), model
+  choices (`TUTOR_MODEL`, image-description model), and even whole
+  detection approaches (tag clustering, causal-only vs. causal+masked
+  scoring) were repeatedly set on a first-pass heuristic, then measured
+  against real corpus data, then corrected when the evidence disagreed.
+  Several of these corrections were prompted by the user directly
+  questioning an unvalidated assumption ("why are we using a 3.6 gemini?").
+  Default to testing before asserting a quality/capability claim.
+- **Dependency-free core modules.** `chapter_index.py`, `page_markers.py`,
+  `describe_images.py`'s parsing/caching logic, `chunk_index.py`, and most
+  of `rag_agent.py` deliberately avoid importing `torch`/`marker` (GPU-only
+  deps) or making network calls at module scope, so the logic is unit
+  testable on a plain machine. `convert_textbook.py` itself is the
+  exception (GPU-bound, VM-only) -- everything downstream of it was
+  designed not to inherit that constraint.
+- **Two-stage bugs: real ones, and stale artifacts mistaken for real
+  ones.** More than once (the 6 zero-byte `.md` files, the mtime-reset
+  false "14 cards updated") the investigation had to distinguish "this is
+  a live bug" from "this is leftover state from before a fix shipped."
+  Confirming via commit timestamps and direct re-runs, rather than
+  patching defensively, kept the fix count honest.
+- **A cross-stage bug class: state written but never reconciled onto the
+  card that's supposed to reflect it.** `rag_md_path` (image-description ->
+  index card) and `content_hash`/`needs_indexing` (retag/rebuild
+  interactions) both had this shape -- one stage's sidecar JSON updates
+  correctly, but the index card that's supposed to summarize it doesn't
+  get told. Worth checking for this shape specifically if a future stage
+  adds its own sidecar state.
+
+## IP and security posture (load-bearing, do not relax silently)
+
+The GitHub repo `AaronScherf/ai-sandbox-master` is **public**. The corpus
+contains copyrighted PDFs/textbooks. Current policy, enforced via a
+deny-list `.gitignore` (not a blanket directory ignore):
+- Source PDFs, converted `.md`/`.rag.md`, `images/`, page caches, and raw
+  OneNote exports are all gitignored under `academic-hub/**`.
+- `.index/chunks/` (passage text + embeddings) is gitignored -- added after
+  a real incident where verbatim chunk text and embeddings of that exact
+  text were briefly pushed public, then purged via a scoped
+  `git filter-repo` history rewrite.
+- File-level index **cards** (`doc_type`, LLM-authored title/summary,
+  tags) are treated as genuinely derivative and are not gitignored --
+  the distinction that matters is verbatim-reproduction risk (chunk text,
+  embeddings of chunk text) vs. LLM-authored description of a document.
+
+Any future subproject that stores or transmits corpus text more granular
+than a card-level summary (new problem-set text, journal-article chunks,
+YouTube transcript excerpts) needs this same check before its first commit,
+not after.
+
+## GCP VM cost policy (load-bearing, do not relax silently)
+
+`gcp_instructions.md` Step 4 now defaults to **deleting** the textbook-
+conversion VM (and its Persistent Disk) at the end of every session,
+rather than stopping it. This matters because a Persistent Disk bills for
+its full provisioned size for as long as it exists, whether the VM is
+running, stopped, or detached -- "stopped" only halts *compute* billing,
+not storage. For a pipeline run roughly once a month, a stopped-but-kept
+disk quietly costs real money (~$0.10/GB/month) for weeks of pure idle
+time.
+
+Deleting is safe because nothing on that disk is irreplaceable: input
+PDFs and converted output only ever flow through the GCS bucket and the
+local machine (`gcp_instructions.md` Steps 3.2-3.4), never the VM's own
+disk, and everything `marker_setup.sh` provisions there (apt packages, pip
+packages, the pulled vLLM Docker image) is mechanically re-derived from
+public sources on the next run -- that's the entire point of its
+provisioning-marker/re-verify logic. Recreating the VM from the same
+`--image-family` (Step 1.3) gets you back to a working state automatically.
+
+**Stop instead of delete** only when planning a same-day rerun, where
+paying a few hours of storage cost buys back the few minutes
+`marker_setup.sh` would otherwise spend reprovisioning. It is not the
+default end-of-session step anymore.
+
+Relatedly, Step 0.2's `PDF_FILENAMES` is no longer a hand-maintained list
+-- it's now auto-populated by globbing the `.pdf` files directly inside
+whatever `TEXTBOOK_SUBDIR` points at. This was specifically motivated by
+running the pipeline against multiple different course directories going
+forward: switching courses is now just changing `TEXTBOOK_SUBDIR`, not
+also retyping every filename in that course's folder.
+
+## Where each subproject stands
+
+- **Chapter-aware chunking**: shipped, VM-validated across 3+ books. A
+  handful of low-stakes deferred items (stale docstring, minor off-by-ones)
+  remain, explicitly non-blocking.
+- **Image description**: shipped, validated against all 5 real textbooks
+  (764/793 figures described, spot-checked accurate). No open blockers.
+- **Notes transcription**: shipped, 3-tier router validated against the
+  real corpus including a full repetition-loop defense system added this
+  session. No open blockers on the transcription pipeline itself.
+  `LN_Analysis.pdf`/`LN_Linear Algebra.pdf` finished reprocessing
+  2026-08-30 (see #6 below) -- all six reliably-paginated documents in the
+  corpus now have whole-document-batched quality. **2026-09-07/09:** a
+  capture-pipeline redesign for handwritten notes (retiring the OneNote
+  round-trip in favor of Excalidraw-in-Obsidian plus a new
+  transcribe-then-expand step) was brainstormed, spiked, spec'd, planned,
+  and **shipped** as `notes/excalidraw_chunking.py` +
+  `notes/transcribe_excalidraw.py` -- real-corpus validated against both
+  real tablet files (5 and 3 chunks respectively, zero hard cuts, `.rag.md`
+  output spot-checked faithful to source), and registered with the source
+  indexer for real (new `math_methods`/`microecon` course shards). See
+  `docs/status/2026-08-24-notes-transcription-status.md`'s "2026-09-09"
+  sections for full detail. Untested: the Ollama expansion backend and
+  textbook-retrieval grounding, both wired but not yet exercised for real.
+- **Notes post-processing**: **in progress, explicitly paused.** Built,
+  unit-tested, and validated against one real reproduced bug (the
+  radical-as-`p` case) and a broader corpus run that fixed a real
+  word-spacing extraction bug. Left open: the causal z-score signal still
+  has an unresolved precision problem on math-heavy prose (mitigated
+  ~62% via a threshold raise, not solved) -- see
+  `docs/status/2026-08-27-notes-postprocessing-status.md` and the
+  `project_notes_postprocessing_paused` memory. The most promising
+  unpursued direction is conditioning detection on retrieved,
+  validated-similar passages -- which now has a real prerequisite in
+  place (passage embeddings exist), making this a plausible thing to
+  revisit rather than a purely speculative future idea.
+- **Source indexer**: shipped (core + retag + passage chunking), real
+  corpus healthy per the snapshot above. No open blockers.
+- **RAG tutoring agent**: shipped, validated against real multi-turn
+  queries. Explicit, honestly-scoped limitations -- see
+  `docs/status/2026-08-30-rag-agent-status.md` in full; summarized in "What's
+  next" below since they're this project's most immediate next steps.
+
+## Outstanding TODOs and known bugs, consolidated
+
+Every documented, not-yet-fixed item found across all subproject docs, so
+nothing gets lost between them. None of these are blocking current use of
+the pipeline -- if they were, they'd be in "Where each subproject stands"
+above instead. Pulled from each doc's own "Remaining open items"/"What's
+next"/checklist sections on 2026-08-30; add new ones here going forward
+rather than letting them live only in a subproject doc no one revisits.
+
+**Tracked publicly as GitHub issues** (`AaronScherf/ai-sandbox-master`,
+issues #1-13, filed 2026-08-30) -- each bullet below links its issue.
+Two items were deliberately **not** filed as issues: the lost-exponent
+regex gap under notes-transcription (explicitly not-planned-to-fix, listed
+here only for completeness) and the branch-state housekeeping note under
+notes-postprocessing (already resolved, nothing to track). **6 of the 13
+are now resolved and closed** (#1, #2, #3, #4, #6, plus 2 of 3 sub-items
+under #11) -- see "Priority and sequencing" below for the current
+breakdown. The GitHub token's Issues permission was also fixed
+2026-08-30 (was create-only, 403 on comment/close) -- future work can
+comment/close directly rather than needing this doc as the record of
+truth.
+
+**Chapter-aware chunking** (`docs/status/2026-08-22-chapter-aware-chunking-status.md`,
+`docs/superpowers/plans/2026-08-20-vm-validation-checklist.md`):
+- [#1](https://github.com/AaronScherf/ai-sandbox-master/issues/1)
+  **RESOLVED 2026-08-30** (`main` commit `826703a`). `parse_printed_toc`
+  extracted one spurious entry from Hammack's front matter (`folio=2,
+  title='='`) -- fixed by requiring a title to have >=1 alphanumeric
+  character (a real title is never pure punctuation); regression test
+  added reproducing the actual trigger shape (a `"1 = 2"`-style table row).
+- [#2](https://github.com/AaronScherf/ai-sandbox-master/issues/2)
+  **RESOLVED 2026-08-30** (`826703a`). `README.md` and
+  `convert_textbook.py`'s module docstring now describe chapter-aware
+  chunking and the `<!-- page N -->`/`<!-- folio N -->` tag output.
+- [#3](https://github.com/AaronScherf/ai-sandbox-master/issues/3)
+  **RESOLVED 2026-08-30** (`826703a`). A corrupt/truncated `run_config.json`
+  now gets the same stale-chunk-clearing treatment as the old-format case
+  (shared `_discard_stale_chunks` helper); the write itself is also now
+  atomic (temp file + `os.replace`), preventing the corruption at the
+  source rather than just handling it gracefully after the fact.
+- [#4](https://github.com/AaronScherf/ai-sandbox-master/issues/4)
+  **RESOLVED 2026-08-30** (`826703a`). All three: `probe_and_shift_boundary`'s
+  off-by-one fixed (`shifted <= max_shift` -> `shifted < max_shift`); the
+  bootstrap scratch images directory is cleaned up right after use instead
+  of accumulating across a batch; `--chunk-timeout`/`--page-timeout` are
+  now threaded through to the bootstrap conversion instead of hardcoded.
+  All four (#1-#4) share one regression-test file,
+  `tests/test_convert_textbook.py` -- the first local test coverage for
+  `convert_textbook.py` ever, made possible by stubbing the `marker`
+  submodules in `sys.modules` before import so its pure-logic functions
+  (no Marker/GPU call of their own) can be exercised without a VM.
+
+**Image description** (`docs/status/2026-08-23-image-description-status.md`):
+- [#5](https://github.com/AaronScherf/ai-sandbox-master/issues/5) The
+  front-matter filter only excludes images *before* the first real
+  chapter -- back matter (index, appendix, bibliography) isn't specifically
+  filtered, left entirely to the per-image LLM skip decision instead. Not
+  shown to be a real problem in the 5-book validation, so not prioritized,
+  but untested against a book with a large back-matter image section.
+
+**Notes transcription** (`docs/status/2026-08-24-notes-transcription-status.md`):
+- [#6](https://github.com/AaronScherf/ai-sandbox-master/issues/6)
+  **RESOLVED 2026-08-30.** `LN_Analysis.pdf` and `LN_Linear Algebra.pdf`
+  reprocessed for real through the whole-document-batched path -- both
+  were already fully cached from the earlier paused run, so actual cost
+  was **$0**, not the estimated $0.30. Confirmed `routing: gemini_batched`
+  in frontmatter, 155/155 and 294/294 pages transcribed. Source index
+  rebuilt afterward to pick up the new content hashes (10 cards updated).
+- [#7](https://github.com/AaronScherf/ai-sandbox-master/issues/7)
+  **Radical/square-root signs can silently extract as plain ASCII**
+  (confirmed real: `Analysis_Exercises.pdf` page 6, a `√` extracting as
+  literal `p`) -- invisible to all four `page_looks_defective()` signals.
+  Doesn't affect current output (that page's cached Gemini transcription is
+  correct), but prevalence beyond this one instance was never investigated.
+  This is the motivating bug for the post-processing subproject below, not
+  a transcription-pipeline fix in its own right.
+- [#8](https://github.com/AaronScherf/ai-sandbox-master/issues/8) No live
+  transcription-quality comparison against a dedicated OCR provider
+  (Mathpix, Mistral) has ever been run -- the conclusion that Gemini is
+  cheaper is pricing-based only, not empirical accuracy.
+- Not filed as an issue -- accepted, not-planned-to-fix gap: the
+  lost-exponent/subscript regex only catches a digit standing alone
+  between word boundaries (`D5`), not one embedded in a longer token
+  (`x2y`) -- widening it would reopen a real false-positive risk against
+  embedded hash IDs, already hit once.
+
+**Notes post-processing** (`docs/status/2026-08-27-notes-postprocessing-status.md`,
+still the project's one **paused, in-progress** subsystem -- see
+`[[project_notes_postprocessing_paused]]` memory):
+- [#9](https://github.com/AaronScherf/ai-sandbox-master/issues/9)
+  **The causal z-score precision problem is the headline open item.**
+  Raising the threshold to 5.0 cut false-positive noise ~62% but did not
+  eliminate it -- no threshold in a reasonable range fully separates
+  correct terse math vocabulary from real anomalies. `_MASKED_PROBABILITY_THRESHOLD`
+  (0.01) hasn't been data-driven the same way yet either. Most promising
+  unpursued direction: condition detection on retrieved, validated-similar
+  passages instead of a fixed threshold -- now newly *possible* since
+  passage embeddings exist (they didn't when this was last worked), not
+  yet attempted.
+- [#10](https://github.com/AaronScherf/ai-sandbox-master/issues/10) No
+  real (non-dry-run, API-spending) pass has been run against the broader
+  `ta_notes`/`problem_sets` corpora -- a real pass against `Practice
+  Sheet.md` today would trigger on the order of 22 pages' worth of
+  verification calls at current noise levels. Blocked on #9 first.
+- [#11](https://github.com/AaronScherf/ai-sandbox-master/issues/11)
+  **2 of 3 sub-items RESOLVED 2026-08-30** (`main` commit `52c83b2`).
+  Multi-root support and the pattern-review threshold turned out to
+  already be unit-tested at the function level (`discover_markdown_files`,
+  `documents_needing_review`) -- the real gap was that `postprocess_notes.py`
+  had **zero** test coverage of its CLI orchestration (`main()`) at all.
+  New `tests/test_postprocess_notes.py` (first coverage for this file)
+  invokes `main()` end-to-end with two `--root` dirs, mocking only the
+  network/local-model boundary, and confirms targets from both roots
+  process correctly, the cross-reference pool spans both roots' files,
+  and the threshold fires for a genuinely-crossing document while staying
+  silent for one that doesn't. **Still open:** cross-reference search's
+  real-world value-add -- that one genuinely needs observation from a real
+  corpus run with real transcription defects, not something a fabricated
+  test can honestly answer. Issue stays open for this remaining piece.
+- Not filed as an issue -- already resolved: this doc's own "not yet
+  pushed" / "held pending post-processing" branch notes turned out to be
+  stale. `origin/marker-conversion-notes-transcription` has zero commits
+  not already in `marker-conversion` (confirmed via `git log
+  marker-conversion..origin/marker-conversion-notes-transcription`), and
+  neither `marker-conversion-notes-transcription` nor
+  `marker-conversion-post-processing` exist as local branches anymore --
+  this session's `transcription-fix` branch superseded and merged that
+  work already. No action needed beyond deleting the stale remote branch
+  ref at some point.
+
+**Source indexer** (`docs/status/2026-08-29-source-indexer-status.md`, its own
+"What's next"):
+- [#12](https://github.com/AaronScherf/ai-sandbox-master/issues/12)
+  **Document-pairing detection is a confirmed real gap**, not just
+  deferred scope -- `Linear Algebra Problem Set.md` and `...AMS
+  Solutions.md` have no link today despite being an obvious pair. Flagged
+  by the user as worth keeping in mind, not urgent. Directly relevant to
+  the problem-set subsystem's lookup mode below.
+- [#13](https://github.com/AaronScherf/ai-sandbox-master/issues/13)
+  Tag-graph browsing (persisting the co-occurrence structure `retag`'s
+  discovery phase already computes and discards) is cheap to build but
+  parked as a low-priority navigation aid, not something that moves any
+  current goal forward.
+
+### Priority and sequencing (decided 2026-08-30, updated same day)
+
+Before any new subsystem work starts. Grouped by effort/risk/dependency,
+not strictly by issue number.
+
+**Resolved and closed today (6 of 13 issues, all on `main`):**
+- ~~#6~~ LN_Analysis.pdf/LN_Linear Algebra.pdf reprocessing -- done for
+  real, $0 cost (fully cached already), index rebuilt.
+- ~~#2~~ Stale README/docstring -- fixed.
+- ~~#3~~ `run_config.json` atomicity -- fixed (stale-chunk clearing +
+  atomic write).
+- ~~#1~~ Hammack TOC parser bug -- fixed.
+- ~~#4~~ Minor VM-pipeline cluster (off-by-one, image cleanup, timeout
+  override) -- fixed.
+- #1/#2/#3/#4 all in commit `826703a`; #6's rebuild in `7714845`. Added
+  `tests/test_convert_textbook.py`, first local coverage for
+  `convert_textbook.py` (via stubbing `marker` in `sys.modules` before
+  import). 438 tests pass (was 417 at the start of the day).
+- ~~#11~~ **(2 of its 3 sub-items)** -- multi-root support and the
+  pattern-review threshold proven end-to-end via new
+  `tests/test_postprocess_notes.py` (commit `52c83b2`), first coverage
+  for `postprocess_notes.py`'s CLI orchestration. Issue stays **open**
+  for its third sub-item (cross-reference search's real-world value --
+  needs a real corpus run to answer).
+
+GitHub issue tracking (comment/close, not just create) was blocked by a
+token-permission gap most of the day (403) -- fixed at the very end, so
+future sessions can manage issues directly rather than needing this doc
+as the record of truth.
+
+**Still open, unchanged tiers:**
+1. **Tier 2 -- the actual blocker, real effort:** #9 (causal z-score
+   precision). This is the one that determines whether notes-postprocessing
+   can resume at all -- worth a dedicated spike on retrieval-conditioned
+   scoring (now possible since passage embeddings exist) before touching
+   #10/#11's remaining sub-item.
+2. **Tier 3 -- depends on #9:** #10, and #11's remaining "cross-reference
+   value" sub-item.
+3. **Tier 4 -- low priority, no urgency:** #5 (deliberately left open,
+   speculative), #7 (likely subsumed once #9/#10 land), #8.
+4. **Tier 5 -- defer to when the relevant new subsystem starts:** #12
+   (deliberately held for the problem-set subsystem phase, not folded in
+   early), #13 (parked indefinitely).
+
+## Known Errors / TODO (cross-cutting bug tracker, folded in 2026-09-07)
+
+Formerly the standalone `docs/2026-08-28-known-errors-todo.md`. Tracker for
+concrete bugs found during real-corpus testing that need fixing, separate
+from the subproject status docs above (which describe what was built and
+why). Add new entries at the top. Each entry should have enough evidence
+that whoever picks it up doesn't have to re-derive it from scratch.
+
+---
+
+### RESOLVED -- `transcribe_notes.py`: 6 real PDFs produced 0-byte `.md` output, no error, no cache
+
+**Found:** 2026-08-28, while running the source indexer's `retag` (see
+`docs/superpowers/plans/2026-08-28-source-indexer-retag.md`) against the
+real `academic-hub` corpus -- the indexer itself worked correctly and is
+not the bug; it just surfaced this.
+
+**What's broken:** these 6 files in
+`academic_notes/math-camp/ta_notes/processed_outputs/` are exactly 0
+bytes, with **no matching `_pages_cache.json`** in the same directory:
+
+- `Part I Linear Algebra 08.10.md`
+- `Part I Linear Algebra 08.11 (1).md`
+- `Part I Linear Algebra 08.12 (1).md`
+- `Part I Linear Algebra 08.13 (1).md`
+- `Part II Analysis in Euclidean Spaces 08.13 (1).md`
+- `Part II Analysis in Euclidean Spaces 08.14.md`
+
+Their source PDFs exist and are substantial (10-14MB each) -- this is not
+a case of an empty/missing source file.
+
+**Evidence gathered so far:**
+- No `_pages_cache.json` for any of the 6 exists at all. Tiers 2-4 of
+  `process_pdf()` save this cache incrementally as each page/batch
+  completes, so its total absence means either those tiers never ran, or
+  Tier 1 (pure local extraction, which writes no cache) is what fired.
+- Checked `Part I Linear Algebra 08.10.pdf` directly with `pypdf`:
+  `/Creator: 'Nebo'` -- this is a **Nebo (MyScript ink) export**. Its
+  embedded "text" layer is just page-header boilerplate (`"Linear
+  Algebra Page 2"`, etc.), not the actual handwritten math content,
+  which exists only as ink strokes/images. `has_reliable_pagination()`'s
+  own docstring says Nebo/MyScript/OneNote exports are specifically
+  meant to be routed away from Tier 1/2's local-text path into Tier 3's
+  per-page vision transcription, "regardless of what any single page's
+  text happens to look like."
+- Given that guard should apply here, a 0-byte, cache-less result is
+  unexplained by the code as currently understood -- needs an actual run
+  against one of these 6 files (with logging/breakpoints) to see which
+  branch of `process_pdf()` it actually takes.
+
+**Leading hypothesis (unconfirmed):** these `.md` files may simply
+predate ever running `transcribe_notes.py` on these particular PDFs at
+all -- e.g. an empty stub created by another process (editor autosave,
+directory scaffolding, manual `touch`) rather than a pipeline defect.
+The PDFs' `CreationDate` (2026-08-11) and the `.pdf`/`.md` file mtimes
+(2026-08-17) are recent relative to this project, consistent with "newly
+added, not yet transcribed." This would mean there's no transcription
+bug at all -- just leftover empty placeholders next to real, unconverted
+source PDFs.
+
+**Alternative hypothesis:** the Nebo/MyScript detection guard in
+`has_reliable_pagination()` failed to fire for these specific files
+(different metadata shape than expected?), letting Tier 1 run against a
+PDF with no real extractable text, and Tier 1 produced technically-valid
+but empty output because `page_looks_defective()` doesn't treat
+"zero-length extracted text" as its own defect signal.
+
+**Resolution (2026-08-28), confirmed not assumed:** neither hypothesis
+above was quite right. Both the `.pdf` and `.md` mtimes (2026-08-17)
+predate commit `44bcfe2` (2026-08-24 -- "Add local-extraction bypass and
+conditional accumulation/DPI/model"), which is the commit that actually
+added `_MESSY_EXPORT_MARKERS = ("nebo", "myscript", "onenote")` -- the
+Nebo-guard this entry's investigation was reasoning about didn't exist yet
+when these 6 files were produced. Verified directly: all 6 PDFs' metadata
+confirms Nebo/OneNote export, and running the *current* `transcribe_notes.py`
+against all 6 for real (not a dry-run) produced full, correct transcriptions
+via Tier 3 -- no code change was needed, since the guard responsible had
+already shipped 4 days earlier. These were pre-fix stale artifacts sitting
+next to the real source PDFs, not a live bug. Full narrative and
+cross-reference: `docs/status/2026-08-24-notes-transcription-status.md`, "2026-08-28:
+six 0-byte `.md` files were pre-fix stale artifacts, now re-transcribed".
+
+**Not blocking (unchanged):** the source indexer already treats this
+gracefully on its own end (see companion fix in the same session: `rebuild`
+now skips 0-byte `.md` files entirely rather than generating a vacuous card
+for them) -- this entry was about the transcription pipeline itself, not the
+indexer.
+
+**Companion bugs found and fixed while exercising this recovery path for
+the first time** (all in the source indexer, not `transcribe_notes.py` --
+none were previously exercised end-to-end against real re-transcription):
+- `rebuild` never noticed a `.md`'s content had changed when its `file_id`
+  and `path` both stayed the same (re-transcription is exactly this case) --
+  fixed with an mtime-based staleness check (`830e802`).
+- A card previously marked `needs_indexing: true` (from an earlier failed
+  attempt) was never actually retried by a plain, non-`--force` `rebuild` --
+  the old/new-card swap was gated on `force or stale` only, not on
+  `needs_indexing` (`4979df5`).
+- `generate_index_card()` crashed with `'list' object has no attribute
+  'get'` when `gemini-3.1-flash-lite` wrapped an otherwise well-formed JSON
+  response in a one-element array, despite `response_mime_type` and explicit
+  prompt instructions asking for a bare object -- fixed by unwrapping
+  (`7d57d3f`).
+
+---
+
+### RESOLVED -- `retag.py`: a single-document fallback tag leaked onto unrelated files on reuse
+
+**Found:** 2026-08-28, reviewing the `retag --dry-run` preview against the
+now-fully-real corpus (all 6 files above re-transcribed) before persisting
+it for real -- `math-camp-syllabus` (a fallback tag minted for the one
+syllabus file, spec §5.4) appeared on `LN_Linear Algebra.md`, and
+`probability-lecture-notes` (fallback-minted for the one probability
+lecture) appeared on the syllabus itself.
+
+**Root cause, confirmed directly:** `assign_tags()` (spec §5.3) checks
+every tag in the vocabulary against every card with the same
+`TAG_ASSIGNMENT_THRESHOLD = 0.65`, with no distinction between a tag that
+cleared `discover_tags`' corpus-wide validation (>= 3 real matches) and a
+fallback tag whose anchor is just a generic paraphrase of one document's
+title+summary. Measured live: `math-camp-syllabus` scored 0.7264 cosine
+similarity against `LN_Linear Algebra.md` -- comfortably above threshold,
+in a corpus small and topically homogeneous enough that a generic anchor
+drifts close to everything.
+
+**Fix:** fallback tags are now marked `origin: "fallback"` when minted;
+`assign_tags()` skips any tag with that origin entirely, so a fallback tag
+only ever describes the single document `ensure_minimum_coverage` made it
+for (`6848575`). The two pre-existing fallback tags in the real corpus's
+`tags.json` were backfilled with `origin: "fallback"` by hand, since they
+predated the field. Verified after the fix: those two documents correctly
+fell back to fresh, more specific single-document tags
+(`probability-foundations`, `probability-theory-notes`) instead of
+inheriting the old, now-excluded ones.
+
+## What's next
+
+In two groups: the extensions to the *existing* RAG agent already
+identified in its own status doc, and the three new project ideas raised
+alongside this stocktaking. None of these are spec'd yet -- this section
+is goals/ordering, not a plan.
+
+### Extending the RAG agent (carried over from its status doc)
+
+1. **Persistent conversation/activity history.** The real prerequisite for
+   everything context-aware below -- scheduled tasks that need to know
+   "what did I already cover," multi-day study continuity. Not yet spec'd.
+2. **Problem-set subsystem**, as two distinct modes per the user's own
+   framing: a **lookup** mode (retrieve real existing problems, using
+   linked solutions where the corpus already has them -- note
+   document-pairing detection, e.g. linking `Linear Algebra Problem
+   Set.md` to `...AMS Solutions.md`, is a confirmed real gap today, listed
+   in the source-indexer status doc as unbuilt) and a **generate-new** mode
+   (style/difficulty-matched novel problems, which needs a different
+   prompt shape than the tutor's own -- the tutor's anti-hallucination
+   guardrail actively works against generating anything novel by design).
+3. **Extended/structured report generation.** A different retrieval+
+   generation shape than single-question tutoring -- more passages, likely
+   multiple retrieval passes across sub-topics, a multi-section prompt
+   template. "Summarize chapter 7" is probably already workable today;
+   "summarize everything I've covered this week" is not, and also depends
+   on persistent history (#1) to know what "this week" covered.
+4. **Study-plan agent.** Needs course-level structural awareness (closer
+   to the indexer's file-level `search()` and course rollups than to
+   passage retrieval) plus real sequencing/pacing logic that doesn't exist
+   anywhere yet, and something like a syllabus or target timeline as
+   input. Matches the original project framing: a study-plan agent that
+   *calls* the RAG agent as one building block, not an extension of it.
+5. **Between-course retrieval validation.** Deferred until a second course
+   actually enters the corpus (see below) -- `search_passages()`'s
+   course-level pre-filter and cross-course ranking are implemented but
+   have literally never run against more than one course's data.
+6. **Scheduling.** Mechanically solved today for any fixed, non-contextual
+   question (`index_search.py ask "..."` is already a plain
+   non-interactive CLI command a scheduled job can run) -- what's missing
+   is exclusively the context-awareness that #1 unlocks, not scheduling
+   infrastructure itself.
+
+### New corpus growth: additional courses
+
+The corpus has only ever contained `math-camp`. Adding new courses is a
+stated near-term plan, not a new subsystem -- it should mostly exercise
+existing infrastructure (transcription/conversion pipelines, retag's
+corpus-wide tag mining, course-level search) rather than requiring new
+code, but it's the first real test of a few things designed for multi-course
+use and never yet observed: `retag`'s tag vocabulary at a larger, more
+topically diverse scale (does the 0.65 assignment threshold still isolate
+cleanly, or was it implicitly tuned against a topically homogeneous single
+course?), and #5 above.
+
+### New project idea: journal-article transcription
+
+Framed by the user as needing something structurally *between* the
+textbook and notes pipelines: journal articles share the textbook
+pipeline's printed-text reliability and citation/reference-heavy structure
+(so likely closer to `convert_textbook.py`'s Marker-based OCR than
+`transcribe_notes.py`'s per-page vision transcription), but lack chapter
+structure entirely and are short enough that the chapter-aware chunking
+machinery (built specifically for 300-600-page books) is probably
+unnecessary overhead. Likely candidate shape: single-chunk (or
+section-heading-based, reusing `chunk_index.py`'s existing heading-split
+tier rather than `chapter_index.py`'s book-oriented one) conversion with
+citation/reference-list-aware structure the existing pipelines don't need
+to think about. Not yet brainstormed in any depth -- this is a starting
+hypothesis, not a design.
+
+### New project idea: YouTube lecture summarization
+
+Pull lecture video links, send them to a Gemini API (which has native
+video/audio understanding for YouTube URLs) to generate content summaries.
+Structurally the most self-contained of the three new ideas -- no PDF
+involved, no dependency on the chunking/indexing pipeline's assumptions
+about document structure, plausibly a fairly short subproject (fetch link
+-> Gemini call -> structured summary -> index as a new `doc_type` alongside
+existing ones so it's searchable/citable the same way). The main open
+questions are probably about output shape (summary granularity,
+timestamp-linked notes vs. a single rollup) and whether/how a video-derived
+summary should be treated differently from a source's own text for the
+verbatim-content IP policy above (a Gemini-authored summary of a lecture is
+likely in the same "derivative, not verbatim" bucket as an index card, not
+the chunk-text bucket -- but worth confirming explicitly when this is
+actually designed, not assumed).
+
+### New project idea: literature review / gap analysis / research ideation
+
+Uses the journal-article corpus (once it exists) to do literature review,
+identify gaps, and brainstorm new research directions. The most
+architecturally novel of the three -- unlike the RAG tutor (answer a
+question from existing material) or a study-plan agent (sequence existing
+material), this one's job is synthesizing *across* many articles and
+producing genuinely novel output (a gap, a research idea) that by
+definition isn't sitting in any single retrieved passage. Closest existing
+precedent in this project is the RAG agent's own "not designed for
+generating new problem sets" limitation -- the same tension (grounded
+citation vs. novel generation) applies here at a larger scale, and
+whatever prompt/retrieval shape ends up solving problem-set generation is
+worth revisiting as a starting point for this, rather than solving the
+grounded-vs-novel tension twice independently. Depends on the
+journal-article pipeline existing first.
+
+## Explicitly not re-litigated here
+
+Backend/hosting choices (paid Gemini key, kept for now; Gemini CLI OAuth
+free tier and `claude -p` under Claude Pro noted as viable later swaps via
+the `TUTOR_MODEL` constant) and public-deployment fair-use questions (real
+legal question, not an engineering one) are covered in full in
+`docs/status/2026-08-30-rag-agent-status.md` and not repeated here.

@@ -1,5 +1,13 @@
 ai-sandbox/personal-website/
 
+# academic_notes/ is now its own separate git repo (same pattern as
+# personal-website/ above), so the tablet's Obsidian gitsync plugin can
+# clone/sync just this lightweight subtree instead of the whole,
+# increasingly large academic-hub vault. See the app.json
+# userIgnoreFilters entry alongside this for the matching Obsidian-side
+# exclusion (added 2026-09-08).
+ai-sandbox/academic-hub/academic_notes/
+
 # academic-hub/**/textbooks-and-papers/ (or its newer name, textbooks/ --
 # see the 2026-08-31 note below) holds actual copyrighted published
 # textbooks (PDFs) and their full-text Markdown conversions -- these

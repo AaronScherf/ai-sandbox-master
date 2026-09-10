@@ -179,7 +179,7 @@ for 5 DOIs). Record the outcome below.
 
 ## EZProxy validation results
 
-**Tested live 2026-09-01 -- see `docs/2026-09-01-journal-discovery-status.md`
+**Tested live 2026-09-01 -- see `docs/status/2026-09-01-journal-discovery-status.md`
 for the full write-up.** Short version: the blocker in practice isn't
 cookie freshness -- it's that major publishers (confirmed against both
 Taylor & Francis and Elsevier/ScienceDirect) front their sites with

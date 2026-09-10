@@ -47,7 +47,7 @@ ai-sandbox/academic-rag-model/
     test_viz_agent.py                   # NEW
     test_llm_fallback.py                # NEW
     test_rag_agent.py                   # MODIFIED -- visualize-integration tests
-  docs/2026-09-02-visualization-agent-status.md  # NEW (Task 11)
+  docs/status/2026-09-02-visualization-agent-status.md  # NEW (Task 11)
 .gitignore                              # MODIFIED (repo root) -- .viz/ entries
 ```
 
@@ -1428,9 +1428,9 @@ git commit -m "feat(cli): add --visualize flag to ask and the tutor REPL"
 ## Task 11: Real-corpus validation and status doc
 
 **Files:**
-- Create: `ai-sandbox/academic-rag-model/docs/2026-09-02-visualization-agent-status.md`
+- Create: `ai-sandbox/academic-rag-model/docs/status/2026-09-02-visualization-agent-status.md`
 
-**Interfaces:** None — manual validation and documentation, closing out this plan the same way every other subproject in this repo has (see `docs/2026-08-30-rag-agent-status.md` for the precedent this follows).
+**Interfaces:** None — manual validation and documentation, closing out this plan the same way every other subproject in this repo has (see `docs/status/2026-08-30-rag-agent-status.md` for the precedent this follows).
 
 - [ ] **Step 1: Run the full automated test suite one more time**
 
@@ -1539,6 +1539,6 @@ Not spec'd, in rough order a future session might pick up:
 - [ ] **Step 5: Commit**
 
 ```powershell
-git add ai-sandbox/academic-rag-model/docs/2026-09-02-visualization-agent-status.md
+git add ai-sandbox/academic-rag-model/docs/status/2026-09-02-visualization-agent-status.md
 git commit -m "docs(viz): add status summary after real-corpus validation"
 ```

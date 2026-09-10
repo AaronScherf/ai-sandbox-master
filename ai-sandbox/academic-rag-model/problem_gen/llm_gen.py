@@ -9,7 +9,7 @@ subprocess execution or sandboxing involved at all.
 
 Two backends: Gemini (default) and local Ollama (opt-in via
 PROBLEMGEN_BACKEND=ollama). 2026-09-06, defaulted to Gemini after a
-real feasibility spike (see docs/2026-09-05-problem-generation-status.md):
+real feasibility spike (see docs/status/2026-09-05-problem-generation-status.md):
 local qwen2-math:7b never once produced an accepted result across two
 independent real trials on a technique-constrained request, while
 gemini-3.1-flash-lite passed 9/9 across three different topics in the
@@ -28,13 +28,13 @@ from common.ollama_utils import OLLAMA_TIMEOUT, OllamaTimeout, call_ollama
 PROBLEMGEN_BACKEND = os.environ.get("PROBLEMGEN_BACKEND", "gemini")  # "gemini" | "ollama"
 PROBLEMGEN_GEMINI_MODEL = os.environ.get("PROBLEMGEN_GEMINI_MODEL", "gemini-3.1-flash-lite")
 PROBLEMGEN_OLLAMA_MODEL = os.environ.get("PROBLEMGEN_OLLAMA_MODEL", "qwen2-math:7b")  # corrected
-# 2026-09-05 during real-corpus validation (see docs/2026-09-05-problem-generation-status.md):
+# 2026-09-05 during real-corpus validation (see docs/status/2026-09-05-problem-generation-status.md):
 # the design's original choice, "qwen2.5-math:7b", is not a real pullable Ollama library
 # model -- only a community upload under a different namespace, or this older-generation
 # official one, actually exist. qwen2-math:7b is the one confirmed to pull and run.
 OLLAMA_REQUEST_TIMEOUT_SECONDS = 300
 # 2026-09-05, corrected during real-corpus validation (see
-# docs/2026-09-05-problem-generation-status.md): the original value (180s,
+# docs/status/2026-09-05-problem-generation-status.md): the original value (180s,
 # copied from viz/llm_fallback.py's own constant) was too short for this
 # module's actual workload -- every real call on CPU-only inference hit
 # the timeout. A real run measured on this machine's CPU-only Ollama
@@ -49,7 +49,7 @@ OLLAMA_REQUEST_TIMEOUT_SECONDS = 300
 MAX_ATTEMPTS = 5
 # 2026-09-06, bumped from 3 during real-corpus validation of the split
 # TECHNIQUE/CORRECTNESS verification (see
-# docs/2026-09-05-problem-generation-status.md): a real trial exhausted
+# docs/status/2026-09-05-problem-generation-status.md): a real trial exhausted
 # all 3 attempts with only 2 of them actually reaching a real generated
 # response (the third was consumed entirely by an OLLAMA_TIMEOUT retry,
 # not a bad proof) -- both real attempts were then correctly rejected
@@ -104,7 +104,7 @@ _CORRECTNESS_LINE_PATTERN = re.compile(r"CORRECTNESS:[ \t]*(VALID|INVALID)[ \t]*
 # line swallow the *entire next line* (a separate "CORRECTNESS: ..." line) into its own
 # detail capture, corrupting retry feedback with garbage like "used instead: CORRECTNESS:
 # VALID" fed into the next generation attempt -- confirmed in a real trial, see
-# docs/2026-09-05-problem-generation-status.md's 2026-09-06 entry.
+# docs/status/2026-09-05-problem-generation-status.md's 2026-09-06 entry.
 
 
 def _build_generation_prompt(
@@ -171,7 +171,7 @@ def _parse_verdict(response_text: str) -> str | None:
     a single combined verdict kept passing solutions that ignored an
     explicit technique constraint, since an easy correctness judgment
     could paper over a harder, unaddressed technique mismatch (see
-    docs/2026-09-05-problem-generation-status.md's 2026-09-06 entry).
+    docs/status/2026-09-05-problem-generation-status.md's 2026-09-06 entry).
     Either line missing or unparseable fails closed for that check
     rather than being silently trusted as passing. Tolerates markdown
     bold markers (e.g. "**VALID**") around either label or value."""

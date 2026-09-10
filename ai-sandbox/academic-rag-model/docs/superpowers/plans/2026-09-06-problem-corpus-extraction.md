@@ -1248,7 +1248,7 @@ Extracts a structured, persistent corpus of practice problems (topic
 tag, problem text, solution text if present, course, provenance) from
 math-camp's own problem sets, textbooks, and recitation slides. First
 of six future-development ideas flagged in
-[`../docs/2026-09-05-problem-generation-status.md`](../docs/2026-09-05-problem-generation-status.md)'s
+[`../docs/status/2026-09-05-problem-generation-status.md`](../docs/status/2026-09-05-problem-generation-status.md)'s
 "Future development ideas" section — the one everything else there
 depends on.
 
@@ -1322,7 +1322,7 @@ In `README.md`, find this line (the `problem_gen/` bullet):
 Add immediately after it:
 
 ```
-- [`problem_corpus/`](problem_corpus/README.md) — extracts a structured problem corpus (topic tag, problem text, solution if present, provenance) from math-camp's problem sets, textbooks, and recitation slides. Standalone batch tool, run on demand — not wired into `rag/` or `problem_gen/` yet (that's a later, separate idea). See `docs/2026-09-05-problem-generation-status.md`'s "Future development ideas" section.
+- [`problem_corpus/`](problem_corpus/README.md) — extracts a structured problem corpus (topic tag, problem text, solution if present, provenance) from math-camp's problem sets, textbooks, and recitation slides. Standalone batch tool, run on demand — not wired into `rag/` or `problem_gen/` yet (that's a later, separate idea). See `docs/status/2026-09-05-problem-generation-status.md`'s "Future development ideas" section.
 ```
 
 - [ ] **Step 5: Update the root `README.md`'s Requirements section**
@@ -1352,7 +1352,7 @@ git commit -m "docs(problem_corpus): add README, root README entry, and gitignor
 ### Task 6: Real end-to-end validation
 
 **Files:** None created or modified by this task's own steps beyond a new status doc.
-- Create: `docs/2026-09-06-problem-corpus-extraction-status.md`
+- Create: `docs/status/2026-09-06-problem-corpus-extraction-status.md`
 
 **Interfaces:** None — this task exercises the finished tool for real, no new code.
 
@@ -1390,7 +1390,7 @@ Run the same `extract --course math-camp` command again. The printed stats shoul
 
 - [ ] **Step 6: Write the status doc**
 
-Create `docs/2026-09-06-problem-corpus-extraction-status.md`:
+Create `docs/status/2026-09-06-problem-corpus-extraction-status.md`:
 
 ```markdown
 # Problem Corpus Extraction: Real Validation
@@ -1421,12 +1421,12 @@ checked.>
   spec's own Section 1 finding.
 - This subproject stops at the stored corpus; nothing yet consumes
   `.problem_corpus/<course>.json` (see the five other future-development
-  ideas flagged in `docs/2026-09-05-problem-generation-status.md`).
+  ideas flagged in `docs/status/2026-09-05-problem-generation-status.md`).
 ```
 
 - [ ] **Step 7: Commit**
 
 ```bash
-git add docs/2026-09-06-problem-corpus-extraction-status.md
+git add docs/status/2026-09-06-problem-corpus-extraction-status.md
 git commit -m "docs(problem_corpus): record real end-to-end validation results"
 ```

@@ -54,7 +54,7 @@ on CPU (~68s observed for a real, unmatched concept) and requires Ollama
 running locally with a model pulled — see the
 [Visualization Sub-Agent's own README](../viz/README.md) for setup and the
 full Gemini-vs-Ollama comparison
-([`../docs/2026-09-02-visualization-agent-status.md`](../docs/2026-09-02-visualization-agent-status.md)).
+([`../docs/status/2026-09-02-visualization-agent-status.md`](../docs/status/2026-09-02-visualization-agent-status.md)).
 Either way, a missing visualization is a normal outcome (e.g. the backend
 unreachable, or it produced a broken script) — `result.visualization` is
 just `None`, never a hard failure of the question-answering call itself.
@@ -76,7 +76,7 @@ passed) completed in seconds per call. 2026-09-06, defaulted to Gemini
 after that spike found it dramatically more reliable at honoring an
 explicit technique constraint than the original local-only design —
 see
-[`../docs/2026-09-05-problem-generation-status.md`](../docs/2026-09-05-problem-generation-status.md)
+[`../docs/status/2026-09-05-problem-generation-status.md`](../docs/status/2026-09-05-problem-generation-status.md)
 for the full real-corpus comparison.
 
 Local Ollama generation is still available as an opt-in

@@ -117,7 +117,7 @@ class TestRunGeneratedCode(unittest.TestCase):
         `complex` object -- fig.write_html() then raises
         `TypeError: Object of type complex is not JSON serializable`
         inside the subprocess (see
-        docs/2026-09-05-problem-generation-status.md's 2026-09-06 entry).
+        docs/status/2026-09-05-problem-generation-status.md's 2026-09-06 entry).
         Reproduces the exact mechanism deterministically (a complex-typed
         trace array), bypassing the LLM's own non-determinism."""
         with tempfile.TemporaryDirectory() as tmp:
@@ -575,7 +575,7 @@ class TestGenerateViaLlmGeminiBackend(unittest.TestCase):
     then a broken script), the same reliability pattern that already
     drove problem_gen's own Gemini switch; a follow-up real trial with
     this Gemini backend then succeeded 2/2 (see
-    docs/2026-09-02-visualization-agent-status.md), which is why the
+    docs/status/2026-09-02-visualization-agent-status.md), which is why the
     default was flipped rather than just adding Gemini as opt-in. Mocks
     _call_gemini directly (the single dispatch point), mirroring
     test_llm_gen.py's own TestGenerateAndVerifyGeminiBackend."""

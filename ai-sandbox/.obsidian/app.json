@@ -1,6 +1,7 @@
 {
   "userIgnoreFilters": [
-    "personal-website/"
+    "personal-website/",
+    "academic-hub/academic_notes/.obsidian/"
   ],
   "showLineNumber": false,
   "pdfExportSettings": {

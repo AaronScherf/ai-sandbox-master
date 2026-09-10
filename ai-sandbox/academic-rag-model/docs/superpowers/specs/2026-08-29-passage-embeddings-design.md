@@ -3,7 +3,7 @@
 Brainstormed and approved with the user 2026-08-29, as a direct follow-on
 to the source indexer (`docs/superpowers/specs/2026-08-27-source-indexer-design.md`)
 and per the recommendation recorded in that spec's §9 and
-`docs/2026-08-29-source-indexer-status.md`'s "What's next".
+`docs/status/2026-08-29-source-indexer-status.md`'s "What's next".
 
 ## 1. Problem & goals
 

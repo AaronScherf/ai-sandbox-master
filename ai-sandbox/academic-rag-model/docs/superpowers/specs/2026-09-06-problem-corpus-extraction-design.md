@@ -2,7 +2,7 @@
 
 Brainstormed and approved with the user 2026-09-06. First of six future
 development ideas flagged in
-`docs/2026-09-05-problem-generation-status.md`'s "Future development
+`docs/status/2026-09-05-problem-generation-status.md`'s "Future development
 ideas" section — the one everything else there depends on. New peer of
 `problem_gen/` and `viz/`, depending on `indexer/` for file discovery
 (never the reverse, matching this project's established layering: `rag/`
