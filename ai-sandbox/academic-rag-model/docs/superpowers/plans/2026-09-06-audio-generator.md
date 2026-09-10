@@ -2226,3 +2226,403 @@ Claude-Session: https://claude.ai/code/session_01BaWkFCR7CdMinG5BxgB6uu
 EOF
 )"
 ```
+
+---
+
+### Task 10: Section-aware episode splitting for `notes` (spec §3.2)
+
+**Why:** running v3 end-to-end against the real `LN_Probability.md`
+(outside this plan's tests, as a manual demo) produced a correct but
+impractical 3h22m single MP3. This task splits a long note into multiple
+episodes targeting 10-20 minutes each, using a real measured
+chars-per-minute calibration (969, from that same 202.5-minute run)
+rather than a fixed header depth. Scoped to `notes` only — `textbook`
+chapter-reuse (`chapter_index.py`) is a separate, unstarted investigation
+(spec §9).
+
+**Files:**
+- Create: `audio_generator/sections.py`
+- Modify: `audio_generator/pipeline.py`
+- Modify: `audio_generator/state.py`
+- Modify: `audio_generator/README.md`
+- Test: `tests/test_sections.py` (new — no existing `test_sections.py` in
+  the flat `tests/` dir, confirmed before picking this name)
+
+**Interfaces:**
+- Produces: `Section`/`NarratedSection`/`Episode` dataclasses;
+  `split_into_sections(md_text: str) -> list[Section]`;
+  `narrate_sections(sections: list[Section]) -> list[NarratedSection]`
+  (thin wrapper reusing `narrate.narrate_for_speech`/
+  `cleaner.clean_markdown_for_speech`, unchanged);
+  `group_sections_into_episodes(narrated_sections, chars_per_minute=..., target_min_minutes=10, target_max_minutes=20) -> list[Episode]`.
+- Consumes (in `pipeline.py`): all of the above, plus the existing
+  `state.py` functions (extended, see Step 6).
+
+- [ ] **Step 1: Write the failing `split_into_sections` tests**
+
+Create `tests/test_sections.py`:
+
+```python
+import unittest
+
+from audio_generator.sections import Section, split_into_sections
+
+
+class TestSplitIntoSections(unittest.TestCase):
+    def test_no_headers_produces_one_titleless_section(self):
+        sections = split_into_sections("Just plain prose, no headers here at all.")
+        self.assertEqual(len(sections), 1)
+        self.assertIsNone(sections[0].title)
+        self.assertIn("Just plain prose", sections[0].body)
+
+    def test_splits_at_every_header_level(self):
+        md = "# Chapter One\nBody one.\n\n## 1.1 Subsection\nBody two.\n\n# Chapter Two\nBody three."
+        sections = split_into_sections(md)
+        self.assertEqual([s.title for s in sections], ["Chapter One", "1.1 Subsection", "Chapter Two"])
+
+    def test_content_before_first_header_becomes_titleless_leading_section(self):
+        md = "Some preamble text.\n\n# First Real Header\nBody."
+        sections = split_into_sections(md)
+        self.assertEqual(len(sections), 2)
+        self.assertIsNone(sections[0].title)
+        self.assertIn("preamble", sections[0].body)
+        self.assertEqual(sections[1].title, "First Real Header")
+
+    def test_body_excludes_the_header_line_itself(self):
+        md = "# A Title\nThe body text."
+        sections = split_into_sections(md)
+        self.assertNotIn("# A Title", sections[0].body)
+        self.assertIn("The body text.", sections[0].body)
+
+    def test_a_section_body_runs_up_to_but_not_into_the_next_header(self):
+        md = "# One\nBody one.\n\n# Two\nBody two."
+        sections = split_into_sections(md)
+        self.assertNotIn("Two", sections[0].body)
+```
+
+- [ ] **Step 2: Run to verify they fail**
+
+Run: `python -m pytest tests/test_sections.py -v`
+Expected: FAIL with `ModuleNotFoundError: No module named 'audio_generator.sections'`.
+
+- [ ] **Step 3: Implement `split_into_sections`**
+
+Create `audio_generator/sections.py`:
+
+```python
+"""
+sections.py
+Section-aware episode splitting for audio_generator (spec §3.2): splits a
+raw .md at every header level, narrates/cleans each section independently
+(reusing narrate.py/cleaner.py completely unchanged), then groups
+consecutive sections into episodes targeting a real, measured listening
+length instead of one unbounded MP3 per source file. notes content type
+only -- textbook has its own separate, PDF-anchored chapter-boundary
+system (textbook/chapter_index.py) worth investigating for reuse instead
+of duplicating this header-based approach (spec §9).
+"""
+from __future__ import annotations
+
+import os
+import re
+from dataclasses import dataclass, field
+
+from audio_generator.cleaner import clean_markdown_for_speech
+from audio_generator.narrate import narrate_for_speech
+
+AUDIOGEN_SECTIONS_CHARS_PER_MINUTE = int(os.environ.get("AUDIOGEN_SECTIONS_CHARS_PER_MINUTE", "969"))
+AUDIOGEN_SECTIONS_TARGET_MIN_MINUTES = int(os.environ.get("AUDIOGEN_SECTIONS_TARGET_MIN_MINUTES", "10"))
+AUDIOGEN_SECTIONS_TARGET_MAX_MINUTES = int(os.environ.get("AUDIOGEN_SECTIONS_TARGET_MAX_MINUTES", "20"))
+
+_HEADER_PATTERN = re.compile(r"^(#{1,6})[ \t]+(.+)$", re.MULTILINE)
+
+
+@dataclass
+class Section:
+    title: str | None  # None for content before the first header
+    body: str  # raw markdown, header line itself excluded
+
+
+@dataclass
+class NarratedSection:
+    title: str  # already narrated+cleaned; "" if the section had no title
+    text: str  # already narrated+cleaned body
+
+
+@dataclass
+class Episode:
+    text: str  # concatenated title+body for every section in this episode
+    section_titles: list[str] = field(default_factory=list)
+
+
+def split_into_sections(md_text: str) -> list[Section]:
+    """Splits raw markdown at every ATX header line, any depth (spec
+    §3.2 -- grouping, not header depth, controls final output length)."""
+    matches = list(_HEADER_PATTERN.finditer(md_text))
+    if not matches:
+        return [Section(title=None, body=md_text)]
+
+    sections: list[Section] = []
+    if matches[0].start() > 0 and md_text[:matches[0].start()].strip():
+        sections.append(Section(title=None, body=md_text[:matches[0].start()]))
+
+    for i, match in enumerate(matches):
+        start = match.end()
+        end = matches[i + 1].start() if i + 1 < len(matches) else len(md_text)
+        sections.append(Section(title=match.group(2).strip(), body=md_text[start:end]))
+    return sections
+```
+
+- [ ] **Step 4: Run to verify the section-splitting tests pass**
+
+Run: `python -m pytest tests/test_sections.py -v`
+Expected: PASS (5 tests).
+
+- [ ] **Step 5: Write the failing `group_sections_into_episodes` tests, then implement it**
+
+Add to `tests/test_sections.py`:
+
+```python
+from audio_generator.sections import Episode, NarratedSection, group_sections_into_episodes
+
+
+def _narrated(title: str, char_count: int) -> NarratedSection:
+    return NarratedSection(title=title, text="x" * char_count)
+
+
+class TestGroupSectionsIntoEpisodes(unittest.TestCase):
+    def test_short_sections_are_grouped_into_one_episode(self):
+        sections = [_narrated("A", 1000), _narrated("B", 1000)]
+        episodes = group_sections_into_episodes(sections, chars_per_minute=1000, target_min_minutes=10, target_max_minutes=20)
+        self.assertEqual(len(episodes), 1)
+
+    def test_stops_grouping_once_the_minimum_is_met_and_the_max_would_be_exceeded(self):
+        # chars_per_minute=1000, min=10min (10000 chars), max=20min (20000 chars).
+        # First section alone hits the minimum; a second big section would blow past the max.
+        sections = [_narrated("A", 11000), _narrated("B", 15000)]
+        episodes = group_sections_into_episodes(sections, chars_per_minute=1000, target_min_minutes=10, target_max_minutes=20)
+        self.assertEqual(len(episodes), 2)
+        self.assertEqual(episodes[0].section_titles, ["A"])
+        self.assertEqual(episodes[1].section_titles, ["B"])
+
+    def test_keeps_grouping_past_the_max_if_the_minimum_has_not_yet_been_met(self):
+        # A single section far exceeding target-max, on its own, still becomes one episode
+        # (never split inside a section -- spec §3.2).
+        sections = [_narrated("Huge", 50000)]
+        episodes = group_sections_into_episodes(sections, chars_per_minute=1000, target_min_minutes=10, target_max_minutes=20)
+        self.assertEqual(len(episodes), 1)
+        self.assertEqual(episodes[0].section_titles, ["Huge"])
+
+    def test_preserves_section_order_within_and_across_episodes(self):
+        sections = [_narrated("A", 500), _narrated("B", 500), _narrated("C", 30000)]
+        episodes = group_sections_into_episodes(sections, chars_per_minute=1000, target_min_minutes=10, target_max_minutes=20)
+        all_titles = [t for ep in episodes for t in ep.section_titles]
+        self.assertEqual(all_titles, ["A", "B", "C"])
+```
+
+Run: `python -m pytest tests/test_sections.py -k Group -v`
+Expected: FAIL with `ImportError`.
+
+In `audio_generator/sections.py`, add:
+
+```python
+def narrate_sections(sections: list[Section]) -> list[NarratedSection]:
+    """Narrates and cleans each section's body independently, reusing
+    narrate.py/cleaner.py completely unchanged (spec §3.2). A section's
+    title is cleaned (regex-only, no LLM call -- titles are short and
+    essentially never equation-dense) but never sent through
+    narrate_for_speech(): headers must be resolved before any text reaches
+    the LLM, not recovered from its output."""
+    result = []
+    for section in sections:
+        title = clean_markdown_for_speech(section.title) if section.title else ""
+        text = clean_markdown_for_speech(narrate_for_speech(section.body))
+        result.append(NarratedSection(title=title, text=text))
+    return result
+
+
+def _episode_text(parts: list[NarratedSection]) -> str:
+    pieces = [f"{p.title}. {p.text}".strip() if p.title else p.text for p in parts if p.title or p.text]
+    return "\n\n".join(pieces)
+
+
+def group_sections_into_episodes(
+    narrated_sections: list[NarratedSection],
+    chars_per_minute: int = AUDIOGEN_SECTIONS_CHARS_PER_MINUTE,
+    target_min_minutes: int = AUDIOGEN_SECTIONS_TARGET_MIN_MINUTES,
+    target_max_minutes: int = AUDIOGEN_SECTIONS_TARGET_MAX_MINUTES,
+) -> list[Episode]:
+    """Greedily groups consecutive sections (order preserved) into
+    episodes targeting a [target_min_minutes, target_max_minutes] band of
+    resulting audio, using chars_per_minute as the (real, measured --
+    spec §3.2) conversion. A section already past target_min on its own
+    is never merged with the next if that would exceed target_max; a
+    section that hasn't yet reached target_min is merged regardless of
+    target_max, so a single section longer than target_max on its own
+    still becomes its own (over-length) episode -- this never splits
+    inside one section (spec §3.2, flagged §9 as a known limitation)."""
+    min_chars = chars_per_minute * target_min_minutes
+    max_chars = chars_per_minute * target_max_minutes
+
+    episodes: list[Episode] = []
+    current: list[NarratedSection] = []
+    current_len = 0
+    for section in narrated_sections:
+        section_len = len(section.title) + len(section.text)
+        if current and current_len >= min_chars and current_len + section_len > max_chars:
+            episodes.append(Episode(text=_episode_text(current), section_titles=[s.title for s in current if s.title]))
+            current, current_len = [], 0
+        current.append(section)
+        current_len += section_len
+    if current:
+        episodes.append(Episode(text=_episode_text(current), section_titles=[s.title for s in current if s.title]))
+    return episodes
+```
+
+- [ ] **Step 6: Run to verify all of `test_sections.py` passes**
+
+Run: `python -m pytest tests/test_sections.py -v`
+Expected: PASS (9 tests).
+
+- [ ] **Step 7: Extend `state.py` for per-episode idempotency**
+
+**Files:** Modify `audio_generator/state.py`, `tests/test_state.py`.
+
+State keys change shape from `rel_md_path` to `f"{rel_md_path}::part{NN:02d}"`
+(zero-padded), but the value is still just the *whole source file's*
+content hash (spec §3.2's deliberate simplification — a change anywhere
+in the source regenerates every part for that file, not just the changed
+one). Add a small helper so `pipeline.py` doesn't hand-format this key
+inline in two places:
+
+```python
+def episode_state_key(rel_md_path: str, part_number: int) -> str:
+    """part_number is 1-indexed, matching the __partNN filename suffix."""
+    return f"{rel_md_path}::part{part_number:02d}"
+```
+
+Add one test asserting the exact zero-padded format
+(`episode_state_key("a/b.md", 1) == "a/b.md::part01"`,
+`episode_state_key("a/b.md", 12) == "a/b.md::part12"`). `needs_regeneration()`
+and `compute_content_hash()` need no changes — they're already generic
+over whatever key/path is passed in.
+
+- [ ] **Step 8: Update `pipeline.py`'s `run_pipeline()` for `notes` content**
+
+This step only changes behavior for `content_type == "notes"` —
+`textbook` sources keep today's exact one-file-one-MP3 path unchanged
+(spec §3.2's scope).
+
+```python
+from audio_generator.sections import group_sections_into_episodes, narrate_sections, split_into_sections
+from audio_generator.state import episode_state_key
+
+def _run_notes_source(source, state, engine, summary):
+    current_hash = compute_content_hash(source.abs_md_path)
+    with open(source.abs_md_path, "r", encoding="utf-8") as f:
+        md_text = f.read()
+
+    sections = split_into_sections(md_text)
+    narrated_sections = narrate_sections(sections)
+    episodes = group_sections_into_episodes(narrated_sections)
+
+    base, _ext = os.path.splitext(source.abs_md_path)
+    for i, episode in enumerate(episodes, start=1):
+        key = episode_state_key(source.rel_md_path, i)
+        abs_mp3_path = f"{base}__part{i:02d}.mp3"
+        # needs_regeneration() takes a SourceFile for its .abs_mp3_path check --
+        # build a lightweight stand-in with this episode's actual output path.
+        episode_source = replace(source, abs_mp3_path=abs_mp3_path, rel_md_path=key)
+        if not needs_regeneration(state, episode_source, current_hash):
+            summary["skipped_unchanged"] += 1
+            continue
+        if not episode.text:
+            summary["skipped_empty"] += 1
+            continue
+        try:
+            synthesize_speech(episode.text, abs_mp3_path, engine=engine)
+        except Exception as err:
+            print(f"WARNING: failed to synthesize {key}: {err}")
+            summary["failed"] += 1
+            continue
+        with open(f"{base}__part{i:02d}.narrated.md", "w", encoding="utf-8") as f:
+            f.write(episode.text)
+        state[key] = current_hash
+        summary["generated"] += 1
+
+    _write_index_manifest(base, episodes)
+```
+
+(`replace` is `dataclasses.replace` — `SourceFile` is already a
+`@dataclass`, Task 2. `_write_index_manifest(base, episodes)` writes
+`f"{base}__index.md"`, a plain table of part number -> included section
+titles -> estimated duration in minutes, from `len(episode.text) /
+AUDIOGEN_SECTIONS_CHARS_PER_MINUTE`.) Wire `_run_notes_source` into
+`run_pipeline()`'s existing loop, branching on `source.content_type ==
+"notes"` vs. the unchanged `textbook` path.
+
+- [ ] **Step 9: Write/update `tests/test_audio_generator_pipeline.py` for the new notes path**
+
+Cover: a short single-section note still produces exactly one
+`__part01.mp3` (no behavior change for short notes); a note with enough
+header-delimited content to span two episodes produces `__part01.mp3` and
+`__part02.mp3`; re-running with no source change skips all parts; editing
+the source regenerates all parts (the documented simplification, spec
+§3.2); `__index.md` lists the right section titles per part; `textbook`
+sources are completely unaffected (still exactly one `<name>.mp3`, no
+`__partNN` suffix).
+
+- [ ] **Step 10: Update discovery.py's exclusion check if needed**
+
+Confirm (test, don't just assume) that `_is_real_md_file()`'s existing
+`.narrated.md` exclusion (Task 6) already covers `<name>__part01.narrated.md`
+and `<name>__index.md` — both end in `.md` and need to stay excluded from
+the next run's source discovery. Add a test if the existing suffix check
+doesn't already generalize correctly.
+
+- [ ] **Step 11: Update the README**
+
+Document the `notes`-only episode-splitting behavior, the three new env
+vars (`AUDIOGEN_SECTIONS_CHARS_PER_MINUTE`, `_TARGET_MIN_MINUTES`,
+`_TARGET_MAX_MINUTES`), the `__partNN.mp3`/`__index.md` output shape, and
+that existing single-file `<name>.mp3`/`<name>.narrated.md` outputs from
+before this revision become orphaned (not auto-deleted or migrated).
+
+- [ ] **Step 12: Real verification against `LN_Probability.md`**
+
+Re-run the already-generated `LN_Probability.narrated.md`/`.mp3` demo
+through the new episode-aware path (same source file) and confirm: each
+resulting `__partNN.mp3` actually falls in the 10-20 minute band (allowing
+the documented single-oversized-section exception), the `__index.md`
+correctly lists which of the file's real headers landed in which part,
+and total combined audio length roughly matches the original 3h22m
+single-file run (sanity check that no content was silently dropped by
+the splitting/grouping step itself, as opposed to narrate.py's own
+already-tested sanity checks).
+
+- [ ] **Step 13: Commit**
+
+```bash
+git add audio_generator/sections.py audio_generator/pipeline.py audio_generator/state.py audio_generator/README.md tests/test_sections.py tests/test_state.py tests/test_audio_generator_pipeline.py
+git commit -m "$(cat <<'EOF'
+feat(audio_generator): add section-aware episode splitting for notes
+
+Running v3's Gemini narration end-to-end against the real
+LN_Probability.md produced a correct but impractical 3h22m single MP3.
+notes sources now split at every header level, narrate/clean each
+section independently, and greedily group consecutive sections into
+10-20 minute episodes using a real measured calibration (969 chars/min,
+from that same 202.5-minute run) -- not a fixed header depth, which real
+inspection showed would still yield 30-60+ minute files for this corpus.
+
+Idempotency tracks per-episode but hashes the whole source file, not
+per-section -- a deliberate simplification (spec §3.2), not the finest-
+grained possible design. textbook content is unaffected -- still one
+MP3 per source file; reusing chapter_index.py's PDF-anchored chapter
+boundaries for textbook is a separate, unstarted investigation.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01BaWkFCR7CdMinG5BxgB6uu
+EOF
+)"
+```
