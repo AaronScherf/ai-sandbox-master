@@ -1,15 +1,28 @@
 # Resume Manager — Design Spec
 
 Date: 2026-09-09
-Status: **Revision 2** (structured-data master format) — approved in
-brainstorming, revision in progress. v1 was implemented, and its bootstrap
-was run once against the real resume; that run's *content* succeeded (no
-API cost, clean extraction) but surfaced a real, silent data-fidelity bug
-in v1's design (see §3), motivating this revision before the master resume
-or tailoring pipeline is trusted further. Section numbers are unchanged
-from v1 so existing code (already-shipped `resume_manager/*.py` docstrings
-cite `spec §N`) doesn't go stale across this revision; §3-§7 are rewritten
-in place.
+Status: **Revision 3** (deterministic extraction) — implemented and
+validated against the real resume; see
+`docs/status/2026-09-09-resume-manager-status.md` for the full narrative
+and evidence. History: v1 (freeform-Markdown master) surfaced a real
+data-fidelity bug on its first real run (§1 item 4). Revision 2
+(structured-data master format) fixed that, but its own first real run
+took over 90 minutes of CPU-only Ollama calls, needed five separate
+formatting/normalization fixes to even parse the model's YAML output, and
+*still* produced two further real content bugs (a role miscategorized
+into the wrong section with its bullets dropped, and a thesis present in
+the raw text written as "Not specified") that traced to the same root
+cause: the LLM had to freely decide section membership and entry
+boundaries, not just fill in named fields. Revision 3 replaces that
+extraction step entirely with deterministic, section-aware parsing (§3)
+— no LLM call, no network, no sampling variance, sub-2-second runtime.
+Section numbers are unchanged since v1 so existing code
+(already-shipped `resume_manager/*.py` docstrings cite `spec §N`) doesn't
+go stale across revisions; §3 is rewritten in place again, §2/§8/§9/§10
+touched where the LLM-vs-deterministic split matters. Tailoring (§4),
+validation (§5), and rendering (§6) are unaffected by this revision —
+rewriting bullets to match a job description is inherently a language
+task, unlike bootstrap extraction, and still uses the local LLM.
 
 ## 1. Problem & goals
 
@@ -33,8 +46,12 @@ real run (§3):
    conversion reuses that module's local-extraction primitives directly
    instead of its tier-routing wrapper.
 2. Its layout is regular enough that the raw-to-master reformatting step can
-   itself be automated (a local LLM call + verification), rather than
-   requiring the user to hand-transcribe it (§3).
+   itself be automated, rather than requiring the user to hand-transcribe
+   it (§3) — **(Revision 3)** and regular enough that automation doesn't
+   need an LLM at all: a machine-generated resume has clear section
+   headers and a small number of fixed per-entry line-shapes, which a
+   deterministic parser matches directly, with none of an LLM's
+   section-boundary/categorization guesswork.
 3. Tailoring reuses `common/ollama_utils.py` for its LLM calls instead of the
    brainstorm draft's raw `ollama.generate()` (which lacks the `num_ctx`
    sizing fix that `common/ollama_utils.py` already carries — see
@@ -54,10 +71,11 @@ real run (§3):
 
 **Goals**
 - Bootstrap-convert `resume.pdf` into a **structured master resume**
-  (`resume_master.yaml`, schema in §3) once, purely locally (no paid API
-  calls in the normal case — §3), via local-LLM field extraction verified
-  against the raw extraction so no field is silently dropped, invented, or
-  filled with the wrong value.
+  (`resume_master.yaml`, schema in §3) once, purely locally and
+  deterministically (§3 Revision 3: no LLM call, no network, no sampling
+  variance) — a value is either extracted from a recognized section/line
+  shape or the parser fails loudly naming exactly what didn't match,
+  never silently dropped, invented, or misplaced.
 - Store that master resume under
   `research/independent-research/projects/resume-manager/` that the user
   keeps expanding into a long, comprehensive record of everything they've
@@ -110,15 +128,18 @@ A new sibling package, `resume_manager/`, alongside `video_notes/`,
 Depends on `notes/transcribe_notes.py`'s local-extraction primitives
 (`extract_all_page_texts`, `page_looks_defective`, `build_final_markdown`,
 `build_frontmatter` — reused unchanged; its `process_pdf()` tier-routing
-wrapper is deliberately *not* used, see §3), `common/ollama_utils.py:call_ollama`
-(reused unchanged for both normalization and tailoring), and `pyyaml` for
-reading/writing the structured master resume (**Revision 2**: already an
-installed, transitively-available package in this project — used
-optionally by `postprocessing/postprocess_discovery.py` — but not yet an
-explicit `requirements.txt` entry; resume_manager makes it one, since here
-it's load-bearing, not optional). Unlike `journal_articles`/`notes`,
-conversion has no dependency on `common/gemini_utils.py` or a paid API at
-all in the normal case — see §3. Run as modules from the
+wrapper is deliberately *not* used, see §3), `pyyaml` for reading/writing
+the structured master resume (already an installed, transitively-available
+package in this project — used optionally by
+`postprocessing/postprocess_discovery.py` — but not yet an explicit
+`requirements.txt` entry; resume_manager makes it one, since here it's
+load-bearing, not optional), and `rapidfuzz` for fuzzy section-header
+matching (§3 Revision 3 — already an explicit project dependency, used
+here for the first time outside its original context). **(Revision 3)**
+`common/ollama_utils.py:call_ollama` is used **only by `tailor.py`** now —
+bootstrap extraction (`normalize.py`, `convert_resume.py`) has no LLM, no
+network, and no `common/gemini_utils.py` dependency at all; the whole
+bootstrap is local, deterministic Python. Run as modules from the
 `academic-rag-model/` root, matching every other subproject:
 
 ```powershell
@@ -215,7 +236,7 @@ skills:
 ```
 
 `id` fields are assigned by `convert_resume.py`'s own code immediately
-after parsing the LLM's extraction (`slugify(org) + "-" + ordinal`, e.g.
+after parsing (`slugify(org) + "-" + ordinal`, e.g.
 three USAID roles become `usaid-1`, `usaid-2`, `usaid-3` in resume order) —
 deliberately not left to the LLM to invent, so ids are stable, human-legible
 in the hand-edited file, and never a source of the ambiguity §1 goal 4
@@ -243,34 +264,79 @@ need one for a future follow-on, per §10).
    deserves the user's direct attention (re-export the source PDF, or
    transcribe just that page by hand), not the handwriting-fallback
    machinery built for a different problem.
-3. **Extract into schema via local LLM.** `resume_raw.md`'s content is sent
-   to `common.ollama_utils.call_ollama` with a strict, schema-driven prompt:
-   the prompt includes the exact YAML schema above (minus `id`, which the
-   LLM never produces) and instructs the model to fill it in from the raw
-   text — preserving every word, number, and date exactly; no summarizing,
-   no paraphrasing, no inventing a value for a field the raw text doesn't
-   contain (use `null`/omit optional fields instead of guessing); output
-   ONLY valid YAML, no commentary, no code-fence wrapper (stripped if
-   present anyway, defensively). Same `RESUMEMANAGER_OLLAMA_MODEL`
-   model/timeout conventions as tailoring (§4). The response is parsed with
-   `yaml.safe_load`; a parse failure is treated the same as an Ollama
-   failure (§8) — normalization didn't produce usable output, nothing is
-   written to `resume_master.yaml`.
-4. **Assign ids, then verify before trusting the extraction.** `id` fields
-   are assigned (see schema above) to every `work_experience`/`education`
-   entry. Then, for every entry in every category: every **required**
-   field (everything except `gpa`, `thesis`, `link`) must be non-empty, and
-   its string value must appear as a substring of `resume_raw.md` — this
-   is what directly catches §1 goal 4's bug (an empty or wrong `end_date`
-   fails immediately, a field-shaped check, not a heuristic) as well as
-   invented values. `bullets`/`items` list entries get the same
-   substring-traceability check, individually. A clean pass writes the
-   parsed structure straight to `resume_master.yaml`. Any flagged mismatch
-   writes it to `resume_master.review.yaml` instead, alongside a report of
-   exactly which field(s) on which entry didn't validate, and the user
-   reconciles only that flagged content by hand — manual work is the
-   exception path triggered by a real discrepancy, not the default
-   expectation.
+3. **Extract into schema deterministically — no LLM (Revision 3).**
+   `resume_raw.md`'s content (frontmatter and `<!-- page N -->` tags
+   stripped first) is parsed by explicit rules, in two layers:
+   - **Section splitting.** Each line is checked against
+     `match_section_header()`: a fuzzy match (via `rapidfuzz.fuzz.ratio`,
+     threshold 80) against a small synonym list per category (e.g.
+     `work_experience` matches "work experience", "professional
+     experience", "employment history", "job experience", "experience";
+     similarly for `education`, `awards`, `publications`, `skills`) —
+     deliberately not hardcoded to this one resume's exact header text,
+     so a differently-worded resume export can still be recognized, per
+     the explicit design goal of "some flexibility, but fuzzy matching,
+     not a full LLM call." A candidate line must also be short (≤60
+     chars) and not a bullet, to avoid a long sentence that happens to
+     mention "experience" being mistaken for a header. Everything
+     between one matched header and the next belongs to that section;
+     the resume's name (first non-header line of the document) is
+     handled separately from section content.
+   - **Per-section line-shape parsing.** Each section has its own small
+     number of fixed shapes, determined empirically against the real
+     resume (documented in full, with real-line examples, in
+     `docs/status/2026-09-09-resume-manager-status.md`):
+     - `work_experience`: a blank-line-delimited chunk of exactly 4 lines
+       whose 2nd line matches a `MM/YYYY - MM/YYYY`-or-`Present` pattern
+       is `(org, dates, role, location)` and starts a new employer; a
+       2-line chunk `(role, location)` is an *additional* role under the
+       most recently seen employer (the USAID case: 3 roles, 1 shared
+       date range) — its own `start_date`/`end_date` become the literal
+       string `"Not specified"` rather than guessing (never a different
+       field's value, the exact mistake Revision 2's LLM made once). A
+       chunk whose first line starts with `• ` is that entry's bullets;
+       an unprefixed line is a wrapped continuation of the previous
+       bullet, joined with a space.
+     - `education`: fixed 3-line entries (`institution`, `degree[ • GPA:
+       X]`, `location • MM/YYYY - MM/YYYY`), consumed greedily regardless
+       of blank-line boundaries (two institutions can appear back-to-back
+       with no blank line between them); a `Thesis: ...` line is
+       reattached to the entry immediately before it, whenever it
+       appears.
+     - `awards`: 2-line pairs (`Name (description)`, `date`).
+     - `publications`: 3-line groups (`title`, `date`, `venue`); a
+       `Published at: <url>` line reattaches to the entry immediately
+       before it.
+     - `skills`: a non-bullet chunk is a category header (joined if
+       wrapped across lines); its following bullet chunk's items are
+       comma-split (so `"Python, R, JavaScript"` becomes three items,
+       while a single-item bullet is unaffected) — this section also
+       needs zero-width-space stripping (§3 already fixed this once for
+       `page_looks_defective()`; the same character appears *within*
+       these bullets' text too, not just in the count check, so
+       extraction itself strips it).
+   - A shape the parser doesn't recognize — or zero section headers
+     matched at all — raises `ResumeParseError` naming exactly what
+     didn't match; `extract_resume_schema()` catches it, prints the
+     reason, and returns `None`, the same failure contract the old
+     LLM-based version had (so `convert_resume.py` needed zero changes).
+4. **Assign ids, then verify (defense in depth).** `id` fields are
+   assigned (see schema above) to every `work_experience`/`education`
+   entry. Then, for every entry in every category, `verify_extraction()`
+   (unchanged since Revision 2) checks every **required** field
+   (everything except `gpa`, `thesis`, `link`) is non-empty and traceable
+   as a substring of `resume_raw.md`, and exempts the literal placeholder
+   `"Not specified"` (and `"Present"` for `end_date`) from that
+   traceability check — an honest "the source doesn't say" is not a
+   fabrication to flag. **(Revision 3)** With deterministic extraction,
+   every value is a substring of `resume_raw.md` *by construction*, so
+   this check should now always report clean; it's kept as a defense-in-
+   depth regression test on the parser's own regexes, not because
+   fabrication is possible anymore. A clean pass writes the parsed
+   structure straight to `resume_master.yaml`. Any flagged mismatch (in
+   practice: a parser bug) writes it to `resume_master.review.yaml`
+   instead, alongside a report of exactly which field(s) on which entry
+   didn't validate.
 
 `resume_master.yaml` (once written, by whichever path) is the file the user
 keeps expanding over time into the long, comprehensive master record, never
@@ -415,10 +481,20 @@ research/independent-research/projects/resume-manager/
 - `common.ollama_utils.call_ollama` already distinguishes "server
   unreachable" (`None`) from "request timed out" (`OLLAMA_TIMEOUT`) — reused
   unchanged; `tailor.py` prints a clear error and exits non-zero on either,
-  rather than proceeding with empty/partial output.
-- A YAML parse failure on the LLM's response (extraction or tailoring) is
-  treated the same as an unreachable/timed-out Ollama call — no output is
-  trusted or written, a clear error is surfaced.
+  rather than proceeding with empty/partial output. This applies to
+  **tailoring only** (Revision 3) — bootstrap extraction has no Ollama
+  call to fail.
+- A YAML parse failure on `tailor.py`'s LLM response is treated the same
+  as an unreachable/timed-out Ollama call — no output is trusted or
+  written, a clear error is surfaced.
+- **(Revision 3)** `normalize.py`'s deterministic parser raises
+  `ResumeParseError` (caught by `extract_resume_schema()`, which prints
+  the reason and returns `None`) when a section/entry doesn't match any
+  recognized shape — replaces the old "Ollama call failed or returned
+  invalid YAML" failure mode for bootstrap extraction. The error message
+  names the exact chunk/line that didn't match, so fixing it means either
+  adjusting the source PDF's formatting or extending
+  `resume_manager/normalize.py`'s parsing rules — not guessing.
 - A JD file that doesn't exist, or a missing `resume_master.yaml` (bootstrap
   not yet run), fails fast with a clear message before any Ollama call.
 - `validate.py` never raises on its own — an id present in `included_ids`
@@ -457,17 +533,27 @@ documented exception below):
   `extract_all_page_texts()`/`page_looks_defective()` directly (never
   `process_pdf()`, never `common/gemini_utils.py`) and stops with an error
   when a page is flagged defective, using a synthetic "defective page"
-  fixture. The schema-verification logic is the highest-value target here:
-  a clean match (writes `resume_master.yaml`), a missing required field
-  (flagged), a field value not traceable to raw text (flagged), and `id`
-  assignment being stable/collision-free across duplicate `org` values (the
-  real three-USAID-roles case), all against mocked `call_ollama` output.
+  fixture. `id` assignment being stable/collision-free across duplicate
+  `org` values (the real three-USAID-roles case) is also covered.
+- **(Revision 3)** `normalize.py`: no mocking at all — every test calls
+  `extract_resume_schema()` directly against a representative excerpt of
+  the *actual* real resume's raw extraction (used verbatim as a test
+  fixture, not a synthesized approximation), covering every line-shape
+  §3 documents plus both real bugs Revision 2 hit (multiple roles under
+  one employer with an honest `"Not specified"` instead of a guessed
+  date; a `Thesis:` line reattaching correctly across a
+  no-blank-line institution boundary) and the `match_section_header()`
+  fuzzy-matching behavior (exact headers, worded-differently synonyms,
+  and confirming a bullet/long-sentence line never matches). A document
+  with zero recognized section headers is confirmed to return `None`
+  (via `ResumeParseError`), not a silently near-empty result.
 - Real end-to-end run against the user's actual resume and one real job
   description as manual validation before trusting the pipeline, the same
   way other subprojects' status docs record a first real-corpus pass before
-  being trusted at scale. (The first such run, under v1's design, is what
-  surfaced §1 goal 4's bug — this revision's own real-run validation is
-  still outstanding.)
+  being trusted at scale — see
+  `docs/status/2026-09-09-resume-manager-status.md` for the full record
+  (bugs found under both v1 and Revision 2, each fixed, leading to
+  Revision 3).
 
 ## 10. Open questions / follow-on (not decided by this spec)
 
@@ -491,11 +577,19 @@ documented exception below):
   assessments` that mix the two. The plan should validate the pattern set
   directly against the real extracted text (§3) before trusting it, rather
   than guessing patterns without real examples.
-- **`RESUMEMANAGER_OLLAMA_TIMEOUT`'s real default.** §4 flags that 300s
-  was too short for a real CPU-only run; the plan should pin a concrete
-  default based on the timings actually observed (the first real bootstrap
-  run needed `RESUMEMANAGER_OLLAMA_TIMEOUT=1800` to succeed) rather than
-  carrying forward the original, now-falsified assumption.
+- **`RESUMEMANAGER_OLLAMA_TIMEOUT`'s real default** — resolved for
+  bootstrap extraction by Revision 3 (no longer applicable there at
+  all — no Ollama call). Still applies to `tailor.py`, pinned to `1800`
+  seconds per the same real timing evidence (§4).
+- **Broadening the deterministic parser to other resume formats
+  (Revision 3).** `match_section_header()`'s synonym list and each
+  section's line-shape rules were built against this one real resume.
+  Confirmed as an explicit, deliberate scope decision during design: "try
+  to broaden it later if we get some other resume examples" — not solved
+  speculatively here. When a second real resume with a different layout
+  is available, extend the synonym lists and add whatever new line-shapes
+  it needs (e.g. a different date format, a single-line entry style)
+  rather than guessing formats without real examples to test against.
 - **Cover-letter generation** and **JD URL scraping** are both explicitly
   deferred (§1) — worth revisiting once the core tailor/validate/render
   loop is proven on real applications.
