@@ -177,12 +177,66 @@ Every other field across all 7 work-experience entries, 5 education
 entries, 4 awards, 7 publications, and 3 skill categories matches the
 source exactly.
 
+### 10. First real tailoring run: dropped metrics and an unsupported claim
+
+**Setup:** `python -m resume_manager.tailor_resume` against a real UN
+Development Coordination Office "Economist, NO-D" posting (Jakarta),
+selecting from the real `resume_master.yaml`.
+
+**Symptom:** the automated report said `Validation: no discrepancies
+flagged` — but manual inspection of the actual rewritten bullets against
+their originals found real quality loss the invented-only check couldn't
+see:
+- The first USAID role's three bullets (with `$1.5M`, `$450M`, `20 program
+  evaluations`, `$5Bn`) were compressed into two vaguer bullets, and all
+  four figures disappeared.
+- The DC-rotation role's award mention and tool names were dropped
+  entirely: `"Won agency-wide award for developing new budget data
+  processing and visualization tool using Python and Tableau, saving
+  hundreds of hours of staff time..."` became `"Created a budget data
+  processing and visualization tool to support SDG-related
+  negotiations..."`.
+- One rewrite added a claim not present in the original bullet at all:
+  `"...which improved the coherence and consistency of SDG implementation
+  across country offices"` — not a `%`/`$`/`x` token, so the metrics check
+  had no way to flag it.
+
+**Root cause:** the tailoring prompt only forbade *inventing* new
+metrics/experience; it never required *preserving* the ones already
+present, and `validate.py`'s fact-diff only checked the invented
+direction, never the dropped one.
+
+**Fix:** `validate.py`'s `validate_tailored()` is now bidirectional —
+`metrics_not_traceable()` is called both ways, so a metric present in the
+original bullets that doesn't survive into *any* rewritten bullet for that
+entry is flagged too. `tailor.py`'s prompt gained an explicit rule to
+preserve every number/named tool/named award from the original bullets
+(and to never add an unsupported outcome claim), plus an instruction that
+merging bullets must never lose these details.
+
+**Re-run after the fix (same real JD, same real master resume):**
+`$1.5M` and `$450M` now survive into the rewrite; `"Python and Tableau"`
+now survives. The bidirectional check correctly flagged the one remaining
+real drop: `$5Bn` (written as `$5B` by the metric extractor), from a
+bullet whose content was dropped entirely rather than merged in. The named
+award ("Won agency-wide award...") is *still* missing from the rewrite —
+a real LLM instruction-following gap the prompt fix didn't fully close,
+and one the automated check still can't catch on its own, since it isn't
+a numeric metric. Catching a dropped *named entity* (an award title, a
+tool name) rather than a dropped *number* would need a fundamentally
+different mechanism than metric-token matching — recorded below as an
+open item, not solved here, to keep scope proportionate to what's been
+validated so far.
+
 ## Known, not yet fixed / open items
 
-- **Tailoring has not yet been run against a real job description
-  end-to-end.** All real-world validation so far is on the bootstrap
-  (PDF → `resume_master.yaml`). `python -m resume_manager.tailor_resume`
-  against a real JD is the next concrete real-world check.
+- **Dropped named entities (awards, tool names) aren't caught
+  automatically.** `validate.py`'s bidirectional check only catches
+  dropped/invented *numeric* metrics (`%`/`$`/`x` tokens). A dropped award
+  title or tool name (§10) has no equivalent automated check yet — would
+  need named-entity-style matching, not metric-token matching. Manual
+  review of rewritten bullets is still recommended before submitting any
+  real application.
 - **Contact info is genuinely absent from the source PDF.** `location`,
   `email`, `linkedin_url`, `github_url`, `website_url` are all
   `"Not specified"` in the real `resume_master.yaml` — confirmed across
@@ -205,11 +259,11 @@ source exactly.
 
 ## What's next
 
-1. Run `tailor_resume.py` against one real job description as the first
-   real tailoring validation pass, the same way the bootstrap was
-   validated — inspect the actual output, not just the validation report.
-2. Fill in real contact info (`location`/`email`/`linkedin_url`/
+1. Fill in real contact info (`location`/`email`/`linkedin_url`/
    `github_url`/`website_url`) in `resume_master.yaml` by hand.
+2. Consider a named-entity-style check (award titles, tool names) if
+   dropped-named-entity issues keep recurring across more real tailoring
+   runs — not solved speculatively now, per §10.
 3. Once a second real resume (different layout) is available, extend
    `match_section_header()`'s synonyms and `normalize.py`'s per-section
    line-shape rules to cover it, rather than speculatively generalizing
