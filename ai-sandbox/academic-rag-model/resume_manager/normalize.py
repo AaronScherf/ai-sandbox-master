@@ -59,9 +59,10 @@ _SYSTEM_PROMPT = f"""You are extracting a resume's raw text into a strict YAML s
 CRITICAL RULES:
 1. Preserve every word, number, and date exactly as written. Do not summarize, paraphrase, or reword anything.
 2. Do not invent a value for any field the raw text doesn't contain -- omit optional fields (gpa, thesis, link) instead of guessing. Never write a bare "-" as a field's value.
-3. Follow this exact schema (field names and nesting):
+3. If a REQUIRED field's value genuinely cannot be found anywhere in the raw text (e.g. a role has no date range of its own, or no contact info appears at all), write exactly "Not specified" as its value. Never copy a different field's value into it as a guess (for example, never put a location into a date field).
+4. Follow this exact schema (field names and nesting):
 {_SCHEMA_TEMPLATE}
-4. Output ONLY valid YAML -- no commentary, no markdown code fences."""
+5. Output ONLY valid YAML -- no commentary, no markdown code fences."""
 
 
 def extract_resume_schema(raw_text: str, model: str = OLLAMA_MODEL) -> dict | None:

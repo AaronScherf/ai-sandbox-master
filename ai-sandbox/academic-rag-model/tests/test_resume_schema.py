@@ -108,6 +108,28 @@ class TestVerifyEntryFields(unittest.TestCase):
         problems = verify_entry_fields(entry, raw, [], ["items"])
         self.assertEqual(problems, [])
 
+    def test_not_specified_placeholder_is_never_flagged_as_untraceable(self):
+        # Real, confirmed case against the actual resume bootstrap
+        # (2026-09-09): the source resume prints ONE date range against
+        # the employer line, covering three sequential sub-roles, with no
+        # per-role dates to extract for two of them -- and no contact
+        # info (email/links) anywhere in the extracted text at all. The
+        # model honestly wrote "Not specified" rather than fabricating or
+        # misplacing a value (the exact failure mode Revision 2 was built
+        # to prevent) -- this must be accepted, not flagged, the same way
+        # "Present" already is for end_date specifically.
+        entry = {"id": "acme-1", "org": "Acme", "role": "Engineer", "location": "NYC",
+                  "start_date": "Not specified", "end_date": "Not specified"}
+        raw = "Acme\nEngineer\nNYC"
+        problems = verify_entry_fields(entry, raw, ["org", "role", "location", "start_date", "end_date"])
+        self.assertEqual(problems, [])
+
+    def test_not_specified_placeholder_still_counts_as_present_not_empty(self):
+        entry = {"id": "acme-1", "org": "Acme", "role": "Not specified"}
+        raw = "Acme"
+        problems = verify_entry_fields(entry, raw, ["org", "role"])
+        self.assertEqual(problems, [])
+
     def test_genuinely_fabricated_value_is_still_flagged_despite_normalization(self):
         entry = {"id": "acme-1", "role": "Chief Executive Officer"}
         raw = "Acme\nSenior Engineer\n2020"

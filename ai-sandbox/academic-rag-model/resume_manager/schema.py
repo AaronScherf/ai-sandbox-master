@@ -38,6 +38,9 @@ def _normalize_for_comparison(text: str) -> str:
     return _WHITESPACE_RE.sub(" ", text).strip().lower()
 
 
+_MISSING_VALUE_PLACEHOLDERS = {"not specified", "n/a", "na", "unknown", "tbd"}
+
+
 CONTACT_REQUIRED = ["name", "location", "email", "linkedin_url", "github_url", "website_url"]
 WORK_EXPERIENCE_REQUIRED = ["org", "role", "location", "start_date", "end_date"]
 WORK_EXPERIENCE_LIST_FIELDS = ["bullets"]
@@ -68,8 +71,15 @@ def verify_entry_fields(
     raw_text, or a list-field item that's empty or untraceable (spec §3
     step 4). 'end_date' is exempt from the traceability check when its
     value is the literal "Present" -- a source resume showing no end date
-    for an ongoing role has nothing to trace that sentinel to. Entry
-    identified in messages by its 'id' if present."""
+    for an ongoing role has nothing to trace that sentinel to. ANY field
+    is exempt when its value is a known "honestly missing" placeholder
+    (spec §3: "Not specified", "N/A", "Unknown", "TBD") -- confirmed real
+    against the actual resume, where two work_experience sub-roles share
+    one date range printed only against their employer, and no contact
+    info appears anywhere in the extracted text at all; the model writing
+    an honest placeholder there is the correct behavior Revision 2 was
+    built to enable, not a fabrication to flag. Entry identified in
+    messages by its 'id' if present."""
     label = entry.get("id") or "<entry>"
     normalized_raw = _normalize_for_comparison(raw_text)
     problems: list[str] = []
@@ -79,6 +89,8 @@ def verify_entry_fields(
             problems.append(f"{label}: required field '{field}' is empty")
             continue
         if field == "end_date" and value == "Present":
+            continue
+        if _normalize_for_comparison(str(value)) in _MISSING_VALUE_PLACEHOLDERS:
             continue
         if _normalize_for_comparison(str(value)) not in normalized_raw:
             problems.append(f"{label}: field '{field}' value '{value}' not found in raw extraction")
