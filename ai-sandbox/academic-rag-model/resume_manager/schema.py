@@ -3,6 +3,9 @@ schema.py
 The structured master-resume schema (spec §3 Revision 2): field lists per
 category, stable id assignment, and a generic required-field/traceability
 check shared by normalize.py's extraction verification.
+MISSING_VALUE_PLACEHOLDERS is also shared with render.py, which uses the
+same set to render a genuinely-missing field as blank rather than
+printing the literal placeholder text.
 """
 from __future__ import annotations
 
@@ -38,7 +41,7 @@ def _normalize_for_comparison(text: str) -> str:
     return _WHITESPACE_RE.sub(" ", text).strip().lower()
 
 
-_MISSING_VALUE_PLACEHOLDERS = {"not specified", "n/a", "na", "unknown", "tbd"}
+MISSING_VALUE_PLACEHOLDERS = {"not specified", "n/a", "na", "unknown", "tbd"}
 
 
 CONTACT_REQUIRED = ["name", "location", "email", "linkedin_url", "github_url", "website_url"]
@@ -90,7 +93,7 @@ def verify_entry_fields(
             continue
         if field == "end_date" and value == "Present":
             continue
-        if _normalize_for_comparison(str(value)) in _MISSING_VALUE_PLACEHOLDERS:
+        if _normalize_for_comparison(str(value)) in MISSING_VALUE_PLACEHOLDERS:
             continue
         if _normalize_for_comparison(str(value)) not in normalized_raw:
             problems.append(f"{label}: field '{field}' value '{value}' not found in raw extraction")

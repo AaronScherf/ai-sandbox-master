@@ -38,6 +38,58 @@ class TestBuildMarkdown(unittest.TestCase):
         markdown_text = build_markdown(resume)
         self.assertNotIn("Research Presentations", markdown_text)
 
+    def test_not_specified_contact_fields_render_as_blank(self):
+        # Real, confirmed request (2026-09-10): a genuinely-missing field
+        # should render as nothing at all, not the literal placeholder
+        # text -- the placeholder is only meant for the YAML data layer.
+        resume = {
+            **_RESUME,
+            "contact": {
+                "name": "Aaron Scherf", "location": "Not specified", "email": "Not specified",
+                "linkedin_url": "Not specified", "github_url": "Not specified", "website_url": "Not specified",
+            },
+        }
+        markdown_text = build_markdown(resume)
+        self.assertNotIn("Not specified", markdown_text)
+        self.assertIn("Aaron Scherf", markdown_text)
+
+    def test_work_experience_with_both_dates_not_specified_omits_the_parenthetical(self):
+        resume = {**_RESUME, "work_experience": [{
+            "org": "Acme", "role": "Engineer", "location": "NYC",
+            "start_date": "Not specified", "end_date": "Not specified", "bullets": ["Did a thing"],
+        }]}
+        markdown_text = build_markdown(resume)
+        self.assertNotIn("Not specified", markdown_text)
+        self.assertIn("### Acme — Engineer", markdown_text)
+        # No dangling empty parenthetical or stray dash left behind.
+        self.assertNotIn("()", markdown_text)
+        self.assertNotIn("( – )", markdown_text)
+
+    def test_work_experience_present_end_date_still_renders_normally(self):
+        # "Present" is real content, not a placeholder -- must not be
+        # blanked out by the same logic.
+        markdown_text = build_markdown(_RESUME)
+        self.assertIn("(2020 – Present)", markdown_text)
+
+    def test_education_not_specified_gpa_and_thesis_render_as_blank(self):
+        resume = {**_RESUME, "education": [{
+            "institution": "State U", "degree": "BS", "gpa": "Not specified", "location": "TX",
+            "start_date": "2016", "end_date": "2020", "thesis": "Not specified",
+        }]}
+        markdown_text = build_markdown(resume)
+        self.assertNotIn("Not specified", markdown_text)
+        self.assertNotIn("GPA:", markdown_text)
+        self.assertNotIn("Thesis:", markdown_text)
+        self.assertIn("BS", markdown_text)
+
+    def test_publication_not_specified_link_renders_as_blank(self):
+        resume = {**_RESUME, "publications": [
+            {"title": "A Paper", "date": "2021", "venue": "A Venue", "link": "Not specified"},
+        ]}
+        markdown_text = build_markdown(resume)
+        self.assertNotIn("Not specified", markdown_text)
+        self.assertNotIn("[link]", markdown_text)
+
 
 class TestRenderResumePdf(unittest.TestCase):
     def test_writes_a_non_empty_pdf(self):
