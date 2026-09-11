@@ -138,7 +138,7 @@ September 2026 through May 2027, on top of coursework — not instead of it. Tag
 - **[portfolio]** Develop and publish personal website with bio, project page, and blogs; focused initially on Academic and Research Hubs
 - **[hubs]** Finish most code for academic and research hubs, publish to Github, post projects on website
 - **[fellowships]** Identify other fellowship opportunities, conference opportunities, etc.
-- **[math thesis]** Begin revisions of math thesis
+- **[math thesis]** Begin revisions of math thesis (Project 06): refactor the R code (vectorize, deterministic covariance estimation) and rework the roughness penalty to second-order differences
 
 ### October 2026
 
@@ -165,7 +165,7 @@ September 2026 through May 2027, on top of coursework — not instead of it. Tag
 - **[research]** Draft the IRB protocol for the chatbot-survey pilot (Project 03) over break, so it's ready to submit day one of spring.
 - **[research]** Build out Project 02 (ACLED + IDMC + climate + cash-transfer program data fusion) and determine what it would need to be to be a "full paper"
 - **[outreach]** Finals period — skip new meetings, but send Tier 1 faculty you've met a short "here's what I built this semester" note with a link to Project 01. Low-pressure, high-signal.
-- **[math thesis]** Finish revisions of math thesis, look into presentation opportunities
+- **[math thesis]** Implement data-driven λ selection (GCV/REML) and eigenvector-decay weighting; sharpen the thesis around the asymmetric-alternative power gap as the core result
 
 ### January 2027
 
@@ -173,6 +173,7 @@ September 2026 through May 2027, on top of coursework — not instead of it. Tag
 - **[research]** Complete revised Project 02 paper and distribute to faculty for feedback
 - **[research]** Identify conference presentation opportunities for the Project 02 paper.
 - **[portfolio]** Publish Project 04 (toolkit) once stable.
+- **[math thesis]** Applied validation (Project 06) against Project 02/04 residuals now that the toolkit is stable; finite-sample simulations across n ∈ {50, 100, 500, 1000} in place of a full asymptotic proof
 
 ### February 2027
 
@@ -180,6 +181,7 @@ September 2026 through May 2027, on top of coursework — not instead of it. Tag
 - **[research]** Revisit the three lit-lane gap statements against a full semester of micro/macro/econometrics — sharpen the theoretical framing now that the toolkit exists to support it.
 - **[outreach]** Ask one or two target faculty — likely de Sherbinin and a Tier 2 name — about summer RA or pre-doc-style work.
 - **[research]** Continue revisions to Project 02.
+- **[math thesis]** Finish thesis rewrite (Project 06); look into presentation opportunities
 
 ### March 2027
 
@@ -264,6 +266,20 @@ A scoping essay, written for yourself and an advisor rather than for publication
 
 **Risk:** Low — internal deliverable
 
+### 06 — Math thesis rewrite: an asymmetric-aware omnibus normality test
+
+Revise the existing penalized-GLS omnibus normality test (eigenvector-decomposed empirical process regression with a roughness penalty) around a sharper, more specific result rather than a general-purpose rewrite. Diagnostic work already shows the test underperforms Shapiro-Wilk by 10–20 points on asymmetric alternatives (gamma, chi-square), most likely because the first-difference roughness penalty forces artificial symmetry on the smoothed predictions. Reworking the penalty and the eigenvector weighting to be asymmetry-aware turns that weakness into the thesis's actual contribution — and it's motivated by exactly the heavy-tailed, skewed residual distributions that climate and agricultural-yield data produce, tying the math thesis directly to the applied toolkit behind directions II and III. Full sequencing lives in `math_thesis/rewrite/Gemini Plan for Thesis Revision.md`; validated, where possible, against Project 02's panel-model residuals and Project 04's toolkit output rather than synthetic data alone.
+
+| | |
+|---|---|
+| **Data** | Simulated distributions (t, gamma, chi-square, GPD/GLD) for the core test; Project 02/04 model residuals for applied validation |
+| **Output** | Revised thesis manuscript; a short empirical-validation note reusing Project 02/04 data |
+| **Timeline** | September 2026 – February 2027: refactoring and calibration through the fall, applied validation once Project 04's pipeline stabilizes in January |
+
+**Columbia fit** — a sharpened, asymmetry-aware omnibus test used to validate residuals in your own causal-ML pipeline gives direction III's "methods committee member outside SIPA" gap (economics or the Data Science Institute) something concrete to react to, rather than a hypothetical.
+
+**Risk:** Medium — the full asymptotic-consistency proof is treated as optional/stretch for this cycle; a finite-sample simulation study across n ∈ {50, 100, 500, 1000} carries most of the credibility without committing to open-ended theory work on a four-month clock.
+
 ## 07. Two things worth resolving early
 
 > **Heterodox identity vs. applied-causal-inference identity.** Sixteen of eighteen essays describe an applied-microeconomics, causal-inference, remote-sensing research program. Three sources — American, the New School, and the `Research Ideas.md` notes — describe a structurally different one: agent-based post-Keynesian modeling, feminist and anti-imperialist critique, non-parametric optimization as a rejection of structural econometrics. Both are real interests, but they call for different advisors, different committees, and arguably different departments. SIPA's Sustainable Development faculty — Björkegren, Willis, Sachs, de Sherbinin — sit solidly in the applied-empirical camp, which suggests the heterodox strand is better treated as a secondary intellectual interest (a second-year field paper, a reading group, a minor field) than as competition for the dissertation spine. Worth naming explicitly to your advisor rather than letting it surface as scope creep in year two.
@@ -274,6 +290,7 @@ A scoping essay, written for yourself and an advisor rather than for publication
 2. **Build Project 01** (the evidence map) in parallel — it's desk research, needs no approvals, and is the literature-gap exercise you need to do regardless, turned into something citable.
 3. **Queue Project 03** (the chatbot pilot) for January so the IRB clock runs over winter break instead of eating into semester time.
 4. **Have the heterodox conversation with your advisor in the first semester**, not the third — it's cheap to resolve now and expensive to resolve after a year of work has already leaned one way.
+5. **Sequence Project 06's applied validation after Project 04 stabilizes** — reuse the toolkit's residuals instead of gathering separate data for the thesis, and treat the full asymptotic-consistency proof as optional/stretch for this cycle rather than a hard requirement.
 
 ---
 

@@ -2,7 +2,7 @@
 ## Objective:
 - Per Ground Truth's revised month-by-month timeline (September 2026 – May 2027, on top of coursework), complete:
 	- Academic Hub / Research Hub
-	- Math Thesis Rewrite
+	- Math Thesis Rewrite (Project 06) — reframed around an asymmetric-aware omnibus normality test; applied validation reuses Project 02/04 residuals once the toolkit stabilizes
 	- Evidence Map for Climate, Cash and Conflict (Project 01)
 		- Use as lit review / data collection for panel data study
 	- Climate shocks, conflict and displacement panel study (Project 02 / NECR5250 Final Paper)
@@ -22,7 +22,7 @@
 	- Develop and publish personal website (bio, project page, blog), focused initially on Academic and Research Hubs
 	- Finish most code for Academic and Research Hubs, publish to GitHub, post projects on website
 	- Identify other fellowship and conference opportunities
-	- Begin revisions of math thesis
+	- Begin revisions of math thesis (Project 06): refactor R code (vectorize, deterministic covariance estimation) and rework the roughness penalty to second-order differences
 - October 2026
 	- Close first-pass literature maps; write one gap statement per lane
 	- Start Project 01 (evidence map), cataloguing existing RCTs and quasi-experiments at the climate-adaptation × cash-transfer × conflict intersection
@@ -43,18 +43,20 @@
 	- Draft the IRB protocol for the chatbot-survey pilot (Project 03) over break, so it's ready to submit day one of spring
 	- Build out Project 02 further; determine what it would need to be to be a "full paper"
 	- Outreach: finals period — skip new meetings, send Tier 1 faculty a short update note with a link to Project 01
-	- Finish revisions of math thesis, look into presentation opportunities
+	- Implement data-driven λ selection (GCV/REML) and eigenvector-decay weighting for the math thesis; sharpen it around the asymmetric-alternative power gap as the core result
 - January 2027
 	- Submit the Project 03 IRB protocol; continue the reusable fusion-pipeline packaging (Project 04) while waiting on approval
 	- Outreach: first Tier 2 meetings, now with Project 01 and Project 02 to show
 	- Complete revised Project 02 paper and distribute to faculty for feedback
 	- Identify conference presentation opportunities for the Project 02 paper
 	- Publish Project 04 (toolkit) once stable
+	- Math thesis: applied validation (Project 06) against Project 02/04 residuals now that the toolkit is stable; finite-sample simulations across n ∈ {50, 100, 500, 1000} in place of a full asymptotic proof
 - February 2027
 	- Run the Project 03 pilot once IRB clears; begin analysis
 	- Revisit the three lit-lane gap statements against a full semester of micro/macro/econometrics
 	- Outreach: ask de Sherbinin and a Tier 2 name about summer RA or pre-doc work
 	- Continue revisions to Project 02
+	- Finish math thesis rewrite (Project 06); look into presentation opportunities
 - March 2027
 	- Finish the Project 03 write-up as a short methods note; publish Project 03
 	- Draft the internal memo narrowing the four directions to the flagship plus one supporting thread
@@ -78,7 +80,8 @@
 		- A structured, public catalogue of existing RCTs and quasi-experimental evaluations sitting at the intersection of climate-adaptive agriculture, cash transfers/social protection, and conflict or forced displacement
 	- Climate shocks, conflict & displacement: a fused public-data study
 		- Fuse ACLED conflict-event data, IDMC displacement figures, a climate-shock indicator (SPEI or CHIRPS-based drought measures), and public cash-transfer program locations (WFP/HDX) into a subnational panel, to test how climate shocks translate into displacement conditional on conflict intensity, and whether social-protection presence moderates that relationship. Combine with NECR5250 Final Paper.
-- Combine with the [[Gemini Plan for Thesis Revision]]
+	- Math thesis rewrite: an asymmetric-aware omnibus normality test (Project 06)
+		- Reworks the penalized-GLS test around its asymmetric-alternative power gap; applied validation reuses Project 02/04 residuals once the toolkit stabilizes in January. Full technical sequencing lives in [[Gemini Plan for Thesis Revision]] — keep both in sync.
 - Academic Hub Status
 	- [[Academic Hub Progress Reflections]]
 	- [[2026-08-30-academic-hub-status]]
