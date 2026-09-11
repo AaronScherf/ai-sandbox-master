@@ -1,28 +1,34 @@
 # Resume Manager — Design Spec
 
-Date: 2026-09-09
-Status: **Revision 3** (deterministic extraction) — implemented and
-validated against the real resume; see
-`docs/status/2026-09-09-resume-manager-status.md` for the full narrative
-and evidence. History: v1 (freeform-Markdown master) surfaced a real
-data-fidelity bug on its first real run (§1 item 4). Revision 2
-(structured-data master format) fixed that, but its own first real run
-took over 90 minutes of CPU-only Ollama calls, needed five separate
-formatting/normalization fixes to even parse the model's YAML output, and
-*still* produced two further real content bugs (a role miscategorized
-into the wrong section with its bullets dropped, and a thesis present in
-the raw text written as "Not specified") that traced to the same root
-cause: the LLM had to freely decide section membership and entry
-boundaries, not just fill in named fields. Revision 3 replaces that
+Date: 2026-09-09 (Revision 4 added 2026-09-10)
+Status: **Revision 4** (interactive clarifying-question flow, §11,
+design-approved — not yet implemented) on top of **Revision 3**
+(deterministic extraction, implemented and validated against the real
+resume); see `docs/status/2026-09-09-resume-manager-status.md` for the
+full narrative and evidence. History: v1 (freeform-Markdown master)
+surfaced a real data-fidelity bug on its first real run (§1 item 4).
+Revision 2 (structured-data master format) fixed that, but its own first
+real run took over 90 minutes of CPU-only Ollama calls, needed five
+separate formatting/normalization fixes to even parse the model's YAML
+output, and *still* produced two further real content bugs (a role
+miscategorized into the wrong section with its bullets dropped, and a
+thesis present in the raw text written as "Not specified") that traced to
+the same root cause: the LLM had to freely decide section membership and
+entry boundaries, not just fill in named fields. Revision 3 replaces that
 extraction step entirely with deterministic, section-aware parsing (§3)
 — no LLM call, no network, no sampling variance, sub-2-second runtime.
-Section numbers are unchanged since v1 so existing code
+Revision 4 adds an opt-in interactive Q&A step (§11) ahead of tailoring,
+requested during review of the first real tailoring run, so the user can
+steer entry selection and bullet emphasis for a specific application
+before the LLM call, without changing today's non-interactive default
+behavior at all. Section numbers are unchanged since v1 so existing code
 (already-shipped `resume_manager/*.py` docstrings cite `spec §N`) doesn't
 go stale across revisions; §3 is rewritten in place again, §2/§8/§9/§10
-touched where the LLM-vs-deterministic split matters. Tailoring (§4),
-validation (§5), and rendering (§6) are unaffected by this revision —
-rewriting bullets to match a job description is inherently a language
-task, unlike bootstrap extraction, and still uses the local LLM.
+touched where the LLM-vs-deterministic split matters, §11 is new.
+Tailoring (§4), validation (§5), and rendering (§6) are unaffected by
+Revision 3 — rewriting bullets to match a job description is inherently a
+language task, unlike bootstrap extraction, and still uses the local LLM;
+§4 gains one new optional parameter under Revision 4 (see §11).
 
 ## 1. Problem & goals
 
@@ -96,6 +102,11 @@ real run (§3):
 - Keep the source PDF and every generated artifact for one application
   together and self-contained under `resume-manager/`, rather than scattered
   across the personal-website repo and ad hoc output locations.
+- **(Revision 4)** Optionally let the user answer a handful of
+  JD-grounded clarifying questions before tailoring, so their own stated
+  priorities can steer which entries get selected and how bullets are
+  framed for that one application — opt-in only, so today's fully
+  automated run stays available unchanged (§11).
 
 **Non-goals**
 - No cover-letter generation in this version — resume tailoring only
@@ -471,6 +482,7 @@ research/independent-research/projects/resume-manager/
   applications/
     2026-09-09-acme-corp/
       job_description.txt           # user-provided input
+      guidance.txt                  # only present if run with --interactive (§11)
       tailored_resume.yaml          # structured tailored result
       validation_report.txt
       Tailored_Resume.pdf
@@ -506,6 +518,13 @@ research/independent-research/projects/resume-manager/
 - Extraction's verification check (§3 step 4) never blocks — a flagged
   mismatch produces `resume_master.review.yaml` plus a report instead of
   either silently trusting the LLM output or crashing the bootstrap run.
+- **(Revision 4)** `generate_clarifying_questions()` failing — Ollama
+  unreachable/timed out, or a malformed/wrong-shape YAML response — never
+  aborts a `--interactive` run: `tailor_resume.py` prints a warning and
+  proceeds exactly as a non-interactive run would (`guidance=None`),
+  matching the existing pattern of an auxiliary check never blocking the
+  core pipeline (§5, §3 step 4). Only a failure in the tailoring call
+  itself (§4/§8, unchanged) stops the run.
 
 ## 9. Testing
 
@@ -554,6 +573,20 @@ documented exception below):
   `docs/status/2026-09-09-resume-manager-status.md` for the full record
   (bugs found under both v1 and Revision 2, each fixed, leading to
   Revision 3).
+- **(Revision 4)** `tailor.py`: `generate_clarifying_questions()` tested
+  the same way `tailor_resume()` already is (mocked `call_ollama`) —
+  prompt contains the entry context and JD, a `questions: [...]` YAML
+  response parses into a list, and an unreachable Ollama call / malformed
+  YAML / wrong-shape response all return `None`. Separately, a regression
+  test confirms `tailor_resume(master, jd)` (no `guidance` argument) sends
+  the byte-identical prompt it does today, and
+  `tailor_resume(master, jd, guidance="...")` appends a new prompt section
+  containing that text — guarding the backward-compatibility requirement
+  that a non-interactive run is unaffected by this revision.
+- **(Revision 4)** `tailor_resume.py`: `build_guidance_text()` tested
+  directly on synthetic questions/answers (no mocking needed — pure
+  formatting); `collect_answers_interactively()` tested with a mocked
+  `input()`.
 
 ## 10. Open questions / follow-on (not decided by this spec)
 
@@ -596,3 +629,105 @@ documented exception below):
 - **Multiple resume "flavors"** (e.g. a separate master for
   research-track vs. industry-track roles) aren't addressed — out of scope
   until the single-master version proves insufficient in practice.
+- **Interactive clarifying-question flow** — addressed by Revision 4
+  (§11): the user can now optionally answer a few JD-grounded questions
+  before tailoring. Still open within that design: broadening beyond
+  free-text answers (e.g. multiple-choice) if free-text guidance proves
+  too unconstrained in practice, and whether guidance should ever apply
+  to categories other than Work Experience once §10's other
+  "selection/rewriting beyond Work Experience" item is picked up.
+
+## 11. Interactive clarifying-question flow (Revision 4)
+
+**Problem.** The first real tailoring run (2026-09-09) showed the LLM
+choosing entries and framing bullets from relevance signals in the JD
+text alone. Reviewing that output, the user asked for "a back-and-forth
+sort of model... that lets the user answer a few questions based on the
+job description to help guide the LLM what to focus on" — their own
+stated priorities (which experience to emphasize, which angle to frame
+it from) aren't derivable from the JD text alone and shouldn't require
+editing the master resume or the prompt by hand to express.
+
+**Design constraints, confirmed during brainstorming:**
+- Must be usable by someone without Claude Code — a standalone CLI flag
+  on `tailor_resume.py`, not a Claude-orchestrated conversation.
+- Question generation uses the same local Ollama model already used for
+  tailoring, not Claude — keeps the whole pipeline local-only, as it
+  already is.
+- Fully opt-in via a new `--interactive` flag: omitting it reproduces
+  today's fully automated, non-interactive run byte-for-byte. This
+  matters concretely, not just in principle — this session has been
+  invoking `tailor_resume.py` non-interactively via Bash throughout
+  development, and that path must keep working unchanged.
+- 2-4 open-ended (free-text) questions, not multiple-choice — the answer
+  space (what to emphasize, which framing to use) doesn't reduce cleanly
+  to a fixed option set the way earlier design questions in this session
+  did.
+
+**Question generation (`tailor.py`).** A new function,
+`generate_clarifying_questions(master, job_description, model=RESUMEMANAGER_OLLAMA_MODEL) -> list[str] | None`,
+alongside `tailor_resume()` in the same module (both are LLM-calling
+entry points; `tailor_resume.py` stays the orchestration/CLI layer, per
+this project's existing module split). Reuses `_build_entry_context()` —
+the same id/org/role/bullets context already sent to tailoring — plus
+the job description, in a new prompt asking the model for 2-4 open-ended
+questions that would help a person choose which of *these* entries to
+emphasize and how to frame them for *this* JD. Response parsed via the
+existing `parse_llm_yaml()` in a `questions: [str, str, ...]` shape,
+mirroring `tailor_resume()`'s own `included_ids`/`bullets_by_id` shape
+check. Returns `None` — never raises — on an unreachable/timed-out Ollama
+call or a malformed/wrong-shape response, exactly like `tailor_resume()`
+already does; the caller decides what `None` means (§8).
+
+**Interactive collection (`tailor_resume.py`).** Two new small,
+independently testable functions:
+- `collect_answers_interactively(questions: list[str]) -> list[str]` —
+  prints each question and reads one free-text line via `input()`.
+- `build_guidance_text(questions: list[str], answers: list[str]) -> str` —
+  pairs each question with its answer into a single guidance block (e.g.
+  `"Q: ...\nA: ...\n\n"` per pair, joined) — pure formatting, no I/O, so
+  it's testable without mocking `input()`.
+
+`main()` gains a new `--interactive` flag (`argparse`, `store_true`,
+default `False`). When set: after loading the master resume and JD text
+(before calling `tailor_resume()`), call
+`generate_clarifying_questions()`. If it returns a non-empty list, call
+`collect_answers_interactively()` then `build_guidance_text()`, and pass
+the result as `tailor_resume()`'s new `guidance` argument. If it returns
+`None` or an empty list, print a warning and proceed with `guidance=None`
+— the run is never aborted by a failure in this auxiliary step (§8).
+When `--interactive` is omitted entirely, none of this runs at all:
+`generate_clarifying_questions()` is never called, and `tailor_resume()`
+is called exactly as it is today.
+
+**Threading guidance into tailoring (`tailor.py`).**
+`tailor_resume(master, job_description, model=..., guidance: str | None = None) -> dict | None`
+gains one new, defaulted-to-`None` parameter. When `guidance` is not
+`None`, the prompt gains one new section, `### USER GUIDANCE (prioritize
+this when selecting entries and framing bullets):`, inserted between the
+entry context and the job description. This section only ever tells the
+model what to prioritize among facts already present in the master
+entries — it does not relax, override, or get exempted from any existing
+`_SYSTEM_PROMPT` rule (no fabrication, preserve every metric, vary
+sentence openings across all bullets, return only ids and bullets). When
+`guidance is None` — the default, and the case for every non-interactive
+run including every run this session has made so far — the prompt is
+byte-for-byte unchanged from today; this is a hard backward-compatibility
+requirement (§9), not just an intended default.
+
+**Persistence.** When `--interactive` produced guidance, `tailor_resume.py`
+also writes the full Q&A transcript (the generated questions and the
+user's literal free-text answers, not just the combined prompt string) to
+`guidance.txt` in that application's folder (§7), alongside
+`job_description.txt` — so reviewing an application later shows exactly
+what steered it, the same reasoning `validation_report.txt` already
+follows for tailoring's own output.
+
+**Non-goals of this revision.** Multiple-choice questions (open-ended
+only, per the design constraints above); persisting or reusing guidance
+across applications (each `--interactive` run's guidance applies to that
+one application only — the master resume itself is the only thing meant
+to persist across applications); extending guidance to categories other
+than Work Experience (guidance flows into the same Work-Experience-only
+tailoring call as today; broadening tailoring itself to other categories
+is still the separate, already-deferred §10 item).
