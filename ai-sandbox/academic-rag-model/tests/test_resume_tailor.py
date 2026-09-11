@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import patch
 
-from resume_manager.tailor import apply_tailoring, tailor_resume
+from resume_manager.tailor import apply_tailoring, generate_clarifying_questions, tailor_resume
 
 _MASTER = {
     "contact": {"name": "Aaron"},
@@ -80,6 +80,68 @@ class TestTailorResume(unittest.TestCase):
     @patch("resume_manager.tailor.call_ollama", return_value="just_a_string_not_a_mapping")
     def test_returns_none_when_response_is_not_the_expected_shape(self, mock_call):
         self.assertIsNone(tailor_resume(_MASTER, "jd"))
+
+
+class TestGenerateClarifyingQuestions(unittest.TestCase):
+    @patch("resume_manager.tailor.call_ollama")
+    def test_prompt_includes_entry_context_and_job_description(self, mock_call):
+        mock_call.return_value = "questions:\n  - Q1?\n  - Q2?"
+
+        generate_clarifying_questions(_MASTER, "a job description")
+
+        prompt_arg = mock_call.call_args[0][0]
+        self.assertIn("Acme", prompt_arg)
+        self.assertIn("a job description", prompt_arg)
+
+    @patch(
+        "resume_manager.tailor.call_ollama",
+        return_value="questions:\n  - Which experience should I emphasize?\n  - What tone fits this role?",
+    )
+    def test_returns_parsed_question_list(self, mock_call):
+        result = generate_clarifying_questions(_MASTER, "jd")
+        self.assertEqual(result, ["Which experience should I emphasize?", "What tone fits this role?"])
+
+    @patch("resume_manager.tailor.call_ollama", return_value=None)
+    def test_returns_none_when_ollama_call_fails(self, mock_call):
+        self.assertIsNone(generate_clarifying_questions(_MASTER, "jd"))
+
+    @patch("resume_manager.tailor.call_ollama", return_value="not valid: [yaml: at all")
+    def test_returns_none_on_invalid_yaml(self, mock_call):
+        self.assertIsNone(generate_clarifying_questions(_MASTER, "jd"))
+
+    @patch("resume_manager.tailor.call_ollama", return_value="just_a_string_not_a_mapping")
+    def test_returns_none_when_response_is_not_the_expected_shape(self, mock_call):
+        self.assertIsNone(generate_clarifying_questions(_MASTER, "jd"))
+
+    @patch("resume_manager.tailor.call_ollama", return_value="questions: not_a_list")
+    def test_returns_none_when_questions_value_is_not_a_list(self, mock_call):
+        self.assertIsNone(generate_clarifying_questions(_MASTER, "jd"))
+
+
+class TestTailorResumeGuidance(unittest.TestCase):
+    @patch("resume_manager.tailor.call_ollama")
+    def test_guidance_none_leaves_prompt_unchanged_from_today(self, mock_call):
+        mock_call.return_value = "included_ids: [acme-1]\nbullets_by_id:\n  acme-1: [x]"
+
+        tailor_resume(_MASTER, "a job description")
+        prompt_without_guidance_arg = mock_call.call_args[0][0]
+
+        mock_call.reset_mock()
+        tailor_resume(_MASTER, "a job description", guidance=None)
+        prompt_with_explicit_none = mock_call.call_args[0][0]
+
+        self.assertEqual(prompt_without_guidance_arg, prompt_with_explicit_none)
+        self.assertNotIn("USER GUIDANCE", prompt_without_guidance_arg)
+
+    @patch("resume_manager.tailor.call_ollama")
+    def test_guidance_appends_a_new_prompt_section(self, mock_call):
+        mock_call.return_value = "included_ids: [acme-1]\nbullets_by_id:\n  acme-1: [x]"
+
+        tailor_resume(_MASTER, "a job description", guidance="Q: ...\nA: emphasize leadership")
+
+        prompt_arg = mock_call.call_args[0][0]
+        self.assertIn("USER GUIDANCE", prompt_arg)
+        self.assertIn("emphasize leadership", prompt_arg)
 
 
 class TestApplyTailoring(unittest.TestCase):

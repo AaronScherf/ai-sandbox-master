@@ -31,6 +31,14 @@ bullets_by_id:
   id1: [rewritten bullet, rewritten bullet]
   id2: [rewritten bullet]"""
 
+_QUESTIONS_SYSTEM_PROMPT = """You are helping someone tailor their resume to a target job description.
+Given their work experience entries and the job description below, write 2-4 short, open-ended
+questions that would help decide which entries to emphasize and how to frame them for this
+specific role. Do not ask about facts already visible in the entries or the job description --
+ask about the person's own priorities and preferred framing instead.
+Output ONLY valid YAML in exactly this shape, no commentary, no markdown code fences:
+questions: [question one, question two]"""
+
 
 def _build_entry_context(work_experience: list[dict]) -> str:
     lines = []
@@ -41,15 +49,49 @@ def _build_entry_context(work_experience: list[dict]) -> str:
     return "\n".join(lines)
 
 
-def tailor_resume(master: dict, job_description: str, model: str = RESUMEMANAGER_OLLAMA_MODEL) -> dict | None:
+def generate_clarifying_questions(
+    master: dict, job_description: str, model: str = RESUMEMANAGER_OLLAMA_MODEL,
+) -> list[str] | None:
+    """Returns 2-4 open-ended questions grounded in the master's work
+    experience entries and the job description, or None if the local
+    Ollama call failed/timed out or the response wasn't the expected
+    shape (spec §11) -- mirrors tailor_resume()'s own failure contract,
+    so tailor_resume.py's --interactive flow handles both the same way:
+    a warning and a fallback to no guidance, never a crash."""
+    entry_context = _build_entry_context(master.get("work_experience") or [])
+    prompt = (
+        f"{_QUESTIONS_SYSTEM_PROMPT}\n\n### WORK EXPERIENCE ENTRIES:\n{entry_context}\n\n"
+        f"### TARGET JOB DESCRIPTION:\n{job_description}"
+    )
+    result = call_ollama(prompt, model, RESUMEMANAGER_OLLAMA_TIMEOUT_SECONDS)
+    if not isinstance(result, str):
+        return None
+    parsed = parse_llm_yaml(result)
+    if not isinstance(parsed, dict) or not isinstance(parsed.get("questions"), list):
+        return None
+    return parsed["questions"]
+
+
+def tailor_resume(
+    master: dict, job_description: str, model: str = RESUMEMANAGER_OLLAMA_MODEL, guidance: str | None = None,
+) -> dict | None:
     """Returns {"included_ids": [...], "bullets_by_id": {...}}, or None if
     the local Ollama call failed/timed out or the response wasn't the
     expected shape (spec §4, §8). Only id/org/role/bullets are sent to the
-    model -- no other metadata field ever reaches the LLM."""
+    model -- no other metadata field ever reaches the LLM. `guidance`
+    (spec §11) is optional free text -- typically a Q&A transcript from
+    tailor_resume.py's --interactive flow -- inserted as one extra prompt
+    section; when it's None (the default, and every call in this
+    codebase before this revision), the prompt is byte-for-byte identical
+    to before Revision 4."""
     entry_context = _build_entry_context(master.get("work_experience") or [])
+    guidance_section = (
+        f"\n\n### USER GUIDANCE (prioritize this when selecting entries and framing bullets):\n{guidance}"
+        if guidance else ""
+    )
     prompt = (
-        f"{_SYSTEM_PROMPT}\n\n### WORK EXPERIENCE ENTRIES:\n{entry_context}\n\n"
-        f"### TARGET JOB DESCRIPTION:\n{job_description}"
+        f"{_SYSTEM_PROMPT}\n\n### WORK EXPERIENCE ENTRIES:\n{entry_context}"
+        f"{guidance_section}\n\n### TARGET JOB DESCRIPTION:\n{job_description}"
     )
     result = call_ollama(prompt, model, RESUMEMANAGER_OLLAMA_TIMEOUT_SECONDS)
     if not isinstance(result, str):
