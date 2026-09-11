@@ -5,7 +5,7 @@ from unittest.mock import patch
 
 import yaml
 
-from resume_manager.tailor_resume import run_tailoring
+from resume_manager.tailor_resume import build_guidance_text, collect_answers_interactively, run_tailoring
 
 _MASTER = {
     "contact": {"name": "Aaron"},
@@ -80,3 +80,57 @@ class TestRunTailoring(unittest.TestCase):
 
             with self.assertRaises(RuntimeError):
                 run_tailoring(master_path, jd_path, "acme", resume_manager_dir)
+
+    @patch("resume_manager.tailor_resume.render_resume_pdf")
+    @patch(
+        "resume_manager.tailor_resume.tailor_resume",
+        return_value={"included_ids": ["acme-1"], "bullets_by_id": {"acme-1": ["Did a rewritten thing"]}},
+    )
+    def test_guidance_is_passed_to_tailor_resume_and_persisted(self, mock_tailor, mock_render):
+        with tempfile.TemporaryDirectory() as tmp:
+            resume_manager_dir, master_path, jd_path = self._setup(tmp)
+
+            run_tailoring(
+                master_path, jd_path, "Acme Corp", resume_manager_dir,
+                guidance="Q: Which role?\nA: emphasize leadership",
+            )
+
+            self.assertEqual(mock_tailor.call_args.kwargs["guidance"], "Q: Which role?\nA: emphasize leadership")
+            app_dir = os.path.join(
+                resume_manager_dir, "applications", os.listdir(os.path.join(resume_manager_dir, "applications"))[0],
+            )
+            guidance_path = os.path.join(app_dir, "guidance.txt")
+            self.assertTrue(os.path.exists(guidance_path))
+            with open(guidance_path, encoding="utf-8") as f:
+                self.assertIn("emphasize leadership", f.read())
+
+    @patch("resume_manager.tailor_resume.render_resume_pdf")
+    @patch(
+        "resume_manager.tailor_resume.tailor_resume",
+        return_value={"included_ids": ["acme-1"], "bullets_by_id": {"acme-1": ["Did a rewritten thing"]}},
+    )
+    def test_no_guidance_writes_no_guidance_file(self, mock_tailor, mock_render):
+        with tempfile.TemporaryDirectory() as tmp:
+            resume_manager_dir, master_path, jd_path = self._setup(tmp)
+
+            run_tailoring(master_path, jd_path, "Acme Corp", resume_manager_dir)
+
+            self.assertIsNone(mock_tailor.call_args.kwargs.get("guidance"))
+            app_dir = os.path.join(
+                resume_manager_dir, "applications", os.listdir(os.path.join(resume_manager_dir, "applications"))[0],
+            )
+            self.assertFalse(os.path.exists(os.path.join(app_dir, "guidance.txt")))
+
+
+class TestBuildGuidanceText(unittest.TestCase):
+    def test_pairs_each_question_with_its_answer(self):
+        text = build_guidance_text(["Q1?", "Q2?"], ["Answer one", "Answer two"])
+        self.assertIn("Q: Q1?\nA: Answer one", text)
+        self.assertIn("Q: Q2?\nA: Answer two", text)
+
+
+class TestCollectAnswersInteractively(unittest.TestCase):
+    @patch("builtins.input", side_effect=["Answer one", "Answer two"])
+    def test_collects_one_answer_per_question_in_order(self, mock_input):
+        answers = collect_answers_interactively(["Q1?", "Q2?"])
+        self.assertEqual(answers, ["Answer one", "Answer two"])
