@@ -15,6 +15,7 @@ from textbook.describe_images import (
     load_front_matter_end,
     nearest_preceding_heading,
     parse_description_response,
+    reconcile_book_naming,
 )
 
 
@@ -294,6 +295,171 @@ class TestLinkRagMd(unittest.TestCase):
             rag_path = os.path.join(book_dir, "SomeBook_2025.rag.md")
             found = link_rag_md(book_dir, "SomeBook_2025", rag_path, tmp)
             self.assertFalse(found)
+
+
+class TestReconcileBookNaming(unittest.TestCase):
+    # A Hansen econometrics textbook, converted before
+    # extract_bibliographic_info_from_filename() existed, came out named
+    # "UnknownAuthor_Econometrics_0000" even though its source filename
+    # ("Hansen_Econometrics_2022.pdf") had the author and year in it. This
+    # naming-reconciliation pass re-derives the ideal name from what's
+    # already recorded in _metadata.json (no re-conversion, no LLM call) and
+    # fixes already-converted books on disk.
+
+    def _make_book(self, tmp, folder_name, metadata, with_rag_md=False, with_card=False):
+        processed_outputs = os.path.join(tmp, "processed_outputs")
+        book_dir = os.path.join(processed_outputs, folder_name)
+        os.makedirs(book_dir)
+        with open(os.path.join(book_dir, f"{folder_name}.md"), "w", encoding="utf-8") as f:
+            f.write("# Book content\n")
+        with open(os.path.join(book_dir, f"{folder_name}_metadata.json"), "w", encoding="utf-8") as f:
+            json.dump(metadata, f)
+        if with_rag_md:
+            with open(os.path.join(book_dir, f"{folder_name}.rag.md"), "w", encoding="utf-8") as f:
+                f.write("# Book content\n")
+        if with_card:
+            from indexer.index_card import save_shard
+            save_shard(tmp, "econ-101", [{
+                "file_id": metadata["source_pdf_file_id"],
+                "path": f"processed_outputs/{folder_name}/{folder_name}.md",
+                "course": "econ-101",
+                "title": "",
+            }])
+        return book_dir
+
+    def test_prefers_source_pdf_filename_over_corrupted_source_pdf_path(self):
+        # Real, confirmed incident: for a book converted from a gs:// input,
+        # source_pdf_path actually records the local *temp download's* path
+        # (e.g. ".../temp_gcs_input_Econometrics_Bruce_E_Hansen_1962_....pdf"),
+        # not the real source filename -- reading that here extracted
+        # "temp" as the book's "author". source_pdf_filename (added
+        # alongside it in convert_textbook.py specifically for this) must
+        # take priority whenever both are present.
+        with tempfile.TemporaryDirectory() as tmp:
+            book_dir = self._make_book(tmp, "Econometrics_ECONOMETRICS_1962", {
+                "source_pdf_document_info": {"title": "", "author": "", "year": ""},
+                "markdown_parsed_info": {"title": "", "author": "", "year": ""},
+                "source_pdf_path": "temp_gcs_input_Econometrics_Bruce_E_Hansen_1962_Princeton_New_Jersey_2022.pdf",
+                "source_pdf_filename": "Econometrics -- Bruce E Hansen, 1962- -- Princeton, New Jersey, 2022.pdf",
+                "source_pdf_file_id": "fid1",
+            })
+
+            new_dir = reconcile_book_naming(book_dir, tmp)
+
+            self.assertEqual(os.path.basename(new_dir), "Hansen_Econometrics_2022")
+
+    def test_falls_back_to_source_pdf_path_when_source_pdf_filename_missing(self):
+        # A book converted before source_pdf_filename existed -- same
+        # (imperfect) behavior as before this fix, not a regression.
+        with tempfile.TemporaryDirectory() as tmp:
+            book_dir = self._make_book(tmp, "UnknownAuthor_Contents_0000", {
+                "source_pdf_document_info": {"title": "", "author": "", "year": ""},
+                "markdown_parsed_info": {"title": "Contents", "author": "", "year": ""},
+                "source_pdf_path": "academic_resources/econometrics/Hayashi_Econometrics_2000.pdf",
+                "source_pdf_file_id": "fid1",
+            })
+
+            new_dir = reconcile_book_naming(book_dir, tmp)
+
+            self.assertEqual(os.path.basename(new_dir), "Hayashi_Contents_2000")
+
+    def test_renames_folder_and_files_when_filename_recovers_missing_info(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            book_dir = self._make_book(tmp, "UnknownAuthor_Econometrics_0000", {
+                "source_pdf_document_info": {"title": "", "author": "", "year": ""},
+                "markdown_parsed_info": {"title": "Econometrics", "author": "", "year": ""},
+                "source_pdf_path": "academic_resources/econometrics/Hansen_Econometrics_2022.pdf",
+                "source_pdf_file_id": "fid1",
+            }, with_card=True)
+
+            new_dir = reconcile_book_naming(book_dir, tmp)
+
+            self.assertEqual(os.path.basename(new_dir), "Hansen_Econometrics_2022")
+            self.assertFalse(os.path.exists(book_dir))
+            self.assertTrue(os.path.exists(os.path.join(new_dir, "Hansen_Econometrics_2022.md")))
+            self.assertTrue(os.path.exists(os.path.join(new_dir, "Hansen_Econometrics_2022_metadata.json")))
+
+            from indexer.index_card import load_shard
+            card = load_shard(tmp, "econ-101")[0]
+            self.assertEqual(card["path"], "processed_outputs/Hansen_Econometrics_2022/Hansen_Econometrics_2022.md")
+
+    def test_also_renames_rag_md_and_updates_its_recorded_path(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            book_dir = self._make_book(tmp, "UnknownAuthor_Econometrics_0000", {
+                "source_pdf_document_info": {"title": "", "author": "", "year": ""},
+                "markdown_parsed_info": {"title": "Econometrics", "author": "", "year": ""},
+                "source_pdf_path": "academic_resources/econometrics/Hansen_Econometrics_2022.pdf",
+                "source_pdf_file_id": "fid1",
+                "rag_md_path": "processed_outputs/UnknownAuthor_Econometrics_0000/UnknownAuthor_Econometrics_0000.rag.md",
+            }, with_rag_md=True, with_card=True)
+
+            new_dir = reconcile_book_naming(book_dir, tmp)
+
+            self.assertTrue(os.path.exists(os.path.join(new_dir, "Hansen_Econometrics_2022.rag.md")))
+            with open(os.path.join(new_dir, "Hansen_Econometrics_2022_metadata.json"), encoding="utf-8") as f:
+                metadata = json.load(f)
+            self.assertEqual(
+                metadata["rag_md_path"],
+                "processed_outputs/Hansen_Econometrics_2022/Hansen_Econometrics_2022.rag.md",
+            )
+
+            from indexer.index_card import load_shard
+            card = load_shard(tmp, "econ-101")[0]
+            self.assertEqual(
+                card.get("rag_md_path"),
+                "processed_outputs/Hansen_Econometrics_2022/Hansen_Econometrics_2022.rag.md",
+            )
+
+    def test_already_ideal_name_is_left_untouched(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            book_dir = self._make_book(tmp, "Hansen_Econometrics_2022", {
+                "source_pdf_document_info": {"title": "Econometrics", "author": "Hansen", "year": "2022"},
+                "markdown_parsed_info": {"title": "", "author": "", "year": ""},
+                "source_pdf_path": "academic_resources/econometrics/Hansen_Econometrics_2022.pdf",
+                "source_pdf_file_id": "fid1",
+            })
+
+            new_dir = reconcile_book_naming(book_dir, tmp)
+
+            self.assertEqual(new_dir, book_dir)
+            self.assertTrue(os.path.exists(book_dir))
+
+    def test_dry_run_reports_but_does_not_rename(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            book_dir = self._make_book(tmp, "UnknownAuthor_Econometrics_0000", {
+                "source_pdf_document_info": {"title": "", "author": "", "year": ""},
+                "markdown_parsed_info": {"title": "Econometrics", "author": "", "year": ""},
+                "source_pdf_path": "academic_resources/econometrics/Hansen_Econometrics_2022.pdf",
+                "source_pdf_file_id": "fid1",
+            })
+
+            result = reconcile_book_naming(book_dir, tmp, dry_run=True)
+
+            self.assertEqual(result, book_dir)
+            self.assertTrue(os.path.exists(book_dir))
+
+    def test_missing_metadata_file_returns_original_dir_not_a_crash(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            book_dir = os.path.join(tmp, "processed_outputs", "SomeBook_2025")
+            os.makedirs(book_dir)  # no _metadata.json written at all
+            result = reconcile_book_naming(book_dir, tmp)
+            self.assertEqual(result, book_dir)
+
+    def test_skips_rename_when_target_folder_already_exists(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            book_dir = self._make_book(tmp, "UnknownAuthor_Econometrics_0000", {
+                "source_pdf_document_info": {"title": "", "author": "", "year": ""},
+                "markdown_parsed_info": {"title": "Econometrics", "author": "", "year": ""},
+                "source_pdf_path": "academic_resources/econometrics/Hansen_Econometrics_2022.pdf",
+                "source_pdf_file_id": "fid1",
+            })
+            # Target name already taken by an unrelated, real folder.
+            os.makedirs(os.path.join(tmp, "processed_outputs", "Hansen_Econometrics_2022"))
+
+            result = reconcile_book_naming(book_dir, tmp)
+
+            self.assertEqual(result, book_dir)
+            self.assertTrue(os.path.exists(book_dir))
 
 
 if __name__ == "__main__":

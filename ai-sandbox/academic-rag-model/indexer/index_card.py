@@ -477,3 +477,31 @@ def set_rag_md_path(academic_hub_root: str, file_id: str, rag_md_path: str) -> b
         load_shard(academic_hub_root, course), file_id, updated,
     ))
     return True
+
+
+def update_card_paths(
+    academic_hub_root: str, file_id: str, path: str, rag_md_path: str | None = None,
+) -> bool:
+    """Called by describe_images.py's naming-reconciliation pass when a
+    book's output folder gets renamed (a better author/title/year guess
+    becomes available for a book converted before that tier existed) with
+    no change to its actual content. Updates only `path` (and `rag_md_path`,
+    when the book already had one) on the existing card by file_id -- no
+    regeneration, no content_hash/course change, same no-op-if-missing
+    contract as set_rag_md_path(). Deliberately not folded into
+    reconcile_and_write(), which always requires content_sample/page_count/
+    client for its genuinely-new-content path even though a pure rename
+    never touches any of those. Returns False (never raises) if no card
+    exists yet for this file_id."""
+    found = find_card_by_file_id(academic_hub_root, file_id)
+    if found is None:
+        return False
+    course, card = found
+    updated = dict(card)
+    updated["path"] = path
+    if rag_md_path is not None:
+        updated["rag_md_path"] = rag_md_path
+    save_shard(academic_hub_root, course, _replace_card(
+        load_shard(academic_hub_root, course), file_id, updated,
+    ))
+    return True

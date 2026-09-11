@@ -164,5 +164,184 @@ class TestComputeChunkBoundariesBootstrapCleanupAndTimeouts(unittest.TestCase):
             self.assertEqual(kwargs["page_timeout_s"], 17)
 
 
+class TestFindExistingOutputByFileId(unittest.TestCase):
+    # The index card check alone is unreliable in the actual deployment:
+    # running on the GCP VM (Step 3.3), the source-indexer needs
+    # GEMINI_API_KEY and a real local academic-hub checkout, neither of
+    # which exist there, so it silently no-ops every time and no index card
+    # is ever written to find. raw_output (GCS or local) is what's actually
+    # durable in that environment -- this is the check keyed on that instead.
+
+    def test_local_output_finds_matching_file_id(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            book_dir = os.path.join(tmp, "Hansen_Econometrics_2022")
+            os.makedirs(book_dir)
+            metadata_path = os.path.join(book_dir, "Hansen_Econometrics_2022_metadata.json")
+            with open(metadata_path, "w", encoding="utf-8") as f:
+                json.dump({"source_pdf_file_id": "fid1"}, f)
+
+            found = ct.find_existing_output_by_file_id(tmp, "fid1")
+            self.assertEqual(found, book_dir)
+
+    def test_local_output_no_match_returns_none(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            book_dir = os.path.join(tmp, "SomeOtherBook_2020")
+            os.makedirs(book_dir)
+            with open(os.path.join(book_dir, "SomeOtherBook_2020_metadata.json"), "w", encoding="utf-8") as f:
+                json.dump({"source_pdf_file_id": "different-fid"}, f)
+
+            found = ct.find_existing_output_by_file_id(tmp, "fid1")
+            self.assertIsNone(found)
+
+    def test_empty_local_output_dir_returns_none(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            found = ct.find_existing_output_by_file_id(tmp, "fid1")
+            self.assertIsNone(found)
+
+    def test_gcs_output_finds_matching_file_id(self):
+        list_result = MagicMock(returncode=0, stdout="gs://bucket/processed_outputs/Hansen_Econometrics_2022/Hansen_Econometrics_2022_metadata.json\n")
+        cat_result = MagicMock(returncode=0, stdout=json.dumps({"source_pdf_file_id": "fid1"}))
+        with patch.object(ct.subprocess, "run", side_effect=[list_result, cat_result]):
+            found = ct.find_existing_output_by_file_id("gs://bucket/processed_outputs", "fid1")
+        self.assertEqual(found, "gs://bucket/processed_outputs/Hansen_Econometrics_2022")
+
+    def test_gcs_output_no_uploads_yet_returns_none(self):
+        list_result = MagicMock(returncode=1, stdout="", stderr="One or more URLs matched no objects.")
+        with patch.object(ct.subprocess, "run", return_value=list_result):
+            found = ct.find_existing_output_by_file_id("gs://bucket/processed_outputs", "fid1")
+        self.assertIsNone(found)
+
+    def test_gcs_output_non_matching_file_id_returns_none(self):
+        list_result = MagicMock(returncode=0, stdout="gs://bucket/processed_outputs/Other_2020/Other_2020_metadata.json\n")
+        cat_result = MagicMock(returncode=0, stdout=json.dumps({"source_pdf_file_id": "different-fid"}))
+        with patch.object(ct.subprocess, "run", side_effect=[list_result, cat_result]):
+            found = ct.find_existing_output_by_file_id("gs://bucket/processed_outputs", "fid1")
+        self.assertIsNone(found)
+
+
+class TestCleanupStaleRenamedOutput(unittest.TestCase):
+    # Real, confirmed incident: two "UnknownAuthor_..." folders, from before
+    # this pipeline had a filename-based naming tier, were left orphaned in
+    # both the local download and the GCS bucket after later runs derived
+    # better names ("Hansen_Econometrics_2022"-style) for the same two
+    # books -- delete_existing_gcs_output() only ever replaces a prior
+    # upload at the *exact* current folder name, so a rename between runs
+    # left the old name behind forever instead of being cleaned up.
+
+    def test_removes_local_output_under_a_different_stale_name(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            stale_dir = os.path.join(tmp, "UnknownAuthor_Econometrics_0000")
+            os.makedirs(stale_dir)
+            with open(os.path.join(stale_dir, "UnknownAuthor_Econometrics_0000_metadata.json"), "w", encoding="utf-8") as f:
+                json.dump({"source_pdf_file_id": "fid1"}, f)
+
+            ct.cleanup_stale_renamed_output(tmp, "fid1", "Hansen_Econometrics_2022", is_gcs_output=False)
+
+            self.assertFalse(os.path.exists(stale_dir))
+
+    def test_does_nothing_when_stale_name_matches_current_name(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            book_dir = os.path.join(tmp, "Hansen_Econometrics_2022")
+            os.makedirs(book_dir)
+            with open(os.path.join(book_dir, "Hansen_Econometrics_2022_metadata.json"), "w", encoding="utf-8") as f:
+                json.dump({"source_pdf_file_id": "fid1"}, f)
+
+            ct.cleanup_stale_renamed_output(tmp, "fid1", "Hansen_Econometrics_2022", is_gcs_output=False)
+
+            self.assertTrue(os.path.exists(book_dir), "should not delete the current, correctly-named output")
+
+    def test_does_nothing_when_no_prior_output_exists(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            # Should not raise even though nothing is there yet.
+            ct.cleanup_stale_renamed_output(tmp, "fid1", "Hansen_Econometrics_2022", is_gcs_output=False)
+
+    def test_removes_gcs_output_under_a_different_stale_name(self):
+        list_result = MagicMock(returncode=0, stdout="gs://bucket/processed_outputs/UnknownAuthor_Econometrics_0000/UnknownAuthor_Econometrics_0000_metadata.json\n")
+        cat_result = MagicMock(returncode=0, stdout=json.dumps({"source_pdf_file_id": "fid1"}))
+        rm_result = MagicMock(returncode=0)
+        with patch.object(ct.subprocess, "run", side_effect=[list_result, cat_result, rm_result]) as mock_run:
+            ct.cleanup_stale_renamed_output(
+                "gs://bucket/processed_outputs", "fid1", "Hansen_Econometrics_2022", is_gcs_output=True,
+            )
+        rm_call = mock_run.call_args_list[-1]
+        self.assertEqual(rm_call.args[0][:3], ["gcloud", "storage", "rm"])
+        self.assertIn("gs://bucket/processed_outputs/UnknownAuthor_Econometrics_0000", rm_call.args[0])
+
+
+class TestProcessOnePdfSkipsAlreadyConvertedBook(unittest.TestCase):
+    # A batch interrupted partway through book 3 of 4, then rerun from the
+    # top, used to redo books 1-2 from scratch even though they'd already
+    # succeeded and uploaded -- checkpoint_dir is deleted on success (see
+    # process_one_pdf's cleanup at the end of a run), so chunk-level resume
+    # has nothing left to find for an already-finished book. This is the
+    # whole-book skip added ahead of that, keyed on the index card that's
+    # only ever written after a book's conversion actually succeeded.
+
+    def test_skips_and_returns_early_when_index_card_already_exists(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            input_pdf = os.path.join(tmp, "some_book.pdf")
+            with open(input_pdf, "wb") as f:
+                f.write(b"%PDF-1.4 fake bytes, only ever hashed in this test, never parsed")
+
+            fake_card = {"path": "processed_outputs/Hansen_Econometrics_2022/Hansen_Econometrics_2022.md"}
+            with patch.object(ct, "find_card_by_file_id", return_value=("econ-101", fake_card)) as mock_find, \
+                 patch.object(ct, "PdfReader") as mock_reader:
+                result = ct.process_one_pdf(
+                    converter=MagicMock(), raw_input=input_pdf, raw_output=tmp,
+                    workspace=tmp, args=MagicMock(),
+                )
+
+            self.assertEqual(result, fake_card["path"])
+            mock_reader.assert_not_called()
+            mock_find.assert_called_once()
+
+    def test_skips_via_output_dir_when_no_index_card_but_output_already_exists(self):
+        # The realistic case on the GCP VM: the indexer never wrote a card
+        # there (no GEMINI_API_KEY, no local academic-hub), but the book's
+        # own output IS already sitting under raw_output from an earlier,
+        # interrupted-later run of this same batch.
+        with tempfile.TemporaryDirectory() as tmp:
+            input_pdf = os.path.join(tmp, "some_book.pdf")
+            with open(input_pdf, "wb") as f:
+                f.write(b"%PDF-1.4 fake bytes, only ever hashed in this test, never parsed")
+
+            output_dir = os.path.join(tmp, "output")
+            book_dir = os.path.join(output_dir, "Hansen_Econometrics_2022")
+            os.makedirs(book_dir)
+            file_id = ct.compute_file_id(input_pdf)
+            with open(os.path.join(book_dir, "Hansen_Econometrics_2022_metadata.json"), "w", encoding="utf-8") as f:
+                json.dump({"source_pdf_file_id": file_id}, f)
+
+            with patch.object(ct, "find_card_by_file_id", return_value=None), \
+                 patch.object(ct, "PdfReader") as mock_reader:
+                result = ct.process_one_pdf(
+                    converter=MagicMock(), raw_input=input_pdf, raw_output=output_dir,
+                    workspace=tmp, args=MagicMock(),
+                )
+
+            self.assertEqual(result, book_dir)
+            mock_reader.assert_not_called()
+
+    def test_proceeds_normally_when_nothing_already_converted(self):
+        # Not a full end-to-end run (that needs a real batch of mocks this
+        # test doesn't set up) -- just confirms both skip checks are a no-op
+        # when there's genuinely nothing to skip, i.e. PdfReader IS reached.
+        with tempfile.TemporaryDirectory() as tmp:
+            input_pdf = os.path.join(tmp, "some_book.pdf")
+            with open(input_pdf, "wb") as f:
+                f.write(b"not a real pdf, just needs to exist and be hashable")
+
+            output_dir = os.path.join(tmp, "output")
+            os.makedirs(output_dir)
+
+            with patch.object(ct, "find_card_by_file_id", return_value=None), \
+                 patch.object(ct, "PdfReader", side_effect=RuntimeError("reached PdfReader, as expected")):
+                with self.assertRaises(RuntimeError):
+                    ct.process_one_pdf(
+                        converter=MagicMock(), raw_input=input_pdf, raw_output=output_dir,
+                        workspace=tmp, args=MagicMock(),
+                    )
+
+
 if __name__ == "__main__":
     unittest.main()

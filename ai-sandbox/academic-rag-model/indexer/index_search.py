@@ -417,10 +417,28 @@ def rebuild(academic_hub_root: str, client, course: str | None = None,
 
         pdf_path = os.path.join(academic_hub_root, source_pdf_path)
         if not os.path.exists(pdf_path):
-            print(f"WARNING: {folder_name}'s source_pdf_path ({source_pdf_path}) does not exist "
-                  f"on disk -- skipping.")
-            stats["skipped_no_source_pdf"] += 1
-            continue
+            # source_pdf_path can be wrong for a book converted from a gs://
+            # input on the VM: convert_textbook.py records the VM's own
+            # local temp-download path there, which is meaningless once
+            # back on this machine (see that script's own comment next to
+            # source_pdf_filename, added to fix a related naming bug this
+            # same root cause produced). The real source PDF is still
+            # present locally though -- Step 3.2 uploads it to GCS without
+            # moving/deleting the local copy -- so look for it by its real
+            # filename (source_pdf_filename) in the directory this book's
+            # processed_outputs/ folder lives under, before giving up.
+            fallback_filename = metadata.get("source_pdf_filename")
+            fallback_path = os.path.join(
+                academic_hub_root, "academic_resources", course_name, category_folder_name, fallback_filename,
+            ) if fallback_filename else None
+            if fallback_path and os.path.exists(fallback_path):
+                pdf_path = fallback_path
+                source_pdf_path = os.path.relpath(pdf_path, academic_hub_root).replace(os.sep, "/")
+            else:
+                print(f"WARNING: {folder_name}'s source_pdf_path ({source_pdf_path}) does not exist "
+                      f"on disk -- skipping.")
+                stats["skipped_no_source_pdf"] += 1
+                continue
 
         file_id = compute_file_id(pdf_path)
         seen_file_ids.add(file_id)

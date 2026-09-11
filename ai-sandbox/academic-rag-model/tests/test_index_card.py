@@ -18,6 +18,7 @@ from indexer.index_card import (
     find_card_by_file_id,
     reconcile_and_write,
     set_rag_md_path,
+    update_card_paths,
     list_courses,
     load_tags,
     save_tags,
@@ -517,6 +518,52 @@ class TestSetRagMdPath(unittest.TestCase):
             found = set_rag_md_path(tmp, "fid1", "a.rag.md")
             self.assertTrue(found)
             self.assertEqual(load_shard(tmp, "math-camp")[0]["rag_md_path"], "a.rag.md")
+
+
+class TestUpdateCardPaths(unittest.TestCase):
+    # describe_images.py's naming-reconciliation pass calls this after
+    # renaming a book's folder on disk (a better author/title/year guess
+    # became available) -- must update path/rag_md_path without touching
+    # anything else on the card (no regeneration, no course change).
+
+    def test_updates_path_without_touching_other_fields(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            reconcile_and_write(tmp, file_id="fid1", path="UnknownAuthor_Econ_0000/UnknownAuthor_Econ_0000.md",
+                                 source_pdf_path="a.pdf", course="econ-101",
+                                 folder_category="textbooks-and-papers",
+                                 content_sample="text", page_count=10, client=_fake_client())
+            found = update_card_paths(tmp, "fid1", "Hansen_Econometrics_2022/Hansen_Econometrics_2022.md")
+            self.assertTrue(found)
+            card = load_shard(tmp, "econ-101")[0]
+            self.assertEqual(card["path"], "Hansen_Econometrics_2022/Hansen_Econometrics_2022.md")
+            self.assertEqual(card["title"], "Linear Algebra Done Right")  # untouched, no regeneration
+            self.assertEqual(card["course"], "econ-101")  # untouched, no course move
+
+    def test_updates_rag_md_path_when_given(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            reconcile_and_write(tmp, file_id="fid1", path="a.md", source_pdf_path="a.pdf",
+                                 course="econ-101", folder_category="textbooks-and-papers",
+                                 content_sample="text", page_count=10, client=_fake_client())
+            set_rag_md_path(tmp, "fid1", "old_name.rag.md")
+            found = update_card_paths(tmp, "fid1", "new_name.md", "new_name.rag.md")
+            self.assertTrue(found)
+            card = load_shard(tmp, "econ-101")[0]
+            self.assertEqual(card["rag_md_path"], "new_name.rag.md")
+
+    def test_omitted_rag_md_path_leaves_existing_value_untouched(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            reconcile_and_write(tmp, file_id="fid1", path="a.md", source_pdf_path="a.pdf",
+                                 course="econ-101", folder_category="textbooks-and-papers",
+                                 content_sample="text", page_count=10, client=_fake_client())
+            set_rag_md_path(tmp, "fid1", "old_name.rag.md")
+            update_card_paths(tmp, "fid1", "new_name.md")
+            card = load_shard(tmp, "econ-101")[0]
+            self.assertEqual(card["rag_md_path"], "old_name.rag.md")
+
+    def test_returns_false_and_writes_nothing_when_no_card_matches(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            found = update_card_paths(tmp, "no-such-file-id", "new_name.md")
+            self.assertFalse(found)
 
 
 class TestListCourses(unittest.TestCase):

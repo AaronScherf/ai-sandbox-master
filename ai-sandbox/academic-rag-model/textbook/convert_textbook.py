@@ -55,9 +55,13 @@ from marker.models import create_model_dict
 from marker.output import text_from_rendered
 from textbook.page_markers import remap_image_links, remap_page_markers, tag_single_page
 from textbook import chapter_index
+from textbook.bib_info import (
+    derive_folder_name, extract_bibliographic_info_from_filename,
+    is_descriptive_bibliographic_info, merge_bibliographic_info, sanitize_filename,
+)
 from indexer.index_card import (
     TEXTBOOK_CONTENT_SAMPLE_CHARS, compute_content_hash, compute_file_id, derive_course,
-    reconcile_and_write,
+    find_card_by_file_id, reconcile_and_write,
 )
 from common.gemini_utils import get_gemini_client, load_dotenv_override
 
@@ -113,14 +117,6 @@ def time_limit(seconds, description):
         signal.signal(signal.SIGALRM, previous_handler)
 
 
-def sanitize_filename(text: str) -> str:
-    """Sanitizes strings to ensure filesystem compatibility."""
-    if not text:
-        return ""
-    cleaned = re.sub(r"[^\w\s-]", "", str(text)).strip()
-    return re.sub(r"[-\s]+", "_", cleaned)
-
-
 def download_from_gcs(gcs_uri: str, local_path: str):
     """Executes a subprocess to retrieve the input artifact from a GCS bucket."""
     print(f"Synchronizing input artifact from Google Cloud Storage: {gcs_uri}")
@@ -168,6 +164,97 @@ def delete_existing_gcs_output(gcs_uri: str):
             print("No prior version found -- nothing to replace.")
         else:
             print(f"WARNING: could not check/clear prior GCS output (continuing anyway): {result.stderr.strip()}")
+
+
+def find_existing_output_by_file_id(raw_output: str, file_id: str) -> str | None:
+    """
+    Checks whether some book already fully uploaded under raw_output (the
+    shared --output destination for this whole batch) was converted from
+    this exact source PDF, matched by file_id -- which every book's own
+    <FolderName>_metadata.json records unconditionally, regardless of
+    whether the on-VM source-indexer update a few lines below process_one_pdf
+    succeeds. That indexer call needs GEMINI_API_KEY and a real local
+    academic-hub checkout to do anything -- neither of which exist when this
+    runs on the GCP VM (Step 3.3), so it silently no-ops there every time
+    (see its own WARNING message) and the index card it would otherwise
+    write never exists to find. This is the actually-durable equivalent:
+    raw_output itself (GCS, or a local dir) is where a finished book's
+    artifacts really land, independent of the indexer entirely.
+
+    Returns the matching book's own output folder (GCS URI or local path) if
+    found, else None. A handful of `gcloud storage`/filesystem calls, one
+    per already-uploaded book -- negligible next to the GPU cost of actually
+    reconverting one, and only paid once per book at the very start of
+    process_one_pdf, before any real work.
+    """
+    is_gcs = raw_output.startswith("gs://")
+    if is_gcs:
+        result = subprocess.run(
+            ["gcloud", "storage", "ls", f"{raw_output.rstrip('/')}/**/*_metadata.json"],
+            capture_output=True, text=True,
+        )
+        if result.returncode != 0:
+            return None  # nothing uploaded there yet, or listing failed -- proceed normally
+        metadata_uris = [line.strip() for line in result.stdout.splitlines() if line.strip()]
+    else:
+        metadata_uris = glob.glob(os.path.join(raw_output, "*", "*_metadata.json"))
+
+    for metadata_uri in metadata_uris:
+        if is_gcs:
+            cat_result = subprocess.run(
+                ["gcloud", "storage", "cat", metadata_uri], capture_output=True, text=True,
+            )
+            if cat_result.returncode != 0:
+                continue
+            raw_text = cat_result.stdout
+        else:
+            try:
+                with open(metadata_uri, "r", encoding="utf-8") as f:
+                    raw_text = f.read()
+            except OSError:
+                continue
+        try:
+            data = json.loads(raw_text)
+        except json.JSONDecodeError:
+            continue
+        if data.get("source_pdf_file_id") == file_id:
+            return metadata_uri.rsplit("/", 1)[0] if is_gcs else os.path.dirname(metadata_uri)
+
+    return None
+
+
+def cleanup_stale_renamed_output(raw_output: str, file_id: str, folder_name: str, is_gcs_output: bool) -> None:
+    """
+    Removes a prior upload of this same book (matched by file_id) that
+    landed under a *different* folder name than the one this run just
+    derived -- bibliographic-extraction logic changing between runs (e.g. a
+    naming-tier bugfix) can otherwise leave the old, differently-named
+    version orphaned forever, since delete_existing_gcs_output() only
+    catches a prior version at the *exact* current folder_name (see its own
+    docstring). Real, confirmed incident: two "UnknownAuthor_..." folders
+    from before this pipeline had a filename-based naming tier were left
+    behind once later runs derived better names for the same two books.
+
+    In normal operation this should rarely find anything: process_one_pdf's
+    whole-book skip check already prevents reconverting a book that has
+    *any* existing output, so reaching this function with a stale
+    differently-named copy already present means that book's output was
+    deleted (to force a reconversion) without also deleting its output
+    folder -- this is the defensive backstop for that case, not the primary
+    mechanism (that's the skip check).
+    """
+    stale_output = find_existing_output_by_file_id(raw_output, file_id)
+    if stale_output is None:
+        return
+    stale_name = os.path.basename(stale_output.rstrip("/"))
+    if stale_name == folder_name:
+        return
+    print(f"Found a prior version of this book under a different name "
+          f"('{stale_name}', now deriving '{folder_name}') -- removing the stale copy to avoid leaving a duplicate.")
+    if is_gcs_output:
+        delete_existing_gcs_output(stale_output)
+    else:
+        shutil.rmtree(stale_output, ignore_errors=True)
 
 
 def load_checkpoint_metadata(metadata_path: str) -> dict:
@@ -554,23 +641,6 @@ def extract_source_bibliographic_info(reader: PdfReader) -> dict:
     return info
 
 
-# Values commonly left behind by PDF-generating toolchains that don't count
-# as a real, descriptive author -- e.g. many LaTeX distributions populate
-# /Author with the engine name if \\author{} was never set.
-_GENERIC_METADATA_VALUES = {
-    "latex", "tex", "pdftex", "pdflatex", "xelatex", "lualatex",
-    "miktex", "texlive", "microsoft word", "writer", "unknown", ""
-}
-
-
-def is_descriptive_bibliographic_info(info: dict) -> bool:
-    """True if info has a real title, or a real (non-generic) author."""
-    title_ok = bool(info.get("title", "").strip())
-    author = info.get("author", "").strip().lower()
-    author_ok = bool(author) and author not in _GENERIC_METADATA_VALUES
-    return title_ok or author_ok
-
-
 def extract_bibliographic_info_from_markdown(md_text: str) -> dict:
     """
     Heuristic, regex-based extraction of title/author/year from the first
@@ -723,15 +793,6 @@ def extract_bibliographic_info_via_llm(md_text: str, project: str, location: str
     return info
 
 
-def merge_bibliographic_info(primary: dict, fallback: dict) -> dict:
-    """Fill in only the blank fields of `primary` from `fallback`."""
-    merged = dict(primary)
-    for key in ("title", "author", "year"):
-        if not merged.get(key):
-            merged[key] = fallback.get(key, "")
-    return merged
-
-
 def process_one_pdf(converter, raw_input: str, raw_output: str, workspace: str, args) -> str:
     """
     Runs the full checkpointed extraction + assembly + upload pipeline for a
@@ -756,6 +817,40 @@ def process_one_pdf(converter, raw_input: str, raw_output: str, workspace: str, 
     try:
         if not os.path.exists(input_pdf):
             raise FileNotFoundError(f"Input PDF not found at {input_pdf}")
+
+        # Whole-book skip, checked before any real work (chunking is
+        # per-chunk-resumable within one run of one book, per the
+        # boundaries loop below -- but a book that already fully finished
+        # a PRIOR run has its checkpoint_dir deleted as part of that
+        # success, per the cleanup at the end of this function, so a later
+        # rerun of the same batch command has nothing to resume from and
+        # would otherwise redo the entire book from page 1. Real-world
+        # trigger: a batch interrupted partway through book 3 of 4 is
+        # rerun from the top, needlessly reprocessing books 1-2 which
+        # already succeeded and uploaded.
+        #
+        # Two checks, cheapest/least-authoritative first:
+        academic_hub_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "academic-hub"))
+        file_id = compute_file_id(input_pdf)
+        existing_card = find_card_by_file_id(academic_hub_root, file_id)
+        if existing_card is not None:
+            _, card = existing_card
+            print(f"Already converted in a prior run (index card found for file_id {file_id}) -- "
+                  f"skipping re-conversion. Existing output: {card.get('path')}")
+            return card.get("path") or f"(already converted, file_id={file_id}, no path on card)"
+
+        # The index-card check above only ever fires when academic_hub_root
+        # is a real local academic-hub checkout AND the indexer's
+        # GEMINI_API_KEY was available when THIS BOOK originally finished --
+        # neither is true running on the GCP VM (Step 3.3), so it's a no-op
+        # there today (kept anyway: harmless, and correct if this script is
+        # ever run somewhere with both available). raw_output itself is what's
+        # actually durable in the documented VM workflow, so check there too.
+        existing_output = find_existing_output_by_file_id(raw_output, file_id)
+        if existing_output is not None:
+            print(f"Already converted in a prior run (found matching {file_id} under {raw_output}) -- "
+                  f"skipping re-conversion. Existing output: {existing_output}")
+            return existing_output
 
         if torch.cuda.is_available():
             print(f"Hardware Detected: {torch.cuda.get_device_name(0)}")
@@ -858,8 +953,16 @@ def process_one_pdf(converter, raw_input: str, raw_output: str, workspace: str, 
         # (source_info, extracted above via pypdf), then (2) an LLM reading
         # of the first chunk's markdown title page if (1) wasn't descriptive
         # enough, then (3) a regex heuristic over the same text if the LLM
-        # tier is unavailable/fails, then (4) the filename if nothing found
-        # anything usable.
+        # tier is unavailable/fails, then (4) the source filename itself
+        # (extract_bibliographic_info_from_filename, textbook/bib_info.py)
+        # fills in whichever of title/author/year is still blank after
+        # (1)-(3) -- e.g. a book whose markdown title page yielded a title
+        # but no author/year no longer falls back to "UnknownAuthor"/"0000"
+        # if its filename has that info in it. If even (4) finds nothing,
+        # derive_folder_name() falls back to the whole sanitized filename
+        # verbatim as the folder name (unchanged from before). The naming
+        # rule itself lives in bib_info.py, shared with describe_images.py's
+        # naming-reconciliation pass over already-converted books.
         markdown_info = {"title": "", "author": "", "year": ""}
         if not is_descriptive_bibliographic_info(source_info) and chunk_files:
             with open(chunk_files[0], "r", encoding="utf-8") as f:
@@ -883,18 +986,19 @@ def process_one_pdf(converter, raw_input: str, raw_output: str, workspace: str, 
 
         bib_info = merge_bibliographic_info(source_info, markdown_info)
 
-        if is_descriptive_bibliographic_info(bib_info):
-            title_part = sanitize_filename(bib_info["title"]) or \
-                sanitize_filename(os.path.splitext(os.path.basename(raw_input))[0])
-            if bib_info["author"]:
-                first_author = bib_info["author"].split(",")[0].split(" and ")[0].strip()
-                lastname_part = sanitize_filename(first_author.split()[-1]) if first_author else "UnknownAuthor"
-            else:
-                lastname_part = "UnknownAuthor"
-            year_part = bib_info["year"] or "0000"
-            folder_name = f"{lastname_part}_{title_part}_{year_part}"
-        else:
-            folder_name = sanitize_filename(os.path.splitext(os.path.basename(raw_input))[0]) or "converted_textbook"
+        # Always attempted -- cheap, local, no network call -- and only ever
+        # fills whichever of title/author/year is still blank; never
+        # overrides a real match from the tiers above.
+        filename_info = extract_bibliographic_info_from_filename(raw_input)
+        missing_before = {k for k, v in bib_info.items() if not v}
+        bib_info = merge_bibliographic_info(bib_info, filename_info)
+        filled = sorted(k for k in missing_before if bib_info.get(k))
+        if filled:
+            print(f"Filled {', '.join(filled)} from the source filename -- "
+                  f"title: '{filename_info['title']}' | author: '{filename_info['author']}' | "
+                  f"year: '{filename_info['year']}'")
+
+        folder_name = derive_folder_name(bib_info, raw_input)
 
         local_build_dir = os.path.join(workspace, f"marker_assembly_output_{input_key}")
         if os.path.exists(local_build_dir):
@@ -918,16 +1022,13 @@ def process_one_pdf(converter, raw_input: str, raw_output: str, workspace: str, 
         if os.path.exists(run_config_path):
             shutil.copy2(run_config_path, os.path.join(local_build_dir, "run_config.json"))
 
-        academic_hub_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "academic-hub"))
-        # Cheap local hashing, no network call -- computed and recorded
-        # unconditionally, independent of whether the LLM-dependent
-        # indexing call below succeeds. This is what lets rebuild()
-        # (index_search.py) and describe_images.py's hook find this
-        # book's source PDF later without any filename guessing -- the
-        # ambiguity that made textbook backfill unreliable before this
-        # field existed (processed_outputs/<FolderName>/ folder names
+        # academic_hub_root/file_id were already computed above, for the
+        # whole-book skip check -- reused here (rather than recomputed) to
+        # let rebuild() (index_search.py) and describe_images.py's hook
+        # find this book's source PDF later without any filename guessing
+        # -- the ambiguity that made textbook backfill unreliable before
+        # this field existed (processed_outputs/<FolderName>/ folder names
         # don't correspond to their source PDF's filename).
-        file_id = compute_file_id(input_pdf)
         rel_pdf_path = os.path.relpath(input_pdf, academic_hub_root).replace(os.sep, "/")
 
         master_metadata.update({
@@ -936,6 +1037,17 @@ def process_one_pdf(converter, raw_input: str, raw_output: str, workspace: str, 
             "source_pdf_document_info": source_info,
             "markdown_parsed_info": markdown_info,
             "source_pdf_path": rel_pdf_path,
+            # The actual source filename, unconditionally -- distinct from
+            # source_pdf_path above, which for a gs:// input is the *local
+            # temp download's* path (needed as-is for derive_course()/
+            # rel_md_path below, which expect a multi-segment path shape),
+            # not the real source filename. Confirmed live: describe_images.py's
+            # naming-reconciliation pass trusted source_pdf_path as if it
+            # were the real filename and extracted "temp" (from
+            # "temp_gcs_input_...") as a book's "author" as a direct result.
+            # This field exists specifically so filename-based heuristics
+            # have something trustworthy to read regardless of input source.
+            "source_pdf_filename": os.path.basename(raw_input),
             "source_pdf_file_id": file_id,
         })
         with open(os.path.join(local_build_dir, f"{folder_name}_metadata.json"), "w", encoding="utf-8") as json_f:
@@ -974,6 +1086,8 @@ def process_one_pdf(converter, raw_input: str, raw_output: str, workspace: str, 
             print(f"WARNING: source-indexer update failed for {folder_name} ({index_err}); "
                   f"the converted textbook output above is unaffected -- rerun the indexer "
                   f"separately later to catch it up.")
+
+        cleanup_stale_renamed_output(raw_output, file_id, folder_name, is_gcs_output)
 
         # Resolve Output Trajectory
         if is_gcs_output:

@@ -27,7 +27,7 @@ SETUP_MARKER="$HOME/.marker_setup_complete"
 # provisioned before, say, google-genai was added here would keep skipping
 # setup forever and silently never get it, degrading (not breaking) whatever
 # feature needed it.
-SETUP_VERSION="2"
+SETUP_VERSION="6"
 
 on_error() {
     local exit_code=$?
@@ -52,7 +52,7 @@ quick_verify_existing_setup() {
     # trusting the marker file blindly. Each check is cheap (no network
     # pulls, since everything it touches was already pulled/installed by a
     # prior full run) so this whole function should finish in a few seconds.
-    dpkg -s poppler-utils tesseract-ocr docker.io nvidia-container-toolkit >/dev/null 2>&1 || return 1
+    dpkg -s poppler-utils tesseract-ocr docker.io nvidia-container-toolkit tmux >/dev/null 2>&1 || return 1
     sudo docker info >/dev/null 2>&1 || return 1
     python3 -c "import torch, torchvision, marker, google.genai" >/dev/null 2>&1 || return 1
     python3 -c "import torch, sys; sys.exit(0 if torch.cuda.is_available() else 1)" >/dev/null 2>&1 || return 1
@@ -110,7 +110,11 @@ fi
 
 echo "[System] Updating OS packages and rendering utilities."
 sudo apt-get update -qq
-sudo apt-get install -y -qq poppler-utils tesseract-ocr curl gnupg
+# tmux: lets Step 3.3's long-running conversion job survive a dropped SSH/IAP
+# session (idle timeout, transient network blip, a slow multi-hundred-page
+# chunk with no output for a long stretch) instead of dying with it -- real,
+# recurring failure mode confirmed live, twice, on the same multi-hour batch.
+sudo apt-get install -y -qq poppler-utils tesseract-ocr curl gnupg tmux
 
 # ---------------------------------------------------------------------------
 # Docker + NVIDIA Container Toolkit: required by surya-ocr's VLM inference
@@ -133,14 +137,43 @@ curl -s -L https://nvidia.github.io/libnvidia-container/stable/deb/nvidia-contai
   sudo tee /etc/apt/sources.list.d/nvidia-container-toolkit.list > /dev/null
 
 sudo apt-get update -qq
-# Pinned rather than floating, for reproducibility -- but that means this
-# WILL eventually break once 1.17.8-1 ages out of the apt repo (apt keeps a
-# limited window of old package versions). If this install step starts
-# failing with "unable to locate package" or similar, check
-# `apt-cache madison nvidia-container-toolkit` for what's currently
-# available and bump this pin (and SETUP_VERSION below) accordingly --
-# this isn't something either of us can fix in advance.
-sudo apt-get install -y -qq nvidia-container-toolkit=1.17.8-1
+# Deliberately NOT version-pinned. This used to be pinned to an exact
+# version "for reproducibility," but that pin broke twice in ways that
+# reproducibility didn't actually protect against: (1) the pinned version
+# aging out of the apt repo, and (2) Step 1.3's --image-family floating to
+# whatever Deep Learning VM image Google most recently published (not a
+# fixed image), which can preinstall nvidia-container-toolkit-base at a
+# version newer than the pin -- apt refuses to downgrade an already-
+# installed package to satisfy nvidia-container-toolkit's exact-version
+# dependency on it, so install fails outright with "you have held broken
+# packages" (this broke the original 1.17.8-1 pin on the 2026-09-09 image
+# build, then broke the follow-up 1.19.1-1 pin the same way in principle).
+# Leaving the version unpinned lets apt resolve nvidia-container-toolkit and
+# nvidia-container-toolkit-base together as a matched set every time --
+# upgrading an already-installed base to match, which apt allows (unlike
+# downgrading) -- so this self-heals against whatever the current image
+# build ships instead of needing a manual pin bump every time Google
+# publishes a new one. If this ever needs debugging again: `apt-cache
+# policy nvidia-container-toolkit-base` shows installed vs. candidate.
+#
+# --allow-change-held-packages and the explicit package list are both
+# required for the SAME reason, distinct from the pin issue above: this
+# package's own install marks nvidia-container-toolkit,
+# nvidia-container-toolkit-base, libnvidia-container-tools, and
+# libnvidia-container1 as apt-mark-held once installed (a deliberate
+# self-protection against something later silently bumping it out of sync
+# with the matched NVIDIA driver). A VM's first-ever provisioning never
+# hits this (nothing is installed/held yet), but any later re-provisioning
+# of an already-set-up VM (e.g. a SETUP_VERSION bump re-running this
+# script) does -- confirmed live: apt refused to change any of the four
+# with "held packages were changed and -y was used without
+# --allow-change-held-packages" until all four were named explicitly in
+# one command and the flag was added. Naming just the top-level package
+# alone still fails even with the flag, since apt won't resolve a
+# consistent upgrade for its held dependents unless they're named too.
+sudo apt-get install -y -qq --allow-change-held-packages \
+    nvidia-container-toolkit nvidia-container-toolkit-base \
+    libnvidia-container-tools libnvidia-container1
 
 echo "[System] Configuring Docker Runtime."
 sudo nvidia-ctk runtime configure --runtime=docker

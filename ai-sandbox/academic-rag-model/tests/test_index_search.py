@@ -402,6 +402,53 @@ class TestRebuild(unittest.TestCase):
             self.assertEqual(stats["skipped_no_source_pdf"], 1)
             self.assertEqual(load_shard(tmp, "math-camp"), [])
 
+    def test_falls_back_to_source_pdf_filename_when_source_pdf_path_is_stale(self):
+        # Real, confirmed incident: for a book converted from a gs://
+        # input on the GCP VM, convert_textbook.py records the VM's own
+        # local temp-download path as source_pdf_path -- meaningless (and
+        # nonexistent) once back on this machine. The real source PDF is
+        # still sitting locally though (Step 3.2 uploads it without moving
+        # it), so rebuild() should find it via source_pdf_filename instead
+        # of just giving up.
+        with tempfile.TemporaryDirectory() as tmp:
+            pdf_path = _make_textbook(tmp, "econometrics", "Hansen Econometrics", "Hansen_ECONOMETRICS_2022")
+            metadata_path = os.path.join(
+                os.path.dirname(pdf_path), "processed_outputs",
+                "Hansen_ECONOMETRICS_2022", "Hansen_ECONOMETRICS_2022_metadata.json",
+            )
+            with open(metadata_path, encoding="utf-8") as f:
+                metadata = json.load(f)
+            metadata["source_pdf_path"] = "../academic-rag-model/temp_gcs_input_Hansen_Econometrics.pdf"
+            metadata["source_pdf_filename"] = "Hansen Econometrics.pdf"
+            with open(metadata_path, "w", encoding="utf-8") as f:
+                json.dump(metadata, f)
+
+            stats = rebuild(tmp, client=_fake_client())
+
+            self.assertEqual(stats["generated"], 1)
+            self.assertEqual(stats["skipped_no_source_pdf"], 0)
+            cards = load_shard(tmp, "econometrics")
+            self.assertTrue(cards[0]["source_pdf_path"].endswith("Hansen Econometrics.pdf"))
+
+    def test_still_skips_when_source_pdf_filename_fallback_also_missing(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            pdf_path = _make_textbook(tmp, "math-camp", "Book of Proof", "Hammack_Book_of_Proof_2025")
+            metadata_path = os.path.join(
+                os.path.dirname(pdf_path), "processed_outputs",
+                "Hammack_Book_of_Proof_2025", "Hammack_Book_of_Proof_2025_metadata.json",
+            )
+            with open(metadata_path, encoding="utf-8") as f:
+                metadata = json.load(f)
+            metadata["source_pdf_path"] = "../academic-rag-model/temp_gcs_input_stale.pdf"
+            metadata["source_pdf_filename"] = "Nonexistent Book.pdf"
+            with open(metadata_path, "w", encoding="utf-8") as f:
+                json.dump(metadata, f)
+
+            stats = rebuild(tmp, client=_fake_client())
+
+            self.assertEqual(stats["generated"], 0)
+            self.assertEqual(stats["skipped_no_source_pdf"], 1)
+
     def test_textbook_content_sample_is_capped(self):
         with tempfile.TemporaryDirectory() as tmp:
             _make_textbook(tmp, "math-camp", "Big Book", "BigBook_2025")

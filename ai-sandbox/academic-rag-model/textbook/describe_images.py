@@ -8,6 +8,13 @@ model whether the image is meaningful academic content worth describing
 "<book>.rag.md" file with descriptions inserted directly beneath each
 kept image's link -- the original "<book>.md" is never modified.
 
+Before that, each book also goes through reconcile_book_naming(): a free,
+local, no-LLM pass that re-derives the book's author_title_year folder name
+from what's already recorded in _metadata.json plus a fresh filename-based
+guess, and renames the folder in place if a better name is now available --
+fixing books stuck named e.g. "UnknownAuthor_SomeTitle_0000" from before
+convert_textbook.py had a filename-based fallback tier.
+
 Everything except the actual Gemini network call and the CLI driver is
 pure-Python and independently unit-tested (test_describe_images.py) --
 no torch/marker/pypdf dependency, matching chapter_index.py/page_markers.py.
@@ -30,7 +37,8 @@ from common.gemini_utils import (
     load_json_cache,
     save_json_cache,
 )
-from indexer.index_card import set_rag_md_path
+from indexer.index_card import set_rag_md_path, update_card_paths
+from textbook.bib_info import derive_folder_name, extract_bibliographic_info_from_filename, merge_bibliographic_info
 
 _IMAGE_REF_RE = re.compile(r"!\[\]\((pg_(\d+)_[^)]+)\)")
 _TAG_ONLY_RE = re.compile(r"^(?:\s*<!--.*?-->\s*)+$")
@@ -221,6 +229,103 @@ def describe_image_via_gemini(client, model: str, image_path: str, prompt: str) 
     return parse_description_response(response.text)
 
 
+def reconcile_book_naming(book_dir: str, academic_hub_root: str, dry_run: bool = False) -> str:
+    """
+    Re-derives this book's author_title_year folder name using the same
+    rule convert_textbook.py applies at conversion time (derive_folder_name,
+    textbook/bib_info.py), but with one more chance to fill gaps: rerunning
+    extract_bibliographic_info_from_filename() against the source PDF's own
+    recorded path -- a tier that didn't exist yet when older books were
+    converted, so some are still stuck named e.g. "UnknownAuthor_..._0000"
+    even though their source filename had the missing author/year in it all
+    along.
+
+    Never touches actual content -- title/author/year are read from what's
+    already recorded in _metadata.json, nothing is re-extracted from the PDF
+    or re-billed to an LLM. When the re-derived name differs from the
+    current one, renames the folder and every "<old_name>*" file inside it
+    (.md, .rag.md, _image_descriptions.json, _metadata.json), and repoints
+    the book's index card (path, and rag_md_path if already set) at the new
+    location via file_id. Returns the (possibly renamed) book directory, so
+    the caller keeps operating on the right path for the rest of this run.
+    """
+    folder_name = os.path.basename(book_dir)
+    metadata_path = os.path.join(book_dir, f"{folder_name}_metadata.json")
+    try:
+        with open(metadata_path, "r", encoding="utf-8") as f:
+            metadata = json.load(f)
+    except (OSError, json.JSONDecodeError) as err:
+        print(f"WARNING: [{folder_name}] could not read {metadata_path} ({err}); skipping naming reconciliation.")
+        return book_dir
+
+    source_info = metadata.get("source_pdf_document_info") or {"title": "", "author": "", "year": ""}
+    markdown_info = metadata.get("markdown_parsed_info") or {"title": "", "author": "", "year": ""}
+    # source_pdf_filename is the real source filename, unconditionally --
+    # source_pdf_path (older field, still used below for the "no filename
+    # tier match at all" whole-name fallback) is, for a book converted from
+    # a gs:// input, actually the *local temp download's* path, not the real
+    # filename (see convert_textbook.py's own comment where it's written).
+    # Confirmed live: reading source_pdf_path here extracted "temp" (from
+    # "temp_gcs_input_...") as a book's "author". A book converted before
+    # source_pdf_filename existed falls back to source_pdf_path, same
+    # (mis)behavior as before this fix for those older conversions only.
+    naming_source = metadata.get("source_pdf_filename") or metadata.get("source_pdf_path") or folder_name
+
+    bib_info = merge_bibliographic_info(source_info, markdown_info)
+    filename_info = extract_bibliographic_info_from_filename(naming_source)
+    bib_info = merge_bibliographic_info(bib_info, filename_info)
+
+    ideal_name = derive_folder_name(bib_info, naming_source)
+    if ideal_name == folder_name:
+        return book_dir
+
+    print(f"[{folder_name}] best-guess name is now '{ideal_name}' -- "
+          f"{'would rename (dry run)' if dry_run else 'renaming'}.")
+    if dry_run:
+        return book_dir
+
+    parent_dir = os.path.dirname(book_dir)
+    new_dir = os.path.join(parent_dir, ideal_name)
+    if os.path.exists(new_dir):
+        print(f"WARNING: [{folder_name}] target folder '{ideal_name}' already exists -- "
+              f"skipping rename to avoid clobbering it.")
+        return book_dir
+
+    # Rename every "<old_name>*" file inside before the folder itself, so
+    # nothing inside is left pointing at a name that no longer exists.
+    for entry in os.listdir(book_dir):
+        if entry.startswith(folder_name):
+            new_entry = ideal_name + entry[len(folder_name):]
+            os.rename(os.path.join(book_dir, entry), os.path.join(book_dir, new_entry))
+    os.rename(book_dir, new_dir)
+
+    # Keep _metadata.json's own recorded rag_md_path in sync with the
+    # renamed .rag.md file, same as link_rag_md() does when it's first set.
+    new_rag_md_rel = None
+    if metadata.get("rag_md_path"):
+        new_rag_md_rel = os.path.relpath(
+            os.path.join(new_dir, f"{ideal_name}.rag.md"), academic_hub_root
+        ).replace(os.sep, "/")
+        metadata["rag_md_path"] = new_rag_md_rel
+        with open(os.path.join(new_dir, f"{ideal_name}_metadata.json"), "w", encoding="utf-8") as f:
+            json.dump(metadata, f, indent=4, ensure_ascii=False)
+
+    file_id = metadata.get("source_pdf_file_id")
+    if not file_id:
+        print(f"WARNING: [{folder_name}] no source_pdf_file_id in metadata (converted before "
+              f"this field existed) -- renamed on disk, but its index card (if any) won't be "
+              f"repointed automatically.")
+        return new_dir
+
+    new_md_rel = os.path.relpath(os.path.join(new_dir, f"{ideal_name}.md"), academic_hub_root).replace(os.sep, "/")
+    found = update_card_paths(academic_hub_root, file_id, new_md_rel, new_rag_md_rel)
+    if not found:
+        print(f"WARNING: [{folder_name}] no index card found for file_id {file_id} yet -- "
+              f"renamed on disk regardless; rerun `python index_search.py rebuild` later to pick it up.")
+
+    return new_dir
+
+
 def link_rag_md(book_dir: str, folder_name: str, rag_path: str, academic_hub_root: str) -> bool:
     """Called by process_book() right after it writes .rag.md. Records the
     linkage in _metadata.json unconditionally (independent of whether a
@@ -362,6 +467,7 @@ def main():
             sys.exit(1)
 
     for book_dir in book_dirs:
+        book_dir = reconcile_book_naming(book_dir, str(academic_hub_dir), dry_run=args.dry_run)
         process_book(
             book_dir, client, args.model, str(academic_hub_dir),
             args.context_paragraphs_before, args.context_paragraphs_after,
