@@ -19,6 +19,18 @@ Tasks 1-3 and 5-10 are unaffected — `schema.py`, `fact_diff.py`, and
 everything from `convert_resume.py` onward keep the same interfaces Revision
 2 gave them (Task 5's only change is its failure-message text).
 
+**Revision 4 — two new tasks (11, 12) adding an opt-in interactive
+clarifying-question flow** on top of everything above; no existing task is
+modified. Note: `tailor.py` and `validate.py` also picked up two small
+real-run-driven fixes between Revision 3 and Revision 4 (a metric-preservation
+rule + bidirectional check, and a repeated-bullet-opening rule + check) that
+predate this plan update and aren't re-documented here — see the shipped
+files and `docs/status/2026-09-09-resume-manager-status.md` §11-§12 for that
+history; Task 11 below diffs against the code as it actually stands today,
+not against Task 6's now-superseded embedded snippet. See
+`docs/superpowers/specs/2026-09-09-resume-manager-design.md` §11 for the
+full design this revision implements.
+
 **Goal:** Replace `resume_manager`'s freeform-Markdown master resume and
 whole-document LLM tailoring with a structured YAML schema (`resume_master.yaml`)
 and a tailoring mechanism where the LLM never emits a metadata field at all —
@@ -44,7 +56,7 @@ usage elsewhere in this project to a load-bearing one here), `common/ollama_util
 `call_ollama`, `markdown` + `xhtml2pdf` (unchanged from the original plan).
 
 **Spec:** `docs/superpowers/specs/2026-09-09-resume-manager-design.md`
-(Revision 3)
+(Revision 4)
 
 ## Global Constraints
 
@@ -76,6 +88,16 @@ usage elsewhere in this project to a load-bearing one here), `common/ollama_util
 - No selection/rewriting for Education, Awards, Publications, or Skills in
   this version — every category but Work Experience passes through
   tailoring byte-identical (spec §1 non-goals, §10).
+- **(Revision 4)** Omitting `--interactive` must reproduce today's
+  non-interactive run byte-for-byte: no clarifying-question Ollama call,
+  and `tailor_resume()`'s prompt unchanged from before this revision
+  (spec §11). This is a hard backward-compatibility requirement, not a
+  default that happens to behave this way — Claude Code has been invoking
+  `tailor_resume.py` non-interactively via Bash throughout this
+  subproject's development.
+- **(Revision 4)** Question generation reuses the same local Ollama model
+  and the same `id`/`org`/`role`/`bullets`-only entry context tailoring
+  already sends — no new metadata exposure to any LLM call (spec §11).
 
 ---
 
@@ -1911,6 +1933,550 @@ docs(resume_manager): update docs for structured YAML master resume
 Reflects Revision 2 throughout: the schema itself, id-based tailoring
 (bullets-only LLM output, code-side reconstruction), and why the
 freeform-Markdown design was replaced.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01XMPj3X98CBxd3PsEL63e3U
+EOF
+)"
+```
+
+---
+
+### Task 11 (Revision 4): `tailor.py` — clarifying-question generation + optional guidance
+
+**Files:**
+- Modify: `resume_manager/tailor.py` (additive — new prompt constant, new
+  function, one new parameter on `tailor_resume`; existing functions'
+  bodies otherwise untouched)
+- Modify: `tests/test_resume_tailor.py` (additive — new test classes)
+
+**Interfaces:**
+- Consumes: `common.ollama_utils.call_ollama`, `resume_manager.llm_yaml.parse_llm_yaml`
+  (both already imported by this file).
+- Produces: `generate_clarifying_questions(master: dict, job_description: str, model: str = RESUMEMANAGER_OLLAMA_MODEL) -> list[str] | None`;
+  `tailor_resume(master, job_description, model=..., guidance: str | None = None) -> dict | None`
+  (same as today, plus the new defaulted `guidance` parameter — every
+  existing call site with two positional args is unaffected). Task 12
+  (`tailor_resume.py`) calls both.
+
+- [ ] **Step 1: Add the failing tests**
+
+Append to `tests/test_resume_tailor.py` (new imports and new test classes
+— nothing existing is removed):
+
+```python
+from resume_manager.tailor import (
+    apply_tailoring,
+    generate_clarifying_questions,
+    tailor_resume,
+)
+
+
+class TestGenerateClarifyingQuestions(unittest.TestCase):
+    @patch("resume_manager.tailor.call_ollama")
+    def test_prompt_includes_entry_context_and_job_description(self, mock_call):
+        mock_call.return_value = "questions:\n  - Q1?\n  - Q2?"
+
+        generate_clarifying_questions(_MASTER, "a job description")
+
+        prompt_arg = mock_call.call_args[0][0]
+        self.assertIn("Acme", prompt_arg)
+        self.assertIn("a job description", prompt_arg)
+
+    @patch(
+        "resume_manager.tailor.call_ollama",
+        return_value="questions:\n  - Which experience should I emphasize?\n  - What tone fits this role?",
+    )
+    def test_returns_parsed_question_list(self, mock_call):
+        result = generate_clarifying_questions(_MASTER, "jd")
+        self.assertEqual(result, ["Which experience should I emphasize?", "What tone fits this role?"])
+
+    @patch("resume_manager.tailor.call_ollama", return_value=None)
+    def test_returns_none_when_ollama_call_fails(self, mock_call):
+        self.assertIsNone(generate_clarifying_questions(_MASTER, "jd"))
+
+    @patch("resume_manager.tailor.call_ollama", return_value="not valid: [yaml: at all")
+    def test_returns_none_on_invalid_yaml(self, mock_call):
+        self.assertIsNone(generate_clarifying_questions(_MASTER, "jd"))
+
+    @patch("resume_manager.tailor.call_ollama", return_value="just_a_string_not_a_mapping")
+    def test_returns_none_when_response_is_not_the_expected_shape(self, mock_call):
+        self.assertIsNone(generate_clarifying_questions(_MASTER, "jd"))
+
+    @patch("resume_manager.tailor.call_ollama", return_value="questions: not_a_list")
+    def test_returns_none_when_questions_value_is_not_a_list(self, mock_call):
+        self.assertIsNone(generate_clarifying_questions(_MASTER, "jd"))
+
+
+class TestTailorResumeGuidance(unittest.TestCase):
+    # Real requirement (spec §11): --interactive is opt-in, so a
+    # non-interactive run (guidance=None, or guidance simply omitted --
+    # true for every call this session has made so far) must send the
+    # exact same prompt as before this revision.
+    @patch("resume_manager.tailor.call_ollama")
+    def test_guidance_none_leaves_prompt_unchanged_from_today(self, mock_call):
+        mock_call.return_value = "included_ids: [acme-1]\nbullets_by_id:\n  acme-1: [x]"
+
+        tailor_resume(_MASTER, "a job description")
+        prompt_without_guidance_arg = mock_call.call_args[0][0]
+
+        mock_call.reset_mock()
+        tailor_resume(_MASTER, "a job description", guidance=None)
+        prompt_with_explicit_none = mock_call.call_args[0][0]
+
+        self.assertEqual(prompt_without_guidance_arg, prompt_with_explicit_none)
+        self.assertNotIn("USER GUIDANCE", prompt_without_guidance_arg)
+
+    @patch("resume_manager.tailor.call_ollama")
+    def test_guidance_appends_a_new_prompt_section(self, mock_call):
+        mock_call.return_value = "included_ids: [acme-1]\nbullets_by_id:\n  acme-1: [x]"
+
+        tailor_resume(_MASTER, "a job description", guidance="Q: ...\nA: emphasize leadership")
+
+        prompt_arg = mock_call.call_args[0][0]
+        self.assertIn("USER GUIDANCE", prompt_arg)
+        self.assertIn("emphasize leadership", prompt_arg)
+```
+
+- [ ] **Step 2: Run the tests to verify they fail**
+
+Run: `python -m unittest tests.test_resume_tailor -v`
+Expected: FAIL — `generate_clarifying_questions` doesn't exist yet, and
+`tailor_resume()` doesn't accept a `guidance` keyword yet.
+
+- [ ] **Step 3: Implement in `resume_manager/tailor.py`**
+
+Add a new prompt constant after `_SYSTEM_PROMPT`:
+
+```python
+_QUESTIONS_SYSTEM_PROMPT = """You are helping someone tailor their resume to a target job description.
+Given their work experience entries and the job description below, write 2-4 short, open-ended
+questions that would help decide which entries to emphasize and how to frame them for this
+specific role. Do not ask about facts already visible in the entries or the job description --
+ask about the person's own priorities and preferred framing instead.
+Output ONLY valid YAML in exactly this shape, no commentary, no markdown code fences:
+questions: [question one, question two]"""
+```
+
+Add a new function after `_build_entry_context`:
+
+```python
+def generate_clarifying_questions(
+    master: dict, job_description: str, model: str = RESUMEMANAGER_OLLAMA_MODEL,
+) -> list[str] | None:
+    """Returns 2-4 open-ended questions grounded in the master's work
+    experience entries and the job description, or None if the local
+    Ollama call failed/timed out or the response wasn't the expected
+    shape (spec §11) -- mirrors tailor_resume()'s own failure contract,
+    so tailor_resume.py's --interactive flow handles both the same way:
+    a warning and a fallback to no guidance, never a crash."""
+    entry_context = _build_entry_context(master.get("work_experience") or [])
+    prompt = (
+        f"{_QUESTIONS_SYSTEM_PROMPT}\n\n### WORK EXPERIENCE ENTRIES:\n{entry_context}\n\n"
+        f"### TARGET JOB DESCRIPTION:\n{job_description}"
+    )
+    result = call_ollama(prompt, model, RESUMEMANAGER_OLLAMA_TIMEOUT_SECONDS)
+    if not isinstance(result, str):
+        return None
+    parsed = parse_llm_yaml(result)
+    if not isinstance(parsed, dict) or not isinstance(parsed.get("questions"), list):
+        return None
+    return parsed["questions"]
+```
+
+Replace `tailor_resume`'s signature and prompt assembly (only these two
+lines change; everything after `prompt = (...)` in the function body is
+untouched):
+
+```python
+def tailor_resume(
+    master: dict, job_description: str, model: str = RESUMEMANAGER_OLLAMA_MODEL, guidance: str | None = None,
+) -> dict | None:
+    """Returns {"included_ids": [...], "bullets_by_id": {...}}, or None if
+    the local Ollama call failed/timed out or the response wasn't the
+    expected shape (spec §4, §8). Only id/org/role/bullets are sent to the
+    model -- no other metadata field ever reaches the LLM. `guidance`
+    (spec §11) is optional free text -- typically a Q&A transcript from
+    tailor_resume.py's --interactive flow -- inserted as one extra prompt
+    section; when it's None (the default, and every call in this
+    codebase before this revision), the prompt is byte-for-byte identical
+    to before Revision 4."""
+    entry_context = _build_entry_context(master.get("work_experience") or [])
+    guidance_section = (
+        f"\n\n### USER GUIDANCE (prioritize this when selecting entries and framing bullets):\n{guidance}"
+        if guidance else ""
+    )
+    prompt = (
+        f"{_SYSTEM_PROMPT}\n\n### WORK EXPERIENCE ENTRIES:\n{entry_context}"
+        f"{guidance_section}\n\n### TARGET JOB DESCRIPTION:\n{job_description}"
+    )
+    result = call_ollama(prompt, model, RESUMEMANAGER_OLLAMA_TIMEOUT_SECONDS)
+    if not isinstance(result, str):
+        return None
+    parsed = parse_llm_yaml(result)
+    if not isinstance(parsed, dict) or "included_ids" not in parsed or "bullets_by_id" not in parsed:
+        return None
+    return parsed
+```
+
+- [ ] **Step 4: Run the tests to verify they pass**
+
+Run: `python -m unittest tests.test_resume_tailor -v`
+Expected: PASS
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add resume_manager/tailor.py tests/test_resume_tailor.py
+git commit -m "$(cat <<'EOF'
+feat(resume_manager): add clarifying-question generation + optional tailoring guidance
+
+generate_clarifying_questions() asks the same local Ollama model 2-4
+open-ended questions grounded in the master's work-experience entries
+and the job description, mirroring tailor_resume()'s own None-on-failure
+contract. tailor_resume() gains an optional guidance parameter that
+inserts one new prompt section when set; guidance=None (the default,
+and every call before this revision) leaves the prompt byte-for-byte
+unchanged, so today's fully non-interactive pipeline is unaffected
+(spec §11).
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01XMPj3X98CBxd3PsEL63e3U
+EOF
+)"
+```
+
+---
+
+### Task 12 (Revision 4): `tailor_resume.py` — `--interactive` CLI flow
+
+**Files:**
+- Modify: `resume_manager/tailor_resume.py` (additive — two new small
+  functions, one new parameter on `run_tailoring`, one new flag in `main`)
+- Modify: `tests/test_tailor_resume_cli.py` (additive — new tests)
+
+**Interfaces:**
+- Consumes: `resume_manager.tailor.generate_clarifying_questions`,
+  `tailor_resume` (Task 11).
+- Produces: `collect_answers_interactively(questions: list[str]) -> list[str]`;
+  `build_guidance_text(questions: list[str], answers: list[str]) -> str`;
+  `run_tailoring(master_resume_path, jd_path, application_name, resume_manager_dir, guidance: str | None = None) -> str`
+  (same as today, plus the new defaulted `guidance` parameter). Terminal
+  task for this revision.
+
+- [ ] **Step 1: Add the failing tests**
+
+Append to `tests/test_tailor_resume_cli.py` (new import and new test
+classes; also add two new test *methods* to the existing
+`TestRunTailoring` class, reusing its `_setup` helper):
+
+```python
+from resume_manager.tailor_resume import build_guidance_text, collect_answers_interactively, run_tailoring
+```
+
+New methods on `TestRunTailoring`:
+
+```python
+    @patch("resume_manager.tailor_resume.render_resume_pdf")
+    @patch(
+        "resume_manager.tailor_resume.tailor_resume",
+        return_value={"included_ids": ["acme-1"], "bullets_by_id": {"acme-1": ["Did a rewritten thing"]}},
+    )
+    def test_guidance_is_passed_to_tailor_resume_and_persisted(self, mock_tailor, mock_render):
+        with tempfile.TemporaryDirectory() as tmp:
+            resume_manager_dir, master_path, jd_path = self._setup(tmp)
+
+            run_tailoring(
+                master_path, jd_path, "Acme Corp", resume_manager_dir,
+                guidance="Q: Which role?\nA: emphasize leadership",
+            )
+
+            self.assertEqual(mock_tailor.call_args.kwargs["guidance"], "Q: Which role?\nA: emphasize leadership")
+            app_dir = os.path.join(
+                resume_manager_dir, "applications", os.listdir(os.path.join(resume_manager_dir, "applications"))[0],
+            )
+            guidance_path = os.path.join(app_dir, "guidance.txt")
+            self.assertTrue(os.path.exists(guidance_path))
+            with open(guidance_path, encoding="utf-8") as f:
+                self.assertIn("emphasize leadership", f.read())
+
+    @patch("resume_manager.tailor_resume.render_resume_pdf")
+    @patch(
+        "resume_manager.tailor_resume.tailor_resume",
+        return_value={"included_ids": ["acme-1"], "bullets_by_id": {"acme-1": ["Did a rewritten thing"]}},
+    )
+    def test_no_guidance_writes_no_guidance_file(self, mock_tailor, mock_render):
+        with tempfile.TemporaryDirectory() as tmp:
+            resume_manager_dir, master_path, jd_path = self._setup(tmp)
+
+            run_tailoring(master_path, jd_path, "Acme Corp", resume_manager_dir)
+
+            self.assertIsNone(mock_tailor.call_args.kwargs.get("guidance"))
+            app_dir = os.path.join(
+                resume_manager_dir, "applications", os.listdir(os.path.join(resume_manager_dir, "applications"))[0],
+            )
+            self.assertFalse(os.path.exists(os.path.join(app_dir, "guidance.txt")))
+```
+
+New standalone test classes:
+
+```python
+class TestBuildGuidanceText(unittest.TestCase):
+    def test_pairs_each_question_with_its_answer(self):
+        text = build_guidance_text(["Q1?", "Q2?"], ["Answer one", "Answer two"])
+        self.assertIn("Q: Q1?\nA: Answer one", text)
+        self.assertIn("Q: Q2?\nA: Answer two", text)
+
+
+class TestCollectAnswersInteractively(unittest.TestCase):
+    @patch("builtins.input", side_effect=["Answer one", "Answer two"])
+    def test_collects_one_answer_per_question_in_order(self, mock_input):
+        answers = collect_answers_interactively(["Q1?", "Q2?"])
+        self.assertEqual(answers, ["Answer one", "Answer two"])
+```
+
+- [ ] **Step 2: Run the tests to verify they fail**
+
+Run: `python -m unittest tests.test_tailor_resume_cli -v`
+Expected: FAIL — `build_guidance_text`/`collect_answers_interactively`
+don't exist yet, and `run_tailoring` doesn't accept a `guidance` keyword.
+
+- [ ] **Step 3: Implement in `resume_manager/tailor_resume.py`**
+
+Update the import line to also bring in the new Task 11 function:
+
+```python
+from resume_manager.tailor import apply_tailoring, generate_clarifying_questions, tailor_resume
+```
+
+Add two new functions after `_slugify`:
+
+```python
+def collect_answers_interactively(questions: list[str]) -> list[str]:
+    """Prints each question and reads one free-text answer via input() --
+    the only I/O in this module's --interactive flow (spec §11)."""
+    return [input(f"{question}\n> ") for question in questions]
+
+
+def build_guidance_text(questions: list[str], answers: list[str]) -> str:
+    """Pairs each question with its answer into one guidance block --
+    pure formatting, no I/O, so it's testable without mocking input()
+    (spec §11). Serves double duty: passed to tailor_resume() as prompt
+    guidance, and written verbatim as guidance.txt's human-readable
+    transcript."""
+    return "\n\n".join(f"Q: {question}\nA: {answer}" for question, answer in zip(questions, answers))
+```
+
+Update `run_tailoring`'s signature, its call to `tailor_resume`, and add
+the `guidance.txt` write (only the lines shown change; everything else in
+the function body is untouched):
+
+```python
+def run_tailoring(
+    master_resume_path: str, jd_path: str, application_name: str, resume_manager_dir: str,
+    guidance: str | None = None,
+) -> str:
+    """Runs tailor -> validate -> render for one application and returns
+    a one-line status message. Raises FileNotFoundError up front if
+    either input file is missing, before any Ollama call (spec §8).
+    `guidance` (spec §11) is optional free text from --interactive's Q&A
+    step -- None reproduces today's non-interactive behavior exactly."""
+    if not os.path.exists(master_resume_path):
+        raise FileNotFoundError(f"{master_resume_path} not found -- run convert_resume.py's bootstrap first.")
+    if not os.path.exists(jd_path):
+        raise FileNotFoundError(f"job description file not found: {jd_path}")
+
+    with open(master_resume_path, "r", encoding="utf-8") as f:
+        master = yaml.safe_load(f)
+    with open(jd_path, "r", encoding="utf-8") as f:
+        job_description = f.read()
+
+    tailoring_result = tailor_resume(master, job_description, guidance=guidance)
+    if tailoring_result is None:
+        raise RuntimeError(
+            "local Ollama tailoring call failed, timed out, or returned invalid YAML -- "
+            "is `ollama serve` running?"
+        )
+
+    tailored, reconstruction_problems = apply_tailoring(master, tailoring_result)
+
+    date_str = datetime.date.today().isoformat()
+    app_dir = os.path.join(resume_manager_dir, "applications", f"{date_str}-{_slugify(application_name)}")
+    os.makedirs(app_dir, exist_ok=True)
+
+    with open(os.path.join(app_dir, "job_description.txt"), "w", encoding="utf-8") as f:
+        f.write(job_description)
+    if guidance:
+        with open(os.path.join(app_dir, "guidance.txt"), "w", encoding="utf-8") as f:
+            f.write(guidance)
+    with open(os.path.join(app_dir, "tailored_resume.yaml"), "w", encoding="utf-8") as f:
+        yaml.safe_dump(tailored, f, sort_keys=False, allow_unicode=True)
+
+    problems = reconstruction_problems + validate_tailored(master, tailoring_result)
+    report = format_report(problems)
+    with open(os.path.join(app_dir, "validation_report.txt"), "w", encoding="utf-8") as f:
+        f.write(report)
+
+    pdf_path = os.path.join(app_dir, "Tailored_Resume.pdf")
+    render_resume_pdf(tailored, pdf_path)
+
+    return f"Wrote {pdf_path}.\n{report}"
+```
+
+Add a new helper and update `main()`:
+
+```python
+def _collect_guidance(master_resume_path: str, jd_path: str) -> str | None:
+    """Runs the --interactive Q&A step (spec §11): generates clarifying
+    questions from the master resume + JD via the local Ollama model,
+    collects free-text answers from the terminal, and returns the
+    combined guidance text. Returns None -- printing a warning, never
+    raising -- if question generation failed, so a bad/unreachable
+    Ollama call never aborts the whole --interactive run (spec §8)."""
+    with open(master_resume_path, "r", encoding="utf-8") as f:
+        master = yaml.safe_load(f)
+    with open(jd_path, "r", encoding="utf-8") as f:
+        job_description = f.read()
+
+    questions = generate_clarifying_questions(master, job_description)
+    if not questions:
+        print(
+            "WARNING: could not generate clarifying questions (Ollama unreachable, timed out, "
+            "or returned an unexpected response) -- continuing without guidance."
+        )
+        return None
+
+    answers = collect_answers_interactively(questions)
+    return build_guidance_text(questions, answers)
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description="Tailor the master resume to one job description and render a PDF.")
+    parser.add_argument("--jd-file", required=True, help="Path to a local text file containing the job description.")
+    parser.add_argument("--application-name", required=True, help="Short name for this application (e.g. 'acme-corp').")
+    parser.add_argument("--resume-manager-dir", default=str(_DEFAULT_RESUME_MANAGER_DIR))
+    parser.add_argument(
+        "--interactive", action="store_true",
+        help="Ask 2-4 JD-grounded clarifying questions before tailoring, to steer entry selection and bullet framing.",
+    )
+    args = parser.parse_args()
+
+    master_resume_path = os.path.join(args.resume_manager_dir, "resume_master.yaml")
+    guidance = _collect_guidance(master_resume_path, args.jd_file) if args.interactive else None
+    print(run_tailoring(master_resume_path, args.jd_file, args.application_name, args.resume_manager_dir, guidance=guidance))
+
+
+if __name__ == "__main__":
+    main()
+```
+
+- [ ] **Step 4: Run the tests to verify they pass**
+
+Run: `python -m unittest tests.test_tailor_resume_cli -v`
+Expected: PASS
+
+- [ ] **Step 5: Run the full test suite to check for regressions**
+
+Run: `python -m unittest discover tests -v`
+Expected: all PASS
+
+- [ ] **Step 6: Manually smoke-test `--interactive` end-to-end**
+
+Not automatable (real terminal input, real local model) — run once by
+hand against the real master resume and a real JD file already used in
+this subproject's earlier validation:
+
+```powershell
+python -m resume_manager.tailor_resume `
+  --jd-file "..\research\independent-research\projects\resume-manager\applications\2026-09-10-un-economist-jakarta\job_description.txt" `
+  --application-name "un-economist-jakarta-interactive-smoketest" `
+  --interactive
+```
+
+Confirm: 2-4 questions print, typed answers are accepted, a
+`guidance.txt` appears in the new application folder containing the
+Q&A transcript, and the rendered PDF/validation report look sane. Then
+run the same command *without* `--interactive` against the same JD and
+confirm no questions are asked and no `guidance.txt` is written —
+verifying the backward-compatibility requirement isn't just
+test-covered but true in practice. Delete the smoke-test application
+folder afterward if it's not worth keeping.
+
+- [ ] **Step 7: Commit**
+
+```bash
+git add resume_manager/tailor_resume.py tests/test_tailor_resume_cli.py
+git commit -m "$(cat <<'EOF'
+feat(resume_manager): add --interactive clarifying-question flow to tailor_resume.py
+
+Opt-in flag: generates 2-4 JD-grounded questions via the local Ollama
+model, collects free-text terminal answers, and threads the combined
+Q&A transcript into tailor_resume() as guidance -- also persisted as
+guidance.txt alongside the other application artifacts. Omitting
+--interactive is unchanged: no question-generation call, no guidance,
+byte-identical tailoring prompt (spec §11).
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01XMPj3X98CBxd3PsEL63e3U
+EOF
+)"
+```
+
+---
+
+### Task 13 (Revision 4): Documentation
+
+**Files:**
+- Modify: `resume_manager/README.md`
+- Modify: `resume_manager_instructions.md`
+
+**Interfaces:** none (documentation only).
+
+- [ ] **Step 1: Update `resume_manager/README.md`'s "Per application" section**
+
+Append this paragraph to the end of the existing "Per application"
+section (after its last sentence, before "## Requirements"):
+
+```markdown
+Add `--interactive` to answer 2-4 clarifying questions (generated from
+your master resume and the job description by the same local Ollama
+model) before tailoring — your typed answers steer which entries get
+selected and how bullets are framed for that one application. The Q&A
+transcript is saved as `guidance.txt` alongside the other application
+files. Omitting `--interactive` (the default) skips this step entirely —
+no extra Ollama call, tailoring behaves exactly as it always has.
+```
+
+- [ ] **Step 2: Update `resume_manager_instructions.md`'s "Step 2" section**
+
+Append this paragraph to the end of the existing "Step 2: Per-application
+tailoring" section (after its last bullet, before "## How it works"):
+
+```markdown
+* `--interactive` (optional) runs a short Q&A first: 2-4 open-ended
+  questions generated from your master resume and the job description by
+  the same local Ollama model tailoring already uses, answered by typing
+  free text at the terminal. The combined Q&A transcript is saved as
+  `guidance.txt` in the application folder and passed to tailoring as one
+  extra prompt section the model is told to prioritize — it can steer
+  which entries get selected and how bullets are framed, but can't
+  override any of tailoring's other rules (no fabrication, every metric
+  preserved, no repeated bullet openings). If question generation fails
+  (Ollama unreachable, timed out, or an unexpected response), tailoring
+  prints a warning and proceeds without guidance rather than aborting.
+  Without `--interactive`, none of this runs — tailoring behaves exactly
+  as it did before this flag existed.
+```
+
+- [ ] **Step 3: Commit**
+
+```bash
+git add resume_manager/README.md resume_manager_instructions.md
+git commit -m "$(cat <<'EOF'
+docs(resume_manager): document the --interactive clarifying-question flag
+
+Covers the opt-in flag added in Task 12: what it does, where the Q&A
+transcript is saved, and that omitting it leaves tailoring unchanged.
 
 Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_01XMPj3X98CBxd3PsEL63e3U
