@@ -110,6 +110,19 @@ python -m resume_manager.tailor_resume --jd-file "job_description.txt" --applica
   numbers/`$`/`%` don't trace back to that *same entry's* original
   bullets — written to `validation_report.txt` alongside the tailored
   YAML and the rendered PDF. Flags are warnings, not blockers.
+* `--interactive` (optional) runs a short Q&A first: 2-4 open-ended
+  questions generated from your master resume and the job description by
+  the same local Ollama model tailoring already uses, answered by typing
+  free text at the terminal. The combined Q&A transcript is saved as
+  `guidance.txt` in the application folder and passed to tailoring as one
+  extra prompt section the model is told to prioritize — it can steer
+  which entries get selected and how bullets are framed, but can't
+  override any of tailoring's other rules (no fabrication, every metric
+  preserved, no repeated bullet openings). If question generation fails
+  (Ollama unreachable, timed out, or an unexpected response), tailoring
+  prints a warning and proceeds without guidance rather than aborting.
+  Without `--interactive`, none of this runs — tailoring behaves exactly
+  as it did before this flag existed.
 
 ## How it works
 

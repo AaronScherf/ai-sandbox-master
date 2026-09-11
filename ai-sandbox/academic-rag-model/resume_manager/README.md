@@ -38,6 +38,14 @@ unchanged by code, never re-emitted by the LLM. Writes
 `Tailored_Resume.pdf` into
 `research/independent-research/projects/resume-manager/applications/<date>-<application-name>/`.
 
+Add `--interactive` to answer 2-4 clarifying questions (generated from
+your master resume and the job description by the same local Ollama
+model) before tailoring — your typed answers steer which entries get
+selected and how bullets are framed for that one application. The Q&A
+transcript is saved as `guidance.txt` alongside the other application
+files. Omitting `--interactive` (the default) skips this step entirely —
+no extra Ollama call, tailoring behaves exactly as it always has.
+
 ## Requirements
 
 - A local Ollama install (`ollama serve`) with `qwen2.5:7b-instruct` pulled
