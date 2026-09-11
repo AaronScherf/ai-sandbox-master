@@ -12,7 +12,12 @@ minutes and needed five separate fixes just to parse the model's YAML
 output, then *still* produced two further real content bugs; Revision 3
 replaced the LLM extraction step entirely with deterministic parsing,
 fixing every one of those bugs at the root and dropping bootstrap runtime
-to about 1.5 seconds with zero API calls.
+to about 1.5 seconds with zero API calls. A day later, Revision 4 added an
+opt-in `--interactive` clarifying-question flow (§13) — one of five
+follow-on requests from reviewing the first real tailored PDF (§11 item
+5) — letting the user's own stated priorities steer entry selection and
+bullet framing before tailoring, without changing the non-interactive
+default at all.
 
 ## What shipped
 
@@ -33,6 +38,14 @@ to about 1.5 seconds with zero API calls.
   synonyms, plus explicit per-section line-shape rules. No LLM call, no
   network, no sampling variance for the bootstrap. Tailoring (still
   inherently a language task) is unaffected and still uses local Ollama.
+- **Revision 4** (3 tasks): an opt-in `--interactive` flag on
+  `tailor_resume.py` generates 2-4 JD-grounded clarifying questions via
+  the same local Ollama model, collects free-text terminal answers, and
+  threads the combined Q&A transcript into `tailor.py`'s prompt as one new
+  guidance section — persisted as `guidance.txt` alongside the other
+  application artifacts. Omitting `--interactive` (the default) makes zero
+  behavioral change: no extra Ollama call, byte-identical tailoring
+  prompt.
 
 ## Real-run timeline, in order
 
@@ -323,6 +336,53 @@ zero-defect rewrite on every call. The metric-preservation instruction
 across more real applications rather than treating any single run's
 result as conclusive either way.
 
+### 13. Revision 4: interactive clarifying-question flow, verified against the real resume
+
+**Design.** §11 item 5's "back-and-forth" idea got its own brainstorming
+pass (`superpowers:brainstorming`, Architectural path — full detail in
+design spec §11). Key decisions, each driven by an explicit user
+constraint rather than assumed: it had to be a standalone CLI flag, not a
+Claude-orchestrated conversation ("I would ideally like for this to be
+runnable by users without Claude"); question generation had to use the
+same local Ollama model tailoring already uses, not Claude, keeping the
+whole pipeline local-only; and it had to be strictly opt-in, since this
+session has been invoking `tailor_resume.py` non-interactively via Bash
+throughout this subproject's development and that path could not change.
+
+**What shipped.** `tailor.py` gained `generate_clarifying_questions()` —
+the same `id`/`org`/`role`/`bullets`-only entry context tailoring already
+sends, plus the JD, asked for 2-4 open-ended questions via one new local
+Ollama call, mirroring `tailor_resume()`'s own None-on-failure contract.
+`tailor_resume.py` gained `--interactive`: on that flag, it calls the
+question-generation step, collects free-text terminal answers via
+`collect_answers_interactively()`, and pairs them into one guidance block
+via `build_guidance_text()`. That block is passed into `tailor_resume()`
+as a new optional `guidance` parameter, which inserts one new `### USER
+GUIDANCE` prompt section telling the model to prioritize it when
+selecting entries and framing bullets — without relaxing any existing
+rule (no fabrication, preserve every metric, vary sentence openings). The
+same block is also saved as `guidance.txt` in the application folder, so
+reviewing an application later shows exactly what steered it. When
+`--interactive` is omitted, `guidance` defaults to `None` everywhere and
+the tailoring prompt is byte-for-byte unchanged from before this
+revision — covered by a dedicated regression test, not just an assumed
+default.
+
+**Real end-to-end verification (2026-09-10).** Ran `tailor_resume.py
+--interactive` against the same real UN Economist Jakarta job description
+used in §10-§12, with typed answers piped in as if from a terminal
+(e.g. "I want to emphasize monitoring and evaluation experience over
+general program management"). Confirmed in practice, not just in mocked
+tests: 2 sensible, JD-grounded questions were generated; both answers
+were accepted; `guidance.txt` was written with the full, correctly-paired
+Q&A transcript; the rendered PDF and validation report looked sane
+(`Validation: no discrepancies flagged`). Immediately re-ran the same JD
+*without* `--interactive` and confirmed zero behavioral difference from
+before this revision: no questions asked, no `guidance.txt` written,
+tailoring proceeded straight through as it always has. Both smoke-test
+application folders were deleted afterward — real verification, not kept
+output. Full suite: 1237/1237 passing.
+
 ## Known, not yet fixed / open items
 
 - **Dropped named entities (awards, tool names) aren't caught
@@ -346,26 +406,34 @@ result as conclusive either way.
   recognizes `%`/`$`/`x`-suffixed tokens; a bullet like "reduced latency by
   half" or "team of 12" isn't caught either way. Not yet validated against
   a real tailored bullet with this kind of phrasing.
-- **Page-limit-aware selection, non-Work-Experience tailoring, cover-letter
-  generation, and a clarifying-question flow before tailoring** all remain
-  explicitly deferred (design spec §10 for the first two; §11 above for
-  the latter two, re-confirmed as real wants after real use) — none solved
-  speculatively here.
+- **Page-limit-aware selection, non-Work-Experience tailoring, and
+  cover-letter generation** all remain explicitly deferred (design spec
+  §10 for the first two; §11 above for the third, re-confirmed as a real
+  want after real use) — none solved speculatively here. The
+  clarifying-question flow (§11 item 5) is the one item from that review
+  round now shipped (§13).
+- **`--interactive`'s free-text guidance hasn't been stress-tested across
+  many applications yet** — only one real JD has exercised it so far
+  (§13). Whether open-ended answers reliably help vs. occasionally
+  confuse the tailoring call is worth watching across more real
+  applications before treating the mechanism as fully proven, the same
+  way metric-preservation consistency (§12) is still being watched.
 
 ## What's next
 
-1. Brainstorm the clarifying-question flow (§11 item 5) as its own design
-   pass before implementing — where in `tailor_resume.py` questions
-   surface, how answers thread into `tailor.py`'s prompt.
-2. Page-limit-aware selection and a paired cover-letter generator, per the
+1. Page-limit-aware selection and a paired cover-letter generator, per the
    design spec's §10 and §11's re-confirmation.
-3. Consider a named-entity-style check (award titles, tool names) if
+2. Consider a named-entity-style check (award titles, tool names) if
    dropped-named-entity issues keep recurring across more real tailoring
    runs — not solved speculatively now, per §10.
-4. Watch metric-preservation consistency (§12) across more real tailoring
+3. Watch metric-preservation consistency (§12) across more real tailoring
    runs before deciding whether the prompt instruction needs strengthening
    further or the bidirectional check is sufficient as the safety net.
-5. Once a second real resume (different layout) is available, extend
+4. Once a second real resume (different layout) is available, extend
    `match_section_header()`'s synonyms and `normalize.py`'s per-section
    line-shape rules to cover it, rather than speculatively generalizing
    now.
+5. Watch `--interactive`'s guidance mechanism (§13) across more real
+   applications, the same way metric preservation is being watched, before
+   considering any refinement (e.g. multiple-choice questions if free text
+   proves too unconstrained — spec §11's own noted open question).
