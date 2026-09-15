@@ -1,0 +1,54 @@
+{
+    "pg_21__page_12_Figure_12.jpeg": {
+        "skip": false,
+        "description": "A plot illustrating the minimization of the Sum of Squared Residuals (SSR) as a function of the parameter beta-tilde (\\tilde{\\beta}). The vertical axis is labeled SSR and the horizontal axis is labeled \\tilde{\\beta}. A convex parabola-shaped curve represents the SSR function. The minimum point of the curve corresponds to the Ordinary Least Squares (OLS) estimate labeled b on the horizontal axis, marked by a vertical dashed line extending down from the vertex. Further to the right on the horizontal axis, the true parameter value \\beta is marked."
+    },
+    "pg_21__page_19_Figure_2.jpeg": {
+        "skip": false,
+        "description": "A scatter plot titled 'Equipment Investment and Growth' comparing 'equipment/GDP' on the horizontal axis against 'GDP per worker growth' on the vertical axis. The x-axis ranges from 0.02 to 0.14, and the y-axis ranges from -0.02 to 0.08. Most data points are clustered between x = 0.02 and 0.05 with y-values ranging from -0.01 to 0.045. One outlying point around x = 0.086 has a y-value near 0.018. A notable high outlier located at approximately x = 0.131 and y = 0.068 is labeled as 'Botswana' with an arrow pointing to it."
+    },
+    "pg_21__page_34_Figure_2.jpeg": {
+        "skip": false,
+        "description": "A bell-shaped curve representing the density of a t-distribution centered at 0 on the horizontal t-axis. The vertical axis is labeled 'density'. Two tail regions, each labeled with an area of alpha/2 (\\alpha/2), are shaded in light gray under the curve. The left critical value on the t-axis is labeled -t_{\\alpha/2}(n-K), marking the boundary of the left shaded tail. The right critical value is labeled t_{\\alpha/2}(n-K), marking the boundary of the right shaded tail. A test statistic value t_k is indicated on the positive side of the t-axis between 0 and the right critical value t_{\\alpha/2}(n-K), positioned in the non-rejection region under the main body of the curve."
+    },
+    "pg_21__page_39_Figure_2.jpeg": {
+        "skip": false,
+        "description": "A graph illustrating the probability density function of an F-distribution, labeled \"density of F(#r, n - K)\". The horizontal axis represents the F statistic, starting at 0, and the vertical axis represents density. The curve starts at the origin (0), rises to a single peak, and then decreases as it trails off to the right (right-skewed distribution). Under the right tail of the curve, a critical region starting at the point $F_\\alpha(r, n - K)$ on the horizontal axis is shaded grey. An arrow points to this shaded right-tail area, labeling its probability/area as $\\alpha$."
+    },
+    "pg_21__page_41_Figure_2.jpeg": {
+        "skip": false,
+        "description": "A two-dimensional plot showing the relationship between individual confidence intervals (t-tests) and a joint confidence region (F-test) for parameters beta_1 and beta_2.\n\n- Axes: The horizontal axis represents beta_1 (with point estimate b_1), and the vertical axis represents beta_2 (with point estimate b_2). The origin is labeled 0.\n- Center Point: A solid black dot at (b_1, b_2) represents the point estimate.\n- Joint Confidence Region: An inclined ellipse centered at (b_1, b_2) is labeled 'level 1-alpha confidence region'.\n- Individual Confidence Intervals: Horizontal dashed lines extend from the top and bottom tangents of the ellipse to the vertical axis, creating a curly bracket labeled 'level 1-alpha conf. interval for beta_2'. Vertical dashed lines extend from the leftmost and rightmost tangents of the ellipse to the horizontal axis, creating a curly bracket labeled 'level 1-alpha confidence interval for beta_1'.\n- Dashed lines through b_1 and b_2 divide the region into quadrants through the center point."
+    },
+    "pg_21__page_58_Figure_2.jpeg": {
+        "skip": false,
+        "description": "A line graph showing average cost (AC) and marginal cost (MC) curves plotted against output for two competitive firms, Firm A and Firm B, at a given market price p. The vertical axis represents 'AC, MC' and the horizontal axis represents 'output'. Both firms face the same price line p (a horizontal dashed line). Firm A's marginal cost curve (MC_A) intersects the price line p at a lower output level than Firm B's marginal cost curve (MC_B), as Firm A is less efficient (its AC_A and MC_A curves lie higher and further to the left compared to Firm B's AC_B and MC_B curves). For each firm, the output produced is determined where MC equals p (vertical dashed lines dropped down from these intersections). At these respective output levels, points A and B mark the average costs on curves AC_A and AC_B. Point A is at a lower output and higher average cost level relative to Point B, which is at a higher output and lower average cost level. Connecting point A to point B forms a downward-sloping line across firms, despite both individual firm average cost curves being upward-sloping."
+    },
+    "pg_21__page_65_Figure_2.jpeg": {
+        "skip": false,
+        "description": "A scatter plot titled 'Figure 1.7: Plot of Residuals against Log Output'. The x-axis represents 'log output' ranging from 0 to 10, and the y-axis represents 'residual' ranging from -1.5 to 2, with a horizontal reference line at y = 0. The plot shows scattered data points: for log output values below 4, the points are widely dispersed with larger positive residuals up to nearly 2.0 and a negative residual around -1.0. Between log output values of 4 and 10, the residuals form a dense cluster that exhibits a curved U-shaped trend, starting mostly below zero around log output 4 to 6, and gradually increasing above zero as log output approaches 10."
+    },
+    "pg_171__page_0_Figure_0.jpeg": {
+        "skip": false,
+        "description": "A line graph plotting the 1-month T-bill rate (solid line) and the inflation rate (dashed/dotted line) in percent against time from 1/55 to 1/90 on the x-axis. The y-axis ranges from -10 to 25 percent. The 1-month T-bill rate generally follows a smoother trend, rising from around 1% in the 1950s to a peak near 15% around 1/80 and 1/81, before declining back toward 5-8% by 1/90. The inflation rate exhibits significantly higher volatility, with large sharp fluctuations extending below -5% in the early years and spiking upwards, reaching its highest peaks above 20% in the mid-1970s and around 1/80, closely mirroring the broad movements of the T-bill rate over the long run."
+    },
+    "pg_171__page_0_Figure_2.jpeg": {
+        "skip": false,
+        "description": "A line chart depicting real interest rates in percent over time from 1/55 to 1/90. The y-axis represents 'percent' ranging from -20 to 15 in increments of 5. The x-axis shows date markers labeled 1/55, 1/60, 1/65, 1/70, 1/75, 1/80, 1/85, and 1/90. The series displays high volatility, oscillating frequently around 0%. Extreme negative dips occur in the mid-1950s (reaching nearly -20%) and mid-1970s (reaching around -15%). Peaks above 10% occur in the early to mid-1980s."
+    },
+    "pg_171__page_36_Figure_1.jpeg": {
+        "skip": false,
+        "description": "A supply and demand graph titled '(a) No shifts in demand' with 'price' on the vertical y-axis and 'quantity' on the horizontal x-axis. A single downward-sloping demand curve is intersected by three parallel upward-sloping supply curves, which are grouped together with a curly bracket labeled 'supply curves'. The label 'demand curve' points to the single downward-sloping line."
+    },
+    "pg_171__page_36_Figure_3.jpeg": {
+        "skip": false,
+        "description": "An economic diagram titled '(b) No shifts in supply' illustrating a supply curve intersected by multiple demand curves. The vertical axis represents 'price' and the horizontal axis represents 'quantity'. A single upward-sloping line, labeled 'supply curve', extends from bottom-left to top-right. Three parallel downward-sloping lines, grouped together with a curly bracket and labeled 'demand curves', intersect the single supply curve at three different points along its path, demonstrating changes in equilibrium along a fixed supply curve."
+    },
+    "pg_621__page_1_Figure_2.jpeg": {
+        "skip": false,
+        "description": "A line graph titled 'Figure 9.4: Dollar/Sterling Real Exchange Rate, 1791 - 1990, 1914 Value Set to 0'. The horizontal axis represents time in years, ranging from 1791 to 1990 with ticks every 20 years. The vertical axis represents the logarithmized or normalized real exchange rate centered around 0, ranging from -0.5 to 0.5 with major horizontal gridlines/ticks every 0.1 units. A baseline horizontal reference line is drawn at 0. The curve shows high volatility with persistent swings above zero from 1791 until around 1870, reaching a peak near 0.37 around 1807. From 1870 to around 1920, the line fluctuates closer to 0, with a temporary spike up to around 0.2 around 1914. After 1930, the real exchange rate experiences significant downward drops, reaching troughs near -0.35 in 1931 and -0.38 around 1949, followed by fluctuations below 0 until sharp upward and downward swings occur between 1970 and 1990."
+    },
+    "pg_621__page_20_Figure_5.jpeg": {
+        "skip": false,
+        "description": "A line plot titled 'Figure 10.1 (a): Log Income and Consumption' depicting two time series from 1948 to 1998 on an x-axis labeled 'year'. The y-axis ranges from 0.6 to 1.4. The upper solid line represents 'log per capita income', starting around 0.83 in 1948 and trending upwards to nearly 1.29 in 1998. The lower dashed line represents 'log per capita consumption', starting around 0.80 in 1948 and trending upward almost in parallel to the income series, reaching approximately 1.27 in 1998. Both series exhibit strong co-trending behavior and upward trajectories over the 50-year period."
+    }
+}

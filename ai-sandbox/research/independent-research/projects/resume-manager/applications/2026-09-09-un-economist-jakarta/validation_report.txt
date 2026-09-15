@@ -1,0 +1,2 @@
+Validation flagged 1 possible issue(s) -- review before submitting:
+- u-s-agency-for-international-development-1: possible dropped metric '$5B' from original bullets not found in rewritten bullets

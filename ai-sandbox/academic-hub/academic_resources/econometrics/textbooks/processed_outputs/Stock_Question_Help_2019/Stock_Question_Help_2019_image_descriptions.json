@@ -1,0 +1,390 @@
+{
+    "pg_44__page_14_Figure_10.jpeg": {
+        "skip": false,
+        "description": "A bar chart representing a probability histogram. The y-axis is labeled 'Probability' and ranges from 0.0 to 0.8 with increments of 0.1. The x-axis is labeled 'Number of failures' and includes discrete values from 0 to 4.\n\n- Value 0: Bar height is approximately 0.8.\n- Value 1: Bar height is approximately 0.1.\n- Value 2: Bar height is approximately 0.06.\n- Value 3: Bar height is approximately 0.03.\n- Value 4: Bar height is approximately 0.01."
+    },
+    "pg_44__page_16_Figure_3.jpeg": {
+        "skip": false,
+        "description": "A line graph displaying the cumulative probability distribution function (c.d.f.) of commuting times in minutes. The horizontal x-axis represents commuting time in minutes, ranging from 10 to 40 in increments of 5. The vertical y-axis represents Probability, ranging from 0.0 to 1.0 in increments of 0.2. An S-shaped curve starts near 0.0 at 10 minutes and levels off close to 1.0 around 35–40 minutes. Two specific points on the curve are highlighted with reference lines connecting to the axes: at x = 15, y = 0.20 with the label 'Pr (Commuting time <= 15) = 0.20'; and at x = 20, y = 0.78 with the label 'Pr (Commuting time <= 20) = 0.78'."
+    },
+    "pg_44__page_16_Figure_5.jpeg": {
+        "skip": false,
+        "description": "A graph showing the probability density function of commuting times (in minutes) represented as a continuous skewed curve. The horizontal axis indicates 'Commuting time (minutes)' from 10 to 40, and the vertical axis indicates 'Probability density' from 0.00 to 0.15.\n\nThe curve peaks around 16–17 minutes and is divided into three colored shaded regions:\n1. For commuting times less than or equal to 15 (striped blue area): labeled 'Pr (Commuting time <= 15) = 0.20' with '0.20' printed in the region.\n2. For commuting times between 15 and 20 (solid light blue area): labeled 'Pr (15 < Commuting time <= 20) = 0.58' with '0.58' printed in the region.\n3. For commuting times greater than 20 (grey area): labeled 'Pr (Commuting time > 20) = 0.22' with '0.22' printed in the region."
+    },
+    "pg_44__page_20_Figure_6.jpeg": {
+        "skip": false,
+        "description": "Four probability density function plots comparing different shapes of distributions with a mean of 0 and variance of 1:\n\n- Plot (a): A standard bell-shaped symmetric curve labeled \"(a) Skewness = 0, kurtosis = 3\". The peak reaches 0.4 at x = 0.\n- Plot (b): A sharply peaked symmetric curve with slightly thicker tails visible near x = ±4, labeled \"(b) Skewness = 0, kurtosis = 20\". The peak reaches nearly 0.6 at x = 0.\n- Plot (c): A slightly asymmetric curve skewed to the left, labeled \"(c) Skewness = -0.1, kurtosis = 5\". The peak reaches about 0.44 around x = 0.3.\n- Plot (d): A strongly right-skewed curve with a long right tail, labeled \"(d) Skewness = 0.6, kurtosis = 5\". The sharp peak reaches 0.9 near x = -0.6."
+    },
+    "pg_44__page_29_Figure_7.jpeg": {
+        "skip": false,
+        "description": "A density plot titled 'Density' on the y-axis against 'Household income' on the x-axis, ranging from 0 to 20000. The density values on the y-axis range from 0 to 0.0003. The plot displays three probability density distribution curves corresponding to different occupational types of the father (NS-SEC categories):\n- Routine NS-SEC (grey line): Shows the highest peak around a household income of 2000, with a steep drop-off, indicating a higher concentration at lower household income levels.\n- Intermediate NS-SEC (blue line): Reaches a middle peak slightly to the right of the Routine NS-SEC curve.\n- Higher NS-SEC (black line): Has the lowest peak, located further to the right around a household income of 2500–3000, and a thicker upper tail extending towards higher incomes.\nOverall, higher childhood socioeconomic categories (Higher NS-SEC) display a distribution shifted further to the right with a flatter peak and higher probability at elevated household income levels compared to lower categories."
+    },
+    "pg_44__page_32_Figure_10.jpeg": {
+        "skip": false,
+        "description": "A bell-shaped normal distribution curve centered at the mean, labeled mu on the horizontal axis. The central area under the curve between mu - 1.96 sigma and mu + 1.96 sigma is shaded light blue and labeled 95%. The two tail areas outside these bounds are shaded grey. The horizontal axis is labeled y at the right end."
+    },
+    "pg_44__page_33_Figure_19.jpeg": {
+        "skip": false,
+        "description": "Two stacked normal distribution curves illustrating standardizing a normal random variable.\n\nGraph (a) labeled 'N(1, 4)': Shows a normal distribution centered at y = 1.0 with variance 4 (standard deviation 2). A vertical blue boundary line is drawn at y = 2.0. The area under the curve to the left of y = 2.0 is shaded light blue, representing Pr(Y ≤ 2).\n\nGraph (b) labeled 'N(0, 1)': Shows the standard normal distribution centered at z = 0.0 with variance 1. A vertical blue boundary line is drawn at z = 0.5. The area under the curve to the left of z = 0.5 is shaded light blue, representing Pr(Z ≤ 0.5), which is labeled with the probability value 0.691.\n\nThe figure demonstrates that calculating Pr(Y ≤ 2) for an N(1, 4) distribution is equivalent to standardizing to Z = (2 - 1)/2 = 0.5 and finding Pr(Z ≤ 0.5) = 0.691 on the standard normal distribution."
+    },
+    "pg_44__page_35_Figure_3.jpeg": {
+        "skip": false,
+        "description": "A line plot titled 'FIGURE 2.7 Daily Percentage Change in the Euro/Swiss Franc Exchange Rate'. The y-axis is labeled 'Percent change' and ranges from -20 to 5 in increments of 5. The x-axis is labeled 'Year' and displays tick marks for 2014, 2015, and 2016. Throughout 2014, the daily percent change fluctuates closely around 0 within a narrow band. At the beginning of 2015, there is a sharp, massive downward drop reaching approximately -17.5%, followed immediately by sharp upward spikes reaching nearly 3% to 4%. Following this event in 2015, the line continues to fluctuate around 0 with noticeably higher variance/volatility than during 2014."
+    },
+    "pg_44__page_44_Figure_3.jpeg": {
+        "skip": false,
+        "description": "Four probability bar graphs showing the sampling distribution of the sample average for different sample sizes (n) when drawing from a Bernoulli distribution with p = 0.78:\n\n(a) n = 2: Discrete probability distribution with bars at sample averages 0.0, 0.50, and 1.00. The highest probability is at 1.00 (above 0.6), followed by 0.50 (~0.34), and near 0 for 0.0.\n\n(b) n = 5: Discrete probability distribution with bars at sample averages spaced by 0.20 (0.0, 0.20, 0.40, 0.60, 0.80, 1.00). The peak probability is at 0.80 (~0.40).\n\n(c) n = 25: A much smoother, bell-shaped distribution centered around 0.78, with sample averages ranging roughly between 0.50 and 1.00. The maximum height is around 0.19.\n\n(d) n = 100: A narrow, highly concentrated, bell-shaped distribution centered closely around 0.78, ranging between roughly 0.65 and 0.90, with a peak probability around 0.105.\n\nAll four subplots point with a line labeled '\\mu = 0.78' to the mean value on the horizontal axis, illustrating how the distribution becomes narrower and more symmetric (approaching a normal curve) as n increases from 2 to 100."
+    },
+    "pg_44__page_45_Figure_3.jpeg": {
+        "skip": false,
+        "description": "Four probability distribution charts comparing discrete sampling distributions of a standardized sample average against a standard normal distribution curve (solid black line) for increasing sample sizes:\n\n- **(a) n = 2:** Shows a very sparse discrete distribution with only three distinct blue bars at approximately -2.5, -0.9, and 0.7, poorly fitting the continuous normal curve.\n- **(b) n = 5:** Shows five blue bars located near -2.0, -0.9, 0.1, 1.1, and 2.2, showing a symmetric shape that begins to resemble the normal curve.\n- **(c) n = 25:** Shows a histogram-like distribution with many narrower blue bars spanning from -3.0 to 3.0, following the bell shape of the normal curve much more closely.\n- **(d) n = 100:** Shows a fine-grained distribution of blue bars nearly perfectly tracing the standard normal curve across the entire range from -3.0 to 3.0.\n\nEach chart is titled with 'Probability' on the y-axis and 'Standardized value of sample average' on the x-axis ranging from -3.0 to 3.0. The sequence illustrates the Central Limit Theorem: as sample size n increases, the standardized sampling distribution converges to a standard normal distribution."
+    },
+    "pg_44__page_47_Figure_7.jpeg": {
+        "skip": false,
+        "description": "A probability distribution graph showing a histogram of the standardized value of the sample average for sample size n = 5 (or similar intermediate sample size), overlaid with a standard normal curve (black line). The horizontal x-axis represents the 'Standardized value of sample average', ranging from -3.0 to 3.0 in increments of 1.0 (with minor tick marks every 0.25 units). The vertical y-axis represents 'Probability', ranging from 0.00 to 0.12 in increments of 0.03. The blue histogram bars show a slightly right-skewed distribution centered near 0.0, which closely approximates but does not perfectly match the symmetric bell-shaped normal curve line overlay."
+    },
+    "pg_44__page_47_Figure_3.jpeg": {
+        "skip": false,
+        "description": "A probability distribution graph showing a histogram of the standardized value of sample average plotted against a standard normal probability curve (bell curve). The y-axis represents \"Probability\" ranging from 0.00 to 0.50 in increments of 0.10. The x-axis represents \"Standardized value of sample average\" ranging from -3.0 to 3.0 in increments of 1.0. A black continuous bell curve peaks around 0.0 with a maximum height around 0.40. Superimposed on this curve is a right-skewed blue histogram starting near -0.5, where the tallest bar reaches approximately 0.43, followed by sharply decreasing bars extending to the right up to 3.0, illustrating a skewed distribution compared to the standard normal curve."
+    },
+    "pg_44__page_47_Figure_5.jpeg": {
+        "skip": false,
+        "description": "A histogram overlaid with a normal probability density curve, illustrating the sampling distribution of a standardized sample average. The horizontal axis represents the 'Standardized value of sample average' ranging from -3.0 to 3.0, with tick marks at intervals of 1.0 (and intermediate ticks at 0.5). The vertical axis represents 'Probability' ranging from 0.00 to 0.12 in increments of 0.03. The blue histogram bars show a right-skewed empirical distribution peaking near -0.4 with a probability height around 0.11 to 0.12, dropping off gradually to the right up to 3.0. The solid black line shows a symmetric standard normal distribution bell curve centered at 0.0."
+    },
+    "pg_44__page_47_Figure_9.jpeg": {
+        "skip": false,
+        "description": "A probability distribution histogram overlaid with a smooth standard normal curve (bell curve). The y-axis represents \"Probability\" with marked values from 0.00 to 0.12 in increments of 0.03. The x-axis represents the \"Standardized value of sample average\", with tick marks from -3.0 to 3.0 in increments of 1.0 (with major subdivisions at -3.0, -2.0, -1.0, 0.0, 1.0, 2.0, and 3.0). The blue bar histogram closely follows the symmetric normal curve, centered around 0.0 with a peak probability of just above 0.09."
+    },
+    "pg_44__page_68_Figure_19.jpeg": {
+        "skip": false,
+        "description": "A textbook figure titled 'FIGURE 3.1 Calculating a p-value'. On the left side, explanatory text states: 'The p-value is the probability of drawing a value of Y-bar that differs from mu_{Y,0} by at least as much as Y-bar^{act}. In large samples, Y-bar is distributed N(mu_{Y,0}, sigma_{Y-bar}^2) under the null hypothesis, so (Y-bar - mu_{Y,0}) / sigma_{Y-bar} is distributed N(0, 1). Thus the p-value is the shaded standard normal tail probability outside +/- |(Y-bar^{act} - mu_{Y,0}) / sigma_{Y-bar}|.' On the right side, a bell-shaped standard normal distribution curve labeled N(0, 1) is plotted against a horizontal axis z centered at 0. Two light blue tail regions are shaded under the curve: the left tail bounded on the right by -|(Y-bar^{act} - mu_{Y,0}) / sigma_{Y-bar}| and the right tail bounded on the left by |(Y-bar^{act} - mu_{Y,0}) / sigma_{Y-bar}|. A label points to the shaded tails indicating that 'The p-value is the shaded area in the graph'."
+    },
+    "pg_44__page_85_Figure_2.jpeg": {
+        "skip": false,
+        "description": "A scatterplot titled 'FIGURE 3.2 Scatterplot of Average Hourly Earnings vs. Age'. The y-axis represents 'Average hourly earnings' ranging from 0 to 120 in increments of 10. The x-axis represents 'Age' ranging from 20 to 80 in increments of 5. The plot displays approximately 200 black data points showing a wide spread of earnings across ages 25 to 70, with a slight peak/concentration between ages 35 and 55. One highlighted blue dot is located at an x-value of 45 and a y-value near 49.15. Below the plot, a caption states: 'Each point in the plot represents the age and average earnings of one of the 200 workers in the sample. The highlighted dot corresponds to a 45-year-old worker who earns $49.15 per hour. The data are for computer and information systems managers from the March 2016 CPS.'"
+    },
+    "pg_44__page_87_Figure_3.jpeg": {
+        "skip": false,
+        "description": "A scatterplot depicting a strong positive linear relationship between two continuous variables, x and y. The horizontal axis (x) ranges from 70 to 130 in increments of 10, and the vertical axis (y) ranges from 0 to 70 in increments of 10. Blue data points are plotted showing that as x increases from approximately 77 to 123, y increases from approximately 19 to 66 in a linear trend."
+    },
+    "pg_44__page_87_Figure_7.jpeg": {
+        "skip": false,
+        "description": "Two scatter plots showing different levels and directions of linear correlation between variables x and y.\n\nLeft Plot (a): Shows a strong positive linear relationship (correlation = +0.9). As x increases from 70 to 130 along the horizontal axis, y increases correspondingly along the vertical axis, forming an upward-sloping cloud of data points.\n\nRight Plot (b): Shows a strong negative linear relationship (correlation = -0.8). As x increases from 70 to 130 along the horizontal axis, y decreases from 70 down to 0 on the vertical axis, forming a downward-sloping cloud of data points."
+    },
+    "pg_44__page_87_Figure_5.jpeg": {
+        "skip": false,
+        "description": "A scatter plot showing data points plotted on a two-dimensional graph labeled (c) with 'Correlation = 0.0'. The horizontal axis (x) ranges from 70 to 130, and the vertical axis (y) ranges from 0 to 70. The blue data points are dispersed broadly across x-values from roughly 78 to 123 and y-values from 15 to 61, forming a roughly circular or cloud-like cluster with no clear linear trend, illustrating a correlation coefficient of 0.0."
+    },
+    "pg_44__page_87_Figure_9.jpeg": {
+        "skip": false,
+        "description": "Two side-by-side scatter plots showing different relationships between variables x and y, both resulting in a sample correlation of r = 0.\n\nLeft Plot: Scatter plot displaying a cloud-like distribution of data points scattered randomly across the x-axis (ranging from approximately 70 to 130) and y-axis. There is no linear or discernible pattern, representing zero linear correlation (Correlation = 0.0).\n\nRight Plot: Scatter plot displaying a clear non-linear, quadratic (inverted U-shape/parabolic) relationship between x and y. As x increases from 80 to around 100, y increases from roughly 20 to 60; as x increases beyond 100 to 120, y decreases back down toward 10. Despite the strong curvilinear relationship, the overall sample correlation coefficient is r = 0.0 (or near zero)."
+    },
+    "pg_144__page_3_Figure_16.jpeg": {
+        "skip": false,
+        "description": "A scatterplot illustrating a population regression line with data points and error terms (residuals). The y-axis represents 'Test score (Y)' ranging from 600 to 700, and the x-axis represents 'Student-teacher ratio (X)' ranging from 10 to 30. A downward-sloping blue line labeled 'beta_0 + beta_1 X' represents the regression line. Seven data points are plotted around this line. Two specific points are labeled: point (X_1, Y_1) lies above the line with a vertical bracket indicating a positive error term u_1 between the point and the line; point (X_2, Y_2) lies below the line with a vertical bracket indicating a negative error term u_2 between the line and the point."
+    },
+    "pg_144__page_5_Figure_2.jpeg": {
+        "skip": false,
+        "description": "A scatterplot titled \"Scatterplot of Test Score vs. Student-Teacher Ratio (California School District Data)\". The vertical y-axis is labeled \"Test score\" with values ranging from 600 to 720 in increments of 20. The horizontal x-axis is labeled \"Student–teacher ratio\" with values ranging from 10 to 30 in increments of 5. The plot contains approximately 420 data points representing California school districts, scattered between student-teacher ratios of roughly 14 and 26 and test scores from around 605 to 705. The cluster of points shows a weak negative relationship, indicated by a sample correlation of -0.23, where test scores slightly decrease as the student-teacher ratio increases."
+    },
+    "pg_144__page_8_Figure_3.jpeg": {
+        "skip": false,
+        "description": "Scatterplot and estimated regression line showing the negative relationship between student-teacher ratio (STR) on the x-axis (ranging from 10 to 30) and test scores on the y-axis (ranging from 600 to 720). The points represent data from various school districts, clustered mostly between student-teacher ratios of 15 and 25 and test scores of 620 to 700. The linear regression line slopes downward with the formula: TestScore = 698.9 - 2.28 * STR. Annotation text on the left explains that for two districts with class sizes differing by one student per class, the district with the larger class size has, on average, test scores that are lower by 2.28 points."
+    },
+    "pg_144__page_16_Figure_9.jpeg": {
+        "skip": false,
+        "description": "A scatter plot illustrating the effect of a large outlier on an OLS regression line, with the horizontal axis representing variable X (ranging from 30 to 70) and the vertical axis representing variable Y (ranging from 0 to 2000). Most data points lie along a horizontal line near Y = 200 across the X values 32 to 67. There is a single extreme outlier located near X = 60 and Y = 1800. Two regression lines are shown: 'OLS regression line excluding outlier', which is a flat horizontal line near Y = 200 showing no relationship between X and Y; and 'OLS regression line including outlier', which slopes sharply upward from around Y = 100 at X = 31 to near Y = 600 at X = 68, demonstrating how a single outlier can distort the slope of an OLS regression."
+    },
+    "pg_144__page_20_Figure_7.jpeg": {
+        "skip": false,
+        "description": "A scatter plot illustrating the relationship between the variance of X and the accuracy of estimating a linear regression line, titled FIGURE 4.5: The Variance of \\hat{\\beta}_1 and the Variance of X. The vertical Y-axis ranges from 194 to 206 with tick marks every 2 units. The horizontal X-axis ranges from 97 to 103 with tick marks every 1 unit. The plot contains two overlapping datasets showing a positive linear correlation between X and Y: blue/colored dots clustered tightly in a narrower horizontal band of X (roughly between 99.5 and 101), representing a set of X_i's with small variance, and black dots spread across a wider horizontal range of X (roughly between 97 and 102), representing a set of X_i's with large variance. An accompanying side note states: 'The colored dots represent a set of X_i's with a small variance. The black dots represent a set of X_i's with a large variance. The regression line can be estimated more accurately with the black dots than with the colored dots.'"
+    },
+    "pg_144__page_39_Figure_3.jpeg": {
+        "skip": false,
+        "description": "A standard normal distribution curve, labeled N(0, 1), centered at 0 on the horizontal z-axis. The regions in the left tail (to the left of -4.38) and the right tail (to the right of +4.38) are shaded blue. Annotations below the x-axis connect these two tail regions with brackets, stating: 'The p-value is the area to the left of -4.38 + the area to the right of +4.38.'"
+    },
+    "pg_144__page_46_Figure_4.jpeg": {
+        "skip": false,
+        "description": "A line graph illustrating homoskedastic errors in linear regression. The vertical axis represents the 'Test score' (ranging from 600 to 720) and the horizontal axis represents the 'Student-teacher ratio' (ranging from 10 to 30). A downward-sloping regression line labeled '\\beta_0 + \\beta_1 X' shows the negative relationship between student-teacher ratio and test scores. At three specific values of X (X = 15, X = 20, and X = 25), normal distribution curves are plotted vertically along the regression line, representing the conditional distributions of Y given X: E(Y|X=15), E(Y|X=20), and E(Y|X=25). Each distribution curve has the exact same spread and variance regardless of the value of X, demonstrating homoskedasticity. The caption below reads '(a) The errors are homoskedastic'."
+    },
+    "pg_144__page_46_Figure_6.jpeg": {
+        "skip": false,
+        "description": "Graph labeled '(b) The errors are heteroskedastic' illustrating heteroskedasticity in a simple linear regression context. The y-axis represents 'Test score' (ranging from 600 to 720) and the x-axis represents 'Student–teacher ratio' (ranging from 10 to 30). A downward-sloping regression line labeled '\\beta_0 + \\beta_1 X' indicates a negative linear relationship between the student-teacher ratio and test scores. Along the line, three conditional normal distributions of Y (test score) are plotted vertically at different values of X (student-teacher ratio):\n1. 'Distribution of Y when X = 15': narrow variance/spread.\n2. 'Distribution of Y when X = 20': wider variance/spread than at X = 15.\n3. 'Distribution of Y when X = 25': the widest variance/spread of the three.\nBecause the spread (variance) of the conditional distribution of Y changes as X increases, the errors exhibit heteroskedasticity."
+    },
+    "pg_144__page_50_Figure_14.jpeg": {
+        "skip": false,
+        "description": "A scatter plot titled with axis labels showing 'Average hourly earnings' on the vertical y-axis (ranging from 0 to 100) versus 'Years of education' on the horizontal x-axis (ranging from 8 to 18). Black circle markers represent individual data points for average hourly earnings at discrete education levels (8, 9, 10, 11, 12, 13, 14, 16, and 18 years). A cyan line labeled 'Fitted values' shows a positive linear trend, starting around 7 at 8 years of education and reaching approximately 30 at 18 years of education. The vertical dispersion/spread of points increases significantly at higher levels of education (e.g., 12, 14, 16, and 18 years), illustrating heteroskedasticity in the regression errors."
+    },
+    "pg_144__page_117_Figure_3.jpeg": {
+        "skip": false,
+        "description": "A 2D line plot showing a 95% confidence set ellipse for two regression coefficients: $\\beta_1$ on the horizontal axis (\"Coefficient on STR (\\beta_1)\") ranging from -2.0 to 1.5, and $\\beta_2$ on the vertical axis (\"Coefficient on Expn (\\beta_2)\") ranging from -1 to 9.\n\nThe 95% confidence set is depicted as a light blue ellipse centered near $\\beta_1 = -0.29$ and $\\beta_2 = 3.87$. The estimated point $(\\hat{\\beta}_1, \\hat{\\beta}_2) = (-0.29, 3.87)$ is marked with a plus sign '+' at the center of the ellipse.\n\nAnother point marked with a plus sign '+', corresponding to $(\\beta_1, \\beta_2) = (0, 0)$, lies outside and below the blue confidence ellipse, illustrating that the joint null hypothesis $H_0: \\beta_1 = 0 \\text{ and } \\beta_2 = 0$ is rejected at the 5% significance level."
+    },
+    "pg_144__page_121_Figure_2.jpeg": {
+        "skip": false,
+        "description": "A scatter plot titled 'Test score' on the y-axis against 'Percent' on the x-axis, representing part (a) Percentage of English learners. The y-axis ranges from 600 to 720 in increments of 20, and the x-axis ranges from 0 to 100 in increments of 25. The data points show a negative non-linear relationship: at low percentages of English learners (0-25%), test scores vary widely between roughly 610 and 710, with a dense cluster around 640 to 680. As the percentage of English learners increases towards 100%, test scores generally decrease and show less spread, flattening out around a score of 620 to 630 at high percentages."
+    },
+    "pg_144__page_121_Figure_4.jpeg": {
+        "skip": false,
+        "description": "Scatter plot titled 'Test score' showing a negative correlation between test scores (y-axis, ranging from 600 to 720) and a percentage metric (x-axis, ranging from 0 to 100, labeled 'Percent'). As the percentage increases from 0% to 100%, average test scores steadily decline from approximately 680–700 down to around 610–630."
+    },
+    "pg_144__page_121_Figure_6.jpeg": {
+        "skip": false,
+        "description": "A scatter plot showing the negative relationship between the percentage of students (Percent, ranging from 0 to 100 on the x-axis) and Test score (ranging from 600 to 720 on the y-axis). The data points cluster heavily on the left between 0% and 25%, where test scores range broadly from around 610 to 710. As the percentage increases beyond 25%, the test scores generally trend downward toward 610-640, with a few sparse data points extending past 50% up to nearly 80%."
+    },
+    "pg_278__page_1_Figure_2.jpeg": {
+        "skip": false,
+        "description": "The image contains three graphs labeled (a), (b), and (c), illustrating different relationships between a dependent variable Y and independent variables X1 and X2:\n\n- **Graph (a) - Constant slope:** Shows a straight, downward-sloping linear line plotted with Y on the vertical axis and X1 on the horizontal axis. A right triangle indicates the \"Rise\" (vertical change) over \"Run\" (horizontal change), representing a constant slope along the entire line.\n\n- **Graph (b) - Slope depends on the value of X1:** Shows a non-linear, downward-sloping curve (convex to the origin) plotted with Y on the vertical axis and X1 on the horizontal axis. Two right triangles labeled \"Rise\" and \"Run\" are drawn at different points on the curve: a steeper slope (larger Rise relative to Run) at lower values of X1, and a flatter slope (smaller Rise relative to Run) at higher values of X1, showing that the slope changes with X1.\n\n- **Graph (c) - Slope depends on the value of X2:** Shows two distinct downward-sloping straight lines plotted with Y on the vertical axis and X1 on the horizontal axis. The upper line, labeled \"Population regression function when X2 = 1\", has a steeper downward slope with its own \"Rise\" and \"Run\" indicators. The lower line, labeled \"Population regression function when X2 = 0\", starts lower on the Y-axis and has a flatter downward slope with its own \"Rise\" and \"Run\" indicators, illustrating an interaction effect where the slope with respect to X1 depends on the binary value of X2."
+    },
+    "pg_278__page_2_Figure_9.jpeg": {
+        "skip": false,
+        "description": "A scatterplot titled \"Test score vs. District income\" depicting the relationship between test scores on the y-axis and district income (in thousands of dollars) on the x-axis. The y-axis ranges from 600 to 740 in increments of 20, labeled \"Test score\". The x-axis ranges from 0 to 60 in increments of 10, labeled \"District income (thousands of dollars)\". Numerous black data points are plotted, showing a concentration between income levels 5 and 25 (with scores ranging mostly between 600 and 680), and fewer points extending up to an income of approximately 55 (with scores around 680 to 710). A straight blue linear OLS regression line slopes upward from left to right, starting at roughly (5, 636) and extending to approximately (55, 730), showing a positive linear correlation."
+    },
+    "pg_278__page_4_Figure_7.jpeg": {
+        "skip": false,
+        "description": "A scatterplot showing the relationship between District Income (in thousands of dollars, on the x-axis ranging from 0 to 60) and Test Score (on the y-axis ranging from 600 to 740). Black data points show a nonlinear trend where test scores increase sharply with district income at lower income levels (under $20,000) and then flatten out at higher income levels. Two fitted regression curves are overlaid in blue:\n1. 'Linear regression': A straight line starting around a test score of 635 at an income of 5 thousand dollars and rising linearly to 730 at an income of 55 thousand dollars.\n2. 'Quadratic regression': A curved line starting lower (around 625 at 5 thousand dollars), curving upwards to match and better fit the main cluster of data, peaking near a score of 695 around 45–50 thousand dollars, and leveling off slightly at higher income levels."
+    },
+    "pg_278__page_13_Figure_3.jpeg": {
+        "skip": false,
+        "description": "A Cartesian coordinate graph plotting the natural logarithm function, labeled y = ln(x). The horizontal x-axis ranges from 0 to 120 with major ticks every 20 units. The vertical y-axis ranges from 0 to 5 with major ticks at each integer. The curve starts at (1, 0) and increases sharply at small positive values of x, then flattens out gradually as x increases, passing through roughly y = 3 near x = 20, y = 4 near x = 55, and approaching y = 4.6 at x = 100."
+    },
+    "pg_278__page_15_Figure_4.jpeg": {
+        "skip": false,
+        "description": "A scatter plot illustrating the relationship between district income and test scores, fitted with a linear-log regression line. The y-axis represents 'Test score' with values ranging from 600 to 740 at intervals of 20. The x-axis represents 'District income (thousands of dollars)' ranging from 0 to 60 in increments of 10. A dense cluster of data points (black dots) is visible for lower income levels (between 5 and 20 thousand dollars), showing test scores mostly between 600 and 680. As district income increases, data points become sparser and test scores generally trend higher. A smooth, logarithmic curve labeled 'Linear-log regression' rises steeply starting at around income 5 (score ~620) and flattens out as income increases toward 55 (score ~705)."
+    },
+    "pg_278__page_17_Figure_3.jpeg": {
+        "skip": false,
+        "description": "A scatter plot and regression chart labeled FIGURE 8.6, illustrating 'The Log-Linear and Log-Log Regression Functions'. The y-axis represents 'ln(Test score)' ranging from 6.40 to 6.60 in increments of 0.05. The x-axis represents 'District income (thousands of dollars)' ranging from 0 to 60 in increments of 10.\n\nData points (black dots) show a positive, non-linear relationship that is steeper at lower income levels (under 20) and flattens as income increases.\n\nTwo blue regression lines are fitted to the data:\n1. 'Log-linear regression': A straight line starting around x = 5, y = 6.425 and increasing steadily up to x = 55, y = 6.585.\n2. 'Log-log regression': A curved line (concave downward) starting near x = 5, y = 6.450, curving upwards through the bulk of the data, and tapering off around x = 55, y = 6.550."
+    },
+    "pg_278__page_20_Figure_4.jpeg": {
+        "skip": false,
+        "description": "Scatter plot and regression curves titled 'FIGURE 8.7 The Linear-Log and Cubic Regression Functions'. The y-axis represents 'Test score' ranging from 600 to 740. The x-axis represents 'District income (thousands of dollars)' ranging from 0 to 60. A dense cluster of black data points shows test scores increasing sharply as district income rises from 5 to 20 thousand dollars, and leveling off as income exceeds 30 thousand dollars. Two fitted regression curves are plotted through the data: a gray line labeled 'Linear-log regression' that continues a steady slight upward curve through higher income values, and a blue line labeled 'Cubic regression' that flattens out more distinctly near a test score of 700 at high income levels."
+    },
+    "pg_278__page_24_Figure_2.jpeg": {
+        "skip": false,
+        "description": "Figure 8.8 depicts three graphs showing regression functions incorporating binary and continuous variables:\n\n(a) Different intercepts, same slope: Two parallel lines on a plot of Y against X. The lower line starts at y-intercept beta_0 with equation beta_0 + beta_1 * X. The upper line starts at y-intercept beta_0 + beta_2 with equation (beta_0 + beta_2) + beta_1 * X. Both lines have Slope = beta_1.\n\n(b) Different intercepts, different slopes: Two diverging lines on a plot of Y against X. The lower line starts at y-intercept beta_0 with equation beta_0 + beta_1 * X and Slope = beta_1. The upper line starts at y-intercept beta_0 + beta_2 with equation (beta_0 + beta_2) + (beta_1 + beta_3) * X and a steeper Slope = beta_1 + beta_3.\n\n(c) Same intercept, different slopes: Two lines originating from the same y-intercept beta_0 on a plot of Y against X. The lower line has equation beta_0 + beta_1 * X and Slope = beta_1. The upper line has equation beta_0 + (beta_1 + beta_2) * X and a steeper Slope = beta_1 + beta_2."
+    },
+    "pg_278__page_30_Figure_7.jpeg": {
+        "skip": false,
+        "description": "A scatter plot showing the relationship between 'Subscriptions' on the vertical y-axis (ranging from 0 to 1200 in increments of 200) and 'Price per citation' on the horizontal x-axis (ranging from 0 to 25 in increments of 5). The plot displays a strong L-shaped non-linear relationship: when the price per citation is very close to 0, subscriptions are at their highest, reaching up to 1100. As the price per citation increases beyond 5, the number of subscriptions drops sharply and flattens out, remaining mostly below 200 for prices per citation between 5 and 25."
+    },
+    "pg_278__page_30_Figure_9.jpeg": {
+        "skip": false,
+        "description": "Scatter plot with a fitted linear trend line showing the negative relationship between the natural logarithm of price per citation, ln(Price per citation), on the x-axis and the natural logarithm of subscriptions, ln(Subscriptions), on the y-axis.\n\n- Horizontal axis: ln(Price per citation) ranging from -6 to 4 with tick intervals of 1.\n- Vertical axis: ln(Subscriptions) ranging from 0 to 8 with tick intervals of 1.\n- Data points: Numerous black scatter points clustered downward from top-left (around x = -5.3, y = 7) to bottom-right (around x = 3.2, y = 4).\n- Line of best fit: A blue regression line sloping downward from approximately (-5.3, 7.7) to (3.4, 3.0), illustrating a strong inverse correlation between logarithmic price per citation and logarithmic subscription numbers."
+    },
+    "pg_278__page_30_Figure_11.jpeg": {
+        "skip": false,
+        "description": "A scatter plot showing the relationship between ln(Price per citation) on the horizontal axis (ranging from -6 to 4) and ln(Subscriptions) on the vertical axis (ranging from 0 to 8). A collection of black data points shows a negative correlation between the two variables. Two linear regression demand curves are overlaid on the plot: a steeper line labeled 'Demand when Age = 5' and a flatter line labeled 'Demand when Age = 80'. Both lines slope downwards from left to right, intersecting around ln(Price per citation) = -2.5 and ln(Subscriptions) = 5.5."
+    },
+    "pg_278__page_36_Figure_4.jpeg": {
+        "skip": false,
+        "description": "A scatter plot showing the relationship between Student-teacher ratio (x-axis, ranging from 12 to 28) and Test score (y-axis, ranging from 600 to 720). Individual data points are shown as light grey dots clustered primarily between student-teacher ratios of 14 and 26 and test scores between 600 and 710.\n\nThree regression lines are overlaid on the plot:\n1. 'Cubic regression (5)' shown as a solid blue line, starting around y=659 at x=15, reaching a slight peak around x=17 near y=660, then curving downwards to approximately y=654 around x=24.\n2. 'Cubic regression (7)' shown as a dashed blue line, starting around y=657 at x=15, curving slightly up and then down below the solid blue line to a trough around x=22-23 near y=651, then slightly turning up at x=24.\n3. 'Linear regression (2)' shown as a solid black line, sloping downward steadily from approximately y=659 at x=15 to about y=653 at x=24."
+    },
+    "pg_278__page_37_Figure_3.jpeg": {
+        "skip": false,
+        "description": "A scatter plot and fitted regression lines showing the relationship between Student-teacher ratio (x-axis, ranging from 12 to 28) and Test score (y-axis, ranging from 600 to 720).\n\nThe plot contains two sets of data points and corresponding cubic/nonlinear regression curves:\n1. A group of grey data points representing districts with low percentages of English learners (HiEL = 0) paired with a black regression line.\n2. A group of light blue data points representing districts with high percentages of English learners (HiEL = 1) paired with a blue regression line.\n\nThe black curve (HiEL = 0) stays higher, maintaining a test score around 660 across student-teacher ratios from 15 to 24, with a slight downward slope after 18. The blue curve (HiEL = 1) starts near 660 around a ratio of 15 and slopes downwards towards a score of around 645 at a ratio of 24. For student-teacher ratios between 18 and 24, both lines exhibit roughly parallel downward trends, though districts with HiEL = 1 consistently average about 10-15 points lower in test scores overall."
+    },
+    "pg_278__page_49_Figure_2.jpeg": {
+        "skip": false,
+        "description": "The image shows two side-by-side graphs labeled (a) and (b), illustrating two types of nonlinear curves.\n\nGraph (a), labeled \"(a) A logistic curve\", shows a horizontal axis $X$ and a vertical axis $Y$. The curve forms a sigmoidal (S-shaped) path that approaches a horizontal lower asymptote near $Y = 0$ as $X$ goes negative, passes through the vertical axis above zero at $X = 0$, and approaches a horizontal upper asymptote at $Y = 1$ (indicated by a dashed horizontal line) as $X$ increases.\n\nGraph (b), labeled \"(b) A negative exponential growth curve\", also shows a horizontal axis $X$ and a vertical axis $Y$. The curve starts at the origin $(0, 0)$ and increases concavely upwards to the right, approaching a horizontal upper asymptote at $Y = \\beta_0$ (indicated by a dashed horizontal line) as $X$ grows large."
+    },
+    "pg_278__page_51_Figure_3.jpeg": {
+        "skip": false,
+        "description": "A scatter plot showing the relationship between District Income on the horizontal axis (x-axis, ranging from 0 to 60) and Test Score on the vertical axis (y-axis, ranging from 600 to 700). The data points show a positive, non-linear pattern where test scores increase rapidly at lower income levels and then flatten out as district income increases. Two fitted regression curves are overlaid on the scatter plot: a gray line representing the 'Linear-log regression' and a blue curve representing the 'Negative exponential growth regression'. Both curves fit the curved trend of the scatter points closely, with the linear-log regression continuing to rise slightly higher at very high district incomes compared to the negative exponential growth regression, which levels off more sharply."
+    },
+    "pg_278__page_70_Figure_5.jpeg": {
+        "skip": false,
+        "description": "A scatterplot titled 'Test Scores vs. District Income for Massachusetts Data' showing the relationship between district income (in thousands of dollars on the x-axis, ranging from 0 to 50) and test score (on the y-axis, ranging from 620 to 780). The plot includes light blue data points along with three fitted regression lines:\n1. Linear regression: A straight, black, upward-sloping line.\n2. Linear-log regression: A curved, medium-blue line that starts steeper at lower income levels (around 10) and flattens out as income increases toward 50.\n3. Cubic regression: A light blue line with a mild S-curve that closely tracks the linear-log regression line between 13,000 and 30,000 dollars, but levels off more noticeably at higher income values.\n\nA caption to the left explains that the linear regression function fails to capture the non-linear relationship, whereas the linear-log and cubic regression functions are very similar for district incomes between $13,000 and $30,000, where most observations are concentrated."
+    },
+    "pg_278__page_87_Figure_3.jpeg": {
+        "skip": false,
+        "description": "A scatterplot illustrating the relationship between Beer Tax (x-axis, in dollars per case in $1988, ranging from 0.0 to 3.0) and Fatality Rate (y-axis, in fatalities per 10,000, ranging from 0.0 to 4.5). Data points represent states. A fitted linear regression line (in blue) shows a slightly positive slope, with the fitted equation displayed as: FatalityRate = 2.01 + 0.15 BeerTax."
+    },
+    "pg_278__page_87_Figure_5.jpeg": {
+        "skip": false,
+        "description": "A scatter plot showing the relationship between Beer Tax (in dollars per case $1988) on the x-axis and Fatality Rate (fatalities per 10,000) on the y-axis, based on 1982 data.\n\n- The x-axis ranges from 0.0 to 3.0 in increments of 0.5.\n- The y-axis ranges from 0.0 to 4.5 in increments of 0.5.\n- Individual data points (dots) are clustered mostly between 0.0 and 1.0 on the x-axis and between 1.0 and 3.5 on the y-axis, with a few higher tax points up to around 2.2.\n- An fitted OLS regression line is plotted in blue through the data, sloping upwards from left to right.\n- The regression equation is annotated near the top right of the trend line: FatalityRate = 1.86 + 0.44 * BeerTax."
+    },
+    "pg_278__page_89_Figure_9.jpeg": {
+        "skip": false,
+        "description": "A scatterplot showing the relationship between the change in beer tax (dollars per case in $1988) on the x-axis and the change in fatality rate (fatalities per 10,000) on the y-axis. The x-axis ranges from -0.6 to 0.6, and the y-axis ranges from -1.5 to 1.0. A downward-sloping regression line is fitted through the data points with the equation: FatalityRate_1988 - FatalityRate_1982 = -0.072 - 1.04 * (BeerTax_1988 - BeerTax_1982)."
+    },
+    "pg_278__page_117_Figure_2.jpeg": {
+        "skip": false,
+        "description": "Scatterplot titled 'FIGURE 11.1 Scatterplot of Mortgage Application Denial and the Payment-to-Income Ratio'. The vertical y-axis represents 'Deny' ranging from -0.4 to 1.4, where 1.0 corresponds to 'Mortgage denied' and 0.0 corresponds to 'Mortgage approved'. The horizontal x-axis represents the 'P/I ratio' (Payment-to-Income ratio) ranging from 0.0 to 0.8. Data points are plotted as black dots concentrated along two horizontal dashed lines at y = 1.0 (denied) and y = 0.0 (approved). A solid blue line labeled 'Linear probability model' passes through the plot, showing a positive linear relationship starting around (-0.18, 0.15) and extending up through (1.0, 0.61) to approximately (1.22, 0.70). An explanatory text box on the left explains that mortgage applicants with a high P/I ratio are more likely to have their application denied (deny = 1 if denied; deny = 0 if approved), and the linear probability model uses a straight line to model the conditional probability of denial given the P/I ratio."
+    },
+    "pg_278__page_121_Figure_7.jpeg": {
+        "skip": false,
+        "description": "Scatter plot with an estimated probit regression line depicting the relationship between the P/I ratio (Payment-to-Income ratio, on the x-axis ranging from 0.0 to 0.8) and mortgage denial status (Deny, on the y-axis ranging from -0.4 to 1.4). Data points are clustered at y = 0.0 (labeled 'Mortgage approved') and y = 1.0 (labeled 'Mortgage denied') across various P/I ratio values. An S-shaped cyan curve labeled 'Probit model' starts near y = 0 for low P/I ratios around 0.2, increases sharply between P/I ratios of 0.3 and 0.5, and flattens out near y = 1.0 as the P/I ratio approaches 0.6 and above."
+    },
+    "pg_278__page_125_Figure_13.jpeg": {
+        "skip": false,
+        "description": "A line graph titled with 'Deny' on the y-axis (ranging from -0.4 to 1.4) and 'P/I ratio' on the x-axis (ranging from 0.0 to 0.8). The graph compares the Probit model (blue curve) and Logit model (black curve) fitted to binary mortgage application outcome data. Individual data points are plotted as black dots along two horizontal dashed lines: Deny = 1.0 (labeled 'Mortgage denied') and Deny = 0.0 (labeled 'Mortgage approved'). Both models display an S-shaped (sigmoidal) curve that starts near 0.0 for lower P/I ratios, steeply rises between P/I ratios of 0.3 and 0.5, and flattens near 1.0 around a P/I ratio of 0.6 to 0.7. The Probit and Logit curves are nearly indistinguishable throughout the entire range."
+    },
+    "pg_278__page_137_Picture_6.jpeg": {
+        "skip": false,
+        "description": "A portrait photo of Nobel laureate James J. Heckman, a man with light hair wearing glasses, a suit jacket, and a pattern tie."
+    },
+    "pg_278__page_137_Picture_8.jpeg": {
+        "skip": false,
+        "description": "A close-up portrait photo of Nobel Laureate Daniel McFadden smiling, wearing round wire-rimmed glasses, a beard, and mustache."
+    },
+    "pg_428__page_3_Picture_8.jpeg": {
+        "skip": false,
+        "description": "A black-and-white portrait photograph of a man wearing a suit jacket, dress shirt, and tie, looking forward."
+    },
+    "pg_428__page_3_Picture_6.jpeg": {
+        "skip": false,
+        "description": "A headshot-style portrait photograph in black and white depicting Philip G. Wright, a historical figure associated with the invention of instrumental variables regression."
+    },
+    "pg_428__page_6_Figure_4.jpeg": {
+        "skip": false,
+        "description": "A supply and demand graph plotting Price on the vertical axis against Quantity on the horizontal axis across three time periods. \n- Period 1 equilibrium is marked by a blue dot at the intersection of solid line demand curve D1 and solid line supply curve S1.\n- Period 2 equilibrium is marked by a blue dot at the intersection of dashed line demand curve D2 (shifted right from D1) and dashed line supply curve S2 (shifted left/up from S1), resulting in a higher price and roughly similar quantity compared to Period 1.\n- Period 3 equilibrium is marked by a blue dot at the intersection of dotted line demand curve D3 (shifted further right) and dotted line supply curve S3 (shifted right/down from S2), resulting in a higher quantity and a price between Period 1 and Period 2."
+    },
+    "pg_428__page_6_Figure_7.jpeg": {
+        "skip": false,
+        "description": "A scatter plot titled 'Equilibrium price and quantity for 11 time periods' showing 11 distinct blue data points dispersed randomly across the graph with no clear upward or downward trend. The vertical axis represents 'Price' and the horizontal axis represents 'Quantity'."
+    },
+    "pg_428__page_6_Figure_10.jpeg": {
+        "skip": false,
+        "description": "A supply and demand graph titled '(c) Equilibrium price and quantity when only the supply curve shifts'. The vertical axis is labeled 'Price' and the horizontal axis is labeled 'Quantity'. A downward-sloping demand curve labeled D1 is intersected by three upward-sloping supply curves: S1 (a solid line in the middle), S2 (a dashed line to the left/above S1), and S3 (a dotted line to the right/below S1). Blue dots mark the three intersection points along the demand curve D1 where it meets S2, S1, and S3, demonstrating how shifts in the supply curve trace out the demand curve."
+    },
+    "pg_428__page_66_Figure_3.jpeg": {
+        "skip": false,
+        "description": "A line graph illustrating the differences-in-differences estimator across two time periods, t = 1 and t = 2. The vertical axis represents the Outcome (ranging from 0 to 90), and the horizontal axis represents Time period.\n\n- Control Group: Represented by a black line connecting two points. At t = 1, \n\\bar{Y}_{control, before} = 20. At t = 2, \\bar{Y}_{control, after} = 30.\n- Treatment Group (Actual): Represented by a black line connecting two points. At t = 1, \\bar{Y}_{treatment, before} = 40. At t = 2, \\bar{Y}_{treatment, after} = 80.\n- Counterfactual / Parallel Trend (Treatment): Represented by a blue line extending from the treatment before point (40 at t = 1) parallel to the control group line, reaching an outcome value of 50 at t = 2.\n- Differences-in-Differences Estimate: A blue vertical curly bracket measures the distance at t = 2 between the actual treatment outcome (80) and the counterfactual outcome (50), labeled as \\hat{\\beta}_1^{diffs-in-diffs}."
+    },
+    "pg_428__page_68_Figure_3.jpeg": {
+        "skip": false,
+        "description": "A scatter plot illustrating a Sharp Regression Discontinuity design. The horizontal axis represents W (running variable/score), ranging from 1.0 to 4.0, with a threshold value marked at w_0 = 2.0 by a vertical dashed line. The vertical axis represents Y (outcome variable), ranging from 1.0 to 4.0. Black dots represent individual data points. Blue lines show the population regression lines on either side of the threshold. For W < 2.0 (the treatment group), the regression line starts near Y = 2.1 at W = 1.0 and slopes upward to approximately Y = 2.8 at W = 2.0. At W = 2.0, there is a distinct downward jump (discontinuity) where the regression line for W >= 2.0 (the control group) starts lower at approximately Y = 2.1 and slopes upward to about Y = 3.5 at W = 4.0. Annotations label both segment lines as 'Population regression line'."
+    },
+    "pg_428__page_98_Figure_3.jpeg": {
+        "skip": false,
+        "description": "A plot illustrating the components of the ridge regression penalty function plotted against the parameter $b$ on the horizontal axis, which includes tick marks for $-1$, $0$, $\\hat{\\beta}^{\\text{Ridge}}$, $\\hat{\\beta}$, and $2$.\n\nThree curves are displayed:\n1. **$SSR(b)$** (in blue): A parabolic curve reaching its minimum at the ordinary least squares (OLS) estimate $\\hat{\\beta}$. A vertical dashed blue line marks this minimum.\n2. **$\\text{Penalty}(b)$** (in black): A symmetric quadratic penalty curve centered at $b = 0$, where its value is $0$.\n3. **$S^{\\text{Ridge}}(b)$** (in gray): The sum of $SSR(b)$ and $\\text{Penalty}(b)$, forming a combined convex curve that reaches its minimum at $\\hat{\\beta}^{\\text{Ridge}}$, located between $0$ and $\\hat{\\beta}$. A vertical dashed line connects the minimum of $S^{\\text{Ridge}}(b)$ down to the horizontal axis at $\\hat{\\beta}^{\\text{Ridge}}$, visually demonstrating how the penalty shrinks the estimate toward zero relative to the unpenalized OLS estimate $\\hat{\\beta}$."
+    },
+    "pg_428__page_100_Figure_4.jpeg": {
+        "skip": false,
+        "description": "A line plot titled 'Square root of MSPE' showing the relationship between the shrinkage parameter lambda_Ridge (on a logarithmic scale on the x-axis) and the square root of the Mean Squared Prediction Error (MSPE, on the y-axis).\n\n- The vertical y-axis measures the 'Square root of MSPE', ranging from 35 to 51 in increments of 2.\n- The horizontal x-axis represents 'lambda_Ridge' on a log scale, with tick marks at 1, 10, 100, 1000, 10,000, and 100,000.\n- A curved line begins at a high value around 50 when lambda_Ridge is below 10, decreases steadily to reach a minimum value of approximately 39.5 at lambda_Ridge = 2233, and then increases sharply as lambda_Ridge approaches 100,000.\n- A vertical dashed blue line highlights the minimum point of the curve at hat_lambda_Ridge = 2233."
+    },
+    "pg_428__page_102_Figure_4.jpeg": {
+        "skip": false,
+        "description": "A plot illustrating the Lasso optimization function for a single coefficient b. The horizontal axis represents b, labeled with markers at -1, 0, \\hat{\\beta}^{\\text{Lasso}}, \\hat{\\beta}, and 2. The vertical axis represents the function values. Three curves/lines are shown:\n\n1. Penalty(b): A V-shaped, piecewise linear black line touching zero at b = 0, representing the L1 absolute-value penalty |b|.\n2. SSR(b): A smooth cyan curve representing the Sum of Squared Residuals, reaching its minimum at the ordinary least squares estimate \\hat{\\beta}.\n3. S^{\\text{Lasso}}(b): A grey curve representing the sum of SSR(b) and Penalty(b). Its minimum occurs at \\hat{\\beta}^{\\text{Lasso}}, which is shifted closer to 0 compared to \\hat{\\beta}, illustrating the shrinkage effect of the Lasso penalty."
+    },
+    "pg_428__page_102_Figure_5.jpeg": {
+        "skip": false,
+        "description": "A plot depicting the Lasso objective function components as functions of a parameter $b$. The horizontal axis ranges from -1 to 2, labeled with $b$ near the center. The vertical axis crosses at $b = 0$, where the estimated Lasso coefficient $\\hat{\\beta}^{\\text{Lasso}}$ is located at the origin.\n\nThree curves are shown:\n1. Penalty(b): A V-shaped black line with a sharp kink at zero, representing the $L_1$ penalty $|b|$.\n2. SSR(b): A smooth light-blue parabola reaching its minimum at $\\hat{\\beta}$ (marked with a vertical dashed line to the right of zero).\n3. $S^{\\text{Lasso}}(b)$: A gray curve representing the sum of $SSR(b)$ and Penalty(b). It has a minimum at $b = 0$, illustrating how the absolute value penalty pulls the unconstrained estimator $\\hat{\\beta}$ all the way to zero, resulting in $\\hat{\\beta}^{\\text{Lasso}} = 0$."
+    },
+    "pg_428__page_104_Figure_9.jpeg": {
+        "skip": false,
+        "description": "A line plot titled 'Square root of MSPE' on the y-axis against '\\lambda_{Lasso}' on a logarithmic scale on the x-axis. The y-axis ranges from 38 to 46 in increments of 2. The x-axis includes logarithmic tick marks at 100, 1000, 10,000, and 100,000. The blue curve starts near 44 when \\lambda_{Lasso} is slightly above 100, slopes downward with minor fluctuations to reach a global minimum near a y-value slightly below 40. A dashed vertical line marks this minimum point at x = \\hat{\\lambda}_{Lasso} = 4527. Beyond this minimum, the curve steadily increases as \\lambda_{Lasso} increases toward 100,000, reaching a value near 45."
+    },
+    "pg_428__page_106_Figure_4.jpeg": {
+        "skip": false,
+        "description": "A scatterplot illustrating Principal Component Analysis (PCA) on two correlated standard normal variables, X1 and X2, with a correlation of 0.7. The horizontal axis represents X1 ranging from -4 to 4, and the vertical axis represents X2 ranging from -4 to 4, intersecting at the origin (0,0).\n\nLight blue data points are scattered along a diagonal path from bottom-left to top-right. Two principal component axes pass through the origin:\n1. PC1 = (X1 + X2) / sqrt(2), represented as a blue line along the major axis of variation (slope = 1). Overlaying this axis is a blue bell-shaped curve showing the distribution (spread) of points along the first principal component.\n2. PC2 = (X1 - X2) / sqrt(2), represented as a black line perpendicular to PC1 (slope = -1). Overlaying this axis is a narrower black bell-shaped curve illustrating the smaller variation along the second principal component."
+    },
+    "pg_428__page_109_Figure_2.jpeg": {
+        "skip": false,
+        "description": "A scree plot showing the fraction of total variance of X explained by the first 50 principal components. The vertical axis represents the 'Fraction of total variance of X explained' ranging from 0 to 0.20 in increments of 0.02. The horizontal axis represents the 'Principal component number' from 1 to 50 (labeled at odd integers 1, 3, 5, ..., 49). The first principal component accounts for 0.18 of the total variance, followed by the second at approximately 0.11, the third at around 0.065, the fourth at 0.056, and fifth at 0.049. The values steadily decrease and level off near zero as the component number approaches 50."
+    },
+    "pg_428__page_110_Figure_4.jpeg": {
+        "skip": false,
+        "description": "A line plot titled \"Square root of MSPE\" vs. \"Principal component number (p)\". The vertical axis (Square root of MSPE) ranges from 35 to 60, with ticks at 35, 40, 45, 50, 55, and 60. The horizontal axis (Principal component number) ranges from 0 to 60, with major tick marks labeled 0, 10, 20, 30, 40, 50, and 60. The line starts high near a square root of MSPE of 56 at p = 1, drops sharply down to around 42 by p = 6, then continues to decline gradually, reaching a global minimum near p = 46 (labeled as \\hat{p} = 46 with a dashed vertical line pointing down to the x-axis) at a square root of MSPE just below 40. Beyond p = 46, the line slightly ticks upward toward 40 at p = 60."
+    },
+    "pg_428__page_114_Figure_5.jpeg": {
+        "skip": false,
+        "description": "Four scatterplots comparing actual values to out-of-sample predictions for an 817-predictor dataset across different regression models: (a) Actual vs. OLS prediction, showing high dispersion and weak correlation; (b) Actual vs. Ridge prediction, showing slightly tighter grouping than OLS but still significant variance; (c) Lasso prediction vs. Ridge prediction, showing a tight linear alignment along the diagonal; and (d) Principal components prediction vs. Ridge prediction, also displaying a very strong linear alignment along the diagonal."
+    },
+    "pg_555__page_2_Figure_2.jpeg": {
+        "skip": false,
+        "description": "Figure 15.1 illustrates the logarithm and growth rate of real U.S. GDP from 1960 to 2017 using two stacked line charts. On the left side, text notes that U.S. GDP increased from $3 trillion per year in 1960 to over $17 trillion in 2017 (in 2009 inflation-adjusted dollars), representing an increase of 1.7 log points with varying quarterly growth rates.\n\nGraph (a), labeled 'U.S. GDP ($2009, billions)', plots the logarithm of GDP on the y-axis ranging from 8.0 to 10.0 against time (1960 to 2017) on the x-axis. The line shows an upward trend starting around 8.0 in 1960 and reaching roughly 9.7 by 2017. Vertical blue shaded bars highlight periods of recession.\n\nGraph (b), labeled 'Growth rate in U.S. GDP', plots the percentage growth at an annual rate on the y-axis ranging from -10 to 20 against the same timeline (1960 to 2017). A dashed line marks 0%. The series fluctuates significantly around a positive average, with notable negative spikes corresponding to the shaded recession bars."
+    },
+    "pg_555__page_6_Figure_2.jpeg": {
+        "skip": false,
+        "description": "A set of four line graphs illustrating different economic time series, labeled (a) through (d):\n\n- **(a) U.S. unemployment rate**: Plot of U.S. unemployment percentage over time from 1960 to 2017. The y-axis ranges from 3 to 11 percent. The curve shows cyclical fluctuations, peaking near 10.8% around 1982 and nearly 10% around 2010.\n- **(b) U.S. dollar/British pound exchange rate**: Plot of the exchange rate in dollars per pound from 1960 to 2017. The y-axis ranges from 0.0 to 3.0 dollars per pound. It shows a stable fixed exchange rate near 2.8 until around 1972, followed by a general downward trend and fluctuations between 1.2 and 2.5.\n- **(c) Logarithm of Japan Index of Industrial Production**: Plot of the natural logarithm of Japan's index of industrial production from 1960 to 2017. The y-axis ranges from 2.5 to 5.0. It shows rapid upward growth from 1960 through the 1970s, leveling off around 4.5 to 4.7 after 1990, with a sharp dip around 2008–2009.\n- **(d) Percentage change in daily value of the Wilshire 5000 Total Market Index**: Plot showing daily percentage returns from 1990 to 2020. The y-axis ranges from -10 to 10 percent per day. It displays high-frequency volatility clusters, with extreme negative and positive daily changes peaking around the 2008 financial crisis (reaching approximately -10% and +10%)."
+    },
+    "pg_555__page_15_Figure_4.jpeg": {
+        "skip": false,
+        "description": "A line chart depicting historical interest rates in percent per annum from 1960 to 2017. The vertical axis represents 'Percent per Annum' ranging from 0 to 16, and the horizontal axis represents time in years from 1960 to 2017. Two series are plotted: a black line for the '10-Year Interest Rate' and a light blue line for the '3-Month Interest Rate'. Vertical light blue shaded bars indicate US recession periods. Both rates rise from around 2–4% in 1960 to peak above 14% around 1981–1982, before steadily declining back to low levels (0–2% for the 3-month rate and 2–3% for the 10-year rate) by 2017. Generally, the 3-month rate drops significantly during or immediately after the shaded recession periods."
+    },
+    "pg_555__page_15_Figure_6.jpeg": {
+        "skip": false,
+        "description": "A line graph showing the term spread (in percentage points) from 1960 to 2017. The vertical axis ranges from -2 to 4 percentage points, with a horizontal reference line at 0. Shaded vertical light-blue bars indicate U.S. recession periods (around 1960-1961, 1970, 1974-1975, 1980, 1981-1982, 1990-1991, 2001, and 2007-2009). The term spread line fluctuates generally between -1.5 and 3.8 percentage points, frequently dropping below zero or near zero right before or during economic recessions, and rising back up during recoveries."
+    },
+    "pg_555__page_23_Figure_11.jpeg": {
+        "skip": false,
+        "description": "A line chart titled 'Percentage increase in prices on a year earlier' showing inflation projections from 2012 to 2020. The vertical axis ranges from -2 to 6 percent, with a horizontal reference line at 2 percent. Historical data from 2012 to mid-2016 is depicted as a single solid line starting around 3.5%, dropping below 0% in 2015, and rising back to roughly 1.3% in mid-2016. From mid-2016 to 2019/2020, the forecast is represented by a shaded fan chart ('river of blood' style probability distribution) spreading out over time, indicating increasing uncertainty. The central dark blue band centers around 2% to 3%, while lighter blue bands fan out widely between 0% and 5% by 2019."
+    },
+    "pg_555__page_39_Figure_6.jpeg": {
+        "skip": false,
+        "description": "A line plot titled 'Figure 15.5' showing the sequence of Chow F-statistics for testing structural stability over time from around 1970 to 2008. The horizontal axis represents years from 1960 to 2017, and the vertical axis represents the F-statistic value ranging from 0 to 7. Two dashed horizontal reference lines are drawn: the lower line marks the '5% Critical Value' (approximately 4.7), and the upper line marks the '1% Critical Value' (6.02). The plotted blue line fluctuates over time, crossing above the 5% critical value multiple times between 1970 and 2005. The peak value reaches 6.47 near 1980:Q4, which is highlighted with a pointer and labeled 'QLR Statistic = 6.47', exceeding the 1% critical line."
+    },
+    "pg_555__page_41_Figure_2.jpeg": {
+        "skip": false,
+        "description": "A line graph showing the 'Actual Growth Rate of GDP' compared to the 'Forecast Growth Rate of GDP' from 2003 to 2017. The actual growth rate is depicted by a solid cyan line, while the forecast growth rate from an ADL(2, 2) model is shown as a black dotted line. The shaded region between the two lines represents the 'Forecast Error'. The graph tracks reasonably well during normal years (fluctuating between 0% and 5%), but shows a severe forecast error during the 2008–2009 financial crisis, where actual GDP growth drops sharply to nearly -8.5% while the forecast line stays significantly higher around -1.5% to 2.0%."
+    },
+    "pg_555__page_57_Figure_3.jpeg": {
+        "skip": false,
+        "description": "Three charts labeled (a), (b), and (c) depicting orange juice price data and weather patterns from 1950 to 2000:\n\n- **(a) Price index for frozen concentrated orange juice**: A line plot showing the price index over time (ranging from 0 to 250). It exhibits significant fluctuations, peaking near 200 in the mid-1960s and generally fluctuating between 70 and 150 across the five decades.\n- **(b) Percentage change in the price of frozen concentrated orange juice**: A line plot showing monthly percentage changes in price (ranging from -40% to 50%). It shows high volatility with sharp positive and negative spikes throughout the timeframe, especially before 1970 and around 1977-1985.\n- **(c) Monthly freezing degree days in Orlando, Florida**: A vertical bar plot showing freezing degree days per month (ranging from 0 to 40). Most months have 0 freezing degree days, but notable spikes occur in the late 1950s, mid-1960s, late 1970s, early 1980s (peaking around 37 in 1981), and late 1980s."
+    },
+    "pg_555__page_78_Figure_3.jpeg": {
+        "skip": false,
+        "description": "A line graph titled 'Multiplier' versus 'Lag (in months)'. The y-axis ranges from -0.4 to 1.0 with increments of 0.2, representing the multiplier. The x-axis ranges from 0 to 20 months in increments of 2. A solid blue line depicts the 'Estimated multiplier', starting near 0.5 at lag 0, rapidly dropping to around 0.1 at lag 2, and fluctuating near or slightly below zero (around -0.1 to 0.0) from lag 8 onward to lag 18. Two black lines above and below the blue line represent the 95% confidence interval boundaries. The upper bound starts near 0.75 and levels off near 0.0 to 0.1, while the lower bound starts near 0.25 and drops below zero, reaching a minimum near -0.3 at lag 12, before rising back toward 0.0 by lag 18. A dashed horizontal line indicates the 0.0 multiplier baseline."
+    },
+    "pg_555__page_78_Figure_5.jpeg": {
+        "skip": false,
+        "description": "A line graph showing the estimated cumulative dynamic multiplier over time, with lag measured in months on the horizontal axis (from 0 to 20) and the multiplier on the vertical axis (ranging from -0.4 to 1.6). A central blue line represents the estimated multiplier, which starts around 0.5 at lag 0, rises to a peak near 0.9 between lags 6 and 7, and then gradually declines, leveling off near 0.38 around lag 15 through 18. Two thin black lines surrounding the blue line indicate the 95% confidence interval boundaries. The upper confidence interval bound peaks around 1.33 at lag 7 and remains above 0.9 up through lag 18. The lower confidence interval bound peaks around 0.52 around lags 6-7, then falls below zero around lag 12.5, reaching about -0.2 by lag 18. A dashed horizontal line indicates zero multiplier."
+    },
+    "pg_555__page_80_Figure_3.jpeg": {
+        "skip": false,
+        "description": "A line plot illustrating estimated dynamic multipliers of cold weather (freezes) on orange juice prices across three different time periods, plotted as Multiplier against Lag in months (from 0 to 20 months).\n\n- Y-axis: 'Multiplier', ranging from -0.5 to 2.0 with tick marks at intervals of 0.5 (and a dashed horizontal reference line at 0.0).\n- X-axis: 'Lag (in months)', ranging from 0 to 20 with tick marks every 2 months.\n\nThree curves are displayed:\n1. '1950–1966': Starts near a multiplier of 1.0 at lag 0, drops slightly to ~0.9 at lag 1, then rises sharply to a peak near 1.75 at lag 9. It then drops to around 1.0 at lag 12 and fluctuates around 1.0 through lag 18.\n2. '1967–1983': Starts around 0.55 at lag 0, gradually increases to a peak of about 0.85 around lags 7–9, then very slowly declines to settle around 0.7 to 0.75 by lag 18.\n3. '1984–2000': Starts low near 0.2 at lag 0, rises to about 0.65 at lags 2–5, then steadily decreases, crossing zero between lags 11 and 12, reaching approximately -0.35 at lag 14, and flattening out around -0.4 by lag 18."
+    },
+    "pg_555__page_81_Figure_9.jpeg": {
+        "skip": false,
+        "description": "A line graph titled 'FIGURE 16.4 Orange Grove Acreage in Regions of Florida' plotting orange grove acreage in thousands from 1965 to 2005 against year. The y-axis represents 'Acres (thousands)' ranging from 0 to 800 in increments of 100. The x-axis represents 'Year' labeled from 1965 to 2005 in 5-year increments.\n\nTwo lines are plotted:\n1. 'Southern and central counties' (light blue line with dots): Starts at around 410 thousand acres in 1969, slightly drops to about 380 thousand in 1977, rises gradually to about 415 thousand in 1985, increases sharply to nearly 600 thousand around 1993, levels off briefly, and then climbs steeply to over 760 thousand acres by 2000.\n2. 'Northern and western counties' (dark grey/black line with dots): Starts at approximately 305 thousand acres in 1969, drops to around 235 thousand in 1981, experiences a sharp decline down to about 50 thousand acres by 1985, and remains low (below 100 thousand acres) through 2000."
+    },
+    "pg_555__page_107_Figure_3.jpeg": {
+        "skip": false,
+        "description": "A line plot titled \"Logarithm\" on the y-axis, depicting a trend from 1960 to 2017 along the x-axis. The y-axis ranges from 2.75 to 4.75 in increments of 0.25. The line shows a continuous, mostly upward trajectory starting around 2.85 in 1960, accelerating sharply between the mid-1970s and mid-1980s up to approximately 4.0, and then steadily rising at a flatter slope through 2017, reaching nearly 4.75, with a minor dip around 2008."
+    },
+    "pg_555__page_107_Figure_5.jpeg": {
+        "skip": false,
+        "description": "A line graph plotted over time from 1960 to 2017 with the vertical axis labeled 'Percent per annum' ranging from -6 to 12. The graph displays high volatility in the 1970s and early 1980s, reaching two distinct peaks near 12 percent per annum around 1974 and 1980. After 1984, the rate stabilizes mostly between 0 and 5 percent per annum, with a sharp negative drop reaching approximately -6 percent around the year 2009, followed by a quick recovery back into the 0 to 4 percent range."
+    },
+    "pg_555__page_113_Figure_8.jpeg": {
+        "skip": false,
+        "description": "A line plot titled \"Percent per day\" showing daily percentage price changes in the Wilshire 5000 Total Market Index from 1990 to 2017. The horizontal axis represents years (1990, 1995, 2000, 2005, 2010, 2015, 2017) and the vertical axis shows percentage change per day ranging from -15 to 15. The plot demonstrates volatility clustering: relatively calm periods with small daily fluctuations around 0 percent (e.g., mid-1990s and 2004–2006) alternate with periods of high volatility characterized by large positive and negative spikes, most prominently around 2008–2009 where daily returns reach above 10 percent and drop near -10 percent."
+    },
+    "pg_555__page_115_Figure_3.jpeg": {
+        "skip": false,
+        "description": "A time-series plot titled 'Percent per day' showing daily percentage changes in stock prices from 2015 to 2018. The vertical axis ranges from -4 to 4 percent per day, with major ticks at integer values. The horizontal axis represents years labeled 2015, 2016, 2017, and 2018. Highly volatile grey spikes depict daily price changes centered around zero, extending occasionally to nearly +4% and -4% (notably in late 2015 and mid-2016). Overlaid on top and bottom are symmetric volatility bands: 20-day realized volatility bands shown in solid black lines, and GARCH(1,1) model estimated volatility bands shown in dark blue lines. The bands widen during periods of high price fluctuation (e.g., late 2015 and early 2016) and narrow significantly during quieter market periods (e.g., throughout 2017), illustrating time-varying conditional volatility and ARCH/GARCH effects."
+    },
+    "pg_555__page_124_Figure_3.jpeg": {
+        "skip": false,
+        "description": "A bar chart titled 'Fraction of total variance of X explained' plotted against 'Factor number (principal component number)' from 1 to 30. The vertical axis shows the fraction ranging from 0 to 0.2 in increments of 0.05. Factor 1 explains approximately 0.20 (20%) of the variance. Factor 2 explains about 0.09, Factor 3 explains around 0.06, Factor 4 explains about 0.045, and Factor 5 explains about 0.035. As the factor number increases from 6 to 30, the fraction of explained variance gradually diminishes towards approximately 0.01."
+    },
+    "pg_555__page_125_Figure_3.jpeg": {
+        "skip": false,
+        "description": "Four line charts illustrating actual macroeconomic time series (in black) alongside their estimated common components (in blue) based on a four-factor Dynamic Factor Model (DFM) from 1960 to 2017:\n\n- (a) Real GDP: Plots annual percentage growth over time, ranging from -7.5% to 10.0%. The blue common component closely tracks the black actual series, showing key downturns around 1974, 1980–1982, and a sharp drop during the 2008–2009 Great Recession.\n- (b) Employment: Plots percentage change in employment, ranging from -6% to 6%. The common component tightly fits the actual data throughout the sample period, capturing major cyclical troughs (e.g., mid-1970s, early 1980s, and 2008–2009).\n- (c) Oil prices: Plots percentage changes from -100% to 100%. Shows high volatility in the black series with sharp spikes (e.g., around 1974, 2000, 2008) and drops. The blue common component captures the broader trend swings but is smoother and less extreme than the actual series.\n- (d) Stock prices: Plots percentage returns from -50% to 40%. Features high short-term fluctuations in black, with the blue line capturing the underlying shared factor movements across economic cycles, including deep declines in the mid-1970s and 2008."
+    },
+    "pg_555__page_126_Picture_8.jpeg": {
+        "skip": false,
+        "description": "A portrait photo of econometrician Clive W. J. Granger, co-winner of the 2003 Nobel Memorial Prize in Economic Sciences, showing him with a light beard and mustache, wearing a striped shirt."
+    },
+    "pg_555__page_126_Picture_11.jpeg": {
+        "skip": false,
+        "description": "A black and white portrait photo of econometrician Clive W. J. Granger, co-recipient of the 2003 Nobel Memorial Prize in Economic Sciences."
+    },
+    "pg_555__page_127_Picture_10.jpeg": {
+        "skip": false,
+        "description": "A portrait photograph of economist Lars Peter Hansen, wearing glasses, a suit jacket, dress shirt, and tie."
+    },
+    "pg_555__page_127_Picture_8.jpeg": {
+        "skip": true,
+        "description": ""
+    },
+    "pg_688__page_76_Figure_2.jpeg": {
+        "skip": false,
+        "description": "A standard normal distribution curve (bell curve) centered at 0. A vertical line marks a positive z-value to the right of 0. The entire region under the curve to the left of z is shaded light blue and labeled 'Area = Pr(Z <= z)'. Below the horizontal axis, the label reads 'Second Decimal Value of z'."
+    },
+    "pg_688__page_80_Figure_3.jpeg": {
+        "skip": false,
+        "description": "A right-skewed probability density curve plotted against a horizontal axis starting at 0. A vertical line on the right tail marks the 'Critical Value'. The shaded region under the curve to the right of this vertical line is pointed to by a line labeled 'Area = Significance Level'. The horizontal axis label below the critical value is 'Significance Level'."
+    }
+}

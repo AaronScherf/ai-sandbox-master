@@ -5,7 +5,7 @@ Markdown using the [Marker](https://github.com/VikParuchuri/marker)
 layout/OCR model, run on a spot GPU VM in Google Cloud — the most expensive
 step in this whole project, so it's reserved for files that actually need
 GPU-grade layout parsing (a few hundred pages, multi-column, heavy math),
-not short documents. See the root [`gcp_instructions.md`](../gcp_instructions.md)
+not short documents. See the root [`gcp_instructions.md`](../convert_textbook_instructions.md)
 for the full step-by-step guide (one-time GCP setup, VM creation, running a
 batch, troubleshooting) — this file is a quick orientation, not a
 replacement for it.

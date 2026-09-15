@@ -1,0 +1,18 @@
+{
+    "total_pages_processed": 801,
+    "processing_time_seconds": 591.6,
+    "source_pdf_document_info": {
+        "title": "",
+        "author": "",
+        "year": ""
+    },
+    "markdown_parsed_info": {
+        "title": "Question Help",
+        "author": "",
+        "year": ""
+    },
+    "source_pdf_path": "../academic-rag-model/temp_gcs_input_Introduction_To_Econometrics_Ebook_Global_Edition_James_H__Stock_Mark_W__Watson_4th_ed_Harlow_United_Kingdom_2019.pdf",
+    "source_pdf_file_id": "4785b5bc00681ea2",
+    "rag_md_path": "academic_resources/econometrics/textbooks/processed_outputs/Stock_Question_Help_2019/Stock_Question_Help_2019.rag.md",
+    "source_pdf_filename": "Introduction To Econometrics, Ebook, Global Edition -- James H_ Stock, Mark W_ Watson -- 4th ed, Harlow, United Kingdom, 2019.pdf"
+}

@@ -785,6 +785,7 @@
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-09-09T04:12:38.725671+00:00",
     "content_hash": "0f987599ba3ca99d",
-    "needs_indexing": false
+    "needs_indexing": false,
+    "orphaned": true
   }
 ]

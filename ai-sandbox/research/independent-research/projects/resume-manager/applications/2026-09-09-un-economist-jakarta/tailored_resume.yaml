@@ -1,0 +1,162 @@
+contact:
+  name: Aaron Scherf
+  location: Not specified
+  email: Not specified
+  linkedin_url: Not specified
+  github_url: Not specified
+  website_url: Not specified
+work_experience:
+- id: u-s-agency-for-international-development-1
+  org: U.S. Agency for International Development
+  role: Foreign Service Officer - Monitoring, Evaluation, Learning Team Lead (FS 3-5)
+  location: Kyiv, Ukraine
+  start_date: 06/2020
+  end_date: 07/2025
+  bullets:
+  - Researches, analyzes, consolidates, and presents information and data on emerging
+    best practices in SDG acceleration, particularly related to $450M credit facilitation
+    program for small farmers and cost-effectiveness analysis.
+  - Provides advice on global/corporate guidelines and tools related to SDG acceleration,
+    economic transformation, and SDG financing, including financial modeling and cost-benefit
+    analysis for $1.5M randomized control trial.
+- id: u-s-agency-for-international-development-2
+  org: U.S. Agency for International Development
+  role: Foreign Service Officer - Gender Equity and Program Design Officer (FS 4-9)
+  location: Bogota, Colombia
+  start_date: Not specified
+  end_date: Not specified
+  bullets:
+  - Researches, analyzes, consolidates, and presents information and data on emerging
+    best practices in SDG acceleration, including smallholder agriculture and environmental
+    conservation programs.
+  - Provides guidance on SDG-related issues, particularly on policies to accelerate
+    the achievement of SDGs through incorporating a systems approach, and evaluates
+    and highlights potential synergies and trade-offs between SDGs, including gender
+    and leave no one behind principles.
+- id: u-s-agency-for-international-development-3
+  org: U.S. Agency for International Development
+  role: Foreign Service Officer - Program Officer Rotations (FS 5-12)
+  location: Washington, DC, USA
+  start_date: Not specified
+  end_date: Not specified
+  bullets:
+  - Researches, analyzes, and presents best practices and lessons learned from implementation
+    of UN policy initiatives and programming for SDG acceleration, particularly on
+    developing new budget data processing and visualization tools using Python and
+    Tableau.
+  - Collects and analyzes data on UN country-level operations in support of SDG acceleration
+    and the implementation of the economic transformation agenda, including identifying
+    gaps and proposing follow-up actions.
+education:
+- institution: Georgia Institute of Technology
+  degree: Master of Science in Computer Science
+  gpa: '3.88'
+  location: Atlanta, GA, USA
+  start_date: 01/2022
+  end_date: 12/2025
+  thesis: Not specified
+  id: georgia-institute-of-technology-1
+- institution: Indiana State University
+  degree: Master of Science in Mathematics
+  gpa: '3.85'
+  location: Terre Haute, IN, USA
+  start_date: 05/2021
+  end_date: 05/2024
+  thesis: Novel Omnibus Normality Test and Power Comparison with the Shapiro-Wilk
+  id: indiana-state-university-1
+- institution: University of California, Berkeley
+  degree: Master of Science in Development Practice
+  gpa: '3.94'
+  location: Berkeley, CA, USA
+  start_date: 07/2018
+  end_date: 05/2020
+  thesis: Predicting the Yield of CIMMYT Wheat Genotypes via Remote Sensing and Machine
+    Learning
+  id: university-of-california-berkeley-1
+- institution: Heidelberg University
+  degree: Master of Science (audited) in Economics
+  gpa: Not specified
+  location: Heidelberg, DE
+  start_date: 07/2017
+  end_date: 06/2018
+  thesis: Not specified
+  id: heidelberg-university-1
+- institution: Mercer University
+  degree: Bachelor in Finance and Economics
+  gpa: '3.91'
+  location: Macon, GA, USA
+  start_date: 08/2013
+  end_date: 05/2017
+  thesis: Not specified
+  id: mercer-university-1
+awards:
+- name: Donald M. Payne Fellow
+  description: $100,000 fellowship with USAID
+  date: 05/2017
+- name: Fulbright Scholar
+  description: Research Fellow at ZEW / Heidelberg, DE
+  date: 05/2017
+- name: Humanity in Action Senior Fellow
+  description: in partnership with Amnesty International
+  date: 05/2017
+- name: Stamps Foundation Leadership Scholar
+  description: $240,000 merit scholarship
+  date: 05/2013
+publications:
+- title: Applications of PCA for Mapping Regional Socioeconomic Vulnerability Indices
+  date: 12/2019
+  venue: 'UC Berkeley: Data for Human Mobility Lab'
+  link: Not specified
+- title: 'Integration Progress: Results from two Reallabor Surveys of Asylum Seekers'
+  date: 08/2018
+  venue: Centre for European Economic Research (ZEW)
+  link: https://www.econstor.eu/handle/10419/231442
+- title: Gentrification or Revitalization? Ethical Investment in Urban Property Development
+  date: 04/2017
+  venue: National Conference on Undergraduate Research
+  link: Not specified
+- title: Economic Impact Assessment of Historic Property Rehabilitation in Macon,
+    GA
+  date: 04/2017
+  venue: Society of Business, Industry, and Economics Conference
+  link: Not specified
+- title: “OurBlock” - Blockchain Based Property Registry for South African Land Reform
+  date: 03/2017
+  venue: Harvard Social Entrepreneurship Pitch Competition
+  link: Not specified
+- title: “How to Kill a Microfinance Fund” – Analysis of Microcredit Policy in South
+    Africa
+  date: 10/2016
+  venue: Southern Conference Undergraduate Research Forum
+  link: Not specified
+- title: “Bloomfield 2020” – Neighborhood Economic Development Plan
+  date: 04/2016
+  venue: Clinton Global Initiative University at Berkeley, CA
+  link: Not specified
+skills:
+- category: Computer Programming and Artificial Intelligence
+  items:
+  - Python
+  - R
+  - JavaScript
+  - Stata
+  - MatLab
+  - Excel
+  - Machine Learning
+  - Natural Language Processing
+  - Artificial Neural Networks
+- category: Applied Economic Research
+  items:
+  - GIS Analysis (ArcGIS / GEE)
+  - Applied Econometrics
+  - Mathematical Statistics
+  - Labor Economic Research
+  - Applied Mathematics
+  - Development Economics
+- category: Languages and Other
+  items:
+  - Spanish - Professional
+  - German - Intermediate
+  - Program Evaluation
+  - Empirical Policy Analysis
+  - Information Communications Technology
