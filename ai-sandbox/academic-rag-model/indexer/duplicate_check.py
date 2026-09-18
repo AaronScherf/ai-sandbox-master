@@ -13,9 +13,11 @@ Spec: docs/superpowers/specs/2026-09-17-cross-course-duplicate-textbook-detectio
 from __future__ import annotations
 
 import difflib
+import os
 import re
+import sys
 
-from indexer.index_card import compute_file_id, find_card_by_file_id
+from indexer.index_card import compute_file_id, find_card_by_file_id, list_courses, load_shard
 
 # A card only stores `title` (from generate_index_card()'s LLM/regex
 # tiers) -- never author/year as their own fields. The candidate side of
@@ -104,3 +106,38 @@ def find_exact_duplicate(academic_hub_root: str, pdf_path: str, current_course: 
     if course == current_course:
         return None
     return course, card
+
+
+def find_fuzzy_candidates(academic_hub_root: str, incoming: dict, current_course: str) -> list[dict]:
+    """Tier 2 (spec §3): scores `incoming` (a bib_info-shaped
+    {"title","author","year"} dict) against every textbook card in every
+    *other* course. A card that can't be scored (malformed `path`, missing
+    `title`) is skipped with a warning rather than aborting the whole scan
+    (spec §6's error-isolation rule) -- same for a course whose shard file
+    itself fails to load."""
+    results = []
+    for course in list_courses(academic_hub_root):
+        if course == current_course:
+            continue
+        try:
+            cards = load_shard(academic_hub_root, course)
+        except Exception as err:
+            print(f"WARNING: could not load shard for course {course!r} ({err}); skipping its candidates.", file=sys.stderr)
+            continue
+
+        for card in cards:
+            if card.get("doc_type") != "textbook":
+                continue
+            try:
+                folder_name = os.path.basename(os.path.dirname(card["path"]))
+                author, year = parse_author_year_from_folder_name(folder_name)
+                scores = score_candidate(incoming, card.get("title", ""), author, year)
+            except Exception as err:
+                print(f"WARNING: could not score candidate {card.get('path')!r} in course {course!r} ({err}); skipping.", file=sys.stderr)
+                continue
+
+            if scores["combined"] >= SURFACE_THRESHOLD:
+                results.append({"course": course, "card": card, **scores})
+
+    results.sort(key=lambda r: r["combined"], reverse=True)
+    return results

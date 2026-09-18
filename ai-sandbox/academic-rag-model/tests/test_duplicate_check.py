@@ -1,6 +1,8 @@
 import os
+import sys
 import tempfile
 import unittest
+from io import StringIO
 
 from indexer.duplicate_check import (
     normalize_title,
@@ -8,6 +10,7 @@ from indexer.duplicate_check import (
     score_candidate,
     SURFACE_THRESHOLD,
     find_exact_duplicate,
+    find_fuzzy_candidates,
 )
 from indexer.index_card import save_shard
 
@@ -123,6 +126,83 @@ class TestFindExactDuplicate(unittest.TestCase):
             self._write_pdf(pdf_path, content=b"%PDF-1.4 never seen before")
             result = find_exact_duplicate(academic_hub_root, pdf_path, current_course="microecon")
             self.assertIsNone(result)
+
+
+class TestFindFuzzyCandidates(unittest.TestCase):
+    def _card(self, folder_name, title, doc_type="textbook", course="econometrics"):
+        return {
+            "file_id": f"fid-{folder_name}", "path": f"{course}/textbooks/processed_outputs/{folder_name}/{folder_name}.md",
+            "source_pdf_path": f"academic_resources/{course}/textbooks/x.pdf", "course": course,
+            "doc_type": doc_type, "title": title,
+        }
+
+    def test_finds_and_ranks_candidates_above_threshold(self):
+        with tempfile.TemporaryDirectory() as academic_hub_root:
+            save_shard(academic_hub_root, "econometrics", [
+                self._card("Ok_RealAnalysisWithEconomicApplications_2007", "Real Analysis with Economic Applications"),
+                self._card("Garcia_SpanishGrammar_2015", "Introduction to Spanish Grammar"),
+            ])
+            incoming = {"title": "Real Analysis with Economic Applications", "author": "Ok", "year": "2007"}
+
+            results = find_fuzzy_candidates(academic_hub_root, incoming, current_course="microecon")
+
+            self.assertEqual(len(results), 1)
+            self.assertEqual(results[0]["course"], "econometrics")
+            self.assertEqual(results[0]["card"]["title"], "Real Analysis with Economic Applications")
+
+    def test_excludes_non_textbook_doc_types(self):
+        with tempfile.TemporaryDirectory() as academic_hub_root:
+            save_shard(academic_hub_root, "econometrics", [
+                self._card("Ok_RealAnalysisWithEconomicApplications_2007", "Real Analysis with Economic Applications", doc_type="problem_set"),
+            ])
+            incoming = {"title": "Real Analysis with Economic Applications", "author": "Ok", "year": "2007"}
+            results = find_fuzzy_candidates(academic_hub_root, incoming, current_course="microecon")
+            self.assertEqual(results, [])
+
+    def test_excludes_current_course(self):
+        with tempfile.TemporaryDirectory() as academic_hub_root:
+            save_shard(academic_hub_root, "microecon", [
+                self._card("Ok_RealAnalysisWithEconomicApplications_2007", "Real Analysis with Economic Applications", course="microecon"),
+            ])
+            incoming = {"title": "Real Analysis with Economic Applications", "author": "Ok", "year": "2007"}
+            results = find_fuzzy_candidates(academic_hub_root, incoming, current_course="microecon")
+            self.assertEqual(results, [])
+
+    def test_similar_titled_different_book_surfaces_for_confirmation(self):
+        # The Mas-Colell/Rubinstein worked example from the spec's Testing
+        # section -- must surface (so a human gets asked), which this test
+        # confirms; Task 6's orchestration is what ensures it's never
+        # auto-skipped.
+        with tempfile.TemporaryDirectory() as academic_hub_root:
+            save_shard(academic_hub_root, "math-methods", [
+                self._card("Rubinstein_LectureNotesInMicroeconomicTheory_2012", "Lecture Notes in Microeconomic Theory", course="math-methods"),
+            ])
+            incoming = {"title": "Microeconomic Theory", "author": "Mas-Colell", "year": "1995"}
+            results = find_fuzzy_candidates(academic_hub_root, incoming, current_course="microecon")
+            self.assertEqual(len(results), 1)
+
+    def test_corrupt_shard_logs_warning_and_is_skipped_not_crashed(self):
+        with tempfile.TemporaryDirectory() as academic_hub_root:
+            index_dir = os.path.join(academic_hub_root, ".index")
+            os.makedirs(index_dir, exist_ok=True)
+            with open(os.path.join(index_dir, "econometrics.json"), "w", encoding="utf-8") as f:
+                f.write("not valid json{{{")
+            save_shard(academic_hub_root, "math-methods", [
+                self._card("Ok_RealAnalysisWithEconomicApplications_2007", "Real Analysis with Economic Applications", course="math-methods"),
+            ])
+            incoming = {"title": "Real Analysis with Economic Applications", "author": "Ok", "year": "2007"}
+
+            captured_stderr = StringIO()
+            old_stderr = sys.stderr
+            sys.stderr = captured_stderr
+            try:
+                results = find_fuzzy_candidates(academic_hub_root, incoming, current_course="microecon")
+            finally:
+                sys.stderr = old_stderr
+
+            self.assertEqual(len(results), 1)
+            self.assertEqual(results[0]["course"], "math-methods")
+            self.assertIn("WARNING", captured_stderr.getvalue())
 
 
 if __name__ == "__main__":
