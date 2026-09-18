@@ -220,8 +220,19 @@ print(f'torch {torch.__version__} | torchvision {torchvision.__version__} | CUDA
 # caught), but not torchaudio being present-and-broken (raises an unguarded
 # OSError instead). So: uninstall it outright rather than leave a broken
 # install sitting there for something downstream to trip over.
+#
+# `sudo` is required here, not optional -- confirmed live: this VM image's
+# preinstalled torchaudio's dist-info lives under
+# /usr/local/lib/python3.10/dist-packages/, owned root:root mode 755, so a
+# plain non-root `pip uninstall` fails with
+# "PermissionError: [Errno 13] Permission denied: 'top_level.txt'" trying to
+# rename/rmtree it. That failure was being silently swallowed by `|| true`
+# on every run (including ones that otherwise "succeeded") -- torchaudio was
+# never actually removed by this line at all until sudo was added. `sudo`
+# resolves the identical /usr/bin/python3 the rest of this script uses (no
+# venv/pyenv on this image), so this doesn't touch a different environment.
 echo "[System] Removing torchaudio (unneeded, and broken in some image builds)."
-python3 -m pip uninstall -y torchaudio -q || true
+sudo python3 -m pip uninstall -y torchaudio -q || true
 
 echo "[System] Freezing preinstalled torch/torchvision versions as pip constraints."
 python3 -c "
@@ -261,7 +272,12 @@ echo "[System] Confirming torchaudio wasn't silently reintroduced as a dependenc
 # than ever tolerate its presence.
 if python3 -m pip show torchaudio >/dev/null 2>&1; then
     echo "[System] torchaudio was reinstalled -- removing it again."
-    python3 -m pip uninstall -y torchaudio -q || true
+    # sudo required -- see the identical note on the first uninstall above.
+    # Verified live: without sudo, this line fails with the same
+    # "Permission denied: 'top_level.txt'" and torchaudio is still present
+    # afterward, which is exactly what the check below now catches instead
+    # of silently passing.
+    sudo python3 -m pip uninstall -y torchaudio -q || true
     if python3 -m pip show torchaudio >/dev/null 2>&1; then
         echo "[FATAL] torchaudio is still present after a second uninstall attempt. Refusing to proceed with a known-broken import trap left in place for real conversion runs -- investigate manually rather than let this pass silently."
         exit 1
