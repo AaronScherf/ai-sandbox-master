@@ -12,14 +12,18 @@ Spec: docs/superpowers/specs/2026-09-17-cross-course-duplicate-textbook-detectio
 """
 from __future__ import annotations
 
+import argparse
 import difflib
+import glob
 import json
 import os
 import re
 import shutil
 import sys
+from pathlib import Path
 
-from indexer.index_card import compute_file_id, compute_id_from_parts, find_card_by_file_id, list_courses, load_shard, now_iso, recompute_course_entry, save_shard
+from indexer.index_card import compute_file_id, compute_id_from_parts, derive_course, find_card_by_file_id, list_courses, load_shard, now_iso, recompute_course_entry, save_shard
+from textbook.bib_info import extract_bibliographic_info_from_filename
 
 # A card only stores `title` (from generate_index_card()'s LLM/regex
 # tiers) -- never author/year as their own fields. The candidate side of
@@ -212,3 +216,150 @@ def copy_duplicate_artifacts(
     save_shard(academic_hub_root, new_course, cards)
     recompute_course_entry(academic_hub_root, new_course)
     return new_card
+
+
+def _default_academic_hub_root() -> str:
+    return str(Path(__file__).resolve().parent.parent.parent / "academic-hub")
+
+
+def _prompt_yes_no(pdf_filename: str, candidate: dict) -> str:
+    """Default interactive prompt -- only reached when non_interactive is
+    False, i.e. a human is at a real terminal. An agent must always pass
+    non_interactive=True (see convert_textbook_agent_instructions.md Step
+    0.3) since this blocks on real stdin."""
+    print(f"\nPossible duplicate: {pdf_filename}")
+    print(f"  matches {candidate['course']}: {candidate['card']['title']} "
+          f"(score {candidate['combined']:.2f}, file_id={candidate['card']['file_id']})")
+    answer = input("  Same book? Skip conversion and copy artifacts? [y/N] ").strip().lower()
+    return "yes" if answer == "y" else "no"
+
+
+def run_duplicate_check(
+    textbook_subdir: str, academic_hub_root: str, non_interactive: bool,
+    resolutions: dict[str, str], prompt_fn=None,
+) -> dict:
+    """The orchestration Tasks 1-5 build up to (spec §1-6). Kept separate
+    from main() so it's directly callable in-process (tests above; also
+    lets a future caller skip the CLI/argparse layer entirely)."""
+    prompt_fn = prompt_fn or _prompt_yes_no
+    current_course = derive_course(textbook_subdir)
+    new_folder_category = textbook_subdir.rstrip("/").split("/")[-1]
+
+    pdf_dir = os.path.join(academic_hub_root, textbook_subdir)
+    pdf_paths = sorted(glob.glob(os.path.join(pdf_dir, "*.pdf")))
+
+    dismissals = load_dismissals(academic_hub_root)
+    to_convert: list[str] = []
+    skipped: list[tuple] = []
+    unresolved: list[dict] = []
+
+    for pdf_path in pdf_paths:
+        pdf_filename = os.path.basename(pdf_path)
+        rel_pdf_path = os.path.relpath(pdf_path, academic_hub_root).replace(os.sep, "/")
+
+        try:
+            exact = find_exact_duplicate(academic_hub_root, pdf_path, current_course)
+        except Exception as err:
+            print(f"WARNING: exact-match check failed for {pdf_filename} ({err}); treating as no match.", file=sys.stderr)
+            exact = None
+
+        if exact is not None:
+            canonical_course, canonical_card = exact
+            copy_duplicate_artifacts(
+                academic_hub_root, canonical_course, canonical_card,
+                current_course, new_folder_category, rel_pdf_path,
+            )
+            skipped.append((pdf_filename, canonical_course, canonical_card["path"], "exact"))
+            continue
+
+        incoming_file_id = compute_file_id(pdf_path)
+        try:
+            incoming_bib = extract_bibliographic_info_from_filename(pdf_path)
+            candidates = find_fuzzy_candidates(academic_hub_root, incoming_bib, current_course)
+        except Exception as err:
+            print(f"WARNING: fuzzy-match check failed for {pdf_filename} ({err}); treating as no match.", file=sys.stderr)
+            candidates = []
+
+        candidates = [c for c in candidates if not is_dismissed(dismissals, incoming_file_id, c["card"]["file_id"])]
+
+        if not candidates:
+            to_convert.append(pdf_filename)
+            continue
+
+        best = candidates[0]
+        decision = resolutions.get(incoming_file_id)
+        if decision is None and not non_interactive:
+            decision = prompt_fn(pdf_filename, best)
+
+        if decision == "yes":
+            copy_duplicate_artifacts(
+                academic_hub_root, best["course"], best["card"],
+                current_course, new_folder_category, rel_pdf_path,
+            )
+            skipped.append((pdf_filename, best["course"], best["card"]["path"], "fuzzy"))
+        elif decision == "no":
+            record_dismissal(academic_hub_root, incoming_file_id, best["card"]["file_id"])
+            dismissals = load_dismissals(academic_hub_root)
+            to_convert.append(pdf_filename)
+        else:
+            to_convert.append(pdf_filename)
+            unresolved.append({"pdf_filename": pdf_filename, "incoming_file_id": incoming_file_id, "candidates": candidates})
+
+    return {"to_convert": to_convert, "skipped": skipped, "unresolved": unresolved}
+
+
+def _print_report(result: dict) -> None:
+    print("\n[Duplicate check]")
+    print(f"  To convert ({len(result['to_convert'])}):")
+    for name in result["to_convert"]:
+        print(f"    - {name}")
+    print(f"  Skipped -- duplicate found, artifacts copied ({len(result['skipped'])}):")
+    for pdf_filename, course, path, tier in result["skipped"]:
+        print(f"    - {pdf_filename}\n      -> {course}: {path} (tier: {tier})")
+    if result["unresolved"]:
+        print(f"  Needs confirmation -- rerun with --resolve ({len(result['unresolved'])}):")
+        for item in result["unresolved"]:
+            print(f"    - {item['pdf_filename']} (incoming file_id={item['incoming_file_id']})")
+            for c in item["candidates"]:
+                print(f"        -> {c['course']}: {c['card']['title']} (score {c['combined']:.2f}, file_id={c['card']['file_id']})")
+
+
+def build_arg_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(
+        description="Cross-course duplicate textbook detection -- run before uploading PDFs "
+                     "for conversion. See docs/superpowers/specs/2026-09-17-cross-course-duplicate-textbook-detection-design.md",
+    )
+    parser.add_argument(
+        "--textbook-subdir", required=True,
+        help="Path relative to academic-hub/, e.g. academic_resources/microecon/textbooks (same value as the conversion instructions' Step 0.2).",
+    )
+    parser.add_argument("--academic-hub-root", default=None, help="Defaults to the academic-hub/ folder next to this project.")
+    parser.add_argument(
+        "--non-interactive", action="store_true",
+        help="Never block on input(); Tier 2 candidates are reported under 'Needs confirmation' and left unresolved unless --resolve is given for them.",
+    )
+    parser.add_argument(
+        "--resolve", action="append", default=[], metavar="FILE_ID=yes|no",
+        help="Apply a decision for one Tier 2 candidate's incoming file_id (repeatable).",
+    )
+    return parser
+
+
+def main() -> None:
+    parser = build_arg_parser()
+    args = parser.parse_args()
+
+    resolutions: dict[str, str] = {}
+    for entry in args.resolve:
+        file_id, sep, decision = entry.partition("=")
+        if not sep or decision not in ("yes", "no"):
+            parser.error(f"--resolve {entry!r} must be FILE_ID=yes or FILE_ID=no")
+        resolutions[file_id] = decision
+
+    academic_hub_root = args.academic_hub_root or _default_academic_hub_root()
+    result = run_duplicate_check(args.textbook_subdir, academic_hub_root, args.non_interactive, resolutions)
+    _print_report(result)
+
+
+if __name__ == "__main__":
+    main()

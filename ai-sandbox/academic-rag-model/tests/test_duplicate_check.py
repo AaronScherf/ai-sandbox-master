@@ -343,5 +343,165 @@ class TestCopyDuplicateArtifacts(unittest.TestCase):
             self.assertEqual(len(new_shard), 1)
 
 
+from indexer.duplicate_check import run_duplicate_check
+from indexer.duplicate_check import build_arg_parser
+
+
+class TestRunDuplicateCheck(unittest.TestCase):
+    def _write_pdf(self, path, content):
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        with open(path, "wb") as f:
+            f.write(content)
+
+    def test_no_candidates_converts_everything(self):
+        with tempfile.TemporaryDirectory() as academic_hub_root:
+            subdir = "academic_resources/microecon/textbooks"
+            self._write_pdf(os.path.join(academic_hub_root, subdir, "New_Book_2020.pdf"), b"brand new content")
+
+            result = run_duplicate_check(subdir, academic_hub_root, non_interactive=True, resolutions={})
+
+            self.assertEqual(result["to_convert"], ["New_Book_2020.pdf"])
+            self.assertEqual(result["skipped"], [])
+
+    def test_exact_duplicate_is_skipped_and_copied_without_any_prompt(self):
+        with tempfile.TemporaryDirectory() as academic_hub_root:
+            subdir = "academic_resources/microecon/textbooks"
+            pdf_path = os.path.join(academic_hub_root, subdir, "Ok.pdf")
+            self._write_pdf(pdf_path, b"%PDF-1.4 identical bytes")
+            from indexer.index_card import compute_file_id
+            file_id = compute_file_id(pdf_path)
+
+            book_dir = os.path.join(academic_hub_root, "econometrics", "textbooks", "processed_outputs", "Ok_RealAnalysis_2007")
+            os.makedirs(book_dir, exist_ok=True)
+            with open(os.path.join(book_dir, "Ok_RealAnalysis_2007.md"), "w", encoding="utf-8") as f:
+                f.write("# Real Analysis")
+            save_shard(academic_hub_root, "econometrics", [{
+                "file_id": file_id, "path": "econometrics/textbooks/processed_outputs/Ok_RealAnalysis_2007/Ok_RealAnalysis_2007.md",
+                "source_pdf_path": "academic_resources/econometrics/textbooks/Ok.pdf", "course": "econometrics",
+                "doc_type": "textbook", "title": "Real Analysis with Economic Applications",
+            }])
+
+            result = run_duplicate_check(subdir, academic_hub_root, non_interactive=True, resolutions={})
+
+            self.assertEqual(result["to_convert"], [])
+            self.assertEqual(len(result["skipped"]), 1)
+            self.assertEqual(result["skipped"][0][0], "Ok.pdf")
+            new_book_dir = os.path.join(academic_hub_root, "microecon", "textbooks", "processed_outputs", "Ok_RealAnalysis_2007")
+            self.assertTrue(os.path.exists(os.path.join(new_book_dir, "Ok_RealAnalysis_2007.md")))
+
+    def test_non_interactive_fuzzy_match_is_left_unresolved_and_kept_in_to_convert(self):
+        with tempfile.TemporaryDirectory() as academic_hub_root:
+            subdir = "academic_resources/microecon/textbooks"
+            self._write_pdf(os.path.join(academic_hub_root, subdir, "Ok_RealAnalysisWithEconomicApplications_2007.pdf"), b"a re-scanned copy, different bytes")
+
+            book_dir = os.path.join(academic_hub_root, "econometrics", "textbooks", "processed_outputs", "Ok_RealAnalysisWithEconomicApplications_2007")
+            os.makedirs(book_dir, exist_ok=True)
+            with open(os.path.join(book_dir, "Ok_RealAnalysisWithEconomicApplications_2007.md"), "w", encoding="utf-8") as f:
+                f.write("# Real Analysis")
+            save_shard(academic_hub_root, "econometrics", [{
+                "file_id": "some-other-fid", "path": "econometrics/textbooks/processed_outputs/Ok_RealAnalysisWithEconomicApplications_2007/Ok_RealAnalysisWithEconomicApplications_2007.md",
+                "source_pdf_path": "academic_resources/econometrics/textbooks/Ok.pdf", "course": "econometrics",
+                "doc_type": "textbook", "title": "Real Analysis with Economic Applications",
+            }])
+
+            result = run_duplicate_check(subdir, academic_hub_root, non_interactive=True, resolutions={})
+
+            self.assertEqual(result["to_convert"], ["Ok_RealAnalysisWithEconomicApplications_2007.pdf"])
+            self.assertEqual(len(result["unresolved"]), 1)
+
+    def test_resolve_yes_skips_and_copies(self):
+        with tempfile.TemporaryDirectory() as academic_hub_root:
+            subdir = "academic_resources/microecon/textbooks"
+            pdf_path = os.path.join(academic_hub_root, subdir, "Ok_RealAnalysisWithEconomicApplications_2007.pdf")
+            self._write_pdf(pdf_path, b"a re-scanned copy, different bytes")
+            from indexer.index_card import compute_file_id
+            incoming_file_id = compute_file_id(pdf_path)
+
+            book_dir = os.path.join(academic_hub_root, "econometrics", "textbooks", "processed_outputs", "Ok_RealAnalysisWithEconomicApplications_2007")
+            os.makedirs(book_dir, exist_ok=True)
+            with open(os.path.join(book_dir, "Ok_RealAnalysisWithEconomicApplications_2007.md"), "w", encoding="utf-8") as f:
+                f.write("# Real Analysis")
+            save_shard(academic_hub_root, "econometrics", [{
+                "file_id": "some-other-fid", "path": "econometrics/textbooks/processed_outputs/Ok_RealAnalysisWithEconomicApplications_2007/Ok_RealAnalysisWithEconomicApplications_2007.md",
+                "source_pdf_path": "academic_resources/econometrics/textbooks/Ok.pdf", "course": "econometrics",
+                "doc_type": "textbook", "title": "Real Analysis with Economic Applications",
+            }])
+
+            result = run_duplicate_check(
+                subdir, academic_hub_root, non_interactive=True,
+                resolutions={incoming_file_id: "yes"},
+            )
+
+            self.assertEqual(result["to_convert"], [])
+            self.assertEqual(len(result["skipped"]), 1)
+
+    def test_resolve_no_dismisses_and_keeps_in_to_convert_without_reprompting(self):
+        with tempfile.TemporaryDirectory() as academic_hub_root:
+            subdir = "academic_resources/microecon/textbooks"
+            pdf_path = os.path.join(academic_hub_root, subdir, "Ok_RealAnalysisWithEconomicApplications_2007.pdf")
+            self._write_pdf(pdf_path, b"a re-scanned copy, different bytes")
+            from indexer.index_card import compute_file_id
+            incoming_file_id = compute_file_id(pdf_path)
+
+            book_dir = os.path.join(academic_hub_root, "econometrics", "textbooks", "processed_outputs", "Ok_RealAnalysisWithEconomicApplications_2007")
+            os.makedirs(book_dir, exist_ok=True)
+            with open(os.path.join(book_dir, "Ok_RealAnalysisWithEconomicApplications_2007.md"), "w", encoding="utf-8") as f:
+                f.write("# Real Analysis")
+            save_shard(academic_hub_root, "econometrics", [{
+                "file_id": "some-other-fid", "path": "econometrics/textbooks/processed_outputs/Ok_RealAnalysisWithEconomicApplications_2007/Ok_RealAnalysisWithEconomicApplications_2007.md",
+                "source_pdf_path": "academic_resources/econometrics/textbooks/Ok.pdf", "course": "econometrics",
+                "doc_type": "textbook", "title": "Real Analysis with Economic Applications",
+            }])
+
+            result = run_duplicate_check(
+                subdir, academic_hub_root, non_interactive=True,
+                resolutions={incoming_file_id: "no"},
+            )
+            self.assertEqual(result["to_convert"], ["Ok_RealAnalysisWithEconomicApplications_2007.pdf"])
+
+            # Second run: same pair, no resolution given -- must not be
+            # surfaced as unresolved again (spec §4).
+            result_2 = run_duplicate_check(subdir, academic_hub_root, non_interactive=True, resolutions={})
+            self.assertEqual(result_2["to_convert"], ["Ok_RealAnalysisWithEconomicApplications_2007.pdf"])
+            self.assertEqual(result_2["unresolved"], [])
+
+    def test_interactive_mode_uses_prompt_fn(self):
+        with tempfile.TemporaryDirectory() as academic_hub_root:
+            subdir = "academic_resources/microecon/textbooks"
+            pdf_path = os.path.join(academic_hub_root, subdir, "Ok_RealAnalysisWithEconomicApplications_2007.pdf")
+            self._write_pdf(pdf_path, b"a re-scanned copy, different bytes")
+
+            book_dir = os.path.join(academic_hub_root, "econometrics", "textbooks", "processed_outputs", "Ok_RealAnalysisWithEconomicApplications_2007")
+            os.makedirs(book_dir, exist_ok=True)
+            with open(os.path.join(book_dir, "Ok_RealAnalysisWithEconomicApplications_2007.md"), "w", encoding="utf-8") as f:
+                f.write("# Real Analysis")
+            save_shard(academic_hub_root, "econometrics", [{
+                "file_id": "some-other-fid", "path": "econometrics/textbooks/processed_outputs/Ok_RealAnalysisWithEconomicApplications_2007/Ok_RealAnalysisWithEconomicApplications_2007.md",
+                "source_pdf_path": "academic_resources/econometrics/textbooks/Ok.pdf", "course": "econometrics",
+                "doc_type": "textbook", "title": "Real Analysis with Economic Applications",
+            }])
+
+            result = run_duplicate_check(
+                subdir, academic_hub_root, non_interactive=False, resolutions={},
+                prompt_fn=lambda pdf_filename, candidate: "yes",
+            )
+            self.assertEqual(len(result["skipped"]), 1)
+
+
+class TestBuildArgParser(unittest.TestCase):
+    def test_requires_textbook_subdir(self):
+        parser = build_arg_parser()
+        with self.assertRaises(SystemExit):
+            parser.parse_args([])
+
+    def test_resolve_can_repeat(self):
+        parser = build_arg_parser()
+        args = parser.parse_args([
+            "--textbook-subdir", "academic_resources/microecon/textbooks",
+            "--non-interactive", "--resolve", "aaa=yes", "--resolve", "bbb=no",
+        ])
+        self.assertEqual(args.resolve, ["aaa=yes", "bbb=no"])
+
+
 if __name__ == "__main__":
     unittest.main()
