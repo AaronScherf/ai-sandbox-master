@@ -27,7 +27,7 @@ SETUP_MARKER="$HOME/.marker_setup_complete"
 # provisioned before, say, google-genai was added here would keep skipping
 # setup forever and silently never get it, degrading (not breaking) whatever
 # feature needed it.
-SETUP_VERSION="6"
+SETUP_VERSION="7"
 
 on_error() {
     local exit_code=$?
@@ -56,6 +56,16 @@ quick_verify_existing_setup() {
     sudo docker info >/dev/null 2>&1 || return 1
     python3 -c "import torch, torchvision, marker, google.genai" >/dev/null 2>&1 || return 1
     python3 -c "import torch, sys; sys.exit(0 if torch.cuda.is_available() else 1)" >/dev/null 2>&1 || return 1
+    # torchaudio must stay genuinely absent, not just importable -- a
+    # present-but-ABI-broken torchaudio doesn't fail any of the checks
+    # above (nothing here imports it), but crashes surya's ocr_error
+    # server the moment a real conversion run needs it, silently
+    # degrading every page to a bare PyPDF fallback. `pip show` (metadata
+    # only, no import) is used instead of `import torchaudio` specifically
+    # so this check itself can't be the thing that crashes on a broken
+    # native extension. Confirmed live: this exact state passed every
+    # other check here and still ruined a real conversion run.
+    python3 -m pip show torchaudio >/dev/null 2>&1 && return 1
     # nvidia/cuda:12.9.0-base-ubuntu22.04 was already pulled as a side effect
     # of the GPU-visibility smoke test in the full build below, so this is a
     # cached-image run, not a fresh pull.
@@ -233,23 +243,33 @@ echo "[System] Re-verifying torch still resolves correctly after marker-pdf's in
 python3 -c "import torch; print('torch OK:', torch.__version__, '| CUDA:', torch.cuda.is_available())"
 
 echo "[System] Confirming torchaudio wasn't silently reintroduced as a dependency."
-# Catches OSError alongside ImportError -- confirmed live: marker-pdf's
-# install reintroduces an ABI-incompatible torchaudio (the exact failure
-# mode described in the comment above this uninstall, which this check
-# forgot to apply to itself) as a transitive dependency (of transformers,
-# pulled in by surya-ocr), and importing it then raises OSError from
-# ctypes.CDLL on the native extension, not ImportError. Before this fix,
-# that OSError escaped uncaught here and (with `set -e`) took down the
-# whole provisioning run for something this pipeline never needed in the
-# first place -- reproduced identically on two separate freshly-created
-# VMs, so it's deterministic, not disk-state corruption.
-python3 -c "
-try:
-    import torchaudio
-    print('WARNING: torchaudio got reinstalled by marker-pdf/transformers. Version:', torchaudio.__version__)
-except (ImportError, OSError) as err:
-    print(f'OK: torchaudio absent or non-importable, as expected ({err!r}).')
-"
+# `pip show` is a metadata check, not an import -- it can't itself crash on
+# a broken native extension, unlike the `import torchaudio` this replaced.
+# marker-pdf's install reliably reintroduces an ABI-incompatible torchaudio
+# as a transitive dependency (of transformers, pulled in by surya-ocr).
+# Confirmed live, the hard way: an earlier version of this script only
+# warned when that happened instead of removing it again -- the warning
+# made the *setup script* pass cleanly, but the present-but-broken
+# torchaudio was still sitting there for real conversion code to hit. It
+# did: surya's ocr_error server (loaded via transformers.audio_utils'
+# unconditional `import torchaudio`) crashed on every single page of a
+# live 987-page conversion run, silently degrading every page to a bare
+# PyPDF fallback with no fatal error anywhere -- the run looked like it
+# was working the whole time. This pipeline never uses torchaudio at all
+# (see the comment on the first uninstall above), so the fix is to just
+# remove it again, as many times as marker-pdf reintroduces it, rather
+# than ever tolerate its presence.
+if python3 -m pip show torchaudio >/dev/null 2>&1; then
+    echo "[System] torchaudio was reinstalled -- removing it again."
+    python3 -m pip uninstall -y torchaudio -q || true
+    if python3 -m pip show torchaudio >/dev/null 2>&1; then
+        echo "[FATAL] torchaudio is still present after a second uninstall attempt. Refusing to proceed with a known-broken import trap left in place for real conversion runs -- investigate manually rather than let this pass silently."
+        exit 1
+    fi
+    echo "[System] Confirmed torchaudio is now genuinely absent."
+else
+    echo "[System] OK: torchaudio absent, as expected."
+fi
 
 # ---------------------------------------------------------------------------
 # Pre-pull surya's vLLM inference server image now, during setup, rather
