@@ -16,9 +16,10 @@ import difflib
 import json
 import os
 import re
+import shutil
 import sys
 
-from indexer.index_card import compute_file_id, find_card_by_file_id, list_courses, load_shard, now_iso
+from indexer.index_card import compute_file_id, compute_id_from_parts, find_card_by_file_id, list_courses, load_shard, now_iso, recompute_course_entry, save_shard
 
 # A card only stores `title` (from generate_index_card()'s LLM/regex
 # tiers) -- never author/year as their own fields. The candidate side of
@@ -177,3 +178,37 @@ def record_dismissal(academic_hub_root: str, file_id_a: str, file_id_b: str) -> 
     a, b = sorted([file_id_a, file_id_b])
     dismissals.append({"file_id_a": a, "file_id_b": b, "dismissed_at": now_iso()})
     save_dismissals(academic_hub_root, dismissals)
+
+
+def copy_duplicate_artifacts(
+    academic_hub_root: str, canonical_course: str, canonical_card: dict,
+    new_course: str, new_folder_category: str, new_source_pdf_path: str,
+) -> dict:
+    """Copies a confirmed duplicate's processed_outputs/<BookDir>/ tree
+    into the new course and clones its index card (spec §5). The canonical
+    card/files are never modified -- this only ever reads from the
+    canonical location and writes to the new one."""
+    canonical_book_dir = os.path.join(academic_hub_root, os.path.normpath(os.path.dirname(canonical_card["path"])))
+    folder_name = os.path.basename(canonical_book_dir)
+
+    new_processed_outputs_dir = os.path.join(academic_hub_root, new_course, new_folder_category, "processed_outputs")
+    new_book_dir = os.path.join(new_processed_outputs_dir, folder_name)
+    os.makedirs(new_processed_outputs_dir, exist_ok=True)
+    if os.path.exists(new_book_dir):
+        shutil.rmtree(new_book_dir)
+    shutil.copytree(canonical_book_dir, new_book_dir)
+
+    new_file_id = compute_id_from_parts([canonical_card["file_id"], new_course])
+    new_card = dict(canonical_card)
+    new_card["file_id"] = new_file_id
+    new_card["course"] = new_course
+    new_card["path"] = f"{new_course}/{new_folder_category}/processed_outputs/{folder_name}/{folder_name}.md"
+    new_card["source_pdf_path"] = new_source_pdf_path
+    new_card["duplicate_of_file_id"] = canonical_card["file_id"]
+    new_card["source_updated_at"] = now_iso()
+
+    cards = [c for c in load_shard(academic_hub_root, new_course) if c.get("file_id") != new_file_id]
+    cards.append(new_card)
+    save_shard(academic_hub_root, new_course, cards)
+    recompute_course_entry(academic_hub_root, new_course)
+    return new_card

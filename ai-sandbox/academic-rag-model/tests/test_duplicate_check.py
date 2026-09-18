@@ -241,5 +241,107 @@ class TestDismissals(unittest.TestCase):
             self.assertTrue(os.path.exists(expected_path))
 
 
+import shutil
+
+from indexer.index_card import compute_id_from_parts, load_courses, load_shard
+from indexer.duplicate_check import copy_duplicate_artifacts
+
+
+class TestCopyDuplicateArtifacts(unittest.TestCase):
+    def _make_canonical_book(self, academic_hub_root, course="econometrics", folder_category="textbooks", folder_name="Ok_RealAnalysisWithEconomicApplications_2007"):
+        book_dir = os.path.join(academic_hub_root, course, folder_category, "processed_outputs", folder_name)
+        os.makedirs(os.path.join(book_dir, "images"), exist_ok=True)
+        with open(os.path.join(book_dir, f"{folder_name}.md"), "w", encoding="utf-8") as f:
+            f.write("# Real Analysis with Economic Applications\n\nBody text.")
+        with open(os.path.join(book_dir, "images", "page_1.png"), "wb") as f:
+            f.write(b"fake png bytes")
+        with open(os.path.join(book_dir, f"{folder_name}_metadata.json"), "w", encoding="utf-8") as f:
+            f.write('{"title": "Real Analysis with Economic Applications"}')
+
+        canonical_card = {
+            "file_id": "canonical-fid", "path": f"{course}/{folder_category}/processed_outputs/{folder_name}/{folder_name}.md",
+            "source_pdf_path": f"academic_resources/{course}/{folder_category}/Ok.pdf", "course": course,
+            "doc_type": "textbook", "title": "Real Analysis with Economic Applications",
+            "summary": "A real analysis textbook.", "tags": ["math"], "level": "advanced",
+            "has_solutions": False, "page_count": 700, "embedding": [0.1, 0.2], "embedding_model": "gemini-embedding-001:768",
+            "content_hash": "abc123", "needs_indexing": False,
+        }
+        save_shard(academic_hub_root, course, [canonical_card])
+        return book_dir, folder_name, canonical_card
+
+    def test_copies_all_artifact_files(self):
+        with tempfile.TemporaryDirectory() as academic_hub_root:
+            _, folder_name, canonical_card = self._make_canonical_book(academic_hub_root)
+
+            copy_duplicate_artifacts(
+                academic_hub_root, "econometrics", canonical_card, "microecon", "textbooks",
+                "academic_resources/microecon/textbooks/Ok.pdf",
+            )
+
+            new_book_dir = os.path.join(academic_hub_root, "microecon", "textbooks", "processed_outputs", folder_name)
+            self.assertTrue(os.path.exists(os.path.join(new_book_dir, f"{folder_name}.md")))
+            self.assertTrue(os.path.exists(os.path.join(new_book_dir, "images", "page_1.png")))
+            self.assertTrue(os.path.exists(os.path.join(new_book_dir, f"{folder_name}_metadata.json")))
+
+    def test_canonical_files_are_untouched(self):
+        with tempfile.TemporaryDirectory() as academic_hub_root:
+            book_dir, folder_name, canonical_card = self._make_canonical_book(academic_hub_root)
+            before = open(os.path.join(book_dir, f"{folder_name}.md"), encoding="utf-8").read()
+
+            copy_duplicate_artifacts(
+                academic_hub_root, "econometrics", canonical_card, "microecon", "textbooks",
+                "academic_resources/microecon/textbooks/Ok.pdf",
+            )
+
+            after = open(os.path.join(book_dir, f"{folder_name}.md"), encoding="utf-8").read()
+            self.assertEqual(before, after)
+
+    def test_new_card_has_a_derived_non_colliding_file_id(self):
+        with tempfile.TemporaryDirectory() as academic_hub_root:
+            _, folder_name, canonical_card = self._make_canonical_book(academic_hub_root)
+
+            new_card = copy_duplicate_artifacts(
+                academic_hub_root, "econometrics", canonical_card, "microecon", "textbooks",
+                "academic_resources/microecon/textbooks/Ok.pdf",
+            )
+
+            expected_id = compute_id_from_parts([canonical_card["file_id"], "microecon"])
+            self.assertEqual(new_card["file_id"], expected_id)
+            self.assertNotEqual(new_card["file_id"], canonical_card["file_id"])
+            self.assertEqual(new_card["duplicate_of_file_id"], canonical_card["file_id"])
+            self.assertEqual(new_card["course"], "microecon")
+            self.assertEqual(new_card["source_pdf_path"], "academic_resources/microecon/textbooks/Ok.pdf")
+            self.assertEqual(new_card["title"], canonical_card["title"])
+
+    def test_new_card_is_saved_in_the_new_course_shard(self):
+        with tempfile.TemporaryDirectory() as academic_hub_root:
+            _, folder_name, canonical_card = self._make_canonical_book(academic_hub_root)
+
+            copy_duplicate_artifacts(
+                academic_hub_root, "econometrics", canonical_card, "microecon", "textbooks",
+                "academic_resources/microecon/textbooks/Ok.pdf",
+            )
+
+            new_shard = load_shard(academic_hub_root, "microecon")
+            self.assertEqual(len(new_shard), 1)
+            self.assertEqual(new_shard[0]["course"], "microecon")
+
+    def test_rerunning_is_idempotent(self):
+        with tempfile.TemporaryDirectory() as academic_hub_root:
+            _, folder_name, canonical_card = self._make_canonical_book(academic_hub_root)
+
+            copy_duplicate_artifacts(
+                academic_hub_root, "econometrics", canonical_card, "microecon", "textbooks",
+                "academic_resources/microecon/textbooks/Ok.pdf",
+            )
+            copy_duplicate_artifacts(
+                academic_hub_root, "econometrics", canonical_card, "microecon", "textbooks",
+                "academic_resources/microecon/textbooks/Ok.pdf",
+            )
+
+            new_shard = load_shard(academic_hub_root, "microecon")
+            self.assertEqual(len(new_shard), 1)
+
+
 if __name__ == "__main__":
     unittest.main()
