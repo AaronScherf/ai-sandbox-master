@@ -90,8 +90,23 @@ via the existing `textbook.bib_info.extract_bibliographic_info_from_filename`
 (free, local, already used by the real pipeline for the same purpose).
 Loads every card where `doc_type == "textbook"` from every course's shard
 (`indexer.index_card.list_courses` / `load_shard`) and scores each against
-the incoming PDF:
+the incoming PDF.
 
+A card itself only stores `title` -- not `author`/`year` as separate
+fields. The candidate side of the comparison instead reads:
+- `title`: the card's own `title` field directly (the real
+  LLM-or-regex-derived title already on record -- more reliable than
+  re-deriving one from a filename a second time).
+- `author`/`year`: parsed from the candidate's own output folder name,
+  which `textbook.bib_info.derive_folder_name` already always writes as
+  `<AuthorLastName>_<SanitizedTitle>_<Year>` -- the folder name is
+  `os.path.basename(os.path.dirname(card["path"]))`; author is
+  everything before the first `_`, year is everything after the last
+  `_` (both single tokens by construction, unlike the sanitized title
+  portion in between, which is not used here since `card["title"]`
+  already gives the real title).
+
+Scoring:
 - `title_score`: `difflib.SequenceMatcher(None, norm(a), norm(b)).ratio()`
   on lowercased, punctuation-stripped titles (`norm()` reuses
   `bib_info.sanitize_filename`-style normalization).
