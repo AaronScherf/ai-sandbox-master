@@ -81,6 +81,43 @@ Validate the Google Cloud SDK installation.
 gcloud version
 ```
 
+### Step 0.4: Check for cross-course duplicates
+
+Before uploading anything, check whether any of these PDFs -- or a
+different scan/copy of the same book -- has already been converted under
+a *different* course's textbook folder (some reading lists overlap across
+courses). This is local and free: no GPU, no VM, no LLM calls.
+
+```bash
+python -m indexer.duplicate_check --textbook-subdir "$TEXTBOOK_SUBDIR"
+```
+
+An exact byte-identical match is resolved automatically (its artifacts
+are copied from the other course, no need to reconvert). A fuzzy
+match (same-looking title/author/year but different file bytes -- e.g. a
+re-scanned copy) always prompts with the new PDF's filename plus the
+matching book's course, title, file_id, and a similarity score; answer
+`y` only if it's genuinely the same book -- a wrong `y` here would
+silently drop a real book from this course's corpus. Answering `n` is
+remembered permanently, so you won't be asked about that same pair again
+on a future run.
+
+Re-derive `PDF_FILENAMES` afterward (skipped books are copied but their
+source PDFs are deliberately left in place, so just re-run Step 0.2's
+loop rather than hand-editing the list):
+
+```bash
+shopt -s nullglob
+PDF_FILENAMES=()
+for pdf_path in "/academic-hub/$TEXTBOOK_SUBDIR"/*.pdf; do
+    PDF_FILENAMES+=("$(basename "$pdf_path")")
+done
+export PDF_FILENAMES
+```
+
+See `docs/superpowers/specs/2026-09-17-cross-course-duplicate-textbook-detection-design.md`
+for the full design (matching tiers, scoring, dismissal persistence).
+
 ## Step 1: Authenticate the SDK within the Container
 
 ### 1.1 Update the global active developer identity profile
