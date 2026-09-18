@@ -97,14 +97,21 @@ def score_candidate(incoming: dict, candidate_title: str, candidate_author: str,
     return {"title_score": title_score, "author_bonus": author_bonus, "year_bonus": year_bonus, "combined": combined}
 
 
-def find_exact_duplicate(academic_hub_root: str, pdf_path: str, current_course: str) -> tuple[str, dict] | None:
+def find_exact_duplicate(academic_hub_root: str, pdf_path: str, current_course: str, file_id: str | None = None) -> tuple[str, dict] | None:
     """Tier 1 (spec §3): byte-identical duplicate in a *different* course.
     find_card_by_file_id() already searches every course unconditionally
     (indexer/index_card.py), so no change is needed there -- this just
     excludes a match that happens to already be in the current course,
     which is convert_textbook.py's own existing same-run skip check's
-    job, not this module's."""
-    file_id = compute_file_id(pdf_path)
+    job, not this module's.
+
+    `file_id` is optional -- pass it when a caller (run_duplicate_check)
+    has already hashed the same PDF for another purpose, so this doesn't
+    redundantly re-read and re-hash a potentially large file. Computed
+    here as before when omitted, so every existing/independent caller
+    (including this module's own tests) is unaffected."""
+    if file_id is None:
+        file_id = compute_file_id(pdf_path)
     found = find_card_by_file_id(academic_hub_root, file_id)
     if found is None:
         return None
@@ -257,22 +264,41 @@ def run_duplicate_check(
         pdf_filename = os.path.basename(pdf_path)
         rel_pdf_path = os.path.relpath(pdf_path, academic_hub_root).replace(os.sep, "/")
 
+        # Computed once and reused below (find_exact_duplicate accepts it
+        # directly) rather than re-reading/re-hashing a potentially large
+        # PDF a second time. Guarded like every other per-candidate step:
+        # a failure here must degrade this one PDF to "no match found",
+        # never crash the whole batch (spec §6).
         try:
-            exact = find_exact_duplicate(academic_hub_root, pdf_path, current_course)
+            incoming_file_id = compute_file_id(pdf_path)
+        except Exception as err:
+            print(f"WARNING: could not compute file_id for {pdf_filename} ({err}); treating as no match.", file=sys.stderr)
+            to_convert.append(pdf_filename)
+            continue
+
+        try:
+            exact = find_exact_duplicate(academic_hub_root, pdf_path, current_course, file_id=incoming_file_id)
         except Exception as err:
             print(f"WARNING: exact-match check failed for {pdf_filename} ({err}); treating as no match.", file=sys.stderr)
             exact = None
 
         if exact is not None:
             canonical_course, canonical_card = exact
-            copy_duplicate_artifacts(
-                academic_hub_root, canonical_course, canonical_card,
-                current_course, new_folder_category, rel_pdf_path,
-            )
-            skipped.append((pdf_filename, canonical_course, canonical_card["path"], "exact"))
+            try:
+                copy_duplicate_artifacts(
+                    academic_hub_root, canonical_course, canonical_card,
+                    current_course, new_folder_category, rel_pdf_path,
+                )
+                skipped.append((pdf_filename, canonical_course, canonical_card["path"], "exact"))
+            except Exception as err:
+                # Copy didn't actually succeed -- reporting this as
+                # "skipped" would be a lie (the new course would have no
+                # artifacts at all). Fail toward converting instead
+                # (spec §6) so nothing is silently lost.
+                print(f"WARNING: could not copy duplicate artifacts for {pdf_filename} ({err}); converting instead.", file=sys.stderr)
+                to_convert.append(pdf_filename)
             continue
 
-        incoming_file_id = compute_file_id(pdf_path)
         try:
             incoming_bib = extract_bibliographic_info_from_filename(pdf_path)
             candidates = find_fuzzy_candidates(academic_hub_root, incoming_bib, current_course)
@@ -292,14 +318,24 @@ def run_duplicate_check(
             decision = prompt_fn(pdf_filename, best)
 
         if decision == "yes":
-            copy_duplicate_artifacts(
-                academic_hub_root, best["course"], best["card"],
-                current_course, new_folder_category, rel_pdf_path,
-            )
-            skipped.append((pdf_filename, best["course"], best["card"]["path"], "fuzzy"))
+            try:
+                copy_duplicate_artifacts(
+                    academic_hub_root, best["course"], best["card"],
+                    current_course, new_folder_category, rel_pdf_path,
+                )
+                skipped.append((pdf_filename, best["course"], best["card"]["path"], "fuzzy"))
+            except Exception as err:
+                print(f"WARNING: could not copy duplicate artifacts for {pdf_filename} ({err}); converting instead.", file=sys.stderr)
+                to_convert.append(pdf_filename)
         elif decision == "no":
-            record_dismissal(academic_hub_root, incoming_file_id, best["card"]["file_id"])
-            dismissals = load_dismissals(academic_hub_root)
+            try:
+                record_dismissal(academic_hub_root, incoming_file_id, best["card"]["file_id"])
+                dismissals = load_dismissals(academic_hub_root)
+            except Exception as err:
+                # The user's "no" decision still holds for this run even
+                # if persisting it failed -- worst case it gets asked
+                # again next run, which is safe, just mildly annoying.
+                print(f"WARNING: could not record dismissal for {pdf_filename} ({err}); it may be re-prompted next run.", file=sys.stderr)
             to_convert.append(pdf_filename)
         else:
             to_convert.append(pdf_filename)

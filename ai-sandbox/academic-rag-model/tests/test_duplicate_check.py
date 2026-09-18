@@ -3,6 +3,7 @@ import sys
 import tempfile
 import unittest
 from io import StringIO
+from unittest import mock
 
 from indexer.duplicate_check import (
     normalize_title,
@@ -501,6 +502,129 @@ class TestBuildArgParser(unittest.TestCase):
             "--non-interactive", "--resolve", "aaa=yes", "--resolve", "bbb=no",
         ])
         self.assertEqual(args.resolve, ["aaa=yes", "bbb=no"])
+
+
+class TestRunDuplicateCheckErrorIsolation(unittest.TestCase):
+    """Regression coverage for the gap the code review caught: the
+    file_id/copy/dismissal steps inside run_duplicate_check's per-PDF loop
+    were unguarded, so one bad PDF could raise uncaught and lose every
+    other PDF's already-accumulated result in the same batch (violates
+    spec §6's per-candidate error isolation, Global Constraints line
+    above). Each test here forces one specific PDF's step to fail and
+    asserts (a) the batch doesn't crash, (b) an unrelated PDF processed in
+    the same run is unaffected, and (c) the failing PDF lands in
+    to_convert (fail-toward-converting), never silently dropped."""
+
+    def _write_pdf(self, path, content):
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        with open(path, "wb") as f:
+            f.write(content)
+
+    def test_file_id_computation_failure_is_isolated_to_one_pdf(self):
+        import indexer.duplicate_check as dc
+
+        with tempfile.TemporaryDirectory() as academic_hub_root:
+            subdir = "academic_resources/microecon/textbooks"
+            good_path = os.path.join(academic_hub_root, subdir, "Good_Book_2020.pdf")
+            bad_path = os.path.join(academic_hub_root, subdir, "Bad_Book_2021.pdf")
+            self._write_pdf(good_path, b"good book content")
+            self._write_pdf(bad_path, b"bad book content")
+
+            real_compute_file_id = dc.compute_file_id
+
+            def flaky_compute_file_id(path):
+                if os.path.basename(path) == "Bad_Book_2021.pdf":
+                    raise RuntimeError("simulated hash failure")
+                return real_compute_file_id(path)
+
+            captured_stderr = StringIO()
+            old_stderr = sys.stderr
+            sys.stderr = captured_stderr
+            try:
+                with mock.patch.object(dc, "compute_file_id", side_effect=flaky_compute_file_id):
+                    result = dc.run_duplicate_check(subdir, academic_hub_root, non_interactive=True, resolutions={})
+            finally:
+                sys.stderr = old_stderr
+
+            # Neither PDF crashes the batch; both land in to_convert since
+            # there are no candidates at all in this hub.
+            self.assertEqual(sorted(result["to_convert"]), ["Bad_Book_2021.pdf", "Good_Book_2020.pdf"])
+            self.assertEqual(result["skipped"], [])
+            self.assertIn("WARNING", captured_stderr.getvalue())
+            self.assertIn("Bad_Book_2021.pdf", captured_stderr.getvalue())
+
+    def test_copy_failure_on_exact_duplicate_falls_back_to_convert_not_skipped(self):
+        import indexer.duplicate_check as dc
+        from indexer.index_card import compute_file_id, save_shard
+
+        with tempfile.TemporaryDirectory() as academic_hub_root:
+            subdir = "academic_resources/microecon/textbooks"
+            good_path = os.path.join(academic_hub_root, subdir, "Good_Book_2020.pdf")
+            dup_path = os.path.join(academic_hub_root, subdir, "Ok.pdf")
+            self._write_pdf(good_path, b"good book content, no match anywhere")
+            self._write_pdf(dup_path, b"%PDF-1.4 identical bytes")
+            file_id = compute_file_id(dup_path)
+
+            book_dir = os.path.join(academic_hub_root, "econometrics", "textbooks", "processed_outputs", "Ok_RealAnalysis_2007")
+            os.makedirs(book_dir, exist_ok=True)
+            with open(os.path.join(book_dir, "Ok_RealAnalysis_2007.md"), "w", encoding="utf-8") as f:
+                f.write("# Real Analysis")
+            save_shard(academic_hub_root, "econometrics", [{
+                "file_id": file_id, "path": "econometrics/textbooks/processed_outputs/Ok_RealAnalysis_2007/Ok_RealAnalysis_2007.md",
+                "source_pdf_path": "academic_resources/econometrics/textbooks/Ok.pdf", "course": "econometrics",
+                "doc_type": "textbook", "title": "Real Analysis with Economic Applications",
+            }])
+
+            captured_stderr = StringIO()
+            old_stderr = sys.stderr
+            sys.stderr = captured_stderr
+            try:
+                with mock.patch.object(dc, "copy_duplicate_artifacts", side_effect=OSError("disk full")):
+                    result = dc.run_duplicate_check(subdir, academic_hub_root, non_interactive=True, resolutions={})
+            finally:
+                sys.stderr = old_stderr
+
+            # The exact-duplicate PDF's copy blew up -- it must NOT be
+            # reported as "skipped" (that would claim artifacts exist in
+            # the new course when they don't); it must still convert.
+            self.assertEqual(result["skipped"], [])
+            self.assertEqual(sorted(result["to_convert"]), ["Good_Book_2020.pdf", "Ok.pdf"])
+            self.assertIn("WARNING", captured_stderr.getvalue())
+
+    def test_dismissal_recording_failure_does_not_crash_and_still_converts(self):
+        import indexer.duplicate_check as dc
+        from indexer.index_card import compute_file_id, save_shard
+
+        with tempfile.TemporaryDirectory() as academic_hub_root:
+            subdir = "academic_resources/microecon/textbooks"
+            pdf_path = os.path.join(academic_hub_root, subdir, "Ok_RealAnalysisWithEconomicApplications_2007.pdf")
+            self._write_pdf(pdf_path, b"a re-scanned copy, different bytes")
+            incoming_file_id = compute_file_id(pdf_path)
+
+            book_dir = os.path.join(academic_hub_root, "econometrics", "textbooks", "processed_outputs", "Ok_RealAnalysisWithEconomicApplications_2007")
+            os.makedirs(book_dir, exist_ok=True)
+            with open(os.path.join(book_dir, "Ok_RealAnalysisWithEconomicApplications_2007.md"), "w", encoding="utf-8") as f:
+                f.write("# Real Analysis")
+            save_shard(academic_hub_root, "econometrics", [{
+                "file_id": "some-other-fid", "path": "econometrics/textbooks/processed_outputs/Ok_RealAnalysisWithEconomicApplications_2007/Ok_RealAnalysisWithEconomicApplications_2007.md",
+                "source_pdf_path": "academic_resources/econometrics/textbooks/Ok.pdf", "course": "econometrics",
+                "doc_type": "textbook", "title": "Real Analysis with Economic Applications",
+            }])
+
+            captured_stderr = StringIO()
+            old_stderr = sys.stderr
+            sys.stderr = captured_stderr
+            try:
+                with mock.patch.object(dc, "record_dismissal", side_effect=OSError("permission denied")):
+                    result = dc.run_duplicate_check(
+                        subdir, academic_hub_root, non_interactive=True,
+                        resolutions={incoming_file_id: "no"},
+                    )
+            finally:
+                sys.stderr = old_stderr
+
+            self.assertEqual(result["to_convert"], ["Ok_RealAnalysisWithEconomicApplications_2007.pdf"])
+            self.assertIn("WARNING", captured_stderr.getvalue())
 
 
 if __name__ == "__main__":
