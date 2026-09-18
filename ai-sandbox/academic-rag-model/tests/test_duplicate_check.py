@@ -1,3 +1,5 @@
+import os
+import tempfile
 import unittest
 
 from indexer.duplicate_check import (
@@ -5,7 +7,9 @@ from indexer.duplicate_check import (
     parse_author_year_from_folder_name,
     score_candidate,
     SURFACE_THRESHOLD,
+    find_exact_duplicate,
 )
+from indexer.index_card import save_shard
 
 
 class TestNormalizeTitle(unittest.TestCase):
@@ -68,6 +72,57 @@ class TestScoreCandidate(unittest.TestCase):
         off_by_many = score_candidate(incoming, "Foundations of Microeconomic Analysis", "", "1999")
         self.assertGreater(exact_year["combined"], off_by_one["combined"])
         self.assertGreater(off_by_one["combined"], off_by_many["combined"])
+
+
+class TestFindExactDuplicate(unittest.TestCase):
+    def _write_pdf(self, path: str, content: bytes = b"%PDF-1.4 fake content") -> None:
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        with open(path, "wb") as f:
+            f.write(content)
+
+    def test_finds_match_in_a_different_course(self):
+        with tempfile.TemporaryDirectory() as academic_hub_root:
+            from indexer.index_card import compute_file_id
+
+            pdf_path = os.path.join(academic_hub_root, "academic_resources", "microecon", "textbooks", "Ok.pdf")
+            self._write_pdf(pdf_path)
+            file_id = compute_file_id(pdf_path)
+
+            save_shard(academic_hub_root, "econometrics", [{
+                "file_id": file_id, "path": "econometrics/textbooks/processed_outputs/Ok_RealAnalysis_2007/Ok_RealAnalysis_2007.md",
+                "source_pdf_path": "academic_resources/econometrics/textbooks/Ok.pdf", "course": "econometrics",
+                "doc_type": "textbook", "title": "Real Analysis with Economic Applications",
+            }])
+
+            result = find_exact_duplicate(academic_hub_root, pdf_path, current_course="microecon")
+            self.assertIsNotNone(result)
+            course, card = result
+            self.assertEqual(course, "econometrics")
+            self.assertEqual(card["file_id"], file_id)
+
+    def test_match_in_the_same_course_is_not_a_cross_course_duplicate(self):
+        with tempfile.TemporaryDirectory() as academic_hub_root:
+            from indexer.index_card import compute_file_id
+
+            pdf_path = os.path.join(academic_hub_root, "academic_resources", "microecon", "textbooks", "Ok.pdf")
+            self._write_pdf(pdf_path)
+            file_id = compute_file_id(pdf_path)
+
+            save_shard(academic_hub_root, "microecon", [{
+                "file_id": file_id, "path": "microecon/textbooks/processed_outputs/Ok_RealAnalysis_2007/Ok_RealAnalysis_2007.md",
+                "source_pdf_path": "academic_resources/microecon/textbooks/Ok.pdf", "course": "microecon",
+                "doc_type": "textbook", "title": "Real Analysis with Economic Applications",
+            }])
+
+            result = find_exact_duplicate(academic_hub_root, pdf_path, current_course="microecon")
+            self.assertIsNone(result)
+
+    def test_no_match_anywhere(self):
+        with tempfile.TemporaryDirectory() as academic_hub_root:
+            pdf_path = os.path.join(academic_hub_root, "academic_resources", "microecon", "textbooks", "New.pdf")
+            self._write_pdf(pdf_path, content=b"%PDF-1.4 never seen before")
+            result = find_exact_duplicate(academic_hub_root, pdf_path, current_course="microecon")
+            self.assertIsNone(result)
 
 
 if __name__ == "__main__":

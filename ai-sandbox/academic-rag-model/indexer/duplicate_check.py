@@ -15,6 +15,8 @@ from __future__ import annotations
 import difflib
 import re
 
+from indexer.index_card import compute_file_id, find_card_by_file_id
+
 # A card only stores `title` (from generate_index_card()'s LLM/regex
 # tiers) -- never author/year as their own fields. The candidate side of
 # a fuzzy comparison instead parses author/year out of the candidate's
@@ -85,3 +87,20 @@ def score_candidate(incoming: dict, candidate_title: str, candidate_author: str,
 
     combined = min(1.0, title_score + author_bonus + year_bonus)
     return {"title_score": title_score, "author_bonus": author_bonus, "year_bonus": year_bonus, "combined": combined}
+
+
+def find_exact_duplicate(academic_hub_root: str, pdf_path: str, current_course: str) -> tuple[str, dict] | None:
+    """Tier 1 (spec §3): byte-identical duplicate in a *different* course.
+    find_card_by_file_id() already searches every course unconditionally
+    (indexer/index_card.py), so no change is needed there -- this just
+    excludes a match that happens to already be in the current course,
+    which is convert_textbook.py's own existing same-run skip check's
+    job, not this module's."""
+    file_id = compute_file_id(pdf_path)
+    found = find_card_by_file_id(academic_hub_root, file_id)
+    if found is None:
+        return None
+    course, card = found
+    if course == current_course:
+        return None
+    return course, card
