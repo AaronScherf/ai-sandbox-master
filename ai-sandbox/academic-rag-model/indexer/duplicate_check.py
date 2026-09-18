@@ -469,11 +469,19 @@ def write_to_convert_file(path: str, to_convert: list[str]) -> None:
     identical file list as before the check and reconverted the very book
     that was just resolved. An empty to_convert writes an empty file --
     `mapfile -t` then yields a zero-length array, which both instructions
-    documents already branch on as "nothing left to convert"."""
+    documents already branch on as "nothing left to convert".
+
+    `newline="\n"` is deliberate, not a default: this file is always read
+    back by a bash `mapfile`, never by a Windows-native tool, so it must
+    stay LF-only regardless of platform. Without it, Python's text-mode
+    write on Windows translates every "\n" to "\r\n" -- `mapfile -t` only
+    strips the trailing "\n", so each filename comes back with an
+    invisible trailing "\r" that breaks every path built from it.
+    Confirmed live running this exact command from Windows Git Bash."""
     parent = os.path.dirname(path)
     if parent:
         os.makedirs(parent, exist_ok=True)
-    with open(path, "w", encoding="utf-8") as f:
+    with open(path, "w", encoding="utf-8", newline="\n") as f:
         for name in to_convert:
             f.write(f"{name}\n")
 

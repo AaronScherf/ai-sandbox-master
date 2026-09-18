@@ -690,6 +690,30 @@ class TestEmitToConvert(unittest.TestCase):
             self.assertTrue(os.path.exists(dup_path))
             self.assertEqual(emitted, ["New_Book_2020.pdf"])
 
+    def test_emitted_file_is_lf_only_even_on_windows(self):
+        # Confirmed live running this exact file from Windows Git Bash:
+        # a plain open(path, "w", encoding="utf-8") lets Python's text-mode
+        # write translate every "\n" to "\r\n" on Windows. `mapfile -t`
+        # (the shell command both instructions documents use to read this
+        # file back) only strips the trailing "\n", leaving an invisible
+        # "\r" on every filename it reads -- which then breaks every path
+        # built from it. Reading with plain open()/encoding="utf-8" (no
+        # explicit newline=) would silently normalize "\r\n" back to "\n"
+        # via Python's own universal-newline handling and never catch
+        # this -- this test opens the file in binary mode specifically to
+        # see the raw bytes mapfile would actually see.
+        from indexer.duplicate_check import write_to_convert_file
+
+        with tempfile.TemporaryDirectory() as tmp:
+            out = os.path.join(tmp, "to_convert.txt")
+            write_to_convert_file(out, ["Some Book.pdf", "Another Book.pdf"])
+
+            with open(out, "rb") as f:
+                raw = f.read()
+
+            self.assertNotIn(b"\r", raw)
+            self.assertEqual(raw, b"Some Book.pdf\nAnother Book.pdf\n")
+
 
 class TestRunDuplicateCheckErrorIsolation(unittest.TestCase):
     """Regression coverage for the gap the code review caught: the
