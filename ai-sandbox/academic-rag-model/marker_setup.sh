@@ -233,12 +233,22 @@ echo "[System] Re-verifying torch still resolves correctly after marker-pdf's in
 python3 -c "import torch; print('torch OK:', torch.__version__, '| CUDA:', torch.cuda.is_available())"
 
 echo "[System] Confirming torchaudio wasn't silently reintroduced as a dependency."
+# Catches OSError alongside ImportError -- confirmed live: marker-pdf's
+# install reintroduces an ABI-incompatible torchaudio (the exact failure
+# mode described in the comment above this uninstall, which this check
+# forgot to apply to itself) as a transitive dependency (of transformers,
+# pulled in by surya-ocr), and importing it then raises OSError from
+# ctypes.CDLL on the native extension, not ImportError. Before this fix,
+# that OSError escaped uncaught here and (with `set -e`) took down the
+# whole provisioning run for something this pipeline never needed in the
+# first place -- reproduced identically on two separate freshly-created
+# VMs, so it's deterministic, not disk-state corruption.
 python3 -c "
 try:
     import torchaudio
     print('WARNING: torchaudio got reinstalled by marker-pdf/transformers. Version:', torchaudio.__version__)
-except ImportError:
-    print('OK: torchaudio absent, as expected.')
+except (ImportError, OSError) as err:
+    print(f'OK: torchaudio absent or non-importable, as expected ({err!r}).')
 "
 
 # ---------------------------------------------------------------------------
