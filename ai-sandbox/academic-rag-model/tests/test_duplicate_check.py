@@ -205,5 +205,41 @@ class TestFindFuzzyCandidates(unittest.TestCase):
             self.assertIn("WARNING", captured_stderr.getvalue())
 
 
+class TestDismissals(unittest.TestCase):
+    def test_load_missing_file_returns_empty_list(self):
+        from indexer.duplicate_check import load_dismissals
+        with tempfile.TemporaryDirectory() as academic_hub_root:
+            self.assertEqual(load_dismissals(academic_hub_root), [])
+
+    def test_record_then_is_dismissed_regardless_of_argument_order(self):
+        from indexer.duplicate_check import record_dismissal, load_dismissals, is_dismissed
+        with tempfile.TemporaryDirectory() as academic_hub_root:
+            record_dismissal(academic_hub_root, "id-a", "id-b")
+            dismissals = load_dismissals(academic_hub_root)
+            self.assertTrue(is_dismissed(dismissals, "id-a", "id-b"))
+            self.assertTrue(is_dismissed(dismissals, "id-b", "id-a"))
+
+    def test_unrelated_pair_is_not_dismissed(self):
+        from indexer.duplicate_check import record_dismissal, load_dismissals, is_dismissed
+        with tempfile.TemporaryDirectory() as academic_hub_root:
+            record_dismissal(academic_hub_root, "id-a", "id-b")
+            dismissals = load_dismissals(academic_hub_root)
+            self.assertFalse(is_dismissed(dismissals, "id-a", "id-c"))
+
+    def test_recording_the_same_pair_twice_does_not_duplicate(self):
+        from indexer.duplicate_check import record_dismissal, load_dismissals
+        with tempfile.TemporaryDirectory() as academic_hub_root:
+            record_dismissal(academic_hub_root, "id-a", "id-b")
+            record_dismissal(academic_hub_root, "id-a", "id-b")
+            self.assertEqual(len(load_dismissals(academic_hub_root)), 1)
+
+    def test_persists_to_the_expected_path(self):
+        from indexer.duplicate_check import record_dismissal
+        with tempfile.TemporaryDirectory() as academic_hub_root:
+            record_dismissal(academic_hub_root, "id-a", "id-b")
+            expected_path = os.path.join(academic_hub_root, ".index", "duplicate_dismissals.json")
+            self.assertTrue(os.path.exists(expected_path))
+
+
 if __name__ == "__main__":
     unittest.main()

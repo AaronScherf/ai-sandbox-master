@@ -13,11 +13,12 @@ Spec: docs/superpowers/specs/2026-09-17-cross-course-duplicate-textbook-detectio
 from __future__ import annotations
 
 import difflib
+import json
 import os
 import re
 import sys
 
-from indexer.index_card import compute_file_id, find_card_by_file_id, list_courses, load_shard
+from indexer.index_card import compute_file_id, find_card_by_file_id, list_courses, load_shard, now_iso
 
 # A card only stores `title` (from generate_index_card()'s LLM/regex
 # tiers) -- never author/year as their own fields. The candidate side of
@@ -141,3 +142,38 @@ def find_fuzzy_candidates(academic_hub_root: str, incoming: dict, current_course
 
     results.sort(key=lambda r: r["combined"], reverse=True)
     return results
+
+
+def _dismissals_path(academic_hub_root: str) -> str:
+    return os.path.join(academic_hub_root, ".index", "duplicate_dismissals.json")
+
+
+def load_dismissals(academic_hub_root: str) -> list[dict]:
+    path = _dismissals_path(academic_hub_root)
+    if not os.path.exists(path):
+        return []
+    with open(path, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+
+def save_dismissals(academic_hub_root: str, dismissals: list[dict]) -> None:
+    path = _dismissals_path(academic_hub_root)
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(dismissals, f, indent=2, ensure_ascii=False)
+
+
+def is_dismissed(dismissals: list[dict], file_id_a: str, file_id_b: str) -> bool:
+    pair = tuple(sorted([file_id_a, file_id_b]))
+    return any(tuple(sorted([d["file_id_a"], d["file_id_b"]])) == pair for d in dismissals)
+
+
+def record_dismissal(academic_hub_root: str, file_id_a: str, file_id_b: str) -> None:
+    """No-op (does not duplicate) if this exact pair is already recorded --
+    safe to call every time a user says 'no' without checking first."""
+    dismissals = load_dismissals(academic_hub_root)
+    if is_dismissed(dismissals, file_id_a, file_id_b):
+        return
+    a, b = sorted([file_id_a, file_id_b])
+    dismissals.append({"file_id_a": a, "file_id_b": b, "dismissed_at": now_iso()})
+    save_dismissals(academic_hub_root, dismissals)
