@@ -128,12 +128,15 @@ check's decisions.
 See `docs/superpowers/specs/2026-09-17-cross-course-duplicate-textbook-detection-design.md`
 for the full design (matching tiers, scoring, dismissal persistence).
 
-One caveat for later: books resolved as duplicates get **clone** index
-cards (marked with a `duplicate_of_file_id` field), which sit outside
-`index_search.py`'s normal one-card-per-file reconciliation. If you run
-`python -m indexer.index_search rebuild --prune` over a course that has
-received clones, check what it reports before letting it prune -- see the
-spec's "Known limitations" section.
+One caveat for later, and it's stronger than it sounds: books resolved as
+duplicates get **clone** index cards (marked with a `duplicate_of_file_id`
+field), which sit outside `index_search.py`'s normal one-card-per-file
+reconciliation. **Do not run `python -m indexer.index_search rebuild` --
+with or without `--prune` -- over a course that has received clones**
+until this is fixed upstream: a plain `rebuild` can silently evict the
+*canonical* course's own card from its own shard (confirmed live for
+byte-identical duplicates), not just mis-prune something. See the spec's
+"Known limitations" section for the full mechanism.
 
 ## Step 1: Authenticate the SDK within the Container
 

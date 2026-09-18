@@ -199,12 +199,12 @@ For each confirmed duplicate, before Step 3.2 runs:
 The copied `<BookDir>_metadata.json` is additionally rewritten in place
 (in the *new* course's copy only) so its `source_pdf_path` /
 `source_pdf_file_id` name the new course's PDF and the clone's own
-`file_id`. Without that, those fields still name the canonical course's
-PDF, and `index_search.py`'s `rebuild` textbook backfill — which
-recomputes a book folder's identity from exactly those two fields —
-would recompute the *canonical* `file_id` while standing in the
-duplicate's folder and rewrite the canonical card's `path` to point at
-the copy. See Known Limitations below.
+`file_id`, keeping the file internally consistent with the new card (and
+correct for `describe_images.py`, which keys off `source_pdf_file_id`).
+This does **not**, however, reliably prevent `index_search.py rebuild`
+from disturbing the canonical card — see Known Limitations below, which
+covers this in the depth it deserves rather than overstating what the
+rewrite achieves.
 
 The canonical course's own card and files are never modified.
 
@@ -265,22 +265,44 @@ both halves of that assumption: its `file_id` is
 any file), and its `.md`/`images/` are byte-identical to another course's.
 Consequences to be aware of:
 
-- **Run `rebuild --prune` knowing clones exist.** Pruning decides what is
-  orphaned from what it saw referenced while walking
-  `academic_resources/<course>/<cat>/processed_outputs`. Clone folders are
-  real directories there, so a clone whose folder is present is fine — but
-  deleting a clone's folder by hand without also removing its card (or
-  vice versa) leaves the two halves out of step, and `--prune` is the
-  operation that will act on that. Check the `duplicate_of_file_id` field
-  before acting on anything `--prune` reports about a course that has
-  received clones.
-- **Repointed clone metadata is a mitigation, not a full fix.** §5's
-  `_metadata.json` rewrite stops `rebuild` from recomputing the canonical
-  `file_id` inside a clone's folder and rewriting the canonical card's
-  `path`. A deeper fix (teaching `index_search.py`/`index_card.py` about
-  `duplicate_of_file_id` directly) is out of scope for this module and
-  excluded by this plan's Global Constraints, which forbid editing either
-  file.
+- **Do not run `index_search.py rebuild` — with or without `--prune` —
+  over a course that has received clones, until this limitation is
+  addressed.** This is stronger than "check before pruning": `rebuild`
+  itself (no `--prune` needed) can silently evict the *canonical* card
+  from its own course shard. `rebuild`'s textbook backfill locates a file
+  via a card's `source_pdf_path`, hashes it with `compute_file_id()`, and
+  derives `course_name` from that same path string — it never trusts a
+  stored `file_id`, so §5's `_metadata.json` rewrite (which only changes
+  which path is *named*) cannot make this safe in general:
+  - **Tier 1 (byte-identical) clones are the worse case.** The new
+    course's own copy of the PDF is, by definition, byte-identical to the
+    canonical one, so hashing it yields the *same* `file_id` as the
+    canonical card no matter which course's path `source_pdf_path` names.
+    Once §5's rewrite points that field at the new course, `rebuild` sees
+    a `file_id` match against the canonical card but a *different*
+    `course_name` (the new one) — its existing-card-found-in-a-different-
+    course branch fires, and it moves the canonical card out of its own
+    shard into the new course. Confirmed live: a plain `rebuild` (no
+    `--prune`) over a course holding a Tier 1 clone leaves the canonical
+    course's shard empty for that book.
+  - **Tier 2 (different-scan) clones fare no better, differently.** The
+    new course's own PDF hashes to a *different*, real `file_id` that no
+    existing card carries (a clone's own `file_id` is always the derived
+    `compute_id_from_parts` value, never a real hash) — so `rebuild`
+    treats it as genuinely new content and generates a brand-new card via
+    a fresh LLM call, alongside the clone card already sitting in that
+    shard. Two cards, one book, one avoidable API cost.
+  - Net effect: §5's metadata rewrite is worth doing anyway (it keeps
+    `_metadata.json` self-consistent and correct for
+    `describe_images.py`), but treat it as bookkeeping, not a safety
+    guarantee against `rebuild`.
+- **The only real fix is out of scope for this module.** `index_search.py`
+  would need to recognize `duplicate_of_file_id` and either skip clone
+  folders entirely during backfill or resolve identity through it instead
+  of re-hashing — both `index_search.py` and `index_card.py` are excluded
+  by this plan's Global Constraints, which forbid editing either file. Until
+  that lands, `duplicate_of_file_id` is a forensic marker for a human
+  auditing the index, not something any tooling in this repository honors.
 - `duplicate_of_file_id` is the marker for all of this: every clone has
   it, no normally-converted card does.
 

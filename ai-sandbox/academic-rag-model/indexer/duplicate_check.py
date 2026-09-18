@@ -270,12 +270,18 @@ def copy_duplicate_artifacts(
 
     # The copied _metadata.json is a byte-for-byte clone and so still names
     # the CANONICAL course's PDF. index_search.py's `rebuild` textbook
-    # backfill reads exactly these two fields to recompute a book folder's
-    # identity, and would otherwise recompute the canonical file_id from
-    # this copy and rewrite the CANONICAL card's `path` to point here --
-    # indirectly breaking spec §5's "the canonical course's own card and
-    # files are never modified" guarantee. Repointing them at the new
-    # course's own PDF keeps that rebuild self-consistent. A failure here
+    # backfill reads source_pdf_path (not source_pdf_file_id -- that field
+    # is written but never read back by rebuild) to locate a file to hash
+    # via compute_file_id(), then derives `course_name` from that same
+    # path string. Repointing source_pdf_path at the new course's own PDF
+    # keeps `_metadata.json` internally consistent (describe_images.py
+    # does key off source_pdf_file_id) and is directionally correct, but
+    # it is NOT a reliable fix for the rebuild-corruption risk itself --
+    # see spec §6a. In particular, for a Tier 1 (byte-identical) clone,
+    # repointing this field makes rebuild MORE likely to evict the
+    # canonical card from its own course shard, not less, because hashing
+    # the new course's copy yields the same file_id as canonical either
+    # way. Do not treat this rewrite as closing that risk. A failure here
     # leaves an already-successful copy in place, so it warns rather than
     # unwinding the whole copy.
     metadata_path = os.path.join(new_book_dir, f"{folder_name}_metadata.json")
