@@ -100,8 +100,13 @@ This agent's shell has no interactive stdin, so always pass
 y/n prompt per Tier 2 candidate, which will hang forever here.
 
 ```bash
-python -m indexer.duplicate_check --textbook-subdir "$TEXTBOOK_SUBDIR" --non-interactive
+python -m indexer.duplicate_check --textbook-subdir "$TEXTBOOK_SUBDIR" --non-interactive \
+    --emit-to-convert /tmp/to_convert.txt
 ```
+
+`--emit-to-convert` writes the final "to convert" filenames (one per
+line) to that path alongside the normal stdout report — that file, not a
+re-glob of the folder, is what `PDF_FILENAMES` gets rebuilt from below.
 
 This is local, offline, and free (no GPU, no VM, no LLM calls) — see
 `docs/superpowers/specs/2026-09-17-cross-course-duplicate-textbook-detection-design.md`.
@@ -125,31 +130,43 @@ entirely and never printed anywhere.
 
   ```bash
   python -m indexer.duplicate_check --textbook-subdir "$TEXTBOOK_SUBDIR" --non-interactive \
+      --emit-to-convert /tmp/to_convert.txt \
       --resolve <incoming_file_id_a>=yes --resolve <incoming_file_id_c>=no
   ```
 
   `yes` performs the skip+copy against that book's best-scoring
   candidate; `no` records a permanent dismissal of that (incoming,
-  candidate) pair (never surfaced again). Run this before re-deriving
-  `PDF_FILENAMES` below.
+  candidate) pair (never surfaced again). Always pass
+  `--emit-to-convert` on this re-run too — it is the run that applies
+  the decisions, so its emitted file is the one that reflects them.
 
-Re-run this step and re-derive `PDF_FILENAMES` from the folder afterward
-(skipped books are copied but their source PDFs deliberately stay in
-`TEXTBOOK_SUBDIR` — the check is idempotent and cheap enough to just
-re-run rather than hand-edit the list):
+Then rebuild `PDF_FILENAMES` from the emitted file:
 
 ```bash
-shopt -s nullglob
-PDF_FILENAMES=()
-for pdf_path in "../academic-hub/$TEXTBOOK_SUBDIR"/*.pdf; do
-    PDF_FILENAMES+=("$(basename "$pdf_path")")
-done
+mapfile -t PDF_FILENAMES < /tmp/to_convert.txt
 export PDF_FILENAMES
+printf '  %s\n' "${PDF_FILENAMES[@]}"
 ```
 
-If `PDF_FILENAMES` is now empty, every book in this folder was already
-covered by an existing conversion — report that to the user and stop;
-there is nothing left to convert and no VM is needed this run.
+**Read the emitted file; do not re-glob `TEXTBOOK_SUBDIR` here.** A
+confirmed duplicate's artifacts are copied into this course, but its
+*source PDF deliberately stays in `TEXTBOOK_SUBDIR`* — so a re-glob
+returns the identical list as before the check, and the book that was
+just resolved would be uploaded and reconverted anyway, defeating the
+whole step. The emitted file is the only list that reflects the check's
+decisions.
+
+If `PDF_FILENAMES` is now empty (the emitted file is empty), every book
+in this folder was already covered by an existing conversion — report
+that to the user and stop; there is nothing left to convert and no VM is
+needed this run.
+
+One caveat to carry forward: books resolved as duplicates get **clone**
+index cards, marked with a `duplicate_of_file_id` field, which sit
+outside `index_search.py`'s normal one-card-per-file reconciliation. If
+you later run `index_search.py rebuild --prune` over a course that has
+received clones, review what it reports before pruning — see the spec's
+"Known limitations" section for why.
 
 ## Step 1: One-time-per-project setup (idempotent — safe to always run)
 

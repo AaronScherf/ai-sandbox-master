@@ -89,7 +89,8 @@ a *different* course's textbook folder (some reading lists overlap across
 courses). This is local and free: no GPU, no VM, no LLM calls.
 
 ```bash
-python -m indexer.duplicate_check --textbook-subdir "$TEXTBOOK_SUBDIR"
+python -m indexer.duplicate_check --textbook-subdir "$TEXTBOOK_SUBDIR" \
+    --emit-to-convert /tmp/to_convert.txt
 ```
 
 An exact byte-identical match is resolved automatically (its artifacts
@@ -102,21 +103,37 @@ silently drop a real book from this course's corpus. Answering `n` is
 remembered permanently, so you won't be asked about that same pair again
 on a future run.
 
-Re-derive `PDF_FILENAMES` afterward (skipped books are copied but their
-source PDFs are deliberately left in place, so just re-run Step 0.2's
-loop rather than hand-editing the list):
+Now rebuild `PDF_FILENAMES` from the file the check just wrote:
 
 ```bash
-shopt -s nullglob
-PDF_FILENAMES=()
-for pdf_path in "/academic-hub/$TEXTBOOK_SUBDIR"/*.pdf; do
-    PDF_FILENAMES+=("$(basename "$pdf_path")")
-done
+mapfile -t PDF_FILENAMES < /tmp/to_convert.txt
 export PDF_FILENAMES
+
+if [ ${#PDF_FILENAMES[@]} -eq 0 ]; then
+    echo "[System] Every book in this folder was already covered by an existing conversion -- nothing to convert."
+else
+    echo "[System] ${#PDF_FILENAMES[@]} PDF(s) left to convert after the duplicate check:"
+    printf '  %s\n' "${PDF_FILENAMES[@]}"
+fi
 ```
+
+**Read the list from `--emit-to-convert`, do not re-run Step 0.2's glob
+loop here.** A confirmed duplicate's artifacts are copied into this
+course, but its *source PDF is deliberately left in place* -- so
+re-globbing `TEXTBOOK_SUBDIR` returns the exact same list as before the
+check ran, and the book you just skipped would be uploaded and
+reconverted anyway. The emitted file is the only list that reflects the
+check's decisions.
 
 See `docs/superpowers/specs/2026-09-17-cross-course-duplicate-textbook-detection-design.md`
 for the full design (matching tiers, scoring, dismissal persistence).
+
+One caveat for later: books resolved as duplicates get **clone** index
+cards (marked with a `duplicate_of_file_id` field), which sit outside
+`index_search.py`'s normal one-card-per-file reconciliation. If you run
+`python -m indexer.index_search rebuild --prune` over a course that has
+received clones, check what it reports before letting it prune -- see the
+spec's "Known limitations" section.
 
 ## Step 1: Authenticate the SDK within the Container
 

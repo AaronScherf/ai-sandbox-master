@@ -1,3 +1,4 @@
+import json
 import os
 import sys
 import tempfile
@@ -93,7 +94,7 @@ class TestFindExactDuplicate(unittest.TestCase):
             file_id = compute_file_id(pdf_path)
 
             save_shard(academic_hub_root, "econometrics", [{
-                "file_id": file_id, "path": "econometrics/textbooks/processed_outputs/Ok_RealAnalysis_2007/Ok_RealAnalysis_2007.md",
+                "file_id": file_id, "path": "academic_resources/econometrics/textbooks/processed_outputs/Ok_RealAnalysis_2007/Ok_RealAnalysis_2007.md",
                 "source_pdf_path": "academic_resources/econometrics/textbooks/Ok.pdf", "course": "econometrics",
                 "doc_type": "textbook", "title": "Real Analysis with Economic Applications",
             }])
@@ -113,10 +114,48 @@ class TestFindExactDuplicate(unittest.TestCase):
             file_id = compute_file_id(pdf_path)
 
             save_shard(academic_hub_root, "microecon", [{
-                "file_id": file_id, "path": "microecon/textbooks/processed_outputs/Ok_RealAnalysis_2007/Ok_RealAnalysis_2007.md",
+                "file_id": file_id, "path": "academic_resources/microecon/textbooks/processed_outputs/Ok_RealAnalysis_2007/Ok_RealAnalysis_2007.md",
                 "source_pdf_path": "academic_resources/microecon/textbooks/Ok.pdf", "course": "microecon",
                 "doc_type": "textbook", "title": "Real Analysis with Economic Applications",
             }])
+
+            result = find_exact_duplicate(academic_hub_root, pdf_path, current_course="microecon")
+            self.assertIsNone(result)
+
+    def test_same_course_hit_wins_over_an_alphabetically_earlier_other_course(self):
+        # Regression (final review, Finding 5): find_card_by_file_id()
+        # returns the FIRST match in list_courses()'s *sorted* order, so
+        # when the same file_id has cards in both the current course
+        # ("microecon") and an alphabetically-earlier one ("econometrics"),
+        # the naive lookup reported "econometrics" and cloned the book into
+        # a course that already had it. The current course's own shard must
+        # be consulted first -- a same-course hit means this is not a
+        # cross-course duplicate at all.
+        with tempfile.TemporaryDirectory() as academic_hub_root:
+            from indexer.index_card import compute_file_id, list_courses
+
+            pdf_path = os.path.join(academic_hub_root, "academic_resources", "microecon", "textbooks", "Ok.pdf")
+            self._write_pdf(pdf_path)
+            file_id = compute_file_id(pdf_path)
+
+            shared = {
+                "file_id": file_id, "doc_type": "textbook",
+                "title": "Real Analysis with Economic Applications",
+            }
+            save_shard(academic_hub_root, "econometrics", [dict(
+                shared, course="econometrics",
+                path="academic_resources/econometrics/textbooks/processed_outputs/Ok_RealAnalysis_2007/Ok_RealAnalysis_2007.md",
+                source_pdf_path="academic_resources/econometrics/textbooks/Ok.pdf",
+            )])
+            save_shard(academic_hub_root, "microecon", [dict(
+                shared, course="microecon",
+                path="academic_resources/microecon/textbooks/processed_outputs/Ok_RealAnalysis_2007/Ok_RealAnalysis_2007.md",
+                source_pdf_path="academic_resources/microecon/textbooks/Ok.pdf",
+            )])
+
+            # Guards the premise: "econometrics" really does sort first, so
+            # the unfixed lookup really would have returned it.
+            self.assertEqual(list_courses(academic_hub_root), ["econometrics", "microecon"])
 
             result = find_exact_duplicate(academic_hub_root, pdf_path, current_course="microecon")
             self.assertIsNone(result)
@@ -132,7 +171,7 @@ class TestFindExactDuplicate(unittest.TestCase):
 class TestFindFuzzyCandidates(unittest.TestCase):
     def _card(self, folder_name, title, doc_type="textbook", course="econometrics"):
         return {
-            "file_id": f"fid-{folder_name}", "path": f"{course}/textbooks/processed_outputs/{folder_name}/{folder_name}.md",
+            "file_id": f"fid-{folder_name}", "path": f"academic_resources/{course}/textbooks/processed_outputs/{folder_name}/{folder_name}.md",
             "source_pdf_path": f"academic_resources/{course}/textbooks/x.pdf", "course": course,
             "doc_type": doc_type, "title": title,
         }
@@ -238,7 +277,7 @@ class TestDismissals(unittest.TestCase):
         from indexer.duplicate_check import record_dismissal
         with tempfile.TemporaryDirectory() as academic_hub_root:
             record_dismissal(academic_hub_root, "id-a", "id-b")
-            expected_path = os.path.join(academic_hub_root, ".index", "duplicate_dismissals.json")
+            expected_path = os.path.join(academic_hub_root, ".index", "duplicates", "dismissals.json")
             self.assertTrue(os.path.exists(expected_path))
 
 
@@ -250,17 +289,27 @@ from indexer.duplicate_check import copy_duplicate_artifacts
 
 class TestCopyDuplicateArtifacts(unittest.TestCase):
     def _make_canonical_book(self, academic_hub_root, course="econometrics", folder_category="textbooks", folder_name="Ok_RealAnalysisWithEconomicApplications_2007"):
-        book_dir = os.path.join(academic_hub_root, course, folder_category, "processed_outputs", folder_name)
+        book_dir = os.path.join(academic_hub_root, "academic_resources", course, folder_category, "processed_outputs", folder_name)
         os.makedirs(os.path.join(book_dir, "images"), exist_ok=True)
         with open(os.path.join(book_dir, f"{folder_name}.md"), "w", encoding="utf-8") as f:
             f.write("# Real Analysis with Economic Applications\n\nBody text.")
         with open(os.path.join(book_dir, "images", "page_1.png"), "wb") as f:
             f.write(b"fake png bytes")
+        # Shaped like a real one: convert_textbook.py always records
+        # source_pdf_path/source_pdf_file_id, and index_search.py's rebuild
+        # backfill recomputes a book folder's identity from exactly those
+        # two fields.
         with open(os.path.join(book_dir, f"{folder_name}_metadata.json"), "w", encoding="utf-8") as f:
-            f.write('{"title": "Real Analysis with Economic Applications"}')
+            json.dump({
+                "title": "Real Analysis with Economic Applications",
+                "source_pdf_path": f"academic_resources/{course}/{folder_category}/Ok.pdf",
+                "source_pdf_filename": "Ok.pdf",
+                "source_pdf_file_id": "canonical-fid",
+                "total_pages_processed": 700,
+            }, f, indent=4)
 
         canonical_card = {
-            "file_id": "canonical-fid", "path": f"{course}/{folder_category}/processed_outputs/{folder_name}/{folder_name}.md",
+            "file_id": "canonical-fid", "path": f"academic_resources/{course}/{folder_category}/processed_outputs/{folder_name}/{folder_name}.md",
             "source_pdf_path": f"academic_resources/{course}/{folder_category}/Ok.pdf", "course": course,
             "doc_type": "textbook", "title": "Real Analysis with Economic Applications",
             "summary": "A real analysis textbook.", "tags": ["math"], "level": "advanced",
@@ -279,7 +328,7 @@ class TestCopyDuplicateArtifacts(unittest.TestCase):
                 "academic_resources/microecon/textbooks/Ok.pdf",
             )
 
-            new_book_dir = os.path.join(academic_hub_root, "microecon", "textbooks", "processed_outputs", folder_name)
+            new_book_dir = os.path.join(academic_hub_root, "academic_resources", "microecon", "textbooks", "processed_outputs", folder_name)
             self.assertTrue(os.path.exists(os.path.join(new_book_dir, f"{folder_name}.md")))
             self.assertTrue(os.path.exists(os.path.join(new_book_dir, "images", "page_1.png")))
             self.assertTrue(os.path.exists(os.path.join(new_book_dir, f"{folder_name}_metadata.json")))
@@ -327,6 +376,63 @@ class TestCopyDuplicateArtifacts(unittest.TestCase):
             self.assertEqual(len(new_shard), 1)
             self.assertEqual(new_shard[0]["course"], "microecon")
 
+    def test_new_card_path_and_directory_keep_the_academic_resources_prefix(self):
+        # Regression (final review, Finding 1): the destination used to be
+        # rebuilt as "<new_course>/<category>/processed_outputs/...", which
+        # silently dropped the leading "academic_resources/" segment that
+        # every real card carries (verified against a live shard) and that
+        # index_search.py's _textbook_book_dirs requires -- so the clone
+        # landed somewhere nothing in the pipeline ever looks.
+        with tempfile.TemporaryDirectory() as academic_hub_root:
+            _, folder_name, canonical_card = self._make_canonical_book(academic_hub_root)
+
+            new_card = copy_duplicate_artifacts(
+                academic_hub_root, "econometrics", canonical_card, "microecon", "textbooks",
+                "academic_resources/microecon/textbooks/Ok.pdf",
+            )
+
+            self.assertEqual(
+                new_card["path"],
+                f"academic_resources/microecon/textbooks/processed_outputs/{folder_name}/{folder_name}.md",
+            )
+            # The card's `path` must resolve to the file that was actually
+            # written, and the un-prefixed location must not exist at all.
+            self.assertTrue(os.path.exists(os.path.join(academic_hub_root, *new_card["path"].split("/"))))
+            self.assertFalse(os.path.exists(os.path.join(academic_hub_root, "microecon")))
+
+    def test_copied_metadata_is_repointed_at_the_new_courses_pdf(self):
+        # Regression (final review, Finding 6): the copied _metadata.json
+        # still named the CANONICAL course's PDF, so an index_search.py
+        # `rebuild` over the new course would recompute the canonical
+        # file_id from this clone and rewrite the canonical card's own
+        # `path` to point here -- breaking spec 5's "canonical is never
+        # modified" guarantee from the outside.
+        with tempfile.TemporaryDirectory() as academic_hub_root:
+            book_dir, folder_name, canonical_card = self._make_canonical_book(academic_hub_root)
+
+            new_card = copy_duplicate_artifacts(
+                academic_hub_root, "econometrics", canonical_card, "microecon", "textbooks",
+                "academic_resources/microecon/textbooks/Ok.pdf",
+            )
+
+            copied_metadata_path = os.path.join(
+                academic_hub_root, "academic_resources", "microecon", "textbooks",
+                "processed_outputs", folder_name, f"{folder_name}_metadata.json",
+            )
+            with open(copied_metadata_path, encoding="utf-8") as f:
+                copied = json.load(f)
+            self.assertEqual(copied["source_pdf_path"], "academic_resources/microecon/textbooks/Ok.pdf")
+            self.assertEqual(copied["source_pdf_file_id"], new_card["file_id"])
+            # Unrelated fields survive the rewrite untouched.
+            self.assertEqual(copied["title"], "Real Analysis with Economic Applications")
+            self.assertEqual(copied["total_pages_processed"], 700)
+
+            # And the canonical book's own metadata is still canonical.
+            with open(os.path.join(book_dir, f"{folder_name}_metadata.json"), encoding="utf-8") as f:
+                original = json.load(f)
+            self.assertEqual(original["source_pdf_path"], "academic_resources/econometrics/textbooks/Ok.pdf")
+            self.assertEqual(original["source_pdf_file_id"], "canonical-fid")
+
     def test_rerunning_is_idempotent(self):
         with tempfile.TemporaryDirectory() as academic_hub_root:
             _, folder_name, canonical_card = self._make_canonical_book(academic_hub_root)
@@ -372,12 +478,12 @@ class TestRunDuplicateCheck(unittest.TestCase):
             from indexer.index_card import compute_file_id
             file_id = compute_file_id(pdf_path)
 
-            book_dir = os.path.join(academic_hub_root, "econometrics", "textbooks", "processed_outputs", "Ok_RealAnalysis_2007")
+            book_dir = os.path.join(academic_hub_root, "academic_resources", "econometrics", "textbooks", "processed_outputs", "Ok_RealAnalysis_2007")
             os.makedirs(book_dir, exist_ok=True)
             with open(os.path.join(book_dir, "Ok_RealAnalysis_2007.md"), "w", encoding="utf-8") as f:
                 f.write("# Real Analysis")
             save_shard(academic_hub_root, "econometrics", [{
-                "file_id": file_id, "path": "econometrics/textbooks/processed_outputs/Ok_RealAnalysis_2007/Ok_RealAnalysis_2007.md",
+                "file_id": file_id, "path": "academic_resources/econometrics/textbooks/processed_outputs/Ok_RealAnalysis_2007/Ok_RealAnalysis_2007.md",
                 "source_pdf_path": "academic_resources/econometrics/textbooks/Ok.pdf", "course": "econometrics",
                 "doc_type": "textbook", "title": "Real Analysis with Economic Applications",
             }])
@@ -387,7 +493,7 @@ class TestRunDuplicateCheck(unittest.TestCase):
             self.assertEqual(result["to_convert"], [])
             self.assertEqual(len(result["skipped"]), 1)
             self.assertEqual(result["skipped"][0][0], "Ok.pdf")
-            new_book_dir = os.path.join(academic_hub_root, "microecon", "textbooks", "processed_outputs", "Ok_RealAnalysis_2007")
+            new_book_dir = os.path.join(academic_hub_root, "academic_resources", "microecon", "textbooks", "processed_outputs", "Ok_RealAnalysis_2007")
             self.assertTrue(os.path.exists(os.path.join(new_book_dir, "Ok_RealAnalysis_2007.md")))
 
     def test_non_interactive_fuzzy_match_is_left_unresolved_and_kept_in_to_convert(self):
@@ -395,12 +501,12 @@ class TestRunDuplicateCheck(unittest.TestCase):
             subdir = "academic_resources/microecon/textbooks"
             self._write_pdf(os.path.join(academic_hub_root, subdir, "Ok_RealAnalysisWithEconomicApplications_2007.pdf"), b"a re-scanned copy, different bytes")
 
-            book_dir = os.path.join(academic_hub_root, "econometrics", "textbooks", "processed_outputs", "Ok_RealAnalysisWithEconomicApplications_2007")
+            book_dir = os.path.join(academic_hub_root, "academic_resources", "econometrics", "textbooks", "processed_outputs", "Ok_RealAnalysisWithEconomicApplications_2007")
             os.makedirs(book_dir, exist_ok=True)
             with open(os.path.join(book_dir, "Ok_RealAnalysisWithEconomicApplications_2007.md"), "w", encoding="utf-8") as f:
                 f.write("# Real Analysis")
             save_shard(academic_hub_root, "econometrics", [{
-                "file_id": "some-other-fid", "path": "econometrics/textbooks/processed_outputs/Ok_RealAnalysisWithEconomicApplications_2007/Ok_RealAnalysisWithEconomicApplications_2007.md",
+                "file_id": "some-other-fid", "path": "academic_resources/econometrics/textbooks/processed_outputs/Ok_RealAnalysisWithEconomicApplications_2007/Ok_RealAnalysisWithEconomicApplications_2007.md",
                 "source_pdf_path": "academic_resources/econometrics/textbooks/Ok.pdf", "course": "econometrics",
                 "doc_type": "textbook", "title": "Real Analysis with Economic Applications",
             }])
@@ -418,12 +524,12 @@ class TestRunDuplicateCheck(unittest.TestCase):
             from indexer.index_card import compute_file_id
             incoming_file_id = compute_file_id(pdf_path)
 
-            book_dir = os.path.join(academic_hub_root, "econometrics", "textbooks", "processed_outputs", "Ok_RealAnalysisWithEconomicApplications_2007")
+            book_dir = os.path.join(academic_hub_root, "academic_resources", "econometrics", "textbooks", "processed_outputs", "Ok_RealAnalysisWithEconomicApplications_2007")
             os.makedirs(book_dir, exist_ok=True)
             with open(os.path.join(book_dir, "Ok_RealAnalysisWithEconomicApplications_2007.md"), "w", encoding="utf-8") as f:
                 f.write("# Real Analysis")
             save_shard(academic_hub_root, "econometrics", [{
-                "file_id": "some-other-fid", "path": "econometrics/textbooks/processed_outputs/Ok_RealAnalysisWithEconomicApplications_2007/Ok_RealAnalysisWithEconomicApplications_2007.md",
+                "file_id": "some-other-fid", "path": "academic_resources/econometrics/textbooks/processed_outputs/Ok_RealAnalysisWithEconomicApplications_2007/Ok_RealAnalysisWithEconomicApplications_2007.md",
                 "source_pdf_path": "academic_resources/econometrics/textbooks/Ok.pdf", "course": "econometrics",
                 "doc_type": "textbook", "title": "Real Analysis with Economic Applications",
             }])
@@ -444,12 +550,12 @@ class TestRunDuplicateCheck(unittest.TestCase):
             from indexer.index_card import compute_file_id
             incoming_file_id = compute_file_id(pdf_path)
 
-            book_dir = os.path.join(academic_hub_root, "econometrics", "textbooks", "processed_outputs", "Ok_RealAnalysisWithEconomicApplications_2007")
+            book_dir = os.path.join(academic_hub_root, "academic_resources", "econometrics", "textbooks", "processed_outputs", "Ok_RealAnalysisWithEconomicApplications_2007")
             os.makedirs(book_dir, exist_ok=True)
             with open(os.path.join(book_dir, "Ok_RealAnalysisWithEconomicApplications_2007.md"), "w", encoding="utf-8") as f:
                 f.write("# Real Analysis")
             save_shard(academic_hub_root, "econometrics", [{
-                "file_id": "some-other-fid", "path": "econometrics/textbooks/processed_outputs/Ok_RealAnalysisWithEconomicApplications_2007/Ok_RealAnalysisWithEconomicApplications_2007.md",
+                "file_id": "some-other-fid", "path": "academic_resources/econometrics/textbooks/processed_outputs/Ok_RealAnalysisWithEconomicApplications_2007/Ok_RealAnalysisWithEconomicApplications_2007.md",
                 "source_pdf_path": "academic_resources/econometrics/textbooks/Ok.pdf", "course": "econometrics",
                 "doc_type": "textbook", "title": "Real Analysis with Economic Applications",
             }])
@@ -472,12 +578,12 @@ class TestRunDuplicateCheck(unittest.TestCase):
             pdf_path = os.path.join(academic_hub_root, subdir, "Ok_RealAnalysisWithEconomicApplications_2007.pdf")
             self._write_pdf(pdf_path, b"a re-scanned copy, different bytes")
 
-            book_dir = os.path.join(academic_hub_root, "econometrics", "textbooks", "processed_outputs", "Ok_RealAnalysisWithEconomicApplications_2007")
+            book_dir = os.path.join(academic_hub_root, "academic_resources", "econometrics", "textbooks", "processed_outputs", "Ok_RealAnalysisWithEconomicApplications_2007")
             os.makedirs(book_dir, exist_ok=True)
             with open(os.path.join(book_dir, "Ok_RealAnalysisWithEconomicApplications_2007.md"), "w", encoding="utf-8") as f:
                 f.write("# Real Analysis")
             save_shard(academic_hub_root, "econometrics", [{
-                "file_id": "some-other-fid", "path": "econometrics/textbooks/processed_outputs/Ok_RealAnalysisWithEconomicApplications_2007/Ok_RealAnalysisWithEconomicApplications_2007.md",
+                "file_id": "some-other-fid", "path": "academic_resources/econometrics/textbooks/processed_outputs/Ok_RealAnalysisWithEconomicApplications_2007/Ok_RealAnalysisWithEconomicApplications_2007.md",
                 "source_pdf_path": "academic_resources/econometrics/textbooks/Ok.pdf", "course": "econometrics",
                 "doc_type": "textbook", "title": "Real Analysis with Economic Applications",
             }])
@@ -502,6 +608,87 @@ class TestBuildArgParser(unittest.TestCase):
             "--non-interactive", "--resolve", "aaa=yes", "--resolve", "bbb=no",
         ])
         self.assertEqual(args.resolve, ["aaa=yes", "bbb=no"])
+
+    def test_emit_to_convert_defaults_to_none_and_is_accepted(self):
+        parser = build_arg_parser()
+        base = ["--textbook-subdir", "academic_resources/microecon/textbooks"]
+        self.assertIsNone(parser.parse_args(base).emit_to_convert)
+        args = parser.parse_args(base + ["--emit-to-convert", "/tmp/to_convert.txt"])
+        self.assertEqual(args.emit_to_convert, "/tmp/to_convert.txt")
+
+
+class TestEmitToConvert(unittest.TestCase):
+    """Regression coverage (final review, Finding 3): both instructions
+    documents used to re-derive PDF_FILENAMES by re-globbing
+    TEXTBOOK_SUBDIR after the check -- but a confirmed duplicate's source
+    PDF is deliberately never deleted, so the re-glob returned the exact
+    same list and the 'skipped' book got uploaded and reconverted anyway.
+    --emit-to-convert is the mechanism that actually removes it."""
+
+    def _write_pdf(self, path, content):
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        with open(path, "wb") as f:
+            f.write(content)
+
+    def test_writes_one_filename_per_line_creating_parent_dirs(self):
+        from indexer.duplicate_check import write_to_convert_file
+        with tempfile.TemporaryDirectory() as tmp:
+            out = os.path.join(tmp, "nested", "to_convert.txt")
+            write_to_convert_file(out, ["A_Book_2020.pdf", "B Book, with spaces.pdf"])
+            with open(out, encoding="utf-8") as f:
+                self.assertEqual(f.read().splitlines(), ["A_Book_2020.pdf", "B Book, with spaces.pdf"])
+
+    def test_empty_to_convert_writes_an_empty_file(self):
+        from indexer.duplicate_check import write_to_convert_file
+        with tempfile.TemporaryDirectory() as tmp:
+            out = os.path.join(tmp, "to_convert.txt")
+            write_to_convert_file(out, [])
+            self.assertTrue(os.path.exists(out))
+            with open(out, encoding="utf-8") as f:
+                self.assertEqual(f.read(), "")
+
+    def test_main_emits_only_the_unskipped_pdf_not_the_whole_folder(self):
+        import indexer.duplicate_check as dc
+        from indexer.index_card import compute_file_id
+
+        with tempfile.TemporaryDirectory() as academic_hub_root, tempfile.TemporaryDirectory() as tmp:
+            subdir = "academic_resources/microecon/textbooks"
+            dup_path = os.path.join(academic_hub_root, subdir, "Ok.pdf")
+            self._write_pdf(dup_path, b"%PDF-1.4 identical bytes")
+            self._write_pdf(os.path.join(academic_hub_root, subdir, "New_Book_2020.pdf"), b"brand new content")
+            file_id = compute_file_id(dup_path)
+
+            book_dir = os.path.join(
+                academic_hub_root, "academic_resources", "econometrics", "textbooks",
+                "processed_outputs", "Ok_RealAnalysis_2007",
+            )
+            os.makedirs(book_dir, exist_ok=True)
+            with open(os.path.join(book_dir, "Ok_RealAnalysis_2007.md"), "w", encoding="utf-8") as f:
+                f.write("# Real Analysis")
+            save_shard(academic_hub_root, "econometrics", [{
+                "file_id": file_id,
+                "path": "academic_resources/econometrics/textbooks/processed_outputs/Ok_RealAnalysis_2007/Ok_RealAnalysis_2007.md",
+                "source_pdf_path": "academic_resources/econometrics/textbooks/Ok.pdf", "course": "econometrics",
+                "doc_type": "textbook", "title": "Real Analysis with Economic Applications",
+            }])
+
+            out = os.path.join(tmp, "to_convert.txt")
+            argv = [
+                "duplicate_check", "--textbook-subdir", subdir,
+                "--academic-hub-root", academic_hub_root,
+                "--non-interactive", "--emit-to-convert", out,
+            ]
+            with mock.patch.object(sys, "argv", argv), mock.patch("sys.stdout", new=StringIO()):
+                dc.main()
+
+            with open(out, encoding="utf-8") as f:
+                emitted = f.read().splitlines()
+
+            # Both PDFs are still on disk (the duplicate's source is never
+            # deleted) -- so a re-glob would return both. The emitted list
+            # is what makes the skip actually take effect.
+            self.assertTrue(os.path.exists(dup_path))
+            self.assertEqual(emitted, ["New_Book_2020.pdf"])
 
 
 class TestRunDuplicateCheckErrorIsolation(unittest.TestCase):
@@ -565,12 +752,12 @@ class TestRunDuplicateCheckErrorIsolation(unittest.TestCase):
             self._write_pdf(dup_path, b"%PDF-1.4 identical bytes")
             file_id = compute_file_id(dup_path)
 
-            book_dir = os.path.join(academic_hub_root, "econometrics", "textbooks", "processed_outputs", "Ok_RealAnalysis_2007")
+            book_dir = os.path.join(academic_hub_root, "academic_resources", "econometrics", "textbooks", "processed_outputs", "Ok_RealAnalysis_2007")
             os.makedirs(book_dir, exist_ok=True)
             with open(os.path.join(book_dir, "Ok_RealAnalysis_2007.md"), "w", encoding="utf-8") as f:
                 f.write("# Real Analysis")
             save_shard(academic_hub_root, "econometrics", [{
-                "file_id": file_id, "path": "econometrics/textbooks/processed_outputs/Ok_RealAnalysis_2007/Ok_RealAnalysis_2007.md",
+                "file_id": file_id, "path": "academic_resources/econometrics/textbooks/processed_outputs/Ok_RealAnalysis_2007/Ok_RealAnalysis_2007.md",
                 "source_pdf_path": "academic_resources/econometrics/textbooks/Ok.pdf", "course": "econometrics",
                 "doc_type": "textbook", "title": "Real Analysis with Economic Applications",
             }])
@@ -601,12 +788,12 @@ class TestRunDuplicateCheckErrorIsolation(unittest.TestCase):
             self._write_pdf(pdf_path, b"a re-scanned copy, different bytes")
             incoming_file_id = compute_file_id(pdf_path)
 
-            book_dir = os.path.join(academic_hub_root, "econometrics", "textbooks", "processed_outputs", "Ok_RealAnalysisWithEconomicApplications_2007")
+            book_dir = os.path.join(academic_hub_root, "academic_resources", "econometrics", "textbooks", "processed_outputs", "Ok_RealAnalysisWithEconomicApplications_2007")
             os.makedirs(book_dir, exist_ok=True)
             with open(os.path.join(book_dir, "Ok_RealAnalysisWithEconomicApplications_2007.md"), "w", encoding="utf-8") as f:
                 f.write("# Real Analysis")
             save_shard(academic_hub_root, "econometrics", [{
-                "file_id": "some-other-fid", "path": "econometrics/textbooks/processed_outputs/Ok_RealAnalysisWithEconomicApplications_2007/Ok_RealAnalysisWithEconomicApplications_2007.md",
+                "file_id": "some-other-fid", "path": "academic_resources/econometrics/textbooks/processed_outputs/Ok_RealAnalysisWithEconomicApplications_2007/Ok_RealAnalysisWithEconomicApplications_2007.md",
                 "source_pdf_path": "academic_resources/econometrics/textbooks/Ok.pdf", "course": "econometrics",
                 "doc_type": "textbook", "title": "Real Analysis with Economic Applications",
             }])
@@ -625,6 +812,125 @@ class TestRunDuplicateCheckErrorIsolation(unittest.TestCase):
 
             self.assertEqual(result["to_convert"], ["Ok_RealAnalysisWithEconomicApplications_2007.pdf"])
             self.assertIn("WARNING", captured_stderr.getvalue())
+
+
+class TestCorruptDismissalsFile(unittest.TestCase):
+    """Regression coverage (final review, Finding 4): load_dismissals() was
+    the one unguarded call in run_duplicate_check -- a hand-edited or
+    truncated dismissals file raised json.JSONDecodeError before a single
+    PDF was looked at, taking down the whole batch. It must degrade to
+    'nothing was ever dismissed' (the safe direction: at worst a pair gets
+    re-asked) with a warning, like every other step in that loop."""
+
+    def _write_pdf(self, path, content):
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        with open(path, "wb") as f:
+            f.write(content)
+
+    def _write_dismissals(self, academic_hub_root, raw):
+        from indexer.duplicate_check import _dismissals_path
+        path = _dismissals_path(academic_hub_root)
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        with open(path, "w", encoding="utf-8") as f:
+            f.write(raw)
+
+    def _run_capturing_stderr(self, academic_hub_root, subdir):
+        import indexer.duplicate_check as dc
+        captured_stderr = StringIO()
+        old_stderr = sys.stderr
+        sys.stderr = captured_stderr
+        try:
+            result = dc.run_duplicate_check(subdir, academic_hub_root, non_interactive=True, resolutions={})
+        finally:
+            sys.stderr = old_stderr
+        return result, captured_stderr.getvalue()
+
+    def test_malformed_json_warns_and_the_run_still_completes(self):
+        with tempfile.TemporaryDirectory() as academic_hub_root:
+            subdir = "academic_resources/microecon/textbooks"
+            self._write_pdf(os.path.join(academic_hub_root, subdir, "New_Book_2020.pdf"), b"brand new content")
+            self._write_dismissals(academic_hub_root, "[{\"file_id_a\": \"a\", truncated")
+
+            result, stderr = self._run_capturing_stderr(academic_hub_root, subdir)
+
+            self.assertEqual(result["to_convert"], ["New_Book_2020.pdf"])
+            self.assertIn("WARNING", stderr)
+            self.assertIn("dismissals", stderr)
+
+    def test_wrong_json_shape_warns_and_the_run_still_completes(self):
+        # Valid JSON, but an object rather than the expected list -- would
+        # otherwise blow up later, inside is_dismissed's iteration.
+        with tempfile.TemporaryDirectory() as academic_hub_root:
+            subdir = "academic_resources/microecon/textbooks"
+            self._write_pdf(os.path.join(academic_hub_root, subdir, "New_Book_2020.pdf"), b"brand new content")
+            self._write_dismissals(academic_hub_root, '{"file_id_a": "a", "file_id_b": "b"}')
+
+            result, stderr = self._run_capturing_stderr(academic_hub_root, subdir)
+
+            self.assertEqual(result["to_convert"], ["New_Book_2020.pdf"])
+            self.assertIn("WARNING", stderr)
+
+    def test_corrupt_dismissals_does_not_prevent_duplicate_resolution(self):
+        # The stronger claim: a corrupt dismissals file degrades ONLY the
+        # dismissal memory -- the rest of the run (here, an exact-match
+        # skip+copy) still does its real work.
+        from indexer.index_card import compute_file_id
+
+        with tempfile.TemporaryDirectory() as academic_hub_root:
+            subdir = "academic_resources/microecon/textbooks"
+            dup_path = os.path.join(academic_hub_root, subdir, "Ok.pdf")
+            self._write_pdf(dup_path, b"%PDF-1.4 identical bytes")
+            self._write_pdf(os.path.join(academic_hub_root, subdir, "New_Book_2020.pdf"), b"brand new content")
+            file_id = compute_file_id(dup_path)
+            self._write_dismissals(academic_hub_root, "not valid json{{{")
+
+            book_dir = os.path.join(
+                academic_hub_root, "academic_resources", "econometrics", "textbooks",
+                "processed_outputs", "Ok_RealAnalysis_2007",
+            )
+            os.makedirs(book_dir, exist_ok=True)
+            with open(os.path.join(book_dir, "Ok_RealAnalysis_2007.md"), "w", encoding="utf-8") as f:
+                f.write("# Real Analysis")
+            save_shard(academic_hub_root, "econometrics", [{
+                "file_id": file_id,
+                "path": "academic_resources/econometrics/textbooks/processed_outputs/Ok_RealAnalysis_2007/Ok_RealAnalysis_2007.md",
+                "source_pdf_path": "academic_resources/econometrics/textbooks/Ok.pdf", "course": "econometrics",
+                "doc_type": "textbook", "title": "Real Analysis with Economic Applications",
+            }])
+
+            result, stderr = self._run_capturing_stderr(academic_hub_root, subdir)
+
+            self.assertEqual(result["to_convert"], ["New_Book_2020.pdf"])
+            self.assertEqual(len(result["skipped"]), 1)
+            self.assertIn("WARNING", stderr)
+
+
+class TestDismissalsStorageLocation(unittest.TestCase):
+    """Regression coverage (final review, Finding 2): the dismissals file
+    used to sit at .index/duplicate_dismissals.json, which
+    index_card.list_courses() enumerates as a course shard -- making a
+    phantom "duplicate_dismissals" course that index_search.py's
+    `rebuild --prune` would empty out, silently wiping every dismissal."""
+
+    def test_dismissals_file_is_not_visible_to_list_courses(self):
+        from indexer.duplicate_check import record_dismissal, _dismissals_path
+        from indexer.index_card import list_courses
+
+        with tempfile.TemporaryDirectory() as academic_hub_root:
+            save_shard(academic_hub_root, "econometrics", [])
+            record_dismissal(academic_hub_root, "id-a", "id-b")
+
+            self.assertTrue(os.path.exists(_dismissals_path(academic_hub_root)))
+            self.assertEqual(list_courses(academic_hub_root), ["econometrics"])
+            self.assertNotIn("duplicate_dismissals", list_courses(academic_hub_root))
+            self.assertNotIn("dismissals", list_courses(academic_hub_root))
+
+    def test_dismissals_survive_a_round_trip_from_the_nested_location(self):
+        from indexer.duplicate_check import record_dismissal, load_dismissals, is_dismissed
+
+        with tempfile.TemporaryDirectory() as academic_hub_root:
+            record_dismissal(academic_hub_root, "id-a", "id-b")
+            self.assertTrue(is_dismissed(load_dismissals(academic_hub_root), "id-b", "id-a"))
 
 
 if __name__ == "__main__":

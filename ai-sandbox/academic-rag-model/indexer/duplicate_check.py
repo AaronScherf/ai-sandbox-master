@@ -112,6 +112,17 @@ def find_exact_duplicate(academic_hub_root: str, pdf_path: str, current_course: 
     (including this module's own tests) is unaffected."""
     if file_id is None:
         file_id = compute_file_id(pdf_path)
+
+    # The current course's OWN shard is checked first, before the global
+    # lookup, because find_card_by_file_id() returns the first match in
+    # list_courses()'s *sorted* order -- so a book that already has cards
+    # in both this course and an alphabetically-earlier other course would
+    # otherwise be reported as a cross-course duplicate and pointlessly
+    # cloned, masking the fact that this course already has it. A
+    # same-course hit is convert_textbook.py's own reconciliation job.
+    if any(card.get("file_id") == file_id for card in load_shard(academic_hub_root, current_course)):
+        return None
+
     found = find_card_by_file_id(academic_hub_root, file_id)
     if found is None:
         return None
@@ -157,7 +168,16 @@ def find_fuzzy_candidates(academic_hub_root: str, incoming: dict, current_course
 
 
 def _dismissals_path(academic_hub_root: str) -> str:
-    return os.path.join(academic_hub_root, ".index", "duplicate_dismissals.json")
+    """Deliberately one level DOWN inside .index/, not directly in it:
+    indexer.index_card.list_courses() treats every `*.json` file that is a
+    direct child of `.index/` (except courses.json/tags.json) as a course
+    shard, so a `.index/duplicate_dismissals.json` would surface as a
+    phantom course named "duplicate_dismissals" -- and index_search.py's
+    `rebuild --prune` would then walk that "shard", find none of its
+    entries backed by a real file, and delete every recorded dismissal.
+    list_courses() only ever scans direct children, never subdirectories,
+    so `.index/duplicates/` is structurally outside its namespace."""
+    return os.path.join(academic_hub_root, ".index", "duplicates", "dismissals.json")
 
 
 def load_dismissals(academic_hub_root: str) -> list[dict]:
@@ -176,8 +196,20 @@ def save_dismissals(academic_hub_root: str, dismissals: list[dict]) -> None:
 
 
 def is_dismissed(dismissals: list[dict], file_id_a: str, file_id_b: str) -> bool:
+    """Tolerates a hand-edited entry that isn't a well-formed
+    {"file_id_a","file_id_b"} dict -- such an entry simply doesn't match
+    anything, rather than raising and taking the whole run down with it
+    (same degrade-don't-crash rule as the rest of this module)."""
     pair = tuple(sorted([file_id_a, file_id_b]))
-    return any(tuple(sorted([d["file_id_a"], d["file_id_b"]])) == pair for d in dismissals)
+    for d in dismissals:
+        if not isinstance(d, dict):
+            continue
+        a, b = d.get("file_id_a"), d.get("file_id_b")
+        if a is None or b is None:
+            continue
+        if tuple(sorted([a, b])) == pair:
+            return True
+    return False
 
 
 def record_dismissal(academic_hub_root: str, file_id_a: str, file_id_b: str) -> None:
@@ -198,22 +230,71 @@ def copy_duplicate_artifacts(
     """Copies a confirmed duplicate's processed_outputs/<BookDir>/ tree
     into the new course and clones its index card (spec §5). The canonical
     card/files are never modified -- this only ever reads from the
-    canonical location and writes to the new one."""
+    canonical location and writes to the new one.
+
+    Every path is derived from `new_source_pdf_path` (the real relative
+    path of the PDF that triggered this check, e.g.
+    `academic_resources/microecon/textbooks/Ok.pdf`) rather than rebuilt
+    from `new_course`/`new_folder_category`: the latter silently dropped
+    the leading `academic_resources/` segment that every real card carries
+    (convert_textbook.py derives its own `rel_md_path` the same way, from
+    the PDF's own path) and that every reader expects -- notably
+    index_search.py's `_textbook_book_dirs`, which only ever walks
+    `academic_resources/<course>/<category>/processed_outputs`.
+
+    `new_folder_category` is retained purely as a sanity check against the
+    category segment derived from the PDF path; a mismatch is a caller bug
+    worth a warning, not worth failing the copy over."""
     canonical_book_dir = os.path.join(academic_hub_root, os.path.normpath(os.path.dirname(canonical_card["path"])))
     folder_name = os.path.basename(canonical_book_dir)
 
-    new_processed_outputs_dir = os.path.join(academic_hub_root, new_course, new_folder_category, "processed_outputs")
-    new_book_dir = os.path.join(new_processed_outputs_dir, folder_name)
-    os.makedirs(new_processed_outputs_dir, exist_ok=True)
+    rel_category_dir = os.path.dirname(new_source_pdf_path.replace(os.sep, "/")).strip("/")
+    if not rel_category_dir:
+        raise ValueError(
+            f"new_source_pdf_path {new_source_pdf_path!r} has no parent directory; "
+            f"expected something like academic_resources/<course>/<category>/<Book>.pdf",
+        )
+    derived_category = rel_category_dir.rsplit("/", 1)[-1]
+    if new_folder_category and derived_category != new_folder_category:
+        print(f"WARNING: folder category {new_folder_category!r} does not match the one derived from "
+              f"{new_source_pdf_path!r} ({derived_category!r}); using the path-derived one.", file=sys.stderr)
+
+    rel_new_book_dir = f"{rel_category_dir}/processed_outputs/{folder_name}"
+    new_book_dir = os.path.join(academic_hub_root, os.path.normpath(rel_new_book_dir))
+    os.makedirs(os.path.dirname(new_book_dir), exist_ok=True)
     if os.path.exists(new_book_dir):
         shutil.rmtree(new_book_dir)
     shutil.copytree(canonical_book_dir, new_book_dir)
 
     new_file_id = compute_id_from_parts([canonical_card["file_id"], new_course])
+
+    # The copied _metadata.json is a byte-for-byte clone and so still names
+    # the CANONICAL course's PDF. index_search.py's `rebuild` textbook
+    # backfill reads exactly these two fields to recompute a book folder's
+    # identity, and would otherwise recompute the canonical file_id from
+    # this copy and rewrite the CANONICAL card's `path` to point here --
+    # indirectly breaking spec §5's "the canonical course's own card and
+    # files are never modified" guarantee. Repointing them at the new
+    # course's own PDF keeps that rebuild self-consistent. A failure here
+    # leaves an already-successful copy in place, so it warns rather than
+    # unwinding the whole copy.
+    metadata_path = os.path.join(new_book_dir, f"{folder_name}_metadata.json")
+    if os.path.exists(metadata_path):
+        try:
+            with open(metadata_path, "r", encoding="utf-8") as f:
+                metadata = json.load(f)
+            metadata["source_pdf_path"] = new_source_pdf_path
+            metadata["source_pdf_file_id"] = new_file_id
+            with open(metadata_path, "w", encoding="utf-8") as f:
+                json.dump(metadata, f, indent=4, ensure_ascii=False)
+        except Exception as err:
+            print(f"WARNING: could not repoint {folder_name}_metadata.json at the new course's PDF ({err}); "
+                  f"a future `index_search.py rebuild` over {new_course!r} may misattribute this book.", file=sys.stderr)
+
     new_card = dict(canonical_card)
     new_card["file_id"] = new_file_id
     new_card["course"] = new_course
-    new_card["path"] = f"{new_course}/{new_folder_category}/processed_outputs/{folder_name}/{folder_name}.md"
+    new_card["path"] = f"{rel_new_book_dir}/{folder_name}.md"
     new_card["source_pdf_path"] = new_source_pdf_path
     new_card["duplicate_of_file_id"] = canonical_card["file_id"]
     new_card["source_updated_at"] = now_iso()
@@ -255,7 +336,20 @@ def run_duplicate_check(
     pdf_dir = os.path.join(academic_hub_root, textbook_subdir)
     pdf_paths = sorted(glob.glob(os.path.join(pdf_dir, "*.pdf")))
 
-    dismissals = load_dismissals(academic_hub_root)
+    # A hand-edited/truncated dismissals file must not take down a whole
+    # batch before a single PDF is even looked at -- same degrade-safely
+    # rule every other step in this loop already follows. Falling back to
+    # "nothing was ever dismissed" is the safe direction: the worst case is
+    # being re-asked about a pair already dismissed, versus losing the run.
+    try:
+        dismissals = load_dismissals(academic_hub_root)
+        if not isinstance(dismissals, list):
+            raise ValueError(f"expected a list of dismissal entries, got {type(dismissals).__name__}")
+    except Exception as err:
+        print(f"WARNING: could not load dismissals from {_dismissals_path(academic_hub_root)} ({err}); "
+              f"treating nothing as previously dismissed.", file=sys.stderr)
+        dismissals = []
+
     to_convert: list[str] = []
     skipped: list[tuple] = []
     unresolved: list[dict] = []
@@ -360,6 +454,24 @@ def _print_report(result: dict) -> None:
                 print(f"        -> {c['course']}: {c['card']['title']} (score {c['combined']:.2f}, file_id={c['card']['file_id']})")
 
 
+def write_to_convert_file(path: str, to_convert: list[str]) -> None:
+    """Writes the final to-convert filenames, one per line, for the calling
+    shell to read straight back into PDF_FILENAMES. This exists because a
+    confirmed duplicate's *source PDF is deliberately never deleted* (spec
+    §5 only ever copies artifacts into the new course), so the conversion
+    instructions' old "just re-glob TEXTBOOK_SUBDIR" step returned the
+    identical file list as before the check and reconverted the very book
+    that was just resolved. An empty to_convert writes an empty file --
+    `mapfile -t` then yields a zero-length array, which both instructions
+    documents already branch on as "nothing left to convert"."""
+    parent = os.path.dirname(path)
+    if parent:
+        os.makedirs(parent, exist_ok=True)
+    with open(path, "w", encoding="utf-8") as f:
+        for name in to_convert:
+            f.write(f"{name}\n")
+
+
 def build_arg_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description="Cross-course duplicate textbook detection -- run before uploading PDFs "
@@ -378,6 +490,12 @@ def build_arg_parser() -> argparse.ArgumentParser:
         "--resolve", action="append", default=[], metavar="FILE_ID=yes|no",
         help="Apply a decision for one Tier 2 candidate's incoming file_id (repeatable).",
     )
+    parser.add_argument(
+        "--emit-to-convert", default=None, metavar="PATH",
+        help="Also write the final 'to convert' PDF filenames (one per line) to PATH, in addition to the "
+             "human-readable report on stdout. Read it back with `mapfile -t PDF_FILENAMES < PATH`: a confirmed "
+             "duplicate's source PDF is deliberately never deleted, so re-globbing the folder would re-include it.",
+    )
     return parser
 
 
@@ -395,6 +513,9 @@ def main() -> None:
     academic_hub_root = args.academic_hub_root or _default_academic_hub_root()
     result = run_duplicate_check(args.textbook_subdir, academic_hub_root, args.non_interactive, resolutions)
     _print_report(result)
+    if args.emit_to_convert:
+        write_to_convert_file(args.emit_to_convert, result["to_convert"])
+        print(f"\n  Wrote {len(result['to_convert'])} filename(s) to {args.emit_to_convert}")
 
 
 if __name__ == "__main__":

@@ -137,16 +137,28 @@ itself, which runs unattended in a detached tmux session on the VM.
   `to_skip` list (§5) instead of `PDF_FILENAMES` carrying it forward to
   Step 3.2.
 - **Tier 2 + no:** recorded in
-  `academic-hub/.index/duplicate_dismissals.json` as a flat list of
+  `academic-hub/.index/duplicates/dismissals.json` as a flat list of
   `{"file_id_a": ..., "file_id_b": ..., "dismissed_at": ...}` entries
   (sorted pair so order doesn't matter). Future runs check this file
   before ever surfacing that exact pair again. Deleting the file resets
   all dismissals.
 
-`duplicate_dismissals.json` lives in `.index/` alongside the existing
-`courses.json`/tag files (`indexer.index_card`'s existing storage
-location helpers), not inside any one course's shard, since a dismissal
-is inherently a cross-course fact.
+The dismissals file lives under `.index/` rather than inside any one
+course's shard, since a dismissal is inherently a cross-course fact —
+but **nested one level down**, in `.index/duplicates/`, rather than
+directly in `.index/` beside `courses.json`/`tags.json`:
+`indexer.index_card.list_courses()` treats every `*.json` that is a
+*direct child* of `.index/` (bar those two) as a course shard, so a
+top-level `duplicate_dismissals.json` would surface as a phantom course
+named `duplicate_dismissals` — and `index_search.py`'s `rebuild --prune`
+would then walk that "shard", find none of its entries backed by a real
+file, and delete every recorded dismissal. `list_courses()` never
+descends into subdirectories, so `.index/duplicates/` is structurally
+outside its namespace.
+
+A malformed or hand-edited dismissals file is never fatal: it logs a
+warning and degrades to "nothing was ever dismissed" (a pair may get
+re-asked) rather than aborting the batch, per §6's error-handling rule.
 
 ## 5. Copying artifacts + index representation
 
@@ -165,7 +177,13 @@ For each confirmed duplicate, before Step 3.2 runs:
      guarantees no collision with the canonical card's own `file_id`,
      preserving every other reader's "one card per file_id" assumption.
    - `course`, `path`, `source_pdf_path` rewritten to the new course's
-     location.
+     location. `path` and the destination directory are derived from the
+     incoming PDF's own relative path (`os.path.dirname(new_source_pdf_path)`
+     + `/processed_outputs/<BookDir>/<BookDir>.md`), exactly as
+     `convert_textbook.py` derives its own `rel_md_path` — *not* rebuilt
+     from `<course>/<category>`, which would drop the leading
+     `academic_resources/` segment that every real card carries and that
+     `index_search.py`'s `_textbook_book_dirs` walk requires.
    - a new field `duplicate_of_file_id` (the canonical card's `file_id`)
      -- lets a future run of this same check recognize "already
      resolved" instantly (skip re-scoring), and gives a human a
@@ -178,7 +196,33 @@ For each confirmed duplicate, before Step 3.2 runs:
 4. Remove the duplicate's filename from the list that Step 3.2 onward
    acts on.
 
+The copied `<BookDir>_metadata.json` is additionally rewritten in place
+(in the *new* course's copy only) so its `source_pdf_path` /
+`source_pdf_file_id` name the new course's PDF and the clone's own
+`file_id`. Without that, those fields still name the canonical course's
+PDF, and `index_search.py`'s `rebuild` textbook backfill — which
+recomputes a book folder's identity from exactly those two fields —
+would recompute the *canonical* `file_id` while standing in the
+duplicate's folder and rewrite the canonical card's `path` to point at
+the copy. See Known Limitations below.
+
 The canonical course's own card and files are never modified.
+
+## 5a. Emitting the converted-file list
+
+A confirmed duplicate's **source PDF is deliberately never deleted or
+moved** — this module only ever adds files. That makes "re-glob
+`TEXTBOOK_SUBDIR` for `*.pdf` afterward" an actively wrong way for the
+calling instructions to rebuild `PDF_FILENAMES`: the glob returns the
+identical list as before the check, so the book that was just resolved
+gets uploaded and reconverted anyway, defeating the entire feature.
+
+Instead, `--emit-to-convert <path>` writes the final `to_convert` list
+(one filename per line) to a file, in addition to the normal
+human-readable stdout report. Both instructions documents read it back
+with `mapfile -t PDF_FILENAMES < <path>`. An empty `to_convert` writes an
+empty file, which yields a zero-length array — the existing
+"nothing left to convert, no VM needed" branch.
 
 ## 6. Output / reporting
 
@@ -211,13 +255,43 @@ existing failure-isolation philosophy (`make_failure_card`,
 toward "convert it" rather than "silently skip it" is the safe direction
 here.
 
+## 6a. Known limitations
+
+**Duplicate-clone cards are outside `index_search.py`'s file_id
+reconciliation model.** That module assumes one card per real file, with
+`file_id` derived from that file's own bytes. A clone deliberately breaks
+both halves of that assumption: its `file_id` is
+`compute_id_from_parts([canonical_file_id, new_course])` (not a hash of
+any file), and its `.md`/`images/` are byte-identical to another course's.
+Consequences to be aware of:
+
+- **Run `rebuild --prune` knowing clones exist.** Pruning decides what is
+  orphaned from what it saw referenced while walking
+  `academic_resources/<course>/<cat>/processed_outputs`. Clone folders are
+  real directories there, so a clone whose folder is present is fine — but
+  deleting a clone's folder by hand without also removing its card (or
+  vice versa) leaves the two halves out of step, and `--prune` is the
+  operation that will act on that. Check the `duplicate_of_file_id` field
+  before acting on anything `--prune` reports about a course that has
+  received clones.
+- **Repointed clone metadata is a mitigation, not a full fix.** §5's
+  `_metadata.json` rewrite stops `rebuild` from recomputing the canonical
+  `file_id` inside a clone's folder and rewriting the canonical card's
+  `path`. A deeper fix (teaching `index_search.py`/`index_card.py` about
+  `duplicate_of_file_id` directly) is out of scope for this module and
+  excluded by this plan's Global Constraints, which forbid editing either
+  file.
+- `duplicate_of_file_id` is the marker for all of this: every clone has
+  it, no normally-converted card does.
+
 ## 7. Files touched
 
 - New: `indexer/duplicate_check.py` (the module itself, CLI entry point).
-- New: `academic-hub/.index/duplicate_dismissals.json` (created on first
-  dismissal). Per the root `.gitignore`, `.index/` card shards are tracked
-  normally (only `.index/chunks/` is ignored, for copyright reasons that
-  don't apply here) -- this file is tracked too, same as `courses.json`.
+- New: `academic-hub/.index/duplicates/dismissals.json` (created on first
+  dismissal; nested one level down deliberately -- see §4). Per the root
+  `.gitignore`, `.index/` card shards are tracked normally (only
+  `.index/chunks/` is ignored, for copyright reasons that don't apply
+  here) -- this file is tracked too, same as `courses.json`.
 - Modified: `convert_textbook_instructions.md` -- insert Step 0.4.
 - New: agent-facing instructions file (separate task, see chat -- not
   part of this spec).
@@ -244,4 +318,17 @@ Pure-Python, no GPU/network dependency -- fully unit-testable:
   right place, canonical untouched.
 - Error-injection: corrupt one course's shard, confirm that course's
   candidates are skipped-with-warning rather than crashing the whole
-  check.
+  check; likewise a corrupt/wrong-shaped dismissals file, which must warn
+  and degrade to "nothing dismissed" while the rest of the run (including
+  an exact-match skip+copy) still completes.
+- Path realism: fixtures must fabricate cards with the full
+  `academic_resources/<course>/<cat>/processed_outputs/<Book>/<Book>.md`
+  shape real cards have. Un-prefixed fixtures are what let the §5
+  destination-path bug pass 38 tests unnoticed.
+- Same-course masking: a `file_id` present in both the current course's
+  shard *and* an alphabetically-earlier other course's must resolve to
+  "not a cross-course duplicate", not to the earlier course
+  (`find_card_by_file_id` returns the first match in sorted order).
+- `--emit-to-convert`: after an exact-match skip, the emitted file
+  contains only the unskipped PDF even though the skipped book's source
+  PDF is still sitting in the folder.
