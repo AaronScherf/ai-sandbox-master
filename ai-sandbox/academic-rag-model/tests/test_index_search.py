@@ -48,7 +48,7 @@ def _make_notes_pdf(academic_hub_root, course, category, basename, write_markdow
 
 
 def _make_textbook(academic_hub_root, course, pdf_basename, folder_name, with_source_pdf_path=True,
-                    category_folder_name="textbooks-and-papers"):
+                    category_folder_name="textbooks-and-papers", subfolder=None):
     """Mirrors convert_textbook.py's real output layout: the PDF sits in
     textbooks-and-papers/ directly, its processed_outputs/<folder_name>/
     subfolder is NOT named after the PDF's filename (real corpus example:
@@ -57,8 +57,15 @@ def _make_textbook(academic_hub_root, course, pdf_basename, folder_name, with_so
 
     category_folder_name defaults to the long-standing name but accepts
     "textbooks" too, to exercise the folder-name alias math-camp uses on
-    disk (see docs/status/2026-09-06-problem-corpus-extraction-status.md)."""
+    disk (see docs/status/2026-09-06-problem-corpus-extraction-status.md).
+
+    subfolder, if given, nests the PDF and its processed_outputs/ one
+    level deeper (e.g. "Bonus") -- mirrors a course's textbook folder
+    having its own subfolder for supplementary readings converted in a
+    separate batch (see convert_textbook_agent_instructions.md)."""
     tp_dir = os.path.join(academic_hub_root, "academic_resources", course, category_folder_name)
+    if subfolder:
+        tp_dir = os.path.join(tp_dir, subfolder)
     os.makedirs(tp_dir, exist_ok=True)
     pdf_path = os.path.join(tp_dir, f"{pdf_basename}.pdf")
     with open(pdf_path, "wb") as f:
@@ -351,6 +358,24 @@ class TestRebuild(unittest.TestCase):
             self.assertEqual(len(cards), 1)
             self.assertTrue(cards[0]["path"].endswith("Hammack_Book_of_Proof_2025.md"))
             self.assertIn("/textbooks/", cards[0]["path"])
+
+    def test_generates_a_textbook_card_for_a_book_under_a_subfolder(self):
+        # Real-corpus finding: a course's textbook folder can have its own
+        # subfolder (e.g. "Bonus", for supplementary readings converted in
+        # a separate batch per convert_textbook_agent_instructions.md) --
+        # rebuild() silently saw zero book dirs for books converted there,
+        # with no warning or failure to signal it, because
+        # _textbook_book_dirs() only looked directly under
+        # category_folder_name, never one level deeper.
+        with tempfile.TemporaryDirectory() as tmp:
+            _make_textbook(tmp, "microecon", "Economics and Language", "Rubenstein_Economics_and_Language_2000",
+                            category_folder_name="textbooks", subfolder="Bonus")
+            stats = rebuild(tmp, client=_fake_client())
+            self.assertEqual(stats["generated"], 1)
+            cards = load_shard(tmp, "microecon")
+            self.assertEqual(len(cards), 1)
+            self.assertTrue(cards[0]["path"].endswith("Rubenstein_Economics_and_Language_2000.md"))
+            self.assertIn("/textbooks/Bonus/", cards[0]["path"])
 
     def test_both_textbook_folder_aliases_are_picked_up_in_the_same_course(self):
         with tempfile.TemporaryDirectory() as tmp:

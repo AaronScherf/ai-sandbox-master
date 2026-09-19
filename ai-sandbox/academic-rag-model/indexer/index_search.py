@@ -221,15 +221,34 @@ def _textbook_book_dirs(academic_hub_root: str, course_filter: str | None):
         if course_filter and course != course_filter:
             continue
         for category_folder_name in _TEXTBOOK_FOLDER_NAMES:
-            processed_outputs_dir = os.path.join(
-                resources_root, course, category_folder_name, "processed_outputs",
-            )
-            if not os.path.isdir(processed_outputs_dir):
+            category_root = os.path.join(resources_root, course, category_folder_name)
+            if not os.path.isdir(category_root):
                 continue
-            for folder_name in sorted(os.listdir(processed_outputs_dir)):
-                book_dir = os.path.join(processed_outputs_dir, folder_name)
-                if os.path.isdir(book_dir):
-                    yield course, category_folder_name, folder_name, book_dir
+            # A course's textbook folder can itself have subfolders -- e.g.
+            # "Bonus", for supplementary readings deliberately converted in
+            # their own later batch rather than the main run (see
+            # convert_textbook_agent_instructions.md's subdirectory
+            # guidance). Walking the whole category tree for any directory
+            # literally named processed_outputs/, rather than assuming one
+            # sits directly under category_folder_name, is what makes a
+            # book converted under such a subfolder still get indexed.
+            # Confirmed live: a course's Bonus/ books (3 real, successfully
+            # converted textbooks) were silently invisible to rebuild
+            # before this fix -- zero index cards, no error anywhere.
+            for dirpath, dirnames, _ in os.walk(category_root):
+                if os.path.basename(dirpath) != "processed_outputs":
+                    continue
+                dirnames[:] = []  # found it -- don't walk into book subdirs (images/, etc.)
+                # Effective category including any subfolder path between
+                # category_folder_name and processed_outputs/ (e.g.
+                # "textbooks/Bonus"), so the fallback PDF lookup below and
+                # log messages stay accurate for nested subfolders too.
+                rel_category = os.path.relpath(dirpath, os.path.join(resources_root, course))
+                effective_category = os.path.dirname(rel_category).replace(os.sep, "/")
+                for folder_name in sorted(os.listdir(dirpath)):
+                    book_dir = os.path.join(dirpath, folder_name)
+                    if os.path.isdir(book_dir):
+                        yield course, effective_category, folder_name, book_dir
 
 
 def _video_lecture_note_paths(academic_hub_root: str, course_filter: str | None):
