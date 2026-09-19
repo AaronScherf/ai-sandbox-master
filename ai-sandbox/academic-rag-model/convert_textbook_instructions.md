@@ -287,12 +287,44 @@ gcloud compute scp marker_setup.sh start_conversion.sh $VM_INSTANCE_NAME:~/ --zo
 gcloud compute scp --recurse common indexer textbook $VM_INSTANCE_NAME:~/academic-rag-model/ --zone=$GCP_ZONE --tunnel-through-iap
 ```
 
+Note (Windows only): if either `scp` fails with `pscp: remote filespec
+~/...: not a directory`, this is Windows' PuTTY-based `gcloud` backend
+failing to expand `~` server-side (OpenSSH's `scp`, used on Mac/Linux,
+doesn't have this problem) -- confirmed live. Work around it by
+resolving the real home directory once and using it explicitly instead
+of `~`:
+```bash
+gcloud compute ssh $VM_INSTANCE_NAME --zone=$GCP_ZONE --tunnel-through-iap --command="echo \$HOME"
+```
+then substitute that path (e.g. `/home/<you>/`) for every `~/` in the
+`scp` commands above (not in `ssh --command=` strings elsewhere in this
+doc -- those run through the remote shell, which expands `~` correctly
+regardless of platform; only `scp`'s own destination argument is affected).
+
 `common/`, `indexer/`, and `textbook/` are copied recursively so `convert_textbook.py`'s package-qualified
 imports (`from common.gemini_utils import ...`, `from indexer.index_card import ...`, `from textbook.page_markers import ...`)
 resolve on the VM the same way they do locally. `notes/`, `postprocessing/`, and `rag/` aren't needed here --
 nothing under `textbook/` imports them. (This also fixes a real, previously-undocumented gap: `index_card.py`
 and `gemini_utils.py` were never actually transferred to the VM by the old per-file `scp` line above, despite
 `convert_textbook.py` importing both.)
+
+**Also copy `GEMINI_API_KEY` to the VM**, or `convert_textbook.py`'s
+source-indexer hook (the step that writes searchable `.index/` cards as
+a side effect of conversion) will fail on every book with `ERROR:
+GEMINI_API_KEY not set` and silently degrade to "conversion succeeded,
+indexing skipped" -- confirmed live across a real 6-book run, requiring
+a manual `python -m indexer.index_search rebuild --course <course>`
+afterward to catch up. `gemini_utils.py` looks for `.env` exactly three
+parents above itself, which on the VM is the home directory (since
+`common/gemini_utils.py` lives under `~/academic-rag-model/`). Copy only
+the one line you need, not your whole local `.env` -- no reason to put
+unrelated secrets (`PAID_GEMINI_KEY`, `CORE_API_KEY`, etc.) on a cloud VM
+that doesn't use them:
+```bash
+grep '^GEMINI_API_KEY=' ../.env > /tmp/vm_env_minimal
+gcloud compute scp /tmp/vm_env_minimal $VM_INSTANCE_NAME:~/.env --zone=$GCP_ZONE --tunnel-through-iap
+rm /tmp/vm_env_minimal
+```
 
 ## Step 3: Execute the Extraction Pipeline
 
@@ -324,6 +356,74 @@ Debug step if torchaudio problems: Run the following to test if torchaudio is st
 ```bash
 gcloud compute ssh $VM_INSTANCE_NAME --zone=$GCP_ZONE --tunnel-through-iap --command="python3 -c \"import torch; import transformers; print('torch:', torch.__version__, '| transformers:', transformers.__version__, '| CUDA:', torch.cuda.is_available())\""
 ```
+
+This should print cleanly with the current `marker_setup.sh` -- two real
+bugs in this exact area were found and fixed (2026-09-19), both silent:
+marker-pdf's install reliably reintroduces an ABI-broken `torchaudio`
+even after the script's own uninstall step, and that reinstall was
+originally left in place because the removal itself was silently failing
+with `PermissionError: 'top_level.txt'` (the preinstalled copy is
+`root`-owned; needs `sudo python3 -m pip uninstall`, not a plain one). If
+this command still fails on a VM using the current script, something new
+is going on -- don't assume it's the same already-fixed issue.
+
+### 3.1a A run "succeeds" but every page looks like plain-text extraction (missing tables/formulas/layout)
+
+Grep the log for `VLM bypassed` and `Layout inference failed`. A handful
+of isolated hits across a whole book can be normal (one genuinely
+malformed page); a tight cluster of dozens, or either phrase appearing
+at all right after a fresh launch, means the local inference server(s)
+this pipeline depends on died and every page since silently fell back to
+bare PyPDF text. This has been confirmed live for real, distinct reasons
+-- not a one-off:
+
+- **A stale `surya-vllm-*` Docker container from an earlier kill/restart
+  is still running**, holding GPU memory a fresh one now has to compete
+  for (confirmed: two orphaned containers together held 22.4GB of an
+  L4's 23GB). `marker_setup.sh`'s own image-pull doesn't affect this --
+  check with `gcloud compute ssh $VM_INSTANCE_NAME --zone=$GCP_ZONE --tunnel-through-iap --command="sudo docker ps -a"`; more than one, or a status other than "Up", is the tell.
+- **A standalone `python3 -m surya.ocr_error.server` process survived a
+  killed tmux session** by getting reparented to init -- not a Docker
+  container, so `docker ps` won't show it. Check with
+  `gcloud compute ssh $VM_INSTANCE_NAME --zone=$GCP_ZONE --tunnel-through-iap --command="pgrep -fa surya.ocr_error.server"`;
+  more than one hit is the leak.
+- **The Linux kernel's own OOM-killer killed the inference process**
+  because system RAM (not GPU VRAM) ran out -- `g2-standard-4` has only
+  ~15GB, which can run genuinely tight on a dense, image/table-heavy
+  book. Check with
+  `gcloud compute ssh $VM_INSTANCE_NAME --zone=$GCP_ZONE --tunnel-through-iap --command="dmesg 2>/dev/null | grep -i 'killed process'"`.
+  A plain process/container restart is not enough here -- do a full
+  `gcloud compute instances reset` first (confirmed live: skipping the
+  reset reproduced the identical OOM-kill again within minutes). If it
+  recurs a *second* time on the same book after that, the machine type
+  may genuinely be undersized for that book's content -- consider
+  `g2-standard-8` (same L4 GPU, double the RAM) rather than resetting a
+  third time.
+- Occasionally there's no diagnosable cause at all -- `dmesg` and
+  `sudo journalctl -u docker --since '30 min ago'` come back clean except
+  a bare `"ignoring event" ... type="*events.TaskDelete"` line. Don't
+  spend long chasing this one; the fix is the same regardless.
+
+Recovery, for any of the above: kill both tmux sessions (`autostop`
+first, so it doesn't see `convert` disappear mid-restart and shut the VM
+down early), clean up both process types, and reset the VM first if a
+`dmesg` OOM-kill was involved:
+```bash
+gcloud compute ssh $VM_INSTANCE_NAME --zone=$GCP_ZONE --tunnel-through-iap --command="tmux kill-session -t autostop 2>/dev/null; tmux kill-session -t convert 2>/dev/null; sudo docker ps -aq --filter 'name=surya-vllm-' | xargs -r sudo docker rm -f; pgrep -f 'surya\.ocr_error\.server' | xargs -r sudo kill -9; nvidia-smi --query-gpu=memory.used --format=csv,noheader"
+```
+That last value should read low (a few hundred MB is fine; multi-GB
+means something is still holding memory). Then check
+`~/academic-rag-model/marker_checkpoints/<book>/chunks/*.md` file sizes
+against neighboring same-page-count chunks -- a chunk produced during
+the degraded window is usually 10-100x smaller, or literally just empty
+page-marker comments (confirmed: one such chunk was 5.5KB against
+200-500KB neighbors). **`convert_textbook.py`'s per-chunk checkpointing
+marks a chunk done once it's processed, not once its content is verified
+non-degraded** -- a bad chunk left in place is silently kept forever, not
+automatically redone. Delete both the `.md` and matching `.done` for any
+such chunk, then rerun Step 3.3 with the same book list (already-finished
+books and already-good chunks both skip automatically) and re-arm the
+autostop watcher as usual.
 
 ### 3.2 Stage the input documents in Google Cloud Storage
 Before executing the extraction, each raw PDF must be uploaded to your GCS bucket so the remote Virtual Machine can access it.

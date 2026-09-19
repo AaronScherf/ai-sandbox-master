@@ -21,6 +21,15 @@ Do not proceed past these points without an explicit answer:
 5. **Any Preflight gap** (Step -1) you can't fix yourself — report and stop;
    don't attempt to request quota, enable billing, or grant IAM roles
    beyond what Step -1 itself checks for.
+6. **A second genuine system-RAM OOM-kill on the same book/chunk after one
+   resume attempt already tried** (see the Debugging appendix's "vLLM/
+   ocr_error server dies mid-run" entry) — this is a real signal the
+   machine type is undersized for that book's content, and resizing (e.g.
+   `g2-standard-4` → `g2-standard-8`, same L4 GPU, more system RAM) is a
+   cost-changing decision, not something to do silently. A single tight-
+   but-recovering `free -h` reading, or a container/process dying for a
+   reason *other* than a confirmed `dmesg`-visible OOM-kill, does not
+   itself meet this bar — keep resuming per the Debugging appendix first.
 
 ## Step -1: Preflight verification (read-only, run once per session)
 
@@ -258,9 +267,24 @@ fi
 
 ### 2.2 Copy scripts to the VM
 
+**On Windows, `~` does not reliably expand in `gcloud compute scp` destinations** — this environment's gcloud uses PuTTY's `pscp` under the hood, which (unlike OpenSSH's `scp`) does not expand `~` server-side; confirmed live: `gcloud compute scp foo.sh VM:~/` fails with `pscp: remote filespec ~/: not a directory`, and the same command with `~/somedir/` fails with `pscp: remote filespec ~/somedir/: not a directory` if `somedir` doesn't already exist (a fresh VM's `~/academic-rag-model/` doesn't exist until you create it). So: capture the real remote home directory once via a plain SSH command, create the target directory, and use the captured absolute path for every scp from here on instead of `~`.
+
 ```bash
-gcloud compute scp marker_setup.sh start_conversion.sh "$VM_INSTANCE_NAME":~/ --zone="$GCP_ZONE" --tunnel-through-iap --quiet
-gcloud compute scp --recurse common indexer textbook "$VM_INSTANCE_NAME":~/academic-rag-model/ --zone="$GCP_ZONE" --tunnel-through-iap --quiet
+REMOTE_HOME=$(gcloud compute ssh "$VM_INSTANCE_NAME" --zone="$GCP_ZONE" --tunnel-through-iap --command="echo \$HOME")
+gcloud compute ssh "$VM_INSTANCE_NAME" --zone="$GCP_ZONE" --tunnel-through-iap --command="mkdir -p $REMOTE_HOME/academic-rag-model"
+```
+
+```bash
+gcloud compute scp marker_setup.sh start_conversion.sh "$VM_INSTANCE_NAME":"$REMOTE_HOME/" --zone="$GCP_ZONE" --tunnel-through-iap --quiet
+gcloud compute scp --recurse common indexer textbook "$VM_INSTANCE_NAME":"$REMOTE_HOME/academic-rag-model/" --zone="$GCP_ZONE" --tunnel-through-iap --quiet
+```
+
+**Also copy `GEMINI_API_KEY` to the VM** — without it, `convert_textbook.py`'s source-indexer hook (the step that writes searchable `.index/` cards as a side effect of conversion) fails on every single book with `ERROR: GEMINI_API_KEY not set` and silently degrades to "conversion succeeded, indexing skipped" (confirmed live: this happened for all 6 books in one real run before this step existed, requiring a manual `index_search.py rebuild` afterward to catch up). `gemini_utils.py` resolves `.env` at exactly three parents above itself, so on the VM that's `$REMOTE_HOME/.env` (since `common/gemini_utils.py` lives under `$REMOTE_HOME/academic-rag-model/`). Copy only `GEMINI_API_KEY` — never the whole local `.env` — to avoid putting unrelated secrets (`PAID_GEMINI_KEY`, `CORE_API_KEY`, etc.) on an ephemeral cloud VM that doesn't need them:
+
+```bash
+grep '^GEMINI_API_KEY=' ../.env > /tmp/vm_env_minimal
+gcloud compute scp /tmp/vm_env_minimal "$VM_INSTANCE_NAME":"$REMOTE_HOME/.env" --zone="$GCP_ZONE" --tunnel-through-iap --quiet
+rm /tmp/vm_env_minimal
 ```
 
 `--quiet` suppresses the SSH-key-passphrase prompt (empty passphrase),
@@ -424,3 +448,72 @@ on re-run.
   chunk is bounded by `--chunk-timeout` (default 1800s) and
   `--page-timeout` (default 240s) before falling back automatically, and
   one book failing is logged and skipped, not fatal to the rest.
+- **A run "succeeds" but every page is degraded to bare PyPDF text
+  (missing tables/formulas/layout), often with zero fatal errors anywhere
+  in the log:** grep for `VLM bypassed` and `Layout inference failed` --
+  a HANDFUL of isolated lines across a whole book can be normal (a
+  genuinely malformed individual page), but a tight cluster of dozens, or
+  either phrase appearing at all right after a fresh launch, means the
+  local inference server(s) `convert_textbook.py` depends on are dead and
+  every page since is silently falling through to the last-resort
+  fallback. **This is a real, repeatedly-confirmed failure class, not
+  hypothetical** -- it happened four times converting one real book,
+  for four different underlying reasons (a torchaudio ABI crash, GPU VRAM
+  exhausted by leftover containers, a system-RAM OOM-kill, and once with
+  no root cause found at all beyond a generic `docker events` "TaskDelete"
+  entry). Marker-pdf/surya use two separate local inference processes,
+  and either one dying independently produces this symptom:
+  - `sudo docker ps` -- should show exactly one `surya-vllm-*` container.
+    Empty, or more than one, both indicate a problem: empty means it died;
+    more than one means an earlier kill left an orphan that's now
+    competing for the same GPU memory as a fresh one (confirmed live:
+    two orphaned containers together held 22.4GB of the L4's 23GB total,
+    leaving no headroom for real work).
+  - `pgrep -fa surya.ocr_error.server` -- should show exactly one process.
+    This one is NOT a Docker container -- it's a plain
+    `python3 -m surya.ocr_error.server` process that gets reparented to
+    init (PPID 1) when the "convert" tmux session is killed, and survives
+    independently holding its own slice of GPU memory (~500MB observed).
+    `sudo docker ps` alone will not show this leak.
+  - `dmesg 2>/dev/null | grep -i 'killed process'` -- a hit here means the
+    Linux kernel's own OOM-killer killed the inference process because
+    system RAM (not GPU VRAM) ran out. `g2-standard-4` has only ~15GB
+    system RAM, which can run genuinely tight on a dense, image/table-heavy
+    book. **A plain container/process restart is not enough to recover
+    from this one** -- do a full `gcloud compute instances reset`
+    first (confirmed live: retrying without a reset reproduced the exact
+    same OOM-kill again within minutes), then follow the recovery steps
+    below. If it recurs a second time on the same book after that, see
+    "When to stop and ask the user" point 6 above rather than resetting a
+    third time.
+  - Sometimes there is no diagnosable cause at all: `dmesg` and
+    `sudo journalctl -u docker --since '30 min ago'` come back clean
+    except a bare `"ignoring event" ... type="*events.TaskDelete"` line
+    naming the dead container's ID. Don't spend long chasing this one --
+    a quick look is worth it, but the fix is the same regardless of
+    whether a cause is found.
+
+  **Recovery, for any of the above:**
+  ```bash
+  gcloud compute ssh "$VM_INSTANCE_NAME" --zone="$GCP_ZONE" --tunnel-through-iap --command="tmux kill-session -t autostop 2>/dev/null; tmux kill-session -t convert 2>/dev/null; echo done"
+  ```
+  ```bash
+  gcloud compute ssh "$VM_INSTANCE_NAME" --zone="$GCP_ZONE" --tunnel-through-iap --command="sudo docker ps -aq --filter 'name=surya-vllm-' | xargs -r sudo docker rm -f; pgrep -f 'surya\.ocr_error\.server' | xargs -r sudo kill -9; nvidia-smi --query-gpu=memory.used --format=csv,noheader"
+  ```
+  Confirm that last command reads low (a few hundred MB is fine; multi-GB
+  means something is still holding memory). If a `dmesg` OOM-kill was
+  involved, `gcloud compute instances reset` first and wait ~1-2 minutes
+  before the commands above. Then check
+  `~/academic-rag-model/marker_checkpoints/<book>/chunks/*.md` file sizes
+  against neighboring same-page-count chunks -- a chunk produced during
+  the degraded window is usually 10-100x smaller, or literally just empty
+  page-marker comments with no real content (confirmed live: one such
+  chunk was 5.5KB against 200-500KB neighbors). Delete both the `.md` and
+  matching `.done` for any such chunk -- **`convert_textbook.py`'s
+  per-chunk checkpointing marks a chunk done once it's *processed*, not
+  once its content is verified non-degraded, so a bad chunk left in place
+  will be silently kept, not automatically redone.** Then relaunch Step
+  3.3 with the same book list (already-finished books skip via
+  `convert_textbook.py`'s own whole-book check; already-good chunks
+  within an in-progress book skip via the per-chunk checkpoint) and
+  re-arm the autostop watcher as usual.
