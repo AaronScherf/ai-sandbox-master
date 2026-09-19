@@ -33,6 +33,25 @@ REQUOTED_OUTPUT=$(printf '%q' "$OUTPUT_PATH")
 echo "[System] Purging residual VLM server locks."
 sudo rm -f /root/.cache/datalab/surya/vllm_server.lock
 
+# A killed/crashed/reset "convert" session leaves its vLLM inference server
+# container running -- Docker containers aren't tied to the tmux session
+# that started them, so `tmux kill-session -t convert` (or a VM reset)
+# never stops it. The lock purge above only clears a lock FILE, not the
+# actual container. Confirmed live: after two kill/relaunch cycles in one
+# session (excluding then re-including a book, then a hard reset), TWO
+# separate `surya-vllm-*` containers were found still running, each holding
+# its own full copy of the model's GPU memory (16.2GB + 6.2GB out of the
+# L4's 23GB total) -- the combined footprint left no headroom for real
+# page processing, and every page from that point on silently failed over
+# to the bare PyPDF fallback with a CUDA out-of-memory error, not a fatal
+# one. Stop and remove any leftover ones before every launch so this can't
+# accumulate across restarts.
+STALE_VLLM_CONTAINERS=$(sudo docker ps -aq --filter "name=surya-vllm-")
+if [ -n "$STALE_VLLM_CONTAINERS" ]; then
+    echo "[System] Removing stale vLLM server container(s) from a prior run: $STALE_VLLM_CONTAINERS"
+    sudo docker rm -f $STALE_VLLM_CONTAINERS
+fi
+
 echo "[System] Starting document extraction inside a detached tmux session."
 tmux kill-session -t convert 2>/dev/null || true
 tmux new-session -d -s convert \
