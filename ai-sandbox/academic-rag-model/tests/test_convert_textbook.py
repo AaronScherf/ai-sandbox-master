@@ -129,6 +129,74 @@ class TestProbeAndShiftBoundaryShiftCap(unittest.TestCase):
         self.assertEqual(end_page, 13)  # exactly 3 shifts from 10, never 4
 
 
+class TestProcessPageRangeFallbackRatio(unittest.TestCase):
+    # Real, repeatedly-confirmed incident this session: when the local
+    # Marker/VLM inference server dies mid-run, every page in a chunk falls
+    # back to raw PyPDF text extraction, producing a chunk 10-100x smaller
+    # than its neighbors -- caught only by manually eyeballing chunk file
+    # sizes after the fact. process_page_range now reports what fraction of
+    # a chunk's pages took that fallback path, so callers can detect this
+    # automatically instead.
+
+    def test_ratio_reflects_fraction_of_pages_that_hit_pypdf_fallback(self):
+        reader = _blank_pdf_reader(4)
+        # Whole-chunk call fails immediately (forcing per-page recovery);
+        # of the 4 individual pages, 2 also fail (raw PyPDF fallback) and 2
+        # succeed via the per-page VLM retry.
+        converter = MagicMock(side_effect=[
+            RuntimeError("whole chunk failed"),
+            RuntimeError("page 0 failed"),
+            RuntimeError("page 1 failed"),
+            "rendered-2",
+            "rendered-3",
+        ])
+        with tempfile.TemporaryDirectory() as tmp, \
+             patch.object(ct, "text_from_rendered", return_value=("page text", {}, {})), \
+             patch.object(ct, "remap_page_markers", side_effect=lambda text, *a, **kw: text), \
+             patch.object(ct, "remap_image_links", side_effect=lambda text, *a, **kw: text), \
+             patch.object(ct, "tag_single_page", side_effect=lambda text, *a, **kw: text):
+            images_dir = os.path.join(tmp, "images")
+            os.makedirs(images_dir)
+            chunk_text, chunk_meta, hit_exception, ratio = ct.process_page_range(
+                converter, reader, tmp, 0, 4, images_dir,
+                chunk_timeout_s=30, page_timeout_s=30, folio_offset=None, folio_start_page=4,
+            )
+
+        self.assertTrue(hit_exception)
+        self.assertEqual(ratio, 0.5)
+
+    def test_ratio_is_zero_when_whole_chunk_succeeds(self):
+        reader = _blank_pdf_reader(3)
+        converter = MagicMock(return_value="rendered")
+        with tempfile.TemporaryDirectory() as tmp, \
+             patch.object(ct, "text_from_rendered", return_value=("page text", {}, {})), \
+             patch.object(ct, "remap_page_markers", side_effect=lambda text, *a, **kw: text), \
+             patch.object(ct, "remap_image_links", side_effect=lambda text, *a, **kw: text):
+            images_dir = os.path.join(tmp, "images")
+            os.makedirs(images_dir)
+            _, _, hit_exception, ratio = ct.process_page_range(
+                converter, reader, tmp, 0, 3, images_dir,
+                chunk_timeout_s=30, page_timeout_s=30, folio_offset=None, folio_start_page=3,
+            )
+
+        self.assertFalse(hit_exception)
+        self.assertEqual(ratio, 0.0)
+
+
+class TestChunkIsDegraded(unittest.TestCase):
+    def test_majority_fallback_is_degraded(self):
+        self.assertTrue(ct.chunk_is_degraded(0.75))
+
+    def test_exactly_half_is_not_degraded(self):
+        # A tight cluster of hard pages recovering via the normal per-page
+        # fallback path is tolerated -- only a clear majority indicates the
+        # inference server itself is dead.
+        self.assertFalse(ct.chunk_is_degraded(0.5))
+
+    def test_zero_is_not_degraded(self):
+        self.assertFalse(ct.chunk_is_degraded(0.0))
+
+
 class TestComputeChunkBoundariesBootstrapCleanupAndTimeouts(unittest.TestCase):
     # Issue #4: _boundary_bootstrap_images is never cleaned up (accumulates
     # across a whole batch), and the bootstrap process_page_range call
@@ -138,7 +206,7 @@ class TestComputeChunkBoundariesBootstrapCleanupAndTimeouts(unittest.TestCase):
     def _run(self, tmp, chunk_timeout_s=1800, page_timeout_s=240):
         reader = _blank_pdf_reader(30)
         converter = MagicMock()
-        with patch.object(ct, "process_page_range", return_value=("front matter text", {}, False)) as mock_ppr, \
+        with patch.object(ct, "process_page_range", return_value=("front matter text", {}, False, 0.0)) as mock_ppr, \
              patch.object(ct.chapter_index, "get_all_outline_entries", return_value=[]), \
              patch.object(ct.chapter_index, "parse_printed_toc", return_value=[]), \
              patch.object(ct.chapter_index, "bootstrap_chapter_index_from_front_matter", return_value=([], None)), \
@@ -341,6 +409,59 @@ class TestProcessOnePdfSkipsAlreadyConvertedBook(unittest.TestCase):
                         converter=MagicMock(), raw_input=input_pdf, raw_output=output_dir,
                         workspace=tmp, args=MagicMock(),
                     )
+
+
+class TestProcessOnePdfAbortsOnDegradedChunk(unittest.TestCase):
+    # The safety property behind the fix: process_one_pdf must never
+    # checkpoint a chunk as done when process_page_range reports the local
+    # inference server was effectively dead for it -- but a lone hard page
+    # recovering through the normal per-page fallback (low ratio) must NOT
+    # abort the run.
+
+    def _setup(self, tmp):
+        input_pdf = os.path.join(tmp, "some_book.pdf")
+        with open(input_pdf, "wb") as f:
+            f.write(b"not a real pdf, just needs to exist and be hashable")
+        output_dir = os.path.join(tmp, "output")
+        os.makedirs(output_dir)
+        reader = _blank_pdf_reader(4)
+        args = MagicMock(chunk_timeout=30, page_timeout=30)
+        return input_pdf, output_dir, reader, args
+
+    def test_aborts_before_writing_done_marker_when_chunk_is_degraded(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            input_pdf, output_dir, reader, args = self._setup(tmp)
+
+            with patch.object(ct, "find_card_by_file_id", return_value=None), \
+                 patch.object(ct, "PdfReader", return_value=reader), \
+                 patch.object(ct, "_load_or_compute_boundaries", return_value=([(0, 4)], None, 4)), \
+                 patch.object(ct, "process_page_range", return_value=("mostly empty", {}, True, 0.75)):
+                with self.assertRaises(SystemExit):
+                    ct.process_one_pdf(
+                        converter=MagicMock(), raw_input=input_pdf, raw_output=output_dir,
+                        workspace=tmp, args=args,
+                    )
+
+            done_marker = os.path.join(tmp, "marker_checkpoints", "some_book", "chunks", "00000_00004.done")
+            self.assertFalse(os.path.exists(done_marker), "a degraded chunk must never be checkpointed as done")
+
+    def test_does_not_abort_when_fallback_ratio_is_low(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            input_pdf, output_dir, reader, args = self._setup(tmp)
+
+            with patch.object(ct, "find_card_by_file_id", return_value=None), \
+                 patch.object(ct, "PdfReader", return_value=reader), \
+                 patch.object(ct, "_load_or_compute_boundaries", return_value=([(0, 4)], None, 4)), \
+                 patch.object(ct, "process_page_range", return_value=("real content", {}, True, 0.25)), \
+                 patch.object(ct.gc, "collect", side_effect=RuntimeError("reached post-checkpoint cleanup, as expected")):
+                with self.assertRaises(RuntimeError):
+                    ct.process_one_pdf(
+                        converter=MagicMock(), raw_input=input_pdf, raw_output=output_dir,
+                        workspace=tmp, args=args,
+                    )
+
+            done_marker = os.path.join(tmp, "marker_checkpoints", "some_book", "chunks", "00000_00004.done")
+            self.assertTrue(os.path.exists(done_marker), "a merely-recovered chunk should still be checkpointed")
 
 
 if __name__ == "__main__":

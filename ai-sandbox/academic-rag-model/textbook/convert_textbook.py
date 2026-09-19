@@ -345,12 +345,19 @@ def process_page_range(converter, reader, workspace, start_page, end_page, image
     Runs Marker over a single page-range chunk, falling back to per-page
     processing (and finally raw PyPDF extraction) on failure -- including a
     failure to complete within chunk_timeout_s/page_timeout_s.
-    Returns (chunk_text, chunk_meta, hit_exception).
+    Returns (chunk_text, chunk_meta, hit_exception, pypdf_fallback_ratio).
+    pypdf_fallback_ratio is the fraction of pages in [start_page, end_page)
+    whose content came from the raw-PyPDF last-resort fallback rather than
+    real Marker/VLM output (0.0 unless the whole-chunk render failed and
+    per-page recovery kicked in). One or two hard pages falling back this
+    way is normal; a high ratio means the local inference server was
+    effectively dead for this whole range, not just struggling on one page.
     Images are written directly to images_dir rather than held in memory.
     """
     temp_chunk_pdf = os.path.join(workspace, "temp_marker_slice.pdf")
     hit_exception = False
     chunk_meta = {}
+    pypdf_fallback_count = 0
 
     writer = PdfWriter()
     for page_num in range(start_page, end_page):
@@ -392,6 +399,7 @@ def process_page_range(converter, reader, workspace, start_page, end_page, image
                 print(f"VLM bypassed on complex page {single_p + 1} ({p_err}). Initiating standard PyPDF fallback.")
                 raw_text = reader.pages[single_p].extract_text() or ""
                 text_segments.append(tag_single_page(raw_text, single_p, folio_offset, folio_start_page))
+                pypdf_fallback_count += 1
             finally:
                 if os.path.exists(single_pdf_path):
                     os.remove(single_pdf_path)
@@ -402,7 +410,23 @@ def process_page_range(converter, reader, workspace, start_page, end_page, image
         if os.path.exists(temp_chunk_pdf):
             os.remove(temp_chunk_pdf)
 
-    return chunk_text, chunk_meta, hit_exception
+    pages_in_range = end_page - start_page
+    pypdf_fallback_ratio = (pypdf_fallback_count / pages_in_range) if pages_in_range else 0.0
+    return chunk_text, chunk_meta, hit_exception, pypdf_fallback_ratio
+
+
+DEGRADED_CHUNK_FALLBACK_THRESHOLD = 0.5
+
+
+def chunk_is_degraded(pypdf_fallback_ratio: float) -> bool:
+    """
+    True when more than DEGRADED_CHUNK_FALLBACK_THRESHOLD of a chunk's pages
+    fell back to raw PyPDF text extraction -- a signal the local Marker/VLM
+    inference server was effectively dead for the whole chunk, not merely
+    struggling on one hard page (which process_page_range's per-page
+    fallback already tolerates as a normal recovery path).
+    """
+    return pypdf_fallback_ratio > DEGRADED_CHUNK_FALLBACK_THRESHOLD
 
 
 _UNSAFE_BLOCK_TYPES = {"Table", "TableGroup", "Equation", "Form"}
@@ -532,7 +556,7 @@ def compute_chunk_boundaries(converter, reader, workspace, total_pages, max_chun
     # the main per-chunk loop later; this pass is only used to extract
     # structure, its markdown is discarded.)
     front_matter_cap = min(max_front_matter_pages, total_pages)
-    front_matter_text, _, _ = process_page_range(
+    front_matter_text, _, _, _ = process_page_range(
         converter, reader, workspace, 0, front_matter_cap, images_dir,
         chunk_timeout_s=chunk_timeout_s, page_timeout_s=page_timeout_s,
         folio_offset=None, folio_start_page=total_pages,
@@ -901,10 +925,33 @@ def process_one_pdf(converter, raw_input: str, raw_output: str, workspace: str, 
 
             print(f"\nProcessing page subset: {start_page + 1} to {end_page} of {total_pages}...")
 
-            chunk_text, chunk_meta, _hit_exception = process_page_range(
+            chunk_text, chunk_meta, _hit_exception, pypdf_fallback_ratio = process_page_range(
                 converter, reader, workspace, start_page, end_page, images_dir,
                 args.chunk_timeout, args.page_timeout, folio_offset, folio_start_page
             )
+
+            if chunk_is_degraded(pypdf_fallback_ratio):
+                # More than half this chunk's pages fell back to raw PyPDF
+                # text extraction -- the local Marker/VLM inference server
+                # was effectively dead for the whole range, not just
+                # struggling on one hard page (which is normal and already
+                # tolerated above). Refuse to checkpoint this chunk as done:
+                # every incident review this session found this exact
+                # failure mode -- a chunk 10-100x smaller than its
+                # neighbors, silently marked complete -- only by manually
+                # comparing chunk file sizes after the fact. Failing loudly
+                # here, before the .done marker is written, means the next
+                # run (or an auto-restart watchdog) redoes this chunk for
+                # real instead of shipping degraded output.
+                print(f"FATAL: pages {start_page + 1}-{end_page} of {total_pages} fell back to raw "
+                      f"PyPDF text extraction on {pypdf_fallback_ratio:.0%} of pages in this chunk "
+                      f"-- the local Marker/VLM inference server is effectively dead, not just "
+                      f"struggling on one hard page. Refusing to checkpoint this chunk as done.")
+                print("Check `sudo docker ps` for a live surya-vllm-* container and "
+                      "`pgrep -fa surya.ocr_error.server` for the standalone OCR-error server; "
+                      "restart whichever is missing/dead and rerun -- already-completed chunks "
+                      "will be skipped.")
+                sys.exit(1)
 
             # Write chunk text before the done marker, so a crash mid-write
             # never leaves a chunk falsely marked complete.

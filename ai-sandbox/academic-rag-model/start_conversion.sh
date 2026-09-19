@@ -30,13 +30,11 @@ fi
 REQUOTED_INPUTS=$(printf '%q ' "$@")
 REQUOTED_OUTPUT=$(printf '%q' "$OUTPUT_PATH")
 
-echo "[System] Purging residual VLM server locks."
-sudo rm -f /root/.cache/datalab/surya/vllm_server.lock
-
+# Cleans up leftover inference-server state from a prior crashed/killed run.
 # A killed/crashed/reset "convert" session leaves its vLLM inference server
 # container running -- Docker containers aren't tied to the tmux session
 # that started them, so `tmux kill-session -t convert` (or a VM reset)
-# never stops it. The lock purge above only clears a lock FILE, not the
+# never stops it. The lock purge below only clears a lock FILE, not the
 # actual container. Confirmed live: after two kill/relaunch cycles in one
 # session (excluding then re-including a book, then a hard reset), TWO
 # separate `surya-vllm-*` containers were found still running, each holding
@@ -44,14 +42,8 @@ sudo rm -f /root/.cache/datalab/surya/vllm_server.lock
 # L4's 23GB total) -- the combined footprint left no headroom for real
 # page processing, and every page from that point on silently failed over
 # to the bare PyPDF fallback with a CUDA out-of-memory error, not a fatal
-# one. Stop and remove any leftover ones before every launch so this can't
-# accumulate across restarts.
-STALE_VLLM_CONTAINERS=$(sudo docker ps -aq --filter "name=surya-vllm-")
-if [ -n "$STALE_VLLM_CONTAINERS" ]; then
-    echo "[System] Removing stale vLLM server container(s) from a prior run: $STALE_VLLM_CONTAINERS"
-    sudo docker rm -f $STALE_VLLM_CONTAINERS
-fi
-
+# one.
+#
 # The vLLM Docker container isn't the only leftover risk -- surya also
 # spawns its own standalone `python3 -m surya.ocr_error.server` process
 # directly on the host (not inside Docker) the first time a chunk needs
@@ -61,16 +53,83 @@ fi
 # (PPID 1) and keeps running orphaned, still holding its own slice of GPU
 # memory (514MB observed), on top of whatever the vLLM container(s) hold.
 # Same accumulation risk as the vLLM containers, different mechanism.
-STALE_OCR_ERROR_PIDS=$(pgrep -f 'surya\.ocr_error\.server' || true)
-if [ -n "$STALE_OCR_ERROR_PIDS" ]; then
-    echo "[System] Removing stale surya.ocr_error.server process(es) from a prior run: $STALE_OCR_ERROR_PIDS"
-    sudo kill -9 $STALE_OCR_ERROR_PIDS
-fi
+#
+# Exported (not just defined) so the retry loop below can call it from
+# inside the fresh bash process tmux spawns for the "convert" session.
+cleanup_stale_inference_state() {
+    sudo rm -f /root/.cache/datalab/surya/vllm_server.lock
+
+    local stale_containers
+    stale_containers=$(sudo docker ps -aq --filter "name=surya-vllm-")
+    if [ -n "$stale_containers" ]; then
+        echo "[System] Removing stale vLLM server container(s): $stale_containers"
+        sudo docker rm -f $stale_containers
+    fi
+
+    local stale_ocr_pids
+    stale_ocr_pids=$(pgrep -f 'surya\.ocr_error\.server' || true)
+    if [ -n "$stale_ocr_pids" ]; then
+        echo "[System] Removing stale surya.ocr_error.server process(es): $stale_ocr_pids"
+        sudo kill -9 $stale_ocr_pids
+    fi
+}
+export -f cleanup_stale_inference_state
+
+# Auto-restart watchdog: convert_textbook.py now exits non-zero both when
+# it detects its own local inference server went dead mid-chunk (the
+# degraded-chunk check) and when Docker/the OS kills that server out from
+# under it externally (a system-RAM OOM-kill, an orphaned-container VRAM
+# exhaustion, or the occasional unexplained container "TaskDelete"). Every
+# one of those four confirmed incidents in one real batch this session
+# needed a human or an external agent to notice the dead process and
+# manually clean up + relaunch. This loop does that automatically instead,
+# up to MAX_RETRIES times, before giving up and letting the run end (so
+# the "autostop" watcher, if armed, still shuts the VM down rather than
+# leaving it running idle forever on a genuinely broken environment).
+# Already-completed chunks are skipped on each retry via their .done
+# markers, so a retry only redoes the chunk that was in flight.
+MAX_RETRIES=5
+RETRY_DELAY_S=15
+export MAX_RETRIES RETRY_DELAY_S REQUOTED_INPUTS REQUOTED_OUTPUT
+
+run_conversion_with_retries() {
+    local attempt=1
+    local exit_code=1
+    while [ "$attempt" -le "$MAX_RETRIES" ]; do
+        echo "[System] Conversion attempt $attempt of $MAX_RETRIES."
+        cleanup_stale_inference_state
+        cd ~/academic-rag-model
+        python3 -u -m textbook.convert_textbook $REQUOTED_INPUTS --output $REQUOTED_OUTPUT
+        exit_code=$?
+
+        if [ "$exit_code" -eq 0 ]; then
+            echo "[System] Conversion finished successfully on attempt $attempt."
+            return 0
+        fi
+
+        echo "[System] Conversion exited with code $exit_code on attempt $attempt."
+        if [ "$attempt" -eq "$MAX_RETRIES" ]; then
+            echo "[System] FATAL: giving up after $MAX_RETRIES attempts. This needs manual"
+            echo "[System] investigation -- see the debugging appendix in"
+            echo "[System] convert_textbook_agent_instructions.md."
+            return "$exit_code"
+        fi
+
+        echo "[System] Retrying in ${RETRY_DELAY_S}s (already-completed chunks will be skipped)."
+        sleep "$RETRY_DELAY_S"
+        attempt=$((attempt + 1))
+    done
+    return "$exit_code"
+}
+export -f run_conversion_with_retries
 
 echo "[System] Starting document extraction inside a detached tmux session."
 tmux kill-session -t convert 2>/dev/null || true
-tmux new-session -d -s convert \
-    "cd ~/academic-rag-model && python3 -u -m textbook.convert_textbook $REQUOTED_INPUTS --output $REQUOTED_OUTPUT 2>&1 | tee ~/convert_log.txt"
+# Truncate rather than let the first attempt append to a stale log from an
+# unrelated earlier launch -- retries WITHIN this run still append (-a
+# inside the loop), so one launch's full retry history stays in one file.
+: > ~/convert_log.txt
+tmux new-session -d -s convert "run_conversion_with_retries 2>&1 | tee -a ~/convert_log.txt"
 
 echo "[System] Started -- this connection can drop safely now."
 echo "[System] Check progress: gcloud compute ssh \$VM_INSTANCE_NAME --zone=\$GCP_ZONE --tunnel-through-iap --command=\"tail -n 40 ~/convert_log.txt\""

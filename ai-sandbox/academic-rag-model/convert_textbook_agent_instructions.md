@@ -22,14 +22,19 @@ Do not proceed past these points without an explicit answer:
    don't attempt to request quota, enable billing, or grant IAM roles
    beyond what Step -1 itself checks for.
 6. **A second genuine system-RAM OOM-kill on the same book/chunk after one
-   resume attempt already tried** (see the Debugging appendix's "vLLM/
-   ocr_error server dies mid-run" entry) — this is a real signal the
-   machine type is undersized for that book's content, and resizing (e.g.
-   `g2-standard-4` → `g2-standard-8`, same L4 GPU, more system RAM) is a
-   cost-changing decision, not something to do silently. A single tight-
-   but-recovering `free -h` reading, or a container/process dying for a
-   reason *other* than a confirmed `dmesg`-visible OOM-kill, does not
-   itself meet this bar — keep resuming per the Debugging appendix first.
+   manual `gcloud compute instances reset` + relaunch already tried** (see
+   the Debugging appendix's "chunk is silently degraded" entry) — this is
+   a real signal the machine type is undersized for that book's content,
+   and resizing (e.g. `g2-standard-4` → `g2-standard-8`, same L4 GPU, more
+   system RAM) is a cost-changing decision, not something to do silently.
+   Note this is about the *external* reset-and-relaunch, not
+   `start_conversion.sh`'s own built-in watchdog retries -- those 5
+   automatic attempts happen first, inside the VM, and don't by themselves
+   fix an OOM-kill (see the appendix), so their exhaustion alone doesn't
+   yet meet this bar. A single tight-but-recovering `free -h` reading, or
+   a container/process dying for a reason *other* than a confirmed
+   `dmesg`-visible OOM-kill, does not meet this bar either — let the
+   watchdog's automatic retries handle those.
 
 ## Step -1: Preflight verification (read-only, run once per session)
 
@@ -344,8 +349,11 @@ gcloud compute ssh "$VM_INSTANCE_NAME" --zone="$GCP_ZONE" --tunnel-through-iap -
 ```bash
 gcloud compute ssh "$VM_INSTANCE_NAME" --zone="$GCP_ZONE" --tunnel-through-iap --command="tmux has-session -t convert"
 ```
-(non-zero exit = the job finished or crashed — check the log's "Batch
-summary" line for the real outcome.)
+(non-zero exit = the job finished, or a built-in watchdog inside the
+session already retried the conversion up to 5 times and gave up — check
+the log's "Batch summary" line, or a `FATAL` line, for the real outcome.
+A single dead inference server mid-batch is no longer a reason for this
+session to have ended -- see the Debugging appendix.)
 
 For a long-running batch, poll every several minutes rather than tightly
 looping — see the Debugging appendix for what a hung VM looks like if a
@@ -448,21 +456,44 @@ on re-run.
   chunk is bounded by `--chunk-timeout` (default 1800s) and
   `--page-timeout` (default 240s) before falling back automatically, and
   one book failing is logged and skipped, not fatal to the rest.
-- **A run "succeeds" but every page is degraded to bare PyPDF text
-  (missing tables/formulas/layout), often with zero fatal errors anywhere
-  in the log:** grep for `VLM bypassed` and `Layout inference failed` --
-  a HANDFUL of isolated lines across a whole book can be normal (a
-  genuinely malformed individual page), but a tight cluster of dozens, or
-  either phrase appearing at all right after a fresh launch, means the
-  local inference server(s) `convert_textbook.py` depends on are dead and
-  every page since is silently falling through to the last-resort
-  fallback. **This is a real, repeatedly-confirmed failure class, not
-  hypothetical** -- it happened four times converting one real book,
-  for four different underlying reasons (a torchaudio ABI crash, GPU VRAM
-  exhausted by leftover containers, a system-RAM OOM-kill, and once with
-  no root cause found at all beyond a generic `docker events` "TaskDelete"
-  entry). Marker-pdf/surya use two separate local inference processes,
-  and either one dying independently produces this symptom:
+- **A chunk is silently degraded to bare PyPDF text (missing
+  tables/formulas/layout) because the local inference server died mid-run:**
+  `start_conversion.sh` now has a built-in auto-restart watchdog
+  (`run_conversion_with_retries`, inside the "convert" tmux session
+  itself) that handles most of this class automatically -- **no action is
+  normally needed.** It also stops the worst version of this failure at
+  the source: `convert_textbook.py` now measures what fraction of a
+  chunk's pages fell back to raw PyPDF extraction, and if more than half
+  did (`chunk_is_degraded`, `textbook/convert_textbook.py`), it prints a
+  `FATAL:` line and exits non-zero **instead of** writing that chunk's
+  `.done` marker -- a chunk is never silently checkpointed as done once
+  the inference server was effectively dead for it. The watchdog sees that
+  nonzero exit, cleans up stale inference-server state, and relaunches --
+  already-completed chunks skip via their `.done` markers, so a retry only
+  redoes the chunk that was actually in flight. It does this up to 5 times
+  (15s apart) before giving up and letting the run end.
+  - **You only need to look at this appendix entry when:** `grep -c
+    'FATAL' ~/convert_log.txt` is nonzero (retries were exhausted -- a
+    genuinely broken environment, not a transient death) or a health check
+    finds `sudo docker ps` / `pgrep -fa surya.ocr_error.server` empty
+    *while the "convert" tmux session is also gone* (the watchdog itself
+    died, not just one attempt inside it).
+  - `grep -c 'VLM bypassed\|Layout inference failed' ~/convert_log.txt` is
+    still worth checking on an otherwise-healthy-looking run: a HANDFUL of
+    isolated lines across a whole book is normal (a genuinely malformed
+    individual page that recovered on its own, below the 50% threshold
+    above); it's only actionable if it's a tight cluster that the FATAL
+    check above didn't already catch.
+  - **This is a real, repeatedly-confirmed failure class, not
+    hypothetical** -- it happened four times converting one real book,
+    for four different underlying reasons (a torchaudio ABI crash, GPU
+    VRAM exhausted by leftover containers, a system-RAM OOM-kill, and once
+    with no root cause found at all beyond a generic `docker events`
+    "TaskDelete" entry). The watchdog's blind cleanup-and-relaunch fixes
+    the first, second, and fourth of these outright. It does **not** fix
+    the third (system-RAM OOM-kill) -- see below. Marker-pdf/surya use two
+    separate local inference processes, and either one dying independently
+    produces this symptom:
   - `sudo docker ps` -- should show exactly one `surya-vllm-*` container.
     Empty, or more than one, both indicate a problem: empty means it died;
     more than one means an earlier kill left an orphan that's now
@@ -479,41 +510,60 @@ on re-run.
     Linux kernel's own OOM-killer killed the inference process because
     system RAM (not GPU VRAM) ran out. `g2-standard-4` has only ~15GB
     system RAM, which can run genuinely tight on a dense, image/table-heavy
-    book. **A plain container/process restart is not enough to recover
-    from this one** -- do a full `gcloud compute instances reset`
-    first (confirmed live: retrying without a reset reproduced the exact
-    same OOM-kill again within minutes), then follow the recovery steps
-    below. If it recurs a second time on the same book after that, see
-    "When to stop and ask the user" point 6 above rather than resetting a
-    third time.
+    book. **This is the one case the in-VM watchdog cannot fully fix on
+    its own:** its cleanup-and-relaunch only stops/restarts processes
+    *inside* the already-memory-pressured VM, which doesn't clear whatever
+    caused the OS itself to run out of RAM -- confirmed live, relaunching
+    without a full `gcloud compute instances reset` reproduced the exact
+    same OOM-kill again within minutes. A `gcloud compute instances reset`
+    is issued from *outside* the VM (this is why the watchdog, which only
+    runs inside it, can't do this step itself). Symptom to watch for: 5
+    consecutive `FATAL` lines a few seconds apart in `~/convert_log.txt`
+    (the watchdog burning through all its retries uselessly) each preceded
+    by a fresh `dmesg` OOM-kill -- that pattern means stop watching the log
+    and go straight to the recovery below. If it recurs a second time on
+    the same book after one reset, see "When to stop and ask the user"
+    point 6 above rather than resetting a third time.
   - Sometimes there is no diagnosable cause at all: `dmesg` and
     `sudo journalctl -u docker --since '30 min ago'` come back clean
     except a bare `"ignoring event" ... type="*events.TaskDelete"` line
     naming the dead container's ID. Don't spend long chasing this one --
-    a quick look is worth it, but the fix is the same regardless of
-    whether a cause is found.
+    the watchdog's blind cleanup-and-relaunch fixes it the same way
+    regardless of whether a cause is found.
 
-  **Recovery, for any of the above:**
+  **Manual recovery -- needed only for a `dmesg`-confirmed OOM-kill, or
+  when `~/convert_log.txt` shows the watchdog exhausted all 5 retries and
+  the "convert" tmux session has ended:**
   ```bash
   gcloud compute ssh "$VM_INSTANCE_NAME" --zone="$GCP_ZONE" --tunnel-through-iap --command="tmux kill-session -t autostop 2>/dev/null; tmux kill-session -t convert 2>/dev/null; echo done"
   ```
   ```bash
+  gcloud compute instances reset "$VM_INSTANCE_NAME" --zone="$GCP_ZONE"
+  ```
+  (Skip the reset if the trigger was retry exhaustion with no `dmesg`
+  OOM-kill involved -- that's a different, non-memory root cause, and a
+  reset won't fix it; investigate the `FATAL` lines' surrounding log
+  context instead.) Wait ~1-2 minutes after a reset, then:
+  ```bash
   gcloud compute ssh "$VM_INSTANCE_NAME" --zone="$GCP_ZONE" --tunnel-through-iap --command="sudo docker ps -aq --filter 'name=surya-vllm-' | xargs -r sudo docker rm -f; pgrep -f 'surya\.ocr_error\.server' | xargs -r sudo kill -9; nvidia-smi --query-gpu=memory.used --format=csv,noheader"
   ```
   Confirm that last command reads low (a few hundred MB is fine; multi-GB
-  means something is still holding memory). If a `dmesg` OOM-kill was
-  involved, `gcloud compute instances reset` first and wait ~1-2 minutes
-  before the commands above. Then check
-  `~/academic-rag-model/marker_checkpoints/<book>/chunks/*.md` file sizes
-  against neighboring same-page-count chunks -- a chunk produced during
-  the degraded window is usually 10-100x smaller, or literally just empty
-  page-marker comments with no real content (confirmed live: one such
-  chunk was 5.5KB against 200-500KB neighbors). Delete both the `.md` and
-  matching `.done` for any such chunk -- **`convert_textbook.py`'s
-  per-chunk checkpointing marks a chunk done once it's *processed*, not
-  once its content is verified non-degraded, so a bad chunk left in place
-  will be silently kept, not automatically redone.** Then relaunch Step
-  3.3 with the same book list (already-finished books skip via
-  `convert_textbook.py`'s own whole-book check; already-good chunks
-  within an in-progress book skip via the per-chunk checkpoint) and
+  means something is still holding memory) -- this is a belt-and-suspenders
+  check; `start_conversion.sh`'s watchdog runs the same cleanup itself on
+  every attempt, including the first one after this manual step. Then
+  relaunch Step 3.3 with the same book list (already-finished books skip
+  via `convert_textbook.py`'s own whole-book check; already-good chunks
+  within an in-progress book skip via the per-chunk checkpoint -- and any
+  chunk that was mid-flight during the kill was never marked `.done` in
+  the first place, since `chunk_is_degraded` exits before that write) and
   re-arm the autostop watcher as usual.
+  - `chunk_is_degraded` only catches a chunk where a clear majority
+    (>50%) of pages fell back to raw PyPDF text -- a *milder* degradation
+    (say, 2 of 6 pages) still gets checkpointed as done. This is
+    deliberate (a lone hard page recovering via the normal per-page
+    fallback is expected, not a failure), but it means the file-size
+    sanity check from before this fix -- comparing
+    `~/academic-rag-model/marker_checkpoints/<book>/chunks/*.md` sizes
+    against neighboring same-page-count chunks -- is still worth a look if
+    a book's final output looks thin in specific spots, even when nothing
+    in this appendix's automatic checks fired.
