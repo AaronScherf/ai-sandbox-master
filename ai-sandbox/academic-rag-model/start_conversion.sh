@@ -52,6 +52,21 @@ if [ -n "$STALE_VLLM_CONTAINERS" ]; then
     sudo docker rm -f $STALE_VLLM_CONTAINERS
 fi
 
+# The vLLM Docker container isn't the only leftover risk -- surya also
+# spawns its own standalone `python3 -m surya.ocr_error.server` process
+# directly on the host (not inside Docker) the first time a chunk needs
+# OCR-error detection, and reuses it for the rest of the run rather than
+# starting a fresh one per chunk. Confirmed live: killing the "convert"
+# tmux session does NOT kill this process -- it gets reparented to init
+# (PPID 1) and keeps running orphaned, still holding its own slice of GPU
+# memory (514MB observed), on top of whatever the vLLM container(s) hold.
+# Same accumulation risk as the vLLM containers, different mechanism.
+STALE_OCR_ERROR_PIDS=$(pgrep -f 'surya\.ocr_error\.server' || true)
+if [ -n "$STALE_OCR_ERROR_PIDS" ]; then
+    echo "[System] Removing stale surya.ocr_error.server process(es) from a prior run: $STALE_OCR_ERROR_PIDS"
+    sudo kill -9 $STALE_OCR_ERROR_PIDS
+fi
+
 echo "[System] Starting document extraction inside a detached tmux session."
 tmux kill-session -t convert 2>/dev/null || true
 tmux new-session -d -s convert \
