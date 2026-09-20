@@ -385,6 +385,33 @@ Do not run this until every book in the batch is done and 3.4a has been
 re-run with nothing new appearing — it deletes the source PDFs any
 not-yet-finished book still needs.
 
+### 3.4c Download RAM-sizing logs and update the local dataset
+
+Best-effort — if either command below fails, skip this and continue to
+Step 4 rather than treating it as blocking. Pulls both raw logs down and
+folds them into `docs/status/vm_sizing_log.jsonl` (gitignored raw logs
+under `docs/status/vm_sizing_raw/`; only the `.jsonl` is meant to be
+committed). Nothing reads this dataset automatically yet — see
+`docs/superpowers/specs/2026-09-20-vm-ram-sizing-logging-design.md`.
+
+```bash
+COURSE_NAME=$(cut -d/ -f2 <<< "$TEXTBOOK_SUBDIR")
+RUN_DIR="docs/status/vm_sizing_raw/${TEXTBOOK_SUBDIR//\//_}_$(date +%Y%m%d_%H%M%S)"
+mkdir -p "$RUN_DIR"
+gcloud compute scp "$VM_INSTANCE_NAME":"$REMOTE_HOME/convert_log.txt" "$VM_INSTANCE_NAME":"$REMOTE_HOME/ram_sampling_log.txt" "$RUN_DIR/" --zone="$GCP_ZONE" --tunnel-through-iap --quiet
+```
+
+```bash
+python -m textbook.vm_sizing_log \
+  --convert-log "$RUN_DIR/convert_log.txt" \
+  --ram-log "$RUN_DIR/ram_sampling_log.txt" \
+  --course "$COURSE_NAME" --machine-type "g2-standard-4" \
+  --output docs/status/vm_sizing_log.jsonl
+```
+
+(`$REMOTE_HOME` is the value captured in Step 2.2. `--machine-type` should
+match whatever Step 1.3 actually created the VM with.)
+
 ## Step 4: Terminate the VM
 
 Ask the user which they want (default recommendation: delete — a

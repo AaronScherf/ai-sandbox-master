@@ -556,6 +556,29 @@ gcloud storage ls gs://$BUCKET_NAME/processed_outputs/
 gcloud storage rm -r "gs://$BUCKET_NAME/processed_outputs/*" "gs://$BUCKET_NAME/input_documents/*" --continue-on-error
 ```
 
+#### 3.4c: Download RAM-sizing logs and update the local dataset
+
+Optional, but worth doing every run: `convert_textbook.py` and `start_conversion.sh` both log system RAM usage per book as they go (see `docs/superpowers/specs/2026-09-20-vm-ram-sizing-logging-design.md`) -- this step pulls those logs down and folds them into a small, growing local dataset (`docs/status/vm_sizing_log.jsonl`) correlating each book's page count/file size with the peak RAM it actually used. Nothing reads this dataset automatically yet; it exists so a future machine-type-sizing decision can be based on real numbers instead of guesswork.
+
+This is best-effort -- if either command below fails (e.g. the VM already looks unhealthy), don't let it block emptying the bucket or deleting the VM; just skip it and move on.
+
+```bash
+COURSE_NAME=$(cut -d/ -f2 <<< "$TEXTBOOK_SUBDIR")
+RUN_DIR="docs/status/vm_sizing_raw/${TEXTBOOK_SUBDIR//\//_}_$(date +%Y%m%d_%H%M%S)"
+mkdir -p "$RUN_DIR"
+gcloud compute scp $VM_INSTANCE_NAME:~/convert_log.txt $VM_INSTANCE_NAME:~/ram_sampling_log.txt "$RUN_DIR/" --zone=$GCP_ZONE --tunnel-through-iap
+```
+
+```bash
+python -m textbook.vm_sizing_log \
+    --convert-log "$RUN_DIR/convert_log.txt" \
+    --ram-log "$RUN_DIR/ram_sampling_log.txt" \
+    --course "$COURSE_NAME" --machine-type "g2-standard-4" \
+    --output docs/status/vm_sizing_log.jsonl
+```
+
+(`--machine-type` should match whatever Step 1.3 actually created the VM with, if you ever change it from the default `g2-standard-4`.) The raw logs land under `docs/status/vm_sizing_raw/` (gitignored -- debugging exhaust for this one run); only `docs/status/vm_sizing_log.jsonl` is meant to be committed and grow across every future batch.
+
 ## Step 4: Terminate the Compute Instance
 
 To halt billing cycles, the VM must be explicitly stopped or deleted upon completion of the pipeline.
