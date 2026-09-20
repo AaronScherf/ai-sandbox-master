@@ -4,6 +4,7 @@ import os
 import sys
 import tempfile
 import unittest
+from contextlib import redirect_stdout
 from unittest.mock import MagicMock, patch
 
 # convert_textbook.py imports torch/marker at module scope for its GPU
@@ -462,6 +463,106 @@ class TestProcessOnePdfAbortsOnDegradedChunk(unittest.TestCase):
 
             done_marker = os.path.join(tmp, "marker_checkpoints", "some_book", "chunks", "00000_00004.done")
             self.assertTrue(os.path.exists(done_marker), "a merely-recovered chunk should still be checkpointed")
+
+
+class TestProcessOnePdfEmitsRamSizingMarkers(unittest.TestCase):
+    def _setup(self, tmp):
+        input_pdf = os.path.join(tmp, "some_book.pdf")
+        with open(input_pdf, "wb") as f:
+            f.write(b"not a real pdf, just needs to exist, be hashable, and be sized")
+        output_dir = os.path.join(tmp, "output")
+        os.makedirs(output_dir)
+        reader = _blank_pdf_reader(4)
+        args = MagicMock(chunk_timeout=30, page_timeout=30, llm_bib=False)
+        return input_pdf, output_dir, reader, args
+
+    def test_emits_start_marker_with_pages_and_file_size(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            input_pdf, output_dir, reader, args = self._setup(tmp)
+            expected_size = os.path.getsize(input_pdf)
+            captured = io.StringIO()
+            with patch.object(ct, "find_card_by_file_id", return_value=None), \
+                 patch.object(ct, "PdfReader", return_value=reader), \
+                 patch.object(ct, "_load_or_compute_boundaries", side_effect=RuntimeError("reached boundaries, as expected")), \
+                 redirect_stdout(captured):
+                with self.assertRaises(RuntimeError):
+                    ct.process_one_pdf(
+                        converter=MagicMock(), raw_input=input_pdf, raw_output=output_dir,
+                        workspace=tmp, args=args,
+                    )
+            output = captured.getvalue()
+            self.assertIn(f"RAM_SIZING_START book=some_book pages=4 file_size_bytes={expected_size} ts=", output)
+
+    def test_no_ram_sizing_marker_when_book_is_skipped_as_already_converted(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            input_pdf, output_dir, reader, args = self._setup(tmp)
+            fake_card = {"path": "processed_outputs/Hansen_Econometrics_2022/Hansen_Econometrics_2022.md"}
+            captured = io.StringIO()
+            with patch.object(ct, "find_card_by_file_id", return_value=("econ-101", fake_card)), \
+                 patch.object(ct, "PdfReader") as mock_reader, \
+                 redirect_stdout(captured):
+                ct.process_one_pdf(
+                    converter=MagicMock(), raw_input=input_pdf, raw_output=output_dir,
+                    workspace=tmp, args=args,
+                )
+            mock_reader.assert_not_called()
+            self.assertNotIn("RAM_SIZING", captured.getvalue())
+
+    def test_emits_end_marker_with_status_success_on_a_successful_run(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            input_pdf, output_dir, reader, args = self._setup(tmp)
+            captured = io.StringIO()
+            with patch.object(ct, "find_card_by_file_id", return_value=None), \
+                 patch.object(ct, "PdfReader", return_value=reader), \
+                 patch.object(ct, "_load_or_compute_boundaries", return_value=([(0, 4)], None, 4)), \
+                 patch.object(ct, "process_page_range", return_value=("# Some real content\n", {}, False, 0.0)), \
+                 patch.object(ct, "get_gemini_client", return_value=None), \
+                 patch.object(ct, "load_dotenv_override"), \
+                 redirect_stdout(captured):
+                ct.process_one_pdf(
+                    converter=MagicMock(), raw_input=input_pdf, raw_output=output_dir,
+                    workspace=tmp, args=args,
+                )
+            output = captured.getvalue()
+            self.assertIn("RAM_SIZING_END book=some_book ts=", output)
+            self.assertIn("status=success", output)
+
+    def test_emits_end_marker_with_status_failed_on_an_unhandled_error(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            input_pdf, output_dir, reader, args = self._setup(tmp)
+            captured = io.StringIO()
+            with patch.object(ct, "find_card_by_file_id", return_value=None), \
+                 patch.object(ct, "PdfReader", return_value=reader), \
+                 patch.object(ct, "_load_or_compute_boundaries", return_value=([(0, 4)], None, 4)), \
+                 patch.object(ct, "process_page_range", return_value=("real content", {}, False, 0.0)), \
+                 patch.object(ct.gc, "collect", side_effect=RuntimeError("reached post-checkpoint cleanup, as expected")), \
+                 redirect_stdout(captured):
+                with self.assertRaises(RuntimeError):
+                    ct.process_one_pdf(
+                        converter=MagicMock(), raw_input=input_pdf, raw_output=output_dir,
+                        workspace=tmp, args=args,
+                    )
+            output = captured.getvalue()
+            self.assertIn("RAM_SIZING_END book=some_book ts=", output)
+            self.assertIn("status=failed", output)
+
+    def test_emits_end_marker_with_status_failed_when_a_chunk_is_degraded(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            input_pdf, output_dir, reader, args = self._setup(tmp)
+            captured = io.StringIO()
+            with patch.object(ct, "find_card_by_file_id", return_value=None), \
+                 patch.object(ct, "PdfReader", return_value=reader), \
+                 patch.object(ct, "_load_or_compute_boundaries", return_value=([(0, 4)], None, 4)), \
+                 patch.object(ct, "process_page_range", return_value=("mostly empty", {}, True, 0.75)), \
+                 redirect_stdout(captured):
+                with self.assertRaises(SystemExit):
+                    ct.process_one_pdf(
+                        converter=MagicMock(), raw_input=input_pdf, raw_output=output_dir,
+                        workspace=tmp, args=args,
+                    )
+            output = captured.getvalue()
+            self.assertIn("RAM_SIZING_END book=some_book ts=", output)
+            self.assertIn("status=failed", output)
 
 
 if __name__ == "__main__":

@@ -828,6 +828,11 @@ def process_one_pdf(converter, raw_input: str, raw_output: str, workspace: str, 
     is_gcs_input = raw_input.startswith("gs://")
     is_gcs_output = raw_output.startswith("gs://")
     input_key = sanitize_filename(os.path.splitext(os.path.basename(raw_input))[0]) or "untitled_input"
+    # Set once RAM_SIZING_START is actually printed below, and again right
+    # before a successful return -- the finally block near the end of this
+    # function uses both to decide whether/what RAM_SIZING_END to print.
+    ram_sizing_started = False
+    ram_sizing_success = False
 
     if is_gcs_input:
         # Named per-book (rather than one shared temp filename) so a failure
@@ -883,6 +888,12 @@ def process_one_pdf(converter, raw_input: str, raw_output: str, workspace: str, 
         reader = PdfReader(input_pdf)
         total_pages = len(reader.pages)
         print(f"Loaded document mapping: {total_pages} total pages.")
+        # Tagged, machine-parseable line for textbook/vm_sizing_log.py --
+        # see docs/superpowers/specs/2026-09-20-vm-ram-sizing-logging-design.md.
+        # Exact field order/spacing matters: it's matched by regex there.
+        print(f"RAM_SIZING_START book={input_key} pages={total_pages} "
+              f"file_size_bytes={os.path.getsize(input_pdf)} ts={int(time.time())}")
+        ram_sizing_started = True
 
         source_info = extract_source_bibliographic_info(reader)
         if is_descriptive_bibliographic_info(source_info):
@@ -1157,9 +1168,19 @@ def process_one_pdf(converter, raw_input: str, raw_output: str, workspace: str, 
         # Checkpoint cleanup (only once final artifacts are confirmed
         # written/uploaded above)
         shutil.rmtree(checkpoint_dir, ignore_errors=True)
+        ram_sizing_success = True
         return final_destination
 
     finally:
+        # Fires on every exit path -- a clean return above, a normal
+        # exception, or chunk_is_degraded's sys.exit(1) -- since `finally`
+        # runs regardless of exception type as it propagates. No marker at
+        # all for a book that was skipped as already-converted (those
+        # `return` statements are before RAM_SIZING_START is ever printed,
+        # so `ram_sizing_started` stays False).
+        if ram_sizing_started:
+            status = "success" if ram_sizing_success else "failed"
+            print(f"RAM_SIZING_END book={input_key} ts={int(time.time())} status={status}")
         if is_gcs_input and os.path.exists(input_pdf):
             os.remove(input_pdf)
 
