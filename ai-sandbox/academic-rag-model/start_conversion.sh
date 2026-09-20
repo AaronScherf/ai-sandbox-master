@@ -90,7 +90,8 @@ export -f cleanup_stale_inference_state
 # markers, so a retry only redoes the chunk that was in flight.
 MAX_RETRIES=5
 RETRY_DELAY_S=15
-export MAX_RETRIES RETRY_DELAY_S REQUOTED_INPUTS REQUOTED_OUTPUT
+RAM_SAMPLE_INTERVAL_S=15
+export MAX_RETRIES RETRY_DELAY_S RAM_SAMPLE_INTERVAL_S REQUOTED_INPUTS REQUOTED_OUTPUT
 
 run_conversion_with_retries() {
     local attempt=1
@@ -123,13 +124,38 @@ run_conversion_with_retries() {
 }
 export -f run_conversion_with_retries
 
+# Background RAM sampler: records system-wide `free -m` readings for the
+# whole lifetime of run_conversion_with_retries (spanning every retry
+# attempt, not restarted per attempt), so a downstream correlation step
+# (textbook/vm_sizing_log.py) can find the peak RAM used during any given
+# book's conversion window. Truncated once here, matching the same
+# `: > ~/convert_log.txt` pattern already used below for the main log, so
+# a fresh launch never mixes samples from an unrelated earlier batch.
+run_conversion_with_ram_sampling() {
+    : > ~/ram_sampling_log.txt
+    (
+        while true; do
+            echo "$(date +%s) $(free -m | awk '/^Mem:/{print $2, $3, $4, $6, $7}')"
+            sleep "$RAM_SAMPLE_INTERVAL_S"
+        done
+    ) >> ~/ram_sampling_log.txt &
+    local sampler_pid=$!
+
+    run_conversion_with_retries
+    local result=$?
+
+    kill "$sampler_pid" 2>/dev/null || true
+    return "$result"
+}
+export -f run_conversion_with_ram_sampling
+
 echo "[System] Starting document extraction inside a detached tmux session."
 tmux kill-session -t convert 2>/dev/null || true
 # Truncate rather than let the first attempt append to a stale log from an
 # unrelated earlier launch -- retries WITHIN this run still append (-a
 # inside the loop), so one launch's full retry history stays in one file.
 : > ~/convert_log.txt
-tmux new-session -d -s convert "run_conversion_with_retries 2>&1 | tee -a ~/convert_log.txt"
+tmux new-session -d -s convert "run_conversion_with_ram_sampling 2>&1 | tee -a ~/convert_log.txt"
 
 echo "[System] Started -- this connection can drop safely now."
 echo "[System] Check progress: gcloud compute ssh \$VM_INSTANCE_NAME --zone=\$GCP_ZONE --tunnel-through-iap --command=\"tail -n 40 ~/convert_log.txt\""
