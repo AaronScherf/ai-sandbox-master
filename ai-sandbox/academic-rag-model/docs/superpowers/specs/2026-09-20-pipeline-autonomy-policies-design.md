@@ -83,8 +83,16 @@ because:
   not a separate VM — the existing one-VM-per-batch architecture
   (`convert_textbook.py`'s `main()` loads vision models once and reuses
   them across every book in `args.inputs`) is unchanged by this spec.
-- No change to Tier 1 (exact byte-hash) duplicate handling — already fully
-  automatic today, already correct.
+- No change to Tier 1/Tier 2 *detection or scoring* logic — already
+  correct today. Component 3 changes what `rebuild()` does with a clone
+  it finds, not how a clone gets identified as a match in the first
+  place.
+- Editing `indexer/index_search.py` was out of scope for the original
+  2026-09-17 duplicate-detection plan (its Global Constraints explicitly
+  excluded it, since the fix wasn't needed for that plan's own scope).
+  Component 3 deliberately supersedes that exclusion for this one
+  narrowly-scoped fix — it does not reopen `index_search.py`'s other
+  behavior for changes beyond the clone-skip logic described there.
 - No change to the nested-subfolder-inclusion gate — this remains a
   genuine ask-the-user decision, designed in the sibling skill spec, not
   here.

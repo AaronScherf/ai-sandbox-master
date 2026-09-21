@@ -189,7 +189,7 @@ entry gets notified on the tick it first appears, and is not re-notified
 on every subsequent tick while it's still waiting (only once more, if it
 times out and the safe default gets applied, so you know that happened).
 
-## Component 4: Local artifact sync (decoupled)
+## Component 4: Local artifact sync and cleanup (both decoupled)
 
 Downloading finished output into the local `academic-hub` folder
 (existing Step 3.4a) is **not** part of the orchestrator's automatic
@@ -199,6 +199,23 @@ documented today (safe to run any time, including mid-batch, since each
 book uploads to GCS as soon as it finishes). The orchestrator's own
 lifecycle only needs the GCS bucket, never your local filesystem, until
 you choose to sync.
+
+**This must also apply to bucket cleanup (Step 3.4b), not just
+download — this was a real gap in an earlier draft of this spec.** The
+skill spec's default orchestrator lifecycle includes emptying
+`processed_outputs/*`/`input_documents/*` from the bucket automatically
+after conversion. In the walk-away model specifically, that would delete
+the only copy of a freshly-converted book before you've ever run your
+on-demand local sync — a real, permanent data-loss risk, not a
+theoretical one. **In walk-away mode, cleanup is deferred to the same
+on-demand step as download**, not run automatically by the orchestrator:
+VM deletion still happens automatically (it holds no unique data once
+output is in GCS), but the bucket itself is left alone until you've
+synced. The completion notification (Component 3) says so explicitly —
+"output ready in GCS, not yet synced or cleaned up" — so this doesn't
+depend on you remembering it days later; leaving finished output sitting
+in GCS a while longer costs only object storage, not the ongoing
+GPU/disk billing this pipeline already treats as the real cost to avoid.
 
 ## Component 5: Detachment mechanism (Windows)
 
