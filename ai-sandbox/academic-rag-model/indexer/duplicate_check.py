@@ -542,12 +542,29 @@ def _print_report(result: dict) -> None:
     print(f"  Skipped -- duplicate found, artifacts copied ({len(result['skipped'])}):")
     for pdf_filename, course, path, tier in result["skipped"]:
         print(f"    - {pdf_filename}\n      -> {course}: {path} (tier: {tier})")
+    if result["auto_skipped_pending_confirmation"]:
+        print(f"  Auto-skipped as likely duplicate -- please confirm ({len(result['auto_skipped_pending_confirmation'])}):")
+        for entry in result["auto_skipped_pending_confirmation"]:
+            print(f"    - {entry['pdf_filename']}\n      -> {entry['matched_course']}: {entry['matched_title']} "
+                  f"(score {entry['score']:.2f}, incoming file_id={entry['incoming_file_id']})")
+        print("    Review with: python -m indexer.duplicate_check --review-pending")
     if result["unresolved"]:
         print(f"  Needs confirmation -- rerun with --resolve ({len(result['unresolved'])}):")
         for item in result["unresolved"]:
             print(f"    - {item['pdf_filename']} (incoming file_id={item['incoming_file_id']})")
             for c in item["candidates"]:
                 print(f"        -> {c['course']}: {c['card']['title']} (score {c['combined']:.2f}, file_id={c['card']['file_id']})")
+
+
+def _print_pending_confirmations(entries: list[dict]) -> None:
+    print(f"\n[Pending duplicate confirmations] ({len(entries)}):")
+    for entry in entries:
+        print(f"  - {entry['pdf_filename']} (course={entry.get('course', '?')})")
+        print(f"      -> {entry.get('matched_course', '?')}: {entry.get('matched_title', '?')} "
+              f"(score {entry.get('score', 0):.2f}, incoming file_id={entry.get('incoming_file_id', '?')})")
+    if entries:
+        print("  Confirm with: python -m indexer.duplicate_check --confirm-pending FILE_ID")
+        print("  Reject with:  python -m indexer.duplicate_check --reject-pending FILE_ID")
 
 
 def write_to_convert_file(path: str, to_convert: list[str]) -> None:
@@ -582,8 +599,9 @@ def build_arg_parser() -> argparse.ArgumentParser:
                      "for conversion. See docs/superpowers/specs/2026-09-17-cross-course-duplicate-textbook-detection-design.md",
     )
     parser.add_argument(
-        "--textbook-subdir", required=True,
-        help="Path relative to academic-hub/, e.g. academic_resources/microecon/textbooks (same value as the conversion instructions' Step 0.2).",
+        "--textbook-subdir", default=None,
+        help="Path relative to academic-hub/, e.g. academic_resources/microecon/textbooks (same value as the conversion instructions' Step 0.2). "
+             "Required unless --review-pending, --confirm-pending, or --reject-pending is given.",
     )
     parser.add_argument("--academic-hub-root", default=None, help="Defaults to the academic-hub/ folder next to this project.")
     parser.add_argument(
@@ -600,12 +618,25 @@ def build_arg_parser() -> argparse.ArgumentParser:
              "human-readable report on stdout. Read it back with `mapfile -t PDF_FILENAMES < PATH`: a confirmed "
              "duplicate's source PDF is deliberately never deleted, so re-globbing the folder would re-include it.",
     )
+    parser.add_argument(
+        "--review-pending", action="store_true",
+        help="List every pending duplicate-confirmation entry across all courses, instead of running a normal "
+             "check against --textbook-subdir.",
+    )
     return parser
 
 
 def main() -> None:
     parser = build_arg_parser()
     args = parser.parse_args()
+    academic_hub_root = args.academic_hub_root or _default_academic_hub_root()
+
+    if args.review_pending:
+        _print_pending_confirmations(load_pending_confirmations(academic_hub_root))
+        return
+
+    if not args.textbook_subdir:
+        parser.error("--textbook-subdir is required unless --review-pending is given")
 
     resolutions: dict[str, str] = {}
     for entry in args.resolve:
@@ -614,7 +645,6 @@ def main() -> None:
             parser.error(f"--resolve {entry!r} must be FILE_ID=yes or FILE_ID=no")
         resolutions[file_id] = decision
 
-    academic_hub_root = args.academic_hub_root or _default_academic_hub_root()
     result = run_duplicate_check(args.textbook_subdir, academic_hub_root, args.non_interactive, resolutions)
     _print_report(result)
     if args.emit_to_convert:

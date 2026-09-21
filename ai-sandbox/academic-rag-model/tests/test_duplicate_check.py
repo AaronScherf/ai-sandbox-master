@@ -734,11 +734,6 @@ class TestRunDuplicateCheck(unittest.TestCase):
 
 
 class TestBuildArgParser(unittest.TestCase):
-    def test_requires_textbook_subdir(self):
-        parser = build_arg_parser()
-        with self.assertRaises(SystemExit):
-            parser.parse_args([])
-
     def test_resolve_can_repeat(self):
         parser = build_arg_parser()
         args = parser.parse_args([
@@ -851,6 +846,72 @@ class TestEmitToConvert(unittest.TestCase):
 
             self.assertNotIn(b"\r", raw)
             self.assertEqual(raw, b"Some Book.pdf\nAnother Book.pdf\n")
+
+
+class TestReviewPending(unittest.TestCase):
+    def test_review_pending_lists_entries_across_all_courses(self):
+        import indexer.duplicate_check as dc
+        with tempfile.TemporaryDirectory() as academic_hub_root:
+            dc.record_pending_confirmation(academic_hub_root, {
+                "incoming_file_id": "a", "pdf_filename": "Ok.pdf", "course": "microecon",
+                "matched_course": "econometrics", "matched_file_id": "canonical-fid",
+                "matched_title": "Real Analysis with Economic Applications", "score": 0.91,
+                "new_card_file_id": "clone-fid", "queued_at": "2026-09-20T00:00:00+00:00",
+            })
+            argv = ["duplicate_check", "--review-pending", "--academic-hub-root", academic_hub_root]
+            captured = StringIO()
+            with mock.patch.object(sys, "argv", argv), mock.patch("sys.stdout", new=captured):
+                dc.main()
+            output = captured.getvalue()
+            self.assertIn("Ok.pdf", output)
+            self.assertIn("econometrics", output)
+            self.assertIn("Real Analysis with Economic Applications", output)
+
+    def test_review_pending_does_not_require_textbook_subdir(self):
+        import indexer.duplicate_check as dc
+        with tempfile.TemporaryDirectory() as academic_hub_root:
+            argv = ["duplicate_check", "--review-pending", "--academic-hub-root", academic_hub_root]
+            with mock.patch.object(sys, "argv", argv), mock.patch("sys.stdout", new=StringIO()):
+                dc.main()  # must not raise SystemExit
+
+    def test_normal_run_still_requires_textbook_subdir(self):
+        # Replaces the old parser-level test (build_arg_parser() no longer
+        # marks --textbook-subdir required=True at the argparse layer,
+        # since --review-pending must be usable without it) -- the
+        # requirement now lives in main() instead.
+        import indexer.duplicate_check as dc
+        with mock.patch.object(sys, "argv", ["duplicate_check"]):
+            with self.assertRaises(SystemExit):
+                dc.main()
+
+
+class TestAutoSkipReportSection(unittest.TestCase):
+    def test_report_includes_auto_skipped_section_with_review_command(self):
+        import indexer.duplicate_check as dc
+        with tempfile.TemporaryDirectory() as academic_hub_root:
+            subdir = "academic_resources/microecon/textbooks"
+            pdf_path = os.path.join(academic_hub_root, subdir, "Ok_RealAnalysisWithEconomicApplications_2007.pdf")
+            os.makedirs(os.path.dirname(pdf_path), exist_ok=True)
+            with open(pdf_path, "wb") as f:
+                f.write(b"a re-scanned copy, different bytes")
+
+            book_dir = os.path.join(academic_hub_root, "academic_resources", "econometrics", "textbooks", "processed_outputs", "Ok_RealAnalysisWithEconomicApplications_2007")
+            os.makedirs(book_dir, exist_ok=True)
+            with open(os.path.join(book_dir, "Ok_RealAnalysisWithEconomicApplications_2007.md"), "w", encoding="utf-8") as f:
+                f.write("# Real Analysis")
+            save_shard(academic_hub_root, "econometrics", [{
+                "file_id": "some-other-fid", "path": "academic_resources/econometrics/textbooks/processed_outputs/Ok_RealAnalysisWithEconomicApplications_2007/Ok_RealAnalysisWithEconomicApplications_2007.md",
+                "source_pdf_path": "academic_resources/econometrics/textbooks/Ok.pdf", "course": "econometrics",
+                "doc_type": "textbook", "title": "Real Analysis with Economic Applications",
+            }])
+
+            argv = ["duplicate_check", "--textbook-subdir", subdir, "--academic-hub-root", academic_hub_root, "--non-interactive"]
+            captured = StringIO()
+            with mock.patch.object(sys, "argv", argv), mock.patch("sys.stdout", new=captured):
+                dc.main()
+            output = captured.getvalue()
+            self.assertIn("Auto-skipped as likely duplicate", output)
+            self.assertIn("--review-pending", output)
 
 
 class TestRunDuplicateCheckErrorIsolation(unittest.TestCase):
