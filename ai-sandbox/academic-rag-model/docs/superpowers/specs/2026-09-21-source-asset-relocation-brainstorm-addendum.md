@@ -200,6 +200,16 @@ before, since these patterns must match the renamed directories):
    files be gitignored in their new home, or is that content fine to
    track publicly?
 
+   **Decided (2026-09-21): yes, gitignore them** -- same reasoning as the
+   textbook-PDF protection already in place. New pattern needed alongside
+   the `lecture_slides/`/`lecture_recordings/` additions above:
+   `ai-sandbox/academic-hub/**/*.docx` and `ai-sandbox/academic-hub/**/*.pptx`
+   (unscoped by category, matching the pattern this `.gitignore` already
+   uses for `*_pages_cache.json` -- these extensions never carry the
+   user's own primary-authored analysis the way a `.md` transcription
+   does, so a blanket match is safe here without the deny-list-not-allow-list
+   care `textbooks-and-papers/`'s PDF/MD patterns needed).
+
 ## Suggested handoff prompt
 
 > Read `docs/superpowers/specs/2026-09-21-source-asset-relocation-brainstorm-addendum.md`.
