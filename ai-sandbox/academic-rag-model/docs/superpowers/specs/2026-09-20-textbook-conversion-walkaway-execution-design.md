@@ -266,7 +266,14 @@ by the time something is read from it.
   notifications to expect, how to check `run_state.json` directly if
   curious) alongside the existing synchronous/attended path — both remain
   valid; walk-away is an option, not a replacement for running the skill
-  interactively for a shorter/smaller batch.
+  interactively for a shorter/smaller batch. Explicitly document that
+  walk-away mode defers bucket cleanup (Step 3.4b) to the on-demand sync
+  step, not the automatic lifecycle — a deliberate difference from the
+  attended path that should be stated, not left implicit.
+- `.gitignore`: add `docs/status/textbook_runs/` (same convention as the
+  existing `docs/status/vm_sizing_raw/` entry) — run-state/decision files
+  and the orchestrator log are transient per-run scratch, not a permanent
+  artifact.
 
 ## Open items deferred to the future
 

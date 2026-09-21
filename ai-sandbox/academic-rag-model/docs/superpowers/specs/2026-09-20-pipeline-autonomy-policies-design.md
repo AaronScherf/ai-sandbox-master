@@ -337,10 +337,12 @@ change to two functions:**
    addition to the `source_pdf_path`/`source_pdf_file_id` rewrite it
    already does to the copied `_metadata.json`, also write
    `metadata["duplicate_of_file_id"] = canonical_card["file_id"]` into
-   that same file. Today this marker exists only on the index card, not
-   in the on-disk metadata `rebuild()` actually reads — this is the one
-   gap standing between "cheap to detect" and "needs an extra shard
-   lookup."
+   that same file, inside the same existing `try`/`except` block (one
+   more dict key before the same write call — this shares that block's
+   existing warn-and-continue failure handling, not a new failure path).
+   Today this marker exists only on the index card, not in the on-disk
+   metadata `rebuild()` actually reads — this is the one gap standing
+   between "cheap to detect" and "needs an extra shard lookup."
 2. **`rebuild()`'s textbook loop** (`indexer/index_search.py`): after
    loading `metadata` for a book directory, check
    `metadata.get("duplicate_of_file_id")`. If set, this directory is a

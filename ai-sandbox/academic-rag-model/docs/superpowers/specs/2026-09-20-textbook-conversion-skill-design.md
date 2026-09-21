@@ -93,7 +93,14 @@ Two pieces, not one:
    - Download, RAM-sizing log correlation, bucket cleanup, VM deletion
      (automatic, per the docs' existing default recommendation — Option
      B — rather than asking, consistent with "these should be reasoned
-     through")
+     through"). **This default (bucket cleanup automatic, right after
+     download) is the attended/synchronous path only.** In the walk-away
+     model (sibling spec:
+     `docs/superpowers/specs/2026-09-20-textbook-conversion-walkaway-execution-design.md`,
+     Component 4), download and bucket cleanup are both deferred to an
+     on-demand step instead — running them automatically before an
+     unattended local sync has happened would delete the only copy of the
+     output.
    - Emits the structured data the final report (Component 4) is built
      from
 
