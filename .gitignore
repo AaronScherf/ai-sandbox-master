@@ -39,6 +39,22 @@ ai-sandbox/academic-hub/academic_notes/
 # user's own authorship -- unconfirmed either way, so this defaults to
 # protecting until the user explicitly says otherwise, not the reverse.
 #
+# 2026-09-21: folder vocabulary unified to underscores everywhere
+# (academic-rag-model/docs/superpowers/specs/2026-09-21-source-asset-relocation-brainstorm-addendum.md)
+# -- lecture-slides/lecture-recordings renamed to lecture_slides/
+# lecture_recordings. Both spellings stay matched explicitly, same
+# both-spellings precedent as textbooks-and-papers/textbooks above, in
+# case anything ever reappears under the old name by mistake.
+#
+# Also 2026-09-21: .docx/.pptx now move into academic_resources/ too (same
+# relocation). academic_notes/ was wholesale-excluded above, so these were
+# already invisible to this repo; academic_resources/ isn't wholesale-
+# excluded, so without this pattern they'd become trackable-by-default in
+# a repo that's public on GitHub. Unscoped by category (not a deny-list
+# needing per-subpath care like the PDF/MD patterns above) -- neither
+# extension carries the user's own primary-authored analysis the way a
+# .md transcription does.
+#
 # Everything else under academic-hub -- scripts, the source-indexer's
 # file-level .index/ cards, per-book _metadata.json, _image_descriptions.json,
 # marker's run_config.json, and academic_notes/'s own .md output -- is
@@ -53,6 +69,10 @@ ai-sandbox/academic-hub/**/textbooks/**/*.md
 ai-sandbox/academic-hub/**/textbooks/**/images/
 ai-sandbox/academic-hub/**/lecture-slides/
 ai-sandbox/academic-hub/**/lecture-recordings/
+ai-sandbox/academic-hub/**/lecture_slides/
+ai-sandbox/academic-hub/**/lecture_recordings/
+ai-sandbox/academic-hub/**/*.docx
+ai-sandbox/academic-hub/**/*.pptx
 ai-sandbox/academic-hub/**/*_pages_cache.json
 # Raw notebook source (OneNote), not a derivative index/metadata file --
 # treated the same as the source PDFs, not tracked.
