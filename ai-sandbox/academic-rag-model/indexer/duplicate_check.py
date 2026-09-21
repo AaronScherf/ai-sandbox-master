@@ -221,6 +221,48 @@ def record_pending_confirmation(academic_hub_root: str, entry: dict) -> None:
     save_pending_confirmations(academic_hub_root, entries)
 
 
+def confirm_pending_confirmation(academic_hub_root: str, incoming_file_id: str) -> None:
+    """The clone stands as correct -- just removes it from the pending
+    queue, no further action (pipeline-autonomy-policies spec, Component 1c)."""
+    entries = load_pending_confirmations(academic_hub_root)
+    if not any(e.get("incoming_file_id") == incoming_file_id for e in entries):
+        raise ValueError(f"no pending confirmation found for incoming_file_id={incoming_file_id!r}")
+    remaining = [e for e in entries if e.get("incoming_file_id") != incoming_file_id]
+    save_pending_confirmations(academic_hub_root, remaining)
+
+
+def reject_pending_confirmation(academic_hub_root: str, incoming_file_id: str) -> None:
+    """Recovery path for a post-hoc 'no, that wasn't actually a
+    duplicate' decision (spec Component 1d): removes the wrongly-created
+    clone (card + copied folder), records a permanent dismissal so the
+    pair is never proposed again, and removes the pending entry. The
+    original PDF is never touched -- it was never moved by
+    copy_duplicate_artifacts in the first place -- so it naturally
+    reappears in 'to convert' the next time duplicate_check runs against
+    that course."""
+    entries = load_pending_confirmations(academic_hub_root)
+    entry = next((e for e in entries if e.get("incoming_file_id") == incoming_file_id), None)
+    if entry is None:
+        raise ValueError(f"no pending confirmation found for incoming_file_id={incoming_file_id!r}")
+
+    new_course = entry["course"]
+    new_card_file_id = entry["new_card_file_id"]
+    cards = load_shard(academic_hub_root, new_course)
+    clone_card = next((c for c in cards if c.get("file_id") == new_card_file_id), None)
+    if clone_card is not None:
+        book_dir = os.path.join(academic_hub_root, os.path.normpath(os.path.dirname(clone_card["path"])))
+        if os.path.isdir(book_dir):
+            shutil.rmtree(book_dir)
+        remaining_cards = [c for c in cards if c.get("file_id") != new_card_file_id]
+        save_shard(academic_hub_root, new_course, remaining_cards)
+        recompute_course_entry(academic_hub_root, new_course)
+
+    record_dismissal(academic_hub_root, entry["incoming_file_id"], entry["matched_file_id"])
+
+    remaining_entries = [e for e in entries if e.get("incoming_file_id") != incoming_file_id]
+    save_pending_confirmations(academic_hub_root, remaining_entries)
+
+
 def load_dismissals(academic_hub_root: str) -> list[dict]:
     path = _dismissals_path(academic_hub_root)
     if not os.path.exists(path):
@@ -623,6 +665,16 @@ def build_arg_parser() -> argparse.ArgumentParser:
         help="List every pending duplicate-confirmation entry across all courses, instead of running a normal "
              "check against --textbook-subdir.",
     )
+    parser.add_argument(
+        "--confirm-pending", default=None, metavar="FILE_ID",
+        help="Confirm one auto-skipped clone (by its incoming file_id) is a correct duplicate -- removes it "
+             "from the pending-confirmation queue, no other action.",
+    )
+    parser.add_argument(
+        "--reject-pending", default=None, metavar="FILE_ID",
+        help="Reject one auto-skipped clone (by its incoming file_id) -- removes the clone card and copied "
+             "folder, records a permanent dismissal, and clears the pending-confirmation entry.",
+    )
     return parser
 
 
@@ -631,12 +683,22 @@ def main() -> None:
     args = parser.parse_args()
     academic_hub_root = args.academic_hub_root or _default_academic_hub_root()
 
+    if args.confirm_pending:
+        confirm_pending_confirmation(academic_hub_root, args.confirm_pending)
+        print(f"Confirmed -- {args.confirm_pending} removed from the pending-confirmation queue.")
+        return
+
+    if args.reject_pending:
+        reject_pending_confirmation(academic_hub_root, args.reject_pending)
+        print(f"Rejected -- clone removed, dismissal recorded for {args.reject_pending}.")
+        return
+
     if args.review_pending:
         _print_pending_confirmations(load_pending_confirmations(academic_hub_root))
         return
 
     if not args.textbook_subdir:
-        parser.error("--textbook-subdir is required unless --review-pending is given")
+        parser.error("--textbook-subdir is required unless --review-pending, --confirm-pending, or --reject-pending is given")
 
     resolutions: dict[str, str] = {}
     for entry in args.resolve:
