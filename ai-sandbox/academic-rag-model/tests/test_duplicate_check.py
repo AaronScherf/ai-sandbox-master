@@ -545,24 +545,33 @@ class TestRunDuplicateCheck(unittest.TestCase):
             self.assertTrue(os.path.exists(os.path.join(new_book_dir, "Ok_RealAnalysis_2007.md")))
 
     def test_non_interactive_fuzzy_match_is_left_unresolved_and_kept_in_to_convert(self):
+        # Uses the Mas-Colell/Rubinstein ambiguous band (score >= SURFACE_
+        # THRESHOLD but below AUTO_SKIP_THRESHOLD) deliberately -- this
+        # test's whole point is the "surfaced but not auto-resolved" path,
+        # which the two-tier policy (pipeline-autonomy-policies spec,
+        # Component 1a) now reserves for exactly this confidence band. A
+        # near-identical title (like the old "Ok_RealAnalysis..." fixture)
+        # would now score high enough to auto-skip before ever reaching
+        # here -- see Task 3's Global Constraints note.
         with tempfile.TemporaryDirectory() as academic_hub_root:
             subdir = "academic_resources/microecon/textbooks"
-            self._write_pdf(os.path.join(academic_hub_root, subdir, "Ok_RealAnalysisWithEconomicApplications_2007.pdf"), b"a re-scanned copy, different bytes")
+            self._write_pdf(os.path.join(academic_hub_root, subdir, "Microeconomic Theory -- Mas-Colell.pdf"), b"a different but similarly-titled book")
 
-            book_dir = os.path.join(academic_hub_root, "academic_resources", "econometrics", "textbooks", "processed_outputs", "Ok_RealAnalysisWithEconomicApplications_2007")
+            book_dir = os.path.join(academic_hub_root, "academic_resources", "math-methods", "textbooks", "processed_outputs", "Rubinstein_LectureNotesInMicroeconomicTheory_2012")
             os.makedirs(book_dir, exist_ok=True)
-            with open(os.path.join(book_dir, "Ok_RealAnalysisWithEconomicApplications_2007.md"), "w", encoding="utf-8") as f:
-                f.write("# Real Analysis")
-            save_shard(academic_hub_root, "econometrics", [{
-                "file_id": "some-other-fid", "path": "academic_resources/econometrics/textbooks/processed_outputs/Ok_RealAnalysisWithEconomicApplications_2007/Ok_RealAnalysisWithEconomicApplications_2007.md",
-                "source_pdf_path": "academic_resources/econometrics/textbooks/Ok.pdf", "course": "econometrics",
-                "doc_type": "textbook", "title": "Real Analysis with Economic Applications",
+            with open(os.path.join(book_dir, "Rubinstein_LectureNotesInMicroeconomicTheory_2012.md"), "w", encoding="utf-8") as f:
+                f.write("# Lecture Notes in Microeconomic Theory")
+            save_shard(academic_hub_root, "math-methods", [{
+                "file_id": "rubinstein-fid", "path": "academic_resources/math-methods/textbooks/processed_outputs/Rubinstein_LectureNotesInMicroeconomicTheory_2012/Rubinstein_LectureNotesInMicroeconomicTheory_2012.md",
+                "source_pdf_path": "academic_resources/math-methods/textbooks/x.pdf", "course": "math-methods",
+                "doc_type": "textbook", "title": "Lecture Notes in Microeconomic Theory",
             }])
 
             result = run_duplicate_check(subdir, academic_hub_root, non_interactive=True, resolutions={})
 
-            self.assertEqual(result["to_convert"], ["Ok_RealAnalysisWithEconomicApplications_2007.pdf"])
+            self.assertEqual(result["to_convert"], ["Microeconomic Theory -- Mas-Colell.pdf"])
             self.assertEqual(len(result["unresolved"]), 1)
+            self.assertEqual(result["auto_skipped_pending_confirmation"], [])
 
     def test_resolve_yes_skips_and_copies(self):
         with tempfile.TemporaryDirectory() as academic_hub_root:
@@ -621,8 +630,42 @@ class TestRunDuplicateCheck(unittest.TestCase):
             self.assertEqual(result_2["unresolved"], [])
 
     def test_interactive_mode_uses_prompt_fn(self):
+        # Same ambiguous-band fixture as the test above -- a near-perfect
+        # match would now be auto-skipped before ever calling prompt_fn.
         with tempfile.TemporaryDirectory() as academic_hub_root:
             subdir = "academic_resources/microecon/textbooks"
+            pdf_path = os.path.join(academic_hub_root, subdir, "Microeconomic Theory -- Mas-Colell.pdf")
+            self._write_pdf(pdf_path, b"a different but similarly-titled book")
+
+            book_dir = os.path.join(academic_hub_root, "academic_resources", "math-methods", "textbooks", "processed_outputs", "Rubinstein_LectureNotesInMicroeconomicTheory_2012")
+            os.makedirs(book_dir, exist_ok=True)
+            with open(os.path.join(book_dir, "Rubinstein_LectureNotesInMicroeconomicTheory_2012.md"), "w", encoding="utf-8") as f:
+                f.write("# Lecture Notes in Microeconomic Theory")
+            save_shard(academic_hub_root, "math-methods", [{
+                "file_id": "rubinstein-fid", "path": "academic_resources/math-methods/textbooks/processed_outputs/Rubinstein_LectureNotesInMicroeconomicTheory_2012/Rubinstein_LectureNotesInMicroeconomicTheory_2012.md",
+                "source_pdf_path": "academic_resources/math-methods/textbooks/x.pdf", "course": "math-methods",
+                "doc_type": "textbook", "title": "Lecture Notes in Microeconomic Theory",
+            }])
+
+            prompt_calls = []
+
+            def _record_and_confirm(pdf_filename, candidate):
+                prompt_calls.append(pdf_filename)
+                return "yes"
+
+            result = run_duplicate_check(
+                subdir, academic_hub_root, non_interactive=False, resolutions={},
+                prompt_fn=_record_and_confirm,
+            )
+            self.assertEqual(len(result["skipped"]), 1)
+            self.assertEqual(prompt_calls, ["Microeconomic Theory -- Mas-Colell.pdf"])
+
+    def test_high_confidence_match_is_auto_skipped_without_any_prompt_or_resolution(self):
+        with tempfile.TemporaryDirectory() as academic_hub_root:
+            subdir = "academic_resources/microecon/textbooks"
+            # This exact fixture already scores 1.0 via the real filename-
+            # parsing pipeline (title/author/year all match) -- see Task
+            # 3's Global Constraints note.
             pdf_path = os.path.join(academic_hub_root, subdir, "Ok_RealAnalysisWithEconomicApplications_2007.pdf")
             self._write_pdf(pdf_path, b"a re-scanned copy, different bytes")
 
@@ -636,11 +679,58 @@ class TestRunDuplicateCheck(unittest.TestCase):
                 "doc_type": "textbook", "title": "Real Analysis with Economic Applications",
             }])
 
+            def _fail_if_called(pdf_filename, candidate):
+                self.fail("prompt_fn must not be called for a high-confidence auto-skip")
+
             result = run_duplicate_check(
                 subdir, academic_hub_root, non_interactive=False, resolutions={},
-                prompt_fn=lambda pdf_filename, candidate: "yes",
+                prompt_fn=_fail_if_called,
             )
+
+            self.assertEqual(result["to_convert"], [])
             self.assertEqual(len(result["skipped"]), 1)
+            self.assertEqual(len(result["auto_skipped_pending_confirmation"]), 1)
+            pending = result["auto_skipped_pending_confirmation"][0]
+            self.assertEqual(pending["pdf_filename"], "Ok_RealAnalysisWithEconomicApplications_2007.pdf")
+            self.assertEqual(pending["matched_course"], "econometrics")
+            self.assertGreaterEqual(pending["score"], 0.85)
+
+            new_book_dir = os.path.join(academic_hub_root, "academic_resources", "microecon", "textbooks", "processed_outputs", "Ok_RealAnalysisWithEconomicApplications_2007")
+            self.assertTrue(os.path.exists(os.path.join(new_book_dir, "Ok_RealAnalysisWithEconomicApplications_2007.md")))
+
+            new_card = load_shard(academic_hub_root, "microecon")[0]
+            self.assertTrue(new_card["duplicate_pending_confirmation"])
+
+    def test_explicit_resolve_decision_wins_over_the_auto_skip_threshold(self):
+        # An explicit --resolve decision is a real human/agent decision --
+        # it must never be silently overridden by the heuristic, even for
+        # a candidate that would otherwise auto-skip. Passing "no" here
+        # must dismiss and convert, not auto-skip, despite the score.
+        with tempfile.TemporaryDirectory() as academic_hub_root:
+            subdir = "academic_resources/microecon/textbooks"
+            pdf_path = os.path.join(academic_hub_root, subdir, "Ok_RealAnalysisWithEconomicApplications_2007.pdf")
+            self._write_pdf(pdf_path, b"a re-scanned copy, different bytes")
+            from indexer.index_card import compute_file_id
+            incoming_file_id = compute_file_id(pdf_path)
+
+            book_dir = os.path.join(academic_hub_root, "academic_resources", "econometrics", "textbooks", "processed_outputs", "Ok_RealAnalysisWithEconomicApplications_2007")
+            os.makedirs(book_dir, exist_ok=True)
+            with open(os.path.join(book_dir, "Ok_RealAnalysisWithEconomicApplications_2007.md"), "w", encoding="utf-8") as f:
+                f.write("# Real Analysis")
+            save_shard(academic_hub_root, "econometrics", [{
+                "file_id": "some-other-fid", "path": "academic_resources/econometrics/textbooks/processed_outputs/Ok_RealAnalysisWithEconomicApplications_2007/Ok_RealAnalysisWithEconomicApplications_2007.md",
+                "source_pdf_path": "academic_resources/econometrics/textbooks/Ok.pdf", "course": "econometrics",
+                "doc_type": "textbook", "title": "Real Analysis with Economic Applications",
+            }])
+
+            result = run_duplicate_check(
+                subdir, academic_hub_root, non_interactive=True,
+                resolutions={incoming_file_id: "no"},
+            )
+
+            self.assertEqual(result["to_convert"], ["Ok_RealAnalysisWithEconomicApplications_2007.pdf"])
+            self.assertEqual(result["skipped"], [])
+            self.assertEqual(result["auto_skipped_pending_confirmation"], [])
 
 
 class TestBuildArgParser(unittest.TestCase):

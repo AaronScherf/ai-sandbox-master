@@ -39,6 +39,17 @@ _WHITESPACE_RE = re.compile(r"\s+")
 # only controls noise, never trust.
 SURFACE_THRESHOLD = 0.6
 
+# At or above this score, a Tier 2 match auto-resolves immediately
+# instead of blocking on a human decision (pipeline-autonomy-policies
+# spec, Component 1a) -- an initial judgment call, not derived from data;
+# revisit once real runs provide a score distribution to tune against.
+# Below it (but still >= SURFACE_THRESHOLD above), behavior is unchanged
+# from before this policy existed: always surfaced, never auto-resolved --
+# this is deliberately where the Mas-Colell/Rubinstein-style false-
+# positive risk concentrates (see tests/test_duplicate_check.py's
+# TestScoreCandidate.test_similar_but_different_books_surface_above_threshold).
+AUTO_SKIP_THRESHOLD = 0.85
+
 
 def normalize_title(title: str) -> str:
     """Lowercase, punctuation-stripped, whitespace-collapsed -- comparison
@@ -399,6 +410,7 @@ def run_duplicate_check(
     to_convert: list[str] = []
     skipped: list[tuple] = []
     unresolved: list[dict] = []
+    auto_skipped_pending_confirmation: list[dict] = []
 
     for pdf_path in pdf_paths:
         pdf_filename = os.path.basename(pdf_path)
@@ -454,6 +466,41 @@ def run_duplicate_check(
 
         best = candidates[0]
         decision = resolutions.get(incoming_file_id)
+
+        if decision is None and best["combined"] >= AUTO_SKIP_THRESHOLD:
+            # High-confidence auto-skip (spec Component 1a) -- only when
+            # no explicit --resolve decision was already given for this
+            # exact incoming_file_id; an explicit decision always wins.
+            try:
+                new_card = copy_duplicate_artifacts(
+                    academic_hub_root, best["course"], best["card"],
+                    current_course, new_folder_category, rel_pdf_path,
+                    pending_confirmation=True,
+                )
+                skipped.append((pdf_filename, best["course"], best["card"]["path"], "fuzzy"))
+                pending_entry = {
+                    "incoming_file_id": incoming_file_id, "pdf_filename": pdf_filename,
+                    "course": current_course, "matched_course": best["course"],
+                    "matched_file_id": best["card"]["file_id"],
+                    "matched_title": best["card"].get("title", ""),
+                    "score": best["combined"], "new_card_file_id": new_card["file_id"],
+                    "queued_at": now_iso(),
+                }
+                try:
+                    record_pending_confirmation(academic_hub_root, pending_entry)
+                except Exception as err:
+                    # The copy already succeeded -- losing this record
+                    # would hide a clone that still needs review, not lose
+                    # the clone itself. Still surface it in THIS run's own
+                    # report even if it couldn't be persisted for later.
+                    print(f"WARNING: could not persist pending-confirmation record for {pdf_filename} ({err}); "
+                          f"it will not appear in a later --review-pending until this is retried.", file=sys.stderr)
+                auto_skipped_pending_confirmation.append(pending_entry)
+            except Exception as err:
+                print(f"WARNING: could not copy duplicate artifacts for {pdf_filename} ({err}); converting instead.", file=sys.stderr)
+                to_convert.append(pdf_filename)
+            continue
+
         if decision is None and not non_interactive:
             decision = prompt_fn(pdf_filename, best)
 
@@ -481,7 +528,10 @@ def run_duplicate_check(
             to_convert.append(pdf_filename)
             unresolved.append({"pdf_filename": pdf_filename, "incoming_file_id": incoming_file_id, "candidates": candidates})
 
-    return {"to_convert": to_convert, "skipped": skipped, "unresolved": unresolved}
+    return {
+        "to_convert": to_convert, "skipped": skipped, "unresolved": unresolved,
+        "auto_skipped_pending_confirmation": auto_skipped_pending_confirmation,
+    }
 
 
 def _print_report(result: dict) -> None:
