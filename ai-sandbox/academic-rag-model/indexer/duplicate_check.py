@@ -180,6 +180,36 @@ def _dismissals_path(academic_hub_root: str) -> str:
     return os.path.join(academic_hub_root, ".index", "duplicates", "dismissals.json")
 
 
+def _pending_confirmation_path(academic_hub_root: str) -> str:
+    """Same nested-path reasoning as _dismissals_path above -- a flat
+    .index/-level file would be misread as a phantom course by
+    list_courses() and eventually deleted by `rebuild --prune`. Lives in
+    the same .index/duplicates/ directory as dismissals.json, git-tracked
+    the same way (durable index state, not run-local scratch output)."""
+    return os.path.join(academic_hub_root, ".index", "duplicates", "pending_confirmation.json")
+
+
+def load_pending_confirmations(academic_hub_root: str) -> list[dict]:
+    path = _pending_confirmation_path(academic_hub_root)
+    if not os.path.exists(path):
+        return []
+    with open(path, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+
+def save_pending_confirmations(academic_hub_root: str, entries: list[dict]) -> None:
+    path = _pending_confirmation_path(academic_hub_root)
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(entries, f, indent=2, ensure_ascii=False)
+
+
+def record_pending_confirmation(academic_hub_root: str, entry: dict) -> None:
+    entries = load_pending_confirmations(academic_hub_root)
+    entries.append(entry)
+    save_pending_confirmations(academic_hub_root, entries)
+
+
 def load_dismissals(academic_hub_root: str) -> list[dict]:
     path = _dismissals_path(academic_hub_root)
     if not os.path.exists(path):

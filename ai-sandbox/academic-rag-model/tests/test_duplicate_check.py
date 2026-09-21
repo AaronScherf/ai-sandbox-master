@@ -980,5 +980,58 @@ class TestDismissalsStorageLocation(unittest.TestCase):
             self.assertTrue(is_dismissed(load_dismissals(academic_hub_root), "id-b", "id-a"))
 
 
+class TestPendingConfirmations(unittest.TestCase):
+    """Mirrors TestDismissals/TestDismissalsStorageLocation exactly -- same
+    store shape, same nested-path reasoning (pipeline-autonomy-policies
+    spec, Component 1b)."""
+
+    def test_load_missing_file_returns_empty_list(self):
+        from indexer.duplicate_check import load_pending_confirmations
+        with tempfile.TemporaryDirectory() as academic_hub_root:
+            self.assertEqual(load_pending_confirmations(academic_hub_root), [])
+
+    def test_record_then_load_round_trips(self):
+        from indexer.duplicate_check import record_pending_confirmation, load_pending_confirmations
+        with tempfile.TemporaryDirectory() as academic_hub_root:
+            entry = {
+                "incoming_file_id": "incoming-fid", "pdf_filename": "Ok.pdf", "course": "microecon",
+                "matched_course": "econometrics", "matched_file_id": "canonical-fid",
+                "matched_title": "Real Analysis with Economic Applications", "score": 0.91,
+                "new_card_file_id": "clone-fid", "queued_at": "2026-09-20T00:00:00+00:00",
+            }
+            record_pending_confirmation(academic_hub_root, entry)
+            entries = load_pending_confirmations(academic_hub_root)
+            self.assertEqual(len(entries), 1)
+            self.assertEqual(entries[0], entry)
+
+    def test_recording_multiple_entries_appends_not_overwrites(self):
+        from indexer.duplicate_check import record_pending_confirmation, load_pending_confirmations
+        with tempfile.TemporaryDirectory() as academic_hub_root:
+            record_pending_confirmation(academic_hub_root, {"incoming_file_id": "a", "pdf_filename": "A.pdf"})
+            record_pending_confirmation(academic_hub_root, {"incoming_file_id": "b", "pdf_filename": "B.pdf"})
+            entries = load_pending_confirmations(academic_hub_root)
+            self.assertEqual([e["incoming_file_id"] for e in entries], ["a", "b"])
+
+    def test_persists_to_the_expected_nested_path(self):
+        from indexer.duplicate_check import record_pending_confirmation, _pending_confirmation_path
+        with tempfile.TemporaryDirectory() as academic_hub_root:
+            record_pending_confirmation(academic_hub_root, {"incoming_file_id": "a", "pdf_filename": "A.pdf"})
+            expected_path = os.path.join(academic_hub_root, ".index", "duplicates", "pending_confirmation.json")
+            self.assertEqual(_pending_confirmation_path(academic_hub_root), expected_path)
+            self.assertTrue(os.path.exists(expected_path))
+
+    def test_pending_confirmation_file_is_not_visible_to_list_courses(self):
+        # Same regression class as TestDismissalsStorageLocation -- a flat
+        # .index/-level file would be misread as a phantom course by
+        # list_courses(), and a future rebuild --prune would delete it.
+        from indexer.duplicate_check import record_pending_confirmation
+        from indexer.index_card import list_courses, save_shard
+        with tempfile.TemporaryDirectory() as academic_hub_root:
+            save_shard(academic_hub_root, "econometrics", [])
+            record_pending_confirmation(academic_hub_root, {"incoming_file_id": "a", "pdf_filename": "A.pdf"})
+            self.assertEqual(list_courses(academic_hub_root), ["econometrics"])
+            self.assertNotIn("pending_confirmation", list_courses(academic_hub_root))
+
+
 if __name__ == "__main__":
     unittest.main()
