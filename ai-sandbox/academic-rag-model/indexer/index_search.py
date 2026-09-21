@@ -16,11 +16,13 @@ from datetime import datetime, timezone
 from google.genai import types
 
 from indexer.chunk_index import chunk, load_chunks
+from common.academic_hub_paths import to_resources_root
 from common.gemini_utils import get_gemini_client, load_dotenv_override
 from indexer.index_card import (
     TEXTBOOK_CONTENT_SAMPLE_CHARS,
     EMBEDDING_DIMENSIONALITY,
     EMBEDDING_MODEL,
+    EXCALIDRAW_DOC_TYPES,
     KNOWN_DOC_TYPES,
     KNOWN_LEVELS,
     LECTURE_NOTE_DOC_TYPES,
@@ -202,6 +204,45 @@ def _notes_pdf_paths(academic_hub_root: str, course_filter: str | None):
                     yield course, category, os.path.join(category_dir, name)
 
 
+def _excalidraw_note_paths(academic_hub_root: str, course_filter: str | None):
+    notes_root = os.path.join(academic_hub_root, "academic_notes")
+    if not os.path.isdir(notes_root):
+        return
+    for course in sorted(os.listdir(notes_root)):
+        if course_filter and course != course_filter:
+            continue
+        course_dir = os.path.join(notes_root, course)
+        if not os.path.isdir(course_dir):
+            continue
+        for category in sorted(os.listdir(course_dir)):
+            category_dir = os.path.join(course_dir, category)
+            if not os.path.isdir(category_dir):
+                continue
+            for name in sorted(os.listdir(category_dir)):
+                if name.lower().endswith(".excalidraw.md"):
+                    yield course, category, os.path.join(category_dir, name)
+
+
+_EXCALIDRAW_IMAGE_EXTENSIONS = (".png", ".svg")
+
+
+def _find_excalidraw_image(excalidraw_md_path: str, academic_hub_root: str) -> str | None:
+    stem = excalidraw_md_path[: -len(".md")]
+    for ext in _EXCALIDRAW_IMAGE_EXTENSIONS:
+        local = stem + ext
+        if os.path.exists(local):
+            return local
+    try:
+        mirrored_stem = to_resources_root(stem)
+    except ValueError:
+        return None
+    for ext in _EXCALIDRAW_IMAGE_EXTENSIONS:
+        mirrored = mirrored_stem + ext
+        if os.path.exists(mirrored):
+            return mirrored
+    return None
+
+
 # Real-corpus finding (2026-09-06): math-camp's textbook folder was
 # renamed on disk from "textbooks-and-papers" to "textbooks" at some
 # point, but every other course still uses "textbooks-and-papers".
@@ -323,7 +364,7 @@ def _backfill_content_hash(academic_hub_root: str, course: str, file_id: str, co
 
 def _reconcile_one(academic_hub_root, course_name, folder_category, file_id, rel_path,
                     rel_pdf_path, content_sample, page_count, client, force, stats, source_mtime,
-                    content_hash, known_doc_types=KNOWN_DOC_TYPES):
+                    content_hash, known_doc_types=KNOWN_DOC_TYPES, source_asset_path=None):
     existing = None
     for c in load_shard(academic_hub_root, course_name):
         if c.get("file_id") == file_id:
@@ -370,7 +411,7 @@ def _reconcile_one(academic_hub_root, course_name, folder_category, file_id, rel
         academic_hub_root, file_id=file_id, path=rel_path, source_pdf_path=rel_pdf_path,
         course=course_name, folder_category=folder_category, content_sample=content_sample,
         page_count=page_count, client=client, content_hash=content_hash,
-        known_doc_types=known_doc_types,
+        known_doc_types=known_doc_types, source_asset_path=source_asset_path,
     )
     if is_first_time:
         stats["generated"] += 1
@@ -530,6 +571,36 @@ def rebuild(academic_hub_root: str, client, course: str | None = None,
                        source_mtime=os.path.getmtime(md_path),
                        content_hash=compute_content_hash(md_path),
                        known_doc_types=LECTURE_NOTE_DOC_TYPES)
+
+    for course_name, category, md_path in _excalidraw_note_paths(academic_hub_root, course):
+        base_name = os.path.basename(md_path)[: -len(".excalidraw.md")]
+        rag_path = os.path.join(os.path.dirname(md_path), "processed_outputs", f"{base_name}.excalidraw.rag.md")
+        if not os.path.exists(rag_path):
+            continue  # not transcribed yet -- nothing to index
+        if os.path.getsize(rag_path) == 0:
+            print(f"WARNING: {rag_path} is empty (0 bytes) but its source .excalidraw.md exists -- "
+                  f"skipping. It likely hasn't been transcribed yet.")
+            stats["skipped_empty_md"] += 1
+            continue
+
+        file_id = compute_file_id(md_path)
+        seen_file_ids.add(file_id)
+        rel_rag_path = os.path.relpath(rag_path, academic_hub_root).replace(os.sep, "/")
+        rel_md_path = os.path.relpath(md_path, academic_hub_root).replace(os.sep, "/")
+
+        with open(rag_path, "r", encoding="utf-8") as f:
+            content_sample = f.read()
+
+        image_path = _find_excalidraw_image(md_path, academic_hub_root)
+        rel_image_path = (
+            os.path.relpath(image_path, academic_hub_root).replace(os.sep, "/") if image_path else None
+        )
+
+        _reconcile_one(academic_hub_root, course_name, category, file_id, rel_rag_path,
+                       rel_md_path, content_sample, None, client, force, stats,
+                       source_mtime=os.path.getmtime(rag_path),
+                       content_hash=compute_content_hash(rag_path),
+                       known_doc_types=EXCALIDRAW_DOC_TYPES, source_asset_path=rel_image_path)
 
     _flag_or_prune_orphans(academic_hub_root, seen_file_ids, course, prune, stats)
     return stats

@@ -97,6 +97,23 @@ def _make_video_lecture_note(academic_hub_root, course, slug, member_video_ids,
     return md_path
 
 
+def _make_excalidraw_note(academic_hub_root, course, category, basename, write_rag_md=True):
+    note_dir = os.path.join(academic_hub_root, "academic_notes", course, category)
+    os.makedirs(note_dir, exist_ok=True)
+    md_path = os.path.join(note_dir, f"{basename}.excalidraw.md")
+    with open(md_path, "w", encoding="utf-8") as f:
+        f.write("---\n---\n\nfake compressed-json scene data")
+    svg_path = os.path.join(note_dir, f"{basename}.excalidraw.svg")
+    with open(svg_path, "w", encoding="utf-8") as f:
+        f.write("<svg></svg>")
+    if write_rag_md:
+        out_dir = os.path.join(note_dir, "processed_outputs")
+        os.makedirs(out_dir, exist_ok=True)
+        with open(os.path.join(out_dir, f"{basename}.excalidraw.rag.md"), "w", encoding="utf-8") as f:
+            f.write("---\nchunks: 2\n---\n\nExpanded prose content.")
+    return md_path, svg_path
+
+
 class TestIsStale(unittest.TestCase):
     def test_matching_content_hash_is_not_stale_regardless_of_mtime(self):
         # content_hash is decisive whenever the card has one -- mtime
@@ -705,6 +722,53 @@ class TestRebuildVideoLectureNotes(unittest.TestCase):
             stats = rebuild(tmp, client=_fake_client(), prune=True)
             self.assertEqual(stats["pruned"], 0)
             self.assertEqual(len(load_shard(tmp, "math-camp")), 1)
+
+
+class TestRebuildExcalidrawNotes(unittest.TestCase):
+    def test_rebuild_generates_a_card_for_a_real_excalidraw_note(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            _make_excalidraw_note(tmp, "econometrics", "lecture_notes", "Drawing")
+            client = _fake_client()
+            stats = rebuild(tmp, client)
+            self.assertEqual(stats["generated"], 1)
+            cards = load_shard(tmp, "econometrics")
+            self.assertEqual(len(cards), 1)
+            # _fake_client's canned doc_type ("ta_notes") isn't in
+            # EXCALIDRAW_DOC_TYPES, so generate_index_card() correctly
+            # falls back to folder_category ("lecture_notes").
+            self.assertEqual(cards[0]["doc_type"], "lecture_notes")
+
+    def test_rebuild_skips_a_note_with_no_rag_md_yet(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            _make_excalidraw_note(tmp, "econometrics", "lecture_notes", "Drawing", write_rag_md=False)
+            client = _fake_client()
+            stats = rebuild(tmp, client)
+            self.assertEqual(stats["generated"], 0)
+            self.assertEqual(load_shard(tmp, "econometrics"), [])
+
+    def test_rebuild_does_not_orphan_an_existing_excalidraw_card(self):
+        # This is the real, live bug this task fixes: before this task,
+        # rebuild() has no walker for Excalidraw notes at all, so its
+        # orphan pass flags every Excalidraw card as orphaned on every
+        # run. Verified against a real isolated copy of the production
+        # index before this task existed -- see the design spec.
+        with tempfile.TemporaryDirectory() as tmp:
+            _make_excalidraw_note(tmp, "econometrics", "lecture_notes", "Drawing")
+            client = _fake_client()
+            rebuild(tmp, client)  # first run: generates the card
+            stats = rebuild(tmp, client)  # second run: must not orphan it
+            self.assertEqual(stats["orphaned"], 0)
+            cards = load_shard(tmp, "econometrics")
+            self.assertNotIn("orphaned", cards[0])
+
+    def test_rebuild_sets_source_asset_path_to_the_image_sibling(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            md_path, svg_path = _make_excalidraw_note(tmp, "econometrics", "lecture_notes", "Drawing")
+            client = _fake_client()
+            rebuild(tmp, client)
+            card = load_shard(tmp, "econometrics")[0]
+            expected = os.path.relpath(svg_path, tmp).replace(os.sep, "/")
+            self.assertEqual(card["source_asset_path"], expected)
 
 
 class TestSearch(unittest.TestCase):
