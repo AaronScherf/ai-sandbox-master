@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-run_pipeline.py
+route_notes_transcribe.py
 Deterministic, filetype-based orchestrator across every course under
 academic_notes/: walks each course's directory tree (pruning
 processed_outputs/ so a pipeline's own prior output is never mistaken for
@@ -11,10 +11,10 @@ matching pipeline's own per-file function -- .pdf to
 transcribe_notes.process_pdf, .excalidraw.md (+ its .png/.svg sibling) to
 transcribe_excalidraw.process_excalidraw_note. No LLM makes the routing
 decision: it's pure extension/filename dispatch, so this is safe to run
-unattended (cron, or a plain `python -m notes.run_pipeline` call) without
-an agent deciding what to run each time. After dispatch, re-checks that
-each expected output file actually landed on disk rather than trusting a
-"no exception raised" result.
+unattended (cron, or a plain `python -m notes.route_notes_transcribe` call)
+without an agent deciding what to run each time. After dispatch, re-checks
+that each expected output file actually landed on disk rather than
+trusting a "no exception raised" result.
 """
 from __future__ import annotations
 

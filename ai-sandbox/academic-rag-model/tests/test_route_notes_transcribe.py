@@ -1,7 +1,7 @@
 import os
 from unittest.mock import patch
 
-from notes.run_pipeline import (
+from notes.route_notes_transcribe import (
     PipelinePlan,
     build_plan,
     discover_excalidraw_sources,
@@ -236,8 +236,8 @@ def test_run_plan_dispatches_pdfs_and_excalidraw_to_the_right_function(tmp_path)
         out.mkdir(exist_ok=True)
         (out / "b.excalidraw.rag.md").write_text("expanded")
 
-    with patch("notes.run_pipeline.process_pdf", side_effect=fake_process_pdf) as mock_pdf, \
-         patch("notes.run_pipeline.process_excalidraw_note", side_effect=fake_process_excalidraw_note) as mock_exc:
+    with patch("notes.route_notes_transcribe.process_pdf", side_effect=fake_process_pdf) as mock_pdf, \
+         patch("notes.route_notes_transcribe.process_excalidraw_note", side_effect=fake_process_excalidraw_note) as mock_exc:
         report = run_plan(plan, client=object(), academic_hub_root=str(tmp_path))
 
     mock_pdf.assert_called_once()
@@ -257,7 +257,7 @@ def test_run_plan_records_failure_without_stopping_the_batch(tmp_path):
         out.mkdir(exist_ok=True)
         (out / "good.md").write_text("transcribed")
 
-    with patch("notes.run_pipeline.process_pdf", side_effect=fake_process_pdf):
+    with patch("notes.route_notes_transcribe.process_pdf", side_effect=fake_process_pdf):
         report = run_plan(plan, client=object(), academic_hub_root=str(tmp_path))
 
     statuses = {os.path.basename(r.path): r.status for r in report.pdf_results}
@@ -272,7 +272,7 @@ def test_run_plan_flags_output_missing_when_process_silently_writes_nothing(tmp_
     ta_dir = _make_course(tmp_path, "econometrics", "ta_notes", {"a.pdf": b"x"})
     plan = PipelinePlan(pdf_todo=[str(ta_dir / "a.pdf")])
 
-    with patch("notes.run_pipeline.process_pdf", return_value=None):
+    with patch("notes.route_notes_transcribe.process_pdf", return_value=None):
         report = run_plan(plan, client=object(), academic_hub_root=str(tmp_path))
 
     assert report.pdf_results[0].status == "output_missing"

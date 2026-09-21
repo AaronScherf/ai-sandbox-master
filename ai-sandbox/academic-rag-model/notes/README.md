@@ -35,11 +35,11 @@ downstream correction pass over this pipeline's own output — see the root
   cohesive prose. Writes `<name>.excalidraw.md` (raw) +
   `<name>.excalidraw.rag.md` (expanded, the RAG-canonical artifact).
 
-- `run_pipeline.py` — a deterministic, filetype-based router across every
-  course under `academic_notes/`: finds source files (`.pdf`, or
-  `.excalidraw.md` + its image sibling) with no existing output yet, and
+- `route_notes_transcribe.py` — a deterministic, filetype-based router
+  across every course under `academic_notes/`: finds source files (`.pdf`,
+  or `.excalidraw.md` + its image sibling) with no existing output yet, and
   dispatches each to the matching pipeline above by extension alone — no
   LLM decides routing, so this is safe to run unattended
-  (`python -m notes.run_pipeline [--course NAME] [--dry-run] [--force]`).
+  (`python -m notes.route_notes_transcribe [--course NAME] [--dry-run] [--force]`).
   Re-verifies after each call that the expected output file actually landed
   on disk rather than trusting a "no exception raised" result.
