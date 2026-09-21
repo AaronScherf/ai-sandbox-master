@@ -418,6 +418,125 @@ class TestRebuild(unittest.TestCase):
             cards = load_shard(tmp, "math-camp")
             self.assertEqual(cards[0]["rag_md_path"], metadata["rag_md_path"])
 
+    def test_rebuild_recognizes_a_clone_directory_and_never_rehashes_it(self):
+        # Regression for the original corruption bug (pipeline-autonomy-
+        # policies spec, Component 3): a Tier 1 (byte-identical) clone's
+        # PDF hashes to the SAME file_id as the canonical book -- before
+        # this fix, rebuild()'s textbook loop would recompute that hash,
+        # find no card under it in the clone's OWN course shard, and fall
+        # through to reconcile_and_write's cross-course "file moved"
+        # handling, which relocated the canonical card out of its own
+        # shard entirely. A book directory whose _metadata.json carries
+        # duplicate_of_file_id must never be re-hashed or reconciled.
+        with tempfile.TemporaryDirectory() as tmp:
+            # Same pdf_basename ("Ok") in both calls -- _make_textbook's
+            # fake PDF bytes are derived only from pdf_basename, so they
+            # come out byte-identical, exactly reproducing the real Tier 1
+            # collision.
+            canonical_pdf = _make_textbook(tmp, "econometrics", "Ok", "Ok_RealAnalysis_2007")
+            clone_pdf = _make_textbook(tmp, "microecon", "Ok", "Ok_RealAnalysis_2007")
+
+            canonical_file_id = compute_file_id(canonical_pdf)
+            rel_canonical_pdf = os.path.relpath(canonical_pdf, tmp).replace(os.sep, "/")
+            canonical_md_path = os.path.join(os.path.dirname(canonical_pdf), "processed_outputs", "Ok_RealAnalysis_2007", "Ok_RealAnalysis_2007.md")
+
+            from indexer.index_card import compute_id_from_parts, compute_content_hash
+            save_shard(tmp, "econometrics", [{
+                "file_id": canonical_file_id,
+                "path": "academic_resources/econometrics/textbooks-and-papers/processed_outputs/Ok_RealAnalysis_2007/Ok_RealAnalysis_2007.md",
+                "source_pdf_path": rel_canonical_pdf, "course": "econometrics",
+                "doc_type": "textbook", "title": "Real Analysis with Economic Applications",
+                "embedding": [0.1, 0.2], "tags": [], "needs_indexing": False,
+                "source_updated_at": "2026-01-01T00:00:00+00:00", "content_hash": compute_content_hash(canonical_md_path),
+            }])
+
+            clone_file_id = compute_id_from_parts([canonical_file_id, "microecon"])
+            rel_clone_pdf = os.path.relpath(clone_pdf, tmp).replace(os.sep, "/")
+            save_shard(tmp, "microecon", [{
+                "file_id": clone_file_id,
+                "path": "academic_resources/microecon/textbooks-and-papers/processed_outputs/Ok_RealAnalysis_2007/Ok_RealAnalysis_2007.md",
+                "source_pdf_path": rel_clone_pdf, "course": "microecon",
+                "doc_type": "textbook", "title": "Real Analysis with Economic Applications",
+                "embedding": [0.1, 0.2], "tags": [], "needs_indexing": False,
+                "source_updated_at": "2026-01-01T00:00:00+00:00", "content_hash": "clone-hash",
+                "duplicate_of_file_id": canonical_file_id,
+            }])
+
+            clone_metadata_path = os.path.join(
+                os.path.dirname(clone_pdf), "processed_outputs", "Ok_RealAnalysis_2007",
+                "Ok_RealAnalysis_2007_metadata.json",
+            )
+            with open(clone_metadata_path, encoding="utf-8") as f:
+                clone_metadata = json.load(f)
+            clone_metadata["duplicate_of_file_id"] = canonical_file_id
+            with open(clone_metadata_path, "w", encoding="utf-8") as f:
+                json.dump(clone_metadata, f)
+
+            client = _fake_client()
+            stats = rebuild(tmp, client=client)
+
+            # The canonical card must still be in ITS OWN shard, under its
+            # own file_id -- not relocated into microecon.
+            canonical_cards = load_shard(tmp, "econometrics")
+            self.assertEqual(len(canonical_cards), 1)
+            self.assertEqual(canonical_cards[0]["file_id"], canonical_file_id)
+
+            # The clone's card is untouched -- still present, still its own
+            # derived file_id and content_hash, never overwritten.
+            clone_cards = load_shard(tmp, "microecon")
+            self.assertEqual(len(clone_cards), 1)
+            self.assertEqual(clone_cards[0]["file_id"], clone_file_id)
+            self.assertEqual(clone_cards[0]["content_hash"], "clone-hash")
+
+            self.assertEqual(stats["skipped_duplicate_clone"], 1)
+            # Only the canonical book's own (pre-existing, unchanged) card
+            # means no LLM call was made at all in this run.
+            self.assertEqual(client.models.generate_content.call_count, 0)
+
+    def test_rebuild_prune_does_not_evict_a_clone_marked_seen(self):
+        # A clone card is never "backed by a re-hashed PDF" the normal
+        # way -- without adding its own derived id to seen_file_ids,
+        # --prune would treat it as an orphan and delete it.
+        with tempfile.TemporaryDirectory() as tmp:
+            canonical_pdf = _make_textbook(tmp, "econometrics", "Ok", "Ok_RealAnalysis_2007")
+            clone_pdf = _make_textbook(tmp, "microecon", "Ok", "Ok_RealAnalysis_2007")
+            canonical_file_id = compute_file_id(canonical_pdf)
+            from indexer.index_card import compute_id_from_parts
+            clone_file_id = compute_id_from_parts([canonical_file_id, "microecon"])
+
+            save_shard(tmp, "econometrics", [{
+                "file_id": canonical_file_id,
+                "path": "academic_resources/econometrics/textbooks-and-papers/processed_outputs/Ok_RealAnalysis_2007/Ok_RealAnalysis_2007.md",
+                "source_pdf_path": os.path.relpath(canonical_pdf, tmp).replace(os.sep, "/"),
+                "course": "econometrics", "doc_type": "textbook", "title": "T",
+                "embedding": [0.1, 0.2], "tags": [], "needs_indexing": False,
+                "source_updated_at": "2026-01-01T00:00:00+00:00", "content_hash": "canonical-hash",
+            }])
+            save_shard(tmp, "microecon", [{
+                "file_id": clone_file_id,
+                "path": "academic_resources/microecon/textbooks-and-papers/processed_outputs/Ok_RealAnalysis_2007/Ok_RealAnalysis_2007.md",
+                "source_pdf_path": os.path.relpath(clone_pdf, tmp).replace(os.sep, "/"),
+                "course": "microecon", "doc_type": "textbook", "title": "T",
+                "embedding": [0.1, 0.2], "tags": [], "needs_indexing": False,
+                "source_updated_at": "2026-01-01T00:00:00+00:00", "content_hash": "clone-hash",
+                "duplicate_of_file_id": canonical_file_id,
+            }])
+            clone_metadata_path = os.path.join(
+                os.path.dirname(clone_pdf), "processed_outputs", "Ok_RealAnalysis_2007",
+                "Ok_RealAnalysis_2007_metadata.json",
+            )
+            with open(clone_metadata_path, encoding="utf-8") as f:
+                clone_metadata = json.load(f)
+            clone_metadata["duplicate_of_file_id"] = canonical_file_id
+            with open(clone_metadata_path, "w", encoding="utf-8") as f:
+                json.dump(clone_metadata, f)
+
+            stats = rebuild(tmp, client=_fake_client(), prune=True)
+
+            self.assertEqual(stats["pruned"], 0)
+            self.assertEqual(len(load_shard(tmp, "microecon")), 1)
+            self.assertEqual(load_shard(tmp, "microecon")[0]["file_id"], clone_file_id)
+
     def test_skips_textbook_with_no_source_pdf_path_yet(self):
         with tempfile.TemporaryDirectory() as tmp:
             _make_textbook(tmp, "math-camp", "Book of Proof", "Hammack_Book_of_Proof_2025",

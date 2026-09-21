@@ -385,6 +385,7 @@ def rebuild(academic_hub_root: str, client, course: str | None = None,
     stats = {
         "generated": 0, "updated": 0, "unchanged": 0, "moved": 0,
         "orphaned": 0, "pruned": 0, "skipped_no_source_pdf": 0, "skipped_empty_md": 0,
+        "skipped_duplicate_clone": 0,
     }
     seen_file_ids: set[str] = set()
 
@@ -426,6 +427,25 @@ def rebuild(academic_hub_root: str, client, course: str | None = None,
             continue
         with open(metadata_path, "r", encoding="utf-8") as f:
             metadata = json.load(f)
+
+        duplicate_of_file_id = metadata.get("duplicate_of_file_id")
+        if duplicate_of_file_id:
+            # A clone directory (indexer/duplicate_check.py's
+            # copy_duplicate_artifacts) -- never re-hash or reconcile it.
+            # For a Tier 1 (byte-identical) clone, hashing this directory's
+            # own PDF yields the SAME file_id as the canonical book, which
+            # used to make reconcile_and_write's cross-course "file moved"
+            # handling relocate the canonical card out of its own shard
+            # (see docs/superpowers/specs/2026-09-20-pipeline-autonomy-policies-design.md
+            # Component 3). The clone's own card already exists, correctly,
+            # under a derived (non-hash) id -- re-derive that same id here,
+            # from data already on hand, purely so --prune doesn't evict it
+            # as an apparent orphan.
+            clone_course = derive_course(metadata["source_pdf_path"])
+            seen_file_ids.add(compute_id_from_parts([duplicate_of_file_id, clone_course]))
+            stats["skipped_duplicate_clone"] += 1
+            continue
+
         source_pdf_path = metadata.get("source_pdf_path")
         if not source_pdf_path:
             print(f"WARNING: {folder_name} has no source_pdf_path in its _metadata.json yet "
