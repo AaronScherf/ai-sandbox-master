@@ -43,6 +43,30 @@ def test_discover_excalidraw_files_missing_dir_returns_empty():
     assert discover_excalidraw_files("/no/such/dir") == []
 
 
+def test_discover_excalidraw_files_pairs_md_and_svg(tmp_path):
+    (tmp_path / "Drawing A.excalidraw.md").write_text("---\n---\n")
+    (tmp_path / "Drawing A.excalidraw.svg").write_text("<svg></svg>")
+
+    pairs = discover_excalidraw_files(str(tmp_path))
+
+    assert pairs == [
+        (str(tmp_path / "Drawing A.excalidraw.md"), str(tmp_path / "Drawing A.excalidraw.svg")),
+    ]
+
+
+def test_discover_excalidraw_files_prefers_png_when_both_exist(tmp_path):
+    # The plugin writes one auto-export per file, so this shouldn't happen
+    # in practice, but a deterministic preference is safer than relying on
+    # directory listing order.
+    (tmp_path / "Drawing A.excalidraw.md").write_text("---\n---\n")
+    (tmp_path / "Drawing A.excalidraw.png").write_bytes(b"fake-png")
+    (tmp_path / "Drawing A.excalidraw.svg").write_text("<svg></svg>")
+
+    pairs = discover_excalidraw_files(str(tmp_path))
+
+    assert pairs[0][1].endswith(".png")
+
+
 from notes.transcribe_excalidraw import assemble_raw_markdown, build_chunk_transcription_prompt
 
 
@@ -209,7 +233,7 @@ def test_write_outputs_creates_both_files_with_frontmatter(tmp_path):
 
     with patch("notes.transcribe_excalidraw.reconcile_and_write") as mock_reconcile:
         raw_path, rag_path = write_outputs(
-            excalidraw_md_path=str(md_path), png_path=str(png_path),
+            excalidraw_md_path=str(md_path), image_path=str(png_path),
             raw_markdown="raw shorthand text", expanded_markdown="expanded prose text",
             transcription_model="gemini-3.6-flash",
             expansion_meta={"expansion_backend": "gemini", "expansion_model": "gemini-3.1-flash-lite", "grounded": False},
@@ -223,12 +247,37 @@ def test_write_outputs_creates_both_files_with_frontmatter(tmp_path):
     raw_content = open(raw_path, encoding="utf-8").read()
     assert "routing: excalidraw_chunked" in raw_content
     assert "raw shorthand text" in raw_content
+    assert "source_image: Drawing 2026-09-08.excalidraw.png" in raw_content
 
     rag_content = open(rag_path, encoding="utf-8").read()
     assert "expansion_backend: gemini" in rag_content
     assert "expanded prose text" in rag_content
 
     mock_reconcile.assert_called_once()  # only the .rag.md gets indexed
+
+
+def test_write_outputs_records_svg_source_filename(tmp_path):
+    # source_image must reflect whichever export format was actually used --
+    # mislabeling an SVG source as a PNG would be misleading metadata, not
+    # just a cosmetic gap.
+    course_dir = tmp_path / "academic-hub" / "academic_notes" / "econometrics" / "lecture_notes"
+    course_dir.mkdir(parents=True)
+    md_path = course_dir / "Econometrics 2026-09-09.excalidraw.md"
+    svg_path = course_dir / "Econometrics 2026-09-09.excalidraw.svg"
+    md_path.write_text("---\n---\n")
+    svg_path.write_text("<svg></svg>")
+
+    with patch("notes.transcribe_excalidraw.reconcile_and_write"):
+        raw_path, _rag_path = write_outputs(
+            excalidraw_md_path=str(md_path), image_path=str(svg_path),
+            raw_markdown="raw text", expanded_markdown="expanded text",
+            transcription_model="gemini-3.6-flash",
+            expansion_meta={"expansion_backend": "gemini", "expansion_model": "gemini-3.1-flash-lite", "grounded": False},
+            num_chunks=1, academic_hub_root=str(tmp_path / "academic-hub"), client=object(),
+        )
+
+    raw_content = open(raw_path, encoding="utf-8").read()
+    assert "source_image: Econometrics 2026-09-09.excalidraw.svg" in raw_content
 
 
 from notes.transcribe_excalidraw import process_excalidraw_note
@@ -273,3 +322,33 @@ def test_process_excalidraw_note_runs_full_pipeline(tmp_path):
     assert call_kwargs["raw_markdown"] == "<!-- chunk 1 -->\n\nraw text 0\n\n<!-- chunk 2 -->\n\nraw text 1"
     assert call_kwargs["expanded_markdown"] == "expanded text"
     assert call_kwargs["num_chunks"] == 2
+
+
+def test_process_excalidraw_note_runs_full_pipeline_from_an_svg_source(tmp_path):
+    # Real SVG rasterization runs unmocked here -- the point of the test is
+    # that an .svg source reaches chunking at all, which it couldn't when
+    # the canvas was opened straight through PIL (no native SVG decoder).
+    md_path = tmp_path / "Econometrics.excalidraw.md"
+    svg_path = tmp_path / "Econometrics.excalidraw.svg"
+    md_path.write_text("---\n---\n")
+    svg_path.write_text(
+        '<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100">'
+        '<rect width="100" height="100" fill="#ffffff"/>'
+        '<rect x="10" y="10" width="20" height="20" fill="#1e1e1e"/>'
+        "</svg>"
+    )
+
+    captured_images = []
+
+    with patch("notes.transcribe_excalidraw.chunk_image", side_effect=lambda im, *a, **k: captured_images.append(im) or ["chunk_1"]), \
+         patch("notes.transcribe_excalidraw.resize_chunk_for_api", return_value=b"bytes1"), \
+         patch("notes.transcribe_excalidraw.transcribe_chunks", return_value={"0": "raw text 0"}), \
+         patch("notes.transcribe_excalidraw.expand_transcription", return_value=("expanded text", {"expansion_backend": "gemini", "expansion_model": "gemini-3.1-flash-lite", "grounded": False})), \
+         patch("notes.transcribe_excalidraw.write_outputs", return_value=("raw.md", "raw.rag.md")) as mock_write:
+        process_excalidraw_note(
+            str(md_path), str(svg_path), client=object(), model="gemini-3.6-flash",
+            expand_backend="gemini", academic_hub_root=str(tmp_path), dry_run=False,
+        )
+
+    assert captured_images[0].size == (100, 100)  # rasterized, not passed through as a path
+    assert mock_write.call_args.kwargs["image_path"] == str(svg_path)

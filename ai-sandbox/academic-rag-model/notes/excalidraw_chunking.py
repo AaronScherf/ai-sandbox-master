@@ -93,6 +93,25 @@ def chunk_image(
     return chunks
 
 
+def load_canvas_image(image_path: str) -> Image.Image:
+    """Loads a canvas export as a PIL Image. `.png`/`.jpg` are opened
+    directly; `.svg` is rasterized via resvg first -- PIL has no native
+    SVG decoder (SVG is vector, not raster). The Obsidian Excalidraw
+    plugin's auto-export format is a vault-wide setting that switched
+    from PNG to SVG partway through this corpus (see
+    docs/status/2026-08-24-notes-transcription-status.md), so both must
+    be supported -- files sync from the tablet spanning the switch.
+    Rendered against an opaque white background so downstream
+    whitespace-gap detection (which treats near-white rows as blank)
+    sees the same signal regardless of source format."""
+    if image_path.lower().endswith(".svg"):
+        import resvg_py
+
+        png_bytes = resvg_py.svg_to_bytes(svg_path=image_path, background="#ffffff")
+        return Image.open(io.BytesIO(png_bytes)).convert("RGB")
+    return Image.open(image_path)
+
+
 def resize_chunk_for_api(image: Image.Image, max_width: int = 2000, jpeg_quality: int = 85) -> bytes:
     """Encodes a chunk for the Gemini API call -- caps width (height
     scaled proportionally) and re-encodes as JPEG. max_width defaults to

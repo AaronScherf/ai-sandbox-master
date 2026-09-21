@@ -104,3 +104,34 @@ def test_resize_chunk_for_api_no_op_resize_when_already_narrow():
     result = Image.open(io.BytesIO(data))
     assert result.format == "JPEG"
     assert result.size == (785, 3000)
+
+
+from notes.excalidraw_chunking import load_canvas_image
+
+
+def test_load_canvas_image_opens_png_directly(tmp_path):
+    png_path = tmp_path / "canvas.png"
+    Image.new("RGB", (50, 60), color=(255, 255, 255)).save(png_path)
+    img = load_canvas_image(str(png_path))
+    assert img.size == (50, 60)
+
+
+def test_load_canvas_image_rasterizes_svg(tmp_path):
+    # The Obsidian Excalidraw plugin's auto-export format switched
+    # vault-wide from PNG to SVG partway through this corpus (see
+    # docs/status/2026-08-24-notes-transcription-status.md) -- PIL has no
+    # native SVG decoder, so SVG sources must be rasterized first.
+    svg_path = tmp_path / "canvas.svg"
+    svg_path.write_text(
+        '<svg xmlns="http://www.w3.org/2000/svg" width="40" height="80">'
+        '<rect width="40" height="80" fill="#ffffff"/>'
+        '<rect x="5" y="5" width="10" height="10" fill="#000000"/>'
+        "</svg>"
+    )
+    img = load_canvas_image(str(svg_path))
+    assert img.size == (40, 80)
+    assert img.mode == "RGB"
+    # the black square should render as real dark ink, not blank background
+    assert img.convert("L").getpixel((10, 10)) < 100
+    # untouched area should stay near-white
+    assert img.convert("L").getpixel((30, 70)) > 200

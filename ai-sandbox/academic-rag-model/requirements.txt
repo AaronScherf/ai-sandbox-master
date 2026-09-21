@@ -38,8 +38,14 @@ soundfile
 pydub
 audioop-lts; python_version >= "3.13"  # pydub needs this on Python 3.13+, whose stdlib dropped audioop (PEP 594)
 
-# Excalidraw Notes (chunking Excalidraw canvas PNGs for transcription)
+# Excalidraw Notes (chunking Excalidraw canvas exports for transcription).
+# PNG exports open straight through pillow; SVG exports (the plugin's
+# auto-export format switched vault-wide on 2026-09-09) need rasterizing
+# first -- resvg-py ships a self-contained Rust binary wheel, unlike
+# cairosvg/svglib, which need a system Cairo install that has no working
+# wheel path on Windows.
 pillow
+resvg-py
 
 # Resume Manager
 xhtml2pdf

@@ -1,7 +1,7 @@
 """
 transcribe_excalidraw.py
 Turns an Excalidraw handwritten-notes canvas (.excalidraw.md + its
-plugin-auto-exported .png) into RAG-corpus markdown: chunk -> transcribe
+plugin-auto-exported .png or .svg) into RAG-corpus markdown: chunk -> transcribe
 -> assemble -> expand -> write. Replaces the OneNote capture workflow
 (see docs/status/2026-08-24-notes-transcription-status.md's "2026-09-07"
 section for why). Spec: docs/superpowers/specs/2026-09-09-excalidraw-notes-transcription-design.md.
@@ -13,8 +13,6 @@ import os
 import sys
 from pathlib import Path
 
-from PIL import Image
-
 from common.gemini_utils import call_with_retries
 from common.ollama_utils import call_ollama
 from indexer.index_card import (
@@ -24,7 +22,7 @@ from indexer.index_card import (
     derive_course,
     reconcile_and_write,
 )
-from notes.excalidraw_chunking import chunk_image, resize_chunk_for_api
+from notes.excalidraw_chunking import chunk_image, load_canvas_image, resize_chunk_for_api
 from notes.transcribe_notes import build_frontmatter, transcribe_page_via_gemini
 
 _EXPANSION_MODEL_GEMINI = "gemini-3.1-flash-lite"  # text-only reasoning task, matches
@@ -55,11 +53,17 @@ def _accumulated_chunk_context(cache: dict, chunk_index: int, window: int) -> st
     return "\n\n".join(parts)
 
 
+_EXPORT_EXTENSIONS = (".png", ".svg")  # the plugin's auto-export format is a
+                                       # vault-wide setting that switched from
+                                       # PNG to SVG partway through this corpus
+                                       # (2026-09-09), so synced files span both
+
+
 def discover_excalidraw_files(notes_dir: str, file_filter: str | None = None) -> list[tuple[str, str]]:
     """Finds every `.excalidraw.md` directly under notes_dir with a
-    matching `.excalidraw.png` sibling (the plugin's auto-export) --
-    skips (with a warning, not an error) any .md whose PNG hasn't been
-    written yet."""
+    matching `.excalidraw.png` or `.excalidraw.svg` sibling (the plugin's
+    auto-export) -- skips (with a warning, not an error) any .md whose
+    export hasn't been written yet."""
     if not os.path.isdir(notes_dir):
         return []
     pairs = []
@@ -69,11 +73,12 @@ def discover_excalidraw_files(notes_dir: str, file_filter: str | None = None) ->
         if file_filter is not None and name != file_filter:
             continue
         md_path = os.path.join(notes_dir, name)
-        png_path = md_path[: -len(".md")] + ".png"
-        if not os.path.exists(png_path):
-            print(f"WARNING: {name} has no matching .png (auto-export may not have run yet) -- skipping.")
+        stem = md_path[: -len(".md")]
+        image_path = next((stem + ext for ext in _EXPORT_EXTENSIONS if os.path.exists(stem + ext)), None)
+        if image_path is None:
+            print(f"WARNING: {name} has no matching .png/.svg (auto-export may not have run yet) -- skipping.")
             continue
-        pairs.append((md_path, png_path))
+        pairs.append((md_path, image_path))
     return pairs
 
 
@@ -184,7 +189,7 @@ def expand_transcription(
 
 
 def write_outputs(
-    excalidraw_md_path: str, png_path: str, raw_markdown: str, expanded_markdown: str,
+    excalidraw_md_path: str, image_path: str, raw_markdown: str, expanded_markdown: str,
     transcription_model: str, expansion_meta: dict, num_chunks: int, academic_hub_root: str, client,
 ) -> tuple[str, str]:
     base_name = os.path.basename(excalidraw_md_path)[: -len(".excalidraw.md")]
@@ -193,7 +198,7 @@ def write_outputs(
 
     common_meta = {
         "source_excalidraw": os.path.basename(excalidraw_md_path),
-        "source_png": os.path.basename(png_path),
+        "source_image": os.path.basename(image_path),
         "folder_category": "excalidraw_notes",
         "routing": "excalidraw_chunked",
         "chunks": num_chunks,
@@ -235,7 +240,7 @@ _TRANSCRIBE_MODEL = "gemini-3.6-flash"  # same tier as transcribe_notes.py's
 
 
 def process_excalidraw_note(
-    excalidraw_md_path: str, png_path: str, client, model: str,
+    excalidraw_md_path: str, image_path: str, client, model: str,
     expand_backend: str, academic_hub_root: str, use_grounding: bool = False, dry_run: bool = False,
 ) -> None:
     print(f"Processing {os.path.basename(excalidraw_md_path)}...")
@@ -243,7 +248,7 @@ def process_excalidraw_note(
         print("  (dry run -- would chunk, transcribe, expand, and write outputs)")
         return
 
-    image = Image.open(png_path)
+    image = load_canvas_image(image_path)
     chunks = chunk_image(image)
     print(f"  {len(chunks)} chunks")
     chunk_bytes = [resize_chunk_for_api(c) for c in chunks]
@@ -261,7 +266,7 @@ def process_excalidraw_note(
     expanded_markdown, expansion_meta = expand_transcription(client, raw_markdown, expand_backend, retrieved_passages)
 
     write_outputs(
-        excalidraw_md_path=excalidraw_md_path, png_path=png_path,
+        excalidraw_md_path=excalidraw_md_path, image_path=image_path,
         raw_markdown=raw_markdown, expanded_markdown=expanded_markdown or "",
         transcription_model=model, expansion_meta=expansion_meta,
         num_chunks=len(chunks), academic_hub_root=academic_hub_root, client=client,
@@ -295,7 +300,7 @@ def main():
     notes_dir = academic_hub_dir / args.notes_subdir
     pairs = discover_excalidraw_files(str(notes_dir), args.file)
     if not pairs:
-        print(f"No .excalidraw.md/.png pairs found under {notes_dir}.")
+        print(f"No .excalidraw.md/.png or .excalidraw.md/.svg pairs found under {notes_dir}.")
         sys.exit(1)
 
     client = None
@@ -304,9 +309,9 @@ def main():
         if client is None:
             sys.exit(1)
 
-    for md_path, png_path in pairs:
+    for md_path, image_path in pairs:
         process_excalidraw_note(
-            md_path, png_path, client, args.model, args.expand_backend,
+            md_path, image_path, client, args.model, args.expand_backend,
             str(academic_hub_dir), use_grounding=args.grounding, dry_run=args.dry_run,
         )
 
