@@ -325,6 +325,23 @@ class TestGenerateIndexCard(unittest.TestCase):
         self.assertEqual(card["level"], "intermediate")
         self.assertFalse(card["needs_indexing"])
 
+    def test_source_asset_path_defaults_to_source_pdf_path_when_not_given(self):
+        client = _fake_client()
+        card = generate_index_card(
+            file_id="x", path="p.md", source_pdf_path="p.pdf", course="math-camp",
+            folder_category="ta_notes", content_sample="text", page_count=10, client=client,
+        )
+        self.assertEqual(card["source_asset_path"], "p.pdf")
+
+    def test_source_asset_path_uses_explicit_value_when_given(self):
+        client = _fake_client()
+        card = generate_index_card(
+            file_id="x", path="p.md", source_pdf_path="p.excalidraw.md", course="math-camp",
+            folder_category="excalidraw_notes", content_sample="text", page_count=3, client=client,
+            source_asset_path="p.excalidraw.svg",
+        )
+        self.assertEqual(card["source_asset_path"], "p.excalidraw.svg")
+
 
 class TestMakeFailureCard(unittest.TestCase):
     def test_minimal_card_carries_enough_to_be_reconciled_later(self):
@@ -339,6 +356,13 @@ class TestMakeFailureCard(unittest.TestCase):
         self.assertEqual(card["doc_type"], "ta_notes")
         self.assertTrue(card["needs_indexing"])
         self.assertEqual(card["embedding"], [])
+
+    def test_source_asset_path_defaults_to_source_pdf_path(self):
+        card = make_failure_card(
+            file_id="abc123", path="p.md", source_pdf_path="p.pdf",
+            course="math-camp", folder_category="ta_notes",
+        )
+        self.assertEqual(card["source_asset_path"], "p.pdf")
 
 
 class TestFindCardByFileId(unittest.TestCase):
@@ -411,6 +435,17 @@ class TestMoveCard(unittest.TestCase):
             result = move_card(tmp, "x", "misc")
             self.assertTrue(result)
             self.assertEqual(len(load_shard(tmp, "misc")), 1)
+
+    def test_move_card_rewrites_source_asset_path_when_present(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            save_shard(tmp, "misc", [
+                {"file_id": "x", "path": "misc/processed_outputs/a.md",
+                 "source_pdf_path": "misc/a.excalidraw.md", "source_asset_path": "misc/a.svg",
+                 "course": "misc", "embedding": [1.0, 0.0], "tags": []},
+            ])
+            move_card(tmp, "x", "business")
+            moved = load_shard(tmp, "business")
+            self.assertEqual(moved[0]["source_asset_path"], "business/a.svg")
 
 
 class TestReconcileAndWrite(unittest.TestCase):
@@ -491,6 +526,38 @@ class TestReconcileAndWrite(unittest.TestCase):
             save_shard(tmp, "math-camp", cards)
             reconcile_and_write(tmp, **self._card_kwargs(client=client))
             self.assertNotIn("orphaned", load_shard(tmp, "math-camp")[0])
+
+    def test_new_card_source_asset_path_defaults_to_source_pdf_path(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            card = reconcile_and_write(tmp, **self._card_kwargs())
+            self.assertEqual(card["source_asset_path"], "a.pdf")
+
+    def test_existing_card_source_asset_path_updates_when_given(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            client = _fake_client()
+            reconcile_and_write(tmp, **self._card_kwargs(client=client, source_asset_path="a.svg"))
+            reconcile_and_write(tmp, **self._card_kwargs(client=client, source_asset_path="a-renamed.svg"))
+            self.assertEqual(client.models.generate_content.call_count, 1)  # still no regen
+            self.assertEqual(load_shard(tmp, "math-camp")[0]["source_asset_path"], "a-renamed.svg")
+
+    def test_existing_card_source_asset_path_preserved_when_not_given(self):
+        # A caller that can't currently determine the asset location
+        # (e.g. rebuild's Excalidraw walker, mid-migration) must not
+        # blow away a previously-known-good value. Changing `path` (not
+        # source_asset_path) on the second call is deliberate: it forces
+        # `changed=True` so reconcile_and_write's "found" branch actually
+        # runs and rewrites the shard, rather than the whole call being a
+        # same-everything no-op that would pass this assertion vacuously
+        # (the "unchanged path" no-op branch never touches the shard, so
+        # it can't tell "correctly preserved" apart from "never ran").
+        with tempfile.TemporaryDirectory() as tmp:
+            client = _fake_client()
+            reconcile_and_write(tmp, **self._card_kwargs(client=client, source_asset_path="a.svg"))
+            reconcile_and_write(tmp, **self._card_kwargs(client=client, path="moved/a.md"))  # no source_asset_path this time
+            self.assertEqual(client.models.generate_content.call_count, 1)  # still no regen
+            updated = load_shard(tmp, "math-camp")[0]
+            self.assertEqual(updated["path"], "moved/a.md")  # the actual change took effect
+            self.assertEqual(updated["source_asset_path"], "a.svg")  # untouched field preserved
 
 
 class TestSetRagMdPath(unittest.TestCase):

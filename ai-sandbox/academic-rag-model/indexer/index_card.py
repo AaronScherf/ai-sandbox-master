@@ -241,7 +241,7 @@ not just problem statements).
 def generate_index_card(
     file_id: str, path: str, source_pdf_path: str, course: str, folder_category: str,
     content_sample: str, page_count: int, client, content_hash: str | None = None,
-    known_doc_types: frozenset[str] = KNOWN_DOC_TYPES,
+    known_doc_types: frozenset[str] = KNOWN_DOC_TYPES, source_asset_path: str | None = None,
 ) -> dict:
     """One structured-JSON generation call plus one embedding call. Never
     proposes `tags` -- that's the corpus-wide retag pass's job (spec §5),
@@ -301,6 +301,7 @@ def generate_index_card(
         "file_id": file_id,
         "path": path,
         "source_pdf_path": source_pdf_path,
+        "source_asset_path": source_asset_path if source_asset_path is not None else source_pdf_path,
         "course": course,
         "doc_type": doc_type,
         "title": title,
@@ -320,7 +321,7 @@ def generate_index_card(
 
 def make_failure_card(
     file_id: str, path: str, source_pdf_path: str, course: str, folder_category: str,
-    content_hash: str | None = None,
+    content_hash: str | None = None, source_asset_path: str | None = None,
 ) -> dict:
     """Written when generate_index_card() raises -- keeps file_id/path so
     §4.3 reconciliation can find and complete this exact card on a later
@@ -329,6 +330,7 @@ def make_failure_card(
         "file_id": file_id,
         "path": path,
         "source_pdf_path": source_pdf_path,
+        "source_asset_path": source_asset_path if source_asset_path is not None else source_pdf_path,
         "course": course,
         "doc_type": folder_category,
         "title": "",
@@ -382,6 +384,8 @@ def move_card(academic_hub_root: str, file_id: str, new_course: str) -> bool:
         card["path"] = card["path"].replace(f"{old_course}/", f"{new_course}/", 1)
     if card.get("source_pdf_path"):
         card["source_pdf_path"] = card["source_pdf_path"].replace(f"{old_course}/", f"{new_course}/", 1)
+    if card.get("source_asset_path"):
+        card["source_asset_path"] = card["source_asset_path"].replace(f"{old_course}/", f"{new_course}/", 1)
 
     new_cards = load_shard(academic_hub_root, new_course)
     new_cards.append(card)
@@ -394,25 +398,35 @@ def reconcile_and_write(
     academic_hub_root: str, file_id: str, path: str, source_pdf_path: str, course: str,
     folder_category: str, content_sample: str, page_count: int, client,
     content_hash: str | None = None, known_doc_types: frozenset[str] = KNOWN_DOC_TYPES,
+    source_asset_path: str | None = None,
 ) -> dict:
     """The single entry point both pipeline hooks (and rebuild) call.
     Implements spec §4.3: never treats `path` as identity -- reconciles by
     `file_id` across every shard before ever generating anything new.
     known_doc_types is forwarded to generate_index_card() only on the
     genuinely-new-content path below -- reconciling an existing card
-    never re-derives doc_type, so it's a no-op there."""
+    never re-derives doc_type, so it's a no-op there. source_asset_path is
+    additive: a new card defaults it to source_pdf_path when not given;
+    reconciling an existing card only overwrites it when a non-None value
+    is passed, so a caller that can't currently determine the asset
+    location doesn't blow away a previously-known-good one."""
     found = find_card_by_file_id(academic_hub_root, file_id)
 
     if found is not None:
         old_course, old_card = found
+        resolved_asset_path = (
+            source_asset_path if source_asset_path is not None else old_card.get("source_asset_path")
+        )
         changed = (
             old_card.get("path") != path
             or old_card.get("source_pdf_path") != source_pdf_path
+            or old_card.get("source_asset_path") != resolved_asset_path
             or old_card.get("orphaned")
         )
         updated = dict(old_card)
         updated["path"] = path
         updated["source_pdf_path"] = source_pdf_path
+        updated["source_asset_path"] = resolved_asset_path
         updated["course"] = course
         updated["content_hash"] = content_hash
         updated.pop("orphaned", None)
@@ -443,13 +457,14 @@ def reconcile_and_write(
             file_id=file_id, path=path, source_pdf_path=source_pdf_path, course=course,
             folder_category=folder_category, content_sample=content_sample,
             page_count=page_count, client=client, content_hash=content_hash,
-            known_doc_types=known_doc_types,
+            known_doc_types=known_doc_types, source_asset_path=source_asset_path,
         )
     except Exception as err:
         print(f"WARNING: index card generation failed for {path} ({err}); writing needs_indexing card.")
         card = make_failure_card(
             file_id=file_id, path=path, source_pdf_path=source_pdf_path,
             course=course, folder_category=folder_category, content_hash=content_hash,
+            source_asset_path=source_asset_path,
         )
 
     cards = load_shard(academic_hub_root, course)
