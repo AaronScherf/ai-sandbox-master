@@ -39,6 +39,17 @@ _WHITESPACE_RE = re.compile(r"\s+")
 # only controls noise, never trust.
 SURFACE_THRESHOLD = 0.6
 
+# At or above this score, a Tier 2 match auto-resolves immediately
+# instead of blocking on a human decision (pipeline-autonomy-policies
+# spec, Component 1a) -- an initial judgment call, not derived from data;
+# revisit once real runs provide a score distribution to tune against.
+# Below it (but still >= SURFACE_THRESHOLD above), behavior is unchanged
+# from before this policy existed: always surfaced, never auto-resolved --
+# this is deliberately where the Mas-Colell/Rubinstein-style false-
+# positive risk concentrates (see tests/test_duplicate_check.py's
+# TestScoreCandidate.test_similar_but_different_books_surface_above_threshold).
+AUTO_SKIP_THRESHOLD = 0.85
+
 
 def normalize_title(title: str) -> str:
     """Lowercase, punctuation-stripped, whitespace-collapsed -- comparison
@@ -152,6 +163,16 @@ def find_fuzzy_candidates(academic_hub_root: str, incoming: dict, current_course
         for card in cards:
             if card.get("doc_type") != "textbook":
                 continue
+            if card.get("duplicate_pending_confirmation"):
+                # A clone still awaiting human review is not a trustworthy
+                # canonical source -- matching against it instead of the
+                # real canonical means a later rejection leaves a dangling
+                # duplicate_of_file_id on whatever copied from it, with no
+                # queue trace of the chain (final whole-branch review
+                # finding). The clone's own canonical always carries an
+                # identical title, so skipping the clone itself never loses
+                # detection of a genuine duplicate.
+                continue
             try:
                 folder_name = os.path.basename(os.path.dirname(card["path"]))
                 author, year = parse_author_year_from_folder_name(folder_name)
@@ -178,6 +199,86 @@ def _dismissals_path(academic_hub_root: str) -> str:
     list_courses() only ever scans direct children, never subdirectories,
     so `.index/duplicates/` is structurally outside its namespace."""
     return os.path.join(academic_hub_root, ".index", "duplicates", "dismissals.json")
+
+
+def _pending_confirmation_path(academic_hub_root: str) -> str:
+    """Same nested-path reasoning as _dismissals_path above -- a flat
+    .index/-level file would be misread as a phantom course by
+    list_courses() and eventually deleted by `rebuild --prune`. Lives in
+    the same .index/duplicates/ directory as dismissals.json, git-tracked
+    the same way (durable index state, not run-local scratch output)."""
+    return os.path.join(academic_hub_root, ".index", "duplicates", "pending_confirmation.json")
+
+
+def load_pending_confirmations(academic_hub_root: str) -> list[dict]:
+    path = _pending_confirmation_path(academic_hub_root)
+    if not os.path.exists(path):
+        return []
+    with open(path, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+
+def save_pending_confirmations(academic_hub_root: str, entries: list[dict]) -> None:
+    path = _pending_confirmation_path(academic_hub_root)
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(entries, f, indent=2, ensure_ascii=False)
+
+
+def record_pending_confirmation(academic_hub_root: str, entry: dict) -> None:
+    """No-op if an entry with the same (incoming_file_id, new_card_file_id)
+    pair is already queued -- the documented non-interactive workflow
+    (run, review, re-run with --resolve for ambiguous matches) re-evaluates
+    the same never-deleted source PDF on every pass, which would otherwise
+    re-append a duplicate queue entry for the same auto-skip every run."""
+    entries = load_pending_confirmations(academic_hub_root)
+    key = (entry.get("incoming_file_id"), entry.get("new_card_file_id"))
+    if any((e.get("incoming_file_id"), e.get("new_card_file_id")) == key for e in entries):
+        return
+    entries.append(entry)
+    save_pending_confirmations(academic_hub_root, entries)
+
+
+def confirm_pending_confirmation(academic_hub_root: str, incoming_file_id: str) -> None:
+    """The clone stands as correct -- just removes it from the pending
+    queue, no further action (pipeline-autonomy-policies spec, Component 1c)."""
+    entries = load_pending_confirmations(academic_hub_root)
+    if not any(e.get("incoming_file_id") == incoming_file_id for e in entries):
+        raise ValueError(f"no pending confirmation found for incoming_file_id={incoming_file_id!r}")
+    remaining = [e for e in entries if e.get("incoming_file_id") != incoming_file_id]
+    save_pending_confirmations(academic_hub_root, remaining)
+
+
+def reject_pending_confirmation(academic_hub_root: str, incoming_file_id: str) -> None:
+    """Recovery path for a post-hoc 'no, that wasn't actually a
+    duplicate' decision (spec Component 1d): removes the wrongly-created
+    clone (card + copied folder), records a permanent dismissal so the
+    pair is never proposed again, and removes the pending entry. The
+    original PDF is never touched -- it was never moved by
+    copy_duplicate_artifacts in the first place -- so it naturally
+    reappears in 'to convert' the next time duplicate_check runs against
+    that course."""
+    entries = load_pending_confirmations(academic_hub_root)
+    entry = next((e for e in entries if e.get("incoming_file_id") == incoming_file_id), None)
+    if entry is None:
+        raise ValueError(f"no pending confirmation found for incoming_file_id={incoming_file_id!r}")
+
+    new_course = entry["course"]
+    new_card_file_id = entry["new_card_file_id"]
+    cards = load_shard(academic_hub_root, new_course)
+    clone_card = next((c for c in cards if c.get("file_id") == new_card_file_id), None)
+    if clone_card is not None:
+        book_dir = os.path.join(academic_hub_root, os.path.normpath(os.path.dirname(clone_card["path"])))
+        if os.path.isdir(book_dir):
+            shutil.rmtree(book_dir)
+        remaining_cards = [c for c in cards if c.get("file_id") != new_card_file_id]
+        save_shard(academic_hub_root, new_course, remaining_cards)
+        recompute_course_entry(academic_hub_root, new_course)
+
+    record_dismissal(academic_hub_root, entry["incoming_file_id"], entry["matched_file_id"])
+
+    remaining_entries = [e for e in entries if e.get("incoming_file_id") != incoming_file_id]
+    save_pending_confirmations(academic_hub_root, remaining_entries)
 
 
 def load_dismissals(academic_hub_root: str) -> list[dict]:
@@ -226,6 +327,7 @@ def record_dismissal(academic_hub_root: str, file_id_a: str, file_id_b: str) -> 
 def copy_duplicate_artifacts(
     academic_hub_root: str, canonical_course: str, canonical_card: dict,
     new_course: str, new_folder_category: str, new_source_pdf_path: str,
+    pending_confirmation: bool = False,
 ) -> dict:
     """Copies a confirmed duplicate's processed_outputs/<BookDir>/ tree
     into the new course and clones its index card (spec §5). The canonical
@@ -306,6 +408,13 @@ def copy_duplicate_artifacts(
     new_card["source_pdf_path"] = new_source_pdf_path
     new_card["duplicate_of_file_id"] = canonical_card["file_id"]
     new_card["source_updated_at"] = now_iso()
+    if pending_confirmation:
+        # High-confidence auto-skip (pipeline-autonomy-policies spec,
+        # Component 1a) -- distinguishes this clone from a Tier 1 exact
+        # match or a human-confirmed Tier 2 "yes", neither of which needs
+        # post-hoc review. Absent (not False) on every other call, so
+        # existing/older cards never gain a meaningless extra key.
+        new_card["duplicate_pending_confirmation"] = True
 
     cards = [c for c in load_shard(academic_hub_root, new_course) if c.get("file_id") != new_file_id]
     cards.append(new_card)
@@ -361,6 +470,7 @@ def run_duplicate_check(
     to_convert: list[str] = []
     skipped: list[tuple] = []
     unresolved: list[dict] = []
+    auto_skipped_pending_confirmation: list[dict] = []
 
     for pdf_path in pdf_paths:
         pdf_filename = os.path.basename(pdf_path)
@@ -416,6 +526,41 @@ def run_duplicate_check(
 
         best = candidates[0]
         decision = resolutions.get(incoming_file_id)
+
+        if decision is None and best["combined"] >= AUTO_SKIP_THRESHOLD:
+            # High-confidence auto-skip (spec Component 1a) -- only when
+            # no explicit --resolve decision was already given for this
+            # exact incoming_file_id; an explicit decision always wins.
+            try:
+                new_card = copy_duplicate_artifacts(
+                    academic_hub_root, best["course"], best["card"],
+                    current_course, new_folder_category, rel_pdf_path,
+                    pending_confirmation=True,
+                )
+                skipped.append((pdf_filename, best["course"], best["card"]["path"], "fuzzy"))
+                pending_entry = {
+                    "incoming_file_id": incoming_file_id, "pdf_filename": pdf_filename,
+                    "course": current_course, "matched_course": best["course"],
+                    "matched_file_id": best["card"]["file_id"],
+                    "matched_title": best["card"].get("title", ""),
+                    "score": best["combined"], "new_card_file_id": new_card["file_id"],
+                    "queued_at": now_iso(),
+                }
+                try:
+                    record_pending_confirmation(academic_hub_root, pending_entry)
+                except Exception as err:
+                    # The copy already succeeded -- losing this record
+                    # would hide a clone that still needs review, not lose
+                    # the clone itself. Still surface it in THIS run's own
+                    # report even if it couldn't be persisted for later.
+                    print(f"WARNING: could not persist pending-confirmation record for {pdf_filename} ({err}); "
+                          f"it will not appear in a later --review-pending until this is retried.", file=sys.stderr)
+                auto_skipped_pending_confirmation.append(pending_entry)
+            except Exception as err:
+                print(f"WARNING: could not copy duplicate artifacts for {pdf_filename} ({err}); converting instead.", file=sys.stderr)
+                to_convert.append(pdf_filename)
+            continue
+
         if decision is None and not non_interactive:
             decision = prompt_fn(pdf_filename, best)
 
@@ -443,7 +588,10 @@ def run_duplicate_check(
             to_convert.append(pdf_filename)
             unresolved.append({"pdf_filename": pdf_filename, "incoming_file_id": incoming_file_id, "candidates": candidates})
 
-    return {"to_convert": to_convert, "skipped": skipped, "unresolved": unresolved}
+    return {
+        "to_convert": to_convert, "skipped": skipped, "unresolved": unresolved,
+        "auto_skipped_pending_confirmation": auto_skipped_pending_confirmation,
+    }
 
 
 def _print_report(result: dict) -> None:
@@ -454,12 +602,29 @@ def _print_report(result: dict) -> None:
     print(f"  Skipped -- duplicate found, artifacts copied ({len(result['skipped'])}):")
     for pdf_filename, course, path, tier in result["skipped"]:
         print(f"    - {pdf_filename}\n      -> {course}: {path} (tier: {tier})")
+    if result["auto_skipped_pending_confirmation"]:
+        print(f"  Auto-skipped as likely duplicate -- please confirm ({len(result['auto_skipped_pending_confirmation'])}):")
+        for entry in result["auto_skipped_pending_confirmation"]:
+            print(f"    - {entry['pdf_filename']}\n      -> {entry['matched_course']}: {entry['matched_title']} "
+                  f"(score {entry['score']:.2f}, incoming file_id={entry['incoming_file_id']})")
+        print("    Review with: python -m indexer.duplicate_check --review-pending")
     if result["unresolved"]:
         print(f"  Needs confirmation -- rerun with --resolve ({len(result['unresolved'])}):")
         for item in result["unresolved"]:
             print(f"    - {item['pdf_filename']} (incoming file_id={item['incoming_file_id']})")
             for c in item["candidates"]:
                 print(f"        -> {c['course']}: {c['card']['title']} (score {c['combined']:.2f}, file_id={c['card']['file_id']})")
+
+
+def _print_pending_confirmations(entries: list[dict]) -> None:
+    print(f"\n[Pending duplicate confirmations] ({len(entries)}):")
+    for entry in entries:
+        print(f"  - {entry['pdf_filename']} (course={entry.get('course', '?')})")
+        print(f"      -> {entry.get('matched_course', '?')}: {entry.get('matched_title', '?')} "
+              f"(score {entry.get('score', 0):.2f}, incoming file_id={entry.get('incoming_file_id', '?')})")
+    if entries:
+        print("  Confirm with: python -m indexer.duplicate_check --confirm-pending FILE_ID")
+        print("  Reject with:  python -m indexer.duplicate_check --reject-pending FILE_ID")
 
 
 def write_to_convert_file(path: str, to_convert: list[str]) -> None:
@@ -494,8 +659,9 @@ def build_arg_parser() -> argparse.ArgumentParser:
                      "for conversion. See docs/superpowers/specs/2026-09-17-cross-course-duplicate-textbook-detection-design.md",
     )
     parser.add_argument(
-        "--textbook-subdir", required=True,
-        help="Path relative to academic-hub/, e.g. academic_resources/microecon/textbooks (same value as the conversion instructions' Step 0.2).",
+        "--textbook-subdir", default=None,
+        help="Path relative to academic-hub/, e.g. academic_resources/microecon/textbooks (same value as the conversion instructions' Step 0.2). "
+             "Required unless --review-pending, --confirm-pending, or --reject-pending is given.",
     )
     parser.add_argument("--academic-hub-root", default=None, help="Defaults to the academic-hub/ folder next to this project.")
     parser.add_argument(
@@ -512,12 +678,45 @@ def build_arg_parser() -> argparse.ArgumentParser:
              "human-readable report on stdout. Read it back with `mapfile -t PDF_FILENAMES < PATH`: a confirmed "
              "duplicate's source PDF is deliberately never deleted, so re-globbing the folder would re-include it.",
     )
+    parser.add_argument(
+        "--review-pending", action="store_true",
+        help="List every pending duplicate-confirmation entry across all courses, instead of running a normal "
+             "check against --textbook-subdir.",
+    )
+    parser.add_argument(
+        "--confirm-pending", default=None, metavar="FILE_ID",
+        help="Confirm one auto-skipped clone (by its incoming file_id) is a correct duplicate -- removes it "
+             "from the pending-confirmation queue, no other action.",
+    )
+    parser.add_argument(
+        "--reject-pending", default=None, metavar="FILE_ID",
+        help="Reject one auto-skipped clone (by its incoming file_id) -- removes the clone card and copied "
+             "folder, records a permanent dismissal, and clears the pending-confirmation entry.",
+    )
     return parser
 
 
 def main() -> None:
     parser = build_arg_parser()
     args = parser.parse_args()
+    academic_hub_root = args.academic_hub_root or _default_academic_hub_root()
+
+    if args.confirm_pending:
+        confirm_pending_confirmation(academic_hub_root, args.confirm_pending)
+        print(f"Confirmed -- {args.confirm_pending} removed from the pending-confirmation queue.")
+        return
+
+    if args.reject_pending:
+        reject_pending_confirmation(academic_hub_root, args.reject_pending)
+        print(f"Rejected -- clone removed, dismissal recorded for {args.reject_pending}.")
+        return
+
+    if args.review_pending:
+        _print_pending_confirmations(load_pending_confirmations(academic_hub_root))
+        return
+
+    if not args.textbook_subdir:
+        parser.error("--textbook-subdir is required unless --review-pending, --confirm-pending, or --reject-pending is given")
 
     resolutions: dict[str, str] = {}
     for entry in args.resolve:
@@ -526,7 +725,6 @@ def main() -> None:
             parser.error(f"--resolve {entry!r} must be FILE_ID=yes or FILE_ID=no")
         resolutions[file_id] = decision
 
-    academic_hub_root = args.academic_hub_root or _default_academic_hub_root()
     result = run_duplicate_check(args.textbook_subdir, academic_hub_root, args.non_interactive, resolutions)
     _print_report(result)
     if args.emit_to_convert:

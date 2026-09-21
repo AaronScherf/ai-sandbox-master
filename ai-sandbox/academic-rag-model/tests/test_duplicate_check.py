@@ -208,6 +208,19 @@ class TestFindFuzzyCandidates(unittest.TestCase):
             results = find_fuzzy_candidates(academic_hub_root, incoming, current_course="microecon")
             self.assertEqual(results, [])
 
+    def test_excludes_cards_still_pending_confirmation(self):
+        # Real bug found by the final whole-branch review: a clone still
+        # awaiting human review must never itself be matched as a
+        # candidate by a third course -- otherwise rejecting the original
+        # auto-skip leaves a dangling reference nothing can trace.
+        with tempfile.TemporaryDirectory() as academic_hub_root:
+            pending_clone = self._card("Ok_RealAnalysisWithEconomicApplications_2007", "Real Analysis with Economic Applications", course="microecon")
+            pending_clone["duplicate_pending_confirmation"] = True
+            save_shard(academic_hub_root, "microecon", [pending_clone])
+            incoming = {"title": "Real Analysis with Economic Applications", "author": "Ok", "year": "2007"}
+            results = find_fuzzy_candidates(academic_hub_root, incoming, current_course="mathcamp")
+            self.assertEqual(results, [])
+
     def test_similar_titled_different_book_surfaces_for_confirmation(self):
         # The Mas-Colell/Rubinstein worked example from the spec's Testing
         # section -- must surface (so a human gets asked), which this test
@@ -362,6 +375,31 @@ class TestCopyDuplicateArtifacts(unittest.TestCase):
             self.assertEqual(new_card["course"], "microecon")
             self.assertEqual(new_card["source_pdf_path"], "academic_resources/microecon/textbooks/Ok.pdf")
             self.assertEqual(new_card["title"], canonical_card["title"])
+
+    def test_pending_confirmation_flag_marks_the_new_card(self):
+        with tempfile.TemporaryDirectory() as academic_hub_root:
+            _, folder_name, canonical_card = self._make_canonical_book(academic_hub_root)
+
+            new_card = copy_duplicate_artifacts(
+                academic_hub_root, "econometrics", canonical_card, "microecon", "textbooks",
+                "academic_resources/microecon/textbooks/Ok.pdf",
+                pending_confirmation=True,
+            )
+
+            self.assertTrue(new_card["duplicate_pending_confirmation"])
+            saved_card = load_shard(academic_hub_root, "microecon")[0]
+            self.assertTrue(saved_card["duplicate_pending_confirmation"])
+
+    def test_pending_confirmation_flag_defaults_to_absent_not_false(self):
+        with tempfile.TemporaryDirectory() as academic_hub_root:
+            _, folder_name, canonical_card = self._make_canonical_book(academic_hub_root)
+
+            new_card = copy_duplicate_artifacts(
+                academic_hub_root, "econometrics", canonical_card, "microecon", "textbooks",
+                "academic_resources/microecon/textbooks/Ok.pdf",
+            )
+
+            self.assertNotIn("duplicate_pending_confirmation", new_card)
 
     def test_new_card_is_saved_in_the_new_course_shard(self):
         with tempfile.TemporaryDirectory() as academic_hub_root:
@@ -520,24 +558,33 @@ class TestRunDuplicateCheck(unittest.TestCase):
             self.assertTrue(os.path.exists(os.path.join(new_book_dir, "Ok_RealAnalysis_2007.md")))
 
     def test_non_interactive_fuzzy_match_is_left_unresolved_and_kept_in_to_convert(self):
+        # Uses the Mas-Colell/Rubinstein ambiguous band (score >= SURFACE_
+        # THRESHOLD but below AUTO_SKIP_THRESHOLD) deliberately -- this
+        # test's whole point is the "surfaced but not auto-resolved" path,
+        # which the two-tier policy (pipeline-autonomy-policies spec,
+        # Component 1a) now reserves for exactly this confidence band. A
+        # near-identical title (like the old "Ok_RealAnalysis..." fixture)
+        # would now score high enough to auto-skip before ever reaching
+        # here -- see Task 3's Global Constraints note.
         with tempfile.TemporaryDirectory() as academic_hub_root:
             subdir = "academic_resources/microecon/textbooks"
-            self._write_pdf(os.path.join(academic_hub_root, subdir, "Ok_RealAnalysisWithEconomicApplications_2007.pdf"), b"a re-scanned copy, different bytes")
+            self._write_pdf(os.path.join(academic_hub_root, subdir, "Microeconomic Theory -- Mas-Colell.pdf"), b"a different but similarly-titled book")
 
-            book_dir = os.path.join(academic_hub_root, "academic_resources", "econometrics", "textbooks", "processed_outputs", "Ok_RealAnalysisWithEconomicApplications_2007")
+            book_dir = os.path.join(academic_hub_root, "academic_resources", "math-methods", "textbooks", "processed_outputs", "Rubinstein_LectureNotesInMicroeconomicTheory_2012")
             os.makedirs(book_dir, exist_ok=True)
-            with open(os.path.join(book_dir, "Ok_RealAnalysisWithEconomicApplications_2007.md"), "w", encoding="utf-8") as f:
-                f.write("# Real Analysis")
-            save_shard(academic_hub_root, "econometrics", [{
-                "file_id": "some-other-fid", "path": "academic_resources/econometrics/textbooks/processed_outputs/Ok_RealAnalysisWithEconomicApplications_2007/Ok_RealAnalysisWithEconomicApplications_2007.md",
-                "source_pdf_path": "academic_resources/econometrics/textbooks/Ok.pdf", "course": "econometrics",
-                "doc_type": "textbook", "title": "Real Analysis with Economic Applications",
+            with open(os.path.join(book_dir, "Rubinstein_LectureNotesInMicroeconomicTheory_2012.md"), "w", encoding="utf-8") as f:
+                f.write("# Lecture Notes in Microeconomic Theory")
+            save_shard(academic_hub_root, "math-methods", [{
+                "file_id": "rubinstein-fid", "path": "academic_resources/math-methods/textbooks/processed_outputs/Rubinstein_LectureNotesInMicroeconomicTheory_2012/Rubinstein_LectureNotesInMicroeconomicTheory_2012.md",
+                "source_pdf_path": "academic_resources/math-methods/textbooks/x.pdf", "course": "math-methods",
+                "doc_type": "textbook", "title": "Lecture Notes in Microeconomic Theory",
             }])
 
             result = run_duplicate_check(subdir, academic_hub_root, non_interactive=True, resolutions={})
 
-            self.assertEqual(result["to_convert"], ["Ok_RealAnalysisWithEconomicApplications_2007.pdf"])
+            self.assertEqual(result["to_convert"], ["Microeconomic Theory -- Mas-Colell.pdf"])
             self.assertEqual(len(result["unresolved"]), 1)
+            self.assertEqual(result["auto_skipped_pending_confirmation"], [])
 
     def test_resolve_yes_skips_and_copies(self):
         with tempfile.TemporaryDirectory() as academic_hub_root:
@@ -596,8 +643,42 @@ class TestRunDuplicateCheck(unittest.TestCase):
             self.assertEqual(result_2["unresolved"], [])
 
     def test_interactive_mode_uses_prompt_fn(self):
+        # Same ambiguous-band fixture as the test above -- a near-perfect
+        # match would now be auto-skipped before ever calling prompt_fn.
         with tempfile.TemporaryDirectory() as academic_hub_root:
             subdir = "academic_resources/microecon/textbooks"
+            pdf_path = os.path.join(academic_hub_root, subdir, "Microeconomic Theory -- Mas-Colell.pdf")
+            self._write_pdf(pdf_path, b"a different but similarly-titled book")
+
+            book_dir = os.path.join(academic_hub_root, "academic_resources", "math-methods", "textbooks", "processed_outputs", "Rubinstein_LectureNotesInMicroeconomicTheory_2012")
+            os.makedirs(book_dir, exist_ok=True)
+            with open(os.path.join(book_dir, "Rubinstein_LectureNotesInMicroeconomicTheory_2012.md"), "w", encoding="utf-8") as f:
+                f.write("# Lecture Notes in Microeconomic Theory")
+            save_shard(academic_hub_root, "math-methods", [{
+                "file_id": "rubinstein-fid", "path": "academic_resources/math-methods/textbooks/processed_outputs/Rubinstein_LectureNotesInMicroeconomicTheory_2012/Rubinstein_LectureNotesInMicroeconomicTheory_2012.md",
+                "source_pdf_path": "academic_resources/math-methods/textbooks/x.pdf", "course": "math-methods",
+                "doc_type": "textbook", "title": "Lecture Notes in Microeconomic Theory",
+            }])
+
+            prompt_calls = []
+
+            def _record_and_confirm(pdf_filename, candidate):
+                prompt_calls.append(pdf_filename)
+                return "yes"
+
+            result = run_duplicate_check(
+                subdir, academic_hub_root, non_interactive=False, resolutions={},
+                prompt_fn=_record_and_confirm,
+            )
+            self.assertEqual(len(result["skipped"]), 1)
+            self.assertEqual(prompt_calls, ["Microeconomic Theory -- Mas-Colell.pdf"])
+
+    def test_high_confidence_match_is_auto_skipped_without_any_prompt_or_resolution(self):
+        with tempfile.TemporaryDirectory() as academic_hub_root:
+            subdir = "academic_resources/microecon/textbooks"
+            # This exact fixture already scores 1.0 via the real filename-
+            # parsing pipeline (title/author/year all match) -- see Task
+            # 3's Global Constraints note.
             pdf_path = os.path.join(academic_hub_root, subdir, "Ok_RealAnalysisWithEconomicApplications_2007.pdf")
             self._write_pdf(pdf_path, b"a re-scanned copy, different bytes")
 
@@ -611,19 +692,61 @@ class TestRunDuplicateCheck(unittest.TestCase):
                 "doc_type": "textbook", "title": "Real Analysis with Economic Applications",
             }])
 
+            def _fail_if_called(pdf_filename, candidate):
+                self.fail("prompt_fn must not be called for a high-confidence auto-skip")
+
             result = run_duplicate_check(
                 subdir, academic_hub_root, non_interactive=False, resolutions={},
-                prompt_fn=lambda pdf_filename, candidate: "yes",
+                prompt_fn=_fail_if_called,
             )
+
+            self.assertEqual(result["to_convert"], [])
             self.assertEqual(len(result["skipped"]), 1)
+            self.assertEqual(len(result["auto_skipped_pending_confirmation"]), 1)
+            pending = result["auto_skipped_pending_confirmation"][0]
+            self.assertEqual(pending["pdf_filename"], "Ok_RealAnalysisWithEconomicApplications_2007.pdf")
+            self.assertEqual(pending["matched_course"], "econometrics")
+            self.assertGreaterEqual(pending["score"], 0.85)
+
+            new_book_dir = os.path.join(academic_hub_root, "academic_resources", "microecon", "textbooks", "processed_outputs", "Ok_RealAnalysisWithEconomicApplications_2007")
+            self.assertTrue(os.path.exists(os.path.join(new_book_dir, "Ok_RealAnalysisWithEconomicApplications_2007.md")))
+
+            new_card = load_shard(academic_hub_root, "microecon")[0]
+            self.assertTrue(new_card["duplicate_pending_confirmation"])
+
+    def test_explicit_resolve_decision_wins_over_the_auto_skip_threshold(self):
+        # An explicit --resolve decision is a real human/agent decision --
+        # it must never be silently overridden by the heuristic, even for
+        # a candidate that would otherwise auto-skip. Passing "no" here
+        # must dismiss and convert, not auto-skip, despite the score.
+        with tempfile.TemporaryDirectory() as academic_hub_root:
+            subdir = "academic_resources/microecon/textbooks"
+            pdf_path = os.path.join(academic_hub_root, subdir, "Ok_RealAnalysisWithEconomicApplications_2007.pdf")
+            self._write_pdf(pdf_path, b"a re-scanned copy, different bytes")
+            from indexer.index_card import compute_file_id
+            incoming_file_id = compute_file_id(pdf_path)
+
+            book_dir = os.path.join(academic_hub_root, "academic_resources", "econometrics", "textbooks", "processed_outputs", "Ok_RealAnalysisWithEconomicApplications_2007")
+            os.makedirs(book_dir, exist_ok=True)
+            with open(os.path.join(book_dir, "Ok_RealAnalysisWithEconomicApplications_2007.md"), "w", encoding="utf-8") as f:
+                f.write("# Real Analysis")
+            save_shard(academic_hub_root, "econometrics", [{
+                "file_id": "some-other-fid", "path": "academic_resources/econometrics/textbooks/processed_outputs/Ok_RealAnalysisWithEconomicApplications_2007/Ok_RealAnalysisWithEconomicApplications_2007.md",
+                "source_pdf_path": "academic_resources/econometrics/textbooks/Ok.pdf", "course": "econometrics",
+                "doc_type": "textbook", "title": "Real Analysis with Economic Applications",
+            }])
+
+            result = run_duplicate_check(
+                subdir, academic_hub_root, non_interactive=True,
+                resolutions={incoming_file_id: "no"},
+            )
+
+            self.assertEqual(result["to_convert"], ["Ok_RealAnalysisWithEconomicApplications_2007.pdf"])
+            self.assertEqual(result["skipped"], [])
+            self.assertEqual(result["auto_skipped_pending_confirmation"], [])
 
 
 class TestBuildArgParser(unittest.TestCase):
-    def test_requires_textbook_subdir(self):
-        parser = build_arg_parser()
-        with self.assertRaises(SystemExit):
-            parser.parse_args([])
-
     def test_resolve_can_repeat(self):
         parser = build_arg_parser()
         args = parser.parse_args([
@@ -736,6 +859,227 @@ class TestEmitToConvert(unittest.TestCase):
 
             self.assertNotIn(b"\r", raw)
             self.assertEqual(raw, b"Some Book.pdf\nAnother Book.pdf\n")
+
+
+class TestReviewPending(unittest.TestCase):
+    def test_review_pending_lists_entries_across_all_courses(self):
+        import indexer.duplicate_check as dc
+        with tempfile.TemporaryDirectory() as academic_hub_root:
+            dc.record_pending_confirmation(academic_hub_root, {
+                "incoming_file_id": "a", "pdf_filename": "Ok.pdf", "course": "microecon",
+                "matched_course": "econometrics", "matched_file_id": "canonical-fid",
+                "matched_title": "Real Analysis with Economic Applications", "score": 0.91,
+                "new_card_file_id": "clone-fid", "queued_at": "2026-09-20T00:00:00+00:00",
+            })
+            argv = ["duplicate_check", "--review-pending", "--academic-hub-root", academic_hub_root]
+            captured = StringIO()
+            with mock.patch.object(sys, "argv", argv), mock.patch("sys.stdout", new=captured):
+                dc.main()
+            output = captured.getvalue()
+            self.assertIn("Ok.pdf", output)
+            self.assertIn("econometrics", output)
+            self.assertIn("Real Analysis with Economic Applications", output)
+
+    def test_review_pending_does_not_require_textbook_subdir(self):
+        import indexer.duplicate_check as dc
+        with tempfile.TemporaryDirectory() as academic_hub_root:
+            argv = ["duplicate_check", "--review-pending", "--academic-hub-root", academic_hub_root]
+            with mock.patch.object(sys, "argv", argv), mock.patch("sys.stdout", new=StringIO()):
+                dc.main()  # must not raise SystemExit
+
+    def test_normal_run_still_requires_textbook_subdir(self):
+        # Replaces the old parser-level test (build_arg_parser() no longer
+        # marks --textbook-subdir required=True at the argparse layer,
+        # since --review-pending must be usable without it) -- the
+        # requirement now lives in main() instead.
+        import indexer.duplicate_check as dc
+        with mock.patch.object(sys, "argv", ["duplicate_check"]):
+            with self.assertRaises(SystemExit):
+                dc.main()
+
+
+class TestAutoSkipReportSection(unittest.TestCase):
+    def test_report_includes_auto_skipped_section_with_review_command(self):
+        import indexer.duplicate_check as dc
+        with tempfile.TemporaryDirectory() as academic_hub_root:
+            subdir = "academic_resources/microecon/textbooks"
+            pdf_path = os.path.join(academic_hub_root, subdir, "Ok_RealAnalysisWithEconomicApplications_2007.pdf")
+            os.makedirs(os.path.dirname(pdf_path), exist_ok=True)
+            with open(pdf_path, "wb") as f:
+                f.write(b"a re-scanned copy, different bytes")
+
+            book_dir = os.path.join(academic_hub_root, "academic_resources", "econometrics", "textbooks", "processed_outputs", "Ok_RealAnalysisWithEconomicApplications_2007")
+            os.makedirs(book_dir, exist_ok=True)
+            with open(os.path.join(book_dir, "Ok_RealAnalysisWithEconomicApplications_2007.md"), "w", encoding="utf-8") as f:
+                f.write("# Real Analysis")
+            save_shard(academic_hub_root, "econometrics", [{
+                "file_id": "some-other-fid", "path": "academic_resources/econometrics/textbooks/processed_outputs/Ok_RealAnalysisWithEconomicApplications_2007/Ok_RealAnalysisWithEconomicApplications_2007.md",
+                "source_pdf_path": "academic_resources/econometrics/textbooks/Ok.pdf", "course": "econometrics",
+                "doc_type": "textbook", "title": "Real Analysis with Economic Applications",
+            }])
+
+            argv = ["duplicate_check", "--textbook-subdir", subdir, "--academic-hub-root", academic_hub_root, "--non-interactive"]
+            captured = StringIO()
+            with mock.patch.object(sys, "argv", argv), mock.patch("sys.stdout", new=captured):
+                dc.main()
+            output = captured.getvalue()
+            self.assertIn("Auto-skipped as likely duplicate", output)
+            self.assertIn("--review-pending", output)
+
+
+class TestConfirmAndRejectPending(unittest.TestCase):
+    def _make_auto_skipped_clone(self, academic_hub_root):
+        """Sets up exactly what Task 3's auto-skip path leaves behind:
+        a real copied book directory, a clone card flagged
+        duplicate_pending_confirmation, and a matching pending-confirmation
+        entry -- built via the real production functions, not
+        hand-fabricated, so this test exercises the actual recovery path
+        against real state."""
+        canonical_book_dir = os.path.join(
+            academic_hub_root, "academic_resources", "econometrics", "textbooks", "processed_outputs",
+            "Ok_RealAnalysisWithEconomicApplications_2007",
+        )
+        os.makedirs(canonical_book_dir, exist_ok=True)
+        with open(os.path.join(canonical_book_dir, "Ok_RealAnalysisWithEconomicApplications_2007.md"), "w", encoding="utf-8") as f:
+            f.write("# Real Analysis")
+        canonical_card = {
+            "file_id": "canonical-fid",
+            "path": "academic_resources/econometrics/textbooks/processed_outputs/Ok_RealAnalysisWithEconomicApplications_2007/Ok_RealAnalysisWithEconomicApplications_2007.md",
+            "source_pdf_path": "academic_resources/econometrics/textbooks/Ok.pdf", "course": "econometrics",
+            "doc_type": "textbook", "title": "Real Analysis with Economic Applications",
+        }
+        save_shard(academic_hub_root, "econometrics", [canonical_card])
+
+        new_card = copy_duplicate_artifacts(
+            academic_hub_root, "econometrics", canonical_card, "microecon", "textbooks",
+            "academic_resources/microecon/textbooks/Ok.pdf", pending_confirmation=True,
+        )
+        from indexer.duplicate_check import record_pending_confirmation, now_iso
+        pending_entry = {
+            "incoming_file_id": "incoming-fid", "pdf_filename": "Ok.pdf", "course": "microecon",
+            "matched_course": "econometrics", "matched_file_id": "canonical-fid",
+            "matched_title": "Real Analysis with Economic Applications", "score": 0.99,
+            "new_card_file_id": new_card["file_id"], "queued_at": now_iso(),
+        }
+        record_pending_confirmation(academic_hub_root, pending_entry)
+        return new_card
+
+    def test_confirm_removes_the_pending_entry_and_leaves_the_clone_in_place(self):
+        from indexer.duplicate_check import confirm_pending_confirmation, load_pending_confirmations
+        with tempfile.TemporaryDirectory() as academic_hub_root:
+            self._make_auto_skipped_clone(academic_hub_root)
+
+            confirm_pending_confirmation(academic_hub_root, "incoming-fid")
+
+            self.assertEqual(load_pending_confirmations(academic_hub_root), [])
+            clone_cards = load_shard(academic_hub_root, "microecon")
+            self.assertEqual(len(clone_cards), 1)
+            new_book_dir = os.path.join(academic_hub_root, "academic_resources", "microecon", "textbooks", "processed_outputs", "Ok_RealAnalysisWithEconomicApplications_2007")
+            self.assertTrue(os.path.exists(new_book_dir))
+
+    def test_confirm_raises_for_an_unknown_incoming_file_id(self):
+        from indexer.duplicate_check import confirm_pending_confirmation
+        with tempfile.TemporaryDirectory() as academic_hub_root:
+            with self.assertRaises(ValueError):
+                confirm_pending_confirmation(academic_hub_root, "no-such-id")
+
+    def test_reject_removes_the_clone_card_and_folder(self):
+        from indexer.duplicate_check import reject_pending_confirmation, load_pending_confirmations
+        with tempfile.TemporaryDirectory() as academic_hub_root:
+            self._make_auto_skipped_clone(academic_hub_root)
+
+            reject_pending_confirmation(academic_hub_root, "incoming-fid")
+
+            self.assertEqual(load_pending_confirmations(academic_hub_root), [])
+            self.assertEqual(load_shard(academic_hub_root, "microecon"), [])
+            new_book_dir = os.path.join(academic_hub_root, "academic_resources", "microecon", "textbooks", "processed_outputs", "Ok_RealAnalysisWithEconomicApplications_2007")
+            self.assertFalse(os.path.exists(new_book_dir))
+
+    def test_reject_records_a_permanent_dismissal(self):
+        from indexer.duplicate_check import reject_pending_confirmation, is_dismissed, load_dismissals
+        with tempfile.TemporaryDirectory() as academic_hub_root:
+            self._make_auto_skipped_clone(academic_hub_root)
+
+            reject_pending_confirmation(academic_hub_root, "incoming-fid")
+
+            self.assertTrue(is_dismissed(load_dismissals(academic_hub_root), "incoming-fid", "canonical-fid"))
+
+    def test_reject_leaves_the_canonical_book_untouched(self):
+        from indexer.duplicate_check import reject_pending_confirmation
+        with tempfile.TemporaryDirectory() as academic_hub_root:
+            self._make_auto_skipped_clone(academic_hub_root)
+
+            reject_pending_confirmation(academic_hub_root, "incoming-fid")
+
+            canonical_cards = load_shard(academic_hub_root, "econometrics")
+            self.assertEqual(len(canonical_cards), 1)
+            self.assertEqual(canonical_cards[0]["file_id"], "canonical-fid")
+            canonical_book_dir = os.path.join(academic_hub_root, "academic_resources", "econometrics", "textbooks", "processed_outputs", "Ok_RealAnalysisWithEconomicApplications_2007")
+            self.assertTrue(os.path.exists(canonical_book_dir))
+
+    def test_reject_raises_for_an_unknown_incoming_file_id(self):
+        from indexer.duplicate_check import reject_pending_confirmation
+        with tempfile.TemporaryDirectory() as academic_hub_root:
+            with self.assertRaises(ValueError):
+                reject_pending_confirmation(academic_hub_root, "no-such-id")
+
+    def test_cli_confirm_pending_flag(self):
+        import indexer.duplicate_check as dc
+        with tempfile.TemporaryDirectory() as academic_hub_root:
+            self._make_auto_skipped_clone(academic_hub_root)
+            argv = ["duplicate_check", "--confirm-pending", "incoming-fid", "--academic-hub-root", academic_hub_root]
+            with mock.patch.object(sys, "argv", argv), mock.patch("sys.stdout", new=StringIO()):
+                dc.main()
+            self.assertEqual(dc.load_pending_confirmations(academic_hub_root), [])
+
+    def test_cli_reject_pending_flag(self):
+        import indexer.duplicate_check as dc
+        with tempfile.TemporaryDirectory() as academic_hub_root:
+            self._make_auto_skipped_clone(academic_hub_root)
+            argv = ["duplicate_check", "--reject-pending", "incoming-fid", "--academic-hub-root", academic_hub_root]
+            with mock.patch.object(sys, "argv", argv), mock.patch("sys.stdout", new=StringIO()):
+                dc.main()
+            self.assertEqual(load_shard(academic_hub_root, "microecon"), [])
+
+    def test_full_lifecycle_auto_skip_then_reject_then_reconverts(self):
+        # The spec's own named end-to-end guarantee (final whole-branch
+        # review finding): a rejected auto-skip's source PDF re-enters
+        # to_convert on a later run. Drives a REAL run_duplicate_check
+        # (not the hand-fabricated incoming_file_id in
+        # _make_auto_skipped_clone above), so the load-bearing link -- the
+        # id an auto-skip records is the same id a later run recomputes
+        # for the same PDF -- is actually protected by a test.
+        from indexer.duplicate_check import reject_pending_confirmation, run_duplicate_check
+
+        with tempfile.TemporaryDirectory() as academic_hub_root:
+            subdir = "academic_resources/microecon/textbooks"
+            pdf_path = os.path.join(academic_hub_root, subdir, "Ok_RealAnalysisWithEconomicApplications_2007.pdf")
+            os.makedirs(os.path.dirname(pdf_path), exist_ok=True)
+            with open(pdf_path, "wb") as f:
+                f.write(b"a re-scanned copy, different bytes")
+
+            book_dir = os.path.join(academic_hub_root, "academic_resources", "econometrics", "textbooks", "processed_outputs", "Ok_RealAnalysisWithEconomicApplications_2007")
+            os.makedirs(book_dir, exist_ok=True)
+            with open(os.path.join(book_dir, "Ok_RealAnalysisWithEconomicApplications_2007.md"), "w", encoding="utf-8") as f:
+                f.write("# Real Analysis")
+            save_shard(academic_hub_root, "econometrics", [{
+                "file_id": "some-other-fid",
+                "path": "academic_resources/econometrics/textbooks/processed_outputs/Ok_RealAnalysisWithEconomicApplications_2007/Ok_RealAnalysisWithEconomicApplications_2007.md",
+                "source_pdf_path": "academic_resources/econometrics/textbooks/Ok.pdf", "course": "econometrics",
+                "doc_type": "textbook", "title": "Real Analysis with Economic Applications",
+            }])
+
+            result = run_duplicate_check(subdir, academic_hub_root, non_interactive=True, resolutions={})
+            self.assertEqual(result["to_convert"], [])
+            self.assertEqual(len(result["auto_skipped_pending_confirmation"]), 1)
+            real_incoming_file_id = result["auto_skipped_pending_confirmation"][0]["incoming_file_id"]
+
+            reject_pending_confirmation(academic_hub_root, real_incoming_file_id)
+
+            result_2 = run_duplicate_check(subdir, academic_hub_root, non_interactive=True, resolutions={})
+            self.assertEqual(result_2["to_convert"], ["Ok_RealAnalysisWithEconomicApplications_2007.pdf"])
+            self.assertEqual(result_2["unresolved"], [])
+            self.assertEqual(result_2["auto_skipped_pending_confirmation"], [])
 
 
 class TestRunDuplicateCheckErrorIsolation(unittest.TestCase):
@@ -978,6 +1322,71 @@ class TestDismissalsStorageLocation(unittest.TestCase):
         with tempfile.TemporaryDirectory() as academic_hub_root:
             record_dismissal(academic_hub_root, "id-a", "id-b")
             self.assertTrue(is_dismissed(load_dismissals(academic_hub_root), "id-b", "id-a"))
+
+
+class TestPendingConfirmations(unittest.TestCase):
+    """Mirrors TestDismissals/TestDismissalsStorageLocation exactly -- same
+    store shape, same nested-path reasoning (pipeline-autonomy-policies
+    spec, Component 1b)."""
+
+    def test_load_missing_file_returns_empty_list(self):
+        from indexer.duplicate_check import load_pending_confirmations
+        with tempfile.TemporaryDirectory() as academic_hub_root:
+            self.assertEqual(load_pending_confirmations(academic_hub_root), [])
+
+    def test_record_then_load_round_trips(self):
+        from indexer.duplicate_check import record_pending_confirmation, load_pending_confirmations
+        with tempfile.TemporaryDirectory() as academic_hub_root:
+            entry = {
+                "incoming_file_id": "incoming-fid", "pdf_filename": "Ok.pdf", "course": "microecon",
+                "matched_course": "econometrics", "matched_file_id": "canonical-fid",
+                "matched_title": "Real Analysis with Economic Applications", "score": 0.91,
+                "new_card_file_id": "clone-fid", "queued_at": "2026-09-20T00:00:00+00:00",
+            }
+            record_pending_confirmation(academic_hub_root, entry)
+            entries = load_pending_confirmations(academic_hub_root)
+            self.assertEqual(len(entries), 1)
+            self.assertEqual(entries[0], entry)
+
+    def test_recording_multiple_entries_appends_not_overwrites(self):
+        from indexer.duplicate_check import record_pending_confirmation, load_pending_confirmations
+        with tempfile.TemporaryDirectory() as academic_hub_root:
+            record_pending_confirmation(academic_hub_root, {"incoming_file_id": "a", "pdf_filename": "A.pdf"})
+            record_pending_confirmation(academic_hub_root, {"incoming_file_id": "b", "pdf_filename": "B.pdf"})
+            entries = load_pending_confirmations(academic_hub_root)
+            self.assertEqual([e["incoming_file_id"] for e in entries], ["a", "b"])
+
+    def test_recording_the_same_incoming_and_new_card_id_twice_does_not_duplicate(self):
+        # Real bug found by the final whole-branch review: the documented
+        # non-interactive re-run workflow re-evaluates the same
+        # never-deleted source PDF every pass, which used to append a
+        # duplicate queue entry for the identical auto-skip each time.
+        from indexer.duplicate_check import record_pending_confirmation, load_pending_confirmations
+        with tempfile.TemporaryDirectory() as academic_hub_root:
+            entry = {"incoming_file_id": "a", "pdf_filename": "A.pdf", "new_card_file_id": "clone-a"}
+            record_pending_confirmation(academic_hub_root, entry)
+            record_pending_confirmation(academic_hub_root, entry)
+            self.assertEqual(len(load_pending_confirmations(academic_hub_root)), 1)
+
+    def test_persists_to_the_expected_nested_path(self):
+        from indexer.duplicate_check import record_pending_confirmation, _pending_confirmation_path
+        with tempfile.TemporaryDirectory() as academic_hub_root:
+            record_pending_confirmation(academic_hub_root, {"incoming_file_id": "a", "pdf_filename": "A.pdf"})
+            expected_path = os.path.join(academic_hub_root, ".index", "duplicates", "pending_confirmation.json")
+            self.assertEqual(_pending_confirmation_path(academic_hub_root), expected_path)
+            self.assertTrue(os.path.exists(expected_path))
+
+    def test_pending_confirmation_file_is_not_visible_to_list_courses(self):
+        # Same regression class as TestDismissalsStorageLocation -- a flat
+        # .index/-level file would be misread as a phantom course by
+        # list_courses(), and a future rebuild --prune would delete it.
+        from indexer.duplicate_check import record_pending_confirmation
+        from indexer.index_card import list_courses, save_shard
+        with tempfile.TemporaryDirectory() as academic_hub_root:
+            save_shard(academic_hub_root, "econometrics", [])
+            record_pending_confirmation(academic_hub_root, {"incoming_file_id": "a", "pdf_filename": "A.pdf"})
+            self.assertEqual(list_courses(academic_hub_root), ["econometrics"])
+            self.assertNotIn("pending_confirmation", list_courses(academic_hub_root))
 
 
 if __name__ == "__main__":
