@@ -433,6 +433,29 @@ class TestCopyDuplicateArtifacts(unittest.TestCase):
             self.assertEqual(original["source_pdf_path"], "academic_resources/econometrics/textbooks/Ok.pdf")
             self.assertEqual(original["source_pdf_file_id"], "canonical-fid")
 
+    def test_copied_metadata_gets_a_duplicate_of_file_id_marker(self):
+        # New behavior (pipeline-autonomy-policies spec, Component 3):
+        # index_search.py's rebuild() needs to recognize a clone directory
+        # from its on-disk _metadata.json alone -- it never reads the
+        # index card while walking book directories on disk. This marker
+        # is what lets rebuild() skip re-hashing a clone instead of
+        # colliding with the canonical book's own file_id.
+        with tempfile.TemporaryDirectory() as academic_hub_root:
+            _, folder_name, canonical_card = self._make_canonical_book(academic_hub_root)
+
+            copy_duplicate_artifacts(
+                academic_hub_root, "econometrics", canonical_card, "microecon", "textbooks",
+                "academic_resources/microecon/textbooks/Ok.pdf",
+            )
+
+            copied_metadata_path = os.path.join(
+                academic_hub_root, "academic_resources", "microecon", "textbooks",
+                "processed_outputs", folder_name, f"{folder_name}_metadata.json",
+            )
+            with open(copied_metadata_path, encoding="utf-8") as f:
+                copied = json.load(f)
+            self.assertEqual(copied["duplicate_of_file_id"], "canonical-fid")
+
     def test_rerunning_is_idempotent(self):
         with tempfile.TemporaryDirectory() as academic_hub_root:
             _, folder_name, canonical_card = self._make_canonical_book(academic_hub_root)
