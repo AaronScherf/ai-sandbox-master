@@ -256,6 +256,7 @@ def record_dismissal(academic_hub_root: str, file_id_a: str, file_id_b: str) -> 
 def copy_duplicate_artifacts(
     academic_hub_root: str, canonical_course: str, canonical_card: dict,
     new_course: str, new_folder_category: str, new_source_pdf_path: str,
+    pending_confirmation: bool = False,
 ) -> dict:
     """Copies a confirmed duplicate's processed_outputs/<BookDir>/ tree
     into the new course and clones its index card (spec §5). The canonical
@@ -336,6 +337,13 @@ def copy_duplicate_artifacts(
     new_card["source_pdf_path"] = new_source_pdf_path
     new_card["duplicate_of_file_id"] = canonical_card["file_id"]
     new_card["source_updated_at"] = now_iso()
+    if pending_confirmation:
+        # High-confidence auto-skip (pipeline-autonomy-policies spec,
+        # Component 1a) -- distinguishes this clone from a Tier 1 exact
+        # match or a human-confirmed Tier 2 "yes", neither of which needs
+        # post-hoc review. Absent (not False) on every other call, so
+        # existing/older cards never gain a meaningless extra key.
+        new_card["duplicate_pending_confirmation"] = True
 
     cards = [c for c in load_shard(academic_hub_root, new_course) if c.get("file_id") != new_file_id]
     cards.append(new_card)

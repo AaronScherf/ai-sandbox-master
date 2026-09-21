@@ -363,6 +363,31 @@ class TestCopyDuplicateArtifacts(unittest.TestCase):
             self.assertEqual(new_card["source_pdf_path"], "academic_resources/microecon/textbooks/Ok.pdf")
             self.assertEqual(new_card["title"], canonical_card["title"])
 
+    def test_pending_confirmation_flag_marks_the_new_card(self):
+        with tempfile.TemporaryDirectory() as academic_hub_root:
+            _, folder_name, canonical_card = self._make_canonical_book(academic_hub_root)
+
+            new_card = copy_duplicate_artifacts(
+                academic_hub_root, "econometrics", canonical_card, "microecon", "textbooks",
+                "academic_resources/microecon/textbooks/Ok.pdf",
+                pending_confirmation=True,
+            )
+
+            self.assertTrue(new_card["duplicate_pending_confirmation"])
+            saved_card = load_shard(academic_hub_root, "microecon")[0]
+            self.assertTrue(saved_card["duplicate_pending_confirmation"])
+
+    def test_pending_confirmation_flag_defaults_to_absent_not_false(self):
+        with tempfile.TemporaryDirectory() as academic_hub_root:
+            _, folder_name, canonical_card = self._make_canonical_book(academic_hub_root)
+
+            new_card = copy_duplicate_artifacts(
+                academic_hub_root, "econometrics", canonical_card, "microecon", "textbooks",
+                "academic_resources/microecon/textbooks/Ok.pdf",
+            )
+
+            self.assertNotIn("duplicate_pending_confirmation", new_card)
+
     def test_new_card_is_saved_in_the_new_course_shard(self):
         with tempfile.TemporaryDirectory() as academic_hub_root:
             _, folder_name, canonical_card = self._make_canonical_book(academic_hub_root)
