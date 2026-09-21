@@ -26,3 +26,20 @@ Depends on `common/` and `indexer/` (for its per-file indexing hook, via
 `_write_markdown_and_index`). `postprocessing/postprocess_notes.py` is a
 downstream correction pass over this pipeline's own output — see the root
 [`README.md`](../README.md) for the full dependency graph.
+
+- `transcribe_excalidraw.py` (+ `excalidraw_chunking.py`) — a separate
+  pipeline for handwritten Excalidraw canvases (`.excalidraw.md` +
+  its plugin-auto-exported `.png` or `.svg`), not PDFs: chunk the tall
+  canvas at whitespace gaps, transcribe each chunk via Gemini vision with a
+  trailing-context window, then expand the terse transcription into
+  cohesive prose. Writes `<name>.excalidraw.md` (raw) +
+  `<name>.excalidraw.rag.md` (expanded, the RAG-canonical artifact).
+
+- `run_pipeline.py` — a deterministic, filetype-based router across every
+  course under `academic_notes/`: finds source files (`.pdf`, or
+  `.excalidraw.md` + its image sibling) with no existing output yet, and
+  dispatches each to the matching pipeline above by extension alone — no
+  LLM decides routing, so this is safe to run unattended
+  (`python -m notes.run_pipeline [--course NAME] [--dry-run] [--force]`).
+  Re-verifies after each call that the expected output file actually landed
+  on disk rather than trusting a "no exception raised" result.
