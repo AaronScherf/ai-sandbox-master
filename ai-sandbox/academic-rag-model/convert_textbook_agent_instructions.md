@@ -239,11 +239,21 @@ echo "${#PDF_FILENAMES[@]} PDF(s), ~${TOTAL_MB} MB total, to convert:"
 printf '  %s\n' "${PDF_FILENAMES[@]}"
 ```
 
-**Ask the user to confirm before proceeding** — state the PDF count and
-total size, that this launches a billed `g2-standard-4` + L4 Spot VM for
-a run that (based on prior real runs) takes on the order of hours for a
-multi-hundred-page batch, and that a Spot VM can be preempted mid-run
-(recoverable, but costs wall-clock). Only create the VM after a yes.
+**Proceed automatically** (pipeline-autonomy-policies spec, Component
+2a) — report the PDF count and total size, that this launches a billed
+`g2-standard-4` + L4 Spot VM for a run that (based on prior real runs)
+takes on the order of hours for a multi-hundred-page batch, and that a
+Spot VM can be preempted mid-run (recoverable, but costs wall-clock) —
+then create the VM without waiting for a reply.
+
+**Exception — stop and ask if this batch is unprecedented:** more than 15
+books, or more than 2000 MB total (an initial, conservative cap pending
+real history — see the spec's Open Items, which flags this exact number
+as a judgment call to revisit once `vm_sizing_log.jsonl` has enough real
+batches in it). Crossing either threshold means report the size and ask
+before proceeding — a batch this much larger than anything seen so far
+may reflect a mistake (e.g. an entire library folder pointed at instead
+of one course's) rather than a genuinely large intentional run.
 
 ```bash
 gcloud compute instances create "$VM_INSTANCE_NAME" \
