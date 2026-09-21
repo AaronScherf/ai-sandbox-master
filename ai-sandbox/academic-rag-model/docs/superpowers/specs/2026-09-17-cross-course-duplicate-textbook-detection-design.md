@@ -257,6 +257,18 @@ here.
 
 ## 6a. Known limitations
 
+**Update (2026-09-20): fixed.** The corruption risk described below is
+resolved as of
+`docs/superpowers/specs/2026-09-20-pipeline-autonomy-policies-design.md`
+Component 3 — `copy_duplicate_artifacts` now marks a clone's on-disk
+`_metadata.json` with `duplicate_of_file_id`, and `index_search.py`'s
+`rebuild()` recognizes that marker and skips re-hashing the directory
+entirely instead of colliding with the canonical card's file_id.
+`rebuild`/`--prune` are now safe to run over a course holding a clone
+created after this fix shipped. The mechanism section below is kept as
+the historical record of the original bug and why the fix works, not as
+a still-open warning.
+
 **Duplicate-clone cards are outside `index_search.py`'s file_id
 reconciliation model.** That module assumes one card per real file, with
 `file_id` derived from that file's own bytes. A clone deliberately breaks
@@ -274,6 +286,13 @@ Consequences to be aware of:
   derives `course_name` from that same path string — it never trusts a
   stored `file_id`, so §5's `_metadata.json` rewrite (which only changes
   which path is *named*) cannot make this safe in general:
+
+  This warning applies in full to any clone created before 2026-09-20, whose
+  `_metadata.json` contains no `duplicate_of_file_id` marker — meaning
+  `rebuild()` cannot recognize it as a clone and the corruption risk
+  described below remains unchanged. Check a suspected clone's `_metadata.json`
+  for the `duplicate_of_file_id` field before assuming `rebuild`/`--prune` is safe.
+
   - **Tier 1 (byte-identical) clones are the worse case.** The new
     course's own copy of the PDF is, by definition, byte-identical to the
     canonical one, so hashing it yields the *same* `file_id` as the

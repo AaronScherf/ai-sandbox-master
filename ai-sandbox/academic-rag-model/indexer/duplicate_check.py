@@ -276,14 +276,15 @@ def copy_duplicate_artifacts(
     # path string. Repointing source_pdf_path at the new course's own PDF
     # keeps `_metadata.json` internally consistent (describe_images.py
     # does key off source_pdf_file_id) and is directionally correct, but
-    # it is NOT a reliable fix for the rebuild-corruption risk itself --
-    # see spec §6a. In particular, for a Tier 1 (byte-identical) clone,
-    # repointing this field makes rebuild MORE likely to evict the
-    # canonical card from its own course shard, not less, because hashing
-    # the new course's copy yields the same file_id as canonical either
-    # way. Do not treat this rewrite as closing that risk. A failure here
-    # leaves an already-successful copy in place, so it warns rather than
-    # unwinding the whole copy.
+    # it is NOT what actually prevents rebuild-corruption for a Tier 1
+    # (byte-identical) clone -- hashing the new course's copy always
+    # yields the same file_id as canonical, repointed or not. The
+    # `duplicate_of_file_id` field written below is what actually fixes
+    # that: index_search.py's rebuild() recognizes it and skips re-hashing
+    # this directory entirely (see
+    # docs/superpowers/specs/2026-09-20-pipeline-autonomy-policies-design.md
+    # Component 3). A failure here leaves an already-successful copy in
+    # place, so it warns rather than unwinding the whole copy.
     metadata_path = os.path.join(new_book_dir, f"{folder_name}_metadata.json")
     if os.path.exists(metadata_path):
         try:
@@ -291,6 +292,7 @@ def copy_duplicate_artifacts(
                 metadata = json.load(f)
             metadata["source_pdf_path"] = new_source_pdf_path
             metadata["source_pdf_file_id"] = new_file_id
+            metadata["duplicate_of_file_id"] = canonical_card["file_id"]
             with open(metadata_path, "w", encoding="utf-8") as f:
                 json.dump(metadata, f, indent=4, ensure_ascii=False)
         except Exception as err:
