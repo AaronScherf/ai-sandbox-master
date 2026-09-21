@@ -439,7 +439,16 @@ python -m textbook.vm_sizing_log \
 ```
 
 (`$REMOTE_HOME` is the value captured in Step 2.2. `--machine-type` should
-match whatever Step 1.3 actually created the VM with.)
+match whatever Step 1.3 actually created the VM with -- including any
+Rung 2 resize from the Debugging appendix's escalation ladder, if one
+happened during this run.)
+
+**Cost reconciliation** (pipeline-autonomy-policies spec, Component 2e):
+alongside this download, report the actual VM wall-clock time (from
+Step 1.3's creation to just before Step 4's deletion) and an approximate
+cost figure (machine-hour rate x hours, Spot pricing) next to Step 1.3's
+pre-run size/cost estimate -- closing the loop on whether that estimate
+was any good, without it ever having blocked the run.
 
 ## Step 4: Terminate the VM
 
