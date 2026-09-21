@@ -1236,7 +1236,7 @@ extend the discovery filter below, not touch anything downstream (no
 output-dir resolution, no indexing -- those only apply to PDF/Excalidraw
 sources).
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```python
 # tests/test_migrate_sources_to_resources.py
@@ -1336,12 +1336,12 @@ def test_migrate_one_dry_run_does_not_touch_the_filesystem(tmp_path):
     assert not target.exists()
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `.venv/Scripts/python.exe -m pytest tests/test_migrate_sources_to_resources.py -v`
 Expected: FAIL with `ModuleNotFoundError: No module named 'notes.migrate_sources_to_resources'`
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 ```python
 # notes/migrate_sources_to_resources.py
@@ -1453,17 +1453,17 @@ if __name__ == "__main__":
     main()
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `.venv/Scripts/python.exe -m pytest tests/test_migrate_sources_to_resources.py -v`
 Expected: PASS (7 tests)
 
-- [ ] **Step 5: Run the full test suite to check for regressions**
+- [x] **Step 5: Run the full test suite to check for regressions**
 
 Run: `.venv/Scripts/python.exe -m pytest -v`
 Expected: PASS (every test, this plan's full scope)
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add notes/migrate_sources_to_resources.py tests/test_migrate_sources_to_resources.py
