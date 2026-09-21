@@ -1193,7 +1193,7 @@ source files, no new tests. The known renames from the original brainstorm
 - `academic_notes/math-camp/lecture-notes/` -> `lecture_notes/` (the one
   outlier vs. every other course's `lecture_notes`)
 
-- [ ] **Step 1: Survey every course under both `academic_notes/` and
+- [x] **Step 1: Survey every course under both `academic_notes/` and
   `academic_resources/`** for hyphenated directory names (course-level and
   category-level), not just math-camp. A one-off script or manual
   `Get-ChildItem -Recurse -Directory | Where-Object Name -match '-'`
@@ -1201,18 +1201,18 @@ source files, no new tests. The known renames from the original brainstorm
   to be committed code, just a real inventory to confirm the rename list
   above is complete before executing it.
 
-- [ ] **Step 2: Confirm the full rename list with the user** before
+- [x] **Step 2: Confirm the full rename list with the user** before
   touching any real directory -- same explicit-confirmation bar as Task 10,
   since renaming a course directory that any other tool (Obsidian, Direct
   Git Sync, the vault repo) references by its current name has its own
   blast radius independent of this plan's own code.
 
-- [ ] **Step 3: Execute the renames for real** (`git mv` where the
+- [x] **Step 3: Execute the renames for real** (`git mv` where the
   directory is git-tracked under `academic_resources/`'s parent repo;
   plain filesystem rename for anything inside the separately-repo'd
   `academic_notes` vault) once confirmed.
 
-- [ ] **Step 4: Re-run the Task 7 verification** (`route_notes_transcribe
+- [x] **Step 4: Re-run the Task 7 verification** (`route_notes_transcribe
   --dry-run` equivalent, and the isolated-copy `rebuild()` check) against
   the real corpus post-rename, to confirm nothing broke and no course
   silently dropped out of discovery due to a missed rename.

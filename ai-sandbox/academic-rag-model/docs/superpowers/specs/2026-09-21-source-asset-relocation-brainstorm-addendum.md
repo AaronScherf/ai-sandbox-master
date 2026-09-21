@@ -49,9 +49,21 @@ math-camp in depth):
   `academic_resources/<course>/lecture_slides/` (wherever present).
 - `academic_resources/<course>/lecture-recordings/` ->
   `academic_resources/<course>/lecture_recordings/` (wherever present).
-- `academic_notes/math-camp/lecture-notes/` ->
-  `academic_notes/math-camp/lecture_notes/` (the one outlier vs. every
-  other course's `lecture_notes`).
+- ~~`academic_notes/math-camp/lecture-notes/` ->
+  `academic_notes/math-camp/lecture_notes/`~~ **CORRECTED, do not do this
+  (2026-09-21, caught before execution):** this is not a naming
+  inconsistency. `academic_notes/<course>/lecture-notes/` (hyphenated) is a
+  hardcoded, load-bearing directory name for a completely different
+  subsystem -- the video-lecture-notes pipeline
+  (`video_notes/note_indexing.py`, `indexer/index_search.py`'s
+  `_video_lecture_note_paths`) -- unrelated to the Excalidraw pipeline's
+  `lecture_notes` (underscored) category that every other course uses.
+  Confirmed via `grep -rn '"lecture-notes"' indexer/ video_notes/`: both
+  modules hardcode the literal hyphenated string. Renaming it would break
+  `rebuild()`'s discovery of math-camp's video lecture notes -- the exact
+  same class of silent-orphaning bug Task 3 of the main plan just fixed
+  for Excalidraw notes, reintroduced for a different content type. The
+  original brainstorm's "one outlier" framing was wrong; not executed.
 
 **Sequencing recommendation:** do this rename pass *before* running the
 file migration (Task 8/9), so `common/academic_hub_paths.py`'s mirrored-path
@@ -209,6 +221,53 @@ before, since these patterns must match the renamed directories):
    user's own primary-authored analysis the way a `.md` transcription
    does, so a blanket match is safe here without the deny-list-not-allow-list
    care `textbooks-and-papers/`'s PDF/MD patterns needed).
+
+## 2026-09-21: Task 8 executed for real against the live corpus
+
+Survey (Task 8 Step 1) found a fuller picture than the original
+math-camp-focused brainstorm: `math-methods`/`math_methods` was the only
+course-level mismatch that actually breaks the mirrored-path convention;
+`lecture-slides`/`lecture-recordings` have zero academic_notes/
+counterpart either way (already correctly excluded from PDF-notes
+discovery, hyphenated or not) so their rename is cosmetic, not
+functional; and `math-camp/lecture-notes/` turned out to be load-bearing
+for an unrelated subsystem (see the correction inline above), not
+renamed. Also found: `academic_resources/intro_spanish/` has real content
+(`lecture-slides/`/`lecture-recordings/`) with no `academic_notes/`
+counterpart at all -- confirmed with the user as a genuinely separate
+course from `interm_spanish`, not a duplicate.
+
+**Executed for real** (user-confirmed rename list, all verified
+git-untracked before touching -- `git ls-files` returned zero results for
+every renamed path, so these were plain filesystem renames, not `git mv`):
+- `academic_resources/math-methods/` -> `math_methods/`
+- `academic_resources/<course>/lecture-slides/` -> `lecture_slides/` for
+  econometrics, env-science, interm_spanish, intro_spanish, math-camp
+- `academic_resources/<course>/lecture-recordings/` -> `lecture_recordings/`
+  for the same 5 courses
+- Created `academic_notes/intro_spanish/` (empty, matching
+  `interm_spanish`'s own current empty state)
+
+**Outer `.gitignore` updated and committed** (`ai-sandbox-master`
+commit `cd2769b`): added `lecture_slides/`/`lecture_recordings/` patterns
+(kept the old hyphenated ones too, same both-spellings precedent as
+`textbooks-and-papers/`/`textbooks/`), and `**/*.docx`/`**/*.pptx` per the
+decided docx/pptx-gitignored-too follow-up decision. `math-camp/
+lecture_slides/` had real content (the same byte-identical duplicate PDFs
+Decision 2 above already found) that briefly surfaced as untracked before
+this gitignore update landed -- confirmed re-protected afterward, `git
+status` clean.
+
+**Re-verified against the real corpus post-rename** (same methodology as
+the main plan's Task 7): `route_notes_transcribe` discovery byte-identical
+to pre-rename (`PDF: 71 to process, 17 already done`); isolated-copy
+`rebuild()` re-run still `orphaned: 0`, all 8 real econometrics cards
+unchanged. Nothing broke.
+
+**Not yet done:** the math-camp duplicate-PDF deletion (Decision 2) --
+deliberately held for Task 10's own Step 0, a separate confirmation from
+this rename pass. The real file migration (Task 9's script exists and is
+tested; Task 10 is its own go/no-go, not yet reached).
 
 ## Suggested handoff prompt
 
