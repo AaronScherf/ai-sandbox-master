@@ -213,6 +213,23 @@ also retyping every filename in that course's folder.
   `docs/status/2026-08-24-notes-transcription-status.md`'s "2026-09-09"
   sections for full detail. Untested: the Ollama expansion backend and
   textbook-retrieval grounding, both wired but not yet exercised for real.
+  **2026-09-21:** the Obsidian Excalidraw plugin's auto-export format
+  switched vault-wide from PNG to SVG, which silently broke discovery for
+  every note created since (PIL can't decode SVG either, so even a fixed
+  discovery step would have crashed on first contact). Fixed:
+  `load_canvas_image()` rasterizes `.svg` via `resvg-py` (a self-contained
+  Windows wheel -- `svglib`/`cairosvg` both need a system Cairo install
+  with no working path here); discovery now accepts either extension.
+  Real-corpus validated against all 4 `econometrics/lecture_notes/` SVG
+  files: 30 chunks, zero hard cuts, zero failures, ~$0.10 total, spot-
+  checked accurate against source. `microecon/` has 4 more SVG files not
+  yet run (out of this session's scope). Two vault-side findings flagged
+  for the user, not fixed here: the 2026-09-09 `math_methods`/`microecon`
+  outputs were deleted by a later sync commit, and `*.excalidraw.svg` is
+  now gitignored in the vault -- the only usable transcription input, so a
+  fresh clone/tablet has nothing to run against. See
+  `docs/status/2026-08-24-notes-transcription-status.md`'s "2026-09-21"
+  section for full detail.
 - **Notes post-processing**: **in progress, explicitly paused.** Built,
   unit-tested, and validated against one real reproduced bug (the
   radical-as-`p` case) and a broader corpus run that fixed a real

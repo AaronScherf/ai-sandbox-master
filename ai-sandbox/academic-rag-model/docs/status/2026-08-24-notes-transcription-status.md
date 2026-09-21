@@ -738,3 +738,115 @@ experiment above).
 output files above were committed and pushed to `academic-notes-vault`
 (`main`, `0831e15`) at the user's request, so the user's tablet will pick
 them up on its next Obsidian Git pull.
+
+## 2026-09-21: Excalidraw plugin's auto-export switched from PNG to SVG -- discovery silently skipped every note since, now fixed
+
+**Symptom, confirmed rather than assumed:** the user added a new batch of
+lecture notes to `academic_notes/econometrics/lecture_notes/` and asked
+whether the pipeline could actually transcribe them. Checking the vault
+directly found every `.excalidraw.md` created since 2026-09-09 --
+`econometrics/` (4 files) and all but the original two `microecon.md`/
+`math_methods.md` demo files -- has an `.excalidraw.svg` sibling instead of
+`.excalidraw.png`. The Obsidian Excalidraw plugin's auto-export format is a
+vault-wide setting, and it was switched at some point after the two files
+validated in the "2026-09-09" section above.
+
+**Root cause, traced rather than patched around:** `discover_excalidraw_files`
+(`notes/transcribe_excalidraw.py`) hardcoded the sibling lookup to
+`stem + ".png"`, so every `.svg`-only file was silently skipped with a
+"no matching .png" warning -- nothing in the corpus newer than
+2026-09-08/09 had ever actually reached the transcription pipeline. Even
+with discovery fixed, `process_excalidraw_note` called `PIL.Image.open()`
+directly on the sibling path, which cannot decode SVG at all (it's a vector
+format, not raster) -- would have raised `UnidentifiedImageError` on first
+contact.
+
+**Fix:** `load_canvas_image()` (new, `notes/excalidraw_chunking.py`) opens
+`.png`/`.jpg` through PIL as before, and rasterizes `.svg` via `resvg-py`
+first. `resvg-py` was chosen over `cairosvg`/`svglib` after `svglib` was
+tried for real and failed on this Windows venv: newer `reportlab` dropped
+its bundled `_renderPM` C backend in favor of `rlPyCairo`, which itself
+needs a system Cairo install with no working wheel path on Windows.
+`resvg-py` ships a self-contained Rust binary wheel (`resvg_py-0.5.0-cp310-
+abi3-win_amd64.whl`) with no native library dependency, confirmed installed
+and working directly. `discover_excalidraw_files` now looks for either
+extension (`.png` preferred if somehow both exist); the `source_png`
+frontmatter field was renamed `source_image` since it would otherwise
+mislabel an SVG source as a PNG. 41 tests updated/added across both test
+files (new: `load_canvas_image` on both a real PNG and a real rendered SVG,
+SVG-path discovery, SVG source-filename frontmatter, and one full-pipeline
+test that runs real (unmocked) SVG rasterization end-to-end); full suite
+1388 passed, no regressions.
+
+**Local validation before spending anything (all four real econometrics
+canvases, no API calls):**
+
+| File | Canvas size | Raster time | Gaps found | Chunks | Hard cuts |
+|---|---|---:|---:|---:|---:|
+| `Econometrics 2026-09-09 10.11.39` | 1933x20405 | 3.8s | 120 | 7 | 0 |
+| `Econometrics 2026-09-14 10.08.12` | 1185x25591 | 3.4s | 160 | 9 | 0 |
+| `Econometrics 2026-09-16 10.06.15` | 2217x23246 | 6.0s | 134 | 8 | 0 |
+| `Econometrics Recitation 2026-09-15 08.06.01` | 1092x16722 | 2.6s | 124 | 6 | 0 |
+
+Zero hard cuts across all four -- every cut landed inside a real whitespace
+gap, consistent with the original two-file spike. One canvas
+(`2026-09-16`, 2217px wide) is the first real file to exceed the
+`resize_chunk_for_api` 2000px safety net; rendered the exact bytes that
+would reach the API and visually confirmed the downscaled+JPEG chunk stays
+legible (fine handwriting still readable at 1:1 crop).
+
+**Real run, all four files, no failures:** 30 chunks total (7+9+8+6),
+zero chunk failures, zero retries needed. Transcription-stage token totals
+(only stage with logging wired in -- see gap noted below):
+input=64,339, output=11,660 on `gemini-3.6-flash` ($0.75/$3.75 per 1M
+in/out) = **~$0.092**. Expansion-stage tokens aren't captured by
+`_log_token_usage` (only `transcribe_page_via_gemini` calls it;
+`expand_via_gemini` doesn't) -- estimated from raw/expanded file sizes at
+~7,800 input + ~5,000 output tokens on `gemini-3.1-flash-lite`
+($0.25/$1.50 per 1M) = ~$0.009. **Total for all four files: roughly $0.10.**
+Noted as a real gap, not fixed here since it's cosmetic (doesn't block
+anything): expansion-stage token logging should be wired in the same way
+transcription-stage logging already is, so future cost figures don't need
+to be estimated from file sizes.
+
+**Spot-checked for accuracy, not just "it ran":** `Econometrics 2026-09-16
+10.06.15.excalidraw.rag.md` checked chunk-by-chunk against the rendered
+source image (OLS algebraic/statistical properties, Gauss-Markov, ridge
+regression via SVD, large-sample consistency -- genuinely dense,
+multi-step derivations). Every equation and step in the source appears in
+both the raw transcription and the expanded prose; nothing invented;
+"Econometrics 4/16" heading transcribed verbatim even though it doesn't
+match the filename's date (the student's own handwritten date, correctly
+left as-written rather than "corrected" to the filename). Consistent with
+this project's established bar for calling a transcription run validated.
+
+**Two things found in the vault while investigating, neither a bug in this
+pipeline, both flagged rather than fixed unilaterally:**
+1. **The 2026-09-09 `processed_outputs/` for `math_methods`/`microecon`
+   no longer exist.** Commit `0831e15` added them; the very next sync
+   commit (`0fbefe3`, "Sync from Obsidian on 9/9/2026") deleted all four
+   files. Both courses currently have no `processed_outputs/` at all in
+   the vault. Unknown whether this was an intentional Obsidian-side
+   deletion or a sync-tool artifact -- not investigated further since it's
+   vault history, not a transcription-pipeline defect.
+2. **`*.excalidraw.svg` is gitignored in the vault repo** (`.gitignore`
+   line 16, added in `661d97d`, "Ignore auto-exported .excalidraw.svg
+   companion files"). Since `.excalidraw.md` itself is an opaque
+   `compressed-json` blob (confirmed back in the "2026-09-09: real examples
+   arrived" section above) with no usable text content, the `.svg` is the
+   *only* input this pipeline can actually transcribe -- a fresh clone of
+   the vault (or the user's tablet, per the "history rewritten 2026-09-21"
+   memory note) would have no source to run against. Whether this ignore
+   rule was intentional (e.g. to keep the private vault repo smaller) is a
+   call for the user, not something to silently override.
+
+**Backlog beyond econometrics, not run this session (scope was the
+econometrics folder the user pointed at):** `microecon/lecture_notes/` has
+4 `.svg` files with no `processed_outputs/` at all yet (including the
+original `Microeconomics lecture 2026-09-07 19.53.03` file, which appears
+to have replaced the earlier `Drawing 2026-09-07 19.53.03` file this
+project's 2026-09-09 validation ran against -- same timestamp, renamed).
+`math_methods/lecture_notes/` has one `.svg`-backed file
+(`Math methods lecture 2026-09-10 11.40.42`) with no export sibling at all
+yet -- `discover_excalidraw_files` correctly skips it with a warning; this
+is an unrun-auto-export gap, not a pipeline defect.

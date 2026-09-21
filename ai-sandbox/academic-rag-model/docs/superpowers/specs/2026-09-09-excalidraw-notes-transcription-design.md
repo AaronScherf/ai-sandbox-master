@@ -1,5 +1,13 @@
 # Excalidraw Notes Transcription & Expansion: Design
 
+> **2026-09-21 addendum:** this doc describes the original design against
+> `.png` exports only. The Obsidian Excalidraw plugin's auto-export format
+> later switched vault-wide to `.svg`; the implementation now rasterizes
+> `.svg` via `resvg-py` before the same PNG-based chunking/transcription
+> pipeline described below runs unchanged. Every "PNG" reference below is
+> historical -- see `docs/status/2026-08-24-notes-transcription-status.md`'s
+> "2026-09-21" section for the fix and real-corpus validation.
+
 ## Motivation and history
 
 `transcribe_notes.py`'s Tier 3 (full-Gemini, page-by-page vision
