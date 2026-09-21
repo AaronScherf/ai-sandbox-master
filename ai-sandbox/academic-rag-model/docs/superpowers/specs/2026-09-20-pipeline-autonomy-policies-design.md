@@ -63,6 +63,14 @@ because:
 - Replace the pre-VM-creation cost sanity check's blocking prompt with an
   automatic proceed + logged estimate, escalating only when a batch is
   unprecedented relative to history.
+- Fix, not just work around, the known open `index_search.py rebuild`
+  corruption risk ([[project-duplicate-check-rebuild-limitation]]) —
+  necessary here specifically because auto-resolving Tier 2 matches
+  (above) increases how many clone cards get created, and how often,
+  under exactly the kind of reduced human attention this whole spec is
+  designed around. A doc-only "don't run rebuild over an affected course"
+  warning becomes less reliable exactly as its consequences get more
+  frequent.
 
 ## Non-goals
 
@@ -106,13 +114,27 @@ because:
 ### 1b. Pending-confirmation store
 
 New functions in `indexer/duplicate_check.py`, mirroring the existing
-dismissal store's shape and conventions:
+dismissal store's shape *and its path convention exactly* — this matters,
+not just for consistency: `indexer.index_card.list_courses()` treats
+every `*.json` file that is a direct child of `.index/` (other than
+`courses.json`/`tags.json`) as a course shard, so a flat
+`.index/duplicate_pending_confirmation.json` would surface as a phantom
+course, and a future `rebuild --prune` would eventually delete it — the
+exact bug `_dismissals_path` was already written to avoid (see its own
+docstring in `indexer/duplicate_check.py`). The pending-confirmation store
+must live at the same nested depth:
 
 - `_pending_confirmation_path(academic_hub_root) -> str` →
-  `<academic_hub_root>/.index/duplicate_pending_confirmation.json`
+  `<academic_hub_root>/.index/duplicates/pending_confirmation.json`
+  (same `.index/duplicates/` directory `dismissals.json` already lives
+  in, not a new top-level file).
 - `load_pending_confirmations(academic_hub_root) -> list[dict]`
 - `save_pending_confirmations(academic_hub_root, entries) -> None`
 - `record_pending_confirmation(academic_hub_root, entry: dict) -> None`
+
+Like `dismissals.json`, this file is git-tracked (not gitignored) — it's
+durable index state, not run-local scratch output, consistent with how
+`.index/` card shards are already tracked normally in this repo.
 
 Entry shape:
 ```json
@@ -195,38 +217,68 @@ unnecessarily on the more expensive machine type.
 
 ### 2c. Escalation ladder (replaces the single "second OOM" stop point)
 
-1. **1st confirmed OOM-kill on a book:** fully automatic —
+**Precondition, not yet automated today: confirming it's actually an OOM.**
+`start_conversion.sh`'s existing watchdog (`run_conversion_with_retries`)
+already retries any nonzero exit up to `MAX_RETRIES` (5) times, 15s apart,
+today, fully automatically — but it does not distinguish *why* the
+process died. A torchaudio ABI crash, an orphaned container hoarding
+VRAM, an unexplained Docker `TaskDelete`, and a genuine system-RAM
+OOM-kill all currently look identical to it (nonzero exit code). The
+existing docs are explicit that a `gcloud compute instances reset` only
+actually helps the OOM case — "skip the reset if the trigger was retry
+exhaustion with no `dmesg` OOM-kill involved... a reset won't help." So
+before any rung below fires, the orchestrator must run the check that's
+today a documented *manual* step —
+`dmesg 2>/dev/null | grep -i 'killed process'` over SSH — to positively
+confirm this specific retry-exhaustion event was actually an OOM-kill.
+**A retry-exhaustion event with no `dmesg` OOM hit does not enter this
+ladder at all** — it's the existing "FATAL, needs manual investigation"
+case, unchanged by this spec. This also means each rung below is reached
+only *after* the existing 5-retry watchdog has already exhausted itself
+and the book still hasn't completed — the ladder extends what happens
+once that watchdog gives up, it doesn't replace or duplicate it.
+
+1. **1st confirmed OOM-kill on a book** (i.e., the watchdog's retries are
+   exhausted *and* `dmesg` confirms an OOM-kill): fully automatic —
    `gcloud compute instances reset`, wait, relaunch on the same machine
    type. This promotes today's documented "manual recovery" steps
    (Debugging appendix) into the orchestrator itself. No report needed
    beyond the log line.
-2. **2nd confirmed OOM-kill on the same book:** automatic resize
-   (`gcloud compute instances stop` → `set-machine-type g2-standard-8` →
-   `start`) and relaunch. **Flagged in real time** — a note the moment it
-   happens, not a blocking prompt and not only in the end-of-run summary —
-   specifically so a *pattern* of frequent resizes across many separate
-   runs stays visible (if `g2-standard-4` turns out to be the wrong
-   default, this is the signal that would show it, without needing to dig
-   through historical reports after the fact). Self-check: after relaunch,
-   confirm the book completes without `chunk_is_degraded` firing again;
-   if it completes cleanly, write the outcome (book, pages, file size,
-   pre/post machine type) into `vm_sizing_log.jsonl` as a real data point
-   — every escalation becomes evidence for the still-empty Phase 2
-   dataset, not just a one-off decision.
-3. **3rd confirmed OOM-kill on the same book** (i.e., it recurs even on
-   the bigger machine): genuine stop-and-ask. Two different machine sizes
-   both failing on the same book is outside anything this pipeline has
-   seen, and is a real signal something other than "needed more RAM" is
-   going on.
+2. **2nd confirmed OOM-kill on the same book** (the same dmesg-confirmation
+   check applies again after this second retry-exhaustion): automatic
+   resize (`gcloud compute instances stop` → `set-machine-type
+   g2-standard-8` → `start`) and relaunch. **Flagged in real time** — a
+   note the moment it happens, not a blocking prompt and not only in the
+   end-of-run summary — specifically so a *pattern* of frequent resizes
+   across many separate runs stays visible (if `g2-standard-4` turns out
+   to be the wrong default, this is the signal that would show it,
+   without needing to dig through historical reports after the fact).
+   Self-check: after relaunch, confirm the book completes without
+   `chunk_is_degraded` firing again; if it completes cleanly, write the
+   outcome (book, pages, file size, pre/post machine type) into
+   `vm_sizing_log.jsonl` as a real data point — every escalation becomes
+   evidence for the still-empty Phase 2 dataset, not just a one-off
+   decision.
+3. **3rd confirmed OOM-kill on the same book** (it recurs even on the
+   bigger machine, again dmesg-confirmed): genuine stop-and-ask. Two
+   different machine sizes both failing on the same book, both times a
+   real OOM, is outside anything this pipeline has seen, and is a real
+   signal something other than "needed more RAM" is going on.
 
 ### 2d. RAM_SIZING_START marker extension
 
 Add two fields to the existing marker
 (`textbook/convert_textbook.py`), keeping the "smallest possible change"
-discipline the original Phase 1 spec used:
+discipline the original Phase 1 spec used. **Append them after `ts=`,
+not inserted before it** — this keeps the existing
+`file_size_bytes=(?P<file_size_bytes>\d+) ts=(?P<ts>\d+)` sequence in
+`_RAM_SIZING_START_RE` intact rather than requiring it to be
+restructured, and makes backward compatibility with pre-existing logs
+(which won't have these fields at all) a matter of the two new capture
+groups being optional, not a reordering of ones that already exist:
 
 ```
-RAM_SIZING_START book=<name> pages=<n> file_size_bytes=<n> cumulative_pages_so_far=<n> cumulative_file_size_bytes_so_far=<n> ts=<unix_ts>
+RAM_SIZING_START book=<name> pages=<n> file_size_bytes=<n> ts=<unix_ts> cumulative_pages_so_far=<n> cumulative_file_size_bytes_so_far=<n>
 ```
 
 `cumulative_*` = sum of `pages`/`file_size_bytes` over every book already
@@ -239,9 +291,11 @@ GPU-VRAM equivalent of this is already confirmed (see Goals); this is the
 data needed to check whether system RAM behaves the same way, instead of
 assuming it does.
 
-`textbook/vm_sizing_log.py`'s `parse_book_windows`/`build_rows` need the
-matching two new fields added to their output rows (additive — existing
-fields/behavior unchanged).
+`textbook/vm_sizing_log.py`'s `_RAM_SIZING_START_RE` regex itself needs
+the two new optional trailing capture groups added (not just the output
+row's dict gaining keys) — `parse_book_windows`/`build_rows` then pass
+those values through additively, with existing fields/behavior otherwise
+unchanged.
 
 ### 2e. End-of-run cost reconciliation
 
@@ -249,6 +303,56 @@ The pipeline's final report includes actual VM wall-clock time and an
 approximate cost figure (machine-hour rate × hours, Spot pricing) next to
 the pre-run estimate from 2a — closing the loop on whether the estimate
 was any good, without it ever having blocked the run.
+
+## Component 3: Rebuild-safety fix for duplicate clone cards
+
+Discovered while designing Component 1: auto-resolving more Tier 2
+matches (1a) directly increases how often
+[[project-duplicate-check-rebuild-limitation]] — a known, currently
+unfixed bug — gets triggered. That bug: `index_search.py rebuild`'s
+textbook backfill locates every book by re-hashing its PDF via
+`compute_file_id`, never trusting a card's own stored `file_id`. For a
+Tier 1 (byte-identical) clone, the new course's copy of the PDF hashes to
+the *same* id as the canonical PDF (the bytes really are identical) —
+`rebuild`'s existing cross-course "this file moved courses" handling then
+fires and relocates the canonical card out of its own shard, corrupting
+it. For a Tier 2 clone, `rebuild` instead generates a redundant new card
+via a wasted LLM call. The current mitigation is a documentation-only
+warning ("never run `rebuild` over a course holding a clone") — reliable
+only as long as a human remembers it, which gets less likely exactly as
+this spec makes clones more frequent and less human-reviewed.
+
+**This is fixable, not just work-aroundable, with a small, additive
+change to two functions:**
+
+1. **`copy_duplicate_artifacts`** (`indexer/duplicate_check.py`): in
+   addition to the `source_pdf_path`/`source_pdf_file_id` rewrite it
+   already does to the copied `_metadata.json`, also write
+   `metadata["duplicate_of_file_id"] = canonical_card["file_id"]` into
+   that same file. Today this marker exists only on the index card, not
+   in the on-disk metadata `rebuild()` actually reads — this is the one
+   gap standing between "cheap to detect" and "needs an extra shard
+   lookup."
+2. **`rebuild()`'s textbook loop** (`indexer/index_search.py`): after
+   loading `metadata` for a book directory, check
+   `metadata.get("duplicate_of_file_id")`. If set, this directory is a
+   clone — skip `_reconcile_one` for it entirely (no re-hashing, no LLM
+   call, no risk of the cross-course collision above), and instead
+   independently re-derive the clone's own card id via the exact same
+   pure function that created it —
+   `compute_id_from_parts([metadata["duplicate_of_file_id"], course_name])`
+   — adding it to `seen_file_ids` so a subsequent `--prune` doesn't evict
+   it as an apparent orphan.
+
+This resolves both known failure modes (Tier 1 corruption, Tier 2
+redundant generation) with the same change, and makes `rebuild`/`--prune`
+genuinely safe to run over a course holding clones — superseding the
+doc-only warning rather than adding another layer of guard on top of it.
+A clone's downstream fields (e.g. `rag_md_path`) falling out of sync if
+the *canonical* book is re-processed after the clone was made is a known,
+accepted limitation of this fix, not solved here — a clone's own card
+already carries a correct-as-of-copy-time snapshot, and this fix doesn't
+make that better or worse.
 
 ## Error handling
 
@@ -284,6 +388,17 @@ was any good, without it ever having blocked the run.
   that path is a real-run verification item, consistent with how the rest
   of this pipeline's GCP-touching code has always been verified (see the
   `2026-09-10-textbook-conversion-status.md` real-run debugging history).
+- `indexer/index_search.py`: new test(s) covering `rebuild()`'s textbook
+  loop skipping a clone directory (fabricate a `_metadata.json` with
+  `duplicate_of_file_id` set, confirm `_reconcile_one`/`compute_file_id`
+  is never called for it and its derived id lands in `seen_file_ids`),
+  plus a regression test reproducing the original corruption case (a
+  Tier 1 clone's canonical card must still be present in its own shard
+  after `rebuild()`, not relocated) — this is the first test file to
+  touch `index_search.py`'s `rebuild()` from this pipeline's autonomy
+  work, so it should also assert the existing non-clone reconciliation
+  paths (generated/updated/unchanged/moved/orphaned/pruned stats) are
+  unaffected.
 
 ## Documentation updates
 

@@ -1,0 +1,29 @@
+@media print {
+  /* Force all body text, headings, and LaTeX math blocks to print black */
+  body, p, h1, h2, h3, h4, h5, h6, li, span, 
+  .math, .math-block, .cm-embed-block {
+    color: #000000 !important;
+    -webkit-text-fill-color: #000000 !important;
+  }
+
+  @page {
+    margin-top: 20mm;
+    margin-bottom: 20mm;
+
+    /* Top Right Header in pure black */
+    @top-right {
+      content: "Aaron Scherf";
+      font-family: sans-serif;
+      font-size: 9pt;
+      color: #000000 !important;
+    }
+
+    /* Bottom Center Footer in pure black */
+    @bottom-center {
+      content: "Page " counter(page) " of " counter(pages);
+      font-family: sans-serif;
+      font-size: 9pt;
+      color: #000000 !important;
+    }
+  }
+}

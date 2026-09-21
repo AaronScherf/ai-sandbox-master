@@ -1,0 +1,17 @@
+{
+    "total_pages_processed": 192,
+    "processing_time_seconds": 456.05,
+    "source_pdf_document_info": {
+        "title": "",
+        "author": "",
+        "year": "2026"
+    },
+    "markdown_parsed_info": {
+        "title": "Lecture Notes in Microeconomic Theory",
+        "author": "",
+        "year": ""
+    },
+    "source_pdf_path": "../academic-rag-model/temp_gcs_input_Rubenstein_Microeconomic_Theory.pdf",
+    "source_pdf_filename": "Rubenstein_Microeconomic_Theory.pdf",
+    "source_pdf_file_id": "4067ec2d0d48d45c"
+}

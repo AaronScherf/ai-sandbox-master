@@ -1,0 +1,17 @@
+{
+    "total_pages_processed": 709,
+    "processing_time_seconds": 1323.18,
+    "source_pdf_document_info": {
+        "title": "Real Analysis with Economic Applications",
+        "author": "Ok, Efe A.;",
+        "year": "2026"
+    },
+    "markdown_parsed_info": {
+        "title": "",
+        "author": "",
+        "year": ""
+    },
+    "source_pdf_path": "../academic-rag-model/temp_gcs_input_Real_Analysis_with_Economic_Applications_Ok_Efe_A_Princeton_University_Press_Princeton_2007.pdf",
+    "source_pdf_filename": "Real Analysis with Economic Applications -- Ok, Efe A_; -- Princeton University Press, Princeton, 2007.pdf",
+    "source_pdf_file_id": "6bcb515f64867f0a"
+}

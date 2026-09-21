@@ -1,5 +1,8 @@
 {
   "enabledCssSnippets": [
-    "cheat-sheet-compact"
-  ]
+    "pdf_page_breaks",
+    "pdf-header-footer"
+  ],
+  "baseFontSize": 20,
+  "baseFontSizeAction": true
 }

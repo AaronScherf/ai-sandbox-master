@@ -517,7 +517,7 @@ Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>"
 
 **Interfaces:**
 - Consumes: `indexer.index_card.now_iso() -> str`.
-- Produces: `load_dismissals(academic_hub_root: str) -> list[dict]`, `save_dismissals(academic_hub_root: str, dismissals: list[dict]) -> None`, `is_dismissed(dismissals: list[dict], file_id_a: str, file_id_b: str) -> bool`, `record_dismissal(academic_hub_root: str, file_id_a: str, file_id_b: str) -> None`. Storage file: `<academic_hub_root>/.index/duplicate_dismissals.json`.
+- Produces: `load_dismissals(academic_hub_root: str) -> list[dict]`, `save_dismissals(academic_hub_root: str, dismissals: list[dict]) -> None`, `is_dismissed(dismissals: list[dict], file_id_a: str, file_id_b: str) -> bool`, `record_dismissal(academic_hub_root: str, file_id_a: str, file_id_b: str) -> None`. Storage file: `<academic_hub_root>/.index/duplicates/dismissals.json` (nested one level down deliberately -- see the Step 3 implementation note below).
 
 - [ ] **Step 1: Write the failing tests**
 
@@ -554,7 +554,7 @@ class TestDismissals(unittest.TestCase):
     def test_persists_to_the_expected_path(self):
         with tempfile.TemporaryDirectory() as academic_hub_root:
             record_dismissal(academic_hub_root, "id-a", "id-b")
-            expected_path = os.path.join(academic_hub_root, ".index", "duplicate_dismissals.json")
+            expected_path = os.path.join(academic_hub_root, ".index", "duplicates", "dismissals.json")
             self.assertTrue(os.path.exists(expected_path))
 ```
 
@@ -574,7 +574,16 @@ from indexer.index_card import now_iso
 
 
 def _dismissals_path(academic_hub_root: str) -> str:
-    return os.path.join(academic_hub_root, ".index", "duplicate_dismissals.json")
+    """Deliberately one level DOWN inside .index/, not directly in it:
+    indexer.index_card.list_courses() treats every `*.json` file that is a
+    direct child of `.index/` (except courses.json/tags.json) as a course
+    shard, so a `.index/duplicate_dismissals.json` would surface as a
+    phantom course named "duplicate_dismissals" -- and index_search.py's
+    `rebuild --prune` would then walk that "shard", find none of its
+    entries backed by a real file, and delete every recorded dismissal.
+    list_courses() only ever scans direct children, never subdirectories,
+    so `.index/duplicates/` is structurally outside its namespace."""
+    return os.path.join(academic_hub_root, ".index", "duplicates", "dismissals.json")
 
 
 def load_dismissals(academic_hub_root: str) -> list[dict]:

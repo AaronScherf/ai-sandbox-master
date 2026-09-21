@@ -1,0 +1,17 @@
+{
+    "total_pages_processed": 136,
+    "processing_time_seconds": 469.71,
+    "source_pdf_document_info": {
+        "title": "59306pre",
+        "author": "Administrator",
+        "year": "2000"
+    },
+    "markdown_parsed_info": {
+        "title": "",
+        "author": "",
+        "year": ""
+    },
+    "source_pdf_path": "../academic-rag-model/temp_gcs_input_Rubenstein_Economics_and_Language.pdf",
+    "source_pdf_filename": "Rubenstein_Economics_and_Language.pdf",
+    "source_pdf_file_id": "6081e6355000f2c9"
+}

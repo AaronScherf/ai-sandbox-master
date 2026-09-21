@@ -1,0 +1,17 @@
+{
+    "total_pages_processed": 987,
+    "processing_time_seconds": 1771.53,
+    "source_pdf_document_info": {
+        "title": "",
+        "author": "",
+        "year": "2011"
+    },
+    "markdown_parsed_info": {
+        "title": "Microeconomic Theory",
+        "author": "Oxford University Press",
+        "year": "1995"
+    },
+    "source_pdf_path": "../academic-rag-model/temp_gcs_input_Microeconomic_Theory_by_Mas_Colell_Andreu_1995_Paperback_Andreu_Mas_Colell_Michael_D_Whinston_and_Jerry_R_Green_Illustrated_1_PS_1995_isbn13_9780195073409_7c8a1c3d6a60923ac8d4bb873c31a24d_A.pdf",
+    "source_pdf_filename": "Microeconomic Theory by Mas-Colell, Andreu (1995) Paperback -- Andreu Mas-Colell, Michael D_ Whinston, and Jerry R_ Green -- Illustrated, 1, PS, 1995 -- isbn13 9780195073409 -- 7c8a1c3d6a60923ac8d4bb873c31a24d -- A.pdf",
+    "source_pdf_file_id": "bcd5a61453be86b0"
+}
