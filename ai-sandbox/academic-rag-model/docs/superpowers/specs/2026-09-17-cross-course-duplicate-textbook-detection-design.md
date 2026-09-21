@@ -257,6 +257,18 @@ here.
 
 ## 6a. Known limitations
 
+**Update (2026-09-20): fixed.** The corruption risk described below is
+resolved as of
+`docs/superpowers/specs/2026-09-20-pipeline-autonomy-policies-design.md`
+Component 3 — `copy_duplicate_artifacts` now marks a clone's on-disk
+`_metadata.json` with `duplicate_of_file_id`, and `index_search.py`'s
+`rebuild()` recognizes that marker and skips re-hashing the directory
+entirely instead of colliding with the canonical card's file_id.
+`rebuild`/`--prune` are now safe to run over a course holding a clone
+created after this fix shipped. The mechanism section below is kept as
+the historical record of the original bug and why the fix works, not as
+a still-open warning.
+
 **Duplicate-clone cards are outside `index_search.py`'s file_id
 reconciliation model.** That module assumes one card per real file, with
 `file_id` derived from that file's own bytes. A clone deliberately breaks
