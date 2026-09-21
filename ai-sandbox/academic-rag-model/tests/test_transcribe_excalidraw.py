@@ -43,6 +43,48 @@ def test_discover_excalidraw_files_missing_dir_returns_empty():
     assert discover_excalidraw_files("/no/such/dir") == []
 
 
+def test_discover_excalidraw_files_falls_back_to_the_mirrored_resources_directory(tmp_path):
+    notes_dir = tmp_path / "academic_notes" / "econometrics" / "lecture_notes"
+    notes_dir.mkdir(parents=True)
+    (notes_dir / "Drawing.excalidraw.md").write_text("---\n---\n")
+    # no local image sibling -- it's already been migrated
+
+    resources_dir = tmp_path / "academic_resources" / "econometrics" / "lecture_notes"
+    resources_dir.mkdir(parents=True)
+    (resources_dir / "Drawing.excalidraw.svg").write_text("<svg></svg>")
+
+    pairs = discover_excalidraw_files(str(notes_dir))
+
+    assert len(pairs) == 1
+    assert pairs[0][1] == str(resources_dir / "Drawing.excalidraw.svg")
+
+
+def test_discover_excalidraw_files_prefers_local_image_over_mirrored_one(tmp_path):
+    notes_dir = tmp_path / "academic_notes" / "econometrics" / "lecture_notes"
+    notes_dir.mkdir(parents=True)
+    (notes_dir / "Drawing.excalidraw.md").write_text("---\n---\n")
+    (notes_dir / "Drawing.excalidraw.svg").write_text("<svg>local</svg>")
+
+    resources_dir = tmp_path / "academic_resources" / "econometrics" / "lecture_notes"
+    resources_dir.mkdir(parents=True)
+    (resources_dir / "Drawing.excalidraw.svg").write_text("<svg>mirrored</svg>")
+
+    pairs = discover_excalidraw_files(str(notes_dir))
+
+    assert pairs[0][1] == str(notes_dir / "Drawing.excalidraw.svg")
+
+
+def test_discover_excalidraw_files_still_skips_when_no_image_anywhere(tmp_path, capsys):
+    notes_dir = tmp_path / "academic_notes" / "econometrics" / "lecture_notes"
+    notes_dir.mkdir(parents=True)
+    (notes_dir / "Drawing.excalidraw.md").write_text("---\n---\n")
+
+    pairs = discover_excalidraw_files(str(notes_dir))
+
+    assert pairs == []
+    assert "no matching .png/.svg" in capsys.readouterr().out.lower()
+
+
 def test_discover_excalidraw_files_pairs_md_and_svg(tmp_path):
     (tmp_path / "Drawing A.excalidraw.md").write_text("---\n---\n")
     (tmp_path / "Drawing A.excalidraw.svg").write_text("<svg></svg>")
@@ -247,7 +289,7 @@ def test_write_outputs_creates_both_files_with_frontmatter(tmp_path):
     raw_content = open(raw_path, encoding="utf-8").read()
     assert "routing: excalidraw_chunked" in raw_content
     assert "raw shorthand text" in raw_content
-    assert "source_image: Drawing 2026-09-08.excalidraw.png" in raw_content
+    assert "source_image: academic_notes/math_methods/lecture_notes/Drawing 2026-09-08.excalidraw.png" in raw_content
 
     rag_content = open(rag_path, encoding="utf-8").read()
     assert "expansion_backend: gemini" in rag_content
@@ -277,7 +319,7 @@ def test_write_outputs_records_svg_source_filename(tmp_path):
         )
 
     raw_content = open(raw_path, encoding="utf-8").read()
-    assert "source_image: Econometrics 2026-09-09.excalidraw.svg" in raw_content
+    assert "source_image: academic_notes/econometrics/lecture_notes/Econometrics 2026-09-09.excalidraw.svg" in raw_content
 
 
 from notes.transcribe_excalidraw import process_excalidraw_note

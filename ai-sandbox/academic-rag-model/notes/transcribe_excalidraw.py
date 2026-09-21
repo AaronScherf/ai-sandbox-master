@@ -13,6 +13,7 @@ import os
 import sys
 from pathlib import Path
 
+from common.academic_hub_paths import resolve_output_dir, to_resources_root
 from common.gemini_utils import call_with_retries
 from common.ollama_utils import call_ollama
 from indexer.index_card import (
@@ -62,8 +63,11 @@ _EXPORT_EXTENSIONS = (".png", ".svg")  # the plugin's auto-export format is a
 def discover_excalidraw_files(notes_dir: str, file_filter: str | None = None) -> list[tuple[str, str]]:
     """Finds every `.excalidraw.md` directly under notes_dir with a
     matching `.excalidraw.png` or `.excalidraw.svg` sibling (the plugin's
-    auto-export) -- skips (with a warning, not an error) any .md whose
-    export hasn't been written yet."""
+    auto-export) -- checked locally first, then in the mirrored
+    academic_resources/ location (the post-migration case; see
+    docs/superpowers/specs/2026-09-21-source-asset-relocation-design.md).
+    Skips (with a warning, not an error) any .md with no image found in
+    either location."""
     if not os.path.isdir(notes_dir):
         return []
     pairs = []
@@ -75,6 +79,16 @@ def discover_excalidraw_files(notes_dir: str, file_filter: str | None = None) ->
         md_path = os.path.join(notes_dir, name)
         stem = md_path[: -len(".md")]
         image_path = next((stem + ext for ext in _EXPORT_EXTENSIONS if os.path.exists(stem + ext)), None)
+        if image_path is None:
+            try:
+                mirrored_stem = to_resources_root(stem)
+            except ValueError:
+                mirrored_stem = None
+            if mirrored_stem is not None:
+                image_path = next(
+                    (mirrored_stem + ext for ext in _EXPORT_EXTENSIONS if os.path.exists(mirrored_stem + ext)),
+                    None,
+                )
         if image_path is None:
             print(f"WARNING: {name} has no matching .png/.svg (auto-export may not have run yet) -- skipping.")
             continue
@@ -193,12 +207,12 @@ def write_outputs(
     transcription_model: str, expansion_meta: dict, num_chunks: int, academic_hub_root: str, client,
 ) -> tuple[str, str]:
     base_name = os.path.basename(excalidraw_md_path)[: -len(".excalidraw.md")]
-    output_dir = os.path.join(os.path.dirname(excalidraw_md_path), "processed_outputs")
+    output_dir = resolve_output_dir(excalidraw_md_path)
     os.makedirs(output_dir, exist_ok=True)
 
     common_meta = {
-        "source_excalidraw": os.path.basename(excalidraw_md_path),
-        "source_image": os.path.basename(image_path),
+        "source_excalidraw": os.path.relpath(excalidraw_md_path, academic_hub_root).replace(os.sep, "/"),
+        "source_image": os.path.relpath(image_path, academic_hub_root).replace(os.sep, "/"),
         "folder_category": "excalidraw_notes",
         "routing": "excalidraw_chunked",
         "chunks": num_chunks,
@@ -220,12 +234,13 @@ def write_outputs(
         file_id = compute_file_id(excalidraw_md_path)
         rel_rag_path = os.path.relpath(rag_path, academic_hub_root).replace(os.sep, "/")
         rel_source_path = os.path.relpath(excalidraw_md_path, academic_hub_root).replace(os.sep, "/")
+        rel_image_path = os.path.relpath(image_path, academic_hub_root).replace(os.sep, "/")
         course = derive_course(rel_source_path)
         reconcile_and_write(
             academic_hub_root, file_id=file_id, path=rel_rag_path, source_pdf_path=rel_source_path,
             course=course, folder_category="excalidraw_notes", content_sample=expanded_markdown,
             page_count=num_chunks, client=client, content_hash=compute_content_hash(rag_path),
-            known_doc_types=EXCALIDRAW_DOC_TYPES,
+            known_doc_types=EXCALIDRAW_DOC_TYPES, source_asset_path=rel_image_path,
         )
     except Exception as err:
         print(f"WARNING: source-indexer update failed for {rag_path} ({err}); "
