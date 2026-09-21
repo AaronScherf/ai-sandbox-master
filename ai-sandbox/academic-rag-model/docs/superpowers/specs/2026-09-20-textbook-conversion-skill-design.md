@@ -45,14 +45,12 @@ This spec assumes that one's policies exist and focuses on orchestration.
 ## Non-goals
 
 - **Not designing true walk-away execution** — surviving a Claude Code
-  session restart, or running with no live session/terminal at all (e.g.
-  a scheduled/background cloud agent watching a multi-hour VM batch). This
+  session restart, or running with no live session/terminal at all. This
   spec covers a skill driven within a single, possibly long, interactive
-  session. The practical gap this leaves — a multi-hour batch currently
-  needs the driving session to stay alive to keep monitoring it — is real
-  and explicitly deferred to its own future brainstorm, the same way the
-  RAM-sizing spec deferred predictive VM sizing as "Phase 2." Don't design
-  around it here; note it and move on.
+  session; the walk-away model (a detached orchestrator process plus a
+  lightweight, periodic supervisor loop) is designed separately in
+  `docs/superpowers/specs/2026-09-20-textbook-conversion-walkaway-execution-design.md`,
+  which builds on this spec's orchestrator rather than replacing it.
 - **Not re-deciding the autonomy policies themselves** (duplicate/OOM/cost
   thresholds and escalation) — those live entirely in the sibling spec.
   This spec only decides how they get invoked and reported.
@@ -175,12 +173,9 @@ combining structured output from the orchestrator:
 
 ## Open items deferred to the future
 
-- **Session persistence / walk-away execution** (Non-goals) — the real
-  remaining gap between "single prompt" and "and then walk away
-  entirely." Worth its own brainstorm once this skill's shape is
-  validated against a few real runs.
 - Exact orchestrator implementation language and file location — an
   implementation-plan decision, not a design one.
 - Whether/how the final report should also be persisted somewhere durable
-  (not just chat output) for a run that happens unattended — related to
-  the session-persistence gap above, deferred with it.
+  (not just chat output) for a run that happens unattended — designed in
+  the walk-away execution spec (Component 1's `run_state.json`), not
+  here.
