@@ -159,6 +159,26 @@ Then rebuild `PDF_FILENAMES` from the emitted file:
 ```bash
 mapfile -t PDF_FILENAMES < /tmp/to_convert.txt
 export PDF_FILENAMES
+```
+
+**Sort ascending by file size** (pipeline-autonomy-policies spec,
+Component 2b) before reporting or using this list further. A resize
+triggered by the OOM escalation ladder (Step 3.3's Debugging appendix)
+changes the machine type for the *rest* of the batch, not just the
+offending book — putting the largest/highest-risk book last means that if
+a resize does trigger, there's little or nothing left in the batch to run
+unnecessarily on the pricier machine type.
+
+```bash
+if [ ${#PDF_FILENAMES[@]} -gt 0 ]; then
+    mapfile -t PDF_FILENAMES < <(
+        for f in "${PDF_FILENAMES[@]}"; do
+            SZ=$(stat -c%s "../academic-hub/$TEXTBOOK_SUBDIR/$f" 2>/dev/null || stat -f%z "../academic-hub/$TEXTBOOK_SUBDIR/$f")
+            printf '%s\t%s\n' "$SZ" "$f"
+        done | sort -n | cut -f2-
+    )
+fi
+export PDF_FILENAMES
 printf '  %s\n' "${PDF_FILENAMES[@]}"
 ```
 
