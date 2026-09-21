@@ -42,6 +42,7 @@ import re
 import sys
 from pathlib import Path
 
+from common.academic_hub_paths import resolve_output_dir
 from common.gemini_utils import (
     call_with_retries,
     get_gemini_client,
@@ -947,7 +948,7 @@ def _write_markdown_and_index(md_path, frontmatter, final_md, pdf_path, academic
             academic_hub_root, file_id=file_id, path=rel_md_path, source_pdf_path=rel_pdf_path,
             course=course, folder_category=folder_category, content_sample=final_md,
             page_count=total_pages, client=client, content_hash=compute_content_hash(md_path),
-            known_doc_types=known_doc_types,
+            known_doc_types=known_doc_types, source_asset_path=rel_pdf_path,
         )
     except Exception as err:
         # Indexing must never block or corrupt the actual transcription
@@ -962,7 +963,7 @@ def process_pdf(pdf_path: str, client, model_override: str | None, academic_hub_
     from pypdf import PdfReader
 
     base_name = os.path.splitext(os.path.basename(pdf_path))[0]
-    output_dir = os.path.join(os.path.dirname(pdf_path), "processed_outputs")
+    output_dir = resolve_output_dir(pdf_path)
     os.makedirs(output_dir, exist_ok=True)
     md_path = os.path.join(output_dir, f"{base_name}.md")
     cache_path = os.path.join(output_dir, f"{base_name}_pages_cache.json")
@@ -971,7 +972,7 @@ def process_pdf(pdf_path: str, client, model_override: str | None, academic_hub_
     total_pages = len(reader.pages)
     folder_category = derive_folder_category(pdf_path)
     base_metadata = {
-        "source_pdf": os.path.basename(pdf_path),
+        "source_pdf": os.path.relpath(pdf_path, academic_hub_root).replace(os.sep, "/"),
         "folder_category": folder_category,
         "total_pages": total_pages,
     }

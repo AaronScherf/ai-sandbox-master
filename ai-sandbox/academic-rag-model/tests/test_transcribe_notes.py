@@ -804,6 +804,23 @@ class TestWriteMarkdownAndIndex(unittest.TestCase):
             self.assertEqual(kwargs["page_count"], 3)
             self.assertEqual(kwargs["content_sample"], "content")
 
+    def test_source_asset_path_is_forwarded_as_the_pdf_path(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            md_path = os.path.join(tmp, "out.md")
+            pdf_path = os.path.join(tmp, "academic_notes", "math-camp", "ta_notes", "foo.pdf")
+            os.makedirs(os.path.dirname(pdf_path))
+            with open(pdf_path, "wb") as f:
+                f.write(b"fake pdf")
+
+            with patch("notes.transcribe_notes.reconcile_and_write") as mock_reconcile:
+                _write_markdown_and_index(
+                    md_path=md_path, frontmatter="", final_md="content", pdf_path=pdf_path,
+                    academic_hub_root=tmp, folder_category="ta_notes", total_pages=3, client=MagicMock(),
+                )
+            rel_pdf_path = os.path.relpath(pdf_path, tmp).replace(os.sep, "/")
+            self.assertEqual(mock_reconcile.call_args.kwargs["source_asset_path"], rel_pdf_path)
+            self.assertEqual(mock_reconcile.call_args.kwargs["source_pdf_path"], rel_pdf_path)
+
     def test_known_doc_types_defaults_to_academic_hub_vocabulary(self):
         with tempfile.TemporaryDirectory() as tmp:
             md_path = os.path.join(tmp, "out.md")
