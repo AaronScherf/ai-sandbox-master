@@ -220,14 +220,17 @@ also retyping every filename in that course's folder.
   `load_canvas_image()` rasterizes `.svg` via `resvg-py` (a self-contained
   Windows wheel -- `svglib`/`cairosvg` both need a system Cairo install
   with no working path here); discovery now accepts either extension.
-  Real-corpus validated against all 4 `econometrics/lecture_notes/` SVG
-  files: 30 chunks, zero hard cuts, zero failures, ~$0.10 total, spot-
-  checked accurate against source. `microecon/` has 4 more SVG files not
-  yet run (out of this session's scope). Two vault-side findings flagged
-  for the user, not fixed here: the 2026-09-09 `math_methods`/`microecon`
-  outputs were deleted by a later sync commit, and `*.excalidraw.svg` is
-  now gitignored in the vault -- the only usable transcription input, so a
-  fresh clone/tablet has nothing to run against. See
+  Real-corpus validated against all 4 `econometrics/lecture_notes/` and
+  all 4 `microecon/lecture_notes/` SVG files: 49 chunks total, zero hard
+  cuts, zero failures, ~$0.16 total, spot-checked accurate against source
+  (including a handwritten interlineated insertion correctly flagged
+  rather than silently merged). `math_methods/`'s one remaining file has
+  no auto-export at all yet (unrun on the plugin side, not a pipeline
+  gap). Two vault-side findings flagged for the user, not fixed here: the
+  2026-09-09 `math_methods`/`microecon` outputs were deleted by a later
+  sync commit, and `*.excalidraw.svg` is now gitignored in the vault --
+  the only usable transcription input, so a fresh clone/tablet has
+  nothing to run against. See
   `docs/status/2026-08-24-notes-transcription-status.md`'s "2026-09-21"
   section for full detail.
 - **Notes post-processing**: **in progress, explicitly paused.** Built,

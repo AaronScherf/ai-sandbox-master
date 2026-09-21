@@ -55,7 +55,7 @@ Goals:
 			* Spec: [[2026-09-09-excalidraw-notes-transcription-design]]
 			* Plan: [[2026-09-09-excalidraw-notes-transcription]]
 			* Status: [[2026-08-24-notes-transcription-status]] — see "2026-09-07"/"2026-09-09" sections
-		* (DONE) **2026-09-21:** the Excalidraw plugin's auto-export format switched vault-wide from PNG to SVG, silently breaking discovery for every note since (PIL can't decode SVG, either). Fixed with `resvg-py`-based rasterization; real-corpus validated against all 4 `econometrics/lecture_notes/` SVG files (30 chunks, zero hard cuts, zero failures, ~$0.10, spot-checked accurate). `microecon/`'s 4 SVG files not yet run (out of scope this session). Two vault-side findings flagged for the user: the 2026-09-09 math_methods/microecon outputs were deleted by a later sync commit, and `.excalidraw.svg` — the only usable transcription input — is now vault-gitignored.
+		* (DONE) **2026-09-21:** the Excalidraw plugin's auto-export format switched vault-wide from PNG to SVG, silently breaking discovery for every note since (PIL can't decode SVG, either). Fixed with `resvg-py`-based rasterization; real-corpus validated against all 4 `econometrics/` + all 4 `microecon/` SVG files (49 chunks, zero hard cuts, zero failures, ~$0.16 total, spot-checked accurate). Two vault-side findings flagged for the user: the 2026-09-09 math_methods/microecon outputs were deleted by a later sync commit, and `.excalidraw.svg` — the only usable transcription input — is now vault-gitignored.
 			* Status: [[2026-08-24-notes-transcription-status]] — see "2026-09-21" section
 		* (Paused, in progress) Post processing to clean up notes, expand where necessary: 
 			* Spec: [[2026-08-26-notes-postprocessing-design]]

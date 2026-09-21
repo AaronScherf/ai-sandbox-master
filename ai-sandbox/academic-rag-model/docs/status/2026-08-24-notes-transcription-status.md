@@ -840,13 +840,22 @@ pipeline, both flagged rather than fixed unilaterally:**
    rule was intentional (e.g. to keep the private vault repo smaller) is a
    call for the user, not something to silently override.
 
-**Backlog beyond econometrics, not run this session (scope was the
-econometrics folder the user pointed at):** `microecon/lecture_notes/` has
-4 `.svg` files with no `processed_outputs/` at all yet (including the
-original `Microeconomics lecture 2026-09-07 19.53.03` file, which appears
-to have replaced the earlier `Drawing 2026-09-07 19.53.03` file this
-project's 2026-09-09 validation ran against -- same timestamp, renamed).
-`math_methods/lecture_notes/` has one `.svg`-backed file
+**Microecon backlog, run the same session at the user's request:** the 4
+`microecon/lecture_notes/` `.svg` files (including
+`Microeconomics lecture 2026-09-07 19.53.03`, which appears to have
+replaced the earlier `Drawing 2026-09-07 19.53.03` file this project's
+original 2026-09-09 validation ran against -- same timestamp, renamed) had
+no `processed_outputs/` at all before this run. 19 chunks total (5+6+3+5),
+zero failures. Transcription-stage tokens: input=34,749, output=5,440 on
+`gemini-3.6-flash` = ~$0.047; expansion estimated (same caveat as above)
+at ~$0.009. **~$0.06 total for microecon.** Spot-checked
+`Microeconomics 2026-09-17 10.12.38.excalidraw.md` chunk 1 against source
+(choice-theory representation-theorem notes, including a handwritten
+interlineated insertion the model correctly flagged with `^...^` rather
+than silently folding into the main line) -- faithful, nothing invented.
+**Combined econometrics + microecon total: 8 files, 49 chunks, ~$0.16.**
+
+`math_methods/lecture_notes/` still has one `.svg`-backed file
 (`Math methods lecture 2026-09-10 11.40.42`) with no export sibling at all
 yet -- `discover_excalidraw_files` correctly skips it with a warning; this
-is an unrun-auto-export gap, not a pipeline defect.
+is an unrun-auto-export gap on the user's end, not a pipeline defect.
