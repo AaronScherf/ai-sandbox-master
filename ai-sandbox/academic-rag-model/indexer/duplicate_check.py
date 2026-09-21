@@ -163,6 +163,16 @@ def find_fuzzy_candidates(academic_hub_root: str, incoming: dict, current_course
         for card in cards:
             if card.get("doc_type") != "textbook":
                 continue
+            if card.get("duplicate_pending_confirmation"):
+                # A clone still awaiting human review is not a trustworthy
+                # canonical source -- matching against it instead of the
+                # real canonical means a later rejection leaves a dangling
+                # duplicate_of_file_id on whatever copied from it, with no
+                # queue trace of the chain (final whole-branch review
+                # finding). The clone's own canonical always carries an
+                # identical title, so skipping the clone itself never loses
+                # detection of a genuine duplicate.
+                continue
             try:
                 folder_name = os.path.basename(os.path.dirname(card["path"]))
                 author, year = parse_author_year_from_folder_name(folder_name)
@@ -216,7 +226,15 @@ def save_pending_confirmations(academic_hub_root: str, entries: list[dict]) -> N
 
 
 def record_pending_confirmation(academic_hub_root: str, entry: dict) -> None:
+    """No-op if an entry with the same (incoming_file_id, new_card_file_id)
+    pair is already queued -- the documented non-interactive workflow
+    (run, review, re-run with --resolve for ambiguous matches) re-evaluates
+    the same never-deleted source PDF on every pass, which would otherwise
+    re-append a duplicate queue entry for the same auto-skip every run."""
     entries = load_pending_confirmations(academic_hub_root)
+    key = (entry.get("incoming_file_id"), entry.get("new_card_file_id"))
+    if any((e.get("incoming_file_id"), e.get("new_card_file_id")) == key for e in entries):
+        return
     entries.append(entry)
     save_pending_confirmations(academic_hub_root, entries)
 

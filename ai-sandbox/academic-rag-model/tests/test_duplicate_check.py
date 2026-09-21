@@ -208,6 +208,19 @@ class TestFindFuzzyCandidates(unittest.TestCase):
             results = find_fuzzy_candidates(academic_hub_root, incoming, current_course="microecon")
             self.assertEqual(results, [])
 
+    def test_excludes_cards_still_pending_confirmation(self):
+        # Real bug found by the final whole-branch review: a clone still
+        # awaiting human review must never itself be matched as a
+        # candidate by a third course -- otherwise rejecting the original
+        # auto-skip leaves a dangling reference nothing can trace.
+        with tempfile.TemporaryDirectory() as academic_hub_root:
+            pending_clone = self._card("Ok_RealAnalysisWithEconomicApplications_2007", "Real Analysis with Economic Applications", course="microecon")
+            pending_clone["duplicate_pending_confirmation"] = True
+            save_shard(academic_hub_root, "microecon", [pending_clone])
+            incoming = {"title": "Real Analysis with Economic Applications", "author": "Ok", "year": "2007"}
+            results = find_fuzzy_candidates(academic_hub_root, incoming, current_course="mathcamp")
+            self.assertEqual(results, [])
+
     def test_similar_titled_different_book_surfaces_for_confirmation(self):
         # The Mas-Colell/Rubinstein worked example from the spec's Testing
         # section -- must surface (so a human gets asked), which this test
@@ -1028,6 +1041,46 @@ class TestConfirmAndRejectPending(unittest.TestCase):
                 dc.main()
             self.assertEqual(load_shard(academic_hub_root, "microecon"), [])
 
+    def test_full_lifecycle_auto_skip_then_reject_then_reconverts(self):
+        # The spec's own named end-to-end guarantee (final whole-branch
+        # review finding): a rejected auto-skip's source PDF re-enters
+        # to_convert on a later run. Drives a REAL run_duplicate_check
+        # (not the hand-fabricated incoming_file_id in
+        # _make_auto_skipped_clone above), so the load-bearing link -- the
+        # id an auto-skip records is the same id a later run recomputes
+        # for the same PDF -- is actually protected by a test.
+        from indexer.duplicate_check import reject_pending_confirmation, run_duplicate_check
+
+        with tempfile.TemporaryDirectory() as academic_hub_root:
+            subdir = "academic_resources/microecon/textbooks"
+            pdf_path = os.path.join(academic_hub_root, subdir, "Ok_RealAnalysisWithEconomicApplications_2007.pdf")
+            os.makedirs(os.path.dirname(pdf_path), exist_ok=True)
+            with open(pdf_path, "wb") as f:
+                f.write(b"a re-scanned copy, different bytes")
+
+            book_dir = os.path.join(academic_hub_root, "academic_resources", "econometrics", "textbooks", "processed_outputs", "Ok_RealAnalysisWithEconomicApplications_2007")
+            os.makedirs(book_dir, exist_ok=True)
+            with open(os.path.join(book_dir, "Ok_RealAnalysisWithEconomicApplications_2007.md"), "w", encoding="utf-8") as f:
+                f.write("# Real Analysis")
+            save_shard(academic_hub_root, "econometrics", [{
+                "file_id": "some-other-fid",
+                "path": "academic_resources/econometrics/textbooks/processed_outputs/Ok_RealAnalysisWithEconomicApplications_2007/Ok_RealAnalysisWithEconomicApplications_2007.md",
+                "source_pdf_path": "academic_resources/econometrics/textbooks/Ok.pdf", "course": "econometrics",
+                "doc_type": "textbook", "title": "Real Analysis with Economic Applications",
+            }])
+
+            result = run_duplicate_check(subdir, academic_hub_root, non_interactive=True, resolutions={})
+            self.assertEqual(result["to_convert"], [])
+            self.assertEqual(len(result["auto_skipped_pending_confirmation"]), 1)
+            real_incoming_file_id = result["auto_skipped_pending_confirmation"][0]["incoming_file_id"]
+
+            reject_pending_confirmation(academic_hub_root, real_incoming_file_id)
+
+            result_2 = run_duplicate_check(subdir, academic_hub_root, non_interactive=True, resolutions={})
+            self.assertEqual(result_2["to_convert"], ["Ok_RealAnalysisWithEconomicApplications_2007.pdf"])
+            self.assertEqual(result_2["unresolved"], [])
+            self.assertEqual(result_2["auto_skipped_pending_confirmation"], [])
+
 
 class TestRunDuplicateCheckErrorIsolation(unittest.TestCase):
     """Regression coverage for the gap the code review caught: the
@@ -1302,6 +1355,18 @@ class TestPendingConfirmations(unittest.TestCase):
             record_pending_confirmation(academic_hub_root, {"incoming_file_id": "b", "pdf_filename": "B.pdf"})
             entries = load_pending_confirmations(academic_hub_root)
             self.assertEqual([e["incoming_file_id"] for e in entries], ["a", "b"])
+
+    def test_recording_the_same_incoming_and_new_card_id_twice_does_not_duplicate(self):
+        # Real bug found by the final whole-branch review: the documented
+        # non-interactive re-run workflow re-evaluates the same
+        # never-deleted source PDF every pass, which used to append a
+        # duplicate queue entry for the identical auto-skip each time.
+        from indexer.duplicate_check import record_pending_confirmation, load_pending_confirmations
+        with tempfile.TemporaryDirectory() as academic_hub_root:
+            entry = {"incoming_file_id": "a", "pdf_filename": "A.pdf", "new_card_file_id": "clone-a"}
+            record_pending_confirmation(academic_hub_root, entry)
+            record_pending_confirmation(academic_hub_root, entry)
+            self.assertEqual(len(load_pending_confirmations(academic_hub_root)), 1)
 
     def test_persists_to_the_expected_nested_path(self):
         from indexer.duplicate_check import record_pending_confirmation, _pending_confirmation_path
