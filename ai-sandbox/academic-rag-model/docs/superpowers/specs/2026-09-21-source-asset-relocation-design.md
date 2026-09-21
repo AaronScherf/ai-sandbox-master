@@ -177,3 +177,71 @@ fixtures) is in scope for this plan; physically moving the user's real
   transcribe scripts; renaming it is a bigger, separable blast radius than
   this plan needs, and every caller already treats it as "the identity
   anchor," which remains accurate.
+
+## 2026-09-21 addendum: folded in from a concurrent session's brainstorm
+
+A second, concurrent Claude Code session on this same machine independently
+started brainstorming this same restructuring before discovering this
+spec/plan already existed in progress, and handed off three decided items
+plus three still-open ones rather than duplicate the work. Full writeup:
+`docs/superpowers/specs/2026-09-21-source-asset-relocation-brainstorm-addendum.md`.
+Cross-checked against Tasks 1-7 (already implemented, tested, and
+committed at this point): **zero code changes required** -- `to_resources_root`/
+`to_notes_root`/`resolve_output_dir` only ever match the literal
+`academic_notes`/`academic_resources` root segment (confirmed by re-reading
+`_swap_root`'s implementation), never a course or category name, so all
+three decisions below are pure data/scope amendments, not code fixes.
+
+**Confirmed, no design change:** strict file-type split (not a size
+threshold), an explicit `source_asset_path` metadata field (not
+path-convention-only inference), best-effort-only git history handling for
+the move -- all three already match this spec exactly.
+
+**New decision 1 -- folder vocabulary unification, underscores everywhere.**
+Both trees currently mix hyphens and underscores for what should be the
+same course/category (`academic_resources/math-methods/` vs.
+`academic_notes/math_methods/`; `lecture-slides`/`lecture-recordings` vs.
+the majority underscore convention; `academic_notes/math-camp/lecture-notes/`
+as an outlier against every other course's `lecture_notes`). Decision:
+**underscores everywhere**, matching the majority. This must land as its
+own rename pass *before* the file migration (new Task, inserted before the
+original Task 8) -- not because any code assumes a specific category name
+set (it doesn't), but because a mismatched *course* name between the two
+trees (`math-methods` vs. `math_methods`) would make `to_resources_root`/
+`to_notes_root` resolve to the wrong, nonexistent path for that course
+until the rename lands. Needs a fresh survey across every course before
+executing -- the original brainstorm only fully inventoried math-camp.
+
+**New decision 2 -- math-camp duplicate PDF resolution.** Six PDFs are
+byte-identical (hash-verified by the other session) between
+`academic_notes/math-camp/ta_notes/2025/` and
+`academic_resources/math-camp/lecture-slides/` -- an apparent leftover
+from an earlier partial/manual migration attempt. Decision: `ta_notes` is
+the correct category (TA lecture notes, matching every other course's
+vocabulary); after the vocabulary rename above, delete the
+`lecture-slides/` copies as redundant, and let the `academic_notes/ta_notes/`
+originals migrate normally through the existing migration script. This is
+a data-cleanup step folded into the pre-migration prep, not a code change.
+
+**New decision 3 -- docx/pptx in scope.** `study_plan/` folders contain raw
+`.docx` files no automated pipeline touches (confirmed via
+`grep -rl "\.docx\|\.pptx" --include="*.py"`: only `essays/convert_essays.py`
+and `indexer/chunk_index.py` reference either extension, both unrelated to
+this project's notes pipeline). Decision: move them too, under the
+strict-by-type policy, even though nothing reads them from their new
+location automatically -- purely mechanical, no code in `notes/`/`indexer/`
+hardcodes a path to a `.docx`/`.pptx` file. `find_migration_candidates()`
+(the original Task 8, not yet implemented when this addendum landed)
+includes `.docx`/`.pptx` in its filter from the start, rather than being
+retrofitted.
+
+**Still open -- explicitly not decided, not to be guessed at:** README
+updates (`academic-hub/README.md` and whether `academic_notes/`/
+`academic_resources/` should each get their own), `.gitignore` /
+Direct Git Sync per-device rule updates (the outer repo's pattern plus
+each device's local, non-git-tracked Direct Git Sync ignore rules), and a
+newly-found triplicate-`.excalidraw.md` cleanup question (a
+`processed_outputs/`-nested copy of the raw scene file that looks like
+cleanup debt, independent of this migration, scope not yet investigated).
+These stay open for the user, not assumed -- see the main session's report
+for when/how they're raised.

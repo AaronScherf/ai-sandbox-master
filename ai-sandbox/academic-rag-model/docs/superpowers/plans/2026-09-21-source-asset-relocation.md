@@ -8,7 +8,9 @@
 
 **Tech Stack:** Python, `unittest.TestCase` + `unittest.mock.MagicMock` (matches `tests/test_index_card.py`/`tests/test_index_search.py`'s existing style), pytest for the newer plain-function-style test files (`tests/test_route_notes_transcribe.py`, etc.).
 
-**Spec:** `docs/superpowers/specs/2026-09-21-source-asset-relocation-design.md`
+**Spec:** `docs/superpowers/specs/2026-09-21-source-asset-relocation-design.md` (see also its 2026-09-21 addendum section, folding in a concurrent session's brainstorm -- three decisions incorporated as Task 8 and amendments to Tasks 9-10 below, three items left open for the user)
+
+**Status (2026-09-21):** Tasks 1-7 complete, tested, and committed. Task 8 (vocabulary rename) is new, added after Tasks 1-7 landed -- confirmed zero rework needed on completed code, since the path-mirroring helpers never touch course/category names. Tasks 9-10 amended in place, not yet implemented.
 
 ## Global Constraints
 
@@ -43,7 +45,7 @@
 **Interfaces:**
 - Produces: `to_resources_root(path: str) -> str`, `to_notes_root(path: str) -> str`, `resolve_output_dir(source_path: str) -> str`.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```python
 # tests/test_academic_hub_paths.py
@@ -113,12 +115,12 @@ def test_resolve_output_dir_works_with_a_full_absolute_windows_style_path():
     assert result == expected
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `.venv/Scripts/python.exe -m pytest tests/test_academic_hub_paths.py -v` (from `academic-rag-model/`)
 Expected: FAIL with `ModuleNotFoundError: No module named 'common.academic_hub_paths'`
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 ```python
 # common/academic_hub_paths.py
@@ -180,12 +182,12 @@ def resolve_output_dir(source_path: str) -> str:
     return os.path.join(os.path.dirname(source_path), "processed_outputs")
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `.venv/Scripts/python.exe -m pytest tests/test_academic_hub_paths.py -v`
 Expected: PASS (9 tests)
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add common/academic_hub_paths.py tests/test_academic_hub_paths.py
@@ -204,7 +206,7 @@ git commit -m "feat(paths): add academic_notes/academic_resources path-mirroring
 - Consumes: nothing new.
 - Produces: `generate_index_card(..., source_asset_path: str | None = None)`, `make_failure_card(..., source_asset_path: str | None = None)`, `reconcile_and_write(..., source_asset_path: str | None = None)` -- all three now write/preserve a `source_asset_path` key on the card dict. `move_card()` rewrites it the same way it already rewrites `source_pdf_path`.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```python
 # tests/test_index_card.py -- add to TestGenerateIndexCard
@@ -282,12 +284,12 @@ git commit -m "feat(paths): add academic_notes/academic_resources path-mirroring
             self.assertEqual(moved[0]["source_asset_path"], "business/a.svg")
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `.venv/Scripts/python.exe -m pytest tests/test_index_card.py -v -k source_asset_path`
 Expected: FAIL -- `KeyError: 'source_asset_path'` on every new test.
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 In `indexer/index_card.py`, modify `generate_index_card`:
 
@@ -422,12 +424,12 @@ Modify `move_card` (add one line after the existing `source_pdf_path` rewrite):
         card["source_asset_path"] = card["source_asset_path"].replace(f"{old_course}/", f"{new_course}/", 1)
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `.venv/Scripts/python.exe -m pytest tests/test_index_card.py -v`
 Expected: PASS (full file, including every pre-existing test -- none of their assertions touch `source_asset_path`, so the new default-fill behavior doesn't break them)
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add indexer/index_card.py tests/test_index_card.py
@@ -446,7 +448,7 @@ git commit -m "feat(index): add source_asset_path field, distinct from the ident
 - Consumes: `EXCALIDRAW_DOC_TYPES` (from `indexer.index_card`, already exists), `reconcile_and_write(..., source_asset_path=...)` (Task 2).
 - Produces: `_excalidraw_note_paths(academic_hub_root: str, course_filter: str | None) -> Iterator[tuple[str, str, str]]` -- yields `(course_name, category, excalidraw_md_path)`, mirroring `_notes_pdf_paths`'s shape. `_reconcile_one(..., source_asset_path: str | None = None)`.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```python
 # tests/test_index_search.py -- add near the top, alongside _make_notes_pdf/_make_video_lecture_note
@@ -526,12 +528,12 @@ correctly skip reconciliation entirely, which is the right real-world
 outcome and doesn't need a bespoke integration test on top of Task 2's
 unit-level one.)
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `.venv/Scripts/python.exe -m pytest tests/test_index_search.py -v -k Excalidraw`
 Expected: FAIL -- `test_rebuild_generates_a_card_for_a_real_excalidraw_note` and `test_rebuild_skips_a_note_with_no_rag_md_yet` fail because no card is ever generated (no walker sees the file yet); `test_rebuild_does_not_orphan_an_existing_excalidraw_card` fails because nothing generates the first card to orphan-check against. All fail for the same root reason: no Excalidraw walker exists yet.
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 In `indexer/index_search.py`, add the import:
 
@@ -687,17 +689,17 @@ Add the new loop in `rebuild()`, right after the video-lecture-notes loop and be
                        known_doc_types=EXCALIDRAW_DOC_TYPES, source_asset_path=rel_image_path)
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `.venv/Scripts/python.exe -m pytest tests/test_index_search.py -v -k Excalidraw`
 Expected: PASS (4 tests)
 
-- [ ] **Step 5: Run the full test suite to check for regressions**
+- [x] **Step 5: Run the full test suite to check for regressions**
 
 Run: `.venv/Scripts/python.exe -m pytest -v`
 Expected: PASS (every test, including every other subproject's)
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add indexer/index_search.py tests/test_index_search.py
@@ -717,7 +719,7 @@ git commit -m "fix(index): add rebuild() walker for Excalidraw notes, fixing a l
 
 **Note on scope:** `process_pdf()` itself has zero direct tests anywhere in this file today (confirmed: `grep -n "process_pdf" tests/test_transcribe_notes.py` returns nothing) -- it directly drives `pypdf`/PyMuPDF, and this project's own established convention (see `render_page_to_image_bytes`'s docstring) is to leave that class of function untested directly, verified instead via real-corpus runs. `_write_markdown_and_index()`, which `process_pdf()` calls at the end of every tier, *is* directly tested (`TestWriteMarkdownAndIndex`, by mocking `reconcile_and_write`) -- that's where this task's new `source_asset_path` behavior gets a real test. The `output_dir = resolve_output_dir(pdf_path)` line change inside `process_pdf()` itself gets no bespoke test here (consistent with the rest of that function); Task 7's real corpus dry-run and Task 9's real migration are its actual verification.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```python
 # tests/test_transcribe_notes.py -- add to TestWriteMarkdownAndIndex
@@ -739,12 +741,12 @@ git commit -m "fix(index): add rebuild() walker for Excalidraw notes, fixing a l
             self.assertEqual(mock_reconcile.call_args.kwargs["source_pdf_path"], rel_pdf_path)
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `.venv/Scripts/python.exe -m pytest tests/test_transcribe_notes.py -v -k source_asset_path`
 Expected: FAIL -- `KeyError: 'source_asset_path'` (the kwarg doesn't exist on the call yet).
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 Add the import:
 
@@ -808,17 +810,17 @@ def _write_markdown_and_index(md_path, frontmatter, final_md, pdf_path, academic
               f"rerun `python index_search.py rebuild` later to catch it up.")
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `.venv/Scripts/python.exe -m pytest tests/test_transcribe_notes.py -v`
 Expected: PASS (full file, no regressions -- every existing test still puts its fixture PDF under `academic_notes/` or a bare tmp dir with no `academic_resources` segment, so `resolve_output_dir` falls through to the unchanged sibling behavior for all of them)
 
-- [ ] **Step 5: Run the full test suite to check for regressions**
+- [x] **Step 5: Run the full test suite to check for regressions**
 
 Run: `.venv/Scripts/python.exe -m pytest -v`
 Expected: PASS
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add notes/transcribe_notes.py tests/test_transcribe_notes.py
@@ -836,7 +838,7 @@ git commit -m "feat(notes): resolve PDF output dir via the mirroring convention,
 **Interfaces:**
 - Consumes: `to_resources_root`, `resolve_output_dir` (Task 1), `reconcile_and_write(..., source_asset_path=...)` (Task 2).
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```python
 # tests/test_transcribe_excalidraw.py -- add near existing discover_excalidraw_files tests
@@ -882,12 +884,12 @@ def test_discover_excalidraw_files_still_skips_when_no_image_anywhere(tmp_path, 
     assert "no matching .png/.svg" in capsys.readouterr().out.lower()
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `.venv/Scripts/python.exe -m pytest tests/test_transcribe_excalidraw.py -v -k mirrored`
 Expected: FAIL -- the first two tests get `pairs == []` (no fallback lookup exists yet).
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 Add the import:
 
@@ -980,7 +982,7 @@ Replace `common_meta`'s two source fields (bare filenames -> full relative paths
               f"rerun `python -m indexer.index_search rebuild` later to catch it up.")
 ```
 
-- [ ] **Step 4: Update the two pre-existing tests that assert a bare-filename `source_image`**
+- [x] **Step 4: Update the two pre-existing tests that assert a bare-filename `source_image`**
 
 `test_write_outputs_creates_both_files_with_frontmatter` (asserts
 `"source_image: Drawing 2026-09-08.excalidraw.png" in raw_content`) and
@@ -1002,17 +1004,17 @@ value is that same relative path. Update:
     assert "source_image: academic_notes/econometrics/lecture_notes/Econometrics 2026-09-09.excalidraw.svg" in raw_content
 ```
 
-- [ ] **Step 5: Run test to verify it passes**
+- [x] **Step 5: Run test to verify it passes**
 
 Run: `.venv/Scripts/python.exe -m pytest tests/test_transcribe_excalidraw.py -v`
 Expected: PASS (full file)
 
-- [ ] **Step 6: Run the full test suite to check for regressions**
+- [x] **Step 6: Run the full test suite to check for regressions**
 
 Run: `.venv/Scripts/python.exe -m pytest -v`
 Expected: PASS
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add notes/transcribe_excalidraw.py tests/test_transcribe_excalidraw.py
@@ -1031,7 +1033,7 @@ git commit -m "feat(excalidraw): fall back to the mirrored academic_resources/ l
 - Consumes: `discover_pdf_files` (existing, from `notes.transcribe_notes`), `discover_excalidraw_files` (existing, now with Task 5's fallback baked in -- no changes needed here for the Excalidraw side).
 - Produces: `discover_pdf_sources(course_dir: str) -> list[str]` now also finds PDFs under the mirrored `academic_resources/` category.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```python
 # tests/test_route_notes_transcribe.py -- add near existing discover_pdf_sources tests
@@ -1075,12 +1077,12 @@ def test_discover_pdf_sources_combines_notes_and_resources_pdfs(tmp_path):
     assert sorted(os.path.basename(p) for p in paths) == ["already-migrated.pdf", "not-yet-migrated.pdf"]
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `.venv/Scripts/python.exe -m pytest tests/test_route_notes_transcribe.py -v -k academic_resources`
 Expected: FAIL -- `discover_pdf_sources` currently only walks the `academic_notes/` tree it's given, so every `academic_resources/`-only PDF is invisible.
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 In `notes/route_notes_transcribe.py`, replace `discover_pdf_sources`:
 
@@ -1125,17 +1127,17 @@ Add the import:
 from common.academic_hub_paths import to_resources_root
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `.venv/Scripts/python.exe -m pytest tests/test_route_notes_transcribe.py -v`
 Expected: PASS (full file)
 
-- [ ] **Step 5: Run the full test suite to check for regressions**
+- [x] **Step 5: Run the full test suite to check for regressions**
 
 Run: `.venv/Scripts/python.exe -m pytest -v`
 Expected: PASS
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add notes/route_notes_transcribe.py tests/test_route_notes_transcribe.py
@@ -1148,22 +1150,76 @@ git commit -m "feat(notes): route_notes_transcribe discovers PDFs already migrat
 
 Verification-only task -- confirms Tasks 1-6 haven't broken anything real, using the exact same real corpus this session already validated the Excalidraw fix against. No code changes.
 
-- [ ] **Step 1: Run the router's dry-run against the full real corpus**
+- [x] **Step 1: Run the router's dry-run against the full real corpus**
 
 Run (from `academic-rag-model/`): `.venv/Scripts/python.exe -m notes.route_notes_transcribe --dry-run`
 Expected: identical `PDF: 67 to process, 21 already done` / `Excalidraw: 1 to process, 8 already done` summary this session already produced and validated (nothing under `academic_resources/` has moved yet, so every discovery path should fall through to its pre-Task-6 behavior byte-for-byte).
 
-- [ ] **Step 2: Run rebuild in dry-adjacent mode against a scratch copy, confirm the orphan fix**
+- [x] **Step 2: Run rebuild in dry-adjacent mode against a scratch copy, confirm the orphan fix**
 
 Reuse the NTFS-junction technique from the design spec's "Verified, not assumed" section (copy `.index/`, junction-link `academic_notes/`+`academic_resources/` to the real directories, never touch the real `.index/`). Run `rebuild(scratch_root, client=<a client whose every method raises AssertionError>, course="econometrics", force=False, prune=False)`. Expected: `stats["orphaned"] == 0` this time (compare against the `orphaned: 4` result recorded in the design spec, from before Task 3 existed).
 
-- [ ] **Step 3: Record results**
+- [x] **Step 3: Record results**
 
 Add a short dated entry to `docs/status/2026-08-24-notes-transcription-status.md` (or a new tracker entry, matching this project's existing convention) noting: Tasks 1-6 verified against the real corpus with zero behavior change pre-migration, and the rebuild orphan bug confirmed fixed. No commit needed for this task beyond the doc update -- fold it into Task 8's commit if Task 8 follows immediately, or commit standalone otherwise.
 
 ---
 
-### Task 8: Migration script
+### Task 8: Folder vocabulary unification -- underscores everywhere
+
+**Added 2026-09-21, folded in from a concurrent session's brainstorm** --
+see `docs/superpowers/specs/2026-09-21-source-asset-relocation-design.md`'s
+addendum section. Both trees currently mix hyphens and underscores for
+what should be the same course/category. User's decision: underscores
+everywhere, matching the majority already in `academic_notes/` (`ta_notes`,
+`problem_sets`, `study_plan`, `cheat_sheet`, `handwritten_notes`,
+`professor_notes`). This must land *before* Task 10's real migration --
+not because any code in Tasks 1-7 assumes a specific category name (it
+doesn't; `to_resources_root`/`to_notes_root` only ever match the literal
+`academic_notes`/`academic_resources` root segment), but because a
+mismatched *course* name between the two trees (`math-methods` vs.
+`math_methods`) makes the mirrored-path convention resolve to a
+nonexistent path for that course until the rename lands.
+
+**This is a real-corpus survey + rename task, not a code task** -- no new
+source files, no new tests. The known renames from the original brainstorm
+(math-camp-focused, needs re-verification against every course):
+
+- `academic_resources/math-methods/` -> `academic_resources/math_methods/`
+- `academic_resources/<course>/lecture-slides/` -> `lecture_slides/`
+  (wherever present)
+- `academic_resources/<course>/lecture-recordings/` -> `lecture_recordings/`
+  (wherever present)
+- `academic_notes/math-camp/lecture-notes/` -> `lecture_notes/` (the one
+  outlier vs. every other course's `lecture_notes`)
+
+- [ ] **Step 1: Survey every course under both `academic_notes/` and
+  `academic_resources/`** for hyphenated directory names (course-level and
+  category-level), not just math-camp. A one-off script or manual
+  `Get-ChildItem -Recurse -Directory | Where-Object Name -match '-'`
+  against the real `academic-hub/` root is sufficient -- this doesn't need
+  to be committed code, just a real inventory to confirm the rename list
+  above is complete before executing it.
+
+- [ ] **Step 2: Confirm the full rename list with the user** before
+  touching any real directory -- same explicit-confirmation bar as Task 10,
+  since renaming a course directory that any other tool (Obsidian, Direct
+  Git Sync, the vault repo) references by its current name has its own
+  blast radius independent of this plan's own code.
+
+- [ ] **Step 3: Execute the renames for real** (`git mv` where the
+  directory is git-tracked under `academic_resources/`'s parent repo;
+  plain filesystem rename for anything inside the separately-repo'd
+  `academic_notes` vault) once confirmed.
+
+- [ ] **Step 4: Re-run the Task 7 verification** (`route_notes_transcribe
+  --dry-run` equivalent, and the isolated-copy `rebuild()` check) against
+  the real corpus post-rename, to confirm nothing broke and no course
+  silently dropped out of discovery due to a missed rename.
+
+---
+
+### Task 9: Migration script
 
 **Files:**
 - Create: `notes/migrate_sources_to_resources.py`
@@ -1171,7 +1227,14 @@ Add a short dated entry to `docs/status/2026-08-24-notes-transcription-status.md
 
 **Interfaces:**
 - Consumes: `to_resources_root` (Task 1), `rebuild` (from `indexer.index_search`, Task 3's fixed version).
-- Produces: `find_migration_candidates(academic_hub_root: str, course: str | None = None) -> list[tuple[str, str]]` -- list of `(current_path, target_path)` pairs (PDFs still under `academic_notes/`, and Excalidraw images still under `academic_notes/` next to their `.md`). `migrate_one(current_path: str, target_path: str, dry_run: bool = False) -> None`. `main()`.
+- Produces: `find_migration_candidates(academic_hub_root: str, course: str | None = None) -> list[tuple[str, str]]` -- list of `(current_path, target_path)` pairs (PDFs, `.docx`/`.pptx`, and Excalidraw images still under `academic_notes/`, the latter next to their `.md`). `migrate_one(current_path: str, target_path: str, dry_run: bool = False) -> None`. `main()`.
+
+**Scope note (2026-09-21 addendum):** `.docx`/`.pptx` are in scope per the
+user's decision -- purely mechanical, no code anywhere in `notes/`/
+`indexer/` hardcodes a path to either extension, so this only needs to
+extend the discovery filter below, not touch anything downstream (no
+output-dir resolution, no indexing -- those only apply to PDF/Excalidraw
+sources).
 
 - [ ] **Step 1: Write the failing test**
 
@@ -1209,6 +1272,21 @@ def test_find_migration_candidates_finds_an_unmigrated_excalidraw_image(tmp_path
     current, target = candidates[0]
     assert current == str(svg_path)
     assert target == str(tmp_path / "academic_resources" / "econometrics" / "lecture_notes" / "Drawing.excalidraw.svg")
+
+
+def test_find_migration_candidates_finds_docx_and_pptx(tmp_path):
+    # 2026-09-21 addendum: docx/pptx are in scope too, purely mechanical --
+    # no downstream code reads them, so this is the only thing that needs
+    # to know about them.
+    study_dir = tmp_path / "academic_notes" / "math-camp" / "study_plan"
+    study_dir.mkdir(parents=True)
+    (study_dir / "Prep Schedule.docx").write_bytes(b"x")
+    (study_dir / "Overview.pptx").write_bytes(b"x")
+
+    candidates = find_migration_candidates(str(tmp_path))
+
+    names = sorted(os.path.basename(c) for c, _t in candidates)
+    assert names == ["Overview.pptx", "Prep Schedule.docx"]
 
 
 def test_find_migration_candidates_skips_a_pdf_already_migrated(tmp_path):
@@ -1291,6 +1369,10 @@ from pathlib import Path
 from common.academic_hub_paths import to_resources_root
 
 _EXCALIDRAW_IMAGE_EXTENSIONS = (".png", ".svg")
+# 2026-09-21 addendum: docx/pptx are in scope too (user decision) -- purely
+# mechanical, no downstream code reads them from their new location, so
+# they only need to be included in this filter, nothing else.
+_MECHANICAL_EXTENSIONS = (".docx", ".pptx")
 
 
 def find_migration_candidates(academic_hub_root: str, course: str | None = None) -> list[tuple[str, str]]:
@@ -1310,7 +1392,8 @@ def find_migration_candidates(academic_hub_root: str, course: str | None = None)
                 lower = name.lower()
                 is_pdf = lower.endswith(".pdf")
                 is_excalidraw_image = any(lower.endswith(f".excalidraw{ext}") for ext in _EXCALIDRAW_IMAGE_EXTENSIONS)
-                if not (is_pdf or is_excalidraw_image):
+                is_mechanical = lower.endswith(_MECHANICAL_EXTENSIONS)
+                if not (is_pdf or is_excalidraw_image or is_mechanical):
                     continue
                 current_path = os.path.join(dirpath, name)
                 target_path = to_resources_root(current_path)
@@ -1373,7 +1456,7 @@ if __name__ == "__main__":
 - [ ] **Step 4: Run test to verify it passes**
 
 Run: `.venv/Scripts/python.exe -m pytest tests/test_migrate_sources_to_resources.py -v`
-Expected: PASS (6 tests)
+Expected: PASS (7 tests)
 
 - [ ] **Step 5: Run the full test suite to check for regressions**
 
@@ -1389,10 +1472,27 @@ git commit -m "feat(notes): add migration script for relocating heavy sources to
 
 ---
 
-### Task 9: Real migration -- explicit go/no-go checkpoint
+### Task 10: Real migration -- explicit go/no-go checkpoint
 
 **Not a code task.** Everything above is built and verified against synthetic fixtures plus a real, read-only dry-run (Task 7). This task is the actual physical move against the user's real corpus, and must not proceed without the user explicitly confirming at this exact point -- both because it touches ~90 real files across every course, and because the `academic_notes` vault repo had its git history rewritten this same week (per `docs/status/2026-09-21-obsidian-git-sync-status.md`).
 
+**Prerequisite order (2026-09-21 addendum):** Task 8 (vocabulary rename)
+must land first -- a mismatched course/category name between the two
+trees would make this task's `to_resources_root` resolution silently miss
+files. The math-camp duplicate-PDF cleanup (delete
+`academic_resources/math-camp/lecture-slides/`'s byte-identical copies
+after the rename lands `ta_notes` as the canonical category) is a small
+data-cleanup step that fits naturally as Step 0 below, before the general
+migration runs.
+
+- [ ] **Step 0: Math-camp duplicate cleanup** (only after Task 8's rename
+  lands `ta_notes`/`lecture_slides` as the unified names): confirm with the
+  user, then delete the 6 byte-identical PDFs under
+  `academic_resources/math-camp/lecture_slides/` (verify each is still
+  byte-identical to its `academic_notes/math-camp/ta_notes/2025/`
+  counterpart immediately before deleting, in case anything changed since
+  the original brainstorm's hash check) -- the `academic_notes/` originals
+  migrate normally through Step 3 below, no special-casing needed there.
 - [ ] **Step 1: Confirm with the user** which courses to migrate first (all at once, or one course as a trial -- econometrics is a reasonable first candidate, being the smallest and most recently validated).
 - [ ] **Step 2: Dry run for real**: `python -m notes.migrate_sources_to_resources --course econometrics --dry-run`, review the full candidate list with the user before proceeding.
 - [ ] **Step 3: Run for real**: `python -m notes.migrate_sources_to_resources --course econometrics`, then verify with `python -m notes.route_notes_transcribe --dry-run` that nothing looks newly "to process" that shouldn't be, and spot-check that `source_asset_path` on a few real cards now points at the new `academic_resources/` location.
