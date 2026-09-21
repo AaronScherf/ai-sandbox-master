@@ -1080,5 +1080,62 @@ class TestSearchPassages(unittest.TestCase):
             self.assertEqual([r.text for r in results], ["textbook chunk"])
 
 
+class TestRebuildWithRealDuplicateClone(unittest.TestCase):
+    """Integration coverage: Task 1 (duplicate_check.py writes the marker)
+    and Task 2 (index_search.py reads it) tested together via the real
+    production functions, not hand-fabricated metadata -- confirms the
+    fix actually closes the loop end to end, the way a real conversion
+    run's duplicate-check step and a later `rebuild` would encounter it."""
+
+    def test_a_real_copy_duplicate_artifacts_clone_survives_rebuild(self):
+        from indexer.duplicate_check import copy_duplicate_artifacts
+        from indexer.index_card import compute_id_from_parts
+
+        with tempfile.TemporaryDirectory() as tmp:
+            canonical_pdf = _make_textbook(tmp, "econometrics", "Ok", "Ok_RealAnalysis_2007")
+            canonical_file_id = compute_file_id(canonical_pdf)
+            rel_canonical_pdf = os.path.relpath(canonical_pdf, tmp).replace(os.sep, "/")
+
+            canonical_card = {
+                "file_id": canonical_file_id,
+                "path": "academic_resources/econometrics/textbooks-and-papers/processed_outputs/Ok_RealAnalysis_2007/Ok_RealAnalysis_2007.md",
+                "source_pdf_path": rel_canonical_pdf, "course": "econometrics",
+                "doc_type": "textbook", "title": "Real Analysis with Economic Applications",
+                "embedding": [0.1, 0.2], "tags": [], "needs_indexing": False,
+                "source_updated_at": "2026-01-01T00:00:00+00:00", "content_hash": "canonical-hash",
+            }
+            save_shard(tmp, "econometrics", [canonical_card])
+
+            # The real production call, exactly as duplicate_check.py's
+            # run_duplicate_check makes it on a confirmed Tier 1 match --
+            # the new course's PDF path is fabricated here (not written to
+            # disk) since copy_duplicate_artifacts never reads the new
+            # PDF's own bytes, only the canonical book directory's.
+            copy_duplicate_artifacts(
+                tmp, "econometrics", canonical_card, "microecon", "textbooks-and-papers",
+                "academic_resources/microecon/textbooks-and-papers/Ok.pdf",
+            )
+
+            client = _fake_client()
+            stats = rebuild(tmp, client=client)
+
+            # The canonical card is untouched, in its own shard.
+            self.assertEqual(len(load_shard(tmp, "econometrics")), 1)
+            self.assertEqual(load_shard(tmp, "econometrics")[0]["file_id"], canonical_file_id)
+
+            # The clone survives, under its real derived id.
+            clone_file_id = compute_id_from_parts([canonical_file_id, "microecon"])
+            clone_cards = load_shard(tmp, "microecon")
+            self.assertEqual(len(clone_cards), 1)
+            self.assertEqual(clone_cards[0]["file_id"], clone_file_id)
+            self.assertEqual(stats["skipped_duplicate_clone"], 1)
+
+            # A subsequent --prune still doesn't touch either course.
+            prune_stats = rebuild(tmp, client=_fake_client(), prune=True)
+            self.assertEqual(prune_stats["pruned"], 0)
+            self.assertEqual(len(load_shard(tmp, "econometrics")), 1)
+            self.assertEqual(len(load_shard(tmp, "microecon")), 1)
+
+
 if __name__ == "__main__":
     unittest.main()
