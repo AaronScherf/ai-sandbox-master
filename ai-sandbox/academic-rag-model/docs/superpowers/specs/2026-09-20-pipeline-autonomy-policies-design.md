@@ -410,6 +410,15 @@ make that better or worse.
   These policies are specifically for the more-automated path; a human
   running the pipeline manually keeps the existing blocking prompts,
   which cost them nothing they haven't already accepted.
+- `docs/superpowers/specs/2026-09-17-cross-course-duplicate-textbook-detection-design.md`
+  §6a ("Known limitations"): once Component 3 ships, update this section
+  to state the corruption risk is fixed, not just documented-around —
+  it currently reads as an open, unsolved problem, and should say plainly
+  that `rebuild`/`--prune` are safe over a course holding clones as of
+  this fix, with a pointer to this spec.
+- [[project-duplicate-check-rebuild-limitation]] (memory): mark resolved
+  once Component 3 ships and its tests pass — this memory entry currently
+  describes an open, unstarted task.
 
 ## Open items deferred to the future
 
