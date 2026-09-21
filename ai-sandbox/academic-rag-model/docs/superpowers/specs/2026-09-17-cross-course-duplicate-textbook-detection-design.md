@@ -286,6 +286,13 @@ Consequences to be aware of:
   derives `course_name` from that same path string — it never trusts a
   stored `file_id`, so §5's `_metadata.json` rewrite (which only changes
   which path is *named*) cannot make this safe in general:
+
+  This warning applies in full to any clone created before 2026-09-20, whose
+  `_metadata.json` contains no `duplicate_of_file_id` marker — meaning
+  `rebuild()` cannot recognize it as a clone and the corruption risk
+  described below remains unchanged. Check a suspected clone's `_metadata.json`
+  for the `duplicate_of_file_id` field before assuming `rebuild`/`--prune` is safe.
+
   - **Tier 1 (byte-identical) clones are the worse case.** The new
     course's own copy of the PDF is, by definition, byte-identical to the
     canonical one, so hashing it yields the *same* `file_id` as the
