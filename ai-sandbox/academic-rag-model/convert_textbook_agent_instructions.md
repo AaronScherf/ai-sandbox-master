@@ -15,26 +15,25 @@ appendix, "Never combine or heredoc commands").
 
 Do not proceed past these points without an explicit answer:
 1. **Subdirectory inclusion** (Step 0 below) — every run.
-2. **Size/cost sanity check** before creating the VM (Step 1.3) — every run.
-3. **Every Tier 2 (fuzzy) duplicate match** (Step 0.4) — never auto-skip one.
-4. **VM deletion** at the end of a session (Step 4).
-5. **Any Preflight gap** (Step -1) you can't fix yourself — report and stop;
+2. **VM deletion** at the end of a session (Step 4).
+3. **Any Preflight gap** (Step -1) you can't fix yourself — report and stop;
    don't attempt to request quota, enable billing, or grant IAM roles
    beyond what Step -1 itself checks for.
-6. **A second genuine system-RAM OOM-kill on the same book/chunk after one
-   manual `gcloud compute instances reset` + relaunch already tried** (see
-   the Debugging appendix's "chunk is silently degraded" entry) — this is
-   a real signal the machine type is undersized for that book's content,
-   and resizing (e.g. `g2-standard-4` → `g2-standard-8`, same L4 GPU, more
-   system RAM) is a cost-changing decision, not something to do silently.
-   Note this is about the *external* reset-and-relaunch, not
-   `start_conversion.sh`'s own built-in watchdog retries -- those 5
-   automatic attempts happen first, inside the VM, and don't by themselves
-   fix an OOM-kill (see the appendix), so their exhaustion alone doesn't
-   yet meet this bar. A single tight-but-recovering `free -h` reading, or
-   a container/process dying for a reason *other* than a confirmed
-   `dmesg`-visible OOM-kill, does not meet this bar either — let the
-   watchdog's automatic retries handle those.
+
+The size/cost sanity check, Tier 2 duplicate matches, and OOM-kill
+recovery are no longer unconditional stop points — see
+`docs/superpowers/specs/2026-09-20-pipeline-autonomy-policies-design.md`
+for the policies that replace them:
+- **Cost/size** (Step 1.3): proceed automatically; stop and ask only if
+  the batch is unprecedented relative to history (spec Component 2a).
+- **Duplicate matches** (Step 0.3): a score >= 0.85 auto-resolves
+  immediately, queued for post-hoc review via
+  `python -m indexer.duplicate_check --review-pending`; only the
+  0.6-0.85 band still asks before proceeding (spec Component 1a).
+- **OOM-kill recovery** (Debugging appendix below): a 3-rung escalation
+  ladder handles the first two confirmed OOM-kills on a book
+  automatically; only a third confirmed OOM-kill on the same book — even
+  after a resize — still stops and asks (spec Component 2c).
 
 ## Step -1: Preflight verification (read-only, run once per session)
 
@@ -578,9 +577,11 @@ on re-run.
     consecutive `FATAL` lines a few seconds apart in `~/convert_log.txt`
     (the watchdog burning through all its retries uselessly) each preceded
     by a fresh `dmesg` OOM-kill -- that pattern means stop watching the log
-    and go straight to the recovery below. If it recurs a second time on
-    the same book after one reset, see "When to stop and ask the user"
-    point 6 above rather than resetting a third time.
+    and go straight to the recovery below. This is Rung 1 of the escalation
+    ladder there -- if it recurs a second time on the same book after one
+    reset, that's Rung 2 (an automatic resize, not a stop-and-ask); only a
+    third recurrence, even after the resize, stops and asks the user (see
+    the escalation ladder below for all three rungs).
   - Sometimes there is no diagnosable cause at all: `dmesg` and
     `sudo journalctl -u docker --since '30 min ago'` come back clean
     except a bare `"ignoring event" ... type="*events.TaskDelete"` line
@@ -588,32 +589,70 @@ on re-run.
     the watchdog's blind cleanup-and-relaunch fixes it the same way
     regardless of whether a cause is found.
 
-  **Manual recovery -- needed only for a `dmesg`-confirmed OOM-kill, or
-  when `~/convert_log.txt` shows the watchdog exhausted all 5 retries and
-  the "convert" tmux session has ended:**
+  **Automated recovery -- a 3-rung escalation ladder** (pipeline-autonomy-
+  policies spec, Component 2c), reached only after the watchdog's own 5
+  retries are exhausted and `~/convert_log.txt` shows the "convert" tmux
+  session has ended:
+
+  **Precondition for every rung: positively confirm this was an OOM-kill,
+  not a different retry-exhaustion cause.** Run:
+  ```bash
+  gcloud compute ssh "$VM_INSTANCE_NAME" --zone="$GCP_ZONE" --tunnel-through-iap --command="dmesg 2>/dev/null | grep -i 'killed process'"
+  ```
+  A hit confirms an OOM-kill -- proceed to the matching rung below. No hit
+  means a different root cause (torchaudio crash, orphaned-container VRAM
+  exhaustion, an unexplained Docker `TaskDelete`) -- a reset will not fix
+  this; investigate the `FATAL` lines' surrounding log context instead,
+  and do not count this toward the rung ladder below.
+
+  **Rung 1 -- 1st confirmed OOM-kill on this book:** kill both tmux
+  sessions, then reset:
   ```bash
   gcloud compute ssh "$VM_INSTANCE_NAME" --zone="$GCP_ZONE" --tunnel-through-iap --command="tmux kill-session -t autostop 2>/dev/null; tmux kill-session -t convert 2>/dev/null; echo done"
   ```
   ```bash
   gcloud compute instances reset "$VM_INSTANCE_NAME" --zone="$GCP_ZONE"
   ```
-  (Skip the reset if the trigger was retry exhaustion with no `dmesg`
-  OOM-kill involved -- that's a different, non-memory root cause, and a
-  reset won't fix it; investigate the `FATAL` lines' surrounding log
-  context instead.) Wait ~1-2 minutes after a reset, then:
+  Wait ~1-2 minutes, then clean up any leftover inference-server state
+  (belt-and-suspenders -- `start_conversion.sh`'s watchdog does this too
+  on its first attempt after relaunch):
   ```bash
   gcloud compute ssh "$VM_INSTANCE_NAME" --zone="$GCP_ZONE" --tunnel-through-iap --command="sudo docker ps -aq --filter 'name=surya-vllm-' | xargs -r sudo docker rm -f; pgrep -f 'surya\.ocr_error\.server' | xargs -r sudo kill -9; nvidia-smi --query-gpu=memory.used --format=csv,noheader"
   ```
   Confirm that last command reads low (a few hundred MB is fine; multi-GB
-  means something is still holding memory) -- this is a belt-and-suspenders
-  check; `start_conversion.sh`'s watchdog runs the same cleanup itself on
-  every attempt, including the first one after this manual step. Then
-  relaunch Step 3.3 with the same book list (already-finished books skip
-  via `convert_textbook.py`'s own whole-book check; already-good chunks
-  within an in-progress book skip via the per-chunk checkpoint -- and any
-  chunk that was mid-flight during the kill was never marked `.done` in
-  the first place, since `chunk_is_degraded` exits before that write) and
-  re-arm the autostop watcher as usual.
+  means something is still holding memory). Relaunch Step 3.3 with the
+  same book list (already-finished books and chunks skip via the existing
+  whole-book/per-chunk checkpoints) and re-arm the autostop watcher. No
+  report needed beyond the log line -- this rung is fully automatic.
+
+  **Rung 2 -- 2nd confirmed OOM-kill on the same book** (the dmesg check
+  above applies again): repeat Rung 1's kill-sessions and cleanup steps,
+  but resize the machine type instead of a plain reset:
+  ```bash
+  gcloud compute instances stop "$VM_INSTANCE_NAME" --zone="$GCP_ZONE"
+  ```
+  ```bash
+  gcloud compute instances set-machine-type "$VM_INSTANCE_NAME" --zone="$GCP_ZONE" --machine-type=g2-standard-8
+  ```
+  ```bash
+  gcloud compute instances start "$VM_INSTANCE_NAME" --zone="$GCP_ZONE"
+  ```
+  **Report this the moment it happens** (not just in an end-of-run
+  summary) -- a note that a resize occurred, not a blocking question. This
+  is specifically so a *pattern* of frequent resizes across separate runs
+  stays visible without digging through historical logs; if
+  `g2-standard-4` turns out to be the wrong default, this is the signal
+  that would show it. Relaunch Step 3.3 with the same book list as in Rung
+  1. After it completes cleanly (no further `chunk_is_degraded` firing),
+  fold the outcome into the RAM-sizing dataset via Step 3.4c as usual --
+  this resize is itself a real data point for the still-thin
+  `vm_sizing_log.jsonl`.
+
+  **Rung 3 -- 3rd confirmed OOM-kill on the same book, even after the
+  resize:** stop and ask the user. Two different machine sizes both
+  failing on the same book, both times a genuine OOM (dmesg-confirmed),
+  is outside anything this pipeline has seen and warrants a human look
+  rather than a further automatic escalation.
   - `chunk_is_degraded` only catches a chunk where a clear majority
     (>50%) of pages fell back to raw PyPDF text -- a *milder* degradation
     (say, 2 of 6 pages) still gets checkpointed as done. This is
