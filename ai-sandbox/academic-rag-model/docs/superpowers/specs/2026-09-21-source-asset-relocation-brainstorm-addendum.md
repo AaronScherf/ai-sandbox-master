@@ -130,6 +130,76 @@ this addendum) before they could be brought to the user for a decision:
   (which courses/files are affected, why the copy exists) before deciding
   whether to delete it.
 
+## 2026-09-21 follow-up: two of the three "still open" items resolved
+
+The main session investigated the two more concrete "still open" items
+directly (per the user's explicit go-ahead); README updates remain
+deferred until after the real migration, per the user's own preference.
+
+### Triplicate `.excalidraw.md` -- false alarm, not cleanup debt
+
+Investigated all 8 real instances in the corpus (4 econometrics, 4
+microecon). The `processed_outputs/`-nested copy is **not** a duplicate of
+the canonical scene file -- it's `transcribe_excalidraw.py`'s own
+intentional "raw transcription" output, by design since the original
+2026-09-09 plan (`<name>.md` raw + `<name>.rag.md` expanded), which just
+happens to reuse the same `.excalidraw.md` filename suffix as its source.
+Confirmed directly, not assumed: the canonical source
+(`econometrics/lecture_notes/Econometrics 2026-09-09 10.11.39.excalidraw.md`)
+is 1.78MB of compressed-JSON Excalidraw scene data; the
+`processed_outputs/` file of the identical name is 6.3KB of markdown with
+its own `source_excalidraw`/`source_image`/`routing`/`chunks`/`model`
+frontmatter and the actual chunked transcription text -- a byte diff of
+the first 200 bytes of each confirms they're unrelated content, not a
+stale copy of one another. **No cleanup needed.** This is exactly the
+same filename collision `route_notes_transcribe.py`'s and
+`migrate_sources_to_resources.py`'s own discovery logic already guards
+against by pruning `processed_outputs/` from their walks (Tasks 6 and 9) --
+the collision is real, but the fix was already built before this
+investigation, for an unrelated reason (avoiding rediscovering the
+pipeline's own output as a new source).
+
+### `.gitignore` / Direct Git Sync -- concrete instructions, not yet applied
+
+**Laptop-side Direct Git Sync:** checked the real config
+(`academic_notes/.obsidian/plugins/direct-git-sync/data.json`,
+`ignoredPaths`): `*.pdf`, `*.docx`, `*.doc`, `*.pptx`, `*.excalidraw.svg`
+are already wildcard-excluded from the vault repo. **No laptop-side change
+needed for this migration** -- every file type this plan moves out of
+`academic_notes/` is already excluded from that repo by extension,
+regardless of path. **Action for the user:** verify the tablet's
+`direct-git-sync/data.json` has the same `ignoredPaths` list (can't be
+checked from this machine) -- if it doesn't, add the same five patterns
+there.
+
+**Outer `ai-sandbox-master/.gitignore`:** two real, concrete changes
+needed, both only after Task 8's vocabulary rename actually lands (not
+before, since these patterns must match the renamed directories):
+
+1. `ai-sandbox/academic-hub/**/lecture-slides/` and
+   `ai-sandbox/academic-hub/**/lecture-recordings/` (lines currently in
+   the file, hyphenated only) need matching underscored patterns added --
+   `ai-sandbox/academic-hub/**/lecture_slides/` and
+   `.../lecture_recordings/` -- following this file's own existing
+   both-spellings precedent for `textbooks-and-papers/`/`textbooks/`.
+   Without this, the renamed directories' PDFs (currently protected as
+   "plausibly institution/professor-owned," per this `.gitignore`'s own
+   comment) would silently become trackable and could get committed to a
+   repo this `.gitignore` itself notes is public on GitHub.
+2. **New consideration, not previously flagged:** `academic_notes/` is
+   currently wholesale-excluded from the outer repo (`ai-sandbox/
+   academic-hub/academic_notes/`, a full directory ignore -- it's a
+   separate nested repo). Its `study_plan/`'s `.docx`/`.pptx` files are
+   therefore currently invisible to the outer repo entirely.
+   `academic_resources/` is **not** wholesale-excluded -- only specific
+   subpaths are. Once `.docx`/`.pptx` files physically move there (this
+   plan's Task 9, per the "in scope" decision above), they become
+   trackable-by-default in a public repo unless the user decides they
+   should be excluded too, same as the textbook PDFs. **This needs an
+   explicit decision, not an assumption:** should moved `.docx`/`.pptx`
+   files be gitignored in their new home, or is that content fine to
+   track publicly?
+
 ## Suggested handoff prompt
 
 > Read `docs/superpowers/specs/2026-09-21-source-asset-relocation-brainstorm-addendum.md`.
