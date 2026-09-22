@@ -6,7 +6,7 @@ from audio_generator.discovery import SourceFile
 from audio_generator.state import compute_content_hash, episode_state_key, load_state, needs_regeneration, save_state
 
 
-def _source(hub_dir: str, rel_md: str = "academic_notes/math-camp/lecture-notes/a.md") -> SourceFile:
+def _source(hub_dir: str, rel_md: str = "academic_notes/math-camp/lecture_notes/a.md") -> SourceFile:
     abs_md = os.path.join(hub_dir, rel_md.replace("/", os.sep))
     os.makedirs(os.path.dirname(abs_md), exist_ok=True)
     return SourceFile(
@@ -37,8 +37,8 @@ class TestComputeContentHash(unittest.TestCase):
 class TestStateRoundTrip(unittest.TestCase):
     def test_save_then_load_round_trips(self):
         with tempfile.TemporaryDirectory() as tmp:
-            save_state(tmp, {"academic_notes/math-camp/lecture-notes/a.md": "abc123"})
-            self.assertEqual(load_state(tmp), {"academic_notes/math-camp/lecture-notes/a.md": "abc123"})
+            save_state(tmp, {"academic_notes/math-camp/lecture_notes/a.md": "abc123"})
+            self.assertEqual(load_state(tmp), {"academic_notes/math-camp/lecture_notes/a.md": "abc123"})
 
     def test_missing_state_file_returns_empty_dict(self):
         with tempfile.TemporaryDirectory() as tmp:

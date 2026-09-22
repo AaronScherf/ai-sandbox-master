@@ -35,8 +35,8 @@ class TestRunPipeline(unittest.TestCase):
         mock_transcribe.return_value = [TranscriptSegment(0.0, 1.0, "hello")]
         mock_group.return_value = [Group(group_id="g_0001", member_video_ids=["A"], slug="lecture-1", tier="singleton")]
         mock_synthesize.return_value = "# Notes"
-        mock_write.return_value = ("academic_notes/math-camp/lecture-notes/lecture-1.md",
-                                    "academic_notes/math-camp/lecture-notes/lecture-1.meta.json")
+        mock_write.return_value = ("academic_notes/math-camp/lecture_notes/lecture-1.md",
+                                    "academic_notes/math-camp/lecture_notes/lecture-1.meta.json")
 
         with tempfile.TemporaryDirectory() as video_notes_root:
             summary = run_pipeline(
@@ -79,8 +79,8 @@ class TestRunPipeline(unittest.TestCase):
         mock_transcribe.return_value = [TranscriptSegment(0.0, 1.0, "hello")]
         mock_group.return_value = [Group(group_id="g_0001", member_video_ids=["A"], slug="lecture-1", tier="singleton")]
         mock_synthesize.return_value = "# Notes"
-        mock_write.return_value = ("academic_notes/math-camp/lecture-notes/lecture-1.md",
-                                    "academic_notes/math-camp/lecture-notes/lecture-1.meta.json")
+        mock_write.return_value = ("academic_notes/math-camp/lecture_notes/lecture-1.md",
+                                    "academic_notes/math-camp/lecture_notes/lecture-1.meta.json")
 
         with tempfile.TemporaryDirectory() as video_notes_root:
             run_pipeline(course="math-camp", urls=["https://youtube.com/watch?v=A"], playlists=[],

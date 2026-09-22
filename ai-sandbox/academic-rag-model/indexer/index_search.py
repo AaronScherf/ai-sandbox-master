@@ -299,7 +299,7 @@ def _video_lecture_note_paths(academic_hub_root: str, course_filter: str | None)
     for course in sorted(os.listdir(notes_root)):
         if course_filter and course != course_filter:
             continue
-        lecture_notes_dir = os.path.join(notes_root, course, "lecture-notes")
+        lecture_notes_dir = os.path.join(notes_root, course, "lecture_notes")
         if not os.path.isdir(lecture_notes_dir):
             continue
         for name in sorted(os.listdir(lecture_notes_dir)):
@@ -566,7 +566,7 @@ def rebuild(academic_hub_root: str, client, course: str | None = None,
         with open(md_path, "r", encoding="utf-8") as f:
             content_sample = f.read()
 
-        _reconcile_one(academic_hub_root, course_name, "lecture-notes", file_id, rel_md_path,
+        _reconcile_one(academic_hub_root, course_name, "lecture_notes", file_id, rel_md_path,
                        rel_meta_path, content_sample, None, client, force, stats,
                        source_mtime=os.path.getmtime(md_path),
                        content_hash=compute_content_hash(md_path),

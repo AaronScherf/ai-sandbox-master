@@ -14,12 +14,12 @@ def _touch(path: str, content: str = "content") -> None:
 class TestDiscoverNotes(unittest.TestCase):
     def test_finds_md_directly_in_a_category(self):
         with tempfile.TemporaryDirectory() as hub:
-            _touch(os.path.join(hub, "academic_notes", "math-camp", "lecture-notes", "real-analysis.md"))
+            _touch(os.path.join(hub, "academic_notes", "math-camp", "lecture_notes", "real-analysis.md"))
             sources = discover_source_files(hub, "math-camp", ["notes"])
             self.assertEqual(len(sources), 1)
             self.assertEqual(sources[0].content_type, "notes")
-            self.assertEqual(sources[0].rel_md_path, "academic_notes/math-camp/lecture-notes/real-analysis.md")
-            self.assertEqual(sources[0].rel_mp3_path, "academic_notes/math-camp/lecture-notes/real-analysis.mp3")
+            self.assertEqual(sources[0].rel_md_path, "academic_notes/math-camp/lecture_notes/real-analysis.md")
+            self.assertEqual(sources[0].rel_mp3_path, "academic_notes/math-camp/lecture_notes/real-analysis.mp3")
 
     def test_finds_md_in_a_category_processed_outputs_subfolder(self):
         with tempfile.TemporaryDirectory() as hub:
@@ -39,8 +39,8 @@ class TestDiscoverNotes(unittest.TestCase):
 
     def test_excludes_the_narrated_md_sibling(self):
         with tempfile.TemporaryDirectory() as hub:
-            _touch(os.path.join(hub, "academic_notes", "math-camp", "lecture-notes", "real-analysis.md"))
-            _touch(os.path.join(hub, "academic_notes", "math-camp", "lecture-notes", "real-analysis.narrated.md"))
+            _touch(os.path.join(hub, "academic_notes", "math-camp", "lecture_notes", "real-analysis.md"))
+            _touch(os.path.join(hub, "academic_notes", "math-camp", "lecture_notes", "real-analysis.narrated.md"))
             sources = discover_source_files(hub, "math-camp", ["notes"])
             self.assertEqual(len(sources), 1)
             self.assertTrue(sources[0].rel_md_path.endswith("real-analysis.md"))
@@ -48,16 +48,16 @@ class TestDiscoverNotes(unittest.TestCase):
 
     def test_excludes_the_per_episode_narrated_md_sibling(self):
         with tempfile.TemporaryDirectory() as hub:
-            _touch(os.path.join(hub, "academic_notes", "math-camp", "lecture-notes", "real-analysis.md"))
-            _touch(os.path.join(hub, "academic_notes", "math-camp", "lecture-notes", "real-analysis__part01.narrated.md"))
+            _touch(os.path.join(hub, "academic_notes", "math-camp", "lecture_notes", "real-analysis.md"))
+            _touch(os.path.join(hub, "academic_notes", "math-camp", "lecture_notes", "real-analysis__part01.narrated.md"))
             sources = discover_source_files(hub, "math-camp", ["notes"])
             self.assertEqual(len(sources), 1)
             self.assertTrue(sources[0].rel_md_path.endswith("real-analysis.md"))
 
     def test_excludes_the_episode_index_manifest(self):
         with tempfile.TemporaryDirectory() as hub:
-            _touch(os.path.join(hub, "academic_notes", "math-camp", "lecture-notes", "real-analysis.md"))
-            _touch(os.path.join(hub, "academic_notes", "math-camp", "lecture-notes", "real-analysis__index.md"))
+            _touch(os.path.join(hub, "academic_notes", "math-camp", "lecture_notes", "real-analysis.md"))
+            _touch(os.path.join(hub, "academic_notes", "math-camp", "lecture_notes", "real-analysis__index.md"))
             sources = discover_source_files(hub, "math-camp", ["notes"])
             self.assertEqual(len(sources), 1)
             self.assertTrue(sources[0].rel_md_path.endswith("real-analysis.md"))
@@ -100,7 +100,7 @@ class TestDiscoverTextbooks(unittest.TestCase):
 class TestDiscoverSourceFilesContentTypeFilter(unittest.TestCase):
     def test_defaults_can_combine_both_types(self):
         with tempfile.TemporaryDirectory() as hub:
-            _touch(os.path.join(hub, "academic_notes", "math-camp", "lecture-notes", "a.md"))
+            _touch(os.path.join(hub, "academic_notes", "math-camp", "lecture_notes", "a.md"))
             book_dir = os.path.join(hub, "academic_resources", "math-camp", "textbooks", "processed_outputs", "B")
             _touch(os.path.join(book_dir, "B.md"))
             sources = discover_source_files(hub, "math-camp", ["notes", "textbook"])

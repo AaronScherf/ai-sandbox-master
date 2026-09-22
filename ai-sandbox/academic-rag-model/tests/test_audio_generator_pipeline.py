@@ -11,7 +11,7 @@ from audio_generator.state import load_state
 
 
 def _make_source(
-    hub: str, rel_md: str = "academic_notes/math-camp/lecture-notes/a.md", content: str = "hello world",
+    hub: str, rel_md: str = "academic_notes/math-camp/lecture_notes/a.md", content: str = "hello world",
     content_type: str = "notes",
 ) -> SourceFile:
     abs_md = os.path.join(hub, rel_md.replace("/", os.sep))

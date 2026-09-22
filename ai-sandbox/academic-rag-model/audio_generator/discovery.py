@@ -4,7 +4,7 @@ Finds every source .md file audio_generator should (re)generate audio for,
 across the two in-scope content types (spec §5, §1): a course's own notes
 (academic_notes/<course>/, all categories -- this already includes
 video_notes's synthesized lecture notes, since those live in
-academic_notes/<course>/lecture-notes/) and its converted textbooks
+academic_notes/<course>/lecture_notes/) and its converted textbooks
 (academic_resources/<course>/{textbooks,textbooks-and-papers}/processed_outputs/).
 
 Returns one SourceFile per source .md -- not per chapter/section -- so a
@@ -70,7 +70,7 @@ def _discover_notes(academic_hub_root: str, course: str) -> list:
         if not os.path.isdir(category_dir):
             continue
         # A category holds its .md files either directly (plain markdown
-        # notes, e.g. "markdown"/"lecture-notes") or under its own
+        # notes, e.g. "markdown"/"lecture_notes") or under its own
         # processed_outputs/ (OCR'd/converted notes, e.g. "ta_notes") --
         # both are checked, non-recursively (spec §5).
         for scan_dir in (category_dir, os.path.join(category_dir, "processed_outputs")):

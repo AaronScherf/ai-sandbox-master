@@ -33,8 +33,8 @@ KNOWN_LEVELS = ("introductory", "intermediate", "advanced")
 # from the known_doc_types it's given -- it never falls through to
 # folder_category in practice (confirmed live: a synthesized lecture
 # note was classified "handwritten_notes", the closest of the four
-# KNOWN_DOC_TYPES, not "lecture-notes"). video_notes/note_indexing.py
-# and indexer/index_search.py's lecture-notes rebuild loop both pass
+# KNOWN_DOC_TYPES, not the real folder category). video_notes/note_indexing.py
+# and indexer/index_search.py's lecture_notes rebuild loop both pass
 # this instead, so a lecture note is always correctly classified.
 LECTURE_NOTE_DOC_TYPES = frozenset({"lecture_notes"})
 
@@ -68,7 +68,7 @@ def compute_id_from_parts(parts: list[str]) -> str:
     """Truncated SHA-256 of sorted, joined string parts -- the same
     content-addressed-identity idea as compute_file_id, for content
     whose stable identity isn't a single file's bytes (e.g. a
-    lecture-notes group's identity is its member video IDs, not its
+    lecture_notes group's identity is its member video IDs, not its
     derived, re-synthesizable Markdown -- see
     video_notes/note_indexing.py)."""
     joined = ",".join(sorted(parts))

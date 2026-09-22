@@ -87,7 +87,7 @@ def _make_textbook(academic_hub_root, course, pdf_basename, folder_name, with_so
 
 def _make_video_lecture_note(academic_hub_root, course, slug, member_video_ids,
                               markdown="# Real Analysis\n\nSome content."):
-    lecture_notes_dir = os.path.join(academic_hub_root, "academic_notes", course, "lecture-notes")
+    lecture_notes_dir = os.path.join(academic_hub_root, "academic_notes", course, "lecture_notes")
     os.makedirs(lecture_notes_dir, exist_ok=True)
     md_path = os.path.join(lecture_notes_dir, f"{slug}.md")
     with open(md_path, "w", encoding="utf-8") as f:
@@ -672,7 +672,7 @@ class TestRebuildVideoLectureNotes(unittest.TestCase):
             self.assertEqual(stats["generated"], 1)
             cards = load_shard(tmp, "math-camp")
             self.assertEqual(len(cards), 1)
-            self.assertEqual(cards[0]["source_pdf_path"], "academic_notes/math-camp/lecture-notes/real-analysis.meta.json")
+            self.assertEqual(cards[0]["source_pdf_path"], "academic_notes/math-camp/lecture_notes/real-analysis.meta.json")
 
     def test_never_classified_into_the_shared_corpus_doc_types(self):
         # Regression guard: generate_index_card()'s prompt only ever lets
@@ -696,7 +696,7 @@ class TestRebuildVideoLectureNotes(unittest.TestCase):
 
     def test_missing_sidecar_is_skipped_not_crashed(self):
         with tempfile.TemporaryDirectory() as tmp:
-            lecture_notes_dir = os.path.join(tmp, "academic_notes", "math-camp", "lecture-notes")
+            lecture_notes_dir = os.path.join(tmp, "academic_notes", "math-camp", "lecture_notes")
             os.makedirs(lecture_notes_dir)
             with open(os.path.join(lecture_notes_dir, "orphaned.md"), "w", encoding="utf-8") as f:
                 f.write("# No sidecar")
