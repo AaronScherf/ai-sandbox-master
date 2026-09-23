@@ -49,21 +49,25 @@ math-camp in depth):
   `academic_resources/<course>/lecture_slides/` (wherever present).
 - `academic_resources/<course>/lecture-recordings/` ->
   `academic_resources/<course>/lecture_recordings/` (wherever present).
-- ~~`academic_notes/math-camp/lecture-notes/` ->
-  `academic_notes/math-camp/lecture_notes/`~~ **CORRECTED, do not do this
-  (2026-09-21, caught before execution):** this is not a naming
-  inconsistency. `academic_notes/<course>/lecture-notes/` (hyphenated) is a
-  hardcoded, load-bearing directory name for a completely different
-  subsystem -- the video-lecture-notes pipeline
-  (`video_notes/note_indexing.py`, `indexer/index_search.py`'s
-  `_video_lecture_note_paths`) -- unrelated to the Excalidraw pipeline's
-  `lecture_notes` (underscored) category that every other course uses.
-  Confirmed via `grep -rn '"lecture-notes"' indexer/ video_notes/`: both
-  modules hardcode the literal hyphenated string. Renaming it would break
+- `academic_notes/math-camp/lecture-notes/` ->
+  `academic_notes/math-camp/lecture_notes/`. **Flagged 2026-09-21, caught
+  before execution:** this is not a naming inconsistency --
+  `academic_notes/<course>/lecture-notes/` (hyphenated) was a hardcoded,
+  load-bearing directory name for a completely different subsystem, the
+  video-lecture-notes pipeline (`video_notes/note_indexing.py`,
+  `indexer/index_search.py`'s `_video_lecture_note_paths`) -- unrelated to
+  the Excalidraw pipeline's `lecture_notes` (underscored) category that
+  every other course uses. Renaming the folder alone would have broken
   `rebuild()`'s discovery of math-camp's video lecture notes -- the exact
   same class of silent-orphaning bug Task 3 of the main plan just fixed
-  for Excalidraw notes, reintroduced for a different content type. The
-  original brainstorm's "one outlier" framing was wrong; not executed.
+  for Excalidraw notes, reintroduced for a different content type.
+  **Executed anyway on 2026-09-22, per the user:** both hardcoded
+  references updated to match (see that date's section below) -- the
+  folder is renamed for real now, with the two subsystems' code kept in
+  sync rather than left inconsistent. The original brainstorm's "one
+  outlier" framing undersold the risk (it's not just a naming quirk, it's
+  a real cross-subsystem dependency), but the rename itself was fine once
+  the dependent code came along with it.
 
 **Sequencing recommendation:** do this rename pass *before* running the
 file migration (Task 8/9), so `common/academic_hub_paths.py`'s mirrored-path
@@ -268,6 +272,62 @@ unchanged. Nothing broke.
 deliberately held for Task 10's own Step 0, a separate confirmation from
 this rename pass. The real file migration (Task 9's script exists and is
 tested; Task 10 is its own go/no-go, not yet reached).
+
+## 2026-09-22: math-camp/lecture-notes/ renamed after all, with the video_notes pipeline updated to match
+
+The user reconsidered the correction above: rather than leaving
+`lecture-notes/` as the one hyphenated outlier, rename it too and update
+`video_notes/note_indexing.py` + `indexer/index_search.py`'s
+`_video_lecture_note_paths` to match, since both hardcode the folder
+name. Executed:
+
+- Checked for collision risk first (no course has both video-notes
+  `.md`+`.meta.json` and Excalidraw `.excalidraw.md`/`.svg`/`.png` content
+  in the same folder) -- confirmed safe to share the folder name.
+- Updated both hardcoded references (directory path + `folder_category`
+  metadata value in each) plus every dependent test; left the spec
+  filename (`2026-09-06-video-lecture-notes-design.md`) and the
+  "video-lecture-notes pipeline" English phrase untouched, since those
+  name the spec doc and the subproject, not the folder.
+- Real-renamed all 10 files via `git mv` in the vault repo (proper
+  rename tracking).
+
+**A real regression was caught by a broad, all-courses (not just
+math-camp) verification pass, fixed before it shipped:** once
+`lecture_notes/` was shared vocabulary, `_video_lecture_note_paths`
+started scanning *every* course's `lecture_notes/` folder -- including
+the Excalidraw ones -- and printed a "no sidecar" warning for every single
+`.excalidraw.md` file in every course, on every `rebuild()`. Not a data-
+correctness bug (no card was ever wrongly generated; `orphaned: 0`,
+`generated: 0` throughout), but real noise that a course-scoped
+verification alone wouldn't have caught. Fixed: `.excalidraw.md` is now
+excluded up front as never being a video-lecture-note candidate, rather
+than treated as one missing its sidecar. Re-verified broad, all-courses,
+after the fix: silent, `orphaned: 0`.
+
+**Separately, a second real gap found and fixed while investigating why 4
+`ta_notes` cards had also gone stale:** `_notes_pdf_paths()` (the PDF-notes
+walker) was hardcoded to exactly `course/category/*.pdf`, two levels, no
+recursion -- unlike `route_notes_transcribe.py`'s and
+`migrate_sources_to_resources.py`'s own walkers, which both already
+recurse via `os.walk`. The user had reorganized `math-camp/ta_notes/`
+into year subfolders (`2025/`, `2026/`) as part of their own normal vault
+use (confirmed via the Direct Git Sync auto-commit history, not a bug or
+another session), which made those PDFs invisible to `rebuild()` entirely,
+regardless of where their `processed_outputs/` lived. Fixed: made the
+walker recursive, with `folder_category` now the PDF's own immediate
+parent directory basename (matches `transcribe_notes.py`'s
+`derive_folder_category()` exactly, unchanged for the flat case). Then
+moved the 4 affected files' `processed_outputs/` (`.md` +
+`_pages_cache.json`, plus `LN_Probability`'s `audio_generator` narrated.md
+family -- 19 files total) to follow their PDFs into
+`ta_notes/2026/processed_outputs/`, preserving the sibling convention
+every pipeline relies on. Ran the real `rebuild()` (scoped to math-camp)
+against the production index afterward: all 4 cards cheaply reconciled
+(path-only update, no LLM call), `orphaned: 0`. 4 pre-existing orphaned
+cards remain in math-camp, confirmed unrelated to any of this session's
+changes (same set before and after, unaffected by any fix here) -- left
+alone, out of scope.
 
 ## Suggested handoff prompt
 
