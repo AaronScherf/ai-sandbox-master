@@ -916,3 +916,92 @@ go/no-go checkpoint) are still pending -- the plan requires stopping here
 for confirmation before touching ~90 real files across every course,
 especially given the `academic_notes` vault repo's git history was
 rewritten this same week (`docs/status/2026-09-21-obsidian-git-sync-status.md`).
+
+## 2026-09-23: source-asset relocation migrated for real, three more real bugs found and fixed, orphaned-card handling reworked
+
+Vocabulary unification (Task 8: `math-methods` -> `math_methods`,
+`lecture-slides`/`lecture-recordings` -> underscored,
+`math-camp/lecture-notes/` -> `lecture_notes/`) landed first, executed
+against the real corpus with the `video_notes`/`index_search.py` code
+updated to match. The `worktree-source-asset-relocation` branch (Tasks
+1-9's code) was then merged to `main`, since the migration script only
+existed there while the real corpus lives in the main checkout.
+
+**Migrated for real, one course at a time, each with a dry-run + collision
+check first:** `econometrics` (18 files: 14 PDF, 4 Excalidraw `.svg`) as a
+trial, then `math-camp` (66 candidates: 63 PDF, 3 `.docx`), then a batch
+pass covering every other course (`math_methods`: 3 files;`microecon`: 13
+files; the remaining 6 courses plus the top-level `Excalidraw/` scratch
+folder had nothing to migrate). Every course's before/after state verified
+against the real `.index/<course>.json` directly, not just trusted from
+the script's own printed summary.
+
+**Two more real bugs found, both the same shape as the Excalidraw
+orphaning bug above -- code that assumed a source and its output/index
+entry are always resolvable via a hardcoded sibling relationship, broken
+the moment a source actually migrates:**
+
+1. `index_search.py`'s `_notes_pdf_paths()` walker only ever looked under
+   `academic_notes/` -- a migrated, already-transcribed PDF became
+   invisible to `rebuild()` entirely, which would have silently orphaned
+   its card (not exercised by the econometrics trial, since none of its
+   PDFs were transcribed yet; math-camp's real, already-transcribed
+   `ta_notes/` PDFs hit it immediately). Fixed by extending the walker to
+   also discover PDFs already under `academic_resources/<course>/<category>/`
+   (same `academic_notes/`-counterpart guard `route_notes_transcribe.py`'s
+   own migrated-PDF discovery already used), and by routing the PDF loop's
+   output-path computation through `resolve_output_dir()` instead of a
+   hardcoded sibling.
+2. Separately, `_reconcile_one`'s `already_current` short-circuit only
+   ever compared the output `path` (which never moves) -- a migrated
+   source's freshly-resolved `source_pdf_path`/`source_asset_path` was
+   silently discarded even when discovery worked correctly. Confirmed
+   live: econometrics' 4 real Excalidraw cards were left with
+   `source_asset_path` unset after the migration script's own reindex
+   call. Fixed by also comparing `source_pdf_path`, and (only when the
+   caller passes a determinable, non-`None` value) `source_asset_path`; a
+   legacy card that never had the `source_asset_path` key at all still
+   gets a silent, no-LLM-call backfill (same treatment as the existing
+   `content_hash` backfill), so a corpus-wide legacy backfill doesn't get
+   misreported as a wave of real "updated" cards.
+3. `route_notes_transcribe.py`'s own `pdf_output_path()` had the identical
+   hardcoded-sibling bug as (1), in its "already done" check rather than
+   `rebuild()`'s discovery -- math-camp's post-move `--dry-run` showed
+   `PDF: 34 to process, 0 already done` (every already-transcribed PDF
+   looked unprocessed); a real, non-dry-run invocation would have
+   re-transcribed all 21 already-done PDFs. Fixed the same way, via
+   `resolve_output_dir()`.
+
+**Orphaned-card investigation and a fourth fix, done at the user's request
+right after the migration landed:** 5 pre-existing orphaned cards
+surfaced along the way (4 math-camp, 1 math_methods) -- investigated each
+rather than assuming. 2 of the 4 math-camp cards (`Aug 17 Analysis.pdf`,
+`Lecture_Notes_Aug_24_Probability Lecture.pdf`) were confirmed **true
+renames**, not guessed from filename/page-count similarity but proven by
+recomputing `compute_file_id()` against the current on-disk file and
+matching it exactly against the stored card's `file_id`: the source PDF
+had been renamed at some point without its transcribed output following,
+so `resolve_output_dir()`'s basename-matching correctly found nothing
+under the new name. Fixed by renaming the outputs (+ `_pages_cache.json`
+siblings) to match and updating their `source_pdf` frontmatter, then
+re-running `rebuild()` (one needed a retry after a transient Gemini 503).
+The other 2 math-camp cards (`old_exam_2021.pdf`, `old_exam_2025.pdf`)
+are **not** renames -- their frontmatter page counts (22, 14) don't match
+any same-named candidate on disk (3, 2 pages respectively); their source
+PDFs are genuinely gone. The math_methods card has no `.rag.md` ever
+generated, confirmed absent from disk entirely.
+
+For these 3 genuinely-sourceless cards, the user pushed back on a
+"prune vs. leave flagged" framing: `search()` was silently excluding
+every `orphaned: true` card from results regardless of whether its `.md`
+content was still real and valuable -- so neither option actually
+preserved what mattered. Fixed the actual bug instead: `search()` now
+only excludes `needs_indexing` (generation failed) or missing-embedding
+cards; `orphaned` alone is a provenance note ("source couldn't be
+verified on the last rebuild"), not a reason to hide otherwise-good
+content. Applies to any future case of a deleted/renamed source PDF, not
+just these 3 -- all 3 remaining orphaned cards confirmed to have real
+embeddings and are now correctly surfaced by search.
+
+Full task-by-task detail (per-course file counts, exact commits, every
+verification step): `docs/superpowers/plans/2026-09-21-source-asset-relocation.md`.
