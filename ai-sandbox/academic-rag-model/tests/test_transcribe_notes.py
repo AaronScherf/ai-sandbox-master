@@ -931,6 +931,21 @@ class TestFindExistingTranscription(unittest.TestCase):
             self.assertEqual(course, "econometrics")
             self.assertEqual(found_card["file_id"], card["file_id"])
 
+    def test_excludes_a_match_that_is_the_pdfs_own_existing_card(self):
+        # Real finding, 2026-09-23: re-processing a PDF that already has
+        # its own (possibly incomplete/needs_indexing) card found that
+        # same card via its own raw file_id and treated it as a
+        # "duplicate at another location" -- process_pdf then linked the
+        # file to itself, copying its own content back over itself and
+        # appending a second, self-referential card alongside the
+        # original, instead of ever actually re-transcribing it.
+        with tempfile.TemporaryDirectory() as tmp:
+            pdf_path, _md_path, _card = _make_canonical_card(tmp, "econometrics", "professor_notes", "091426")
+
+            found = find_existing_transcription(tmp, pdf_path)
+
+            self.assertIsNone(found)
+
     def test_returns_none_when_no_match(self):
         with tempfile.TemporaryDirectory() as tmp:
             _make_canonical_card(tmp, "econometrics", "problem_sets", "00-review-questions")
@@ -1011,6 +1026,28 @@ class TestLinkDuplicateNote(unittest.TestCase):
 
 
 class TestProcessPdfLinksDuplicates(unittest.TestCase):
+    def test_does_not_self_link_when_reprocessing_a_file_with_its_own_existing_card(self):
+        # Real finding, 2026-09-23: re-running process_pdf() on a PDF that
+        # already has its own (incomplete/needs_indexing) card must fall
+        # through to real tier routing, not "link" the file to its own
+        # existing card (which would copy its own content back over
+        # itself, no-op-but-wasteful, and append a second, self-
+        # referential duplicate card alongside the original). process_pdf()
+        # itself has no direct full-flow test in this file (see
+        # TestWriteMarkdownAndIndex's own scope note) -- link_duplicate_note
+        # not being called is the observable half of this fix that doesn't
+        # need a real, parseable PDF; find_existing_transcription's own
+        # exclusion (TestFindExistingTranscription, above) covers the rest.
+        with tempfile.TemporaryDirectory() as tmp:
+            pdf_path, _md_path, _card = _make_canonical_card(tmp, "econometrics", "professor_notes", "091426")
+
+            with patch("notes.transcribe_notes.link_duplicate_note") as mock_link:
+                with patch("pypdf.PdfReader", side_effect=RuntimeError("not a real PDF, test stops here")):
+                    with self.assertRaises(RuntimeError):
+                        process_pdf(pdf_path, MagicMock(), None, tmp)
+
+            mock_link.assert_not_called()
+
     def test_links_instead_of_transcribing_when_a_duplicate_exists(self):
         with tempfile.TemporaryDirectory() as tmp:
             _make_canonical_card(tmp, "econometrics", "problem_sets", "00-review-questions")

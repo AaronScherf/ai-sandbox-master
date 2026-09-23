@@ -980,10 +980,27 @@ def find_existing_transcription(academic_hub_root: str, pdf_path: str, file_id: 
     ta_notes/ copies of the same review-questions handout) were both
     independently transcribed before this existed, and the second one
     processed silently overwrote the first one's index card in place --
-    this is the fix, called before any tier routing / API cost is spent."""
+    this is the fix, called before any tier routing / API cost is spent.
+
+    Excludes a match whose own source_pdf_path is THIS pdf_path -- i.e.
+    the PDF's own existing (possibly incomplete/needs_indexing) card, not
+    a duplicate at a different location. Real finding, same day: without
+    this guard, re-processing a PDF that already has its own card (e.g.
+    to redo an earlier partial/failed transcription) found that same
+    card via its own raw file_id and "linked" the file to itself --
+    copying its own (still-incomplete) content back over itself and
+    appending a second, self-referential duplicate_of_file_id card
+    alongside the original, rather than ever actually re-transcribing."""
     if file_id is None:
         file_id = compute_file_id(pdf_path)
-    return find_card_by_file_id(academic_hub_root, file_id)
+    found = find_card_by_file_id(academic_hub_root, file_id)
+    if found is None:
+        return None
+    course, card = found
+    rel_pdf_path = os.path.relpath(pdf_path, academic_hub_root).replace(os.sep, "/")
+    if card.get("source_pdf_path") == rel_pdf_path:
+        return None
+    return course, card
 
 
 def link_duplicate_note(academic_hub_root: str, canonical_course: str, canonical_card: dict,
