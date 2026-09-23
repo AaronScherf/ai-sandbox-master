@@ -4,6 +4,7 @@ import time
 import unittest
 from unittest.mock import patch
 
+from common.academic_hub_paths import to_resources_root
 from audio_generator.discovery import SourceFile
 from audio_generator.pipeline import run_pipeline
 from audio_generator.sections import NarratedSection
@@ -14,14 +15,24 @@ def _make_source(
     hub: str, rel_md: str = "academic_notes/math-camp/lecture_notes/a.md", content: str = "hello world",
     content_type: str = "notes",
 ) -> SourceFile:
+    """Mirrors discovery.py's own _make_source_file exactly (notes' .mp3
+    path lands under academic_resources/, textbook's stays a sibling) --
+    reuses to_resources_root() directly rather than re-deriving the
+    convention by hand, so this fixture can't silently drift from what
+    real discovery actually produces."""
     abs_md = os.path.join(hub, rel_md.replace("/", os.sep))
     os.makedirs(os.path.dirname(abs_md), exist_ok=True)
     with open(abs_md, "w", encoding="utf-8") as f:
         f.write(content)
+    if content_type == "notes":
+        abs_mp3 = os.path.splitext(to_resources_root(abs_md))[0] + ".mp3"
+    else:
+        abs_mp3 = os.path.splitext(abs_md)[0] + ".mp3"
+    rel_mp3 = os.path.relpath(abs_mp3, hub).replace(os.sep, "/")
     return SourceFile(
         course="math-camp", content_type=content_type,
         rel_md_path=rel_md, abs_md_path=abs_md,
-        rel_mp3_path=rel_md[:-3] + ".mp3", abs_mp3_path=abs_md[:-3] + ".mp3",
+        rel_mp3_path=rel_mp3, abs_mp3_path=abs_mp3,
     )
 
 
@@ -162,9 +173,14 @@ class TestRunPipelineNotesEpisodes(unittest.TestCase):
 
             self.assertEqual(summary["generated"], 1)
             base = source.abs_md_path[:-3]
-            mock_synthesize.assert_called_once_with("A short narrated body.", f"{base}__part01.mp3", engine="piper")
+            mp3_base = os.path.splitext(source.abs_mp3_path)[0]
+            mock_synthesize.assert_called_once_with("A short narrated body.", f"{mp3_base}__part01.mp3", engine="piper")
             self.assertTrue(os.path.exists(f"{base}__part01.narrated.md"))
             self.assertTrue(os.path.exists(f"{base}__index.md"))
+            # The .mp3 (heavy) and .narrated.md (light) must land in
+            # genuinely different trees, not just different-looking paths.
+            self.assertIn("academic_resources", mp3_base)
+            self.assertIn("academic_notes", base)
             state = load_state(audio_generator_root)
             self.assertIn(f"{source.rel_md_path}::part01", state)
 
@@ -185,9 +201,9 @@ class TestRunPipelineNotesEpisodes(unittest.TestCase):
             summary = run_pipeline("math-camp", hub, audio_generator_root, ["notes"], engine="piper")
 
             self.assertEqual(summary["generated"], 2)
-            base = source.abs_md_path[:-3]
+            mp3_base = os.path.splitext(source.abs_mp3_path)[0]
             called_paths = {call.args[1] for call in mock_synthesize.call_args_list}
-            self.assertEqual(called_paths, {f"{base}__part01.mp3", f"{base}__part02.mp3"})
+            self.assertEqual(called_paths, {f"{mp3_base}__part01.mp3", f"{mp3_base}__part02.mp3"})
 
     @patch("audio_generator.pipeline.synthesize_speech")
     @patch("audio_generator.pipeline.narrate_sections")
@@ -201,8 +217,9 @@ class TestRunPipelineNotesEpisodes(unittest.TestCase):
             run_pipeline("math-camp", hub, audio_generator_root, ["notes"], engine="piper")
             # needs_regeneration() checks os.path.exists(abs_mp3_path) -- synthesize_speech is
             # mocked and never actually writes it, so create it manually for the second run's check.
-            base = source.abs_md_path[:-3]
-            with open(f"{base}__part01.mp3", "wb") as f:
+            mp3_base = os.path.splitext(source.abs_mp3_path)[0]
+            os.makedirs(os.path.dirname(mp3_base), exist_ok=True)
+            with open(f"{mp3_base}__part01.mp3", "wb") as f:
                 f.write(b"fake mp3")
             mock_synthesize.reset_mock()
 
@@ -220,8 +237,9 @@ class TestRunPipelineNotesEpisodes(unittest.TestCase):
             mock_discover.return_value = [source]
             mock_narrate_sections.return_value = [NarratedSection(title="", text="Narrated body one.")]
             run_pipeline("math-camp", hub, audio_generator_root, ["notes"], engine="piper")
-            base = source.abs_md_path[:-3]
-            with open(f"{base}__part01.mp3", "wb") as f:
+            mp3_base = os.path.splitext(source.abs_mp3_path)[0]
+            os.makedirs(os.path.dirname(mp3_base), exist_ok=True)
+            with open(f"{mp3_base}__part01.mp3", "wb") as f:
                 f.write(b"fake mp3")
 
             with open(source.abs_md_path, "w", encoding="utf-8") as f:

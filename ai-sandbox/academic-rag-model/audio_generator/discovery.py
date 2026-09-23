@@ -11,11 +11,21 @@ Returns one SourceFile per source .md -- not per chapter/section -- so a
 future chapter-aware pipeline (spec §9's deferred follow-on) can change what
 state.py tracks and how many .mp3s pipeline.py writes per source, without
 needing to change discovery itself.
+
+Each SourceFile's mp3 path (2026-09-22) is computed here, once, so both
+pipeline.py's textbook and episode-splitting paths get it for free rather
+than each re-deriving it: for "notes" content, mirrored into
+academic_resources/ (heavy derived audio doesn't belong in the
+git/tablet-synced academic_notes/ tree); for "textbook" content, a plain
+sibling of the source .md, since that .md already lives in
+academic_resources/ and there's nothing to mirror.
 """
 from __future__ import annotations
 
 import os
 from dataclasses import dataclass
+
+from common.academic_hub_paths import to_resources_root
 
 # Mirrors indexer/index_search.py's _TEXTBOOK_FOLDER_NAMES (spec §5) --
 # duplicated locally rather than imported, matching this project's existing
@@ -33,7 +43,12 @@ class SourceFile:
     content_type: str  # "notes" | "textbook"
     rel_md_path: str  # hub-relative, e.g. "academic_notes/math-camp/ta_notes/processed_outputs/Aug 17 Analysis.md"
     abs_md_path: str
-    rel_mp3_path: str  # same directory and basename, .mp3 extension (spec §5)
+    rel_mp3_path: str  # same basename, .mp3 extension -- same directory for
+                        # "textbook" (already under academic_resources/), the
+                        # mirrored academic_resources/ path for "notes"
+                        # (2026-09-22: audio is heavy derived content, kept
+                        # out of the git/tablet-synced academic_notes/ tree
+                        # the same way PDFs/svgs/docx/pptx are)
     abs_mp3_path: str
 
 
@@ -51,8 +66,19 @@ def _is_real_md_file(name: str) -> bool:
 
 def _make_source_file(academic_hub_root: str, course: str, content_type: str, abs_md_path: str) -> SourceFile:
     rel_md_path = os.path.relpath(abs_md_path, academic_hub_root).replace(os.sep, "/")
-    abs_mp3_path = os.path.splitext(abs_md_path)[0] + ".mp3"
-    rel_mp3_path = os.path.splitext(rel_md_path)[0] + ".mp3"
+    if content_type == "notes":
+        # notes .md lives in academic_notes/ (kept lightweight for
+        # git/tablet sync); its .mp3 is heavy derived audio and belongs in
+        # the mirrored academic_resources/ location instead, same
+        # convention common/academic_hub_paths.py already uses for
+        # PDFs/svgs/docx/pptx.
+        abs_mp3_path = os.path.splitext(to_resources_root(abs_md_path))[0] + ".mp3"
+    else:
+        # textbook .md already lives in academic_resources/ -- sibling is
+        # already the right place; to_resources_root() would raise on a
+        # path with no academic_notes/ segment to mirror from.
+        abs_mp3_path = os.path.splitext(abs_md_path)[0] + ".mp3"
+    rel_mp3_path = os.path.relpath(abs_mp3_path, academic_hub_root).replace(os.sep, "/")
     return SourceFile(
         course=course, content_type=content_type,
         rel_md_path=rel_md_path, abs_md_path=abs_md_path,
