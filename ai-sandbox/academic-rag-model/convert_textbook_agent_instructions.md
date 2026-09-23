@@ -122,19 +122,39 @@ line) to that path alongside the normal stdout report — that file, not a
 re-glob of the folder, is what `PDF_FILENAMES` gets rebuilt from below.
 
 This is local, offline, and free (no GPU, no VM, no LLM calls) — see
-`docs/superpowers/specs/2026-09-17-cross-course-duplicate-textbook-detection-design.md`.
-It always prints a "To convert" and a "Skipped -- duplicate found,
-artifacts copied" section, plus — only when at least one Tier 2 match is
-still undecided — a third "Needs confirmation -- rerun with --resolve"
-section. A previously-dismissed pair is excluded from consideration
-entirely and never printed anywhere.
+`docs/superpowers/specs/2026-09-17-cross-course-duplicate-textbook-detection-design.md`
+and `docs/superpowers/specs/2026-09-20-pipeline-autonomy-policies-design.md`
+(Component 1a) for the auto-resolution policy below. It always prints a
+"To convert" and a "Skipped -- duplicate found, artifacts copied" section,
+plus two conditional sections — "Auto-skipped as likely duplicate --
+please confirm" whenever at least one high-confidence Tier 2 match was
+auto-resolved, and "Needs confirmation -- rerun with --resolve" whenever
+at least one lower-confidence Tier 2 match is still undecided. A
+previously-dismissed pair is excluded from consideration entirely and
+never printed anywhere.
 
 - **Tier 1 (exact byte match)** is resolved automatically — nothing to ask.
-- **Tier 2 (fuzzy match)** candidates in the "Needs confirmation" section
-  print the new PDF's own `incoming file_id`, plus each matching
-  candidate's course, title, file_id, and similarity score. In
-  `--non-interactive` mode these are left unresolved (their PDFs stay in
-  the "to convert" list — the safe direction per the spec's
+- **Tier 2, high confidence (combined score >= 0.85):** auto-skipped —
+  artifacts are copied from the matching course the same as a Tier 1 hit,
+  but the new clone card is marked `duplicate_pending_confirmation` and
+  the pair is recorded to a durable queue, biased toward the cheaper
+  mistake to undo (a wrongly-skipped book costs a re-run; a wrongly
+  converted duplicate costs real VM time). Report this to the user as a
+  note, not a blocking question — it already happened. Review the queue
+  any time with:
+  ```bash
+  python -m indexer.duplicate_check --review-pending
+  ```
+  and resolve each entry with either `--confirm-pending <new_card_file_id>`
+  (it was correctly a duplicate — clears the flag) or
+  `--reject-pending <new_card_file_id>` (it was wrong — removes the clone,
+  records a permanent dismissal, and the book must be reconverted on a
+  future run).
+- **Tier 2, lower confidence (score 0.6-0.85)** candidates in the "Needs
+  confirmation" section print the new PDF's own `incoming file_id`, plus
+  each matching candidate's course, title, file_id, and similarity score.
+  In `--non-interactive` mode these are left unresolved (their PDFs stay
+  in the "to convert" list — the safe direction per the spec's
   error-handling rule). Relay every candidate to the user in chat and get
   an explicit yes/no, then re-run with one `--resolve` per decision to
   apply them without blocking. **`--resolve` takes the new PDF's own
@@ -194,17 +214,16 @@ in this folder was already covered by an existing conversion — report
 that to the user and stop; there is nothing left to convert and no VM is
 needed this run.
 
-One caveat to carry forward, and it's stronger than "review before
-pruning": books resolved as duplicates get **clone** index cards, marked
-with a `duplicate_of_file_id` field, which sit outside `index_search.py`'s
-normal one-card-per-file reconciliation. **Do not run
-`index_search.py rebuild` -- with or without `--prune` -- over a course
-that has received clones** until this is fixed upstream: a plain
-`rebuild` can silently evict the *canonical* course's own card from its
-own shard (confirmed live for byte-identical duplicates), which is worse
-than anything `--prune` alone would do. See the spec's "Known
-limitations" section for the full mechanism before running `rebuild`
-anywhere near an affected course.
+One note to carry forward: books resolved as duplicates get **clone**
+index cards, marked with a `duplicate_of_file_id` field, which sit outside
+`index_search.py`'s normal one-card-per-file-hash identity assumption.
+`index_search.py rebuild` (with or without `--prune`) is safe to run over
+a course that has received clones — it recognizes `duplicate_of_file_id`
+and skips re-hashing the clone's PDF entirely rather than colliding with
+the canonical course's own card. (This was a real, live-confirmed
+corruption bug through 2026-09-22; it's fixed now, not just guarded
+against — see `docs/superpowers/plans/2026-09-20-rebuild-safety-fix.md`
+and the spec's "Known limitations" section for the mechanism.)
 
 ## Step 1: One-time-per-project setup (idempotent — safe to always run)
 

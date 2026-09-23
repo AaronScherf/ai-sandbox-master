@@ -94,14 +94,29 @@ python -m indexer.duplicate_check --textbook-subdir "$TEXTBOOK_SUBDIR" \
 ```
 
 An exact byte-identical match is resolved automatically (its artifacts
-are copied from the other course, no need to reconvert). A fuzzy
-match (same-looking title/author/year but different file bytes -- e.g. a
-re-scanned copy) always prompts with the new PDF's filename plus the
-matching book's course, title, file_id, and a similarity score; answer
-`y` only if it's genuinely the same book -- a wrong `y` here would
-silently drop a real book from this course's corpus. Answering `n` is
-remembered permanently, so you won't be asked about that same pair again
-on a future run.
+are copied from the other course, no need to reconvert). A fuzzy match
+(same-looking title/author/year but different file bytes -- e.g. a
+re-scanned copy) is handled one of two ways depending on how confident the
+match is:
+
+- **High confidence (combined score >= 0.85):** auto-skipped without
+  asking -- artifacts are copied the same as an exact match, but the new
+  clone is flagged for later confirmation rather than treated as fully
+  settled (biased toward the cheaper mistake to undo: a wrongly-skipped
+  book just needs a re-run, while converting a real duplicate wastes real
+  VM time). Review anything auto-skipped this way at your convenience:
+  ```bash
+  python -m indexer.duplicate_check --review-pending
+  ```
+  and resolve each entry with `--confirm-pending <new_card_file_id>` (it
+  really was a duplicate) or `--reject-pending <new_card_file_id>` (it
+  wasn't -- removes the clone and reconverts the book on a future run).
+- **Lower confidence (score 0.6-0.85):** prompts interactively with the
+  new PDF's filename plus the matching book's course, title, file_id, and
+  similarity score; answer `y` only if it's genuinely the same book -- a
+  wrong `y` here would silently drop a real book from this course's
+  corpus. Answering `n` is remembered permanently, so you won't be asked
+  about that same pair again on a future run.
 
 Now rebuild `PDF_FILENAMES` from the file the check just wrote:
 
@@ -128,15 +143,16 @@ check's decisions.
 See `docs/superpowers/specs/2026-09-17-cross-course-duplicate-textbook-detection-design.md`
 for the full design (matching tiers, scoring, dismissal persistence).
 
-One caveat for later, and it's stronger than it sounds: books resolved as
-duplicates get **clone** index cards (marked with a `duplicate_of_file_id`
-field), which sit outside `index_search.py`'s normal one-card-per-file
-reconciliation. **Do not run `python -m indexer.index_search rebuild` --
-with or without `--prune` -- over a course that has received clones**
-until this is fixed upstream: a plain `rebuild` can silently evict the
-*canonical* course's own card from its own shard (confirmed live for
-byte-identical duplicates), not just mis-prune something. See the spec's
-"Known limitations" section for the full mechanism.
+One note for later: books resolved as duplicates get **clone** index
+cards (marked with a `duplicate_of_file_id` field), which sit outside
+`index_search.py`'s normal one-card-per-file-hash identity assumption.
+`python -m indexer.index_search rebuild` (with or without `--prune`) is
+safe to run over a course that has received clones -- it recognizes
+`duplicate_of_file_id` and skips re-hashing the clone's PDF entirely
+rather than colliding with the canonical course's own card. (This was a
+real, live-confirmed corruption bug through 2026-09-22; it's fixed now,
+not just guarded against -- see the spec's "Known limitations" section for
+the mechanism.)
 
 ## Step 1: Authenticate the SDK within the Container
 
