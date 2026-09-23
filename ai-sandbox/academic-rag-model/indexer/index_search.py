@@ -186,6 +186,17 @@ def search_passages(
 
 
 def _notes_pdf_paths(academic_hub_root: str, course_filter: str | None):
+    """Recursive as of 2026-09-22 (was hardcoded to exactly course/category/
+    *.pdf, two levels, no deeper) -- a user reorganizing ta_notes/ into year
+    subfolders (ta_notes/2026/foo.pdf) found those PDFs silently invisible
+    to rebuild(), even though route_notes_transcribe.py's own discovery
+    already recursed and found them fine. `category` is the PDF's own
+    immediate parent directory basename, whatever the depth -- matches
+    transcribe_notes.py's derive_folder_category() exactly (same value for
+    a flat course/category/foo.pdf as before this change; the actual
+    subfolder name, e.g. "2026", for a nested one), so folder_category
+    classification stays consistent between the live transcription
+    pipeline and this rebuild-time walker."""
     notes_root = os.path.join(academic_hub_root, "academic_notes")
     if not os.path.isdir(notes_root):
         return
@@ -195,13 +206,12 @@ def _notes_pdf_paths(academic_hub_root: str, course_filter: str | None):
         course_dir = os.path.join(notes_root, course)
         if not os.path.isdir(course_dir):
             continue
-        for category in sorted(os.listdir(course_dir)):
-            category_dir = os.path.join(course_dir, category)
-            if not os.path.isdir(category_dir):
-                continue
-            for name in sorted(os.listdir(category_dir)):
+        for dirpath, dirnames, filenames in os.walk(course_dir):
+            dirnames[:] = [d for d in sorted(dirnames) if d != "processed_outputs" and not d.startswith(".")]
+            category = os.path.basename(dirpath)
+            for name in sorted(filenames):
                 if name.lower().endswith(".pdf"):
-                    yield course, category, os.path.join(category_dir, name)
+                    yield course, category, os.path.join(dirpath, name)
 
 
 def _excalidraw_note_paths(academic_hub_root: str, course_filter: str | None):

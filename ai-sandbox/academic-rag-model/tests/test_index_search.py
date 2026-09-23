@@ -186,6 +186,49 @@ class TestRebuild(unittest.TestCase):
             self.assertEqual(stats["generated"], 0)
             self.assertEqual(load_shard(tmp, "math-camp"), [])
 
+    def test_discovers_a_pdf_nested_below_the_category_directory(self):
+        # Real finding (2026-09-22): a user reorganizing ta_notes/ into
+        # year subfolders (ta_notes/2026/foo.pdf) found rebuild() silently
+        # stopped seeing those PDFs at all -- _notes_pdf_paths only ever
+        # walked exactly course/category/*.pdf, two levels, no deeper.
+        # Every other subproject's own discovery (route_notes_transcribe.py,
+        # migrate_sources_to_resources.py) already recurses via os.walk;
+        # this brings rebuild()'s PDF-notes discovery in line with them.
+        with tempfile.TemporaryDirectory() as tmp:
+            nested_dir = os.path.join(tmp, "academic_notes", "math-camp", "ta_notes", "2026")
+            os.makedirs(nested_dir)
+            pdf_path = os.path.join(nested_dir, "LN_Analysis.pdf")
+            with open(pdf_path, "wb") as f:
+                f.write(b"fake pdf bytes")
+            out_dir = os.path.join(nested_dir, "processed_outputs")
+            os.makedirs(out_dir)
+            with open(os.path.join(out_dir, "LN_Analysis.md"), "w", encoding="utf-8") as f:
+                f.write("---\ntotal_pages: 3\n---\n\nSome content.")
+
+            stats = rebuild(tmp, client=_fake_client())
+
+            self.assertEqual(stats["generated"], 1)
+            cards = load_shard(tmp, "math-camp")
+            self.assertEqual(len(cards), 1)
+            self.assertEqual(
+                cards[0]["source_pdf_path"], "academic_notes/math-camp/ta_notes/2026/LN_Analysis.pdf",
+            )
+
+    def test_still_ignores_processed_outputs_when_recursing(self):
+        # A stray .pdf sitting inside processed_outputs/ (shouldn't happen
+        # in practice) must not be treated as its own source -- same
+        # pruning discipline route_notes_transcribe.py's own walker uses.
+        with tempfile.TemporaryDirectory() as tmp:
+            _make_notes_pdf(tmp, "math-camp", "ta_notes", "LN_Analysis")
+            out_dir = os.path.join(tmp, "academic_notes", "math-camp", "ta_notes", "processed_outputs")
+            with open(os.path.join(out_dir, "decoy.pdf"), "wb") as f:
+                f.write(b"should not be discovered as its own source")
+
+            stats = rebuild(tmp, client=_fake_client())
+
+            self.assertEqual(stats["generated"], 1)
+            self.assertEqual(len(load_shard(tmp, "math-camp")), 1)
+
     def test_skips_zero_byte_markdown_and_orphans_any_existing_card(self):
         # Real-corpus finding (docs/trackers/2026-08-30-academic-hub-status.md): a
         # 0-byte .md next to a real, un-transcribed source PDF must not
