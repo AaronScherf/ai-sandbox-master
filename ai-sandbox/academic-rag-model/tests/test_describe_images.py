@@ -15,6 +15,7 @@ from textbook.describe_images import (
     load_front_matter_end,
     nearest_preceding_heading,
     parse_description_response,
+    process_book,
     reconcile_book_naming,
 )
 
@@ -460,6 +461,58 @@ class TestReconcileBookNaming(unittest.TestCase):
 
             self.assertEqual(result, book_dir)
             self.assertTrue(os.path.exists(book_dir))
+
+
+class TestRagMdLivesInAcademicNotes(unittest.TestCase):
+    # Only the final .rag.md syncs to the tablet: for a book under
+    # academic_resources/, it's written to (and renamed within) the
+    # mirrored academic_notes/ path, while the raw .md, images/, and JSON
+    # sidecars stay put.
+
+    def _make_resources_book(self, tmp, folder_name, metadata):
+        book_dir = os.path.join(tmp, "academic_resources", "econ-101", "textbooks", "processed_outputs", folder_name)
+        os.makedirs(os.path.join(book_dir, "images"))
+        with open(os.path.join(book_dir, f"{folder_name}.md"), "w", encoding="utf-8") as f:
+            f.write("# Book content\n")
+        with open(os.path.join(book_dir, f"{folder_name}_metadata.json"), "w", encoding="utf-8") as f:
+            json.dump(metadata, f)
+        return book_dir
+
+    def test_process_book_writes_rag_md_into_the_mirrored_notes_path(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            book_dir = self._make_resources_book(tmp, "Hansen_Econometrics_2022", {"source_pdf_file_id": "fid1"})
+
+            process_book(book_dir, client=None, model="unused", academic_hub_root=tmp)
+
+            rel = "academic_notes/econ-101/textbooks/processed_outputs/Hansen_Econometrics_2022/Hansen_Econometrics_2022.rag.md"
+            self.assertTrue(os.path.exists(os.path.join(tmp, rel)))
+            self.assertFalse(os.path.exists(os.path.join(book_dir, "Hansen_Econometrics_2022.rag.md")))
+            with open(os.path.join(book_dir, "Hansen_Econometrics_2022_metadata.json"), encoding="utf-8") as f:
+                self.assertEqual(json.load(f)["rag_md_path"], rel)
+
+    def test_reconcile_book_naming_renames_the_mirrored_rag_md_too(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            old_rel = ("academic_notes/econ-101/textbooks/processed_outputs/"
+                       "UnknownAuthor_Econometrics_0000/UnknownAuthor_Econometrics_0000.rag.md")
+            book_dir = self._make_resources_book(tmp, "UnknownAuthor_Econometrics_0000", {
+                "source_pdf_document_info": {"title": "", "author": "", "year": ""},
+                "markdown_parsed_info": {"title": "Econometrics", "author": "", "year": ""},
+                "source_pdf_path": "academic_resources/econometrics/Hansen_Econometrics_2022.pdf",
+                "source_pdf_file_id": "fid1",
+                "rag_md_path": old_rel,
+            })
+            os.makedirs(os.path.dirname(os.path.join(tmp, old_rel)))
+            with open(os.path.join(tmp, old_rel), "w", encoding="utf-8") as f:
+                f.write("# Book content\n")
+
+            new_dir = reconcile_book_naming(book_dir, tmp)
+
+            new_rel = ("academic_notes/econ-101/textbooks/processed_outputs/"
+                       "Hansen_Econometrics_2022/Hansen_Econometrics_2022.rag.md")
+            self.assertTrue(os.path.exists(os.path.join(tmp, new_rel)))
+            self.assertFalse(os.path.exists(os.path.dirname(os.path.join(tmp, old_rel))))
+            with open(os.path.join(new_dir, "Hansen_Econometrics_2022_metadata.json"), encoding="utf-8") as f:
+                self.assertEqual(json.load(f)["rag_md_path"], new_rel)
 
 
 if __name__ == "__main__":

@@ -26,7 +26,9 @@ replacement for it.
   filters out decorative images (covers, logos) for free using the chapter
   boundary above, then describes the rest via one combined Gemini call per
   image, writing a derived `.rag.md` file (the original conversion output is
-  never touched).
+  never touched). The `.rag.md` is written to the mirrored
+  `academic_notes/<course>/textbooks/processed_outputs/<Book>/` path so it
+  syncs to the tablet; everything else stays in `academic_resources/`.
 
 Deploys alongside `common/` and `indexer/` (which it imports) to the GPU VM —
 see `marker_setup.sh` and the root [`README.md`](../README.md)'s repository

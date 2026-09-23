@@ -6,7 +6,10 @@ convert_textbook.py. For each image in a book's markdown, asks a Gemini
 model whether the image is meaningful academic content worth describing
 (skipping decorative/non-informational images), and writes a derived
 "<book>.rag.md" file with descriptions inserted directly beneath each
-kept image's link -- the original "<book>.md" is never modified.
+kept image's link -- the original "<book>.md" is never modified. The
+.rag.md is written to the mirrored academic_notes/ path (see
+common/academic_hub_paths.py's textbook_rag_md_path) so it syncs to the
+tablet; every other book artifact stays in academic_resources/.
 
 Before that, each book also goes through reconcile_book_naming(): a free,
 local, no-LLM pass that re-derives the book's author_title_year folder name
@@ -30,6 +33,7 @@ import sys
 from dataclasses import dataclass
 from pathlib import Path
 
+from common.academic_hub_paths import textbook_rag_md_path
 from common.gemini_utils import (
     call_with_retries,
     get_gemini_client,
@@ -291,6 +295,8 @@ def reconcile_book_naming(book_dir: str, academic_hub_root: str, dry_run: bool =
               f"skipping rename to avoid clobbering it.")
         return book_dir
 
+    old_rag_path = textbook_rag_md_path(book_dir)
+
     # Rename every "<old_name>*" file inside before the folder itself, so
     # nothing inside is left pointing at a name that no longer exists.
     for entry in os.listdir(book_dir):
@@ -299,13 +305,22 @@ def reconcile_book_naming(book_dir: str, academic_hub_root: str, dry_run: bool =
             os.rename(os.path.join(book_dir, entry), os.path.join(book_dir, new_entry))
     os.rename(book_dir, new_dir)
 
+    # A book under academic_resources/ keeps its .rag.md in the mirrored
+    # academic_notes/ folder instead, which the loop above never touched.
+    new_rag_path = textbook_rag_md_path(new_dir)
+    if os.path.dirname(old_rag_path) != book_dir and os.path.exists(old_rag_path):
+        os.makedirs(os.path.dirname(new_rag_path), exist_ok=True)
+        os.rename(old_rag_path, new_rag_path)
+        try:
+            os.rmdir(os.path.dirname(old_rag_path))
+        except OSError:
+            pass  # something else still lives there -- leave it
+
     # Keep _metadata.json's own recorded rag_md_path in sync with the
     # renamed .rag.md file, same as link_rag_md() does when it's first set.
     new_rag_md_rel = None
     if metadata.get("rag_md_path"):
-        new_rag_md_rel = os.path.relpath(
-            os.path.join(new_dir, f"{ideal_name}.rag.md"), academic_hub_root
-        ).replace(os.sep, "/")
+        new_rag_md_rel = os.path.relpath(new_rag_path, academic_hub_root).replace(os.sep, "/")
         metadata["rag_md_path"] = new_rag_md_rel
         with open(os.path.join(new_dir, f"{ideal_name}_metadata.json"), "w", encoding="utf-8") as f:
             json.dump(metadata, f, indent=4, ensure_ascii=False)
@@ -376,7 +391,9 @@ def process_book(
     md_path = os.path.join(book_dir, f"{folder_name}.md")
     images_dir = os.path.join(book_dir, "images")
     cache_path = os.path.join(book_dir, f"{folder_name}_image_descriptions.json")
-    rag_path = os.path.join(book_dir, f"{folder_name}.rag.md")
+    # The .rag.md goes to the mirrored academic_notes/ path (tablet-synced);
+    # the raw .md, images/, and JSON sidecars stay in academic_resources/.
+    rag_path = textbook_rag_md_path(book_dir)
 
     with open(md_path, "r", encoding="utf-8") as f:
         text = f.read()
@@ -424,6 +441,7 @@ def process_book(
         print(f"  [{i}/{len(refs)}] page {ref.physical_page}: {ref.filename} -- {tag}")
 
     rag_text = build_rag_markdown(text, cache)
+    os.makedirs(os.path.dirname(rag_path), exist_ok=True)
     with open(rag_path, "w", encoding="utf-8") as f:
         f.write(rag_text)
     print(f"[{folder_name}] wrote {rag_path}")
@@ -449,6 +467,11 @@ def main():
         "--dry-run", action="store_true",
         help="List which images would be processed (and which are already cached) without calling the API.",
     )
+    parser.add_argument(
+        "--use-paid-key", action="store_true",
+        help="Use PAID_GEMINI_KEY from ai-sandbox/.env instead of GEMINI_API_KEY -- same flag as "
+             "notes/route_notes_transcribe.py, for when GEMINI_API_KEY is a low-quota free-tier key.",
+    )
     args = parser.parse_args()
 
     load_dotenv_override()
@@ -462,7 +485,7 @@ def main():
 
     client = None
     if not args.dry_run:
-        client = get_gemini_client()
+        client = get_gemini_client("PAID_GEMINI_KEY" if args.use_paid_key else "GEMINI_API_KEY")
         if client is None:
             sys.exit(1)
 

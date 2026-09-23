@@ -329,3 +329,17 @@ def test_run_plan_flags_output_missing_when_process_silently_writes_nothing(tmp_
         report = run_plan(plan, client=object(), academic_hub_root=str(tmp_path))
 
     assert report.pdf_results[0].status == "output_missing"
+
+
+def test_discover_pdf_sources_ignores_textbooks_even_when_notes_has_a_textbooks_folder(tmp_path):
+    # Each book's .rag.md is mirrored into academic_notes/<course>/textbooks/,
+    # so a same-named notes category now exists -- textbook PDFs must
+    # still never be routed into notes transcription.
+    (tmp_path / "academic_notes" / "econometrics" / "textbooks" / "processed_outputs").mkdir(parents=True)
+    textbooks_dir = tmp_path / "academic_resources" / "econometrics" / "textbooks"
+    textbooks_dir.mkdir(parents=True)
+    (textbooks_dir / "Hansen.pdf").write_bytes(b"x")
+
+    paths = discover_pdf_sources(str(tmp_path / "academic_notes" / "econometrics"))
+
+    assert paths == []

@@ -11,11 +11,20 @@ for the pipelines that populate and index this folder.
   lightweight: your own TA notes, problem sets, exams, and handwritten-note
   transcriptions as `.md` (both plain notes and `processed_outputs/`, the
   pipeline-generated conversions) plus each source's own `.excalidraw.md`
-  scene file, which never moves. This is the complete, self-contained
-  corpus meant to be readable on the tablet without anything else present.
+  scene file, which never moves. Converted textbooks contribute only their
+  final `<Book>.rag.md`, at the mirrored
+  `academic_notes/<course>/textbooks/processed_outputs/<Book>/` path
+  (`common/academic_hub_paths.py`'s `textbook_rag_md_path()`); the raw
+  `.md`, `images/`, and JSON sidecars stay in `academic_resources/`, so
+  figure links render as broken images on the tablet while text and math
+  read fine (kept figures still have their inline image descriptions).
+  This is the complete, self-contained corpus meant to be readable on the
+  tablet without anything else present.
 - `academic_resources/<course>/{textbooks,ta_notes,problem_sets,...}/` —
   heavy source material: third-party copyrighted content (textbook PDFs and
-  their full-text Markdown conversions, `lecture_slides/`,
+  their raw Marker conversions -- `<Book>.md`, `images/`, `_metadata.json`,
+  `_image_descriptions.json`; only the final `.rag.md` goes to
+  `academic_notes/`, see above -- `lecture_slides/`,
   `lecture_recordings/`) *and*, as of the 2026-09 source-asset relocation,
   your own heavy sources (PDFs, Excalidraw `.svg`/`.png` exports, `.docx`/
   `.pptx`) that used to live under `academic_notes/` — moved out to keep

@@ -279,6 +279,20 @@ class TestRebuild(unittest.TestCase):
             self.assertEqual(cards[0]["source_pdf_path"], expected)
             self.assertEqual(cards[0]["source_asset_path"], expected)
 
+    def test_notes_pdf_walk_ignores_textbooks_even_when_notes_has_a_textbooks_folder(self):
+        # Each book's .rag.md is mirrored into academic_notes/<course>/textbooks/,
+        # so a same-named notes category now exists -- the migrated-PDF
+        # walk must still never treat a textbook PDF as a notes PDF.
+        from indexer.index_search import _notes_pdf_paths
+        with tempfile.TemporaryDirectory() as tmp:
+            os.makedirs(os.path.join(tmp, "academic_notes", "econometrics", "textbooks", "processed_outputs"))
+            textbooks_dir = os.path.join(tmp, "academic_resources", "econometrics", "textbooks")
+            os.makedirs(textbooks_dir)
+            with open(os.path.join(textbooks_dir, "Hansen.pdf"), "wb") as f:
+                f.write(b"x")
+
+            self.assertEqual(list(_notes_pdf_paths(tmp, None)), [])
+
     def test_still_ignores_processed_outputs_when_recursing(self):
         # A stray .pdf sitting inside processed_outputs/ (shouldn't happen
         # in practice) must not be treated as its own source -- same

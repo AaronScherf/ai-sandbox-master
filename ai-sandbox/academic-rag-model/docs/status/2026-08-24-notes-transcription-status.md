@@ -1080,3 +1080,53 @@ already done`; every card's `source_pdf_path`/`source_asset_path`
 correctly points at `academic_resources/`; the duplicate pair is linked,
 not merged, both locations independently browsable; full test suite
 (1500 tests) passing throughout.
+
+## 2026-09-23: textbook `.rag.md` outputs moved to `academic_notes/` (tablet-synced)
+
+After the source-asset relocation, every converted textbook's outputs
+(~80MB: 42MB `.md`, 38MB extracted `.jpeg` figures, <1MB JSON) still lived
+entirely under `academic_resources/<course>/textbooks/**/processed_outputs/`,
+so none of it reached the tablet. Decision (user): move **only each
+book's final `<Book>.rag.md`** to the mirrored
+`academic_notes/<course>/textbooks/processed_outputs/<Book>/` path; the
+raw `.md`, `images/`, `_metadata.json`, `_image_descriptions.json`, and
+`run_config.json` stay in `academic_resources/`. Trade-off accepted: figure
+links render as broken images on the tablet (kept figures still carry
+their inline `> **Image description:**` text), in exchange for keeping
+the tablet repo small -- it was cut 217MB->35MB this month.
+
+**Standard going forward:** `common/academic_hub_paths.py`'s new
+`textbook_rag_md_path(book_dir)` is the single source of truth.
+`describe_images.py` writes the `.rag.md` there (and `reconcile_book_naming`
+moves it along with a folder rename); `duplicate_check.copy_duplicate_artifacts`
+copies it for a cloned book and repoints `rag_md_path` at the copy.
+`_metadata.json`'s and the card's `rag_md_path` hold the new location;
+`search()` already preferred `rag_md_path`, and chunking/problem-corpus
+read the raw `.md` via `card["path"]`, which is unchanged.
+
+**Real hazard caught and fixed before it fired:** both notes-PDF walkers
+(`route_notes_transcribe._discover_migrated_pdf_sources`,
+`index_search._notes_pdf_paths`) descend into
+`academic_resources/<course>/<category>/` whenever a same-named
+`academic_notes/<course>/<category>/` exists -- the new
+`academic_notes/<course>/textbooks/` folders would have made every
+textbook PDF look like a notes PDF to transcribe. Both now skip
+`TEXTBOOK_FOLDER_NAMES` explicitly (regression tests added for each).
+
+**Migrated for real:** 9 `.rag.md` files (4 econometrics, 5 math-camp);
+microecon's 6 books (3 main + 3 `Bonus/`) had never had describe_images
+run; ran it the same day with a new `--use-paid-key` flag (mirrors
+route_notes_transcribe.py's; `GEMINI_API_KEY` is a 20-req/day free-tier
+key): 509 images, 459 described / 50 skipped as decorative, 0 given up
+(one brief network drop, recovered via retry). All 6 `.rag.md` landed at
+the mirrored `academic_notes/microecon/textbooks/[Bonus/]processed_outputs/`
+path with `_metadata.json` + card `rag_md_path` set -- confirming the new
+default end to end, including the nested `Bonus/` case. All 9
+`_metadata.json` + card `rag_md_path`s repointed (index diff: exactly those
+9 lines). Every textbook card path resolves; router dry-run counts
+unchanged for all 4 courses. Full suite: 1508 passing.
+
+**Pre-existing, unrelated, not fixed here:** 4 notes cards point at
+missing files -- math-camp `problem_sets/old_exam_2021.pdf` and
+`old_exam_2025.pdf` (still `academic_notes/` paths), and microecon's
+`Drawing 2026-09-07 19.53.03.excalidraw.md` card.

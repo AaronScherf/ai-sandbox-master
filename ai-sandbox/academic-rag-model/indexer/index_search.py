@@ -16,7 +16,7 @@ from datetime import datetime, timezone
 from google.genai import types
 
 from indexer.chunk_index import chunk, load_chunks
-from common.academic_hub_paths import resolve_output_dir, to_resources_root
+from common.academic_hub_paths import TEXTBOOK_FOLDER_NAMES, resolve_output_dir, to_resources_root
 from common.frontmatter import parse_frontmatter
 from common.gemini_utils import get_gemini_client, load_dotenv_override
 from indexer.index_card import (
@@ -213,7 +213,9 @@ def _notes_pdf_paths(academic_hub_root: str, course_filter: str | None):
     the orphan pass silently flags its still-good card. Only descends into
     an academic_resources/<course>/<category>/ whose <category> also
     exists directly under academic_notes/<course>/ -- same guard
-    route_notes_transcribe.py's own _discover_migrated_pdf_sources uses, so
+    route_notes_transcribe.py's own _discover_migrated_pdf_sources uses --
+    and never into a textbook folder, even though academic_notes/<course>/
+    textbooks/ exists to hold each book's mirrored .rag.md, so
     academic_resources/<course>/textbooks/ (a different pipeline's home)
     never gets swept in."""
     notes_root = os.path.join(academic_hub_root, "academic_notes")
@@ -241,7 +243,10 @@ def _notes_pdf_paths(academic_hub_root: str, course_filter: str | None):
             resources_course_dir = None
         if resources_course_dir and os.path.isdir(resources_course_dir):
             for top_category in sorted(os.listdir(resources_course_dir)):
-                if top_category not in notes_top_level_categories:
+                # textbooks/ is excluded by name: it has an academic_notes/
+                # counterpart only because each book's .rag.md is mirrored
+                # there, not because its PDFs are notes.
+                if top_category not in notes_top_level_categories or top_category in TEXTBOOK_FOLDER_NAMES:
                     continue
                 top_category_dir = os.path.join(resources_course_dir, top_category)
                 if not os.path.isdir(top_category_dir):

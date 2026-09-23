@@ -2,7 +2,7 @@ import os
 
 import pytest
 
-from common.academic_hub_paths import resolve_output_dir, to_notes_root, to_resources_root
+from common.academic_hub_paths import resolve_output_dir, textbook_rag_md_path, to_notes_root, to_resources_root
 
 
 def test_to_resources_root_swaps_the_segment_in_an_os_native_path():
@@ -62,3 +62,22 @@ def test_resolve_output_dir_works_with_a_full_absolute_windows_style_path():
     result = resolve_output_dir(source)
     expected = os.path.join("C:" + os.sep, "hub", "academic_notes", "econometrics", "ta_notes", "processed_outputs")
     assert result == expected
+
+
+def test_textbook_rag_md_path_mirrors_into_notes_for_a_resources_book_dir():
+    book_dir = os.path.join("hub", "academic_resources", "econometrics", "textbooks", "processed_outputs", "Hansen_2022")
+    assert textbook_rag_md_path(book_dir) == os.path.join(
+        "hub", "academic_notes", "econometrics", "textbooks", "processed_outputs", "Hansen_2022", "Hansen_2022.rag.md",
+    )
+
+
+def test_textbook_rag_md_path_keeps_nested_subfolders_like_bonus():
+    book_dir = "academic_resources/microecon/textbooks/Bonus/processed_outputs/Rubinstein_2023"
+    assert textbook_rag_md_path(book_dir) == os.path.join(
+        "academic_notes/microecon/textbooks/Bonus/processed_outputs/Rubinstein_2023", "Rubinstein_2023.rag.md",
+    )
+
+
+def test_textbook_rag_md_path_stays_a_sibling_outside_academic_resources():
+    book_dir = os.path.join("tmp", "processed_outputs", "Hansen_2022")
+    assert textbook_rag_md_path(book_dir) == os.path.join(book_dir, "Hansen_2022.rag.md")

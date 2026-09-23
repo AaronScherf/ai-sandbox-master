@@ -24,7 +24,7 @@ import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from common.academic_hub_paths import resolve_output_dir, to_resources_root
+from common.academic_hub_paths import TEXTBOOK_FOLDER_NAMES, resolve_output_dir, to_resources_root
 from notes.transcribe_excalidraw import (
     _TRANSCRIBE_MODEL as _EXCALIDRAW_MODEL,
     discover_excalidraw_files,
@@ -66,9 +66,10 @@ def discover_pdf_sources(course_dir: str) -> list[str]:
 def _discover_migrated_pdf_sources(course_dir: str) -> list[str]:
     """PDFs already moved to academic_resources/<course>/<category>/ --
     only descends into a category that also exists directly under
-    academic_notes/<course>/, so academic_resources/<course>/textbooks/
-    (a completely different pipeline's home, with no academic_notes/
-    counterpart) never gets swept in by accident."""
+    academic_notes/<course>/, and never into a textbook folder, so
+    academic_resources/<course>/textbooks/ (a completely different
+    pipeline's home -- its academic_notes/ counterpart only holds each
+    book's mirrored .rag.md) never gets swept in by accident."""
     try:
         resources_course_dir = to_resources_root(course_dir)
     except ValueError:
@@ -80,7 +81,7 @@ def _discover_migrated_pdf_sources(course_dir: str) -> list[str]:
     }
     paths = []
     for category in sorted(os.listdir(resources_course_dir)):
-        if category not in notes_categories:
+        if category not in notes_categories or category in TEXTBOOK_FOLDER_NAMES:
             continue
         category_dir = os.path.join(resources_course_dir, category)
         if not os.path.isdir(category_dir):

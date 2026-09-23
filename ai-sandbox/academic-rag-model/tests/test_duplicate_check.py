@@ -346,6 +346,31 @@ class TestCopyDuplicateArtifacts(unittest.TestCase):
             self.assertTrue(os.path.exists(os.path.join(new_book_dir, "images", "page_1.png")))
             self.assertTrue(os.path.exists(os.path.join(new_book_dir, f"{folder_name}_metadata.json")))
 
+    def test_copies_the_mirrored_rag_md_and_repoints_it_at_the_clone(self):
+        # A book's .rag.md lives in the mirrored academic_notes/ path, not
+        # inside the copied processed_outputs/<Book>/ tree -- the clone
+        # needs its own copy there, and rag_md_path must name that copy
+        # rather than the canonical course's.
+        with tempfile.TemporaryDirectory() as academic_hub_root:
+            _, folder_name, canonical_card = self._make_canonical_book(academic_hub_root)
+            canonical_rag_rel = f"academic_notes/econometrics/textbooks/processed_outputs/{folder_name}/{folder_name}.rag.md"
+            os.makedirs(os.path.dirname(os.path.join(academic_hub_root, canonical_rag_rel)))
+            with open(os.path.join(academic_hub_root, canonical_rag_rel), "w", encoding="utf-8") as f:
+                f.write("# Real Analysis\n\n> **Image description:** a graph.")
+            canonical_card["rag_md_path"] = canonical_rag_rel
+
+            new_card = copy_duplicate_artifacts(
+                academic_hub_root, "econometrics", canonical_card, "microecon", "textbooks",
+                "academic_resources/microecon/textbooks/Ok.pdf",
+            )
+
+            new_rag_rel = f"academic_notes/microecon/textbooks/processed_outputs/{folder_name}/{folder_name}.rag.md"
+            self.assertTrue(os.path.exists(os.path.join(academic_hub_root, new_rag_rel)))
+            self.assertEqual(new_card["rag_md_path"], new_rag_rel)
+            new_book_dir = os.path.join(academic_hub_root, "academic_resources", "microecon", "textbooks", "processed_outputs", folder_name)
+            with open(os.path.join(new_book_dir, f"{folder_name}_metadata.json"), encoding="utf-8") as f:
+                self.assertEqual(json.load(f)["rag_md_path"], new_rag_rel)
+
     def test_canonical_files_are_untouched(self):
         with tempfile.TemporaryDirectory() as academic_hub_root:
             book_dir, folder_name, canonical_card = self._make_canonical_book(academic_hub_root)

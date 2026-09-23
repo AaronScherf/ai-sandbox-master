@@ -22,6 +22,7 @@ import shutil
 import sys
 from pathlib import Path
 
+from common.academic_hub_paths import textbook_rag_md_path
 from indexer.index_card import compute_file_id, compute_id_from_parts, derive_course, find_card_by_file_id, list_courses, load_shard, now_iso, recompute_course_entry, save_shard
 from textbook.bib_info import extract_bibliographic_info_from_filename
 
@@ -330,7 +331,8 @@ def copy_duplicate_artifacts(
     pending_confirmation: bool = False,
 ) -> dict:
     """Copies a confirmed duplicate's processed_outputs/<BookDir>/ tree
-    into the new course and clones its index card (spec §5). The canonical
+    (plus its mirrored academic_notes/ .rag.md, if any) into the new
+    course and clones its index card (spec §5). The canonical
     card/files are never modified -- this only ever reads from the
     canonical location and writes to the new one.
 
@@ -368,6 +370,19 @@ def copy_duplicate_artifacts(
         shutil.rmtree(new_book_dir)
     shutil.copytree(canonical_book_dir, new_book_dir)
 
+    # The .rag.md isn't inside the tree just copied -- it lives in the
+    # mirrored academic_notes/ path (common/academic_hub_paths.py), so it
+    # gets its own copy there and rag_md_path is repointed at that copy.
+    new_rag_md_rel = None
+    canonical_rag_md_rel = canonical_card.get("rag_md_path")
+    if canonical_rag_md_rel:
+        canonical_rag_path = os.path.join(academic_hub_root, os.path.normpath(canonical_rag_md_rel))
+        if os.path.exists(canonical_rag_path):
+            new_rag_path = textbook_rag_md_path(new_book_dir)
+            os.makedirs(os.path.dirname(new_rag_path), exist_ok=True)
+            shutil.copy2(canonical_rag_path, new_rag_path)
+            new_rag_md_rel = os.path.relpath(new_rag_path, academic_hub_root).replace(os.sep, "/")
+
     new_file_id = compute_id_from_parts([canonical_card["file_id"], new_course])
 
     # The copied _metadata.json is a byte-for-byte clone and so still names
@@ -395,6 +410,8 @@ def copy_duplicate_artifacts(
             metadata["source_pdf_path"] = new_source_pdf_path
             metadata["source_pdf_file_id"] = new_file_id
             metadata["duplicate_of_file_id"] = canonical_card["file_id"]
+            if new_rag_md_rel:
+                metadata["rag_md_path"] = new_rag_md_rel
             with open(metadata_path, "w", encoding="utf-8") as f:
                 json.dump(metadata, f, indent=4, ensure_ascii=False)
         except Exception as err:
@@ -407,6 +424,8 @@ def copy_duplicate_artifacts(
     new_card["path"] = f"{rel_new_book_dir}/{folder_name}.md"
     new_card["source_pdf_path"] = new_source_pdf_path
     new_card["duplicate_of_file_id"] = canonical_card["file_id"]
+    if new_rag_md_rel:
+        new_card["rag_md_path"] = new_rag_md_rel
     new_card["source_updated_at"] = now_iso()
     if pending_confirmation:
         # High-confidence auto-skip (pipeline-autonomy-policies spec,
