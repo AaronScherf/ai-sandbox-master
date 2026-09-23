@@ -1550,6 +1550,33 @@ before this migration touched anything -- their source PDFs don't exist
 under either tree, an old rename/cleanup unrelated to this plan. Flagged
 to the user; not cleaned up here.
 
-**Remaining scope:** every other course (microecon, econometrics-adjacent
-courses not yet covered, etc.) still needs its own Step 1-4 pass -- not
-yet started, pending the user's go-ahead per course/batch.
+**Remaining-courses batch pass (2026-09-23):** surveyed every other course
+under `academic_notes/` (`disruption-dev-finance`, `env-science`,
+`interm_spanish`, `intro_spanish`, `macroecon`, `math_methods`, `microecon`,
+`open-source-conflict-analysis`) plus the top-level `Excalidraw/` folder
+(Obsidian's default drop location for new Excalidraw drawings, not a real
+course). Six of the eight courses had zero migratable files (PDFs/`.docx`/
+`.pptx`/`.excalidraw.svg`/`.excalidraw.png`) -- nothing to do. `Excalidraw/`
+had exactly one file pair (`Palm Guard.md`/`.svg`, an unrelated downloaded
+script, not a real `.excalidraw.md` scene) that doesn't match the
+migration filter anyway, so the user's stated rule (scene `.md`s stay,
+`.svg`/`.png` images move) already falls out of the existing design with
+no code change needed.
+
+Only `math_methods` (3 files: 2 PDFs, 1 Excalidraw `.png`) and `microecon`
+(13 files: 9 PDFs, 4 Excalidraw `.svg`) had real content. Both migrated
+for real, zero collisions, commit `708be25`. microecon's 4 existing
+Excalidraw cards correctly refreshed and spot-checked; its 9 PDFs were
+never transcribed, correctly discovered as "to process" post-move.
+math_methods had no PDF cards yet; its one existing card (an Excalidraw
+note) was already orphaned before this touched anything -- its `.rag.md`
+output is missing from disk entirely, last touched 2026-09-15, unrelated
+to this plan -- flagged to the user, not fixed here, same treatment as
+the 4 pre-existing orphaned math-camp cards.
+
+**Task 10 status: every course with real migratable content has now been
+migrated** (econometrics, math-camp, math_methods, microecon). Two
+separate, pre-existing data-hygiene issues surfaced along the way (4
+math-camp cards + 1 math_methods card, all orphaned due to missing source
+files/outputs unrelated to source-asset relocation) remain open, flagged
+to the user, not part of this plan's scope.
