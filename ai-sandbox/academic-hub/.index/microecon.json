@@ -6302,7 +6302,8 @@
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-09-21T13:26:16.947554+00:00",
     "content_hash": "70e182e815776373",
-    "needs_indexing": false
+    "needs_indexing": false,
+    "source_asset_path": "academic_resources/microecon/lecture_notes/Microeconomics 2026-09-15 10.15.55.excalidraw.svg"
   },
   {
     "file_id": "6c0bf419a2477803",
@@ -7090,7 +7091,8 @@
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-09-21T13:26:45.662055+00:00",
     "content_hash": "1d196fd58b12ab41",
-    "needs_indexing": false
+    "needs_indexing": false,
+    "source_asset_path": "academic_resources/microecon/lecture_notes/Microeconomics 2026-09-17 10.12.38.excalidraw.svg"
   },
   {
     "file_id": "1600d55620f62f84",
@@ -7878,7 +7880,8 @@
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-09-21T13:27:01.055579+00:00",
     "content_hash": "6f3143561bf73167",
-    "needs_indexing": false
+    "needs_indexing": false,
+    "source_asset_path": "academic_resources/microecon/lecture_notes/Microeconomics lecture 2026-09-07 19.53.03.excalidraw.svg"
   },
   {
     "file_id": "6e36534e239cbeb9",
@@ -8666,6 +8669,7 @@
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-09-21T13:27:26.330627+00:00",
     "content_hash": "bad3681761acd330",
-    "needs_indexing": false
+    "needs_indexing": false,
+    "source_asset_path": "academic_resources/microecon/lecture_notes/Microeconomics lecture 2026-09-10 10.09.33.excalidraw.svg"
   }
 ]
