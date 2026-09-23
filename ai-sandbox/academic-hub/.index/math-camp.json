@@ -4759,7 +4759,7 @@
   {
     "file_id": "aadfa2a4c5ffc04b",
     "path": "academic_notes/math-camp/ta_notes/2026/processed_outputs/LN_Probability.md",
-    "source_pdf_path": "academic_notes/math-camp/ta_notes/2026/LN_Probability.pdf",
+    "source_pdf_path": "academic_resources/math-camp/ta_notes/2026/LN_Probability.pdf",
     "course": "math-camp",
     "doc_type": "ta_notes",
     "title": "Part IV: Probability Theory",
@@ -5542,15 +5542,15 @@
       -0.011593321
     ],
     "embedding_model": "gemini-embedding-001:768",
-    "source_updated_at": "2026-09-23T01:25:33.262139+00:00",
+    "source_updated_at": "2026-09-23T12:45:11.687019+00:00",
     "needs_indexing": false,
     "content_hash": "e5cfe58dc6c81a36",
-    "source_asset_path": null
+    "source_asset_path": "academic_resources/math-camp/ta_notes/2026/LN_Probability.pdf"
   },
   {
     "file_id": "f95513f05df19bd2",
     "path": "academic_notes/math-camp/ta_notes/processed_outputs/Part I Linear Algebra 08.10.md",
-    "source_pdf_path": "academic_notes/math-camp/ta_notes/Part I Linear Algebra 08.10.pdf",
+    "source_pdf_path": "academic_resources/math-camp/ta_notes/Part I Linear Algebra 08.10.pdf",
     "course": "math-camp",
     "doc_type": "ta_notes",
     "title": "Introduction to Linear Algebra: Vector Spaces and Linear Maps",
@@ -6333,14 +6333,15 @@
       -0.03695788
     ],
     "embedding_model": "gemini-embedding-001:768",
-    "source_updated_at": "2026-08-29T17:37:54.021139+00:00",
+    "source_updated_at": "2026-09-23T12:45:11.061773+00:00",
     "needs_indexing": false,
-    "content_hash": "19b9265a00113fe3"
+    "content_hash": "19b9265a00113fe3",
+    "source_asset_path": "academic_resources/math-camp/ta_notes/Part I Linear Algebra 08.10.pdf"
   },
   {
     "file_id": "741e0f3f3bfc73eb",
     "path": "academic_notes/math-camp/ta_notes/processed_outputs/Part I Linear Algebra 08.11 (1).md",
-    "source_pdf_path": "academic_notes/math-camp/ta_notes/Part I Linear Algebra 08.11 (1).pdf",
+    "source_pdf_path": "academic_resources/math-camp/ta_notes/Part I Linear Algebra 08.11 (1).pdf",
     "course": "math-camp",
     "doc_type": "ta_notes",
     "title": "Linear Algebra: Rank, Nullity, and Change of Basis",
@@ -7123,14 +7124,15 @@
       -0.014891954
     ],
     "embedding_model": "gemini-embedding-001:768",
-    "source_updated_at": "2026-08-29T17:37:55.124231+00:00",
+    "source_updated_at": "2026-09-23T12:45:11.138617+00:00",
     "needs_indexing": false,
-    "content_hash": "0cba42875b2c5679"
+    "content_hash": "0cba42875b2c5679",
+    "source_asset_path": "academic_resources/math-camp/ta_notes/Part I Linear Algebra 08.11 (1).pdf"
   },
   {
     "file_id": "adca894ee9215532",
     "path": "academic_notes/math-camp/ta_notes/processed_outputs/Part I Linear Algebra 08.12 (1).md",
-    "source_pdf_path": "academic_notes/math-camp/ta_notes/Part I Linear Algebra 08.12 (1).pdf",
+    "source_pdf_path": "academic_resources/math-camp/ta_notes/Part I Linear Algebra 08.12 (1).pdf",
     "course": "math-camp",
     "doc_type": "ta_notes",
     "title": "Linear Algebra: Invariant Subspaces, Eigenvalues, and Inner Product Spaces",
@@ -7913,14 +7915,15 @@
       -0.021320771
     ],
     "embedding_model": "gemini-embedding-001:768",
-    "source_updated_at": "2026-08-29T17:37:56.398662+00:00",
+    "source_updated_at": "2026-09-23T12:45:11.224862+00:00",
     "needs_indexing": false,
-    "content_hash": "283e213a23c0ef24"
+    "content_hash": "283e213a23c0ef24",
+    "source_asset_path": "academic_resources/math-camp/ta_notes/Part I Linear Algebra 08.12 (1).pdf"
   },
   {
     "file_id": "a39af0ff13b9be90",
     "path": "academic_notes/math-camp/ta_notes/processed_outputs/Part I Linear Algebra 08.13 (1).md",
-    "source_pdf_path": "academic_notes/math-camp/ta_notes/Part I Linear Algebra 08.13 (1).pdf",
+    "source_pdf_path": "academic_resources/math-camp/ta_notes/Part I Linear Algebra 08.13 (1).pdf",
     "course": "math-camp",
     "doc_type": "ta_notes",
     "title": "Linear Algebra: Orthonormal Bases, Spectral Theorem, and Quadratic Forms",
@@ -8703,14 +8706,15 @@
       -0.040501516
     ],
     "embedding_model": "gemini-embedding-001:768",
-    "source_updated_at": "2026-08-29T17:37:57.594718+00:00",
+    "source_updated_at": "2026-09-23T12:45:11.293768+00:00",
     "needs_indexing": false,
-    "content_hash": "0d82cad9843036ee"
+    "content_hash": "0d82cad9843036ee",
+    "source_asset_path": "academic_resources/math-camp/ta_notes/Part I Linear Algebra 08.13 (1).pdf"
   },
   {
     "file_id": "19eebd5f6bd9e536",
     "path": "academic_notes/math-camp/ta_notes/processed_outputs/Part II Analysis in Euclidean Spaces 08.14.md",
-    "source_pdf_path": "academic_notes/math-camp/ta_notes/Part II Analysis in Euclidean Spaces 08.14.pdf",
+    "source_pdf_path": "academic_resources/math-camp/ta_notes/Part II Analysis in Euclidean Spaces 08.14.pdf",
     "course": "math-camp",
     "doc_type": "ta_notes",
     "title": "Analysis in Euclidean Spaces: Sequences, Topology, and Continuity",
@@ -9493,14 +9497,15 @@
       -0.008921871
     ],
     "embedding_model": "gemini-embedding-001:768",
-    "source_updated_at": "2026-08-29T17:38:00.475548+00:00",
+    "source_updated_at": "2026-09-23T12:45:11.444262+00:00",
     "needs_indexing": false,
-    "content_hash": "684b351955910c98"
+    "content_hash": "684b351955910c98",
+    "source_asset_path": "academic_resources/math-camp/ta_notes/Part II Analysis in Euclidean Spaces 08.14.pdf"
   },
   {
     "file_id": "baa86e501ed95a9e",
     "path": "academic_notes/math-camp/problem_sets/processed_outputs/Linear Algebra Problem Set AMS Solutions.md",
-    "source_pdf_path": "academic_notes/math-camp/problem_sets/Linear Algebra Problem Set AMS Solutions.pdf",
+    "source_pdf_path": "academic_resources/math-camp/problem_sets/Linear Algebra Problem Set AMS Solutions.pdf",
     "course": "math-camp",
     "doc_type": "problem_set",
     "title": "Linear Algebra: Guided Review and Exercises",
@@ -10283,14 +10288,15 @@
       -0.03000914
     ],
     "embedding_model": "gemini-embedding-001:768",
-    "source_updated_at": "2026-08-29T18:38:27.568592+00:00",
+    "source_updated_at": "2026-09-23T12:45:10.316357+00:00",
     "content_hash": "0062484bb36e6725",
-    "needs_indexing": false
+    "needs_indexing": false,
+    "source_asset_path": "academic_resources/math-camp/problem_sets/Linear Algebra Problem Set AMS Solutions.pdf"
   },
   {
     "file_id": "9364de4f92394680",
     "path": "academic_notes/math-camp/problem_sets/processed_outputs/Linear Algebra Problem Set.md",
-    "source_pdf_path": "academic_notes/math-camp/problem_sets/Linear Algebra Problem Set.pdf",
+    "source_pdf_path": "academic_resources/math-camp/problem_sets/Linear Algebra Problem Set.pdf",
     "course": "math-camp",
     "doc_type": "problem_set",
     "title": "Linear Algebra: Guided Review and Exercises",
@@ -11073,14 +11079,15 @@
       -0.022935146
     ],
     "embedding_model": "gemini-embedding-001:768",
-    "source_updated_at": "2026-08-29T18:38:29.481520+00:00",
+    "source_updated_at": "2026-09-23T12:45:10.396465+00:00",
     "content_hash": "3c024e4b148dcdd0",
-    "needs_indexing": false
+    "needs_indexing": false,
+    "source_asset_path": "academic_resources/math-camp/problem_sets/Linear Algebra Problem Set.pdf"
   },
   {
     "file_id": "ce7e03d9a8fd5406",
     "path": "academic_notes/math-camp/problem_sets/processed_outputs/old_problem_set.md",
-    "source_pdf_path": "academic_notes/math-camp/problem_sets/old_problem_set.pdf",
+    "source_pdf_path": "academic_resources/math-camp/problem_sets/old_problem_set.pdf",
     "course": "math-camp",
     "doc_type": "problem_set",
     "title": "Multivariate Calculus and Linear Algebra Problem Set",
@@ -11864,14 +11871,15 @@
       -0.019940892
     ],
     "embedding_model": "gemini-embedding-001:768",
-    "source_updated_at": "2026-08-29T18:38:38.603261+00:00",
+    "source_updated_at": "2026-09-23T12:45:10.594852+00:00",
     "content_hash": "eefe84e978e1fb77",
-    "needs_indexing": false
+    "needs_indexing": false,
+    "source_asset_path": "academic_resources/math-camp/problem_sets/old_problem_set.pdf"
   },
   {
     "file_id": "9d08ec3a3280ca4a",
     "path": "academic_notes/math-camp/recitation_slides/processed_outputs/Math_Camp_Recitation_1 with solution.md",
-    "source_pdf_path": "academic_notes/math-camp/recitation_slides/Math_Camp_Recitation_1 with solution.pdf",
+    "source_pdf_path": "academic_resources/math-camp/recitation_slides/Math_Camp_Recitation_1 with solution.pdf",
     "course": "math-camp",
     "doc_type": "problem_set",
     "title": "Math Camp Recitation 1: Linear Algebra Exercises and Solutions",
@@ -12654,14 +12662,15 @@
       -0.054354724
     ],
     "embedding_model": "gemini-embedding-001:768",
-    "source_updated_at": "2026-08-29T18:38:39.889182+00:00",
+    "source_updated_at": "2026-09-23T12:45:10.668348+00:00",
     "content_hash": "7bf1705aa4ccbbf3",
-    "needs_indexing": false
+    "needs_indexing": false,
+    "source_asset_path": "academic_resources/math-camp/recitation_slides/Math_Camp_Recitation_1 with solution.pdf"
   },
   {
     "file_id": "a681e922bf34727f",
     "path": "academic_notes/math-camp/recitation_slides/processed_outputs/Math_Camp_Recitation_1.md",
-    "source_pdf_path": "academic_notes/math-camp/recitation_slides/Math_Camp_Recitation_1.pdf",
+    "source_pdf_path": "academic_resources/math-camp/recitation_slides/Math_Camp_Recitation_1.pdf",
     "course": "math-camp",
     "doc_type": "problem_set",
     "title": "Math Camp Recitation 1: Linear Algebra Exercises",
@@ -13444,14 +13453,15 @@
       -0.05113425
     ],
     "embedding_model": "gemini-embedding-001:768",
-    "source_updated_at": "2026-08-29T18:38:40.982334+00:00",
+    "source_updated_at": "2026-09-23T12:45:10.762560+00:00",
     "content_hash": "d8eab571c5058af9",
-    "needs_indexing": false
+    "needs_indexing": false,
+    "source_asset_path": "academic_resources/math-camp/recitation_slides/Math_Camp_Recitation_1.pdf"
   },
   {
     "file_id": "caa0f05bd72e38e6",
     "path": "academic_notes/math-camp/recitation_slides/processed_outputs/Math_Camp_Recitation_2 with solution.md",
-    "source_pdf_path": "academic_notes/math-camp/recitation_slides/Math_Camp_Recitation_2 with solution.pdf",
+    "source_pdf_path": "academic_resources/math-camp/recitation_slides/Math_Camp_Recitation_2 with solution.pdf",
     "course": "math-camp",
     "doc_type": "ta_notes",
     "title": "Math Camp Recitation 2: Linear Algebra Exercises",
@@ -14234,14 +14244,15 @@
       -0.037286337
     ],
     "embedding_model": "gemini-embedding-001:768",
-    "source_updated_at": "2026-08-29T18:38:42.057310+00:00",
+    "source_updated_at": "2026-09-23T12:45:10.845788+00:00",
     "content_hash": "7cd8dfd252b889f8",
-    "needs_indexing": false
+    "needs_indexing": false,
+    "source_asset_path": "academic_resources/math-camp/recitation_slides/Math_Camp_Recitation_2 with solution.pdf"
   },
   {
     "file_id": "78f473bbc8cb1daf",
     "path": "academic_notes/math-camp/recitation_slides/processed_outputs/Math_Camp_Recitation_2.md",
-    "source_pdf_path": "academic_notes/math-camp/recitation_slides/Math_Camp_Recitation_2.pdf",
+    "source_pdf_path": "academic_resources/math-camp/recitation_slides/Math_Camp_Recitation_2.pdf",
     "course": "math-camp",
     "doc_type": "problem_set",
     "title": "Linear Algebra Recitation Exercises: Basis, Change of Basis, and Inner Product Spaces",
@@ -15024,14 +15035,15 @@
       -0.03186495
     ],
     "embedding_model": "gemini-embedding-001:768",
-    "source_updated_at": "2026-08-29T18:38:43.275909+00:00",
+    "source_updated_at": "2026-09-23T12:45:10.901483+00:00",
     "content_hash": "e9d7a7ffdd6dd773",
-    "needs_indexing": false
+    "needs_indexing": false,
+    "source_asset_path": "academic_resources/math-camp/recitation_slides/Math_Camp_Recitation_2.pdf"
   },
   {
     "file_id": "c8ff65cabf657347",
     "path": "academic_notes/math-camp/syllabus/processed_outputs/Summer_Maths_Camp_2026.md",
-    "source_pdf_path": "academic_notes/math-camp/syllabus/Summer_Maths_Camp_2026.pdf",
+    "source_pdf_path": "academic_resources/math-camp/syllabus/Summer_Maths_Camp_2026.pdf",
     "course": "math-camp",
     "doc_type": "textbook",
     "title": "PhD Math Camp 2026 Syllabus",
@@ -15814,9 +15826,10 @@
       -0.018371802
     ],
     "embedding_model": "gemini-embedding-001:768",
-    "source_updated_at": "2026-08-29T18:38:44.440246+00:00",
+    "source_updated_at": "2026-09-23T12:45:10.959595+00:00",
     "content_hash": "b7dd340fdc447b70",
-    "needs_indexing": false
+    "needs_indexing": false,
+    "source_asset_path": "academic_resources/math-camp/syllabus/Summer_Maths_Camp_2026.pdf"
   },
   {
     "file_id": "db9713b58af98bd6",
@@ -16610,7 +16623,7 @@
   {
     "file_id": "7c4d5fc6024b51b8",
     "path": "academic_notes/math-camp/problem_sets/processed_outputs/Analysis_Exercises.md",
-    "source_pdf_path": "academic_notes/math-camp/problem_sets/Analysis_Exercises.pdf",
+    "source_pdf_path": "academic_resources/math-camp/problem_sets/Analysis_Exercises.pdf",
     "course": "math-camp",
     "doc_type": "problem_set",
     "title": "Analysis: Guided Exercises",
@@ -17391,14 +17404,15 @@
       -0.02336357
     ],
     "embedding_model": "gemini-embedding-001:768",
-    "source_updated_at": "2026-08-30T17:04:46.287982+00:00",
+    "source_updated_at": "2026-09-23T12:45:10.230675+00:00",
     "content_hash": "4a6a57d774db9a6a",
-    "needs_indexing": false
+    "needs_indexing": false,
+    "source_asset_path": "academic_resources/math-camp/problem_sets/Analysis_Exercises.pdf"
   },
   {
     "file_id": "35446af83fba22f7",
     "path": "academic_notes/math-camp/problem_sets/processed_outputs/Practice Sheet.md",
-    "source_pdf_path": "academic_notes/math-camp/problem_sets/Practice Sheet.pdf",
+    "source_pdf_path": "academic_resources/math-camp/problem_sets/Practice Sheet.pdf",
     "course": "math-camp",
     "doc_type": "problem_set",
     "title": "PhD Mathematics Camp Comprehensive Practice Sheet",
@@ -18179,14 +18193,15 @@
       -0.019179706
     ],
     "embedding_model": "gemini-embedding-001:768",
-    "source_updated_at": "2026-08-30T17:04:47.323812+00:00",
+    "source_updated_at": "2026-09-23T12:45:10.457841+00:00",
     "content_hash": "8f46ec6656c51b36",
-    "needs_indexing": false
+    "needs_indexing": false,
+    "source_asset_path": "academic_resources/math-camp/problem_sets/Practice Sheet.pdf"
   },
   {
     "file_id": "d2811cb3930265fb",
     "path": "academic_notes/math-camp/problem_sets/processed_outputs/Real Analysis Problem Set_Solutions.md",
-    "source_pdf_path": "academic_notes/math-camp/problem_sets/Real Analysis Problem Set_Solutions.pdf",
+    "source_pdf_path": "academic_resources/math-camp/problem_sets/Real Analysis Problem Set_Solutions.pdf",
     "course": "math-camp",
     "doc_type": "problem_set",
     "title": "Real Analysis: Guided Exercises",
@@ -18967,9 +18982,10 @@
       -0.023260325
     ],
     "embedding_model": "gemini-embedding-001:768",
-    "source_updated_at": "2026-08-30T17:04:48.861846+00:00",
+    "source_updated_at": "2026-09-23T12:45:10.529175+00:00",
     "content_hash": "7e657d5895a6e0ed",
-    "needs_indexing": false
+    "needs_indexing": false,
+    "source_asset_path": "academic_resources/math-camp/problem_sets/Real Analysis Problem Set_Solutions.pdf"
   },
   {
     "file_id": "021506e46835d3ee",
@@ -20552,7 +20568,7 @@
   {
     "file_id": "ff87e7bbf8f32e24",
     "path": "academic_notes/math-camp/ta_notes/2026/processed_outputs/LN_Analysis.md",
-    "source_pdf_path": "academic_notes/math-camp/ta_notes/2026/LN_Analysis.pdf",
+    "source_pdf_path": "academic_resources/math-camp/ta_notes/2026/LN_Analysis.pdf",
     "course": "math-camp",
     "doc_type": "textbook",
     "title": "Analysis in Euclidean Spaces",
@@ -21333,15 +21349,15 @@
       -0.020752367
     ],
     "embedding_model": "gemini-embedding-001:768",
-    "source_updated_at": "2026-09-23T01:25:33.056399+00:00",
+    "source_updated_at": "2026-09-23T12:45:11.501462+00:00",
     "content_hash": "958c4b3089823d15",
     "needs_indexing": false,
-    "source_asset_path": null
+    "source_asset_path": "academic_resources/math-camp/ta_notes/2026/LN_Analysis.pdf"
   },
   {
     "file_id": "40bdcffc053227ac",
     "path": "academic_notes/math-camp/ta_notes/2026/processed_outputs/LN_Linear Algebra.md",
-    "source_pdf_path": "academic_notes/math-camp/ta_notes/2026/LN_Linear Algebra.pdf",
+    "source_pdf_path": "academic_resources/math-camp/ta_notes/2026/LN_Linear Algebra.pdf",
     "course": "math-camp",
     "doc_type": "textbook",
     "title": "Linear Algebra Lecture Notes",
@@ -22122,15 +22138,15 @@
       -0.031256616
     ],
     "embedding_model": "gemini-embedding-001:768",
-    "source_updated_at": "2026-09-23T01:25:33.132155+00:00",
+    "source_updated_at": "2026-09-23T12:45:11.566779+00:00",
     "content_hash": "7a3b99f74ffc65c6",
     "needs_indexing": false,
-    "source_asset_path": null
+    "source_asset_path": "academic_resources/math-camp/ta_notes/2026/LN_Linear Algebra.pdf"
   },
   {
     "file_id": "95125b42840c4b9e",
     "path": "academic_notes/math-camp/ta_notes/2026/processed_outputs/LN_Optimization.md",
-    "source_pdf_path": "academic_notes/math-camp/ta_notes/2026/LN_Optimization.pdf",
+    "source_pdf_path": "academic_resources/math-camp/ta_notes/2026/LN_Optimization.pdf",
     "course": "math-camp",
     "doc_type": "textbook",
     "title": "Optimization, Convexity and Correspondences",
@@ -22911,15 +22927,15 @@
       -0.014332888
     ],
     "embedding_model": "gemini-embedding-001:768",
-    "source_updated_at": "2026-09-23T01:25:33.194124+00:00",
+    "source_updated_at": "2026-09-23T12:45:11.625676+00:00",
     "content_hash": "906c8e28391a3bde",
     "needs_indexing": false,
-    "source_asset_path": null
+    "source_asset_path": "academic_resources/math-camp/ta_notes/2026/LN_Optimization.pdf"
   },
   {
     "file_id": "6d6958f96759b4a8",
     "path": "academic_notes/math-camp/ta_notes/processed_outputs/Part II Analysis in Euclidean Spaces 08.13 (1).md",
-    "source_pdf_path": "academic_notes/math-camp/ta_notes/Part II Analysis in Euclidean Spaces 08.13 (1).pdf",
+    "source_pdf_path": "academic_resources/math-camp/ta_notes/Part II Analysis in Euclidean Spaces 08.13 (1).pdf",
     "course": "math-camp",
     "doc_type": "ta_notes",
     "title": "Analysis in Euclidean Spaces: Foundations and Completeness",
@@ -23700,9 +23716,10 @@
       -0.019121239
     ],
     "embedding_model": "gemini-embedding-001:768",
-    "source_updated_at": "2026-08-30T17:04:57.880129+00:00",
+    "source_updated_at": "2026-09-23T12:45:11.357243+00:00",
     "content_hash": "affd15fd3672d283",
-    "needs_indexing": false
+    "needs_indexing": false,
+    "source_asset_path": "academic_resources/math-camp/ta_notes/Part II Analysis in Euclidean Spaces 08.13 (1).pdf"
   },
   {
     "file_id": "8e79bdb21eb61596",
