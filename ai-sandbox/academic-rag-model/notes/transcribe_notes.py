@@ -43,6 +43,7 @@ import sys
 from pathlib import Path
 
 from common.academic_hub_paths import resolve_output_dir
+from common.frontmatter import parse_frontmatter, render_frontmatter
 from common.gemini_utils import (
     call_with_retries,
     get_gemini_client,
@@ -54,8 +55,14 @@ from indexer.index_card import (
     KNOWN_DOC_TYPES,
     compute_content_hash,
     compute_file_id,
+    compute_id_from_parts,
     derive_course,
+    find_card_by_file_id,
+    load_shard,
+    now_iso,
     reconcile_and_write,
+    recompute_course_entry,
+    save_shard,
 )
 
 _CODE_FENCE_RE = re.compile(r"^```(?:markdown)?\s*\n(.*)\n```\s*$", re.DOTALL)
@@ -958,15 +965,123 @@ def _write_markdown_and_index(md_path, frontmatter, final_md, pdf_path, academic
               f"rerun `python index_search.py rebuild` later to catch it up.")
 
 
+def find_existing_transcription(academic_hub_root: str, pdf_path: str, file_id: str | None = None) -> tuple[str, dict] | None:
+    """Tier-1 exact-duplicate check for a notes PDF: if this PDF's content
+    (byte-for-byte, via compute_file_id) already has a transcribed card
+    anywhere in the corpus -- same course under a different category (the
+    common real case: the same handout filed under both problem_sets/ and
+    ta_notes/), or even a different course entirely -- returns
+    (course, card) so the caller can link instead of re-transcribing.
+    Unlike indexer/duplicate_check.py's textbook Tier 2, there's no fuzzy/
+    bibliographic matching here: a handwritten note or problem set has no
+    author/year/cover-title to fuzzy-match against, only an exact
+    byte-identical match is worth detecting automatically. Real finding,
+    2026-09-23: two byte-identical econometrics PDFs (problem_sets/ and
+    ta_notes/ copies of the same review-questions handout) were both
+    independently transcribed before this existed, and the second one
+    processed silently overwrote the first one's index card in place --
+    this is the fix, called before any tier routing / API cost is spent."""
+    if file_id is None:
+        file_id = compute_file_id(pdf_path)
+    return find_card_by_file_id(academic_hub_root, file_id)
+
+
+def link_duplicate_note(academic_hub_root: str, canonical_course: str, canonical_card: dict,
+                         pdf_path: str, folder_category: str) -> dict:
+    """Links a notes PDF to an existing transcription elsewhere instead of
+    re-transcribing it -- no LLM call, no embedding call. Copies the
+    canonical .md's already-transcribed text (with its `source_pdf`/
+    `folder_category` frontmatter fields repointed at THIS PDF's own
+    location, plus new `duplicate_of_file_id`/`duplicate_of_path` fields)
+    to this PDF's own resolve_output_dir() location, and clones the
+    canonical CARD dict itself (title/summary/tags/embedding/doc_type all
+    reused as-is, since the content is identical) rather than generating a
+    new one.
+
+    The new card's `file_id` is *derived* from (canonical_card's file_id,
+    this PDF's own relative path) via compute_id_from_parts, not the raw
+    compute_file_id(pdf_path) -- which would be identical to the
+    canonical's own file_id, since the PDFs are byte-identical, and would
+    make the two cards collide (one overwriting the other's `path` in
+    place) on every future rebuild(). See index_search.py's rebuild(),
+    which recognizes `duplicate_of_file_id` in a discovered .md's own
+    frontmatter and re-derives this same id rather than ever recomputing
+    compute_file_id() on a clone's PDF.
+
+    Mirrors indexer/duplicate_check.py's copy_duplicate_artifacts for
+    textbooks, simplified for notes' flat single-.md shape (no per-book
+    folder, no `_metadata.json` sidecar -- `duplicate_of_file_id` lives
+    directly in this .md's own frontmatter instead, the only per-file
+    artifact notes has)."""
+    canonical_abs_path = os.path.join(academic_hub_root, canonical_card["path"])
+    with open(canonical_abs_path, "r", encoding="utf-8") as f:
+        canonical_content = f.read()
+    fields, body = parse_frontmatter(canonical_content)
+
+    rel_pdf_path = os.path.relpath(pdf_path, academic_hub_root).replace(os.sep, "/")
+    fields["source_pdf"] = rel_pdf_path
+    fields["folder_category"] = folder_category
+    fields["duplicate_of_file_id"] = canonical_card["file_id"]
+    fields["duplicate_of_path"] = canonical_card["path"]
+
+    output_dir = resolve_output_dir(pdf_path)
+    os.makedirs(output_dir, exist_ok=True)
+    basename = os.path.splitext(os.path.basename(pdf_path))[0]
+    new_md_path = os.path.join(output_dir, f"{basename}.md")
+    with open(new_md_path, "w", encoding="utf-8") as f:
+        f.write(render_frontmatter(fields) + body)
+
+    rel_md_path = os.path.relpath(new_md_path, academic_hub_root).replace(os.sep, "/")
+    course = derive_course(rel_pdf_path)
+    new_file_id = compute_id_from_parts([canonical_card["file_id"], rel_pdf_path])
+
+    new_card = dict(canonical_card)
+    new_card["file_id"] = new_file_id
+    new_card["course"] = course
+    new_card["path"] = rel_md_path
+    new_card["source_pdf_path"] = rel_pdf_path
+    new_card["source_asset_path"] = rel_pdf_path
+    new_card["duplicate_of_file_id"] = canonical_card["file_id"]
+    new_card["duplicate_of_path"] = canonical_card["path"]
+    new_card["content_hash"] = compute_content_hash(new_md_path)
+    new_card["source_updated_at"] = now_iso()
+    new_card.pop("orphaned", None)
+    new_card.pop("needs_indexing", None)
+
+    cards = [c for c in load_shard(academic_hub_root, course) if c.get("file_id") != new_file_id]
+    cards.append(new_card)
+    save_shard(academic_hub_root, course, cards)
+    recompute_course_entry(academic_hub_root, course)
+    return new_card
+
+
 def process_pdf(pdf_path: str, client, model_override: str | None, academic_hub_root: str,
                  dry_run: bool = False, known_doc_types=KNOWN_DOC_TYPES) -> None:
-    from pypdf import PdfReader
-
     base_name = os.path.splitext(os.path.basename(pdf_path))[0]
     output_dir = resolve_output_dir(pdf_path)
     os.makedirs(output_dir, exist_ok=True)
     md_path = os.path.join(output_dir, f"{base_name}.md")
     cache_path = os.path.join(output_dir, f"{base_name}_pages_cache.json")
+
+    # Checked before any tier routing / API cost: a byte-identical PDF
+    # already transcribed elsewhere (real finding, 2026-09-23 -- see
+    # find_existing_transcription's own docstring) gets linked, not
+    # re-transcribed.
+    file_id = compute_file_id(pdf_path)
+    existing = find_existing_transcription(academic_hub_root, pdf_path, file_id=file_id)
+    if existing is not None:
+        canonical_course, canonical_card = existing
+        folder_category = derive_folder_category(pdf_path)
+        if dry_run:
+            print(f"[{base_name}] would link to existing transcription at "
+                  f"{canonical_card['path']} (byte-identical source, no API calls needed).")
+            return
+        link_duplicate_note(academic_hub_root, canonical_course, canonical_card, pdf_path, folder_category)
+        print(f"[{base_name}] linked to existing transcription at {canonical_card['path']} "
+              f"(byte-identical source, 0 API calls) -> {md_path}")
+        return
+
+    from pypdf import PdfReader
 
     reader = PdfReader(pdf_path)
     total_pages = len(reader.pages)

@@ -8,7 +8,7 @@ from unittest.mock import MagicMock, patch
 
 from indexer.chunk_index import save_chunks
 from indexer.index_card import (
-    compute_file_id, load_courses, load_shard, load_tags, save_shard, save_tags,
+    compute_file_id, find_card_by_file_id, load_courses, load_shard, load_tags, save_shard, save_tags,
     recompute_course_entry,
 )
 from indexer.index_search import (
@@ -213,6 +213,43 @@ class TestRebuild(unittest.TestCase):
             self.assertEqual(
                 cards[0]["source_pdf_path"], "academic_notes/math-camp/ta_notes/2026/LN_Analysis.pdf",
             )
+
+    def test_rebuild_does_not_orphan_or_collide_a_linked_duplicate_note(self):
+        # Real finding (2026-09-23): two byte-identical econometrics PDFs
+        # (problem_sets/ and ta_notes/ copies of the same handout) were
+        # independently transcribed before notes.transcribe_notes.
+        # link_duplicate_note existed to catch this -- the second one
+        # processed silently overwrote the first one's card `path` in
+        # place, since reconcile_and_write matches by file_id and a
+        # byte-identical PDF always hashes to the same file_id. A repaired
+        # (linked) clone must not fall back into the same collision on the
+        # very next rebuild(), which is what this test guards.
+        from notes.transcribe_notes import link_duplicate_note
+        with tempfile.TemporaryDirectory() as tmp:
+            canonical_pdf_path = _make_notes_pdf(tmp, "econometrics", "problem_sets", "00-review-questions")
+            client = _fake_client()
+            rebuild(tmp, client)  # generates the canonical card
+            canonical_course, canonical_card = find_card_by_file_id(
+                tmp, compute_file_id(canonical_pdf_path),
+            )
+
+            clone_dir = os.path.join(tmp, "academic_notes", "econometrics", "ta_notes")
+            os.makedirs(clone_dir, exist_ok=True)
+            clone_pdf_path = os.path.join(clone_dir, "00-review-questions.pdf")
+            with open(canonical_pdf_path, "rb") as f:
+                pdf_bytes = f.read()
+            with open(clone_pdf_path, "wb") as f:
+                f.write(pdf_bytes)
+            link_duplicate_note(tmp, canonical_course, canonical_card, clone_pdf_path, "ta_notes")
+
+            stats = rebuild(tmp, client)
+
+            self.assertEqual(stats["orphaned"], 0)
+            self.assertGreaterEqual(stats["skipped_duplicate_clone"], 1)
+            cards = load_shard(tmp, "econometrics")
+            self.assertEqual(len(cards), 2)
+            canonical_after = next(c for c in cards if c["file_id"] == canonical_card["file_id"])
+            self.assertEqual(canonical_after["path"], canonical_card["path"])  # not overwritten by the clone
 
     def test_rebuild_discovers_and_refreshes_a_pdf_that_migrated_to_resources(self):
         # Real finding (2026-09-23, first real migration run against

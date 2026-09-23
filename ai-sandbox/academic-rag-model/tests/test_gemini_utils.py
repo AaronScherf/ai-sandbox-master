@@ -1,9 +1,11 @@
 import os
 import tempfile
 import unittest
+from unittest.mock import patch
 
 from common.gemini_utils import (
     extract_retry_delay_seconds,
+    get_gemini_client,
     load_json_cache,
     save_json_cache,
 )
@@ -51,6 +53,30 @@ class TestJsonCache(unittest.TestCase):
             with open(path, "w", encoding="utf-8") as f:
                 f.write("{not valid json")
             self.assertEqual(load_json_cache(path), {})
+
+
+class TestGetGeminiClient(unittest.TestCase):
+    def test_defaults_to_gemini_api_key(self):
+        with patch.dict(os.environ, {"GEMINI_API_KEY": "fake-free-key"}, clear=False):
+            with patch("google.genai.Client") as mock_client_cls:
+                get_gemini_client()
+                mock_client_cls.assert_called_once_with(api_key="fake-free-key")
+
+    def test_uses_paid_key_when_requested(self):
+        # Real finding, 2026-09-23: GEMINI_API_KEY can be swapped to a
+        # free-tier key for other work while PAID_GEMINI_KEY stays
+        # reserved for real pipeline runs -- key_env_var lets a caller
+        # opt into that second key explicitly.
+        with patch.dict(
+            os.environ, {"GEMINI_API_KEY": "fake-free-key", "PAID_GEMINI_KEY": "fake-paid-key"}, clear=False,
+        ):
+            with patch("google.genai.Client") as mock_client_cls:
+                get_gemini_client(key_env_var="PAID_GEMINI_KEY")
+                mock_client_cls.assert_called_once_with(api_key="fake-paid-key")
+
+    def test_returns_none_and_names_the_missing_var(self):
+        with patch.dict(os.environ, {}, clear=True):
+            self.assertIsNone(get_gemini_client(key_env_var="PAID_GEMINI_KEY"))
 
 
 if __name__ == "__main__":

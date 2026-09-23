@@ -17,6 +17,7 @@ from google.genai import types
 
 from indexer.chunk_index import chunk, load_chunks
 from common.academic_hub_paths import resolve_output_dir, to_resources_root
+from common.frontmatter import parse_frontmatter
 from common.gemini_utils import get_gemini_client, load_dotenv_override
 from indexer.index_card import (
     TEXTBOOK_CONTENT_SAMPLE_CHARS,
@@ -537,13 +538,31 @@ def rebuild(academic_hub_root: str, client, course: str | None = None,
             stats["skipped_empty_md"] += 1
             continue
 
-        file_id = compute_file_id(pdf_path)
-        seen_file_ids.add(file_id)
         rel_md_path = os.path.relpath(md_path, academic_hub_root).replace(os.sep, "/")
         rel_pdf_path = os.path.relpath(pdf_path, academic_hub_root).replace(os.sep, "/")
 
         with open(md_path, "r", encoding="utf-8") as f:
             content_sample = f.read()
+
+        # A clone linked by notes.transcribe_notes.link_duplicate_note
+        # (real finding, 2026-09-23: two byte-identical econometrics PDFs
+        # in different categories were independently transcribed before
+        # that fix existed) -- never re-hash its PDF: that would always
+        # equal the canonical card's own file_id (the PDFs are byte-
+        # identical by definition), which is exactly what silently made
+        # the second one processed overwrite the first one's card `path`
+        # in place. Re-derive the same id link_duplicate_note wrote onto
+        # the card, purely so --prune doesn't evict it as an apparent
+        # orphan -- mirrors the textbook duplicate-clone skip below.
+        frontmatter_fields, _body = parse_frontmatter(content_sample)
+        duplicate_of_file_id = frontmatter_fields.get("duplicate_of_file_id")
+        if duplicate_of_file_id:
+            seen_file_ids.add(compute_id_from_parts([duplicate_of_file_id, rel_pdf_path]))
+            stats["skipped_duplicate_clone"] += 1
+            continue
+
+        file_id = compute_file_id(pdf_path)
+        seen_file_ids.add(file_id)
 
         _reconcile_one(academic_hub_root, course_name, category, file_id, rel_md_path,
                        rel_pdf_path, content_sample, None, client, force, stats,

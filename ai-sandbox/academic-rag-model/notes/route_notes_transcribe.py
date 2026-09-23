@@ -235,6 +235,11 @@ def main():
     parser.add_argument("--excalidraw-model", default=None, help=f"Gemini vision model for Excalidraw transcription. Default: {_EXCALIDRAW_MODEL}.")
     parser.add_argument("--expand-backend", default="gemini", choices=("gemini", "ollama"))
     parser.add_argument("--grounding", action="store_true", help="Retrieve textbook passages to ground Excalidraw expansion.")
+    parser.add_argument(
+        "--use-paid-key", action="store_true",
+        help="Use PAID_GEMINI_KEY from ai-sandbox/.env instead of GEMINI_API_KEY -- for when the "
+             "default key is pointed at a free-tier project for other work (see gemini_utils.get_gemini_client).",
+    )
     args = parser.parse_args()
 
     from common.gemini_utils import get_gemini_client, load_dotenv_override
@@ -256,7 +261,7 @@ def main():
             print(f"  [excalidraw] would process: {md} (+ {os.path.basename(img)})")
         return
 
-    client = get_gemini_client()
+    client = get_gemini_client("PAID_GEMINI_KEY" if args.use_paid_key else "GEMINI_API_KEY")
     if client is None:
         sys.exit(1)
 

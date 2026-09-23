@@ -87,16 +87,23 @@ def load_dotenv_override() -> None:
               "relying on GEMINI_API_KEY already being set in the environment.")
 
 
-def get_gemini_client():
+def get_gemini_client(key_env_var: str = "GEMINI_API_KEY"):
     """
-    Builds a Gemini Developer API client from GEMINI_API_KEY in the
+    Builds a Gemini Developer API client from an API key in the
     environment (call load_dotenv_override() first so .env is picked
     up). Prints a clear error and returns None if the key or the SDK is
     missing -- callers should treat None as "cannot proceed."
+
+    key_env_var (2026-09-23): defaults to GEMINI_API_KEY, matching every
+    existing caller's own zero-argument call unchanged. Pass
+    "PAID_GEMINI_KEY" to use ai-sandbox/.env's second key instead --
+    real finding: GEMINI_API_KEY can point at a free-tier key (a low
+    daily-request quota, 429 RESOURCE_EXHAUSTED) for other, unrelated
+    work, while PAID_GEMINI_KEY stays reserved for real pipeline runs.
     """
-    api_key = os.environ.get("GEMINI_API_KEY")
+    api_key = os.environ.get(key_env_var)
     if not api_key:
-        print("ERROR: GEMINI_API_KEY not set (checked the environment and ../.env). "
+        print(f"ERROR: {key_env_var} not set (checked the environment and ../.env). "
               "Get a key at aistudio.google.com/apikey and add it to ai-sandbox/.env.")
         return None
     try:

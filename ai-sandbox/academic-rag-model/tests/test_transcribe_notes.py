@@ -3,7 +3,7 @@ import tempfile
 import unittest
 from unittest.mock import MagicMock, patch
 
-from indexer.index_card import KNOWN_DOC_TYPES
+from indexer.index_card import KNOWN_DOC_TYPES, compute_file_id, load_shard, save_shard
 
 from notes.transcribe_notes import (
     build_accumulated_context,
@@ -13,12 +13,15 @@ from notes.transcribe_notes import (
     build_transcription_prompt,
     derive_folder_category,
     discover_pdf_files,
+    find_existing_transcription,
     get_bookend_context,
     group_into_runs,
     has_reliable_pagination,
+    link_duplicate_note,
     page_looks_defective,
     parse_batch_transcription_response,
     parse_transcription_response,
+    process_pdf,
     reconstruct_line_with_scripts,
     repair_batch,
     split_run_into_batches,
@@ -868,6 +871,179 @@ class TestWriteMarkdownAndIndex(unittest.TestCase):
                 )
             with open(md_path, "r", encoding="utf-8") as f:
                 self.assertEqual(f.read(), "content")  # file still written
+
+
+def _make_canonical_card(tmp, course, category, basename, pdf_bytes=b"fake pdf bytes"):
+    """Sets up a canonical transcription: a real PDF, a real .md output
+    with frontmatter, and a matching index card in the shard -- the
+    starting state find_existing_transcription/link_duplicate_note tests
+    build on."""
+    pdf_dir = os.path.join(tmp, "academic_notes", course, category)
+    os.makedirs(pdf_dir, exist_ok=True)
+    pdf_path = os.path.join(pdf_dir, f"{basename}.pdf")
+    with open(pdf_path, "wb") as f:
+        f.write(pdf_bytes)
+
+    out_dir = os.path.join(pdf_dir, "processed_outputs")
+    os.makedirs(out_dir, exist_ok=True)
+    md_path = os.path.join(out_dir, f"{basename}.md")
+    rel_pdf_path = os.path.relpath(pdf_path, tmp).replace(os.sep, "/")
+    rel_md_path = os.path.relpath(md_path, tmp).replace(os.sep, "/")
+    frontmatter = (
+        "---\n"
+        f"source_pdf: {rel_pdf_path}\n"
+        f"folder_category: {category}\n"
+        "total_pages: 3\n"
+        "routing: local\n"
+        "tags: [real-analysis]\n"
+        "---\n\n"
+    )
+    body = "Canonical transcribed content."
+    with open(md_path, "w", encoding="utf-8") as f:
+        f.write(frontmatter + body)
+
+    file_id = compute_file_id(pdf_path)
+    card = {
+        "file_id": file_id, "path": rel_md_path, "source_pdf_path": rel_pdf_path,
+        "source_asset_path": rel_pdf_path, "course": course, "doc_type": category,
+        "title": "Canonical Title", "summary": "A canonical summary.", "tags": ["real-analysis"],
+        "level": "introductory", "has_solutions": False, "page_count": 3,
+        "embedding": [0.1, 0.2], "embedding_model": "gemini-embedding-001:768",
+        "source_updated_at": "2026-01-01T00:00:00Z", "needs_indexing": False,
+    }
+    save_shard(tmp, course, [card])
+    return pdf_path, md_path, card
+
+
+class TestFindExistingTranscription(unittest.TestCase):
+    def test_finds_a_card_by_content_hash(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            _pdf_path, _md_path, card = _make_canonical_card(tmp, "econometrics", "problem_sets", "00-review-questions")
+            clone_pdf_path = os.path.join(tmp, "academic_notes", "econometrics", "ta_notes", "00-review-questions.pdf")
+            os.makedirs(os.path.dirname(clone_pdf_path))
+            with open(clone_pdf_path, "wb") as f:
+                f.write(b"fake pdf bytes")  # byte-identical to the canonical
+
+            found = find_existing_transcription(tmp, clone_pdf_path)
+
+            self.assertIsNotNone(found)
+            course, found_card = found
+            self.assertEqual(course, "econometrics")
+            self.assertEqual(found_card["file_id"], card["file_id"])
+
+    def test_returns_none_when_no_match(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            _make_canonical_card(tmp, "econometrics", "problem_sets", "00-review-questions")
+            different_pdf_path = os.path.join(tmp, "academic_notes", "econometrics", "ta_notes", "other.pdf")
+            os.makedirs(os.path.dirname(different_pdf_path))
+            with open(different_pdf_path, "wb") as f:
+                f.write(b"totally different content")
+
+            self.assertIsNone(find_existing_transcription(tmp, different_pdf_path))
+
+
+class TestLinkDuplicateNote(unittest.TestCase):
+    def _make_clone_pdf(self, tmp, course, category, basename, pdf_bytes=b"fake pdf bytes"):
+        pdf_dir = os.path.join(tmp, "academic_notes", course, category)
+        os.makedirs(pdf_dir, exist_ok=True)
+        pdf_path = os.path.join(pdf_dir, f"{basename}.pdf")
+        with open(pdf_path, "wb") as f:
+            f.write(pdf_bytes)
+        return pdf_path
+
+    def test_copies_canonical_body_with_repointed_frontmatter(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            _pdf_path, _md_path, card = _make_canonical_card(tmp, "econometrics", "problem_sets", "00-review-questions")
+            clone_pdf_path = self._make_clone_pdf(tmp, "econometrics", "ta_notes", "00-review-questions")
+
+            new_card = link_duplicate_note(tmp, "econometrics", card, clone_pdf_path, "ta_notes")
+
+            new_md_path = os.path.join(
+                tmp, "academic_notes", "econometrics", "ta_notes", "processed_outputs", "00-review-questions.md",
+            )
+            self.assertTrue(os.path.exists(new_md_path))
+            with open(new_md_path, "r", encoding="utf-8") as f:
+                content = f.read()
+            self.assertIn("Canonical transcribed content.", content)
+            rel_clone_pdf = os.path.relpath(clone_pdf_path, tmp).replace(os.sep, "/")
+            self.assertIn(f"source_pdf: {rel_clone_pdf}", content)
+            self.assertIn("folder_category: ta_notes", content)
+            self.assertIn(f"duplicate_of_file_id: {card['file_id']}", content)
+            self.assertIn(f"duplicate_of_path: {card['path']}", content)
+            self.assertEqual(new_card["path"], os.path.relpath(new_md_path, tmp).replace(os.sep, "/"))
+
+    def test_derives_a_new_file_id_distinct_from_the_raw_content_hash(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            _pdf_path, _md_path, card = _make_canonical_card(tmp, "econometrics", "problem_sets", "00-review-questions")
+            clone_pdf_path = self._make_clone_pdf(tmp, "econometrics", "ta_notes", "00-review-questions")
+
+            new_card = link_duplicate_note(tmp, "econometrics", card, clone_pdf_path, "ta_notes")
+
+            raw_hash = compute_file_id(clone_pdf_path)
+            self.assertEqual(raw_hash, card["file_id"])  # byte-identical PDFs -> same raw hash
+            self.assertNotEqual(new_card["file_id"], raw_hash)  # the clone's card must not collide with it
+
+    def test_reuses_canonical_title_summary_tags_and_embedding(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            _pdf_path, _md_path, card = _make_canonical_card(tmp, "econometrics", "problem_sets", "00-review-questions")
+            clone_pdf_path = self._make_clone_pdf(tmp, "econometrics", "ta_notes", "00-review-questions")
+
+            new_card = link_duplicate_note(tmp, "econometrics", card, clone_pdf_path, "ta_notes")
+
+            self.assertEqual(new_card["title"], card["title"])
+            self.assertEqual(new_card["summary"], card["summary"])
+            self.assertEqual(new_card["tags"], card["tags"])
+            self.assertEqual(new_card["embedding"], card["embedding"])
+            self.assertEqual(new_card["doc_type"], card["doc_type"])
+
+    def test_writes_both_cards_to_the_shard_without_one_overwriting_the_other(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            _pdf_path, _md_path, card = _make_canonical_card(tmp, "econometrics", "problem_sets", "00-review-questions")
+            clone_pdf_path = self._make_clone_pdf(tmp, "econometrics", "ta_notes", "00-review-questions")
+
+            link_duplicate_note(tmp, "econometrics", card, clone_pdf_path, "ta_notes")
+
+            cards = load_shard(tmp, "econometrics")
+            self.assertEqual(len(cards), 2)
+            paths = {c["path"] for c in cards}
+            self.assertIn("academic_notes/econometrics/problem_sets/processed_outputs/00-review-questions.md", paths)
+            self.assertIn("academic_notes/econometrics/ta_notes/processed_outputs/00-review-questions.md", paths)
+
+
+class TestProcessPdfLinksDuplicates(unittest.TestCase):
+    def test_links_instead_of_transcribing_when_a_duplicate_exists(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            _make_canonical_card(tmp, "econometrics", "problem_sets", "00-review-questions")
+            clone_pdf_path = os.path.join(tmp, "academic_notes", "econometrics", "ta_notes", "00-review-questions.pdf")
+            os.makedirs(os.path.dirname(clone_pdf_path))
+            with open(clone_pdf_path, "wb") as f:
+                f.write(b"fake pdf bytes")
+
+            client = MagicMock()
+            process_pdf(clone_pdf_path, client, None, tmp)
+
+            client.models.generate_content.assert_not_called()
+            new_md_path = os.path.join(
+                tmp, "academic_notes", "econometrics", "ta_notes", "processed_outputs", "00-review-questions.md",
+            )
+            self.assertTrue(os.path.exists(new_md_path))
+            self.assertEqual(len(load_shard(tmp, "econometrics")), 2)
+
+    def test_dry_run_reports_without_writing_anything(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            _make_canonical_card(tmp, "econometrics", "problem_sets", "00-review-questions")
+            clone_pdf_path = os.path.join(tmp, "academic_notes", "econometrics", "ta_notes", "00-review-questions.pdf")
+            os.makedirs(os.path.dirname(clone_pdf_path))
+            with open(clone_pdf_path, "wb") as f:
+                f.write(b"fake pdf bytes")
+
+            process_pdf(clone_pdf_path, MagicMock(), None, tmp, dry_run=True)
+
+            new_md_path = os.path.join(
+                tmp, "academic_notes", "econometrics", "ta_notes", "processed_outputs", "00-review-questions.md",
+            )
+            self.assertFalse(os.path.exists(new_md_path))
+            self.assertEqual(len(load_shard(tmp, "econometrics")), 1)  # only the canonical
 
 
 if __name__ == "__main__":
