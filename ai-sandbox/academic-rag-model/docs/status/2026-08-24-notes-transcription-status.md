@@ -1005,3 +1005,78 @@ embeddings and are now correctly surfaced by search.
 
 Full task-by-task detail (per-course file counts, exact commits, every
 verification step): `docs/superpowers/plans/2026-09-21-source-asset-relocation.md`.
+
+## 2026-09-23: end-to-end pipeline test against econometrics found a real duplicate-indexing bug, fixed and shipped
+
+The user asked to run the actual transcription pipeline against
+econometrics' now-migrated `academic_resources/` PDFs, to test that
+outputs land in `academic_notes/` and the index links correctly. They
+mostly did -- but the run surfaced a real, separate bug: two
+byte-identical PDFs (`problem_sets/00-review-questions.pdf` and
+`ta_notes/00-review-questions.pdf`, the same handout filed under both
+categories) were both independently queued and transcribed, since
+neither had output yet. `reconcile_and_write` matches cards by `file_id`
+(a content hash), and a byte-identical PDF always hashes to the same id
+-- so the second one processed silently overwrote the first one's card
+`path` in place, leaving one of the two real, correctly-transcribed `.md`
+files completely unindexed.
+
+**Fix, per the user's explicit direction ("don't force the system into
+having no duplicates"):** link, don't merge or forbid. `notes/
+transcribe_notes.py` gained `find_existing_transcription()` (a Tier-1,
+exact-byte-match-only check -- no fuzzy/bibliographic matching, unlike
+`indexer/duplicate_check.py`'s textbook Tier 2, since a problem set has
+no author/year/cover-title to fuzzy-match against) and
+`link_duplicate_note()`, called from `process_pdf()` before any tier
+routing or API cost. A found duplicate gets the canonical's already-
+transcribed content copied over (no LLM/embedding call, `.md` frontmatter
+repointed at its own location, `duplicate_of_file_id`/`duplicate_of_path`
+added) and a card cloned from the canonical's own (title/summary/tags/
+embedding/doc_type reused as-is), keyed by a *derived* file_id
+(`compute_id_from_parts` on the canonical id + this location's own
+relative path) instead of the raw hash, so the two cards never collide
+again. `index_search.py`'s `rebuild()` was extended to recognize
+`duplicate_of_file_id` in a discovered `.md`'s own frontmatter and
+re-derive the same id rather than ever recomputing the raw hash on a
+clone's PDF -- without this, a linked clone would fall right back into
+the exact same collision on the very next `rebuild()`. Mirrors
+`indexer/duplicate_check.py`'s existing `copy_duplicate_artifacts`
+pattern for textbooks, simplified for notes' flat single-`.md` shape (no
+per-book folder or `_metadata.json` sidecar -- the marker lives directly
+in the clone's own frontmatter via a new, minimal `common/frontmatter.py`
+round-trip parser/renderer).
+
+**A second bug found immediately while using the fix for real:**
+`find_existing_transcription` didn't exclude a PDF's own existing card --
+re-processing a file that already had one (to redo an earlier partial
+transcription) found that same card via its own raw `file_id` and
+"linked" the file to itself, corrupting it with a self-referential
+`duplicate_of_file_id` and appending a second card alongside the
+original. Fixed by excluding a match whose own `source_pdf_path` is the
+PDF currently being processed.
+
+**Also found while repairing the real duplicate:** the original repair
+had picked whichever card happened to survive the collision as
+"canonical" purely because it ran second, without checking completeness
+-- which turned out to be the worse of the two transcriptions (1/3 pages
+vs. the other's 3/3, both partial due to a run of Gemini `503`s). Fixed
+by removing both stale cards and re-transcribing the genuinely-better
+one fresh, then linking the other to it for free.
+
+**Separately:** the interrupted first pass also had 3 genuinely-
+incomplete files (missing pages from the same `503` run) and hit the
+default `GEMINI_API_KEY`'s free-tier daily quota (`429
+RESOURCE_EXHAUSTED`, 20 requests/day) partway through -- the user had
+swapped it to a free-tier key for unrelated work. `gemini_utils.
+get_gemini_client()` gained an optional `key_env_var` parameter (default
+unchanged) and `route_notes_transcribe.py` gained `--use-paid-key` to use
+`PAID_GEMINI_KEY` from `ai-sandbox/.env` instead. All remaining work
+(the 3 incomplete files, the 4 never-reached PDFs, 3 `needs_indexing`
+backfills) completed cleanly on the paid key with zero retries needed.
+
+**Final state, confirmed:** all 14 econometrics PDFs + 4 Excalidraw notes
+show `PDF: 0 to process, 14 already done` / `Excalidraw: 0 to process, 4
+already done`; every card's `source_pdf_path`/`source_asset_path`
+correctly points at `academic_resources/`; the duplicate pair is linked,
+not merged, both locations independently browsable; full test suite
+(1500 tests) passing throughout.
