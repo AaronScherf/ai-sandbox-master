@@ -47,7 +47,31 @@ class TestParseBookWindows(unittest.TestCase):
         self.assertEqual(windows[0], {
             "book": "Ok_Real_Analysis_2007", "pages": 382, "file_size_bytes": 41231000,
             "start_ts": 1000, "end_ts": 1500, "status": "success",
+            "cumulative_pages_so_far": None, "cumulative_file_size_bytes_so_far": None,
         })
+
+    def test_parses_cumulative_fields_when_present(self):
+        text = (
+            "RAM_SIZING_START book=Ok_Real_Analysis_2007 pages=382 file_size_bytes=41231000 "
+            "ts=1000 cumulative_pages_so_far=382 cumulative_file_size_bytes_so_far=41231000\n"
+            "RAM_SIZING_END book=Ok_Real_Analysis_2007 ts=1500 status=success\n"
+        )
+        windows = parse_book_windows(text)
+        self.assertEqual(windows[0]["cumulative_pages_so_far"], 382)
+        self.assertEqual(windows[0]["cumulative_file_size_bytes_so_far"], 41231000)
+
+    def test_cumulative_fields_are_none_for_a_pre_existing_log_without_them(self):
+        # Backward compatibility: a log from before this extension shipped
+        # has no cumulative_* fields at all -- must still parse the fields
+        # it does have, with the new ones defaulting to None, not raising.
+        text = (
+            "RAM_SIZING_START book=OldBook pages=100 file_size_bytes=5000 ts=1000\n"
+            "RAM_SIZING_END book=OldBook ts=1100 status=success\n"
+        )
+        windows = parse_book_windows(text)
+        self.assertEqual(windows[0]["pages"], 100)
+        self.assertIsNone(windows[0]["cumulative_pages_so_far"])
+        self.assertIsNone(windows[0]["cumulative_file_size_bytes_so_far"])
 
     def test_start_without_matching_end_is_incomplete(self):
         text = "RAM_SIZING_START book=CrashedBook pages=100 file_size_bytes=5000 ts=2000\n"
@@ -113,6 +137,17 @@ class TestBuildRows(unittest.TestCase):
         self.assertEqual(row["status"], "success")
         self.assertEqual(row["start_ts"], 1000)
         self.assertEqual(row["end_ts"], 1030)
+
+    def test_cumulative_fields_pass_through_into_the_row(self):
+        convert_log_text = (
+            "RAM_SIZING_START book=Ok_2007 pages=382 file_size_bytes=41231000 "
+            "ts=1000 cumulative_pages_so_far=382 cumulative_file_size_bytes_so_far=41231000\n"
+            "RAM_SIZING_END book=Ok_2007 ts=1030 status=success\n"
+        )
+        ram_log_text = "1000 16000 8000 8000 2000 9000\n"
+        rows = build_rows(convert_log_text, ram_log_text, course="microecon", machine_type="g2-standard-4")
+        self.assertEqual(rows[0]["cumulative_pages_so_far"], 382)
+        self.assertEqual(rows[0]["cumulative_file_size_bytes_so_far"], 41231000)
 
     def test_row_with_no_samples_in_window_has_null_peak(self):
         convert_log_text = (

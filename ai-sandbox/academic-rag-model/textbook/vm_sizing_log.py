@@ -39,6 +39,8 @@ def parse_ram_samples(ram_log_text: str) -> list[dict]:
 _RAM_SIZING_START_RE = re.compile(
     r"RAM_SIZING_START book=(?P<book>\S+) pages=(?P<pages>\d+) "
     r"file_size_bytes=(?P<file_size_bytes>\d+) ts=(?P<ts>\d+)"
+    r"(?: cumulative_pages_so_far=(?P<cumulative_pages_so_far>\d+) "
+    r"cumulative_file_size_bytes_so_far=(?P<cumulative_file_size_bytes_so_far>\d+))?"
 )
 _RAM_SIZING_END_RE = re.compile(
     r"RAM_SIZING_END book=(?P<book>\S+) ts=(?P<ts>\d+) status=(?P<status>success|failed)"
@@ -59,11 +61,15 @@ def parse_book_windows(convert_log_text: str) -> list[dict]:
     for line in convert_log_text.splitlines():
         m = _RAM_SIZING_START_RE.search(line)
         if m:
+            cumulative_pages = m.group("cumulative_pages_so_far")
+            cumulative_bytes = m.group("cumulative_file_size_bytes_so_far")
             starts[m.group("book")] = {
                 "book": m.group("book"),
                 "pages": int(m.group("pages")),
                 "file_size_bytes": int(m.group("file_size_bytes")),
                 "start_ts": int(m.group("ts")),
+                "cumulative_pages_so_far": int(cumulative_pages) if cumulative_pages is not None else None,
+                "cumulative_file_size_bytes_so_far": int(cumulative_bytes) if cumulative_bytes is not None else None,
             }
             continue
         m = _RAM_SIZING_END_RE.search(line)
@@ -107,6 +113,8 @@ def build_rows(convert_log_text: str, ram_log_text: str, course: str, machine_ty
             "machine_type": machine_type,
             "start_ts": w["start_ts"],
             "end_ts": w["end_ts"],
+            "cumulative_pages_so_far": w["cumulative_pages_so_far"],
+            "cumulative_file_size_bytes_so_far": w["cumulative_file_size_bytes_so_far"],
         }
         for w in windows
     ]

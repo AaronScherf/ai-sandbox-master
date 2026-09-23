@@ -37,6 +37,23 @@ import os
 # only back-to-back reruns on a VM you're keeping up between them.
 os.environ.setdefault("SURYA_INFERENCE_KEEP_ALIVE", "1")
 
+# Running totals across the whole batch invocation (not reset per book) --
+# feeds RAM_SIZING_START's cumulative_* fields, see
+# docs/superpowers/specs/2026-09-20-pipeline-autonomy-policies-design.md
+# Component 2d. Module-level rather than a function parameter because
+# main()'s per-book loop calls process_one_pdf() once per book with no
+# other channel for a running total to flow through.
+#
+# Caveat: "whole batch invocation" means this process's lifetime, not the
+# logical batch. start_conversion.sh's watchdog (run_conversion_with_retries)
+# re-execs this module as a brand-new process on each of its 5 retry
+# attempts, and the OOM escalation ladder's relaunch steps do the same --
+# both reset these counters to 0, so a cumulative_*_so_far value logged
+# after any retry/relaunch reflects only books processed since that
+# restart, not the true run-wide total.
+_cumulative_pages_this_batch = 0
+_cumulative_file_size_bytes_this_batch = 0
+
 import argparse
 import glob
 import sys
@@ -889,10 +906,20 @@ def process_one_pdf(converter, raw_input: str, raw_output: str, workspace: str, 
         total_pages = len(reader.pages)
         print(f"Loaded document mapping: {total_pages} total pages.")
         # Tagged, machine-parseable line for textbook/vm_sizing_log.py --
-        # see docs/superpowers/specs/2026-09-20-vm-ram-sizing-logging-design.md.
-        # Exact field order/spacing matters: it's matched by regex there.
+        # see docs/superpowers/specs/2026-09-20-vm-ram-sizing-logging-design.md
+        # and docs/superpowers/specs/2026-09-20-pipeline-autonomy-policies-design.md
+        # Component 2d. Exact field order/spacing matters: it's matched by
+        # regex there -- cumulative_* fields are appended AFTER ts=, not
+        # inserted earlier, so a pre-existing log without them still
+        # parses its other fields unchanged.
+        global _cumulative_pages_this_batch, _cumulative_file_size_bytes_this_batch
+        file_size_bytes = os.path.getsize(input_pdf)
+        _cumulative_pages_this_batch += total_pages
+        _cumulative_file_size_bytes_this_batch += file_size_bytes
         print(f"RAM_SIZING_START book={input_key} pages={total_pages} "
-              f"file_size_bytes={os.path.getsize(input_pdf)} ts={int(time.time())}")
+              f"file_size_bytes={file_size_bytes} ts={int(time.time())} "
+              f"cumulative_pages_so_far={_cumulative_pages_this_batch} "
+              f"cumulative_file_size_bytes_so_far={_cumulative_file_size_bytes_this_batch}")
         ram_sizing_started = True
 
         source_info = extract_source_bibliographic_info(reader)

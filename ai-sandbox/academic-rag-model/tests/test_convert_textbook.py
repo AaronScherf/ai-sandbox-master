@@ -493,6 +493,49 @@ class TestProcessOnePdfEmitsRamSizingMarkers(unittest.TestCase):
             output = captured.getvalue()
             self.assertIn(f"RAM_SIZING_START book=some_book pages=4 file_size_bytes={expected_size} ts=", output)
 
+    def test_ram_sizing_start_marker_includes_cumulative_totals_across_books(self):
+        # Reset module-level counters since they persist across tests in a pytest session.
+        ct._cumulative_pages_this_batch = 0
+        ct._cumulative_file_size_bytes_this_batch = 0
+
+        with tempfile.TemporaryDirectory() as tmp:
+            input_pdf_a, output_dir, reader, args = self._setup(tmp)
+            input_pdf_b = os.path.join(tmp, "second_book.pdf")
+            with open(input_pdf_b, "wb") as f:
+                f.write(b"a second fake pdf, different size from the first one")
+            size_a = os.path.getsize(input_pdf_a)
+            size_b = os.path.getsize(input_pdf_b)
+
+            captured = io.StringIO()
+            with patch.object(ct, "find_card_by_file_id", return_value=None), \
+                 patch.object(ct, "PdfReader", return_value=reader), \
+                 patch.object(ct, "_load_or_compute_boundaries", side_effect=RuntimeError("reached boundaries, as expected")), \
+                 redirect_stdout(captured):
+                with self.assertRaises(RuntimeError):
+                    ct.process_one_pdf(
+                        converter=MagicMock(), raw_input=input_pdf_a, raw_output=output_dir,
+                        workspace=tmp, args=args,
+                    )
+                with self.assertRaises(RuntimeError):
+                    ct.process_one_pdf(
+                        converter=MagicMock(), raw_input=input_pdf_b, raw_output=output_dir,
+                        workspace=tmp, args=args,
+                    )
+            lines = [l for l in captured.getvalue().splitlines() if l.startswith("RAM_SIZING_START")]
+            self.assertEqual(len(lines), 2)
+
+            # First book: cumulative totals equal that book's own totals.
+            self.assertIn(f"cumulative_pages_so_far=4", lines[0])
+            self.assertIn(f"cumulative_file_size_bytes_so_far={size_a}", lines[0])
+
+            # Second book: cumulative totals include both books.
+            self.assertIn(f"cumulative_pages_so_far=8", lines[1])
+            self.assertIn(f"cumulative_file_size_bytes_so_far={size_a + size_b}", lines[1])
+
+            # New fields come AFTER ts=, not before it -- confirms the
+            # existing field order/regex sequence wasn't disturbed.
+            self.assertRegex(lines[0], r"file_size_bytes=\d+ ts=\d+ cumulative_pages_so_far=")
+
     def test_no_ram_sizing_marker_when_book_is_skipped_as_already_converted(self):
         with tempfile.TemporaryDirectory() as tmp:
             input_pdf, output_dir, reader, args = self._setup(tmp)

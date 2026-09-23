@@ -15,26 +15,25 @@ appendix, "Never combine or heredoc commands").
 
 Do not proceed past these points without an explicit answer:
 1. **Subdirectory inclusion** (Step 0 below) — every run.
-2. **Size/cost sanity check** before creating the VM (Step 1.3) — every run.
-3. **Every Tier 2 (fuzzy) duplicate match** (Step 0.4) — never auto-skip one.
-4. **VM deletion** at the end of a session (Step 4).
-5. **Any Preflight gap** (Step -1) you can't fix yourself — report and stop;
+2. **VM deletion** at the end of a session (Step 4).
+3. **Any Preflight gap** (Step -1) you can't fix yourself — report and stop;
    don't attempt to request quota, enable billing, or grant IAM roles
    beyond what Step -1 itself checks for.
-6. **A second genuine system-RAM OOM-kill on the same book/chunk after one
-   manual `gcloud compute instances reset` + relaunch already tried** (see
-   the Debugging appendix's "chunk is silently degraded" entry) — this is
-   a real signal the machine type is undersized for that book's content,
-   and resizing (e.g. `g2-standard-4` → `g2-standard-8`, same L4 GPU, more
-   system RAM) is a cost-changing decision, not something to do silently.
-   Note this is about the *external* reset-and-relaunch, not
-   `start_conversion.sh`'s own built-in watchdog retries -- those 5
-   automatic attempts happen first, inside the VM, and don't by themselves
-   fix an OOM-kill (see the appendix), so their exhaustion alone doesn't
-   yet meet this bar. A single tight-but-recovering `free -h` reading, or
-   a container/process dying for a reason *other* than a confirmed
-   `dmesg`-visible OOM-kill, does not meet this bar either — let the
-   watchdog's automatic retries handle those.
+
+The size/cost sanity check, Tier 2 duplicate matches, and OOM-kill
+recovery are no longer unconditional stop points — see
+`docs/superpowers/specs/2026-09-20-pipeline-autonomy-policies-design.md`
+for the policies that replace them:
+- **Cost/size** (Step 1.3): proceed automatically; stop and ask only if
+  the batch is unprecedented relative to history (spec Component 2a).
+- **Duplicate matches** (Step 0.3): a score >= 0.85 auto-resolves
+  immediately, queued for post-hoc review via
+  `python -m indexer.duplicate_check --review-pending`; only the
+  0.6-0.85 band still asks before proceeding (spec Component 1a).
+- **OOM-kill recovery** (Debugging appendix below): a 3-rung escalation
+  ladder handles the first two confirmed OOM-kills on a book
+  automatically; only a third confirmed OOM-kill on the same book — even
+  after a resize — still stops and asks (spec Component 2c).
 
 ## Step -1: Preflight verification (read-only, run once per session)
 
@@ -159,6 +158,26 @@ Then rebuild `PDF_FILENAMES` from the emitted file:
 ```bash
 mapfile -t PDF_FILENAMES < /tmp/to_convert.txt
 export PDF_FILENAMES
+```
+
+**Sort ascending by file size** (pipeline-autonomy-policies spec,
+Component 2b) before reporting or using this list further. A resize
+triggered by the OOM escalation ladder (Step 3.3's Debugging appendix)
+changes the machine type for the *rest* of the batch, not just the
+offending book — putting the largest/highest-risk book last means that if
+a resize does trigger, there's little or nothing left in the batch to run
+unnecessarily on the pricier machine type.
+
+```bash
+if [ ${#PDF_FILENAMES[@]} -gt 0 ]; then
+    mapfile -t PDF_FILENAMES < <(
+        for f in "${PDF_FILENAMES[@]}"; do
+            SZ=$(stat -c%s "../academic-hub/$TEXTBOOK_SUBDIR/$f" 2>/dev/null || stat -f%z "../academic-hub/$TEXTBOOK_SUBDIR/$f")
+            printf '%s\t%s\n' "$SZ" "$f"
+        done | sort -n | cut -f2-
+    )
+fi
+export PDF_FILENAMES
 printf '  %s\n' "${PDF_FILENAMES[@]}"
 ```
 
@@ -219,11 +238,21 @@ echo "${#PDF_FILENAMES[@]} PDF(s), ~${TOTAL_MB} MB total, to convert:"
 printf '  %s\n' "${PDF_FILENAMES[@]}"
 ```
 
-**Ask the user to confirm before proceeding** — state the PDF count and
-total size, that this launches a billed `g2-standard-4` + L4 Spot VM for
-a run that (based on prior real runs) takes on the order of hours for a
-multi-hundred-page batch, and that a Spot VM can be preempted mid-run
-(recoverable, but costs wall-clock). Only create the VM after a yes.
+**Proceed automatically** (pipeline-autonomy-policies spec, Component
+2a) — report the PDF count and total size, that this launches a billed
+`g2-standard-4` + L4 Spot VM for a run that (based on prior real runs)
+takes on the order of hours for a multi-hundred-page batch, and that a
+Spot VM can be preempted mid-run (recoverable, but costs wall-clock) —
+then create the VM without waiting for a reply.
+
+**Exception — stop and ask if this batch is unprecedented:** more than 15
+books, or more than 2000 MB total (an initial, conservative cap pending
+real history — see the spec's Open Items, which flags this exact number
+as a judgment call to revisit once `vm_sizing_log.jsonl` has enough real
+batches in it). Crossing either threshold means report the size and ask
+before proceeding — a batch this much larger than anything seen so far
+may reflect a mistake (e.g. an entire library folder pointed at instead
+of one course's) rather than a genuinely large intentional run.
 
 ```bash
 gcloud compute instances create "$VM_INSTANCE_NAME" \
@@ -387,7 +416,7 @@ not-yet-finished book still needs.
 
 ### 3.4c Download RAM-sizing logs and update the local dataset
 
-Best-effort — if either command below fails, skip this and continue to
+Best-effort — if any command below fails, skip this and continue to
 Step 4 rather than treating it as blocking. Pulls both raw logs down and
 folds them into `docs/status/vm_sizing_log.jsonl` (gitignored raw logs
 under `docs/status/vm_sizing_raw/`; only the `.jsonl` is meant to be
@@ -401,6 +430,23 @@ mkdir -p "$RUN_DIR"
 gcloud compute scp "$VM_INSTANCE_NAME":"$REMOTE_HOME/convert_log.txt" "$VM_INSTANCE_NAME":"$REMOTE_HOME/ram_sampling_log.txt" "$RUN_DIR/" --zone="$GCP_ZONE" --tunnel-through-iap --quiet
 ```
 
+If the Debugging appendix's escalation ladder fired at any point during
+this run, also pull down the durable state it left behind before Step 4
+deletes the VM (best-effort -- `2>/dev/null` swallows a clean "nothing
+ever fired" case):
+
+```bash
+gcloud compute scp --recurse "$VM_INSTANCE_NAME":"$REMOTE_HOME/oom_ladder_state" "$RUN_DIR/" --zone="$GCP_ZONE" --tunnel-through-iap --quiet 2>/dev/null || true
+```
+
+That directory holds one subfolder per book the ladder ever touched, each
+with a `rung_count` file and the pre-relaunch `convert_log.txt`/
+`ram_sampling_log.txt` snapshots the ladder preserved before each reset or
+resize wiped the live copies. It isn't auto-folded into
+`vm_sizing_log.jsonl` yet (that would need `textbook/vm_sizing_log.py` to
+accept multiple log pairs) -- keep it for manual follow-up analysis of the
+failed attempt(s), and check it before running the command below:
+
 ```bash
 python -m textbook.vm_sizing_log \
   --convert-log "$RUN_DIR/convert_log.txt" \
@@ -410,7 +456,17 @@ python -m textbook.vm_sizing_log \
 ```
 
 (`$REMOTE_HOME` is the value captured in Step 2.2. `--machine-type` should
-match whatever Step 1.3 actually created the VM with.)
+match whatever Step 1.3 actually created the VM with -- don't rely on
+memory for this: if any `rung_count` file downloaded above reads `2` or
+higher, a Rung 2 resize happened during this run and `--machine-type` must
+be `g2-standard-8`, not the Step 1.3 default.)
+
+**Cost reconciliation** (pipeline-autonomy-policies spec, Component 2e):
+alongside this download, report the actual VM wall-clock time (from
+Step 1.3's creation to just before Step 4's deletion) and an approximate
+cost figure (machine-hour rate x hours, Spot pricing) next to Step 1.3's
+pre-run size/cost estimate -- closing the loop on whether that estimate
+was any good, without it ever having blocked the run.
 
 ## Step 4: Terminate the VM
 
@@ -548,9 +604,11 @@ on re-run.
     consecutive `FATAL` lines a few seconds apart in `~/convert_log.txt`
     (the watchdog burning through all its retries uselessly) each preceded
     by a fresh `dmesg` OOM-kill -- that pattern means stop watching the log
-    and go straight to the recovery below. If it recurs a second time on
-    the same book after one reset, see "When to stop and ask the user"
-    point 6 above rather than resetting a third time.
+    and go straight to the recovery below. This is Rung 1 of the escalation
+    ladder there -- if it recurs a second time on the same book after one
+    reset, that's Rung 2 (an automatic resize, not a stop-and-ask); only a
+    third recurrence, even after the resize, stops and asks the user (see
+    the escalation ladder below for all three rungs).
   - Sometimes there is no diagnosable cause at all: `dmesg` and
     `sudo journalctl -u docker --since '30 min ago'` come back clean
     except a bare `"ignoring event" ... type="*events.TaskDelete"` line
@@ -558,32 +616,91 @@ on re-run.
     the watchdog's blind cleanup-and-relaunch fixes it the same way
     regardless of whether a cause is found.
 
-  **Manual recovery -- needed only for a `dmesg`-confirmed OOM-kill, or
-  when `~/convert_log.txt` shows the watchdog exhausted all 5 retries and
-  the "convert" tmux session has ended:**
+  **Automated recovery -- a 3-rung escalation ladder** (pipeline-autonomy-
+  policies spec, Component 2c), reached only after the watchdog's own 5
+  retries are exhausted and `~/convert_log.txt` shows the "convert" tmux
+  session has ended:
+
+  **Precondition for every rung: positively confirm this was an OOM-kill,
+  not a different retry-exhaustion cause.** Run:
+  ```bash
+  gcloud compute ssh "$VM_INSTANCE_NAME" --zone="$GCP_ZONE" --tunnel-through-iap --command="dmesg 2>/dev/null | grep -i 'killed process'"
+  ```
+  A hit confirms an OOM-kill -- proceed to the matching rung below. No hit
+  means a different root cause (torchaudio crash, orphaned-container VRAM
+  exhaustion, an unexplained Docker `TaskDelete`) -- a reset will not fix
+  this; investigate the `FATAL` lines' surrounding log context instead,
+  and do not count this toward the rung ladder below.
+
+  **Before acting on any rung, preserve this attempt's evidence and read
+  the durable rung counter.** Both `start_conversion.sh` (truncates
+  `~/convert_log.txt` and `~/ram_sampling_log.txt` fresh on every launch)
+  and `gcloud compute instances reset` (clears the kernel's `dmesg` ring
+  buffer on reboot) throw away everything not copied off first -- including
+  the exact failed-attempt data Step 3.4c below wants to fold into
+  `vm_sizing_log.jsonl` as "a real data point," and any memory of whether
+  this is the 1st, 2nd, or 3rd OOM on this book. Run:
+  ```bash
+  gcloud compute ssh "$VM_INSTANCE_NAME" --zone="$GCP_ZONE" --tunnel-through-iap --command="BOOK_ID=\$(grep -o 'RAM_SIZING_START book=[^ ]*' ~/convert_log.txt | tail -1 | cut -d= -f2-); BOOK_SLUG=\$(echo \"\$BOOK_ID\" | tr -c 'A-Za-z0-9._-' '_'); BOOK_SLUG=\${BOOK_SLUG:-unknown_book_\$(date +%s)}; mkdir -p ~/oom_ladder_state/\$BOOK_SLUG; TS=\$(date +%s); cp ~/convert_log.txt ~/oom_ladder_state/\$BOOK_SLUG/convert_log.txt.\$TS 2>/dev/null; cp ~/ram_sampling_log.txt ~/oom_ladder_state/\$BOOK_SLUG/ram_sampling_log.txt.\$TS 2>/dev/null; RUNG_FILE=~/oom_ladder_state/\$BOOK_SLUG/rung_count; N=\$(( \$(cat \$RUNG_FILE 2>/dev/null || echo 0) + 1 )); echo \$N > \$RUNG_FILE; echo \"BOOK=\$BOOK_ID RUNG=\$N\""
+  ```
+  The printed `RUNG=<N>` -- not memory or guesswork -- is which rung below
+  applies. `~/oom_ladder_state/` lives on the boot persistent disk, so it
+  survives both Rung 1's `instances reset` and Rung 2's `stop`/`start`;
+  only Step 4's VM deletion erases it, which is why Step 3.4c downloads it
+  before that happens. If `BOOK_ID` comes back empty (an OOM during model
+  load, before any `RAM_SIZING_START` line has been printed for the
+  in-flight book), the fallback timestamped `unknown_book_*` slug still
+  gets its own counter rather than silently sharing state with a real
+  book's directory.
+
+  **Rung 1 -- RUNG=1 from the step above:** kill both tmux
+  sessions, then reset:
   ```bash
   gcloud compute ssh "$VM_INSTANCE_NAME" --zone="$GCP_ZONE" --tunnel-through-iap --command="tmux kill-session -t autostop 2>/dev/null; tmux kill-session -t convert 2>/dev/null; echo done"
   ```
   ```bash
   gcloud compute instances reset "$VM_INSTANCE_NAME" --zone="$GCP_ZONE"
   ```
-  (Skip the reset if the trigger was retry exhaustion with no `dmesg`
-  OOM-kill involved -- that's a different, non-memory root cause, and a
-  reset won't fix it; investigate the `FATAL` lines' surrounding log
-  context instead.) Wait ~1-2 minutes after a reset, then:
+  Wait ~1-2 minutes, then clean up any leftover inference-server state
+  (belt-and-suspenders -- `start_conversion.sh`'s watchdog does this too
+  on its first attempt after relaunch):
   ```bash
   gcloud compute ssh "$VM_INSTANCE_NAME" --zone="$GCP_ZONE" --tunnel-through-iap --command="sudo docker ps -aq --filter 'name=surya-vllm-' | xargs -r sudo docker rm -f; pgrep -f 'surya\.ocr_error\.server' | xargs -r sudo kill -9; nvidia-smi --query-gpu=memory.used --format=csv,noheader"
   ```
   Confirm that last command reads low (a few hundred MB is fine; multi-GB
-  means something is still holding memory) -- this is a belt-and-suspenders
-  check; `start_conversion.sh`'s watchdog runs the same cleanup itself on
-  every attempt, including the first one after this manual step. Then
-  relaunch Step 3.3 with the same book list (already-finished books skip
-  via `convert_textbook.py`'s own whole-book check; already-good chunks
-  within an in-progress book skip via the per-chunk checkpoint -- and any
-  chunk that was mid-flight during the kill was never marked `.done` in
-  the first place, since `chunk_is_degraded` exits before that write) and
-  re-arm the autostop watcher as usual.
+  means something is still holding memory). Relaunch Step 3.3 with the
+  same book list (already-finished books and chunks skip via the existing
+  whole-book/per-chunk checkpoints) and re-arm the autostop watcher. No
+  report needed beyond the log line -- this rung is fully automatic.
+
+  **Rung 2 -- RUNG=2** (the dmesg check and the durable-state capture
+  above both apply again): repeat Rung 1's kill-sessions and cleanup steps,
+  but resize the machine type instead of a plain reset:
+  ```bash
+  gcloud compute instances stop "$VM_INSTANCE_NAME" --zone="$GCP_ZONE"
+  ```
+  ```bash
+  gcloud compute instances set-machine-type "$VM_INSTANCE_NAME" --zone="$GCP_ZONE" --machine-type=g2-standard-8
+  ```
+  ```bash
+  gcloud compute instances start "$VM_INSTANCE_NAME" --zone="$GCP_ZONE"
+  ```
+  **Report this the moment it happens** (not just in an end-of-run
+  summary) -- a note that a resize occurred, not a blocking question. This
+  is specifically so a *pattern* of frequent resizes across separate runs
+  stays visible without digging through historical logs; if
+  `g2-standard-4` turns out to be the wrong default, this is the signal
+  that would show it. Relaunch Step 3.3 with the same book list as in Rung
+  1. After it completes cleanly (no further `chunk_is_degraded` firing),
+  fold the outcome into the RAM-sizing dataset via Step 3.4c as usual --
+  this resize is itself a real data point for the still-thin
+  `vm_sizing_log.jsonl`.
+
+  **Rung 3 -- RUNG=3, even after the resize:** stop and ask the user.
+  Two different machine sizes both failing on the same book, both times a
+  genuine OOM (dmesg-confirmed), is outside anything this pipeline has
+  seen and warrants a human look rather than a further automatic
+  escalation.
   - `chunk_is_degraded` only catches a chunk where a clear majority
     (>50%) of pages fell back to raw PyPDF text -- a *milder* degradation
     (say, 2 of 6 pages) still gets checkpointed as done. This is
