@@ -16,7 +16,7 @@ from datetime import datetime, timezone
 from google.genai import types
 
 from indexer.chunk_index import chunk, load_chunks
-from common.academic_hub_paths import to_resources_root
+from common.academic_hub_paths import resolve_output_dir, to_resources_root
 from common.gemini_utils import get_gemini_client, load_dotenv_override
 from indexer.index_card import (
     TEXTBOOK_CONTENT_SAMPLE_CHARS,
@@ -196,7 +196,18 @@ def _notes_pdf_paths(academic_hub_root: str, course_filter: str | None):
     a flat course/category/foo.pdf as before this change; the actual
     subfolder name, e.g. "2026", for a nested one), so folder_category
     classification stays consistent between the live transcription
-    pipeline and this rebuild-time walker."""
+    pipeline and this rebuild-time walker.
+
+    Also discovers PDFs already migrated to academic_resources/ (2026-09-23,
+    real finding from the first real migration run) -- without this, a
+    previously-transcribed PDF becomes invisible to this walker the moment
+    its source moves, so its file_id is never re-added to seen_file_ids and
+    the orphan pass silently flags its still-good card. Only descends into
+    an academic_resources/<course>/<category>/ whose <category> also
+    exists directly under academic_notes/<course>/ -- same guard
+    route_notes_transcribe.py's own _discover_migrated_pdf_sources uses, so
+    academic_resources/<course>/textbooks/ (a different pipeline's home)
+    never gets swept in."""
     notes_root = os.path.join(academic_hub_root, "academic_notes")
     if not os.path.isdir(notes_root):
         return
@@ -212,6 +223,27 @@ def _notes_pdf_paths(academic_hub_root: str, course_filter: str | None):
             for name in sorted(filenames):
                 if name.lower().endswith(".pdf"):
                     yield course, category, os.path.join(dirpath, name)
+
+        notes_top_level_categories = {
+            name for name in os.listdir(course_dir) if os.path.isdir(os.path.join(course_dir, name))
+        }
+        try:
+            resources_course_dir = to_resources_root(course_dir)
+        except ValueError:
+            resources_course_dir = None
+        if resources_course_dir and os.path.isdir(resources_course_dir):
+            for top_category in sorted(os.listdir(resources_course_dir)):
+                if top_category not in notes_top_level_categories:
+                    continue
+                top_category_dir = os.path.join(resources_course_dir, top_category)
+                if not os.path.isdir(top_category_dir):
+                    continue
+                for dirpath, dirnames, filenames in os.walk(top_category_dir):
+                    dirnames[:] = [d for d in sorted(dirnames) if not d.startswith(".")]
+                    category = os.path.basename(dirpath)
+                    for name in sorted(filenames):
+                        if name.lower().endswith(".pdf"):
+                            yield course, category, os.path.join(dirpath, name)
 
 
 def _excalidraw_note_paths(academic_hub_root: str, course_filter: str | None):
@@ -380,6 +412,22 @@ def _backfill_content_hash(academic_hub_root: str, course: str, file_id: str, co
         save_shard(academic_hub_root, course, cards)
 
 
+def _backfill_source_asset_path(academic_hub_root: str, course: str, file_id: str, source_asset_path: str) -> None:
+    """Same treatment as _backfill_content_hash, for a legacy card (created
+    before Task 2 added this field) that's otherwise not stale -- fills in
+    the key without going through the full reconcile path, so a corpus-wide
+    legacy backfill doesn't get misreported as a wave of real "updated"
+    cards in rebuild()'s stats."""
+    cards = load_shard(academic_hub_root, course)
+    changed = False
+    for c in cards:
+        if c.get("file_id") == file_id and "source_asset_path" not in c:
+            c["source_asset_path"] = source_asset_path
+            changed = True
+    if changed:
+        save_shard(academic_hub_root, course, cards)
+
+
 def _reconcile_one(academic_hub_root, course_name, folder_category, file_id, rel_path,
                     rel_pdf_path, content_sample, page_count, client, force, stats, source_mtime,
                     content_hash, known_doc_types=KNOWN_DOC_TYPES, source_asset_path=None):
@@ -390,14 +438,29 @@ def _reconcile_one(academic_hub_root, course_name, folder_category, file_id, rel
             break
 
     stale = existing is not None and _is_stale(existing, source_mtime, content_hash)
+    # source_asset_path=None means "this caller can't currently determine
+    # it" (Task 2's convention), not "no change". A legacy card that never
+    # had the key at all (pre-Task-2) is a silent backfill below, same
+    # treatment as content_hash -- only a *present* value that disagrees
+    # with a freshly-resolved one (the real post-migration case) forces a
+    # refresh through the full reconcile path.
+    source_asset_path_changed = (
+        existing is not None and source_asset_path is not None
+        and "source_asset_path" in existing
+        and existing.get("source_asset_path") != source_asset_path
+    )
     already_current = (
         existing is not None and not force and not stale
         and not existing.get("needs_indexing")
         and existing.get("path") == rel_path
+        and existing.get("source_pdf_path") == rel_pdf_path
+        and not source_asset_path_changed
     )
     if already_current:
         if existing.get("content_hash") is None:
             _backfill_content_hash(academic_hub_root, course_name, file_id, content_hash)
+        if "source_asset_path" not in existing and source_asset_path is not None:
+            _backfill_source_asset_path(academic_hub_root, course_name, file_id, source_asset_path)
         stats["unchanged"] += 1
         return
 
@@ -450,7 +513,7 @@ def rebuild(academic_hub_root: str, client, course: str | None = None,
 
     for course_name, category, pdf_path in _notes_pdf_paths(academic_hub_root, course):
         basename = os.path.splitext(os.path.basename(pdf_path))[0]
-        md_path = os.path.join(os.path.dirname(pdf_path), "processed_outputs", f"{basename}.md")
+        md_path = os.path.join(resolve_output_dir(pdf_path), f"{basename}.md")
         if not os.path.exists(md_path):
             continue  # not converted yet -- nothing to index
         if os.path.getsize(md_path) == 0:
@@ -478,7 +541,8 @@ def rebuild(academic_hub_root: str, client, course: str | None = None,
         _reconcile_one(academic_hub_root, course_name, category, file_id, rel_md_path,
                        rel_pdf_path, content_sample, None, client, force, stats,
                        source_mtime=os.path.getmtime(md_path),
-                       content_hash=compute_content_hash(md_path))
+                       content_hash=compute_content_hash(md_path),
+                       source_asset_path=rel_pdf_path)
 
     for course_name, category_folder_name, folder_name, book_dir in _textbook_book_dirs(academic_hub_root, course):
         metadata_path = os.path.join(book_dir, f"{folder_name}_metadata.json")

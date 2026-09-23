@@ -214,6 +214,34 @@ class TestRebuild(unittest.TestCase):
                 cards[0]["source_pdf_path"], "academic_notes/math-camp/ta_notes/2026/LN_Analysis.pdf",
             )
 
+    def test_rebuild_discovers_and_refreshes_a_pdf_that_migrated_to_resources(self):
+        # Real finding (2026-09-23, first real migration run against
+        # econometrics): _notes_pdf_paths only ever walked academic_notes/,
+        # so a PDF that migrates to academic_resources/ became invisible to
+        # rebuild() entirely -- its file_id was never re-added to
+        # seen_file_ids, which would silently orphan any already-
+        # transcribed card the moment its source moved.
+        with tempfile.TemporaryDirectory() as tmp:
+            pdf_path = _make_notes_pdf(tmp, "math-camp", "ta_notes", "LN_Analysis")
+            client = _fake_client()
+            rebuild(tmp, client)  # first run: generates the card, PDF still under academic_notes/
+
+            migrated_pdf_path = os.path.join(
+                tmp, "academic_resources", "math-camp", "ta_notes", "LN_Analysis.pdf",
+            )
+            os.makedirs(os.path.dirname(migrated_pdf_path), exist_ok=True)
+            os.rename(pdf_path, migrated_pdf_path)
+
+            stats = rebuild(tmp, client)  # second run: PDF has moved
+
+            self.assertEqual(stats["orphaned"], 0)
+            self.assertEqual(client.models.generate_content.call_count, 1)  # still no regen
+            cards = load_shard(tmp, "math-camp")
+            self.assertEqual(len(cards), 1)
+            expected = os.path.relpath(migrated_pdf_path, tmp).replace(os.sep, "/")
+            self.assertEqual(cards[0]["source_pdf_path"], expected)
+            self.assertEqual(cards[0]["source_asset_path"], expected)
+
     def test_still_ignores_processed_outputs_when_recursing(self):
         # A stray .pdf sitting inside processed_outputs/ (shouldn't happen
         # in practice) must not be treated as its own source -- same
@@ -835,6 +863,33 @@ class TestRebuildExcalidrawNotes(unittest.TestCase):
             rebuild(tmp, client)
             card = load_shard(tmp, "econometrics")[0]
             expected = os.path.relpath(svg_path, tmp).replace(os.sep, "/")
+            self.assertEqual(card["source_asset_path"], expected)
+
+    def test_rebuild_refreshes_source_asset_path_after_the_image_migrates(self):
+        # Real finding (2026-09-23, first real migration run): once the
+        # image sibling moves to academic_resources/, _find_excalidraw_image
+        # correctly locates it there on the next rebuild(), but
+        # _reconcile_one's "already_current" short-circuit only ever
+        # compared `path` (the .rag.md output, which never moves) -- so the
+        # freshly-resolved source_asset_path was silently discarded and the
+        # card was left pointing at the old, now-nonexistent local path.
+        with tempfile.TemporaryDirectory() as tmp:
+            md_path, svg_path = _make_excalidraw_note(tmp, "econometrics", "lecture_notes", "Drawing")
+            client = _fake_client()
+            rebuild(tmp, client)  # first run: generates the card, image still local
+
+            migrated_svg_path = os.path.join(
+                tmp, "academic_resources", "econometrics", "lecture_notes", "Drawing.excalidraw.svg",
+            )
+            os.makedirs(os.path.dirname(migrated_svg_path), exist_ok=True)
+            os.rename(svg_path, migrated_svg_path)
+
+            stats = rebuild(tmp, client)  # second run: image has moved
+
+            self.assertEqual(stats["orphaned"], 0)
+            self.assertEqual(client.models.generate_content.call_count, 1)  # still no regen
+            card = load_shard(tmp, "econometrics")[0]
+            expected = os.path.relpath(migrated_svg_path, tmp).replace(os.sep, "/")
             self.assertEqual(card["source_asset_path"], expected)
 
 
