@@ -51,10 +51,15 @@ def parse_book_windows(convert_log_text: str) -> list[dict]:
     """
     Matches RAM_SIZING_START/RAM_SIZING_END lines by book name into a list
     of dicts: {"book", "pages", "file_size_bytes", "start_ts", "end_ts",
-    "status"}. A START with no matching END produces end_ts=None,
-    status="incomplete" -- the book never finished (a crash mid-conversion),
-    which peak_ram_used_mb below treats as the most informative case, not
-    a data gap.
+    "status", "cumulative_pages_so_far", "cumulative_file_size_bytes_so_far"}.
+    The two cumulative_* fields are None for a START line predating their
+    addition to convert_textbook.py, never 0 -- nothing downstream reads
+    vm_sizing_log.jsonl automatically yet (see Step 3.4c), so this is
+    documented for whoever eventually writes that consumer, not enforced
+    anywhere today. A START with no matching END produces end_ts=None,
+    status="incomplete" -- the book never finished (a crash
+    mid-conversion), which peak_ram_used_mb below treats as the most
+    informative case, not a data gap.
     """
     starts: dict[str, dict] = {}
     windows = []

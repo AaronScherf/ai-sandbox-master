@@ -525,11 +525,14 @@ class TestProcessOnePdfEmitsRamSizingMarkers(unittest.TestCase):
             self.assertEqual(len(lines), 2)
 
             # First book: cumulative totals equal that book's own totals.
-            self.assertIn(f"cumulative_pages_so_far=4", lines[0])
+            # Trailing space anchors the match -- without it, "=4" is a
+            # substring of "=40"/"=48" too and the assertion would pass
+            # even if the wrong number were printed.
+            self.assertIn("cumulative_pages_so_far=4 ", lines[0])
             self.assertIn(f"cumulative_file_size_bytes_so_far={size_a}", lines[0])
 
             # Second book: cumulative totals include both books.
-            self.assertIn(f"cumulative_pages_so_far=8", lines[1])
+            self.assertIn("cumulative_pages_so_far=8 ", lines[1])
             self.assertIn(f"cumulative_file_size_bytes_so_far={size_a + size_b}", lines[1])
 
             # New fields come AFTER ts=, not before it -- confirms the
