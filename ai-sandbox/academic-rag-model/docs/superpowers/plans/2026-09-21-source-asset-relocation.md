@@ -1527,6 +1527,29 @@ migration runs.
   Sync's own periodic "vault backup" auto-commit, confirmed via its log,
   no action needed there.
 
-**Remaining scope:** every other course (math-camp, microecon, etc.) still
-needs its own Step 1-4 pass -- not yet started, pending the user's go-ahead
-per course/batch.
+**math-camp pass (2026-09-23):** 66 candidates (63 PDFs, 3 `.docx`), zero
+collisions confirmed pre-move, all moved for real (commit `a8fd07e`). This
+course was the first to actually exercise the rebuild()/router fixes above
+against real already-transcribed cards (econometrics had none yet). Found
+and fixed a third real bug, same family: `route_notes_transcribe.py`'s own
+`pdf_output_path()` hardcoded `processed_outputs/` as a sibling of the PDF
+-- correct before migration, wrong after, since the real `.md` output
+never moves. Without the fix, `--dry-run` against math-camp post-move
+showed `PDF: 34 to process, 0 already done` (every already-transcribed PDF
+looked unprocessed); a real (non-dry-run) invocation would have
+re-transcribed all 21 already-done PDFs. Fixed via `resolve_output_dir()`,
+same as the `rebuild()` fix (commit `01f76b9`); post-fix dry-run correctly
+reports `17 to process, 17 already done`. All 21 affected cards'
+`source_pdf_path`/`source_asset_path` spot-checked directly against
+`.index/math-camp.json`.
+
+Also surfaced, out of scope, not touched: 4 math-camp cards
+(`Aug 17 Analysis.pdf`, `Lecture_Notes_Aug_24_Probability Lecture.pdf`,
+`old_exam_2021.pdf`, `old_exam_2025.pdf`) were already `orphaned: true`
+before this migration touched anything -- their source PDFs don't exist
+under either tree, an old rename/cleanup unrelated to this plan. Flagged
+to the user; not cleaned up here.
+
+**Remaining scope:** every other course (microecon, econometrics-adjacent
+courses not yet covered, etc.) still needs its own Step 1-4 pass -- not
+yet started, pending the user's go-ahead per course/batch.
