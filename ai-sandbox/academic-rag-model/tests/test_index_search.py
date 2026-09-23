@@ -4,7 +4,7 @@ import tempfile
 import time
 import unittest
 from datetime import datetime, timezone
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 from indexer.chunk_index import save_chunks
 from indexer.index_card import (
@@ -765,6 +765,30 @@ class TestRebuildVideoLectureNotes(unittest.TestCase):
             stats = rebuild(tmp, client=_fake_client(), prune=True)
             self.assertEqual(stats["pruned"], 0)
             self.assertEqual(len(load_shard(tmp, "math-camp")), 1)
+
+    def test_ignores_excalidraw_md_files_in_the_same_lecture_notes_folder(self):
+        # Real finding (2026-09-22): after math-camp/lecture-notes/ was
+        # renamed to lecture_notes/ (folder vocabulary unification), this
+        # walker started scanning every course's lecture_notes/ folder --
+        # including the ones that hold Excalidraw scene files, which also
+        # end in ".md". No card was ever generated from one (missing
+        # .meta.json correctly skips it), but a noisy "no sidecar" warning
+        # printed for every single Excalidraw file in every course on every
+        # rebuild. This must be silent: an .excalidraw.md is never a
+        # video-lecture-note candidate at all, not a video-lecture-note
+        # candidate missing its sidecar.
+        with tempfile.TemporaryDirectory() as tmp:
+            lecture_notes_dir = os.path.join(tmp, "academic_notes", "econometrics", "lecture_notes")
+            os.makedirs(lecture_notes_dir)
+            with open(os.path.join(lecture_notes_dir, "Drawing.excalidraw.md"), "w", encoding="utf-8") as f:
+                f.write("---\n---\n\nfake compressed-json scene data")
+
+            with patch("builtins.print") as mock_print:
+                stats = rebuild(tmp, client=_fake_client())
+
+            self.assertEqual(stats["generated"], 0)
+            for call in mock_print.call_args_list:
+                self.assertNotIn("no sidecar", str(call))
 
 
 class TestRebuildExcalidrawNotes(unittest.TestCase):

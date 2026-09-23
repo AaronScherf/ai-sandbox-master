@@ -303,6 +303,13 @@ def _textbook_book_dirs(academic_hub_root: str, course_filter: str | None):
 
 
 def _video_lecture_note_paths(academic_hub_root: str, course_filter: str | None):
+    """lecture_notes/ (underscored) is shared with the Excalidraw pipeline's
+    own category of the same name in every course except math-camp (folder
+    vocabulary unification, 2026-09-22) -- an .excalidraw.md is never a
+    video-lecture-note candidate at all (it's the Excalidraw pipeline's own
+    source scene file, never paired with a .meta.json sidecar by design),
+    so it's excluded up front rather than treated as "a candidate missing
+    its sidecar" and warned about on every single rebuild in every course."""
     notes_root = os.path.join(academic_hub_root, "academic_notes")
     if not os.path.isdir(notes_root):
         return
@@ -313,7 +320,8 @@ def _video_lecture_note_paths(academic_hub_root: str, course_filter: str | None)
         if not os.path.isdir(lecture_notes_dir):
             continue
         for name in sorted(os.listdir(lecture_notes_dir)):
-            if not name.lower().endswith(".md"):
+            lower = name.lower()
+            if not lower.endswith(".md") or lower.endswith(".excalidraw.md"):
                 continue
             slug = name[:-3]
             meta_path = os.path.join(lecture_notes_dir, f"{slug}.meta.json")
