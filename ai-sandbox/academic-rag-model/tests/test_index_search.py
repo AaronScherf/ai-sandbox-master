@@ -980,7 +980,16 @@ class TestSearch(unittest.TestCase):
             results = search([tmp], "q", client=_fake_query_client([1.0, 0.0]), max_level="introductory")
             self.assertEqual([r.path for r in results], ["easy.md"])
 
-    def test_excludes_orphaned_and_needs_indexing_cards(self):
+    def test_excludes_needs_indexing_cards_but_not_orphaned_ones(self):
+        # Real finding (2026-09-23): orphaned=true means "this card's
+        # source PDF couldn't be found on the last rebuild" -- a
+        # provenance note, not a verdict on the card's own content. A
+        # user deleting/renaming a source PDF (confirmed real cases: some
+        # were simple renames the pipeline's basename-matching missed,
+        # others genuinely gone) must not silently blackhole the already-
+        # transcribed, still-real .md content from search. needs_indexing
+        # (generation failed, no real card yet) and a missing embedding
+        # are the only cases search() should still refuse to surface.
         with tempfile.TemporaryDirectory() as tmp:
             save_shard(tmp, "math-camp", [
                 _card("good", [1.0, 0.0]),
@@ -989,7 +998,7 @@ class TestSearch(unittest.TestCase):
             ])
             recompute_course_entry(tmp, "math-camp")
             results = search([tmp], "q", client=_fake_query_client([1.0, 0.0]))
-            self.assertEqual([r.path for r in results], ["good.md"])
+            self.assertEqual(sorted(r.path for r in results), ["good.md", "orphan.md"])
 
     def test_no_courses_indexed_yet_returns_empty_list_not_a_crash(self):
         with tempfile.TemporaryDirectory() as tmp:

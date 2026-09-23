@@ -93,7 +93,14 @@ def search(
     scored: list[SearchResult] = []
     for root, c in candidate_courses:
         for card in load_shard(root, c):
-            if card.get("orphaned") or card.get("needs_indexing") or not card.get("embedding"):
+            # orphaned=true means "this card's source couldn't be found on
+            # the last rebuild" -- a provenance note, not a verdict on the
+            # card's own content (real finding, 2026-09-23: a deleted or
+            # unmatched-rename source PDF must not blackhole already-
+            # transcribed, still-real .md content from search). Only
+            # needs_indexing (generation failed, no real card yet) and a
+            # missing embedding still exclude a card.
+            if card.get("needs_indexing") or not card.get("embedding"):
                 continue
             if doc_type is not None and card.get("doc_type") != doc_type:
                 continue
