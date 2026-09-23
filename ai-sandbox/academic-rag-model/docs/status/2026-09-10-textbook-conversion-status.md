@@ -536,3 +536,140 @@ tests) passing.
    other 3 books got -- patched by hand once identified), then a final
    rerun reported `generated: 1, skipped_no_source_pdf: 0`. All 4 books now
    have index cards.
+
+## 2026-09-22: pipeline-autonomy-policies effort -- three plans shipped (rebuild safety, duplicate auto-resolution, OOM/cost escalation ladder)
+
+Design: `docs/superpowers/specs/2026-09-20-pipeline-autonomy-policies-design.md`,
+`2026-09-20-textbook-conversion-skill-design.md`,
+`2026-09-20-textbook-conversion-walkaway-execution-design.md`. Plans:
+`docs/superpowers/plans/2026-09-20-rebuild-safety-fix.md`,
+`2026-09-20-duplicate-auto-resolution.md`,
+`2026-09-20-oom-cost-escalation-ladder.md`. All three executed via
+`superpowers:subagent-driven-development` in their own isolated worktrees
+(fresh implementer + task review per task, one whole-branch review per
+plan) and merged into `main` the same day. 1438 tests passing on `main`
+after all three merges.
+
+The throughline across all three: this pipeline had been run manually,
+session by session, with a human answering every duplicate prompt, cost
+sanity check, and OOM recovery step in real time. These plans replace each
+of those stop-and-ask points with either full automation or a
+cheap-to-undo default plus after-the-fact review, aimed at genuine
+walk-away execution of a multi-book batch.
+
+### 1. rebuild-safety-fix
+
+The cross-course duplicate-detection feature (shipped 2026-09-18, see
+`docs/superpowers/specs/2026-09-17-cross-course-duplicate-textbook-detection-design.md`)
+introduced **clone** index cards for duplicate books -- cards outside
+`index_search.py`'s normal one-card-per-file-hash identity assumption. A
+plain `index_search.py rebuild` (no `--prune` needed) could silently evict
+the *canonical* course's own card from its own shard whenever a
+byte-identical clone existed elsewhere, confirmed live. The only mitigation
+at the time was a doc-only prohibition: never run `rebuild` over a course
+holding a clone.
+
+**Fix, not just a guard:** `duplicate_check.py`'s `copy_duplicate_artifacts`
+now writes a `duplicate_of_file_id` marker into the clone's own
+`_metadata.json`. `index_search.py`'s `rebuild()` textbook loop checks for
+that marker and, when present, skips re-hashing the clone's PDF entirely --
+instead deriving the same `compute_id_from_parts([duplicate_of_file_id,
+clone_course])` id used at clone-creation time, so `--prune` no longer
+evicts it and the canonical card is never touched. Covered by a real
+end-to-end test (`TestRebuildWithRealDuplicateClone`), verified to actually
+fail without the fix before it landed.
+
+### 2. duplicate-auto-resolution
+
+Even with rebuild made safe, the duplicate-check step itself still blocked
+on a human for every Tier 2 (fuzzy title/author/year) match, which defeats
+walk-away execution. The design tradeoff, as framed going in: missing a
+real duplicate only costs re-running the conversion for that one book if
+caught later, but converting a book that turns out to be a duplicate costs
+real GPU-VM time -- so the fix should bias toward skipping and asking for
+confirmation *after*, not blocking before.
+
+**What shipped:** a `AUTO_SKIP_THRESHOLD = 0.85` combined-score cutoff.
+Above it, a Tier 2 match auto-resolves the same way a Tier 1 (exact) match
+already did -- artifacts copied, no reconversion -- but the new clone is
+flagged `duplicate_pending_confirmation` and recorded to a durable queue at
+`.index/duplicates/pending_confirmation.json`. Below 0.85 but above the
+existing `SURFACE_THRESHOLD = 0.6`, behavior is unchanged (interactive
+prompt, or left unresolved + reported under "Needs confirmation" in
+`--non-interactive` mode). The queue is reviewed at any later, convenient
+time:
+
+```bash
+python -m indexer.duplicate_check --review-pending
+python -m indexer.duplicate_check --confirm-pending <file_id>   # it really was a duplicate
+python -m indexer.duplicate_check --reject-pending <file_id>    # it wasn't -- removes the clone, book gets reconverted next run
+```
+
+A same-pair candidate already sitting in the pending queue is excluded from
+`find_fuzzy_candidates` so it can't be matched again while awaiting review.
+`record_pending_confirmation` is idempotent on `(incoming_file_id,
+new_card_file_id)`, found and fixed during this plan's own final review.
+
+### 3. oom-cost-escalation-ladder
+
+Three changes to the batch-conversion workflow, all in
+`convert_textbook_agent_instructions.md`/`convert_textbook.py`:
+
+- **Ascending file-size batch ordering.** If an OOM is going to hit, it's
+  going to hit the largest book in the batch -- sorting ascending means a
+  resize triggered mid-batch affects as little of the remaining batch as
+  possible, rather than being sprung on book 2 of 6 with four books still
+  to go on the wrong machine size.
+- **Cost sanity check now auto-proceeds**, escalating to a stop-and-ask
+  only past >15 books or >2000MB total -- previously every run stopped for
+  a manual go/no-go regardless of size.
+- **A 3-rung OOM escalation ladder** replacing the old fully-manual
+  recovery writeup: Rung 1 auto-resets the VM and relaunches on the same
+  machine size; Rung 2 (second confirmed OOM on the same book) auto-resizes
+  `g2-standard-4` -> `g2-standard-8` and relaunches; Rung 3 (a third,
+  post-resize OOM) stops and asks a human. Every rung is gated on a
+  `dmesg`-based positive OOM confirmation first, so a different failure
+  mode (a torchaudio crash, an orphaned-container VRAM leak) doesn't get
+  misdiagnosed as OOM and burn through the ladder for nothing.
+- **Cost reconciliation**: actual VM wall-clock time and an approximate
+  cost figure are reported at the end of every run, next to the pre-run
+  estimate, closing the loop on whether that estimate was any good.
+
+**Found and fixed during this plan's own final review, before merge:** the
+ladder as first written would have silently destroyed the evidence it
+depends on. `start_conversion.sh` truncates `~/convert_log.txt` and
+`~/ram_sampling_log.txt` on every relaunch, and `gcloud compute instances
+reset` clears the VM kernel's `dmesg` ring buffer on reboot -- so "relaunch
+Step 3.3" (each rung's own remediation) was wiping the exact failed-attempt
+data the escalation ladder needs to know which rung applies, and that
+Step 3.4c wants to fold into `docs/status/vm_sizing_log.jsonl` as a real
+sizing data point. Fixed with a durable `~/oom_ladder_state/<book>/`
+directory on the VM's boot persistent disk (survives `instances reset` and
+`stop`/`start`; only Step 4's VM deletion erases it) that snapshots both
+logs and maintains a `rung_count` file *before* each relaunch, so the
+active rung is read back as an authoritative number instead of inferred
+from memory. Step 3.4c now downloads that directory before VM deletion and
+gates its `--machine-type` argument off the downloaded `rung_count` instead
+of relying on the operator remembering whether a resize happened.
+
+### Process notes worth keeping
+
+Two of the three plans' local `git merge` into `main` hit the same
+shared-checkout hazard -- another concurrent session's own uncommitted
+work on an unrelated file (never touched by either branch) blocking the
+merge. Resolved both times with a path-scoped, uniquely-tagged
+`git stash push -u -m "<tag>" -- <path>`, never a bare stash (see
+`feedback_concurrent_session_git_hazard` in the assistant's memory).
+
+## 2026-09-22 (same day, after the merges above): closed out the one deferred item -- stale duplicate-check/rebuild prose in both instruction files
+
+Both `convert_textbook_instructions.md` and `convert_textbook_agent_instructions.md`
+predated the two plans above and were never updated: one still said fuzzy
+matches "always prompt," the other said non-interactive mode leaves all
+Tier 2 matches unresolved with no mention of the new >=0.85 auto-skip band
+or the `--review-pending` workflow; both still told the reader never to
+run `index_search.py rebuild` over a course holding a clone, which was true
+before 2026-09-22's fix and false after it. Flagged independently by two
+reviewers during the plans' final reviews, explicitly out of scope for any
+of the three plans as written (none touched this prose). Fixed directly,
+docs only, no code change (commit `5b4f075`).

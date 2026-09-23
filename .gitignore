@@ -157,12 +157,16 @@ ai-sandbox/.gemini/
 # JetBrains IDE project metadata -- machine-specific, not shared.
 .idea/
 
-# audio_generator writes each narration as a sibling <name>.mp3 next to its
-# source .md, directly inside academic_notes/<course>/ and
-# academic_resources/<course>/textbooks/ (see audio_generator/README.md's
-# "Output" section) -- no dedicated output folder to scope a directory-level
-# ignore to. A synthesized full-text reading of notes/textbook content is
-# the same "derivative but verbatim-reproducing" category .index/chunks/,
+# audio_generator writes each narration's .mp3 next to its source .md's
+# academic_resources/ location -- for textbook content that's always been
+# a plain sibling (the source .md already lives there); for notes content
+# (2026-09-22), it's the mirrored academic_resources/ path, since
+# academic_notes/ stays lightweight for git/tablet sync and the .mp3 is
+# heavy derived audio (see audio_generator/README.md's "Output" section,
+# and docs/superpowers/specs/2026-09-21-source-asset-relocation-design.md).
+# No dedicated output folder to scope a directory-level ignore to either
+# way. A synthesized full-text reading of notes/textbook content is the
+# same "derivative but verbatim-reproducing" category .index/chunks/,
 # .viz/, .reports/, and .problem_corpus/ are already excluded for above
 # (worse, in the textbooks case: audio of a copyrighted textbook's full
 # text), and large besides -- excluded by extension since it can land

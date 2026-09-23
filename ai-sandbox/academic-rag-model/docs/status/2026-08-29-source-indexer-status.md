@@ -208,3 +208,18 @@ seen. Left as-is: batching is still correct and still cheap (~$0.02/paper
 at measured per-page rates), and retuning defect detection for
 academic-paper prose specifically is a separable question from getting
 journal articles into the corpus at all.
+
+## 2026-09-22 update: `rebuild()`'s cross-course duplicate-clone corruption bug, fixed
+
+The cross-course duplicate-detection feature (shipped 2026-09-18) added
+**clone** index cards that sit outside this module's normal
+one-card-per-file-hash identity assumption, and `rebuild()`'s textbook
+backfill -- which always recomputes `file_id` by hashing the PDF rather
+than trusting a stored one -- could silently evict the *canonical*
+course's own card whenever a byte-identical clone existed elsewhere. Real
+fix (not a "don't run rebuild" doc guard): `rebuild()` now recognizes a
+`duplicate_of_file_id` marker on a clone's card and skips re-hashing it
+entirely. Full writeup, including the two follow-on plans that build on
+top of the duplicate-check feature this bug came from (auto-resolution,
+OOM/cost escalation ladder), lives in
+`2026-09-10-textbook-conversion-status.md`'s 2026-09-22/23 entries.
