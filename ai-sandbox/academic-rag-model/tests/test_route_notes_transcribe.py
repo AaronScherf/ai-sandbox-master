@@ -148,6 +148,19 @@ def test_pdf_output_path_points_at_processed_outputs_md():
     assert pdf_output_path(pdf_path) == expected
 
 
+def test_pdf_output_path_mirrors_to_notes_root_for_a_migrated_pdf():
+    # Real finding (2026-09-23, math-camp migration): pdf_output_path only
+    # ever assumed processed_outputs/ is a sibling of the PDF -- true
+    # before migration, but a migrated PDF's real .md output stays under
+    # academic_notes/ while the PDF itself now lives under
+    # academic_resources/. Without this, filter_unprocessed_pdfs treats
+    # every already-transcribed migrated PDF as unprocessed and would
+    # re-transcribe it.
+    pdf_path = os.path.join("academic_resources", "math-camp", "ta_notes", "LN1.pdf")
+    expected = os.path.join("academic_notes", "math-camp", "ta_notes", "processed_outputs", "LN1.md")
+    assert pdf_output_path(pdf_path) == expected
+
+
 def test_excalidraw_output_path_points_at_processed_outputs_rag_md():
     md_path = os.path.join("academic_notes", "econometrics", "lecture_notes", "Drawing.excalidraw.md")
     expected = os.path.join(

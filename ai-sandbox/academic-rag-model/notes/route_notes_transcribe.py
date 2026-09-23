@@ -24,7 +24,7 @@ import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from common.academic_hub_paths import to_resources_root
+from common.academic_hub_paths import resolve_output_dir, to_resources_root
 from notes.transcribe_excalidraw import (
     _TRANSCRIBE_MODEL as _EXCALIDRAW_MODEL,
     discover_excalidraw_files,
@@ -98,7 +98,7 @@ def discover_excalidraw_sources(course_dir: str) -> list[tuple[str, str]]:
 
 def pdf_output_path(pdf_path: str) -> str:
     base_name = os.path.splitext(os.path.basename(pdf_path))[0]
-    return os.path.join(os.path.dirname(pdf_path), "processed_outputs", f"{base_name}.md")
+    return os.path.join(resolve_output_dir(pdf_path), f"{base_name}.md")
 
 
 def excalidraw_output_path(md_path: str) -> str:
