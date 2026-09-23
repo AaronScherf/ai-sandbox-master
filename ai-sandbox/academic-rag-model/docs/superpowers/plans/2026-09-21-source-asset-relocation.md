@@ -1575,8 +1575,39 @@ to this plan -- flagged to the user, not fixed here, same treatment as
 the 4 pre-existing orphaned math-camp cards.
 
 **Task 10 status: every course with real migratable content has now been
-migrated** (econometrics, math-camp, math_methods, microecon). Two
-separate, pre-existing data-hygiene issues surfaced along the way (4
-math-camp cards + 1 math_methods card, all orphaned due to missing source
-files/outputs unrelated to source-asset relocation) remain open, flagged
-to the user, not part of this plan's scope.
+migrated** (econometrics, math-camp, math_methods, microecon).
+
+**Orphaned-card cleanup (2026-09-23), out-of-plan but done at the user's
+request right after Task 10 landed:** investigated all 5 pre-existing
+orphaned cards rather than guessing.
+
+- 2 of the 4 math-camp cards (`Aug 17 Analysis.pdf`, `Lecture_Notes_Aug_24_
+  Probability Lecture.pdf`) were confirmed **true renames** -- not by
+  filename/page-count guessing, but by recomputing `compute_file_id()`
+  against the current on-disk file and matching it exactly against the
+  stored card's `file_id`. Root cause: the source PDF was renamed on disk
+  but its transcribed output never was, so `resolve_output_dir()`'s
+  basename-matching correctly looked for a `.md` that no longer existed
+  under that name. Fixed by renaming the outputs (+ `_pages_cache.json`
+  siblings) to match, updating each's `source_pdf` frontmatter to the
+  current full relative path, then re-running `rebuild()` -- both cards
+  matched by `file_id` and reconciled cleanly (one needed a retry after a
+  transient Gemini 503). Commits: `65e7c42` (vault repo rename),
+  `6abf694` (index re-link).
+- The other 2 math-camp cards (`old_exam_2021.pdf`, `old_exam_2025.pdf`)
+  are **not** renames -- their frontmatter page counts (22, 14) don't match
+  any same-named candidate on disk (3, 2 pages respectively). Their source
+  PDFs are genuinely gone; only the transcribed `.md` content remains.
+- The math_methods card has no `.rag.md` ever generated (confirmed absent
+  from disk entirely) -- nothing to re-link.
+- For these 3 genuinely-sourceless cards, the user pushed back on my
+  original "prune vs. leave flagged" framing: both options were wrong,
+  because `search()` was silently excluding every `orphaned: true` card
+  from results regardless of whether its `.md` content was still real and
+  valuable. Fixed the actual bug instead: `search()` now only excludes
+  `needs_indexing` (generation failed) or missing-embedding cards --
+  `orphaned` alone is a provenance note ("source couldn't be verified"),
+  not a reason to hide otherwise-good content. Applies to any future case
+  of a deleted/renamed source PDF too, not just these 3. Commit `921cca5`
+  (code + test), all 3 remaining orphaned cards confirmed to have real
+  embeddings and are now correctly surfaced by search.
