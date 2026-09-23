@@ -4758,8 +4758,8 @@
   },
   {
     "file_id": "aadfa2a4c5ffc04b",
-    "path": "academic_notes/math-camp/ta_notes/processed_outputs/LN_Probability.md",
-    "source_pdf_path": "academic_notes/math-camp/ta_notes/LN_Probability.pdf",
+    "path": "academic_notes/math-camp/ta_notes/2026/processed_outputs/LN_Probability.md",
+    "source_pdf_path": "academic_notes/math-camp/ta_notes/2026/LN_Probability.pdf",
     "course": "math-camp",
     "doc_type": "ta_notes",
     "title": "Part IV: Probability Theory",
@@ -5542,9 +5542,10 @@
       -0.011593321
     ],
     "embedding_model": "gemini-embedding-001:768",
-    "source_updated_at": "2026-08-29T17:37:52.962573+00:00",
+    "source_updated_at": "2026-09-23T01:25:33.262139+00:00",
     "needs_indexing": false,
-    "content_hash": "e5cfe58dc6c81a36"
+    "content_hash": "e5cfe58dc6c81a36",
+    "source_asset_path": null
   },
   {
     "file_id": "f95513f05df19bd2",
@@ -20550,8 +20551,8 @@
   },
   {
     "file_id": "ff87e7bbf8f32e24",
-    "path": "academic_notes/math-camp/ta_notes/processed_outputs/LN_Analysis.md",
-    "source_pdf_path": "academic_notes/math-camp/ta_notes/LN_Analysis.pdf",
+    "path": "academic_notes/math-camp/ta_notes/2026/processed_outputs/LN_Analysis.md",
+    "source_pdf_path": "academic_notes/math-camp/ta_notes/2026/LN_Analysis.pdf",
     "course": "math-camp",
     "doc_type": "textbook",
     "title": "Analysis in Euclidean Spaces",
@@ -21332,14 +21333,15 @@
       -0.020752367
     ],
     "embedding_model": "gemini-embedding-001:768",
-    "source_updated_at": "2026-08-30T17:04:52.877222+00:00",
+    "source_updated_at": "2026-09-23T01:25:33.056399+00:00",
     "content_hash": "958c4b3089823d15",
-    "needs_indexing": false
+    "needs_indexing": false,
+    "source_asset_path": null
   },
   {
     "file_id": "40bdcffc053227ac",
-    "path": "academic_notes/math-camp/ta_notes/processed_outputs/LN_Linear Algebra.md",
-    "source_pdf_path": "academic_notes/math-camp/ta_notes/LN_Linear Algebra.pdf",
+    "path": "academic_notes/math-camp/ta_notes/2026/processed_outputs/LN_Linear Algebra.md",
+    "source_pdf_path": "academic_notes/math-camp/ta_notes/2026/LN_Linear Algebra.pdf",
     "course": "math-camp",
     "doc_type": "textbook",
     "title": "Linear Algebra Lecture Notes",
@@ -22120,14 +22122,15 @@
       -0.031256616
     ],
     "embedding_model": "gemini-embedding-001:768",
-    "source_updated_at": "2026-08-30T17:04:54.888245+00:00",
+    "source_updated_at": "2026-09-23T01:25:33.132155+00:00",
     "content_hash": "7a3b99f74ffc65c6",
-    "needs_indexing": false
+    "needs_indexing": false,
+    "source_asset_path": null
   },
   {
     "file_id": "95125b42840c4b9e",
-    "path": "academic_notes/math-camp/ta_notes/processed_outputs/LN_Optimization.md",
-    "source_pdf_path": "academic_notes/math-camp/ta_notes/LN_Optimization.pdf",
+    "path": "academic_notes/math-camp/ta_notes/2026/processed_outputs/LN_Optimization.md",
+    "source_pdf_path": "academic_notes/math-camp/ta_notes/2026/LN_Optimization.pdf",
     "course": "math-camp",
     "doc_type": "textbook",
     "title": "Optimization, Convexity and Correspondences",
@@ -22908,9 +22911,10 @@
       -0.014332888
     ],
     "embedding_model": "gemini-embedding-001:768",
-    "source_updated_at": "2026-08-30T17:04:56.546748+00:00",
+    "source_updated_at": "2026-09-23T01:25:33.194124+00:00",
     "content_hash": "906c8e28391a3bde",
-    "needs_indexing": false
+    "needs_indexing": false,
+    "source_asset_path": null
   },
   {
     "file_id": "6d6958f96759b4a8",
@@ -23702,8 +23706,8 @@
   },
   {
     "file_id": "8e79bdb21eb61596",
-    "path": "academic_notes/math-camp/lecture-notes/lecture-1-b-sets-and-n-tuples.md",
-    "source_pdf_path": "academic_notes/math-camp/lecture-notes/lecture-1-b-sets-and-n-tuples.meta.json",
+    "path": "academic_notes/math-camp/lecture_notes/lecture-1-b-sets-and-n-tuples.md",
+    "source_pdf_path": "academic_notes/math-camp/lecture_notes/lecture-1-b-sets-and-n-tuples.meta.json",
     "course": "math-camp",
     "doc_type": "lecture_notes",
     "title": "Examples of Function Properties: Image, Pre-image, Onto, and 1-to-1",
@@ -24484,14 +24488,15 @@
       -0.008209433
     ],
     "embedding_model": "gemini-embedding-001:768",
-    "source_updated_at": "2026-09-06T23:33:41.006197+00:00",
+    "source_updated_at": "2026-09-23T01:25:33.595390+00:00",
     "content_hash": "948574c012e035af",
-    "needs_indexing": false
+    "needs_indexing": false,
+    "source_asset_path": null
   },
   {
     "file_id": "baab4831f805ae59",
-    "path": "academic_notes/math-camp/lecture-notes/2021-introductory-remarks.md",
-    "source_pdf_path": "academic_notes/math-camp/lecture-notes/2021-introductory-remarks.meta.json",
+    "path": "academic_notes/math-camp/lecture_notes/2021-introductory-remarks.md",
+    "source_pdf_path": "academic_notes/math-camp/lecture_notes/2021-introductory-remarks.meta.json",
     "course": "math-camp",
     "doc_type": "lecture_notes",
     "title": "Introduction to Economics Course Overview",
@@ -25272,14 +25277,15 @@
       -0.022001868
     ],
     "embedding_model": "gemini-embedding-001:768",
-    "source_updated_at": "2026-09-07T02:00:29.833446+00:00",
+    "source_updated_at": "2026-09-23T01:25:33.473159+00:00",
     "content_hash": "a11cac71d29f9b49",
-    "needs_indexing": false
+    "needs_indexing": false,
+    "source_asset_path": null
   },
   {
     "file_id": "7522387adc3427c7",
-    "path": "academic_notes/math-camp/lecture-notes/lecture-1-a-sets-and-n-tuples.md",
-    "source_pdf_path": "academic_notes/math-camp/lecture-notes/lecture-1-a-sets-and-n-tuples.meta.json",
+    "path": "academic_notes/math-camp/lecture_notes/lecture-1-a-sets-and-n-tuples.md",
+    "source_pdf_path": "academic_notes/math-camp/lecture_notes/lecture-1-a-sets-and-n-tuples.meta.json",
     "course": "math-camp",
     "doc_type": "lecture_notes",
     "title": "Introduction to Sets and n-tuples",
@@ -26060,14 +26066,15 @@
       -0.01784346
     ],
     "embedding_model": "gemini-embedding-001:768",
-    "source_updated_at": "2026-09-07T02:00:31.722236+00:00",
+    "source_updated_at": "2026-09-23T01:25:33.533675+00:00",
     "content_hash": "0398af594eef5879",
-    "needs_indexing": false
+    "needs_indexing": false,
+    "source_asset_path": null
   },
   {
     "file_id": "1168cacc67cb118c",
-    "path": "academic_notes/math-camp/lecture-notes/lecture-2-a-quantifiers-and-functions-1.md",
-    "source_pdf_path": "academic_notes/math-camp/lecture-notes/lecture-2-a-quantifiers-and-functions-1.meta.json",
+    "path": "academic_notes/math-camp/lecture_notes/lecture-2-a-quantifiers-and-functions-1.md",
+    "source_pdf_path": "academic_notes/math-camp/lecture_notes/lecture-2-a-quantifiers-and-functions-1.meta.json",
     "course": "math-camp",
     "doc_type": "lecture_notes",
     "title": "Quantifiers and Functions 1",
@@ -26848,14 +26855,15 @@
       -0.011030291
     ],
     "embedding_model": "gemini-embedding-001:768",
-    "source_updated_at": "2026-09-07T03:45:03.956364+00:00",
+    "source_updated_at": "2026-09-23T01:25:33.649766+00:00",
     "content_hash": "eb3da97022584216",
-    "needs_indexing": false
+    "needs_indexing": false,
+    "source_asset_path": null
   },
   {
     "file_id": "39da6ae32af2dfc0",
-    "path": "academic_notes/math-camp/lecture-notes/lecture-3-a-quantifiers-and-functions-2.md",
-    "source_pdf_path": "academic_notes/math-camp/lecture-notes/lecture-3-a-quantifiers-and-functions-2.meta.json",
+    "path": "academic_notes/math-camp/lecture_notes/lecture-3-a-quantifiers-and-functions-2.md",
+    "source_pdf_path": "academic_notes/math-camp/lecture_notes/lecture-3-a-quantifiers-and-functions-2.meta.json",
     "course": "math-camp",
     "doc_type": "lecture_notes",
     "title": "Empty Document",
@@ -27636,8 +27644,9 @@
       -0.009414664
     ],
     "embedding_model": "gemini-embedding-001:768",
-    "source_updated_at": "2026-09-11T05:18:59.688929+00:00",
+    "source_updated_at": "2026-09-23T01:25:33.704895+00:00",
     "content_hash": "e3b0c44298fc1c14",
-    "needs_indexing": false
+    "needs_indexing": false,
+    "source_asset_path": null
   }
 ]
