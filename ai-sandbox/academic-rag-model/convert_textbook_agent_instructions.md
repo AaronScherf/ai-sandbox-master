@@ -416,7 +416,7 @@ not-yet-finished book still needs.
 
 ### 3.4c Download RAM-sizing logs and update the local dataset
 
-Best-effort — if either command below fails, skip this and continue to
+Best-effort — if any command below fails, skip this and continue to
 Step 4 rather than treating it as blocking. Pulls both raw logs down and
 folds them into `docs/status/vm_sizing_log.jsonl` (gitignored raw logs
 under `docs/status/vm_sizing_raw/`; only the `.jsonl` is meant to be
@@ -641,13 +641,17 @@ on re-run.
   `vm_sizing_log.jsonl` as "a real data point," and any memory of whether
   this is the 1st, 2nd, or 3rd OOM on this book. Run:
   ```bash
-  gcloud compute ssh "$VM_INSTANCE_NAME" --zone="$GCP_ZONE" --tunnel-through-iap --command="BOOK_ID=\$(grep -o 'RAM_SIZING_START book=[^ ]*' ~/convert_log.txt | tail -1 | cut -d= -f2-); BOOK_SLUG=\$(echo \"\$BOOK_ID\" | tr -c 'A-Za-z0-9._-' '_'); mkdir -p ~/oom_ladder_state/\$BOOK_SLUG; TS=\$(date +%s); cp ~/convert_log.txt ~/oom_ladder_state/\$BOOK_SLUG/convert_log.txt.\$TS 2>/dev/null; cp ~/ram_sampling_log.txt ~/oom_ladder_state/\$BOOK_SLUG/ram_sampling_log.txt.\$TS 2>/dev/null; RUNG_FILE=~/oom_ladder_state/\$BOOK_SLUG/rung_count; N=\$(( \$(cat \$RUNG_FILE 2>/dev/null || echo 0) + 1 )); echo \$N > \$RUNG_FILE; echo \"BOOK=\$BOOK_ID RUNG=\$N\""
+  gcloud compute ssh "$VM_INSTANCE_NAME" --zone="$GCP_ZONE" --tunnel-through-iap --command="BOOK_ID=\$(grep -o 'RAM_SIZING_START book=[^ ]*' ~/convert_log.txt | tail -1 | cut -d= -f2-); BOOK_SLUG=\$(echo \"\$BOOK_ID\" | tr -c 'A-Za-z0-9._-' '_'); BOOK_SLUG=\${BOOK_SLUG:-unknown_book_\$(date +%s)}; mkdir -p ~/oom_ladder_state/\$BOOK_SLUG; TS=\$(date +%s); cp ~/convert_log.txt ~/oom_ladder_state/\$BOOK_SLUG/convert_log.txt.\$TS 2>/dev/null; cp ~/ram_sampling_log.txt ~/oom_ladder_state/\$BOOK_SLUG/ram_sampling_log.txt.\$TS 2>/dev/null; RUNG_FILE=~/oom_ladder_state/\$BOOK_SLUG/rung_count; N=\$(( \$(cat \$RUNG_FILE 2>/dev/null || echo 0) + 1 )); echo \$N > \$RUNG_FILE; echo \"BOOK=\$BOOK_ID RUNG=\$N\""
   ```
   The printed `RUNG=<N>` -- not memory or guesswork -- is which rung below
   applies. `~/oom_ladder_state/` lives on the boot persistent disk, so it
   survives both Rung 1's `instances reset` and Rung 2's `stop`/`start`;
   only Step 4's VM deletion erases it, which is why Step 3.4c downloads it
-  before that happens.
+  before that happens. If `BOOK_ID` comes back empty (an OOM during model
+  load, before any `RAM_SIZING_START` line has been printed for the
+  in-flight book), the fallback timestamped `unknown_book_*` slug still
+  gets its own counter rather than silently sharing state with a real
+  book's directory.
 
   **Rung 1 -- RUNG=1 from the step above:** kill both tmux
   sessions, then reset:
