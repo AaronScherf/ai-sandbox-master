@@ -21,11 +21,12 @@ ai-sandbox-master/                       <-- this repo
     ├── academic-rag-model/              <-- conversion/indexing/RAG pipelines (tracked)
     │
     ├── academic-hub/                    <-- see academic-hub/README.md
-    │   ├── academic_notes/<course>/     <-- your own TA notes, problem sets, exams (tracked); audio_generator's sibling *.mp3 narrations here are gitignored
-    │   ├── academic_resources/<course>/
+    │   ├── academic_notes/<course>/     <-- its OWN separate git repo (2026-09-21, gitignored from this outer repo, same pattern as personal-website/); your own TA notes, problem sets, exams, tablet-synced via Obsidian Direct Git Sync
+    │   ├── academic_resources/<course>/ <-- heavy sources: copyrighted third-party material AND (as of the same 2026-09 relocation) your own migrated PDFs/Excalidraw exports, mirroring academic_notes/'s own category names
     │   │   ├── textbooks/               <-- copyrighted textbook PDFs + full-text .md (gitignored)
-    │   │   ├── lecture-slides/          <-- gitignored (institution/professor-owned)
-    │   │   └── lecture-recordings/      <-- gitignored
+    │   │   ├── lecture_slides/          <-- gitignored (institution/professor-owned)
+    │   │   ├── lecture_recordings/      <-- gitignored
+    │   │   └── ta_notes/, problem_sets/, ... <-- your own migrated PDFs/Excalidraw images (tracked, not gitignored); audio_generator's *.mp3 narrations for this content also land here (mirrored from academic_notes/), gitignored
     │   └── .index/                      <-- source-indexer cards + tags (tracked); .index/chunks/ (gitignored — verbatim excerpts)
     │
     ├── research/                        <-- see research/README.md
@@ -37,30 +38,37 @@ ai-sandbox-master/                       <-- this repo
         └── AaronScherf.github.io/       <-- separate git repo, Hugo/HugoBlox portfolio site
 ```
 
-The dividing line throughout: **your own authored content and derivative
-metadata (titles, summaries, tags) are tracked; other people's copyrighted
-full text (published textbooks, journal articles) is not.** See the root
-`.gitignore`'s own comments for the exact patterns and reasoning.
+Two separate dividing lines, not one: **within this repo**, your own
+authored content and derivative metadata (titles, summaries, tags) are
+tracked; other people's copyrighted full text (published textbooks,
+journal articles) is not — see the root `.gitignore`'s own comments for
+the exact patterns and reasoning. **Separately**, `academic_notes/`
+(2026-09-21) isn't part of this repo's tracking at all — it's its own
+git repo, kept lightweight on purpose so it can sync to a tablet via
+Obsidian's Direct Git Sync without dragging along the heavy PDFs/exports
+that migrated out to `academic_resources/`.
 
 ## Getting started (your own copy, your own content)
 
 This covers two different situations: **replicating your own existing setup
 onto another machine** (your courses, notes, and independent-research repos
-are already tracked/listed — steps 2 and 5 are no-ops there, git clone
-already brought them down) and **starting a genuinely new instance** (a new
-user, or you adding a course/project that doesn't exist yet — steps 2 and 5
-are where you establish that).
+are already tracked/listed — steps 2 and 5 are no-ops there for everything
+except `academic_notes/`, which needs its own clone since it's a separate
+repo) and **starting a genuinely new instance** (a new user, or you adding a
+course/project that doesn't exist yet — steps 2 and 5 are where you
+establish that).
 
 1. `git clone` this repo.
-2. **Only if adding a course that doesn't exist yet:** create
-   `academic-hub/academic_notes/<course>/` folder(s) for whatever courses
-   you're tracking. If you already have course folders — this is your own
-   existing setup, e.g. on another machine — they came down with step 1;
-   nothing to do here.
+2. **Clone or create `academic-hub/academic_notes/`** — it's a separate git
+   repo (see above), not part of step 1's clone. Replicating your own
+   existing setup: clone your existing `academic_notes` repo to that exact
+   path. Starting fresh: `git init` an empty one there (or just create
+   plain folders if you don't want tablet sync) with a
+   `<course>/` folder for each course you're tracking.
 3. Run `bash workspace_generator.sh` from the repo root. It scaffolds the
-   gitignored `academic_resources/<course>/{textbooks,lecture-slides,lecture-recordings}/`
+   gitignored `academic_resources/<course>/{textbooks,lecture_slides,lecture_recordings}/`
    folders for every course folder under `academic_notes/` — whether it came
-   down with the clone or you just created it in step 2 — plus `research/journal-articles/`;
+   down with step 2 or you just created it there — plus `research/journal-articles/`;
    clones the personal website and every independent research/thesis repo
    listed in the script's own `INDEPENDENT_RESEARCH_REPOS` array (first run
    only — a normal `git pull` after that), and pulls updates for any other

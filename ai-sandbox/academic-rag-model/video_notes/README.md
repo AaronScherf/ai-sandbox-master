@@ -1,7 +1,7 @@
 # Video Lecture Notes
 
 Turns a batch of YouTube lecture videos into synthesized Markdown notes
-under `academic_notes/<course>/lecture-notes/` — fully local: audio
+under `academic_notes/<course>/lecture_notes/` — fully local: audio
 download (`yt-dlp`), transcription (`faster-whisper`, CPU), and
 synthesis (a local Ollama model) all run on your own machine. The only
 API call anywhere in this pipeline is the existing indexer's own

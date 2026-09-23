@@ -22,7 +22,13 @@ Run any script here as a module from the `academic-rag-model/` root, e.g.
   is a parameter here, not a hardcoded constant, so a non-academic-hub corpus
   (e.g. `essays/`, `journal_articles/`) can classify into its own vocabulary
   instead of being force-fit into `textbook`/`problem_set`/`ta_notes`/
-  `handwritten_notes`.
+  `handwritten_notes`. `source_pdf_path` is the identity anchor
+  (`compute_file_id()` hashes its bytes); `source_asset_path` (2026-09-21)
+  is a separate, additive field tracking the true heavy-asset location for
+  academic-hub's `academic_notes`/`academic_resources` split — defaults to
+  `source_pdf_path` for a new card, and reconciling an existing card only
+  overwrites it when the caller passes a non-`None` value, so a caller that
+  can't currently determine it doesn't blow away a previously-known-good one.
 - `index_search.py` — the `rebuild`/`query`/`ask` CLI, and the two-stage
   (course-then-file) cosine-similarity search. Query-side functions
   (`search`, `search_passages`) take a **list** of corpus roots, not one, so a
@@ -30,7 +36,13 @@ Run any script here as a module from the `academic-rag-model/` root, e.g.
   at once — candidates are tracked as `(root, course)` pairs so two corpora
   with a same-named course never collide. `rebuild`/`retag`/`chunk` stay
   single-root (`--root`, given exactly once) since those write into one
-  corpus's own `.index/`.
+  corpus's own `.index/`. `rebuild()` flags a card `orphaned: true` when its
+  source can't be found on that run (moved, renamed in a way the walker
+  couldn't follow, or genuinely deleted) — a provenance note, not a verdict
+  on the card's own content: `search()` still surfaces an orphaned card as
+  long as it has a real embedding, since the underlying `.md` may still be
+  perfectly good even once its original source is gone (real finding,
+  2026-09-23 — see the source-asset-relocation plan's cleanup notes).
 - `chunk_index.py` — passage-level chunking and embedding for citable,
   paragraph/heading/page-accurate retrieval (not just "which file," but
   "which paragraph"). Tiered: headings first, numbered-problem detection for

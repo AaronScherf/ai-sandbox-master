@@ -44,26 +44,33 @@ echo "🚀 Scaffolding gitignored folders and syncing child repos..."
 # ==========================================================================
 # 1. SCAFFOLD THE FOLDERS .gitignore DELIBERATELY EXCLUDES
 # ==========================================================================
-# academic_notes/ (your own TA notes, problem sets, exams) is tracked and
-# already comes down with a normal git clone -- not scaffolded here.
-# academic_resources/<course>/{textbooks,lecture-slides,lecture-recordings}/
+# academic_notes/ (your own TA notes, problem sets, exams) is its OWN
+# separate git repo (2026-09-21 -- nested here but gitignored from this
+# outer repo, same pattern as personal-website/), not part of a normal
+# clone of THIS repo -- clone/init it yourself first (see academic-hub/README.md)
+# or the loop below has no courses to scaffold against.
+# academic_resources/<course>/{textbooks,lecture_slides,lecture_recordings,...}/
 # and research/journal-articles/ are the actual IP-sensitive content
 # .gitignore protects (see the root .gitignore's own comments for exactly
 # why each one), so a fresh clone needs these created empty and ready for
-# your own PDFs.
+# your own PDFs. academic_resources/ also holds your own migrated heavy
+# sources (PDFs, Excalidraw exports, docx/pptx) as of the same 2026-09
+# relocation -- those categories aren't scaffolded here since they mirror
+# whatever categories already exist under academic_notes/<course>/, not a
+# fixed list.
 #
 # Course list is derived from whatever academic_notes/ subfolders already
-# exist (tracked, so present after any clone) rather than hardcoded --
-# replicating this project with different courses just means creating
-# your own academic-hub/academic_notes/<course>/ before running this, and
-# the loop below picks it up automatically.
+# exist (present once you've cloned/created that separate repo) rather
+# than hardcoded -- replicating this project with different courses just
+# means creating your own academic-hub/academic_notes/<course>/ before
+# running this, and the loop below picks it up automatically.
 echo "📂 Scaffolding gitignored content folders per course..."
 mkdir -p "$SANDBOX_DIR/academic-hub/academic_notes"
 for course_dir in "$SANDBOX_DIR"/academic-hub/academic_notes/*/; do
     [ -d "$course_dir" ] || continue
     course=$(basename "$course_dir")
     echo "   -> $course"
-    mkdir -p "$SANDBOX_DIR/academic-hub/academic_resources/$course"/{textbooks,lecture-slides,lecture-recordings}
+    mkdir -p "$SANDBOX_DIR/academic-hub/academic_resources/$course"/{textbooks,lecture_slides,lecture_recordings}
 done
 mkdir -p "$SANDBOX_DIR/research/journal-articles"
 echo "✅ Gitignored content folders ready for your own PDFs."
