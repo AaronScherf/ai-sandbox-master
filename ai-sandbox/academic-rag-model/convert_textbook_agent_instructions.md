@@ -430,6 +430,23 @@ mkdir -p "$RUN_DIR"
 gcloud compute scp "$VM_INSTANCE_NAME":"$REMOTE_HOME/convert_log.txt" "$VM_INSTANCE_NAME":"$REMOTE_HOME/ram_sampling_log.txt" "$RUN_DIR/" --zone="$GCP_ZONE" --tunnel-through-iap --quiet
 ```
 
+If the Debugging appendix's escalation ladder fired at any point during
+this run, also pull down the durable state it left behind before Step 4
+deletes the VM (best-effort -- `2>/dev/null` swallows a clean "nothing
+ever fired" case):
+
+```bash
+gcloud compute scp --recurse "$VM_INSTANCE_NAME":"$REMOTE_HOME/oom_ladder_state" "$RUN_DIR/" --zone="$GCP_ZONE" --tunnel-through-iap --quiet 2>/dev/null || true
+```
+
+That directory holds one subfolder per book the ladder ever touched, each
+with a `rung_count` file and the pre-relaunch `convert_log.txt`/
+`ram_sampling_log.txt` snapshots the ladder preserved before each reset or
+resize wiped the live copies. It isn't auto-folded into
+`vm_sizing_log.jsonl` yet (that would need `textbook/vm_sizing_log.py` to
+accept multiple log pairs) -- keep it for manual follow-up analysis of the
+failed attempt(s), and check it before running the command below:
+
 ```bash
 python -m textbook.vm_sizing_log \
   --convert-log "$RUN_DIR/convert_log.txt" \
@@ -439,9 +456,10 @@ python -m textbook.vm_sizing_log \
 ```
 
 (`$REMOTE_HOME` is the value captured in Step 2.2. `--machine-type` should
-match whatever Step 1.3 actually created the VM with -- including any
-Rung 2 resize from the Debugging appendix's escalation ladder, if one
-happened during this run.)
+match whatever Step 1.3 actually created the VM with -- don't rely on
+memory for this: if any `rung_count` file downloaded above reads `2` or
+higher, a Rung 2 resize happened during this run and `--machine-type` must
+be `g2-standard-8`, not the Step 1.3 default.)
 
 **Cost reconciliation** (pipeline-autonomy-policies spec, Component 2e):
 alongside this download, report the actual VM wall-clock time (from
@@ -614,7 +632,24 @@ on re-run.
   this; investigate the `FATAL` lines' surrounding log context instead,
   and do not count this toward the rung ladder below.
 
-  **Rung 1 -- 1st confirmed OOM-kill on this book:** kill both tmux
+  **Before acting on any rung, preserve this attempt's evidence and read
+  the durable rung counter.** Both `start_conversion.sh` (truncates
+  `~/convert_log.txt` and `~/ram_sampling_log.txt` fresh on every launch)
+  and `gcloud compute instances reset` (clears the kernel's `dmesg` ring
+  buffer on reboot) throw away everything not copied off first -- including
+  the exact failed-attempt data Step 3.4c below wants to fold into
+  `vm_sizing_log.jsonl` as "a real data point," and any memory of whether
+  this is the 1st, 2nd, or 3rd OOM on this book. Run:
+  ```bash
+  gcloud compute ssh "$VM_INSTANCE_NAME" --zone="$GCP_ZONE" --tunnel-through-iap --command="BOOK_ID=\$(grep -o 'RAM_SIZING_START book=[^ ]*' ~/convert_log.txt | tail -1 | cut -d= -f2-); BOOK_SLUG=\$(echo \"\$BOOK_ID\" | tr -c 'A-Za-z0-9._-' '_'); mkdir -p ~/oom_ladder_state/\$BOOK_SLUG; TS=\$(date +%s); cp ~/convert_log.txt ~/oom_ladder_state/\$BOOK_SLUG/convert_log.txt.\$TS 2>/dev/null; cp ~/ram_sampling_log.txt ~/oom_ladder_state/\$BOOK_SLUG/ram_sampling_log.txt.\$TS 2>/dev/null; RUNG_FILE=~/oom_ladder_state/\$BOOK_SLUG/rung_count; N=\$(( \$(cat \$RUNG_FILE 2>/dev/null || echo 0) + 1 )); echo \$N > \$RUNG_FILE; echo \"BOOK=\$BOOK_ID RUNG=\$N\""
+  ```
+  The printed `RUNG=<N>` -- not memory or guesswork -- is which rung below
+  applies. `~/oom_ladder_state/` lives on the boot persistent disk, so it
+  survives both Rung 1's `instances reset` and Rung 2's `stop`/`start`;
+  only Step 4's VM deletion erases it, which is why Step 3.4c downloads it
+  before that happens.
+
+  **Rung 1 -- RUNG=1 from the step above:** kill both tmux
   sessions, then reset:
   ```bash
   gcloud compute ssh "$VM_INSTANCE_NAME" --zone="$GCP_ZONE" --tunnel-through-iap --command="tmux kill-session -t autostop 2>/dev/null; tmux kill-session -t convert 2>/dev/null; echo done"
@@ -634,8 +669,8 @@ on re-run.
   whole-book/per-chunk checkpoints) and re-arm the autostop watcher. No
   report needed beyond the log line -- this rung is fully automatic.
 
-  **Rung 2 -- 2nd confirmed OOM-kill on the same book** (the dmesg check
-  above applies again): repeat Rung 1's kill-sessions and cleanup steps,
+  **Rung 2 -- RUNG=2** (the dmesg check and the durable-state capture
+  above both apply again): repeat Rung 1's kill-sessions and cleanup steps,
   but resize the machine type instead of a plain reset:
   ```bash
   gcloud compute instances stop "$VM_INSTANCE_NAME" --zone="$GCP_ZONE"
@@ -657,11 +692,11 @@ on re-run.
   this resize is itself a real data point for the still-thin
   `vm_sizing_log.jsonl`.
 
-  **Rung 3 -- 3rd confirmed OOM-kill on the same book, even after the
-  resize:** stop and ask the user. Two different machine sizes both
-  failing on the same book, both times a genuine OOM (dmesg-confirmed),
-  is outside anything this pipeline has seen and warrants a human look
-  rather than a further automatic escalation.
+  **Rung 3 -- RUNG=3, even after the resize:** stop and ask the user.
+  Two different machine sizes both failing on the same book, both times a
+  genuine OOM (dmesg-confirmed), is outside anything this pipeline has
+  seen and warrants a human look rather than a further automatic
+  escalation.
   - `chunk_is_degraded` only catches a chunk where a clear majority
     (>50%) of pages fell back to raw PyPDF text -- a *milder* degradation
     (say, 2 of 6 pages) still gets checkpointed as done. This is

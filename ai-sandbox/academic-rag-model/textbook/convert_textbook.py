@@ -43,6 +43,14 @@ os.environ.setdefault("SURYA_INFERENCE_KEEP_ALIVE", "1")
 # Component 2d. Module-level rather than a function parameter because
 # main()'s per-book loop calls process_one_pdf() once per book with no
 # other channel for a running total to flow through.
+#
+# Caveat: "whole batch invocation" means this process's lifetime, not the
+# logical batch. start_conversion.sh's watchdog (run_conversion_with_retries)
+# re-execs this module as a brand-new process on each of its 5 retry
+# attempts, and the OOM escalation ladder's relaunch steps do the same --
+# both reset these counters to 0, so a cumulative_*_so_far value logged
+# after any retry/relaunch reflects only books processed since that
+# restart, not the true run-wide total.
 _cumulative_pages_this_batch = 0
 _cumulative_file_size_bytes_this_batch = 0
 
