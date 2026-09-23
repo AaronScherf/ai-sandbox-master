@@ -1,0 +1,90 @@
+{
+    "pg_21__page_6_Figure_1.jpeg": {
+        "skip": false,
+        "description": "Two graphs illustrating two conditions, labeled C1 and C2, in two-dimensional space with axes x1 (horizontal) and x2 (vertical).\n\nGraph C1 shows two disjoint open balls: ball B_a centered around point 'a' containing point 'x', and ball B_b centered around point 'b' containing point 'y'.\n\nGraph C2 shows two convergent sequences: a dotted arrowed path labeled a_n converging downward-right toward point 'a', and another dotted arrowed path labeled b_n converging downward-right toward point 'b'."
+    },
+    "pg_21__page_17_Diagram_1.jpeg": {
+        "skip": false,
+        "description": "A Venn-like diagram illustrating two concentric, off-center circular sets, labeled A and B, where set A is entirely contained within set B. Inside set A, there are two black dots representing centers or choice sets, labeled with the inequality C(A) \\neq C(B), demonstrating a violation of choice consistency condition alpha."
+    },
+    "pg_21__page_22_Figure_1.jpeg": {
+        "skip": false,
+        "description": "Venn diagram showing two overlapping large circular sets, labeled A on the left and B on the right. Inside set A is an oval region labeled C(A) with a dotted pattern, which extends into the intersection of A and B. Inside set B is another oval region labeled C(B) with a grid/hatched pattern, which also overlaps into the intersection of A and B and intersects with C(A). Point x is located within C(A) inside the intersection of sets A and B, but outside C(B). Point y is located inside both C(A) and C(B) within the intersection of sets A and B. On the top right, three mathematical relations are listed: x in C(A), y in C(B), and x not in C(B)."
+    },
+    "pg_21__page_40_Figure_1.jpeg": {
+        "skip": true,
+        "description": ""
+    },
+    "pg_21__page_42_Figure_1.jpeg": {
+        "skip": false,
+        "description": "Two graphs illustrating concepts of convexity in economics preference relations. Both graphs plot goods along axes x1 (horizontal) and x2 (vertical).\n\nLeft plot (labeled 'Convexity 1'): Shows an indifference curve bowed toward the origin. A point y lies on the indifference curve, and a point x lies above/to the right of it. A line segment connects y and x, with an intermediate point labeled αx + (1 - α)y lying strictly above the indifference curve. The text above states: x ≿ y ⇒ αx + (1 - α)y ≿ y.\n\nRight plot (labeled 'Convexity 3'): Shows the upper contour set shaded in light gray above the indifference curve, labeled 'AsGoodAs(y) is convex'. Within the shaded region, two points a and b are connected by a line segment, with an intermediate point labeled λa + (1 - λ)b, demonstrating that the upper contour set contains the line segment between any two points in the set."
+    },
+    "pg_21__page_47_Figure_1.jpeg": {
+        "skip": false,
+        "description": "A two-dimensional Cartesian plot illustrating homothetic preferences, with horizontal axis x1 and vertical axis x2 starting from the origin (0,0). Two rays radiate outward from the origin. Along the lower ray lie two points, x and its scaled counterpart tx (where t > 1). Along the steeper upper ray lie points y and ty. Two convex indifference curves are shown: the inner curve passes through points x and y (indicating x ~ y), and the outer curve passes through points tx and ty (indicating tx ~ ty). An equation in the upper-right corner formalizes the condition for homothetic preferences: x ~ y implies tx ~ ty."
+    },
+    "pg_21__page_48_Figure_1.jpeg": {
+        "skip": false,
+        "description": "A two-dimensional plot labeled with axes $x_1$ (horizontal) and $x_2$ (vertical) illustrating preference curves. Four parallel, convex-to-the-origin indifference curves slope downwards from left to right. On the left two curves, a horizontal vector of distance $\\epsilon$ connects a point $y$ on the inner curve to $y'$ on the adjacent outer curve. On the right two curves, a horizontal vector of the same distance $\\epsilon$ connects a point $x$ on the inner curve to $x'$ on the adjacent outer curve. Above the curves, a formula states: $x \\succ y \\Rightarrow x' \\succ y'$, demonstrating the translation invariance property associated with quasi-linear or homothetic preferences."
+    },
+    "pg_21__page_51_Figure_1.jpeg": {
+        "skip": false,
+        "description": "A 2D coordinate graph with axes $x_1$ (horizontal) and $x_2$ (vertical). An indifference curve (convex to the origin) is tangent to a straight downward-sloping line at a point labeled $x$. A vector arrow labeled $v(x)$ points outward perpendicular to the tangent line at point $x$, representing the gradient or normal vector at the bundle $x$."
+    },
+    "pg_21__page_59_Figure_1.jpeg": {
+        "skip": false,
+        "description": "Two graphs labelled (a) and (b) illustrating the consumer problem budget set $B(p,w)$ in two dimensions with axes $x_k$ (horizontal) and $x_j$ (vertical).\n\nGraph (a) shows a linear budget line sloping downward with slope magnitude $p_k/p_j$. An indifference curve touches the budget line at an optimal consumption bundle point $x^* = (x_k^*, x_j^*)$.\n\nGraph (b) demonstrates a perturbation around $x^*$. Decreasing consumption of good $k$ by $\\epsilon$ to $x_k^* - \\epsilon$ and increasing consumption of good $j$ by $\\epsilon p_k/p_j$ to $x_j^* + \\epsilon p_k / p_j$ stays on the budget constraint line, moving to a new point on a higher indifference curve, illustrating why a non-tangency or non-optimal choice provides a direction for feasible improvement."
+    },
+    "pg_21__page_64_Figure_1.jpeg": {
+        "skip": false,
+        "description": "Two panels, labeled (a) and (b), illustrating budget sets and chosen consumption bundles to test the Weak Axiom of Revealed Preference (WARP).\n\nIn both panels, two budget lines intersect in the positive quadrant of an x1-x2 graph:\n- The steeper budget line represents the budget set B(p, w).\n- The flatter budget line represents the budget set B(p', w').\n\nIn panel (a):\n- The bundle x(p, w) is chosen on the steeper budget line B(p, w), located strictly above and outside the flatter budget set B(p', w').\n- The bundle x(p', w') is chosen on the flatter budget line B(p', w'), located inside (affordable under) the steeper budget set B(p, w).\n- Since x(p', w') was affordable when x(p, w) was chosen, but x(p, w) was not affordable when x(p', w') was chosen, this configuration does NOT violate the Weak Axiom of Revealed Preference.\n\nIn panel (b):\n- The bundle x(p', w') is chosen on the flatter budget line B(p', w') above the intersection point, which lies inside (affordable under) the steeper budget set B(p, w).\n- The bundle x(p, w) is chosen on the steeper budget line B(p, w) below the intersection point, which lies inside (affordable under) the flatter budget set B(p', w').\n- Since each bundle was affordable when the other was chosen, this choice behavior violates the Weak Axiom of Revealed Preference."
+    },
+    "pg_21__page_66_Figure_1.jpeg": {
+        "skip": false,
+        "description": "A 2D coordinate graph with x1 on the horizontal axis and x2 on the vertical axis, illustrating a nondecreasing demand example (Giffen good phenomenon) via budget lines and consumer choices. The vertical axis shows tick marks at 1/2 and 1. The horizontal axis shows tick marks at 1/4, 1, 3/2, and 2. Several budget lines connect points on the vertical axis to the horizontal axis: one line connects (0, 1) to (1, 0); another line connects (0, 1/2) to (1/4, 0); others connect (0, 1/2) to (1, 0), (3/2, 0), and (2, 0). Four labeled points represent consumer choices or consumption bundles: point 'a' is located at (0, 1/2) on the vertical axis; point 'b' is located at (1, 0) on the horizontal axis; point 'c' is in the interior near x1 = 0.8, x2 = 0.2; and point 'd' is located at (2, 0) on the horizontal axis."
+    },
+    "pg_21__page_68_Figure_1.jpeg": {
+        "skip": false,
+        "description": "A graph on a two-dimensional plane with horizontal axis x_1 and vertical axis x_2, illustrating budget sets and consumer demand choices. Two budget lines intersect in the positive quadrant:\n\n1. A steeper budget line corresponding to the budget set B(p, w) extends from a high intercept on the x_2 axis to a low intercept on the x_1 axis.\n2. A flatter budget line corresponding to the budget set B(p', w') extends from a lower intercept on the x_2 axis to a higher intercept on the x_1 axis.\n\nThe intersection point of the two budget lines is marked with a black dot labeled x(p, w).\nAnother point on the flatter budget line B(p', w'), located to the right (downward along the flatter line) of the intersection, is marked with a black dot labeled x(p', w')."
+    },
+    "pg_21__page_74_Figure_1.jpeg": {
+        "skip": true,
+        "description": ""
+    },
+    "pg_21__page_79_Figure_1.jpeg": {
+        "skip": false,
+        "description": "A 2D Cartesian plot illustrating properties and assumptions of a production set Z in two dimensions (commodities z_1 and z_2). The horizontal axis is labeled z_1 and the vertical axis is labeled z_2. The set Z is bounded by a smooth, concave frontier curve passing through the origin (0,0), marked with point '1'.\n\nKey regions and points corresponding to the list of assumptions:\n- Region 1 at the origin: labeled '1', indicating '0 in Z' (inaction is possible).\n- Quadrant I (top right): labeled '2', representing positive inputs and outputs, related to 'No production with no resources'.\n- Quadrant III (bottom left): labeled '3', corresponding to 'Free disposal'.\n- Boundary curve: labeled '4', indicating 'Z is closed'.\n- Points z and lambda*z on a line segment through the origin: labeled '5', illustrating 'Z is convex' (where a convex combination lambda*z lies within the set).\n\nBelow the plot, the text lists the five 'Assumptions about Z':\n1. 0 in Z\n2. No production with no resources\n3. Free disposal\n4. Z is closed\n5. Z is convex"
+    },
+    "pg_21__page_81_Figure_1.jpeg": {
+        "skip": false,
+        "description": "A graph illustrating profit maximization in two-dimensional production space defined by input/output vectors z1 and z2. The horizontal axis represents z1 and the vertical axis represents z2. A convex production set Z is shown in the upper-left region, bounded by a smooth curved frontier. A straight line representing an isoprofit line {z : p · z = π*} is tangent to the production set frontier at a single point marked with a dot. The absolute slope of this line corresponds to the price ratio p1/p2, indicated by an angle arc. An arrow pointing northeast from the isoprofit line indicates the direction of higher profit."
+    },
+    "pg_21__page_83_Figure_1.jpeg": {
+        "skip": true,
+        "description": ""
+    },
+    "pg_21__page_88_Diagram_3.jpeg": {
+        "skip": false,
+        "description": "A mapping diagram illustrating a function $f$ from set $A$ to set $Z$. On the left, set $A$ contains an element $a$, associated with a preference relation $\\succsim_A$ underneath. On the right, set $Z$ contains an element $z$, associated with a preference relation $\\succsim_Z$ underneath. An arrow labeled $f$ points from element $a$ in set $A$ to element $z$ in set $Z$."
+    },
+    "pg_21__page_91_Diagram_1.jpeg": {
+        "skip": false,
+        "description": "A tree diagram representing a compound lottery, labeled as Figure 7.2. The diagram shows a central bottom node branching upwards to multiple endpoint nodes labeled p^1, p^2, p^3, through p^k. Each branch from the bottom node to an endpoint p^i is labeled with a probability weight a_i (a_1, a_2, a_3, ..., a_k). Above the nodes p^3 and p^k, a horizontal dotted line indicates additional intermediate branches between p^3 and p^k."
+    },
+    "pg_21__page_105_Figure_1.jpeg": {
+        "skip": false,
+        "description": "A line graph showing two cumulative distribution functions (CDFs) plotted against the horizontal axis $x$, illustrating first-order stochastic dominance. The vertical axis ranges up to 1, marked by a horizontal dotted asymptote at $y = 1$. The horizontal axis is labeled $x$. Two S-shaped curves originate from the same starting point on the $x$-axis and asymptote to 1 as $x$ increases. The upper curve is labeled $F(q, x)$ and the lower curve is labeled $F(p, x)$. Since $F(p, x) \\le F(q, x)$ for all $x$, the distribution $p$ first-order stochastically dominates $q$."
+    },
+    "pg_21__page_106_Figure_1.jpeg": {
+        "skip": false,
+        "description": "A plot illustrating risk aversion, certainty equivalent (CE), and risk premium R(p) using a concave utility function u(x) plotted against outcome x.\n\nKey components of the graph:\n- Vertical Axis: Utility u(x), showing values u(x_1), Eu(p), u(E(p)), and u(x_2) from bottom to top.\n- Horizontal Axis: Outcome x, showing values x_1, CE(p), E(p), and x_2 from left to right.\n- Concave Curve: Represents the utility function u(x) passing through points (x_1, u(x_1)), (CE(p), Eu(p)), (E(p), u(E(p))), and (x_2, u(x_2)).\n- Straight Line Segment (Chord): Connects (x_1, u(x_1)) directly to (x_2, u(x_2)). The point on this chord corresponding to outcome E(p) yields expected utility Eu(p).\n- Certainty Equivalent (CE(p)): The outcome value where u(CE(p)) = Eu(p), located on the x-axis to the left of E(p).\n- Risk Premium R(p): Represented as the horizontal distance/interval along the x-axis between CE(p) and E(p).\n- Equations displayed on the right side:\n  - p = \\alpha x_1 \\oplus (1 - \\alpha) x_2\n  - E(p) = \\alpha x_1 + (1 - \\alpha) x_2"
+    },
+    "pg_21__page_107_Figure_1.jpeg": {
+        "skip": false,
+        "description": "A graph comparing two utility functions, u1 and u2, on a plot with monetary outcome x on the horizontal axis and utility u(x) on the vertical axis.\n\nKey elements on the axes:\n- Horizontal axis (x): Marked with points x1, CE1(p), CE2(p), E(p), and x2 from left to right.\n- Vertical axis (u(x)): Marked with utility levels u1(x1) = u2(x1), Eu1(p) = Eu2(p), and u1(x2) = u2(x2) from bottom to top.\n\nCurves and line segments:\n- Two concave utility curves, u1(x) and u2(x), both start at point (x1, u(x1)) and end at point (x2, u(x2)). Curve u1 lies strictly above curve u2 between x1 and x2, representing higher risk aversion.\n- A straight chord connects the endpoints (x1, u(x1)) and (x2, u(x2)), representing the expected utility line for a lottery p = p1[x1] (+) p2[x2].\n\nMarked Points and Projections:\n- Expected Utility level Eu1(p) = Eu2(p) is shown as a horizontal dotted line across the graph.\n- The point on u1 where utility equals Eu1(p) projects down to the certainty equivalent CE1(p).\n- The point on u2 where utility equals Eu2(p) projects down to the certainty equivalent CE2(p).\n- The point on the straight chord where utility equals the expected utility projects down to the expected value E(p).\n- The order along the x-axis shows x1 < CE1(p) < CE2(p) < E(p) < x2, illustrating that Agent 1 has a lower certainty equivalent (and thus a higher risk premium E(p) - CE(p)) than Agent 2."
+    },
+    "pg_21__page_110_Figure_1.jpeg": {
+        "skip": false,
+        "description": "A 2D Cartesian plot illustrating risk aversion comparisons in economic theory (Figure 8.4). The horizontal axis is labeled x_1 and the vertical axis is labeled x_2. A line extending from the origin at a 45-degree angle intersects a downward-sloping linear line at point (t, t), where dashed dotted lines extend down to t on the horizontal axis and left to t on the vertical axis. The downward-sloping line represents the budget or line equation px_1 + (1 - p)x_2 = t, forming an angle labeled p/(1 - p) with the horizontal axis. Two indifference curves, labeled \\psi_1(x_1) and \\psi_2(x_1), are tangent to the downward-sloping line at the point (t, t). The curve \\psi_2(x_1) is steeper/more convex at this point than \\psi_1(x_1), illustrating that decision maker 1 is more risk averse than 2."
+    }
+}

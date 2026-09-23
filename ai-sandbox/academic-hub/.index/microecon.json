@@ -800,7 +800,7 @@
     "level": "advanced",
     "has_solutions": false,
     "page_count": 709,
-    "rag_md_path": null,
+    "rag_md_path": "academic_notes/microecon/textbooks/processed_outputs/Ok_Real_Analysis_with_Economic_Applications_2026/Ok_Real_Analysis_with_Economic_Applications_2026.rag.md",
     "embedding": [
       0.0106619,
       -0.010242174,
@@ -1588,7 +1588,7 @@
     "level": "advanced",
     "has_solutions": false,
     "page_count": 987,
-    "rag_md_path": null,
+    "rag_md_path": "academic_notes/microecon/textbooks/processed_outputs/Press_Microeconomic_Theory_2011/Press_Microeconomic_Theory_2011.rag.md",
     "embedding": [
       0.019814614,
       -0.016043717,
@@ -2376,7 +2376,7 @@
     "level": "advanced",
     "has_solutions": false,
     "page_count": 192,
-    "rag_md_path": null,
+    "rag_md_path": "academic_notes/microecon/textbooks/processed_outputs/Rubenstein_Lecture_Notes_in_Microeconomic_Theory_2026/Rubenstein_Lecture_Notes_in_Microeconomic_Theory_2026.rag.md",
     "embedding": [
       0.020750433,
       -0.01466809,
@@ -3164,7 +3164,7 @@
     "level": "advanced",
     "has_solutions": false,
     "page_count": 136,
-    "rag_md_path": null,
+    "rag_md_path": "academic_notes/microecon/textbooks/Bonus/processed_outputs/Administrator_59306pre_2000/Administrator_59306pre_2000.rag.md",
     "embedding": [
       0.01084171,
       -0.0010341179,
@@ -3952,7 +3952,7 @@
     "level": "advanced",
     "has_solutions": false,
     "page_count": 220,
-    "rag_md_path": null,
+    "rag_md_path": "academic_notes/microecon/textbooks/Bonus/processed_outputs/Rubenstein_Corel_Ventura_INDEXCHP_2001/Rubenstein_Corel_Ventura_INDEXCHP_2001.rag.md",
     "embedding": [
       0.009530389,
       -0.032250933,
@@ -4740,7 +4740,7 @@
     "level": "intermediate",
     "has_solutions": false,
     "page_count": 382,
-    "rag_md_path": null,
+    "rag_md_path": "academic_notes/microecon/textbooks/Bonus/processed_outputs/Rubenstein_Models_in_Microeconomic_Theory_2023/Rubenstein_Models_in_Microeconomic_Theory_2023.rag.md",
     "embedding": [
       0.02853246,
       -0.007026994,

@@ -15,7 +15,7 @@
     "level": "intermediate",
     "has_solutions": false,
     "page_count": 404,
-    "rag_md_path": "academic_resources/math-camp/textbooks/processed_outputs/Axler_Linear_Algebra_Done_Right_2026/Axler_Linear_Algebra_Done_Right_2026.rag.md",
+    "rag_md_path": "academic_notes/math-camp/textbooks/processed_outputs/Axler_Linear_Algebra_Done_Right_2026/Axler_Linear_Algebra_Done_Right_2026.rag.md",
     "embedding": [
       0.01837808,
       -0.012555282,
@@ -807,7 +807,7 @@
     "level": "introductory",
     "has_solutions": true,
     "page_count": 380,
-    "rag_md_path": "academic_resources/math-camp/textbooks/processed_outputs/Hammack_Book_of_Proof_2025/Hammack_Book_of_Proof_2025.rag.md",
+    "rag_md_path": "academic_notes/math-camp/textbooks/processed_outputs/Hammack_Book_of_Proof_2025/Hammack_Book_of_Proof_2025.rag.md",
     "embedding": [
       0.0068957293,
       -0.02202526,
@@ -1598,7 +1598,7 @@
     "level": "advanced",
     "has_solutions": false,
     "page_count": 594,
-    "rag_md_path": "academic_resources/math-camp/textbooks/processed_outputs/Rudin_Principles_of_Mathematical_Analysis_2014/Rudin_Principles_of_Mathematical_Analysis_2014.rag.md",
+    "rag_md_path": "academic_notes/math-camp/textbooks/processed_outputs/Rudin_Principles_of_Mathematical_Analysis_2014/Rudin_Principles_of_Mathematical_Analysis_2014.rag.md",
     "embedding": [
       0.00013234226,
       -0.0023743662,
@@ -2394,7 +2394,7 @@
     "level": "intermediate",
     "has_solutions": false,
     "page_count": 899,
-    "rag_md_path": "academic_resources/math-camp/textbooks/processed_outputs/Simon_Mathematics_for_Economists_2017/Simon_Mathematics_for_Economists_2017.rag.md",
+    "rag_md_path": "academic_notes/math-camp/textbooks/processed_outputs/Simon_Mathematics_for_Economists_2017/Simon_Mathematics_for_Economists_2017.rag.md",
     "embedding": [
       0.022346998,
       -0.027625045,
@@ -3189,7 +3189,7 @@
     "level": "intermediate",
     "has_solutions": false,
     "page_count": 766,
-    "rag_md_path": "academic_resources/math-camp/textbooks/processed_outputs/Sydsæter_Essential_Mathematics_for_Economic_Analysis_2017/Sydsæter_Essential_Mathematics_for_Economic_Analysis_2017.rag.md",
+    "rag_md_path": "academic_notes/math-camp/textbooks/processed_outputs/Sydsæter_Essential_Mathematics_for_Economic_Analysis_2017/Sydsæter_Essential_Mathematics_for_Economic_Analysis_2017.rag.md",
     "embedding": [
       -0.011696233,
       -0.022382542,

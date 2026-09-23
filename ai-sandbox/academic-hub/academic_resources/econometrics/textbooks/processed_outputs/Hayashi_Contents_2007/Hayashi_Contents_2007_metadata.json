@@ -13,6 +13,6 @@
     },
     "source_pdf_path": "../academic-rag-model/temp_gcs_input_Econometrics_Fumio_Hayashi_Princeton___Princeton_University_Press_Princeton_N_J_2000_Princeton_University_Press_isbn13_9780691010182.pdf",
     "source_pdf_file_id": "a682097a94307c70",
-    "rag_md_path": "academic_resources/econometrics/textbooks/processed_outputs/Hayashi_Contents_2007/Hayashi_Contents_2007.rag.md",
+    "rag_md_path": "academic_notes/econometrics/textbooks/processed_outputs/Hayashi_Contents_2007/Hayashi_Contents_2007.rag.md",
     "source_pdf_filename": "Econometrics -- Fumio Hayashi_,Princeton _ Princeton University Press -- Princeton, N_J, 2000 -- Princeton University Press -- isbn13 9780691010182.pdf"
 }

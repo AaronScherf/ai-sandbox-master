@@ -11,7 +11,7 @@
     "level": "advanced",
     "has_solutions": false,
     "page_count": 1081,
-    "rag_md_path": "academic_resources/econometrics/textbooks/processed_outputs/Hansen_ECONOMETRICS_2022/Hansen_ECONOMETRICS_2022.rag.md",
+    "rag_md_path": "academic_notes/econometrics/textbooks/processed_outputs/Hansen_ECONOMETRICS_2022/Hansen_ECONOMETRICS_2022.rag.md",
     "embedding": [
       0.015987085,
       -0.013918131,
@@ -799,7 +799,7 @@
     "level": "advanced",
     "has_solutions": true,
     "page_count": 686,
-    "rag_md_path": "academic_resources/econometrics/textbooks/processed_outputs/Hayashi_Contents_2007/Hayashi_Contents_2007.rag.md",
+    "rag_md_path": "academic_notes/econometrics/textbooks/processed_outputs/Hayashi_Contents_2007/Hayashi_Contents_2007.rag.md",
     "embedding": [
       0.019599428,
       -0.012570041,
@@ -1587,7 +1587,7 @@
     "level": "intermediate",
     "has_solutions": false,
     "page_count": 801,
-    "rag_md_path": "academic_resources/econometrics/textbooks/processed_outputs/Stock_Question_Help_2019/Stock_Question_Help_2019.rag.md",
+    "rag_md_path": "academic_notes/econometrics/textbooks/processed_outputs/Stock_Question_Help_2019/Stock_Question_Help_2019.rag.md",
     "embedding": [
       0.01940461,
       0.013807611,
@@ -2375,7 +2375,7 @@
     "level": "advanced",
     "has_solutions": false,
     "page_count": 1058,
-    "rag_md_path": "academic_resources/econometrics/textbooks/processed_outputs/Cameron_Microeconometrics_Methods_and_Applications_2013/Cameron_Microeconometrics_Methods_and_Applications_2013.rag.md",
+    "rag_md_path": "academic_notes/econometrics/textbooks/processed_outputs/Cameron_Microeconometrics_Methods_and_Applications_2013/Cameron_Microeconometrics_Methods_and_Applications_2013.rag.md",
     "embedding": [
       0.014444135,
       -0.0027416025,

@@ -1,0 +1,478 @@
+{
+    "pg_22__page_2_Diagram_2.jpeg": {
+        "skip": false,
+        "description": "A Venn diagram depicting an individual's preference relations between two items, x and y, represented by two overlapping ellipses.\n\n- Left ellipse (blue region, labeled x ≳ y): Contains the strict preference region on the far left, labeled 'x preferred to y' and denoted by x ≻ y.\n- Intersection (purple/middle region): Labeled 'x and y equally desirable' and denoted by x ~ y.\n- Right ellipse (pink region, labeled y ≳ x): Contains the strict preference region on the far right, labeled 'y preferred to x' and denoted by y ≻ x."
+    },
+    "pg_22__page_8_Diagram_2.jpeg": {
+        "skip": false,
+        "description": "A horizontal diagram representing the partition of a set $X$ into subsets $M_1, M_2, M_3, \\dots, M_K$ with increasing shade intensity from left to right. Each partition block shows its corresponding utility value $u(x)$ and the preference ordering symbol $\\prec$ between adjacent blocks: $M_1$ with $u(x)=1$, followed by $\\prec$, $M_2$ with $u(x)=2$, followed by $\\prec$, $M_3$ with $u(x)=3$, followed by $\\prec$, ellipsis ($\\dots$), followed by $\\prec$, and finally $M_K$ with $u(x)=K$."
+    },
+    "pg_22__page_9_Figure_2.jpeg": {
+        "skip": false,
+        "description": "A 10-by-10 grid diagram representing a cinema seating arrangement with 10 rows (labeled 1 to 10 vertically on the left) and 10 columns (labeled 1 to 10 horizontally at the bottom). The screen is indicated at the top. Each seat is depicted as a square. The shading of the squares gradually transitions from very light blue at row 1 (closest to the screen) to a deep dark blue at row 10 (furthest from the screen), visually illustrating a preference order where lower rows (darker blue) are preferred over higher rows (lighter blue)."
+    },
+    "pg_22__page_10_Figure_2.jpeg": {
+        "skip": false,
+        "description": "A unit square plot representing a 2D space of alternatives with x1 on the horizontal axis from 0 to 1 and x2 on the vertical axis from 0 to 1. An arbitrary point (z1, z2) is indicated on the axes. A horizontal dashed line connects z2 on the vertical axis to z1. The region preferred to (z1, z2) under lexicographic preferences is shaded blue. This shaded area covers the entire vertical strip where x1 > z1, as well as the portion of the vertical line at x1 = z1 where x2 >= z2. The segment of the vertical boundary line x1 = z1 where x2 < z2 is represented with a dashed white line, indicating its exclusion from the preferred region."
+    },
+    "pg_22__page_13_Picture_0.jpeg": {
+        "skip": true,
+        "description": ""
+    },
+    "pg_22__page_27_Picture_0.jpeg": {
+        "skip": true,
+        "description": ""
+    },
+    "pg_22__page_29_Figure_2.jpeg": {
+        "skip": false,
+        "description": "A 2D coordinate plot illustrating a simplex representing the set of lotteries over two outcomes, z1 and z2. The horizontal axis represents probability p1 and ranges from 0 to 1. The vertical axis represents probability p2 and ranges from 0 to 1. A straight blue line segment connects the point (0, 1) on the vertical axis to the point (1, 0) on the horizontal axis, representing the constraint p1 + p2 = 1. A specific point on this line segment is marked with a black dot, corresponding to the coordinates (p1, p2) via dashed gray projection lines to both axes."
+    },
+    "pg_22__page_29_Figure_4.jpeg": {
+        "skip": false,
+        "description": "A 3D coordinate diagram representing the probability simplex (set of lotteries) over three outcomes z1, z2, and z3. The three axes correspond to probabilities p1, p2, and p3, each marked with 1 at their intercepts. A light blue triangular plane connects these three intercepts (1,0,0), (0,1,0), and (0,0,1). Inside this triangle, dashed gray lines form a rectangular box projecting a specific point (marked with a black dot) onto the three axes, corresponding to the coordinates (p1, p2, p3)."
+    },
+    "pg_22__page_37_Figure_2.jpeg": {
+        "skip": false,
+        "description": "A line plot depicting a concave Bernoulli function, v(z), plotted against prize amount z. The horizontal axis represents prize amount z extending to the right from 0, and the vertical axis represents utility v(z). The curve begins at the origin (0, 0) and increases as z increases, but with a decreasing slope, illustrating diminishing marginal utility typical of risk aversion."
+    },
+    "pg_22__page_41_Picture_0.jpeg": {
+        "skip": true,
+        "description": ""
+    },
+    "pg_22__page_43_Figure_2.jpeg": {
+        "skip": false,
+        "description": "A 2D coordinate plot showing indifference curves for a consumer preference relation in two-dimensional space. The horizontal axis is labeled x_1 with an arrow pointing right, and the vertical axis is labeled x_2 with an arrow pointing up, originating at 0. The graph contains multiple parallel, negatively sloped straight lines (indifference curves) extending from top-left to bottom-right. The lines increase in color intensity from light blue near the origin to dark blue in the upper-right region. A small arrow in the center points perpendicularly up and to the right (northeast), indicating the direction of increasing preference or utility."
+    },
+    "pg_22__page_43_Figure_4.jpeg": {
+        "skip": false,
+        "description": "A two-dimensional coordinate plot displaying indifference sets (curves) represented as horizontal parallel lines on a plane. The horizontal axis is labeled 'x_1' with an arrow pointing right, and the vertical axis is labeled 'x_2' with an arrow pointing upward. The origin is marked '0'. Four horizontal lines are drawn at increasing heights along the vertical axis, with darker shades of blue representing higher utility/preference levels as indicated by a small upward-pointing arrow near the center line."
+    },
+    "pg_22__page_44_Figure_2.jpeg": {
+        "skip": false,
+        "description": "A plot depicting indifference curves on a two-dimensional coordinate system with $x_1$ on the horizontal axis and $x_2$ on the vertical axis.\n\n- **Axes and Limits:** The origin is labeled $0$, with a vertical line at $x_1 = 10$. Arrows indicate increasing values of $x_1$ to the right and $x_2$ upwards.\n- **Left Region ($x_1 < 10$):** Indifference sets are represented by vertical lines (e.g., a light vertical line around $x_1 = 5$). A horizontal arrow pointing to the right indicates that utility increases in the direction of higher $x_1$.\n- **Right Region ($x_1 > 10$):** Indifference sets transition into horizontal line segments starting at $x_1 = 10$ and extending to the right at various heights of $x_2$. A vertical arrow pointing upwards indicates that for $x_1 > 10$, utility increases in the direction of higher $x_2$."
+    },
+    "pg_22__page_44_Figure_4.jpeg": {
+        "skip": false,
+        "description": "A plot of L-shaped indifference curves (representing Leontief preferences or perfect complements) in a two-dimensional commodity space with $x_1$ on the horizontal axis and $x_2$ on the vertical axis. The axes originate at 0 with arrows pointing right for $x_1$ and up for $x_2$. Multiple L-shaped curves open towards the upper right, with an arrow pointing up and to the right, indicating the direction of increasing utility."
+    },
+    "pg_22__page_45_Figure_2.jpeg": {
+        "skip": false,
+        "description": "A two-dimensional contour plot representing indifference sets centered around an ideal point, labeled x*, in the positive quadrant with horizontal axis x1 and vertical axis x2. The indifference curves form concentric square diamonds (rotated 45 degrees relative to the axes) surrounding the ideal point x*. Arrows along the sides of one of the diamonds point inward toward x*, indicating that preference increases as bundles get closer to x*."
+    },
+    "pg_22__page_48_Figure_2.jpeg": {
+        "skip": false,
+        "description": "A two-dimensional graph showing indifference curves for a convex preference relation. The horizontal axis is labeled x_1 with an arrow pointing right, and the vertical axis is labeled x_2 with an arrow pointing up, starting from origin 0. Two downward-sloping, convex indifference curves are shown in light purple. \n\nOn the inner (lower) indifference curve, point b is located in the middle, and point a'' is located further down and to the right on the same curve. Point a' lies higher up on the inner curve. On the outer (higher) indifference curve, point a is marked above b and to the right of a'. \n\nDashed line segments connect point b to point a', and point b to point a. A straight line segment also connects b to a''. An arrow points upward and to the right between the two curves, indicating the direction of increasing preference."
+    },
+    "pg_22__page_48_Figure_4.jpeg": {
+        "skip": false,
+        "description": "A two-dimensional plot showing indifference curves for a consumer's preferences over two goods, x1 on the horizontal axis and x2 on the vertical axis. The graph illustrates convex indifference sets. Two downward-sloping, smooth indifference curves are drawn. Point b lies on the lower indifference curve, while point a lies on a higher indifference curve. Points a' and a'' also lie on the lower curve or nearby. Dashed line segments connect point b to point a, point a', and point a'', illustrating linear combinations of bundles to demonstrate the concept of convex preference sets where convex combinations of bundles are at least as preferred as bundle b."
+    },
+    "pg_22__page_51_Figure_2.jpeg": {
+        "skip": false,
+        "description": "A two-dimensional economic graph showing indifference curves and budget lines on an x1-x2 plane. The horizontal axis represents quantity of good x1, and the vertical axis represents quantity of good x2. A smooth light blue indifference curve convex to the origin passes through point z. A green line is tangent to the indifference curve at point z. A steeper grey budget line also intersects the indifference curve at point z and contains labeled points x (higher up on the line) and x' (closer to z)."
+    },
+    "pg_22__page_51_Figure_4.jpeg": {
+        "skip": false,
+        "description": "A two-dimensional plot representing an indifference curve for a preference relation that is not differentiable. The vertical axis is labeled $x_2$ and the horizontal axis is labeled $x_1$. A kinked line represents the indifference set, formed by two connected segments meeting at a vertex point $z$. Point $x$ lies above and to the left of point $z$, connected to $z$ by a straight line segment. A green reference line passes through point $z$ with a negative slope, touching the $x_2$-axis and $x_1$-axis, illustrating a supporting line at the non-differentiable corner point $z$."
+    },
+    "pg_22__page_55_Figure_2.jpeg": {
+        "skip": false,
+        "description": "A graph illustrating a budget set and budget line in two dimensions for goods x1 and x2. The horizontal axis represents quantity of x1, increasing to the right, and the vertical axis represents quantity of x2, increasing upwards, with the origin labeled 0. A straight line (dark green) connects the vertical intercept at w/p_2 to the horizontal intercept at w/p_1. The shaded region (light green) underneath this line and bounded by the axes represents the budget set, satisfying p1*x1 + p2*x2 <= w."
+    },
+    "pg_22__page_60_Figure_10.jpeg": {
+        "skip": false,
+        "description": "Two graphs illustrating consumer optimization under budget constraints.\n\nGraph (a) labeled 'A case in which x1* > 0 and x2* > 0':\n- X-axis represents good x1, Y-axis represents good x2, with origin 0.\n- A green linear budget constraint line labeled p1*x1 + p2*x2 = w goes from top-left to bottom-right.\n- A blue indifference curve intersects the budget line at an interior point x*.\n- A point y(ε) = x* + (-ε, ε*p1/p2) lies higher up on the budget line to the left of x*.\n- A tangent line (grey) passing through x* indicates the slope of the indifference curve at x*, given by -v1(x*)/v2(x*).\n\nGraph (b) labeled 'A case in which x1* = 0 and x2* > 0':\n- Same axes as graph (a).\n- The optimal consumption bundle x* is a corner solution located on the vertical axis (x2-axis, where x1* = 0).\n- The green budget constraint line p1*x1 + p2*x2 = w extends downward and to the right from x*.\n- A point y(ε) = x* + (ε, -ε*p1/p2) lies on the budget line to the right of x*.\n- The blue indifference curve is steeper than the budget line at x*, showing that the magnitude of the slope -v1(x*)/v2(x*) (marginal rate of substitution) is less steep or different from the budget line, establishing the corner optimality condition MRS(x*) <= p1/p2."
+    },
+    "pg_22__page_61_Figure_2.jpeg": {
+        "skip": false,
+        "description": "A graph illustrating consumer choice and utility maximization in a two-good space (x1 on the horizontal axis, x2 on the vertical axis). A straight green budget line given by the equation p1*x1 + p2*x2 = w slopes downward from the vertical axis to the horizontal axis. A blue indifference curve, convex to the origin (0), curves downward and tangents the green budget line at a single point labeled x*, representing the optimal bundle."
+    },
+    "pg_22__page_62_Figure_2.jpeg": {
+        "skip": false,
+        "description": "A 2D microeconomic optimization graph with horizontal axis labeled x_1 and vertical axis labeled x_2. A straight green budget line representing p_1 x_1 + p_2 x_2 = w slopes downward from the vertical axis to the horizontal axis. A blue indifference curve, which is convex and curved toward the origin, lies above the budget line at higher x_2 values and touches the green budget line tangentially at point x*. At this point of tangency x*, x_1* > 0 and the marginal rate of substitution (MRS) equals the price ratio p_1/p_2."
+    },
+    "pg_22__page_62_Figure_4.jpeg": {
+        "skip": false,
+        "description": "A line graph showing a corner solution in utility maximization with two goods, x1 on the horizontal axis and x2 on the vertical axis. The budget line (green straight line) connects a high x2 intercept to a low x1 intercept. The indifference curve (blue curve, labeled p1*x1 + p2*x2 = w) starts at the same vertical intercept x* on the x2 axis and curves downward towards the x1 axis. At the point x* on the x2 axis where x1 = 0, the indifference curve is steeper than the budget line, demonstrating a corner solution where MRS(x1*, x2*) > p1/p2."
+    },
+    "pg_22__page_63_Figure_2.jpeg": {
+        "skip": false,
+        "description": "A two-dimensional graph with axes x1 (horizontal) and x2 (vertical), illustrating two overlapping triangular budget sets in the non-negative quadrant.\n\n- The horizontal axis x1 ranges from 0 to 2, and the vertical axis x2 ranges from 0 to 2.\n- Budget set B((1,2), 2) is shaded light blue and bounded by the line connecting (0, 1) and (2, 0). Point a is located at (0, 1) on the x2-axis, marked with a black dot.\n- Budget set B((2,1), 2) is shaded light green and bounded by the line connecting (0, 2) and (1, 0). Point b is located at (1, 0) on the x1-axis, marked with a black dot.\n- The two budget lines intersect in the interior of the first quadrant. Point a represents the choice from B((1,2), 2) and point b represents the choice from B((2,1), 2)."
+    },
+    "pg_22__page_64_Figure_2.jpeg": {
+        "skip": false,
+        "description": "A graph in two-dimensional space showing a consumer's budget set B((p_1, p_2), w) bounded by the axes x_1 and x_2 and a downward-sloping green line (the budget line). The region under the line and above the axes is shaded light green, representing the budget set. Point a is located directly on the budget line and labeled a = x((p_1, p_2), w), representing the chosen demand bundle. Point b lies strictly inside the shaded budget set region below point a."
+    },
+    "pg_22__page_64_Figure_4.jpeg": {
+        "skip": false,
+        "description": "A 2D economic graph illustrating budget sets and consumer choice in $x_1$-$x_2$ space. The origin is marked as $0$ at the bottom left, with $x_1 \\rightarrow$ on the horizontal axis and $x_2 \\uparrow$ on the vertical axis.\n\nTwo downward-sloping linear budget constraints intersect:\n1. A green budget line bounding a light green shaded budget set region labeled $B((p_1, p_2), w)$. On this green budget line, a point $b$ is located at the lower right and labeled $b = x((p_1, p_2), w)$.\n2. A grey budget line that is shallower in slope. On this grey budget line, point $a$ lies inside the green budget region $B((p_1, p_2), w)$.\n3. Point $c$ lies strictly above point $a$, strictly inside the green budget region $B((p_1, p_2), w)$ and above the grey line."
+    },
+    "pg_22__page_66_Figure_2.jpeg": {
+        "skip": true,
+        "description": ""
+    },
+    "pg_22__page_68_Figure_2.jpeg": {
+        "skip": false,
+        "description": "A two-dimensional microeconomic graph depicting the Slutsky substitution effect and weak axiom of revealed preference in consumption theory, labeled as Figure 5.8.\n\n- Axes: The horizontal axis represents good 1 quantity, $x_1 \\rightarrow$, and the vertical axis represents good 2 quantity, $x_2 \\uparrow$, starting from the origin $0$.\n- Lines and Curves:\n  - A blue budget line labeled $p_1 x_1 + p_2 x_2 = w$ shows the initial budget constraint.\n  - A green budget line labeled $p_1' x_1 + p_2 x_2 = w'$ represents the compensated budget line with a higher price for good 1 ($p_1' > p_1$) that passes through the original consumption bundle $a$.\n  - Two convex indifference curves (black) are shown tangent to the budget lines.\n- Points:\n  - Point $a = x((p_1, p_2), w)$ lies at the intersection/tangency of the blue budget line $p_1 x_1 + p_2 x_2 = w$ and the lower indifference curve. It also lies on the green compensated budget line $p_1' x_1 + p_2 x_2 = w'$.\n  - Point $b = x((p_1', p_2), w')$ lies higher and to the left on the green budget line, tangent to a higher indifference curve, illustrating the shift in demand after the price change and income compensation."
+    },
+    "pg_22__page_69_Figure_2.jpeg": {
+        "skip": false,
+        "description": "A 2D economic graph illustrating a budget set and an indifference curve in consumption space with goods x1 on the horizontal axis and x2 on the vertical axis.\n\nKey elements:\n- The horizontal axis is labeled x1 (with an arrow pointing right), and the origin is labeled 0.\n- The vertical axis is labeled x2 (with an arrow pointing up).\n- A green budget line slopes downwards from the vertical axis to the horizontal axis, forming a shaded green triangular budget set region labeled:\n  \"B((p1, p2), w) where w = e((p1, p2), x*)\".\n- A black curve representing an indifference curve convex to the origin lies above and tangents to the green budget line.\n- On the upper portion of the indifference curve, above the tangency point with the budget line, a point is plotted and labeled x*."
+    },
+    "pg_22__page_75_Figure_2.jpeg": {
+        "skip": false,
+        "description": "A line graph showing an output-maximization decision problem under a zero-profit constraint. The horizontal axis represents the input quantity 'a' (with an arrow to the right and labeled 'a ->'), starting from origin 0, with a specific input level marked as 'a*'. The vertical axis represents monetary value in dollars ('$') with an upward arrow. A concave red curve starting from the origin represents total revenue, labeled 'pf(a)'. A straight gray line starting from the origin represents total cost, labeled 'w a'. The cost line 'w a' intersects the revenue curve 'pf(a)' at input level 'a*', where total revenue equals total profit (zero economic profit). This illustrates the maximum input level 'a*' that an output-maximizing producer can choose while breaking even (non-negative profit)."
+    },
+    "pg_22__page_75_Figure_4.jpeg": {
+        "skip": false,
+        "description": "A graph illustrating the effect of a technological improvement on input choice for an output-maximizing producer. The horizontal axis represents input level 'a' (increasing to the right), with special points marked at 0, a*, and a**. The vertical axis represents dollar value ($). Three curves start at the origin (0,0):\n1. A straight line labeled 'w a' representing total cost.\n2. A concave red curve labeled 'p f(a)' representing total revenue before technological improvement. It intersects the cost line 'w a' at a*, where revenue equals cost (zero profit).\n3. A higher concave purple curve labeled 'p g(a)' representing total revenue after technological improvement. It intersects the cost line 'w a' at a higher input level a**.\n\nVertical dashed lines extend down from the intersection points to the horizontal axis at a* and a**, showing that technological improvement increases the optimal input level chosen by an output-maximizing producer from a* to a**."
+    },
+    "pg_22__page_76_Figure_2.jpeg": {
+        "skip": false,
+        "description": "A graph illustrating profit maximization for a producer using a single input $a$. The horizontal axis represents the input level $a$ (increasing to the right), with special mark $a^*$, and the origin labeled 0. The vertical axis represents monetary value in dollars ($), extending upwards.\n\nKey components of the graph include:\n1. A red concave curve starting at the origin, labeled $p f(a)$, representing total revenue as a function of input level $a$.\n2. A light gray line starting at the origin with slope $w$, labeled $w a$, representing the total cost of the input $a$.\n3. A darker gray line parallel to $w a$ (thus also having slope $w$, labeled 'slope $= w$') that is tangent to the red $p f(a)$ curve at input level $a^*$.\n4. A vertical dashed gray line dropping from the tangency point on the curve down to $a^*$ on the horizontal axis, indicating the optimal input choice where marginal revenue equals marginal cost."
+    },
+    "pg_22__page_76_Figure_4.jpeg": {
+        "skip": false,
+        "description": "An economic graph illustrating profit maximization and the effect of a technology change. The horizontal axis represents input quantity 'a' (labeled with '0' at the origin and 'a ->' on the right), and the vertical axis represents dollar value '$'. \n\nTwo production curves in revenue terms are plotted starting from the origin:\n1. A lower curve labeled 'p f(a)' in red, representing initial revenue as a function of input 'a'.\n2. An upper curve labeled 'p g(a)' in purple, representing a higher output/revenue level due to technological improvement.\n\nThree parallel tangent lines with 'slope = w' are shown:\n- A line passing through the origin labeled 'w a', representing the total cost line with slope equal to input price 'w'.\n- A line tangent to the lower red curve 'p f(a)' at input level 'a_f^*', marked with a vertical dashed line down to the horizontal axis.\n- A line tangent to the upper purple curve 'p g(a)' at input level 'a_g^*', marked with a vertical dashed line down to the horizontal axis to the left of 'a_f^*'.\n\nThe graph demonstrates how a technological shift from 'f(a)' to 'g(a)' changes the optimal input choice from 'a_f^*' to 'a_g^*' where marginal revenue equals marginal cost 'w'."
+    },
+    "pg_22__page_79_Figure_2.jpeg": {
+        "skip": false,
+        "description": "A line graph showing a cost function curve C(y) plotted on Cartesian axes. The horizontal axis represents output quantity y (with an arrow pointing right), starting at 0, and the vertical axis represents cost in dollars $ (with an arrow pointing up). The curve C(y) starts at the origin (0,0) and bends upward smoothly, exhibiting a convex, strictly increasing shape as output y increases. Below the chart, the caption labels it as \"(a) A cost function with no fixed cost.\""
+    },
+    "pg_22__page_79_Figure_4.jpeg": {
+        "skip": false,
+        "description": "A graph illustrating a cost function C(y) with a fixed cost k. The horizontal axis represents output quantity y, starting at 0, and the vertical axis represents total cost in dollars ($). At y = 0, the cost is 0 (indicated by a solid dot at the origin). However, for any output quantity y > 0, the cost curve starts from an open circle at cost level k on the vertical axis and curves smoothly upward and to the right, showing that total cost increases as output y increases."
+    },
+    "pg_22__page_80_Figure_2.jpeg": {
+        "skip": false,
+        "description": "Figure 6.4 illustrates average cost (AC(y)) and marginal cost (MC(y)) functions plotted against output quantity (y) under two scenarios: (a) A case with no fixed cost, where both MC(y) and AC(y) start at the same positive point on the vertical axis at y = 0, with MC(y) rising more steeply above AC(y) as y increases. (b) A case with a fixed cost, where AC(y) starts high near the vertical axis due to fixed costs spreading over small output and forms a U-shape, intersecting MC(y) at the minimum point of AC(y), while MC(y) starts lower on the vertical axis and continuously increases."
+    },
+    "pg_22__page_81_Figure_2.jpeg": {
+        "skip": false,
+        "description": "A graph titled '(a) Output-maximizing producer' depicting cost curves for a producer. The horizontal axis represents output $y$, starting at 0, with a marked point $y^*$. The vertical axis represents price and cost in dollars, with a marked price level $p$. A horizontal line extends from $p$ across the plot area.\n\nTwo curves are plotted in blue:\n1. The Average Cost curve, labeled $AC(y)$, which starts high at near-zero output, decreases to a minimum point, and then rises smoothly to the right, intersecting the price line $p$ at $y^*$.\n2. The Marginal Cost curve, labeled $MC(y)$, which starts at a lower value on the vertical axis, rises steadily, intersects the $AC(y)$ curve at its minimum point, and continues upward above $AC(y)$ and through the price line $p$.\n\nA dashed vertical line connects $y^*$ on the horizontal axis to the intersection of the price line $p$ and the average cost curve $AC(y)$."
+    },
+    "pg_22__page_81_Figure_4.jpeg": {
+        "skip": false,
+        "description": "A cost curve diagram comparing price p, marginal cost MC(y), and average cost AC(y) for a profit-maximizing producer. The horizontal axis represents output y, starting at 0, with a target optimal output marked at y*. The vertical axis represents price/cost in dollars ($) with price p indicated by a horizontal line. The marginal cost curve MC(y) is U-shaped, starting high, decreasing, and then rising sharply, intersecting the horizontal price line p at output y*. The average cost curve AC(y) starts lower, rises gently to the right, and lies below the MC(y) curve at y*, intersecting MC(y) prior to y*. A vertical dashed line connects the intersection of MC(y) and the price line p down to y* on the horizontal output axis."
+    },
+    "pg_22__page_85_Picture_0.jpeg": {
+        "skip": true,
+        "description": ""
+    },
+    "pg_22__page_89_Figure_2.jpeg": {
+        "skip": false,
+        "description": "A line graph showing monopoly pricing and output determination with quantity y on the horizontal axis and price/cost in dollars on the vertical axis. An upward-sloping blue line represents marginal cost, labeled MC(y), starting from the origin. A downward-sloping red line represents the inverse demand curve, labeled P(y), starting from a high price intercept on the vertical axis. A steeper downward-sloping green line represents marginal revenue, labeled MR(y), sharing the same vertical intercept as P(y). The intersection of the blue MC(y) line and the green MR(y) line determines the optimal output quantity y*. A dashed vertical line extends upward from y* to the demand curve P(y), indicating the profit-maximizing price P(y*) on the vertical axis."
+    },
+    "pg_22__page_89_Figure_4.jpeg": {
+        "skip": false,
+        "description": "A graph plotting price and marginal cost/revenue against quantity y. The vertical axis represents dollar value $, and the horizontal axis represents output quantity y, starting at 0 and showing points y_1, y_2, and y*.\n\n- The demand curve P(y) is shown in red, sloping downward.\n- The marginal revenue curve MR(y) is shown in green, starting high and declining rapidly, falling below the horizontal constant marginal cost line MC(y) near y_1, then oscillating upward past y_2, and finally curving downward again to intersect MC(y) at y*.\n- The constant marginal cost curve MC(y) is a horizontal blue line at the level P(y*).\n- The intersection at y* is highlighted with a black dot, illustrating a case where MR(y) = MC(y) at multiple points (y_1, y_2, and y*), with y* being the profit-maximizing output level."
+    },
+    "pg_22__page_90_Figure_2.jpeg": {
+        "skip": false,
+        "description": "A graph illustrating monopoly deadweight loss compared to competitive equilibrium. The vertical axis represents price/dollars ($) and the horizontal axis represents output quantity (y). Three linear curves are shown:\n- A red downward-sloping demand curve labeled P(y).\n- A green downward-sloping marginal revenue curve labeled MR(y), which originates at the same vertical intercept as P(y) but is steeper.\n- A blue upward-sloping marginal cost curve labeled MC(y), starting from the origin.\n\nTwo quantity levels are marked on the horizontal axis:\n- y*: The monopoly output level, determined by the intersection of MR(y) and MC(y).\n- y_c: The competitive market output level, determined by the intersection of P(y) and MC(y).\n\nOn the vertical axis:\n- P(y*) is the monopoly price corresponding to output y* on the demand curve P(y).\n- P(y_c) is the competitive price corresponding to output y_c.\n\nA yellow triangular shaded region between y* and y_c, bounded above by the demand curve P(y) and below by the marginal cost curve MC(y), represents the deadweight loss (reduction in economic welfare W(y)) caused by reducing output from y_c to y*."
+    },
+    "pg_22__page_91_Figure_2.jpeg": {
+        "skip": false,
+        "description": "A supply and demand graph illustrating the effect of a price ceiling (p_max) on a monopolist's output and economic surplus. The vertical axis represents price/cost ($), and the horizontal axis represents output quantity (y).\n\n- Demand Curve P(y): A downward-sloping red line.\n- Marginal Revenue Curve MR(y): A light dashed downward-sloping line below the demand curve, which splits into a green segment indicating the effective marginal revenue curve under a price ceiling p_max.\n- Marginal Cost Curve MC(y): An upward-sloping blue line starting near the origin.\n- Price Ceiling p_max: A horizontal green line intersecting the demand curve at quantity y*. Up to quantity y*, the effective marginal revenue is equal to p_max.\n- Competitive Equilibrium Point (y_c, P(y_c)): The intersection of the demand curve P(y) and the marginal cost curve MC(y), marked by dashed gray lines.\n- Monopolist Choice under Price Ceiling y*: Marked by a dotted green vertical line extending from the price ceiling p_max down to the horizontal axis. \n- Shaded Yellow Area: Represents deadweight loss or surplus change bounded between quantity y* and quantity y_c, framed by the demand curve P(y) and the marginal cost curve MC(y)."
+    },
+    "pg_22__page_91_Figure_4.jpeg": {
+        "skip": false,
+        "description": "An economic graph illustrating the effect of a per-unit subsidy $t$ on a monopolist's output choice, corresponding to panel (b).\n\nThe vertical axis is labeled '$\\\\$$' with an upward arrow, and the horizontal axis is labeled '$y \\\\rightarrow$' representing output, starting at $0$.\n\nKey curves shown:\n1. A downward-sloping red line labeled $P(y)$, representing the inverse demand curve.\n2. A steep downward-sloping green line labeled $MR(y)$, representing the marginal revenue curve associated with the subsidy. A double-headed vertical arrow of height $t$ shows the upward shift/adjustment relative to a dashed green line below it.\n3. An upward-sloping blue line starting from the origin labeled $MC(y)$, representing marginal cost.\n\nKey points on axes:\n- Horizontal axis: $y^*$ (monopolist's optimal output with the subsidy) and $y_c$ (competitive output where $P(y)$ intersects $MC(y)$).\n- Vertical axis: $P(y^*)$ corresponding to $y^*$ on the demand curve, and $P(y_c)$ corresponding to $y_c$ at the intersection of $P(y)$ and $MC(y)$.\n\nA yellow triangular shaded region is highlighted between output levels $y^*$ and $y_c$, bounded above by the demand curve $P(y)$, below by $P(y_c)$, and on the left by the vertical dashed line at $y^*$."
+    },
+    "pg_22__page_92_Figure_2.jpeg": {
+        "skip": false,
+        "description": "A microeconomics graph illustrating price and quantity determination in a market with monopolistic conditions. The vertical axis represents price/cost in dollars ($), starting at 0, and the horizontal axis represents output quantity $y$, approaching 1. \n\nKey curves shown:\n- Demand curve $P(y)$ in red, sloping downward from the vertical axis to the horizontal axis.\n- Marginal Revenue curve $MR(y)$ in green, sloping downward more steeply than $P(y)$.\n- Marginal Cost curve $MC(y)$ in blue, sloping upward linearly from the origin $(0,0)$.\n- Average Cost curve $AC(y)$ in orange, sloping upward from the origin at a lower slope than $MC(y)$.\n\nKey labeled points:\n- The intersection of the demand curve $P(y)$ and $MC(y)$ determines the competitive/efficient output quantity $y_c$ on the horizontal axis and the corresponding price $P(y_c)$ on the vertical axis (marked by dashed lines).\n- The intersection of the demand curve $P(y)$ and $AC(y)$ determines the output $y^*$ for an output-maximizing producer (subject to zero economic profit) on the horizontal axis and the corresponding price $P(y^*)$ on the vertical axis (marked by dashed lines)."
+    },
+    "pg_22__page_93_Figure_2.jpeg": {
+        "skip": false,
+        "description": "Figure 7.5 displays three graphs side-by-side illustrating price discrimination in two market segments for a profit-maximizing monopolist. \n\nThe left graph shows Market Segment 1 with quantity $y_1$ on the horizontal axis and price/cost on the vertical axis. It features a red demand curve $P_1(y_1)$ and a steeper green marginal revenue curve $MR_1(y_1)$. At the optimal output $y_1^*$, the marginal revenue intersects the horizontal dashed line representing marginal cost, yielding the price $P_1(y_1^*)$.\n\nThe middle graph shows Market Segment 2 with quantity $y_2$ on the horizontal axis. It displays a steeper red demand curve $P_2(y_2)$ and a green marginal revenue curve $MR_2(y_2)$. At the optimal quantity $y_2^*$, marginal revenue equals marginal cost (aligned with the dashed horizontal line), resulting in a higher price $P_2(y_2^*)$.\n\nThe rightmost graph depicts the combined market with total quantity $y = y_1 + y_2$ on the horizontal axis. It shows the horizontal sum of the marginal revenue curves, $MR(y)$ (green line, kinked), intersecting an upward-sloping blue marginal cost curve, $MC(y)$, at the total optimal output level $y_1^* + y_2^*$. A dashed horizontal line extends across all three panels to indicate that the marginal revenues in both market segments are set equal to the total marginal cost at equilibrium."
+    },
+    "pg_22__page_94_Figure_2.jpeg": {
+        "skip": false,
+        "description": "A line graph showing utility functions and monopolist pricing as a function of quantity $q$, ranging from $0$ to $1$ on the horizontal axis. The blue curve represents $V^1(q)$, which increases linearly up to $q^*$ and jumps higher after $q^*$ up to $V^1(1)$ at $q=1$. The green curve represents $V^2(q)$, which increases linearly with a smaller slope up to $q^*$ and continues at a lower slope up to $q=1$. At $q^*$, $V^2(q^*)$ is marked on the vertical axis, and the vertical gap between the blue curve and the green curve is labeled $V^1(q^*) - V^2(q^*)$. On the vertical axis, $m_1^*$ lies below $V^1(1)$ by exactly this difference. A dashed grey line shows the trajectory leading to $(1, m_1^*)$. A lower light grey curve is labeled $2V^2(q) - V^1(q)$, peaking at $q^*$."
+    },
+    "pg_22__page_101_Picture_0.jpeg": {
+        "skip": true,
+        "description": ""
+    },
+    "pg_22__page_114_Picture_8.jpeg": {
+        "skip": false,
+        "description": "A diagram showing three house icons arranged at equal intervals along a circle. The top house is red, the bottom-left house is blue/purple, and the bottom-right house is green."
+    },
+    "pg_22__page_115_Diagram_3.jpeg": {
+        "skip": false,
+        "description": "Three circular arrangement diagrams labeled 'a', 'b', and 'c' representing allocations of individuals around a circle:\n- Allocation 'a': Positioned at the top (red house) is 1, bottom-right (blue house) is 3, and bottom-left (green house) is 2.\n- Allocation 'b': Positioned at the top (red house) is 2, bottom-right (blue house) is 1, and bottom-left (green house) is 3.\n- Allocation 'c': Positioned at the top (red house) is 3, bottom-right (blue house) is 2, and bottom-left (green house) is 1."
+    },
+    "pg_22__page_133_Picture_0.jpeg": {
+        "skip": true,
+        "description": ""
+    },
+    "pg_156__page_4_Figure_2.jpeg": {
+        "skip": false,
+        "description": "Two graphs illustrating a competitive equilibrium in a two-individual exchange economy.\n\nLeft Graph (Individual 1):\n- Axes: Horizontal axis representing quantity of good 1 ($x_1^1$) and vertical axis representing quantity of good 2 ($x_2^1$), with origin labeled '0'.\n- Features: A straight, downward-sloping black line represents Individual 1's budget frontier. A green dot marks the initial bundle $e(1)$ on the budget line. A red dot marks the utility-maximizing optimal bundle $a(1)$, where a blue indifference curve is tangent to the budget line.\n- Vector: An orange arrow points from the initial bundle $e(1)$ up and left to the optimal bundle $a(1)$, representing Individual 1's net trade vector.\n\nRight Graph (Individual 2):\n- Axes: Horizontal axis representing quantity of good 1 ($x_1^2$) and vertical axis representing quantity of good 2 ($x_2^2$), with origin labeled '0'.\n- Features: A downward-sloping black budget line parallel to the one in Graph 1 (reflecting the same price ratio $p_1/p_2$). A green dot marks the initial bundle $e(2)$ on the budget line. A red dot marks the optimal bundle $a(2)$, where a purple indifference curve is tangent to the budget line.\n- Vector: An orange arrow points from the initial bundle $e(2)$ down and right to the optimal bundle $a(2)$.\n\nThe two orange trade vectors $a(1) - e(1)$ and $a(2) - e(2)$ are equal in magnitude and opposite in direction, demonstrating market clearing where $a(1) + a(2) = e(1) + e(2)$."
+    },
+    "pg_156__page_8_Figure_2.jpeg": {
+        "skip": false,
+        "description": "A plot of an excess demand function $z(p_1)$ against price $p_1$ on the horizontal axis. The vertical axis represents $0$ (the excess demand level). The function starts positive for low $p_1$, decreases sharply, dips below zero to a local minimum, rises back above zero reaching a local maximum, and then decreases steadily into negative values for high $p_1$. The curve crosses the horizontal axis at three distinct points, highlighted with red dots, representing three competitive equilibrium prices where excess demand $z(p_1) = 0$."
+    },
+    "pg_156__page_14_Figure_2.jpeg": {
+        "skip": false,
+        "description": "Two graphs side by side illustrating consumer choices and competitive equilibrium for two individuals in an exchange economy, prior to combining them into an Edgeworth box.\n\n- Left Graph (Individual 1):\n  - Horizontal axis: $x_1^1$ (pointing right).\n  - Vertical axis: $x_2^1$ (pointing up).\n  - Origin '0' is at the bottom-left.\n  - Shows a downward-sloping budget line (black) tangent to a blue, convex-to-the-origin indifference curve at point $x^1$ (marked by a red dot).\n  - Point $e(1)$ (endowment point for Individual 1, marked by a green dot) lies on the budget line below and to the right of $x^1$.\n  - An orange arrow points from $e(1)$ to $x^1$.\n\n- Right Graph (Individual 2, rotated 180 degrees):\n  - Horizontal axis: $x_1^2$ (pointing left at top).\n  - Vertical axis: $x_2^2$ (pointing down at right).\n  - Origin '0' is at the top-right.\n  - Shows a budget line (black) with the same slope as in Graph 1, tangent to a magenta indifference curve at point $x^2$ (marked by a red dot).\n  - Point $e(2)$ (endowment point for Individual 2, marked by a green dot) lies on the budget line below and to the right of $x^2$.\n  - An orange arrow points from $e(2)$ to $x^2$."
+    },
+    "pg_156__page_15_Figure_2.jpeg": {
+        "skip": false,
+        "description": "An Edgeworth box diagram depicting Pareto stability and competitive equilibrium. The horizontal and vertical axes form a rectangular box bounded by gray lines with origin '0' at the bottom-left for person 1 and '0' at the top-right for person 2. Inside the box, two indifference curves (one blue, opening toward the top-right; one purple, opening toward the bottom-left) touch tangentially at a central red point labeled x¹ / x². A straight black budget line passes through this point of tangency, connecting blue and magenta points along its length. Arrows near the axes indicate the direction of coordinate axes x₁¹, x₂¹, x₁², and x₂²."
+    },
+    "pg_156__page_15_Figure_4.jpeg": {
+        "skip": false,
+        "description": "An Edgeworth box diagram illustrating economic exchange and competitive equilibrium concepts between two individuals (1 and 2). The box is bounded by gray axis lines. The origin '0' for individual 1 is at the bottom-left, with horizontal axis extending right ($x_1^1$) and vertical axis extending up ($x_2^1$). The origin '0' for individual 2 is at the top-right, with horizontal axis extending left ($x_1^2$) and vertical axis extending down ($x_2^2$). A straight, diagonal black budget line cuts through the box from top-left to bottom-right. A blue indifference curve for individual 1 is tangent to the budget line at point $x^1$ (marked with a blue dot). A magenta indifference curve for individual 2 is tangent to the budget line at point $x^2$ (marked with a magenta dot). A green dot lies nearby along the budget line between the two tangency points, showing a discrepancy in optimal choices under a non-equilibrium price vector."
+    },
+    "pg_156__page_16_Figure_2.jpeg": {
+        "skip": false,
+        "description": "An Edgeworth box diagram illustrating an exchange economy with two goods and two consumers. The horizontal axis represents person 1's allocation of good 1 ($x_1^1$) increasing to the right, and person 2's allocation of good 2 ($x_2^2$) increasing to the left. The vertical axis represents person 2's allocation of good 1 ($x_2^1$) increasing upward, and person 1's allocation of good 2 ($x_1^2$) increasing downward. Origins are marked as '0' at the bottom-left corner for consumer 1 and the top-right corner for consumer 2.\n\nSeveral blue indifference curves (convex relative to consumer 1's origin) and purple indifference curves (convex relative to consumer 2's origin) are plotted across the box. An endowment point marked $e$ with a green dot is located near the bottom right.\n\nA contract curve extends from the bottom-left origin to the top-right origin. A segment of this curve highlighted in red between two tangency points of indifference curves is labeled 'core'. The extensions of the contract curve outside this red segment are shown in black; together, the red segment and black curves represent the set of Pareto stable allocations."
+    },
+    "pg_156__page_19_Picture_0.jpeg": {
+        "skip": true,
+        "description": ""
+    },
+    "pg_156__page_24_Figure_2.jpeg": {
+        "skip": false,
+        "description": "Two graphs illustrating market equilibria of exchange economies with an indivisible good and money, plotted as price (p) on the vertical axis versus quantity (q) on the horizontal axis. In both graphs, step functions are shown where blue lines represent buyers' valuations (decreasing stepped demand curve) and red lines represent sellers' valuations (increasing stepped supply curve).\n\n1. Left graph: The buyers' and sellers' valuations intersect vertically at quantity q*. There is no single equilibrium price, but rather an equilibrium price range shown as a thick green vertical segment on the price axis bounded by dashed gray lines projected from the step interval at q*.\n\n2. Right graph: The buyers' and sellers' valuations overlap along a horizontal step at price p*, indicated by a green dot on the vertical axis. This flat overlap allows for multiple equilibrium quantities, indicated by three green dots on the horizontal quantity axis corresponding to dashed projection lines from the overlapping step segment."
+    },
+    "pg_156__page_26_Diagram_2.jpeg": {
+        "skip": false,
+        "description": "A mathematical diagram (Figure 11.2) illustrating two cases split by a vertical line: the left side corresponds to v^i >= v and the right side corresponds to v^i <= v.\n\nRow 'a' shows sequence of individuals:\n- On the left side (v^i >= v): represented by 15 solid black dots.\n- On the right side (v^i <= v): represented by 15 open circles.\n\nRow 'b' shows sequences of dots and circles divided into four main sections with corresponding inequalities for b_1(i):\n1. First section (leftmost): 4 solid dots with label 'b_1(i) >= a_1(i)'.\n2. Second section (under a brace of size k): 10 open circles labeled 'b_1(i) >= a_1(i) + v'.\n3. Third section (under a brace of size k on the right of the dividing line): 9 solid dots labeled 'b_1(i) >= a_1(i) - v'.\n4. Fourth section (rightmost): 6 open circles labeled 'b_1(i) >= a_1(i)'."
+    },
+    "pg_156__page_27_Diagram_2.jpeg": {
+        "skip": false,
+        "description": "A diagram illustrating the partitioning of agents into sets $S$ (sellers) and $B$ (buyers) based on their initial endowments $e$ and final allocations $a$.\n\n- The top row, labeled $e:$, shows two types of endowments represented by dots: solid dots $\\bullet$ on the left and open dots $\\circ$ on the right.\n- The bottom row, labeled $a:$, shows the corresponding action or allocation rules for four regions:\n  1. First region (blue box, leftmost 4 solid dots): $e(i)$.\n  2. Second region (blue box, labeled $S$, middle 9 solid dots): $a_2(i) = 0 \\& a_1(i) - e_1(i) \\ge v^i$. This region is labeled below as 'sellers' in blue text.\n  3. Third region (red box, labeled $B$, middle 9 open dots): $a_2(i) = 1 \\& e_1(i) - a_1(i) \\le v^i$. This region is labeled below as 'buyers' in red text.\n  4. Fourth region (red box, rightmost 3 open dots): $e(i)$."
+    },
+    "pg_156__page_28_Figure_2.jpeg": {
+        "skip": false,
+        "description": "A graph illustrating an indifference curve in expected utility theory plotted on a two-dimensional coordinate system with horizontal axis $x_1$ and vertical axis $x_2$.\n\n- **Axes**: The horizontal axis is labeled $x_1 \\rightarrow$ and the vertical axis is labeled $\\uparrow x_2$.\n- **45-Degree Line**: A dashed grey line originates from the origin at a $45^\\circ$ angle, representing points where $x_1 = x_2$ (certainty consumption).\n- **Indifference Curve**: A smooth, convex blue curve labeled \"Indifference set of $\\pi_1 u^i(x_1) + \\pi_2 u^i(x_2)$\" bends downward from upper left to lower right.\n- **Tangent Line & Slope**: At the intersection point where the blue indifference curve crosses the dashed $45^\\circ$ line, a solid black tangent line is drawn. The slope of this tangent line is labeled as \"\\text{Slope} = -\\pi_1 / \\pi_2\"."
+    },
+    "pg_156__page_30_Figure_2.jpeg": {
+        "skip": true,
+        "description": ""
+    },
+    "pg_156__page_33_Figure_2.jpeg": {
+        "skip": false,
+        "description": "Two panels illustrating economic consumption bundles and indifference curves under uncertainty when $q_1/q_2 > \\pi_1/\\pi_2$.\n\n- Left Panel (Insurer $I$):\n  - Axes show state 1 consumption $x_1$ (horizontal) and state 2 consumption $x_2$ (vertical).\n  - A 45-degree dashed line from the origin marks the full insurance line, passing through the endowment point $e(I) = (\\alpha, \\alpha)$.\n  - A green line passing through $e(I)$ has a slope of $-q_1/q_2$.\n  - A blue straight line represents insurer $I$'s indifference set with a steeper slope of $-\\pi_1/\\pi_2$, reaching a corner optimal bundle $b(I) = (0, \\alpha(q_1 + q_2)/q_2)$ on the vertical axis.\n\n- Right Panel (Individual $i$):\n  - Axes show $x_1$ and $x_2$.\n  - The endowment point is $e(i) = (0, 1)$ on the vertical axis.\n  - A green line with slope $-q_1/q_2$ connects the vertical axis to the horizontal axis at $q_2/q_1$, intersecting the 45-degree dashed line at $x_1 = x_2 = q_2/(q_1 + q_2)$.\n  - A blue curved line represents the indifference curve for expected utility $\\pi_1 u(x_1) + \\pi_2 u(x_2)$.\n  - At the chosen optimal bundle $b(i)$ on the budget line, the tangent line (gray) has a slope of $-\\pi_1/\\pi_2$. The resulting optimal consumption in state 1 satisfies $b_1(i) < q_2/(q_1 + q_2)$."
+    },
+    "pg_156__page_37_Picture_0.jpeg": {
+        "skip": true,
+        "description": ""
+    },
+    "pg_156__page_39_Figure_2.jpeg": {
+        "skip": false,
+        "description": "A graph illustrating an example of a production technology set in two dimensions with non-negative axes x1 (horizontal, arrow pointing right) and x2 (vertical, arrow pointing up), originating at 0. A light-pink shaded region represents the technology set, bounded by a curved outer boundary (convex set) in the first quadrant. Inside this region, a specific point (z1, z2) is marked with a dot. A darker pink rectangular sub-region is defined from the origin (0,0) up to the upper-right corner at (z1, z2). This inner rectangular region is labeled with the set notation: {(y1, y2) in R^2_+ : y1 <= z1, y2 <= z2}, representing free-disposability or comprehensive property of the technology set."
+    },
+    "pg_156__page_43_Figure_2.jpeg": {
+        "skip": false,
+        "description": "A 2D coordinate plot with horizontal axis x_1 and vertical axis x_2, originating at 0. A non-convex production set T is shown as a shaded light pink region bounded by vertices at the origin (0,0), point a high on the vertical axis, point b far along the horizontal axis, and an inward vertex. Point a lies above and to the left of the inward vertex, while point b lies to the right and below it. Emanating from this inward reflex vertex is an L-shaped blue contour representing an indifference curve for a Leontief utility function min{x_1, x_2}, with a vertical ray extending upward and a horizontal ray extending to the right."
+    },
+    "pg_156__page_44_Figure_2.jpeg": {
+        "skip": false,
+        "description": "A line graph showing a production function, labeled f(a) in red, plotted against the input variable a on the horizontal axis (labeled 'a →'). The curve starts at the origin (0,0) and increases as 'a' increases, but at a decreasing rate (concave down), representing diminishing marginal returns."
+    },
+    "pg_156__page_46_Figure_11.jpeg": {
+        "skip": false,
+        "description": "A line graph titled 'Figure 12.4' illustrating a competitive equilibrium in a capitalist-worker economy. The horizontal axis represents action/effort 'a', bounded between 0 and 1, with a specific equilibrium point marked as a*. The vertical distance at a* is decomposed into two variables: x* (the distance from the horizontal axis to the blue 'indifference set' curve) and z* (the vertical distance between the blue curve and the red production function curve f(a)).\n\nTwo parallel grey tangent lines with 'slope = w*' touch the curves:\n1. The upper line is tangent to the red curve f(a) at point a*.\n2. The lower line is tangent to the blue 'indifference set' curve at point a* and passes through the origin.\n\nThe horizontal interval from 0 to 1 is divided at a* into two segments: a* on the left and l* on the right (where l* represents leisure or remaining capacity)."
+    },
+    "pg_156__page_49_Picture_0.jpeg": {
+        "skip": true,
+        "description": ""
+    },
+    "pg_156__page_57_Figure_2.jpeg": {
+        "skip": false,
+        "description": "A one-dimensional horizontal axis representing quality q, extending to the right with an arrow labeled q, starting at 0 on the left. Along the axis, two vertical tick marks indicate key thresholds: q* and a higher value p* = \\alpha q*. Individual cars are plotted as small filled dots along the axis according to their quality levels. Red dots represent cars offered for sale, while black dots represent cars not offered for sale. All dots to the left of p* = \\alpha q* (including those both below and above q*) are red, whereas all dots to the right of p* = \\alpha q* are black."
+    },
+    "pg_156__page_65_Picture_0.jpeg": {
+        "skip": true,
+        "description": ""
+    },
+    "pg_156__page_69_Figure_2.jpeg": {
+        "skip": false,
+        "description": "A plot of worker iso-income lines with wage $w$ on the vertical axis and education/training time $t$ on the horizontal axis, starting at $0$. \n\nTwo sets of parallel lines with positive slopes represent constant income levels:\n- **L-type Iso-income Lines (Blue):** Steeper lines with slope $\\beta_L$. Label 'L' marks a darker blue line representing higher income than the lighter blue line to its right. A small arrow indicates increasing income moving up and to the left (higher wage $w$, lower time $t$). Label 'slope = $\\beta_L$' is positioned near the top of the dark blue line.\n- **H-type Iso-income Lines (Red):** Flatter lines with slope $\\beta_H$. Label 'H' marks a darker red line with points $a$ and $b$ plotted on it ($a$ is to the left of $b$). A lighter red line lies below and to the right, indicating lower income. A small arrow shows higher income moving up and left. Label 'slope = $\\beta_H$' is located near the lower right.\n- **Point $c$:** Positioned below both sets of main iso-income lines in the lower-right area of the quadrant, representing a contract offering low wage for given time $t$."
+    },
+    "pg_156__page_71_Figure_2.jpeg": {
+        "skip": false,
+        "description": "A labor market signaling graph with wage $w$ on the vertical axis and education/time $t$ on the horizontal axis. A shaded green triangular region is bounded on the top by the line $v_H$, on the left by a steep blue line labeled $L$ starting from point $b = (0, \bar{v})$, and on the bottom/right by a less steep red line labeled $H$ also emanating from point $b$. Inside this shaded region, a contract point labeled $a$ is plotted. Below point $b$ on the vertical axis, the intercept is labeled 0, and two dashed horizontal reference lines are shown corresponding to valuations $v_L$ (at the bottom) and $v_H$ (at the top). Light-colored parallel lines extend from the origin to illustrate the cost of education for type $L$ (steeper) and type $H$ (flatter) workers."
+    },
+    "pg_156__page_71_Figure_4.jpeg": {
+        "skip": false,
+        "description": "A line graph plotted on axes with $t$ (test score or signal) on the horizontal axis and $w$ (wage) on the vertical axis.\n\nTwo key values are marked on the vertical axis: $v_L$ at a lower wage level and $v_H$ at a higher wage level.\n\nTwo labeled points are plotted:\n1. $(0, v_L)$ on the vertical axis at $t = 0$.\n2. $(t_H, v_H)$ in the upper region where dashed horizontal lines indicate $w = v_H$.\n\nThree linear indifference curves/lines are shown:\n- A steep blue line labeled $L$ passes through the origin $(0, v_L)$ and continues through the point $(t_H, v_H)$.\n- A red line with a flatter slope passes through $(t_H, v_H)$ and extends down to the vertical axis above $v_L$.\n- A light red line parallel to the red line originates at $(0, v_L)$ and extends upward to the right with a shallower slope, labeled $H$ at the top right."
+    },
+    "pg_156__page_72_Figure_2.jpeg": {
+        "skip": false,
+        "description": "Two graphs illustrating steps in a proof, plotted on axes with education/time $t$ on the horizontal axis and wage $w$ on the vertical axis.\n\nGraph (a), labeled 'Step 1 of the proof of Proposition 14.1':\nShows two linear indifference curves starting from the origin $(0,0)$. The steeper curve is labeled $L$ (blue) and the flatter curve is labeled $H$ (red). Horizontal dashed lines indicate wage levels $v_L$ and $v_H$ on the vertical axis. A shaded green triangular region is formed between the vertical axis, the curve $L$, and the horizontal line at $v_L$.\n\nGraph (b), labeled 'Step 2 of the proof of Proposition 14.1':\nShows two intersecting linear curves, steeper curve $L$ (blue) and flatter curve $H$ (red). They intersect at a point labeled $c^* = (t^*, w^*)$, with dashed projection lines to $t^*$ on the horizontal axis and $w^*$ on the vertical axis. Horizontal dashed lines also mark wage levels $v_L$, $\\bar{v}$, and $v_H$ on the vertical axis, where $v_L < w^* < \\bar{v} < v_H$. A shaded green region lies between curves $L$ and $H$ above their intersection point $c^*$ and below the line $v_H$. Inside this shaded region, a point is labeled $c' = (t', w')$."
+    },
+    "pg_156__page_74_Figure_2.jpeg": {
+        "skip": false,
+        "description": "A line plot with time $t$ on the horizontal axis and wage $w$ on the vertical axis, illustrating step 5 of the proof of Proposition 14.1. Two horizontal dashed reference lines indicate wage levels $v_L$ at the bottom and $v_H$ near the top. \n\nAt the intersection of the $v_L$ line and the vertical axis lies point $c_L^*$. From $c_L^*$, a steep blue curve labeled $L$ slopes upwards to the right, passing through a point labeled $c_H^*$ on the horizontal dashed line $v_H$. A less steep solid red line also extends upward to the right, containing a marked point $c_H$. Parallel and slightly below the red line is a light red line starting at $c_L^*$.\n\nA shaded green region is bounded by the blue line $L$ on the left, the light red line from below, and the dashed line $v_H$ at the top. Within this green region lies an interior point labeled $c_H'$, as well as the point $c_H$ on the solid red line. The diagram visually highlights contract positions relative to indifference curves/payoff lines for high ($H$) and low ($L$) worker types."
+    },
+    "pg_156__page_75_Figure_2.jpeg": {
+        "skip": false,
+        "description": "A two-dimensional plot showing wage w on the vertical axis versus time or education t on the horizontal axis. There are three dashed horizontal reference lines indicating values v_L (bottom), v_bar (middle), and v_H (top). A solid blue curve representing type L starts at the point c_L^* = (0, v_L) and rises steeply, passing through a point c_H^* at height v_H, and continuing upward. A red line representing type H starts at a higher vertical intercept m, rises with a gentler slope, and intersects the blue curve at c_H^* = (t_H^*, v_H). Above c_H^*, a green shaded region lies between the blue curve (above) and the red line (below). A lighter parallel red line originates at c_L^* and runs parallel to the red line. The text at the bottom introduces the set {c_H^*, c_L^*} as a separating equilibrium."
+    },
+    "pg_156__page_75_Figure_4.jpeg": {
+        "skip": false,
+        "description": "A line graph plotted on axes with $t$ (horizontal axis) and $w$ (vertical axis). Three horizontal dashed lines indicate wage levels from top to bottom: $v_H$, $\\bar{v}$, and $v_L$. The vertical axis also marks a point $m$ below $\\bar{v}$. \n\nA point labeled $c_L^*$ is located on the vertical axis at $(0, v_L)$. From this point, a steep blue line labeled $L$ extends upward to the right, passing through a point labeled $c_H^*$ on the line $v_H$.\n\nTwo parallel, less steep red lines are also present:\n1. A solid red line starts at point $m$ on the vertical axis, passes through $c_H^*$ on the line $v_H$, and extends upward.\n2. A faint red line labeled $H$ starts at $c_L^*=(0, v_L)$ and runs parallel to the first red line.\n\nA light green shaded area is bounded by the vertical axis on the left, the horizontal dashed line $\\bar{v}$ on top, and the solid red line below."
+    },
+    "pg_156__page_77_Picture_0.jpeg": {
+        "skip": true,
+        "description": ""
+    },
+    "pg_156__page_79_Picture_0.jpeg": {
+        "skip": true,
+        "description": ""
+    },
+    "pg_156__page_90_Figure_2.jpeg": {
+        "skip": false,
+        "description": "A plot of the best response functions in an effort game between two players, showing effort level a1 on the horizontal axis and effort level a2 on the vertical axis. The origin is marked as 0.\n\n- The vertical axis (a2) has labeled tick marks at 1/2 c and c.\n- The horizontal axis (a1) has labeled tick marks at 1/2 c and c.\n- A red line representing Player 2's best response function, BR²(a1), starts at (0, 1/2 c) and increases linearly with a positive slope less than 1.\n- A blue line representing Player 1's best response function, BR¹(a2), starts at (1/2 c, 0) and increases linearly with a steep positive slope greater than 1.\n- Dashed gray lines project from the intersection of the two best response functions to point c on both the horizontal and vertical axes.\n- The two lines intersect at the point (c, c), which represents the unique Nash equilibrium of the game."
+    },
+    "pg_156__page_91_Figure_2.jpeg": {
+        "skip": false,
+        "description": "A graph showing the best response functions in a Cournot duopoly game plotted on a coordinate plane with firm 1's quantity q^1 on the horizontal axis and firm 2's quantity q^2 on the vertical axis.\n\n- The blue line represents Firm 1's best response function, BR^1(q^2). It starts vertically on the q^2 axis above 1-c, goes down to 1-c on the vertical axis, and extends linearly downward to intersect the horizontal axis at q^1 = (1-c)/2.\n- The red line represents Firm 2's best response function, BR^2(q^1). It starts on the vertical axis at q^2 = (1-c)/2, slopes downward linearly to (1-c) on the horizontal axis, and then continues horizontally along the q^1 axis to the right.\n- The two lines intersect at a single point marked with a black dot, labeled (q^{1*}, q^{2*}). Dashed gray lines connect this intersection point to both axes, marking the coordinates as q^1 = (1-c)/3 on the horizontal axis and q^2 = (1-c)/3 on the vertical axis. The origin is labeled 0."
+    },
+    "pg_156__page_94_Figure_2.jpeg": {
+        "skip": false,
+        "description": "A plot illustrating the best response functions of two players in a symmetric two-player game, labeled as BR¹(a²) in blue and BR²(a¹) in red. The horizontal axis represents player 1's action a¹ going from l to r, and the vertical axis represents player 2's action a² going from l to r. A dashed diagonal line connects the origin (l, l) to the opposite corner (r, r). The blue curve BR¹(a²) and the red curve BR²(a¹) are both nondecreasing and intersect at three distinct points marked by small black dots along or near the diagonal line. These three intersection points represent the Nash equilibria of the game."
+    },
+    "pg_156__page_94_Figure_4.jpeg": {
+        "skip": false,
+        "description": "A square plot representing a symmetric two-player game's best response functions on the unit square [0, 1] x [0, 1]. The horizontal axis is labeled a^1 pointing right towards 1, with 0 at the origin. The vertical axis is labeled a^2 pointing upwards towards 1, with 0 at the origin. A dashed diagonal line runs from (0,0) to (1,1). A solid line connects (0,1) to (1,0), representing the overlapping best response functions BR^1(a^2) (labeled in blue) and BR^2(a^1) (labeled in red). A small black disk marks the intersection of the two lines at the symmetric point (0.5, 0.5)."
+    },
+    "pg_156__page_95_Figure_2.jpeg": {
+        "skip": false,
+        "description": "A 2D scatter plot illustrating best response functions $BR^1$ (blue dots) and $BR^2$ (red dots) for actions $A^1$ on the horizontal axis (values 1 to 8) and $A^2$ on the vertical axis (values 1 to 7).\n\n- The red dots ($BR^2$, best response of player 2) are located at: (1, 1), (2, 3), (3, 4), (4, 4), (5, 5), (6, 5), (7, 6), and (8, 7).\n- The blue dots ($BR^1$, best response of player 1) are located at: (2, 1), (2, 2), (4, 3), (6, 4), (6, 5), (6, 6), and (7, 7).\n- The point (6, 5) contains both a red dot and a blue dot, representing an intersection where $A^1 = 6$ and $A^2 = 5$, indicating a pure-strategy Nash equilibrium."
+    },
+    "pg_156__page_95_Figure_4.jpeg": {
+        "skip": false,
+        "description": "A grid plot illustrating intervals and points labeled $I_1, I_2, I_3, I_4$ along the horizontal axis, and vertical levels $b_1, b_2, b_3, b_4$ on the vertical axis. On the horizontal axis, specific points $a_1, a_2, a_3, a_4$ are marked corresponding to intervals $I_2, I_4$. Red and blue data points are plotted across the grid coordinates, representing a step-like path or mapping structure between the intervals $I_k$ and values $b_k$ as part of the proof of Proposition 15.2."
+    },
+    "pg_156__page_119_Picture_0.jpeg": {
+        "skip": true,
+        "description": ""
+    },
+    "pg_276__page_1_Diagram_2.jpeg": {
+        "skip": false,
+        "description": "An extensive-form game tree representing an entry game with two players: Player 1 (the entrant) and Player 2 (the incumbent).\n\n- Root Node: Belonging to Player 1 (represented by an open circle labeled '1').\n  - Right Branch: Labeled 'Out', leading directly to a terminal payoff of (1, 5).\n  - Left Branch: Labeled 'In', leading to a decision node for Player 2.\n\n- Decision Node for Player 2: Represented by a solid circle labeled '2'.\n  - Left Branch: Labeled 'Cooperate', leading to a terminal payoff of (2, 2).\n  - Right Branch: Labeled 'Fight', leading to a terminal payoff of (0, 0).\n\nIn each payoff pair (x, y), the first number x is Player 1's payoff and the second number y is Player 2's payoff."
+    },
+    "pg_276__page_3_Diagram_2.jpeg": {
+        "skip": false,
+        "description": "An extensive form game tree depicting a decision tree with decision nodes for players 1, 2, and 3, along with terminal outcomes.\n\n- Root node (Player 1, represented as an open circle): Branches into two actions:\n  - Left branch labeled 'A' leads to a decision node for Player 2.\n  - Right branch labeled 'B' leads to a decision node for Player 3.\n\n- Player 2 node (solid dot):\n  - Left branch labeled 'C' leads to terminal outcome 'u'.\n  - Right branch labeled 'D' leads to terminal outcome 'v'.\n\n- Player 3 node (solid dot):\n  - Left branch labeled 'E' leads to terminal outcome 'w'.\n  - Middle branch labeled 'F' leads to terminal outcome 'x'.\n  - Right branch labeled 'G' leads to another decision node for Player 1 (solid dot).\n\n- Second Player 1 node (solid dot, reached via branch G):\n  - Left branch labeled 'H' leads to terminal outcome 'y'.\n  - Right branch labeled 'I' leads to terminal outcome 'z'."
+    },
+    "pg_276__page_5_Diagram_6.jpeg": {
+        "skip": false,
+        "description": "An extensive form game tree representing an ultimatum game with 2 players. Player 1 starts at the root node (1) and chooses one of three proposal branches: (0, 2) on the left, (1, 1) in the middle, and (2, 0) on the right. Each branch leads to a decision node for Player 2, labeled '2'. From each of Player 2's nodes, Player 2 can choose either 'Y' (Yes/Accept) or 'N' (No/Reject). The terminal payoff vectors (Player 1 payoff, Player 2 payoff) are as follows: Under proposal (0,2): Y leads to (0, 2) and N leads to (0, 0). Under proposal (1,1): Y leads to (1, 1) and N leads to (0, 0). Under proposal (2,0): Y leads to (2, 0) and N leads to (0, 0)."
+    },
+    "pg_276__page_7_Diagram_2.jpeg": {
+        "skip": false,
+        "description": "An extensive-form game tree representing a Centipede Game with 6 decision nodes along a horizontal line.\n\n- The game alternates decisions between Player 1 and Player 2 at 6 decision nodes:\n  1. Node 1 (Player 1): Can choose 'C' (Continue, moving right) or 'S' (Stop, moving down). Choosing 'S' ends the game with payoffs (0, 0).\n  2. Node 2 (Player 2): Can choose 'C' (Continue) or 'S' (Stop). Choosing 'S' ends the game with payoffs (-1, 2).\n  3. Node 3 (Player 1): Can choose 'C' (Continue) or 'S' (Stop). Choosing 'S' ends the game with payoffs (1, 1).\n  4. Node 4 (Player 2): Can choose 'C' (Continue) or 'S' (Stop). Choosing 'S' ends the game with payoffs (0, 3).\n  5. Node 5 (Player 1): Can choose 'C' (Continue) or 'S' (Stop). Choosing 'S' ends the game with payoffs (2, 2).\n  6. Node 6 (Player 2): Can choose 'C' (Continue) or 'S' (Stop). Choosing 'S' ends the game with payoffs (1, 4).\n- If Player 2 chooses 'C' at the final decision node (Node 6), the game ends with payoffs (3, 3).\n\nIn all payoff pairs, the first number is Player 1's payoff and the second number is Player 2's payoff."
+    },
+    "pg_276__page_10_Diagram_2.jpeg": {
+        "skip": false,
+        "description": "An extensive-form game tree involving three players labeled 1, 2, and 3.\n\n- The root node is controlled by Player 1 (represented by an open circle with label 1). Player 1 has two initial actions: A (left branch) and B (right branch).\n- Action A leads to a decision node for Player 3 (solid dot labeled 3).\n  - Player 3 chooses between C (left) resulting in payoffs (2, 3, 5) and D (right) resulting in payoffs (8, 4, 0).\n- Action B leads to a decision node for Player 2 (solid dot labeled 2).\n  - Player 2 chooses between E (left) resulting in payoffs (1, 1, 0) and G (right).\n  - Action G leads to a second decision node for Player 1 (solid dot labeled 1).\n    - From this node, Player 1 chooses among H (left) yielding (3, 5, 4), F (down) yielding (0, 1, 2), and I (right) yielding (3, 3, 2)."
+    },
+    "pg_276__page_10_Diagram_3.jpeg": {
+        "skip": false,
+        "description": "Two game trees representing extensive form games with three players (1, 2, and 3). In both trees, Player 1 moves first at the root, choosing between $A$ (leading to a decision node for Player 3) and $B$ (leading to a decision node for Player 2). From Player 3's node, the choices are $C$ and $D$. Choosing $C$ yields payoffs $(2,3,5)$ and $D$ yields $(8,4,0)$. Action $C$ is highlighted in red in both trees. From Player 2's node, the choices are $E$ (yielding payoff $(1,2,0)$) and $G$ (leading to a node for Player 1). At Player 1's second node after history $(B,G)$, the choices are $H$, $F$, and $I$, yielding payoffs $(3,1,4)$, $(0,1,2)$, and $(3,3,2)$ respectively. In the left diagram, choice $H$ is highlighted in red. In the right diagram, choice $I$ is highlighted in red."
+    },
+    "pg_276__page_10_Diagram_5.jpeg": {
+        "skip": false,
+        "description": "Two extensive-form game trees representing the outcomes of Step 1 in backward induction.\n\nLeft tree:\n- Root node (Player 1) branches into actions A and B.\n- Action A leads to a decision node for Player 3, who chooses between C (highlighted in red) resulting in payoffs (2, 3, 5) and D resulting in payoffs (8, 4, 0).\n- Action B leads to a decision node for Player 2, who chooses between E (highlighted in red) resulting in payoffs (1, 2, 0) and G.\n- Action G leads to a decision node for Player 1, who chooses between H (highlighted in red) resulting in (3, 1, 4), F resulting in (0, 1, 2), and I resulting in (3, 3, 2).\n\nRight tree:\n- Same structure as the left tree, except at the node following history (B, G), Player 1's action I (highlighted in red, leading to payoffs (3, 3, 2)) is selected instead of H, while C and E remain highlighted in red."
+    },
+    "pg_276__page_10_Diagram_7.jpeg": {
+        "skip": false,
+        "description": "Two game trees representing extensive-form games with three players, used to illustrate backward induction steps.\n\nLeft Tree:\n- Root node (Player 1) branches into A (red) and B (black).\n- Branch A leads to a decision node for Player 3, which branches into C (red, leading to payoffs 2, 3, 5) and D (black, leading to payoffs 8, 4, 0).\n- Branch B leads to a decision node for Player 2, which branches into E (red, leading to payoffs 1, 2, 0) and G (black).\n- Branch G leads to another decision node for Player 1, which branches into H (red, leading to payoffs 3, 1, 4), F (black, leading to payoffs 0, 1, 2), and I (black, leading to payoffs 3, 3, 2).\n\nRight Tree:\n- Root node (Player 1) branches into A (black) and B (red).\n- Branch A leads to Player 3's node, with branch C in red (payoffs 2, 3, 5) and branch D in black (payoffs 8, 4, 0).\n- Branch B leads to Player 2's node, with branch E in black (payoffs 1, 2, 0) and branch G in red.\n- Branch G leads to Player 1's node, with branch H in black (payoffs 3, 1, 4), branch F in black (payoffs 0, 1, 2), and branch I in red (payoffs 3, 3, 2)."
+    },
+    "pg_276__page_12_Diagram_2.jpeg": {
+        "skip": false,
+        "description": "A game tree diagram illustrating a sequence of deviations by player $i$. At history $h$ (labeled $h:i$), player $i$ originally chooses action $a$ (shown in red), leading to payoff $u^i$. A deviation at $h$ to action $a'$ (shown in black) leads, via a dotted path representing further history steps, to another node at history $h'$ (labeled $h':i$). At $h'$, the player deviates from choice $b$ (shown in red, leading to payoff $w^i$) to choice $b'$ (shown in black), which ultimately leads to payoff $v^i$ where $v^i > u^i$."
+    },
+    "pg_276__page_16_Diagram_2.jpeg": {
+        "skip": false,
+        "description": "A game tree diagram illustrating a version of the ultimatum game. At the root node labeled '1' (a hollow circle), player 1 chooses an action $x$ from a continuous range of actions represented by a shaded triangle. A line labeled $x$ leads from node 1 down to a solid node labeled '2'. From node 2, player 2 has two branches: 'Y' (Yes) pointing down-left and 'N' (No) pointing down-right. The outcome under 'Y' yields payoffs $(x^1, x^2)$, while the outcome under 'N' yields payoffs $(0, 0)$."
+    },
+    "pg_276__page_34_Diagram_4.jpeg": {
+        "skip": false,
+        "description": "An extensive-form game tree depicting an infinite-horizon single-player game. The player (labeled '1') moves at each period starting from an open circle on the left. At each decision node, labeled with player number 1, the player can choose either 'C' (continue) by moving right to the next node, or 'S' (stop) by moving vertically downwards to an end node with a payoff of 0. The horizontal line extends to the right through multiple decision nodes connected by 'C' actions, leading to a dotted line ending in an ultimate payoff of 1 if 'S' is never chosen."
+    },
+    "pg_276__page_39_Picture_0.jpeg": {
+        "skip": true,
+        "description": ""
+    },
+    "pg_276__page_50_Diagram_2.jpeg": {
+        "skip": false,
+        "description": "Figure 18.1 illustrates the first stages of the Gale-Shapley matching algorithm involving four X's (green background, labeled 1 to 4) and four Y's (orange background, labeled 1 to 4).\n\nStage 1 consists of three steps:\n- (a) Each X chooses her favorite Y: Arrows point from green 1 to orange 1, green 2 to orange 1, green 3 to orange 4, and green 4 to orange 4.\n- (b) Each Y chosen by more than one X chooses her favorite X among those who chose her: Solid arrows remain from green 2 to orange 1 and green 4 to orange 4, while dashed gray arrows represent rejected proposals from green 1 to orange 1 and green 3 to orange 4.\n- (c) X's chosen by Y's are tentatively matched with them; remaining individuals are unmatched: Solid arrows connect green 2 to orange 1, and green 4 to orange 4. Green 1, green 3, orange 2, and orange 3 remain unmatched.\n\nStage 2 shows:\n- (d) Unmatched X's choose their favorite Y's among the Y's who haven't rejected them: Green 1 proposes to orange 4, green 2 maintains match to orange 1, green 3 proposes to orange 2, and green 4 maintains match to orange 4."
+    },
+    "pg_276__page_52_Diagram_15.jpeg": {
+        "skip": false,
+        "description": "A mapping diagram representing Stage 1 of a matching algorithm between two sets of numbered elements {1, 2, 3, 4}. On the left are green circled numbers 1 through 4, and on the right are orange boxed numbers 1 through 4. Solid black arrows point directly from left 1 to right 1, left 2 to right 2, and left 4 to right 4. A dashed grey arrow points diagonally from left 3 down to right 4, indicating a rejected or unsuccessful proposal to item 4."
+    },
+    "pg_276__page_52_Diagram_17.jpeg": {
+        "skip": false,
+        "description": "A mapping diagram representing matching at Stage 2. On the left are green-circled numbers 1, 2, 3, and 4. On the right are orange-boxed numbers 1, 2, 3, and 4. A solid arrow goes from left-1 to right-1. A dashed arrow points from left-2 to right-2, indicating a broken or rejected proposal/match. A solid arrow points from left-3 up diagonally to right-2. A solid arrow goes from left-4 to right-4."
+    },
+    "pg_276__page_52_Diagram_19.jpeg": {
+        "skip": false,
+        "description": "A mapping diagram showing the matching function g from a green set on the left to an orange set on the right, both containing elements 1, 2, 3, and 4. The arrows indicate the following pairs: 1 maps to 1, 2 maps to 3, 3 maps to 2, and 4 maps to 4."
+    },
+    "pg_276__page_53_Diagram_4.jpeg": {
+        "skip": false,
+        "description": "A matching process diagram showing two columns of numbers from 1 to 4. The left column numbers are highlighted in green, and the right column numbers are highlighted in orange. Arrow connections represent choices/proposals:\n- A dashed grey arrow points from right-column 1 to left-column 3.\n- A solid black arrow points from right-column 2 to left-column 3.\n- A solid black arrow points from right-column 3 to left-column 4.\n- A solid black arrow points from right-column 4 to left-column 1."
+    },
+    "pg_276__page_53_Diagram_6.jpeg": {
+        "skip": false,
+        "description": "A diagram illustrating Stage 2 of a matching or preference assignment process between two sets of numbers, each numbered 1 through 4. On the left are green-circled numbers 1, 2, 3, 4; on the right are orange-squared numbers 1, 2, 3, 4. Black arrows point from right to left:\n- Right 1 points to Left 1.\n- Right 2 points to Left 3.\n- Right 3 points to Left 4.\nA dashed grey line with an arrow at the top connects Right 4 to Left 1, representing a rejected choice or proposal."
+    },
+    "pg_276__page_53_Diagram_8.jpeg": {
+        "skip": false,
+        "description": "A matching process diagram showing two parallel columns of numbers 1 through 4. The left column contains numbers inside green circular highlights, and the right column contains numbers inside orange square highlights. Black solid arrows point from right to left, showing proposals and tentative acceptances, while a dashed gray arrow indicates a rejected proposal:\n- Right 1 points to Left 1 with a solid black arrow.\n- Right 2 points to Left 3 with a solid black arrow.\n- Right 3 points to Left 4 with a dashed gray arrow (representing a rejection by 4).\n- Right 4 points to Left 4 with a solid black arrow."
+    },
+    "pg_276__page_53_Diagram_10.jpeg": {
+        "skip": false,
+        "description": "A matching process diagram showing two vertical lists of numbers from 1 to 4. On the left, numbers 1 through 4 are highlighted in green circles representing one set of choices. On the right, numbers 1 through 4 are highlighted in yellow squares representing another set. Solid black arrows point leftward from right-1 to left-1, right-2 to left-3, and right-4 to left-4. A grey dashed arrow points leftward from right-3 to left-3, indicating a rejected or tentative choice at this stage."
+    },
+    "pg_276__page_53_Diagram_12.jpeg": {
+        "skip": false,
+        "description": "A mapping diagram showing a matching process between two sets of numbers, each containing 1, 2, 3, and 4. The right column (orange background) points to the left column (green background) with arrows:\n- 1 on the right points to 1 on the left.\n- 2 on the right points to 3 on the left.\n- 3 on the right points to 2 on the left.\n- 4 on the right points to 4 on the left."
+    },
+    "pg_276__page_59_Picture_0.jpeg": {
+        "skip": true,
+        "description": ""
+    },
+    "pg_276__page_71_Picture_0.jpeg": {
+        "skip": true,
+        "description": ""
+    },
+    "pg_276__page_75_Diagram_2.jpeg": {
+        "skip": false,
+        "description": "A diagram illustrating the neutrality property in social choice theory by comparing two preference profiles and their resulting social rankings.\n\nLeft side:\n- Profile of individual preferences for $n$ voters (columns 1, 2, 3, ..., $n-1$, $n$) with alternatives $a, b, c, d$.\n- Column 1: $a > b > c > d$\n- Column 2: $b > a > c > d$\n- Column 3: $d > a > b > c$\n- Column ...\n- Column $n-1$: $a > d > c > b$\n- Column $n$: $b > d > a > c$\n- Below this profile, a double down arrow leads to the resulting social preference ordering: $b \\succ c \\succ a \\succ d$.\n\nRight side (after swapping alternatives $a$ and $b$ in every individual's list):\n- A double horizontal arrow ($\nRightarrow$) points from the left profile to the right profile.\n- The preference lists are identical except $a$ and $b$ are interchanged everywhere.\n- Column 1: $b > a > c > d$\n- Column 2: $a > b > c > d$\n- Column 3: $d > b > a > c$\n- Column ...\n- Column $n-1$: $b > d > c > a$\n- Column $n$: $a > d > b > c$\n- Below this profile, a double down arrow leads to the resulting social preference ordering: $a \\succ c \\succ b \\succ d$.\n\nThis shows that interchanging $a$ and $b$ in all individual preferences results in $a$ and $b$ being interchanged in the social outcome, demonstrating neutrality."
+    },
+    "pg_276__page_76_Diagram_2.jpeg": {
+        "skip": false,
+        "description": "An illustration showing the effect of interchanging two alternatives in individual preference profiles under a neutral preference aggregation function (PAF). \n\nOn the left, an initial preference profile with individuals 1 to n lists ranked preferences in columns. Column 1 (highlighted in red) ranks 'a' above 'b', 'c', and 'd'. Column 3 (highlighted in blue) ranks 'd' above 'a', 'b', and 'c'. Beneath this profile, a double arrow points to the resulting social preference ranking: b > c > a > d.\n\nA rightward arrow (=>) leads to the transformed profile on the right, where the preference orderings of alternatives 'a' and 'd' have been swapped. In Column 1 (now highlighted in blue), the ranking becomes 'd' above 'a', 'b', and 'c'. In Column 3 (now highlighted in red), the ranking becomes 'a' above 'b', 'c', and 'd'. All other columns remain structurally consistent. Beneath the transformed profile, a double arrow indicates the resulting social preference ranking, showing how neutrality responds to the interchange of alternatives."
+    },
+    "pg_276__page_89_Picture_0.jpeg": {
+        "skip": true,
+        "description": ""
+    },
+    "pg_276__page_97_Picture_0.jpeg": {
+        "skip": true,
+        "description": ""
+    },
+    "pg_276__page_103_Picture_0.jpeg": {
+        "skip": true,
+        "description": ""
+    },
+    "pg_276__page_105_Picture_0.jpeg": {
+        "skip": true,
+        "description": ""
+    },
+    "pg_276__page_106_Picture_98.jpeg": {
+        "skip": true,
+        "description": ""
+    }
+}

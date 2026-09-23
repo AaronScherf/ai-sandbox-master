@@ -1,0 +1,86 @@
+{
+    "pg_21__page_25_Figure_2.jpeg": {
+        "skip": false,
+        "description": "Figure 2.1 displays a step-like diagram plotted within a square bounded on the bottom by an x-axis ranging from 0 to 1 and on the left by a vertical axis. Along the horizontal x-axis, points are labeled from left to right as 0, (x_*)*, x_*, x, x*, (x*)*, and 1. Along the vertical axis, points from top to bottom (or ascending from origin) are labeled (p_*)*, p_*, p, and p*. Within the main square, two staircase-like boundary functions descend from the upper-left to the lower-right, containing several filled square data points along the steps. The region above and to the right of the upper staircase is labeled 'A', while the region below and to the left of the lower staircase is labeled 'B'."
+    },
+    "pg_21__page_31_Picture_0.jpeg": {
+        "skip": true,
+        "description": ""
+    },
+    "pg_21__page_58_Diagram_5.jpeg": {
+        "skip": false,
+        "description": "An extensive-form decision tree model (Figure 4.1) illustrating a decision-making process with chance moves and imperfect information. At the root is a chance node labeled 'c'. Node 'c' branches left with label 'L' to decision node 'd_1' with probability (0.5), and right with label 'R' to decision node 'd_2' with probability (0.5).\n\nAt decision node 'd_1', the decision maker can choose 'S', leading to a terminal payoff of 2, or 'C', leading down to the first node in an information set for 'd_3'.\nAt decision node 'd_2', the decision maker can choose 'S', leading to a terminal payoff of 2, or 'C', leading down to the second node in the same information set for 'd_3'.\n\nThe information set for 'd_3' encompasses two nodes enclosed within a large horizontal oval, indicating imperfect information (the decision maker at 'd_3' does not know whether 'd_1' or 'd_2' was reached).\n\nFrom the left node of the 'd_3' information set:\n- Strategy 'L' yields a payoff of 3.\n- Strategy 'R' yields a payoff of 0.\n\nFrom the right node of the 'd_3' information set:\n- Strategy 'L' yields a payoff of 0.\n- Strategy 'R' yields a payoff of 4."
+    },
+    "pg_21__page_61_Diagram_2.jpeg": {
+        "skip": false,
+        "description": "An extensive-form game tree diagram representing a decision process. At the root decision node labeled d1, player 1 chooses between actions L (left branch) and R (right branch). Both branches lead into an oval representing an information set for player 2 (labeled d2 on both nodes inside). From the left d2 node, choosing L leads to a payoff of 1, and choosing R leads to a payoff of 0. From the right d2 node, choosing L leads to a payoff of 0, and choosing R leads to a payoff of 2."
+    },
+    "pg_21__page_61_Diagram_4.jpeg": {
+        "skip": false,
+        "description": "A decision tree or game tree representation enclosed in an oval denoting an information set. Inside the vertical oval, there are two nodes labeled $d_1$, connected vertically by an edge labeled $C$. From the top node $d_1$, a horizontal branch labeled $E$ leads to a payoff of 0. From the bottom node $d_1$, a horizontal branch labeled $E$ leads to a payoff of 4. From the bottom of the oval containing the lower $d_1$ node, a vertical branch labeled $C$ extends downward to a payoff of 1."
+    },
+    "pg_21__page_65_Diagram_2.jpeg": {
+        "skip": false,
+        "description": "Decision tree diagram for a game with chance node 'c' at the top branching into 'L' (probability 0.5) and 'R' (probability 0.5).\n\nLeft branch (L) leads to decision node d2. From d2:\n- Action S leads to a payoff of 3.\n- Action C connects to decision node d1 below it.\n\nRight branch (R) leads to decision node d1. From d1:\n- Action S leads to a payoff of 3.\n- Action C connects to decision node d2 below it.\n\nInformation sets are indicated by tilted rectangular blocks connecting identical decision nodes across branches (d2 at top-left connects across to d1 at top-right; d1 at bottom-left connects across to d2 at bottom-right).\n\nFrom the lower decision nodes:\n- At bottom-left d1, action S yields a payoff of 0, and action C leads downwards to a payoff of 2.\n- At bottom-right d2, action S yields a payoff of 0, and action C leads downwards to a payoff of 2."
+    },
+    "pg_21__page_73_Diagram_2.jpeg": {
+        "skip": false,
+        "description": "A decision tree or graph diagram showing four circular nodes labeled A, B, C, and D. Node A is at the top right. A straight vertical line extends downward from Node A through intermediate connection points to Node D at the bottom right. Node B connects diagonally upward to a point on the vertical line between A and C. Node C connects diagonally upward to a point further down on the vertical line between B and D. Additionally, a line extends from Node A to the left, turns downwards at a sharp angle, and connects directly to Node C."
+    },
+    "pg_21__page_74_Diagram_4.jpeg": {
+        "skip": false,
+        "description": "A game tree structure illustrating a decision process with information sets and probabilities. At the top, node v1 represents the choice labeled \"C via a long way\". From v1, a branch leads down to node v2, labeled \"B\". From v2, a branch goes to a node labeled \"chance\". The chance node splits into two branches: a left branch with probability 0.9 leading to node v3, and a right branch with probability 0.1 leading to node v4. Nodes v3 and v4 are enclosed in dotted circles and connected by a curved dotted double line, indicating an information set representing uncertainty between these states. Node v3 has a horizontal branch to outcome \"C\" and a vertical branch down to outcome \"D\". Node v4 has a horizontal branch labeled \"B\" and a vertical branch leading down to node v5. From v5, a horizontal branch leads to \"C\" and a vertical branch leads down to \"D\"."
+    },
+    "pg_21__page_77_Picture_0.jpeg": {
+        "skip": true,
+        "description": ""
+    },
+    "pg_21__page_82_Figure_6.jpeg": {
+        "skip": false,
+        "description": "Figure 5.1 depicts a two-dimensional decision region plot with horizontal axis \\(\\omega_1\\) and vertical axis \\(\\omega_2\\). The \\(\\omega_1\\) axis is divided into two regions labeled \\(L\\) (Low) and \\(H\\) (High). The vertical axis shows two horizontal dashed threshold lines labeled \\(Ex(\\omega_1 \\in L)\\) and \\(Ex(\\omega_1 \\in H)\\). These threshold lines partition the rectangular state space into six sub-regions, each labeled with a decision choice: the top left region contains 1, top right contains 1; middle left contains 1, middle right contains 2; bottom left contains 2, bottom right contains 2. This illustrates the decision-maker's choice (1 vs 2) based on the observed values of \\(\\omega_1\\) and the expectation threshold for \\(\\omega_2\\)."
+    },
+    "pg_21__page_86_Figure_2.jpeg": {
+        "skip": false,
+        "description": "An economic supply and demand graph displaying two states, H and L. The vertical axis represents price or cost/valuation with tick marks labeled (from bottom to top) v_L, c_2, v_H, and c_1. The horizontal axis represents quantity with tick marks labeled 1 and 2.\n\n- 'Demand in H' is a horizontal line at height v_H stretching from quantity 0 to beyond 2.\n- 'Demand in L' is a horizontal line at height v_L stretching from quantity 0 to beyond 2.\n- 'Supply in L' is a horizontal line along the horizontal axis (cost = 0) extending from quantity 0 to 2.\n- 'Supply in H' is a step function: it starts at height c_2 from quantity 0 to 1, jumps vertically via a dotted line at quantity 1 up to height c_1, and continues horizontally at height c_1 from quantity 1 to beyond 2."
+    },
+    "pg_21__page_92_Diagram_2.jpeg": {
+        "skip": false,
+        "description": "A block diagram illustrating a perceptron decision process with three main components:\n\n1. Left Block ('input'): Contains input parameters $(p_1, p_2, \\dots, p_K)$.\n2. Arrows ('\\phi_1', '\\phi_2', '\\dots', '\\phi_M'): Three parallel directed arrows leading from the input block to the center block, labeled $\\phi_1$, $\\phi_2$, and $\\phi_M$ respectively.\n3. Middle Block ('center'): Contains the operation '$\\sum \\phi_m$ is compared with $\\alpha^*$'.\n4. Right Block ('Output'): Connected by a single directed arrow from the middle block to the right block labeled 'Output'."
+    },
+    "pg_21__page_97_Picture_1.jpeg": {
+        "skip": true,
+        "description": ""
+    },
+    "pg_21__page_136_Diagram_4.jpeg": {
+        "skip": false,
+        "description": "A state diagram representing a strategy as a finite state machine with four states labeled p0, p1, p2, and p3.\n\n- Start arrow points to state p0.\n- State p0 plays action C (indicated below the node).\n  - Reading action C results in a self-loop transition back to p0.\n  - Reading action D transitions from p0 to p1.\n- State p1 plays action D.\n  - Reading action C or D transitions from p1 to p2.\n- State p2 plays action D.\n  - Reading action C or D transitions from p2 to p3.\n- State p3 plays action D.\n  - Reading action C or D transitions from p3 back to p0."
+    },
+    "pg_21__page_136_Diagram_2.jpeg": {
+        "skip": false,
+        "description": "A state machine (finite automaton) representing a strategy in an infinitely repeated game, labeled with two states:\n\n1. State $q_C$:\n   - Has an incoming arrow from the left labeled \"start\", indicating it is the initial state.\n   - Produces the output action $C$ (indicated below the state circle).\n   - Has a self-loop arrow labeled $C$ (transitions back to $q_C$ if the opponent plays $C$).\n   - Has a transition arrow going to state $q_D$ labeled $D$ (transitions to $q_D$ if the opponent plays $D$).\n\n2. State $q_D$:\n   - Produces the output action $D$ (indicated below the state circle).\n   - Has a self-loop arrow labeled $C, D$ (remains in $q_D$ regardless of whether the opponent plays $C$ or $D$).\n\nThis represents a Grim Trigger (or similar trigger) strategy where the player starts by playing $C$ and continues playing $C$ as long as the opponent plays $C$, but permanently switches to playing $D$ if the opponent ever plays $D$."
+    },
+    "pg_21__page_137_Diagram_2.jpeg": {
+        "skip": false,
+        "description": "A finite state machine transition diagram illustrating a strategy in a repeated game (such as Tit-for-Tat). The machine consists of two states represented by circles:\n- State q_0 (labeled with output C underneath): Has a self-loop labeled with input D, and an incoming arrow from 'start'. A transition arrow labeled C leads from state q_0 to state q_1.\n- State q_1 (labeled with output D underneath): Has a self-loop labeled with input C, and a curved transition arrow labeled D leading back to state q_0."
+    },
+    "pg_21__page_143_Diagram_2.jpeg": {
+        "skip": false,
+        "description": "A state diagram representing an automaton (finite state machine) with two states labeled 'D' (left, the start state) and 'C' (right). The left state 'D' has an incoming arrow labeled 'start', a self-loop transition labeled 'C', and an outgoing transition to state 'C' labeled 'D'. The right state 'C' has a self-loop transition labeled 'C', and a transition back to state 'D' labeled 'D'."
+    },
+    "pg_21__page_146_Diagram_2.jpeg": {
+        "skip": false,
+        "description": "The image shows two state-transition diagrams for two finite-state automata labeled $M_1$ and $M_2$, representing strategies in repeated games.\n\nDiagram $M_1$:\n- Begins with an initial state labeled 'start' pointing to state $I_1$.\n- Sequence of initial states: $I_1 \\xrightarrow{D} I_2 \\xrightarrow{D} \\dots \\xrightarrow{D} I_k \\xrightarrow{D} q_1$. Underneath states $I_1, I_2, I_k$, the action played is $D$.\n- Main loop states: $q_1, q_2, q_3, q_4$.\n  - $q_1$: plays $C$, transitions via $C$ to $q_2$.\n  - $q_2$: plays $C$, transitions via $C$ to $q_3$.\n  - $q_3$: plays $C$, transitions via $D$ to $q_4$.\n  - $q_4$: plays $D$, loops back via transition labeled $C$ to state $q_1$.\n\nDiagram $M_2$:\n- Begins with an initial state labeled 'start' pointing to state $I_1$.\n- Sequence of initial states: $I_1 \\xrightarrow{D} I_2 \\xrightarrow{D} \\dots \\xrightarrow{D} I_k \\xrightarrow{D} q_1$. Underneath states $I_1, I_2, I_k$, the action played is $D$.\n- Main loop states: $q_1, q_2, q_3, q_4$.\n  - $q_1$: plays $C$, transitions via $C$ to $q_2$.\n  - $q_2$: plays $C$, transitions via $C$ to $q_3$.\n  - $q_3$: plays $D$, transitions via $C$ to $q_4$.\n  - $q_4$: plays $C$, loops back via transition labeled $D$ to state $q_1$."
+    },
+    "pg_171__page_0_Diagram_2.jpeg": {
+        "skip": false,
+        "description": "Two finite state automata representing strategies in repeated games. \n\nTop automaton:\n- An initial state labeled 'D' with a start arrow pointing to it.\n- A self-loop on state 'D' labeled 'D'.\n- A transition arrow from state 'D' to state 'C' labeled 'C'.\n- A transition arrow from state 'C' back to state 'D' labeled 'C, D'.\n\nBottom automaton:\n- An initial state labeled 'C' with a start arrow pointing to it.\n- A transition arrow from state 'C' to state 'D' labeled 'C, D'.\n- A self-loop on state 'D' labeled 'D'.\n- A transition arrow from state 'D' back to state 'C' labeled 'C'."
+    },
+    "pg_171__page_1_Figure_2.jpeg": {
+        "skip": false,
+        "description": "A game tree (extensive form game diagram) labeled Figure 8.7 showing a sequential game between two players, Player 1 and Player 2.\n\n- The game starts at Player 1's decision node labeled '1':\n  - Player 1 can choose action 'B', leading to a terminal outcome with payoffs (2, 0).\n  - Player 1 can choose action 'A', leading to Player 2's decision node labeled '2'.\n\n- At Player 2's decision node '2':\n  - Player 2 can choose action 'B', leading to a terminal outcome with payoffs (1, 3).\n  - Player 2 can choose action 'A', leading to a terminal outcome at the bottom with payoffs (3, 1)."
+    },
+    "pg_171__page_43_Picture_0.jpeg": {
+        "skip": true,
+        "description": ""
+    }
+}

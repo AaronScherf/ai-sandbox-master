@@ -1,0 +1,190 @@
+{
+    "pg_21__page_3_Picture_0.jpeg": {
+        "skip": true,
+        "description": ""
+    },
+    "pg_21__page_62_Figure_1.jpeg": {
+        "skip": false,
+        "description": "Two graphs illustrating elementary functions. The left plot shows the exponential function e^x and its inverse, the natural logarithm function ln(x), on Cartesian axes. The curve for e^x passes through (0, 1), and the curve for ln(x) passes through (1, 0). The right plot shows the trigonometric functions cos(x) (solid line) and sin(x) (dashed line) over a domain including -pi to pi. The cos(x) curve peaks at 1 at x = 0 and reaches 0 at x = pi/2, while the sin(x) curve is shifted, passing through (0, 0) and reaching 1 at x = pi/2. Key x-axis labels include pi/2 and pi, and y-axis labels include 1 and -1."
+    },
+    "pg_21__page_73_Diagram_2.jpeg": {
+        "skip": false,
+        "description": "A 2D lattice diagram illustrating Cantor's diagonal argument to show the countability of a Cartesian product A x B. Points arranged in a 4 by 4 grid of dots represent ordered pairs. Arrows labeled with numbers 1 through 9 trace a zigzag path through the grid to enumerate the elements sequentially: starting at the top-left dot, moving down (1), diagonally up-right (2), right (3), diagonally down-left (4, 5), down (6), and diagonally up-right (7, 8, 9), with dashed arrows continuing the pattern across the grid."
+    },
+    "pg_21__page_81_Figure_4.jpeg": {
+        "skip": false,
+        "description": "Two graphs illustrating functions $f$ mapped on a unit square $[0,1] \\times [0,1]$ with a dashed diagonal line representing the $45^\\circ$ line ($y=x$).\n\n1. Left plot: Shows a monotonically non-decreasing function $f$ divided into three segments. The function starts at a positive $y$-value on the vertical axis, increases linearly to an open circle, jumps up to a filled dot, continues horizontally/curved slightly upward, and then jumps to a third segment that intersects the $45^\\circ$ line multiple times (indicated by filled dots at the intersection points), illustrating Tarski's Fixed Point Theorem condition for monotone functions on a lattice.\n\n2. Right plot: Shows a decreasing piecewise function $f$ composed of two linear segments. The first segment starts high on the vertical axis and decreases to an open circle. Below it, the second segment starts at a filled dot and decreases to a point at $x=1$. The function intersects the $45^\\circ$ line at a single point between the two segments."
+    },
+    "pg_21__page_98_Picture_0.jpeg": {
+        "skip": true,
+        "description": ""
+    },
+    "pg_21__page_103_Figure_4.jpeg": {
+        "skip": false,
+        "description": "A geometric plot illustrating $p$-norm unit balls $C_p = \\{(x, y) \\in \\mathbb{R}^2 \\mid |x|^p + |y|^p \\le 1\\}$ centered at the origin in the 2D Cartesian plane. The axes range from $-1$ to $1$ with marked vertices at $(1,0)$, $(0,1)$, $(-1,0)$, and $(0,-1)$. The image shows four nested unit balls corresponding to different values of $p$:\n1. $C_1$: A square/diamond oriented at $45^\\circ$ with straight edges connecting the four intercept points $(1,0)$, $(0,1)$, $(-1,0)$, and $(0,-1)$.\n2. $C_2$: The standard Euclidean unit circle ($p=2$), passing through the four intercepts and lying outside $C_1$.\n3. $C_3$: A rounded square-like shape ($p=3$) extending further toward the corners than $C_2$.\n4. $C_\\infty$: The limiting unit square bounded by $x = \\pm 1$ and $y = \\pm 1$ ($p=\\infty$), which circumscribes all inner curves."
+    },
+    "pg_21__page_110_Picture_6.jpeg": {
+        "skip": false,
+        "description": "A geometric diagram illustrating open neighborhoods in a metric space. A large dashed circle represents the neighborhood $N_{\\varepsilon, X}(x)$ centered at point $x$. A dotted radius line segment from $x$ to the outer dashed boundary is labeled $\\varepsilon$. Inside this large neighborhood, a point $y$ is connected to $x$ by a solid line segment. Surrounding $y$ is a smaller, shaded circle representing $N_{\\delta, X}(y)$, which lies entirely within $N_{\\varepsilon, X}(x)$. A short dotted line segment from $y$ to the boundary of the shaded circle is labeled $\\delta$."
+    },
+    "pg_21__page_146_Figure_3.jpeg": {
+        "skip": false,
+        "description": "A Cartesian plot illustrating a sequence of functions $f_3, f_4, f_6$ on the interval $[0, 1]$. The horizontal axis shows values $1/6$, $1/4$, $1/3$, $1/2$, and $1$. The vertical axis has a value of $1$. For each function $f_n$, the value is $0$ from $0$ up to $1/n$ (marked at points $1/6, 1/4, 1/3$), then increases linearly from $(1/n, 0)$ up to $(1/2, 1)$, and remains constant at $1$ on the interval $[1/2, 1]$. As $n$ increases, the line segment connecting $(1/n, 0)$ to $(1/2, 1)$ becomes steeper, approaching a vertical step at $x = 1/2$."
+    },
+    "pg_171__page_2_Figure_3.jpeg": {
+        "skip": false,
+        "description": "Two graphs illustrating the dynamics of fixed points and contractions on the 45-degree line y = x.\n\nThe left panel shows a function f that is a contraction. The curve of f intersects the dashed 45-degree line at a unique fixed point x*. A cobwebbing iteration starting at x traces points decreasing in distance towards the fixed point x*, labeled along the x-axis as x, f(x), and x*. The caption reads: \"f is a contraction with the unique fixed point x*.\"\n\nThe right panel shows a function f that lies strictly above the dashed 45-degree line and is not a contraction. Cobwebbing starting from x steps rightward and upward sequentially through f(x), f^2(x), and so forth, moving away without ever intersecting the 45-degree line. The caption reads: \"f is not a contraction, and it has no fixed points.\""
+    },
+    "pg_171__page_37_Diagram_0.jpeg": {
+        "skip": false,
+        "description": "A flowchart showing a sequence of mathematical implications (represented by rightward double arrows '=>') between continuity properties in order from strongest to weakest:\n\n1. contraction property\n=> nonexpansiveness\n=> Lipschitz continuity\n=> Hölder continuity\n=> uniform continuity\n=> continuity"
+    },
+    "pg_171__page_44_Figure_9.jpeg": {
+        "skip": false,
+        "description": "A plot illustrating two function curves on the interval [0, 1]. A dashed diagonal line representing the 45-degree identity line (y = x) extends from the origin (0,0) to (1,1). The solid curve labeled f lies above the identity line initially, intersects the identity line at a point x, drops below it, and rises again toward x = 1. A second dotted curve labeled g := f - id_{[0,1]} represents the difference between f and the identity function. The function g is positive where f is above the 45-degree line, equals 0 at x (marked on the horizontal axis with a black dot corresponding to the intersection of f and the 45-degree line), and becomes negative where f falls below the 45-degree line."
+    },
+    "pg_171__page_49_Picture_7.jpeg": {
+        "skip": false,
+        "description": "A geometric diagram illustrating projection onto a set $S$. It shows a large circle representing a set $T$ and a thick curved boundary representing set $S$ passing through $T$. Inside $T$, a shaded region is bounded by the circle's lower-left arc and the curve $S$. A dashed line segment connects a point $y$ outside $T$ to a point $x$ inside $T$. The dashed line passes through a point marked with a dot on the curve $S$, labeled $\\text{p}_S(x)$, which represents the projection of point $x$ onto $S$."
+    },
+    "pg_171__page_53_Figure_4.jpeg": {
+        "skip": false,
+        "description": "Three plots illustrating upper and lower semicontinuity of a function f at a point x:\n\n1. First plot (top left): Shows a jump discontinuity at x with an open circle at lim sup f(x) and an open circle at lim inf f(x). The solid black dot representing the actual value f(x) lies strictly above lim sup f(x). The caption states: \"f is upper semicontinuous but not lower semicontinuous at x.\"\n\n2. Second plot (top right): Shows the same jump discontinuity, but the solid black dot representing f(x) coincides with the lower limit circle at lim inf f(x). The caption states: \"f is lower semicontinuous but not upper semicontinuous at x.\"\n\n3. Third plot (bottom center): Shows the jump discontinuity where the solid black dot representing f(x) lies strictly between lim inf f(x) and lim sup f(x), with open circles at both limits. The caption states: \"f is neither upper semicontinuous nor lower semicontinuous at x.\""
+    },
+    "pg_171__page_56_Figure_3.jpeg": {
+        "skip": false,
+        "description": "Four plots labeled $f_1$, $f_2$, $f_3$, and $f_4$ showing a sequence of piecewise linear functions composed of triangular peaks over the interval $[0, 1]$.\n\n- **$f_1$**: A single triangle over $[0, 1]$ with a peak at $x = 1/2$ and height $y = 1$.\n- **$f_2$**: Two triangles over $[0, 1/2]$ and $[1/2, 1]$ with peaks at $x = 1/4$ and $x = 3/4$, both with height $y = 1/2$.\n- **$f_3$**: Four triangles over the subintervals of length $1/4$, with peaks at $x = 1/8, 3/8, 5/8, 7/8$, all with height $y = 1/4$.\n- **$f_4$**: Eight smaller triangles over subintervals of length $1/8$, all with height $y = 1/8$ and the final point at $x = 1$."
+    },
+    "pg_171__page_69_Figure_5.jpeg": {
+        "skip": false,
+        "description": "A plot illustrating the concept of uniform convergence of a sequence of functions to a limit function f on the interval [0, 1]. The solid curve represents the function f. Two dashed curves, labeled f + \\varepsilon above and f - \\varepsilon below, bound an \\varepsilon-tube shaded in light gray around f. A dotted curve, labeled f_m, represents a function in the sequence that lies entirely within this shaded \\varepsilon-tube between 0 and 1. Vertical dotted lines mark the boundaries at x = 0 and x = 1 along the horizontal axis."
+    },
+    "pg_171__page_71_Figure_0.jpeg": {
+        "skip": false,
+        "description": "A plot on a unit square [0,1] x [0,1] illustrating four increasing, convex-upward/downward curves representing functions labeled f1, f2, f3, and f4. The x-axis ranges from 0 to 1, and the y-axis ranges from 0 to 1. All four curves start at the origin (0,0) and terminate at the upper-right corner (1,1), marked with small square endpoints. Dotted lines mark the boundary at x=1 and y=1. Function f1 is closest to the diagonal line connecting (0,0) to (1,1). Below f1 lie f2, f3, and f4 in order, becoming progressively more convex (bowed downward toward the x-axis). A double-ended arrow orthogonal to the curves points across them, indicating the direction of increasing curvature/bowing from f1 down to f4."
+    },
+    "pg_171__page_73_Figure_6.jpeg": {
+        "skip": false,
+        "description": "A plot of a sequence of functions, labeled $f_1, f_2, f_3, \\dots$, defined on the interval $[-1, 1]$. The horizontal axis extends from $-1$ to $1$ with $0$ at the center, and the vertical axis extends from $0$ to $1$, marked with horizontal dotted lines at heights $\\frac{1}{2}$, $\\frac{7}{8}$, and $1$. The functions are symmetric V-shaped or U-shaped curves rooted at the origin $(0,0)$. The first function $f_1$ lies flat along the x-axis, reaching height $\\frac{1}{2}$ at $x = -1$ and $x = 1$. Higher-indexed functions $f_2, f_3, \\dots$ curve upwards more sharply near the origin and approach the piecewise linear absolute value function $|x|$, with $f_n(\\pm 1)$ increasing towards $1$ as $n$ increases."
+    },
+    "pg_171__page_90_Picture_0.jpeg": {
+        "skip": false,
+        "description": "A geometric diagram illustrating the construction used in the proof of Brouwer's fixed-point theorem via retraction to the boundary. The diagram shows a 2-dimensional unit ball labeled B^2 with its origin point labeled 0 at the center. A dashed line passes through the ball, containing three key points: a point r(x) located on the circular boundary (S^1), an interior point x, and another interior point Phi(x) farther along the line segment. The point r(x) is defined by extending the ray from Phi(x) through x until it intersects the boundary."
+    },
+    "pg_171__page_102_Figure_2.jpeg": {
+        "skip": false,
+        "description": "Two side-by-side diagrams comparing two region boundaries labeled Gamma_1 and Gamma_2 on a two-dimensional coordinate system with horizontal axis points x_1 and x_2.\n\nLeft diagram (Gamma_1):\nShows a shaded region bounded between x_1 and x_2 by curved upper and lower boundaries. At x_1, the boundary endpoints are represented by open circles connected by a dotted vertical line, with a filled circle on the vertical segment. At x_2, the right boundary has open circles at the upper and lower corners, with a solid vertical line segment containing filled circles connecting to another shaded region extending to the right.\n\nRight diagram (Gamma_2):\nShows the same central shaded region between x_1 and x_2, but with solid vertical boundary segments at x_1 and x_2 drawn with filled circles at the corners and endpoints. Point 'y' is labeled at the upper left corner above x_1. To the right of x_2, the extending region is outlined with dotted lines rather than solid lines."
+    },
+    "pg_171__page_102_Figure_5.jpeg": {
+        "skip": false,
+        "description": "A 2D coordinate plot illustrating a set-valued correspondence $\\Gamma_3$. The horizontal axis shows points $x_1$ and $x_2$. The shaded region represents the values of the correspondence. At $x_1$, there is a jump discontinuity: the correspondence has a gap between upper and lower segments marked with vertical solid line segments and dotted line connectors, showing filled dots at the boundaries. At $x_2$, the upper boundary has filled dots while the lower boundary has open circles, leading into a lighter shaded extension to the right bounded by dotted curves. Below the plot, caption text states: 'Not upper hemicontinuous at $x_1$ and $x_2$' and 'Not lower hemicontinuous at $x_1$ and $x_2$'."
+    },
+    "pg_171__page_105_Picture_0.jpeg": {
+        "skip": false,
+        "description": "A geometric diagram illustrating neighborhood sets and bounds in a proof. It consists of three nested elliptical regions surrounding a central gray shaded oval region labeled Gamma(x). \n\n- The innermost gray shaded ellipse represents Gamma(x).\n- A dashed middle ellipse surrounds Gamma(x) and is labeled Gamma(N_{delta, X}(x)) near the bottom.\n- An outer solid curve bounds the entire region, labeled T near the lower-left edge.\n- On the left side, a dotted arrow labeled (y_m) points into the region between Gamma(x) and the dashed boundary.\n- On the right side, a horizontal dotted line extends from the boundary of Gamma(x) outward past the solid outer boundary to a point y. The segment between the boundary of Gamma(x) and the outer boundary is labeled epsilon/2, and the segment from the outer boundary to point y is also labeled epsilon/2."
+    },
+    "pg_171__page_114_Picture_5.jpeg": {
+        "skip": false,
+        "description": "Geometric illustration labeled Figure 3 showing three examples of sets A and B with marked Hausdorff distance d_H(A, B) and distance measure omega(A, B).\n\nTop Left: Two overlapping shapes, a circle A and an ellipse B. The distance omega(A, B) is indicated by a dashed line segment across the non-overlapping left part of circle A, while d_H(A, B) is shown by a dashed line segment across the non-overlapping right part of ellipse B.\n\nTop Right: Two right triangles A and B positioned side-by-side. The distance omega(A, B) spans horizontally between the leftmost vertex of triangle A and the leftmost vertex of triangle B. The Hausdorff distance d_H(A, B) spans horizontally between the rightmost edge/vertex of triangle A and the far right vertex of triangle B.\n\nBottom Center: A smaller circle B completely contained within a larger oval/ellipse A. The Hausdorff distance d_H(A, B) is represented by a dashed arrowed segment extending from the inner boundary of A to the outer boundary of B."
+    },
+    "pg_321__page_8_Picture_0.jpeg": {
+        "skip": true,
+        "description": ""
+    },
+    "pg_321__page_75_Picture_3.jpeg": {
+        "skip": false,
+        "description": "Geometric illustration of algebraic interior points of a set S. A shaded oval region represents set S. An interior point labeled 'x' inside the set has dashed lines passing through it connecting to points 'y' outside the set, with solid segment intervals around 'x' inside S, labeled as 'an algebraic interior point of S'. On the bottom boundary of S, another point is indicated by a dotted arrow with a line segment extending outside to a point 'y', labeled as 'not an algebraic interior point of S'."
+    },
+    "pg_321__page_76_Picture_8.jpeg": {
+        "skip": false,
+        "description": "A geometric diagram depicting a plane $Y$ (shown with a dotted boundary) containing a point $z$ and a shaded region labeled $S - x^*$. Inside the region $S - x^*$ is a point $x$. Above the plane $Y$, a point labeled $w \\in X \\setminus Y$ is shown outside the plane, with line segments connecting $w$ to $z$ on the plane $Y$ and $w$ to $x$ within $S - x^*$."
+    },
+    "pg_321__page_78_Figure_0.jpeg": {
+        "skip": false,
+        "description": "A 2D Cartesian coordinate plane illustrating a shaded region $S$ bounded by a spiral curve that originates at the origin $\\mathbf{0}$. The region expands counterclockwise through all four quadrants and terminates along the positive x-axis at $x = 1$. The origin $\\mathbf{0}$ is marked as a point at the center of the axes. Below the graph, text states: \"$\\mathbf{0}$ is an algebraic interior point of $S$, but it is not an interior point of $S$.\""
+    },
+    "pg_321__page_78_Picture_10.jpeg": {
+        "skip": false,
+        "description": "A geometric diagram showing a large set S bounded by an ellipse and an inner convex diamond-shaped set T centered at point x. The point x lies inside T. A horizontal axis inside T shows the point x + \\alpha e^1 at the right vertex, and a vertical axis shows the point x - \\alpha e^2 at the bottom vertex. The diamond region T is shaded gray, illustrating the convex hull of perturbed points centered at x within the set S."
+    },
+    "pg_321__page_79_Figure_12.jpeg": {
+        "skip": false,
+        "description": "A 2D Cartesian coordinate plane depicting a standard simplex in two dimensions, which forms a shaded right triangle with vertices at the origin $0$, $e^1$ on the horizontal axis, and $e^2$ on the vertical axis. Inside the shaded triangular region lies a point labeled $x$. A dashed line segment extends from point $x$, crossing the horizontal axis (the boundary of the simplex), to a point $y$ located outside the shaded region in the lower-right area."
+    },
+    "pg_321__page_79_Figure_13.jpeg": {
+        "skip": false,
+        "description": "A geometric plot in two dimensions with axes labeled 0, e^1 (on the horizontal axis), and e^2 (on the vertical axis). A shaded triangular region is bounded by the vertical segment from 0 to e^2, the horizontal segment from 0 to e^1, and a straight line connecting e^2 to e^1. A point x lies on the horizontal axis between 0 and e^1. A dashed line segment connects e^2 to x inside the shaded triangle. A solid line segment extends downwards from x outside the shaded region to a point labeled \\frac{1}{2}x - \\frac{3}{2}e^2."
+    },
+    "pg_321__page_94_Picture_10.jpeg": {
+        "skip": false,
+        "description": "A geometric illustration of the Minkowski functional (or gauge function) $\\varphi_S$ associated with a convex set $S$ containing the origin $0$.\n\n- Set $S$ is represented as a shaded oval/ellipse containing the origin $0$.\n- Point $x$ lies outside $S$ with $\\varphi_S(x) > 1$. A line segment from $0$ extends through the boundary of $S$ at $\\frac{1}{\\varphi_S(x)}x$ (marked by a point) and dashed line to $x$.\n- Point $y$ lies directly on the boundary of $S$, labeled as $y\\ (\\varphi_S(y) = 1)$, connected to $0$ by a straight line.\n- Point $z$ lies inside $S$ with $\\varphi_S(z) < 1$. A line segment from $0$ passes through $z$ and extends via a dashed line to the boundary of $S$ at $\\frac{1}{\\varphi_S(z)}z$ (labeled $(\\varphi_S(z) < 1)$)."
+    },
+    "pg_321__page_97_Picture_2.jpeg": {
+        "skip": false,
+        "description": "Six examples illustrating geometric sets $S$ and points $z$ in relation to convexity and supporting hyperplanes:\n\n1. **Top-Left**: A closed convex set $S$ represented as a shaded ellipse, with a point $z$ lying outside $S$ and separated from $S$ by a line.\n2. **Top-Middle**: An open convex set $S$ (dashed boundary) with a point $z$ lying on its boundary (at a supporting line).\n3. **Top-Right**: A non-convex crescent-shaped set $S$ with a point $z$ in its inner concave region.\n4. **Bottom-Left**: A set $S$ represented as a line, with a point $z$ lying directly on $S$.\n5. **Bottom-Middle**: A convex set $S$ (shaded ellipse) with a point $z$ lying strictly inside the interior of $S$.\n6. **Bottom-Right**: A partially open/closed rectangular set $S$ with dashed boundaries on three sides and a solid line segment on one side containing the point $z$ on its boundary."
+    },
+    "pg_321__page_102_Picture_2.jpeg": {
+        "skip": false,
+        "description": "A geometric diagram illustrating a convex set $S$ bounded by hyperplanes (lines in 2D). The shaded region represents a closed convex set $S$ with a smooth boundary, labeled $S$ in the lower-left area. Multiple lines tangent to the boundary of $S$ at various points are shown surrounding the shape, demonstrating how a convex set can be represented as the intersection of supporting hyperplanes. Some tangent lines are drawn as solid lines, while others are drawn as dashed lines."
+    },
+    "pg_321__page_104_Picture_0.jpeg": {
+        "skip": false,
+        "description": "Four separate diagrams illustrating supporting hyperplanes (lines) for convex sets in two dimensions.\n\n1. Top-left: A closed, smooth convex set S shaded gray, with a supporting line touching it at a single boundary point x.\n2. Top-right: An open convex set S with a dashed boundary, with a line passing through a boundary point x outside the set S.\n3. Bottom-left: A non-smooth convex set S (a polygon corner/wedge) shaded gray, with multiple valid supporting lines intersecting at the vertex point x.\n4. Bottom-right: A convex set S bounded on one side by a straight line segment containing point x, where the supporting line coincides with that flat boundary segment."
+    },
+    "pg_321__page_118_Figure_8.jpeg": {
+        "skip": false,
+        "description": "A 2D Cartesian coordinate plane showing two perpendicular lines passing through the origin (0,0). The line passing through the points (-1,1) and (1,-1) is labeled $Z$. The line passing through (1,1) and (-1,-1) is perpendicular to $Z$ and is labeled $Z^\\bot$. Dotted reference lines mark the coordinates (-1,1) in the second quadrant and (1,1) in the first quadrant. A square symbol at the origin indicates the right angle between lines $Z$ and $Z^\\bot$."
+    },
+    "pg_321__page_119_Picture_4.jpeg": {
+        "skip": false,
+        "description": "A geometric vector diagram depicting orthogonal projection onto a subspace Y in 3D space, labeled as FIGURE 14. A shaded two-dimensional plane is labeled Y and lies horizontally around an origin point labeled 0. Vector y lies within the plane Y, starting from the origin 0. Vector x points upwards out of the plane Y, also starting from 0. The difference vector x - y is directed vertically, perpendicular to the plane Y, forming a right-angled triangle projection from the tip of x down to the tip of y in plane Y, with a dotted vertical line connecting them."
+    },
+    "pg_471__page_0_Picture_0.jpeg": {
+        "skip": false,
+        "description": "A geometric diagram illustrating a utility possibility set and a supporting hyperplane. On a two-dimensional axis system, a shaded convex region is labeled $U_E$. A specific point $u$ on the boundary of $U_E$ is marked with a solid black dot and labeled $u \\in \\mathcal{P}_E$. A straight line tangent to the boundary of $U_E$ at point $u$ is shown, with a dotted arrow pointing to it labeled \"supporting hyperplane of $U_E$ at $u$\"."
+    },
+    "pg_471__page_2_Diagram_1.jpeg": {
+        "skip": false,
+        "description": "Two decision trees depicting probability branching. On the left, a single-stage binary tree starts from a root node with two branches: the upper branch labeled $\\alpha$ leads to outcome $i_1$, and the lower branch labeled $1 - \\alpha$ leads to outcome $i_2$. On the right, a two-stage binary tree starts from a root node with identical initial branches labeled $\\alpha$ (upper) and $1 - \\alpha$ (lower). From the top intermediate node, two sub-branches labeled $\\Theta(i_1, j_1)$ and $\\Theta(i_1, j_2)$ lead to final outcomes $j_1$ and $j_2$, respectively. From the bottom intermediate node, two sub-branches labeled $\\Theta(i_2, j_1)$ and $\\Theta(i_2, j_2)$ lead to final outcomes $j_1$ and $j_2$, respectively."
+    },
+    "pg_471__page_15_Figure_0.jpeg": {
+        "skip": false,
+        "description": "A two-dimensional plot on the non-negative quadrant with horizontal axis $x_1$ and vertical axis $x_2$. Three distinct regions labeled $A$, $B$, and $C$ are defined by curves and a straight line intersecting at the point $(1,1)$, marked with a solid dot.\n\n1. A downward-sloping straight line connects the vertical axis $x_2$ to the horizontal axis $x_1$, passing through $(1,1)$.\n2. A hyperbola defined by $x_1 x_2 = 1$ is tangent to the straight line at $(1,1)$. The shaded region $A$ lies above/outermost of this hyperbola and the tangent line.\n3. A quarter-circle arc centered at the origin touches the tangent line at $(1,1)$. The shaded region $B$ lies beneath this arc, bounded by the axes in the first quadrant.\n4. Region $C$ is a non-shaded triangular-like area bounded by the vertical axis $x_2$, the tangent line, and the upper-left part of the circular arc."
+    },
+    "pg_471__page_22_Picture_0.jpeg": {
+        "skip": true,
+        "description": ""
+    },
+    "pg_471__page_41_Picture_5.jpeg": {
+        "skip": false,
+        "description": "A geometric diagram depicting sets in a topological vector space or convex analysis context, labeled Figure 1. A large dotted closed curve represents an open set O surrounding all objects. On the left is a large shaded circular set centered at the origin labeled 0. On the right, along a horizontal axis line extending from 0, is a smaller shaded circular neighborhood labeled V centered at a point x. Further to the right along the same line is a point labeled \\alpha x. Two dashed tangent lines originate from \\alpha x and extend leftward, touching the boundary of the large circle centered at 0, enclosing the smaller neighborhood V."
+    },
+    "pg_471__page_54_Picture_9.jpeg": {
+        "skip": false,
+        "description": "A geometric diagram illustrating points relative to a convex set S, which is depicted as a shaded oval. A line segment originates from an interior point x inside S and extends through a point z inside S, a boundary point y on the boundary of S, and terminates at an exterior point x' outside S. A dotted arrow points from the point x to the expression 'x \\in int_X(S)'. Another dotted arrow points from the point z to the expression 'z \\in al-int_X(S)'."
+    },
+    "pg_471__page_59_Diagram_2.jpeg": {
+        "skip": false,
+        "description": "A Venn-like set diagram illustrating nested sets and their intersections. On the left are concentric diamond-shaped sets labeled from inner to outer as $S$, $2S$, and $3S$. On the right are concentric circular sets labeled from outer to inner as $B_1$, $B_2$, and $B_3$. The diamond $3S$ intersects the outermost circle $B_1$ and the middle circle $B_2$. Shading is applied to set $S$, the ring region of $2S$, the circle $B_2$, and the innermost circle $B_3$ to highlight specific set relationships."
+    },
+    "pg_471__page_78_Figure_9.jpeg": {
+        "skip": false,
+        "description": "A geometric vector diagram in a two-dimensional Cartesian plane depicting points and vector translations related to projection and distance in a subspace Y. \n\n- The origin is labeled as $0$.\n- A line representing a subspace $Y$ passes through the origin $0$, extending from the upper-left second quadrant down to the lower-right fourth quadrant.\n- On line $Y$, a point $y$ is located in the second quadrant, and a point $w$ is located in the fourth quadrant.\n- A point $z$ lies off line $Y$ in the fourth quadrant, near $w$. The segment between $w$ and $z$ is labeled with a curly brace and length $\\beta$.\n- The vector $z - w$ is shown as a dashed line segment extending from the origin $0$ into the first quadrant.\n- Scaled vector $\\frac{\\alpha}{\\beta}(z - w)$ continues along the same direction from $0$.\n- Near point $y$, a parallel segment extending in the direction of $z - w$ leads to the point $\\frac{\\alpha}{\\beta}(z - w) + y$. The distance along this segment from $y$ is labeled with a curly brace and length $\\alpha$.\n- Dashed lines form a parallelogram structure connecting point $z$, $\\frac{\\alpha}{\\beta}(z - w)$, and $\\frac{\\alpha}{\\beta}(z - w) + y$ back to point $y$."
+    },
+    "pg_471__page_103_Picture_4.jpeg": {
+        "skip": false,
+        "description": "A geometric diagram illustrating hyperplanes supporting a convex set $S$. A shaded oval represents the convex set $S$. \n\n1. The top tangent line (hyperplane) touches $S$ at point $y$. An arrow pointing outward from $y$ leads to a point $x$. Annotations state: \"This hyperplane equals $L^{-1}(\\sup L(S))$ and $L(x-y) = \\|L\\|^* \\|x-y\\|\".\n2. A second tangent line (hyperplane) touches $S$ at point $z$. Annotations state: \"This hyperplane equals $K^{-1}(\\sup K(S))$ but $K(x-z) \\neq \\|K\\|^* \\|x-z\\|\"."
+    },
+    "pg_471__page_105_Figure_1.jpeg": {
+        "skip": false,
+        "description": "A 2D Cartesian coordinate graph illustrating the feasible set S of a linear programming problem in the first quadrant. The region S is shaded in gray and bounded by the axes x = 0, y = 0, and two line segments intersecting at the vertex point (1/3, 1/3). The other two non-origin vertices on the boundary are at (0, 1/2) on the y-axis and (1/2, 0) on the x-axis. Parallel dashed line segments representing level sets of an objective function are shown tangent to and near the boundary vertices."
+    },
+    "pg_471__page_124_Figure_3.jpeg": {
+        "skip": false,
+        "description": "A geometric plot illustrating the tangent line to a function f at a point x. The horizontal axis represents t, with a marked point at x. The vertical axis represents function values, with marked points at f(x) - f'(x)x and f(x). A curve representing function f passes through the point (x, f(x)). A solid line tangent to f at (x, f(x)) is labeled with the function t \\mapsto f(x) + f'(x)(t - x), intersecting the y-axis at f(x) - f'(x)x. A dashed line, labeled L and parallel to the tangent line, passes through the origin (0,0) and is labeled with the linear map t \\mapsto f'(x)t."
+    },
+    "pg_471__page_125_Figure_6.jpeg": {
+        "skip": false,
+        "description": "A 3D coordinate system graph illustrating a concave surface representing a function $f$ in two variables, $x_1$ and $x_2$. A specific point $x$ is marked on the $x_1$-$x_2$ ground plane with dotted projection lines extending from the $x_1$ and $x_2$ axes. A vertical dotted line extends upward from $x$ to a point on the surface of $f$. A flat, tilted plane representing 'the hyperplane tangent to $f$ at $x$' is shown touching the surface $f$ at that point, with a dotted arrow indicating the tangent plane."
+    }
+}

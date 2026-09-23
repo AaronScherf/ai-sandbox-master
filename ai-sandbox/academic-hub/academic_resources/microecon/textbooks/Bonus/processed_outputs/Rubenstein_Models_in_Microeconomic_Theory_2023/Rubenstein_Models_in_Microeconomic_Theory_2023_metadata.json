@@ -13,5 +13,6 @@
     },
     "source_pdf_path": "../academic-rag-model/temp_gcs_input_Rubenstein_Models_Microeconomic_Theory.pdf",
     "source_pdf_filename": "Rubenstein_Models_Microeconomic_Theory.pdf",
-    "source_pdf_file_id": "79e1af4504f18487"
+    "source_pdf_file_id": "79e1af4504f18487",
+    "rag_md_path": "academic_notes/microecon/textbooks/Bonus/processed_outputs/Rubenstein_Models_in_Microeconomic_Theory_2023/Rubenstein_Models_in_Microeconomic_Theory_2023.rag.md"
 }

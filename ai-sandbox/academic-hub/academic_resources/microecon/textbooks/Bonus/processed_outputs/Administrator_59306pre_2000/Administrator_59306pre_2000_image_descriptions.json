@@ -1,0 +1,18 @@
+{
+    "pg_21__page_7_Diagram_4.jpeg": {
+        "skip": false,
+        "description": "A directed graph showing a binary relation $R^*$ defined on a 5-element set $\\Omega = \\{a, b, c, d, e\\}$ arranged in a pentagonal layout. The directed edges (arrows) represent pairs $(x, y) \\in R^*$ (i.e., $x$ beats $y$): $a \\rightarrow b$, $a \\rightarrow c$, $b \\rightarrow c$, $b \\rightarrow d$, $c \\rightarrow d$, $c \\rightarrow e$, $d \\rightarrow a$, $d \\rightarrow e$, $e \\rightarrow a$, and $e \\rightarrow b$. Each element has exactly two outgoing arrows."
+    },
+    "pg_21__page_41_Picture_0.jpeg": {
+        "skip": true,
+        "description": ""
+    },
+    "pg_21__page_79_Picture_0.jpeg": {
+        "skip": true,
+        "description": ""
+    },
+    "pg_21__page_111_Picture_0.jpeg": {
+        "skip": true,
+        "description": ""
+    }
+}

@@ -13,5 +13,6 @@
     },
     "source_pdf_path": "../academic-rag-model/temp_gcs_input_Rubenstein_Microeconomic_Theory.pdf",
     "source_pdf_filename": "Rubenstein_Microeconomic_Theory.pdf",
-    "source_pdf_file_id": "4067ec2d0d48d45c"
+    "source_pdf_file_id": "4067ec2d0d48d45c",
+    "rag_md_path": "academic_notes/microecon/textbooks/processed_outputs/Rubenstein_Lecture_Notes_in_Microeconomic_Theory_2026/Rubenstein_Lecture_Notes_in_Microeconomic_Theory_2026.rag.md"
 }

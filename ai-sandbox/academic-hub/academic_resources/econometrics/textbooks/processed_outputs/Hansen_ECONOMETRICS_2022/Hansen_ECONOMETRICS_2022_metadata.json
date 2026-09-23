@@ -13,6 +13,6 @@
     },
     "source_pdf_path": "../academic-rag-model/temp_gcs_input_Econometrics_Bruce_E_Hansen_1962_Princeton_New_Jersey_2022_Princeton_University_Press_isbn13_9780691235899.pdf",
     "source_pdf_file_id": "c6f11a664cbbe7f1",
-    "rag_md_path": "academic_resources/econometrics/textbooks/processed_outputs/Hansen_ECONOMETRICS_2022/Hansen_ECONOMETRICS_2022.rag.md",
+    "rag_md_path": "academic_notes/econometrics/textbooks/processed_outputs/Hansen_ECONOMETRICS_2022/Hansen_ECONOMETRICS_2022.rag.md",
     "source_pdf_filename": "Econometrics -- Bruce E Hansen, 1962- -- Princeton, New Jersey, 2022 -- Princeton University Press -- isbn13 9780691235899.pdf"
 }
