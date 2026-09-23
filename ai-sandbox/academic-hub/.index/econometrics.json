@@ -3937,7 +3937,8 @@
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-09-21T13:14:04.579999+00:00",
     "content_hash": "7efcee78837a4cc2",
-    "needs_indexing": false
+    "needs_indexing": false,
+    "source_asset_path": "academic_resources/econometrics/lecture_notes/Econometrics 2026-09-09 10.11.39.excalidraw.svg"
   },
   {
     "file_id": "a69a68fd014788cf",
@@ -4725,7 +4726,8 @@
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-09-21T13:14:43.729802+00:00",
     "content_hash": "9e9f99fcb080aa7e",
-    "needs_indexing": false
+    "needs_indexing": false,
+    "source_asset_path": "academic_resources/econometrics/lecture_notes/Econometrics 2026-09-14 10.08.12.excalidraw.svg"
   },
   {
     "file_id": "fbc86ff480978811",
@@ -5513,7 +5515,8 @@
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-09-21T13:15:32.527645+00:00",
     "content_hash": "a516fcb89c78e49e",
-    "needs_indexing": false
+    "needs_indexing": false,
+    "source_asset_path": "academic_resources/econometrics/lecture_notes/Econometrics 2026-09-16 10.06.15.excalidraw.svg"
   },
   {
     "file_id": "bf0a1ba3efcfd870",
@@ -6301,6 +6304,7 @@
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-09-21T13:16:06.042085+00:00",
     "content_hash": "7c15eba54b820192",
-    "needs_indexing": false
+    "needs_indexing": false,
+    "source_asset_path": "academic_resources/econometrics/lecture_notes/Econometrics Recitation 2026-09-15 08.06.01.excalidraw.svg"
   }
 ]
