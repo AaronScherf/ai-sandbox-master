@@ -1485,15 +1485,48 @@ after the rename lands `ta_notes` as the canonical category) is a small
 data-cleanup step that fits naturally as Step 0 below, before the general
 migration runs.
 
-- [ ] **Step 0: Math-camp duplicate cleanup** (only after Task 8's rename
-  lands `ta_notes`/`lecture_slides` as the unified names): confirm with the
-  user, then delete the 6 byte-identical PDFs under
-  `academic_resources/math-camp/lecture_slides/` (verify each is still
-  byte-identical to its `academic_notes/math-camp/ta_notes/2025/`
-  counterpart immediately before deleting, in case anything changed since
-  the original brainstorm's hash check) -- the `academic_notes/` originals
-  migrate normally through Step 3 below, no special-casing needed there.
-- [ ] **Step 1: Confirm with the user** which courses to migrate first (all at once, or one course as a trial -- econometrics is a reasonable first candidate, being the smallest and most recently validated).
-- [ ] **Step 2: Dry run for real**: `python -m notes.migrate_sources_to_resources --course econometrics --dry-run`, review the full candidate list with the user before proceeding.
-- [ ] **Step 3: Run for real**: `python -m notes.migrate_sources_to_resources --course econometrics`, then verify with `python -m notes.route_notes_transcribe --dry-run` that nothing looks newly "to process" that shouldn't be, and spot-check that `source_asset_path` on a few real cards now points at the new `academic_resources/` location.
-- [ ] **Step 4: Commit** the moved files in whichever repo(s) they now live in (the main sandbox repo for `academic_resources/`, the vault repo for whatever `academic_notes/` changes result) -- following this session's established pattern of explicit per-repo confirmation before any push.
+- [x] **Step 0: Math-camp duplicate cleanup** -- confirmed with the user
+  2026-09-23, re-verified all 6 PDFs under
+  `academic_resources/math-camp/lecture_slides/` still byte-identical
+  (MD5 + size) to their `academic_notes/math-camp/ta_notes/2025/`
+  counterparts immediately before deleting, then deleted only the
+  `academic_resources/` copies. `academic_notes/` originals untouched,
+  migrate normally through Step 3 whenever math-camp's general migration
+  runs.
+- [x] **Step 1: Confirmed with the user** 2026-09-23 -- trial with
+  `econometrics` first (smallest, most recently validated), not all
+  courses at once.
+- [x] **Step 2: Dry run for real**, `--course econometrics --dry-run`:
+  18 candidates (14 PDFs, 4 Excalidraw `.svg`), reviewed and confirmed
+  none collided with an existing target before running for real.
+- [x] **Step 3: Run for real.** This surfaced two real bugs neither Task 3
+  nor Task 9 had a test for, since Task 7's dry-run never actually moved
+  anything: (1) `_notes_pdf_paths` only ever walked `academic_notes/`, so
+  a migrated, already-transcribed PDF would have become invisible to
+  `rebuild()` and gotten silently orphaned -- fixed by extending it to also
+  discover PDFs under `academic_resources/<course>/<category>/` (same
+  `academic_notes/`-counterpart guard `route_notes_transcribe.py`'s own
+  migrated-PDF discovery uses) and by using `resolve_output_dir()` for the
+  PDF loop's output path instead of a hardcoded sibling; (2)
+  `_reconcile_one`'s `already_current` short-circuit only ever compared the
+  output `path` (which never moves), so a migrated source's freshly-
+  resolved `source_pdf_path`/`source_asset_path` was silently discarded --
+  confirmed live: the 4 existing Excalidraw cards were left with
+  `source_asset_path` unset after the migration script's own reindex call.
+  Fixed (commit `6c2b329`), with a legacy card that never had the key at
+  all still getting a silent, no-LLM-call backfill rather than a full
+  "updated" reconcile. Re-ran `rebuild()` afterward: the 4 Excalidraw
+  cards' `source_pdf_path`/`source_asset_path` spot-checked directly
+  against `.index/econometrics.json` and confirmed pointing at the new
+  `academic_resources/` location; `route_notes_transcribe --dry-run`
+  confirmed the same 14 (still-untranscribed) PDFs discovered from their
+  new location and the 4 Excalidraw notes still correctly "already done".
+- [x] **Step 4: Committed** -- `academic_resources/` files + updated
+  `.index/econometrics.json` in the main sandbox repo (`48ecbbc`); the
+  vault repo's matching deletions were already picked up by Direct Git
+  Sync's own periodic "vault backup" auto-commit, confirmed via its log,
+  no action needed there.
+
+**Remaining scope:** every other course (math-camp, microecon, etc.) still
+needs its own Step 1-4 pass -- not yet started, pending the user's go-ahead
+per course/batch.
