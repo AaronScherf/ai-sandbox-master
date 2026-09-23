@@ -16,11 +16,13 @@ from datetime import datetime, timezone
 from google.genai import types
 
 from indexer.chunk_index import chunk, load_chunks
+from common.academic_hub_paths import to_resources_root
 from common.gemini_utils import get_gemini_client, load_dotenv_override
 from indexer.index_card import (
     TEXTBOOK_CONTENT_SAMPLE_CHARS,
     EMBEDDING_DIMENSIONALITY,
     EMBEDDING_MODEL,
+    EXCALIDRAW_DOC_TYPES,
     KNOWN_DOC_TYPES,
     KNOWN_LEVELS,
     LECTURE_NOTE_DOC_TYPES,
@@ -184,6 +186,35 @@ def search_passages(
 
 
 def _notes_pdf_paths(academic_hub_root: str, course_filter: str | None):
+    """Recursive as of 2026-09-22 (was hardcoded to exactly course/category/
+    *.pdf, two levels, no deeper) -- a user reorganizing ta_notes/ into year
+    subfolders (ta_notes/2026/foo.pdf) found those PDFs silently invisible
+    to rebuild(), even though route_notes_transcribe.py's own discovery
+    already recursed and found them fine. `category` is the PDF's own
+    immediate parent directory basename, whatever the depth -- matches
+    transcribe_notes.py's derive_folder_category() exactly (same value for
+    a flat course/category/foo.pdf as before this change; the actual
+    subfolder name, e.g. "2026", for a nested one), so folder_category
+    classification stays consistent between the live transcription
+    pipeline and this rebuild-time walker."""
+    notes_root = os.path.join(academic_hub_root, "academic_notes")
+    if not os.path.isdir(notes_root):
+        return
+    for course in sorted(os.listdir(notes_root)):
+        if course_filter and course != course_filter:
+            continue
+        course_dir = os.path.join(notes_root, course)
+        if not os.path.isdir(course_dir):
+            continue
+        for dirpath, dirnames, filenames in os.walk(course_dir):
+            dirnames[:] = [d for d in sorted(dirnames) if d != "processed_outputs" and not d.startswith(".")]
+            category = os.path.basename(dirpath)
+            for name in sorted(filenames):
+                if name.lower().endswith(".pdf"):
+                    yield course, category, os.path.join(dirpath, name)
+
+
+def _excalidraw_note_paths(academic_hub_root: str, course_filter: str | None):
     notes_root = os.path.join(academic_hub_root, "academic_notes")
     if not os.path.isdir(notes_root):
         return
@@ -198,8 +229,28 @@ def _notes_pdf_paths(academic_hub_root: str, course_filter: str | None):
             if not os.path.isdir(category_dir):
                 continue
             for name in sorted(os.listdir(category_dir)):
-                if name.lower().endswith(".pdf"):
+                if name.lower().endswith(".excalidraw.md"):
                     yield course, category, os.path.join(category_dir, name)
+
+
+_EXCALIDRAW_IMAGE_EXTENSIONS = (".png", ".svg")
+
+
+def _find_excalidraw_image(excalidraw_md_path: str, academic_hub_root: str) -> str | None:
+    stem = excalidraw_md_path[: -len(".md")]
+    for ext in _EXCALIDRAW_IMAGE_EXTENSIONS:
+        local = stem + ext
+        if os.path.exists(local):
+            return local
+    try:
+        mirrored_stem = to_resources_root(stem)
+    except ValueError:
+        return None
+    for ext in _EXCALIDRAW_IMAGE_EXTENSIONS:
+        mirrored = mirrored_stem + ext
+        if os.path.exists(mirrored):
+            return mirrored
+    return None
 
 
 # Real-corpus finding (2026-09-06): math-camp's textbook folder was
@@ -252,17 +303,25 @@ def _textbook_book_dirs(academic_hub_root: str, course_filter: str | None):
 
 
 def _video_lecture_note_paths(academic_hub_root: str, course_filter: str | None):
+    """lecture_notes/ (underscored) is shared with the Excalidraw pipeline's
+    own category of the same name in every course except math-camp (folder
+    vocabulary unification, 2026-09-22) -- an .excalidraw.md is never a
+    video-lecture-note candidate at all (it's the Excalidraw pipeline's own
+    source scene file, never paired with a .meta.json sidecar by design),
+    so it's excluded up front rather than treated as "a candidate missing
+    its sidecar" and warned about on every single rebuild in every course."""
     notes_root = os.path.join(academic_hub_root, "academic_notes")
     if not os.path.isdir(notes_root):
         return
     for course in sorted(os.listdir(notes_root)):
         if course_filter and course != course_filter:
             continue
-        lecture_notes_dir = os.path.join(notes_root, course, "lecture-notes")
+        lecture_notes_dir = os.path.join(notes_root, course, "lecture_notes")
         if not os.path.isdir(lecture_notes_dir):
             continue
         for name in sorted(os.listdir(lecture_notes_dir)):
-            if not name.lower().endswith(".md"):
+            lower = name.lower()
+            if not lower.endswith(".md") or lower.endswith(".excalidraw.md"):
                 continue
             slug = name[:-3]
             meta_path = os.path.join(lecture_notes_dir, f"{slug}.meta.json")
@@ -323,7 +382,7 @@ def _backfill_content_hash(academic_hub_root: str, course: str, file_id: str, co
 
 def _reconcile_one(academic_hub_root, course_name, folder_category, file_id, rel_path,
                     rel_pdf_path, content_sample, page_count, client, force, stats, source_mtime,
-                    content_hash, known_doc_types=KNOWN_DOC_TYPES):
+                    content_hash, known_doc_types=KNOWN_DOC_TYPES, source_asset_path=None):
     existing = None
     for c in load_shard(academic_hub_root, course_name):
         if c.get("file_id") == file_id:
@@ -370,7 +429,7 @@ def _reconcile_one(academic_hub_root, course_name, folder_category, file_id, rel
         academic_hub_root, file_id=file_id, path=rel_path, source_pdf_path=rel_pdf_path,
         course=course_name, folder_category=folder_category, content_sample=content_sample,
         page_count=page_count, client=client, content_hash=content_hash,
-        known_doc_types=known_doc_types,
+        known_doc_types=known_doc_types, source_asset_path=source_asset_path,
     )
     if is_first_time:
         stats["generated"] += 1
@@ -525,11 +584,41 @@ def rebuild(academic_hub_root: str, client, course: str | None = None,
         with open(md_path, "r", encoding="utf-8") as f:
             content_sample = f.read()
 
-        _reconcile_one(academic_hub_root, course_name, "lecture-notes", file_id, rel_md_path,
+        _reconcile_one(academic_hub_root, course_name, "lecture_notes", file_id, rel_md_path,
                        rel_meta_path, content_sample, None, client, force, stats,
                        source_mtime=os.path.getmtime(md_path),
                        content_hash=compute_content_hash(md_path),
                        known_doc_types=LECTURE_NOTE_DOC_TYPES)
+
+    for course_name, category, md_path in _excalidraw_note_paths(academic_hub_root, course):
+        base_name = os.path.basename(md_path)[: -len(".excalidraw.md")]
+        rag_path = os.path.join(os.path.dirname(md_path), "processed_outputs", f"{base_name}.excalidraw.rag.md")
+        if not os.path.exists(rag_path):
+            continue  # not transcribed yet -- nothing to index
+        if os.path.getsize(rag_path) == 0:
+            print(f"WARNING: {rag_path} is empty (0 bytes) but its source .excalidraw.md exists -- "
+                  f"skipping. It likely hasn't been transcribed yet.")
+            stats["skipped_empty_md"] += 1
+            continue
+
+        file_id = compute_file_id(md_path)
+        seen_file_ids.add(file_id)
+        rel_rag_path = os.path.relpath(rag_path, academic_hub_root).replace(os.sep, "/")
+        rel_md_path = os.path.relpath(md_path, academic_hub_root).replace(os.sep, "/")
+
+        with open(rag_path, "r", encoding="utf-8") as f:
+            content_sample = f.read()
+
+        image_path = _find_excalidraw_image(md_path, academic_hub_root)
+        rel_image_path = (
+            os.path.relpath(image_path, academic_hub_root).replace(os.sep, "/") if image_path else None
+        )
+
+        _reconcile_one(academic_hub_root, course_name, category, file_id, rel_rag_path,
+                       rel_md_path, content_sample, None, client, force, stats,
+                       source_mtime=os.path.getmtime(rag_path),
+                       content_hash=compute_content_hash(rag_path),
+                       known_doc_types=EXCALIDRAW_DOC_TYPES, source_asset_path=rel_image_path)
 
     _flag_or_prune_orphans(academic_hub_root, seen_file_ids, course, prune, stats)
     return stats

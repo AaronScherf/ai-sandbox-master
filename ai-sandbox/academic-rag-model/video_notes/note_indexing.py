@@ -1,10 +1,19 @@
 """
 note_indexing.py
 Writes a synthesized group note (+ sidecar) to
-academic_notes/<course>/lecture-notes/ and registers it with the
+academic_notes/<course>/lecture_notes/ and registers it with the
 existing Source Indexer, the same way notes/transcribe_notes.py calls
 reconcile_and_write() inline right after writing its own output. Spec
 §6.
+
+Folder renamed from lecture-notes/ to lecture_notes/ 2026-09-22 (folder
+vocabulary unification, underscores everywhere -- see
+docs/superpowers/specs/2026-09-21-source-asset-relocation-brainstorm-addendum.md).
+Shares its folder name with the Excalidraw pipeline's own lecture_notes/
+category in every other course, but the two never collide on content:
+this module's files always have a `.meta.json` sidecar (checked by
+index_search.py's _video_lecture_note_paths), Excalidraw's are always
+`.excalidraw.md`/`.svg`/`.png` -- no course has both content types.
 """
 from __future__ import annotations
 
@@ -17,7 +26,7 @@ from indexer.index_card import LECTURE_NOTE_DOC_TYPES, compute_content_hash, com
 def write_group_note(academic_hub_root: str, course: str, slug: str, markdown: str, sidecar: dict) -> tuple[str, str]:
     """Writes the note + its `.meta.json` sidecar, returns their paths
     relative to academic_hub_root (what reconcile_and_write expects)."""
-    lecture_notes_dir = os.path.join(academic_hub_root, "academic_notes", course, "lecture-notes")
+    lecture_notes_dir = os.path.join(academic_hub_root, "academic_notes", course, "lecture_notes")
     os.makedirs(lecture_notes_dir, exist_ok=True)
 
     md_path = os.path.join(lecture_notes_dir, f"{slug}.md")
@@ -53,7 +62,7 @@ def index_group_note(
     content_hash = compute_content_hash(md_path)
     return reconcile_and_write(
         academic_hub_root, file_id=file_id, path=rel_md_path, source_pdf_path=rel_meta_path,
-        course=course, folder_category="lecture-notes", content_sample=content_sample,
+        course=course, folder_category="lecture_notes", content_sample=content_sample,
         page_count=None, client=client, content_hash=content_hash,
         known_doc_types=LECTURE_NOTE_DOC_TYPES,
     )

@@ -859,3 +859,60 @@ than silently folding into the main line) -- faithful, nothing invented.
 (`Math methods lecture 2026-09-10 11.40.42`) with no export sibling at all
 yet -- `discover_excalidraw_files` correctly skips it with a warning; this
 is an unrun-auto-export gap on the user's end, not a pipeline defect.
+
+## 2026-09-21: source-asset relocation (academic_notes/ -> academic_resources/) built and verified against the real corpus, not yet migrated
+
+Per the user's request, built the machinery to relocate heavy note
+sources (PDFs, Excalidraw `.svg`/`.png` exports) out of `academic_notes/`
+(git+tablet-synced, kept lightweight) into `academic_resources/`, while
+`.md` files (scene files, `processed_outputs/`) stay put. Full design:
+`docs/superpowers/specs/2026-09-21-source-asset-relocation-design.md`;
+implementation plan: `docs/superpowers/plans/2026-09-21-source-asset-relocation.md`.
+
+**Real, verified finding that shaped the plan:** `index_search.py`'s
+`rebuild()` had no walker for Excalidraw notes at all -- its orphan pass
+treats "not found by any walker" as orphaned, so every real run was
+silently flagging every Excalidraw card as orphaned (and would delete them
+with `--prune`). Confirmed against an isolated copy of the real index
+(NTFS-junction-linked to the real `academic_notes`/`academic_resources`,
+`.index/` copied, real index never touched): before the fix, all 4 real
+econometrics Excalidraw cards came back `orphaned: true` on a second
+`rebuild()` run, while the 4 real textbook cards in the same course were
+correctly left alone. Fixed with a new `_excalidraw_note_paths()` walker.
+
+**Also added:** `source_asset_path`, a new index-card field distinct from
+`source_pdf_path` (which keeps its existing meaning -- the
+`compute_file_id()` identity anchor, unchanged). For a PDF card the two
+are equal; for an Excalidraw card, `source_pdf_path` stays the
+`.excalidraw.md` scene file (never moves) while `source_asset_path` is the
+actual `.svg`/`.png` that was rasterized and sent to Gemini -- trackable
+even after it moves to `academic_resources/`. A new
+`common/academic_hub_paths.py` module centralizes the mirrored-path
+convention (`<course>/<category>/<filename>`, same relative path, rooted
+at `academic_resources/` instead of `academic_notes/`) that both
+transcribe pipelines and the router now use instead of assuming a source
+and its `processed_outputs/` are always siblings.
+
+**Verified against the real corpus, real files, no writes and no
+migration yet** (built in an isolated git worktree, `common/`/`notes/`/
+`indexer/` code pointed at the real `academic-hub` directory directly):
+- `route_notes_transcribe.py`'s discovery is byte-for-byte unchanged
+  pre-migration -- confirmed by running both the modified code and the
+  original, unmodified code from the main checkout against the exact same
+  real corpus and diffing the results: both produced
+  `PDF: 71 to process, 17 already done` / `Excalidraw: 1 to process, 8
+  already done` (the split differs from the `67/21` figure recorded
+  earlier this session because real corpus content changed in between --
+  confirmed not a regression, since the unmodified code reproduces the
+  identical new split too).
+- `rebuild()`'s orphan fix re-verified the same way as the original
+  finding above, now against the fixed code: `orphaned: 0`, all 8 real
+  econometrics cards (4 textbook + 4 Excalidraw) correctly `unchanged`.
+
+**Not done yet, deliberately:** no real file has been moved. The
+migration script (`notes/migrate_sources_to_resources.py`, per the plan's
+Task 8) and the actual move against real files (Task 9, an explicit
+go/no-go checkpoint) are still pending -- the plan requires stopping here
+for confirmation before touching ~90 real files across every course,
+especially given the `academic_notes` vault repo's git history was
+rewritten this same week (`docs/status/2026-09-21-obsidian-git-sync-status.md`).

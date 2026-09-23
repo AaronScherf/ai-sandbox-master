@@ -14,12 +14,34 @@ def _touch(path: str, content: str = "content") -> None:
 class TestDiscoverNotes(unittest.TestCase):
     def test_finds_md_directly_in_a_category(self):
         with tempfile.TemporaryDirectory() as hub:
-            _touch(os.path.join(hub, "academic_notes", "math-camp", "lecture-notes", "real-analysis.md"))
+            _touch(os.path.join(hub, "academic_notes", "math-camp", "lecture_notes", "real-analysis.md"))
             sources = discover_source_files(hub, "math-camp", ["notes"])
             self.assertEqual(len(sources), 1)
             self.assertEqual(sources[0].content_type, "notes")
-            self.assertEqual(sources[0].rel_md_path, "academic_notes/math-camp/lecture-notes/real-analysis.md")
-            self.assertEqual(sources[0].rel_mp3_path, "academic_notes/math-camp/lecture-notes/real-analysis.mp3")
+            self.assertEqual(sources[0].rel_md_path, "academic_notes/math-camp/lecture_notes/real-analysis.md")
+
+    def test_notes_mp3_path_mirrors_into_academic_resources(self):
+        # 2026-09-22: audio is heavy derived content -- it belongs in
+        # academic_resources/ (mirrored path, same convention as
+        # common/academic_hub_paths.py), not academic_notes/, which stays
+        # lightweight for git/tablet sync. Only the .mp3 moves; the source
+        # .md and its .narrated.md/__index.md siblings stay in
+        # academic_notes/ untouched (see test_audio_generator_pipeline.py).
+        with tempfile.TemporaryDirectory() as hub:
+            _touch(os.path.join(hub, "academic_notes", "math-camp", "lecture_notes", "real-analysis.md"))
+            sources = discover_source_files(hub, "math-camp", ["notes"])
+            self.assertEqual(len(sources), 1)
+            self.assertEqual(sources[0].rel_mp3_path, "academic_resources/math-camp/lecture_notes/real-analysis.mp3")
+
+    def test_notes_mp3_path_mirrors_a_nested_processed_outputs_path(self):
+        with tempfile.TemporaryDirectory() as hub:
+            _touch(os.path.join(hub, "academic_notes", "math-camp", "ta_notes", "processed_outputs", "Aug 17 Analysis.md"))
+            sources = discover_source_files(hub, "math-camp", ["notes"])
+            self.assertEqual(len(sources), 1)
+            self.assertEqual(
+                sources[0].rel_mp3_path,
+                "academic_resources/math-camp/ta_notes/processed_outputs/Aug 17 Analysis.mp3",
+            )
 
     def test_finds_md_in_a_category_processed_outputs_subfolder(self):
         with tempfile.TemporaryDirectory() as hub:
@@ -39,8 +61,8 @@ class TestDiscoverNotes(unittest.TestCase):
 
     def test_excludes_the_narrated_md_sibling(self):
         with tempfile.TemporaryDirectory() as hub:
-            _touch(os.path.join(hub, "academic_notes", "math-camp", "lecture-notes", "real-analysis.md"))
-            _touch(os.path.join(hub, "academic_notes", "math-camp", "lecture-notes", "real-analysis.narrated.md"))
+            _touch(os.path.join(hub, "academic_notes", "math-camp", "lecture_notes", "real-analysis.md"))
+            _touch(os.path.join(hub, "academic_notes", "math-camp", "lecture_notes", "real-analysis.narrated.md"))
             sources = discover_source_files(hub, "math-camp", ["notes"])
             self.assertEqual(len(sources), 1)
             self.assertTrue(sources[0].rel_md_path.endswith("real-analysis.md"))
@@ -48,16 +70,16 @@ class TestDiscoverNotes(unittest.TestCase):
 
     def test_excludes_the_per_episode_narrated_md_sibling(self):
         with tempfile.TemporaryDirectory() as hub:
-            _touch(os.path.join(hub, "academic_notes", "math-camp", "lecture-notes", "real-analysis.md"))
-            _touch(os.path.join(hub, "academic_notes", "math-camp", "lecture-notes", "real-analysis__part01.narrated.md"))
+            _touch(os.path.join(hub, "academic_notes", "math-camp", "lecture_notes", "real-analysis.md"))
+            _touch(os.path.join(hub, "academic_notes", "math-camp", "lecture_notes", "real-analysis__part01.narrated.md"))
             sources = discover_source_files(hub, "math-camp", ["notes"])
             self.assertEqual(len(sources), 1)
             self.assertTrue(sources[0].rel_md_path.endswith("real-analysis.md"))
 
     def test_excludes_the_episode_index_manifest(self):
         with tempfile.TemporaryDirectory() as hub:
-            _touch(os.path.join(hub, "academic_notes", "math-camp", "lecture-notes", "real-analysis.md"))
-            _touch(os.path.join(hub, "academic_notes", "math-camp", "lecture-notes", "real-analysis__index.md"))
+            _touch(os.path.join(hub, "academic_notes", "math-camp", "lecture_notes", "real-analysis.md"))
+            _touch(os.path.join(hub, "academic_notes", "math-camp", "lecture_notes", "real-analysis__index.md"))
             sources = discover_source_files(hub, "math-camp", ["notes"])
             self.assertEqual(len(sources), 1)
             self.assertTrue(sources[0].rel_md_path.endswith("real-analysis.md"))
@@ -76,6 +98,21 @@ class TestDiscoverTextbooks(unittest.TestCase):
             sources = discover_source_files(hub, "math-camp", ["textbook"])
             self.assertEqual(len(sources), 1)
             self.assertEqual(sources[0].content_type, "textbook")
+
+    def test_textbook_mp3_path_stays_a_sibling_not_mirrored(self):
+        # A textbook's .md already lives in academic_resources/ (never
+        # academic_notes/) -- sibling is already the right place, nothing
+        # to mirror. to_resources_root() would raise on a path with no
+        # academic_notes/ segment, so this must not be called for textbooks.
+        with tempfile.TemporaryDirectory() as hub:
+            book_dir = os.path.join(hub, "academic_resources", "math-camp", "textbooks", "processed_outputs", "Axler_2026")
+            _touch(os.path.join(book_dir, "Axler_2026.md"))
+            sources = discover_source_files(hub, "math-camp", ["textbook"])
+            self.assertEqual(len(sources), 1)
+            self.assertEqual(
+                sources[0].rel_mp3_path,
+                "academic_resources/math-camp/textbooks/processed_outputs/Axler_2026/Axler_2026.mp3",
+            )
 
     def test_excludes_the_rag_md_variant(self):
         with tempfile.TemporaryDirectory() as hub:
@@ -100,7 +137,7 @@ class TestDiscoverTextbooks(unittest.TestCase):
 class TestDiscoverSourceFilesContentTypeFilter(unittest.TestCase):
     def test_defaults_can_combine_both_types(self):
         with tempfile.TemporaryDirectory() as hub:
-            _touch(os.path.join(hub, "academic_notes", "math-camp", "lecture-notes", "a.md"))
+            _touch(os.path.join(hub, "academic_notes", "math-camp", "lecture_notes", "a.md"))
             book_dir = os.path.join(hub, "academic_resources", "math-camp", "textbooks", "processed_outputs", "B")
             _touch(os.path.join(book_dir, "B.md"))
             sources = discover_source_files(hub, "math-camp", ["notes", "textbook"])

@@ -58,21 +58,28 @@ def _write_index_manifest(base: str, episodes: list) -> None:
         f.write("\n".join(lines) + "\n")
 
 
-def _synthesize_episode(base: str, i: int, episode, engine: str) -> dict:
+def _synthesize_episode(md_base: str, mp3_base: str, i: int, episode, engine: str) -> dict:
     """Runs in a worker thread (spec §3.2) -- returns a plain outcome
     dict rather than mutating summary/state directly, so those shared
     dicts are only ever written back on the main thread after every
     future completes. Two threads racing to do `summary["generated"] += 1`
     concurrently is a real lost-update risk (read-modify-write, not
-    atomic) that this sidesteps entirely rather than needing a lock."""
+    atomic) that this sidesteps entirely rather than needing a lock.
+
+    md_base and mp3_base (2026-09-22) are deliberately separate: the .mp3
+    is heavy derived audio and lives under the mirrored academic_resources/
+    path (mp3_base), while its .narrated.md sibling is light text and
+    stays under academic_notes/ (md_base) -- see discovery.py's own
+    docstring for why. synthesize_speech() creates mp3_base's parent
+    directory itself if it doesn't exist yet."""
     if not episode.text:
         return {"i": i, "status": "skipped_empty"}
-    abs_mp3_path = f"{base}__part{i:02d}.mp3"
+    abs_mp3_path = f"{mp3_base}__part{i:02d}.mp3"
     try:
         synthesize_speech(episode.text, abs_mp3_path, engine=engine)
     except Exception as err:
         return {"i": i, "status": "failed", "error": err}
-    with open(f"{base}__part{i:02d}.narrated.md", "w", encoding="utf-8") as f:
+    with open(f"{md_base}__part{i:02d}.narrated.md", "w", encoding="utf-8") as f:
         f.write(episode.text)
     return {"i": i, "status": "generated"}
 
@@ -94,12 +101,18 @@ def _run_notes_source(source, state: dict, engine: str, summary: dict) -> None:
     narrated_sections = narrate_sections(sections)
     episodes = group_sections_into_episodes(narrated_sections)
 
-    base, _ext = os.path.splitext(source.abs_md_path)
+    # md_base (light: .narrated.md, __index.md) and mp3_base (heavy audio)
+    # are deliberately separate paths -- see _synthesize_episode's own
+    # docstring. source.abs_mp3_path is already the mirrored
+    # academic_resources/ location (discovery.py), so mp3_base is derived
+    # from it, not from source.abs_md_path.
+    md_base, _ext = os.path.splitext(source.abs_md_path)
+    mp3_base, _ext = os.path.splitext(source.abs_mp3_path)
 
     to_synthesize = []
     for i, episode in enumerate(episodes, start=1):
         key = episode_state_key(source.rel_md_path, i)
-        abs_mp3_path = f"{base}__part{i:02d}.mp3"
+        abs_mp3_path = f"{mp3_base}__part{i:02d}.mp3"
         episode_source = dataclasses.replace(source, rel_md_path=key, abs_mp3_path=abs_mp3_path)
         if not needs_regeneration(state, episode_source, current_hash):
             summary["skipped_unchanged"] += 1
@@ -108,7 +121,10 @@ def _run_notes_source(source, state: dict, engine: str, summary: dict) -> None:
 
     if to_synthesize:
         with concurrent.futures.ThreadPoolExecutor(max_workers=AUDIOGEN_SECTIONS_SYNTH_MAX_WORKERS) as executor:
-            futures = [executor.submit(_synthesize_episode, base, i, episode, engine) for i, episode in to_synthesize]
+            futures = [
+                executor.submit(_synthesize_episode, md_base, mp3_base, i, episode, engine)
+                for i, episode in to_synthesize
+            ]
             for future in concurrent.futures.as_completed(futures):
                 result = future.result()
                 i = result["i"]
@@ -122,7 +138,7 @@ def _run_notes_source(source, state: dict, engine: str, summary: dict) -> None:
                     state[key] = current_hash
                     summary["generated"] += 1
 
-    _write_index_manifest(base, episodes)
+    _write_index_manifest(md_base, episodes)
 
 
 def _run_textbook_source(source, state: dict, engine: str, summary: dict) -> None:

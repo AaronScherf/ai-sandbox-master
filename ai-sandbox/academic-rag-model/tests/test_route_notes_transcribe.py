@@ -68,6 +68,46 @@ def test_discover_pdf_sources_ignores_processed_outputs_directory(tmp_path):
     assert [os.path.basename(p) for p in paths] == ["01-terms.pdf"]
 
 
+def test_discover_pdf_sources_also_finds_pdfs_migrated_to_academic_resources(tmp_path):
+    # academic_notes/<course>/ta_notes/ exists (even if empty of PDFs) --
+    # that's what makes academic_resources/<course>/ta_notes/ eligible.
+    (tmp_path / "academic_notes" / "econometrics" / "ta_notes").mkdir(parents=True)
+    resources_dir = tmp_path / "academic_resources" / "econometrics" / "ta_notes"
+    resources_dir.mkdir(parents=True)
+    (resources_dir / "01-terms.pdf").write_bytes(b"x")
+
+    paths = discover_pdf_sources(str(tmp_path / "academic_notes" / "econometrics"))
+
+    assert [os.path.basename(p) for p in paths] == ["01-terms.pdf"]
+
+
+def test_discover_pdf_sources_ignores_academic_resources_categories_with_no_notes_counterpart(tmp_path):
+    # academic_resources/<course>/textbooks/ has no academic_notes/<course>/textbooks/
+    # counterpart -- must stay out of scope (that's convert_textbook.py's
+    # pipeline, not transcribe_notes.py's).
+    (tmp_path / "academic_notes" / "econometrics" / "ta_notes").mkdir(parents=True)
+    textbooks_dir = tmp_path / "academic_resources" / "econometrics" / "textbooks"
+    textbooks_dir.mkdir(parents=True)
+    (textbooks_dir / "Hansen.pdf").write_bytes(b"x")
+
+    paths = discover_pdf_sources(str(tmp_path / "academic_notes" / "econometrics"))
+
+    assert paths == []
+
+
+def test_discover_pdf_sources_combines_notes_and_resources_pdfs(tmp_path):
+    ta_dir = tmp_path / "academic_notes" / "econometrics" / "ta_notes"
+    ta_dir.mkdir(parents=True)
+    (ta_dir / "not-yet-migrated.pdf").write_bytes(b"x")
+    resources_dir = tmp_path / "academic_resources" / "econometrics" / "ta_notes"
+    resources_dir.mkdir(parents=True)
+    (resources_dir / "already-migrated.pdf").write_bytes(b"x")
+
+    paths = discover_pdf_sources(str(tmp_path / "academic_notes" / "econometrics"))
+
+    assert sorted(os.path.basename(p) for p in paths) == ["already-migrated.pdf", "not-yet-migrated.pdf"]
+
+
 def test_discover_excalidraw_sources_pairs_md_and_image_recursively(tmp_path):
     _make_course(
         tmp_path, "econometrics", "lecture_notes",

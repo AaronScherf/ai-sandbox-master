@@ -43,3 +43,18 @@ downstream correction pass over this pipeline's own output — see the root
   (`python -m notes.route_notes_transcribe [--course NAME] [--dry-run] [--force]`).
   Re-verifies after each call that the expected output file actually landed
   on disk rather than trusting a "no exception raised" result.
+
+- `migrate_sources_to_resources.py` — one-shot migration: moves heavy note
+  sources (PDFs, Excalidraw `.svg`/`.png` exports, `.docx`/`.pptx`) from
+  `academic_notes/` (kept lightweight for git/tablet sync) to
+  `academic_resources/`, mirroring each file's `<course>/<category>/`
+  relative path via `common/academic_hub_paths.py`. `.md` files (scene
+  files, `processed_outputs/`) never move. Resyncs the source index
+  afterward via `indexer.index_search.rebuild()`'s existing cheap
+  "file moved, content unchanged" path. See
+  `docs/superpowers/specs/2026-09-21-source-asset-relocation-design.md`
+  for the full design, including why `transcribe_notes.py`/
+  `transcribe_excalidraw.py`/`route_notes_transcribe.py` all resolve
+  output location and image lookups through the mirrored-path convention
+  instead of assuming a source and its `processed_outputs/` are always
+  siblings.

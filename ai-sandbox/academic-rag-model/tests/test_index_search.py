@@ -4,7 +4,7 @@ import tempfile
 import time
 import unittest
 from datetime import datetime, timezone
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 from indexer.chunk_index import save_chunks
 from indexer.index_card import (
@@ -87,7 +87,7 @@ def _make_textbook(academic_hub_root, course, pdf_basename, folder_name, with_so
 
 def _make_video_lecture_note(academic_hub_root, course, slug, member_video_ids,
                               markdown="# Real Analysis\n\nSome content."):
-    lecture_notes_dir = os.path.join(academic_hub_root, "academic_notes", course, "lecture-notes")
+    lecture_notes_dir = os.path.join(academic_hub_root, "academic_notes", course, "lecture_notes")
     os.makedirs(lecture_notes_dir, exist_ok=True)
     md_path = os.path.join(lecture_notes_dir, f"{slug}.md")
     with open(md_path, "w", encoding="utf-8") as f:
@@ -95,6 +95,23 @@ def _make_video_lecture_note(academic_hub_root, course, slug, member_video_ids,
     with open(os.path.join(lecture_notes_dir, f"{slug}.meta.json"), "w", encoding="utf-8") as f:
         json.dump({"member_video_ids": member_video_ids}, f)
     return md_path
+
+
+def _make_excalidraw_note(academic_hub_root, course, category, basename, write_rag_md=True):
+    note_dir = os.path.join(academic_hub_root, "academic_notes", course, category)
+    os.makedirs(note_dir, exist_ok=True)
+    md_path = os.path.join(note_dir, f"{basename}.excalidraw.md")
+    with open(md_path, "w", encoding="utf-8") as f:
+        f.write("---\n---\n\nfake compressed-json scene data")
+    svg_path = os.path.join(note_dir, f"{basename}.excalidraw.svg")
+    with open(svg_path, "w", encoding="utf-8") as f:
+        f.write("<svg></svg>")
+    if write_rag_md:
+        out_dir = os.path.join(note_dir, "processed_outputs")
+        os.makedirs(out_dir, exist_ok=True)
+        with open(os.path.join(out_dir, f"{basename}.excalidraw.rag.md"), "w", encoding="utf-8") as f:
+            f.write("---\nchunks: 2\n---\n\nExpanded prose content.")
+    return md_path, svg_path
 
 
 class TestIsStale(unittest.TestCase):
@@ -168,6 +185,49 @@ class TestRebuild(unittest.TestCase):
             stats = rebuild(tmp, client=_fake_client())
             self.assertEqual(stats["generated"], 0)
             self.assertEqual(load_shard(tmp, "math-camp"), [])
+
+    def test_discovers_a_pdf_nested_below_the_category_directory(self):
+        # Real finding (2026-09-22): a user reorganizing ta_notes/ into
+        # year subfolders (ta_notes/2026/foo.pdf) found rebuild() silently
+        # stopped seeing those PDFs at all -- _notes_pdf_paths only ever
+        # walked exactly course/category/*.pdf, two levels, no deeper.
+        # Every other subproject's own discovery (route_notes_transcribe.py,
+        # migrate_sources_to_resources.py) already recurses via os.walk;
+        # this brings rebuild()'s PDF-notes discovery in line with them.
+        with tempfile.TemporaryDirectory() as tmp:
+            nested_dir = os.path.join(tmp, "academic_notes", "math-camp", "ta_notes", "2026")
+            os.makedirs(nested_dir)
+            pdf_path = os.path.join(nested_dir, "LN_Analysis.pdf")
+            with open(pdf_path, "wb") as f:
+                f.write(b"fake pdf bytes")
+            out_dir = os.path.join(nested_dir, "processed_outputs")
+            os.makedirs(out_dir)
+            with open(os.path.join(out_dir, "LN_Analysis.md"), "w", encoding="utf-8") as f:
+                f.write("---\ntotal_pages: 3\n---\n\nSome content.")
+
+            stats = rebuild(tmp, client=_fake_client())
+
+            self.assertEqual(stats["generated"], 1)
+            cards = load_shard(tmp, "math-camp")
+            self.assertEqual(len(cards), 1)
+            self.assertEqual(
+                cards[0]["source_pdf_path"], "academic_notes/math-camp/ta_notes/2026/LN_Analysis.pdf",
+            )
+
+    def test_still_ignores_processed_outputs_when_recursing(self):
+        # A stray .pdf sitting inside processed_outputs/ (shouldn't happen
+        # in practice) must not be treated as its own source -- same
+        # pruning discipline route_notes_transcribe.py's own walker uses.
+        with tempfile.TemporaryDirectory() as tmp:
+            _make_notes_pdf(tmp, "math-camp", "ta_notes", "LN_Analysis")
+            out_dir = os.path.join(tmp, "academic_notes", "math-camp", "ta_notes", "processed_outputs")
+            with open(os.path.join(out_dir, "decoy.pdf"), "wb") as f:
+                f.write(b"should not be discovered as its own source")
+
+            stats = rebuild(tmp, client=_fake_client())
+
+            self.assertEqual(stats["generated"], 1)
+            self.assertEqual(len(load_shard(tmp, "math-camp")), 1)
 
     def test_skips_zero_byte_markdown_and_orphans_any_existing_card(self):
         # Real-corpus finding (docs/trackers/2026-08-30-academic-hub-status.md): a
@@ -655,7 +715,7 @@ class TestRebuildVideoLectureNotes(unittest.TestCase):
             self.assertEqual(stats["generated"], 1)
             cards = load_shard(tmp, "math-camp")
             self.assertEqual(len(cards), 1)
-            self.assertEqual(cards[0]["source_pdf_path"], "academic_notes/math-camp/lecture-notes/real-analysis.meta.json")
+            self.assertEqual(cards[0]["source_pdf_path"], "academic_notes/math-camp/lecture_notes/real-analysis.meta.json")
 
     def test_never_classified_into_the_shared_corpus_doc_types(self):
         # Regression guard: generate_index_card()'s prompt only ever lets
@@ -679,7 +739,7 @@ class TestRebuildVideoLectureNotes(unittest.TestCase):
 
     def test_missing_sidecar_is_skipped_not_crashed(self):
         with tempfile.TemporaryDirectory() as tmp:
-            lecture_notes_dir = os.path.join(tmp, "academic_notes", "math-camp", "lecture-notes")
+            lecture_notes_dir = os.path.join(tmp, "academic_notes", "math-camp", "lecture_notes")
             os.makedirs(lecture_notes_dir)
             with open(os.path.join(lecture_notes_dir, "orphaned.md"), "w", encoding="utf-8") as f:
                 f.write("# No sidecar")
@@ -705,6 +765,77 @@ class TestRebuildVideoLectureNotes(unittest.TestCase):
             stats = rebuild(tmp, client=_fake_client(), prune=True)
             self.assertEqual(stats["pruned"], 0)
             self.assertEqual(len(load_shard(tmp, "math-camp")), 1)
+
+    def test_ignores_excalidraw_md_files_in_the_same_lecture_notes_folder(self):
+        # Real finding (2026-09-22): after math-camp/lecture-notes/ was
+        # renamed to lecture_notes/ (folder vocabulary unification), this
+        # walker started scanning every course's lecture_notes/ folder --
+        # including the ones that hold Excalidraw scene files, which also
+        # end in ".md". No card was ever generated from one (missing
+        # .meta.json correctly skips it), but a noisy "no sidecar" warning
+        # printed for every single Excalidraw file in every course on every
+        # rebuild. This must be silent: an .excalidraw.md is never a
+        # video-lecture-note candidate at all, not a video-lecture-note
+        # candidate missing its sidecar.
+        with tempfile.TemporaryDirectory() as tmp:
+            lecture_notes_dir = os.path.join(tmp, "academic_notes", "econometrics", "lecture_notes")
+            os.makedirs(lecture_notes_dir)
+            with open(os.path.join(lecture_notes_dir, "Drawing.excalidraw.md"), "w", encoding="utf-8") as f:
+                f.write("---\n---\n\nfake compressed-json scene data")
+
+            with patch("builtins.print") as mock_print:
+                stats = rebuild(tmp, client=_fake_client())
+
+            self.assertEqual(stats["generated"], 0)
+            for call in mock_print.call_args_list:
+                self.assertNotIn("no sidecar", str(call))
+
+
+class TestRebuildExcalidrawNotes(unittest.TestCase):
+    def test_rebuild_generates_a_card_for_a_real_excalidraw_note(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            _make_excalidraw_note(tmp, "econometrics", "lecture_notes", "Drawing")
+            client = _fake_client()
+            stats = rebuild(tmp, client)
+            self.assertEqual(stats["generated"], 1)
+            cards = load_shard(tmp, "econometrics")
+            self.assertEqual(len(cards), 1)
+            # _fake_client's canned doc_type ("ta_notes") isn't in
+            # EXCALIDRAW_DOC_TYPES, so generate_index_card() correctly
+            # falls back to folder_category ("lecture_notes").
+            self.assertEqual(cards[0]["doc_type"], "lecture_notes")
+
+    def test_rebuild_skips_a_note_with_no_rag_md_yet(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            _make_excalidraw_note(tmp, "econometrics", "lecture_notes", "Drawing", write_rag_md=False)
+            client = _fake_client()
+            stats = rebuild(tmp, client)
+            self.assertEqual(stats["generated"], 0)
+            self.assertEqual(load_shard(tmp, "econometrics"), [])
+
+    def test_rebuild_does_not_orphan_an_existing_excalidraw_card(self):
+        # This is the real, live bug this task fixes: before this task,
+        # rebuild() has no walker for Excalidraw notes at all, so its
+        # orphan pass flags every Excalidraw card as orphaned on every
+        # run. Verified against a real isolated copy of the production
+        # index before this task existed -- see the design spec.
+        with tempfile.TemporaryDirectory() as tmp:
+            _make_excalidraw_note(tmp, "econometrics", "lecture_notes", "Drawing")
+            client = _fake_client()
+            rebuild(tmp, client)  # first run: generates the card
+            stats = rebuild(tmp, client)  # second run: must not orphan it
+            self.assertEqual(stats["orphaned"], 0)
+            cards = load_shard(tmp, "econometrics")
+            self.assertNotIn("orphaned", cards[0])
+
+    def test_rebuild_sets_source_asset_path_to_the_image_sibling(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            md_path, svg_path = _make_excalidraw_note(tmp, "econometrics", "lecture_notes", "Drawing")
+            client = _fake_client()
+            rebuild(tmp, client)
+            card = load_shard(tmp, "econometrics")[0]
+            expected = os.path.relpath(svg_path, tmp).replace(os.sep, "/")
+            self.assertEqual(card["source_asset_path"], expected)
 
 
 class TestSearch(unittest.TestCase):

@@ -26,8 +26,8 @@ python -m audio_generator.pipeline --course math-camp --dry-run
 ## Output
 
 **`textbook` content:** each source `<name>.md` gets a sibling `<name>.mp3`
-— no new folder taxonomy, so any existing sync tool that already watches
-the student's notes picks up the audio too.
+— the source already lives under `academic_resources/`, so no path
+translation is needed.
 
 **`notes` content:** split into one or more **episodes** targeting 10-20
 minutes of listening each (see "Episode splitting" below), instead of one
@@ -35,6 +35,18 @@ unbounded MP3 — `<name>__part01.mp3`, `<name>__part02.mp3`, etc., plus a
 `<name>__index.md` manifest listing which section titles landed in which
 part. A short note with no headers (or headers that fit in one 10-20
 minute episode) still produces exactly one `<name>__part01.mp3`.
+
+**2026-09-22: notes MP3s live under `academic_resources/`, mirrored from
+their source's `academic_notes/` location** (same `<course>/<category>/...`
+relative path, just a different root — see
+`docs/superpowers/specs/2026-09-21-source-asset-relocation-design.md`).
+Only the `.mp3` moves: `<name>__index.md` and every `__partNN.narrated.md`
+stay right next to the source `.md` in `academic_notes/`, since those are
+lightweight text, not the heavy binary audio this split exists to keep out
+of the git/tablet-synced notes vault. A sync tool that only watches
+`academic_notes/` will no longer pick up notes' own audio automatically
+(textbook audio is unaffected, since that source was never under
+`academic_notes/` to begin with).
 
 ## Setup
 
