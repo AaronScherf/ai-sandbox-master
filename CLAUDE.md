@@ -13,3 +13,6 @@ Monorepo. Almost all work happens in `ai-sandbox/academic-rag-model/` (Python pi
 ## Git
 - Another Claude session may share this working directory: stage explicit paths, never `git add -A` / `git add .`.
 - This repo is public on GitHub. Never commit secrets (`ai-sandbox/.env`) or copyrighted source material; the root `.gitignore` comments explain the IP-driven exclusions.
+
+## Multi-agent routing
+Gemini (Antigravity) and Codex also work this repo, via `GEMINI.md` and `AGENTS.md` at this same root. See `docs/AGENT_ROUTING.md` for which agent handles what and why — check it before taking on a task that's large-context-read-heavy (→ Gemini) or routine/mechanical (→ Codex) rather than spending Claude's session budget on it directly.

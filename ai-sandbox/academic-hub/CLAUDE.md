@@ -7,3 +7,6 @@ Content vault (Obsidian), not code. The pipelines that write here live in `../ac
 - Textbook `.md` / `.rag.md` files can be several hundred KB. Grep or read line ranges, never whole files.
 - Don't read `.index/` directly; query it with `python -m indexer.index_search query "..."` from `../academic-rag-model/`.
 - Much of this content is third-party copyrighted. Check the root `.gitignore` before staging anything new here.
+
+## Multi-agent routing
+Gemini (Antigravity) and Codex also work this repo. See `../../docs/AGENT_ROUTING.md` for which agent handles what — large reads/summarization of this vault route to Gemini, routine/mechanical work routes to Codex, judgment calls stay with Claude.

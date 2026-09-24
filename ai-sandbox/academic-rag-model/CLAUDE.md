@@ -12,3 +12,6 @@ Python 3.13 packages that convert academic PDFs/docs into Markdown, index them, 
 - Ignore `old_attempts/` (superseded), `.venv/`, `__pycache__/`, `audio_generator/models/`.
 - Design history lives in `docs/status/<date>-<subproject>-status.md` (latest date wins) and `docs/superpowers/{specs,plans}/`. Grep these for the relevant section; don't read them whole.
 - API keys come from `../.env` (`GEMINI_API_KEY`, `PAID_GEMINI_KEY`). Never print or commit them. Don't trigger paid Gemini runs over large batches without asking.
+
+## Multi-agent routing
+Gemini (Antigravity) and Codex also work this repo. See `../../docs/AGENT_ROUTING.md` for which agent handles what — large-context reads (full-corpus sweeps, long status-doc synthesis) route to Gemini, routine/mechanical work (test runs, git mechanics) routes to Codex, judgment calls stay with Claude.
