@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "deny": [
+      "Read(**/.venv/**)",
+      "Read(**/__pycache__/**)",
+      "Read(**/.pytest_cache/**)",
+      "Read(**/audio_generator/models/**)",
+      "Read(**/audio_generator/.cache/**)",
+      "Read(**/video_notes/.state/**)",
+      "Read(**/video_notes/.cache/**)",
+      "Read(**/.index/chunks/**)",
+      "Read(**/*_pages_cache.json)",
+      "Read(**/*.mp3)",
+      "Read(**/docs/status/vm_sizing_raw/**)"
+    ]
+  }
+}
