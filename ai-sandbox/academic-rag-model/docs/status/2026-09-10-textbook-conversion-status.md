@@ -673,3 +673,196 @@ before 2026-09-22's fix and false after it. Flagged independently by two
 reviewers during the plans' final reviews, explicitly out of scope for any
 of the three plans as written (none touched this prose). Fixed directly,
 docs only, no code change (commit `5b4f075`).
+
+## 2026-09-23 through 2026-09-26: post-processing textbook chapter splitting -- `split_chapters.py`, `toc_identify.py`, `toc_repair.py`
+
+**Motivation:** a single textbook's `.rag.md` (500KB-3MB, everything from
+front matter to the index in one file) was crashing Direct Git Sync on the
+tablet. `academic_notes/` is the tablet-synced repo, so the fix had to
+shrink what lands there, not just tidy `academic_resources/`. Solution:
+split each book into one file per chapter under a new `chapters/`
+subdirectory, and relocate the single merged `.rag.md` to
+`academic_resources/` (already the "heavy" side of the mirror -- see
+`common/academic_hub_paths.py`), where it's gitignored anyway.
+
+This shipped as three new modules in `textbook/`, all with real unit test
+coverage (`tests/test_toc_identify.py`, `tests/test_split_chapters.py`,
+`tests/test_toc_repair.py` -- ~100 tests across the three, part of the
+1583 passing on `main` after this effort):
+
+- **`toc_identify.py`** -- pure, no filesystem/network/PDF dependency.
+  Three independent chapter-boundary strategies, each returning a
+  `TocIdentification(confident, matches, reason)`:
+  1. `identify_chapters(text)` -- parses the book's own printed TOC
+     (`chapter_index.parse_printed_toc`, already existed) for
+     `(title, folio_page)` pairs, then finds the first `<!-- folio N -->`
+     tag reaching each target, walking forward only (a match can never
+     jump backward or reuse an earlier position).
+  2. `identify_chapters_via_outline(text, reader)` -- for books with no
+     usable folio tags at all: reads numbered chapter-shaped titles
+     directly off the source PDF's own outline/bookmarks (pypdf,
+     `reader` already opened by the caller), matches them against
+     `<!-- page N -->` tags instead of folio tags.
+  3. `identify_chapters_from_manual_list(text, manual_text)` -- last
+     resort: a human (or Gemini, see `toc_repair.py` below) fills in a
+     `Title | PageNumber` template (`generate_chapter_template`/
+     `parse_manual_chapter_list`), matched the same way as (2).
+
+  All three share one conservative contract: confident only when *every*
+  chapter is reached, strictly in order. Anything less is reported via
+  `reason`, never guessed at -- `split_chapters.py` skips and reports
+  rather than risk a silently wrong split.
+
+- **`split_chapters.py`** -- the CLI/orchestration layer. `split_book()`
+  tries the three strategies above in order (folio, then PDF outline via
+  `_locate_source_pdf`, then an existing manual template), and only past
+  all three does it fall to `toc_repair.py`'s Gemini-assisted repair (see
+  below), gated behind an explicit `--allow-gemini-repair` flag -- never
+  attempted silently, since it's the one path here with a real (if small)
+  API cost. `--init-template` writes a blank starter `chapter_titles.txt`
+  for any book that isn't already splittable, without overwriting one a
+  human has started filling in. `--report` is a full dry run: no writes,
+  no API calls, just which method (if any) would resolve each book.
+
+- **`toc_repair.py`** -- Gemini-assisted, last resort, two independent
+  jobs (deliberately kept separate -- different inputs, different costs):
+  - `classify_chapters_via_gemini()` -- the cheap job. Sends only a
+    compact heading outline (`extract_heading_outline`: every markdown
+    heading paired with its nearest `<!-- page N -->` tag -- no prose, no
+    PDF) and asks Gemini to classify which headings are real top-level
+    chapters versus subsections. The page number is never Gemini's job;
+    it's already known exactly from the tag. Feeds straight into the same
+    `chapter_titles.txt` format as a human fill-in, marked "AI-generated
+    -- please review."
+  - `reconstruct_toc_table_via_gemini()` -- the pricier job, for
+    repairing the book's own Contents section as a human-readable
+    artifact, always in `.rag.md` only (never the raw `.md` -- matches
+    `describe_images.py`'s existing convention that Marker's literal
+    output is never touched). Sends the garbled front-matter text, gets
+    back a clean replacement table plus two verbatim marker strings;
+    `splice_repaired_table()` does the actual substitution and refuses
+    (returns `None`) unless both markers are found as an exact,
+    correctly-ordered substring in the real text -- guessing where to cut
+    a real file was never an acceptable failure mode here. The original
+    is backed up to `<file>.rag.md.bak` in `academic_resources/` (never
+    `academic_notes/` -- a backup of a multi-MB file defeats the whole
+    point) before the patch is written.
+  - `find_large_heading_gaps()` -- a diagnostic, not a fix: flags any
+    span of `min_gap_pages` (default 20) or more with zero headings at
+    all, since that pattern means a real chapter's heading never
+    converted and classification will silently omit it (nothing to point
+    at). Printed as a warning naming the page range so a human can check
+    the source PDF for a bad scan or missing pages, rather than finding
+    out only after noticing chapters are missing.
+
+### Real bugs found along the way (worth knowing before touching this code)
+
+- **Heading-text matching was tried first and abandoned.** Fuzzy-matching
+  TOC titles against body headings (Rudin) found a real chapter's heading
+  missing entirely (Marker never rendered `#` for it) and, worse, matched
+  a decoy: an identically-titled heading in an appended solutions manual
+  400 pages later, silently producing a chapter file that swallowed
+  hundreds of unrelated pages. Folio/page-*position* matching (what
+  shipped) sidesteps both: it needs no heading at all, and forward-only
+  search for the first tag reaching each target can't jump into unrelated
+  later content, since the real target is reached first.
+- **Spurious/duplicate TOC entries** (Cameron): a chapter title split
+  across two table rows parses as two entries sharing one folio number;
+  a numbered subsection inside real chapter-1 body text, caught by the
+  front-matter parsing window, produced a folio number that didn't
+  advance past chapters already parsed. Fixed by
+  `_dedupe_by_increasing()`: keep only entries whose target value
+  strictly increases over the last kept one.
+- **A second, look-alike "Contents" table 400 pages into a document**
+  (Rudin's PDF bundles an appended solutions manual with its own Contents
+  page) inflated the parsed chapter count with unmatchable entries. Fixed
+  by `front_matter_window()`: TOC parsing is restricted to roughly the
+  first 50 physical pages, not the whole document.
+- **PDF-outline fallback needed two redesigns before it worked.**
+  Originally cross-referenced outline entries against the printed TOC
+  (`chapter_index.resolve_chapters_from_outline_and_toc`) -- but Hansen's
+  *own* printed TOC parsed to just one spurious entry (a separate,
+  OCR/table-format failure, independent of why its folio tags never
+  anchored), even though its outline was rich and complete. Redesigned to
+  read numbered chapter-shaped titles directly off the outline, with no
+  TOC dependency at all. Then found a second gap: some books (Ok, *Real
+  Analysis with Economic Applications*) number chapters by letter
+  ("Chapter A - Preliminaries..."), not digit -- needed a second regex
+  pattern (`_OUTLINE_CHAPTER_WORD_RE`) alongside the bare-number one.
+- **`source_pdf_path` legacy fallback** (Axler, Simon): metadata predates
+  the `source_pdf_filename` field, but the older field is still usable
+  *if* it's a real hub-relative local path and not a GCP VM temp-download
+  path (`temp_gcs_input_...`, confirmed live in Hansen's own metadata --
+  same caveat `describe_images.py`'s `reconcile_book_naming` already
+  documents). `_locate_source_pdf()` tries both tiers.
+- **Table-repair's trigger condition was too narrow, twice.** First cut:
+  gated on `identify_chapters()`'s reason being exactly "no parseable
+  table of contents found." Real bug (Simon): its TOC parsed to 27
+  *correct* entries with real folio numbers -- the actual blocker was "no
+  folio tags in the body" -- yet the rendered table was just as unusable
+  to a human reader as a fully garbled one. Broadened to fire whenever
+  folio tags, PDF outline, and manual template have *all* failed to
+  produce a split, regardless of the specific reason. Second bug this
+  also fixed: repair was nested inside `if not result.confident`, so a
+  book whose *existing* manual template already made the split confident
+  (Hayashi) never got its file repaired at all, even though table repair
+  exists to fix the artifact independent of whether splitting succeeded
+  some other way.
+- **Repair must run before any matching attempt, not after.** Splicing
+  changes the text's length/content, so any offset computed against the
+  pre-repair text is stale afterward. `split_book()` runs table repair
+  immediately once folio-based matching alone fails, before outline or
+  manual-template are even tried, and re-runs `identify_chapters()`
+  fresh against the patched text afterward.
+- **The Gemini calls needed retries.** Confirmed live (Hayashi): a
+  ~14-19K character JSON generation (a full multi-level TOC
+  reconstruction) at `temperature=0` occasionally came back malformed on
+  one attempt and clean on the very next. Both `*_via_gemini()` functions
+  now wrap the call in `common/gemini_utils.call_with_retries`, raising
+  on an empty/unparseable result so a bad parse retries instead of
+  giving up immediately.
+- **Missing chapters can be a genuine source-PDF defect, not a pipeline
+  bug.** Simon's classification correctly omitted two chapters ("3
+  One-Variable Calculus: Applications", "4 ... Chain Rule") because their
+  titles appear nowhere in the body -- only inside the garbled TOC block
+  itself. User-confirmed live: the original source PDF skips those exact
+  chapters too. `find_large_heading_gaps()` exists to surface this class
+  of thing automatically going forward.
+
+### Result
+
+All 12 textbooks in the corpus now have a proper `chapters/` split:
+Cameron, Stock, Hammack, Rudin, Sydsæter (folio tags); Hansen, Ok
+(PDF outline); Axler (manual, page numbers cross-checked against the
+PDF's own outline + its "Exercises 1A/1B/..." per-chapter numbering);
+Simon, Press, Rubenstein, Hayashi (Gemini classification and/or table
+repair, various combinations -- Hayashi's own manual entries served as
+a ground-truth check on the classification path before trusting it on
+the other three). Committed and pushed to `academic_notes`'s own separate
+git repo (it is *not* part of this repo's git history -- see
+`project_academic_notes_tablet_repo` in the assistant's memory) across
+two commits, `d1b2032` (the initial 12-book split) and `892b89c` (the
+Rubenstein/Press table-repair re-run after the trigger fix above).
+
+**Known follow-up, not yet done:** Simon, Press, and Rubenstein's
+`chapter_titles.txt` templates are Gemini-classified, marked "needs
+review" in the file itself, and have not been human-reviewed beyond the
+spot-checks done during this session (file-size sanity, title
+plausibility, and Hayashi's ground-truth cross-check). Worth a closer
+read next time one of them is opened for something else.
+
+**CLI cheat-sheet:**
+
+```bash
+# Dry run: report per-book confidence, no writes, no API calls
+python -m textbook.split_chapters --textbook-subdir academic_resources/<course>/textbooks --report
+
+# Real split for one book
+python -m textbook.split_chapters --textbook-subdir academic_resources/<course>/textbooks --book <Book_Folder_Name>
+
+# Write starter chapter_titles.txt for every book that still needs one
+python -m textbook.split_chapters --textbook-subdir academic_resources/<course>/textbooks --init-template
+
+# Last resort: Gemini-assisted classification + table repair (real API cost, never silent)
+python -m textbook.split_chapters --textbook-subdir academic_resources/<course>/textbooks --book <Book_Folder_Name> --allow-gemini-repair --use-paid-key
+```
