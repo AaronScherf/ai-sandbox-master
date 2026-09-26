@@ -1,4 +1,52 @@
 {
+  "10.1007/s10639-022-11491-w": {
+    "authors": [
+      "Davy Tsz Kit Ng",
+      "Min Lee",
+      "Roy Jun Yi Tan",
+      "Xiao Hu",
+      "John Stephen Downie",
+      "Samuel Kai Wah Chu"
+    ],
+    "doi_url": "https://doi.org/10.1007/s10639-022-11491-w",
+    "fetched_at": "2026-09-23T03:07:30.816611+00:00",
+    "folder": "computer-science",
+    "status": "needs_manual",
+    "title": "A review of AI teaching and learning from 2000 to 2020",
+    "year": 2022
+  },
+  "10.1007/s40593-021-00239-1": {
+    "authors": [
+      "W. Holmes",
+      "Ka\u015bka Porayska\u2010Pomsta",
+      "Ken Holstein",
+      "Emma Sutherland",
+      "Toby T. Baker",
+      "Simon Buckingham Shum",
+      "Olga C. Santos",
+      "Ma. Mercedes T. Rodrigo",
+      "Mutlu Cukurova",
+      "Ig Ibert Bittencourt",
+      "Kenneth R. Koedinger"
+    ],
+    "doi_url": "https://doi.org/10.1007/s40593-021-00239-1",
+    "fetched_at": "2026-09-23T03:07:32.317357+00:00",
+    "folder": "psychology",
+    "status": "needs_manual",
+    "title": "Ethics of AI in Education: Towards a Community-Wide Framework",
+    "year": 2021
+  },
+  "10.1016/j.chb.2022.107468": {
+    "authors": [
+      "\u0130smail \u00c7elik"
+    ],
+    "doi_url": "https://doi.org/10.1016/j.chb.2022.107468",
+    "fetched_at": "2026-09-23T03:07:32.048729+00:00",
+    "folder": "computer-science",
+    "status": "needs_manual",
+    "title": "Towards Intelligent-TPACK: An empirical study on teachers\u2019 professional knowledge to ethically integrate artificial intelligence (AI)-based tools into education",
+    "year": 2022
+  },
   "10.1016/j.ecosys.2026.101420": {
     "authors": [
       "Diego Vallarino"
@@ -64,6 +112,29 @@
     "fetched_at": "2026-09-02T02:25:08.597704+00:00",
     "folder": "business",
     "status": "fetched"
+  },
+  "10.1186/s41239-023-00408-3": {
+    "authors": [
+      "Cecilia Ka Yuk Chan"
+    ],
+    "doi_url": "https://doi.org/10.1186/s41239-023-00408-3",
+    "fetched_at": "2026-09-23T03:07:29.060438+00:00",
+    "folder": "sociology",
+    "status": "needs_manual",
+    "title": "A comprehensive AI policy education framework for university teaching and learning",
+    "year": 2023
+  },
+  "10.1186/s41239-023-00411-8": {
+    "authors": [
+      "Cecilia Ka Yuk Chan",
+      "Wenjie Hu"
+    ],
+    "doi_url": "https://doi.org/10.1186/s41239-023-00411-8",
+    "fetched_at": "2026-09-23T03:07:31.690743+00:00",
+    "folder": "psychology",
+    "status": "needs_manual",
+    "title": "Students\u2019 voices on generative AI: perceptions, benefits, and challenges in higher education",
+    "year": 2023
   },
   "10.1257/pandp.20181032": {
     "audited_at": "2026-09-03T03:41:24.139839+00:00",

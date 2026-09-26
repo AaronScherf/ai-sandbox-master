@@ -1,0 +1,30 @@
+# Chapter template for Hayashi_Contents_2007
+# Neither this book's folio tags nor its PDF outline could be read
+# automatically -- fill in one chapter per line below, then rerun
+# split_chapters.py:
+#
+#   Title | PageNumber
+#
+# PageNumber counts from the very first page of the PDF as page 1 --
+# the same number your PDF viewer's own page counter shows (not the
+# printed page number in the book, which is often offset by the
+# front matter).
+#
+# Example:
+# Introduction | 12
+# Linear Models | 45
+#
+# Lines starting with '#' (like this one) are ignored.
+
+Table of Contents | 1
+Preface | 15
+1 Finite-Sample Properties of OLS | 20
+2 Large-Sample Theory | 105
+3 Single-Equation GMM | 203
+4 Multiple-Equation GMM | 275
+5 Panel Data | 340
+6 Serial Correlation | 382
+7 Extremum Estimators | 462
+8 Examples of Maximum Likelihood | 524
+9 Unit-Root Econometrics | 574
+10 Cointegration | 640

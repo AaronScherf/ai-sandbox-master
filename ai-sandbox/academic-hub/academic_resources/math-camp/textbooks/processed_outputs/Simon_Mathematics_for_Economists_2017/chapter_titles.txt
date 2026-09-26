@@ -1,0 +1,39 @@
+# Chapter template for Simon_Mathematics_for_Economists_2017
+# AI-generated via Gemini (classified from this book's own heading
+# structure) -- please review before trusting, then rerun
+# split_chapters.py. Edit or replace any line below as needed; the
+# format is unchanged from a manually-filled template:
+#
+#   Title | PageNumber
+#
+# PageNumber counts from the very first page of the PDF as page 1.
+# Lines starting with '#' are ignored.
+
+Introduction | 22
+One-Variable Calculus: Foundations | 30
+Exponents and Logarithms | 59
+Introduction to Linear Algebra | 82
+Systems of Linear Equations | 97
+Matrix Algebra | 128
+Determinants: An Overview | 163
+Euclidean Spaces | 175
+Linear Independence | 213
+Limits and OPen Sets | 228
+Functions of Several Variables | 248
+Calculus of Several Variables | 276
+Implicit Functions and Their Derivatives | 310
+Quadratic Forms and Definite Matrices | 349
+Unconstrained Optimization | 370
+Constrained Optimization I: First Order Conditions | 385
+Constrained Optimization II | 422
+Homogeneous and Homothetic Functions | 457
+Concave and Quasiconcave Functions | 479
+Economic Applications | 518
+Eigenvalues and Eigenvectors | 552
+Ordinary Differential Equations: Scalar Equations | 606
+Ordinary Differential Equations: Systems of Equations | 647
+Determinants: The Details | 690
+Subspaces Attached to a Matrix | 721
+Applications of Linear Independence | 750
+Limits and Compact Sets | 772
+Calculus of Several Variables II | 791

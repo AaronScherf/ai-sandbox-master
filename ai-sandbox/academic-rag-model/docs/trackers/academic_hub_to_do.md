@@ -89,3 +89,6 @@ Confusing letters in script form:
 $$\frac{1}{n} \sum_{i=1}^n \hat{c}_i = 0. \quad (3.17)$$
 
 Thus the residuals have a sample mean of 0 and the sample correlation between the regressors and the residual is 0. These are algebraic results and hold true for all linear regression estimates.
+
+
+

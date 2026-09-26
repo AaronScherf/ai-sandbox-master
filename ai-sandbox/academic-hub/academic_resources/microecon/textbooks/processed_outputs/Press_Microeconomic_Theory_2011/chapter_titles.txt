@@ -1,0 +1,29 @@
+# Chapter template for Press_Microeconomic_Theory_2011
+# AI-generated via Gemini (classified from this book's own heading
+# structure) -- please review before trusting, then rerun
+# split_chapters.py. Edit or replace any line below as needed; the
+# format is unchanged from a manually-filled template:
+#
+#   Title | PageNumber
+#
+# PageNumber counts from the very first page of the PDF as page 1.
+# Lines starting with '#' are ignored.
+
+Preference and Choice | 15
+Consumer Choice | 27
+Classical Demand Theory | 50
+Aggregate Demand | 115
+Production | 137
+Choice Under Uncertainty | 177
+Basic Elements of Noncooperative Games | 228
+Simultaneous-Move Games | 244
+Market Power | 390
+Adverse Selection, Signaling, and Screening | 443
+The Principal-Agent Problem | 484
+General Equilibrium Theory: Some Examples | 521
+Equilibrium and Its Basic Welfare Properties | 551
+Some Foundations for Competitive Equilibria | 658
+General Equilibrium Under Uncertainty | 693
+Equilibrium and Time | 738
+Elements of Welfare Economics and Axiomatic Bargaining | 822
+Incentives and Mechanism Design | 861

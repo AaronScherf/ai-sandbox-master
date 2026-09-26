@@ -1,0 +1,22 @@
+# Chapter template for Rubenstein_Lecture_Notes_in_Microeconomic_Theory_2026
+# AI-generated via Gemini (classified from this book's own heading
+# structure) -- please review before trusting, then rerun
+# split_chapters.py. Edit or replace any line below as needed; the
+# format is unchanged from a manually-filled template:
+#
+#   Title | PageNumber
+#
+# PageNumber counts from the very first page of the PDF as page 1.
+# Lines starting with '#' are ignored.
+
+Introduction | 6
+Preferences | 10
+Utility | 21
+Choice | 33
+Consumer Preferences | 58
+Demand: Consumer Choice | 76
+More Economic Agents | 92
+Expected Utility | 108
+Risk Aversion | 123
+Social Choice | 138
+76 Review Problems | 149

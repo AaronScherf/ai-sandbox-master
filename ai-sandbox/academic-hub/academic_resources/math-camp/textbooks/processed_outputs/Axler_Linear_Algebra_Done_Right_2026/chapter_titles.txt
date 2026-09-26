@@ -1,0 +1,33 @@
+# Chapter template for Axler_Linear_Algebra_Done_Right_2026
+# Neither this book's folio tags nor its PDF outline could be read
+# automatically -- fill in one chapter per line below, then rerun
+# split_chapters.py:
+#
+#   Title | PageNumber
+#
+# PageNumber counts from the very first page of the PDF as page 1 --
+# the same number your PDF viewer's own page counter shows (not the
+# printed page number in the book, which is often offset by the
+# front matter).
+#
+# Example:
+# Introduction | 12
+# Linear Models | 45
+#
+# Lines starting with '#' (like this one) are ignored.
+#
+# Pre-filled below from this book's own PDF outline (chapter boundaries
+# cross-checked against the "Exercises 1A/1B/..." per-chapter numbering
+# visible in that same outline, and against the known 4th-edition table
+# of contents) -- double-check against your own copy before relying on
+# it, but these page numbers were read directly from the PDF, not guessed.
+
+Vector Spaces | 14
+Finite-Dimensional Vector Spaces | 40
+Linear Maps | 64
+Polynomials | 132
+Eigenvalues and Eigenvectors | 145
+Inner Product Spaces | 194
+Operators on Inner Product Spaces | 240
+Operators on Complex Vector Spaces | 310
+Multilinear Algebra and Determinants | 345
