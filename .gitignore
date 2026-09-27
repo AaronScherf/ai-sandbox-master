@@ -122,6 +122,11 @@ ai-sandbox/research/.viz/
 # .index/chunks/'s "direct reproduction of copyrighted material" concern
 # than .viz/'s generated charts, and gitignored for that same reason.
 **/.problem_corpus/
+# Per-course tutoring session log (.session_log/) -- same derivative,
+# corpus-grounded-content posture as .reports/, .viz/, and
+# .problem_corpus/ above: event text embeds excerpt citations and
+# quoted corpus content.
+**/.session_log/
 
 #Prevent git workspace conflicts with obsidian
 # Vault root is ai-sandbox/, one level below this .gitignore -- a pattern
