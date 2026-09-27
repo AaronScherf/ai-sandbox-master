@@ -467,6 +467,20 @@ def main() -> None:
                 ))
             continue
 
+        if line == "/summarize" or line.startswith("/summarize "):
+            if not args.course:
+                print("Set --course to use /summarize.\n")
+                continue
+            parts = line.split(maxsplit=1)
+            target_unit = parts[1].strip() if len(parts) == 2 else unit
+            events = load_events(roots, args.course, unit=target_unit)
+            if not events:
+                print(f"No session history yet for unit {target_unit!r}.\n")
+                continue
+            summary = summarize_unit(events, client)
+            print(f"\n{summary}\n")
+            continue
+
         question = line
         result = answer_question(
             roots, question, client, history=history, course=args.course,
