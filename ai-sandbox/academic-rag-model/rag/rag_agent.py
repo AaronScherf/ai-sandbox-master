@@ -340,6 +340,13 @@ def answer_question(
 
 
 def main() -> None:
+    from datetime import datetime, timezone
+    from rag.session_log import Event, append_event, load_events
+    from rag.tutor_diagnosis import (
+        diagnose_draft, generate_hint, generate_verification, summarize_unit,
+    )
+    from rag.problem_set_parser import extract_question, QuestionNotFoundError
+
     parser = argparse.ArgumentParser(description="Interactive tutor grounded in one or more indexed corpora.")
     parser.add_argument(
         "--root", action="append", default=None,
@@ -348,6 +355,9 @@ def main() -> None:
              "[academic-hub].",
     )
     parser.add_argument("--course", default=None)
+    parser.add_argument("--unit", default=None,
+                         help="Tags every logged event this session with this unit (e.g. homework_3), "
+                              "so /summarize can retrieve just this unit's history.")
     parser.add_argument("--visualize", action="store_true",
                          help="Also generate an interactive visualization for each question's concept.")
     parser.add_argument("--report", action="store_true",
@@ -362,11 +372,19 @@ def main() -> None:
         raise SystemExit(1)
 
     history: list[Turn] = []
+    unit = args.unit
+    last_question: str | None = None
+    last_answer: str | None = None
+    last_passages: list[PassageResult] = []
+
     print("Ask a question (Ctrl+C to exit).")
+    print("Commands: /draft, /hint <file> <question-ref>, /verify, /summarize [unit]")
     while True:
-        question = input("> ").strip()
-        if not question:
+        line = input("> ").strip()
+        if not line:
             continue
+
+        question = line
         result = answer_question(
             roots, question, client, history=history, course=args.course,
             visualize=args.visualize, report=args.report,
@@ -382,6 +400,14 @@ def main() -> None:
             print(f"  report: {result.report_path}")
         print()
         history = result.history
+        last_question = question
+        last_answer = result.answer
+        last_passages = result.passages or []
+        if args.course:
+            append_event(roots, Event(
+                type="answer", course=args.course, unit=unit, question=question, text=result.answer,
+                citations=result.citations, timestamp=datetime.now(timezone.utc).isoformat(),
+            ))
 
 
 if __name__ == "__main__":
