@@ -39,6 +39,12 @@ class AnswerResult:
     answer: str
     citations: list[Citation]
     history: list[Turn]
+    standalone_question: str = ""  # the self-contained version of what was actually
+    # answered -- the original question on a first turn, the reformulated query on a
+    # follow-up (_reformulate_query already computes this for retrieval), or the
+    # generated problem's own text on the problem-generation path. Lets /verify
+    # re-solve the right thing instead of a context-dependent raw follow-up like
+    # "why does that hold?", which means nothing to an independent, historyless model.
     visualization: VizResult | None = None  # viz.viz_agent.VizResult -- not imported at
     # module level (see answer_question()'s function-scoped import below); resolvable
     # here only because this file already has `from __future__ import annotations`,
@@ -50,6 +56,11 @@ class AnswerResult:
     # import or alias is needed for this to resolve: `from __future__ import annotations`
     # (top of this file) makes every annotation a lazily-evaluated string, exactly like
     # `visualization: VizResult | None` above needs none either.
+    passages: list[PassageResult] | None = None  # populated on the normal Q&A path only
+    # (rag/tutor_diagnosis.py's diagnose_draft() needs the same passages the reference
+    # answer was grounded in) -- left None on the problem-generation path above, where
+    # "reference passages" isn't the same concept (generated.sources plays that role
+    # there, already surfaced via `citations`).
 
 
 def _diversify_by_file(results: list[PassageResult], max_per_file: int) -> list[PassageResult]:
@@ -150,6 +161,31 @@ TUTOR_MODEL = "gemini-3.1-flash-lite"  # revised 2026-08-30, confirmed live:
 # setting reused -- they could diverge again later without this being
 # a stale/forgotten duplicate.
 
+def _recent_gap_tags(roots: list[str], course: str | None, limit: int = 5) -> list[str]:
+    """Feeds phase 2 of the tutor-diagnosis spec (§10): the last `limit`
+    gap tags this student's own /draft diagnoses have logged for this
+    course, so a new answer can proactively flag a known blind spot.
+    course=None (a valid, already-supported answer_question() call
+    shape) returns [] without touching the session log at all -- there's
+    no per-course file to read without a course name."""
+    if course is None:
+        return []
+    from rag.session_log import load_events  # function-scoped: keeps session_log's file
+    # I/O out of every answer_question() call path that doesn't set course, matching
+    # this file's existing function-scoped viz/problem_gen/report_builder imports.
+    try:
+        events = load_events(roots, course)
+    except Exception as err:  # noqa: BLE001 -- deliberately broad: this is optional
+        # enrichment on the normal Q&A path, not the feature itself. load_events()
+        # already tolerates malformed individual lines internally; this catches
+        # anything else (permissions, an unreadable file) so a plain question can
+        # never fail just because the session log happens to be unreadable.
+        print(f"WARNING: couldn't read session log for gap-tag context: {err}")
+        return []
+    tags = [e.gap_tag for e in events if e.type == "draft" and e.gap_tag]
+    return tags[-limit:]
+
+
 _ANSWER_PROMPT_TEMPLATE = """You are tutoring a student using ONLY the excerpts below, drawn from \
 their own course materials. Answer their question clearly and thoroughly, the way a good TA would \
 explain it -- but do not introduce any claim, fact, or worked step that isn't supported by the \
@@ -158,7 +194,7 @@ rather than filling the gap from general knowledge.
 
 When you use something from an excerpt, cite it inline using the citation label given with it \
 (e.g. "(§3.7, p. 44)"), so the student can find it in their own materials.
-{history_block}
+{history_block}{gap_hint_block}
 Excerpts:
 {excerpts_block}
 
@@ -167,19 +203,41 @@ Question: {question}
 Answer:"""
 
 
-def _generate_answer(question: str, history: list[Turn], passages: list[PassageResult], client) -> str:
+def _generate_answer(
+    question: str, history: list[Turn], passages: list[PassageResult], client,
+    gap_tags: list[str] | None = None,
+) -> str:
     excerpts_block = "\n\n".join(f"[{p.citation}]\n{p.text}" for p in passages)
     history_block = ""
     if history:
         recent = "\n".join(f"{t.role}: {t.text}" for t in history[-6:])
         history_block = f"\nRecent conversation, for continuity:\n{recent}\n"
+    gap_hint_block = ""
+    if gap_tags:
+        gap_hint_block = (
+            f"\nThe student has previously struggled with: {', '.join(gap_tags)}. "
+            "If this question touches any of these, address them explicitly.\n"
+        )
     prompt = _ANSWER_PROMPT_TEMPLATE.format(
-        history_block=history_block, excerpts_block=excerpts_block, question=question,
+        history_block=history_block, gap_hint_block=gap_hint_block,
+        excerpts_block=excerpts_block, question=question,
     )
     response = call_with_retries(lambda: client.models.generate_content(
         model=TUTOR_MODEL, contents=prompt, config={"temperature": 0.2},
     ))
     return (response.text or "").strip()
+
+
+def retrieve_passages(
+    roots: list[str], query: str, client,
+    course: str | None = None, top_k: int = 6, max_per_file: int = 3,
+) -> list[PassageResult]:
+    """Retrieval step factored out of answer_question() so /hint
+    (rag/tutor_diagnosis.py) can call it directly without duplicating
+    the diversify-then-cap logic (spec §3). Renamed without a leading
+    underscore since it's now called from another module."""
+    passages = search_passages(roots, query, client, course=course, top_k=top_k * 2)
+    return _diversify_by_file(passages, max_per_file)[:top_k]
 
 
 def answer_question(
@@ -251,17 +309,18 @@ def answer_question(
                 )
             return AnswerResult(
                 answer=generated.problem_text, citations=problem_citations,
-                history=updated_history, generated_problem=generated,
+                history=updated_history, standalone_question=generated.problem_text,
+                generated_problem=generated,
                 visualization=problem_visualization, report_path=problem_report_path,
             )
         # generated is None (no style examples on this topic/course, or Ollama
         # unavailable/never verified) -- fall through to the normal Q&A path below on
         # this same question, same graceful-degradation principle as visualize=None.
 
-    passages = search_passages(roots, retrieval_query, client, course=course, top_k=top_k * 2)
-    passages = _diversify_by_file(passages, max_per_file)[:top_k]
+    passages = retrieve_passages(roots, retrieval_query, client, course=course, top_k=top_k, max_per_file=max_per_file)
 
-    answer = _generate_answer(question, history, passages, client)
+    gap_tags = _recent_gap_tags(roots, course)
+    answer = _generate_answer(question, history, passages, client, gap_tags=gap_tags)
     citations = [
         Citation(chunk_id=p.chunk_id, file_id=p.file_id, path=p.path, citation=p.citation, root=p.root)
         for p in passages
@@ -291,11 +350,20 @@ def answer_question(
 
     return AnswerResult(
         answer=answer, citations=citations, history=updated_history,
-        visualization=visualization, report_path=report_path_value,
+        standalone_question=retrieval_query,
+        visualization=visualization, report_path=report_path_value, passages=passages,
     )
 
 
 def main() -> None:
+    from datetime import datetime, timezone
+    from rag.session_log import Event, append_event, load_events
+    from rag.tutor_diagnosis import (
+        diagnose_draft, generate_hint, generate_verification, summarize_unit,
+        DiagnosisParseError,
+    )
+    from rag.problem_set_parser import extract_question, QuestionNotFoundError
+
     parser = argparse.ArgumentParser(description="Interactive tutor grounded in one or more indexed corpora.")
     parser.add_argument(
         "--root", action="append", default=None,
@@ -304,6 +372,9 @@ def main() -> None:
              "[academic-hub].",
     )
     parser.add_argument("--course", default=None)
+    parser.add_argument("--unit", default=None,
+                         help="Tags every logged event this session with this unit (e.g. homework_3), "
+                              "so /summarize can retrieve just this unit's history.")
     parser.add_argument("--visualize", action="store_true",
                          help="Also generate an interactive visualization for each question's concept.")
     parser.add_argument("--report", action="store_true",
@@ -318,11 +389,126 @@ def main() -> None:
         raise SystemExit(1)
 
     history: list[Turn] = []
+    unit = args.unit
+    last_question: str | None = None
+    last_answer: str | None = None
+    last_passages: list[PassageResult] = []
+
     print("Ask a question (Ctrl+C to exit).")
+    print("Commands: /draft, /hint <file> <question-ref>, /verify, /summarize [unit]")
     while True:
-        question = input("> ").strip()
-        if not question:
+        line = input("> ").strip()
+        if not line:
             continue
+
+        if line == "/draft":
+            if last_answer is None:
+                print("Ask a question first, then /draft your attempt at it.\n")
+                continue
+            print("Paste your attempt (/end on its own line to finish):")
+            draft_lines: list[str] = []
+            while True:
+                draft_line = input()
+                if draft_line.strip() == "/end":
+                    break
+                draft_lines.append(draft_line)
+            draft = "\n".join(draft_lines).strip()
+            if not draft:
+                print("Empty draft, skipping.\n")
+                continue
+            try:
+                diagnosis = diagnose_draft(last_question, last_answer, last_passages, draft, client)
+            except DiagnosisParseError as err:
+                print(f"Couldn't parse a diagnosis from the model's response ({err}); not logged.\n")
+                continue
+            print(f"\n{diagnosis.text}\n")
+            print(
+                f"Correctness: {diagnosis.correctness}/5  "
+                f"Rigor: {diagnosis.rigor}/5  Course-fit: {diagnosis.course_fit}/5\n"
+            )
+            if args.course:
+                append_event(roots, Event(
+                    type="draft", course=args.course, unit=unit, question=last_question,
+                    text=diagnosis.text,
+                    citations=[
+                        Citation(chunk_id=p.chunk_id, file_id=p.file_id, path=p.path,
+                                 citation=p.citation, root=p.root)
+                        for p in last_passages
+                    ],
+                    timestamp=datetime.now(timezone.utc).isoformat(),
+                    gap_tag=diagnosis.gap_tag, correctness=diagnosis.correctness,
+                    rigor=diagnosis.rigor, course_fit=diagnosis.course_fit,
+                ))
+            continue
+
+        if line.startswith("/hint"):
+            parts = line.split(maxsplit=1)
+            rest = parts[1] if len(parts) == 2 else ""
+            rest_parts = rest.rsplit(maxsplit=1)  # question-ref is the LAST token, so
+            # the file path (everything before it) may itself contain spaces.
+            if len(rest_parts) != 2:
+                print("Usage: /hint <file> <question-ref>\n")
+                continue
+            file_path, question_ref = rest_parts
+            try:
+                question_text = extract_question(file_path, question_ref)
+            except QuestionNotFoundError as err:
+                print(f"{err}\n")
+                continue
+            except (OSError, UnicodeDecodeError) as err:
+                print(f"Couldn't read {file_path!r}: {err}\n")
+                continue
+            hint_passages = retrieve_passages(roots, question_text, client, course=args.course)
+            hint = generate_hint(question_text, hint_passages, client)
+            print(f"\n{hint}\n")
+            for p in hint_passages:
+                print(f"  - [{p.root}] {p.path} ({p.citation})")
+            print()
+            last_question = question_text
+            last_answer = None
+            last_passages = hint_passages
+            if args.course:
+                append_event(roots, Event(
+                    type="hint", course=args.course, unit=unit, question=question_text, text=hint,
+                    citations=[
+                        Citation(chunk_id=p.chunk_id, file_id=p.file_id, path=p.path,
+                                 citation=p.citation, root=p.root)
+                        for p in hint_passages
+                    ],
+                    timestamp=datetime.now(timezone.utc).isoformat(),
+                ))
+            continue
+
+        if line == "/verify":
+            if last_question is None:
+                print("Ask a question, request a hint, or draft an attempt first.\n")
+                continue
+            verification = generate_verification(last_question, client)
+            shown_answer = last_answer or "(no grounded answer yet -- only a hint/draft exists for this question)"
+            print(f"\n--- Tutor's answer ---\n{shown_answer}\n")
+            print(f"--- Independent verification ---\n{verification}\n")
+            if args.course:
+                append_event(roots, Event(
+                    type="verify", course=args.course, unit=unit, question=last_question,
+                    text=verification, citations=[], timestamp=datetime.now(timezone.utc).isoformat(),
+                ))
+            continue
+
+        if line == "/summarize" or line.startswith("/summarize "):
+            if not args.course:
+                print("Set --course to use /summarize.\n")
+                continue
+            parts = line.split(maxsplit=1)
+            target_unit = parts[1].strip() if len(parts) == 2 else unit
+            events = load_events(roots, args.course, unit=target_unit)
+            if not events:
+                print(f"No session history yet for unit {target_unit!r}.\n")
+                continue
+            summary = summarize_unit(events, client)
+            print(f"\n{summary}\n")
+            continue
+
+        question = line
         result = answer_question(
             roots, question, client, history=history, course=args.course,
             visualize=args.visualize, report=args.report,
@@ -338,6 +524,22 @@ def main() -> None:
             print(f"  report: {result.report_path}")
         print()
         history = result.history
+        if result.generated_problem:
+            # /draft and /verify need the actual problem/solution here, not
+            # result.answer (the problem statement) paired with the meta-request
+            # ("give me a practice problem...") -- fixed per final review: both
+            # commands previously operated on the wrong text on this path.
+            last_question = result.generated_problem.problem_text
+            last_answer = result.generated_problem.solution_text
+        else:
+            last_question = result.standalone_question
+            last_answer = result.answer
+        last_passages = result.passages or []
+        if args.course:
+            append_event(roots, Event(
+                type="answer", course=args.course, unit=unit, question=question, text=result.answer,
+                citations=result.citations, timestamp=datetime.now(timezone.utc).isoformat(),
+            ))
 
 
 if __name__ == "__main__":
