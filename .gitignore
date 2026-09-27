@@ -175,4 +175,4 @@ ai-sandbox/academic-hub/**/*.mp3
 ai-sandbox/research/**/*.mp3
 
 # Local agent bug reports and evidence; may contain private source data.
-/.agent-reports/
+**/.agent-reports/

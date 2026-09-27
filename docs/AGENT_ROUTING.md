@@ -55,7 +55,10 @@ pipeline can still use Ollama or another configured backend internally.
 Code defects go to Codex with reproduction details; architecture, new
 capabilities, schema changes, and substantive website structure/configuration
 tradeoffs go to Claude. Editorial decisions alone do not require escalation.
-The website is a separate repository with its own GEMINI.md and CLAUDE.md.
+The website is a separate repository. Its local agent guidance is supplied
+by [website PR #3](https://github.com/AaronScherf/AaronScherf.github.io/pull/3).
+Check that the chosen website checkout contains that guidance before using
+this workflow; the monorepo PR alone does not install files into a child repo.
 
 ## Codex — routine, mechanical, well-specified
 
@@ -92,8 +95,9 @@ feedback, and a suspected cause is not an established diagnosis.
 Follow [the worktree procedure](WORKTREE_WORKFLOW.md) before writing:
 one task, one branch, one worktree, one writer; integration is serialized.
 
-- Never `git add -A` / `git add .` — another agent may share this working
-  directory. Stage explicit paths only.
+- Never `git add -A` / `git add .`. Stage explicit task paths only and
+  preserve unrelated changes encountered during handoff. This does not permit
+  concurrent writers in one worktree.
 - Check `git status` before staging or committing; don't assume a broad add
   is safe.
 - Don't copy this file's content into `CLAUDE.md` / `GEMINI.md` /

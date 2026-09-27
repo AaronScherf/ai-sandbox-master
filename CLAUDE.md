@@ -15,7 +15,7 @@ Monorepo. Almost all work happens in `ai-sandbox/academic-rag-model/` (Python pi
 Before any write, follow [the worktree procedure](docs/WORKTREE_WORKFLOW.md).
 Use a dedicated `claude/<task>` branch and worktree; launch the session there
 and keep shell and IDE edits inside it. Main is for the designated integrator.
-- Another Claude session may share this working directory: stage explicit paths, never `git add -A` / `git add .`.
+- Stage explicit task paths only, never `git add -A` / `git add .`. Preserve unrelated changes encountered during handoff; one writer per worktree still applies.
 - This repo is public on GitHub. Never commit secrets (`ai-sandbox/.env`) or copyrighted source material; the root `.gitignore` comments explain the IP-driven exclusions.
 
 ## Multi-agent routing
@@ -28,7 +28,4 @@ architecture, technical design tradeoffs, and code/security review.
 
 ## Bug report intake
 
-For Gemini-prepared cases, follow [the bug handoff procedure](docs/BUG_HANDOFF.md).
-Review the evidence against the relevant full codebase, including callers and
-shared dependencies; treat the proposed cause as a hypothesis. Record your
-findings and validation against the original acceptance criteria.
+Follow [reviewer responsibilities](docs/BUG_HANDOFF.md#reviewer-responsibilities).

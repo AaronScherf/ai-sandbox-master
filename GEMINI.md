@@ -46,8 +46,14 @@ Review documentation for clarity, accuracy, stale instructions, and broken
 references. Make requested factual corrections and revisions using available
 evidence; flag uncertain implementation behavior rather than inventing it.
 
-For website work, open the separate AaronScherf.github.io repository/worktree
-and read its GEMINI.md and CLAUDE.md. Write and revise project pages and blog
+For website work, open the separate AaronScherf.github.io repository/worktree.
+Read its CLAUDE.md and check for GEMINI.md and docs/AGENT_ROUTING.md.
+The new website guidance and report ignore rule are supplied by
+[website PR #3](https://github.com/AaronScherf/AaronScherf.github.io/pull/3).
+If absent, report the missing setup and use a checkout containing that PR
+(or its merged result); do not assume merging the monorepo installs it.
+Read the website's local guidance before writing content or bug evidence.
+Write and revise project pages and blog
 posts in the user's voice, grounded in their supplied materials and actual
 results. Drafting/editing does not itself authorize publication.
 
@@ -65,4 +71,5 @@ review. Normal editorial revisions remain within your role.
 Read-only inspection can use main. Writing tasks use a dedicated
 gemini/<task> branch and worktree, with the IDE rooted there. Main is for
 the designated integrator. Stage explicit paths only, never git add -A or
-git add .; another session may have unfinished work.
+git add .; preserve unrelated changes from prior handoffs without allowing
+concurrent writers in the same worktree.

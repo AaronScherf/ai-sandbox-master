@@ -48,10 +48,16 @@ A complaint is evidence of a mismatch, not proof of a specific code defect.
 
 ## Report storage and template
 
-Write reports and supporting evidence under
-.agent-reports/bugs/<YYYYMMDD-HHMMSS>-<short-slug>/ in the owned worktree.
-This directory is gitignored in this repository. Check the ignore rule before
-saving sensitive evidence. Use a unique directory; do not overwrite a report.
+Resolve the owned repository root with `git rev-parse --show-toplevel`.
+Write reports below that absolute root, regardless of the current directory:
+`<repo-root>/.agent-reports/bugs/<YYYYMMDD-HHMMSS>-<short-slug>/`.
+Use a unique directory; do not overwrite a report. Before saving any evidence,
+run `git -C <repo-root> check-ignore -v -- <absolute-report-path>` for the
+intended report and attachment paths and require a matching rule. If any path
+is not ignored, stop saving evidence there until the repository's rule is fixed.
+The rule must be in the actual repository receiving the files; an outer repo's
+.gitignore does not protect a child repository. Existing tracked files are not
+protected by adding an ignore rule. Never force-add reports.
 If reporting from a read-only/shared checkout, first create an owned worktree
 and record the original run's checkout separately.
 

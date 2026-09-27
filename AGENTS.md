@@ -23,12 +23,10 @@ Before any write, follow [the worktree procedure](docs/WORKTREE_WORKFLOW.md).
 Use a dedicated `codex/<task>` branch and worktree; launch the session there
 and keep shell and IDE edits inside it. Main is for the designated integrator.
 
-Another agent may share this working directory: stage explicit paths, never
-`git add -A` / `git add .`.
+Stage explicit task paths only, never `git add -A` / `git add .`.
+Preserve unrelated changes encountered during handoff; their presence does
+not authorize concurrent writers in this worktree.
 
 ## Bug report intake
 
-For Gemini-prepared cases, follow [the bug handoff procedure](docs/BUG_HANDOFF.md).
-Review the evidence against the relevant full codebase, including callers and
-shared dependencies; treat the proposed cause as a hypothesis. Record your
-findings and validation against the original acceptance criteria.
+Follow [reviewer responsibilities](docs/BUG_HANDOFF.md#reviewer-responsibilities).
