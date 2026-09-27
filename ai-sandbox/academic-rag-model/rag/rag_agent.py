@@ -420,6 +420,38 @@ def main() -> None:
                 ))
             continue
 
+        if line.startswith("/hint"):
+            parts = line.split(maxsplit=2)
+            if len(parts) != 3:
+                print("Usage: /hint <file> <question-ref>\n")
+                continue
+            _, file_path, question_ref = parts
+            try:
+                question_text = extract_question(file_path, question_ref)
+            except QuestionNotFoundError as err:
+                print(f"{err}\n")
+                continue
+            hint_passages = retrieve_passages(roots, question_text, client, course=args.course)
+            hint = generate_hint(question_text, hint_passages, client)
+            print(f"\n{hint}\n")
+            for p in hint_passages:
+                print(f"  - [{p.root}] {p.path} ({p.citation})")
+            print()
+            last_question = question_text
+            last_answer = None
+            last_passages = hint_passages
+            if args.course:
+                append_event(roots, Event(
+                    type="hint", course=args.course, unit=unit, question=question_text, text=hint,
+                    citations=[
+                        Citation(chunk_id=p.chunk_id, file_id=p.file_id, path=p.path,
+                                 citation=p.citation, root=p.root)
+                        for p in hint_passages
+                    ],
+                    timestamp=datetime.now(timezone.utc).isoformat(),
+                ))
+            continue
+
         question = line
         result = answer_question(
             roots, question, client, history=history, course=args.course,
