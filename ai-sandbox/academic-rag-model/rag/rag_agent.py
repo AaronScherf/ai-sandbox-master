@@ -452,6 +452,21 @@ def main() -> None:
                 ))
             continue
 
+        if line == "/verify":
+            if last_question is None:
+                print("Ask a question, request a hint, or draft an attempt first.\n")
+                continue
+            verification = generate_verification(last_question, client)
+            shown_answer = last_answer or "(no grounded answer yet -- only a hint/draft exists for this question)"
+            print(f"\n--- Tutor's answer ---\n{shown_answer}\n")
+            print(f"--- Independent verification ---\n{verification}\n")
+            if args.course:
+                append_event(roots, Event(
+                    type="verify", course=args.course, unit=unit, question=last_question,
+                    text=verification, citations=[], timestamp=datetime.now(timezone.utc).isoformat(),
+                ))
+            continue
+
         question = line
         result = answer_question(
             roots, question, client, history=history, course=args.course,
