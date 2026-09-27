@@ -155,6 +155,23 @@ TUTOR_MODEL = "gemini-3.1-flash-lite"  # revised 2026-08-30, confirmed live:
 # setting reused -- they could diverge again later without this being
 # a stale/forgotten duplicate.
 
+def _recent_gap_tags(roots: list[str], course: str | None, limit: int = 5) -> list[str]:
+    """Feeds phase 2 of the tutor-diagnosis spec (§10): the last `limit`
+    gap tags this student's own /draft diagnoses have logged for this
+    course, so a new answer can proactively flag a known blind spot.
+    course=None (a valid, already-supported answer_question() call
+    shape) returns [] without touching the session log at all -- there's
+    no per-course file to read without a course name."""
+    if course is None:
+        return []
+    from rag.session_log import load_events  # function-scoped: keeps session_log's file
+    # I/O out of every answer_question() call path that doesn't set course, matching
+    # this file's existing function-scoped viz/problem_gen/report_builder imports.
+    events = load_events(roots, course)
+    tags = [e.gap_tag for e in events if e.type == "draft" and e.gap_tag]
+    return tags[-limit:]
+
+
 _ANSWER_PROMPT_TEMPLATE = """You are tutoring a student using ONLY the excerpts below, drawn from \
 their own course materials. Answer their question clearly and thoroughly, the way a good TA would \
 explain it -- but do not introduce any claim, fact, or worked step that isn't supported by the \
@@ -163,7 +180,7 @@ rather than filling the gap from general knowledge.
 
 When you use something from an excerpt, cite it inline using the citation label given with it \
 (e.g. "(§3.7, p. 44)"), so the student can find it in their own materials.
-{history_block}
+{history_block}{gap_hint_block}
 Excerpts:
 {excerpts_block}
 
@@ -172,14 +189,24 @@ Question: {question}
 Answer:"""
 
 
-def _generate_answer(question: str, history: list[Turn], passages: list[PassageResult], client) -> str:
+def _generate_answer(
+    question: str, history: list[Turn], passages: list[PassageResult], client,
+    gap_tags: list[str] | None = None,
+) -> str:
     excerpts_block = "\n\n".join(f"[{p.citation}]\n{p.text}" for p in passages)
     history_block = ""
     if history:
         recent = "\n".join(f"{t.role}: {t.text}" for t in history[-6:])
         history_block = f"\nRecent conversation, for continuity:\n{recent}\n"
+    gap_hint_block = ""
+    if gap_tags:
+        gap_hint_block = (
+            f"\nThe student has previously struggled with: {', '.join(gap_tags)}. "
+            "If this question touches any of these, address them explicitly.\n"
+        )
     prompt = _ANSWER_PROMPT_TEMPLATE.format(
-        history_block=history_block, excerpts_block=excerpts_block, question=question,
+        history_block=history_block, gap_hint_block=gap_hint_block,
+        excerpts_block=excerpts_block, question=question,
     )
     response = call_with_retries(lambda: client.models.generate_content(
         model=TUTOR_MODEL, contents=prompt, config={"temperature": 0.2},
@@ -277,7 +304,8 @@ def answer_question(
 
     passages = retrieve_passages(roots, retrieval_query, client, course=course, top_k=top_k, max_per_file=max_per_file)
 
-    answer = _generate_answer(question, history, passages, client)
+    gap_tags = _recent_gap_tags(roots, course)
+    answer = _generate_answer(question, history, passages, client, gap_tags=gap_tags)
     citations = [
         Citation(chunk_id=p.chunk_id, file_id=p.file_id, path=p.path, citation=p.citation, root=p.root)
         for p in passages

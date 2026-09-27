@@ -179,6 +179,67 @@ class TestAnswerQuestionPassages(unittest.TestCase):
         self.assertIsNone(result.passages)
 
 
+class TestRecentGapTags(unittest.TestCase):
+    def test_course_none_returns_empty_without_touching_session_log(self):
+        from rag.rag_agent import _recent_gap_tags
+        with patch("rag.session_log.load_events") as mock_load:
+            result = _recent_gap_tags(["/root"], None)
+        self.assertEqual(result, [])
+        mock_load.assert_not_called()
+
+    def test_filters_to_draft_events_with_a_gap_tag(self):
+        from rag.rag_agent import _recent_gap_tags
+        events = [
+            MagicMock(type="answer", gap_tag=None),
+            MagicMock(type="draft", gap_tag="vacuous-case"),
+            MagicMock(type="draft", gap_tag=None),
+        ]
+        with patch("rag.session_log.load_events", return_value=events):
+            result = _recent_gap_tags(["/root"], "microecon")
+        self.assertEqual(result, ["vacuous-case"])
+
+    def test_caps_to_limit_most_recent(self):
+        from rag.rag_agent import _recent_gap_tags
+        events = [MagicMock(type="draft", gap_tag=f"gap-{i}") for i in range(10)]
+        with patch("rag.session_log.load_events", return_value=events):
+            result = _recent_gap_tags(["/root"], "microecon", limit=3)
+        self.assertEqual(result, ["gap-7", "gap-8", "gap-9"])
+
+
+class TestGenerateAnswerGapTags(unittest.TestCase):
+    def test_no_gap_tags_omits_block(self):
+        client = _fake_generate_client("answer")
+        _generate_answer("q", [], [], client)
+        prompt = client.models.generate_content.call_args.kwargs["contents"]
+        self.assertNotIn("previously struggled", prompt)
+
+    def test_gap_tags_included_in_prompt(self):
+        client = _fake_generate_client("answer")
+        _generate_answer("q", [], [], client, gap_tags=["vacuous-case", "ties-not-checked"])
+        prompt = client.models.generate_content.call_args.kwargs["contents"]
+        self.assertIn("vacuous-case", prompt)
+        self.assertIn("ties-not-checked", prompt)
+        self.assertIn("previously struggled", prompt)
+
+
+class TestAnswerQuestionGapTagInjection(unittest.TestCase):
+    def test_course_none_skips_gap_tag_lookup(self):
+        client = _fake_generate_client("answer")
+        with patch("rag.rag_agent.search_passages", return_value=[]), \
+             patch("rag.session_log.load_events") as mock_load:
+            answer_question(["/root"], "q", client, course=None)
+        mock_load.assert_not_called()
+
+    def test_course_set_injects_gap_tags_into_answer_prompt(self):
+        client = _fake_generate_client("answer")
+        events = [MagicMock(type="draft", gap_tag="vacuous-case")]
+        with patch("rag.rag_agent.search_passages", return_value=[]), \
+             patch("rag.session_log.load_events", return_value=events):
+            answer_question(["/root"], "q", client, course="microecon")
+        prompt = client.models.generate_content.call_args.kwargs["contents"]
+        self.assertIn("vacuous-case", prompt)
+
+
 class TestAnswerQuestionVisualize(unittest.TestCase):
     def test_visualize_false_never_calls_generate_visualization(self):
         client = _fake_generate_client("answer")
