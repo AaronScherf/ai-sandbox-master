@@ -5,8 +5,8 @@
 	- Math Thesis Rewrite (Project 06) — reframed around an asymmetric-aware omnibus normality test; applied validation reuses Project 02/04 residuals once the toolkit stabilizes
 	- Evidence Map for Climate, Cash and Conflict (Project 01)
 		- Use as lit review / data collection for panel data study
-	- Climate shocks, conflict and displacement panel study (Project 02 / NECR5250 Final Paper)
-		- Extends past the seminar deadline into a publishable paper, finalized and presented in April 2027
+	- Climate shocks, conflict and displacement panel study (Project 02)
+		- First full draft targeted for November, extended into a publishable paper, finalized and presented in April 2027
 	- Open-source Climate-Conflict data-fusion toolkit (Project 04)
 		- Built as the data processing pipeline for the panel data study, packaged as a standalone toolkit
 	- Chatbot survey pilot (Project 03)
@@ -17,7 +17,7 @@
 
 - September 2026
 	- Set up reference manager and reading log; open three literature lanes (climate adaptation & agriculture, forced displacement/conflict economics, cash transfers & social protection in fragile settings); target 15–20 anchor papers per lane
-	- Scope the NECR5250 (open-source conflict data) seminar term project around the climate–conflict–displacement fusion idea (Project 02)
+	- Scope Project 02 (the climate–conflict–displacement fusion idea) so it's ready to start in earnest this month, leading with the Somalia three-shock case study
 	- Outreach: attend, don't email — SIPA SusDev seminar, Saltzman Institute conflict series, one IRI or CIESIN talk
 	- Develop and publish personal website (bio, project page, blog), focused initially on Academic and Research Hubs
 	- Finish most code for Academic and Research Hubs, publish to GitHub, post projects on website
@@ -27,14 +27,14 @@
 	- Close first-pass literature maps; write one gap statement per lane
 	- Start Project 01 (evidence map), cataloguing existing RCTs and quasi-experiments at the climate-adaptation × cash-transfer × conflict intersection
 	- Outreach: first meetings — Björkegren and de Sherbinin
-	- Build out Project 02 (ACLED + IDMC + climate + cash-transfer program data fusion); midpoint check against the seminar's own milestones
+	- Build out Project 02 (ACLED + IDMC + climate + cash-transfer program data fusion); midpoint check-in on progress
 	- Continue revising and posting about Academic and Research Hubs on website
 	- Continue revisions of math thesis; outreach to math faculty
 - November 2026
 	- Draft research-statement v0.1
 	- Outreach: meet Willis and Sachs/Bajpai; scout one Tier 2 talk (Fortna, Humphreys, Naidu, or Verhoogen)
 	- Publish Project 01 (evidence map) as a v1
-	- Finish and submit the NECR5250 term paper — Project 02's first full draft
+	- Finish Project 02's first full draft
 	- Start Project 04 (data-fusion pipeline/toolkit) as part of Project 02's processing
 	- Publish Project 02 as a GitHub repo plus short write-up
 	- Present an informal 30-minute talk to students at the SusDev seminar
@@ -79,7 +79,7 @@
 	- An evidence map: climate adaptation, cash transfers & conflict
 		- A structured, public catalogue of existing RCTs and quasi-experimental evaluations sitting at the intersection of climate-adaptive agriculture, cash transfers/social protection, and conflict or forced displacement
 	- Climate shocks, conflict & displacement: a fused public-data study
-		- Fuse ACLED conflict-event data, IDMC displacement figures, a climate-shock indicator (SPEI or CHIRPS-based drought measures), and public cash-transfer program locations (WFP/HDX) into a subnational panel, to test how climate shocks translate into displacement conditional on conflict intensity, and whether social-protection presence moderates that relationship. Combine with NECR5250 Final Paper.
+		- Fuse ACLED conflict-event data, IDMC displacement figures, a climate-shock indicator (SPEI or CHIRPS-based drought measures), and public cash-transfer program locations (WFP/HDX) into a subnational panel, to test how climate shocks translate into displacement conditional on conflict intensity, and whether social-protection presence moderates that relationship.
 	- Math thesis rewrite: an asymmetric-aware omnibus normality test (Project 06)
 		- Reworks the penalized-GLS test around its asymmetric-alternative power gap; applied validation reuses Project 02/04 residuals once the toolkit stabilizes in January. Full technical sequencing lives in [[Gemini Plan for Thesis Revision]] — keep both in sync.
 - Academic Hub Status
