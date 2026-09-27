@@ -39,6 +39,12 @@ class AnswerResult:
     answer: str
     citations: list[Citation]
     history: list[Turn]
+    standalone_question: str = ""  # the self-contained version of what was actually
+    # answered -- the original question on a first turn, the reformulated query on a
+    # follow-up (_reformulate_query already computes this for retrieval), or the
+    # generated problem's own text on the problem-generation path. Lets /verify
+    # re-solve the right thing instead of a context-dependent raw follow-up like
+    # "why does that hold?", which means nothing to an independent, historyless model.
     visualization: VizResult | None = None  # viz.viz_agent.VizResult -- not imported at
     # module level (see answer_question()'s function-scoped import below); resolvable
     # here only because this file already has `from __future__ import annotations`,
@@ -303,7 +309,8 @@ def answer_question(
                 )
             return AnswerResult(
                 answer=generated.problem_text, citations=problem_citations,
-                history=updated_history, generated_problem=generated,
+                history=updated_history, standalone_question=generated.problem_text,
+                generated_problem=generated,
                 visualization=problem_visualization, report_path=problem_report_path,
             )
         # generated is None (no style examples on this topic/course, or Ollama
@@ -343,6 +350,7 @@ def answer_question(
 
     return AnswerResult(
         answer=answer, citations=citations, history=updated_history,
+        standalone_question=retrieval_query,
         visualization=visualization, report_path=report_path_value, passages=passages,
     )
 
@@ -510,8 +518,16 @@ def main() -> None:
             print(f"  report: {result.report_path}")
         print()
         history = result.history
-        last_question = question
-        last_answer = result.answer
+        if result.generated_problem:
+            # /draft and /verify need the actual problem/solution here, not
+            # result.answer (the problem statement) paired with the meta-request
+            # ("give me a practice problem...") -- fixed per final review: both
+            # commands previously operated on the wrong text on this path.
+            last_question = result.generated_problem.problem_text
+            last_answer = result.generated_problem.solution_text
+        else:
+            last_question = result.standalone_question
+            last_answer = result.answer
         last_passages = result.passages or []
         if args.course:
             append_event(roots, Event(

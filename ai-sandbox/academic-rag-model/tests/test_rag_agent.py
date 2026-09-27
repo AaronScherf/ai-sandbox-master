@@ -179,6 +179,38 @@ class TestAnswerQuestionPassages(unittest.TestCase):
         self.assertIsNone(result.passages)
 
 
+class TestAnswerQuestionStandaloneQuestion(unittest.TestCase):
+    """Regression for a final-review Important finding: /verify sent
+    last_question (the raw follow-up, e.g. "why does that hold?") to an
+    ungrounded independent model with no history, producing a meaningless
+    answer. answer_question() already computes a standalone, self-contained
+    version of the question for retrieval (_reformulate_query) -- surfacing
+    it lets the REPL use the same value for last_question."""
+
+    def test_first_turn_standalone_question_is_the_question_itself(self):
+        client = _fake_generate_client("answer")
+        with patch("rag.rag_agent.search_passages", return_value=[]):
+            result = answer_question(["/root"], "what is X", client)
+        self.assertEqual(result.standalone_question, "what is X")
+
+    def test_follow_up_standalone_question_is_the_reformulated_query(self):
+        client = MagicMock()
+        client.models.generate_content.side_effect = [
+            MagicMock(text="standalone question"), MagicMock(text="The answer."),
+        ]
+        history = [Turn(role="user", text="explain X"), Turn(role="assistant", text="X is...")]
+        with patch("rag.rag_agent.search_passages", return_value=[]):
+            result = answer_question(["/root"], "explain differently", client, history=history)
+        self.assertEqual(result.standalone_question, "standalone question")
+
+    def test_problem_generation_path_standalone_question_is_the_problem_text(self):
+        client = _fake_generate_client("unused")
+        fake_generated = MagicMock(problem_text="Find X.", sources=[])
+        with patch("problem_gen.generator.generate_problem", return_value=fake_generated):
+            result = answer_question(["/root"], "give me a practice problem on eigenvalues", client)
+        self.assertEqual(result.standalone_question, "Find X.")
+
+
 class TestRecentGapTags(unittest.TestCase):
     def test_course_none_returns_empty_without_touching_session_log(self):
         from rag.rag_agent import _recent_gap_tags
