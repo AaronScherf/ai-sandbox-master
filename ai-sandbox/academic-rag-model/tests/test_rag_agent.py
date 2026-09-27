@@ -205,6 +205,17 @@ class TestRecentGapTags(unittest.TestCase):
             result = _recent_gap_tags(["/root"], "microecon", limit=3)
         self.assertEqual(result, ["gap-7", "gap-8", "gap-9"])
 
+    def test_load_events_error_returns_empty_instead_of_raising(self):
+        """Regression for the final-review Important finding: this is an
+        optional enrichment step inside answer_question()'s normal Q&A
+        path -- it must never be able to take down a plain question just
+        because the session log is unreadable for some reason
+        load_events() itself doesn't already guard against."""
+        from rag.rag_agent import _recent_gap_tags
+        with patch("rag.session_log.load_events", side_effect=OSError("permission denied")):
+            result = _recent_gap_tags(["/root"], "microecon")
+        self.assertEqual(result, [])
+
 
 class TestGenerateAnswerGapTags(unittest.TestCase):
     def test_no_gap_tags_omits_block(self):

@@ -55,9 +55,19 @@ def load_events(roots: list[str], course: str, unit: str | None = None) -> list[
             line = line.strip()
             if not line:
                 continue
-            data = json.loads(line)
-            data["citations"] = [Citation(**c) for c in data["citations"]]
-            events.append(Event(**data))
+            try:
+                data = json.loads(line)
+                data["citations"] = [Citation(**c) for c in data["citations"]]
+                events.append(Event(**data))
+            except (json.JSONDecodeError, TypeError, KeyError) as err:
+                # A single corrupt line (a truncated write, a future schema
+                # change) must not permanently break every course-scoped
+                # answer_question() call -- _recent_gap_tags() reads this
+                # log on every question when course is set. Skip and warn
+                # rather than raise, same graceful-degradation principle as
+                # a missing log file returning [] above.
+                print(f"WARNING: skipping malformed session log line in {path}: {err}")
+                continue
     if unit is not None:
         events = [e for e in events if e.unit == unit]
     return events

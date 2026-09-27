@@ -167,7 +167,15 @@ def _recent_gap_tags(roots: list[str], course: str | None, limit: int = 5) -> li
     from rag.session_log import load_events  # function-scoped: keeps session_log's file
     # I/O out of every answer_question() call path that doesn't set course, matching
     # this file's existing function-scoped viz/problem_gen/report_builder imports.
-    events = load_events(roots, course)
+    try:
+        events = load_events(roots, course)
+    except Exception as err:  # noqa: BLE001 -- deliberately broad: this is optional
+        # enrichment on the normal Q&A path, not the feature itself. load_events()
+        # already tolerates malformed individual lines internally; this catches
+        # anything else (permissions, an unreadable file) so a plain question can
+        # never fail just because the session log happens to be unreadable.
+        print(f"WARNING: couldn't read session log for gap-tag context: {err}")
+        return []
     tags = [e.gap_tag for e in events if e.type == "draft" and e.gap_tag]
     return tags[-limit:]
 
