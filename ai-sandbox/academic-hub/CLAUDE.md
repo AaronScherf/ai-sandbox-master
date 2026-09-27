@@ -9,4 +9,8 @@ Content vault (Obsidian), not code. The pipelines that write here live in `../ac
 - Much of this content is third-party copyrighted. Check the root `.gitignore` before staging anything new here.
 
 ## Multi-agent routing
-Gemini (Antigravity) and Codex also work this repo. See `../../docs/AGENT_ROUTING.md` for which agent handles what — large reads/summarization of this vault route to Gemini, routine/mechanical work routes to Codex, judgment calls stay with Claude.
+
+See [the shared routing convention](../../docs/AGENT_ROUTING.md).
+Gemini defaults to using existing pipelines, documentation review, and
+large-context synthesis. Codex handles code maintenance, tests, and Git;
+Claude handles architecture and technical design decisions.

@@ -10,7 +10,10 @@ there. See `docs/AGENT_ROUTING.md` for the full multi-agent convention.
 
 Routine, well-specified, mechanical work: git mechanics (rebase,
 cherry-pick, branch cleanup), running/fixing unit tests, lint/format passes,
-script execution, dependency bumps, boilerplate. If a task turns out to need
+maintenance script execution, dependency bumps, boilerplate.
+Using existing pipelines for study or resume tailoring, documentation review,
+and website writing defaults to Gemini; see the shared routing convention.
+If a task turns out to need
 a design decision mid-way, stop and flag for Claude rather than deciding it
 inline.
 

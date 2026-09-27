@@ -19,4 +19,9 @@ and keep shell and IDE edits inside it. Main is for the designated integrator.
 - This repo is public on GitHub. Never commit secrets (`ai-sandbox/.env`) or copyrighted source material; the root `.gitignore` comments explain the IP-driven exclusions.
 
 ## Multi-agent routing
-Gemini (Antigravity) and Codex also work this repo, via `GEMINI.md` and `AGENTS.md` at this same root. See `docs/AGENT_ROUTING.md` for which agent handles what and why — check it before taking on a task that's large-context-read-heavy (→ Gemini) or routine/mechanical (→ Codex) rather than spending Claude's session budget on it directly.
+
+Gemini (Antigravity) and Codex also work this repo. See
+[the routing convention](docs/AGENT_ROUTING.md): Gemini defaults to existing
+pipeline operation, documentation review, website writing, and large-context
+reads; Codex handles code maintenance, tests, and Git mechanics; Claude handles
+architecture, technical design tradeoffs, and code/security review.

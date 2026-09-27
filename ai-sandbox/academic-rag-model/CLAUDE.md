@@ -14,4 +14,8 @@ Python 3.13 packages that convert academic PDFs/docs into Markdown, index them, 
 - API keys come from `../.env` (`GEMINI_API_KEY`, `PAID_GEMINI_KEY`). Never print or commit them. Don't trigger paid Gemini runs over large batches without asking.
 
 ## Multi-agent routing
-Gemini (Antigravity) and Codex also work this repo. See `../../docs/AGENT_ROUTING.md` for which agent handles what — large-context reads (full-corpus sweeps, long status-doc synthesis) route to Gemini, routine/mechanical work (test runs, git mechanics) routes to Codex, judgment calls stay with Claude.
+
+See [the shared routing convention](../../docs/AGENT_ROUTING.md).
+Gemini defaults to using existing pipelines, documentation review, and
+large-context synthesis. Codex handles code maintenance, tests, and Git;
+Claude handles architecture and technical design decisions.

@@ -21,31 +21,48 @@ it.
 
 Use for:
 - New project/subproject initiation, brainstorming, design tradeoffs
-- Architectural decisions and anything with more than one reasonable approach
+- Architectural decisions and substantive technical design tradeoffs
 - Code review / security review
 - Anything that depends on prior decisions or open threads — Claude holds
   cross-session memory in this workspace; Gemini and Codex sessions start
   cold every time
-- Any task a routine agent below stops on because it hit a judgment call
+- Technical or product-design decisions escalated by another agent
 
-## Gemini — large-context reading, no decisions required
+## Gemini — pipeline operation, documentation, writing, large-context reading
 
-Use for:
-- Summarizing or auditing more than ~5-10 files, or a full directory tree
-- Long status-doc, PDF, or transcript synthesis
-- Full-codebase sweeps ("find every place X pattern is used")
-- Large-log or large-diff triage
+Gemini in Antigravity is the default for:
 
-Gemini reports findings; it doesn't make design calls. If a read surfaces a
-decision point, it should say so explicitly and hand back to Claude rather
-than picking a direction.
+- Using existing pipelines: live RAG study sessions, resume tailoring for a
+  supplied job opportunity, conversions, indexing, and other documented runs.
+- Reviewing project documentation for accuracy, clarity, and consistency;
+  writing or revising documentation within established behavior.
+- Writing and revising project pages and blog posts on the personal website,
+  including organizing source material and improving prose in the user's voice.
+- Large-context reading: many-file audits, long status-doc/PDF/transcript
+  synthesis, full-codebase searches, and large-log/diff triage.
+
+Gemini can make ordinary editorial choices and select documented options
+within the user's request. It preserves factual accuracy, citations, resume
+claims, and the user's intent. It does not invent results or credentials.
+Content drafting does not authorize publishing, deploying, or submitting
+applications; act on existing authorization when it explicitly covers those.
+
+For operational tasks, use the existing implementation and configured backend,
+confirm input/output locations, and inspect generated results. Follow package
+READMEs and local rules for paid batches and shared data. A Gemini-operated
+pipeline can still use Ollama or another configured backend internally.
+
+Code defects go to Codex with reproduction details; architecture, new
+capabilities, schema changes, and substantive website structure/configuration
+tradeoffs go to Claude. Editorial decisions alone do not require escalation.
+The website is a separate repository with its own GEMINI.md and CLAUDE.md.
 
 ## Codex — routine, mechanical, well-specified
 
 Use for:
 - Git mechanics: rebases, cherry-picks, branch cleanup, routine merges
 - Running and fixing unit tests, lint/format passes
-- Script execution, dependency bumps, boilerplate/CRUD scaffolding
+- Maintenance/debugging script execution, dependency bumps, boilerplate/CRUD scaffolding
 
 If a "routine" task turns out to need a design decision mid-way (schema
 change, a new dependency with real tradeoffs, ambiguous test intent), stop
@@ -53,10 +70,14 @@ and flag for Claude rather than deciding it inline.
 
 ## Escalation runs both ways
 
-- A routine agent hits ambiguity → escalate up to Claude, don't guess.
-- Claude has a large mechanical task queued (e.g. "run the full test suite
-  and fix failures," "summarize these 40 PDFs") → delegate down instead of
-  spending session budget on it directly.
+- Gemini finds a routine code failure while operating a pipeline -> send
+  Codex the command, expected/actual result, and relevant logs.
+- Gemini or Codex encounters an architecture/product decision -> flag it
+  for Claude rather than choosing a new design.
+- Claude delegates established pipeline usage, documentation review, and
+  website writing to Gemini; test fixes, Git mechanics, and maintenance to
+  Codex. Large reading/synthesis tasks also default to Gemini.
+- These are defaults, not restrictions on the user's explicit assignment.
 
 ## Shared rules, all agents, all repos in this workspace
 
