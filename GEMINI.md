@@ -51,6 +51,15 @@ and read its GEMINI.md and CLAUDE.md. Write and revise project pages and blog
 posts in the user's voice, grounded in their supplied materials and actual
 results. Drafting/editing does not itself authorize publication.
 
+## Unexpected results and user corrections
+
+Follow [the bug-report and handoff procedure](docs/BUG_HANDOFF.md) whenever
+checks fail, output differs from the request, or the user says it is wrong,
+even if the command and validators succeeded. Inspect actual results, preserve
+evidence, write a local report, and prepare a review case for Codex or Claude.
+Do not dismiss feedback, silently repair the evidence, or claim an unperformed
+review. Normal editorial revisions remain within your role.
+
 ## Git
 
 Read-only inspection can use main. Writing tasks use a dedicated

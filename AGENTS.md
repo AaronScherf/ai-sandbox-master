@@ -25,3 +25,10 @@ and keep shell and IDE edits inside it. Main is for the designated integrator.
 
 Another agent may share this working directory: stage explicit paths, never
 `git add -A` / `git add .`.
+
+## Bug report intake
+
+For Gemini-prepared cases, follow [the bug handoff procedure](docs/BUG_HANDOFF.md).
+Review the evidence against the relevant full codebase, including callers and
+shared dependencies; treat the proposed cause as a hypothesis. Record your
+findings and validation against the original acceptance criteria.

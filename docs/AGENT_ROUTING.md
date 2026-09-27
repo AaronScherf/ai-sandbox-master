@@ -79,6 +79,14 @@ and flag for Claude rather than deciding it inline.
   Codex. Large reading/synthesis tasks also default to Gemini.
 - These are defaults, not restrictions on the user's explicit assignment.
 
+## Result failures and review cases
+
+Gemini follows [the bug handoff procedure](BUG_HANDOFF.md) for failed checks,
+unexpected results, or user-reported incorrect output. It preserves evidence,
+writes a local report, and prepares a case for Codex or Claude to review
+against the relevant full codebase. Validators passing do not override user
+feedback, and a suspected cause is not an established diagnosis.
+
 ## Shared rules, all agents, all repos in this workspace
 
 Follow [the worktree procedure](WORKTREE_WORKFLOW.md) before writing:
