@@ -124,3 +124,27 @@ def generate_hint(question: str, passages: list[PassageResult], client) -> str:
         model=TUTOR_MODEL, contents=prompt, config={"temperature": 0.2},
     ))
     return (response.text or "").strip()
+
+
+VERIFY_MODEL = "gemini-3.6-flash"  # this project's existing "stronger" tier (already
+# used for textbook conversion and transcription, indexer/index_card.py and
+# textbook/convert_textbook.py) -- chosen over TUTOR_MODEL specifically because this
+# call exists to catch reasoning errors the cheap tier makes; checking a cheap model's
+# output with the same cheap model is weak evidence. Opt-in and per-question, not run
+# on every query, so the cost difference doesn't compound the way it would if this
+# were the default generation path.
+
+_VERIFY_PROMPT_TEMPLATE = """Solve the following problem yourself, from first principles. Do not \
+assume any prior answer is correct -- you have not been shown one. Show your full reasoning.
+
+Question: {question}
+
+Solution:"""
+
+
+def generate_verification(question: str, client) -> str:
+    prompt = _VERIFY_PROMPT_TEMPLATE.format(question=question)
+    response = call_with_retries(lambda: client.models.generate_content(
+        model=VERIFY_MODEL, contents=prompt, config={"temperature": 0.2},
+    ))
+    return (response.text or "").strip()

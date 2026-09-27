@@ -2,7 +2,10 @@ import unittest
 from unittest.mock import MagicMock
 
 from indexer.index_search import PassageResult
-from rag.tutor_diagnosis import Diagnosis, DiagnosisParseError, diagnose_draft, generate_hint
+from rag.tutor_diagnosis import (
+    Diagnosis, DiagnosisParseError, diagnose_draft, generate_hint,
+    VERIFY_MODEL, generate_verification,
+)
 
 
 def _passage(chunk_id="a-000", file_id="a", text="text", citation="p. 1", root="/root"):
@@ -92,3 +95,30 @@ class TestGenerateHint(unittest.TestCase):
         client = _fake_client("  a hint with whitespace  \n")
         result = generate_hint("q", [_passage()], client)
         self.assertEqual(result, "a hint with whitespace")
+
+
+class TestGenerateVerification(unittest.TestCase):
+    def test_uses_verify_model_not_tutor_model(self):
+        client = _fake_client("An independent solution.")
+        generate_verification("q", client)
+        self.assertEqual(client.models.generate_content.call_args.kwargs["model"], VERIFY_MODEL)
+        from rag.rag_agent import TUTOR_MODEL
+        self.assertNotEqual(VERIFY_MODEL, TUTOR_MODEL)
+
+    def test_prompt_does_not_assume_a_prior_answer_is_correct(self):
+        client = _fake_client("solution")
+        generate_verification("q", client)
+        prompt = client.models.generate_content.call_args.kwargs["contents"]
+        self.assertIn("Do not assume any prior answer is correct", prompt)
+
+    def test_prompt_contains_only_the_question_no_excerpts_or_prior_answer(self):
+        client = _fake_client("solution")
+        generate_verification("what is X", client)
+        prompt = client.models.generate_content.call_args.kwargs["contents"]
+        self.assertIn("what is X", prompt)
+        self.assertNotIn("Excerpts", prompt)
+
+    def test_returns_stripped_response_text(self):
+        client = _fake_client("  solution text  \n")
+        result = generate_verification("q", client)
+        self.assertEqual(result, "solution text")
