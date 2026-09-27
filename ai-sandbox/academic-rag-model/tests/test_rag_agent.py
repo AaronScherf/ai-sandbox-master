@@ -7,7 +7,7 @@ from indexer.index_search import PassageResult
 from rag.rag_agent import (
     Turn, Citation, AnswerResult, _diversify_by_file, _reformulate_query,
     TUTOR_MODEL, _generate_answer, answer_question, _looks_like_problem_request,
-    _looks_like_visualize_request,
+    _looks_like_visualize_request, retrieve_passages,
 )
 
 
@@ -151,6 +151,32 @@ class TestAnswerQuestion(unittest.TestCase):
         with patch("rag.rag_agent.search_passages", return_value=[]):
             result = answer_question(["/root"], "q2", client, history=prior_history)
         self.assertEqual(len(result.history), 4)
+
+
+class TestRetrievePassages(unittest.TestCase):
+    def test_calls_search_and_diversifies(self):
+        client = MagicMock()
+        passages = [_passage(f"aaa-{i:03d}", "aaa") for i in range(5)]
+        with patch("rag.rag_agent.search_passages", return_value=passages) as mock_search:
+            result = retrieve_passages(["/root"], "q", client, course="math-camp", top_k=6, max_per_file=2)
+        mock_search.assert_called_once_with(["/root"], "q", client, course="math-camp", top_k=12)
+        self.assertEqual(len(result), 2)  # capped by max_per_file, only one file present
+
+
+class TestAnswerQuestionPassages(unittest.TestCase):
+    def test_passages_populated_on_normal_qa_path(self):
+        client = _fake_generate_client("answer")
+        passages = [_passage("aaa-000", "aaa")]
+        with patch("rag.rag_agent.search_passages", return_value=passages):
+            result = answer_question(["/root"], "q", client)
+        self.assertEqual(result.passages, passages)
+
+    def test_passages_none_on_problem_generation_path(self):
+        client = _fake_generate_client("unused")
+        fake_generated = MagicMock(problem_text="Find X.", sources=[])
+        with patch("problem_gen.generator.generate_problem", return_value=fake_generated):
+            result = answer_question(["/root"], "give me a practice problem on eigenvalues", client)
+        self.assertIsNone(result.passages)
 
 
 class TestAnswerQuestionVisualize(unittest.TestCase):

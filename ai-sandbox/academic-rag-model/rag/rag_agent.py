@@ -50,6 +50,11 @@ class AnswerResult:
     # import or alias is needed for this to resolve: `from __future__ import annotations`
     # (top of this file) makes every annotation a lazily-evaluated string, exactly like
     # `visualization: VizResult | None` above needs none either.
+    passages: list[PassageResult] | None = None  # populated on the normal Q&A path only
+    # (rag/tutor_diagnosis.py's diagnose_draft() needs the same passages the reference
+    # answer was grounded in) -- left None on the problem-generation path above, where
+    # "reference passages" isn't the same concept (generated.sources plays that role
+    # there, already surfaced via `citations`).
 
 
 def _diversify_by_file(results: list[PassageResult], max_per_file: int) -> list[PassageResult]:
@@ -182,6 +187,18 @@ def _generate_answer(question: str, history: list[Turn], passages: list[PassageR
     return (response.text or "").strip()
 
 
+def retrieve_passages(
+    roots: list[str], query: str, client,
+    course: str | None = None, top_k: int = 6, max_per_file: int = 3,
+) -> list[PassageResult]:
+    """Retrieval step factored out of answer_question() so /hint
+    (rag/tutor_diagnosis.py) can call it directly without duplicating
+    the diversify-then-cap logic (spec §3). Renamed without a leading
+    underscore since it's now called from another module."""
+    passages = search_passages(roots, query, client, course=course, top_k=top_k * 2)
+    return _diversify_by_file(passages, max_per_file)[:top_k]
+
+
 def answer_question(
     roots: list[str], question: str, client,
     history: list[Turn] | None = None, course: str | None = None,
@@ -258,8 +275,7 @@ def answer_question(
         # unavailable/never verified) -- fall through to the normal Q&A path below on
         # this same question, same graceful-degradation principle as visualize=None.
 
-    passages = search_passages(roots, retrieval_query, client, course=course, top_k=top_k * 2)
-    passages = _diversify_by_file(passages, max_per_file)[:top_k]
+    passages = retrieve_passages(roots, retrieval_query, client, course=course, top_k=top_k, max_per_file=max_per_file)
 
     answer = _generate_answer(question, history, passages, client)
     citations = [
@@ -291,7 +307,7 @@ def answer_question(
 
     return AnswerResult(
         answer=answer, citations=citations, history=updated_history,
-        visualization=visualization, report_path=report_path_value,
+        visualization=visualization, report_path=report_path_value, passages=passages,
     )
 
 
