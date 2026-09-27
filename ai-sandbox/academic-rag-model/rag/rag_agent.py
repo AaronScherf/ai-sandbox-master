@@ -442,15 +442,21 @@ def main() -> None:
             continue
 
         if line.startswith("/hint"):
-            parts = line.split(maxsplit=2)
-            if len(parts) != 3:
+            parts = line.split(maxsplit=1)
+            rest = parts[1] if len(parts) == 2 else ""
+            rest_parts = rest.rsplit(maxsplit=1)  # question-ref is the LAST token, so
+            # the file path (everything before it) may itself contain spaces.
+            if len(rest_parts) != 2:
                 print("Usage: /hint <file> <question-ref>\n")
                 continue
-            _, file_path, question_ref = parts
+            file_path, question_ref = rest_parts
             try:
                 question_text = extract_question(file_path, question_ref)
             except QuestionNotFoundError as err:
                 print(f"{err}\n")
+                continue
+            except (OSError, UnicodeDecodeError) as err:
+                print(f"Couldn't read {file_path!r}: {err}\n")
                 continue
             hint_passages = retrieve_passages(roots, question_text, client, course=args.course)
             hint = generate_hint(question_text, hint_passages, client)
