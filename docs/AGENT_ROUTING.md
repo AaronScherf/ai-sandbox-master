@@ -100,6 +100,10 @@ one task, one branch, one worktree, one writer; integration is serialized.
   concurrent writers in one worktree.
 - Check `git status` before staging or committing; don't assume a broad add
   is safe.
+- Deliverables and artifacts produced during agent sessions (such as study
+  guides, tutoring hints, audits, synthesized notes, and generated files) must
+  be persisted to their proper repository or vault destination (e.g.
+  `academic_notes/`), not left solely in temporary agent session storage.
 - Don't copy this file's content into `CLAUDE.md` / `GEMINI.md` /
   `AGENTS.md` — link to it and add only agent-specific notes locally.
 
