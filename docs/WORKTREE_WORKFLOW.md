@@ -134,6 +134,29 @@ Squash/cherry-pick integration can require a separate history/ownership check
 because Git may not recognize the branch as merged. git worktree lock
 protects against administrative removal/pruning, not concurrent file edits.
 
+On Windows, `git worktree remove` can unregister the worktree successfully
+while the directory deletion itself fails with `Invalid argument` or
+`Device or resource busy` -- a transient file-handle lock, not a
+content-safety refusal. This is a different case from the paragraph above:
+confirm with `git worktree list` that the path is no longer registered
+before treating it as safe. Once it's gone from that list, Git tracks
+nothing there, and a plain filesystem `rm -rf` /
+`Remove-Item -Recurse -Force` on the orphaned directory is cosmetic
+cleanup, not the forced/filesystem deletion being warned against above. If
+the path is still registered, that is the real refusal case -- investigate,
+don't force.
+
+## Windows-specific gotchas
+
+`git show <ref>:<path>` and `git cat-file -p <ref>:<path>` get silently
+mangled by git-bash's MSYS path conversion when `<ref>` contains slashes
+(a branch name like `origin/codex/foo`) -- `origin/codex/foo:.gitignore`
+becomes `origin\codex\foo;.gitignore`, producing a confusing
+"fatal: Not a valid object name" or "fatal: ambiguous argument" error that
+looks like the ref doesn't exist. Use the commit SHA instead of the branch
+name (`git show 08e76bb:.gitignore`) to sidestep it, or set
+`MSYS_NO_PATHCONV=1` for the one command.
+
 ## Adopt the policy in existing sessions
 
 Have the designated integrator commit the guidance before basing new tasks
