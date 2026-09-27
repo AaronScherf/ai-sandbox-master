@@ -69,12 +69,18 @@ Diagnosis:"""
 
 
 _DIAGNOSIS_LINE_PATTERN = re.compile(
-    r"CORRECTNESS:\s*(\d+)\s*\n"
-    r"RIGOR:\s*(\d+)\s*\n"
-    r"COURSE_FIT:\s*(\d+)\s*\n"
-    r"GAP_TAG:\s*(.+)",
-    re.IGNORECASE,
+    r"\*{0,2}CORRECTNESS\*{0,2}:\*{0,2}\s*\*{0,2}(\d+)(?:\s*/\s*5)?\*{0,2}\s*\n"
+    r"\*{0,2}RIGOR\*{0,2}:\*{0,2}\s*\*{0,2}(\d+)(?:\s*/\s*5)?\*{0,2}\s*\n"
+    r"\*{0,2}COURSE_FIT\*{0,2}:\*{0,2}\s*\*{0,2}(\d+)(?:\s*/\s*5)?\*{0,2}\s*\n"
+    r"\*{0,2}GAP_TAG\*{0,2}:\*{0,2}\s*\*{0,2}(.+?)\*{0,2}\s*$",
+    re.IGNORECASE | re.MULTILINE,
 )
+# Tolerates markdown emphasis around labels/values (**CORRECTNESS:** 3) and
+# an optional "/5" suffix (CORRECTNESS: 3/5) -- gemini-3.1-flash-lite
+# routinely formats its own instructed output this way despite the prompt
+# asking for exactly "CORRECTNESS: <0-5>". A final-review finding: the
+# original strict pattern rejected this as malformed and crashed the REPL
+# on ordinary model output, not just genuinely broken responses.
 
 
 def diagnose_draft(
@@ -97,9 +103,15 @@ def diagnose_draft(
         )
     text = raw[:match.start()].strip()
     correctness, rigor, course_fit, gap_tag = match.groups()
+    correctness, rigor, course_fit = int(correctness), int(rigor), int(course_fit)
+    if not all(0 <= score <= 5 for score in (correctness, rigor, course_fit)):
+        raise DiagnosisParseError(
+            f"diagnosis response has an out-of-range rubric score (expected 0-5): "
+            f"correctness={correctness}, rigor={rigor}, course_fit={course_fit}"
+        )
     return Diagnosis(
         text=text, gap_tag=gap_tag.strip(),
-        correctness=int(correctness), rigor=int(rigor), course_fit=int(course_fit),
+        correctness=correctness, rigor=rigor, course_fit=course_fit,
     )
 
 

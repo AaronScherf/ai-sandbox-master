@@ -344,6 +344,7 @@ def main() -> None:
     from rag.session_log import Event, append_event, load_events
     from rag.tutor_diagnosis import (
         diagnose_draft, generate_hint, generate_verification, summarize_unit,
+        DiagnosisParseError,
     )
     from rag.problem_set_parser import extract_question, QuestionNotFoundError
 
@@ -399,7 +400,11 @@ def main() -> None:
             if not draft:
                 print("Empty draft, skipping.\n")
                 continue
-            diagnosis = diagnose_draft(last_question, last_answer, last_passages, draft, client)
+            try:
+                diagnosis = diagnose_draft(last_question, last_answer, last_passages, draft, client)
+            except DiagnosisParseError as err:
+                print(f"Couldn't parse a diagnosis from the model's response ({err}); not logged.\n")
+                continue
             print(f"\n{diagnosis.text}\n")
             print(
                 f"Correctness: {diagnosis.correctness}/5  "

@@ -71,6 +71,39 @@ class TestDiagnoseDraftMalformed(unittest.TestCase):
         with self.assertRaises(DiagnosisParseError):
             diagnose_draft("q", "reference", [_passage()], "draft", client)
 
+    def test_out_of_range_score_raises(self):
+        client = _fake_client(
+            "Analysis.\n\nCORRECTNESS: 9\nRIGOR: 2\nCOURSE_FIT: 4\nGAP_TAG: some-tag"
+        )
+        with self.assertRaises(DiagnosisParseError):
+            diagnose_draft("q", "reference", [_passage()], "draft", client)
+
+
+class TestDiagnoseDraftMarkdownTolerant(unittest.TestCase):
+    """Regression for the final-review Important finding: gemini-3.1-flash-lite
+    commonly bolds the rubric labels/values with markdown, which the original
+    strict regex rejected as malformed, crashing the REPL on ordinary output."""
+
+    def test_tolerates_markdown_bold_around_labels_and_values(self):
+        client = _fake_client(
+            "Analysis of the attempt.\n\n"
+            "**CORRECTNESS:** 3\n"
+            "**RIGOR:** 2\n"
+            "**COURSE_FIT:** 4\n"
+            "**GAP_TAG:** beta-case-overlooked"
+        )
+        diagnosis = diagnose_draft("q", "reference", [_passage()], "draft", client)
+        self.assertEqual((diagnosis.correctness, diagnosis.rigor, diagnosis.course_fit), (3, 2, 4))
+        self.assertEqual(diagnosis.gap_tag, "beta-case-overlooked")
+        self.assertNotIn("CORRECTNESS", diagnosis.text)
+
+    def test_tolerates_slash_five_suffix(self):
+        client = _fake_client(
+            "Analysis.\n\nCORRECTNESS: 3/5\nRIGOR: 2/5\nCOURSE_FIT: 4/5\nGAP_TAG: some-tag"
+        )
+        diagnosis = diagnose_draft("q", "reference", [_passage()], "draft", client)
+        self.assertEqual((diagnosis.correctness, diagnosis.rigor, diagnosis.course_fit), (3, 2, 4))
+
 
 class TestGenerateHint(unittest.TestCase):
     def test_uses_tutor_model(self):
