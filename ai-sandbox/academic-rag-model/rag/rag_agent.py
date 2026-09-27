@@ -384,6 +384,42 @@ def main() -> None:
         if not line:
             continue
 
+        if line == "/draft":
+            if last_answer is None:
+                print("Ask a question first, then /draft your attempt at it.\n")
+                continue
+            print("Paste your attempt (blank line or /end to finish):")
+            draft_lines: list[str] = []
+            while True:
+                draft_line = input()
+                if draft_line.strip() in ("", "/end"):
+                    break
+                draft_lines.append(draft_line)
+            draft = "\n".join(draft_lines).strip()
+            if not draft:
+                print("Empty draft, skipping.\n")
+                continue
+            diagnosis = diagnose_draft(last_question, last_answer, last_passages, draft, client)
+            print(f"\n{diagnosis.text}\n")
+            print(
+                f"Correctness: {diagnosis.correctness}/5  "
+                f"Rigor: {diagnosis.rigor}/5  Course-fit: {diagnosis.course_fit}/5\n"
+            )
+            if args.course:
+                append_event(roots, Event(
+                    type="draft", course=args.course, unit=unit, question=last_question,
+                    text=diagnosis.text,
+                    citations=[
+                        Citation(chunk_id=p.chunk_id, file_id=p.file_id, path=p.path,
+                                 citation=p.citation, root=p.root)
+                        for p in last_passages
+                    ],
+                    timestamp=datetime.now(timezone.utc).isoformat(),
+                    gap_tag=diagnosis.gap_tag, correctness=diagnosis.correctness,
+                    rigor=diagnosis.rigor, course_fit=diagnosis.course_fit,
+                ))
+            continue
+
         question = line
         result = answer_question(
             roots, question, client, history=history, course=args.course,
