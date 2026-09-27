@@ -11,6 +11,10 @@ Monorepo. Almost all work happens in `ai-sandbox/academic-rag-model/` (Python pi
 - If a task will need very large reads or a long debug loop, say so in one line before starting.
 
 ## Git
+
+Before any write, follow [the worktree procedure](docs/WORKTREE_WORKFLOW.md).
+Use a dedicated `claude/<task>` branch and worktree; launch the session there
+and keep shell and IDE edits inside it. Main is for the designated integrator.
 - Another Claude session may share this working directory: stage explicit paths, never `git add -A` / `git add .`.
 - This repo is public on GitHub. Never commit secrets (`ai-sandbox/.env`) or copyrighted source material; the root `.gitignore` comments explain the IP-driven exclusions.
 

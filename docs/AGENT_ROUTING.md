@@ -60,6 +60,9 @@ and flag for Claude rather than deciding it inline.
 
 ## Shared rules, all agents, all repos in this workspace
 
+Follow [the worktree procedure](WORKTREE_WORKFLOW.md) before writing:
+one task, one branch, one worktree, one writer; integration is serialized.
+
 - Never `git add -A` / `git add .` — another agent may share this working
   directory. Stage explicit paths only.
 - Check `git status` before staging or committing; don't assume a broad add

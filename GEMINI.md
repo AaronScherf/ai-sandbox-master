@@ -15,5 +15,9 @@ Claude instead of deciding.
 
 ## Git
 
+Read-only inspection can use main. Before any write, follow
+[the worktree procedure](docs/WORKTREE_WORKFLOW.md) using a dedicated
+`gemini/<task>` branch and worktree. Main is for the designated integrator.
+
 Another agent may share this working directory: stage explicit paths, never
 `git add -A` / `git add .`.

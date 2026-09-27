@@ -16,5 +16,9 @@ inline.
 
 ## Git
 
+Before any write, follow [the worktree procedure](docs/WORKTREE_WORKFLOW.md).
+Use a dedicated `codex/<task>` branch and worktree; launch the session there
+and keep shell and IDE edits inside it. Main is for the designated integrator.
+
 Another agent may share this working directory: stage explicit paths, never
 `git add -A` / `git add .`.
