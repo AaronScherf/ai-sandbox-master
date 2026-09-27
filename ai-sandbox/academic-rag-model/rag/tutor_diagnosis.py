@@ -100,3 +100,27 @@ def diagnose_draft(
         text=text, gap_tag=gap_tag.strip(),
         correctness=int(correctness), rigor=int(rigor), course_fit=int(course_fit),
     )
+
+
+_HINT_PROMPT_TEMPLATE = """A student is about to attempt the question below, using ONLY the excerpts \
+from their own course materials given here. Give them a motivating sketch of the right technique or \
+theorem to reach for -- enough to get them unstuck and pointed in the right direction.
+
+Do NOT state the final answer, a verdict (e.g. True/False), or a worked derivation. If you find \
+yourself about to write out the conclusion, stop and describe the approach instead.
+
+Excerpts:
+{excerpts_block}
+
+Question: {question}
+
+Hint:"""
+
+
+def generate_hint(question: str, passages: list[PassageResult], client) -> str:
+    excerpts_block = "\n\n".join(f"[{p.citation}]\n{p.text}" for p in passages)
+    prompt = _HINT_PROMPT_TEMPLATE.format(excerpts_block=excerpts_block, question=question)
+    response = call_with_retries(lambda: client.models.generate_content(
+        model=TUTOR_MODEL, contents=prompt, config={"temperature": 0.2},
+    ))
+    return (response.text or "").strip()

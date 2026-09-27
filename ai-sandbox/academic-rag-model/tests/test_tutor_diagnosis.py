@@ -2,7 +2,7 @@ import unittest
 from unittest.mock import MagicMock
 
 from indexer.index_search import PassageResult
-from rag.tutor_diagnosis import Diagnosis, DiagnosisParseError, diagnose_draft
+from rag.tutor_diagnosis import Diagnosis, DiagnosisParseError, diagnose_draft, generate_hint
 
 
 def _passage(chunk_id="a-000", file_id="a", text="text", citation="p. 1", root="/root"):
@@ -65,3 +65,30 @@ class TestDiagnoseDraftMalformed(unittest.TestCase):
         client = _fake_client("Some analysis.\n\nCORRECTNESS: 3\nRIGOR: 2")
         with self.assertRaises(DiagnosisParseError):
             diagnose_draft("q", "reference", [_passage()], "draft", client)
+
+
+class TestGenerateHint(unittest.TestCase):
+    def test_uses_tutor_model(self):
+        client = _fake_client("Think about the Projection Theorem.")
+        generate_hint("q", [_passage()], client)
+        from rag.rag_agent import TUTOR_MODEL
+        self.assertEqual(client.models.generate_content.call_args.kwargs["model"], TUTOR_MODEL)
+
+    def test_prompt_bars_stating_the_final_answer(self):
+        client = _fake_client("hint")
+        generate_hint("q", [_passage()], client)
+        prompt = client.models.generate_content.call_args.kwargs["contents"]
+        self.assertIn("Do NOT state the final answer", prompt)
+
+    def test_prompt_includes_excerpts_and_question(self):
+        client = _fake_client("hint")
+        generate_hint("what is X", [_passage(text="excerpt content", citation="p. 9")], client)
+        prompt = client.models.generate_content.call_args.kwargs["contents"]
+        self.assertIn("excerpt content", prompt)
+        self.assertIn("p. 9", prompt)
+        self.assertIn("what is X", prompt)
+
+    def test_returns_stripped_response_text(self):
+        client = _fake_client("  a hint with whitespace  \n")
+        result = generate_hint("q", [_passage()], client)
+        self.assertEqual(result, "a hint with whitespace")
