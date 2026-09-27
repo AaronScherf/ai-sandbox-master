@@ -2,9 +2,11 @@ import unittest
 from unittest.mock import MagicMock
 
 from indexer.index_search import PassageResult
+from rag.rag_agent import Citation
+from rag.session_log import Event
 from rag.tutor_diagnosis import (
     Diagnosis, DiagnosisParseError, diagnose_draft, generate_hint,
-    VERIFY_MODEL, generate_verification,
+    VERIFY_MODEL, generate_verification, summarize_unit, _rubric_averages_line,
 )
 
 
@@ -122,3 +124,57 @@ class TestGenerateVerification(unittest.TestCase):
         client = _fake_client("  solution text  \n")
         result = generate_verification("q", client)
         self.assertEqual(result, "solution text")
+
+
+def _event(**overrides):
+    defaults = dict(
+        type="answer", course="microecon", unit="homework_3", question="q", text="a",
+        citations=[Citation(chunk_id="c", file_id="c", path="c.md", citation="p. 1", root="/root")],
+        timestamp="2026-09-27T00:00:00+00:00", gap_tag=None, correctness=None, rigor=None, course_fit=None,
+    )
+    defaults.update(overrides)
+    return Event(**defaults)
+
+
+class TestRubricAveragesLine(unittest.TestCase):
+    def test_none_when_no_draft_events(self):
+        events = [_event(type="answer"), _event(type="hint")]
+        self.assertIsNone(_rubric_averages_line(events))
+
+    def test_averages_only_draft_events(self):
+        events = [
+            _event(type="answer"),
+            _event(type="draft", correctness=4, rigor=2, course_fit=5),
+            _event(type="draft", correctness=2, rigor=4, course_fit=3),
+        ]
+        line = _rubric_averages_line(events)
+        self.assertIn("Correctness 3.0/5", line)
+        self.assertIn("Rigor 3.0/5", line)
+        self.assertIn("Course-fit 4.0/5", line)
+        self.assertIn("2 attempt", line)
+
+
+class TestSummarizeUnit(unittest.TestCase):
+    def test_uses_tutor_model(self):
+        client = _fake_client("What we learned...\n\nWhat to focus on...")
+        summarize_unit([_event()], client)
+        from rag.rag_agent import TUTOR_MODEL
+        self.assertEqual(client.models.generate_content.call_args.kwargs["model"], TUTOR_MODEL)
+
+    def test_prompt_includes_event_question_and_text(self):
+        client = _fake_client("summary")
+        summarize_unit([_event(question="what is X", text="X is Y")], client)
+        prompt = client.models.generate_content.call_args.kwargs["contents"]
+        self.assertIn("what is X", prompt)
+        self.assertIn("X is Y", prompt)
+
+    def test_appends_rubric_averages_when_draft_events_present(self):
+        client = _fake_client("summary text")
+        result = summarize_unit([_event(type="draft", correctness=5, rigor=5, course_fit=5)], client)
+        self.assertIn("summary text", result)
+        self.assertIn("Correctness 5.0/5", result)
+
+    def test_no_rubric_line_when_no_draft_events(self):
+        client = _fake_client("summary text")
+        result = summarize_unit([_event(type="answer")], client)
+        self.assertEqual(result, "summary text")

@@ -16,6 +16,7 @@ from dataclasses import dataclass
 from common.gemini_utils import call_with_retries
 from indexer.index_search import PassageResult
 from rag.rag_agent import TUTOR_MODEL
+from rag.session_log import Event
 
 
 @dataclass
@@ -148,3 +149,56 @@ def generate_verification(question: str, client) -> str:
         model=VERIFY_MODEL, contents=prompt, config={"temperature": 0.2},
     ))
     return (response.text or "").strip()
+
+
+_SUMMARY_PROMPT_TEMPLATE = """Below is a session's worth of events from a student working through one \
+unit of a course (their questions, your grounded answers, their own draft attempts and how those were \
+diagnosed, and any independent verifications). Using only this history, write two sections:
+
+## What we learned
+Synthesize what the session actually covered, citing sources the same way the events themselves do.
+
+## What to focus on
+The recurring gaps and any unresolved discrepancies between a tutor answer and an independent \
+verification, prioritized by how often they came up.
+
+Session events:
+{events_block}
+
+Summary:"""
+
+
+def _format_event(event: Event) -> str:
+    lines = [f"[{event.type}] Q: {event.question}", event.text]
+    if event.gap_tag:
+        lines.append(f"(gap tag: {event.gap_tag})")
+    if event.citations:
+        lines.append("Citations: " + "; ".join(c.citation for c in event.citations))
+    return "\n".join(lines)
+
+
+def _rubric_averages_line(events: list[Event]) -> str | None:
+    draft_events = [e for e in events if e.type == "draft"]
+    if not draft_events:
+        return None
+    avg_correctness = sum(e.correctness for e in draft_events) / len(draft_events)
+    avg_rigor = sum(e.rigor for e in draft_events) / len(draft_events)
+    avg_course_fit = sum(e.course_fit for e in draft_events) / len(draft_events)
+    return (
+        f"Rubric averages this unit ({len(draft_events)} attempt(s)): "
+        f"Correctness {avg_correctness:.1f}/5, Rigor {avg_rigor:.1f}/5, "
+        f"Course-fit {avg_course_fit:.1f}/5"
+    )
+
+
+def summarize_unit(events: list[Event], client) -> str:
+    events_block = "\n\n---\n\n".join(_format_event(e) for e in events)
+    prompt = _SUMMARY_PROMPT_TEMPLATE.format(events_block=events_block)
+    response = call_with_retries(lambda: client.models.generate_content(
+        model=TUTOR_MODEL, contents=prompt, config={"temperature": 0.2},
+    ))
+    text = (response.text or "").strip()
+    stats_line = _rubric_averages_line(events)
+    if stats_line:
+        text = f"{text}\n\n{stats_line}"
+    return text
