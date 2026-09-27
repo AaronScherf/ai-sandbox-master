@@ -11,8 +11,21 @@ Monorepo. Almost all work happens in `ai-sandbox/academic-rag-model/` (Python pi
 - If a task will need very large reads or a long debug loop, say so in one line before starting.
 
 ## Git
-- Another Claude session may share this working directory: stage explicit paths, never `git add -A` / `git add .`.
+
+Before any write, follow [the worktree procedure](docs/WORKTREE_WORKFLOW.md).
+Use a dedicated `claude/<task>` branch and worktree; launch the session there
+and keep shell and IDE edits inside it. Main is for the designated integrator.
+- Stage explicit task paths only, never `git add -A` / `git add .`. Preserve unrelated changes encountered during handoff; one writer per worktree still applies.
 - This repo is public on GitHub. Never commit secrets (`ai-sandbox/.env`) or copyrighted source material; the root `.gitignore` comments explain the IP-driven exclusions.
 
 ## Multi-agent routing
-Gemini (Antigravity) and Codex also work this repo, via `GEMINI.md` and `AGENTS.md` at this same root. See `docs/AGENT_ROUTING.md` for which agent handles what and why — check it before taking on a task that's large-context-read-heavy (→ Gemini) or routine/mechanical (→ Codex) rather than spending Claude's session budget on it directly.
+
+Gemini (Antigravity) and Codex also work this repo. See
+[the routing convention](docs/AGENT_ROUTING.md): Gemini defaults to existing
+pipeline operation, documentation review, website writing, and large-context
+reads; Codex handles code maintenance, tests, and Git mechanics; Claude handles
+architecture, technical design tradeoffs, and code/security review.
+
+## Bug report intake
+
+Follow [reviewer responsibilities](docs/BUG_HANDOFF.md#reviewer-responsibilities).
