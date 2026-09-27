@@ -388,11 +388,11 @@ def main() -> None:
             if last_answer is None:
                 print("Ask a question first, then /draft your attempt at it.\n")
                 continue
-            print("Paste your attempt (blank line or /end to finish):")
+            print("Paste your attempt (/end on its own line to finish):")
             draft_lines: list[str] = []
             while True:
                 draft_line = input()
-                if draft_line.strip() in ("", "/end"):
+                if draft_line.strip() == "/end":
                     break
                 draft_lines.append(draft_line)
             draft = "\n".join(draft_lines).strip()
