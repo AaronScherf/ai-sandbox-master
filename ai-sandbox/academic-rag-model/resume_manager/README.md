@@ -46,6 +46,43 @@ transcript is saved as `guidance.txt` alongside the other application
 files. Omitting `--interactive` (the default) skips this step entirely —
 no extra Ollama call, tailoring behaves exactly as it always has.
 
+## Tailoring from a rough opportunity description
+
+```powershell
+.\.venv\Scripts\python.exe -m resume_manager.apply_from_prompt --prompt "senior data analyst role at a mid-size fintech, focused on fraud detection"
+```
+
+or `--prompt-file path\to\notes.txt` for a longer, multi-paragraph description.
+Turns a rough description into a job description and application name via
+one local Ollama call, brainstorms which of your master resume's content
+is most relevant via one Gemini call (needs `GEMINI_API_KEY` or
+`PAID_GEMINI_KEY` in `../.env` — this is the only script in this
+subproject that does), then runs the same tailor → validate → render
+pipeline as `tailor_resume.py` above. If no Gemini key is configured, it
+still completes, just without the extra relevance brainstorm.
+
+**If you're an agent handling a "tailor my resume for this opportunity"
+request:** which of the three tailoring entry points to use is a
+judgment call based on what you were actually given, not something to
+guess mechanically:
+1. **You already have (or can find) a saved job description file** — the
+   user names a path, or you find a matching
+   `applications/*/job_description.txt` by listing the `applications/`
+   directory — use `tailor_resume.py --jd-file <path> --application-name
+   <name>` directly.
+2. **The user pastes what reads as a complete job posting** (has the
+   shape of a real listing — responsibilities, qualifications, etc., not
+   just a one-line gist) — save it verbatim to a new application
+   folder's `job_description.txt`, derive `--application-name` yourself
+   from the posting's own company/role text, and use `tailor_resume.py
+   --jd-file <path> --application-name <name>` directly. Do **not** use
+   `apply_from_prompt.py` here — there's nothing left to interpret or
+   brainstorm that the tailoring call doesn't already do from a real job
+   description, and it would add an unneeded Gemini dependency.
+3. **Only a rough, general description of the opportunity is given** —
+   use `apply_from_prompt.py --prompt "..."` (above), which runs the
+   full pipeline including the relevance brainstorm.
+
 ## Requirements
 
 - A local Ollama install (`ollama serve`) with `qwen2.5:7b-instruct` pulled
@@ -54,7 +91,11 @@ no extra Ollama call, tailoring behaves exactly as it always has.
   bootstrap has no Ollama dependency at all. CPU-only inference on this
   model can take up to `RESUMEMANAGER_OLLAMA_TIMEOUT` seconds (default
   `1800`).
-- No `GEMINI_API_KEY` needed anywhere in this subproject.
+- No `GEMINI_API_KEY` needed for the bootstrap, `tailor_resume.py`, or
+  `merge_resumes.py`. `apply_from_prompt.py`'s relevance-brainstorm step
+  needs `GEMINI_API_KEY` (or `PAID_GEMINI_KEY`) in `../.env` — if it's
+  missing, that one script still completes, just without the extra
+  brainstormed guidance.
 
 ## Key files
 
@@ -76,6 +117,10 @@ no extra Ollama call, tailoring behaves exactly as it always has.
   then → styled PDF via `xhtml2pdf`.
 - `tailor_resume.py` — the per-application CLI, orchestrating
   tailor → validate → render.
+- `apply_from_prompt.py` — turns a rough, free-text opportunity
+  description into a job description and application name (local
+  Ollama), brainstorms relevant master-resume content (Gemini), then
+  calls `tailor_resume.py`'s `run_tailoring()` directly.
 
 See the design spec (Revision 3 note at the top covers what changed and
 why) and the status doc (full real-run narrative and evidence) for the
