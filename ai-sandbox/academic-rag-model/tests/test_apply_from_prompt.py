@@ -1,7 +1,13 @@
+import os
+import tempfile
 import unittest
 from unittest.mock import MagicMock, patch
 
-from resume_manager.apply_from_prompt import brainstorm_relevant_content, interpret_opportunity_prompt
+import yaml
+
+from resume_manager.apply_from_prompt import (
+    brainstorm_relevant_content, create_application_from_prompt, interpret_opportunity_prompt,
+)
 
 _MASTER = {
     "contact": {"name": "Aaron"},
@@ -95,3 +101,88 @@ class TestBrainstormRelevantContent(unittest.TestCase):
         client = MagicMock()
         client.models.generate_content.return_value = _fake_gemini_response("   ")
         self.assertIsNone(brainstorm_relevant_content(client, _MASTER, "A job description."))
+
+
+class TestCreateApplicationFromPrompt(unittest.TestCase):
+    def _write_master(self, tmp):
+        resume_manager_dir = os.path.join(tmp, "resume-manager")
+        os.makedirs(resume_manager_dir, exist_ok=True)
+        with open(os.path.join(resume_manager_dir, "resume_master.yaml"), "w", encoding="utf-8") as f:
+            yaml.safe_dump(_MASTER, f)
+        return resume_manager_dir
+
+    @patch("resume_manager.apply_from_prompt.brainstorm_relevant_content", return_value="Lead with Acme.")
+    @patch(
+        "resume_manager.apply_from_prompt.interpret_opportunity_prompt",
+        return_value={"job_description": "A fraud analyst role.", "application_name": "Acme Fraud Analyst"},
+    )
+    @patch("resume_manager.apply_from_prompt.run_tailoring")
+    def test_full_pipeline_calls_run_tailoring_with_derived_args(self, mock_run, mock_interpret, mock_brainstorm):
+        # jd_path is inside a `with tempfile.TemporaryDirectory()` block
+        # that's cleaned up before create_application_from_prompt()
+        # returns, so its content must be captured *during* the mocked
+        # call (via side_effect), not read afterward -- reading it after
+        # the fact would hit a deleted file.
+        captured = {}
+
+        def _capture_jd_and_return(master_resume_path, jd_path, application_name, resume_manager_dir_arg, guidance=None):
+            with open(jd_path, encoding="utf-8") as f:
+                captured["job_description"] = f.read()
+            return "Wrote a PDF."
+
+        mock_run.side_effect = _capture_jd_and_return
+
+        with tempfile.TemporaryDirectory() as tmp:
+            resume_manager_dir = self._write_master(tmp)
+            client = MagicMock()
+
+            result = create_application_from_prompt("a rough description", resume_manager_dir, gemini_client=client)
+
+            self.assertEqual(result, "Wrote a PDF.")
+            mock_run.assert_called_once()
+            call_args = mock_run.call_args.args
+            self.assertEqual(call_args[2], "Acme Fraud Analyst")  # application_name
+            self.assertEqual(call_args[3], resume_manager_dir)
+            self.assertEqual(mock_run.call_args.kwargs["guidance"], "Lead with Acme.")
+            self.assertEqual(captured["job_description"], "A fraud analyst role.")
+            mock_brainstorm.assert_called_once()
+
+    @patch("resume_manager.apply_from_prompt.interpret_opportunity_prompt", return_value=None)
+    def test_stage_1_failure_raises_and_never_calls_gemini_or_run_tailoring(self, mock_interpret):
+        with tempfile.TemporaryDirectory() as tmp:
+            resume_manager_dir = self._write_master(tmp)
+            client = MagicMock()
+            with self.assertRaises(RuntimeError):
+                create_application_from_prompt("a rough description", resume_manager_dir, gemini_client=client)
+            client.models.generate_content.assert_not_called()
+
+    @patch("resume_manager.apply_from_prompt.run_tailoring", return_value="Wrote a PDF.")
+    @patch(
+        "resume_manager.apply_from_prompt.interpret_opportunity_prompt",
+        return_value={"job_description": "A fraud analyst role.", "application_name": "Acme Fraud Analyst"},
+    )
+    def test_no_gemini_client_skips_stage_2_but_still_tailors(self, mock_interpret, mock_run):
+        # Real, expected case: no GEMINI_API_KEY configured yet.
+        with tempfile.TemporaryDirectory() as tmp:
+            resume_manager_dir = self._write_master(tmp)
+
+            result = create_application_from_prompt("a rough description", resume_manager_dir, gemini_client=None)
+
+            self.assertEqual(result, "Wrote a PDF.")
+            self.assertIsNone(mock_run.call_args.kwargs["guidance"])
+
+    @patch("resume_manager.apply_from_prompt.run_tailoring", return_value="Wrote a PDF.")
+    @patch("resume_manager.apply_from_prompt.brainstorm_relevant_content", return_value=None)
+    @patch(
+        "resume_manager.apply_from_prompt.interpret_opportunity_prompt",
+        return_value={"job_description": "A fraud analyst role.", "application_name": "Acme Fraud Analyst"},
+    )
+    def test_stage_2_failure_still_tailors_with_no_guidance(self, mock_interpret, mock_brainstorm, mock_run):
+        with tempfile.TemporaryDirectory() as tmp:
+            resume_manager_dir = self._write_master(tmp)
+            client = MagicMock()
+
+            result = create_application_from_prompt("a rough description", resume_manager_dir, gemini_client=client)
+
+            self.assertEqual(result, "Wrote a PDF.")
+            self.assertIsNone(mock_run.call_args.kwargs["guidance"])

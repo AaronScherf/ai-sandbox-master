@@ -16,6 +16,7 @@ local.
 from __future__ import annotations
 
 import os
+import tempfile
 from pathlib import Path
 
 import yaml
@@ -23,6 +24,7 @@ import yaml
 from common.ollama_utils import call_ollama
 from resume_manager.llm_yaml import parse_llm_yaml
 from resume_manager.tailor import RESUMEMANAGER_OLLAMA_MODEL, RESUMEMANAGER_OLLAMA_TIMEOUT_SECONDS
+from resume_manager.tailor_resume import run_tailoring
 
 _DEFAULT_RESUME_MANAGER_DIR = (
     Path(__file__).resolve().parent.parent.parent / "research" / "independent-research"
@@ -89,3 +91,39 @@ def brainstorm_relevant_content(client, master: dict, job_description: str, mode
         print("WARNING: Gemini brainstorm call returned no text -- continuing without it.")
         return None
     return text.strip()
+
+
+def create_application_from_prompt(
+    prompt: str, resume_manager_dir: str, gemini_client=None,
+    ollama_model: str = RESUMEMANAGER_OLLAMA_MODEL, gemini_model: str = _GEMINI_MODEL,
+) -> str:
+    """Orchestrates all three stages (spec §15) and returns the same
+    one-line status message run_tailoring() returns. Raises RuntimeError
+    up front if Stage 1 fails -- there is no job description to proceed
+    with, so no Gemini call is made and no application folder is
+    created, mirroring run_tailoring()'s own upfront-failure posture for
+    a missing file (spec §8). `gemini_client` is optional -- pass None
+    (e.g. no GEMINI_API_KEY configured) to skip Stage 2 entirely, which
+    still runs Stage 3 with guidance=None."""
+    master_resume_path = os.path.join(resume_manager_dir, "resume_master.yaml")
+    with open(master_resume_path, "r", encoding="utf-8") as f:
+        master = yaml.safe_load(f)
+
+    interpreted = interpret_opportunity_prompt(prompt, ollama_model)
+    if interpreted is None:
+        raise RuntimeError(
+            "local Ollama call to interpret the opportunity description failed, timed out, or returned "
+            "an unexpected response -- is `ollama serve` running?"
+        )
+
+    guidance = None
+    if gemini_client is not None:
+        guidance = brainstorm_relevant_content(gemini_client, master, interpreted["job_description"], gemini_model)
+
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        jd_path = os.path.join(tmp_dir, "job_description.txt")
+        with open(jd_path, "w", encoding="utf-8") as f:
+            f.write(interpreted["job_description"])
+        return run_tailoring(
+            master_resume_path, jd_path, interpreted["application_name"], resume_manager_dir, guidance=guidance,
+        )
