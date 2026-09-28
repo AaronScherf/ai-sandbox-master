@@ -319,3 +319,42 @@ missing course material (Mark Dean's stochastic-choice lecture notes,
 or equivalent) to actually exist in academic-hub -- a content gap, not
 a ranking one -- left for the user to decide whether it's worth
 tracking down and indexing.
+
+## 2026-09-28 update: ungrounded fallback for the no-match case
+
+User's call, given the above: an on-topic hint from the model's own
+general knowledge beats a well-cited hint grounded in the wrong topic.
+Rather than stop at the low-confidence note, `/hint` now falls back to
+one when nothing retrieved matches the question's own key terms.
+
+**Added**: `generate_ungrounded_hint()` (`rag/tutor_diagnosis.py`) --
+same pedagogical constraints as `generate_hint()` (no final answer, no
+verdict, no worked derivation), but no excerpts block; asks the model
+to draw on its own general knowledge instead. `/hint`'s handler
+branches on the same `grounded` check that already produced the
+warning note: grounded uses `generate_hint()` as before; ungrounded
+calls the new function, clears `hint_passages` (nothing real to cite),
+and tells the student plainly the hint isn't sourced from their own
+materials. `Event` gained a `grounded: bool = True` field
+(`rag/session_log.py`) so a logged ungrounded hint is distinguishable
+from a normal one -- defaults true so every event logged before this
+field existed reads back correctly. 7 new tests across
+`test_tutor_diagnosis.py` and `test_session_log.py` (including one
+confirming a pre-field log line still loads without crashing).
+
+**Verified live against the real Question 4**: the ungrounded fallback
+correctly covers random utility, Block-Marschak inequalities,
+inclusion-exclusion, and the Luce model/IIA equivalence -- genuinely
+on-topic for the first time across every version of this hint tried
+across both of today's updates. Merged to `main`.
+
+**Known limitation, by design**: an ungrounded hint has no citations to
+show and isn't checked against the course's own notation or
+conventions, so it's a strictly worse hint than a real grounded one
+whenever the corpus actually has the right material -- this fallback
+only fires when key terms were extracted and none matched, which
+should be rare outside genuine content gaps like this one. Not logged
+anywhere except the `grounded: false` event field; no dashboard or
+report currently surfaces "how often is /hint falling back," which
+would be the natural signal for deciding whether a content gap is
+worth fixing versus one-off.
