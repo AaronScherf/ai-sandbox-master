@@ -15,12 +15,14 @@ local.
 """
 from __future__ import annotations
 
+import argparse
 import os
 import tempfile
 from pathlib import Path
 
 import yaml
 
+from common.gemini_utils import get_gemini_client, load_dotenv_override
 from common.ollama_utils import call_ollama
 from resume_manager.llm_yaml import parse_llm_yaml
 from resume_manager.tailor import RESUMEMANAGER_OLLAMA_MODEL, RESUMEMANAGER_OLLAMA_TIMEOUT_SECONDS
@@ -127,3 +129,31 @@ def create_application_from_prompt(
         return run_tailoring(
             master_resume_path, jd_path, interpreted["application_name"], resume_manager_dir, guidance=guidance,
         )
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(
+        description="Tailor the master resume from a rough, free-text opportunity description.",
+    )
+    group = parser.add_mutually_exclusive_group(required=True)
+    group.add_argument("--prompt", help="Inline free-text description of the opportunity.")
+    group.add_argument("--prompt-file", help="Path to a local text file containing the description.")
+    parser.add_argument("--resume-manager-dir", default=str(_DEFAULT_RESUME_MANAGER_DIR))
+    args = parser.parse_args()
+
+    if args.prompt is not None:
+        prompt_text = args.prompt
+    else:
+        with open(args.prompt_file, "r", encoding="utf-8") as f:
+            prompt_text = f.read()
+
+    load_dotenv_override()
+    gemini_client = get_gemini_client()
+    if gemini_client is None:
+        print("WARNING: no Gemini client available -- continuing without the relevance brainstorm step.")
+
+    print(create_application_from_prompt(prompt_text, args.resume_manager_dir, gemini_client=gemini_client))
+
+
+if __name__ == "__main__":
+    main()
