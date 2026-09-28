@@ -457,7 +457,7 @@ def main() -> None:
     from datetime import datetime, timezone
     from rag.session_log import Event, append_event, load_events
     from rag.tutor_diagnosis import (
-        diagnose_draft, generate_hint, generate_verification, summarize_unit,
+        diagnose_draft, generate_hint, generate_ungrounded_hint, generate_verification, summarize_unit,
         DiagnosisParseError,
     )
     from rag.problem_set_parser import extract_question, QuestionNotFoundError
@@ -560,17 +560,25 @@ def main() -> None:
             hint_passages = retrieve_passages(
                 roots, question_text, client, course=args.course, key_terms=key_terms,
             )
-            hint = generate_hint(question_text, hint_passages, client)
-            if key_terms and not any(_term_match_count(p.text, key_terms) for p in hint_passages):
+            grounded = not key_terms or any(_term_match_count(p.text, key_terms) for p in hint_passages)
+            if grounded:
+                hint = generate_hint(question_text, hint_passages, client)
+            else:
                 # None of the final passages mention any of the question's own
                 # distinctive terms -- the key-term boost had nothing to promote,
                 # which usually means the right source isn't in the corpus at all
                 # (confirmed live 2026-09-28: homework_3's Question 4 asks about
                 # Block Marschak/Luce, and no chunk anywhere in microecon's index
-                # mentions either). Surfaced here rather than silently handing
-                # over a confidently-worded hint grounded in the wrong topic.
-                print(f"Note: none of the retrieved sources mention {', '.join(key_terms)} "
-                      f"-- this hint may not be well-grounded.\n")
+                # mentions either). Falls back to the model's own general
+                # knowledge rather than silently handing over a confidently-
+                # worded hint grounded in the wrong topic -- an ungrounded but
+                # on-topic hint beats a well-cited wrong one (user's own call,
+                # 2026-09-28: "external hints are better than nothing at all").
+                print(f"None of your course materials mention {', '.join(key_terms)} -- "
+                      f"falling back to a general hint (not sourced from your own materials; "
+                      f"double-check it against them):\n")
+                hint = generate_ungrounded_hint(question_text, client)
+                hint_passages = []  # nothing to cite -- this hint isn't grounded in any of them
             print(f"\n{hint}\n")
             for p in hint_passages:
                 print(f"  - [{p.root}] {p.path} ({p.citation})")
@@ -587,6 +595,7 @@ def main() -> None:
                         for p in hint_passages
                     ],
                     timestamp=datetime.now(timezone.utc).isoformat(),
+                    grounded=grounded,
                 ))
             continue
 
