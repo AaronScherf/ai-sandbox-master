@@ -223,3 +223,84 @@ entirely. Full writeup, including the two follow-on plans that build on
 top of the duplicate-check feature this bug came from (auto-resolution,
 OOM/cost escalation ladder), lives in
 `2026-09-10-textbook-conversion-status.md`'s 2026-09-22/23 entries.
+
+## 2026-09-27 update: `chunk_index.py` page-marker leak found and fixed
+
+Found while auditing Gemini/Antigravity's tutor-diagnosis output for a
+real `microecon` homework (`homework_3_hints.md` /
+`homework_3_tutoring_audit.md`, unrelated to this module): the audit's
+own numeric claims about the chunk index checked out exactly against
+the real `.index/chunks/microecon.json`, but a direct read of the
+stored chunk text turned up a real bug.
+
+**Bug**: `_finalize_chunks()` sliced a span's text straight out of the
+source body and only `.strip()`'d it -- it never removed the
+`<!-- page N -->` HTML comments `_split_by_pages()`/`_split_by_headings()`
+leave embedded in a span. A page-tier span's `start` offset **is** its
+own marker's offset, so every page-tier chunk opened with the literal
+comment; a heading-tier span that straddles a page break carries one
+mid-text. Confirmed live: **353/609** real `microecon` chunks and
+**3096/4310** real `math-camp` chunks carried at least one leaked
+marker in the text that gets embedded and shown as citable content --
+a longstanding bug in shared code, not something new about the
+microecon run that surfaced it.
+
+**Fix**: added `_strip_page_markers()` (strips the marker regex,
+collapses the blank-line runs it leaves behind, then trims) and applied
+it in `_finalize_chunks()` before the minimum-length filter.
+`page_range` is still computed separately from the unstripped body, so
+no citation metadata is lost. 6 new regression tests added
+(`TestStripPageMarkers`, plus page-tier/heading-straddle cases in
+`TestFinalizeChunks`); 2 existing fixtures needed lengthening because
+their "long enough to clear the minimum" padding was unintentionally
+relying on the leaked marker text to clear 80 chars. Full
+`tests/test_chunk_index.py`: 63/63 pass. Merged to `main`.
+
+**Re-chunk test, scoped to microecon's existing chunks**: rather than
+re-chunk everything at once, ran a scoped test against just the 14
+files that already had chunks (609 total) before extending further.
+Cleared each target file's old chunk entries first (their
+`content_hash` hadn't changed, so the normal incremental skip would
+have no-op'd on all of them) and regenerated through
+`generate_chunks_for_file()` directly. Hit the free-tier
+`GEMINI_API_KEY`'s **daily** embed quota (1000 requests/day, not the
+per-minute one) partway through:
+
+- 6 files / 134 chunks regenerated cleanly -- confirmed 0 leaked
+  markers, 0 empty-text chunks.
+- 8 files / 471 chunks (including the 354-chunk Rubinstein textbook,
+  the largest single file in the course) failed with
+  `429 RESOURCE_EXHAUSTED` and were never written back by
+  `generate_chunks_for_file()`'s per-file atomicity guarantee -- which
+  correctly avoided a half-updated file, but also left those 8 files
+  with **zero** chunks until they could be retried, a regression versus
+  their prior (leaked-but-functional) state. Restored their original
+  pre-fix chunks from a backup taken before the run
+  (`.index/chunks/microecon.json.bak-pre-rechunk-2026-09-27`, gitignored,
+  local only) so retrieval coverage isn't degraded while waiting on
+  quota.
+
+**Current state**: `microecon`'s chunk index is a deliberate mix --
+134 chunks are regenerated and leak-free, 471 chunks (8 files) are
+still on the pre-fix text and carry the marker leak, functionally
+unaffected otherwise. The backup file stays in place until the
+remaining 8 files are redone.
+
+**Next steps, in the order the user asked for**:
+1. Resume the microecon re-chunk for the remaining 8 files once the
+   daily `GEMINI_API_KEY` quota resets (or point at a different key),
+   then delete the backup.
+2. Chunk microecon's still-never-chunked textbooks (`Ok_Real_Analysis...`,
+   `Press_Microeconomic_Theory_2011`, and the two Bonus Rubenstein
+   books) -- not part of today's fix/test scope.
+3. Redo `math-camp`'s existing 4310 chunks (same bug, larger scope --
+   budget for multiple days against the free-tier daily cap, or use a
+   paid/higher-quota key given the volume).
+4. Chunk `econometrics` for the first time (`.index/chunks/econometrics.json`
+   doesn't exist yet).
+
+All of the above uses the default `GEMINI_API_KEY` (embeddings are
+cheap/free-tier by design, unlike `PAID_GEMINI_KEY`'s reserved
+stronger-model runs), but the **daily** cap is real, shared across
+every course, and phased re-chunking work needs to budget around it
+rather than assume per-minute backoff is enough.
