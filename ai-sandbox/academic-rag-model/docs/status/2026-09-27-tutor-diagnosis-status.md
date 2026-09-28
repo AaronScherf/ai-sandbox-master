@@ -358,3 +358,42 @@ anywhere except the `grounded: false` event field; no dashboard or
 report currently surfaces "how often is /hint falling back," which
 would be the natural signal for deciding whether a content gap is
 worth fixing versus one-off.
+
+## 2026-09-28 update: fallback counts surfaced in /summarize
+
+Closed the gap named directly above, same day: the `grounded: false`
+event field existed but nothing ever surfaced it, so a student
+skimming `/summarize` couldn't tell a hint had quietly come from
+outside knowledge instead of their own materials.
+
+**Added**: `_format_event()` (`rag/tutor_diagnosis.py`) now appends a
+note to any ungrounded hint event before it enters the summary prompt
+-- a grounded hint's formatting is unchanged -- so the LLM-written
+"What we learned"/"What to focus on" sections can name the gap in
+their own words rather than silently treating it like normal grounded
+output. `_ungrounded_fallback_line()` -- computed, not model-generated,
+same reasoning as the existing rubric-averages line -- is appended
+after `summarize_unit()`'s generated text: a count of how many hints
+this unit fell back to outside knowledge plus a snippet of which
+questions triggered it, or an explicit confirmation that all hints
+were grounded when none did. 12 new tests.
+
+**Verified live**: fed a two-hint session (one grounded, one not, the
+real Question 4 case) through `summarize_unit()`. The model's own
+"What to focus on" section named "reliance on external knowledge for
+core topics" and "Alignment with Course Materials" as the top item
+unprompted, and the computed line reported "Grounding: 1 of 2 hint(s)
+this unit found nothing matching in your course materials... : ##
+Question 4 Here are some questions involving classic results in
+random utilit...". Both signals -- narrative and computed -- now
+agree, matching the intent: the student should never have to guess
+whether a hint came from their own materials.
+
+This closes the loop `docs/status/2026-08-29-source-indexer-status.md`
+started (the page-marker leak) through today's full path: chunk-level
+fix -> retrieval-level fix (textbook pool, key-term weighting) ->
+generation-level fallback (ungrounded hint) -> visibility (this
+update). No further work queued on this thread; the remaining open
+item is still the missing course material itself (Mark Dean's
+stochastic-choice notes or equivalent), which is a content decision
+for the user, not an engineering one.
