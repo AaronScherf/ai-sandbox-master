@@ -304,3 +304,32 @@ cheap/free-tier by design, unlike `PAID_GEMINI_KEY`'s reserved
 stronger-model runs), but the **daily** cap is real, shared across
 every course, and phased re-chunking work needs to budget around it
 rather than assume per-minute backoff is enough.
+
+### Same-day follow-up: `microecon` fully re-chunked on `PAID_GEMINI_KEY`
+
+Rather than wait out the free-tier daily reset, the user opted to switch
+to `PAID_GEMINI_KEY` (`get_gemini_client("PAID_GEMINI_KEY")`) and finish
+`microecon` in two authorized batches:
+
+1. **The 8 pending files** left over from the quota-interrupted test
+   above (471 chunks, including the 354-chunk Rubinstein textbook) --
+   all 8 regenerated cleanly on the first attempt (one transient `503
+   UNAVAILABLE`, retried automatically). Backup file deleted once
+   verified.
+2. **The four microecon textbooks that had never been chunked at all**
+   (`Ok_Real_Analysis_with_Economic_Applications_2026`,
+   `Press_Microeconomic_Theory_2011`, and the two Bonus Rubenstein
+   books) -- sized beforehand (~709/842/380/220 pages) and flagged to
+   the user as a ~5,800-chunk batch, well beyond a "just testing"
+   scope, before running. User confirmed all four. Actual yield: 1124 +
+   894 + 743 + 191 = 2,952 chunks.
+
+**Current state**: `microecon`'s chunk index now covers all 18 indexed,
+non-orphaned files -- **3,557 chunks total, 0 leaked page markers, 0
+empty-text chunks, 0 duplicate chunk_ids, 0 missing embeddings**.
+`microecon` is done.
+
+**Next steps**, unchanged from above except item 1-2 are now complete:
+1. Redo `math-camp`'s existing 4,310 chunks (same bug -- still has the
+   leak, untouched today).
+2. Chunk `econometrics` for the first time.
