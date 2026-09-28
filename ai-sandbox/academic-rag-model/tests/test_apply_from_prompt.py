@@ -131,6 +131,15 @@ class TestBrainstormRelevantContent(unittest.TestCase):
         self.assertIn("Fraud Analyst", call_kwargs["contents"])
         self.assertIn("A fraud detection analyst role.", call_kwargs["contents"])
 
+    def test_prompt_includes_user_guidance(self):
+        client = MagicMock()
+        client.models.generate_content.return_value = _fake_gemini_response("guidance text")
+        user_guidance = "Emphasize Ukraine asset inventory work; exclude roles before ZEW."
+        brainstorm_relevant_content(client, _MASTER, "A fraud detection analyst role.", user_guidance=user_guidance)
+        contents = client.models.generate_content.call_args.kwargs["contents"]
+        self.assertIn("USER-PROVIDED TAILORING INSTRUCTIONS AND FACTS", contents)
+        self.assertIn(user_guidance, contents)
+
     def test_exception_from_generate_content_returns_none(self):
         client = MagicMock()
         client.models.generate_content.side_effect = RuntimeError("429 RESOURCE_EXHAUSTED")
@@ -209,6 +218,41 @@ class TestCreateApplicationFromPrompt(unittest.TestCase):
 
             self.assertEqual(result, "Wrote a PDF.")
             self.assertIsNone(mock_run.call_args.kwargs["guidance"])
+
+    @patch("resume_manager.apply_from_prompt.run_tailoring", return_value="Wrote a PDF.")
+    @patch(
+        "resume_manager.apply_from_prompt.interpret_opportunity_prompt",
+        return_value={"job_description": "A fraud analyst role.", "application_name": "Acme Fraud Analyst"},
+    )
+    def test_user_guidance_reaches_tailoring_even_without_gemini(self, mock_interpret, mock_run):
+        user_guidance = "Use my verified Ukraine asset inventory experience and omit pre-ZEW roles."
+        with tempfile.TemporaryDirectory() as tmp:
+            resume_manager_dir = self._write_master(tmp)
+
+            create_application_from_prompt(
+                "a rough description", resume_manager_dir, gemini_client=None, user_guidance=user_guidance,
+            )
+
+            self.assertEqual(mock_run.call_args.kwargs["guidance"], user_guidance)
+
+    @patch("resume_manager.apply_from_prompt.brainstorm_relevant_content", return_value=None)
+    @patch(
+        "resume_manager.apply_from_prompt.interpret_opportunity_prompt",
+        return_value={"job_description": "A fraud analyst role.", "application_name": "Acme Fraud Analyst"},
+    )
+    @patch("resume_manager.apply_from_prompt.run_tailoring", return_value="Wrote a PDF.")
+    def test_user_guidance_survives_gemini_brainstorm_failure(self, mock_run, mock_interpret, mock_brainstorm):
+        user_guidance = "Use my verified Ukraine asset inventory experience."
+        with tempfile.TemporaryDirectory() as tmp:
+            resume_manager_dir = self._write_master(tmp)
+            client = MagicMock()
+
+            create_application_from_prompt(
+                "a rough description", resume_manager_dir, gemini_client=client, user_guidance=user_guidance,
+            )
+
+            self.assertEqual(mock_run.call_args.kwargs["guidance"], user_guidance)
+            self.assertEqual(mock_brainstorm.call_args.kwargs["user_guidance"], user_guidance)
 
     @patch("resume_manager.apply_from_prompt.run_tailoring", return_value="Wrote a PDF.")
     @patch("resume_manager.apply_from_prompt.brainstorm_relevant_content", return_value=None)
