@@ -197,6 +197,44 @@ class TestApplyTailoring(unittest.TestCase):
         self.assertEqual(tailored["publications"], _MASTER["publications"])
         self.assertEqual(tailored["skills"], _MASTER["skills"])
 
+    def test_skills_are_capped_to_the_three_largest_categories(self):
+        # Real, confirmed defect (2026-09-28 layout report): the real
+        # master resume has 13 skill categories (several near-duplicates
+        # from separate source resumes, plus empty ones) that alone push
+        # Education+Awards+Publications+Skills to 2 full pages before Work
+        # Experience gets any room at all. This is the deterministic
+        # guardrail -- independent of any master-data cleanup -- so a
+        # duplicative resume_master.yaml can never balloon the rendered
+        # Skills section again.
+        master = {**_MASTER, "skills": [
+            {"category": "Tiny", "items": ["A"]},
+            {"category": "Biggest", "items": ["A", "B", "C", "D"]},
+            {"category": "Empty", "items": []},
+            {"category": "Second Biggest", "items": ["A", "B", "C"]},
+            {"category": "Third Biggest", "items": ["A", "B"]},
+        ]}
+        tailored, _ = apply_tailoring(master, {"ranked_ids": [], "bullets_by_id": {}})
+        self.assertEqual(
+            [c["category"] for c in tailored["skills"]],
+            ["Biggest", "Second Biggest", "Third Biggest"],
+        )
+
+    def test_include_static_sections_false_omits_education_awards_publications_skills(self):
+        # Used by tailor_resume.py's work-experience-only page-fit
+        # measurement (spec: 2026-09-28 layout fix) so Work Experience's
+        # own page budget is never crowded out by the size of the other
+        # sections.
+        tailored, _ = apply_tailoring(
+            _MASTER, {"ranked_ids": ["acme-1"], "bullets_by_id": {"acme-1": ["x"]}},
+            include_static_sections=False,
+        )
+        self.assertEqual(tailored["contact"], _MASTER["contact"])
+        self.assertEqual([e["id"] for e in tailored["work_experience"]], ["acme-1"])
+        self.assertIsNone(tailored["education"])
+        self.assertIsNone(tailored["awards"])
+        self.assertIsNone(tailored["publications"])
+        self.assertIsNone(tailored["skills"])
+
     def test_bullet_budget_excludes_entries_not_in_the_map(self):
         tailoring_result = {
             "ranked_ids": ["acme-1", "globex-1"],

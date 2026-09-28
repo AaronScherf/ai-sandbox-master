@@ -237,6 +237,28 @@ class TestSelectWorkExperienceBullets(unittest.TestCase):
         budget = _select_work_experience_bullets(self._MULTI_ENTRY_MASTER, tailoring_result, 2, "scratch.pdf")
         self.assertEqual(budget, {"acme-1": 1})
 
+    @patch("resume_manager.tailor_resume.render_resume_pdf", return_value=1)
+    def test_measures_work_experience_alone_reserving_the_last_page_for_static_sections(self, mock_render):
+        # 2026-09-28 layout fix: Work Experience's own fill loop must not
+        # be crowded out by however large Education/Awards/Publications/
+        # Skills happen to be -- it measures a work-experience-only
+        # candidate against target_pages - 1 (reserving the last page for
+        # the static sections, which render.py's forced page break then
+        # guarantees start fresh there), instead of the old full-resume
+        # candidate measured against the whole target_pages.
+        heavy_static_master = {**self._MULTI_ENTRY_MASTER, "skills": [
+            {"category": f"Category {i}", "items": [f"Skill {i}"]} for i in range(20)
+        ]}
+        tailoring_result = {"ranked_ids": ["acme-1"], "bullets_by_id": {"acme-1": ["a1"]}}
+
+        _select_work_experience_bullets(heavy_static_master, tailoring_result, 2, "scratch.pdf")
+
+        candidate, _scratch_path = mock_render.call_args.args
+        self.assertIsNone(candidate["skills"])
+        self.assertIsNone(candidate["education"])
+        self.assertEqual(mock_render.call_args.kwargs["target_pages"], 1)
+
+
 
 class TestBuildGuidanceText(unittest.TestCase):
     def test_pairs_each_question_with_its_answer(self):

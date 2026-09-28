@@ -117,8 +117,33 @@ def tailor_resume(
     return parsed
 
 
+_MAX_SKILL_CATEGORIES = 3
+
+
+def _select_skills(skills: list[dict] | None) -> list[dict] | None:
+    """Keeps at most `_MAX_SKILL_CATEGORIES` categories -- the ones with
+    the most items -- dropping empty ones entirely. Deterministic
+    guardrail (2026-09-28 layout report): the real master resume_master.yaml
+    has accumulated 13 skill categories over several merges, several of
+    them literal item-for-item duplicates of another category under a
+    differently-worded name (merge_resumes.py's cross-category item check
+    is the root-cause fix for *new* duplicates; this is the independent
+    render-time backstop for whatever a resume_master.yaml already
+    contains, cleaned up or not) -- rendered alone with zero Work
+    Experience, that Skills section plus Education/Awards/Publications
+    already took 2 full pages. Order is by size, not master order, since
+    a bigger category is a reasonable proxy for which one is actually
+    substantive versus a stray leftover."""
+    if not skills:
+        return skills
+    non_empty = [category for category in skills if category.get("items")]
+    ranked = sorted(non_empty, key=lambda category: len(category["items"]), reverse=True)
+    return ranked[:_MAX_SKILL_CATEGORIES]
+
+
 def apply_tailoring(
     master: dict, tailoring_result: dict, bullet_budget: dict[str, int] | None = None,
+    include_static_sections: bool = True,
 ) -> tuple[dict, list[str]]:
     """Reconstructs the tailored resume in code, never trusting the LLM
     for any metadata field (spec §4): copies contact/education/awards/
@@ -195,9 +220,9 @@ def apply_tailoring(
     tailored = {
         "contact": contact,
         "work_experience": tailored_experience,
-        "education": master.get("education"),
-        "awards": master.get("awards"),
-        "publications": master.get("publications"),
-        "skills": master.get("skills"),
+        "education": master.get("education") if include_static_sections else None,
+        "awards": master.get("awards") if include_static_sections else None,
+        "publications": master.get("publications") if include_static_sections else None,
+        "skills": _select_skills(master.get("skills")) if include_static_sections else None,
     }
     return tailored, problems

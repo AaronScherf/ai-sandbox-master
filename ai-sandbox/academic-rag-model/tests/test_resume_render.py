@@ -199,6 +199,37 @@ class TestBuildTypst(unittest.TestCase):
         typst_text = build_typst(_RESUME)
         self.assertNotIn("#block(breakable: false)[\n== Work Experience", typst_text)
 
+    def test_force_page_break_before_static_defaults_to_off(self):
+        # Direct build_typst callers (every existing test above, and any
+        # future one) get today's behavior unchanged unless they opt in.
+        typst_text = build_typst(_RESUME)
+        self.assertNotIn("#pagebreak()", typst_text)
+
+    def test_force_page_break_before_static_inserts_a_break_before_the_first_static_section(self):
+        # 2026-09-28 layout fix: Work Experience should get first claim on
+        # page 1, with Education (or whichever static section is first
+        # present) starting fresh on the next page, rather than the two
+        # competing for the same page-fit budget.
+        typst_text = build_typst(_RESUME, force_page_break_before_static=True)
+        self.assertIn("#pagebreak()\n\n#block(breakable: false)[\n== Education", typst_text)
+
+    def test_force_page_break_before_static_uses_whichever_static_section_is_first_present(self):
+        resume = {**_RESUME, "education": []}
+        typst_text = build_typst(resume, force_page_break_before_static=True)
+        self.assertIn("#pagebreak()\n\n#block(breakable: false)[\n== Awards", typst_text)
+
+    def test_force_page_break_before_static_is_skipped_with_no_work_experience(self):
+        # Nothing to push to a second page relative to -- a page break here
+        # would just leave a blank first page.
+        resume = {**_RESUME, "work_experience": []}
+        typst_text = build_typst(resume, force_page_break_before_static=True)
+        self.assertNotIn("#pagebreak()", typst_text)
+
+    def test_force_page_break_before_static_is_skipped_with_no_static_sections(self):
+        resume = {**_RESUME, "education": [], "awards": [], "publications": [], "skills": []}
+        typst_text = build_typst(resume, force_page_break_before_static=True)
+        self.assertNotIn("#pagebreak()", typst_text)
+
 
 class TestNonBreakableSectionRegression(unittest.TestCase):
     _EDUCATION = [
@@ -284,6 +315,25 @@ class TestRenderResumePdf(unittest.TestCase):
 
             from pypdf import PdfReader
             self.assertLessEqual(len(PdfReader(output_path).pages), 2)
+
+    def test_education_starts_on_a_fresh_page_when_target_pages_is_at_least_two(self):
+        # 2026-09-28 layout fix: with a real target of 2+ pages, Education
+        # must never share a page with Work Experience, regardless of how
+        # short Work Experience turns out to be -- it gets pushed to
+        # whatever page follows, guaranteed by an explicit page break
+        # rather than hoping the page-fit numbers work out.
+        with tempfile.TemporaryDirectory() as tmp:
+            output_path = os.path.join(tmp, "Tailored_Resume.pdf")
+
+            render_resume_pdf(_RESUME, output_path, target_pages=2)
+
+            from pypdf import PdfReader
+            texts = [page.extract_text() for page in PdfReader(output_path).pages]
+            work_experience_pages = {i for i, t in enumerate(texts) if "Acme" in t}
+            education_pages = {i for i, t in enumerate(texts) if "State U" in t}
+            self.assertTrue(work_experience_pages)
+            self.assertTrue(education_pages)
+            self.assertTrue(work_experience_pages.isdisjoint(education_pages))
 
     def test_overflowing_content_steps_down_to_a_tighter_tier(self):
         # A huge number of long bullets can't possibly fit one page even

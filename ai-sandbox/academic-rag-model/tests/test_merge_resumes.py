@@ -658,6 +658,36 @@ class TestMergeOneSource(unittest.TestCase):
         self.assertEqual(master["skills"][0]["items"], ["Python", "SQL", "R"])
         self.assertTrue(any("'R']" in a for a in applied))
 
+    @patch("resume_manager.merge_resumes.call_ollama")
+    def test_skill_already_in_a_different_category_is_not_duplicated(self, mock_call):
+        # Real, confirmed root cause (2026-09-28 Ukraine layout report): the
+        # real master ended up with 13 skill categories, several literal
+        # item-for-item duplicates under a differently-worded category name
+        # -- "Computer Programming" vs. the existing "Computer Programming
+        # and Artificial Intelligence" scores only 58.8% by
+        # rapidfuzz.fuzz.ratio, well under the 85% category-name match
+        # threshold, so the name-only check creates a second category and
+        # nothing previously checked its items against every OTHER
+        # category (only the one just matched/created). This is the
+        # deterministic cross-category guard that catches it regardless of
+        # what the new category ends up named.
+        mock_call.return_value = yaml.safe_dump({
+            "new_skills_by_category": {"Computer Programming": ["Python", "R", "JavaScript"]},
+        })
+        master = self._master()
+        master["skills"] = [{
+            "category": "Computer Programming and Artificial Intelligence",
+            "items": ["Python", "R", "JavaScript", "Machine Learning"],
+        }]
+        applied, flagged = merge_one_source(master, "raw text")
+        self.assertEqual(applied, [])
+        self.assertEqual(len(master["skills"]), 1)
+        self.assertEqual(
+            master["skills"][0]["items"], ["Python", "R", "JavaScript", "Machine Learning"],
+        )
+        self.assertEqual(len(flagged), 3)
+        self.assertTrue(all("already listed under" in f for f in flagged))
+
 
 class TestMergeSourceResumes(unittest.TestCase):
     def _setup(self, tmp):
