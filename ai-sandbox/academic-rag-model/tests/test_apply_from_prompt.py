@@ -52,6 +52,45 @@ class TestInterpretOpportunityPrompt(unittest.TestCase):
     def test_unreachable_ollama_returns_none(self, mock_call):
         self.assertIsNone(interpret_opportunity_prompt("a description"))
 
+    @patch("resume_manager.apply_from_prompt.call_ollama")
+    def test_multiline_plain_scalar_with_stray_keys_returns_none(self, mock_call):
+        # Real, confirmed bug (found in code review 2026-09-28): a model
+        # that writes job_description as an unindented multi-paragraph
+        # plain YAML scalar (very natural for a real job description --
+        # a "Responsibilities:" section, blank lines) gets it silently
+        # truncated to just the first line, with the rest landing in
+        # unrelated top-level keys this function never reads -- no error,
+        # just a badly-targeted job description with no warning. Detected
+        # by rejecting any response with keys beyond the two expected
+        # ones, converting a silent truncation into an explicit None.
+        mock_call.return_value = (
+            "job_description: Senior Data Analyst at Fintech Co.\n\n"
+            "Responsibilities:\n- Build fraud models\n- Monitor transactions\n\n"
+            "application_name: Fintech Co Senior Data Analyst"
+        )
+        self.assertIsNone(interpret_opportunity_prompt("a description"))
+
+    @patch("resume_manager.apply_from_prompt.call_ollama")
+    def test_well_formed_block_scalar_job_description_captures_full_text(self, mock_call):
+        # The correctly-formatted counterpart to the test above -- when
+        # the model does use a YAML block scalar for a multi-paragraph
+        # job description, the full text must come through intact.
+        mock_call.return_value = (
+            "application_name: Fintech Co Senior Data Analyst\n"
+            "job_description: |\n"
+            "  Senior Data Analyst at Fintech Co.\n"
+            "\n"
+            "  Responsibilities:\n"
+            "  - Build fraud models\n"
+            "  - Monitor transactions\n"
+        )
+        result = interpret_opportunity_prompt("a description")
+        self.assertEqual(
+            result["job_description"],
+            "Senior Data Analyst at Fintech Co.\n\nResponsibilities:\n- Build fraud models\n- Monitor transactions",
+        )
+        self.assertEqual(result["application_name"], "Fintech Co Senior Data Analyst")
+
     @patch("resume_manager.apply_from_prompt.call_ollama", return_value="not: [valid: yaml: at all")
     def test_malformed_yaml_returns_none(self, mock_call):
         self.assertIsNone(interpret_opportunity_prompt("a description"))

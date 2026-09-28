@@ -14,7 +14,7 @@
 
 - `GEMINI_API_KEY` (or `PAID_GEMINI_KEY`, same override every other Gemini caller in this repo supports) is required only to run `apply_from_prompt.py` — `convert_resume.py`, `tailor_resume.py`, and `merge_resumes.py` stay fully local, unaffected by this feature.
 - Do not modify `resume_manager/tailor.py`, `resume_manager/render.py`, `resume_manager/validate.py`, or `resume_manager/merge_resumes.py` — the spec confirms none of them need changes.
-- `run_tailoring()` (`resume_manager/tailor_resume.py`) must be called exactly as it exists today, unmodified: `run_tailoring(master_resume_path: str, jd_path: str, application_name: str, resume_manager_dir: str, guidance: str | None = None, target_pages: int = 2) -> str`.
+- `run_tailoring()` (`resume_manager/tailor_resume.py`) must be called exactly as it exists today, unmodified: `run_tailoring(master_resume_path: str, jd_path: str, application_name: str, resume_manager_dir: str, guidance: str | None = None) -> str`. (Corrected 2026-09-28, found in code review: this line previously listed a stray `target_pages: int = 2` parameter that `run_tailoring()` doesn't actually have on this branch — Tasks 3-4's own code never passed one, so this was a documentation-only inaccuracy.)
 - Every new LLM-calling function (`interpret_opportunity_prompt`, `brainstorm_relevant_content`) must never raise on a bad/unreachable/malformed response — return `None` instead, matching every existing local-call contract in this subproject (spec §8, §11).
 - Gemini's brainstorm output is free text (the same shape `tailor_resume()`'s `guidance` parameter already accepts) — never structured YAML/JSON, since nothing downstream parses it further.
 - `_GEMINI_MODEL` defaults to `"gemini-3.1-flash-lite"` (flash-tier — a relevance-matching task doesn't need pro-tier reasoning), overridable via a `RESUMEMANAGER_GEMINI_MODEL` env var, matching this subproject's existing `RESUMEMANAGER_OLLAMA_MODEL` override convention.
@@ -314,7 +314,7 @@ git commit -m "feat(resume-manager): add brainstorm_relevant_content Gemini call
 - Test: `tests/test_apply_from_prompt.py`
 
 **Interfaces:**
-- Consumes: `interpret_opportunity_prompt()` and `brainstorm_relevant_content()` from Tasks 1-2 (both patched at `resume_manager.apply_from_prompt.<name>` in tests); `resume_manager.tailor_resume.run_tailoring(master_resume_path: str, jd_path: str, application_name: str, resume_manager_dir: str, guidance: str | None = None, target_pages: int = 2) -> str` (patched at `resume_manager.apply_from_prompt.run_tailoring`).
+- Consumes: `interpret_opportunity_prompt()` and `brainstorm_relevant_content()` from Tasks 1-2 (both patched at `resume_manager.apply_from_prompt.<name>` in tests); `resume_manager.tailor_resume.run_tailoring(master_resume_path: str, jd_path: str, application_name: str, resume_manager_dir: str, guidance: str | None = None) -> str` (patched at `resume_manager.apply_from_prompt.run_tailoring`; see Global Constraints for the `target_pages` correction).
 - Produces: `create_application_from_prompt(prompt: str, resume_manager_dir: str, gemini_client=None, ollama_model: str = RESUMEMANAGER_OLLAMA_MODEL, gemini_model: str = _GEMINI_MODEL) -> str`. Task 4's `main()` calls this directly.
 
 - [ ] **Step 1: Write the failing tests**

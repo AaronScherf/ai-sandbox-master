@@ -1301,7 +1301,15 @@ design keeps each stage doing only the one thing it's suited for:
    comparison — so it's a much safer single local call than anything
    Revision 5-7 had to fix. Returns `None` (never raises) on an
    unreachable/timed-out/malformed response, matching every other local
-   call's contract in this subproject (§8).
+   call's contract in this subproject (§8). The prompt asks for
+   `job_description` as a YAML block scalar (`|`) rather than a plain
+   value, and the parsed response is rejected (`None`) if it carries any
+   key beyond the two expected ones (fixed in code review 2026-09-28: a
+   plain, unindented multi-paragraph `job_description` — natural for a
+   real job description with a "Responsibilities:" section and blank
+   lines — silently parsed down to just its first line otherwise, with
+   the rest landing in unrelated top-level keys nothing reads; no error,
+   just a badly-targeted job description with no warning).
 2. **Stage 2 (Gemini, new `brainstorm_relevant_content()`, via the
    existing `common/gemini_utils.py`):** sends `resume_master.yaml`'s
    *raw YAML text, in full* (not `merge_resumes.py`'s trimmed
@@ -1346,22 +1354,31 @@ every other entry point's zero-paid-dependency guarantee intact.
   relevance-matching task over one resume plus one job description is
   well within that tier, with no need for a pro-tier model's cost or
   latency.
-- `create_application_from_prompt(prompt: str, resume_manager_dir: str, ollama_model: str = RESUMEMANAGER_OLLAMA_MODEL, gemini_model: str = _GEMINI_MODEL, target_pages: int = 2) -> str`
+- `create_application_from_prompt(prompt: str, resume_manager_dir: str, ollama_model: str = RESUMEMANAGER_OLLAMA_MODEL, gemini_model: str = _GEMINI_MODEL) -> str`
   — the orchestration function: runs Stage 1, aborts with a clear error
   if it fails (there is no job description to proceed with, the same
   upfront-failure posture `run_tailoring()` already has for a missing
   file), runs Stage 2 (best-effort), writes Stage 1's job description to
   a temp file, and calls `run_tailoring()`. Returns the same one-line
-  status string `run_tailoring()` already returns.
+  status string `run_tailoring()` already returns. (Corrected 2026-09-28,
+  found in code review: an earlier draft of this signature and
+  `run_tailoring()`'s own listed signature both carried a stray
+  `target_pages: int = 2` parameter that `run_tailoring()` doesn't
+  actually have on this branch — removed here; it was never passed by
+  the implementation, so this was a documentation-only inaccuracy with
+  no runtime effect.)
 - CLI (`python -m resume_manager.apply_from_prompt`): `--prompt "text"`
   or `--prompt-file path.txt` (support both — an inline flag for a short
   description, a file for a longer, multi-paragraph one), plus the same
   `--resume-manager-dir` flag `tailor_resume.py` already exposes (its
   default mirrors `tailor_resume.py`'s own
-  `_DEFAULT_RESUME_MANAGER_DIR`). `tailor_resume.py` has no
-  `--target-pages` flag today — it isn't exposed there either, so this
-  script doesn't invent one; `run_tailoring()`'s own default
-  (`target_pages=2`) applies unchanged.
+  `_DEFAULT_RESUME_MANAGER_DIR`), and `--use-paid-key` (added in code
+  review 2026-09-28, matching `notes/route_notes_transcribe.py`'s
+  existing convention exactly: an earlier draft only ever called
+  `get_gemini_client()` with no argument, which only reads
+  `GEMINI_API_KEY` — the "same override" claim two paragraphs below was
+  aspirational until this flag existed) to use `PAID_GEMINI_KEY` instead
+  of `GEMINI_API_KEY`.
 
 **New dependency, scoped to this one script.** `GEMINI_API_KEY` (or
 `PAID_GEMINI_KEY`, same override this codebase's other Gemini callers

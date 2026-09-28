@@ -36,9 +36,10 @@ _DEFAULT_RESUME_MANAGER_DIR = (
 _GEMINI_MODEL = os.environ.get("RESUMEMANAGER_GEMINI_MODEL", "gemini-3.1-flash-lite")
 
 _INTERPRET_SYSTEM_PROMPT = """You are turning a rough, free-text description of a job opportunity into a clean job description and a short application name.
-Output ONLY valid YAML in exactly this shape, no commentary, no markdown code fences:
-job_description: <a clean, complete job-description-style text based on what the input actually says -- do not invent responsibilities, qualifications, or requirements not implied by the input>
-application_name: <a short name for this application, e.g. "Acme Corp Senior Analyst" -- combine the company name and role title if both are given, otherwise the role/opportunity alone>"""
+Output ONLY valid YAML in exactly this shape, no commentary, no markdown code fences, and no keys other than these two:
+application_name: <a short name for this application, e.g. "Acme Corp Senior Analyst" -- combine the company name and role title if both are given, otherwise the role/opportunity alone>
+job_description: |
+  <a clean, complete job-description-style text based on what the input actually says -- do not invent responsibilities, qualifications, or requirements not implied by the input. Use the YAML block-scalar "|" style shown here (every line of the description indented under it), never a plain unindented multi-line value, since a real job description often spans multiple paragraphs and a plain scalar would silently cut it down to its first line.>"""
 
 
 def interpret_opportunity_prompt(prompt: str, model: str = RESUMEMANAGER_OLLAMA_MODEL) -> dict | None:
@@ -46,13 +47,26 @@ def interpret_opportunity_prompt(prompt: str, model: str = RESUMEMANAGER_OLLAMA_
     {"job_description": str, "application_name": str} via one local
     Ollama call. Returns None (never raises) if the call fails, times
     out, or the response isn't the expected shape -- mirrors every other
-    local-Ollama-call contract in this subproject (spec §8)."""
+    local-Ollama-call contract in this subproject (spec §8).
+
+    Real, confirmed bug this guards against (found in code review
+    2026-09-28): a model that writes `job_description` as an unindented
+    multi-paragraph plain YAML scalar -- very natural, since a real job
+    description often has a "Responsibilities:" section and blank
+    lines -- gets it silently parsed down to just its first line, with
+    the rest landing in unrelated top-level keys nothing here reads. No
+    error, just a badly-targeted job description with no warning. The
+    prompt above asks for a block scalar to avoid this; the check below
+    rejects (returns None) any response carrying keys beyond the two
+    expected ones, catching it even when the model doesn't comply."""
     full_prompt = f"{_INTERPRET_SYSTEM_PROMPT}\n\n### ROUGH OPPORTUNITY DESCRIPTION:\n{prompt}"
     result = call_ollama(full_prompt, model, RESUMEMANAGER_OLLAMA_TIMEOUT_SECONDS)
     if not isinstance(result, str):
         return None
     parsed = parse_llm_yaml(result)
     if not isinstance(parsed, dict):
+        return None
+    if not set(parsed.keys()) <= {"job_description", "application_name"}:
         return None
     job_description = parsed.get("job_description")
     application_name = parsed.get("application_name")
@@ -139,6 +153,11 @@ def main() -> None:
     group.add_argument("--prompt", help="Inline free-text description of the opportunity.")
     group.add_argument("--prompt-file", help="Path to a local text file containing the description.")
     parser.add_argument("--resume-manager-dir", default=str(_DEFAULT_RESUME_MANAGER_DIR))
+    parser.add_argument(
+        "--use-paid-key", action="store_true",
+        help="Use PAID_GEMINI_KEY from ai-sandbox/.env instead of GEMINI_API_KEY -- for when the "
+             "default key is pointed at a free-tier project for other work (see gemini_utils.get_gemini_client).",
+    )
     args = parser.parse_args()
 
     if args.prompt is not None:
@@ -148,7 +167,7 @@ def main() -> None:
             prompt_text = f.read()
 
     load_dotenv_override()
-    gemini_client = get_gemini_client()
+    gemini_client = get_gemini_client("PAID_GEMINI_KEY" if args.use_paid_key else "GEMINI_API_KEY")
     if gemini_client is None:
         print("WARNING: no Gemini client available -- continuing without the relevance brainstorm step.")
 
