@@ -124,6 +124,33 @@ guess mechanically:
    use `apply_from_prompt.py --prompt "..."` (above), which runs the
    full pipeline including the relevance brainstorm.
 
+## Revising an already-tailored application
+
+To make a small, deterministic edit to an application you've already
+generated -- without re-running Ollama or Gemini -- use
+`revise_application.py`. Today it supports one operation: dropping a whole
+`work_experience` entry (e.g. the user decides mid-review that one role
+shouldn't be on this particular application after all):
+
+```powershell
+.\.venv\Scripts\python.exe -m resume_manager.revise_application `
+  --app-dir "applications\2026-09-28-ukraine-energy-resilience-monitoring-consultant" `
+  --remove-entry-id "bloomfield-community-empowerment-center-1"
+```
+
+It edits only that one application's saved `tailored_resume.yaml`, then
+regenerates `tailored_resume.md`, the PDF, and `validation_report.txt` from
+it -- re-running the same fact-diff and user-fact-coverage checks
+`tailor_resume.py` uses, using the application's own saved
+`user_facts.yaml` if it has one. `resume_master.yaml` is only ever read
+(never written), and `job_description.txt`/`guidance.txt` are left exactly
+as they were, since they record what was actually asked for. The
+application's previously recorded Gemini brainstorm status (succeeded /
+failed / skipped) is carried forward into the refreshed report unchanged.
+Entry ids come from `tailored_resume.md`'s `<!-- id: ... -->` comments or
+`tailored_resume.yaml`'s `id` fields. An unknown `--app-dir` or
+`--remove-entry-id` fails before anything is written.
+
 ## Requirements
 
 - A local Ollama install (`ollama serve`) with `qwen2.5:7b-instruct` pulled
