@@ -21,6 +21,22 @@ work_experience:
   - Developed analytics system to track $5Bn in electrical infrastructure support
     by administrative geography, enabling rapid repairs in response to Russian missile
     strikes and increased accountability.
+  - Supervised $36M contract for monitoring, evaluation, and learning services, including
+    developing new systems for performance tracking, strategy alignment, and context
+    research.
+  - Supervised implementation of 20 program evaluations, including leading design
+    of a $1.5M randomized control trial to evaluate impact of $450M credit facilitation
+    program for small businesses.
+  - Co-created third-party monitoring system which conducted over 3,000 verification
+    visits in a year.
+  - Led collection of annual performance metrics and sectoral narratives for 52 development
+    programs, aligning inter-agency indicator framework with new countrywide strategy
+    and scorecard.
+  - Launched Mission CLA plan, including developing knowledge management plan and
+    new learning questions; crowdsourced evidence gaps to plan 12 context assessments
+    prior to new CDCS
+  - Simplified in-person monitoring visit process for staff, enabling expansion from
+    20 oversight visits per quarter to over 100, despite warzone conditions.
   id: u-s-agency-for-international-development-1
 - org: U.S. Agency for International Development
   role: Foreign Service Officer - Gender Equity and Program Design Officer (FS 4-9)
@@ -32,6 +48,20 @@ work_experience:
     environmental conservation, rural land titling, and indigenous civic society leadership.
   - Developed system to process high-resolution drone imagery for land titling in
     flood-prone rural areas.
+  - Supported 32 programs to re-align performance indicators with gender equity and
+    social inclusion principles, including multiple presentations to contract partner
+    teams in Spanish.
+  - Led the design process for four new programs in smallholder agriculture, environmental
+    conservation, and rural land titling, including developing indicators to measure
+    job-expanding policy reforms.
+  - Developed data system to process and classify high-resolution drone imagery, resulting
+    in over 600 new land titles issued to smallholder farmers in flood-prone areas
+    in first 6 months.
+  - Led country-level FY24 presidential budget request for $413 million.
+  - Led collection of over 500 performance indicators across 32 development programs
+    for annual report.
+  - Advised 30+ programs on gender equity and social inclusion, with focus on Venezuelan
+    migrants.
   id: u-s-agency-for-international-development-2
 - org: U.S. Agency for International Development
   role: Foreign Service Officer - Program Officer Rotations (FS 5-12)
@@ -45,6 +75,12 @@ work_experience:
   - Led knowledge management pilot program with South Sudan office, including designing
     staff transition resources and implementation plan for improving handovers and
     file management in Juba.
+  - Wrote 6 policy briefings on foreign policy issues for review by the Congressman
+  - Led team of 15 staff as acting Office Director and Budget Lead for 3 months during
+    $1.7Bn congressional funding negotiations and supervised over $60M in realignment
+    of program funds.
+  - Mentored 220 staff on applications of artificial intelligence and data analytics
+    platforms to improve program delivery and performance reporting.
   id: u-s-agency-for-international-development-3
 - org: University of California, Berkeley
   role: Graduate Student Instructor
@@ -98,7 +134,82 @@ work_experience:
   - Wrote 6 briefings on policy issues for review by the representative, discussing
     new sanctions on Russia and the Technology Modernization Fund.
   id: u-s-house-of-representatives-1
+- org: Monitoring and Evaluation Specialist (Visiting Fellow)
+  role: Monitoring and Evaluation Specialist (Visiting Fellow)
+  location: Pretoria, South Africa
+  start_date: 05/2019
+  end_date: 07/2025
+  bullets:
+  - Revised evaluation methodology for 12 regional programs to improve validity of
+    performance metrics.
+  - Authored 200-page regional Gender Analysis report for 7 countries, synthesizing
+    research on conditions for women, people with disabilities, and LGBTQI+ persons
+    in Southern Africa.
+  id: monitoring-and-evaluation-specialist-visiting-fellow-1
+- org: Historic Macon Foundation
+  role: Real Estate Analyst
+  location: Macon, GA, USA
+  start_date: 08/2016
+  end_date: 05/2017
+  bullets:
+  - Analyzed impact of historic revitalization investments on property values through
+    econometric assessment.
+  - Supported Neighborhood Incubator community program to develop local leadership
+    capacity.
+  id: historic-macon-foundation-1
+- org: Tembeka Social Investment Company
+  role: Microfinance Analyst
+  location: Cape Town, South Africa
+  start_date: 06/2016
+  end_date: 08/2016
+  bullets:
+  - Analyzed financial performance of micro-enterprise investment portfolio to generate
+    annual report for shareholders and board of directors.
+  - Researched legislative reforms to small business tax and investment regulations
+    to support local entrepreneurs.
+  - Assisted small business client management and business development for social
+    investment portfolio.
+  id: tembeka-social-investment-company-1
+- org: Bloomfield Community Empowerment Center
+  role: Economic Analyst
+  location: Macon
+  start_date: 10/2015
+  end_date: 05/2016
+  bullets: []
+  id: bloomfield-community-empowerment-center-1
+- org: NewTown Macon
+  role: Urban Development Researcher
+  location: Macon, GA
+  start_date: 05/2014
+  end_date: 08/2014
+  bullets:
+  - Collected primary survey data on parking patterns in downtown Macon.
+  - Analyzed parking data using geographic information systems (GIS) and statistical
+    analysis to develop recommendations for improved street infrastructure and traffic
+    management plans.
+  - Surveyed 45 local business owners on Community Improvement District tax plans.
+  id: newtown-macon-1
+- org: LandLink Analytic Services, LLC
+  role: Co-Founder, Lead Economist
+  location: Macon, GA, USA
+  start_date: 12/2016
+  end_date: 10/2018
+  bullets:
+  - Founded data analytics consulting company with team of economists and software
+    engineers to develop geospatial models of housing price dynamics and identify
+    areas at increased risk of gentrification.
+  - Conducted 7 contracted research projects analyzing impact of public and private
+    property investment on housing prices and municipal tax revenues.
+  id: landlink-analytic-services-llc-1
 education:
+- institution: Columbia University
+  degree: PhD in Sustainable Development
+  gpa: Not specified
+  location: New York, NY, USA
+  start_date: 08/2026
+  end_date: Present
+  thesis: Not specified
+  id: columbia-university-1
 - institution: Georgia Institute of Technology
   degree: Master of Science in Computer Science
   gpa: '3.88'
@@ -138,7 +249,7 @@ education:
   location: Macon, GA, USA
   start_date: 08/2013
   end_date: 05/2017
-  thesis: Not specified
+  thesis: Analyzing Regional Economic Impacts of Syrian Refugee Crisis in Turkey
   id: mercer-university-1
 awards:
 - name: Donald M. Payne Fellow
@@ -153,6 +264,12 @@ awards:
 - name: Stamps Foundation Leadership Scholar
   description: $240,000 merit scholarship
   date: 05/2013
+- name: Payne International Development Fellow
+  description: $90,000 Graduate Fellowship with USAID
+  date: Not specified
+- name: Fulbright Graduate Research Award
+  description: $10,000 Research Grant and Cultural Exchange Program
+  date: Not specified
 publications:
 - title: Applications of PCA for Mapping Regional Socioeconomic Vulnerability Indices
   date: 12/2019
@@ -184,6 +301,13 @@ publications:
   date: 04/2016
   venue: Clinton Global Initiative University at Berkeley, CA
   link: Not specified
+- title: Autonomous Drone Deployment Grid for Improved Wildfire Response in California
+  date: 05/2020
+  venue: 'UC Berkeley: Innovations in Disaster Response Showcase'
+- title: The End of Schengen? Reforms to the Dublin Regulation and EU Asylum Policy
+  date: 08/2017
+  venue: Humanity in Action International Conference in Strasbourg, FR
+  link: Not specified
 skills:
 - category: Computer Programming and Artificial Intelligence
   items:
@@ -211,3 +335,38 @@ skills:
   - Program Evaluation
   - Empirical Policy Analysis
   - Information Communications Technology
+- category: Computer Programming
+  items:
+  - Python
+  - R
+  - JavaScript
+- category: Data Engineering
+  items:
+  - SQL
+  - Azure
+  - GCP
+- category: Agentic AI
+  items:
+  - CrewAI
+  - AutoGen
+- category: Natural Language Processing
+  items: []
+- category: Data Visualization and Analysis
+  items:
+  - Tableau
+  - PowerBI
+- category: Artificial Neural Networks
+  items:
+  - Machine Learning
+  - Large Language Models
+- category: Cloud Architecture
+  items:
+  - GCP
+  - Azure
+- category: RAG AI
+  items:
+  - LangChain
+- category: Google Earth Engine / GCP
+  items: []
+- category: Data Collection & Processing
+  items: []
