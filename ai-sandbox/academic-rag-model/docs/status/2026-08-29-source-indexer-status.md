@@ -333,3 +333,32 @@ empty-text chunks, 0 duplicate chunk_ids, 0 missing embeddings**.
 1. Redo `math-camp`'s existing 4,310 chunks (same bug -- still has the
    leak, untouched today).
 2. Chunk `econometrics` for the first time.
+
+### Same-day follow-up: `math-camp` fully re-chunked on `PAID_GEMINI_KEY`
+
+User confirmed continuing to spend `PAID_GEMINI_KEY` rather than spread
+this across free-tier daily resets, given the volume (asked first
+whether Codex's or Antigravity's own subscriptions could substitute --
+they can't: both are separate vendor/auth boundaries from the
+`GEMINI_API_KEY`/`PAID_GEMINI_KEY` credential `chunk_index.py`'s
+`embed_content()` call actually authenticates with).
+
+Same mechanism as `microecon`'s scoped test: cleared all 30 files'
+existing chunk entries (content_hash unchanged, so the incremental skip
+would have no-op'd), regenerated every one through
+`generate_chunks_for_file()`. Backed up
+`.index/chunks/math-camp.json` first as a precaution (30 files is a
+bigger blast radius than microecon's 14) -- unlike the microecon test,
+every one of the 30 files succeeded on the first pass, no partial
+failures, no restore needed. Deleted the backup once verified.
+
+**Current state**: `math-camp`'s chunk index -- **4,310 chunks, 0
+leaked page markers, 0 empty-text chunks, 0 duplicate chunk_ids, 0
+missing embeddings**. `math-camp` is done. Dominated by five textbooks
+(Sydsæter 1109, Simon 899, Rudin 490, Axler 479, Hammack 462 -- 80% of
+the course's volume); the other 25 files are course notes/problem sets
+in the tens of chunks each.
+
+**Next steps**: only `econometrics` remains -- never chunked at all
+(`.index/chunks/econometrics.json` doesn't exist yet), size not yet
+surveyed.
