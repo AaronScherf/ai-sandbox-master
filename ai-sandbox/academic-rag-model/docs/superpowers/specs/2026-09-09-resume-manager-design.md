@@ -1356,8 +1356,12 @@ every other entry point's zero-paid-dependency guarantee intact.
 - CLI (`python -m resume_manager.apply_from_prompt`): `--prompt "text"`
   or `--prompt-file path.txt` (support both — an inline flag for a short
   description, a file for a longer, multi-paragraph one), plus the same
-  `--resume-manager-dir`/`--target-pages` flags `tailor_resume.py`
-  already exposes.
+  `--resume-manager-dir` flag `tailor_resume.py` already exposes (its
+  default mirrors `tailor_resume.py`'s own
+  `_DEFAULT_RESUME_MANAGER_DIR`). `tailor_resume.py` has no
+  `--target-pages` flag today — it isn't exposed there either, so this
+  script doesn't invent one; `run_tailoring()`'s own default
+  (`target_pages=2`) applies unchanged.
 
 **New dependency, scoped to this one script.** `GEMINI_API_KEY` (or
 `PAID_GEMINI_KEY`, same override this codebase's other Gemini callers
