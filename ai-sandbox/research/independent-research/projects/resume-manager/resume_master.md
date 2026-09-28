@@ -1,4 +1,4 @@
-<!-- resume-master-yaml-hash: 5c4b6ba6f12824b3cb31b523c91213418bab5abf5fbaf23ace032cc1a0b6309f -->
+<!-- resume-master-yaml-hash: ab8789350e80ad75ef7665e2c5bf282289ea9e64bf870be731a8ca4bb8e1cf15 -->
 
 # Aaron Scherf
 
@@ -133,6 +133,11 @@ Bullets:
 - Location: Macon
 - Start: 10/2015
 - End: 05/2016
+
+Bullets:
+- Collected socioeconomic data on local neighborhood through census and tax assessor files.
+- Developed neighborhood revitalization strategy centered on resident participation and presented to county commission.
+- Presented research methodology and results of strategy at Clinton Global Initiative University 2016, under Commitment to Action "Collect to Connect: Bloomfield Community Asset Analysis".
 
 ### NewTown Macon — Urban Development Researcher
 <!-- id: newtown-macon-1 -->

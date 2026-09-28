@@ -175,7 +175,14 @@ work_experience:
   location: Macon
   start_date: 10/2015
   end_date: 05/2016
-  bullets: []
+  bullets:
+  - Collected socioeconomic data on local neighborhood through census and tax assessor
+    files.
+  - Developed neighborhood revitalization strategy centered on resident participation
+    and presented to county commission.
+  - 'Presented research methodology and results of strategy at Clinton Global Initiative
+    University 2016, under Commitment to Action "Collect to Connect: Bloomfield Community
+    Asset Analysis".'
   id: bloomfield-community-empowerment-center-1
 - org: NewTown Macon
   role: Urban Development Researcher

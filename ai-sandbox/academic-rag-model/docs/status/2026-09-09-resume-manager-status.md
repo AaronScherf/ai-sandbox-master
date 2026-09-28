@@ -465,15 +465,22 @@ The fifth entry (Bloomfield Community Empowerment Center) still came
 back with no bullets on that run despite its bullets sitting a few lines
 below its heading in the source text, well inside the excerpt window —
 confirmed as an ordinary stochastic miss by the local model, not a
-repeat of any of the five fixed causes, and expected to succeed on a
-retry. Full project test suite: 1747/1747 passing (51 in
-`test_merge_resumes.py` specifically, up from 42 before this session).
+repeat of any of the five fixed causes. Re-running the same targeted
+backfill call for just that one entry in isolation immediately afterward
+found all 3 bullets correctly and verbatim, confirming it was sampling
+variance rather than a defect in the excerpt-windowing or prompt design.
+Full project test suite: 1747/1747 passing (51 in `test_merge_resumes.py`
+specifically, up from 42 before this session).
 
-**Not yet done:** the verified merge result has not been applied to the
-live `resume_master.yaml` — it still reflects the pre-fix state (the
-five entries still have zero bullets, Mercer's thesis is still blank).
-Applying it (and regenerating `resume_master.md`) is a separate action
-from committing this code fix, pending explicit confirmation.
+**Applied to the live master (2026-09-27).** All five named
+work_experience entries now have their bullets, Mercer's thesis is
+filled in, and 15 skills are merged across 7 categories.
+`resume_master.md` was regenerated to match, and
+`resume_master.merge_report.txt` got a labeled follow-up section
+documenting the correction (including the Bloomfield retry) rather than
+rewriting the original entry's history. The other 6 already-processed
+source resumes were not re-processed — out of scope for the user's
+report, which named only the Ukraine resume.
 
 ## Known, not yet fixed / open items
 
@@ -510,16 +517,12 @@ from committing this code fix, pending explicit confirmation.
   confuse the tailoring call is worth watching across more real
   applications before treating the mechanism as fully proven, the same
   way metric-preservation consistency (§12) is still being watched.
-- **The §14 merge fixes are validated but not yet applied to the live
-  master.** `resume_master.yaml` still reflects the pre-fix state for the
-  Ukraine PDF (five entries with no bullets, Mercer's thesis blank, no
-  skills merged from it) — the verified result exists only in scratch
-  files pending explicit confirmation to apply it. One entry (Bloomfield
-  Community Empowerment Center) needs a retry even after applying, per
-  §14's noted stochastic miss. The other 6 source resumes were processed
-  under the pre-fix code and may have the same class of gaps, but
-  re-processing them wasn't requested — only the Ukraine resume was
-  scoped by the user's report.
+- **The other 6 already-processed source resumes may have the same class
+  of gaps §14 fixed for the Ukraine resume** (bulletless entries, blank
+  fields, unmerged skills), since they were all processed under the
+  pre-fix code. Re-processing them wasn't requested — only the Ukraine
+  resume was scoped by the user's report — and hasn't been done
+  speculatively here.
 - **Replacing local Ollama with a subscription-based backend** (spec §10)
   — raised during this session; not yet investigated, the user is
   checking feasibility directly via Antigravity.
@@ -542,11 +545,6 @@ from committing this code fix, pending explicit confirmation.
    applications, the same way metric preservation is being watched, before
    considering any refinement (e.g. multiple-choice questions if free text
    proves too unconstrained — spec §11's own noted open question).
-6. Apply §14's verified merge result to the live `resume_master.yaml` and
-   regenerate `resume_master.md`, pending explicit confirmation — then
-   retry once more to catch Bloomfield Community Empowerment Center's
-   still-missing bullets (§14).
-7. Decide whether to re-process the other 6 already-processed source
-   resumes under the fixed §14 code, once the Ukraine resume's result is
-   confirmed correct in the live master — not done speculatively now,
-   since only the Ukraine resume was in scope for the user's report.
+6. Decide whether to re-process the other 6 already-processed source
+   resumes under the fixed §14 code — not done speculatively now, since
+   only the Ukraine resume was in scope for the user's report.
