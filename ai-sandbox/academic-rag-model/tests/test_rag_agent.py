@@ -159,8 +159,47 @@ class TestRetrievePassages(unittest.TestCase):
         passages = [_passage(f"aaa-{i:03d}", "aaa") for i in range(5)]
         with patch("rag.rag_agent.search_passages", return_value=passages) as mock_search:
             result = retrieve_passages(["/root"], "q", client, course="math-camp", top_k=6, max_per_file=2)
-        mock_search.assert_called_once_with(["/root"], "q", client, course="math-camp", top_k=12)
+        mock_search.assert_any_call(["/root"], "q", client, course="math-camp", top_k=12)
         self.assertEqual(len(result), 2)  # capped by max_per_file, only one file present
+
+    def test_also_queries_a_dedicated_textbook_pool(self):
+        client = MagicMock()
+        with patch("rag.rag_agent.search_passages", return_value=[]) as mock_search:
+            retrieve_passages(["/root"], "q", client, course="math-camp", textbook_top_k=4)
+        mock_search.assert_any_call(["/root"], "q", client, course="math-camp", doc_type="textbook", top_k=4)
+
+    def test_textbook_pool_survives_even_when_excluded_from_the_general_pool(self):
+        # Regression for a real finding (2026-09-27): search()'s file-level
+        # stage ranks a whole file by its title+summary embedding, which can
+        # rank a large, topic-diverse textbook below every short note/
+        # homework file -- excluding it from the general pool entirely even
+        # when one of its own chunks is an exact topical match. Confirmed
+        # live against homework_3's Question 4: every textbook in the
+        # course scored below every note/homework file at the file-level
+        # stage, so Rubinstein's exact-match chunk never got a chance.
+        client = MagicMock()
+        general = [_passage("note-000", "note", text="unrelated note")]
+        textbook = [_passage("book-000", "book", text="the exact topical match")]
+        with patch("rag.rag_agent.search_passages", side_effect=[general, textbook]):
+            result = retrieve_passages(["/root"], "q", client)
+        self.assertIn("book-000", [p.chunk_id for p in result])
+
+    def test_deduplicates_a_chunk_present_in_both_pools(self):
+        client = MagicMock()
+        shared = _passage("book-000", "book")
+        with patch("rag.rag_agent.search_passages", side_effect=[[shared], [shared]]):
+            result = retrieve_passages(["/root"], "q", client)
+        self.assertEqual(len(result), 1)
+
+    def test_merged_pools_are_resorted_by_score_before_capping(self):
+        client = MagicMock()
+        low = _passage("note-000", "note")
+        low.score = 0.2
+        high = _passage("book-000", "book")
+        high.score = 0.9
+        with patch("rag.rag_agent.search_passages", side_effect=[[low], [high]]):
+            result = retrieve_passages(["/root"], "q", client, top_k=1)
+        self.assertEqual(result[0].chunk_id, "book-000")
 
 
 class TestAnswerQuestionPassages(unittest.TestCase):
