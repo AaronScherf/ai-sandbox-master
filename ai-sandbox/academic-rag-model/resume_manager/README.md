@@ -61,6 +61,19 @@ subproject that does), then runs the same tailor → validate → render
 pipeline as `tailor_resume.py` above. If no Gemini key is configured, it
 still completes, just without the extra relevance brainstorm.
 
+Pass optional tailoring priorities or user-confirmed facts with `--guidance`
+or `--guidance-file path\to\instructions.txt`. The same text is sent to the
+Gemini relevance brainstorm and local tailoring model, and saved in the
+application's `guidance.txt`. User-supplied facts can supplement the master
+resume for the entry they describe; the models must not infer additional
+claims from them. For example:
+
+```powershell
+.\.venv\Scripts\python.exe -m resume_manager.apply_from_prompt `
+  --prompt-file "ukraine_opportunity.txt" `
+  --guidance-file "ukraine_resume_guidance.txt"
+```
+
 **If you're an agent handling a "tailor my resume for this opportunity"
 request:** which of the three tailoring entry points to use is a
 judgment call based on what you were actually given, not something to

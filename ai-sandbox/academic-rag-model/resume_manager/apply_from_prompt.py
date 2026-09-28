@@ -79,10 +79,13 @@ def interpret_opportunity_prompt(prompt: str, model: str = RESUMEMANAGER_OLLAMA_
 
 _BRAINSTORM_SYSTEM_PROMPT = """You are helping someone decide which parts of their resume are most relevant to a specific job opportunity, before it gets tailored.
 Given their full master resume (below) and a target job description, identify which Work Experience entries, skills, and other resume content are most relevant to this opportunity, and why. Write your answer as free-text guidance for whoever tailors the resume next -- not as YAML or JSON.
-Do not invent or assume any experience, skill, or fact not already present in the master resume."""
+Do not invent or assume any experience, skill, or fact not already present in the master resume or explicitly supplied by the user in the tailoring instructions below. Keep user-supplied facts associated only with the entry they identify; do not infer additional claims from them."""
 
 
-def brainstorm_relevant_content(client, master: dict, job_description: str, model: str = _GEMINI_MODEL) -> str | None:
+def brainstorm_relevant_content(
+    client, master: dict, job_description: str, model: str = _GEMINI_MODEL,
+    user_guidance: str | None = None,
+) -> str | None:
     """Sends the full resume_master.yaml (as raw YAML text -- Gemini's
     larger context window means it doesn't need merge_resumes.py's
     trimmed _build_master_context() view built for a smaller local
@@ -93,9 +96,13 @@ def brainstorm_relevant_content(client, master: dict, job_description: str, mode
     rather than blocking tailoring, mirroring tailor_resume.py's own
     _collect_guidance() contract (spec §11)."""
     master_yaml_text = yaml.safe_dump(master, sort_keys=False, allow_unicode=True)
+    user_guidance_section = (
+        f"\n\n### USER-PROVIDED TAILORING INSTRUCTIONS AND FACTS:\n{user_guidance}"
+        if user_guidance else ""
+    )
     prompt = (
         f"{_BRAINSTORM_SYSTEM_PROMPT}\n\n### FULL MASTER RESUME:\n{master_yaml_text}"
-        f"\n\n### TARGET JOB DESCRIPTION:\n{job_description}"
+        f"\n\n### TARGET JOB DESCRIPTION:\n{job_description}{user_guidance_section}"
     )
     try:
         response = client.models.generate_content(model=model, contents=prompt)
@@ -112,6 +119,7 @@ def brainstorm_relevant_content(client, master: dict, job_description: str, mode
 def create_application_from_prompt(
     prompt: str, resume_manager_dir: str, gemini_client=None,
     ollama_model: str = RESUMEMANAGER_OLLAMA_MODEL, gemini_model: str = _GEMINI_MODEL,
+    user_guidance: str | None = None,
 ) -> str:
     """Orchestrates all three stages (spec §15) and returns the same
     one-line status message run_tailoring() returns. Raises RuntimeError
@@ -120,7 +128,9 @@ def create_application_from_prompt(
     created, mirroring run_tailoring()'s own upfront-failure posture for
     a missing file (spec §8). `gemini_client` is optional -- pass None
     (e.g. no GEMINI_API_KEY configured) to skip Stage 2 entirely, which
-    still runs Stage 3 with guidance=None."""
+    still runs Stage 3 with the user's guidance, if supplied, as its only
+    guidance. `user_guidance` steers both Gemini's relevance brainstorm and
+    the local tailoring call; it is retained even if the Gemini call fails."""
     master_resume_path = os.path.join(resume_manager_dir, "resume_master.yaml")
     with open(master_resume_path, "r", encoding="utf-8") as f:
         master = yaml.safe_load(f)
@@ -134,7 +144,11 @@ def create_application_from_prompt(
 
     guidance = None
     if gemini_client is not None:
-        guidance = brainstorm_relevant_content(gemini_client, master, interpreted["job_description"], gemini_model)
+        guidance = brainstorm_relevant_content(
+            gemini_client, master, interpreted["job_description"], gemini_model, user_guidance=user_guidance,
+        )
+    if user_guidance:
+        guidance = f"{guidance}\n\n{user_guidance}" if guidance else user_guidance
 
     with tempfile.TemporaryDirectory() as tmp_dir:
         jd_path = os.path.join(tmp_dir, "job_description.txt")
@@ -158,6 +172,13 @@ def main() -> None:
         help="Use PAID_GEMINI_KEY from ai-sandbox/.env instead of GEMINI_API_KEY -- for when the "
              "default key is pointed at a free-tier project for other work (see gemini_utils.get_gemini_client).",
     )
+    guidance_group = parser.add_mutually_exclusive_group()
+    guidance_group.add_argument(
+        "--guidance", help="Extra tailoring instructions or user-confirmed facts to pass through both model steps.",
+    )
+    guidance_group.add_argument(
+        "--guidance-file", help="Path to a text file containing extra tailoring instructions or user-confirmed facts.",
+    )
     args = parser.parse_args()
 
     if args.prompt is not None:
@@ -166,12 +187,22 @@ def main() -> None:
         with open(args.prompt_file, "r", encoding="utf-8") as f:
             prompt_text = f.read()
 
+    if args.guidance is not None:
+        user_guidance = args.guidance
+    elif args.guidance_file is not None:
+        with open(args.guidance_file, "r", encoding="utf-8") as f:
+            user_guidance = f.read()
+    else:
+        user_guidance = None
+
     load_dotenv_override()
     gemini_client = get_gemini_client("PAID_GEMINI_KEY" if args.use_paid_key else "GEMINI_API_KEY")
     if gemini_client is None:
         print("WARNING: no Gemini client available -- continuing without the relevance brainstorm step.")
 
-    print(create_application_from_prompt(prompt_text, args.resume_manager_dir, gemini_client=gemini_client))
+    print(create_application_from_prompt(
+        prompt_text, args.resume_manager_dir, gemini_client=gemini_client, user_guidance=user_guidance,
+    ))
 
 
 if __name__ == "__main__":
