@@ -1,0 +1,218 @@
+contact:
+  name: Aaron Scherf
+  location: New York, NY, USA
+  email: theaaronscherf@gmail.com
+  linkedin_url: https://www.linkedin.com/in/aaron-scherf/
+  github_url: null
+  website_url: https://aaronscherf.github.io/
+work_experience:
+- id: u-s-agency-for-international-development-1
+  org: U.S. Agency for International Development
+  role: Foreign Service Officer - Monitoring, Evaluation, Learning Team Lead (FS 3-5)
+  location: Kyiv, Ukraine
+  start_date: 03/2024
+  end_date: 07/2025
+  bullets:
+  - Developed analytics system to track $5Bn in electrical infrastructure support
+    by administrative geography, enabling rapid repairs in response to Russian missile
+    strikes and increased accountability.
+  - Managed portfolio of 20 program evaluations, including leading design of a $1.5M
+    randomized control trial to evaluate impact and cost effectiveness of $450M credit
+    facilitation program for small farmers.
+  - Supervised $36M contract for monitoring, evaluation, and learning services, including
+    developing new systems for performance tracking, strategy alignment, and context
+    research.
+- id: u-s-agency-for-international-development-2
+  org: U.S. Agency for International Development
+  role: Foreign Service Officer - Gender Equity and Program Design Officer (FS 4-9)
+  location: Bogota, Colombia
+  start_date: 02/2022
+  end_date: 03/2024
+  bullets:
+  - Led collection of over 500 performance indicators across 32 development programs
+    for annual report.
+  - Supported 32 programs to re-align performance indicators with gender equity and
+    social inclusion principles, including multiple presentations to contract partner
+    teams in Spanish.
+  - Led the design and context research for four programs in smallholder agriculture,
+    environmental conservation, rural land titling, and indigenous civic society leadership.
+- id: u-s-agency-for-international-development-3
+  org: U.S. Agency for International Development
+  role: Foreign Service Officer - Program Officer Rotations (FS 5-12)
+  location: Washington, DC, USA
+  start_date: 07/2020
+  end_date: 02/2022
+  bullets:
+  - Led team of 15 staff as acting Office Director and Budget Lead for 3 months during
+    $1.7Bn congressional funding negotiations and supervised over $60M in realignment
+    of program funds.
+  - Led knowledge management pilot program with South Sudan office, including designing
+    staff transition resources and implementation plan for improving handovers and
+    file management in Juba.
+- id: historic-macon-foundation-1
+  org: Historic Macon Foundation
+  role: Real Estate Analyst
+  location: Macon, GA, USA
+  start_date: 08/2016
+  end_date: 05/2017
+  bullets:
+  - Analyzed impact of historic revitalization investments on property values through
+    econometric assessment.
+  - Supported Neighborhood Incubator community program to develop local leadership
+    capacity.
+- id: landlink-analytic-services-llc-1
+  org: LandLink Analytic Services, LLC
+  role: Co-Founder, Lead Economist
+  location: Macon, GA, USA
+  start_date: 12/2016
+  end_date: 10/2018
+  bullets:
+  - Conducted 7 contracted research projects analyzing impact of public and private
+    property investment on housing prices and municipal tax revenues.
+  - Founded data analytics consulting company with team of economists and software
+    engineers to develop geospatial models of housing price dynamics and identify
+    areas at increased risk of gentrification.
+education:
+- institution: Columbia University
+  id: columbia-university-1
+  degree: PhD in Sustainable Development
+  gpa: Not specified
+  location: New York, NY, USA
+  start_date: 08/2026
+  end_date: Present
+  thesis: Not specified
+- institution: Georgia Institute of Technology
+  id: georgia-institute-of-technology-1
+  degree: Master of Science in Computer Science
+  gpa: '3.88'
+  location: Atlanta, GA, USA
+  start_date: 01/2022
+  end_date: 12/2025
+  thesis: Not specified
+- institution: Indiana State University
+  id: indiana-state-university-1
+  degree: Master of Science in Mathematics
+  gpa: '3.85'
+  location: Terre Haute, IN, USA
+  start_date: 05/2021
+  end_date: 05/2024
+  thesis: Novel Omnibus Normality Test and Power Comparison with the Shapiro-Wilk
+- institution: University of California, Berkeley
+  id: university-of-california-berkeley-1
+  degree: Master of Science in Development Practice
+  gpa: '3.94'
+  location: Berkeley, CA, USA
+  start_date: 07/2018
+  end_date: 05/2020
+  thesis: Predicting the Yield of CIMMYT Wheat Genotypes via Remote Sensing and Machine
+    Learning
+- institution: Heidelberg University
+  id: heidelberg-university-1
+  degree: Master of Science (audited) in Economics
+  gpa: Not specified
+  location: Heidelberg, DE
+  start_date: 07/2017
+  end_date: 06/2018
+  thesis: Not specified
+- institution: Mercer University
+  id: mercer-university-1
+  degree: Bachelor in Finance and Economics
+  gpa: '3.91'
+  location: Macon, GA, USA
+  start_date: 08/2013
+  end_date: 05/2017
+  thesis: Analyzing Regional Economic Impacts of Syrian Refugee Crisis in Turkey
+awards:
+- name: Donald M. Payne Fellow
+  description: $100,000 fellowship with USAID
+  date: 05/2017
+- name: Fulbright Scholar
+  description: Research Fellow at ZEW / Heidelberg, DE
+  date: 05/2017
+- name: Humanity in Action Senior Fellow
+  description: in partnership with Amnesty International
+  date: 05/2017
+- name: Stamps Foundation Leadership Scholar
+  description: $240,000 merit scholarship
+  date: 05/2013
+- name: Payne International Development Fellow
+  description: $90,000 Graduate Fellowship with USAID
+  date: Not specified
+- name: Fulbright Graduate Research Award
+  description: $10,000 Research Grant and Cultural Exchange Program
+  date: Not specified
+publications:
+- title: Applications of PCA for Mapping Regional Socioeconomic Vulnerability Indices
+  date: 12/2019
+  venue: 'UC Berkeley: Data for Human Mobility Lab'
+  link: Not specified
+- title: 'Integration Progress: Results from two Reallabor Surveys of Asylum Seekers'
+  date: 08/2018
+  venue: Centre for European Economic Research (ZEW)
+  link: https://www.econstor.eu/handle/10419/231442
+- title: Gentrification or Revitalization? Ethical Investment in Urban Property Development
+  date: 04/2017
+  venue: National Conference on Undergraduate Research
+  link: Not specified
+- title: Economic Impact Assessment of Historic Property Rehabilitation in Macon,
+    GA
+  date: 04/2017
+  venue: Society of Business, Industry, and Economics Conference
+  link: Not specified
+- title: “OurBlock” - Blockchain Based Property Registry for South African Land Reform
+  date: 03/2017
+  venue: Harvard Social Entrepreneurship Pitch Competition
+  link: Not specified
+- title: “How to Kill a Microfinance Fund” – Analysis of Microcredit Policy in South
+    Africa
+  date: 10/2016
+  venue: Southern Conference Undergraduate Research Forum
+  link: Not specified
+- title: “Bloomfield 2020” – Neighborhood Economic Development Plan
+  date: 04/2016
+  venue: Clinton Global Initiative University at Berkeley, CA
+  link: Not specified
+- title: Autonomous Drone Deployment Grid for Improved Wildfire Response in California
+  date: 05/2020
+  venue: 'UC Berkeley: Innovations in Disaster Response Showcase'
+- title: The End of Schengen? Reforms to the Dublin Regulation and EU Asylum Policy
+  date: 08/2017
+  venue: Humanity in Action International Conference in Strasbourg, FR
+  link: Not specified
+skills:
+- category: Applied Economics & Research Methods
+  items:
+  - Applied Econometrics
+  - Mathematical Statistics
+  - Labor Economic Research
+  - Applied Mathematics
+  - Development Economics
+  - GIS Analysis (ArcGIS / GEE)
+  - Program Evaluation
+  - Empirical Policy Analysis
+  - Spanish - Professional
+  - German - Intermediate
+  - Information Communications Technology
+- category: AI, Machine Learning & Automation
+  items:
+  - Machine Learning
+  - Natural Language Processing
+  - Artificial Neural Networks
+  - Large Language Models
+  - CrewAI
+  - AutoGen
+  - LangChain
+  - Tableau
+  - PowerBI
+  - Google Earth Engine
+- category: Programming & Data Engineering
+  items:
+  - Python
+  - R
+  - JavaScript
+  - Stata
+  - MatLab
+  - Excel
+  - SQL
+  - Azure
+  - GCP
