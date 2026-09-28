@@ -1263,3 +1263,199 @@ checks (§5) — a hand-edited wording change is the user's own deliberate
 choice, not an LLM rewrite to fact-check; per-field (rather than
 whole-file) conflict resolution for `resume_master.md` (the hash-guard is
 whole-file, matching this revision's simpler scope).
+
+## 15. Tailoring from a rough opportunity description (Revision 8)
+
+**Problem.** Every tailoring path so far (§4, §11) starts from a
+complete job description already saved to a text file, plus a
+human-chosen `--application-name`. The user wants to start from much
+less: a free-text, possibly one-sentence description of an opportunity
+("a senior data analyst role at a mid-size fintech, focused on fraud
+detection"), with the pipeline itself producing a proper job description,
+picking an application name, and — the genuinely new capability —
+brainstorming which parts of the (potentially large, multi-page) master
+resume are actually relevant to that opportunity before tailoring runs,
+rather than relying solely on the existing single tailoring call's own
+in-the-moment judgment.
+
+**Design decision: a three-stage pipeline, local model on both ends,
+Gemini in the middle.** Considered and rejected: (a) having the current
+session's own agent (Claude, with real reasoning/tool use) do the
+brainstorming directly — rejected because it would make this feature
+require an active Claude Code session to run at all, a real departure
+from this subproject's "fully local, no paid API, runnable without
+Claude" design (§1, README) that the user confirmed during design
+discussion they still want preserved; (b) doing the whole thing as one
+large Gemini call (interpret the rough prompt, brainstorm relevance, and
+draft the tailored bullets) — rejected because it hands Gemini
+responsibility beyond what it's actually needed for (matching a large
+document's content against a job description, where its larger context
+window and speed genuinely help) and would duplicate `tailor_resume()`'s
+already-built, already-tested rewriting/validation contract. The chosen
+design keeps each stage doing only the one thing it's suited for:
+1. **Stage 1 (local Ollama, new `interpret_opportunity_prompt()`):**
+   turns the rough free-text description into a clean job-description-
+   style text block and a short `application_name` string (e.g. "Acme
+   Corp Senior Data Analyst"). A narrow rephrase/expand task — not a
+   structured-extraction task across many categories like §12's merge
+   comparison — so it's a much safer single local call than anything
+   Revision 5-7 had to fix. Returns `None` (never raises) on an
+   unreachable/timed-out/malformed response, matching every other local
+   call's contract in this subproject (§8). The prompt asks for
+   `job_description` as a YAML block scalar (`|`) rather than a plain
+   value, and the parsed response is rejected (`None`) if it carries any
+   key beyond the two expected ones (fixed in code review 2026-09-28: a
+   plain, unindented multi-paragraph `job_description` — natural for a
+   real job description with a "Responsibilities:" section and blank
+   lines — silently parsed down to just its first line otherwise, with
+   the rest landing in unrelated top-level keys nothing reads; no error,
+   just a badly-targeted job description with no warning).
+2. **Stage 2 (Gemini, new `brainstorm_relevant_content()`, via the
+   existing `common/gemini_utils.py`):** sends `resume_master.yaml`'s
+   *raw YAML text, in full* (not `merge_resumes.py`'s trimmed
+   `_build_master_context()` view built for a smaller local context
+   window — the whole point of using Gemini here is that its larger
+   context window doesn't need that trimming) plus Stage 1's job
+   description text to a flash-tier Gemini model (this is a
+   relevance-matching task, not one needing pro-tier reasoning), asking
+   it to identify which Work Experience entries, skills, and other
+   master-resume content are most relevant to this opportunity and why.
+   Output is free text in the same
+   shape `guidance` already accepts (see below) — not structured
+   YAML/JSON — since nothing downstream parses it further, and free text
+   has far fewer failure modes than requiring an exact schema from a
+   different model than the rest of this subproject uses. On failure
+   (missing key, network error, quota), warns and returns `None`,
+   exactly like `_collect_guidance()`'s existing graceful-degradation
+   contract (§11) — a Gemini outage never blocks tailoring, it only
+   means tailoring proceeds without the extra brainstormed context.
+3. **Stage 3 (local Ollama — no new code):** Stage 1's job description
+   text is written to a temp file, and the already-existing, completely
+   unmodified `run_tailoring(master_resume_path, jd_path,
+   application_name, resume_manager_dir, guidance=stage_2_text)`
+   (`tailor_resume.py`) is called directly. `guidance` (§11) was already
+   "optional free text inserted as a `### USER GUIDANCE` block" with no
+   coupling to its originally-Q&A-shaped caller — Stage 2's brainstorm
+   slots into that exact same parameter with zero changes to `tailor.py`
+   or `run_tailoring()`.
+
+**New module: `resume_manager/apply_from_prompt.py`.** Kept as its own
+script rather than a new flag on `tailor_resume.py` — same "one script
+per user-facing action" precedent as `convert_resume.py`/
+`tailor_resume.py`/`merge_resumes.py`, and it's the only script in this
+subproject that needs a Gemini API key at all, so isolating it keeps
+every other entry point's zero-paid-dependency guarantee intact.
+- `interpret_opportunity_prompt(prompt: str, model: str = RESUMEMANAGER_OLLAMA_MODEL) -> dict | None`
+  — returns `{"job_description": str, "application_name": str}`.
+- `brainstorm_relevant_content(master: dict, job_description: str, model: str = _GEMINI_MODEL) -> str | None`
+  — `_GEMINI_MODEL` defaults to `"gemini-3.1-flash-lite"`, the same
+  flash-tier model `notes/transcribe_notes.py` already uses for its
+  cheapest per-call tasks (measured there at ~$0.0007/page) — a
+  relevance-matching task over one resume plus one job description is
+  well within that tier, with no need for a pro-tier model's cost or
+  latency.
+- `create_application_from_prompt(prompt: str, resume_manager_dir: str, ollama_model: str = RESUMEMANAGER_OLLAMA_MODEL, gemini_model: str = _GEMINI_MODEL) -> str`
+  — the orchestration function: runs Stage 1, aborts with a clear error
+  if it fails (there is no job description to proceed with, the same
+  upfront-failure posture `run_tailoring()` already has for a missing
+  file), runs Stage 2 (best-effort), writes Stage 1's job description to
+  a temp file, and calls `run_tailoring()`. Returns the same one-line
+  status string `run_tailoring()` already returns. (Corrected 2026-09-28,
+  found in code review: an earlier draft of this signature and
+  `run_tailoring()`'s own listed signature both carried a stray
+  `target_pages: int = 2` parameter that `run_tailoring()` doesn't
+  actually have on this branch — removed here; it was never passed by
+  the implementation, so this was a documentation-only inaccuracy with
+  no runtime effect.)
+- CLI (`python -m resume_manager.apply_from_prompt`): `--prompt "text"`
+  or `--prompt-file path.txt` (support both — an inline flag for a short
+  description, a file for a longer, multi-paragraph one), plus the same
+  `--resume-manager-dir` flag `tailor_resume.py` already exposes (its
+  default mirrors `tailor_resume.py`'s own
+  `_DEFAULT_RESUME_MANAGER_DIR`), and `--use-paid-key` (added in code
+  review 2026-09-28, matching `notes/route_notes_transcribe.py`'s
+  existing convention exactly: an earlier draft only ever called
+  `get_gemini_client()` with no argument, which only reads
+  `GEMINI_API_KEY` — the "same override" claim two paragraphs below was
+  aspirational until this flag existed) to use `PAID_GEMINI_KEY` instead
+  of `GEMINI_API_KEY`.
+
+**New dependency, scoped to this one script.** `GEMINI_API_KEY` (or
+`PAID_GEMINI_KEY`, same override this codebase's other Gemini callers
+already support) is required only to run `apply_from_prompt.py`.
+`convert_resume.py`, `tailor_resume.py`, and `merge_resumes.py` are
+completely unaffected and remain fully local.
+
+**Routing: which of the three tailoring entry points to use is agent
+judgment, documented as a decision procedure, not new classification
+code.** The user's real request is often conversational ("tailor my
+resume for this opportunity"), and what they hand over varies: a path to
+a JD file they already have, a complete job posting pasted inline, or
+just a rough description. Distinguishing "this text is already a
+complete job description" from "this text is a rough description" is an
+open-ended natural-language judgment call — precisely the kind of task
+this whole revision already established belongs to an agent's judgment,
+not a deterministic heuristic (word-count and keyword-matching
+heuristics are both easy to fool in either direction). Rather than write
+classification code that would need its own real-world tuning the way
+§12's duplicate-detection threshold did, this decision is documented as
+guidance for whichever agent is handling the request, in
+`resume_manager/README.md`:
+1. **An existing job description file is already known or found**
+   (the user names a path, or the agent finds a matching
+   `applications/*/job_description.txt` by listing/reading the
+   `applications/` directory — ordinary tool use, not new pipeline code)
+   → run `tailor_resume.py --jd-file <path> --application-name <name>`
+   directly.
+2. **The user pastes what reads as a complete job posting** (has the
+   shape of a real listing — responsibilities, qualifications, etc., not
+   just a one-line gist) → the agent saves it verbatim to a new
+   application folder's `job_description.txt`, derives `--application-name`
+   itself from the posting's own company/role text (the same judgment
+   call Stage 1 would otherwise make with an Ollama call — skipped here
+   since the agent is already reading the full text), and runs
+   `tailor_resume.py --jd-file <path> --application-name <name>`
+   directly — bypassing `apply_from_prompt.py` and its Gemini dependency
+   entirely, since there's nothing left to interpret or brainstorm that
+   the existing tailoring call doesn't already do from a real job
+   description.
+3. **Only a rough, general description of the opportunity is given** →
+   the agent runs `apply_from_prompt.py --prompt "..."`, invoking the
+   full three-stage pipeline above.
+
+This keeps `apply_from_prompt.py` itself simple and fully testable (it
+always receives a rough description, never has to decide what kind of
+input it was handed), and keeps the fuzzy, evolving part of this
+decision in documentation an agent reads and reasons from, rather than
+in code that would need the same kind of real-run calibration §12's
+duplicate detection needed.
+
+**Error handling.** Stage 1 failure aborts before creating any
+application folder or writing any file — there is no job description to
+proceed with. Stage 2 failure degrades to `guidance=None` and continues.
+Stage 3 is `run_tailoring()`, unchanged, with its own existing error
+handling (§8).
+
+**Testing.** `interpret_opportunity_prompt()` and
+`brainstorm_relevant_content()` each get unit tests mocking `call_ollama`
+and the Gemini client respectively (the latter following
+`test_transcribe_notes.py`'s existing pattern for mocking
+`common/gemini_utils.py` callers), covering: a well-formed response, a
+malformed/unparseable response, and an unreachable/erroring backend.
+`create_application_from_prompt()` gets an orchestration-level test
+(both calls mocked) verifying it calls `run_tailoring()` with the
+derived job description, application name, and Stage 2's guidance text,
+and a second test verifying a Stage 2 failure still calls
+`run_tailoring()`, with `guidance=None`, rather than aborting.
+
+**Non-goals of this revision.** A code-level "does a matching
+application already exist" search utility — deliberately left to
+ordinary agent tool use (Glob/Grep/Read over `applications/`) rather
+than new fuzzy-matching code, since it's the same kind of fuzzy
+real-world judgment call this revision already routes to agent
+reasoning rather than code (see Routing, above); re-running this
+pipeline's Stage 1/Stage 2 to *revise* an already-tailored application
+(out of scope — re-running `tailor_resume.py` directly, or hand-editing
+via §14's Markdown sync, already cover that case); any change to
+`tailor.py`, `render.py`, or `validate.py` (none needed — Stage 3 reuses
+`run_tailoring()` exactly as it exists today).
