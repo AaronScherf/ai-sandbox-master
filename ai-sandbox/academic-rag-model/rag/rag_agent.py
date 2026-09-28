@@ -228,10 +228,64 @@ def _generate_answer(
     return (response.text or "").strip()
 
 
+_KEY_TERM_PROMPT_TEMPLATE = """List the specific named theorems, models, inequalities, or other \
+technical terms in the question below that would appear in a textbook's index and let you identify \
+exactly which chapter or section it's from. Skip generic terms (set, function, relation, utility, \
+preference) that appear in nearly every question in this field. If the question has no such specific \
+named terms, respond with nothing.
+
+Question: {question}
+
+Respond with ONLY a comma-separated list of terms, nothing else."""
+
+
+def _extract_key_terms(question: str, client) -> list[str]:
+    """Small LLM call, same pattern as _reformulate_query() -- a
+    question's distinctive named terms (a theorem, a named model, an
+    inequality) are exactly what a dense embedding under-weights
+    relative to its generic formal-math boilerplate (2026-09-28,
+    confirmed live: homework_3's Question 4, on random utility /
+    Block-Marschak / Luce, scored an unrelated homework's differently-
+    numbered "Question 4" higher than every real textbook, because both
+    are shaped like formal choice-theory problems -- the literal terms
+    "Block Marschak" and "Luce" never factored into that ranking at
+    all). Used both to boost retrieve_passages()'s scoring and, by
+    /hint's own handler, to flag when nothing retrieved actually
+    contains them."""
+    prompt = _KEY_TERM_PROMPT_TEMPLATE.format(question=question)
+    response = call_with_retries(lambda: client.models.generate_content(
+        model=GENERATION_MODEL, contents=prompt,
+        config={"temperature": 0, "thinking_config": {"thinking_level": "minimal"}},
+    ))
+    text = (response.text or "").strip()
+    if not text:
+        return []
+    return [t.strip() for t in text.split(",") if t.strip()]
+
+
+def _term_match_count(text: str, key_terms: list[str]) -> int:
+    """Case-insensitive count of how many distinct key_terms appear in
+    text -- shared by retrieve_passages()'s scoring boost and /hint's
+    own low-confidence check, so both agree on what counts as a match."""
+    text_lower = text.lower()
+    return sum(1 for term in key_terms if term.lower() in text_lower)
+
+
+_KEY_TERM_BONUS = 0.08  # confirmed live: real corpus cosine scores for a genuine
+# topic match vs. a merely structural one (same "shape" of formal problem,
+# wrong topic) cluster within about 0.05-0.15 of each other -- see homework_3's
+# Question 4, where the wrong-topic passage scored 0.7981 and the right
+# textbook's own chunk scored 0.7797. One matched key term is enough to close
+# a gap that size; two clearly should. Deliberately not larger: this is a
+# tiebreaker among plausible candidates, not a licence to promote a
+# barely-related passage over a strongly on-topic one just because it happens
+# to repeat a term verbatim.
+
+
 def retrieve_passages(
     roots: list[str], query: str, client,
     course: str | None = None, top_k: int = 6, max_per_file: int = 3,
-    textbook_top_k: int = 3,
+    textbook_top_k: int = 3, key_terms: list[str] | None = None,
 ) -> list[PassageResult]:
     """Retrieval step factored out of answer_question() so /hint
     (rag/tutor_diagnosis.py) can call it directly without duplicating
@@ -255,12 +309,32 @@ def retrieve_passages(
     each other for the file-level cut, so a topically relevant textbook
     no longer has to out-score every short note/homework file just to
     be considered; its own chunks then compete for real on their much
-    more specific per-chunk embeddings."""
+    more specific per-chunk embeddings.
+
+    Also reranks the merged pool by a key-term match bonus when the
+    caller supplies key_terms (2026-09-28's follow-up to the fix above):
+    that fixed the file-level exclusion but not chunk-level relevance on
+    its own -- the textbook chunks that won chunk-level ranking for
+    Question 4 were Rubinstein's own practice-problem listings, not the
+    expository passages that actually explain Block-Marschak or Luce,
+    because a query that is itself a problem statement embeds more like
+    other problem statements than like matching theory prose. The
+    key-term bonus directly rewards whichever passages literally name
+    the question's own distinctive terms, regardless of that structural
+    bias. Deliberately opt-in, not automatic: extraction is its own
+    generate_content call (_extract_key_terms), and answer_question()'s
+    normal Q&A path -- called on every single message, unlike /hint --
+    shouldn't pay for it by default just because /hint benefits from it.
+    key_terms=None is treated as "no boost" (equivalent to []), never as
+    "go extract them"; /hint's own handler extracts once and passes the
+    result through, both for this boost and its own low-confidence
+    check, rather than this function silently doing it twice."""
+    key_terms = key_terms or []
     general = search_passages(roots, query, client, course=course, top_k=top_k * 2)
     textbook = search_passages(roots, query, client, course=course, doc_type="textbook", top_k=textbook_top_k)
     seen_chunk_ids = {p.chunk_id for p in general}
     merged = general + [p for p in textbook if p.chunk_id not in seen_chunk_ids]
-    merged.sort(key=lambda p: p.score, reverse=True)
+    merged.sort(key=lambda p: p.score + _KEY_TERM_BONUS * _term_match_count(p.text, key_terms), reverse=True)
     return _diversify_by_file(merged, max_per_file)[:top_k]
 
 
@@ -482,8 +556,21 @@ def main() -> None:
             except (OSError, UnicodeDecodeError) as err:
                 print(f"Couldn't read {file_path!r}: {err}\n")
                 continue
-            hint_passages = retrieve_passages(roots, question_text, client, course=args.course)
+            key_terms = _extract_key_terms(question_text, client)
+            hint_passages = retrieve_passages(
+                roots, question_text, client, course=args.course, key_terms=key_terms,
+            )
             hint = generate_hint(question_text, hint_passages, client)
+            if key_terms and not any(_term_match_count(p.text, key_terms) for p in hint_passages):
+                # None of the final passages mention any of the question's own
+                # distinctive terms -- the key-term boost had nothing to promote,
+                # which usually means the right source isn't in the corpus at all
+                # (confirmed live 2026-09-28: homework_3's Question 4 asks about
+                # Block Marschak/Luce, and no chunk anywhere in microecon's index
+                # mentions either). Surfaced here rather than silently handing
+                # over a confidently-worded hint grounded in the wrong topic.
+                print(f"Note: none of the retrieved sources mention {', '.join(key_terms)} "
+                      f"-- this hint may not be well-grounded.\n")
             print(f"\n{hint}\n")
             for p in hint_passages:
                 print(f"  - [{p.root}] {p.path} ({p.citation})")

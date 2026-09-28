@@ -7,7 +7,7 @@ from indexer.index_search import PassageResult
 from rag.rag_agent import (
     Turn, Citation, AnswerResult, _diversify_by_file, _reformulate_query,
     TUTOR_MODEL, _generate_answer, answer_question, _looks_like_problem_request,
-    _looks_like_visualize_request, retrieve_passages,
+    _looks_like_visualize_request, retrieve_passages, _extract_key_terms, _term_match_count,
 )
 
 
@@ -70,6 +70,39 @@ class TestReformulateQuery(unittest.TestCase):
         self.assertEqual(result, "explain that again")
 
 
+class TestExtractKeyTerms(unittest.TestCase):
+    def test_parses_comma_separated_terms(self):
+        client = _fake_generate_client("Block Marschak inequalities, Luce model")
+        result = _extract_key_terms("Show that the Block Marschak inequalities imply monotonicity.", client)
+        self.assertEqual(result, ["Block Marschak inequalities", "Luce model"])
+
+    def test_uses_generation_model(self):
+        client = _fake_generate_client("Nash equilibrium")
+        _extract_key_terms("q", client)
+        self.assertEqual(client.models.generate_content.call_args.kwargs["model"], GENERATION_MODEL)
+
+    def test_empty_response_returns_no_terms(self):
+        client = _fake_generate_client("")
+        self.assertEqual(_extract_key_terms("a generic question with no named theorems", client), [])
+
+    def test_strips_whitespace_around_each_term(self):
+        client = _fake_generate_client("  Block Marschak inequalities ,  Luce model  ")
+        result = _extract_key_terms("q", client)
+        self.assertEqual(result, ["Block Marschak inequalities", "Luce model"])
+
+
+class TestTermMatchCount(unittest.TestCase):
+    def test_counts_case_insensitive_matches(self):
+        text = "This section covers the Luce model and Block Marschak inequalities in depth."
+        self.assertEqual(_term_match_count(text, ["luce model", "BLOCK MARSCHAK INEQUALITIES"]), 2)
+
+    def test_no_terms_present_returns_zero(self):
+        self.assertEqual(_term_match_count("unrelated text about consideration sets", ["Luce model"]), 0)
+
+    def test_empty_key_terms_returns_zero(self):
+        self.assertEqual(_term_match_count("any text", []), 0)
+
+
 class TestGenerateAnswer(unittest.TestCase):
     def test_uses_tutor_model(self):
         client = _fake_generate_client("The spectral theorem states...")
@@ -108,7 +141,8 @@ class TestAnswerQuestion(unittest.TestCase):
         with patch("rag.rag_agent.search_passages", return_value=passages) as mock_search:
             answer_question(["/root"], "what is X", client)
         self.assertEqual(client.models.generate_content.call_count, 1)  # only the answer call, no reformulation
-        mock_search.assert_called_once_with(["/root"], "what is X", client, course=None, top_k=12)
+        # retrieve_passages() (2026-09-27) also queries a dedicated textbook pool
+        mock_search.assert_any_call(["/root"], "what is X", client, course=None, top_k=12)
 
     def test_follow_up_uses_reformulated_query_for_retrieval(self):
         client = MagicMock()
@@ -119,7 +153,7 @@ class TestAnswerQuestion(unittest.TestCase):
         history = [Turn(role="user", text="explain X"), Turn(role="assistant", text="X is...")]
         with patch("rag.rag_agent.search_passages", return_value=passages) as mock_search:
             answer_question(["/root"], "explain differently", client, history=history)
-        mock_search.assert_called_once_with(["/root"], "standalone question", client, course=None, top_k=12)
+        mock_search.assert_any_call(["/root"], "standalone question", client, course=None, top_k=12)
 
     def test_citations_match_diversified_passages(self):
         client = _fake_generate_client("answer")
@@ -158,14 +192,16 @@ class TestRetrievePassages(unittest.TestCase):
         client = MagicMock()
         passages = [_passage(f"aaa-{i:03d}", "aaa") for i in range(5)]
         with patch("rag.rag_agent.search_passages", return_value=passages) as mock_search:
-            result = retrieve_passages(["/root"], "q", client, course="math-camp", top_k=6, max_per_file=2)
+            result = retrieve_passages(
+                ["/root"], "q", client, course="math-camp", top_k=6, max_per_file=2, key_terms=[],
+            )
         mock_search.assert_any_call(["/root"], "q", client, course="math-camp", top_k=12)
         self.assertEqual(len(result), 2)  # capped by max_per_file, only one file present
 
     def test_also_queries_a_dedicated_textbook_pool(self):
         client = MagicMock()
         with patch("rag.rag_agent.search_passages", return_value=[]) as mock_search:
-            retrieve_passages(["/root"], "q", client, course="math-camp", textbook_top_k=4)
+            retrieve_passages(["/root"], "q", client, course="math-camp", textbook_top_k=4, key_terms=[])
         mock_search.assert_any_call(["/root"], "q", client, course="math-camp", doc_type="textbook", top_k=4)
 
     def test_textbook_pool_survives_even_when_excluded_from_the_general_pool(self):
@@ -181,14 +217,14 @@ class TestRetrievePassages(unittest.TestCase):
         general = [_passage("note-000", "note", text="unrelated note")]
         textbook = [_passage("book-000", "book", text="the exact topical match")]
         with patch("rag.rag_agent.search_passages", side_effect=[general, textbook]):
-            result = retrieve_passages(["/root"], "q", client)
+            result = retrieve_passages(["/root"], "q", client, key_terms=[])
         self.assertIn("book-000", [p.chunk_id for p in result])
 
     def test_deduplicates_a_chunk_present_in_both_pools(self):
         client = MagicMock()
         shared = _passage("book-000", "book")
         with patch("rag.rag_agent.search_passages", side_effect=[[shared], [shared]]):
-            result = retrieve_passages(["/root"], "q", client)
+            result = retrieve_passages(["/root"], "q", client, key_terms=[])
         self.assertEqual(len(result), 1)
 
     def test_merged_pools_are_resorted_by_score_before_capping(self):
@@ -198,8 +234,44 @@ class TestRetrievePassages(unittest.TestCase):
         high = _passage("book-000", "book")
         high.score = 0.9
         with patch("rag.rag_agent.search_passages", side_effect=[[low], [high]]):
-            result = retrieve_passages(["/root"], "q", client, top_k=1)
+            result = retrieve_passages(["/root"], "q", client, top_k=1, key_terms=[])
         self.assertEqual(result[0].chunk_id, "book-000")
+
+    def test_never_calls_generate_content_itself(self):
+        # Deliberate: key-term extraction is its own generate_content call
+        # (_extract_key_terms), and answer_question()'s normal Q&A path runs
+        # on every message, unlike /hint -- retrieve_passages() must never
+        # trigger it on its own, only apply a bonus when a caller (/hint's
+        # handler) already extracted terms and passed them in.
+        client = MagicMock()
+        with patch("rag.rag_agent.search_passages", return_value=[]):
+            retrieve_passages(["/root"], "q", client)
+            retrieve_passages(["/root"], "q", client, key_terms=["Luce model"])
+        client.models.generate_content.assert_not_called()
+
+    def test_a_passage_matching_a_key_term_outranks_a_higher_raw_score(self):
+        # The exact homework_3 Question 4 shape: a wrong-topic passage scores
+        # higher on raw cosine similarity, but a lower-scoring passage that
+        # actually names the question's own distinctive term should win once
+        # the key-term bonus is applied.
+        client = MagicMock()
+        wrong_topic = _passage("note-000", "note", text="a consideration-set choice model")
+        wrong_topic.score = 0.80
+        on_topic = _passage("book-000", "book", text="the Luce model of stochastic choice")
+        on_topic.score = 0.78
+        with patch("rag.rag_agent.search_passages", side_effect=[[wrong_topic], [on_topic]]):
+            result = retrieve_passages(["/root"], "q", client, top_k=1, key_terms=["Luce model"])
+        self.assertEqual(result[0].chunk_id, "book-000")
+
+    def test_no_key_terms_leaves_raw_score_ordering_unchanged(self):
+        client = MagicMock()
+        low = _passage("note-000", "note", text="mentions Luce model too")
+        low.score = 0.2
+        high = _passage("book-000", "book", text="mentions Luce model too")
+        high.score = 0.9
+        with patch("rag.rag_agent.search_passages", side_effect=[[low], [high]]):
+            result = retrieve_passages(["/root"], "q", client, top_k=1, key_terms=[])
+        self.assertEqual(result[0].chunk_id, "book-000")  # bonus is 0 either way, raw score wins
 
 
 class TestAnswerQuestionPassages(unittest.TestCase):
@@ -449,7 +521,7 @@ class TestAnswerQuestionProblemGeneration(unittest.TestCase):
              patch("rag.rag_agent.search_passages", return_value=[]) as mock_search:
             result = answer_question(["/root"], "give me a practice problem on eigenvalues", client)
         mock_generate.assert_called_once()
-        mock_search.assert_called_once()
+        self.assertTrue(mock_search.called)  # retrieve_passages() queries a general and a textbook pool
         self.assertEqual(result.answer, "The fallback answer.")
         self.assertIsNone(result.generated_problem)
 
