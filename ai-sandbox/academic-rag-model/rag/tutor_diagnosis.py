@@ -139,6 +139,39 @@ def generate_hint(question: str, passages: list[PassageResult], client) -> str:
     return (response.text or "").strip()
 
 
+_UNGROUNDED_HINT_PROMPT_TEMPLATE = """A student is about to attempt the question below. None of their \
+own course materials matched it closely enough to ground a hint in, so use your own general knowledge \
+of the subject instead. Give them a motivating sketch of the right technique or theorem to reach for \
+-- enough to get them unstuck and pointed in the right direction.
+
+Do NOT state the final answer, a verdict (e.g. True/False), or a worked derivation. If you find \
+yourself about to write out the conclusion, stop and describe the approach instead.
+
+Question: {question}
+
+Hint:"""
+
+
+def generate_ungrounded_hint(question: str, client) -> str:
+    """Fallback for /hint's own low-confidence case (rag_agent.py):
+    retrieve_passages() found nothing that mentions the question's own
+    extracted key terms at all -- usually because the right course
+    material simply isn't in the corpus (confirmed live, 2026-09-28:
+    homework_3's Question 4 asks about Block Marschak/Luce, and no
+    chunk anywhere in microecon's index mentions either). Rather than
+    hand over a fluent, confidently-cited hint grounded in the wrong
+    topic, this drops the excerpts entirely and asks the same cheap
+    tutoring model to hint from its own general knowledge -- ungrounded
+    and uncited, but on-topic beats confidently wrong. The caller is
+    responsible for telling the student this hint isn't sourced from
+    their own materials (see /hint's handler)."""
+    prompt = _UNGROUNDED_HINT_PROMPT_TEMPLATE.format(question=question)
+    response = call_with_retries(lambda: client.models.generate_content(
+        model=TUTOR_MODEL, contents=prompt, config={"temperature": 0.2},
+    ))
+    return (response.text or "").strip()
+
+
 VERIFY_MODEL = "gemini-3.6-flash"  # this project's existing "stronger" tier (already
 # used for textbook conversion and transcription, indexer/index_card.py and
 # textbook/convert_textbook.py) -- chosen over TUTOR_MODEL specifically because this

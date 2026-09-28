@@ -66,6 +66,34 @@ class TestAppendAndLoadRoundTrip(unittest.TestCase):
         self.assertEqual(loaded[0].gap_tag, "vacuous-case")
         self.assertEqual((loaded[0].correctness, loaded[0].rigor, loaded[0].course_fit), (4, 3, 5))
 
+    def test_grounded_defaults_true(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            append_event([tmp], _event())
+            loaded = load_events([tmp], "microecon")
+        self.assertTrue(loaded[0].grounded)
+
+    def test_grounded_false_round_trips(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            append_event([tmp], _event(grounded=False, citations=[]))
+            loaded = load_events([tmp], "microecon")
+        self.assertFalse(loaded[0].grounded)
+        self.assertEqual(loaded[0].citations, [])
+
+    def test_a_pre_grounded_field_log_line_loads_as_grounded_true(self):
+        # A line written before this field existed has no "grounded" key at
+        # all -- Event(**data) must fall back to the default, not crash.
+        with tempfile.TemporaryDirectory() as tmp:
+            path = os.path.join(tmp, ".session_log", "microecon.jsonl")
+            os.makedirs(os.path.dirname(path))
+            with open(path, "w", encoding="utf-8") as f:
+                f.write(
+                    '{"type": "hint", "course": "microecon", "unit": null, "question": "q", '
+                    '"text": "a", "citations": [], "timestamp": "2026-09-01T00:00:00+00:00", '
+                    '"gap_tag": null, "correctness": null, "rigor": null, "course_fit": null}\n'
+                )
+            loaded = load_events([tmp], "microecon")
+        self.assertTrue(loaded[0].grounded)
+
 
 class TestLoadEventsMalformedLines(unittest.TestCase):
     """Regression for the final-review Important finding: because

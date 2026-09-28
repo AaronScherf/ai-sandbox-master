@@ -5,7 +5,7 @@ from indexer.index_search import PassageResult
 from rag.rag_agent import Citation
 from rag.session_log import Event
 from rag.tutor_diagnosis import (
-    Diagnosis, DiagnosisParseError, diagnose_draft, generate_hint,
+    Diagnosis, DiagnosisParseError, diagnose_draft, generate_hint, generate_ungrounded_hint,
     VERIFY_MODEL, generate_verification, summarize_unit, _rubric_averages_line,
 )
 
@@ -129,6 +129,32 @@ class TestGenerateHint(unittest.TestCase):
     def test_returns_stripped_response_text(self):
         client = _fake_client("  a hint with whitespace  \n")
         result = generate_hint("q", [_passage()], client)
+        self.assertEqual(result, "a hint with whitespace")
+
+
+class TestGenerateUngroundedHint(unittest.TestCase):
+    def test_uses_tutor_model(self):
+        client = _fake_client("Think about the Projection Theorem.")
+        generate_ungrounded_hint("q", client)
+        from rag.rag_agent import TUTOR_MODEL
+        self.assertEqual(client.models.generate_content.call_args.kwargs["model"], TUTOR_MODEL)
+
+    def test_prompt_bars_stating_the_final_answer(self):
+        client = _fake_client("hint")
+        generate_ungrounded_hint("q", client)
+        prompt = client.models.generate_content.call_args.kwargs["contents"]
+        self.assertIn("Do NOT state the final answer", prompt)
+
+    def test_prompt_includes_the_question_and_no_excerpts_block(self):
+        client = _fake_client("hint")
+        generate_ungrounded_hint("what is the Luce model", client)
+        prompt = client.models.generate_content.call_args.kwargs["contents"]
+        self.assertIn("what is the Luce model", prompt)
+        self.assertNotIn("Excerpts:", prompt)
+
+    def test_returns_stripped_response_text(self):
+        client = _fake_client("  a hint with whitespace  \n")
+        result = generate_ungrounded_hint("q", client)
         self.assertEqual(result, "a hint with whitespace")
 
 
