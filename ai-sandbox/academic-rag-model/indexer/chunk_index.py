@@ -252,11 +252,27 @@ def _page_range_for_span(start: int, end: int, markers: list[tuple[int, int]]) -
     return [before[-1], before[-1]] if before else None
 
 
+_BLANK_LINE_RUN_RE = re.compile(r"\n{3,}")
+
+
+def _strip_page_markers(text: str) -> str:
+    """Removes the `<!-- page N -->` boundary comments _split_by_pages
+    and _split_by_headings leave embedded in a span's own text -- e.g. a
+    page-tier span starts exactly at its marker's offset, and a
+    heading-tier span can straddle a page break mid-text. Left in, this
+    comment pollutes both the embedding input and the citable text shown
+    to a user (confirmed live: 353/609 real microecon chunks carried
+    one). page_range is computed separately from the unstripped body, so
+    stripping here loses no citation information."""
+    text = _PAGE_MARKER_RE.sub("", text)
+    return _BLANK_LINE_RUN_RE.sub("\n\n", text).strip()
+
+
 def _finalize_chunks(spans: list[_Span], body: str) -> list[dict]:
     markers = _page_markers(body)
     result = []
     for span in spans:
-        text = body[span.start:span.end].strip()
+        text = _strip_page_markers(body[span.start:span.end])
         if len(text) < _CHUNK_MIN_CHARS:
             continue
         result.append({

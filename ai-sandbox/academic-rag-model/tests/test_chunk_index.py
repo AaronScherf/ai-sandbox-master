@@ -7,7 +7,7 @@ from indexer.index_card import save_shard
 
 from indexer.chunk_index import (
     chunks_path, load_chunks, save_chunks,
-    _page_markers, _strip_front_matter_by_page, _strip_yaml_frontmatter,
+    _page_markers, _strip_front_matter_by_page, _strip_yaml_frontmatter, _strip_page_markers,
     _Span, _split_by_headings, _detect_problem_boundaries, _split_by_pages, _split_by_paragraphs,
     _CHUNK_MAX_CHARS, _subdivide_oversized, _page_range_for_span, _finalize_chunks,
     chunk_file, _folder_category_from_path, generate_chunks_for_file, chunk,
@@ -260,6 +260,29 @@ class TestPageRangeForSpan(unittest.TestCase):
         self.assertEqual(_page_range_for_span(0, 10, []), None)
 
 
+class TestStripPageMarkers(unittest.TestCase):
+    def test_removes_a_single_marker(self):
+        text = "First.\n\n<!-- page 3 -->\n\nSecond."
+        self.assertNotIn("<!-- page", _strip_page_markers(text))
+        self.assertEqual(_strip_page_markers(text), "First.\n\nSecond.")
+
+    def test_removes_a_leading_marker(self):
+        # Page-tier spans start exactly at their own marker's offset.
+        text = "<!-- page 2 -->\n\nContent."
+        self.assertEqual(_strip_page_markers(text), "Content.")
+
+    def test_removes_multiple_markers(self):
+        text = "<!-- page 1 -->\n\nA.\n\n<!-- page 2 -->\n\nB.\n\n<!-- page 3 -->\n\nC."
+        result = _strip_page_markers(text)
+        self.assertNotIn("<!-- page", result)
+        self.assertIn("A.", result)
+        self.assertIn("B.", result)
+        self.assertIn("C.", result)
+
+    def test_no_markers_is_unchanged_besides_strip(self):
+        self.assertEqual(_strip_page_markers("  Plain content.  "), "Plain content.")
+
+
 class TestFinalizeChunks(unittest.TestCase):
     def test_extracts_text_and_attaches_page_range(self):
         body = "<!-- page 1 -->\n\n# One\n\nReal content here, long enough to clear the minimum length filter and be kept."
@@ -270,6 +293,32 @@ class TestFinalizeChunks(unittest.TestCase):
         self.assertEqual(chunks[0]["page_range"], [1, 1])
         self.assertEqual(chunks[0]["heading_path"], ["One"])
         self.assertIsNone(chunks[0]["problem_label"])
+
+    def test_page_tier_text_has_its_own_leading_marker_stripped(self):
+        # Real bug (2026-09-27): a page-tier span's start IS its marker's
+        # offset, so every page-tier chunk carried a literal
+        # "<!-- page N -->" in its stored/embedded text.
+        body = f"<!-- page 5 -->\n\n{_LONG}"
+        spans = _split_by_pages(body)
+        chunks = _finalize_chunks(spans, body)
+        self.assertEqual(len(chunks), 1)
+        self.assertNotIn("<!-- page", chunks[0]["text"])
+        self.assertEqual(chunks[0]["page_range"], [5, 5])
+
+    def test_heading_span_straddling_a_page_break_has_marker_stripped(self):
+        body = (
+            f"# One\n\nFirst section. {_LONG}\n\n"
+            f"# Two\n\nStart of second section. {_LONG}\n\n"
+            f"<!-- page 9 -->\n\nContinuation after the page break. {_LONG}"
+        )
+        spans = _split_by_headings(body)
+        chunks = _finalize_chunks(spans, body)
+        self.assertEqual(len(chunks), 2)
+        second = chunks[1]
+        self.assertNotIn("<!-- page", second["text"])
+        self.assertEqual(second["page_range"], [9, 9])
+        self.assertIn("Start of second section", second["text"])
+        self.assertIn("Continuation after the page break", second["text"])
 
     def test_drops_chunks_under_the_minimum_length(self):
         body = "# One\n\n# Two\n\nReal content, long enough to clear the minimum length filter of 80 characters easily."
@@ -343,7 +392,7 @@ class TestChunkFile(unittest.TestCase):
         text = (
             "<!-- page 1 -->\n\n# Sheldon Axler\n\nAuthor bio front matter here, long enough to matter.\n\n"
             "<!-- page 14 -->\n\n# Contents\n\nTOC front matter here, long enough to matter for real.\n\n"
-            "<!-- page 15 -->\n\n# 1 Vector Spaces\n\nReal chapter content, long enough to clear the filter."
+            "<!-- page 15 -->\n\n# 1 Vector Spaces\n\nReal chapter content, well over the minimum length filter on its own, even once the page marker itself is stripped out of the counted text."
         )
         chunks = chunk_file(text, doc_type="textbook", folder_category="textbooks-and-papers", front_matter_end=14)
         all_text = " ".join(c["text"] for c in chunks)
