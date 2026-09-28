@@ -362,3 +362,32 @@ in the tens of chunks each.
 **Next steps**: only `econometrics` remains -- never chunked at all
 (`.index/chunks/econometrics.json` doesn't exist yet), size not yet
 surveyed.
+
+### Same-day follow-up: `econometrics` chunked for the first time
+
+Surveyed before running, since this course was never chunked at all (no
+prior state to compare against, unlike the leak-fix reruns above): 22
+files, split sharply between 4 large textbooks (Cameron, Hansen, Stock,
+Hayashi -- 348 to 1,081 pages each) estimated at ~12,300 chunks, and 18
+small lecture-note/TA-note/problem-set files estimated at ~195. Given
+the scale jump versus `math-camp`, ran it in two user-approved stages
+rather than one big batch:
+
+1. **The 18 small files** -- 153 chunks, all clean on the first pass.
+2. **The 4 textbooks**, confirmed separately given the size --
+   Stock 1,271, Cameron 1,784, Hayashi 375, Hansen 1,518 = 4,948 chunks.
+   Notably below the character-count estimate (~12,300) -- these
+   textbooks lean on heading-tier chunking with larger sections per
+   chunk rather than the page-tier fallback, so the 870-char average
+   used for the estimate undercounted the real chunk size for this
+   corpus.
+
+**Current state**: `econometrics`'s chunk index -- **5,101 chunks
+total, 0 leaked page markers, 0 empty-text chunks, 0 duplicate
+chunk_ids, 0 missing embeddings**. `econometrics` is done.
+
+**All three courses in this repair/build-out are now complete**:
+`microecon` (3,557 chunks), `math-camp` (4,310 chunks), `econometrics`
+(5,101 chunks) -- 12,968 chunks total, all leak-free, all on
+`PAID_GEMINI_KEY` for anything beyond the original free-tier-quota-
+limited test. No further chunking work outstanding as of this writeup.
