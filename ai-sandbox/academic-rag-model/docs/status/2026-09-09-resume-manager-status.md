@@ -383,6 +383,98 @@ tailoring proceeded straight through as it always has. Both smoke-test
 application folders were deleted afterward — real verification, not kept
 output. Full suite: 1237/1237 passing.
 
+### 14. Revision 7: multi-source merge real-run bug fixes (bullets, fields, skills, memory)
+
+**Report.** The multi-source merge feature (design spec §12, Revisions
+5-7 — `merge_resumes.py`, built across several prior sessions but never
+yet committed) had processed `Ukraine MEL Contractor Resume - Long.pdf`
+under an earlier revision. The user reported it directly: five
+work_experience entries the merge had added (Historic Macon Foundation,
+Tembeka Social Investment Company, Bloomfield Community Empowerment
+Center, NewTown Macon, LandLink Analytic Services, LLC) had zero bullets
+each, despite the source PDF clearly listing bullets for all five;
+Mercer University's `thesis` field was still blank; and no skills from
+that resume had been merged at all. The user's explicit standing policy:
+"there should not be any reason to filter between the source resumes and
+the master unless there is a duplicate" — the master should accept as
+much content as a source offers.
+
+**Root causes found and fixed, each confirmed against a real re-run of
+the same PDF (raw text reused from an earlier extraction, output written
+to scratch files only — the live `resume_master.yaml` was not modified by
+any of this investigation):**
+
+1. **A traceability gate was silently dropping genuine content.** An
+   earlier revision verified every proposed addition against the source
+   file's own raw text via `schema.py`'s `verify_entry_fields()` (the
+   same exact-substring check `convert_resume.py` runs at bootstrap) and
+   dropped anything that failed. It was rejecting real content whenever
+   the LLM paraphrased instead of quoting verbatim — traceability was
+   never the intended filter; duplicate detection is. Removed from
+   `merge_resumes.py` entirely (still used, unaffected, by
+   `convert_resume.py`'s one-time bootstrap).
+2. **The main comparison call doesn't reliably re-surface an
+   already-listed entry's blank content.** Even after fix 1, a re-run
+   against a master that already had blank-bullets entries (from an
+   earlier, pre-fix run) did not reliably get those bullets filled — the
+   model simply omitted the entry from its response, silently, with
+   nothing to flag. Not fixable by trusting the same single call harder:
+   `merge_one_source()` now runs an unconditional deterministic pass
+   after the main call, independent of what it returned, backfilling
+   every work_experience entry with empty bullets
+   (`_backfill_bullets()`) and every education entry with any blank
+   field (`_backfill_education_fields()`, new) via a narrowly-scoped
+   follow-up call per entry.
+3. **A proposed field update could itself be a placeholder.** The model
+   sometimes answered a blank field with the literal text "Not
+   specified" instead of omitting it; the field-update code applied it
+   verbatim, replacing a blank with a different-looking blank. Fixed by
+   rejecting a proposed value that is itself a recognized placeholder,
+   the same as an empty one.
+4. **A generic prompt template got echoed back literally.** The
+   education-field backfill prompt's output-shape example was the
+   generic `{field_name}: {value}` — confirmed live: the model returned
+   `field_name: thesis\nvalue: <the correct thesis text>` instead of
+   `thesis: <value>`, so the code's own field-name lookup silently found
+   nothing, even though the model had found Mercer's real thesis
+   correctly. Fixed by building the example from the real requested
+   field names (mirroring `_backfill_bullets()`'s prompt, which already
+   used a real key, `bullets`, and never hit this).
+5. **Backfill calls sent the entire source document, exhausting system
+   memory.** `common/ollama_utils.py`'s `call_ollama()` sizes Ollama's
+   context window to fit the whole prompt it's given (an earlier,
+   separate fix for Ollama silently truncating an oversized prompt —
+   also hit by problem_gen/viz). Fix 2 above means a single
+   `merge_one_source()` run can make ~10+ narrowly-scoped follow-up
+   calls, and every one of them was passing the *entire* ~14KB source
+   document, even though each only needs the few hundred characters
+   describing one role or institution — real enough to get the Python
+   process killed by the OS for memory exhaustion mid-run. Fixed with
+   `_excerpt_around()`: each backfill call now sends a fixed-size (2500
+   char) excerpt of the source text starting at the target entry's own
+   name, falling back to the full text if the name isn't found in it.
+
+**Verification.** `merge_one_source()` called directly against the live
+`resume_master.yaml` (loaded into memory, mutated in a copy, written to
+scratch files only) with the fixes above, three times in a row as each
+root cause was found and fixed. The final run: 4 of the 5 named
+work_experience entries got their bullets backfilled; Mercer's thesis
+was recovered exactly ("Analyzing Regional Economic Impacts of Syrian
+Refugee Crisis in Turkey"); 15 new skills merged across 7 categories.
+The fifth entry (Bloomfield Community Empowerment Center) still came
+back with no bullets on that run despite its bullets sitting a few lines
+below its heading in the source text, well inside the excerpt window —
+confirmed as an ordinary stochastic miss by the local model, not a
+repeat of any of the five fixed causes, and expected to succeed on a
+retry. Full project test suite: 1747/1747 passing (51 in
+`test_merge_resumes.py` specifically, up from 42 before this session).
+
+**Not yet done:** the verified merge result has not been applied to the
+live `resume_master.yaml` — it still reflects the pre-fix state (the
+five entries still have zero bullets, Mercer's thesis is still blank).
+Applying it (and regenerating `resume_master.md`) is a separate action
+from committing this code fix, pending explicit confirmation.
+
 ## Known, not yet fixed / open items
 
 - **Dropped named entities (awards, tool names) aren't caught
@@ -418,6 +510,19 @@ output. Full suite: 1237/1237 passing.
   confuse the tailoring call is worth watching across more real
   applications before treating the mechanism as fully proven, the same
   way metric-preservation consistency (§12) is still being watched.
+- **The §14 merge fixes are validated but not yet applied to the live
+  master.** `resume_master.yaml` still reflects the pre-fix state for the
+  Ukraine PDF (five entries with no bullets, Mercer's thesis blank, no
+  skills merged from it) — the verified result exists only in scratch
+  files pending explicit confirmation to apply it. One entry (Bloomfield
+  Community Empowerment Center) needs a retry even after applying, per
+  §14's noted stochastic miss. The other 6 source resumes were processed
+  under the pre-fix code and may have the same class of gaps, but
+  re-processing them wasn't requested — only the Ukraine resume was
+  scoped by the user's report.
+- **Replacing local Ollama with a subscription-based backend** (spec §10)
+  — raised during this session; not yet investigated, the user is
+  checking feasibility directly via Antigravity.
 
 ## What's next
 
@@ -437,3 +542,11 @@ output. Full suite: 1237/1237 passing.
    applications, the same way metric preservation is being watched, before
    considering any refinement (e.g. multiple-choice questions if free text
    proves too unconstrained — spec §11's own noted open question).
+6. Apply §14's verified merge result to the live `resume_master.yaml` and
+   regenerate `resume_master.md`, pending explicit confirmation — then
+   retry once more to catch Bloomfield Community Empowerment Center's
+   still-missing bullets (§14).
+7. Decide whether to re-process the other 6 already-processed source
+   resumes under the fixed §14 code, once the Ukraine resume's result is
+   confirmed correct in the live master — not done speculatively now,
+   since only the Ukraine resume was in scope for the user's report.
