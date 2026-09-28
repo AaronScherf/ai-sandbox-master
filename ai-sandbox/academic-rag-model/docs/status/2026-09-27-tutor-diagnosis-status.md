@@ -397,3 +397,18 @@ update). No further work queued on this thread; the remaining open
 item is still the missing course material itself (Mark Dean's
 stochastic-choice notes or equivalent), which is a content decision
 for the user, not an engineering one.
+
+**Checked and ruled out, so this doesn't need re-investigating later**:
+whether the missing material is sitting unconverted somewhere in
+academic-hub rather than genuinely absent. It isn't -- every raw PDF
+under `academic_resources/microecon/professor_notes/` already has a
+matching converted, chunked `.md` (no `4.*` file waiting behind
+`1`/`2`/`3`); the only orphaned card in the whole `microecon` index is
+a confirmed stale rename artifact (`Drawing 2026-09-07...` ->
+`Microeconomics lecture 2026-09-07...`) whose original file no longer
+exists on disk, not a hidden second copy; and a filename search across
+all of `academic-hub` for "stochastic" or "Dean" turns up nothing
+relevant. Most likely explanation: this material was never added to
+academic-hub at all, or the original Antigravity hint's citation to
+it was never actually grounded in a retrieved passage in the first
+place. Left as a known content gap, not pursued further this session.
