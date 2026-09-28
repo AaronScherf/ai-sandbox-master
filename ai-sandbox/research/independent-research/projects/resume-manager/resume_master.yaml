@@ -8,9 +8,6 @@ contact:
 work_experience:
 - org: U.S. Agency for International Development
   role: Foreign Service Officer - Monitoring, Evaluation, Learning Team Lead (FS 3-5)
-  location: Kyiv, Ukraine
-  start_date: 06/2020
-  end_date: 07/2025
   bullets:
   - Managed portfolio of 20 program evaluations, including leading design of a $1.5M
     randomized control trial to evaluate impact and cost effectiveness of $450M credit
@@ -38,11 +35,11 @@ work_experience:
   - Simplified in-person monitoring visit process for staff, enabling expansion from
     20 oversight visits per quarter to over 100, despite warzone conditions.
   id: u-s-agency-for-international-development-1
+  location: Kyiv, Ukraine
+  start_date: 03/2024
+  end_date: 07/2025
 - org: U.S. Agency for International Development
   role: Foreign Service Officer - Gender Equity and Program Design Officer (FS 4-9)
-  location: Bogota, Colombia
-  start_date: Not specified
-  end_date: Not specified
   bullets:
   - Led the design and context research for four programs in smallholder agriculture,
     environmental conservation, rural land titling, and indigenous civic society leadership.
@@ -63,11 +60,11 @@ work_experience:
   - Advised 30+ programs on gender equity and social inclusion, with focus on Venezuelan
     migrants.
   id: u-s-agency-for-international-development-2
+  location: Bogota, Colombia
+  start_date: 02/2022
+  end_date: 03/2024
 - org: U.S. Agency for International Development
   role: Foreign Service Officer - Program Officer Rotations (FS 5-12)
-  location: Washington, DC, USA
-  start_date: Not specified
-  end_date: Not specified
   bullets:
   - Won agency-wide award for developing new budget data processing and visualization
     tool using Python and Tableau, saving hundreds of hours of staff time in negotiations
@@ -82,11 +79,11 @@ work_experience:
   - Mentored 220 staff on applications of artificial intelligence and data analytics
     platforms to improve program delivery and performance reporting.
   id: u-s-agency-for-international-development-3
+  location: Washington, DC, USA
+  start_date: 07/2020
+  end_date: 02/2022
 - org: University of California, Berkeley
   role: Graduate Student Instructor
-  location: Berkeley, CA, USA
-  start_date: 08/2018
-  end_date: 05/2020
   bullets:
   - 'MATH 10A - Methods of Mathematics: Calculus, Linear Algebra, and Combinatorics:
     Independently taught 52 pre-med students across two seminars and office hours,
@@ -101,21 +98,21 @@ work_experience:
     4 doctoral students on data science research projects on forest management practices
     for post-fire vegetation recovery'
   id: university-of-california-berkeley-1
+  location: Berkeley, CA, USA
+  start_date: 08/2018
+  end_date: 05/2020
 - org: Berkeley Food Institute
   role: Agriculture and Hydrology Research Analyst
-  location: Berkeley, CA, USA
-  start_date: 09/2019
-  end_date: 03/2020
   bullets:
   - Developed geospatial model analyzing groundwater and rainfall data compared with
     agricultural land-use for California's Central Valley, to support legislative
     reform and efficient water management.
   id: berkeley-food-institute-1
+  location: Berkeley, CA, USA
+  start_date: 09/2019
+  end_date: 03/2020
 - org: Centre for European Economic Research (ZEW)
   role: Graduate Research Fellow - Migration and Labor Economics
-  location: Mannheim, Germany
-  start_date: 11/2017
-  end_date: 07/2018
   bullets:
   - Analyzed panel data to model effects of asylum seekers' education level and living
     conditions on employment outcomes using GMM and instrumental variable methods
@@ -123,22 +120,22 @@ work_experience:
   - Co-authored research paper in German on refugee integration strategies in Rhine-Neckar
     region for presentation to city councils in Heidelberg and Mannheim.
   id: centre-for-european-economic-research-zew-1
+  location: Mannheim, Germany
+  start_date: 11/2017
+  end_date: 07/2018
 - org: U.S. House of Representatives
   role: Policy Analyst - Congressman Crowley and House Democratic Caucus
-  location: Washington, DC, USA
-  start_date: 05/2017
-  end_date: 08/2017
   bullets:
   - Created financial model to analyze differential impacts by age bracket of proposed
     retirement savings bill, to prepare Democratic Caucus members for debate.
   - Wrote 6 briefings on policy issues for review by the representative, discussing
     new sanctions on Russia and the Technology Modernization Fund.
   id: u-s-house-of-representatives-1
+  location: Washington, DC, USA
+  start_date: 05/2017
+  end_date: 08/2017
 - org: Monitoring and Evaluation Specialist (Visiting Fellow)
   role: Monitoring and Evaluation Specialist (Visiting Fellow)
-  location: Pretoria, South Africa
-  start_date: 05/2019
-  end_date: 07/2025
   bullets:
   - Revised evaluation methodology for 12 regional programs to improve validity of
     performance metrics.
@@ -146,22 +143,22 @@ work_experience:
     research on conditions for women, people with disabilities, and LGBTQI+ persons
     in Southern Africa.
   id: monitoring-and-evaluation-specialist-visiting-fellow-1
+  location: Pretoria, South Africa
+  start_date: 05/2019
+  end_date: 07/2025
 - org: Historic Macon Foundation
   role: Real Estate Analyst
-  location: Macon, GA, USA
-  start_date: 08/2016
-  end_date: 05/2017
   bullets:
   - Analyzed impact of historic revitalization investments on property values through
     econometric assessment.
   - Supported Neighborhood Incubator community program to develop local leadership
     capacity.
   id: historic-macon-foundation-1
+  location: Macon, GA, USA
+  start_date: 08/2016
+  end_date: 05/2017
 - org: Tembeka Social Investment Company
   role: Microfinance Analyst
-  location: Cape Town, South Africa
-  start_date: 06/2016
-  end_date: 08/2016
   bullets:
   - Analyzed financial performance of micro-enterprise investment portfolio to generate
     annual report for shareholders and board of directors.
@@ -170,11 +167,11 @@ work_experience:
   - Assisted small business client management and business development for social
     investment portfolio.
   id: tembeka-social-investment-company-1
+  location: Cape Town, South Africa
+  start_date: 06/2016
+  end_date: 08/2016
 - org: Bloomfield Community Empowerment Center
   role: Economic Analyst
-  location: Macon
-  start_date: 10/2015
-  end_date: 05/2016
   bullets:
   - Collected socioeconomic data on local neighborhood through census and tax assessor
     files.
@@ -184,11 +181,11 @@ work_experience:
     University 2016, under Commitment to Action "Collect to Connect: Bloomfield Community
     Asset Analysis".'
   id: bloomfield-community-empowerment-center-1
+  location: Macon
+  start_date: 10/2015
+  end_date: 05/2016
 - org: NewTown Macon
   role: Urban Development Researcher
-  location: Macon, GA
-  start_date: 05/2014
-  end_date: 08/2014
   bullets:
   - Collected primary survey data on parking patterns in downtown Macon.
   - Analyzed parking data using geographic information systems (GIS) and statistical
@@ -196,11 +193,11 @@ work_experience:
     management plans.
   - Surveyed 45 local business owners on Community Improvement District tax plans.
   id: newtown-macon-1
+  location: Macon, GA
+  start_date: 05/2014
+  end_date: 08/2014
 - org: LandLink Analytic Services, LLC
   role: Co-Founder, Lead Economist
-  location: Macon, GA, USA
-  start_date: 12/2016
-  end_date: 10/2018
   bullets:
   - Founded data analytics consulting company with team of economists and software
     engineers to develop geospatial models of housing price dynamics and identify
@@ -208,32 +205,36 @@ work_experience:
   - Conducted 7 contracted research projects analyzing impact of public and private
     property investment on housing prices and municipal tax revenues.
   id: landlink-analytic-services-llc-1
+  location: Macon, GA, USA
+  start_date: 12/2016
+  end_date: 10/2018
 education:
 - institution: Columbia University
+  id: columbia-university-1
   degree: PhD in Sustainable Development
   gpa: Not specified
   location: New York, NY, USA
   start_date: 08/2026
   end_date: Present
   thesis: Not specified
-  id: columbia-university-1
 - institution: Georgia Institute of Technology
+  id: georgia-institute-of-technology-1
   degree: Master of Science in Computer Science
   gpa: '3.88'
   location: Atlanta, GA, USA
   start_date: 01/2022
   end_date: 12/2025
   thesis: Not specified
-  id: georgia-institute-of-technology-1
 - institution: Indiana State University
+  id: indiana-state-university-1
   degree: Master of Science in Mathematics
   gpa: '3.85'
   location: Terre Haute, IN, USA
   start_date: 05/2021
   end_date: 05/2024
   thesis: Novel Omnibus Normality Test and Power Comparison with the Shapiro-Wilk
-  id: indiana-state-university-1
 - institution: University of California, Berkeley
+  id: university-of-california-berkeley-1
   degree: Master of Science in Development Practice
   gpa: '3.94'
   location: Berkeley, CA, USA
@@ -241,23 +242,22 @@ education:
   end_date: 05/2020
   thesis: Predicting the Yield of CIMMYT Wheat Genotypes via Remote Sensing and Machine
     Learning
-  id: university-of-california-berkeley-1
 - institution: Heidelberg University
+  id: heidelberg-university-1
   degree: Master of Science (audited) in Economics
   gpa: Not specified
   location: Heidelberg, DE
   start_date: 07/2017
   end_date: 06/2018
   thesis: Not specified
-  id: heidelberg-university-1
 - institution: Mercer University
+  id: mercer-university-1
   degree: Bachelor in Finance and Economics
   gpa: '3.91'
   location: Macon, GA, USA
   start_date: 08/2013
   end_date: 05/2017
   thesis: Analyzing Regional Economic Impacts of Syrian Refugee Crisis in Turkey
-  id: mercer-university-1
 awards:
 - name: Donald M. Payne Fellow
   description: $100,000 fellowship with USAID
@@ -316,7 +316,7 @@ publications:
   venue: Humanity in Action International Conference in Strasbourg, FR
   link: Not specified
 skills:
-- category: Computer Programming and Artificial Intelligence
+- category: Programming & Data Engineering
   items:
   - Python
   - R
@@ -324,56 +324,31 @@ skills:
   - Stata
   - MatLab
   - Excel
+  - SQL
+  - Azure
+  - GCP
+- category: AI, Machine Learning & Automation
+  items:
   - Machine Learning
   - Natural Language Processing
   - Artificial Neural Networks
-- category: Applied Economic Research
+  - Large Language Models
+  - CrewAI
+  - AutoGen
+  - LangChain
+  - Tableau
+  - PowerBI
+  - Google Earth Engine
+- category: Applied Economics & Research Methods
   items:
-  - GIS Analysis (ArcGIS / GEE)
   - Applied Econometrics
   - Mathematical Statistics
   - Labor Economic Research
   - Applied Mathematics
   - Development Economics
-- category: Languages and Other
-  items:
-  - Spanish - Professional
-  - German - Intermediate
+  - GIS Analysis (ArcGIS / GEE)
   - Program Evaluation
   - Empirical Policy Analysis
+  - Spanish - Professional
+  - German - Intermediate
   - Information Communications Technology
-- category: Computer Programming
-  items:
-  - Python
-  - R
-  - JavaScript
-- category: Data Engineering
-  items:
-  - SQL
-  - Azure
-  - GCP
-- category: Agentic AI
-  items:
-  - CrewAI
-  - AutoGen
-- category: Natural Language Processing
-  items: []
-- category: Data Visualization and Analysis
-  items:
-  - Tableau
-  - PowerBI
-- category: Artificial Neural Networks
-  items:
-  - Machine Learning
-  - Large Language Models
-- category: Cloud Architecture
-  items:
-  - GCP
-  - Azure
-- category: RAG AI
-  items:
-  - LangChain
-- category: Google Earth Engine / GCP
-  items: []
-- category: Data Collection & Processing
-  items: []

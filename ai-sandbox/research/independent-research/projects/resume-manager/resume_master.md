@@ -1,4 +1,4 @@
-<!-- resume-master-yaml-hash: ab8789350e80ad75ef7665e2c5bf282289ea9e64bf870be731a8ca4bb8e1cf15 -->
+<!-- resume-master-yaml-hash: cbfadf78f8bb3ea27b99da20cd30d34aa5d606dd1f9ad273cd26636ecba091c9 -->
 
 # Aaron Scherf
 
@@ -290,63 +290,38 @@ Bullets:
 
 ## Skills
 
-### Computer Programming and Artificial Intelligence
+### Programming & Data Engineering
 - Python
 - R
 - JavaScript
 - Stata
 - MatLab
 - Excel
+- SQL
+- Azure
+- GCP
+
+### AI, Machine Learning & Automation
 - Machine Learning
 - Natural Language Processing
 - Artificial Neural Networks
+- Large Language Models
+- CrewAI
+- AutoGen
+- LangChain
+- Tableau
+- PowerBI
+- Google Earth Engine
 
-### Applied Economic Research
-- GIS Analysis (ArcGIS / GEE)
+### Applied Economics & Research Methods
 - Applied Econometrics
 - Mathematical Statistics
 - Labor Economic Research
 - Applied Mathematics
 - Development Economics
-
-### Languages and Other
-- Spanish - Professional
-- German - Intermediate
+- GIS Analysis (ArcGIS / GEE)
 - Program Evaluation
 - Empirical Policy Analysis
+- Spanish - Professional
+- German - Intermediate
 - Information Communications Technology
-
-### Computer Programming
-- Python
-- R
-- JavaScript
-
-### Data Engineering
-- SQL
-- Azure
-- GCP
-
-### Agentic AI
-- CrewAI
-- AutoGen
-
-### Natural Language Processing
-
-### Data Visualization and Analysis
-- Tableau
-- PowerBI
-
-### Artificial Neural Networks
-- Machine Learning
-- Large Language Models
-
-### Cloud Architecture
-- GCP
-- Azure
-
-### RAG AI
-- LangChain
-
-### Google Earth Engine / GCP
-
-### Data Collection & Processing
