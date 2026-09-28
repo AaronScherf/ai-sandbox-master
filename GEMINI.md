@@ -66,6 +66,20 @@ evidence, write a local report, and prepare a review case for Codex or Claude.
 Do not dismiss feedback, silently repair the evidence, or claim an unperformed
 review. Normal editorial revisions remain within your role.
 
+## Artifacts and deliverables persistence
+
+Locally produced artifacts generated in an Antigravity session (such as tutoring
+hints, study guides, comparative audits, synthesized notes, or project documentation)
+must not remain solely in temporary Antigravity session storage
+(`<appDataDir>/brain/<conversation-id>`). Always write them to their designated
+permanent location in the appropriate project repository or vault (e.g.,
+`ai-sandbox/academic-hub/academic_notes/<course>/...` for course study materials and
+tutoring outputs).
+
+Follow repository hygiene: stage explicit paths, verify clean state, and commit the
+new or updated files so they are preserved across sessions, discoverable by other
+agents, and synced with external tools (such as Obsidian Git sync).
+
 ## Git
 
 Read-only inspection can use main. Writing tasks use a dedicated

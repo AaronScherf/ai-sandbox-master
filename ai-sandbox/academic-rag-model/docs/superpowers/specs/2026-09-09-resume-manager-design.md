@@ -1,34 +1,62 @@
 # Resume Manager — Design Spec
 
-Date: 2026-09-09 (Revision 4 added 2026-09-10)
-Status: **Revision 4** (interactive clarifying-question flow, §11,
-design-approved — not yet implemented) on top of **Revision 3**
-(deterministic extraction, implemented and validated against the real
-resume); see `docs/status/2026-09-09-resume-manager-status.md` for the
-full narrative and evidence. History: v1 (freeform-Markdown master)
-surfaced a real data-fidelity bug on its first real run (§1 item 4).
-Revision 2 (structured-data master format) fixed that, but its own first
-real run took over 90 minutes of CPU-only Ollama calls, needed five
-separate formatting/normalization fixes to even parse the model's YAML
-output, and *still* produced two further real content bugs (a role
-miscategorized into the wrong section with its bullets dropped, and a
-thesis present in the raw text written as "Not specified") that traced to
-the same root cause: the LLM had to freely decide section membership and
-entry boundaries, not just fill in named fields. Revision 3 replaces that
+Date: 2026-09-09 (Revision 4 added 2026-09-10; Revisions 5-7 added
+2026-09-26)
+Status: **Revision 7** (two-way Markdown editing, §14 — implemented) on
+top of **Revision 6** (page-fit-aware Work Experience selection + clean
+section breaks, §13 — implemented, with a bullet-granularity correction
+after real feedback, see §13b) on top of **Revision 5** (multi-source
+resume merge, §12 — implemented, real-run-validated across two full runs)
+on top of **Revision 4** (interactive clarifying-question flow, §11 —
+implemented) on top of **Revision 3** (deterministic extraction,
+implemented and validated against the real resume); see
+`docs/status/2026-09-09-resume-manager-status.md` for the full narrative
+and evidence. History: v1 (freeform-Markdown master) surfaced a real
+data-fidelity bug on its first real run (§1 item 4). Revision 2
+(structured-data master format) fixed that, but its own first real run
+took over 90 minutes of CPU-only Ollama calls, needed five separate
+formatting/normalization fixes to even parse the model's YAML output, and
+*still* produced two further real content bugs (a role miscategorized
+into the wrong section with its bullets dropped, and a thesis present in
+the raw text written as "Not specified") that traced to the same root
+cause: the LLM had to freely decide section membership and entry
+boundaries, not just fill in named fields. Revision 3 replaces that
 extraction step entirely with deterministic, section-aware parsing (§3)
 — no LLM call, no network, no sampling variance, sub-2-second runtime.
 Revision 4 adds an opt-in interactive Q&A step (§11) ahead of tailoring,
 requested during review of the first real tailoring run, so the user can
 steer entry selection and bullet emphasis for a specific application
 before the LLM call, without changing today's non-interactive default
-behavior at all. Section numbers are unchanged since v1 so existing code
+behavior at all. **Revision 5** (§12) adds an ongoing multi-source-resume
+merge step, `merge_resumes.py`, requested after the user started
+maintaining several purpose-variant resumes (academic, USAID bidding,
+World Bank, MEL) in a `source_resumes/` intake folder and wanted their
+content folded into the one master automatically rather than by hand.
+**Revision 6** (§13) replaces `tailor.py`'s binary included/excluded
+Work Experience selection with a ranked candidate list plus a
+render-measure-retry loop in `tailor_resume.py`, so a tailored resume's
+first page fills with as much relevant experience as fits before a
+section break, and adds a Typst-level non-split rule to `render.py` so no
+section's heading is ever stranded alone at the bottom of a page —
+requested after reviewing the first real Typst-rendered PDF, where
+Education started on page 1 and continued onto page 2. Also switched the
+rendering backend from Markdown+xhtml2pdf to Typst (`render.py`,
+2026-09-26, same-day but not its own numbered revision since it doesn't
+change §6's data flow, only its implementation — xhtml2pdf rendered
+`<ul>/<li>` bullets with no visible marker at all on a real run and had
+weak default typography; see `render.py`'s own module docstring for the
+full rationale and the "standing style rules" it now encodes: single
+grouped list blocks per section, right-aligned dates, page-fit density
+tiers). Section numbers are unchanged since v1 so existing code
 (already-shipped `resume_manager/*.py` docstrings cite `spec §N`) doesn't
 go stale across revisions; §3 is rewritten in place again, §2/§8/§9/§10
-touched where the LLM-vs-deterministic split matters, §11 is new.
+touched where the LLM-vs-deterministic split matters, §11 is new under
+Revision 4, §12-13 are new under Revisions 5-6.
 Tailoring (§4), validation (§5), and rendering (§6) are unaffected by
 Revision 3 — rewriting bullets to match a job description is inherently a
 language task, unlike bootstrap extraction, and still uses the local LLM;
-§4 gains one new optional parameter under Revision 4 (see §11).
+§4 gains one new optional parameter under Revision 4 (see §11) and its
+response shape changes under Revision 6 (see §13).
 
 ## 1. Problem & goals
 
@@ -375,7 +403,16 @@ category.
    mirroring the JD's vocabulary in the rewritten bullets, without
    inventing experience or metrics not present in that entry's original
    bullets. Selection is relevance-only in this version — no page-limit
-   awareness (§1 non-goals, §10).
+   awareness until Revision 6 (§13).
+   **(2026-09-26, small additive change, same shape as §11's `guidance`
+   parameter)** The response gains one more field, `include_github: true
+   or false` — the model's judgment on whether this JD has significant
+   coding responsibility, per real, confirmed preference: the GitHub
+   profile link (not the personal website) is only worth showing then.
+   `apply_tailoring()` blanks `contact.github_url` when it's `false`;
+   missing/non-bool defaults to `true` (unchanged behavior). The LLM is
+   still never asked to return the URL itself, only a boolean — the same
+   "never emits a metadata value" guarantee this section opens with.
 3. Calls `common.ollama_utils.call_ollama(prompt, model, request_timeout)` —
    `num_ctx` auto-sized to the prompt by `call_ollama`'s existing estimate,
    so this pipeline can't hit the same silent-truncation bug
@@ -442,29 +479,79 @@ against the master and prints a warning report — it never blocks rendering
 ## 6. Rendering
 
 **Revision 2**: `render.py` no longer hands LLM-authored Markdown straight
-to the `markdown` library. It now templates the structured tailored resume
-(§4's output shape) into Markdown itself — deterministic string formatting,
-one function per category (`## Work Experience` / `### <org> — <role>
-(<dates>)` / bullets; `## Education`; `## Awards & Scholarships`; `## Research
-Presentations & Publications`; `## Skills`) — then converts that Markdown to
-HTML via the `markdown` library and to a styled PDF via `xhtml2pdf`, using
-the letter-size/margin/heading CSS block adapted from
-`docs/brainstorms/resume_manager_brainstorm.md`. **Not** `weasyprint` as the
-brainstorm draft suggested — confirmed during planning that `weasyprint`
-fails to import on this machine (`OSError: cannot load library
-'libgobject-2.0-0'`; it depends on the Pango/GTK native libraries, which
-aren't installed and aren't a plain `pip install` on Windows — exactly the
-risk the brainstorm draft's own note flagged). `xhtml2pdf` is pure Python
-(reportlab-based), installs cleanly via `pip install xhtml2pdf`, and was
-verified during planning to render the same HTML+CSS shape (headings,
-borders, lists, `@page` size/margins) to a valid PDF. Output:
+to a renderer. It templates the structured tailored resume (§4's output
+shape) into markup itself — deterministic string formatting, one function
+per category — so formatting can't drift per application (missed bold,
+inconsistent heading levels, etc.): every application's PDF shares the
+same structure, differing only in which Work Experience entries and
+bullets were selected/rewritten (and, from Revision 6 §13 on, how many).
+
+**Rendering backend (originally Markdown+xhtml2pdf, replaced by Typst,
+2026-09-26).** Revision 2 originally targeted `## Work Experience` /
+`### <org> — <role> (<dates>)`-style Markdown, converted to HTML via the
+`markdown` library and to PDF via `xhtml2pdf` (chosen over `weasyprint`
+at the time — `weasyprint` failed to import on this machine, `OSError:
+cannot load library 'libgobject-2.0-0'`, needing Pango/GTK native
+libraries with no plain Windows `pip install` path). That pipeline was
+replaced outright after reviewing the first real application's rendered
+PDF: `xhtml2pdf` rendered every `<ul>/<li>` bullet with **no visible
+marker at all** — a real, confirmed defect, not a style preference — and
+its default typography was plain. `build_typst()` now templates directly
+into Typst markup (`= Name`, `== Section`, `=== `/`job-heading(...)`
+entries, `- ` bullets), compiled to PDF via the `typst` Python package
+(`typst.compile()`) — a self-contained prebuilt wheel with no native
+library dependency (same precedent `resvg-py` already set for Excalidraw
+notes, §2), confirmed to install and compile cleanly on this machine.
+`xhtml2pdf` and the module-local `markdown` import are removed from this
+subproject (the `markdown` *package* itself stays in `requirements.txt`
+for `audio_generator`, unrelated to this change).
+
+`build_typst()`'s content escaping (`_escape_typst()`) guards against
+resume content containing Typst's own syntax characters (`$ # * _ < > @
+[ ] backtick`) — real, not hypothetical: the user's actual bullets contain
+`$1.5M`/`$450M`, and contact emails contain `@`.
+
+**Standing style rules, confirmed real feedback (2026-09-26) after
+reviewing the first real Typst-rendered PDF** — encoded directly as code
+in `render.py` (constants and template logic), not as a doc someone has
+to remember to consult:
+- Every list of bullets belonging to one entry/section is built as a
+  single Typst list block (lines joined by one newline, never a blank
+  line) — a blank line between two `- ` lines makes Typst treat them as
+  *separate* one-item lists, each carrying its own block spacing, which
+  is what caused visibly uneven gaps between bullets versus between a
+  heading and its first bullet.
+- The contact line under the name is centered, matching the name.
+- A Work Experience entry's heading (`job-heading`, defined once in the
+  Typst preamble) puts the org and its right-aligned date range on one
+  line, with the role on its own line below in italics — confirmed real
+  feedback that combining org + role on one line still wrapped for the
+  longest titles even after moving the date aside; the role alone, with
+  the full line width to itself, fits one line for every real title in
+  the actual resume.
+- A sub-role sharing its employer's date range (e.g. multiple USAID roles
+  under one shared range) displays that carried-forward range on its own
+  heading too, rather than showing no date at all — a display-only
+  carry-forward (`_work_experience_display_dates()`); the underlying
+  `resume_master.yaml` keeps storing the honest `"Not specified"`
+  untouched.
+- `_DENSITY_TIERS` (an ordered list of spacing/font-size constants, most
+  spacious first) is a page-fit mechanism: `render_resume_pdf()` compiles
+  at the most spacious tier, counts the resulting PDF's pages via `pypdf`
+  (already a project dependency), and steps to the next tighter tier and
+  recompiles only if the content overflows `target_pages` (default `2`,
+  confirmed real preference) — never shrinking past the last tier's floor
+  (9.5pt body text), so a resume adapts to however much content a given
+  application's tailoring produced instead of needing per-application
+  manual tuning. Revision 6 (§13) adds a *second*, independent lever for
+  page-fitting (how many Work Experience entries are selected) — the two
+  are deliberately not conflated (§13b).
+
+`render_resume_pdf()` writes the built Typst source alongside the PDF as
+`Tailored_Resume.typ` (a debuggable intermediate artifact, the same role
+`resume_raw.md` plays for extraction, §3) before compiling it. Output:
 `resume-manager/applications/<YYYY-MM-DD>-<application-name>/
 Tailored_Resume.pdf`.
-
-Templating instead of LLM-authored Markdown also means formatting can no
-longer drift per application (missed bold, inconsistent heading levels,
-etc.) — every application's PDF shares byte-identical structure, differing
-only in which Work Experience entries and bullets were selected/rewritten.
 
 ## 7. Orchestration & output layout
 
@@ -529,7 +616,7 @@ research/independent-research/projects/resume-manager/
 ## 9. Testing
 
 Mirrors the existing flat `tests/` convention, mocking every external
-boundary (no real Ollama, Gemini, or xhtml2pdf-library calls beyond the one
+boundary (no real Ollama, Gemini, or `typst`-library calls beyond the one
 documented exception below):
 
 - `tailor.py`: mocked `call_ollama`, testing prompt construction (only
@@ -543,11 +630,11 @@ documented exception below):
   invented bullet metric (flagged), and an `included_ids` entry not present
   in the master (flagged).
 - `render.py`: a smoke test that a small known structured resume produces a
-  non-empty PDF via `xhtml2pdf` (real library call — the one exception to
-  "mock every external boundary," since there's no meaningful mock for PDF
-  byte output and the library itself needs no network/model) — plus
-  deterministic-templating tests (same input structure always produces
-  the same Markdown/HTML, independent of any LLM).
+  non-empty PDF via `typst.compile()` (real library call — the one exception
+  to "mock every external boundary," since there's no meaningful mock for
+  PDF byte output and the library itself needs no network/model) — plus
+  deterministic-templating tests (same input structure and density tier
+  always produce the same Typst source, independent of any LLM).
 - `convert_resume.py`: verifies the extraction step calls
   `extract_all_page_texts()`/`page_looks_defective()` directly (never
   `process_pdf()`, never `common/gemini_utils.py`) and stops with an error
@@ -590,14 +677,10 @@ documented exception below):
 
 ## 10. Open questions / follow-on (not decided by this spec)
 
-- **Page-limit-aware selection.** Confirmed as wanted during this revision's
-  own design discussion: eventually, `included_ids` selection (§4) should
-  account for a page-length budget, not just relevance — choosing enough
-  Work Experience entries to fill (but not overflow) a target page count.
-  Not solved here; candidate approaches for the follow-on to evaluate:
-  an empirically-calibrated word/bullet budget passed to the LLM as a
-  constraint, a render-then-measure-then-retry loop using `xhtml2pdf`'s own
-  page count, or a hybrid (LLM ranks by relevance, code trims by budget).
+- **Page-limit-aware selection** — addressed by Revision 6 (§13): a
+  render-measure-retry loop (the hybrid candidate this item originally
+  named) now fills available page space with ranked Work Experience
+  entries, and section headings never get stranded across a page break.
 - **Selection/rewriting for Education, Awards, Publications, and Skills.**
   Deferred in this version (§1 non-goals) — every category but Work
   Experience passes through tailoring unchanged. Worth revisiting once the
@@ -623,6 +706,11 @@ documented exception below):
   is available, extend the synonym lists and add whatever new line-shapes
   it needs (e.g. a different date format, a single-line entry style)
   rather than guessing formats without real examples to test against.
+  Still open even after Revision 5 (§12) added several more real source
+  resumes to draw from — deliberately so: §12's merge step reads those
+  other formats via one LLM comparison call per source rather than
+  extending this deterministic per-format parser, since it only needs to
+  spot *new* content, not fully re-parse a whole document's structure.
 - **Cover-letter generation** and **JD URL scraping** are both explicitly
   deferred (§1) — worth revisiting once the core tailor/validate/render
   loop is proven on real applications.
@@ -636,6 +724,27 @@ documented exception below):
   too unconstrained in practice, and whether guidance should ever apply
   to categories other than Work Experience once §10's other
   "selection/rewriting beyond Work Experience" item is picked up.
+- **Replacing local Ollama inference with a subscription-based backend**
+  (raised 2026-09-27) — every LLM call in this pipeline (`merge_resumes.py`,
+  `tailor.py`) goes through `common/ollama_utils.call_ollama()`, a
+  synchronous local call that can take 5-30+ minutes per invocation
+  (§4's timing evidence). The user has a paid Gemini subscription used
+  through a dedicated Antigravity IDE window and wants to know whether
+  that subscription — not a metered `GEMINI_API_KEY`/`PAID_GEMINI_KEY`
+  call — could replace some or all of these Ollama calls, for speed,
+  without incurring per-token API charges. Antigravity itself is an
+  interactive agent environment, not something a script can call as a
+  subroutine for a single text-in/text-out response, so it can't be
+  substituted for `call_ollama()` directly. The more promising angle,
+  not yet verified: `gemini-cli` supports OAuth login against a Google
+  account/subscription (as opposed to a metered API key) and has a
+  non-interactive/headless mode (`gemini -p "..."`), which would match
+  `call_ollama()`'s existing call shape closely enough to drop in.
+  Whether that specific auth mode actually avoids per-call billing under
+  the user's subscription tier is unconfirmed. The user is checking this
+  directly via Antigravity and plans a more thorough review later —
+  nothing about the current Ollama-based design should change until that
+  review happens.
 
 ## 11. Interactive clarifying-question flow (Revision 4)
 
@@ -731,3 +840,426 @@ to persist across applications); extending guidance to categories other
 than Work Experience (guidance flows into the same Work-Experience-only
 tailoring call as today; broadening tailoring itself to other categories
 is still the separate, already-deferred §10 item).
+
+## 12. Multi-source resume merge (Revision 5)
+
+**Problem.** The user started keeping several purpose-variant resumes
+(an academic CV, a USAID bidding CV, a World Bank resume, an MEL-focused
+CV, plus older `.docx` drafts) in a new intake folder,
+`resume-manager/source_resumes/` (alongside the original bootstrapped
+`resume.pdf`, moved there too). Each variant phrases and organizes
+experience differently and may contain content — a bullet, an entire
+role, a credential — that never made it into `resume_master.yaml`. The
+user wants that content folded into the one master automatically as new
+source files are added, without hand-transcribing each variant.
+
+**Why this isn't `convert_resume.py`'s deterministic parser extended to
+more formats.** §3's parser recognizes *one* resume's fixed line-shapes
+per category and fully reconstructs its structure — appropriate for a
+one-time bootstrap from a single canonical source, but not for this
+job: `merge_resumes.py` only needs to spot content the master doesn't
+already have, across documents whose structure it doesn't need to fully
+parse. Confirmed as a deliberate scope decision (design discussion,
+2026-09-26): this is an LLM comparison task (does the master already say
+this?), not a section/line-shape extraction task, so it reuses `extract.py`
+for raw text only and never routes through `normalize.py`.
+
+**New module: `resume_manager/merge_resumes.py`.**
+
+1. **Discovery.** Lists every `.pdf` and `.docx` file directly under
+   `source_resumes/` (ignoring `desktop.ini` and any dotfile). A small
+   JSON manifest, `source_resumes/.processed_manifest.json` (mapping
+   filename → the mtime it was last processed at), is checked so a
+   re-run only processes files that are new or have changed since —
+   avoiding repeat ~5-30-minute Ollama calls (§4's timing evidence) on
+   unchanged files every time the merge is re-run after adding one more.
+2. **Raw text extraction**, format-dependent:
+   - `.pdf`: `extract_resume_text()`, the same primitive `convert_resume.py`
+     already uses (§3) — reused directly, no `process_pdf()` tier routing
+     here either, for the same reasons §3 gives.
+   - `.docx`: `mammoth.extract_raw_text()` — `mammoth` is already an
+     explicit project dependency (used by a different subproject); this
+     is its first use in `resume_manager`, following the same "already a
+     project dependency, first use in a new context" precedent §2 already
+     set for `rapidfuzz`.
+   A source file that fails extraction (corrupt, password-protected) is
+   skipped with a warning printed and logged in the merge report (step 7
+   below) — never aborts the whole run over one bad file.
+3. **One LLM comparison call per unprocessed source file.** Prompt
+   contains: every current `work_experience`/`education`/`awards`/
+   `publications` entry from `resume_master.yaml` (id, org/institution,
+   role/degree, and existing bullets — enough for the model to know what's
+   already captured) plus this one source's full raw extracted text. Asks
+   for **additions only** (confirmed design decision: never asked to
+   rewrite or replace existing bullet wording, even when the source phrases
+   the same fact better — keeps any wording the user already hand-tuned in
+   `resume_master.yaml` stable across merge re-runs). Response, parsed via
+   the existing `parse_llm_yaml()`:
+   ```yaml
+   new_bullets_by_id:
+     <existing-work-experience-or-education-id>: [new bullet text, ...]
+   new_work_experience: [{org, role, location, start_date, end_date, bullets: [str]}]
+   new_education: [{institution, degree, gpa, location, start_date, end_date, thesis}]
+   new_awards: [{name, description, date}]
+   new_publications: [{title, date, venue, link}]
+   ```
+   A missing/malformed response is treated as "nothing new found in this
+   source" (logged, not a fatal error) — mirrors `tailor_resume()`'s and
+   `generate_clarifying_questions()`'s existing never-crash-on-a-bad-LLM-
+   response contract (§8, §11).
+4. **Traceability verification (defense in depth, even with LLM judgment
+   in the loop).** Every returned bullet and every new entry's required
+   fields must pass `schema.py`'s existing `verify_entry_fields()` against
+   *that source file's own* raw extracted text (not the master's) before
+   being merged — the same substring-traceability check `convert_resume.py`
+   already runs at bootstrap (§3 step 4), reused here as the safety net
+   against outright fabrication that choosing "auto-merge with LLM
+   judgment" over a review-gated flag (confirmed design decision,
+   2026-09-26) would otherwise leave uncovered. A field/bullet that fails
+   is dropped and named in the merge report, not merged and not raised as
+   an error — consistent with this project's established "flag, never
+   silently trust or crash" convention (§3 step 4, §5, §8).
+5. **Fuzzy-match duplicate detection (added after the first real run,
+   2026-09-26) — the LLM's own novelty judgment is not, on its own,
+   reliable enough.** Confirmed by that real run: it duplicated 3 USAID
+   work_experience entries, 2 education entries, and 2 publications, each
+   time because a different source resume phrased the same role,
+   institution, or title slightly differently and the LLM didn't
+   recognize it as already present in the master — exactly the risk
+   choosing "auto-merge with LLM judgment" over a review-gated flag
+   (step 4 above) had left uncovered for *novelty* judgment specifically
+   (traceability was already covered). `_find_duplicate()` adds a
+   deterministic check in front of every proposed addition: a bullet
+   compared (via `rapidfuzz.fuzz.ratio`, already a project dependency,
+   same primitive `match_section_header()` uses in §3) against the target
+   entry's existing bullets; a new work_experience entry's `"{org} {role}"`
+   against every existing entry's own `"{org} {role}"`; new education by
+   `"{institution} {degree}"`; new awards by `name`; new publications by
+   `title`. Threshold 85, calibrated directly against that real run's
+   duplicate pairs (93.8-100 similarity) versus a genuinely different
+   entry (38.9) — comfortably inside the gap between them. A match is
+   flagged and dropped, not merged, the same "flag, never silently trust"
+   posture as step 4.
+
+   **Education gets a second, targeted signal** (added after a real
+   second run surfaced a slip-through, same day): "Mercer University
+   Bachelor in Finance and Economics" vs "Mercer University B.B.A. with
+   Honors, Summa Cum Laude, GPA: 3.91" is the same real degree (same
+   institution, same 3.91 GPA), but scored only 48.7 combined
+   institution+degree similarity — actually *lower* than some genuinely
+   different institution pairs in the real master that happen to both say
+   "Master of Science in ..." (52-56), so lowering the combined-text
+   threshold to catch 48.7 would have created false positives instead of
+   fixing this. `_find_duplicate_education()` compares the institution
+   name alone first (a far more specific signal — 100 for the real
+   duplicate pair vs 32.7-36.4 for genuinely different institutions in the
+   real master) at a high bar (90), paired with an exact GPA match when
+   both are real values — catching this case without that risk, and
+   without wrongly merging two genuinely different real degrees from the
+   same school (a real, legitimate case) since those don't share a GPA.
+6. **Applying the additions.** Bullets in `new_bullets_by_id` are appended
+   to the matching existing entry's `bullets` list (by id). Each object in
+   `new_work_experience`/`new_education` becomes a new entry, assigned a
+   stable id via the same `assign_ids()`/`slugify()` machinery
+   `convert_resume.py` already uses (§3) — extended with an optional
+   `existing_ids` parameter (backward compatible; `convert_resume.py`'s
+   own call is unaffected) so a new entry's id is disambiguated against
+   every id already present in the master, not just within this one
+   source's own new entries, so a re-run never collides.
+   `new_awards`/`new_publications` entries are simply appended (no id
+   scheme for those categories, matching §3's schema).
+7. **Merge report.** `resume_master.merge_report.txt` (written alongside
+   `resume_master.yaml`) lists, per source file processed this run: how
+   many bullets/entries were added, and how many were flagged and dropped
+   for failing traceability or looking like a duplicate (with the specific
+   field/value and reason) — an audit trail the user can check after the
+   fact, the same role `validation_report.txt` plays for tailoring output
+   (§5), even though nothing here blocks on it.
+8. **Persistence is per-file, not once at the end of the whole run**
+   (corrected after a real run was killed by the host machine's own
+   memory-pressure protection mid-run, 2026-09-26 — unrelated to a bug in
+   this module, but exposing a real gap in it): `resume_master.yaml`, the
+   merge report, and the manifest (step 1) are all rewritten after *every*
+   source file finishes processing, not batched until every file in the
+   run completes. Each file can cost a real, slow (~5-30-minute) Ollama
+   call, so without this, a crash or kill partway through a multi-file run
+   would have discarded every already-applied result too, forcing a full
+   re-run from scratch instead of resuming via the manifest from where it
+   left off.
+
+**CLI.** `python -m resume_manager.merge_resumes` (no arguments — always
+operates on `resume-manager/source_resumes/` and
+`resume-manager/resume_master.yaml`, matching `convert_resume.py`'s own
+no-argument-by-default convention, §3).
+
+**Model & config.** Reuses `RESUMEMANAGER_OLLAMA_MODEL` and
+`RESUMEMANAGER_OLLAMA_TIMEOUT` unchanged — no new environment variables.
+
+**Non-goals of this revision.** Rewriting or improving existing bullet
+wording from a better-phrased source (confirmed: additions only, see
+step 3); a review/approval gate before merging (confirmed: auto-merge,
+with the merge report as an after-the-fact audit trail instead, see step
+7) — step 5's fuzzy-match duplicate guard narrows the real risk this
+traded away (novelty misjudgment), but doesn't reintroduce a gate;
+resolving genuine conflicts between sources (e.g. two source resumes
+giving different dates for the same role) — not observed in the user's
+actual source files during design and deferred until it's a real problem
+to solve, per this project's own consistent "don't solve it speculatively"
+practice (§10's parser-broadening item takes the same stance).
+
+## 13. Page-fit-aware Work Experience selection & clean section breaks (Revision 6)
+
+**Problem.** Reviewing the first real Typst-rendered PDF (2026-09-26,
+after the render.py rewrite this same day — see the revision-history note
+at the top of this spec), two layout issues surfaced: (1) `tailor.py`'s
+binary `included_ids` selection (§4) has no page-budget awareness, so
+page 1 can end with unused space while a section (Education) starts on
+page 1 and spills onto page 2; (2) nothing prevents a section heading
+from being stranded at the bottom of a page with none of its own content
+following it on the same page. The user wants Education (or any section)
+to always start cleanly on its own page boundary when it doesn't fully
+fit where it naturally falls, and wants any leftover space on an earlier
+page filled with more relevant Work Experience first, rather than left
+blank.
+
+**Design decision: two independent mechanisms, not one.** Confirmed
+during design discussion — these don't need to be solved by the same
+piece of code:
+
+**13a. Clean section breaks — `render.py` only, no LLM/tailor.py
+involvement.** **Corrected during planning (2026-09-26) from this
+section's first draft**, which wrapped only "the heading plus its first
+entry" — verified empirically, against the real Education content (all 6
+institutions), that this does *not* actually prevent the section from
+splitting: entries after the first can still spill to the next page
+independently, which is exactly the defect being fixed. The validated
+design instead wraps each section's **entire** content — heading through
+its last entry — in a single Typst `#block(breakable: false)[...]`.
+Confirmed empirically: Typst refuses to split a non-breakable block
+across a page boundary, so if the whole section doesn't fit in the space
+remaining on the current page, the *entire* block moves to the next page
+instead — verified this produces exactly the wanted behavior (all 6
+Education institutions move together) where the original "first entry
+only" approach didn't.
+
+Applied to **Education, Awards & Scholarships, Research Presentations &
+Publications, and Skills only — never Work Experience**, which must stay
+breakable/flowing: it's the one section whose length §13b deliberately
+grows to fill available space, and forcing it non-breakable would defeat
+that entirely. This scoping also contains the one real risk a
+non-breakable block introduces, confirmed empirically: if a wrapped
+section's content is ever taller than one full page, Typst silently
+clips the overflow at the page boundary instead of raising an error or
+flowing to a new page — verified with a 120-item stress list, which
+"compiled successfully" while quietly losing content past the bottom
+margin. Not a concern for the real data (Education/Awards/Publications/
+Skills are each a handful of entries, nowhere near a full page), and a
+defensive pre-measurement pass was confirmed out of scope for this
+revision (Typst has no built-in "measure before laying out" primitive;
+would need a two-pass render) — accepted as a known limitation of this
+approach, to revisit only if one of these four sections ever grows large
+enough in practice for it to matter.
+
+This is a template-only change: no page-counting, no new subsystem, and
+it composes automatically with 13b below since both ultimately just look
+at the real compiled page count.
+
+**13b. Ranked selection + render-measure-retry fill loop —
+`tailor.py` + `tailor_resume.py`.**
+- `tailor.py`'s response shape changes from `included_ids`/`bullets_by_id`
+  to `ranked_ids`/`bullets_by_id`: **every** Work Experience entry (or,
+  to bound response size/latency, the top N most relevant — a plan-time
+  decision) ranked most-to-least relevant to the job description, each
+  with rewritten bullets already prepared. Still exactly one Ollama call
+  — the "hybrid: LLM ranks by relevance, code trims by budget" candidate
+  §10 already named for this problem, now the actual design. `_SYSTEM_PROMPT`
+  and the response-shape check in `tailor_resume()` update accordingly;
+  this is a genuine schema change (like Revision 2 fully replacing v1's
+  approach), not an additive/backward-compatible one like §11's `guidance`
+  parameter — there is no reason for a caller to want the old binary
+  shape once ranking exists.
+- `apply_tailoring()` gains a parameter — **`bullet_budget: dict[str, int]`,
+  not the coarser `include_count: int` this started as** (corrected after
+  real feedback, 2026-09-26 — see below) — mapping an entry id to how many
+  of its bullets to include; an id absent from the map is excluded
+  entirely.
+- **Granularity correction, confirmed by real feedback after shipping the
+  entry-level version:** an `include_count`-only fill loop (add one whole
+  entry at a time) left a large, visibly wrong blank gap at the bottom of
+  page 1 — the *next* whole entry didn't fit even though there was
+  clearly room for more of it, because entries vary in size and the
+  search could only move in whole-entry increments. `tailor_resume.py`'s
+  `_select_work_experience_bullets()` instead walks `ranked_ids` in order
+  and, for each entry, tries adding its bullets **one at a time** (in
+  their given order); after each single addition it re-renders via
+  `render_resume_pdf()` and checks the real page count, growing the
+  budget for as long as each successive addition still fits
+  `target_pages`. The search stops entirely — across all remaining
+  entries and bullets, not just the current one — at the first addition
+  that doesn't fit, since page count only ever grows as more content is
+  added. An entry whose very first bullet doesn't fit is left out of the
+  budget entirely (can't show an entry with zero bullets); the one
+  exception is when the budget would otherwise be completely empty (not
+  even the top-ranked entry's first bullet fit) — that first bullet is
+  included anyway, the same "accept overflow at the readable floor"
+  philosophy §6's density-tier loop already follows, rather than
+  producing a resume with zero Work Experience.
+- This runs **at the default (most spacious) density tier's own fitting
+  behavior only** (confirmed design decision: filling space by adding
+  content is a different lever from §6/render.py's existing density-tier
+  shrinking, and the two should not be conflated — tier-shrinking stays
+  reserved for "this content genuinely doesn't fit even at the readable
+  floor," never used as a trick to cram in more bullets than naturally
+  relevant at normal formatting); render_resume_pdf()'s own tier-shrink
+  loop is still free to kick in per candidate, but the fill loop only ever
+  asks "does this candidate fit," using whatever page count
+  render_resume_pdf() actually reports.
+- **Selection is by rank; display order is not** (a second real bug this
+  same feedback round surfaced): reordering Work Experience into rank
+  order broke render.py's shared-employer date carry-forward (§6) — a
+  later-dated sub-role could rank ahead of the earlier one that actually
+  carries their shared dates, landing first with no preceding same-org
+  entry to inherit from. `apply_tailoring()` selects *which* entries by
+  rank but builds the result by walking `master`'s own work_experience
+  order and keeping only the selected ids, so the tailored resume stays
+  in normal (reverse-)chronological order like any real resume,
+  regardless of relevance ranking — incidentally also just correct
+  resume convention independent of the bug it fixes.
+- Compiles are sub-second (confirmed empirically during the Typst
+  rendering work, 2026-09-26), so a search loop of this size — one render
+  per bullet tried, not per entry — costs negligible wall-clock time
+  relative to the one Ollama call.
+
+**Testing implications** (extends §9's existing conventions): `render.py`
+gets tests confirming a forced page-boundary case moves an entire wrapped
+section (all of its entries, not just its heading) together onto the next
+page (via `pypdf`'s per-page text extraction, not just a total page-count
+check) for each of Education/Awards/Publications/Skills, plus a control
+case confirming Work Experience is *not* wrapped this way (individual
+entries may legitimately land on different pages); `tailor.py`'s tests
+move from asserting `included_ids` shape to `ranked_ids` shape, plus a
+display-order test confirming rank order never overrides master
+(chronological) order; `tailor_resume.py` gets tests of the bullet-level
+search loop against a mocked `render_resume_pdf` that reports a
+controlled page count per candidate, confirming it stops at the right
+bullet, moves to the next entry once the current one is exhausted, and
+never loops past the last entry's last bullet.
+
+**Non-goals of this revision.** Precise per-heading vertical-position
+tracking via Typst's `query()`/label system (confirmed design decision:
+the simpler render-measure-retry loop against total page count is
+sufficient for a 1-2 page resume; revisit only if it proves
+insufficiently precise in practice); applying the render-measure-retry
+fill mechanism to any category other than Work Experience (Education/
+Awards/Publications/Skills still pass through untouched in full, per
+§1's original non-goals — only *how many* Work Experience entries are
+selected changes, not what gets selected from any other category);
+defending against a wrapped section growing taller than one full page
+(13a's known, accepted limitation — confirmed empirically during
+planning that Typst silently clips a non-breakable block's overflow
+past the page boundary rather than erroring or flowing; not a real risk
+at today's real content sizes, and a defensive pre-measurement pass was
+confirmed out of scope, requiring a two-pass render Typst has no
+built-in primitive for); forcing every individual Work Experience entry
+to stay non-breakable internally (13a's wrap deliberately excludes Work
+Experience for exactly this reason — the bulk of a resume's content
+lives there, and forcing every entry non-breakable would waste
+significant page space for no benefit the user asked for).
+
+## 14. Two-way Markdown editing (Revision 7)
+
+**Problem.** `resume_master.yaml` and `tailored_resume.yaml` are the
+pipeline's only editable representation of a resume's content, and hand-
+editing raw YAML for word-by-word wording tweaks is awkward. The user
+wants a Markdown file for each — an ongoing one mirroring
+`resume_master.yaml`, and a per-application one mirroring
+`tailored_resume.yaml` — that they can edit directly, with those edits
+syncing back into the real data the pipeline actually uses.
+
+**Design decision: YAML stays canonical; Markdown is a synced view, not a
+second source of truth.** Confirmed during design discussion: the
+alternative (Markdown becomes primary, YAML derived from it) would mean
+redefining the master data format at this late stage, disruptive to
+`merge_resumes.py`/`tailor.py`/`render.py`, all of which already operate
+on the YAML dict shape. Two-way sync instead: export a Markdown file from
+the current YAML; a human edits it; a sync step parses it back and
+overwrites the YAML.
+
+**The one real risk this design has to solve: `merge_resumes.py` can
+write `resume_master.yaml` automatically while the user is mid-edit on
+`resume_master.md`.** Blindly overwriting the YAML from a hand-edited
+`.md` would silently discard whatever the auto-merge added in between,
+with no indication anything was lost. `tailored_resume.md` has no
+equivalent risk — nothing else writes to one application's own output
+files after `tailor_resume.py` finishes, so `sync_tailored_md.py` needs
+no guard.
+
+**New module: `resume_manager/markdown_sync.py`** (pure formatting/
+parsing, no I/O):
+- `export_to_markdown(resume: dict, embed_hash: bool = False) -> str` —
+  renders any resume-shaped dict (master or tailored; same schema) as
+  Markdown. **Deliberately not** the same compact, prose-style Markdown
+  `render.py` builds for the final PDF (§6) — that format drops missing/
+  placeholder fields and is never parsed back, so it can freely omit
+  anything not worth a reader seeing. This format's job is reliable
+  round-tripping, so every field gets an explicit `"- Label: value"` line
+  (e.g. `- Location: ...`, `- Start: ...`, `- GPA: ...`), including the
+  literal `"Not specified"` placeholder where that's the real stored
+  value — unambiguous to parse, and more useful to see than a
+  cosmetically-cleaned view when the audience is editing data rather than
+  reading a finished resume. Work Experience/Education entries carry
+  their `id` as an invisible `<!-- id: ... -->` comment immediately after
+  their heading, so a re-import can match an edited entry back to the
+  right one; Awards/Publications/Skills have no id scheme in the schema
+  (§3) and are simply rebuilt wholesale from whatever entries appear in
+  the file, in order. `embed_hash=True` (master only) prepends
+  `<!-- resume-master-yaml-hash: <hash> -->`, computed by
+  `compute_yaml_hash()` (a SHA-256 of the resume dict's canonical YAML
+  form).
+- `extract_embedded_hash(markdown_text) -> str | None` — reads that
+  marker back out, for `sync_master_md.py`'s staleness check.
+- `import_from_markdown(markdown_text: str) -> dict` — parses Markdown
+  produced by `export_to_markdown()` back into the same dict shape. A
+  block it doesn't recognize is silently ignored rather than raising —
+  this format is meant for direct hand-editing, where stray text (a
+  comment-to-self, a blank scratch line) is normal, not an error.
+
+**Automatic export (no new user action).** `convert_resume.py` and
+`merge_resumes.py` both write `resume_master.md` (with
+`embed_hash=True`) immediately after writing `resume_master.yaml` —
+`merge_resumes.py` does this as part of its existing per-file `_persist()`
+step (§12 step 8), so the embedded hash is always fresh relative to
+whatever the most recent auto-merge run left behind. `tailor_resume.py`
+writes `tailored_resume.md` (no hash) alongside `tailored_resume.yaml`
+every run.
+
+**Explicit sync-back (the one new user action per edit).**
+- `resume_manager/sync_master_md.py` (`python -m resume_manager.sync_master_md`,
+  no arguments, same convention as `convert_resume.py`/`merge_resumes.py`):
+  reads `resume_master.md`, compares its embedded hash against
+  `compute_yaml_hash()` of the *current* `resume_master.yaml`. Mismatch →
+  raises `RuntimeError` with a message naming the likely cause (a
+  `merge_resumes.py` run) and telling the user to re-export and redo their
+  edit — refuses to overwrite rather than silently losing the auto-merged
+  change. Match → parses the Markdown, overwrites `resume_master.yaml`,
+  and re-exports `resume_master.md` so its hash reflects the new state,
+  ready for the next edit cycle.
+- `resume_manager/sync_tailored_md.py --application-dir <path>`: reads
+  that application's `tailored_resume.md`, overwrites
+  `tailored_resume.yaml`, re-exports the `.md` (for consistency after
+  whatever normalization the parse applied), and re-renders
+  `Tailored_Resume.pdf` from the edited content via the existing
+  `render_resume_pdf()` (§6) — no LLM call, no re-tailoring, just a fresh
+  render of the hand-edited structure.
+
+**Non-goals of this revision.** Automatic 3-way reconciliation of a
+concurrent human edit and an auto-merge (confirmed design decision: the
+hash-guard's all-or-nothing refusal — re-export and redo the edit — is
+simpler and sufficiently safe given how infrequently a human edit and an
+auto-merge run would actually overlap in practice; a real 3-way merge is
+a candidate upgrade if that assumption stops holding); syncing
+`tailored_resume.md` edits back through `validate_tailored()`'s fact-diff
+checks (§5) — a hand-edited wording change is the user's own deliberate
+choice, not an LLM rewrite to fact-check; per-field (rather than
+whole-file) conflict resolution for `resume_master.md` (the hash-guard is
+whole-file, matching this revision's simpler scope).
