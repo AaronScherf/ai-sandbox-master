@@ -231,13 +231,37 @@ def _generate_answer(
 def retrieve_passages(
     roots: list[str], query: str, client,
     course: str | None = None, top_k: int = 6, max_per_file: int = 3,
+    textbook_top_k: int = 3,
 ) -> list[PassageResult]:
     """Retrieval step factored out of answer_question() so /hint
     (rag/tutor_diagnosis.py) can call it directly without duplicating
     the diversify-then-cap logic (spec §3). Renamed without a leading
-    underscore since it's now called from another module."""
-    passages = search_passages(roots, query, client, course=course, top_k=top_k * 2)
-    return _diversify_by_file(passages, max_per_file)[:top_k]
+    underscore since it's now called from another module.
+
+    Runs a second, doc_type="textbook"-scoped search_passages() call
+    alongside the general one and merges the results before
+    diversifying (2026-09-27 fix). search()'s file-level stage ranks a
+    whole file by its title+summary embedding (index_card.py, generated
+    from only the document's first ~12,000 characters), which is a poor
+    proxy for whether any one deep chapter of a large, topic-diverse
+    textbook matches a specific query -- confirmed live against
+    homework_3's Question 4 (random utility / Block-Marschak / Luce):
+    every one of microecon's 6 textbook-tagged files scored below every
+    note/homework file at the file-level stage, so Rubinstein's
+    textbook -- which has an exact-match chunk at Ch.8 p.151 and p.178
+    -- never reached chunk-level ranking at all, and /hint grounded
+    itself in an unrelated homework's differently-numbered "Question 4"
+    instead. A dedicated textbook-only pool ranks textbooks only against
+    each other for the file-level cut, so a topically relevant textbook
+    no longer has to out-score every short note/homework file just to
+    be considered; its own chunks then compete for real on their much
+    more specific per-chunk embeddings."""
+    general = search_passages(roots, query, client, course=course, top_k=top_k * 2)
+    textbook = search_passages(roots, query, client, course=course, doc_type="textbook", top_k=textbook_top_k)
+    seen_chunk_ids = {p.chunk_id for p in general}
+    merged = general + [p for p in textbook if p.chunk_id not in seen_chunk_ids]
+    merged.sort(key=lambda p: p.score, reverse=True)
+    return _diversify_by_file(merged, max_per_file)[:top_k]
 
 
 def answer_question(
