@@ -192,3 +192,73 @@ fixed, each with its own regression test:
 5. Retroactive backfill of historical files -- only if the fresh
    session log, once it accumulates real data, proves valuable enough
    to justify the one-off parsing work.
+
+## 2026-09-27 update: Q4 retrieval failure diagnosed, textbook file-level exclusion fixed
+
+The empty-retrieval limitation above turned out to have a second layer
+once real retrieval started working: an auditing pass that reran
+`/hint` against a real homework (`homework_3.md`, `microecon`, once its
+chunk index was complete -- see `2026-08-29-source-indexer-status.md`'s
+same-day entries) found `/hint`'s Question 4 answer talking entirely
+about "contraction consistency" and consideration sets -- nothing about
+the actual question (random utility, Block-Marschak inequalities, the
+Luce model).
+
+**Root cause**: `search()`'s file-level stage ranks a whole file by its
+title+summary embedding (`index_card.py`'s `generate_index_card()`,
+built from an LLM summary of just the document's first ~12,000
+characters). For a large, topic-diverse textbook that's a poor proxy
+for whether a deep, later chapter matches a specific query -- confirmed
+live: ranked every one of `microecon`'s 6 textbook-tagged files (Rubinstein's
+two books, Press, Ok, and two Bonus titles) *below every note and
+homework file* against the real Q4 query embedding, including files on
+entirely unrelated topics. Rubinstein's own textbook summary
+(`"...preferences, utility, consumer choice, risk aversion, and social
+choice..."`) never mentions random utility or stochastic choice at all
+-- unsurprising, since that content is Chapter 8, in a 1080-page book
+whose summary was written from the first 15-20 pages. With
+`retrieve_passages()`'s file-level shortlist capped at 5, Rubinstein
+(rank 14 of 20) never reached chunk-level ranking, so `/hint` grounded
+itself in an unrelated homework's differently-numbered "Question 4"
+(a consideration-sets problem) instead, and `generate_hint()` produced
+a fluent, well-cited hint for the wrong question.
+
+**Fix**: `retrieve_passages()` (`rag/rag_agent.py`) now runs a second,
+`doc_type="textbook"`-scoped `search_passages()` call alongside the
+general one, merges the results (deduped by `chunk_id`, re-sorted by
+score) before diversifying. Textbooks now only compete against each
+other for the file-level cut, so a relevant one no longer has to
+out-score every short note/homework file just to be considered. Both
+`answer_question()` and `/hint` share this one function, so the fix
+applies to normal grounded Q&A too, not just hints. 5 new tests in
+`tests/test_rag_agent.py` (the dedicated pool is queried, a
+general-pool-excluded textbook passage survives, cross-pool dedup,
+score re-sorting); the one existing test asserting a single
+`search_passages` call was updated for the new two-call shape. Merged
+to `main`.
+
+**Verified live, and only partially fixed**: after the fix, Rubinstein's
+and Press's actual Ch.8-adjacent problem chunks *are* retrieved for the
+Q4 query (previously zero textbook chunks appeared at all) -- the
+file-level exclusion bug is real and the fix closes it. But the specific
+chunks that win chunk-level ranking are the textbook's own *practice-
+problem listings* ("Problem C13 (NYU 2017)...", a lottery-prize
+question), not the expository passages that actually explain
+Block-Marschak or the Luce model -- plausibly because a query that is
+itself a problem statement embeds more similarly to other problem
+statements than to matching theory prose. With those chunks mixed into
+the prompt alongside the higher-scoring wrong-topic homework passages,
+`generate_hint()` still produced a hint entirely about consideration
+sets for this specific example. Fixing this is a harder, chunk-level
+relevance question -- separate from "can a textbook be retrieved at
+all" -- and is left as a follow-up, not attempted here.
+
+**Next steps**:
+1. Investigate why chunk-level ranking favors problem-listing chunks
+   over expository theory chunks for a problem-shaped query -- possibly
+   worth a query reformulation step (turn the homework question into a
+   more theory-shaped query before embedding) or a tier/heading-based
+   preference for non-`problem_number` chunks when grounding a hint.
+2. Re-run the full 4-question homework_3 comparison once that's
+   addressed, to see whether Q4's hint actually becomes topically
+   correct, not just better-cited.
