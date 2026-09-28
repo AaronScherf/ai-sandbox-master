@@ -7,6 +7,7 @@ from rag.session_log import Event
 from rag.tutor_diagnosis import (
     Diagnosis, DiagnosisParseError, diagnose_draft, generate_hint, generate_ungrounded_hint,
     VERIFY_MODEL, generate_verification, summarize_unit, _rubric_averages_line,
+    _ungrounded_fallback_line, _question_snippet, _format_event,
 )
 
 
@@ -213,6 +214,64 @@ class TestRubricAveragesLine(unittest.TestCase):
         self.assertIn("2 attempt", line)
 
 
+class TestQuestionSnippet(unittest.TestCase):
+    def test_collapses_whitespace_and_newlines(self):
+        self.assertEqual(_question_snippet("## Question 4\n\nAbout random utility"),
+                          "## Question 4 About random utility")
+
+    def test_short_question_is_unchanged(self):
+        self.assertEqual(_question_snippet("short"), "short")
+
+    def test_long_question_is_truncated_with_ellipsis(self):
+        result = _question_snippet("x" * 100, limit=80)
+        self.assertEqual(len(result), 83)  # 80 chars + "..."
+        self.assertTrue(result.endswith("..."))
+
+
+class TestFormatEvent(unittest.TestCase):
+    def test_ungrounded_hint_includes_a_note(self):
+        formatted = _format_event(_event(type="hint", grounded=False))
+        self.assertIn("no matching course material was found", formatted)
+
+    def test_grounded_hint_has_no_note(self):
+        formatted = _format_event(_event(type="hint", grounded=True))
+        self.assertNotIn("no matching course material was found", formatted)
+
+    def test_non_hint_events_never_get_the_note_even_if_ungrounded(self):
+        formatted = _format_event(_event(type="answer", grounded=False))
+        self.assertNotIn("no matching course material was found", formatted)
+
+
+class TestUngroundedFallbackLine(unittest.TestCase):
+    def test_none_when_no_hint_events(self):
+        events = [_event(type="answer"), _event(type="draft", correctness=3, rigor=3, course_fit=3)]
+        self.assertIsNone(_ungrounded_fallback_line(events))
+
+    def test_reports_zero_fallbacks_when_all_hints_grounded(self):
+        events = [_event(type="hint", grounded=True), _event(type="hint", grounded=True)]
+        line = _ungrounded_fallback_line(events)
+        self.assertIn("all 2 hint(s)", line)
+        self.assertIn("grounded in your own course materials", line)
+
+    def test_reports_count_and_question_snippets_when_some_ungrounded(self):
+        events = [
+            _event(type="hint", grounded=True, question="a grounded question"),
+            _event(type="hint", grounded=False, question="the Luce model question"),
+            _event(type="hint", grounded=False, question="the Block Marschak question"),
+        ]
+        line = _ungrounded_fallback_line(events)
+        self.assertIn("2 of 3 hint(s)", line)
+        self.assertIn("corpus gap", line)
+        self.assertIn("the Luce model question", line)
+        self.assertIn("the Block Marschak question", line)
+        self.assertNotIn("a grounded question", line)
+
+    def test_ignores_non_hint_events_when_counting(self):
+        events = [_event(type="answer"), _event(type="hint", grounded=True)]
+        line = _ungrounded_fallback_line(events)
+        self.assertIn("all 1 hint(s)", line)
+
+
 class TestSummarizeUnit(unittest.TestCase):
     def test_uses_tutor_model(self):
         client = _fake_client("What we learned...\n\nWhat to focus on...")
@@ -234,6 +293,18 @@ class TestSummarizeUnit(unittest.TestCase):
         self.assertIn("Correctness 5.0/5", result)
 
     def test_no_rubric_line_when_no_draft_events(self):
+        client = _fake_client("summary text")
+        result = summarize_unit([_event(type="answer")], client)
+        self.assertEqual(result, "summary text")
+
+    def test_appends_grounding_line_when_hint_events_present(self):
+        client = _fake_client("summary text")
+        result = summarize_unit([_event(type="hint", grounded=False, question="the Luce model")], client)
+        self.assertIn("summary text", result)
+        self.assertIn("corpus gap", result)
+        self.assertIn("the Luce model", result)
+
+    def test_no_grounding_line_when_no_hint_events(self):
         client = _fake_client("summary text")
         result = summarize_unit([_event(type="answer")], client)
         self.assertEqual(result, "summary text")
