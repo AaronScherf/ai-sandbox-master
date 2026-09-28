@@ -106,6 +106,18 @@ def _select_work_experience_bullets(
     master_by_id = {e["id"]: e for e in master.get("work_experience") or []}
     ranked_ids = tailoring_result.get("ranked_ids") or []
     bullets_by_id = tailoring_result.get("bullets_by_id") or {}
+    # Reserve the last page for Education/Awards/Publications/Skills (2026-
+    # 09-28 layout fix): render.py's forced page break guarantees they
+    # start fresh on whatever page follows Work Experience, so this loop
+    # must measure Work Experience *in isolation* against the pages left
+    # for it -- otherwise a heavy static section (real, confirmed: the
+    # actual master's Skills section alone took 2 full pages) crowds out
+    # Work Experience's own growth, or forces everything to a cramped
+    # density tier just to make both fit together. Falls back to today's
+    # combined-budget measurement for a single-page target, where there's
+    # no second page to reserve anything for.
+    reserve_last_page_for_static = target_pages >= 2
+    work_experience_target_pages = target_pages - 1 if reserve_last_page_for_static else target_pages
     budget: dict[str, int] = {}
     for entry_id in ranked_ids:
         source = master_by_id.get(entry_id)
@@ -120,9 +132,12 @@ def _select_work_experience_bullets(
         all_bullets = bullets_by_id.get(entry_id) or source["bullets"]
         total_bullets = len(all_bullets)
         for n in range(1, total_bullets + 1):
-            candidate, _ = apply_tailoring(master, tailoring_result, bullet_budget={**budget, entry_id: n})
-            page_count = render_resume_pdf(candidate, scratch_pdf_path, target_pages=target_pages)
-            if page_count <= target_pages:
+            candidate, _ = apply_tailoring(
+                master, tailoring_result, bullet_budget={**budget, entry_id: n},
+                include_static_sections=not reserve_last_page_for_static,
+            )
+            page_count = render_resume_pdf(candidate, scratch_pdf_path, target_pages=work_experience_target_pages)
+            if page_count <= work_experience_target_pages:
                 budget[entry_id] = n
             else:
                 if not budget and ranked_ids:

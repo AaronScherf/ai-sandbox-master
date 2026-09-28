@@ -182,11 +182,26 @@ def _non_breakable_section(section_parts: list[str]) -> str:
     return "#block(breakable: false)[\n" + "\n\n".join(section_parts) + "\n]"
 
 
-def build_typst(resume: dict, tier: dict | None = None) -> str:
+def build_typst(resume: dict, tier: dict | None = None, force_page_break_before_static: bool = False) -> str:
     """Pure templating, no I/O, no LLM -- the same input and tier always
-    produce the same output (spec §6)."""
+    produce the same output (spec §6).
+
+    `force_page_break_before_static` (2026-09-28 layout fix, default off
+    so every existing direct caller is unaffected): inserts an explicit
+    Typst `#pagebreak()` right before whichever of Education/Awards/
+    Publications/Skills is rendered first, so Work Experience gets first
+    claim on page 1 and the static sections always start fresh on
+    whatever page follows -- rather than the two competing for the same
+    page-fit budget, which otherwise means every section (including Work
+    Experience) gets shrunk to a cramped tier just to make an oversized
+    static section fit. Skipped when there's no Work Experience (nothing
+    to push a break relative to) or no static section at all (nothing to
+    push)."""
     tier = tier or _DENSITY_TIERS[0]
     parts: list[str] = [_build_preamble(tier)]
+    static_break_pending = force_page_break_before_static and bool(resume.get("work_experience")) and any(
+        resume.get(section) for section in ("education", "awards", "publications", "skills")
+    )
 
     contact = resume.get("contact") or {}
     name = _display(contact.get("name"))
@@ -244,6 +259,9 @@ def build_typst(resume: dict, tier: dict | None = None) -> str:
                 lines.append(f"- Thesis: {_escape_typst(thesis)}")
             if lines:
                 section_parts.append("\n".join(lines))
+        if static_break_pending:
+            parts.append("#pagebreak()")
+            static_break_pending = False
         parts.append(_non_breakable_section(section_parts))
 
     if resume.get("awards"):
@@ -256,6 +274,9 @@ def build_typst(resume: dict, tier: dict | None = None) -> str:
                 line += f" — {_escape_typst(description)}"
             lines.append(line)
         section_parts.append("\n".join(lines))
+        if static_break_pending:
+            parts.append("#pagebreak()")
+            static_break_pending = False
         parts.append(_non_breakable_section(section_parts))
 
     if resume.get("publications"):
@@ -271,6 +292,9 @@ def build_typst(resume: dict, tier: dict | None = None) -> str:
                 line += f' (#link("{_typst_string_literal(link)}")[link])'
             lines.append(line)
         section_parts.append("\n".join(lines))
+        if static_break_pending:
+            parts.append("#pagebreak()")
+            static_break_pending = False
         parts.append(_non_breakable_section(section_parts))
 
     if resume.get("skills"):
@@ -278,6 +302,9 @@ def build_typst(resume: dict, tier: dict | None = None) -> str:
         for entry in resume["skills"]:
             items = ", ".join(_escape_typst(item) for item in entry.get("items") or [])
             section_parts.append(f"*{_escape_typst(entry['category'])}*: {items}")
+        if static_break_pending:
+            parts.append("#pagebreak()")
+            static_break_pending = False
         parts.append(_non_breakable_section(section_parts))
 
     return "\n\n".join(parts)
@@ -305,9 +332,12 @@ def render_resume_pdf(resume: dict, output_path: str, target_pages: int = 2) -> 
     typst_path = re.sub(r"\.pdf$", ".typ", output_path, flags=re.IGNORECASE)
     if typst_path == output_path:
         typst_path = output_path + ".typ"
+    # Only meaningful for a real multi-page resume -- a single-page
+    # target has nowhere to push the static sections to.
+    force_page_break_before_static = target_pages >= 2
     page_count = 0
     for tier in _DENSITY_TIERS:
-        typst_source = build_typst(resume, tier)
+        typst_source = build_typst(resume, tier, force_page_break_before_static)
         with open(typst_path, "w", encoding="utf-8") as f:
             f.write(typst_source)
         typst.compile(typst_path, output=output_path)

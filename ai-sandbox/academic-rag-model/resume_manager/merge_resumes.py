@@ -685,6 +685,24 @@ def merge_one_source(
     new_skills_by_category = parsed.get("new_skills_by_category")
     if isinstance(new_skills_by_category, dict):
         existing_categories_by_name = {c["category"]: c for c in master.get("skills") or []}
+        # Cross-category item ownership (real, confirmed root cause,
+        # 2026-09-28 layout report): the category-name match above is a
+        # weak signal on its own -- "Computer Programming" vs. the real
+        # master's existing "Computer Programming and Artificial
+        # Intelligence" scores only 58.8% by fuzz.ratio, well under
+        # _DUPLICATE_SIMILARITY_THRESHOLD, so a differently-worded
+        # category for the same underlying skills creates a second
+        # category instead of matching. The real master ended up with 13
+        # skill categories, several exact item-for-item duplicates, this
+        # way. Tracking which category (if any) already owns each item --
+        # not just the one category a name-match just picked -- catches
+        # the duplication regardless of what the new category is named.
+        item_owner_by_lower: dict[str, str] = {
+            item.lower(): category["category"]
+            for category in master.get("skills") or []
+            for item in category.get("items") or []
+            if isinstance(item, str)
+        }
         for category_name, items in new_skills_by_category.items():
             if not isinstance(items, list) or not isinstance(category_name, str):
                 continue
@@ -693,21 +711,33 @@ def merge_one_source(
                 if fuzz.ratio(category_name, existing_name) >= _DUPLICATE_SIMILARITY_THRESHOLD:
                     target_category = category
                     break
+            is_new_category = target_category is None
             if target_category is None:
                 target_category = {"category": category_name, "items": []}
-                master.setdefault("skills", []).append(target_category)
-                existing_categories_by_name[category_name] = target_category
-            existing_items_lower = {i.lower() for i in target_category.get("items") or []}
             added_items = []
             for item in items:
                 if not isinstance(item, str) or not item.strip():
                     continue
                 item = item.strip()
-                if item.lower() in existing_items_lower:
+                item_lower = item.lower()
+                owner = item_owner_by_lower.get(item_lower)
+                if owner == target_category["category"]:
+                    continue  # already exactly here -- ordinary no-op, not worth flagging
+                if owner is not None:
+                    flagged.append(
+                        f"skill '{item}' already listed under '{owner}' -- not duplicated into '{target_category['category']}'"
+                    )
                     continue
                 target_category.setdefault("items", []).append(item)
-                existing_items_lower.add(item.lower())
+                item_owner_by_lower[item_lower] = target_category["category"]
                 added_items.append(item)
+            if is_new_category and added_items:
+                # Only create the new category if it actually gained a
+                # genuinely new item -- an empty near-duplicate category
+                # (every proposed item already lived elsewhere) would just
+                # be more of the same sprawl this check exists to prevent.
+                master.setdefault("skills", []).append(target_category)
+                existing_categories_by_name[category_name] = target_category
             if added_items:
                 applied.append(f"added {len(added_items)} skill(s) to '{target_category['category']}': {added_items}")
 

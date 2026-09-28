@@ -1,0 +1,8 @@
+Relevance brainstorm: not used.
+Validation flagged 2 possible issue(s) -- review before submitting:
+
+Numeric traceability:
+- u-s-agency-for-international-development-2: possible dropped metric '$413' from original bullets not found in rewritten bullets
+
+User-provided fact coverage:
+- u-s-agency-for-international-development-1: user-provided fact not fully reflected; missing concepts: inventory / inventories; asset database / asset databases / asset tracking; humanitarian equipment; 16+ projects / more than 16 projects / over 16 projects

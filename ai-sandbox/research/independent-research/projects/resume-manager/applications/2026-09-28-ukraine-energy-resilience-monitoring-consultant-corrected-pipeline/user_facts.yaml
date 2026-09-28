@@ -1,0 +1,15 @@
+- entry_id: u-s-agency-for-international-development-1
+  fact: Managed inventories and asset databases for electrical infrastructure and
+    humanitarian equipment across more than 16 separate projects, associated with
+    the $5 billion total support figure already recorded in the resume.
+  required_concepts:
+  - - inventory
+    - inventories
+  - - asset database
+    - asset databases
+    - asset tracking
+  - - electrical infrastructure
+  - - humanitarian equipment
+  - - 16+ projects
+    - more than 16 projects
+    - over 16 projects
