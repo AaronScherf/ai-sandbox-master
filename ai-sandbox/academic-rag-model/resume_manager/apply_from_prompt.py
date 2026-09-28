@@ -18,6 +18,8 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
+import yaml
+
 from common.ollama_utils import call_ollama
 from resume_manager.llm_yaml import parse_llm_yaml
 from resume_manager.tailor import RESUMEMANAGER_OLLAMA_MODEL, RESUMEMANAGER_OLLAMA_TIMEOUT_SECONDS
@@ -55,3 +57,35 @@ def interpret_opportunity_prompt(prompt: str, model: str = RESUMEMANAGER_OLLAMA_
     if not isinstance(application_name, str) or not application_name.strip():
         return None
     return {"job_description": job_description.strip(), "application_name": application_name.strip()}
+
+
+_BRAINSTORM_SYSTEM_PROMPT = """You are helping someone decide which parts of their resume are most relevant to a specific job opportunity, before it gets tailored.
+Given their full master resume (below) and a target job description, identify which Work Experience entries, skills, and other resume content are most relevant to this opportunity, and why. Write your answer as free-text guidance for whoever tailors the resume next -- not as YAML or JSON.
+Do not invent or assume any experience, skill, or fact not already present in the master resume."""
+
+
+def brainstorm_relevant_content(client, master: dict, job_description: str, model: str = _GEMINI_MODEL) -> str | None:
+    """Sends the full resume_master.yaml (as raw YAML text -- Gemini's
+    larger context window means it doesn't need merge_resumes.py's
+    trimmed _build_master_context() view built for a smaller local
+    model) plus the job description to Gemini, asking it to brainstorm
+    which resume content is most relevant. Returns free text suitable
+    for tailor_resume()'s `guidance` parameter, or None (never raises)
+    on any failure -- a Gemini outage degrades to no extra guidance
+    rather than blocking tailoring, mirroring tailor_resume.py's own
+    _collect_guidance() contract (spec §11)."""
+    master_yaml_text = yaml.safe_dump(master, sort_keys=False, allow_unicode=True)
+    prompt = (
+        f"{_BRAINSTORM_SYSTEM_PROMPT}\n\n### FULL MASTER RESUME:\n{master_yaml_text}"
+        f"\n\n### TARGET JOB DESCRIPTION:\n{job_description}"
+    )
+    try:
+        response = client.models.generate_content(model=model, contents=prompt)
+    except Exception as err:
+        print(f"WARNING: Gemini brainstorm call failed ({err}) -- continuing without it.")
+        return None
+    text = getattr(response, "text", None)
+    if not isinstance(text, str) or not text.strip():
+        print("WARNING: Gemini brainstorm call returned no text -- continuing without it.")
+        return None
+    return text.strip()

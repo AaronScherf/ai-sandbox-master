@@ -1,7 +1,22 @@
 import unittest
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
-from resume_manager.apply_from_prompt import interpret_opportunity_prompt
+from resume_manager.apply_from_prompt import brainstorm_relevant_content, interpret_opportunity_prompt
+
+_MASTER = {
+    "contact": {"name": "Aaron"},
+    "work_experience": [{
+        "id": "acme-1", "org": "Acme", "role": "Fraud Analyst", "location": "NYC",
+        "start_date": "2020", "end_date": "Present", "bullets": ["Reduced fraud losses 20%"],
+    }],
+    "education": [], "awards": [], "publications": [], "skills": [],
+}
+
+
+def _fake_gemini_response(text):
+    response = MagicMock()
+    response.text = text
+    return response
 
 
 class TestInterpretOpportunityPrompt(unittest.TestCase):
@@ -52,3 +67,31 @@ class TestInterpretOpportunityPrompt(unittest.TestCase):
         # run_tailoring() as a blank application folder name.
         mock_call.return_value = 'job_description: Some JD text\napplication_name: "   "'
         self.assertIsNone(interpret_opportunity_prompt("a description"))
+
+
+class TestBrainstormRelevantContent(unittest.TestCase):
+    def test_well_formed_response_is_returned_stripped(self):
+        client = MagicMock()
+        client.models.generate_content.return_value = _fake_gemini_response(
+            "  Your Acme fraud analyst role is directly relevant -- lead with it.  \n"
+        )
+        result = brainstorm_relevant_content(client, _MASTER, "A fraud detection analyst role.")
+        self.assertEqual(result, "Your Acme fraud analyst role is directly relevant -- lead with it.")
+
+    def test_prompt_includes_master_resume_and_job_description(self):
+        client = MagicMock()
+        client.models.generate_content.return_value = _fake_gemini_response("guidance text")
+        brainstorm_relevant_content(client, _MASTER, "A fraud detection analyst role.")
+        call_kwargs = client.models.generate_content.call_args.kwargs
+        self.assertIn("Fraud Analyst", call_kwargs["contents"])
+        self.assertIn("A fraud detection analyst role.", call_kwargs["contents"])
+
+    def test_exception_from_generate_content_returns_none(self):
+        client = MagicMock()
+        client.models.generate_content.side_effect = RuntimeError("429 RESOURCE_EXHAUSTED")
+        self.assertIsNone(brainstorm_relevant_content(client, _MASTER, "A job description."))
+
+    def test_blank_response_text_returns_none(self):
+        client = MagicMock()
+        client.models.generate_content.return_value = _fake_gemini_response("   ")
+        self.assertIsNone(brainstorm_relevant_content(client, _MASTER, "A job description."))
