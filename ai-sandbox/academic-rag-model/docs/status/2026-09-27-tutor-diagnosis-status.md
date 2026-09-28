@@ -262,3 +262,60 @@ all" -- and is left as a follow-up, not attempted here.
 2. Re-run the full 4-question homework_3 comparison once that's
    addressed, to see whether Q4's hint actually becomes topically
    correct, not just better-cited.
+
+## 2026-09-28 update: key-term weighting added; Q4's real problem was never retrieval
+
+User's own diagnosis: dense embeddings likely under-weight a question's
+rare, distinctive named terms (a theorem, a named model) relative to
+its generic formal-math boilerplate -- exactly what let an unrelated
+homework's differently-numbered "Question 4" outscore every real
+textbook for the actual Question 4 above. Asked to identify those
+terms and weight matching sources higher.
+
+**Added**: `_extract_key_terms()` in `rag/rag_agent.py` -- a small
+`GENERATION_MODEL` call, same pattern as `_reformulate_query()` --
+lists a question's specific named theorems/models/inequalities (e.g.
+"Block Marschak inequalities", "Luce model"), skipping generic terms
+that appear in nearly every question in the field. `retrieve_passages()`
+takes an optional `key_terms` param and rewards passages that literally
+contain them (`_KEY_TERM_BONUS = 0.08` per matched term, tuned against
+real corpus score gaps -- see the function's own docstring) before the
+final diversify+cap. Deliberately opt-in, not automatic:
+`retrieve_passages()` itself never calls the extractor, since
+`answer_question()`'s normal Q&A path runs on every message and
+shouldn't pay for a call only `/hint` benefits from. `/hint`'s own
+handler extracts once, passes the terms through for the boost, and
+reuses them afterward: if none of the final passages match any
+extracted term, it now prints a note that the hint may not be
+well-grounded, instead of silently handing over a confidently-worded
+wrong-topic answer. 8 new tests in `tests/test_rag_agent.py`. Merged to
+`main`.
+
+**Also fixed, found while touching this again**: the prior
+textbook-pool commit (2026-09-27) had already broken three tests that
+asserted `search_passages` was called exactly once -- missed at the
+time because the failures looked identical to this suite's own,
+already-known, unrelated `viz`/`plotly` import failures. Verified each
+failing test individually this time rather than assuming the whole
+list was the same cluster; two were real regressions
+(`TestAnswerQuestion::test_first_turn_skips_reformulation`,
+`test_follow_up_uses_reformulated_query_for_retrieval`) plus one more
+in `TestAnswerQuestionProblemGeneration`, all fixed alongside this
+change.
+
+**Verified live against the real Question 4, with the boost active**:
+extraction correctly named all six distinctive terms (random utility
+representation, Block Marschak inequalities, inclusion-exclusion
+principle, stochastic independence of irrelevant alternatives, Luce
+model, Type 1 extreme value distribution). But **zero** of the six
+retrieved passages contained any of them -- confirming, independently
+of the earlier corpus grep, that this specific content genuinely isn't
+in the indexed corpus. The boost correctly had nothing to promote, and
+the low-confidence note correctly fired. The hint text itself is still
+wrong-topic for this example; that's now an honest "may not be
+well-grounded" flag rather than a silent failure, which is as far as a
+retrieval-side fix can take it. Closing this for real needs the
+missing course material (Mark Dean's stochastic-choice lecture notes,
+or equivalent) to actually exist in academic-hub -- a content gap, not
+a ranking one -- left for the user to decide whether it's worth
+tracking down and indexing.
