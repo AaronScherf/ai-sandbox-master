@@ -215,6 +215,12 @@ Summary:"""
 
 def _format_event(event: Event) -> str:
     lines = [f"[{event.type}] Q: {event.question}", event.text]
+    if event.type == "hint" and not event.grounded:
+        # Lets the model's own "What to focus on" section name this as a real
+        # gap (2026-09-28) -- the tutor found nothing in the student's own
+        # materials for this question, not just a thin citation.
+        lines.append("(NOTE: no matching course material was found for this question -- "
+                     "answered from outside knowledge instead)")
     if event.gap_tag:
         lines.append(f"(gap tag: {event.gap_tag})")
     if event.citations:
@@ -236,6 +242,35 @@ def _rubric_averages_line(events: list[Event]) -> str | None:
     )
 
 
+def _question_snippet(question: str, limit: int = 80) -> str:
+    collapsed = " ".join(question.split())
+    return collapsed if len(collapsed) <= limit else collapsed[:limit].rstrip() + "..."
+
+
+def _ungrounded_fallback_line(events: list[Event]) -> str | None:
+    """Computed, not model-generated -- same reasoning as
+    _rubric_averages_line(): a raw count of how many /hint calls this
+    unit fell back to outside knowledge (Event.grounded=False, added
+    2026-09-28 alongside generate_ungrounded_hint()) tells the user
+    their corpus has a real content gap for those specific questions,
+    not just that the tutor's citations looked thin. None only when
+    there were no hint events at all this unit -- once there's at
+    least one, the line reports even a perfect 0-fallback record, the
+    same way the rubric line reports even a 5/5 average."""
+    hint_events = [e for e in events if e.type == "hint"]
+    if not hint_events:
+        return None
+    ungrounded = [e for e in hint_events if not e.grounded]
+    if not ungrounded:
+        return f"Grounding: all {len(hint_events)} hint(s) this unit were grounded in your own course materials."
+    snippets = "; ".join(_question_snippet(e.question) for e in ungrounded)
+    return (
+        f"Grounding: {len(ungrounded)} of {len(hint_events)} hint(s) this unit found nothing "
+        f"matching in your course materials and fell back to outside knowledge -- a corpus gap, "
+        f"not a citation problem: {snippets}"
+    )
+
+
 def summarize_unit(events: list[Event], client) -> str:
     events_block = "\n\n---\n\n".join(_format_event(e) for e in events)
     prompt = _SUMMARY_PROMPT_TEMPLATE.format(events_block=events_block)
@@ -246,4 +281,7 @@ def summarize_unit(events: list[Event], client) -> str:
     stats_line = _rubric_averages_line(events)
     if stats_line:
         text = f"{text}\n\n{stats_line}"
+    grounding_line = _ungrounded_fallback_line(events)
+    if grounding_line:
+        text = f"{text}\n\n{grounding_line}"
     return text
