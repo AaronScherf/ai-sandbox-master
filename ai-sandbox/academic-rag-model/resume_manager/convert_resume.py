@@ -16,6 +16,7 @@ from pathlib import Path
 import yaml
 
 from resume_manager.extract import DefectivePageError, extract_resume_text
+from resume_manager.markdown_sync import export_to_markdown
 from resume_manager.normalize import extract_resume_schema, verify_extraction
 from resume_manager.schema import assign_ids
 
@@ -63,7 +64,10 @@ def bootstrap_resume(source_pdf: str, resume_manager_dir: str) -> str:
     if not problems:
         with open(master_path, "w", encoding="utf-8") as f:
             yaml.safe_dump(parsed, f, sort_keys=False, allow_unicode=True)
-        return f"Wrote {master_path} (extraction verified clean)."
+        master_md_path = os.path.join(resume_manager_dir, "resume_master.md")
+        with open(master_md_path, "w", encoding="utf-8") as f:
+            f.write(export_to_markdown(parsed, embed_hash=True))
+        return f"Wrote {master_path} and {master_md_path} (extraction verified clean)."
 
     review_path = os.path.join(resume_manager_dir, "resume_master.review.yaml")
     with open(review_path, "w", encoding="utf-8") as f:

@@ -475,7 +475,7 @@ def _has_collapsed_prose_run(text: str) -> bool:
     return any(len(w) > _MAX_WORD_LENGTH and w.isascii() and w.isalpha() for w in text.split())
 
 
-def page_looks_defective(text: str) -> bool:
+def page_looks_defective(text: str, check_math_notation: bool = True) -> bool:
     """
     True when this page's local text extraction shows any of the four
     defect signatures confirmed against real documents. The first three
@@ -498,7 +498,16 @@ def page_looks_defective(text: str) -> bool:
        reconstruct_line_with_scripts() -- see
        _LOST_EXPONENT_OR_SUBSCRIPT_RE/_has_lost_exponent_outside_scripts.
        Unlike 1-3, this isn't corrupted text; it's real content plain
-       (non-structured) text extraction cannot represent at all.
+       (non-structured) text extraction cannot represent at all. Only
+       meaningful for a document that could plausibly contain real math
+       notation in the first place -- `check_math_notation=False` (real,
+       confirmed need, 2026-09-26: resume_manager's own use of this
+       function) skips it entirely for document classes where a bare
+       letter-then-digit token is routinely legitimate, non-math content
+       (e.g. a resume's own "C3 Program Officer" job classification code,
+       false-flagged as a lost "C^3") and could never actually be a lost
+       exponent, since prose resumes don't contain math notation to lose
+       in the first place.
     A blank/near-empty page is not defective -- that's a legitimate
     spacer page, not corrupted content.
     """
@@ -509,6 +518,8 @@ def page_looks_defective(text: str) -> bool:
         return True
     if _has_suspicious_repeated_char_run(text):
         return True
+    if not check_math_notation:
+        return False
     return _has_lost_exponent_outside_scripts(text)
 
 

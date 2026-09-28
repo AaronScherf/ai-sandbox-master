@@ -51,6 +51,12 @@ class TestBootstrapResume(unittest.TestCase):
                 written = yaml.safe_load(f)
             self.assertEqual([e["id"] for e in written["work_experience"]], ["acme-1", "acme-2"])
             self.assertFalse(os.path.exists(os.path.join(resume_manager_dir, "resume_master.review.yaml")))
+            master_md_path = os.path.join(resume_manager_dir, "resume_master.md")
+            self.assertTrue(os.path.exists(master_md_path))
+            with open(master_md_path, encoding="utf-8") as f:
+                master_md = f.read()
+            self.assertIn("resume-master-yaml-hash:", master_md)
+            self.assertIn("acme-1", master_md)
 
     @patch("resume_manager.convert_resume.verify_extraction", return_value=["some field problem"])
     @patch("resume_manager.convert_resume.extract_resume_schema")

@@ -36,23 +36,36 @@ def _opening_phrase(bullet: str) -> str:
     return " ".join(words).lower()
 
 
-def validate_tailored(master: dict, tailoring_result: dict) -> list[str]:
+def validate_tailored(master: dict, tailored: dict) -> list[str]:
     """Returns a list of human-readable warnings; empty means nothing was
-    flagged. Also flags any included id absent from the master -- should
-    be structurally impossible given tailor.apply_tailoring's own
-    skip-and-report behavior, but checked here too so a report is never
-    silently missing an issue apply_tailoring already knows about."""
+    flagged.
+
+    Takes the already-reconstructed `tailored` resume (apply_tailoring's
+    output), not tailor_resume()'s raw LLM response -- validates whatever
+    actually made it into the final output, which since Revision 6 (spec
+    §13b) is only the top `include_count` of tailor_resume()'s full
+    `ranked_ids` candidate list, decided by tailor_resume.py's
+    render-measure-retry fill loop. Checking the raw LLM response instead
+    would validate entries that never made it into the rendered PDF at
+    all. This also decouples validate.py from tailor.py's exact response
+    field names (`ranked_ids`/`bullets_by_id`) entirely -- it only needs
+    an id and its bullets, which `tailored["work_experience"]` already
+    has spliced in.
+
+    No longer separately flags an unresolvable id: apply_tailoring
+    already guarantees every entry in `tailored["work_experience"]` has a
+    real master source (an id it couldn't resolve is skipped and reported
+    in apply_tailoring's own return value, which tailor_resume.py already
+    merges with this function's problems) -- so by the time this function
+    sees `tailored`, that check has nothing left to catch."""
     master_by_id = {e["id"]: e for e in master.get("work_experience") or []}
-    bullets_by_id = tailoring_result.get("bullets_by_id") or {}
     problems: list[str] = []
     openings: dict[str, int] = {}
-    for entry_id in tailoring_result.get("included_ids") or []:
-        source = master_by_id.get(entry_id)
-        if source is None:
-            problems.append(f"included id '{entry_id}' not found in master resume")
-            continue
+    for entry in tailored.get("work_experience") or []:
+        entry_id = entry["id"]
+        source = master_by_id.get(entry_id) or {}
         original_text = "\n".join(source.get("bullets") or [])
-        rewritten_bullets = bullets_by_id.get(entry_id) or []
+        rewritten_bullets = entry.get("bullets") or []
         rewritten_text = "\n".join(rewritten_bullets)
         for metric in metrics_not_traceable(rewritten_text, original_text):
             problems.append(f"{entry_id}: possible invented metric '{metric}' not found in original bullets")

@@ -48,5 +48,5 @@ pillow
 resvg-py
 
 # Resume Manager
-xhtml2pdf
+typst
 pyyaml

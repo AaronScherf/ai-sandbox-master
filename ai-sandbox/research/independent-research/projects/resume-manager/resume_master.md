@@ -13,7 +13,7 @@
 ### U.S. Agency for International Development — Foreign Service Officer - Monitoring, Evaluation, Learning Team Lead (FS 3-5)
 <!-- id: u-s-agency-for-international-development-1 -->
 - Location: Kyiv, Ukraine
-- Start: 06/2020
+- Start: 03/2024
 - End: 07/2025
 
 Bullets:
@@ -30,8 +30,8 @@ Bullets:
 ### U.S. Agency for International Development — Foreign Service Officer - Gender Equity and Program Design Officer (FS 4-9)
 <!-- id: u-s-agency-for-international-development-2 -->
 - Location: Bogota, Colombia
-- Start: Not specified
-- End: Not specified
+- Start: 02/2022
+- End: 03/2024
 
 Bullets:
 - Led the design and context research for four programs in smallholder agriculture, environmental conservation, rural land titling, and indigenous civic society leadership.
@@ -46,8 +46,8 @@ Bullets:
 ### U.S. Agency for International Development — Foreign Service Officer - Program Officer Rotations (FS 5-12)
 <!-- id: u-s-agency-for-international-development-3 -->
 - Location: Washington, DC, USA
-- Start: Not specified
-- End: Not specified
+- Start: 07/2020
+- End: 02/2022
 
 Bullets:
 - Won agency-wide award for developing new budget data processing and visualization tool using Python and Tableau, saving hundreds of hours of staff time in negotiations with State Department.

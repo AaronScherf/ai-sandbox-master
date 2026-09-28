@@ -54,12 +54,31 @@ SKILLS_REQUIRED = ["category"]
 SKILLS_LIST_FIELDS = ["items"]
 
 
-def assign_ids(entries: list[dict], key_field: str) -> None:
+def _seed_seen_from_existing_ids(existing_ids: set[str]) -> dict[str, int]:
+    """Parses "<base>-<ordinal>" ids (assign_ids' own output format) back
+    into their highest ordinal per base, so a later assign_ids call can
+    continue numbering from there instead of starting over at 1 and
+    colliding with an id that already exists (spec §12, merge_resumes.py:
+    a new entry sharing an org/institution with one already in the master
+    must never reuse its id)."""
+    seen: dict[str, int] = {}
+    for existing_id in existing_ids:
+        base, sep, ordinal_str = existing_id.rpartition("-")
+        if sep and ordinal_str.isdigit():
+            seen[base] = max(seen.get(base, 0), int(ordinal_str))
+    return seen
+
+
+def assign_ids(entries: list[dict], key_field: str, existing_ids: set[str] | None = None) -> None:
     """Mutates each entry in place, adding a stable 'id' slug derived from
     key_field (e.g. 'org' for work_experience, 'institution' for
     education), disambiguated with an ordinal for duplicates -- never left
-    to the LLM to invent (spec §3)."""
-    seen: dict[str, int] = {}
+    to the LLM to invent (spec §3). `existing_ids` (spec §12, optional)
+    seeds the ordinal counter so ids assigned here never collide with ids
+    already present elsewhere (e.g. the rest of the master resume) --
+    omitting it reproduces convert_resume.py's original bootstrap
+    behavior exactly, numbering purely within `entries` itself."""
+    seen: dict[str, int] = _seed_seen_from_existing_ids(existing_ids or set())
     for entry in entries:
         base = slugify(str(entry.get(key_field, "")))
         seen[base] = seen.get(base, 0) + 1

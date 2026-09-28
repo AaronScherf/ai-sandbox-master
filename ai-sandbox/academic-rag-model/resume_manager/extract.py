@@ -33,11 +33,22 @@ def extract_resume_text(pdf_path: str) -> str:
     frontmatter-wrapped the same way the rest of the corpus's Markdown
     is (build_final_markdown/build_frontmatter, reused unchanged).
     Raises DefectivePageError if any page fails page_looks_defective()
-    -- never falls back to a Gemini call."""
+    -- never falls back to a Gemini call.
+
+    Passes `check_math_notation=False`: real, confirmed false positive
+    (2026-09-26, against "Aaron Scherf A USAID Bidding CV.pdf") --
+    page_looks_defective()'s lost-exponent/subscript signal is tuned for
+    LaTeX math lecture notes ("D5" meaning a lost "D^5"), and flagged this
+    resume's real "C3 Program Officer" job classification code as one. A
+    resume is prose, never real math notation, so that signal can never
+    fire correctly here -- only ever as a false positive."""
     total_pages = len(PdfReader(pdf_path).pages)
     all_page_texts = extract_all_page_texts(pdf_path, total_pages)
 
-    defective_pages = [n for n in range(1, total_pages + 1) if page_looks_defective(all_page_texts[n - 1])]
+    defective_pages = [
+        n for n in range(1, total_pages + 1)
+        if page_looks_defective(all_page_texts[n - 1], check_math_notation=False)
+    ]
     if defective_pages:
         raise DefectivePageError(
             f"page(s) {defective_pages} of {pdf_path} look defective under local extraction -- "

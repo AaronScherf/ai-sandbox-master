@@ -113,8 +113,8 @@ guess mechanically:
 - `tailor.py` — the bullets-only local-LLM call, plus code-side
   reconstruction of the full tailored resume (`apply_tailoring`).
 - `validate.py` — per-entry bullet-metric fact-diff for a tailored resume.
-- `render.py` — deterministic Markdown templating of a structured resume,
-  then → styled PDF via `xhtml2pdf`.
+- `render.py` — deterministic Typst templating of a structured resume,
+  then → styled PDF via the `typst` package.
 - `tailor_resume.py` — the per-application CLI, orchestrating
   tailor → validate → render.
 - `apply_from_prompt.py` — turns a rough, free-text opportunity

@@ -22,6 +22,24 @@ class TestAssignIds(unittest.TestCase):
         assign_ids(entries, "org")
         self.assertEqual([e["id"] for e in entries], ["acme-1", "globex-1"])
 
+    def test_existing_ids_prevents_collision_with_the_same_base_slug(self):
+        # Real case (spec §12): a new source resume adds a second role at
+        # an org already in the master -- the new entry must not reuse
+        # "acme-1", which already exists.
+        entries = [{"org": "Acme"}]
+        assign_ids(entries, "org", existing_ids={"acme-1"})
+        self.assertEqual(entries[0]["id"], "acme-2")
+
+    def test_existing_ids_with_no_matching_base_is_unaffected(self):
+        entries = [{"org": "Acme"}]
+        assign_ids(entries, "org", existing_ids={"globex-1", "globex-2"})
+        self.assertEqual(entries[0]["id"], "acme-1")
+
+    def test_no_existing_ids_behaves_like_the_original_bootstrap(self):
+        entries = [{"org": "Acme"}, {"org": "Acme"}]
+        assign_ids(entries, "org")
+        self.assertEqual([e["id"] for e in entries], ["acme-1", "acme-2"])
+
 
 class TestVerifyEntryFields(unittest.TestCase):
     def test_clean_entry_has_no_problems(self):

@@ -71,3 +71,39 @@ class TestParseLlmYaml(unittest.TestCase):
         text = "publications:\n  - title: A Paper\n    venue: UC Berkeley: Data for Human Mobility Lab\n"
         result = parse_llm_yaml(text)
         self.assertEqual(result["publications"][0]["venue"], "UC Berkeley: Data for Human Mobility Lab")
+
+    def test_unescaped_apostrophe_in_single_quoted_scalar_is_escaped(self):
+        # Real, confirmed pattern from a live Ollama response (2026-09-26):
+        # a bullet preserved verbatim from the master contained a real
+        # apostrophe ("California's Central Valley"), which raw
+        # yaml.safe_load rejects because a single-quoted YAML scalar must
+        # double a literal "'" as "''" -- the model just wrote a plain
+        # apostrophe, so the string appeared to end at "California'".
+        text = (
+            "bullets_by_id:\n"
+            "  berkeley-food-institute-1: ['Developed a model for California's Central Valley, "
+            "to support water management.']\n"
+        )
+        result = parse_llm_yaml(text)
+        self.assertEqual(
+            result["bullets_by_id"]["berkeley-food-institute-1"],
+            ["Developed a model for California's Central Valley, to support water management."],
+        )
+
+    def test_apostrophe_followed_by_space_is_also_escaped(self):
+        # A plural possessive ("seekers' education") puts the apostrophe
+        # right before a space rather than a letter -- still ambiguous
+        # with a valid closing quote, so it needs the same fix.
+        text = "bullets: ['Analyzed asylum seekers' education outcomes using Stata.']"
+        result = parse_llm_yaml(text)
+        self.assertEqual(result["bullets"], ["Analyzed asylum seekers' education outcomes using Stata."])
+
+    def test_already_correctly_escaped_apostrophe_is_not_double_escaped(self):
+        text = "bullets: ['Won''t be double-escaped.']"
+        result = parse_llm_yaml(text)
+        self.assertEqual(result["bullets"], ["Won't be double-escaped."])
+
+    def test_multiple_bullets_with_apostrophes_in_one_list_all_parse(self):
+        text = "bullets: ['California's economy.', 'The team's second project.']"
+        result = parse_llm_yaml(text)
+        self.assertEqual(result["bullets"], ["California's economy.", "The team's second project."])

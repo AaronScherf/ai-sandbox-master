@@ -315,6 +315,22 @@ class TestPageLooksDefective(unittest.TestCase):
         text = "(d) Show that I + D is invertible. (c) Explain why D5 = 0."
         self.assertTrue(page_looks_defective(text))
 
+    def test_check_math_notation_false_skips_the_lost_exponent_signal(self):
+        # Real, confirmed false positive (2026-09-26, resume_manager): a
+        # resume's own "C3 Program Officer" job classification code was
+        # flagged as a lost math exponent ("C^3") by this signal, which is
+        # only ever meaningful for a document that could plausibly contain
+        # real math notation to lose in the first place.
+        text = "AID/Colombia Program Office – C3 Program Officer (FS 4-9)"
+        self.assertTrue(page_looks_defective(text))
+        self.assertFalse(page_looks_defective(text, check_math_notation=False))
+
+    def test_check_math_notation_false_still_catches_other_corruption_signals(self):
+        # Disabling the math-specific signal must not disable the other
+        # three (corruption) signals -- those apply to any document class.
+        text = "›››››"
+        self.assertTrue(page_looks_defective(text, check_math_notation=False))
+
     def test_lost_exponent_on_set_notation_is_defective(self):
         # Real pattern from LN_Linear Algebra.pdf -- "R^2" (Euclidean
         # plane) losing its superscript reads as bare "R2".
