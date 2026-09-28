@@ -198,6 +198,21 @@ class TestMergeOneSource(unittest.TestCase):
         self.assertEqual(master["work_experience"][0]["bullets"], original_bullets)
 
     @patch("resume_manager.merge_resumes.call_ollama")
+    def test_confirmed_83_76_similarity_bullet_is_added_but_flagged_for_review(self, mock_call):
+        # Confirmed master-data near miss from the Ukraine tailoring report.
+        first = "Managed portfolio of 20 program evaluations, including leading design of a $1.5M randomized control trial to evaluate impact and cost effectiveness of $450M credit facilitation program for small farmers."
+        second = "Supervised implementation of 20 program evaluations, including leading design of a $1.5M randomized control trial to evaluate impact of $450M credit facilitation program for small businesses."
+        master = self._master()
+        master["work_experience"][0]["bullets"] = [first]
+        mock_call.return_value = yaml.safe_dump({"new_bullets_by_id": {"acme-1": [second]}})
+
+        applied, flagged = merge_one_source(master, "source with a rephrased evaluation bullet")
+
+        self.assertEqual(len(applied), 1)
+        self.assertEqual(master["work_experience"][0]["bullets"], [first, second])
+        self.assertTrue(any("near-duplicate" in item and "83.76%" in item for item in flagged))
+
+    @patch("resume_manager.merge_resumes.call_ollama")
     def test_reworded_duplicate_work_experience_entry_is_flagged_not_added(self, mock_call):
         # Real, confirmed failure (2026-09-26): a real merge run created 3
         # duplicate USAID work_experience entries this way -- the LLM

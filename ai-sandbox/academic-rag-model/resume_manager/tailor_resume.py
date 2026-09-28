@@ -19,6 +19,7 @@ from resume_manager.markdown_sync import export_to_markdown
 from resume_manager.render import render_resume_pdf
 from resume_manager.tailor import apply_tailoring, generate_clarifying_questions, tailor_resume
 from resume_manager.validate import format_report, validate_tailored
+from resume_manager.user_facts import load_user_facts, validate_user_facts
 
 _DEFAULT_RESUME_MANAGER_DIR = (
     Path(__file__).resolve().parent.parent.parent / "research" / "independent-research"
@@ -132,7 +133,8 @@ def _select_work_experience_bullets(
 
 def run_tailoring(
     master_resume_path: str, jd_path: str, application_name: str, resume_manager_dir: str,
-    guidance: str | None = None, target_pages: int = 2,
+    guidance: str | None = None, target_pages: int = 2, user_facts: list[dict] | None = None,
+    brainstorm_status: str = "not used",
 ) -> str:
     """Runs tailor -> validate -> render for one application and returns
     a one-line status message. Raises FileNotFoundError up front if
@@ -149,10 +151,11 @@ def run_tailoring(
 
     with open(master_resume_path, "r", encoding="utf-8") as f:
         master = yaml.safe_load(f)
+    user_facts = validate_user_facts(user_facts, master)
     with open(jd_path, "r", encoding="utf-8") as f:
         job_description = f.read()
 
-    tailoring_result = tailor_resume(master, job_description, guidance=guidance)
+    tailoring_result = tailor_resume(master, job_description, guidance=guidance, user_facts=user_facts)
     if tailoring_result is None:
         raise RuntimeError(
             "local Ollama tailoring call failed, timed out, or returned invalid YAML -- "
@@ -175,6 +178,9 @@ def run_tailoring(
     if guidance:
         with open(os.path.join(app_dir, "guidance.txt"), "w", encoding="utf-8") as f:
             f.write(guidance)
+    if user_facts:
+        with open(os.path.join(app_dir, "user_facts.yaml"), "w", encoding="utf-8") as f:
+            yaml.safe_dump(user_facts, f, sort_keys=False, allow_unicode=True)
     with open(os.path.join(app_dir, "tailored_resume.yaml"), "w", encoding="utf-8") as f:
         yaml.safe_dump(tailored, f, sort_keys=False, allow_unicode=True)
     # Editable Markdown twin (spec §14) -- no embedded hash: unlike
@@ -184,8 +190,9 @@ def run_tailoring(
     with open(os.path.join(app_dir, "tailored_resume.md"), "w", encoding="utf-8") as f:
         f.write(export_to_markdown(tailored))
 
-    problems = reconstruction_problems + validate_tailored(master, tailored)
-    report = format_report(problems)
+    problems = [f"[reconstruction] {problem}" for problem in reconstruction_problems]
+    problems += validate_tailored(master, tailored, user_facts=user_facts)
+    report = format_report(problems, brainstorm_status=brainstorm_status)
     with open(os.path.join(app_dir, "validation_report.txt"), "w", encoding="utf-8") as f:
         f.write(report)
 
@@ -204,11 +211,22 @@ def main() -> None:
         "--interactive", action="store_true",
         help="Ask 2-4 JD-grounded clarifying questions before tailoring, to steer entry selection and bullet framing.",
     )
+    parser.add_argument(
+        "--facts-file", help="YAML file with entry-scoped, user-confirmed facts and required coverage concepts.",
+    )
     args = parser.parse_args()
 
     master_resume_path = os.path.join(args.resume_manager_dir, "resume_master.yaml")
     guidance = _collect_guidance(master_resume_path, args.jd_file) if args.interactive else None
-    print(run_tailoring(master_resume_path, args.jd_file, args.application_name, args.resume_manager_dir, guidance=guidance))
+    user_facts = None
+    if args.facts_file:
+        with open(master_resume_path, "r", encoding="utf-8") as f:
+            master = yaml.safe_load(f)
+        user_facts = load_user_facts(args.facts_file, master)
+    print(run_tailoring(
+        master_resume_path, args.jd_file, args.application_name, args.resume_manager_dir,
+        guidance=guidance, user_facts=user_facts,
+    ))
 
 
 if __name__ == "__main__":

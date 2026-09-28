@@ -107,6 +107,7 @@ _MANIFEST_FILENAME = ".processed_manifest.json"
 # just a stricter threshold since a false-positive "this is a duplicate"
 # is a lost real addition, not a merely-inconvenient one.
 _DUPLICATE_SIMILARITY_THRESHOLD = 85
+_DUPLICATE_REVIEW_THRESHOLD = 75
 
 # Compound signal for awards/publications specifically (added 2026-09-26
 # after a real slip-through): "Donald M. Payne Fellow" vs "Donald M. Payne
@@ -143,6 +144,19 @@ def _find_duplicate(candidate_text: str, existing_texts: list[str]) -> str | Non
         if fuzz.ratio(candidate_text, existing) >= _DUPLICATE_SIMILARITY_THRESHOLD:
             return existing
     return None
+
+
+def _find_near_duplicate(candidate_text: str, existing_texts: list[str]) -> tuple[str, float] | None:
+    """Return the strongest review-band match without changing auto-drop behavior."""
+    matches = [
+        (existing, fuzz.ratio(candidate_text, existing))
+        for existing in existing_texts
+    ]
+    matches = [
+        (existing, score) for existing, score in matches
+        if _DUPLICATE_REVIEW_THRESHOLD <= score < _DUPLICATE_SIMILARITY_THRESHOLD
+    ]
+    return max(matches, key=lambda item: item[1]) if matches else None
 
 
 def _find_duplicate_by_name_and_date(
@@ -495,6 +509,13 @@ def merge_one_source(
                         f"{bullet!r} (matches {duplicate!r})"
                     )
                     continue
+                near_duplicate = _find_near_duplicate(bullet, target.get("bullets") or [])
+                if near_duplicate:
+                    existing, score = near_duplicate
+                    flagged.append(
+                        f"bullet for '{entry_id}' is a possible near-duplicate ({score:.2f}% similarity), "
+                        f"added for review: {bullet!r} (matches {existing!r})"
+                    )
                 target.setdefault("bullets", []).append(bullet)
                 applied.append(f"added bullet to '{entry_id}': {bullet!r}")
 

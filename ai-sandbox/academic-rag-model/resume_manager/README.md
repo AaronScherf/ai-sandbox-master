@@ -66,13 +66,41 @@ or `--guidance-file path\to\instructions.txt`. The same text is sent to the
 Gemini relevance brainstorm and local tailoring model, and saved in the
 application's `guidance.txt`. User-supplied facts can supplement the master
 resume for the entry they describe; the models must not infer additional
-claims from them. For example:
+claims from them. Free-text inclusion or exclusion preferences guide model
+selection but are not hard filters, so review which roles made the final
+resume. For example:
 
 ```powershell
 .\.venv\Scripts\python.exe -m resume_manager.apply_from_prompt `
   --prompt-file "ukraine_opportunity.txt" `
   --guidance-file "ukraine_resume_guidance.txt"
 ```
+
+For important facts that must be tied to a specific work-experience entry,
+pass `--facts-file path\to\facts.yaml`. Each fact names the master entry ID,
+states the user-confirmed fact, and lists required concept groups. Every
+group must be represented in the final entry; alternatives within a group
+allow common paraphrases. A fact that misses a concept is reported for human
+review, never used to block PDF rendering.
+
+```yaml
+- entry_id: u-s-agency-for-international-development-1
+  fact: Managed inventories and asset databases for electrical infrastructure and humanitarian equipment across more than 16 projects.
+  required_concepts:
+    - [inventory, inventories]
+    - [asset database, asset databases, asset tracking]
+    - [electrical infrastructure]
+    - [humanitarian equipment]
+    - [16+ projects, more than 16 projects, over 16 projects]
+```
+
+The same option is available on `tailor_resume.py` for a saved job
+description. Applications save the normalized facts in `user_facts.yaml`.
+Their `validation_report.txt` separates numeric traceability, fact coverage,
+possible duplicate bullets, responsibility wording, and repeated openings,
+and records whether the Gemini relevance brainstorm succeeded, failed, or
+was skipped. These checks are advisory and should be reviewed with the
+resume.
 
 **If you're an agent handling a "tailor my resume for this opportunity"
 request:** which of the three tailoring entry points to use is a
