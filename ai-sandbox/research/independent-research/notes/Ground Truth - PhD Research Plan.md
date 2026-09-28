@@ -12,6 +12,8 @@ A synthesis of nineteen statements of purpose and research notes written over th
 
 > **Cross-linked with the blogging strategy.** The Projects and Timeline sections below drive the publishing calendar in `ai-sandbox/research/independent-research/projects/blogging_strategy/website_blog_plan.md` — its "Research Project Plan" table and "Blog Publishing Plan for 2026" section point back here for the full research and outreach context behind each entry. If a project is added, dropped, or rescheduled here, update that doc in the same sitting, and vice versa if a publishing deadline forces a project's timeline to move.
 
+> **Revision — NECR5250 dropped (2026-09-27).** The AI and Open Source Research for Conflict Analysis seminar is off the courseload — the time cost wasn't worth it relative to the return. Project 02 (climate-conflict-displacement data fusion) keeps its existing scope and timeline below; it's now a fully self-directed project rather than a course term project, so the assignment-specific framing (term paper, Applied AI Exercise, no-AI reflection) is gone but the November first-draft / spring full-paper milestones stand as before. A project-pitch brainstorm originally prepared for that course's one-on-one — a Somalia 2021–2023 case study untangling the Ukraine grain-price shock, drought, and al-Shabaab conflict as competing drivers of displacement — is still a strong candidate first case study for Project 02 and is kept as `Somalia Three-Shock Case Study.md` in this folder.
+
 ## 01. Sources & how this was built
 
 Every Markdown file in `processed_outputs/` was read in full: the Columbia SIPA statement of purpose and faculty-alignment note, full-length statements for Stanford (E-IPER, two supplements), Berkeley ARE (two drafts plus a faculty-preference note), MIT, Cornell, Harvard, Northwestern, NYU, Princeton, Michigan (two programs), American, the New School, Tufts/Fletcher, and the free-form `Research Ideas.md` working notes. `Research Ideas.docx` in the parent folder was already converted and current — no re-run of the conversion pipeline was needed.
@@ -133,7 +135,7 @@ September 2026 through May 2027, on top of coursework — not instead of it. Tag
 ### September 2026
 
 - **[research]** Set up a reference manager and reading log; open three literature lanes — climate adaptation & agriculture, forced displacement/conflict economics, cash transfers & social protection in fragile settings. Target 15–20 anchor papers per lane by month end.
-- **[research]** Scope the open-source-conflict-data seminar's term project around the climate–conflict–displacement fusion idea (Project 02 below), so coursework and portfolio work are the same hours.
+- **[research]** Scope Project 02 (the climate–conflict–displacement fusion idea, below) so it's ready to start in earnest this month.
 - **[outreach]** Attend, don't email — SIPA sustainable development seminar, Saltzman Institute's conflict series, one IRI or CIESIN talk. Log what you hear.
 - **[portfolio]** Develop and publish personal website with bio, project page, and blogs; focused initially on Academic and Research Hubs
 - **[hubs]** Finish most code for academic and research hubs, publish to Github, post projects on website
@@ -145,7 +147,7 @@ September 2026 through May 2027, on top of coursework — not instead of it. Tag
 - **[research]** Close first-pass literature maps; write one "gap statement" per lane — the sentence you'd say if a faculty member asked what's missing.
 - **[research]** Start Project 01, the evidence map, cataloguing existing RCTs and quasi-experiments at the climate-adaptation × cash-transfer × conflict intersection.
 - **[outreach]** First meetings — Björkegren and de Sherbinin — framed as learning about their work, not pitching yours.
-- **[research]** Build out Project 02 (ACLED + IDMC + climate + cash-transfer program data fusion); midpoint check against the seminar's own milestones.
+- **[research]** Build out Project 02 (ACLED + IDMC + climate + cash-transfer program data fusion); midpoint check-in on progress.
 - **[portfolio]** Continue revising and posting about Academic and Research Hubs on website
 - **[math thesis]** Continue revisions of math thesis, outreach to math faculty
 
@@ -154,7 +156,7 @@ September 2026 through May 2027, on top of coursework — not instead of it. Tag
 - **[research]** Draft research-statement v0.1 — a living one-pager reflecting what's actually been learned this semester, distinct from the admissions SoP.
 - **[outreach]** Meet Willis and Sachs/Bajpai; scout one Tier 2 talk (Fortna, Humphreys, Naidu, or Verhoogen).
 - **[portfolio]** Publish Project 01 (evidence map) as a v1 — spreadsheet or simple dashboard is enough. First concrete artifact.
-- **[research]** Finish and submit the conflict-data seminar term paper — this is Project 02's first full draft.
+- **[research]** Finish Project 02's first full draft.
 - **[research]** Start Project 04 (data fusion pipeline) as part of processing for Project 02
 - **[portfolio]** Publish Project 02 as a GitHub repo plus short write-up.
 - **[research]** Present informal 30-min talk to students at SusDev seminar
@@ -222,13 +224,15 @@ A structured, public catalogue of existing RCTs and quasi-experimental evaluatio
 
 ### 02 — Climate shocks, conflict & displacement: a fused public-data study
 
-Fuse ACLED conflict-event data, IDMC displacement figures, a climate-shock indicator (SPEI or CHIRPS-based drought measures), and public cash-transfer program locations (WFP/HDX) into a subnational panel, to test how climate shocks translate into displacement conditional on conflict intensity, and whether social-protection presence moderates that relationship. This is the term project for the open-source-conflict-data seminar, done properly enough to also stand alone — coursework and portfolio work sharing the same hours instead of competing for them.
+Fuse ACLED conflict-event data, IDMC displacement figures, a climate-shock indicator (SPEI or CHIRPS-based drought measures), and public cash-transfer program locations (WFP/HDX) into a subnational panel, to test how climate shocks translate into displacement conditional on conflict intensity, and whether social-protection presence moderates that relationship. A self-directed project from the start, not tied to any coursework.
+
+A strong candidate first case study: Somalia's 2021–2023 food-security and displacement crisis, where the Ukraine-war grain-price shock, a multi-season Horn of Africa drought, and ongoing al-Shabaab conflict hit at once. Untangling which shock drove what, and testing the competing public narratives about the cause against the underlying price/rainfall/conflict/displacement data, is a self-contained first pass at Project 02's core question before scaling to a full panel. Full design in `Somalia Three-Shock Case Study.md` in this folder — it also sketches a narrative-verification layer (claim-lineage tracing, source evaluation) that could extend the toolkit in Project 04.
 
 | | |
 |---|---|
 | **Data** | ACLED, IDMC, SPEI/CHIRPS, WFP/HDX |
-| **Output** | Seminar paper → working paper + reproducible notebook |
-| **Timeline** | September 2026 – April 2027; NECR5250 term paper due November, extended into a full paper and presented at the SusDev seminar through spring |
+| **Output** | Working paper + reproducible notebook |
+| **Timeline** | September 2026 – April 2027; first full draft targeted for November, extended into a full paper and presented at the SusDev seminar through spring |
 
 This is direction I, made concrete and small, and direction III's fusion method proven on real data before there's a dissertation-scale dataset to apply it to.
 
@@ -286,7 +290,7 @@ Revise the existing penalized-GLS omnibus normality test (eigenvector-decomposed
 
 > **Breadth of applications vs. one flagship thread.** Across eighteen essays the same toolkit gets pointed at credit scoring, crop insurance, cash transfers, migration, and foreign-aid policy design — five different applications riding the same causal-ML-plus-remote-sensing engine. That range was an asset for admissions, where each school wanted to see fit with its own faculty. It's a liability for a dissertation, which needs one flagship application to anchor around. Direction I — climate adaptation, migration, and cash transfers under conflict — is now that anchor; direction II (digital credit and insurance) becomes the concrete instrument studied inside it, and direction III (the general scaling toolkit) is the methods contribution that makes both possible.
 
-1. **Start Project 02** (the climate–conflict–displacement fusion) in September — it's already your seminar's term project, so it costs no extra hours and produces the first real evidence for the flagship direction.
+1. **Start Project 02** (the climate–conflict–displacement fusion) in September — the Somalia case study is a scoped, low-cost entry point that produces the first real evidence for the flagship direction.
 2. **Build Project 01** (the evidence map) in parallel — it's desk research, needs no approvals, and is the literature-gap exercise you need to do regardless, turned into something citable.
 3. **Queue Project 03** (the chatbot pilot) for January so the IRB clock runs over winter break instead of eating into semester time.
 4. **Have the heterodox conversation with your advisor in the first semester**, not the third — it's cheap to resolve now and expensive to resolve after a year of work has already leaned one way.

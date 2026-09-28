@@ -12,10 +12,6 @@ Courses:
 - SDEV6241 - Environmental Science for Sustainable Development
 	- Notes: academic-hub/academic_notes/env-science
 	- Resources: academic-hub/academic_resources/env-science
-- NECR5250 - AI and Open Source Research for Conflict Analysis
-	- Syllabus: 
-	- Notes: academic-hub/academic_notes/open-source-conflict-analysis
-	- Resources: academic-hub/academic_resources/open-source-conflict-analysis
 - SPAN2101 - Intermediate Spanish 1
 	- Syllabus:
 	- Notes: academic-hub/academic_notes/interm_spanish
@@ -46,8 +42,6 @@ Overall Strategy:
 	- ECON6410 is a supplementary class to help with math for ECON6211 and ECON6411 but I do not need to take the exams or anything for Math Methods itself
 	- Math Camp material should be useful for both ECON6410, ECON6411, and ECON6211
 - SDEV6241 is a survey course in environmental science which shouldn't be too difficult, just listening to lectures mostly and reading a few papers
-- NECR5250 is an online course mostly focused on a single project, shouldn't be difficult as long as I attend the Sunday lectures and invest some time on the project
-	- Link to the semester research project plan for this
 - SPAN2101 is a fairly basic Spanish course, will take a bit of studying but I'm not concerned about the grade and my prior Spanish experience seems sufficient
 - SDEV9200 is a research seminar, I'll mostly be listening to other presentations so no studying needed
 	- I did volunteer to present a project on November 13 so I will want to have my open source conflict + climate data independent project done by then
@@ -101,8 +95,7 @@ Weekly Schedule:
 	- 10am-11am - SDEV Research Seminar
 	- 11am-1pm - Study ECON
 	- 1pm-2:30pm - Lecture for SPAN2101
-	- 2:30pm-4pm - NECR5250 Work
-	- 4pm-6pm - Research Project
+	- 2:30pm-6pm - Research Project
 	- 6pm-9pm - Karate Club (optional)
 - Saturday:
 	- Reading academic literature
@@ -113,22 +106,12 @@ Weekly Schedule:
 	- Research Project
 
 
-- NECR5250 Schedule:
-	- Sunday 9/20 9am-1:30pm ET
-	- Saturday 9/26 9am-11:30am ET
-	- Sunday 10/25 9am-11:30am ET
-	- Sunday 11/15 9am-11:30am ET
-	- Sunday 11/22 9am-11:30am ET
-	- Saturday 12/5 9am-11:30am ET
 - Exams:
 	- 9/22 - ECON6411 Exam1
-	- 10/4 - NECR5250 Executive Memo Due
 	- 10/6 - ECON6411 Exam2
 	- 10/22 - ECON6211 Exam
 	- 10/23 - ECON6411 Exam3
 	- 11/13 - SDEV Research Pitch
-	- 11/29 - NECR5250 AI Platform Due
-	- 12/14 - NECR5250 Final Paper Due
 - Holidays:
 	- Monday 11/2
 	- Tuesday 11/3
@@ -170,7 +153,7 @@ Weekly Schedule:
 	- An evidence map: climate adaptation, cash transfers & conflict
 		- A structured, public catalogue of existing RCTs and quasi-experimental evaluations sitting at the intersection of climate-adaptive agriculture, cash transfers/social protection, and conflict or forced displacement
 	- Climate shocks, conflict & displacement: a fused public-data study
-		- Fuse ACLED conflict-event data, IDMC displacement figures, a climate-shock indicator (SPEI or CHIRPS-based drought measures), and public cash-transfer program locations (WFP/HDX) into a subnational panel, to test how climate shocks translate into displacement conditional on conflict intensity, and whether social-protection presence moderates that relationship. Combine with NECR5250 Final Paper.
+		- Fuse ACLED conflict-event data, IDMC displacement figures, a climate-shock indicator (SPEI or CHIRPS-based drought measures), and public cash-transfer program locations (WFP/HDX) into a subnational panel, to test how climate shocks translate into displacement conditional on conflict intensity, and whether social-protection presence moderates that relationship.
 	- Combine with the [[Gemini Plan for Thesis Revision]]
 - Keep in sync with [[website_blog_plan]] to post updates on projects, blog about courses, etc.
 - Keep in sync with [[Math Study Plan for F26]] to link specific math topics to the ECON6410 schedule and the ECON6411 and ECON6211 course schedules
