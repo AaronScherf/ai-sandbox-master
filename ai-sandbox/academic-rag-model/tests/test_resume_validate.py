@@ -103,6 +103,48 @@ class TestValidateTailored(unittest.TestCase):
         tailored = _tailored([{"id": "nonexistent", "bullets": ["Some bullet"]}])
         self.assertEqual(validate_tailored(_MASTER, tailored), [])
 
+    def test_tagged_fact_missing_from_final_entry_is_reported(self):
+        facts = [{
+            "entry_id": "acme-1", "fact": "Managed asset inventories across 16+ projects.",
+            "required_concepts": [["inventory", "inventories"], ["asset database", "asset tracking"],
+                                  ["16+ projects", "more than 16 projects"]],
+        }]
+        tailored = _tailored([{"id": "acme-1", "bullets": ["Grew revenue 30%"]}])
+        problems = validate_tailored(_MASTER, tailored, user_facts=facts)
+        self.assertTrue(any("[user fact coverage]" in p and "asset database" in p for p in problems))
+
+    def test_tagged_fact_paraphrase_with_all_required_concepts_is_covered(self):
+        facts = [{
+            "entry_id": "acme-1", "fact": "Managed asset inventories across 16+ projects.",
+            "required_concepts": [["inventory", "inventories"], ["asset database", "asset tracking"],
+                                  ["16+ projects", "more than 16 projects"]],
+        }]
+        tailored = _tailored([{
+            "id": "acme-1",
+            "bullets": ["Managed inventories and asset tracking for more than 16 projects while growing revenue 30%"],
+        }])
+        self.assertEqual(validate_tailored(_MASTER, tailored, user_facts=facts), [])
+
+    def test_near_duplicate_bullets_are_flagged_at_output_time(self):
+        first = "Managed portfolio of 20 program evaluations, including leading design of a $1.5M randomized control trial to evaluate impact and cost effectiveness of $450M credit facilitation program for small farmers."
+        second = "Supervised implementation of 20 program evaluations, including leading design of a $1.5M randomized control trial to evaluate impact of $450M credit facilitation program for small businesses."
+        tailored = _tailored([{"id": "acme-1", "bullets": [first, second]}])
+        problems = validate_tailored(_MASTER, tailored)
+        self.assertTrue(any("[duplicate bullets]" in p for p in problems))
+
+    def test_new_responsibility_verb_is_advisory(self):
+        tailored = _tailored([{"id": "acme-1", "bullets": ["Supervised a regional team and grew revenue 30%"]}])
+        problems = validate_tailored(_MASTER, tailored)
+        self.assertTrue(any("[responsibility wording]" in p for p in problems))
+
+    def test_verb_present_in_another_source_bullet_is_not_reported_as_unsupported(self):
+        master = {"work_experience": [{
+            "id": "acme-1", "bullets": ["Grew revenue 30%", "Supervised a separate program team"],
+        }]}
+        tailored = _tailored([{"id": "acme-1", "bullets": ["Supervised a project and grew revenue 30%"]}])
+        problems = validate_tailored(master, tailored)
+        self.assertFalse(any("[responsibility wording]" in p for p in problems))
+
 
 class TestFormatReport(unittest.TestCase):
     def test_empty_problems_reports_clean(self):
@@ -112,3 +154,12 @@ class TestFormatReport(unittest.TestCase):
         report = format_report(["issue one", "issue two"])
         self.assertIn("issue one", report)
         self.assertIn("issue two", report)
+
+    def test_report_groups_qualitative_coverage_and_records_brainstorm_status(self):
+        report = format_report(
+            ["[metrics] dropped $413", "[user fact coverage] usa-entry: not reflected"],
+            brainstorm_status="failed; local tailoring continued without Gemini brainstorm",
+        )
+        self.assertIn("Relevance brainstorm: failed", report)
+        self.assertIn("Numeric traceability:", report)
+        self.assertIn("User-provided fact coverage:", report)

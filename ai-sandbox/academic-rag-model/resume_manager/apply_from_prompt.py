@@ -27,6 +27,7 @@ from common.ollama_utils import call_ollama
 from resume_manager.llm_yaml import parse_llm_yaml
 from resume_manager.tailor import RESUMEMANAGER_OLLAMA_MODEL, RESUMEMANAGER_OLLAMA_TIMEOUT_SECONDS
 from resume_manager.tailor_resume import run_tailoring
+from resume_manager.user_facts import load_user_facts
 
 _DEFAULT_RESUME_MANAGER_DIR = (
     Path(__file__).resolve().parent.parent.parent / "research" / "independent-research"
@@ -84,7 +85,7 @@ Do not invent or assume any experience, skill, or fact not already present in th
 
 def brainstorm_relevant_content(
     client, master: dict, job_description: str, model: str = _GEMINI_MODEL,
-    user_guidance: str | None = None,
+    user_guidance: str | None = None, user_facts: list[dict] | None = None,
 ) -> str | None:
     """Sends the full resume_master.yaml (as raw YAML text -- Gemini's
     larger context window means it doesn't need merge_resumes.py's
@@ -100,9 +101,14 @@ def brainstorm_relevant_content(
         f"\n\n### USER-PROVIDED TAILORING INSTRUCTIONS AND FACTS:\n{user_guidance}"
         if user_guidance else ""
     )
+    structured_facts_section = (
+        "\n\n### ENTRY-SCOPED USER-CONFIRMED FACTS:\n"
+        + yaml.safe_dump(user_facts, sort_keys=False, allow_unicode=True)
+        if user_facts else ""
+    )
     prompt = (
         f"{_BRAINSTORM_SYSTEM_PROMPT}\n\n### FULL MASTER RESUME:\n{master_yaml_text}"
-        f"\n\n### TARGET JOB DESCRIPTION:\n{job_description}{user_guidance_section}"
+        f"\n\n### TARGET JOB DESCRIPTION:\n{job_description}{user_guidance_section}{structured_facts_section}"
     )
     try:
         response = client.models.generate_content(model=model, contents=prompt)
@@ -119,7 +125,7 @@ def brainstorm_relevant_content(
 def create_application_from_prompt(
     prompt: str, resume_manager_dir: str, gemini_client=None,
     ollama_model: str = RESUMEMANAGER_OLLAMA_MODEL, gemini_model: str = _GEMINI_MODEL,
-    user_guidance: str | None = None,
+    user_guidance: str | None = None, user_facts: list[dict] | None = None,
 ) -> str:
     """Orchestrates all three stages (spec §15) and returns the same
     one-line status message run_tailoring() returns. Raises RuntimeError
@@ -143,10 +149,13 @@ def create_application_from_prompt(
         )
 
     guidance = None
+    brainstorm_status = "skipped (no Gemini client configured)"
     if gemini_client is not None:
         guidance = brainstorm_relevant_content(
-            gemini_client, master, interpreted["job_description"], gemini_model, user_guidance=user_guidance,
+            gemini_client, master, interpreted["job_description"], gemini_model,
+            user_guidance=user_guidance, user_facts=user_facts,
         )
+        brainstorm_status = "succeeded" if guidance else "failed; local tailoring continued without Gemini brainstorm"
     if user_guidance:
         guidance = f"{guidance}\n\n{user_guidance}" if guidance else user_guidance
 
@@ -156,6 +165,7 @@ def create_application_from_prompt(
             f.write(interpreted["job_description"])
         return run_tailoring(
             master_resume_path, jd_path, interpreted["application_name"], resume_manager_dir, guidance=guidance,
+            user_facts=user_facts, brainstorm_status=brainstorm_status,
         )
 
 
@@ -179,6 +189,9 @@ def main() -> None:
     guidance_group.add_argument(
         "--guidance-file", help="Path to a text file containing extra tailoring instructions or user-confirmed facts.",
     )
+    parser.add_argument(
+        "--facts-file", help="YAML file with entry-scoped, user-confirmed facts and required coverage concepts.",
+    )
     args = parser.parse_args()
 
     if args.prompt is not None:
@@ -200,8 +213,15 @@ def main() -> None:
     if gemini_client is None:
         print("WARNING: no Gemini client available -- continuing without the relevance brainstorm step.")
 
+    user_facts = None
+    if args.facts_file:
+        with open(os.path.join(args.resume_manager_dir, "resume_master.yaml"), "r", encoding="utf-8") as f:
+            master = yaml.safe_load(f)
+        user_facts = load_user_facts(args.facts_file, master)
+
     print(create_application_from_prompt(
         prompt_text, args.resume_manager_dir, gemini_client=gemini_client, user_guidance=user_guidance,
+        user_facts=user_facts,
     ))
 
 

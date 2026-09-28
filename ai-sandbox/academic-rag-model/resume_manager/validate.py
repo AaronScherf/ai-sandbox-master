@@ -26,9 +26,44 @@ way to see).
 """
 from __future__ import annotations
 
+import re
+
+from rapidfuzz import fuzz
+
 from resume_manager.fact_diff import metrics_not_traceable
 
 _OPENING_WORD_COUNT = 6
+_BULLET_DUPLICATE_THRESHOLD = 80
+_RESPONSIBILITY_VERBS = {
+    "administered", "built", "coordinated", "directed", "established", "implemented", "led",
+    "managed", "owned", "oversaw", "supervised",
+}
+
+
+def _normalized(text: str) -> str:
+    return re.sub(r"[^a-z0-9]+", " ", text.lower()).strip()
+
+
+def _contains_phrase(text: str, phrase: str) -> bool:
+    normalized_phrase = _normalized(phrase)
+    if not normalized_phrase:
+        return False
+    pattern = r"(?<![a-z0-9])" + re.escape(normalized_phrase).replace(r"\ ", r"\s+") + r"(?![a-z0-9])"
+    return re.search(pattern, text) is not None
+
+
+def _fact_concepts_missing(fact: dict, bullets: list[str]) -> list[str]:
+    """Return required concept groups not found in an entry's final bullets.
+
+    Each group is a list of acceptable phrases. All groups must be covered;
+    a group may provide synonyms for natural paraphrases.
+    """
+    text = _normalized(" ".join(bullets))
+    missing = []
+    for alternatives in fact.get("required_concepts") or []:
+        if not any(_contains_phrase(text, phrase) for phrase in alternatives):
+            missing.append(" / ".join(alternatives))
+    return missing
 
 
 def _opening_phrase(bullet: str) -> str:
@@ -36,7 +71,7 @@ def _opening_phrase(bullet: str) -> str:
     return " ".join(words).lower()
 
 
-def validate_tailored(master: dict, tailored: dict) -> list[str]:
+def validate_tailored(master: dict, tailored: dict, user_facts: list[dict] | None = None) -> list[str]:
     """Returns a list of human-readable warnings; empty means nothing was
     flagged.
 
@@ -59,6 +94,7 @@ def validate_tailored(master: dict, tailored: dict) -> list[str]:
     merges with this function's problems) -- so by the time this function
     sees `tailored`, that check has nothing left to catch."""
     master_by_id = {e["id"]: e for e in master.get("work_experience") or []}
+    tailored_by_id = {e["id"]: e for e in tailored.get("work_experience") or []}
     problems: list[str] = []
     openings: dict[str, int] = {}
     for entry in tailored.get("work_experience") or []:
@@ -67,10 +103,30 @@ def validate_tailored(master: dict, tailored: dict) -> list[str]:
         original_text = "\n".join(source.get("bullets") or [])
         rewritten_bullets = entry.get("bullets") or []
         rewritten_text = "\n".join(rewritten_bullets)
-        for metric in metrics_not_traceable(rewritten_text, original_text):
-            problems.append(f"{entry_id}: possible invented metric '{metric}' not found in original bullets")
+        entry_facts = [f for f in (user_facts or []) if f.get("entry_id") == entry_id]
+        fact_text = "\n".join(f.get("fact", "") for f in entry_facts)
+        supported_text = "\n".join(part for part in (original_text, fact_text) if part)
+        for metric in metrics_not_traceable(rewritten_text, supported_text):
+            problems.append(f"[metrics] {entry_id}: possible invented metric '{metric}' not found in original bullets")
         for metric in metrics_not_traceable(original_text, rewritten_text):
-            problems.append(f"{entry_id}: possible dropped metric '{metric}' from original bullets not found in rewritten bullets")
+            problems.append(f"[metrics] {entry_id}: possible dropped metric '{metric}' from original bullets not found in rewritten bullets")
+        for index, bullet in enumerate(rewritten_bullets):
+            for other in rewritten_bullets[index + 1:]:
+                similarity = fuzz.ratio(bullet, other)
+                if similarity >= _BULLET_DUPLICATE_THRESHOLD:
+                    problems.append(
+                        f"[duplicate bullets] {entry_id}: bullets are {similarity:.2f}% similar; review for redundancy"
+                    )
+        for index, bullet in enumerate(rewritten_bullets):
+            leading = re.match(r"\s*([a-z]+)\b", bullet, re.IGNORECASE)
+            supported_verbs = {
+                match.group(1).lower()
+                for match in re.finditer(r"(?i)\b([a-z]+)\b", original_text + " " + fact_text)
+            }
+            if leading and leading.group(1).lower() in _RESPONSIBILITY_VERBS and leading.group(1).lower() not in supported_verbs:
+                problems.append(
+                    f"[responsibility wording] {entry_id}: leading verb '{leading.group(1)}' is not explicit in the source bullets or tagged facts; review"
+                )
         for bullet in rewritten_bullets:
             opening = _opening_phrase(bullet)
             if len(opening.split()) == _OPENING_WORD_COUNT:
@@ -79,14 +135,39 @@ def validate_tailored(master: dict, tailored: dict) -> list[str]:
     for opening, count in openings.items():
         if count > 1:
             problems.append(
-                f"repeated bullet opening: {count} bullets start with \"{opening}...\" -- vary the phrasing"
+                f"[repeated openings] repeated bullet opening: {count} bullets start with \"{opening}...\" -- vary the phrasing"
+            )
+    for fact in user_facts or []:
+        entry_id = fact["entry_id"]
+        entry = tailored_by_id.get(entry_id)
+        bullets = entry.get("bullets") or [] if entry else []
+        missing = _fact_concepts_missing(fact, bullets)
+        if missing:
+            problems.append(
+                f"[user fact coverage] {entry_id}: user-provided fact not fully reflected; missing concepts: "
+                + "; ".join(missing)
             )
     return problems
 
 
-def format_report(problems: list[str]) -> str:
+def format_report(problems: list[str], brainstorm_status: str = "not used") -> str:
+    lines = [f"Relevance brainstorm: {brainstorm_status}."]
     if not problems:
-        return "Validation: no discrepancies flagged."
-    lines = [f"Validation flagged {len(problems)} possible issue(s) -- review before submitting:"]
-    lines.extend(f"- {p}" for p in problems)
+        return "\n".join([*lines, "Validation: no discrepancies flagged."])
+    lines.append(f"Validation flagged {len(problems)} possible issue(s) -- review before submitting:")
+    labels = {
+        "[metrics]": "Numeric traceability",
+        "[user fact coverage]": "User-provided fact coverage",
+        "[duplicate bullets]": "Possible duplicate bullets",
+        "[responsibility wording]": "Responsibility wording review",
+        "[repeated openings]": "Repeated bullet openings",
+        "[reconstruction]": "Reconstruction",
+    }
+    grouped: dict[str, list[str]] = {}
+    for problem in problems:
+        category = next((label for prefix, label in labels.items() if problem.startswith(prefix)), "Other review items")
+        grouped.setdefault(category, []).append(problem.split("] ", 1)[-1])
+    for category, items in grouped.items():
+        lines.append(f"\n{category}:")
+        lines.extend(f"- {item}" for item in items)
     return "\n".join(lines)

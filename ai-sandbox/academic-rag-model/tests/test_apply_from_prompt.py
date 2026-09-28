@@ -140,6 +140,21 @@ class TestBrainstormRelevantContent(unittest.TestCase):
         self.assertIn("USER-PROVIDED TAILORING INSTRUCTIONS AND FACTS", contents)
         self.assertIn(user_guidance, contents)
 
+    def test_prompt_includes_entry_scoped_user_facts(self):
+        client = MagicMock()
+        client.models.generate_content.return_value = _fake_gemini_response("guidance text")
+        fact = {
+            "entry_id": "usaid-1", "fact": "Managed asset inventories across 16 projects.",
+            "required_concepts": [["inventory"], ["16 projects"]],
+        }
+        brainstorm_relevant_content(
+            client, _MASTER, "A monitoring role.", user_facts=[fact],
+        )
+        contents = client.models.generate_content.call_args.kwargs["contents"]
+        self.assertIn("ENTRY-SCOPED USER-CONFIRMED FACTS", contents)
+        self.assertIn("usaid-1", contents)
+        self.assertIn("Managed asset inventories across 16 projects", contents)
+
     def test_exception_from_generate_content_returns_none(self):
         client = MagicMock()
         client.models.generate_content.side_effect = RuntimeError("429 RESOURCE_EXHAUSTED")
@@ -173,7 +188,9 @@ class TestCreateApplicationFromPrompt(unittest.TestCase):
         # the fact would hit a deleted file.
         captured = {}
 
-        def _capture_jd_and_return(master_resume_path, jd_path, application_name, resume_manager_dir_arg, guidance=None):
+        def _capture_jd_and_return(
+            master_resume_path, jd_path, application_name, resume_manager_dir_arg, guidance=None, **kwargs,
+        ):
             with open(jd_path, encoding="utf-8") as f:
                 captured["job_description"] = f.read()
             return "Wrote a PDF."
@@ -192,6 +209,7 @@ class TestCreateApplicationFromPrompt(unittest.TestCase):
             self.assertEqual(call_args[2], "Acme Fraud Analyst")  # application_name
             self.assertEqual(call_args[3], resume_manager_dir)
             self.assertEqual(mock_run.call_args.kwargs["guidance"], "Lead with Acme.")
+            self.assertEqual(mock_run.call_args.kwargs["brainstorm_status"], "succeeded")
             self.assertEqual(captured["job_description"], "A fraud analyst role.")
             mock_brainstorm.assert_called_once()
 

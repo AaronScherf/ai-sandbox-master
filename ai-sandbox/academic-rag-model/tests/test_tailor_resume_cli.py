@@ -119,6 +119,36 @@ class TestRunTailoring(unittest.TestCase):
         "resume_manager.tailor_resume.tailor_resume",
         return_value={"ranked_ids": ["acme-1"], "bullets_by_id": {"acme-1": ["Did a rewritten thing"]}},
     )
+    def test_user_facts_are_passed_saved_and_reported(self, mock_tailor, mock_render):
+        with tempfile.TemporaryDirectory() as tmp:
+            resume_manager_dir, master_path, jd_path = self._setup(tmp)
+            facts = [{
+                "entry_id": "acme-1", "fact": "Managed inventory for 16 projects.",
+                "required_concepts": [["inventory"], ["16 projects"]],
+            }]
+
+            run_tailoring(
+                master_path, jd_path, "Acme Corp", resume_manager_dir, user_facts=facts,
+                brainstorm_status="failed; local tailoring continued without Gemini brainstorm",
+            )
+
+            self.assertEqual(mock_tailor.call_args.kwargs["user_facts"], facts)
+            app_dir = os.path.join(
+                resume_manager_dir, "applications", os.listdir(os.path.join(resume_manager_dir, "applications"))[0],
+            )
+            with open(os.path.join(app_dir, "user_facts.yaml"), encoding="utf-8") as f:
+                self.assertEqual(yaml.safe_load(f), facts)
+            with open(os.path.join(app_dir, "validation_report.txt"), encoding="utf-8") as f:
+                report = f.read()
+            self.assertIn("User-provided fact coverage:", report)
+            self.assertIn("not fully reflected", report)
+            self.assertIn("Relevance brainstorm: failed", report)
+
+    @patch("resume_manager.tailor_resume.render_resume_pdf", return_value=1)
+    @patch(
+        "resume_manager.tailor_resume.tailor_resume",
+        return_value={"ranked_ids": ["acme-1"], "bullets_by_id": {"acme-1": ["Did a rewritten thing"]}},
+    )
     def test_no_guidance_writes_no_guidance_file(self, mock_tailor, mock_render):
         with tempfile.TemporaryDirectory() as tmp:
             resume_manager_dir, master_path, jd_path = self._setup(tmp)

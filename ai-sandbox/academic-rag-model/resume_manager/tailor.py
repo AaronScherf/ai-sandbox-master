@@ -42,12 +42,21 @@ Output ONLY valid YAML in exactly this shape, no commentary, no markdown code fe
 questions: [question one, question two]"""
 
 
-def _build_entry_context(work_experience: list[dict]) -> str:
+def _build_entry_context(work_experience: list[dict], user_facts: list[dict] | None = None) -> str:
     lines = []
     for entry in work_experience:
         lines.append(f"id: {entry['id']}\norg: {entry['org']}\nrole: {entry['role']}\nbullets:")
         for bullet in entry.get("bullets") or []:
             lines.append(f"  - {bullet}")
+        for fact in user_facts or []:
+            if fact["entry_id"] == entry["id"]:
+                lines.append(f"user-confirmed fact (preserve accurately): {fact['fact']}")
+                concepts = fact.get("required_concepts") or []
+                if concepts:
+                    lines.append(
+                        "  coverage concepts (include each accurately): "
+                        + "; ".join(" / ".join(group) for group in concepts)
+                    )
     return "\n".join(lines)
 
 
@@ -76,6 +85,7 @@ def generate_clarifying_questions(
 
 def tailor_resume(
     master: dict, job_description: str, model: str = RESUMEMANAGER_OLLAMA_MODEL, guidance: str | None = None,
+    user_facts: list[dict] | None = None,
 ) -> dict | None:
     """Returns {"ranked_ids": [...], "bullets_by_id": {...}, "include_github": bool},
     or None if the local Ollama call failed/timed out or the response
@@ -89,7 +99,7 @@ def tailor_resume(
     transcript from tailor_resume.py's --interactive flow -- inserted as
     one extra prompt section; when it's None (the default), the prompt is
     otherwise unchanged."""
-    entry_context = _build_entry_context(master.get("work_experience") or [])
+    entry_context = _build_entry_context(master.get("work_experience") or [], user_facts)
     guidance_section = (
         f"\n\n### USER GUIDANCE (prioritize this when selecting entries and framing bullets):\n{guidance}"
         if guidance else ""

@@ -66,13 +66,41 @@ or `--guidance-file path\to\instructions.txt`. The same text is sent to the
 Gemini relevance brainstorm and local tailoring model, and saved in the
 application's `guidance.txt`. User-supplied facts can supplement the master
 resume for the entry they describe; the models must not infer additional
-claims from them. For example:
+claims from them. Free-text inclusion or exclusion preferences guide model
+selection but are not hard filters, so review which roles made the final
+resume. For example:
 
 ```powershell
 .\.venv\Scripts\python.exe -m resume_manager.apply_from_prompt `
   --prompt-file "ukraine_opportunity.txt" `
   --guidance-file "ukraine_resume_guidance.txt"
 ```
+
+For important facts that must be tied to a specific work-experience entry,
+pass `--facts-file path\to\facts.yaml`. Each fact names the master entry ID,
+states the user-confirmed fact, and lists required concept groups. Every
+group must be represented in the final entry; alternatives within a group
+allow common paraphrases. A fact that misses a concept is reported for human
+review, never used to block PDF rendering.
+
+```yaml
+- entry_id: u-s-agency-for-international-development-1
+  fact: Managed inventories and asset databases for electrical infrastructure and humanitarian equipment across more than 16 projects.
+  required_concepts:
+    - [inventory, inventories]
+    - [asset database, asset databases, asset tracking]
+    - [electrical infrastructure]
+    - [humanitarian equipment]
+    - [16+ projects, more than 16 projects, over 16 projects]
+```
+
+The same option is available on `tailor_resume.py` for a saved job
+description. Applications save the normalized facts in `user_facts.yaml`.
+Their `validation_report.txt` separates numeric traceability, fact coverage,
+possible duplicate bullets, responsibility wording, and repeated openings,
+and records whether the Gemini relevance brainstorm succeeded, failed, or
+was skipped. These checks are advisory and should be reviewed with the
+resume.
 
 **If you're an agent handling a "tailor my resume for this opportunity"
 request:** which of the three tailoring entry points to use is a
@@ -95,6 +123,33 @@ guess mechanically:
 3. **Only a rough, general description of the opportunity is given** —
    use `apply_from_prompt.py --prompt "..."` (above), which runs the
    full pipeline including the relevance brainstorm.
+
+## Revising an already-tailored application
+
+To make a small, deterministic edit to an application you've already
+generated -- without re-running Ollama or Gemini -- use
+`revise_application.py`. Today it supports one operation: dropping a whole
+`work_experience` entry (e.g. the user decides mid-review that one role
+shouldn't be on this particular application after all):
+
+```powershell
+.\.venv\Scripts\python.exe -m resume_manager.revise_application `
+  --app-dir "applications\2026-09-28-ukraine-energy-resilience-monitoring-consultant" `
+  --remove-entry-id "bloomfield-community-empowerment-center-1"
+```
+
+It edits only that one application's saved `tailored_resume.yaml`, then
+regenerates `tailored_resume.md`, the PDF, and `validation_report.txt` from
+it -- re-running the same fact-diff and user-fact-coverage checks
+`tailor_resume.py` uses, using the application's own saved
+`user_facts.yaml` if it has one. `resume_master.yaml` is only ever read
+(never written), and `job_description.txt`/`guidance.txt` are left exactly
+as they were, since they record what was actually asked for. The
+application's previously recorded Gemini brainstorm status (succeeded /
+failed / skipped) is carried forward into the refreshed report unchanged.
+Entry ids come from `tailored_resume.md`'s `<!-- id: ... -->` comments or
+`tailored_resume.yaml`'s `id` fields. An unknown `--app-dir` or
+`--remove-entry-id` fails before anything is written.
 
 ## Requirements
 
