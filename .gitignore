@@ -70,6 +70,9 @@ ai-sandbox/academic-hub/**/textbooks/**/images/
 # 2026-09-29: all PDFs under academic_resources/ are ignored (class slides,
 # problem sets, solutions). Only academic_notes/ is synced between devices.
 ai-sandbox/academic-hub/academic_resources/**/*.pdf
+ai-sandbox/academic-hub/academic_resources/microecon/2024_class/
+# local MCP server config (may hold tokens)
+/.mcp.json
 ai-sandbox/academic-hub/**/lecture-slides/
 ai-sandbox/academic-hub/**/lecture-recordings/
 ai-sandbox/academic-hub/**/lecture_slides/
