@@ -1,6 +1,6 @@
 import numpy as np
 
-from notes.excalidraw_chunking import find_gaps
+from pipelines.transcribe_notes.excalidraw_chunking import find_gaps
 
 
 def _rows(*specs):
@@ -35,7 +35,7 @@ def test_find_gaps_no_gaps_in_solid_ink():
 
 from PIL import Image
 
-from notes.excalidraw_chunking import choose_cuts, chunk_image
+from pipelines.transcribe_notes.excalidraw_chunking import choose_cuts, chunk_image
 
 
 def test_choose_cuts_picks_gap_nearest_target_height():
@@ -80,7 +80,7 @@ def test_chunk_image_splits_at_a_real_gap_not_through_ink():
 
 import io
 
-from notes.excalidraw_chunking import resize_chunk_for_api
+from pipelines.transcribe_notes.excalidraw_chunking import resize_chunk_for_api
 
 
 def test_resize_chunk_for_api_caps_width_and_returns_jpeg_bytes():
@@ -106,7 +106,7 @@ def test_resize_chunk_for_api_no_op_resize_when_already_narrow():
     assert result.size == (785, 3000)
 
 
-from notes.excalidraw_chunking import load_canvas_image
+from pipelines.transcribe_notes.excalidraw_chunking import load_canvas_image
 
 
 def test_load_canvas_image_opens_png_directly(tmp_path):

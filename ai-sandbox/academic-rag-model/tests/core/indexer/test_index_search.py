@@ -224,7 +224,7 @@ class TestRebuild(unittest.TestCase):
         # byte-identical PDF always hashes to the same file_id. A repaired
         # (linked) clone must not fall back into the same collision on the
         # very next rebuild(), which is what this test guards.
-        from notes.transcribe_notes import link_duplicate_note
+        from pipelines.transcribe_notes.transcribe_notes import link_duplicate_note
         with tempfile.TemporaryDirectory() as tmp:
             canonical_pdf_path = _make_notes_pdf(tmp, "econometrics", "problem_sets", "00-review-questions")
             client = _fake_client()

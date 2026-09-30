@@ -1,4 +1,66 @@
-# Notes/Problem Set/Exam Transcription Pipeline
+# Notes Transcription Pipeline
+
+A cost-routed pipeline that turns short, unstructured academic PDFs — TA
+notes, problem sets, exams, handwritten scans, and (via
+[`journal_articles/`](../journal_articles/), which reuses this unchanged)
+journal articles — into clean, LLM-ready Markdown. Runs entirely locally, no
+GPU or VM needed. See [Full usage guide](#full-usage-guide) below for the
+complete walkthrough (prerequisites, CLI, and how the routing tiers work);
+this section is a quick orientation.
+
+## Key file
+
+- `transcribe_notes.py` — `process_pdf()` is a three-tier router instead of
+  always calling the API: a reliably-paginated, machine-generated document
+  (LaTeX, Word, LibreOffice, or an academic-publisher renderer like Apache
+  FOP/XEP) with a clean local text layer gets extracted for free, zero API
+  calls; if some pages are defective, only those get batched to Gemini for
+  repair using surrounding clean pages as context; and a genuinely messy or
+  handwritten document goes through full vision transcription, page-by-page
+  with a small sliding window of already-transcribed pages as context.
+  `known_doc_types` is a parameter here (default: `academic-hub`'s own
+  vocabulary), so a different corpus can classify into its own document
+  types without forking this function — see `journal_articles/convert_journal_articles.py`
+  for the one other real caller.
+
+Depends on `common/` and `indexer/` (for its per-file indexing hook, via
+`_write_markdown_and_index`). `postprocessing/postprocess_notes.py` is a
+downstream correction pass over this pipeline's own output — see the root
+[`README.md`](../README.md) for the full dependency graph.
+
+- `transcribe_excalidraw.py` (+ `excalidraw_chunking.py`) — a separate
+  pipeline for handwritten Excalidraw canvases (`.excalidraw.md` +
+  its plugin-auto-exported `.png` or `.svg`), not PDFs: chunk the tall
+  canvas at whitespace gaps, transcribe each chunk via Gemini vision with a
+  trailing-context window, then expand the terse transcription into
+  cohesive prose. Writes `<name>.excalidraw.md` (raw) +
+  `<name>.excalidraw.rag.md` (expanded, the RAG-canonical artifact).
+
+- `route_notes_transcribe.py` — a deterministic, filetype-based router
+  across every course under `academic_notes/`: finds source files (`.pdf`,
+  or `.excalidraw.md` + its image sibling) with no existing output yet, and
+  dispatches each to the matching pipeline above by extension alone — no
+  LLM decides routing, so this is safe to run unattended
+  (`python -m pipelines.transcribe_notes.route_notes_transcribe [--course NAME] [--dry-run] [--force]`).
+  Re-verifies after each call that the expected output file actually landed
+  on disk rather than trusting a "no exception raised" result.
+
+- `migrate_sources_to_resources.py` — one-shot migration: moves heavy note
+  sources (PDFs, Excalidraw `.svg`/`.png` exports, `.docx`/`.pptx`) from
+  `academic_notes/` (kept lightweight for git/tablet sync) to
+  `academic_resources/`, mirroring each file's `<course>/<category>/`
+  relative path via `common/academic_hub_paths.py`. `.md` files (scene
+  files, `processed_outputs/`) never move. Resyncs the source index
+  afterward via `indexer.index_search.rebuild()`'s existing cheap
+  "file moved, content unchanged" path. See
+  `docs/superpowers/specs/2026-09-21-source-asset-relocation-design.md`
+  for the full design, including why `transcribe_notes.py`/
+  `transcribe_excalidraw.py`/`route_notes_transcribe.py` all resolve
+  output location and image lookups through the mirrored-path convention
+  instead of assuming a source and its `processed_outputs/` are always
+  siblings.
+
+## Full usage guide
 
 Companion to `gcp_instructions.md`, for a different category of document:
 short (tens of pages, not hundreds), often no table of contents, often a
@@ -12,7 +74,7 @@ routes each document to the cheapest processing tier its actual content
 supports, decided per-document from PDF metadata and (where safe) local
 text extraction.
 
-## Prerequisites
+### Prerequisites
 
 * A `GEMINI_API_KEY` in your `.env` (see `ai-sandbox/.env.example`), with
   billing actually upgraded for that project -- linking a Cloud Billing
@@ -24,7 +86,7 @@ text extraction.
   below. Output lands in a `processed_outputs/` folder created alongside
   the inputs, same convention as the textbook pipeline.
 
-## Step 1: One-time local setup
+### Step 1: One-time local setup
 
 ```powershell
 cd academic-rag-model
@@ -37,7 +99,7 @@ wheel, no external binary dependency (unlike `poppler`/`pdftoppm`, which
 this environment doesn't have installed). `pypdf` is used only for page
 count and PDF metadata (`has_reliable_pagination`).
 
-## Step 2: Run it
+### Step 2: Run it
 
 Batches over every PDF found directly under
 `academic-hub/$NOTES_SUBDIR/` by default.
@@ -45,7 +107,7 @@ Batches over every PDF found directly under
 ```powershell
 $NOTES_SUBDIR="academic_notes/math-camp/problem_sets"
 
-python -m notes.transcribe_notes --notes-subdir $NOTES_SUBDIR
+python -m pipelines.transcribe_notes.transcribe_notes --notes-subdir $NOTES_SUBDIR
 ```
 
 * Add `--file "Linear Algebra Problem Set.pdf"` to process just one file
@@ -65,7 +127,7 @@ python -m notes.transcribe_notes --notes-subdir $NOTES_SUBDIR
   so results stay traceable back to the source, same tagging convention
   as the textbook pipeline.
 
-## How it works
+### How it works
 
 For each document, `process_pdf()` picks the cheapest tier its actual
 content supports -- never a blanket "always call the API" or "always try

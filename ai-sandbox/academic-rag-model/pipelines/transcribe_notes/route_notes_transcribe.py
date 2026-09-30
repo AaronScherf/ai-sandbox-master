@@ -25,12 +25,12 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from core.env.academic_hub_paths import TEXTBOOK_FOLDER_NAMES, resolve_output_dir, to_resources_root
-from notes.transcribe_excalidraw import (
+from pipelines.transcribe_notes.transcribe_excalidraw import (
     _TRANSCRIBE_MODEL as _EXCALIDRAW_MODEL,
     discover_excalidraw_files,
     process_excalidraw_note,
 )
-from notes.transcribe_notes import discover_pdf_files, process_pdf
+from pipelines.transcribe_notes.transcribe_notes import discover_pdf_files, process_pdf
 
 _SKIP_DIR_NAMES = frozenset({"processed_outputs"})
 

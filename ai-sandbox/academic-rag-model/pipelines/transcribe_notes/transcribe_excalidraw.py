@@ -23,8 +23,8 @@ from core.indexer.index_card import (
     derive_course,
     reconcile_and_write,
 )
-from notes.excalidraw_chunking import chunk_image, load_canvas_image, resize_chunk_for_api
-from notes.transcribe_notes import build_frontmatter, transcribe_page_via_gemini
+from pipelines.transcribe_notes.excalidraw_chunking import chunk_image, load_canvas_image, resize_chunk_for_api
+from pipelines.transcribe_notes.transcribe_notes import build_frontmatter, transcribe_page_via_gemini
 
 _EXPANSION_MODEL_GEMINI = "gemini-3.1-flash-lite"  # text-only reasoning task, matches
                                                      # problem_gen's/viz's own default tier

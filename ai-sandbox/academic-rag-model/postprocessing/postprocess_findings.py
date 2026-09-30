@@ -5,7 +5,7 @@ Pure Python, no PyMuPDF/transformers/network import at module scope.
 """
 from __future__ import annotations
 
-from notes.transcribe_notes import is_expected_char
+from pipelines.transcribe_notes.transcribe_notes import is_expected_char
 
 
 def is_allowlisted_span(text: str) -> bool:

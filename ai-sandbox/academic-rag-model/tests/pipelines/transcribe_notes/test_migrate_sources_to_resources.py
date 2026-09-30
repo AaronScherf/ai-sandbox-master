@@ -1,6 +1,6 @@
 import os
 
-from notes.migrate_sources_to_resources import find_migration_candidates, migrate_one
+from pipelines.transcribe_notes.migrate_sources_to_resources import find_migration_candidates, migrate_one
 
 
 def test_find_migration_candidates_finds_an_unmigrated_pdf(tmp_path):

@@ -32,7 +32,7 @@ from postprocessing.postprocess_findings import (
     is_allowlisted_span,
     search_reference_documents,
 )
-from notes.transcribe_notes import (
+from pipelines.transcribe_notes.transcribe_notes import (
     _MODEL_TYPESET,
     build_final_markdown,
     build_frontmatter,

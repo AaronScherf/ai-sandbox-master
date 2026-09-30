@@ -1,6 +1,6 @@
 import os
 
-from notes.transcribe_excalidraw import discover_excalidraw_files
+from pipelines.transcribe_notes.transcribe_excalidraw import discover_excalidraw_files
 
 
 def test_discover_excalidraw_files_pairs_md_and_png(tmp_path):
@@ -109,7 +109,7 @@ def test_discover_excalidraw_files_prefers_png_when_both_exist(tmp_path):
     assert pairs[0][1].endswith(".png")
 
 
-from notes.transcribe_excalidraw import assemble_raw_markdown, build_chunk_transcription_prompt
+from pipelines.transcribe_notes.transcribe_excalidraw import assemble_raw_markdown, build_chunk_transcription_prompt
 
 
 def test_build_chunk_transcription_prompt_mentions_chunk_position():
@@ -142,11 +142,11 @@ def test_assemble_raw_markdown_skips_missing_chunks():
 
 from unittest.mock import patch
 
-from notes.transcribe_excalidraw import transcribe_chunks
+from pipelines.transcribe_notes.transcribe_excalidraw import transcribe_chunks
 
 
 def test_transcribe_chunks_builds_cache_keyed_by_index():
-    with patch("notes.transcribe_excalidraw.transcribe_page_via_gemini") as mock_transcribe:
+    with patch("pipelines.transcribe_notes.transcribe_excalidraw.transcribe_page_via_gemini") as mock_transcribe:
         mock_transcribe.side_effect = ["first chunk text", "second chunk text"]
         cache = transcribe_chunks(client=object(), model="gemini-3.6-flash", chunk_bytes=[b"img0", b"img1"])
     assert cache == {"0": "first chunk text", "1": "second chunk text"}
@@ -159,7 +159,7 @@ def test_transcribe_chunks_passes_accumulated_context_from_prior_chunks():
         captured_prompts.append(prompt)
         return f"text for chunk with prompt len {len(prompt)}"
 
-    with patch("notes.transcribe_excalidraw.transcribe_page_via_gemini", side_effect=fake_transcribe):
+    with patch("pipelines.transcribe_notes.transcribe_excalidraw.transcribe_page_via_gemini", side_effect=fake_transcribe):
         transcribe_chunks(client=object(), model="gemini-3.6-flash", chunk_bytes=[b"img0", b"img1"])
 
     # second call's prompt must include the first chunk's already-transcribed text
@@ -172,14 +172,14 @@ def test_transcribe_chunks_skips_a_chunk_that_fails_after_retries():
             raise ValueError("simulated repetition-loop failure")
         return "ok text"
 
-    with patch("notes.transcribe_excalidraw.transcribe_page_via_gemini", side_effect=fake_transcribe):
-        with patch("notes.transcribe_excalidraw.call_with_retries", side_effect=lambda fn: fn()):
+    with patch("pipelines.transcribe_notes.transcribe_excalidraw.transcribe_page_via_gemini", side_effect=fake_transcribe):
+        with patch("pipelines.transcribe_notes.transcribe_excalidraw.call_with_retries", side_effect=lambda fn: fn()):
             cache = transcribe_chunks(client=object(), model="gemini-3.6-flash", chunk_bytes=[b"img0", b"img1", b"img2"])
 
     assert cache == {"0": "ok text", "2": "ok text"}
 
 
-from notes.transcribe_excalidraw import build_expansion_prompt, expand_via_gemini
+from pipelines.transcribe_notes.transcribe_excalidraw import build_expansion_prompt, expand_via_gemini
 
 
 def test_build_expansion_prompt_includes_raw_text():
@@ -215,23 +215,23 @@ def test_expand_via_gemini_returns_response_text():
 
 
 from core.env.ollama_utils import OLLAMA_TIMEOUT
-from notes.transcribe_excalidraw import expand_transcription, expand_via_ollama
+from pipelines.transcribe_notes.transcribe_excalidraw import expand_transcription, expand_via_ollama
 
 
 def test_expand_via_ollama_returns_response_text():
-    with patch("notes.transcribe_excalidraw.call_ollama", return_value="Expanded via Ollama."):
+    with patch("pipelines.transcribe_notes.transcribe_excalidraw.call_ollama", return_value="Expanded via Ollama."):
         result = expand_via_ollama("shorthand", model="qwen2.5:7b-instruct")
     assert result == "Expanded via Ollama."
 
 
 def test_expand_via_ollama_returns_none_on_timeout():
-    with patch("notes.transcribe_excalidraw.call_ollama", return_value=OLLAMA_TIMEOUT):
+    with patch("pipelines.transcribe_notes.transcribe_excalidraw.call_ollama", return_value=OLLAMA_TIMEOUT):
         result = expand_via_ollama("shorthand", model="qwen2.5:7b-instruct")
     assert result is None
 
 
 def test_expand_transcription_gemini_backend():
-    with patch("notes.transcribe_excalidraw.expand_via_gemini", return_value="Gemini prose"):
+    with patch("pipelines.transcribe_notes.transcribe_excalidraw.expand_via_gemini", return_value="Gemini prose"):
         text, meta = expand_transcription(client=object(), raw_markdown="shorthand", backend="gemini")
     assert text == "Gemini prose"
     assert meta["expansion_backend"] == "gemini"
@@ -239,22 +239,22 @@ def test_expand_transcription_gemini_backend():
 
 
 def test_expand_transcription_ollama_backend_success():
-    with patch("notes.transcribe_excalidraw.expand_via_ollama", return_value="Ollama prose"):
+    with patch("pipelines.transcribe_notes.transcribe_excalidraw.expand_via_ollama", return_value="Ollama prose"):
         text, meta = expand_transcription(client=object(), raw_markdown="shorthand", backend="ollama")
     assert text == "Ollama prose"
     assert meta["expansion_backend"] == "ollama"
 
 
 def test_expand_transcription_ollama_falls_back_to_gemini_when_unreachable():
-    with patch("notes.transcribe_excalidraw.expand_via_ollama", return_value=None), \
-         patch("notes.transcribe_excalidraw.expand_via_gemini", return_value="Gemini fallback prose"):
+    with patch("pipelines.transcribe_notes.transcribe_excalidraw.expand_via_ollama", return_value=None), \
+         patch("pipelines.transcribe_notes.transcribe_excalidraw.expand_via_gemini", return_value="Gemini fallback prose"):
         text, meta = expand_transcription(client=object(), raw_markdown="shorthand", backend="ollama")
     assert text == "Gemini fallback prose"
     assert meta["expansion_backend"] == "gemini"
 
 
 def test_expand_transcription_marks_grounded_when_passages_given():
-    with patch("notes.transcribe_excalidraw.expand_via_gemini", return_value="Gemini prose"):
+    with patch("pipelines.transcribe_notes.transcribe_excalidraw.expand_via_gemini", return_value="Gemini prose"):
         _text, meta = expand_transcription(
             client=object(), raw_markdown="shorthand", backend="gemini",
             retrieved_passages=["some textbook passage"],
@@ -262,7 +262,7 @@ def test_expand_transcription_marks_grounded_when_passages_given():
     assert meta["grounded"] is True
 
 
-from notes.transcribe_excalidraw import write_outputs
+from pipelines.transcribe_notes.transcribe_excalidraw import write_outputs
 
 
 def test_write_outputs_creates_both_files_with_frontmatter(tmp_path):
@@ -273,7 +273,7 @@ def test_write_outputs_creates_both_files_with_frontmatter(tmp_path):
     md_path.write_text("---\n---\n")
     png_path.write_bytes(b"fake-png")
 
-    with patch("notes.transcribe_excalidraw.reconcile_and_write") as mock_reconcile:
+    with patch("pipelines.transcribe_notes.transcribe_excalidraw.reconcile_and_write") as mock_reconcile:
         raw_path, rag_path = write_outputs(
             excalidraw_md_path=str(md_path), image_path=str(png_path),
             raw_markdown="raw shorthand text", expanded_markdown="expanded prose text",
@@ -309,7 +309,7 @@ def test_write_outputs_records_svg_source_filename(tmp_path):
     md_path.write_text("---\n---\n")
     svg_path.write_text("<svg></svg>")
 
-    with patch("notes.transcribe_excalidraw.reconcile_and_write"):
+    with patch("pipelines.transcribe_notes.transcribe_excalidraw.reconcile_and_write"):
         raw_path, _rag_path = write_outputs(
             excalidraw_md_path=str(md_path), image_path=str(svg_path),
             raw_markdown="raw text", expanded_markdown="expanded text",
@@ -322,7 +322,7 @@ def test_write_outputs_records_svg_source_filename(tmp_path):
     assert "source_image: academic_notes/econometrics/lecture_notes/Econometrics 2026-09-09.excalidraw.svg" in raw_content
 
 
-from notes.transcribe_excalidraw import process_excalidraw_note
+from pipelines.transcribe_notes.transcribe_excalidraw import process_excalidraw_note
 
 
 def test_process_excalidraw_note_dry_run_does_not_call_apis(tmp_path):
@@ -331,8 +331,8 @@ def test_process_excalidraw_note_dry_run_does_not_call_apis(tmp_path):
     md_path.write_text("---\n---\n")
     png_path.write_bytes(b"fake-png")
 
-    with patch("notes.transcribe_excalidraw.transcribe_chunks") as mock_transcribe, \
-         patch("notes.transcribe_excalidraw.expand_transcription") as mock_expand:
+    with patch("pipelines.transcribe_notes.transcribe_excalidraw.transcribe_chunks") as mock_transcribe, \
+         patch("pipelines.transcribe_notes.transcribe_excalidraw.expand_transcription") as mock_expand:
         process_excalidraw_note(
             str(md_path), str(png_path), client=None, model="gemini-3.6-flash",
             expand_backend="gemini", academic_hub_root=str(tmp_path), dry_run=True,
@@ -349,11 +349,11 @@ def test_process_excalidraw_note_runs_full_pipeline(tmp_path):
     md_path.write_text("---\n---\n")
     Image.new("RGB", (100, 100), color=(255, 255, 255)).save(png_path)
 
-    with patch("notes.transcribe_excalidraw.chunk_image", return_value=["chunk_image_1", "chunk_image_2"]), \
-         patch("notes.transcribe_excalidraw.resize_chunk_for_api", side_effect=[b"bytes1", b"bytes2"]), \
-         patch("notes.transcribe_excalidraw.transcribe_chunks", return_value={"0": "raw text 0", "1": "raw text 1"}), \
-         patch("notes.transcribe_excalidraw.expand_transcription", return_value=("expanded text", {"expansion_backend": "gemini", "expansion_model": "gemini-3.1-flash-lite", "grounded": False})), \
-         patch("notes.transcribe_excalidraw.write_outputs", return_value=("raw.md", "raw.rag.md")) as mock_write:
+    with patch("pipelines.transcribe_notes.transcribe_excalidraw.chunk_image", return_value=["chunk_image_1", "chunk_image_2"]), \
+         patch("pipelines.transcribe_notes.transcribe_excalidraw.resize_chunk_for_api", side_effect=[b"bytes1", b"bytes2"]), \
+         patch("pipelines.transcribe_notes.transcribe_excalidraw.transcribe_chunks", return_value={"0": "raw text 0", "1": "raw text 1"}), \
+         patch("pipelines.transcribe_notes.transcribe_excalidraw.expand_transcription", return_value=("expanded text", {"expansion_backend": "gemini", "expansion_model": "gemini-3.1-flash-lite", "grounded": False})), \
+         patch("pipelines.transcribe_notes.transcribe_excalidraw.write_outputs", return_value=("raw.md", "raw.rag.md")) as mock_write:
         process_excalidraw_note(
             str(md_path), str(png_path), client=object(), model="gemini-3.6-flash",
             expand_backend="gemini", academic_hub_root=str(tmp_path), dry_run=False,
@@ -382,11 +382,11 @@ def test_process_excalidraw_note_runs_full_pipeline_from_an_svg_source(tmp_path)
 
     captured_images = []
 
-    with patch("notes.transcribe_excalidraw.chunk_image", side_effect=lambda im, *a, **k: captured_images.append(im) or ["chunk_1"]), \
-         patch("notes.transcribe_excalidraw.resize_chunk_for_api", return_value=b"bytes1"), \
-         patch("notes.transcribe_excalidraw.transcribe_chunks", return_value={"0": "raw text 0"}), \
-         patch("notes.transcribe_excalidraw.expand_transcription", return_value=("expanded text", {"expansion_backend": "gemini", "expansion_model": "gemini-3.1-flash-lite", "grounded": False})), \
-         patch("notes.transcribe_excalidraw.write_outputs", return_value=("raw.md", "raw.rag.md")) as mock_write:
+    with patch("pipelines.transcribe_notes.transcribe_excalidraw.chunk_image", side_effect=lambda im, *a, **k: captured_images.append(im) or ["chunk_1"]), \
+         patch("pipelines.transcribe_notes.transcribe_excalidraw.resize_chunk_for_api", return_value=b"bytes1"), \
+         patch("pipelines.transcribe_notes.transcribe_excalidraw.transcribe_chunks", return_value={"0": "raw text 0"}), \
+         patch("pipelines.transcribe_notes.transcribe_excalidraw.expand_transcription", return_value=("expanded text", {"expansion_backend": "gemini", "expansion_model": "gemini-3.1-flash-lite", "grounded": False})), \
+         patch("pipelines.transcribe_notes.transcribe_excalidraw.write_outputs", return_value=("raw.md", "raw.rag.md")) as mock_write:
         process_excalidraw_note(
             str(md_path), str(svg_path), client=object(), model="gemini-3.6-flash",
             expand_backend="gemini", academic_hub_root=str(tmp_path), dry_run=False,

@@ -16,7 +16,7 @@ import os
 
 from pypdf import PdfReader
 
-from notes.transcribe_notes import (
+from pipelines.transcribe_notes.transcribe_notes import (
     build_final_markdown, build_frontmatter, extract_all_page_texts, page_looks_defective,
 )
 
