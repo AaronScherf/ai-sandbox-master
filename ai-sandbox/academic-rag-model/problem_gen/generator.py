@@ -11,8 +11,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from indexer.index_card import load_courses
-from indexer.index_search import search_passages
+from core.indexer.index_card import load_courses
+from core.indexer.index_search import search_passages
 from problem_gen.llm_gen import generate_and_verify
 
 

@@ -6,12 +6,12 @@ import unittest
 from datetime import datetime, timezone
 from unittest.mock import MagicMock, patch
 
-from indexer.chunk_index import save_chunks
-from indexer.index_card import (
+from core.indexer.chunk_index import save_chunks
+from core.indexer.index_card import (
     compute_file_id, find_card_by_file_id, load_courses, load_shard, load_tags, save_shard, save_tags,
     recompute_course_entry,
 )
-from indexer.index_search import (
+from core.indexer.index_search import (
     _DEFAULT_ROOT, _is_stale, _single_root, build_arg_parser, rebuild, search, search_passages,
     _render_citation,
 )
@@ -283,7 +283,7 @@ class TestRebuild(unittest.TestCase):
         # Each book's .rag.md is mirrored into academic_notes/<course>/textbooks/,
         # so a same-named notes category now exists -- the migrated-PDF
         # walk must still never treat a textbook PDF as a notes PDF.
-        from indexer.index_search import _notes_pdf_paths
+        from core.indexer.index_search import _notes_pdf_paths
         with tempfile.TemporaryDirectory() as tmp:
             os.makedirs(os.path.join(tmp, "academic_notes", "econometrics", "textbooks", "processed_outputs"))
             textbooks_dir = os.path.join(tmp, "academic_resources", "econometrics", "textbooks")
@@ -579,7 +579,7 @@ class TestRebuild(unittest.TestCase):
             rel_canonical_pdf = os.path.relpath(canonical_pdf, tmp).replace(os.sep, "/")
             canonical_md_path = os.path.join(os.path.dirname(canonical_pdf), "processed_outputs", "Ok_RealAnalysis_2007", "Ok_RealAnalysis_2007.md")
 
-            from indexer.index_card import compute_id_from_parts, compute_content_hash
+            from core.indexer.index_card import compute_id_from_parts, compute_content_hash
             save_shard(tmp, "econometrics", [{
                 "file_id": canonical_file_id,
                 "path": "academic_resources/econometrics/textbooks-and-papers/processed_outputs/Ok_RealAnalysis_2007/Ok_RealAnalysis_2007.md",
@@ -640,7 +640,7 @@ class TestRebuild(unittest.TestCase):
             canonical_pdf = _make_textbook(tmp, "econometrics", "Ok", "Ok_RealAnalysis_2007")
             clone_pdf = _make_textbook(tmp, "microecon", "Ok", "Ok_RealAnalysis_2007")
             canonical_file_id = compute_file_id(canonical_pdf)
-            from indexer.index_card import compute_id_from_parts
+            from core.indexer.index_card import compute_id_from_parts
             clone_file_id = compute_id_from_parts([canonical_file_id, "microecon"])
 
             save_shard(tmp, "econometrics", [{
@@ -741,7 +741,7 @@ class TestRebuild(unittest.TestCase):
                 f.write("x" * 50000)
             client = _fake_client()
             rebuild(tmp, client=client)
-            from indexer.index_card import TEXTBOOK_CONTENT_SAMPLE_CHARS
+            from core.indexer.index_card import TEXTBOOK_CONTENT_SAMPLE_CHARS
             prompt = client.models.generate_content.call_args.kwargs["contents"]
             self.assertLessEqual(len(prompt), 50000)  # the 50000-char body did NOT go in whole
             self.assertIn("x" * TEXTBOOK_CONTENT_SAMPLE_CHARS, prompt)
@@ -1334,8 +1334,8 @@ class TestRebuildWithRealDuplicateClone(unittest.TestCase):
     run's duplicate-check step and a later `rebuild` would encounter it."""
 
     def test_a_real_copy_duplicate_artifacts_clone_survives_rebuild(self):
-        from indexer.duplicate_check import copy_duplicate_artifacts
-        from indexer.index_card import compute_id_from_parts
+        from core.indexer.duplicate_check import copy_duplicate_artifacts
+        from core.indexer.index_card import compute_id_from_parts
 
         with tempfile.TemporaryDirectory() as tmp:
             canonical_pdf = _make_textbook(tmp, "econometrics", "Ok", "Ok_RealAnalysis_2007")

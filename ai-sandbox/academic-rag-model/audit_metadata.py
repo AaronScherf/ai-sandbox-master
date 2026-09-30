@@ -27,7 +27,7 @@ from journal_discovery.manifest import load_manifest, manifest_path, save_manife
 from journal_discovery.text_match import normalize
 from journal_discovery.topic_routing import sanitize_topic_name
 from journal_discovery.worklist import write_metadata_audit_flags_worklist
-from indexer.index_card import compute_file_id, find_card_by_file_id, move_card
+from core.indexer.index_card import compute_file_id, find_card_by_file_id, move_card
 
 # Mirrors indexer/retag.py's own _FRONTMATTER_RE/_TAGS_LINE_RE exactly -- a
 # deliberate small duplication rather than importing private names from

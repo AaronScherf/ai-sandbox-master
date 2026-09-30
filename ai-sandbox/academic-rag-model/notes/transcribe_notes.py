@@ -51,7 +51,7 @@ from core.env.gemini_utils import (
     load_json_cache,
     save_json_cache,
 )
-from indexer.index_card import (
+from core.indexer.index_card import (
     KNOWN_DOC_TYPES,
     compute_content_hash,
     compute_file_id,

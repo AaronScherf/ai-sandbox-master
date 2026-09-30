@@ -20,7 +20,7 @@ from __future__ import annotations
 import json
 import os
 
-from indexer.index_card import LECTURE_NOTE_DOC_TYPES, compute_content_hash, compute_id_from_parts, reconcile_and_write
+from core.indexer.index_card import LECTURE_NOTE_DOC_TYPES, compute_content_hash, compute_id_from_parts, reconcile_and_write
 
 
 def write_group_note(academic_hub_root: str, course: str, slug: str, markdown: str, sidecar: dict) -> tuple[str, str]:

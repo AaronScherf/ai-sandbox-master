@@ -23,7 +23,7 @@ import sys
 from pathlib import Path
 
 from core.env.academic_hub_paths import textbook_rag_md_path
-from indexer.index_card import compute_file_id, compute_id_from_parts, derive_course, find_card_by_file_id, list_courses, load_shard, now_iso, recompute_course_entry, save_shard
+from core.indexer.index_card import compute_file_id, compute_id_from_parts, derive_course, find_card_by_file_id, list_courses, load_shard, now_iso, recompute_course_entry, save_shard
 from textbook.bib_info import extract_bibliographic_info_from_filename
 
 # A card only stores `title` (from generate_index_card()'s LLM/regex

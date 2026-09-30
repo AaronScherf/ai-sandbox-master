@@ -23,7 +23,7 @@ from dataclasses import dataclass
 from google.genai import types
 
 from core.env.gemini_utils import call_with_retries
-from indexer.index_card import EMBEDDING_DIMENSIONALITY, EMBEDDING_MODEL, EMBEDDING_MODEL_ID, list_courses, load_shard
+from core.indexer.index_card import EMBEDDING_DIMENSIONALITY, EMBEDDING_MODEL, EMBEDDING_MODEL_ID, list_courses, load_shard
 
 
 def chunks_dir(academic_hub_root: str) -> str:

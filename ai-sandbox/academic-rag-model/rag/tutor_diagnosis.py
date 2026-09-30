@@ -14,7 +14,7 @@ import re
 from dataclasses import dataclass
 
 from core.env.gemini_utils import call_with_retries
-from indexer.index_search import PassageResult
+from core.indexer.index_search import PassageResult
 from rag.rag_agent import TUTOR_MODEL
 from rag.session_log import Event
 

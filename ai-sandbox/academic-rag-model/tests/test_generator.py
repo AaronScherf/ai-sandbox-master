@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import MagicMock, patch
 
-from indexer.index_search import PassageResult
+from core.indexer.index_search import PassageResult
 from problem_gen.generator import GeneratedProblem, ProblemSource, _match_known_course, generate_problem
 
 

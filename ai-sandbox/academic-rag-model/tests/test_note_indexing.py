@@ -4,7 +4,7 @@ import tempfile
 import unittest
 from unittest.mock import MagicMock, patch
 
-from indexer.index_card import LECTURE_NOTE_DOC_TYPES
+from core.indexer.index_card import LECTURE_NOTE_DOC_TYPES
 from video_notes.note_indexing import index_group_note, write_group_note
 
 

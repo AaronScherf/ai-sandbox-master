@@ -3,7 +3,7 @@ import tempfile
 import unittest
 from unittest.mock import MagicMock, patch
 
-from indexer.index_card import KNOWN_DOC_TYPES, compute_file_id, load_shard, save_shard
+from core.indexer.index_card import KNOWN_DOC_TYPES, compute_file_id, load_shard, save_shard
 
 from notes.transcribe_notes import (
     build_accumulated_context,

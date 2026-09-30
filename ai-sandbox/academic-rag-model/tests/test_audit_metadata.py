@@ -93,7 +93,7 @@ class TestCheckAuthors(unittest.TestCase):
 
 from unittest.mock import patch
 
-from indexer.index_card import compute_file_id, load_courses, load_shard, save_shard
+from core.indexer.index_card import compute_file_id, load_courses, load_shard, save_shard
 from audit_metadata import apply_folder_correction, check_folder
 
 

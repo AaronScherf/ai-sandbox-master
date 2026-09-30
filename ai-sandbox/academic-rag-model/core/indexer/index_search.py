@@ -15,11 +15,11 @@ from datetime import datetime, timezone
 
 from google.genai import types
 
-from indexer.chunk_index import chunk, load_chunks
+from core.indexer.chunk_index import chunk, load_chunks
 from core.env.academic_hub_paths import TEXTBOOK_FOLDER_NAMES, resolve_output_dir, to_resources_root
 from core.env.frontmatter import parse_frontmatter
 from core.env.gemini_utils import get_gemini_client, load_dotenv_override
-from indexer.index_card import (
+from core.indexer.index_card import (
     TEXTBOOK_CONTENT_SAMPLE_CHARS,
     EMBEDDING_DIMENSIONALITY,
     EMBEDDING_MODEL,
@@ -40,7 +40,7 @@ from indexer.index_card import (
     save_shard,
     set_rag_md_path,
 )
-from indexer.retag import retag
+from core.indexer.retag import retag
 
 DEFAULT_COURSE_CANDIDATES = 3
 

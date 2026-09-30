@@ -319,7 +319,7 @@ class TestReconcileBookNaming(unittest.TestCase):
             with open(os.path.join(book_dir, f"{folder_name}.rag.md"), "w", encoding="utf-8") as f:
                 f.write("# Book content\n")
         if with_card:
-            from indexer.index_card import save_shard
+            from core.indexer.index_card import save_shard
             save_shard(tmp, "econ-101", [{
                 "file_id": metadata["source_pdf_file_id"],
                 "path": f"processed_outputs/{folder_name}/{folder_name}.md",
@@ -380,7 +380,7 @@ class TestReconcileBookNaming(unittest.TestCase):
             self.assertTrue(os.path.exists(os.path.join(new_dir, "Hansen_Econometrics_2022.md")))
             self.assertTrue(os.path.exists(os.path.join(new_dir, "Hansen_Econometrics_2022_metadata.json")))
 
-            from indexer.index_card import load_shard
+            from core.indexer.index_card import load_shard
             card = load_shard(tmp, "econ-101")[0]
             self.assertEqual(card["path"], "processed_outputs/Hansen_Econometrics_2022/Hansen_Econometrics_2022.md")
 
@@ -404,7 +404,7 @@ class TestReconcileBookNaming(unittest.TestCase):
                 "processed_outputs/Hansen_Econometrics_2022/Hansen_Econometrics_2022.rag.md",
             )
 
-            from indexer.index_card import load_shard
+            from core.indexer.index_card import load_shard
             card = load_shard(tmp, "econ-101")[0]
             self.assertEqual(
                 card.get("rag_md_path"),

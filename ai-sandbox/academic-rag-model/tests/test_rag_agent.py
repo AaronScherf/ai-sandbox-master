@@ -2,8 +2,8 @@ import os
 import unittest
 from unittest.mock import MagicMock, patch
 
-from indexer.index_card import GENERATION_MODEL
-from indexer.index_search import PassageResult
+from core.indexer.index_card import GENERATION_MODEL
+from core.indexer.index_search import PassageResult
 from rag.rag_agent import (
     Turn, Citation, AnswerResult, _diversify_by_file, _reformulate_query,
     TUTOR_MODEL, _generate_answer, answer_question, _looks_like_problem_request,

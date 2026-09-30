@@ -92,7 +92,7 @@ def main():
         return
 
     from core.env.gemini_utils import get_gemini_client, load_dotenv_override
-    from indexer.index_search import rebuild
+    from core.indexer.index_search import rebuild
     load_dotenv_override()
     client = get_gemini_client()
     if client is None:

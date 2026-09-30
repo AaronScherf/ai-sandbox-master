@@ -15,8 +15,8 @@ import re
 from dataclasses import dataclass
 
 from core.env.gemini_utils import call_with_retries, get_gemini_client, load_dotenv_override
-from indexer.index_card import GENERATION_MODEL
-from indexer.index_search import PassageResult, search_passages
+from core.indexer.index_card import GENERATION_MODEL
+from core.indexer.index_search import PassageResult, search_passages
 
 
 @dataclass

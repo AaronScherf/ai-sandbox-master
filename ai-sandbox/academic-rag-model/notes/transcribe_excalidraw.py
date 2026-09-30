@@ -16,7 +16,7 @@ from pathlib import Path
 from core.env.academic_hub_paths import resolve_output_dir, to_resources_root
 from core.env.gemini_utils import call_with_retries
 from core.env.ollama_utils import call_ollama
-from indexer.index_card import (
+from core.indexer.index_card import (
     EXCALIDRAW_DOC_TYPES,
     compute_content_hash,
     compute_file_id,
@@ -273,7 +273,7 @@ def process_excalidraw_note(
 
     retrieved_passages = None
     if use_grounding:
-        from indexer.index_search import search_passages
+        from core.indexer.index_search import search_passages
         course = derive_course(os.path.relpath(excalidraw_md_path, academic_hub_root).replace(os.sep, "/"))
         results = search_passages([academic_hub_root], query=raw_markdown[:500], client=client, course=course, top_k=3)
         retrieved_passages = [r.text for r in results] if results else None

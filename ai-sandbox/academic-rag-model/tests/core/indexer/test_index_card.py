@@ -3,7 +3,7 @@ import tempfile
 import unittest
 from unittest.mock import MagicMock
 
-from indexer.index_card import (
+from core.indexer.index_card import (
     compute_file_id,
     derive_course,
     load_courses,

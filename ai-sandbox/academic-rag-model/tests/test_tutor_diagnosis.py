@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import MagicMock
 
-from indexer.index_search import PassageResult
+from core.indexer.index_search import PassageResult
 from rag.rag_agent import Citation
 from rag.session_log import Event
 from rag.tutor_diagnosis import (

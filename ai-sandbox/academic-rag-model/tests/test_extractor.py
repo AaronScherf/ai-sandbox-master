@@ -3,7 +3,7 @@ import tempfile
 import unittest
 from unittest.mock import MagicMock, patch
 
-from indexer.index_card import save_shard
+from core.indexer.index_card import save_shard
 
 from problem_corpus.extractor import (
     _extract_file, _folder_category_from_path, _record_id, build_arg_parser,

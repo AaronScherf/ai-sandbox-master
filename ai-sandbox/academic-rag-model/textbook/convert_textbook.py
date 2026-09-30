@@ -76,7 +76,7 @@ from textbook.bib_info import (
     derive_folder_name, extract_bibliographic_info_from_filename,
     is_descriptive_bibliographic_info, merge_bibliographic_info, sanitize_filename,
 )
-from indexer.index_card import (
+from core.indexer.index_card import (
     TEXTBOOK_CONTENT_SAMPLE_CHARS, compute_content_hash, compute_file_id, derive_course,
     find_card_by_file_id, reconcile_and_write,
 )

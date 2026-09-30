@@ -30,7 +30,7 @@ from rapidfuzz import fuzz
 from google.genai import types
 
 from core.env.gemini_utils import call_with_retries
-from indexer.index_card import (
+from core.indexer.index_card import (
     EMBEDDING_DIMENSIONALITY,
     EMBEDDING_MODEL,
     GENERATION_MODEL,

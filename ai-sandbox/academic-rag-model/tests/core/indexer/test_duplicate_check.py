@@ -6,7 +6,7 @@ import unittest
 from io import StringIO
 from unittest import mock
 
-from indexer.duplicate_check import (
+from core.indexer.duplicate_check import (
     normalize_title,
     parse_author_year_from_folder_name,
     score_candidate,
@@ -14,7 +14,7 @@ from indexer.duplicate_check import (
     find_exact_duplicate,
     find_fuzzy_candidates,
 )
-from indexer.index_card import save_shard
+from core.indexer.index_card import save_shard
 
 
 class TestNormalizeTitle(unittest.TestCase):
@@ -87,7 +87,7 @@ class TestFindExactDuplicate(unittest.TestCase):
 
     def test_finds_match_in_a_different_course(self):
         with tempfile.TemporaryDirectory() as academic_hub_root:
-            from indexer.index_card import compute_file_id
+            from core.indexer.index_card import compute_file_id
 
             pdf_path = os.path.join(academic_hub_root, "academic_resources", "microecon", "textbooks", "Ok.pdf")
             self._write_pdf(pdf_path)
@@ -107,7 +107,7 @@ class TestFindExactDuplicate(unittest.TestCase):
 
     def test_match_in_the_same_course_is_not_a_cross_course_duplicate(self):
         with tempfile.TemporaryDirectory() as academic_hub_root:
-            from indexer.index_card import compute_file_id
+            from core.indexer.index_card import compute_file_id
 
             pdf_path = os.path.join(academic_hub_root, "academic_resources", "microecon", "textbooks", "Ok.pdf")
             self._write_pdf(pdf_path)
@@ -132,7 +132,7 @@ class TestFindExactDuplicate(unittest.TestCase):
         # be consulted first -- a same-course hit means this is not a
         # cross-course duplicate at all.
         with tempfile.TemporaryDirectory() as academic_hub_root:
-            from indexer.index_card import compute_file_id, list_courses
+            from core.indexer.index_card import compute_file_id, list_courses
 
             pdf_path = os.path.join(academic_hub_root, "academic_resources", "microecon", "textbooks", "Ok.pdf")
             self._write_pdf(pdf_path)
@@ -260,12 +260,12 @@ class TestFindFuzzyCandidates(unittest.TestCase):
 
 class TestDismissals(unittest.TestCase):
     def test_load_missing_file_returns_empty_list(self):
-        from indexer.duplicate_check import load_dismissals
+        from core.indexer.duplicate_check import load_dismissals
         with tempfile.TemporaryDirectory() as academic_hub_root:
             self.assertEqual(load_dismissals(academic_hub_root), [])
 
     def test_record_then_is_dismissed_regardless_of_argument_order(self):
-        from indexer.duplicate_check import record_dismissal, load_dismissals, is_dismissed
+        from core.indexer.duplicate_check import record_dismissal, load_dismissals, is_dismissed
         with tempfile.TemporaryDirectory() as academic_hub_root:
             record_dismissal(academic_hub_root, "id-a", "id-b")
             dismissals = load_dismissals(academic_hub_root)
@@ -273,21 +273,21 @@ class TestDismissals(unittest.TestCase):
             self.assertTrue(is_dismissed(dismissals, "id-b", "id-a"))
 
     def test_unrelated_pair_is_not_dismissed(self):
-        from indexer.duplicate_check import record_dismissal, load_dismissals, is_dismissed
+        from core.indexer.duplicate_check import record_dismissal, load_dismissals, is_dismissed
         with tempfile.TemporaryDirectory() as academic_hub_root:
             record_dismissal(academic_hub_root, "id-a", "id-b")
             dismissals = load_dismissals(academic_hub_root)
             self.assertFalse(is_dismissed(dismissals, "id-a", "id-c"))
 
     def test_recording_the_same_pair_twice_does_not_duplicate(self):
-        from indexer.duplicate_check import record_dismissal, load_dismissals
+        from core.indexer.duplicate_check import record_dismissal, load_dismissals
         with tempfile.TemporaryDirectory() as academic_hub_root:
             record_dismissal(academic_hub_root, "id-a", "id-b")
             record_dismissal(academic_hub_root, "id-a", "id-b")
             self.assertEqual(len(load_dismissals(academic_hub_root)), 1)
 
     def test_persists_to_the_expected_path(self):
-        from indexer.duplicate_check import record_dismissal
+        from core.indexer.duplicate_check import record_dismissal
         with tempfile.TemporaryDirectory() as academic_hub_root:
             record_dismissal(academic_hub_root, "id-a", "id-b")
             expected_path = os.path.join(academic_hub_root, ".index", "duplicates", "dismissals.json")
@@ -296,8 +296,8 @@ class TestDismissals(unittest.TestCase):
 
 import shutil
 
-from indexer.index_card import compute_id_from_parts, load_courses, load_shard
-from indexer.duplicate_check import copy_duplicate_artifacts
+from core.indexer.index_card import compute_id_from_parts, load_courses, load_shard
+from core.indexer.duplicate_check import copy_duplicate_artifacts
 
 
 class TestCopyDuplicateArtifacts(unittest.TestCase):
@@ -536,8 +536,8 @@ class TestCopyDuplicateArtifacts(unittest.TestCase):
             self.assertEqual(len(new_shard), 1)
 
 
-from indexer.duplicate_check import run_duplicate_check
-from indexer.duplicate_check import build_arg_parser
+from core.indexer.duplicate_check import run_duplicate_check
+from core.indexer.duplicate_check import build_arg_parser
 
 
 class TestRunDuplicateCheck(unittest.TestCase):
@@ -561,7 +561,7 @@ class TestRunDuplicateCheck(unittest.TestCase):
             subdir = "academic_resources/microecon/textbooks"
             pdf_path = os.path.join(academic_hub_root, subdir, "Ok.pdf")
             self._write_pdf(pdf_path, b"%PDF-1.4 identical bytes")
-            from indexer.index_card import compute_file_id
+            from core.indexer.index_card import compute_file_id
             file_id = compute_file_id(pdf_path)
 
             book_dir = os.path.join(academic_hub_root, "academic_resources", "econometrics", "textbooks", "processed_outputs", "Ok_RealAnalysis_2007")
@@ -616,7 +616,7 @@ class TestRunDuplicateCheck(unittest.TestCase):
             subdir = "academic_resources/microecon/textbooks"
             pdf_path = os.path.join(academic_hub_root, subdir, "Ok_RealAnalysisWithEconomicApplications_2007.pdf")
             self._write_pdf(pdf_path, b"a re-scanned copy, different bytes")
-            from indexer.index_card import compute_file_id
+            from core.indexer.index_card import compute_file_id
             incoming_file_id = compute_file_id(pdf_path)
 
             book_dir = os.path.join(academic_hub_root, "academic_resources", "econometrics", "textbooks", "processed_outputs", "Ok_RealAnalysisWithEconomicApplications_2007")
@@ -642,7 +642,7 @@ class TestRunDuplicateCheck(unittest.TestCase):
             subdir = "academic_resources/microecon/textbooks"
             pdf_path = os.path.join(academic_hub_root, subdir, "Ok_RealAnalysisWithEconomicApplications_2007.pdf")
             self._write_pdf(pdf_path, b"a re-scanned copy, different bytes")
-            from indexer.index_card import compute_file_id
+            from core.indexer.index_card import compute_file_id
             incoming_file_id = compute_file_id(pdf_path)
 
             book_dir = os.path.join(academic_hub_root, "academic_resources", "econometrics", "textbooks", "processed_outputs", "Ok_RealAnalysisWithEconomicApplications_2007")
@@ -748,7 +748,7 @@ class TestRunDuplicateCheck(unittest.TestCase):
             subdir = "academic_resources/microecon/textbooks"
             pdf_path = os.path.join(academic_hub_root, subdir, "Ok_RealAnalysisWithEconomicApplications_2007.pdf")
             self._write_pdf(pdf_path, b"a re-scanned copy, different bytes")
-            from indexer.index_card import compute_file_id
+            from core.indexer.index_card import compute_file_id
             incoming_file_id = compute_file_id(pdf_path)
 
             book_dir = os.path.join(academic_hub_root, "academic_resources", "econometrics", "textbooks", "processed_outputs", "Ok_RealAnalysisWithEconomicApplications_2007")
@@ -802,7 +802,7 @@ class TestEmitToConvert(unittest.TestCase):
             f.write(content)
 
     def test_writes_one_filename_per_line_creating_parent_dirs(self):
-        from indexer.duplicate_check import write_to_convert_file
+        from core.indexer.duplicate_check import write_to_convert_file
         with tempfile.TemporaryDirectory() as tmp:
             out = os.path.join(tmp, "nested", "to_convert.txt")
             write_to_convert_file(out, ["A_Book_2020.pdf", "B Book, with spaces.pdf"])
@@ -810,7 +810,7 @@ class TestEmitToConvert(unittest.TestCase):
                 self.assertEqual(f.read().splitlines(), ["A_Book_2020.pdf", "B Book, with spaces.pdf"])
 
     def test_empty_to_convert_writes_an_empty_file(self):
-        from indexer.duplicate_check import write_to_convert_file
+        from core.indexer.duplicate_check import write_to_convert_file
         with tempfile.TemporaryDirectory() as tmp:
             out = os.path.join(tmp, "to_convert.txt")
             write_to_convert_file(out, [])
@@ -819,8 +819,8 @@ class TestEmitToConvert(unittest.TestCase):
                 self.assertEqual(f.read(), "")
 
     def test_main_emits_only_the_unskipped_pdf_not_the_whole_folder(self):
-        import indexer.duplicate_check as dc
-        from indexer.index_card import compute_file_id
+        import core.indexer.duplicate_check as dc
+        from core.indexer.index_card import compute_file_id
 
         with tempfile.TemporaryDirectory() as academic_hub_root, tempfile.TemporaryDirectory() as tmp:
             subdir = "academic_resources/microecon/textbooks"
@@ -873,7 +873,7 @@ class TestEmitToConvert(unittest.TestCase):
         # via Python's own universal-newline handling and never catch
         # this -- this test opens the file in binary mode specifically to
         # see the raw bytes mapfile would actually see.
-        from indexer.duplicate_check import write_to_convert_file
+        from core.indexer.duplicate_check import write_to_convert_file
 
         with tempfile.TemporaryDirectory() as tmp:
             out = os.path.join(tmp, "to_convert.txt")
@@ -888,7 +888,7 @@ class TestEmitToConvert(unittest.TestCase):
 
 class TestReviewPending(unittest.TestCase):
     def test_review_pending_lists_entries_across_all_courses(self):
-        import indexer.duplicate_check as dc
+        import core.indexer.duplicate_check as dc
         with tempfile.TemporaryDirectory() as academic_hub_root:
             dc.record_pending_confirmation(academic_hub_root, {
                 "incoming_file_id": "a", "pdf_filename": "Ok.pdf", "course": "microecon",
@@ -906,7 +906,7 @@ class TestReviewPending(unittest.TestCase):
             self.assertIn("Real Analysis with Economic Applications", output)
 
     def test_review_pending_does_not_require_textbook_subdir(self):
-        import indexer.duplicate_check as dc
+        import core.indexer.duplicate_check as dc
         with tempfile.TemporaryDirectory() as academic_hub_root:
             argv = ["duplicate_check", "--review-pending", "--academic-hub-root", academic_hub_root]
             with mock.patch.object(sys, "argv", argv), mock.patch("sys.stdout", new=StringIO()):
@@ -917,7 +917,7 @@ class TestReviewPending(unittest.TestCase):
         # marks --textbook-subdir required=True at the argparse layer,
         # since --review-pending must be usable without it) -- the
         # requirement now lives in main() instead.
-        import indexer.duplicate_check as dc
+        import core.indexer.duplicate_check as dc
         with mock.patch.object(sys, "argv", ["duplicate_check"]):
             with self.assertRaises(SystemExit):
                 dc.main()
@@ -925,7 +925,7 @@ class TestReviewPending(unittest.TestCase):
 
 class TestAutoSkipReportSection(unittest.TestCase):
     def test_report_includes_auto_skipped_section_with_review_command(self):
-        import indexer.duplicate_check as dc
+        import core.indexer.duplicate_check as dc
         with tempfile.TemporaryDirectory() as academic_hub_root:
             subdir = "academic_resources/microecon/textbooks"
             pdf_path = os.path.join(academic_hub_root, subdir, "Ok_RealAnalysisWithEconomicApplications_2007.pdf")
@@ -979,7 +979,7 @@ class TestConfirmAndRejectPending(unittest.TestCase):
             academic_hub_root, "econometrics", canonical_card, "microecon", "textbooks",
             "academic_resources/microecon/textbooks/Ok.pdf", pending_confirmation=True,
         )
-        from indexer.duplicate_check import record_pending_confirmation, now_iso
+        from core.indexer.duplicate_check import record_pending_confirmation, now_iso
         pending_entry = {
             "incoming_file_id": "incoming-fid", "pdf_filename": "Ok.pdf", "course": "microecon",
             "matched_course": "econometrics", "matched_file_id": "canonical-fid",
@@ -990,7 +990,7 @@ class TestConfirmAndRejectPending(unittest.TestCase):
         return new_card
 
     def test_confirm_removes_the_pending_entry_and_leaves_the_clone_in_place(self):
-        from indexer.duplicate_check import confirm_pending_confirmation, load_pending_confirmations
+        from core.indexer.duplicate_check import confirm_pending_confirmation, load_pending_confirmations
         with tempfile.TemporaryDirectory() as academic_hub_root:
             self._make_auto_skipped_clone(academic_hub_root)
 
@@ -1003,13 +1003,13 @@ class TestConfirmAndRejectPending(unittest.TestCase):
             self.assertTrue(os.path.exists(new_book_dir))
 
     def test_confirm_raises_for_an_unknown_incoming_file_id(self):
-        from indexer.duplicate_check import confirm_pending_confirmation
+        from core.indexer.duplicate_check import confirm_pending_confirmation
         with tempfile.TemporaryDirectory() as academic_hub_root:
             with self.assertRaises(ValueError):
                 confirm_pending_confirmation(academic_hub_root, "no-such-id")
 
     def test_reject_removes_the_clone_card_and_folder(self):
-        from indexer.duplicate_check import reject_pending_confirmation, load_pending_confirmations
+        from core.indexer.duplicate_check import reject_pending_confirmation, load_pending_confirmations
         with tempfile.TemporaryDirectory() as academic_hub_root:
             self._make_auto_skipped_clone(academic_hub_root)
 
@@ -1021,7 +1021,7 @@ class TestConfirmAndRejectPending(unittest.TestCase):
             self.assertFalse(os.path.exists(new_book_dir))
 
     def test_reject_records_a_permanent_dismissal(self):
-        from indexer.duplicate_check import reject_pending_confirmation, is_dismissed, load_dismissals
+        from core.indexer.duplicate_check import reject_pending_confirmation, is_dismissed, load_dismissals
         with tempfile.TemporaryDirectory() as academic_hub_root:
             self._make_auto_skipped_clone(academic_hub_root)
 
@@ -1030,7 +1030,7 @@ class TestConfirmAndRejectPending(unittest.TestCase):
             self.assertTrue(is_dismissed(load_dismissals(academic_hub_root), "incoming-fid", "canonical-fid"))
 
     def test_reject_leaves_the_canonical_book_untouched(self):
-        from indexer.duplicate_check import reject_pending_confirmation
+        from core.indexer.duplicate_check import reject_pending_confirmation
         with tempfile.TemporaryDirectory() as academic_hub_root:
             self._make_auto_skipped_clone(academic_hub_root)
 
@@ -1043,13 +1043,13 @@ class TestConfirmAndRejectPending(unittest.TestCase):
             self.assertTrue(os.path.exists(canonical_book_dir))
 
     def test_reject_raises_for_an_unknown_incoming_file_id(self):
-        from indexer.duplicate_check import reject_pending_confirmation
+        from core.indexer.duplicate_check import reject_pending_confirmation
         with tempfile.TemporaryDirectory() as academic_hub_root:
             with self.assertRaises(ValueError):
                 reject_pending_confirmation(academic_hub_root, "no-such-id")
 
     def test_cli_confirm_pending_flag(self):
-        import indexer.duplicate_check as dc
+        import core.indexer.duplicate_check as dc
         with tempfile.TemporaryDirectory() as academic_hub_root:
             self._make_auto_skipped_clone(academic_hub_root)
             argv = ["duplicate_check", "--confirm-pending", "incoming-fid", "--academic-hub-root", academic_hub_root]
@@ -1058,7 +1058,7 @@ class TestConfirmAndRejectPending(unittest.TestCase):
             self.assertEqual(dc.load_pending_confirmations(academic_hub_root), [])
 
     def test_cli_reject_pending_flag(self):
-        import indexer.duplicate_check as dc
+        import core.indexer.duplicate_check as dc
         with tempfile.TemporaryDirectory() as academic_hub_root:
             self._make_auto_skipped_clone(academic_hub_root)
             argv = ["duplicate_check", "--reject-pending", "incoming-fid", "--academic-hub-root", academic_hub_root]
@@ -1074,7 +1074,7 @@ class TestConfirmAndRejectPending(unittest.TestCase):
         # _make_auto_skipped_clone above), so the load-bearing link -- the
         # id an auto-skip records is the same id a later run recomputes
         # for the same PDF -- is actually protected by a test.
-        from indexer.duplicate_check import reject_pending_confirmation, run_duplicate_check
+        from core.indexer.duplicate_check import reject_pending_confirmation, run_duplicate_check
 
         with tempfile.TemporaryDirectory() as academic_hub_root:
             subdir = "academic_resources/microecon/textbooks"
@@ -1124,7 +1124,7 @@ class TestRunDuplicateCheckErrorIsolation(unittest.TestCase):
             f.write(content)
 
     def test_file_id_computation_failure_is_isolated_to_one_pdf(self):
-        import indexer.duplicate_check as dc
+        import core.indexer.duplicate_check as dc
 
         with tempfile.TemporaryDirectory() as academic_hub_root:
             subdir = "academic_resources/microecon/textbooks"
@@ -1157,8 +1157,8 @@ class TestRunDuplicateCheckErrorIsolation(unittest.TestCase):
             self.assertIn("Bad_Book_2021.pdf", captured_stderr.getvalue())
 
     def test_copy_failure_on_exact_duplicate_falls_back_to_convert_not_skipped(self):
-        import indexer.duplicate_check as dc
-        from indexer.index_card import compute_file_id, save_shard
+        import core.indexer.duplicate_check as dc
+        from core.indexer.index_card import compute_file_id, save_shard
 
         with tempfile.TemporaryDirectory() as academic_hub_root:
             subdir = "academic_resources/microecon/textbooks"
@@ -1195,8 +1195,8 @@ class TestRunDuplicateCheckErrorIsolation(unittest.TestCase):
             self.assertIn("WARNING", captured_stderr.getvalue())
 
     def test_dismissal_recording_failure_does_not_crash_and_still_converts(self):
-        import indexer.duplicate_check as dc
-        from indexer.index_card import compute_file_id, save_shard
+        import core.indexer.duplicate_check as dc
+        from core.indexer.index_card import compute_file_id, save_shard
 
         with tempfile.TemporaryDirectory() as academic_hub_root:
             subdir = "academic_resources/microecon/textbooks"
@@ -1244,14 +1244,14 @@ class TestCorruptDismissalsFile(unittest.TestCase):
             f.write(content)
 
     def _write_dismissals(self, academic_hub_root, raw):
-        from indexer.duplicate_check import _dismissals_path
+        from core.indexer.duplicate_check import _dismissals_path
         path = _dismissals_path(academic_hub_root)
         os.makedirs(os.path.dirname(path), exist_ok=True)
         with open(path, "w", encoding="utf-8") as f:
             f.write(raw)
 
     def _run_capturing_stderr(self, academic_hub_root, subdir):
-        import indexer.duplicate_check as dc
+        import core.indexer.duplicate_check as dc
         captured_stderr = StringIO()
         old_stderr = sys.stderr
         sys.stderr = captured_stderr
@@ -1290,7 +1290,7 @@ class TestCorruptDismissalsFile(unittest.TestCase):
         # The stronger claim: a corrupt dismissals file degrades ONLY the
         # dismissal memory -- the rest of the run (here, an exact-match
         # skip+copy) still does its real work.
-        from indexer.index_card import compute_file_id
+        from core.indexer.index_card import compute_file_id
 
         with tempfile.TemporaryDirectory() as academic_hub_root:
             subdir = "academic_resources/microecon/textbooks"
@@ -1329,8 +1329,8 @@ class TestDismissalsStorageLocation(unittest.TestCase):
     `rebuild --prune` would empty out, silently wiping every dismissal."""
 
     def test_dismissals_file_is_not_visible_to_list_courses(self):
-        from indexer.duplicate_check import record_dismissal, _dismissals_path
-        from indexer.index_card import list_courses
+        from core.indexer.duplicate_check import record_dismissal, _dismissals_path
+        from core.indexer.index_card import list_courses
 
         with tempfile.TemporaryDirectory() as academic_hub_root:
             save_shard(academic_hub_root, "econometrics", [])
@@ -1342,7 +1342,7 @@ class TestDismissalsStorageLocation(unittest.TestCase):
             self.assertNotIn("dismissals", list_courses(academic_hub_root))
 
     def test_dismissals_survive_a_round_trip_from_the_nested_location(self):
-        from indexer.duplicate_check import record_dismissal, load_dismissals, is_dismissed
+        from core.indexer.duplicate_check import record_dismissal, load_dismissals, is_dismissed
 
         with tempfile.TemporaryDirectory() as academic_hub_root:
             record_dismissal(academic_hub_root, "id-a", "id-b")
@@ -1355,12 +1355,12 @@ class TestPendingConfirmations(unittest.TestCase):
     spec, Component 1b)."""
 
     def test_load_missing_file_returns_empty_list(self):
-        from indexer.duplicate_check import load_pending_confirmations
+        from core.indexer.duplicate_check import load_pending_confirmations
         with tempfile.TemporaryDirectory() as academic_hub_root:
             self.assertEqual(load_pending_confirmations(academic_hub_root), [])
 
     def test_record_then_load_round_trips(self):
-        from indexer.duplicate_check import record_pending_confirmation, load_pending_confirmations
+        from core.indexer.duplicate_check import record_pending_confirmation, load_pending_confirmations
         with tempfile.TemporaryDirectory() as academic_hub_root:
             entry = {
                 "incoming_file_id": "incoming-fid", "pdf_filename": "Ok.pdf", "course": "microecon",
@@ -1374,7 +1374,7 @@ class TestPendingConfirmations(unittest.TestCase):
             self.assertEqual(entries[0], entry)
 
     def test_recording_multiple_entries_appends_not_overwrites(self):
-        from indexer.duplicate_check import record_pending_confirmation, load_pending_confirmations
+        from core.indexer.duplicate_check import record_pending_confirmation, load_pending_confirmations
         with tempfile.TemporaryDirectory() as academic_hub_root:
             record_pending_confirmation(academic_hub_root, {"incoming_file_id": "a", "pdf_filename": "A.pdf"})
             record_pending_confirmation(academic_hub_root, {"incoming_file_id": "b", "pdf_filename": "B.pdf"})
@@ -1386,7 +1386,7 @@ class TestPendingConfirmations(unittest.TestCase):
         # non-interactive re-run workflow re-evaluates the same
         # never-deleted source PDF every pass, which used to append a
         # duplicate queue entry for the identical auto-skip each time.
-        from indexer.duplicate_check import record_pending_confirmation, load_pending_confirmations
+        from core.indexer.duplicate_check import record_pending_confirmation, load_pending_confirmations
         with tempfile.TemporaryDirectory() as academic_hub_root:
             entry = {"incoming_file_id": "a", "pdf_filename": "A.pdf", "new_card_file_id": "clone-a"}
             record_pending_confirmation(academic_hub_root, entry)
@@ -1394,7 +1394,7 @@ class TestPendingConfirmations(unittest.TestCase):
             self.assertEqual(len(load_pending_confirmations(academic_hub_root)), 1)
 
     def test_persists_to_the_expected_nested_path(self):
-        from indexer.duplicate_check import record_pending_confirmation, _pending_confirmation_path
+        from core.indexer.duplicate_check import record_pending_confirmation, _pending_confirmation_path
         with tempfile.TemporaryDirectory() as academic_hub_root:
             record_pending_confirmation(academic_hub_root, {"incoming_file_id": "a", "pdf_filename": "A.pdf"})
             expected_path = os.path.join(academic_hub_root, ".index", "duplicates", "pending_confirmation.json")
@@ -1405,8 +1405,8 @@ class TestPendingConfirmations(unittest.TestCase):
         # Same regression class as TestDismissalsStorageLocation -- a flat
         # .index/-level file would be misread as a phantom course by
         # list_courses(), and a future rebuild --prune would delete it.
-        from indexer.duplicate_check import record_pending_confirmation
-        from indexer.index_card import list_courses, save_shard
+        from core.indexer.duplicate_check import record_pending_confirmation
+        from core.indexer.index_card import list_courses, save_shard
         with tempfile.TemporaryDirectory() as academic_hub_root:
             save_shard(academic_hub_root, "econometrics", [])
             record_pending_confirmation(academic_hub_root, {"incoming_file_id": "a", "pdf_filename": "A.pdf"})
