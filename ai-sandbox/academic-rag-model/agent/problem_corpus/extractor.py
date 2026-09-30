@@ -20,9 +20,9 @@ import re
 
 from core.env.gemini_utils import get_gemini_client, load_dotenv_override
 from core.indexer.index_card import list_courses, load_shard, now_iso
-from problem_corpus.boundaries import detect_spans
-from problem_corpus.llm_extract import extract_record
-from problem_corpus.store import load_records, save_file_records
+from agent.problem_corpus.boundaries import detect_spans
+from agent.problem_corpus.llm_extract import extract_record
+from agent.problem_corpus.store import load_records, save_file_records
 
 _PROBLEM_BEARING_FOLDER_CATEGORIES = ("problem_sets", "textbooks", "textbooks-and-papers", "recitation_slides")
 # "textbooks-and-papers" included alongside "textbooks" for the same

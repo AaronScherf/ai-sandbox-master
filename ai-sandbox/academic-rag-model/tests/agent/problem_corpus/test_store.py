@@ -2,7 +2,7 @@ import os
 import tempfile
 import unittest
 
-from problem_corpus.store import corpus_dir, corpus_path, load_records, save_file_records
+from agent.problem_corpus.store import corpus_dir, corpus_path, load_records, save_file_records
 
 
 def _record(file_id, record_id, topic="algebra"):

@@ -1,6 +1,6 @@
 import unittest
 
-from problem_corpus.boundaries import ProblemSpan, detect_spans
+from agent.problem_corpus.boundaries import ProblemSpan, detect_spans
 
 
 class TestDetectSpans(unittest.TestCase):

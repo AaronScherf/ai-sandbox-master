@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import MagicMock, patch
 
-from problem_corpus.llm_extract import (
+from agent.problem_corpus.llm_extract import (
     PROBLEM_CORPUS_GEMINI_MODEL, ExtractedRecord, _build_extraction_prompt, _parse_response, extract_record,
 )
 
@@ -93,7 +93,7 @@ class TestExtractRecord(unittest.TestCase):
 
     def test_returns_none_when_call_with_retries_raises(self):
         client = MagicMock()
-        with patch("problem_corpus.llm_extract.call_with_retries", side_effect=Exception("quota exceeded")):
+        with patch("agent.problem_corpus.llm_extract.call_with_retries", side_effect=Exception("quota exceeded")):
             result = extract_record("span", client)
         self.assertIsNone(result)
 

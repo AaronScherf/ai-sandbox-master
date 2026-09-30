@@ -5,12 +5,12 @@ from unittest.mock import MagicMock, patch
 
 from core.indexer.index_card import save_shard
 
-from problem_corpus.extractor import (
+from agent.problem_corpus.extractor import (
     _extract_file, _folder_category_from_path, _record_id, build_arg_parser,
     extract_problems, _single_root, _DEFAULT_ROOT,
 )
-from problem_corpus.llm_extract import ExtractedRecord
-from problem_corpus.store import load_records
+from agent.problem_corpus.llm_extract import ExtractedRecord
+from agent.problem_corpus.store import load_records
 
 
 def _write_md(tmp, rel_path, content):
@@ -92,7 +92,7 @@ class TestExtractFile(unittest.TestCase):
                 ExtractedRecord(problem_text="Prove the set is compact.", solution_text="Proof.", topic_tag="compactness"),
                 ExtractedRecord(problem_text="Show the sequence converges.", solution_text=None, topic_tag="convergence"),
             ]
-            with patch("problem_corpus.extractor.extract_record", side_effect=responses):
+            with patch("agent.problem_corpus.extractor.extract_record", side_effect=responses):
                 result = _extract_file(tmp, "math-camp", card, _fake_client())
             self.assertEqual(result, {"status": "extracted", "problems_extracted": 3})
             records = load_records(tmp, "math-camp")
@@ -106,7 +106,7 @@ class TestExtractFile(unittest.TestCase):
             _write_md(tmp, _PROBLEM_SET_MD, _THREE_PROBLEMS)
             card = _make_card("aaa", _PROBLEM_SET_MD)
             extracted = ExtractedRecord(problem_text="p", solution_text=None, topic_tag="t")
-            with patch("problem_corpus.extractor.extract_record", return_value=extracted):
+            with patch("agent.problem_corpus.extractor.extract_record", return_value=extracted):
                 _extract_file(tmp, "math-camp", card, _fake_client())
             records = load_records(tmp, "math-camp")
             for r in records:
@@ -118,7 +118,7 @@ class TestExtractFile(unittest.TestCase):
             _write_md(tmp, _PROBLEM_SET_MD, _THREE_PROBLEMS)
             card = _make_card("aaa", _PROBLEM_SET_MD)
             extracted = ExtractedRecord(problem_text="p", solution_text=None, topic_tag="t")
-            with patch("problem_corpus.extractor.extract_record", return_value=extracted):
+            with patch("agent.problem_corpus.extractor.extract_record", return_value=extracted):
                 _extract_file(tmp, "math-camp", card, _fake_client())
             record = load_records(tmp, "math-camp")[0]
             self.assertEqual(record["source"]["file_id"], "aaa")
@@ -135,7 +135,7 @@ class TestExtractFile(unittest.TestCase):
             _write_md(tmp, _PROBLEM_SET_MD, _THREE_PROBLEMS)
             card = _make_card("aaa", _PROBLEM_SET_MD)
             extracted = ExtractedRecord(problem_text="p", solution_text=None, topic_tag="t")
-            with patch("problem_corpus.extractor.extract_record", return_value=extracted) as mock_extract:
+            with patch("agent.problem_corpus.extractor.extract_record", return_value=extracted) as mock_extract:
                 _extract_file(tmp, "math-camp", card, _fake_client())
                 mock_extract.reset_mock()
                 result = _extract_file(tmp, "math-camp", card, _fake_client())
@@ -147,7 +147,7 @@ class TestExtractFile(unittest.TestCase):
             md_path = _write_md(tmp, _PROBLEM_SET_MD, _THREE_PROBLEMS)
             card = _make_card("aaa", _PROBLEM_SET_MD)
             extracted = ExtractedRecord(problem_text="p", solution_text=None, topic_tag="t")
-            with patch("problem_corpus.extractor.extract_record", return_value=extracted):
+            with patch("agent.problem_corpus.extractor.extract_record", return_value=extracted):
                 _extract_file(tmp, "math-camp", card, _fake_client())
                 with open(md_path, "w", encoding="utf-8") as f:
                     f.write(_THREE_PROBLEMS + "\n4. A fourth problem.\n\n")
@@ -174,7 +174,7 @@ class TestExtractFile(unittest.TestCase):
                 None,  # this span's extraction failed
                 ExtractedRecord(problem_text="Show the sequence converges.", solution_text=None, topic_tag="convergence"),
             ]
-            with patch("problem_corpus.extractor.extract_record", side_effect=responses):
+            with patch("agent.problem_corpus.extractor.extract_record", side_effect=responses):
                 result = _extract_file(tmp, "math-camp", card, _fake_client())
             self.assertEqual(result, {"status": "extracted", "problems_extracted": 2})
             self.assertEqual(len(load_records(tmp, "math-camp")), 2)
@@ -185,7 +185,7 @@ class TestExtractFile(unittest.TestCase):
             _write_md(tmp, _PROBLEM_SET_MD, content)
             card = _make_card("aaa", _PROBLEM_SET_MD)
             extracted = ExtractedRecord(problem_text="p", solution_text=None, topic_tag="t")
-            with patch("problem_corpus.extractor.extract_record", return_value=extracted) as mock_extract:
+            with patch("agent.problem_corpus.extractor.extract_record", return_value=extracted) as mock_extract:
                 _extract_file(tmp, "math-camp", card, _fake_client())
             first_span_arg = mock_extract.call_args_list[0].args[0]
             self.assertNotIn("source_pdf", first_span_arg)
@@ -197,7 +197,7 @@ class TestExtractProblems(unittest.TestCase):
             _write_md(tmp, _PROBLEM_SET_MD, _THREE_PROBLEMS)
             save_shard(tmp, "math-camp", [_make_card("aaa", _PROBLEM_SET_MD)])
             extracted = ExtractedRecord(problem_text="p", solution_text=None, topic_tag="t")
-            with patch("problem_corpus.extractor.extract_record", return_value=extracted):
+            with patch("agent.problem_corpus.extractor.extract_record", return_value=extracted):
                 stats = extract_problems(tmp, _fake_client())
             self.assertEqual(stats["extracted"], 1)
             self.assertEqual(stats["problems_extracted"], 3)
@@ -206,7 +206,7 @@ class TestExtractProblems(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             _write_md(tmp, _NOTES_MD, _THREE_PROBLEMS)
             save_shard(tmp, "math-camp", [_make_card("aaa", _NOTES_MD)])
-            with patch("problem_corpus.extractor.extract_record") as mock_extract:
+            with patch("agent.problem_corpus.extractor.extract_record") as mock_extract:
                 stats = extract_problems(tmp, _fake_client())
             mock_extract.assert_not_called()
             self.assertEqual(stats["extracted"], 0)
@@ -224,7 +224,7 @@ class TestExtractProblems(unittest.TestCase):
             _write_md(tmp, _TEXTBOOK_AND_PAPERS_MD, _THREE_PROBLEMS)
             save_shard(tmp, "math-camp", [_make_card("aaa", _TEXTBOOK_AND_PAPERS_MD)])
             extracted = ExtractedRecord(problem_text="p", solution_text=None, topic_tag="t")
-            with patch("problem_corpus.extractor.extract_record", return_value=extracted):
+            with patch("agent.problem_corpus.extractor.extract_record", return_value=extracted):
                 stats = extract_problems(tmp, _fake_client())
             self.assertEqual(stats["extracted"], 1)
 
@@ -253,7 +253,7 @@ class TestExtractProblems(unittest.TestCase):
             _write_md(tmp, _PROBLEM_SET_MD, _THREE_PROBLEMS)
             save_shard(tmp, "math-camp", [_make_card("aaa", _PROBLEM_SET_MD)])
             extracted = ExtractedRecord(problem_text="p", solution_text=None, topic_tag="t")
-            with patch("problem_corpus.extractor.extract_record", return_value=extracted) as mock_extract:
+            with patch("agent.problem_corpus.extractor.extract_record", return_value=extracted) as mock_extract:
                 extract_problems(tmp, _fake_client())
                 mock_extract.reset_mock()
                 stats = extract_problems(tmp, _fake_client())
@@ -270,7 +270,7 @@ class TestExtractProblems(unittest.TestCase):
                 _make_card("aaa", _PROBLEM_SET_MD), _make_card("bbb", _MISSING_MD),
             ])
             extracted = ExtractedRecord(problem_text="p", solution_text=None, topic_tag="t")
-            with patch("problem_corpus.extractor.extract_record", return_value=extracted):
+            with patch("agent.problem_corpus.extractor.extract_record", return_value=extracted):
                 stats = extract_problems(tmp, _fake_client())
             self.assertEqual(stats["extracted"], 1)
             self.assertEqual(stats["failed"], 1)
@@ -281,7 +281,7 @@ class TestExtractProblems(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             _write_md(tmp, _PROBLEM_SET_MD, _THREE_PROBLEMS)
             save_shard(tmp, "math-camp", [_make_card("aaa", _PROBLEM_SET_MD)])
-            with patch("problem_corpus.extractor.extract_record") as mock_extract:
+            with patch("agent.problem_corpus.extractor.extract_record") as mock_extract:
                 stats = extract_problems(tmp, _fake_client(), dry_run=True)
             mock_extract.assert_not_called()
             self.assertEqual(load_records(tmp, "math-camp"), [])
@@ -295,7 +295,7 @@ class TestExtractProblems(unittest.TestCase):
             save_shard(tmp, "math-camp", [_make_card("aaa", _PROBLEM_SET_MD)])
             save_shard(tmp, "econ-101", [_make_card("bbb", other_md)])
             extracted = ExtractedRecord(problem_text="p", solution_text=None, topic_tag="t")
-            with patch("problem_corpus.extractor.extract_record", return_value=extracted):
+            with patch("agent.problem_corpus.extractor.extract_record", return_value=extracted):
                 stats = extract_problems(tmp, _fake_client(), course="math-camp")
             self.assertEqual(stats["extracted"], 1)
             self.assertEqual(load_records(tmp, "econ-101"), [])
@@ -309,7 +309,7 @@ class TestExtractProblems(unittest.TestCase):
                 _make_card("aaa", _PROBLEM_SET_MD), _make_card("bbb", other_md),
             ])
             extracted = ExtractedRecord(problem_text="p", solution_text=None, topic_tag="t")
-            with patch("problem_corpus.extractor.extract_record", return_value=extracted):
+            with patch("agent.problem_corpus.extractor.extract_record", return_value=extracted):
                 stats = extract_problems(tmp, _fake_client(), file="set.md")
             self.assertEqual(stats["extracted"], 1)
             file_ids = {r["source"]["file_id"] for r in load_records(tmp, "math-camp")}
