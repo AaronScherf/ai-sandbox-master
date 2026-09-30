@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import patch
 
-from viz.templates import Template, match_template
+from agent.viz.templates import Template, match_template
 
 
 def _fake_template(name="Fake", keywords=("fake concept", "fake alias")):
@@ -11,30 +11,30 @@ def _fake_template(name="Fake", keywords=("fake concept", "fake alias")):
 class TestMatchTemplate(unittest.TestCase):
     def test_matches_exact_keyword(self):
         template = _fake_template()
-        with patch("viz.templates.TEMPLATE_REGISTRY", [template]):
+        with patch("agent.viz.templates.TEMPLATE_REGISTRY", [template]):
             self.assertIs(match_template("fake concept"), template)
 
     def test_matches_keyword_as_substring_case_insensitively(self):
         template = _fake_template()
-        with patch("viz.templates.TEMPLATE_REGISTRY", [template]):
+        with patch("agent.viz.templates.TEMPLATE_REGISTRY", [template]):
             self.assertIs(match_template("Teach me about Fake Concept please"), template)
 
     def test_matches_alias_keyword(self):
         template = _fake_template()
-        with patch("viz.templates.TEMPLATE_REGISTRY", [template]):
+        with patch("agent.viz.templates.TEMPLATE_REGISTRY", [template]):
             self.assertIs(match_template("what is a fake alias"), template)
 
     def test_no_match_returns_none(self):
         template = _fake_template()
-        with patch("viz.templates.TEMPLATE_REGISTRY", [template]):
+        with patch("agent.viz.templates.TEMPLATE_REGISTRY", [template]):
             self.assertIsNone(match_template("totally unrelated topic"))
 
     def test_empty_registry_returns_none(self):
-        with patch("viz.templates.TEMPLATE_REGISTRY", []):
+        with patch("agent.viz.templates.TEMPLATE_REGISTRY", []):
             self.assertIsNone(match_template("anything"))
 
 
-from viz.templates import spectral_decomposition
+from agent.viz.templates import spectral_decomposition
 
 
 class TestSpectralDecompositionTemplate(unittest.TestCase):
@@ -47,17 +47,17 @@ class TestSpectralDecompositionTemplate(unittest.TestCase):
         self.assertIs(spectral_decomposition.TEMPLATE.render, spectral_decomposition.render)
 
     def test_registered_in_global_registry(self):
-        from viz.templates import TEMPLATE_REGISTRY
+        from agent.viz.templates import TEMPLATE_REGISTRY
         self.assertIn(spectral_decomposition.TEMPLATE, TEMPLATE_REGISTRY)
 
     def test_matches_via_full_registry(self):
-        from viz.templates import match_template
+        from agent.viz.templates import match_template
         self.assertIs(match_template("teach me about spectral decomposition"), spectral_decomposition.TEMPLATE)
 
 
 import math
 
-from viz.templates import gradient_descent, distributions, convergence
+from agent.viz.templates import gradient_descent, distributions, convergence
 
 
 class TestGradientDescentTemplate(unittest.TestCase):
@@ -96,7 +96,7 @@ class TestConvergenceTemplate(unittest.TestCase):
         self.assertNotIn("divergence", convergence.TEMPLATE.keywords)
 
     def test_genuine_match_via_full_registry(self):
-        from viz.templates import match_template
+        from agent.viz.templates import match_template
         self.assertIs(match_template("explain series convergence"), convergence.TEMPLATE)
         self.assertIs(match_template("does this series converge?"), convergence.TEMPLATE)
         self.assertIs(match_template("what is an alternating series"), convergence.TEMPLATE)
@@ -110,29 +110,29 @@ class TestConvergenceTemplateNearMisses(unittest.TestCase):
     harmonic series, so none should fire the convergence template."""
 
     def test_convergence_in_distribution_does_not_match_series_convergence(self):
-        from viz.templates import match_template
+        from agent.viz.templates import match_template
         result = match_template("what is convergence in distribution?")
         self.assertIsNot(result, convergence.TEMPLATE)
 
     def test_convergence_in_probability_does_not_match_series_convergence(self):
-        from viz.templates import match_template
+        from agent.viz.templates import match_template
         result = match_template("explain convergence in probability")
         self.assertIsNot(result, convergence.TEMPLATE)
 
     def test_em_algorithm_convergence_does_not_match_series_convergence(self):
-        from viz.templates import match_template
+        from agent.viz.templates import match_template
         result = match_template("does the EM algorithm converge? discuss its convergence")
         self.assertIsNot(result, convergence.TEMPLATE)
 
     def test_divergence_theorem_does_not_match_series_convergence(self):
-        from viz.templates import match_template
+        from agent.viz.templates import match_template
         result = match_template("explain the divergence theorem")
         self.assertIsNot(result, convergence.TEMPLATE)
 
 
 class TestAllTemplatesRegistered(unittest.TestCase):
     def test_registry_has_four_templates(self):
-        from viz.templates import TEMPLATE_REGISTRY
+        from agent.viz.templates import TEMPLATE_REGISTRY
         self.assertEqual(len(TEMPLATE_REGISTRY), 4)
 
 

@@ -386,7 +386,7 @@ def answer_question(
             ]
             problem_visualization = None
             if visualize or _looks_like_visualize_request(question):
-                from viz.viz_agent import generate_visualization  # function-scoped: same
+                from agent.viz.viz_agent import generate_visualization  # function-scoped: same
                 # dependency-isolation reasoning as the normal Q&A path's own import below.
                 viz_context = f"{generated.problem_text}\n\n{generated.solution_text}"
                 problem_visualization = generate_visualization(
@@ -427,7 +427,7 @@ def answer_question(
 
     visualization = None
     if visualize:
-        from viz.viz_agent import generate_visualization  # function-scoped: keeps viz/'s
+        from agent.viz.viz_agent import generate_visualization  # function-scoped: keeps viz/'s
         # plotly (and, transitively on the fallback path, subprocess/network) dependency
         # out of every plain-Q&A caller's import path, matching index_search.py's own
         # function-scoped import of answer_question() for the same reason.

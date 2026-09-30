@@ -12,7 +12,7 @@ from __future__ import annotations
 import numpy as np
 import plotly.graph_objects as go
 
-from viz.templates import Template
+from agent.viz.templates import Template
 
 
 def render() -> go.Figure:

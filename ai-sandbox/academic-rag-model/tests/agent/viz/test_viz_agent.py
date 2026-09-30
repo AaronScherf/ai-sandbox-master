@@ -5,8 +5,8 @@ from unittest.mock import MagicMock, patch
 
 import plotly.graph_objects as go
 
-from viz.templates import Template
-from viz.viz_agent import VizResult, generate_visualization, _slugify
+from agent.viz.templates import Template
+from agent.viz.viz_agent import VizResult, generate_visualization, _slugify
 
 
 def _fake_template(fig, keywords=("fake concept",)):
@@ -19,7 +19,7 @@ class TestGenerateVisualizationTemplatePath(unittest.TestCase):
         fake_fig.to_html.return_value = "<div>fake plot</div>"
         template = _fake_template(fake_fig)
         with tempfile.TemporaryDirectory() as tmp:
-            with patch("viz.viz_agent.match_template", return_value=template):
+            with patch("agent.viz.viz_agent.match_template", return_value=template):
                 result = generate_visualization("fake concept", academic_hub_root=tmp, course="math-camp")
         fake_fig.to_html.assert_called_once()
         self.assertEqual(result.source, "template")
@@ -33,7 +33,7 @@ class TestGenerateVisualizationTemplatePath(unittest.TestCase):
         fake_fig.to_html.return_value = "<div>fake plot</div>"
         template = _fake_template(fake_fig)
         with tempfile.TemporaryDirectory() as tmp:
-            with patch("viz.viz_agent.match_template", return_value=template):
+            with patch("agent.viz.viz_agent.match_template", return_value=template):
                 generate_visualization("fake concept", academic_hub_root=tmp)
         _, kwargs = fake_fig.to_html.call_args
         self.assertEqual(kwargs["include_plotlyjs"], "inline")
@@ -44,7 +44,7 @@ class TestGenerateVisualizationTemplatePath(unittest.TestCase):
         fake_fig.to_html.return_value = "<div>fake plot</div>"
         template = _fake_template(fake_fig)
         with tempfile.TemporaryDirectory() as tmp:
-            with patch("viz.viz_agent.match_template", return_value=template):
+            with patch("agent.viz.viz_agent.match_template", return_value=template):
                 result = generate_visualization("fake concept", academic_hub_root=tmp)
             with open(result.html_path, "r", encoding="utf-8") as f:
                 written = f.read()
@@ -56,7 +56,7 @@ class TestGenerateVisualizationTemplatePath(unittest.TestCase):
         fake_fig = MagicMock()
         template = _fake_template(fake_fig)
         with tempfile.TemporaryDirectory() as tmp:
-            with patch("viz.viz_agent.match_template", return_value=template):
+            with patch("agent.viz.viz_agent.match_template", return_value=template):
                 result = generate_visualization("fake concept", academic_hub_root=tmp, course=None)
         self.assertIn("uncategorized", result.html_path)
 
@@ -64,14 +64,14 @@ class TestGenerateVisualizationTemplatePath(unittest.TestCase):
         fake_fig = MagicMock()
         template = _fake_template(fake_fig, keywords=("spectral decomposition",))
         with tempfile.TemporaryDirectory() as tmp:
-            with patch("viz.viz_agent.match_template", return_value=template):
+            with patch("agent.viz.viz_agent.match_template", return_value=template):
                 result = generate_visualization("Spectral Decomposition!", academic_hub_root=tmp)
         self.assertTrue(os.path.basename(result.html_path).startswith("spectral-decomposition"))
 
     def test_no_template_match_returns_none_for_now(self):
         with tempfile.TemporaryDirectory() as tmp:
-            with patch("viz.viz_agent.match_template", return_value=None), \
-                 patch("viz.llm_fallback.generate_via_llm", return_value=None):
+            with patch("agent.viz.viz_agent.match_template", return_value=None), \
+                 patch("agent.viz.llm_fallback.generate_via_llm", return_value=None):
                 result = generate_visualization("unmatched concept", academic_hub_root=tmp)
         self.assertIsNone(result)
 
@@ -97,7 +97,7 @@ class TestGenerateVisualizationTemplatePath(unittest.TestCase):
         self.assertGreater(len(long_concept), 150)
         real_template = Template(name="Fake", keywords=[long_concept.lower()], render=lambda: go.Figure())
         with tempfile.TemporaryDirectory() as tmp:
-            with patch("viz.viz_agent.match_template", return_value=real_template):
+            with patch("agent.viz.viz_agent.match_template", return_value=real_template):
                 result = generate_visualization(long_concept, academic_hub_root=tmp)
         self.assertIsNotNone(result)
         self.assertEqual(result.source, "template")
@@ -115,8 +115,8 @@ class TestGenerateVisualizationTemplatePath(unittest.TestCase):
         real_template = Template(name="Fake", keywords=["fake concept"], render=lambda: go.Figure())
         overlong_slug = "x" * 300
         with tempfile.TemporaryDirectory() as tmp:
-            with patch("viz.viz_agent.match_template", return_value=real_template), \
-                 patch("viz.viz_agent._slugify", return_value=overlong_slug):
+            with patch("agent.viz.viz_agent.match_template", return_value=real_template), \
+                 patch("agent.viz.viz_agent._slugify", return_value=overlong_slug):
                 result = generate_visualization("fake concept", academic_hub_root=tmp)
         self.assertIsNone(result)
 
@@ -128,8 +128,8 @@ class TestGenerateVisualizationFallbackPath(unittest.TestCase):
             fragment_html="<div>x</div>",
         )
         with tempfile.TemporaryDirectory() as tmp:
-            with patch("viz.viz_agent.match_template", return_value=None), \
-                 patch("viz.llm_fallback.generate_via_llm", return_value=fake_result) as mock_llm:
+            with patch("agent.viz.viz_agent.match_template", return_value=None), \
+                 patch("agent.viz.llm_fallback.generate_via_llm", return_value=fake_result) as mock_llm:
                 result = generate_visualization("unknown concept", context="ctx", academic_hub_root=tmp, course="math-camp")
         mock_llm.assert_called_once()
         args, kwargs = mock_llm.call_args
@@ -139,8 +139,8 @@ class TestGenerateVisualizationFallbackPath(unittest.TestCase):
 
     def test_fallback_receives_the_same_output_path_the_template_path_would_use(self):
         with tempfile.TemporaryDirectory() as tmp:
-            with patch("viz.viz_agent.match_template", return_value=None), \
-                 patch("viz.llm_fallback.generate_via_llm", return_value=None) as mock_llm:
+            with patch("agent.viz.viz_agent.match_template", return_value=None), \
+                 patch("agent.viz.llm_fallback.generate_via_llm", return_value=None) as mock_llm:
                 generate_visualization("unknown concept", academic_hub_root=tmp, course="math-camp")
         args, kwargs = mock_llm.call_args
         output_path = args[2]
@@ -148,23 +148,23 @@ class TestGenerateVisualizationFallbackPath(unittest.TestCase):
 
     def test_fallback_failure_propagates_none(self):
         with tempfile.TemporaryDirectory() as tmp:
-            with patch("viz.viz_agent.match_template", return_value=None), \
-                 patch("viz.llm_fallback.generate_via_llm", return_value=None):
+            with patch("agent.viz.viz_agent.match_template", return_value=None), \
+                 patch("agent.viz.llm_fallback.generate_via_llm", return_value=None):
                 result = generate_visualization("unknown concept", academic_hub_root=tmp)
         self.assertIsNone(result)
 
     def test_client_is_threaded_through_to_the_llm_fallback(self):
         client = object()
         with tempfile.TemporaryDirectory() as tmp:
-            with patch("viz.viz_agent.match_template", return_value=None), \
-                 patch("viz.llm_fallback.generate_via_llm", return_value=None) as mock_llm:
+            with patch("agent.viz.viz_agent.match_template", return_value=None), \
+                 patch("agent.viz.llm_fallback.generate_via_llm", return_value=None) as mock_llm:
                 generate_visualization("unknown concept", academic_hub_root=tmp, client=client)
         self.assertEqual(mock_llm.call_args.args[-1], client)
 
 
 class TestWrapFragment(unittest.TestCase):
     def test_wraps_fragment_in_minimal_html_shell(self):
-        from viz.viz_agent import _wrap_fragment
+        from agent.viz.viz_agent import _wrap_fragment
         wrapped = _wrap_fragment("<div>plot</div>")
         self.assertIn("<html>", wrapped)
         self.assertIn("<div>plot</div>", wrapped)

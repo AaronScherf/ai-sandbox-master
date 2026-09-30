@@ -36,9 +36,9 @@ import tempfile
 
 from core.env.gemini_utils import call_with_retries
 from core.env.ollama_utils import OLLAMA_TIMEOUT, OllamaTimeout, call_ollama
-from viz import example_store
-from viz.example_store import ExampleRecord
-from viz.viz_agent import VizResult, _wrap_fragment
+from agent.viz import example_store
+from agent.viz.example_store import ExampleRecord
+from agent.viz.viz_agent import VizResult, _wrap_fragment
 
 VIZ_BACKEND = os.environ.get("VIZ_BACKEND", "gemini")  # "gemini" | "ollama"
 VIZ_GEMINI_MODEL = os.environ.get("VIZ_GEMINI_MODEL", "gemini-3.1-flash-lite")

@@ -4,7 +4,7 @@ import tempfile
 import unittest
 from unittest.mock import MagicMock, patch
 
-from viz.example_store import (
+from agent.viz.example_store import (
     EXAMPLE_SIMILARITY_THRESHOLD, MAX_EXAMPLES, ExampleRecord, _cosine_similarity,
     _derive_keywords, _embed, _load, _store_path, _write, find_examples, save,
 )
@@ -38,7 +38,7 @@ class TestCosineSimilarity(unittest.TestCase):
 
 
 class TestEmbed(unittest.TestCase):
-    @patch("viz.example_store.urllib.request.urlopen")
+    @patch("agent.viz.example_store.urllib.request.urlopen")
     def test_returns_embedding_on_success(self, mock_urlopen):
         mock_response = MagicMock()
         mock_response.read.return_value = json.dumps({"embedding": [0.1, 0.2, 0.3]}).encode("utf-8")
@@ -46,7 +46,7 @@ class TestEmbed(unittest.TestCase):
         result = _embed("eigenvalues")
         self.assertEqual(result, [0.1, 0.2, 0.3])
 
-    @patch("viz.example_store.urllib.request.urlopen", side_effect=OSError("connection refused"))
+    @patch("agent.viz.example_store.urllib.request.urlopen", side_effect=OSError("connection refused"))
     def test_returns_none_on_connection_failure(self, mock_urlopen):
         self.assertIsNone(_embed("eigenvalues"))
 
@@ -97,7 +97,7 @@ class TestFindExamples(unittest.TestCase):
         with tempfile.TemporaryDirectory() as store_dir:
             self.assertEqual(find_examples("eigenvalues", "", store_dir), [])
 
-    @patch("viz.example_store._embed")
+    @patch("agent.viz.example_store._embed")
     def test_returns_matches_above_threshold_highest_first(self, mock_embed):
         with tempfile.TemporaryDirectory() as store_dir:
             best_match = _record("eigenvectors basics", ["eigenvectors"], [1.0, 0.0])
@@ -108,7 +108,7 @@ class TestFindExamples(unittest.TestCase):
             result = find_examples("eigenvalues", "", store_dir)
             self.assertEqual(result, [best_match, second_match])
 
-    @patch("viz.example_store._embed")
+    @patch("agent.viz.example_store._embed")
     def test_falls_back_to_keywords_when_nothing_above_threshold(self, mock_embed):
         with tempfile.TemporaryDirectory() as store_dir:
             record = _record("gradient descent optimization", ["gradient", "descent", "optimization"], [0.0, 1.0])
@@ -117,7 +117,7 @@ class TestFindExamples(unittest.TestCase):
             result = find_examples("gradient descent for neural networks", "", store_dir)
             self.assertEqual(result, [record])
 
-    @patch("viz.example_store._embed")
+    @patch("agent.viz.example_store._embed")
     def test_returns_empty_when_neither_embedding_nor_keywords_match(self, mock_embed):
         with tempfile.TemporaryDirectory() as store_dir:
             record = _record("gradient descent", ["gradient", "descent"], [0.0, 1.0])
@@ -126,7 +126,7 @@ class TestFindExamples(unittest.TestCase):
             result = find_examples("totally unrelated topic", "", store_dir)
             self.assertEqual(result, [])
 
-    @patch("viz.example_store._embed", return_value=None)
+    @patch("agent.viz.example_store._embed", return_value=None)
     def test_embedding_failure_falls_back_to_keywords(self, mock_embed):
         with tempfile.TemporaryDirectory() as store_dir:
             record = _record("gradient descent", ["gradient", "descent"], [0.0, 1.0])
@@ -134,7 +134,7 @@ class TestFindExamples(unittest.TestCase):
             result = find_examples("gradient descent basics", "", store_dir)
             self.assertEqual(result, [record])
 
-    @patch("viz.example_store._embed", return_value=None)
+    @patch("agent.viz.example_store._embed", return_value=None)
     def test_embedding_and_keyword_both_fail_returns_empty(self, mock_embed):
         with tempfile.TemporaryDirectory() as store_dir:
             record = _record("gradient descent", ["gradient", "descent"], [0.0, 1.0])
@@ -146,7 +146,7 @@ class TestFindExamples(unittest.TestCase):
         with tempfile.TemporaryDirectory() as store_dir:
             records = [_record(f"concept {i}", ["shared"], [1.0, 0.0]) for i in range(5)]
             _write(store_dir, records)
-            with patch("viz.example_store._embed", return_value=[1.0, 0.0]):
+            with patch("agent.viz.example_store._embed", return_value=[1.0, 0.0]):
                 result = find_examples("shared topic", "", store_dir)
             self.assertEqual(len(result), MAX_EXAMPLES)
 
@@ -156,7 +156,7 @@ class TestFindExamples(unittest.TestCase):
             second = _record("second concept", ["shared", "gradient"], [0.0, 1.0])
             third = _record("third concept", ["shared"], [0.0, 1.0])
             _write(store_dir, [first, second, third])
-            with patch("viz.example_store._embed", return_value=None):
+            with patch("agent.viz.example_store._embed", return_value=None):
                 result = find_examples("shared gradient topic", "", store_dir)
             # first and second both overlap on {"shared", "gradient"} (2 words, tied) --
             # insertion order breaks the tie, so first comes before second; third
@@ -165,7 +165,7 @@ class TestFindExamples(unittest.TestCase):
 
 
 class TestSave(unittest.TestCase):
-    @patch("viz.example_store._embed", return_value=[0.1, 0.2, 0.3])
+    @patch("agent.viz.example_store._embed", return_value=[0.1, 0.2, 0.3])
     def test_appends_new_record(self, mock_embed):
         with tempfile.TemporaryDirectory() as store_dir:
             save("eigenvalues", "some context", "fig = go.Figure()", store_dir)
@@ -177,7 +177,7 @@ class TestSave(unittest.TestCase):
             self.assertEqual(records[0].embedding, [0.1, 0.2, 0.3])
             self.assertIn("eigenvalues", records[0].keywords)
 
-    @patch("viz.example_store._embed", return_value=[0.1, 0.2, 0.3])
+    @patch("agent.viz.example_store._embed", return_value=[0.1, 0.2, 0.3])
     def test_appends_to_existing_records(self, mock_embed):
         with tempfile.TemporaryDirectory() as store_dir:
             save("eigenvalues", "", "fig = go.Figure()", store_dir)
@@ -186,7 +186,7 @@ class TestSave(unittest.TestCase):
             self.assertEqual(len(records), 2)
             self.assertEqual(records[1].concept, "gradient descent")
 
-    @patch("viz.example_store._embed", return_value=None)
+    @patch("agent.viz.example_store._embed", return_value=None)
     def test_does_not_save_when_embedding_unavailable(self, mock_embed):
         with tempfile.TemporaryDirectory() as store_dir:
             save("eigenvalues", "", "fig = go.Figure()", store_dir)
@@ -194,7 +194,7 @@ class TestSave(unittest.TestCase):
 
     def test_never_raises_on_unexpected_error(self):
         with tempfile.TemporaryDirectory() as store_dir:
-            with patch("viz.example_store._embed", side_effect=RuntimeError("boom")):
+            with patch("agent.viz.example_store._embed", side_effect=RuntimeError("boom")):
                 save("eigenvalues", "", "fig = go.Figure()", store_dir)  # must not raise
             self.assertEqual(_load(store_dir), [])
 

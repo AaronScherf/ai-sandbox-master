@@ -398,7 +398,7 @@ class TestAnswerQuestionVisualize(unittest.TestCase):
     def test_visualize_false_never_calls_generate_visualization(self):
         client = _fake_generate_client("answer")
         with patch("agent.rag.rag_agent.search_passages", return_value=[]), \
-             patch("viz.viz_agent.generate_visualization") as mock_viz:
+             patch("agent.viz.viz_agent.generate_visualization") as mock_viz:
             result = answer_question(["/root"], "q", client)
         mock_viz.assert_not_called()
         self.assertIsNone(result.visualization)
@@ -408,7 +408,7 @@ class TestAnswerQuestionVisualize(unittest.TestCase):
         passages = [_passage("a-000", "a", text="eigenvalue content", root="/root")]
         fake_result = MagicMock()
         with patch("agent.rag.rag_agent.search_passages", return_value=passages), \
-             patch("viz.viz_agent.generate_visualization", return_value=fake_result) as mock_viz:
+             patch("agent.viz.viz_agent.generate_visualization", return_value=fake_result) as mock_viz:
             result = answer_question(["/root"], "what is X", client, visualize=True)
         mock_viz.assert_called_once()
         args, kwargs = mock_viz.call_args
@@ -420,14 +420,14 @@ class TestAnswerQuestionVisualize(unittest.TestCase):
     def test_visualize_true_passes_course_through(self):
         client = _fake_generate_client("answer")
         with patch("agent.rag.rag_agent.search_passages", return_value=[]), \
-             patch("viz.viz_agent.generate_visualization", return_value=None) as mock_viz:
+             patch("agent.viz.viz_agent.generate_visualization", return_value=None) as mock_viz:
             answer_question(["/root"], "q", client, course="math-camp", visualize=True)
         self.assertEqual(mock_viz.call_args.kwargs["course"], "math-camp")
 
     def test_visualize_true_with_no_visualization_result_is_none(self):
         client = _fake_generate_client("answer")
         with patch("agent.rag.rag_agent.search_passages", return_value=[]), \
-             patch("viz.viz_agent.generate_visualization", return_value=None):
+             patch("agent.viz.viz_agent.generate_visualization", return_value=None):
             result = answer_question(["/root"], "q", client, visualize=True)
         self.assertIsNone(result.visualization)
 
@@ -456,7 +456,7 @@ class TestAnswerQuestionReport(unittest.TestCase):
         client = _fake_generate_client("answer")
         fake_viz = MagicMock()
         with patch("agent.rag.rag_agent.search_passages", return_value=[]), \
-             patch("viz.viz_agent.generate_visualization", return_value=fake_viz), \
+             patch("agent.viz.viz_agent.generate_visualization", return_value=fake_viz), \
              patch("agent.rag.report_builder.build_report", return_value="/x/report.html") as mock_build:
             answer_question(["/root"], "q", client, visualize=True, report=True)
         args, kwargs = mock_build.call_args
@@ -571,7 +571,7 @@ class TestAnswerQuestionProblemGenerationVisualize(unittest.TestCase):
         fake_generated = MagicMock(problem_text="Find X.", solution_text="X = 1.", sources=[])
         fake_viz = MagicMock()
         with patch("problem_gen.generator.generate_problem", return_value=fake_generated), \
-             patch("viz.viz_agent.generate_visualization", return_value=fake_viz) as mock_viz:
+             patch("agent.viz.viz_agent.generate_visualization", return_value=fake_viz) as mock_viz:
             result = answer_question(
                 ["/root"], "give me a practice problem on eigenvalues, and visualize it", client,
             )
@@ -582,7 +582,7 @@ class TestAnswerQuestionProblemGenerationVisualize(unittest.TestCase):
         client = _fake_generate_client("unused")
         fake_generated = MagicMock(problem_text="Find X.", solution_text="X = 1.", sources=[])
         with patch("problem_gen.generator.generate_problem", return_value=fake_generated), \
-             patch("viz.viz_agent.generate_visualization", return_value=None) as mock_viz:
+             patch("agent.viz.viz_agent.generate_visualization", return_value=None) as mock_viz:
             answer_question(["/root"], "give me a practice problem, please visualize it", client)
         args, kwargs = mock_viz.call_args
         self.assertIn("Find X.", kwargs["context"])
@@ -592,7 +592,7 @@ class TestAnswerQuestionProblemGenerationVisualize(unittest.TestCase):
         client = _fake_generate_client("unused")
         fake_generated = MagicMock(problem_text="Find X.", solution_text="X = 1.", sources=[])
         with patch("problem_gen.generator.generate_problem", return_value=fake_generated), \
-             patch("viz.viz_agent.generate_visualization") as mock_viz:
+             patch("agent.viz.viz_agent.generate_visualization") as mock_viz:
             result = answer_question(["/root"], "give me a practice problem on eigenvalues", client)
         mock_viz.assert_not_called()
         self.assertIsNone(result.visualization)
@@ -602,7 +602,7 @@ class TestAnswerQuestionProblemGenerationVisualize(unittest.TestCase):
         fake_generated = MagicMock(problem_text="Find X.", solution_text="X = 1.", sources=[])
         fake_viz = MagicMock()
         with patch("problem_gen.generator.generate_problem", return_value=fake_generated), \
-             patch("viz.viz_agent.generate_visualization", return_value=fake_viz) as mock_viz:
+             patch("agent.viz.viz_agent.generate_visualization", return_value=fake_viz) as mock_viz:
             result = answer_question(
                 ["/root"], "give me a practice problem on eigenvalues", client, visualize=True,
             )
@@ -613,7 +613,7 @@ class TestAnswerQuestionProblemGenerationVisualize(unittest.TestCase):
         client = _fake_generate_client("The fallback answer.")
         with patch("problem_gen.generator.generate_problem", return_value=None), \
              patch("agent.rag.rag_agent.search_passages", return_value=[]), \
-             patch("viz.viz_agent.generate_visualization") as mock_viz:
+             patch("agent.viz.viz_agent.generate_visualization") as mock_viz:
             answer_question(
                 ["/root"], "give me a practice problem, and visualize it", client,
             )
@@ -650,7 +650,7 @@ class TestAnswerQuestionProblemGenerationReport(unittest.TestCase):
         fake_generated = MagicMock(problem_text="Find X.", solution_text="X = 1.", sources=[])
         fake_viz = MagicMock()
         with patch("problem_gen.generator.generate_problem", return_value=fake_generated), \
-             patch("viz.viz_agent.generate_visualization", return_value=fake_viz), \
+             patch("agent.viz.viz_agent.generate_visualization", return_value=fake_viz), \
              patch("agent.rag.report_builder.build_report", return_value="/x/report.html") as mock_build:
             answer_question(
                 ["/root"], "give me a practice problem, and visualize it", client, report=True,

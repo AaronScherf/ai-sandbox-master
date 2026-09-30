@@ -15,7 +15,7 @@ import math
 import numpy as np
 import plotly.graph_objects as go
 
-from viz.templates import Template
+from agent.viz.templates import Template
 
 
 def _binomial_pmf(n: int, p: float) -> tuple[np.ndarray, np.ndarray]:

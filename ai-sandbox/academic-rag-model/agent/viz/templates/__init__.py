@@ -42,12 +42,12 @@ def match_template(concept: str) -> Template | None:
     return None
 
 
-from viz.templates.spectral_decomposition import TEMPLATE as _spectral_decomposition
+from agent.viz.templates.spectral_decomposition import TEMPLATE as _spectral_decomposition
 
 TEMPLATE_REGISTRY.append(_spectral_decomposition)
 
-from viz.templates.gradient_descent import TEMPLATE as _gradient_descent
-from viz.templates.distributions import TEMPLATE as _distributions
-from viz.templates.convergence import TEMPLATE as _convergence
+from agent.viz.templates.gradient_descent import TEMPLATE as _gradient_descent
+from agent.viz.templates.distributions import TEMPLATE as _distributions
+from agent.viz.templates.convergence import TEMPLATE as _convergence
 
 TEMPLATE_REGISTRY.extend([_gradient_descent, _distributions, _convergence])
