@@ -3,7 +3,7 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from journal_articles.convert_journal_articles import (
+from pipelines.convert_journal_articles.convert_journal_articles import (
     _JOURNAL_DOC_TYPES,
     _page_count,
     discover_pdf_files,
@@ -115,15 +115,15 @@ class TestMainOversizedPageGate(unittest.TestCase):
             articles_dir = os.path.join(tmp, "journal-articles")
             _write_fake_pdf(os.path.join(articles_dir, "misc", "book.pdf"))
 
-            with patch("journal_articles.convert_journal_articles._page_count", return_value=402), \
-                 patch("journal_articles.convert_journal_articles.process_pdf") as mock_process, \
-                 patch("journal_articles.convert_journal_articles.get_gemini_client"), \
-                 patch("journal_articles.convert_journal_articles.load_dotenv_override"), \
+            with patch("pipelines.convert_journal_articles.convert_journal_articles._page_count", return_value=402), \
+                 patch("pipelines.convert_journal_articles.convert_journal_articles.process_pdf") as mock_process, \
+                 patch("pipelines.convert_journal_articles.convert_journal_articles.get_gemini_client"), \
+                 patch("pipelines.convert_journal_articles.convert_journal_articles.load_dotenv_override"), \
                  patch("sys.argv", [
                      "convert_journal_articles.py",
                      "--articles-dir", articles_dir, "--index-root", tmp, "--max-pages", "150",
                  ]):
-                from journal_articles.convert_journal_articles import main
+                from pipelines.convert_journal_articles.convert_journal_articles import main
                 main()
             mock_process.assert_not_called()
 
@@ -133,15 +133,15 @@ class TestMainOversizedPageGate(unittest.TestCase):
             pdf_path = os.path.join(articles_dir, "economics", "paper.pdf")
             _write_fake_pdf(pdf_path)
 
-            with patch("journal_articles.convert_journal_articles._page_count", return_value=21), \
-                 patch("journal_articles.convert_journal_articles.process_pdf") as mock_process, \
-                 patch("journal_articles.convert_journal_articles.get_gemini_client"), \
-                 patch("journal_articles.convert_journal_articles.load_dotenv_override"), \
+            with patch("pipelines.convert_journal_articles.convert_journal_articles._page_count", return_value=21), \
+                 patch("pipelines.convert_journal_articles.convert_journal_articles.process_pdf") as mock_process, \
+                 patch("pipelines.convert_journal_articles.convert_journal_articles.get_gemini_client"), \
+                 patch("pipelines.convert_journal_articles.convert_journal_articles.load_dotenv_override"), \
                  patch("sys.argv", [
                      "convert_journal_articles.py",
                      "--articles-dir", articles_dir, "--index-root", tmp, "--max-pages", "150",
                  ]):
-                from journal_articles.convert_journal_articles import main
+                from pipelines.convert_journal_articles.convert_journal_articles import main
                 main()
             mock_process.assert_called_once()
             args, kwargs = mock_process.call_args
