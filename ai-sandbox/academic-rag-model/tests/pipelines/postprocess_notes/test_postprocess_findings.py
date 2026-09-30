@@ -1,6 +1,6 @@
 import unittest
 
-from postprocessing.postprocess_findings import (
+from pipelines.postprocess_notes.postprocess_findings import (
     build_changelog_entry,
     documents_needing_review,
     find_isolated_candidate_spans,

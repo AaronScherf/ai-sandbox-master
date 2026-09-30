@@ -6,7 +6,7 @@ import unittest
 from contextlib import redirect_stdout
 from unittest.mock import MagicMock, patch
 
-import postprocessing.postprocess_notes as pn
+import pipelines.postprocess_notes.postprocess_notes as pn
 
 # Issue #11: two of its three sub-items ("never exercised across multiple
 # --root directories in one invocation" and "the pattern-review threshold
