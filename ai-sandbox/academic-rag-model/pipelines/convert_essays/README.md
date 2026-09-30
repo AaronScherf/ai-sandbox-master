@@ -1,4 +1,31 @@
-# Essay (.docx) Conversion Pipeline
+# Essay Conversion
+
+Converts short prose `.docx` documents — statement-of-purpose / PhD
+application essays, loose research notes — straight to Markdown. Unlike the
+PDF pipelines elsewhere in this repo, a `.docx` already carries its own
+structure (headings, bold/italic, lists) in the file format itself, so
+there's no OCR problem to solve: no vision model, no GPU, entirely local. This file provides a quick orientation; see the full usage guide below.
+
+## Key file
+
+- `convert_essays.py` — reads each `.docx` via
+  [`mammoth`](https://github.com/mwilliamson/python-mammoth) and inverts its
+  writer's defensive backslash-escaping (`well\-known` → `well-known`) so the
+  output reads as plain prose. Indexing is a live hook per file (mirroring
+  `notes/transcribe_notes.py`'s own), reusing the
+  [Source Indexer](../indexer/)'s `reconcile_and_write()` completely
+  unmodified except for its own `known_doc_types` vocabulary
+  (`personal_essay`, `research_notes`) — that reuse is what proved the
+  indexer's design generalizes past the one corpus (`academic-hub`) it was
+  originally built for.
+
+Depends on `common/` and `indexer/`. Part of a small, growing personal
+research corpus alongside [`journal_articles/`](../journal_articles/) — see
+the root [`README.md`](../README.md) for the full dependency graph.
+
+## Full usage guide
+
+### Essay (.docx) Conversion Pipeline
 
 Companion to `notes_instructions.md`, for a simpler input format: short
 prose `.docx` documents (statement-of-purpose / application essays) that
@@ -10,19 +37,19 @@ file is *also* reconciled into its own source-indexer card (one Gemini
 generation call + one embedding call per new/changed file -- pass
 `--no-index` to skip this and stay fully local/free).
 
-## Step 1: One-time local setup
+### Step 1: One-time local setup
 
 ```powershell
 cd academic-rag-model
 pip install mammoth
 ```
 
-## Step 2: Run it
+### Step 2: Run it
 
 Batches over every `.docx` found directly under the target folder.
 
 ```powershell
-python -m essays.convert_essays
+python -m pipelines.convert_essays.convert_essays
 ```
 
 * Defaults to `research/independent-research/notes/application_essays`
@@ -48,7 +75,7 @@ python -m essays.convert_essays
   Add `--no-index` to skip indexing entirely (no Gemini calls, no
   `.index/` writes) -- just convert.
 
-## How it works
+### How it works
 
 `mammoth.convert_to_markdown()` reads the `.docx`'s own paragraph
 styles (Heading 1/2/..., bold/italic runs, bulleted/numbered lists)

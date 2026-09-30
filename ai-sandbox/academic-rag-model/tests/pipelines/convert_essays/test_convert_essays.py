@@ -3,7 +3,7 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from essays.convert_essays import (
+from pipelines.convert_essays.convert_essays import (
     _unescape_markdown,
     build_frontmatter,
     derive_folder_category,
@@ -133,7 +133,7 @@ class TestProcessDocx(unittest.TestCase):
             docx_path = os.path.join(tmp, "Essay.docx")
             Document().save(docx_path)
 
-            with patch("essays.convert_essays.reconcile_and_write") as mock_reconcile:
+            with patch("pipelines.convert_essays.convert_essays.reconcile_and_write") as mock_reconcile:
                 process_docx(docx_path, os.path.join(tmp, "processed_outputs"))
                 mock_reconcile.assert_not_called()
 
@@ -155,7 +155,7 @@ class TestProcessDocx(unittest.TestCase):
             output_dir = os.path.join(docx_dir, "processed_outputs")
             fake_client = object()
 
-            with patch("essays.convert_essays.reconcile_and_write") as mock_reconcile:
+            with patch("pipelines.convert_essays.convert_essays.reconcile_and_write") as mock_reconcile:
                 process_docx(docx_path, output_dir, index_root=index_root, client=fake_client)
 
                 mock_reconcile.assert_called_once()
@@ -177,7 +177,7 @@ class TestProcessDocx(unittest.TestCase):
             docx_path = os.path.join(tmp, "Essay.docx")
             Document().save(docx_path)
 
-            with patch("essays.convert_essays.reconcile_and_write", side_effect=RuntimeError("boom")):
+            with patch("pipelines.convert_essays.convert_essays.reconcile_and_write", side_effect=RuntimeError("boom")):
                 # Must not raise -- the .md file is already written and complete
                 # regardless of what happens to the indexing hook.
                 md_path = process_docx(
