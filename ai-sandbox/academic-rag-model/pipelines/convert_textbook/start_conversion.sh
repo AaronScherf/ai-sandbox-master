@@ -100,7 +100,7 @@ run_conversion_with_retries() {
         echo "[System] Conversion attempt $attempt of $MAX_RETRIES."
         cleanup_stale_inference_state
         cd ~/academic-rag-model
-        python3 -u -m textbook.convert_textbook $REQUOTED_INPUTS --output $REQUOTED_OUTPUT
+        python3 -u -m pipelines.convert_textbook.convert_textbook $REQUOTED_INPUTS --output $REQUOTED_OUTPUT
         exit_code=$?
 
         if [ "$exit_code" -eq 0 ]; then
