@@ -328,7 +328,7 @@ gcloud compute ssh "$VM_INSTANCE_NAME" --zone="$GCP_ZONE" --tunnel-through-iap -
 ```
 
 ```bash
-gcloud compute scp marker_setup.sh start_conversion.sh "$VM_INSTANCE_NAME":"$REMOTE_HOME/" --zone="$GCP_ZONE" --tunnel-through-iap --quiet
+gcloud compute scp pipelines/convert_textbook/marker_setup.sh pipelines/convert_textbook/start_conversion.sh "$VM_INSTANCE_NAME":"$REMOTE_HOME/" --zone="$GCP_ZONE" --tunnel-through-iap --quiet
 gcloud compute ssh "$VM_INSTANCE_NAME" --zone="$GCP_ZONE" --tunnel-through-iap --command="mkdir -p $REMOTE_HOME/academic-rag-model/pipelines" --quiet
 gcloud compute scp --recurse core "$VM_INSTANCE_NAME":"$REMOTE_HOME/academic-rag-model/" --zone="$GCP_ZONE" --tunnel-through-iap --quiet
 gcloud compute scp --recurse pipelines/convert_textbook "$VM_INSTANCE_NAME":"$REMOTE_HOME/academic-rag-model/pipelines/" --zone="$GCP_ZONE" --tunnel-through-iap --quiet

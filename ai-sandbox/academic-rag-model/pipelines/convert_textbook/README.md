@@ -340,7 +340,7 @@ gcloud compute instances reset $VM_INSTANCE_NAME --zone=$GCP_ZONE
 Give it a minute or two to boot, then retry SSH. See Step 3.1's note below for a re-provisioning issue this can trigger.
 
 ```bash
-gcloud compute scp marker_setup.sh start_conversion.sh $VM_INSTANCE_NAME:~/ --zone=$GCP_ZONE --tunnel-through-iap
+gcloud compute scp pipelines/convert_textbook/marker_setup.sh pipelines/convert_textbook/start_conversion.sh $VM_INSTANCE_NAME:~/ --zone=$GCP_ZONE --tunnel-through-iap
 gcloud compute ssh $VM_INSTANCE_NAME --zone=$GCP_ZONE --tunnel-through-iap --command="mkdir -p ~/academic-rag-model/pipelines"
 gcloud compute scp --recurse core $VM_INSTANCE_NAME:~/academic-rag-model/ --zone=$GCP_ZONE --tunnel-through-iap
 gcloud compute scp --recurse pipelines/convert_textbook $VM_INSTANCE_NAME:~/academic-rag-model/pipelines/ --zone=$GCP_ZONE --tunnel-through-iap

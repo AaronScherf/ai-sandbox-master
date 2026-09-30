@@ -112,7 +112,7 @@ run_conversion_with_retries() {
         if [ "$attempt" -eq "$MAX_RETRIES" ]; then
             echo "[System] FATAL: giving up after $MAX_RETRIES attempts. This needs manual"
             echo "[System] investigation -- see the debugging appendix in"
-            echo "[System] convert_textbook_agent_instructions.md."
+            echo "[System] AGENT_INSTRUCTIONS.md."
             return "$exit_code"
         fi
 
