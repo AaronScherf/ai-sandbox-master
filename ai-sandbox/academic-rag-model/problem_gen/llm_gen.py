@@ -22,8 +22,8 @@ from __future__ import annotations
 import os
 import re
 
-from common.gemini_utils import call_with_retries
-from common.ollama_utils import OLLAMA_TIMEOUT, OllamaTimeout, call_ollama
+from core.env.gemini_utils import call_with_retries
+from core.env.ollama_utils import OLLAMA_TIMEOUT, OllamaTimeout, call_ollama
 
 PROBLEMGEN_BACKEND = os.environ.get("PROBLEMGEN_BACKEND", "gemini")  # "gemini" | "ollama"
 PROBLEMGEN_GEMINI_MODEL = os.environ.get("PROBLEMGEN_GEMINI_MODEL", "gemini-3.1-flash-lite")

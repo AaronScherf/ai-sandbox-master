@@ -22,7 +22,7 @@ import re
 import sys
 from pathlib import Path
 
-from common.gemini_utils import get_gemini_client, load_dotenv_override
+from core.env.gemini_utils import get_gemini_client, load_dotenv_override
 from indexer.index_card import (
     compute_content_hash,
     compute_file_id,

@@ -24,7 +24,7 @@ import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from common.academic_hub_paths import TEXTBOOK_FOLDER_NAMES, resolve_output_dir, to_resources_root
+from core.env.academic_hub_paths import TEXTBOOK_FOLDER_NAMES, resolve_output_dir, to_resources_root
 from notes.transcribe_excalidraw import (
     _TRANSCRIBE_MODEL as _EXCALIDRAW_MODEL,
     discover_excalidraw_files,
@@ -243,7 +243,7 @@ def main():
     )
     args = parser.parse_args()
 
-    from common.gemini_utils import get_gemini_client, load_dotenv_override
+    from core.env.gemini_utils import get_gemini_client, load_dotenv_override
     load_dotenv_override()
 
     academic_hub_dir = Path(__file__).resolve().parent.parent.parent / "academic-hub"

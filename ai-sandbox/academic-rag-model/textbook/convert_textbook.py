@@ -80,7 +80,7 @@ from indexer.index_card import (
     TEXTBOOK_CONTENT_SAMPLE_CHARS, compute_content_hash, compute_file_id, derive_course,
     find_card_by_file_id, reconcile_and_write,
 )
-from common.gemini_utils import get_gemini_client, load_dotenv_override
+from core.env.gemini_utils import get_gemini_client, load_dotenv_override
 
 def clean_stale_state():
     # Purge stale surya lock files

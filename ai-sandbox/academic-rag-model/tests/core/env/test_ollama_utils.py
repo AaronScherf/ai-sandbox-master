@@ -2,11 +2,11 @@ import json
 import unittest
 from unittest.mock import MagicMock, patch
 
-from common.ollama_utils import call_ollama, call_ollama_embeddings, OLLAMA_TIMEOUT, _estimate_num_ctx
+from core.env.ollama_utils import call_ollama, call_ollama_embeddings, OLLAMA_TIMEOUT, _estimate_num_ctx
 
 
 class TestCallOllama(unittest.TestCase):
-    @patch("common.ollama_utils.urllib.request.urlopen")
+    @patch("core.env.ollama_utils.urllib.request.urlopen")
     def test_returns_response_text_on_success(self, mock_urlopen):
         mock_response = MagicMock()
         mock_response.read.return_value = json.dumps({"response": "some text"}).encode()
@@ -14,18 +14,18 @@ class TestCallOllama(unittest.TestCase):
         result = call_ollama("some prompt", "some-model", 30)
         self.assertEqual(result, "some text")
 
-    @patch("common.ollama_utils.urllib.request.urlopen", side_effect=OSError("connection refused"))
+    @patch("core.env.ollama_utils.urllib.request.urlopen", side_effect=OSError("connection refused"))
     def test_returns_none_on_connection_failure(self, mock_urlopen):
         self.assertIsNone(call_ollama("some prompt", "some-model", 30))
 
-    @patch("common.ollama_utils.urllib.request.urlopen", side_effect=TimeoutError("timed out"))
+    @patch("core.env.ollama_utils.urllib.request.urlopen", side_effect=TimeoutError("timed out"))
     def test_returns_timeout_sentinel_on_timeout(self, mock_urlopen):
         """A live-but-slow Ollama call must be distinguishable from a
         genuinely unreachable one -- callers' retry loops treat the two
         differently (retry vs. give up immediately)."""
         self.assertIs(call_ollama("some prompt", "some-model", 30), OLLAMA_TIMEOUT)
 
-    @patch("common.ollama_utils.urllib.request.urlopen")
+    @patch("core.env.ollama_utils.urllib.request.urlopen")
     def test_request_body_uses_the_given_model_and_prompt(self, mock_urlopen):
         mock_response = MagicMock()
         mock_response.read.return_value = json.dumps({"response": "ok"}).encode()
@@ -36,7 +36,7 @@ class TestCallOllama(unittest.TestCase):
         self.assertEqual(body["model"], "qwen2-math:7b")
         self.assertEqual(body["prompt"], "my prompt")
 
-    @patch("common.ollama_utils.urllib.request.urlopen")
+    @patch("core.env.ollama_utils.urllib.request.urlopen")
     def test_request_sets_num_ctx_large_enough_for_a_long_prompt(self, mock_urlopen):
         # Real finding: Ollama silently defaults to ~2048 tokens of
         # context and keeps only the *tail* of a longer prompt with no
@@ -52,7 +52,7 @@ class TestCallOllama(unittest.TestCase):
         body = json.loads(request_arg.data.decode("utf-8"))
         self.assertGreater(body["options"]["num_ctx"], 22000)
 
-    @patch("common.ollama_utils.urllib.request.urlopen")
+    @patch("core.env.ollama_utils.urllib.request.urlopen")
     def test_request_num_ctx_floors_at_4096_for_a_short_prompt(self, mock_urlopen):
         mock_response = MagicMock()
         mock_response.read.return_value = json.dumps({"response": "ok"}).encode()
@@ -62,7 +62,7 @@ class TestCallOllama(unittest.TestCase):
         body = json.loads(request_arg.data.decode("utf-8"))
         self.assertEqual(body["options"]["num_ctx"], 4096)
 
-    @patch("common.ollama_utils.urllib.request.urlopen")
+    @patch("core.env.ollama_utils.urllib.request.urlopen")
     def test_explicit_num_ctx_overrides_the_estimate(self, mock_urlopen):
         mock_response = MagicMock()
         mock_response.read.return_value = json.dumps({"response": "ok"}).encode()
@@ -82,7 +82,7 @@ class TestEstimateNumCtx(unittest.TestCase):
 
 
 class TestCallOllamaEmbeddings(unittest.TestCase):
-    @patch("common.ollama_utils.urllib.request.urlopen")
+    @patch("core.env.ollama_utils.urllib.request.urlopen")
     def test_returns_embedding_vector_on_success(self, mock_urlopen):
         mock_response = MagicMock()
         mock_response.read.return_value = json.dumps({"embedding": [0.1, 0.2, 0.3]}).encode()
@@ -90,15 +90,15 @@ class TestCallOllamaEmbeddings(unittest.TestCase):
         result = call_ollama_embeddings("some text", "nomic-embed-text", 30)
         self.assertEqual(result, [0.1, 0.2, 0.3])
 
-    @patch("common.ollama_utils.urllib.request.urlopen", side_effect=OSError("connection refused"))
+    @patch("core.env.ollama_utils.urllib.request.urlopen", side_effect=OSError("connection refused"))
     def test_returns_none_on_connection_failure(self, mock_urlopen):
         self.assertIsNone(call_ollama_embeddings("some text", "nomic-embed-text", 30))
 
-    @patch("common.ollama_utils.urllib.request.urlopen", side_effect=TimeoutError("timed out"))
+    @patch("core.env.ollama_utils.urllib.request.urlopen", side_effect=TimeoutError("timed out"))
     def test_returns_timeout_sentinel_on_timeout(self, mock_urlopen):
         self.assertIs(call_ollama_embeddings("some text", "nomic-embed-text", 30), OLLAMA_TIMEOUT)
 
-    @patch("common.ollama_utils.urllib.request.urlopen")
+    @patch("core.env.ollama_utils.urllib.request.urlopen")
     def test_request_sets_num_ctx_from_text_length(self, mock_urlopen):
         mock_response = MagicMock()
         mock_response.read.return_value = json.dumps({"embedding": [0.1]}).encode()

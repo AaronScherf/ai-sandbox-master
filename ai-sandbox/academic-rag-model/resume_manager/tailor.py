@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import os
 
-from common.ollama_utils import call_ollama
+from core.env.ollama_utils import call_ollama
 from resume_manager.llm_yaml import parse_llm_yaml
 
 RESUMEMANAGER_OLLAMA_MODEL = os.environ.get("RESUMEMANAGER_OLLAMA_MODEL", "qwen2.5:7b-instruct")

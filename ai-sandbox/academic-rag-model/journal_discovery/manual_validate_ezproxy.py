@@ -16,7 +16,7 @@ from __future__ import annotations
 import argparse
 import os
 
-from common.gemini_utils import load_dotenv_override
+from core.env.gemini_utils import load_dotenv_override
 from journal_discovery.access import _download, build_ezproxy_url
 
 

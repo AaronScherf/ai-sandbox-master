@@ -15,7 +15,7 @@ import os
 import re
 from dataclasses import dataclass, field
 
-from common.gemini_utils import get_gemini_client, load_dotenv_override
+from core.env.gemini_utils import get_gemini_client, load_dotenv_override
 
 from audio_generator.cleaner import clean_markdown_for_speech
 from audio_generator.narrate import chunk_for_narration, narrate_chunks

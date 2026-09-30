@@ -34,8 +34,8 @@ import subprocess
 import sys
 import tempfile
 
-from common.gemini_utils import call_with_retries
-from common.ollama_utils import OLLAMA_TIMEOUT, OllamaTimeout, call_ollama
+from core.env.gemini_utils import call_with_retries
+from core.env.ollama_utils import OLLAMA_TIMEOUT, OllamaTimeout, call_ollama
 from viz import example_store
 from viz.example_store import ExampleRecord
 from viz.viz_agent import VizResult, _wrap_fragment

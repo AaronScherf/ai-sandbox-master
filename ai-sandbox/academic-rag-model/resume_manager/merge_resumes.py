@@ -83,7 +83,7 @@ from pathlib import Path
 import yaml
 from rapidfuzz import fuzz
 
-from common.ollama_utils import call_ollama
+from core.env.ollama_utils import call_ollama
 from resume_manager.extract import DefectivePageError, extract_resume_text
 from resume_manager.llm_yaml import parse_llm_yaml
 from resume_manager.markdown_sync import export_to_markdown

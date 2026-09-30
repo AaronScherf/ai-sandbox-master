@@ -22,8 +22,8 @@ from pathlib import Path
 
 import yaml
 
-from common.gemini_utils import get_gemini_client, load_dotenv_override
-from common.ollama_utils import call_ollama
+from core.env.gemini_utils import get_gemini_client, load_dotenv_override
+from core.env.ollama_utils import call_ollama
 from resume_manager.llm_yaml import parse_llm_yaml
 from resume_manager.tailor import RESUMEMANAGER_OLLAMA_MODEL, RESUMEMANAGER_OLLAMA_TIMEOUT_SECONDS
 from resume_manager.tailor_resume import run_tailoring

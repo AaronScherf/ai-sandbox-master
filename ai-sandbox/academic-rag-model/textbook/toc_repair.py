@@ -40,7 +40,7 @@ from __future__ import annotations
 import json
 import re
 
-from common.gemini_utils import call_with_retries
+from core.env.gemini_utils import call_with_retries
 
 _HEADING_RE = re.compile(r"^(#{1,6}\s+.+?)\s*$", re.MULTILINE)
 _PAGE_MARKER_RE = re.compile(r"<!-- page (\d+) -->")

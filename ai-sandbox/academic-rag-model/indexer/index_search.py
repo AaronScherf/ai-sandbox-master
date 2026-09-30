@@ -16,9 +16,9 @@ from datetime import datetime, timezone
 from google.genai import types
 
 from indexer.chunk_index import chunk, load_chunks
-from common.academic_hub_paths import TEXTBOOK_FOLDER_NAMES, resolve_output_dir, to_resources_root
-from common.frontmatter import parse_frontmatter
-from common.gemini_utils import get_gemini_client, load_dotenv_override
+from core.env.academic_hub_paths import TEXTBOOK_FOLDER_NAMES, resolve_output_dir, to_resources_root
+from core.env.frontmatter import parse_frontmatter
+from core.env.gemini_utils import get_gemini_client, load_dotenv_override
 from indexer.index_card import (
     TEXTBOOK_CONTENT_SAMPLE_CHARS,
     EMBEDDING_DIMENSIONALITY,

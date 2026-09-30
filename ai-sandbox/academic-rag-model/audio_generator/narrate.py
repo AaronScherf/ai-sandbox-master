@@ -21,7 +21,7 @@ import concurrent.futures
 import os
 import re
 
-from common.gemini_utils import call_with_retries, get_gemini_client, load_dotenv_override
+from core.env.gemini_utils import call_with_retries, get_gemini_client, load_dotenv_override
 
 AUDIOGEN_NARRATE_MAX_WORKERS = int(os.environ.get("AUDIOGEN_NARRATE_MAX_WORKERS", "5"))
 

@@ -60,7 +60,7 @@ from pathlib import Path
 
 from pypdf import PdfReader
 
-from common.academic_hub_paths import textbook_rag_md_path, to_resources_root
+from core.env.academic_hub_paths import textbook_rag_md_path, to_resources_root
 from textbook.toc_identify import (
     TocIdentification,
     front_matter_window,
@@ -442,7 +442,7 @@ def main():
 
     gemini_client = None
     if args.allow_gemini_repair and not args.report:
-        from common.gemini_utils import get_gemini_client, load_dotenv_override
+        from core.env.gemini_utils import get_gemini_client, load_dotenv_override
         load_dotenv_override()
         gemini_client = get_gemini_client("PAID_GEMINI_KEY" if args.use_paid_key else "GEMINI_API_KEY")
         if gemini_client is None:

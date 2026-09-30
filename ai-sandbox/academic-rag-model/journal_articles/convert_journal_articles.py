@@ -34,7 +34,7 @@ import os
 import sys
 from pathlib import Path
 
-from common.gemini_utils import get_gemini_client, load_dotenv_override
+from core.env.gemini_utils import get_gemini_client, load_dotenv_override
 from notes.transcribe_notes import process_pdf
 
 _JOURNAL_DOC_TYPES = frozenset({"journal_article"})

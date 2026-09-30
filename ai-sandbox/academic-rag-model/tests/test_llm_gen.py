@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import MagicMock, patch
 
-from common.ollama_utils import OLLAMA_TIMEOUT
+from core.env.ollama_utils import OLLAMA_TIMEOUT
 from problem_gen.llm_gen import (
     MAX_ATTEMPTS, PROBLEMGEN_GEMINI_MODEL, _build_generation_prompt, _build_verification_prompt,
     _call_gemini, _extract_problem_and_solution, _parse_verdict, generate_and_verify,

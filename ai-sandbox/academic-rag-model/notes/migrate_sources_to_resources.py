@@ -20,7 +20,7 @@ import shutil
 import sys
 from pathlib import Path
 
-from common.academic_hub_paths import to_resources_root
+from core.env.academic_hub_paths import to_resources_root
 
 _EXCALIDRAW_IMAGE_EXTENSIONS = (".png", ".svg")
 # 2026-09-21 addendum: docx/pptx are in scope too (user decision) -- purely
@@ -91,7 +91,7 @@ def main():
         print("Skipping reindex (--no-reindex). Run `python -m indexer.index_search rebuild` when ready.")
         return
 
-    from common.gemini_utils import get_gemini_client, load_dotenv_override
+    from core.env.gemini_utils import get_gemini_client, load_dotenv_override
     from indexer.index_search import rebuild
     load_dotenv_override()
     client = get_gemini_client()

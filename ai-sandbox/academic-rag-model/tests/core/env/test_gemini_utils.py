@@ -3,7 +3,7 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from common.gemini_utils import (
+from core.env.gemini_utils import (
     extract_retry_delay_seconds,
     get_gemini_client,
     load_json_cache,

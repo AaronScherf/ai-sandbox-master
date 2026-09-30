@@ -26,7 +26,7 @@ import re
 from pathlib import Path
 
 import audit_metadata
-from common.gemini_utils import load_dotenv_override
+from core.env.gemini_utils import load_dotenv_override
 from journal_discovery.manifest import load_manifest, manifest_path, save_manifest
 from journal_discovery.text_match import normalize
 from journal_discovery.worklist import write_needs_manual_worklist

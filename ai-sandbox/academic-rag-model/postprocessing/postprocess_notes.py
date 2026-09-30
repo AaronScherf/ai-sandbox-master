@@ -15,7 +15,7 @@ import argparse
 import json
 import os
 
-from common.gemini_utils import get_gemini_client, load_dotenv_override
+from core.env.gemini_utils import get_gemini_client, load_dotenv_override
 from postprocessing.local_model_scoring import score_causal_zscore, score_masked_candidates
 from postprocessing.postprocess_discovery import (
     derive_eligible_pages,

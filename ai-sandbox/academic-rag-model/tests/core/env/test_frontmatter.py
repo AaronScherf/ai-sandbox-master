@@ -1,4 +1,4 @@
-from common.frontmatter import parse_frontmatter, render_frontmatter
+from core.env.frontmatter import parse_frontmatter, render_frontmatter
 
 
 def test_parse_frontmatter_splits_fields_and_body():

@@ -15,7 +15,7 @@ from dataclasses import dataclass
 import numpy as np
 from sklearn.cluster import AgglomerativeClustering
 
-from common.ollama_utils import call_ollama_embeddings
+from core.env.ollama_utils import call_ollama_embeddings
 from video_notes.youtube_metadata import VideoMetadata
 
 _SERIES_PATTERN = re.compile(r"(?i)\b(?:lecture|lec|part|week)\.?\s*#?\s*(\d+)\b")

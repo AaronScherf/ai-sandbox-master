@@ -33,8 +33,8 @@ import sys
 from dataclasses import dataclass
 from pathlib import Path
 
-from common.academic_hub_paths import textbook_rag_md_path
-from common.gemini_utils import (
+from core.env.academic_hub_paths import textbook_rag_md_path
+from core.env.gemini_utils import (
     call_with_retries,
     get_gemini_client,
     load_dotenv_override,

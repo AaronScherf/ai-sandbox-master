@@ -214,7 +214,7 @@ def test_expand_via_gemini_returns_response_text():
     assert result == "Expanded prose explaining the shorthand."
 
 
-from common.ollama_utils import OLLAMA_TIMEOUT
+from core.env.ollama_utils import OLLAMA_TIMEOUT
 from notes.transcribe_excalidraw import expand_transcription, expand_via_ollama
 
 

@@ -3,7 +3,7 @@ import tempfile
 import unittest
 from unittest.mock import MagicMock, patch
 
-from common.ollama_utils import OLLAMA_TIMEOUT
+from core.env.ollama_utils import OLLAMA_TIMEOUT
 from viz.example_store import ExampleRecord
 from viz.llm_fallback import (
     _cache_key, _extract_code, _build_prompt, _call_gemini, _run_generated_code,

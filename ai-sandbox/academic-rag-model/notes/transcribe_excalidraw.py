@@ -13,9 +13,9 @@ import os
 import sys
 from pathlib import Path
 
-from common.academic_hub_paths import resolve_output_dir, to_resources_root
-from common.gemini_utils import call_with_retries
-from common.ollama_utils import call_ollama
+from core.env.academic_hub_paths import resolve_output_dir, to_resources_root
+from core.env.gemini_utils import call_with_retries
+from core.env.ollama_utils import call_ollama
 from indexer.index_card import (
     EXCALIDRAW_DOC_TYPES,
     compute_content_hash,
@@ -308,7 +308,7 @@ def main():
     parser.add_argument("--dry-run", action="store_true", help="List files that would be processed without calling any API.")
     args = parser.parse_args()
 
-    from common.gemini_utils import get_gemini_client, load_dotenv_override
+    from core.env.gemini_utils import get_gemini_client, load_dotenv_override
     load_dotenv_override()
 
     academic_hub_dir = Path(__file__).resolve().parent.parent.parent / "academic-hub"

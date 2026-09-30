@@ -15,7 +15,7 @@ import os
 import re
 from dataclasses import dataclass
 
-from common.gemini_utils import call_with_retries
+from core.env.gemini_utils import call_with_retries
 
 PROBLEM_CORPUS_GEMINI_MODEL = os.environ.get("PROBLEM_CORPUS_GEMINI_MODEL", "gemini-3.1-flash-lite")
 

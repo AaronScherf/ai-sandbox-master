@@ -4,7 +4,7 @@ import time
 import unittest
 from unittest.mock import patch
 
-from common.academic_hub_paths import to_resources_root
+from core.env.academic_hub_paths import to_resources_root
 from audio_generator.discovery import SourceFile
 from audio_generator.pipeline import run_pipeline
 from audio_generator.sections import NarratedSection

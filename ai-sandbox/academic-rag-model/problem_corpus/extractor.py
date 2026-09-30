@@ -18,7 +18,7 @@ import hashlib
 import os
 import re
 
-from common.gemini_utils import get_gemini_client, load_dotenv_override
+from core.env.gemini_utils import get_gemini_client, load_dotenv_override
 from indexer.index_card import list_courses, load_shard, now_iso
 from problem_corpus.boundaries import detect_spans
 from problem_corpus.llm_extract import extract_record

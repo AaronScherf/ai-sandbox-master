@@ -22,7 +22,7 @@ import shutil
 import sys
 from pathlib import Path
 
-from common.academic_hub_paths import textbook_rag_md_path
+from core.env.academic_hub_paths import textbook_rag_md_path
 from indexer.index_card import compute_file_id, compute_id_from_parts, derive_course, find_card_by_file_id, list_courses, load_shard, now_iso, recompute_course_entry, save_shard
 from textbook.bib_info import extract_bibliographic_info_from_filename
 

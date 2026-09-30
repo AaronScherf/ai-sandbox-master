@@ -21,7 +21,7 @@ import re
 from datetime import datetime, timezone
 from pathlib import Path
 
-from common.gemini_utils import load_dotenv_override
+from core.env.gemini_utils import load_dotenv_override
 from journal_discovery.discovery import resolve_work_by_doi
 from journal_discovery.manifest import load_manifest, manifest_path, save_manifest
 from journal_discovery.text_match import normalize

@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import patch
 
-from common.ollama_utils import OLLAMA_TIMEOUT
+from core.env.ollama_utils import OLLAMA_TIMEOUT
 from video_notes.synthesize import build_synthesis_prompt, synthesize_group_note
 from video_notes.transcribe import TranscriptSegment
 from video_notes.youtube_metadata import VideoMetadata

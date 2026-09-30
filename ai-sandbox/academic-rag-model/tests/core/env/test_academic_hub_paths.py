@@ -2,7 +2,7 @@ import os
 
 import pytest
 
-from common.academic_hub_paths import resolve_output_dir, textbook_rag_md_path, to_notes_root, to_resources_root
+from core.env.academic_hub_paths import resolve_output_dir, textbook_rag_md_path, to_notes_root, to_resources_root
 
 
 def test_to_resources_root_swaps_the_segment_in_an_os_native_path():

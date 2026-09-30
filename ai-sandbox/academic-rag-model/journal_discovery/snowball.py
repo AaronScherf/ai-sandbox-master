@@ -15,7 +15,7 @@ import os
 import sys
 from pathlib import Path
 
-from common.gemini_utils import load_dotenv_override
+from core.env.gemini_utils import load_dotenv_override
 from journal_discovery.access import resolve_full_text
 from journal_discovery.discovery import doi_url, iter_citing_works, resolve_work_by_doi
 from journal_discovery.manifest import (

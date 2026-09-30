@@ -179,7 +179,7 @@ def main() -> None:
     if shutil.which("ffmpeg") is None:
         print("WARNING: ffmpeg not found on PATH -- audio extraction will fail. Install ffmpeg and retry.")
 
-    from common.gemini_utils import get_gemini_client, load_dotenv_override
+    from core.env.gemini_utils import get_gemini_client, load_dotenv_override
     load_dotenv_override()
     client = get_gemini_client()
     if client is None:

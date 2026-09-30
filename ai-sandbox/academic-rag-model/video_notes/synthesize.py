@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import os
 
-from common.ollama_utils import OLLAMA_TIMEOUT, call_ollama
+from core.env.ollama_utils import OLLAMA_TIMEOUT, call_ollama
 
 VIDEONOTES_OLLAMA_MODEL = os.environ.get("VIDEONOTES_OLLAMA_MODEL", "qwen2.5:7b-instruct")
 VIDEONOTES_OLLAMA_TIMEOUT_SECONDS = int(os.environ.get("VIDEONOTES_OLLAMA_TIMEOUT", "1800"))

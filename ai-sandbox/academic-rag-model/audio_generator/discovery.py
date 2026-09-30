@@ -25,7 +25,7 @@ from __future__ import annotations
 import os
 from dataclasses import dataclass
 
-from common.academic_hub_paths import to_resources_root
+from core.env.academic_hub_paths import to_resources_root
 
 # Mirrors indexer/index_search.py's _TEXTBOOK_FOLDER_NAMES (spec §5) --
 # duplicated locally rather than imported, matching this project's existing

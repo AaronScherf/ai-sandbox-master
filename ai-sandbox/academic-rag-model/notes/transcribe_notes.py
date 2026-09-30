@@ -42,9 +42,9 @@ import re
 import sys
 from pathlib import Path
 
-from common.academic_hub_paths import resolve_output_dir
-from common.frontmatter import parse_frontmatter, render_frontmatter
-from common.gemini_utils import (
+from core.env.academic_hub_paths import resolve_output_dir
+from core.env.frontmatter import parse_frontmatter, render_frontmatter
+from core.env.gemini_utils import (
     call_with_retries,
     get_gemini_client,
     load_dotenv_override,

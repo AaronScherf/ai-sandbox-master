@@ -22,7 +22,7 @@ from dataclasses import dataclass
 
 from google.genai import types
 
-from common.gemini_utils import call_with_retries
+from core.env.gemini_utils import call_with_retries
 from indexer.index_card import EMBEDDING_DIMENSIONALITY, EMBEDDING_MODEL, EMBEDDING_MODEL_ID, list_courses, load_shard
 
 
