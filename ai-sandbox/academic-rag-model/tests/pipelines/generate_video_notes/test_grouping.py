@@ -1,9 +1,9 @@
 import unittest
 from unittest.mock import patch
 
-from video_notes.grouping import embed_transcripts, group_videos, slugify
-from video_notes.transcribe import TranscriptSegment
-from video_notes.youtube_metadata import VideoMetadata
+from pipelines.generate_video_notes.grouping import embed_transcripts, group_videos, slugify
+from pipelines.generate_video_notes.transcribe import TranscriptSegment
+from pipelines.generate_video_notes.youtube_metadata import VideoMetadata
 
 
 def _video(video_id, title, playlist_id=None, playlist_title=None, playlist_index=None,
@@ -123,14 +123,14 @@ class TestClusterByContent(unittest.TestCase):
 
 
 class TestEmbedTranscripts(unittest.TestCase):
-    @patch("video_notes.grouping.call_ollama_embeddings")
+    @patch("pipelines.generate_video_notes.grouping.call_ollama_embeddings")
     def test_maps_each_video_to_its_embedding(self, mock_call):
         mock_call.return_value = [0.1, 0.2]
         transcripts = {"A": [TranscriptSegment(0.0, 1.0, "hello")]}
         result = embed_transcripts(transcripts, model="nomic-embed-text")
         self.assertEqual(result, {"A": [0.1, 0.2]})
 
-    @patch("video_notes.grouping.call_ollama_embeddings")
+    @patch("pipelines.generate_video_notes.grouping.call_ollama_embeddings")
     def test_failed_call_maps_to_none(self, mock_call):
         mock_call.return_value = None
         transcripts = {"A": [TranscriptSegment(0.0, 1.0, "hello")]}

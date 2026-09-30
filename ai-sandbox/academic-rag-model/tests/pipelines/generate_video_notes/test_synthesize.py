@@ -2,9 +2,9 @@ import unittest
 from unittest.mock import patch
 
 from core.env.ollama_utils import OLLAMA_TIMEOUT
-from video_notes.synthesize import build_synthesis_prompt, synthesize_group_note
-from video_notes.transcribe import TranscriptSegment
-from video_notes.youtube_metadata import VideoMetadata
+from pipelines.generate_video_notes.synthesize import build_synthesis_prompt, synthesize_group_note
+from pipelines.generate_video_notes.transcribe import TranscriptSegment
+from pipelines.generate_video_notes.youtube_metadata import VideoMetadata
 
 
 def _video(video_id, title, url):
@@ -50,15 +50,15 @@ class TestBuildSynthesisPrompt(unittest.TestCase):
 
 
 class TestSynthesizeGroupNote(unittest.TestCase):
-    @patch("video_notes.synthesize.call_ollama")
+    @patch("pipelines.generate_video_notes.synthesize.call_ollama")
     def test_returns_model_output_on_success(self, mock_call):
         mock_call.return_value = "# Notes\n..."
         self.assertEqual(synthesize_group_note("prompt", model="qwen2.5:7b-instruct"), "# Notes\n...")
 
-    @patch("video_notes.synthesize.call_ollama", return_value=None)
+    @patch("pipelines.generate_video_notes.synthesize.call_ollama", return_value=None)
     def test_returns_none_when_ollama_unreachable(self, mock_call):
         self.assertIsNone(synthesize_group_note("prompt"))
 
-    @patch("video_notes.synthesize.call_ollama", return_value=OLLAMA_TIMEOUT)
+    @patch("pipelines.generate_video_notes.synthesize.call_ollama", return_value=OLLAMA_TIMEOUT)
     def test_returns_none_on_timeout(self, mock_call):
         self.assertIsNone(synthesize_group_note("prompt"))

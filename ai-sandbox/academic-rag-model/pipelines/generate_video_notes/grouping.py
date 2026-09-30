@@ -16,7 +16,7 @@ import numpy as np
 from sklearn.cluster import AgglomerativeClustering
 
 from core.env.ollama_utils import call_ollama_embeddings
-from video_notes.youtube_metadata import VideoMetadata
+from pipelines.generate_video_notes.youtube_metadata import VideoMetadata
 
 _SERIES_PATTERN = re.compile(r"(?i)\b(?:lecture|lec|part|week)\.?\s*#?\s*(\d+)\b")
 _SLUG_STRIP_RE = re.compile(r"[^a-z0-9]+")

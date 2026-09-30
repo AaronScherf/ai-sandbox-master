@@ -5,7 +5,7 @@ import unittest
 from unittest.mock import MagicMock, patch
 
 from core.indexer.index_card import LECTURE_NOTE_DOC_TYPES
-from video_notes.note_indexing import index_group_note, write_group_note
+from pipelines.generate_video_notes.note_indexing import index_group_note, write_group_note
 
 
 class TestWriteGroupNote(unittest.TestCase):
@@ -21,7 +21,7 @@ class TestWriteGroupNote(unittest.TestCase):
 
 
 class TestIndexGroupNote(unittest.TestCase):
-    @patch("video_notes.note_indexing.reconcile_and_write")
+    @patch("pipelines.generate_video_notes.note_indexing.reconcile_and_write")
     def test_calls_reconcile_and_write_with_group_identity_file_id(self, mock_reconcile):
         mock_reconcile.return_value = {"file_id": "x"}
         with tempfile.TemporaryDirectory() as tmp:

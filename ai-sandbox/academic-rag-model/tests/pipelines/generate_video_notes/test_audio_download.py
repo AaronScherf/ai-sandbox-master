@@ -3,11 +3,11 @@ import tempfile
 import unittest
 from unittest.mock import MagicMock, patch
 
-from video_notes.audio_download import delete_audio, download_audio
+from pipelines.generate_video_notes.audio_download import delete_audio, download_audio
 
 
 class TestDownloadAudio(unittest.TestCase):
-    @patch("video_notes.audio_download.yt_dlp.YoutubeDL")
+    @patch("pipelines.generate_video_notes.audio_download.yt_dlp.YoutubeDL")
     def test_returns_expected_mp3_path_and_invokes_download(self, mock_ydl_cls):
         mock_ydl = MagicMock()
         mock_ydl_cls.return_value.__enter__.return_value = mock_ydl

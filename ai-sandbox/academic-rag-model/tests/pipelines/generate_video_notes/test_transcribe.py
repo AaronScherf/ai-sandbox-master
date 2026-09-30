@@ -3,7 +3,7 @@ import tempfile
 import unittest
 from unittest.mock import MagicMock, patch
 
-from video_notes.transcribe import TranscriptSegment, load_transcript, save_transcript, transcribe_audio
+from pipelines.generate_video_notes.transcribe import TranscriptSegment, load_transcript, save_transcript, transcribe_audio
 
 
 class TestTranscribeAudio(unittest.TestCase):

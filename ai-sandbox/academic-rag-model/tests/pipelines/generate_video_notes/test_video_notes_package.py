@@ -4,7 +4,7 @@ import unittest
 
 class TestVideoNotesPackageScaffolding(unittest.TestCase):
     def test_package_imports(self):
-        module = importlib.import_module("video_notes")
+        module = importlib.import_module("pipelines.generate_video_notes")
         self.assertIsNotNone(module)
 
     def test_yt_dlp_is_installed(self):

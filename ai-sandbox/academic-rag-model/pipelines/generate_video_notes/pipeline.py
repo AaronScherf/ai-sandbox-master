@@ -17,16 +17,16 @@ import os
 import shutil
 from urllib.parse import urlparse
 
-from video_notes.audio_download import delete_audio, download_audio
-from video_notes.grouping import embed_transcripts, group_videos
-from video_notes.note_indexing import index_group_note, write_group_note
-from video_notes.pipeline_state import (
+from pipelines.generate_video_notes.audio_download import delete_audio, download_audio
+from pipelines.generate_video_notes.grouping import embed_transcripts, group_videos
+from pipelines.generate_video_notes.note_indexing import index_group_note, write_group_note
+from pipelines.generate_video_notes.pipeline_state import (
     compute_member_content_hash, load_group_states, load_video_states,
     now_iso, save_group_states, save_video_state,
 )
-from video_notes.synthesize import build_synthesis_prompt, synthesize_group_note
-from video_notes.transcribe import load_transcript, save_transcript, transcribe_audio
-from video_notes.youtube_metadata import fetch_playlist_metadata, fetch_video_metadata
+from pipelines.generate_video_notes.synthesize import build_synthesis_prompt, synthesize_group_note
+from pipelines.generate_video_notes.transcribe import load_transcript, save_transcript, transcribe_audio
+from pipelines.generate_video_notes.youtube_metadata import fetch_playlist_metadata, fetch_video_metadata
 
 DEFAULT_ACADEMIC_HUB_ROOT = "../academic-hub"
 

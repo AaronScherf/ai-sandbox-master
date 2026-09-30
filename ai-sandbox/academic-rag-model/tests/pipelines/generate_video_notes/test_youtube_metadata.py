@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import MagicMock, patch
 
-from video_notes.youtube_metadata import VideoMetadata, fetch_playlist_metadata, fetch_video_metadata
+from pipelines.generate_video_notes.youtube_metadata import VideoMetadata, fetch_playlist_metadata, fetch_video_metadata
 
 _FAKE_VIDEO_INFO = {
     "id": "AAAA111", "title": "Lecture 3: Convexity", "channel_id": "UC123",
@@ -11,7 +11,7 @@ _FAKE_VIDEO_INFO = {
 
 
 class TestFetchVideoMetadata(unittest.TestCase):
-    @patch("video_notes.youtube_metadata.yt_dlp.YoutubeDL")
+    @patch("pipelines.generate_video_notes.youtube_metadata.yt_dlp.YoutubeDL")
     def test_extracts_fields_from_yt_dlp_info(self, mock_ydl_cls):
         mock_ydl = MagicMock()
         mock_ydl.extract_info.return_value = _FAKE_VIDEO_INFO
@@ -26,7 +26,7 @@ class TestFetchVideoMetadata(unittest.TestCase):
             playlist_index=3, upload_date="20260101", duration=3600.0,
         ))
 
-    @patch("video_notes.youtube_metadata.yt_dlp.YoutubeDL")
+    @patch("pipelines.generate_video_notes.youtube_metadata.yt_dlp.YoutubeDL")
     def test_missing_playlist_fields_default_to_none(self, mock_ydl_cls):
         mock_ydl = MagicMock()
         mock_ydl.extract_info.return_value = {"id": "BBBB222", "title": "Standalone video", "channel_id": "UC456"}
@@ -39,7 +39,7 @@ class TestFetchVideoMetadata(unittest.TestCase):
 
 
 class TestFetchPlaylistMetadata(unittest.TestCase):
-    @patch("video_notes.youtube_metadata.yt_dlp.YoutubeDL")
+    @patch("pipelines.generate_video_notes.youtube_metadata.yt_dlp.YoutubeDL")
     def test_returns_one_video_metadata_per_entry(self, mock_ydl_cls):
         mock_ydl = MagicMock()
         mock_ydl.extract_info.return_value = {

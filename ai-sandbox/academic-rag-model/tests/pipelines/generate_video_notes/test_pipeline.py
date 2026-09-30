@@ -3,10 +3,10 @@ import tempfile
 import unittest
 from unittest.mock import MagicMock, patch
 
-from video_notes.grouping import Group
-from video_notes.pipeline import _read_urls_file, run_pipeline
-from video_notes.transcribe import TranscriptSegment
-from video_notes.youtube_metadata import VideoMetadata
+from pipelines.generate_video_notes.grouping import Group
+from pipelines.generate_video_notes.pipeline import _read_urls_file, run_pipeline
+from pipelines.generate_video_notes.transcribe import TranscriptSegment
+from pipelines.generate_video_notes.youtube_metadata import VideoMetadata
 
 
 def _video(video_id, title="Lecture 1"):
@@ -18,15 +18,15 @@ def _video(video_id, title="Lecture 1"):
 
 
 class TestRunPipeline(unittest.TestCase):
-    @patch("video_notes.pipeline.index_group_note")
-    @patch("video_notes.pipeline.write_group_note")
-    @patch("video_notes.pipeline.synthesize_group_note")
-    @patch("video_notes.pipeline.embed_transcripts", return_value={})
-    @patch("video_notes.pipeline.group_videos")
-    @patch("video_notes.pipeline.transcribe_audio")
-    @patch("video_notes.pipeline.download_audio", return_value="/tmp/A.mp3")
-    @patch("video_notes.pipeline.delete_audio")
-    @patch("video_notes.pipeline.fetch_video_metadata")
+    @patch("pipelines.generate_video_notes.pipeline.index_group_note")
+    @patch("pipelines.generate_video_notes.pipeline.write_group_note")
+    @patch("pipelines.generate_video_notes.pipeline.synthesize_group_note")
+    @patch("pipelines.generate_video_notes.pipeline.embed_transcripts", return_value={})
+    @patch("pipelines.generate_video_notes.pipeline.group_videos")
+    @patch("pipelines.generate_video_notes.pipeline.transcribe_audio")
+    @patch("pipelines.generate_video_notes.pipeline.download_audio", return_value="/tmp/A.mp3")
+    @patch("pipelines.generate_video_notes.pipeline.delete_audio")
+    @patch("pipelines.generate_video_notes.pipeline.fetch_video_metadata")
     def test_synthesizes_and_indexes_a_new_group(
         self, mock_fetch, mock_delete, mock_download, mock_transcribe,
         mock_group, mock_embed, mock_synthesize, mock_write, mock_index,
@@ -48,10 +48,10 @@ class TestRunPipeline(unittest.TestCase):
         self.assertEqual(summary["videos_transcribed"], 1)
         mock_index.assert_called_once()
 
-    @patch("video_notes.pipeline.group_videos", return_value=[])
-    @patch("video_notes.pipeline.embed_transcripts", return_value={})
-    @patch("video_notes.pipeline.download_audio", side_effect=RuntimeError("network down"))
-    @patch("video_notes.pipeline.fetch_video_metadata")
+    @patch("pipelines.generate_video_notes.pipeline.group_videos", return_value=[])
+    @patch("pipelines.generate_video_notes.pipeline.embed_transcripts", return_value={})
+    @patch("pipelines.generate_video_notes.pipeline.download_audio", side_effect=RuntimeError("network down"))
+    @patch("pipelines.generate_video_notes.pipeline.fetch_video_metadata")
     def test_a_failed_video_is_recorded_and_does_not_raise(self, mock_fetch, mock_download, mock_embed, mock_group):
         mock_fetch.return_value = _video("A")
         with tempfile.TemporaryDirectory() as video_notes_root:
@@ -62,15 +62,15 @@ class TestRunPipeline(unittest.TestCase):
         self.assertEqual(summary["videos_failed"], 1)
         self.assertEqual(summary["videos_transcribed"], 0)
 
-    @patch("video_notes.pipeline.index_group_note")
-    @patch("video_notes.pipeline.write_group_note")
-    @patch("video_notes.pipeline.synthesize_group_note")
-    @patch("video_notes.pipeline.embed_transcripts", return_value={})
-    @patch("video_notes.pipeline.group_videos")
-    @patch("video_notes.pipeline.transcribe_audio")
-    @patch("video_notes.pipeline.download_audio", return_value="/tmp/A.mp3")
-    @patch("video_notes.pipeline.delete_audio")
-    @patch("video_notes.pipeline.fetch_video_metadata")
+    @patch("pipelines.generate_video_notes.pipeline.index_group_note")
+    @patch("pipelines.generate_video_notes.pipeline.write_group_note")
+    @patch("pipelines.generate_video_notes.pipeline.synthesize_group_note")
+    @patch("pipelines.generate_video_notes.pipeline.embed_transcripts", return_value={})
+    @patch("pipelines.generate_video_notes.pipeline.group_videos")
+    @patch("pipelines.generate_video_notes.pipeline.transcribe_audio")
+    @patch("pipelines.generate_video_notes.pipeline.download_audio", return_value="/tmp/A.mp3")
+    @patch("pipelines.generate_video_notes.pipeline.delete_audio")
+    @patch("pipelines.generate_video_notes.pipeline.fetch_video_metadata")
     def test_unchanged_group_is_not_resynthesized_on_second_run(
         self, mock_fetch, mock_delete, mock_download, mock_transcribe,
         mock_group, mock_embed, mock_synthesize, mock_write, mock_index,

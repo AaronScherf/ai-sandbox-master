@@ -1,11 +1,11 @@
 import tempfile
 import unittest
 
-from video_notes.pipeline_state import (
+from pipelines.generate_video_notes.pipeline_state import (
     compute_member_content_hash, load_group_states, load_video_states,
     save_group_states, save_video_state,
 )
-from video_notes.transcribe import TranscriptSegment
+from pipelines.generate_video_notes.transcribe import TranscriptSegment
 
 
 class TestVideoState(unittest.TestCase):
