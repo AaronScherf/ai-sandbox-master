@@ -5,7 +5,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from reconcile_needs_manual import (
+from tools.reconcile_needs_manual import (
     extract_preview,
     find_converted_md_files,
     is_confirmed_downloaded,
@@ -153,12 +153,12 @@ class TestMainChainsAudit(unittest.TestCase):
             with patch.object(sys, "argv", ["reconcile_needs_manual", "--articles-dir", tmp,
                                              "--index-root", tmp]), \
                  patch.dict(os.environ, {"OPENALEX_CONTACT_EMAIL": "me@example.com"}), \
-                 patch("reconcile_needs_manual.load_dotenv_override"), \
-                 patch("reconcile_needs_manual.audit_metadata.audit") as mock_audit:
+                 patch("tools.reconcile_needs_manual.load_dotenv_override"), \
+                 patch("tools.reconcile_needs_manual.audit_metadata.audit") as mock_audit:
                 mock_audit.return_value = {
                     "audited": 0, "folder_corrections": 0, "tag_syncs": 0, "flagged": 0, "skipped": 0,
                 }
-                import reconcile_needs_manual
+                import tools.reconcile_needs_manual as reconcile_needs_manual
                 reconcile_needs_manual.main()
                 mock_audit.assert_called_once_with(tmp, tmp, "me@example.com", recheck_all=False)
 
@@ -167,9 +167,9 @@ class TestMainChainsAudit(unittest.TestCase):
             env_without_mailto = {k: v for k, v in os.environ.items() if k != "OPENALEX_CONTACT_EMAIL"}
             with patch.object(sys, "argv", ["reconcile_needs_manual", "--articles-dir", tmp]), \
                  patch.dict(os.environ, env_without_mailto, clear=True), \
-                 patch("reconcile_needs_manual.load_dotenv_override"), \
-                 patch("reconcile_needs_manual.audit_metadata.audit") as mock_audit:
-                import reconcile_needs_manual
+                 patch("tools.reconcile_needs_manual.load_dotenv_override"), \
+                 patch("tools.reconcile_needs_manual.audit_metadata.audit") as mock_audit:
+                import tools.reconcile_needs_manual as reconcile_needs_manual
                 reconcile_needs_manual.main()
                 mock_audit.assert_not_called()
 

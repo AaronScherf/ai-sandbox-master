@@ -82,7 +82,7 @@ After you've downloaded some of `needs_manual_downloads.md`'s papers by
 hand and run `convert_journal_articles.py`, run:
 
 ```powershell
-python -m reconcile_needs_manual
+python -m tools.reconcile_needs_manual
 ```
 
 A manually-downloaded PDF's filename is arbitrary -- it never matches
@@ -104,7 +104,7 @@ papers are skipped on later runs. For a full forced re-audit (e.g.
 after fixing a flagged paper by hand):
 
 ```powershell
-python -m audit_metadata --recheck-all
+python -m tools.audit_metadata --recheck-all
 ```
 
 A paper can stay listed even with a real PDF downloaded if its content

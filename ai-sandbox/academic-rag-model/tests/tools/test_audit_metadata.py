@@ -2,7 +2,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from audit_metadata import check_authors, check_title, resolve_paper_paths, select_audit_targets
+from tools.audit_metadata import check_authors, check_title, resolve_paper_paths, select_audit_targets
 
 
 class TestSelectAuditTargets(unittest.TestCase):
@@ -94,7 +94,7 @@ class TestCheckAuthors(unittest.TestCase):
 from unittest.mock import patch
 
 from core.indexer.index_card import compute_file_id, load_courses, load_shard, save_shard
-from audit_metadata import apply_folder_correction, check_folder
+from tools.audit_metadata import apply_folder_correction, check_folder
 
 
 def _fake_work(concepts):
@@ -104,14 +104,14 @@ def _fake_work(concepts):
 
 
 class TestCheckFolder(unittest.TestCase):
-    @patch("audit_metadata.resolve_work_by_doi")
+    @patch("tools.audit_metadata.resolve_work_by_doi")
     def test_no_mismatch_when_folder_already_matches(self, mock_resolve):
         mock_resolve.return_value = _fake_work(["Business"])
         result = check_folder("10.1/abc", {"folder": "business"}, "me@example.com")
         self.assertFalse(result["mismatch"])
         self.assertEqual(result["new_folder"], "business")
 
-    @patch("audit_metadata.resolve_work_by_doi")
+    @patch("tools.audit_metadata.resolve_work_by_doi")
     def test_mismatch_when_concept_now_differs(self, mock_resolve):
         mock_resolve.return_value = _fake_work(["Sociology"])
         result = check_folder("10.1/abc", {"folder": "grasp"}, "me@example.com")
@@ -123,7 +123,7 @@ class TestCheckFolder(unittest.TestCase):
         self.assertFalse(result["mismatch"])
         self.assertIsNotNone(result["error"])
 
-    @patch("audit_metadata.resolve_work_by_doi")
+    @patch("tools.audit_metadata.resolve_work_by_doi")
     def test_error_when_lookup_fails(self, mock_resolve):
         mock_resolve.return_value = None
         result = check_folder("10.1/abc", {"folder": "misc"}, "me@example.com")
@@ -177,7 +177,7 @@ class TestApplyFolderCorrection(unittest.TestCase):
             self.assertTrue(new_md.exists())
 
 
-from audit_metadata import apply_tag_sync, check_tag_sync
+from tools.audit_metadata import apply_tag_sync, check_tag_sync
 
 
 class TestCheckTagSync(unittest.TestCase):
@@ -251,7 +251,7 @@ class TestApplyTagSync(unittest.TestCase):
 
 
 from discovery.discover_journal_articles.manifest import load_manifest, manifest_path, record_outcome, save_manifest
-from audit_metadata import audit
+from tools.audit_metadata import audit
 
 
 def _write_pdf_and_md(folder: Path, stem: str, md_text: str) -> tuple[Path, Path]:
@@ -265,7 +265,7 @@ def _write_pdf_and_md(folder: Path, stem: str, md_text: str) -> tuple[Path, Path
 
 
 class TestAudit(unittest.TestCase):
-    @patch("audit_metadata.resolve_work_by_doi")
+    @patch("tools.audit_metadata.resolve_work_by_doi")
     def test_clean_paper_gets_audited_with_no_flags(self, mock_resolve):
         with tempfile.TemporaryDirectory() as tmp:
             tmp = Path(tmp)
@@ -293,7 +293,7 @@ class TestAudit(unittest.TestCase):
             self.assertIn("audited_at", updated["10.1/abc"])
             self.assertNotIn("audit_flags", updated["10.1/abc"])
 
-    @patch("audit_metadata.resolve_work_by_doi")
+    @patch("tools.audit_metadata.resolve_work_by_doi")
     def test_title_mismatch_gets_flagged_and_written_to_worklist(self, mock_resolve):
         with tempfile.TemporaryDirectory() as tmp:
             tmp = Path(tmp)
@@ -333,7 +333,7 @@ class TestAudit(unittest.TestCase):
             result = audit(tmp, str(tmp), "me@example.com", recheck_all=False)
             self.assertEqual(result["audited"], 0)
 
-    @patch("audit_metadata.resolve_work_by_doi")
+    @patch("tools.audit_metadata.resolve_work_by_doi")
     def test_folder_mismatch_moves_files_and_counts_correction(self, mock_resolve):
         with tempfile.TemporaryDirectory() as tmp:
             tmp = Path(tmp)

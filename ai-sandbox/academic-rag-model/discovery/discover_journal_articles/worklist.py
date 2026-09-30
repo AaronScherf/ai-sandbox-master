@@ -116,7 +116,7 @@ def write_metadata_audit_flags_worklist(manifest: dict, articles_dir) -> Path:
         "",
         "audit_metadata.py found a mismatch it can't safely auto-correct --",
         "each needs a human look. Resolve by hand (fix the sidecar, re-file,",
-        "whatever's right), then run `python -m audit_metadata --recheck-all`",
+        "whatever's right), then run `python -m tools.audit_metadata --recheck-all`",
         "to clear the flag once it no longer reproduces. Checking a box here",
         "only tracks your own review progress; it does not clear the flag.",
         "",

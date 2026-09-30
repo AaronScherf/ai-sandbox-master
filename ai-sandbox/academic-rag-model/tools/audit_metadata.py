@@ -11,7 +11,7 @@ read-only. Design: docs/superpowers/specs/2026-09-02-metadata-folder-audit-desig
 Two ways to run this: automatically, chained onto the end of
 reconcile_needs_manual.py's own run (the normal way this runs day to
 day); or standalone for a forced full re-audit:
-    python -m audit_metadata --recheck-all
+    python -m tools.audit_metadata --recheck-all
 """
 from __future__ import annotations
 

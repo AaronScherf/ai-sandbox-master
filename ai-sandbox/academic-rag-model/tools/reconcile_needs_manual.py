@@ -16,7 +16,7 @@ step (skipped with a warning if OPENALEX_CONTACT_EMAIL isn't set) --
 see docs/superpowers/specs/2026-09-02-metadata-folder-audit-design.md.
 
 Run after convert_journal_articles.py, from the academic-rag-model root:
-    python -m reconcile_needs_manual
+    python -m tools.reconcile_needs_manual
 """
 from __future__ import annotations
 
@@ -25,7 +25,7 @@ import os
 import re
 from pathlib import Path
 
-import audit_metadata
+from tools import audit_metadata
 from core.env.gemini_utils import load_dotenv_override
 from discovery.discover_journal_articles.manifest import load_manifest, manifest_path, save_manifest
 from discovery.discover_journal_articles.text_match import normalize
