@@ -2,7 +2,7 @@
 
 A cost-routed pipeline that turns short, unstructured academic PDFs — TA
 notes, problem sets, exams, handwritten scans, and (via
-[`journal_articles/`](../journal_articles/), which reuses this unchanged)
+[`convert_journal_articles/`](../convert_journal_articles/), which reuses this unchanged)
 journal articles — into clean, LLM-ready Markdown. Runs entirely locally, no
 GPU or VM needed. See [Full usage guide](#full-usage-guide) below for the
 complete walkthrough (prerequisites, CLI, and how the routing tiers work);
@@ -20,13 +20,13 @@ this section is a quick orientation.
   with a small sliding window of already-transcribed pages as context.
   `known_doc_types` is a parameter here (default: `academic-hub`'s own
   vocabulary), so a different corpus can classify into its own document
-  types without forking this function — see `journal_articles/convert_journal_articles.py`
+  types without forking this function — see `convert_journal_articles/convert_journal_articles.py`
   for the one other real caller.
 
-Depends on `common/` and `indexer/` (for its per-file indexing hook, via
-`_write_markdown_and_index`). `postprocessing/postprocess_notes.py` is a
+Depends on `core/env/` and `core/indexer/` (for its per-file indexing hook, via
+`_write_markdown_and_index`). `postprocess_notes/postprocess_notes.py` is a
 downstream correction pass over this pipeline's own output — see the root
-[`README.md`](../README.md) for the full dependency graph.
+[`README.md`](../../README.md) for the full dependency graph.
 
 - `transcribe_excalidraw.py` (+ `excalidraw_chunking.py`) — a separate
   pipeline for handwritten Excalidraw canvases (`.excalidraw.md` +
@@ -49,9 +49,9 @@ downstream correction pass over this pipeline's own output — see the root
   sources (PDFs, Excalidraw `.svg`/`.png` exports, `.docx`/`.pptx`) from
   `academic_notes/` (kept lightweight for git/tablet sync) to
   `academic_resources/`, mirroring each file's `<course>/<category>/`
-  relative path via `common/academic_hub_paths.py`. `.md` files (scene
+  relative path via `core/env/academic_hub_paths.py`. `.md` files (scene
   files, `processed_outputs/`) never move. Resyncs the source index
-  afterward via `indexer.index_search.rebuild()`'s existing cheap
+  afterward via `core.indexer.index_search.rebuild()`'s existing cheap
   "file moved, content unchanged" path. See
   `docs/superpowers/specs/2026-09-21-source-asset-relocation-design.md`
   for the full design, including why `transcribe_notes.py`/

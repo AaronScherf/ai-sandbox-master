@@ -97,7 +97,7 @@ def write_snowball_candidates_worklist(manifest: dict, articles_dir) -> Path:
         "--relevance-prompt. Nothing here has been downloaded yet. Check the",
         "papers you actually want, then run:",
         "",
-        "    python -m journal_discovery.snowball confirm",
+        "    python -m discovery.discover_journal_articles.snowball confirm",
         "",
         "to fetch just those.",
     ]

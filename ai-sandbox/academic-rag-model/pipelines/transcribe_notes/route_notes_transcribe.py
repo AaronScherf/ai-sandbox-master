@@ -11,7 +11,7 @@ matching pipeline's own per-file function -- .pdf to
 transcribe_notes.process_pdf, .excalidraw.md (+ its .png/.svg sibling) to
 transcribe_excalidraw.process_excalidraw_note. No LLM makes the routing
 decision: it's pure extension/filename dispatch, so this is safe to run
-unattended (cron, or a plain `python -m notes.route_notes_transcribe` call)
+unattended (cron, or a plain `python -m pipelines.transcribe_notes.route_notes_transcribe` call)
 without an agent deciding what to run each time. After dispatch, re-checks
 that each expected output file actually landed on disk rather than
 trusting a "no exception raised" result.
@@ -246,7 +246,7 @@ def main():
     from core.env.gemini_utils import get_gemini_client, load_dotenv_override
     load_dotenv_override()
 
-    academic_hub_dir = Path(__file__).resolve().parent.parent.parent / "academic-hub"
+    academic_hub_dir = Path(__file__).resolve().parent.parent.parent.parent / "academic-hub"
     plan = build_plan(str(academic_hub_dir), courses=args.course, force=args.force)
     print_summary(plan)
 

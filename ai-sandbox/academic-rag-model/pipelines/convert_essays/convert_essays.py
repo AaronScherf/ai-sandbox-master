@@ -150,7 +150,7 @@ def _index_essay(docx_path: str, md_path: str, markdown: str, index_root: str, c
         )
     except Exception as err:
         print(f"  WARNING: source-indexer update failed for {md_path} ({err}); "
-              f"rerun `python -m indexer.index_search rebuild --academic-hub {index_root}` "
+              f"rerun `python -m core.indexer.index_search rebuild --academic-hub {index_root}` "
               f"later to catch it up.")
 
 
@@ -189,7 +189,7 @@ def main():
         description="Convert .docx essays into Markdown. Runs locally -- no GCP VM, no API calls."
     )
     default_essays_dir = (
-        Path(__file__).resolve().parent.parent.parent
+        Path(__file__).resolve().parent.parent.parent.parent
         / "research" / "independent-research" / "notes" / "application_essays"
     )
     parser.add_argument(
@@ -208,7 +208,7 @@ def main():
         "--dry-run", action="store_true",
         help="List which .docx files would be converted without actually converting them.",
     )
-    default_index_root = Path(__file__).resolve().parent.parent.parent / "research"
+    default_index_root = Path(__file__).resolve().parent.parent.parent.parent / "research"
     parser.add_argument(
         "--index-root", default=str(default_index_root),
         help="Root for this corpus's own source-indexer .index/ (sibling of academic-hub/'s own "

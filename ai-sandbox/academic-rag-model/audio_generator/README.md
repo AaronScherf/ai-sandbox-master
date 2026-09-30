@@ -5,7 +5,7 @@ narration for passive/commute listening — no GPU. Discovery, cleaning, and
 TTS synthesis are fully offline; LaTeX narration (see below) is the one
 step that calls a cloud API (Gemini).
 
-Spec: `docs/superpowers/specs/2026-09-06-audio-generator-design.md`
+Spec: `docs/superpowers/specs/audio_generator/2026-09-06-audio-generator-design.md`
 
 ## Usage
 
@@ -115,7 +115,7 @@ episode — this never splits inside one section.
 
 `textbook` content is unaffected (still exactly one `<name>.mp3` per
 source) — it has its own separate, more sophisticated chapter-boundary
-system (`textbook/chapter_index.py`) that's a better fit than reusing
+system (`pipelines/convert_textbook/chapter_index.py`) that's a better fit than reusing
 this header-based approach; reusing it here is a separate, not-yet-started
 investigation.
 
@@ -143,5 +143,5 @@ to delete manually.
 
 Journal-articles, auto-triggering from other pipelines, reading
 image/figure descriptions aloud, indexer/RAG registration, and
-`textbook` chapter-boundary reuse are all explicitly out of scope for this
+`convert_textbook` chapter-boundary reuse are all explicitly out of scope for this
 version.

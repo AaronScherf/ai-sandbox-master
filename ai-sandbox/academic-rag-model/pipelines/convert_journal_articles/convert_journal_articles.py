@@ -87,17 +87,17 @@ def _page_count(pdf_path: str) -> int | None:
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Convert journal-article PDFs into Markdown, reusing notes/transcribe_notes.py's tiered pipeline."
+        description="Convert journal-article PDFs into Markdown, reusing transcribe_notes/transcribe_notes.py's tiered pipeline."
     )
     default_articles_dir = (
-        Path(__file__).resolve().parent.parent.parent / "research" / "journal-articles"
+        Path(__file__).resolve().parent.parent.parent.parent / "research" / "journal-articles"
     )
     parser.add_argument(
         "--articles-dir", default=str(default_articles_dir),
         help=f"Directory containing journal-article PDFs, searched recursively. Default: {default_articles_dir}",
     )
     parser.add_argument("--file", default=None, help="Only process this one PDF filename (default: every PDF found).")
-    default_index_root = Path(__file__).resolve().parent.parent.parent / "research"
+    default_index_root = Path(__file__).resolve().parent.parent.parent.parent / "research"
     parser.add_argument(
         "--index-root", default=str(default_index_root),
         help=f"Root for this corpus's own source-indexer .index/ (course is derived from each PDF's "

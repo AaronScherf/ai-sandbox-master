@@ -3,15 +3,15 @@
 The layer that turns a growing pile of converted textbooks, notes, essays, and
 journal articles into a searchable corpus. Given a query like "teach me about
 linear algebra," this is what ranks the most relevant files — the
-source-selection layer underneath the [RAG tutoring agent](../rag/), not the
-tutor itself. Every other conversion pipeline in this repo (`textbook/`,
-`notes/`, `essays/`, `journal_articles/`) hooks into this module so a newly
+source-selection layer underneath the [RAG tutoring agent](../../agent/rag/), not the
+tutor itself. Every other conversion pipeline in this repo (`convert_textbook/`,
+`transcribe_notes/`, `convert_essays/`, `convert_journal_articles/`) hooks into this module so a newly
 converted document gets indexed as a normal side effect of that pipeline
 running, not a separate step someone has to remember.
 
 Run any script here as a module from the `academic-rag-model/` root, e.g.
-`python -m indexer.index_search query "..."` — see the root
-[`README.md`](../README.md) for why (package-qualified imports need
+`python -m core.indexer.index_search query "..."` — see the root
+[`README.md`](../../README.md) for why (package-qualified imports need
 `academic-rag-model/` on `sys.path`).
 
 ## Key files
@@ -20,7 +20,7 @@ Run any script here as a module from the `academic-rag-model/` root, e.g.
   source file's own bytes, so a card survives being moved or renamed), plus
   free course-level rollups computed from existing card data. `known_doc_types`
   is a parameter here, not a hardcoded constant, so a non-academic-hub corpus
-  (e.g. `essays/`, `journal_articles/`) can classify into its own vocabulary
+  (e.g. `convert_essays/`, `convert_journal_articles/`) can classify into its own vocabulary
   instead of being force-fit into `textbook`/`problem_set`/`ta_notes`/
   `handwritten_notes`. `source_pdf_path` is the identity anchor
   (`compute_file_id()` hashes its bytes); `source_asset_path` (2026-09-21)
@@ -56,7 +56,7 @@ Run any script here as a module from the `academic-rag-model/` root, e.g.
 
 ## Design docs
 
-`docs/superpowers/specs/2026-08-27-source-indexer-design.md` for the schema;
-`docs/status/2026-08-29-source-indexer-status.md` for narrative history — real bugs
+`docs/superpowers/specs/indexer/2026-08-27-source-indexer-design.md` for the schema;
+`docs/status/indexer/2026-08-29-source-indexer-status.md` for narrative history — real bugs
 found and fixed, and the generalizations that let a second and third corpus
 (essays, journal articles) reuse this unchanged.

@@ -74,7 +74,7 @@ def main():
     parser.add_argument("--no-reindex", action="store_true", help="Skip the rebuild() call after moving files.")
     args = parser.parse_args()
 
-    academic_hub_dir = Path(__file__).resolve().parent.parent.parent / "academic-hub"
+    academic_hub_dir = Path(__file__).resolve().parent.parent.parent.parent / "academic-hub"
     candidates = find_migration_candidates(str(academic_hub_dir), course=args.course)
     if not candidates:
         print("Nothing to migrate.")
@@ -88,7 +88,7 @@ def main():
         return
 
     if args.no_reindex:
-        print("Skipping reindex (--no-reindex). Run `python -m indexer.index_search rebuild` when ready.")
+        print("Skipping reindex (--no-reindex). Run `python -m core.indexer.index_search rebuild` when ready.")
         return
 
     from core.env.gemini_utils import get_gemini_client, load_dotenv_override
@@ -97,7 +97,7 @@ def main():
     client = get_gemini_client()
     if client is None:
         print("WARNING: could not get a Gemini client; skipping reindex. "
-              "Run `python -m indexer.index_search rebuild` by hand.")
+              "Run `python -m core.indexer.index_search rebuild` by hand.")
         sys.exit(1)
     stats = rebuild(str(academic_hub_dir), client, course=args.course)
     print(f"Reindex complete: {stats}")

@@ -5,9 +5,9 @@ fetch metadata -> download+transcribe -> group -> synthesize -> save+index.
 Spec: docs/superpowers/specs/2026-09-06-video-lecture-notes-design.md.
 
 Run as a module from academic-rag-model/:
-    python -m video_notes.pipeline --course econometrics --urls URL1 URL2
-    python -m video_notes.pipeline --course math-camp --playlist PLAYLIST_URL
-    python -m video_notes.pipeline --course math-camp --urls-file video_notes/urls.txt
+    python -m pipelines.generate_video_notes.pipeline --course econometrics --urls URL1 URL2
+    python -m pipelines.generate_video_notes.pipeline --course math-camp --playlist PLAYLIST_URL
+    python -m pipelines.generate_video_notes.pipeline --course math-camp --urls-file pipelines/generate_video_notes/urls.txt
 """
 from __future__ import annotations
 

@@ -156,7 +156,7 @@ def extract_problems(
                 result = _extract_file(academic_hub_root, course_name, card, client)
             except Exception as err:
                 print(f"WARNING: extraction failed for {card['path']} ({err}); "
-                      f"rerun `python -m problem_corpus.extractor extract` later to retry.")
+                      f"rerun `python -m agent.problem_corpus.extractor extract` later to retry.")
                 stats["failed"] += 1
                 continue
 

@@ -1374,7 +1374,7 @@ def main():
 
     load_dotenv_override()
 
-    academic_hub_dir = Path(__file__).resolve().parent.parent.parent / "academic-hub"
+    academic_hub_dir = Path(__file__).resolve().parent.parent.parent.parent / "academic-hub"
     notes_dir = academic_hub_dir / args.notes_subdir
     pdf_paths = discover_pdf_files(str(notes_dir), args.file)
     if not pdf_paths:

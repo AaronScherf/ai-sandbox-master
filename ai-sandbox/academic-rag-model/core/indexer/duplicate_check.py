@@ -443,7 +443,7 @@ def copy_duplicate_artifacts(
 
 
 def _default_academic_hub_root() -> str:
-    return str(Path(__file__).resolve().parent.parent.parent / "academic-hub")
+    return str(Path(__file__).resolve().parent.parent.parent.parent / "academic-hub")
 
 
 def _prompt_yes_no(pdf_filename: str, candidate: dict) -> str:
@@ -626,7 +626,7 @@ def _print_report(result: dict) -> None:
         for entry in result["auto_skipped_pending_confirmation"]:
             print(f"    - {entry['pdf_filename']}\n      -> {entry['matched_course']}: {entry['matched_title']} "
                   f"(score {entry['score']:.2f}, incoming file_id={entry['incoming_file_id']})")
-        print("    Review with: python -m indexer.duplicate_check --review-pending")
+        print("    Review with: python -m core.indexer.duplicate_check --review-pending")
     if result["unresolved"]:
         print(f"  Needs confirmation -- rerun with --resolve ({len(result['unresolved'])}):")
         for item in result["unresolved"]:
@@ -642,8 +642,8 @@ def _print_pending_confirmations(entries: list[dict]) -> None:
         print(f"      -> {entry.get('matched_course', '?')}: {entry.get('matched_title', '?')} "
               f"(score {entry.get('score', 0):.2f}, incoming file_id={entry.get('incoming_file_id', '?')})")
     if entries:
-        print("  Confirm with: python -m indexer.duplicate_check --confirm-pending FILE_ID")
-        print("  Reject with:  python -m indexer.duplicate_check --reject-pending FILE_ID")
+        print("  Confirm with: python -m core.indexer.duplicate_check --confirm-pending FILE_ID")
+        print("  Reject with:  python -m core.indexer.duplicate_check --reject-pending FILE_ID")
 
 
 def write_to_convert_file(path: str, to_convert: list[str]) -> None:

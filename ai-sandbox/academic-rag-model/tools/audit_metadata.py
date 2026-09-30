@@ -251,8 +251,8 @@ def audit(articles_dir, index_root, mailto: str, recheck_all: bool = False) -> d
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    default_articles_dir = Path(__file__).resolve().parent.parent / "research" / "journal-articles"
-    default_index_root = Path(__file__).resolve().parent.parent / "research"
+    default_articles_dir = Path(__file__).resolve().parent.parent.parent / "research" / "journal-articles"
+    default_index_root = Path(__file__).resolve().parent.parent.parent / "research"
     parser.add_argument("--articles-dir", default=str(default_articles_dir))
     parser.add_argument("--index-root", default=str(default_index_root))
     parser.add_argument("--recheck-all", action="store_true")

@@ -1,6 +1,6 @@
 """
 discover.py
-CLI entry point per spec S2/S4: python -m journal_discovery.discover.
+CLI entry point per spec S2/S4: python -m discovery.discover_journal_articles.discover.
 Wires discovery -> relevance scoring -> dedup -> access -> topic routing
 -> sidecar -> manifest -> optional Zotero sync, in that order. Never
 imports indexer/ and never invokes convert_journal_articles.py -- a PDF
@@ -117,7 +117,7 @@ def main():
                               "Columbia account from automated-abuse detection. Does not affect OA/arXiv "
                               "downloads, which carry none of that risk and are never paced.")
     parser.add_argument("--zotero", action="store_true", help="Also sync fetched papers into Zotero.")
-    default_articles_dir = Path(__file__).resolve().parent.parent.parent / "research" / "journal-articles"
+    default_articles_dir = Path(__file__).resolve().parent.parent.parent.parent / "research" / "journal-articles"
     parser.add_argument("--articles-dir", default=str(default_articles_dir))
     args = parser.parse_args()
 

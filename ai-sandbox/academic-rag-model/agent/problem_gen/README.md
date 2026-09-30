@@ -8,7 +8,7 @@ embeddings — no separate setup), with local Ollama available as an
 opt-in, fully free/private alternative
 (`PROBLEMGEN_BACKEND=ollama`). 2026-09-06, defaulted to Gemini after a
 real feasibility spike (see
-`../docs/status/2026-09-05-problem-generation-status.md`): local
+`../../docs/status/agent/problem_gen/2026-09-05-problem-generation-status.md`): local
 `qwen2-math:7b` never once produced an accepted result across two
 independent real trials on a technique-constrained request, while
 `gemini-3.1-flash-lite` passed 9/9 across three different topics in
@@ -35,7 +35,7 @@ needed.
   (`doc_type="problem_set"`, the style/difficulty anchor) and, if
   available, their own textbook content on the topic
   (`doc_type="textbook"`, the correctness anchor) via the
-  [Source Indexer](../indexer/)'s `search_passages()`, resolving which
+  [Source Indexer](../../core/indexer/)'s `search_passages()`, resolving which
   course to search by matching the question text against the corpus's
   known course names when a course isn't given explicitly. Returns
   `None` (no hard failure) when there are no style examples on this
@@ -64,7 +64,7 @@ needed.
     with a working technique-check and 5 attempts). Kept available for
     fully free/private generation, not as the recommended default.
   - Either backend degrades to returning `None` with a printed warning
-    if unreachable — see `../docs/status/2026-09-05-problem-generation-status.md`
+    if unreachable — see `../../docs/status/agent/problem_gen/2026-09-05-problem-generation-status.md`
     for the full real-corpus validation history of both paths.
 
 Nothing is written to disk — every request generates a fresh problem,
@@ -72,4 +72,4 @@ deliberately uncached (a repeated "give me another" should be a
 genuinely different problem, not a cache hit).
 
 See the design spec for the full reasoning:
-`../docs/superpowers/specs/2026-09-03-problem-generation-design.md`.
+`../../docs/superpowers/specs/agent/problem_gen/2026-09-03-problem-generation-design.md`.

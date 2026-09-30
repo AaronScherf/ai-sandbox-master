@@ -32,11 +32,11 @@ replacement for it.
   `academic_notes/<course>/textbooks/processed_outputs/<Book>/` path so it
   syncs to the tablet; everything else stays in `academic_resources/`.
 
-Deploys alongside `common/` and `indexer/` (which it imports) to the GPU VM —
-see `marker_setup.sh` and the root [`README.md`](../README.md)'s repository
+Deploys alongside `core/env/` and `core/indexer/` (which it imports) to the GPU VM —
+see `marker_setup.sh` and the root [`README.md`](../../README.md)'s repository
 layout for the full picture. Only files actually sitting in `academic-hub/`'s
 own folder structure ever run through this pipeline — other subprojects
-(`notes/`, `essays/`, `journal_articles/`) deliberately never auto-escalate
+(`transcribe_notes/`, `convert_essays/`, `convert_journal_articles/`) deliberately never auto-escalate
 here.
 
 ## Full usage guide
@@ -130,7 +130,7 @@ a *different* course's textbook folder (some reading lists overlap across
 courses). This is local and free: no GPU, no VM, no LLM calls.
 
 ```bash
-python -m indexer.duplicate_check --textbook-subdir "$TEXTBOOK_SUBDIR" \
+python -m core.indexer.duplicate_check --textbook-subdir "$TEXTBOOK_SUBDIR" \
     --emit-to-convert /tmp/to_convert.txt
 ```
 
@@ -147,7 +147,7 @@ match is:
   book just needs a re-run, while converting a real duplicate wastes real
   VM time). Review anything auto-skipped this way at your convenience:
   ```bash
-  python -m indexer.duplicate_check --review-pending
+  python -m core.indexer.duplicate_check --review-pending
   ```
   and resolve each entry with `--confirm-pending <new_card_file_id>` (it
   really was a duplicate) or `--reject-pending <new_card_file_id>` (it
@@ -181,13 +181,13 @@ check ran, and the book you just skipped would be uploaded and
 reconverted anyway. The emitted file is the only list that reflects the
 check's decisions.
 
-See `docs/superpowers/specs/2026-09-17-cross-course-duplicate-textbook-detection-design.md`
+See `docs/superpowers/specs/indexer/2026-09-17-cross-course-duplicate-textbook-detection-design.md`
 for the full design (matching tiers, scoring, dismissal persistence).
 
 One note for later: books resolved as duplicates get **clone** index
 cards (marked with a `duplicate_of_file_id` field), which sit outside
 `index_search.py`'s normal one-card-per-file-hash identity assumption.
-`python -m indexer.index_search rebuild` (with or without `--prune`) is
+`python -m core.indexer.index_search rebuild` (with or without `--prune`) is
 safe to run over a course that has received clones -- it recognizes
 `duplicate_of_file_id` and skips re-hashing the clone's PDF entirely
 rather than colliding with the canonical course's own card. (This was a
@@ -360,10 +360,10 @@ then substitute that path (e.g. `/home/<you>/`) for every `~/` in the
 doc -- those run through the remote shell, which expands `~` correctly
 regardless of platform; only `scp`'s own destination argument is affected).
 
-`common/`, `indexer/`, and `textbook/` are copied recursively so `convert_textbook.py`'s package-qualified
-imports (`from common.gemini_utils import ...`, `from indexer.index_card import ...`, `from pipelines.convert_textbook.page_markers import ...`)
-resolve on the VM the same way they do locally. `notes/`, `postprocessing/`, and `rag/` aren't needed here --
-nothing under `textbook/` imports them. (This also fixes a real, previously-undocumented gap: `index_card.py`
+`core/` (covering `core/env/` and `core/indexer/`) and `pipelines/convert_textbook/` are copied recursively so `convert_textbook.py`'s package-qualified
+imports (`from core.env.gemini_utils import ...`, `from core.indexer.index_card import ...`, `from pipelines.convert_textbook.page_markers import ...`)
+resolve on the VM the same way they do locally. `pipelines/transcribe_notes/`, `pipelines/postprocess_notes/`, and `agent/rag/` aren't needed here --
+nothing under `pipelines/convert_textbook/` imports them. (This also fixes a real, previously-undocumented gap: `index_card.py`
 and `gemini_utils.py` were never actually transferred to the VM by the old per-file `scp` line above, despite
 `convert_textbook.py` importing both.)
 
@@ -372,10 +372,10 @@ source-indexer hook (the step that writes searchable `.index/` cards as
 a side effect of conversion) will fail on every book with `ERROR:
 GEMINI_API_KEY not set` and silently degrade to "conversion succeeded,
 indexing skipped" -- confirmed live across a real 6-book run, requiring
-a manual `python -m indexer.index_search rebuild --course <course>`
-afterward to catch up. `gemini_utils.py` looks for `.env` exactly three
+a manual `python -m core.indexer.index_search rebuild --course <course>`
+afterward to catch up. `gemini_utils.py` looks for `.env` exactly four
 parents above itself, which on the VM is the home directory (since
-`common/gemini_utils.py` lives under `~/academic-rag-model/`). Copy only
+`core/env/gemini_utils.py` lives under `~/academic-rag-model/`). Copy only
 the one line you need, not your whole local `.env` -- no reason to put
 unrelated secrets (`PAID_GEMINI_KEY`, `CORE_API_KEY`, etc.) on a cloud VM
 that doesn't use them:
@@ -617,7 +617,7 @@ gcloud storage rm -r "gs://$BUCKET_NAME/processed_outputs/*" "gs://$BUCKET_NAME/
 
 ##### 3.4c: Download RAM-sizing logs and update the local dataset
 
-Optional, but worth doing every run: `convert_textbook.py` and `start_conversion.sh` both log system RAM usage per book as they go (see `docs/superpowers/specs/2026-09-20-vm-ram-sizing-logging-design.md`) -- this step pulls those logs down and folds them into a small, growing local dataset (`docs/status/vm_sizing_log.jsonl`) correlating each book's page count/file size with the peak RAM it actually used. Nothing reads this dataset automatically yet; it exists so a future machine-type-sizing decision can be based on real numbers instead of guesswork.
+Optional, but worth doing every run: `convert_textbook.py` and `start_conversion.sh` both log system RAM usage per book as they go (see `docs/superpowers/specs/convert_textbook/2026-09-20-vm-ram-sizing-logging-design.md`) -- this step pulls those logs down and folds them into a small, growing local dataset (`docs/status/vm_sizing_log.jsonl`) correlating each book's page count/file size with the peak RAM it actually used. Nothing reads this dataset automatically yet; it exists so a future machine-type-sizing decision can be based on real numbers instead of guesswork.
 
 This is best-effort -- if either command below fails (e.g. the VM already looks unhealthy), don't let it block emptying the bucket or deleting the VM; just skip it and move on.
 
@@ -684,7 +684,7 @@ cd academic-rag-model
 pip install google-genai python-dotenv numpy
 ```
 
-(`numpy` is a transitive dependency via `indexer/index_card.py`, which `describe_images.py` imports -- easy to miss since neither `describe_images.py` nor its own docstring mention it directly. Confirmed missing live in a docker-container run of this step.)
+(`numpy` is a transitive dependency via `core/indexer/index_card.py`, which `describe_images.py` imports -- easy to miss since neither `describe_images.py` nor its own docstring mention it directly. Confirmed missing live in a docker-container run of this step.)
 
 Requires a `GEMINI_API_KEY` in your `.env` (see `.env.example` -- a free key from aistudio.google.com/apikey works, or enable billing on that key for higher rate limits; either way this step's own API cost is negligible, well under $1 even for an image-heavy book).
 

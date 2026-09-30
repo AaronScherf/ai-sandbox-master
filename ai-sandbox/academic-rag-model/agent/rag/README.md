@@ -8,12 +8,12 @@ function other code can call.
 Run as a module from the `academic-rag-model/` root:
 
 ```powershell
-python -m rag.rag_agent --root ../academic-hub
+python -m agent.rag.rag_agent --root ../academic-hub
 ```
 
 `--root` is repeatable (`--root academic-hub --root research`), so one
 conversation can be grounded in passages from more than one corpus at once —
-see the [Source Indexer](../indexer/)'s multi-root search this builds on.
+see the [Source Indexer](../../core/indexer/)'s multi-root search this builds on.
 
 ## Key file
 
@@ -30,14 +30,14 @@ see the [Source Indexer](../indexer/)'s multi-root search this builds on.
   *only* the retrieved excerpts — citing each one inline, and saying so
   plainly when the excerpts don't cover the question.
 
-Retrieval itself isn't new machinery — it's the [Source Indexer](../indexer/)'s
-`search_passages()`, reused as-is. Depends on `indexer/`; see the root
-[`README.md`](../README.md) for the full dependency graph.
+Retrieval itself isn't new machinery — it's the [Source Indexer](../../core/indexer/)'s
+`search_passages()`, reused as-is. Depends on `core/indexer/`; see the root
+[`README.md`](../../README.md) for the full dependency graph.
 
 ## `--visualize`
 
 ```powershell
-python -m rag.rag_agent --root ../academic-hub --visualize
+python -m agent.rag.rag_agent --root ../academic-hub --visualize
 ```
 
 Opt-in flag (`answer_question(..., visualize=True)` underneath) that also
@@ -54,7 +54,7 @@ on CPU (~68s observed for a real, unmatched concept) and requires Ollama
 running locally with a model pulled — see the
 [Visualization Sub-Agent's own README](../viz/README.md) for setup and the
 full Gemini-vs-Ollama comparison
-([`../docs/status/2026-09-02-visualization-agent-status.md`](../docs/status/2026-09-02-visualization-agent-status.md)).
+([`../../docs/status/agent/viz/2026-09-02-visualization-agent-status.md`](../../docs/status/agent/viz/2026-09-02-visualization-agent-status.md)).
 Either way, a missing visualization is a normal outcome (e.g. the backend
 unreachable, or it produced a broken script) — `result.visualization` is
 just `None`, never a hard failure of the question-answering call itself.
@@ -76,7 +76,7 @@ passed) completed in seconds per call. 2026-09-06, defaulted to Gemini
 after that spike found it dramatically more reliable at honoring an
 explicit technique constraint than the original local-only design —
 see
-[`../docs/status/2026-09-05-problem-generation-status.md`](../docs/status/2026-09-05-problem-generation-status.md)
+[`../../docs/status/agent/problem_gen/2026-09-05-problem-generation-status.md`](../../docs/status/agent/problem_gen/2026-09-05-problem-generation-status.md)
 for the full real-corpus comparison.
 
 Local Ollama generation is still available as an opt-in

@@ -7,11 +7,11 @@ through a chain of open-access sources (falling back to a manual-download
 worklist when none succeed), so `convert_journal_articles.py` can pick up the
 result exactly as it does for manually-added papers.
 
-Companion to `journal_articles_instructions.md`, one step upstream: resolves
+Companion to [`pipelines/convert_journal_articles/README.md`](../../pipelines/convert_journal_articles/README.md), one step upstream: resolves
 a faculty name or topic query into full-text PDFs on disk under
 `research/journal-articles/<topic>/`, ready for `convert_journal_articles.py`
 to pick up exactly as it does for manually-added papers. Design spec:
-`docs/superpowers/specs/2026-08-31-journal-discovery-design.md`.
+`docs/superpowers/specs/discover_journal_articles/2026-08-31-journal-discovery-design.md`.
 
 ## Step 1: One-time local setup
 
@@ -35,10 +35,10 @@ Add to `ai-sandbox/.env` (copy the placeholders from `.env.example`):
 ## Step 2: Run it
 
 ```powershell
-python -m journal_discovery.discover --faculty "Alexander de Sherbinin" `
+python -m discovery.discover_journal_articles.discover --faculty "Alexander de Sherbinin" `
   --relevance-prompt "climate-forced displacement and migration vulnerability"
 
-python -m journal_discovery.discover --topic "climate-forced displacement" `
+python -m discovery.discover_journal_articles.discover --topic "climate-forced displacement" `
   --relevance-prompt "empirical measurement of displacement, not policy commentary" `
   --max-results 50
 ```
@@ -72,7 +72,7 @@ python -m journal_discovery.discover --topic "climate-forced displacement" `
   to save the PDF into once you download it by hand). A paper you drop
   into that folder is picked up automatically the next time
   `convert_journal_articles.py` runs -- no separate step needed.
-- This step never calls into `indexer/` or `convert_journal_articles.py`.
+- This step never calls into `core/indexer/` or `convert_journal_articles.py`.
   Run that separately (`--dry-run` first, as its own docs already say)
   once you're happy with what landed on disk.
 
@@ -121,7 +121,7 @@ citations from what's already in your corpus, via OpenAlex's own
 "cited by" graph. Two steps, deliberately never auto-fetching anything:
 
 ```powershell
-python -m journal_discovery.snowball propose --relevance-prompt "climate-forced displacement and adaptation policy"
+python -m discovery.discover_journal_articles.snowball propose --relevance-prompt "climate-forced displacement and adaptation policy"
 ```
 
 Seeds from every paper already `fetched`/`downloaded` in your corpus
@@ -133,7 +133,7 @@ which corpus paper it cites, so you have context for *why* it was
 proposed. Check the ones you actually want, then:
 
 ```powershell
-python -m journal_discovery.snowball confirm
+python -m discovery.discover_journal_articles.snowball confirm
 ```
 
 Fetches full text only for checked candidates, through the same
@@ -175,7 +175,7 @@ practice, per the validation below.
 Before relying on this for a real discovery run, validate it manually:
 
 ```powershell
-python -m journal_discovery.manual_validate_ezproxy `
+python -m discovery.discover_journal_articles.manual_validate_ezproxy `
   --doi <real-gated-doi-1> --doi <real-gated-doi-2> --doi <real-gated-doi-3> `
   --pace-per-hour 25
 ```
@@ -186,7 +186,7 @@ for 5 DOIs). Record the outcome below.
 
 ## EZProxy validation results
 
-**Tested live 2026-09-01 -- see `docs/status/2026-09-01-journal-discovery-status.md`
+**Tested live 2026-09-01 -- see `docs/status/discover_journal_articles/2026-09-01-journal-discovery-status.md`
 for the full write-up.** Short version: the blocker in practice isn't
 cookie freshness -- it's that major publishers (confirmed against both
 Taylor & Francis and Elsevier/ScienceDirect) front their sites with

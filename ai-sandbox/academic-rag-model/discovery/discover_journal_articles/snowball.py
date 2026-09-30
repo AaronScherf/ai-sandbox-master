@@ -173,7 +173,7 @@ def main():
                      "citation network, then confirm which to fetch.",
     )
     subparsers = parser.add_subparsers(dest="command", required=True)
-    default_articles_dir = Path(__file__).resolve().parent.parent.parent / "research" / "journal-articles"
+    default_articles_dir = Path(__file__).resolve().parent.parent.parent.parent / "research" / "journal-articles"
 
     propose_parser = subparsers.add_parser(
         "propose", help="Find and score citing-paper candidates, write a checkbox worklist.",

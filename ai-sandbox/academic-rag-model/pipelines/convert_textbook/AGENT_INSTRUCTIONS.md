@@ -1,6 +1,6 @@
 # Textbook Conversion Pipeline — Agent Instructions
 
-This is the agent-facing version of `convert_textbook_instructions.md`,
+This is the agent-facing version of [`README.md`](README.md)'s "Full usage guide" section,
 written for an autonomous coding agent (not a human at an interactive
 terminal) to run. It assumes: local `gcloud` is installed and already
 authenticated as the user (`gcloud auth list` shows an active account),
@@ -28,7 +28,7 @@ for the policies that replace them:
   the batch is unprecedented relative to history (spec Component 2a).
 - **Duplicate matches** (Step 0.3): a score >= 0.85 auto-resolves
   immediately, queued for post-hoc review via
-  `python -m indexer.duplicate_check --review-pending`; only the
+  `python -m core.indexer.duplicate_check --review-pending`; only the
   0.6-0.85 band still asks before proceeding (spec Component 1a).
 - **OOM-kill recovery** (Debugging appendix below): a 3-rung escalation
   ladder handles the first two confirmed OOM-kills on a book
@@ -113,7 +113,7 @@ This agent's shell has no interactive stdin, so always pass
 y/n prompt per Tier 2 candidate, which will hang forever here.
 
 ```bash
-python -m indexer.duplicate_check --textbook-subdir "$TEXTBOOK_SUBDIR" --non-interactive \
+python -m core.indexer.duplicate_check --textbook-subdir "$TEXTBOOK_SUBDIR" --non-interactive \
     --emit-to-convert /tmp/to_convert.txt
 ```
 
@@ -122,7 +122,7 @@ line) to that path alongside the normal stdout report — that file, not a
 re-glob of the folder, is what `PDF_FILENAMES` gets rebuilt from below.
 
 This is local, offline, and free (no GPU, no VM, no LLM calls) — see
-`docs/superpowers/specs/2026-09-17-cross-course-duplicate-textbook-detection-design.md`
+`docs/superpowers/specs/indexer/2026-09-17-cross-course-duplicate-textbook-detection-design.md`
 and `docs/superpowers/specs/2026-09-20-pipeline-autonomy-policies-design.md`
 (Component 1a) for the auto-resolution policy below. It always prints a
 "To convert" and a "Skipped -- duplicate found, artifacts copied" section,
@@ -143,7 +143,7 @@ never printed anywhere.
   note, not a blocking question — it already happened. Review the queue
   any time with:
   ```bash
-  python -m indexer.duplicate_check --review-pending
+  python -m core.indexer.duplicate_check --review-pending
   ```
   and resolve each entry with either `--confirm-pending <new_card_file_id>`
   (it was correctly a duplicate — clears the flag) or
@@ -162,7 +162,7 @@ never printed anywhere.
   `file_id`:**
 
   ```bash
-  python -m indexer.duplicate_check --textbook-subdir "$TEXTBOOK_SUBDIR" --non-interactive \
+  python -m core.indexer.duplicate_check --textbook-subdir "$TEXTBOOK_SUBDIR" --non-interactive \
       --emit-to-convert /tmp/to_convert.txt \
       --resolve <incoming_file_id_a>=yes --resolve <incoming_file_id_c>=no
   ```
@@ -222,7 +222,7 @@ a course that has received clones — it recognizes `duplicate_of_file_id`
 and skips re-hashing the clone's PDF entirely rather than colliding with
 the canonical course's own card. (This was a real, live-confirmed
 corruption bug through 2026-09-22; it's fixed now, not just guarded
-against — see `docs/superpowers/plans/2026-09-20-rebuild-safety-fix.md`
+against — see `docs/superpowers/plans/convert_textbook/2026-09-20-rebuild-safety-fix.md`
 and the spec's "Known limitations" section for the mechanism.)
 
 ## Step 1: One-time-per-project setup (idempotent — safe to always run)
@@ -334,7 +334,7 @@ gcloud compute scp --recurse core "$VM_INSTANCE_NAME":"$REMOTE_HOME/academic-rag
 gcloud compute scp --recurse pipelines/convert_textbook "$VM_INSTANCE_NAME":"$REMOTE_HOME/academic-rag-model/pipelines/" --zone="$GCP_ZONE" --tunnel-through-iap --quiet
 ```
 
-**Also copy `GEMINI_API_KEY` to the VM** — without it, `convert_textbook.py`'s source-indexer hook (the step that writes searchable `.index/` cards as a side effect of conversion) fails on every single book with `ERROR: GEMINI_API_KEY not set` and silently degrades to "conversion succeeded, indexing skipped" (confirmed live: this happened for all 6 books in one real run before this step existed, requiring a manual `index_search.py rebuild` afterward to catch up). `gemini_utils.py` resolves `.env` at exactly three parents above itself, so on the VM that's `$REMOTE_HOME/.env` (since `common/gemini_utils.py` lives under `$REMOTE_HOME/academic-rag-model/`). Copy only `GEMINI_API_KEY` — never the whole local `.env` — to avoid putting unrelated secrets (`PAID_GEMINI_KEY`, `CORE_API_KEY`, etc.) on an ephemeral cloud VM that doesn't need them:
+**Also copy `GEMINI_API_KEY` to the VM** — without it, `convert_textbook.py`'s source-indexer hook (the step that writes searchable `.index/` cards as a side effect of conversion) fails on every single book with `ERROR: GEMINI_API_KEY not set` and silently degrades to "conversion succeeded, indexing skipped" (confirmed live: this happened for all 6 books in one real run before this step existed, requiring a manual `index_search.py rebuild` afterward to catch up). `gemini_utils.py` resolves `.env` at exactly four parents above itself, so on the VM that's `$REMOTE_HOME/.env` (since `core/env/gemini_utils.py` lives under `$REMOTE_HOME/academic-rag-model/`). Copy only `GEMINI_API_KEY` — never the whole local `.env` — to avoid putting unrelated secrets (`PAID_GEMINI_KEY`, `CORE_API_KEY`, etc.) on an ephemeral cloud VM that doesn't need them:
 
 ```bash
 grep '^GEMINI_API_KEY=' ../.env > /tmp/vm_env_minimal
@@ -442,7 +442,7 @@ Step 4 rather than treating it as blocking. Pulls both raw logs down and
 folds them into `docs/status/vm_sizing_log.jsonl` (gitignored raw logs
 under `docs/status/vm_sizing_raw/`; only the `.jsonl` is meant to be
 committed). Nothing reads this dataset automatically yet — see
-`docs/superpowers/specs/2026-09-20-vm-ram-sizing-logging-design.md`.
+`docs/superpowers/specs/convert_textbook/2026-09-20-vm-ram-sizing-logging-design.md`.
 
 ```bash
 COURSE_NAME=$(cut -d/ -f2 <<< "$TEXTBOOK_SUBDIR")
@@ -464,7 +464,7 @@ That directory holds one subfolder per book the ladder ever touched, each
 with a `rung_count` file and the pre-relaunch `convert_log.txt`/
 `ram_sampling_log.txt` snapshots the ladder preserved before each reset or
 resize wiped the live copies. It isn't auto-folded into
-`vm_sizing_log.jsonl` yet (that would need `textbook/vm_sizing_log.py` to
+`vm_sizing_log.jsonl` yet (that would need `pipelines/convert_textbook/vm_sizing_log.py` to
 accept multiple log pairs) -- keep it for manual follow-up analysis of the
 failed attempt(s), and check it before running the command below:
 
@@ -568,7 +568,7 @@ on re-run.
   normally needed.** It also stops the worst version of this failure at
   the source: `convert_textbook.py` now measures what fraction of a
   chunk's pages fell back to raw PyPDF extraction, and if more than half
-  did (`chunk_is_degraded`, `textbook/convert_textbook.py`), it prints a
+  did (`chunk_is_degraded`, `pipelines/convert_textbook/convert_textbook.py`), it prints a
   `FATAL:` line and exits non-zero **instead of** writing that chunk's
   `.done` marker -- a chunk is never silently checkpointed as done once
   the inference server was effectively dead for it. The watchdog sees that

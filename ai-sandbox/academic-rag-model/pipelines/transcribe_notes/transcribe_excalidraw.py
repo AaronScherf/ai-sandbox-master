@@ -244,7 +244,7 @@ def write_outputs(
         )
     except Exception as err:
         print(f"WARNING: source-indexer update failed for {rag_path} ({err}); "
-              f"rerun `python -m indexer.index_search rebuild` later to catch it up.")
+              f"rerun `python -m core.indexer.index_search rebuild` later to catch it up.")
 
     return raw_path, rag_path
 
@@ -311,7 +311,7 @@ def main():
     from core.env.gemini_utils import get_gemini_client, load_dotenv_override
     load_dotenv_override()
 
-    academic_hub_dir = Path(__file__).resolve().parent.parent.parent / "academic-hub"
+    academic_hub_dir = Path(__file__).resolve().parent.parent.parent.parent / "academic-hub"
     notes_dir = academic_hub_dir / args.notes_subdir
     pairs = discover_excalidraw_files(str(notes_dir), args.file)
     if not pairs:

@@ -8,7 +8,7 @@ opt-in fallback backend — see `llm_fallback.py` below.
 Run directly:
 
 ```powershell
-.\.venv\Scripts\python.exe -c "from viz.viz_agent import generate_visualization; print(generate_visualization('spectral decomposition', academic_hub_root='../academic-hub', course='math-camp'))"
+.\.venv\Scripts\python.exe -c "from agent.viz.viz_agent import generate_visualization; print(generate_visualization('spectral decomposition', academic_hub_root='../academic-hub', course='math-camp'))"
 ```
 
 Or via the tutor's own `--visualize` flag — see [`../rag/README.md`](../rag/README.md).
@@ -40,7 +40,7 @@ Or via the tutor's own `--visualize` flag — see [`../rag/README.md`](../rag/RE
   timeouts, then a broken script), then a follow-up real trial with Gemini
   succeeded 2/2 on the first attempt — the same reliability pattern (and
   same fix) as `problem_gen`'s own Gemini default; see
-  [`../docs/status/2026-09-02-visualization-agent-status.md`](../docs/status/2026-09-02-visualization-agent-status.md)
+  [`../../docs/status/agent/viz/2026-09-02-visualization-agent-status.md`](../../docs/status/agent/viz/2026-09-02-visualization-agent-status.md)
   for the full comparison. Local Ollama generation is still available as an
   opt-in (`VIZ_BACKEND=ollama`, model `qwen2.5-coder:7b` by default, override
   with `VIZ_OLLAMA_MODEL`) for fully free/private generation — requires
@@ -64,4 +64,4 @@ Output goes to `<root>/.viz/<course>/<slug>.html`, gitignored by default
 (see the root `.gitignore`) — same IP posture as `.index/chunks/`.
 
 See the design spec for the full reasoning:
-`../docs/superpowers/specs/2026-09-02-visualization-agent-design.md`.
+`../../docs/superpowers/specs/agent/viz/2026-09-02-visualization-agent-design.md`.

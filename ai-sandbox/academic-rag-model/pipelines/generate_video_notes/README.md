@@ -11,13 +11,13 @@ indexed document in this corpus already gets.
 Run directly:
 
 ```powershell
-.\.venv\Scripts\python.exe -m video_notes.pipeline --course econometrics --urls "https://youtube.com/watch?v=..." "https://youtube.com/watch?v=..."
-.\.venv\Scripts\python.exe -m video_notes.pipeline --course math-camp --playlist "https://youtube.com/playlist?list=..."
-.\.venv\Scripts\python.exe -m video_notes.pipeline --course math-camp --urls-file video_notes/urls.txt
+.\.venv\Scripts\python.exe -m pipelines.generate_video_notes.pipeline --course econometrics --urls "https://youtube.com/watch?v=..." "https://youtube.com/watch?v=..."
+.\.venv\Scripts\python.exe -m pipelines.generate_video_notes.pipeline --course math-camp --playlist "https://youtube.com/playlist?list=..."
+.\.venv\Scripts\python.exe -m pipelines.generate_video_notes.pipeline --course math-camp --urls-file pipelines/generate_video_notes/urls.txt
 ```
 
 `--urls-file` points at a plain text file, one URL per line (blank
-lines and `#`-comments skipped) — a `video_notes/urls.txt` template is
+lines and `#`-comments skipped) — a `pipelines/generate_video_notes/urls.txt` template is
 included to drop links into. Individual video links and playlist links
 can both go in the same file; a playlist link (`youtube.com/playlist?list=...`)
 is detected and expanded to every video in it, same as `--playlist`.
@@ -41,4 +41,4 @@ is detected and expanded to every video in it, same as `--playlist`.
 - `pipeline.py` — CLI + `run_pipeline()` orchestration.
 
 See the design spec for the full reasoning:
-`../docs/superpowers/specs/2026-09-06-video-lecture-notes-design.md`.
+`../../docs/superpowers/specs/generate_video_notes/2026-09-06-video-lecture-notes-design.md`.

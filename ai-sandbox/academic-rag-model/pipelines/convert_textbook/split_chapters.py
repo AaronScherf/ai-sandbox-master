@@ -422,7 +422,7 @@ def main():
     )
     args = parser.parse_args()
 
-    academic_hub_dir = Path(__file__).resolve().parent.parent.parent / "academic-hub"
+    academic_hub_dir = Path(__file__).resolve().parent.parent.parent.parent / "academic-hub"
     processed_outputs_dir = academic_hub_dir / args.textbook_subdir / "processed_outputs"
     book_dirs = discover_book_dirs(str(processed_outputs_dir))
     if args.book:

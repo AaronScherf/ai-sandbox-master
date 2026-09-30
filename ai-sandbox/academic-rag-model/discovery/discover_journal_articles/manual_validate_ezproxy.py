@@ -7,7 +7,7 @@ target pace), which mocking would defeat. Run this by hand once before
 relying on EZPROXY_SESSION_COOKIE for a real discovery run (spec S9).
 
 Usage:
-    python -m journal_discovery.manual_validate_ezproxy \
+    python -m discovery.discover_journal_articles.manual_validate_ezproxy \
         --doi 10.1016/j.example1 --doi 10.1016/j.example2 \
         --pace-per-hour 25
 """

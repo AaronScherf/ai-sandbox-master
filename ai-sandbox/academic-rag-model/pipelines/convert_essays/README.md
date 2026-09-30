@@ -12,22 +12,22 @@ there's no OCR problem to solve: no vision model, no GPU, entirely local. This f
   [`mammoth`](https://github.com/mwilliamson/python-mammoth) and inverts its
   writer's defensive backslash-escaping (`well\-known` → `well-known`) so the
   output reads as plain prose. Indexing is a live hook per file (mirroring
-  `notes/transcribe_notes.py`'s own), reusing the
-  [Source Indexer](../indexer/)'s `reconcile_and_write()` completely
+  `transcribe_notes/transcribe_notes.py`'s own), reusing the
+  [Source Indexer](../../core/indexer/)'s `reconcile_and_write()` completely
   unmodified except for its own `known_doc_types` vocabulary
   (`personal_essay`, `research_notes`) — that reuse is what proved the
   indexer's design generalizes past the one corpus (`academic-hub`) it was
   originally built for.
 
-Depends on `common/` and `indexer/`. Part of a small, growing personal
-research corpus alongside [`journal_articles/`](../journal_articles/) — see
-the root [`README.md`](../README.md) for the full dependency graph.
+Depends on `core/env/` and `core/indexer/`. Part of a small, growing personal
+research corpus alongside [`convert_journal_articles/`](../convert_journal_articles/) — see
+the root [`README.md`](../../README.md) for the full dependency graph.
 
 ## Full usage guide
 
 ### Essay (.docx) Conversion Pipeline
 
-Companion to `notes_instructions.md`, for a simpler input format: short
+Companion to [`pipelines/transcribe_notes/README.md`](../transcribe_notes/README.md), for a simpler input format: short
 prose `.docx` documents (statement-of-purpose / application essays) that
 carry their own structure (headings, bold/italic, lists) in the file
 format itself. No OCR, no vision model, no GCP VM -- it's a pure-Python
@@ -89,11 +89,11 @@ real paragraph starting with a literal `1.` or `-` (the case the
 escaping exists to protect against).
 
 No chunking or page markers -- these are short, single documents, no
-need for `textbook/`'s chapter-boundary machinery. Indexing reuses
-`indexer/index_card.py`'s `reconcile_and_write()` completely unchanged
+need for `convert_textbook/`'s chapter-boundary machinery. Indexing reuses
+`core/indexer/index_card.py`'s `reconcile_and_write()` completely unchanged
 (it's already generic on its root-directory argument, not hardcoded to
 `academic-hub`) -- `_index_essay()` in `convert_essays.py` is a ~15-line
-hook mirroring `notes/transcribe_notes.py`'s own `_write_markdown_and_index`,
+hook mirroring `transcribe_notes/transcribe_notes.py`'s own `_write_markdown_and_index`,
 called live per file rather than needing a separate `rebuild` backfill
 pass (this converter already visits every file itself). `course` is
 derived from the essay's path relative to `--index-root`
@@ -101,7 +101,7 @@ derived from the essay's path relative to `--index-root`
 everything under `independent-research/notes/**` resolves to course
 `notes`, regardless of nesting.
 
-Once indexed, `python -m indexer.index_search --root research
+Once indexed, `python -m core.indexer.index_search --root research
 {query,retag,chunk,ask}` all work unmodified against this corpus (`--root`
 is repeatable -- `--root academic-hub --root research query "..."` searches
 both corpora together; `retag`/`chunk`/`rebuild` are per-corpus

@@ -168,7 +168,7 @@ Entry ids come from `tailored_resume.md`'s `<!-- id: ... -->` comments or
 ## Key files
 
 - `extract.py` — local, zero-API-call PDF text extraction, reusing
-  `notes/transcribe_notes.py`'s Tier-1 primitives directly (never its
+  `transcribe_notes/transcribe_notes.py`'s Tier-1 primitives directly (never its
   tier-routing wrapper — see the design spec's §3 for why).
 - `schema.py` — the structured master-resume schema's field lists, stable
   id assignment, and generic required-field/traceability verification.
@@ -193,12 +193,12 @@ Entry ids come from `tailored_resume.md`'s `<!-- id: ... -->` comments or
 See the design spec (Revision 3 note at the top covers what changed and
 why) and the status doc (full real-run narrative and evidence) for the
 full reasoning:
-`../docs/superpowers/specs/2026-09-09-resume-manager-design.md`,
-`../docs/status/2026-09-09-resume-manager-status.md`.
+`../docs/superpowers/specs/resume_manager/2026-09-09-resume-manager-design.md`,
+`../docs/status/resume_manager/2026-09-09-resume-manager-status.md`.
 
 ## Full usage guide
 
-Companion to `journal_articles_instructions.md`/`notes_instructions.md`,
+Companion to [`pipelines/convert_journal_articles/README.md`](../pipelines/convert_journal_articles/README.md)/[`pipelines/transcribe_notes/README.md`](../pipelines/transcribe_notes/README.md),
 but for a single, personal, hand-curated document rather than a corpus:
 the user's resume. Two independent runs — a one-time bootstrap, and a
 per-application tailoring pipeline. **Revision 2**: the master resume is a
@@ -343,14 +343,14 @@ python -m resume_manager.tailor_resume --jd-file "job_description.txt" --applica
   wording, so a differently-worded export can still be recognized), and
   each section's entries follow a small, fixed number of line-shapes,
   matched by explicit rules. See
-  `../docs/status/2026-09-09-resume-manager-status.md` for the full
+  `../docs/status/resume_manager/2026-09-09-resume-manager-status.md` for the full
   evidence and every bug found along the way.
 * **Tailoring never lets the LLM touch metadata**, for the same reason:
   not "the LLM was told not to change it," but "the LLM's response has no
   field to put it in even if it wanted to." Tailoring still uses a local
   Ollama call (rewriting bullets to match a job description is a language
   task, unlike bootstrap extraction).
-* **Reuses `notes/transcribe_notes.py`'s extraction primitives, not its
+* **Reuses `transcribe_notes/transcribe_notes.py`'s extraction primitives, not its
   `process_pdf()` wrapper.** That wrapper's tier-routing decision sniffs
   `/Creator`/`/Producer` metadata for LaTeX/Word/LibreOffice/Apache
   FOP/XEP and fails safe to the handwriting/messy-export fallback for
