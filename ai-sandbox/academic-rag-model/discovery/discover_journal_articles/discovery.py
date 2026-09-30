@@ -10,7 +10,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass, field
 
-from journal_discovery.http_utils import FetchError, fetch_with_retries
+from discovery.discover_journal_articles.http_utils import FetchError, fetch_with_retries
 
 _OPENALEX_BASE = "https://api.openalex.org"
 COLUMBIA_ROR = "https://ror.org/00hj8s172"

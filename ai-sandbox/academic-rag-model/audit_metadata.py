@@ -22,11 +22,11 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from core.env.gemini_utils import load_dotenv_override
-from journal_discovery.discovery import resolve_work_by_doi
-from journal_discovery.manifest import load_manifest, manifest_path, save_manifest
-from journal_discovery.text_match import normalize
-from journal_discovery.topic_routing import sanitize_topic_name
-from journal_discovery.worklist import write_metadata_audit_flags_worklist
+from discovery.discover_journal_articles.discovery import resolve_work_by_doi
+from discovery.discover_journal_articles.manifest import load_manifest, manifest_path, save_manifest
+from discovery.discover_journal_articles.text_match import normalize
+from discovery.discover_journal_articles.topic_routing import sanitize_topic_name
+from discovery.discover_journal_articles.worklist import write_metadata_audit_flags_worklist
 from core.indexer.index_card import compute_file_id, find_card_by_file_id, move_card
 
 # Mirrors indexer/retag.py's own _FRONTMATTER_RE/_TAGS_LINE_RE exactly -- a

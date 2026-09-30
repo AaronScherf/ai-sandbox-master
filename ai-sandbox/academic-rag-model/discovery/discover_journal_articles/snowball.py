@@ -16,9 +16,9 @@ import sys
 from pathlib import Path
 
 from core.env.gemini_utils import load_dotenv_override
-from journal_discovery.access import resolve_full_text
-from journal_discovery.discovery import doi_url, iter_citing_works, resolve_work_by_doi
-from journal_discovery.manifest import (
+from discovery.discover_journal_articles.access import resolve_full_text
+from discovery.discover_journal_articles.discovery import doi_url, iter_citing_works, resolve_work_by_doi
+from discovery.discover_journal_articles.manifest import (
     load_manifest,
     manifest_key,
     manifest_path,
@@ -26,10 +26,10 @@ from journal_discovery.manifest import (
     save_manifest,
     skip_already_seen,
 )
-from journal_discovery.metadata_sidecar import write_sidecar
-from journal_discovery.relevance import load_relevance_model, select_relevant_works
-from journal_discovery.topic_routing import pdf_filename, route_to_folder
-from journal_discovery.worklist import (
+from discovery.discover_journal_articles.metadata_sidecar import write_sidecar
+from discovery.discover_journal_articles.relevance import load_relevance_model, select_relevant_works
+from discovery.discover_journal_articles.topic_routing import pdf_filename, route_to_folder
+from discovery.discover_journal_articles.worklist import (
     _read_checked_links,
     write_needs_manual_worklist,
     write_snowball_candidates_worklist,

@@ -4,10 +4,10 @@ import unittest
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-from journal_discovery.access import AccessResult
-from journal_discovery.discover import run
-from journal_discovery.discovery import Work
-from journal_discovery.relevance import ScoredWork
+from discovery.discover_journal_articles.access import AccessResult
+from discovery.discover_journal_articles.discover import run
+from discovery.discover_journal_articles.discovery import Work
+from discovery.discover_journal_articles.relevance import ScoredWork
 
 
 def _args(**overrides):
@@ -27,10 +27,10 @@ def _work(idx, doi="10.1/abc"):
 
 
 class TestRun(unittest.TestCase):
-    @patch("journal_discovery.discover.load_relevance_model", return_value=MagicMock())
-    @patch("journal_discovery.discover.resolve_works", return_value=iter([]))
-    @patch("journal_discovery.discover.select_relevant_works")
-    @patch("journal_discovery.discover.resolve_full_text")
+    @patch("discovery.discover_journal_articles.discover.load_relevance_model", return_value=MagicMock())
+    @patch("discovery.discover_journal_articles.discover.resolve_works", return_value=iter([]))
+    @patch("discovery.discover_journal_articles.discover.select_relevant_works")
+    @patch("discovery.discover_journal_articles.discover.resolve_full_text")
     def test_fetched_work_writes_pdf_and_sidecar_and_updates_manifest(
         self, mock_resolve_full_text, mock_select, mock_resolve_works, mock_load_model
     ):
@@ -53,10 +53,10 @@ class TestRun(unittest.TestCase):
             manifest = (Path(tmp) / ".discovery" / "seen.json")
             self.assertTrue(manifest.exists())
 
-    @patch("journal_discovery.discover.load_relevance_model", return_value=MagicMock())
-    @patch("journal_discovery.discover.resolve_works", return_value=iter([]))
-    @patch("journal_discovery.discover.select_relevant_works")
-    @patch("journal_discovery.discover.resolve_full_text")
+    @patch("discovery.discover_journal_articles.discover.load_relevance_model", return_value=MagicMock())
+    @patch("discovery.discover_journal_articles.discover.resolve_works", return_value=iter([]))
+    @patch("discovery.discover_journal_articles.discover.select_relevant_works")
+    @patch("discovery.discover_journal_articles.discover.resolve_full_text")
     def test_needs_manual_work_recorded_without_pdf(
         self, mock_resolve_full_text, mock_select, mock_resolve_works, mock_load_model
     ):
@@ -71,10 +71,10 @@ class TestRun(unittest.TestCase):
             self.assertEqual(counts["fetched"], 0)
             self.assertEqual(list(Path(tmp).rglob("*.pdf")), [])
 
-    @patch("journal_discovery.discover.load_relevance_model", return_value=MagicMock())
-    @patch("journal_discovery.discover.resolve_works", return_value=iter([]))
-    @patch("journal_discovery.discover.select_relevant_works")
-    @patch("journal_discovery.discover.resolve_full_text")
+    @patch("discovery.discover_journal_articles.discover.load_relevance_model", return_value=MagicMock())
+    @patch("discovery.discover_journal_articles.discover.resolve_works", return_value=iter([]))
+    @patch("discovery.discover_journal_articles.discover.select_relevant_works")
+    @patch("discovery.discover_journal_articles.discover.resolve_full_text")
     def test_needs_manual_work_still_gets_a_folder_and_link(
         self, mock_resolve_full_text, mock_select, mock_resolve_works, mock_load_model
     ):
@@ -89,7 +89,7 @@ class TestRun(unittest.TestCase):
 
             run(_args(articles_dir=tmp, mailto="me@example.com", ezproxy_cookie=None))
 
-            from journal_discovery.manifest import load_manifest, manifest_path
+            from discovery.discover_journal_articles.manifest import load_manifest, manifest_path
             manifest = load_manifest(manifest_path(tmp))
             entry = manifest["10.1/abc"]
             self.assertEqual(entry["folder"], "climate-change")
@@ -97,10 +97,10 @@ class TestRun(unittest.TestCase):
             self.assertEqual(entry["title"], "Paper 2")
             self.assertTrue((Path(tmp) / "climate-change").is_dir())
 
-    @patch("journal_discovery.discover.load_relevance_model", return_value=MagicMock())
-    @patch("journal_discovery.discover.resolve_works", return_value=iter([]))
-    @patch("journal_discovery.discover.select_relevant_works")
-    @patch("journal_discovery.discover.resolve_full_text")
+    @patch("discovery.discover_journal_articles.discover.load_relevance_model", return_value=MagicMock())
+    @patch("discovery.discover_journal_articles.discover.resolve_works", return_value=iter([]))
+    @patch("discovery.discover_journal_articles.discover.select_relevant_works")
+    @patch("discovery.discover_journal_articles.discover.resolve_full_text")
     def test_run_writes_needs_manual_worklist(
         self, mock_resolve_full_text, mock_select, mock_resolve_works, mock_load_model
     ):
@@ -117,10 +117,10 @@ class TestRun(unittest.TestCase):
             self.assertIn("[Paper 2](https://doi.org/10.1/abc)", content)
             self.assertIn("research/journal-articles/climate-change/", content)
 
-    @patch("journal_discovery.discover.load_relevance_model", return_value=MagicMock())
-    @patch("journal_discovery.discover.resolve_works")
-    @patch("journal_discovery.discover.select_relevant_works")
-    @patch("journal_discovery.discover.resolve_full_text")
+    @patch("discovery.discover_journal_articles.discover.load_relevance_model", return_value=MagicMock())
+    @patch("discovery.discover_journal_articles.discover.resolve_works")
+    @patch("discovery.discover_journal_articles.discover.select_relevant_works")
+    @patch("discovery.discover_journal_articles.discover.resolve_full_text")
     def test_already_seen_work_is_filtered_before_relevance_scoring(
         self, mock_resolve_full_text, mock_select, mock_resolve_works, mock_load_model
     ):
@@ -137,7 +137,7 @@ class TestRun(unittest.TestCase):
             mock_resolve_works.return_value = iter([work])
             mock_select.side_effect = lambda works, *a, **kw: [ScoredWork(work=w, score=1.0) for w in works]
 
-            from journal_discovery.manifest import manifest_path, record_outcome, save_manifest, load_manifest
+            from discovery.discover_journal_articles.manifest import manifest_path, record_outcome, save_manifest, load_manifest
             path = manifest_path(tmp)
             manifest = load_manifest(path)
             record_outcome(manifest, "10.1/abc", "fetched", folder="climate-change")
@@ -149,11 +149,11 @@ class TestRun(unittest.TestCase):
             self.assertEqual(counts["examined"], 0)
             mock_resolve_full_text.assert_not_called()
 
-    @patch("journal_discovery.discover.load_relevance_model", return_value=MagicMock())
-    @patch("journal_discovery.discover.resolve_works", return_value=iter([]))
-    @patch("journal_discovery.discover.select_relevant_works")
-    @patch("journal_discovery.discover.resolve_full_text")
-    @patch("journal_discovery.discover.sync_to_zotero")
+    @patch("discovery.discover_journal_articles.discover.load_relevance_model", return_value=MagicMock())
+    @patch("discovery.discover_journal_articles.discover.resolve_works", return_value=iter([]))
+    @patch("discovery.discover_journal_articles.discover.select_relevant_works")
+    @patch("discovery.discover_journal_articles.discover.resolve_full_text")
+    @patch("discovery.discover_journal_articles.discover.sync_to_zotero")
     def test_zotero_sync_called_only_when_flag_set_and_configured(
         self, mock_sync, mock_resolve_full_text, mock_select, mock_resolve_works, mock_load_model
     ):
@@ -169,11 +169,11 @@ class TestRun(unittest.TestCase):
 
             mock_sync.assert_called_once()
 
-    @patch("journal_discovery.discover.load_relevance_model", return_value=MagicMock())
-    @patch("journal_discovery.discover.resolve_works", return_value=iter([]))
-    @patch("journal_discovery.discover.select_relevant_works")
-    @patch("journal_discovery.discover.resolve_full_text")
-    @patch("journal_discovery.discover.sync_to_zotero")
+    @patch("discovery.discover_journal_articles.discover.load_relevance_model", return_value=MagicMock())
+    @patch("discovery.discover_journal_articles.discover.resolve_works", return_value=iter([]))
+    @patch("discovery.discover_journal_articles.discover.select_relevant_works")
+    @patch("discovery.discover_journal_articles.discover.resolve_full_text")
+    @patch("discovery.discover_journal_articles.discover.sync_to_zotero")
     def test_zotero_sync_skipped_without_flag(
         self, mock_sync, mock_resolve_full_text, mock_select, mock_resolve_works, mock_load_model
     ):

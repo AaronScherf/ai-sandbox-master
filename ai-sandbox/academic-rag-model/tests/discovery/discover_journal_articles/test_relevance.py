@@ -1,8 +1,8 @@
 import unittest
 from unittest.mock import MagicMock
 
-from journal_discovery.discovery import Work
-from journal_discovery.relevance import (
+from discovery.discover_journal_articles.discovery import Work
+from discovery.discover_journal_articles.relevance import (
     ScoredWork,
     cosine_similarity,
     embed_text,

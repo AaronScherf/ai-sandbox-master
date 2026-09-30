@@ -11,7 +11,7 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-from journal_discovery.discovery import Work
+from discovery.discover_journal_articles.discovery import Work
 
 _NON_ALNUM_RE = re.compile(r"[^a-z0-9]+")
 

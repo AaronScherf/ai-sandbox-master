@@ -87,7 +87,7 @@ class TestReconcile(unittest.TestCase):
     def test_confirmed_download_marked_and_removed_from_worklist(self):
         with tempfile.TemporaryDirectory() as tmp:
             tmp = Path(tmp)
-            from journal_discovery.manifest import manifest_path, load_manifest, save_manifest, record_outcome
+            from discovery.discover_journal_articles.manifest import manifest_path, load_manifest, save_manifest, record_outcome
 
             path = manifest_path(tmp)
             manifest = load_manifest(path)
@@ -112,7 +112,7 @@ class TestReconcile(unittest.TestCase):
     def test_unmatched_entry_stays_pending_and_in_worklist(self):
         with tempfile.TemporaryDirectory() as tmp:
             tmp = Path(tmp)
-            from journal_discovery.manifest import manifest_path, load_manifest, save_manifest, record_outcome
+            from discovery.discover_journal_articles.manifest import manifest_path, load_manifest, save_manifest, record_outcome
 
             path = manifest_path(tmp)
             manifest = load_manifest(path)
@@ -132,7 +132,7 @@ class TestReconcile(unittest.TestCase):
     def test_dataset_type_entries_never_considered(self):
         with tempfile.TemporaryDirectory() as tmp:
             tmp = Path(tmp)
-            from journal_discovery.manifest import manifest_path, load_manifest, save_manifest, record_outcome
+            from discovery.discover_journal_articles.manifest import manifest_path, load_manifest, save_manifest, record_outcome
 
             path = manifest_path(tmp)
             manifest = load_manifest(path)

@@ -98,7 +98,7 @@ from audit_metadata import apply_folder_correction, check_folder
 
 
 def _fake_work(concepts):
-    from journal_discovery.discovery import Work
+    from discovery.discover_journal_articles.discovery import Work
     return Work(openalex_id="https://openalex.org/W1", doi="10.1/abc", title="T",
                 authors=[], year=2024, abstract=None, concepts=concepts)
 
@@ -250,7 +250,7 @@ class TestApplyTagSync(unittest.TestCase):
             self.assertIn("source_pdf: a.pdf", content)
 
 
-from journal_discovery.manifest import load_manifest, manifest_path, record_outcome, save_manifest
+from discovery.discover_journal_articles.manifest import load_manifest, manifest_path, record_outcome, save_manifest
 from audit_metadata import audit
 
 
@@ -280,7 +280,7 @@ class TestAudit(unittest.TestCase):
                             metadata={"title": "A Real Paper", "authors": ["Jane Doe"]})
             save_manifest(manifest_file, manifest)
 
-            from journal_discovery.discovery import Work
+            from discovery.discover_journal_articles.discovery import Work
             mock_resolve.return_value = Work(openalex_id="https://openalex.org/W1", doi="10.1/abc",
                                               title="A Real Paper", authors=[], year=2024, abstract=None,
                                               concepts=["Business"])
@@ -308,7 +308,7 @@ class TestAudit(unittest.TestCase):
                             metadata={"title": "A Title Never Printed", "doi_url": "https://doi.org/10.1/abc"})
             save_manifest(manifest_file, manifest)
 
-            from journal_discovery.discovery import Work
+            from discovery.discover_journal_articles.discovery import Work
             mock_resolve.return_value = Work(openalex_id="https://openalex.org/W1", doi="10.1/abc",
                                               title="A Title Never Printed", authors=[], year=2024,
                                               abstract=None, concepts=["Business"])
@@ -344,7 +344,7 @@ class TestAudit(unittest.TestCase):
             record_outcome(manifest, "10.1/abc", "fetched", folder="grasp", metadata={"title": "A Real Paper"})
             save_manifest(manifest_file, manifest)
 
-            from journal_discovery.discovery import Work
+            from discovery.discover_journal_articles.discovery import Work
             mock_resolve.return_value = Work(openalex_id="https://openalex.org/W1", doi="10.1/abc",
                                               title="A Real Paper", authors=[], year=2024, abstract=None,
                                               concepts=["Sociology"])

@@ -27,9 +27,9 @@ from pathlib import Path
 
 import audit_metadata
 from core.env.gemini_utils import load_dotenv_override
-from journal_discovery.manifest import load_manifest, manifest_path, save_manifest
-from journal_discovery.text_match import normalize
-from journal_discovery.worklist import write_needs_manual_worklist
+from discovery.discover_journal_articles.manifest import load_manifest, manifest_path, save_manifest
+from discovery.discover_journal_articles.text_match import normalize
+from discovery.discover_journal_articles.worklist import write_needs_manual_worklist
 
 _FRONTMATTER_RE = re.compile(r"^---\n.*?\n---\n", re.DOTALL)
 _HTML_COMMENT_RE = re.compile(r"<!--.*?-->", re.DOTALL)

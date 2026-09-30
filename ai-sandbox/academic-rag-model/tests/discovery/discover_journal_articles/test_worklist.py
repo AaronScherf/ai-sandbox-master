@@ -2,7 +2,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from journal_discovery.worklist import (
+from discovery.discover_journal_articles.worklist import (
     write_metadata_audit_flags_worklist,
     write_needs_manual_worklist,
     write_snowball_candidates_worklist,

@@ -3,8 +3,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from journal_discovery.discovery import Work
-from journal_discovery.metadata_sidecar import sidecar_path, write_sidecar
+from discovery.discover_journal_articles.discovery import Work
+from discovery.discover_journal_articles.metadata_sidecar import sidecar_path, write_sidecar
 
 
 def _work():

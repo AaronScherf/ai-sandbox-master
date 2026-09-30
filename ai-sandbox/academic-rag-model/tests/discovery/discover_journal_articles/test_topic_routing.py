@@ -2,8 +2,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from journal_discovery.discovery import Work
-from journal_discovery.topic_routing import pdf_filename, route_to_folder, sanitize_topic_name
+from discovery.discover_journal_articles.discovery import Work
+from discovery.discover_journal_articles.topic_routing import pdf_filename, route_to_folder, sanitize_topic_name
 
 
 class TestSanitizeTopicName(unittest.TestCase):

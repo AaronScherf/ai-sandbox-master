@@ -1,6 +1,6 @@
 import unittest
 
-from journal_discovery.text_match import normalize
+from discovery.discover_journal_articles.text_match import normalize
 
 
 class TestNormalize(unittest.TestCase):

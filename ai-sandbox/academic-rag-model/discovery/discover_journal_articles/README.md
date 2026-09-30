@@ -1,5 +1,12 @@
 # Journal Discovery Pipeline
 
+Resolves a faculty name or topic query into full-text PDFs on disk, one step
+upstream of [`convert_journal_articles/`](../../pipelines/convert_journal_articles/):
+searches OpenAlex, scores candidates for relevance, and fetches full text
+through a chain of open-access sources (falling back to a manual-download
+worklist when none succeed), so `convert_journal_articles.py` can pick up the
+result exactly as it does for manually-added papers.
+
 Companion to `journal_articles_instructions.md`, one step upstream: resolves
 a faculty name or topic query into full-text PDFs on disk under
 `research/journal-articles/<topic>/`, ready for `convert_journal_articles.py`

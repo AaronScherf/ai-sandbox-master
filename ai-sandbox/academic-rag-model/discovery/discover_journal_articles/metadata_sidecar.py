@@ -10,7 +10,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from journal_discovery.discovery import Work
+from discovery.discover_journal_articles.discovery import Work
 
 
 def sidecar_path(pdf_path) -> Path:

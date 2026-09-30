@@ -1,8 +1,8 @@
 import unittest
 from unittest.mock import MagicMock, patch
 
-from journal_discovery.discovery import Work
-from journal_discovery.zotero_sync import sync_to_zotero
+from discovery.discover_journal_articles.discovery import Work
+from discovery.discover_journal_articles.zotero_sync import sync_to_zotero
 
 
 def _work():
@@ -13,7 +13,7 @@ def _work():
 
 
 class TestSyncToZotero(unittest.TestCase):
-    @patch("journal_discovery.zotero_sync.zotero.Zotero")
+    @patch("discovery.discover_journal_articles.zotero_sync.zotero.Zotero")
     def test_creates_collection_when_missing(self, mock_zotero_cls):
         zot = MagicMock()
         mock_zotero_cls.return_value = zot
@@ -35,7 +35,7 @@ class TestSyncToZotero(unittest.TestCase):
         )
         zot.attachment_simple.assert_called_once_with(["/tmp/paper.pdf"], "ITEMKEY")
 
-    @patch("journal_discovery.zotero_sync.zotero.Zotero")
+    @patch("discovery.discover_journal_articles.zotero_sync.zotero.Zotero")
     def test_reuses_existing_collection(self, mock_zotero_cls):
         zot = MagicMock()
         mock_zotero_cls.return_value = zot

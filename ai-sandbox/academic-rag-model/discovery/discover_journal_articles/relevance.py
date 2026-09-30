@@ -18,7 +18,7 @@ import re
 from dataclasses import dataclass
 from typing import Iterable
 
-from journal_discovery.discovery import Work
+from discovery.discover_journal_articles.discovery import Work
 
 _DEFAULT_MODEL_NAME = "all-MiniLM-L6-v2"
 _NON_ALNUM_RE = re.compile(r"[^a-z0-9]+")

@@ -26,8 +26,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from journal_discovery.discovery import Work
-from journal_discovery.http_utils import FetchError, fetch_with_retries, is_pdf_response, paced_sleep
+from discovery.discover_journal_articles.discovery import Work
+from discovery.discover_journal_articles.http_utils import FetchError, fetch_with_retries, is_pdf_response, paced_sleep
 
 _UNPAYWALL_BASE = "https://api.unpaywall.org/v2"
 _SEMANTIC_SCHOLAR_BASE = "https://api.semanticscholar.org/graph/v1/paper"

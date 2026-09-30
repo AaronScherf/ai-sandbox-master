@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import MagicMock, patch
 
-from journal_discovery.discovery import (
+from discovery.discover_journal_articles.discovery import (
     Work,
     doi_url,
     iter_author_works,
@@ -50,14 +50,14 @@ class TestReconstructAbstract(unittest.TestCase):
 
 
 class TestResolveAuthorId(unittest.TestCase):
-    @patch("journal_discovery.discovery.fetch_with_retries")
+    @patch("discovery.discover_journal_articles.discovery.fetch_with_retries")
     def test_returns_ror_filtered_match(self, mock_fetch):
         mock_fetch.return_value = _response({"results": [{"id": "https://openalex.org/A1"}]})
         result = resolve_author_id("Jane Doe", "me@example.com")
         self.assertEqual(result, "https://openalex.org/A1")
         self.assertEqual(mock_fetch.call_count, 1)
 
-    @patch("journal_discovery.discovery.fetch_with_retries")
+    @patch("discovery.discover_journal_articles.discovery.fetch_with_retries")
     def test_falls_back_when_ror_filter_finds_nothing(self, mock_fetch):
         mock_fetch.side_effect = [
             _response({"results": []}),
@@ -67,14 +67,14 @@ class TestResolveAuthorId(unittest.TestCase):
         self.assertEqual(result, "https://openalex.org/A2")
         self.assertEqual(mock_fetch.call_count, 2)
 
-    @patch("journal_discovery.discovery.fetch_with_retries")
+    @patch("discovery.discover_journal_articles.discovery.fetch_with_retries")
     def test_none_when_nothing_matches_at_all(self, mock_fetch):
         mock_fetch.return_value = _response({"results": []})
         self.assertIsNone(resolve_author_id("Nobody", "me@example.com"))
 
 
 class TestIterAuthorWorks(unittest.TestCase):
-    @patch("journal_discovery.discovery.fetch_with_retries")
+    @patch("discovery.discover_journal_articles.discovery.fetch_with_retries")
     def test_pages_until_empty_and_parses_fields(self, mock_fetch):
         mock_fetch.side_effect = [
             _response({"results": [_openalex_work()]}),
@@ -95,7 +95,7 @@ class TestIterAuthorWorks(unittest.TestCase):
         self.assertEqual(work.oa_url, "https://example.com/paper.pdf")
         self.assertIsNone(work.arxiv_id)
 
-    @patch("journal_discovery.discovery.fetch_with_retries")
+    @patch("discovery.discover_journal_articles.discovery.fetch_with_retries")
     def test_extracts_arxiv_id(self, mock_fetch):
         mock_fetch.side_effect = [
             _response({"results": [_openalex_work(arxiv_url="https://arxiv.org/abs/2401.12345")]}),
@@ -104,7 +104,7 @@ class TestIterAuthorWorks(unittest.TestCase):
         works = list(iter_author_works("https://openalex.org/A1", "me@example.com", batch_size=25))
         self.assertEqual(works[0].arxiv_id, "2401.12345")
 
-    @patch("journal_discovery.discovery.fetch_with_retries")
+    @patch("discovery.discover_journal_articles.discovery.fetch_with_retries")
     def test_excludes_dataset_type_works(self, mock_fetch):
         # Confirmed live 2026-09-02: an author's OpenAlex works list
         # includes RCT trial registrations and replication-data records
@@ -120,7 +120,7 @@ class TestIterAuthorWorks(unittest.TestCase):
         works = list(iter_author_works("https://openalex.org/A1", "me@example.com", batch_size=25))
         self.assertEqual([w.doi for w in works], ["10.1/real-paper"])
 
-    @patch("journal_discovery.discovery.fetch_with_retries")
+    @patch("discovery.discover_journal_articles.discovery.fetch_with_retries")
     def test_prefers_level_zero_concept_for_ordering(self, mock_fetch):
         # Confirmed live 2026-09-02: OpenAlex's top-scored concept is
         # often a narrow, homonym-prone level-2 concept (e.g. "GRASP" the
@@ -141,7 +141,7 @@ class TestIterAuthorWorks(unittest.TestCase):
         works = list(iter_author_works("https://openalex.org/A1", "me@example.com", batch_size=25))
         self.assertEqual(works[0].concepts[0], "Sociology")
 
-    @patch("journal_discovery.discovery.fetch_with_retries")
+    @patch("discovery.discover_journal_articles.discovery.fetch_with_retries")
     def test_falls_back_to_top_score_without_any_level_zero_concept(self, mock_fetch):
         mock_fetch.side_effect = [
             _response({"results": [_openalex_work(concepts=[
@@ -165,27 +165,27 @@ class TestDoiUrl(unittest.TestCase):
 
 
 class TestResolveWorkByDoi(unittest.TestCase):
-    @patch("journal_discovery.discovery.fetch_with_retries")
+    @patch("discovery.discover_journal_articles.discovery.fetch_with_retries")
     def test_returns_parsed_work(self, mock_fetch):
         mock_fetch.return_value = _response(_openalex_work(doi="https://doi.org/10.1/abc"))
         work = resolve_work_by_doi("10.1/abc", "me@example.com")
         self.assertIsInstance(work, Work)
         self.assertEqual(work.doi, "10.1/abc")
 
-    @patch("journal_discovery.discovery.fetch_with_retries")
+    @patch("discovery.discover_journal_articles.discovery.fetch_with_retries")
     def test_none_on_non_200(self, mock_fetch):
         mock_fetch.return_value = _response({}, status_code=404)
         self.assertIsNone(resolve_work_by_doi("10.1/unknown", "me@example.com"))
 
-    @patch("journal_discovery.discovery.fetch_with_retries")
+    @patch("discovery.discover_journal_articles.discovery.fetch_with_retries")
     def test_none_on_fetch_error(self, mock_fetch):
-        from journal_discovery.http_utils import FetchError
+        from discovery.discover_journal_articles.http_utils import FetchError
         mock_fetch.side_effect = FetchError("not found")
         self.assertIsNone(resolve_work_by_doi("10.1/unknown", "me@example.com"))
 
 
 class TestIterCitingWorks(unittest.TestCase):
-    @patch("journal_discovery.discovery.fetch_with_retries")
+    @patch("discovery.discover_journal_articles.discovery.fetch_with_retries")
     def test_pages_until_empty(self, mock_fetch):
         mock_fetch.side_effect = [
             _response({"results": [_openalex_work()]}),
@@ -194,7 +194,7 @@ class TestIterCitingWorks(unittest.TestCase):
         works = list(iter_citing_works("https://openalex.org/W1", "me@example.com", batch_size=25))
         self.assertEqual(len(works), 1)
 
-    @patch("journal_discovery.discovery.fetch_with_retries")
+    @patch("discovery.discover_journal_articles.discovery.fetch_with_retries")
     def test_excludes_dataset_type_works(self, mock_fetch):
         mock_fetch.side_effect = [
             _response({"results": [_openalex_work(work_type="dataset")]}),
@@ -205,7 +205,7 @@ class TestIterCitingWorks(unittest.TestCase):
 
 
 class TestIterTopicWorks(unittest.TestCase):
-    @patch("journal_discovery.discovery.fetch_with_retries")
+    @patch("discovery.discover_journal_articles.discovery.fetch_with_retries")
     def test_pages_until_empty(self, mock_fetch):
         mock_fetch.side_effect = [
             _response({"results": [_openalex_work()]}),
@@ -214,7 +214,7 @@ class TestIterTopicWorks(unittest.TestCase):
         works = list(iter_topic_works("climate displacement", "me@example.com", batch_size=25))
         self.assertEqual(len(works), 1)
 
-    @patch("journal_discovery.discovery.fetch_with_retries")
+    @patch("discovery.discover_journal_articles.discovery.fetch_with_retries")
     def test_excludes_dataset_type_works(self, mock_fetch):
         mock_fetch.side_effect = [
             _response({"results": [_openalex_work(work_type="dataset")]}),
@@ -225,9 +225,9 @@ class TestIterTopicWorks(unittest.TestCase):
 
 
 class TestResolveWorks(unittest.TestCase):
-    @patch("journal_discovery.discovery.iter_topic_works")
-    @patch("journal_discovery.discovery.iter_author_works")
-    @patch("journal_discovery.discovery.resolve_author_id")
+    @patch("discovery.discover_journal_articles.discovery.iter_topic_works")
+    @patch("discovery.discover_journal_articles.discovery.iter_author_works")
+    @patch("discovery.discover_journal_articles.discovery.resolve_author_id")
     def test_chains_faculty_then_topic_queries(self, mock_resolve_author, mock_iter_author, mock_iter_topic):
         mock_resolve_author.return_value = "https://openalex.org/A1"
         mock_iter_author.return_value = iter([Work(
@@ -243,8 +243,8 @@ class TestResolveWorks(unittest.TestCase):
 
         self.assertEqual([w.openalex_id for w in results], ["W1", "W2"])
 
-    @patch("journal_discovery.discovery.iter_author_works")
-    @patch("journal_discovery.discovery.resolve_author_id")
+    @patch("discovery.discover_journal_articles.discovery.iter_author_works")
+    @patch("discovery.discover_journal_articles.discovery.resolve_author_id")
     def test_skips_unresolvable_faculty(self, mock_resolve_author, mock_iter_author):
         mock_resolve_author.return_value = None
 

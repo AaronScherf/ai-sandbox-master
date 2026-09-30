@@ -4,10 +4,10 @@ import unittest
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-from journal_discovery.access import AccessResult
-from journal_discovery.discovery import Work
-from journal_discovery.relevance import ScoredWork
-from journal_discovery.snowball import confirm, iter_seed_openalex_ids, iter_snowball_candidates, propose
+from discovery.discover_journal_articles.access import AccessResult
+from discovery.discover_journal_articles.discovery import Work
+from discovery.discover_journal_articles.relevance import ScoredWork
+from discovery.discover_journal_articles.snowball import confirm, iter_seed_openalex_ids, iter_snowball_candidates, propose
 
 
 def _work(idx, doi=None, openalex_id=None):
@@ -18,7 +18,7 @@ def _work(idx, doi=None, openalex_id=None):
 
 
 class TestIterSeedOpenalexIds(unittest.TestCase):
-    @patch("journal_discovery.snowball.resolve_work_by_doi")
+    @patch("discovery.discover_journal_articles.snowball.resolve_work_by_doi")
     def test_yields_pairs_for_fetched_and_downloaded_entries(self, mock_resolve):
         manifest = {
             "10.1/fetched": {"status": "fetched"},
@@ -37,7 +37,7 @@ class TestIterSeedOpenalexIds(unittest.TestCase):
             ]),
         )
 
-    @patch("journal_discovery.snowball.resolve_work_by_doi")
+    @patch("discovery.discover_journal_articles.snowball.resolve_work_by_doi")
     def test_skips_seed_that_fails_to_resolve(self, mock_resolve):
         manifest = {"10.1/broken": {"status": "fetched"}}
         mock_resolve.return_value = None
@@ -46,7 +46,7 @@ class TestIterSeedOpenalexIds(unittest.TestCase):
 
         self.assertEqual(pairs, [])
 
-    @patch("journal_discovery.snowball.resolve_work_by_doi")
+    @patch("discovery.discover_journal_articles.snowball.resolve_work_by_doi")
     def test_seed_doi_override_bypasses_manifest_scan(self, mock_resolve):
         manifest = {"10.1/ignored": {"status": "fetched"}}
         mock_resolve.return_value = _work(1, doi="10.1/explicit", openalex_id="https://openalex.org/W1")
@@ -62,8 +62,8 @@ class TestIterSeedOpenalexIds(unittest.TestCase):
 
 
 class TestIterSnowballCandidates(unittest.TestCase):
-    @patch("journal_discovery.snowball.iter_citing_works")
-    @patch("journal_discovery.snowball.iter_seed_openalex_ids")
+    @patch("discovery.discover_journal_articles.snowball.iter_citing_works")
+    @patch("discovery.discover_journal_articles.snowball.iter_seed_openalex_ids")
     def test_chains_seeds_and_populates_seed_map(self, mock_seeds, mock_citing):
         mock_seeds.return_value = iter([("10.1/seed-a", "OA-A"), ("10.1/seed-b", "OA-B")])
         mock_citing.side_effect = lambda openalex_id, mailto, batch_size: iter(
@@ -79,8 +79,8 @@ class TestIterSnowballCandidates(unittest.TestCase):
         self.assertEqual(seed_map["10.1/citer-a"], "10.1/seed-a")
         self.assertEqual(seed_map["10.1/citer-b"], "10.1/seed-b")
 
-    @patch("journal_discovery.snowball.iter_citing_works")
-    @patch("journal_discovery.snowball.iter_seed_openalex_ids")
+    @patch("discovery.discover_journal_articles.snowball.iter_citing_works")
+    @patch("discovery.discover_journal_articles.snowball.iter_seed_openalex_ids")
     def test_already_seen_candidates_filtered_and_counted(self, mock_seeds, mock_citing):
         mock_seeds.return_value = iter([("10.1/seed-a", "OA-A")])
         mock_citing.return_value = iter([_work(1, doi="10.1/already-seen")])
@@ -105,9 +105,9 @@ def _propose_args(**overrides):
 
 
 class TestPropose(unittest.TestCase):
-    @patch("journal_discovery.snowball.load_relevance_model", return_value=MagicMock())
-    @patch("journal_discovery.snowball.iter_snowball_candidates")
-    @patch("journal_discovery.snowball.select_relevant_works")
+    @patch("discovery.discover_journal_articles.snowball.load_relevance_model", return_value=MagicMock())
+    @patch("discovery.discover_journal_articles.snowball.iter_snowball_candidates")
+    @patch("discovery.discover_journal_articles.snowball.select_relevant_works")
     def test_records_scored_candidates_as_proposed(self, mock_select, mock_candidates, mock_load_model):
         with tempfile.TemporaryDirectory() as tmp:
             work = _work(1, doi="10.1/citer")
@@ -118,7 +118,7 @@ class TestPropose(unittest.TestCase):
 
             self.assertEqual(counts["proposed"], 1)
 
-            from journal_discovery.manifest import load_manifest, manifest_path
+            from discovery.discover_journal_articles.manifest import load_manifest, manifest_path
             manifest = load_manifest(manifest_path(tmp))
             entry = manifest["10.1/citer"]
             self.assertEqual(entry["status"], "proposed")
@@ -127,9 +127,9 @@ class TestPropose(unittest.TestCase):
             self.assertEqual(entry["title"], "Paper 1")
             self.assertIn("folder", entry)
 
-    @patch("journal_discovery.snowball.load_relevance_model", return_value=MagicMock())
-    @patch("journal_discovery.snowball.iter_snowball_candidates")
-    @patch("journal_discovery.snowball.select_relevant_works")
+    @patch("discovery.discover_journal_articles.snowball.load_relevance_model", return_value=MagicMock())
+    @patch("discovery.discover_journal_articles.snowball.iter_snowball_candidates")
+    @patch("discovery.discover_journal_articles.snowball.select_relevant_works")
     def test_writes_worklist(self, mock_select, mock_candidates, mock_load_model):
         with tempfile.TemporaryDirectory() as tmp:
             work = _work(1, doi="10.1/citer")
@@ -142,9 +142,9 @@ class TestPropose(unittest.TestCase):
             self.assertTrue(worklist.exists())
             self.assertIn("Paper 1", worklist.read_text(encoding="utf-8"))
 
-    @patch("journal_discovery.snowball.load_relevance_model", return_value=MagicMock())
-    @patch("journal_discovery.snowball.iter_snowball_candidates")
-    @patch("journal_discovery.snowball.select_relevant_works")
+    @patch("discovery.discover_journal_articles.snowball.load_relevance_model", return_value=MagicMock())
+    @patch("discovery.discover_journal_articles.snowball.iter_snowball_candidates")
+    @patch("discovery.discover_journal_articles.snowball.select_relevant_works")
     def test_records_cites_seed_from_seed_map(self, mock_select, mock_candidates, mock_load_model):
         with tempfile.TemporaryDirectory() as tmp:
             work = _work(1, doi="10.1/citer")
@@ -163,7 +163,7 @@ class TestPropose(unittest.TestCase):
 
             propose(_propose_args(articles_dir=tmp, mailto="me@example.com"))
 
-            from journal_discovery.manifest import load_manifest, manifest_path
+            from discovery.discover_journal_articles.manifest import load_manifest, manifest_path
             manifest = load_manifest(manifest_path(tmp))
             self.assertEqual(manifest["10.1/citer"]["cites_seed"], "10.1/seed-paper")
 
@@ -175,12 +175,12 @@ def _confirm_args(**overrides):
 
 
 class TestConfirm(unittest.TestCase):
-    @patch("journal_discovery.snowball.resolve_work_by_doi")
-    @patch("journal_discovery.snowball.resolve_full_text")
+    @patch("discovery.discover_journal_articles.snowball.resolve_work_by_doi")
+    @patch("discovery.discover_journal_articles.snowball.resolve_full_text")
     def test_fetches_checked_proposed_entry(self, mock_resolve_full_text, mock_resolve_by_doi):
         with tempfile.TemporaryDirectory() as tmp:
-            from journal_discovery.manifest import manifest_path, load_manifest, save_manifest, record_outcome
-            from journal_discovery.worklist import write_snowball_candidates_worklist
+            from discovery.discover_journal_articles.manifest import manifest_path, load_manifest, save_manifest, record_outcome
+            from discovery.discover_journal_articles.worklist import write_snowball_candidates_worklist
 
             path = manifest_path(tmp)
             manifest = load_manifest(path)
@@ -207,12 +207,12 @@ class TestConfirm(unittest.TestCase):
             pdfs = list((Path(tmp) / "business").glob("*.pdf"))
             self.assertEqual(len(pdfs), 1)
 
-    @patch("journal_discovery.snowball.resolve_work_by_doi")
-    @patch("journal_discovery.snowball.resolve_full_text")
+    @patch("discovery.discover_journal_articles.snowball.resolve_work_by_doi")
+    @patch("discovery.discover_journal_articles.snowball.resolve_full_text")
     def test_unchecked_proposed_entry_left_untouched(self, mock_resolve_full_text, mock_resolve_by_doi):
         with tempfile.TemporaryDirectory() as tmp:
-            from journal_discovery.manifest import manifest_path, load_manifest, save_manifest, record_outcome
-            from journal_discovery.worklist import write_snowball_candidates_worklist
+            from discovery.discover_journal_articles.manifest import manifest_path, load_manifest, save_manifest, record_outcome
+            from discovery.discover_journal_articles.worklist import write_snowball_candidates_worklist
 
             path = manifest_path(tmp)
             manifest = load_manifest(path)
@@ -229,12 +229,12 @@ class TestConfirm(unittest.TestCase):
             manifest = load_manifest(path)
             self.assertEqual(manifest["10.1/citer"]["status"], "proposed")
 
-    @patch("journal_discovery.snowball.resolve_work_by_doi")
-    @patch("journal_discovery.snowball.resolve_full_text")
+    @patch("discovery.discover_journal_articles.snowball.resolve_work_by_doi")
+    @patch("discovery.discover_journal_articles.snowball.resolve_full_text")
     def test_confirmed_but_unfetchable_lands_in_needs_manual_worklist(self, mock_resolve_full_text, mock_resolve_by_doi):
         with tempfile.TemporaryDirectory() as tmp:
-            from journal_discovery.manifest import manifest_path, load_manifest, save_manifest, record_outcome
-            from journal_discovery.worklist import write_snowball_candidates_worklist
+            from discovery.discover_journal_articles.manifest import manifest_path, load_manifest, save_manifest, record_outcome
+            from discovery.discover_journal_articles.worklist import write_snowball_candidates_worklist
 
             path = manifest_path(tmp)
             manifest = load_manifest(path)

@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from pyzotero import zotero
 
-from journal_discovery.discovery import Work
+from discovery.discover_journal_articles.discovery import Work
 
 
 def _get_or_create_collection(zot, name: str) -> str:

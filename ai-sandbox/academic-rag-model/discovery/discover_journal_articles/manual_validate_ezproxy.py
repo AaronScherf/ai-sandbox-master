@@ -17,7 +17,7 @@ import argparse
 import os
 
 from core.env.gemini_utils import load_dotenv_override
-from journal_discovery.access import _download, build_ezproxy_url
+from discovery.discover_journal_articles.access import _download, build_ezproxy_url
 
 
 def main():

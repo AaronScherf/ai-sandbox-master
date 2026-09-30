@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import MagicMock, patch
 
-from journal_discovery.access import (
+from discovery.discover_journal_articles.access import (
     AccessResult,
     build_ezproxy_url,
     resolve_full_text,
@@ -10,7 +10,7 @@ from journal_discovery.access import (
     try_semantic_scholar,
     try_unpaywall,
 )
-from journal_discovery.discovery import Work
+from discovery.discover_journal_articles.discovery import Work
 
 
 def _work(doi="10.1/abc", oa_url=None, arxiv_id=None):
@@ -29,7 +29,7 @@ def _html_response():
 
 
 class TestTryUnpaywall(unittest.TestCase):
-    @patch("journal_discovery.access.fetch_with_retries")
+    @patch("discovery.discover_journal_articles.access.fetch_with_retries")
     def test_returns_pdf_url(self, mock_fetch):
         response = MagicMock(status_code=200)
         response.json.return_value = {"best_oa_location": {"url_for_pdf": "https://x.com/p.pdf"}}
@@ -41,14 +41,14 @@ class TestTryUnpaywall(unittest.TestCase):
 
 
 class TestTrySemanticScholar(unittest.TestCase):
-    @patch("journal_discovery.access.fetch_with_retries")
+    @patch("discovery.discover_journal_articles.access.fetch_with_retries")
     def test_returns_open_access_pdf_url(self, mock_fetch):
         response = MagicMock(status_code=200)
         response.json.return_value = {"openAccessPdf": {"url": "https://x.com/s2.pdf"}}
         mock_fetch.return_value = response
         self.assertEqual(try_semantic_scholar("10.1/abc"), "https://x.com/s2.pdf")
 
-    @patch("journal_discovery.access.fetch_with_retries")
+    @patch("discovery.discover_journal_articles.access.fetch_with_retries")
     def test_none_when_no_open_access_pdf(self, mock_fetch):
         response = MagicMock(status_code=200)
         response.json.return_value = {"openAccessPdf": None}
@@ -58,22 +58,22 @@ class TestTrySemanticScholar(unittest.TestCase):
     def test_none_without_doi(self):
         self.assertIsNone(try_semantic_scholar(None))
 
-    @patch("journal_discovery.access.fetch_with_retries")
+    @patch("discovery.discover_journal_articles.access.fetch_with_retries")
     def test_none_on_terminal_error(self, mock_fetch):
-        from journal_discovery.http_utils import FetchError
+        from discovery.discover_journal_articles.http_utils import FetchError
         mock_fetch.side_effect = FetchError("not found")
         self.assertIsNone(try_semantic_scholar("10.1/unknown"))
 
 
 class TestTryCore(unittest.TestCase):
-    @patch("journal_discovery.access.fetch_with_retries")
+    @patch("discovery.discover_journal_articles.access.fetch_with_retries")
     def test_returns_download_url(self, mock_fetch):
         response = MagicMock(status_code=200)
         response.json.return_value = {"results": [{"downloadUrl": "https://core.ac.uk/download/123.pdf"}]}
         mock_fetch.return_value = response
         self.assertEqual(try_core("10.1/abc", "my-api-key"), "https://core.ac.uk/download/123.pdf")
 
-    @patch("journal_discovery.access.fetch_with_retries")
+    @patch("discovery.discover_journal_articles.access.fetch_with_retries")
     def test_falls_back_to_source_fulltext_urls(self, mock_fetch):
         response = MagicMock(status_code=200)
         response.json.return_value = {
@@ -82,7 +82,7 @@ class TestTryCore(unittest.TestCase):
         mock_fetch.return_value = response
         self.assertEqual(try_core("10.1/abc", "my-api-key"), "https://example.com/repo/123.pdf")
 
-    @patch("journal_discovery.access.fetch_with_retries")
+    @patch("discovery.discover_journal_articles.access.fetch_with_retries")
     def test_none_when_no_results(self, mock_fetch):
         response = MagicMock(status_code=200)
         response.json.return_value = {"results": []}
@@ -95,13 +95,13 @@ class TestTryCore(unittest.TestCase):
     def test_none_without_api_key(self):
         self.assertIsNone(try_core("10.1/abc", None))
 
-    @patch("journal_discovery.access.fetch_with_retries")
+    @patch("discovery.discover_journal_articles.access.fetch_with_retries")
     def test_none_on_terminal_error(self, mock_fetch):
-        from journal_discovery.http_utils import FetchError
+        from discovery.discover_journal_articles.http_utils import FetchError
         mock_fetch.side_effect = FetchError("not found")
         self.assertIsNone(try_core("10.1/unknown", "my-api-key"))
 
-    @patch("journal_discovery.access.fetch_with_retries")
+    @patch("discovery.discover_journal_articles.access.fetch_with_retries")
     def test_sends_bearer_auth_and_doi_query(self, mock_fetch):
         response = MagicMock(status_code=200)
         response.json.return_value = {"results": []}
@@ -128,8 +128,8 @@ class TestBuildEzproxyUrl(unittest.TestCase):
 
 
 class TestResolveFullText(unittest.TestCase):
-    @patch("journal_discovery.access.paced_sleep")
-    @patch("journal_discovery.access.fetch_with_retries")
+    @patch("discovery.discover_journal_articles.access.paced_sleep")
+    @patch("discovery.discover_journal_articles.access.fetch_with_retries")
     def test_uses_open_access_url_first(self, mock_fetch, mock_pace):
         mock_fetch.return_value = _pdf_response(b"oa-content")
         work = _work(oa_url="https://x.com/p.pdf")
@@ -141,8 +141,8 @@ class TestResolveFullText(unittest.TestCase):
         # exists for -- confirmed 2026-09-02, only the EZProxy tier paces.
         mock_pace.assert_called_once_with(0)
 
-    @patch("journal_discovery.access.paced_sleep")
-    @patch("journal_discovery.access.fetch_with_retries")
+    @patch("discovery.discover_journal_articles.access.paced_sleep")
+    @patch("discovery.discover_journal_articles.access.fetch_with_retries")
     def test_download_sends_a_realistic_user_agent(self, mock_fetch, mock_pace):
         # Confirmed live 2026-09-03: a real CORE.ac.uk downloadUrl 403'd
         # with default requests' own User-Agent (a Cloudflare "Just a
@@ -158,8 +158,8 @@ class TestResolveFullText(unittest.TestCase):
         self.assertIn("User-Agent", kwargs["headers"])
         self.assertNotIn("python-requests", kwargs["headers"]["User-Agent"])
 
-    @patch("journal_discovery.access.paced_sleep")
-    @patch("journal_discovery.access.fetch_with_retries")
+    @patch("discovery.discover_journal_articles.access.paced_sleep")
+    @patch("discovery.discover_journal_articles.access.fetch_with_retries")
     def test_falls_back_to_semantic_scholar_when_unpaywall_has_no_oa(self, mock_fetch, mock_pace):
         no_oa_response = MagicMock(status_code=200)
         no_oa_response.json.return_value = {"best_oa_location": None}
@@ -174,8 +174,8 @@ class TestResolveFullText(unittest.TestCase):
         self.assertEqual(result.content, b"s2-content")
         mock_pace.assert_called_once_with(0)
 
-    @patch("journal_discovery.access.paced_sleep")
-    @patch("journal_discovery.access.fetch_with_retries")
+    @patch("discovery.discover_journal_articles.access.paced_sleep")
+    @patch("discovery.discover_journal_articles.access.fetch_with_retries")
     def test_falls_back_to_core_when_semantic_scholar_has_no_oa(self, mock_fetch, mock_pace):
         no_oa_response = MagicMock(status_code=200)
         no_oa_response.json.return_value = {"best_oa_location": None}
@@ -194,8 +194,8 @@ class TestResolveFullText(unittest.TestCase):
         self.assertEqual(result.content, b"core-content")
         mock_pace.assert_called_once_with(0)
 
-    @patch("journal_discovery.access.paced_sleep")
-    @patch("journal_discovery.access.fetch_with_retries")
+    @patch("discovery.discover_journal_articles.access.paced_sleep")
+    @patch("discovery.discover_journal_articles.access.fetch_with_retries")
     def test_core_skipped_without_api_key_falls_through_to_arxiv(self, mock_fetch, mock_pace):
         no_oa_response = MagicMock(status_code=200)
         no_oa_response.json.return_value = {"best_oa_location": None}
@@ -211,8 +211,8 @@ class TestResolveFullText(unittest.TestCase):
         self.assertEqual(result.tier, "arxiv")
         self.assertEqual(result.content, b"arxiv-content")
 
-    @patch("journal_discovery.access.paced_sleep")
-    @patch("journal_discovery.access.fetch_with_retries")
+    @patch("discovery.discover_journal_articles.access.paced_sleep")
+    @patch("discovery.discover_journal_articles.access.fetch_with_retries")
     def test_falls_back_to_arxiv(self, mock_fetch, mock_pace):
         # doi=None short-circuits try_unpaywall() before it makes any
         # fetch_with_retries call, so the single mocked response below is
@@ -226,8 +226,8 @@ class TestResolveFullText(unittest.TestCase):
         self.assertEqual(result.content, b"arxiv-content")
         mock_pace.assert_called_once_with(0)
 
-    @patch("journal_discovery.access.paced_sleep")
-    @patch("journal_discovery.access.fetch_with_retries")
+    @patch("discovery.discover_journal_articles.access.paced_sleep")
+    @patch("discovery.discover_journal_articles.access.fetch_with_retries")
     def test_falls_back_to_ezproxy_with_cookie(self, mock_fetch, mock_pace):
         # A doi is required to build the EZProxy URL, so try_unpaywall()
         # and try_semantic_scholar() *do* make real fetch_with_retries
@@ -248,8 +248,8 @@ class TestResolveFullText(unittest.TestCase):
         # actually matters -- the real --pace-per-hour value is used here.
         mock_pace.assert_called_once_with(25)
 
-    @patch("journal_discovery.access.paced_sleep")
-    @patch("journal_discovery.access.fetch_with_retries")
+    @patch("discovery.discover_journal_articles.access.paced_sleep")
+    @patch("discovery.discover_journal_articles.access.fetch_with_retries")
     def test_html_response_never_written_falls_through_to_needs_manual(self, mock_fetch, mock_pace):
         mock_fetch.return_value = _html_response()
         work = _work(oa_url="https://x.com/p.pdf")
@@ -259,7 +259,7 @@ class TestResolveFullText(unittest.TestCase):
         self.assertEqual(result.status, "needs_manual")
         self.assertIsNone(result.content)
 
-    @patch("journal_discovery.access.paced_sleep")
+    @patch("discovery.discover_journal_articles.access.paced_sleep")
     def test_needs_manual_without_any_viable_tier(self, mock_pace):
         work = _work(doi=None, oa_url=None, arxiv_id=None)
 
@@ -268,15 +268,15 @@ class TestResolveFullText(unittest.TestCase):
         self.assertEqual(result, AccessResult(status="needs_manual"))
         mock_pace.assert_not_called()
 
-    @patch("journal_discovery.access.paced_sleep")
-    @patch("journal_discovery.access.fetch_with_retries")
+    @patch("discovery.discover_journal_articles.access.paced_sleep")
+    @patch("discovery.discover_journal_articles.access.fetch_with_retries")
     def test_terminal_http_error_falls_through_instead_of_crashing(self, mock_fetch, mock_pace):
         # Confirmed live 2026-09-02: a real OA link (aeaweb.org) returned a
         # permanent 403. fetch_with_retries() raises FetchError for a
         # non-retryable status like this rather than returning a response
         # -- _download() must catch that and treat it as "this tier
         # failed," not let it crash the whole run.
-        from journal_discovery.http_utils import FetchError
+        from discovery.discover_journal_articles.http_utils import FetchError
         mock_fetch.side_effect = FetchError("GET https://x.com/p.pdf failed with status 403 after 3 attempts")
         work = _work(oa_url="https://x.com/p.pdf")
 

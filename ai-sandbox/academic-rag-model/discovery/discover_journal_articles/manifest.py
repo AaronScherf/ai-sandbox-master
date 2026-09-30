@@ -11,7 +11,7 @@ import json
 from datetime import datetime, timezone
 from pathlib import Path
 
-from journal_discovery.discovery import Work
+from discovery.discover_journal_articles.discovery import Work
 
 
 def manifest_path(articles_dir) -> Path:
