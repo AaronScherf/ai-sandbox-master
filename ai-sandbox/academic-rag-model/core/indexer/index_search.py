@@ -759,7 +759,7 @@ def _bool_arg(value: str) -> bool:
 
 
 def build_arg_parser() -> argparse.ArgumentParser:
-    default_root = os.path.join(os.path.dirname(__file__), "..", "..", "academic-hub")
+    default_root = os.path.join(os.path.dirname(__file__), "..", "..", "..", "academic-hub")
     parser = argparse.ArgumentParser(description="Search and maintain a source index (academic-hub, research, or any other corpus root).")
     parser.add_argument(
         "--root", action="append", default=None,
@@ -804,7 +804,7 @@ def build_arg_parser() -> argparse.ArgumentParser:
     return parser
 
 
-_DEFAULT_ROOT = os.path.join(os.path.dirname(__file__), "..", "..", "academic-hub")
+_DEFAULT_ROOT = os.path.join(os.path.dirname(__file__), "..", "..", "..", "academic-hub")
 
 
 def _single_root(args) -> str:

@@ -479,7 +479,7 @@ def main() -> None:
                          help="Also combine the answer, citations, and visualization (if any) into one "
                               "self-contained HTML report.")
     args = parser.parse_args()
-    roots = args.root or [os.path.join(os.path.dirname(__file__), "..", "..", "academic-hub")]
+    roots = args.root or [os.path.join(os.path.dirname(__file__), "..", "..", "..", "academic-hub")]
 
     load_dotenv_override()
     client = get_gemini_client()

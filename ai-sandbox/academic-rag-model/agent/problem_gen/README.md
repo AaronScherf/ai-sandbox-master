@@ -19,7 +19,7 @@ per local attempt).
 Run directly:
 
 ```powershell
-.\.venv\Scripts\python.exe -c "from problem_gen.generator import generate_problem; from common.gemini_utils import get_gemini_client, load_dotenv_override; load_dotenv_override(); print(generate_problem('a problem on eigenvalues', ['../academic-hub'], get_gemini_client(), course='math-camp'))"
+.\.venv\Scripts\python.exe -c "from agent.problem_gen.generator import generate_problem; from core.env.gemini_utils import get_gemini_client, load_dotenv_override; load_dotenv_override(); print(generate_problem('a problem on eigenvalues', ['../academic-hub'], get_gemini_client(), course='math-camp'))"
 ```
 
 Or via the tutor's own automatic intent detection — see

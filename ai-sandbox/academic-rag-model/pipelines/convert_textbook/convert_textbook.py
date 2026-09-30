@@ -876,7 +876,7 @@ def process_one_pdf(converter, raw_input: str, raw_output: str, workspace: str, 
         # already succeeded and uploaded.
         #
         # Two checks, cheapest/least-authoritative first:
-        academic_hub_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "academic-hub"))
+        academic_hub_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "academic-hub"))
         file_id = compute_file_id(input_pdf)
         existing_card = find_card_by_file_id(academic_hub_root, file_id)
         if existing_card is not None:

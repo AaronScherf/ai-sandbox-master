@@ -1,15 +1,15 @@
 """
 extractor.py
 Orchestration and CLI for the problem corpus extraction tool (spec:
-docs/superpowers/specs/2026-09-06-problem-corpus-extraction-design.md
-Section 6). Iterates indexed cards via indexer/index_card.py (the same
-public interface indexer/chunk_index.py's chunk() already uses for its
+docs/superpowers/specs/agent/problem_corpus/2026-09-06-problem-corpus-extraction-design.md
+Section 6). Iterates indexed cards via core/indexer/index_card.py (the same
+public interface core/indexer/chunk_index.py's chunk() already uses for its
 own per-file iteration) -- never that or any other module's private
-internals. Own standalone CLI entry point, mirroring viz/viz_agent.py's
-and rag/rag_agent.py's own argparse-based main(), rather than a new
+internals. Own standalone CLI entry point, mirroring agent/viz/viz_agent.py's
+and agent/rag/rag_agent.py's own argparse-based main(), rather than a new
 index_search.py subcommand: extraction is a problem_gen-adjacent
 subproject that depends on the indexer, not an indexer-internal
-operation (indexer/ gains no new dependency in the other direction).
+operation (core/indexer/ gains no new dependency in the other direction).
 """
 from __future__ import annotations
 
@@ -36,15 +36,15 @@ _PROBLEM_BEARING_FOLDER_CATEGORIES = ("problem_sets", "textbooks", "textbooks-an
 # reaching the file-level try/except that would have correctly reported
 # them as failed-with-a-clear-reason instead).
 
-# Duplicated from indexer/chunk_index.py's own _FRONTMATTER_RE, per this
+# Duplicated from core/indexer/chunk_index.py's own _FRONTMATTER_RE, per this
 # package's module-boundary convention (see boundaries.py's own docstring).
 _FRONTMATTER_RE = re.compile(r"\A---\n.*?\n---\n\n?", re.DOTALL)
 
-_DEFAULT_ROOT = os.path.join(os.path.dirname(__file__), "..", "..", "academic-hub")
+_DEFAULT_ROOT = os.path.join(os.path.dirname(__file__), "..", "..", "..", "academic-hub")
 
 
 def _folder_category_from_path(path: str) -> str:
-    """Duplicated from indexer/chunk_index.py's own private helper of the
+    """Duplicated from core/indexer/chunk_index.py's own private helper of the
     same name -- card paths are always stored with "/" separators
     regardless of OS (matching that function's own assumption)."""
     parts = path.split("/")
