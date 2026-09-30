@@ -42,7 +42,7 @@ from core.env.gemini_utils import (
     save_json_cache,
 )
 from core.indexer.index_card import set_rag_md_path, update_card_paths
-from textbook.bib_info import derive_folder_name, extract_bibliographic_info_from_filename, merge_bibliographic_info
+from pipelines.convert_textbook.bib_info import derive_folder_name, extract_bibliographic_info_from_filename, merge_bibliographic_info
 
 _IMAGE_REF_RE = re.compile(r"!\[\]\((pg_(\d+)_[^)]+)\)")
 _TAG_ONLY_RE = re.compile(r"^(?:\s*<!--.*?-->\s*)+$")

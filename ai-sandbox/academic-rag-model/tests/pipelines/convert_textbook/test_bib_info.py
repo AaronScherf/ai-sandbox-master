@@ -1,6 +1,6 @@
 import unittest
 
-from textbook import bib_info
+from pipelines.convert_textbook import bib_info
 
 
 class TestSanitizeFilename(unittest.TestCase):

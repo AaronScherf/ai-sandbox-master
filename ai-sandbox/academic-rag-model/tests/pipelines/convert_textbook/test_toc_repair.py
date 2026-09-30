@@ -1,6 +1,6 @@
 import unittest
 
-from textbook.toc_repair import (
+from pipelines.convert_textbook.toc_repair import (
     chapters_to_review_template,
     extract_heading_outline,
     find_large_heading_gaps,

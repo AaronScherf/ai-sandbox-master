@@ -363,7 +363,7 @@ def generate_chunks_for_file(academic_hub_root: str, course: str, card: dict, cl
 
     front_matter_end = None
     if card["doc_type"] == "textbook":
-        from textbook.describe_images import load_front_matter_end
+        from pipelines.convert_textbook.describe_images import load_front_matter_end
         book_dir = os.path.dirname(md_path)
         front_matter_end = load_front_matter_end(book_dir)
 

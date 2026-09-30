@@ -53,7 +53,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass, field
 
-from textbook.chapter_index import ChapterEntry, get_all_outline_entries, parse_printed_toc
+from pipelines.convert_textbook.chapter_index import ChapterEntry, get_all_outline_entries, parse_printed_toc
 
 _PAGE_MARKER_RE = re.compile(r"<!-- page (\d+) -->")
 _FOLIO_MARKER_RE = re.compile(r"<!-- folio (\d+) -->")

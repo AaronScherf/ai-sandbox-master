@@ -61,7 +61,7 @@ from pathlib import Path
 from pypdf import PdfReader
 
 from core.env.academic_hub_paths import textbook_rag_md_path, to_resources_root
-from textbook.toc_identify import (
+from pipelines.convert_textbook.toc_identify import (
     TocIdentification,
     front_matter_window,
     generate_chapter_template,
@@ -70,7 +70,7 @@ from textbook.toc_identify import (
     identify_chapters_via_outline,
     parse_manual_chapter_list,
 )
-from textbook.toc_repair import (
+from pipelines.convert_textbook.toc_repair import (
     chapters_to_review_template,
     classify_chapters_via_gemini,
     extract_heading_outline,

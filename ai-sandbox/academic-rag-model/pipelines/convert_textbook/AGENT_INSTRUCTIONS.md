@@ -329,7 +329,9 @@ gcloud compute ssh "$VM_INSTANCE_NAME" --zone="$GCP_ZONE" --tunnel-through-iap -
 
 ```bash
 gcloud compute scp marker_setup.sh start_conversion.sh "$VM_INSTANCE_NAME":"$REMOTE_HOME/" --zone="$GCP_ZONE" --tunnel-through-iap --quiet
-gcloud compute scp --recurse common indexer textbook "$VM_INSTANCE_NAME":"$REMOTE_HOME/academic-rag-model/" --zone="$GCP_ZONE" --tunnel-through-iap --quiet
+gcloud compute ssh "$VM_INSTANCE_NAME" --zone="$GCP_ZONE" --tunnel-through-iap --command="mkdir -p $REMOTE_HOME/academic-rag-model/pipelines" --quiet
+gcloud compute scp --recurse core "$VM_INSTANCE_NAME":"$REMOTE_HOME/academic-rag-model/" --zone="$GCP_ZONE" --tunnel-through-iap --quiet
+gcloud compute scp --recurse pipelines/convert_textbook "$VM_INSTANCE_NAME":"$REMOTE_HOME/academic-rag-model/pipelines/" --zone="$GCP_ZONE" --tunnel-through-iap --quiet
 ```
 
 **Also copy `GEMINI_API_KEY` to the VM** — without it, `convert_textbook.py`'s source-indexer hook (the step that writes searchable `.index/` cards as a side effect of conversion) fails on every single book with `ERROR: GEMINI_API_KEY not set` and silently degrades to "conversion succeeded, indexing skipped" (confirmed live: this happened for all 6 books in one real run before this step existed, requiring a manual `index_search.py rebuild` afterward to catch up). `gemini_utils.py` resolves `.env` at exactly three parents above itself, so on the VM that's `$REMOTE_HOME/.env` (since `common/gemini_utils.py` lives under `$REMOTE_HOME/academic-rag-model/`). Copy only `GEMINI_API_KEY` — never the whole local `.env` — to avoid putting unrelated secrets (`PAID_GEMINI_KEY`, `CORE_API_KEY`, etc.) on an ephemeral cloud VM that doesn't need them:
@@ -467,7 +469,7 @@ accept multiple log pairs) -- keep it for manual follow-up analysis of the
 failed attempt(s), and check it before running the command below:
 
 ```bash
-python -m textbook.vm_sizing_log \
+python -m pipelines.convert_textbook.vm_sizing_log \
   --convert-log "$RUN_DIR/convert_log.txt" \
   --ram-log "$RUN_DIR/ram_sampling_log.txt" \
   --course "$COURSE_NAME" --machine-type "g2-standard-4" \
@@ -510,7 +512,7 @@ already safe in GCS/local per Steps 3.2-3.4):
 
 ```bash
 pip install google-genai python-dotenv numpy
-python -m textbook.describe_images --textbook-subdir "$TEXTBOOK_SUBDIR"
+python -m pipelines.convert_textbook.describe_images --textbook-subdir "$TEXTBOOK_SUBDIR"
 ```
 
 Requires `GEMINI_API_KEY` in `.env` (Step -1 already confirmed it's

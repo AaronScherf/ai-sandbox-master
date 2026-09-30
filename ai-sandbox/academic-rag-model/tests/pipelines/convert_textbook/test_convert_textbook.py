@@ -16,7 +16,7 @@ for _mod in ("marker", "marker.converters", "marker.converters.pdf", "marker.mod
 
 from pypdf import PdfReader, PdfWriter
 
-from textbook import convert_textbook as ct
+from pipelines.convert_textbook import convert_textbook as ct
 
 
 def _blank_pdf_reader(num_pages):

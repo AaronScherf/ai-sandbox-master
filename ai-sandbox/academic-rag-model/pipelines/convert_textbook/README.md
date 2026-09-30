@@ -1,6 +1,47 @@
-# Textbook Conversion Pipeline
+# Textbook Conversion (Marker, GPU)
 
-## Prerequisites
+## Overview
+
+Converts large, figure- and math-heavy textbook PDFs into structured
+Markdown using the [Marker](https://github.com/VikParuchuri/marker)
+layout/OCR model, run on a spot GPU VM in Google Cloud — the most expensive
+step in this whole project, so it's reserved for files that actually need
+GPU-grade layout parsing (a few hundred pages, multi-column, heavy math),
+not short documents. See the [Full usage guide](#full-usage-guide) below
+for the full step-by-step guide (one-time GCP setup, VM creation, running a
+batch, troubleshooting) — this section above is a quick orientation, not a
+replacement for it.
+
+## Key files
+
+- `convert_textbook.py` — orchestrates the Marker conversion; runs on the VM.
+  Loads Marker's vision models once and reuses them across every book in a
+  batch. Chunk boundaries align to real chapter breaks by default (sourced
+  from the PDF's embedded outline or its own printed table of contents), and
+  every output page carries a `<!-- page N -->` tag plus, where derivable, a
+  `<!-- folio N -->` tag (the book's own printed page number).
+- `chapter_index.py` / `page_markers.py` — the chapter-boundary detection and
+  page/folio tagging machinery `convert_textbook.py` builds on. Any span that
+  can't be chapter-aligned falls back to a live safety probe that shifts the
+  cut away from anything that looks like a mid-table or mid-formula split.
+- `describe_images.py` — local-only, no GPU needed: a follow-on pass that
+  filters out decorative images (covers, logos) for free using the chapter
+  boundary above, then describes the rest via one combined Gemini call per
+  image, writing a derived `.rag.md` file (the original conversion output is
+  never touched). The `.rag.md` is written to the mirrored
+  `academic_notes/<course>/textbooks/processed_outputs/<Book>/` path so it
+  syncs to the tablet; everything else stays in `academic_resources/`.
+
+Deploys alongside `common/` and `indexer/` (which it imports) to the GPU VM —
+see `marker_setup.sh` and the root [`README.md`](../README.md)'s repository
+layout for the full picture. Only files actually sitting in `academic-hub/`'s
+own folder structure ever run through this pipeline — other subprojects
+(`notes/`, `essays/`, `journal_articles/`) deliberately never auto-escalate
+here.
+
+## Full usage guide
+
+### Prerequisites
 
 * A GCP project with **billing enabled**, and the account running these commands has Owner/Editor on it (needed for the IAM and service-account changes in Steps 1.2/2.1).
 * **GPU quota** approved for the zone you'll use, specifically `PREEMPTIBLE_NVIDIA_L4_GPUS` (Spot VMs draw from the preemptible quota pool, a separate metric from `NVIDIA_L4_GPUS`) if you're using Step 1.3's VM creation command as-is. This is the single most common blocker on a brand-new project -- request it under IAM & Admin > Quotas in the Console *before* Step 1.3, since approval isn't always instant.
@@ -8,11 +49,11 @@
 * A copy of `.env.example` (in the parent directory of this folder) filled in as your own `.env` -- see that file for what each variable means. `.env` is gitignored; never commit your real one.
 * A folder named `academic-hub` as a sibling of this `academic-rag-model` folder, containing a subfolder matching whatever you set `TEXTBOOK_SUBDIR` to in Step 0.2 below -- that's where your input PDFs go and where processed output lands locally.
 
-## Step 0: Initialize the Docker Container
+### Step 0: Initialize the Docker Container
 
 Execute the following script from PowerShell within the project directory (containing the `Dockerfile`, `.env`, and `convert_textbook.py`). Ensure the Docker daemon is operational prior to execution.
 
-### Step 0.1: Build and instantiate the environment
+#### Step 0.1: Build and instantiate the environment
 
 * Ensure Docker is running.
 * Ensure you are in the directory location containing the marker_setup.sh script and directories like common, indexer, and textbook.
@@ -42,7 +83,7 @@ docker rm gcp-container
 
 You are now operating within the container's interactive bash shell for all subsequent operations.
 
-### Step 0.2: Declare run-specific variables
+#### Step 0.2: Declare run-specific variables
 
 `TEXTBOOK_SUBDIR` and `PDF_FILENAMES` identify a particular run of the pipeline (which subject folder, which books in it) rather than durable per-machine config, so they're declared here instead of in `.env`.
 
@@ -73,7 +114,7 @@ fi
 
 This only looks directly inside `TEXTBOOK_SUBDIR` (not its `processed_outputs/` subfolder), so re-running against the same folder won't try to re-ingest already-converted output.
 
-### Step 0.3: Verify SDK Installation
+#### Step 0.3: Verify SDK Installation
 
 Validate the Google Cloud SDK installation.
 
@@ -81,7 +122,7 @@ Validate the Google Cloud SDK installation.
 gcloud version
 ```
 
-### Step 0.4: Check for cross-course duplicates
+#### Step 0.4: Check for cross-course duplicates
 
 Before uploading anything, check whether any of these PDFs -- or a
 different scan/copy of the same book -- has already been converted under
@@ -154,9 +195,9 @@ real, live-confirmed corruption bug through 2026-09-22; it's fixed now,
 not just guarded against -- see the spec's "Known limitations" section for
 the mechanism.)
 
-## Step 1: Authenticate the SDK within the Container
+### Step 1: Authenticate the SDK within the Container
 
-### 1.1 Update the global active developer identity profile
+#### 1.1 Update the global active developer identity profile
 
 ```bash
 gcloud auth application-default login --disable-quota-project
@@ -164,7 +205,7 @@ gcloud config set project $PROJECT_ID
 gcloud auth application-default set-quota-project $PROJECT_ID
 ```
 
-### 1.2 One-time: enable Vertex AI for LLM-assisted bibliographic metadata (optional)
+#### 1.2 One-time: enable Vertex AI for LLM-assisted bibliographic metadata (optional)
 
 `convert_textbook.py` uses a Gemini model, via Vertex AI, to read each book's title page and identify its title/author/publication year when the PDF's own embedded metadata is missing or unreliable (regex pattern-matching is used only as a fallback if this is unavailable). It reuses the VM's existing credentials rather than needing a separate API key, but the underlying GCP project needs two things granted **once, ever**, that a VM-level fix can't provide -- these are project IAM/API settings, not anything `marker_setup.sh` or Step 2.1 touches:
 
@@ -182,7 +223,7 @@ gcloud projects add-iam-policy-binding $PROJECT_ID \
 
 If you skip this (or it's not set up yet), `convert_textbook.py` still works -- it just logs a warning per book and falls back to the regex heuristic, same as before this feature existed. Cost is negligible: each book sends a few KB of title-page text to a fast/cheap Gemini model once.
 
-### 1.3 Create the GCS bucket (one-time) and VM instance (recreate each session)
+#### 1.3 Create the GCS bucket (one-time) and VM instance (recreate each session)
 
 The bucket only needs to be created once ever per project -- skip that part if `$BUCKET_NAME` already exists.
 
@@ -228,9 +269,9 @@ gcloud compute firewall-rules create allow-iap-ssh \
     --source-ranges=35.235.240.0/20
 ```
 
-## Step 2: Prepare the Virtual Machine
+### Step 2: Prepare the Virtual Machine
 
-### Step 2.1: Ensure the VM's service account has sufficient scope
+#### Step 2.1: Ensure the VM's service account has sufficient scope
 
 `convert_textbook.py` runs on the VM itself and uploads output to GCS using the VM's *attached service account*, which is subject to an instance-level OAuth scope in addition to whatever IAM roles that service account holds. A freshly created VM commonly defaults to a scope that can read GCS but not write to it -- conversion then runs to completion and fails only at the very last step (the output upload), which is a frustrating way to lose a run.
 
@@ -268,7 +309,7 @@ else
 fi
 ```
 
-### Step 2.2: Synchronize scripts to the Virtual Machine
+#### Step 2.2: Synchronize scripts to the Virtual Machine
 
 Transfer the provisioning and execution scripts to the home directory of the remote Compute Engine instance.
 
@@ -300,7 +341,9 @@ Give it a minute or two to boot, then retry SSH. See Step 3.1's note below for a
 
 ```bash
 gcloud compute scp marker_setup.sh start_conversion.sh $VM_INSTANCE_NAME:~/ --zone=$GCP_ZONE --tunnel-through-iap
-gcloud compute scp --recurse common indexer textbook $VM_INSTANCE_NAME:~/academic-rag-model/ --zone=$GCP_ZONE --tunnel-through-iap
+gcloud compute ssh $VM_INSTANCE_NAME --zone=$GCP_ZONE --tunnel-through-iap --command="mkdir -p ~/academic-rag-model/pipelines"
+gcloud compute scp --recurse core $VM_INSTANCE_NAME:~/academic-rag-model/ --zone=$GCP_ZONE --tunnel-through-iap
+gcloud compute scp --recurse pipelines/convert_textbook $VM_INSTANCE_NAME:~/academic-rag-model/pipelines/ --zone=$GCP_ZONE --tunnel-through-iap
 ```
 
 Note (Windows only): if either `scp` fails with `pscp: remote filespec
@@ -318,7 +361,7 @@ doc -- those run through the remote shell, which expands `~` correctly
 regardless of platform; only `scp`'s own destination argument is affected).
 
 `common/`, `indexer/`, and `textbook/` are copied recursively so `convert_textbook.py`'s package-qualified
-imports (`from common.gemini_utils import ...`, `from indexer.index_card import ...`, `from textbook.page_markers import ...`)
+imports (`from common.gemini_utils import ...`, `from indexer.index_card import ...`, `from pipelines.convert_textbook.page_markers import ...`)
 resolve on the VM the same way they do locally. `notes/`, `postprocessing/`, and `rag/` aren't needed here --
 nothing under `textbook/` imports them. (This also fixes a real, previously-undocumented gap: `index_card.py`
 and `gemini_utils.py` were never actually transferred to the VM by the old per-file `scp` line above, despite
@@ -342,9 +385,9 @@ gcloud compute scp /tmp/vm_env_minimal $VM_INSTANCE_NAME:~/.env --zone=$GCP_ZONE
 rm /tmp/vm_env_minimal
 ```
 
-## Step 3: Execute the Extraction Pipeline
+### Step 3: Execute the Extraction Pipeline
 
-### 3.1 Execute environment provisioning
+#### 3.1 Execute environment provisioning
 
 This provisions the OS and Python dependencies. It's safe -- and recommended -- to run this at the start of every session rather than deciding for yourself whether it's needed: `marker_setup.sh` checks the VM's persistent disk for a completed, still-healthy prior setup and, if found, skips the entire build and exits in a few seconds instead of wasting compute redoing it.
 
@@ -383,7 +426,7 @@ with `PermissionError: 'top_level.txt'` (the preinstalled copy is
 this command still fails on a VM using the current script, something new
 is going on -- don't assume it's the same already-fixed issue.
 
-### 3.1a A chunk gets silently degraded to plain-text extraction (missing tables/formulas/layout)
+#### 3.1a A chunk gets silently degraded to plain-text extraction (missing tables/formulas/layout)
 
 `start_conversion.sh` now has a built-in watchdog: the `convert` tmux
 session runs a retry loop (`run_conversion_with_retries`), not the bare
@@ -469,7 +512,7 @@ is usually 10-100x smaller, or literally just empty page-marker comments
 -- confirmed once at 5.5KB against 200-500KB neighbors); delete both the
 `.md` and matching `.done` for any such chunk before rerunning Step 3.3.
 
-### 3.2 Stage the input documents in Google Cloud Storage
+#### 3.2 Stage the input documents in Google Cloud Storage
 Before executing the extraction, each raw PDF must be uploaded to your GCS bucket so the remote Virtual Machine can access it.
 
 ```bash
@@ -478,7 +521,7 @@ for PDF_FILENAME in "${PDF_FILENAMES[@]}"; do
 done
 ```
 
-### 3.3 Convert the PDFs to structured artifacts
+#### 3.3 Convert the PDFs to structured artifacts
 
 Execute the conversion. Because the underlying hardware is persistent, this command can be run iteratively across separate sessions without re-provisioning the environment or recompiling binaries.
 
@@ -519,19 +562,19 @@ tmux attach -t convert
 
 (Ctrl+B then D detaches again without stopping the job -- do not just close the terminal or Ctrl+C, which would kill it.)
 
-A single book that turns out to be unusually slow or malformed no longer stalls the whole batch indefinitely: each Marker call is bounded by `--chunk-timeout` (default 1800s per chunk) and `--page-timeout` (default 240s per page fallback) before it's treated as hung and falls back automatically, and one book failing outright is logged and skipped rather than aborting the remaining books in the list. To override these defaults for a run, edit the `python3 -u -m textbook.convert_textbook ...` line directly in `start_conversion.sh` (on the VM, or locally before the next `scp`) to add e.g. `--chunk-timeout 2400 --page-timeout 300`.
+A single book that turns out to be unusually slow or malformed no longer stalls the whole batch indefinitely: each Marker call is bounded by `--chunk-timeout` (default 1800s per chunk) and `--page-timeout` (default 240s per page fallback) before it's treated as hung and falls back automatically, and one book failing outright is logged and skipped rather than aborting the remaining books in the list. To override these defaults for a run, edit the `python3 -u -m pipelines.convert_textbook.convert_textbook ...` line directly in `start_conversion.sh` (on the VM, or locally before the next `scp`) to add e.g. `--chunk-timeout 2400 --page-timeout 300`.
 
 LLM-assisted bibliographic metadata (Step 1.2) is on by default and needs no flags in the common case -- it auto-detects the GCP project from the VM's credentials. If you haven't done the Step 1.2 one-time setup yet, or want to skip it for a run, add `--no-llm-bib` to go straight to the regex fallback.
 
 If you still get an ERROR related to scopes and authorization by GCP at this step, Step 2.1's check should have already caught and fixed it -- rerun Step 2.1 (e.g. if the VM was recreated since your last session and you skipped straight to Step 3).
 
-### 3.4 Export the structured artifacts to the local host
+#### 3.4 Export the structured artifacts to the local host
 
 Google Cloud VMs do not natively mount Google Drive. To retrieve the markdown and image artifacts, execute a recursive secure copy from the VM back to the local Docker workspace. The volume mount established in Step 0.1 will automatically synchronize these files to your local Windows filesystem.
 
 This step is split into two parts on purpose -- **only the first is safe to run before the whole batch has finished.**
 
-#### 3.4a: Download whatever's finished so far (safe any time, including mid-batch)
+##### 3.4a: Download whatever's finished so far (safe any time, including mid-batch)
 
 Each book's markdown/images are uploaded to the bucket as soon as *that book* finishes (see 3.3's script) -- not batched until the whole run completes. So this download command is safe to run at any point, including while other books in the same batch are still converting, to pull down already-finished books without waiting: it only ever copies whatever currently exists under `processed_outputs/`, and does nothing destructive.
 
@@ -564,7 +607,7 @@ To check what's actually finished before downloading (e.g. after recovering from
 gcloud storage ls gs://$BUCKET_NAME/processed_outputs/
 ```
 
-#### 3.4b: Empty the bucket (only once the *entire batch* is confirmed complete and downloaded)
+##### 3.4b: Empty the bucket (only once the *entire batch* is confirmed complete and downloaded)
 
 **Do not run this until every book in the batch has finished and you've confirmed 3.4a pulled everything down.** This deletes `input_documents/*` too -- the source PDFs any not-yet-converted book in the same batch still needs. Running it mid-batch (or before rerunning Step 3.3 to pick up an interrupted book) will break that book's next attempt with a "not found" GCS download error, since its source PDF is now gone.
 
@@ -572,7 +615,7 @@ gcloud storage ls gs://$BUCKET_NAME/processed_outputs/
 gcloud storage rm -r "gs://$BUCKET_NAME/processed_outputs/*" "gs://$BUCKET_NAME/input_documents/*" --continue-on-error
 ```
 
-#### 3.4c: Download RAM-sizing logs and update the local dataset
+##### 3.4c: Download RAM-sizing logs and update the local dataset
 
 Optional, but worth doing every run: `convert_textbook.py` and `start_conversion.sh` both log system RAM usage per book as they go (see `docs/superpowers/specs/2026-09-20-vm-ram-sizing-logging-design.md`) -- this step pulls those logs down and folds them into a small, growing local dataset (`docs/status/vm_sizing_log.jsonl`) correlating each book's page count/file size with the peak RAM it actually used. Nothing reads this dataset automatically yet; it exists so a future machine-type-sizing decision can be based on real numbers instead of guesswork.
 
@@ -586,7 +629,7 @@ gcloud compute scp $VM_INSTANCE_NAME:~/convert_log.txt $VM_INSTANCE_NAME:~/ram_s
 ```
 
 ```bash
-python -m textbook.vm_sizing_log \
+python -m pipelines.convert_textbook.vm_sizing_log \
     --convert-log "$RUN_DIR/convert_log.txt" \
     --ram-log "$RUN_DIR/ram_sampling_log.txt" \
     --course "$COURSE_NAME" --machine-type "g2-standard-4" \
@@ -595,7 +638,7 @@ python -m textbook.vm_sizing_log \
 
 (`--machine-type` should match whatever Step 1.3 actually created the VM with, if you ever change it from the default `g2-standard-4`.) The raw logs land under `docs/status/vm_sizing_raw/` (gitignored -- debugging exhaust for this one run); only `docs/status/vm_sizing_log.jsonl` is meant to be committed and grow across every future batch.
 
-## Step 4: Terminate the Compute Instance
+### Step 4: Terminate the Compute Instance
 
 To halt billing cycles, the VM must be explicitly stopped or deleted upon completion of the pipeline.
 
@@ -626,7 +669,7 @@ else
 fi
 ```
 
-## Step 5: Describe Images Locally
+### Step 5: Describe Images Locally
 
 This step runs entirely on your local machine, **outside the Docker container** (exit the container's shell first, or just open a new PowerShell window) -- it needs no GPU, no VM, and no gcloud/IAP tunnel, just local files and network access to the Gemini API. There's no reason to keep billing the VM while this runs, which is why it comes after Step 4 rather than before it.
 
@@ -634,7 +677,7 @@ For each image in a book's converted markdown, `describe_images.py` asks a Gemin
 
 Before that, each book also gets a free, local, no-LLM naming-reconciliation pass: it re-derives the book's `Author_Title_Year` folder name from what's already recorded in `_metadata.json`, plus a fresh filename-based guess -- fixing books that came out named e.g. `UnknownAuthor_SomeTitle_0000` if their source PDF's own filename actually had the missing author/year in it (a fallback tier `convert_textbook.py` didn't have yet when they were converted). If the re-derived name differs, the folder and its `.md`/`_metadata.json` files are renamed in place (plus the mirrored `academic_notes/` `.rag.md` folder) and the book's index card is repointed automatically -- no re-conversion, no extra API cost. `--dry-run` (below) previews this rename too, without touching disk.
 
-### Step 5.1: One-time local setup
+#### Step 5.1: One-time local setup
 
 ```powershell
 cd academic-rag-model
@@ -645,14 +688,14 @@ pip install google-genai python-dotenv numpy
 
 Requires a `GEMINI_API_KEY` in your `.env` (see `.env.example` -- a free key from aistudio.google.com/apikey works, or enable billing on that key for higher rate limits; either way this step's own API cost is negligible, well under $1 even for an image-heavy book).
 
-### Step 5.2: Run it
+#### Step 5.2: Run it
 
 Batches over every book folder found under `academic-hub/$TEXTBOOK_SUBDIR/processed_outputs/` by default -- reuse the same `$TEXTBOOK_SUBDIR` you set in Step 0.2 for this run.
 
 ```powershell
 $TEXTBOOK_SUBDIR="academic_resources/math-camp/textbooks"
 
-python -m textbook.describe_images --textbook-subdir $TEXTBOOK_SUBDIR
+python -m pipelines.convert_textbook.describe_images --textbook-subdir $TEXTBOOK_SUBDIR
 ```
 
 * Add `--book "SomeBookFolderName"` to process just one book instead of the whole batch.

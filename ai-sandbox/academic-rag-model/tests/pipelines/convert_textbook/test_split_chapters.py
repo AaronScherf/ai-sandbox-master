@@ -7,7 +7,7 @@ from unittest.mock import MagicMock
 
 from pypdf import PdfWriter
 
-from textbook.split_chapters import (
+from pipelines.convert_textbook.split_chapters import (
     _locate_source_pdf,
     _manual_chapter_list_path,
     _slugify,

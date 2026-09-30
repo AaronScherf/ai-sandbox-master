@@ -3,7 +3,7 @@ import os
 import tempfile
 import unittest
 
-from textbook.vm_sizing_log import (
+from pipelines.convert_textbook.vm_sizing_log import (
     parse_ram_samples,
     parse_book_windows,
     peak_ram_used_mb,

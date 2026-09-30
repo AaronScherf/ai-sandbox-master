@@ -70,9 +70,9 @@ from pypdf import PdfReader, PdfWriter
 from marker.converters.pdf import PdfConverter
 from marker.models import create_model_dict
 from marker.output import text_from_rendered
-from textbook.page_markers import remap_image_links, remap_page_markers, tag_single_page
-from textbook import chapter_index
-from textbook.bib_info import (
+from pipelines.convert_textbook.page_markers import remap_image_links, remap_page_markers, tag_single_page
+from pipelines.convert_textbook import chapter_index
+from pipelines.convert_textbook.bib_info import (
     derive_folder_name, extract_bibliographic_info_from_filename,
     is_descriptive_bibliographic_info, merge_bibliographic_info, sanitize_filename,
 )

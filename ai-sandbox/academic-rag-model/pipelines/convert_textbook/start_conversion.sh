@@ -2,7 +2,7 @@
 # start_conversion.sh
 # Launches convert_textbook.py inside a detached tmux session on this VM, so
 # the job survives a dropped SSH/IAP connection instead of dying with it --
-# see Step 3.3 in convert_textbook_instructions.md. Runs on the VM itself
+# see Step 3.3 in README.md's Full usage guide section. Runs on the VM itself
 # (scp'd there alongside marker_setup.sh), invoked with a single simple
 # `gcloud compute ssh ... --command="bash ~/start_conversion.sh ..."` line
 # from the docker container -- deliberately no heredoc, no multi-line paste

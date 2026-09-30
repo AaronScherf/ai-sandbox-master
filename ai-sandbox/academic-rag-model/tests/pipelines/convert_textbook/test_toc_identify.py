@@ -3,8 +3,8 @@ import unittest
 
 from pypdf import PdfReader, PdfWriter
 
-from textbook.chapter_index import ChapterEntry
-from textbook.toc_identify import (
+from pipelines.convert_textbook.chapter_index import ChapterEntry
+from pipelines.convert_textbook.toc_identify import (
     _dedupe_by_increasing_folio,
     generate_chapter_template,
     identify_chapters,
