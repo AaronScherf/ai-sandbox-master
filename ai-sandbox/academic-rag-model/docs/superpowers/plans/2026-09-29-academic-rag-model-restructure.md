@@ -1295,7 +1295,7 @@ Left unnested at `docs/superpowers/specs/` root (cross-cutting): `2026-09-05-com
 
 ```bash
 cd docs/superpowers/plans
-mkdir -p convert_textbook transcribe_notes discover_journal_articles agent/rag agent/viz agent/problem_gen agent/problem_corpus generate_video_notes resume_manager indexer
+mkdir -p convert_textbook transcribe_notes discover_journal_articles agent/rag agent/viz agent/problem_gen agent/problem_corpus generate_video_notes resume_manager indexer audio_generator
 git mv 2026-08-20-chapter-aware-chunking.md convert_textbook/
 git mv 2026-08-20-vm-validation-checklist.md convert_textbook/
 git mv 2026-09-20-oom-cost-escalation-ladder.md convert_textbook/
@@ -1319,7 +1319,7 @@ git mv 2026-09-03-viz-ollama-retry-hardening.md agent/viz/
 git mv 2026-09-03-problem-generation-plan.md agent/problem_gen/
 git mv 2026-09-06-problem-corpus-extraction.md agent/problem_corpus/
 git mv 2026-09-06-video-lecture-notes.md generate_video_notes/
-git mv 2026-09-06-audio-generator.md audio_generator 2>/dev/null || mkdir -p audio_generator && git mv 2026-09-06-audio-generator.md audio_generator/
+git mv 2026-09-06-audio-generator.md audio_generator/
 git mv 2026-09-09-resume-manager-plan.md resume_manager/
 git mv 2026-09-26-resume-manager-page-fit-plan.md resume_manager/
 git mv 2026-09-27-apply-from-prompt-plan.md resume_manager/
