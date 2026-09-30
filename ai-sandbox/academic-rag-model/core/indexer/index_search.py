@@ -851,7 +851,7 @@ def main() -> None:
         stats = chunk(_single_root(args), client, course=args.course, file=args.file, dry_run=args.dry_run)
         print(stats)
     elif args.command == "ask":
-        from rag.rag_agent import answer_question
+        from agent.rag.rag_agent import answer_question
         result = answer_question(
             roots, args.question, client, course=args.course,
             visualize=args.visualize, report=args.report,

@@ -16,7 +16,7 @@ import json
 import os
 from dataclasses import asdict, dataclass
 
-from rag.rag_agent import Citation
+from agent.rag.rag_agent import Citation
 
 
 @dataclass

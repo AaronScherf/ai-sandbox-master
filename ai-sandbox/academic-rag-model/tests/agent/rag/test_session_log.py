@@ -2,8 +2,8 @@ import os
 import tempfile
 import unittest
 
-from rag.rag_agent import Citation
-from rag.session_log import Event, append_event, load_events
+from agent.rag.rag_agent import Citation
+from agent.rag.session_log import Event, append_event, load_events
 
 
 def _event(**overrides):

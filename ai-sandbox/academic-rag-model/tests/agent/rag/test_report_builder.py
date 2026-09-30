@@ -4,7 +4,7 @@ import tempfile
 import unittest
 from dataclasses import dataclass
 
-from rag.report_builder import build_report, report_path, _slugify
+from agent.rag.report_builder import build_report, report_path, _slugify
 
 
 @dataclass

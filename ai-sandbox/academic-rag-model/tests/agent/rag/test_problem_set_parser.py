@@ -2,7 +2,7 @@ import tempfile
 import os
 import unittest
 
-from rag.problem_set_parser import extract_question, QuestionNotFoundError
+from agent.rag.problem_set_parser import extract_question, QuestionNotFoundError
 
 _HEADING_STYLE = """## Question 1
 

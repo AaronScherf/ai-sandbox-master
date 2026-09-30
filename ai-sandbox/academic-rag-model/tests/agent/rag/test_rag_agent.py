@@ -4,7 +4,7 @@ from unittest.mock import MagicMock, patch
 
 from core.indexer.index_card import GENERATION_MODEL
 from core.indexer.index_search import PassageResult
-from rag.rag_agent import (
+from agent.rag.rag_agent import (
     Turn, Citation, AnswerResult, _diversify_by_file, _reformulate_query,
     TUTOR_MODEL, _generate_answer, answer_question, _looks_like_problem_request,
     _looks_like_visualize_request, retrieve_passages, _extract_key_terms, _term_match_count,
@@ -138,7 +138,7 @@ class TestAnswerQuestion(unittest.TestCase):
     def test_first_turn_skips_reformulation(self):
         client = _fake_generate_client("The answer.")
         passages = [_passage("aaa-000", "aaa")]
-        with patch("rag.rag_agent.search_passages", return_value=passages) as mock_search:
+        with patch("agent.rag.rag_agent.search_passages", return_value=passages) as mock_search:
             answer_question(["/root"], "what is X", client)
         self.assertEqual(client.models.generate_content.call_count, 1)  # only the answer call, no reformulation
         # retrieve_passages() (2026-09-27) also queries a dedicated textbook pool
@@ -151,14 +151,14 @@ class TestAnswerQuestion(unittest.TestCase):
         ]
         passages = [_passage("aaa-000", "aaa")]
         history = [Turn(role="user", text="explain X"), Turn(role="assistant", text="X is...")]
-        with patch("rag.rag_agent.search_passages", return_value=passages) as mock_search:
+        with patch("agent.rag.rag_agent.search_passages", return_value=passages) as mock_search:
             answer_question(["/root"], "explain differently", client, history=history)
         mock_search.assert_any_call(["/root"], "standalone question", client, course=None, top_k=12)
 
     def test_citations_match_diversified_passages(self):
         client = _fake_generate_client("answer")
         passages = [_passage(f"aaa-{i:03d}", "aaa", text=f"text {i}", citation=f"p. {i}") for i in range(5)]
-        with patch("rag.rag_agent.search_passages", return_value=passages):
+        with patch("agent.rag.rag_agent.search_passages", return_value=passages):
             result = answer_question(["/root"], "q", client, max_per_file=2, top_k=6)
         self.assertEqual(len(result.citations), 2)  # capped by max_per_file, only one file present
         self.assertEqual(result.citations[0].chunk_id, "aaa-000")
@@ -166,13 +166,13 @@ class TestAnswerQuestion(unittest.TestCase):
     def test_citations_carry_the_passages_own_root_across_multiple_roots(self):
         client = _fake_generate_client("answer")
         passages = [_passage("a-000", "a", root="/root-a"), _passage("b-000", "b", root="/root-b")]
-        with patch("rag.rag_agent.search_passages", return_value=passages):
+        with patch("agent.rag.rag_agent.search_passages", return_value=passages):
             result = answer_question(["/root-a", "/root-b"], "q", client)
         self.assertEqual({c.root for c in result.citations}, {"/root-a", "/root-b"})
 
     def test_history_appends_new_exchange(self):
         client = _fake_generate_client("The answer.")
-        with patch("rag.rag_agent.search_passages", return_value=[]):
+        with patch("agent.rag.rag_agent.search_passages", return_value=[]):
             result = answer_question(["/root"], "what is X", client)
         self.assertEqual(result.history, [
             Turn(role="user", text="what is X"), Turn(role="assistant", text="The answer."),
@@ -182,7 +182,7 @@ class TestAnswerQuestion(unittest.TestCase):
         client = MagicMock()
         client.models.generate_content.side_effect = [MagicMock(text="standalone q"), MagicMock(text="new answer")]
         prior_history = [Turn(role="user", text="q1"), Turn(role="assistant", text="a1")]
-        with patch("rag.rag_agent.search_passages", return_value=[]):
+        with patch("agent.rag.rag_agent.search_passages", return_value=[]):
             result = answer_question(["/root"], "q2", client, history=prior_history)
         self.assertEqual(len(result.history), 4)
 
@@ -191,7 +191,7 @@ class TestRetrievePassages(unittest.TestCase):
     def test_calls_search_and_diversifies(self):
         client = MagicMock()
         passages = [_passage(f"aaa-{i:03d}", "aaa") for i in range(5)]
-        with patch("rag.rag_agent.search_passages", return_value=passages) as mock_search:
+        with patch("agent.rag.rag_agent.search_passages", return_value=passages) as mock_search:
             result = retrieve_passages(
                 ["/root"], "q", client, course="math-camp", top_k=6, max_per_file=2, key_terms=[],
             )
@@ -200,7 +200,7 @@ class TestRetrievePassages(unittest.TestCase):
 
     def test_also_queries_a_dedicated_textbook_pool(self):
         client = MagicMock()
-        with patch("rag.rag_agent.search_passages", return_value=[]) as mock_search:
+        with patch("agent.rag.rag_agent.search_passages", return_value=[]) as mock_search:
             retrieve_passages(["/root"], "q", client, course="math-camp", textbook_top_k=4, key_terms=[])
         mock_search.assert_any_call(["/root"], "q", client, course="math-camp", doc_type="textbook", top_k=4)
 
@@ -216,14 +216,14 @@ class TestRetrievePassages(unittest.TestCase):
         client = MagicMock()
         general = [_passage("note-000", "note", text="unrelated note")]
         textbook = [_passage("book-000", "book", text="the exact topical match")]
-        with patch("rag.rag_agent.search_passages", side_effect=[general, textbook]):
+        with patch("agent.rag.rag_agent.search_passages", side_effect=[general, textbook]):
             result = retrieve_passages(["/root"], "q", client, key_terms=[])
         self.assertIn("book-000", [p.chunk_id for p in result])
 
     def test_deduplicates_a_chunk_present_in_both_pools(self):
         client = MagicMock()
         shared = _passage("book-000", "book")
-        with patch("rag.rag_agent.search_passages", side_effect=[[shared], [shared]]):
+        with patch("agent.rag.rag_agent.search_passages", side_effect=[[shared], [shared]]):
             result = retrieve_passages(["/root"], "q", client, key_terms=[])
         self.assertEqual(len(result), 1)
 
@@ -233,7 +233,7 @@ class TestRetrievePassages(unittest.TestCase):
         low.score = 0.2
         high = _passage("book-000", "book")
         high.score = 0.9
-        with patch("rag.rag_agent.search_passages", side_effect=[[low], [high]]):
+        with patch("agent.rag.rag_agent.search_passages", side_effect=[[low], [high]]):
             result = retrieve_passages(["/root"], "q", client, top_k=1, key_terms=[])
         self.assertEqual(result[0].chunk_id, "book-000")
 
@@ -244,7 +244,7 @@ class TestRetrievePassages(unittest.TestCase):
         # trigger it on its own, only apply a bonus when a caller (/hint's
         # handler) already extracted terms and passed them in.
         client = MagicMock()
-        with patch("rag.rag_agent.search_passages", return_value=[]):
+        with patch("agent.rag.rag_agent.search_passages", return_value=[]):
             retrieve_passages(["/root"], "q", client)
             retrieve_passages(["/root"], "q", client, key_terms=["Luce model"])
         client.models.generate_content.assert_not_called()
@@ -259,7 +259,7 @@ class TestRetrievePassages(unittest.TestCase):
         wrong_topic.score = 0.80
         on_topic = _passage("book-000", "book", text="the Luce model of stochastic choice")
         on_topic.score = 0.78
-        with patch("rag.rag_agent.search_passages", side_effect=[[wrong_topic], [on_topic]]):
+        with patch("agent.rag.rag_agent.search_passages", side_effect=[[wrong_topic], [on_topic]]):
             result = retrieve_passages(["/root"], "q", client, top_k=1, key_terms=["Luce model"])
         self.assertEqual(result[0].chunk_id, "book-000")
 
@@ -269,7 +269,7 @@ class TestRetrievePassages(unittest.TestCase):
         low.score = 0.2
         high = _passage("book-000", "book", text="mentions Luce model too")
         high.score = 0.9
-        with patch("rag.rag_agent.search_passages", side_effect=[[low], [high]]):
+        with patch("agent.rag.rag_agent.search_passages", side_effect=[[low], [high]]):
             result = retrieve_passages(["/root"], "q", client, top_k=1, key_terms=[])
         self.assertEqual(result[0].chunk_id, "book-000")  # bonus is 0 either way, raw score wins
 
@@ -278,7 +278,7 @@ class TestAnswerQuestionPassages(unittest.TestCase):
     def test_passages_populated_on_normal_qa_path(self):
         client = _fake_generate_client("answer")
         passages = [_passage("aaa-000", "aaa")]
-        with patch("rag.rag_agent.search_passages", return_value=passages):
+        with patch("agent.rag.rag_agent.search_passages", return_value=passages):
             result = answer_question(["/root"], "q", client)
         self.assertEqual(result.passages, passages)
 
@@ -300,7 +300,7 @@ class TestAnswerQuestionStandaloneQuestion(unittest.TestCase):
 
     def test_first_turn_standalone_question_is_the_question_itself(self):
         client = _fake_generate_client("answer")
-        with patch("rag.rag_agent.search_passages", return_value=[]):
+        with patch("agent.rag.rag_agent.search_passages", return_value=[]):
             result = answer_question(["/root"], "what is X", client)
         self.assertEqual(result.standalone_question, "what is X")
 
@@ -310,7 +310,7 @@ class TestAnswerQuestionStandaloneQuestion(unittest.TestCase):
             MagicMock(text="standalone question"), MagicMock(text="The answer."),
         ]
         history = [Turn(role="user", text="explain X"), Turn(role="assistant", text="X is...")]
-        with patch("rag.rag_agent.search_passages", return_value=[]):
+        with patch("agent.rag.rag_agent.search_passages", return_value=[]):
             result = answer_question(["/root"], "explain differently", client, history=history)
         self.assertEqual(result.standalone_question, "standalone question")
 
@@ -324,27 +324,27 @@ class TestAnswerQuestionStandaloneQuestion(unittest.TestCase):
 
 class TestRecentGapTags(unittest.TestCase):
     def test_course_none_returns_empty_without_touching_session_log(self):
-        from rag.rag_agent import _recent_gap_tags
-        with patch("rag.session_log.load_events") as mock_load:
+        from agent.rag.rag_agent import _recent_gap_tags
+        with patch("agent.rag.session_log.load_events") as mock_load:
             result = _recent_gap_tags(["/root"], None)
         self.assertEqual(result, [])
         mock_load.assert_not_called()
 
     def test_filters_to_draft_events_with_a_gap_tag(self):
-        from rag.rag_agent import _recent_gap_tags
+        from agent.rag.rag_agent import _recent_gap_tags
         events = [
             MagicMock(type="answer", gap_tag=None),
             MagicMock(type="draft", gap_tag="vacuous-case"),
             MagicMock(type="draft", gap_tag=None),
         ]
-        with patch("rag.session_log.load_events", return_value=events):
+        with patch("agent.rag.session_log.load_events", return_value=events):
             result = _recent_gap_tags(["/root"], "microecon")
         self.assertEqual(result, ["vacuous-case"])
 
     def test_caps_to_limit_most_recent(self):
-        from rag.rag_agent import _recent_gap_tags
+        from agent.rag.rag_agent import _recent_gap_tags
         events = [MagicMock(type="draft", gap_tag=f"gap-{i}") for i in range(10)]
-        with patch("rag.session_log.load_events", return_value=events):
+        with patch("agent.rag.session_log.load_events", return_value=events):
             result = _recent_gap_tags(["/root"], "microecon", limit=3)
         self.assertEqual(result, ["gap-7", "gap-8", "gap-9"])
 
@@ -354,8 +354,8 @@ class TestRecentGapTags(unittest.TestCase):
         path -- it must never be able to take down a plain question just
         because the session log is unreadable for some reason
         load_events() itself doesn't already guard against."""
-        from rag.rag_agent import _recent_gap_tags
-        with patch("rag.session_log.load_events", side_effect=OSError("permission denied")):
+        from agent.rag.rag_agent import _recent_gap_tags
+        with patch("agent.rag.session_log.load_events", side_effect=OSError("permission denied")):
             result = _recent_gap_tags(["/root"], "microecon")
         self.assertEqual(result, [])
 
@@ -379,16 +379,16 @@ class TestGenerateAnswerGapTags(unittest.TestCase):
 class TestAnswerQuestionGapTagInjection(unittest.TestCase):
     def test_course_none_skips_gap_tag_lookup(self):
         client = _fake_generate_client("answer")
-        with patch("rag.rag_agent.search_passages", return_value=[]), \
-             patch("rag.session_log.load_events") as mock_load:
+        with patch("agent.rag.rag_agent.search_passages", return_value=[]), \
+             patch("agent.rag.session_log.load_events") as mock_load:
             answer_question(["/root"], "q", client, course=None)
         mock_load.assert_not_called()
 
     def test_course_set_injects_gap_tags_into_answer_prompt(self):
         client = _fake_generate_client("answer")
         events = [MagicMock(type="draft", gap_tag="vacuous-case")]
-        with patch("rag.rag_agent.search_passages", return_value=[]), \
-             patch("rag.session_log.load_events", return_value=events):
+        with patch("agent.rag.rag_agent.search_passages", return_value=[]), \
+             patch("agent.rag.session_log.load_events", return_value=events):
             answer_question(["/root"], "q", client, course="microecon")
         prompt = client.models.generate_content.call_args.kwargs["contents"]
         self.assertIn("vacuous-case", prompt)
@@ -397,7 +397,7 @@ class TestAnswerQuestionGapTagInjection(unittest.TestCase):
 class TestAnswerQuestionVisualize(unittest.TestCase):
     def test_visualize_false_never_calls_generate_visualization(self):
         client = _fake_generate_client("answer")
-        with patch("rag.rag_agent.search_passages", return_value=[]), \
+        with patch("agent.rag.rag_agent.search_passages", return_value=[]), \
              patch("viz.viz_agent.generate_visualization") as mock_viz:
             result = answer_question(["/root"], "q", client)
         mock_viz.assert_not_called()
@@ -407,7 +407,7 @@ class TestAnswerQuestionVisualize(unittest.TestCase):
         client = _fake_generate_client("answer")
         passages = [_passage("a-000", "a", text="eigenvalue content", root="/root")]
         fake_result = MagicMock()
-        with patch("rag.rag_agent.search_passages", return_value=passages), \
+        with patch("agent.rag.rag_agent.search_passages", return_value=passages), \
              patch("viz.viz_agent.generate_visualization", return_value=fake_result) as mock_viz:
             result = answer_question(["/root"], "what is X", client, visualize=True)
         mock_viz.assert_called_once()
@@ -419,14 +419,14 @@ class TestAnswerQuestionVisualize(unittest.TestCase):
 
     def test_visualize_true_passes_course_through(self):
         client = _fake_generate_client("answer")
-        with patch("rag.rag_agent.search_passages", return_value=[]), \
+        with patch("agent.rag.rag_agent.search_passages", return_value=[]), \
              patch("viz.viz_agent.generate_visualization", return_value=None) as mock_viz:
             answer_question(["/root"], "q", client, course="math-camp", visualize=True)
         self.assertEqual(mock_viz.call_args.kwargs["course"], "math-camp")
 
     def test_visualize_true_with_no_visualization_result_is_none(self):
         client = _fake_generate_client("answer")
-        with patch("rag.rag_agent.search_passages", return_value=[]), \
+        with patch("agent.rag.rag_agent.search_passages", return_value=[]), \
              patch("viz.viz_agent.generate_visualization", return_value=None):
             result = answer_question(["/root"], "q", client, visualize=True)
         self.assertIsNone(result.visualization)
@@ -435,16 +435,16 @@ class TestAnswerQuestionVisualize(unittest.TestCase):
 class TestAnswerQuestionReport(unittest.TestCase):
     def test_report_false_never_calls_build_report(self):
         client = _fake_generate_client("answer")
-        with patch("rag.rag_agent.search_passages", return_value=[]), \
-             patch("rag.report_builder.build_report") as mock_build:
+        with patch("agent.rag.rag_agent.search_passages", return_value=[]), \
+             patch("agent.rag.report_builder.build_report") as mock_build:
             result = answer_question(["/root"], "q", client)
         mock_build.assert_not_called()
         self.assertIsNone(result.report_path)
 
     def test_report_true_without_visualize_still_builds_report(self):
         client = _fake_generate_client("answer")
-        with patch("rag.rag_agent.search_passages", return_value=[]), \
-             patch("rag.report_builder.build_report", return_value="/x/report.html") as mock_build:
+        with patch("agent.rag.rag_agent.search_passages", return_value=[]), \
+             patch("agent.rag.report_builder.build_report", return_value="/x/report.html") as mock_build:
             result = answer_question(["/root"], "q", client, report=True)
         mock_build.assert_called_once()
         args, kwargs = mock_build.call_args
@@ -455,18 +455,18 @@ class TestAnswerQuestionReport(unittest.TestCase):
     def test_report_true_with_visualize_passes_visualization_through(self):
         client = _fake_generate_client("answer")
         fake_viz = MagicMock()
-        with patch("rag.rag_agent.search_passages", return_value=[]), \
+        with patch("agent.rag.rag_agent.search_passages", return_value=[]), \
              patch("viz.viz_agent.generate_visualization", return_value=fake_viz), \
-             patch("rag.report_builder.build_report", return_value="/x/report.html") as mock_build:
+             patch("agent.rag.report_builder.build_report", return_value="/x/report.html") as mock_build:
             answer_question(["/root"], "q", client, visualize=True, report=True)
         args, kwargs = mock_build.call_args
         self.assertEqual(args[3], fake_viz)
 
     def test_report_path_uses_reports_root_under_first_given_root(self):
         client = _fake_generate_client("answer")
-        with patch("rag.rag_agent.search_passages", return_value=[]), \
-             patch("rag.report_builder.build_report", return_value=None), \
-             patch("rag.report_builder.report_path") as mock_path:
+        with patch("agent.rag.rag_agent.search_passages", return_value=[]), \
+             patch("agent.rag.report_builder.build_report", return_value=None), \
+             patch("agent.rag.report_builder.report_path") as mock_path:
             mock_path.return_value = "/root-a/.reports/math-camp/q.html"
             answer_question(["/root-a", "/root-b"], "q", client, course="math-camp", report=True)
         mock_path.assert_called_once_with("q", os.path.join("/root-a", ".reports"), "math-camp")
@@ -500,7 +500,7 @@ class TestAnswerQuestionProblemGeneration(unittest.TestCase):
         client = _fake_generate_client("unused")
         fake_generated = MagicMock(problem_text="Find X.", sources=[])
         with patch("problem_gen.generator.generate_problem", return_value=fake_generated) as mock_generate, \
-             patch("rag.rag_agent.search_passages") as mock_search:
+             patch("agent.rag.rag_agent.search_passages") as mock_search:
             result = answer_question(["/root"], "give me a practice problem on eigenvalues", client)
         mock_generate.assert_called_once()
         mock_search.assert_not_called()
@@ -509,7 +509,7 @@ class TestAnswerQuestionProblemGeneration(unittest.TestCase):
 
     def test_non_matching_question_never_calls_generate_problem(self):
         client = _fake_generate_client("answer")
-        with patch("rag.rag_agent.search_passages", return_value=[]), \
+        with patch("agent.rag.rag_agent.search_passages", return_value=[]), \
              patch("problem_gen.generator.generate_problem") as mock_generate:
             result = answer_question(["/root"], "what is X", client)
         mock_generate.assert_not_called()
@@ -518,7 +518,7 @@ class TestAnswerQuestionProblemGeneration(unittest.TestCase):
     def test_matching_question_falls_back_to_qa_when_generation_returns_none(self):
         client = _fake_generate_client("The fallback answer.")
         with patch("problem_gen.generator.generate_problem", return_value=None) as mock_generate, \
-             patch("rag.rag_agent.search_passages", return_value=[]) as mock_search:
+             patch("agent.rag.rag_agent.search_passages", return_value=[]) as mock_search:
             result = answer_question(["/root"], "give me a practice problem on eigenvalues", client)
         mock_generate.assert_called_once()
         self.assertTrue(mock_search.called)  # retrieve_passages() queries a general and a textbook pool
@@ -612,7 +612,7 @@ class TestAnswerQuestionProblemGenerationVisualize(unittest.TestCase):
     def test_generation_failure_never_calls_generate_visualization(self):
         client = _fake_generate_client("The fallback answer.")
         with patch("problem_gen.generator.generate_problem", return_value=None), \
-             patch("rag.rag_agent.search_passages", return_value=[]), \
+             patch("agent.rag.rag_agent.search_passages", return_value=[]), \
              patch("viz.viz_agent.generate_visualization") as mock_viz:
             answer_question(
                 ["/root"], "give me a practice problem, and visualize it", client,
@@ -625,7 +625,7 @@ class TestAnswerQuestionProblemGenerationReport(unittest.TestCase):
         client = _fake_generate_client("unused")
         fake_generated = MagicMock(problem_text="Find X.", solution_text="X = 1.", sources=[])
         with patch("problem_gen.generator.generate_problem", return_value=fake_generated), \
-             patch("rag.report_builder.build_report") as mock_build:
+             patch("agent.rag.report_builder.build_report") as mock_build:
             result = answer_question(["/root"], "give me a practice problem on eigenvalues", client)
         mock_build.assert_not_called()
         self.assertIsNone(result.report_path)
@@ -634,7 +634,7 @@ class TestAnswerQuestionProblemGenerationReport(unittest.TestCase):
         client = _fake_generate_client("unused")
         fake_generated = MagicMock(problem_text="Find X.", solution_text="X = 1.", sources=[])
         with patch("problem_gen.generator.generate_problem", return_value=fake_generated), \
-             patch("rag.report_builder.build_report", return_value="/x/report.html") as mock_build:
+             patch("agent.rag.report_builder.build_report", return_value="/x/report.html") as mock_build:
             result = answer_question(
                 ["/root"], "give me a practice problem on eigenvalues", client, report=True,
             )
@@ -651,7 +651,7 @@ class TestAnswerQuestionProblemGenerationReport(unittest.TestCase):
         fake_viz = MagicMock()
         with patch("problem_gen.generator.generate_problem", return_value=fake_generated), \
              patch("viz.viz_agent.generate_visualization", return_value=fake_viz), \
-             patch("rag.report_builder.build_report", return_value="/x/report.html") as mock_build:
+             patch("agent.rag.report_builder.build_report", return_value="/x/report.html") as mock_build:
             answer_question(
                 ["/root"], "give me a practice problem, and visualize it", client, report=True,
             )
@@ -667,8 +667,8 @@ class TestAnswerQuestionProblemGenerationReport(unittest.TestCase):
         correctly skipped, not that report-building never happens at all."""
         client = _fake_generate_client("The fallback answer.")
         with patch("problem_gen.generator.generate_problem", return_value=None), \
-             patch("rag.rag_agent.search_passages", return_value=[]), \
-             patch("rag.report_builder.build_report", return_value="/x/report.html") as mock_build:
+             patch("agent.rag.rag_agent.search_passages", return_value=[]), \
+             patch("agent.rag.report_builder.build_report", return_value="/x/report.html") as mock_build:
             result = answer_question(
                 ["/root"], "give me a practice problem on eigenvalues", client, report=True,
             )

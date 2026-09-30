@@ -2,9 +2,9 @@ import unittest
 from unittest.mock import MagicMock
 
 from core.indexer.index_search import PassageResult
-from rag.rag_agent import Citation
-from rag.session_log import Event
-from rag.tutor_diagnosis import (
+from agent.rag.rag_agent import Citation
+from agent.rag.session_log import Event
+from agent.rag.tutor_diagnosis import (
     Diagnosis, DiagnosisParseError, diagnose_draft, generate_hint, generate_ungrounded_hint,
     VERIFY_MODEL, generate_verification, summarize_unit, _rubric_averages_line,
     _ungrounded_fallback_line, _question_snippet, _format_event,
@@ -49,7 +49,7 @@ class TestDiagnoseDraftWellFormed(unittest.TestCase):
     def test_uses_tutor_model(self):
         client = _fake_client(_WELL_FORMED)
         diagnose_draft("q", "reference", [_passage()], "my draft", client)
-        from rag.rag_agent import TUTOR_MODEL
+        from agent.rag.rag_agent import TUTOR_MODEL
         self.assertEqual(client.models.generate_content.call_args.kwargs["model"], TUTOR_MODEL)
 
     def test_prompt_includes_reference_and_draft(self):
@@ -110,7 +110,7 @@ class TestGenerateHint(unittest.TestCase):
     def test_uses_tutor_model(self):
         client = _fake_client("Think about the Projection Theorem.")
         generate_hint("q", [_passage()], client)
-        from rag.rag_agent import TUTOR_MODEL
+        from agent.rag.rag_agent import TUTOR_MODEL
         self.assertEqual(client.models.generate_content.call_args.kwargs["model"], TUTOR_MODEL)
 
     def test_prompt_bars_stating_the_final_answer(self):
@@ -137,7 +137,7 @@ class TestGenerateUngroundedHint(unittest.TestCase):
     def test_uses_tutor_model(self):
         client = _fake_client("Think about the Projection Theorem.")
         generate_ungrounded_hint("q", client)
-        from rag.rag_agent import TUTOR_MODEL
+        from agent.rag.rag_agent import TUTOR_MODEL
         self.assertEqual(client.models.generate_content.call_args.kwargs["model"], TUTOR_MODEL)
 
     def test_prompt_bars_stating_the_final_answer(self):
@@ -164,7 +164,7 @@ class TestGenerateVerification(unittest.TestCase):
         client = _fake_client("An independent solution.")
         generate_verification("q", client)
         self.assertEqual(client.models.generate_content.call_args.kwargs["model"], VERIFY_MODEL)
-        from rag.rag_agent import TUTOR_MODEL
+        from agent.rag.rag_agent import TUTOR_MODEL
         self.assertNotEqual(VERIFY_MODEL, TUTOR_MODEL)
 
     def test_prompt_does_not_assume_a_prior_answer_is_correct(self):
@@ -276,7 +276,7 @@ class TestSummarizeUnit(unittest.TestCase):
     def test_uses_tutor_model(self):
         client = _fake_client("What we learned...\n\nWhat to focus on...")
         summarize_unit([_event()], client)
-        from rag.rag_agent import TUTOR_MODEL
+        from agent.rag.rag_agent import TUTOR_MODEL
         self.assertEqual(client.models.generate_content.call_args.kwargs["model"], TUTOR_MODEL)
 
     def test_prompt_includes_event_question_and_text(self):

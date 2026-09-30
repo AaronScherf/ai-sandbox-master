@@ -170,7 +170,7 @@ def _recent_gap_tags(roots: list[str], course: str | None, limit: int = 5) -> li
     no per-course file to read without a course name."""
     if course is None:
         return []
-    from rag.session_log import load_events  # function-scoped: keeps session_log's file
+    from agent.rag.session_log import load_events  # function-scoped: keeps session_log's file
     # I/O out of every answer_question() call path that doesn't set course, matching
     # this file's existing function-scoped viz/problem_gen/report_builder imports.
     try:
@@ -394,7 +394,7 @@ def answer_question(
                 )
             problem_report_path = None
             if report:
-                from rag.report_builder import build_report, report_path  # function-scoped,
+                from agent.rag.report_builder import build_report, report_path  # function-scoped,
                 # same dependency-isolation reasoning as the normal Q&A path's own import
                 # below -- this branch previously never built a report at all regardless of
                 # report=True, an integration gap discovered and fixed 2026-09-06 the same
@@ -438,7 +438,7 @@ def answer_question(
 
     report_path_value = None
     if report:
-        from rag.report_builder import build_report, report_path  # function-scoped: keeps
+        from agent.rag.report_builder import build_report, report_path  # function-scoped: keeps
         # report_builder.py's (and, when a visualization exists, transitively viz/'s) import
         # surface out of every caller that never sets report=True, matching this file's own
         # existing function-scoped import of generate_visualization above for the same reason.
@@ -455,12 +455,12 @@ def answer_question(
 
 def main() -> None:
     from datetime import datetime, timezone
-    from rag.session_log import Event, append_event, load_events
-    from rag.tutor_diagnosis import (
+    from agent.rag.session_log import Event, append_event, load_events
+    from agent.rag.tutor_diagnosis import (
         diagnose_draft, generate_hint, generate_ungrounded_hint, generate_verification, summarize_unit,
         DiagnosisParseError,
     )
-    from rag.problem_set_parser import extract_question, QuestionNotFoundError
+    from agent.rag.problem_set_parser import extract_question, QuestionNotFoundError
 
     parser = argparse.ArgumentParser(description="Interactive tutor grounded in one or more indexed corpora.")
     parser.add_argument(
