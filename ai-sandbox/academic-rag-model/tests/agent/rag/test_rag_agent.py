@@ -285,7 +285,7 @@ class TestAnswerQuestionPassages(unittest.TestCase):
     def test_passages_none_on_problem_generation_path(self):
         client = _fake_generate_client("unused")
         fake_generated = MagicMock(problem_text="Find X.", sources=[])
-        with patch("problem_gen.generator.generate_problem", return_value=fake_generated):
+        with patch("agent.problem_gen.generator.generate_problem", return_value=fake_generated):
             result = answer_question(["/root"], "give me a practice problem on eigenvalues", client)
         self.assertIsNone(result.passages)
 
@@ -317,7 +317,7 @@ class TestAnswerQuestionStandaloneQuestion(unittest.TestCase):
     def test_problem_generation_path_standalone_question_is_the_problem_text(self):
         client = _fake_generate_client("unused")
         fake_generated = MagicMock(problem_text="Find X.", sources=[])
-        with patch("problem_gen.generator.generate_problem", return_value=fake_generated):
+        with patch("agent.problem_gen.generator.generate_problem", return_value=fake_generated):
             result = answer_question(["/root"], "give me a practice problem on eigenvalues", client)
         self.assertEqual(result.standalone_question, "Find X.")
 
@@ -499,7 +499,7 @@ class TestAnswerQuestionProblemGeneration(unittest.TestCase):
     def test_matching_question_routes_to_generate_problem(self):
         client = _fake_generate_client("unused")
         fake_generated = MagicMock(problem_text="Find X.", sources=[])
-        with patch("problem_gen.generator.generate_problem", return_value=fake_generated) as mock_generate, \
+        with patch("agent.problem_gen.generator.generate_problem", return_value=fake_generated) as mock_generate, \
              patch("agent.rag.rag_agent.search_passages") as mock_search:
             result = answer_question(["/root"], "give me a practice problem on eigenvalues", client)
         mock_generate.assert_called_once()
@@ -510,14 +510,14 @@ class TestAnswerQuestionProblemGeneration(unittest.TestCase):
     def test_non_matching_question_never_calls_generate_problem(self):
         client = _fake_generate_client("answer")
         with patch("agent.rag.rag_agent.search_passages", return_value=[]), \
-             patch("problem_gen.generator.generate_problem") as mock_generate:
+             patch("agent.problem_gen.generator.generate_problem") as mock_generate:
             result = answer_question(["/root"], "what is X", client)
         mock_generate.assert_not_called()
         self.assertIsNone(result.generated_problem)
 
     def test_matching_question_falls_back_to_qa_when_generation_returns_none(self):
         client = _fake_generate_client("The fallback answer.")
-        with patch("problem_gen.generator.generate_problem", return_value=None) as mock_generate, \
+        with patch("agent.problem_gen.generator.generate_problem", return_value=None) as mock_generate, \
              patch("agent.rag.rag_agent.search_passages", return_value=[]) as mock_search:
             result = answer_question(["/root"], "give me a practice problem on eigenvalues", client)
         mock_generate.assert_called_once()
@@ -529,7 +529,7 @@ class TestAnswerQuestionProblemGeneration(unittest.TestCase):
         client = _fake_generate_client("unused")
         source = MagicMock(chunk_id="s-000", file_id="s", path="s.md", citation="Problem 1", root="/root")
         fake_generated = MagicMock(problem_text="Find X.", sources=[source])
-        with patch("problem_gen.generator.generate_problem", return_value=fake_generated):
+        with patch("agent.problem_gen.generator.generate_problem", return_value=fake_generated):
             result = answer_question(["/root"], "give me a practice problem on eigenvalues", client)
         self.assertEqual(len(result.citations), 1)
         self.assertEqual(result.citations[0].chunk_id, "s-000")
@@ -537,7 +537,7 @@ class TestAnswerQuestionProblemGeneration(unittest.TestCase):
     def test_history_appends_generated_problem_text(self):
         client = _fake_generate_client("unused")
         fake_generated = MagicMock(problem_text="Find X.", sources=[])
-        with patch("problem_gen.generator.generate_problem", return_value=fake_generated):
+        with patch("agent.problem_gen.generator.generate_problem", return_value=fake_generated):
             result = answer_question(["/root"], "give me a practice problem on eigenvalues", client)
         self.assertEqual(result.history[-1], Turn(role="assistant", text="Find X."))
 
@@ -570,7 +570,7 @@ class TestAnswerQuestionProblemGenerationVisualize(unittest.TestCase):
         client = _fake_generate_client("unused")
         fake_generated = MagicMock(problem_text="Find X.", solution_text="X = 1.", sources=[])
         fake_viz = MagicMock()
-        with patch("problem_gen.generator.generate_problem", return_value=fake_generated), \
+        with patch("agent.problem_gen.generator.generate_problem", return_value=fake_generated), \
              patch("agent.viz.viz_agent.generate_visualization", return_value=fake_viz) as mock_viz:
             result = answer_question(
                 ["/root"], "give me a practice problem on eigenvalues, and visualize it", client,
@@ -581,7 +581,7 @@ class TestAnswerQuestionProblemGenerationVisualize(unittest.TestCase):
     def test_visualize_context_uses_generated_problem_and_solution(self):
         client = _fake_generate_client("unused")
         fake_generated = MagicMock(problem_text="Find X.", solution_text="X = 1.", sources=[])
-        with patch("problem_gen.generator.generate_problem", return_value=fake_generated), \
+        with patch("agent.problem_gen.generator.generate_problem", return_value=fake_generated), \
              patch("agent.viz.viz_agent.generate_visualization", return_value=None) as mock_viz:
             answer_question(["/root"], "give me a practice problem, please visualize it", client)
         args, kwargs = mock_viz.call_args
@@ -591,7 +591,7 @@ class TestAnswerQuestionProblemGenerationVisualize(unittest.TestCase):
     def test_no_visualize_phrase_and_flag_false_never_calls_generate_visualization(self):
         client = _fake_generate_client("unused")
         fake_generated = MagicMock(problem_text="Find X.", solution_text="X = 1.", sources=[])
-        with patch("problem_gen.generator.generate_problem", return_value=fake_generated), \
+        with patch("agent.problem_gen.generator.generate_problem", return_value=fake_generated), \
              patch("agent.viz.viz_agent.generate_visualization") as mock_viz:
             result = answer_question(["/root"], "give me a practice problem on eigenvalues", client)
         mock_viz.assert_not_called()
@@ -601,7 +601,7 @@ class TestAnswerQuestionProblemGenerationVisualize(unittest.TestCase):
         client = _fake_generate_client("unused")
         fake_generated = MagicMock(problem_text="Find X.", solution_text="X = 1.", sources=[])
         fake_viz = MagicMock()
-        with patch("problem_gen.generator.generate_problem", return_value=fake_generated), \
+        with patch("agent.problem_gen.generator.generate_problem", return_value=fake_generated), \
              patch("agent.viz.viz_agent.generate_visualization", return_value=fake_viz) as mock_viz:
             result = answer_question(
                 ["/root"], "give me a practice problem on eigenvalues", client, visualize=True,
@@ -611,7 +611,7 @@ class TestAnswerQuestionProblemGenerationVisualize(unittest.TestCase):
 
     def test_generation_failure_never_calls_generate_visualization(self):
         client = _fake_generate_client("The fallback answer.")
-        with patch("problem_gen.generator.generate_problem", return_value=None), \
+        with patch("agent.problem_gen.generator.generate_problem", return_value=None), \
              patch("agent.rag.rag_agent.search_passages", return_value=[]), \
              patch("agent.viz.viz_agent.generate_visualization") as mock_viz:
             answer_question(
@@ -624,7 +624,7 @@ class TestAnswerQuestionProblemGenerationReport(unittest.TestCase):
     def test_report_false_never_calls_build_report(self):
         client = _fake_generate_client("unused")
         fake_generated = MagicMock(problem_text="Find X.", solution_text="X = 1.", sources=[])
-        with patch("problem_gen.generator.generate_problem", return_value=fake_generated), \
+        with patch("agent.problem_gen.generator.generate_problem", return_value=fake_generated), \
              patch("agent.rag.report_builder.build_report") as mock_build:
             result = answer_question(["/root"], "give me a practice problem on eigenvalues", client)
         mock_build.assert_not_called()
@@ -633,7 +633,7 @@ class TestAnswerQuestionProblemGenerationReport(unittest.TestCase):
     def test_report_true_builds_report_with_problem_and_solution(self):
         client = _fake_generate_client("unused")
         fake_generated = MagicMock(problem_text="Find X.", solution_text="X = 1.", sources=[])
-        with patch("problem_gen.generator.generate_problem", return_value=fake_generated), \
+        with patch("agent.problem_gen.generator.generate_problem", return_value=fake_generated), \
              patch("agent.rag.report_builder.build_report", return_value="/x/report.html") as mock_build:
             result = answer_question(
                 ["/root"], "give me a practice problem on eigenvalues", client, report=True,
@@ -649,7 +649,7 @@ class TestAnswerQuestionProblemGenerationReport(unittest.TestCase):
         client = _fake_generate_client("unused")
         fake_generated = MagicMock(problem_text="Find X.", solution_text="X = 1.", sources=[])
         fake_viz = MagicMock()
-        with patch("problem_gen.generator.generate_problem", return_value=fake_generated), \
+        with patch("agent.problem_gen.generator.generate_problem", return_value=fake_generated), \
              patch("agent.viz.viz_agent.generate_visualization", return_value=fake_viz), \
              patch("agent.rag.report_builder.build_report", return_value="/x/report.html") as mock_build:
             answer_question(
@@ -666,7 +666,7 @@ class TestAnswerQuestionProblemGenerationReport(unittest.TestCase):
         the problem-generation branch's own report-building code was
         correctly skipped, not that report-building never happens at all."""
         client = _fake_generate_client("The fallback answer.")
-        with patch("problem_gen.generator.generate_problem", return_value=None), \
+        with patch("agent.problem_gen.generator.generate_problem", return_value=None), \
              patch("agent.rag.rag_agent.search_passages", return_value=[]), \
              patch("agent.rag.report_builder.build_report", return_value="/x/report.html") as mock_build:
             result = answer_question(

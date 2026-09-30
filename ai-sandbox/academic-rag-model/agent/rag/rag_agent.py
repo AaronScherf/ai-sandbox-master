@@ -371,7 +371,7 @@ def answer_question(
     retrieval_query = _reformulate_query(question, history, client) if history else question
 
     if _looks_like_problem_request(question):
-        from problem_gen.generator import generate_problem  # function-scoped import,
+        from agent.problem_gen.generator import generate_problem  # function-scoped import,
         # same circular-import-avoidance / dependency-isolation pattern as viz's own
         # integration -- keeps this package's Ollama dependency out of every plain Q&A
         # caller's import path.

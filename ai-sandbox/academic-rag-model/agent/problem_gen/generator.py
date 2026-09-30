@@ -13,7 +13,7 @@ from dataclasses import dataclass
 
 from core.indexer.index_card import load_courses
 from core.indexer.index_search import search_passages
-from problem_gen.llm_gen import generate_and_verify
+from agent.problem_gen.llm_gen import generate_and_verify
 
 
 @dataclass
