@@ -1427,6 +1427,28 @@ grep -rnE "\]\(\.?\.?/?(textbook|notes|essays|journal_articles|journal_discovery
 
 Expected: no output from either. The first catches the six merged instruction filenames; the second catches any markdown relative link (in any package's own README, not just the root one — e.g. `convert_journal_articles/README.md` linking to `../notes/` when it should now say `../transcribe_notes/`) still pointing at an old directory name. Fix every hit by hand: read the linking file, confirm the intended target under its new path, and update the link text and path together.
 
+- [ ] **Step 6b: Repo-wide relative-link integrity check**
+
+Task 7's review found a different, more general failure mode than Step 6 catches: every package move adds a directory level (e.g. `essays/` at depth 1 became `pipelines/convert_essays/` at depth 2), so a relative link inside a merged README that pointed at a *sibling that never moved* — or at the root `README.md`/`CLAUDE.md` — can be silently wrong by one `../` even though it names nothing on the old-package-name list Step 6 checks. Verify every relative link actually resolves on disk, repo-wide:
+
+```bash
+find pipelines discovery agent core resume_manager audio_generator tools -name "*.md" | while read -r f; do
+  dir=$(dirname "$f")
+  grep -oE '\]\([^)]+\)' "$f" | sed -E 's/^\]\(//; s/\)$//' | while read -r link; do
+    case "$link" in
+      http*|https*|mailto:*|\#*) continue ;;
+    esac
+    path="${link%%#*}"
+    [ -z "$path" ] && continue
+    if [ ! -e "$dir/$path" ]; then
+      echo "BROKEN: $f -> $link (resolved: $dir/$path)"
+    fi
+  done
+done
+```
+
+Fix every reported broken link by correcting its relative depth (or content, if the target genuinely moved and Step 6 already renamed it) so it resolves to the real file. Re-run the check afterward to confirm it reports nothing.
+
 - [ ] **Step 7: Run the full test suite**
 
 ```bash
