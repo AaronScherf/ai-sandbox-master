@@ -1397,6 +1397,19 @@ done
 
 Expected: every `=== pkg ===` section has no output beneath it.
 
+- [ ] **Step 4b: Fix stale `python -m OLD_PKG...` CLI-usage strings inside product code (not just docs)**
+
+Task-review findings during execution (Tasks 3–4) surfaced that several pipeline modules print their own usage/help text containing the OLD dotted module path as a string literal — e.g. `print("Usage: python -m indexer.duplicate_check ...")`. These are runtime strings, not import statements, so the helper script correctly never touched them, and they're easy to miss since they're scattered across product code rather than concentrated in docs. Find and fix every one:
+
+```bash
+for pkg in textbook notes essays journal_articles journal_discovery postprocessing video_notes indexer rag viz problem_gen problem_corpus audit_metadata reconcile_needs_manual; do
+  echo "=== $pkg ==="
+  grep -rn "python3\? \(-u \)\?-m ${pkg}\." --include="*.py" .
+done
+```
+
+For every hit, open the file, confirm it's a printed usage string (not a comment or docstring code-example — those are handled by the general dangling-reference sweep in Step 6, this step is specifically for runtime-printed strings), and update it to the new dotted path using the Package rename mapping table in the spec (e.g. `python -m indexer.duplicate_check` → `python -m core.indexer.duplicate_check`). Re-run the grep afterward to confirm each `=== pkg ===` section is empty (or contains only non-code-string matches you've deliberately left, e.g. inside a `.md` file already covered by Step 6 — this Step's grep intentionally has no `--include` restriction removed, but double check any surprising match before moving on).
+
 - [ ] **Step 5: Grep test files for hardcoded old-path strings**
 
 ```bash
