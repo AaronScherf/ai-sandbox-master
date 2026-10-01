@@ -1,0 +1,1147 @@
+[
+  {
+    "start": 0.0,
+    "end": 15.0,
+    "text": "Okay, now I want you to recall, let's even write that down. Recall Rn that we did in"
+  },
+  {
+    "start": 15.0,
+    "end": 25.14,
+    "text": "the previous lecture. We talked about Rn and we actually defined Rn there to be the set"
+  },
+  {
+    "start": 25.14,
+    "end": 37.14,
+    "text": "of n-tuples of real numbers. So we first defined, if I remember correctly, we first defined the"
+  },
+  {
+    "start": 37.14,
+    "end": 42.84,
+    "text": "notion of these n-tuples and then we said Rn would be the set of all these n-tuples of"
+  },
+  {
+    "start": 42.84,
+    "end": 49.260000000000005,
+    "text": "real numbers and we said we could do the same thing for, really for any set. We said take"
+  },
+  {
+    "start": 49.260000000000005,
+    "end": 54.5,
+    "text": "a set x, I think we did anyway and if we didn't, well, we can say it now. This would"
+  },
+  {
+    "start": 54.5,
+    "end": 68.46000000000001,
+    "text": "be the set of all n-tuples where the xi is in capital X for every i. And so what we want"
+  },
+  {
+    "start": 68.46000000000001,
+    "end": 75.96000000000001,
+    "text": "to do now is we want to generalize this a little bit because here all of the n-tuples are drawn"
+  },
+  {
+    "start": 75.96000000000001,
+    "end": 82.74000000000001,
+    "text": "from the same set R, the reals, or over here all the n-tuples are drawn from the same"
+  },
+  {
+    "start": 82.74,
+    "end": 90.1,
+    "text": "set capital X. So here we want to generalize that to allow for different sets so that the"
+  },
+  {
+    "start": 90.1,
+    "end": 95.86,
+    "text": "n-tuples, their different components could come from different sets. So what we'll do here"
+  },
+  {
+    "start": 95.86,
+    "end": 116.66,
+    "text": "then is we will say, let's make this a definition. For any two sets, sets of numbers, sets of anything."
+  },
+  {
+    "start": 116.66,
+    "end": 121.5,
+    "text": "We'll see an example just shortly. Well, in fact, I think we saw some examples last"
+  },
+  {
+    "start": 121.5,
+    "end": 145.14,
+    "text": "time where the sets here were not numbers. For sets x and y, the Cartesian product of sets"
+  },
+  {
+    "start": 145.14000000000001,
+    "end": 160.46,
+    "text": "x and y is x cross y. That's the notation we use for it. And here I've used a notation."
+  },
+  {
+    "start": 160.46,
+    "end": 165.42000000000002,
+    "text": "I don't know if I used this before. I certainly don't think I've described or explained it"
+  },
+  {
+    "start": 165.42000000000002,
+    "end": 173.18,
+    "text": "before. This is a notation that's become common for meaning that the thing over here"
+  },
+  {
+    "start": 173.22,
+    "end": 179.9,
+    "text": "on the left is defined by this over here on the right or is defined to be what's over on"
+  },
+  {
+    "start": 179.9,
+    "end": 187.46,
+    "text": "the right. So this is going to be the set of all pairs and their ordered pairs, the order"
+  },
+  {
+    "start": 187.46,
+    "end": 198.70000000000002,
+    "text": "matters as we saw before, the set of all ordered pairs such that x is in x and y is in y."
+  },
+  {
+    "start": 198.70000000000002,
+    "end": 204.62,
+    "text": "And let's just remind ourselves as we did up here, and of course here it's even more obvious"
+  },
+  {
+    "start": 204.62,
+    "end": 211.82000000000002,
+    "text": "that the order matters, because if I took yx, it has to be the second thing that's in y."
+  },
+  {
+    "start": 211.82000000000002,
+    "end": 216.62,
+    "text": "I suppose we could define it so we could flip them around, but that wouldn't really make"
+  },
+  {
+    "start": 216.62,
+    "end": 225.86,
+    "text": "a lot of sense. So let's recall from what we said earlier that the order matters and"
+  },
+  {
+    "start": 225.86,
+    "end": 238.66000000000003,
+    "text": "in fact we capture that by often returning to these as ordered pairs. And repetition is"
+  },
+  {
+    "start": 238.66000000000003,
+    "end": 251.42000000000002,
+    "text": "okay. Well here I suppose repetition doesn't actually have any particular meaning of x and"
+  },
+  {
+    "start": 251.42000000000002,
+    "end": 256.34000000000003,
+    "text": "y are different sets. So let me take that off. I think that's not very helpful. It's"
+  },
+  {
+    "start": 256.34000000000003,
+    "end": 263.54,
+    "text": "certainly okay fx equals y, but it doesn't really make any sense I think of x and y"
+  },
+  {
+    "start": 263.54,
+    "end": 272.54,
+    "text": "are different sets. So I'll just say order matters here. And we can do the same thing"
+  },
+  {
+    "start": 272.54,
+    "end": 284.14000000000004,
+    "text": "for an arbitrary finite number of sets. We would say for sets capital X1 out to capital"
+  },
+  {
+    "start": 284.14000000000004,
+    "end": 295.18,
+    "text": "Xn, we would say that we can write this a couple of ways. We could write xi equals one"
+  },
+  {
+    "start": 295.18,
+    "end": 310.38,
+    "text": "to n, the product from i equals one to n of xi. Or we could write it x1 cross out to xn."
+  },
+  {
+    "start": 310.38,
+    "end": 318.1,
+    "text": "And that is the set of all ordered pairs. X1, I probably should have written some of this"
+  },
+  {
+    "start": 318.1,
+    "end": 321.94,
+    "text": "down here to give myself a little more room, but I guess we can squeeze this in. Such"
+  },
+  {
+    "start": 322.02,
+    "end": 333.02,
+    "text": "that xi is in capital Xi, i equals one to n. Just kind of squeeze that in there on the"
+  },
+  {
+    "start": 333.02,
+    "end": 341.18,
+    "text": "screen. And so this is just the same idea, but for an arbitrary finite number of sets"
+  },
+  {
+    "start": 341.18,
+    "end": 347.65999999999997,
+    "text": "here. And sometimes you'll see this written this way because it's the idea that it's"
+  },
+  {
+    "start": 347.66,
+    "end": 352.70000000000005,
+    "text": "a product. So you'll see it sometimes written this way. I think this is a little better."
+  },
+  {
+    "start": 352.70000000000005,
+    "end": 356.90000000000003,
+    "text": "Probably either one's okay. I think people would pretty much know what you mean if you"
+  },
+  {
+    "start": 356.90000000000003,
+    "end": 363.3,
+    "text": "write it this way as well. So I think either thing is okay. So here, again, let me take"
+  },
+  {
+    "start": 363.3,
+    "end": 376.98,
+    "text": "these off so that, so that what I write isn't right in front of my face here. Okay, let's"
+  },
+  {
+    "start": 376.98,
+    "end": 391.06,
+    "text": "also say that when x1 equals x2 equals out to xn, when the sets are really all the same"
+  },
+  {
+    "start": 391.1,
+    "end": 403.1,
+    "text": "set, and let's just say they're all the same set, capital X, we write this as we write,"
+  },
+  {
+    "start": 403.1,
+    "end": 413.1,
+    "text": "let me write it down here, I guess, we would write this is just capital X to the n, just"
+  },
+  {
+    "start": 413.1,
+    "end": 419.46,
+    "text": "what we've already done. And so here I want to, for the first time, I want to use a"
+  },
+  {
+    "start": 419.54,
+    "end": 433.34000000000003,
+    "text": "notion that I think is really valuable for us in understanding many things in mathematics,"
+  },
+  {
+    "start": 433.34000000000003,
+    "end": 438.58000000000004,
+    "text": "in economics. And this is a notion that I have never seen anyone else use. So you're"
+  },
+  {
+    "start": 438.58000000000004,
+    "end": 445.1,
+    "text": "not, for the best of my knowledge, you're not going to see this in any textbook. It's"
+  },
+  {
+    "start": 445.66,
+    "end": 451.06,
+    "text": "I'm the only person that I know of that uses this idea, but I find that it's extremely"
+  },
+  {
+    "start": 451.06,
+    "end": 458.54,
+    "text": "helpful. And that is, let me introduce it by just taking a specific case here. So here"
+  },
+  {
+    "start": 458.54,
+    "end": 465.18,
+    "text": "we said, when all the sets are the same, and let's just say they're all capital X,"
+  },
+  {
+    "start": 465.18,
+    "end": 471.86,
+    "text": "we write x to the n, this is if it's x to the n power, because it's like a product"
+  },
+  {
+    "start": 471.94,
+    "end": 483.74,
+    "text": "here, we write x to the n. And so an application of this statement right here is this"
+  },
+  {
+    "start": 483.74,
+    "end": 494.54,
+    "text": "statement that r n is the set of all n tuples where each of these things is in r. So what,"
+  },
+  {
+    "start": 494.54,
+    "end": 498.18,
+    "text": "the way I describe this, and this is a kind of an elementary and maybe not the"
+  },
+  {
+    "start": 498.18,
+    "end": 503.7,
+    "text": "clearest, but it's the first. So I want to put here example of this. And that is that"
+  },
+  {
+    "start": 503.7,
+    "end": 510.14,
+    "text": "what's going on when I say, okay, we have this idea here, x to the n is the set of"
+  },
+  {
+    "start": 510.14,
+    "end": 516.82,
+    "text": "all n tuples where each of the x's is drawn from the same set x. And then I say r to"
+  },
+  {
+    "start": 516.82,
+    "end": 522.34,
+    "text": "the n, therefore, is the set of n tuples where they're all drawn from r. It's"
+  },
+  {
+    "start": 522.38,
+    "end": 528.82,
+    "text": "a situation where r, the set of real numbers is now playing the role of the"
+  },
+  {
+    "start": 528.82,
+    "end": 535.46,
+    "text": "capital X down here. So you can think of it, and we'll see more examples then, more"
+  },
+  {
+    "start": 535.46,
+    "end": 540.26,
+    "text": "detailed examples as we go along. But you can think of it here as that this is"
+  },
+  {
+    "start": 540.26,
+    "end": 546.58,
+    "text": "kind of the script, a very brief script for a play or a television show or a"
+  },
+  {
+    "start": 546.62,
+    "end": 555.1,
+    "text": "movie. And in that script, it says, look, if you have a whole bunch of sets that are"
+  },
+  {
+    "start": 555.1,
+    "end": 560.86,
+    "text": "all the same set, and you want to look at the n tuples where the components are"
+  },
+  {
+    "start": 560.86,
+    "end": 565.26,
+    "text": "drawn from that set, you can write it as capital X to the n. That's a kind of a"
+  },
+  {
+    "start": 565.26,
+    "end": 572.26,
+    "text": "script. And then here, we're now saying, well, look, r, the real numbers, they"
+  },
+  {
+    "start": 572.26,
+    "end": 580.26,
+    "text": "can play the role of the capital X in this script. And when capital R, this r here, the"
+  },
+  {
+    "start": 580.26,
+    "end": 586.98,
+    "text": "real numbers, is playing the role of capital X, then r to the n will be playing"
+  },
+  {
+    "start": 586.98,
+    "end": 591.54,
+    "text": "the role of x to the n. So it will be the set of all n tuples where the x's are"
+  },
+  {
+    "start": 591.54,
+    "end": 595.66,
+    "text": "drawn from r. So I'm not going to belabor that now. I just want to"
+  },
+  {
+    "start": 595.66,
+    "end": 599.26,
+    "text": "mention it here because it's the first time where it kind of pops up and is"
+  },
+  {
+    "start": 599.26,
+    "end": 603.26,
+    "text": "useful. And it's not a big deal here, but we're going to see as we go along, this"
+  },
+  {
+    "start": 603.26,
+    "end": 608.5,
+    "text": "will be a very power, I think, a very powerful, useful way of thinking about"
+  },
+  {
+    "start": 608.5,
+    "end": 615.7,
+    "text": "things often. Now let's write down our definition of a function. So I'm going to"
+  },
+  {
+    "start": 615.7,
+    "end": 624.54,
+    "text": "write down a definition of a function from a set X to a set Y. So we'll say"
+  },
+  {
+    "start": 629.26,
+    "end": 636.26,
+    "text": "a function"
+  },
+  {
+    "start": 641.26,
+    "end": 652.26,
+    "text": "for two sets X and Y. And so we would say the function maps elements of X to"
+  },
+  {
+    "start": 652.26,
+    "end": 657.26,
+    "text": "elements of Y, or the function is from X to Y. So it's a function from X to Y, or a"
+  },
+  {
+    "start": 657.26,
+    "end": 661.26,
+    "text": "function from X into Y. So we have a lot of different related similar terminology"
+  },
+  {
+    "start": 661.26,
+    "end": 665.26,
+    "text": "because functions are so pervasive and they show up in different contexts. So we"
+  },
+  {
+    "start": 665.26,
+    "end": 671.26,
+    "text": "have a lot of similar but not identical terminology for this. So we have a function"
+  },
+  {
+    "start": 671.26,
+    "end": 679.26,
+    "text": "from the set X to the set Y. And of course, we all know pretty much what we"
+  },
+  {
+    "start": 679.26,
+    "end": 685.26,
+    "text": "mean by a function. It's a rule. It's a rule that tells us for every element"
+  },
+  {
+    "start": 685.26,
+    "end": 693.26,
+    "text": "of X how to assign the appropriate element of Y to that element of X. So we would say"
+  },
+  {
+    "start": 693.26,
+    "end": 703.26,
+    "text": "Y equals F of X. That would be the Y that we get when we apply the rule defined by"
+  },
+  {
+    "start": 703.26,
+    "end": 709.26,
+    "text": "the function to an element of X. Well, that's kind of informal. It's kind of"
+  },
+  {
+    "start": 709.26,
+    "end": 716.26,
+    "text": "intuitive. But here, we're going to give an actual formal definition of a function."
+  },
+  {
+    "start": 716.26,
+    "end": 733.26,
+    "text": "So a function here for these two sets is a subset F of the Cartesian product, X"
+  },
+  {
+    "start": 733.26,
+    "end": 744.26,
+    "text": "cross Y. But it's not any subset. It's a set that satisfies the condition. And of"
+  },
+  {
+    "start": 744.26,
+    "end": 753.26,
+    "text": "course, you know already, presumably, that a function from a set X to set Y can't"
+  },
+  {
+    "start": 753.26,
+    "end": 759.26,
+    "text": "assign different Ys to the same X. For every X, there's only one Y that goes"
+  },
+  {
+    "start": 759.26,
+    "end": 764.26,
+    "text": "along with that X. The other direction, we could have multiple Xs that go to the same"
+  },
+  {
+    "start": 764.26,
+    "end": 770.26,
+    "text": "Y. But for a given Y, for a given X, sorry, we can't have more than one Y. So this"
+  },
+  {
+    "start": 770.26,
+    "end": 782.26,
+    "text": "has to satisfy the condition that for every X in capital X, there has to exist"
+  },
+  {
+    "start": 782.26,
+    "end": 788.26,
+    "text": "a Y. Every X has to have a Y that gets assigned to it. There exists one,"
+  },
+  {
+    "start": 788.26,
+    "end": 798.26,
+    "text": "there's only one. There exists a unique Y in capital Y such that you can say,"
+  },
+  {
+    "start": 798.26,
+    "end": 802.26,
+    "text": "wait a minute, how come I wrote it this way instead of the way we're used to writing"
+  },
+  {
+    "start": 802.26,
+    "end": 806.26,
+    "text": "it like this? And I wrote it this way because of course in this definition,"
+  },
+  {
+    "start": 806.26,
+    "end": 812.26,
+    "text": "F is a subset of X cross Y. So F is a set, F is a subset. So it has elements"
+  },
+  {
+    "start": 812.26,
+    "end": 819.26,
+    "text": "of F will be ordered pairs with an X and a Y. And so, writing it this way,"
+  },
+  {
+    "start": 819.26,
+    "end": 826.26,
+    "text": "squares exactly with the idea that the function is a subset of the Cartesian"
+  },
+  {
+    "start": 826.26,
+    "end": 834.26,
+    "text": "product of X and Y, and it is a subset that satisfies this condition. And of"
+  },
+  {
+    "start": 834.26,
+    "end": 847.26,
+    "text": "course, we write F of X equals Y instead of, well, we sometimes do write this,"
+  },
+  {
+    "start": 847.26,
+    "end": 856.26,
+    "text": "but typically we write this instead of this. So that's going to be useful to"
+  },
+  {
+    "start": 856.26,
+    "end": 860.26,
+    "text": "have this formal definition. Even though it might seem at first a little bit"
+  },
+  {
+    "start": 860.26,
+    "end": 865.26,
+    "text": "awkward, it might be a little sort of more intuitive to just think of F as this"
+  },
+  {
+    "start": 865.26,
+    "end": 871.26,
+    "text": "rule that always assigns to every X a specific unique Y. And of course that's"
+  },
+  {
+    "start": 871.26,
+    "end": 874.26,
+    "text": "what this definition says, but it says it a little more formally and it'll be"
+  },
+  {
+    "start": 874.26,
+    "end": 882.26,
+    "text": "useful to have that. And in fact, let me, down here, let me give an example"
+  },
+  {
+    "start": 882.26,
+    "end": 896.26,
+    "text": "that we'll come back and refer to. Let me see. Actually, let's put the example up"
+  },
+  {
+    "start": 896.26,
+    "end": 902.26,
+    "text": "here. So I'm going to take off some of the writing up here and we'll put a"
+  },
+  {
+    "start": 902.26,
+    "end": 910.26,
+    "text": "little simple example up here, I think. Okay, now I'm going to write down a"
+  },
+  {
+    "start": 910.26,
+    "end": 917.26,
+    "text": "very simple little example of finite sets X and Y. And we'll actually use this"
+  },
+  {
+    "start": 917.26,
+    "end": 924.26,
+    "text": "example as a little bit as we move forward to. So this example is going to be one"
+  },
+  {
+    "start": 924.26,
+    "end": 934.26,
+    "text": "in which we have two sets, X and Y. So X is going to consist of countries. I"
+  },
+  {
+    "start": 934.26,
+    "end": 943.26,
+    "text": "will give a similar example to this in our earlier lecture. And I'll use US. I'll"
+  },
+  {
+    "start": 943.26,
+    "end": 958.26,
+    "text": "use China. I'll use Mexico. And let's start off with just those three and let"
+  },
+  {
+    "start": 959.26,
+    "end": 973.26,
+    "text": "me call this H. H is going to be N and S. And so this stands for the United"
+  },
+  {
+    "start": 973.26,
+    "end": 980.26,
+    "text": "States. This is China. This is Mexico. This is the set of hemispheres. So of course"
+  },
+  {
+    "start": 980.26,
+    "end": 984.26,
+    "text": "I could have, whatever, I have eastern hemisphere, western hemisphere, I don't"
+  },
+  {
+    "start": 984.26,
+    "end": 988.26,
+    "text": "know. But I'm only working with the northern hemisphere and the southern hemisphere"
+  },
+  {
+    "start": 988.26,
+    "end": 996.26,
+    "text": "here. So I'm going to actually write down the Cartesian product. So I'm going to use"
+  },
+  {
+    "start": 996.26,
+    "end": 1001.26,
+    "text": "these lines to separate things out. And I'm going to have down here, I'm going"
+  },
+  {
+    "start": 1001.26,
+    "end": 1010.26,
+    "text": "to have U, C and M. And there's no order to these. So when I write an axis"
+  },
+  {
+    "start": 1010.26,
+    "end": 1015.26,
+    "text": "like this for the real numbers, of course, zero comes first, then comes one and two"
+  },
+  {
+    "start": 1015.26,
+    "end": 1023.26,
+    "text": "and so on. Here, this is just a place to put the elements of X. And so this is U,"
+  },
+  {
+    "start": 1023.26,
+    "end": 1032.26,
+    "text": "this is C, this is M, this is S, and this is N. I'll put N above S. North is above"
+  },
+  {
+    "start": 1032.26,
+    "end": 1041.26,
+    "text": "South. And so there are six elements of the Cartesian product, the ordered pairs"
+  },
+  {
+    "start": 1041.26,
+    "end": 1051.26,
+    "text": "consisting of a country and a hemisphere. So these are all the X's and Y's where"
+  },
+  {
+    "start": 1051.26,
+    "end": 1058.26,
+    "text": "X is in X and Y is in H. So I actually, I intentionally used H instead of Y just"
+  },
+  {
+    "start": 1058.26,
+    "end": 1064.26,
+    "text": "because I wanted to have another simple instance where I've got, in this case,"
+  },
+  {
+    "start": 1064.26,
+    "end": 1070.26,
+    "text": "capital H is playing the role of the capital Y in our definition of a Cartesian"
+  },
+  {
+    "start": 1070.26,
+    "end": 1076.26,
+    "text": "product. And of course, these are like playing the roles of the dummy variables,"
+  },
+  {
+    "start": 1076.26,
+    "end": 1081.26,
+    "text": "but there I don't think that's probably a special useful idea here. So I have"
+  },
+  {
+    "start": 1081.26,
+    "end": 1090.26,
+    "text": "six elements in the set, and in fact, let's even say this is X cross H, these"
+  },
+  {
+    "start": 1090.26,
+    "end": 1102.26,
+    "text": "six elements here. And so now let's look at the function that assigns to every"
+  },
+  {
+    "start": 1102.26,
+    "end": 1107.26,
+    "text": "country the hemisphere that it's in. Well, the United States is in the"
+  },
+  {
+    "start": 1107.26,
+    "end": 1112.26,
+    "text": "northern hemisphere. So I'm going to do a circle around the elements of X cross H"
+  },
+  {
+    "start": 1112.26,
+    "end": 1117.26,
+    "text": "that are in my function F, right? Especially let's even write that down."
+  },
+  {
+    "start": 1117.26,
+    "end": 1129.26,
+    "text": "Let's write it in this color. Let's say F of X equals Y means X is in"
+  },
+  {
+    "start": 1129.26,
+    "end": 1141.26,
+    "text": "hemisphere. I'll abbreviate that. Why? And so here, China is in the northern hemisphere."
+  },
+  {
+    "start": 1141.26,
+    "end": 1149.26,
+    "text": "Mexico is in the northern hemisphere. So this particular function is a constant"
+  },
+  {
+    "start": 1149.26,
+    "end": 1157.26,
+    "text": "function. The, oh, I used some space here that I didn't want to use. I'm going"
+  },
+  {
+    "start": 1157.26,
+    "end": 1163.26,
+    "text": "to come back and use this. I'm going to take something off. So that's okay. So here,"
+  },
+  {
+    "start": 1163.26,
+    "end": 1169.26,
+    "text": "the function F is a constant function. It assigns to every element of capital X. It"
+  },
+  {
+    "start": 1169.26,
+    "end": 1176.26,
+    "text": "assigns the element N of the hemisphere set. That's a constant function,"
+  },
+  {
+    "start": 1176.26,
+    "end": 1187.26,
+    "text": "a perfectly good function. Let's now do something more. So I'm actually going to"
+  },
+  {
+    "start": 1187.26,
+    "end": 1191.26,
+    "text": "take this off now. We know what F of X equals Y means this. And so I'm going to"
+  },
+  {
+    "start": 1191.26,
+    "end": 1197.26,
+    "text": "take this off so I can use the space to do something here. So what I'm going to"
+  },
+  {
+    "start": 1197.26,
+    "end": 1204.26,
+    "text": "do here is I'm going to say this is capital X. And now I'm going to call"
+  },
+  {
+    "start": 1204.26,
+    "end": 1210.26,
+    "text": "it capital X one. And now I'm going to put another country in here. This is"
+  },
+  {
+    "start": 1210.26,
+    "end": 1221.26,
+    "text": "Australia. So now I'm going to refer to this as capital X two. And so now I want"
+  },
+  {
+    "start": 1221.26,
+    "end": 1226.26,
+    "text": "to look at my same function, but of course it can't be exactly the same"
+  },
+  {
+    "start": 1226.26,
+    "end": 1236.26,
+    "text": "function because now it's a subset of capital X two cross H. But it's still going"
+  },
+  {
+    "start": 1236.26,
+    "end": 1240.26,
+    "text": "to be the function that assigns to every country the hemisphere that it's in,"
+  },
+  {
+    "start": 1240.26,
+    "end": 1246.26,
+    "text": "but of course Australia is in the southern hemisphere. So now my function"
+  },
+  {
+    "start": 1246.26,
+    "end": 1251.26,
+    "text": "is no longer a constant function. Some elements of X get N and some elements"
+  },
+  {
+    "start": 1251.26,
+    "end": 1260.26,
+    "text": "of X get S. And now I'm going to do one more thing. And that is I'm going to add"
+  },
+  {
+    "start": 1260.26,
+    "end": 1272.26,
+    "text": "in here the country Brazil. Let's also add in the country Kenya. Okay, so now"
+  },
+  {
+    "start": 1272.26,
+    "end": 1285.26,
+    "text": "X cross Y has 12 elements in it, 6 times 2. And what hemisphere is Brazilian? Well,"
+  },
+  {
+    "start": 1285.26,
+    "end": 1291.26,
+    "text": "Brazil is in both hemispheres, partly in the southern hemisphere, partly in the"
+  },
+  {
+    "start": 1291.26,
+    "end": 1297.26,
+    "text": "northern hemisphere. Kenya, same thing if I'm not mistaken. I haven't been to"
+  },
+  {
+    "start": 1297.26,
+    "end": 1302.26,
+    "text": "Kenya, so I can only know this from looking at the map. So I believe Kenya"
+  },
+  {
+    "start": 1302.26,
+    "end": 1311.26,
+    "text": "spans parts of both hemispheres. So now what have I got? Let me call that, again I"
+  },
+  {
+    "start": 1311.26,
+    "end": 1318.26,
+    "text": "took some of this space here, but I'll do this, call that X three. And so now I"
+  },
+  {
+    "start": 1318.26,
+    "end": 1325.26,
+    "text": "want my F to be a subset of X three cross H. And that F is a subset of X"
+  },
+  {
+    "start": 1325.26,
+    "end": 1330.26,
+    "text": "three cross H is perfectly well defined, it's a perfectly good subset, but it's"
+  },
+  {
+    "start": 1330.26,
+    "end": 1335.26,
+    "text": "not a function any longer. It's not a function because to these two elements"
+  },
+  {
+    "start": 1335.26,
+    "end": 1344.26,
+    "text": "of X, X three in this case, it assigns two different elements of H. So I'm going"
+  },
+  {
+    "start": 1344.26,
+    "end": 1347.26,
+    "text": "to leave this on because I'm going to come back and refer to this a couple"
+  },
+  {
+    "start": 1347.26,
+    "end": 1350.26,
+    "text": "more times. It's real simple, and that's kind of helpful. The fact"
+  },
+  {
+    "start": 1350.26,
+    "end": 1356.26,
+    "text": "that it's simple is kind of a good thing here. So let's now go over here and let's"
+  },
+  {
+    "start": 1356.26,
+    "end": 1368.26,
+    "text": "lay out a number of sets associated with any function. So let's say that let's"
+  },
+  {
+    "start": 1368.26,
+    "end": 1388.26,
+    "text": "say let F be some function from a set X to a set Y. And so what I'm going to lay"
+  },
+  {
+    "start": 1388.26,
+    "end": 1391.26,
+    "text": "out is basically some definitions. I'm not going to write definition each time,"
+  },
+  {
+    "start": 1391.26,
+    "end": 1404.26,
+    "text": "but some definitions of some sets that are associated with F. So we have"
+  },
+  {
+    "start": 1404.26,
+    "end": 1417.26,
+    "text": "the domain of F is, which we write this way, is just the whole set X. So it's"
+  },
+  {
+    "start": 1417.26,
+    "end": 1427.26,
+    "text": "the set that F is defined on. So, okay, so let's underline this because that's"
+  },
+  {
+    "start": 1427.26,
+    "end": 1447.26,
+    "text": "being defined. Then we have the target or target space of F is Y. So we can think of"
+  },
+  {
+    "start": 1448.26,
+    "end": 1458.26,
+    "text": "F as kind of shooting an arrow from X over to Y. And so Y is the target space. F takes"
+  },
+  {
+    "start": 1458.26,
+    "end": 1466.26,
+    "text": "X's and sends them over here and for every X, F takes that X and hits something in the"
+  },
+  {
+    "start": 1466.26,
+    "end": 1484.26,
+    "text": "target. It's a Y in the target. Let's say the image of a subset that's supposed to"
+  },
+  {
+    "start": 1484.26,
+    "end": 1504.26,
+    "text": "be S here, a subset of the domain, the image of a set under the function F is the set F"
+  },
+  {
+    "start": 1504.26,
+    "end": 1516.26,
+    "text": "of S, that's where we write it, and it is the set of all F of X's such that X is in X. We"
+  },
+  {
+    "start": 1516.26,
+    "end": 1524.26,
+    "text": "can write that another way as the set of all Y's in Y such that there exists an X in"
+  },
+  {
+    "start": 1524.26,
+    "end": 1536.26,
+    "text": "X such that F of X equals Y. So two different ways, obviously the same thing. We have the"
+  },
+  {
+    "start": 1536.26,
+    "end": 1551.26,
+    "text": "domain, we have the target, we have the image, and now let's look at the range of F is just"
+  },
+  {
+    "start": 1552.26,
+    "end": 1563.26,
+    "text": "the image of the whole domain. So it's the range of F is all of the elements of Y that get hit from"
+  },
+  {
+    "start": 1563.26,
+    "end": 1589.26,
+    "text": "some X in the domain. And last, we have the preimage of a set. So we'll say the preimage of a"
+  },
+  {
+    "start": 1589.26,
+    "end": 1602.26,
+    "text": "set V in the target space, the preimage of a set V is written like inverse, and so it's like an inverse,"
+  },
+  {
+    "start": 1602.26,
+    "end": 1611.26,
+    "text": "but it's not literally the inverse typically. That's defined. In fact, I probably should put a little"
+  },
+  {
+    "start": 1611.26,
+    "end": 1619.26,
+    "text": "colon here just to emphasize this thing is being defined this way. This is why I did do that here. So we'll do that"
+  },
+  {
+    "start": 1619.26,
+    "end": 1639.26,
+    "text": "here too. So it's the set of all X's in X such that F of X is in the set V. Let's actually come back"
+  },
+  {
+    "start": 1639.26,
+    "end": 1645.26,
+    "text": "over to our simple little example and see what some of these things are in the two functions F1 and F2. Of course, F3 is"
+  },
+  {
+    "start": 1645.26,
+    "end": 1653.26,
+    "text": "not a function. So we have to leave that aside here. But F1 and F2 are both functions with different domains. This"
+  },
+  {
+    "start": 1653.26,
+    "end": 1663.26,
+    "text": "domain is a subset of this domain. And so let's see what the domain of course the domain of fact I just used"
+  },
+  {
+    "start": 1663.26,
+    "end": 1671.26,
+    "text": "that term. The domain of F1 is a whole of X1. It's the set consisting of US, China and Mexico. The domain of F2"
+  },
+  {
+    "start": 1671.26,
+    "end": 1681.26,
+    "text": "consists of the US, China, Mexico, and Australia. The target space is the same in every case. It's the set H, that's"
+  },
+  {
+    "start": 1681.26,
+    "end": 1689.26,
+    "text": "the target space here, playing the role of Y in the definition. And so it's the two element set H, that's"
+  },
+  {
+    "start": 1689.26,
+    "end": 1700.26,
+    "text": "the target set, the target space. We usually use that term. What's the image of a set in X? Well, let's take, for example,"
+  },
+  {
+    "start": 1701.26,
+    "end": 1723.26,
+    "text": "let's take the set S equals U and C, a subset of X2. So capital X2 has the four elements here. And if I just look at U"
+  },
+  {
+    "start": 1723.26,
+    "end": 1739.26,
+    "text": "and C, I have a set S that has two elements. And F of S is just the set consisting of N. So this is just the set consisting"
+  },
+  {
+    "start": 1739.26,
+    "end": 1749.26,
+    "text": "of N. So notice this as simple as it is, this is actually kind of a good example because it emphasizes that the image"
+  },
+  {
+    "start": 1750.26,
+    "end": 1761.26,
+    "text": "of a set is not a point, it's not an element. The image of a set is itself a set. The image of a set under F is a set."
+  },
+  {
+    "start": 1761.26,
+    "end": 1770.26,
+    "text": "F of S is a set. And here it's a singleton set because the image set consists of only the one element."
+  },
+  {
+    "start": 1770.26,
+    "end": 1785.26,
+    "text": "That's good. I mean, we could take a different S, but that looks fine. The range of, now the target space is the same for both"
+  },
+  {
+    "start": 1785.26,
+    "end": 1795.26,
+    "text": "functions F1 and F2. It's H. But the range of the two functions is different. The range of F1 is just the set consisting"
+  },
+  {
+    "start": 1795.26,
+    "end": 1813.26,
+    "text": "of only N. So let's just write that here. The range of F1 is the set consisting of just N. The range of F2 is all of H."
+  },
+  {
+    "start": 1813.26,
+    "end": 1830.26,
+    "text": "Because with F2 we actually pick up both N and S. And the pre-image, what's the pre-image F1? What's the pre-image of the set consisting"
+  },
+  {
+    "start": 1830.26,
+    "end": 1848.26,
+    "text": "of just N? The pre-image of the set consisting of N because the pre-image is the pre-image of a set in the target space. H is playing the role of"
+  },
+  {
+    "start": 1848.26,
+    "end": 1869.26,
+    "text": "Y. That's a set. And the pre-image of N under 1 is all three of these. They're all points in the domain that get mapped into N."
+  },
+  {
+    "start": 1869.26,
+    "end": 1884.26,
+    "text": "And, of course, the pre-image of N in the function F2 still consists of the same three elements because this doesn't get mapped to N, but it's not the whole domain"
+  },
+  {
+    "start": 1884.26,
+    "end": 1900.26,
+    "text": "anymore. Let's make this a one. But the pre-image of N under F2 consists also of U, C, and M. But that's not the whole domain because now the domain includes Australia here."
+  },
+  {
+    "start": 1901.26,
+    "end": 1912.26,
+    "text": "So this gives us some idea of what these sets are. And now let's look at a couple or three properties that a function might have."
+  },
+  {
+    "start": 1912.26,
+    "end": 1937.26,
+    "text": "We say that F is onto the target space if, for every Y in the target space, there exists an X in the domain such that F of X equals Y."
+  },
+  {
+    "start": 1937.26,
+    "end": 1958.26,
+    "text": "So the function is onto if every element of Y gets hit by the function F. And so, of course, coming back over here, F1 is not onto H because S does not get hit by F. F2 is onto H because both N and"
+  },
+  {
+    "start": 1958.26,
+    "end": 1987.26,
+    "text": "S get hit by the function F2. And so F1 is not onto, F2 is onto. We say F is 1 to 1 if, F is 1 to 1 if an element of Y"
+  },
+  {
+    "start": 1988.26,
+    "end": 2011.26,
+    "text": "only gets hit once, that there's only one X that goes to the Y. So we would say F is 1 to 1 if, for every Y in, now it's not for every Y in Y because some of the elements of Y might not get hit."
+  },
+  {
+    "start": 2011.26,
+    "end": 2037.26,
+    "text": "So it's for every Y in the range, for every Y in the range of F, there exists a unique X in X such that F of X equals Y."
+  },
+  {
+    "start": 2037.26,
+    "end": 2057.26,
+    "text": "Again, I want to emphasize, it's not that for every Y in the target space because, for example, let's take, well, we actually don't have a function that's good. I have a function that's 1 to 1 here. Let's just point out that the function F2 defined on the"
+  },
+  {
+    "start": 2057.26,
+    "end": 2080.26,
+    "text": "four element domain is not 1 to 1 because there exist, in fact, three different points in the range for which there's not a unique X that maps to that. So for this one here, and I don't have a unique X that maps to N, I've got three"
+  },
+  {
+    "start": 2080.26,
+    "end": 2103.26,
+    "text": "different X's that map to N. So neither of the two functions F1 or F2 is 1 to 1. We will see a couple of 1 to 1 functions in a few moments. So here's a bunch of definitions of sets associated with any function and potential"
+  },
+  {
+    "start": 2103.26,
+    "end": 2123.26,
+    "text": "properties of a function. Oh, there's one more thing I think I'll mention here, and that is that F is called A, and here I'll write it just this way, 1 to 1 correspondence"
+  },
+  {
+    "start": 2124.26,
+    "end": 2127.26,
+    "text": "between"
+  },
+  {
+    "start": 2133.26,
+    "end": 2135.26,
+    "text": "X and Y"
+  },
+  {
+    "start": 2135.26,
+    "end": 2144.26,
+    "text": "if it is both 1 to 1"
+  },
+  {
+    "start": 2147.26,
+    "end": 2160.26,
+    "text": "and on to. And we don't have that in our example. So we'll just have to wait and we'll see an example of a couple of examples. I believe of 1 to 1 correspondences in a few moments."
+  },
+  {
+    "start": 2160.26,
+    "end": 2184.26,
+    "text": "Tell you what, it's starting to go on a little long, so let's take a break here and then we'll come back and we'll do several examples that will tell us something about these sets associated with a function and these various properties of sets. So let's do that and then we'll come back and we'll do several examples. Okay."
+  }
+]

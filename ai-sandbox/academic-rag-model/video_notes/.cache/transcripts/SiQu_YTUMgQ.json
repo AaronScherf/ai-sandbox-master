@@ -1,0 +1,442 @@
+[
+  {
+    "start": 0.0,
+    "end": 25.240000000000002,
+    "text": "Hi everybody, hope everybody is having a good day today so far."
+  },
+  {
+    "start": 25.240000000000002,
+    "end": 32.800000000000004,
+    "text": "We are going to start out by spending a few minutes talking about sets and end tuples."
+  },
+  {
+    "start": 32.800000000000004,
+    "end": 40.2,
+    "text": "Now in this first lecture and probably for the first few lectures, a lot of what we do"
+  },
+  {
+    "start": 40.2,
+    "end": 47.2,
+    "text": "is probably going to be review for most of you, I say a lot but probably not all of what"
+  },
+  {
+    "start": 47.2,
+    "end": 51.2,
+    "text": "we're going to do will be review, but it's still the case that even though some of"
+  },
+  {
+    "start": 51.2,
+    "end": 59.2,
+    "text": "this is going to be familiar, it's still important for us to kind of do that review,"
+  },
+  {
+    "start": 59.2,
+    "end": 64.04,
+    "text": "to start out with things that are familiar and straightforward for us and also so that"
+  },
+  {
+    "start": 64.04,
+    "end": 68.84,
+    "text": "we all kind of get on the same page in terms of the concepts and the notation for those"
+  },
+  {
+    "start": 68.84,
+    "end": 70.48,
+    "text": "concepts that we're using."
+  },
+  {
+    "start": 70.48,
+    "end": 79.48,
+    "text": "So let's start out by talking about the special sets of numbers that we use and"
+  },
+  {
+    "start": 79.48,
+    "end": 91.60000000000001,
+    "text": "the special notation for those sets and so let's start with R, the special kind of R"
+  },
+  {
+    "start": 91.60000000000001,
+    "end": 107.08000000000001,
+    "text": "with the two lines on the left and that's of course the set of real numbers and we often"
+  },
+  {
+    "start": 107.16,
+    "end": 118.16,
+    "text": "of course represent the set of real numbers by, geometrically by a line and we even refer"
+  },
+  {
+    "start": 118.16,
+    "end": 125.88,
+    "text": "to that line as the real line often and kind of synonymously with R, the set of real numbers"
+  },
+  {
+    "start": 125.88,
+    "end": 132.96,
+    "text": "and we think of the elements of the real numbers as being the points on the line"
+  },
+  {
+    "start": 132.96,
+    "end": 150.96,
+    "text": "and then we have the special symbol N which is the set of natural numbers"
+  },
+  {
+    "start": 150.96,
+    "end": 157.96,
+    "text": "and that is the set consisting of the counting numbers, natural numbers or the counting numbers"
+  },
+  {
+    "start": 157.96,
+    "end": 163.24,
+    "text": "and so that's one, two, three and so on indefinitely."
+  },
+  {
+    "start": 163.24,
+    "end": 188.44,
+    "text": "We have the set of integers, that is the set of all the negative and positive integers and"
+  },
+  {
+    "start": 188.44,
+    "end": 191.07999999999998,
+    "text": "of course zero."
+  },
+  {
+    "start": 191.07999999999998,
+    "end": 198.12,
+    "text": "So the dot dot dot ellipsis or dots here just indicates this goes on forever in the positive"
+  },
+  {
+    "start": 198.12,
+    "end": 203.0,
+    "text": "direction, this goes on forever in the positive direction and also goes on forever in the"
+  },
+  {
+    "start": 203.0,
+    "end": 213.4,
+    "text": "negative direction and the remaining kind of special symbol that we use is this Q for"
+  },
+  {
+    "start": 213.4,
+    "end": 226.24,
+    "text": "the set of rational numbers, YQ, I have no idea, I don't know why we use Q for the set"
+  },
+  {
+    "start": 226.24,
+    "end": 233.4,
+    "text": "of rational numbers, maybe there's a reason, no one has ever come up really I guess before"
+  },
+  {
+    "start": 233.4,
+    "end": 240.04000000000002,
+    "text": "so let's just point out that we can actually write down a definition of the set in this"
+  },
+  {
+    "start": 240.04,
+    "end": 253.35999999999999,
+    "text": "way, it's the set of all real numbers such that X is a ratio of integers so such that"
+  },
+  {
+    "start": 253.35999999999999,
+    "end": 268.32,
+    "text": "X equals M over N for some M and N in Z that is for some integers."
+  },
+  {
+    "start": 268.32,
+    "end": 274.12,
+    "text": "Now this might look a little suspicious, you might be a little skeptical of this because you"
+  },
+  {
+    "start": 274.12,
+    "end": 282.4,
+    "text": "can say wait a minute now, one of the integers is zero and if the denominator is that integer"
+  },
+  {
+    "start": 282.4,
+    "end": 286.68,
+    "text": "well then we're not going to get a rational, we're not going to get any kind of number"
+  },
+  {
+    "start": 286.68,
+    "end": 294.0,
+    "text": "because any integer divided by zero doesn't have any meaning so you might say that doesn't"
+  },
+  {
+    "start": 294.0,
+    "end": 299.96,
+    "text": "look quite right but that's actually not so, this is actually okay and so let's see why"
+  },
+  {
+    "start": 299.96,
+    "end": 302.58,
+    "text": "that might be so."
+  },
+  {
+    "start": 302.58,
+    "end": 311.08,
+    "text": "Note that I could rewrite the part over here to the right of the vertical line that delineates"
+  },
+  {
+    "start": 311.15999999999997,
+    "end": 327.32,
+    "text": "which X as we're talking about, I could rewrite this as follows, a backwards E, a backwards"
+  },
+  {
+    "start": 327.32,
+    "end": 334.76,
+    "text": "E which we mean which we read as there exists, there exists I guess we'd say here, there"
+  },
+  {
+    "start": 334.76,
+    "end": 348.86,
+    "text": "exist integers M and N such that X equals M over N. So this is the existential quantifier"
+  },
+  {
+    "start": 348.86,
+    "end": 354.4,
+    "text": "that we use all the time, we're going to talk about that in probably the next lecture so"
+  },
+  {
+    "start": 354.4,
+    "end": 359.28,
+    "text": "I won't belabor anything about that here but this simply is an alternative way to write"
+  },
+  {
+    "start": 359.28000000000003,
+    "end": 367.44000000000005,
+    "text": "what we have here so it says it's the set of all real numbers for which there are integers"
+  },
+  {
+    "start": 367.44000000000005,
+    "end": 371.24,
+    "text": "such that the real number is M over N, you can say well that really kind of looks the same"
+  },
+  {
+    "start": 371.24,
+    "end": 380.64000000000004,
+    "text": "and it actually is the same but this perhaps makes it a little clearer that the zero is"
+  },
+  {
+    "start": 380.64000000000004,
+    "end": 385.68,
+    "text": "ruled out in what we've said here because this says the set of all real numbers such"
+  },
+  {
+    "start": 385.76,
+    "end": 393.96,
+    "text": "that there exists an M and an N such that the number is M over N but of course if there is"
+  },
+  {
+    "start": 393.96,
+    "end": 404.32,
+    "text": "no N such that any real number would be equal to M over zero, there is no, if N is zero"
+  },
+  {
+    "start": 404.32,
+    "end": 412.0,
+    "text": "then there is no M that will go along with zero to give me M over zero as a real number"
+  },
+  {
+    "start": 412.0,
+    "end": 422.48,
+    "text": "so this is okay it's just that the number zero, the integer zero just can't show up in"
+  },
+  {
+    "start": 422.48,
+    "end": 430.88,
+    "text": "this ratio. Now there are, there's a collection of additional special symbols for these sets"
+  },
+  {
+    "start": 430.88,
+    "end": 440.36,
+    "text": "that we should look at briefly and that would be if we write R plus that is the set"
+  },
+  {
+    "start": 440.36,
+    "end": 451.92,
+    "text": "of all real numbers such that X is greater than or equal to zero so it's just the non-negative"
+  },
+  {
+    "start": 451.92,
+    "end": 457.8,
+    "text": "real numbers and it's a little bit counterintuitive because you'd think with a plus down here"
+  },
+  {
+    "start": 457.8,
+    "end": 464.16,
+    "text": "then presumably this is the positive, strictly positive real numbers and I think that would"
+  },
+  {
+    "start": 464.16,
+    "end": 470.12,
+    "text": "be the right intuition in some sense but it just happens that the convention everybody"
+  },
+  {
+    "start": 470.12,
+    "end": 483.36,
+    "text": "uses is that R sub plus is the non-negative real numbers and we use R plus plus for the"
+  },
+  {
+    "start": 483.36,
+    "end": 492.68,
+    "text": "strictly positive real numbers so this is, so this is the set R plus plus the strictly"
+  },
+  {
+    "start": 492.68,
+    "end": 505.0,
+    "text": "positive real numbers and of course we use the same notation occasionally for Z plus and"
+  },
+  {
+    "start": 505.0,
+    "end": 516.92,
+    "text": "Q plus to be the non-negative integers and the non-negative rational numbers and we sometimes"
+  },
+  {
+    "start": 516.9599999999999,
+    "end": 525.52,
+    "text": "use Z plus plus and Q plus plus for the strictly positive integers and the strictly positive"
+  },
+  {
+    "start": 525.52,
+    "end": 530.8399999999999,
+    "text": "rational numbers and in fact I don't know that we probably ever, ever have to use this"
+  },
+  {
+    "start": 530.8399999999999,
+    "end": 535.8,
+    "text": "because the strictly positive integers is the same thing as the set of natural numbers"
+  },
+  {
+    "start": 535.8,
+    "end": 541.8399999999999,
+    "text": "so we would typically just use this. So these are just special symbols that we use"
+  },
+  {
+    "start": 541.84,
+    "end": 549.48,
+    "text": "for these particular special sets of numbers that we kind of use all the time. Now the next"
+  },
+  {
+    "start": 549.48,
+    "end": 559.6,
+    "text": "thing that I want to talk about here is that we can, if we have a set X, so let's say here"
+  },
+  {
+    "start": 559.6,
+    "end": 572.64,
+    "text": "for any set capital X it could be R, it could be the rational, it could be R plus plus or"
+  },
+  {
+    "start": 572.64,
+    "end": 578.0,
+    "text": "it actually could be a set that doesn't consist of numbers, it could be a set of people, a"
+  },
+  {
+    "start": 578.0,
+    "end": 589.0,
+    "text": "set of colors as we're going to see in a little while. For any set X we can form what"
+  },
+  {
+    "start": 589.04,
+    "end": 604.36,
+    "text": "are called n-tuples and we often use the word lists instead. N-tuples or lists of elements"
+  },
+  {
+    "start": 604.36,
+    "end": 615.96,
+    "text": "or members of X and so a typical n-tuple, I would use just a letter X let's say as"
+  },
+  {
+    "start": 615.96,
+    "end": 631.32,
+    "text": "the name of the whole n-tuple or the whole list and it would consist of a list with parenthesis"
+  },
+  {
+    "start": 631.32,
+    "end": 639.72,
+    "text": "around it, a list of elements of X. So for example if this is, if capital X is the real"
+  },
+  {
+    "start": 639.72,
+    "end": 653.84,
+    "text": "numbers then this would just be a list of n real numbers. So where X i is in capital X"
+  },
+  {
+    "start": 653.84,
+    "end": 664.84,
+    "text": "and here, here we'll just write i equals 1 to n. This would be the name of the n-tuple"
+  },
+  {
+    "start": 664.84,
+    "end": 672.76,
+    "text": "of the list and I should point out that we often refer to these, we often add on the adjective"
+  },
+  {
+    "start": 672.76,
+    "end": 681.6800000000001,
+    "text": "ordered n-tuples or ordered lists so let's put that down here and the reason for that"
+  },
+  {
+    "start": 681.6800000000001,
+    "end": 685.8000000000001,
+    "text": "is because the order really matters here and I'm not going to say more about that right"
+  },
+  {
+    "start": 685.8000000000001,
+    "end": 689.32,
+    "text": "now because in just a few minutes we're going to do a couple of examples where we'll"
+  },
+  {
+    "start": 689.32,
+    "end": 701.6400000000001,
+    "text": "see that and I'll bring that out a little more, a little more detail. The various components"
+  },
+  {
+    "start": 701.6400000000001,
+    "end": 713.8000000000001,
+    "text": "of the n-tuples are called components so that's the word we use to refer to the individual"
+  },
+  {
+    "start": 713.8000000000001,
+    "end": 718.6,
+    "text": "elements, I don't want to use elements that can be a little confusing but the individual"
+  },
+  {
+    "start": 718.6,
+    "end": 731.96,
+    "text": "items in the list. Okay and so these are the components of the n-tuple X and we have"
+  },
+  {
+    "start": 731.96,
+    "end": 740.9200000000001,
+    "text": "a notation that we use for the set of all n-tuples from a set of X so that would"
+  },
+  {
+    "start": 740.92,
+    "end": 755.7199999999999,
+    "text": "be X to the n or just Xn we often say and that is by definition the set of all X such"
+  },
+  {
+    "start": 755.72,
+    "end": 779.48,
+    "text": "that X equals X1 to Xn, X i and X i1 to n. Okay so this is just a notation for the set of all"
+  },
+  {
+    "start": 779.48,
+    "end": 793.52,
+    "text": "n-tuples drawn from some set X so now I think what we want to do is let's take off the everything"
+  },
+  {
+    "start": 793.52,
+    "end": 799.72,
+    "text": "on this side of the screen and we'll do a few, we'll do a couple of examples to kind"
+  },
+  {
+    "start": 799.72,
+    "end": 809.36,
+    "text": "of bring out some particular issues involving sets and n-tuples so we'll take this off and"
+  },
+  {
+    "start": 809.36,
+    "end": 810.36,
+    "text": "then we'll be right back."
+  }
+]

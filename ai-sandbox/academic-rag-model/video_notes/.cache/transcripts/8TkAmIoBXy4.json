@@ -1,0 +1,642 @@
+[
+  {
+    "start": 0.0,
+    "end": 26.92,
+    "text": "Hi everybody, I hope everybody is having a good day today so far, today we are going"
+  },
+  {
+    "start": 26.92,
+    "end": 38.160000000000004,
+    "text": "to talk about quantifiers, about the Cartesian product, about functions, and sets associated"
+  },
+  {
+    "start": 38.160000000000004,
+    "end": 42.760000000000005,
+    "text": "with the function, several different kinds of sets that we associate with the function,"
+  },
+  {
+    "start": 42.760000000000005,
+    "end": 46.160000000000004,
+    "text": "and some different properties of functions that are important to us."
+  },
+  {
+    "start": 46.160000000000004,
+    "end": 51.08,
+    "text": "And then we will do a number of examples that will kind of bring out some of the"
+  },
+  {
+    "start": 51.08,
+    "end": 55.160000000000004,
+    "text": "ideas that we have developed before we do the examples."
+  },
+  {
+    "start": 55.160000000000004,
+    "end": 62.52,
+    "text": "So that is where we are going to go today, and so let's get started."
+  },
+  {
+    "start": 62.52,
+    "end": 81.28,
+    "text": "So I am going to write S of X to mean, this is going to be a statement"
+  },
+  {
+    "start": 81.28,
+    "end": 95.96000000000001,
+    "text": "about whatever X is, in fact I should say that a different way, it is not a statement"
+  },
+  {
+    "start": 95.96000000000001,
+    "end": 103.4,
+    "text": "that is true, let's actually rewrite that just a little bit here, statement about X"
+  },
+  {
+    "start": 103.4,
+    "end": 112.96000000000001,
+    "text": "is true, you will note the difference I think as we go along."
+  },
+  {
+    "start": 112.96000000000001,
+    "end": 117.4,
+    "text": "So this is, when I write S of X, this just means we have got some statement about X"
+  },
+  {
+    "start": 117.4,
+    "end": 124.36000000000001,
+    "text": "and there will be particular instances that we will see where we have statements about"
+  },
+  {
+    "start": 124.36,
+    "end": 129.2,
+    "text": "something, and I will just use S of X as a kind of shorthand for that, and I will use"
+  },
+  {
+    "start": 129.2,
+    "end": 142.6,
+    "text": "P of X to mean X has property P, where P is some property, and I think these will become"
+  },
+  {
+    "start": 142.6,
+    "end": 147.32,
+    "text": "clear what it is we are talking about as we start to use these notions, probably"
+  },
+  {
+    "start": 147.32,
+    "end": 149.16,
+    "text": "pretty quickly in fact."
+  },
+  {
+    "start": 149.16,
+    "end": 156.07999999999998,
+    "text": "So the first thing we want to do today is to talk about quantifiers, logical quantifiers,"
+  },
+  {
+    "start": 156.07999999999998,
+    "end": 161.24,
+    "text": "we will see these in a little more detail shortly, another couple of lectures I think,"
+  },
+  {
+    "start": 161.24,
+    "end": 167.6,
+    "text": "when we start talking about proofs, how to do proofs, truth tables and related ideas,"
+  },
+  {
+    "start": 167.6,
+    "end": 175.48,
+    "text": "for today we are just going to be presenting the notion of universal and existential quantifiers."
+  },
+  {
+    "start": 175.48,
+    "end": 190.72,
+    "text": "So when we write this upside down A for all elements of some arbitrary set capital X, that"
+  },
+  {
+    "start": 190.72,
+    "end": 199.12,
+    "text": "S of X, this says for every X, S of X is a true statement, this statement about X is true,"
+  },
+  {
+    "start": 199.12,
+    "end": 207.32,
+    "text": "or I could substitute in here a P and say for every X in capital X, X has the property P,"
+  },
+  {
+    "start": 207.32,
+    "end": 219.8,
+    "text": "that is what we call the universal quantifier, then we have the existential quantifier which"
+  },
+  {
+    "start": 219.8,
+    "end": 228.4,
+    "text": "says there exists an X here such that S of X, so let's actually put this in here, and"
+  },
+  {
+    "start": 228.4,
+    "end": 242.76,
+    "text": "I should have written this out in words I think, so this would say for every X in X, X of S, S"
+  },
+  {
+    "start": 242.76,
+    "end": 254.56,
+    "text": "of X is true, this would say there is some X, there exists an X element of capital X,"
+  },
+  {
+    "start": 254.56,
+    "end": 269.12,
+    "text": "so there exists an X, that's not going to work, there exists an X, an element of capital"
+  },
+  {
+    "start": 269.12,
+    "end": 278.8,
+    "text": "X such that S of X is a true statement about it. And now there is a third, not really"
+  },
+  {
+    "start": 279.08,
+    "end": 287.52000000000004,
+    "text": "exactly a new different quantifier but slightly different, we would say this backwards E with"
+  },
+  {
+    "start": 287.52000000000004,
+    "end": 303.6,
+    "text": "an exclamation point X in X, that would say the same thing is up here, except where it"
+  },
+  {
+    "start": 303.64000000000004,
+    "end": 316.72,
+    "text": "says and we would now substitute a unique, so this statement, and by the way notice that I've said"
+  },
+  {
+    "start": 316.72,
+    "end": 321.68,
+    "text": "this is a statement about X, so this is a statement about X, and then I've referred to this as a"
+  },
+  {
+    "start": 321.68,
+    "end": 327.44,
+    "text": "statement, they're both statements, this is a statement about X, this whole thing here is"
+  },
+  {
+    "start": 327.52,
+    "end": 335.44,
+    "text": "not a statement about X, this is a statement about capital X, it says there exists a unique"
+  },
+  {
+    "start": 336.0,
+    "end": 342.48,
+    "text": "element of capital X for which this statement is true, or if I had P in here it would be"
+  },
+  {
+    "start": 342.48,
+    "end": 351.12,
+    "text": "there exists a unique element of capital X that has property P, so this statement with the"
+  },
+  {
+    "start": 351.12,
+    "end": 358.0,
+    "text": "quantifier is in the same here, in the same here, those are each statements about capital X and"
+  },
+  {
+    "start": 358.72,
+    "end": 364.8,
+    "text": "here we have a statement about one of the elements, so over here on the right the X"
+  },
+  {
+    "start": 364.8,
+    "end": 371.68,
+    "text": "is kind of like a variable or a dummy variable, I could, instead of having X I could put Z here"
+  },
+  {
+    "start": 371.68,
+    "end": 377.76,
+    "text": "and then there exists a unique Z in capital X for the same fixed set capital X, there exists"
+  },
+  {
+    "start": 377.76,
+    "end": 384.48,
+    "text": "a Z such that the statement about Z is true, so what I've got in here isn't so important,"
+  },
+  {
+    "start": 384.48,
+    "end": 389.2,
+    "text": "what's important in the statement is what set X we're talking about and that'll become clear"
+  },
+  {
+    "start": 389.2,
+    "end": 402.88,
+    "text": "in just a moment when we do several examples, so both of these are what we call existential"
+  },
+  {
+    "start": 402.88,
+    "end": 414.96,
+    "text": "quantifiers, so in each case these are quantifiers, they say they quantify the statement over here"
+  },
+  {
+    "start": 414.96,
+    "end": 421.12,
+    "text": "by saying there's one or for everyone, so let's look at some examples here,"
+  },
+  {
+    "start": 421.92,
+    "end": 437.12,
+    "text": "so first let's look at the statement that says for every X in R, X squared is greater than or equal to"
+  },
+  {
+    "start": 437.12,
+    "end": 448.64,
+    "text": "zero, that's, we know that's true, so let's put T here, by the way let me, let me take this back"
+  },
+  {
+    "start": 448.64,
+    "end": 461.44,
+    "text": "off and I'm doing that just so that when I'm working over here I can see you, you can see me,"
+  },
+  {
+    "start": 461.44,
+    "end": 470.8,
+    "text": "okay, so this statement is a true statement about the real numbers, that's why I put T in"
+  },
+  {
+    "start": 470.8,
+    "end": 476.24,
+    "text": "to circle, that's just a shorthand ad hoc for the moment shorthand here, true and I'll circle"
+  },
+  {
+    "start": 476.24,
+    "end": 482.40000000000003,
+    "text": "F if it's false, so this is a statement about real numbers and then this statement here is just a"
+  },
+  {
+    "start": 482.40000000000003,
+    "end": 488.56,
+    "text": "statement about a particular X and this says for every particular X its square is non-negative,"
+  },
+  {
+    "start": 489.6,
+    "end": 500.40000000000003,
+    "text": "let's look at another statement here for every X in R, X squared is positive, well that's false"
+  },
+  {
+    "start": 500.40000000000003,
+    "end": 508.72,
+    "text": "because zero is a real number, zero squared is not positive, let's look at another statement,"
+  },
+  {
+    "start": 508.72,
+    "end": 515.6800000000001,
+    "text": "let's say here we have for all n in the set of natural numbers for every natural number"
+  },
+  {
+    "start": 516.24,
+    "end": 533.1200000000001,
+    "text": "1, summed up 1, 2, 3, 4 out to n, the sum of the first n natural numbers is n times n plus 1 over 2,"
+  },
+  {
+    "start": 534.0000000000001,
+    "end": 540.48,
+    "text": "that's true and you probably already know that or you could in a sense verify for yourself"
+  },
+  {
+    "start": 540.5600000000001,
+    "end": 546.08,
+    "text": "pretty quickly but we're actually going to go through a proof of this that will be instructive"
+  },
+  {
+    "start": 546.08,
+    "end": 551.12,
+    "text": "even though it's easy but we're not going to do that today, we'll do that next time or shortly"
+  },
+  {
+    "start": 551.12,
+    "end": 557.2,
+    "text": "thereafter when we're talking about truth tables, proofs and that will be where we talk about"
+  },
+  {
+    "start": 557.2,
+    "end": 565.9200000000001,
+    "text": "proof by induction when we do this, let's look at another quantified statement and this is"
+  },
+  {
+    "start": 565.92,
+    "end": 572.64,
+    "text": "going to be an existence statement, we'll say there exists, whoops that's not what I want,"
+  },
+  {
+    "start": 575.52,
+    "end": 581.8399999999999,
+    "text": "there exists an X squared, well we could do that but here it's going to be that there exists"
+  },
+  {
+    "start": 582.48,
+    "end": 594.5600000000001,
+    "text": "an X in R such that X squared equals 25, it's supposed to be a 5 there, 25, so of course"
+  },
+  {
+    "start": 595.44,
+    "end": 605.6,
+    "text": "that's true, now let's say that the statement there exists a unique X in R such that X squared equals"
+  },
+  {
+    "start": 606.5600000000001,
+    "end": 616.8000000000001,
+    "text": "25, that's false because of course 5 squared is 25 and minus 5 squared is 25 so it's not true"
+  },
+  {
+    "start": 616.8000000000001,
+    "end": 625.28,
+    "text": "that there's a unique X here that does this, so this is false, let's look at another one similar"
+  },
+  {
+    "start": 625.28,
+    "end": 636.8,
+    "text": "let's say there exists an N, in fact let's put in here unique, there exists a unique N in N,"
+  },
+  {
+    "start": 636.8,
+    "end": 641.76,
+    "text": "in fact let's make that an X because it's not like we have to use N in the natural numbers and we"
+  },
+  {
+    "start": 641.76,
+    "end": 648.0799999999999,
+    "text": "have to use X's in the real numbers so let's just take this off and let's replace it with"
+  },
+  {
+    "start": 648.8000000000001,
+    "end": 662.8000000000001,
+    "text": "there exists a unique X in N such that X squared equals 25, so I've got the same statement on the"
+  },
+  {
+    "start": 663.6,
+    "end": 670.88,
+    "text": "right hand side that is the same statement is being quantified in each of these three"
+  },
+  {
+    "start": 671.84,
+    "end": 678.72,
+    "text": "existential statements, but sometimes true, sometimes the overall statement is true and"
+  },
+  {
+    "start": 678.72,
+    "end": 686.48,
+    "text": "sometimes it's false, so again see this is these, the statements here the whole statement,"
+  },
+  {
+    "start": 686.48,
+    "end": 693.04,
+    "text": "the whole existential statement is not a statement about X it's a statement about the real"
+  },
+  {
+    "start": 693.04,
+    "end": 697.2,
+    "text": "numbers statement about the real numbers statement of the natural numbers and of course this"
+  },
+  {
+    "start": 697.2,
+    "end": 706.36,
+    "text": "This one is true because there does exist only one natural number whose square is 25."
+  },
+  {
+    "start": 706.36,
+    "end": 716.9200000000001,
+    "text": "And then let's look at, there exists an x in R such that, let's not make it in R, let's"
+  },
+  {
+    "start": 716.9200000000001,
+    "end": 720.8000000000001,
+    "text": "make it in the natural numbers."
+  },
+  {
+    "start": 721.8000000000001,
+    "end": 728.8000000000001,
+    "text": "In fact, let's make it in Z, the set of integers, just to throw in a little variation here."
+  },
+  {
+    "start": 728.8000000000001,
+    "end": 733.8000000000001,
+    "text": "So there exists an x in Z such that x squared equals two."
+  },
+  {
+    "start": 733.8000000000001,
+    "end": 739.8000000000001,
+    "text": "And of course, that's false."
+  },
+  {
+    "start": 739.8000000000001,
+    "end": 744.8000000000001,
+    "text": "So, actually let's do a couple more."
+  },
+  {
+    "start": 744.8000000000001,
+    "end": 748.8000000000001,
+    "text": "Let's say for every,"
+  },
+  {
+    "start": 748.8000000000001,
+    "end": 756.8000000000001,
+    "text": "so this is something we actually did, I believe, already in the first lecture."
+  },
+  {
+    "start": 756.8000000000001,
+    "end": 765.8000000000001,
+    "text": "We'll say that for every x and y in Rn, so now I've got vectors and I'm adding up vectors."
+  },
+  {
+    "start": 765.8000000000001,
+    "end": 773.8000000000001,
+    "text": "That's going to be vector or n-tuple addition."
+  },
+  {
+    "start": 773.8000000000001,
+    "end": 777.8000000000001,
+    "text": "This is equal to y plus x."
+  },
+  {
+    "start": 777.8000000000001,
+    "end": 779.8000000000001,
+    "text": "True."
+  },
+  {
+    "start": 779.8000000000001,
+    "end": 790.8000000000001,
+    "text": "How about for every x and y in R, x times y, this is R, this is Rn."
+  },
+  {
+    "start": 790.8000000000001,
+    "end": 796.8000000000001,
+    "text": "So x times y, two real numbers, is equal to y times x."
+  },
+  {
+    "start": 796.8000000000001,
+    "end": 798.8000000000001,
+    "text": "Also true."
+  },
+  {
+    "start": 798.8000000000001,
+    "end": 811.8000000000001,
+    "text": "And of course, this is just the property that addition in Rn, multiplication in R,"
+  },
+  {
+    "start": 811.8000000000001,
+    "end": 816.8000000000001,
+    "text": "are both commutative operations."
+  },
+  {
+    "start": 816.8000000000001,
+    "end": 819.8000000000001,
+    "text": "Let's look at one more here."
+  },
+  {
+    "start": 819.8000000000001,
+    "end": 831.8000000000001,
+    "text": "Let's say for every a and b in the set."
+  },
+  {
+    "start": 831.8000000000001,
+    "end": 839.8000000000001,
+    "text": "So this is just a notation for the set of all n by n square matrices."
+  },
+  {
+    "start": 839.8000000000001,
+    "end": 847.8000000000001,
+    "text": "And so here I'm going to have a, b equals ba."
+  },
+  {
+    "start": 847.8000000000001,
+    "end": 852.8000000000001,
+    "text": "So that would be the commutative property for matrix multiplication,"
+  },
+  {
+    "start": 852.8000000000001,
+    "end": 854.8000000000001,
+    "text": "but of course that's false."
+  },
+  {
+    "start": 854.8000000000001,
+    "end": 862.8000000000001,
+    "text": "So, now whenever we have a statement like this, or really an existential statement,"
+  },
+  {
+    "start": 862.8000000000001,
+    "end": 869.8000000000001,
+    "text": "either one, but it's easiest to see, I think, to start with for the universal statements like this."
+  },
+  {
+    "start": 869.8000000000001,
+    "end": 873.8000000000001,
+    "text": "If this says for every pair of n by n matrices,"
+  },
+  {
+    "start": 873.8000000000001,
+    "end": 876.8000000000001,
+    "text": "for every pair of square matrices of the same dimension,"
+  },
+  {
+    "start": 876.8000000000001,
+    "end": 881.8000000000001,
+    "text": "that doesn't matter which order we take the product in, we get the same thing,"
+  },
+  {
+    "start": 881.8000000000001,
+    "end": 884.8000000000001,
+    "text": "the commutative property, to show that's false."
+  },
+  {
+    "start": 884.8000000000001,
+    "end": 886.8000000000001,
+    "text": "We want a counter example."
+  },
+  {
+    "start": 886.8000000000001,
+    "end": 891.8000000000001,
+    "text": "And a counter example, since this says this is true for every pair of matrices,"
+  },
+  {
+    "start": 891.8000000000001,
+    "end": 896.8000000000001,
+    "text": "a counter example, all we need for a counter example is one example."
+  },
+  {
+    "start": 896.8000000000001,
+    "end": 902.8000000000001,
+    "text": "That is one a and one b, which, when we do the multiplication in either order,"
+  },
+  {
+    "start": 902.8000000000001,
+    "end": 904.8000000000001,
+    "text": "we get different results."
+  },
+  {
+    "start": 904.8000000000001,
+    "end": 924.8000000000001,
+    "text": "And in fact, I think, you can check me on this, I think this a and this b are comprised a counter example."
+  },
+  {
+    "start": 924.8000000000001,
+    "end": 928.8000000000001,
+    "text": "Because if I multiply a, b, I get one resulting 2 by 2,"
+  },
+  {
+    "start": 928.8000000000001,
+    "end": 932.8000000000001,
+    "text": "and if I multiply b times a, I get a different resulting 2 by 2."
+  },
+  {
+    "start": 932.8000000000001,
+    "end": 939.8000000000001,
+    "text": "So, this, together with showing that indeed we get different results for the product,"
+  },
+  {
+    "start": 939.8000000000001,
+    "end": 953.8000000000001,
+    "text": "that is what we mean by a counter example to the whole universal statement,"
+  },
+  {
+    "start": 953.8000000000001,
+    "end": 957.8000000000001,
+    "text": "universal, universally quantified statement here."
+  },
+  {
+    "start": 957.8000000000001,
+    "end": 965.8000000000001,
+    "text": "And again, notice that all kinds of things can show up as the variables,"
+  },
+  {
+    "start": 965.8000000000001,
+    "end": 967.8000000000001,
+    "text": "if you like, the entities that are being quantified."
+  },
+  {
+    "start": 967.8000000000001,
+    "end": 972.8000000000001,
+    "text": "Here I have x as my kind of dummy variable in the quantification."
+  },
+  {
+    "start": 972.8000000000001,
+    "end": 978.8000000000001,
+    "text": "Here I have lowercase n, and that's often we use that for natural numbers."
+  },
+  {
+    "start": 978.8000000000001,
+    "end": 982.8000000000001,
+    "text": "And down here I have capital a and capital b,"
+  },
+  {
+    "start": 982.8000000000001,
+    "end": 986.8000000000001,
+    "text": "because we typically use capital letters like that for matrices."
+  },
+  {
+    "start": 986.8000000000001,
+    "end": 991.8000000000001,
+    "text": "Anything could show up, sets could show up in there, all kinds of things."
+  },
+  {
+    "start": 991.8000000000001,
+    "end": 999.8000000000001,
+    "text": "And that will happen, I believe, several times in the rest of today's lecture."
+  },
+  {
+    "start": 999.8000000000001,
+    "end": 1008.8000000000001,
+    "text": "So, I'm going to take this off now, and we will use the space to do something else."
+  }
+]

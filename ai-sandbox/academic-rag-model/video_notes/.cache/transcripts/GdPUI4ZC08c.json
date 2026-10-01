@@ -1,0 +1,732 @@
+[
+  {
+    "start": 0.0,
+    "end": 25.36,
+    "text": "Hi everybody, hope everybody's having a good day today so far."
+  },
+  {
+    "start": 25.36,
+    "end": 32.84,
+    "text": "Today we're going to talk about what I would call unifying some of the notions we've been"
+  },
+  {
+    "start": 32.84,
+    "end": 41.1,
+    "text": "dealing with, n-tuples, sequences, functions, and subsets."
+  },
+  {
+    "start": 41.1,
+    "end": 48.2,
+    "text": "So we're going to be talking about n-tuples as functions."
+  },
+  {
+    "start": 48.2,
+    "end": 52.96,
+    "text": "Then we will talk about sequences as functions."
+  },
+  {
+    "start": 52.96,
+    "end": 58.76,
+    "text": "We'll talk about something called an indicator function, or indicator functions, and we'll"
+  },
+  {
+    "start": 58.76,
+    "end": 65.36,
+    "text": "talk about the power set, which will be the collection of all the subsets of a given set."
+  },
+  {
+    "start": 65.36,
+    "end": 70.92,
+    "text": "And we're going to see how these four different ideas are all related to one another."
+  },
+  {
+    "start": 70.92,
+    "end": 76.08,
+    "text": "So in a sense, we'll be unifying these ideas in a certain respect."
+  },
+  {
+    "start": 76.08,
+    "end": 81.08,
+    "text": "So let's get started."
+  },
+  {
+    "start": 81.08,
+    "end": 88.84,
+    "text": "Let's start out by looking at elements of r-tu, so let's start with kind of the simplest place"
+  },
+  {
+    "start": 88.84,
+    "end": 89.84,
+    "text": "here."
+  },
+  {
+    "start": 89.84,
+    "end": 99.52,
+    "text": "Let's say if we have an element, an x in r-tu, a point, or a vector in r-tu, then we"
+  },
+  {
+    "start": 99.52,
+    "end": 107.08,
+    "text": "can write that x is equal to x-1, x-2."
+  },
+  {
+    "start": 107.08,
+    "end": 111.92,
+    "text": "Well, but notice that the fact that I wrote the one and the two as a subscripts, I mean"
+  },
+  {
+    "start": 111.92,
+    "end": 115.67999999999999,
+    "text": "I could have written them instead as superscripts."
+  },
+  {
+    "start": 115.67999999999999,
+    "end": 123.08,
+    "text": "I could write them this way, whoop, whoop, I need to put the equal sign in there."
+  },
+  {
+    "start": 123.08,
+    "end": 136.32,
+    "text": "We don't want to leave that part out, so I could rewrite this this way."
+  },
+  {
+    "start": 136.32,
+    "end": 143.0,
+    "text": "That would be okay too, subscript, superscript, inside parentheses is like an argument of a"
+  },
+  {
+    "start": 143.0,
+    "end": 150.28,
+    "text": "function and in fact, when I write it this way, we can see that each one of the x's in"
+  },
+  {
+    "start": 150.28,
+    "end": 156.35999999999999,
+    "text": "r-tu really is in a certain sense a function because it is a function that tells us for"
+  },
+  {
+    "start": 156.35999999999999,
+    "end": 160.44,
+    "text": "the number one, what's the first component, a real number?"
+  },
+  {
+    "start": 160.44,
+    "end": 164.16,
+    "text": "And for the number two, what's the second component, a real number?"
+  },
+  {
+    "start": 164.16,
+    "end": 170.64,
+    "text": "So actually writing it this way makes it clear that each of the x's in here, each of the points"
+  },
+  {
+    "start": 170.64,
+    "end": 178.44,
+    "text": "in r-tu is actually a function from the set consisting of just the first two numbers or"
+  },
+  {
+    "start": 178.44,
+    "end": 181.72,
+    "text": "indices into r."
+  },
+  {
+    "start": 181.72,
+    "end": 185.51999999999998,
+    "text": "It tells us for one, what's the first component, a real number?"
+  },
+  {
+    "start": 185.51999999999998,
+    "end": 188.0,
+    "text": "For two, what's the second component, a real number?"
+  },
+  {
+    "start": 188.0,
+    "end": 192.2,
+    "text": "And actually this is a function just as much as this is, it's just that it isn't written"
+  },
+  {
+    "start": 192.20000000000002,
+    "end": 197.76000000000002,
+    "text": "with the arguments in parentheses, it's written with the arguments as subscripts, what's the"
+  },
+  {
+    "start": 197.76000000000002,
+    "end": 198.76000000000002,
+    "text": "difference?"
+  },
+  {
+    "start": 198.76000000000002,
+    "end": 204.28000000000003,
+    "text": "Parenthesis, subscripts, this is of course way more common, this is kind of the standard,"
+  },
+  {
+    "start": 204.28000000000003,
+    "end": 210.56,
+    "text": "the convention and it's a little more economy of writing things, there's sort of more"
+  },
+  {
+    "start": 210.56,
+    "end": 214.32000000000002,
+    "text": "going on here and it's not as obvious, so this is a little easier to work with."
+  },
+  {
+    "start": 214.32000000000002,
+    "end": 216.32000000000002,
+    "text": "But conceptually, no difference."
+  },
+  {
+    "start": 216.32000000000002,
+    "end": 221.20000000000002,
+    "text": "Well I can do the same thing of course in r-n and so I'm basically just gonna rewrite"
+  },
+  {
+    "start": 221.20000000000002,
+    "end": 233.4,
+    "text": "what I have up here, but I'm just gonna write it as x equals x1 to xn or x equals x of one"
+  },
+  {
+    "start": 233.4,
+    "end": 237.08,
+    "text": "to x of n."
+  },
+  {
+    "start": 237.08,
+    "end": 244.84000000000003,
+    "text": "So I have x as a function from the set of the first n natural numbers, the n possible"
+  },
+  {
+    "start": 244.88,
+    "end": 252.12,
+    "text": "indices here, again, into r."
+  },
+  {
+    "start": 252.12,
+    "end": 254.92000000000002,
+    "text": "Well next, let's look at sequences."
+  },
+  {
+    "start": 254.92000000000002,
+    "end": 261.32,
+    "text": "So we've already said that we could write the set of all sequences, that's supposed"
+  },
+  {
+    "start": 261.32,
+    "end": 265.6,
+    "text": "to be infinity there, we could write the set of all sequences, we could denote it by"
+  },
+  {
+    "start": 265.6,
+    "end": 274.6,
+    "text": "r infinity and so every one of these sequences is not really an n top of the course, looks"
+  },
+  {
+    "start": 274.64000000000004,
+    "end": 279.64000000000004,
+    "text": "like this, where this goes on for the indices keep on going and let's even note that we"
+  },
+  {
+    "start": 279.64000000000004,
+    "end": 289.28000000000003,
+    "text": "could also write it as a more standard notation like this with the curly braces and of course"
+  },
+  {
+    "start": 289.28000000000003,
+    "end": 301.28000000000003,
+    "text": "we could again write it this way."
+  },
+  {
+    "start": 301.28000000000003,
+    "end": 308.56,
+    "text": "And writing it this way again makes it kind of clear that every x in here is a function"
+  },
+  {
+    "start": 308.56,
+    "end": 316.92,
+    "text": "from the set one, two, and all the way out, continue to go on forever, all the natural"
+  },
+  {
+    "start": 316.92,
+    "end": 328.20000000000005,
+    "text": "numbers into r, and so of course I could rewrite this set as just m, x as a function"
+  },
+  {
+    "start": 328.2,
+    "end": 344.0,
+    "text": "from the natural numbers into r and so in each case our n tuple, even if it's an ordered"
+  },
+  {
+    "start": 344.0,
+    "end": 353.24,
+    "text": "pair, it's an ordered n tuple, ordered pair and it's ordered partly because the terms"
+  },
+  {
+    "start": 353.24,
+    "end": 362.56,
+    "text": "are ordered by the order of the indices in the domain of the function that defines the"
+  },
+  {
+    "start": 362.56,
+    "end": 369.72,
+    "text": "ordered pair, the ordered n tuple or the sequence and let me say as an aside, while this is the"
+  },
+  {
+    "start": 369.72,
+    "end": 376.36,
+    "text": "more standard way of writing it, people do write sequences this way, I will often write sequences"
+  },
+  {
+    "start": 376.36,
+    "end": 383.84000000000003,
+    "text": "this way instead of this way because this is confusing, this is kind of ambiguous because"
+  },
+  {
+    "start": 383.84000000000003,
+    "end": 390.48,
+    "text": "it gives us the same notation for an, I won't call it an n tuple because it isn't just n,"
+  },
+  {
+    "start": 390.48,
+    "end": 397.36,
+    "text": "it goes on like this, it's the same notation for the sequence, this function here as for"
+  },
+  {
+    "start": 397.36,
+    "end": 404.24,
+    "text": "a set, the set of the terms, those are different things as we will, as we've already seen"
+  },
+  {
+    "start": 404.24,
+    "end": 411.24,
+    "text": "back in the very first lecture in the course and we will see it again concerning sequences"
+  },
+  {
+    "start": 411.24,
+    "end": 419.56,
+    "text": "and the sets of their terms which are different things, so using the curly braces is actually"
+  },
+  {
+    "start": 419.56,
+    "end": 425.8,
+    "text": "ambiguous and confusing but since it's so standard we will sometimes use that notation"
+  },
+  {
+    "start": 425.8,
+    "end": 437.52000000000004,
+    "text": "and we also use the notation like this as the name of the function that goes from the natural"
+  },
+  {
+    "start": 437.52000000000004,
+    "end": 444.84000000000003,
+    "text": "numbers into R and by the way note that here the curly braces, that is a sequence, could"
+  },
+  {
+    "start": 444.84000000000003,
+    "end": 451.28000000000003,
+    "text": "just as well and maybe better use parentheses, here this is not a sequence, this is a set,"
+  },
+  {
+    "start": 451.28000000000003,
+    "end": 457.52000000000004,
+    "text": "here's the distinction, this is a set, the set of natural numbers where things can't be"
+  },
+  {
+    "start": 457.52000000000004,
+    "end": 463.16,
+    "text": "repeated, here things could be repeated in the sequence, remember very first lecture"
+  },
+  {
+    "start": 463.16,
+    "end": 470.32000000000005,
+    "text": "that in n tuples and by extension sequences we can repeat terms, could be a constant"
+  },
+  {
+    "start": 470.32000000000005,
+    "end": 476.56000000000006,
+    "text": "sequence x1 equal x2 equal x3 they could all be the same, here this is a set, no repetition"
+  },
+  {
+    "start": 476.56,
+    "end": 484.44,
+    "text": "allowed, one, two, three, keep on going, so the same notation of curly braces being used"
+  },
+  {
+    "start": 484.44,
+    "end": 491.28000000000003,
+    "text": "for two completely different things, confusing and ambiguous. Now notice that it wouldn't"
+  },
+  {
+    "start": 491.28000000000003,
+    "end": 504.4,
+    "text": "have been, well actually first let me notice that, let me remark that, that what we could"
+  },
+  {
+    "start": 504.44000000000005,
+    "end": 516.8000000000001,
+    "text": "have written R2, it wouldn't be crazy to write R2 in a way that says the components are real"
+  },
+  {
+    "start": 516.8000000000001,
+    "end": 527.48,
+    "text": "numbers but the elements, vectors if you like, made up of those components, they have an"
+  },
+  {
+    "start": 527.52,
+    "end": 537.08,
+    "text": "index from 1 and 2 and it wouldn't have been crazy to have written Rn this way and it wouldn't"
+  },
+  {
+    "start": 537.08,
+    "end": 546.08,
+    "text": "have been crazy to have written the set of all sequences this way. Now I say it wouldn't"
+  },
+  {
+    "start": 546.08,
+    "end": 554.48,
+    "text": "be crazy but of course this is kind of awkward and kind of not very clean, same here,"
+  },
+  {
+    "start": 554.48,
+    "end": 558.8000000000001,
+    "text": "this is not so bad over here but I just point out that we might have done that and in fact"
+  },
+  {
+    "start": 558.8000000000001,
+    "end": 564.2,
+    "text": "we're going to do something like that in order to do this kind of unification that I talked"
+  },
+  {
+    "start": 564.2,
+    "end": 572.4,
+    "text": "about. Before going there, let's just write down a definition, we haven't actually given"
+  },
+  {
+    "start": 572.4,
+    "end": 577.48,
+    "text": "before, a definition of a sequence, I've talked about how we could use the notation"
+  },
+  {
+    "start": 577.48,
+    "end": 584.08,
+    "text": "R infinity as a notation for the set of all real sequences, sequences of real numbers"
+  },
+  {
+    "start": 584.1600000000001,
+    "end": 587.44,
+    "text": "but I didn't actually write down a definition of what is a sequence, I'm going to do that"
+  },
+  {
+    "start": 587.44,
+    "end": 592.0400000000001,
+    "text": "here and of course the definition is going to be just what we have here. So a definition"
+  },
+  {
+    "start": 592.0400000000001,
+    "end": 598.5600000000001,
+    "text": "and now I'm going to say not just a sequence of real numbers but possibly a sequence of"
+  },
+  {
+    "start": 598.5600000000001,
+    "end": 603.6800000000001,
+    "text": "vectors or a sequence of anything drawn where the terms are all drawn from some"
+  },
+  {
+    "start": 603.6800000000001,
+    "end": 618.9200000000001,
+    "text": "set X so we'll say for any set X, for example X could be R, for any set X, let's not say"
+  },
+  {
+    "start": 618.92,
+    "end": 637.8,
+    "text": "the, let's say a sequence, a sequence in X, so this is a definition, a sequence in the"
+  },
+  {
+    "start": 637.8000000000001,
+    "end": 662.0400000000001,
+    "text": "set X is just what we said up here, a sequence is a, a sequence is a function"
+  },
+  {
+    "start": 662.04,
+    "end": 670.24,
+    "text": "that doesn't necessarily go to R, it goes to R here because R is playing the role of X but"
+  },
+  {
+    "start": 670.24,
+    "end": 676.8399999999999,
+    "text": "in general this is going to have to match up here, so this should have been a capital"
+  },
+  {
+    "start": 676.8399999999999,
+    "end": 686.4399999999999,
+    "text": "X and so this is yet another instance where we have a definition or a theorem in this"
+  },
+  {
+    "start": 686.44,
+    "end": 692.96,
+    "text": "case a definition of a term, a sequence, the notion of a sequence and then we apply that"
+  },
+  {
+    "start": 692.96,
+    "end": 701.6800000000001,
+    "text": "to real numbers, a sequence of real numbers, a sequence in R is a function from the set"
+  },
+  {
+    "start": 701.6800000000001,
+    "end": 710.6800000000001,
+    "text": "of natural numbers into R, R here is playing the role of X so we just see this all the"
+  },
+  {
+    "start": 710.6800000000001,
+    "end": 719.84,
+    "text": "time over and over, we're seeing where we apply some definition or a theorem to a specific"
+  },
+  {
+    "start": 719.84,
+    "end": 725.32,
+    "text": "case and then we have something in the specific case playing the role of the items in the"
+  },
+  {
+    "start": 725.32,
+    "end": 734.1600000000001,
+    "text": "definition or the theorem but notice that even in the finite case where we're looking"
+  },
+  {
+    "start": 734.16,
+    "end": 741.8,
+    "text": "at n-tuples where n is a finite number, it wouldn't have been crazy, it would really"
+  },
+  {
+    "start": 741.8,
+    "end": 753.3199999999999,
+    "text": "be perfectly okay to refer to the n-tuples and the ordered pairs, specific kind of n-tuples"
+  },
+  {
+    "start": 753.32,
+    "end": 764.8000000000001,
+    "text": "as finite sequences, sequences defined not over an infinite set but over a finite set here"
+  },
+  {
+    "start": 764.8000000000001,
+    "end": 769.12,
+    "text": "and here, it'd be perfectly sensible and in fact occasionally you see people do that, refer"
+  },
+  {
+    "start": 769.12,
+    "end": 777.2800000000001,
+    "text": "to these as finite sequences but I think that's pretty unusual because we tend to reserve"
+  },
+  {
+    "start": 777.36,
+    "end": 785.68,
+    "text": "the term sequence for sequences that go on indefinitely that have an infinite number of"
+  },
+  {
+    "start": 785.68,
+    "end": 792.28,
+    "text": "terms that is sequences that really are functions defined on the natural numbers not defined"
+  },
+  {
+    "start": 792.28,
+    "end": 797.68,
+    "text": "on a finite set but this is just a point out that all it is is an extension of the"
+  },
+  {
+    "start": 797.68,
+    "end": 804.04,
+    "text": "notion of n-tuples here, they could be regarded as finite sequences."
+  },
+  {
+    "start": 804.04,
+    "end": 812.16,
+    "text": "So this idea that I posed here where we could have written R2 by using the set, it's the"
+  },
+  {
+    "start": 812.16,
+    "end": 820.48,
+    "text": "domain for the function defining the elements of R2, we could have used the set 1 to n, the"
+  },
+  {
+    "start": 820.48,
+    "end": 830.36,
+    "text": "domain of the function that defines an n-tuple and here where we used the set of natural"
+  },
+  {
+    "start": 830.4,
+    "end": 841.08,
+    "text": "numbers, the domain for our function that defines a sequence, I'm going to use that as"
+  },
+  {
+    "start": 841.08,
+    "end": 851.8000000000001,
+    "text": "a kind of motivation for a notation that we use. So let's put that over here, so here"
+  },
+  {
+    "start": 851.8000000000001,
+    "end": 868.8800000000001,
+    "text": "we have a notation and that is going to be that for any sets x and y"
+  },
+  {
+    "start": 882.2400000000001,
+    "end": 898.7600000000001,
+    "text": "the set of all the functions that map from x to y, well before I write down how we denote"
+  },
+  {
+    "start": 898.7600000000001,
+    "end": 908.84,
+    "text": "that let's go back here, here a sequence is a function from the natural numbers into"
+  },
+  {
+    "start": 908.88,
+    "end": 917.48,
+    "text": "the set where the terms of the sequence live, so for example for sequences of real numbers"
+  },
+  {
+    "start": 917.48,
+    "end": 924.48,
+    "text": "every one of the sequences is a function from here to here so the set of all of the sequences"
+  },
+  {
+    "start": 924.48,
+    "end": 931.88,
+    "text": "we write it this way or we could write it this way. This is the set of all functions"
+  },
+  {
+    "start": 931.88,
+    "end": 937.6,
+    "text": "set of all sequences, it's the set of all functions from n into R and I said we could"
+  },
+  {
+    "start": 937.6,
+    "end": 944.24,
+    "text": "have written the same thing here for the set of all functions from the set here into R and"
+  },
+  {
+    "start": 944.24,
+    "end": 948.96,
+    "text": "we could have written this if we wanted to, this is the set of all functions from here"
+  },
+  {
+    "start": 948.96,
+    "end": 955.64,
+    "text": "into R and so as I said this motivates the definition of this notation here which is"
+  },
+  {
+    "start": 955.64,
+    "end": 964.4,
+    "text": "going to be y and we write it as if it's y to the x power, these aren't numbers"
+  },
+  {
+    "start": 964.4399999999999,
+    "end": 972.4399999999999,
+    "text": "in general because these can be infinite sets as they are if either y or x is R so this isn't"
+  },
+  {
+    "start": 972.4399999999999,
+    "end": 980.36,
+    "text": "really the power, this number to this power it is just a notation for the set of functions"
+  },
+  {
+    "start": 980.36,
+    "end": 998.64,
+    "text": "from this set into this set. Okay and a second piece of notation here, that is for sets that"
+  },
+  {
+    "start": 998.64,
+    "end": 1011.6,
+    "text": "are finite, for finite sets x we use something that looks like the absolute value but it's"
+  },
+  {
+    "start": 1011.6,
+    "end": 1016.68,
+    "text": "not the absolute value because it's not a number, that's a set. We use this notation here"
+  },
+  {
+    "start": 1016.6800000000001,
+    "end": 1042.24,
+    "text": "we use this notation here for the number of elements in x which of course because x is finite"
+  },
+  {
+    "start": 1042.24,
+    "end": 1049.88,
+    "text": "is perfectly well defined if x was the real numbers then there is the number of elements"
+  },
+  {
+    "start": 1049.88,
+    "end": 1055.64,
+    "text": "of the set of real numbers doesn't have any real meaning so we can talk about its cardinality"
+  },
+  {
+    "start": 1055.64,
+    "end": 1060.84,
+    "text": "of something like the number of elements but here we want to have something that's kind of"
+  },
+  {
+    "start": 1060.84,
+    "end": 1066.8,
+    "text": "explicit and clean and so if we have a finite set we can talk about the number of elements in"
+  },
+  {
+    "start": 1066.8,
+    "end": 1087.24,
+    "text": "it that denotes number of elements and then let's say as a remark if x and y are both finite"
+  },
+  {
+    "start": 1087.24,
+    "end": 1110.52,
+    "text": "sets then we can say something about this notation that is that the set of functions from x into"
+  },
+  {
+    "start": 1110.52,
+    "end": 1117.4,
+    "text": "y remember they're both finite sets the set of functions going from x into y the number of"
+  },
+  {
+    "start": 1117.4,
+    "end": 1133.76,
+    "text": "such functions again these are sets not numbers and this is not the absolute value this is"
+  },
+  {
+    "start": 1133.76,
+    "end": 1142.36,
+    "text": "the number of elements in the set so the number of functions from x to y is the number of elements"
+  },
+  {
+    "start": 1142.36,
+    "end": 1150.56,
+    "text": "so this is a number the number that's a set this is a number it's the number of elements"
+  },
+  {
+    "start": 1150.56,
+    "end": 1157.4,
+    "text": "in the set y raised to the power so here it really is a power this is an integer that's"
+  },
+  {
+    "start": 1157.4,
+    "end": 1165.8400000000001,
+    "text": "an integer natural numbers raise this power so let's say let's even put in parentheses if"
+  },
+  {
+    "start": 1165.8400000000001,
+    "end": 1178.1200000000001,
+    "text": "the number of things in x is n and the number of things in y is m then what this says is"
+  },
+  {
+    "start": 1178.1200000000001,
+    "end": 1193.68,
+    "text": "that the number of things the number of functions that go from x to y is m to the n power now I'd"
+  },
+  {
+    "start": 1193.68,
+    "end": 1207.96,
+    "text": "like to give an example here let's do an example where in fact I think we can take this off"
+  },
+  {
+    "start": 1207.96,
+    "end": 1211.96,
+    "text": "and we'll do the example over here so let's take this off and a little more room this is getting a"
+  },
+  {
+    "start": 1211.96,
+    "end": 1217.28,
+    "text": "little congested down here so let's take this off and we'll do our example over here"
+  }
+]

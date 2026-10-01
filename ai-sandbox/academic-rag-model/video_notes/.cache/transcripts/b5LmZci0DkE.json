@@ -1,0 +1,762 @@
+[
+  {
+    "start": 0.0,
+    "end": 11.98,
+    "text": "Okay, so now we're back for our last example and so let's again have a function where we"
+  },
+  {
+    "start": 11.98,
+    "end": 26.88,
+    "text": "have f of x equals the matrix A times x and we're going to have A now be 2 minus 2 minus"
+  },
+  {
+    "start": 26.88,
+    "end": 42.66,
+    "text": "1 and 1. And so again we can see that f is mapping from R2 into R2 because it's a 2"
+  },
+  {
+    "start": 42.66,
+    "end": 50.32,
+    "text": "by 2 matrix and by the way as another aside let's suppose that A was m by n so if"
+  },
+  {
+    "start": 50.32,
+    "end": 64.56,
+    "text": "A was an m by n matrix then it was m rows by n columns then it would be multiplying by n"
+  },
+  {
+    "start": 64.56,
+    "end": 71.84,
+    "text": "vectors by vectors that have n components so this would be n and the result would be a vector"
+  },
+  {
+    "start": 71.84,
+    "end": 78.03999999999999,
+    "text": "with m components that would be m. So even for non-square matrices that are m by n we"
+  },
+  {
+    "start": 78.04,
+    "end": 86.96000000000001,
+    "text": "know will be mapping then from Rn to Rm in general and of course if it's square n by n"
+  },
+  {
+    "start": 86.96000000000001,
+    "end": 94.44,
+    "text": "then it will be from Rn to Rn here from R2 to R2. Let's take this off. Don't really need"
+  },
+  {
+    "start": 94.44,
+    "end": 104.72,
+    "text": "it now. Okay, so let's see. Well let's again do the same thing we did last time. Let's"
+  },
+  {
+    "start": 104.74,
+    "end": 118.24,
+    "text": "put our domain down here x1, x2 and we can start with this is 1. Let's say this is 1, 0"
+  },
+  {
+    "start": 118.24,
+    "end": 124.44,
+    "text": "and so that's that point there. Maybe I'll use colors again so maybe I should reserve"
+  },
+  {
+    "start": 124.44,
+    "end": 134.32,
+    "text": "that for a different color. Before we do that let's draw our target space. I have"
+  },
+  {
+    "start": 134.34,
+    "end": 141.64,
+    "text": "the tendency to make the axis here go a little not perfectly vertical so let's see if I can"
+  },
+  {
+    "start": 141.64,
+    "end": 150.35999999999999,
+    "text": "do a little better with that. That one was pretty bad so that looks better and so let's"
+  },
+  {
+    "start": 150.35999999999999,
+    "end": 157.54,
+    "text": "say this is the target space. I'll again call it y1 and y2 as the components and"
+  },
+  {
+    "start": 157.54,
+    "end": 163.12,
+    "text": "so f I'll often write things like this. I didn't do it in the first example but"
+  },
+  {
+    "start": 163.14000000000001,
+    "end": 170.44,
+    "text": "I'll do it here. f takes things from here and maps them over here and so again let's ask"
+  },
+  {
+    "start": 170.44,
+    "end": 176.0,
+    "text": "the same question we asked at the right up front on the first example here and that is"
+  },
+  {
+    "start": 176.0,
+    "end": 186.48000000000002,
+    "text": "what is the range of f? In particular let's ask is f on to all of R2 is the"
+  },
+  {
+    "start": 186.48,
+    "end": 201.0,
+    "text": "what's f of R2? What's the range? Well first question is is it all of R2 and so let's look"
+  },
+  {
+    "start": 201.0,
+    "end": 210.2,
+    "text": "again at the determinant and as I already indicated we have an example where the determinant"
+  },
+  {
+    "start": 210.20000000000002,
+    "end": 219.32000000000002,
+    "text": "is 0. You said it better be 0 if this is supposed to do what I wanted to do 2 2 so it's 2 minus"
+  },
+  {
+    "start": 219.32,
+    "end": 241.16,
+    "text": "0. Therefore a inverse doesn't exist it is not the case that for any y over here there is a"
+  },
+  {
+    "start": 241.16,
+    "end": 252.64,
+    "text": "unique a inverse times y x over here so I can't write x equals a inverse of y so x equals a inverse of y"
+  },
+  {
+    "start": 252.64,
+    "end": 261.44,
+    "text": "can't do it because there is no inverse matrix so that's not going to work so that tells me"
+  },
+  {
+    "start": 261.44,
+    "end": 269.68,
+    "text": "right off that the function is not on to all of R2 it's going to be mapping to some subset of"
+  },
+  {
+    "start": 269.68,
+    "end": 275.96,
+    "text": "R2 and we want to figure out what subset I still need to I've answered the question that it's not all"
+  },
+  {
+    "start": 275.96,
+    "end": 281.52,
+    "text": "of R2 it's some proper subset but we need to figure out what subset so let's go back to figure"
+  },
+  {
+    "start": 281.52,
+    "end": 286.12,
+    "text": "that out let's go back into the same kind of thing we did in the previous example let's in"
+  },
+  {
+    "start": 286.12,
+    "end": 294.08,
+    "text": "fact I'll try to use the same colors to the extent that I can here let's let this be the first"
+  },
+  {
+    "start": 294.08,
+    "end": 305.91999999999996,
+    "text": "vector we look at and then let's look at the vector 0 1 and we will also look at the vector"
+  },
+  {
+    "start": 305.91999999999996,
+    "end": 318.03999999999996,
+    "text": "1 1 so we're going to be looking again at the unit square let's even draw the unit square"
+  },
+  {
+    "start": 318.04,
+    "end": 330.88,
+    "text": "in here right up front right now and of course this is the zero vector the origin and so we"
+  },
+  {
+    "start": 330.88,
+    "end": 339.0,
+    "text": "of course know right away that this is f of the zero vector is it always is going to be for"
+  },
+  {
+    "start": 339.6,
+    "end": 349.2,
+    "text": "matrix defined functions let's see what happens to the vector 1 0 well just like last time the image"
+  },
+  {
+    "start": 349.2,
+    "end": 358.56,
+    "text": "of 1 0 vector is going to be the first column here which is 2 minus 2 so let's say that is about"
+  },
+  {
+    "start": 358.56,
+    "end": 376.2,
+    "text": "here so that's f of 1 0 which is 2 and minus 2 so let's say this is now 2 so that would be 1 and"
+  },
+  {
+    "start": 376.64,
+    "end": 389.0,
+    "text": "this would about be minus 1 and this is minus 2 and that's minus 1 there don't really have room to put it"
+  },
+  {
+    "start": 389.0,
+    "end": 393.68,
+    "text": "in there because of this but well maybe I should put it in there maybe I should put in here that"
+  },
+  {
+    "start": 393.68,
+    "end": 401.24,
+    "text": "that's minus 1 because we're going to actually use that okay so let's now look at the image under"
+  },
+  {
+    "start": 401.24,
+    "end": 408.44,
+    "text": "f of this vector 0 1 that's going to be the second column of a so that's going to be and I guess I"
+  },
+  {
+    "start": 408.44,
+    "end": 416.68,
+    "text": "didn't write in here that this is 1 I don't know if we're going to need to but we'll put it in"
+  },
+  {
+    "start": 416.68,
+    "end": 438.32,
+    "text": "there so this is f of 0 1 and f and of course here's f of the origin the zero vector and of course f of"
+  },
+  {
+    "start": 438.36,
+    "end": 449.24,
+    "text": "1 1 1 1 is the sum of these two and it's easy to show that therefore always the image of the vector 1 1 will"
+  },
+  {
+    "start": 449.24,
+    "end": 456.64,
+    "text": "be the sum of the two images which is going to be this is 2 minus 2 minus 1 1 that's going to be here"
+  },
+  {
+    "start": 456.64,
+    "end": 476.32,
+    "text": "at 1 minus 1 that's supposed to be 1 minus 1 sorry that is 1 minus 1 but it's not f of 1 minus 1 that"
+  },
+  {
+    "start": 476.88,
+    "end": 488.08,
+    "text": "was a mistake so let's actually fix that turns out to maybe not be as easy as it as it sounds so"
+  },
+  {
+    "start": 488.08,
+    "end": 496.44,
+    "text": "let's again say this is why 1 over here and let's say this is actually f of 1 1 I kind of messed"
+  },
+  {
+    "start": 496.56,
+    "end": 512.84,
+    "text": "that up this is f of 1 1 and so the image of the unit square now is this set here that's it I'm going to"
+  },
+  {
+    "start": 512.84,
+    "end": 519.32,
+    "text": "call that the set D even though it's no longer actually a diamond because it corresponds to the D"
+  },
+  {
+    "start": 520.0400000000001,
+    "end": 531.0400000000001,
+    "text": "that I had in the first example and that is f of s so let's get down here f of s unit square is this set D"
+  },
+  {
+    "start": 531.0400000000001,
+    "end": 539.8000000000001,
+    "text": "but it doesn't look like that sort of diamond shaped parallelogram that we had in the first diagram in"
+  },
+  {
+    "start": 539.8000000000001,
+    "end": 547.8800000000001,
+    "text": "the first example it's now that parallelogram has been squished down to a line segment and so what"
+  },
+  {
+    "start": 548.04,
+    "end": 559.24,
+    "text": "would be the image of other points in the in the space well the image of the x1 axis I won't draw it"
+  },
+  {
+    "start": 559.24,
+    "end": 566.6,
+    "text": "like we did the first time the image of the x1 axis is everything from the origin all the way out"
+  },
+  {
+    "start": 566.6,
+    "end": 574.28,
+    "text": "here on this line it's multiples of f of 1 0 which you can just barely see there now and the"
+  },
+  {
+    "start": 575.0,
+    "end": 585.56,
+    "text": "image of the x2 axis is going to be everything on this line also I should have said if I had the whole"
+  },
+  {
+    "start": 585.56,
+    "end": 592.1999999999999,
+    "text": "x1 axis it would be the whole line the non-negative part of the x1 axis gets mapped to here the"
+  },
+  {
+    "start": 592.1999999999999,
+    "end": 599.0799999999999,
+    "text": "negative part of the x1 axis gets mapped to here the positive part of the x2 axis gets mapped"
+  },
+  {
+    "start": 599.08,
+    "end": 606.2,
+    "text": "to here multiples of f01 and the negative part of the x2 axis down here gets mapped to here and that"
+  },
+  {
+    "start": 606.2,
+    "end": 612.6800000000001,
+    "text": "means that everything in the space is getting mapped into this line here I'm going to call this line"
+  },
+  {
+    "start": 612.6800000000001,
+    "end": 628.2800000000001,
+    "text": "l so f of r2 is this line l so nothing like what we saw in the first example that's entirely"
+  },
+  {
+    "start": 628.28,
+    "end": 634.68,
+    "text": "because in the first example the determinant was non-zero so we had a non-singular matrix defining"
+  },
+  {
+    "start": 634.68,
+    "end": 641.48,
+    "text": "f which was therefore a one-to-one and on-to function of one-to-one correspondence and here"
+  },
+  {
+    "start": 641.48,
+    "end": 649.64,
+    "text": "by contrast the determinant is zero we have a singular matrix the function f is no longer on"
+  },
+  {
+    "start": 649.64,
+    "end": 654.76,
+    "text": "to or one-to-one it's clearly no longer on to it only maps onto this not to the rest of the"
+  },
+  {
+    "start": 654.76,
+    "end": 662.68,
+    "text": "space okay and we're going to see in a moment it's not one-to-one so far we've seen four points"
+  },
+  {
+    "start": 662.68,
+    "end": 667.56,
+    "text": "and they got mapped to different points so that doesn't contradict the possibility that it would be"
+  },
+  {
+    "start": 667.56,
+    "end": 676.52,
+    "text": "one-to-one but you can kind of you can kind of see that it really isn't going to be one-to-one"
+  },
+  {
+    "start": 676.52,
+    "end": 681.08,
+    "text": "in particular you can see that because the whole unit square got mapped into this"
+  },
+  {
+    "start": 681.08,
+    "end": 688.2,
+    "text": "line segment here and in fact i think i will take off now some of what we put on here i'm going to"
+  },
+  {
+    "start": 688.2,
+    "end": 695.0,
+    "text": "focus just on the unit square and i'm going to focus just on its image which is this set that"
+  },
+  {
+    "start": 695.0,
+    "end": 699.32,
+    "text": "i call d i'm going to leave that l down there i might want to come back and use that"
+  },
+  {
+    "start": 699.32,
+    "end": 705.0,
+    "text": "so"
+  },
+  {
+    "start": 708.2,
+    "end": 714.6800000000001,
+    "text": "let's come back and say let's just focus on the set d this line segment here which is the image"
+  },
+  {
+    "start": 715.24,
+    "end": 720.84,
+    "text": "of the unit square so what i want to do now and this is really the last thing we're going to do"
+  },
+  {
+    "start": 721.5600000000001,
+    "end": 727.6400000000001,
+    "text": "i really didn't do that i didn't do this in the first example and that is i want to look at"
+  },
+  {
+    "start": 727.64,
+    "end": 734.36,
+    "text": "the pre-image so let's come over here and look at the at the notion of the pre-image of a set"
+  },
+  {
+    "start": 734.36,
+    "end": 743.3199999999999,
+    "text": "the pre-image of a set v is the set of all the things in the domain that map into v and so"
+  },
+  {
+    "start": 743.3199999999999,
+    "end": 750.92,
+    "text": "in the first example if i had a singleton set a single vector over here in the target space"
+  },
+  {
+    "start": 751.56,
+    "end": 759.8,
+    "text": "then its pre-image was just a inverse of that vector or that the set consisting of that vector"
+  },
+  {
+    "start": 759.8,
+    "end": 767.16,
+    "text": "singleton set so i maybe should have spent a few moments to point that out at then that"
+  },
+  {
+    "start": 767.16,
+    "end": 774.52,
+    "text": "that in the one-to-one case where i had a non-singular matrix defining the function"
+  },
+  {
+    "start": 774.52,
+    "end": 784.28,
+    "text": "that the pre-image of a point or a singleton set over here would be a singleton set over here"
+  },
+  {
+    "start": 785.0799999999999,
+    "end": 792.84,
+    "text": "y over here x equals a inverse of y over here uh so the the pre-image of there it's kind of clean"
+  },
+  {
+    "start": 792.84,
+    "end": 801.24,
+    "text": "it's that's one-to-one also the kind of the inverse function and so here let's look at the"
+  },
+  {
+    "start": 802.12,
+    "end": 812.52,
+    "text": "pre-image of let's look at the pre-image of the origin so the pre-image of the set because notice"
+  },
+  {
+    "start": 813.16,
+    "end": 821.72,
+    "text": "the pre-image definition is says it's the pre-image of a set v in the target space"
+  },
+  {
+    "start": 822.92,
+    "end": 828.36,
+    "text": "and of course the pre-image is itself a set in the domain that's what the definition says so"
+  },
+  {
+    "start": 829.32,
+    "end": 835.4,
+    "text": "i want to look at the pre-image of the singleton set consisting of just the zero vector the origin"
+  },
+  {
+    "start": 838.6,
+    "end": 848.36,
+    "text": "and so what's that going to look like well the pre-image of that of the zero vector"
+  },
+  {
+    "start": 849.0,
+    "end": 856.44,
+    "text": "is going to be and here i'll write this i'll keep this with this green color that's going to be"
+  },
+  {
+    "start": 856.44,
+    "end": 866.9200000000001,
+    "text": "this line in the domain everything on that line all the way out all the way out this is the pre-image"
+  },
+  {
+    "start": 871.8000000000001,
+    "end": 881.24,
+    "text": "of the zero vector and it's actually you can see"
+  },
+  {
+    "start": 881.24,
+    "end": 894.2,
+    "text": "that this is this is one one of course so this is the set of all x's in here such that x2 equals"
+  },
+  {
+    "start": 895.48,
+    "end": 902.36,
+    "text": "2x1 looks like i have made a mistake and so in fact i should be able to plug in here"
+  },
+  {
+    "start": 903.08,
+    "end": 910.6800000000001,
+    "text": "and say that if i have a vector x1 and 2x1 then i'll have 2x1 and"
+  },
+  {
+    "start": 918.6,
+    "end": 926.84,
+    "text": "minus 2x1 so that'll be zero and i'll have minus 2 times x1 and 1 times 2x1 plus no indeed"
+  },
+  {
+    "start": 927.4,
+    "end": 934.2,
+    "text": "indeed it's the case that if i put any vector if i put any vector in here that has"
+  },
+  {
+    "start": 935.0,
+    "end": 942.2,
+    "text": "an x1 and then down here is 2x1 x2 is 2x1 if i put such a vector in here multiply by a"
+  },
+  {
+    "start": 942.2,
+    "end": 950.44,
+    "text": "i will get i'll get the origin i'll get zero zero so this is correct this is the pre-image of this"
+  },
+  {
+    "start": 950.44,
+    "end": 959.24,
+    "text": "one point so everything on this line gets mapped by this function into one point so it's anything but"
+  },
+  {
+    "start": 959.8000000000001,
+    "end": 966.2800000000001,
+    "text": "one to one we call functions that are not one to one we say they're many to one just meaning"
+  },
+  {
+    "start": 966.2800000000001,
+    "end": 969.96,
+    "text": "many could be just more than one point gets mapped to the same thing over here"
+  },
+  {
+    "start": 969.96,
+    "end": 975.24,
+    "text": "this is many many many to one if you like lots of things get mapped to that one point"
+  },
+  {
+    "start": 975.96,
+    "end": 980.76,
+    "text": "f is zero let's see what is the pre-image of"
+  },
+  {
+    "start": 983.32,
+    "end": 991.24,
+    "text": "let's take the pre-image of one one that as you can check for yourself is going to be"
+  },
+  {
+    "start": 992.76,
+    "end": 998.04,
+    "text": "this line that's supposed to go through one one i didn't do a very good job of that"
+  },
+  {
+    "start": 998.04,
+    "end": 1001.16,
+    "text": "that should have gone through the point one one there so this is"
+  },
+  {
+    "start": 1001.64,
+    "end": 1009.64,
+    "text": "f inverse of one of f inverse of actually it's one minus one"
+  },
+  {
+    "start": 1021.16,
+    "end": 1027.08,
+    "text": "that's f inverse of one minus one in fact i should write it as a set so to be a little"
+  },
+  {
+    "start": 1027.08,
+    "end": 1029.8,
+    "text": "more careful here i should write this as"
+  },
+  {
+    "start": 1032.6799999999998,
+    "end": 1039.48,
+    "text": "just as i did up here f the pre-image i say f inverse because we're used to using this"
+  },
+  {
+    "start": 1039.48,
+    "end": 1043.24,
+    "text": "notation as the inverse function i'm going to come back and say something about that in a moment"
+  },
+  {
+    "start": 1044.1999999999998,
+    "end": 1051.1599999999999,
+    "text": "let's call this let's just call this y bar this is f inverse of the singleton set"
+  },
+  {
+    "start": 1051.88,
+    "end": 1061.0,
+    "text": "consists of just y bar and so as i just mentioned this notation is actually somewhat ambiguous we"
+  },
+  {
+    "start": 1061.0,
+    "end": 1069.24,
+    "text": "use the same notation for two ideas that are very very closely tied very closely related we use"
+  },
+  {
+    "start": 1069.24,
+    "end": 1075.72,
+    "text": "the notation for the pre-image of a set which is itself a set because the pre-image of this"
+  },
+  {
+    "start": 1075.8,
+    "end": 1082.3600000000001,
+    "text": "singleton set is this set here so we use this notation to tell us the pre-image of something"
+  },
+  {
+    "start": 1082.3600000000001,
+    "end": 1089.16,
+    "text": "but we also use exactly the same notation for the inverse function when the inverse function"
+  },
+  {
+    "start": 1089.16,
+    "end": 1097.8,
+    "text": "exists so in our first example let me just notice let me note in the first example we would have"
+  },
+  {
+    "start": 1097.8,
+    "end": 1105.72,
+    "text": "f inverse of a y equals a inverse y and we would have some x would be this and this was in"
+  },
+  {
+    "start": 1107.48,
+    "end": 1117.8,
+    "text": "the prior example just to point out that here we're using this notation the same notation is for"
+  },
+  {
+    "start": 1117.8,
+    "end": 1124.6,
+    "text": "the pre-image here and here we're using this notation here for the the inverse function"
+  },
+  {
+    "start": 1125.3200000000002,
+    "end": 1129.96,
+    "text": "and as you you can see that they're very closely related and tied together but they're not"
+  },
+  {
+    "start": 1129.96,
+    "end": 1135.88,
+    "text": "the same concepts but the same notations being used so that can be a little confusing and"
+  },
+  {
+    "start": 1135.88,
+    "end": 1143.0800000000002,
+    "text": "in effect it kind of confused me a little bit because i wrote f inverse of a single vector"
+  },
+  {
+    "start": 1143.0800000000002,
+    "end": 1148.8400000000001,
+    "text": "and that doesn't exist because the inverse function here does not exist so that was an"
+  },
+  {
+    "start": 1148.84,
+    "end": 1161.08,
+    "text": "incorrect thing to write when i wrote when i wrote f inverse of y bar because the inverse function"
+  },
+  {
+    "start": 1161.08,
+    "end": 1166.4399999999998,
+    "text": "doesn't exist f inverse of the set consisting of y bar the singleton set that's okay it's the"
+  },
+  {
+    "start": 1166.4399999999998,
+    "end": 1173.48,
+    "text": "pre-image it's not the inverse even though i keep saying f inverse okay so let's just close this"
+  },
+  {
+    "start": 1173.48,
+    "end": 1183.0,
+    "text": "off by saying finally let's look at this set here now i've drawn this arrow coming down that's supposed"
+  },
+  {
+    "start": 1183.0,
+    "end": 1190.76,
+    "text": "to go to the whole line segment let's set let's say this set here is i'll call it v to square with"
+  },
+  {
+    "start": 1190.76,
+    "end": 1197.96,
+    "text": "the v that i've used over here uh where i take the pre-image so this little set here is v"
+  },
+  {
+    "start": 1198.2,
+    "end": 1201.88,
+    "text": "the pre-image of v is"
+  },
+  {
+    "start": 1205.8,
+    "end": 1216.6000000000001,
+    "text": "everything in here so here you can see that the way the function behaves when i have a singular"
+  },
+  {
+    "start": 1217.4,
+    "end": 1223.56,
+    "text": "matrix that defines the function is quite different from the way it behaves when i have a"
+  },
+  {
+    "start": 1223.6399999999999,
+    "end": 1230.28,
+    "text": "one-to-one correspondence because the matrix is non-singular with a non-zero determinant here"
+  },
+  {
+    "start": 1231.1599999999999,
+    "end": 1240.2,
+    "text": "things get collapsed so this entire green line here maps to the origin the zero vector"
+  },
+  {
+    "start": 1240.2,
+    "end": 1246.6799999999998,
+    "text": "tire line gets collapsed to this the blue line maps to that point right there the entire line"
+  },
+  {
+    "start": 1247.0,
+    "end": 1254.52,
+    "text": "collapsed to a point this whole strip with a real width to it gets mapped into this little"
+  },
+  {
+    "start": 1254.52,
+    "end": 1262.1200000000001,
+    "text": "line segment down here things get squashed collapsed when we have a function defined by a"
+  },
+  {
+    "start": 1262.1200000000001,
+    "end": 1270.92,
+    "text": "singular matrix i don't think there is anything else that i need to say about this example"
+  },
+  {
+    "start": 1271.5600000000002,
+    "end": 1281.64,
+    "text": "so this means that we've pretty much done a kind of sequence of examples that taken together give us i"
+  },
+  {
+    "start": 1281.64,
+    "end": 1288.2,
+    "text": "think a pretty good idea about how these ideas over here work and in particular i want to note"
+  },
+  {
+    "start": 1288.2,
+    "end": 1294.76,
+    "text": "that these last two examples where we had in both cases a function going from r2 to r2 defined by"
+  },
+  {
+    "start": 1294.84,
+    "end": 1303.0,
+    "text": "two by two matrix one non-singular this one singular that that what we did in these two examples"
+  },
+  {
+    "start": 1303.0,
+    "end": 1309.8,
+    "text": "is something that is very useful that you will be you'll find useful to do as we go forward"
+  },
+  {
+    "start": 1309.8,
+    "end": 1317.24,
+    "text": "where to find out what a function like this is actually doing to look at what happens to unit"
+  },
+  {
+    "start": 1317.24,
+    "end": 1322.84,
+    "text": "vectors to the unit square and see what that see what that does in the target space"
+  },
+  {
+    "start": 1322.84,
+    "end": 1332.6,
+    "text": "so i think that's a pretty complete story here for our examples so that's it for today and we'll see you next time"
+  }
+]

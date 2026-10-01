@@ -1,0 +1,32 @@
+{
+  "g_0001": {
+    "member_video_ids": [
+      "w7apAOKgBYI",
+      "GdPUI4ZC08c",
+      "KSN1BUXpOu0"
+    ],
+    "slug": "lecture-1-b-sets-and-n-tuples",
+    "member_content_hash": "04b1474869f97453",
+    "last_synthesized_at": "2026-09-06T23:33:39.235711+00:00",
+    "note_path": "academic_notes/math-camp/lecture-notes/lecture-1-b-sets-and-n-tuples.md"
+  },
+  "g_0002": {
+    "member_video_ids": [
+      "8TkAmIoBXy4"
+    ],
+    "slug": "lecture-2-a-quantifiers-and-functions-1",
+    "member_content_hash": "6d4fc9cab870d82a",
+    "last_synthesized_at": "2026-09-06T23:40:17.705460+00:00",
+    "note_path": "academic_notes/math-camp/lecture-notes/lecture-2-a-quantifiers-and-functions-1.md"
+  },
+  "g_0003": {
+    "member_video_ids": [
+      "b5LmZci0DkE",
+      "XlkleLk5V3U"
+    ],
+    "slug": "lecture-3-a-quantifiers-and-functions-2",
+    "member_content_hash": "bb69099d92753404",
+    "last_synthesized_at": "2026-09-06T23:47:22.365991+00:00",
+    "note_path": "academic_notes/math-camp/lecture-notes/lecture-3-a-quantifiers-and-functions-2.md"
+  }
+}
