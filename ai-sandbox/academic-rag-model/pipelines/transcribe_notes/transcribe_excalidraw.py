@@ -15,6 +15,7 @@ import sys
 from pathlib import Path
 
 from core.env.academic_hub_paths import resolve_output_dir, to_resources_root
+from core.env.frontmatter import parse_frontmatter
 from core.env.gemini_utils import call_with_retries
 from core.env.ollama_utils import call_ollama
 from core.indexer.index_card import (
@@ -253,6 +254,118 @@ def expand_via_ollama(
     return None  # unreachable server or timeout -- caller decides whether to fall back
 
 
+_SEGMENT_LABEL_RE = re.compile(r"^\*\*\[(Slide|Handwritten)\]\*\*[ \t]*$", re.MULTILINE)
+_CHUNK_MARKER_RE = re.compile(r"^<!-- chunk \d+ -->[ \t]*$", re.MULTILINE)
+_SLIDE_CONTEXT_CHARS = 3000  # per neighboring slide, keeps each handwriting call small
+
+
+def split_labeled_segments(raw_markdown: str) -> list[tuple[str, str]]:
+    """Splits a slide-aware raw transcript into ordered (label, text) blocks,
+    label being 'Slide' or 'Handwritten'. Chunk markers are dropped (a block
+    can straddle a chunk boundary; they are transcription bookkeeping, not
+    content). Text before the first label is treated as handwriting -- the
+    safe default, since handwriting is the part that gets rewritten and the
+    fallback on any failure is to keep it verbatim."""
+    text = _CHUNK_MARKER_RE.sub("", raw_markdown)
+    matches = list(_SEGMENT_LABEL_RE.finditer(text))
+    pieces: list[tuple[str, str]] = []
+    first_start = matches[0].start() if matches else len(text)
+    if text[:first_start].strip():
+        pieces.append(("Handwritten", text[:first_start].strip()))
+    for i, m in enumerate(matches):
+        end = matches[i + 1].start() if i + 1 < len(matches) else len(text)
+        body = text[m.end():end].strip()
+        if body:
+            pieces.append((m.group(1), body))
+    return pieces
+
+
+def build_handwriting_expansion_prompt(
+    handwriting: str, adjacent_slides: list[str], retrieved_passages: list[str] | None = None,
+) -> str:
+    slide_block = ""
+    if adjacent_slides:
+        joined = "\n\n---\n\n".join(slide[:_SLIDE_CONTEXT_CHARS] for slide in adjacent_slides)
+        slide_block = (
+            "The lecture slide content this handwriting sits beside (context only -- do NOT repeat or "
+            f"rewrite it; it is reproduced separately, verbatim):\n{joined}\n\n"
+        )
+    grounding_block = ""
+    if retrieved_passages:
+        grounding_block = (
+            "Relevant passages from the course's own textbook material, for terminology consistency "
+            "(connect only where genuinely relevant):\n" + "\n\n".join(retrieved_passages) + "\n\n"
+        )
+    return (
+        "The following is a terse, shorthand transcription of a student's handwritten annotations "
+        "written beside lecture slides -- abbreviated, written for the student's own quick reference. "
+        "Rewrite ONLY this handwriting into cohesive, self-contained prose: expand abbreviations, "
+        "spell out the reasoning between steps, and preserve every piece of mathematical content (do "
+        "not drop or simplify any equation). Keep LaTeX notation ($...$, $$...$$) for all math.\n\n"
+        f"{_QUESTION_EXPANSION_INSTRUCTION}"
+        f"{slide_block}{grounding_block}"
+        f"Handwriting transcription:\n{handwriting}\n\n"
+        "Respond with ONLY the expanded markdown for this handwriting -- no commentary, no code fence.\n"
+    )
+
+
+def expand_with_verbatim_slides(
+    raw_markdown: str, generate, retrieved_passages: list[str] | None = None,
+) -> str:
+    """Rebuilds a slide-aware transcript for the RAG corpus with slide text
+    kept byte-for-byte: only the handwriting blocks go through `generate`
+    (a prompt -> text callable), each given its neighboring slide(s) as
+    context. A whole-document rewrite was observed to silently summarize
+    slides away (14 -> 1 display equations on a real note) despite being
+    told to preserve every equation, so slides never pass through the
+    model. A handwriting block whose generation fails or comes back empty
+    is kept as its raw transcription -- terse but lossless."""
+    segments = split_labeled_segments(raw_markdown)
+    out: list[str] = []
+    for i, (label, text) in enumerate(segments):
+        if label == "Slide":
+            out.append(f"**[Slide]**\n{text}")
+            continue
+        neighbors = [
+            segments[j][1] for j in (i - 1, i + 1)
+            if 0 <= j < len(segments) and segments[j][0] == "Slide"
+        ]
+        prompt = build_handwriting_expansion_prompt(text, neighbors, retrieved_passages)
+        try:
+            expanded = (generate(prompt) or "").strip()
+        except Exception as err:
+            print(f"WARNING: handwriting expansion failed ({err}); keeping the raw transcription for that block.")
+            expanded = ""
+        if not expanded:
+            expanded = text
+        out.append(f"**[Notes]**\n{expanded}")
+    return "\n\n".join(out)
+
+
+def _expand_slide_note(client, raw_markdown: str, backend: str, retrieved_passages) -> tuple[str, dict]:
+    state = {"backend": backend}
+
+    def generate(prompt: str) -> str:
+        if state["backend"] == "ollama":
+            result = call_ollama(prompt, model=_EXPANSION_MODEL_OLLAMA, request_timeout=300)
+            if isinstance(result, str):
+                return result
+            print("WARNING: Ollama expansion backend unreachable; falling back to Gemini.")
+            state["backend"] = "gemini"
+        response = client.models.generate_content(
+            model=_EXPANSION_MODEL_GEMINI, contents=[prompt],
+            config={"temperature": 0, "thinking_config": {"thinking_level": "minimal"}},
+        )
+        return response.text or ""
+
+    text = expand_with_verbatim_slides(raw_markdown, generate, retrieved_passages)
+    model = _EXPANSION_MODEL_OLLAMA if state["backend"] == "ollama" else _EXPANSION_MODEL_GEMINI
+    return text, {
+        "expansion_backend": state["backend"], "expansion_model": model,
+        "grounded": bool(retrieved_passages), "slides_verbatim": True,
+    }
+
+
 def expand_transcription(
     client, raw_markdown: str, backend: str = "gemini", retrieved_passages: list[str] | None = None,
     has_slides: bool = False,
@@ -263,6 +376,8 @@ def expand_transcription(
     unreachable, printing a warning, rather than failing the whole
     document."""
     grounded = bool(retrieved_passages)
+    if has_slides:
+        return _expand_slide_note(client, raw_markdown, backend, retrieved_passages)
     if backend == "ollama":
         text = expand_via_ollama(raw_markdown, retrieved_passages=retrieved_passages, has_slides=has_slides)
         if text is not None:
@@ -325,6 +440,52 @@ _TRANSCRIBE_MODEL = "gemini-3.6-flash"  # same tier as transcribe_notes.py's
                                          # handwriting-heavy vision transcription
 
 
+def _retrieve_grounding(
+    excalidraw_md_path: str, raw_markdown: str, client, academic_hub_root: str, use_grounding: bool,
+) -> list[str] | None:
+    if not use_grounding:
+        return None
+    from core.indexer.index_search import search_passages
+    course = derive_course(os.path.relpath(excalidraw_md_path, academic_hub_root).replace(os.sep, "/"))
+    results = search_passages([academic_hub_root], query=raw_markdown[:500], client=client, course=course, top_k=3)
+    return [r.text for r in results] if results else None
+
+
+def reexpand_excalidraw_note(
+    excalidraw_md_path: str, image_path: str, client, expand_backend: str,
+    academic_hub_root: str, use_grounding: bool = False,
+) -> bool:
+    """Regenerates only the expanded `.rag.md` (and its index card) from the
+    already-saved raw transcript -- no vision calls, so it is cheap to rerun
+    after an expansion-prompt change. The raw file's frontmatter supplies the
+    original transcription model, chunk count, and slide flag. Returns False
+    (writing nothing) if there is no raw transcript to expand."""
+    base_name = os.path.basename(excalidraw_md_path)[: -len(".excalidraw.md")]
+    raw_path = os.path.join(resolve_output_dir(excalidraw_md_path), f"{base_name}.excalidraw.md")
+    print(f"Re-expanding {os.path.basename(excalidraw_md_path)}...")
+    if not os.path.exists(raw_path):
+        print(f"ERROR: no raw transcript at {raw_path}; run the full transcription first.")
+        return False
+    with open(raw_path, encoding="utf-8") as f:
+        meta, raw_markdown = parse_frontmatter(f.read())
+    has_slides = meta.get("embedded_slides", "false").strip().lower() == "true"
+    retrieved_passages = _retrieve_grounding(
+        excalidraw_md_path, raw_markdown, client, academic_hub_root, use_grounding,
+    )
+    expanded_markdown, expansion_meta = expand_transcription(
+        client, raw_markdown, expand_backend, retrieved_passages, has_slides=has_slides,
+    )
+    write_outputs(
+        excalidraw_md_path=excalidraw_md_path, image_path=image_path,
+        raw_markdown=raw_markdown, expanded_markdown=expanded_markdown or "",
+        transcription_model=meta.get("model", _TRANSCRIBE_MODEL), expansion_meta=expansion_meta,
+        num_chunks=int(meta.get("chunks", "0") or 0), academic_hub_root=academic_hub_root,
+        client=client, has_slides=has_slides,
+    )
+    print(f"  re-wrote {base_name}.excalidraw.rag.md")
+    return True
+
+
 def process_excalidraw_note(
     excalidraw_md_path: str, image_path: str, client, model: str,
     expand_backend: str, academic_hub_root: str, use_grounding: bool = False, dry_run: bool = False,
@@ -354,12 +515,9 @@ def process_excalidraw_note(
         return False
     raw_markdown = assemble_raw_markdown(cache, total_chunks=len(chunks))
 
-    retrieved_passages = None
-    if use_grounding:
-        from core.indexer.index_search import search_passages
-        course = derive_course(os.path.relpath(excalidraw_md_path, academic_hub_root).replace(os.sep, "/"))
-        results = search_passages([academic_hub_root], query=raw_markdown[:500], client=client, course=course, top_k=3)
-        retrieved_passages = [r.text for r in results] if results else None
+    retrieved_passages = _retrieve_grounding(
+        excalidraw_md_path, raw_markdown, client, academic_hub_root, use_grounding,
+    )
 
     expanded_markdown, expansion_meta = expand_transcription(client, raw_markdown, expand_backend, retrieved_passages, has_slides=has_slides)
 
@@ -389,6 +547,10 @@ def main():
         help="Expansion backend (default: gemini). 'ollama' falls back to Gemini if unreachable.",
     )
     parser.add_argument("--grounding", action="store_true", help="Retrieve textbook passages to ground the expansion.")
+    parser.add_argument(
+        "--reexpand", action="store_true",
+        help="Skip transcription: regenerate only the expanded .rag.md from each note's saved raw transcript.",
+    )
     parser.add_argument("--dry-run", action="store_true", help="List files that would be processed without calling any API.")
     args = parser.parse_args()
 
@@ -409,6 +571,14 @@ def main():
             sys.exit(1)
 
     for md_path, image_path in pairs:
+        if args.reexpand:
+            if not args.dry_run:
+                reexpand_excalidraw_note(
+                    md_path, image_path, client, args.expand_backend, str(academic_hub_dir), use_grounding=args.grounding,
+                )
+            else:
+                print(f"Re-expanding {os.path.basename(md_path)}... (dry run)")
+            continue
         process_excalidraw_note(
             md_path, image_path, client, args.model, args.expand_backend,
             str(academic_hub_dir), use_grounding=args.grounding, dry_run=args.dry_run,

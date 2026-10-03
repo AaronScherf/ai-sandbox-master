@@ -534,3 +534,147 @@ def test_process_excalidraw_note_returns_true_on_success(tmp_path):
             str(md_path), str(png_path), client=object(), model="m",
             expand_backend="gemini", academic_hub_root=str(tmp_path),
         ) is True
+
+
+from pipelines.transcribe_notes.transcribe_excalidraw import (
+    build_handwriting_expansion_prompt,
+    expand_with_verbatim_slides,
+    split_labeled_segments,
+)
+
+_RAW = (
+    "<!-- chunk 1 -->\n\n**[Handwritten]**\nnote a $x$\n\n**[Slide]**\n* Slide one\n$$u(x) \\geq u(y)$$\n\n"
+    "<!-- chunk 2 -->\n\n**[Handwritten]**\nnote b\n[Question] why?\n\n**[Slide]**\n* Slide two\n"
+)
+
+
+def test_split_labeled_segments_orders_labels_and_strips_chunk_markers():
+    segments = split_labeled_segments(_RAW)
+    assert [label for label, _ in segments] == ["Handwritten", "Slide", "Handwritten", "Slide"]
+    assert all("<!-- chunk" not in text for _, text in segments)
+    assert segments[1][1] == "* Slide one\n$$u(x) \\geq u(y)$$"
+
+
+def test_split_labeled_segments_treats_leading_unlabeled_text_as_handwritten():
+    segments = split_labeled_segments("stray words\n\n**[Slide]**\n* s\n")
+    assert segments[0] == ("Handwritten", "stray words")
+
+
+def test_handwriting_prompt_includes_adjacent_slides_and_question_rule():
+    prompt = build_handwriting_expansion_prompt("note a", ["* Slide one"], None)
+    assert "note a" in prompt and "* Slide one" in prompt
+    assert "[Question]" in prompt
+
+
+def test_expand_with_verbatim_slides_keeps_slide_text_exactly_and_expands_handwriting():
+    calls = []
+
+    def generate(prompt):
+        calls.append(prompt)
+        return "EXPANDED"
+
+    out = expand_with_verbatim_slides(_RAW, generate)
+    assert "* Slide one\n$$u(x) \\geq u(y)$$" in out
+    assert "* Slide two" in out
+    assert out.count("EXPANDED") == 2
+    assert "note a" not in out  # replaced by the expansion
+    assert len(calls) == 2  # slides are never sent to the model for rewriting
+    assert out.index("EXPANDED") < out.index("* Slide one") < out.rindex("EXPANDED") < out.index("* Slide two")
+
+
+def test_expand_with_verbatim_slides_falls_back_to_raw_handwriting_when_generation_fails(capsys):
+    def generate(prompt):
+        raise RuntimeError("boom")
+
+    out = expand_with_verbatim_slides(_RAW, generate)
+    assert "note a $x$" in out and "[Question] why?" in out
+    assert "* Slide one" in out
+    assert "WARNING" in capsys.readouterr().out
+
+
+def test_expand_with_verbatim_slides_falls_back_when_generation_returns_empty():
+    out = expand_with_verbatim_slides(_RAW, lambda p: "  ")
+    assert "note b" in out
+
+
+def test_expand_transcription_uses_verbatim_slide_path_when_has_slides():
+    class FakeResponse:
+        text = "PROSE"
+
+    class FakeModels:
+        def generate_content(self, model, contents, config):
+            return FakeResponse()
+
+    class FakeClient:
+        models = FakeModels()
+
+    text, meta = expand_transcription(FakeClient(), _RAW, "gemini", has_slides=True)
+    assert "* Slide one" in text and "PROSE" in text
+    assert meta["slides_verbatim"] is True
+
+
+def test_expand_transcription_without_slides_is_unchanged():
+    class FakeResponse:
+        text = "WHOLE DOC PROSE"
+
+    class FakeModels:
+        def generate_content(self, model, contents, config):
+            return FakeResponse()
+
+    class FakeClient:
+        models = FakeModels()
+
+    text, meta = expand_transcription(FakeClient(), "terse notes", "gemini")
+    assert text == "WHOLE DOC PROSE"
+    assert "slides_verbatim" not in meta
+
+
+from core.env.academic_hub_paths import resolve_output_dir
+from pipelines.transcribe_notes.transcribe_excalidraw import reexpand_excalidraw_note
+
+
+def _seed_raw(tmp_path, frontmatter, body):
+    md_path = tmp_path / "Lecture.excalidraw.md"
+    svg_path = tmp_path / "Lecture.excalidraw.svg"
+    md_path.write_text("---\n---\n")
+    svg_path.write_text("<svg/>")
+    out_dir = resolve_output_dir(str(md_path))
+    os.makedirs(out_dir, exist_ok=True)
+    with open(os.path.join(out_dir, "Lecture.excalidraw.md"), "w", encoding="utf-8") as f:
+        f.write(frontmatter + body)
+    return str(md_path), str(svg_path)
+
+
+def test_reexpand_rebuilds_rag_from_saved_raw_without_transcribing(tmp_path):
+    md, svg = _seed_raw(
+        tmp_path, "---\nchunks: 3\nembedded_slides: true\nmodel: gemini-3.6-flash\n---\n\n", "RAW BODY",
+    )
+    with patch("pipelines.transcribe_notes.transcribe_excalidraw.transcribe_chunks") as mock_t, \
+         patch("pipelines.transcribe_notes.transcribe_excalidraw.expand_transcription", return_value=("new rag", {"expansion_backend": "gemini"})) as mock_e, \
+         patch("pipelines.transcribe_notes.transcribe_excalidraw.write_outputs", return_value=("r", "r2")) as mock_w:
+        ok = reexpand_excalidraw_note(md, svg, client=object(), expand_backend="gemini", academic_hub_root=str(tmp_path))
+    assert ok is True
+    mock_t.assert_not_called()
+    assert mock_e.call_args.args[1] == "RAW BODY"
+    assert mock_e.call_args.kwargs["has_slides"] is True
+    kw = mock_w.call_args.kwargs
+    assert kw["raw_markdown"] == "RAW BODY" and kw["expanded_markdown"] == "new rag"
+    assert kw["num_chunks"] == 3 and kw["transcription_model"] == "gemini-3.6-flash" and kw["has_slides"] is True
+
+
+def test_reexpand_handwriting_only_note_uses_whole_document_path(tmp_path):
+    md, svg = _seed_raw(tmp_path, "---\nchunks: 1\nmodel: m\n---\n\n", "terse")
+    with patch("pipelines.transcribe_notes.transcribe_excalidraw.expand_transcription", return_value=("x", {})) as mock_e, \
+         patch("pipelines.transcribe_notes.transcribe_excalidraw.write_outputs", return_value=("r", "r2")):
+        reexpand_excalidraw_note(md, svg, client=object(), expand_backend="gemini", academic_hub_root=str(tmp_path))
+    assert mock_e.call_args.kwargs["has_slides"] is False
+
+
+def test_reexpand_returns_false_when_no_raw_transcript_exists(tmp_path, capsys):
+    md_path = tmp_path / "Missing.excalidraw.md"
+    md_path.write_text("---\n---\n")
+    with patch("pipelines.transcribe_notes.transcribe_excalidraw.write_outputs") as mock_w:
+        ok = reexpand_excalidraw_note(str(md_path), str(tmp_path / "x.svg"), client=object(), expand_backend="gemini", academic_hub_root=str(tmp_path))
+    assert ok is False
+    mock_w.assert_not_called()
+    assert "ERROR" in capsys.readouterr().out
