@@ -33,6 +33,7 @@ from core.indexer.index_card import (
     cosine_similarity,
     derive_course,
     find_card_by_file_id,
+    list_courses,
     load_courses,
     load_shard,
     recompute_course_entry,
@@ -40,6 +41,7 @@ from core.indexer.index_card import (
     save_shard,
     set_rag_md_path,
 )
+from core.indexer.related import link_subsets
 from core.indexer.retag import retag
 
 DEFAULT_COURSE_CANDIDATES = 3
@@ -531,6 +533,15 @@ def _reconcile_one(academic_hub_root, course_name, folder_category, file_id, rel
         stats["updated"] += 1
 
 
+def _link_subsets_safely(academic_hub_root: str, course_filter: str | None) -> None:
+    for c in [course_filter] if course_filter else list_courses(academic_hub_root):
+        try:
+            link_subsets(academic_hub_root, c)
+        except Exception as err:
+            print(f"WARNING: subset linking failed for course {c} ({err}); "
+                  f"rerun `python -m core.indexer.related` later.")
+
+
 def rebuild(academic_hub_root: str, client, course: str | None = None,
             force: bool = False, prune: bool = False) -> dict:
     stats = {
@@ -732,6 +743,7 @@ def rebuild(academic_hub_root: str, client, course: str | None = None,
                        known_doc_types=EXCALIDRAW_DOC_TYPES, source_asset_path=rel_image_path)
 
     _flag_or_prune_orphans(academic_hub_root, seen_file_ids, course, prune, stats)
+    _link_subsets_safely(academic_hub_root, course)
     return stats
 
 

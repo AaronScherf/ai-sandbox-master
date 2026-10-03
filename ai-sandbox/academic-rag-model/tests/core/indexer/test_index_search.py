@@ -1451,5 +1451,28 @@ class TestSearchSubsets(unittest.TestCase):
         self.assertTrue(build_arg_parser().parse_args(["query", "q", "--include-subsets"]).include_subsets)
 
 
+class TestRebuildLinksSubsets(unittest.TestCase):
+    def test_rebuild_links_each_course(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            _make_excalidraw_note(tmp, "math-camp", "lecture_notes", "Drawing 2026-09-08")
+            with patch("core.indexer.index_search.link_subsets") as mock_link:
+                rebuild(tmp, client=_fake_client())
+            mock_link.assert_any_call(tmp, "math-camp")
+
+    def test_rebuild_with_course_filter_links_only_that_course(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            _make_excalidraw_note(tmp, "math-camp", "lecture_notes", "Drawing 2026-09-08")
+            with patch("core.indexer.index_search.link_subsets") as mock_link:
+                rebuild(tmp, client=_fake_client(), course="math-camp")
+            mock_link.assert_called_once_with(tmp, "math-camp")
+
+    def test_a_linking_failure_does_not_fail_rebuild(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            _make_excalidraw_note(tmp, "math-camp", "lecture_notes", "Drawing 2026-09-08")
+            with patch("core.indexer.index_search.link_subsets", side_effect=RuntimeError("boom")):
+                stats = rebuild(tmp, client=_fake_client())
+            self.assertEqual(stats["generated"], 1)
+
+
 if __name__ == "__main__":
     unittest.main()

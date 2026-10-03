@@ -685,3 +685,34 @@ def test_reexpand_returns_false_when_no_raw_transcript_exists(tmp_path, capsys):
     assert ok is False
     mock_w.assert_not_called()
     assert "ERROR" in capsys.readouterr().out
+
+
+def _write_outputs_kwargs(tmp_path):
+    course_dir = tmp_path / "academic-hub" / "academic_notes" / "math_methods" / "lecture_notes"
+    course_dir.mkdir(parents=True)
+    md_path = course_dir / "Drawing 2026-09-08.excalidraw.md"
+    png_path = course_dir / "Drawing 2026-09-08.excalidraw.png"
+    md_path.write_text("---\n---\n")
+    png_path.write_bytes(b"fake-png")
+    return dict(
+        excalidraw_md_path=str(md_path), image_path=str(png_path),
+        raw_markdown="raw", expanded_markdown="expanded", transcription_model="m",
+        expansion_meta={}, num_chunks=1, academic_hub_root=str(tmp_path / "academic-hub"), client=object(),
+    )
+
+
+def test_write_outputs_links_subsets_for_the_notes_course(tmp_path):
+    kwargs = _write_outputs_kwargs(tmp_path)
+    with patch("pipelines.transcribe_notes.transcribe_excalidraw.reconcile_and_write"), \
+         patch("pipelines.transcribe_notes.transcribe_excalidraw.link_subsets") as mock_link:
+        write_outputs(**kwargs)
+    mock_link.assert_called_once_with(kwargs["academic_hub_root"], "math_methods")
+
+
+def test_write_outputs_survives_a_linking_failure(tmp_path, capsys):
+    kwargs = _write_outputs_kwargs(tmp_path)
+    with patch("pipelines.transcribe_notes.transcribe_excalidraw.reconcile_and_write"), \
+         patch("pipelines.transcribe_notes.transcribe_excalidraw.link_subsets", side_effect=RuntimeError("boom")):
+        raw_path, rag_path = write_outputs(**kwargs)
+    assert os.path.exists(rag_path)
+    assert "WARNING" in capsys.readouterr().out

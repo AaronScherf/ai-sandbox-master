@@ -25,6 +25,7 @@ from core.indexer.index_card import (
     derive_course,
     reconcile_and_write,
 )
+from core.indexer.related import link_subsets
 from pipelines.transcribe_notes.excalidraw_chunking import chunk_image, load_canvas_image, resize_chunk_for_api
 from pipelines.transcribe_notes.transcribe_notes import build_frontmatter, transcribe_page_via_gemini
 
@@ -435,6 +436,7 @@ def write_outputs(
             page_count=num_chunks, client=client, content_hash=compute_content_hash(rag_path),
             known_doc_types=EXCALIDRAW_DOC_TYPES, source_asset_path=rel_image_path,
         )
+        link_subsets(academic_hub_root, course)
     except Exception as err:
         print(f"WARNING: source-indexer update failed for {rag_path} ({err}); "
               f"rerun `python -m core.indexer.index_search rebuild` later to catch it up.")
