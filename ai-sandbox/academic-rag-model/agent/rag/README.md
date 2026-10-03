@@ -131,6 +131,13 @@ the Markdown location as `summary_path`. This shared writer keeps the output
 destination the same for CLI, library, and agent callers. Pass the course
 folder name with `--course` (or `course=`) to save into its matching notes
 folder; when omitted, the output uses `academic_notes/uncategorized/`.
+Each Markdown summary is labeled in frontmatter with `llm_generated: true`,
+`content_kind: derived_summary`, and its generating pipeline. Its
+`indexer_source_refs` frontmatter field preserves the indexer's `file_id` and
+`chunk_id` for every cited passage. The Sources list also shows those IDs and
+the readable corpus path; when the source file is in the local notes vault, the
+path links to that file. These IDs provide a direct reference to the indexed
+file and passage; the indexer does not automatically resolve Markdown links.
 
 For a multi-part study guide assembled from several tutor answers, call
 `summary_path()` and `build_markdown_summary()` from
