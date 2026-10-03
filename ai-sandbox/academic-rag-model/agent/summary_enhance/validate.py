@@ -8,6 +8,13 @@ import re
 from agent.summary_enhance.schema import ELABORATION_KINDS, Enhanced
 
 _LABEL_MARKER_RE = re.compile(r"\[S\d+")
+# Every control character except newline (\x0a). A LaTeX command written with a
+# single backslash in the model's JSON (\beta, \theta, \rho, \frac) is decoded by
+# json.loads as a control character (backspace, tab, CR, form feed) followed by the
+# rest of the word, silently corrupting the math (real finding, first live run,
+# 2026-10-03).
+_CONTROL_CHAR_RE = re.compile(r"[\x00-\x09\x0b-\x1f]")
+_CONTROL_CHAR_HINT = "contains a control character (a LaTeX backslash was not doubled in the JSON)"
 
 
 def _norm(title: str) -> str:
@@ -29,6 +36,8 @@ def validate(enhanced: Enhanced, valid_labels: set[str], requested_topics: list[
         for i, block in enumerate(topic.grounded, 1):
             if not block.text.strip():
                 errors.append(f"topic {name!r} grounded block {i} is empty")
+            if _CONTROL_CHAR_RE.search(block.text):
+                errors.append(f"topic {name!r} grounded block {i} {_CONTROL_CHAR_HINT}")
             if not block.sources:
                 errors.append(f"topic {name!r} grounded block {i} has no sources")
             for label in block.sources:
@@ -39,6 +48,8 @@ def validate(enhanced: Enhanced, valid_labels: set[str], requested_topics: list[
                 errors.append(f"topic {name!r} elaboration block {i} has bad kind {block.kind!r}")
             if not block.text.strip():
                 errors.append(f"topic {name!r} elaboration block {i} is empty")
+            if _CONTROL_CHAR_RE.search(block.text):
+                errors.append(f"topic {name!r} elaboration block {i} {_CONTROL_CHAR_HINT}")
             if _LABEL_MARKER_RE.search(block.text):
                 errors.append(f"topic {name!r} elaboration block {i} contains a source label; "
                               "elaboration must not cite the textbooks")

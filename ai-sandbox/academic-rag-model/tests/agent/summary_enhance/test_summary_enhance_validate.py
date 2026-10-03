@@ -77,3 +77,20 @@ def test_parse_enhanced_roundtrip():
 def test_parse_enhanced_bad_shape_raises(bad):
     with pytest.raises(ValueError):
         parse_enhanced(bad)
+
+
+def test_control_char_from_json_escaped_latex_rejected_in_grounded():
+    # a model that writes \beta un-doubled inside JSON yields a backspace + "eta"
+    errors = validate(Enhanced([_topic(grounded_text="constrained $\tilde{\x08eta}$")]), LABELS, [])
+    assert any("control character" in e for e in errors)
+
+
+@pytest.mark.parametrize("bad", ["\t", "\x0c", "\r", "\x08"])
+def test_control_char_rejected_in_elaboration(bad):
+    t = _topic(elab=[ElaborationBlock("example", f"angle {bad}heta")])
+    assert any("control character" in e for e in validate(Enhanced([t]), LABELS, []))
+
+
+def test_newlines_are_allowed_in_text():
+    t = _topic(grounded_text="para one\n\npara two", elab=[ElaborationBlock("example", "a\nb")])
+    assert validate(Enhanced([t]), LABELS, []) == []

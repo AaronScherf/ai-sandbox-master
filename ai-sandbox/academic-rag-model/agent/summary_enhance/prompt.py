@@ -24,7 +24,9 @@ For each topic, return two separate arrays:
     source: if a claim in it is not supported by a passage, leave it out of "grounded".
   * Where the sources differ (notation, assumptions, scope) or one is silent on
     something, say so plainly instead of papering over it.
-  * Keep math in LaTeX with $...$ / $$...$$ delimiters.
+  * Keep math in LaTeX with $...$ / $$...$$ delimiters. This is JSON, so every LaTeX
+    backslash must be doubled ("\\beta", "\\frac"); a single backslash before b, t, f, r
+    or n silently corrupts the formula.
   * Do NOT write [S#] markers inside "text"; put labels only in "sources".
 
 "elaboration" -- your own additions that help a student: intuition, worked
