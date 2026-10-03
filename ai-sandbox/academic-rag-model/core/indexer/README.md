@@ -43,6 +43,19 @@ Run any script here as a module from the `academic-rag-model/` root, e.g.
   long as it has a real embedding, since the underlying `.md` may still be
   perfectly good even once its original source is gone (real finding,
   2026-09-23 — see the source-asset-relocation plan's cleanup notes).
+- `related.py` (2026-10-03) — links a handwriting-only Excalidraw note to its
+  "with slides" superset: `subset_of`/`subset_link_score` on the subset's card.
+  Candidates share course, folder, and a `YYYY-MM-DD` in the filename (the superset's
+  raw transcript has `embedded_slides: true`); confirmed by word-3-gram
+  containment >= 0.3 of the subset's handwriting in the superset's `[Handwritten]`
+  blocks (whole-card embeddings can't separate same-topic lectures). `search()`
+  hides a subset whenever its superset is also a surviving candidate
+  (`--include-subsets` / `include_subsets=True` shows both); an unindexed, missing,
+  or filtered-out superset never hides the subset. Runs from
+  `transcribe_excalidraw.write_outputs` and `rebuild`; manual:
+  `python -m core.indexer.related [--course X] [--dry-run]`. Manual corrections:
+  `.index/links/overrides.json` with
+  `{"force": [{"subset": id, "superset": id}], "block": [id]}`.
 - `chunk_index.py` — passage-level chunking and embedding for citable,
   paragraph/heading/page-accurate retrieval (not just "which file," but
   "which paragraph"). Tiered: headings first, numbered-problem detection for

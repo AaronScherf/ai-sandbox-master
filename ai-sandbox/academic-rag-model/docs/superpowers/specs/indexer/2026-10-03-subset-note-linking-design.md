@@ -1,6 +1,6 @@
 # Subset-Note Linking: Design
 
-**Status:** approved in conversation 2026-10-03; written spec pending review.
+**Status:** approved; implemented per docs/superpowers/plans/indexer/2026-10-03-subset-note-linking.md.
 **Package:** `core/indexer/` (shared by every pipeline; changes need caller tests).
 
 ## Motivation
@@ -76,12 +76,13 @@ them cleanly because both versions transcribe the same ink. The threshold of
   4. write `subset_of`/`subset_link_score` on linked subsets; remove them from
      cards that no longer qualify (superset deleted, text changed, now blocked);
   5. save the shard only if something changed. Idempotent.
-- Overrides file: `.index/links_overrides.json`:
+- Overrides file: `.index/links/overrides.json`:
   `{"force": [{"subset": "<id>", "superset": "<id>"}], "block": ["<id>"]}`.
-  Missing file = no overrides. Not a course shard, so `list_courses` and
-  `index_search.py`'s shard scan must ignore it (same treatment as `courses.json`/`tags.json`; see
-  `duplicate_check.py`'s note on `.index/duplicates/` for why a top-level
-  `.index/*.json` would otherwise surface as a phantom course).
+  Missing file = no overrides. Lives in a subdirectory, not as a direct child of `.index/`,
+  because `list_courses()` and `_flag_or_prune_orphans()` treat every top-level
+  `.index/*.json` as a course shard (see `duplicate_check.py`'s note on
+  `.index/duplicates/`); a top-level file would surface as a phantom course and be
+  deleted by `rebuild --prune`.
 - CLI: `python -m core.indexer.related [--root R] [--course C] [--dry-run]`
   prints each link with its score and applies unless `--dry-run`.
 
