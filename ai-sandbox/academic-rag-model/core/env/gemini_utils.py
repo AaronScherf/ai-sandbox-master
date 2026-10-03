@@ -13,6 +13,7 @@ from __future__ import annotations
 import json
 import os
 import re
+import subprocess
 import time
 from pathlib import Path
 
@@ -70,9 +71,38 @@ def save_json_cache(path: str, data: dict) -> None:
         json.dump(data, f, indent=4, ensure_ascii=False)
 
 
+def _resolve_env_path(module_file: str | Path = __file__) -> Path:
+    """
+    Where ai-sandbox/.env lives for the checkout containing `module_file`.
+    .env is gitignored, so a linked git worktree (.worktrees/<task>/) never
+    has one -- without a fallback, every key then reads as "not set" even
+    though the main checkout has it. Returns the checkout's own .env when
+    it exists; otherwise the same relative path inside the main checkout
+    (found via git's common dir) when *that* exists; otherwise the local
+    path, so the caller's usual "not set" error still points at the
+    expected location. Never raises: git missing or failing just means no
+    fallback.
+    """
+    local = Path(module_file).resolve().parent.parent.parent.parent / ".env"
+    if local.exists():
+        return local
+    try:
+        out = subprocess.run(
+            ["git", "rev-parse", "--show-toplevel", "--path-format=absolute", "--git-common-dir"],
+            cwd=local.parent, capture_output=True, text=True, timeout=5, check=True,
+        ).stdout.splitlines()
+        toplevel, common_dir = Path(out[0]), Path(out[1])
+        candidate = common_dir.parent / local.relative_to(toplevel)
+    except (OSError, subprocess.SubprocessError, ValueError, IndexError):
+        return local
+    return candidate if candidate.exists() else local
+
+
 def load_dotenv_override() -> None:
     """
-    Loads ai-sandbox/.env (the parent of this script's own directory),
+    Loads ai-sandbox/.env (the parent of this script's own directory, or
+    the main checkout's when running from a git worktree -- see
+    _resolve_env_path),
     with override=True so .env stays authoritative over a stale ambient
     environment variable (a leftover Windows User/Machine-level
     GEMINI_API_KEY, or one set earlier in the same shell session) --
@@ -81,7 +111,7 @@ def load_dotenv_override() -> None:
     """
     try:
         from dotenv import load_dotenv
-        load_dotenv(dotenv_path=Path(__file__).resolve().parent.parent.parent.parent / ".env", override=True)
+        load_dotenv(dotenv_path=_resolve_env_path(), override=True)
     except ImportError:
         print("WARNING: python-dotenv not installed (pip install python-dotenv); "
               "relying on GEMINI_API_KEY already being set in the environment.")
