@@ -1,15 +1,21 @@
+import json
 import os
 from unittest.mock import patch
 
 from pipelines.transcribe_notes.route_notes_transcribe import (
     PipelinePlan,
+    _dedupe,
+    _walk_marked_subset,
     build_plan,
     discover_excalidraw_sources,
+    discover_marked_subset_excalidraw_sources,
+    discover_marked_subset_pdf_sources,
     discover_pdf_sources,
     excalidraw_output_path,
     filter_unprocessed_excalidraw,
     filter_unprocessed_pdfs,
     find_course_dirs,
+    find_subset_roots,
     pdf_output_path,
     run_plan,
 )
@@ -165,6 +171,23 @@ def test_excalidraw_output_path_points_at_processed_outputs_rag_md():
     md_path = os.path.join("academic_notes", "econometrics", "lecture_notes", "Drawing.excalidraw.md")
     expected = os.path.join(
         "academic_notes", "econometrics", "lecture_notes", "processed_outputs", "Drawing.excalidraw.rag.md",
+    )
+    assert excalidraw_output_path(md_path) == expected
+
+
+def test_excalidraw_output_path_mirrors_to_notes_root_for_a_migrated_scene():
+    # Same bug class as test_pdf_output_path_mirrors_to_notes_root_for_a_migrated_pdf:
+    # before marked-subset discovery, every .excalidraw.md source came from
+    # the academic_notes/ side, where dirname-based and resolve_output_dir-
+    # based paths agree. A scene discovered under academic_resources/ (via
+    # a marked subset) needs the real mirrored output location, or it's
+    # judged unprocessed and re-transcribed on every run.
+    md_path = os.path.join(
+        "academic_resources", "econometrics", "class_2024", "Scanned Canvases", "Drawing.excalidraw.md",
+    )
+    expected = os.path.join(
+        "academic_notes", "econometrics", "class_2024", "Scanned Canvases",
+        "processed_outputs", "Drawing.excalidraw.rag.md",
     )
     assert excalidraw_output_path(md_path) == expected
 
@@ -343,3 +366,330 @@ def test_discover_pdf_sources_ignores_textbooks_even_when_notes_has_a_textbooks_
     paths = discover_pdf_sources(str(tmp_path / "academic_notes" / "econometrics"))
 
     assert paths == []
+
+
+def test_find_subset_roots_finds_a_marked_directory(tmp_path):
+    resources_dir = tmp_path / "academic_resources" / "econometrics" / "class_2024"
+    resources_dir.mkdir(parents=True)
+    (resources_dir / ".notes_subset.json").write_text(json.dumps({"label": "2024"}))
+
+    roots = find_subset_roots(str(tmp_path / "academic_resources" / "econometrics"))
+
+    assert roots == [str(resources_dir)]
+
+
+def test_find_subset_roots_ignores_unmarked_directories(tmp_path):
+    resources_dir = tmp_path / "academic_resources" / "econometrics" / "class_2024"
+    resources_dir.mkdir(parents=True)
+    (resources_dir / "some.pdf").write_bytes(b"x")  # no marker file
+
+    roots = find_subset_roots(str(tmp_path / "academic_resources" / "econometrics"))
+
+    assert roots == []
+
+
+def test_find_subset_roots_does_not_search_for_nested_markers_inside_a_claimed_root(tmp_path):
+    outer = tmp_path / "academic_resources" / "econometrics" / "class_2024"
+    inner = outer / "Class Notes"
+    inner.mkdir(parents=True)
+    (outer / ".notes_subset.json").write_text(json.dumps({"label": "2024"}))
+    (inner / ".notes_subset.json").write_text(json.dumps({"label": "nested-should-be-ignored"}))
+
+    roots = find_subset_roots(str(tmp_path / "academic_resources" / "econometrics"))
+
+    assert roots == [str(outer)]
+
+
+def test_find_subset_roots_skips_malformed_marker_with_a_warning(tmp_path, capsys):
+    resources_dir = tmp_path / "academic_resources" / "econometrics" / "class_2024"
+    resources_dir.mkdir(parents=True)
+    (resources_dir / ".notes_subset.json").write_text("{not valid json")
+
+    roots = find_subset_roots(str(tmp_path / "academic_resources" / "econometrics"))
+
+    assert roots == []
+    assert "WARNING" in capsys.readouterr().out
+
+
+def test_find_subset_roots_returns_empty_for_missing_resources_dir(tmp_path):
+    assert find_subset_roots(str(tmp_path / "academic_resources" / "nonexistent")) == []
+
+
+def test_walk_marked_subset_yields_nested_directories(tmp_path):
+    root = tmp_path / "class_2024"
+    deep = root / "Class Notes" / "Hand-Written Notes"
+    deep.mkdir(parents=True)
+
+    dirs = list(_walk_marked_subset(str(root)))
+
+    assert str(deep) in dirs
+    assert str(root / "Class Notes") in dirs
+    assert str(root) in dirs
+
+
+def test_walk_marked_subset_prunes_processed_outputs_and_hidden_dirs(tmp_path):
+    root = tmp_path / "class_2024"
+    (root / "processed_outputs").mkdir(parents=True)
+    (root / ".obsidian").mkdir(parents=True)
+    (root / "Slides").mkdir(parents=True)
+
+    dirs = list(_walk_marked_subset(str(root)))
+
+    assert str(root / "processed_outputs") not in dirs
+    assert str(root / ".obsidian") not in dirs
+    assert str(root / "Slides") in dirs
+
+
+def test_walk_marked_subset_prunes_textbook_folders_at_any_depth(tmp_path):
+    root = tmp_path / "class_2024"
+    textbooks_dir = root / "Readings" / "textbooks"
+    textbooks_dir.mkdir(parents=True)
+
+    dirs = list(_walk_marked_subset(str(root)))
+
+    assert str(textbooks_dir) not in dirs
+    assert str(root / "Readings") in dirs
+
+
+def test_discover_marked_subset_pdf_sources_finds_pdfs_at_arbitrary_depth(tmp_path):
+    resources_econ = tmp_path / "academic_resources" / "econometrics"
+    subset = resources_econ / "class_2024"
+    deep = subset / "Class Notes" / "Hand-Written Notes"
+    deep.mkdir(parents=True)
+    (subset / ".notes_subset.json").write_text(json.dumps({"label": "2024"}))
+    (deep / "090424.pdf").write_bytes(b"x")
+    (subset / "2023exam1.pdf").write_bytes(b"x")  # loose file directly under the marked root
+
+    paths = discover_marked_subset_pdf_sources(str(resources_econ))
+
+    names = sorted(os.path.basename(p) for p in paths)
+    assert names == ["090424.pdf", "2023exam1.pdf"]
+
+
+def test_discover_marked_subset_pdf_sources_ignores_unmarked_siblings(tmp_path):
+    resources_econ = tmp_path / "academic_resources" / "econometrics"
+    unmarked = resources_econ / "class_2023"
+    unmarked.mkdir(parents=True)
+    (unmarked / "old.pdf").write_bytes(b"x")
+
+    paths = discover_marked_subset_pdf_sources(str(resources_econ))
+
+    assert paths == []
+
+
+def test_discover_marked_subset_excalidraw_sources_finds_pairs_at_depth(tmp_path):
+    resources_econ = tmp_path / "academic_resources" / "econometrics"
+    subset = resources_econ / "class_2024"
+    deep = subset / "Scanned Canvases"
+    deep.mkdir(parents=True)
+    (subset / ".notes_subset.json").write_text(json.dumps({"label": "2024"}))
+    (deep / "Drawing.excalidraw.md").write_text("---\n---\n")
+    (deep / "Drawing.excalidraw.svg").write_text("<svg></svg>")
+
+    pairs = discover_marked_subset_excalidraw_sources(str(resources_econ))
+
+    assert len(pairs) == 1
+    assert os.path.basename(pairs[0][0]) == "Drawing.excalidraw.md"
+
+
+def test_discover_pdf_sources_includes_marked_subset_at_depth(tmp_path):
+    # academic_notes/econometrics/ta_notes/ already exists from normal use;
+    # the marked subset sits alongside it in academic_resources/, under a
+    # brand-new "class_2024" name with no academic_notes/ counterpart --
+    # exactly the case _discover_migrated_pdf_sources can't handle.
+    (tmp_path / "academic_notes" / "econometrics" / "ta_notes").mkdir(parents=True)
+    subset = tmp_path / "academic_resources" / "econometrics" / "class_2024"
+    deep = subset / "Class Notes" / "Hand-Written Notes"
+    deep.mkdir(parents=True)
+    (subset / ".notes_subset.json").write_text(json.dumps({"label": "2024"}))
+    (deep / "090424.pdf").write_bytes(b"x")
+
+    paths = discover_pdf_sources(str(tmp_path / "academic_notes" / "econometrics"))
+
+    assert [os.path.basename(p) for p in paths] == ["090424.pdf"]
+
+
+def test_discover_pdf_sources_does_not_duplicate_pdfs_seen_by_both_paths(tmp_path):
+    # Pathological but guarded-against case: a marker placed directly
+    # inside a category that's also eligible for the existing flat
+    # migrated-category sweep must not cause double processing.
+    (tmp_path / "academic_notes" / "econometrics" / "ta_notes").mkdir(parents=True)
+    resources_dir = tmp_path / "academic_resources" / "econometrics" / "ta_notes"
+    resources_dir.mkdir(parents=True)
+    (resources_dir / ".notes_subset.json").write_text(json.dumps({"label": "overlap"}))
+    (resources_dir / "01-terms.pdf").write_bytes(b"x")
+
+    paths = discover_pdf_sources(str(tmp_path / "academic_notes" / "econometrics"))
+
+    assert [os.path.basename(p) for p in paths] == ["01-terms.pdf"]
+
+
+def test_discover_pdf_sources_ignores_marker_placed_on_the_notes_side(tmp_path):
+    # The marker is only ever read from the academic_resources/ side --
+    # placing it under academic_notes/ by mistake must be a quiet no-op,
+    # not an error, and must not accidentally re-trigger the normal
+    # recursive academic_notes/ walk differently.
+    notes_dir = tmp_path / "academic_notes" / "econometrics" / "ta_notes"
+    notes_dir.mkdir(parents=True)
+    (notes_dir / ".notes_subset.json").write_text(json.dumps({"label": "2024"}))
+    (notes_dir / "01-terms.pdf").write_bytes(b"x")
+
+    paths = discover_pdf_sources(str(tmp_path / "academic_notes" / "econometrics"))
+
+    assert [os.path.basename(p) for p in paths] == ["01-terms.pdf"]
+
+
+def test_discover_excalidraw_sources_includes_marked_subset(tmp_path):
+    (tmp_path / "academic_notes" / "econometrics" / "lecture_notes").mkdir(parents=True)
+    subset = tmp_path / "academic_resources" / "econometrics" / "class_2024"
+    deep = subset / "Scanned Canvases"
+    deep.mkdir(parents=True)
+    (subset / ".notes_subset.json").write_text(json.dumps({"label": "2024"}))
+    (deep / "Drawing.excalidraw.md").write_text("---\n---\n")
+    (deep / "Drawing.excalidraw.svg").write_text("<svg></svg>")
+
+    pairs = discover_excalidraw_sources(str(tmp_path / "academic_notes" / "econometrics"))
+
+    assert len(pairs) == 1
+    assert os.path.basename(pairs[0][0]) == "Drawing.excalidraw.md"
+
+
+def test_marked_subset_pdf_is_skipped_on_second_run_once_transcribed(tmp_path):
+    # End-to-end check of the spec's "nothing downstream needs to change"
+    # claim: resolve_output_dir/filter_unprocessed_pdfs must correctly
+    # recognize a marked-subset PDF as already done, through build_plan.
+    (tmp_path / "academic_notes" / "econometrics" / "ta_notes").mkdir(parents=True)
+    subset = tmp_path / "academic_resources" / "econometrics" / "class_2024"
+    deep = subset / "Class Notes" / "Hand-Written Notes"
+    deep.mkdir(parents=True)
+    (subset / ".notes_subset.json").write_text(json.dumps({"label": "2024"}))
+    (deep / "090424.pdf").write_bytes(b"x")
+    mirrored_out = (
+        tmp_path / "academic_notes" / "econometrics" / "class_2024"
+        / "Class Notes" / "Hand-Written Notes" / "processed_outputs"
+    )
+    mirrored_out.mkdir(parents=True)
+    (mirrored_out / "090424.md").write_text("already transcribed")
+
+    plan = build_plan(str(tmp_path), courses=["econometrics"])
+
+    assert plan.pdf_todo == []
+    assert [os.path.basename(p) for p in plan.pdf_skipped] == ["090424.pdf"]
+
+
+def test_marked_subset_excalidraw_is_skipped_on_second_run_once_transcribed(tmp_path):
+    # Mirrors test_marked_subset_pdf_is_skipped_on_second_run_once_transcribed
+    # for the Excalidraw path -- catches the excalidraw_output_path bug a
+    # pure unit test on the function alone wouldn't: a wrong "is this done"
+    # check means it's never actually exercised through build_plan.
+    (tmp_path / "academic_notes" / "econometrics" / "lecture_notes").mkdir(parents=True)
+    subset = tmp_path / "academic_resources" / "econometrics" / "class_2024"
+    deep = subset / "Scanned Canvases"
+    deep.mkdir(parents=True)
+    (subset / ".notes_subset.json").write_text(json.dumps({"label": "2024"}))
+    (deep / "Drawing.excalidraw.md").write_text("---\n---\n")
+    (deep / "Drawing.excalidraw.svg").write_text("<svg></svg>")
+    mirrored_out = (
+        tmp_path / "academic_notes" / "econometrics" / "class_2024"
+        / "Scanned Canvases" / "processed_outputs"
+    )
+    mirrored_out.mkdir(parents=True)
+    (mirrored_out / "Drawing.excalidraw.rag.md").write_text("already transcribed")
+
+    plan = build_plan(str(tmp_path), courses=["econometrics"])
+
+    assert plan.excalidraw_todo == []
+    assert [os.path.basename(md) for md, _img in plan.excalidraw_skipped] == ["Drawing.excalidraw.md"]
+
+
+def test_find_subset_roots_accepts_a_marker_saved_with_a_utf8_bom(tmp_path):
+    # Real finding: Windows PowerShell's Out-File/> and some editors write
+    # UTF-8 with a BOM by default. The spec's own migration steps tell the
+    # user to create this file from the shell, so rejecting a BOM would
+    # silently break the documented happy path on this platform.
+    resources_dir = tmp_path / "academic_resources" / "econometrics" / "class_2024"
+    resources_dir.mkdir(parents=True)
+    (resources_dir / ".notes_subset.json").write_bytes(
+        b"\xef\xbb\xbf" + json.dumps({"label": "2024"}).encode("utf-8")
+    )
+
+    roots = find_subset_roots(str(tmp_path / "academic_resources" / "econometrics"))
+
+    assert roots == [str(resources_dir)]
+
+
+def test_find_subset_roots_warns_and_ignores_a_null_marker(tmp_path, capsys):
+    resources_dir = tmp_path / "academic_resources" / "econometrics" / "class_2024"
+    resources_dir.mkdir(parents=True)
+    (resources_dir / ".notes_subset.json").write_text("null")
+
+    roots = find_subset_roots(str(tmp_path / "academic_resources" / "econometrics"))
+
+    assert roots == []
+    assert "WARNING" in capsys.readouterr().out
+
+
+def test_find_subset_roots_warns_and_ignores_a_non_dict_marker(tmp_path, capsys):
+    # json.load("[]") returns [] -- not None -- so a naive "is not None"
+    # check would wrongly treat this as a valid marker and mark the
+    # directory, unlike the null case above where it happens to coincide
+    # with "not marked" already.
+    resources_dir = tmp_path / "academic_resources" / "econometrics" / "class_2024"
+    resources_dir.mkdir(parents=True)
+    (resources_dir / ".notes_subset.json").write_text("[]")
+
+    roots = find_subset_roots(str(tmp_path / "academic_resources" / "econometrics"))
+
+    assert roots == []
+    assert "WARNING" in capsys.readouterr().out
+
+
+def test_walk_marked_subset_prunes_textbook_folders_case_insensitively(tmp_path):
+    root = tmp_path / "class_2024"
+    textbooks_dir = root / "Readings" / "Textbooks"
+    textbooks_dir.mkdir(parents=True)
+
+    dirs = list(_walk_marked_subset(str(root)))
+
+    assert str(textbooks_dir) not in dirs
+    assert str(root / "Readings") in dirs
+
+
+def test_find_subset_roots_does_not_descend_into_textbook_folders(tmp_path):
+    # A marker mistakenly placed inside/under a textbooks/ folder must not
+    # sweep book PDFs into notes transcription -- the same invariant
+    # _walk_marked_subset already enforces for a subset's own interior,
+    # needed here too since find_subset_roots walks ahead of any marker
+    # being found.
+    resources_econ = tmp_path / "academic_resources" / "econometrics"
+    textbooks_dir = resources_econ / "Textbooks" / "SomeBook"
+    textbooks_dir.mkdir(parents=True)
+    (textbooks_dir / ".notes_subset.json").write_text(json.dumps({"label": "oops"}))
+
+    roots = find_subset_roots(str(resources_econ))
+
+    assert roots == []
+
+
+def test_build_plan_computes_subset_roots_once_per_course(tmp_path):
+    # Real finding: discover_pdf_sources and discover_excalidraw_sources
+    # each independently called find_subset_roots, walking the whole
+    # marked-subset tree twice (and double-printing any malformed-marker
+    # warning) for one build_plan() call.
+    (tmp_path / "academic_notes" / "econometrics" / "ta_notes").mkdir(parents=True)
+    subset = tmp_path / "academic_resources" / "econometrics" / "class_2024"
+    subset.mkdir(parents=True)
+    (subset / ".notes_subset.json").write_text(json.dumps({"label": "2024"}))
+    (subset / "a.pdf").write_bytes(b"x")
+
+    with patch(
+        "pipelines.transcribe_notes.route_notes_transcribe.find_subset_roots",
+        wraps=find_subset_roots,
+    ) as mock_find:
+        build_plan(str(tmp_path), courses=["econometrics"])
+
+    assert mock_find.call_count == 1
+
+
+def test_dedupe_preserves_order_and_removes_duplicates():
+    assert _dedupe(["a", "b", "a", "c", "b"]) == ["a", "b", "c"]

@@ -51,6 +51,18 @@ downstream correction pass over this pipeline's own output — see the root
   Re-verifies after each call that the expected output file actually landed
   on disk rather than trusting a "no exception raised" result.
 
+  A whole prior course offering (e.g. a full previous year's worth of
+  content, nested several folders deep) can also be swept into an existing
+  course without flattening its structure or pre-registering category
+  names: drop a `.notes_subset.json` file (e.g. `{"label": "2024"}`) at the
+  root of the directory under `academic_resources/<course>/` — never under
+  `academic_notes/`, which is silently ignored — and every `.pdf`/
+  `.excalidraw.md` found anywhere beneath it (any depth, pruning
+  `processed_outputs/`, hidden directories, and `textbooks`/
+  `textbooks-and-papers` folders) is discovered and routed the same as any
+  other source. Run with `--dry-run` first to confirm the full file list
+  before spending any API calls.
+
 - `migrate_sources_to_resources.py` — one-shot migration: moves heavy note
   sources (PDFs, Excalidraw `.svg`/`.png` exports, `.docx`/`.pptx`) from
   `academic_notes/` (kept lightweight for git/tablet sync) to
