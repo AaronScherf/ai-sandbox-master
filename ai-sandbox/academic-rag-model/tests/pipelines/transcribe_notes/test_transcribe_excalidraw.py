@@ -494,3 +494,43 @@ def test_process_excalidraw_note_detects_slides_and_threads_flag(tmp_path):
     assert mock_t.call_args.kwargs["has_slides"] is True
     assert mock_e.call_args.kwargs["has_slides"] is True
     assert mock_w.call_args.kwargs["has_slides"] is True
+
+
+def test_process_excalidraw_note_aborts_without_writing_when_a_chunk_failed(tmp_path, capsys):
+    md_path = tmp_path / "Drawing.excalidraw.md"
+    png_path = tmp_path / "Drawing.excalidraw.png"
+    md_path.write_text("---\n---\n")
+    png_path.write_bytes(b"x")
+
+    with patch("pipelines.transcribe_notes.transcribe_excalidraw.load_canvas_image", return_value=object()), \
+         patch("pipelines.transcribe_notes.transcribe_excalidraw.chunk_image", return_value=["c1", "c2", "c3"]), \
+         patch("pipelines.transcribe_notes.transcribe_excalidraw.resize_chunk_for_api", return_value=b"b"), \
+         patch("pipelines.transcribe_notes.transcribe_excalidraw.transcribe_chunks", return_value={"0": "a", "2": "c"}), \
+         patch("pipelines.transcribe_notes.transcribe_excalidraw.expand_transcription") as mock_expand, \
+         patch("pipelines.transcribe_notes.transcribe_excalidraw.write_outputs") as mock_write:
+        result = process_excalidraw_note(
+            str(md_path), str(png_path), client=object(), model="m",
+            expand_backend="gemini", academic_hub_root=str(tmp_path),
+        )
+
+    assert result is False
+    mock_expand.assert_not_called()
+    mock_write.assert_not_called()
+    assert "chunk 2" in capsys.readouterr().out
+
+
+def test_process_excalidraw_note_returns_true_on_success(tmp_path):
+    md_path = tmp_path / "Drawing.excalidraw.md"
+    png_path = tmp_path / "Drawing.excalidraw.png"
+    md_path.write_text("---\n---\n")
+    png_path.write_bytes(b"x")
+    with patch("pipelines.transcribe_notes.transcribe_excalidraw.load_canvas_image", return_value=object()), \
+         patch("pipelines.transcribe_notes.transcribe_excalidraw.chunk_image", return_value=["c1"]), \
+         patch("pipelines.transcribe_notes.transcribe_excalidraw.resize_chunk_for_api", return_value=b"b"), \
+         patch("pipelines.transcribe_notes.transcribe_excalidraw.transcribe_chunks", return_value={"0": "a"}), \
+         patch("pipelines.transcribe_notes.transcribe_excalidraw.expand_transcription", return_value=("e", {})), \
+         patch("pipelines.transcribe_notes.transcribe_excalidraw.write_outputs", return_value=("r", "r2")):
+        assert process_excalidraw_note(
+            str(md_path), str(png_path), client=object(), model="m",
+            expand_backend="gemini", academic_hub_root=str(tmp_path),
+        ) is True

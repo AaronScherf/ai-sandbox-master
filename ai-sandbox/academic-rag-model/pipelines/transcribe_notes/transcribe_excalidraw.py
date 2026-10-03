@@ -328,11 +328,15 @@ _TRANSCRIBE_MODEL = "gemini-3.6-flash"  # same tier as transcribe_notes.py's
 def process_excalidraw_note(
     excalidraw_md_path: str, image_path: str, client, model: str,
     expand_backend: str, academic_hub_root: str, use_grounding: bool = False, dry_run: bool = False,
-) -> None:
+) -> bool:
+    """Returns True when the note was written (or on a dry run), False when it was
+    aborted because a chunk failed transcription -- a truncated transcript is
+    never written or indexed, since it would look finished to search and to the
+    router's output check."""
     print(f"Processing {os.path.basename(excalidraw_md_path)}...")
     if dry_run:
         print("  (dry run -- would chunk, transcribe, expand, and write outputs)")
-        return
+        return True
 
     has_slides = has_embedded_images(excalidraw_md_path, image_path)
     if has_slides:
@@ -343,6 +347,11 @@ def process_excalidraw_note(
     chunk_bytes = [resize_chunk_for_api(c) for c in chunks]
 
     cache = transcribe_chunks(client, model, chunk_bytes, has_slides=has_slides)
+    missing = [i + 1 for i in range(len(chunks)) if str(i) not in cache]
+    if missing:
+        print(f"ERROR: {os.path.basename(excalidraw_md_path)}: chunk {', '.join(map(str, missing))} of "
+              f"{len(chunks)} failed transcription -- not writing or indexing a truncated transcript; rerun later.")
+        return False
     raw_markdown = assemble_raw_markdown(cache, total_chunks=len(chunks))
 
     retrieved_passages = None
@@ -361,6 +370,7 @@ def process_excalidraw_note(
         num_chunks=len(chunks), academic_hub_root=academic_hub_root, client=client, has_slides=has_slides,
     )
     print(f"  wrote outputs to {os.path.dirname(excalidraw_md_path)}/processed_outputs/")
+    return True
 
 
 def main():
