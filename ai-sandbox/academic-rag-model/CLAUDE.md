@@ -12,6 +12,7 @@ Python 3.13 packages that convert academic PDFs/docs into Markdown, index them, 
 - Ignore `archive/old_attempts/` (superseded), `.venv/`, `__pycache__/`, `audio_generator/models/`.
 - Design history lives in `docs/status/<package>/<date>-*.md` (subfoldered by package; latest date wins within a package's subfolder) and `docs/superpowers/{specs,plans}/`. Grep these for the relevant section; don't read them whole.
 - API keys come from `../.env` (`GEMINI_API_KEY`, `PAID_GEMINI_KEY`). Never print or commit them. Don't trigger paid Gemini runs over large batches without asking.
+- **Worktrees have no `.env`.** It's gitignored, and `core.env.gemini_utils.load_dotenv_override()` resolves it relative to the code's own location, so a session or script running from `.worktrees/<task>/` looks for `<worktree>/ai-sandbox/.env`, finds nothing, and reports "key not set" even though the key exists in the main checkout. For real runs from a worktree, load the main checkout's file explicitly (`load_dotenv(r"<main-checkout>\ai-sandbox\.env", override=True)`) or export the variable first. Check that the key is present (e.g. `grep -c "^PAID_GEMINI_KEY=." <main-checkout>/ai-sandbox/.env`) before blaming the key, and never print its value. Also note `GEMINI_API_KEY` may be a free-tier key (20 requests/day per model); use `get_gemini_client("PAID_GEMINI_KEY")` for pipeline runs.
 
 ## Multi-agent routing
 
