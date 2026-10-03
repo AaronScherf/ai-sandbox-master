@@ -87,11 +87,13 @@ def _candidate_courses(
 def search(
     roots: list[str], query: str, client, course: str | None = None, top_k: int = 5,
     doc_type: str | None = None, has_solutions: bool | None = None, max_level: str | None = None,
+    include_subsets: bool = False,
 ) -> list[SearchResult]:
     query_embedding = _embed_query(query, client)
     candidate_courses = _candidate_courses(roots, query_embedding, course)
 
     scored: list[SearchResult] = []
+    subset_parent: dict[tuple[str, str], str] = {}
     for root, c in candidate_courses:
         for card in load_shard(root, c):
             # orphaned=true means "this card's source couldn't be found on
@@ -120,6 +122,18 @@ def search(
                 path=result_path, course=card["course"], doc_type=card["doc_type"],
                 score=score, reason=card.get("summary", ""), file_id=card["file_id"], root=root,
             ))
+            if card.get("subset_of"):
+                subset_parent[(root, card["file_id"])] = card["subset_of"]
+
+    if not include_subsets and subset_parent:
+        # Drop a subset only when its superset is itself a surviving candidate
+        # (same root, passed every filter above): a stale, unindexed, or
+        # filtered-out superset must never hide the subset's content.
+        present = {(r.root, r.file_id) for r in scored}
+        scored = [
+            r for r in scored
+            if (r.root, subset_parent.get((r.root, r.file_id), "")) not in present
+        ]
 
     scored.sort(key=lambda r: r.score, reverse=True)
     return scored[:top_k]
@@ -157,6 +171,7 @@ def _render_citation(chunk: dict) -> str:
 def search_passages(
     roots: list[str], query: str, client, course: str | None = None,
     top_k: int = 5, file_top_k: int = 5, doc_type: str | None = None,
+    include_subsets: bool = False,
 ) -> list[PassageResult]:
     """Three-stage funnel (spec §6): reuses search() for the file-level
     pass (100% of the existing course-then-file filtering, not
@@ -168,7 +183,8 @@ def search_passages(
     which files are eligible at the file-level pass (e.g. "problem_set"
     vs "textbook" -- see problem_gen/generator.py's two-pool retrieval,
     docs/superpowers/specs/2026-09-03-problem-generation-design.md §3)."""
-    file_results = search(roots, query, client, course=course, top_k=file_top_k, doc_type=doc_type)
+    file_results = search(roots, query, client, course=course, top_k=file_top_k, doc_type=doc_type,
+                          include_subsets=include_subsets)
     if not file_results:
         return []
 
@@ -778,6 +794,8 @@ def build_arg_parser() -> argparse.ArgumentParser:
     query.add_argument("--max-level", default=None, choices=list(KNOWN_LEVELS))
     query.add_argument("--passages", action="store_true",
                         help="Return passage-level results instead of file-level results.")
+    query.add_argument("--include-subsets", action="store_true",
+                        help="Also return handwriting-only notes that are a subset of a with-slides note.")
 
     rebuild_p = subparsers.add_parser("rebuild", help="Backfill/reconcile index cards.")
     rebuild_p.add_argument("--course", default=None)
@@ -831,13 +849,15 @@ def main() -> None:
     roots = args.root or [_DEFAULT_ROOT]
     if args.command == "query":
         if args.passages:
-            results = search_passages(roots, args.query, client, course=args.course, top_k=args.top_k)
+            results = search_passages(roots, args.query, client, course=args.course, top_k=args.top_k,
+                                      include_subsets=args.include_subsets)
             for r in results:
                 print(f"{r.score:.3f}  [{r.root}:{r.course}]  {r.path}  ({r.citation})\n    {r.text[:200]}")
         else:
             results = search(
                 roots, args.query, client, course=args.course, top_k=args.top_k,
                 doc_type=args.doc_type, has_solutions=args.has_solutions, max_level=args.max_level,
+                include_subsets=args.include_subsets,
             )
             for r in results:
                 print(f"{r.score:.3f}  [{r.root}:{r.course}/{r.doc_type}]  {r.path}\n    {r.reason}")

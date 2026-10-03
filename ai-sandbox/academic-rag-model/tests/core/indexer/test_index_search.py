@@ -1383,5 +1383,73 @@ class TestRebuildWithRealDuplicateClone(unittest.TestCase):
             self.assertEqual(len(load_shard(tmp, "microecon")), 1)
 
 
+
+
+class TestSearchSubsets(unittest.TestCase):
+    def _shard(self, tmp, sup_overrides=None, sub_overrides=None):
+        sup_overrides = dict(sup_overrides or {})
+        sup_embedding = sup_overrides.pop("embedding", [1.0, 0.0])
+        sup = _card("sup", sup_embedding, **sup_overrides)
+        sub = _card("sub", [1.0, 0.0], subset_of="sup", **(sub_overrides or {}))
+        save_shard(tmp, "math-camp", [sup, sub])
+        recompute_course_entry(tmp, "math-camp")
+
+    def test_subset_is_hidden_by_default_when_its_superset_is_a_candidate(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            self._shard(tmp)
+            results = search([tmp], "q", client=_fake_query_client([1.0, 0.0]))
+            self.assertEqual([r.file_id for r in results], ["sup"])
+
+    def test_include_subsets_returns_both(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            self._shard(tmp)
+            results = search([tmp], "q", client=_fake_query_client([1.0, 0.0]), include_subsets=True)
+            self.assertEqual({r.file_id for r in results}, {"sup", "sub"})
+
+    def test_subset_returned_when_superset_is_unindexed(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            self._shard(tmp, sup_overrides={"needs_indexing": True})
+            results = search([tmp], "q", client=_fake_query_client([1.0, 0.0]))
+            self.assertEqual([r.file_id for r in results], ["sub"])
+
+    def test_subset_returned_when_superset_has_no_embedding(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            self._shard(tmp, sup_overrides={"embedding": None})
+            results = search([tmp], "q", client=_fake_query_client([1.0, 0.0]))
+            self.assertEqual([r.file_id for r in results], ["sub"])
+
+    def test_subset_returned_when_superset_is_removed_by_the_callers_own_filter(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            self._shard(tmp, sup_overrides={"level": "advanced"}, sub_overrides={"level": "introductory"})
+            results = search([tmp], "q", client=_fake_query_client([1.0, 0.0]), max_level="introductory")
+            self.assertEqual([r.file_id for r in results], ["sub"])
+
+    def test_dangling_subset_of_never_hides_the_card(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            save_shard(tmp, "math-camp", [_card("sub", [1.0, 0.0], subset_of="deleted")])
+            recompute_course_entry(tmp, "math-camp")
+            results = search([tmp], "q", client=_fake_query_client([1.0, 0.0]))
+            self.assertEqual([r.file_id for r in results], ["sub"])
+
+    def test_search_passages_inherits_the_collapse(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            self._shard(tmp)
+            chunks = [
+                {"chunk_id": f"{fid}-000", "file_id": fid, "chunk_index": 0, "tier": "page",
+                 "heading_path": None, "problem_label": None, "page_range": [1, 1],
+                 "text": f"text {fid}", "embedding": [1.0, 0.0], "embedding_model": "m", "content_hash": "h"}
+                for fid in ("sup", "sub")
+            ]
+            save_chunks(tmp, "math-camp", chunks)
+            default = search_passages([tmp], "q", client=_fake_query_client([1.0, 0.0]))
+            self.assertEqual({p.file_id for p in default}, {"sup"})
+            both = search_passages([tmp], "q", client=_fake_query_client([1.0, 0.0]), include_subsets=True)
+            self.assertEqual({p.file_id for p in both}, {"sup", "sub"})
+
+    def test_cli_exposes_include_subsets_flag(self):
+        self.assertFalse(build_arg_parser().parse_args(["query", "q"]).include_subsets)
+        self.assertTrue(build_arg_parser().parse_args(["query", "q", "--include-subsets"]).include_subsets)
+
+
 if __name__ == "__main__":
     unittest.main()
