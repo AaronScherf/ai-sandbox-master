@@ -474,3 +474,88 @@ def test_discover_marked_subset_excalidraw_sources_finds_pairs_at_depth(tmp_path
 
     assert len(pairs) == 1
     assert os.path.basename(pairs[0][0]) == "Drawing.excalidraw.md"
+
+
+def test_discover_pdf_sources_includes_marked_subset_at_depth(tmp_path):
+    # academic_notes/econometrics/ta_notes/ already exists from normal use;
+    # the marked subset sits alongside it in academic_resources/, under a
+    # brand-new "class_2024" name with no academic_notes/ counterpart --
+    # exactly the case _discover_migrated_pdf_sources can't handle.
+    (tmp_path / "academic_notes" / "econometrics" / "ta_notes").mkdir(parents=True)
+    subset = tmp_path / "academic_resources" / "econometrics" / "class_2024"
+    deep = subset / "Class Notes" / "Hand-Written Notes"
+    deep.mkdir(parents=True)
+    (subset / ".notes_subset.json").write_text(json.dumps({"label": "2024"}))
+    (deep / "090424.pdf").write_bytes(b"x")
+
+    paths = discover_pdf_sources(str(tmp_path / "academic_notes" / "econometrics"))
+
+    assert [os.path.basename(p) for p in paths] == ["090424.pdf"]
+
+
+def test_discover_pdf_sources_does_not_duplicate_pdfs_seen_by_both_paths(tmp_path):
+    # Pathological but guarded-against case: a marker placed directly
+    # inside a category that's also eligible for the existing flat
+    # migrated-category sweep must not cause double processing.
+    (tmp_path / "academic_notes" / "econometrics" / "ta_notes").mkdir(parents=True)
+    resources_dir = tmp_path / "academic_resources" / "econometrics" / "ta_notes"
+    resources_dir.mkdir(parents=True)
+    (resources_dir / ".notes_subset.json").write_text(json.dumps({"label": "overlap"}))
+    (resources_dir / "01-terms.pdf").write_bytes(b"x")
+
+    paths = discover_pdf_sources(str(tmp_path / "academic_notes" / "econometrics"))
+
+    assert [os.path.basename(p) for p in paths] == ["01-terms.pdf"]
+
+
+def test_discover_pdf_sources_ignores_marker_placed_on_the_notes_side(tmp_path):
+    # The marker is only ever read from the academic_resources/ side --
+    # placing it under academic_notes/ by mistake must be a quiet no-op,
+    # not an error, and must not accidentally re-trigger the normal
+    # recursive academic_notes/ walk differently.
+    notes_dir = tmp_path / "academic_notes" / "econometrics" / "ta_notes"
+    notes_dir.mkdir(parents=True)
+    (notes_dir / ".notes_subset.json").write_text(json.dumps({"label": "2024"}))
+    (notes_dir / "01-terms.pdf").write_bytes(b"x")
+
+    paths = discover_pdf_sources(str(tmp_path / "academic_notes" / "econometrics"))
+
+    assert [os.path.basename(p) for p in paths] == ["01-terms.pdf"]
+
+
+def test_discover_excalidraw_sources_includes_marked_subset(tmp_path):
+    (tmp_path / "academic_notes" / "econometrics" / "lecture_notes").mkdir(parents=True)
+    subset = tmp_path / "academic_resources" / "econometrics" / "class_2024"
+    deep = subset / "Scanned Canvases"
+    deep.mkdir(parents=True)
+    (subset / ".notes_subset.json").write_text(json.dumps({"label": "2024"}))
+    (deep / "Drawing.excalidraw.md").write_text("---\n---\n")
+    (deep / "Drawing.excalidraw.svg").write_text("<svg></svg>")
+
+    pairs = discover_excalidraw_sources(str(tmp_path / "academic_notes" / "econometrics"))
+
+    assert len(pairs) == 1
+    assert os.path.basename(pairs[0][0]) == "Drawing.excalidraw.md"
+
+
+def test_marked_subset_pdf_is_skipped_on_second_run_once_transcribed(tmp_path):
+    # End-to-end check of the spec's "nothing downstream needs to change"
+    # claim: resolve_output_dir/filter_unprocessed_pdfs must correctly
+    # recognize a marked-subset PDF as already done, through build_plan.
+    (tmp_path / "academic_notes" / "econometrics" / "ta_notes").mkdir(parents=True)
+    subset = tmp_path / "academic_resources" / "econometrics" / "class_2024"
+    deep = subset / "Class Notes" / "Hand-Written Notes"
+    deep.mkdir(parents=True)
+    (subset / ".notes_subset.json").write_text(json.dumps({"label": "2024"}))
+    (deep / "090424.pdf").write_bytes(b"x")
+    mirrored_out = (
+        tmp_path / "academic_notes" / "econometrics" / "class_2024"
+        / "Class Notes" / "Hand-Written Notes" / "processed_outputs"
+    )
+    mirrored_out.mkdir(parents=True)
+    (mirrored_out / "090424.md").write_text("already transcribed")
+
+    plan = build_plan(str(tmp_path), courses=["econometrics"])
+
+    assert plan.pdf_todo == []
+    assert [os.path.basename(p) for p in plan.pdf_skipped] == ["090424.pdf"]

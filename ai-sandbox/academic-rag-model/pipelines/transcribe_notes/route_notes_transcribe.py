@@ -62,7 +62,19 @@ def discover_pdf_sources(course_dir: str) -> list[str]:
     for dirpath in _walk_content_dirs(course_dir):
         paths.extend(discover_pdf_files(dirpath))
     paths.extend(_discover_migrated_pdf_sources(course_dir))
-    return paths
+    try:
+        resources_course_dir = to_resources_root(course_dir)
+    except ValueError:
+        resources_course_dir = None
+    if resources_course_dir is not None:
+        paths.extend(discover_marked_subset_pdf_sources(resources_course_dir))
+    seen = set()
+    deduped = []
+    for p in paths:
+        if p not in seen:
+            seen.add(p)
+            deduped.append(p)
+    return deduped
 
 
 def _discover_migrated_pdf_sources(course_dir: str) -> list[str]:
@@ -158,7 +170,19 @@ def discover_excalidraw_sources(course_dir: str) -> list[tuple[str, str]]:
     pairs = []
     for dirpath in _walk_content_dirs(course_dir):
         pairs.extend(discover_excalidraw_files(dirpath))
-    return pairs
+    try:
+        resources_course_dir = to_resources_root(course_dir)
+    except ValueError:
+        resources_course_dir = None
+    if resources_course_dir is not None:
+        pairs.extend(discover_marked_subset_excalidraw_sources(resources_course_dir))
+    seen = set()
+    deduped = []
+    for pair in pairs:
+        if pair not in seen:
+            seen.add(pair)
+            deduped.append(pair)
+    return deduped
 
 
 def pdf_output_path(pdf_path: str) -> str:
