@@ -13,6 +13,11 @@ rag_agent.py/viz_agent.py, matching AnswerResult.visualization's own
 existing precedent in rag_agent.py, so a report=True, visualize=False
 caller never pulls in either module's heavier dependencies just for a
 type hint.
+
+When callers request a combined report, build_markdown_summary() also
+writes a tablet-readable Markdown copy under
+academic_notes/<course>/summaries/ when the corpus root contains an
+academic_notes/ vault.
 """
 from __future__ import annotations
 
@@ -33,6 +38,43 @@ def _slugify(text: str) -> str:
 
 def report_path(question: str, reports_root: str, course: str | None) -> str:
     return os.path.join(reports_root, course or "uncategorized", f"{_slugify(question)}.html")
+
+
+def summary_path(question: str, academic_hub_root: str, course: str | None) -> str | None:
+    """Returns the tablet-readable Markdown destination for a reported
+    tutor answer. Keep it in the course's source-notes vault so the summary
+    is available alongside the materials it cites. A non-academic corpus
+    root has no academic_notes/ tree, so it has no summary destination."""
+    notes_root = os.path.join(academic_hub_root, "academic_notes")
+    if not os.path.isdir(notes_root):
+        return None
+    course_dir = _slugify(course) if course else "uncategorized"
+    return os.path.join(notes_root, course_dir, "summaries", f"{_slugify(question)}.md")
+
+
+def build_markdown_summary(
+    question: str, answer: str, citations: list[Citation], output_path: str,
+    solution: str | None = None,
+) -> str | None:
+    """Writes the answer and its source citations as a Markdown summary
+    under academic_notes/<course>/summaries/. The RAG caller owns the
+    destination choice; this function only writes the supplied content."""
+    try:
+        sources = "\n".join(
+            f"- `{c.path}` ({c.citation}; corpus: {c.root})" for c in citations
+        )
+        solution_block = f"\n\n## Worked solution\n\n{solution}" if solution is not None else ""
+        document = (
+            f"# {question}\n\n{answer}{solution_block}\n\n"
+            f"## Sources\n\n{sources or '- No source passages were retrieved.'}\n"
+        )
+        os.makedirs(os.path.dirname(output_path), exist_ok=True)
+        with open(output_path, "w", encoding="utf-8") as f:
+            f.write(document)
+        return output_path
+    except Exception as err:
+        print(f"WARNING: Markdown summary generation failed ({err})")
+        return None
 
 
 def build_report(

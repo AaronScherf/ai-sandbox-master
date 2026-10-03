@@ -119,3 +119,22 @@ worked solution as its own section, not just the problem statement.
 This was a real integration gap until 2026-09-06: the problem-generation
 branch didn't call the report builder at all regardless of `report=True`,
 the same kind of gap `--visualize` had until its own fix above.
+
+## Saving Markdown summaries
+
+Request a combined report with `--report` in the REPL or `report=True` in
+an `answer_question()` call. For an academic-hub corpus, the pipeline saves
+a Markdown copy of the answer, citations, and any generated solution under
+`academic_notes/<course>/summaries/<question-slug>.md`, alongside the
+existing HTML report under `.reports/`. The returned `AnswerResult` exposes
+the Markdown location as `summary_path`. This shared writer keeps the output
+destination the same for CLI, library, and agent callers. Pass the course
+folder name with `--course` (or `course=`) to save into its matching notes
+folder; when omitted, the output uses `academic_notes/uncategorized/`.
+
+For a multi-part study guide assembled from several tutor answers, call
+`summary_path()` and `build_markdown_summary()` from
+`agent.rag.report_builder` with the finished guide text and its citations.
+This uses the same course-specific notes destination as `report=True`.
+The REPL's `/summarize [unit]` command also saves its session recap and
+deduplicated source citations in the same `summaries/` folder.
