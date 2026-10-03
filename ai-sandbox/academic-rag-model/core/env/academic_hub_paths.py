@@ -10,10 +10,12 @@ import at module scope anywhere.
 """
 from __future__ import annotations
 
+import json
 import os
 
 _NOTES_ROOT_NAME = "academic_notes"
 _RESOURCES_ROOT_NAME = "academic_resources"
+_SUBSET_MARKER_FILENAME = ".notes_subset.json"
 
 # A course's textbook folder has been named both of these on disk (see
 # indexer/index_search.py's own copy of this tuple). Since each book's
@@ -77,3 +79,56 @@ def textbook_rag_md_path(book_dir: str) -> str:
     parts = book_dir.replace("\\", "/").split("/")
     target_dir = to_notes_root(book_dir) if _RESOURCES_ROOT_NAME in parts else book_dir
     return os.path.join(target_dir, f"{folder_name}.rag.md")
+
+
+def read_subset_marker(dir_path: str) -> dict | None:
+    """Reads this directory's prior-offering subset marker, if any.
+    Returns None for a missing file (not marked) or a malformed one
+    (logged, treated as not marked) -- never raises, so one bad marker
+    can't take down a caller scanning many directories."""
+    marker_path = os.path.join(dir_path, _SUBSET_MARKER_FILENAME)
+    if not os.path.isfile(marker_path):
+        return None
+    try:
+        with open(marker_path, encoding="utf-8-sig") as f:
+            data = json.load(f)
+    except (OSError, ValueError) as err:
+        print(f"WARNING: malformed subset marker, ignoring: {marker_path} ({err})")
+        return None
+    if not isinstance(data, dict):
+        print(
+            f"WARNING: malformed subset marker, ignoring: {marker_path} "
+            f"(expected a JSON object, got {type(data).__name__})"
+        )
+        return None
+    return data
+
+
+def find_containing_offering_label(path: str) -> str | None:
+    """The label of the subset marker governing `path`, or None if path
+    isn't under academic_resources/ at all, or no ancestor up to its
+    course directory carries a valid marker. Checks ancestors from the
+    course directory downward to path's own parent (top-down,
+    first-match-wins) -- the same order find_subset_roots() walks in
+    (route_notes_transcribe.py), so this always agrees with which
+    directory that function would have returned as the subset root
+    governing this exact file."""
+    had_backslashes = "\\" in path
+    normalized = path.replace("\\", "/")
+    parts = normalized.split("/")
+    try:
+        idx = parts.index(_RESOURCES_ROOT_NAME)
+    except ValueError:
+        return None
+    course_depth = idx + 2
+    if len(parts) <= course_depth:
+        return None
+    for depth in range(course_depth, len(parts)):
+        candidate = "/".join(parts[:depth])
+        if had_backslashes:
+            candidate = candidate.replace("/", os.sep)
+        marker = read_subset_marker(candidate)
+        if marker is not None:
+            label = marker.get("label")
+            return str(label) if label is not None else None
+    return None

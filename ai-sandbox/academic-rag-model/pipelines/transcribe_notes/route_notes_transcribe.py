@@ -24,13 +24,17 @@ academic_notes/ without flattening its structure.
 from __future__ import annotations
 
 import argparse
-import json
 import os
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from core.env.academic_hub_paths import TEXTBOOK_FOLDER_NAMES, resolve_output_dir, to_resources_root
+from core.env.academic_hub_paths import (
+    TEXTBOOK_FOLDER_NAMES,
+    read_subset_marker,
+    resolve_output_dir,
+    to_resources_root,
+)
 from pipelines.transcribe_notes.transcribe_excalidraw import (
     _TRANSCRIBE_MODEL as _EXCALIDRAW_MODEL,
     discover_excalidraw_files,
@@ -39,7 +43,6 @@ from pipelines.transcribe_notes.transcribe_excalidraw import (
 from pipelines.transcribe_notes.transcribe_notes import discover_pdf_files, process_pdf
 
 _SKIP_DIR_NAMES = frozenset({"processed_outputs"})
-_SUBSET_MARKER_FILENAME = ".notes_subset.json"
 
 
 def find_course_dirs(academic_hub_root: str) -> list[str]:
@@ -114,29 +117,6 @@ def _discover_migrated_pdf_sources(course_dir: str) -> list[str]:
     return paths
 
 
-def _read_subset_marker(dir_path: str) -> dict | None:
-    """Reads this directory's subset marker, if any. Returns None for a
-    missing file (not marked) or a malformed one (logged, treated as not
-    marked) -- never raises, so one bad marker can't take down discovery
-    for the rest of the course."""
-    marker_path = os.path.join(dir_path, _SUBSET_MARKER_FILENAME)
-    if not os.path.isfile(marker_path):
-        return None
-    try:
-        with open(marker_path, encoding="utf-8-sig") as f:
-            data = json.load(f)
-    except (OSError, ValueError) as err:
-        print(f"WARNING: malformed subset marker, ignoring: {marker_path} ({err})")
-        return None
-    if not isinstance(data, dict):
-        print(
-            f"WARNING: malformed subset marker, ignoring: {marker_path} "
-            f"(expected a JSON object, got {type(data).__name__})"
-        )
-        return None
-    return data
-
-
 def _is_textbook_dir_name(name: str) -> bool:
     """Case-insensitive match against TEXTBOOK_FOLDER_NAMES -- a Title-Case
     "Textbooks" nested inside a marked subset (this project's folder names
@@ -160,7 +140,7 @@ def find_subset_roots(resources_course_dir: str) -> list[str]:
             d for d in dirnames
             if d not in _SKIP_DIR_NAMES and not _is_textbook_dir_name(d) and not d.startswith(".")
         ]
-        if _read_subset_marker(dirpath) is not None:
+        if read_subset_marker(dirpath) is not None:
             roots.append(dirpath)
             dirnames[:] = []  # claimed -- don't search inside for nested markers
     return sorted(roots)
