@@ -124,6 +124,20 @@ def find_subset_roots(resources_course_dir: str) -> list[str]:
     return sorted(roots)
 
 
+def _walk_marked_subset(subset_root: str):
+    """Yields every directory under subset_root, pruning processed_outputs/,
+    hidden directories, and any TEXTBOOK_FOLDER_NAMES-named directory at
+    any depth -- the same invariant _discover_migrated_pdf_sources
+    enforces via its category-match gate, needed here directly since that
+    gate doesn't apply to this path."""
+    for dirpath, dirnames, _filenames in os.walk(subset_root):
+        dirnames[:] = [
+            d for d in dirnames
+            if d not in _SKIP_DIR_NAMES and d not in TEXTBOOK_FOLDER_NAMES and not d.startswith(".")
+        ]
+        yield dirpath
+
+
 def discover_excalidraw_sources(course_dir: str) -> list[tuple[str, str]]:
     pairs = []
     for dirpath in _walk_content_dirs(course_dir):

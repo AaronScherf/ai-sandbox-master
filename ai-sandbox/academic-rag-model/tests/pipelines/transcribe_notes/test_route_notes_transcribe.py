@@ -15,6 +15,7 @@ from pipelines.transcribe_notes.route_notes_transcribe import (
     pdf_output_path,
     run_plan,
 )
+from pipelines.transcribe_notes.route_notes_transcribe import _walk_marked_subset
 
 
 def _make_course(root, course, category, files: dict):
@@ -392,3 +393,39 @@ def test_find_subset_roots_skips_malformed_marker_with_a_warning(tmp_path, capsy
 
 def test_find_subset_roots_returns_empty_for_missing_resources_dir(tmp_path):
     assert find_subset_roots(str(tmp_path / "academic_resources" / "nonexistent")) == []
+
+
+def test_walk_marked_subset_yields_nested_directories(tmp_path):
+    root = tmp_path / "class_2024"
+    deep = root / "Class Notes" / "Hand-Written Notes"
+    deep.mkdir(parents=True)
+
+    dirs = list(_walk_marked_subset(str(root)))
+
+    assert str(deep) in dirs
+    assert str(root / "Class Notes") in dirs
+    assert str(root) in dirs
+
+
+def test_walk_marked_subset_prunes_processed_outputs_and_hidden_dirs(tmp_path):
+    root = tmp_path / "class_2024"
+    (root / "processed_outputs").mkdir(parents=True)
+    (root / ".obsidian").mkdir(parents=True)
+    (root / "Slides").mkdir(parents=True)
+
+    dirs = list(_walk_marked_subset(str(root)))
+
+    assert str(root / "processed_outputs") not in dirs
+    assert str(root / ".obsidian") not in dirs
+    assert str(root / "Slides") in dirs
+
+
+def test_walk_marked_subset_prunes_textbook_folders_at_any_depth(tmp_path):
+    root = tmp_path / "class_2024"
+    textbooks_dir = root / "Readings" / "textbooks"
+    textbooks_dir.mkdir(parents=True)
+
+    dirs = list(_walk_marked_subset(str(root)))
+
+    assert str(textbooks_dir) not in dirs
+    assert str(root / "Readings") in dirs
