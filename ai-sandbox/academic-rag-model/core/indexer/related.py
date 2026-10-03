@@ -93,8 +93,15 @@ def load_overrides(academic_hub_root: str) -> dict:
     path = overrides_path(academic_hub_root)
     if not os.path.exists(path):
         return {"force": [], "block": []}
-    with open(path, encoding="utf-8") as f:
-        data = json.load(f)
+    # A bad file is an error, not "no overrides": silently dropping a `block`
+    # entry would create links the user explicitly forbade.
+    try:
+        with open(path, encoding="utf-8") as f:
+            data = json.load(f)
+    except (OSError, json.JSONDecodeError) as err:
+        raise ValueError(f"cannot read {path} ({err}); fix or remove the file") from err
+    if not isinstance(data, dict):
+        raise ValueError(f"{path} must contain a JSON object with optional 'force'/'block' lists")
     return {"force": data.get("force", []), "block": data.get("block", [])}
 
 
@@ -190,10 +197,13 @@ def main(argv: list[str] | None = None) -> None:
     parser.add_argument("--course", default=None, help="Only this course (default: all).")
     parser.add_argument("--dry-run", action="store_true", help="Print links without writing them.")
     args = parser.parse_args(argv)
-    for course in [args.course] if args.course else list_courses(args.root):
-        for link in link_subsets(args.root, course, dry_run=args.dry_run):
-            tag = " (forced)" if link.forced else ""
-            print(f"[{course}] {link.subset_id} -> {link.superset_id}  containment={link.score:.2f}{tag}")
+    try:
+        for course in [args.course] if args.course else list_courses(args.root):
+            for link in link_subsets(args.root, course, dry_run=args.dry_run):
+                tag = " (forced)" if link.forced else ""
+                print(f"[{course}] {link.subset_id} -> {link.superset_id}  containment={link.score:.2f}{tag}")
+    except ValueError as err:
+        raise SystemExit(f"ERROR: {err}")
 
 
 if __name__ == "__main__":

@@ -1,5 +1,7 @@
 import os
 
+import pytest
+
 from core.indexer.related import (
     containment,
     handwriting_text,
@@ -263,3 +265,24 @@ def test_cli_dry_run_prints_links(tmp_path, capsys):
     out = capsys.readouterr().out
     assert "sub" in out and "sup" in out and "1.00" in out
     assert "subset_of" not in load_shard(hub, "microecon")[0]
+
+
+def _write_malformed_overrides(hub):
+    os.makedirs(os.path.dirname(overrides_path(hub)), exist_ok=True)
+    with open(overrides_path(hub), "w", encoding="utf-8") as f:
+        f.write("{not json")
+
+
+def test_malformed_overrides_raise_a_clear_error_naming_the_file(tmp_path):
+    _write_malformed_overrides(str(tmp_path))
+    with pytest.raises(ValueError) as excinfo:
+        load_overrides(str(tmp_path))
+    assert "overrides.json" in str(excinfo.value)
+
+
+def test_cli_exits_with_the_overrides_error_instead_of_a_traceback(tmp_path):
+    hub = _pair(tmp_path)
+    _write_malformed_overrides(hub)
+    with pytest.raises(SystemExit) as excinfo:
+        related.main(["--root", hub, "--course", "microecon", "--dry-run"])
+    assert "overrides.json" in str(excinfo.value)
