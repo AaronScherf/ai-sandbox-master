@@ -15,6 +15,11 @@ unattended (cron, or a plain `python -m pipelines.transcribe_notes.route_notes_t
 without an agent deciding what to run each time. After dispatch, re-checks
 that each expected output file actually landed on disk rather than
 trusting a "no exception raised" result.
+
+A directory under academic_resources/<course>/ marked with a
+.notes_subset.json file (see README.md) is additionally swept at
+arbitrary depth, for a whole prior course offering staged outside
+academic_notes/ without flattening its structure.
 """
 from __future__ import annotations
 
@@ -113,7 +118,7 @@ def _read_subset_marker(dir_path: str) -> dict | None:
     if not os.path.isfile(marker_path):
         return None
     try:
-        with open(marker_path, encoding="utf-8") as f:
+        with open(marker_path, encoding="utf-8-sig") as f:
             return json.load(f)
     except (OSError, ValueError) as err:
         print(f"WARNING: malformed subset marker, ignoring: {marker_path} ({err})")
@@ -193,9 +198,13 @@ def pdf_output_path(pdf_path: str) -> str:
 def excalidraw_output_path(md_path: str) -> str:
     # The .rag.md, not the raw .md -- it's the RAG-canonical artifact
     # (write_outputs only registers the .rag.md with the source indexer),
-    # so it's the right "is this actually done" marker.
+    # so it's the right "is this actually done" marker. resolve_output_dir
+    # (not a plain sibling dirname) so a scene discovered under
+    # academic_resources/ (a marked subset) resolves to where write_outputs
+    # actually writes -- the mirrored academic_notes/ location, matching
+    # pdf_output_path's own handling of the same migrated case.
     base_name = os.path.basename(md_path)[: -len(".excalidraw.md")]
-    return os.path.join(os.path.dirname(md_path), "processed_outputs", f"{base_name}.excalidraw.rag.md")
+    return os.path.join(resolve_output_dir(md_path), f"{base_name}.excalidraw.rag.md")
 
 
 def _is_nonempty_file(path: str) -> bool:

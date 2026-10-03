@@ -176,6 +176,23 @@ def test_excalidraw_output_path_points_at_processed_outputs_rag_md():
     assert excalidraw_output_path(md_path) == expected
 
 
+def test_excalidraw_output_path_mirrors_to_notes_root_for_a_migrated_scene():
+    # Same bug class as test_pdf_output_path_mirrors_to_notes_root_for_a_migrated_pdf:
+    # before marked-subset discovery, every .excalidraw.md source came from
+    # the academic_notes/ side, where dirname-based and resolve_output_dir-
+    # based paths agree. A scene discovered under academic_resources/ (via
+    # a marked subset) needs the real mirrored output location, or it's
+    # judged unprocessed and re-transcribed on every run.
+    md_path = os.path.join(
+        "academic_resources", "econometrics", "class_2024", "Scanned Canvases", "Drawing.excalidraw.md",
+    )
+    expected = os.path.join(
+        "academic_notes", "econometrics", "class_2024", "Scanned Canvases",
+        "processed_outputs", "Drawing.excalidraw.rag.md",
+    )
+    assert excalidraw_output_path(md_path) == expected
+
+
 def test_filter_unprocessed_pdfs_skips_files_with_nonempty_output(tmp_path):
     ta_dir = _make_course(tmp_path, "econometrics", "ta_notes", {"done.pdf": b"x", "todo.pdf": b"x"})
     out_dir = ta_dir / "processed_outputs"
@@ -559,3 +576,44 @@ def test_marked_subset_pdf_is_skipped_on_second_run_once_transcribed(tmp_path):
 
     assert plan.pdf_todo == []
     assert [os.path.basename(p) for p in plan.pdf_skipped] == ["090424.pdf"]
+
+
+def test_marked_subset_excalidraw_is_skipped_on_second_run_once_transcribed(tmp_path):
+    # Mirrors test_marked_subset_pdf_is_skipped_on_second_run_once_transcribed
+    # for the Excalidraw path -- catches the excalidraw_output_path bug a
+    # pure unit test on the function alone wouldn't: a wrong "is this done"
+    # check means it's never actually exercised through build_plan.
+    (tmp_path / "academic_notes" / "econometrics" / "lecture_notes").mkdir(parents=True)
+    subset = tmp_path / "academic_resources" / "econometrics" / "class_2024"
+    deep = subset / "Scanned Canvases"
+    deep.mkdir(parents=True)
+    (subset / ".notes_subset.json").write_text(json.dumps({"label": "2024"}))
+    (deep / "Drawing.excalidraw.md").write_text("---\n---\n")
+    (deep / "Drawing.excalidraw.svg").write_text("<svg></svg>")
+    mirrored_out = (
+        tmp_path / "academic_notes" / "econometrics" / "class_2024"
+        / "Scanned Canvases" / "processed_outputs"
+    )
+    mirrored_out.mkdir(parents=True)
+    (mirrored_out / "Drawing.excalidraw.rag.md").write_text("already transcribed")
+
+    plan = build_plan(str(tmp_path), courses=["econometrics"])
+
+    assert plan.excalidraw_todo == []
+    assert [os.path.basename(md) for md, _img in plan.excalidraw_skipped] == ["Drawing.excalidraw.md"]
+
+
+def test_find_subset_roots_accepts_a_marker_saved_with_a_utf8_bom(tmp_path):
+    # Real finding: Windows PowerShell's Out-File/> and some editors write
+    # UTF-8 with a BOM by default. The spec's own migration steps tell the
+    # user to create this file from the shell, so rejecting a BOM would
+    # silently break the documented happy path on this platform.
+    resources_dir = tmp_path / "academic_resources" / "econometrics" / "class_2024"
+    resources_dir.mkdir(parents=True)
+    (resources_dir / ".notes_subset.json").write_bytes(
+        b"\xef\xbb\xbf" + json.dumps({"label": "2024"}).encode("utf-8")
+    )
+
+    roots = find_subset_roots(str(tmp_path / "academic_resources" / "econometrics"))
+
+    assert roots == [str(resources_dir)]
