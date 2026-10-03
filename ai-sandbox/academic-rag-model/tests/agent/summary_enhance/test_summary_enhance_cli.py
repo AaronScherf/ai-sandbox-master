@@ -160,3 +160,16 @@ def test_main_parses_args(vault, monkeypatch):
     assert rc == 0
     assert captured["topics"] == ["A", "B"] and captured["dry_run"] and captured["force"]
     assert captured["output"] == "o.md" and captured["model"] == "m" and captured["env_file"] == "e.env"
+
+
+def test_write_failure_after_paid_call_saves_a_recovery_copy_and_no_tmp(vault, make_llm, good_response, monkeypatch):
+    def locked(src, dst):
+        raise PermissionError("file is open in another program")
+
+    monkeypatch.setattr(enhance.os, "replace", locked)
+    assert run(str(vault.guide), topics=TOPICS, llm=make_llm(good_response)) == 5
+    folder = vault.guide.parent
+    assert not _out(vault).exists()
+    assert not list(folder.glob("*.tmp"))
+    recovered = folder / "guide.enhanced.recovered.md"
+    assert recovered.is_file() and "## Wald test" in recovered.read_text(encoding="utf-8")

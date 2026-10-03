@@ -10,8 +10,10 @@ docs/superpowers/specs/agent/2026-10-03-summary-enhancement-design.md
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import sys
+from dataclasses import asdict
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -23,7 +25,7 @@ from agent.summary_enhance.source_loader import GuideInput, SourceError, load_gu
 from agent.summary_enhance.validate import validate
 from core.env.gemini_utils import get_gemini_client, load_dotenv_override
 
-EXIT_OK, EXIT_NO_CLIENT, EXIT_INPUT, EXIT_INVALID, EXIT_LLM = 0, 1, 2, 3, 4
+EXIT_OK, EXIT_NO_CLIENT, EXIT_INPUT, EXIT_INVALID, EXIT_LLM, EXIT_WRITE = 0, 1, 2, 3, 4, 5
 
 
 class OutputError(Exception):
@@ -68,8 +70,26 @@ def _generate(llm: LLMClient, guide: GuideInput, topics: list[str]) -> tuple[Enh
 def _atomic_write(path: Path, text: str) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     tmp = path.with_name(path.name + ".tmp")
-    tmp.write_text(text, encoding="utf-8", newline="\n")
-    os.replace(tmp, path)
+    try:
+        tmp.write_text(text, encoding="utf-8", newline="\n")
+        os.replace(tmp, path)
+    finally:
+        tmp.unlink(missing_ok=True)
+
+
+def _save_recovery(out: Path, enhanced: Enhanced, text: str | None) -> None:
+    """The paid call already succeeded; keep its result (inside the vault, next to the
+    intended output) when the final write fails, e.g. Obsidian/sync holds the file open."""
+    try:
+        if text is not None:
+            rec = out.with_name(out.stem + ".recovered.md")
+            rec.write_text(text, encoding="utf-8", newline="\n")
+        else:
+            rec = out.with_name(out.stem + ".recovered.json")
+            rec.write_text(json.dumps(asdict(enhanced), ensure_ascii=False, indent=2), encoding="utf-8")
+        print(f"The model result was saved to {rec}")
+    except Exception as err:
+        print(f"WARNING: could not save a recovery copy either: {err}")
 
 
 def _load_env(env_file: str | None) -> None:
@@ -120,7 +140,14 @@ def run(guide_path: str, *, topics: list[str], output: str | None = None, model:
         return EXIT_INVALID
 
     generated_at = datetime.now(timezone.utc).isoformat(timespec="seconds")
-    _atomic_write(out, render(guide, enhanced, model=llm.model, generated_at=generated_at))
+    text: str | None = None
+    try:
+        text = render(guide, enhanced, model=llm.model, generated_at=generated_at)
+        _atomic_write(out, text)
+    except Exception as err:
+        print(f"ERROR: could not write {out}: {err}")
+        _save_recovery(out, enhanced, text)
+        return EXIT_WRITE
     print(f"Wrote {out}")
     return EXIT_OK
 

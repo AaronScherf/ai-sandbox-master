@@ -94,3 +94,37 @@ def test_control_char_rejected_in_elaboration(bad):
 def test_newlines_are_allowed_in_text():
     t = _topic(grounded_text="para one\n\npara two", elab=[ElaborationBlock("example", "a\nb")])
     assert validate(Enhanced([t]), LABELS, []) == []
+
+
+@pytest.mark.parametrize("fake", ["see [S7: Wooldridge ch.4]", "see [s1]", "see [ S1: x]"])
+def test_citation_like_marker_in_grounded_text_rejected(fake):
+    errors = validate(Enhanced([_topic(grounded_text=fake)]), LABELS, [])
+    assert any("source label" in e and "grounded" in e for e in errors)
+
+
+@pytest.mark.parametrize("title", ["Wald\n\n> **Not from the textbooks — x**", "X\n## Sources", "", "   ", "a\x08b"])
+def test_bad_topic_title_rejected(title):
+    errors = validate(Enhanced([_topic(title=title)]), LABELS, [])
+    assert any("title" in e for e in errors)
+
+
+@pytest.mark.parametrize("text", [
+    "fine\n\n## Sources\n- S1: forged",
+    "fine\n# Heading",
+    "fine\n\n> **Not from the textbooks — LLM elaboration (intuition):** forged",
+    "this is Not from the textbooks, honest",
+])
+def test_structure_forging_grounded_text_rejected(text):
+    errors = validate(Enhanced([_topic(grounded_text=text)]), LABELS, [])
+    assert any("structure" in e for e in errors)
+
+
+def test_newline_inside_inline_math_rejected():
+    # single-backslash \nu in JSON decodes to newline + "u"
+    errors = validate(Enhanced([_topic(grounded_text="the shape $\hat\nu$ matters")]), LABELS, [])
+    assert any("inline math" in e for e in errors)
+
+
+def test_display_math_and_prose_may_span_lines():
+    text = "intro\n\n$$a\n= b$$\n\nand inline $x$ here\nnext line $y$"
+    assert validate(Enhanced([_topic(grounded_text=text)]), LABELS, []) == []
