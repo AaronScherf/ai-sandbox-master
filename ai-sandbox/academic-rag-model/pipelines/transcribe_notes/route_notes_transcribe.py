@@ -62,7 +62,18 @@ def _walk_content_dirs(course_dir: str):
         yield dirpath
 
 
-def discover_pdf_sources(course_dir: str) -> list[str]:
+def _dedupe(items):
+    """Removes duplicates while preserving first-seen order."""
+    seen = set()
+    result = []
+    for item in items:
+        if item not in seen:
+            seen.add(item)
+            result.append(item)
+    return result
+
+
+def discover_pdf_sources(course_dir: str, subset_roots: list[str] | None = None) -> list[str]:
     paths = []
     for dirpath in _walk_content_dirs(course_dir):
         paths.extend(discover_pdf_files(dirpath))
@@ -72,14 +83,8 @@ def discover_pdf_sources(course_dir: str) -> list[str]:
     except ValueError:
         resources_course_dir = None
     if resources_course_dir is not None:
-        paths.extend(discover_marked_subset_pdf_sources(resources_course_dir))
-    seen = set()
-    deduped = []
-    for p in paths:
-        if p not in seen:
-            seen.add(p)
-            deduped.append(p)
-    return deduped
+        paths.extend(discover_marked_subset_pdf_sources(resources_course_dir, subset_roots))
+    return _dedupe(paths)
 
 
 def _discover_migrated_pdf_sources(course_dir: str) -> list[str]:
@@ -119,22 +124,42 @@ def _read_subset_marker(dir_path: str) -> dict | None:
         return None
     try:
         with open(marker_path, encoding="utf-8-sig") as f:
-            return json.load(f)
+            data = json.load(f)
     except (OSError, ValueError) as err:
         print(f"WARNING: malformed subset marker, ignoring: {marker_path} ({err})")
         return None
+    if not isinstance(data, dict):
+        print(
+            f"WARNING: malformed subset marker, ignoring: {marker_path} "
+            f"(expected a JSON object, got {type(data).__name__})"
+        )
+        return None
+    return data
+
+
+def _is_textbook_dir_name(name: str) -> bool:
+    """Case-insensitive match against TEXTBOOK_FOLDER_NAMES -- a Title-Case
+    "Textbooks" nested inside a marked subset (this project's folder names
+    are otherwise Title Case, e.g. "Class Notes") must be excluded exactly
+    like the lowercase convention used elsewhere in this corpus."""
+    return name.lower() in TEXTBOOK_FOLDER_NAMES
 
 
 def find_subset_roots(resources_course_dir: str) -> list[str]:
     """Recursively finds every directory under resources_course_dir whose
     own root holds a valid _SUBSET_MARKER_FILENAME. Once a root is found,
     stops looking for further nested markers inside it -- one marker
-    claims its whole subtree, no stacking."""
+    claims its whole subtree, no stacking. Never descends into a textbook
+    folder: a marker placed there (even by mistake) must not sweep book
+    PDFs into notes transcription."""
     if not os.path.isdir(resources_course_dir):
         return []
     roots = []
     for dirpath, dirnames, _filenames in os.walk(resources_course_dir):
-        dirnames[:] = [d for d in dirnames if d not in _SKIP_DIR_NAMES and not d.startswith(".")]
+        dirnames[:] = [
+            d for d in dirnames
+            if d not in _SKIP_DIR_NAMES and not _is_textbook_dir_name(d) and not d.startswith(".")
+        ]
         if _read_subset_marker(dirpath) is not None:
             roots.append(dirpath)
             dirnames[:] = []  # claimed -- don't search inside for nested markers
@@ -143,35 +168,41 @@ def find_subset_roots(resources_course_dir: str) -> list[str]:
 
 def _walk_marked_subset(subset_root: str):
     """Yields every directory under subset_root, pruning processed_outputs/,
-    hidden directories, and any TEXTBOOK_FOLDER_NAMES-named directory at
-    any depth -- the same invariant _discover_migrated_pdf_sources
+    hidden directories, and any textbook-named directory (case-insensitive)
+    at any depth -- the same invariant _discover_migrated_pdf_sources
     enforces via its category-match gate, needed here directly since that
     gate doesn't apply to this path."""
     for dirpath, dirnames, _filenames in os.walk(subset_root):
         dirnames[:] = [
             d for d in dirnames
-            if d not in _SKIP_DIR_NAMES and d not in TEXTBOOK_FOLDER_NAMES and not d.startswith(".")
+            if d not in _SKIP_DIR_NAMES and not _is_textbook_dir_name(d) and not d.startswith(".")
         ]
         yield dirpath
 
 
-def discover_marked_subset_pdf_sources(resources_course_dir: str) -> list[str]:
+def discover_marked_subset_pdf_sources(
+    resources_course_dir: str, subset_roots: list[str] | None = None,
+) -> list[str]:
     paths = []
-    for subset_root in find_subset_roots(resources_course_dir):
+    roots = subset_roots if subset_roots is not None else find_subset_roots(resources_course_dir)
+    for subset_root in roots:
         for dirpath in _walk_marked_subset(subset_root):
             paths.extend(discover_pdf_files(dirpath))
     return paths
 
 
-def discover_marked_subset_excalidraw_sources(resources_course_dir: str) -> list[tuple[str, str]]:
+def discover_marked_subset_excalidraw_sources(
+    resources_course_dir: str, subset_roots: list[str] | None = None,
+) -> list[tuple[str, str]]:
     pairs = []
-    for subset_root in find_subset_roots(resources_course_dir):
+    roots = subset_roots if subset_roots is not None else find_subset_roots(resources_course_dir)
+    for subset_root in roots:
         for dirpath in _walk_marked_subset(subset_root):
             pairs.extend(discover_excalidraw_files(dirpath))
     return pairs
 
 
-def discover_excalidraw_sources(course_dir: str) -> list[tuple[str, str]]:
+def discover_excalidraw_sources(course_dir: str, subset_roots: list[str] | None = None) -> list[tuple[str, str]]:
     pairs = []
     for dirpath in _walk_content_dirs(course_dir):
         pairs.extend(discover_excalidraw_files(dirpath))
@@ -180,14 +211,8 @@ def discover_excalidraw_sources(course_dir: str) -> list[tuple[str, str]]:
     except ValueError:
         resources_course_dir = None
     if resources_course_dir is not None:
-        pairs.extend(discover_marked_subset_excalidraw_sources(resources_course_dir))
-    seen = set()
-    deduped = []
-    for pair in pairs:
-        if pair not in seen:
-            seen.add(pair)
-            deduped.append(pair)
-    return deduped
+        pairs.extend(discover_marked_subset_excalidraw_sources(resources_course_dir, subset_roots))
+    return _dedupe(pairs)
 
 
 def pdf_output_path(pdf_path: str) -> str:
@@ -241,13 +266,23 @@ def build_plan(academic_hub_root: str, courses: list[str] | None = None, force: 
             print(f"WARNING: course directory not found, skipping: {course_dir}")
             continue
 
-        pdfs = discover_pdf_sources(course_dir)
+        try:
+            resources_course_dir = to_resources_root(course_dir)
+        except ValueError:
+            resources_course_dir = None
+        # Computed once and shared below -- discover_pdf_sources and
+        # discover_excalidraw_sources each need it, and calling
+        # find_subset_roots from both separately walked the whole
+        # marked-subset tree twice per course.
+        subset_roots = find_subset_roots(resources_course_dir) if resources_course_dir is not None else []
+
+        pdfs = discover_pdf_sources(course_dir, subset_roots=subset_roots)
         todo_pdfs = filter_unprocessed_pdfs(pdfs, force=force)
         todo_pdf_set = set(todo_pdfs)
         plan.pdf_todo.extend(todo_pdfs)
         plan.pdf_skipped.extend(p for p in pdfs if p not in todo_pdf_set)
 
-        pairs = discover_excalidraw_sources(course_dir)
+        pairs = discover_excalidraw_sources(course_dir, subset_roots=subset_roots)
         todo_pairs = filter_unprocessed_excalidraw(pairs, force=force)
         todo_pair_set = set(todo_pairs)
         plan.excalidraw_todo.extend(todo_pairs)
