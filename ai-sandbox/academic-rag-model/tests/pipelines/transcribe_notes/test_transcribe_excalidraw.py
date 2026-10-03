@@ -453,9 +453,17 @@ def test_transcription_prompt_slide_block_only_when_has_slides():
     assert "side by side" in slides.lower()
 
 
-def test_expansion_prompt_preserves_question_tags_always():
+def test_expansion_prompt_preserves_question_tags_only_when_input_has_them():
     for has_slides in (False, True):
-        assert "[Question]" in build_expansion_prompt("notes", has_slides=has_slides)
+        with_tag = build_expansion_prompt("notes [Question] why?", has_slides=has_slides)
+        assert "[Question]" in with_tag and "Do not add" in with_tag
+        # no tag in -> no mention of the tag at all (it primed the model to invent them)
+        assert "[Question]" not in build_expansion_prompt("notes", has_slides=has_slides)
+
+
+def test_handwriting_prompt_mentions_question_tag_only_when_present():
+    assert "Do not add" in build_handwriting_expansion_prompt("a [Question] b", [], None)
+    assert "[Question]" not in build_handwriting_expansion_prompt("a b", [], None)
 
 
 def test_expansion_prompt_slide_block_only_when_has_slides():
@@ -560,10 +568,9 @@ def test_split_labeled_segments_treats_leading_unlabeled_text_as_handwritten():
     assert segments[0] == ("Handwritten", "stray words")
 
 
-def test_handwriting_prompt_includes_adjacent_slides_and_question_rule():
+def test_handwriting_prompt_includes_adjacent_slides():
     prompt = build_handwriting_expansion_prompt("note a", ["* Slide one"], None)
     assert "note a" in prompt and "* Slide one" in prompt
-    assert "[Question]" in prompt
 
 
 def test_expand_with_verbatim_slides_keeps_slide_text_exactly_and_expands_handwriting():

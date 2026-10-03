@@ -125,10 +125,17 @@ _SLIDE_EXPANSION_INSTRUCTION = (
     "handwritten annotations in as the student's commentary on the slide they sit beside.\n\n"
 )
 
-_QUESTION_EXPANSION_INSTRUCTION = (
-    f"Preserve every `{_QUESTION_TAG}` tag exactly, attached to the content it concerns. Do not "
-    "answer or remove them.\n\n"
-)
+def _question_expansion_instruction(source_text: str) -> str:
+    """Only mentioned when the input actually contains a tag: telling the
+    model to "preserve every [Question] tag" when there are none made it
+    invent them at sentence ends (observed on a real note: 0 tags in, 13 out),
+    which would feed false positives to the question-resolving step."""
+    if _QUESTION_TAG not in source_text:
+        return ""
+    return (
+        f"Keep every existing `{_QUESTION_TAG}` tag exactly, attached to the content it concerns, and "
+        "do not answer or remove it. Do not add any new tags.\n\n"
+    )
 
 
 def has_embedded_images(excalidraw_md_path: str, image_path: str) -> bool:
@@ -224,7 +231,7 @@ def build_expansion_prompt(
         "simplify any equation) while making it directly understandable to someone who "
         "wasn't in the room. Keep LaTeX notation ($...$, $$...$$) for all math.\n\n"
         f"{_SLIDE_EXPANSION_INSTRUCTION if has_slides else ''}"
-        f"{_QUESTION_EXPANSION_INSTRUCTION}"
+        f"{_question_expansion_instruction(raw_markdown)}"
         f"{grounding_block}"
         f"Shorthand transcription:\n{raw_markdown}\n\n"
         "Respond with ONLY the expanded markdown -- no commentary, no code fence.\n"
@@ -302,7 +309,7 @@ def build_handwriting_expansion_prompt(
         "Rewrite ONLY this handwriting into cohesive, self-contained prose: expand abbreviations, "
         "spell out the reasoning between steps, and preserve every piece of mathematical content (do "
         "not drop or simplify any equation). Keep LaTeX notation ($...$, $$...$$) for all math.\n\n"
-        f"{_QUESTION_EXPANSION_INSTRUCTION}"
+        f"{_question_expansion_instruction(handwriting)}"
         f"{slide_block}{grounding_block}"
         f"Handwriting transcription:\n{handwriting}\n\n"
         "Respond with ONLY the expanded markdown for this handwriting -- no commentary, no code fence.\n"
