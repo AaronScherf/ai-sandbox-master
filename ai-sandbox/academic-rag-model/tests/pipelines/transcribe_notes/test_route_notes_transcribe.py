@@ -15,7 +15,11 @@ from pipelines.transcribe_notes.route_notes_transcribe import (
     pdf_output_path,
     run_plan,
 )
-from pipelines.transcribe_notes.route_notes_transcribe import _walk_marked_subset
+from pipelines.transcribe_notes.route_notes_transcribe import (
+    _walk_marked_subset,
+    discover_marked_subset_excalidraw_sources,
+    discover_marked_subset_pdf_sources,
+)
 
 
 def _make_course(root, course, category, files: dict):
@@ -429,3 +433,44 @@ def test_walk_marked_subset_prunes_textbook_folders_at_any_depth(tmp_path):
 
     assert str(textbooks_dir) not in dirs
     assert str(root / "Readings") in dirs
+
+
+def test_discover_marked_subset_pdf_sources_finds_pdfs_at_arbitrary_depth(tmp_path):
+    resources_econ = tmp_path / "academic_resources" / "econometrics"
+    subset = resources_econ / "class_2024"
+    deep = subset / "Class Notes" / "Hand-Written Notes"
+    deep.mkdir(parents=True)
+    (subset / ".notes_subset.json").write_text(json.dumps({"label": "2024"}))
+    (deep / "090424.pdf").write_bytes(b"x")
+    (subset / "2023exam1.pdf").write_bytes(b"x")  # loose file directly under the marked root
+
+    paths = discover_marked_subset_pdf_sources(str(resources_econ))
+
+    names = sorted(os.path.basename(p) for p in paths)
+    assert names == ["090424.pdf", "2023exam1.pdf"]
+
+
+def test_discover_marked_subset_pdf_sources_ignores_unmarked_siblings(tmp_path):
+    resources_econ = tmp_path / "academic_resources" / "econometrics"
+    unmarked = resources_econ / "class_2023"
+    unmarked.mkdir(parents=True)
+    (unmarked / "old.pdf").write_bytes(b"x")
+
+    paths = discover_marked_subset_pdf_sources(str(resources_econ))
+
+    assert paths == []
+
+
+def test_discover_marked_subset_excalidraw_sources_finds_pairs_at_depth(tmp_path):
+    resources_econ = tmp_path / "academic_resources" / "econometrics"
+    subset = resources_econ / "class_2024"
+    deep = subset / "Scanned Canvases"
+    deep.mkdir(parents=True)
+    (subset / ".notes_subset.json").write_text(json.dumps({"label": "2024"}))
+    (deep / "Drawing.excalidraw.md").write_text("---\n---\n")
+    (deep / "Drawing.excalidraw.svg").write_text("<svg></svg>")
+
+    pairs = discover_marked_subset_excalidraw_sources(str(resources_econ))
+
+    assert len(pairs) == 1
+    assert os.path.basename(pairs[0][0]) == "Drawing.excalidraw.md"

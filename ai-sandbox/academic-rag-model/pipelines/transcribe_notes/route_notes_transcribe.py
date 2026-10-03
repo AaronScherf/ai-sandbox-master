@@ -138,6 +138,22 @@ def _walk_marked_subset(subset_root: str):
         yield dirpath
 
 
+def discover_marked_subset_pdf_sources(resources_course_dir: str) -> list[str]:
+    paths = []
+    for subset_root in find_subset_roots(resources_course_dir):
+        for dirpath in _walk_marked_subset(subset_root):
+            paths.extend(discover_pdf_files(dirpath))
+    return paths
+
+
+def discover_marked_subset_excalidraw_sources(resources_course_dir: str) -> list[tuple[str, str]]:
+    pairs = []
+    for subset_root in find_subset_roots(resources_course_dir):
+        for dirpath in _walk_marked_subset(subset_root):
+            pairs.extend(discover_excalidraw_files(dirpath))
+    return pairs
+
+
 def discover_excalidraw_sources(course_dir: str) -> list[tuple[str, str]]:
     pairs = []
     for dirpath in _walk_content_dirs(course_dir):
