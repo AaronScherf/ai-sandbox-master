@@ -15,10 +15,16 @@ unattended (cron, or a plain `python -m pipelines.transcribe_notes.route_notes_t
 without an agent deciding what to run each time. After dispatch, re-checks
 that each expected output file actually landed on disk rather than
 trusting a "no exception raised" result.
+
+A directory under academic_resources/<course>/ marked with a
+.notes_subset.json file (see README.md) is additionally swept at
+arbitrary depth, for a whole prior course offering staged outside
+academic_notes/ without flattening its structure.
 """
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import sys
 from dataclasses import dataclass, field
@@ -33,6 +39,7 @@ from pipelines.transcribe_notes.transcribe_excalidraw import (
 from pipelines.transcribe_notes.transcribe_notes import discover_pdf_files, process_pdf
 
 _SKIP_DIR_NAMES = frozenset({"processed_outputs"})
+_SUBSET_MARKER_FILENAME = ".notes_subset.json"
 
 
 def find_course_dirs(academic_hub_root: str) -> list[str]:
@@ -60,7 +67,19 @@ def discover_pdf_sources(course_dir: str) -> list[str]:
     for dirpath in _walk_content_dirs(course_dir):
         paths.extend(discover_pdf_files(dirpath))
     paths.extend(_discover_migrated_pdf_sources(course_dir))
-    return paths
+    try:
+        resources_course_dir = to_resources_root(course_dir)
+    except ValueError:
+        resources_course_dir = None
+    if resources_course_dir is not None:
+        paths.extend(discover_marked_subset_pdf_sources(resources_course_dir))
+    seen = set()
+    deduped = []
+    for p in paths:
+        if p not in seen:
+            seen.add(p)
+            deduped.append(p)
+    return deduped
 
 
 def _discover_migrated_pdf_sources(course_dir: str) -> list[str]:
@@ -90,11 +109,85 @@ def _discover_migrated_pdf_sources(course_dir: str) -> list[str]:
     return paths
 
 
+def _read_subset_marker(dir_path: str) -> dict | None:
+    """Reads this directory's subset marker, if any. Returns None for a
+    missing file (not marked) or a malformed one (logged, treated as not
+    marked) -- never raises, so one bad marker can't take down discovery
+    for the rest of the course."""
+    marker_path = os.path.join(dir_path, _SUBSET_MARKER_FILENAME)
+    if not os.path.isfile(marker_path):
+        return None
+    try:
+        with open(marker_path, encoding="utf-8-sig") as f:
+            return json.load(f)
+    except (OSError, ValueError) as err:
+        print(f"WARNING: malformed subset marker, ignoring: {marker_path} ({err})")
+        return None
+
+
+def find_subset_roots(resources_course_dir: str) -> list[str]:
+    """Recursively finds every directory under resources_course_dir whose
+    own root holds a valid _SUBSET_MARKER_FILENAME. Once a root is found,
+    stops looking for further nested markers inside it -- one marker
+    claims its whole subtree, no stacking."""
+    if not os.path.isdir(resources_course_dir):
+        return []
+    roots = []
+    for dirpath, dirnames, _filenames in os.walk(resources_course_dir):
+        dirnames[:] = [d for d in dirnames if d not in _SKIP_DIR_NAMES and not d.startswith(".")]
+        if _read_subset_marker(dirpath) is not None:
+            roots.append(dirpath)
+            dirnames[:] = []  # claimed -- don't search inside for nested markers
+    return sorted(roots)
+
+
+def _walk_marked_subset(subset_root: str):
+    """Yields every directory under subset_root, pruning processed_outputs/,
+    hidden directories, and any TEXTBOOK_FOLDER_NAMES-named directory at
+    any depth -- the same invariant _discover_migrated_pdf_sources
+    enforces via its category-match gate, needed here directly since that
+    gate doesn't apply to this path."""
+    for dirpath, dirnames, _filenames in os.walk(subset_root):
+        dirnames[:] = [
+            d for d in dirnames
+            if d not in _SKIP_DIR_NAMES and d not in TEXTBOOK_FOLDER_NAMES and not d.startswith(".")
+        ]
+        yield dirpath
+
+
+def discover_marked_subset_pdf_sources(resources_course_dir: str) -> list[str]:
+    paths = []
+    for subset_root in find_subset_roots(resources_course_dir):
+        for dirpath in _walk_marked_subset(subset_root):
+            paths.extend(discover_pdf_files(dirpath))
+    return paths
+
+
+def discover_marked_subset_excalidraw_sources(resources_course_dir: str) -> list[tuple[str, str]]:
+    pairs = []
+    for subset_root in find_subset_roots(resources_course_dir):
+        for dirpath in _walk_marked_subset(subset_root):
+            pairs.extend(discover_excalidraw_files(dirpath))
+    return pairs
+
+
 def discover_excalidraw_sources(course_dir: str) -> list[tuple[str, str]]:
     pairs = []
     for dirpath in _walk_content_dirs(course_dir):
         pairs.extend(discover_excalidraw_files(dirpath))
-    return pairs
+    try:
+        resources_course_dir = to_resources_root(course_dir)
+    except ValueError:
+        resources_course_dir = None
+    if resources_course_dir is not None:
+        pairs.extend(discover_marked_subset_excalidraw_sources(resources_course_dir))
+    seen = set()
+    deduped = []
+    for pair in pairs:
+        if pair not in seen:
+            seen.add(pair)
+            deduped.append(pair)
+    return deduped
 
 
 def pdf_output_path(pdf_path: str) -> str:
@@ -105,9 +198,13 @@ def pdf_output_path(pdf_path: str) -> str:
 def excalidraw_output_path(md_path: str) -> str:
     # The .rag.md, not the raw .md -- it's the RAG-canonical artifact
     # (write_outputs only registers the .rag.md with the source indexer),
-    # so it's the right "is this actually done" marker.
+    # so it's the right "is this actually done" marker. resolve_output_dir
+    # (not a plain sibling dirname) so a scene discovered under
+    # academic_resources/ (a marked subset) resolves to where write_outputs
+    # actually writes -- the mirrored academic_notes/ location, matching
+    # pdf_output_path's own handling of the same migrated case.
     base_name = os.path.basename(md_path)[: -len(".excalidraw.md")]
-    return os.path.join(os.path.dirname(md_path), "processed_outputs", f"{base_name}.excalidraw.rag.md")
+    return os.path.join(resolve_output_dir(md_path), f"{base_name}.excalidraw.rag.md")
 
 
 def _is_nonempty_file(path: str) -> bool:

@@ -286,7 +286,7 @@ def process_excalidraw_note(
         transcription_model=model, expansion_meta=expansion_meta,
         num_chunks=len(chunks), academic_hub_root=academic_hub_root, client=client,
     )
-    print(f"  wrote outputs to {os.path.dirname(excalidraw_md_path)}/processed_outputs/")
+    print(f"  wrote outputs to {resolve_output_dir(excalidraw_md_path)}/")
 
 
 def main():
