@@ -42,7 +42,7 @@ import re
 import sys
 from pathlib import Path
 
-from core.env.academic_hub_paths import resolve_output_dir
+from core.env.academic_hub_paths import find_containing_offering_label, resolve_output_dir
 from core.env.frontmatter import parse_frontmatter, render_frontmatter
 from core.env.gemini_utils import (
     call_with_retries,
@@ -953,7 +953,8 @@ def repair_page_individually(client, model: str, pdf_path: str, page_num: int, h
 
 
 def _write_markdown_and_index(md_path, frontmatter, final_md, pdf_path, academic_hub_root,
-                               folder_category, total_pages, client, known_doc_types=KNOWN_DOC_TYPES):
+                               folder_category, total_pages, client, known_doc_types=KNOWN_DOC_TYPES,
+                               offering_label=None):
     with open(md_path, "w", encoding="utf-8") as f:
         f.write(frontmatter + final_md)
 
@@ -967,6 +968,7 @@ def _write_markdown_and_index(md_path, frontmatter, final_md, pdf_path, academic
             course=course, folder_category=folder_category, content_sample=final_md,
             page_count=total_pages, client=client, content_hash=compute_content_hash(md_path),
             known_doc_types=known_doc_types, source_asset_path=rel_pdf_path,
+            offering_label=offering_label,
         )
     except Exception as err:
         # Indexing must never block or corrupt the actual transcription
@@ -1015,7 +1017,7 @@ def find_existing_transcription(academic_hub_root: str, pdf_path: str, file_id: 
 
 
 def link_duplicate_note(academic_hub_root: str, canonical_course: str, canonical_card: dict,
-                         pdf_path: str, folder_category: str) -> dict:
+                         pdf_path: str, folder_category: str, offering_label: str | None = None) -> dict:
     """Links a notes PDF to an existing transcription elsewhere instead of
     re-transcribing it -- no LLM call, no embedding call. Copies the
     canonical .md's already-transcribed text (with its `source_pdf`/
@@ -1069,6 +1071,7 @@ def link_duplicate_note(academic_hub_root: str, canonical_course: str, canonical
     new_card["path"] = rel_md_path
     new_card["source_pdf_path"] = rel_pdf_path
     new_card["source_asset_path"] = rel_pdf_path
+    new_card["offering_label"] = offering_label
     new_card["duplicate_of_file_id"] = canonical_card["file_id"]
     new_card["duplicate_of_path"] = canonical_card["path"]
     new_card["content_hash"] = compute_content_hash(new_md_path)
@@ -1100,11 +1103,12 @@ def process_pdf(pdf_path: str, client, model_override: str | None, academic_hub_
     if existing is not None:
         canonical_course, canonical_card = existing
         folder_category = derive_folder_category(pdf_path)
+        offering_label = find_containing_offering_label(pdf_path)
         if dry_run:
             print(f"[{base_name}] would link to existing transcription at "
                   f"{canonical_card['path']} (byte-identical source, no API calls needed).")
             return
-        link_duplicate_note(academic_hub_root, canonical_course, canonical_card, pdf_path, folder_category)
+        link_duplicate_note(academic_hub_root, canonical_course, canonical_card, pdf_path, folder_category, offering_label)
         print(f"[{base_name}] linked to existing transcription at {canonical_card['path']} "
               f"(byte-identical source, 0 API calls) -> {md_path}")
         return
@@ -1114,6 +1118,7 @@ def process_pdf(pdf_path: str, client, model_override: str | None, academic_hub_
     reader = PdfReader(pdf_path)
     total_pages = len(reader.pages)
     folder_category = derive_folder_category(pdf_path)
+    offering_label = find_containing_offering_label(pdf_path)
     base_metadata = {
         "source_pdf": os.path.relpath(pdf_path, academic_hub_root).replace(os.sep, "/"),
         "folder_category": folder_category,
@@ -1152,6 +1157,7 @@ def process_pdf(pdf_path: str, client, model_override: str | None, academic_hub_
         _write_markdown_and_index(
             md_path, frontmatter, final_md, pdf_path, academic_hub_root,
             folder_category, total_pages, client, known_doc_types=known_doc_types,
+            offering_label=offering_label,
         )
         print(f"[{base_name}] wrote {md_path} (local extraction, 0 API calls)")
         return
@@ -1214,6 +1220,7 @@ def process_pdf(pdf_path: str, client, model_override: str | None, academic_hub_
         _write_markdown_and_index(
             md_path, frontmatter, final_md, pdf_path, academic_hub_root,
             folder_category, total_pages, client, known_doc_types=known_doc_types,
+            offering_label=offering_label,
         )
         print(f"[{base_name}] wrote {md_path} (hybrid: {len(defective_page_numbers)}/{total_pages} pages repaired)")
         return
@@ -1287,6 +1294,7 @@ def process_pdf(pdf_path: str, client, model_override: str | None, academic_hub_
         _write_markdown_and_index(
             md_path, frontmatter, final_md, pdf_path, academic_hub_root,
             folder_category, total_pages, client, known_doc_types=known_doc_types,
+            offering_label=offering_label,
         )
         print(f"[{base_name}] wrote {md_path} (whole-document batched, {len(cache)}/{total_pages} pages transcribed)")
         return
