@@ -1,10 +1,14 @@
 import html
+import json
 import os
 import tempfile
 import unittest
 from dataclasses import dataclass
 
-from agent.rag.report_builder import build_report, report_path, _slugify
+from agent.rag.report_builder import (
+    _slugify, build_markdown_summary, build_report, report_path, summary_path,
+)
+from core.env.frontmatter import parse_frontmatter
 
 
 @dataclass
@@ -40,6 +44,52 @@ class TestReportPath(unittest.TestCase):
     def test_course_none_uses_uncategorized(self):
         path = report_path("What is X?", "/root/.reports", None)
         self.assertIn("uncategorized", path)
+
+
+class TestSummaryPath(unittest.TestCase):
+    def test_uses_course_summary_folder_under_academic_notes(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            os.makedirs(os.path.join(tmp, "academic_notes"))
+            self.assertEqual(
+                summary_path("Wald test", tmp, "econometrics"),
+                os.path.join(tmp, "academic_notes", "econometrics", "summaries", "wald-test.md"),
+            )
+
+    def test_non_academic_root_has_no_summary_path(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            self.assertIsNone(summary_path("Wald test", tmp, "econometrics"))
+
+
+class TestBuildMarkdownSummary(unittest.TestCase):
+    def test_frontmatter_marks_generated_and_sources_link_back_to_indexer(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            source = os.path.join(tmp, "academic_notes", "econometrics", "textbooks", "source.rag.md")
+            output = os.path.join(tmp, "academic_notes", "econometrics", "summaries", "guide.md")
+            os.makedirs(os.path.dirname(source))
+            with open(source, "w", encoding="utf-8") as f:
+                f.write("indexed source")
+            citation = _FakeCitation(
+                chunk_id="file-1-0", file_id="file-1",
+                path="academic_notes/econometrics/textbooks/source.rag.md",
+                citation="§ 7.2, p. 249", root=tmp,
+            )
+
+            self.assertEqual(
+                build_markdown_summary("Wald test", "A grounded summary.", [citation], output), output,
+            )
+            with open(output, "r", encoding="utf-8") as f:
+                content = f.read()
+
+        metadata, _ = parse_frontmatter(content)
+        self.assertEqual(metadata["llm_generated"], "true")
+        self.assertEqual(metadata["content_kind"], "derived_summary")
+        self.assertEqual(metadata["generated_by"], "academic-rag-model/agent/rag/rag_agent.py")
+        refs = json.loads(metadata["indexer_source_refs"])
+        self.assertEqual(refs[0]["file_id"], "file-1")
+        self.assertEqual(refs[0]["chunk_id"], "file-1-0")
+        self.assertIn("[`academic_notes/econometrics/textbooks/source.rag.md`](<../textbooks/source.rag.md>)", content)
+        self.assertIn("file_id: `file-1`", content)
+        self.assertIn("chunk_id: `file-1-0`", content)
 
 
 class TestBuildReport(unittest.TestCase):

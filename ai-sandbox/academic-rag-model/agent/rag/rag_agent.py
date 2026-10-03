@@ -51,6 +51,7 @@ class AnswerResult:
     # which makes every annotation a lazily-evaluated string.
     report_path: str | None = None  # rag.report_builder.build_report()'s return value --
     # None whenever report=False (default) or report generation itself failed
+    summary_path: str | None = None  # Markdown copy in academic_notes/<course>/summaries/
     generated_problem: GeneratedProblem | None = None  # problem_gen.generator.GeneratedProblem --
     # not imported at module level either, same reasoning as visualization above. No
     # import or alias is needed for this to resolve: `from __future__ import annotations`
@@ -393,8 +394,11 @@ def answer_question(
                     question, context=viz_context, academic_hub_root=roots[0], course=course, client=client,
                 )
             problem_report_path = None
+            problem_summary_path = None
             if report:
-                from agent.rag.report_builder import build_report, report_path  # function-scoped,
+                from agent.rag.report_builder import (
+                    build_markdown_summary, build_report, report_path, summary_path,
+                )  # function-scoped,
                 # same dependency-isolation reasoning as the normal Q&A path's own import
                 # below -- this branch previously never built a report at all regardless of
                 # report=True, an integration gap discovered and fixed 2026-09-06 the same
@@ -405,11 +409,21 @@ def answer_question(
                     question, generated.problem_text, problem_citations, problem_visualization,
                     output_path, solution=generated.solution_text,
                 )
+                markdown_path = next(
+                    filter(None, (summary_path(question, root, course) for root in roots)),
+                    None,
+                )
+                if markdown_path:
+                    problem_summary_path = build_markdown_summary(
+                        question, generated.problem_text, problem_citations,
+                        markdown_path, solution=generated.solution_text,
+                    )
             return AnswerResult(
                 answer=generated.problem_text, citations=problem_citations,
                 history=updated_history, standalone_question=generated.problem_text,
                 generated_problem=generated,
                 visualization=problem_visualization, report_path=problem_report_path,
+                summary_path=problem_summary_path,
             )
         # generated is None (no style examples on this topic/course, or Ollama
         # unavailable/never verified) -- fall through to the normal Q&A path below on
@@ -437,19 +451,31 @@ def answer_question(
         )
 
     report_path_value = None
+    markdown_summary_path = None
     if report:
-        from agent.rag.report_builder import build_report, report_path  # function-scoped: keeps
+        from agent.rag.report_builder import (
+            build_markdown_summary, build_report, report_path, summary_path,
+        )  # function-scoped: keeps
         # report_builder.py's (and, when a visualization exists, transitively viz/'s) import
         # surface out of every caller that never sets report=True, matching this file's own
         # existing function-scoped import of generate_visualization above for the same reason.
         reports_root = os.path.join(roots[0], ".reports")
         output_path = report_path(question, reports_root, course)
         report_path_value = build_report(question, answer, citations, visualization, output_path)
+        markdown_path = next(
+            filter(None, (summary_path(question, root, course) for root in roots)),
+            None,
+        )
+        if markdown_path:
+            markdown_summary_path = build_markdown_summary(
+                question, answer, citations, markdown_path,
+            )
 
     return AnswerResult(
         answer=answer, citations=citations, history=updated_history,
         standalone_question=retrieval_query,
-        visualization=visualization, report_path=report_path_value, passages=passages,
+        visualization=visualization, report_path=report_path_value,
+        summary_path=markdown_summary_path, passages=passages,
     )
 
 
@@ -626,6 +652,28 @@ def main() -> None:
                 continue
             summary = summarize_unit(events, client)
             print(f"\n{summary}\n")
+            from agent.rag.report_builder import build_markdown_summary, summary_path
+            summary_question = (
+                f"Study session summary: {args.course} "
+                f"{target_unit or 'all units'}"
+            )
+            markdown_path = next(
+                filter(None, (summary_path(summary_question, root, args.course) for root in roots)),
+                None,
+            )
+            if markdown_path:
+                seen_chunks = set()
+                citations = []
+                for event in events:
+                    for citation in event.citations:
+                        if citation.chunk_id not in seen_chunks:
+                            citations.append(citation)
+                            seen_chunks.add(citation.chunk_id)
+                saved_path = build_markdown_summary(
+                    summary_question, summary, citations, markdown_path,
+                )
+                if saved_path:
+                    print(f"  Markdown summary: {saved_path}\n")
             continue
 
         question = line
@@ -642,6 +690,8 @@ def main() -> None:
             print(f"  visualization: {result.visualization.html_path}")
         if result.report_path:
             print(f"  report: {result.report_path}")
+        if result.summary_path:
+            print(f"  Markdown summary: {result.summary_path}")
         print()
         history = result.history
         if result.generated_problem:
