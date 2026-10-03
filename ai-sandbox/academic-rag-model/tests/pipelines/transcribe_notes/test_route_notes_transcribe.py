@@ -1,3 +1,4 @@
+import json
 import os
 from unittest.mock import patch
 
@@ -10,6 +11,7 @@ from pipelines.transcribe_notes.route_notes_transcribe import (
     filter_unprocessed_excalidraw,
     filter_unprocessed_pdfs,
     find_course_dirs,
+    find_subset_roots,
     pdf_output_path,
     run_plan,
 )
@@ -343,3 +345,50 @@ def test_discover_pdf_sources_ignores_textbooks_even_when_notes_has_a_textbooks_
     paths = discover_pdf_sources(str(tmp_path / "academic_notes" / "econometrics"))
 
     assert paths == []
+
+
+def test_find_subset_roots_finds_a_marked_directory(tmp_path):
+    resources_dir = tmp_path / "academic_resources" / "econometrics" / "class_2024"
+    resources_dir.mkdir(parents=True)
+    (resources_dir / ".notes_subset.json").write_text(json.dumps({"label": "2024"}))
+
+    roots = find_subset_roots(str(tmp_path / "academic_resources" / "econometrics"))
+
+    assert roots == [str(resources_dir)]
+
+
+def test_find_subset_roots_ignores_unmarked_directories(tmp_path):
+    resources_dir = tmp_path / "academic_resources" / "econometrics" / "class_2024"
+    resources_dir.mkdir(parents=True)
+    (resources_dir / "some.pdf").write_bytes(b"x")  # no marker file
+
+    roots = find_subset_roots(str(tmp_path / "academic_resources" / "econometrics"))
+
+    assert roots == []
+
+
+def test_find_subset_roots_does_not_search_for_nested_markers_inside_a_claimed_root(tmp_path):
+    outer = tmp_path / "academic_resources" / "econometrics" / "class_2024"
+    inner = outer / "Class Notes"
+    inner.mkdir(parents=True)
+    (outer / ".notes_subset.json").write_text(json.dumps({"label": "2024"}))
+    (inner / ".notes_subset.json").write_text(json.dumps({"label": "nested-should-be-ignored"}))
+
+    roots = find_subset_roots(str(tmp_path / "academic_resources" / "econometrics"))
+
+    assert roots == [str(outer)]
+
+
+def test_find_subset_roots_skips_malformed_marker_with_a_warning(tmp_path, capsys):
+    resources_dir = tmp_path / "academic_resources" / "econometrics" / "class_2024"
+    resources_dir.mkdir(parents=True)
+    (resources_dir / ".notes_subset.json").write_text("{not valid json")
+
+    roots = find_subset_roots(str(tmp_path / "academic_resources" / "econometrics"))
+
+    assert roots == []
+    assert "WARNING" in capsys.readouterr().out
+
+
+def test_find_subset_roots_returns_empty_for_missing_resources_dir(tmp_path):
+    assert find_subset_roots(str(tmp_path / "academic_resources" / "nonexistent")) == []

@@ -19,6 +19,7 @@ trusting a "no exception raised" result.
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import sys
 from dataclasses import dataclass, field
@@ -33,6 +34,7 @@ from pipelines.transcribe_notes.transcribe_excalidraw import (
 from pipelines.transcribe_notes.transcribe_notes import discover_pdf_files, process_pdf
 
 _SKIP_DIR_NAMES = frozenset({"processed_outputs"})
+_SUBSET_MARKER_FILENAME = ".notes_subset.json"
 
 
 def find_course_dirs(academic_hub_root: str) -> list[str]:
@@ -88,6 +90,38 @@ def _discover_migrated_pdf_sources(course_dir: str) -> list[str]:
             continue
         paths.extend(discover_pdf_files(category_dir))
     return paths
+
+
+def _read_subset_marker(dir_path: str) -> dict | None:
+    """Reads this directory's subset marker, if any. Returns None for a
+    missing file (not marked) or a malformed one (logged, treated as not
+    marked) -- never raises, so one bad marker can't take down discovery
+    for the rest of the course."""
+    marker_path = os.path.join(dir_path, _SUBSET_MARKER_FILENAME)
+    if not os.path.isfile(marker_path):
+        return None
+    try:
+        with open(marker_path, encoding="utf-8") as f:
+            return json.load(f)
+    except (OSError, ValueError) as err:
+        print(f"WARNING: malformed subset marker, ignoring: {marker_path} ({err})")
+        return None
+
+
+def find_subset_roots(resources_course_dir: str) -> list[str]:
+    """Recursively finds every directory under resources_course_dir whose
+    own root holds a valid _SUBSET_MARKER_FILENAME. Once a root is found,
+    stops looking for further nested markers inside it -- one marker
+    claims its whole subtree, no stacking."""
+    if not os.path.isdir(resources_course_dir):
+        return []
+    roots = []
+    for dirpath, dirnames, _filenames in os.walk(resources_course_dir):
+        dirnames[:] = [d for d in dirnames if d not in _SKIP_DIR_NAMES and not d.startswith(".")]
+        if _read_subset_marker(dirpath) is not None:
+            roots.append(dirpath)
+            dirnames[:] = []  # claimed -- don't search inside for nested markers
+    return sorted(roots)
 
 
 def discover_excalidraw_sources(course_dir: str) -> list[tuple[str, str]]:
