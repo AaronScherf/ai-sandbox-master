@@ -4,8 +4,12 @@ from unittest.mock import patch
 
 from pipelines.transcribe_notes.route_notes_transcribe import (
     PipelinePlan,
+    _dedupe,
+    _walk_marked_subset,
     build_plan,
     discover_excalidraw_sources,
+    discover_marked_subset_excalidraw_sources,
+    discover_marked_subset_pdf_sources,
     discover_pdf_sources,
     excalidraw_output_path,
     filter_unprocessed_excalidraw,
@@ -14,11 +18,6 @@ from pipelines.transcribe_notes.route_notes_transcribe import (
     find_subset_roots,
     pdf_output_path,
     run_plan,
-)
-from pipelines.transcribe_notes.route_notes_transcribe import (
-    _walk_marked_subset,
-    discover_marked_subset_excalidraw_sources,
-    discover_marked_subset_pdf_sources,
 )
 
 
@@ -617,3 +616,80 @@ def test_find_subset_roots_accepts_a_marker_saved_with_a_utf8_bom(tmp_path):
     roots = find_subset_roots(str(tmp_path / "academic_resources" / "econometrics"))
 
     assert roots == [str(resources_dir)]
+
+
+def test_find_subset_roots_warns_and_ignores_a_null_marker(tmp_path, capsys):
+    resources_dir = tmp_path / "academic_resources" / "econometrics" / "class_2024"
+    resources_dir.mkdir(parents=True)
+    (resources_dir / ".notes_subset.json").write_text("null")
+
+    roots = find_subset_roots(str(tmp_path / "academic_resources" / "econometrics"))
+
+    assert roots == []
+    assert "WARNING" in capsys.readouterr().out
+
+
+def test_find_subset_roots_warns_and_ignores_a_non_dict_marker(tmp_path, capsys):
+    # json.load("[]") returns [] -- not None -- so a naive "is not None"
+    # check would wrongly treat this as a valid marker and mark the
+    # directory, unlike the null case above where it happens to coincide
+    # with "not marked" already.
+    resources_dir = tmp_path / "academic_resources" / "econometrics" / "class_2024"
+    resources_dir.mkdir(parents=True)
+    (resources_dir / ".notes_subset.json").write_text("[]")
+
+    roots = find_subset_roots(str(tmp_path / "academic_resources" / "econometrics"))
+
+    assert roots == []
+    assert "WARNING" in capsys.readouterr().out
+
+
+def test_walk_marked_subset_prunes_textbook_folders_case_insensitively(tmp_path):
+    root = tmp_path / "class_2024"
+    textbooks_dir = root / "Readings" / "Textbooks"
+    textbooks_dir.mkdir(parents=True)
+
+    dirs = list(_walk_marked_subset(str(root)))
+
+    assert str(textbooks_dir) not in dirs
+    assert str(root / "Readings") in dirs
+
+
+def test_find_subset_roots_does_not_descend_into_textbook_folders(tmp_path):
+    # A marker mistakenly placed inside/under a textbooks/ folder must not
+    # sweep book PDFs into notes transcription -- the same invariant
+    # _walk_marked_subset already enforces for a subset's own interior,
+    # needed here too since find_subset_roots walks ahead of any marker
+    # being found.
+    resources_econ = tmp_path / "academic_resources" / "econometrics"
+    textbooks_dir = resources_econ / "Textbooks" / "SomeBook"
+    textbooks_dir.mkdir(parents=True)
+    (textbooks_dir / ".notes_subset.json").write_text(json.dumps({"label": "oops"}))
+
+    roots = find_subset_roots(str(resources_econ))
+
+    assert roots == []
+
+
+def test_build_plan_computes_subset_roots_once_per_course(tmp_path):
+    # Real finding: discover_pdf_sources and discover_excalidraw_sources
+    # each independently called find_subset_roots, walking the whole
+    # marked-subset tree twice (and double-printing any malformed-marker
+    # warning) for one build_plan() call.
+    (tmp_path / "academic_notes" / "econometrics" / "ta_notes").mkdir(parents=True)
+    subset = tmp_path / "academic_resources" / "econometrics" / "class_2024"
+    subset.mkdir(parents=True)
+    (subset / ".notes_subset.json").write_text(json.dumps({"label": "2024"}))
+    (subset / "a.pdf").write_bytes(b"x")
+
+    with patch(
+        "pipelines.transcribe_notes.route_notes_transcribe.find_subset_roots",
+        wraps=find_subset_roots,
+    ) as mock_find:
+        build_plan(str(tmp_path), courses=["econometrics"])
+
+    assert mock_find.call_count == 1
+
+
+def test_dedupe_preserves_order_and_removes_duplicates():
+    assert _dedupe(["a", "b", "a", "c", "b"]) == ["a", "b", "c"]
