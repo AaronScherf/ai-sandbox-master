@@ -394,3 +394,103 @@ def test_process_excalidraw_note_runs_full_pipeline_from_an_svg_source(tmp_path)
 
     assert captured_images[0].size == (100, 100)  # rasterized, not passed through as a path
     assert mock_write.call_args.kwargs["image_path"] == str(svg_path)
+
+
+from pipelines.transcribe_notes.transcribe_excalidraw import has_embedded_images
+
+
+def test_has_embedded_images_true_when_scene_lists_embedded_png(tmp_path):
+    md = tmp_path / "A.excalidraw.md"
+    md.write_text("# Excalidraw Data\n\n## Text Elements\n## Embedded Files\nabc123: [[Pasted Image 1.png]]\n\n%%\n## Drawing\n")
+    svg = tmp_path / "A.excalidraw.svg"
+    svg.write_text("<svg></svg>")
+    assert has_embedded_images(str(md), str(svg)) is True
+
+
+def test_has_embedded_images_false_for_handwriting_only_scene(tmp_path):
+    md = tmp_path / "A.excalidraw.md"
+    md.write_text("# Excalidraw Data\n\n## Text Elements\n%%\n## Drawing\n```compressed-json\nN4Kg\n```\n%%\n")
+    svg = tmp_path / "A.excalidraw.svg"
+    svg.write_text('<svg><path d="M0 0"/></svg>')
+    assert has_embedded_images(str(md), str(svg)) is False
+
+
+def test_has_embedded_images_ignores_non_image_embedded_files(tmp_path):
+    md = tmp_path / "A.excalidraw.md"
+    md.write_text("## Embedded Files\nabc: [[Some Note.md]]\n\n%%\n")
+    svg = tmp_path / "A.excalidraw.svg"
+    svg.write_text("<svg></svg>")
+    assert has_embedded_images(str(md), str(svg)) is False
+
+
+def test_has_embedded_images_falls_back_to_svg_image_elements(tmp_path):
+    md = tmp_path / "A.excalidraw.md"
+    md.write_text("---\n---\n")  # scene gives no signal
+    svg = tmp_path / "A.excalidraw.svg"
+    svg.write_text('<svg><defs><symbol id="i"><image href="data:image/png;base64,AAAA"/></symbol></defs></svg>')
+    assert has_embedded_images(str(md), str(svg)) is True
+
+
+def test_has_embedded_images_png_export_relies_on_scene_only(tmp_path):
+    md = tmp_path / "A.excalidraw.md"
+    md.write_text("---\n---\n")
+    png = tmp_path / "A.excalidraw.png"
+    png.write_bytes(b"\x89PNG<image")  # must not be scanned as text
+    assert has_embedded_images(str(md), str(png)) is False
+
+
+def test_transcription_prompt_flags_open_questions_always():
+    for has_slides in (False, True):
+        prompt = build_chunk_transcription_prompt("", 0, 1, has_slides=has_slides)
+        assert "[Question]" in prompt
+
+
+def test_transcription_prompt_slide_block_only_when_has_slides():
+    plain = build_chunk_transcription_prompt("", 0, 1)
+    slides = build_chunk_transcription_prompt("", 0, 1, has_slides=True)
+    assert "slide" not in plain.lower()
+    assert "slide" in slides.lower()
+    assert "side by side" in slides.lower()
+
+
+def test_expansion_prompt_preserves_question_tags_always():
+    for has_slides in (False, True):
+        assert "[Question]" in build_expansion_prompt("notes", has_slides=has_slides)
+
+
+def test_expansion_prompt_slide_block_only_when_has_slides():
+    assert "slide" not in build_expansion_prompt("notes").lower()
+    assert "slide" in build_expansion_prompt("notes", has_slides=True).lower()
+
+
+def test_transcribe_chunks_forwards_has_slides_to_prompt():
+    captured = []
+
+    def fake(client, model, image_bytes, prompt):
+        captured.append(prompt)
+        return "t"
+
+    with patch("pipelines.transcribe_notes.transcribe_excalidraw.transcribe_page_via_gemini", side_effect=fake):
+        transcribe_chunks(client=object(), model="m", chunk_bytes=[b"a"], has_slides=True)
+    assert "slide" in captured[0].lower()
+
+
+def test_process_excalidraw_note_detects_slides_and_threads_flag(tmp_path):
+    md_path = tmp_path / "S.excalidraw.md"
+    svg_path = tmp_path / "S.excalidraw.svg"
+    md_path.write_text("## Embedded Files\nabc: [[x.png]]\n\n%%\n")
+    svg_path.write_text(
+        '<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10"><rect width="10" height="10" fill="#fff"/></svg>'
+    )
+    with patch("pipelines.transcribe_notes.transcribe_excalidraw.chunk_image", return_value=["c"]), \
+         patch("pipelines.transcribe_notes.transcribe_excalidraw.resize_chunk_for_api", return_value=b"b"), \
+         patch("pipelines.transcribe_notes.transcribe_excalidraw.transcribe_chunks", return_value={"0": "raw"}) as mock_t, \
+         patch("pipelines.transcribe_notes.transcribe_excalidraw.expand_transcription", return_value=("exp", {})) as mock_e, \
+         patch("pipelines.transcribe_notes.transcribe_excalidraw.write_outputs", return_value=("r", "r2")) as mock_w:
+        process_excalidraw_note(
+            str(md_path), str(svg_path), client=object(), model="m",
+            expand_backend="gemini", academic_hub_root=str(tmp_path),
+        )
+    assert mock_t.call_args.kwargs["has_slides"] is True
+    assert mock_e.call_args.kwargs["has_slides"] is True
+    assert mock_w.call_args.kwargs["has_slides"] is True

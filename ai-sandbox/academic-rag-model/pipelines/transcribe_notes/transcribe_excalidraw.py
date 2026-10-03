@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import argparse
 import os
+import re
 import sys
 from pathlib import Path
 
@@ -96,7 +97,67 @@ def discover_excalidraw_files(notes_dir: str, file_filter: str | None = None) ->
     return pairs
 
 
-def build_chunk_transcription_prompt(accumulated_context: str, chunk_index: int, total_chunks: int) -> str:
+_EMBEDDED_IMAGE_RE = re.compile(r"\[\[[^\]]*\.(?:png|jpe?g|gif|webp|svg|pdf)[^\]]*\]\]", re.IGNORECASE)
+
+_QUESTION_TAG = "[Question]"
+
+_QUESTION_INSTRUCTION = (
+    "Handwritten sidebar questions, margin notes, or any region marked with a question mark are "
+    "OPEN QUESTIONS about their surrounding content. Transcribe each one in place, prefixed with "
+    f"the literal tag {_QUESTION_TAG} (e.g. `{_QUESTION_TAG} why does this need completeness?`). "
+    "Do NOT answer them -- a later step resolves them.\n\n"
+)
+
+_SLIDE_TRANSCRIPTION_INSTRUCTION = (
+    "This canvas also contains typeset lecture slides (embedded images) placed side by side with "
+    "the handwriting; the handwriting annotates and responds to the slides next to it. Transcribe "
+    "slide text verbatim (keeping bullets, theorem/proof structure, and math as LaTeX) under a "
+    "`**[Slide]**` label, and the handwriting under a `**[Handwritten]**` label, keeping each "
+    "handwritten passage adjacent to the slide it sits beside. Read by column, then top to "
+    "bottom, so slide and handwriting order stays coherent.\n\n"
+)
+
+_SLIDE_EXPANSION_INSTRUCTION = (
+    "The transcription mixes typeset lecture slides (`**[Slide]**`) with the student's handwriting "
+    "(`**[Handwritten]**`) written beside them. Treat slide content as the authoritative source "
+    "and keep it as slide content (do not rephrase it as the student's own words); weave the "
+    "handwritten annotations in as the student's commentary on the slide they sit beside.\n\n"
+)
+
+_QUESTION_EXPANSION_INSTRUCTION = (
+    f"Preserve every `{_QUESTION_TAG}` tag exactly, attached to the content it concerns. Do not "
+    "answer or remove them.\n\n"
+)
+
+
+def has_embedded_images(excalidraw_md_path: str, image_path: str) -> bool:
+    """True when the canvas has embedded images (e.g. pasted lecture slides)
+    alongside the handwriting. Primary signal: the scene file's plaintext
+    `## Embedded Files` section lists an image (cheap, and present even
+    though the drawing itself is compressed). Fallback for an SVG export:
+    `<image` elements in the rendered file -- what the vision model will
+    actually see, and robust to a scene file the plugin saved without
+    that section. A PNG export is never scanned (binary)."""
+    try:
+        with open(excalidraw_md_path, encoding="utf-8") as f:
+            scene = f.read()
+    except OSError:
+        scene = ""
+    match = re.search(r"^## Embedded Files\s*$(.*?)(?=^%%|^## |\Z)", scene, re.MULTILINE | re.DOTALL)
+    if match and _EMBEDDED_IMAGE_RE.search(match.group(1)):
+        return True
+    if image_path.lower().endswith(".svg"):
+        try:
+            with open(image_path, encoding="utf-8") as f:
+                return "<image" in f.read()
+        except OSError:
+            return False
+    return False
+
+
+def build_chunk_transcription_prompt(
+    accumulated_context: str, chunk_index: int, total_chunks: int, has_slides: bool = False,
+) -> str:
     context_block = (
         f"Already-transcribed content from earlier chunks of this same canvas, for continuity "
         f"(a chunk boundary can split a derivation or sentence mid-thought):\n{accumulated_context}\n\n"
@@ -110,6 +171,8 @@ def build_chunk_transcription_prompt(accumulated_context: str, chunk_index: int,
         "and reading order. Keep this transcription terse and faithful to the shorthand as "
         "written -- do not expand abbreviations or add explanation; that happens in a later "
         "pass.\n\n"
+        f"{_SLIDE_TRANSCRIPTION_INSTRUCTION if has_slides else ''}"
+        f"{_QUESTION_INSTRUCTION}"
         f"{context_block}"
         "Respond with ONLY the transcribed markdown for THIS chunk -- no commentary, no code "
         "fence, no repetition of earlier chunks' content.\n"
@@ -126,12 +189,12 @@ def assemble_raw_markdown(cache: dict, total_chunks: int) -> str:
     return "\n\n".join(parts)
 
 
-def transcribe_chunks(client, model: str, chunk_bytes: list[bytes]) -> dict[str, str]:
+def transcribe_chunks(client, model: str, chunk_bytes: list[bytes], has_slides: bool = False) -> dict[str, str]:
     cache: dict[str, str] = {}
     total_chunks = len(chunk_bytes)
     for chunk_index, image_bytes in enumerate(chunk_bytes):
         accumulated_context = _accumulated_chunk_context(cache, chunk_index, window=_ACCUMULATION_WINDOW)
-        prompt = build_chunk_transcription_prompt(accumulated_context, chunk_index, total_chunks)
+        prompt = build_chunk_transcription_prompt(accumulated_context, chunk_index, total_chunks, has_slides)
         try:
             text = call_with_retries(lambda: transcribe_page_via_gemini(client, model, image_bytes, prompt))
             cache[str(chunk_index)] = text
@@ -140,7 +203,9 @@ def transcribe_chunks(client, model: str, chunk_bytes: list[bytes]) -> dict[str,
     return cache
 
 
-def build_expansion_prompt(raw_markdown: str, retrieved_passages: list[str] | None = None) -> str:
+def build_expansion_prompt(
+    raw_markdown: str, retrieved_passages: list[str] | None = None, has_slides: bool = False,
+) -> str:
     grounding_block = ""
     if retrieved_passages:
         joined = "\n\n".join(retrieved_passages)
@@ -157,14 +222,18 @@ def build_expansion_prompt(raw_markdown: str, retrieved_passages: list[str] | No
         "between steps, and preserve every piece of mathematical content (do not drop or "
         "simplify any equation) while making it directly understandable to someone who "
         "wasn't in the room. Keep LaTeX notation ($...$, $$...$$) for all math.\n\n"
+        f"{_SLIDE_EXPANSION_INSTRUCTION if has_slides else ''}"
+        f"{_QUESTION_EXPANSION_INSTRUCTION}"
         f"{grounding_block}"
         f"Shorthand transcription:\n{raw_markdown}\n\n"
         "Respond with ONLY the expanded markdown -- no commentary, no code fence.\n"
     )
 
 
-def expand_via_gemini(client, model: str, raw_markdown: str, retrieved_passages: list[str] | None = None) -> str:
-    prompt = build_expansion_prompt(raw_markdown, retrieved_passages)
+def expand_via_gemini(
+    client, model: str, raw_markdown: str, retrieved_passages: list[str] | None = None, has_slides: bool = False,
+) -> str:
+    prompt = build_expansion_prompt(raw_markdown, retrieved_passages, has_slides)
     response = client.models.generate_content(
         model=model,
         contents=[prompt],
@@ -175,9 +244,9 @@ def expand_via_gemini(client, model: str, raw_markdown: str, retrieved_passages:
 
 def expand_via_ollama(
     raw_markdown: str, model: str = _EXPANSION_MODEL_OLLAMA, request_timeout: int = 300,
-    retrieved_passages: list[str] | None = None,
+    retrieved_passages: list[str] | None = None, has_slides: bool = False,
 ) -> str | None:
-    prompt = build_expansion_prompt(raw_markdown, retrieved_passages)
+    prompt = build_expansion_prompt(raw_markdown, retrieved_passages, has_slides)
     result = call_ollama(prompt, model=model, request_timeout=request_timeout)
     if isinstance(result, str):
         return result.strip()
@@ -186,6 +255,7 @@ def expand_via_ollama(
 
 def expand_transcription(
     client, raw_markdown: str, backend: str = "gemini", retrieved_passages: list[str] | None = None,
+    has_slides: bool = False,
 ) -> tuple[str | None, dict]:
     """backend='gemini' (default) or 'ollama' (opt-in, matches
     VIZ_BACKEND/PROBLEMGEN_BACKEND's existing env-var pattern at the CLI
@@ -194,17 +264,17 @@ def expand_transcription(
     document."""
     grounded = bool(retrieved_passages)
     if backend == "ollama":
-        text = expand_via_ollama(raw_markdown, retrieved_passages=retrieved_passages)
+        text = expand_via_ollama(raw_markdown, retrieved_passages=retrieved_passages, has_slides=has_slides)
         if text is not None:
             return text, {"expansion_backend": "ollama", "expansion_model": _EXPANSION_MODEL_OLLAMA, "grounded": grounded}
         print("WARNING: Ollama expansion backend unreachable; falling back to Gemini.")
-    text = expand_via_gemini(client, _EXPANSION_MODEL_GEMINI, raw_markdown, retrieved_passages)
+    text = expand_via_gemini(client, _EXPANSION_MODEL_GEMINI, raw_markdown, retrieved_passages, has_slides)
     return text, {"expansion_backend": "gemini", "expansion_model": _EXPANSION_MODEL_GEMINI, "grounded": grounded}
 
 
 def write_outputs(
     excalidraw_md_path: str, image_path: str, raw_markdown: str, expanded_markdown: str,
-    transcription_model: str, expansion_meta: dict, num_chunks: int, academic_hub_root: str, client,
+    transcription_model: str, expansion_meta: dict, num_chunks: int, academic_hub_root: str, client, has_slides: bool = False,
 ) -> tuple[str, str]:
     base_name = os.path.basename(excalidraw_md_path)[: -len(".excalidraw.md")]
     output_dir = resolve_output_dir(excalidraw_md_path)
@@ -216,6 +286,7 @@ def write_outputs(
         "folder_category": "excalidraw_notes",
         "routing": "excalidraw_chunked",
         "chunks": num_chunks,
+        "embedded_slides": has_slides,
         "model": transcription_model,
         "tags": [],
     }
@@ -263,12 +334,15 @@ def process_excalidraw_note(
         print("  (dry run -- would chunk, transcribe, expand, and write outputs)")
         return
 
+    has_slides = has_embedded_images(excalidraw_md_path, image_path)
+    if has_slides:
+        print("  embedded slide images detected -- using slide-aware prompts")
     image = load_canvas_image(image_path)
     chunks = chunk_image(image)
     print(f"  {len(chunks)} chunks")
     chunk_bytes = [resize_chunk_for_api(c) for c in chunks]
 
-    cache = transcribe_chunks(client, model, chunk_bytes)
+    cache = transcribe_chunks(client, model, chunk_bytes, has_slides=has_slides)
     raw_markdown = assemble_raw_markdown(cache, total_chunks=len(chunks))
 
     retrieved_passages = None
@@ -278,13 +352,13 @@ def process_excalidraw_note(
         results = search_passages([academic_hub_root], query=raw_markdown[:500], client=client, course=course, top_k=3)
         retrieved_passages = [r.text for r in results] if results else None
 
-    expanded_markdown, expansion_meta = expand_transcription(client, raw_markdown, expand_backend, retrieved_passages)
+    expanded_markdown, expansion_meta = expand_transcription(client, raw_markdown, expand_backend, retrieved_passages, has_slides=has_slides)
 
     write_outputs(
         excalidraw_md_path=excalidraw_md_path, image_path=image_path,
         raw_markdown=raw_markdown, expanded_markdown=expanded_markdown or "",
         transcription_model=model, expansion_meta=expansion_meta,
-        num_chunks=len(chunks), academic_hub_root=academic_hub_root, client=client,
+        num_chunks=len(chunks), academic_hub_root=academic_hub_root, client=client, has_slides=has_slides,
     )
     print(f"  wrote outputs to {os.path.dirname(excalidraw_md_path)}/processed_outputs/")
 

@@ -35,6 +35,12 @@ downstream correction pass over this pipeline's own output — see the root
   trailing-context window, then expand the terse transcription into
   cohesive prose. Writes `<name>.excalidraw.md` (raw) +
   `<name>.excalidraw.rag.md` (expanded, the RAG-canonical artifact).
+  If the canvas has embedded images (e.g. lecture slides pasted beside the
+  handwriting; detected from the scene's `## Embedded Files` section, with an
+  SVG `<image>` fallback), slide-aware prompts label `**[Slide]**` vs
+  `**[Handwritten]**` content and the output frontmatter gets
+  `embedded_slides: true`. Handwritten sidebar questions / `?` regions are
+  tagged `[Question]` in both outputs for a later resolving step.
 
 - `route_notes_transcribe.py` — a deterministic, filetype-based router
   across every course under `academic_notes/`: finds source files (`.pdf`,
