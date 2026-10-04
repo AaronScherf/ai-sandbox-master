@@ -391,3 +391,62 @@ chunk_ids, 0 missing embeddings**. `econometrics` is done.
 (5,101 chunks) -- 12,968 chunks total, all leak-free, all on
 `PAID_GEMINI_KEY` for anything beyond the original free-tier-quota-
 limited test. No further chunking work outstanding as of this writeup.
+
+
+## 2026-10-03 update: subset-note linking, and the question sidecar as an indexed doc type
+
+Both Excalidraw versions of a lecture (the original handwriting-only canvas
+and the "with slides" canvas holding the same ink plus the slides) are kept
+on disk, so search was returning near-duplicate hits and crowding out other
+sources. Design reference:
+`docs/superpowers/specs/indexer/2026-10-03-subset-note-linking-design.md`.
+
+**What shipped (`core/indexer/related.py`, `index_search.py`, hooks):**
+
+- A handwriting-only note's card gets `subset_of: <superset file_id>` and
+  `subset_link_score`. Candidates share course, folder and a `YYYY-MM-DD` in
+  the filename (superset's raw transcript has `embedded_slides: true`, the
+  subset's does not), then are *confirmed* by word-3-gram containment >= 0.3 of
+  the subset's handwriting inside the superset's `[Handwritten]` blocks.
+- `search()` / `search_passages()` hide a subset when its superset is also a
+  surviving candidate (`include_subsets=True` / `--include-subsets` shows
+  both). A superset that is unindexed, missing or filtered out never hides the
+  subset, so a stale link cannot hide content.
+- Linking runs from `transcribe_excalidraw.write_outputs` and `rebuild`
+  (non-fatal); manual: `python -m core.indexer.related [--course X]
+  [--dry-run]`. Overrides live in `.index/links/overrides.json`
+  (`{"force": [...], "block": [...]}`) -- a subdirectory, because
+  `list_courses()` and the orphan sweep treat every top-level
+  `.index/*.json` as a course shard.
+- A malformed overrides file now exits with a clear error naming the file
+  rather than a traceback or (worse) silently dropping a `block` entry.
+
+**Evidence that shaped the confirmation rule.** Whole-card embeddings could
+not separate true pairs from different lectures on the same topic: true pairs
+scored 0.879-0.920 and different lectures up to 0.897. Handwriting
+containment separated them cleanly (true pairs 0.59-0.83, every other pair
+<= 0.02). Applied to the real index: 4 links (09-07 0.83, 09-10 0.77, 09-15
+0.63, 09-17 0.77); default search then returns only the slides notes and
+`--include-subsets` brings the four back. The 0.3 threshold rests on only four
+true pairs.
+
+**Second new doc type: `excalidraw_questions`.** The question resolver's
+per-note sidecar is indexed by `rebuild` under
+`compute_id_from_parts(["excalidraw_questions", <note file_id>])`, not its own
+bytes, so rewriting it updates one card instead of minting a new one each
+run. `chunk` splits it into one heading chunk per question. See
+`docs/status/agent/rag/2026-10-03-question-resolver-status.md`.
+
+**Observed during the first microecon `rebuild` in weeks:** it surfaced
+pre-existing drift unrelated to this work -- a scene edited on 09-23 got a new
+card (old one orphaned), and two cards were orphaned because their scene files
+had been renamed while the outputs kept the old names. Fixed by renaming the
+outputs and pruning (microecon: 29 cards, 0 orphaned). Reminder: card identity
+is the scene file's *content* hash, so any edit to a scene yields a new card
+and orphans the old one until the next `rebuild`.
+
+**Deferred minors (not blocking):** cache `read_raw` per link pass (re-reads a
+handful of small files per save); `embedded_slides` matches only an unquoted
+`true`; an ignored `force` override (missing target, cycle) gives no warning.
+
+Full suite on `main` after the question-resolver merge (`e55402c`): 2148 passing.

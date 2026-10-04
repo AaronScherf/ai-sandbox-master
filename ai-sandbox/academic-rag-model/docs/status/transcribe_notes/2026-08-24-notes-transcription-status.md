@@ -1130,3 +1130,106 @@ unchanged for all 4 courses. Full suite: 1508 passing.
 missing files -- math-camp `problem_sets/old_exam_2021.pdf` and
 `old_exam_2025.pdf` (still `academic_notes/` paths), and microecon's
 `Drawing 2026-09-07 19.53.03.excalidraw.md` card.
+
+
+## 2026-10-03: slide-aware Excalidraw transcription, `[Question]` tagging, and a truncation guard -- shipped to `main` (`14ca7f4`)
+
+Excalidraw lecture canvases now routinely have the lecture slides pasted
+beside the handwriting (Obsidian embeds them as images; the plugin's SVG
+export flattens canvas, slides and ink into one image). The pipeline had
+only ever seen pure handwriting, so this section records what was checked,
+what changed, and what the first real runs found. Spec/plan history for the
+linked indexer work is in `docs/status/indexer/` and
+`docs/status/agent/rag/2026-10-03-question-resolver-status.md`.
+
+**Feasibility, checked before changing anything.** The SVG's embedded slides
+are `<symbol><image href="data:image/png...">` elements instantiated with
+`<use>`; resvg rasterizes them correctly (the first real file rendered to
+3296x12972 px with handwriting in a left column and the slides stacked on
+the right). Transcription is a Gemini *vision* call, not local OCR, so
+typeset slides are readable. The real gaps were the prompts, which said
+"handwritten notes canvas ... keep terse, do not expand" and treated all
+input as the student's own shorthand.
+
+**What shipped (`pipelines/transcribe_notes/transcribe_excalidraw.py`):**
+
+- **Slide detection.** `has_embedded_images()` reads the scene's plaintext
+  `## Embedded Files` section (present even though the drawing itself is
+  compressed), with an SVG `<image>` fallback. Handwriting-only canvases keep
+  the old prompts and behavior; the output frontmatter records
+  `embedded_slides: true|false`.
+- **Slide-aware prompts.** Transcription labels `**[Slide]**` (verbatim,
+  LaTeX preserved) and `**[Handwritten]**` blocks in column order, keeping
+  each handwritten passage next to the slide it annotates.
+- **`[Question]` tagging.** Handwritten sidebar questions and `?` regions are
+  tagged in place, not answered; a later step resolves them (see the
+  question-resolver status doc). Applies to handwriting-only canvases too.
+- **Slides stay verbatim in the `.rag.md`.** Only `[Handwritten]` blocks go
+  through the expansion model (with the neighboring slide text as context);
+  slide blocks are emitted byte for byte; a handwriting block whose expansion
+  fails or comes back empty is kept as its raw transcription.
+- **`--reexpand`.** Rebuilds only the `.rag.md` (and its card) from the saved
+  raw transcript, with no vision calls, so expansion-prompt changes are cheap
+  to apply.
+- **Truncation guard.** If any chunk fails transcription after retries, the
+  note is not expanded, written or indexed; the run prints which chunks
+  failed and returns `False`. `route_notes_transcribe.py` already flags a note
+  with no output as `output_missing`, so it needed no change.
+- **Worktrees can find `.env`.** `core/env/gemini_utils.load_dotenv_override()`
+  now falls back to the main checkout's `ai-sandbox/.env` (via git's common
+  dir) when run from a linked worktree, where the gitignored file does not
+  exist. Documented in `academic-rag-model/CLAUDE.md`.
+- **One shared definition of the tag and segment helpers**
+  (`core/env/excalidraw_text.py`), replacing copies in this module and
+  `core/indexer/related.py`.
+
+**Real-corpus validation (microecon, 5 slide notes: 09-07, 09-10, 09-15,
+09-17, 09-22; 3+5+5+6+11 = 30 chunks).** After the fixes below, all five
+transcribed with 0 failed chunks and carry 7 `[Question]` tags (09-15 has
+none). Math, bullets and theorem structure came through cleanly; the only
+misread seen was a heading ("Microcon" for "Microecon").
+
+**Corrections made against real evidence, not assumptions:**
+
+1. **Whole-document expansion silently summarized the slides away.** The
+   first expansion prompt said "preserve every equation", and still turned
+   14 display equations into 1 (09-10) and 33 into 3 (09-22), and dropped
+   every `[Slide]` block. Prompt wording could not guarantee it, so slides no
+   longer pass through the model at all (above).
+2. **Always telling the model to "preserve every `[Question]` tag" made it
+   invent them** (13 tags out from a note with 0 in). The instruction is now
+   included only when the input contains a tag, and says not to add new ones.
+3. **A free-tier quota failure wrote and indexed truncated notes.** The
+   shared `GEMINI_API_KEY` is a free-tier key (20 requests/day per model); the
+   second batch hit HTTP 429 mid-run, and the pipeline wrote partial outputs
+   (09-10 had 1 of 5 chunks, 09-17 none) and indexed them as if finished.
+   Hence the truncation guard. The four notes were then redone on
+   `PAID_GEMINI_KEY` (25 vision calls) after deleting the partials and their
+   cards.
+4. **Two false starts, both mine:** a rerun reported "PAID_GEMINI_KEY not set"
+   only because the worktree had no `.env` (see the `.env` fallback), and
+   the guard above turned that into four clean aborts instead of four bad files.
+
+**Housekeeping done the same day:**
+
+- Renamed the 09-07 and 09-10 handwriting-only outputs from `Microeconomics
+  lecture ...` to `Microeconomics ...` so they match their scene files
+  (`git mv` in the `academic_notes` repo); the previous section's
+  "pre-existing, not fixed here" note about microecon's stale `Drawing
+  2026-09-07 19.53.03` card is **resolved**: that card was removed, along with
+  one duplicate 09-17 card, by `rebuild --course microecon --prune`.
+  microecon now has 29 cards, 0 orphaned. The two `math-camp` orphans
+  (`old_exam_2021`, `old_exam_2025`) are still there and unrelated.
+- The frontmatter of those two renamed outputs still names the old `lecture`
+  scene files (metadata only; indexing keys on the scene path).
+
+**Open items:**
+
+- `*_pages_cache.json` resume caches clutter `processed_outputs/` (89 files,
+  ~2.2 MB, tracked in `academic_notes`). Plan to move them into
+  `processed_outputs/_cache/` with a read fallback is recorded in
+  `docs/trackers/academic_hub_to_do.md`; deferred by the user.
+- Nothing else outstanding in the transcriber. Deferred minors from the
+  linking/resolver work are tracked in their own status docs.
+
+Full suite on `main` after the question-resolver merge (`e55402c`): 2148 passing.
