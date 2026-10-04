@@ -37,10 +37,10 @@ def test_happy_path_one_call_per_topic_and_clean_output(vault, make_llm):
     assert llm.kinds == ["structured", "structured"]
     text = _out(vault).read_text(encoding="utf-8")
     assert "## Wald test" in text and "## LM test" in text
-    assert "format_version: 2" in text and "source_map:" in text and 'enhancement_model: "fake-model"' in text
+    assert "format_version: 3" in text and "source_map:" in text and "paragraph_kinds:" in text and 'enhancement_model: "fake-model"' in text
     body = text.split("\n---\n\n", 1)[1]
     assert "[S" not in body and "Sources" not in body
-    assert "*(External context)*" in body
+    assert "External context" not in text
     assert vault.guide.read_bytes() == original
 
 
@@ -90,7 +90,7 @@ def test_worked_example_on_adds_one_code_execution_call_per_topic(vault, make_ll
     assert "Wald test" in llm.calls[1]
     text = _out(vault).read_text(encoding="utf-8")
     assert text.count("### Worked example") == 2
-    assert text.count("*(Worked example — illustrative data, not from the textbooks)*") == 2
+    assert "illustrative data, not from" not in text
     assert '"worked_example": true' in text
 
 
