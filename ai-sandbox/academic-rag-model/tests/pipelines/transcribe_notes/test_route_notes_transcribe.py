@@ -693,3 +693,13 @@ def test_build_plan_computes_subset_roots_once_per_course(tmp_path):
 
 def test_dedupe_preserves_order_and_removes_duplicates():
     assert _dedupe(["a", "b", "a", "c", "b"]) == ["a", "b", "c"]
+
+
+def test_run_plan_passes_force_vision_to_process_pdf():
+    plan = PipelinePlan(pdf_todo=["some/path/doc.pdf"])
+    with patch("pipelines.transcribe_notes.route_notes_transcribe.process_pdf") as mock_process:
+        with patch("pipelines.transcribe_notes.route_notes_transcribe._is_nonempty_file", return_value=True):
+            report = run_plan(plan, client=None, academic_hub_root="/dummy", force_vision=True)
+            mock_process.assert_called_once_with("some/path/doc.pdf", None, None, "/dummy", force_vision=True)
+            assert report.pdf_results[0].status == "ok"
+

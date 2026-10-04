@@ -1087,7 +1087,7 @@ def link_duplicate_note(academic_hub_root: str, canonical_course: str, canonical
 
 
 def process_pdf(pdf_path: str, client, model_override: str | None, academic_hub_root: str,
-                 dry_run: bool = False, known_doc_types=KNOWN_DOC_TYPES) -> None:
+                dry_run: bool = False, known_doc_types=KNOWN_DOC_TYPES, force_vision: bool = False) -> None:
     base_name = os.path.splitext(os.path.basename(pdf_path))[0]
     output_dir = resolve_output_dir(pdf_path)
     os.makedirs(output_dir, exist_ok=True)
@@ -1142,7 +1142,7 @@ def process_pdf(pdf_path: str, client, model_override: str | None, academic_hub_
     defect_ratio = (len(defective_page_numbers) / total_pages) if (reliable_pagination and total_pages) else 1.0
 
     # --- Tier 1: fully clean, reliably-paginated -- pure local extraction, 0 API calls. ---
-    if reliable_pagination and not defective_page_numbers:
+    if not force_vision and reliable_pagination and not defective_page_numbers:
         print(f"[{base_name}] {total_pages} page(s) -- clean machine-generated text "
               f"detected, using free local extraction (0 API calls).")
         if dry_run:
@@ -1163,7 +1163,7 @@ def process_pdf(pdf_path: str, client, model_override: str | None, academic_hub_
         return
 
     # --- Tier 2: reliably-paginated, some pages defective, not too many -- hybrid repair. ---
-    if reliable_pagination and defect_ratio <= _MAX_DEFECT_RATIO_FOR_HYBRID:
+    if not force_vision and reliable_pagination and defect_ratio <= _MAX_DEFECT_RATIO_FOR_HYBRID:
         assert all_page_texts is not None
         model = model_override or _MODEL_TYPESET
         runs = group_into_runs(defective_page_numbers)
@@ -1242,9 +1242,12 @@ def process_pdf(pdf_path: str, client, model_override: str | None, academic_hub_
         model = model_override or _MODEL_TYPESET
         all_pages = list(range(1, total_pages + 1))
         batches = split_run_into_batches(all_pages, _MAX_BATCH_SIZE)
-        print(f"[{base_name}] {total_pages} page(s) -- {len(defective_page_numbers)} "
-              f"({defect_ratio:.0%}) defective, over the {_MAX_DEFECT_RATIO_FOR_HYBRID:.0%} "
-              f"hybrid-repair threshold -- batching the whole document instead "
+        reason = (
+            "force-vision flag set"
+            if force_vision
+            else f"{len(defective_page_numbers)} ({defect_ratio:.0%}) defective, over the {_MAX_DEFECT_RATIO_FOR_HYBRID:.0%} hybrid-repair threshold"
+        )
+        print(f"[{base_name}] {total_pages} page(s) -- {reason} -- batching the whole document instead "
               f"({len(batches)} batch(es)).")
 
         cache = load_json_cache(cache_path)
@@ -1378,6 +1381,10 @@ def main():
         "--dry-run", action="store_true",
         help="List which pages would be processed (and which are already cached) without calling the API.",
     )
+    parser.add_argument(
+        "--force-vision", action="store_true",
+        help="Force vision transcription via Gemini, bypassing local text extraction even if the PDF appears cleanly machine-generated.",
+    )
     args = parser.parse_args()
 
     load_dotenv_override()
@@ -1396,7 +1403,10 @@ def main():
             sys.exit(1)
 
     for pdf_path in pdf_paths:
-        process_pdf(pdf_path, client, args.model, str(academic_hub_dir), dry_run=args.dry_run)
+        process_pdf(
+            pdf_path, client, args.model, str(academic_hub_dir),
+            dry_run=args.dry_run, force_vision=args.force_vision,
+        )
 
 
 if __name__ == "__main__":

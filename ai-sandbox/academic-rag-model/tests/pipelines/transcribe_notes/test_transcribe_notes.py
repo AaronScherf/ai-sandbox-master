@@ -1098,6 +1098,31 @@ class TestProcessPdfLinksDuplicates(unittest.TestCase):
             self.assertFalse(os.path.exists(new_md_path))
             self.assertEqual(len(load_shard(tmp, "econometrics")), 1)  # only the canonical
 
+    def test_force_vision_bypasses_local_extraction_for_clean_document(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            pdf_path = os.path.join(tmp, "academic_notes", "microecon", "problem_sets", "hw4.pdf")
+            os.makedirs(os.path.dirname(pdf_path))
+            with open(pdf_path, "wb") as f:
+                f.write(b"%PDF-1.4 mock")
+
+            mock_reader = MagicMock()
+            mock_reader.pages = [MagicMock()]
+            mock_reader.metadata = {"/Producer": "pdfTeX"}
+
+            client = MagicMock()
+            with patch("pypdf.PdfReader", return_value=mock_reader):
+                with patch("pipelines.transcribe_notes.transcribe_notes.has_reliable_pagination", return_value=True):
+                    with patch("pipelines.transcribe_notes.transcribe_notes.extract_all_page_texts", return_value=["clean text"]):
+                        with patch("pipelines.transcribe_notes.transcribe_notes.page_looks_defective", return_value=False):
+                            with patch("pipelines.transcribe_notes.transcribe_notes.repair_batch", return_value={1: "$$x=1$$"}) as mock_batch:
+                                with patch("pipelines.transcribe_notes.transcribe_notes._write_markdown_and_index") as mock_write:
+                                    process_pdf(pdf_path, client, None, tmp, force_vision=True)
+                                    mock_batch.assert_called_once()
+                                    self.assertTrue(mock_write.called)
+                                    frontmatter = mock_write.call_args[0][1]
+                                    self.assertIn("routing: gemini_batched", frontmatter)
+
 
 if __name__ == "__main__":
     unittest.main()
+
