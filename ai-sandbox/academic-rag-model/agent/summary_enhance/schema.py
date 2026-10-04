@@ -1,31 +1,33 @@
-"""Typed shape of the enhancement model's JSON response. The grounded /
-elaboration split is the whole point: grounded blocks must cite passage
-labels, elaboration blocks can never cite and are always rendered under
-a "Not from the textbooks" callout (see render.py)."""
+# agent/summary_enhance/schema.py
+"""Typed shape of the enhancement model's JSON responses. The grounded /
+external split is the whole point: grounded blocks must cite passage labels,
+external blocks can never cite and are always rendered with an
+(External context) tag (see render.py)."""
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
-ELABORATION_KINDS = ("intuition", "example", "background")
+BLOCK_TYPES = ("grounded", "external")
 
 
 @dataclass
-class GroundedBlock:
+class Block:
+    type: str
     text: str
     sources: list[str]
 
 
 @dataclass
-class ElaborationBlock:
-    kind: str
-    text: str
+class Section:
+    heading: str
+    blocks: list[Block]
 
 
 @dataclass
 class Topic:
     title: str
-    grounded: list[GroundedBlock] = field(default_factory=list)
-    elaboration: list[ElaborationBlock] = field(default_factory=list)
+    sections: list[Section]
+    worked_example: str | None = None
 
 
 @dataclass
@@ -33,70 +35,67 @@ class Enhanced:
     topics: list[Topic]
 
 
-RESPONSE_SCHEMA = {
+TOPIC_SCHEMA = {
     "type": "object",
     "properties": {
-        "topics": {
+        "title": {"type": "string"},
+        "sections": {
             "type": "array",
             "items": {
                 "type": "object",
                 "properties": {
-                    "title": {"type": "string"},
-                    "grounded": {
+                    "heading": {"type": "string"},
+                    "blocks": {
                         "type": "array",
                         "items": {
                             "type": "object",
                             "properties": {
+                                "type": {"type": "string", "enum": list(BLOCK_TYPES)},
                                 "text": {"type": "string"},
                                 "sources": {"type": "array", "items": {"type": "string"}},
                             },
-                            "required": ["text", "sources"],
-                        },
-                    },
-                    "elaboration": {
-                        "type": "array",
-                        "items": {
-                            "type": "object",
-                            "properties": {
-                                "kind": {"type": "string", "enum": list(ELABORATION_KINDS)},
-                                "text": {"type": "string"},
-                            },
-                            "required": ["kind", "text"],
+                            "required": ["type", "text", "sources"],
                         },
                     },
                 },
-                "required": ["title", "grounded", "elaboration"],
+                "required": ["heading", "blocks"],
             },
-        }
+        },
     },
+    "required": ["title", "sections"],
+}
+
+PLAN_SCHEMA = {
+    "type": "object",
+    "properties": {"topics": {"type": "array", "items": {"type": "string"}}},
     "required": ["topics"],
 }
 
 
-def parse_enhanced(data: object) -> Enhanced:
-    """Converts the model's decoded JSON into dataclasses. Raises
-    ValueError on any structural problem (wrong type, missing key)."""
-    if not isinstance(data, dict) or not isinstance(data.get("topics"), list):
-        raise ValueError("response must be an object with a 'topics' list")
-    topics = []
-    for t in data["topics"]:
-        if not isinstance(t, dict) or not isinstance(t.get("title"), str):
-            raise ValueError("each topic needs a string 'title'")
-        grounded_raw, elab_raw = t.get("grounded"), t.get("elaboration")
-        if not isinstance(grounded_raw, list) or not isinstance(elab_raw, list):
-            raise ValueError(f"topic {t['title']!r} needs 'grounded' and 'elaboration' lists")
-        grounded = []
-        for g in grounded_raw:
-            if (not isinstance(g, dict) or not isinstance(g.get("text"), str)
-                    or not isinstance(g.get("sources"), list)
-                    or not all(isinstance(s, str) for s in g["sources"])):
-                raise ValueError(f"topic {t['title']!r}: malformed grounded block")
-            grounded.append(GroundedBlock(g["text"], list(g["sources"])))
-        elaboration = []
-        for e in elab_raw:
-            if (not isinstance(e, dict) or not isinstance(e.get("kind"), str)
-                    or not isinstance(e.get("text"), str)):
-                raise ValueError(f"topic {t['title']!r}: malformed elaboration block")
-            elaboration.append(ElaborationBlock(e["kind"], e["text"]))
-        topics.append(Topic(t["title"], grounded, elaboration))
-    return Enhanced(topics)
+def parse_topic(data: object) -> Topic:
+    """Converts one decoded topic response into dataclasses. Raises ValueError
+    on any structural problem (wrong type, missing key, unknown block type)."""
+    if (not isinstance(data, dict) or not isinstance(data.get("title"), str)
+            or not isinstance(data.get("sections"), list)):
+        raise ValueError("topic must be an object with a string 'title' and a 'sections' list")
+    sections = []
+    for s in data["sections"]:
+        if (not isinstance(s, dict) or not isinstance(s.get("heading"), str)
+                or not isinstance(s.get("blocks"), list)):
+            raise ValueError("each section needs a string 'heading' and a 'blocks' list")
+        blocks = []
+        for b in s["blocks"]:
+            if (not isinstance(b, dict) or b.get("type") not in BLOCK_TYPES
+                    or not isinstance(b.get("text"), str) or not isinstance(b.get("sources"), list)
+                    or not all(isinstance(x, str) for x in b["sources"])):
+                raise ValueError(f"section {s['heading']!r}: malformed block")
+            blocks.append(Block(b["type"], b["text"], list(b["sources"])))
+        sections.append(Section(s["heading"], blocks))
+    return Topic(data["title"], sections)
+
+
+def parse_plan(data: object) -> list[str]:
+    if (not isinstance(data, dict) or not isinstance(data.get("topics"), list)
+            or not all(isinstance(t, str) for t in data["topics"])):
+        raise ValueError("plan must be an object with a list of string 'topics'")
+    return list(data["topics"])
