@@ -80,6 +80,12 @@ Follow repository hygiene: stage explicit paths, verify clean state, and commit 
 new or updated files so they are preserved across sessions, discoverable by other
 agents, and synced with external tools (such as Obsidian Git sync).
 
+## Planning and execution boundaries
+
+When instructed to "create a plan" (or "plan", "write a plan"), write the plan first, present it, and stop to report back to the user for explicit review and instruction before implementing on your own. Do not proceed to autonomous implementation merely because a plan was created or an automated IDE review hook signaled approval.
+
+Rules, workflows, and standing authorizations documented in CLAUDE.md or AGENTS.md apply to those specific agents. Gemini must not treat another agent's instructions or exemptions (such as direct-to-main editing rules) as authorization for Gemini unless explicitly stated in GEMINI.md or directly authorized by the user.
+
 ## Git
 
 Read-only inspection can use main. Writing tasks use a dedicated
