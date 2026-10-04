@@ -342,8 +342,32 @@ class TestGenerateIndexCard(unittest.TestCase):
         )
         self.assertEqual(card["source_asset_path"], "p.excalidraw.svg")
 
+    def test_offering_label_defaults_to_none(self):
+        client = _fake_client()
+        card = generate_index_card(
+            file_id="x", path="p.md", source_pdf_path="p.pdf", course="math-camp",
+            folder_category="ta_notes", content_sample="text", page_count=10, client=client,
+        )
+        self.assertIsNone(card["offering_label"])
+
+    def test_offering_label_is_stored_when_given(self):
+        client = _fake_client()
+        card = generate_index_card(
+            file_id="x", path="p.md", source_pdf_path="p.pdf", course="math-camp",
+            folder_category="ta_notes", content_sample="text", page_count=10, client=client,
+            offering_label="2024",
+        )
+        self.assertEqual(card["offering_label"], "2024")
+
 
 class TestMakeFailureCard(unittest.TestCase):
+    def test_offering_label_is_stored_on_a_failure_card(self):
+        card = make_failure_card(
+            file_id="x", path="p.md", source_pdf_path="p.pdf", course="math-camp",
+            folder_category="ta_notes", offering_label="2024",
+        )
+        self.assertEqual(card["offering_label"], "2024")
+
     def test_minimal_card_carries_enough_to_be_reconciled_later(self):
         card = make_failure_card(
             file_id="abc123", path="p.md", source_pdf_path="p.pdf",
@@ -456,6 +480,22 @@ class TestReconcileAndWrite(unittest.TestCase):
         )
         kwargs.update(overrides)
         return kwargs
+
+    def test_offering_label_is_stored_on_a_new_card(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            card = reconcile_and_write(tmp, **self._card_kwargs(offering_label="2024"))
+            self.assertEqual(card["offering_label"], "2024")
+            self.assertEqual(load_shard(tmp, "math-camp")[0]["offering_label"], "2024")
+
+    def test_offering_label_updates_on_reconciliation_like_course_does(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            client = _fake_client()
+            reconcile_and_write(tmp, **self._card_kwargs(client=client, offering_label="2023"))
+            reconcile_and_write(tmp, **self._card_kwargs(
+                client=client, path="moved/a.md", source_pdf_path="moved/a.pdf", offering_label="2024",
+            ))
+            self.assertEqual(client.models.generate_content.call_count, 1)  # still no regen
+            self.assertEqual(load_shard(tmp, "math-camp")[0]["offering_label"], "2024")
 
     def test_no_match_generates_a_fresh_card(self):
         with tempfile.TemporaryDirectory() as tmp:
