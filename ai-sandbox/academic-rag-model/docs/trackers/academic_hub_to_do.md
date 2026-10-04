@@ -1,5 +1,12 @@
 # Pending Improvements for the Academic Hub by Subproject
 
+<!-- Convention: one bullet per pending item under its subproject's `##` heading, ending in
+     `(added YYYY-MM-DD)`. New sections go directly under this title: the file ends in pasted
+     example text, so don't append at the end. Agents add items when asked to "add this as a
+     pending to-do" (see the root CLAUDE.md). -->
+
+## Notes Transcription (`pipelines/transcribe_notes`)
+- Move the `*_pages_cache.json` resume caches out of `processed_outputs/` into `processed_outputs/_cache/`, to cut clutter when browsing folders (89 files, ~2.2 MB, all tracked in the `academic_notes` repo). Plan: the cache path is built in one place (`transcribe_notes.py`, `cache_path`, around line 1095) so change it there; read `_cache/` first and fall back to the old location so unmigrated caches still resume; update `tools/audit_metadata.py`, which moves a cache along with its `.md`; one-shot `git mv` of the existing 89 in the `academic_notes` repo; test both locations plus the fallback. The caches are only read when the same document is rerun or `--force`d (to skip pages already paid for); the indexer, search and tutor never touch them. Deferred by the user (added 2026-10-04)
 
 ## Textbook Conversion
 Things to fix in post-processing?

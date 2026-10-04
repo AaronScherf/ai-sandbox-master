@@ -18,6 +18,14 @@ and keep shell and IDE edits inside it. Main is for the designated integrator.
 - Stage explicit task paths only, never `git add -A` / `git add .`. Preserve unrelated changes encountered during handoff; one writer per worktree still applies.
 - This repo is public on GitHub. Never commit secrets (`ai-sandbox/.env`) or copyrighted source material; the root `.gitignore` comments explain the IP-driven exclusions.
 
+## Pending to-dos
+
+When I say "add this as a pending to-do" (or "add to pending", "put it on the to-do list"), record it right away without asking first, and do not start the work. Append one bullet to [`ai-sandbox/academic-rag-model/docs/trackers/academic_hub_to_do.md`](ai-sandbox/academic-rag-model/docs/trackers/academic_hub_to_do.md):
+- Put it under the matching `## <subproject>` heading (e.g. `## Notes Transcription`, `## Textbook Conversion`). If none fits, add a new `##` section directly under the file's title: the file ends in pasted example text, so never append at the end of the file.
+- Write it so someone without this conversation can act on it: what and why, the files or functions involved, and any approach or decision already reached. End with `(added YYYY-MM-DD)`.
+- Reply with one line naming the heading used.
+- **Exempt from the worktree rule.** Make this edit directly in the main checkout, on `main`, without creating a worktree or branch. Stage only that one file by path (never `git add -A`), commit it to `main` with a message starting `todo:`, and leave everything else in the checkout untouched. Standing authorization for this single file only; any other change keeps the worktree procedure.
+
 ## Multi-agent routing
 
 Gemini (Antigravity) and Codex also work this repo. See
