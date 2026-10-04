@@ -5,6 +5,7 @@ external blocks can never cite and are always rendered with an
 (External context) tag (see render.py)."""
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 
 BLOCK_TYPES = ("grounded", "external")
@@ -79,6 +80,22 @@ def _norm_label(label: str) -> str:
     return label.strip().strip("[]").strip().upper()
 
 
+_ESCAPE_CORRUPTION_RE = re.compile("\x08|\x0c|\t(?=[A-Za-z])|\r(?=[A-Za-z])")
+_ESCAPE_REPAIR = {"\x08": "\\b", "\x0c": "\\f", "\t": "\\t", "\r": "\\r"}
+
+
+def _repair_latex_escapes(text: str) -> str:
+    """A LaTeX command written with ONE backslash in the model's JSON (\\beta, \\frac,
+    \\theta, \\rho) is decoded by json.loads as a control character plus the rest of the
+    word. Those characters only arise from the \\b \\f \\t \\r escapes, so reversing them
+    restores exactly what the model meant. Backspace and form feed never occur in prose; a
+    tab or carriage return is repaired only when a letter follows it (so CRLF line endings
+    and tab-separated spacing are left alone). Anything else is rejected by validation.
+    (Live v2 run, 2026-10-04: the model dropped a backslash twice in a row and a whole run
+    was lost.)"""
+    return _ESCAPE_CORRUPTION_RE.sub(lambda m: _ESCAPE_REPAIR[m.group(0)], text)
+
+
 def parse_topic(data: object) -> Topic:
     """Converts one decoded topic response into dataclasses. Raises ValueError
     on any structural problem (wrong type, missing key, unknown block type)."""
@@ -96,7 +113,8 @@ def parse_topic(data: object) -> Topic:
                     or not isinstance(b.get("text"), str) or not isinstance(b.get("sources"), list)
                     or not all(isinstance(x, str) for x in b["sources"])):
                 raise ValueError(f"section {s['heading']!r}: malformed block")
-            blocks.append(Block(b["type"], b["text"], [_norm_label(x) for x in b["sources"]]))
+            blocks.append(Block(b["type"], _repair_latex_escapes(b["text"]),
+                                [_norm_label(x) for x in b["sources"]]))
         sections.append(Section(s["heading"], blocks))
     return Topic(data["title"], sections)
 
