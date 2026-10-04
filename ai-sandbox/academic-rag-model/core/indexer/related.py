@@ -19,6 +19,7 @@ import os
 import re
 from dataclasses import dataclass
 
+from core.env.excalidraw_text import CHUNK_MARKER_RE as _CHUNK_MARKER_RE, SEGMENT_LABEL_RE as _LABEL_RE
 from core.env.frontmatter import parse_frontmatter
 from core.indexer.index_card import list_courses, load_shard, save_shard
 
@@ -26,8 +27,6 @@ CONTAINMENT_THRESHOLD = 0.3
 _NGRAM = 3
 
 _DATE_RE = re.compile(r"\d{4}-\d{2}-\d{2}")
-_LABEL_RE = re.compile(r"^\*\*\[(Slide|Handwritten)\]\*\*[ \t]*$", re.MULTILINE)
-_CHUNK_MARKER_RE = re.compile(r"^<!-- chunk \d+ -->[ \t]*$", re.MULTILINE)
 _TOKEN_RE = re.compile(r"[A-Za-z]{3,}|\\[A-Za-z]+")
 _RAG_SUFFIX = ".excalidraw.rag.md"
 

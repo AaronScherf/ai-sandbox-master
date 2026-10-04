@@ -15,6 +15,12 @@ import sys
 from pathlib import Path
 
 from core.env.academic_hub_paths import resolve_output_dir, to_resources_root
+from core.env.excalidraw_text import (
+    CHUNK_MARKER_RE as _CHUNK_MARKER_RE,
+    QUESTION_TAG as _QUESTION_TAG,
+    SEGMENT_LABEL_RE as _SEGMENT_LABEL_RE,
+    split_labeled_segments,
+)
 from core.env.frontmatter import parse_frontmatter
 from core.env.gemini_utils import call_with_retries
 from core.env.ollama_utils import call_ollama
@@ -100,8 +106,6 @@ def discover_excalidraw_files(notes_dir: str, file_filter: str | None = None) ->
 
 
 _EMBEDDED_IMAGE_RE = re.compile(r"\[\[[^\]]*\.(?:png|jpe?g|gif|webp|svg|pdf)[^\]]*\]\]", re.IGNORECASE)
-
-_QUESTION_TAG = "[Question]"
 
 _QUESTION_INSTRUCTION = (
     "Handwritten sidebar questions, margin notes, or any region marked with a question mark are "
@@ -262,30 +266,7 @@ def expand_via_ollama(
     return None  # unreachable server or timeout -- caller decides whether to fall back
 
 
-_SEGMENT_LABEL_RE = re.compile(r"^\*\*\[(Slide|Handwritten)\]\*\*[ \t]*$", re.MULTILINE)
-_CHUNK_MARKER_RE = re.compile(r"^<!-- chunk \d+ -->[ \t]*$", re.MULTILINE)
 _SLIDE_CONTEXT_CHARS = 3000  # per neighboring slide, keeps each handwriting call small
-
-
-def split_labeled_segments(raw_markdown: str) -> list[tuple[str, str]]:
-    """Splits a slide-aware raw transcript into ordered (label, text) blocks,
-    label being 'Slide' or 'Handwritten'. Chunk markers are dropped (a block
-    can straddle a chunk boundary; they are transcription bookkeeping, not
-    content). Text before the first label is treated as handwriting -- the
-    safe default, since handwriting is the part that gets rewritten and the
-    fallback on any failure is to keep it verbatim."""
-    text = _CHUNK_MARKER_RE.sub("", raw_markdown)
-    matches = list(_SEGMENT_LABEL_RE.finditer(text))
-    pieces: list[tuple[str, str]] = []
-    first_start = matches[0].start() if matches else len(text)
-    if text[:first_start].strip():
-        pieces.append(("Handwritten", text[:first_start].strip()))
-    for i, m in enumerate(matches):
-        end = matches[i + 1].start() if i + 1 < len(matches) else len(text)
-        body = text[m.end():end].strip()
-        if body:
-            pieces.append((m.group(1), body))
-    return pieces
 
 
 def build_handwriting_expansion_prompt(
