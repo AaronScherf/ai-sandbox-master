@@ -641,6 +641,24 @@ answer if gated-paper coverage becomes a real bottleneck later:
    marked as the next thing to solve, per user decision 2026-09-02. See
    "Open issue: charts/plots lose their underlying data on conversion"
    above for the full detail.
+10. **Replace the `needs_manual_downloads.md` plain-Markdown checklist
+    with an interactive review artifact.** Flagged by the user,
+    2026-10-04, after seeing `academic-rag-model`'s new
+    `core/indexer/offering_links.py` reviewed through a published
+    Artifact instead of a flat list: real data embedded in the page,
+    grouped for scanning, decided with Link/Dismiss-style controls
+    rather than hand-editing a file, with decisions written to the
+    artifact's own database and read back into the session to drive the
+    actual follow-up action. The `needs_manual` worklist (see
+    "Needs-manual worklist" section above) is the same shape of problem
+    -- a list of items a human works through one at a time, each needing
+    a small decision or action -- so the same pattern likely applies:
+    one row per `needs_manual` paper (title, DOI link, target folder,
+    age), with a way to mark "downloaded" or "give up on this one"
+    that feeds back into `reconcile_needs_manual.py`'s own bookkeeping
+    instead of (or alongside) manually moving files into place. Not
+    scoped or spec'd -- recorded here as the pattern to reach for next
+    time this worklist's UX comes up.
 
 ## Original brainstorm, 2026-09-02 (superseded by "acted on" above)
 
