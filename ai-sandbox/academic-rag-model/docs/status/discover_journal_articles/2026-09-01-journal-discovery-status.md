@@ -675,3 +675,24 @@ four for immediate implementation. Kept verbatim for the record; see
    his real research area) -- comparing a candidate's concepts against
    the author's own dominant concept profile and flagging outliers is a
    rougher, more speculative payoff than the others above.
+
+## New follow-up: corpus-aware topic organization, 2026-10-04
+
+A proposal-focused discovery run exposed a remaining weakness in the
+folder-routing rule. Several fetched papers with titles about climate adaptation,
+smallholder agriculture, or climate resilience were routed to `business`. Their OpenAlex metadata lists the broad
+level-0 concept `Business` first, with more specific concepts such as
+`Agriculture`, `Climate change`, or `Climate resilience` later. The
+2026-09-02 fix to prefer level-0 concepts avoids misleading narrow labels
+such as homonyms, but a broad top-level discipline can still misrepresent
+a paper's actual topic. The router does not inspect the paper text or the
+existing corpus when choosing a folder.
+
+**Follow-up needed:** add a post-discovery organization step after journal
+PDFs have been transcribed and chunked. It should review the converted
+content and the corpus-wide grouping of topics, detect papers that are
+poorly grouped by the initial OpenAlex label, and support dynamically
+reorganizing the journal collection into useful topic groupings. Keep the
+file moves and the related folder references/metadata in sync. This is a
+recorded requirement for future work; no corpus-wide reorganization step
+is implemented yet.
