@@ -8,123 +8,103 @@ anything sitting there automatically. Check a box to track your own
 progress; once conversion confirms a download landed, the reconciler
 removes that entry from this list entirely.
 
-- [ ] [A Comprehensive Review on Climate Change Adaptation Strategies and Challenges in Agriculture](https://doi.org/10.9734/ijecc/2023/v13i113138)
+- [x] [A Comprehensive Review on Climate Change Adaptation Strategies and Challenges in Agriculture](https://doi.org/10.9734/ijecc/2023/v13i113138)
   - Save to: `research/journal-articles/business/`
-- [ ] [A comprehensive AI policy education framework for university teaching and learning](https://doi.org/10.1186/s41239-023-00408-3)
+- [x] [A comprehensive AI policy education framework for university teaching and learning](https://doi.org/10.1186/s41239-023-00408-3)
   - Save to: `research/journal-articles/sociology/`
-- [ ] [A review of AI teaching and learning from 2000 to 2020](https://doi.org/10.1007/s10639-022-11491-w)
+- [x] [A review of AI teaching and learning from 2000 to 2020](https://doi.org/10.1007/s10639-022-11491-w)
   - Save to: `research/journal-articles/computer-science/`
-- [ ] [AI is transforming the economy — understanding its impact requires both data and imagination](https://doi.org/10.1038/d41586-025-04053-w)
+- [x] [AI is transforming the economy — understanding its impact requires both data and imagination](https://doi.org/10.1038/d41586-025-04053-w)
   - Save to: `research/journal-articles/sociology/`
-- [ ] [Adaptation of Agriculture to Climate Change: A Scoping Review](https://doi.org/10.3390/cli11100202)
+- [x] [Adaptation of Agriculture to Climate Change: A Scoping Review](https://doi.org/10.3390/cli11100202)
   - Save to: `research/journal-articles/business/`
-- [ ] [Agricultural water insecurity and resilience to climate-induced risks of smallholder farmers in Southwest Nigeria](https://doi.org/10.18174/680954)
+- [x] [Bridging financial gaps to enhance climate resilience and agricultural productivity of smallholder farmers in Northwestern Bangladesh](https://doi.org/10.1007/s43621-025-02412-1)
   - Save to: `research/journal-articles/business/`
-- [ ] [Bridging financial gaps to enhance climate resilience and agricultural productivity of smallholder farmers in Northwestern Bangladesh](https://doi.org/10.1007/s43621-025-02412-1)
-  - Save to: `research/journal-articles/business/`
-- [ ] [CLIMATE VARIABILITY AND SMALLHOLDER FARMING SYSTEMS: A STUDY OF AGRICULTURAL ADAPTATION IN AHMEDABAD DISTRICT, GUJARAT](https://doi.org/10.5281/zenodo.19248287)
+- [x] [CLIMATE VARIABILITY AND SMALLHOLDER FARMING SYSTEMS: A STUDY OF AGRICULTURAL ADAPTATION IN AHMEDABAD DISTRICT, GUJARAT](https://doi.org/10.5281/zenodo.19248287)
   - Save to: `research/journal-articles/geography/`
-- [ ] [Cash Transfer and Humanitarian Assistance](https://doi.org/10.1007/978-3-030-70381-3_5)
+- [x] [Cash Transfer and Humanitarian Assistance](https://doi.org/10.1007/978-3-030-70381-3_5)
   - Save to: `research/journal-articles/political-science/`
-- [ ] [Cash and Livelihoods in Contexts of Conflict and Fragility](https://doi.org/10.19088/basic.2022.028)
+- [x] [Cash and Livelihoods in Contexts of Conflict and Fragility](https://doi.org/10.19088/basic.2022.028)
   - Save to: `research/journal-articles/business/`
-- [ ] [Cash and Livelihoods in Contexts of Conflict and Fragility: Implications for Social Assistance Programming](https://doi.org/10.19088/basic.2022.008)
+- [x] [Cash and Livelihoods in Contexts of Conflict and Fragility: Implications for Social Assistance Programming](https://doi.org/10.19088/basic.2022.008)
   - Save to: `research/journal-articles/business/`
-- [ ] [Challenges of Smallholder Farming in Ethiopia and Opportunities by Adopting Climate-Smart Agriculture](https://doi.org/10.3390/agriculture11030192)
+- [x] [Challenges of Smallholder Farming in Ethiopia and Opportunities by Adopting Climate-Smart Agriculture](https://doi.org/10.3390/agriculture11030192)
   - Save to: `research/journal-articles/business/`
-- [ ] [Climate Change, Conflict, and Children](https://doi.org/10.1353/foc.2016.0003)
+- [x] [Climate Change, Conflict, and Children](https://doi.org/10.1353/foc.2016.0003)
   - Save to: `research/journal-articles/psychology/`
-- [ ] [Climate Change, Conflicts and Migration](https://doi.org/10.51952/9781529202175.ch004)
+- [x] [Climate Change, Conflicts and Migration](https://doi.org/10.51952/9781529202175.ch004)
   - Save to: `research/journal-articles/political-science/`
-- [ ] [Climate Resilience and Social Assistance in Fragile and Conflict-Affected Settings](https://doi.org/10.19088/basic.2022.002)
+- [x] [Climate Resilience and Social Assistance in Fragile and Conflict-Affected Settings](https://doi.org/10.19088/basic.2022.002)
   - Save to: `research/journal-articles/political-science/`
-- [ ] [Climate Smart Agriculture? Assessing the Adaptation Implications in Zambia](https://doi.org/10.1111/1477-9552.12107)
+- [x] [Climate Smart Agriculture? Assessing the Adaptation Implications in Zambia](https://doi.org/10.1111/1477-9552.12107)
   - Save to: `research/journal-articles/environmental-science/`
-- [ ] [Climate change adaptation in Nigerian agricultural sector: A systematic review and resilience check of adaptation measures](https://doi.org/10.3934/agrfood.2019.4.967)
+- [x] [Climate change adaptation in Nigerian agricultural sector: A systematic review and resilience check of adaptation measures](https://doi.org/10.3934/agrfood.2019.4.967)
   - Save to: `research/journal-articles/business/`
-- [ ] [Climate change adaptation in smallholder agriculture: adoption, barriers, determinants, and policy implications](https://doi.org/10.1007/s11027-022-10010-z)
+- [x] [Climate change adaptation in smallholder agriculture: adoption, barriers, determinants, and policy implications](https://doi.org/10.1007/s11027-022-10010-z)
   - Save to: `research/journal-articles/business/`
-- [ ] [Climate change and agriculture in South Asia: adaptation options in smallholder production systems](https://doi.org/10.1007/s10668-019-00414-4)
+- [x] [Climate change and agriculture in South Asia: adaptation options in smallholder production systems](https://doi.org/10.1007/s10668-019-00414-4)
   - Save to: `research/journal-articles/business/`
-- [ ] [Climate change impacts on agriculture, adaptation and resilience](https://doi.org/10.4324/9781003356837-21)
+- [x] [Climate change impacts on agriculture, adaptation and resilience](https://doi.org/10.4324/9781003356837-21)
   - Save to: `research/journal-articles/geography/`
-- [ ] [Climate change, cash transfers and health](https://doi.org/10.2471/blt.14.150037)
+- [x] [Climate change, cash transfers and health](https://doi.org/10.2471/blt.14.150037)
   - Save to: `research/journal-articles/medicine/`
-- [ ] [Climate on the Edge: Impacts and Adaptation in Ethiopia’s Agriculture](https://doi.org/10.3390/su17115119)
+- [x] [Climate on the Edge: Impacts and Adaptation in Ethiopia’s Agriculture](https://doi.org/10.3390/su17115119)
   - Save to: `research/journal-articles/geography/`
-- [ ] [Climate-Smart Agriculture and Food Security in Southern Africa: A Review of the Vulnerability of Smallholder Agriculture and Food Security to Climate Change](https://doi.org/10.3390/su15042882)
+- [x] [Climate-Smart Agriculture and Food Security in Southern Africa: A Review of the Vulnerability of Smallholder Agriculture and Food Security to Climate Change](https://doi.org/10.3390/su15042882)
   - Save to: `research/journal-articles/business/`
-- [ ] [Climate-induced displacement and urban stress in fragile states: insights from Somalia](https://doi.org/10.1080/23311886.2026.2691330)
+- [x] [Climate-induced displacement and urban stress in fragile states: insights from Somalia](https://doi.org/10.1080/23311886.2026.2691330)
   - Save to: `research/journal-articles/geology/`
 - [ ] [Climate-smart agriculture: smallholder adoption and implications for climate change adaptation and mitigation](https://openalex.org/W574348345)
   - Save to: `research/journal-articles/business/`
-- [ ] [Community-based Adaptation: Lessons from the Development Marketplace 2009 on Adaptation to Climate Change](https://doi.org/10.22004/ag.econ.92711)
+- [x] [Community-based Adaptation: Lessons from the Development Marketplace 2009 on Adaptation to Climate Change](https://doi.org/10.22004/ag.econ.92711)
   - Save to: `research/journal-articles/political-science/`
-- [ ] [Conservation agriculture and climate resilience](https://doi.org/10.1016/j.jeem.2018.11.008)
+- [x] [Conservation agriculture and climate resilience](https://doi.org/10.1016/j.jeem.2018.11.008)
   - Save to: `research/journal-articles/economics/`
-- [ ] [Deciphering climate-induced displacement in Somalia: A remote sensing perspective](https://doi.org/10.1371/journal.pone.0304202)
+- [x] [Deciphering climate-induced displacement in Somalia: A remote sensing perspective](https://doi.org/10.1371/journal.pone.0304202)
   - Save to: `research/journal-articles/geography/`
-- [ ] [Dietary and agricultural adaptations to drought among smallholder farmers in South Africa: A qualitative study](https://doi.org/10.1016/j.wace.2022.100413)
+- [x] [Dietary and agricultural adaptations to drought among smallholder farmers in South Africa: A qualitative study](https://doi.org/10.1016/j.wace.2022.100413)
   - Save to: `research/journal-articles/geography/`
-- [ ] [Digital and Data Infrastructure: Stimulating Greater Availability and Use through Policy and Regulatory Reforms](https://doi.org/10.1596/978-1-4648-1737-3_ch4)
+- [x] [Digital and Data Infrastructure: Stimulating Greater Availability and Use through Policy and Regulatory Reforms](https://doi.org/10.1596/978-1-4648-1737-3_ch4)
   - Save to: `research/journal-articles/business/`
-- [ ] [Dry farming techniques for the enhancement of climate-smart agriculture in drought-prone landscapes: implication for smallholder farmers’ adaptation and resilience to climate change](https://doi.org/10.1016/b978-0-443-29993-3.00006-0)
+- [x] [Dry farming techniques for the enhancement of climate-smart agriculture in drought-prone landscapes: implication for smallholder farmers’ adaptation and resilience to climate change](https://doi.org/10.1016/b978-0-443-29993-3.00006-0)
   - Save to: `research/journal-articles/geography/`
-- [ ] [Dynamic pathways of barriers and opportunities for food security and climate adaptation in Southern Mali](https://doi.org/10.1016/j.worlddev.2021.105663)
+- [x] [Dynamic pathways of barriers and opportunities for food security and climate adaptation in Southern Mali](https://doi.org/10.1016/j.worlddev.2021.105663)
   - Save to: `research/journal-articles/business/`
-- [ ] [Enhancing the Resilience and Adaptive Capacity of Smallholder Farmers to Drought in the Limpopo Province, South Africa](https://doi.org/10.3390/conservation2030029)
+- [x] [Enhancing the Resilience and Adaptive Capacity of Smallholder Farmers to Drought in the Limpopo Province, South Africa](https://doi.org/10.3390/conservation2030029)
   - Save to: `research/journal-articles/geography/`
-- [ ] [Ethics of AI in Education: Towards a Community-Wide Framework](https://doi.org/10.1007/s40593-021-00239-1)
+- [x] [Ethics of AI in Education: Towards a Community-Wide Framework](https://doi.org/10.1007/s40593-021-00239-1)
   - Save to: `research/journal-articles/psychology/`
-- [ ] [Expert and Interdisciplinary Analysis of AI-Driven Chatbots for Mental Health Support: Mixed Methods Study](https://doi.org/10.2196/67114)
-  - Save to: `research/journal-articles/psychology/`
-- [ ] [How smallholder farmers adapt to agricultural drought in a changing climate: A case study in southern China](https://doi.org/10.1016/j.landusepol.2016.04.012)
+- [x] [How smallholder farmers adapt to agricultural drought in a changing climate: A case study in southern China](https://doi.org/10.1016/j.landusepol.2016.04.012)
   - Save to: `research/journal-articles/business/`
-- [ ] [Increasing resilience of smallholder farmers to climate change through multiple adoption of proven climate-smart agriculture innovations. Lessons from Southern Africa](https://doi.org/10.1016/j.jenvman.2018.10.069)
+- [x] [Increasing resilience of smallholder farmers to climate change through multiple adoption of proven climate-smart agriculture innovations. Lessons from Southern Africa](https://doi.org/10.1016/j.jenvman.2018.10.069)
   - Save to: `research/journal-articles/business/`
-- [ ] [Influence of Chatbot on Consumer Purchase Intention](https://doi.org/10.55041/ijsrem33410)
-  - Save to: `research/journal-articles/psychology/`
-- [ ] [Mapping vulnerability of smallholder agriculture in Africa: Vulnerability assessment of food crop farming and climate change adaptation in Ghana](https://doi.org/10.1016/j.envc.2022.100537)
+- [x] [Mapping vulnerability of smallholder agriculture in Africa: Vulnerability assessment of food crop farming and climate change adaptation in Ghana](https://doi.org/10.1016/j.envc.2022.100537)
   - Save to: `research/journal-articles/geography/`
-- [ ] [Mental health and wellbeing outcomes of climate change mitigation and adaptation strategies: a systematic review](https://doi.org/10.1088/1748-9326/ad153f)
-  - Save to: `research/journal-articles/medicine/`
-- [ ] [Re-examining the effects of information and communication technology on economic growth](https://doi.org/10.1016/j.techsoc.2024.102646)
+- [x] [Re-examining the effects of information and communication technology on economic growth](https://doi.org/10.1016/j.techsoc.2024.102646)
   - Save to: `research/journal-articles/economics/`
-- [ ] [Resilient agriculture in semi-arid Zimbabwe: adaptation strategies and influencers among smallholder farmers](https://doi.org/10.1007/s44279-025-00234-3)
+- [x] [Resilient agriculture in semi-arid Zimbabwe: adaptation strategies and influencers among smallholder farmers](https://doi.org/10.1007/s44279-025-00234-3)
   - Save to: `research/journal-articles/business/`
-- [ ] [Risk and Resilience of Somali Children in the Context of Climate Change, Famine, and Conflict](https://doi.org/10.58464/2155-5834.1453)
+- [x] [Risk and Resilience of Somali Children in the Context of Climate Change, Famine, and Conflict](https://doi.org/10.58464/2155-5834.1453)
   - Save to: `research/journal-articles/political-science/`
-- [ ] [Rural Displacement and Its Implications on Livelihoods and Food Insecurity: The Case of Inter-Riverine Communities in Somalia](https://doi.org/10.3390/agriculture13071444)
+- [x] [Rural Displacement and Its Implications on Livelihoods and Food Insecurity: The Case of Inter-Riverine Communities in Somalia](https://doi.org/10.3390/agriculture13071444)
   - Save to: `research/journal-articles/geography/`
-- [ ] [Scoping for Competition in Network Industries: Evidence from Mobile Telecommunications in Rwanda](https://doi.org/10.2139/ssrn.3049364)
-  - Save to: `research/journal-articles/business/`
-- [ ] [Social Protection and Humanitarian Response: What is the Scope for Integration?](https://openalex.org/W2899128581)
+- [x] [Social Protection and Humanitarian Response: What is the Scope for Integration?](https://openalex.org/W2899128581)
   - Save to: `research/journal-articles/political-science/`
 - [ ] [Social Protection – An Operational Tool for the Humanitarian, Development and Peace Nexus: Linkages between Cash-based](https://openalex.org/W7135522878)
   - Save to: `research/journal-articles/business/`
-- [ ] [Social Safety Nets in Fragile and Conflict-Affected States](https://openalex.org/W2915422417)
+- [x] [Social Safety Nets in Fragile and Conflict-Affected States](https://openalex.org/W2915422417)
   - Save to: `research/journal-articles/political-science/`
-- [ ] [Students’ voices on generative AI: perceptions, benefits, and challenges in higher education](https://doi.org/10.1186/s41239-023-00411-8)
+- [x] [Students’ voices on generative AI: perceptions, benefits, and challenges in higher education](https://doi.org/10.1186/s41239-023-00411-8)
   - Save to: `research/journal-articles/psychology/`
-- [ ] [Successful investment projects are contagious: Social learning and network effects in industrial policy](https://doi.org/10.1016/j.ecosys.2026.101420)
-  - Save to: `research/journal-articles/business/`
-- [ ] [Sustaining Social Protection in Conflict Settings](https://doi.org/10.19088/basic.2026.007)
+- [x] [Sustaining Social Protection in Conflict Settings](https://doi.org/10.19088/basic.2026.007)
   - Save to: `research/journal-articles/political-science/`
-- [ ] [The Effects of Health Care Chatbot Personas With Different Social Roles on the Client-Chatbot Bond and Usage Intentions: Development of a Design Codebook and Web-Based Study](https://doi.org/10.2196/32630)
-  - Save to: `research/journal-articles/computer-science/`
-- [ ] [The Political Economy of Climate Adaptation and Environmental Health: The Case of Ethiopia](https://openalex.org/W2535150393)
-  - Save to: `research/journal-articles/political-science/`
-- [ ] [The Potential of Digital Cash Transfers to Strengthen the Link Between Humanitarian Assistance and Social Protection](https://openalex.org/W3093451388)
+- [x] [The Potential of Digital Cash Transfers to Strengthen the Link Between Humanitarian Assistance and Social Protection](https://openalex.org/W3093451388)
   - Save to: `research/journal-articles/business/`
-- [ ] [The Role of Cash Transfers in Social Protection, Humanitarian Response and Shock-Responsive Social Protection](https://openalex.org/W2895469150)
+- [x] [The Role of Cash Transfers in Social Protection, Humanitarian Response and Shock-Responsive Social Protection](https://openalex.org/W2895469150)
   - Save to: `research/journal-articles/business/`
-- [ ] [The role of climate change in forced displacement](https://doi.org/10.47053/jdc.210723)
+- [x] [The role of climate change in forced displacement](https://doi.org/10.47053/jdc.210723)
   - Save to: `research/journal-articles/environmental-science/`
-- [ ] [Three Essays On Climate Change Adaptation In Rural African Communities](https://openalex.org/W3195349349)
+- [x] [Three Essays On Climate Change Adaptation In Rural African Communities](https://openalex.org/W3195349349)
   - Save to: `research/journal-articles/geography/`
-- [ ] [Towards Intelligent-TPACK: An empirical study on teachers’ professional knowledge to ethically integrate artificial intelligence (AI)-based tools into education](https://doi.org/10.1016/j.chb.2022.107468)
+- [x] [Towards Intelligent-TPACK: An empirical study on teachers’ professional knowledge to ethically integrate artificial intelligence (AI)-based tools into education](https://doi.org/10.1016/j.chb.2022.107468)
   - Save to: `research/journal-articles/computer-science/`
-- [ ] [Understanding the user experience of customer service chatbots: An experimental study of chatbot interaction design](https://doi.org/10.1016/j.ijhcs.2022.102788)
-  - Save to: `research/journal-articles/computer-science/`
-- [ ] [Understanding users’ responses to disclosed vs. undisclosed customer service chatbots: a mixed methods study](https://doi.org/10.1007/s00146-023-01818-7)
-  - Save to: `research/journal-articles/psychology/`

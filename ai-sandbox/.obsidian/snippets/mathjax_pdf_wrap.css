@@ -1,0 +1,15 @@
+@media print {
+  /* Force long MathJax containers to break lines instead of clipping */
+  .markdown-rendered mjx-container[display="true"] {
+    white-space: normal !important;
+    display: block !important;
+    overflow-x: visible !important;
+  }
+  
+  /* Target the internal container to allow flexible wrapping */
+  mjx-math {
+    white-space: normal !important;
+    display: inline-block !important;
+    max-width: 100% !important;
+  }
+}

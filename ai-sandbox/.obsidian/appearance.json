@@ -1,7 +1,8 @@
 {
   "enabledCssSnippets": [
     "pdf_page_breaks",
-    "pdf-header-footer"
+    "pdf-header-footer",
+    "mathjax_pdf_wrap"
   ],
   "baseFontSize": 20,
   "baseFontSizeAction": true
