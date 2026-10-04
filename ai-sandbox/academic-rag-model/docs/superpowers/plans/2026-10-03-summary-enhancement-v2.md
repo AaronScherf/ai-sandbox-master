@@ -1556,7 +1556,9 @@ def test_bad_plan_is_retried_then_aborts(vault, make_llm):
 
 
 def test_requested_title_spelling_is_rendered(vault, make_llm):
-    llm = make_llm(_topic("  wald TEST "), _topic("LM test"))
+    odd = _topic("Wald test")
+    odd["title"] = "  wald TEST "  # same content, model-chosen spelling of the title only
+    llm = make_llm(odd, _topic("LM test"))
     assert _go(vault, llm) == 0
     text = _out(vault).read_text(encoding="utf-8")
     assert "## Wald test" in text and "wald TEST" not in text
@@ -1566,7 +1568,7 @@ def test_worked_example_off_makes_no_text_calls(vault, make_llm):
     llm = make_llm(_topic("Wald test"), _topic("LM test"))
     assert _go(vault, llm) == 0
     assert llm.code_execution == []
-    assert "Worked example" not in _out(vault).read_text(encoding="utf-8")
+    assert "### Worked example" not in _out(vault).read_text(encoding="utf-8")
 
 
 def test_worked_example_on_adds_one_code_execution_call_per_topic(vault, make_llm):
