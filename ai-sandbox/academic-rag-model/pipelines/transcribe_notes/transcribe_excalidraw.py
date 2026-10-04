@@ -31,6 +31,7 @@ from core.indexer.index_card import (
     derive_course,
     reconcile_and_write,
 )
+from core.indexer.questions import apply_markers
 from core.indexer.related import link_subsets
 from pipelines.transcribe_notes.excalidraw_chunking import chunk_image, load_canvas_image, resize_chunk_for_api
 from pipelines.transcribe_notes.transcribe_notes import build_frontmatter, transcribe_page_via_gemini
@@ -404,6 +405,14 @@ def write_outputs(
     rag_path = os.path.join(output_dir, f"{base_name}.excalidraw.rag.md")
     with open(rag_path, "w", encoding="utf-8") as f:
         f.write(build_frontmatter(rag_meta) + expanded_markdown)
+
+    # Regeneration rewrites the .rag.md from scratch; restore any resolved-question
+    # markers from the sidecar before the file is indexed, so its content hash and
+    # card match what is on disk.
+    try:
+        apply_markers(raw_path, rag_path)
+    except Exception as err:
+        print(f"WARNING: could not re-apply question markers to {rag_path} ({err}).")
 
     try:
         file_id = compute_file_id(excalidraw_md_path)

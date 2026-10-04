@@ -716,3 +716,45 @@ def test_write_outputs_survives_a_linking_failure(tmp_path, capsys):
         raw_path, rag_path = write_outputs(**kwargs)
     assert os.path.exists(rag_path)
     assert "WARNING" in capsys.readouterr().out
+
+
+def test_write_outputs_reapplies_markers_from_an_existing_sidecar(tmp_path):
+    from core.env.academic_hub_paths import resolve_output_dir
+    from core.indexer.questions import Entry, find_tags, sidecar_path_for, write_sidecar
+
+    kwargs = _write_outputs_kwargs(tmp_path)
+    kwargs["raw_markdown"] = "**[Handwritten]**\n[Question] why not reflexivity?\n"
+    kwargs["expanded_markdown"] = "Prose. [Question] why not reflexivity?\n"
+    out_dir = resolve_output_dir(kwargs["excalidraw_md_path"])
+    os.makedirs(out_dir, exist_ok=True)
+    raw_path = os.path.join(out_dir, "Drawing 2026-09-08.excalidraw.md")
+    tag = find_tags(kwargs["raw_markdown"])[0]
+    write_sidecar(sidecar_path_for(raw_path), {"questions": "1"}, [Entry(
+        qid=tag.qid, question=tag.text, grounded=True, model="m", resolved_at="t", answer="A", sources=["s"],
+    )])
+    with patch("pipelines.transcribe_notes.transcribe_excalidraw.reconcile_and_write"), \
+         patch("pipelines.transcribe_notes.transcribe_excalidraw.link_subsets"):
+        _raw, rag_path = write_outputs(**kwargs)
+    text = open(rag_path, encoding="utf-8").read()
+    assert f"[Question: answered -> Drawing 2026-09-08.excalidraw.questions.md#{tag.qid}] why not reflexivity?" in text
+
+
+def test_write_outputs_applies_markers_before_indexing(tmp_path):
+    order = []
+    kwargs = _write_outputs_kwargs(tmp_path)
+    with patch("pipelines.transcribe_notes.transcribe_excalidraw.apply_markers", side_effect=lambda *a: order.append("markers")), \
+         patch("pipelines.transcribe_notes.transcribe_excalidraw.reconcile_and_write", side_effect=lambda *a, **k: order.append("index")), \
+         patch("pipelines.transcribe_notes.transcribe_excalidraw.link_subsets"):
+        write_outputs(**kwargs)
+    assert order == ["markers", "index"]
+
+
+def test_write_outputs_survives_a_marker_failure_and_still_indexes(tmp_path, capsys):
+    kwargs = _write_outputs_kwargs(tmp_path)
+    with patch("pipelines.transcribe_notes.transcribe_excalidraw.apply_markers", side_effect=RuntimeError("boom")), \
+         patch("pipelines.transcribe_notes.transcribe_excalidraw.reconcile_and_write") as mock_index, \
+         patch("pipelines.transcribe_notes.transcribe_excalidraw.link_subsets"):
+        _raw, rag_path = write_outputs(**kwargs)
+    assert os.path.exists(rag_path)
+    mock_index.assert_called_once()
+    assert "WARNING" in capsys.readouterr().out
