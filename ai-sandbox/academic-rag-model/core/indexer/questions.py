@@ -181,6 +181,35 @@ def write_sidecar(path: str, fields: dict, entries: list[Entry]) -> None:
 _PAIR_SIMILARITY_MIN = 0.8
 
 
+def _hash_part(qid: str) -> str:
+    return qid.split("-", 1)[1] if "-" in qid else qid
+
+
+def rekey_entries(tags: list[Tag], entries: list[Entry]) -> bool:
+    """Moves an entry onto the id its question now has. An id embeds the
+    question's ordinal, so re-transcribing a note after an earlier question was
+    removed or reordered shifts every later ordinal, while the text hash -- the
+    part that actually identifies the question -- is unchanged. An entry whose
+    id no longer appears among `tags` but whose hash matches a tag that has no
+    entry yet is renamed to that tag's id (no model call needed). Entries whose
+    id is still current are never touched. Returns True if any id changed."""
+    current = {t.qid for t in tags}
+    answered = {e.qid for e in entries}
+    waiting: dict[str, list[str]] = {}
+    for tag in tags:
+        if tag.qid not in answered:
+            waiting.setdefault(_hash_part(tag.qid), []).append(tag.qid)
+    changed = False
+    for entry in entries:
+        if entry.qid in current:
+            continue
+        targets = waiting.get(_hash_part(entry.qid))
+        if targets:
+            entry.qid = targets.pop(0)
+            changed = True
+    return changed
+
+
 def marker_for(entry: Entry, sidecar_filename: str) -> str:
     label = "answered" if entry.grounded else "answered (ungrounded)"
     return f"[Question: {label} -> {sidecar_filename}#{entry.qid}]"
@@ -223,6 +252,7 @@ def apply_markers(raw_path: str, rag_path: str) -> bool:
     with open(rag_path, encoding="utf-8") as f:
         rag_text = f.read()
     fields, entries = read_sidecar(sidecar)
+    rekeyed = rekey_entries(raw, entries)
     by_id = {e.qid: e for e in entries}
 
     rag = find_tags(rag_text)
@@ -248,6 +278,6 @@ def apply_markers(raw_path: str, rag_path: str) -> bool:
         if entry.stale != should_be_stale:
             entry.stale = should_be_stale
             stale_changed = True
-    if stale_changed:
+    if stale_changed or rekeyed:
         write_sidecar(sidecar, fields, entries)
-    return changed or stale_changed
+    return changed or stale_changed or rekeyed

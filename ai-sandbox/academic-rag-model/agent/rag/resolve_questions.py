@@ -27,6 +27,7 @@ from core.indexer.questions import (
     find_tags,
     rag_path_for,
     read_sidecar,
+    rekey_entries,
     sidecar_path_for,
     write_sidecar,
 )
@@ -96,7 +97,7 @@ def build_answer_prompt(question: str, context: str, neighbor_slides: list[str],
 
 def resolve_question(
     tag: Tag, context: str, neighbors: list[str], *, client, roots: list[str], course: str | None,
-    model: str, exclude_basenames: set[str], retrieve=retrieve_passages, extract=_extract_key_terms,
+    model: str, exclude_paths: set[str], retrieve=retrieve_passages, extract=_extract_key_terms,
 ) -> Entry:
     """One question -> one Entry. Raises on any failure (including an empty
     answer) so the caller records nothing for it. Grounded means a passage
@@ -105,7 +106,8 @@ def resolve_question(
     as grounded."""
     key_terms = extract(f"{tag.text}\n{context}", client)
     found = retrieve(roots, f"{tag.text}\n{context[:300]}", client, course=course, key_terms=key_terms)
-    passages = [p for p in found if os.path.basename(p.path) not in exclude_basenames]
+    # Hub-relative paths, not basenames: a same-named note in another folder is a legitimate source.
+    passages = [p for p in found if p.path.replace("\\", "/") not in exclude_paths]
     grounded = bool(passages) and (not key_terms or any(_term_match_count(p.text, key_terms) for p in passages))
     prompt = build_answer_prompt(tag.text, context, neighbors, passages if grounded else None)
     response = call_with_retries(lambda: client.models.generate_content(
@@ -179,10 +181,11 @@ def resolve_note(
     sidecar = sidecar_path_for(raw_path)
     rag_path = rag_path_for(raw_path)
     fields, entries = read_sidecar(sidecar)
+    rekeyed = rekey_entries(tags, entries)  # answers survive a re-transcription that shifted ordinals
     by_id = {e.qid: e for e in entries}
     card = _note_card(hub, raw_path)
     course = derive_course(_rel(hub, raw_path))
-    exclude = {os.path.basename(rag_path), os.path.basename(sidecar)}
+    exclude = {_rel(hub, rag_path), _rel(hub, sidecar)}
 
     result = NoteResult()
     for tag in tags:
@@ -195,14 +198,14 @@ def resolve_note(
         try:
             by_id[tag.qid] = resolve_question(
                 tag, context, neighbors, client=client, roots=roots, course=course, model=model,
-                exclude_basenames=exclude, retrieve=retrieve, extract=extract,
+                exclude_paths=exclude, retrieve=retrieve, extract=extract,
             )
             result.resolved += 1
         except Exception as err:
             print(f"WARNING: {tag.qid} ({tag.text[:60]!r}) failed: {err}")
             result.failed.append(tag.qid)
 
-    if result.resolved:
+    if result.resolved or rekeyed:
         in_order = [by_id[t.qid] for t in tags if t.qid in by_id]
         leftover = [e for qid, e in by_id.items() if qid not in {t.qid for t in tags}]
         ordered = in_order + leftover

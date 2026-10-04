@@ -76,7 +76,7 @@ def _resolve(client, passages, key_terms, exclude=()):
     tag = find_tags("[Question] what is the Hausdorff distance?")[0]
     return resolve_question(
         tag, "ctx text", ["Slide text"], client=client, roots=["/r"], course="c", model="m",
-        exclude_basenames=set(exclude), retrieve=lambda *a, **k: passages, extract=lambda q, c: key_terms,
+        exclude_paths=set(exclude), retrieve=lambda *a, **k: passages, extract=lambda q, c: key_terms,
     )
 
 
@@ -107,8 +107,21 @@ def test_grounded_when_there_are_no_key_terms_but_passages_exist():
 
 def test_the_notes_own_files_are_excluded_from_grounding():
     own = _passage("The Hausdorff metric is defined as ...", path="lecture/N.excalidraw.rag.md")
-    entry = _resolve(_client(), [own], ["Hausdorff"], exclude={"N.excalidraw.rag.md"})
+    entry = _resolve(_client(), [own], ["Hausdorff"], exclude={"lecture/N.excalidraw.rag.md"})
     assert entry.grounded is False and entry.sources == []
+
+
+def test_a_same_named_note_in_another_folder_is_not_excluded():
+    other = _passage("The Hausdorff metric is defined as ...", path="week2/N.excalidraw.rag.md")
+    entry = _resolve(_client(), [other], ["Hausdorff"], exclude={"lecture/N.excalidraw.rag.md"})
+    assert entry.grounded is True
+    assert entry.sources == ["week2/N.excalidraw.rag.md (p. 3)"]
+
+
+def test_windows_style_passage_paths_still_match_the_exclusion():
+    own = _passage("The Hausdorff metric is defined as ...", path="lecture\\N.excalidraw.rag.md")
+    entry = _resolve(_client(), [own], ["Hausdorff"], exclude={"lecture/N.excalidraw.rag.md"})
+    assert entry.grounded is False
 
 
 def test_empty_model_answer_raises_so_no_partial_entry_is_recorded():
@@ -191,6 +204,20 @@ def test_one_failing_question_does_not_stop_the_others_and_is_retried_alone(tmp_
     assert mock.call_count == 1 and retry.resolved == 1 and retry.failed == []
 
 
+def test_resolve_note_excludes_the_notes_own_files_by_hub_relative_path(tmp_path):
+    hub, raw = _hub(tmp_path)
+    seen = []
+
+    def spy(tag, context, neighbors, **kwargs):
+        seen.append(kwargs["exclude_paths"])
+        return _fake_resolve()(tag, context, neighbors, **kwargs)
+
+    with patch.object(rq, "resolve_question", side_effect=spy):
+        resolve_note(raw, hub, client=object(), roots=[hub])
+    base = "academic_notes/microecon/lecture_notes/processed_outputs/N 2026-09-15"
+    assert seen[0] == {base + ".excalidraw.rag.md", base + ".excalidraw.questions.md"}
+
+
 def test_budget_caps_the_number_of_questions_resolved(tmp_path):
     hub, raw = _hub(tmp_path)
     with patch.object(rq, "resolve_question", side_effect=_fake_resolve()):
@@ -249,3 +276,21 @@ def test_cli_max_questions_stops_after_the_budget(tmp_path):
          patch.object(rq, "resolve_question", side_effect=_fake_resolve()) as mock:
         rq.main(["--root", hub, "--max-questions", "1"])
     assert mock.call_count == 1
+
+
+def test_resolve_note_reuses_an_answer_whose_ordinal_shifted_in_a_retranscription(tmp_path):
+    hub, raw = _hub(tmp_path)
+    with patch.object(rq, "resolve_question", side_effect=_fake_resolve()):
+        resolve_note(raw, hub, client=object(), roots=[hub])
+    # re-transcription dropped the first question above the second: ordinal 2 becomes 1
+    shifted_body = BODY.replace("notes [Question] why not reflexivity?\nmore", "notes\nmore")
+    with open(raw, "w", encoding="utf-8") as f:
+        f.write(RAW_FM + shifted_body)
+    with patch.object(rq, "resolve_question", side_effect=AssertionError("answered question must be reused")) as mock:
+        result = resolve_note(raw, hub, client=object(), roots=[hub])
+    assert (result.resolved, result.skipped, result.failed) == (0, 1, [])
+    mock.assert_not_called()
+    new_qid = find_tags(shifted_body)[0].qid
+    assert new_qid.startswith("q1-")
+    _, entries = read_sidecar(sidecar_path_for(raw))
+    assert new_qid in {e.qid for e in entries}

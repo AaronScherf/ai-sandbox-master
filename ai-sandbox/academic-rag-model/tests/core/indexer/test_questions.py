@@ -265,3 +265,48 @@ def test_missing_rag_file_is_a_noop(tmp_path):
     raw_path, rag_path, _ = _setup(tmp_path)
     os.remove(rag_path)
     assert apply_markers(raw_path, rag_path) is False
+
+
+from core.indexer.questions import rekey_entries
+
+RAW_TWO = "---\nchunks: 1\n---\n\n[Question] first question?\nx\n[Question] why not reflexivity?\n"
+RAW_AFTER_DELETE = "---\nchunks: 1\n---\n\n[Question] why not reflexivity?\n"
+
+
+def test_rekey_moves_an_answer_to_the_ordinal_its_question_shifted_to():
+    old = raw_tags(RAW_TWO)
+    entries = [_entry_for(old[0]), _entry_for(old[1])]
+    new = raw_tags(RAW_AFTER_DELETE)  # the first question was deleted; "second" is now q1
+    assert new[0].qid != old[1].qid and new[0].qid.split("-")[1] == old[1].qid.split("-")[1]
+    assert rekey_entries(new, entries) is True
+    assert entries[1].qid == new[0].qid
+    assert entries[0].qid == old[0].qid  # no matching question left: untouched, stays stale-able
+
+
+def test_rekey_is_a_noop_when_ids_already_match():
+    tags = raw_tags(RAW_TWO)
+    entries = [_entry_for(t) for t in tags]
+    assert rekey_entries(tags, entries) is False
+    assert [e.qid for e in entries] == [t.qid for t in tags]
+
+
+def test_rekey_never_reassigns_an_entry_whose_id_is_still_current():
+    tags = raw_tags("[Question] same words?\n[Question] same words?\n")
+    only_second = [_entry_for(tags[1])]
+    assert rekey_entries(tags, only_second) is False
+    assert only_second[0].qid == tags[1].qid
+
+
+def test_apply_markers_keeps_an_answer_attached_after_the_raw_transcript_shifts_ordinals(tmp_path):
+    raw_path, rag_path, old_tags = _setup(tmp_path)
+    apply_markers(raw_path, rag_path)
+    with open(raw_path, "w", encoding="utf-8") as f:
+        f.write(RAW_AFTER_DELETE)
+    with open(rag_path, "w", encoding="utf-8") as f:
+        f.write("---\nx: y\n---\n\nOnly. [Question] why not reflexivity?\n")
+    new_tags = raw_tags(RAW_AFTER_DELETE)
+    assert apply_markers(raw_path, rag_path) is True
+    assert f"[Question: answered -> N.excalidraw.questions.md#{new_tags[0].qid}] why not reflexivity?" in _read(rag_path)
+    _, entries = read_sidecar(sidecar_path_for(raw_path))
+    by_text = {e.question: e for e in entries}
+    assert by_text["why not reflexivity?"].qid == new_tags[0].qid and not by_text["why not reflexivity?"].stale
