@@ -9,6 +9,7 @@ Python 3.13 packages that convert academic PDFs/docs into Markdown, index them, 
 
 ## Scope
 - `core/env/` and `core/indexer/` are shared by everything; changes there need tests for the callers too.
+- **Any step that needs a human decision produces an interactive Artifact by default**, not a JSON or Markdown file to hand-edit. Use a checkbox/Link/Dismiss page with decisions in its `db` collection, then apply them with the pipeline's own resolve/reject functions. Raw ledger files (e.g. `.index/offering_links/review.json`) are for the code, not for review. Reference: `core/indexer/offering_links.py` and its review artifact (`https://claude.ai/artifact/3xwWTQvW8yfywGbVDqxztE`).
 - Ignore `archive/old_attempts/` (superseded), `.venv/`, `__pycache__/`, `audio_generator/models/`.
 - Design history lives in `docs/status/<package>/<date>-*.md` (subfoldered by package; latest date wins within a package's subfolder) and `docs/superpowers/{specs,plans}/`. Grep these for the relevant section; don't read them whole.
 - API keys come from `../.env` (`GEMINI_API_KEY`, `PAID_GEMINI_KEY`). Never print or commit them. Don't trigger paid Gemini runs over large batches without asking.
