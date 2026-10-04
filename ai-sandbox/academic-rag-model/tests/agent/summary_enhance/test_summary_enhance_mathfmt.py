@@ -85,3 +85,30 @@ def test_idempotent():
 def test_plain_text_unchanged():
     text = "No math here.\n\nSecond paragraph with $x$ only."
     assert split_display_math(text) == text
+
+
+def test_currency_dollar_signs_are_not_math():
+    for text in ["Worker A earns $12 per hour while worker B earns $15 per hour.",
+                 "Spend $5 on the formula $x$ now.",
+                 "Prices of $5 and $6 differ a lot, and so on and so forth."]:
+        assert split_display_math(text) == text
+
+
+def test_escaped_dollar_is_literal_and_real_formula_still_converts():
+    out = split_display_math(r"Costs \$5 and the formula $ab+cd+ef+gh$ matters.")
+    assert out == "Costs \\$5 and the formula\n\n$$\nab+cd+ef+gh\n$$\n\nmatters."
+
+
+def test_inline_code_untouched():
+    text = "Use `$ab+cd+ef+gh$` literally."
+    assert split_display_math(text) == text
+
+
+def test_headings_untouched():
+    text = r"### Test of $\beta_1 = \beta_2 = \beta_3 = 0$ end"
+    assert split_display_math(text) == text
+
+
+def test_space_padded_dollars_are_not_math():
+    text = "a $ ab+cd+ef+gh $ b"
+    assert split_display_math(text) == text

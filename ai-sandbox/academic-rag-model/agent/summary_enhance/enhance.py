@@ -22,7 +22,7 @@ from dataclasses import asdict
 from datetime import datetime, timezone
 from pathlib import Path
 
-from agent.summary_enhance.llm import DEFAULT_MODEL, GeminiClient, LLMClient
+from agent.summary_enhance.llm import DEFAULT_MODEL, GeminiClient, LLMClient, UnusableResponse
 from agent.summary_enhance.prompt import (
     build_plan_prompt, build_topic_prompt, build_worked_example_prompt,
 )
@@ -66,13 +66,14 @@ def resolve_output(guide: GuideInput, output: str | None, force: bool) -> Path:
 def _with_retry(make_prompt, call, check):
     """Up to two attempts; the second prompt carries the first attempt's errors.
     make_prompt(errors|None) -> str; call(prompt) -> raw; check(raw) -> (result, errors).
-    A ValueError from the client (truncated, empty, not JSON) counts as an unusable
-    response and is retried; any other exception propagates."""
+    An UnusableResponse from the client (truncated, empty, not JSON) is retried; any
+    other exception, including a ValueError from building the prompt, propagates."""
     errors: list[str] | None = None
     for _ in range(2):
+        prompt = make_prompt(errors)
         try:
-            raw = call(make_prompt(errors))
-        except ValueError as err:
+            raw = call(prompt)
+        except UnusableResponse as err:
             errors = [f"model response unusable: {err}"]
             continue
         result, errors = check(raw)

@@ -15,6 +15,12 @@ DEFAULT_MODEL = "gemini-3.8-flash"
 MAX_OUTPUT_TOKENS = 32768
 
 
+class UnusableResponse(ValueError):
+    """The call succeeded but its output cannot be used (truncated, empty, not JSON).
+    A distinct type so callers retry only these, not unrelated ValueErrors (bad SDK
+    config, a bug while building the prompt)."""
+
+
 class LLMClient(Protocol):
     model: str
 
@@ -49,10 +55,10 @@ class GeminiClient:
         response = call_with_retries(lambda: self._client.models.generate_content(
             model=self.model, contents=prompt, config=config))
         if _truncated(response):
-            raise ValueError("response truncated (hit the output token limit)")
+            raise UnusableResponse("response truncated (hit the output token limit)")
         text = getattr(response, "text", None)
         if not text:
-            raise ValueError("model returned an empty response")
+            raise UnusableResponse("model returned an empty response")
         return text
 
     def generate_structured(self, prompt: str, schema: dict) -> dict:
@@ -65,7 +71,7 @@ class GeminiClient:
         try:
             return json.loads(_strip_fences(text))
         except json.JSONDecodeError as err:
-            raise ValueError(f"model response was not valid JSON: {err}") from err
+            raise UnusableResponse(f"model response was not valid JSON: {err}") from err
 
     def generate_text(self, prompt: str, *, code_execution: bool = False) -> str:
         config: dict = {"temperature": 0.2, "max_output_tokens": MAX_OUTPUT_TOKENS}

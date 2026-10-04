@@ -148,7 +148,6 @@ def test_worked_example_valid():
     WORKED_TEXT + " [S1: x]",
     WORKED_TEXT + " (External context)",
     WORKED_TEXT + " \x08eta",
-    WORKED_TEXT + " the shape $\\hat\nu$",
 ])
 def test_worked_example_invalid(bad):
     assert validate_worked_example(bad) != []
@@ -193,3 +192,25 @@ def test_parse_topic_leaves_unrecognizable_labels_for_validation_to_reject():
     data = {"title": "T", "sections": [{"heading": "H", "blocks": [
         {"type": "grounded", "text": "a", "sources": ["Wooldridge ch.4"]}]}]}
     assert parse_topic(data).sections[0].blocks[0].sources == ["WOOLDRIDGE CH.4"]
+
+
+def test_currency_across_lines_is_not_inline_math_for_json_text():
+    assert _check(_with_text("Prices were $12 per unit\nand later $15."), min_words=1) == []
+
+
+def test_worked_example_allows_currency_code_fences_and_tabs():
+    extra = "\nPrices were $12 per unit\nand later $15.\n```python\n# compute\n\tx = 1\n```\n"
+    assert validate_worked_example(WORKED_TEXT + extra) == []
+
+
+def test_code_fence_with_hash_comment_ok_in_grounded():
+    assert _check(_with_text("```python\n# compute\nx=1\n```"), min_words=1) == []
+
+
+def test_gt_line_inside_display_math_ok():
+    assert _check(_with_text("intro\n\n$$\na\n> b\n$$"), min_words=1) == []
+
+
+def test_worked_example_control_char_message_is_not_about_json():
+    errors = validate_worked_example(WORKED_TEXT + " \x08")
+    assert errors and not any("JSON" in e for e in errors)

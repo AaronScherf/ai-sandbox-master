@@ -9,9 +9,15 @@ import re
 
 SYMBOL_LIMIT = 10
 
-_INLINE_RE = re.compile(r"(?<!\$)\$(?!\$)([^$\n]+?)(?<!\$)\$(?!\$)([.,;:]?)")
-_SKIP_LINE_RE = re.compile(r"^\s*(?:[-*+]\s|\d+[.)]\s|\||>)")
+# Pandoc/Obsidian rules for inline math, so currency and escaped dollars are not math:
+# the opening $ is not escaped and not followed by whitespace; the closing $ is not
+# preceded by whitespace and not followed by a digit; an escaped dollar inside the span
+# is a literal.
+_INLINE_RE = re.compile(
+    r"(?<![\\$])\$(?![\s$])((?:[^$\n\\]|\\.)+?)(?<![\s\\])\$(?![\d$])([.,;:]?)")
+_SKIP_LINE_RE = re.compile(r"^\s*(?:[-*+]\s|\d+[.)]\s|\||>|#{1,6}\s)")
 _FENCE_RE = re.compile(r"^\s*```")
+_CODE_SPAN_RE = re.compile(r"(`[^`\n]*`)")
 
 
 def symbol_count(formula: str) -> int:
@@ -28,7 +34,10 @@ def _convert_line(line: str) -> str:
             return m.group(0)
         return f"\n\n$$\n{formula}{m.group(2)}\n$$\n\n"
 
-    return _INLINE_RE.sub(repl, line)
+    parts = _CODE_SPAN_RE.split(line)  # odd indexes are `code spans`, left alone
+    for i in range(0, len(parts), 2):
+        parts[i] = _INLINE_RE.sub(repl, parts[i])
+    return "".join(parts)
 
 
 def split_display_math(text: str) -> str:

@@ -131,3 +131,45 @@ def test_worked_example_options_recorded(vault):
 def test_tags_constants():
     assert EXTERNAL_TAG == "*(External context)*"
     assert WORKED_TAG == "*(Worked example — illustrative data, not from the textbooks)*"
+
+
+def _ext(vault, text):
+    enhanced = Enhanced([Topic("T", [Section("A", [Block("external", text, [])])])])
+    return _front(_render(vault, enhanced)[1])[1]
+
+
+def test_external_tag_survives_a_long_formula_split(vault):
+    formula = r"W = n(\hat\theta-\theta_0)^2/V"
+    body = _ext(vault, f"Intuition: the stat ${formula}$ grows, so large values reject.")
+    assert (f"*(External context)* Intuition: the stat\n\n$$\n{formula}\n$$\n\n"
+            "*(External context)* grows, so large values reject.") in body
+
+
+def test_display_only_paragraph_mid_block_is_not_tagged(vault):
+    body = _ext(vault, "Intro.\n\n$$a+b$$\n\nMore.")
+    assert "*(External context)* Intro.\n\n$$a+b$$\n\n*(External context)* More." in body
+
+
+def test_code_fence_in_external_block_stays_intact(vault):
+    body = _ext(vault, "Here is code:\n\n```python\nx=1\n\ny=2\n```\n\nAfter.")
+    assert "*(External context)* Here is code:\n\n```python\nx=1\n\ny=2\n```\n\n*(External context)* After." in body
+    assert "*(External context)* ```" not in body
+
+
+def test_display_math_with_a_blank_line_inside_is_not_split_or_tagged(vault):
+    body = _ext(vault, "Start.\n\n$$\na\n\n+b\n$$\n\nEnd.")
+    assert "*(External context)* Start.\n\n$$\na\n\n+b\n$$\n\n*(External context)* End." in body
+
+
+def test_headings_are_never_math_split(vault):
+    enhanced = Enhanced([Topic("T", [Section(r"Test of $\beta_1 = \beta_2 = \beta_3 = 0$",
+                                             [Block("grounded", "x", ["S1"])])])])
+    body = _front(_render(vault, enhanced)[1])[1]
+    assert "### Test of $\\beta_1 = \\beta_2 = \\beta_3 = 0$\n" in body
+
+
+def test_worked_example_gets_display_math(vault):
+    enhanced = Enhanced([Topic("T", [Section("A", [Block("grounded", "x", ["S1"])])],
+                               worked_example="Value $ab+cd+ef+gh$ here.")])
+    body = _front(_render(vault, enhanced, worked_example=True)[1])[1]
+    assert "Value\n\n$$\nab+cd+ef+gh\n$$\n\nhere." in body

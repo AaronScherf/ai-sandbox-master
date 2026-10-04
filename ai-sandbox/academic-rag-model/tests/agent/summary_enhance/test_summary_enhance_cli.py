@@ -5,6 +5,7 @@ import pytest
 
 from agent.summary_enhance import enhance
 from agent.summary_enhance.enhance import DEFAULT_MIN_WORDS, run
+from agent.summary_enhance.llm import UnusableResponse
 from conftest import PLAN_JSON, WORKED_TEXT, make_topic_json, write_guide
 
 TOPICS = ["Wald test", "LM test"]
@@ -115,7 +116,7 @@ def test_persistent_validation_failure_writes_nothing(vault, make_llm):
 
 
 def test_truncated_or_invalid_response_is_retried_as_unusable(vault, make_llm):
-    llm = make_llm(ValueError("response truncated (hit the output token limit)"),
+    llm = make_llm(UnusableResponse("response truncated (hit the output token limit)"),
                    _topic("Wald test"), _topic("LM test"))
     assert _go(vault, llm) == 0
     assert "REJECTED" in llm.calls[1] and "unusable" in llm.calls[1]
@@ -272,3 +273,16 @@ def test_main_defaults(vault, monkeypatch):
     monkeypatch.setattr(enhance, "run", lambda guide, **kw: captured.update(kw) or 0)
     enhance.main([str(vault.guide)])
     assert captured["worked_example"] is False and captured["min_words"] == DEFAULT_MIN_WORDS
+
+
+def test_plain_value_error_from_the_client_is_not_retried_as_a_bad_response(vault, make_llm):
+    llm = make_llm(ValueError("bad config"))
+    assert _go(vault, llm) == 4 and len(llm.calls) == 1
+
+
+def test_error_while_building_a_prompt_is_not_swallowed(vault, make_llm, monkeypatch):
+    def boom(*a, **k):
+        raise ValueError("prompt bug")
+
+    monkeypatch.setattr(enhance, "build_topic_prompt", boom)
+    assert _go(vault, make_llm()) == 4

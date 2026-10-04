@@ -19,14 +19,45 @@ WORKED_TAG = "*(Worked example — illustrative data, not from the textbooks)*"
 EXTERNAL_MARKER = "(External context)"
 _INTRO = ("*Study guide synthesized from the course textbooks. Passages marked (External context) "
           "or (Worked example) come from outside the textbooks.*")
-_STRUCTURE_START_RE = re.compile(r"^\s*(?:\$|[-*+]\s|\d+[.)]\s|\||>)")
+_STRUCTURE_START_RE = re.compile(r"^\s*(?:\$|[-*+]\s|\d+[.)]\s|\||>|```|~~~)")
+_FENCE_LINE_RE = re.compile(r"^\s*(?:```|~~~)")
+
+
+def _paragraphs(text: str) -> list[str]:
+    """Split on blank lines, except inside code fences and $$ display blocks."""
+    paragraphs: list[str] = []
+    current: list[str] = []
+    in_fence = in_display = False
+    for line in text.strip().split("\n"):
+        if not in_fence and not in_display and not line.strip():
+            if current:
+                paragraphs.append("\n".join(current))
+                current = []
+            continue
+        current.append(line)
+        if _FENCE_LINE_RE.match(line):
+            in_fence = not in_fence
+        elif not in_fence and line.count("$$") % 2 == 1:
+            in_display = not in_display
+    if current:
+        paragraphs.append("\n".join(current))
+    return paragraphs
+
+
+def _is_display_only(paragraph: str) -> bool:
+    p = paragraph.strip()
+    return p.startswith("$$") and p.endswith("$$")
 
 
 def _tag_external(text: str) -> str:
-    paragraphs = [p for p in re.split(r"\n\s*\n", text.strip()) if p.strip()]
+    """Long formulas are split out first, so every resulting text paragraph keeps its tag.
+    A structural paragraph (list, table, quote, fence, display math) is tagged on its own
+    line only when it opens the block; mid-block it continues the tagged text above it."""
     tagged = []
-    for p in paragraphs:
-        if _STRUCTURE_START_RE.match(p):
+    for i, p in enumerate(_paragraphs(split_display_math(text.strip()))):
+        if i > 0 and (_is_display_only(p) or _STRUCTURE_START_RE.match(p)):
+            tagged.append(p)
+        elif _STRUCTURE_START_RE.match(p):
             tagged.append(f"{EXTERNAL_TAG}\n\n{p}")
         else:
             tagged.append(f"{EXTERNAL_TAG} {p}")
@@ -34,7 +65,9 @@ def _tag_external(text: str) -> str:
 
 
 def _block_text(block: Block) -> str:
-    return block.text.strip() if block.type == "grounded" else _tag_external(block.text)
+    if block.type == "grounded":
+        return split_display_math(block.text.strip())
+    return _tag_external(block.text)
 
 
 def render(guide: GuideInput, enhanced: Enhanced, *, model: str, generated_at: str,
@@ -84,6 +117,5 @@ def render(guide: GuideInput, enhanced: Enhanced, *, model: str, generated_at: s
         if topic.worked_example:
             parts.append("### Worked example")
             parts.append(WORKED_TAG)
-            parts.append(topic.worked_example.strip())
-    body = "\n\n".join(parts) + "\n"
-    return frontmatter + split_display_math(body)
+            parts.append(split_display_math(topic.worked_example.strip()))
+    return frontmatter + "\n\n".join(parts) + "\n"

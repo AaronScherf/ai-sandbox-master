@@ -85,3 +85,12 @@ def test_generate_text_with_code_execution_enables_the_tool():
 def test_model_attribute_and_default():
     assert GeminiClient(SimpleNamespace(models=None)).model == DEFAULT_MODEL
     assert "flash" in DEFAULT_MODEL
+
+
+def test_unusable_responses_raise_the_dedicated_subclass():
+    from agent.summary_enhance.llm import UnusableResponse
+    assert issubclass(UnusableResponse, ValueError)
+    for text, finish in [(None, None), ("not json", None), ('{"a": 1}', "MAX_TOKENS")]:
+        client, _ = _client(text, finish)
+        with pytest.raises(UnusableResponse):
+            client.generate_structured("p", {})

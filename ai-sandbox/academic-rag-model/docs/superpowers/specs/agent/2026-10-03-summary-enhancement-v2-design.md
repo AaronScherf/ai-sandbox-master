@@ -118,16 +118,23 @@ paragraphs...
   that cites the chunk. `path` is the vault-relative path from the guide's own reference; the
   absolute corpus root is no longer stored (removes the local-path leak noted in the v1
   review). `indexer_source_refs` is not written; enhancing an enhanced guide is out of scope.
-- **External tag:** every paragraph of an `external` block (paragraphs split on blank lines)
-  begins with `*(External context)* `. If the paragraph starts with `$`, a list marker, a
-  table pipe, or `>`, the tag goes on its own line above it.
-- **Display-math rule:** within paragraphs of any block and within the worked example, each
-  inline `$…$` span whose symbol count exceeds 10 is split out onto its own `$$` block:
-  text before (if any), a line `$$`, the formula, `$$`, text after (if any). Trailing
-  `.`, `,`, `;`, `:` immediately after the closing `$` moves inside the display block. Symbol
-  count: each `\command` is 1; each remaining non-whitespace character other than `{` and `}`
-  is 1 (so `^`, `_`, digits and operators count). Existing `$$…$$` spans, fenced code, and
-  lines that start a list item, table row, or blockquote are left untouched.
+- **Display-math rule (applied per block, before tagging, never to headings or the document
+  title):** within each block and within the worked example, each inline `$…$` span whose
+  symbol count exceeds 10 is split out onto its own `$$` block: text before (if any), a line
+  `$$`, the formula, `$$`, text after (if any). Trailing `.`, `,`, `;`, `:` immediately after
+  the closing `$` moves inside the display block. Symbol count: each `\command` is 1; each
+  remaining non-whitespace character other than `{` and `}` is 1 (so `^`, `_`, digits and
+  operators count). A `$…$` span is math only under Pandoc/Obsidian rules (opening `$` not
+  escaped and not followed by whitespace; closing `$` not preceded by whitespace and not
+  followed by a digit), so currency such as "$12 … $15" is left alone. Existing `$$…$$`
+  spans, fenced code, `inline code`, and lines that start a heading, list item, table row, or
+  blockquote are left untouched.
+- **External tag:** applied after the math split, to the resulting paragraphs of an
+  `external` block (paragraphs split on blank lines, except inside code fences and `$$`
+  blocks). Every text paragraph begins with `*(External context)* `, so text that follows a
+  moved-out formula keeps its tag. A structural paragraph (list, table, blockquote, code
+  fence, display math) gets the tag on its own line above it only when it opens the block;
+  mid-block it continues the tagged text above it and is not tagged again.
 
 ### LLM client
 
