@@ -19,7 +19,7 @@ import json
 import os
 
 from core.env.academic_hub_paths import find_containing_offering_label, to_resources_root
-from core.indexer.index_card import now_iso
+from core.indexer.index_card import cosine_similarity, now_iso
 
 OFFERING_LINK_AUTO_THRESHOLD = 0.90  # starting guess -- calibrate against real data (Task 4)
 OFFERING_LINK_REVIEW_THRESHOLD = 0.80  # starting guess -- calibrate against real data (Task 4)
@@ -110,3 +110,30 @@ def derive_offering_for_card(card: dict, academic_hub_root: str) -> str | None:
     except ValueError:
         return None
     return find_containing_offering_label(abs_resources_path)
+
+
+def find_cross_offering_matches(
+    cards_with_offerings: list[tuple[dict, str | None]],
+    auto_threshold: float = OFFERING_LINK_AUTO_THRESHOLD,
+    review_threshold: float = OFFERING_LINK_REVIEW_THRESHOLD,
+) -> tuple[list[tuple[dict, dict, float]], list[tuple[dict, dict, float]]]:
+    """Pure function -- no file I/O. Compares every pair of cards whose
+    offerings differ (two primary cards, both None, are therefore never
+    compared here at all -- that's retag.py's subject-clustering job, not
+    this one's). Returns (auto_matches, review_matches), each a list of
+    (card_a, card_b, similarity) above its respective threshold."""
+    auto_matches = []
+    review_matches = []
+    n = len(cards_with_offerings)
+    for i in range(n):
+        card_a, offering_a = cards_with_offerings[i]
+        for j in range(i + 1, n):
+            card_b, offering_b = cards_with_offerings[j]
+            if offering_a == offering_b:
+                continue
+            similarity = cosine_similarity(card_a.get("embedding") or [], card_b.get("embedding") or [])
+            if similarity >= auto_threshold:
+                auto_matches.append((card_a, card_b, similarity))
+            elif similarity >= review_threshold:
+                review_matches.append((card_a, card_b, similarity))
+    return auto_matches, review_matches

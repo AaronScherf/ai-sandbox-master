@@ -98,3 +98,64 @@ def test_derive_offering_for_card_works_without_a_stored_offering_label_field():
         card = {"path": "academic_notes/econometrics/class_2024/processed_outputs/2023exam1.md"}
         assert "offering_label" not in card
         assert derive_offering_for_card(card, tmp) == "2024"
+
+
+from core.indexer.offering_links import find_cross_offering_matches
+
+# Unit vectors at chosen angles so cosine_similarity's dot product gives an
+# exact, easy-to-reason-about similarity: a=[1,0] vs [cos(t), sin(t)] -> cos(t).
+_A = [1.0, 0.0]
+_HIGH = [0.95, 0.3122498999199199]   # cosine 0.95 vs _A -- above auto (0.90)
+_MID = [0.85, 0.5266403851195171]    # cosine 0.85 vs _A -- in review band (0.80-0.90)
+_LOW = [0.5, 0.8660254037844387]     # cosine 0.5 vs _A -- below review band
+
+
+def _card(file_id, embedding, path="academic_notes/econometrics/x.md"):
+    return {"file_id": file_id, "path": path, "embedding": embedding, "title": file_id}
+
+
+def test_same_offering_pairs_are_never_compared():
+    cards = [(_card("a", _A), "2024"), (_card("b", _HIGH), "2024")]
+    auto, review = find_cross_offering_matches(cards)
+    assert auto == []
+    assert review == []
+
+
+def test_cross_offering_high_similarity_is_an_auto_match():
+    cards = [(_card("a", _A), None), (_card("b", _HIGH), "2024")]
+    auto, review = find_cross_offering_matches(cards)
+    assert len(auto) == 1
+    assert review == []
+    card_a, card_b, similarity = auto[0]
+    assert {card_a["file_id"], card_b["file_id"]} == {"a", "b"}
+    assert similarity > 0.90
+
+def test_cross_offering_mid_similarity_is_a_review_match():
+    cards = [(_card("a", _A), None), (_card("b", _MID), "2024")]
+    auto, review = find_cross_offering_matches(cards)
+    assert auto == []
+    assert len(review) == 1
+
+
+def test_cross_offering_low_similarity_is_ignored():
+    cards = [(_card("a", _A), None), (_card("b", _LOW), "2024")]
+    auto, review = find_cross_offering_matches(cards)
+    assert auto == []
+    assert review == []
+
+
+def test_three_offerings_compares_every_cross_pair():
+    # 2023 vs 2024 counts too, not just subset-vs-primary (brainstorming
+    # decision: "every pair in the course").
+    cards = [(_card("a", _A), "2023"), (_card("b", _HIGH), "2024"), (_card("c", _LOW), None)]
+    auto, review = find_cross_offering_matches(cards)
+    assert len(auto) == 1  # a-b only; a-c and b-c are both low similarity
+    matched_ids = {auto[0][0]["file_id"], auto[0][1]["file_id"]}
+    assert matched_ids == {"a", "b"}
+
+
+def test_custom_thresholds_are_respected():
+    cards = [(_card("a", _A), None), (_card("b", _MID), "2024")]
+    auto, review = find_cross_offering_matches(cards, auto_threshold=0.80, review_threshold=0.70)
+    assert len(auto) == 1  # 0.85 now clears the lowered auto bar
+    assert review == []
