@@ -30,3 +30,16 @@ not authorize concurrent writers in this worktree.
 ## Bug report intake
 
 Follow [reviewer responsibilities](docs/BUG_HANDOFF.md#reviewer-responsibilities).
+
+## Private API pipeline runs
+
+The user has authorized running existing study, resume, and other personal
+pipelines with their own configured API credentials when the requested source
+files and generated outputs stay within their local workspace/repositories.
+For these requests, sending only the necessary user-provided or locally held
+source material to the configured personal API is within scope; do not ask
+again for that same authorization. Keep generated files in the requested local
+destination. This standing authorization does not cover publishing source
+material or outputs to a public repository/service, sending them to a different
+person's account, or using unrelated sources or credentials. Follow any
+platform-level approval or data-handling controls that still apply.
