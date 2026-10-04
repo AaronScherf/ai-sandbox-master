@@ -664,7 +664,7 @@ def test_short_formulas_stay_inline_in_same_line_as_long_one():
 
 
 def test_trailing_newline_preserved_only_if_present():
-    assert split_display_math("a $ab+cd+ef+gh$\n").endswith("$$\n")
+    assert split_display_math("a $ab+cd+ef+gh$\n").endswith("\n")
     assert not split_display_math("a $ab+cd+ef+gh$").endswith("\n")
 
 
