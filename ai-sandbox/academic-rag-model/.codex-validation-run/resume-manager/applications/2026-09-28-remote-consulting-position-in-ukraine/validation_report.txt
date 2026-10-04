@@ -1,0 +1,2 @@
+Relevance brainstorm: failed; local tailoring continued without Gemini brainstorm.
+Validation: no discrepancies flagged.
