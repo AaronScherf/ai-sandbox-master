@@ -463,7 +463,12 @@ def reject_pending(academic_hub_root: str, file_id_a: str, file_id_b: str) -> bo
 
 def _academic_hub_dir():
     from pathlib import Path
-    return Path(__file__).resolve().parent.parent.parent / "academic-hub"
+    # offering_links.py lives at academic-rag-model/core/indexer/ -- two
+    # levels under academic-rag-model, which is itself a sibling of
+    # academic-hub under ai-sandbox/. Four parents, matching
+    # route_notes_transcribe.py's own identical resolution for its equally
+    # 2-levels-deep location (pipelines/transcribe_notes/).
+    return Path(__file__).resolve().parent.parent.parent.parent / "academic-hub"
 
 
 def main() -> None:
