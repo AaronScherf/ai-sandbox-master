@@ -172,3 +172,14 @@ engineering choice); a generation-backend swap away from the paid
 Gemini key (Gemini CLI's OAuth free tier, or `claude -p` under the
 user's Claude Pro subscription) -- kept as a contained, later change
 via the `TUTOR_MODEL` constant, not designed around speculatively now.
+
+## 2026-10-03 update: Markdown summary persistence & question note exclusions
+
+Two functional enhancements shipped to the RAG tutor:
+
+1. **Course Notes Markdown Summary Persistence (`80708a9`)**:
+   - Added `/summarize` command output persistence: synthesized lesson summaries can now be automatically written as markdown notes directly into the course notes vault (`academic_hub/academic_notes/<course>/...`), integrating student Q&A takeaways into the durable study vault.
+2. **Question-Note Hub-Relative Path Exclusion (`3e9f522`)**:
+   - Fixed retrieval feedback loop in the Question Resolver: when generating answers to embedded questions in transcribed lecture notes, the tutor now excludes the source note itself using its canonical hub-relative path, preventing the model from citing unverified question text as its own factual justification.
+   - Kept answer attachment stable when question ordinals shift during interactive editing.
+

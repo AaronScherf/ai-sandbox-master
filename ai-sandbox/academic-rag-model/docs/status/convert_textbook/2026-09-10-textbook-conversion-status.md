@@ -866,3 +866,12 @@ python -m textbook.split_chapters --textbook-subdir academic_resources/<course>/
 # Last resort: Gemini-assisted classification + table repair (real API cost, never silent)
 python -m textbook.split_chapters --textbook-subdir academic_resources/<course>/textbooks --book <Book_Folder_Name> --allow-gemini-repair --use-paid-key
 ```
+
+## 2026-09-20: VM RAM-sizing logging (Phase 1)
+
+Shipped memory and resource telemetry logging for textbook batch conversions on GCP VMs, per design `docs/superpowers/specs/convert_textbook/2026-09-20-vm-ram-sizing-logging-design.md` and plan `docs/superpowers/plans/convert_textbook/2026-09-20-vm-ram-sizing-logging.md`.
+
+- **Telemetry sampler (`pipelines/convert_textbook/vm_sizing_log.py`)**: A lightweight background monitor sampling total/available system RAM, swap utilization, process RSS, and GPU memory (via `nvidia-smi` when available) at configurable intervals.
+- **Log output**: Emits timestamped resource snapshots to `vm_sizing.log` in the run directory alongside conversion logs.
+- **OOM diagnostic integration**: Provides concrete pre-crash resource curves to disambiguate kernel OOM killer events from container or GPU driver crashes during large PDF conversion runs.
+

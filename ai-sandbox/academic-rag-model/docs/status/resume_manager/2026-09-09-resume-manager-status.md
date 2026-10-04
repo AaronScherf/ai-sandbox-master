@@ -548,3 +548,22 @@ report, which named only the Ukraine resume.
 6. Decide whether to re-process the other 6 already-processed source
    resumes under the fixed §14 code — not done speculatively now, since
    only the Ukraine resume was in scope for the user's report.
+
+## 2026-09-26 to 2026-09-28 update: Page-fit selection, Skills budget balancing, and qualitative validation
+
+Between 2026-09-26 and 2026-09-28, major tailoring engine refinements and quality guardrails were implemented:
+
+1. **Page-Fit-Aware Selection & Section Breaks (2026-09-26)**:
+   - Implemented spec §13 via `docs/superpowers/plans/resume_manager/2026-09-26-resume-manager-page-fit-plan.md`.
+   - Templating: Wrapped Education, Awards, Publications, and Skills sections in Typst non-breakable blocks (`#block(breakable: false)[...]`) in `render.py`, preventing awkward page splits across short sections.
+   - Dynamic fill loop: `tailor.py` ranks candidate Work Experience entries, and `tailor_resume.py` executes a measure-and-fit loop (`_select_work_experience_bullets`) to maximize page-1 density without overflowing `target_pages`.
+   - Chronological preservation: Preserved master chronological ordering while respecting LLM relevance ranking.
+
+2. **Skills Budget Balancing (`59bd0a9`, `6d94320`)**:
+   - Fixed an issue where sprawling, uncurated Skills lists starved Work Experience of vertical page budget.
+   - Hardened density budgeting to ensure core work experience bullets receive primary space allocation.
+
+3. **Qualitative Fact Validation (`088ce94`)**:
+   - Added qualitative fact validation in `validate.py` to ensure tailored claims remain grounded in master facts, verifying that semantic meaning is preserved without fabricated achievements.
+   - Added Markdown synchronization tool (`markdown_sync.py`) to keep `.md` resumes synchronized with `.yaml` structures.
+

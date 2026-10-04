@@ -85,3 +85,15 @@ still needs to commit before other sessions can rely on it being present.
   worktree mistakes start happening in practice.
 - Commit the pending worktree-workflow changes (see above) before treating
   the procedure as active guidance other sessions can assume is in place.
+
+## 2026-10-04 update: Standing to-do exemption, bug handoff standards, and vault artifact persistence
+
+Several workflow and routing refinements landed across the repo:
+
+1. **Standing Exemption for To-Do Tracking (`CLAUDE.md`, 2026-10-04)**:
+   - Added standing authorization to edit `ai-sandbox/academic-rag-model/docs/trackers/academic_hub_to_do.md` directly on `main` without creating a dedicated worktree or branch, staging only that file and committing with `todo: ...`. This eliminates worktree sprawl and overhead for logging deferred tasks.
+2. **Evidence-Based Bug Reporting & Reviewer Handoff (`docs/BUG_HANDOFF.md`)**:
+   - Formalized reviewer and author responsibilities: reproducible failure cases, actual logs, and local report files must be preserved before escalating across agents.
+3. **Artifact Persistence Policy (`GEMINI.md`)**:
+   - Mandated that study guides, tutoring outputs, notes, and documentation generated during IDE sessions must not remain in temporary session storage (`<appDataDir>/brain/...`) and must be written to permanent locations in `academic_hub` or the vault.
+
