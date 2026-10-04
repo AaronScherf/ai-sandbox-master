@@ -159,3 +159,127 @@ def test_custom_thresholds_are_respected():
     auto, review = find_cross_offering_matches(cards, auto_threshold=0.80, review_threshold=0.70)
     assert len(auto) == 1  # 0.85 now clears the lowered auto bar
     assert review == []
+
+
+from core.indexer.offering_links import append_related_section, link_target_display, write_matches
+
+
+def test_link_target_display_strips_notes_prefix_and_md_suffix():
+    card = {"path": "academic_notes/econometrics/class_2024/Class Notes/Slides/processed_outputs/slides1.md",
+            "title": "Slides 1"}
+    link_path, alias = link_target_display(card, "2024")
+    assert link_path == "econometrics/class_2024/Class Notes/Slides/processed_outputs/slides1"
+    assert alias == "2024: Slides 1"
+
+
+def test_link_target_display_labels_a_primary_card_as_current():
+    card = {"path": "academic_notes/econometrics/professor_notes/processed_outputs/slides1.md", "title": "Slides 1"}
+    _, alias = link_target_display(card, None)
+    assert alias == "current: Slides 1"
+
+
+def test_append_related_section_writes_a_new_block(tmp_path):
+    academic_hub_root = str(tmp_path)
+    note_dir = tmp_path / "academic_notes" / "econometrics"
+    note_dir.mkdir(parents=True)
+    note_path = note_dir / "y.md"
+    note_path.write_text("---\ntitle: foo\n---\n\nBody text.\n")
+    card = {"path": "academic_notes/econometrics/y.md"}
+    target = {"path": "academic_notes/econometrics/class_2024/processed_outputs/x.md", "title": "X"}
+
+    written = append_related_section(academic_hub_root, card, [(target, "2024", 0.92)])
+
+    content = note_path.read_text()
+    assert written is True
+    assert content.startswith("---\ntitle: foo\n---\n\nBody text.\n")
+    assert "## Related notes" in content
+    assert "[[econometrics/class_2024/processed_outputs/x|2024: X]]" in content
+
+
+def test_append_related_section_is_idempotent(tmp_path):
+    academic_hub_root = str(tmp_path)
+    note_dir = tmp_path / "academic_notes" / "econometrics"
+    note_dir.mkdir(parents=True)
+    note_path = note_dir / "y.md"
+    note_path.write_text("---\ntitle: foo\n---\n\nBody text.\n")
+    card = {"path": "academic_notes/econometrics/y.md"}
+    target = {"path": "academic_notes/econometrics/class_2024/processed_outputs/x.md", "title": "X"}
+
+    written_1 = append_related_section(academic_hub_root, card, [(target, "2024", 0.92)])
+    content_1 = note_path.read_text()
+    written_2 = append_related_section(academic_hub_root, card, [(target, "2024", 0.92)])
+    content_2 = note_path.read_text()
+
+    assert written_1 is True
+    assert written_2 is True
+    assert content_1 == content_2  # rerun replaces in place, doesn't duplicate
+    assert content_1.count("## Related notes") == 1
+    assert "[[econometrics/class_2024/processed_outputs/x|2024: X]]" in content_1
+
+
+def test_append_related_section_reflects_a_changed_match_list(tmp_path):
+    academic_hub_root = str(tmp_path)
+    note_dir = tmp_path / "academic_notes" / "econometrics"
+    note_dir.mkdir(parents=True)
+    note_path = note_dir / "y.md"
+    note_path.write_text("Body text.\n")
+    card = {"path": "academic_notes/econometrics/y.md"}
+    target_a = {"path": "academic_notes/econometrics/class_2024/processed_outputs/a.md", "title": "A"}
+    target_b = {"path": "academic_notes/econometrics/class_2023/processed_outputs/b.md", "title": "B"}
+
+    append_related_section(academic_hub_root, card, [(target_a, "2024", 0.92)])
+    append_related_section(academic_hub_root, card, [(target_a, "2024", 0.92), (target_b, "2023", 0.88)])
+    content = note_path.read_text()
+
+    assert content.count("## Related notes") == 1
+    assert "2024: A" in content
+    assert "2023: B" in content
+
+
+def test_append_related_section_skips_a_missing_file_without_raising(tmp_path):
+    academic_hub_root = str(tmp_path)
+    card = {"path": "academic_notes/econometrics/does-not-exist.md"}
+    target = {"path": "academic_notes/econometrics/class_2024/processed_outputs/x.md", "title": "X"}
+
+    written = append_related_section(academic_hub_root, card, [(target, "2024", 0.92)])
+    assert written is False
+
+
+def test_write_matches_updates_related_offerings_on_both_cards(tmp_path):
+    from core.indexer.index_card import load_shard, save_shard
+
+    academic_hub_root = str(tmp_path)
+    note_dir_a = tmp_path / "academic_notes" / "econometrics"
+    note_dir_a.mkdir(parents=True)
+    (note_dir_a / "a.md").write_text("Body A.\n")
+    (note_dir_a / "b.md").write_text("Body B.\n")
+
+    card_a = {"file_id": "fa", "path": "academic_notes/econometrics/a.md", "title": "A", "embedding": [1.0, 0.0]}
+    card_b = {"file_id": "fb", "path": "academic_notes/econometrics/b.md", "title": "B", "embedding": [0.95, 0.31]}
+    save_shard(academic_hub_root, "econometrics", [card_a, card_b])
+
+    stats = write_matches(academic_hub_root, [(card_a, card_b, 0.92)], confidence="high", offerings={"fa": None, "fb": "2024"})
+
+    cards = {c["file_id"]: c for c in load_shard(academic_hub_root, "econometrics")}
+    assert cards["fa"]["related_offerings"] == [{"file_id": "fb", "path": card_b["path"], "similarity": 0.92, "confidence": "high"}]
+    assert cards["fb"]["related_offerings"] == [{"file_id": "fa", "path": card_a["path"], "similarity": 0.92, "confidence": "high"}]
+    assert stats["links_written"] == 1
+
+
+def test_write_matches_replaces_a_stale_entry_for_the_same_pair_on_rerun(tmp_path):
+    from core.indexer.index_card import load_shard, save_shard
+
+    academic_hub_root = str(tmp_path)
+    note_dir = tmp_path / "academic_notes" / "econometrics"
+    note_dir.mkdir(parents=True)
+    (note_dir / "a.md").write_text("Body A.\n")
+    (note_dir / "b.md").write_text("Body B.\n")
+    card_a = {"file_id": "fa", "path": "academic_notes/econometrics/a.md", "title": "A", "embedding": [1.0, 0.0]}
+    card_b = {"file_id": "fb", "path": "academic_notes/econometrics/b.md", "title": "B", "embedding": [0.95, 0.31]}
+    save_shard(academic_hub_root, "econometrics", [card_a, card_b])
+
+    write_matches(academic_hub_root, [(card_a, card_b, 0.80)], confidence="review", offerings={"fa": None, "fb": "2024"})
+    write_matches(academic_hub_root, [(card_a, card_b, 0.95)], confidence="high", offerings={"fa": None, "fb": "2024"})
+
+    cards = {c["file_id"]: c for c in load_shard(academic_hub_root, "econometrics")}
+    assert cards["fa"]["related_offerings"] == [{"file_id": "fb", "path": card_b["path"], "similarity": 0.95, "confidence": "high"}]

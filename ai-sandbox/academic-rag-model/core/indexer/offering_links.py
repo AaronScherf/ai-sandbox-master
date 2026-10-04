@@ -19,10 +19,14 @@ import json
 import os
 
 from core.env.academic_hub_paths import find_containing_offering_label, to_resources_root
-from core.indexer.index_card import cosine_similarity, now_iso
+from core.indexer.index_card import cosine_similarity, load_shard, now_iso, recompute_course_entry, save_shard
 
 OFFERING_LINK_AUTO_THRESHOLD = 0.90  # starting guess -- calibrate against real data (Task 4)
 OFFERING_LINK_REVIEW_THRESHOLD = 0.80  # starting guess -- calibrate against real data (Task 4)
+
+_SECTION_START = "<!-- offering-links:start -->"
+_SECTION_END = "<!-- offering-links:end -->"
+_NOTES_PREFIX = "academic_notes/"
 
 
 def _links_dir(academic_hub_root: str) -> str:
@@ -137,3 +141,109 @@ def find_cross_offering_matches(
             elif similarity >= review_threshold:
                 review_matches.append((card_a, card_b, similarity))
     return auto_matches, review_matches
+
+
+def link_target_display(card: dict, offering_label: str | None) -> tuple[str, str]:
+    """(wikilink target path, alias text) for card. The target is
+    card["path"] relative to the academic_notes/ vault root (Obsidian's
+    actual sync root is that directory's own standalone git repo, not
+    academic-hub/ itself) with the .md suffix stripped -- a bare filename
+    link would be ambiguous given real collisions already in this corpus
+    (e.g. slides1.md exists under both professor_notes/ and
+    class_2024/Class Notes/Slides/)."""
+    path = card["path"]
+    if path.startswith(_NOTES_PREFIX):
+        path = path[len(_NOTES_PREFIX):]
+    if path.endswith(".md"):
+        path = path[: -len(".md")]
+    offering_text = offering_label if offering_label is not None else "current"
+    alias = f"{offering_text}: {card.get('title') or os.path.basename(path)}"
+    return path, alias
+
+
+def _build_related_section(related: list[tuple[dict, str | None, float]]) -> str:
+    lines = [_SECTION_START, "## Related notes"]
+    for target_card, offering_label, similarity in related:
+        link_path, alias = link_target_display(target_card, offering_label)
+        lines.append(f"- [[{link_path}|{alias}]] (similarity: {similarity:.2f})")
+    lines.append(_SECTION_END)
+    return "\n".join(lines) + "\n"
+
+
+def append_related_section(academic_hub_root: str, card: dict, related: list[tuple[dict, str | None, float]]) -> bool:
+    """Appends (or replaces, if already present) an idempotent, delimited
+    '## Related notes' block at the end of card's own .md file. Returns
+    False (logged, not raised) if the file doesn't exist on disk --
+    an indexing side-effect must never block on a missing file."""
+    md_path = os.path.join(academic_hub_root, card["path"])
+    if not os.path.isfile(md_path):
+        print(f"WARNING: cannot write related-notes section, file not found: {md_path}")
+        return False
+
+    with open(md_path, "r", encoding="utf-8") as f:
+        content = f.read()
+
+    new_section = _build_related_section(related)
+    start = content.find(_SECTION_START)
+    if start == -1:
+        separator = "" if content.endswith("\n") else "\n"
+        new_content = content + separator + "\n" + new_section
+    else:
+        end = content.find(_SECTION_END)
+        end = end + len(_SECTION_END) if end != -1 else len(content)
+        new_content = content[:start] + new_section + content[end:].lstrip("\n")
+
+    with open(md_path, "w", encoding="utf-8") as f:
+        f.write(new_content)
+    return True
+
+
+def write_matches(
+    academic_hub_root: str, matches: list[tuple[dict, dict, float]], confidence: str,
+    offerings: dict[str, str | None],
+) -> dict:
+    """Writes both directions of every match: each card's related_offerings
+    index field (replacing any prior entry for that same pair, so a rerun
+    is idempotent) and both cards' Obsidian-visible markdown section.
+    `offerings` maps file_id -> offering_label, precomputed by the caller
+    (Task 6) via derive_offering_for_card() for every card involved."""
+    stats = {"links_written": 0, "markdown_writes_skipped": 0}
+    by_file_id_related: dict[str, list[tuple[dict, str | None, float]]] = {}
+
+    for card_a, card_b, similarity in matches:
+        by_file_id_related.setdefault(card_a["file_id"], []).append((card_b, offerings.get(card_b["file_id"]), similarity))
+        by_file_id_related.setdefault(card_b["file_id"], []).append((card_a, offerings.get(card_a["file_id"]), similarity))
+        stats["links_written"] += 1
+
+    # Group touched cards by the course each one's own path implies, so
+    # each shard is loaded and saved exactly once regardless of how many
+    # matches touch cards in it.
+    touched_paths: dict[str, str] = {}
+    for card_a, card_b, _ in matches:
+        touched_paths[card_a["file_id"]] = card_a["path"]
+        touched_paths[card_b["file_id"]] = card_b["path"]
+    courses = {path.replace("\\", "/").split("/")[1] for path in touched_paths.values()}
+
+    for course in courses:
+        shard = load_shard(academic_hub_root, course)
+        changed = False
+        for card in shard:
+            fid = card.get("file_id")
+            if fid not in by_file_id_related:
+                continue
+            card["related_offerings"] = [
+                {"file_id": other["file_id"], "path": other["path"], "similarity": sim, "confidence": confidence}
+                for other, _label, sim in by_file_id_related[fid]
+            ]
+            changed = True
+        if changed:
+            save_shard(academic_hub_root, course, shard)
+            recompute_course_entry(academic_hub_root, course)
+
+    for card_a, card_b, _ in matches:
+        for card in (card_a, card_b):
+            related = by_file_id_related[card["file_id"]]
+            if not append_related_section(academic_hub_root, card, related):
+                stats["markdown_writes_skipped"] += 1
+
+    return stats
