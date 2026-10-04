@@ -1,4 +1,29 @@
 {
+  "10.1007/978-3-030-70381-3_5": {
+    "authors": [
+      "Ceren Ark-Y\u0131ld\u0131r\u0131m",
+      "Marc E. Smyrl"
+    ],
+    "doi_url": "https://doi.org/10.1007/978-3-030-70381-3_5",
+    "fetched_at": "2026-10-04T02:27:11.941612+00:00",
+    "folder": "political-science",
+    "status": "needs_manual",
+    "title": "Cash Transfer and Humanitarian Assistance",
+    "year": 2021
+  },
+  "10.1007/s00146-023-01818-7": {
+    "authors": [
+      "Margot J. van der Goot",
+      "Nathalie Koubayov\u00e1",
+      "Eva A. van Reijmersdal"
+    ],
+    "doi_url": "https://doi.org/10.1007/s00146-023-01818-7",
+    "fetched_at": "2026-10-04T02:29:31.917913+00:00",
+    "folder": "psychology",
+    "status": "needs_manual",
+    "title": "Understanding users\u2019 responses to disclosed vs. undisclosed customer service chatbots: a mixed methods study",
+    "year": 2024
+  },
   "10.1007/s10639-022-11491-w": {
     "authors": [
       "Davy Tsz Kit Ng",
@@ -13,6 +38,36 @@
     "folder": "computer-science",
     "status": "needs_manual",
     "title": "A review of AI teaching and learning from 2000 to 2020",
+    "year": 2022
+  },
+  "10.1007/s10668-019-00414-4": {
+    "authors": [
+      "Jeetendra Prakash Aryal",
+      "Tek B. Sapkota",
+      "Ritika Khurana",
+      "Arun Khatri\u2010Chhetri",
+      "Dil Bahadur Rahut",
+      "Mohan Lal Jat"
+    ],
+    "doi_url": "https://doi.org/10.1007/s10668-019-00414-4",
+    "fetched_at": "2026-10-04T02:25:36.274073+00:00",
+    "folder": "business",
+    "status": "needs_manual",
+    "title": "Climate change and agriculture in South Asia: adaptation options in smallholder production systems",
+    "year": 2019
+  },
+  "10.1007/s11027-022-10010-z": {
+    "authors": [
+      "Prahlad Lamichhane",
+      "Michalis Hadjikakou",
+      "Kelly K. Miller",
+      "Brett A. Bryan"
+    ],
+    "doi_url": "https://doi.org/10.1007/s11027-022-10010-z",
+    "fetched_at": "2026-10-04T02:25:55.770191+00:00",
+    "folder": "business",
+    "status": "needs_manual",
+    "title": "Climate change adaptation in smallholder agriculture: adoption, barriers, determinants, and policy implications",
     "year": 2022
   },
   "10.1007/s40593-021-00239-1": {
@@ -36,6 +91,52 @@
     "title": "Ethics of AI in Education: Towards a Community-Wide Framework",
     "year": 2021
   },
+  "10.1007/s43621-025-02412-1": {
+    "authors": [
+      "Subrina Ahmed Shanta",
+      "Md. Shajedul Islam",
+      "Bikash Chandra Ghosh"
+    ],
+    "doi_url": "https://doi.org/10.1007/s43621-025-02412-1",
+    "fetched_at": "2026-10-04T02:26:00.027121+00:00",
+    "folder": "business",
+    "status": "needs_manual",
+    "title": "Bridging financial gaps to enhance climate resilience and agricultural productivity of smallholder farmers in Northwestern Bangladesh",
+    "year": 2025
+  },
+  "10.1007/s44279-025-00234-3": {
+    "authors": [
+      "Bright Chisadza",
+      "Onalenna Gwate",
+      "Simon Peter Musinguzi",
+      "Nkululeko Mpofu",
+      "Margaret Macherera",
+      "Thulani Dube"
+    ],
+    "doi_url": "https://doi.org/10.1007/s44279-025-00234-3",
+    "fetched_at": "2026-10-04T02:25:59.002674+00:00",
+    "folder": "business",
+    "status": "needs_manual",
+    "title": "Resilient agriculture in semi-arid Zimbabwe: adaptation strategies and influencers among smallholder farmers",
+    "year": 2025
+  },
+  "10.1016/b978-0-443-29993-3.00006-0": {
+    "authors": [
+      "Barnabas Neba Nfornkah",
+      "C\u00e9dric Djomo Chimi",
+      "Nyong Princely Awazi",
+      "Kevin Enongene",
+      "Armand Delanot Tanougong Nkondjoua",
+      "Saeid Eslamian",
+      "C Claudia"
+    ],
+    "doi_url": "https://doi.org/10.1016/b978-0-443-29993-3.00006-0",
+    "fetched_at": "2026-10-04T02:25:35.809448+00:00",
+    "folder": "geography",
+    "status": "needs_manual",
+    "title": "Dry farming techniques for the enhancement of climate-smart agriculture in drought-prone landscapes: implication for smallholder farmers\u2019 adaptation and resilience to climate change",
+    "year": 2025
+  },
   "10.1016/j.chb.2022.107468": {
     "authors": [
       "\u0130smail \u00c7elik"
@@ -58,11 +159,80 @@
     "title": "Successful investment projects are contagious: Social learning and network effects in industrial policy",
     "year": 2026
   },
+  "10.1016/j.envc.2022.100537": {
+    "authors": [
+      "Emmanuel Kanchebe Derbile",
+      "Samuel Ziem Bonye",
+      "Gordon Yenglier Yiridomoh"
+    ],
+    "doi_url": "https://doi.org/10.1016/j.envc.2022.100537",
+    "fetched_at": "2026-10-04T02:25:58.440258+00:00",
+    "folder": "geography",
+    "status": "needs_manual",
+    "title": "Mapping vulnerability of smallholder agriculture in Africa: Vulnerability assessment of food crop farming and climate change adaptation in Ghana",
+    "year": 2022
+  },
+  "10.1016/j.ijhcs.2022.102788": {
+    "authors": [
+      "Isabel Kathleen Fornell Haugeland",
+      "Asbj\u00f8rn F\u00f8lstad",
+      "Cameron Taylor",
+      "Cato Alexander Bj\u00f8rkli"
+    ],
+    "doi_url": "https://doi.org/10.1016/j.ijhcs.2022.102788",
+    "fetched_at": "2026-10-04T02:29:23.770822+00:00",
+    "folder": "computer-science",
+    "status": "needs_manual",
+    "title": "Understanding the user experience of customer service chatbots: An experimental study of chatbot interaction design",
+    "year": 2022
+  },
   "10.1016/j.jdeveco.2021.102762": {
     "audited_at": "2026-09-03T03:41:23.110154+00:00",
     "fetched_at": "2026-09-02T02:27:21.846552+00:00",
     "folder": "business",
     "status": "fetched"
+  },
+  "10.1016/j.jeem.2018.11.008": {
+    "authors": [
+      "Jeffrey D. Michler",
+      "Kathy Baylis",
+      "Mary Paula Arends-Kuenning",
+      "Kizito Mazvimavi"
+    ],
+    "doi_url": "https://doi.org/10.1016/j.jeem.2018.11.008",
+    "fetched_at": "2026-10-04T02:25:53.679167+00:00",
+    "folder": "economics",
+    "status": "needs_manual",
+    "title": "Conservation agriculture and climate resilience",
+    "year": 2018
+  },
+  "10.1016/j.jenvman.2018.10.069": {
+    "authors": [
+      "Clifton Makate",
+      "Marshall Makate",
+      "Nelson Mango",
+      "Shephard Siziba"
+    ],
+    "doi_url": "https://doi.org/10.1016/j.jenvman.2018.10.069",
+    "fetched_at": "2026-10-04T02:26:04.320107+00:00",
+    "folder": "business",
+    "status": "needs_manual",
+    "title": "Increasing resilience of smallholder farmers to climate change through multiple adoption of proven climate-smart agriculture innovations. Lessons from Southern Africa",
+    "year": 2018
+  },
+  "10.1016/j.landusepol.2016.04.012": {
+    "authors": [
+      "Yongdeng Lei",
+      "Chengcheng Liu",
+      "Linbo Zhang",
+      "Shanghua Luo"
+    ],
+    "doi_url": "https://doi.org/10.1016/j.landusepol.2016.04.012",
+    "fetched_at": "2026-10-04T02:25:38.567852+00:00",
+    "folder": "business",
+    "status": "needs_manual",
+    "title": "How smallholder farmers adapt to agricultural drought in a changing climate: A case study in southern China",
+    "year": 2016
   },
   "10.1016/j.techsoc.2024.102646": {
     "authors": [
@@ -78,6 +248,36 @@
     "status": "needs_manual",
     "title": "Re-examining the effects of information and communication technology on economic growth",
     "year": 2024
+  },
+  "10.1016/j.wace.2022.100413": {
+    "authors": [
+      "Poppy Hawkins",
+      "Wendy Geza",
+      "Tafadzwanashe Mabhaudhi",
+      "Catherine Sutherland",
+      "Kevin Queenan",
+      "Alan D. Dangour",
+      "Pauline Scheelbeek"
+    ],
+    "doi_url": "https://doi.org/10.1016/j.wace.2022.100413",
+    "fetched_at": "2026-10-04T02:25:53.071689+00:00",
+    "folder": "geography",
+    "status": "needs_manual",
+    "title": "Dietary and agricultural adaptations to drought among smallholder farmers in South Africa: A qualitative study",
+    "year": 2022
+  },
+  "10.1016/j.worlddev.2021.105663": {
+    "authors": [
+      "Udita Sanga",
+      "Amadou Sidib\u00e9",
+      "Laura Schmitt Olabisi"
+    ],
+    "doi_url": "https://doi.org/10.1016/j.worlddev.2021.105663",
+    "fetched_at": "2026-10-04T02:28:45.956628+00:00",
+    "folder": "business",
+    "status": "needs_manual",
+    "title": "Dynamic pathways of barriers and opportunities for food security and climate adaptation in Southern Mali",
+    "year": 2021
   },
   "10.1038/d41586-025-04053-w": {
     "authors": [
@@ -107,10 +307,63 @@
     "work_type": "article",
     "year": 2013
   },
+  "10.1080/23311886.2026.2691330": {
+    "authors": [
+      "Abdimajid Said Awale",
+      "Abduwali Ibraahim Ahmed"
+    ],
+    "doi_url": "https://doi.org/10.1080/23311886.2026.2691330",
+    "fetched_at": "2026-10-04T02:27:52.930529+00:00",
+    "folder": "geology",
+    "status": "needs_manual",
+    "title": "Climate-induced displacement and urban stress in fragile states: insights from Somalia",
+    "year": 2026
+  },
+  "10.1088/1748-9326/ad153f": {
+    "authors": [
+      "Elaine C. Flores",
+      "Laura J. Brown",
+      "Ritsuko Kakuma",
+      "Julian Eaton",
+      "Alan D. Dangour"
+    ],
+    "doi_url": "https://doi.org/10.1088/1748-9326/ad153f",
+    "fetched_at": "2026-10-04T02:28:53.897770+00:00",
+    "folder": "medicine",
+    "status": "needs_manual",
+    "title": "Mental health and wellbeing outcomes of climate change mitigation and adaptation strategies: a systematic review",
+    "year": 2023
+  },
   "10.1093/wber/lhz006": {
     "audited_at": "2026-09-03T03:41:23.820661+00:00",
     "fetched_at": "2026-09-02T02:25:08.597704+00:00",
     "folder": "business",
+    "status": "fetched"
+  },
+  "10.1109/access.2022.3145323": {
+    "fetched_at": "2026-10-04T02:29:28.760087+00:00",
+    "folder": "computer-science",
+    "status": "fetched"
+  },
+  "10.1111/1477-9552.12107": {
+    "authors": [
+      "Asl\u0131han Arslan",
+      "Nancy McCarthy",
+      "Leslie Lipper",
+      "Solomon Asfaw",
+      "Andrea Cattaneo",
+      "Misael Kokwe"
+    ],
+    "doi_url": "https://doi.org/10.1111/1477-9552.12107",
+    "fetched_at": "2026-10-04T02:26:04.883144+00:00",
+    "folder": "environmental-science",
+    "status": "needs_manual",
+    "title": "Climate Smart Agriculture? Assessing the Adaptation Implications in Zambia",
+    "year": 2015
+  },
+  "10.1145/3527450": {
+    "fetched_at": "2026-10-04T02:29:24.375268+00:00",
+    "folder": "computer-science",
     "status": "fetched"
   },
   "10.1186/s41239-023-00408-3": {
@@ -205,6 +458,31 @@
     "work_type": "dataset",
     "year": 2019
   },
+  "10.1353/foc.2016.0003": {
+    "authors": [
+      "Richard Akresh"
+    ],
+    "doi_url": "https://doi.org/10.1353/foc.2016.0003",
+    "fetched_at": "2026-10-04T02:28:44.677301+00:00",
+    "folder": "psychology",
+    "status": "needs_manual",
+    "title": "Climate Change, Conflict, and Children",
+    "year": 2016
+  },
+  "10.1371/journal.pone.0304202": {
+    "authors": [
+      "Rahman Momeni",
+      "Tuba Bircan",
+      "Robert King",
+      "Eloy Zafra Santos"
+    ],
+    "doi_url": "https://doi.org/10.1371/journal.pone.0304202",
+    "fetched_at": "2026-10-04T02:27:57.488024+00:00",
+    "folder": "geography",
+    "status": "needs_manual",
+    "title": "Deciphering climate-induced displacement in Somalia: A remote sensing perspective",
+    "year": 2024
+  },
   "10.1596/1813-9450-11229": {
     "audited_at": "2026-09-03T03:41:24.956172+00:00",
     "authors": [
@@ -249,6 +527,78 @@
     "status": "needs_manual",
     "title": "Digital and Data Infrastructure: Stimulating Greater Availability and Use through Policy and Regulatory Reforms",
     "year": 2023
+  },
+  "10.18174/680954": {
+    "authors": [
+      "Muyinatu Mobolanle Sanusi"
+    ],
+    "doi_url": "https://doi.org/10.18174/680954",
+    "fetched_at": "2026-10-04T02:26:01.431814+00:00",
+    "folder": "business",
+    "status": "needs_manual",
+    "title": "Agricultural water insecurity and resilience to climate-induced risks of smallholder farmers in Southwest Nigeria",
+    "year": 2025
+  },
+  "10.19088/basic.2022.002": {
+    "authors": [
+      "Lars Otto N\u00e6ss",
+      "Jan Selby",
+      "Gabrielle D. Daoust"
+    ],
+    "doi_url": "https://doi.org/10.19088/basic.2022.002",
+    "fetched_at": "2026-10-04T02:27:15.704429+00:00",
+    "folder": "political-science",
+    "status": "needs_manual",
+    "title": "Climate Resilience and Social Assistance in Fragile and Conflict-Affected Settings",
+    "year": 2022
+  },
+  "10.19088/basic.2022.008": {
+    "authors": [
+      "Jeremy Lind",
+      "Rachel Sabates\u2010Wheeler",
+      "Carolina Szyp"
+    ],
+    "doi_url": "https://doi.org/10.19088/basic.2022.008",
+    "fetched_at": "2026-10-04T02:27:14.781702+00:00",
+    "folder": "business",
+    "status": "needs_manual",
+    "title": "Cash and Livelihoods in Contexts of Conflict and Fragility: Implications for Social Assistance Programming",
+    "year": 2022
+  },
+  "10.19088/basic.2022.028": {
+    "authors": [
+      "Jeremy Lind",
+      "Rachel Sabates\u2010Wheeler",
+      "Carolina Szyp"
+    ],
+    "doi_url": "https://doi.org/10.19088/basic.2022.028",
+    "fetched_at": "2026-10-04T02:27:14.122293+00:00",
+    "folder": "business",
+    "status": "needs_manual",
+    "title": "Cash and Livelihoods in Contexts of Conflict and Fragility",
+    "year": 2022
+  },
+  "10.19088/basic.2026.007": {
+    "authors": [
+      "Rachel Slater",
+      "Alexandrine Dupras"
+    ],
+    "doi_url": "https://doi.org/10.19088/basic.2026.007",
+    "fetched_at": "2026-10-04T02:27:16.344140+00:00",
+    "folder": "political-science",
+    "status": "needs_manual",
+    "title": "Sustaining Social Protection in Conflict Settings",
+    "year": 2026
+  },
+  "10.21203/rs.3.rs-129931/v1": {
+    "fetched_at": "2026-10-04T02:28:41.950386+00:00",
+    "folder": "business",
+    "status": "fetched"
+  },
+  "10.21203/rs.3.rs-7991815/v1": {
+    "fetched_at": "2026-10-04T02:27:59.698776+00:00",
+    "folder": "medicine",
+    "status": "fetched"
   },
   "10.2139/ssrn.2611775": {
     "audited_at": "2026-09-03T03:41:25.601924+00:00",
@@ -354,6 +704,67 @@
     "work_type": "preprint",
     "year": 2023
   },
+  "10.2196/32630": {
+    "authors": [
+      "Marcia Ni\u00dfen",
+      "Dominik R\u00fcegger",
+      "Mirjam Stieger",
+      "Christoph Fl\u00fcckiger",
+      "Mathias Allemand",
+      "Florian von Wangenheim",
+      "Tobias Kowatsch"
+    ],
+    "doi_url": "https://doi.org/10.2196/32630",
+    "fetched_at": "2026-10-04T02:29:33.486165+00:00",
+    "folder": "computer-science",
+    "status": "needs_manual",
+    "title": "The Effects of Health Care Chatbot Personas With Different Social Roles on the Client-Chatbot Bond and Usage Intentions: Development of a Design Codebook and Web-Based Study",
+    "year": 2022
+  },
+  "10.2196/67114": {
+    "authors": [
+      "Kayley Moylan",
+      "Kevin Doherty"
+    ],
+    "doi_url": "https://doi.org/10.2196/67114",
+    "fetched_at": "2026-10-04T02:29:42.178064+00:00",
+    "folder": "psychology",
+    "status": "needs_manual",
+    "title": "Expert and Interdisciplinary Analysis of AI-Driven Chatbots for Mental Health Support: Mixed Methods Study",
+    "year": 2025
+  },
+  "10.22004/ag.econ.92711": {
+    "authors": [
+      "Heltberg, Rasmus",
+      "Prabhu, Radhika",
+      "Habiba Gitay",
+      "Heltberg, Rasmus",
+      "Prabhu, Radhika",
+      "Habiba Gitay"
+    ],
+    "doi_url": "https://doi.org/10.22004/ag.econ.92711",
+    "fetched_at": "2026-10-04T02:28:51.736602+00:00",
+    "folder": "political-science",
+    "status": "needs_manual",
+    "title": "Community-based Adaptation: Lessons from the Development Marketplace 2009 on Adaptation to Climate Change",
+    "year": 2010
+  },
+  "10.2471/blt.14.150037": {
+    "authors": [
+      "Frank Pega",
+      "Caroline Shaw",
+      "Kumanan Rasanathan",
+      "Jennifer Yablonski",
+      "Ichiro Kawachi",
+      "Simon Hales"
+    ],
+    "doi_url": "https://doi.org/10.2471/blt.14.150037",
+    "fetched_at": "2026-10-04T02:28:40.164910+00:00",
+    "folder": "medicine",
+    "status": "needs_manual",
+    "title": "Climate change, cash transfers and health",
+    "year": 2015
+  },
   "10.26085/c36k5w": {
     "audited_at": "2026-09-03T03:41:27.781352+00:00",
     "authors": [
@@ -370,10 +781,100 @@
     "work_type": "article",
     "year": 2020
   },
+  "10.3386/w20598": {
+    "fetched_at": "2026-10-04T02:28:43.737090+00:00",
+    "folder": "geography",
+    "status": "fetched"
+  },
   "10.3386/w31696": {
     "fetched_at": "2026-09-02T21:08:14.630810+00:00",
     "folder": "business",
     "status": "fetched"
+  },
+  "10.3389/fpos.2026.1867265": {
+    "fetched_at": "2026-10-04T02:27:54.420928+00:00",
+    "folder": "political-science",
+    "status": "fetched"
+  },
+  "10.3390/agriculture11030192": {
+    "authors": [
+      "Gebeyanesh Worku Zerssa",
+      "Debela Hunde Feyssa",
+      "Dong\u2010Gill Kim",
+      "Bettina Eichler\u2010L\u00f6bermann"
+    ],
+    "doi_url": "https://doi.org/10.3390/agriculture11030192",
+    "fetched_at": "2026-10-04T02:25:55.105499+00:00",
+    "folder": "business",
+    "status": "needs_manual",
+    "title": "Challenges of Smallholder Farming in Ethiopia and Opportunities by Adopting Climate-Smart Agriculture",
+    "year": 2021
+  },
+  "10.3390/agriculture13071444": {
+    "authors": [
+      "Alinor Abdi Osman",
+      "Gumataw Kifle Abebe"
+    ],
+    "doi_url": "https://doi.org/10.3390/agriculture13071444",
+    "fetched_at": "2026-10-04T02:27:53.420933+00:00",
+    "folder": "geography",
+    "status": "needs_manual",
+    "title": "Rural Displacement and Its Implications on Livelihoods and Food Insecurity: The Case of Inter-Riverine Communities in Somalia",
+    "year": 2023
+  },
+  "10.3390/cli11100202": {
+    "authors": [
+      "Elena A. Grigorieva",
+      "Alexandra Livenets",
+      "E. V. Stelmakh"
+    ],
+    "doi_url": "https://doi.org/10.3390/cli11100202",
+    "fetched_at": "2026-10-04T02:26:05.891049+00:00",
+    "folder": "business",
+    "status": "needs_manual",
+    "title": "Adaptation of Agriculture to Climate Change: A Scoping Review",
+    "year": 2023
+  },
+  "10.3390/conservation2030029": {
+    "authors": [
+      "Sydney Shikwambana",
+      "Ntokozo Malaza",
+      "Bongani Ncube"
+    ],
+    "doi_url": "https://doi.org/10.3390/conservation2030029",
+    "fetched_at": "2026-10-04T02:25:51.078431+00:00",
+    "folder": "geography",
+    "status": "needs_manual",
+    "title": "Enhancing the Resilience and Adaptive Capacity of Smallholder Farmers to Drought in the Limpopo Province, South Africa",
+    "year": 2022
+  },
+  "10.3390/su15042882": {
+    "authors": [
+      "Charles Shelton Mutengwa",
+      "P. N. S. Mnkeni",
+      "Aleck Kondwakwenda"
+    ],
+    "doi_url": "https://doi.org/10.3390/su15042882",
+    "fetched_at": "2026-10-04T02:26:06.367497+00:00",
+    "folder": "business",
+    "status": "needs_manual",
+    "title": "Climate-Smart Agriculture and Food Security in Southern Africa: A Review of the Vulnerability of Smallholder Agriculture and Food Security to Climate Change",
+    "year": 2023
+  },
+  "10.3390/su17115119": {
+    "authors": [
+      "Hirut Getachew Feleke",
+      "Tesfaye Abebe Amdie",
+      "Frank Rasche",
+      "Sintayehu Yigrem Mersha",
+      "Christian Brandt"
+    ],
+    "doi_url": "https://doi.org/10.3390/su17115119",
+    "fetched_at": "2026-10-04T02:25:50.520067+00:00",
+    "folder": "geography",
+    "status": "needs_manual",
+    "title": "Climate on the Edge: Impacts and Adaptation in Ethiopia\u2019s Agriculture",
+    "year": 2025
   },
   "10.3886/e114443v1": {
     "authors": [
@@ -388,9 +889,109 @@
     "work_type": "dataset",
     "year": 2018
   },
+  "10.3934/agrfood.2019.4.967": {
+    "authors": [
+      "Robert Ugochukwu Onyeneke",
+      "Chinyere Augusta Nwajiuba",
+      "Chukwuemeka Chinonso Emenekwe",
+      "Anurika Nwajiuba",
+      "Chinenye Judith Onyeneke",
+      "Precious Ohalete",
+      "Uwazie Iyke Uwazie"
+    ],
+    "doi_url": "https://doi.org/10.3934/agrfood.2019.4.967",
+    "fetched_at": "2026-10-04T02:25:39.076966+00:00",
+    "folder": "business",
+    "status": "needs_manual",
+    "title": "Climate change adaptation in Nigerian agricultural sector: A systematic review and resilience check of adaptation measures",
+    "year": 2019
+  },
+  "10.4236/ajcc.2018.72011": {
+    "fetched_at": "2026-10-04T02:28:02.883823+00:00",
+    "folder": "environmental-science",
+    "status": "fetched"
+  },
+  "10.4324/9781003356837-21": {
+    "authors": [
+      "Rumbidzayi Chakauya",
+      "Simeon Albert Materechera",
+      "Obert Jiri",
+      "Ereck Chakauya",
+      "Machate Machete"
+    ],
+    "doi_url": "https://doi.org/10.4324/9781003356837-21",
+    "fetched_at": "2026-10-04T02:26:05.385415+00:00",
+    "folder": "geography",
+    "status": "needs_manual",
+    "title": "Climate change impacts on agriculture, adaptation and resilience",
+    "year": 2023
+  },
+  "10.46289/cdyl5750": {
+    "fetched_at": "2026-10-04T02:29:41.626517+00:00",
+    "folder": "computer-science",
+    "status": "fetched"
+  },
+  "10.47053/jdc.210723": {
+    "authors": [],
+    "doi_url": "https://doi.org/10.47053/jdc.210723",
+    "fetched_at": "2026-10-04T02:28:00.828829+00:00",
+    "folder": "environmental-science",
+    "status": "needs_manual",
+    "title": "The role of climate change in forced displacement",
+    "year": 2023
+  },
   "10.48550/arxiv.2202.13540": {
     "audited_at": "2026-09-03T03:41:28.121959+00:00",
     "fetched_at": "2026-09-02T02:23:17.543405+00:00",
+    "folder": "business",
+    "status": "fetched"
+  },
+  "10.51952/9781529202175.ch004": {
+    "authors": [
+      "Lisa Thalheimer",
+      "Christian Webersik"
+    ],
+    "doi_url": "https://doi.org/10.51952/9781529202175.ch004",
+    "fetched_at": "2026-10-04T02:27:52.337217+00:00",
+    "folder": "political-science",
+    "status": "needs_manual",
+    "title": "Climate Change, Conflicts and Migration",
+    "year": 2020
+  },
+  "10.5204/thesis.eprints.121188": {
+    "fetched_at": "2026-10-04T02:29:39.737254+00:00",
+    "folder": "psychology",
+    "status": "fetched"
+  },
+  "10.5281/zenodo.19248287": {
+    "authors": [
+      "CA Dr Mala Dani"
+    ],
+    "doi_url": "https://doi.org/10.5281/zenodo.19248287",
+    "fetched_at": "2026-10-04T02:25:56.639037+00:00",
+    "folder": "geography",
+    "status": "needs_manual",
+    "title": "CLIMATE VARIABILITY AND SMALLHOLDER FARMING SYSTEMS: A STUDY OF AGRICULTURAL ADAPTATION IN AHMEDABAD DISTRICT, GUJARAT",
+    "year": 2026
+  },
+  "10.53832/evidence-fund.0128": {
+    "fetched_at": "2026-10-04T02:28:50.030829+00:00",
+    "folder": "economics",
+    "status": "fetched"
+  },
+  "10.55041/ijsrem33410": {
+    "authors": [
+      "Anisha Kumari"
+    ],
+    "doi_url": "https://doi.org/10.55041/ijsrem33410",
+    "fetched_at": "2026-10-04T02:29:33.054441+00:00",
+    "folder": "psychology",
+    "status": "needs_manual",
+    "title": "Influence of Chatbot on Consumer Purchase Intention",
+    "year": 2024
+  },
+  "10.55121/nc.v3i2.207": {
+    "fetched_at": "2026-10-04T02:25:57.941028+00:00",
     "folder": "business",
     "status": "fetched"
   },
@@ -399,6 +1000,116 @@
     "fetched_at": "2026-09-02T02:12:21.370512+00:00",
     "folder": "geography",
     "status": "fetched"
+  },
+  "10.58464/2155-5834.1453": {
+    "authors": [
+      "Charles N. Oberg",
+      "Hopewell R. Hodges",
+      "Ann S. Masten"
+    ],
+    "doi_url": "https://doi.org/10.58464/2155-5834.1453",
+    "fetched_at": "2026-10-04T02:28:01.413468+00:00",
+    "folder": "political-science",
+    "status": "needs_manual",
+    "title": "Risk and Resilience of Somali Children in the Context of Climate Change, Famine, and Conflict",
+    "year": 2021
+  },
+  "10.62225/2583049x.2026.6.3.6221": {
+    "fetched_at": "2026-10-04T02:25:52.122984+00:00",
+    "folder": "business",
+    "status": "fetched"
+  },
+  "10.70675/e00bc63czc556z4d21zb5c6z75dafba70f32": {
+    "fetched_at": "2026-10-04T02:29:31.453066+00:00",
+    "folder": "political-science",
+    "status": "fetched"
+  },
+  "10.70806/zfwsgz18": {
+    "fetched_at": "2026-10-04T02:28:05.136113+00:00",
+    "folder": "business",
+    "status": "fetched"
+  },
+  "10.9734/ijecc/2023/v13i113138": {
+    "authors": [
+      "D. R. K. Saikanth",
+      "Sunil Kumar",
+      "Manu Rani",
+      "Anant Sharma",
+      "Swapnil Srivastava",
+      "Dileep Vyas",
+      "Gaurav Ayodhya Singh",
+      "Suneel Kumar"
+    ],
+    "doi_url": "https://doi.org/10.9734/ijecc/2023/v13i113138",
+    "fetched_at": "2026-10-04T02:25:52.593999+00:00",
+    "folder": "business",
+    "status": "needs_manual",
+    "title": "A Comprehensive Review on Climate Change Adaptation Strategies and Challenges in Agriculture",
+    "year": 2023
+  },
+  "https://openalex.org/W1483747552": {
+    "fetched_at": "2026-10-04T02:25:54.603484+00:00",
+    "folder": "geography",
+    "status": "fetched"
+  },
+  "https://openalex.org/W2535150393": {
+    "authors": [
+      "Christopher John Paul"
+    ],
+    "doi_url": "https://openalex.org/W2535150393",
+    "fetched_at": "2026-10-04T02:28:52.612151+00:00",
+    "folder": "political-science",
+    "status": "needs_manual",
+    "title": "The Political Economy of Climate Adaptation and Environmental Health: The Case of Ethiopia",
+    "year": 2016
+  },
+  "https://openalex.org/W2895469150": {
+    "authors": [
+      "Keetie Roelen",
+      "Daniel Longhurst",
+      "Rachel Sabates\u2010Wheeler"
+    ],
+    "doi_url": "https://openalex.org/W2895469150",
+    "fetched_at": "2026-10-04T02:27:11.066815+00:00",
+    "folder": "business",
+    "status": "needs_manual",
+    "title": "The Role of Cash Transfers in Social Protection, Humanitarian Response and Shock-Responsive Social Protection",
+    "year": 2018
+  },
+  "https://openalex.org/W2899128581": {
+    "authors": [
+      "Martina Ulrichs",
+      "Rachel Sabates\u2010Wheeler"
+    ],
+    "doi_url": "https://openalex.org/W2899128581",
+    "fetched_at": "2026-10-04T02:27:14.954634+00:00",
+    "folder": "political-science",
+    "status": "needs_manual",
+    "title": "Social Protection and Humanitarian Response: What is the Scope for Integration?",
+    "year": 2018
+  },
+  "https://openalex.org/W2915422417": {
+    "authors": [
+      "Rachel Cooper"
+    ],
+    "doi_url": "https://openalex.org/W2915422417",
+    "fetched_at": "2026-10-04T02:27:16.515971+00:00",
+    "folder": "political-science",
+    "status": "needs_manual",
+    "title": "Social Safety Nets in Fragile and Conflict-Affected States",
+    "year": 2018
+  },
+  "https://openalex.org/W3093451388": {
+    "authors": [
+      "E. Elwood Ford",
+      "James Copestake"
+    ],
+    "doi_url": "https://openalex.org/W3093451388",
+    "fetched_at": "2026-10-04T02:27:13.291019+00:00",
+    "folder": "business",
+    "status": "needs_manual",
+    "title": "The Potential of Digital Cash Transfers to Strengthen the Link Between Humanitarian Assistance and Social Protection",
+    "year": 2017
   },
   "https://openalex.org/W3156587858": {
     "audited_at": "2026-09-03T03:41:28.502065+00:00",
@@ -413,5 +1124,42 @@
     "title": "'Big Data' for Development",
     "work_type": "article",
     "year": 2010
+  },
+  "https://openalex.org/W3195349349": {
+    "authors": [
+      "Hannah Akanksha Patnaik"
+    ],
+    "doi_url": "https://openalex.org/W3195349349",
+    "fetched_at": "2026-10-04T02:28:45.501487+00:00",
+    "folder": "geography",
+    "status": "needs_manual",
+    "title": "Three Essays On Climate Change Adaptation In Rural African Communities",
+    "year": 2021
+  },
+  "https://openalex.org/W574348345": {
+    "authors": [
+      "Nancy McCarthy",
+      "Leslie Lipper",
+      "Giacomo Branca"
+    ],
+    "doi_url": "https://openalex.org/W574348345",
+    "fetched_at": "2026-10-04T02:25:49.893107+00:00",
+    "folder": "business",
+    "status": "needs_manual",
+    "title": "Climate-smart agriculture: smallholder adoption and implications for climate change adaptation and mitigation",
+    "year": 2011
+  },
+  "https://openalex.org/W7135522878": {
+    "authors": [
+      "Gift Dafuleya",
+      "Neetu Mahil",
+      "Marius Olivier"
+    ],
+    "doi_url": "https://openalex.org/W7135522878",
+    "fetched_at": "2026-10-04T02:27:20.749579+00:00",
+    "folder": "business",
+    "status": "needs_manual",
+    "title": "Social Protection \u2013 An Operational Tool for the Humanitarian, Development and Peace Nexus: Linkages between Cash-based",
+    "year": 2022
   }
 }

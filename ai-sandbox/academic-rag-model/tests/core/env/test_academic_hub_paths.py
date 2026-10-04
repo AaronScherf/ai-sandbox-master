@@ -1,8 +1,16 @@
+import json
 import os
 
 import pytest
 
-from core.env.academic_hub_paths import resolve_output_dir, textbook_rag_md_path, to_notes_root, to_resources_root
+from core.env.academic_hub_paths import (
+    find_containing_offering_label,
+    read_subset_marker,
+    resolve_output_dir,
+    textbook_rag_md_path,
+    to_notes_root,
+    to_resources_root,
+)
 
 
 def test_to_resources_root_swaps_the_segment_in_an_os_native_path():
@@ -81,3 +89,65 @@ def test_textbook_rag_md_path_keeps_nested_subfolders_like_bonus():
 def test_textbook_rag_md_path_stays_a_sibling_outside_academic_resources():
     book_dir = os.path.join("tmp", "processed_outputs", "Hansen_2022")
     assert textbook_rag_md_path(book_dir) == os.path.join(book_dir, "Hansen_2022.rag.md")
+
+
+def test_read_subset_marker_returns_parsed_dict(tmp_path):
+    (tmp_path / ".notes_subset.json").write_text(json.dumps({"label": "2024"}))
+    assert read_subset_marker(str(tmp_path)) == {"label": "2024"}
+
+
+def test_read_subset_marker_returns_none_when_missing(tmp_path):
+    assert read_subset_marker(str(tmp_path)) is None
+
+
+def test_read_subset_marker_warns_and_ignores_malformed_json(tmp_path, capsys):
+    (tmp_path / ".notes_subset.json").write_text("{not valid json")
+    assert read_subset_marker(str(tmp_path)) is None
+    assert "WARNING" in capsys.readouterr().out
+
+
+def test_find_containing_offering_label_returns_none_for_a_notes_rooted_path():
+    path = os.path.join("academic_notes", "econometrics", "ta_notes", "foo.pdf")
+    assert find_containing_offering_label(path) is None
+
+
+def test_find_containing_offering_label_finds_a_marker_on_the_course_dir_itself(tmp_path):
+    course_dir = tmp_path / "academic_resources" / "econometrics"
+    course_dir.mkdir(parents=True)
+    (course_dir / ".notes_subset.json").write_text(json.dumps({"label": "whole-course"}))
+    pdf_path = course_dir / "class_2024" / "foo.pdf"
+
+    assert find_containing_offering_label(str(pdf_path)) == "whole-course"
+
+
+def test_find_containing_offering_label_finds_a_marker_several_levels_up(tmp_path):
+    subset = tmp_path / "academic_resources" / "econometrics" / "class_2024"
+    deep = subset / "Class Notes" / "Hand-Written Notes"
+    deep.mkdir(parents=True)
+    (subset / ".notes_subset.json").write_text(json.dumps({"label": "2024"}))
+    pdf_path = deep / "090424.pdf"
+
+    assert find_containing_offering_label(str(pdf_path)) == "2024"
+
+
+def test_find_containing_offering_label_returns_none_when_no_ancestor_is_marked(tmp_path):
+    category_dir = tmp_path / "academic_resources" / "econometrics" / "ta_notes"
+    category_dir.mkdir(parents=True)
+    pdf_path = category_dir / "foo.pdf"
+
+    assert find_containing_offering_label(str(pdf_path)) is None
+
+
+def test_find_containing_offering_label_prefers_the_outermost_marker(tmp_path):
+    # Mirrors find_subset_roots()'s own "one marker claims its whole
+    # subtree, no stacking" rule -- the outer marker is the one that
+    # actually governs this file, since find_subset_roots() would never
+    # have looked for the inner one.
+    outer = tmp_path / "academic_resources" / "econometrics" / "class_2024"
+    inner = outer / "Class Notes"
+    inner.mkdir(parents=True)
+    (outer / ".notes_subset.json").write_text(json.dumps({"label": "outer"}))
+    (inner / ".notes_subset.json").write_text(json.dumps({"label": "inner"}))
+    pdf_path = inner / "foo.pdf"
+
+    assert find_containing_offering_label(str(pdf_path)) == "outer"
