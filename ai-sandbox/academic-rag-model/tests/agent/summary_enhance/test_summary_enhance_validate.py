@@ -180,3 +180,16 @@ def test_parse_plan():
     for bad in (None, {"topics": "x"}, {"topics": [1]}):
         with pytest.raises(ValueError):
             parse_plan(bad)
+
+
+@pytest.mark.parametrize("spelled", ["[S5]", " s5 ", "[ S5 ]", "S5", "[s5]"])
+def test_parse_topic_normalizes_label_spellings(spelled):
+    data = {"title": "T", "sections": [{"heading": "H", "blocks": [
+        {"type": "grounded", "text": "a", "sources": [spelled]}]}]}
+    assert parse_topic(data).sections[0].blocks[0].sources == ["S5"]
+
+
+def test_parse_topic_leaves_unrecognizable_labels_for_validation_to_reject():
+    data = {"title": "T", "sections": [{"heading": "H", "blocks": [
+        {"type": "grounded", "text": "a", "sources": ["Wooldridge ch.4"]}]}]}
+    assert parse_topic(data).sections[0].blocks[0].sources == ["WOOLDRIDGE CH.4"]

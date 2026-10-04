@@ -72,6 +72,13 @@ PLAN_SCHEMA = {
 }
 
 
+def _norm_label(label: str) -> str:
+    """The prompt tags passages as "[S1]", and models echo that spelling ("[S5]", "s5")
+    in `sources`. Normalize to the bare "S5" so a harmless spelling difference does not
+    cost a paid retry (first live v2 run, 2026-10-03: a whole topic failed twice on this)."""
+    return label.strip().strip("[]").strip().upper()
+
+
 def parse_topic(data: object) -> Topic:
     """Converts one decoded topic response into dataclasses. Raises ValueError
     on any structural problem (wrong type, missing key, unknown block type)."""
@@ -89,7 +96,7 @@ def parse_topic(data: object) -> Topic:
                     or not isinstance(b.get("text"), str) or not isinstance(b.get("sources"), list)
                     or not all(isinstance(x, str) for x in b["sources"])):
                 raise ValueError(f"section {s['heading']!r}: malformed block")
-            blocks.append(Block(b["type"], b["text"], list(b["sources"])))
+            blocks.append(Block(b["type"], b["text"], [_norm_label(x) for x in b["sources"]]))
         sections.append(Section(s["heading"], blocks))
     return Topic(data["title"], sections)
 

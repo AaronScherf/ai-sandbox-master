@@ -31,8 +31,8 @@ Length and structure
     A block is one or more paragraphs.
 
 Two block types
-  * "grounded": synthesis the textbooks support. List in "sources" the labels of every passage
-    the block relies on. Merge the sources into one coherent explanation instead of summarizing
+  * "grounded": synthesis the textbooks support. List in "sources" the bare labels such as "S1"
+    (no brackets) of every passage the block relies on. Merge the sources into one coherent explanation instead of summarizing
     each book in turn. Use ONLY what the passages state or directly imply. The draft guide is
     not a source: leave out of grounded blocks anything the passages do not support. Where the
     sources differ (notation, assumptions, scope) or one is silent, say so plainly. At least

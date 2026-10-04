@@ -54,3 +54,8 @@ def test_worked_example_prompt():
     assert '"Wald test"' in prompt and "V^-1" in prompt
     assert "code execution" in prompt and "illustrative" in prompt.lower()
     assert "REJECTED" in build_worked_example_prompt("T", "x", errors=["no math"])
+
+
+def test_topic_prompt_says_sources_are_bare_labels(vault):
+    prompt = build_topic_prompt(load_guide(vault.guide), "Wald test", [], 1400)
+    assert 'bare labels such as "S1"' in prompt and "no brackets" in prompt
