@@ -51,3 +51,89 @@ def test_resolved_markers_count_as_tags_and_the_span_covers_the_whole_marker():
 def test_raw_tags_ignores_frontmatter():
     raw = "---\nnote: [Question] fake?\n---\n\n[Question] real?\n"
     assert [t.text for t in raw_tags(raw)] == ["real?"]
+
+
+import os
+from unittest.mock import patch
+
+import pytest
+
+from core.indexer.questions import (
+    SIDECAR_SUFFIX,
+    Entry,
+    parse_entries,
+    rag_path_for,
+    read_sidecar,
+    render_entry,
+    sidecar_path_for,
+    write_sidecar,
+)
+
+
+def _entry(**kw):
+    base = dict(
+        qid="q1-1a2b3c4d", question="why not reflexivity?", grounded=True, model="gemini-3.6-flash",
+        resolved_at="2026-10-03T12:00:00+00:00", stale=False, context="x succsim y",
+        answer="Because $x$ is related.\n\n$$u(x) \\geq u(y)$$\n\nSecond paragraph.",
+        sources=["a/b.md (p. 3)", "c/d.md (section 2)"],
+    )
+    base.update(kw)
+    return Entry(**base)
+
+
+def test_paths_derive_from_the_raw_transcript_path():
+    raw = "a/processed_outputs/N 2026-09-15.excalidraw.md"
+    assert sidecar_path_for(raw) == "a/processed_outputs/N 2026-09-15" + SIDECAR_SUFFIX
+    assert rag_path_for(raw) == "a/processed_outputs/N 2026-09-15.excalidraw.rag.md"
+    with pytest.raises(ValueError):
+        sidecar_path_for("a/b.md")
+    with pytest.raises(ValueError):
+        rag_path_for("a/b.md")
+
+
+def test_entry_round_trips_grounded_with_sources():
+    entry = _entry()
+    assert parse_entries(render_entry(entry)) == [entry]
+
+
+def test_entry_round_trips_ungrounded_with_no_sources():
+    entry = _entry(grounded=False, sources=[])
+    rendered = render_entry(entry)
+    assert "not sourced from your course materials" in rendered
+    assert parse_entries(rendered) == [entry]
+
+
+def test_stale_flag_round_trips():
+    assert parse_entries(render_entry(_entry(stale=True)))[0].stale is True
+
+
+def test_answer_headings_cannot_split_an_entry():
+    entry = _entry(answer="## Heading in answer\ntext")
+    parsed = parse_entries(render_entry(entry) + "\n" + render_entry(_entry(qid="q2-aaaaaaaa")))
+    assert [p.qid for p in parsed] == ["q1-1a2b3c4d", "q2-aaaaaaaa"]
+    assert parsed[0].answer.startswith("### Heading in answer")
+
+
+def test_write_then_read_sidecar_keeps_frontmatter_and_entries(tmp_path):
+    path = str(tmp_path / ("N" + SIDECAR_SUFFIX))
+    fields = {"source_excalidraw": "a/N.excalidraw.md", "questions": "2"}
+    entries = [_entry(), _entry(qid="q2-bbbbbbbb", question="what if X is infinite?")]
+    write_sidecar(path, fields, entries)
+    got_fields, got_entries = read_sidecar(path)
+    assert got_fields == fields and got_entries == entries
+    assert not os.path.exists(path + ".tmp")
+
+
+def test_read_sidecar_of_a_missing_file_is_empty(tmp_path):
+    assert read_sidecar(str(tmp_path / "none.md")) == ({}, [])
+
+
+def test_failed_write_keeps_the_existing_sidecar_and_removes_the_temp_file(tmp_path):
+    path = str(tmp_path / ("N" + SIDECAR_SUFFIX))
+    write_sidecar(path, {"questions": "1"}, [_entry()])
+    before = open(path, encoding="utf-8").read()
+    with patch("core.indexer.questions.os.replace", side_effect=OSError("disk")):
+        with pytest.raises(OSError):
+            write_sidecar(path, {"questions": "2"}, [_entry(), _entry(qid="q2-bbbbbbbb")])
+    assert open(path, encoding="utf-8").read() == before
+    assert not os.path.exists(path + ".tmp")
