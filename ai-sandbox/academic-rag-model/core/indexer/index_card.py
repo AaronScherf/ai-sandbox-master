@@ -44,6 +44,11 @@ LECTURE_NOTE_DOC_TYPES = frozenset({"lecture_notes"})
 # docs/superpowers/specs/2026-09-09-excalidraw-notes-transcription-design.md.
 EXCALIDRAW_DOC_TYPES = frozenset({"excalidraw_notes"})
 
+# The question resolver's per-note sidecar of answers
+# (core/indexer/questions.py), indexed as its own card so retrieval can find
+# resolved answers.
+EXCALIDRAW_QUESTION_DOC_TYPES = frozenset({"excalidraw_questions"})
+
 # Cap on how much of an assembled textbook markdown gets read as
 # content_sample -- a book's front matter/TOC is reliably near the start
 # regardless of the book's total length (spec §4), and this same constant

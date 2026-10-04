@@ -24,6 +24,7 @@ from core.indexer.index_card import (
     EMBEDDING_DIMENSIONALITY,
     EMBEDDING_MODEL,
     EXCALIDRAW_DOC_TYPES,
+    EXCALIDRAW_QUESTION_DOC_TYPES,
     KNOWN_DOC_TYPES,
     KNOWN_LEVELS,
     LECTURE_NOTE_DOC_TYPES,
@@ -741,6 +742,22 @@ def rebuild(academic_hub_root: str, client, course: str | None = None,
                        source_mtime=os.path.getmtime(rag_path),
                        content_hash=compute_content_hash(rag_path),
                        known_doc_types=EXCALIDRAW_DOC_TYPES, source_asset_path=rel_image_path)
+
+        sidecar_path = os.path.join(os.path.dirname(rag_path), f"{base_name}.excalidraw.questions.md")
+        if os.path.exists(sidecar_path) and os.path.getsize(sidecar_path) > 0:
+            # Identity derives from the source note, not the sidecar's own bytes:
+            # the sidecar is rewritten on every resolver run, and a bytes-based id
+            # would mint a new card each time.
+            sidecar_id = compute_id_from_parts(["excalidraw_questions", file_id])
+            seen_file_ids.add(sidecar_id)
+            with open(sidecar_path, "r", encoding="utf-8") as f:
+                sidecar_text = f.read()
+            _reconcile_one(academic_hub_root, course_name, category, sidecar_id,
+                           os.path.relpath(sidecar_path, academic_hub_root).replace(os.sep, "/"),
+                           rel_md_path, sidecar_text, None, client, force, stats,
+                           source_mtime=os.path.getmtime(sidecar_path),
+                           content_hash=compute_content_hash(sidecar_path),
+                           known_doc_types=EXCALIDRAW_QUESTION_DOC_TYPES, source_asset_path=rel_image_path)
 
     _flag_or_prune_orphans(academic_hub_root, seen_file_ids, course, prune, stats)
     _link_subsets_safely(academic_hub_root, course)

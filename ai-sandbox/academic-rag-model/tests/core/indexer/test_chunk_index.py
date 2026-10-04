@@ -613,5 +613,22 @@ class TestChunkOrchestration(unittest.TestCase):
             self.assertEqual(load_chunks(tmp, "econ-101"), [])
 
 
+class TestQuestionSidecarChunking(unittest.TestCase):
+    def test_one_heading_chunk_per_question(self):
+        from core.indexer.chunk_index import chunk_file
+        text = (
+            "---\nresolver_model: m\n---\n\n"
+            "## q1-aaaaaaaa - Why not reflexivity?\n<!-- qid: q1-aaaaaaaa; grounded: true -->\n\n"
+            "**Context:** ctx\n\nAnswer one is short.\n\n**Sources:** a\n\n"
+            "## q2-bbbbbbbb - What if X is not finite?\n<!-- qid: q2-bbbbbbbb; grounded: false -->\n\n"
+            "**Context:** ctx2\n\nAnswer two is short.\n\n**Sources:** none\n"
+        )
+        chunks = chunk_file(text, "excalidraw_questions", "lecture_notes")
+        self.assertEqual(
+            [c["heading_path"] for c in chunks],
+            [["q1-aaaaaaaa - Why not reflexivity?"], ["q2-bbbbbbbb - What if X is not finite?"]],
+        )
+
+
 if __name__ == "__main__":
     unittest.main()

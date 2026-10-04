@@ -8,7 +8,7 @@ from unittest.mock import MagicMock, patch
 
 from core.indexer.chunk_index import save_chunks
 from core.indexer.index_card import (
-    compute_file_id, find_card_by_file_id, load_courses, load_shard, load_tags, save_shard, save_tags,
+    compute_file_id, compute_id_from_parts, find_card_by_file_id, load_courses, load_shard, load_tags, save_shard, save_tags,
     recompute_course_entry,
 )
 from core.indexer.index_search import (
@@ -1472,6 +1472,44 @@ class TestRebuildLinksSubsets(unittest.TestCase):
             with patch("core.indexer.index_search.link_subsets", side_effect=RuntimeError("boom")):
                 stats = rebuild(tmp, client=_fake_client())
             self.assertEqual(stats["generated"], 1)
+
+
+class TestRebuildExcalidrawQuestionSidecar(unittest.TestCase):
+    def _sidecar(self, md_path, text):
+        base = os.path.basename(md_path)[: -len(".excalidraw.md")]
+        path = os.path.join(os.path.dirname(md_path), "processed_outputs", f"{base}.excalidraw.questions.md")
+        with open(path, "w", encoding="utf-8") as f:
+            f.write(text)
+        return path
+
+    def test_sidecar_is_indexed_under_a_stable_derived_id(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            md_path, _ = _make_excalidraw_note(tmp, "math-camp", "lecture_notes", "Drawing 2026-09-08")
+            self._sidecar(md_path, "## q1-aaaaaaaa - Why?\nanswer one\n")
+            rebuild(tmp, client=_fake_client())
+            expected_id = compute_id_from_parts(["excalidraw_questions", compute_file_id(md_path)])
+            cards = [c for c in load_shard(tmp, "math-camp") if c["file_id"] == expected_id]
+            self.assertEqual(len(cards), 1)
+            self.assertTrue(cards[0]["path"].endswith("Drawing 2026-09-08.excalidraw.questions.md"))
+            self.assertFalse(cards[0].get("orphaned"))
+
+    def test_rewriting_the_sidecar_updates_instead_of_duplicating_the_card(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            md_path, _ = _make_excalidraw_note(tmp, "math-camp", "lecture_notes", "Drawing 2026-09-08")
+            self._sidecar(md_path, "## q1-aaaaaaaa - Why?\nanswer one\n")
+            rebuild(tmp, client=_fake_client())
+            self._sidecar(md_path, "## q1-aaaaaaaa - Why?\na much longer, rewritten answer\n")
+            rebuild(tmp, client=_fake_client())
+            expected_id = compute_id_from_parts(["excalidraw_questions", compute_file_id(md_path)])
+            cards = load_shard(tmp, "math-camp")
+            self.assertEqual(len([c for c in cards if c["file_id"] == expected_id]), 1)
+            self.assertEqual(len(cards), 2)  # the note's own card + the sidecar's
+
+    def test_no_sidecar_means_no_extra_card(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            _make_excalidraw_note(tmp, "math-camp", "lecture_notes", "Drawing 2026-09-08")
+            rebuild(tmp, client=_fake_client())
+            self.assertEqual(len(load_shard(tmp, "math-camp")), 1)
 
 
 if __name__ == "__main__":
