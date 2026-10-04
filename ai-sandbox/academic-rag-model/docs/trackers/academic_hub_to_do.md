@@ -54,6 +54,18 @@
 - **Tests are the other time cost.** ~107 s serial on 8 cores; `pytest-xdist` is not installed. The full
   suite was re-run many times per feature.
 
+- **A shared main checkout plus direct-to-main edits lets other agents' commits sweep up your
+  uncommitted work.** On 2026-10-04 this very section was written into the main checkout's tracker
+  (uncommitted, under the new to-do exemption) and was then committed by a *different agent's* commit,
+  `6d1e107` ("todo: aggregate pending to-dos..."), which was editing the same file in the same checkout.
+  When the author went to commit, git reported "nothing to commit, working tree clean". In the same
+  window another agent merged this session's `claude/status-docs-1004` branch (`d6f97fe`), retired its
+  worktree, and pushed, all while the author was paused on a usage limit. The content ended up intact, but
+  commit authorship and order are no longer traceable, and the exemption makes concurrent edits to the
+  tracker more likely. Ideas to weigh: a claim step before editing a shared file; one append-only to-do
+  file per agent merged later; always re-check `git status`/`git log -3` immediately before editing and
+  committing a shared file.
+
 ### Existing policy to build on (and where proposals collide with it)
 - Already in `docs/WORKTREE_WORKFLOW.md`: one writer per worktree, `.worktrees/` ignored, integration "one
   task at a time", retire-worktree procedure, Windows `git show` path gotcha, child-repo worktrees, "adopt
