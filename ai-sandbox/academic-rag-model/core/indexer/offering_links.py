@@ -19,7 +19,15 @@ import json
 import os
 
 from core.env.academic_hub_paths import find_containing_offering_label, to_resources_root
-from core.indexer.index_card import cosine_similarity, load_shard, now_iso, recompute_course_entry, save_shard
+from core.indexer.index_card import (
+    cosine_similarity,
+    find_card_by_file_id,
+    list_courses,
+    load_shard,
+    now_iso,
+    recompute_course_entry,
+    save_shard,
+)
 
 OFFERING_LINK_AUTO_THRESHOLD = 0.90  # starting guess -- calibrate against real data (Task 4)
 OFFERING_LINK_REVIEW_THRESHOLD = 0.80  # starting guess -- calibrate against real data (Task 4)
@@ -247,3 +255,124 @@ def write_matches(
                 stats["markdown_writes_skipped"] += 1
 
     return stats
+
+
+def run_for_course(academic_hub_root: str, course: str, dry_run: bool = False) -> dict:
+    all_cards = [
+        c for c in load_shard(academic_hub_root, course)
+        if c.get("embedding") and not c.get("orphaned") and not c.get("needs_indexing")
+    ]
+    offerings = {c["file_id"]: derive_offering_for_card(c, academic_hub_root) for c in all_cards}
+    cards_with_offerings = [(c, offerings[c["file_id"]]) for c in all_cards]
+
+    auto_matches, review_matches = find_cross_offering_matches(cards_with_offerings)
+
+    dismissals = load_dismissals(academic_hub_root)
+    auto_matches = [
+        m for m in auto_matches if not is_dismissed(dismissals, m[0]["file_id"], m[1]["file_id"])
+    ]
+    review_matches = [
+        m for m in review_matches if not is_dismissed(dismissals, m[0]["file_id"], m[1]["file_id"])
+    ]
+
+    if not dry_run and auto_matches:
+        write_matches(academic_hub_root, auto_matches, confidence="high", offerings=offerings)
+
+    if not dry_run and review_matches:
+        existing_review = load_review(academic_hub_root)
+        existing_pairs = {tuple(sorted([e.get("file_id_a"), e.get("file_id_b")])) for e in existing_review}
+        for card_a, card_b, similarity in review_matches:
+            pair = tuple(sorted([card_a["file_id"], card_b["file_id"]]))
+            if pair in existing_pairs:
+                continue
+            existing_review.append({
+                "file_id_a": pair[0], "file_id_b": pair[1], "similarity": similarity, "course": course,
+            })
+        save_review(academic_hub_root, existing_review)
+
+    return {"auto_matches": len(auto_matches), "review_matches": len(review_matches)}
+
+
+def resolve_pending(academic_hub_root: str, file_id_a: str, file_id_b: str) -> bool:
+    """Confirms a pending review match: writes it as a high-confidence
+    link (same as an auto-match) and removes it from review.json."""
+    review = load_review(academic_hub_root)
+    pair = tuple(sorted([file_id_a, file_id_b]))
+    entry = next((e for e in review if tuple(sorted([e.get("file_id_a"), e.get("file_id_b")])) == pair), None)
+    if entry is None:
+        return False
+
+    found_a = find_card_by_file_id(academic_hub_root, file_id_a)
+    found_b = find_card_by_file_id(academic_hub_root, file_id_b)
+    if found_a is None or found_b is None:
+        return False
+    _, card_a = found_a
+    _, card_b = found_b
+    offerings = {
+        file_id_a: derive_offering_for_card(card_a, academic_hub_root),
+        file_id_b: derive_offering_for_card(card_b, academic_hub_root),
+    }
+    write_matches(academic_hub_root, [(card_a, card_b, entry["similarity"])], confidence="high", offerings=offerings)
+
+    remaining = [e for e in review if tuple(sorted([e.get("file_id_a"), e.get("file_id_b")])) != pair]
+    save_review(academic_hub_root, remaining)
+    return True
+
+
+def reject_pending(academic_hub_root: str, file_id_a: str, file_id_b: str) -> bool:
+    """Permanently dismisses a pending review match and clears it from
+    review.json. Returns True even if the pair was already dismissed but
+    present in review.json (clearing the stale entry is still useful)."""
+    review = load_review(academic_hub_root)
+    pair = tuple(sorted([file_id_a, file_id_b]))
+    remaining = [e for e in review if tuple(sorted([e.get("file_id_a"), e.get("file_id_b")])) != pair]
+    was_pending = len(remaining) != len(review)
+    record_dismissal(academic_hub_root, file_id_a, file_id_b)
+    if was_pending:
+        save_review(academic_hub_root, remaining)
+    return was_pending
+
+
+def _academic_hub_dir():
+    from pathlib import Path
+    return Path(__file__).resolve().parent.parent.parent / "academic-hub"
+
+
+def main() -> None:
+    import argparse
+
+    from core.env.gemini_utils import load_dotenv_override
+
+    load_dotenv_override()
+    parser = argparse.ArgumentParser(
+        description="Find and link likely corollaries between a course's marked prior "
+                    "offerings and its other content, using each card's existing embedding."
+    )
+    parser.add_argument("--course", action="append", default=None,
+                         help="Limit to this course (repeatable). Default: every course.")
+    parser.add_argument("--dry-run", action="store_true", help="Report matches without writing anything.")
+    parser.add_argument("--resolve", metavar="FILE_ID_A:FILE_ID_B",
+                         help="Confirm one pending review match, writing it as a high-confidence link.")
+    parser.add_argument("--reject", metavar="FILE_ID_A:FILE_ID_B",
+                         help="Permanently dismiss one pending review match.")
+    args = parser.parse_args()
+
+    academic_hub_dir = str(_academic_hub_dir())
+
+    if args.resolve:
+        a, b = args.resolve.split(":", 1)
+        print("resolved" if resolve_pending(academic_hub_dir, a, b) else "no such pending match")
+        return
+    if args.reject:
+        a, b = args.reject.split(":", 1)
+        print("dismissed" if reject_pending(academic_hub_dir, a, b) else "no such pending match")
+        return
+
+    courses = args.course if args.course is not None else list_courses(academic_hub_dir)
+    for course in courses:
+        stats = run_for_course(academic_hub_dir, course, dry_run=args.dry_run)
+        print(f"{course}: {stats['auto_matches']} linked, {stats['review_matches']} pending review")
+
+
+if __name__ == "__main__":
+    main()

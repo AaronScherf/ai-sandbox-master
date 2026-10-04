@@ -283,3 +283,159 @@ def test_write_matches_replaces_a_stale_entry_for_the_same_pair_on_rerun(tmp_pat
 
     cards = {c["file_id"]: c for c in load_shard(academic_hub_root, "econometrics")}
     assert cards["fa"]["related_offerings"] == [{"file_id": "fb", "path": card_b["path"], "similarity": 0.95, "confidence": "high"}]
+
+
+from core.indexer.offering_links import reject_pending, resolve_pending, run_for_course
+
+
+def _seed_course(tmp_path, course, cards):
+    from core.indexer.index_card import save_shard
+    note_dir = tmp_path / "academic_notes" / course
+    note_dir.mkdir(parents=True, exist_ok=True)
+    for card in cards:
+        rel = card["path"][len("academic_notes/"):]
+        full = tmp_path / "academic_notes" / rel
+        full.parent.mkdir(parents=True, exist_ok=True)
+        full.write_text(f"Body for {card['file_id']}.\n")
+    save_shard(str(tmp_path), course, cards)
+
+
+def test_run_for_course_writes_an_auto_match_end_to_end(tmp_path):
+    subset = tmp_path / "academic_resources" / "econometrics" / "class_2024"
+    subset.mkdir(parents=True)
+    (subset / ".notes_subset.json").write_text(json.dumps({"label": "2024"}))
+
+    card_a = {"file_id": "fa", "path": "academic_notes/econometrics/professor_notes/a.md",
+              "title": "A", "embedding": [1.0, 0.0]}
+    card_b = {"file_id": "fb", "path": "academic_notes/econometrics/class_2024/b.md",
+              "title": "B", "embedding": [0.95, 0.3122498999199199]}
+    _seed_course(tmp_path, "econometrics", [card_a, card_b])
+
+    stats = run_for_course(str(tmp_path), "econometrics")
+
+    from core.indexer.index_card import load_shard
+    cards = {c["file_id"]: c for c in load_shard(str(tmp_path), "econometrics")}
+    assert cards["fa"]["related_offerings"][0]["file_id"] == "fb"
+    assert cards["fb"]["related_offerings"][0]["file_id"] == "fa"
+    assert stats["auto_matches"] == 1
+
+
+def test_run_for_course_excludes_a_card_with_no_embedding(tmp_path):
+    # A needs_indexing failure card has embedding=[] -- must be cleanly
+    # excluded from comparison, not crash cosine_similarity() or get
+    # spuriously matched against everything via an empty-vector score.
+    subset = tmp_path / "academic_resources" / "econometrics" / "class_2024"
+    subset.mkdir(parents=True)
+    (subset / ".notes_subset.json").write_text(json.dumps({"label": "2024"}))
+    card_a = {"file_id": "fa", "path": "academic_notes/econometrics/professor_notes/a.md",
+              "title": "A", "embedding": [1.0, 0.0]}
+    card_b = {"file_id": "fb", "path": "academic_notes/econometrics/class_2024/b.md",
+              "title": "B", "embedding": [], "needs_indexing": True}
+    _seed_course(tmp_path, "econometrics", [card_a, card_b])
+
+    stats = run_for_course(str(tmp_path), "econometrics")
+
+    assert stats["auto_matches"] == 0
+    assert stats["review_matches"] == 0
+
+
+def test_run_for_course_dry_run_writes_nothing(tmp_path):
+    subset = tmp_path / "academic_resources" / "econometrics" / "class_2024"
+    subset.mkdir(parents=True)
+    (subset / ".notes_subset.json").write_text(json.dumps({"label": "2024"}))
+    card_a = {"file_id": "fa", "path": "academic_notes/econometrics/professor_notes/a.md",
+              "title": "A", "embedding": [1.0, 0.0]}
+    card_b = {"file_id": "fb", "path": "academic_notes/econometrics/class_2024/b.md",
+              "title": "B", "embedding": [0.95, 0.3122498999199199]}
+    _seed_course(tmp_path, "econometrics", [card_a, card_b])
+
+    stats = run_for_course(str(tmp_path), "econometrics", dry_run=True)
+
+    from core.indexer.index_card import load_shard
+    cards = {c["file_id"]: c for c in load_shard(str(tmp_path), "econometrics")}
+    assert "related_offerings" not in cards["fa"]
+    assert stats["auto_matches"] == 1
+
+
+def test_run_for_course_logs_a_review_match_instead_of_writing_it(tmp_path):
+    subset = tmp_path / "academic_resources" / "econometrics" / "class_2024"
+    subset.mkdir(parents=True)
+    (subset / ".notes_subset.json").write_text(json.dumps({"label": "2024"}))
+    card_a = {"file_id": "fa", "path": "academic_notes/econometrics/professor_notes/a.md",
+              "title": "A", "embedding": [1.0, 0.0]}
+    card_b = {"file_id": "fb", "path": "academic_notes/econometrics/class_2024/b.md",
+              "title": "B", "embedding": [0.85, 0.5266403851195171]}
+    _seed_course(tmp_path, "econometrics", [card_a, card_b])
+
+    stats = run_for_course(str(tmp_path), "econometrics")
+
+    from core.indexer.offering_links import load_review
+    from core.indexer.index_card import load_shard
+    assert stats["review_matches"] == 1
+    assert len(load_review(str(tmp_path))) == 1
+    cards = {c["file_id"]: c for c in load_shard(str(tmp_path), "econometrics")}
+    assert "related_offerings" not in cards["fa"]
+
+
+def test_run_for_course_skips_a_dismissed_pair(tmp_path):
+    from core.indexer.offering_links import record_dismissal
+    subset = tmp_path / "academic_resources" / "econometrics" / "class_2024"
+    subset.mkdir(parents=True)
+    (subset / ".notes_subset.json").write_text(json.dumps({"label": "2024"}))
+    card_a = {"file_id": "fa", "path": "academic_notes/econometrics/professor_notes/a.md",
+              "title": "A", "embedding": [1.0, 0.0]}
+    card_b = {"file_id": "fb", "path": "academic_notes/econometrics/class_2024/b.md",
+              "title": "B", "embedding": [0.95, 0.3122498999199199]}
+    _seed_course(tmp_path, "econometrics", [card_a, card_b])
+    record_dismissal(str(tmp_path), "fa", "fb")
+
+    stats = run_for_course(str(tmp_path), "econometrics")
+
+    assert stats["auto_matches"] == 0
+    from core.indexer.index_card import load_shard
+    cards = {c["file_id"]: c for c in load_shard(str(tmp_path), "econometrics")}
+    assert "related_offerings" not in cards["fa"]
+
+
+def test_resolve_pending_promotes_a_review_match_to_a_written_link(tmp_path):
+    subset = tmp_path / "academic_resources" / "econometrics" / "class_2024"
+    subset.mkdir(parents=True)
+    (subset / ".notes_subset.json").write_text(json.dumps({"label": "2024"}))
+    card_a = {"file_id": "fa", "path": "academic_notes/econometrics/professor_notes/a.md",
+              "title": "A", "embedding": [1.0, 0.0]}
+    card_b = {"file_id": "fb", "path": "academic_notes/econometrics/class_2024/b.md",
+              "title": "B", "embedding": [0.85, 0.5266403851195171]}
+    _seed_course(tmp_path, "econometrics", [card_a, card_b])
+    run_for_course(str(tmp_path), "econometrics")  # produces one pending review entry
+
+    resolved = resolve_pending(str(tmp_path), "fa", "fb")
+
+    from core.indexer.offering_links import load_review
+    from core.indexer.index_card import load_shard
+    assert resolved is True
+    assert load_review(str(tmp_path)) == []
+    cards = {c["file_id"]: c for c in load_shard(str(tmp_path), "econometrics")}
+    assert cards["fa"]["related_offerings"][0]["confidence"] == "high"
+
+
+def test_resolve_pending_returns_false_when_pair_not_in_review(tmp_path):
+    assert resolve_pending(str(tmp_path), "nope", "nothing") is False
+
+
+def test_reject_pending_dismisses_and_clears_the_pending_entry(tmp_path):
+    subset = tmp_path / "academic_resources" / "econometrics" / "class_2024"
+    subset.mkdir(parents=True)
+    (subset / ".notes_subset.json").write_text(json.dumps({"label": "2024"}))
+    card_a = {"file_id": "fa", "path": "academic_notes/econometrics/professor_notes/a.md",
+              "title": "A", "embedding": [1.0, 0.0]}
+    card_b = {"file_id": "fb", "path": "academic_notes/econometrics/class_2024/b.md",
+              "title": "B", "embedding": [0.85, 0.5266403851195171]}
+    _seed_course(tmp_path, "econometrics", [card_a, card_b])
+    run_for_course(str(tmp_path), "econometrics")
+
+    rejected = reject_pending(str(tmp_path), "fa", "fb")
+
+    from core.indexer.offering_links import is_dismissed, load_dismissals, load_review
+    assert rejected is True
+    assert load_review(str(tmp_path)) == []
+    assert is_dismissed(load_dismissals(str(tmp_path)), "fa", "fb")
