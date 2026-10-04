@@ -584,3 +584,16 @@ def test_run_for_course_dry_run_reports_pair_details(tmp_path):
     pair = stats["auto_pairs"][0]
     assert {pair["file_id_a"], pair["file_id_b"]} == {"fa", "fb"}
     assert pair["similarity"] > 0.9
+
+
+def test_academic_hub_dir_resolves_to_the_real_sibling_directory():
+    # Real finding: this previously pointed one level too shallow
+    # (academic-rag-model/academic-hub, which doesn't exist) instead of
+    # the real ai-sandbox/academic-hub sibling -- load_shard() silently
+    # returns [] for a missing path, so main() ran with zero cards and
+    # reported "0 linked, 0 pending review" with no error at all.
+    from core.indexer.offering_links import _academic_hub_dir
+    resolved = _academic_hub_dir()
+    assert resolved.name == "academic-hub"
+    assert resolved.parent.name == "ai-sandbox"
+    assert os.path.isdir(resolved)
