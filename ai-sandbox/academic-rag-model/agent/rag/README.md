@@ -145,3 +145,15 @@ For a multi-part study guide assembled from several tutor answers, call
 This uses the same course-specific notes destination as `report=True`.
 The REPL's `/summarize [unit]` command also saves its session recap and
 deduplicated source citations in the same `summaries/` folder.
+
+## Resolving `[Question]` tags (`resolve_questions.py`)
+
+`python -m agent.rag.resolve_questions [--root R] [--course C] [--note TEXT] [--dry-run] [--redo] [--model M] [--max-questions N]`
+answers the open questions the Excalidraw pipeline tags as `[Question]`. For each unanswered tag it extracts key terms,
+retrieves course passages (`retrieve_passages`), and answers: grounded in the retrieved excerpts when a passage mentions a
+key term, otherwise from general knowledge and labeled ungrounded. Answers go to `<name>.excalidraw.questions.md` beside the
+note (atomic writes, one `## q<n>-<hash>` section per question); the `.rag.md` tag becomes
+`[Question: answered -> <sidecar>#<id>]` (or `answered (ungrounded)`). Idempotent: answered ids are skipped unless `--redo`;
+a failing question writes nothing and is retried next run; notes that are a `subset_of` another note are skipped.
+`--dry-run` makes no API calls. Uses `PAID_GEMINI_KEY`. Markers are re-applied automatically whenever a note is
+regenerated (`transcribe_excalidraw.write_outputs`, `--reexpand`). Run `rebuild` afterwards to index the sidecars.

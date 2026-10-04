@@ -56,6 +56,12 @@ Run any script here as a module from the `academic-rag-model/` root, e.g.
   `python -m core.indexer.related [--course X] [--dry-run]`. Manual corrections:
   `.index/links/overrides.json` with
   `{"force": [{"subset": id, "superset": id}], "block": [id]}`.
+- `questions.py` (2026-10-03) — pure logic for the `[Question]` resolver (`agent/rag/resolve_questions.py`):
+  tag discovery and stable ids (`q<ordinal>-<hash>`, from the raw transcript so regeneration can't change them),
+  the per-note sidecar (`<name>.excalidraw.questions.md`) with atomic I/O, and `apply_markers`, the deterministic
+  step that rewrites `.rag.md` tags into resolved markers (by position when tag counts match, by text similarity
+  otherwise; unmatched entries are flagged stale). `rebuild` indexes each sidecar as its own `excalidraw_questions`
+  card under `compute_id_from_parts(["excalidraw_questions", <note file_id>])` so rewrites update one card.
 - `chunk_index.py` — passage-level chunking and embedding for citable,
   paragraph/heading/page-accurate retrieval (not just "which file," but
   "which paragraph"). Tiered: headings first, numbered-problem detection for

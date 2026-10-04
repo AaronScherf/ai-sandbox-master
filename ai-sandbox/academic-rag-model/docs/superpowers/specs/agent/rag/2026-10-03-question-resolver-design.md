@@ -1,6 +1,6 @@
 # Question Resolver: Design
 
-**Status:** approved in conversation 2026-10-03; written spec pending review.
+**Status:** approved; implemented per docs/superpowers/plans/agent/rag/2026-10-03-question-resolver.md.
 **Packages:** new `core/indexer/questions.py` (pure, no network), new `agent/rag/resolve_questions.py` (retrieval + generation + CLI); small hooks in `pipelines/transcribe_notes/transcribe_excalidraw.py` and `core/indexer/index_search.py`.
 
 ## Motivation
@@ -83,8 +83,9 @@ verbatim unless `--redo` selects them.
 3. **Retrieve**: `retrieve_passages(roots, query=question + short context, client,
    course=<note's course>, key_terms=key_terms)`. The note's own `.rag.md` and sidecar
    are excluded from the results so a question is never "grounded" in itself.
-4. **Grounded?** `not key_terms or any(_term_match_count(p.text, key_terms) for p in passages)`
-   (identical to `/hint`).
+4. **Grounded?** At least one retrieved passage survives own-note exclusion **and** (no key terms
+   were extracted, **or** some passage mentions a key term). This is `/hint`'s check plus a guard so
+   an empty retrieval never counts as grounded.
 5. **Generate**: grounded -> a prompt with the question, context and excerpts (cite by the
    excerpt's own citation string); ungrounded -> same prompt without excerpts, told to
    answer from general knowledge and to say when it is unsure. Default model
@@ -172,11 +173,8 @@ Failure in `apply_markers` inside `write_outputs` is non-fatal (print a `WARNING
 
 ## Open questions for the implementation plan
 
-- **Shared segment helper.** Splitting `**[Slide]**`/`**[Handwritten]**` blocks now exists in
-  `transcribe_excalidraw.py` and a minimal copy in `core/indexer/related.py`; the resolver would
-  be a third user. Recommendation: one small refactor task moving it to a shared module in
-  `core/` that all three import.
-- **Where `apply_markers` imports its tag regex from** so the transcriber, resolver and tests
-  agree on one definition of "a `[Question]` tag".
+- **Resolved in the plan:** the shared segment helper and the shared `[Question]` tag regex now live in
+  `core/env/excalidraw_text.py`, imported by `transcribe_excalidraw.py`, `related.py`, `questions.py`
+  and `resolve_questions.py`.
 - Prompt wording for the grounded and ungrounded answers (to be pinned by the plan with tests that
   assert the structure, not the model's output).
