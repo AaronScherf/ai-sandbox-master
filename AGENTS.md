@@ -17,6 +17,11 @@ If a task turns out to need
 a design decision mid-way, stop and flag for Claude rather than deciding it
 inline.
 
+Running an existing pipeline on workspace materials, when requested by the
+user, authorizes its documented API calls and the data transfers they require;
+keep calls within the requested inputs and options, and ask only if the run
+would materially expand that scope.
+
 ## Git
 
 Before any write, follow [the worktree procedure](docs/WORKTREE_WORKFLOW.md).
