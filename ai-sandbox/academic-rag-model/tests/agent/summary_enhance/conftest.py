@@ -1,3 +1,4 @@
+# tests/agent/summary_enhance/conftest.py
 import copy
 import json
 from types import SimpleNamespace
@@ -20,8 +21,24 @@ REFS = [
      "chunk_id": "han-1", "citation": "§9.10 WALD TESTS, p. 268"},
 ]
 
+PLAN_JSON = {"topics": ["Wald test", "Likelihood ratio test", "LM test"]}
+WORKED_TEXT = " ".join(["Compute $t=2$ here."] * 60)  # 180 words (3 per repeat), has inline math
 
-def write_guide(path, refs, newline="\n", extra_front=""):
+
+def words(n):
+    return " ".join(["word"] * n)
+
+
+def make_topic_json(title, labels=("S1",), per_section=40, sections=3, external_words=10):
+    secs = [{"heading": f"{title} part {i + 1}",
+             "blocks": [{"type": "grounded", "text": words(per_section), "sources": list(labels)}]}
+            for i in range(sections)]
+    if external_words:
+        secs[-1]["blocks"].append({"type": "external", "text": words(external_words), "sources": []})
+    return {"title": title, "sections": secs}
+
+
+def write_guide(path, refs, newline="\n"):
     front = ["---", 'title: "Wald and LM tests"', "llm_generated: true",
              "content_kind: derived_summary"]
     if refs is not None:
@@ -47,32 +64,31 @@ def vault(tmp_path):
     return SimpleNamespace(root=root, guide=guide, course=course, refs=refs)
 
 
-@pytest.fixture
-def good_response():
-    return {"topics": [
-        {"title": "Wald test",
-         "grounded": [{"text": "Both books define the Wald statistic from the unrestricted fit.",
-                       "sources": ["S1", "S3"]}],
-         "elaboration": [{"kind": "intuition", "text": "Think of it as a distance in estimate space."}]},
-        {"title": "LM test",
-         "grounded": [{"text": "The LM test needs only the restricted estimator.", "sources": ["S2"]}],
-         "elaboration": []},
-    ]}
-
-
 class FakeLLM:
     model = "fake-model"
 
     def __init__(self, responses):
         self._responses = list(responses)
         self.calls = []
+        self.kinds = []
+        self.code_execution = []
 
-    def generate_structured(self, prompt, schema):
-        self.calls.append(prompt)
+    def _next(self):
         item = self._responses.pop(0)
         if isinstance(item, Exception):
             raise item
         return copy.deepcopy(item)
+
+    def generate_structured(self, prompt, schema):
+        self.calls.append(prompt)
+        self.kinds.append("structured")
+        return self._next()
+
+    def generate_text(self, prompt, *, code_execution=False):
+        self.calls.append(prompt)
+        self.kinds.append("text")
+        self.code_execution.append(code_execution)
+        return self._next()
 
 
 @pytest.fixture
