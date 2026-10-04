@@ -258,7 +258,7 @@ def test_write_matches_updates_related_offerings_on_both_cards(tmp_path):
     card_b = {"file_id": "fb", "path": "academic_notes/econometrics/b.md", "title": "B", "embedding": [0.95, 0.31]}
     save_shard(academic_hub_root, "econometrics", [card_a, card_b])
 
-    stats = write_matches(academic_hub_root, [(card_a, card_b, 0.92)], confidence="high", offerings={"fa": None, "fb": "2024"})
+    stats = write_matches(academic_hub_root, [(card_a, card_b, 0.92)], confidence="high")
 
     cards = {c["file_id"]: c for c in load_shard(academic_hub_root, "econometrics")}
     assert cards["fa"]["related_offerings"] == [{"file_id": "fb", "path": card_b["path"], "similarity": 0.92, "confidence": "high"}]
@@ -278,8 +278,8 @@ def test_write_matches_replaces_a_stale_entry_for_the_same_pair_on_rerun(tmp_pat
     card_b = {"file_id": "fb", "path": "academic_notes/econometrics/b.md", "title": "B", "embedding": [0.95, 0.31]}
     save_shard(academic_hub_root, "econometrics", [card_a, card_b])
 
-    write_matches(academic_hub_root, [(card_a, card_b, 0.80)], confidence="review", offerings={"fa": None, "fb": "2024"})
-    write_matches(academic_hub_root, [(card_a, card_b, 0.95)], confidence="high", offerings={"fa": None, "fb": "2024"})
+    write_matches(academic_hub_root, [(card_a, card_b, 0.80)], confidence="review")
+    write_matches(academic_hub_root, [(card_a, card_b, 0.95)], confidence="high")
 
     cards = {c["file_id"]: c for c in load_shard(academic_hub_root, "econometrics")}
     assert cards["fa"]["related_offerings"] == [{"file_id": "fb", "path": card_b["path"], "similarity": 0.95, "confidence": "high"}]
@@ -439,3 +439,148 @@ def test_reject_pending_dismisses_and_clears_the_pending_entry(tmp_path):
     assert rejected is True
     assert load_review(str(tmp_path)) == []
     assert is_dismissed(load_dismissals(str(tmp_path)), "fa", "fb")
+
+
+# --- Final-review fix pass: merge-not-replace, resolved matches staying
+# resolved, dismissing an already-linked pair, content_hash freshness,
+# unreadable-file safety, wikilink sanitization, and --dry-run detail. ---
+
+def test_link_target_display_sanitizes_unsafe_wikilink_characters():
+    card = {"path": "academic_notes/econometrics/Problem Set #1/processed_outputs/a.md",
+            "title": "A]] | evil\ntitle"}
+    link_path, alias = link_target_display(card, "2024")
+    assert "]]" not in alias
+    assert "|" not in alias
+    assert "#" not in link_path
+    assert "\n" not in alias
+
+
+def test_append_related_section_skips_an_unreadable_file_without_raising(tmp_path):
+    academic_hub_root = str(tmp_path)
+    note_dir = tmp_path / "academic_notes" / "econometrics"
+    note_dir.mkdir(parents=True)
+    note_path = note_dir / "y.md"
+    note_path.write_bytes(b"\xff\xfe not valid utf-8 \x80\x81")  # guaranteed UnicodeDecodeError on utf-8 read
+    card = {"path": "academic_notes/econometrics/y.md"}
+    target = {"path": "academic_notes/econometrics/class_2024/processed_outputs/x.md", "title": "X"}
+
+    written = append_related_section(academic_hub_root, card, [(target, "2024", 0.92)])
+    assert written is False
+
+
+def test_write_matches_preserves_existing_links_to_other_cards(tmp_path):
+    from core.indexer.index_card import load_shard, save_shard
+    academic_hub_root = str(tmp_path)
+    note_dir = tmp_path / "academic_notes" / "econometrics"
+    note_dir.mkdir(parents=True)
+    (note_dir / "a.md").write_text("Body A.\n")
+    (note_dir / "b.md").write_text("Body B.\n")
+    (note_dir / "c.md").write_text("Body C.\n")
+    card_a = {"file_id": "fa", "path": "academic_notes/econometrics/a.md", "title": "A", "embedding": [1.0, 0.0]}
+    card_b = {"file_id": "fb", "path": "academic_notes/econometrics/b.md", "title": "B", "embedding": [0.95, 0.31]}
+    card_c = {"file_id": "fc", "path": "academic_notes/econometrics/c.md", "title": "C", "embedding": [0.95, 0.31]}
+    save_shard(academic_hub_root, "econometrics", [card_a, card_b, card_c])
+
+    write_matches(academic_hub_root, [(card_a, card_b, 0.92)], confidence="high")
+    write_matches(academic_hub_root, [(card_a, card_c, 0.93)], confidence="high")
+
+    cards = {c["file_id"]: c for c in load_shard(academic_hub_root, "econometrics")}
+    linked_ids = {e["file_id"] for e in cards["fa"]["related_offerings"]}
+    assert linked_ids == {"fb", "fc"}
+
+
+def test_write_matches_updates_content_hash_to_match_the_written_markdown(tmp_path):
+    from core.indexer.index_card import compute_content_hash, load_shard, save_shard
+    academic_hub_root = str(tmp_path)
+    note_dir = tmp_path / "academic_notes" / "econometrics"
+    note_dir.mkdir(parents=True)
+    (note_dir / "a.md").write_text("Body A.\n")
+    (note_dir / "b.md").write_text("Body B.\n")
+    card_a = {"file_id": "fa", "path": "academic_notes/econometrics/a.md", "title": "A",
+              "embedding": [1.0, 0.0], "content_hash": "stale"}
+    card_b = {"file_id": "fb", "path": "academic_notes/econometrics/b.md", "title": "B", "embedding": [0.95, 0.31]}
+    save_shard(academic_hub_root, "econometrics", [card_a, card_b])
+
+    write_matches(academic_hub_root, [(card_a, card_b, 0.92)], confidence="high")
+
+    cards = {c["file_id"]: c for c in load_shard(academic_hub_root, "econometrics")}
+    real_hash = compute_content_hash(str(tmp_path / "academic_notes" / "econometrics" / "a.md"))
+    assert cards["fa"]["content_hash"] == real_hash
+    assert cards["fa"]["content_hash"] != "stale"
+
+
+def test_run_for_course_is_idempotent_on_rerun_after_auto_linking(tmp_path):
+    subset = tmp_path / "academic_resources" / "econometrics" / "class_2024"
+    subset.mkdir(parents=True)
+    (subset / ".notes_subset.json").write_text(json.dumps({"label": "2024"}))
+    card_a = {"file_id": "fa", "path": "academic_notes/econometrics/professor_notes/a.md",
+              "title": "A", "embedding": [1.0, 0.0]}
+    card_b = {"file_id": "fb", "path": "academic_notes/econometrics/class_2024/b.md",
+              "title": "B", "embedding": [0.95, 0.3122498999199199]}
+    _seed_course(tmp_path, "econometrics", [card_a, card_b])
+
+    first = run_for_course(str(tmp_path), "econometrics")
+    second = run_for_course(str(tmp_path), "econometrics")
+
+    assert first["auto_matches"] == 1
+    assert second["auto_matches"] == 0  # already linked, not re-processed
+
+
+def test_resolve_pending_then_rerun_does_not_put_the_pair_back_in_review(tmp_path):
+    subset = tmp_path / "academic_resources" / "econometrics" / "class_2024"
+    subset.mkdir(parents=True)
+    (subset / ".notes_subset.json").write_text(json.dumps({"label": "2024"}))
+    card_a = {"file_id": "fa", "path": "academic_notes/econometrics/professor_notes/a.md",
+              "title": "A", "embedding": [1.0, 0.0]}
+    card_b = {"file_id": "fb", "path": "academic_notes/econometrics/class_2024/b.md",
+              "title": "B", "embedding": [0.85, 0.5266403851195171]}
+    _seed_course(tmp_path, "econometrics", [card_a, card_b])
+    run_for_course(str(tmp_path), "econometrics")  # produces one pending review entry
+    resolve_pending(str(tmp_path), "fa", "fb")
+
+    stats = run_for_course(str(tmp_path), "econometrics")
+
+    assert load_review(str(tmp_path)) == []
+    assert stats["review_matches"] == 0
+
+
+def test_reject_pending_removes_an_existing_auto_linked_pair(tmp_path):
+    subset = tmp_path / "academic_resources" / "econometrics" / "class_2024"
+    subset.mkdir(parents=True)
+    (subset / ".notes_subset.json").write_text(json.dumps({"label": "2024"}))
+    card_a = {"file_id": "fa", "path": "academic_notes/econometrics/professor_notes/a.md",
+              "title": "A", "embedding": [1.0, 0.0]}
+    card_b = {"file_id": "fb", "path": "academic_notes/econometrics/class_2024/b.md",
+              "title": "B", "embedding": [0.95, 0.3122498999199199]}
+    _seed_course(tmp_path, "econometrics", [card_a, card_b])
+    run_for_course(str(tmp_path), "econometrics")  # auto-links fa <-> fb
+
+    rejected = reject_pending(str(tmp_path), "fa", "fb")
+
+    from core.indexer.index_card import load_shard
+    from core.indexer.offering_links import is_dismissed, load_dismissals
+    assert rejected is True
+    cards = {c["file_id"]: c for c in load_shard(str(tmp_path), "econometrics")}
+    assert cards["fa"].get("related_offerings") == []
+    assert cards["fb"].get("related_offerings") == []
+    assert is_dismissed(load_dismissals(str(tmp_path)), "fa", "fb")
+    a_content = (tmp_path / "academic_notes" / "econometrics" / "professor_notes" / "a.md").read_text()
+    assert "## Related notes" not in a_content
+
+
+def test_run_for_course_dry_run_reports_pair_details(tmp_path):
+    subset = tmp_path / "academic_resources" / "econometrics" / "class_2024"
+    subset.mkdir(parents=True)
+    (subset / ".notes_subset.json").write_text(json.dumps({"label": "2024"}))
+    card_a = {"file_id": "fa", "path": "academic_notes/econometrics/professor_notes/a.md",
+              "title": "A", "embedding": [1.0, 0.0]}
+    card_b = {"file_id": "fb", "path": "academic_notes/econometrics/class_2024/b.md",
+              "title": "B", "embedding": [0.95, 0.3122498999199199]}
+    _seed_course(tmp_path, "econometrics", [card_a, card_b])
+
+    stats = run_for_course(str(tmp_path), "econometrics", dry_run=True)
+
+    assert len(stats["auto_pairs"]) == 1
+    pair = stats["auto_pairs"][0]
+    assert {pair["file_id_a"], pair["file_id_b"]} == {"fa", "fb"}
+    assert pair["similarity"] > 0.9

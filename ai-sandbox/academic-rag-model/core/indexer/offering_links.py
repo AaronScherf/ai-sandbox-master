@@ -17,9 +17,11 @@ from __future__ import annotations
 
 import json
 import os
+import re
 
 from core.env.academic_hub_paths import find_containing_offering_label, to_resources_root
 from core.indexer.index_card import (
+    compute_content_hash,
     cosine_similarity,
     find_card_by_file_id,
     list_courses,
@@ -29,12 +31,13 @@ from core.indexer.index_card import (
     save_shard,
 )
 
-OFFERING_LINK_AUTO_THRESHOLD = 0.90  # starting guess -- calibrate against real data (Task 4)
-OFFERING_LINK_REVIEW_THRESHOLD = 0.80  # starting guess -- calibrate against real data (Task 4)
+OFFERING_LINK_AUTO_THRESHOLD = 0.90  # starting guess -- calibrate against real data via `--dry-run`
+OFFERING_LINK_REVIEW_THRESHOLD = 0.80  # starting guess -- calibrate against real data via `--dry-run`
 
 _SECTION_START = "<!-- offering-links:start -->"
 _SECTION_END = "<!-- offering-links:end -->"
 _NOTES_PREFIX = "academic_notes/"
+_WIKILINK_UNSAFE_RE = re.compile(r"[\[\]|^#\r\n]")
 
 
 def _links_dir(academic_hub_root: str) -> str:
@@ -164,8 +167,10 @@ def link_target_display(card: dict, offering_label: str | None) -> tuple[str, st
         path = path[len(_NOTES_PREFIX):]
     if path.endswith(".md"):
         path = path[: -len(".md")]
+    path = _WIKILINK_UNSAFE_RE.sub(" ", path).strip()
     offering_text = offering_label if offering_label is not None else "current"
-    alias = f"{offering_text}: {card.get('title') or os.path.basename(path)}"
+    title = _WIKILINK_UNSAFE_RE.sub(" ", card.get("title") or os.path.basename(path)).strip()
+    alias = f"{offering_text}: {title}"
     return path, alias
 
 
@@ -181,46 +186,110 @@ def _build_related_section(related: list[tuple[dict, str | None, float]]) -> str
 def append_related_section(academic_hub_root: str, card: dict, related: list[tuple[dict, str | None, float]]) -> bool:
     """Appends (or replaces, if already present) an idempotent, delimited
     '## Related notes' block at the end of card's own .md file. Returns
-    False (logged, not raised) if the file doesn't exist on disk --
-    an indexing side-effect must never block on a missing file."""
+    False (logged, not raised) if the file doesn't exist, or exists but
+    can't be read/written (permissions, non-UTF-8 bytes) -- an indexing
+    side-effect must never block or abort the rest of a run over one bad
+    file."""
     md_path = os.path.join(academic_hub_root, card["path"])
     if not os.path.isfile(md_path):
         print(f"WARNING: cannot write related-notes section, file not found: {md_path}")
         return False
 
-    with open(md_path, "r", encoding="utf-8") as f:
-        content = f.read()
+    try:
+        with open(md_path, "r", encoding="utf-8") as f:
+            content = f.read()
 
-    new_section = _build_related_section(related)
-    start = content.find(_SECTION_START)
-    if start == -1:
-        separator = "" if content.endswith("\n") else "\n"
-        new_content = content + separator + "\n" + new_section
-    else:
+        new_section = _build_related_section(related)
+        start = content.find(_SECTION_START)
+        if start == -1:
+            separator = "" if content.endswith("\n") else "\n"
+            new_content = content + separator + "\n" + new_section
+        else:
+            end = content.find(_SECTION_END)
+            end = end + len(_SECTION_END) if end != -1 else len(content)
+            new_content = content[:start] + new_section + content[end:].lstrip("\n")
+
+        with open(md_path, "w", encoding="utf-8") as f:
+            f.write(new_content)
+    except (OSError, UnicodeDecodeError) as err:
+        print(f"WARNING: cannot write related-notes section for {md_path} ({err})")
+        return False
+    return True
+
+
+def _remove_related_section(academic_hub_root: str, card: dict) -> bool:
+    """Removes the delimited block entirely (rather than leaving an empty
+    '## Related notes' with no bullets) when a card ends up with no
+    remaining links -- e.g. its only linked pair was just dismissed."""
+    md_path = os.path.join(academic_hub_root, card["path"])
+    if not os.path.isfile(md_path):
+        return False
+    try:
+        with open(md_path, "r", encoding="utf-8") as f:
+            content = f.read()
+        start = content.find(_SECTION_START)
+        if start == -1:
+            return True
         end = content.find(_SECTION_END)
         end = end + len(_SECTION_END) if end != -1 else len(content)
-        new_content = content[:start] + new_section + content[end:].lstrip("\n")
-
-    with open(md_path, "w", encoding="utf-8") as f:
-        f.write(new_content)
+        new_content = (content[:start] + content[end:].lstrip("\n")).rstrip("\n") + "\n"
+        with open(md_path, "w", encoding="utf-8") as f:
+            f.write(new_content)
+    except (OSError, UnicodeDecodeError) as err:
+        print(f"WARNING: cannot remove related-notes section for {md_path} ({err})")
+        return False
     return True
+
+
+def _merge_related(existing: list[dict] | None, new_entries: list[dict]) -> list[dict]:
+    """Replaces any prior entry for the same file_id (per spec), keeping
+    every other existing entry untouched -- a single write_matches() call
+    only knows about the pairs in its own `matches` argument, so it must
+    not wipe out links a separate, earlier call recorded for a different
+    pair on the same card."""
+    new_ids = {e["file_id"] for e in new_entries}
+    kept = [e for e in (existing or []) if e.get("file_id") not in new_ids]
+    return kept + new_entries
+
+
+def _resolve_related_tuple(entry: dict, academic_hub_root: str) -> tuple[dict, str | None, float] | None:
+    """Looks up the full card (for its title) behind a stored
+    related_offerings entry, so the markdown block can be rebuilt from
+    the complete merged list, not just the new matches passed to this
+    call. None if the target card no longer exists (deleted/orphaned)."""
+    found = find_card_by_file_id(academic_hub_root, entry["file_id"])
+    if found is None:
+        return None
+    _, target_card = found
+    offering = derive_offering_for_card(target_card, academic_hub_root)
+    return target_card, offering, entry["similarity"]
 
 
 def write_matches(
     academic_hub_root: str, matches: list[tuple[dict, dict, float]], confidence: str,
-    offerings: dict[str, str | None],
 ) -> dict:
     """Writes both directions of every match: each card's related_offerings
-    index field (replacing any prior entry for that same pair, so a rerun
-    is idempotent) and both cards' Obsidian-visible markdown section.
-    `offerings` maps file_id -> offering_label, precomputed by the caller
-    (Task 6) via derive_offering_for_card() for every card involved."""
+    index field, merged with (not replacing) any prior entry for a
+    different pair, and both cards' Obsidian-visible markdown section,
+    rebuilt from the full merged list so an earlier call's links stay
+    visible. Also refreshes content_hash to match the just-written
+    markdown, so index_search's rebuild doesn't see the card as stale and
+    regenerate it (losing related_offerings in the process). Offerings for
+    the markdown aliases are recomputed fresh per related entry via
+    derive_offering_for_card() (needed anyway for pre-existing entries
+    this call didn't itself produce), so no offerings map is accepted
+    here -- a caller that already has one (run_for_course) doesn't need
+    to pass it."""
     stats = {"links_written": 0, "markdown_writes_skipped": 0}
-    by_file_id_related: dict[str, list[tuple[dict, str | None, float]]] = {}
+    new_related_by_fid: dict[str, list[dict]] = {}
 
     for card_a, card_b, similarity in matches:
-        by_file_id_related.setdefault(card_a["file_id"], []).append((card_b, offerings.get(card_b["file_id"]), similarity))
-        by_file_id_related.setdefault(card_b["file_id"], []).append((card_a, offerings.get(card_a["file_id"]), similarity))
+        new_related_by_fid.setdefault(card_a["file_id"], []).append(
+            {"file_id": card_b["file_id"], "path": card_b["path"], "similarity": similarity, "confidence": confidence}
+        )
+        new_related_by_fid.setdefault(card_b["file_id"], []).append(
+            {"file_id": card_a["file_id"], "path": card_a["path"], "similarity": similarity, "confidence": confidence}
+        )
         stats["links_written"] += 1
 
     # Group touched cards by the course each one's own path implies, so
@@ -237,24 +306,36 @@ def write_matches(
         changed = False
         for card in shard:
             fid = card.get("file_id")
-            if fid not in by_file_id_related:
+            if fid not in new_related_by_fid:
                 continue
-            card["related_offerings"] = [
-                {"file_id": other["file_id"], "path": other["path"], "similarity": sim, "confidence": confidence}
-                for other, _label, sim in by_file_id_related[fid]
+            merged = _merge_related(card.get("related_offerings"), new_related_by_fid[fid])
+            card["related_offerings"] = merged
+
+            related_tuples = [
+                t for t in (_resolve_related_tuple(entry, academic_hub_root) for entry in merged) if t is not None
             ]
+            if append_related_section(academic_hub_root, card, related_tuples):
+                card["content_hash"] = compute_content_hash(os.path.join(academic_hub_root, card["path"]))
+            else:
+                stats["markdown_writes_skipped"] += 1
             changed = True
         if changed:
             save_shard(academic_hub_root, course, shard)
             recompute_course_entry(academic_hub_root, course)
 
-    for card_a, card_b, _ in matches:
-        for card in (card_a, card_b):
-            related = by_file_id_related[card["file_id"]]
-            if not append_related_section(academic_hub_root, card, related):
-                stats["markdown_writes_skipped"] += 1
-
     return stats
+
+
+def _already_linked_ids(card: dict) -> set[str]:
+    return {e.get("file_id") for e in (card.get("related_offerings") or []) if isinstance(e, dict)}
+
+
+def _pair_summary(card_a: dict, card_b: dict, similarity: float) -> dict:
+    return {
+        "file_id_a": card_a["file_id"], "title_a": card_a.get("title", ""), "path_a": card_a["path"],
+        "file_id_b": card_b["file_id"], "title_b": card_b.get("title", ""), "path_b": card_b["path"],
+        "similarity": similarity,
+    }
 
 
 def run_for_course(academic_hub_root: str, course: str, dry_run: bool = False) -> dict:
@@ -268,15 +349,24 @@ def run_for_course(academic_hub_root: str, course: str, dry_run: bool = False) -
     auto_matches, review_matches = find_cross_offering_matches(cards_with_offerings)
 
     dismissals = load_dismissals(academic_hub_root)
-    auto_matches = [
-        m for m in auto_matches if not is_dismissed(dismissals, m[0]["file_id"], m[1]["file_id"])
-    ]
-    review_matches = [
-        m for m in review_matches if not is_dismissed(dismissals, m[0]["file_id"], m[1]["file_id"])
-    ]
+
+    def _keep(match: tuple[dict, dict, float]) -> bool:
+        card_a, card_b, _ = match
+        if is_dismissed(dismissals, card_a["file_id"], card_b["file_id"]):
+            return False
+        # Already linked (e.g. a prior auto-match, or a resolved review
+        # match) -- don't re-process it: for a review-band pair this is
+        # what stops a resolved match from bouncing back into review.json
+        # on the very next run, since its similarity hasn't changed.
+        if card_b["file_id"] in _already_linked_ids(card_a):
+            return False
+        return True
+
+    auto_matches = [m for m in auto_matches if _keep(m)]
+    review_matches = [m for m in review_matches if _keep(m)]
 
     if not dry_run and auto_matches:
-        write_matches(academic_hub_root, auto_matches, confidence="high", offerings=offerings)
+        write_matches(academic_hub_root, auto_matches, confidence="high")
 
     if not dry_run and review_matches:
         existing_review = load_review(academic_hub_root)
@@ -290,7 +380,12 @@ def run_for_course(academic_hub_root: str, course: str, dry_run: bool = False) -
             })
         save_review(academic_hub_root, existing_review)
 
-    return {"auto_matches": len(auto_matches), "review_matches": len(review_matches)}
+    return {
+        "auto_matches": len(auto_matches),
+        "review_matches": len(review_matches),
+        "auto_pairs": [_pair_summary(a, b, sim) for a, b, sim in auto_matches],
+        "review_pairs": [_pair_summary(a, b, sim) for a, b, sim in review_matches],
+    }
 
 
 def resolve_pending(academic_hub_root: str, file_id_a: str, file_id_b: str) -> bool:
@@ -308,29 +403,62 @@ def resolve_pending(academic_hub_root: str, file_id_a: str, file_id_b: str) -> b
         return False
     _, card_a = found_a
     _, card_b = found_b
-    offerings = {
-        file_id_a: derive_offering_for_card(card_a, academic_hub_root),
-        file_id_b: derive_offering_for_card(card_b, academic_hub_root),
-    }
-    write_matches(academic_hub_root, [(card_a, card_b, entry["similarity"])], confidence="high", offerings=offerings)
+    write_matches(academic_hub_root, [(card_a, card_b, entry["similarity"])], confidence="high")
 
     remaining = [e for e in review if tuple(sorted([e.get("file_id_a"), e.get("file_id_b")])) != pair]
     save_review(academic_hub_root, remaining)
     return True
 
 
+def _remove_link(academic_hub_root: str, file_id_a: str, file_id_b: str) -> None:
+    """Strips any existing related_offerings entry (and rebuilds or
+    removes the markdown section) for this pair on both sides -- used
+    when a previously-linked pair is dismissed, so the dismissal actually
+    removes what's already visible, not just future re-linking."""
+    for file_id, other_id in ((file_id_a, file_id_b), (file_id_b, file_id_a)):
+        found = find_card_by_file_id(academic_hub_root, file_id)
+        if found is None:
+            continue
+        course, _card = found
+        shard = load_shard(academic_hub_root, course)
+        changed = False
+        for c in shard:
+            if c.get("file_id") != file_id:
+                continue
+            related = c.get("related_offerings") or []
+            if not any(e.get("file_id") == other_id for e in related if isinstance(e, dict)):
+                break
+            new_related = [e for e in related if e.get("file_id") != other_id]
+            c["related_offerings"] = new_related
+            if new_related:
+                related_tuples = [
+                    t for t in (_resolve_related_tuple(e, academic_hub_root) for e in new_related) if t is not None
+                ]
+                wrote = append_related_section(academic_hub_root, c, related_tuples)
+            else:
+                wrote = _remove_related_section(academic_hub_root, c)
+            if wrote:
+                c["content_hash"] = compute_content_hash(os.path.join(academic_hub_root, c["path"]))
+            changed = True
+            break
+        if changed:
+            save_shard(academic_hub_root, course, shard)
+            recompute_course_entry(academic_hub_root, course)
+
+
 def reject_pending(academic_hub_root: str, file_id_a: str, file_id_b: str) -> bool:
-    """Permanently dismisses a pending review match and clears it from
-    review.json. Returns True even if the pair was already dismissed but
-    present in review.json (clearing the stale entry is still useful)."""
+    """Permanently dismisses this pair: clears it from review.json if
+    pending, strips any link already written on both sides if the pair
+    was already auto-linked, and records the dismissal either way so
+    neither tier nor a future run ever re-surfaces it. Always succeeds."""
     review = load_review(academic_hub_root)
     pair = tuple(sorted([file_id_a, file_id_b]))
     remaining = [e for e in review if tuple(sorted([e.get("file_id_a"), e.get("file_id_b")])) != pair]
-    was_pending = len(remaining) != len(review)
-    record_dismissal(academic_hub_root, file_id_a, file_id_b)
-    if was_pending:
+    if len(remaining) != len(review):
         save_review(academic_hub_root, remaining)
-    return was_pending
+    _remove_link(academic_hub_root, file_id_a, file_id_b)
+    record_dismissal(academic_hub_root, file_id_a, file_id_b)
+    return True
 
 
 def _academic_hub_dir():
@@ -365,13 +493,20 @@ def main() -> None:
         return
     if args.reject:
         a, b = args.reject.split(":", 1)
-        print("dismissed" if reject_pending(academic_hub_dir, a, b) else "no such pending match")
+        reject_pending(academic_hub_dir, a, b)
+        print("dismissed")
         return
 
     courses = args.course if args.course is not None else list_courses(academic_hub_dir)
     for course in courses:
         stats = run_for_course(academic_hub_dir, course, dry_run=args.dry_run)
         print(f"{course}: {stats['auto_matches']} linked, {stats['review_matches']} pending review")
+        if args.dry_run:
+            for pair in stats["auto_pairs"] + stats["review_pairs"]:
+                print(
+                    f"  [{pair['similarity']:.3f}] {pair['file_id_a']} {pair['title_a']!r} <-> "
+                    f"{pair['file_id_b']} {pair['title_b']!r}"
+                )
 
 
 if __name__ == "__main__":
