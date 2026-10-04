@@ -138,6 +138,11 @@ python -m pipelines.transcribe_notes.transcribe_notes --notes-subdir $NOTES_SUBD
   produced -- if the run is interrupted (network blip, rate limit, closed
   terminal), rerunning the same command picks up where it left off
   instead of re-billing already-processed pages/batches.
+* Add `--force-vision` to bypass local text extraction and force Gemini vision
+  transcription. Use this for machine-generated PDFs that contain mathematical
+  notation (such as problem sets or exams compiled with TeX/LaTeX) where raw
+  text extraction would dump unformatted Unicode glyphs and lose equation structure
+  instead of generating proper LaTeX (`$...$` / `$$...$$`) Markdown.
 * Output: `processed_outputs/<PDFName>.md`, one file per input PDF -- a
   YAML frontmatter block (recording `routing`, `model`, and how many pages
   were affected) followed by every page's transcription concatenated in

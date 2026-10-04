@@ -287,12 +287,16 @@ def run_plan(
     plan: PipelinePlan, client, academic_hub_root: str,
     pdf_model: str | None = None, excalidraw_model: str | None = None,
     expand_backend: str = "gemini", use_grounding: bool = False,
+    force_vision: bool = False,
 ) -> RunReport:
     report = RunReport()
 
     for pdf_path in plan.pdf_todo:
         try:
-            process_pdf(pdf_path, client, pdf_model, academic_hub_root)
+            if force_vision:
+                process_pdf(pdf_path, client, pdf_model, academic_hub_root, force_vision=True)
+            else:
+                process_pdf(pdf_path, client, pdf_model, academic_hub_root)
         except Exception as err:
             print(f"ERROR: {pdf_path} failed: {err}")
             report.pdf_results.append(RunResult(pdf_path, "failed", str(err)))
@@ -353,6 +357,10 @@ def main():
         help="Use PAID_GEMINI_KEY from ai-sandbox/.env instead of GEMINI_API_KEY -- for when the "
              "default key is pointed at a free-tier project for other work (see gemini_utils.get_gemini_client).",
     )
+    parser.add_argument(
+        "--force-vision", action="store_true",
+        help="Force vision transcription via Gemini for all routed PDFs, bypassing local text extraction.",
+    )
     args = parser.parse_args()
 
     from core.env.gemini_utils import get_gemini_client, load_dotenv_override
@@ -382,6 +390,7 @@ def main():
         plan, client, str(academic_hub_dir),
         pdf_model=args.pdf_model, excalidraw_model=args.excalidraw_model,
         expand_backend=args.expand_backend, use_grounding=args.grounding,
+        force_vision=args.force_vision,
     )
     print_summary(plan, report)
 
