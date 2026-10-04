@@ -5,10 +5,162 @@
      example text, so don't append at the end. Agents add items when asked to "add this as a
      pending to-do" (see the root CLAUDE.md). -->
 
+## Git Workflow Between Agents (brainstorm pending, nothing implemented)
+- The user wants to brainstorm a smoother git workflow between agents (Claude, Codex, Gemini) before
+  changing any rules or tooling, and to pick this up with another agent. Everything below is evidence
+  and candidate ideas from one long Claude session, not decisions. Read first: `docs/WORKTREE_WORKFLOW.md`,
+  `docs/AGENT_ROUTING.md`, the root `CLAUDE.md` ("Git" and "Pending to-dos"). (added 2026-10-04)
+
+### The problem, with evidence from the 2026-10-03/04 session
+- **Landing a branch is a hand-run ritual.** Three landings (`14ca7f4` slide-aware transcription +
+  subset linking, `e55402c` question resolver, `6de9095` to-do rule) each took roughly: count commits
+  `main` gained since the branch point (14 both times for the big ones), `git merge-tree` conflict check,
+  `git merge main` into the branch, full test suite (~107 s, 1939-2148 tests), a by-hand overlap check
+  against `main`'s dirty files, then `git merge --ff-only`. One real textual conflict in three landings:
+  `transcribe_excalidraw.py`, where both sides edited the same `print(...)` line (main switched it to
+  `resolve_output_dir(...)`, the branch added a `return True` after it).
+- **The main checkout is never clean**, yet the policy ("The integrator ensures the integration checkout
+  is clean") assumes it is. It always holds the user's/Obsidian's and other agents' work: `.obsidian/*`,
+  `lab_1_report.md`, `journal-articles/needs_manual_downloads.md`, `.index/*.json`, untracked
+  `academic_resources/microecon/2025_class/`. So overlap with dirty files has to be computed by hand.
+  Pitfall hit once: comparing `main` against the branch *tip* lists files `main` itself changed; the right
+  comparison is the branch against the **merge-base**.
+- **Obsidian "vault backup" auto-commits land on `main` in both repos** (monorepo log has
+  `vault backup: 2026-10-01 17:00:21`; the `academic_notes` repo has `vault backup: 2026-10-03 21:50:07`),
+  sweeping whatever tracked files are dirty. That made switching branches in the main checkout feel unsafe,
+  so generated data was committed straight to `main` twice (monorepo `59846d7`, `academic_notes`
+  `165084f`), outside the worktree rule. The Obsidian Git plugin's real settings were NOT inspected
+  (`.obsidian/` is off-limits unless asked).
+- **Two repos, one logical change.** The monorepo `.gitignore` (line 9) ignores
+  `ai-sandbox/academic-hub/academic_notes/`, which is its own git repo (tablet sync). Resolving questions
+  produced outputs in `academic_notes` and index changes (`.index/*.json`) in the monorepo, so one change
+  needed commits in both. `WORKTREE_WORKFLOW.md` says child repos need their own worktrees, but real
+  pipeline runs write to the live vault.
+- **Shared aggregate files mix agents' work.** `.index/courses.json` held both our `microecon` change and
+  another session's in-progress `econometrics` change. Committing only ours needed partial staging by
+  building a blob (see snippets) because `git add -p` is not available non-interactively.
+- **Worktrees lack ignored files** (`.env`, SVG sources, vault data). Running a pipeline from a worktree
+  failed with a misleading "PAID_GEMINI_KEY not set" (fixed 2026-10-03: `load_dotenv_override()` now falls
+  back to the main checkout's `.env`), and real runs still need
+  `PYTHONPATH="$(pwd -W)" python -m <module> --root <main>/ai-sandbox/academic-hub` by hand. The policy
+  forbids junctioning the live vault, which is right but leaves no easy path.
+- **Docs-only changes got the same ceremony as code** (worktree, branch, merge). The to-do tracker now has
+  a standing exemption (root `CLAUDE.md`, 2026-10-04); other docs do not.
+- **Worktree sprawl.** 12 worktrees registered on 2026-10-04 (incl. `main`), several merged and idle:
+  `claude-excalidraw-slides`, `claude-question-resolver`, `claude-todo-tracking`, `claude-status-docs`,
+  the three `claude-summary-*`, and four `codex-*`. Retirement is manual per the doc.
+- **Overlap found late.** Another session changed `core/indexer/index_card.py` and added `offering_links.py`
+  while we were in `core/indexer`; we only saw it at merge time.
+- **Tests are the other time cost.** ~107 s serial on 8 cores; `pytest-xdist` is not installed. The full
+  suite was re-run many times per feature.
+
+### Existing policy to build on (and where proposals collide with it)
+- Already in `docs/WORKTREE_WORKFLOW.md`: one writer per worktree, `.worktrees/` ignored, integration "one
+  task at a time", retire-worktree procedure, Windows `git show` path gotcha, child-repo worktrees, "adopt
+  the policy in existing sessions" (running agents do not reload guidance; they must be told).
+- Collisions to resolve: the doc prescribes `git merge --no-ff` (merge commits) while rebase-then-ff gives
+  linear history (the doc allows rebasing only an exclusively owned, unpublished branch); workers "do not
+  merge into main unless assigned the integrator role" yet in practice the user tells an agent to merge;
+  "integration checkout must be clean" is never true; "do not junction/symlink writable output dirs to the
+  live vault" vs. needing real data in tests/runs.
+
+### Candidate changes (unimplemented; roughly by payoff)
+1. **Landing helper** (`tools/land.py` or `.ps1`): verify the worktree is clean, rebase (or merge) onto
+   `main`, run tests (changed-path subset by default, full with a flag), compute overlap against
+   `main`'s dirty files using the merge-base, then `merge --ff-only`; print a summary. Replaces ~6
+   manual steps and bakes in the safety checks.
+2. **Lanes by risk** in `WORKTREE_WORKFLOW.md`: code (`core/`, `pipelines/`, `agent/`, tests) in a worktree;
+   docs (status docs, specs, plans, trackers, READMEs) and pipeline-generated vault/index output may go
+   straight to `main` with explicit paths. The to-do exemption is the first instance. Need rules for
+   two agents editing one doc (append-only sections, commit promptly).
+3. **Merge style decision:** rebase + `--ff-only` (linear, no "Merge main into ..." commits) vs the doc's
+   `--no-ff` (explicit integration points). Pick one and update the doc.
+4. **Faster tests:** install `pytest-xdist` (`-n auto`) and/or a path-to-tests mapper so iteration runs
+   only affected packages; keep the full suite for landing. Not measured; the ~25 s figure is a guess.
+5. **Active-work report:** a small tool listing each worktree's changed files vs its merge-base and flagging
+   overlaps, so collisions in shared packages (`core/indexer`, `core/env`) are seen before landing.
+6. **Scope the Obsidian Git auto-backup** (content paths only, or a separate `vault-backup` branch merged
+   periodically) so `main` is not repeatedly swept. Needs the user's plugin config; not inspected.
+7. **Cross-repo "land data" helper** that commits `.index/*.json` (monorepo) and the matching
+   `academic_notes` outputs together with explicit paths, including partial staging of shared aggregate
+   files such as `courses.json`.
+8. **Worktree lifecycle helpers:** list merged/idle worktrees as retirement candidates (never auto-remove
+   other agents' work), and a `new_worktree` helper that creates the branch/worktree and prints the
+   correct `--root`/env for running pipelines against the live vault without junctions.
+
+### Open design questions for the brainstorm
+- Who may land on `main`: only the user, or any agent after the user says "merge"? How is that recorded?
+- Merge style (item 3), and whether to keep merge commits as audit points.
+- When may generated data (index, pipeline outputs) go straight to `main`, and who is its single writer
+  (the doc requires "one assigned writer" for shared corpus/index writes)?
+- Where should pipelines write when run from a worktree: a worktree-local corpus (policy) or the live
+  vault (what real validation actually needs)?
+- Can the auto-backup be limited, and does the tablet sync (Fit plugin on the vault repo) constrain that?
+- How do Claude/Codex/Gemini claim shared packages so overlaps surface early (claims file, branch
+  naming, or the item 5 report)?
+- Test policy at landing: full suite always, or changed-package subset plus periodic full runs?
+
+### Useful snippets from this session
+- Conflict preview without touching any working tree:
+  `git merge-tree --write-tree --name-only main <branch>` (prints `CONFLICT (...)` lines if any).
+- Overlap with the main checkout's uncommitted files (merge-base form, the correct one):
+  `MB=$(git merge-base main <branch>); comm -12 <(git diff --name-only $MB <branch> | sort) <(git status --short | awk '{print $2}' | sort)`
+- Land an exclusively owned, unpublished branch: in the worktree `git rebase main`; in the main checkout
+  `git merge --ff-only <branch>`. Verify the main checkout's `git status --short` is unchanged afterwards.
+- Stage one entry of a shared aggregate file: build the file from `HEAD`'s version with only your entry
+  replaced, then `git hash-object -w --path <file> <tmpfile>` and
+  `git update-index --add --cacheinfo 100644,<sha>,<file>`; confirm with `git diff --cached`.
+- Child repo from the monorepo root: `git -C ai-sandbox/academic-hub/academic_notes <command>`; stage
+  renames there with `git mv` so history follows.
+- Run worktree code against the live vault:
+  `PYTHONPATH="$(pwd -W)" python -m <module> --root <main-checkout>/ai-sandbox/academic-hub`.
+- Windows: `git show origin/some/branch:path` is mangled by MSYS path conversion; use the commit SHA or
+  `MSYS_NO_PATHCONV=1` (already in the workflow doc).
+
+### Guardrails for whoever implements
+- Keep: never `git add -A`/`git add .`; never print or commit `ai-sandbox/.env`; no force-push, `reset
+  --hard`, or `clean`; never remove another agent's worktree; commit/push only when the user asks; the
+  monorepo is public on GitHub (see the root `.gitignore` comments for the IP exclusions).
+- Changes to `WORKTREE_WORKFLOW.md` take effect only for sessions told to re-read them.
+
 ## Notes Transcription (`pipelines/transcribe_notes`)
 - Move the `*_pages_cache.json` resume caches out of `processed_outputs/` into `processed_outputs/_cache/`, to cut clutter when browsing folders (89 files, ~2.2 MB, all tracked in the `academic_notes` repo). Plan: the cache path is built in one place (`transcribe_notes.py`, `cache_path`, around line 1095) so change it there; read `_cache/` first and fall back to the old location so unmigrated caches still resume; update `tools/audit_metadata.py`, which moves a cache along with its `.md`; one-shot `git mv` of the existing 89 in the `academic_notes` repo; test both locations plus the fallback. The caches are only read when the same document is rerun or `--force`d (to skip pages already paid for); the indexer, search and tutor never touch them. Deferred by the user (added 2026-10-04)
+- Reprocess `LN_Analysis.pdf` and `LN_Linear Algebra.pdf` using whole-document batching and PyMuPDF dict-mode: their existing outputs predate the dict-mode/subscript reconstruction and whole-document batching improvements. Estimated cost under $0.30 total. Paused at user request pending review. (added 2026-10-04)
+- Radical/square-root font encoding repair: in PDF font extractions (e.g. `Analysis_Exercises.pdf` page 6), square-root signs can extract as plain ASCII 'p' or missing glyphs due to broken ToUnicode font mappings; implement a regex/post-processing repair pass. (added 2026-10-04)
 
-## Textbook Conversion
+## Journal Article Discovery (`discovery/discover_journal_articles`)
+- Playwright-driven automated download tier: for paywalled or institutional journals where manual download from `needs_manual_downloads.md` is tedious, build a Playwright browser automation script using institutional SSO. (added 2026-10-04)
+- OpenAlex vs. Academic Hub semantic tag consolidation and topic clustering: test OpenAlex concept tags against the indexer's tag mining system on a larger corpus (>20 papers) to enable cross-vault reference and automatic topic clustering. (added 2026-10-04)
+- Unified discovery-to-index convenience pipeline: create a wrapper CLI that orchestrates search/discovery (`pipeline.py`), conversion (`convert_journal_articles.py`), and index card generation in one command. (added 2026-10-04)
+
+## Source Indexer and Search (`core/indexer`)
+- Tag co-occurrence graph persistence: compute and persist the tag co-occurrence matrix in `.index/` so that related concepts across courses can be traversed in Obsidian graph view or via CLI search. (added 2026-10-04)
+- Automated document-pairing detection: automatically detect and record links between problem sets and their corresponding solution sets, or lecture slides and lecture notes, in index cards. (added 2026-10-04)
+
+## Resume Manager (`resume_manager`)
+- Paired cover-letter generation: add a cover-letter generator (`cover_letter.py`) that uses the tailored application's selected facts, target company/role, and job description (design spec §10). (added 2026-10-04)
+- Named-entity preservation verification in `fact_diff.py`: extend validation beyond numeric metrics and repeated openings to check that award names, degrees, and core tools are not dropped during tailoring. (added 2026-10-04)
+- Generalized section header matching in `normalize.py`: extend `match_section_header()` synonyms and line-shape heuristics to support alternate source resume layouts beyond the initial master format. (added 2026-10-04)
+
+## RAG Tutoring Agent (`agent/rag`)
+- Persistent conversation and student history: persist REPL session transcripts and diagnostic records to disk (e.g. under `.sessions/` or student profile) so multi-turn context and mastery history survive process restarts. (added 2026-10-04)
+- Automated third-model adjudication in `/verify`: implement an automated verification evaluator to resolve diagnostic ambiguities when student answers partially match retrieved context. (added 2026-10-04)
+- Cross-course foundational retrieval testing: validate retrieval performance on multi-course queries (e.g. Econometrics questions requiring Math Camp matrix algebra lemmas). (added 2026-10-04)
+
+## Visualization Sub-Agent (`agent/viz`)
+- Template library expansion: add new Plotly visualization templates for recurring mathematical/economic concepts (e.g. utility maximization, IS-LM, consumer surplus) beyond the initial 4 templates. (added 2026-10-04)
+- Parameter extraction from retrieved context: extract specific numbers, equations, or matrix values from retrieved passages to populate templates with course-specific data instead of default toy values. (added 2026-10-04)
+
+## Audio Generator (`audio_generator`)
+- Paragraph-level splitting fallback for oversized sections: in `sections.py`, split oversized sections by paragraph boundaries when individual markdown sections exceed the TTS chunk limit, preventing oversized audio parts. (added 2026-10-04)
+- LLM summary-to-audio pipeline: build the direct workflow for generating audio from synthesized lecture summaries rather than raw note transcripts. (added 2026-10-04)
+- Textbook chapter-boundary integration: connect `chapter_index.py` from `convert_textbook` to enable narrated audio overviews per textbook chapter. (added 2026-10-04)
+
+## Notes Post-Processing (`pipelines/postprocess_notes`)
+- Multi-directory batch post-processing: update `postprocess_notes.py` CLI to process multiple course directories in a single command. (added 2026-10-04)
+- Statistical anomaly z-score calibration: tune the causal z-score and perplexity thresholds in `local_model_scoring.py` to reduce false positives on short or highly symbolic mathematical notes. (added 2026-10-04)
+
+## Textbook Conversion (`pipelines/convert_textbook`)
 Things to fix in post-processing?
 - subscripts and superscripts seem to get mixed up a lot (Hansen)
 - internal links are not preserved (Hansen)
@@ -17,6 +169,8 @@ Things to fix in post-processing?
 - Inline latex equations often yield bad formatting in output
 	- Dropping some hats from estimators
 - Could add internal links to obsidian when figures or sections are mentioned
+- Printed TOC spurious entry repair in `chapter_index.py`: `parse_printed_toc()` extracts a spurious frontmatter entry in books like Hammack; add filtering for Roman-numeral or unnumbered frontmatter page markers. (added 2026-10-04)
+- Front-matter image filter boundary tuning in `describe_images.py`: refine the filter to avoid dropping legitimate introductory diagrams near the start of Chapter 1. (added 2026-10-04)
 
 
 
