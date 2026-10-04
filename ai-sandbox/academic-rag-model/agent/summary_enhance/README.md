@@ -10,8 +10,14 @@ a thorough standalone study guide: one section per topic, several sub-sections e
 - **Clean body, provenance in frontmatter.** No inline citations or Sources list. The frontmatter
   `source_map` lists each cited chunk (`chunk_id`, `file_id`, `path`, `citation`) with `used_in`
   (the `Topic > Section` headings that rely on it).
-- **External context.** Paragraphs the textbooks do not support start with `*(External context)*`.
-  Worked examples start with `*(Worked example — illustrative data, not from the textbooks)*`.
+- **No tags in the text.** One intro sentence says that added intuition and worked examples are not
+  from the textbooks. Which paragraph is which is recorded in the frontmatter `paragraph_kinds`: for
+  each `Topic > Section`, one letter per body paragraph (`G` textbook-grounded, `E` external,
+  `W` worked example), in document order.
+- **Readable paragraphs.** A prose paragraph of more than five sentences is cut into roughly equal
+  paragraphs at sentence boundaries (7 sentences -> 4 + 3); the text is unchanged.
+- **Restyle without an API call.** `python -m agent.summary_enhance.restyle <enhanced.md>` rewrites a
+  format-2 guide into the current format (see that module's docstring).
 - **Display math.** Inline formulas longer than 10 symbols are moved to their own `$$` block.
 - **Depth.** One synthesis call per topic; `--min-words` (default 1400) per topic, at least 3
   sections, at least half the words textbook-grounded. With no `--topic`, one planning call picks 3-8 topics.

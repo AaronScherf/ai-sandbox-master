@@ -9,7 +9,7 @@ from agent.summary_enhance.schema import PLAN_SCHEMA, TOPIC_SCHEMA
 from agent.summary_enhance.source_loader import GuideInput
 from agent.summary_enhance.validate import MIN_SECTIONS, PLAN_MAX, PLAN_MIN
 
-PROMPT_VERSION = "2026-10-03.2"
+PROMPT_VERSION = "2026-10-04.1"
 
 # Runtime text: "\\beta", "\\frac" (two real backslashes). A plain "\beta" here would
 # teach the model the exact mistake we are warning about.
@@ -39,7 +39,7 @@ Two block types
     half of all your words must be in grounded blocks.
   * "external": your own additions that help a student (intuition, examples, general
     background) that the textbooks do not support. "sources" must be empty. Do not write
-    "(External context)" or any tag yourself; the document adds a marker.
+    "(External context)" or any tag yourself; which paragraphs are external is recorded separately.
 
 Text rules
   * Never write [S#] markers or any citation inside "text".

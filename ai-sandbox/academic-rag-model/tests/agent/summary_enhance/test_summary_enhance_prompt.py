@@ -6,7 +6,7 @@ from agent.summary_enhance.source_loader import load_guide
 
 
 def test_version():
-    assert PROMPT_VERSION == "2026-10-03.2"
+    assert PROMPT_VERSION == "2026-10-04.1"
 
 
 def test_topic_prompt_contents(vault):

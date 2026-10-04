@@ -2,72 +2,29 @@
 """Deterministic Markdown rendering of validated enhancement output.
 
 The body is a clean study document: no citation markers, no Sources list, no
-comments. Provenance lives in the frontmatter `source_map` (chunk -> sections
-that rely on it). External paragraphs carry a light (External context) tag."""
+comments and no inline provenance tags. Provenance lives in the frontmatter:
+`source_map` (chunk -> sections that rely on it) and `paragraph_kinds` (for each
+section, one letter per body paragraph: G textbook-grounded, E external, W worked
+example). Long prose paragraphs are cut at sentence boundaries for readability."""
 from __future__ import annotations
 
 import json
-import re
 
 from agent.summary_enhance.mathfmt import split_display_math
-from agent.summary_enhance.schema import Block, Enhanced
+from agent.summary_enhance.paragraphs import split_long_paragraphs, split_paragraphs
+from agent.summary_enhance.schema import Enhanced
 from agent.summary_enhance.source_loader import GuideInput
 
 GENERATED_BY = "academic-rag-model/agent/summary_enhance/enhance.py"
-EXTERNAL_TAG = "*(External context)*"
-WORKED_TAG = "*(Worked example — illustrative data, not from the textbooks)*"
-EXTERNAL_MARKER = "(External context)"
-_INTRO = ("*Study guide synthesized from the course textbooks. Passages marked (External context) "
-          "or (Worked example) come from outside the textbooks.*")
-_STRUCTURE_START_RE = re.compile(r"^\s*(?:\$|[-*+]\s|\d+[.)]\s|\||>|```|~~~)")
-_FENCE_LINE_RE = re.compile(r"^\s*(?:```|~~~)")
+FORMAT_VERSION = 3
+INTRO = ("*Study guide synthesized from the course textbooks; the added intuition and worked "
+         "examples are not from the textbooks.*")
 
 
-def _paragraphs(text: str) -> list[str]:
-    """Split on blank lines, except inside code fences and $$ display blocks."""
-    paragraphs: list[str] = []
-    current: list[str] = []
-    in_fence = in_display = False
-    for line in text.strip().split("\n"):
-        if not in_fence and not in_display and not line.strip():
-            if current:
-                paragraphs.append("\n".join(current))
-                current = []
-            continue
-        current.append(line)
-        if _FENCE_LINE_RE.match(line):
-            in_fence = not in_fence
-        elif not in_fence and line.count("$$") % 2 == 1:
-            in_display = not in_display
-    if current:
-        paragraphs.append("\n".join(current))
-    return paragraphs
-
-
-def _is_display_only(paragraph: str) -> bool:
-    p = paragraph.strip()
-    return p.startswith("$$") and p.endswith("$$")
-
-
-def _tag_external(text: str) -> str:
-    """Long formulas are split out first, so every resulting text paragraph keeps its tag.
-    A structural paragraph (list, table, quote, fence, display math) is tagged on its own
-    line only when it opens the block; mid-block it continues the tagged text above it."""
-    tagged = []
-    for i, p in enumerate(_paragraphs(split_display_math(text.strip()))):
-        if i > 0 and (_is_display_only(p) or _STRUCTURE_START_RE.match(p)):
-            tagged.append(p)
-        elif _STRUCTURE_START_RE.match(p):
-            tagged.append(f"{EXTERNAL_TAG}\n\n{p}")
-        else:
-            tagged.append(f"{EXTERNAL_TAG} {p}")
-    return "\n\n".join(tagged)
-
-
-def _block_text(block: Block) -> str:
-    if block.type == "grounded":
-        return split_display_math(block.text.strip())
-    return _tag_external(block.text)
+def _paragraphs_for(text: str) -> list[str]:
+    """Long formulas first, then paragraph boundaries (fence/display aware), then the
+    five-sentence rule."""
+    return split_long_paragraphs(split_paragraphs(split_display_math(text.strip())))
 
 
 def render(guide: GuideInput, enhanced: Enhanced, *, model: str, generated_at: str,
@@ -75,27 +32,41 @@ def render(guide: GuideInput, enhanced: Enhanced, *, model: str, generated_at: s
     from agent.summary_enhance.prompt import PROMPT_VERSION
 
     used_in: dict[str, list[str]] = {}
+    kinds: dict[str, str] = {}
+    parts = [f"# {guide.title} (enhanced)", INTRO]
     for topic in enhanced.topics:
+        parts.append(f"## {topic.title}")
         for section in topic.sections:
+            parts.append(f"### {section.heading}")
             where = f"{topic.title} > {section.heading}"
+            letters = []
             for block in section.blocks:
-                if block.type != "grounded":
-                    continue
-                for label in block.sources:
-                    places = used_in.setdefault(label, [])
-                    if where not in places:
-                        places.append(where)
+                paragraphs = _paragraphs_for(block.text)
+                parts.extend(paragraphs)
+                letters.append(("G" if block.type == "grounded" else "E") * len(paragraphs))
+                if block.type == "grounded":
+                    for label in block.sources:
+                        places = used_in.setdefault(label, [])
+                        if where not in places:
+                            places.append(where)
+            kinds[where] = kinds.get(where, "") + "".join(letters)
+        if topic.worked_example:
+            parts.append("### Worked example")
+            paragraphs = _paragraphs_for(topic.worked_example)
+            parts.extend(paragraphs)
+            key = f"{topic.title} > Worked example"
+            kinds[key] = kinds.get(key, "") + "W" * len(paragraphs)
+
     source_map = [
         {"chunk_id": s.chunk_id, "file_id": s.file_id, "path": s.path, "citation": s.citation,
          "used_in": used_in[s.label]}
         for s in guide.sources if s.label in used_in
     ]
-
     front_fields = {
         "title": json.dumps(f"{guide.title} (enhanced)", ensure_ascii=False),
         "llm_generated": "true",
         "content_kind": "enhanced_summary",
-        "format_version": "2",
+        "format_version": str(FORMAT_VERSION),
         "generated_by": GENERATED_BY,
         "enhancement_model": json.dumps(model),
         "prompt_version": json.dumps(PROMPT_VERSION),
@@ -103,19 +74,8 @@ def render(guide: GuideInput, enhanced: Enhanced, *, model: str, generated_at: s
         "source_summary": json.dumps({"path": guide.rel_path, "sha256": guide.sha256}),
         "topics": json.dumps([t.title for t in enhanced.topics], ensure_ascii=False),
         "options": json.dumps({"worked_example": worked_example, "min_words": min_words}),
-        "external_context_marker": json.dumps(EXTERNAL_MARKER),
+        "paragraph_kinds": json.dumps(kinds, ensure_ascii=False, separators=(",", ":")),
         "source_map": json.dumps(source_map, ensure_ascii=False, separators=(",", ":")),
     }
     frontmatter = "---\n" + "".join(f"{k}: {v}\n" for k, v in front_fields.items()) + "---\n\n"
-
-    parts = [f"# {guide.title} (enhanced)", _INTRO]
-    for topic in enhanced.topics:
-        parts.append(f"## {topic.title}")
-        for section in topic.sections:
-            parts.append(f"### {section.heading}")
-            parts.extend(_block_text(b) for b in section.blocks)
-        if topic.worked_example:
-            parts.append("### Worked example")
-            parts.append(WORKED_TAG)
-            parts.append(split_display_math(topic.worked_example.strip()))
     return frontmatter + "\n\n".join(parts) + "\n"
