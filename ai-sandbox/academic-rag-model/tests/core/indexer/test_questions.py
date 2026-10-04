@@ -137,3 +137,131 @@ def test_failed_write_keeps_the_existing_sidecar_and_removes_the_temp_file(tmp_p
             write_sidecar(path, {"questions": "2"}, [_entry(), _entry(qid="q2-bbbbbbbb")])
     assert open(path, encoding="utf-8").read() == before
     assert not os.path.exists(path + ".tmp")
+
+
+from core.indexer.questions import apply_markers, marker_for, raw_tags
+
+RAW = (
+    "---\nchunks: 1\n---\n\n**[Handwritten]**\n"
+    "[Question] Is IIA nec. & sufficient?\nother\n[Question] why not reflexivity?\n"
+)
+RAG = (
+    "---\nx: y\n---\n\nProse. [Question] Is IIA necessary and sufficient?\n\n"
+    "More. [Question] why not reflexivity?\n"
+)
+
+
+def _entry_for(tag, grounded=True):
+    return Entry(
+        qid=tag.qid, question=tag.text, grounded=grounded, model="m", resolved_at="t",
+        answer="ans", sources=["s"] if grounded else [],
+    )
+
+
+def _setup(tmp_path, raw=RAW, rag=RAG, entry_indexes=(0, 1), grounded=True):
+    raw_path = str(tmp_path / "N.excalidraw.md")
+    rag_path = rag_path_for(raw_path)
+    with open(raw_path, "w", encoding="utf-8") as f:
+        f.write(raw)
+    with open(rag_path, "w", encoding="utf-8") as f:
+        f.write(rag)
+    tags = raw_tags(raw)
+    entries = [_entry_for(tags[i], grounded) for i in entry_indexes]
+    if entries:
+        write_sidecar(sidecar_path_for(raw_path), {"questions": str(len(entries))}, entries)
+    return raw_path, rag_path, tags
+
+
+def _read(path):
+    return open(path, encoding="utf-8").read()
+
+
+def test_marker_text_for_grounded_and_ungrounded_entries():
+    grounded = Entry(qid="q1-ab12cd34", question="q?", grounded=True, model="m", resolved_at="t")
+    ungrounded = Entry(qid="q1-ab12cd34", question="q?", grounded=False, model="m", resolved_at="t")
+    assert marker_for(grounded, "N.excalidraw.questions.md") == "[Question: answered -> N.excalidraw.questions.md#q1-ab12cd34]"
+    assert marker_for(ungrounded, "N.excalidraw.questions.md") == (
+        "[Question: answered (ungrounded) -> N.excalidraw.questions.md#q1-ab12cd34]"
+    )
+
+
+def test_markers_are_applied_by_position_when_tag_counts_match_and_wording_differs(tmp_path):
+    raw_path, rag_path, tags = _setup(tmp_path)
+    assert apply_markers(raw_path, rag_path) is True
+    text = _read(rag_path)
+    assert f"[Question: answered -> N.excalidraw.questions.md#{tags[0].qid}] Is IIA necessary and sufficient?" in text
+    assert f"[Question: answered -> N.excalidraw.questions.md#{tags[1].qid}] why not reflexivity?" in text
+
+
+def test_ungrounded_entries_get_the_ungrounded_marker(tmp_path):
+    raw_path, rag_path, tags = _setup(tmp_path, grounded=False)
+    apply_markers(raw_path, rag_path)
+    assert f"[Question: answered (ungrounded) -> N.excalidraw.questions.md#{tags[0].qid}]" in _read(rag_path)
+
+
+def test_a_tag_without_a_sidecar_entry_stays_open(tmp_path):
+    raw_path, rag_path, tags = _setup(tmp_path, entry_indexes=(1,))
+    apply_markers(raw_path, rag_path)
+    text = _read(rag_path)
+    assert "Prose. [Question] Is IIA necessary and sufficient?" in text
+    assert f"#{tags[1].qid}]" in text
+
+
+def test_second_application_changes_nothing(tmp_path):
+    raw_path, rag_path, _ = _setup(tmp_path)
+    apply_markers(raw_path, rag_path)
+    after_first = _read(rag_path)
+    assert apply_markers(raw_path, rag_path) is False
+    assert _read(rag_path) == after_first
+
+
+def test_when_counts_differ_tags_pair_by_text_similarity_and_unmatched_entries_go_stale(tmp_path):
+    rag_one_tag = "---\nx: y\n---\n\nOnly. [Question] Why not reflexivity?\n"
+    raw_path, rag_path, tags = _setup(tmp_path, rag=rag_one_tag)
+    apply_markers(raw_path, rag_path)
+    assert f"[Question: answered -> N.excalidraw.questions.md#{tags[1].qid}] Why not reflexivity?" in _read(rag_path)
+    _, entries = read_sidecar(sidecar_path_for(raw_path))
+    stale = {e.qid: e.stale for e in entries}
+    assert stale == {tags[0].qid: True, tags[1].qid: False}
+
+
+def test_a_dissimilar_tag_is_left_open_when_counts_differ(tmp_path):
+    rag = "---\nx: y\n---\n\nOnly. [Question] something entirely unrelated to either\n"
+    raw_path, rag_path, tags = _setup(tmp_path, rag=rag)
+    apply_markers(raw_path, rag_path)
+    assert "[Question] something entirely unrelated to either" in _read(rag_path)
+    _, entries = read_sidecar(sidecar_path_for(raw_path))
+    assert all(e.stale for e in entries)
+
+
+def test_stale_entries_recover_when_the_tags_match_again(tmp_path):
+    rag_one_tag = "---\nx: y\n---\n\nOnly. [Question] Why not reflexivity?\n"
+    raw_path, rag_path, tags = _setup(tmp_path, rag=rag_one_tag)
+    apply_markers(raw_path, rag_path)
+    with open(rag_path, "w", encoding="utf-8") as f:
+        f.write(RAG)
+    apply_markers(raw_path, rag_path)
+    _, entries = read_sidecar(sidecar_path_for(raw_path))
+    assert not any(e.stale for e in entries)
+
+
+def test_a_marker_reverts_to_open_when_its_sidecar_entry_is_removed(tmp_path):
+    raw_path, rag_path, tags = _setup(tmp_path)
+    apply_markers(raw_path, rag_path)
+    write_sidecar(sidecar_path_for(raw_path), {"questions": "1"}, [_entry_for(tags[1])])
+    apply_markers(raw_path, rag_path)
+    text = _read(rag_path)
+    assert "Prose. [Question] Is IIA necessary and sufficient?" in text
+    assert f"#{tags[1].qid}]" in text
+
+
+def test_no_sidecar_leaves_open_tags_untouched(tmp_path):
+    raw_path, rag_path, _ = _setup(tmp_path, entry_indexes=())
+    assert apply_markers(raw_path, rag_path) is False
+    assert _read(rag_path) == RAG
+
+
+def test_missing_rag_file_is_a_noop(tmp_path):
+    raw_path, rag_path, _ = _setup(tmp_path)
+    os.remove(rag_path)
+    assert apply_markers(raw_path, rag_path) is False

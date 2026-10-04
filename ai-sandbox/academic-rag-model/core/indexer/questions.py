@@ -9,6 +9,7 @@ Spec: docs/superpowers/specs/agent/rag/2026-10-03-question-resolver-design.md
 """
 from __future__ import annotations
 
+import difflib
 import hashlib
 import os
 import re
@@ -175,3 +176,78 @@ def write_sidecar(path: str, fields: dict, entries: list[Entry]) -> None:
         if os.path.exists(tmp):
             os.remove(tmp)
         raise
+
+
+_PAIR_SIMILARITY_MIN = 0.8
+
+
+def marker_for(entry: Entry, sidecar_filename: str) -> str:
+    label = "answered" if entry.grounded else "answered (ungrounded)"
+    return f"[Question: {label} -> {sidecar_filename}#{entry.qid}]"
+
+
+def _pair_tags(raw: list[Tag], rag: list[Tag]) -> dict[int, int]:
+    """raw index -> rag index. By position when the counts agree (the
+    expansion reworded the text but kept the tags); otherwise greedily by
+    text similarity, leaving anything below the threshold unpaired."""
+    if len(raw) == len(rag):
+        return {i: i for i in range(len(raw))}
+    pairs: dict[int, int] = {}
+    used: set[int] = set()
+    for i, raw_tag in enumerate(raw):
+        best, best_ratio = None, 0.0
+        for j, rag_tag in enumerate(rag):
+            if j in used:
+                continue
+            ratio = difflib.SequenceMatcher(None, normalize(raw_tag.text), normalize(rag_tag.text)).ratio()
+            if ratio > best_ratio:
+                best, best_ratio = j, ratio
+        if best is not None and best_ratio >= _PAIR_SIMILARITY_MIN:
+            pairs[i] = best
+            used.add(best)
+    return pairs
+
+
+def apply_markers(raw_path: str, rag_path: str) -> bool:
+    """Makes every tag in the .rag.md reflect the sidecar: an answered
+    question gets its resolved marker, anything else is (re)set to an open
+    `[Question]`. Deterministic, no model call, idempotent. Also flags sidecar
+    entries stale when their raw tag has no counterpart in the .rag.md, and
+    clears the flag when one is found again. Returns True if either file
+    changed."""
+    if not os.path.exists(rag_path):
+        return False
+    sidecar = sidecar_path_for(raw_path)
+    with open(raw_path, encoding="utf-8") as f:
+        raw = raw_tags(f.read())
+    with open(rag_path, encoding="utf-8") as f:
+        rag_text = f.read()
+    fields, entries = read_sidecar(sidecar)
+    by_id = {e.qid: e for e in entries}
+
+    rag = find_tags(rag_text)
+    replacement = {j: "[Question]" for j in range(len(rag))}
+    matched: set[str] = set()
+    for i, j in _pair_tags(raw, rag).items():
+        entry = by_id.get(raw[i].qid)
+        if entry is not None:
+            replacement[j] = marker_for(entry, os.path.basename(sidecar))
+            matched.add(entry.qid)
+
+    new_text = rag_text
+    for j in range(len(rag) - 1, -1, -1):
+        new_text = new_text[: rag[j].start] + replacement[j] + new_text[rag[j].end:]
+    changed = new_text != rag_text
+    if changed:
+        with open(rag_path, "w", encoding="utf-8") as f:
+            f.write(new_text)
+
+    stale_changed = False
+    for entry in entries:
+        should_be_stale = entry.qid not in matched
+        if entry.stale != should_be_stale:
+            entry.stale = should_be_stale
+            stale_changed = True
+    if stale_changed:
+        write_sidecar(sidecar, fields, entries)
+    return changed or stale_changed
