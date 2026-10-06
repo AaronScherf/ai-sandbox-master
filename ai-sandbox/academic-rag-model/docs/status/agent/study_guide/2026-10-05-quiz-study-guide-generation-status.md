@@ -77,19 +77,69 @@ An evaluation of the generated artifact (`wald_hypothesis_testing_quiz_prep.enha
 
 ---
 
-## 6. Evolution: Cleaned v2 and Comprehensive PhD-Level v3
+## 6. Evolution across Iterative Versions (v1 to v4)
 
-1. **Cleaned v2 Target Deliverable (`wald_hypothesis_testing_quiz_prep.v2.cleaned.md`):**
-   * Reorganized into a 5-part structure: Trinity Overview, Linear Wald, Non-Linear Wald & Delta Method, Worked Problems, and Cheatsheet.
-   * Stripped raw citation tags to frontmatter; fixed LaTeX table pipe escaping.
-2. **Comprehensive PhD-Level v3 Deliverable (`wald_hypothesis_testing_quiz_prep.v3.comprehensive.md`):**
-   * **Embedded Visual Diagram:** Replaced broken ASCII art with a high-resolution, pedagogical diagram of the Testing Trinity (`assets/testing_trinity_geometry.jpg`).
-   * **Independent Likelihood Ratio (LR) Deep-Dive:** Formal constrained log-likelihood theory, Wilks' theorem derivation via 2nd-order Taylor expansion, degrees of freedom, and worked step-by-step example.
-   * **Independent Lagrange Multiplier / Score (LM) Deep-Dive:** Constrained Lagrangian optimization, Rao's score test derivation, Outer Product of Gradients (OPG), auxiliary regression formulations ($n R^2$ tests, Breusch-Pagan, Breusch-Godfrey), and worked step-by-step example.
-   * **Advanced PhD Core Concepts:**
-     * Analytical proof of the finite-sample inequality $W \geq LR \geq LM$ under classical normal linear regression.
-     * Quasi-Maximum Likelihood Estimation (QMLE) and Sandwich Covariance ($A^{-1} B A^{-1}$): behavior of robust Wald vs. robust Score vs. failure of standard LR under misspecification.
-     * Local power and asymptotic efficiency under Pitman drift ($H_{1,n}: \theta = \theta_0 + \delta/\sqrt{n}$) yielding non-central $\chi^2(q, \lambda)$.
-     * Boundary parameter problems (Chernoff / Andrews non-standard asymptotic distributions).
-     * GMM Criterion Difference (Distance Metric) and Hansen's $C$-test.
-   * Serves as the ultimate gold-standard reference target for future automated study guide pipelines.
+1. **v1 Ad-Hoc Draft (`wald_hypothesis_testing_quiz_prep.enhanced.md`):**
+   * *Outcome:* 151 KB initial draft from `generate_quiz_guide.py`.
+   * *Deficiencies:* Heavy bias toward Wald test (5 of 7 sections); over-indexed on student margin questions; unescaped LaTeX pipes broke markdown tables; cluttered in-text citation UUIDs.
+2. **v2 Cleaned Target (`wald_hypothesis_testing_quiz_prep.v2.cleaned.md`):**
+   * *Outcome:* 30 KB curated clean target.
+   * *Refinements:* Reorganized into a 5-part structure; eliminated repetitive asymptotic setups; converted in-text question tags to YAML frontmatter; escaped table pipes.
+3. **v3 Comprehensive Exploration (`wald_hypothesis_testing_quiz_prep.v3.comprehensive.md`):**
+   * *Outcome:* 42 KB expanded theoretical version.
+   * *Refinements:* Added high-resolution Testing Trinity visual diagram (`assets/testing_trinity_geometry.jpg`); added independent LR and LM theoretical sections; explored advanced PhD econometrics (QMLE sandwich theory, Pitman drift, boundary mixtures, GMM distance metrics).
+   * *Audit Finding:* While theoretically sound, external topics (Pitman drift, boundary problems, GMM) exceeded the student's actual current course boundaries.
+4. **v4 Grounded Final Target (`wald_hypothesis_testing_quiz_prep.v4.final.md`):**
+   * *Outcome:* 46 KB definitive gold-standard reference.
+   * *Key Refinements:*
+     * **Strict Grounding:** Pruned ungrounded external topics (Pitman drift, boundary mixtures, GMM).
+     * **General Problem-Solving Recipes (Part 6):** Step-by-step shorthand walkthroughs for Linear Wald, Non-Linear Wald (Delta Method), Likelihood Ratio, and LM Auxiliary Regression based on what prompt info is given.
+     * **Recitation Nuances (Recitation 5 & TA Notes 07/08):** Integrated Song's covariance hierarchy (Homoskedastic vs. HC0 vs. HC1), 4th-moment regularity conditions ($\mathbb{E}[\|X_i\|^4] < \infty$), GLS Wald form, Chen's asymptotic pivots, normal mean known variance exact agreement case, and multiplier recovery formulas.
+     * **Dedicated Formula Dictionary & Variable Glossary (Part 8):** Term-by-term breakdown explaining every matrix, vector, and scalar ($R$, $\hat{\beta}$, $\widehat{\mathbf{V}}_{\hat{\beta}}$, $r_0$, $\hat{d}$, $RSS_U$, $RSS_R$, $\dot{\ell}_n$, $\tilde{\lambda}$).
+     * **Pure Frontmatter Provenance:** Completely removed in-text section and note citations from the prose, concentrating all attribution cleanly in YAML frontmatter (`source_basis`, `source_map`).
+
+---
+
+## 7. Pipeline Architecture Blueprint for `agent.study_guide`
+
+This iterative process provides a concrete specification for the reproducible, declarative study guide generator designed in `claude/study-guide-spec` (`docs/superpowers/specs/agent/2026-10-05-study-guide-pipeline-design.md`). The automated pipeline should follow this five-stage execution architecture:
+
+```
+[ TOML Spec ] ---> [ Dual-Tier Retrieval ] ---> [ Multi-Stage Generation ]
+                            |                             |
+                            v                             v
+                   (Course Notes > Sidecars)    (Theory -> Recipes -> Cheatsheet)
+                                                          |
+                                                          v
+                                               [ Post-Process & Linters ]
+                                                          |
+                                                 * Escape LaTeX pipes in tables (\mid)
+                                                 * Strip in-text citations -> Frontmatter
+                                                 * Embed Visual Assets (assets/*.jpg)
+                                                          |
+                                                          v
+                                            [ Permanent Vault Deliverable ]
+```
+
+### Stage 1: Declarative Topic Specification (`guide_specs/<course>/<id>.toml`)
+* Separate the study guide prompt, required sections, and problem parameters from pipeline code.
+* Define target assessments, required tests (e.g., Wald, LR, LM), and specific worked problem configurations.
+
+### Stage 2: Dual-Tier Retrieval Filtering
+* **Corpus Hierarchy:** Weight instructor materials (lecture notes, professor slides, recitation notes) above student margin question sidecars to prevent the synthesis from over-indexing on student queries.
+* **Scope Guard:** Restrict retrieval to current-semester modules to prevent premature introduction of future topics (e.g., GMM or panel methods).
+
+### Stage 3: Modular Generation Stages
+* **Section 1: Foundations & Geometry:** Unified principle and likelihood geometry.
+* **Section 2–4: Independent Deep-Dives:** Balanced standalone treatments of each test principle.
+* **Section 5: Problem-Solving Recipes:** Shorthand recipe walkthroughs categorized by given problem inputs.
+* **Section 6: Worked Exam Problems:** Numerical walkthroughs with exact parameter calculations.
+* **Section 7: Formula Glossary & Cheatsheets:** Equation dictionary and quick-recall tables.
+
+### Stage 4: Automated Linters & Post-Processing
+* **Table Pipe Escaping:** Automatically scan all markdown tables and replace unescaped math pipes (`|`) with `\mid`, `\vert`, or `\|` to preserve markdown table rendering.
+* **Provenance Sanitization:** Automatically extract inline source tags (e.g., `[§q4-...]`, `(Recitation 5)`) and aggregate them into YAML frontmatter (`source_map`), keeping human-facing text clean and readable.
+
+### Stage 5: Visual Asset Pipeline Integration
+* Call `agent.viz` for parameterized Plotly curves or generate high-resolution scientific diagrams for theoretical geometry.
+* Persist images permanently to `<vault>/<course>/summaries/assets/` rather than leaving them in transient agent workspaces.
