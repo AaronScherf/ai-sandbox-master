@@ -65,20 +65,31 @@ An evaluation of the generated artifact (`wald_hypothesis_testing_quiz_prep.enha
    * Unescaped pipe characters (`|`) inside LaTeX math blocks (such as conditional expectations $\mathbb{E}[Y \mid X]$, conditioning bars, or matrix column dividers) were interpreted by Markdown renderers as table column delimiters, severely corrupting markdown tables.
 5. **Reader-Facing In-Text Citation Clutter:**
    * Inline citation brackets referencing internal note filenames and raw question IDs (e.g. `[§q4-11e5aef8...]` and `[Econometrics 2026-09-30...]`) cluttered the reading experience. Following the `summary_enhance` design standard, provenance belongs in the YAML frontmatter (`indexer_source_refs` / `source_map`), keeping the body clean and readable.
+6. **ASCII Diagram Rendering Failure:**
+   * The procedural script attempted to render the geometry of the Testing Trinity via ASCII art in a code block. This failed to align cleanly across Markdown viewers and looked primitive. Mathematical and conceptual geometry requires either rich interactive Plotly figures via `agent.viz` or high-resolution LLM-generated scientific diagrams.
 
 ---
 
-## 5. Next Steps & Target Version
+## 5. Visualization Integration & Pipeline Recommendation
 
-1. **Create Cleaned v2 Target Deliverable (`wald_hypothesis_testing_quiz_prep.v2.cleaned.md`):**
-   * Reorganize into a coherent 5-part structure:
-     1. Classical Testing Trinity Overview (balanced Wald, LR, LM).
-     2. Linear Hypotheses and the Wald Test ($R'\beta = r$, variance, joint $F$-version).
-     3. Non-Linear Hypotheses and the Delta Method ($r(\beta) = 0$, gradients, confidence intervals, invariance).
-     4. Step-by-Step Exam Problem Walkthroughs (Q3 Wage Equation, $2\times 2$ Joint Test, Non-linear Ratio Test).
-     5. High-Yield Exam Quick-Reference Cheatsheet (clean, verified tables).
-   * Strip raw in-text question/note citation tags from the prose; move all citations to frontmatter provenance.
-   * Fix all LaTeX table formatting by escaping pipes (`\|`, `\mid`, `\vert`).
-   * Eliminate scattered setup repetitions.
-2. **Serve as Benchmark Target for `agent.study_guide`:**
-   * The cleaned target artifact will serve as the reference standard for the upcoming declarative `agent.study_guide` implementation planned in `claude/study-guide-spec`.
+* **Connect `agent.viz` to `agent.study_guide`:** The existing visualization sub-agent (`agent/viz`) generates interactive Plotly visualizations and static exports. Study guides should be able to invoke `agent.viz` to dynamically render econometric graphs (such as likelihood curvature, rejection regions, and joint confidence ellipses) based on retrieved course parameters.
+* **Support LLM-Generated Conceptual Diagrams:** For abstract theoretical geometry (such as the concave log-likelihood function contrasting Wald horizontal distance, LR vertical drop, and LM score tangent), pure data plotting in Plotly is often less communicative than clean pedagogical textbook illustrations. The pipeline should support generating and embedding high-resolution scientific diagrams alongside Plotly objects.
+
+---
+
+## 6. Evolution: Cleaned v2 and Comprehensive PhD-Level v3
+
+1. **Cleaned v2 Target Deliverable (`wald_hypothesis_testing_quiz_prep.v2.cleaned.md`):**
+   * Reorganized into a 5-part structure: Trinity Overview, Linear Wald, Non-Linear Wald & Delta Method, Worked Problems, and Cheatsheet.
+   * Stripped raw citation tags to frontmatter; fixed LaTeX table pipe escaping.
+2. **Comprehensive PhD-Level v3 Deliverable (`wald_hypothesis_testing_quiz_prep.v3.comprehensive.md`):**
+   * **Embedded Visual Diagram:** Replaced broken ASCII art with a high-resolution, pedagogical diagram of the Testing Trinity (`assets/testing_trinity_geometry.jpg`).
+   * **Independent Likelihood Ratio (LR) Deep-Dive:** Formal constrained log-likelihood theory, Wilks' theorem derivation via 2nd-order Taylor expansion, degrees of freedom, and worked step-by-step example.
+   * **Independent Lagrange Multiplier / Score (LM) Deep-Dive:** Constrained Lagrangian optimization, Rao's score test derivation, Outer Product of Gradients (OPG), auxiliary regression formulations ($n R^2$ tests, Breusch-Pagan, Breusch-Godfrey), and worked step-by-step example.
+   * **Advanced PhD Core Concepts:**
+     * Analytical proof of the finite-sample inequality $W \geq LR \geq LM$ under classical normal linear regression.
+     * Quasi-Maximum Likelihood Estimation (QMLE) and Sandwich Covariance ($A^{-1} B A^{-1}$): behavior of robust Wald vs. robust Score vs. failure of standard LR under misspecification.
+     * Local power and asymptotic efficiency under Pitman drift ($H_{1,n}: \theta = \theta_0 + \delta/\sqrt{n}$) yielding non-central $\chi^2(q, \lambda)$.
+     * Boundary parameter problems (Chernoff / Andrews non-standard asymptotic distributions).
+     * GMM Criterion Difference (Distance Metric) and Hansen's $C$-test.
+   * Serves as the ultimate gold-standard reference target for future automated study guide pipelines.
