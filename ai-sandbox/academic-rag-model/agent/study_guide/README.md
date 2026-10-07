@@ -9,6 +9,7 @@ Reusable pipeline for building study guides from indexed course material: a **gu
     python -m agent.study_guide apply-review <plan> --decisions <decisions.json>
     python -m agent.study_guide draft  guide_specs/econometrics/wald_lm_lr_tests.toml --root <hub> --tag b0 --dry-run
     python -m agent.study_guide draft  <spec> --root <hub> --tag b0
+    python -m agent.study_guide enhance <spec> --draft <guide.md> [--mode improve] [--worked-example] [--tag T]
 
 - **Spec:** topics, instructions, per-topic source rules (`section` = pinned textbook sections,
   `file` = pinned class notes/slides, `discover` = bounded search that can exclude an existing

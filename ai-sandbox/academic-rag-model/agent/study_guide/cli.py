@@ -5,6 +5,8 @@
     python -m agent.study_guide apply-review <plan> --decisions <file>
     python -m agent.study_guide draft  <spec> [--root R] [--plan P] [--model M] [--tag T] [--force]
                                        [--dry-run] [--accept-unreviewed] [--env-file F]
+    python -m agent.study_guide enhance <spec> --draft <guide.md> [--mode improve] [--worked-example]
+                                       [--tag T] [--model M] [--force] [--dry-run] [--accept-unreviewed]
     python -m agent.study_guide run    <spec> [--yes]         (plan; with --yes also draft)
 
 Design: docs/superpowers/specs/agent/2026-10-05-study-guide-pipeline-design.md. From a git
@@ -20,11 +22,13 @@ from pathlib import Path
 
 from agent.study_guide.draft import DraftError, draft_guide, output_path
 from agent.study_guide.plan import (
-    PlanError, apply_decisions, build_plan, check_fresh, load_plan, pending_entries, plan_sha256,
+    PlanError, accepted, apply_decisions, build_plan, check_fresh, load_plan, pending_entries, plan_sha256,
     save_plan, write_review_items,
 )
 from agent.study_guide.spec import SpecError, load_spec
+from agent.summary_enhance.enhance import DEFAULT_MIN_WORDS, run as enhance_run
 from agent.summary_enhance.llm import GeminiClient
+from agent.summary_enhance.source_loader import ExtraSource
 
 EXIT_OK, EXIT_NO_CLIENT, EXIT_INPUT, EXIT_LLM = 0, 1, 2, 4
 
@@ -158,6 +162,32 @@ def cmd_draft(spec_path: str, root: str, *, plan_path: str | None = None, llm=No
     return EXIT_OK
 
 
+def cmd_enhance(spec_path: str, root: str, *, draft_path: str, plan_path: str | None = None,
+                mode: str = "improve", worked_example: bool = False, min_words: int = DEFAULT_MIN_WORDS,
+                model: str | None = None, tag: str = "", force: bool = False, dry_run: bool = False,
+                accept_unreviewed: bool = False, env_file: str | None = None, llm=None,
+                chunks=None, cards=None) -> int:
+    try:
+        spec = load_spec(spec_path)
+        plan, _, _ = _load_plan_for(spec, root, plan_path, chunks, cards)
+        if not Path(draft_path).is_file():
+            raise PlanError(f"draft not found: {draft_path}")
+        extras = []
+        for topic in spec.topics:
+            for e in accepted(plan, topic.title, accept_unreviewed=accept_unreviewed):
+                extras.append(ExtraSource(topic.title, e.chunk_id, e.file_id, e.path, e.citation,
+                                          e.doc_type, e.offering))
+    except (SpecError, PlanError) as err:
+        print(f"ERROR: {err}")
+        return EXIT_INPUT
+    draft = Path(draft_path)
+    output = str(draft.with_name(f"{draft.stem}.enhanced.{tag}.md")) if tag else None
+    return enhance_run(
+        str(draft), topics=[t.title for t in spec.topics], output=output, model=model or spec.enhance_model,
+        force=force, dry_run=dry_run, llm=llm, env_file=env_file, worked_example=worked_example,
+        min_words=min_words, mode=mode, extra_sources=extras)
+
+
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(prog="python -m agent.study_guide", description=__doc__,
                                 formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -190,9 +220,27 @@ def main(argv: list[str] | None = None) -> int:
     common(sp)
     sp.add_argument("--yes", action="store_true", help="after planning, draft using the plan as it is")
 
+    sp = sub.add_parser("enhance")
+    common(sp)
+    sp.add_argument("--draft", required=True, help="the guide to enhance (a derived_summary .md)")
+    sp.add_argument("--plan", help="plan file (default: the spec's plan in the vault)")
+    sp.add_argument("--mode", choices=("rewrite", "improve"), default="improve")
+    sp.add_argument("--worked-example", action="store_true")
+    sp.add_argument("--min-words", type=int, default=DEFAULT_MIN_WORDS)
+    sp.add_argument("--model", help="override [models].enhance")
+    sp.add_argument("--tag", default="", help="name an output variant (<draft>.enhanced.<tag>.md)")
+    sp.add_argument("--force", action="store_true")
+    sp.add_argument("--dry-run", action="store_true")
+    sp.add_argument("--accept-unreviewed", action="store_true")
+
     args = p.parse_args(argv)
     if args.command == "apply-review":
         return cmd_apply_review(args.plan, args.decisions)
+    if args.command == "enhance":
+        return cmd_enhance(args.spec, args.root, draft_path=args.draft, plan_path=args.plan, mode=args.mode,
+                           worked_example=args.worked_example, min_words=args.min_words, model=args.model,
+                           tag=args.tag, force=args.force, dry_run=args.dry_run,
+                           accept_unreviewed=args.accept_unreviewed, env_file=args.env_file)
     if args.command in ("plan", "run"):
         client = _paid_client(args.env_file)
         code = cmd_plan(args.spec, args.root, client=client, force=getattr(args, "force", False))
