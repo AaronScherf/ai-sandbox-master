@@ -166,7 +166,8 @@
 ## Visualization Sub-Agent (`agent/viz`)
 - Template library expansion: add new Plotly visualization templates for recurring mathematical/economic concepts (e.g. utility maximization, IS-LM, consumer surplus) beyond the initial 4 templates. (added 2026-10-04)
 - Parameter extraction from retrieved context: extract specific numbers, equations, or matrix values from retrieved passages to populate templates with course-specific data instead of default toy values. (added 2026-10-04)
-- Connect visualization pipeline to study guide generation (`agent/study_guide`): enable study guides to automatically incorporate visualizations, supporting interactive Plotly objects for course-specific parameterized curves and static asset exports. (added 2026-10-05)
+- Connect visualization pipeline to study guide generation (`agent/study_guide`): enable study guides to automatically incorporate visualizations, supporting interactive Plotly objects for course-specific parameterized curves and static asset exports. Brainstorm note and architecture design completed: [`docs/brainstorms/agent/viz/2026-10-06-interactive-plotly-obsidian-pipeline.md`](../brainstorms/agent/viz/2026-10-06-interactive-plotly-obsidian-pipeline.md). (added 2026-10-05, updated 2026-10-06)
+- Automated decoupled asset injection pipeline: implement `agent/viz/vault_emitter.py` to emit partial HTML `<div>` assets to `assets/<slug>_div.html` alongside standardized DataviewJS mounting snippets, bypassing Pyodide sandboxes and Webpage HTML Export deadlocks. (added 2026-10-06)
 - Dual visualization modality (LLM-generated scientific diagrams alongside Plotly): evaluate and integrate LLM-generated conceptual diagrams for abstract theoretical geometry (such as the Testing Trinity likelihood surface) rather than strictly Python Plotly code. (added 2026-10-05)
 
 ## Audio Generator (`audio_generator`)
