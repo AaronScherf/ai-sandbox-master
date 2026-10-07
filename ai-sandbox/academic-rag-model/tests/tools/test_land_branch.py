@@ -66,6 +66,31 @@ class LandBranchTests(unittest.TestCase):
         self.assertEqual(git(self.wt, "rev-parse", "HEAD").strip(), before)
         self.assertEqual(dirty_files(self.wt), set())
 
+    def test_conflicting_rebase_names_files_with_spaces_whole(self):
+        write_and_commit(self.wt, {"core/a b.py": "x = 2\n"}, "branch edit")
+        write_and_commit(self.repo, {"core/a b.py": "x = 3\n"}, "main edit")
+        with self.assertRaises(LandingError) as ctx:
+            rebase_onto_main(self.wt)
+        self.assertIn("core/a b.py", str(ctx.exception))
+
+    def test_rebase_abort_failure_does_not_replace_the_conflict_error(self):
+        from unittest.mock import patch
+        import tools.land_branch as land_branch
+        write_and_commit(self.wt, {"core/a.py": "x = 2\n"}, "branch edit")
+        write_and_commit(self.repo, {"core/a.py": "x = 3\n"}, "main edit")
+        real_run_git = land_branch.run_git
+
+        def fake_run_git(args, cwd):
+            if args[0] == "rebase" and args[-1] != "--abort":
+                raise land_branch.GitError("conflict")
+            if args == ["rebase", "--abort"]:
+                raise land_branch.GitError("abort also failed")
+            return real_run_git(args, cwd)
+
+        with patch("tools.land_branch.run_git", side_effect=fake_run_git):
+            with self.assertRaises(LandingError):
+                rebase_onto_main(self.wt)
+
     def test_overlap_ignores_paths_only_main_changed(self):
         write_and_commit(self.wt, {"core/branch.py": "b = 1\n"}, "branch work")
         write_and_commit(self.repo, {"core/main_only.py": "m = 1\n"}, "main work")
@@ -110,6 +135,20 @@ class LandBranchTests(unittest.TestCase):
         self.assertEqual(result.overlaps, [])
         self.assertEqual(result.branch, "claude/t")
         self.assertEqual(result.check_targets, ["tests/"])
+
+    def test_check_maps_test_helper_only_change_to_its_directory(self):
+        (self.repo / "tests" / "core").mkdir(parents=True)
+        write_and_commit(
+            self.repo,
+            {"tests/core/test_existing.py": "def test_existing():\n    assert True\n"},
+            "seed existing passing test",
+        )
+        wt2 = self.tmp / "wt2"
+        git(self.repo, "worktree", "add", "-q", "-b", "claude/t2", str(wt2), "main")
+        write_and_commit(wt2, {"tests/core/fixture.py": "VALUE = 1\n"}, "add helper fixture")
+        result = check(wt2, subdir="")
+        self.assertEqual(result.checks, "passed")
+        self.assertEqual(result.check_targets, ["tests/core"])
 
     def test_check_skips_docs_only_branch(self):
         write_and_commit(self.wt, {"docs/note.md": "hi\n"}, "docs only")

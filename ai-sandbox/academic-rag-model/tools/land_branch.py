@@ -103,8 +103,11 @@ def rebase_onto_main(worktree: Path) -> bool:
     try:
         run_git(["rebase", MAIN_BRANCH], worktree)
     except GitError as exc:
-        conflicted = run_git(["diff", "--name-only", "--diff-filter=U"], worktree).split()
-        run_git(["rebase", "--abort"], worktree)
+        conflicted = run_git(["diff", "--name-only", "--diff-filter=U"], worktree).splitlines()
+        try:
+            run_git(["rebase", "--abort"], worktree)
+        except GitError:
+            pass  # best effort; the conflict below is the failure to report
         raise LandingError(
             f"rebase onto {MAIN_BRANCH} conflicts in: "
             f"{', '.join(conflicted) or 'unknown files'}; resolve by hand and re-run"
@@ -132,8 +135,16 @@ def select_test_targets(changed: set[str], project_root: Path) -> list[str]:
             continue
         parts = path.split("/")
         if parts[0] == "tests":
-            if (project_root / path).is_file():
+            name = Path(path).name
+            if name.startswith("test_") and (project_root / path).is_file():
                 targets.add(path)
+            elif len(parts) > 1 and (project_root / "tests" / parts[1]).is_dir():
+                # a non-test file under tests/ (a fixture or helper): run its
+                # directory instead of the bare file, which pytest would
+                # otherwise collect zero tests from and report as a failure.
+                targets.add(f"tests/{parts[1]}")
+            elif (project_root / "tests").is_dir():
+                targets.add("tests/")  # top-level helper (e.g. conftest.py): run everything
         elif (project_root / "tests" / parts[0]).is_dir():
             targets.add(f"tests/{parts[0]}")
     dirs = {t for t in targets if not t.endswith(".py")}
