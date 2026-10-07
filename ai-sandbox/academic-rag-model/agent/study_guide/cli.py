@@ -169,10 +169,12 @@ def cmd_enhance(spec_path: str, root: str, *, draft_path: str, plan_path: str | 
                 mode: str = "improve", worked_example: bool = False, min_words: int = DEFAULT_MIN_WORDS,
                 model: str | None = None, tag: str = "", force: bool = False, dry_run: bool = False,
                 accept_unreviewed: bool = False, env_file: str | None = None, llm=None,
-                chunks=None, cards=None) -> int:
+                chunks=None, cards=None, output: str | None = None) -> int:
     try:
         spec = load_spec(spec_path)
         validate_tag(tag)
+        if output and tag:
+            raise PlanError("pass either --output or --tag, not both")
         plan, _, _ = _load_plan_for(spec, root, plan_path, chunks, cards)
         if not Path(draft_path).is_file():
             raise PlanError(f"draft not found: {draft_path}")
@@ -185,7 +187,8 @@ def cmd_enhance(spec_path: str, root: str, *, draft_path: str, plan_path: str | 
         print(f"ERROR: {err}")
         return EXIT_INPUT
     draft = Path(draft_path)
-    output = str(draft.with_name(f"{draft.stem}.enhanced.{tag}.md")) if tag else None
+    if tag:
+        output = str(draft.with_name(f"{draft.stem}.enhanced.{tag}.md"))
     return enhance_run(
         str(draft), topics=[t.title for t in spec.topics], output=output, model=model or spec.enhance_model,
         force=force, dry_run=dry_run, llm=llm, env_file=env_file, worked_example=worked_example,
@@ -233,6 +236,7 @@ def main(argv: list[str] | None = None) -> int:
     sp.add_argument("--min-words", type=int, default=DEFAULT_MIN_WORDS)
     sp.add_argument("--model", help="override [models].enhance")
     sp.add_argument("--tag", default="", help="name an output variant (<draft>.enhanced.<tag>.md)")
+    sp.add_argument("--output", help="explicit output .md path inside academic_notes/ (instead of --tag)")
     sp.add_argument("--force", action="store_true")
     sp.add_argument("--dry-run", action="store_true")
     sp.add_argument("--accept-unreviewed", action="store_true")
@@ -244,7 +248,7 @@ def main(argv: list[str] | None = None) -> int:
         return cmd_enhance(args.spec, args.root, draft_path=args.draft, plan_path=args.plan, mode=args.mode,
                            worked_example=args.worked_example, min_words=args.min_words, model=args.model,
                            tag=args.tag, force=args.force, dry_run=args.dry_run,
-                           accept_unreviewed=args.accept_unreviewed, env_file=args.env_file)
+                           accept_unreviewed=args.accept_unreviewed, env_file=args.env_file, output=args.output)
     if args.command in ("plan", "run"):
         client = _paid_client(args.env_file)
         code = cmd_plan(args.spec, args.root, client=client, force=getattr(args, "force", False))

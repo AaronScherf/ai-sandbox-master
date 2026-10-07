@@ -145,3 +145,27 @@ def test_a_bad_enhance_tag_is_an_input_error(setup, root, captured):
     assert cmd_enhance(str(spec_file), root, draft_path=str(draft), chunks=CHUNKS, cards=CARDS,
                        accept_unreviewed=True, tag="a/b") == 2
     assert "kw" not in captured
+
+
+def test_explicit_output_is_passed_through(setup, root, captured):
+    spec_file, spec, draft = setup
+    target = draft.with_name("elsewhere.md")
+    assert cmd_enhance(str(spec_file), root, draft_path=str(draft), chunks=CHUNKS, cards=CARDS,
+                       accept_unreviewed=True, output=str(target)) == 0
+    assert captured["kw"]["output"] == str(target)
+
+
+def test_output_and_tag_together_are_an_input_error(setup, root, captured):
+    spec_file, spec, draft = setup
+    assert cmd_enhance(str(spec_file), root, draft_path=str(draft), chunks=CHUNKS, cards=CARDS,
+                       accept_unreviewed=True, output="x.md", tag="e1") == 2
+    assert "kw" not in captured
+
+
+def test_main_passes_output(monkeypatch, tmp_path):
+    calls = {}
+    monkeypatch.setattr(cli, "cmd_enhance", lambda spec, root, **kw: calls.update(kw) or 0)
+    main(["enhance", "s.toml", "--root", str(tmp_path), "--draft", "g.md", "--output", "o.md"])
+    assert calls["output"] == "o.md"
+    main(["enhance", "s.toml", "--root", str(tmp_path), "--draft", "g.md"])
+    assert calls["output"] is None
