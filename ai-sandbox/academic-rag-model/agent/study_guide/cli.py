@@ -118,6 +118,9 @@ def _load_plan_for(spec, root, plan_path, chunks, cards):
     plan = load_plan(path)
     if plan.spec_id != spec.id:
         raise PlanError(f"plan {path.name} is for guide {plan.spec_id!r}, not {spec.id!r}")
+    if plan.spec_sha256 != spec.sha256 or plan.course != spec.course:
+        raise PlanError(f"plan {path.name} was built from a different version of the spec; "
+                        "re-run plan --force (this discards earlier review decisions)")
     if chunks is None:
         from core.indexer.chunk_index import load_chunks
         chunks = load_chunks(root, spec.course)

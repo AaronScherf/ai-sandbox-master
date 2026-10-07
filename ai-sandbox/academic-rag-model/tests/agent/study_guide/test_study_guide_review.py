@@ -86,3 +86,13 @@ def test_accepted_excludes_dropped(plan):
 def test_accepted_unknown_topic(plan):
     with pytest.raises(PlanError, match="Nope"):
         accepted(plan, "Nope")
+
+
+def test_accepted_with_every_passage_dropped_is_an_error(plan):
+    decided = apply_decisions(plan, {"Wald|b": "drop", "Wald|c": "drop"})
+    only_discovered = Plan("demo", "demo.toml", "sha", "econ", "t", [
+        TopicPlan("Wald", [_entry("b", "discover", "pending"), _entry("c", "discover", "pending")])])
+    emptied = apply_decisions(only_discovered, {"Wald|b": "drop", "Wald|c": "drop"})
+    with pytest.raises(PlanError, match="no accepted passages"):
+        accepted(emptied, "Wald")
+    assert [e.chunk_id for e in accepted(decided, "Wald")] == ["a"]

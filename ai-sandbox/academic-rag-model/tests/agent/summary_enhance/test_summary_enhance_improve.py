@@ -109,3 +109,16 @@ def test_main_passes_mode(vault, monkeypatch):
     assert captured["mode"] == "improve" and captured["extra_sources"] is None
     enhance.main([str(vault.guide)])
     assert captured["mode"] == "rewrite"
+
+
+def test_improve_mode_keeps_the_guides_own_sources_visible_to_every_topic(vault, make_llm):
+    llm = make_llm(make_topic_json("Wald", labels=("S1", "S4")), make_topic_json("LM", labels=("S2",)))
+    assert _go(vault, llm, [_extra("Wald"), _extra("LM", chunk_id="unused-1", file_id="cam")], mode="improve") == 0
+    assert "[S1]" in llm.calls[1] and "[S2]" in llm.calls[1] and "[S3]" in llm.calls[1]
+    assert "Class notes: the Wald statistic" not in llm.calls[1]
+
+
+def test_load_guide_can_share_own_refs_across_topics(vault):
+    guide = load_guide(vault.guide, [_extra("Wald")], share_own_refs=True)
+    assert guide.labels_for("Wald") == {"S1", "S2", "S3", "S4"}
+    assert load_guide(vault.guide, [_extra("Wald")]).labels_for("Wald") == {"S4"}

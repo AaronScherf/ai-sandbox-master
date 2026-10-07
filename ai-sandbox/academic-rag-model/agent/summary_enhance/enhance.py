@@ -181,7 +181,7 @@ def run(guide_path: str, *, topics: list[str], output: str | None = None, model:
             raise OutputError(f"--min-words must be a positive integer, got {min_words}")
         if mode not in ("rewrite", "improve"):
             raise OutputError(f"--mode must be 'rewrite' or 'improve', got {mode!r}")
-        guide = load_guide(guide_path, extra_sources)
+        guide = load_guide(guide_path, extra_sources, share_own_refs=(mode == "improve"))
         out = resolve_output(guide, output, force)
         if env_file is not None and not Path(env_file).is_file():
             raise OutputError(f"--env-file not found: {env_file}")

@@ -220,3 +220,9 @@ def test_check_fresh_detects_missing_chunks_and_changed_files(make_spec, root):
     assert len(gone) == 1 and "cam-1" in gone[0]
     changed = [dict(c, content_hash="NEW") if c["file_id"] == "cam" else c for c in CARDS]
     assert "changed" in check_fresh(plan, chunks=CHUNKS, cards=changed)[0]
+
+
+def test_a_section_rule_that_matches_nothing_fails_even_if_other_rules_hit(make_spec, root):
+    spec = make_spec(_topic(_section(["7.2a"]) + _file_rule("sl", mx=1)))
+    with pytest.raises(PlanError, match=r"section rule.*7\.2a"):
+        _build(spec, root, StubSearch({"textbook": [hit("cam-1", .9)]}))

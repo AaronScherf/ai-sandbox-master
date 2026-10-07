@@ -198,3 +198,11 @@ def test_baseline_spec_for_the_wald_guide_is_valid_and_matches_the_recovered_rec
     comparison = spec.comparisons[0]
     assert comparison.title == "Comparing and choosing among the three tests" and comparison.take == 3
     assert comparison.from_topics == tuple(t.title for i, t in enumerate(spec.topics) if i != 4)
+
+
+def test_draft_rejects_a_plan_built_from_a_different_spec(spec_file, root, search, tmp_path):
+    _decided(spec_file, root, search, tmp_path)
+    spec_file.write_text(spec_file.read_text(encoding="utf-8").replace("max = 3", "max = 2"), encoding="utf-8")
+    llm = FakeLLM()
+    assert cmd_draft(str(spec_file), root, llm=llm, chunks=CHUNKS, cards=CARDS) == 2
+    assert llm.calls == []

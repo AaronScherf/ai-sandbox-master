@@ -250,6 +250,9 @@ def build_plan(spec: GuideSpec, root: str, *, client=None, search: Callable | No
         for rule in sorted(topic.sources, key=lambda r: _KIND_RANK[r.kind]):
             if rule.kind == "section":
                 found = _resolve_section(ctx, topic, rule)
+                if not found:
+                    raise PlanError(f"section rule matched no passages for topic {topic.title!r}: "
+                                    f"book {rule.book!r}, labels {list(rule.labels)}")
             elif rule.kind == "file":
                 found = _resolve_file(ctx, topic, rule)
             else:
@@ -373,4 +376,7 @@ def accepted(plan: Plan, topic_title: str, *, accept_unreviewed: bool = False) -
         raise PendingReviewError(
             f"topic {topic_title!r} has {len(pending)} discovered passage(s) awaiting review; review them "
             "(or pass --accept-unreviewed to use them as they are)")
-    return [e for e in topic.entries if e.status in (ACCEPTED, PENDING if accept_unreviewed else ACCEPTED)]
+    chosen = [e for e in topic.entries if e.status in (ACCEPTED, PENDING if accept_unreviewed else ACCEPTED)]
+    if not chosen:
+        raise PlanError(f"topic {topic_title!r} has no accepted passages (every candidate was dropped)")
+    return chosen

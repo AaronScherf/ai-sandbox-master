@@ -112,7 +112,8 @@ def _parse_refs(raw: str | None) -> list[dict]:
     return refs
 
 
-def load_guide(guide_path: str | Path, extra_sources: Sequence[ExtraSource] | None = None) -> GuideInput:
+def load_guide(guide_path: str | Path, extra_sources: Sequence[ExtraSource] | None = None, *,
+               share_own_refs: bool = False) -> GuideInput:
     path = Path(guide_path).resolve()
     if not path.is_file():
         raise SourceError(f"guide not found: {path}")
@@ -153,6 +154,7 @@ def load_guide(guide_path: str | Path, extra_sources: Sequence[ExtraSource] | No
             path=ref["path"], citation=str(ref.get("citation", "")), text=chunk["text"],
         ))
 
+    own_labels = [s.label for s in sources]
     topic_labels: dict[str, set[str]] = {}
     label_by_chunk = {s.chunk_id: s.label for s in sources}
     for extra in extra_sources or ():
@@ -171,6 +173,10 @@ def load_guide(guide_path: str | Path, extra_sources: Sequence[ExtraSource] | No
         topic_labels.setdefault(_norm_title(extra.topic), set()).add(label)
     if missing:
         raise MissingSourcesError(missing)
+    if share_own_refs:  # the baseline's own passages stay citable by every topic (improve mode)
+        own = set(own_labels)
+        for key in topic_labels:
+            topic_labels[key] |= own
 
     return GuideInput(
         path=path, root=root, course=course, title=title, body=body.strip("\n") + "\n",
