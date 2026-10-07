@@ -226,3 +226,28 @@ def test_a_section_rule_that_matches_nothing_fails_even_if_other_rules_hit(make_
     spec = make_spec(_topic(_section(["7.2a"]) + _file_rule("sl", mx=1)))
     with pytest.raises(PlanError, match=r"section rule.*7\.2a"):
         _build(spec, root, StubSearch({"textbook": [hit("cam-1", .9)]}))
+
+
+def test_heading_numbers_parse_a_trailing_letter():
+    assert heading_numbers(["7.2a Foo", "7.2and more", "7.3 Bar"]) == ["7.2a", "7.2", "7.3"]
+
+
+def test_lettered_section_is_a_sibling_not_a_child(make_spec, root):
+    chunks = CHUNKS + [{"chunk_id": "cam-6", "file_id": "cam", "text": "t", "heading_path": ["7.2a Extra"]}]
+    r6 = hit("cam-1", .8)
+    r6 = type(r6)(**{**vars(r6), "chunk_id": "cam-6", "citation": "§7.2a Extra, p. 1"})
+    search = StubSearch({"textbook": [hit("cam-1", .9), r6]})
+    plan = build_plan(make_spec(_topic(_section(["7.2"]))), root, search=search, chunks=chunks, cards=CARDS, now=NOW)
+    assert _ids(plan) == ["cam-1"]
+    plan = build_plan(make_spec(_topic(_section(["7.2a"]))), root, search=search, chunks=chunks, cards=CARDS, now=NOW)
+    assert _ids(plan) == ["cam-6"]
+
+
+def test_citation_fallback_in_heading_prefix_mode_respects_number_boundaries(make_spec, root):
+    from types import SimpleNamespace
+    chunks = CHUNKS + [{"chunk_id": "cam-7", "file_id": "cam", "text": "t", "heading_path": []}]
+    far = SimpleNamespace(chunk_id="cam-7", file_id="cam", path=CARDS[0]["rag_md_path"], score=.9,
+                          citation="§17.2, p. 300", text="t")
+    spec = make_spec(_topic(_section(["7.2"])))
+    with pytest.raises(PlanError):
+        build_plan(spec, root, search=StubSearch({"textbook": [far]}), chunks=chunks, cards=CARDS, now=NOW)

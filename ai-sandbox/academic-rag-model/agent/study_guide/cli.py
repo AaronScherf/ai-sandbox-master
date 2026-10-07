@@ -20,7 +20,7 @@ import os
 import sys
 from pathlib import Path
 
-from agent.study_guide.draft import DraftError, draft_guide, output_path
+from agent.study_guide.draft import DraftError, check_output, draft_guide, output_path, validate_tag
 from agent.study_guide.plan import (
     PlanError, accepted, apply_decisions, build_plan, check_fresh, load_plan, pending_entries, plan_sha256,
     save_plan, write_review_items,
@@ -140,7 +140,7 @@ def cmd_draft(spec_path: str, root: str, *, plan_path: str | None = None, llm=No
         spec = load_spec(spec_path)
         plan, path, chunks = _load_plan_for(spec, root, plan_path, chunks, cards)
         if dry_run:
-            from agent.study_guide.plan import accepted
+            check_output(root, spec, tag, force)
             counts = [len(accepted(plan, t.title, accept_unreviewed=accept_unreviewed)) for t in spec.topics]
             calls = len(spec.topics) + len(spec.comparisons)
             print(f"DRY RUN: {calls} call{'s' if calls != 1 else ''} to {model or spec.draft_model}, "
@@ -172,6 +172,7 @@ def cmd_enhance(spec_path: str, root: str, *, draft_path: str, plan_path: str | 
                 chunks=None, cards=None) -> int:
     try:
         spec = load_spec(spec_path)
+        validate_tag(tag)
         plan, _, _ = _load_plan_for(spec, root, plan_path, chunks, cards)
         if not Path(draft_path).is_file():
             raise PlanError(f"draft not found: {draft_path}")
@@ -180,7 +181,7 @@ def cmd_enhance(spec_path: str, root: str, *, draft_path: str, plan_path: str | 
             for e in accepted(plan, topic.title, accept_unreviewed=accept_unreviewed):
                 extras.append(ExtraSource(topic.title, e.chunk_id, e.file_id, e.path, e.citation,
                                           e.doc_type, e.offering))
-    except (SpecError, PlanError) as err:
+    except (SpecError, PlanError, DraftError) as err:
         print(f"ERROR: {err}")
         return EXIT_INPUT
     draft = Path(draft_path)

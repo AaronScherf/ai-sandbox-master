@@ -206,3 +206,11 @@ def test_draft_rejects_a_plan_built_from_a_different_spec(spec_file, root, searc
     llm = FakeLLM()
     assert cmd_draft(str(spec_file), root, llm=llm, chunks=CHUNKS, cards=CARDS) == 2
     assert llm.calls == []
+
+
+def test_draft_dry_run_catches_existing_output_and_bad_tag(spec_file, root, search, tmp_path):
+    _decided(spec_file, root, search, tmp_path)
+    assert cmd_draft(str(spec_file), root, llm=FakeLLM(), chunks=CHUNKS, cards=CARDS) == 0
+    assert cmd_draft(str(spec_file), root, dry_run=True, chunks=CHUNKS, cards=CARDS) == 2
+    assert cmd_draft(str(spec_file), root, dry_run=True, force=True, chunks=CHUNKS, cards=CARDS) == 0
+    assert cmd_draft(str(spec_file), root, dry_run=True, tag="bad tag!", chunks=CHUNKS, cards=CARDS) == 2

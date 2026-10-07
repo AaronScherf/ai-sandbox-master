@@ -29,6 +29,35 @@ def output_path(root: str, spec: GuideSpec, tag: str = "") -> Path:
     return Path(root) / "academic_notes" / spec.course / "summaries" / name
 
 
+def validate_tag(tag: str) -> None:
+    if tag and not _TAG_RE.match(tag):
+        raise DraftError(f"tag {tag!r} may contain only letters, digits, '_' and '-'")
+
+
+def check_output(root: str, spec: GuideSpec, tag: str = "", force: bool = False) -> Path:
+    """The output path, after checking the tag and that nothing would be overwritten."""
+    validate_tag(tag)
+    out = output_path(root, spec, tag)
+    if out.exists() and not force:
+        raise DraftError(f"{out} already exists; pass --force to replace it")
+    return out
+
+
+def _save_partial(out: Path, spec: GuideSpec, blocks: list[str]) -> None:
+    """A paid call failed midway: keep the sections already generated next to the intended output."""
+    done = [b for b in blocks if b]
+    if not done:
+        return
+    try:
+        rec = out.with_name(out.stem + ".recovered.md")
+        rec.parent.mkdir(parents=True, exist_ok=True)
+        rec.write_text(f"# {spec.title} (partial: generation failed)\n\n" + "\n\n---\n\n".join(done) + "\n",
+                       encoding="utf-8", newline="\n")
+        print(f"The sections finished before the failure were saved to {rec}")
+    except OSError as err:
+        print(f"WARNING: could not save a recovery copy: {err}")
+
+
 def _excerpts(entries: list[PlanEntry], text_by_id: dict[str, str]) -> list[tuple[str, str]]:
     missing = [e.chunk_id for e in entries if e.chunk_id not in text_by_id]
     if missing:
@@ -61,11 +90,7 @@ def _section(title: str, answer: str, entries: list[PlanEntry]) -> str:
 def draft_guide(spec: GuideSpec, plan: Plan, *, root: str, llm, chunks: list[dict] | None = None,
                 tag: str = "", force: bool = False, accept_unreviewed: bool = False,
                 plan_path: str = "", plan_sha256: str = "", now: str | None = None) -> Path:
-    if tag and not _TAG_RE.match(tag):
-        raise DraftError(f"tag {tag!r} may contain only letters, digits, '_' and '-'")
-    out = output_path(root, spec, tag)
-    if out.exists() and not force:
-        raise DraftError(f"{out} already exists; pass --force to replace it")
+    out = check_output(root, spec, tag, force)
     if chunks is None:
         from core.indexer.chunk_index import load_chunks
         chunks = load_chunks(root, spec.course)
@@ -79,28 +104,32 @@ def draft_guide(spec: GuideSpec, plan: Plan, *, root: str, llm, chunks: list[dic
 
     blocks = [f"## {n.heading}\n\n{n.body}" for n in spec.notes]
     used: dict[str, PlanEntry] = {}
-    for topic in spec.topics:
-        entries = per_topic[topic.title]
-        answer = _generate(llm, _topic_prompt(spec, topic, _excerpts(entries, text_by_id)))
-        blocks.append(_section(topic.title, answer, entries))
-        for e in entries:
-            used.setdefault(e.chunk_id, e)
-    for cmp_ in spec.comparisons:
-        chosen: list[PlanEntry] = []
-        seen: set[str] = set()
-        for title in cmp_.from_topics:
-            for e in per_topic[title][:cmp_.take]:
-                if e.chunk_id not in seen:
-                    seen.add(e.chunk_id)
-                    chosen.append(e)
-        excerpts = _excerpts(chosen, text_by_id)
-        if spec.prompt == "guide_v1":
-            prompt = guide_v1_prompt(cmp_.title, cmp_.instruction, excerpts)
-        else:
-            prompt = tutor_v1_prompt(cmp_.instruction, excerpts)
-        blocks.append(_section(cmp_.title, _generate(llm, prompt), chosen))
-        for e in chosen:
-            used.setdefault(e.chunk_id, e)
+    try:
+        for topic in spec.topics:
+            entries = per_topic[topic.title]
+            answer = _generate(llm, _topic_prompt(spec, topic, _excerpts(entries, text_by_id)))
+            blocks.append(_section(topic.title, answer, entries))
+            for e in entries:
+                used.setdefault(e.chunk_id, e)
+        for cmp_ in spec.comparisons:
+            chosen: list[PlanEntry] = []
+            seen: set[str] = set()
+            for title in cmp_.from_topics:
+                for e in per_topic[title][:cmp_.take]:
+                    if e.chunk_id not in seen:
+                        seen.add(e.chunk_id)
+                        chosen.append(e)
+            excerpts = _excerpts(chosen, text_by_id)
+            if spec.prompt == "guide_v1":
+                prompt = guide_v1_prompt(cmp_.title, cmp_.instruction, excerpts)
+            else:
+                prompt = tutor_v1_prompt(cmp_.instruction, excerpts)
+            blocks.append(_section(cmp_.title, _generate(llm, prompt), chosen))
+            for e in chosen:
+                used.setdefault(e.chunk_id, e)
+    except Exception:
+        _save_partial(out, spec, blocks)
+        raise
 
     refs = [{"path": e.path, "file_id": e.file_id, "chunk_id": e.chunk_id, "citation": e.citation}
             for e in used.values()]
@@ -112,6 +141,7 @@ def draft_guide(spec: GuideSpec, plan: Plan, *, root: str, llm, chunks: list[dic
         "draft_model": json.dumps(getattr(llm, "model", spec.draft_model)),
         "prompt_id": json.dumps(spec.prompt),
         "label_match": json.dumps(spec.label_match),
+        "accept_unreviewed": "true" if accept_unreviewed else "false",
         "generated_at": now or datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "spec": json.dumps({"id": spec.id, "file": Path(spec.path).name, "sha256": spec.sha256}),
         "plan": json.dumps({"file": Path(plan_path).name if plan_path else "", "sha256": plan_sha256}),

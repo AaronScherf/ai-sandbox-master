@@ -138,3 +138,10 @@ def test_main_dispatches_enhance(monkeypatch, tmp_path):
     assert calls["plan_path"] == "p.json" and calls["accept_unreviewed"] is True
     main(["enhance", "s.toml", "--root", str(tmp_path), "--draft", "g.md"])
     assert calls["mode"] == "improve" and calls["min_words"] == 1400
+
+
+def test_a_bad_enhance_tag_is_an_input_error(setup, root, captured):
+    spec_file, spec, draft = setup
+    assert cmd_enhance(str(spec_file), root, draft_path=str(draft), chunks=CHUNKS, cards=CARDS,
+                       accept_unreviewed=True, tag="a/b") == 2
+    assert "kw" not in captured

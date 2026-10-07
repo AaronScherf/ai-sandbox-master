@@ -194,3 +194,9 @@ def test_invalid_toml_rejected(tmp_path):
 def test_missing_file_rejected(tmp_path):
     with pytest.raises(SpecError, match="not found"):
         load_spec(tmp_path / "nope.toml")
+
+
+@pytest.mark.parametrize("course", ["../x", "a/b", "Econ", ""])
+def test_course_must_be_a_plain_folder_name(tmp_path, course):
+    with pytest.raises(SpecError, match="course"):
+        load_spec(_write(tmp_path, MINIMAL.replace('course = "econ"', f'course = "{course}"')))

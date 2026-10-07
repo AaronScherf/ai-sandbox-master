@@ -176,3 +176,21 @@ def test_other_llm_errors_propagate_and_nothing_is_written(spec, root):
     with pytest.raises(RuntimeError):
         _run(spec, root, llm=FakeLLM([RuntimeError("503")]))
     assert not output_path(root, spec).exists()
+
+
+def test_frontmatter_records_whether_unreviewed_passages_were_accepted(spec, root):
+    plan = _plan()
+    plan.topics[0].entries[1].status = "pending"
+    out, _ = _run(spec, root, plan=plan, accept_unreviewed=True)
+    assert "accept_unreviewed: true\n" in out.read_text(encoding="utf-8")
+    out2, _ = _run(spec, root, force=True)
+    assert "accept_unreviewed: false\n" in out2.read_text(encoding="utf-8")
+
+
+def test_a_failure_midway_saves_the_finished_sections(spec, root):
+    with pytest.raises(RuntimeError):
+        _run(spec, root, llm=FakeLLM(["ANSWER ONE", RuntimeError("503")]))
+    recovered = output_path(root, spec).with_name("demo.recovered.md")
+    text = recovered.read_text(encoding="utf-8")
+    assert "ANSWER ONE" in text and "## Wald" in text and "## LM" not in text
+    assert not output_path(root, spec).exists()

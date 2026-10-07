@@ -215,8 +215,11 @@ def load_spec(path: str | Path) -> GuideSpec:
                 raise SpecError(f"{where}: 'from' names unknown topic {name!r}")
         comparisons.append(ComparisonSpec(title, _str(c, "instruction", where), sources, _int(c, "take", where, 3)))
 
+    course = _str(guide, "course", "[guide]")
+    if not _ID_RE.match(course):
+        raise SpecError(f"[guide]: course {course!r} must be a plain folder name (lowercase letters, digits, underscores)")
     return GuideSpec(
-        id=guide_id, title=_str(guide, "title", "[guide]"), course=_str(guide, "course", "[guide]"),
+        id=guide_id, title=_str(guide, "title", "[guide]"), course=course,
         draft_model=_str(models, "draft", "[models]", DEFAULT_MODEL),
         enhance_model=_str(models, "enhance", "[models]", DEFAULT_MODEL),
         prompt=prompt, label_match=label_match, top_k=_int(draft, "top_k", "[draft]", 180),

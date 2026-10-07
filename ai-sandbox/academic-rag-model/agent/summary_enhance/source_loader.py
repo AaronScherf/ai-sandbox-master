@@ -11,7 +11,7 @@ from __future__ import annotations
 import hashlib
 import json
 import re
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 from typing import Sequence
 
@@ -163,6 +163,10 @@ def load_guide(guide_path: str | Path, extra_sources: Sequence[ExtraSource] | No
             missing.append(extra.chunk_id)
             continue
         label = label_by_chunk.get(extra.chunk_id)
+        if label is not None and (extra.doc_type or extra.offering):
+            i = int(label[1:]) - 1
+            sources[i] = replace(sources[i], doc_type=extra.doc_type or sources[i].doc_type,
+                                 offering=extra.offering or sources[i].offering)
         if label is None:
             label = f"S{len(sources) + 1}"
             sources.append(SourceChunk(

@@ -190,7 +190,8 @@ def run(guide_path: str, *, topics: list[str], output: str | None = None, model:
         return EXIT_INPUT
 
     if dry_run:
-        sample = (build_topic_prompt(guide, topics[0], topics[1:], min_words) if topics
+        sample = (build_topic_prompt(guide, topics[0], topics[1:], min_words,
+                                     source_labels=guide.labels_for(topics[0]), mode=mode) if topics
                   else build_plan_prompt(guide))
         print(f"DRY RUN: {len(guide.sources)} chunks, mode {mode}, about {len(sample)} prompt characters per call, "
               f"model {model or DEFAULT_MODEL}, {_planned_calls(topics, worked_example)}, "

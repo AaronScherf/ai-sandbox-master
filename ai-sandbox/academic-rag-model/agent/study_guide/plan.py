@@ -66,7 +66,7 @@ def heading_numbers(heading_path: list[str]) -> list[str]:
     """The leading section number of each heading element, e.g. '**7.2.** Wald' -> '7.2'."""
     numbers = []
     for element in heading_path:
-        m = re.match(r"(\d+(?:\.\d+)*)", re.sub(r"^[\s*#§_]+", "", element))
+        m = re.match(r"(\d+(?:\.\d+)*(?:[a-z](?![A-Za-z]))?)", re.sub(r"^[\s*#§_]+", "", element))
         if m:
             numbers.append(m.group(1))
     return numbers
@@ -76,8 +76,10 @@ def _matches(chunk: dict, citation: str, labels: tuple[str, ...], mode: str) -> 
     if not labels:
         return False
     heading_path = chunk.get("heading_path")
-    if mode == "citation-substring" or not heading_path:
+    if mode == "citation-substring":
         return any(label in citation for label in labels)
+    if not heading_path:  # no structure to read: match the number in the citation, on number boundaries
+        return any(re.search(rf"(?<![\d.]){re.escape(label)}(?!\d)", citation) for label in labels)
     numbers = heading_numbers(heading_path)
     return any(n == label or n.startswith(label + ".") for n in numbers for label in labels)
 

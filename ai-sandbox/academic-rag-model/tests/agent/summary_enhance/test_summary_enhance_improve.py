@@ -122,3 +122,19 @@ def test_load_guide_can_share_own_refs_across_topics(vault):
     guide = load_guide(vault.guide, [_extra("Wald")], share_own_refs=True)
     assert guide.labels_for("Wald") == {"S1", "S2", "S3", "S4"}
     assert load_guide(vault.guide, [_extra("Wald")]).labels_for("Wald") == {"S4"}
+
+
+def test_a_reused_label_takes_the_extras_doc_type_and_offering(vault):
+    guide = load_guide(vault.guide, [_extra("Wald", chunk_id="cam-1", file_id="cam", doc_type="textbook", offering="")])
+    assert guide.sources[0].doc_type == "textbook"
+    guide = load_guide(vault.guide, [_extra("Wald", chunk_id="cam-1", file_id="cam", doc_type="ta_notes", offering="class_2024")])
+    assert (guide.sources[0].doc_type, guide.sources[0].offering) == ("ta_notes", "class_2024")
+
+
+def test_enhance_dry_run_sizes_the_real_improve_prompt(vault, make_llm, capsys):
+    import re
+    def size(extras, **kw):
+        _go(vault, make_llm(), extras, dry_run=True, **kw)
+        return int(re.search(r"about (\d+) prompt characters", capsys.readouterr().out).group(1))
+    extras = [_extra("Wald"), _extra("LM", chunk_id="unused-1", file_id="cam")]
+    assert size(extras, mode="improve") > size(extras, mode="rewrite")
