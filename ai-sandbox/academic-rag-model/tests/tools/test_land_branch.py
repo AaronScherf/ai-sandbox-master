@@ -105,5 +105,59 @@ class LandBranchTests(unittest.TestCase):
         self.assertEqual(result.check_targets, [])
 
 
+class LandingLogTests(unittest.TestCase):
+    def setUp(self):
+        self._tmp = tempfile.TemporaryDirectory()
+        self.tmp = Path(self._tmp.name)
+        self.repo = make_repo(self.tmp / "repo")
+        self.wt = self.tmp / "wt"
+        git(self.repo, "worktree", "add", "-q", "-b", "claude/t", str(self.wt), "main")
+
+    def tearDown(self):
+        self._tmp.cleanup()
+
+    def _entries(self):
+        import json
+        from tools.land_branch import log_path
+        return [json.loads(line) for line in log_path(self.wt).read_text(encoding="utf-8").splitlines()]
+
+    def test_log_lives_in_shared_git_dir(self):
+        from tools.land_branch import log_path
+        from tools.git_workflow import git_common_dir
+        self.assertEqual(log_path(self.wt).parent.resolve(), git_common_dir(self.wt).resolve())
+
+    def test_refused_check_is_logged_then_raised(self):
+        from tools.land_branch import LandingError, check
+        (self.wt / "scratch.txt").write_text("x", encoding="utf-8")
+        with self.assertRaises(LandingError):
+            check(self.wt, subdir="")
+        entries = self._entries()
+        self.assertEqual(entries[-1]["event"], "refused")
+        self.assertIn("uncommitted", entries[-1]["reason"])
+
+    def test_successful_check_is_logged(self):
+        from tools.land_branch import check
+        write_and_commit(self.wt, {"core/a.py": "x = 2\n"}, "branch edit")
+        check(self.wt, subdir="")
+        entry = self._entries()[-1]
+        self.assertEqual(entry["event"], "check")
+        self.assertEqual(entry["branch"], "claude/t")
+        self.assertIn("rebased", entry)
+        self.assertIn("check_seconds", entry)
+
+    def test_record_writes_outcome_for_sha(self):
+        from tools.land_branch import record
+        record(self.wt, "abc123", "landed")
+        entry = self._entries()[-1]
+        self.assertEqual(entry["event"], "outcome")
+        self.assertEqual(entry["sha"], "abc123")
+        self.assertEqual(entry["outcome"], "landed")
+
+    def test_record_rejects_unknown_outcome(self):
+        from tools.land_branch import record
+        with self.assertRaises(ValueError):
+            record(self.wt, "abc123", "merged")
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -7,10 +7,11 @@ pushes: the user approves each landing by commit SHA (spec decision 1).
 from __future__ import annotations
 
 import argparse
+import json
 import subprocess
 import sys
 import time
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -21,6 +22,7 @@ from tools.git_workflow import (
     commit_date,
     current_branch,
     dirty_files,
+    git_common_dir,
     is_ancestor,
     list_worktrees,
     main_checkout,
@@ -32,6 +34,26 @@ PROJECT_SUBDIR = "ai-sandbox/academic-rag-model"
 
 class LandingError(RuntimeError):
     """The branch cannot be landed as it stands; the message says why."""
+
+
+LOG_NAME = "agent-landing-log.jsonl"
+OUTCOMES = ("landed", "declined")
+
+
+def log_path(worktree: Path) -> Path:
+    return git_common_dir(worktree) / LOG_NAME
+
+
+def append_log(worktree: Path, entry: dict) -> None:
+    record_entry = {"at": datetime.now(timezone.utc).isoformat(), **entry}
+    with log_path(worktree).open("a", encoding="utf-8") as fh:
+        fh.write(json.dumps(record_entry, sort_keys=True) + "\n")
+
+
+def record(worktree: Path, sha: str, outcome: str) -> None:
+    if outcome not in OUTCOMES:
+        raise ValueError(f"outcome must be one of {OUTCOMES}")
+    append_log(worktree, {"event": "outcome", "sha": sha, "outcome": outcome})
 
 
 @dataclass
@@ -131,6 +153,16 @@ def run_checks(project_root: Path, changed: set[str], full: bool) -> tuple[str, 
 
 
 def check(worktree: Path, subdir: str = PROJECT_SUBDIR, full: bool = False) -> CheckResult:
+    try:
+        result = _run_check(worktree, subdir, full)
+    except LandingError as exc:
+        append_log(worktree, {"event": "refused", "reason": str(exc)})
+        raise
+    append_log(worktree, {"event": "check", **asdict(result)})
+    return result
+
+
+def _run_check(worktree: Path, subdir: str, full: bool) -> CheckResult:
     branch = preflight(worktree)
     cut = run_git(["merge-base", MAIN_BRANCH, "HEAD"], worktree).strip()
     cut_date = datetime.fromisoformat(commit_date(worktree, cut))
@@ -170,7 +202,14 @@ def main(argv: list[str] | None = None) -> int:
     p_check = sub.add_parser("check", help="rebase, test, and report; never merges")
     p_check.add_argument("--worktree", type=Path, default=Path.cwd())
     p_check.add_argument("--full", action="store_true", help="run the full test suite")
+    p_rec = sub.add_parser("record", help="log the user's answer for a SHA")
+    p_rec.add_argument("--worktree", type=Path, default=Path.cwd())
+    p_rec.add_argument("--sha", required=True)
+    p_rec.add_argument("--outcome", required=True, choices=OUTCOMES)
     args = parser.parse_args(argv)
+    if args.cmd == "record":
+        record(args.worktree.resolve(), args.sha, args.outcome)
+        return 0
     try:
         result = check(args.worktree.resolve(), full=args.full)
     except (LandingError, GitError) as exc:
