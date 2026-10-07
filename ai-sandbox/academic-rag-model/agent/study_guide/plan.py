@@ -313,3 +313,64 @@ def check_fresh(plan: Plan, *, chunks: list[dict], cards: list[dict]) -> list[st
             elif e.content_hash and hashes.get(e.file_id) and hashes[e.file_id] != e.content_hash:
                 problems.append(f"{topic.title}: {e.path} changed since the plan was built")
     return problems
+
+# ---- review ---------------------------------------------------------------------------
+
+def decision_key(topic_title: str, chunk_id: str) -> str:
+    return f"{topic_title}|{chunk_id}"
+
+
+def review_items(plan: Plan) -> list[dict]:
+    """One item per planned passage for the review Artifact. Pinned entries are `locked`
+    (shown, not decidable); discovered ones carry the decision."""
+    items = []
+    for topic in plan.topics:
+        for e in topic.entries:
+            items.append({
+                "key": decision_key(topic.title, e.chunk_id), "topic": topic.title, "chunk_id": e.chunk_id,
+                "book": os.path.basename(e.path), "citation": e.citation, "doc_type": e.doc_type,
+                "offering": e.offering, "score": e.score, "rule": e.rule, "status": e.status,
+                "locked": e.rule != "discover",
+            })
+    return items
+
+
+def write_review_items(plan: Plan, path: str | Path) -> None:
+    p = Path(path)
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text(json.dumps(review_items(plan), indent=2, ensure_ascii=False), encoding="utf-8", newline="\n")
+
+
+def apply_decisions(plan: Plan, decisions: dict[str, str]) -> Plan:
+    """Returns a new plan with each decided pending entry set to accepted (keep) or dropped (drop)."""
+    import copy
+    new = copy.deepcopy(plan)
+    index = {decision_key(t.title, e.chunk_id): e for t in new.topics for e in t.entries}
+    for key, value in decisions.items():
+        entry = index.get(key)
+        if entry is None:
+            raise PlanError(f"unknown decision key: {key!r}")
+        if value not in ("keep", "drop"):
+            raise PlanError(f"decision for {key!r} must be 'keep' or 'drop', got {value!r}")
+        if entry.rule != "discover":
+            raise PlanError(f"{key!r} is pinned by a section or file rule and cannot be dropped")
+        if entry.status != PENDING:
+            raise PlanError(f"{key!r} is already decided ({entry.status})")
+        entry.status = ACCEPTED if value == "keep" else DROPPED
+    return new
+
+
+def pending_entries(plan: Plan) -> list[tuple[str, PlanEntry]]:
+    return [(t.title, e) for t in plan.topics for e in t.entries if e.status == PENDING]
+
+
+def accepted(plan: Plan, topic_title: str, *, accept_unreviewed: bool = False) -> list[PlanEntry]:
+    topic = next((t for t in plan.topics if t.title == topic_title), None)
+    if topic is None:
+        raise PlanError(f"topic {topic_title!r} is not in the plan; re-run plan")
+    pending = [e for e in topic.entries if e.status == PENDING]
+    if pending and not accept_unreviewed:
+        raise PendingReviewError(
+            f"topic {topic_title!r} has {len(pending)} discovered passage(s) awaiting review; review them "
+            "(or pass --accept-unreviewed to use them as they are)")
+    return [e for e in topic.entries if e.status in (ACCEPTED, PENDING if accept_unreviewed else ACCEPTED)]
