@@ -9,7 +9,7 @@ from agent.study_guide.cli import (
     cmd_apply_review, cmd_draft, cmd_plan, main, plan_path_for, review_path_for,
 )
 from agent.study_guide.spec import load_spec
-from sg_helpers import CARDS, CHUNKS, FakeLLM, StubSearch, hit
+from sg_helpers import CARDS, CHUNKS, FakeLLM, StubSearch, hit, make_spec, root  # noqa: F401 (fixtures)
 
 SPEC = """
 [[topic]]

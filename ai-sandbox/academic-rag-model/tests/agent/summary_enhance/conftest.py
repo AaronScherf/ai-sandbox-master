@@ -10,6 +10,7 @@ CHUNKS = [
     {"chunk_id": "cam-2", "file_id": "cam", "text": "Cameron: the LM test uses the restricted estimator."},
     {"chunk_id": "han-1", "file_id": "han", "text": "Hansen: a Wald test of H0 uses the covariance estimator."},
     {"chunk_id": "unused-1", "file_id": "cam", "text": "Cameron: unrelated passage, not cited by the guide."},
+    {"chunk_id": "notes-1", "file_id": "notes", "text": "Class notes: the Wald statistic is a quadratic form."},
 ]
 
 REFS = [

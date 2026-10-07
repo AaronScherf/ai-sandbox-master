@@ -57,11 +57,17 @@ def render(guide: GuideInput, enhanced: Enhanced, *, model: str, generated_at: s
             key = f"{topic.title} > Worked example"
             kinds[key] = kinds.get(key, "") + "W" * len(paragraphs)
 
-    source_map = [
-        {"chunk_id": s.chunk_id, "file_id": s.file_id, "path": s.path, "citation": s.citation,
-         "used_in": used_in[s.label]}
-        for s in guide.sources if s.label in used_in
-    ]
+    source_map = []
+    for s in guide.sources:
+        if s.label not in used_in:
+            continue
+        entry = {"chunk_id": s.chunk_id, "file_id": s.file_id, "path": s.path, "citation": s.citation}
+        if s.doc_type:
+            entry["doc_type"] = s.doc_type
+        if s.offering:
+            entry["offering"] = s.offering
+        entry["used_in"] = used_in[s.label]
+        source_map.append(entry)
     front_fields = {
         "title": json.dumps(f"{guide.title} (enhanced)", ensure_ascii=False),
         "llm_generated": "true",

@@ -7,7 +7,7 @@ from agent.study_guide import plan as plan_mod
 from agent.study_guide.plan import (
     PlanError, build_plan, check_fresh, guide_chunk_ids, heading_numbers, load_plan, plan_sha256, save_plan,
 )
-from sg_helpers import CARDS, CHUNKS, WALD_TOPIC, StubSearch, cite, hit
+from sg_helpers import CARDS, CHUNKS, WALD_TOPIC, StubSearch, cite, hit, make_spec, root  # noqa: F401 (fixtures)
 
 NOW = "2026-10-05T00:00:00+00:00"
 

@@ -7,7 +7,7 @@ from agent.study_guide.draft import DraftError, draft_guide, output_path
 from agent.study_guide.plan import PendingReviewError, Plan, PlanEntry, TopicPlan
 from agent.summary_enhance.llm import UnusableResponse
 from agent.summary_enhance.source_loader import load_guide
-from sg_helpers import CHUNKS, FakeLLM
+from sg_helpers import CHUNKS, FakeLLM, make_spec, root  # noqa: F401 (fixtures)
 
 NOW = "2026-10-05T00:00:00+00:00"
 TOPICS = """

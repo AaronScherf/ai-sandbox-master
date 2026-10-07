@@ -4,6 +4,10 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 
+import pytest
+
+from agent.study_guide.spec import load_spec
+
 CAMERON = "academic_notes/econ/textbooks/processed_outputs/Cameron_Micro_2013/Cameron_Micro_2013.rag.md"
 HANSEN = "academic_notes/econ/textbooks/processed_outputs/Hansen_Econ_2022/Hansen_Econ_2022.rag.md"
 SLIDES = "academic_notes/econ/class_2024/Class Notes/Slides/processed_outputs/slidesASYM.md"
@@ -95,3 +99,21 @@ class FakeLLM:
 
     def generate_structured(self, prompt, schema):
         raise AssertionError("the draft stage must not request structured output")
+
+
+# Fixtures live here (not in a conftest.py) so this folder does not collide with the
+# summary_enhance conftest when both are collected in one run; test modules import them.
+@pytest.fixture
+def make_spec(tmp_path):
+    def make(body, header=HEADER):
+        path = tmp_path / "spec.toml"
+        path.write_text(header + body, encoding="utf-8")
+        return load_spec(path)
+    return make
+
+
+@pytest.fixture
+def root(tmp_path):
+    hub = tmp_path / "hub"
+    (hub / "academic_notes" / "econ" / "summaries").mkdir(parents=True)
+    return str(hub)
