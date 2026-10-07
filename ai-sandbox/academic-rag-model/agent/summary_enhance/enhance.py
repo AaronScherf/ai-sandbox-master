@@ -21,6 +21,7 @@ import sys
 from dataclasses import asdict
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import Sequence
 
 from agent.summary_enhance.llm import DEFAULT_MODEL, GeminiClient, LLMClient, UnusableResponse
 from agent.summary_enhance.prompt import (
@@ -30,7 +31,7 @@ from agent.summary_enhance.render import render
 from agent.summary_enhance.schema import (
     PLAN_SCHEMA, TOPIC_SCHEMA, Enhanced, Topic, parse_plan, parse_topic,
 )
-from agent.summary_enhance.source_loader import GuideInput, SourceError, load_guide
+from agent.summary_enhance.source_loader import ExtraSource, GuideInput, SourceError, load_guide
 from agent.summary_enhance.validate import validate_plan, validate_topic, validate_worked_example
 from core.env.gemini_utils import get_gemini_client, load_dotenv_override
 
@@ -94,8 +95,9 @@ def _plan_topics(llm: LLMClient, guide: GuideInput) -> list[str]:
                        lambda p: llm.generate_structured(p, PLAN_SCHEMA), check)
 
 
-def _synthesize(llm: LLMClient, guide: GuideInput, title: str, others: list[str], min_words: int) -> Topic:
-    labels = {s.label for s in guide.sources}
+def _synthesize(llm: LLMClient, guide: GuideInput, title: str, others: list[str], min_words: int,
+                mode: str = "rewrite") -> Topic:
+    labels = guide.labels_for(title)
 
     def check(data):
         try:
@@ -106,8 +108,9 @@ def _synthesize(llm: LLMClient, guide: GuideInput, title: str, others: list[str]
         topic.title = title  # render the requested spelling
         return topic, errors
 
-    return _with_retry(lambda errs: build_topic_prompt(guide, title, others, min_words, errs),
-                       lambda p: llm.generate_structured(p, TOPIC_SCHEMA), check)
+    return _with_retry(
+        lambda errs: build_topic_prompt(guide, title, others, min_words, errs, source_labels=labels, mode=mode),
+        lambda p: llm.generate_structured(p, TOPIC_SCHEMA), check)
 
 
 def _grounded_text(topic: Topic) -> str:
@@ -171,11 +174,14 @@ def _planned_calls(topics: list[str], worked_example: bool) -> str:
 def run(guide_path: str, *, topics: list[str], output: str | None = None, model: str | None = None,
         force: bool = False, dry_run: bool = False, llm: LLMClient | None = None,
         env_file: str | None = None, worked_example: bool = False,
-        min_words: int = DEFAULT_MIN_WORDS) -> int:
+        min_words: int = DEFAULT_MIN_WORDS, mode: str = "rewrite",
+        extra_sources: Sequence[ExtraSource] | None = None) -> int:
     try:
         if min_words < 1:
             raise OutputError(f"--min-words must be a positive integer, got {min_words}")
-        guide = load_guide(guide_path)
+        if mode not in ("rewrite", "improve"):
+            raise OutputError(f"--mode must be 'rewrite' or 'improve', got {mode!r}")
+        guide = load_guide(guide_path, extra_sources)
         out = resolve_output(guide, output, force)
         if env_file is not None and not Path(env_file).is_file():
             raise OutputError(f"--env-file not found: {env_file}")
@@ -186,7 +192,7 @@ def run(guide_path: str, *, topics: list[str], output: str | None = None, model:
     if dry_run:
         sample = (build_topic_prompt(guide, topics[0], topics[1:], min_words) if topics
                   else build_plan_prompt(guide))
-        print(f"DRY RUN: {len(guide.sources)} chunks, about {len(sample)} prompt characters per call, "
+        print(f"DRY RUN: {len(guide.sources)} chunks, mode {mode}, about {len(sample)} prompt characters per call, "
               f"model {model or DEFAULT_MODEL}, {_planned_calls(topics, worked_example)}, "
               f"topics {topics or '(model-chosen)'}, min {min_words} words per topic")
         print(f"DRY RUN: would write {out}")
@@ -204,7 +210,7 @@ def run(guide_path: str, *, topics: list[str], output: str | None = None, model:
         done: list[Topic] = []
         for i, title in enumerate(titles):
             others = [t for j, t in enumerate(titles) if j != i]
-            topic = _synthesize(llm, guide, title, others, min_words)
+            topic = _synthesize(llm, guide, title, others, min_words, mode)
             if worked_example:
                 topic.worked_example = _worked_example(llm, topic)
             done.append(topic)
@@ -241,6 +247,8 @@ def main(argv: list[str] | None = None) -> int:
                    help="add a computed worked example per topic (code-execution call)")
     p.add_argument("--min-words", type=int, default=DEFAULT_MIN_WORDS,
                    help=f"minimum words per topic (default {DEFAULT_MIN_WORDS})")
+    p.add_argument("--mode", choices=("rewrite", "improve"), default="rewrite",
+                   help="rewrite (default) or improve: treat the guide as a baseline to keep and extend")
     p.add_argument("--output", help="explicit output .md path (must be inside academic_notes/)")
     p.add_argument("--model", help=f"Gemini model id (default {DEFAULT_MODEL})")
     p.add_argument("--env-file", help="load PAID_GEMINI_KEY from this .env (e.g. the main checkout's) "
@@ -250,7 +258,8 @@ def main(argv: list[str] | None = None) -> int:
     args = p.parse_args(argv)
     return run(args.guide, topics=args.topic, output=args.output, model=args.model,
                force=args.force, dry_run=args.dry_run, env_file=args.env_file,
-               worked_example=args.worked_example, min_words=args.min_words)
+               worked_example=args.worked_example, min_words=args.min_words,
+               mode=args.mode, extra_sources=None)
 
 
 if __name__ == "__main__":

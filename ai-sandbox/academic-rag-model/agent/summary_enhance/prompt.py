@@ -9,7 +9,7 @@ from agent.summary_enhance.schema import PLAN_SCHEMA, TOPIC_SCHEMA
 from agent.summary_enhance.source_loader import GuideInput
 from agent.summary_enhance.validate import MIN_SECTIONS, PLAN_MAX, PLAN_MIN
 
-PROMPT_VERSION = "2026-10-04.1"
+PROMPT_VERSION = "2026-10-05.1"
 
 # Runtime text: "\\beta", "\\frac" (two real backslashes). A plain "\beta" here would
 # teach the model the exact mistake we are warning about.
@@ -84,10 +84,45 @@ reach a conclusion.
 """
 
 
-def _passages(guide: GuideInput) -> str:
-    parts = ["=== DRAFT GUIDE (not a source) ===\n" + guide.body, "=== TEXTBOOK PASSAGES ==="]
+_IMPROVE_INSTRUCTIONS = """\
+
+This is an IMPROVEMENT pass. The baseline guide below was written earlier from some of these
+passages. Keep what the passages support (and its good structure where it helps), correct or
+tighten anything the passages do not support, and integrate the additional passages (those marked
+as class notes, slides, recitations, or other textbook sections). Rules:
+  * Where a textbook and class notes or slides differ in notation, assumptions or claims, say so
+    plainly in a grounded block that cites both labels, and prefer the textbook.
+  * Class notes and slides may be hand-written or transcribed and can contain errors; do not repeat
+    a class-note claim that a textbook contradicts without saying so.
+  * Do not copy asides that are not about this topic (administrative remarks, other lectures).
+  * A class-notes point is grounded only if a class-notes passage supports it; your own additions
+    stay "external".
+"""
+
+_KIND_TEXT = {
+    "textbook": "textbook", "ta_notes": "class notes/slides", "handwritten_notes": "hand-written class notes",
+    "problem_set": "problem set", "excalidraw_notes": "lecture notes",
+}
+
+
+def _kind(source) -> str:
+    if not source.doc_type:
+        return ""
+    kind = _KIND_TEXT.get(source.doc_type, source.doc_type)
+    return f" ({kind}, {source.offering} offering)" if source.offering else f" ({kind})"
+
+
+def _passages(guide: GuideInput, labels: set[str] | None = None, mode: str = "rewrite") -> str:
+    if mode == "improve":
+        head = ("=== BASELINE GUIDE (existing draft; keep what the passages support, correct or extend "
+                "the rest; it is not a source) ===\n")
+    else:
+        head = "=== DRAFT GUIDE (not a source) ===\n"
+    parts = [head + guide.body, "=== TEXTBOOK PASSAGES ===" if mode != "improve" else "=== SOURCE PASSAGES ==="]
     for s in guide.sources:
-        parts.append(f"[{s.label}] {s.citation} -- {s.path}\n\"\"\"\n{s.text}\n\"\"\"")
+        if labels is not None and s.label not in labels:
+            continue
+        parts.append(f"[{s.label}]{_kind(s)} {s.citation} -- {s.path}\n\"\"\"\n{s.text}\n\"\"\"")
     return "\n\n".join(parts)
 
 
@@ -105,7 +140,8 @@ def build_plan_prompt(guide: GuideInput, errors: list[str] | None = None) -> str
 
 
 def build_topic_prompt(guide: GuideInput, topic: str, other_topics: list[str], min_words: int,
-                       errors: list[str] | None = None) -> str:
+                       errors: list[str] | None = None, *, source_labels: set[str] | None = None,
+                       mode: str = "rewrite") -> str:
     others_line = ""
     if other_topics:
         listed = ", ".join(json.dumps(t) for t in other_topics)
@@ -115,7 +151,9 @@ def build_topic_prompt(guide: GuideInput, topic: str, other_topics: list[str], m
         topic=topic, others_line=others_line, target=int(min_words * _LENGTH_FACTOR),
         min_sections=MIN_SECTIONS, doubled=_DOUBLED_EXAMPLE,
         schema=json.dumps(TOPIC_SCHEMA, indent=2))
-    return head + "\n" + _passages(guide) + _rejected(errors) + "\n"
+    if mode == "improve":
+        head += _IMPROVE_INSTRUCTIONS
+    return head + "\n" + _passages(guide, source_labels, mode) + _rejected(errors) + "\n"
 
 
 def build_worked_example_prompt(topic_title: str, grounded_text: str, errors: list[str] | None = None) -> str:
