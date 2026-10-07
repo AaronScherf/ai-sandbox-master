@@ -118,29 +118,6 @@ class LandBranchTests(unittest.TestCase):
         self.assertEqual(result.check_targets, [])
 
 
-class RunChecksCommandTests(unittest.TestCase):
-    def _captured_command(self, full, xdist):
-        import subprocess
-        from unittest.mock import patch
-        from tools.land_branch import run_checks
-        done = subprocess.CompletedProcess(args=[], returncode=0, stdout="", stderr="")
-        with patch("tools.land_branch.subprocess.run", return_value=done) as run, \
-                patch("tools.land_branch.xdist_available", return_value=xdist):
-            run_checks(Path("."), {"core/a.py"}, full=full)
-        return run.call_args.args[0]
-
-    def test_full_run_uses_xdist_when_available(self):
-        cmd = self._captured_command(full=True, xdist=True)
-        self.assertIn("-n", cmd)
-        self.assertEqual(cmd[cmd.index("-n") + 1], "auto")
-
-    def test_full_run_is_serial_without_xdist(self):
-        self.assertNotIn("-n", self._captured_command(full=True, xdist=False))
-
-    def test_subset_run_is_serial(self):
-        self.assertNotIn("-n", self._captured_command(full=False, xdist=True))
-
-
 class LandingLogTests(unittest.TestCase):
     def setUp(self):
         self._tmp = tempfile.TemporaryDirectory()

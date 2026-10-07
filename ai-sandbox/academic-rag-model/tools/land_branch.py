@@ -7,7 +7,6 @@ pushes: the user approves each landing by commit SHA (spec decision 1).
 from __future__ import annotations
 
 import argparse
-import importlib.util
 import json
 import subprocess
 import sys
@@ -141,10 +140,6 @@ def select_test_targets(changed: set[str], project_root: Path) -> list[str]:
     return sorted(t for t in targets if t in dirs or not any(t.startswith(d + "/") for d in dirs))
 
 
-def xdist_available() -> bool:
-    return importlib.util.find_spec("xdist") is not None
-
-
 def run_checks(project_root: Path, changed: set[str], full: bool) -> tuple[str, list[str], float]:
     code_changed = any(p.endswith(".py") for p in changed)
     if not code_changed and not full:
@@ -152,12 +147,9 @@ def run_checks(project_root: Path, changed: set[str], full: bool) -> tuple[str, 
     targets = ["tests/"] if full else select_test_targets(changed, project_root)
     if not targets:
         targets = ["tests/"]  # code changed but no mapped tests: run everything
-    cmd = [sys.executable, "-m", "pytest", *targets, "-q"]
-    if full and xdist_available():
-        cmd += ["-n", "auto"]  # parallel only for the landing gate; ~25% faster measured
     started = time.monotonic()
     proc = subprocess.run(
-        cmd,
+        [sys.executable, "-m", "pytest", *targets, "-q"],
         cwd=project_root,
         capture_output=True,
         text=True,
