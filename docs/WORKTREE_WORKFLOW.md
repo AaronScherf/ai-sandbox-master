@@ -106,9 +106,12 @@ on their own. When a task branch is finished, the agent:
    The check verifies the branch is clean, not on `main`, and not already
    published; rebases it onto `main`; runs the full test suite (`--full` is the
    landing gate, spec decision 7); and reports overlaps. It never merges or pushes.
-2. Asks the user in one message: may I commit this branch, and may I merge and
-   push commit `<SHA>` to `main`? The message includes the branch, SHA, changed
-   paths, check result, overlaps, and known risks.
+2. Commits its finished work to its own task branch if not already committed.
+   Local commits to a task branch in its own worktree are pre-authorized and
+   need no ask. Then asks the user in one message: may I merge and push commit
+   `<SHA>` to `main`? The message includes the branch, SHA, changed paths, check
+   result, overlaps, the main checkout's `git status --short` snapshot, and known
+   risks.
 3. On a yes, lands in the main checkout only after these checks pass:
    - `git branch --show-current` prints `main`. If it does not, stop and tell the
      user; never merge into whatever branch the main checkout happens to be on.

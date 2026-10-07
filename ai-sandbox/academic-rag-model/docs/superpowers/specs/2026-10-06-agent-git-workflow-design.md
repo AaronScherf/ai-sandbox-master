@@ -21,7 +21,7 @@ These were settled with the user during the brainstorm (2026-10-05 and 2026-10-0
 6. **Generated output (`.index/*.json`, site and transcription outputs):** treatment unchanged. Some of these feed the website and notes transcription, so they stay tracked and are committed as they are today. No new single-writer rule; revisit only if conflicts appear.
 7. **Test policy at landing:** a changed-package subset while iterating; the full suite once per landing as the gate. Measure `pytest-xdist` before adopting it.
 8. **Claims for shared packages:** no claims file. Branch naming (`claude/`, `codex/`, `gemini/`) plus the active-work report at pre-check. A branch touching `core/indexer/` or `core/env/` is flagged to the user before the commit ask.
-9. **Commit ask:** one combined message (commit, merge, and push together). Root `CLAUDE.md` requires asking before any commit, so no standing permission for branch commits.
+9. **Commit ask (revised 2026-10-06):** local commits to a task branch in its own worktree are pre-authorized by the user and need no ask. Merge and push to `main` still need one explicit approval naming the commit SHA. The root `CLAUDE.md` wording ("commit or push only when the user asks") predates this decision and should be updated to match.
 
 ## 3. Landing flow (proposed)
 
@@ -31,7 +31,7 @@ For a branch `claude/<task>`, `codex/<task>`, or `gemini/<task>`, in its own wor
 2. **Rebase:** `git rebase main` inside the worktree. Resolve conflicts with the design rule from the worktree doc: preserve both tasks' intent, and send design ambiguities to Claude.
 3. **Checks:** run the tests for the changed packages. The full suite (about 107 s on this machine) runs before landing. A changed-package subset is enough while iterating (decision 7).
 4. **Overlap report:** compare the branch against its merge-base (not against the branch tip) with the main checkout's uncommitted files. Also check other open worktrees for overlapping paths, especially shared packages (`core/indexer/`, `core/env/`).
-5. **Ask the user:** one message with the branch, the commit SHA, the changed paths, the test result, overlaps, and known risks. Two yes/no questions: may I commit, and may I merge and push. Each agent also states whether it did the rebase or re-ran checks, since that is the cleanup this design is meant to reduce.
+5. **Ask the user:** one message with the branch, the commit SHA, the changed paths, the test result, overlaps, the main checkout's `git status --short` snapshot, and known risks. One yes/no question: may I merge and push this SHA to `main`. Local commits to the task branch were already pre-authorized (decision 9). Each agent also states whether it did the rebase or re-ran checks, since that is the cleanup this design is meant to reduce.
 6. **Land on yes:** `git merge --ff-only <branch>` in the main checkout, only if that checkout's `git status --short` is unchanged. Then `git push`. Verify the result with `git log -1`.
 7. **Retire** the worktree and branch only as the existing retirement procedure says.
 
