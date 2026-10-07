@@ -40,6 +40,24 @@ class ActiveWorkTests(unittest.TestCase):
         report = "\n".join(build_report(self.repo))
         self.assertIn("OVERLAP claude/a <-> main checkout uncommitted: core/a.py", report)
 
+    def test_worktree_with_only_uncommitted_work_is_not_retirement_candidate(self):
+        wt = self.tmp / "dirty"
+        git(self.repo, "worktree", "add", "-q", "-b", "claude/dirty", str(wt), "main")
+        (wt / "core" / "scratch.py").write_text("s = 1\n", encoding="utf-8")
+        report = "\n".join(build_report(self.repo))
+        self.assertNotIn("retirement candidate", report)
+        self.assertIn("claude/dirty", report)
+
+    def test_flags_overlap_with_other_worktree_uncommitted_edit(self):
+        a = self.tmp / "a"
+        b = self.tmp / "b"
+        git(self.repo, "worktree", "add", "-q", "-b", "claude/a", str(a), "main")
+        git(self.repo, "worktree", "add", "-q", "-b", "codex/b", str(b), "main")
+        write_and_commit(a, {"core/a.py": "x = 2\n"}, "a edit")
+        (b / "core" / "a.py").write_text("x = 3\n", encoding="utf-8")
+        report = "\n".join(build_report(self.repo))
+        self.assertIn("OVERLAP claude/a <-> codex/b: core/a.py", report)
+
     def test_reports_nothing_to_flag_for_clean_repo(self):
         report = "\n".join(build_report(self.repo))
         self.assertIn("no open worktrees", report)

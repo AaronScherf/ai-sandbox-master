@@ -1,6 +1,6 @@
 # Agent Git Workflow Design
 
-**Status:** DRAFT, not approved. No rules, tooling, or config change until the user approves this spec.
+**Status:** Approved by the user 2026-10-06 (committed as 0bd8e38). Implementation tracked in the plan of the same date.
 **Date:** 2026-10-06
 **Scope:** how Claude, Codex, and Gemini agents land work on `main` in this monorepo.
 **Source brief:** `ai-sandbox/academic-rag-model/docs/trackers/academic_hub_to_do.md`, section "Git Workflow Between Agents".

@@ -30,6 +30,12 @@ class LandBranchTests(unittest.TestCase):
         with self.assertRaisesRegex(LandingError, "on main"):
             preflight(self.repo)
 
+    def test_preflight_refuses_published_branch(self):
+        write_and_commit(self.wt, {"core/b.py": "b = 1\n"}, "branch work")
+        git(self.repo, "update-ref", "refs/remotes/origin/claude/t", "claude/t")
+        with self.assertRaisesRegex(LandingError, "published"):
+            preflight(self.wt)
+
     def test_preflight_refuses_detached_head(self):
         git(self.wt, "checkout", "-q", "--detach")
         with self.assertRaisesRegex(LandingError, "detached"):
@@ -97,6 +103,13 @@ class LandBranchTests(unittest.TestCase):
         write_and_commit(self.wt, {"tests/core/test_bad.py": "def test_bad():\n    assert False\n"}, "add bad test")
         result = check(self.wt, subdir="")
         self.assertEqual(result.checks, "failed")
+
+    def test_check_run_from_subfolder_uses_worktree_root(self):
+        write_and_commit(self.wt, {"core/a.py": "x = 2\n"}, "branch edit")
+        result = check(self.wt / "core", subdir="")
+        self.assertEqual(result.overlaps, [])
+        self.assertEqual(result.branch, "claude/t")
+        self.assertEqual(result.check_targets, ["tests/"])
 
     def test_check_skips_docs_only_branch(self):
         write_and_commit(self.wt, {"docs/note.md": "hi\n"}, "docs only")

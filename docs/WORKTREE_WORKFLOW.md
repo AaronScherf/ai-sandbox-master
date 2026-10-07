@@ -100,24 +100,31 @@ Worktrees do not isolate external side effects.
 Only the user lands work on `main`. Agents never merge into or push to `main`
 on their own. When a task branch is finished, the agent:
 
-1. Runs the landing check from its worktree, with the project venv:
-   `.venv\Scripts\python.exe -m tools.land_branch check` (run from
-   `ai-sandbox/academic-rag-model/`). The check verifies the branch is clean and
-   not on `main`, rebases it onto `main`, runs the tests for the changed
-   packages, and reports overlaps. It never merges or pushes.
+1. Runs the landing check from any folder inside its worktree. A worktree has no
+   `.venv` of its own (it is gitignored), so use the main checkout's interpreter:
+   `C:\Users\theaa\ai-sandbox-master\ai-sandbox\academic-rag-model\.venv\Scripts\python.exe -m tools.land_branch check --full`.
+   The check verifies the branch is clean, not on `main`, and not already
+   published; rebases it onto `main`; runs the full test suite (`--full` is the
+   landing gate, spec decision 7); and reports overlaps. It never merges or pushes.
 2. Asks the user in one message: may I commit this branch, and may I merge and
    push commit `<SHA>` to `main`? The message includes the branch, SHA, changed
    paths, check result, overlaps, and known risks.
-3. On a yes, merges with fast-forward only, in the main checkout, and only if
-   that checkout's `git status --short` is unchanged:
+3. On a yes, lands in the main checkout only after these checks pass:
+   - `git branch --show-current` prints `main`. If it does not, stop and tell the
+     user; never merge into whatever branch the main checkout happens to be on.
+   - `git status --short` matches the snapshot the agent recorded when it asked
+     for approval (include that snapshot in the approval message). Any
+     difference means another session has changed the checkout: stop and ask.
+
+   Then:
 
    ```powershell
    git merge --ff-only <branch>
-   git push
+   git push origin main
    ```
 
-   Then verify with `git log -1`.
-4. Records the answer: `.venv\Scripts\python.exe -m tools.land_branch record --sha <SHA> --outcome landed|declined`.
+   Then verify with `git log -1`. Never run a bare `git push`.
+4. Records the answer: `C:\Users\theaa\ai-sandbox-master\ai-sandbox\academic-rag-model\.venv\Scripts\python.exe -m tools.land_branch record --sha <SHA> --outcome landed|declined`.
 
 Approval covers one commit SHA. If the SHA changes, including after a rebase,
 ask again. Approval does not carry over to other sessions or branches.
@@ -126,7 +133,7 @@ Merge style is rebase onto `main`, then `--ff-only`. Do not use `--no-ff`
 merges. Rebasing is allowed only on a branch that is exclusively owned and not
 published.
 
-Before a landing, `.venv\Scripts\python.exe -m tools.active_work` shows
+Before a landing, `C:\Users\theaa\ai-sandbox-master\ai-sandbox\academic-rag-model\.venv\Scripts\python.exe -m tools.active_work` shows
 overlaps with other open worktrees and with the main checkout's uncommitted
 files. Review any overlap with the user before asking to land.
 

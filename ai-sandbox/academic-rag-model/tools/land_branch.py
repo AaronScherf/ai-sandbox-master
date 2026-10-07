@@ -73,12 +73,23 @@ def project_relative(paths: set[str], subdir: str) -> set[str]:
     return {p[len(prefix):] for p in paths if p.startswith(prefix)}
 
 
+def is_published(worktree: Path, branch: str) -> bool:
+    """True if a remote-tracking ref for the branch exists (last fetch)."""
+    try:
+        run_git(["rev-parse", "--verify", "-q", f"refs/remotes/origin/{branch}"], worktree)
+    except GitError:
+        return False
+    return True
+
+
 def preflight(worktree: Path) -> str:
     branch = current_branch(worktree)
     if branch is None:
         raise LandingError("HEAD is detached; check out the task branch first")
     if branch == MAIN_BRANCH:
         raise LandingError("this worktree is on main; agent work must be on its own branch")
+    if is_published(worktree, branch):
+        raise LandingError(f"{branch} is already published to origin; rebasing it would rewrite shared history")
     dirty = dirty_files(worktree)
     if dirty:
         raise LandingError("worktree has uncommitted changes: " + ", ".join(sorted(dirty)))
@@ -153,6 +164,8 @@ def run_checks(project_root: Path, changed: set[str], full: bool) -> tuple[str, 
 
 
 def check(worktree: Path, subdir: str = PROJECT_SUBDIR, full: bool = False) -> CheckResult:
+    # Any folder inside the worktree works; subdir is always relative to the root.
+    worktree = Path(run_git(["rev-parse", "--show-toplevel"], worktree).strip())
     try:
         result = _run_check(worktree, subdir, full)
     except LandingError as exc:

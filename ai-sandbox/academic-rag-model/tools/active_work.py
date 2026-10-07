@@ -34,12 +34,14 @@ def build_report(cwd: Path) -> list[str]:
         if wt.branch is None:
             lines.append(f"detached HEAD at {wt.path} (no branch to land)")
             continue
-        if is_ancestor(main.path, wt.branch, MAIN_BRANCH):
+        uncommitted = dirty_files(wt.path)
+        if is_ancestor(main.path, wt.branch, MAIN_BRANCH) and not uncommitted:
             lines.append(f"{wt.branch} ({wt.path}): merged into main; retirement candidate")
             continue
-        changed = changed_since_merge_base(main.path, MAIN_BRANCH, wt.branch)
+        changed = changed_since_merge_base(main.path, MAIN_BRANCH, wt.branch) | uncommitted
         changes[wt.branch] = changed
-        lines.append(f"{wt.branch} ({wt.path}): {len(changed)} files vs main")
+        note = f" (includes {len(uncommitted)} uncommitted)" if uncommitted else ""
+        lines.append(f"{wt.branch} ({wt.path}): {len(changed)} files vs main{note}")
     for a, b in combinations(sorted(changes), 2):
         shared = changes[a] & changes[b]
         if shared:
