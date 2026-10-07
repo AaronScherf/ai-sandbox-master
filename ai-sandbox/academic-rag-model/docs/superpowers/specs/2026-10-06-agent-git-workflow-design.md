@@ -87,7 +87,7 @@ The metrics script is read-only, lives in the scratchpad (outside the repo), and
 - Never print or commit `ai-sandbox/.env`.
 - No force-push, `reset --hard`, or `clean`.
 - Never remove another agent's worktree or branch.
-- Commit or push only when the user asks, and only with the approval described in section 2.
+- Merge or push to `main` only with the user's per-SHA approval (section 2, decision 1). Local commits to a task branch in its own worktree are pre-authorized (decision 9, revised 2026-10-07) and need no separate ask.
 - The monorepo is public on GitHub. Check the root `.gitignore` before committing.
 - Changes to `WORKTREE_WORKFLOW.md` take effect only for sessions told to re-read them. Running agents must be told.
 
