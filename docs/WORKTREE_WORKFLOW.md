@@ -97,25 +97,49 @@ Worktrees do not isolate external side effects.
 
 ## Integrate one task at a time
 
-The task owner supplies the branch, commit ID, changed paths, validation
-results, dependencies, and remaining risks. Workers do not merge into main
-or push an integration branch unless assigned the integrator role.
+Only the user lands work on `main`. Agents never merge into or push to `main`
+on their own. When a task branch is finished, the agent:
 
-The integrator ensures the integration checkout is clean and no other
-session is writing there. If dirty, defer integration and leave changes
-with their owner rather than stashing or discarding them. Then, for example:
+1. Runs the landing check from its worktree, with the project venv:
+   `.venv\Scripts\python.exe -m tools.land_branch check` (run from
+   `ai-sandbox/academic-rag-model/`). The check verifies the branch is clean and
+   not on `main`, rebases it onto `main`, runs the tests for the changed
+   packages, and reports overlaps. It never merges or pushes.
+2. Asks the user in one message: may I commit this branch, and may I merge and
+   push commit `<SHA>` to `main`? The message includes the branch, SHA, changed
+   paths, check result, overlaps, and known risks.
+3. On a yes, merges with fast-forward only, in the main checkout, and only if
+   that checkout's `git status --short` is unchanged:
 
-```powershell
-git status --short
-git merge --no-ff codex/indexer-tests
-# Run relevant checks on the combined result before merging the next task.
-```
+   ```powershell
+   git merge --ff-only <branch>
+   git push
+   ```
 
-Review combined behavior even if Git finds no textual conflicts. Preserve
-both tasks' intent when resolving conflicts; send design ambiguities to
-Claude instead of blindly accepting ours/theirs. A PR is a useful review
-boundary when publishing is part of the task. Push/deploy only within the
-user's authorized scope.
+   Then verify with `git log -1`.
+4. Records the answer: `.venv\Scripts\python.exe -m tools.land_branch record --sha <SHA> --outcome landed|declined`.
+
+Approval covers one commit SHA. If the SHA changes, including after a rebase,
+ask again. Approval does not carry over to other sessions or branches.
+
+Merge style is rebase onto `main`, then `--ff-only`. Do not use `--no-ff`
+merges. Rebasing is allowed only on a branch that is exclusively owned and not
+published.
+
+Before a landing, `.venv\Scripts\python.exe -m tools.active_work` shows
+overlaps with other open worktrees and with the main checkout's uncommitted
+files. Review any overlap with the user before asking to land.
+
+Review combined behavior even if Git finds no textual conflicts. Preserve both
+tasks' intent when resolving conflicts; send design ambiguities to Claude
+instead of blindly accepting ours or theirs. A PR is a useful review boundary
+when publishing is part of the task. Push or deploy only within the user's
+authorized scope.
+
+Docs under `ai-sandbox/academic-rag-model/docs/status/` and
+`docs/superpowers/`, and package READMEs, may go direct to `main` with explicit
+paths, only when no other session has uncommitted changes to that file. Shared
+logs are append-only. Any other path goes through a branch.
 
 ## Retire completed worktrees
 
