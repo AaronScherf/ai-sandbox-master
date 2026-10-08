@@ -232,6 +232,26 @@ What this suggests for `agent/viz`:
    embed form for Obsidian.
 5. The owner reviews B2, E1 and v4 in full and adds findings to this document.
 
+## Deferred changes (come back to these)
+
+Found while planning the topic-first spec (plan measured 2026-10-08):
+
+- **Character budget per topic** in place of the per-rule `max` counts. `draft` passes every accepted
+  passage with no total cap; chunks are at most about 3,000 characters (mean 1,700), and topics ranged
+  from 70k to 147k characters. Proposed: pinned passages fill the budget first in score order, then
+  discover passages; the same budget would replace hand-tuned `max` values.
+- **`min_chars` floor** to drop heading-only fragments (49 of 443 planned entries were under 600
+  characters). Until then the review Artifact flags passages under 400 characters.
+- **`[[derived]]` sections** (recipes, worked problems, formula reference) built from the finished
+  topic text instead of raw sources, with formulas copied verbatim and a mechanical check that every
+  display equation appears in a source topic. Worked problems should still add the problem material
+  itself (problem sets, exam keys, lecture question sidecars, textbook exercises); `problem_label` is
+  set on only 3 chunks, so problems cannot be selected by label.
+- **Duplicate passages:** 443 planned entries were only 204 unique chunks. Consider sharing a passage
+  across topics once, or deduplicating inside the prompt.
+- Review Artifact v2 shows passage text, length, duplicates and short fragments, and lets the owner drop
+  pinned passages (`apply_decisions` now accepts `drop` on a pinned passage).
+
 ## Artifacts (local vault, not committed)
 
 - Plans and review items: `academic_notes/econometrics/guide_plans/` (baseline and new-material).

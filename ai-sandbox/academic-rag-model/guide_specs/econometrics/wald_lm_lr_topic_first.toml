@@ -13,6 +13,10 @@
 #   - three stand-in topics (recipes, worked problems, formula reference) until guide-profile sections
 #     exist; they reuse the same sources and show what the draft engine can already do
 #
+# Deferred (come back to these): a per-topic character budget replacing the per-rule `max` counts,
+# a `min_chars` floor to drop heading-only fragments, and `[[derived]]` sections (recipes, worked
+# problems, formula reference) built from the finished topic text instead of raw sources.
+#
 # Planned input, not yet implemented: tutoring-session transcripts.
 #   A guided tutoring agent for the RAG is being built separately. It will write transcripts of the
 #   student's dialogue while working practice problems drawn from this same indexed content. Those
@@ -374,6 +378,14 @@ instruction = "Give a short numbered procedure for carrying out each of the Wald
 [[topic]]
 title = "Worked problems and exam-style questions"
 instruction = "Work through complete example problems on these tests from the supplied problem material, restating each problem, solving it step by step with the formulas used, and noting the typical error or trap at each stage. Cover the Wald test (including a nonlinear restriction by the delta method), a likelihood ratio calculation, an LM test through the nR-squared regression, and an invariance example. Use only problems and solution steps found in the sources; if a type of problem is not supplied, say so rather than inventing one."
+
+  [[topic.source]]
+  kind = "section"
+  book = "Hansen_ECONOMETRICS"
+  labels = ["7.22", "8.17", "9.25"]
+  exclude_labels = []
+  query = "exercises Wald test hypothesis testing restricted least squares score test"
+  max = 12
 
   [[topic.source]]
   kind = "file"

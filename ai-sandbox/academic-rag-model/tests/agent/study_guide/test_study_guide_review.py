@@ -54,12 +54,20 @@ def test_apply_decisions_keeps_and_drops_without_mutating_the_input(plan):
 
 @pytest.mark.parametrize("decisions,fragment", [
     ({"Wald|zzz": "keep"}, "unknown"),
-    ({"Wald|a": "drop"}, "pinned"),
+    ({"Wald|a": "keep"}, "pinned"),
     ({"Wald|b": "maybe"}, "keep"),
 ])
 def test_apply_decisions_rejects_bad_input(plan, decisions, fragment):
     with pytest.raises(PlanError, match=fragment):
         apply_decisions(plan, decisions)
+
+
+def test_a_pinned_passage_can_be_dropped_but_the_topic_must_keep_one(plan):
+    new = apply_decisions(plan, {"Wald|a": "drop", "Wald|b": "keep"})
+    assert [e.status for e in new.topics[0].entries] == ["dropped", "accepted", "pending"]
+    emptied = apply_decisions(plan, {"Wald|a": "drop", "Wald|b": "drop", "Wald|c": "drop"})
+    with pytest.raises(PlanError, match="no accepted"):
+        accepted(emptied, "Wald")
 
 
 def test_deciding_twice_is_rejected(plan):

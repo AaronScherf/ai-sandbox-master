@@ -347,7 +347,8 @@ def write_review_items(plan: Plan, path: str | Path) -> None:
 
 
 def apply_decisions(plan: Plan, decisions: dict[str, str]) -> Plan:
-    """Returns a new plan with each decided pending entry set to accepted (keep) or dropped (drop)."""
+    """Returns a new plan with each pending discovered entry set to accepted (keep) or dropped (drop);
+    a pinned entry (section or file rule) can only be dropped."""
     import copy
     new = copy.deepcopy(plan)
     index = {decision_key(t.title, e.chunk_id): e for t in new.topics for e in t.entries}
@@ -358,7 +359,12 @@ def apply_decisions(plan: Plan, decisions: dict[str, str]) -> Plan:
         if value not in ("keep", "drop"):
             raise PlanError(f"decision for {key!r} must be 'keep' or 'drop', got {value!r}")
         if entry.rule != "discover":
-            raise PlanError(f"{key!r} is pinned by a section or file rule and cannot be dropped")
+            if value == "keep":
+                raise PlanError(f"{key!r} is pinned by a section or file rule and already included; only 'drop' applies")
+            if entry.status != ACCEPTED:
+                raise PlanError(f"{key!r} is already decided ({entry.status})")
+            entry.status = DROPPED
+            continue
         if entry.status != PENDING:
             raise PlanError(f"{key!r} is already decided ({entry.status})")
         entry.status = ACCEPTED if value == "keep" else DROPPED
