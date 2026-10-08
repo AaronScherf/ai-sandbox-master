@@ -26,7 +26,7 @@ from agent.study_guide.plan import (
     save_plan, write_review_items,
 )
 from agent.study_guide.spec import SpecError, load_spec
-from agent.summary_enhance.enhance import DEFAULT_MIN_WORDS, run as enhance_run
+from agent.summary_enhance.enhance import DEFAULT_MIN_WORDS, baseline_section, run as enhance_run
 from agent.summary_enhance.llm import GeminiClient
 from agent.summary_enhance.source_loader import ExtraSource
 
@@ -169,7 +169,8 @@ def cmd_enhance(spec_path: str, root: str, *, draft_path: str, plan_path: str | 
                 mode: str = "improve", worked_example: bool = False, min_words: int = DEFAULT_MIN_WORDS,
                 model: str | None = None, tag: str = "", force: bool = False, dry_run: bool = False,
                 accept_unreviewed: bool = False, env_file: str | None = None, llm=None,
-                chunks=None, cards=None, output: str | None = None, baseline: str = "full") -> int:
+                chunks=None, cards=None, output: str | None = None, baseline: str = "full",
+                only_below: int | None = None) -> int:
     try:
         spec = load_spec(spec_path)
         validate_tag(tag)
@@ -178,6 +179,9 @@ def cmd_enhance(spec_path: str, root: str, *, draft_path: str, plan_path: str | 
         plan, _, _ = _load_plan_for(spec, root, plan_path, chunks, cards)
         if not Path(draft_path).is_file():
             raise PlanError(f"draft not found: {draft_path}")
+        draft_text = Path(draft_path).read_text(encoding="utf-8")
+        carry_before = [n.heading for n in spec.notes if baseline_section(draft_text, n.heading) is not None]
+        carry_after = [c.title for c in spec.comparisons if baseline_section(draft_text, c.title) is not None]
         extras = []
         for topic in spec.topics:
             for e in accepted(plan, topic.title, accept_unreviewed=accept_unreviewed):
@@ -192,7 +196,8 @@ def cmd_enhance(spec_path: str, root: str, *, draft_path: str, plan_path: str | 
     return enhance_run(
         str(draft), topics=[t.title for t in spec.topics], output=output, model=model or spec.enhance_model,
         force=force, dry_run=dry_run, llm=llm, env_file=env_file, worked_example=worked_example,
-        min_words=min_words, mode=mode, extra_sources=extras, baseline=baseline)
+        min_words=min_words, mode=mode, extra_sources=extras, baseline=baseline, only_below=only_below,
+        carry_before=carry_before, carry_after=carry_after)
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -235,6 +240,8 @@ def main(argv: list[str] | None = None) -> int:
     sp.add_argument("--worked-example", action="store_true")
     sp.add_argument("--baseline", choices=("full", "per-topic"), default="full",
                     help="per-topic: each topic sees only its own section of the draft and its own passages")
+    sp.add_argument("--only-below", type=int, metavar="WORDS",
+                    help="keep a topic's draft section unchanged when it already has at least this many words")
     sp.add_argument("--min-words", type=int, default=DEFAULT_MIN_WORDS)
     sp.add_argument("--model", help="override [models].enhance")
     sp.add_argument("--tag", default="", help="name an output variant (<draft>.enhanced.<tag>.md)")
@@ -251,7 +258,7 @@ def main(argv: list[str] | None = None) -> int:
                            worked_example=args.worked_example, min_words=args.min_words, model=args.model,
                            tag=args.tag, force=args.force, dry_run=args.dry_run,
                            accept_unreviewed=args.accept_unreviewed, env_file=args.env_file, output=args.output,
-                           baseline="topic" if args.baseline == "per-topic" else "full")
+                           baseline="topic" if args.baseline == "per-topic" else "full", only_below=args.only_below)
     if args.command in ("plan", "run"):
         client = _paid_client(args.env_file)
         code = cmd_plan(args.spec, args.root, client=client, force=getattr(args, "force", False))

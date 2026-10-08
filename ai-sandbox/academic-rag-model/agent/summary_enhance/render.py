@@ -13,7 +13,7 @@ import json
 from agent.summary_enhance.mathfmt import split_display_math
 from agent.summary_enhance.paragraphs import split_long_paragraphs, split_paragraphs
 from agent.summary_enhance.schema import Enhanced
-from agent.summary_enhance.source_loader import GuideInput
+from agent.summary_enhance.source_loader import GuideInput, _norm_title
 
 GENERATED_BY = "academic-rag-model/agent/summary_enhance/enhance.py"
 FORMAT_VERSION = 3
@@ -28,7 +28,7 @@ def _paragraphs_for(text: str) -> list[str]:
 
 
 def render(guide: GuideInput, enhanced: Enhanced, *, model: str, generated_at: str,
-           worked_example: bool, min_words: int) -> str:
+           worked_example: bool, min_words: int, usage: dict | None = None) -> str:
     from agent.summary_enhance.prompt import PROMPT_VERSION
 
     used_in: dict[str, list[str]] = {}
@@ -36,6 +36,14 @@ def render(guide: GuideInput, enhanced: Enhanced, *, model: str, generated_at: s
     parts = [f"# {guide.title} (enhanced)", INTRO]
     for topic in enhanced.topics:
         parts.append(f"## {topic.title}")
+        if topic.status != "generated":
+            parts.append((topic.passthrough or "").strip())
+            if topic.status == "unchanged":
+                labels = guide.topic_labels.get(_norm_title(topic.title), frozenset())
+                for s in guide.sources:
+                    if s.label in labels:
+                        used_in.setdefault(s.label, []).append(f"{topic.title} (unchanged draft section)")
+            continue
         for section in topic.sections:
             parts.append(f"### {section.heading}")
             where = f"{topic.title} > {section.heading}"
@@ -78,10 +86,18 @@ def render(guide: GuideInput, enhanced: Enhanced, *, model: str, generated_at: s
         "prompt_version": json.dumps(PROMPT_VERSION),
         "generated_at": generated_at,
         "source_summary": json.dumps({"path": guide.rel_path, "sha256": guide.sha256}),
-        "topics": json.dumps([t.title for t in enhanced.topics], ensure_ascii=False),
+        "topics": json.dumps([t.title for t in enhanced.topics if t.status != "carried"], ensure_ascii=False),
         "options": json.dumps({"worked_example": worked_example, "min_words": min_words}),
         "paragraph_kinds": json.dumps(kinds, ensure_ascii=False, separators=(",", ":")),
         "source_map": json.dumps(source_map, ensure_ascii=False, separators=(",", ":")),
     }
+    unchanged = [t.title for t in enhanced.topics if t.status == "unchanged"]
+    carried = [t.title for t in enhanced.topics if t.status == "carried"]
+    if unchanged:
+        front_fields["unchanged_topics"] = json.dumps(unchanged, ensure_ascii=False)
+    if carried:
+        front_fields["carried_sections"] = json.dumps(carried, ensure_ascii=False)
+    if usage:
+        front_fields["usage"] = json.dumps(usage, separators=(",", ":"))
     frontmatter = "---\n" + "".join(f"{k}: {v}\n" for k, v in front_fields.items()) + "---\n\n"
     return frontmatter + "\n\n".join(parts) + "\n"

@@ -187,3 +187,43 @@ def test_main_maps_the_per_topic_flag(monkeypatch, tmp_path):
     assert seen["baseline"] == "topic"
     assert main(["enhance", "s.toml", "--root", str(tmp_path), "--draft", "d.md"]) == 0
     assert seen["baseline"] == "full"
+
+
+NOTE_AND_COMPARE = ('\n[[note]]\nheading = "Heads up"\nbody = "x"\n\n[[comparison]]\ntitle = "Compare tests"\n'
+                    'instruction = "Compare."\nfrom = ["Wald", "LM"]\n')
+
+
+def _setup_with_notes(make_spec, root, tmp_path, draft_body):
+    make_spec(SPEC + NOTE_AND_COMPARE, header=HEADER)
+    spec_file = tmp_path / "spec.toml"
+    search = StubSearch({"textbook": [hit("cam-1", .9), hit("han-1", .8)]})
+    assert cmd_plan(str(spec_file), root, search=search, chunks=CHUNKS, cards=CARDS) == 0
+    spec = load_spec(spec_file)
+    draft = Path(root) / "academic_notes" / "econ" / "summaries" / "demo.md"
+    draft.write_text('---\ntitle: "Demo"\n---\n\n' + draft_body, encoding="utf-8")
+    _decide(spec, root, tmp_path, {"Wald|han-1": "keep"})
+    return spec_file, draft
+
+
+def test_notes_and_comparisons_present_in_the_draft_are_carried(make_spec, root, tmp_path, captured):
+    spec_file, draft = _setup_with_notes(
+        make_spec, root, tmp_path, "## Heads up\n\nx\n\n---\n\n## Wald\n\nw\n\n---\n\n## Compare tests\n\nc\n")
+    assert cmd_enhance(str(spec_file), root, draft_path=str(draft), chunks=CHUNKS, cards=CARDS, only_below=900) == 0
+    kw = captured["kw"]
+    assert kw["carry_before"] == ["Heads up"] and kw["carry_after"] == ["Compare tests"] and kw["only_below"] == 900
+
+
+def test_sections_missing_from_the_draft_are_not_carried(make_spec, root, tmp_path, captured):
+    spec_file, draft = _setup_with_notes(make_spec, root, tmp_path, "## Wald\n\nw\n")
+    assert cmd_enhance(str(spec_file), root, draft_path=str(draft), chunks=CHUNKS, cards=CARDS) == 0
+    assert captured["kw"]["carry_before"] == [] and captured["kw"]["carry_after"] == []
+    assert captured["kw"]["only_below"] is None
+
+
+def test_main_passes_only_below(monkeypatch, tmp_path):
+    seen = {}
+    monkeypatch.setattr(cli, "cmd_enhance", lambda spec, root, **kw: seen.update(kw) or 0)
+    assert main(["enhance", "s.toml", "--root", str(tmp_path), "--draft", "d.md", "--only-below", "1500"]) == 0
+    assert seen["only_below"] == 1500
+    assert main(["enhance", "s.toml", "--root", str(tmp_path), "--draft", "d.md"]) == 0
+    assert seen["only_below"] is None

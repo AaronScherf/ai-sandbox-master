@@ -182,13 +182,6 @@ def test_full_baseline_remains_the_default(vault, make_llm):
     assert "WALD-DRAFT-TEXT" in llm.calls[0] and "OTHER-DRAFT-TEXT" in llm.calls[0]
 
 
-def test_per_topic_baseline_needs_a_section_for_every_topic(vault, make_llm, capsys):
-    _sectioned(vault)
-    llm = make_llm()
-    assert _go(vault, llm, [_extra("Wald")], mode="improve", baseline="topic", topics=["Wald", "Missing"]) == 2
-    assert "Missing" in capsys.readouterr().out and llm.calls == []
-
-
 def test_unknown_baseline_value_is_rejected(vault, make_llm, capsys):
     assert _go(vault, make_llm(), [_extra("Wald")], mode="improve", baseline="half") == 2
     assert "--baseline" in capsys.readouterr().out

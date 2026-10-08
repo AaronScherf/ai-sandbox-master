@@ -29,6 +29,8 @@ class Topic:
     title: str
     sections: list[Section]
     worked_example: str | None = None
+    status: str = "generated"  # generated | unchanged (draft section kept as is) | carried (note/comparison)
+    passthrough: str | None = None
 
 
 @dataclass

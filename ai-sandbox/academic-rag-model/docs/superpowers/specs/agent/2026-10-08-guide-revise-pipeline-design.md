@@ -133,11 +133,13 @@ passages: for the current guide about 1.1 million characters (roughly 320k token
 per-topic `enhance` dry-run. Stage 5 sends an outline only. Total is roughly the cost of the draft
 stage; there is no whole-guide-per-call stage.
 
-## Extend: what `enhance` needs for its role
+## Extend: what `enhance` needs for its role (done 2026-10-08)
 
 `enhance` already supplies per-topic source scoping, grounded versus external blocks, validation
-against the topic's passages, worked examples and, now, `--baseline per-topic`. Gaps to close before
-it is the extend stage:
+against the topic's passages, worked examples and, now, `--baseline per-topic`. Gaps closed so that
+it is the extend stage (`--only-below WORDS`, a missing section under `--baseline per-topic` written
+fresh with a printed note, `--carry-before`/`--carry-after` filled in by the study_guide command from
+the spec's notes and comparisons, and a `usage` field in the output frontmatter):
 
 1. Act only on thin sections: a per-topic minimum or an "only below N words" switch, so sections that
    meet the bar pass through unchanged.
