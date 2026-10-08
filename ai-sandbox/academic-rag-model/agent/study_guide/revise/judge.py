@@ -86,6 +86,9 @@ def judge_edits(llm, scope: str, blocks_by_id: dict[str, Block], candidates: lis
     edits: list[Edit] = []
     for i in range(0, len(candidates), BATCH):
         batch = candidates[i:i + BATCH]
-        data = llm.generate_structured(build_judge_prompt(scope, [blocks_by_id[b] for b in batch], scores), JUDGE_SCHEMA)
-        edits += parse_judge(data, blocks_by_id, batch, start + len(edits), scores)
+        try:
+            data = llm.generate_structured(build_judge_prompt(scope, [blocks_by_id[b] for b in batch], scores), JUDGE_SCHEMA)
+            edits += parse_judge(data, blocks_by_id, batch, start + len(edits), scores)
+        except (ReviseError, ValueError) as err:  # one bad response must not lose the whole run
+            print(f"WARNING: the relevance judge skipped a batch of {len(batch)} blocks: {err}")
     return edits

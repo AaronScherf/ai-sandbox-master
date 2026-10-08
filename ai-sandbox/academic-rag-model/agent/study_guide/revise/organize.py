@@ -71,5 +71,9 @@ def parse_organize(data: dict, blocks_by_id: dict[str, Block], start: int) -> li
 
 def organize_edits(llm, blocks: list[Block], flags: dict[str, list[str]], start: int = 1) -> list[Edit]:
     edits = mechanical_heading_edits(blocks, start)
-    data = llm.generate_structured(build_outline(blocks, flags), ORGANIZE_SCHEMA)
-    return edits + parse_organize(data, {b.id: b for b in blocks}, start + len(edits))
+    try:
+        data = llm.generate_structured(build_outline(blocks, flags), ORGANIZE_SCHEMA)
+        return edits + parse_organize(data, {b.id: b for b in blocks}, start + len(edits))
+    except (ReviseError, ValueError) as err:  # keep the mechanical fixes if the model's answer is unusable
+        print(f"WARNING: the organization proposals were skipped: {err}")
+        return edits

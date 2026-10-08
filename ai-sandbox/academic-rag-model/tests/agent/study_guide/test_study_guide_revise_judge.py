@@ -101,3 +101,11 @@ def test_spec_reads_scope_and_judge_fraction(tmp_path):
     p.write_text(base + "judge_fraction = 2\n", encoding="utf-8")
     with pytest.raises(SpecError, match="judge_fraction"):
         load_spec(p)
+
+
+def test_a_malformed_judge_batch_is_skipped_with_a_warning(capsys):
+    blocks, scores = _scored()
+    ids = [b.id for b in blocks if b.level]
+    llm = ScriptedLLM([{"verdicts": [{"block": "zzz", "verdict": "delete", "rationale": "x"}]}])
+    assert judge_edits(llm, "scope", {b.id: b for b in blocks}, ids[:2], scores, start=1) == []
+    assert "WARNING" in capsys.readouterr().out

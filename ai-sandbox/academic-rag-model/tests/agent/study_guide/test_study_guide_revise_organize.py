@@ -49,3 +49,10 @@ def test_organize_edits_combines_mechanical_and_model_proposals():
     llm = ScriptedLLM([{"edits": []}])
     edits = organize_edits(llm, blocks, {})
     assert len(llm.calls) == 1 and [e.type for e in edits] == ["retitle"]
+
+
+def test_a_malformed_organize_response_keeps_the_mechanical_edits(capsys):
+    blocks = segment(BODY)
+    llm = ScriptedLLM([{"edits": [{"type": "explode", "block": blocks[1].id, "rationale": "r"}]}])
+    edits = organize_edits(llm, blocks, {})
+    assert [e.type for e in edits] == ["retitle"] and "WARNING" in capsys.readouterr().out

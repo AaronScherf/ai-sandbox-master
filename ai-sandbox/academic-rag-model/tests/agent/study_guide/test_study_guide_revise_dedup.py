@@ -61,3 +61,11 @@ def test_dedup_edits_makes_one_call_per_cluster():
     llm = ScriptedLLM([{"canonical": a, "actions": [{"block": b, "action": "delete", "rationale": "repeat"}]}])
     edits = dedup_edits(llm, blocks, bag_embed(VOCAB), similarity=0.95, min_words=20)
     assert len(llm.calls) == 1 and [e.type for e in edits] == ["delete"]
+
+
+def test_a_malformed_dedup_response_is_skipped_with_a_warning(capsys):
+    blocks = segment(BODY)
+    a = blocks[1].id
+    llm = ScriptedLLM([{"canonical": a, "actions": [{"block": a, "action": "delete", "rationale": "self"}]}])
+    assert dedup_edits(llm, blocks, bag_embed(VOCAB), similarity=0.95, min_words=20) == []
+    assert "WARNING" in capsys.readouterr().out

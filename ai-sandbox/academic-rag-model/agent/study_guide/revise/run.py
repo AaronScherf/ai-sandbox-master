@@ -181,18 +181,24 @@ def cmd_revise(spec_path: str, root: str, *, guide_path: str, plan_path: str | N
         write_review_items(report, body, out.with_name(out.name.replace(".revise.json", ".revise.review.json")))
     except (SpecError, ReviseError, PlanError, DraftError, OSError) as err:
         print(f"ERROR: {err}")
+        _print_usage(llm)
         return EXIT_INPUT
     except Exception as err:  # API failure after the client's own retries
         print(f"ERROR: model or embedding call failed: {err}")
+        _print_usage(llm)
         return EXIT_LLM
     by_stage: dict[str, int] = {}
     for e in report.edits:
         by_stage[e.stage] = by_stage.get(e.stage, 0) + 1
     print(f"Wrote {out}: {len(report.edits)} proposed edits {by_stage}; review them in the Artifact, then apply-revise.")
+    _print_usage(llm)
+    return EXIT_OK
+
+
+def _print_usage(llm) -> None:
     usage = getattr(llm, "usage", None)
     if usage:
         print(usage_line(usage))
-    return EXIT_OK
 
 
 def cmd_apply_revise(spec_path: str, root: str, *, guide_path: str, decisions_path: str, tag: str = "", force: bool = False) -> int:

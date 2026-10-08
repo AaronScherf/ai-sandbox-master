@@ -99,6 +99,9 @@ def dedup_edits(llm, blocks: list[Block], embed, *, similarity: float, min_words
     edits: list[Edit] = []
     for cluster in find_duplicate_clusters(blocks, embed, similarity=similarity, min_words=min_words):
         members = sorted(cluster, key=lambda i: -by_id[i].words)[:MAX_CLUSTER]
-        data = llm.generate_structured(build_dedup_prompt([by_id[i] for i in members]), DEDUP_SCHEMA)
-        edits += parse_dedup(data, members, by_id, start + len(edits))
+        try:
+            data = llm.generate_structured(build_dedup_prompt([by_id[i] for i in members]), DEDUP_SCHEMA)
+            edits += parse_dedup(data, members, by_id, start + len(edits))
+        except (ReviseError, ValueError) as err:  # one bad response must not lose the whole run
+            print(f"WARNING: dedup skipped a cluster of {len(members)} blocks: {err}")
     return edits
