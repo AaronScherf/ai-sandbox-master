@@ -8,7 +8,7 @@
 #   - topics named by concept; section rules for Hansen, Cameron and (via discover) Hayashi side by side
 #   - exam-oriented class sources pinned: TA notes 07/08, professor notes, 2026 lecture notes and their
 #     question-resolver sidecars, the 2024 midterm key and problem-set solutions
-#   - discover rules keep more: min_score 0.70, max 12, and no exclude_guide (previously used passages
+#   - discover rules keep more: min_score 0.70, max 30, and no exclude_guide (previously used passages
 #     are wanted here, not treated as already covered)
 #   - three stand-in topics (recipes, worked problems, formula reference) until guide-profile sections
 #     exist; they reuse the same sources and show what the draft engine can already do
@@ -99,7 +99,7 @@ instruction = "Build the framework that the other topics rely on: the null and a
   kind = "discover"
   query = "Wald, likelihood ratio and Lagrange multiplier tests: restricted and unrestricted estimators, asymptotic chi-square"
   doc_types = ["textbook"]
-  max = 12
+  max = 30
   min_score = 0.70
   max_per_file = 5
 
@@ -170,7 +170,7 @@ instruction = "Explain the Wald test end to end: hypotheses of the form Rθ = r,
   kind = "discover"
   query = "Wald test statistic, linear and nonlinear restrictions, covariance estimator, delta method"
   doc_types = ["textbook"]
-  max = 12
+  max = 30
   min_score = 0.70
   max_per_file = 5
 
@@ -223,7 +223,7 @@ instruction = "Explain the likelihood ratio test: restricted and unrestricted ma
   kind = "discover"
   query = "likelihood ratio test statistic restricted and unrestricted log-likelihood chi-square Wilks theorem"
   doc_types = ["textbook"]
-  max = 12
+  max = 30
   min_score = 0.70
   max_per_file = 5
 
@@ -276,7 +276,7 @@ instruction = "Explain the LM/score test: the restricted estimator, the score an
   kind = "discover"
   query = "Lagrange multiplier score test statistic computed at the restricted estimator, auxiliary regression"
   doc_types = ["textbook"]
-  max = 12
+  max = 30
   min_score = 0.70
   max_per_file = 5
 
@@ -329,7 +329,7 @@ instruction = "Explain how the three tests relate: asymptotic equivalence under 
   kind = "discover"
   query = "Wald likelihood ratio Lagrange multiplier asymptotic equivalence, finite-sample ordering, invariance to reparameterisation"
   doc_types = ["textbook"]
-  max = 12
+  max = 30
   min_score = 0.70
   max_per_file = 5
 
@@ -371,7 +371,7 @@ instruction = "Give a short numbered procedure for carrying out each of the Wald
   kind = "discover"
   query = "procedure for computing Wald, likelihood ratio and Lagrange multiplier test statistics"
   doc_types = ["textbook"]
-  max = 10
+  max = 30
   min_score = 0.70
   max_per_file = 5
 
@@ -434,6 +434,14 @@ instruction = "Work through complete example problems on these tests from the su
   file = "ta_notes/processed_outputs/08-hypothesis-testing-trinity.md"
   query = "worked example calculation Mincer wage regression"
   max = 8
+
+  [[topic.source]]
+  kind = "discover"
+  query = "problem on Wald, likelihood ratio or Lagrange multiplier test with solution: compute the statistic and decide"
+  doc_types = ["problem_set"]
+  max = 30
+  min_score = 0.70
+  max_per_file = 6
 
 [[topic]]
 title = "Formula and notation reference"
