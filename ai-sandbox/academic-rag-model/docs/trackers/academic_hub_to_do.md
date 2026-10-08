@@ -5,6 +5,20 @@
      example text, so don't append at the end. Agents add items when asked to "add this as a
      pending to-do" (see the root CLAUDE.md). -->
 
+## Corpus Health Orchestrator (`docs/superpowers/specs/academic_hub/2026-10-07-corpus-health-orchestrator-design.md`)
+- The design's `git_state` finding kind will misreport known, device-local sync churn in the
+  nested `academic_notes/` repo as drift every day unless it explicitly excepts it. Two known
+  causes: (1) the tablet's Direct Git Sync plugin stamps `.gitignore` from each device's own
+  local plugin settings on every load, so that file's diffs are not a signal of real divergence
+  (see [[feedback_git_ignore_regenerates_from_local_plugin_settings]] in Claude's persisted
+  memory / `docs/status/2026-09-21-obsidian-git-sync-status.md`); (2) the Fit sync plugin
+  hard-blocks syncing its own `main.js`/`styles.css`, so those paths can look permanently
+  out-of-sync between devices without being a real problem. Before the `git_state` finding is
+  implemented (rollout phase 2, discovery prototype), add an exception list/pattern for these
+  known paths/causes in the nested-repo status check so they're not surfaced as findings needing
+  review. Also flagged in `docs/brainstorms/2026-10-07-corpus-orchestrator-codex-plan-review.md`
+  §4.2. (added 2026-10-08)
+
 ## Project Steering and Work Selection
 - Design a local interactive “project steering” page and `what_to_do_today` workflow that surfaces pending project ideas, subprojects, resumable work, and bugs; ranks candidates by complexity and potential utility; lets the user adjust or provide those rankings; and recommends a small set of work for today. Evaluate whether ideas and bugs should move into separate source lists, while keeping this project-wide planning workflow distinct from the academic-hub corpus-health orchestrator. The two may share a local review-page pattern, but have different findings, state, and apply behavior. (added 2026-10-07)
 
