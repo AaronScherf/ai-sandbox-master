@@ -46,11 +46,20 @@ def _truncated(response) -> bool:
     return False
 
 
+def usage_line(usage: dict) -> str:
+    """One-line token summary; the cached count (prompt tokens billed at the cache rate) only when non-zero."""
+    line = (f"Token usage: {usage['calls']} calls, {usage['prompt_tokens']} prompt tokens, "
+            f"{usage['output_tokens']} output tokens, {usage['thinking_tokens']} thinking tokens")
+    cached = usage.get("cached_tokens", 0)
+    return line + (f", {cached} of the prompt tokens cached" if cached else "")
+
+
 class GeminiClient:
     def __init__(self, client, model: str = DEFAULT_MODEL):
         self._client = client
         self.model = model
-        self.usage = {"calls": 0, "prompt_tokens": 0, "output_tokens": 0, "thinking_tokens": 0}
+        self.usage = {"calls": 0, "prompt_tokens": 0, "output_tokens": 0, "thinking_tokens": 0,
+                      "cached_tokens": 0}
 
     def _record_usage(self, response) -> None:
         meta = getattr(response, "usage_metadata", None)
@@ -58,7 +67,8 @@ class GeminiClient:
         if meta is None:
             return
         for key, attr in (("prompt_tokens", "prompt_token_count"), ("output_tokens", "candidates_token_count"),
-                          ("thinking_tokens", "thoughts_token_count")):
+                          ("thinking_tokens", "thoughts_token_count"),
+                          ("cached_tokens", "cached_content_token_count")):
             self.usage[key] += getattr(meta, attr, None) or 0
 
     def _generate(self, prompt: str, config: dict) -> str:

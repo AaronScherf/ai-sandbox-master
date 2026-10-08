@@ -23,7 +23,7 @@ def _out(vault):
 
 
 def test_prompt_version_bumped():
-    assert PROMPT_VERSION == "2026-10-05.1"
+    assert PROMPT_VERSION == "2026-10-08.1"
 
 
 def test_prompt_includes_only_the_topics_labels(vault):

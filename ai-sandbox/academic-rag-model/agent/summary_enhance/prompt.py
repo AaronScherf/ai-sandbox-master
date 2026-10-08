@@ -9,7 +9,7 @@ from agent.summary_enhance.schema import PLAN_SCHEMA, TOPIC_SCHEMA
 from agent.summary_enhance.source_loader import GuideInput
 from agent.summary_enhance.validate import MIN_SECTIONS, PLAN_MAX, PLAN_MIN
 
-PROMPT_VERSION = "2026-10-05.1"
+PROMPT_VERSION = "2026-10-08.1"
 
 # Runtime text: "\\beta", "\\frac" (two real backslashes). A plain "\beta" here would
 # teach the model the exact mistake we are warning about.
@@ -19,10 +19,11 @@ _LENGTH_FACTOR = 1.2
 _TOPIC_INSTRUCTIONS = """\
 You are writing one topic of a thorough, standalone study guide for a graduate student.
 You are given (1) an existing LLM-generated draft guide and (2) the exact textbook passages
-it was built from, each tagged with a label such as [S1]. Write the topic "{topic}".
-{others_line}
+it was built from, each tagged with a label such as [S1]. The topic to write, the other topics
+and the word target are given in the TASK section at the end.
+
 Length and structure
-  * Write at least {target} words in total across all blocks (several pages). Depth matters
+  * Write at least the target number of words in total across all blocks (several pages). Depth matters
     more than brevity: state the assumptions, build the derivation step by step, explain what
     each term in the statistic measures, give the decision rule, say when the test is valid or
     breaks down, compare how the different textbooks present it, and list common pitfalls.
@@ -52,6 +53,14 @@ Text rules
 
 Return ONLY JSON matching this schema, with no markdown fences or commentary:
 {schema}
+"""
+
+# Everything above the TASK block is identical for every topic of a run, so the API can reuse its
+# cached prefix (implicit caching); keep topic-specific text below this line.
+_TASK = """\
+=== TASK ===
+Write the topic "{topic}".
+{others_line}Write at least {target} words in total across all blocks.
 """
 
 _PLAN_INSTRUCTIONS = """\
@@ -149,12 +158,12 @@ def build_topic_prompt(guide: GuideInput, topic: str, other_topics: list[str], m
         others_line = (f"Other topics ({listed}) get their own sections of the finished guide; "
                        "do not duplicate their content beyond what this topic needs.\n")
     head = f"(prompt version {PROMPT_VERSION})\n\n" + _TOPIC_INSTRUCTIONS.format(
-        topic=topic, others_line=others_line, target=int(min_words * _LENGTH_FACTOR),
-        min_sections=MIN_SECTIONS, doubled=_DOUBLED_EXAMPLE,
-        schema=json.dumps(TOPIC_SCHEMA, indent=2))
+        min_sections=MIN_SECTIONS, doubled=_DOUBLED_EXAMPLE, schema=json.dumps(TOPIC_SCHEMA, indent=2))
     if mode == "improve":
         head += _IMPROVE_INSTRUCTIONS
-    return head + "\n" + _passages(guide, source_labels, mode, baseline_body) + _rejected(errors) + "\n"
+    task = _TASK.format(topic=topic, others_line=others_line, target=int(min_words * _LENGTH_FACTOR))
+    return (head + "\n" + _passages(guide, source_labels, mode, baseline_body) + "\n\n" + task
+            + _rejected(errors) + "\n")
 
 
 def build_worked_example_prompt(topic_title: str, grounded_text: str, errors: list[str] | None = None) -> str:

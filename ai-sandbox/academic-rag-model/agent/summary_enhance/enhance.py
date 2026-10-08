@@ -24,7 +24,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Sequence
 
-from agent.summary_enhance.llm import DEFAULT_MODEL, GeminiClient, LLMClient, UnusableResponse
+from agent.summary_enhance.llm import DEFAULT_MODEL, GeminiClient, LLMClient, UnusableResponse, usage_line
 from agent.summary_enhance.prompt import (
     build_plan_prompt, build_topic_prompt, build_worked_example_prompt,
 )
@@ -311,8 +311,7 @@ def run(guide_path: str, *, topics: list[str], output: str | None = None, model:
         _save_recovery(out, enhanced, text)
         return EXIT_WRITE
     if usage:
-        print(f"Token usage: {usage['calls']} calls, {usage['prompt_tokens']} prompt tokens, "
-              f"{usage['output_tokens']} output tokens, {usage['thinking_tokens']} thinking tokens")
+        print(usage_line(usage))
     print(f"Wrote {out}")
     return EXIT_OK
 

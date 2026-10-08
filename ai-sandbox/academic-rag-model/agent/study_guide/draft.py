@@ -12,7 +12,7 @@ from pathlib import Path
 from agent.study_guide.plan import Plan, PlanEntry, accepted
 from agent.study_guide.prompts import guide_v1_prompt, tutor_v1_prompt, tutor_v1_question
 from agent.study_guide.spec import GuideSpec, TopicSpec
-from agent.summary_enhance.llm import UnusableResponse
+from agent.summary_enhance.llm import UnusableResponse, usage_line
 
 GENERATED_BY = "academic-rag-model/agent/study_guide/draft.py"
 INTRO = ("Each section below was written from the source passages planned for that topic; the passages "
@@ -205,8 +205,7 @@ def draft_guide(spec: GuideSpec, plan: Plan, *, root: str, llm, chunks: list[dic
     usage = getattr(llm, "usage", None)
     if usage:
         front["usage"] = json.dumps(usage, separators=(",", ":"))
-        print(f"Token usage: {usage['calls']} calls, {usage['prompt_tokens']} prompt tokens, "
-              f"{usage['output_tokens']} output tokens, {usage['thinking_tokens']} thinking tokens")
+        print(usage_line(usage))
     frontmatter = "---\n" + "".join(f"{k}: {v}\n" for k, v in front.items()) + "---\n\n"
     document = frontmatter + f"# {spec.title}\n\n{INTRO if spec.citations == 'inline' else INTRO_STRIPPED}\n\n" + "\n\n---\n\n".join(blocks) + "\n"
 

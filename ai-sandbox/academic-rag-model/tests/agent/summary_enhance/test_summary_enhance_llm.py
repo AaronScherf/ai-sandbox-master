@@ -105,10 +105,12 @@ def test_usage_is_accumulated_across_calls():
             return resp
 
     client = GeminiClient(SimpleNamespace(models=UsageModels("ok")), model="m-1")
-    assert client.usage == {"calls": 0, "prompt_tokens": 0, "output_tokens": 0, "thinking_tokens": 0}
+    assert client.usage == {"calls": 0, "prompt_tokens": 0, "output_tokens": 0, "thinking_tokens": 0,
+                            "cached_tokens": 0}
     client.generate_text("a")
     client.generate_text("b")
-    assert client.usage == {"calls": 2, "prompt_tokens": 2000, "output_tokens": 600, "thinking_tokens": 100}
+    assert client.usage == {"calls": 2, "prompt_tokens": 2000, "output_tokens": 600, "thinking_tokens": 100,
+                            "cached_tokens": 0}
 
 
 def test_usage_tolerates_a_response_without_metadata():
