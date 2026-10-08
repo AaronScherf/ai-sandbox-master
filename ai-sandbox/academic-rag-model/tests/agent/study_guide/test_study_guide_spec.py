@@ -200,3 +200,29 @@ def test_missing_file_rejected(tmp_path):
 def test_course_must_be_a_plain_folder_name(tmp_path, course):
     with pytest.raises(SpecError, match="course"):
         load_spec(_write(tmp_path, MINIMAL.replace('course = "econ"', f'course = "{course}"')))
+
+
+def test_draft_options_and_construct_examples_parse(tmp_path):
+    text = MINIMAL.replace('course = "econ"\n', 'course = "econ"\n\n[draft]\nprompt = "guide_v1"\nmin_words = 1800\ncitations = "strip"\n', 1)
+    text = text.replace('instruction = "Explain A."', 'instruction = "Explain A."\nconstruct_examples = true')
+    spec = load_spec(_write(tmp_path, text))
+    assert (spec.min_words, spec.citations) == (1800, "strip")
+    assert spec.topics[0].construct_examples is True
+
+
+def test_draft_option_defaults(tmp_path):
+    spec = load_spec(_write(tmp_path, MINIMAL))
+    assert (spec.min_words, spec.citations, spec.topics[0].construct_examples) == (800, "inline", False)
+
+
+@pytest.mark.parametrize("draft,topic_extra,fragment", [
+    ('[draft]\nprompt = "guide_v1"\ncitations = "weird"\n', "", "citations"),
+    ('[draft]\nprompt = "guide_v1"\nmin_words = 0\n', "", "min_words"),
+    ('[draft]\nprompt = "tutor_v1"\n', "\nconstruct_examples = true", "construct_examples"),
+    ('[draft]\nprompt = "guide_v1"\n', "\nconstruct_examples = \"yes\"", "construct_examples"),
+])
+def test_invalid_draft_options_rejected(tmp_path, draft, topic_extra, fragment):
+    text = MINIMAL.replace('course = "econ"\n', 'course = "econ"\n\n' + draft, 1)
+    text = text.replace('instruction = "Explain A."', 'instruction = "Explain A."' + topic_extra)
+    with pytest.raises(SpecError, match=fragment):
+        load_spec(_write(tmp_path, text))

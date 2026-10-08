@@ -33,4 +33,17 @@ def test_guide_prompt_contents():
     assert "Section: Wald test" in prompt and "Focus: Cover the statistic." in prompt
     assert "[A, p. 1]\ntext one" in prompt and "800 words" in prompt and "###" in prompt
     assert "prefer the textbook" in prompt and prompt.endswith("Section text:")
-    assert "{" not in GUIDE_V1_TEMPLATE.replace("{title}", "").replace("{instruction}", "").replace("{excerpts_block}", "")
+    assert "{" not in GUIDE_V1_TEMPLATE.replace("{title}", "").replace("{instruction}", "").replace("{excerpts_block}", "").replace("{min_words}", "").replace("{examples_block}", "")
+
+
+def test_guide_prompt_word_target_is_configurable():
+    prompt = guide_v1_prompt("Wald test", "Cover it.", [("A, p. 1", "t")], min_words=1800)
+    assert "at least 1800 words" in prompt and "at least 800 words" not in prompt
+
+
+def test_constructed_examples_block_only_when_requested():
+    plain = guide_v1_prompt("LR", "Cover it.", [("A, p. 1", "t")])
+    assert "Constructed example (not from the sources)" not in plain
+    asked = guide_v1_prompt("LR", "Cover it.", [("A, p. 1", "t")], construct_examples=True)
+    assert "Constructed example (not from the sources)" in asked
+    assert "show every intermediate calculation" in asked and asked.endswith("Section text:")

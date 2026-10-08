@@ -12,6 +12,7 @@ from pathlib import Path
 
 DEFAULT_MODEL = "gemini-3.8-flash"
 VALID_PROMPTS = ("tutor_v1", "guide_v1")
+VALID_CITATIONS = ("inline", "strip")
 VALID_LABEL_MATCH = ("heading-prefix", "citation-substring")
 _ID_RE = re.compile(r"^[a-z0-9][a-z0-9_]*$")
 
@@ -40,6 +41,7 @@ class TopicSpec:
     title: str
     instruction: str
     sources: tuple[SourceRule, ...]
+    construct_examples: bool = False
 
 
 @dataclass(frozen=True)
@@ -72,6 +74,8 @@ class GuideSpec:
     comparisons: tuple[ComparisonSpec, ...]
     path: str
     sha256: str
+    min_words: int = 800
+    citations: str = "inline"
 
 
 _RULE_KEYS = {
@@ -172,10 +176,14 @@ def load_spec(path: str | Path) -> GuideSpec:
     models = data.get("models", {})
     _check_keys(models, {"draft", "enhance"}, "[models]")
     draft = data.get("draft", {})
-    _check_keys(draft, {"prompt", "label_match", "top_k", "file_top_k"}, "[draft]")
+    _check_keys(draft, {"prompt", "label_match", "top_k", "file_top_k", "min_words", "citations"}, "[draft]")
     prompt = _str(draft, "prompt", "[draft]", "tutor_v1")
     if prompt not in VALID_PROMPTS:
         raise SpecError(f"[draft]: prompt must be one of {VALID_PROMPTS}")
+    citations = _str(draft, "citations", "[draft]", "inline")
+    if citations not in VALID_CITATIONS:
+        raise SpecError(f"[draft]: citations must be one of {VALID_CITATIONS}")
+    min_words = _int(draft, "min_words", "[draft]", 800)
     label_match = _str(draft, "label_match", "[draft]", "heading-prefix")
     if label_match not in VALID_LABEL_MATCH:
         raise SpecError(f"[draft]: label_match must be one of {VALID_LABEL_MATCH}")
@@ -188,7 +196,7 @@ def load_spec(path: str | Path) -> GuideSpec:
     topics, seen = [], set()
     for i, t in enumerate(data.get("topic", []), 1):
         where = f"[[topic]] {i}"
-        _check_keys(t, {"title", "instruction", "source"}, where)
+        _check_keys(t, {"title", "instruction", "source", "construct_examples"}, where)
         title = _str(t, "title", where)
         if title in seen:
             raise SpecError(f"duplicate topic title {title!r}")
@@ -196,8 +204,14 @@ def load_spec(path: str | Path) -> GuideSpec:
         sources = t.get("source", [])
         if not sources:
             raise SpecError(f"{where} ({title!r}): needs at least one [[topic.source]]")
+        construct = t.get("construct_examples", False)
+        if not isinstance(construct, bool):
+            raise SpecError(f"{where}: 'construct_examples' must be true or false")
+        if construct and prompt != "guide_v1":
+            raise SpecError(f"{where}: 'construct_examples' needs [draft] prompt = \"guide_v1\"")
         topics.append(TopicSpec(title, _str(t, "instruction", where),
-                                tuple(_parse_rule(s, f"{where} source {j}") for j, s in enumerate(sources, 1))))
+                                tuple(_parse_rule(s, f"{where} source {j}") for j, s in enumerate(sources, 1)),
+                                construct))
     if not topics:
         raise SpecError("spec needs at least one topic")
 
@@ -224,4 +238,5 @@ def load_spec(path: str | Path) -> GuideSpec:
         enhance_model=_str(models, "enhance", "[models]", DEFAULT_MODEL),
         prompt=prompt, label_match=label_match, top_k=_int(draft, "top_k", "[draft]", 180),
         file_top_k=_int(draft, "file_top_k", "[draft]", 80), notes=tuple(notes), topics=tuple(topics),
-        comparisons=tuple(comparisons), path=str(p), sha256=hashlib.sha256(raw_bytes).hexdigest())
+        comparisons=tuple(comparisons), path=str(p), sha256=hashlib.sha256(raw_bytes).hexdigest(),
+        min_words=min_words, citations=citations)

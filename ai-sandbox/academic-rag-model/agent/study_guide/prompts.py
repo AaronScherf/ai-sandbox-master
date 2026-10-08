@@ -32,7 +32,7 @@ notes, slides, recitations). Do not introduce any claim, fact, or worked step th
 the excerpts; if they do not contain enough, say so plainly instead of filling the gap from general \
 knowledge.
 
-Write at least 800 words, organized under short ### sub-headings. Build the explanation step by step: \
+Write at least {min_words} words, organized under short ### sub-headings. Build the explanation step by step: \
 assumptions, the statistic and how it is computed, its distribution and the decision rule, intuition, \
 when it is valid or breaks down, and common pitfalls. Where the sources use different notation or \
 disagree (for example a textbook versus class notes), say so explicitly and cite both. Class notes may \
@@ -40,7 +40,7 @@ contain transcription errors; prefer the textbook where they conflict and say so
 
 Cite every substantive point inline with the citation label given with its excerpt, for example \
 "(§3.7, p. 44)".
-
+{examples_block}
 Section: {title}
 Focus: {instruction}
 
@@ -63,5 +63,13 @@ def tutor_v1_prompt(question: str, excerpts: list[tuple[str, str]]) -> str:
         history_block="", gap_hint_block="", excerpts_block=_excerpts_block(excerpts), question=question)
 
 
-def guide_v1_prompt(title: str, instruction: str, excerpts: list[tuple[str, str]]) -> str:
-    return GUIDE_V1_TEMPLATE.format(title=title, instruction=instruction, excerpts_block=_excerpts_block(excerpts))
+CONSTRUCTED_EXAMPLES_BLOCK = """
+Worked examples: first use any worked problem that appears in the excerpts, restating the problem and solving it step by step. Where the excerpts give a formula but no numerical illustration, construct one: choose simple concrete numbers, use only formulas that appear in the excerpts, show every intermediate calculation, state the conclusion, and double-check the arithmetic. Label each such example "**Constructed example (not from the sources)**" so it can be verified later. This is the only exception to the rule against steps the excerpts do not support.
+"""
+
+
+def guide_v1_prompt(title: str, instruction: str, excerpts: list[tuple[str, str]], *, min_words: int = 800,
+                    construct_examples: bool = False) -> str:
+    return GUIDE_V1_TEMPLATE.format(
+        title=title, instruction=instruction, excerpts_block=_excerpts_block(excerpts), min_words=min_words,
+        examples_block=CONSTRUCTED_EXAMPLES_BLOCK if construct_examples else "")

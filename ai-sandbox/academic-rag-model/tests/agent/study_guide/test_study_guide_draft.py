@@ -194,3 +194,52 @@ def test_a_failure_midway_saves_the_finished_sections(spec, root):
     text = recovered.read_text(encoding="utf-8")
     assert "ANSWER ONE" in text and "## Wald" in text and "## LM" not in text
     assert not output_path(root, spec).exists()
+
+
+STRIP_HEADER = ('[guide]\nid = "demo"\ntitle = "Demo guide"\ncourse = "econ"\n\n'
+                '[draft]\nprompt = "guide_v1"\nmin_words = 1800\ncitations = "strip"\n\n')
+
+
+def test_strip_mode_removes_inline_citations_and_source_lists_and_records_them_in_frontmatter(make_spec, root):
+    spec = make_spec(TOPICS, header=STRIP_HEADER)
+    plan = _plan()
+    plan.topics[0].entries[0].citation = "Recitation 6 (corrected), p. 2"
+    llm = FakeLLM(["Wald uses the covariance (Recitation 6 (corrected), p. 2; cite-han-1) and more [cite-han-1].",
+                   "LM text (cite-cam-3).", "Compared (cite-cam-3)."])
+    out, _ = _run(spec, root, llm=llm, plan=plan)
+    text = out.read_text(encoding="utf-8")
+    assert "Wald uses the covariance and more." in text and "LM text." in text
+    assert "cite-han-1)" not in text.split("---\n", 2)[2] and "Retrieved sources" not in text
+    assert "the passages retrieved for each section are listed beneath it" not in text
+    front = text.split("---\n")[1]
+    sources = json.loads(next(l for l in front.splitlines() if l.startswith("topic_sources: "))[len("topic_sources: "):])
+    assert sources["Wald"] == ["Recitation 6 (corrected), p. 2", "cite-han-1"]
+    assert sources["LM"] == ["cite-cam-3", "cite-cam-1"]
+    assert sources["Compare"] == ["Recitation 6 (corrected), p. 2", "cite-cam-3"]
+
+
+def test_strip_mode_warns_about_citations_it_could_not_match(make_spec, root, capsys):
+    spec = make_spec(TOPICS, header=STRIP_HEADER)
+    llm = FakeLLM(["Claim (Hansen §9.10, p. 268).", "ok", "ok"])
+    out, _ = _run(spec, root, llm=llm)
+    assert "(Hansen §9.10, p. 268)" in out.read_text(encoding="utf-8")
+    assert "1 citation(s) could not be matched" in capsys.readouterr().out
+
+
+def test_inline_mode_keeps_citations_and_source_lists(spec, root):
+    out, _ = _run(spec, root, llm=FakeLLM(["Claim (cite-cam-1).", "b", "c"]))
+    text = out.read_text(encoding="utf-8")
+    assert "Claim (cite-cam-1)." in text and "Retrieved sources" in text and "topic_sources" not in text
+
+
+CONSTRUCT_TOPICS = TOPICS.replace('instruction = "Explain Wald."', 'instruction = "Explain Wald."\nconstruct_examples = true')
+
+
+def test_construct_examples_applies_only_to_flagged_topics_and_is_recorded(make_spec, root):
+    header = STRIP_HEADER.replace('citations = "strip"', 'citations = "inline"')
+    spec = make_spec(CONSTRUCT_TOPICS, header=header)
+    out, llm = _run(spec, root)
+    assert "Constructed example (not from the sources)" in llm.calls[0]
+    assert "Constructed example (not from the sources)" not in llm.calls[1]
+    assert "at least 1800 words" in llm.calls[0]
+    assert 'constructed_examples: ["Wald"]\n' in out.read_text(encoding="utf-8")

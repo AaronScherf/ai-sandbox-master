@@ -10,6 +10,12 @@
 #     question-resolver sidecars, the 2024 midterm key and problem-set solutions
 #   - discover rules keep more: min_score 0.70, max 30, and no exclude_guide (previously used passages
 #     are wanted here, not treated as already covered)
+#   - draft prompt guide_v1 with an 1800-word floor per section (tutor_v1, used by the baseline runs, gives
+#     short question-and-answer style text); citations are stripped from the body and listed per section
+#     in the frontmatter (`topic_sources`), as the enhance stage reads `indexer_source_refs`, not the text
+#   - construct_examples = true on the Wald, LR, LM, recipes and worked-problems topics: where the sources
+#     give a formula but no numbers, the draft works a constructed numerical example, labelled
+#     "Constructed example (not from the sources)" so the enhance stage can check it
 #   - three stand-in topics (recipes, worked problems, formula reference) until guide-profile sections
 #     exist; they reuse the same sources and show what the draft engine can already do
 #
@@ -41,7 +47,9 @@ draft = "gemini-3.1-flash-lite"
 enhance = "gemini-3.8-flash"
 
 [draft]
-prompt = "tutor_v1"
+prompt = "guide_v1"
+min_words = 1800
+citations = "strip"
 label_match = "heading-prefix"
 top_k = 180
 file_top_k = 80
@@ -107,6 +115,7 @@ instruction = "Build the framework that the other topics rely on: the null and a
 [[topic]]
 title = "The Wald test: linear restrictions, F link and the delta method"
 instruction = "Explain the Wald test end to end: hypotheses of the form Rθ = r, the statistic and which covariance estimator it uses (robust versus homoskedastic), the chi-square limit and degrees of freedom, the relation to the F statistic and to the squared t statistic, decision rules, and nonlinear restrictions through the delta method. Include the derivations and a worked example. Compare how the sources present the covariance choice and the nonlinear case."
+construct_examples = true
 
   [[topic.source]]
   kind = "section"
@@ -178,6 +187,7 @@ instruction = "Explain the Wald test end to end: hypotheses of the form Rθ = r,
 [[topic]]
 title = "The likelihood ratio test: Wilks' theorem and invariance"
 instruction = "Explain the likelihood ratio test: restricted and unrestricted maximum likelihood, the statistic, Wilks' theorem and its chi-square limit with degrees of freedom, the criterion-based version in regression (including the sum-of-squared-residuals form in the normal model), decision rule, invariance to reparameterisation, assumptions and a worked calculation. State plainly which sources contain a likelihood ratio treatment and which do not, and compare the treatments inside this topic."
+construct_examples = true
 
   [[topic.source]]
   kind = "section"
@@ -231,6 +241,7 @@ instruction = "Explain the likelihood ratio test: restricted and unrestricted ma
 [[topic]]
 title = "The Lagrange multiplier (score) test and the nR-squared regression"
 instruction = "Explain the LM/score test: the restricted estimator, the score and its scaling by the information or Hessian, the statistic and its chi-square limit, why it needs only the restricted fit, the Lagrange-multiplier interpretation from constrained optimisation, and the auxiliary-regression nR-squared computation with a worked example. Compare the sources' notation and presentation inside this topic."
+construct_examples = true
 
   [[topic.source]]
   kind = "section"
@@ -340,6 +351,7 @@ instruction = "Explain how the three tests relate: asymptotic equivalence under 
 [[topic]]
 title = "Step-by-step recipes for each test"
 instruction = "Give a short numbered procedure for carrying out each of the Wald, likelihood ratio and Lagrange multiplier tests, including the nonlinear Wald test via the delta method and the nR-squared form of the LM test: what to compute, in what order, which covariance or information to use, the reference distribution, the decision rule, and common mistakes at each step. Base each recipe on the derivations and examples in the supplied sources."
+construct_examples = true
 
   [[topic.source]]
   kind = "file"
@@ -378,6 +390,7 @@ instruction = "Give a short numbered procedure for carrying out each of the Wald
 [[topic]]
 title = "Worked problems and exam-style questions"
 instruction = "Work through complete example problems on these tests from the supplied problem material, restating each problem, solving it step by step with the formulas used, and noting the typical error or trap at each stage. Cover the Wald test (including a nonlinear restriction by the delta method), a likelihood ratio calculation, an LM test through the nR-squared regression, and an invariance example. Use only problems and solution steps found in the sources; if a type of problem is not supplied, say so rather than inventing one."
+construct_examples = true
 
   [[topic.source]]
   kind = "section"

@@ -17,7 +17,9 @@ from agent.summary_enhance.llm import UnusableResponse
 GENERATED_BY = "academic-rag-model/agent/study_guide/draft.py"
 INTRO = ("Each section below was written from the source passages planned for that topic; the passages "
          "retrieved for each section are listed beneath it.")
+INTRO_STRIPPED = "Each section below was written from the source passages planned for that topic."
 _TAG_RE = re.compile(r"^[A-Za-z0-9_-]+$")
+_RESIDUAL_CITATION_RE = re.compile(r"\([^()]*\bp\. ?\d+[^()]*\)")
 
 
 class DraftError(Exception):
@@ -76,15 +78,35 @@ def _generate(llm, prompt: str) -> str:
     raise DraftError("the model returned no usable text twice")
 
 
+def strip_citations(text: str, labels: list[str]) -> tuple[str, int]:
+    """Remove "(label; label)" and "[label]" groups made only of the section's own passage labels.
+    Returns the cleaned text and how many citation-looking parentheticals were left unmatched."""
+    labels = sorted({l for l in labels if l}, key=len, reverse=True)
+    if labels:
+        alt = "|".join(re.escape(l) for l in labels)
+        sep = r"\s*(?:[;,]|and)\s*"
+        text = re.sub(rf"\s*[\(\[]\s*(?:{alt})(?:{sep}(?:{alt}))*\s*[\)\]]", "", text)
+    return text, len(_RESIDUAL_CITATION_RE.findall(text))
+
+
 def _topic_prompt(spec: GuideSpec, topic: TopicSpec, excerpts: list[tuple[str, str]]) -> str:
     if spec.prompt == "guide_v1":
-        return guide_v1_prompt(topic.title, topic.instruction, excerpts)
+        return guide_v1_prompt(topic.title, topic.instruction, excerpts, min_words=spec.min_words,
+                               construct_examples=topic.construct_examples)
     return tutor_v1_prompt(tutor_v1_question(topic.title, topic.instruction), excerpts)
 
 
-def _section(title: str, answer: str, entries: list[PlanEntry]) -> str:
-    sources = "\n".join(f"- [{e.citation}] `{e.path}`" for e in entries)
-    return f"## {title}\n\n{answer}\n\n**Retrieved sources**\n\n{sources}"
+def _section(spec: GuideSpec, title: str, answer: str, entries: list[PlanEntry],
+             topic_sources: dict[str, list[str]]) -> str:
+    if spec.citations == "inline":
+        sources = "\n".join(f"- [{e.citation}] `{e.path}`" for e in entries)
+        return f"## {title}\n\n{answer}\n\n**Retrieved sources**\n\n{sources}"
+    labels = [e.citation for e in entries]
+    answer, residual = strip_citations(answer, labels)
+    if residual:
+        print(f"WARNING: section {title!r}: {residual} citation(s) could not be matched and were left in the text")
+    topic_sources[title] = list(dict.fromkeys(labels))
+    return f"## {title}\n\n{answer}"
 
 
 def draft_guide(spec: GuideSpec, plan: Plan, *, root: str, llm, chunks: list[dict] | None = None,
@@ -104,11 +126,12 @@ def draft_guide(spec: GuideSpec, plan: Plan, *, root: str, llm, chunks: list[dic
 
     blocks = [f"## {n.heading}\n\n{n.body}" for n in spec.notes]
     used: dict[str, PlanEntry] = {}
+    topic_sources: dict[str, list[str]] = {}
     try:
         for topic in spec.topics:
             entries = per_topic[topic.title]
             answer = _generate(llm, _topic_prompt(spec, topic, _excerpts(entries, text_by_id)))
-            blocks.append(_section(topic.title, answer, entries))
+            blocks.append(_section(spec, topic.title, answer, entries, topic_sources))
             for e in entries:
                 used.setdefault(e.chunk_id, e)
         for cmp_ in spec.comparisons:
@@ -121,10 +144,10 @@ def draft_guide(spec: GuideSpec, plan: Plan, *, root: str, llm, chunks: list[dic
                         chosen.append(e)
             excerpts = _excerpts(chosen, text_by_id)
             if spec.prompt == "guide_v1":
-                prompt = guide_v1_prompt(cmp_.title, cmp_.instruction, excerpts)
+                prompt = guide_v1_prompt(cmp_.title, cmp_.instruction, excerpts, min_words=spec.min_words)
             else:
                 prompt = tutor_v1_prompt(cmp_.instruction, excerpts)
-            blocks.append(_section(cmp_.title, _generate(llm, prompt), chosen))
+            blocks.append(_section(spec, cmp_.title, _generate(llm, prompt), chosen, topic_sources))
             for e in chosen:
                 used.setdefault(e.chunk_id, e)
     except Exception:
@@ -147,8 +170,13 @@ def draft_guide(spec: GuideSpec, plan: Plan, *, root: str, llm, chunks: list[dic
         "plan": json.dumps({"file": Path(plan_path).name if plan_path else "", "sha256": plan_sha256}),
         "indexer_source_refs": json.dumps(refs, ensure_ascii=False, separators=(",", ":")),
     }
+    if spec.citations == "strip":
+        front["topic_sources"] = json.dumps(topic_sources, ensure_ascii=False, separators=(",", ":"))
+    constructed = [t.title for t in spec.topics if t.construct_examples]
+    if constructed:
+        front["constructed_examples"] = json.dumps(constructed, ensure_ascii=False)
     frontmatter = "---\n" + "".join(f"{k}: {v}\n" for k, v in front.items()) + "---\n\n"
-    document = frontmatter + f"# {spec.title}\n\n{INTRO}\n\n" + "\n\n---\n\n".join(blocks) + "\n"
+    document = frontmatter + f"# {spec.title}\n\n{INTRO if spec.citations == 'inline' else INTRO_STRIPPED}\n\n" + "\n\n---\n\n".join(blocks) + "\n"
 
     out.parent.mkdir(parents=True, exist_ok=True)
     tmp = out.with_name(out.name + ".tmp")
