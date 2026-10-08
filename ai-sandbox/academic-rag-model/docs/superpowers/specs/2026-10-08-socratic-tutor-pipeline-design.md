@@ -22,6 +22,7 @@ Out of scope (v1): hard file-access wall; spaced review (see §10); replacing th
 | Live host | Antigravity agent session, host-agnostic file/CLI protocol where free | Subscription-priced; user's choice |
 | Enforcement | FSM implemented in a local CLI the agent must call each turn; prompt alone is not trusted | Same prompt-only approach failed 5 times in the beta |
 | Leak wall | **Soft**: sealed solutions live in `packet/sealed/`; reading them goes through the CLI so each reveal is logged; direct reads are forbidden by the bootstrap prompt but not technically blocked | User's choice; direct reads are not detectable in-host, so the audit can only surface what the CLI saw |
+| LLM work in prep | Done by the live IDE agent in a separate prep session; Python only collects, validates and writes. No paid API key. Only the query-embedding call remains | Flat-rate agent makes the paid key unnecessary; user's direction |
 | Learner profile | Per-course concept-gap tracker only | Spaced review is a separate future subproject |
 
 ## 3. Architecture
@@ -37,7 +38,14 @@ tutor prep  ──► packet/  ────────────────�
 
 ### 3.1 Offline: `tutor prep <course> <problem_set>`
 
-Builds a **packet** per problem set, reusing `problem_set_parser.extract_question`, `rag_agent.retrieve_passages`, existing `*_hints.md` and `*_guided_solutions.md`. Uses the paid Gemini key only for glossary and rubric drafting; the packet is cached, so prep runs once per problem set.
+Builds a **packet** per problem set, reusing `problem_set_parser.extract_question`, `rag_agent.retrieve_passages`, existing `*_hints.md` and `*_guided_solutions.md`. The packet is cached, so prep runs once per problem set.
+
+**No paid LLM calls.** Prep is split into deterministic Python steps and agent-authored steps, run in a dedicated *prep session* of the same IDE agent (flat-rate):
+- Python (`tutor prep --collect`): parse the problem set, run retrieval, write `parts.json` skeletons and `grounding.md`, and emit a prep worklist.
+- Agent (follows the worklist): draft `glossary.json`, `rubric.json`, and each part's `concept_tags` / `expected_evidence`. It submits them through `tutor prep --submit`, which runs the glossary lint (§3.1) and schema validation and rejects bad drafts for revision.
+- The only remaining API dependency is the Gemini **query embedding** used by `retrieve_passages` / `core.indexer.index_search` (the index was built with those embeddings). It is one small call per query and runs on the free tier. Everything else is offline or agent-side.
+- Prep runs in a separate session from tutoring, so the agent that drafts sealed content is not mid-dialogue with the student. Packets are human-reviewable files; the user may edit them before the first session.
+- Trade-off: prep now needs an agent session rather than a headless batch run, and draft quality depends on the IDE model. The lints and the human review step are the quality gates.
 
 Packet layout (`academic_notes/<course>/tutoring/<ps>/packet/`):
 
@@ -136,9 +144,22 @@ Sync notes: `academic_notes/` is its own repo and the tablet syncs it, so sessio
 
 Reuse, don't modify: `problem_set_parser`, `retrieve_passages`, `session_log` conventions. At plan time, check whether `tutor_diagnosis.Diagnosis` rubric fields can be shared with `rubric.json`; if not, keep the two independent. The Antigravity bootstrap (a short prompt file or workflow that runs `tutor start` and states the "call `student` then `say` every turn" contract) must be confirmed against Antigravity's workflow/shell-permission features during planning.
 
-## 10. Future extension (separate subproject): learning-progress tracker
+## 10. Future extensions (not in v1)
 
-Spaced review driven by `learner_profile.json`: schedule review problems per open gap, track decay across courses, surface a dashboard. v1 only guarantees the profile schema is stable and versioned (`schema_version` field) so this can build on it.
+v1 assumes an existing, structured problem set (§3.1 parses it into parts). The extensions below are deferred until v1 works end to end. To keep them cheap, v1 treats `packet/` as the only contract between prep and the live session: anything that can produce a valid packet can drive a session.
+
+### 10.1 Session modes
+
+1. **Topic / timeframe review.** The student states a topic and scope in plain language ("what we covered in the past week in microeconomics", "everything up to now for the midterm"). A scope resolver turns that into a bounded set of course material (by date, lecture or note range, using the index and card metadata). The tutor then calls the existing **problem set generator pipeline** on that subset to produce problems, converts them into a packet (`parts.json` etc.), and the normal Socratic session runs on it. Needs: a scope resolver, an adapter from generator output to packet format, and sealed solutions generated from the same grounded material.
+2. **Study-guide walkthrough.** The student supplies a study guide (possibly from the study guide pipeline) and picks one of:
+   - *Practice problems:* falls back to mode 1, with the guide's topics as the scope.
+   - *Walkthrough:* a Q&A mode with no problem set, where the tutor goes through the guide's topics and answers the student's questions, grounded in the guide and the retrieved course material. It reuses the FSM's pacing gate (student-controlled advancement), the define-only boundary and the calibrated gap logging, but drops the proof-solving states and the sealed solution.
+
+Design implications to preserve now: keep `parts.json` generic (a "part" may be a problem or a topic), keep the FSM state set configurable per session mode, and keep concept tags free of any problem-set assumption.
+
+### 10.2 Learning-progress tracker (separate subproject)
+
+Spaced review driven by `learner_profile.json`: schedule review problems per open gap, track decay across courses, surface a dashboard. v1 only guarantees the profile schema is stable and versioned (`schema_version` field) so this can build on it. The review problems themselves would come from mode 1 above.
 
 ## 11. Open risks
 
