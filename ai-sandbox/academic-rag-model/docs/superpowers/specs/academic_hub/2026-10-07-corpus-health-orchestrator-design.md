@@ -45,7 +45,7 @@ The tool treats these roots separately and reports their status independently:
 
 An outer Git worktree does not contain the ignored `academic_notes/` checkout. The orchestrator must resolve its configured live path explicitly and must report “unavailable” rather than silently treating a missing nested checkout as an empty vault. `tools/git_workflow.py` and `tools/active_work.py` provide reusable outer-monorepo worktree and dirty-file reporting. They do not, by themselves, model the nested notes repository or determine whether two corpus trees are semantically synchronized.
 
-The daily run is a single-writer operation over its own state. Before any accepted action writes to the shared corpus or index, it must acquire an orchestrator lock and verify configured roots. The design must also define how it avoids writing while Obsidian Git sync or another pipeline is active. Until then, note transcription and other outputs targeting `academic_notes/` remain proposals that cannot be applied by v1.
+The daily run is read-only with respect to corpus outputs. An orchestrator-only lock is not sufficient for later repairs: a manually launched pipeline does not know about it and could write the same output concurrently. Before enabling any apply adapter, every participating local writer must honor a shared corpus-write lock (or the adapter must have another verified exclusion mechanism). The lock must cover the whole action, identify its owner and target roots, and fail clearly rather than allowing a second writer to proceed. An external sync process cannot honor that lock unless specifically integrated; `academic_notes/` therefore remains read/report-only until a safe sync-quiescence protocol is established. A write adapter must be disabled when it cannot establish exclusive ownership of its destination.
 
 ## User workflow
 
@@ -94,6 +94,8 @@ Initial finding types are:
 
 The linked `wald_lm_lr_tests.enhanced.e1.md` is a useful concrete example of generated study-guide Markdown. Its presence demonstrates why file extension alone cannot determine whether frontmatter/indexing is expected: the scan needs a configurable category/policy or an explicit source marker, and should report uncertain classifications rather than infer that every Markdown file needs repair.
 
+For the nested `academic_notes/` Git report, status handling must recognize the specific device-local sync churn recorded in `docs/status/2026-09-21-obsidian-git-sync-status.md` and `docs/trackers/academic_hub_to_do.md`: the generated `.gitignore` can be rewritten from each device's Direct Git Sync settings, and the Fit sync plugin may leave its own `main.js` and `styles.css` out of sync. These are informational/exempt from actionable drift findings only at the verified plugin paths; do not suppress every file with those basenames. Confirm the exact plugin-relative paths from repository facts available to the implementation without reading prohibited private settings. Keep the exception list narrow, documented, and testable.
+
 ### Durable decision state
 
 Maintain a local, versioned ledger and append-only run records under an ignored operational-state directory owned by the orchestrator. Do not put ephemeral decisions in tracked code docs or hand-editable vault Markdown. The exact state path and backup policy are implementation-plan decisions; it must survive normal code updates and be excluded from commits.
@@ -127,13 +129,13 @@ Application uses Python subprocess argument arrays with explicit working directo
 
 - the exact source fingerprint still matches the reviewed proposal;
 - output roots resolve to the intended configured repositories;
-- the operation’s cost/side-effect category matches the acceptance;
-- no conflicting orchestrator run is active;
+- the operation's cost/side-effect category matches the acceptance;
+- the shared writer lock is held for the target roots and no competing supported writer is active;
 - the target repository is available and, for writes, meets the v1 writer/sync constraints.
 
 The application step records command, selected inputs, start/end time, exit code, output paths, and redacted logs. It must not capture or print secrets. Each action is restartable and idempotent to the degree the underlying pipeline supports; partial failure is retained and does not cause unrelated accepted actions to be marked successful.
 
-No Git operation is part of apply. An accepted indexing action may write index artifacts as documented by the indexer, but does not stage or commit them. Actions whose only available implementation mutates a broad corpus, writes outside configured roots, or cannot be validated remain blocked findings with a concrete prerequisite.
+No Git operation is part of apply. An accepted indexing action may write index artifacts as documented by the indexer, but does not stage or commit them. Actions whose only available implementation mutates a broad corpus, writes outside configured roots, cannot acquire the shared writer lock, or cannot establish sync quiescence remain blocked findings with a concrete prerequisite. The lock cannot protect against tools that have not adopted it; such tools must be adapted before they are allowed to overlap an orchestrator write. Cloud/VM textbook conversion remains outside automated apply until its remote writes can participate in the same single-writer protocol.
 
 ## Git status checks
 
@@ -143,11 +145,15 @@ The current `academic-hub/` directory is not a separate Git repository; it is tr
 
 Git findings are diagnostic. The orchestrator never repairs them, and branch staleness requires a declared base/remote and policy before it can be meaningfully reported. Missing remote data or an unavailable notes checkout must be explicit in the report.
 
+## Proportional rollout
+
+The full design adds a local HTTP review server, persistent decision state, shared writer coordination, and multiple pipeline adapters. Those are follow-on infrastructure, not prerequisites for the first useful result. The first independently usable milestone is a read-only scan command that prints and saves a current report of missing expected outputs and repository status; it requires no review server, action ledger, or repair execution. It can be run manually or scheduled as a simple daily report. Later phases add deduplication of recurring findings, interactive decisions, and only then safe repairs. Each phase should be reviewable and useful on its own; approval of the full repair system is not required to use the scanner.
+
 ## Scheduling and operation
 
 On Windows, the intended scheduler is Windows Task Scheduler invoking the repository’s Python entry point directly with a fixed working directory and explicit config. It is not an agent-dispatched schedule. The first rollout schedules discovery-only runs. Scheduler installation, credentials, and run-as-user permissions are documented separately and are not performed by the application itself.
 
-Daily work is bounded: enumerate and compare manifests, hash only new/changed candidates, update ledger, and refresh the review surface through the supported adapter. Deeper validation is explicitly opt-in until measured scan-time and resource cost are known. Every report includes duration, roots scanned, files considered, fingerprint work, and incomplete/error counts so the daily scan’s actual cost can be assessed.
+Daily work is bounded: enumerate configured roots, compare source/output existence and indexer-provided status, and write a concise report. Once the ledger phase exists, it also updates local finding state; the separate review command serves the pending queue when requested. Deeper validation is explicitly opt-in until measured scan-time and resource cost are known. Every report includes duration, roots scanned, files considered, fingerprint work, and incomplete/error counts so the daily scan's actual cost can be assessed.
 
 ## Configuration and reports
 
@@ -157,12 +163,13 @@ The run report summarizes findings by type and state, repository availability/st
 
 ## Rollout
 
-1. **Inventory:** verify each operation’s safety, scope, cost, output, and verification properties; map source categories and expected-output rules, including generated summaries such as enhanced study guides.
-2. **Discovery prototype:** implement read-only manifest reconciliation and Git status reporting; compare its findings with manual checks on a small set of courses.
+1. **Inventory:** verify each operation's safety, scope, cost, output, and verification properties; map source categories and expected-output rules, including generated summaries such as enhanced study guides.
+2. **Read-only scanner MVP:** implement a current-state report for missing expected outputs and repository status. This milestone is independently useful and can be run daily before review UI or repairs exist; compare its findings with manual checks on a small set of courses.
 3. **Local review page:** implement the loopback-only page and verify decisions persist to the ledger, stale approvals are rejected, and the server is inaccessible from non-loopback interfaces.
-4. **Ledger and policy:** implement stable identity, decision states, fingerprint invalidation, locking, and migration/version behavior.
-5. **Repair adapters:** add one operation at a time, starting with the least costly and most precisely scoped, then verify against fixtures and a controlled corpus sample.
-6. **Schedule:** measure scan runtime, install a discovery-only Windows Task Scheduler job, inspect reports through a trial period, and only then consider any unattended deterministic repairs.
+4. **Ledger and policy:** implement stable identity, decision states, fingerprint invalidation, and state migration/version behavior.
+5. **Shared writer coordination:** establish a lock contract honored by each local writer the orchestrator may invoke; document external sync quiescence and keep unsupported writers disabled.
+6. **Repair adapters:** add one operation at a time, starting with the least costly and most precisely scoped, then verify against fixtures and a controlled corpus sample. No repair adapter ships ahead of the writer coordination required for its destination.
+7. **Schedule:** measure scan runtime, install a discovery-only Windows Task Scheduler job, inspect reports through a trial period, and only then consider any unattended deterministic repairs.
 
 ## Open decisions
 
@@ -173,4 +180,4 @@ The run report summarizes findings by type and state, repository availability/st
 
 ## Next step
 
-Resolve the remaining policy decisions, especially cloud approval granularity and the notes-repo write boundary. Then produce an implementation plan with the pipeline capability inventory as its first deliverable. Implementation should begin only after the user approves the resulting spec and plan.
+Resolve the remaining policy decisions, especially cloud approval granularity and the notes-repo write boundary. The read-only scanner may be approved and delivered as an independent first milestone; later phases require their own scope and safety decisions. The implementation plan should begin with the pipeline capability inventory and preserve this staged approval boundary.
