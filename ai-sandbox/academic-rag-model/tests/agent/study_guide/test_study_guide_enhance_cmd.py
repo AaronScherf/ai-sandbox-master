@@ -169,3 +169,21 @@ def test_main_passes_output(monkeypatch, tmp_path):
     assert calls["output"] == "o.md"
     main(["enhance", "s.toml", "--root", str(tmp_path), "--draft", "g.md"])
     assert calls["output"] is None
+
+
+def test_baseline_option_is_forwarded(setup, root, tmp_path, captured):
+    spec_file, spec, draft = setup
+    _decide(spec, root, tmp_path, {"Wald|han-1": "keep"})
+    cmd_enhance(str(spec_file), root, draft_path=str(draft), chunks=CHUNKS, cards=CARDS, baseline="topic")
+    assert captured["kw"]["baseline"] == "topic"
+    cmd_enhance(str(spec_file), root, draft_path=str(draft), chunks=CHUNKS, cards=CARDS)
+    assert captured["kw"]["baseline"] == "full"
+
+
+def test_main_maps_the_per_topic_flag(monkeypatch, tmp_path):
+    seen = {}
+    monkeypatch.setattr(cli, "cmd_enhance", lambda spec, root, **kw: seen.update(kw) or 0)
+    assert main(["enhance", "s.toml", "--root", str(tmp_path), "--draft", "d.md", "--baseline", "per-topic"]) == 0
+    assert seen["baseline"] == "topic"
+    assert main(["enhance", "s.toml", "--root", str(tmp_path), "--draft", "d.md"]) == 0
+    assert seen["baseline"] == "full"

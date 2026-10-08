@@ -169,7 +169,7 @@ def cmd_enhance(spec_path: str, root: str, *, draft_path: str, plan_path: str | 
                 mode: str = "improve", worked_example: bool = False, min_words: int = DEFAULT_MIN_WORDS,
                 model: str | None = None, tag: str = "", force: bool = False, dry_run: bool = False,
                 accept_unreviewed: bool = False, env_file: str | None = None, llm=None,
-                chunks=None, cards=None, output: str | None = None) -> int:
+                chunks=None, cards=None, output: str | None = None, baseline: str = "full") -> int:
     try:
         spec = load_spec(spec_path)
         validate_tag(tag)
@@ -192,7 +192,7 @@ def cmd_enhance(spec_path: str, root: str, *, draft_path: str, plan_path: str | 
     return enhance_run(
         str(draft), topics=[t.title for t in spec.topics], output=output, model=model or spec.enhance_model,
         force=force, dry_run=dry_run, llm=llm, env_file=env_file, worked_example=worked_example,
-        min_words=min_words, mode=mode, extra_sources=extras)
+        min_words=min_words, mode=mode, extra_sources=extras, baseline=baseline)
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -233,6 +233,8 @@ def main(argv: list[str] | None = None) -> int:
     sp.add_argument("--plan", help="plan file (default: the spec's plan in the vault)")
     sp.add_argument("--mode", choices=("rewrite", "improve"), default="improve")
     sp.add_argument("--worked-example", action="store_true")
+    sp.add_argument("--baseline", choices=("full", "per-topic"), default="full",
+                    help="per-topic: each topic sees only its own section of the draft and its own passages")
     sp.add_argument("--min-words", type=int, default=DEFAULT_MIN_WORDS)
     sp.add_argument("--model", help="override [models].enhance")
     sp.add_argument("--tag", default="", help="name an output variant (<draft>.enhanced.<tag>.md)")
@@ -248,7 +250,8 @@ def main(argv: list[str] | None = None) -> int:
         return cmd_enhance(args.spec, args.root, draft_path=args.draft, plan_path=args.plan, mode=args.mode,
                            worked_example=args.worked_example, min_words=args.min_words, model=args.model,
                            tag=args.tag, force=args.force, dry_run=args.dry_run,
-                           accept_unreviewed=args.accept_unreviewed, env_file=args.env_file, output=args.output)
+                           accept_unreviewed=args.accept_unreviewed, env_file=args.env_file, output=args.output,
+                           baseline="topic" if args.baseline == "per-topic" else "full")
     if args.command in ("plan", "run"):
         client = _paid_client(args.env_file)
         code = cmd_plan(args.spec, args.root, client=client, force=getattr(args, "force", False))

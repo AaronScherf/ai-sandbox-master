@@ -112,13 +112,14 @@ def _kind(source) -> str:
     return f" ({kind}, {source.offering} offering)" if source.offering else f" ({kind})"
 
 
-def _passages(guide: GuideInput, labels: set[str] | None = None, mode: str = "rewrite") -> str:
+def _passages(guide: GuideInput, labels: set[str] | None = None, mode: str = "rewrite",
+              body: str | None = None) -> str:
     if mode == "improve":
         head = ("=== BASELINE GUIDE (existing draft; keep what the passages support, correct or extend "
                 "the rest; it is not a source) ===\n")
     else:
         head = "=== DRAFT GUIDE (not a source) ===\n"
-    parts = [head + guide.body, "=== TEXTBOOK PASSAGES ===" if mode != "improve" else "=== SOURCE PASSAGES ==="]
+    parts = [head + (guide.body if body is None else body), "=== TEXTBOOK PASSAGES ===" if mode != "improve" else "=== SOURCE PASSAGES ==="]
     for s in guide.sources:
         if labels is not None and s.label not in labels:
             continue
@@ -141,7 +142,7 @@ def build_plan_prompt(guide: GuideInput, errors: list[str] | None = None) -> str
 
 def build_topic_prompt(guide: GuideInput, topic: str, other_topics: list[str], min_words: int,
                        errors: list[str] | None = None, *, source_labels: set[str] | None = None,
-                       mode: str = "rewrite") -> str:
+                       mode: str = "rewrite", baseline_body: str | None = None) -> str:
     others_line = ""
     if other_topics:
         listed = ", ".join(json.dumps(t) for t in other_topics)
@@ -153,7 +154,7 @@ def build_topic_prompt(guide: GuideInput, topic: str, other_topics: list[str], m
         schema=json.dumps(TOPIC_SCHEMA, indent=2))
     if mode == "improve":
         head += _IMPROVE_INSTRUCTIONS
-    return head + "\n" + _passages(guide, source_labels, mode) + _rejected(errors) + "\n"
+    return head + "\n" + _passages(guide, source_labels, mode, baseline_body) + _rejected(errors) + "\n"
 
 
 def build_worked_example_prompt(topic_title: str, grounded_text: str, errors: list[str] | None = None) -> str:

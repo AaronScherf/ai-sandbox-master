@@ -17,6 +17,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import sys
 from dataclasses import asdict
 from datetime import datetime, timezone
@@ -95,8 +96,29 @@ def _plan_topics(llm: LLMClient, guide: GuideInput) -> list[str]:
                        lambda p: llm.generate_structured(p, PLAN_SCHEMA), check)
 
 
+_H2_RE = re.compile(r"^## (?!#)(.*?)\s*$")
+
+
+def baseline_section(body: str, title: str) -> str | None:
+    """The guide's own "## <title>" section (up to the next H2), or None when it has none."""
+    want = " ".join(title.split()).casefold()
+    lines, start = body.splitlines(), None
+    for i, line in enumerate(lines):
+        m = _H2_RE.match(line)
+        if m and " ".join(m.group(1).split()).casefold() == want:
+            start = i
+            break
+    if start is None:
+        return None
+    end = next((j for j in range(start + 1, len(lines)) if _H2_RE.match(lines[j])), len(lines))
+    section = lines[start:end]
+    while section and (not section[-1].strip() or section[-1].strip() == "---"):
+        section.pop()
+    return "\n".join(section)
+
+
 def _synthesize(llm: LLMClient, guide: GuideInput, title: str, others: list[str], min_words: int,
-                mode: str = "rewrite") -> Topic:
+                mode: str = "rewrite", baseline_body: str | None = None) -> Topic:
     labels = guide.labels_for(title)
 
     def check(data):
@@ -109,7 +131,8 @@ def _synthesize(llm: LLMClient, guide: GuideInput, title: str, others: list[str]
         return topic, errors
 
     return _with_retry(
-        lambda errs: build_topic_prompt(guide, title, others, min_words, errs, source_labels=labels, mode=mode),
+        lambda errs: build_topic_prompt(guide, title, others, min_words, errs, source_labels=labels, mode=mode,
+                                        baseline_body=baseline_body),
         lambda p: llm.generate_structured(p, TOPIC_SCHEMA), check)
 
 
@@ -175,13 +198,23 @@ def run(guide_path: str, *, topics: list[str], output: str | None = None, model:
         force: bool = False, dry_run: bool = False, llm: LLMClient | None = None,
         env_file: str | None = None, worked_example: bool = False,
         min_words: int = DEFAULT_MIN_WORDS, mode: str = "rewrite",
-        extra_sources: Sequence[ExtraSource] | None = None) -> int:
+        extra_sources: Sequence[ExtraSource] | None = None, baseline: str = "full") -> int:
     try:
         if min_words < 1:
             raise OutputError(f"--min-words must be a positive integer, got {min_words}")
         if mode not in ("rewrite", "improve"):
             raise OutputError(f"--mode must be 'rewrite' or 'improve', got {mode!r}")
-        guide = load_guide(guide_path, extra_sources, share_own_refs=(mode == "improve"))
+        if baseline not in ("full", "topic"):
+            raise OutputError(f"--baseline must be 'full' or 'per-topic', got {baseline!r}")
+        guide = load_guide(guide_path, extra_sources, share_own_refs=(mode == "improve" and baseline == "full"))
+        bodies: dict[str, str | None] = {}
+        if baseline == "topic":
+            if not topics:
+                raise OutputError("--baseline per-topic needs a --topic for every section")
+            bodies = {t: baseline_section(guide.body, t) for t in topics}
+            missing = [t for t, b in bodies.items() if b is None]
+            if missing:
+                raise OutputError(f"--baseline per-topic: the guide has no '## <title>' section for: {', '.join(missing)}")
         out = resolve_output(guide, output, force)
         if env_file is not None and not Path(env_file).is_file():
             raise OutputError(f"--env-file not found: {env_file}")
@@ -191,7 +224,8 @@ def run(guide_path: str, *, topics: list[str], output: str | None = None, model:
 
     if dry_run:
         sample = (build_topic_prompt(guide, topics[0], topics[1:], min_words,
-                                     source_labels=guide.labels_for(topics[0]), mode=mode) if topics
+                                     source_labels=guide.labels_for(topics[0]), mode=mode,
+                                     baseline_body=bodies.get(topics[0])) if topics
                   else build_plan_prompt(guide))
         print(f"DRY RUN: {len(guide.sources)} chunks, mode {mode}, about {len(sample)} prompt characters per call, "
               f"model {model or DEFAULT_MODEL}, {_planned_calls(topics, worked_example)}, "
@@ -211,7 +245,7 @@ def run(guide_path: str, *, topics: list[str], output: str | None = None, model:
         done: list[Topic] = []
         for i, title in enumerate(titles):
             others = [t for j, t in enumerate(titles) if j != i]
-            topic = _synthesize(llm, guide, title, others, min_words, mode)
+            topic = _synthesize(llm, guide, title, others, min_words, mode, bodies.get(title))
             if worked_example:
                 topic.worked_example = _worked_example(llm, topic)
             done.append(topic)
@@ -250,6 +284,9 @@ def main(argv: list[str] | None = None) -> int:
                    help=f"minimum words per topic (default {DEFAULT_MIN_WORDS})")
     p.add_argument("--mode", choices=("rewrite", "improve"), default="rewrite",
                    help="rewrite (default) or improve: treat the guide as a baseline to keep and extend")
+    p.add_argument("--baseline", choices=("full", "per-topic"), default="full",
+                   help="full: every topic sees the whole guide; per-topic: only its own '## <title>' section "
+                        "and its own passages (needs --topic for every section)")
     p.add_argument("--output", help="explicit output .md path (must be inside academic_notes/)")
     p.add_argument("--model", help=f"Gemini model id (default {DEFAULT_MODEL})")
     p.add_argument("--env-file", help="load PAID_GEMINI_KEY from this .env (e.g. the main checkout's) "
@@ -260,7 +297,8 @@ def main(argv: list[str] | None = None) -> int:
     return run(args.guide, topics=args.topic, output=args.output, model=args.model,
                force=args.force, dry_run=args.dry_run, env_file=args.env_file,
                worked_example=args.worked_example, min_words=args.min_words,
-               mode=args.mode, extra_sources=None)
+               mode=args.mode, extra_sources=None,
+               baseline="topic" if args.baseline == "per-topic" else "full")
 
 
 if __name__ == "__main__":

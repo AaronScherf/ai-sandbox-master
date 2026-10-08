@@ -138,3 +138,67 @@ def test_enhance_dry_run_sizes_the_real_improve_prompt(vault, make_llm, capsys):
         return int(re.search(r"about (\d+) prompt characters", capsys.readouterr().out).group(1))
     extras = [_extra("Wald"), _extra("LM", chunk_id="unused-1", file_id="cam")]
     assert size(extras, mode="improve") > size(extras, mode="rewrite")
+
+
+SECTIONED = ("# Wald and LM tests\n\n## Wald\n\nWALD-DRAFT-TEXT\n\n### Sub\n\nmore wald\n\n---\n\n"
+             "## LM\n\nLM-DRAFT-TEXT\n\n---\n\n## Other\n\nOTHER-DRAFT-TEXT\n")
+
+
+def _sectioned(vault):
+    text = vault.guide.read_text(encoding="utf-8")
+    vault.guide.write_text(text.replace("# Wald and LM tests\n\nBody text.\n", SECTIONED), encoding="utf-8")
+
+
+def test_baseline_section_extracts_one_titled_section():
+    from agent.summary_enhance.enhance import baseline_section
+    body = "intro\n\n## Wald\n\nWALD\n\n### Sub\n\nmore\n\n---\n\n## LM\n\nLM\n"
+    assert baseline_section(body, "Wald") == "## Wald\n\nWALD\n\n### Sub\n\nmore"
+    assert baseline_section(body, "  lm ") == "## LM\n\nLM"
+    assert baseline_section(body, "Missing") is None
+
+
+def test_prompt_can_replace_the_baseline_body(vault):
+    guide = load_guide(vault.guide, [_extra("Wald")])
+    prompt = build_topic_prompt(guide, "Wald", [], 1400, mode="improve", baseline_body="ONLY-THIS-SECTION")
+    assert "ONLY-THIS-SECTION" in prompt and "Body text." not in prompt and "BASELINE GUIDE" in prompt
+
+
+def test_per_topic_baseline_gives_each_topic_only_its_own_section_and_passages(vault, make_llm):
+    _sectioned(vault)
+    llm = make_llm(make_topic_json("Wald", labels=("S4",)), make_topic_json("LM", labels=("S1",)))
+    assert _go(vault, llm, [_extra("Wald"), _extra("LM", chunk_id="cam-1", file_id="cam", doc_type="", offering="")],
+               mode="improve", baseline="topic") == 0
+    wald, lm = llm.calls[0], llm.calls[1]
+    assert "WALD-DRAFT-TEXT" in wald and "LM-DRAFT-TEXT" not in wald and "OTHER-DRAFT-TEXT" not in wald
+    assert "LM-DRAFT-TEXT" in lm and "WALD-DRAFT-TEXT" not in lm
+    assert "Class notes: the Wald statistic" in wald and "Cameron: the Wald statistic" not in wald
+
+
+def test_full_baseline_remains_the_default(vault, make_llm):
+    _sectioned(vault)
+    llm = make_llm(make_topic_json("Wald", labels=("S4",)), make_topic_json("LM", labels=("S1",)))
+    assert _go(vault, llm, [_extra("Wald"), _extra("LM", chunk_id="cam-1", file_id="cam", doc_type="", offering="")],
+               mode="improve") == 0
+    assert "WALD-DRAFT-TEXT" in llm.calls[0] and "OTHER-DRAFT-TEXT" in llm.calls[0]
+
+
+def test_per_topic_baseline_needs_a_section_for_every_topic(vault, make_llm, capsys):
+    _sectioned(vault)
+    llm = make_llm()
+    assert _go(vault, llm, [_extra("Wald")], mode="improve", baseline="topic", topics=["Wald", "Missing"]) == 2
+    assert "Missing" in capsys.readouterr().out and llm.calls == []
+
+
+def test_unknown_baseline_value_is_rejected(vault, make_llm, capsys):
+    assert _go(vault, make_llm(), [_extra("Wald")], mode="improve", baseline="half") == 2
+    assert "--baseline" in capsys.readouterr().out
+
+
+def test_dry_run_prompt_is_smaller_with_a_per_topic_baseline(vault, make_llm, capsys):
+    _sectioned(vault)
+    extras = [_extra("Wald")]
+    _go(vault, make_llm(), extras, mode="improve", dry_run=True)
+    full = int(capsys.readouterr().out.split("about ")[1].split(" prompt")[0])
+    _go(vault, make_llm(), extras, mode="improve", baseline="topic", dry_run=True)
+    topic = int(capsys.readouterr().out.split("about ")[1].split(" prompt")[0])
+    assert topic < full
