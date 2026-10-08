@@ -144,3 +144,17 @@ def test_changelog_lists_applied_and_acknowledged_edits():
     rep = _report(_e("e1", "delete", [ids["B"]], rationale="off topic"), _e("e2", "note", [ids["C"]], rationale="check this"))
     text = changelog(rep, {"e1", "e2"})
     assert "e1" in text and "off topic" in text and "acknowledged" in text and "check this" in text
+
+
+def test_blank_lines_before_the_first_heading_survive():
+    body = "\n" + BODY
+    ids = _ids()
+    assert apply_edits(body, _report(_e("e1", "delete", [ids["B"]])), set()) == body
+    assert apply_edits(body, _report(_e("e1", "delete", [ids["B"]])), {"e1"}).startswith("\n# T")
+
+
+def test_a_move_anchored_on_another_moved_block_is_refused_not_lost():
+    ids = _ids()
+    rep = _report(_e("m1", "move", [ids["B"]], anchor=ids["A"]), _e("m2", "move", [ids["C"]], anchor=ids["B"]))
+    with pytest.raises(ReviseError, match="moved"):
+        apply_edits(BODY, rep, {"m1", "m2"})

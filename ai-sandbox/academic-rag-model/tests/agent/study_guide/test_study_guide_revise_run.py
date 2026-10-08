@@ -139,3 +139,13 @@ def test_main_dispatches_revise_commands(monkeypatch, tmp_path):
     assert seen["revise"]["stages"] == ["relevance", "dedup"] and seen["revise"]["dry_run"] is True
     assert cli.main(["apply-revise", "s.toml", "--root", str(tmp_path), "--guide", "g.md", "--decisions", "d.json"]) == 0
     assert seen["apply"]["decisions_path"] == "d.json"
+
+
+def test_a_tag_that_could_leave_the_vault_is_refused(env, root, tmp_path, capsys):
+    spec_file, spec, guide = env
+    assert cmd_revise(str(spec_file), root, guide_path=str(guide), tag="../evil", dry_run=True) == 2
+    assert "tag" in capsys.readouterr().out
+    decisions = tmp_path / "d.json"
+    decisions.write_text("{}", encoding="utf-8")
+    assert cmd_apply_revise(str(spec_file), root, guide_path=str(guide), decisions_path=str(decisions), tag="a/b") == 2
+    assert "tag" in capsys.readouterr().out

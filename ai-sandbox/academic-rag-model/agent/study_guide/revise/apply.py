@@ -73,7 +73,11 @@ def apply_edits(body: str, report: EditReport, accepted: set[str]) -> str:
                 raise ReviseError(f"{e.id}: the anchor block is deleted by another edit")
             moved.setdefault(e.anchor, []).append(first.id)
     moving = {i for ids in moved.values() for i in ids}
-    out: list[str] = []
+    chained = sorted(set(moved) & moving)
+    if chained:
+        raise ReviseError(f"a move is anchored on a block that is itself moved ({', '.join(chained)}); "
+                          "accept only one of the two moves")
+    out: list[str] = list(lines[:blocks[0].start]) if blocks else []
     for b in blocks:
         if b.id in delete or b.id in moving:
             continue
@@ -84,12 +88,12 @@ def apply_edits(body: str, report: EditReport, accepted: set[str]) -> str:
                 out.append("")
             out += lines[m.start:m.end]
     after = "\n".join(out)
-    _check_postconditions(body, after, blocks, selected, set(owner), moving)
+    _check_postconditions(body, after, blocks, selected, set(owner))
     return after
 
 
 def _check_postconditions(before: str, after: str, blocks: list[Block], selected: list[Edit],
-                          touched: set[str], moving: set[str]) -> None:
+                          touched: set[str]) -> None:
     problems = []
     allowed = sum(len((e.replacement or "").split()) for e in selected if e.type in ("fix", "retitle"))
     if len(after.split()) > len(before.split()) + allowed:
@@ -100,8 +104,8 @@ def _check_postconditions(before: str, after: str, blocks: list[Block], selected
     if new_heading:
         problems.append("the edits introduce heading problems: " + "; ".join(new_heading))
     for b in blocks:
-        if b.id not in touched and b.id not in moving and b.text not in after:
-            problems.append(f"block {b.id} changed without an accepted edit")
+        if b.id not in touched and b.text not in after:
+            problems.append(f"block {b.id} was lost or changed without an accepted edit")
     if problems:
         raise ReviseError("post-condition failed, nothing written: " + " | ".join(problems))
 

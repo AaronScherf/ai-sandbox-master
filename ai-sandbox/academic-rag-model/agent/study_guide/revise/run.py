@@ -7,6 +7,7 @@ import json
 from datetime import datetime, timezone
 from pathlib import Path
 
+from agent.study_guide.draft import DraftError, validate_tag
 from agent.study_guide.plan import PlanError
 from agent.study_guide.revise.apply import apply_edits, changelog
 from agent.study_guide.revise.audit import audit_section
@@ -120,6 +121,7 @@ def cmd_revise(spec_path: str, root: str, *, guide_path: str, plan_path: str | N
                client=None, chunks=None, cards=None, search=None, evidence=None) -> int:
     from agent.study_guide.cli import _load_plan_for
     try:
+        validate_tag(tag)
         spec = load_spec(spec_path)
         if spec.revise is None:
             raise ReviseError("the spec has no [revise] table")
@@ -156,7 +158,7 @@ def cmd_revise(spec_path: str, root: str, *, guide_path: str, plan_path: str | N
         report = build_report(spec, guide_path, plan, stages=stages, llm=llm, embed=embed, evidence=evidence, chunks=chunks)
         save_report(report, out)
         write_review_items(report, body, out.with_name(out.name.replace(".revise.json", ".revise.review.json")))
-    except (SpecError, ReviseError, PlanError, OSError) as err:
+    except (SpecError, ReviseError, PlanError, DraftError, OSError) as err:
         print(f"ERROR: {err}")
         return EXIT_INPUT
     except Exception as err:  # API failure after the client's own retries
@@ -174,6 +176,7 @@ def cmd_revise(spec_path: str, root: str, *, guide_path: str, plan_path: str | N
 
 def cmd_apply_revise(spec_path: str, root: str, *, guide_path: str, decisions_path: str, tag: str = "", force: bool = False) -> int:
     try:
+        validate_tag(tag)
         spec = load_spec(spec_path)
         report = load_report(report_path(root, spec, guide_path, tag))
         raw = Path(guide_path).read_bytes()
@@ -195,7 +198,7 @@ def cmd_apply_revise(spec_path: str, root: str, *, guide_path: str, decisions_pa
             front = front.replace("\n---\n", "\n" + extra + "---\n", 1)
         out.write_text(front + revised, encoding="utf-8", newline="\n")
         out.with_name(out.stem + ".changelog.md").write_text(changelog(report, accepted), encoding="utf-8", newline="\n")
-    except (SpecError, ReviseError, OSError, json.JSONDecodeError) as err:
+    except (SpecError, ReviseError, DraftError, OSError, json.JSONDecodeError) as err:
         print(f"ERROR: {err}")
         return EXIT_INPUT
     print(f"Wrote {out} ({count} edits applied)")
