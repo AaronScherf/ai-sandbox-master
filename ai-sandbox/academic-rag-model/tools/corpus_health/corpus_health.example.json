@@ -1,0 +1,31 @@
+{
+  "version": 1,
+  "academic_hub_root": "../../../academic-hub",
+  "academic_notes_root": "../../../academic-hub/academic_notes",
+  "required_roots": ["hub", "notes"],
+  "courses": [],
+  "max_hash_bytes": 8388608,
+  "markdown_policies": [
+    {
+      "name": "course-summaries",
+      "root": "notes",
+      "glob": "*/summaries/*.md",
+      "required_fields": ["title"],
+      "check_index": true
+    },
+    {
+      "name": "processed-note-markdown",
+      "root": "notes",
+      "glob": "*/**/processed_outputs/*.md",
+      "exclude_globs": ["**/*.excalidraw.md"],
+      "required_fields": [],
+      "check_index": true
+    },
+    {
+      "name": "textbook-rag-frontmatter",
+      "root": "notes",
+      "glob": "*/textbooks*/processed_outputs/*/*.rag.md",
+      "check_index": false
+    }
+  ]
+}

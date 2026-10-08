@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Academic Hub Corpus Review</title>
+  <style>
+    :root { color-scheme: light dark; font: 16px system-ui, sans-serif; }
+    body { max-width: 1100px; margin: 2rem auto; padding: 0 1rem; }
+    h1, h2 { line-height: 1.2; }
+    .group { border-top: 1px solid #8888; margin-top: 2rem; padding-top: 1rem; }
+    .controls { display: flex; gap: .5rem; flex-wrap: wrap; margin: .75rem 0; }
+    button { padding: .45rem .75rem; cursor: pointer; }
+    .finding { border: 1px solid #8888; border-radius: .5rem; padding: 1rem; margin: .75rem 0; }
+    .path { overflow-wrap: anywhere; font-family: ui-monospace, monospace; }
+    .muted { opacity: .75; }
+    #message { min-height: 1.5em; }
+  </style>
+</head>
+<body>
+  <h1>Academic Hub Corpus Review</h1>
+  <p>Review choices are recorded locally. Accepting an item records approval only; it does not run a pipeline. Batch acceptance is disabled unless the configured cost policy allows it.</p>
+  <p id="message" role="status" aria-live="polite">Loading pending findings…</p>
+  <main id="findings"></main>
+  <div class="controls"><button id="finish">Finish review</button></div>
+  <script src="/review.js?token=placeholder"></script>
+</body>
+</html>

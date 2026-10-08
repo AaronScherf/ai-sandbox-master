@@ -1,6 +1,6 @@
 # Academic Hub Corpus Health Orchestrator: Implementation Plan
 
-**Status:** DRAFT, for user review; no implementation or scheduled task is authorized by this plan alone.
+**Status:** IMPLEMENTATION IN PROGRESS; the user authorized implementation on 2026-10-08. Tasks 1–5 are implemented in the task worktree; repair execution and scheduler installation remain gated.
 **Date:** 2026-10-08
 **Spec:** `docs/superpowers/specs/academic_hub/2026-10-07-corpus-health-orchestrator-design.md`
 **Related review:** `docs/brainstorms/2026-10-07-corpus-orchestrator-codex-plan-review.md`
@@ -55,6 +55,13 @@ The academic-rag-model guidance says not to inspect `.index/` directly. Use or a
 - Tests use synthetic fixtures and temporary repositories. Never use the live corpus as a write target in tests.
 
 ## Rollout and tasks
+
+## Implementation progress (2026-10-08)
+
+- **Tasks 1–5 implemented:** recorded the pipeline capability inventory; added a read-only Markdown index audit API; implemented configured source/output, frontmatter/index, and Git-state scanning; added a persistent local decision ledger; and added a loopback-only local review page with per-item and homogeneous-group decisions.
+- **Verification:** 24 focused audit/orchestrator tests pass; the full `tests/core/indexer` suite passes (457 tests); the full `tests/tools` suite passes (96 tests); package compilation passes. The scanner has not yet been run against the live corpus, and no scheduler task was installed.
+- **Tasks 6–7 not implemented:** no `apply` command or repair adapter is enabled. The shared writer lock has not been adopted by pipeline entry points, and `academic_notes/` remains behind the documented sync-quiescence gate. Review acceptance records intent only and never starts a pipeline.
+- **Task 8 partially documented:** the package README documents direct discovery-only invocation for manual scheduling. Actual scan duration and a live-corpus observation period remain outstanding.
 
 ### Task 1: Verify the pipeline capability matrix and source/output policies
 
