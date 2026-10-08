@@ -232,6 +232,16 @@ What this suggests for `agent/viz`:
    embed form for Obsidian.
 5. The owner reviews B2, E1 and v4 in full and adds findings to this document.
 
+## Decision: extend and revise are separate stages (2026-10-08)
+
+`enhance` stays the **extend** stage (deepen thin sections, add topics); a new **revise** stage refines
+a large guide against relevance (weighted by exams and problem sets), deduplication, correctness and
+organization, and produces a reviewed edit list rather than a regenerated guide. Design:
+[guide revise pipeline](../../superpowers/specs/agent/2026-10-08-guide-revise-pipeline-design.md), which
+also lists the four small `enhance` changes extend needs. `enhance --baseline per-topic` (commit
+`4730cc0`) cut the per-call prompt for the topic-first draft from about 739,000 to about 144,000
+characters (first topic); the whole run is estimated at roughly 320k prompt tokens instead of 3.4M.
+
 ## Deferred changes (come back to these)
 
 Found while planning the topic-first spec (plan measured 2026-10-08):
