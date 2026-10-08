@@ -53,6 +53,22 @@ def section_passages(plan, spec: GuideSpec, chunks: list[dict], section_title: s
     return out
 
 
+def _retrying(embed, attempts: int = 5, wait: float = 15.0):
+    """Wrap an embedder so a burst of rate-limit errors is waited out instead of aborting the run."""
+    import time
+
+    def call(text: str) -> list[float]:
+        for i in range(attempts):
+            try:
+                return embed(text)
+            except Exception:
+                if i == attempts - 1:
+                    raise
+                time.sleep(wait * (i + 1))
+        raise AssertionError("unreachable")
+    return call
+
+
 def _memoized(embed):
     cache: dict[str, list[float]] = {}
 
@@ -156,7 +172,7 @@ def cmd_revise(spec_path: str, root: str, *, guide_path: str, plan_path: str | N
             llm, client = llm or paid[0], client or paid[1]
             if embed is None:
                 from core.indexer.index_search import _embed_query
-                embed = lambda text: _embed_query(text[:8000], client)
+                embed = _retrying(lambda text: _embed_query(text[:8000], client))
             if evidence is None:
                 from agent.study_guide.revise.evidence import load_evidence
                 evidence = load_evidence(spec, root, client=client, search=search, chunks=chunks, cards=cards) if "relevance" in stages else []

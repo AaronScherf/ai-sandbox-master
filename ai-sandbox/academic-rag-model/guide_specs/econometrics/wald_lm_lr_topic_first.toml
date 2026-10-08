@@ -507,6 +507,10 @@ take = 3
 model = "gemini-3.8-flash"
 criteria = ["relevance", "dedup", "correctness", "organization"]
 min_block_words = 60
+relevance_low = 0.68
+relevance_high = 0.80
+judge_fraction = 0.15
+scope = "A graduate econometrics study guide on the Wald, likelihood ratio and Lagrange multiplier (score) tests as taught in ECON 6411: assumptions, derivations, recipes, relations between the tests, worked problems and exam practice. Out of scope: software implementation guides (Stata, R, MATLAB and similar), model-selection criteria such as AIC and BIC, and anything the course materials do not teach or examine."
 
   [[revise.evidence]]
   kind = "file"

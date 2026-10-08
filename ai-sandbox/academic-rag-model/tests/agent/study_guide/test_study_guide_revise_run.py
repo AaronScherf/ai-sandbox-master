@@ -165,3 +165,22 @@ def test_the_relevance_judge_runs_inside_the_relevance_stage(make_spec, root, tm
     report = _build(spec, guide, llm=llm, stages=("relevance",))
     assert [(e.type, e.targets, e.rationale.startswith("judge:")) for e in report.edits] == [("delete", [pkg.id], True)]
     assert "Only the Wald test." in llm.calls[0]
+
+
+def test_embedding_retries_after_a_transient_failure_and_then_gives_up():
+    from agent.study_guide.revise.run import _retrying
+    calls = []
+
+    def flaky(text):
+        calls.append(text)
+        if len(calls) < 3:
+            raise RuntimeError("429 RESOURCE_EXHAUSTED")
+        return [1.0]
+
+    assert _retrying(flaky, attempts=4, wait=0.0)("x") == [1.0] and len(calls) == 3
+
+    def broken(text):
+        raise RuntimeError("down")
+
+    with pytest.raises(RuntimeError, match="down"):
+        _retrying(broken, attempts=2, wait=0.0)("x")
