@@ -5,6 +5,9 @@
      example text, so don't append at the end. Agents add items when asked to "add this as a
      pending to-do" (see the root CLAUDE.md). -->
 
+## Project Steering and Work Selection
+- Design a local interactive “project steering” page and `what_to_do_today` workflow that surfaces pending project ideas, subprojects, resumable work, and bugs; ranks candidates by complexity and potential utility; lets the user adjust or provide those rankings; and recommends a small set of work for today. Evaluate whether ideas and bugs should move into separate source lists, while keeping this project-wide planning workflow distinct from the academic-hub corpus-health orchestrator. The two may share a local review-page pattern, but have different findings, state, and apply behavior. (added 2026-10-07)
+
 ## Git Workflow Between Agents (brainstorm pending, nothing implemented)
 - The user wants to brainstorm a smoother git workflow between agents (Claude, Codex, Gemini) before
   changing any rules or tooling, and to pick this up with another agent. Everything below is evidence
