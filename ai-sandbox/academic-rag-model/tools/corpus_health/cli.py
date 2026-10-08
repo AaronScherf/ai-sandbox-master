@@ -30,6 +30,28 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
+def _review_snapshot_validator(config):
+    """Validate every click against one current-corpus snapshot per session."""
+    current_report = scan(config)
+    current = {StateStore.finding_id(finding): finding for finding in current_report.findings}
+
+    def validate(entries: list[dict]) -> bool:
+        for entry in entries:
+            if entry is None:
+                return False
+            finding_id = entry["finding_id"]
+            updated = current.get(finding_id)
+            if updated is None:
+                return False
+            if updated.fingerprint != entry.get("finding", {}).get("fingerprint"):
+                return False
+            if StateStore.action_signature(updated) != entry.get("action_signature"):
+                return False
+        return True
+
+    return validate
+
+
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     try:
@@ -66,23 +88,8 @@ def main(argv: list[str] | None = None) -> int:
         if not pending:
             print("No pending findings to review.")
             return 0
-        def validate_current(entries: list[dict]) -> bool:
-            current_report = scan(config)
-            current = {StateStore.finding_id(finding): finding for finding in current_report.findings}
-            for entry in entries:
-                if entry is None:
-                    return False
-                finding_id = entry["finding_id"]
-                updated = current.get(finding_id)
-                if updated is None:
-                    return False
-                if updated.fingerprint != entry.get("finding", {}).get("fingerprint"):
-                    return False
-                if StateStore.action_signature(updated) != entry.get("action_signature"):
-                    return False
-            return True
-
-        server = ReviewServer(store, args.timeout, validator=validate_current,
+        validator = _review_snapshot_validator(config)
+        server = ReviewServer(store, args.timeout, validator=validator,
                               include_deferred=args.include_deferred)
         timer = threading.Timer(args.timeout, server.shutdown)
         timer.daemon = True

@@ -44,7 +44,10 @@ def _exclusive_lock(path: Path, timeout_seconds: float = 5.0) -> Iterator[None]:
             import msvcrt
 
             handle.seek(0)
-            if handle.read(1) == b"":
+            # Reading the byte before locking is denied by Windows while
+            # another process holds its byte-range lock. File metadata stays
+            # readable, so use size only to initialize an empty lock file.
+            if os.fstat(handle.fileno()).st_size == 0:
                 handle.seek(0)
                 handle.write(b"0")
                 handle.flush()
@@ -140,23 +143,39 @@ class StateStore:
             data = self._load_unlocked()
             entries: dict[str, dict] = data["findings"]
             current_ids: set[str] = set()
+            current_locations = {
+                (finding.root, finding.scope, finding.kind, os.path.normcase(finding.path))
+                for finding in findings
+            }
             result: list[Finding] = []
             for finding in findings:
                 finding_id = self.finding_id(finding)
                 entry = entries.get(finding_id)
                 if entry is None:
                     identity = self._content_identity(finding.to_dict())
-                    rename_candidates = [
-                        (old_id, candidate) for old_id, candidate in entries.items()
-                        if old_id not in current_ids
-                        and self._content_identity(candidate.get("finding", {})) == identity
+                    previous_locations = [
+                        (old_id, candidate)
+                        for old_id, candidate in entries.items()
+                        if self._content_identity(candidate.get("finding", {})) == identity
                         and candidate.get("finding", {}).get("path") != finding.path
+                        and (
+                            str(candidate.get("finding", {}).get("root", "")),
+                            str(candidate.get("finding", {}).get("scope", "")),
+                            str(candidate.get("finding", {}).get("kind", "")),
+                            os.path.normcase(str(candidate.get("finding", {}).get("path", ""))),
+                        ) not in current_locations
                     ]
-                    if len(rename_candidates) == 1:
-                        old_id, entry = rename_candidates[0]
-                        entries.pop(old_id)
-                        entry["renamed_from"] = old_id
-                        entry["finding_id"] = finding_id
+                    if previous_locations:
+                        # Identical bytes do not prove a rename: a duplicate may have
+                        # been added after the old path disappeared. Keep the new
+                        # location pending and require a human to distinguish them.
+                        finding = replace(
+                            finding,
+                            evidence=(
+                                f"{finding.evidence}; identical content was previously recorded "
+                                "at an absent path; possible rename or duplicate, review this location"
+                            ),
+                        )
                 current_ids.add(finding_id)
                 serialized = finding.to_dict()
                 serialized["finding_id"] = finding_id

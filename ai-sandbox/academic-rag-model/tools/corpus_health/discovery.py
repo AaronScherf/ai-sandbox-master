@@ -413,8 +413,10 @@ def scan(config: ScanConfig) -> ScanReport:
     # Converted book folders can outlive their original local PDF (for example,
     # a GCS-backed conversion), so audit their tablet output independently.
     if notes_root and resources_root.is_dir():
-        for book_md in resources_root.glob("*/textbooks*/**/processed_outputs/*/*.md"):
+        for book_md in resources_root.glob("*/**/processed_outputs/*/*.md"):
             if not book_md.is_file() or book_md.name.endswith(".rag.md"):
+                continue
+            if not _is_textbook(book_md, resources_root):
                 continue
             rel = book_md.relative_to(resources_root)
             course = rel.parts[0]

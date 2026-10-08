@@ -138,13 +138,13 @@ The `scan` command is ready to schedule as soon as this task passes. Do not wait
 **Steps:**
 
 - Version the local manifest and decision ledger; write updates with temp-file plus atomic replace.
-- Use a finding key based on root, course/category, finding kind, and source fingerprint; preserve the current relative path separately so a rename can be reconciled.
+- Use a finding key based on root, course/category, finding kind, and source fingerprint; preserve the current relative path separately. If identical content appears at a new path while its prior path is absent, keep the new location pending and flag a possible rename-or-duplicate ambiguity instead of inheriting the old decision. Matching bytes alone cannot distinguish a rename from a reused or duplicated source.
 - Record statuses `pending_review`, `accepted`, `declined`, `deferred`, `applied`, `failed`, and `vanished` with timestamps and evidence.
 - Keep unchanged declined items out of the new-items view until the source fingerprint changes. Keep deferred items visible in their own view but do not label them new on each scan. Make showing dismissed/deferred items explicit.
 - On changed source, destination, or action parameters, invalidate acceptance and return the finding to pending review. On disappearance, mark vanished without deleting history.
 - Allow the scanner MVP to run if state is unreadable or unavailable, but clearly report that it cannot classify new versus recurring findings.
 
-**Acceptance:** Tests cover repeat scans, renamed identical content, changed content, unchanged declines, deferrals, disappeared sources, malformed state recovery, and atomic-write behavior.
+**Acceptance:** Tests cover repeat scans, identical content at a new path without decision inheritance, changed content, unchanged declines, deferrals, disappeared sources, malformed state recovery, and serialized concurrent writes with an intact atomic ledger.
 
 ### Task 5: Add the local review page
 
@@ -158,7 +158,8 @@ The `scan` command is ready to schedule as soon as this task passes. Do not wait
 - Implement `review [--group <kind>] [--timeout <seconds>]` to load pending entries from state, start the local server on an ephemeral port bound to `127.0.0.1`, and open the browser.
 - Display source, destination, finding evidence, proposed action, API/cloud tier, and expected writes without embedding document contents.
 - Support accept, decline, and defer per item, homogeneous group, and all items in the current group. Do not offer one-click batch acceptance across cost tiers.
-- POST decisions to the server; validate the run token, Host/Origin, submitted finding id, and current fingerprint before persisting a decision.
+- Run one corpus scan when the review session starts, then validate all submitted finding ids, action signatures, and fingerprints against that snapshot. Do not rescan the corpus for each click; later source changes are caught by the next scan and must be revalidated immediately before any future apply action.
+- POST decisions to the server; validate the run token and Host/Origin before persisting a decision.
 - Shut down cleanly on completion, timeout, Ctrl-C, or an explicit close request from the page. If the server cannot start, provide a clear diagnostic without editing the ledger.
 - Keep review separate from apply: acceptance updates state only.
 

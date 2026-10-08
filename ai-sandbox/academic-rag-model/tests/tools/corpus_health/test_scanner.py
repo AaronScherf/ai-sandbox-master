@@ -120,6 +120,23 @@ def test_textbook_pdf_is_not_misclassified_as_note_transcription(tmp_path):
     assert "transcription" not in report.findings[0].kind
 
 
+def test_textbook_rag_recheck_uses_exact_textbook_folder_names(tmp_path):
+    config = _make_config(tmp_path)
+    resources = config.academic_hub_root / "academic_resources" / "econ"
+    exact_book = resources / "textbooks" / "processed_outputs" / "Book" / "Book.md"
+    archive_book = resources / "textbooks_archive" / "processed_outputs" / "Archive" / "Archive.md"
+    exact_book.parent.mkdir(parents=True)
+    archive_book.parent.mkdir(parents=True)
+    exact_book.write_text("converted book", encoding="utf-8")
+    archive_book.write_text("not a textbook category", encoding="utf-8")
+
+    report = scan(config)
+
+    assert [(finding.kind, finding.path) for finding in report.findings] == [
+        ("textbook_rag_output_missing", str(exact_book)),
+    ]
+
+
 def test_resource_pdf_outside_pipeline_category_or_subset_is_ignored(tmp_path):
     config = _make_config(tmp_path)
     source = config.academic_hub_root / "academic_resources" / "econ" / "unclassified" / "loose.pdf"
@@ -200,3 +217,32 @@ def test_cli_scan_persists_findings_and_suppresses_unchanged_declines(tmp_path, 
     report = json.loads(capsys.readouterr().out)
     assert report["findings"][0]["finding_id"] == pending[0]["finding_id"]
     assert store.pending() == []
+
+
+def test_review_validator_reuses_one_corpus_scan_snapshot(tmp_path, monkeypatch):
+    from types import SimpleNamespace
+
+    from tools.corpus_health import cli
+    from tools.corpus_health.finding import Finding
+
+    config = _make_config(tmp_path)
+    finding = Finding("index_card_missing", "notes", "C:/notes/a.md", "a.md", "missing card",
+                      suggested_action="index", fingerprint="sha256:one", scope="notes/econ")
+    calls = 0
+
+    def fake_scan(_config):
+        nonlocal calls
+        calls += 1
+        return SimpleNamespace(findings=[finding])
+
+    monkeypatch.setattr(cli, "scan", fake_scan)
+    validator = cli._review_snapshot_validator(config)
+    entry = {
+        "finding_id": StateStore.finding_id(finding),
+        "finding": {"fingerprint": finding.fingerprint},
+        "action_signature": StateStore.action_signature(finding),
+    }
+
+    assert validator([entry])
+    assert validator([entry])
+    assert calls == 1
