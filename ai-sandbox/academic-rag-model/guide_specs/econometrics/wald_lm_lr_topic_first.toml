@@ -545,7 +545,7 @@ min_block_words = 60
 
   [[revise.evidence]]
   kind = "file"
-  file = "lecture_notes/processed_outputs/Econometrics 2026-10-07 10.19.22.excalidraw.questions.md"
+  file = "lecture_notes/processed_outputs/Econometrics 2026-09-30 10.09.59.excalidraw.questions.md"
   query = "test statistic hypothesis test"
   max = 40
   weight = 2.0
