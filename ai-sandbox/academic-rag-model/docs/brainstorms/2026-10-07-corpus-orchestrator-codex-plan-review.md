@@ -286,3 +286,191 @@ Concrete changes to fold into whichever agent implements this next:
    which of the fixes should be applied right then"). Whoever writes the
    real spec should ask the user this one directly rather than re-surfacing
    all six.
+
+---
+
+## 4. Follow-up: review of Codex's design doc
+
+Codex responded to section 3 and produced
+[`docs/superpowers/specs/academic_hub/2026-10-07-corpus-health-orchestrator-design.md`](../superpowers/specs/academic_hub/2026-10-07-corpus-health-orchestrator-design.md)
+(status: DRAFT, no implementation authorized). This section checks whether
+that design actually resolves section 3's items, then separately assesses
+whether Codex's design *process* — not just this one artifact — is now
+sufficient for architecture work in this repo.
+
+### 4.1 Disposition of each prior item
+
+All eight numbered improvements and all six critique points from section 3
+are resolved in the design doc, most of them thoroughly:
+
+- **Review surface (critique #1, improvement #1):** resolved, with a
+  deliberate and correctly-justified deviation. The design doc names the
+  project's Artifact-by-default convention explicitly, then records that the
+  user clarified the real requirement is a standalone, no-agent-required
+  local page — which a Claude Artifact structurally cannot be, since
+  rendering one requires this agent. The "Local interactive review page"
+  section designs a loopback-only HTTP server with per-run tokens, origin
+  validation, and no cross-origin API as the local analogue, and calls out
+  that it is explicitly *not* a Claude Artifact. This is the right call, made
+  for the right reason, not a convention it missed.
+- **Reuse `tools/git_workflow.py` / `tools/active_work.py` (improvement #2):**
+  resolved. The design doc also corrects an open assumption from section 3 —
+  it confirms `academic-hub/` is *not* a separate Git repository (it's
+  tracked inside the outer monorepo), which section 3 had flagged as
+  something to "confirm... it may be a subtree." Codex verified it this
+  time rather than asserting it.
+- **Decision ledger with stable identity (improvement #3):** resolved, and
+  more complete than what was asked for — fingerprint-based identity
+  (survives renames), explicit `new -> pending_review ->
+  accepted|declined|deferred -> applied` transitions, vanished-source
+  handling, and acceptance invalidation on fingerprint/destination/parameter
+  change.
+- **Per-pipeline capability inventory as step 0 (improvement #4):** resolved
+  — it's rollout phase 1, with a concrete table of operations to assess and
+  an explicit rule that an operation without safe preview or scope is simply
+  not callable until that gap is closed.
+- **Cheap manifest-first discovery (improvement #5):** resolved — the cheap
+  pass is enumeration/metadata/manifest/index-card based, content-hashes only
+  new/changed candidates, and defers pipeline dry-runs to an opt-in deeper
+  pass.
+- **Name the scheduling mechanism (improvement #6):** resolved — Windows Task
+  Scheduler invoking the entry point directly, discovery-only for the first
+  rollout, explicitly not agent-dispatched.
+- **Per-repo write boundary table (improvement #7):** resolved, with a table
+  that also defers `academic_notes/` writes entirely to a later version
+  pending sync-process coordination — correctly treating that as an open
+  engineering problem rather than hand-waving it.
+- **Narrow the open questions (improvement #8):** resolved. The design doc's
+  four open decisions are all genuinely unresolved (cloud-approval
+  granularity carried forward verbatim; notes-repo write timing; which
+  Markdown categories need frontmatter; decline-retention policy) — none of
+  them restate a settled convention or something the original prompt already
+  answered.
+- **"Daily, no agent" designed around, not just named (critique #3):**
+  resolved — the four-phase workflow and the scheduling section both commit
+  to an answer: scheduled runs refresh pending state only and never treat
+  absence of a reviewer as approval.
+- **Idempotency / re-asking about declined items (critique #4):** resolved
+  by the same ledger design as improvement #3.
+- **Discovery-safe vs. mutating operations conflated (critique #5):**
+  resolved — "Applying accepted work" revalidates fingerprint, destination,
+  and cost category immediately before invocation, and blocks any operation
+  whose only implementation can't be scoped or validated.
+- **Scan cost budget (critique #6):** resolved as well as a design doc can
+  at this stage — it commits to measuring and reporting duration, files
+  considered, and fingerprinting cost, and gates the expensive path behind
+  that measurement rather than assuming a number up front. Reasonable; an
+  actual budget has to come from the discovery prototype, not the design.
+
+### 4.2 Gaps the design doc still has
+
+Two concrete technical gaps, plus one process/scope concern, survive into
+this draft:
+
+1. **Concurrent writers outside the orchestrator's own lock.** "Apply" checks
+   "no conflicting orchestrator run is active," but says nothing about a
+   *manually*-run pipeline invocation (a human or another agent running
+   `convert_textbook` directly, say, while the orchestrator's apply step
+   also targets it) or about Obsidian Git sync running mid-write against
+   `academic-hub/`. `WORKTREE_WORKFLOW.md` already states shared corpus/index
+   writes "need one assigned writer and coordination with sync processes
+   such as Obsidian Git sync" — the design doc cites this for
+   `academic_notes/` but its lock design (section "Repository boundaries")
+   only defends against *other orchestrator runs*, not against a concurrent
+   manual pipeline invocation targeting the same output path. This needs a
+   concrete mechanism (e.g., a lock file convention pipelines themselves
+   check, or at minimum a documented "don't run X by hand while the
+   orchestrator apply step is active" rule) before phase 5.
+2. **`academic_notes/` sync noise is a known, specific hazard this draft
+   doesn't name.** Per this session's standing project notes, the tablet's
+   Direct Git Sync plugin stamps `.gitignore` from each device's local
+   config on every load, so that file is not a stable shared source of
+   truth, and the Fit sync plugin hard-blocks syncing its own `main.js`/
+   `styles.css`. A `git_state` finding over the live `academic_notes/`
+   checkout will see `.gitignore` churn and plugin-file sync blocks as
+   ordinary dirty/divergent state unless it's told to discount them. The
+   design doc's `git_state` finding kind should explicitly except known
+   device-local sync artifacts in that repository rather than surface them
+   as drift every day.
+3. **Proportionality.** The original ask was "a single script" to replace ad
+   hoc agent refreshes. This draft specs a loopback HTTP server with a
+   token-authenticated decision API, a versioned ledger with fingerprint
+   invalidation and lock semantics, a six-pipeline capability inventory, and
+   a six-phase rollout — before anything ships. The Rollout section does
+   sequence this reasonably and each phase is individually small, but the
+   design doc never states that early phases are independently useful (e.g.,
+   phase 2's discovery prototype is already a complete, valuable dry-run
+   reporting tool on its own, with no ledger or server needed to get value
+   from it today). Worth asking Codex to say so explicitly, so "approve the
+   full spec before any implementation" (the doc's own closing line) doesn't
+   become the default framing when phase 2 alone is worth shipping and using
+   immediately.
+
+None of these are severe enough to send the doc back; they're exactly the
+scope of finding a second review pass should produce on an already-solid
+draft, not evidence the first pass missed something major.
+
+### 4.3 Is Codex's design process sufficient?
+
+On this exercise: yes, conditionally. The gap between the plan (section 1)
+and the design doc (this section) is large and in the right direction — it
+went from "re-derive the shape of a known pattern from a prompt and package
+READMEs" to "find the existing building blocks, verify an assumption instead
+of flagging it, and commit to concrete policies instead of leaving them as
+open questions." That jump happened because Codex was handed a specific,
+itemized critique to work against, not because its first pass already had
+that depth. That's the real signal: Codex's *correction* process — given
+targeted feedback, each cited gap gets closed concretely rather than
+hand-waved — is reliable. Its unprompted first-pass depth on a cold
+architecture question is not yet at that level, and the proportionality gap
+in 4.2 suggests the correction process optimizes for "address every named
+critique" rather than "step back and ask if the overall shape still matches
+the original ask" — a second-order check a plan should apply to itself
+without being told to.
+
+Practically, this supports the user's standing routing convention rather
+than overturning it: Codex is well-suited to *executing against* an
+itemized architectural critique or spec, which is most of what "code
+maintenance, tests, and Git mechanics" plus well-specified feature work
+actually requires. It is not yet demonstrated to produce first-pass
+architecture at this depth unprompted — which is exactly the case for
+keeping new designs routed through a Claude review pass before
+implementation, as happened here, rather than treating this dry run as
+grounds to change the default.
+
+### 4.4 Review of the proposed `AGENTS.md` rules
+
+The six rules Codex proposed are a reasonable and appropriately generalized
+distillation of section 3/4.2 — they're phrased as durable process rules,
+not hard-coded to this one orchestrator, which is the right level of
+abstraction for `AGENTS.md`. Suggested revisions before adding them:
+
+1. **Rule 1 (search before proposing) — make the search list concrete.** As
+   written, "search for existing tools, specs, status docs, and conventions"
+   is easy to satisfy with one shallow grep. Name the actual locations this
+   repo uses: `tools/`, `docs/superpowers/{specs,plans}/`,
+   `docs/status/<package>/`, and `docs/trackers/academic_hub_to_do.md`. The
+   tracker matters specifically: this session's to-do list just gained a
+   "Project Steering" item that explicitly has to stay distinct from this
+   orchestrator — exactly the kind of adjacent, already-planned work a
+   search should surface before proposing something that collides or
+   duplicates it.
+2. **Rule 4 (unattended workflows) — keep the generalization, it's good.** Add
+   one clause: when a project convention exists for the human-decision
+   surface (e.g., the interactive-Artifact-by-default rule), either follow
+   it or state explicitly why the execution mode makes it inapplicable and
+   what replaces it — i.e., require the justified-substitution move Codex
+   made correctly this time (4.1, review surface) rather than assuming it
+   will recur without being named as the expected behavior.
+3. **New rule — proportionality.** None of the six rules check whether the
+   proposed design's complexity matches the scope of the original request.
+   Add: *"State plainly when a design introduces new infrastructure (a
+   server, a persistent store, locking, a multi-phase rollout) beyond what a
+   minimal version of the request would need, and identify which early
+   phase(s) already deliver usable value on their own, rather than gating
+   all value behind full-spec approval."* This is the one gap in this round
+   (4.2.3) that the other six rules don't cover, and it's a repeatable
+   failure mode independent of this particular orchestrator.
+
+Rules 2, 3, 5, and 6 need no changes — each maps directly to a section 3/4.1
+item that this design doc shows Codex can now close out concretely.
