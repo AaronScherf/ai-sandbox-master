@@ -31,6 +31,7 @@ All commands run from `ai-sandbox/academic-rag-model/` inside the worktree `.wor
 - Edit `fix` may carry `quote`: the exact text replaced inside `targets[0]` (must occur exactly once); without `quote`, the whole block is replaced.
 - `apply-revise` works on the body after the frontmatter and writes two extra frontmatter fields (`revised_from`, `revise_edits_applied`); the input guide is never modified.
 - Evidence rules reuse `build_plan` (one synthetic topic per rule), so file, section and discover rules behave exactly as in a guide plan.
+- Revise makes synchronous calls in this plan, with no caching or batch mode (2026-10-08 review). The audit sends each section with its own passages, so successive prompts share no large prefix and context caching has nothing to reuse. Batch mode would halve the price, but the whole revise run is about 320k input tokens (roughly $0.25 at the 3.8 Flash list price), and Task 10 needs fast iteration while calibrating thresholds. Cost if wrong: about $0.12 per run. If revise later runs over many guides, collect the independent requests (audit calls, arithmetic calls, dedup clusters) into one batch job; the organization call depends on their flags, so it stays live. See "Follow-up: caching and batch" below.
 
 ## Review Focus
 
@@ -2176,3 +2177,18 @@ git commit -m "revise: orchestration, revise and apply-revise commands"
 - [ ] **Step 4: Full run.** All stages, after approval. Record token usage in the status doc.
 - [ ] **Step 5: Review in the Artifact**, read the decisions, run `apply-revise`, and compare the revised guide with the draft and with the owner's v4 guide.
 - [ ] **Step 6: Commit** the spec and the status-doc results.
+
+## Follow-up: caching and batch (checked 2026-10-08, not built)
+
+Facts from Google's docs (fetched through a summarizing tool, so re-check before relying on the numbers): Batch API costs 50% of the interactive price, targets 24-hour turnaround (jobs expire after 48 hours), takes inline requests up to 20 MB or JSONL files up to 2 GB, and has its own rate limits. Context caching is supported inside batch jobs, and cache hits are billed at the caching rate, so the two discounts do not stack. Implicit caching is automatic on 2.5 and later models; the minimum is 2,048 tokens on 2.5 models and 4,096 on 3.x Flash; put the large shared content first in the prompt. 3.8 Flash list prices: input $0.75, batch input $0.375, cached input $0.075 per million tokens.
+
+Rule of thumb: a large shared prefix across calls means caching; many independent calls that can wait means batch; interactive calls get neither.
+
+Where to check next (each is a separate decision, none is started):
+- `agent/summary_enhance` `--baseline full`: every call sends the same whole draft and shared chunks, but after the topic-specific instruction. Move the shared material first and the topic instruction last, then read `cached_content_token_count` in the usage metadata (add it to `GeminiClient._record_usage`) to see whether implicit caching hits.
+- `agent/study_guide` draft and enhance `--baseline per-topic`: independent calls, no big shared prefix (about 2.2x passage duplication across topics, but different order per topic). Batch candidates.
+- `core/indexer` `index_card.py`, `retag.py`, `chunk_index.py`: many small independent calls; best batch candidates by volume.
+- `pipelines/transcribe_notes` (`transcribe_notes.py`, `transcribe_excalidraw.py`) and `pipelines/convert_textbook` (`describe_images.py`, `toc_repair.py`): per-page or per-image calls; batch candidates; check that image input works in batch.
+- `agent/problem_gen`, `agent/problem_corpus`, `agent/viz`: check volume per run first.
+- `agent/rag` (`rag_agent.py`, `tutor_diagnosis.py`, `resolve_questions.py`): interactive, so no batch; a fixed system prompt and corpus excerpt first may hit implicit caching.
+- Unverified: whether code execution and structured output work inside batch jobs (the revise audit uses both), and whether the SDK key tier allows batch.
