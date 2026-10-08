@@ -276,6 +276,30 @@ callable (default `search_passages`) so tests use canned results. Fake LLM clien
 - Open: whether specs should live in the repo (proposed) or the vault; the `guide_v1` prompt
   text and word target; whether to add an automated judge later.
 
+## Planned input: tutoring-session transcripts
+
+The owner is building a guided tutoring agent for the RAG. It will save transcripts of its dialogue
+with the student while they work practice problems drawn from the same indexed content. Study
+guides should treat these transcripts as a first-class source because they (a) elaborate the
+example problems step by step, and (b) show where the student needed extra help (confusions,
+mistaken steps, repeated hints), which tells a guide where to add explanation or emphasis.
+
+Design consequences, none implemented yet:
+
+- Transcripts are indexed like any other vault file and get their own `doc_type` (proposed:
+  `tutoring_transcript`), so the existing `file` and `discover` rules can select them with no
+  change to the spec schema.
+- Worked-problem and recipe topics should pin or discover the transcripts for their problems; any
+  topic the transcripts show to be weak can add a `discover` rule over that doc type.
+- A later guide-profile feature could add an explicit "areas needing extra help" section built from
+  transcript struggle points; until then they enter through the topic prompts.
+- Privacy: transcripts hold student-specific dialogue. They stay in the vault and are never copied
+  into specs, plans or committed docs; the plan ledger records citations only, as it does for
+  other sources.
+- Open: how the tutor marks struggle points (a field in the transcript, or inferred by the guide
+  prompt), and whether transcripts need review before use, since the student's own mistaken
+  statements must not be treated as source facts. Resolve this with the tutor design.
+
 ## Out of scope
 
 Automated quality scoring, multi-course specs, scheduling, a GUI beyond the review Artifact,

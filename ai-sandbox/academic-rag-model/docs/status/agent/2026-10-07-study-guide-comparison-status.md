@@ -215,6 +215,14 @@ What this suggests for `agent/viz`:
 1. Topic-first spec for the Wald, LM and LR guide: framework, Wald, LM, LR, comparison and
    finite-sample inequality as topics; section rules from every book plus pinned class notes,
    lecture notes and TA notes; a looser `min_score`.
+   Written 2026-10-07 as `guide_specs/econometrics/wald_lm_lr_topic_first.toml` (8 topics, min_score
+   0.70, no `exclude_guide`); loads and its 16 pinned files exist, but it has not been planned or run.
+   Indexing check: every v4 source is chunked (TA notes 07/08, professor notes 092126/092826/093026,
+   both 2026 lecture-note `.rag` files and their question sidecars, the 2024 midterm key). Doc-type
+   quirks seen: professor notes 092126 and `slides*` are typed `ta_notes`, and a TA note and the
+   syllabus are typed `textbook`, so a `textbook` discover filter can return them.
+   Planned input: tutoring-session transcripts from the tutoring agent (design spec section of that
+   name); the spec header records how to wire them in once they are indexed.
 2. Guide profile with the extra section types (recipes, worked problems, formula reference,
    cheat sheet), generated from the finished topic text, with `enhance` carrying notes and the
    comparison.

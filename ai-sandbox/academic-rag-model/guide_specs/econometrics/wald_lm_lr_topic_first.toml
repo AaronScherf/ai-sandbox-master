@@ -1,0 +1,468 @@
+# guide_specs/econometrics/wald_lm_lr_topic_first.toml
+# Topic-first Wald / LM / LR guide. Topics are concepts, not textbook sections: every topic pulls
+# from every book that covers it plus the class material, and the prompt compares what each source
+# says inside the topic. Contrast with wald_lm_lr_tests*.toml, whose topic lists copy the book
+# sections (the cause of the textbook-split guides in runs B0/B1/B2/E1).
+#
+# Differences from wald_lm_lr_tests_new_material.toml:
+#   - topics named by concept; section rules for Hansen, Cameron and (via discover) Hayashi side by side
+#   - exam-oriented class sources pinned: TA notes 07/08, professor notes, 2026 lecture notes and their
+#     question-resolver sidecars, the 2024 midterm key and problem-set solutions
+#   - discover rules keep more: min_score 0.70, max 12, and no exclude_guide (previously used passages
+#     are wanted here, not treated as already covered)
+#   - three stand-in topics (recipes, worked problems, formula reference) until guide-profile sections
+#     exist; they reuse the same sources and show what the draft engine can already do
+#
+# Planned input, not yet implemented: tutoring-session transcripts.
+#   A guided tutoring agent for the RAG is being built separately. It will write transcripts of the
+#   student's dialogue while working practice problems drawn from this same indexed content. Those
+#   transcripts matter for guides in two ways: they elaborate the example problems step by step, and
+#   they record where the student needed extra help (confusions, mistaken steps, repeated hints).
+#   Study guides should use them to (a) expand the worked-problem topics with the elaborations and
+#   (b) add emphasis or extra explanation where the student struggled.
+#   No code change should be needed to consume them: once transcripts are chunked and indexed (give them
+#   their own doc_type, e.g. "tutoring_transcript"), pin one with a `kind = "file"` rule or add a
+#   `kind = "discover"` rule with doc_types = ["tutoring_transcript"] to the worked-problem and
+#   recipe topics, and to any topic the transcripts show to be weak. Add the rule under that topic's
+#   [[topic.source]] list when the transcripts exist. Keep student-specific details out of this spec:
+#   the transcripts stay in the vault, never in the repo.
+
+[guide]
+id = "wald_lm_lr_topic_first"
+title = "Wald, Lagrange Multiplier, and Likelihood Ratio Tests"
+course = "econometrics"
+
+[models]
+draft = "gemini-3.1-flash-lite"
+enhance = "gemini-3.8-flash"
+
+[draft]
+prompt = "tutor_v1"
+label_match = "heading-prefix"
+top_k = 180
+file_top_k = 80
+
+[[note]]
+heading = "Source-reference discrepancy"
+body = "The course syllabus points to Hansen §§9.9, 9.11, and 9.16 for these tests. In the converted Hansen chapter, the headings identify §9.9 as *t*-ratios and the abuse of testing, §9.10 as Wald tests, §9.11 as homoskedastic Wald tests, §9.12 as criterion-based tests, §9.16 as Hausman tests, and §9.17 as score tests. Chapter 9 has no section headed likelihood ratio test; Hansen section 5.13, \"Likelihood Ratio Test\", is included as additional material."
+
+# ---------------------------------------------------------------------------------------------------
+[[topic]]
+title = "The testing trinity: what Wald, LR and LM each measure"
+instruction = "Build the framework that the other topics rely on: the null and alternative, the restricted and unrestricted estimators, and the likelihood picture in which the Wald test measures distance between the estimates, the likelihood ratio test measures the drop in the log-likelihood, and the score test measures the slope of the log-likelihood at the restricted estimate. State each statistic and its asymptotic distribution, and say which estimates each test needs. Where textbooks and class notes frame this differently, say so inside this topic and explain the difference."
+
+  [[topic.source]]
+  kind = "section"
+  book = "Hansen_ECONOMETRICS"
+  labels = ["9.12", "9.17", "5.13"]
+  exclude_labels = []
+  query = "criterion-based tests score test likelihood ratio restricted unrestricted statistic"
+  max = 12
+
+  [[topic.source]]
+  kind = "section"
+  book = "Cameron_Microeconometrics"
+  labels = ["7.1", "7.3"]
+  exclude_labels = []
+  query = "Wald likelihood ratio Lagrange multiplier tests compared restricted unrestricted estimator"
+  max = 12
+
+  [[topic.source]]
+  kind = "file"
+  file = "ta_notes/processed_outputs/08-hypothesis-testing-trinity.md"
+  query = "Wald likelihood ratio Lagrange multiplier trinity geometry log-likelihood"
+  max = 10
+
+  [[topic.source]]
+  kind = "file"
+  file = "lecture_notes/processed_outputs/Econometrics 2026-10-05 10.09.00.excalidraw.rag.md"
+  query = "testing trinity Wald LR LM likelihood"
+  max = 7
+
+  [[topic.source]]
+  kind = "file"
+  file = "professor_notes/processed_outputs/slidesMLE_updated.md"
+  query = "Wald likelihood ratio score test asymptotic distribution maximum likelihood"
+  max = 8
+
+  [[topic.source]]
+  kind = "file"
+  file = "class_2024/Class Notes/Slides/processed_outputs/slidesASYM.md"
+  query = "Wald LM LR tests restricted unrestricted asymptotic equivalence"
+  max = 8
+
+  [[topic.source]]
+  kind = "discover"
+  query = "Wald, likelihood ratio and Lagrange multiplier tests: restricted and unrestricted estimators, asymptotic chi-square"
+  doc_types = ["textbook"]
+  max = 12
+  min_score = 0.70
+  max_per_file = 5
+
+# ---------------------------------------------------------------------------------------------------
+[[topic]]
+title = "The Wald test: linear restrictions, F link and the delta method"
+instruction = "Explain the Wald test end to end: hypotheses of the form Rθ = r, the statistic and which covariance estimator it uses (robust versus homoskedastic), the chi-square limit and degrees of freedom, the relation to the F statistic and to the squared t statistic, decision rules, and nonlinear restrictions through the delta method. Include the derivations and a worked example. Compare how the sources present the covariance choice and the nonlinear case."
+
+  [[topic.source]]
+  kind = "section"
+  book = "Hansen_ECONOMETRICS"
+  labels = ["9.10", "9.11", "9.15", "7.10", "7.16", "7.17", "8.14"]
+  exclude_labels = []
+  query = "Wald statistic homoskedastic robust covariance F-statistic delta method nonlinear restrictions"
+  max = 14
+
+  [[topic.source]]
+  kind = "section"
+  book = "Cameron_Microeconometrics"
+  labels = ["7.2"]
+  exclude_labels = []
+  query = "Wald test linear nonlinear hypotheses covariance chi-square"
+  max = 12
+
+  [[topic.source]]
+  kind = "file"
+  file = "ta_notes/processed_outputs/08-hypothesis-testing-trinity.md"
+  query = "Wald test statistic linear restrictions covariance"
+  max = 8
+
+  [[topic.source]]
+  kind = "file"
+  file = "ta_notes/processed_outputs/07-hypothesis-testing-basics.md"
+  query = "hypothesis test t statistic F statistic Wald critical value"
+  max = 8
+
+  [[topic.source]]
+  kind = "file"
+  file = "class_2024/Recitations/processed_outputs/Recitation 5.md"
+  query = "Wald test of nonlinear hypothesis delta method robust variance"
+  max = 8
+
+  [[topic.source]]
+  kind = "file"
+  file = "lecture_notes/processed_outputs/Econometrics 2026-09-30 10.09.59.excalidraw.rag.md"
+  query = "Wald test delta method"
+  max = 6
+
+  [[topic.source]]
+  kind = "file"
+  file = "professor_notes/processed_outputs/092826.md"
+  query = "Wald test hypothesis testing"
+  max = 6
+
+  [[topic.source]]
+  kind = "file"
+  file = "professor_notes/processed_outputs/093026.md"
+  query = "Wald test delta method nonlinear"
+  max = 6
+
+  [[topic.source]]
+  kind = "file"
+  file = "class_2024/Class Notes/Slides/processed_outputs/slidesASYM.md"
+  query = "Wald test statistic homoskedastic covariance chi-square"
+  max = 8
+
+  [[topic.source]]
+  kind = "discover"
+  query = "Wald test statistic, linear and nonlinear restrictions, covariance estimator, delta method"
+  doc_types = ["textbook"]
+  max = 12
+  min_score = 0.70
+  max_per_file = 5
+
+# ---------------------------------------------------------------------------------------------------
+[[topic]]
+title = "The likelihood ratio test: Wilks' theorem and invariance"
+instruction = "Explain the likelihood ratio test: restricted and unrestricted maximum likelihood, the statistic, Wilks' theorem and its chi-square limit with degrees of freedom, the criterion-based version in regression (including the sum-of-squared-residuals form in the normal model), decision rule, invariance to reparameterisation, assumptions and a worked calculation. State plainly which sources contain a likelihood ratio treatment and which do not, and compare the treatments inside this topic."
+
+  [[topic.source]]
+  kind = "section"
+  book = "Hansen_ECONOMETRICS"
+  labels = ["5.13", "9.12", "9.13", "9.14"]
+  exclude_labels = []
+  query = "likelihood ratio test criterion-based tests restricted unrestricted chi-square"
+  max = 12
+
+  [[topic.source]]
+  kind = "section"
+  book = "Cameron_Microeconometrics"
+  labels = ["7.3.1", "7.3.2", "7.3.3", "7.3.4"]
+  exclude_labels = ["7.3.5"]
+  query = "likelihood ratio test restricted unrestricted maximum likelihood chi-square"
+  max = 12
+
+  [[topic.source]]
+  kind = "file"
+  file = "ta_notes/processed_outputs/08-hypothesis-testing-trinity.md"
+  query = "likelihood ratio test Wilks invariance reparameterization"
+  max = 8
+
+  [[topic.source]]
+  kind = "file"
+  file = "class_2024/Recitations/processed_outputs/Recitation 3.md"
+  query = "likelihood ratio test restricted unrestricted other approaches to testing"
+  max = 8
+
+  [[topic.source]]
+  kind = "file"
+  file = "professor_notes/processed_outputs/slidesMLE_updated.md"
+  query = "likelihood ratio test statistic restricted unrestricted chi-square Wilks"
+  max = 8
+
+  [[topic.source]]
+  kind = "file"
+  file = "lecture_notes/processed_outputs/Econometrics 2026-10-05 10.09.00.excalidraw.rag.md"
+  query = "likelihood ratio test"
+  max = 6
+
+  [[topic.source]]
+  kind = "discover"
+  query = "likelihood ratio test statistic restricted and unrestricted log-likelihood chi-square Wilks theorem"
+  doc_types = ["textbook"]
+  max = 12
+  min_score = 0.70
+  max_per_file = 5
+
+# ---------------------------------------------------------------------------------------------------
+[[topic]]
+title = "The Lagrange multiplier (score) test and the nR-squared regression"
+instruction = "Explain the LM/score test: the restricted estimator, the score and its scaling by the information or Hessian, the statistic and its chi-square limit, why it needs only the restricted fit, the Lagrange-multiplier interpretation from constrained optimisation, and the auxiliary-regression nR-squared computation with a worked example. Compare the sources' notation and presentation inside this topic."
+
+  [[topic.source]]
+  kind = "section"
+  book = "Hansen_ECONOMETRICS"
+  labels = ["9.17", "8.2"]
+  exclude_labels = []
+  query = "score test restricted estimates gradient Hessian statistic Lagrange multiplier constrained least squares"
+  max = 12
+
+  [[topic.source]]
+  kind = "section"
+  book = "Cameron_Microeconometrics"
+  labels = ["7.3.1", "7.3.3", "7.3.5"]
+  exclude_labels = []
+  query = "Lagrange multiplier score test restricted estimator score statistic information chi-square"
+  max = 12
+
+  [[topic.source]]
+  kind = "file"
+  file = "ta_notes/processed_outputs/08-hypothesis-testing-trinity.md"
+  query = "Lagrange multiplier score test nR squared auxiliary regression restricted residuals"
+  max = 8
+
+  [[topic.source]]
+  kind = "file"
+  file = "lecture_notes/processed_outputs/Econometrics 2026-10-05 10.09.00.excalidraw.rag.md"
+  query = "Lagrange multiplier score test"
+  max = 6
+
+  [[topic.source]]
+  kind = "file"
+  file = "professor_notes/processed_outputs/slidesMLE_updated.md"
+  query = "score test Lagrange multiplier restricted estimator"
+  max = 8
+
+  [[topic.source]]
+  kind = "file"
+  file = "class_2024/Class Notes/Slides/processed_outputs/slidesASYM.md"
+  query = "Lagrange multiplier score test restricted estimator statistic"
+  max = 8
+
+  [[topic.source]]
+  kind = "discover"
+  query = "Lagrange multiplier score test statistic computed at the restricted estimator, auxiliary regression"
+  doc_types = ["textbook"]
+  max = 12
+  min_score = 0.70
+  max_per_file = 5
+
+# ---------------------------------------------------------------------------------------------------
+[[topic]]
+title = "How the three tests relate: equivalence, ordering and invariance"
+instruction = "Explain how the three tests relate: asymptotic equivalence under the null and local alternatives, the finite-sample ordering W >= LR >= LM in the classical normal regression model with its derivation, why that ordering gives different size in finite samples, the non-invariance of the Wald test to how a nonlinear restriction is written versus the invariance of the likelihood ratio test, and practical guidance on which test to use when. Reconcile what the textbooks and the class notes claim and flag any disagreement."
+
+  [[topic.source]]
+  kind = "section"
+  book = "Hansen_ECONOMETRICS"
+  labels = ["9.12", "9.15", "9.17", "9.18"]
+  exclude_labels = []
+  query = "problems with tests of nonlinear hypotheses Wald invariance criterion-based score test relation"
+  max = 12
+
+  [[topic.source]]
+  kind = "section"
+  book = "Cameron_Microeconometrics"
+  labels = ["7.3", "7.2"]
+  exclude_labels = []
+  query = "comparison of Wald likelihood ratio Lagrange multiplier tests asymptotic equivalence local alternatives"
+  max = 12
+
+  [[topic.source]]
+  kind = "file"
+  file = "ta_notes/processed_outputs/08-hypothesis-testing-trinity.md"
+  query = "inequality W >= LR >= LM finite sample invariance paradox nonlinear restriction"
+  max = 10
+
+  [[topic.source]]
+  kind = "file"
+  file = "lecture_notes/processed_outputs/Econometrics 2026-10-05 10.09.00.excalidraw.rag.md"
+  query = "ordering of the three tests inequality invariance"
+  max = 6
+
+  [[topic.source]]
+  kind = "file"
+  file = "professor_notes/processed_outputs/slidesMLE_updated.md"
+  query = "asymptotic equivalence of Wald LR LM tests local alternatives"
+  max = 8
+
+  [[topic.source]]
+  kind = "file"
+  file = "class_2024/Class Notes/Slides/processed_outputs/slidesASYM.md"
+  query = "asymptotic equivalence Wald LM LR ordering"
+  max = 8
+
+  [[topic.source]]
+  kind = "discover"
+  query = "Wald likelihood ratio Lagrange multiplier asymptotic equivalence, finite-sample ordering, invariance to reparameterisation"
+  doc_types = ["textbook"]
+  max = 12
+  min_score = 0.70
+  max_per_file = 5
+
+# ---------------------------------------------------------------------------------------------------
+# Stand-in topics: these become guide-profile sections (recipes, worked problems, formula reference)
+# once profiles exist. Their sources are the exam- and problem-oriented material.
+
+[[topic]]
+title = "Step-by-step recipes for each test"
+instruction = "Give a short numbered procedure for carrying out each of the Wald, likelihood ratio and Lagrange multiplier tests, including the nonlinear Wald test via the delta method and the nR-squared form of the LM test: what to compute, in what order, which covariance or information to use, the reference distribution, the decision rule, and common mistakes at each step. Base each recipe on the derivations and examples in the supplied sources."
+
+  [[topic.source]]
+  kind = "file"
+  file = "ta_notes/processed_outputs/08-hypothesis-testing-trinity.md"
+  query = "steps to compute the test statistic restricted unrestricted estimate decision rule"
+  max = 10
+
+  [[topic.source]]
+  kind = "file"
+  file = "class_2024/Recitations/processed_outputs/Recitation 5.md"
+  query = "delta method Wald test steps compute gradient variance"
+  max = 8
+
+  [[topic.source]]
+  kind = "file"
+  file = "lecture_notes/processed_outputs/Econometrics 2026-10-05 10.09.00.excalidraw.questions.md"
+  query = "how to compute the test statistic"
+  max = 10
+
+  [[topic.source]]
+  kind = "section"
+  book = "Hansen_ECONOMETRICS"
+  labels = ["9.10", "9.11", "9.12", "9.17"]
+  exclude_labels = []
+  query = "test statistic computation steps"
+  max = 10
+
+  [[topic.source]]
+  kind = "discover"
+  query = "procedure for computing Wald, likelihood ratio and Lagrange multiplier test statistics"
+  doc_types = ["textbook"]
+  max = 10
+  min_score = 0.70
+  max_per_file = 5
+
+[[topic]]
+title = "Worked problems and exam-style questions"
+instruction = "Work through complete example problems on these tests from the supplied problem material, restating each problem, solving it step by step with the formulas used, and noting the typical error or trap at each stage. Cover the Wald test (including a nonlinear restriction by the delta method), a likelihood ratio calculation, an LM test through the nR-squared regression, and an invariance example. Use only problems and solution steps found in the sources; if a type of problem is not supplied, say so rather than inventing one."
+
+  [[topic.source]]
+  kind = "file"
+  file = "class_2024/processed_outputs/2024 midterm-ans-key.md"
+  query = "Wald likelihood ratio Lagrange multiplier test problem solution"
+  max = 10
+
+  [[topic.source]]
+  kind = "file"
+  file = "class_2024/processed_outputs/2023exam1.md"
+  query = "hypothesis test problem"
+  max = 4
+
+  [[topic.source]]
+  kind = "file"
+  file = "class_2024/Problem Sets with Solutions/processed_outputs/Solutions-pset2.md"
+  query = "Wald likelihood ratio Lagrange multiplier test"
+  max = 8
+
+  [[topic.source]]
+  kind = "file"
+  file = "class_2024/Recitations/processed_outputs/Recitation 5.md"
+  query = "worked example Wald test delta method"
+  max = 8
+
+  [[topic.source]]
+  kind = "file"
+  file = "class_2024/Recitations/processed_outputs/Recitation 6 (corrected).md"
+  query = "hypothesis test example restricted unrestricted"
+  max = 6
+
+  [[topic.source]]
+  kind = "file"
+  file = "lecture_notes/processed_outputs/Econometrics 2026-09-30 10.09.59.excalidraw.questions.md"
+  query = "Wald test example problem"
+  max = 10
+
+  [[topic.source]]
+  kind = "file"
+  file = "lecture_notes/processed_outputs/Econometrics 2026-10-05 10.09.00.excalidraw.questions.md"
+  query = "likelihood ratio Lagrange multiplier example problem"
+  max = 10
+
+  [[topic.source]]
+  kind = "file"
+  file = "ta_notes/processed_outputs/08-hypothesis-testing-trinity.md"
+  query = "worked example calculation Mincer wage regression"
+  max = 8
+
+[[topic]]
+title = "Formula and notation reference"
+instruction = "Collect the formulas and notation for these tests in one reference: each statistic, its covariance or information ingredient, its asymptotic distribution and degrees of freedom, the delta-method gradient, the F and t forms, the nR-squared form, and the finite-sample ordering. Define every symbol once, note where the sources use different symbols for the same object, and keep each entry to a formula plus a one-line gloss."
+
+  [[topic.source]]
+  kind = "section"
+  book = "Hansen_ECONOMETRICS"
+  labels = ["9.10", "9.11", "9.12", "9.15", "9.17", "7.16", "7.17"]
+  exclude_labels = []
+  query = "Wald statistic F statistic score statistic likelihood ratio definitions notation"
+  max = 12
+
+  [[topic.source]]
+  kind = "section"
+  book = "Cameron_Microeconometrics"
+  labels = ["7.2", "7.3"]
+  exclude_labels = []
+  query = "test statistic definitions notation Wald likelihood ratio Lagrange multiplier"
+  max = 10
+
+  [[topic.source]]
+  kind = "file"
+  file = "ta_notes/processed_outputs/08-hypothesis-testing-trinity.md"
+  query = "formula notation definitions statistic distribution"
+  max = 8
+
+  [[topic.source]]
+  kind = "file"
+  file = "professor_notes/processed_outputs/slidesMLE_updated.md"
+  query = "notation score information Hessian likelihood ratio Wald definitions"
+  max = 8
+
+# ---------------------------------------------------------------------------------------------------
+[[comparison]]
+title = "Comparing and choosing among the three tests"
+instruction = "Compare the Wald, likelihood ratio, and Lagrange multiplier/score tests using the selected passages. Explain which estimates each requires, what each statistic measures, the shared asymptotic relationships, computation choices, and supported cautions. Cite every substantive comparison and state where the sources differ or one source lacks a treatment."
+from = [
+  "The Wald test: linear restrictions, F link and the delta method",
+  "The likelihood ratio test: Wilks' theorem and invariance",
+  "The Lagrange multiplier (score) test and the nR-squared regression",
+  "How the three tests relate: equivalence, ordering and invariance",
+]
+take = 3
