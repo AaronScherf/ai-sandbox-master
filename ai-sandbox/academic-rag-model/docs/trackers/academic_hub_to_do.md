@@ -5,6 +5,9 @@
      example text, so don't append at the end. Agents add items when asked to "add this as a
      pending to-do" (see the root CLAUDE.md). -->
 
+## API Cost: Caching and Batch Mode (all Gemini pipelines)
+- Audit every expensive Gemini call path for context caching (large shared prefix across calls) and Batch API (50% price, ~24h turnaround, so only for jobs that can wait). Candidates, roughly by volume: `core/indexer` (`index_card.py`, `retag.py`, `chunk_index.py`), `pipelines/transcribe_notes` (`transcribe_notes.py`, `transcribe_excalidraw.py`), `pipelines/convert_textbook` (`describe_images.py`, `toc_repair.py`), `agent/problem_gen`, `agent/problem_corpus`, `agent/viz`, `agent/rag` (interactive, so caching only: fixed system prompt and corpus excerpt first). For each: measure the shared-prefix share and the run volume first; skip where the saving is small. Rule of thumb: shared prefix means caching, many independent calls that can wait means batch. Unverified: whether code execution, structured output and image input work in batch jobs, and whether our key tier allows batch. Prices and minimums (3.8 Flash: $0.75 input, $0.375 batch, $0.075 cached per 1M tokens; implicit-cache minimum 4,096 tokens) are from Google's docs as of 2026-10-08; re-check. Findings and a first implementation for `agent/study_guide` and `agent/summary_enhance` are in `docs/superpowers/plans/2026-10-08-guide-revise-pipeline.md` ("Follow-up: caching and batch", branch `claude/study-guide-spec`). (added 2026-10-08)
+
 ## Corpus Health Orchestrator (`docs/superpowers/specs/academic_hub/2026-10-07-corpus-health-orchestrator-design.md`)
 - The design's `git_state` finding kind will misreport known, device-local sync churn in the
   nested `academic_notes/` repo as drift every day unless it explicitly excepts it. Two known
