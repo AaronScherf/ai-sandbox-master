@@ -58,6 +58,26 @@ class NoteSpec:
     body: str
 
 
+VALID_CRITERIA = ("relevance", "dedup", "correctness", "organization")
+
+
+@dataclass(frozen=True)
+class EvidenceRule:
+    rule: SourceRule
+    weight: float = 1.0
+
+
+@dataclass(frozen=True)
+class ReviseSpec:
+    model: str
+    criteria: tuple[str, ...]
+    evidence: tuple[EvidenceRule, ...]
+    relevance_low: float = 0.30
+    relevance_high: float = 0.60
+    dedup_similarity: float = 0.92
+    min_block_words: int = 60
+
+
 @dataclass(frozen=True)
 class GuideSpec:
     id: str
@@ -76,6 +96,7 @@ class GuideSpec:
     sha256: str
     min_words: int = 800
     citations: str = "inline"
+    revise: ReviseSpec | None = None
 
 
 _RULE_KEYS = {
@@ -154,6 +175,43 @@ def _parse_rule(raw: object, where: str) -> SourceRule:
         min_score=float(min_score), max_per_file=_int(raw, "max_per_file", where, 0, minimum=0))
 
 
+def _unit_float(table: dict, key: str, default: float, where: str) -> float:
+    value = table.get(key, default)
+    if isinstance(value, bool) or not isinstance(value, (int, float)) or not 0 <= value <= 1:
+        raise SpecError(f"{where}: {key!r} must be a number between 0 and 1")
+    return float(value)
+
+
+def _parse_revise(data: dict) -> ReviseSpec | None:
+    rev = data.get("revise")
+    if rev is None:
+        return None
+    if not isinstance(rev, dict):
+        raise SpecError("[revise] must be a table")
+    _check_keys(rev, {"model", "criteria", "relevance_low", "relevance_high", "dedup_similarity",
+                      "min_block_words", "evidence"}, "[revise]")
+    criteria = _strs(rev, "criteria", "[revise]", default=VALID_CRITERIA)
+    bad = [c for c in criteria if c not in VALID_CRITERIA]
+    if bad:
+        raise SpecError(f"[revise]: criteria must be among {VALID_CRITERIA}, got {bad}")
+    low = _unit_float(rev, "relevance_low", 0.30, "[revise]")
+    high = _unit_float(rev, "relevance_high", 0.60, "[revise]")
+    if low >= high:
+        raise SpecError("[revise]: relevance_low must be below relevance_high")
+    evidence = []
+    for i, raw in enumerate(rev.get("evidence", []), 1):
+        where = f"[[revise.evidence]] {i}"
+        table = dict(raw)
+        weight = table.pop("weight", 1.0)
+        if isinstance(weight, bool) or not isinstance(weight, (int, float)) or weight <= 0:
+            raise SpecError(f"{where}: 'weight' must be a positive number")
+        evidence.append(EvidenceRule(_parse_rule(table, where), float(weight)))
+    return ReviseSpec(
+        model=_str(rev, "model", "[revise]", DEFAULT_MODEL), criteria=criteria, evidence=tuple(evidence),
+        relevance_low=low, relevance_high=high, dedup_similarity=_unit_float(rev, "dedup_similarity", 0.92, "[revise]"),
+        min_block_words=_int(rev, "min_block_words", "[revise]", 60))
+
+
 def load_spec(path: str | Path) -> GuideSpec:
     p = Path(path)
     if not p.is_file():
@@ -163,7 +221,7 @@ def load_spec(path: str | Path) -> GuideSpec:
         data = tomllib.loads(raw_bytes.decode("utf-8"))
     except (tomllib.TOMLDecodeError, UnicodeDecodeError) as err:
         raise SpecError(f"{p.name}: invalid TOML: {err}") from err
-    _check_keys(data, {"guide", "models", "draft", "note", "topic", "comparison"}, "spec")
+    _check_keys(data, {"guide", "models", "draft", "note", "topic", "comparison", "revise"}, "spec")
 
     guide = data.get("guide")
     if not isinstance(guide, dict):
@@ -239,4 +297,4 @@ def load_spec(path: str | Path) -> GuideSpec:
         prompt=prompt, label_match=label_match, top_k=_int(draft, "top_k", "[draft]", 180),
         file_top_k=_int(draft, "file_top_k", "[draft]", 80), notes=tuple(notes), topics=tuple(topics),
         comparisons=tuple(comparisons), path=str(p), sha256=hashlib.sha256(raw_bytes).hexdigest(),
-        min_words=min_words, citations=citations)
+        min_words=min_words, citations=citations, revise=_parse_revise(data))
