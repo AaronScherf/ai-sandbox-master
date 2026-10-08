@@ -12,6 +12,7 @@ from agent.study_guide.plan import PlanError
 from agent.study_guide.revise.apply import apply_edits, changelog
 from agent.study_guide.revise.audit import audit_section
 from agent.study_guide.revise.dedup import dedup_edits, find_duplicate_clusters
+from agent.study_guide.revise.judge import judge_candidates, judge_edits
 from agent.study_guide.revise.edits import (
     EditReport, ReviseError, load_report, mark_conflicts, save_report, validate_report,
 )
@@ -77,6 +78,10 @@ def build_report(spec: GuideSpec, guide_path: str, plan, *, stages, llm, embed, 
         scores = score_blocks(blocks, evidence, embed, min_words=r.min_block_words)
         found, protected = relevance_edits(blocks, scores, low=r.relevance_low, high=r.relevance_high)
         edits += found
+        if r.judge_fraction > 0:
+            ask = judge_candidates(blocks, scores, fraction=r.judge_fraction, protected=protected,
+                                   skip=[t for e in found for t in e.targets])
+            edits += judge_edits(llm, r.scope, {b.id: b for b in blocks}, ask, scores, start=len(found) + 1)
     flags: dict[str, list[str]] = {}
     if "dedup" in stages:
         for cluster in find_duplicate_clusters(blocks, embed, similarity=r.dedup_similarity, min_words=r.min_block_words):
@@ -136,7 +141,7 @@ def cmd_revise(spec_path: str, root: str, *, guide_path: str, plan_path: str | N
         blocks = segment(body)
         if dry_run:
             sections = len({b.heading_path[1] for b in blocks if len(b.heading_path) > 1})
-            calls = {"relevance": 0, "dedup": "1 per duplicate cluster", "correctness": f"{sections} audit calls + 1 per worked block",
+            calls = {"relevance": "judge batches of 12 over the lowest-scored and unscored blocks" if spec.revise.judge_fraction > 0 else 0, "dedup": "1 per duplicate cluster", "correctness": f"{sections} audit calls + 1 per worked block",
                      "organization": 1}
             print(f"DRY RUN: {len(blocks)} blocks, {sum(b.words for b in blocks)} words, stages {stages}, "
                   f"{len(spec.revise.evidence)} evidence rule(s) (resolved at run time)")

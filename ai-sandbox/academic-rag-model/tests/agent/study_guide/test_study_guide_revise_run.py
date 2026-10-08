@@ -149,3 +149,19 @@ def test_a_tag_that_could_leave_the_vault_is_refused(env, root, tmp_path, capsys
     decisions.write_text("{}", encoding="utf-8")
     assert cmd_apply_revise(str(spec_file), root, guide_path=str(guide), decisions_path=str(decisions), tag="a/b") == 2
     assert "tag" in capsys.readouterr().out
+
+
+def test_the_relevance_judge_runs_inside_the_relevance_stage(make_spec, root, tmp_path):
+    from agent.study_guide.revise.segment import segment, split_frontmatter
+    text = SPEC.replace("relevance_low = 0.3", "relevance_low = 0.0\njudge_fraction = 1.0\nscope = \"Only the Wald test.\"")
+    make_spec(text, header=HEADER)
+    spec_file = tmp_path / "spec.toml"
+    assert cmd_plan(str(spec_file), root, search=StubSearch({"textbook": [hit("cam-1", .9)]}), chunks=CHUNKS, cards=CARDS) == 0
+    guide = Path(root) / "academic_notes" / "econ" / "summaries" / "demo.md"
+    guide.write_text(GUIDE, encoding="utf-8")
+    spec = load_spec(spec_file)
+    pkg = next(b for b in segment(split_frontmatter(GUIDE)[1]) if b.heading_path[-1] == "Software packages")
+    llm = ScriptedLLM([{"verdicts": [{"block": pkg.id, "verdict": "delete", "rationale": "software tutorial"}]}])
+    report = _build(spec, guide, llm=llm, stages=("relevance",))
+    assert [(e.type, e.targets, e.rationale.startswith("judge:")) for e in report.edits] == [("delete", [pkg.id], True)]
+    assert "Only the Wald test." in llm.calls[0]

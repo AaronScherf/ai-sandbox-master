@@ -15,6 +15,7 @@ class EvidenceChunk:
     citation: str
     weight: float
     embedding: tuple[float, ...]
+    text: str = ""
 
 
 def load_evidence(spec: GuideSpec, root: str, *, client=None, search=None, chunks=None, cards=None) -> list[EvidenceChunk]:
@@ -35,5 +36,6 @@ def load_evidence(spec: GuideSpec, root: str, *, client=None, search=None, chunk
                 continue
             current = found.get(entry.chunk_id)
             if current is None or current.weight < ev.weight:
-                found[entry.chunk_id] = EvidenceChunk(entry.chunk_id, entry.citation, ev.weight, tuple(chunk["embedding"]))
+                found[entry.chunk_id] = EvidenceChunk(entry.chunk_id, entry.citation, ev.weight, tuple(chunk["embedding"]),
+                                                         chunk.get("text", ""))
     return list(found.values())

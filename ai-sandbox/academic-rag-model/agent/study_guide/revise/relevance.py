@@ -21,6 +21,7 @@ class Relevance:
     block_id: str
     score: float
     nearest: tuple[tuple[str, float], ...]
+    nearest_text: tuple[str, ...] = ()
 
 
 def score_blocks(blocks: list[Block], evidence: list[EvidenceChunk], embed: Callable[[str], list[float]], *,
@@ -33,8 +34,9 @@ def score_blocks(blocks: list[Block], evidence: list[EvidenceChunk], embed: Call
         if b.words < min_words:
             continue
         vec = embed(b.text)
-        ranked = sorted(((cosine(vec, e.embedding) * e.weight / top, e.citation) for e in evidence), reverse=True)
-        out[b.id] = Relevance(b.id, ranked[0][0], tuple((c, round(s, 4)) for s, c in ranked[:3]))
+        ranked = sorted(((cosine(vec, e.embedding) * e.weight / top, e.citation, e.text) for e in evidence), reverse=True)
+        out[b.id] = Relevance(b.id, ranked[0][0], tuple((c, round(s, 4)) for s, c, _ in ranked[:3]),
+                              tuple(t for _, _, t in ranked[:3]))
     return out
 
 
