@@ -499,3 +499,60 @@ from = [
   "How the three tests relate: equivalence, ordering and invariance",
 ]
 take = 3
+
+# Revise stage (see docs/superpowers/specs/agent/2026-10-08-guide-revise-pipeline-design.md). Evidence for the
+# relevance score: exams and graded problems count most, then lecture questions and problem sets, then the syllabus.
+# Thresholds are the defaults; calibrate relevance_low / relevance_high on the first relevance-only run.
+[revise]
+model = "gemini-3.8-flash"
+criteria = ["relevance", "dedup", "correctness", "organization"]
+min_block_words = 60
+
+  [[revise.evidence]]
+  kind = "file"
+  file = "class_2024/processed_outputs/2024 midterm-ans-key.md"
+  query = "Wald likelihood ratio Lagrange multiplier test hypothesis testing"
+  max = 40
+  weight = 3.0
+
+  [[revise.evidence]]
+  kind = "file"
+  file = "class_2024/processed_outputs/2023exam1.md"
+  query = "Wald likelihood ratio Lagrange multiplier test hypothesis testing"
+  max = 40
+  weight = 3.0
+
+  [[revise.evidence]]
+  kind = "file"
+  file = "class_2024/Problem Sets with Solutions/processed_outputs/Solutions-pset2.md"
+  query = "Wald likelihood ratio Lagrange multiplier test hypothesis testing"
+  max = 40
+  weight = 2.0
+
+  [[revise.evidence]]
+  kind = "file"
+  file = "class_2024/Problem Sets with Solutions/processed_outputs/GR6411_pset2.md"
+  query = "Wald likelihood ratio Lagrange multiplier test hypothesis testing"
+  max = 40
+  weight = 2.0
+
+  [[revise.evidence]]
+  kind = "file"
+  file = "lecture_notes/processed_outputs/Econometrics 2026-10-05 10.09.00.excalidraw.questions.md"
+  query = "test statistic hypothesis test"
+  max = 40
+  weight = 2.0
+
+  [[revise.evidence]]
+  kind = "file"
+  file = "lecture_notes/processed_outputs/Econometrics 2026-10-07 10.19.22.excalidraw.questions.md"
+  query = "test statistic hypothesis test"
+  max = 40
+  weight = 2.0
+
+  [[revise.evidence]]
+  kind = "file"
+  file = "syllabus/processed_outputs/ec6411A.md"
+  query = "hypothesis testing Wald likelihood ratio Lagrange multiplier"
+  max = 40
+  weight = 1.5
