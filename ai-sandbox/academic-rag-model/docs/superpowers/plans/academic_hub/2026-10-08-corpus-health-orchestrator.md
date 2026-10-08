@@ -60,7 +60,12 @@ The academic-rag-model guidance says not to inspect `.index/` directly. Use or a
 
 **Files:**
 
-- Create: `docs/status/academic_hub/2026-10-08-corpus-health-capability-inventory.md`
+- Create: `docs/status/academic_hub/2026-10-08-corpus-health-capability-inventory.md` —
+  `academic_hub` is a new status subfolder name, not an existing package. It groups
+  this cross-cutting effort rather than mapping to one existing package the way
+  other `docs/status/<package>/` subfolders do. Confirm this is intended, or rename
+  to `docs/status/corpus_health/` to match the new `tools/corpus_health/` package
+  before this doc accumulates history under it.
 - Read: the package READMEs and entry points named in the spec and matrix above.
 
 **Steps:**
@@ -85,6 +90,11 @@ The academic-rag-model guidance says not to inspect `.index/` directly. Use or a
 - Expose a function that compares eligible Markdown/source identities with existing index-card and chunk state without writing, embedding, or making API calls.
 - Return typed status records (indexed/current, missing card, stale card, missing/stale chunks, unreadable/unknown) and evidence sufficient for the report.
 - Reuse `compute_file_id()` and existing card lookup/schema helpers rather than duplicating identity rules.
+  `compute_file_id()` is currently typed and named for PDFs (`pdf_path: str` in
+  `core/indexer/index_card.py`); verify it actually generalizes to Excalidraw and
+  Markdown sources before relying on it as *the* content-fingerprint source across
+  all finding kinds, or add a parallel identity function for non-PDF sources rather
+  than assuming one identity rule already covers every root this scanner touches.
 - Keep this API independent of private JSON layout so later index schema changes do not require the orchestrator to parse `.index/` itself.
 
 **Acceptance:** Tests against temporary synthetic roots show accurate status, no writes, no client creation, and no model calls. A missing or malformed index is reported as incomplete, not silently treated as an empty healthy index.
@@ -154,6 +164,7 @@ The `scan` command is ready to schedule as soon as this task passes. Do not wait
 - Create: `core/env/corpus_write_lock.py` and `tests/core/env/test_corpus_write_lock.py`.
 - Modify only the writer entry points selected by the capability inventory; likely candidates include note transcription/router, Excalidraw transcription, postprocessing, relevant index mutations, and image description.
 - Do not adapt the remote textbook conversion path in this task unless a real lock protocol can cover its GCP/GCS writer lifecycle.
+- This task touches up to five separate pipelines plus the new lock module. Land the lock module and its tests first, then adopt it into one pipeline at a time as separate commits (or separate task branches) rather than one large diff, so each adoption gets its own full-suite landing check and review surface.
 
 **Steps:**
 
