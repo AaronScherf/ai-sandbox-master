@@ -23,3 +23,25 @@ Reusable pipeline for building study guides from indexed course material: a **gu
 - Design: `docs/superpowers/specs/agent/2026-10-05-study-guide-pipeline-design.md`.
   Provenance of the baseline: `docs/status/agent/2026-10-05-wald-guide-recovered-generation-status.md`.
 - Tests: `python -m pytest tests/agent/study_guide -q` (no network).
+
+## revise (refine a large guide)
+
+```
+python -m agent.study_guide revise       <spec> --guide G [--plan P] [--stages relevance,dedup,correctness,organization] [--tag T] [--dry-run] [--force] [--env-file F]
+python -m agent.study_guide apply-revise <spec> --guide G --decisions D.json [--tag T] [--force]
+```
+
+- `revise` reads a draft or enhanced guide, proposes typed edits (delete, shrink, merge, link, fix, move, retitle, note) and
+  writes `academic_notes/<course>/guide_plans/<guide>[.<tag>].revise.json` plus `...revise.review.json` (items for the review
+  Artifact). It never changes the guide. `--dry-run` prints block and call counts and makes no calls.
+- Stages: `relevance` (embeddings against weighted evidence; deletes below `relevance_low`, protects blocks above
+  `relevance_high`), `dedup` (one call per duplicate cluster), `correctness` (one call per section against its own plan
+  passages, plus a code-execution recheck of worked and constructed examples), `organization` (mechanical heading fixes and
+  one outline-only call). A stage must be listed in the spec's `[revise] criteria`.
+- `apply-revise` is deterministic and calls no model: it applies the accepted edits (decisions file maps edit id to
+  `accept` or `reject`; undecided counts as rejected), checks the post-conditions (guide not longer, no new page citations,
+  no new heading problems, untouched blocks unchanged) and writes `<guide>.revised[.<tag>].md` and a changelog. It refuses a
+  guide that changed since the report, and never overwrites without `--force`.
+- Spec: an optional `[revise]` table (`model`, `criteria`, `relevance_low`, `relevance_high`, `dedup_similarity`,
+  `min_block_words`, and `[[revise.evidence]]` rules with a `weight`; same rule keys as `[[topic.source]]`).
+- Design: `docs/superpowers/specs/agent/2026-10-08-guide-revise-pipeline-design.md`.

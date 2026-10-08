@@ -25,6 +25,7 @@ from agent.study_guide.plan import (
     PlanError, accepted, apply_decisions, build_plan, check_fresh, load_plan, pending_entries, plan_sha256,
     save_plan, write_review_items,
 )
+from agent.study_guide.revise.run import cmd_apply_revise, cmd_revise
 from agent.study_guide.spec import SpecError, load_spec
 from agent.summary_enhance.enhance import DEFAULT_MIN_WORDS, baseline_section, run as enhance_run
 from agent.summary_enhance.llm import GeminiClient
@@ -250,9 +251,32 @@ def main(argv: list[str] | None = None) -> int:
     sp.add_argument("--dry-run", action="store_true")
     sp.add_argument("--accept-unreviewed", action="store_true")
 
+    sp = sub.add_parser("revise")
+    common(sp)
+    sp.add_argument("--guide", required=True, help="the guide to revise (a draft or enhanced .md)")
+    sp.add_argument("--plan", help="plan file (default: the spec's plan in the vault)")
+    sp.add_argument("--stages", help="comma-separated subset of relevance,dedup,correctness,organization")
+    sp.add_argument("--tag", default="")
+    sp.add_argument("--force", action="store_true")
+    sp.add_argument("--dry-run", action="store_true")
+
+    sp = sub.add_parser("apply-revise")
+    common(sp)
+    sp.add_argument("--guide", required=True)
+    sp.add_argument("--decisions", required=True, help="JSON file of edit id -> accept|reject")
+    sp.add_argument("--tag", default="")
+    sp.add_argument("--force", action="store_true")
+
     args = p.parse_args(argv)
     if args.command == "apply-review":
         return cmd_apply_review(args.plan, args.decisions)
+    if args.command == "revise":
+        return cmd_revise(args.spec, args.root, guide_path=args.guide, plan_path=args.plan,
+                          stages=args.stages.split(",") if args.stages else None, tag=args.tag, force=args.force,
+                          dry_run=args.dry_run, env_file=args.env_file)
+    if args.command == "apply-revise":
+        return cmd_apply_revise(args.spec, args.root, guide_path=args.guide, decisions_path=args.decisions,
+                                tag=args.tag, force=args.force)
     if args.command == "enhance":
         return cmd_enhance(args.spec, args.root, draft_path=args.draft, plan_path=args.plan, mode=args.mode,
                            worked_example=args.worked_example, min_words=args.min_words, model=args.model,
