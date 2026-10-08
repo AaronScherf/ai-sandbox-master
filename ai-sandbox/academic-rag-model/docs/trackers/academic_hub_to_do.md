@@ -154,6 +154,25 @@
 - `days_since_cut` metric resets to 0 after a rebase: `tools/land_branch.py`'s `check()` computes the branch's age from `git merge-base main HEAD`, but once a branch is rebased onto `main` (which happens on almost every landing, since `main` moves constantly), the merge-base becomes `main`'s own tip, so the age no longer reflects when the branch was actually started. Fix needs a small persistent store, e.g. `<git-common-dir>/agent-landing-cuts.json` keyed by branch name: write the branch's first-seen merge-base on its first `check()` call, reuse it on later calls regardless of rebases, and clear the entry when `record()` is called with `outcome="landed"`. Spec: `docs/superpowers/specs/2026-10-06-agent-git-workflow-design.md`; plan: `docs/superpowers/plans/2026-10-06-agent-git-workflow.md` (both under this package). Deferred during the 2026-10-06/07 implementation session pending the user's go-ahead for the added state; not a blocker for landing, since the metric is informational. (added 2026-10-07)
 
 ## Notes Transcription (`pipelines/transcribe_notes`)
+- **URGENT — Excalidraw expansion loses source content:** investigate and fix the end-to-end
+  transcription/expansion/question-resolution path in `pipelines/transcribe_notes/transcribe_excalidraw.py`
+  and its downstream resolver. Treat transcription/expansion and question resolution as a required pair:
+  after each Excalidraw note is transcribed and expanded, automatically run
+  `agent.rag.resolve_questions` for that note, surface any failures, and don't report the note complete
+  while tagged questions remain unresolved. The 2026-10-08 run resolved 17 source questions, but an
+  output audit still found two stale sidecar answers and five open `[Question]` markers across the
+  Econometrics Oct 7 10:19 and Microeconomics Oct 8 08:21 notes; the resolver dry run reported zero
+  pending because it checks raw tags against sidecar IDs, not whether every expanded tag was linked.
+  Add an end-to-end post-resolution check for zero stale answers and zero unpaired/unresolved expanded
+  tags. In the six Oct 6–8, 2026 Econometrics/Microeconomics notes, the first-pass
+  transcript is mostly faithful, but the expanded `.rag.md` drops or compresses themes and graph details
+  that were present in the transcript; some handwritten questions also remain unanswered. Compare each
+  raw `.excalidraw.md` with its `.rag.md`, verify `[Question]` tags survive and reach the existing
+  question-resolution step, and add coverage checks so expansion preserves every substantive theme and
+  graph description. Preserve the visual information in the enhanced notes too: retain or recreate the
+  relevant graphs/diagrams in the final artifact rather than leaving only prose descriptions. Test whether
+  the `gemini-3.1-flash-lite` expansion model contributes to the loss versus prompt/context behavior before
+  treating it as the cause. Re-expand and review the affected notes after the fix. (added 2026-10-08)
 - Move the `*_pages_cache.json` resume caches out of `processed_outputs/` into `processed_outputs/_cache/`, to cut clutter when browsing folders (89 files, ~2.2 MB, all tracked in the `academic_notes` repo). Plan: the cache path is built in one place (`transcribe_notes.py`, `cache_path`, around line 1095) so change it there; read `_cache/` first and fall back to the old location so unmigrated caches still resume; update `tools/audit_metadata.py`, which moves a cache along with its `.md`; one-shot `git mv` of the existing 89 in the `academic_notes` repo; test both locations plus the fallback. The caches are only read when the same document is rerun or `--force`d (to skip pages already paid for); the indexer, search and tutor never touch them. Deferred by the user (added 2026-10-04)
 - Reprocess `LN_Analysis.pdf` and `LN_Linear Algebra.pdf` using whole-document batching and PyMuPDF dict-mode: their existing outputs predate the dict-mode/subscript reconstruction and whole-document batching improvements. Estimated cost under $0.30 total. Paused at user request pending review. (added 2026-10-04)
 - Radical/square-root font encoding repair: in PDF font extractions (e.g. `Analysis_Exercises.pdf` page 6), square-root signs can extract as plain ASCII 'p' or missing glyphs due to broken ToUnicode font mappings; implement a regex/post-processing repair pass. (added 2026-10-04)
