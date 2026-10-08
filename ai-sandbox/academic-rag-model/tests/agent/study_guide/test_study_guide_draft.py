@@ -262,3 +262,33 @@ def test_usage_is_recorded_and_printed_when_the_client_tracks_it(spec, root, cap
     front = out.read_text(encoding="utf-8").split("---\n")[1]
     assert 'usage: {"calls":3,"prompt_tokens":9000,"output_tokens":2500,"thinking_tokens":100}\n' in front
     assert "3 calls, 9000 prompt tokens, 2500 output tokens, 100 thinking tokens" in capsys.readouterr().out
+
+
+def test_strip_handles_bracketed_labels_inside_parentheses_and_leaves_no_empty_parens(make_spec, root):
+    spec = make_spec(TOPICS, header=STRIP_HEADER)
+    llm = FakeLLM(["A ([cite-cam-1]; [cite-han-1]) B ( ) C (;) D [cite-cam-1] E ([cite-cam-1];;) F.", "ok", "ok"])
+    out, _ = _run(spec, root, llm=llm)
+    assert "A B C D E F." in out.read_text(encoding="utf-8")
+
+
+def test_headings_inside_a_section_are_demoted_and_a_repeated_title_dropped(make_spec, root):
+    spec = make_spec(TOPICS, header=STRIP_HEADER)
+    llm = FakeLLM(["# Wald\n\nintro\n\n## Sub topic\n\n### Deeper\n\n#### Deepest\n\ntext", "ok", "ok"])
+    out, _ = _run(spec, root, llm=llm)
+    text = out.read_text(encoding="utf-8")
+    wald = text.split("## Wald\n", 1)[1].split("\n---\n", 1)[0]
+    assert "\n# " not in "\n" + wald and "\n## " not in wald
+    assert "### Sub topic" in wald and "### Deeper" in wald and "#### Deepest" in wald
+    assert "# Wald" not in wald
+
+
+def test_strip_mode_saves_the_cited_text_beside_the_plan(make_spec, root):
+    spec = make_spec(TOPICS, header=STRIP_HEADER)
+    out, _ = _run(spec, root, llm=FakeLLM(["Cited claim (cite-cam-1).", "b", "c"]), tag="t1")
+    side = out.parent.parent / "guide_plans" / "demo.t1.cited.json"
+    assert json.loads(side.read_text(encoding="utf-8"))["Wald"] == "Cited claim (cite-cam-1)."
+
+
+def test_inline_mode_writes_no_cited_sidecar(spec, root):
+    out, _ = _run(spec, root)
+    assert not (out.parent.parent / "guide_plans").exists()

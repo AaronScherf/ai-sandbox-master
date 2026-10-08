@@ -21,7 +21,10 @@ INTRO_STRIPPED = "Each section below was written from the source passages planne
 _TAG_RE = re.compile(r"^[A-Za-z0-9_-]+$")
 _RESIDUAL_CITATION_RE = re.compile(r"\bpp?\.\s?\d+(?:\s*[-–]\s*\d+)?\s*[\)\]]")
 _PAGE_PIECE = r"[^;()\[\]]*?\bpp?\.\s?\d+(?:\s*[-\u2013]\s*\d+)?[^;()\[\]]*?"
-_PAGE_CITATION_RE = re.compile(rf"\s*[\(\[]\s*{_PAGE_PIECE}(?:\s*;\s*{_PAGE_PIECE})*\s*[\)\]]")
+_PAGE_ITEM = rf"\[?{_PAGE_PIECE}\]?"
+_PAGE_CITATION_RE = re.compile(rf"\s*[\(\[]\s*{_PAGE_ITEM}(?:\s*;\s*{_PAGE_ITEM})*[\s;,]*[\)\]]")
+_EMPTY_PARENS_RE = re.compile(r"[ \t]+\([\s;,]*\)")
+_HEADING_RE = re.compile(r"^(#{1,2})\s+(.*?)\s*$")
 
 
 class DraftError(Exception):
@@ -86,10 +89,28 @@ def strip_citations(text: str, labels: list[str]) -> tuple[str, int]:
     labels = sorted({l for l in labels if l}, key=len, reverse=True)
     if labels:
         alt = "|".join(re.escape(l) for l in labels)
-        sep = r"\s*(?:[;,]|and)\s*"
-        text = re.sub(rf"\s*[\(\[]\s*(?:{alt})(?:{sep}(?:{alt}))*\s*[\)\]]", "", text)
+        item = rf"\[?(?:{alt})\]?"
+        sep = r"\s*(?:[;,]|and)?\s*"
+        text = re.sub(rf"\s*[\(\[]\s*{item}(?:{sep}{item})*[\s;,]*[\)\]]", "", text)
     text = _PAGE_CITATION_RE.sub("", text)  # the model often shortens labels, e.g. "(Hansen, p. 268)"
+    text = _EMPTY_PARENS_RE.sub("", text)
     return text, len(_RESIDUAL_CITATION_RE.findall(text))
+
+
+def normalize_headings(answer: str, title: str) -> str:
+    """The section already has an H2 title: drop a repeated title line and demote any other H1/H2 the
+    model wrote to H3, so a stray H1 cannot swallow the rest of the guide in an outline view."""
+    out, fenced = [], False
+    for line in answer.splitlines():
+        if line.lstrip().startswith("```"):
+            fenced = not fenced
+        m = None if fenced else _HEADING_RE.match(line)
+        if m:
+            if m.group(2).strip().rstrip(":").lower() == title.strip().rstrip(":").lower():
+                continue
+            line = "### " + m.group(2)
+        out.append(line)
+    return "\n".join(out).strip()
 
 
 def _topic_prompt(spec: GuideSpec, topic: TopicSpec, excerpts: list[tuple[str, str]]) -> str:
@@ -100,7 +121,9 @@ def _topic_prompt(spec: GuideSpec, topic: TopicSpec, excerpts: list[tuple[str, s
 
 
 def _section(spec: GuideSpec, title: str, answer: str, entries: list[PlanEntry],
-             topic_sources: dict[str, list[str]]) -> str:
+             topic_sources: dict[str, list[str]], raw: dict[str, str]) -> str:
+    raw[title] = answer
+    answer = normalize_headings(answer, title)
     if spec.citations == "inline":
         sources = "\n".join(f"- [{e.citation}] `{e.path}`" for e in entries)
         return f"## {title}\n\n{answer}\n\n**Retrieved sources**\n\n{sources}"
@@ -130,11 +153,12 @@ def draft_guide(spec: GuideSpec, plan: Plan, *, root: str, llm, chunks: list[dic
     blocks = [f"## {n.heading}\n\n{n.body}" for n in spec.notes]
     used: dict[str, PlanEntry] = {}
     topic_sources: dict[str, list[str]] = {}
+    raw_answers: dict[str, str] = {}
     try:
         for topic in spec.topics:
             entries = per_topic[topic.title]
             answer = _generate(llm, _topic_prompt(spec, topic, _excerpts(entries, text_by_id)))
-            blocks.append(_section(spec, topic.title, answer, entries, topic_sources))
+            blocks.append(_section(spec, topic.title, answer, entries, topic_sources, raw_answers))
             for e in entries:
                 used.setdefault(e.chunk_id, e)
         for cmp_ in spec.comparisons:
@@ -150,7 +174,7 @@ def draft_guide(spec: GuideSpec, plan: Plan, *, root: str, llm, chunks: list[dic
                 prompt = guide_v1_prompt(cmp_.title, cmp_.instruction, excerpts, min_words=spec.min_words)
             else:
                 prompt = tutor_v1_prompt(cmp_.instruction, excerpts)
-            blocks.append(_section(spec, cmp_.title, _generate(llm, prompt), chosen, topic_sources))
+            blocks.append(_section(spec, cmp_.title, _generate(llm, prompt), chosen, topic_sources, raw_answers))
             for e in chosen:
                 used.setdefault(e.chunk_id, e)
     except Exception:
@@ -186,6 +210,10 @@ def draft_guide(spec: GuideSpec, plan: Plan, *, root: str, llm, chunks: list[dic
     frontmatter = "---\n" + "".join(f"{k}: {v}\n" for k, v in front.items()) + "---\n\n"
     document = frontmatter + f"# {spec.title}\n\n{INTRO if spec.citations == 'inline' else INTRO_STRIPPED}\n\n" + "\n\n---\n\n".join(blocks) + "\n"
 
+    if spec.citations == "strip":
+        cited = Path(root) / "academic_notes" / spec.course / "guide_plans" / (out.stem + ".cited.json")
+        cited.parent.mkdir(parents=True, exist_ok=True)
+        cited.write_text(json.dumps(raw_answers, indent=1, ensure_ascii=False), encoding="utf-8", newline="\n")
     out.parent.mkdir(parents=True, exist_ok=True)
     tmp = out.with_name(out.name + ".tmp")
     try:
