@@ -412,3 +412,25 @@ relevant. Most likely explanation: this material was never added to
 academic-hub at all, or the original Antigravity hint's citation to
 it was never actually grounded in a retrieved passage in the first
 place. Left as a known content gap, not pursued further this session.
+
+## 2026-10-08 update: Live Socratic Tutoring Session Audit & Architectural Redesign Specifications
+
+A live, multi-turn Socratic tutoring test run was conducted on Microeconomics Homework 4 (covering stochastic choice, random consideration sets, preference continuity/convexity on $\mathbb{R}$, and non-concavifiability). The session evaluated whether a frontier model could sustain an interactive tutoring dialogue from a single prompt and audited the agent's pedagogical boundaries.
+
+### Artifacts and Permanent Deliverables
+All raw transcripts, student study guides, and engineering specifications were permanently exported to the course vault in [`ai-sandbox/academic-hub/academic_notes/microecon/tutoring/`](file:///c:/Users/theaa/ai-sandbox-master/ai-sandbox/academic-hub/academic_notes/microecon/tutoring/):
+1. **Full Pedagogical Transcript**: [`hw4_tutoring_transcript.md`](file:///c:/Users/theaa/ai-sandbox-master/ai-sandbox/academic-hub/academic_notes/microecon/tutoring/hw4_tutoring_transcript.md) — 22 turns of full internal diagnostics, lines of reasoning, hint escalation levels, and calibrated progress evaluations.
+2. **Word-for-Word Conversation Log**: [`hw4_tutoring_conversation_transcript.md`](file:///c:/Users/theaa/ai-sandbox-master/ai-sandbox/academic-hub/academic_notes/microecon/tutoring/hw4_tutoring_conversation_transcript.md) — 24 turns of clean student-tutor dialogue with zero internal reasoning.
+3. **Student Summary & Diagnostic Review**: [`hw4_tutoring_student_summary.md`](file:///c:/Users/theaa/ai-sandbox-master/ai-sandbox/academic-hub/academic_notes/microecon/tutoring/hw4_tutoring_student_summary.md) — Executive topic table (Q1.1–Q1.6, Q2), "Big Picture" conceptual synthesis, un-inflated tri-axial performance rubric, and curated reading homework from Rubinstein, MWG, and Mark Dean.
+4. **Tutoring Pipeline Meta-Lessons Learned**: [`tutoring_pipeline_meta_lessons_learned.md`](file:///c:/Users/theaa/ai-sandbox-master/ai-sandbox/academic-hub/academic_notes/microecon/tutoring/tutoring_pipeline_meta_lessons_learned.md) — Comprehensive failure mode analysis and engineering blueprint for formalizing the tutoring pipeline in `academic-rag-model`.
+
+### Key Failure Modes & Pipeline Redesign Requirements
+The test run revealed five recurring pedagogical deviations that must be constrained in future `academic-rag-model` tutoring implementations (`rag_agent.py` / `tutor_diagnosis.py`):
+1. **Premature Scaffolding**: Providing proof roadmaps before the student attempts the problem.
+2. **Unsolicited Problem Advancement**: Advancing subsections autonomously instead of gating transitions on student confirmation.
+3. **Over-Bridging Concept Definitions**: Directly connecting high-level terms (e.g. choice overload) to problem variables ($d$) instead of providing neutral domain definitions.
+4. **Prescribing Proof Techniques**: Imposing specific proof structures (e.g., contradiction) rather than letting the student choose their analytical method.
+5. **Diagnostic Grade Inflation**: Overly lenient progress ratings that fail to flag conceptual gaps (calibrated down to *Developing / Needs Review* for topological and concavity misconceptions).
+
+These findings specify the blueprint for an explicit **Finite-State Machine (FSM) controller** and **negative system prompt constraints** when upgrading the tutoring agent in this package.
+
