@@ -19,7 +19,9 @@ INTRO = ("Each section below was written from the source passages planned for th
          "retrieved for each section are listed beneath it.")
 INTRO_STRIPPED = "Each section below was written from the source passages planned for that topic."
 _TAG_RE = re.compile(r"^[A-Za-z0-9_-]+$")
-_RESIDUAL_CITATION_RE = re.compile(r"\([^()]*\bp\. ?\d+[^()]*\)")
+_RESIDUAL_CITATION_RE = re.compile(r"\bpp?\.\s?\d+(?:\s*[-–]\s*\d+)?\s*[\)\]]")
+_PAGE_PIECE = r"[^;()\[\]]*?\bpp?\.\s?\d+(?:\s*[-\u2013]\s*\d+)?[^;()\[\]]*?"
+_PAGE_CITATION_RE = re.compile(rf"\s*[\(\[]\s*{_PAGE_PIECE}(?:\s*;\s*{_PAGE_PIECE})*\s*[\)\]]")
 
 
 class DraftError(Exception):
@@ -86,6 +88,7 @@ def strip_citations(text: str, labels: list[str]) -> tuple[str, int]:
         alt = "|".join(re.escape(l) for l in labels)
         sep = r"\s*(?:[;,]|and)\s*"
         text = re.sub(rf"\s*[\(\[]\s*(?:{alt})(?:{sep}(?:{alt}))*\s*[\)\]]", "", text)
+    text = _PAGE_CITATION_RE.sub("", text)  # the model often shortens labels, e.g. "(Hansen, p. 268)"
     return text, len(_RESIDUAL_CITATION_RE.findall(text))
 
 
@@ -175,6 +178,11 @@ def draft_guide(spec: GuideSpec, plan: Plan, *, root: str, llm, chunks: list[dic
     constructed = [t.title for t in spec.topics if t.construct_examples]
     if constructed:
         front["constructed_examples"] = json.dumps(constructed, ensure_ascii=False)
+    usage = getattr(llm, "usage", None)
+    if usage:
+        front["usage"] = json.dumps(usage, separators=(",", ":"))
+        print(f"Token usage: {usage['calls']} calls, {usage['prompt_tokens']} prompt tokens, "
+              f"{usage['output_tokens']} output tokens, {usage['thinking_tokens']} thinking tokens")
     frontmatter = "---\n" + "".join(f"{k}: {v}\n" for k, v in front.items()) + "---\n\n"
     document = frontmatter + f"# {spec.title}\n\n{INTRO if spec.citations == 'inline' else INTRO_STRIPPED}\n\n" + "\n\n---\n\n".join(blocks) + "\n"
 

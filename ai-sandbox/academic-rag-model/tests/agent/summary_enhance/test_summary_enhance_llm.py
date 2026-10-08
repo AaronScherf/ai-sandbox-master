@@ -94,3 +94,24 @@ def test_unusable_responses_raise_the_dedicated_subclass():
         client, _ = _client(text, finish)
         with pytest.raises(UnusableResponse):
             client.generate_structured("p", {})
+
+
+def test_usage_is_accumulated_across_calls():
+    class UsageModels(StubModels):
+        def generate_content(self, **kwargs):
+            resp = super().generate_content(**kwargs)
+            resp.usage_metadata = SimpleNamespace(prompt_token_count=1000, candidates_token_count=300,
+                                                  thoughts_token_count=50, total_token_count=1350)
+            return resp
+
+    client = GeminiClient(SimpleNamespace(models=UsageModels("ok")), model="m-1")
+    assert client.usage == {"calls": 0, "prompt_tokens": 0, "output_tokens": 0, "thinking_tokens": 0}
+    client.generate_text("a")
+    client.generate_text("b")
+    assert client.usage == {"calls": 2, "prompt_tokens": 2000, "output_tokens": 600, "thinking_tokens": 100}
+
+
+def test_usage_tolerates_a_response_without_metadata():
+    client, _ = _client("ok")
+    client.generate_text("a")
+    assert client.usage["calls"] == 1 and client.usage["prompt_tokens"] == 0

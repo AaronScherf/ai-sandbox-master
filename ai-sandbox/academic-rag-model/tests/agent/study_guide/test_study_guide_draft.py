@@ -220,9 +220,9 @@ def test_strip_mode_removes_inline_citations_and_source_lists_and_records_them_i
 
 def test_strip_mode_warns_about_citations_it_could_not_match(make_spec, root, capsys):
     spec = make_spec(TOPICS, header=STRIP_HEADER)
-    llm = FakeLLM(["Claim (Hansen §9.10, p. 268).", "ok", "ok"])
+    llm = FakeLLM(["Claim (Recitation 9 (draft), p. 4).", "ok", "ok"])
     out, _ = _run(spec, root, llm=llm)
-    assert "(Hansen §9.10, p. 268)" in out.read_text(encoding="utf-8")
+    assert "(Recitation 9 (draft), p. 4)" in out.read_text(encoding="utf-8")
     assert "1 citation(s) could not be matched" in capsys.readouterr().out
 
 
@@ -243,3 +243,22 @@ def test_construct_examples_applies_only_to_flagged_topics_and_is_recorded(make_
     assert "Constructed example (not from the sources)" not in llm.calls[1]
     assert "at least 1800 words" in llm.calls[0]
     assert 'constructed_examples: ["Wald"]\n' in out.read_text(encoding="utf-8")
+
+
+def test_strip_mode_also_removes_shortened_page_citations(make_spec, root, capsys):
+    spec = make_spec(TOPICS, header=STRIP_HEADER)
+    llm = FakeLLM(["Claim (§9.12, p. 270; Hansen, p. 268) and (Recitation 5, pp. 10-11) kept (for example, n = 100).",
+                   "ok", "ok"])
+    out, _ = _run(spec, root, llm=llm)
+    text = out.read_text(encoding="utf-8")
+    assert "Claim and kept (for example, n = 100)." in text
+    assert "could not be matched" not in capsys.readouterr().out
+
+
+def test_usage_is_recorded_and_printed_when_the_client_tracks_it(spec, root, capsys):
+    llm = FakeLLM()
+    llm.usage = {"calls": 3, "prompt_tokens": 9000, "output_tokens": 2500, "thinking_tokens": 100}
+    out, _ = _run(spec, root, llm=llm)
+    front = out.read_text(encoding="utf-8").split("---\n")[1]
+    assert 'usage: {"calls":3,"prompt_tokens":9000,"output_tokens":2500,"thinking_tokens":100}\n' in front
+    assert "3 calls, 9000 prompt tokens, 2500 output tokens, 100 thinking tokens" in capsys.readouterr().out

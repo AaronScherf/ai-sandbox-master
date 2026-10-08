@@ -50,10 +50,21 @@ class GeminiClient:
     def __init__(self, client, model: str = DEFAULT_MODEL):
         self._client = client
         self.model = model
+        self.usage = {"calls": 0, "prompt_tokens": 0, "output_tokens": 0, "thinking_tokens": 0}
+
+    def _record_usage(self, response) -> None:
+        meta = getattr(response, "usage_metadata", None)
+        self.usage["calls"] += 1
+        if meta is None:
+            return
+        for key, attr in (("prompt_tokens", "prompt_token_count"), ("output_tokens", "candidates_token_count"),
+                          ("thinking_tokens", "thoughts_token_count")):
+            self.usage[key] += getattr(meta, attr, None) or 0
 
     def _generate(self, prompt: str, config: dict) -> str:
         response = call_with_retries(lambda: self._client.models.generate_content(
             model=self.model, contents=prompt, config=config))
+        self._record_usage(response)
         if _truncated(response):
             raise UnusableResponse("response truncated (hit the output token limit)")
         text = getattr(response, "text", None)
