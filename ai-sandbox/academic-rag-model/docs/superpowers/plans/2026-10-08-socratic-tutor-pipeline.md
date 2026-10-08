@@ -2959,6 +2959,7 @@ git commit -m "test(tutor): replay the five HW4 deviations as regression fixture
 **Files:**
 - Create: `agent/tutor/README.md`, `docs/status/agent/tutor/2026-10-08-socratic-tutor-status.md`
 - Modify: `docs/superpowers/specs/2026-10-08-socratic-tutor-pipeline-design.md` (§3.2 command table names, §3.3 `confirm_advance` from VERIFIED, §4 technique rule, §3.1 prior_gaps, §7 audit proxy); `README.md` subproject map in `academic-rag-model/` (one line for `agent/tutor/`)
+- Modify (routing, so an agent asked to "start a tutoring session" picks the right pipeline): `academic-rag-model/CLAUDE.md`, `docs/AGENT_ROUTING.md` (repo root `docs/`), `agent/rag/README.md`. The full naming clean-up is a separate pending to-do ("Socratic Tutor vs RAG Tutor Disentanglement" in `docs/trackers/academic_hub_to_do.md`); do not attempt it here.
 
 - [ ] **Step 1: Write `agent/tutor/README.md`**
 
@@ -2967,6 +2968,23 @@ Cover: purpose (one paragraph), the packet layout (copy the file list from spec 
 - [ ] **Step 2: Apply the five spec amendments listed in "Spec amendments decided while planning" above**
 
 Edit the named sections of the spec in place; keep each change to one or two sentences.
+
+- [ ] **Step 2b: Add the routing edits**
+
+Read each target first, then make these three small additions (match the surrounding style; do not rename or reword anything else):
+
+1. `academic-rag-model/CLAUDE.md`: add a `## Tutoring sessions` section before `## Multi-agent routing`:
+
+```markdown
+## Tutoring sessions
+
+Two different things are both called "tutor" in this repo; do not mix them up.
+- **Interactive Socratic tutoring session** (the user says "start a tutoring session", "tutor me on homework N", "office hours"): use `agent/tutor/`. Run `python -m agent.tutor.cli --hub-root <hub> --course <course> --problem-set <ps> bootstrap`, then follow the printed contract on every turn (`student` -> follow `guidance` -> `say`). Never improvise a tutoring session from `rag_agent.py`.
+- **One-off lookups and draft diagnosis** (`agent/rag/rag_agent.py` REPL: `/draft`, `/hint`, `/verify`, `/summarize`): the older metered-Gemini RAG Q&A agent. Use it only when the user asks for a quick grounded answer or a rubric check of a draft.
+```
+
+2. `docs/AGENT_ROUTING.md`: add one bullet under the Gemini (Antigravity) defaults: live Socratic tutoring sessions run through `agent/tutor` (`bootstrap` prompt); `agent/rag` is for lookups and `/draft` diagnosis.
+3. `agent/rag/README.md`: add a one-line note at the top: "Interactive tutoring sessions live in `agent/tutor/`; this package is the RAG Q&A and draft-diagnosis agent."
 
 - [ ] **Step 3: Write the status doc**
 
@@ -2983,7 +3001,8 @@ Expected: branch clean, rebased on `main`, full suite passes, overlaps reported.
 - [ ] **Step 5: Commit and ask to land**
 
 ```powershell
-git add agent/tutor/README.md docs/status/agent/tutor/2026-10-08-socratic-tutor-status.md docs/superpowers/specs/2026-10-08-socratic-tutor-pipeline-design.md README.md
+git add agent/tutor/README.md docs/status/agent/tutor/2026-10-08-socratic-tutor-status.md docs/superpowers/specs/2026-10-08-socratic-tutor-pipeline-design.md README.md CLAUDE.md agent/rag/README.md
+git add ../../docs/AGENT_ROUTING.md
 git commit -m "docs(tutor): README, status doc and spec amendments"
 ```
 
