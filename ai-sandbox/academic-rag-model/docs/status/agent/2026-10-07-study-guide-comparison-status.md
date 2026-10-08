@@ -252,6 +252,14 @@ Found while planning the topic-first spec (plan measured 2026-10-08):
 - Review Artifact v2 shows passage text, length, duplicates and short fragments, and lets the owner drop
   pinned passages (`apply_decisions` now accepts `drop` on a pinned passage).
 
+## Findings from the topic-first drafts a1 to a3 (2026-10-08)
+
+- **Prompt choice drove quality.** a1 (`tutor_v1`, flash-lite) was an annotated bibliography: short, a citation after every sentence, no examples. a2 (`guide_v1`, flash-lite) ignored the 1,800-word floor (500 to 1,000 words per section). a3 (`guide_v1`, `gemini-3.8-flash`, constructed examples allowed) produced 2,700 to 5,400 words per section, about 39,000 words in all, with 7 full worked problems (statement, step-by-step solution, conclusion, typical trap) and constructed numerical examples labelled for later checking. The owner judged a3 much better, with the worked-problems and formula sections good.
+- **Token usage (a3, 9 calls):** 294,187 prompt, 118,836 output, 6,831 thinking tokens. The draft client now records usage in the frontmatter (`usage`).
+- **Defects found in a3:** the citation stripper left empty `()`, stray `;;` and bracketed fragments (fixed afterwards: bracketed groups, empty parentheses, a sidecar with the cited text in `guide_plans/`); one section emitted a stray H1 that swallowed the following sections in an outline view (fixed: stray H1/H2 are demoted and a repeated title dropped); the comparison section repeats the earlier sections and includes an irrelevant "software packages" part.
+- **Relevance drift.** Retrieval grabs everything near the topic from the textbooks, so sections drift into material the course does not use (software packages, model selection by AIC/BIC, Hausman tests). The owner's proposed direction: define the relevant scope before retrieval, either in an interactive session with the user or from the syllabus, past exams, lecture and recitation notes, then use that scope to rank and filter textbook passages and to constrain what each section may cover. Not designed yet; it needs its own spec.
+- **Comparison section** should not re-derive the three tests; give it a prompt that only compares what the topic sections established, or drop it in favour of the "how the three tests relate" topic.
+
 ## Artifacts (local vault, not committed)
 
 - Plans and review items: `academic_notes/econometrics/guide_plans/` (baseline and new-material).
