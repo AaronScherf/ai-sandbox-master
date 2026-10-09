@@ -194,3 +194,21 @@ def test_mark_conflicts_sees_edits_inside_a_deleted_section():
                                                     _e("e2", "retitle", [ids["A1"]], replacement="### X")], [])
     mark_conflicts(rep)
     assert rep.edits[0].conflicts == ["e2"] and rep.edits[1].conflicts == ["e1"]
+
+
+def test_edits_inside_a_moved_section_still_apply():
+    ids = _ids()
+    rep = _report(_e("m", "move", [ids["A"]], anchor=ids["C"]), _e("d", "delete", [ids["A1"]]),
+                  _e("r", "retitle", [ids["B"]], replacement="## Beta renamed"))
+    out = apply_edits(BODY, rep, {"m", "d", "r"})
+    assert "sub text" not in out and "## Beta renamed" in out
+    assert out.index("gamma tail") < out.index("alpha")
+    mark_conflicts(rep)
+    assert rep.edits[0].conflicts == []
+
+
+def test_moving_a_section_that_another_edit_deletes_is_refused():
+    ids = _ids()
+    rep = _report(_e("m", "move", [ids["A1"]], anchor=ids["C"]), _e("d", "delete", [ids["A"]]))
+    with pytest.raises(ReviseError, match="same block"):
+        apply_edits(BODY, rep, {"m", "d"})

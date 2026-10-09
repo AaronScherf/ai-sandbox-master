@@ -84,8 +84,8 @@ def validate_report(report: EditReport, blocks: list[Block]) -> list[str]:
 
 
 def _covered(report: EditReport, edit: Edit) -> list[str]:
-    """Block ids an edit touches; a delete or move covers the sections beneath its target."""
-    if edit.type not in ("delete", "move"):
+    """Block ids an edit touches; a delete covers the sections beneath its target (a move only relocates them)."""
+    if edit.type != "delete":
         return list(edit.targets)
     rows = report.blocks
     ids = [r["id"] for r in rows]
