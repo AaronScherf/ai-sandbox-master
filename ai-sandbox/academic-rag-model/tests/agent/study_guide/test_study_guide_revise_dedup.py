@@ -69,3 +69,12 @@ def test_a_malformed_dedup_response_is_skipped_with_a_warning(capsys):
     llm = ScriptedLLM([{"canonical": a, "actions": [{"block": a, "action": "delete", "rationale": "self"}]}])
     assert dedup_edits(llm, blocks, bag_embed(VOCAB), similarity=0.95, min_words=20) == []
     assert "WARNING" in capsys.readouterr().out
+
+
+def test_listing_the_canonical_block_with_keep_is_harmless():
+    blocks = segment(BODY)
+    a, b = blocks[1].id, blocks[2].id
+    data = {"canonical": a, "actions": [{"block": a, "action": "keep", "rationale": "canonical"},
+                                        {"block": b, "action": "delete", "rationale": "repeat"}]}
+    edits = parse_dedup(data, [a, b], {x.id: x for x in blocks}, start=1)
+    assert [(e.type, e.targets) for e in edits] == [("delete", [b])]

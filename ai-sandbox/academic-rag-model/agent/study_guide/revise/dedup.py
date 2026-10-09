@@ -81,10 +81,10 @@ def parse_dedup(data: dict, cluster: list[str], blocks_by_id: dict, start: int) 
         block, action = a.get("block"), a.get("action")
         if block not in cluster:
             raise ReviseError(f"dedup: block {block!r} is not in the cluster")
-        if block == canonical:
-            raise ReviseError("dedup: the canonical block cannot be an action target")
         if action == "keep":
             continue
+        if block == canonical:
+            raise ReviseError("dedup: the canonical block cannot be an action target")
         if action == "link" and not a.get("replacement"):
             raise ReviseError(f"dedup: link for {block} needs a replacement")
         edits.append(Edit(
