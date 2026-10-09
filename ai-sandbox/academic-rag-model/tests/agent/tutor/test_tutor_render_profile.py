@@ -95,3 +95,18 @@ class TestProfile(unittest.TestCase):
             with open(mp, encoding="utf-8") as f:
                 self.assertIn("random-consideration-set", f.read())
             self.assertIn("random-consideration-set", render_profile_md(p))
+
+
+# append to tests/agent/tutor/test_tutor_render_profile.py
+class TestRenderVerifiedSteps(unittest.TestCase):
+    def test_summary_lists_confirmed_steps_with_student_quotes(self):
+        events = EVENTS + [Event(id=7, ts="t", type="verify", part="q1", data={"clean": True, "check": [
+            {"step": 1, "status": "confirmed", "quote": "I think the set is bounded"},
+            {"step": 2, "status": "confirmed", "quote": "it is one minus the sum"}]})]
+        s = render_summary(events, PACKET, "bp", [], "2026-10-08")
+        self.assertIn("Verified steps", s)
+        self.assertIn('step 1: "I think the set is bounded"', s)
+        self.assertIn('step 2: "it is one minus the sum"', s)
+
+    def test_no_verified_steps_block_without_a_clean_verify(self):
+        self.assertNotIn("Verified steps", render_summary(EVENTS, PACKET, "bp", [], "2026-10-08"))

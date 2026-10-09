@@ -1,7 +1,8 @@
-"""ratings.py -- evidence-capped tri-axial rating (spec §5). The agent
-PROPOSES ratings; this module computes the highest rating the event log
-supports and rejects anything above it, which is the anti-inflation
-mechanism for the HW4 'everything is Proficient' failure."""
+# agent/tutor/ratings.py  (replace the whole file)
+"""ratings.py -- evidence-capped tri-axial rating (v1 spec §5, v1.1 §9). Ratings
+default to the highest rating the event log supports; the agent may only lower
+one. The CLI attaches the evidence itself, so an unrelated quote can no longer
+be cited for an axis."""
 from __future__ import annotations
 
 from agent.tutor.events import Event
@@ -12,10 +13,6 @@ RATINGS = ("Developing / Needs Review", "Proficient", "Mastered")  # ascending
 
 class RatingRejected(ValueError):
     pass
-
-
-def _norm(text: str) -> str:
-    return " ".join((text or "").split())
 
 
 def ceiling(part_events: list[Event], axis: str) -> tuple[str, list[str]]:
@@ -45,31 +42,36 @@ def ceiling(part_events: list[Event], axis: str) -> tuple[str, list[str]]:
     return RATINGS[1], why
 
 
-def validate_close_part(ratings: dict, part_events: list[Event]) -> None:
-    ids = {e.id for e in part_events}
-    student_texts = [_norm(e.text) for e in part_events if e.type == "student"]
+def cap_evidence(part_events: list[Event], axis: str) -> list[int]:
+    applies = lambda e, key: e.data.get(key, "all") in (axis, "all")
+    ids = [e.id for e in part_events
+           if e.type == "student" and e.intent in ("stuck", "hint_request") and e.hint_level >= 1]
+    ids += [e.id for e in part_events if e.type == "misconception" and applies(e, "axis")]
+    ids += [e.id for e in part_events if e.type == "student" and e.data.get("admits_gap") and applies(e, "gap_axis")]
+    if not ids:
+        ids = [e.id for e in part_events if e.type == "student" and e.data.get("established")]
+    if not ids:
+        ids = [e.id for e in part_events if e.type == "student"][-1:]
+    return sorted(set(ids))
+
+
+def build_ratings(part_events: list[Event], downgrades: dict | None = None) -> dict:
+    downgrades = downgrades or {}
+    unknown = set(downgrades) - set(AXES)
+    if unknown:
+        raise RatingRejected(f"unknown axis in downgrade: {sorted(unknown)}; expected {list(AXES)}")
+    out = {}
     for axis in AXES:
-        entry = ratings.get(axis)
-        if not isinstance(entry, dict) or "rating" not in entry:
-            raise RatingRejected(f"missing rating for axis {axis!r}")
-        rating = entry["rating"]
-        if rating not in RATINGS:
-            raise RatingRejected(f"axis {axis!r}: rating {rating!r} is not one of {list(RATINGS)}")
-        evidence = entry.get("evidence") or []
-        if not evidence:
-            raise RatingRejected(f"axis {axis!r}: at least one evidence item (event id or student quote) is required")
-        for item in evidence:
-            if isinstance(item, int):
-                if item not in ids:
-                    raise RatingRejected(f"axis {axis!r}: evidence event id {item} is not an event of this part")
-            elif isinstance(item, str):
-                if not any(_norm(item) in t for t in student_texts):
-                    raise RatingRejected(f"axis {axis!r}: evidence quote not found in this part's student messages")
-            else:
-                raise RatingRejected(f"axis {axis!r}: evidence items must be event ids or quote strings")
-        cap, reasons = ceiling(part_events, axis)
-        if RATINGS.index(rating) > RATINGS.index(cap):
-            raise RatingRejected(
-                f"axis {axis!r}: rating {rating!r} exceeds the evidence-based ceiling {cap!r} "
-                f"({'; '.join(reasons) or 'no concerns logged'}). Rate at or below the ceiling."
-            )
+        cap, _ = ceiling(part_events, axis)
+        rating, why = cap, None
+        if axis in downgrades:
+            want, why = downgrades[axis]
+            if want not in RATINGS:
+                raise RatingRejected(f"axis {axis!r}: rating {want!r} is not one of {list(RATINGS)}")
+            if RATINGS.index(want) > RATINGS.index(cap):
+                raise RatingRejected(f"axis {axis!r}: cannot raise {want!r} above the evidence ceiling {cap!r}")
+            rating = want
+        out[axis] = {"rating": rating, "evidence": cap_evidence(part_events, axis)}
+        if why:
+            out[axis]["why"] = why
+    return out

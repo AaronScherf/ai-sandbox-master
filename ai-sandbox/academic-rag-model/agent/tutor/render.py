@@ -47,6 +47,11 @@ def render_summary(events: list[Event], packet: Packet, big_picture: str, prior_
         for a in AXES:
             ev_text = "; ".join(_evidence_text(i, by_id) for i in r[a]["evidence"])
             lines.append(f"- **{AXIS_NAMES[a]} — {r[a]['rating']}**: {ev_text}")
+        verify = next((e for e in events if e.type == "verify" and e.part == part.part_id and e.data.get("clean")), None)
+        if verify:
+            lines.append("- **Verified steps** (student words):")
+            for entry in verify.data["check"]:
+                lines.append(f'  - step {entry["step"]}: "{entry.get("quote", "")}"')
         lines.append("")
     lines += ["## 4. Action Menu", ""]
     review = []
