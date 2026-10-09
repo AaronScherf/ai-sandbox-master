@@ -434,3 +434,49 @@ class TestFullFlow(unittest.TestCase):
             _, s = make(tmp)
             with self.assertRaises(Refused):
                 s.end("too early")
+
+
+class TestFixPassFromFinalReview(unittest.TestCase):
+    def test_vacuous_quotes_cannot_establish_resolve_or_confirm(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            _, s = make(tmp)
+            s.turn("attempt", "I am not sure where to start with this one")
+            n = len(s.log.load())
+            for quote in ("a", "am not"):
+                with self.assertRaises(ValueError) as ctx:
+                    s.turn("other", "as I said", establish="C1", establish_quote=quote)
+                self.assertIn("at least 3 words", str(ctx.exception))
+            self.assertEqual(len(s.log.load()), n)
+            s.turn("attempt", PM)                                   # a real, auto-detected slip
+            n = len(s.log.load())
+            with self.assertRaises(ValueError):
+                s.turn("attempt", "ok then", resolve="multiplies-instead-of-subtracting", resolve_quote="o")
+            self.assertEqual(len(s.log.load()), n)
+            cover_q1(s)
+            s.verify()
+            n = len(s.log.load())
+            with self.assertRaises(ValueError):
+                s.verify([{"step": 1, "status": "confirmed", "quote": "a"}, {"step": 2, "status": "confirmed", "quote": "e"}])
+            self.assertEqual(len(s.log.load()), n)
+            self.assertEqual(s.view()["state"], "WORKING")
+
+    def test_a_short_whole_message_is_an_acceptable_quote(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            _, s = make(tmp)
+            s.turn("attempt", "two words")
+            b = s.turn("other", "as I said", establish="C1", establish_quote="two words")
+            self.assertEqual(b["claims_established"], ["C1"])
+
+    def test_admits_gap_and_slip_axes_must_be_known_axes(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            _, s = make(tmp)
+            s.turn("attempt", "some words here too")
+            n = len(s.log.load())
+            for kwargs in (dict(admits_gap="Conceptual"), dict(admits_gap="style"),
+                           dict(flag_slip="oops:style", slip_quote="some words here")):
+                with self.subTest(kwargs=kwargs):
+                    with self.assertRaises(ValueError):
+                        s.turn("attempt", "some words here too", **kwargs)
+                    self.assertEqual(len(s.log.load()), n)
+            b = s.turn("attempt", "I really do not understand this", admits_gap="conceptual")
+            self.assertEqual(b["state"], "WORKING")

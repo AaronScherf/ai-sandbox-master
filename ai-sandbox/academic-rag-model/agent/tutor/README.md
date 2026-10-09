@@ -78,6 +78,9 @@ before the student confirms; Unicode math in chat.
   blind-sample self-test and manual `--establish` (audited) are the mitigations.
 - `verify` depends on the agent comparing the student's words with the released steps honestly; quote validation and
   the summary's list of confirmed steps make a rubber stamp visible, not impossible.
+- Manual overrides (`--establish`, `--flag-slip`, `--resolve`) and `verify`'s confirmed steps need a quote of at least 3 words
+  (or the student's whole shorter message) that appears in the part's student messages. That raises the bar but a manual
+  override is still an attestation by the agent; the audit lists every one with its quote.
 - Intent labels come from the agent; the audit cross-checks obvious mismatches.
 - Piping text through PowerShell needs `$OutputEncoding = [Text.UTF8Encoding]::new($false)` (in the bootstrap
   contract). Verified on Windows PowerShell 5.1; fall back to `--text-file` if symbols turn into `?`.

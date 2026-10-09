@@ -82,14 +82,13 @@ def _ngrams(text: str, n: int = 6) -> set[tuple]:
     return {tuple(words[i:i + n]) for i in range(len(words) - n + 1)}
 
 
-def _mask_statement_runs(tokens: list[str], statement_tokens: list[str], n: int = STATEMENT_RUN) -> list[str]:
+def _statement_run_positions(tokens: list[str], statement_tokens: list[str], n: int = STATEMENT_RUN) -> set[int]:
     runs = {tuple(statement_tokens[i:i + n]) for i in range(len(statement_tokens) - n + 1)}
-    masked = list(tokens)
+    positions: set[int] = set()
     for i in range(len(tokens) - n + 1):
         if tuple(tokens[i:i + n]) in runs:
-            for j in range(i, i + n):
-                masked[j] = ""
-    return masked
+            positions.update(range(i, i + n))
+    return positions
 
 
 def _content_words(text: str) -> set[str]:
@@ -134,9 +133,10 @@ def lint_message(
     if sealed_solution and _ngrams(text) & _ngrams(sealed_solution):
         found.append(Violation("SEALED_OVERLAP", "draft repeats a phrase from the sealed solution"))
     if blocked_claims:
-        masked = _mask_statement_runs(tokenize(text), tokenize(statement))
+        tokens = tokenize(text)
+        copied = _statement_run_positions(tokens, tokenize(statement))
         for cid, rec in blocked_claims.items():
-            if rec.matches_tokens(masked):
+            if rec.matches_tokens(tokens, masked=copied):
                 found.append(Violation("REVEALS_CLAIM", f"introduces an idea the student has not reached (claim {cid})"))
     if state == WORKING and hint_level < 3 and len(_SUBQ_LINE.findall(text)) >= 2:
         found.append(Violation("SUBQUESTION_LIST", "leading sub-question list before the student proposed a plan"))

@@ -34,7 +34,10 @@ class Recognizer:
     groups: tuple
     window: int
 
-    def matches_tokens(self, tokens: list[str]) -> bool:
+    def matches_tokens(self, tokens: list[str], masked=None) -> bool:
+        """`masked` is an optional set of token positions copied from the problem statement. A match then needs
+        at least one hit OUTSIDE those positions, so quoting the problem is harmless but quoting it to hide one
+        keyword of a real leak is not."""
         positions = [_group_hits(tokens, g) for g in self.groups]
         if any(not p for p in positions):
             return False
@@ -46,7 +49,9 @@ class Recognizer:
                 if i >= len(p) or p[i] >= end:
                     ok = False
                     break
-            if ok:
+            if not ok:
+                continue
+            if not masked or any(pos not in masked for p in positions for pos in p if start <= pos < end):
                 return True
         return False
 

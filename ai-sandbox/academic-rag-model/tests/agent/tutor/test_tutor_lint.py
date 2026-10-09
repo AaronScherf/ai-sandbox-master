@@ -145,3 +145,17 @@ class TestQuestionForm(unittest.TestCase):
 
     def test_form_is_off_by_default(self):
         self.assertEqual(lint("Two questions? Really? Yes, " + "word " * 80), [])
+
+
+class TestStatementPaddingCannotHideALeak(unittest.TestCase):
+    def test_a_free_keyword_next_to_a_masked_one_is_still_a_reveal(self):
+        # "independent ... any" is a verbatim run of the statement, so those tokens are masked,
+        # but "multiply" is the tutor's own word and completes the claim.
+        padded = "independent of the probability of any other: so do they multiply?"
+        self.assertIn("REVEALS_CLAIM", codes(lint(padded, statement=STATEMENT2, blocked_claims=BLOCKED)))
+
+    def test_pure_quotes_and_neutral_questions_around_a_quote_still_pass(self):
+        quote = "independent of the probability of any other alternative being considered together"
+        self.assertEqual(lint(quote, statement=STATEMENT2, blocked_claims=BLOCKED), [])
+        around = "Look at: independent of the probability of any other alternative being considered together. What do you notice?"
+        self.assertEqual(lint(around, statement=STATEMENT2, blocked_claims=BLOCKED), [])

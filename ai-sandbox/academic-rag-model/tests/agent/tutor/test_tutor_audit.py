@@ -90,3 +90,13 @@ class TestAudit(unittest.TestCase):
         found = codes(audit(events, packet))
         for expected in ("SEALED_EARLY", "INTENT_MISMATCH", "ADVANCE_WITHOUT_CONFIRM", "HINT_JUMP", "RATING_OVER_CEILING"):
             self.assertIn(expected, found)
+
+
+class TestAuditShowsManualQuotes(unittest.TestCase):
+    def test_manual_override_findings_include_the_quote(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            s = make(tmp)
+            s.turn("attempt", "nobody else picks it so it is the default", establish="C2", establish_quote="nobody else picks it")
+            details = [f.detail for f in audit(s.log.load(), s.packet) if f.code == "MANUAL_OVERRIDE"]
+            self.assertEqual(len(details), 1)
+            self.assertIn("nobody else picks it", details[0])

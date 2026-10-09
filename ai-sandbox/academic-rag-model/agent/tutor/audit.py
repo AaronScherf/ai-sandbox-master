@@ -52,9 +52,9 @@ def audit(events: list[Event], packet: Packet) -> list[Finding]:
                 if not build_ledger(pc, before).covered:
                     found.append(Finding("VERIFY_WITHOUT_COVERAGE", e.id, "the solution was released before a route was covered"))
         if e.type == "establish":
-            found.append(Finding("MANUAL_OVERRIDE", e.id, f"claim {e.data.get('claim')} was established manually"))
+            found.append(Finding("MANUAL_OVERRIDE", e.id, f"claim {e.data.get('claim')} was established manually (quote: {e.data.get('quote')!r})"))
         if e.type in ("misconception", "misconception_resolved") and e.data.get("manual"):
-            found.append(Finding("MANUAL_OVERRIDE", e.id, f"{e.type.replace('_', ' ')} '{e.data.get('tag')}' was entered manually"))
+            found.append(Finding("MANUAL_OVERRIDE", e.id, f"{e.type.replace('_', ' ')} '{e.data.get('tag')}' was entered manually (quote: {e.data.get('quote')!r})"))
         if e.type == "student":
             if e.intent == "confirm_advance" and not _CONFIRM_WORDS.search(e.text or ""):
                 found.append(Finding("INTENT_MISMATCH", e.id, "labelled confirm_advance but the text does not ask to move on"))

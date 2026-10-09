@@ -9,7 +9,7 @@ import re
 from datetime import datetime
 
 from agent.tutor import fsm
-from agent.tutor.claims import AXES_ALL
+from agent.tutor.claims import AXES_ALL, tokenize
 from agent.tutor.events import Event, EventLog
 from agent.tutor.fsm import (
     AWAITING_ADVANCE, LAUNCH, SYNTHESIS, VERIFIED, WORKING, FsmState, IllegalTransition, replay, student_event,
@@ -49,6 +49,18 @@ class Refused(ValueError):
 
 def _norm(text: str | None) -> str:
     return " ".join((text or "").split())
+
+
+MIN_QUOTE_TOKENS = 3
+
+
+def _quote_ok(quote: str | None, texts: list[str]) -> bool:
+    """A quote must appear in the student's own words and carry real content: at least MIN_QUOTE_TOKENS
+    words, or be the student's whole (shorter) message. `texts` are whitespace-normalized student messages."""
+    q = _norm(quote)
+    if not q or not any(q in t for t in texts):
+        return False
+    return len(tokenize(q)) >= MIN_QUOTE_TOKENS or q in texts
 
 
 def split_steps(section: str) -> list[str]:
@@ -251,19 +263,23 @@ class Session:
         if manual and intent == "confirm_advance":
             raise ValueError("manual establish / flag-slip / resolve cannot be combined with confirm_advance")
         texts = [_norm(e.text) for e in pe if e.type == "student"] + [_norm(text)]
-        quote_ok = lambda q: bool(_norm(q)) and any(_norm(q) in t for t in texts)
+        quote_ok = lambda q: _quote_ok(q, texts)
+        if admits_gap is not None and admits_gap not in AXES_ALL:
+            raise ValueError(f"--admits-gap must be one of {list(AXES_ALL)}, got {admits_gap!r}")
+        if flag_slip is not None and (flag_slip.partition(":")[2] or "all") not in AXES_ALL:
+            raise ValueError(f"--flag-slip axis must be one of {list(AXES_ALL)}")
         if establish is not None:
             if establish not in {c.id for c in pc.claims}:
                 raise ValueError(f"unknown claim id {establish!r}; known ids: {sorted(c.id for c in pc.claims)}")
             if not quote_ok(establish_quote):
-                raise ValueError("--establish needs --establish-quote: words the student actually wrote in this part")
+                raise ValueError("--establish needs --establish-quote: at least 3 words the student actually wrote in this part (or their whole message if it is shorter)")
         if flag_slip is not None and not quote_ok(slip_quote):
-            raise ValueError("--flag-slip needs --slip-quote: words the student actually wrote in this part")
+            raise ValueError("--flag-slip needs --slip-quote: at least 3 words the student actually wrote in this part (or their whole message if it is shorter)")
         if resolve is not None:
             if resolve not in {e.data["tag"] for e in self._unresolved(pe)}:
                 raise ValueError(f"no unresolved misconception tagged {resolve!r}")
             if not quote_ok(resolve_quote):
-                raise ValueError("--resolve needs --resolve-quote: words the student actually wrote in this part")
+                raise ValueError("--resolve needs --resolve-quote: at least 3 words the student actually wrote in this part (or their whole message if it is shorter)")
 
         try:
             new, info = student_event(s, intent, len(self.packet.parts), bool(newly))
@@ -397,8 +413,8 @@ class Session:
                 raise ValueError(f"step {step}: status must be one of {list(CHECK_STATUSES)}")
             quote, note = _norm(item.get("quote")), _norm(item.get("note"))
             if status == "confirmed":
-                if not quote or not any(quote in t for t in texts):
-                    raise ValueError(f"step {step}: a confirmed step needs a quote that appears in this part's student messages")
+                if not _quote_ok(quote, texts):
+                    raise ValueError(f"step {step}: a confirmed step needs a quote of at least 3 words (or their whole message) that appears in this part's student messages")
             elif not note:
                 raise ValueError(f"step {step}: a {status} step needs a note about the student's step")
             axis = item.get("axis", "rigor")
