@@ -18,9 +18,11 @@ import argparse
 import os
 import re
 import sys
+from contextlib import nullcontext
 from pathlib import Path
 
 from core.env.academic_hub_paths import resolve_output_dir, to_resources_root
+from core.env.corpus_write_lock import CorpusWriteLockError, corpus_write_lock
 from core.env.excalidraw_text import (
     CHUNK_MARKER_RE as _CHUNK_MARKER_RE,
     QUESTION_TAG as _QUESTION_TAG,
@@ -575,19 +577,26 @@ def main():
         if client is None:
             sys.exit(1)
 
-    for md_path, image_path in pairs:
-        if args.reexpand:
-            if not args.dry_run:
-                reexpand_excalidraw_note(
-                    md_path, image_path, client, args.expand_backend, str(academic_hub_dir), use_grounding=args.grounding,
+    lease = nullcontext() if args.dry_run else corpus_write_lock(
+        [academic_hub_dir, academic_hub_dir / "academic_notes"], "Excalidraw transcription",
+    )
+    try:
+        with lease:
+            for md_path, image_path in pairs:
+                if args.reexpand:
+                    if not args.dry_run:
+                        reexpand_excalidraw_note(
+                            md_path, image_path, client, args.expand_backend, str(academic_hub_dir), use_grounding=args.grounding,
+                        )
+                    else:
+                        print(f"Re-expanding {os.path.basename(md_path)}... (dry run)")
+                    continue
+                process_excalidraw_note(
+                    md_path, image_path, client, args.model, args.expand_backend,
+                    str(academic_hub_dir), use_grounding=args.grounding, dry_run=args.dry_run,
                 )
-            else:
-                print(f"Re-expanding {os.path.basename(md_path)}... (dry run)")
-            continue
-        process_excalidraw_note(
-            md_path, image_path, client, args.model, args.expand_backend,
-            str(academic_hub_dir), use_grounding=args.grounding, dry_run=args.dry_run,
-        )
+    except CorpusWriteLockError as exc:
+        raise SystemExit(str(exc)) from exc
 
 
 if __name__ == "__main__":

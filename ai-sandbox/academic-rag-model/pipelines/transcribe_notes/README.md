@@ -80,7 +80,7 @@ downstream correction pass over this pipeline's own output — see the root
 
 ## Full usage guide
 
-Real runs of `route_notes_transcribe` and the direct PDF transcription CLI
+Real runs of `route_notes_transcribe` and the direct PDF and Excalidraw CLIs
 hold local write locks for both the hub index and the nested `academic_notes`
 repository. Dry runs do not need the locks. The lock cannot coordinate
 external Obsidian sync, so this does not enable corpus-health apply actions
