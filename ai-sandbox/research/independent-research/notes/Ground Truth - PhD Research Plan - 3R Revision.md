@@ -13,7 +13,7 @@ A strategic revision of the PhD research plan at Columbia SIPA (Sustainable Deve
 
 ## 01. Summary of Strategic Revisions
 
-Following in-depth reflection and analysis of earlier statements and brainstorms (`Research Ideas.md`, `Somalia Three-Shock Case Study.md`, `Data Sources - Climate Displacement Cash Conflict.md`), this revision makes five explicit structural adjustments:
+Following in-depth reflection on earlier statements, brainstorms (`Research Ideas.md`, `Somalia Three-Shock Case Study.md`, `Data Sources - Climate Displacement Cash Conflict.md`), and the reality of the first-year core courseload, this revision makes explicit structural adjustments:
 
 1. **Re-centering on the "3R" Framework (Resilience, Response, Recovery):**
    Rather than treating climate adaptation and conflict as two separate silos, this agenda studies how civilian populations navigate **compounded crises** (natural hazards, armed conflict, and macroeconomic price shocks). The substantive focus is not on why wars start or how to broker peace (military/political issues), but on how normal people survive, how emergency relief reaches them, and how reconstruction can be sustained:
@@ -34,8 +34,17 @@ Following in-depth reflection and analysis of earlier statements and brainstorms
    - **Somalia (2021–2023):** Serves as the primary proof-of-concept for the *Response and Attribution* layer—disentangling an external food-price shock (Ukraine war), a multi-season drought, and local al-Shabaab insurgency.
    - **Ukraine (2022–Present):** Serves as the marquee testbed for *Preparedness and Recovery*—evaluating how digital state infrastructure (e.g., the *Diia* platform, mobile banking) facilitated rapid cash response, tracking agricultural disruption via remote sensing, and architecting post-conflict recovery and capital replacement.
 
-6. **Positioning on Complex Systems & Tipping Points:**
-   The non-linear tipping point, spectral-bias, and agent-based modeling (ABM) ideas from `Research Ideas.md` are preserved as a conceptual lens for understanding catastrophic recovery failures, but are deliberately held in reserve for post-Year 1 dissertation extensions to maintain strong alignment with Columbia's identification-first applied microeconomics faculty.
+6. **Advanced Technical Identity — Bleeding-Edge Applied Modeling:**
+   Rather than defaulting to standard linear panel regressions, this agenda leverages cutting-edge data science that respects the complexity of compounded crises without alienating applied microeconomists:
+   - **Double Machine Learning (DML):** Using debiased machine learning (Chernozhukov et al. / `EconML`) for high-dimensional nuisance parameter control and estimating heterogeneous treatment effects across vulnerable subpopulations.
+   - **Spatiotemporal Network & Graph Models:** Modeling how physical shocks propagate through trade corridors, river basins, road disruptions, and displacement networks.
+   - **Multi-Modal Data Fusion:** Ingesting continuous satellite rasters (Sentinel-1 SAR damage, CHIRPS rainfall, VIIRS night lights), discrete conflict point processes (ACLED), call detail records (CDR), and high-frequency market price feeds.
+
+7. **Cross-Project Synergy: Academic Hub & Pedagogy with CTL:**
+   The Academic Hub repository is formally integrated into the portfolio in partnership with Columbia's **Center for Teaching and Learning (CTL)**, focusing on AI-assisted pedagogy and classroom tutoring agents. Beyond pedagogy, this engineering work establishes a rigorous foundation in modern software architecture, automated testing, and CI/CD—directly feeding into the development of the open-source **Disaster & Conflict Analytics Toolkit (Project 04)** to professional software standards rather than fragile academic scripts.
+
+8. **Math Thesis as an Agentic Research Lab Sandbox (Project 06):**
+   The penalized-GLS omnibus normality test is maintained not as a career publishing priority, but as an experimental testbed for **agent-orchestrated research pipelines** in theoretical statistics and simulation. Interpreting these simulations deepens econometric and statistical fundamentals in a fun, low-stakes environment.
 
 ---
 
@@ -54,7 +63,7 @@ Following in-depth reflection and analysis of earlier statements and brainstorms
         │ 1. RESILIENCE / PREPAREDNESS  │                 │   2. RAPID HUMANITARIAN       │
         │    (Ex-Ante)                  │                 │      RESPONSE (Ex-Post)       │
         │ - Risk communication          │                 │ - Satellite / drone damage    │
-        │ - Pre-positioned cash safety  │                 │   assessments                 │
+        │ - Pre-positioned cash safety  │                 │   assessments (SAR, Optical)  │
         │   nets & mobile money rails   │                 │ - CDR / mobile network traces │
         │ - Parametric / index insurance│                 │ - Targeted mobile cash payout │
         └───────────────┬───────────────┘                 └───────────────┬───────────────┘
@@ -89,7 +98,7 @@ Disasters and wars both destroy physical capital, decapitalize small businesses 
 
 ### I. The 3R Economics of Compounded Disasters and Conflict
 *The Flagship Spine*
-Investigating how compounding shocks—where severe climate stress intersects active armed conflict—alter household survival strategies, displacement rates, and economic vulnerability. Tests whether social protection and emergency cash moderate the impact of environmental shocks when conflict is actively present, and identifies the joint thresholds where traditional coping mechanisms collapse.
+Investigating how compounding shocks—where severe climate stress intersects active armed conflict—alter household survival strategies, displacement rates, and economic vulnerability. Uses Double Machine Learning and spatial network models to test whether social protection and emergency cash moderate the impact of environmental shocks when conflict is actively present.
 - **Columbia Fit:** Alexander de Sherbinin (CIESIN / Climate-forced displacement), Macartan Humphreys (Political Science / Conflict economics), Jack Willis (Economics / Risk and social protection).
 
 ### II. Anticipatory Action & Financial Preparedness: Disaster-to-Conflict Transferability
@@ -109,7 +118,7 @@ Studying the dynamics of economic rebuilding, capital replacement, and return mi
 
 ---
 
-## 04. Faculty Outreach Map
+## 04. Faculty Outreach & Institutional Alignment
 
 Sequenced outreach strategy: Attend seminars first, hold exploratory informational meetings second, and present working papers/tools third.
 
@@ -128,6 +137,7 @@ Sequenced outreach strategy: Attend seminars first, hold exploratory information
 ### Tier 3 — Institutional Centers & Seminar Series
 - **CIESIN (Center for International Earth Science Information Network):** Core geospatial and population displacement data community.
 - **Saltzman Institute of War and Peace Studies:** Seminars on conflict dynamics, state fragility, and security.
+- **Columbia Center for Teaching and Learning (CTL):** Partnership on AI pedagogy, tutoring agents, and research tool evaluation.
 - **International Research Institute for Climate and Society (IRI):** Index insurance and climate risk forecasting.
 - **Program on Forced Migration and Health (Mailman School):** Interdisciplinary public health and humanitarian displacement perspectives.
 - **World Bank FCV & OCHA Centre for Humanitarian Data (HDX):** External practitioner bridges for tool deployment.
@@ -156,8 +166,8 @@ Every project is self-contained, relies exclusively on public or standard academ
 │        └────────────────────┬─────────────────────┘                                             │
 │                             ▼                                                                   │
 │                       [Project 06]                                                              │
-│                       Math Thesis Rewrite: Asymmetric-Aware Omnibus Normality                   │
-│                       (Validated on Project 02/04 Empirical Residuals)                          │
+│                       Math Thesis Rewrite: Agent-Orchestrated Statistics Lab                    │
+│                       (Asymmetric Normality Test Validated on Panel Residuals)                  │
 └─────────────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -171,8 +181,8 @@ Every project is self-contained, relies exclusively on public or standard academ
 - **Focus:** Empirical econometric study testing how compounding shocks translate into displacement and economic damage, and how social protection/cash transfers moderate those impacts.
   - *Phase A (Somalia Three-Shock Case Study):* Fall 2026. Separating the 2021–2023 Ukraine grain-import price shock, Horn of Africa drought, and al-Shabaab conflict on district displacement and food prices.
   - *Phase B (Ukraine Response & Recovery Scoping):* Spring 2027. Analyzing public data on infrastructure/agricultural damage, digital cash disbursements, and regional economic recovery.
-- **Data:** ACLED, UNHCR PRMN, CHIRPS/SPEI rainfall, WFP/HDX market prices, VIIRS night lights, IPC food security assessments.
-- **Deliverable:** Working paper, reproducible notebook, and SusDev seminar presentation (April 2027).
+- **Methodology:** Advanced spatiotemporal data fusion, Double Machine Learning (`EconML`) for heterogeneous treatment effects, and spatial network spillover models.
+- **Deliverable:** November student seminar presentation (Lit + EDA + Pitch), working paper, reproducible notebook, and SusDev seminar presentation (April 2027).
 - **Timeline:** September 2026 – April 2027.
 
 ### Project 03 (NEW) — Working Paper: Disaster-to-Conflict Transferability
@@ -184,75 +194,81 @@ Every project is self-contained, relies exclusively on public or standard academ
 
 ### Project 04 — Open-Source Disaster & Conflict Analytics Toolkit
 - **Focus:** Reusable Python library for spatiotemporal aggregation and harmonization. Ingests gridded climate/damage rasters, point-level conflict events, boundary polygons, market prices, and aid distribution records into analysis-ready panel data.
+- **Engineering Standard:** Backed by software architecture standards developed in Academic Hub (automated pytest suite, modular pipelines, clean package design).
 - **Deliverable:** Public, documented Python package on GitHub (`pip`-installable) with tutorials and CLI.
-- **Timeline:** November 2026 – January 2027 (built alongside Project 02, published once stable).
+- **Timeline:** December 2026 – January 2027 (built alongside Project 02, published once stable).
 
 ### Project 05 — Internal Scoping Note: Systems Dynamics & Non-Linear Recovery
 - **Focus:** Internal theoretical memo exploring how complex systems concepts (tipping points, hysteresis, multi-dimensional poverty traps) provide theoretical foundations for why post-conflict recovery fails when multiple shocks compound. Written for advisor alignment.
 - **Deliverable:** Internal 8–10 page conceptual paper.
 - **Timeline:** March 2027.
 
-### Project 06 — Math Thesis Rewrite: Asymmetric-Aware Omnibus Normality Test
-- **Focus:** Reworking the penalized-GLS omnibus normality test (roughness penalty with second-order differences and data-driven $\lambda$ selection) around its asymmetric-alternative power advantage. Motivated by heavy-tailed, skewed residual distributions common in disaster and conflict loss data.
+### Project 06 — Math Thesis Rewrite: Agent-Orchestrated Statistical Lab
+- **Focus:** Reworking the penalized-GLS omnibus normality test (roughness penalty with second-order differences and data-driven $\lambda$ selection) around its asymmetric-alternative power advantage. Serves as an experimental sandbox for multi-agent autonomous research workflows and a vehicle for deepening mathematical statistics fundamentals.
 - **Data:** Simulated skewed distributions + empirical residuals exported from Project 02/04 panel models.
 - **Deliverable:** Revised thesis manuscript and empirical validation note.
 - **Timeline:** September 2026 – February 2027.
 
 ---
 
-## 06. Month-by-Month Execution Roadmap
+## 06. Coursework-Realistic Month-by-Month Roadmap
 
 ### September 2026 (Completed / Established)
-- **[research]** Established reference manager and reading logs across three foundational lanes: disaster risk financing, conflict economics, and social safety nets.
+- **[coursework]** Commenced PhD core sequence (Micro, Macro, Econometrics, Environmental Science).
+- **[research]** Established reference manager and reading logs across disaster risk financing, conflict economics, and social safety nets.
 - **[research]** Scoped Project 02 and formulated the Somalia three-shock case study design.
 - **[outreach]** Attended opening SIPA SusDev and Saltzman conflict seminars.
-- **[hubs]** Deployed Academic and Research Hub infrastructure.
+- **[academic hub]** Deployed Academic and Research Hub infrastructure.
 - **[math thesis]** Initiated R code refactoring for penalized-GLS test (second-order difference penalty).
 
 ### October 2026 (Current)
+- **[coursework]** Problem sets and midterm preparation (primary time commitment).
 - **[strategy]** Formulate and finalize this 3R Framework Revision (`Ground Truth - 3R Revision` and operational companion).
-- **[research]** Launch Project 01 (Evidence Map): catalogue first wave of RCTs/evaluations across disaster vs. conflict settings.
-- **[research]** Pull Somalia market prices (WFP/FSNAU), conflict points (ACLED), and displacement flows (PRMN) for Project 02.
-- **[outreach]** First informational meetings with de Sherbinin (CIESIN) and Björkegren (SIPA).
-- **[math thesis]** Test second-order difference roughness penalty against baseline simulations.
+- **[research]** Pull raw Somalia datasets: WFP/FSNAU market prices, ACLED conflict points, UNHCR PRMN displacement records. Conduct initial exploratory data analysis (EDA).
+- **[research]** Launch Project 01 (Evidence Map): begin cataloguing first wave of RCTs/evaluations across disaster vs. conflict settings.
+- **[outreach]** First low-stakes informational meetings with de Sherbinin (CIESIN) and Björkegren (SIPA).
+- **[ctl]** Initiate outreach to Columbia Center for Teaching and Learning (CTL) regarding AI tutoring and pedagogy fellowship.
 
 ### November 2026
-- **[portfolio]** Publish Project 01 (Evidence Map v1) on personal website / GitHub.
-- **[research]** Complete first full draft of Somalia Three-Shock empirical analysis (Project 02 Phase A).
-- **[research]** Begin modularizing data ingestion code into Project 04 (Data-Fusion Toolkit).
-- **[outreach]** Informational meetings with Jack Willis and Jeffrey Sachs / Nirupam Bajpai; attend talk by Humphreys or Fortna.
-- **[research]** Present 30-minute informal progress talk at student SusDev seminar.
+- **[coursework]** Complete midterm examinations.
+- **[presentation]** Deliver informal 30-minute student talk at the PhD student SusDev brownbag (Focus: Lit Review + Exploratory Data Analysis of Somalia shocks + Project Pitch). Low-stakes peer feedback loop.
+- **[portfolio]** Assemble Project 01 (Evidence Map v1 notes/catalogue) as part of literature synthesis.
+- **[ctl]** Submit application for AI pedagogy / research computing fellowship with CTL.
+- **[outreach]** Informal coffee chats with Jack Willis and Jeffrey Sachs / Nirupam Bajpai; attend talks by Humphreys or Fortna.
 
 ### December 2026
-- **[research]** Draft Project 03 working paper outline (*Disaster-to-Conflict Transferability*).
-- **[research]** Scope public data sources for Ukraine Phase B of Project 02 (World Bank damage data, Diia reports, remote sensing crop monitoring).
+- **[coursework]** Final examinations period (academic priority).
+- **[winter break sprint]** With classes out of session, draft comprehensive outline and literature review for Project 03 (*Disaster-to-Conflict Transferability*).
+- **[research]** Scope public data sources for Ukraine Phase B of Project 02 (World Bank damage assessments, Diia platform metrics, remote sensing crop/burn scars).
 - **[outreach]** Send short end-of-semester update notes with links to Project 01 to Tier 1 faculty.
-- **[math thesis]** Implement GCV/REML automated smoothing parameter selection for normality test.
+- **[math thesis]** Run agent-orchestrated simulation batch for automated $\lambda$ selection (GCV/REML).
 
 ### January 2027
-- **[research]** Write first draft of Project 03 (Disaster-to-Conflict Transferability working paper).
-- **[portfolio]** Package, document, and publish Project 04 (Open-Source Disaster & Conflict Analytics Toolkit) on GitHub.
-- **[outreach]** First meetings with Tier 2 faculty (Humphreys, Fortna, Naidu, Verhoogen) showcasing Project 01 and Project 04 toolkit.
-- **[math thesis]** Run empirical validation of normality test using residuals from Project 02/04 panel regressions.
+- **[winter break sprint]** Write first full draft of Project 03 (*Disaster-to-Conflict Transferability* working paper).
+- **[toolkit]** Package, document, and test Project 04 (*Disaster & Conflict Analytics Toolkit*) using modern software standards established in Academic Hub; publish to GitHub.
+- **[research]** Ingest and harmonize Somalia and initial Ukraine data using Project 04 toolkit.
+- **[outreach]** First meetings with Tier 2 faculty (Humphreys, Fortna, Naidu, Verhoogen) showcasing Project 01 and the Project 04 open-source toolkit.
+- **[math thesis]** Run applied validation of normality test using empirical residuals from Project 02/04 panel regressions.
 
 ### February 2027
+- **[coursework]** Spring semester coursework resumes.
+- **[research]** Estimate Double Machine Learning (`EconML`) models and spatial network spillover regressions for Project 02.
 - **[research]** Circulate Project 03 draft for peer/faculty comments.
-- **[research]** Build out Ukraine subnational dataset using Project 04 toolkit.
 - **[outreach]** Inquire with de Sherbinin / CIESIN and Tier 2 faculty regarding summer RA / pre-doc collaborations.
 - **[math thesis]** Finalize revised math thesis manuscript; prepare seminar / conference submission.
 
 ### March 2027
-- **[research]** Finalize Project 03 paper for journal submission.
+- **[research]** Finalize Project 03 paper for journal submission (*World Development* or *Disasters*).
 - **[research]** Complete unified draft of Project 02 incorporating both Somalia and Ukraine comparative insights.
 - **[research]** Draft Project 05 internal scoping note on complex systems and non-linear recovery dynamics.
 - **[outreach]** Second-round advisory fit discussions for Year 2 committee formation.
 
 ### April 2027
-- **[research]** Present finalized Project 02 research paper at the Columbia Sustainable Development Seminar.
-- **[portfolio]** Publish Project 02 working paper, Project 03 paper, and toolkit tutorials to personal website.
-- **[outreach]** Formalize summer research appointment with faculty mentor.
+- **[presentation]** Present finalized Project 02 research paper at the formal Columbia Sustainable Development Seminar.
+- **[portfolio]** Publish Project 02 working paper, Project 03 paper, and toolkit tutorials to personal website and GitHub.
+- **[outreach]** Formalize funded summer research plans with faculty mentor.
 
 ### May 2027
-- **[research]** Conclude Year 1 coursework; prepare comprehensive annual retrospective.
-- **[portfolio]** Integrate all completed projects, toolkits, and publications into an integrated 3R research portfolio on personal website.
+- **[coursework]** Conclude Year 1 coursework; prepare for qualifying exams.
+- **[retrospective]** Write an end-of-year retrospective documenting empirical progress, lessons learned, and refined dissertation questions.
 - **[outreach]** Lock in primary dissertation advisor and second-year research trajectory.
