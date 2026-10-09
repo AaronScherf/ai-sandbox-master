@@ -18,12 +18,13 @@ from __future__ import annotations
 import json
 import os
 import re
+import tempfile
 from dataclasses import dataclass
 
 from google.genai import types
 
 from core.env.gemini_utils import call_with_retries
-from core.indexer.index_card import EMBEDDING_DIMENSIONALITY, EMBEDDING_MODEL, EMBEDDING_MODEL_ID, list_courses, load_shard
+from core.indexer.index_card import EMBEDDING_DIMENSIONALITY, EMBEDDING_MODEL, EMBEDDING_MODEL_ID, compute_content_hash, list_courses, load_shard
 
 
 def chunks_dir(academic_hub_root: str) -> str:
@@ -45,8 +46,16 @@ def load_chunks(academic_hub_root: str, course: str) -> list[dict]:
 def save_chunks(academic_hub_root: str, course: str, chunks: list[dict]) -> None:
     path = chunks_path(academic_hub_root, course)
     os.makedirs(os.path.dirname(path), exist_ok=True)
-    with open(path, "w", encoding="utf-8") as f:
-        json.dump(chunks, f, indent=2, ensure_ascii=False)
+    fd, temporary = tempfile.mkstemp(prefix="chunks-", suffix=".tmp", dir=os.path.dirname(path))
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            json.dump(chunks, f, indent=2, ensure_ascii=False)
+            f.flush()
+            os.fsync(f.fileno())
+        os.replace(temporary, path)
+    finally:
+        if os.path.exists(temporary):
+            os.unlink(temporary)
 
 
 _FRONTMATTER_RE = re.compile(r"\A---\n.*?\n---\n\n?", re.DOTALL)
@@ -395,7 +404,7 @@ def generate_chunks_for_file(academic_hub_root: str, course: str, card: dict, cl
 
 def chunk(
     academic_hub_root: str, client, course: str | None = None,
-    file: str | None = None, dry_run: bool = False,
+    file: str | None = None, dry_run: bool = False, file_id: str | None = None,
 ) -> dict:
     """Iterates every non-orphaned, embedded card (needs_indexing cards
     have no embedding yet -- nothing to chunk) and calls
@@ -403,12 +412,41 @@ def chunk(
     and skipped, never aborts the pass (same failure-isolation
     philosophy as index_search.py's rebuild()). dry_run reports what
     WOULD be (re-)chunked without calling the API or writing anything."""
+    if file is not None and file_id is not None:
+        raise ValueError("file and file_id selectors are mutually exclusive")
+    if file_id is not None and course is None:
+        raise ValueError("file_id selection requires a course")
     stats = {"chunked": 0, "unchanged": 0, "failed": 0, "skipped_no_embedding": 0}
+    selected: dict | None = None
+    target_written = 0
+    target_status = "missing_card"
 
     for course_name in list_courses(academic_hub_root):
         if course is not None and course_name != course:
             continue
-        for card in load_shard(academic_hub_root, course_name):
+        cards = load_shard(academic_hub_root, course_name)
+        if file_id is not None:
+            cards = [card for card in cards if card.get("file_id") == file_id]
+            if len(cards) > 1:
+                raise ValueError(f"multiple cards match file_id {file_id!r} in {course_name}")
+        for card in cards:
+            if file_id is not None:
+                selected = card
+                md_path = os.path.join(academic_hub_root, card["path"])
+                if card.get("orphaned"):
+                    target_status = "orphaned"
+                elif card.get("needs_indexing"):
+                    target_status = "needs_indexing"
+                elif not card.get("embedding"):
+                    target_status = "no_embedding"
+                elif not os.path.isfile(md_path):
+                    target_status = "missing_source"
+                elif compute_content_hash(md_path) != card.get("content_hash"):
+                    target_status = "stale_card"
+                else:
+                    target_status = "current"
+                if target_status != "current":
+                    continue
             if card.get("orphaned") or card.get("needs_indexing") or not card.get("embedding"):
                 stats["skipped_no_embedding"] += 1
                 continue
@@ -427,14 +465,20 @@ def chunk(
             try:
                 result = generate_chunks_for_file(academic_hub_root, course_name, card, client)
             except Exception as err:
-                print(f"WARNING: chunking failed for {card['path']} ({err}); "
-                      f"rerun `python index_search.py chunk` later to retry.")
+                if file_id is None:
+                    print(f"WARNING: chunking failed for {card['path']} ({err}); "
+                          f"rerun `python index_search.py chunk` later to retry.")
                 stats["failed"] += 1
                 continue
 
+            target_written = result["chunks_written"]
             if result["chunks_written"] > 0:
                 stats["chunked"] += 1
             else:
                 stats["unchanged"] += 1
 
+    if file_id is not None:
+        return {"file_id": file_id, "matched": selected is not None,
+                "chunks_written": target_written, "card_status": target_status,
+                "failed": stats["failed"]}
     return stats

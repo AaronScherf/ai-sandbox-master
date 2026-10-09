@@ -1,19 +1,21 @@
 from __future__ import annotations
 
 import argparse
+import json
 import sys
 from pathlib import Path
 import threading
 import webbrowser
 
 from tools.corpus_health.config import load_config
+from tools.corpus_health.actions import apply_accepted
 from tools.corpus_health.discovery import scan
 from tools.corpus_health.review_server import ReviewServer
 from tools.corpus_health.state import StateError, StateStore, default_state_dir
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="Read-only academic-hub corpus health scanner.")
+    parser = argparse.ArgumentParser(description="Academic-hub corpus health scanner and reviewed repairs.")
     subparsers = parser.add_subparsers(dest="command", required=True)
     scan_parser = subparsers.add_parser("scan", help="scan configured roots without pipeline or model calls")
     scan_parser.add_argument("--config", required=True, type=Path, help="JSON scanner configuration")
@@ -27,6 +29,11 @@ def build_parser() -> argparse.ArgumentParser:
     review_parser.add_argument("--timeout", type=int, default=900)
     review_parser.add_argument("--include-deferred", action="store_true",
                                help="include deferred findings in the review page")
+    apply_parser = subparsers.add_parser("apply", help="apply eligible findings previously accepted in review")
+    apply_parser.add_argument("--config", required=True, type=Path, help="same configuration used for scan and review")
+    apply_parser.add_argument("--state-dir", type=Path, help="override the local operational state directory")
+    apply_parser.add_argument("--accepted", required=True, action="store_true",
+                              help="explicitly select the accepted decision queue")
     return parser
 
 
@@ -56,6 +63,11 @@ def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     try:
         config = load_config(args.config)
+        if args.command == "apply":
+            directory = args.state_dir or default_state_dir(config.academic_hub_root)
+            outcomes = apply_accepted(config, StateStore(directory))
+            print(json.dumps(outcomes, ensure_ascii=False, indent=2))
+            return 1 if any(item["status"] == "failed" for item in outcomes) else 0
         if args.command == "scan":
             report = scan(config)
             if not args.no_state:

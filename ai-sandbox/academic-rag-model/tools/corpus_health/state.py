@@ -189,7 +189,7 @@ class StateStore:
                         "decision": None,
                     }
                 elif entry.get("action_signature") != signature and entry.get("status") in {
-                    "accepted", "declined", "deferred",
+                    "accepted", "declined", "deferred", "blocked", "failed",
                 }:
                     entry["status"] = "pending_review"
                     entry["decision"] = None
@@ -203,6 +203,10 @@ class StateStore:
                 if entry["status"] == "vanished":
                     previous = entry.pop("previous_status", None)
                     entry["status"] = previous if previous in {"declined", "deferred"} else "pending_review"
+                elif entry["status"] == "failed":
+                    # A failed execution requires a fresh human decision after scan.
+                    entry["status"] = "pending_review"
+                    entry["decision"] = None
                 entries[finding_id] = entry
                 result.append(replace(finding, finding_id=finding_id))
 
@@ -226,6 +230,30 @@ class StateStore:
         with _exclusive_lock(self.lock_path):
             data = self._load_unlocked()
         return data["findings"].get(finding_id)
+
+    def accepted(self) -> list[dict]:
+        with _exclusive_lock(self.lock_path):
+            data = self._load_unlocked()
+        return [entry for entry in data["findings"].values()
+                if entry.get("status") in {"accepted", "blocked"}]
+
+    def record_action(self, finding_id: str, fingerprint: str | None, status: str,
+                      detail: dict) -> dict:
+        if status not in {"applied", "failed", "blocked", "pending_review"}:
+            raise StateError(f"invalid action status: {status}")
+        with _exclusive_lock(self.lock_path):
+            data = self._load_unlocked()
+            entry = data["findings"].get(finding_id)
+            if entry is None or entry.get("status") not in {"accepted", "blocked"}:
+                raise StateError("finding is no longer accepted")
+            if entry.get("finding", {}).get("fingerprint") != fingerprint:
+                raise StateError("finding fingerprint changed before action")
+            entry["status"] = status
+            entry["last_action"] = {"at": _now(), "status": status, **detail}
+            if status == "pending_review":
+                entry["decision"] = None
+            self._write_unlocked(data)
+            return entry
 
     def decide(self, finding_id: str, decision: str, fingerprint: str | None) -> dict:
         if decision not in {"accepted", "declined", "deferred"}:

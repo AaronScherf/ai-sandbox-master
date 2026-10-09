@@ -846,6 +846,8 @@ def build_arg_parser() -> argparse.ArgumentParser:
     chunk_p = subparsers.add_parser("chunk", help="Chunk and embed indexed files into citable passages.")
     chunk_p.add_argument("--course", default=None)
     chunk_p.add_argument("--file", default=None)
+    chunk_p.add_argument("--file-id", default=None, help="exact card identity; requires --course")
+    chunk_p.add_argument("--json", action="store_true", help="structured result for --file-id")
     chunk_p.add_argument("--dry-run", action="store_true")
 
     ask_p = subparsers.add_parser("ask", help="Ask a single grounded question (no conversation memory).")
@@ -927,17 +929,27 @@ def main() -> None:
         print(stats)
     elif args.command == "chunk":
         root = _single_root(args)
+        if args.file_id is not None and (args.file is not None or args.course is None or not args.json):
+            raise SystemExit("--file-id requires --course and --json, and cannot be combined with --file")
+        if args.json and args.file_id is None:
+            raise SystemExit("--json requires --file-id")
+        selected = {"course": args.course, "file_id": args.file_id} if args.file_id is not None else {"course": args.course, "file": args.file}
         if args.dry_run:
-            stats = chunk(root, client, course=args.course, file=args.file, dry_run=True)
+            stats = chunk(root, client, **selected, dry_run=True)
         else:
             try:
                 # This writer changes only the selected corpus's .index/.
                 # Keep the lease through embedding and all shard writes.
                 with corpus_write_lock([root], "index chunk"):
-                    stats = chunk(root, client, course=args.course, file=args.file)
+                    stats = chunk(root, client, **selected)
             except CorpusWriteLockError as exc:
                 raise SystemExit(str(exc)) from exc
-        print(stats)
+        if args.json:
+            print(json.dumps(stats, sort_keys=True))
+            if stats["failed"]:
+                raise SystemExit(1)
+        else:
+            print(stats)
     elif args.command == "ask":
         from agent.rag.rag_agent import answer_question
         result = answer_question(
