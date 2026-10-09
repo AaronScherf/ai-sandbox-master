@@ -19,6 +19,7 @@ import os
 import re
 from dataclasses import dataclass
 
+from core.env.corpus_write_lock import CorpusWriteLockError, corpus_write_lock
 from core.env.excalidraw_text import CHUNK_MARKER_RE as _CHUNK_MARKER_RE, SEGMENT_LABEL_RE as _LABEL_RE
 from core.env.frontmatter import parse_frontmatter
 from core.indexer.index_card import list_courses, load_shard, save_shard
@@ -197,11 +198,19 @@ def main(argv: list[str] | None = None) -> None:
     parser.add_argument("--dry-run", action="store_true", help="Print links without writing them.")
     args = parser.parse_args(argv)
     try:
-        for course in [args.course] if args.course else list_courses(args.root):
-            for link in link_subsets(args.root, course, dry_run=args.dry_run):
-                tag = " (forced)" if link.forced else ""
-                print(f"[{course}] {link.subset_id} -> {link.superset_id}  containment={link.score:.2f}{tag}")
-    except ValueError as err:
+        def run() -> None:
+            for course in [args.course] if args.course else list_courses(args.root):
+                for link in link_subsets(args.root, course, dry_run=args.dry_run):
+                    tag = " (forced)" if link.forced else ""
+                    print(f"[{course}] {link.subset_id} -> {link.superset_id}  containment={link.score:.2f}{tag}")
+
+        if args.dry_run:
+            run()
+        else:
+            # Standalone subset linking writes the course index shard.
+            with corpus_write_lock([args.root], "index subset links"):
+                run()
+    except (ValueError, CorpusWriteLockError) as err:
         raise SystemExit(f"ERROR: {err}")
 
 
