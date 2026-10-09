@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import subprocess
+import sys
 from pathlib import Path
 from types import SimpleNamespace
 from dataclasses import replace
@@ -56,6 +57,29 @@ def test_apply_runs_exact_file_id_under_lock_and_verifies_chunks(tmp_path, monke
     result = actions.apply_accepted(config, store, runner=runner)
     assert result[0]["status"] == "applied"
     assert len(calls) == 1
+    assert store.get_entry(approved.finding_id)["status"] == "applied"
+
+
+def test_apply_stub_subprocess_joins_lease_and_writes_only_fixture_index(tmp_path, monkeypatch):
+    config, store, _, card, _, approved = _setup(tmp_path, monkeypatch)
+    stub = """
+import json
+import sys
+from core.env.corpus_write_lock import corpus_write_lock
+from core.indexer.chunk_index import save_chunks
+root, file_id, content_hash = sys.argv[1:]
+with corpus_write_lock([root], 'fixture child'):
+    save_chunks(root, 'econ', [{'file_id': file_id, 'content_hash': content_hash}])
+print(json.dumps({'file_id': file_id, 'matched': True, 'chunks_written': 1, 'failed': 0}))
+"""
+
+    def runner(command, **kwargs):
+        assert command[-3:] == ["--file-id", "source-id", "--json"]
+        return subprocess.run([sys.executable, "-c", stub, str(config.academic_hub_root),
+                               card["file_id"], card["content_hash"]], **kwargs)
+
+    result = actions.apply_accepted(config, store, runner=runner)
+    assert result[0]["status"] == "applied", result
     assert store.get_entry(approved.finding_id)["status"] == "applied"
 
 
