@@ -104,6 +104,10 @@ def _covered(report: EditReport, edit: Edit) -> list[str]:
     return out
 
 
+def _quote_fix(edit: Edit) -> bool:
+    return edit.type == "fix" and edit.quote is not None
+
+
 def mark_conflicts(report: EditReport) -> None:
     by_block: dict[str, list[Edit]] = {}
     covered = {e.id: _covered(report, e) for e in report.edits}
@@ -111,4 +115,5 @@ def mark_conflicts(report: EditReport) -> None:
         for t in covered[e.id]:
             by_block.setdefault(t, []).append(e)
     for e in report.edits:
-        e.conflicts = sorted({o.id for t in covered[e.id] for o in by_block[t] if o.id != e.id})
+        e.conflicts = sorted({o.id for t in covered[e.id] for o in by_block[t] if o.id != e.id
+                              and not (_quote_fix(e) and _quote_fix(o) and e.quote != o.quote)})

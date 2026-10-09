@@ -212,3 +212,26 @@ def test_moving_a_section_that_another_edit_deletes_is_refused():
     rep = _report(_e("m", "move", [ids["A1"]], anchor=ids["C"]), _e("d", "delete", [ids["A"]]))
     with pytest.raises(ReviseError, match="same block"):
         apply_edits(BODY, rep, {"m", "d"})
+
+
+def test_two_quote_fixes_in_one_block_both_apply():
+    ids = _ids()
+    rep = _report(_e("f1", "fix", [ids["B"]], quote="four", replacement="4"), _e("f2", "fix", [ids["B"]], quote="eight", replacement="8"))
+    out = apply_edits(BODY, rep, {"f1", "f2"})
+    assert "beta 4 five six seven 8" in out
+    mark_conflicts(rep)
+    assert rep.edits[0].conflicts == [] and rep.edits[1].conflicts == []
+
+
+def test_overlapping_quote_fixes_are_refused():
+    ids = _ids()
+    rep = _report(_e("f1", "fix", [ids["B"]], quote="four five", replacement="x"), _e("f2", "fix", [ids["B"]], quote="five six", replacement="y"))
+    with pytest.raises(ReviseError, match="overlap"):
+        apply_edits(BODY, rep, {"f1", "f2"})
+
+
+def test_a_quote_fix_still_conflicts_with_a_whole_block_edit():
+    ids = _ids()
+    rep = _report(_e("f1", "fix", [ids["B"]], quote="four", replacement="4"), _e("d", "delete", [ids["B"]]))
+    with pytest.raises(ReviseError, match="same block"):
+        apply_edits(BODY, rep, {"f1", "d"})

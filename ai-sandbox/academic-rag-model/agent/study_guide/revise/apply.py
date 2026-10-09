@@ -27,12 +27,24 @@ def _retitled(block: Block, heading: str, edit_id: str = "") -> str:
     return "\n".join([heading] + block.text.split("\n")[1:])
 
 
-def _fixed(block: Block, edit: Edit) -> str:
-    if edit.quote is None:
-        return edit.replacement or ""
-    if block.text.count(edit.quote) != 1:
-        raise ReviseError(f"{edit.id}: the quote must occur exactly once in its block")
-    return block.text.replace(edit.quote, edit.replacement or "", 1)
+def _fixed(block: Block, edits: list[Edit]) -> str:
+    """Apply the fixes of one block: a whole-block replacement, or one or more non-overlapping quote replacements."""
+    if len(edits) == 1 and edits[0].quote is None:
+        return edits[0].replacement or ""
+    spans = []
+    for e in edits:
+        if e.quote is None or block.text.count(e.quote) != 1:
+            raise ReviseError(f"{e.id}: the quote must occur exactly once in its block")
+        i = block.text.index(e.quote)
+        spans.append((i, i + len(e.quote), e))
+    spans.sort(key=lambda s: s[0])
+    for (_, end, a), (start, _, b) in zip(spans, spans[1:]):
+        if start < end:
+            raise ReviseError(f"{a.id} and {b.id} quote overlapping text in the same block; accept only one")
+    text = block.text
+    for start, end, e in reversed(spans):
+        text = text[:start] + (e.replacement or "") + text[end:]
+    return text
 
 
 def apply_edits(body: str, report: EditReport, accepted: set[str]) -> str:
@@ -52,12 +64,13 @@ def apply_edits(body: str, report: EditReport, accepted: set[str]) -> str:
     covered = {e.id: [m for t in e.targets for m in (subtree_ids(blocks, t) if e.type == "delete" else [t])]
                for e in selected}
     owner: dict[str, str] = {}
+    quote_fix = {e.id for e in selected if e.type == "fix" and e.quote is not None}
     for e in selected:
         for t in covered[e.id]:
-            if t in owner:
+            if t in owner and not (e.id in quote_fix and owner[t] in quote_fix):
                 raise ReviseError(f"{owner[t]} and {e.id} edit the same block ({t}); accept only one")
-            owner[t] = e.id
-    delete, replace, moved = set(), {}, {}
+            owner.setdefault(t, e.id)
+    delete, replace, moved, fixes = set(), {}, {}, {}
     for e in selected:
         first = known[e.targets[0]]
         if e.type == "delete":
@@ -67,7 +80,7 @@ def apply_edits(body: str, report: EditReport, accepted: set[str]) -> str:
         elif e.type == "retitle":
             replace[first.id] = _retitled(first, e.replacement or "", e.id)
         elif e.type == "fix":
-            replace[first.id] = _fixed(first, e)
+            fixes.setdefault(first.id, []).append(e)
         elif e.type == "merge":
             replace[first.id] = e.replacement or ""
             delete.update(e.targets[1:])
@@ -77,6 +90,8 @@ def apply_edits(body: str, report: EditReport, accepted: set[str]) -> str:
             if e.anchor in delete:
                 raise ReviseError(f"{e.id}: the anchor block is deleted by another edit")
             moved.setdefault(subtree_ids(blocks, e.anchor)[-1], []).append(subtree_ids(blocks, e.targets[0]))
+    for bid, group in fixes.items():
+        replace[bid] = _fixed(known[bid], group)
     moving = {i for groups in moved.values() for ids in groups for i in ids}
     chained = sorted({a for a in (e.anchor for e in selected if e.type == "move") if a in moving})
     if chained:
