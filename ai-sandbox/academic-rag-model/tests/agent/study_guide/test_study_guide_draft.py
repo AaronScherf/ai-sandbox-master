@@ -307,8 +307,15 @@ def test_a_draft_stops_once_spend_passes_the_cap_and_keeps_the_finished_sections
 
 def test_strip_removes_citations_written_as_markdown_links_to_nothing():
     from agent.study_guide.draft import strip_citations
-    text = ("bundle $p \cdot x \leq w$ ([§2.E, p. 34](#); [§3.A, p. 51](#)): so\n"
+    text = (r"bundle $p \cdot x \leq w$ ([§2.E, p. 34](#); [§3.A, p. 51](#)): so\n"
             "* **Walras' Law:** spends all ([Definition 2.E.1, p. 34](#)). Done [See the link](https://x.org).")
     cleaned, residual = strip_citations(text, ["§2.E Budgets, p. 34"])
-    assert cleaned == ("bundle $p \cdot x \leq w$: so\n* **Walras' Law:** spends all. "
+    assert cleaned == (r"bundle $p \cdot x \leq w$: so\n* **Walras' Law:** spends all. "
                        "Done [See the link](https://x.org).") and residual == 0
+
+
+def test_strip_removes_the_empty_text_commands_left_by_citations_inside_math():
+    from agent.study_guide.draft import strip_citations
+    text = r"$$p \cdot x \leq w \quad \text{(Example 3.E.1, p. 66)}$$ and $$y = 2 \quad \text{;}$$ keep $a \text{ if } b$"
+    cleaned, _ = strip_citations(text, [])
+    assert cleaned == r"$$p \cdot x \leq w$$ and $$y = 2$$ keep $a \text{ if } b$"

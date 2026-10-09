@@ -25,7 +25,8 @@ _PAGE_PIECE = r"[^;()\[\]]*?\bpp?\.\s?\d+(?:\s*[-\u2013]\s*\d+)?[^;()\[\]]*?"
 _PAGE_ITEM = rf"\[?{_PAGE_PIECE}\]?"
 _PAGE_CITATION_RE = re.compile(rf"\s*[\(\[]\s*{_PAGE_ITEM}(?:\s*;\s*{_PAGE_ITEM})*[\s;,]*[\)\]]")
 _EMPTY_PARENS_RE = re.compile(r"[ \t]+\([\s;,]*\)")
-_LINK_CITATION_RE = re.compile(r"[ \t]*\[[^\]\n]*\]\(#\)")  # the model sometimes writes a citation as [label](#)
+_EMPTY_TEXT_RE = re.compile(r"(?:[ \t]*\\q?quad)?[ \t]*\\text\{[\s;,.]*\}")  # a citation removed from inside math
+_LINK_CITATION_RE =re.compile(r"[ \t]*\[[^\]\n]*\]\(#\)")  # the model sometimes writes a citation as [label](#)
 _HEADING_RE = re.compile(r"^(#{1,2})\s+(.*?)\s*$")
 
 
@@ -98,6 +99,7 @@ def strip_citations(text: str, labels: list[str]) -> tuple[str, int]:
         text = re.sub(rf"\s*[\(\[]\s*{item}(?:{sep}{item})*[\s;,]*[\)\]]", "", text)
     text = _PAGE_CITATION_RE.sub("", text)  # the model often shortens labels, e.g. "(Hansen, p. 268)"
     text = _EMPTY_PARENS_RE.sub("", text)
+    text = _EMPTY_TEXT_RE.sub("", text)
     return text, len(_RESIDUAL_CITATION_RE.findall(text))
 
 
