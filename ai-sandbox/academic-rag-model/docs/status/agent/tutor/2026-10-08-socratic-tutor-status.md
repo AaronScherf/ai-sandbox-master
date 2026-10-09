@@ -33,3 +33,32 @@ Soft wall only: direct reads of `packet/sealed/` are undetectable, and `audit` f
 2. Disentangle naming between this package and `agent/rag/` (pending to-do "Socratic Tutor vs RAG Tutor Disentanglement" in `docs/trackers/academic_hub_to_do.md`).
 3. Spec §10.1: topic/timeframe review and study-guide walkthrough modes (new packet sources, configurable FSM states).
 4. Spec §10.2: learning-progress tracker built on `learner_profile.json` (`schema_version` 1).
+
+## 2026-10-08 update: v1.1 Plan A (claim ledger core)
+
+Spec: `docs/superpowers/specs/2026-10-08-socratic-tutor-v1-1-design.md`. Plan: `docs/superpowers/plans/2026-10-08-socratic-tutor-v1-1-plan-a.md`. Branch `claude/tutor-v1-1-core`. Written in response to the HW4 manual trial (see "Socratic Tutor Trial-Run Fixes" in `docs/trackers/academic_hub_to_do.md`).
+
+### What shipped
+
+- `claims.py`, `ledger.py`: prep-authored recognizers (group-window, whole-word or `*` prefix), the `claims.json` schema, the blind-sample self-test (90% of leak samples and 80% of student samples matched, no neutral sample matched), and a deterministic ledger of established claims and pitfalls replayed from the event log.
+- `packet.py`, `sample_packet.py`, `prep.py`: packet v1.1 (`claims.json`, `samples.json` in the validated hash, per-part `launch_style`, short launch line), new prep worklist with the blind second pass.
+- `fsm.py`, `lint.py`, `ratings.py`, `render.py`: a closed part is never reopened by a side question; failed attempts are attempts that establish nothing new; claim disclosure (`REVEALS_CLAIM`, ids only, copied statement runs masked) and the question form (`QUESTION_FORM`); ratings default to the evidence ceiling with CLI-attached evidence and can only be lowered; the summary lists verified steps with the student's quotes.
+- `session.py`, `cli.py`, `audit.py`, `bootstrap_prompt.md`: `turn` / `say --stdin|--check` / `verify` (two phases, once-per-part solution release, quote-validated step check), actionable errors (`next`), manual overrides with quotes, audit of manual overrides and releases without coverage, `audit` on finished sessions.
+
+Tests: `python -m pytest tests/agent/tutor -q` passes (171 at the end of Task 11). `test_tutor_regression.py` holds analogues of the HW4 trial's bad replies against the sample claims and the offline half of the seven adversarial scenarios; breaking the disclosure, coverage and unresolved-slip rules each turns the intended tests red.
+
+PowerShell stdin check (Task 10): `$OutputEncoding = [Text.UTF8Encoding]::new($false)` plus a here-string pipe carried `x ≽ y and γ(b) in ℝ` into the log unchanged on Windows PowerShell 5.1, so the two-call turn works; `--text-file` remains the fallback.
+
+### Not yet validated
+
+- No live Antigravity run on the claim ledger. The HW4 packet must be re-prepped with `claims.json` and `samples.json` from the new worklist before any live run (the old packet is refused with a message saying so).
+- Tool calls per turn have not been measured live (target 2).
+- The live half of the adversarial suite (spec §11) and the decision on an independent judge (spec §12) are still to do.
+- Recognizer quality on real course content is unknown; the self-test only measures coverage against blind samples written by the same model family.
+
+### What's next
+
+1. Re-prep HW4 with the new worklist (Antigravity), then a live session and the live adversarial scenarios; add false positives and misses to the fixtures.
+2. Decide on the independent judge from those results.
+3. Plan B: skip/defer/revisit, `pause`, profile v2, and their audit checks.
+4. The one-sentence Antigravity entry point.

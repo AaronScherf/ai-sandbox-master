@@ -33,30 +33,30 @@ Out of scope: the Antigravity one-sentence entry point (tracker: "Socratic Tutor
 
 ## 3. Packet v1.1
 
-New file `sealed/claims.json`; `sealed/solution.md` stays, one `## <part_id>` section per part, used only by `verify` and for human reference. `sealed/hints.md` is no longer read at runtime. `glossary.json`, `rubric.json` and `parts.json` keep their v1 shape; `parts.json` may add an optional `final_answer` recognizer (§4) for derivation parts. The validated hash covers `claims.json` and `samples.json` too.
+New files `claims.json` and `samples.json` at the packet root; `sealed/solution.md` stays, one `## <part_id>` section per part, used only by `verify` and for human reference. `sealed/hints.md` is optional reference only and is not read at runtime. `glossary.json`, `rubric.json` and `parts.json` keep their v1 shape; `parts.json` may add an optional `final_answer` recognizer (§4) for derivation parts. The validated hash covers `parts.json`, `glossary.json`, `rubric.json`, `claims.json`, `samples.json` and `sealed/solution.md`. `parts.json` entries may carry a per-part `launch_style` (`"label"`, the default, or `"statement"`).
 
 ```json
 { "q1_1": {
     "claims": [
       { "id": "C1", "text": "a must be considered, with probability gamma(a)",
         "object_terms": ["the chosen item", "being considered"],
-        "recognizer": { "all": [["consider","attend","notice"], ["chosen","select","pick","best"]], "window": 14 } },
+        "recognizer": { "all": [["consider*","attend*","notice*"], ["chosen","select*","pick*","best"]], "window": 14 } },
       { "id": "C2", "text": "every item ranked above a must fail to be considered",
         "object_terms": ["the items ranked above a"],
-        "recognizer": { "all": [["consider","attend","notice"], ["better","higher","superior","dominat"], ["not","never","fail","absent"]], "window": 16 } },
+        "recognizer": { "all": [["consider*","attend*","notice*"], ["better","higher","superior","dominat*"], ["not","never","fail*","absent"]], "window": 16 } },
       { "id": "C3", "text": "independence makes the joint probability the product of (1 - gamma(b))",
         "object_terms": ["combining the probabilities"],
-        "recognizer": { "all": [["independen"], ["multipl","product"]], "window": 14 } } ],
+        "recognizer": { "all": [["independen*"], ["multipl*","product"]], "window": 14 } } ],
     "routes": { "A": ["C1","C2","C3"] },
     "pitfalls": [
-      { "id": "P1", "tag": "adds-independent-probabilities", "axis": "rigor",
-        "recognizer": { "all": [["independen"], ["add","sum","plus"]], "window": 12 },
+      { "id": "P1", "tag": "adds-independent-probabilities", "axis": "rigor", "resolved_by": "C3",
+        "recognizer": { "all": [["independen*"], ["add","sum","plus"]], "window": 12 },
         "repair_question": "If both events must happen together, does combining their probabilities add or multiply?" } ] } }
 ```
 
-- **Recognizer.** `{"all": [group, ...], "window": N}`. Text is lowercased and tokenized into words (punctuation and math symbols dropped). A group matches a token if the token starts with one of the group's stems. The recognizer matches when some window of N consecutive tokens contains a match for every group. No regex; deterministic and safe to author.
+- **Recognizer.** `{"all": [group, ...], "window": N}`. Text is lowercased and tokenized into words (punctuation and math symbols dropped). An entry matches a whole token unless it ends in `*`, which makes it a prefix (`consider*`); `n't` is read as `not`. A group matches a token if one of its entries does. The recognizer matches when some window of N consecutive tokens contains a match for every group. No regex; deterministic and safe to author.
 - **Routes** are ordered claim sets; a part is covered when every claim of at least one route is established. Alternative proofs are extra routes, which may share claims.
-- **Pitfalls** run only on student messages. Each carries a tag, the axis it affects, and a Socratic `repair_question`.
+- **Pitfalls** run only on student messages. Each carries a tag, the axis it affects, a Socratic `repair_question`, and optionally `resolved_by` (a claim id): when that claim is established at or after the message that triggered the pitfall, the misconception is resolved automatically (`misconception_resolved`, `auto: true`); otherwise the agent resolves it with a quote.
 - **Optional `final_answer`** on a part: a recognizer over the student's final expression, for derivation parts; an additional condition for coverage.
 - **`samples.json`** (written in a *second, blind* prep pass by an agent that has not seen the recognizers): per claim, ≥10 `leak_samples` (tutor-style sentences that reveal the claim) and ≥5 `student_samples` (ways a student might state it); per part ≥5 `neutral_samples` (Socratic questions that reveal nothing); per pitfall ≥3 `student_samples`.
 - **`prep-submit` self-test.** For each claim the recognizer must match ≥90% of its `leak_samples` and ≥80% of its `student_samples`; no recognizer may match any `neutral_sample`; each pitfall recognizer must match ≥80% of its samples. Failures are reported with the offending sample so the prep agent can fix the recognizer. Because samples are authored blind, this measures coverage, not just self-consistency; it is still written by the same model family, which §13 records as a risk.
@@ -64,7 +64,7 @@ New file `sealed/claims.json`; `sealed/solution.md` stays, one `## <part_id>` se
 
 ## 4. State and ledger
 
-State is still replayed from `events.jsonl`; there is no state file. New event types: `turn`, `establish` (manual, with quote), `flag_slip` (manual, with quote), `skip_request`, `verify`, `defect`, `part_status`, `revisit`, `paused`, `resumed`. A claim is *established* when the recognizer matches any student message of that part, or by a manual `establish` event whose quote is found in the part's student messages (audit-flagged). A pitfall is *hit* when its recognizer matches a student message; the CLI logs the misconception automatically (axis from the pitfall).
+State is still replayed from `events.jsonl`; there is no state file. Event types added in Plan A: `establish` (manual, with quote), `verify_release`, `verify`, `defect`. A `turn` logs an ordinary `student` event (its data carries `made_progress` and `established`); a manual slip is a `misconception` event with `manual: true`; automatic resolution is a `misconception_resolved` event with `auto: true`. Messages with intent `define_request` or `confirm_advance` never establish claims or hit pitfalls. Plan B adds `skip_request`, `part_status`, `revisit`, `paused`, `resumed`. A claim is *established* when the recognizer matches any student message of that part, or by a manual `establish` event whose quote is found in the part's student messages (audit-flagged). A pitfall is *hit* when its recognizer matches a student message; the CLI logs the misconception automatically (axis from the pitfall).
 
 Per part: `status ∈ {open, closed, skipped, deferred, revisiting}`, `skip_requests`, `solution_released`, `attempts` (list of attempt records for revisits). Session: `cursor` (next fresh part), `current` (part being worked), `deferred_queue`.
 
@@ -78,22 +78,22 @@ Every error is `{"ok": false, "error": "...", "next": ["legal command", ...]}` s
 
 | Command | Purpose |
 |---|---|
-| `turn --intent I (--text-file F \| --stdin) [--skip] [--admits-gap [axis]] [--establish Cn --quote Q] [--flag-slip TAG[:axis] --quote Q]` | Logs the student message and returns one **brief**; replaces `student`, `verdict`, `misconception`, `define`, `sealed hint` |
-| `say (--stdin \| --text-file F) [--check]` | Lints and logs the tutor draft; `--check` is a dry run that logs nothing. A rejection is normal and unpenalized |
-| `verify --check-file F [--downgrade axis=rating --why TEXT]` | Once-per-part solution check; closes the part on success |
-| `pause`, `start [--fresh]`, `audit`, `bootstrap`, `prep-collect`, `prep-submit` | As in v1, with `pause` new (§9) |
+| `turn --intent I (--stdin \| --text-file F \| --text T) [--admits-gap [axis]] [--define TERM] [--establish Cn --establish-quote Q] [--flag-slip TAG[:axis] --slip-quote Q] [--resolve TAG --resolve-quote Q]` | Logs the student message and returns one **brief**; replaces `student`, `verdict`, `misconception`, `define`, `sealed hint` |
+| `say (--stdin \| --text-file F \| --text T) [--check]` | Lints and logs the tutor draft; `--check` is a dry run that logs nothing. A rejection is normal and unpenalized |
+| `verify [--check-file F] [--downgrade axis=rating ... --why TEXT]` | Two phases: without a file it releases the part's solution steps once; with a file it submits the step check and closes the part on success |
+| `end`, `start`, `audit`, `bootstrap`, `prep-collect`, `prep-submit` | As in v1 (`audit` also works on a finished session); `pause`, `start --fresh` and the `--skip` flag arrive with Plan B (§8-§9) |
 
 Intents: `attempt`, `stuck`, `hint_request`, `define_request`, `confirm_advance`, `has_questions`, `revisit`, `other`. The intent label is the agent's; a deterministic phrase check cross-checks `confirm_advance`, `stuck`/`hint_request` and skip phrases, and the audit compares them.
 
-**The brief** (JSON): `state`, `part_id`, `label`, `statement` (agent-only, not to be printed), `hint_level`, `claims_established` (ids), `route_coverage`, `pitfalls_hit` (tag + repair question), `definition` (verbatim glossary entry if the intent was `define_request`), `skip_requests`, `verify_available`, `revisit_offer` (parts, when a check-in is owed), `rules` (the exact constraints on the next reply, §6), and `next` (legal commands). At level 2 it adds the next claim's `object_terms`; at level 3 it adds that claim's `text`. Claim texts otherwise never appear.
+**The brief** (JSON): `state`, `part_id`, `label`, `statement` (agent-only, not to be printed), `hint_level`, `claims_established` (ids), `route_coverage`, `pitfalls_hit` (tag + repair question), `definition` (verbatim glossary entry if the intent was `define_request`), `verify_available`, `solution_released`, `rules` (the exact constraints on the next reply, §6), and `next` (legal commands). At level 2 it adds the next claim's `object_terms`; at level 3 it adds that claim's `text`. Claim texts otherwise never appear. `skip_requests` and `revisit_offer` are added by Plan B.
 
 ## 6. The `say` rules
 
 Kept from v1: verbatim launch, definition-only after `define_request`, sealed-phrase overlap (6-word run), technique words, check-in wording, next-part mention, Unicode math in chat.
 
 New:
-- **Launch** is the short line `"{label}. How would you like to approach this problem?"` (no statement; the agent has it in the brief). A packet setting `launch_style: "statement"` restores the v1 text.
-- **Disclosure.** A draft may not match the recognizer of any claim (on any route) that the student has not established, except the permitted object terms at level 2 and the next claim at level 3. A rejection reports the claim id (`REVEALS_CLAIM:C3`), never its text.
+- **Launch** is the short line `"{label}. How would you like to approach this problem?"` (no statement; the agent has it in the brief). A per-part `launch_style: "statement"` field restores the v1 text.
+- **Disclosure.** A draft may not match the recognizer of any claim (on any route) that the student has not established, except the next claim at level 3 (object terms at level 2 are guidance only and need no exemption). Runs of six words copied from the part statement are masked before the recognizers run, so the tutor can quote the problem. A rejection reports the claim id (`REVEALS_CLAIM:C3`), never its text.
 - **Question form** at hint levels 0-1, and below level 3 for any part with `solution_released`: at most one question mark; at most 60 words; at most one non-question sentence, which must share ≥2 content words with the student's last message.
 - **Skip request #1:** the reply must be a question that invites an attempt and must not advance.
 - **Check-in** (state `VERIFIED`): the v1 wording, plus the revisit offer when the deferred queue is non-empty ("go back to 1.2, or on to 1.4?").
@@ -101,7 +101,7 @@ New:
 
 ## 7. `verify`
 
-Available only when a route is covered (recognized or manually established, plus `final_answer` if the part has one). It returns that part's `solution.md` section, **once**; a second call returns an error. The agent submits a check file: a list with one entry per solution step, `{"step": n, "status": "confirmed"|"missing"|"wrong", "quote": "<student words>", "note": "<about the student's step, not the solution>"}`; every `confirmed` entry needs a quote that appears in the part's student messages (validated).
+Available only when a route is covered (recognized or manually established, plus `final_answer` if the part has one). `verify` without a file returns that part's `solution.md` steps (markdown headings of level 3 or deeper, else paragraphs), **once**; a second release is refused. The agent then submits a check file with `verify --check-file` (resubmittable): a list with one entry per solution step, `{"step": n, "status": "confirmed"|"missing"|"wrong", "quote": "<student words>", "note": "<about the student's step, not the solution>"}`; every `confirmed` entry needs a quote that appears in the part's student messages (validated).
 
 - **Clean** (all steps confirmed, no unresolved pitfall): the part closes; ratings are computed (§10); state `VERIFIED`.
 - **Defects** (any `missing`/`wrong`, or unresolved pitfall): each becomes a `defect` event and a logged misconception (axis supplied with the entry, default `rigor`); the part returns to `WORKING`; the solution is not released again; `solution_released` tightens the question form (§6).

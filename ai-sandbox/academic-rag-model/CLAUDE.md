@@ -18,7 +18,7 @@ Python 3.13 packages that convert academic PDFs/docs into Markdown, index them, 
 ## Tutoring sessions
 
 Two different things are both called "tutor" in this repo; do not mix them up.
-- **Interactive Socratic tutoring session** (the user says "start a tutoring session", "tutor me on homework N", "office hours"): use `agent/tutor/`. Run `python -m agent.tutor.cli --hub-root <hub> --course <course> --problem-set <ps> bootstrap`, then follow the printed contract on every turn (`student` -> follow `guidance` -> `say`). Never improvise a tutoring session from `rag_agent.py`.
+- **Interactive Socratic tutoring session** (the user says "start a tutoring session", "tutor me on homework N", "office hours"): use `agent/tutor/`. Run `python -m agent.tutor.cli --hub-root <hub> --course <course> --problem-set <ps> bootstrap`, then follow the printed contract on every turn (`turn` -> follow `rules` -> `say`; `verify` when a part is covered). Never improvise a tutoring session from `rag_agent.py`.
 - **One-off lookups and draft diagnosis** (`agent/rag/rag_agent.py` REPL: `/draft`, `/hint`, `/verify`, `/summarize`): the older metered-Gemini RAG Q&A agent. Use it only when the user asks for a quick grounded answer or a rubric check of a draft.
 
 ## Multi-agent routing
