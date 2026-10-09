@@ -1,14 +1,16 @@
-"""audit.py -- re-lints a finished (or in-progress) session from its log
-(spec §7). The stand-in for the hard file-access wall the user declined:
-drift becomes visible even when it was not blocked. UNANSWERED_STUDENT_TURN
-is a proxy for 'the agent replied without calling say' because the CLI
-cannot observe the chat itself."""
+# agent/tutor/audit.py  (replace the whole file)
+"""audit.py -- re-lints a finished (or in-progress) session from its log (v1 spec §7,
+v1.1 §10). The stand-in for the hard file-access wall the user declined: drift
+becomes visible even when it was not blocked. UNANSWERED_STUDENT_TURN is a proxy for
+'the agent replied without calling say' because the CLI cannot observe the chat.
+It never decides whether an answer is correct."""
 from __future__ import annotations
 
 import re
 from dataclasses import dataclass
 
 from agent.tutor.events import Event
+from agent.tutor.ledger import build_ledger
 from agent.tutor.packet import Packet
 from agent.tutor.ratings import RATINGS, ceiling
 
@@ -39,10 +41,20 @@ def audit(events: list[Event], packet: Packet) -> list[Finding]:
                 found.append(Finding("HINT_JUMP", e.id, f"hint level rose {prev_level}->{e.hint_level} without a single-step student request"))
         if e.part:
             prev_part, prev_level = e.part, e.hint_level
-        if e.type == "sealed":
+        if e.type == "sealed":          # v1 logs only
             attempted = any(x.type == "student" and x.part == e.part and x.intent == "attempt" and x.id < e.id for x in events)
             if not attempted:
                 found.append(Finding("SEALED_EARLY", e.id, "sealed content released before any student attempt on this part"))
+        if e.type == "verify_release":
+            pc = packet.claims.get(e.part) if packet.claims else None
+            if pc is not None:
+                before = [x for x in events if x.part == e.part and x.id < e.id]
+                if not build_ledger(pc, before).covered:
+                    found.append(Finding("VERIFY_WITHOUT_COVERAGE", e.id, "the solution was released before a route was covered"))
+        if e.type == "establish":
+            found.append(Finding("MANUAL_OVERRIDE", e.id, f"claim {e.data.get('claim')} was established manually"))
+        if e.type in ("misconception", "misconception_resolved") and e.data.get("manual"):
+            found.append(Finding("MANUAL_OVERRIDE", e.id, f"{e.type.replace('_', ' ')} '{e.data.get('tag')}' was entered manually"))
         if e.type == "student":
             if e.intent == "confirm_advance" and not _CONFIRM_WORDS.search(e.text or ""):
                 found.append(Finding("INTENT_MISMATCH", e.id, "labelled confirm_advance but the text does not ask to move on"))
