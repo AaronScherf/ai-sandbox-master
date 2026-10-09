@@ -900,7 +900,14 @@ def main() -> None:
             for r in results:
                 print(f"{r.score:.3f}  [{r.root}:{r.course}/{r.doc_type}]  {r.path}\n    {r.reason}")
     elif args.command == "rebuild":
-        stats = rebuild(_single_root(args), client, course=args.course, force=args.force, prune=args.prune)
+        root = _single_root(args)
+        try:
+            # Rebuild reads corpus files but writes cards and course rollups
+            # only in this root's .index/. Hold the lease through all writes.
+            with corpus_write_lock([root], "index rebuild"):
+                stats = rebuild(root, client, course=args.course, force=args.force, prune=args.prune)
+        except CorpusWriteLockError as exc:
+            raise SystemExit(str(exc)) from exc
         print(stats)
     elif args.command == "retag":
         stats = retag(_single_root(args), client, dry_run=args.dry_run)
