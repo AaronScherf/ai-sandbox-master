@@ -14,13 +14,20 @@ when acting on a corpus-health finding. Its apply adapter is not implemented
 yet; until then, run only when explicitly directed and after confirming no
 other writer is touching the same targets. Once apply support exists, route
 finding-driven runs through that orchestrator.
+
+Real runs against academic-hub files hold local locks for their destination
+repository and the outer hub index. Other roots retain the existing generic
+postprocessing behavior. Obsidian sync is outside this local lock protocol.
 """
 from __future__ import annotations
 
 import argparse
 import json
 import os
+from contextlib import nullcontext
+from pathlib import Path
 
+from core.env.corpus_write_lock import CorpusWriteLockError, corpus_write_lock
 from core.env.gemini_utils import get_gemini_client, load_dotenv_override
 from pipelines.postprocess_notes.local_model_scoring import score_causal_zscore, score_masked_candidates
 from pipelines.postprocess_notes.postprocess_discovery import (
@@ -262,6 +269,18 @@ def process_document(
     return unresolved
 
 
+def _writer_roots(targets: list[str]) -> list[Path]:
+    """Lock academic-hub targets; other postprocessing roots stay unchanged."""
+    roots = []
+    for target in targets:
+        path = Path(target).resolve()
+        for ancestor in path.parents:
+            if ancestor.name == "academic-hub":
+                roots.extend((path, ancestor))
+                break
+    return roots
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(
         description="Post-process transcribe_notes.py output: catch and correct errors "
@@ -307,10 +326,18 @@ def main() -> None:
         return
 
     all_unresolved: list[dict] = []
-    for path in targets:
-        print(f"[{os.path.basename(path)}] processing...")
-        unresolved = process_document(path, client, reference_texts, dry_run=args.dry_run)
-        all_unresolved.extend(unresolved)
+    writer_roots = _writer_roots(targets)
+    lease = nullcontext() if args.dry_run or not writer_roots else corpus_write_lock(
+        writer_roots, "notes postprocessing",
+    )
+    try:
+        with lease:
+            for path in targets:
+                print(f"[{os.path.basename(path)}] processing...")
+                unresolved = process_document(path, client, reference_texts, dry_run=args.dry_run)
+                all_unresolved.extend(unresolved)
+    except CorpusWriteLockError as exc:
+        raise SystemExit(str(exc)) from exc
 
     grouped = group_findings_by_signature(all_unresolved)
     review_needed = documents_needing_review(grouped, threshold=_PATTERN_REVIEW_THRESHOLD)
