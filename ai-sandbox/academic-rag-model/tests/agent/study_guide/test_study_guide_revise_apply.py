@@ -68,8 +68,8 @@ def test_retitle_changes_only_the_heading_line():
 
 def test_move_places_the_block_after_the_anchor():
     ids = _ids()
-    out = apply_edits(BODY, _report(_e("e1", "move", [ids["C"]], anchor=ids["A"])), {"e1"})
-    assert out.index("alpha") < out.index("gamma tail") < out.index("sub text")
+    out = apply_edits(BODY, _report(_e("e1", "move", [ids["C"]], anchor=ids["B"])), {"e1"})
+    assert out.index("beta") < out.index("gamma tail") and out.count("## C") == 1
 
 
 def test_note_edits_change_nothing():
@@ -158,3 +158,39 @@ def test_a_move_anchored_on_another_moved_block_is_refused_not_lost():
     rep = _report(_e("m1", "move", [ids["B"]], anchor=ids["A"]), _e("m2", "move", [ids["C"]], anchor=ids["B"]))
     with pytest.raises(ReviseError, match="moved"):
         apply_edits(BODY, rep, {"m1", "m2"})
+
+
+def test_delete_removes_the_whole_section_beneath_a_heading():
+    ids = _ids()
+    out = apply_edits(BODY, _report(_e("e1", "delete", [ids["A"]])), {"e1"})
+    assert "alpha" not in out and "sub text" not in out and "beta" in out and "gamma tail" in out
+
+
+def test_move_carries_the_sections_beneath_and_lands_after_the_anchors_whole_section():
+    ids = _ids()
+    out = apply_edits(BODY, _report(_e("e1", "move", [ids["C"]], anchor=ids["A"])), {"e1"})
+    assert out.index("alpha") < out.index("sub text") < out.index("gamma tail") < out.index("beta")
+    moved = apply_edits(BODY, _report(_e("e1", "move", [ids["A"]], anchor=ids["C"])), {"e1"})
+    assert moved.index("beta") < moved.index("gamma tail") < moved.index("alpha") < moved.index("sub text")
+
+
+def test_a_move_into_its_own_section_is_refused():
+    ids = _ids()
+    with pytest.raises(ReviseError, match="inside"):
+        apply_edits(BODY, _report(_e("e1", "move", [ids["A"]], anchor=ids["A1"])), {"e1"})
+
+
+def test_an_edit_inside_a_deleted_section_conflicts_with_the_delete():
+    ids = _ids()
+    rep = _report(_e("e1", "delete", [ids["A"]]), _e("e2", "retitle", [ids["A1"]], replacement="### X"))
+    with pytest.raises(ReviseError, match="same block"):
+        apply_edits(BODY, rep, {"e1", "e2"})
+
+
+def test_mark_conflicts_sees_edits_inside_a_deleted_section():
+    ids = _ids()
+    blocks = [{"id": b.id, "heading_path": list(b.heading_path)} for b in segment(BODY)]
+    rep = EditReport("g.md", "sha", "now", blocks, [_e("e1", "delete", [ids["A"]]),
+                                                    _e("e2", "retitle", [ids["A1"]], replacement="### X")], [])
+    mark_conflicts(rep)
+    assert rep.edits[0].conflicts == ["e2"] and rep.edits[1].conflicts == ["e1"]

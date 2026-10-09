@@ -6,18 +6,27 @@ import json
 from pathlib import Path
 
 from agent.study_guide.revise.edits import EditReport, ReviseError
-from agent.study_guide.revise.segment import segment
+from agent.study_guide.revise.segment import segment, subtree_ids
 
 
 def review_items(report: EditReport, body: str) -> list[dict]:
-    by_id = {b.id: b for b in segment(body)}
+    blocks = segment(body)
+    by_id = {b.id: b for b in blocks}
     items = []
     for e in report.edits:
+        beneath = []
+        if e.type in ("delete", "move"):
+            for t in e.targets:
+                if t in by_id:
+                    beneath += [{"id": i, "heading": by_id[i].heading_path[-1] if by_id[i].heading_path else "",
+                                 "words": by_id[i].words} for i in subtree_ids(blocks, t)[1:]]
+        anchor = by_id.get(e.anchor) if e.anchor else None
         items.append({
             "id": e.id, "type": e.type, "stage": e.stage, "severity": e.severity, "confidence": e.confidence,
             "rationale": e.rationale, "evidence": e.evidence, "protected": e.protected, "conflicts": e.conflicts,
             "targets": e.targets, "quote": e.quote, "anchor": e.anchor,
             "before": "\n\n".join(by_id[t].text for t in e.targets if t in by_id), "after": e.replacement,
+            "beneath": beneath, "anchor_heading": anchor.heading_path[-1] if anchor and anchor.heading_path else None,
         })
     return items
 

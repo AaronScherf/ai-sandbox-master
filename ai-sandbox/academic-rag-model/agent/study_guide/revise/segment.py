@@ -60,6 +60,21 @@ def segment(body: str) -> list[Block]:
     return blocks
 
 
+def subtree_ids(blocks: list[Block], block_id: str) -> list[str]:
+    """The block and every block beneath it (the following blocks with a deeper heading level)."""
+    ids = [b.id for b in blocks]
+    start = ids.index(block_id)
+    head = blocks[start]
+    if not head.level:
+        return [head.id]
+    out = [head.id]
+    for b in blocks[start + 1:]:
+        if b.level and b.level <= head.level:
+            break
+        out.append(b.id)
+    return out
+
+
 def check_headings(body: str) -> list[str]:
     problems, prev, h1s = [], 0, 0
     siblings: dict[tuple, set[str]] = {}

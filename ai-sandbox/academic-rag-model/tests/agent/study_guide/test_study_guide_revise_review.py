@@ -38,3 +38,13 @@ def test_only_explicit_accepts_count():
 def test_bad_decisions_are_rejected(decisions, fragment):
     with pytest.raises(ReviseError, match=fragment):
         accepted_ids(_report(), decisions)
+
+
+def test_review_items_list_the_sections_beneath_a_deleted_or_moved_heading():
+    body = "# T\n\n## A\n\nalpha text\n\n### A1\n\nsub words here\n\n## B\n\nbeta text\n"
+    ids = {b.heading_path[-1]: b.id for b in segment(body)}
+    rep = EditReport("g.md", "sha", "now", [], [Edit("e1", "delete", [ids["A"]], "r"),
+                                                Edit("e2", "move", [ids["A"]], "r", anchor=ids["B"])], [])
+    items = review_items(rep, body)
+    assert [b["heading"] for b in items[0]["beneath"]] == ["A1"] and items[0]["beneath"][0]["words"] > 3
+    assert items[1]["anchor_heading"] == "B"

@@ -5,7 +5,7 @@ from __future__ import annotations
 import re
 
 from agent.study_guide.revise.edits import Edit, EditReport, ReviseError
-from agent.study_guide.revise.segment import Block, check_headings, segment
+from agent.study_guide.revise.segment import Block, check_headings, segment, subtree_ids
 
 _PAGE_CITE_RE = re.compile(r"\bpp?\.\s?\d+")
 
@@ -41,12 +41,6 @@ def apply_edits(body: str, report: EditReport, accepted: set[str]) -> str:
     if unknown:
         raise ReviseError(f"unknown edit id(s): {', '.join(unknown)}")
     selected = [by_id[i] for i in sorted(accepted) if by_id[i].type != "note"]
-    owner: dict[str, str] = {}
-    for e in selected:
-        for t in e.targets:
-            if t in owner:
-                raise ReviseError(f"{owner[t]} and {e.id} edit the same block ({t}); accept only one")
-            owner[t] = e.id
     blocks = segment(body)
     lines = body.split("\n")
     known = {b.id: b for b in blocks}
@@ -54,11 +48,20 @@ def apply_edits(body: str, report: EditReport, accepted: set[str]) -> str:
         for t in e.targets + ([e.anchor] if e.anchor else []):
             if t not in known:
                 raise ReviseError(f"{e.id}: block {t} is not in this guide")
+    # A delete or move covers the whole section: the heading block and every block beneath it.
+    covered = {e.id: [m for t in e.targets for m in (subtree_ids(blocks, t) if e.type in ("delete", "move") else [t])]
+               for e in selected}
+    owner: dict[str, str] = {}
+    for e in selected:
+        for t in covered[e.id]:
+            if t in owner:
+                raise ReviseError(f"{owner[t]} and {e.id} edit the same block ({t}); accept only one")
+            owner[t] = e.id
     delete, replace, moved = set(), {}, {}
     for e in selected:
         first = known[e.targets[0]]
         if e.type == "delete":
-            delete.update(e.targets)
+            delete.update(covered[e.id])
         elif e.type in ("shrink", "link"):
             replace[first.id] = e.replacement or ""
         elif e.type == "retitle":
@@ -69,24 +72,25 @@ def apply_edits(body: str, report: EditReport, accepted: set[str]) -> str:
             replace[first.id] = e.replacement or ""
             delete.update(e.targets[1:])
         elif e.type == "move":
+            if e.anchor in covered[e.id]:
+                raise ReviseError(f"{e.id}: cannot move a section to a place inside itself")
             if e.anchor in delete:
                 raise ReviseError(f"{e.id}: the anchor block is deleted by another edit")
-            moved.setdefault(e.anchor, []).append(first.id)
-    moving = {i for ids in moved.values() for i in ids}
-    chained = sorted(set(moved) & moving)
+            moved.setdefault(subtree_ids(blocks, e.anchor)[-1], []).append(covered[e.id])
+    moving = {i for groups in moved.values() for ids in groups for i in ids}
+    chained = sorted({a for a in (e.anchor for e in selected if e.type == "move") if a in moving})
     if chained:
         raise ReviseError(f"a move is anchored on a block that is itself moved ({', '.join(chained)}); "
                           "accept only one of the two moves")
     out: list[str] = list(lines[:blocks[0].start]) if blocks else []
     for b in blocks:
-        if b.id in delete or b.id in moving:
-            continue
-        out += _replace_block(b, lines, replace[b.id]) if b.id in replace else lines[b.start:b.end]
-        for mid in moved.get(b.id, []):
-            m = known[mid]
+        if not (b.id in delete or b.id in moving):
+            out += _replace_block(b, lines, replace[b.id]) if b.id in replace else lines[b.start:b.end]
+        for group in moved.get(b.id, []):      # land after the last block of the anchor's section
             if out and out[-1]:
                 out.append("")
-            out += lines[m.start:m.end]
+            for mid in group:
+                out += lines[known[mid].start:known[mid].end]
     after = "\n".join(out)
     _check_postconditions(body, after, blocks, selected, set(owner))
     return after

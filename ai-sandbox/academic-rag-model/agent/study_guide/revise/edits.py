@@ -83,10 +83,32 @@ def validate_report(report: EditReport, blocks: list[Block]) -> list[str]:
     return problems
 
 
+def _covered(report: EditReport, edit: Edit) -> list[str]:
+    """Block ids an edit touches; a delete or move covers the sections beneath its target."""
+    if edit.type not in ("delete", "move"):
+        return list(edit.targets)
+    rows = report.blocks
+    ids = [r["id"] for r in rows]
+    out: list[str] = []
+    for t in edit.targets:
+        if t not in ids:
+            out.append(t)
+            continue
+        i = ids.index(t)
+        depth = len(rows[i].get("heading_path", []))
+        out.append(t)
+        for r in rows[i + 1:]:
+            if not depth or len(r.get("heading_path", [])) <= depth:
+                break
+            out.append(r["id"])
+    return out
+
+
 def mark_conflicts(report: EditReport) -> None:
     by_block: dict[str, list[Edit]] = {}
+    covered = {e.id: _covered(report, e) for e in report.edits}
     for e in report.edits:
-        for t in e.targets:
+        for t in covered[e.id]:
             by_block.setdefault(t, []).append(e)
     for e in report.edits:
-        e.conflicts = sorted({o.id for t in e.targets for o in by_block[t] if o.id != e.id})
+        e.conflicts = sorted({o.id for t in covered[e.id] for o in by_block[t] if o.id != e.id})

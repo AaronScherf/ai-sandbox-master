@@ -50,3 +50,12 @@ def test_check_headings():
     assert any("extra H1" in p for p in check_headings("# T\n\n# U\n"))
     assert any("jumps" in p for p in check_headings("# T\n\n#### Deep\n"))
     assert any("duplicate" in p for p in check_headings("# T\n\n## A\n\n## a\n"))
+
+
+def test_subtree_ids_cover_a_heading_and_the_sections_beneath_it():
+    from agent.study_guide.revise.segment import subtree_ids
+    blocks = segment(BODY)
+    ids = {b.heading_path[-1]: b.id for b in blocks}
+    assert subtree_ids(blocks, ids["A"]) == [ids["A"], ids["A1"]]
+    assert subtree_ids(blocks, ids["A1"]) == [ids["A1"]] and subtree_ids(blocks, ids["B"]) == [ids["B"]]
+    assert subtree_ids(blocks, ids["T"]) == [b.id for b in blocks]
