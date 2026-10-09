@@ -73,11 +73,12 @@ Run any script here as a module from the `academic-rag-model/` root, e.g.
   minimum-coverage safety net so no file goes untagged. A real (non-dry-run)
   run also patches each file's own `tags:` frontmatter line in place.
 
-The `index_search rebuild` CLI, real `chunk` runs, and standalone `related`
-subset-linking runs hold the shared corpus write lock. Their dry-run commands
-remain read-only. Other index writers have not adopted this lock yet, so this
-does not enable corpus-health apply actions or guarantee exclusion against
-those writers.
+The `index_search rebuild` CLI, real `chunk` and `retag` runs, and standalone
+`related` subset-linking runs hold the shared corpus write lock. `retag` also
+locks an available nested `academic_notes` repository because it rewrites
+Markdown frontmatter. Dry runs remain read-only. Other index writers have not
+adopted this lock yet, so this does not enable corpus-health apply actions or
+guarantee exclusion against those writers.
 
 ## Design docs
 

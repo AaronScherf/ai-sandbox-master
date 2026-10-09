@@ -910,7 +910,20 @@ def main() -> None:
             raise SystemExit(str(exc)) from exc
         print(stats)
     elif args.command == "retag":
-        stats = retag(_single_root(args), client, dry_run=args.dry_run)
+        root = _single_root(args)
+        if args.dry_run:
+            stats = retag(root, client, dry_run=True)
+        else:
+            writer_roots = [root]
+            notes_root = os.path.join(root, "academic_notes")
+            if os.path.isdir(notes_root):
+                # Retag also rewrites tags: frontmatter on notes Markdown.
+                writer_roots.append(notes_root)
+            try:
+                with corpus_write_lock(writer_roots, "index retag"):
+                    stats = retag(root, client)
+            except CorpusWriteLockError as exc:
+                raise SystemExit(str(exc)) from exc
         print(stats)
     elif args.command == "chunk":
         root = _single_root(args)
