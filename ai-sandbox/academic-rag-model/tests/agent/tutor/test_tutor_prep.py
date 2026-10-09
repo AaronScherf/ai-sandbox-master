@@ -1,3 +1,4 @@
+# tests/agent/tutor/test_tutor_prep.py  (replace the whole file)
 import json
 import os
 import tempfile
@@ -24,28 +25,33 @@ def _write_ps(tmp):
 
 
 class TestCollect(unittest.TestCase):
-    def test_writes_skeleton_grounding_and_worklist(self):
+    def test_writes_skeleton_grounding_claims_and_worklist(self):
         with tempfile.TemporaryDirectory() as tmp:
             paths = TutorPaths(tmp, "microecon", "homework_4")
             psf = _write_ps(tmp)
-            hints = os.path.join(tmp, "hints.md")
-            with open(hints, "w", encoding="utf-8") as f:
-                f.write("hint text")
-            out = prep.collect(paths, psf, ["1", "2"], _retrieve, hints_file=hints)
+            sol = os.path.join(tmp, "solutions.md")
+            with open(sol, "w", encoding="utf-8") as f:
+                f.write("solution text")
+            out = prep.collect(paths, psf, ["1", "2"], _retrieve, solutions_file=sol)
             with open(os.path.join(paths.packet_dir, "parts.json"), encoding="utf-8") as f:
                 parts = json.load(f)
             self.assertEqual([p["part_id"] for p in parts], ["q1", "q2"])
             self.assertIn("First question text", parts[0]["statement"])
             self.assertEqual(parts[0]["concept_tags"], [])
+            for name in ("claims.json", "samples.json", "glossary.json", "rubric.json"):
+                with open(os.path.join(paths.packet_dir, name), encoding="utf-8") as f:
+                    self.assertEqual(f.read(), "{}", name)
             with open(os.path.join(paths.packet_dir, "grounding.md"), encoding="utf-8") as f:
                 grounding = f.read()
             self.assertIn("## q1", grounding)
             self.assertIn("p. 3", grounding)
-            with open(os.path.join(paths.packet_dir, "sealed", "hints.md"), encoding="utf-8") as f:
-                self.assertEqual(f.read(), "hint text")
             with open(os.path.join(paths.packet_dir, "sealed", "solution.md"), encoding="utf-8") as f:
-                self.assertEqual(f.read(), "")
-            self.assertTrue(os.path.exists(os.path.join(paths.packet_dir, "worklist.md")))
+                self.assertEqual(f.read(), "solution text")
+            with open(os.path.join(paths.packet_dir, "worklist.md"), encoding="utf-8") as f:
+                worklist = f.read()
+            self.assertIn("claims.json", worklist)
+            self.assertIn("samples.json", worklist)
+            self.assertIn("without reading", worklist)       # the blind second pass
             self.assertFalse(out["validated"])
 
     def test_refuses_to_overwrite_existing_parts_without_force(self):
@@ -62,8 +68,7 @@ class TestSubmit(unittest.TestCase):
     def test_skeleton_fails_validation_with_errors(self):
         with tempfile.TemporaryDirectory() as tmp:
             paths = TutorPaths(tmp, "microecon", "homework_4")
-            psf = _write_ps(tmp)
-            prep.collect(paths, psf, ["1"], _retrieve)
+            prep.collect(paths, _write_ps(tmp), ["1"], _retrieve)
             result = prep.submit(paths)
             self.assertFalse(result["ok"])
             self.assertTrue(result["errors"])

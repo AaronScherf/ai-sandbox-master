@@ -1,19 +1,23 @@
+# agent/tutor/packet.py  (replace the whole file)
 """packet.py -- the contract between offline prep and the live session
-(spec §3.1). Anything that produces a valid packet can drive a session."""
+(spec v1 §3.1, v1.1 §3). Anything that produces a valid packet can drive a session."""
 from __future__ import annotations
 
 import hashlib
 import json
 import os
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
+from agent.tutor.claims import parse_claims, self_test
 from agent.tutor.lint import lint_glossary
 from agent.tutor.paths import TutorPaths
 from agent.tutor.ratings import AXES, RATINGS
 
 LAUNCH_SUFFIX = "How would you like to approach this problem?"
-_HASHED = ("parts.json", "glossary.json", "rubric.json", os.path.join("sealed", "hints.md"), os.path.join("sealed", "solution.md"))
+LAUNCH_STYLES = ("label", "statement")
+_HASHED = ("parts.json", "glossary.json", "rubric.json", "claims.json", "samples.json",
+           os.path.join("sealed", "solution.md"))
 
 
 class PacketError(ValueError):
@@ -24,22 +28,26 @@ class PacketError(ValueError):
 class Part:
     part_id: str
     statement: str
-    concept_tags: list[str]
-    expected_evidence: list[str]
+    concept_tags: list
+    expected_evidence: list
     label: str | None = None
     chat_statement: str | None = None
+    launch_style: str = "label"
 
     def launch_text(self) -> str:
-        return f"{(self.chat_statement or self.statement).strip()}\n\n{LAUNCH_SUFFIX}"
+        if self.launch_style == "statement":
+            return f"{(self.chat_statement or self.statement).strip()}\n\n{LAUNCH_SUFFIX}"
+        return f"{self.label or self.part_id}. {LAUNCH_SUFFIX}"
 
 
 @dataclass
 class Packet:
     course: str
     problem_set: str
-    parts: list[Part]
+    parts: list
     glossary: dict
     rubric: dict
+    claims: dict = field(default_factory=dict)
 
 
 def sealed_section(markdown: str, part_id: str) -> str | None:
@@ -72,6 +80,8 @@ def validate_packet(packet_dir: str) -> list[str]:
         parts = _load_json(packet_dir, "parts.json")
         glossary = _load_json(packet_dir, "glossary.json")
         rubric = _load_json(packet_dir, "rubric.json")
+        claims_raw = _load_json(packet_dir, "claims.json")
+        samples = _load_json(packet_dir, "samples.json")
     except json.JSONDecodeError as err:
         return [f"invalid JSON: {err}"]
     if not isinstance(parts, list) or not parts:
@@ -79,7 +89,7 @@ def validate_packet(packet_dir: str) -> list[str]:
     ids = [p.get("part_id") for p in parts]
     if len(set(ids)) != len(ids) or not all(ids):
         errors.append("parts.json: part_id values must be present and unique")
-    hints, solution = _read(packet_dir, os.path.join("sealed", "hints.md")), _read(packet_dir, os.path.join("sealed", "solution.md"))
+    solution = _read(packet_dir, os.path.join("sealed", "solution.md"))
     for p in parts:
         pid = p.get("part_id", "?")
         if not str(p.get("statement", "")).strip():
@@ -88,18 +98,23 @@ def validate_packet(packet_dir: str) -> list[str]:
             errors.append(f"{pid}: concept_tags must be non-empty")
         if not p.get("expected_evidence"):
             errors.append(f"{pid}: expected_evidence must be non-empty")
+        if p.get("launch_style", "label") not in LAUNCH_STYLES:
+            errors.append(f"{pid}: launch_style must be one of {list(LAUNCH_STYLES)}")
         for axis in AXES:
             for rating in RATINGS:
                 if not str(rubric.get(pid, {}).get(axis, {}).get(rating, "")).strip():
                     errors.append(f"rubric {pid}.{axis} missing '{rating}'")
-        for name, text in (("hints.md", hints), ("solution.md", solution)):
-            if sealed_section(text, pid) is None:
-                errors.append(f"sealed/{name} has no '## {pid}' section")
+        if sealed_section(solution, pid) is None:
+            errors.append(f"sealed/solution.md has no '## {pid}' section")
     if not isinstance(glossary, dict) or not glossary:
         errors.append("glossary.json must be a non-empty object")
     else:
         for v in lint_glossary(glossary, [p.get("statement", "") for p in parts]):
             errors.append(f"{v.code}: {v.detail}")
+    claims, claim_errors = parse_claims(claims_raw, [i for i in ids if i])
+    errors.extend(claim_errors)
+    if not claim_errors:
+        errors.extend(self_test(claims, samples))
     return errors
 
 
@@ -129,14 +144,19 @@ def is_validated(packet_dir: str) -> bool:
 def load_packet(paths: TutorPaths) -> Packet:
     if not is_validated(paths.packet_dir):
         raise PacketError(
-            f"packet at {paths.packet_dir} is missing or changed since validation; run prep-submit first"
+            f"packet at {paths.packet_dir} is missing, changed since validation, or a v1 packet without "
+            "claims.json and samples.json; author them from worklist.md and run prep-submit first"
         )
     parts = [Part(**p) for p in _load_json(paths.packet_dir, "parts.json")]
+    claims, errors = parse_claims(_load_json(paths.packet_dir, "claims.json"), [p.part_id for p in parts])
+    if errors:
+        raise PacketError("claims.json is invalid: " + "; ".join(errors))
     return Packet(
         course=paths.course, problem_set=paths.problem_set, parts=parts,
         glossary=_load_json(paths.packet_dir, "glossary.json"), rubric=_load_json(paths.packet_dir, "rubric.json"),
+        claims=claims,
     )
 
 
-def read_sealed(packet_dir: str) -> tuple[str, str]:
-    return _read(packet_dir, os.path.join("sealed", "hints.md")), _read(packet_dir, os.path.join("sealed", "solution.md"))
+def read_solution(packet_dir: str) -> str:
+    return _read(packet_dir, os.path.join("sealed", "solution.md"))

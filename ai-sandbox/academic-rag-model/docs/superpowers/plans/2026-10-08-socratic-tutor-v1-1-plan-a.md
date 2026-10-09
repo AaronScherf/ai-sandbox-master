@@ -1388,7 +1388,7 @@ from agent.tutor.paths import TutorPaths
 
 WORKLIST = """# Prep worklist (for the IDE agent)
 
-Complete these in `packet/`, then run `prep-submit` and fix every reported error. Do passes 1-4 first, then pass 5
+Complete these in `packet/`, then run `prep-submit` and fix every reported error. Do steps 1-5 first, then step 6
 in a SEPARATE step as described.
 
 1. `parts.json`: split each question into the parts the student will work through (one entry per sub-part is
@@ -1409,7 +1409,7 @@ in a SEPARATE step as described.
    An entry matches a whole word; end it with `*` to match a prefix (`consider*`). Do not use plain `not`, `add` or
    `sum` expecting prefixes. Recognizers run on the STUDENT's words to detect claims and on the TUTOR's drafts to
    detect leaks, so make them specific to the idea, not to words already in the problem statement.
-6. `samples.json`, written in a separate step WITHOUT reading `claims.json` recognizers (only the claim texts):
+6. `samples.json`, written in a separate step, without reading the recognizers in `claims.json` (only the claim texts):
    per part `neutral_samples` (>=5 Socratic questions that reveal nothing); per claim `leak_samples` (>=10 sentences a
    tutor might say that reveal the claim) and `student_samples` (>=5 ways a student might state it); per pitfall
    `student_samples` (>=3). `prep-submit` runs every recognizer on these: it needs 90% of the leak samples and 80% of
