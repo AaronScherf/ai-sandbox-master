@@ -13,6 +13,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import tempfile
 from collections import Counter
 from datetime import datetime, timezone
 
@@ -132,8 +133,16 @@ def load_shard(academic_hub_root: str, course: str) -> list[dict]:
 def save_shard(academic_hub_root: str, course: str, cards: list[dict]) -> None:
     path = shard_path(academic_hub_root, course)
     os.makedirs(os.path.dirname(path), exist_ok=True)
-    with open(path, "w", encoding="utf-8") as f:
-        json.dump(cards, f, indent=2, ensure_ascii=False)
+    fd, temporary = tempfile.mkstemp(prefix="cards-", suffix=".tmp", dir=os.path.dirname(path))
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            json.dump(cards, f, indent=2, ensure_ascii=False)
+            f.flush()
+            os.fsync(f.fileno())
+        os.replace(temporary, path)
+    finally:
+        if os.path.exists(temporary):
+            os.unlink(temporary)
 
 
 def load_courses(academic_hub_root: str) -> dict[str, dict]:
