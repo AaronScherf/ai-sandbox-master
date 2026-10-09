@@ -21,6 +21,13 @@ convert_textbook.py had a filename-based fallback tier.
 Everything except the actual Gemini network call and the CLI driver is
 pure-Python and independently unit-tested (test_describe_images.py) --
 no torch/marker/pypdf dependency, matching chapter_index.py/page_markers.py.
+
+AGENT COORDINATION: Do not start this corpus writer independently or
+concurrently when acting on a corpus-health finding. Its apply adapter is
+not implemented yet; until then, run only when explicitly directed and
+after confirming no other writer is touching the same book/output targets.
+Once apply support exists, route finding-driven runs through that
+orchestrator.
 """
 from __future__ import annotations
 

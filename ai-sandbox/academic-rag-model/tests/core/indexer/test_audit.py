@@ -61,6 +61,32 @@ def test_audit_distinguishes_missing_and_stale_records(tmp_path):
     assert result.records[0].chunks_status == "missing_chunks"
 
 
+def test_orphaned_historical_card_does_not_conflict_with_current_card(tmp_path):
+    root = tmp_path / "hub"
+    md = root / "academic_notes" / "econ" / "lecture_notes" / "one.md"
+    md.parent.mkdir(parents=True)
+    md.write_text("current content", encoding="utf-8")
+    from core.indexer.index_card import compute_content_hash
+
+    digest = compute_content_hash(str(md))
+    path = "academic_notes/econ/lecture_notes/one.md"
+    save_shard(str(root), "econ", [
+        _card(path, "old-hash", "old-file-id") | {"orphaned": True},
+        _card(path, digest, "current-file-id"),
+    ])
+    chunks_file = Path(chunks_path(str(root), "econ"))
+    chunks_file.parent.mkdir(parents=True, exist_ok=True)
+    chunks_file.write_text(json.dumps([
+        {"file_id": "current-file-id", "content_hash": digest},
+    ]), encoding="utf-8")
+
+    result = audit_markdown_index(root, [MarkdownIndexTarget(md, path)])
+
+    assert result.complete
+    assert result.records[0].card_status == "current"
+    assert result.records[0].chunks_status == "current"
+
+
 def test_missing_or_malformed_index_is_incomplete(tmp_path):
     md = tmp_path / "a.md"
     md.write_text("body", encoding="utf-8")

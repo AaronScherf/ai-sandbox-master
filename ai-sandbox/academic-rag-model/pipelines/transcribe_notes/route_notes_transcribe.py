@@ -20,6 +20,12 @@ A directory under academic_resources/<course>/ marked with a
 .notes_subset.json file (see README.md) is additionally swept at
 arbitrary depth, for a whole prior course offering staged outside
 academic_notes/ without flattening its structure.
+
+AGENT COORDINATION: Do not start this writer independently or concurrently
+when acting on a corpus-health finding. Its apply adapter is not implemented
+yet; until then, run only when explicitly directed and after confirming no
+other writer is touching the same targets. Once apply support exists, route
+finding-driven runs through that orchestrator.
 """
 from __future__ import annotations
 

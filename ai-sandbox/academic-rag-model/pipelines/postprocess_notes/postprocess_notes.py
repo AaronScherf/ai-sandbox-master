@@ -8,6 +8,12 @@ the full design. Targets local-only pages (never seen by a vision
 model); re-verifies flagged candidates against their real source PDF
 page, reusing transcribe_notes.py's existing repair machinery, rather
 than trusting a model's self-reported confidence on text alone.
+
+AGENT COORDINATION: Do not start this writer independently or concurrently
+when acting on a corpus-health finding. Its apply adapter is not implemented
+yet; until then, run only when explicitly directed and after confirming no
+other writer is touching the same targets. Once apply support exists, route
+finding-driven runs through that orchestrator.
 """
 from __future__ import annotations
 

@@ -69,6 +69,13 @@ def audit_markdown_index(
     for course in courses:
         try:
             for card in load_shard(str(root), course):
+                # A rebuild can preserve an old card as an orphan when its
+                # source identity changes. If the same path now has a current
+                # card, only the live card participates in path uniqueness;
+                # treating the historical orphan as a conflict makes the
+                # read-only health scan report a false duplicate.
+                if card.get("orphaned"):
+                    continue
                 path = card.get("path")
                 if isinstance(path, str):
                     normalized = path.replace("\\", "/")

@@ -33,6 +33,12 @@ text extraction), the Gemini network call, and the CLI driver is
 pure-Python and independently unit-tested (tests/test_transcribe_notes.py)
 -- no torch/marker dependency, matching
 chapter_index.py/page_markers.py/describe_images.py.
+
+AGENT COORDINATION: Do not start this writer independently or concurrently
+when acting on a corpus-health finding. Its apply adapter is not implemented
+yet; until then, run only when explicitly directed and after confirming no
+other writer is touching the same targets. Once apply support exists, route
+finding-driven runs through that orchestrator.
 """
 from __future__ import annotations
 

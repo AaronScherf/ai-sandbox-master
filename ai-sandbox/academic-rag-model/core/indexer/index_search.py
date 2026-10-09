@@ -4,6 +4,14 @@ Rebuild/backfill pass and two-stage search for the academic-hub source
 indexer, plus its CLI.
 
 Spec: docs/superpowers/specs/2026-08-27-source-indexer-design.md
+
+AGENT COORDINATION: For mutating subcommands (rebuild, chunk, retag, or
+similar writes), do not start this writer independently or concurrently
+when acting on a corpus-health finding. The corresponding apply adapters
+are not implemented yet; until then, run only when explicitly directed and
+after confirming no other writer is touching the same corpus/index targets.
+Once apply support exists, route finding-driven mutations through that
+orchestrator. Read-only query/search commands are unaffected.
 """
 from __future__ import annotations
 

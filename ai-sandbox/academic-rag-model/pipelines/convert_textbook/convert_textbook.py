@@ -22,6 +22,12 @@ from the PDF's embedded outline or its own printed table of contents;
 debugging/comparison). Every output page also carries a <!-- page N -->
 tag (physical PDF page index) and, where derivable, a <!-- folio N --> tag
 (the book's own printed page number) -- see chapter_index.py/page_markers.py.
+
+AGENT COORDINATION: This remote GCP/GCS conversion writer is not supported
+by corpus-health apply. Do not launch it as an independent response to a
+corpus-health finding or concurrently against the same book/output. Run it
+only when explicitly directed and coordinated with any other writer; do not
+assume a local orchestrator lock covers its remote lifecycle.
 """
 
 import os

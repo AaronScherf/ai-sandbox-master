@@ -5,6 +5,12 @@ plugin-auto-exported .png or .svg) into RAG-corpus markdown: chunk -> transcribe
 -> assemble -> expand -> write. Replaces the OneNote capture workflow
 (see docs/status/2026-08-24-notes-transcription-status.md's "2026-09-07"
 section for why). Spec: docs/superpowers/specs/2026-09-09-excalidraw-notes-transcription-design.md.
+
+AGENT COORDINATION: Do not start this writer independently or concurrently
+when acting on a corpus-health finding. Its apply adapter is not implemented
+yet; until then, run only when explicitly directed and after confirming no
+other writer is touching the same targets. Once apply support exists, route
+finding-driven runs through that orchestrator.
 """
 from __future__ import annotations
 
