@@ -41,6 +41,12 @@ here.
 
 ## Full usage guide
 
+Local `describe_images` runs hold write locks for the hub index/resources and
+the nested `academic_notes` repository while renaming a book folder and
+writing its derived RAG output. `--dry-run` remains read-only. This local
+lock does not coordinate Obsidian sync or the remote GPU conversion process;
+neither is enabled as a corpus-health apply action.
+
 ### Prerequisites
 
 * A GCP project with **billing enabled**, and the account running these commands has Owner/Editor on it (needed for the IAM and service-account changes in Steps 1.2/2.1).

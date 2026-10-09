@@ -37,10 +37,12 @@ import mimetypes
 import os
 import re
 import sys
+from contextlib import nullcontext
 from dataclasses import dataclass
 from pathlib import Path
 
 from core.env.academic_hub_paths import textbook_rag_md_path
+from core.env.corpus_write_lock import CorpusWriteLockError, corpus_write_lock
 from core.env.gemini_utils import (
     call_with_retries,
     get_gemini_client,
@@ -496,13 +498,20 @@ def main():
         if client is None:
             sys.exit(1)
 
-    for book_dir in book_dirs:
-        book_dir = reconcile_book_naming(book_dir, str(academic_hub_dir), dry_run=args.dry_run)
-        process_book(
-            book_dir, client, args.model, str(academic_hub_dir),
-            args.context_paragraphs_before, args.context_paragraphs_after,
-            dry_run=args.dry_run,
-        )
+    lease = nullcontext() if args.dry_run else corpus_write_lock(
+        [academic_hub_dir, academic_hub_dir / "academic_notes"], "textbook image description",
+    )
+    try:
+        with lease:
+            for book_dir in book_dirs:
+                book_dir = reconcile_book_naming(book_dir, str(academic_hub_dir), dry_run=args.dry_run)
+                process_book(
+                    book_dir, client, args.model, str(academic_hub_dir),
+                    args.context_paragraphs_before, args.context_paragraphs_after,
+                    dry_run=args.dry_run,
+                )
+    except CorpusWriteLockError as exc:
+        raise SystemExit(str(exc)) from exc
 
 
 if __name__ == "__main__":
