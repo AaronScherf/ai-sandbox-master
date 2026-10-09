@@ -62,6 +62,12 @@ The academic-rag-model guidance says not to inspect `.index/` directly. Use or a
 - **Verification:** 24 focused audit/orchestrator tests pass; the full `tests/core/indexer` suite passes (457 tests); the full `tests/tools` suite passes (96 tests); package compilation passes. The scanner has not yet been run against the live corpus, and no scheduler task was installed.
 - **Task 6 local coordination implemented for selected writers:** the shared OS lock now covers the direct note PDF, Excalidraw, and router CLIs; academic-hub notes postprocessing; local textbook image description; and index `rebuild`, `chunk`, `retag`, and standalone subset-linking CLIs. Multiprocess lock tests and CLI contention tests cover the protocol. Other direct writers remain unsupported for overlapping repair adapters until adopted or separately excluded; the remote converter and Obsidian sync are outside the local lock.
 - **Task 7 not implemented:** no `apply` command or repair adapter is enabled. `academic_notes/` remains behind the sync-quiescence gate. Review acceptance records intent only and never starts a pipeline.
+- **Task 7 notes-adapter deferral (2026-10-09):** the user wants note transcription,
+  Excalidraw, enhancement, question-resolution, and postprocessing repairs kept out
+  of this apply rollout. Continue reporting their gaps, but do not invoke the
+  current source pipeline from `apply`: first fix its known content/visual/question
+  quality failures, reprocess and review affected outputs, then revisit a notes
+  adapter. The `academic_notes/` sync-quiescence gate also remains mandatory.
 - **Task 8 partially documented:** the package README documents direct discovery-only invocation for manual scheduling. Actual scan duration and a live-corpus observation period remain outstanding.
 
 ### Task 1: Verify the pipeline capability matrix and source/output policies
@@ -199,7 +205,10 @@ The `scan` command is ready to schedule as soon as this task passes. Do not wait
 - Invoke module entry points with `subprocess.run([...])`, never shell-concatenated commands. Pass explicit roots and file names; capture redacted logs and exact exit status.
 - Start with deterministic, low-cost actions that have precise scope and supported verification. Expose no action whose current pipeline only supports a broad batch.
 - Keep paid/API actions per item by default; add homogeneous batch acceptance only after the user chooses that policy. Never auto-run textbook GPU/VM conversion in v1.
-- Keep note/Excalidraw/postprocess actions blocked while their `academic_notes/` writer/sync gate remains unresolved. Explain the specific prerequisite in each finding.
+- Defer note/Excalidraw/enhancement/question-resolution/postprocess actions for this
+  rollout. Keep their findings discoverable, but explain that the source pipeline
+  must first be fixed, affected outputs reprocessed and reviewed, and the
+  `academic_notes/` sync-quiescence gate resolved before these adapters return.
 - After each action, invoke the read-only scanner/audit for the affected item and mark `applied` only when the expected output and index state are verified.
 - Continue unrelated accepted actions after one failure; record each independently.
 

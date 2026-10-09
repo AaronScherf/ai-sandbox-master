@@ -33,6 +33,14 @@
 - Explore a subscription-backed run mode for the Gemini pipelines (starting with `agent/study_guide`, draft/enhance/revise): the owner has a Gemini Pro subscription running through Antigravity in a local app, which can use the subscription instead of paid API calls while the pipelines keep using Gemini embeddings through the API. Build it as an additional option, not a replacement: the user picks the API mode or the subscription mode per run, based on the anticipated cost (the dry-run estimate and `--max-cost` already exist) and on whether they have a Pro subscription and Google still allows this route. Questions to settle: how a pipeline hands prompts to the Antigravity app and reads structured JSON back (a file or folder handoff, as `agent/tutor` does for its Antigravity entry point), how usage and caps are tracked when there are no token counts, whether thinking level can be controlled there, and how resume/checkpointing works. Motivation: the guide revise pass cost about $1.3 for 7 of 21 audit sections on the API. (added 2026-10-08)
 
 ## Corpus Health Orchestrator (`docs/superpowers/specs/academic_hub/2026-10-07-corpus-health-orchestrator-design.md`)
+- Defer Task 7 note-transcription, Excalidraw, enhancement, question-resolution, and
+  postprocessing repair adapters. Keep detecting and reporting these gaps, but do not
+  rerun the current pipeline through orchestrator `apply`: its enhancement can omit
+  source themes/graphs and leave questions unresolved, so repairing now would spend
+  API calls on outputs that must be regenerated. First fix and verify the source
+  pipeline under **Notes Transcription**, then reprocess and review affected notes.
+  Revisit exact-source apply adapters only after that quality gate and the separate
+  `academic_notes/` sync-quiescence gate are resolved. (added 2026-10-09)
 - The design's `git_state` finding kind will misreport known, device-local sync churn in the
   nested `academic_notes/` repo as drift every day unless it explicitly excepts it. Two known
   causes: (1) the tablet's Direct Git Sync plugin stamps `.gitignore` from each device's own
@@ -199,7 +207,9 @@
   graph description. Preserve the visual information in the enhanced notes too: retain or recreate the
   relevant graphs/diagrams in the final artifact rather than leaving only prose descriptions. Test whether
   the `gemini-3.1-flash-lite` expansion model contributes to the loss versus prompt/context behavior before
-  treating it as the cause. Re-expand and review the affected notes after the fix. (added 2026-10-08)
+  treating it as the cause. Re-expand and review the affected notes after the fix.
+  Only then reconsider enabling the corpus-health orchestrator's note repair
+  adapters; leave discovery active in the meantime. (added 2026-10-08; updated 2026-10-09)
 - Move the `*_pages_cache.json` resume caches out of `processed_outputs/` into `processed_outputs/_cache/`, to cut clutter when browsing folders (89 files, ~2.2 MB, all tracked in the `academic_notes` repo). Plan: the cache path is built in one place (`transcribe_notes.py`, `cache_path`, around line 1095) so change it there; read `_cache/` first and fall back to the old location so unmigrated caches still resume; update `tools/audit_metadata.py`, which moves a cache along with its `.md`; one-shot `git mv` of the existing 89 in the `academic_notes` repo; test both locations plus the fallback. The caches are only read when the same document is rerun or `--force`d (to skip pages already paid for); the indexer, search and tutor never touch them. Deferred by the user (added 2026-10-04)
 - Reprocess `LN_Analysis.pdf` and `LN_Linear Algebra.pdf` using whole-document batching and PyMuPDF dict-mode: their existing outputs predate the dict-mode/subscript reconstruction and whole-document batching improvements. Estimated cost under $0.30 total. Paused at user request pending review. (added 2026-10-04)
 - Radical/square-root font encoding repair: in PDF font extractions (e.g. `Analysis_Exercises.pdf` page 6), square-root signs can extract as plain ASCII 'p' or missing glyphs due to broken ToUnicode font mappings; implement a regex/post-processing repair pass. (added 2026-10-04)
