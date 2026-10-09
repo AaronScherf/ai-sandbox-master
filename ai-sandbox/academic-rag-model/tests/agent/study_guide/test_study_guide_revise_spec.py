@@ -74,3 +74,10 @@ def test_invalid_revise_tables_rejected(tmp_path, old, new, fragment):
     assert old in REVISE
     with pytest.raises(SpecError, match=fragment):
         _load(tmp_path, BASE + REVISE.replace(old, new))
+
+
+def test_light_thinking_defaults_to_low_and_rejects_unknown_levels(tmp_path):
+    assert _load(tmp_path, BASE + "\n[revise]\n").revise.light_thinking == "low"
+    assert _load(tmp_path, BASE + '\n[revise]\nlight_thinking = "default"\n').revise.light_thinking == "default"
+    with pytest.raises(SpecError, match="light_thinking"):
+        _load(tmp_path, BASE + '\n[revise]\nlight_thinking = "off"\n')

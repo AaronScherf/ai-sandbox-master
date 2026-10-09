@@ -117,3 +117,15 @@ def test_usage_tolerates_a_response_without_metadata():
     client, _ = _client("ok")
     client.generate_text("a")
     assert client.usage["calls"] == 1 and client.usage["prompt_tokens"] == 0
+
+
+def test_with_thinking_sends_the_level_shares_usage_and_leaves_the_original_alone():
+    client, models = _client('{"a": 1}')
+    low = client.with_thinking("low")
+    low.generate_structured("p", {"type": "object"})
+    assert models.kwargs["config"]["thinking_config"] == {"thinking_level": "low"}
+    assert low.usage is client.usage and client.usage["calls"] == 1
+    client.generate_structured("p", {"type": "object"})
+    assert "thinking_config" not in models.kwargs["config"]
+    low.generate_text("p")
+    assert models.kwargs["config"]["thinking_config"] == {"thinking_level": "low"}

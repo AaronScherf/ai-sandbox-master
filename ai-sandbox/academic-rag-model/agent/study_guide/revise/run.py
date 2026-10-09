@@ -104,6 +104,7 @@ def build_report(spec: GuideSpec, guide_path: str, plan, *, stages, llm, embed, 
     embed = _memoized(embed)
     r, edits, protected, scores = spec.revise, [], [], {}
     usage: dict[str, dict] = {}
+    cheap = llm.with_thinking(r.light_thinking) if hasattr(llm, "with_thinking") else llm  # audit keeps full thinking
 
     def unit(name, compute):
         """Run one unit of work, or reuse its saved result from an earlier run of the same inputs.
@@ -127,7 +128,7 @@ def build_report(spec: GuideSpec, guide_path: str, plan, *, stages, llm, embed, 
             if r.judge_fraction > 0:
                 ask = judge_candidates(blocks, sc, fraction=r.judge_fraction, protected=prot,
                                        skip=[t for e in found for t in e.targets])
-                found = found + judge_edits(llm, r.scope, {b.id: b for b in blocks}, ask, sc, start=len(found) + 1)
+                found = found + judge_edits(cheap, r.scope, {b.id: b for b in blocks}, ask, sc, start=len(found) + 1)
             return {"edits": [asdict(e) for e in found], "protected": prot, "scores": {k: asdict(v) for k, v in sc.items()}}
 
         saved = unit("relevance", do_relevance)
@@ -141,7 +142,7 @@ def build_report(spec: GuideSpec, guide_path: str, plan, *, stages, llm, embed, 
             for cluster in find_duplicate_clusters(blocks, embed, similarity=r.dedup_similarity, min_words=r.min_block_words):
                 for bid in cluster:
                     fl.setdefault(bid, []).append("duplicate")
-            found = dedup_edits(llm, blocks, embed, similarity=r.dedup_similarity, min_words=r.min_block_words, start=1)
+            found = dedup_edits(cheap, blocks, embed, similarity=r.dedup_similarity, min_words=r.min_block_words, start=1)
             return {"edits": [asdict(e) for e in found], "flags": fl}
 
         saved = unit("dedup", do_dedup)
@@ -167,7 +168,7 @@ def build_report(spec: GuideSpec, guide_path: str, plan, *, stages, llm, embed, 
             raise ReviseError("the inline stage needs [revise] scope_terms")
 
         def do_inline():
-            found, problems = inline_edits(llm, r.scope, blocks, r.scope_terms)
+            found, problems = inline_edits(cheap, r.scope, blocks, r.scope_terms)
             return {"edits": [asdict(e) for e in found], "problems": problems}
 
         saved = unit("inline", do_inline)
@@ -175,7 +176,7 @@ def build_report(spec: GuideSpec, guide_path: str, plan, *, stages, llm, embed, 
         for p in saved["problems"]:
             print(f"WARNING: inline sweep: {p}")
     if "organization" in stages:
-        saved = unit("organization", lambda: {"edits": [asdict(e) for e in organize_edits(llm, blocks, flags)]})
+        saved = unit("organization", lambda: {"edits": [asdict(e) for e in organize_edits(cheap, blocks, flags)]})
         edits += _edits(saved["edits"])
     for e in edits:
         e.protected = bool(set(e.targets) & set(protected)) and e.type in ("delete", "shrink", "merge")

@@ -244,3 +244,27 @@ def test_the_inline_stage_needs_scope_terms_and_runs_when_they_exist(make_spec, 
         else:
             report = _build(spec, guide, llm=llm, stages=("inline",))
             assert [(e.stage, e.type, e.quote) for e in report.edits] == [("inline", "fix", "in MATLAB code ")]
+
+
+def test_only_the_correctness_audit_keeps_full_thinking(env):
+    class Spy(ScriptedLLM):
+        def __init__(self, replies):
+            super().__init__(replies)
+            self.levels = []
+
+        def with_thinking(self, level):
+            outer = self
+
+            class View:
+                usage = outer.usage
+
+                def generate_structured(self, p, s):
+                    outer.levels.append(level)
+                    return outer.generate_structured(p, s)
+
+            return View()
+
+    _, spec, guide = env
+    spy = Spy([{"edits": []}])
+    _build(spec, guide, llm=spy)
+    assert spy.levels == ["low"]
