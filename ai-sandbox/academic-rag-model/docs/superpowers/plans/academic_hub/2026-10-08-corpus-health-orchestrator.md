@@ -1,6 +1,6 @@
 # Academic Hub Corpus Health Orchestrator: Implementation Plan
 
-**Status:** IMPLEMENTATION IN PROGRESS; the user authorized implementation on 2026-10-08. Tasks 1–5 are implemented in the task worktree; repair execution and scheduler installation remain gated.
+**Status:** IMPLEMENTED THROUGH TASK 8 RUNNER; the user authorized implementation on 2026-10-08. Tasks 1–7 and the Task 8 runner are landed. The daily trial is installed; its multi-day observation and finding review remain open. See the [2026-10-09 handoff](../../status/academic_hub/2026-10-09-corpus-health-implementation-retrospective.md).
 **Date:** 2026-10-08
 **Spec:** `docs/superpowers/specs/academic_hub/2026-10-07-corpus-health-orchestrator-design.md`
 **Related review:** `docs/brainstorms/2026-10-07-corpus-orchestrator-codex-plan-review.md`
@@ -56,19 +56,19 @@ The academic-rag-model guidance says not to inspect `.index/` directly. Use or a
 
 ## Rollout and tasks
 
-## Implementation progress (2026-10-08)
+### Implementation progress (updated 2026-10-09)
 
-- **Tasks 1–5 implemented:** recorded the pipeline capability inventory; added a read-only Markdown index audit API; implemented configured source/output, frontmatter/index, and Git-state scanning; added a persistent local decision ledger; and added a loopback-only local review page with per-item and homogeneous-group decisions.
-- **Verification:** 24 focused audit/orchestrator tests pass; the full `tests/core/indexer` suite passes (457 tests); the full `tests/tools` suite passes (96 tests); package compilation passes. The scanner has not yet been run against the live corpus, and no scheduler task was installed.
+- **Tasks 1–5 landed:** recorded the pipeline capability inventory; added a read-only Markdown index audit API; implemented configured source/output, frontmatter/index, and Git-state scanning; added a persistent local decision ledger; and added a loopback-only local review page with per-item and homogeneous-group decisions.
+- **Early verification:** 24 focused audit/orchestrator tests passed; the full `tests/core/indexer` suite passed (457 tests); the full `tests/tools` suite passed (96 tests); package compilation passed. These were the initial Task 1–5 results; later full-suite gates and live scans are recorded in the handoff.
 - **Task 6 local coordination implemented for selected writers:** the shared OS lock now covers the direct note PDF, Excalidraw, and router CLIs; academic-hub notes postprocessing; local textbook image description; and index `rebuild`, `chunk`, `retag`, and standalone subset-linking CLIs. Multiprocess lock tests and CLI contention tests cover the protocol. Other direct writers remain unsupported for overlapping repair adapters until adopted or separately excluded; the remote converter and Obsidian sync are outside the local lock.
-- **Task 7 implemented on `codex/corpus-health-apply` (pending landing):** `apply --accepted` rechecks the current scan and records blocked, failed, and verified applied outcomes. Its only executing adapter runs an exact-`file_id` index chunk command under the shared writer lease and confirms the result with the read-only index audit. Card reconciliation, note writes, and remote textbook conversion remain disabled. Review acceptance still records intent only and never starts a pipeline.
+- **Task 7 landed:** `apply --accepted` rechecks the current scan and records blocked, failed, and verified applied outcomes. Its only executing adapter runs an exact-`file_id` index chunk command under the shared writer lease and confirms the result with the read-only index audit. Card reconciliation, note writes, and remote textbook conversion remain disabled. Review acceptance still records intent only and never starts a pipeline.
 - **Task 7 notes-adapter deferral (2026-10-09):** the user wants note transcription,
   Excalidraw, enhancement, question-resolution, and postprocessing repairs kept out
   of this apply rollout. Continue reporting their gaps, but do not invoke the
   current source pipeline from `apply`: first fix its known content/visual/question
   quality failures, reprocess and review affected outputs, then revisit a notes
   adapter. The `academic_notes/` sync-quiescence gate also remains mandatory.
-- **Task 8 discovery runner validated on 2026-10-09 (pending landing):** a PowerShell Task Scheduler entry point runs only `scan`, fixes the working directory and UTF-8 output, records a timestamped JSON report and exit log, and keeps outputs outside corpus roots. Three live read-only runs completed in 21.1–27.7 seconds of scanner time with 693–694 files considered, 444–445 hashes, 305–306 findings, and zero scan errors. The actual scheduled task has not been registered; a multi-day observation and manual finding comparison remain outstanding. The scanner does not expose an exact count of filesystem metadata checks.
+- **Task 8 runner landed and trial installed on 2026-10-09:** a PowerShell Task Scheduler entry point runs only `scan`, fixes the working directory and UTF-8 output, records a timestamped JSON report and exit log, and keeps outputs outside corpus roots. Three pre-installation live read-only runs completed in 21.1–27.7 seconds of scanner time with 693–694 files considered, 444–445 hashes, 305–306 findings, and zero scan errors. The installed task also passed a manual run. It is scheduled for 7:00 a.m. local time October 10–16, with interactive-logon catch-up; multi-day observation and manual finding comparison remain outstanding. The scanner does not expose an exact count of filesystem metadata checks.
 
 ### Task 1: Verify the pipeline capability matrix and source/output policies
 

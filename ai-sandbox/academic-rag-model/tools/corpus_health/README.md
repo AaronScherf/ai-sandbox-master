@@ -96,8 +96,10 @@ Add arguments: -NoProfile -NonInteractive -File "C:\Users\theaa\ai-sandbox-maste
 Start in: C:\Users\theaa\ai-sandbox-master\ai-sandbox\academic-rag-model
 ```
 
-Set the task to run under the account that can read both roots, including when
-the user is not logged on. Use "Do not start a new instance" if a previous
+Set the task to run under an account that can read both roots. The current
+October 10–16 trial uses the user's interactive logon: it runs while signed in
+and can catch up after a missed 7:00 a.m. trigger when the user next signs in;
+it does not run while signed out. Use "Do not start a new instance" if a previous
 scan is still running. Check Task Scheduler's Last Run Result and the latest
 `corpus-health-*.log`; `0` means a complete scan and `2` means a configuration
 or incomplete-scan error. The JSON report is written alongside the log, and
@@ -110,6 +112,8 @@ in 21.1–27.7 seconds of scanner time, considering 693–694 files and hashing
 444–445. Each complete run reported 305–306 findings and zero scan errors.
 The report exposes root availability and Git status, but does not instrument
 every metadata lookup, so a precise metadata-check count is unavailable.
-These runs establish a baseline, not a multi-day observation period. Compare
-the daily reports and manually review a sample of findings before changing
+The installed trial task passed one manual launch on October 9 (exit `0`,
+20.25 seconds, 696 files considered, 445 hashes, 306 findings, zero scan
+errors). This establishes installation, not the multi-day observation period.
+Compare the daily reports and manually review a sample of findings before changing
 scan policy or considering any unattended repair.
