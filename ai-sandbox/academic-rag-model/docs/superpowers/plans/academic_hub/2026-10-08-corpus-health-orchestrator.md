@@ -68,7 +68,7 @@ The academic-rag-model guidance says not to inspect `.index/` directly. Use or a
   current source pipeline from `apply`: first fix its known content/visual/question
   quality failures, reprocess and review affected outputs, then revisit a notes
   adapter. The `academic_notes/` sync-quiescence gate also remains mandatory.
-- **Task 8 partially documented:** the package README documents direct discovery-only invocation for manual scheduling. Actual scan duration and a live-corpus observation period remain outstanding.
+- **Task 8 discovery runner validated on 2026-10-09 (pending landing):** a PowerShell Task Scheduler entry point runs only `scan`, fixes the working directory and UTF-8 output, records a timestamped JSON report and exit log, and keeps outputs outside corpus roots. Three live read-only runs completed in 21.1–27.7 seconds of scanner time with 693–694 files considered, 444–445 hashes, 305–306 findings, and zero scan errors. The actual scheduled task has not been registered; a multi-day observation and manual finding comparison remain outstanding. The scanner does not expose an exact count of filesystem metadata checks.
 
 ### Task 1: Verify the pipeline capability matrix and source/output policies
 

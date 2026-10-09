@@ -74,5 +74,42 @@ cooperative protocol, so it does not cover unadapted direct writers such as
 indexing, nor programmatic calls that bypass these CLIs. The remote textbook
 converter and Obsidian sync also remain outside it. Do not run unadapted
 writers concurrently with `apply` against the same index.
-No Windows Task Scheduler task is created by this package; the direct command
-above can be configured manually for discovery-only operation.
+### Daily discovery on Windows
+
+`run_daily_scan.ps1` is a discovery-only Task Scheduler entry point. It always
+runs `scan`; it cannot invoke `review` or `apply`. It sets Python UTF-8 mode
+(needed for non-ASCII filenames in the live JSON report), fixes the working
+directory to this package, writes a timestamped JSON report and error/exit log,
+and returns the scan's exit code. The log and optional state directory must be
+outside the configured hub and notes roots. By default the scanner updates its
+local decision ledger under the Git common directory; it does not write corpus
+files or Git history.
+
+Copy `corpus_health.example.json` to a stable local path, set the live hub and
+notes checkout roots explicitly, and save it as UTF-8 **without a BOM**. Keep
+the log directory outside both corpus roots. On this Windows workspace, use a
+Task Scheduler daily trigger and these action fields (adjust paths if moved):
+
+```text
+Program/script: C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe
+Add arguments: -NoProfile -NonInteractive -File "C:\Users\theaa\ai-sandbox-master\ai-sandbox\academic-rag-model\tools\corpus_health\run_daily_scan.ps1" -Python "C:\Users\theaa\ai-sandbox-master\ai-sandbox\academic-rag-model\.venv\Scripts\python.exe" -Config "C:\Users\theaa\AppData\Local\CorpusHealth\scan.json" -LogDirectory "C:\Users\theaa\AppData\Local\CorpusHealth\logs"
+Start in: C:\Users\theaa\ai-sandbox-master\ai-sandbox\academic-rag-model
+```
+
+Set the task to run under the account that can read both roots, including when
+the user is not logged on. Use "Do not start a new instance" if a previous
+scan is still running. Check Task Scheduler's Last Run Result and the latest
+`corpus-health-*.log`; `0` means a complete scan and `2` means a configuration
+or incomplete-scan error. The JSON report is written alongside the log, and
+findings alone do not make the exit status nonzero. There is no automatic
+retry or repair: investigate an error and run the discovery command again.
+The task is intentionally not registered by this package.
+
+On 2026-10-09, three read-only scans of the live hub and notes roots completed
+in 21.1–27.7 seconds of scanner time, considering 693–694 files and hashing
+444–445. Each complete run reported 305–306 findings and zero scan errors.
+The report exposes root availability and Git status, but does not instrument
+every metadata lookup, so a precise metadata-check count is unavailable.
+These runs establish a baseline, not a multi-day observation period. Compare
+the daily reports and manually review a sample of findings before changing
+scan policy or considering any unattended repair.
