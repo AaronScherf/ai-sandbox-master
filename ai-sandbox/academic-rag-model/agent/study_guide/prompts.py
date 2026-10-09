@@ -39,7 +39,8 @@ disagree (for example a textbook versus class notes), say so explicitly and cite
 contain transcription errors; prefer the textbook where they conflict and say so.
 
 Cite every substantive point inline with the citation label given with its excerpt, for example \
-"(§3.7, p. 44)".
+"(§3.7, p. 44)". Write each citation as plain text in parentheses after the sentence it supports, never as a \
+link and never inside an equation or a LaTeX command.
 {examples_block}
 Section: {title}
 Focus: {instruction}

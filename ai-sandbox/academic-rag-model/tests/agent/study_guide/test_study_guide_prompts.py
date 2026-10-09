@@ -47,3 +47,8 @@ def test_constructed_examples_block_only_when_requested():
     asked = guide_v1_prompt("LR", "Cover it.", [("A, p. 1", "t")], construct_examples=True)
     assert "Constructed example (not from the sources)" in asked
     assert "show every intermediate calculation" in asked and asked.endswith("Section text:")
+
+
+def test_guide_v1_asks_for_plain_text_citations_outside_equations_and_links():
+    prompt = guide_v1_prompt("Wald test", "Cover it.", [("A, p. 1", "t")])
+    assert "never as a link" in prompt and "never inside an equation" in prompt

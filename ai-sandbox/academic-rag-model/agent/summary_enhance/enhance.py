@@ -211,7 +211,7 @@ def run(guide_path: str, *, topics: list[str], output: str | None = None, model:
         min_words: int = DEFAULT_MIN_WORDS, mode: str = "rewrite",
         extra_sources: Sequence[ExtraSource] | None = None, baseline: str = "full",
         only_below: int | None = None, carry_before: Sequence[str] = (),
-        carry_after: Sequence[str] = ()) -> int:
+        carry_after: Sequence[str] = (), only_topics: Sequence[str] | None = None) -> int:
     try:
         if only_below is not None and only_below < 1:
             raise OutputError(f"--only-below must be a positive integer, got {only_below}")
@@ -239,6 +239,14 @@ def run(guide_path: str, *, topics: list[str], output: str | None = None, model:
             for t in topics:
                 section = baseline_section(guide.body, t)
                 if section is not None and _words(_section_body(section)) >= only_below:
+                    passthrough[t] = _section_body(section)
+        if only_topics is not None:
+            unknown = [t for t in only_topics if t not in topics]
+            if unknown:
+                raise OutputError(f"--topics names no topic of this guide: {', '.join(unknown)}")
+            for t in topics:
+                section = baseline_section(guide.body, t)
+                if t not in only_topics and section is not None:
                     passthrough[t] = _section_body(section)
         carried: dict[str, str] = {}
         for title in [*carry_before, *carry_after]:

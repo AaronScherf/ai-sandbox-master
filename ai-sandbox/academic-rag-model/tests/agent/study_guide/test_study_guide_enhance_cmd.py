@@ -227,3 +227,25 @@ def test_main_passes_only_below(monkeypatch, tmp_path):
     assert seen["only_below"] == 1500
     assert main(["enhance", "s.toml", "--root", str(tmp_path), "--draft", "d.md"]) == 0
     assert seen["only_below"] is None
+
+
+def test_topics_flag_resolves_a_unique_fragment_of_a_topic_title(make_spec, root, tmp_path, captured):
+    spec_file, draft = _setup_with_notes(make_spec, root, tmp_path, "## Wald\n\nw\n")
+    assert cmd_enhance(str(spec_file), root, draft_path=str(draft), chunks=CHUNKS, cards=CARDS, only_topics=["wal"]) == 0
+    assert captured["kw"]["only_topics"] == ["Wald"]
+
+
+def test_topics_flag_rejects_an_unknown_or_ambiguous_fragment(make_spec, root, tmp_path, captured, capsys):
+    spec_file, draft = _setup_with_notes(make_spec, root, tmp_path, "## Wald\n\nw\n")
+    for bad in ("zzz", "l"):  # no match; "Wald" and "LM" both contain an l
+        assert cmd_enhance(str(spec_file), root, draft_path=str(draft), chunks=CHUNKS, cards=CARDS, only_topics=[bad]) == 2
+        assert bad in capsys.readouterr().out
+
+
+def test_main_passes_topics(monkeypatch, tmp_path):
+    seen = {}
+    monkeypatch.setattr(cli, "cmd_enhance", lambda spec, root, **kw: seen.update(kw) or 0)
+    assert main(["enhance", "s.toml", "--root", str(tmp_path), "--draft", "d.md", "--topics", "Luce, Wald"]) == 0
+    assert seen["only_topics"] == ["Luce", "Wald"]
+    assert main(["enhance", "s.toml", "--root", str(tmp_path), "--draft", "d.md"]) == 0
+    assert seen["only_topics"] is None

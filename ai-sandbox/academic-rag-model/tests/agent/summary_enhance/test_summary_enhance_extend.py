@@ -112,3 +112,18 @@ def test_token_usage_is_recorded_and_printed_when_the_client_tracks_it(vault, ma
 def test_no_usage_key_when_the_client_does_not_track_it(vault, make_llm):
     assert _go(vault, make_llm(make_topic_json("Wald", labels=("S1",))), topics=["Wald"]) == 0
     assert _front(vault, "usage") is None
+
+
+def test_only_topics_enhances_just_those_sections_and_keeps_the_rest(vault, make_llm):
+    _guide(vault)
+    llm = make_llm(make_topic_json("LM", labels=("S1",)))
+    assert _go(vault, llm, baseline="topic", only_topics=["LM"]) == 0
+    assert len(llm.calls) == 1 and "LM-SHORT" in llm.calls[0]
+    assert f"## Wald\n\n{LONG} WALD-LONG" in _out(vault).read_text(encoding="utf-8")
+    assert _front(vault, "unchanged_topics") == ["Wald"]
+
+
+def test_only_topics_rejects_a_name_that_is_not_a_topic(vault, make_llm, capsys):
+    _guide(vault)
+    assert _go(vault, make_llm(), only_topics=["Nope"]) == 2
+    assert "Nope" in capsys.readouterr().out
