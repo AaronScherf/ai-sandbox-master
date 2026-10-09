@@ -55,5 +55,15 @@ not source-document text.
 No apply command or repair adapter is enabled. Writes to `academic_notes/`
 remain blocked pending an enforceable sync-quiescence boundary; other repair
 adapters require the shared lock to be adopted by every participating writer.
+The local shared lock is now held by the direct notes PDF, Excalidraw, and
+router CLIs; academic-hub notes postprocessing; local textbook image
+description; and the index `rebuild`, `chunk`, `retag`, and standalone
+subset-linking CLIs. Their read-only dry runs do not take the lock. This is a
+cooperative protocol, so it does not cover unadapted direct writers such as
+`duplicate_check`, source migration, offering-link maintenance, or video-note
+indexing, nor programmatic calls that bypass these CLIs. The remote textbook
+converter and Obsidian sync also remain outside it. An apply adapter must
+remain disabled until every writer relevant to its target has been verified
+to participate, or a separate exclusion mechanism is in place.
 No Windows Task Scheduler task is created by this package; the direct command
 above can be configured manually for discovery-only operation.
