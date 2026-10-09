@@ -505,7 +505,8 @@ take = 3
 # Thresholds are the defaults; calibrate relevance_low / relevance_high on the first relevance-only run.
 [revise]
 model = "gemini-3.8-flash"
-criteria = ["relevance", "dedup", "correctness", "organization"]
+criteria = ["relevance", "dedup", "correctness", "organization", "inline"]
+scope_terms = ["Stata", "MATLAB", "AIC", "BIC", "software package", "software packages"]
 min_block_words = 60
 relevance_low = 0.68
 relevance_high = 0.80
