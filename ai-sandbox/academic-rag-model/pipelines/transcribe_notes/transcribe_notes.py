@@ -46,9 +46,11 @@ import argparse
 import os
 import re
 import sys
+from contextlib import nullcontext
 from pathlib import Path
 
 from core.env.academic_hub_paths import find_containing_offering_label, resolve_output_dir
+from core.env.corpus_write_lock import CorpusWriteLockError, corpus_write_lock
 from core.env.frontmatter import parse_frontmatter, render_frontmatter
 from core.env.gemini_utils import (
     call_with_retries,
@@ -1408,11 +1410,18 @@ def main():
         if client is None:
             sys.exit(1)
 
-    for pdf_path in pdf_paths:
-        process_pdf(
-            pdf_path, client, args.model, str(academic_hub_dir),
-            dry_run=args.dry_run, force_vision=args.force_vision,
-        )
+    lease = nullcontext() if args.dry_run else corpus_write_lock(
+        [academic_hub_dir, academic_hub_dir / "academic_notes"], "notes PDF transcription",
+    )
+    try:
+        with lease:
+            for pdf_path in pdf_paths:
+                process_pdf(
+                    pdf_path, client, args.model, str(academic_hub_dir),
+                    dry_run=args.dry_run, force_vision=args.force_vision,
+                )
+    except CorpusWriteLockError as exc:
+        raise SystemExit(str(exc)) from exc
 
 
 if __name__ == "__main__":

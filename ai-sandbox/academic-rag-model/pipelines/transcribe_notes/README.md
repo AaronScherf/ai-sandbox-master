@@ -80,10 +80,11 @@ downstream correction pass over this pipeline's own output — see the root
 
 ## Full usage guide
 
-Real runs of `route_notes_transcribe` hold local write locks for both the hub
-index and the nested `academic_notes` repository. Dry runs do not need the
-locks. The lock cannot coordinate external Obsidian sync, so this does not
-enable corpus-health apply actions that write to `academic_notes`.
+Real runs of `route_notes_transcribe` and the direct PDF transcription CLI
+hold local write locks for both the hub index and the nested `academic_notes`
+repository. Dry runs do not need the locks. The lock cannot coordinate
+external Obsidian sync, so this does not enable corpus-health apply actions
+that write to `academic_notes`.
 
 Companion to `gcp_instructions.md`, for a different category of document:
 short (tens of pages, not hundreds), often no table of contents, often a
