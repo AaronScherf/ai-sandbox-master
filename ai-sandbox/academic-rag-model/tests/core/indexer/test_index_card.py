@@ -1,4 +1,5 @@
 import os
+import hashlib
 import tempfile
 import unittest
 from unittest.mock import MagicMock
@@ -95,6 +96,14 @@ class TestComputeFileId(unittest.TestCase):
             file_id = compute_file_id(p)
             self.assertEqual(len(file_id), 16)
             int(file_id, 16)  # raises ValueError if not valid hex
+
+    def test_large_file_keeps_same_content_id_across_read_chunks(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = os.path.join(tmp, "large.pdf")
+            content = b"content across chunk boundaries" * 40000
+            with open(path, "wb") as f:
+                f.write(content)
+            self.assertEqual(compute_file_id(path), hashlib.sha256(content).hexdigest()[:16])
 
 
 class TestDeriveCourse(unittest.TestCase):

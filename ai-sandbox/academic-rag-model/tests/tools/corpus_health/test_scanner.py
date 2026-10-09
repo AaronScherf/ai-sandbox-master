@@ -2,12 +2,13 @@ from __future__ import annotations
 
 import json
 import subprocess
+from dataclasses import replace
 from pathlib import Path
 
-from core.indexer.index_card import compute_content_hash, save_shard
+from core.indexer.index_card import compute_content_hash, compute_file_id, save_shard
 from tools.corpus_health.cli import main
 from tools.corpus_health.config import MarkdownPolicy, ScanConfig, load_config
-from tools.corpus_health.discovery import scan
+from tools.corpus_health.discovery import _frontmatter_status, scan
 from tools.corpus_health.state import StateStore, default_state_dir
 
 
@@ -118,6 +119,105 @@ def test_textbook_pdf_is_not_misclassified_as_note_transcription(tmp_path):
 
     assert [finding.kind for finding in report.findings] == ["textbook_conversion_missing"]
     assert "transcription" not in report.findings[0].kind
+
+
+def test_textbook_conversion_uses_source_id_across_metadata_and_index_paths(tmp_path):
+    config = _make_config(tmp_path)
+    books = config.academic_hub_root / "academic_resources" / "econ" / "textbooks"
+    books.mkdir(parents=True)
+    metadata_pdf = books / "Library filename.pdf"
+    metadata_pdf.write_bytes(b"metadata-linked source")
+    card_pdf = books / "Different library filename.pdf"
+    card_pdf.write_bytes(b"card-linked source")
+    outputs = books / "processed_outputs"
+    metadata_book = outputs / "Author_Metadata_Title_2026"
+    metadata_book.mkdir(parents=True)
+    metadata_markdown = metadata_book / f"{metadata_book.name}.md"
+    metadata_markdown.write_text("converted book", encoding="utf-8")
+    (metadata_book / f"{metadata_book.name}_metadata.json").write_text(json.dumps({
+        "source_pdf_file_id": compute_file_id(str(metadata_pdf)),
+    }), encoding="utf-8")
+    card_book = outputs / "Author_Index_Title_2026"
+    card_book.mkdir(parents=True)
+    card_markdown = card_book / f"{card_book.name}.md"
+    card_markdown.write_text("another converted book", encoding="utf-8")
+    save_shard(str(config.academic_hub_root), "econ", [{
+        "file_id": compute_file_id(str(card_pdf)),
+        "path": card_markdown.relative_to(config.academic_hub_root).as_posix(),
+        "doc_type": "textbook",
+    }])
+
+    report = scan(config)
+
+    assert not [f for f in report.findings if f.kind == "textbook_conversion_missing"]
+    assert report.complete
+
+
+def test_textbook_metadata_with_missing_markdown_reports_actual_output_path(tmp_path):
+    config = _make_config(tmp_path)
+    books = config.academic_hub_root / "academic_resources" / "econ" / "textbooks"
+    books.mkdir(parents=True)
+    source = books / "Library filename.pdf"
+    source.write_bytes(b"source pdf")
+    book_dir = books / "processed_outputs" / "Author_Title_2026"
+    book_dir.mkdir(parents=True)
+    (book_dir / "Author_Title_2026_metadata.json").write_text(json.dumps({
+        "source_pdf_file_id": compute_file_id(str(source)),
+    }), encoding="utf-8")
+
+    report = scan(config)
+
+    gaps = [f for f in report.findings if f.kind == "textbook_conversion_missing"]
+    assert len(gaps) == 1
+    assert gaps[0].expected_output == str(book_dir / "Author_Title_2026.md")
+
+
+def test_textbook_same_name_output_without_source_identity_is_not_accepted(tmp_path):
+    config = _make_config(tmp_path)
+    books = config.academic_hub_root / "academic_resources" / "econ" / "textbooks"
+    books.mkdir(parents=True)
+    source = books / "Book.pdf"
+    source.write_bytes(b"new PDF contents")
+    legacy = books / "processed_outputs" / "Book" / "Book.md"
+    legacy.parent.mkdir(parents=True)
+    legacy.write_text("unlinked Markdown", encoding="utf-8")
+
+    report = scan(config)
+
+    gaps = [f for f in report.findings if f.kind == "textbook_conversion_missing"]
+    assert len(gaps) == 1
+    assert "content ID" in gaps[0].evidence
+
+
+def test_frontmatter_parser_reads_past_64k_and_detects_missing_delimiter(tmp_path):
+    good = tmp_path / "good.md"
+    good.write_text("---\ntitle: Long metadata\nrefs: " + "x" * 70000 + "\n---\nBody", encoding="utf-8")
+    bad = tmp_path / "bad.md"
+    bad.write_text("---\ntitle: Incomplete\nrefs: " + "x" * 70000, encoding="utf-8")
+
+    assert _frontmatter_status(good, ("title",)) == (True, "")
+    assert _frontmatter_status(bad, ("title",)) == (False, "frontmatter closing delimiter is missing")
+
+
+def test_example_policy_excludes_audio_derivatives_and_named_test_artifacts(tmp_path):
+    config = _make_config(tmp_path)
+    example = load_config(Path(__file__).parents[3] / "tools" / "corpus_health" / "corpus_health.example.json")
+    config = replace(config, markdown_policies=example.markdown_policies)
+    processed = config.academic_notes_root / "econ" / "ta_notes" / "processed_outputs"
+    processed.mkdir(parents=True)
+    for name in ("Lesson.narrated.md", "Lesson__part01.narrated.md", "Lesson__index.md"):
+        (processed / name).write_text("audio artifact", encoding="utf-8")
+    summaries = config.academic_notes_root / "econ" / "summaries"
+    summaries.mkdir(parents=True)
+    for name in ("generate_plots.md.md", "testing_html.md", "testing_html_export.md"):
+        (summaries / name).write_text("test artifact", encoding="utf-8")
+    substantive = summaries / "Actual summary.md"
+    substantive.write_text("Needs frontmatter", encoding="utf-8")
+
+    report = scan(config)
+
+    affected = [f for f in report.findings if f.kind in {"markdown_frontmatter_missing", "index_card_missing"}]
+    assert {Path(f.path).name for f in affected} == {substantive.name}
 
 
 def test_textbook_rag_recheck_uses_exact_textbook_folder_names(tmp_path):

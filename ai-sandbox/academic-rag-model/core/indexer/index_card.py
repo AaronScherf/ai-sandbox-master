@@ -64,9 +64,11 @@ def now_iso() -> str:
 def compute_file_id(pdf_path: str) -> str:
     """Truncated SHA-256 of the PDF's own bytes -- a card's true identity,
     independent of where the file currently lives (spec §3.1/§4.3)."""
+    digest = hashlib.sha256()
     with open(pdf_path, "rb") as f:
-        digest = hashlib.sha256(f.read()).hexdigest()
-    return digest[:16]
+        for chunk in iter(lambda: f.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()[:16]
 
 
 def compute_id_from_parts(parts: list[str]) -> str:

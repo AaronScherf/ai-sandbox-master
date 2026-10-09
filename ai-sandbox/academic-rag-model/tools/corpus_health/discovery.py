@@ -11,7 +11,7 @@ from pathlib import PurePosixPath
 from dataclasses import replace
 
 from core.indexer.audit import MarkdownIndexTarget, audit_markdown_index
-from core.indexer.index_card import compute_content_hash
+from core.indexer.index_card import compute_content_hash, compute_file_id, list_courses, load_shard
 from tools.corpus_health.config import MarkdownPolicy, ScanConfig
 from tools.corpus_health.finding import Finding
 from tools.corpus_health.report import ScanReport
@@ -20,8 +20,7 @@ from tools.active_work import build_report as active_work_report
 
 _PRUNED_DIRS = {".git", ".index", ".obsidian", "__pycache__", "processed_outputs"}
 _TEXTBOOK_DIRS = {"textbooks", "textbooks-and-papers"}
-_FRONTMATTER_START = re.compile(r"\A---\s*\r?\n")
-_FIELD_RE = re.compile(r"(?m)^([A-Za-z0-9_-]+)\s*:")
+_FIELD_RE = re.compile(r"^([A-Za-z0-9_-]+)\s*:")
 _POLICY_PRUNED_DIRS = {".git", ".index", ".obsidian", "__pycache__"}
 
 
@@ -133,27 +132,59 @@ def _expected_note_output(source: Path, resources_root: Path, notes_root: Path) 
     return notes_root / relative.parent / "processed_outputs" / f"{source.stem}.md"
 
 
-def _expected_textbook_paths(source: Path, resources_root: Path, notes_root: Path) -> tuple[Path, Path]:
-    relative = source.relative_to(resources_root)
-    resource_book = resources_root / relative.parent / "processed_outputs" / source.stem
-    notes_book = notes_root / relative.parent / "processed_outputs" / source.stem
-    return resource_book / f"{source.stem}.md", notes_book / f"{source.stem}.rag.md"
+def _converted_textbook_outputs(resources_root: Path, hub_root: Path, on_error) -> dict[str, list[Path]]:
+    """Resolve converted Markdown by the source PDF's content ID, not its name."""
+    by_source_id: dict[str, list[Path]] = {}
+    for metadata in resources_root.glob("*/**/processed_outputs/*/*_metadata.json"):
+        if not _is_textbook(metadata, resources_root):
+            continue
+        try:
+            data = json.loads(metadata.read_text(encoding="utf-8"))
+        except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+            on_error(f"cannot read textbook metadata {metadata}: {exc}")
+            continue
+        source_id = data.get("source_pdf_file_id") if isinstance(data, dict) else None
+        if isinstance(source_id, str):
+            book_dir = metadata.parent
+            by_source_id.setdefault(source_id, []).append(book_dir / f"{book_dir.name}.md")
+
+    try:
+        for course in list_courses(str(hub_root)):
+            for card in load_shard(str(hub_root), course):
+                if not isinstance(card, dict):
+                    continue
+                source_id = card.get("file_id")
+                index_path = card.get("path")
+                if not isinstance(source_id, str) or not isinstance(index_path, str):
+                    continue
+                candidate = (hub_root / Path(index_path.replace("\\", "/"))).resolve()
+                if (candidate.is_relative_to(resources_root)
+                        and _is_textbook(candidate, resources_root)
+                        and "processed_outputs" in candidate.parts
+                        and candidate.suffix.casefold() == ".md"
+                        and not candidate.name.casefold().endswith(".rag.md")):
+                    by_source_id.setdefault(source_id, []).append(candidate)
+    except (OSError, ValueError, TypeError, KeyError) as exc:
+        on_error(f"cannot read textbook index cards: {exc}")
+    return by_source_id
 
 
 def _frontmatter_status(path: Path, required_fields: tuple[str, ...]) -> tuple[bool, str]:
     try:
         with path.open("r", encoding="utf-8-sig") as stream:
-            content = stream.read(64 * 1024)
+            if stream.readline().strip() != "---":
+                return False, "YAML frontmatter block is missing"
+            fields: set[str] = set()
+            for line in stream:
+                if line.strip() == "---":
+                    missing = [name for name in required_fields if name not in fields]
+                    return (not missing, f"missing frontmatter fields: {', '.join(missing)}" if missing else "")
+                match = _FIELD_RE.match(line)
+                if match:
+                    fields.add(match.group(1))
     except (OSError, UnicodeError) as exc:
         return False, f"cannot read frontmatter: {exc}"
-    if not _FRONTMATTER_START.match(content):
-        return False, "YAML frontmatter block is missing"
-    end = content.find("\n---", 4)
-    if end < 0:
-        return False, "frontmatter closing delimiter is missing in first 64 KiB"
-    fields = set(_FIELD_RE.findall(content[:end]))
-    missing = [name for name in required_fields if name not in fields]
-    return (not missing, f"missing frontmatter fields: {', '.join(missing)}" if missing else "")
+    return False, "frontmatter closing delimiter is missing"
 
 
 def _git_facts(root: Path, ignored_paths: tuple[str, ...] = (), *, require_exact_root: bool = False) -> dict:
@@ -259,18 +290,27 @@ def scan(config: ScanConfig) -> ScanReport:
     courses = set(config.courses)
     all_files = resource_files + note_files
     report.files_considered = len(all_files)
+    textbook_outputs = _converted_textbook_outputs(resources_root, hub_root, scan_error)
     for source in sorted(all_files):
         if source.suffix.casefold() == ".pdf":
             if _is_textbook(source, resources_root):
                 if courses and source.relative_to(resources_root).parts[0] not in courses:
                     continue
-                raw_md, _rag_md = _expected_textbook_paths(source, resources_root, notes_root or hub_root / "academic_notes")
-                if not _nonempty_file(raw_md, scan_error):
+                try:
+                    source_id = compute_file_id(str(source))
+                    report.files_hashed += 1
+                except OSError as exc:
+                    scan_error(f"cannot hash textbook PDF {source}: {exc}")
+                    continue
+                candidates = textbook_outputs.get(source_id, [])
+                if not any(_nonempty_file(path, scan_error) for path in candidates):
                     fingerprint, hashed = _safe_fingerprint(source, config.max_hash_bytes, scan_error)
                     report.files_hashed += int(hashed)
                     report.findings.append(Finding(
                         "textbook_conversion_missing", "academic_resources", str(source), source.stem,
-                        "converted textbook Markdown is missing or empty", str(raw_md),
+                        ("linked converted textbook Markdown is missing or empty" if candidates
+                         else "no converted textbook Markdown is linked to this PDF's content ID"),
+                        str(candidates[0]) if candidates else None,
                         "textbook conversion (manual GCP/VM workflow; no adapter)", fingerprint,
                         cost_category="cloud_manual",
                     ))

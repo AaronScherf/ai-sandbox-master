@@ -20,10 +20,24 @@ frontmatter or indexing. Use `exclude_globs` for generated derivatives that
 share a directory with indexed outputs but are not separately indexed. The
 example policies cover course summaries, normal processed note outputs, and
 textbook RAG files. Unknown Markdown is never classified by extension alone.
+The example excludes audio-generator narration (`*.narrated.md`) and its
+`*__index.md` manifest, plus three named plotting/HTML test artifacts in
+`summaries/`. Substantive study-guide drafts and the Gemini session remain
+eligible until they are reviewed individually.
 
-The default 8 MiB hash limit keeps the daily pass from reading full textbook
-files. Large Markdown receives an `index_state_unverified` informational
-finding; use a future explicit deep-audit mode before making a freshness claim.
+Transcription findings can be deferred in the local decision ledger when a
+specific source PDF is intentionally held for later. The notes router has no
+ignore manifest and does not read this ledger; use explicit `--file` or
+`--course` selection when running it directly. Deferred findings remain
+visible in reports and in `review --include-deferred` but leave the default
+pending review queue.
+
+Textbook PDFs are streamed in full to compute the same source ID recorded by
+the converter's metadata and index cards. This finds converted books even when
+their bibliographic output folder differs from the PDF filename. The default
+8 MiB hash limit applies to other freshness checks, including Markdown: large
+Markdown receives an `index_state_unverified` informational finding until a
+future explicit deep audit verifies its content.
 The index audit reads through public indexer helpers and returns incomplete on
 missing or malformed index data.
 

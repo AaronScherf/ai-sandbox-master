@@ -10,6 +10,11 @@
       "name": "course-summaries",
       "root": "notes",
       "glob": "*/summaries/*.md",
+      "exclude_globs": [
+        "*/summaries/generate_plots.md.md",
+        "*/summaries/testing_html.md",
+        "*/summaries/testing_html_export.md"
+      ],
       "required_fields": ["title"],
       "check_index": true
     },
@@ -17,7 +22,11 @@
       "name": "processed-note-markdown",
       "root": "notes",
       "glob": "*/**/processed_outputs/*.md",
-      "exclude_globs": ["**/*.excalidraw.md"],
+      "exclude_globs": [
+        "**/*.excalidraw.md",
+        "**/*.narrated.md",
+        "**/*__index.md"
+      ],
       "required_fields": [],
       "check_index": true
     },
