@@ -301,3 +301,11 @@ def test_a_run_that_passes_the_cap_exits_3_and_keeps_its_partial_file(env, root,
     out = capsys.readouterr().out
     assert code == 3 and "--max-cost" in out and not report_path(root, spec, str(guide), "").exists()
     assert report_path(root, spec, str(guide), "").with_name("demo.revise.partial.json").is_file()
+
+
+def test_skipping_the_estimate_check_still_enforces_the_runtime_cap(env, root, capsys):
+    spec_file, spec, guide = env
+    llm = ScriptedLLM([{"edits": []}])
+    code = cmd_revise(str(spec_file), root, guide_path=str(guide), llm=llm, embed=bag_embed(VOCAB), chunks=CHUNKS, cards=CARDS,
+                      search=lambda *a, **k: [], evidence=EVIDENCE, max_cost=1e-9, check_estimate=False)
+    assert code == 3 and len(llm.calls) == 1

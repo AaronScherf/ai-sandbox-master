@@ -260,6 +260,8 @@ def main(argv: list[str] | None = None) -> int:
     sp.add_argument("--force", action="store_true")
     sp.add_argument("--dry-run", action="store_true")
     sp.add_argument("--no-resume", action="store_true", help="ignore a saved partial run and start over")
+    sp.add_argument("--skip-estimate-check", action="store_true",
+                    help="start even if the rough estimate is over the cap (the runtime cap still stops the run)")
     sp.add_argument("--max-cost", type=float, help="USD cap for this run (default: the spec's [revise] max_cost); "
                     "a run estimated over it is refused, and a run that passes it stops and can be resumed")
 
@@ -277,7 +279,7 @@ def main(argv: list[str] | None = None) -> int:
         return cmd_revise(args.spec, args.root, guide_path=args.guide, plan_path=args.plan,
                           stages=args.stages.split(",") if args.stages else None, tag=args.tag, force=args.force,
                           dry_run=args.dry_run, env_file=args.env_file, resume=not args.no_resume,
-                          max_cost=args.max_cost)
+                          max_cost=args.max_cost, check_estimate=not args.skip_estimate_check)
     if args.command == "apply-revise":
         return cmd_apply_revise(args.spec, args.root, guide_path=args.guide, decisions_path=args.decisions,
                                 tag=args.tag, force=args.force)

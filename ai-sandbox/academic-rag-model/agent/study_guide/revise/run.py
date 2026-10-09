@@ -218,7 +218,7 @@ def _paid_llm(env_file, model):
 def cmd_revise(spec_path: str, root: str, *, guide_path: str, plan_path: str | None = None, stages=None, tag: str = "",
                dry_run: bool = False, force: bool = False, env_file: str | None = None, llm=None, embed=None,
                client=None, chunks=None, cards=None, search=None, evidence=None, resume: bool = True,
-               max_cost: float | None = None) -> int:
+               max_cost: float | None = None, check_estimate: bool = True) -> int:
     from agent.study_guide.cli import _load_plan_for
     try:
         validate_tag(tag)
@@ -247,7 +247,7 @@ def cmd_revise(spec_path: str, root: str, *, guide_path: str, plan_path: str | N
             print(f"DRY RUN: {cost_line}")
             print(f"DRY RUN: would write {out}")
             return EXIT_OK
-        if cap and estimate > cap:
+        if cap and check_estimate and estimate > cap:
             raise ReviseError(f"{cost_line} is over the cap; raise --max-cost, drop stages with --stages, or trim the spec")
         if llm is None or embed is None or evidence is None:
             paid = _paid_llm(env_file, spec.revise.model)
