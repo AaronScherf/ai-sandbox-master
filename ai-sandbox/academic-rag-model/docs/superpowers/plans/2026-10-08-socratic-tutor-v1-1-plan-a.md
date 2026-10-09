@@ -2861,6 +2861,15 @@ class Session:
             raise ValueError("no open session; run start first")
         return cls(paths, sid, packet)
 
+    @staticmethod
+    def latest_session_id(paths: TutorPaths) -> str | None:
+        """Newest session directory with a log, open or finished (the audit is most useful after `end`)."""
+        if not os.path.isdir(paths.sessions_dir):
+            return None
+        ids = sorted(d for d in os.listdir(paths.sessions_dir)
+                     if os.path.exists(os.path.join(paths.sessions_dir, d, "events.jsonl")))
+        return ids[-1] if ids else None
+
     # ---- helpers ------------------------------------------------------
     def _prior_gaps(self) -> list[str]:
         tags = {t for p in self.packet.parts for t in p.concept_tags}
@@ -3779,6 +3788,9 @@ def _dispatch(args, paths: TutorPaths) -> dict:
         return {"ok": True, "_raw": template}
     if args.cmd == "start":
         return Session.start(paths).view()
+    if args.cmd == "audit":
+        session = Session.open(paths, args.session or Session.latest_session_id(paths))
+        return {"ok": True, "findings": [f.to_dict() for f in audit_mod.audit(session.log.load(), session.packet)]}
     session = Session.open(paths, args.session)
     if args.cmd == "turn":
         return session.turn(
@@ -3793,8 +3805,6 @@ def _dispatch(args, paths: TutorPaths) -> dict:
         return session.verify(check, _downgrades(args.downgrade, args.why))
     if args.cmd == "end":
         return session.end(_read(args.big_picture_file))
-    if args.cmd == "audit":
-        return {"ok": True, "findings": [f.to_dict() for f in audit_mod.audit(session.log.load(), session.packet)]}
     raise ValueError(f"unknown command {args.cmd}")
 
 

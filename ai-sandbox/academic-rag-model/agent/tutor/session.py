@@ -115,6 +115,15 @@ class Session:
             raise ValueError("no open session; run start first")
         return cls(paths, sid, packet)
 
+    @staticmethod
+    def latest_session_id(paths: TutorPaths) -> str | None:
+        """Newest session directory with a log, open or finished (the audit is most useful after `end`)."""
+        if not os.path.isdir(paths.sessions_dir):
+            return None
+        ids = sorted(d for d in os.listdir(paths.sessions_dir)
+                     if os.path.exists(os.path.join(paths.sessions_dir, d, "events.jsonl")))
+        return ids[-1] if ids else None
+
     # ---- helpers ------------------------------------------------------
     def _prior_gaps(self) -> list[str]:
         tags = {t for p in self.packet.parts for t in p.concept_tags}
