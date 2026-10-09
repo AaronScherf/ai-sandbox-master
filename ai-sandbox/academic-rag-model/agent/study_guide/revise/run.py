@@ -12,7 +12,7 @@ from agent.study_guide.plan import PlanError
 from dataclasses import asdict
 
 from agent.study_guide.revise.apply import apply_edits, changelog
-from agent.study_guide.revise.audit import audit_section
+from agent.study_guide.revise.audit import audit_section, build_audit_prompt
 from agent.study_guide.revise.checkpoint import Checkpoint
 from agent.study_guide.revise.cost import CostCapReached, cost_usd, estimate_cost
 from agent.study_guide.revise.dedup import dedup_edits, find_duplicate_clusters
@@ -93,7 +93,8 @@ def _relevance(row: dict) -> Relevance:
 
 
 def build_report(spec: GuideSpec, guide_path: str, plan, *, stages, llm, embed, evidence, chunks, now: str | None = None,
-                 checkpoint: Checkpoint | None = None, max_cost: float | None = None) -> EditReport:
+                 checkpoint: Checkpoint | None = None, max_cost: float | None = None,
+                 audit_cache: Checkpoint | None = None) -> EditReport:
     if spec.revise is None:
         raise ReviseError("the spec has no [revise] table")
     bad = [s for s in stages if s not in STAGES or s not in spec.revise.criteria]
@@ -160,8 +161,18 @@ def build_report(spec: GuideSpec, guide_path: str, plan, *, stages, llm, embed, 
                 start = len([e for e in edits if e.stage == "correctness"]) + 1
 
                 def do_audit(title=title, section=section, passages=passages, start=start):
+                    # An audit depends only on the section text, its source passages and the model, so a section that
+                    # did not change since an earlier run (of any version of the guide) is not paid for again.
+                    key = hashlib.sha256((r.model + build_audit_prompt(title, section, passages)).encode()).hexdigest()
+                    hit = audit_cache.get(key) if audit_cache else None
+                    if hit is not None:
+                        rows = [{**row, "id": f"cor-{start + i:03d}"} for i, row in enumerate(hit["edits"])]
+                        return {"edits": rows, "problems": hit["problems"]}
                     found, problems = audit_section(llm, title, section, passages, start=start)
-                    return {"edits": [asdict(e) for e in found], "problems": problems}
+                    result = {"edits": [asdict(e) for e in found], "problems": problems}
+                    if audit_cache:
+                        audit_cache.put(key, result)
+                    return result
 
                 saved = unit(f"correctness:{title}", do_audit)
                 edits += _edits(saved["edits"])
@@ -254,8 +265,9 @@ def cmd_revise(spec_path: str, root: str, *, guide_path: str, plan_path: str | N
                                 hashlib.sha256((spec.sha256 + Path(guide_path).read_bytes().hex()).encode()).hexdigest())
         if not resume:
             checkpoint.clear()
+        audit_cache = Checkpoint(out.with_name("revise.audit-cache.json"), "audit-cache-v1")
         report = build_report(spec, guide_path, plan, stages=stages, llm=llm, embed=embed, evidence=evidence, chunks=chunks,
-                              checkpoint=checkpoint, max_cost=cap or None)
+                              checkpoint=checkpoint, max_cost=cap or None, audit_cache=audit_cache)
         if checkpoint.used:
             print(f"Resumed from a saved partial run: reused {', '.join(dict.fromkeys(checkpoint.used))}")
         save_report(report, out)

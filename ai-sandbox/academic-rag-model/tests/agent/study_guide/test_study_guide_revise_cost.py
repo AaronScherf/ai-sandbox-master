@@ -42,3 +42,34 @@ def test_a_unit_that_pushes_spend_over_the_cap_stops_the_run_and_keeps_its_work(
     again = ScriptedLLM([])
     report = build_report(spec, str(guide), plan, llm=again, max_cost=1.0, **kw)
     assert again.calls == [] and report.usage["organization"]["calls"] == 1
+
+
+def test_a_rerun_audits_only_the_sections_whose_text_or_sources_changed(make_spec, root, tmp_path):  # noqa: F811
+    from pathlib import Path
+    from agent.study_guide import cli
+    from agent.study_guide.cli import cmd_plan, plan_path_for
+    from agent.study_guide.revise.run import build_report
+    from agent.study_guide.spec import load_spec
+    from rv_helpers import bag_embed
+    from sg_helpers import CARDS, CHUNKS, StubSearch, hit
+    from test_study_guide_revise_run import EVIDENCE, GUIDE, HEADER, SPEC, VOCAB
+    make_spec(SPEC.replace('["relevance", "organization"]', '["correctness"]'), header=HEADER)
+    spec_file = tmp_path / "spec.toml"
+    assert cmd_plan(str(spec_file), root, search=StubSearch({"textbook": [hit("cam-1", .9)]}), chunks=CHUNKS, cards=CARDS) == 0
+    spec = load_spec(spec_file)
+    guide = Path(root) / "academic_notes" / "econ" / "summaries" / "demo.md"
+    guide.write_text(GUIDE, encoding="utf-8")
+    plan = cli.load_plan(plan_path_for(root, spec))
+    cache = Checkpoint(tmp_path / "audit-cache.json", "audit-cache-v1")
+    kw = dict(stages=("correctness",), embed=bag_embed(VOCAB), evidence=EVIDENCE, chunks=CHUNKS, audit_cache=cache)
+    first = ScriptedLLM([{"findings": []}])
+    build_report(spec, str(guide), plan, llm=first, **kw)
+    assert len(first.calls) == 1
+    guide.write_text(GUIDE + "\n## Extra\n\nnew words here\n", encoding="utf-8")  # a different guide, same Wald section
+    second = ScriptedLLM([])
+    report = build_report(spec, str(guide), plan, llm=second, **kw)
+    assert second.calls == [] and report.usage["correctness:Wald"]["calls"] == 0
+    guide.write_text(GUIDE.replace("wald statistic words", "wald statistic changed", 1), encoding="utf-8")
+    third = ScriptedLLM([{"findings": []}])
+    build_report(spec, str(guide), plan, llm=third, **kw)
+    assert len(third.calls) == 1
