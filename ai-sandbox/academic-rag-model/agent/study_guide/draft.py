@@ -12,6 +12,7 @@ from pathlib import Path
 from agent.study_guide.plan import Plan, PlanEntry, accepted
 from agent.study_guide.prompts import guide_v1_prompt, tutor_v1_prompt, tutor_v1_question
 from agent.study_guide.spec import GuideSpec, TopicSpec
+from agent.study_guide.revise.cost import CostCapReached, cost_usd
 from agent.summary_enhance.llm import UnusableResponse, usage_line
 
 GENERATED_BY = "academic-rag-model/agent/study_guide/draft.py"
@@ -137,7 +138,7 @@ def _section(spec: GuideSpec, title: str, answer: str, entries: list[PlanEntry],
 
 def draft_guide(spec: GuideSpec, plan: Plan, *, root: str, llm, chunks: list[dict] | None = None,
                 tag: str = "", force: bool = False, accept_unreviewed: bool = False,
-                plan_path: str = "", plan_sha256: str = "", now: str | None = None) -> Path:
+                plan_path: str = "", plan_sha256: str = "", now: str | None = None, max_cost: float = 0.0) -> Path:
     out = check_output(root, spec, tag, force)
     if chunks is None:
         from core.indexer.chunk_index import load_chunks
@@ -150,6 +151,12 @@ def draft_guide(spec: GuideSpec, plan: Plan, *, root: str, llm, chunks: list[dic
         per_topic[topic.title] = accepted(plan, topic.title, accept_unreviewed=accept_unreviewed)
         _excerpts(per_topic[topic.title], text_by_id)
 
+    def check_cap(title: str) -> None:
+        usage = getattr(llm, "usage", None)
+        if max_cost and usage and cost_usd(usage, getattr(llm, "model", spec.draft_model)) > max_cost:
+            raise CostCapReached(f"spend passed the ${max_cost:.2f} cap after {title!r}; the finished sections were "
+                                 "saved to a .recovered.md file next to the intended output")
+
     blocks = [f"## {n.heading}\n\n{n.body}" for n in spec.notes]
     used: dict[str, PlanEntry] = {}
     topic_sources: dict[str, list[str]] = {}
@@ -159,6 +166,7 @@ def draft_guide(spec: GuideSpec, plan: Plan, *, root: str, llm, chunks: list[dic
             entries = per_topic[topic.title]
             answer = _generate(llm, _topic_prompt(spec, topic, _excerpts(entries, text_by_id)))
             blocks.append(_section(spec, topic.title, answer, entries, topic_sources, raw_answers))
+            check_cap(topic.title)
             for e in entries:
                 used.setdefault(e.chunk_id, e)
         for cmp_ in spec.comparisons:
@@ -175,6 +183,7 @@ def draft_guide(spec: GuideSpec, plan: Plan, *, root: str, llm, chunks: list[dic
             else:
                 prompt = tutor_v1_prompt(cmp_.instruction, excerpts)
             blocks.append(_section(spec, cmp_.title, _generate(llm, prompt), chosen, topic_sources, raw_answers))
+            check_cap(cmp_.title)
             for e in chosen:
                 used.setdefault(e.chunk_id, e)
     except Exception:

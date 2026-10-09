@@ -25,6 +25,7 @@ from agent.study_guide.plan import (
     PlanError, accepted, apply_decisions, build_plan, check_fresh, load_plan, pending_entries, plan_sha256,
     save_plan, write_review_items,
 )
+from agent.study_guide.revise.cost import CostCapReached
 from agent.study_guide.revise.run import cmd_apply_revise, cmd_revise
 from agent.study_guide.spec import SpecError, load_spec
 from agent.summary_enhance.enhance import DEFAULT_MIN_WORDS, baseline_section, run as enhance_run
@@ -136,7 +137,7 @@ def _load_plan_for(spec, root, plan_path, chunks, cards):
 
 def cmd_draft(spec_path: str, root: str, *, plan_path: str | None = None, llm=None, model: str | None = None,
               tag: str = "", force: bool = False, dry_run: bool = False, accept_unreviewed: bool = False,
-              env_file: str | None = None, chunks=None, cards=None) -> int:
+              env_file: str | None = None, chunks=None, cards=None, max_cost: float = 0.0) -> int:
     try:
         spec = load_spec(spec_path)
         plan, path, chunks = _load_plan_for(spec, root, plan_path, chunks, cards)
@@ -155,10 +156,14 @@ def cmd_draft(spec_path: str, root: str, *, plan_path: str | None = None, llm=No
                 return EXIT_NO_CLIENT
             llm = GeminiClient(client, model or spec.draft_model)
         out = draft_guide(spec, plan, root=root, llm=llm, chunks=chunks, tag=tag, force=force,
-                          accept_unreviewed=accept_unreviewed, plan_path=str(path), plan_sha256=plan_sha256(path))
+                          accept_unreviewed=accept_unreviewed, plan_path=str(path), plan_sha256=plan_sha256(path),
+                          max_cost=max_cost)
     except (SpecError, PlanError, DraftError) as err:
         print(f"ERROR: {err}")
         return EXIT_INPUT
+    except CostCapReached as err:
+        print(f"STOPPED: {err}")
+        return 3
     except Exception as err:  # network/API failure after the client's own retries
         print(f"ERROR: model call failed: {err}")
         return EXIT_LLM
@@ -228,6 +233,7 @@ def main(argv: list[str] | None = None) -> int:
     sp.add_argument("--force", action="store_true")
     sp.add_argument("--dry-run", action="store_true")
     sp.add_argument("--accept-unreviewed", action="store_true")
+    sp.add_argument("--max-cost", type=float, default=0.0, help="USD cap: stop after the section that passes it (0 = none)")
 
     sp = sub.add_parser("run")
     common(sp)
@@ -296,7 +302,8 @@ def main(argv: list[str] | None = None) -> int:
             return code
         return cmd_draft(args.spec, args.root, accept_unreviewed=True, env_file=args.env_file)
     return cmd_draft(args.spec, args.root, plan_path=args.plan, model=args.model, tag=args.tag, force=args.force,
-                     dry_run=args.dry_run, accept_unreviewed=args.accept_unreviewed, env_file=args.env_file)
+                     dry_run=args.dry_run, accept_unreviewed=args.accept_unreviewed, env_file=args.env_file,
+                     max_cost=args.max_cost)
 
 
 if __name__ == "__main__":

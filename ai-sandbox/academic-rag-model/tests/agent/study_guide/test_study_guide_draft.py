@@ -292,3 +292,14 @@ def test_strip_mode_saves_the_cited_text_beside_the_plan(make_spec, root):
 def test_inline_mode_writes_no_cited_sidecar(spec, root):
     out, _ = _run(spec, root)
     assert not (out.parent.parent / "guide_plans").exists()
+
+
+def test_a_draft_stops_once_spend_passes_the_cap_and_keeps_the_finished_sections(spec, root):
+    from agent.study_guide.revise.cost import CostCapReached
+    llm = FakeLLM()
+    llm.model = "gemini-3.8-flash"
+    llm.usage = {"calls": 1, "prompt_tokens": 1_000_000, "output_tokens": 0, "thinking_tokens": 0}  # $0.75
+    with pytest.raises(CostCapReached, match="Wald"):
+        _run(spec, root, llm=llm, max_cost=0.5)
+    assert len(llm.calls) == 1
+    assert "ANSWER 1" in output_path(root, spec).with_name("demo.recovered.md").read_text(encoding="utf-8")
