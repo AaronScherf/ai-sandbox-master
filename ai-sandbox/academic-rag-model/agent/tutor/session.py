@@ -115,6 +115,11 @@ class Session:
         return out
 
     @staticmethod
+    def _require_live(s: FsmState) -> None:
+        if s.state == fsm.DONE:
+            raise IllegalTransition("session has ended; start a new session")
+
+    @staticmethod
     def _closed(events: list[Event], part_id: str) -> bool:
         return any(e.type == "close_part" and e.part == part_id for e in events)
 
@@ -136,13 +141,14 @@ class Session:
         self.log.append("student", part=part_id, state=new.state, hint_level=new.hint_level,
                         intent=intent, text=text, data=data)
         for tag, axis in misconceptions:
-            self.log.append("misconception", part=part_id, state=new.state, hint_level=new.hint_level,
+            self.log.append("misconception", part=part.part_id, state=new.state, hint_level=new.hint_level,
                             data={"tag": tag, "axis": axis})
         return {**self.view(), "hint_capped": info["hint_capped"]}
 
     def say(self, text: str) -> dict:
         events = self.log.load()
         s = self._fsm(events)
+        self._require_live(s)
         part = self.packet.parts[s.part_index]
         part_events = [e for e in events if e.part == part.part_id]
         student_text = " ".join(e.text or "" for e in part_events if e.type == "student")
@@ -179,6 +185,7 @@ class Session:
 
     def define(self, term: str) -> dict:
         s = self._fsm()
+        self._require_live(s)
         part = self.packet.parts[s.part_index]
         for key, definition in self.packet.glossary.items():
             if key.lower() == term.strip().lower():
@@ -193,6 +200,7 @@ class Session:
             return {"ok": False, "error": "kind must be 'hint' or 'solution'"}
         events = self.log.load()
         s = self._fsm(events)
+        self._require_live(s)
         part = self.packet.parts[s.part_index]
         attempted = any(e.type == "student" and e.part == part.part_id and e.intent == "attempt" for e in events)
         if not attempted or s.state == LAUNCH:
@@ -215,6 +223,7 @@ class Session:
 
     def misconception(self, tag: str, axis: str = "all", resolved: bool = False) -> dict:
         s = self._fsm()
+        self._require_live(s)
         part = self.packet.parts[s.part_index]
         self.log.append("misconception_resolved" if resolved else "misconception", part=part.part_id,
                         state=s.state, hint_level=s.hint_level, data={"tag": tag, "axis": axis})

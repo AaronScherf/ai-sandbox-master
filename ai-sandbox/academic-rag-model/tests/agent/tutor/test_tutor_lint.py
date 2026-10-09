@@ -55,6 +55,10 @@ class TestLintMessage(unittest.TestCase):
         self.assertIn("SEALED_OVERLAP", codes(lint(draft, sealed_solution=SOLUTION)))
         self.assertEqual(lint("What does the probability of walking away depend on?", sealed_solution=SOLUTION), [])
 
+    def test_single_verbatim_six_word_run_from_sealed_solution_is_caught(self):
+        draft = "Notice that it equals one minus the total probability here, think about why."
+        self.assertIn("SEALED_OVERLAP", codes(lint(draft, sealed_solution=SOLUTION)))
+
     def test_leading_subquestion_list_blocked_while_working(self):
         draft = "Consider:\n1. What happens when x is negative?\n2. What happens when x is positive?"
         self.assertIn("SUBQUESTION_LIST", codes(lint(draft)))

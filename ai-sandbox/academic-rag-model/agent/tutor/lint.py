@@ -91,7 +91,7 @@ def lint_message(
         hits = symbol_hits(text, extract_symbols(statement))
         if hits:
             found.append(Violation("NOTATION_BRIDGE", f"a definition answer must not use the problem's notation: {hits}"))
-    if sealed_solution and len(_ngrams(text) & _ngrams(sealed_solution)) >= 2:
+    if sealed_solution and _ngrams(text) & _ngrams(sealed_solution):
         found.append(Violation("SEALED_OVERLAP", "draft repeats a phrase from the sealed solution"))
     if state == WORKING and hint_level < 3 and len(_SUBQ_LINE.findall(text)) >= 2:
         found.append(Violation("SUBQUESTION_LIST", "leading sub-question list before the student proposed a plan"))

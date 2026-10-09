@@ -218,3 +218,32 @@ class TestClosePart(unittest.TestCase):
             att = [e for e in s.log.load() if e.type == "student"][0].id
             with self.assertRaises(RatingRejected):
                 s.close_part({**rate(MAST, [att]), "conceptual": {"rating": PROF, "evidence": [att]}})
+
+
+class TestFixPassFromFinalReview(unittest.TestCase):
+    def test_misconception_sent_with_confirm_advance_belongs_to_the_part_being_left(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            _, s = make(tmp)
+            solve_part(s)
+            att = [e for e in s.log.load() if e.type == "student"][0].id
+            s.close_part(rate(MAST, [att]))
+            s.student("confirm_advance", "ready, next", misconceptions=(("late-tag", "all"),))
+            miscs = [e for e in s.log.load() if e.type == "misconception"]
+            self.assertEqual([e.part for e in miscs], ["q1"])
+
+    def test_commands_refuse_on_an_ended_session(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            paths, s = make(tmp)
+            for _ in range(2):
+                solve_part(s)
+                att = [e for e in s.log.load() if e.type == "student"][-1].id
+                s.close_part(rate(MAST, [att]))
+                s.student("confirm_advance", "ready, next")
+            s.end("bp")
+            reopened = Session.open(paths, s.view()["session"])
+            n = len(reopened.log.load())
+            for call in (lambda: reopened.sealed("solution"), lambda: reopened.say("hello"),
+                         lambda: reopened.define("choice overload"), lambda: reopened.misconception("t")):
+                with self.assertRaises(IllegalTransition):
+                    call()
+            self.assertEqual(len(reopened.log.load()), n)
