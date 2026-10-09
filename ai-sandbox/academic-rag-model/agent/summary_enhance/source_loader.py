@@ -2,14 +2,18 @@
 cites. No similarity search: each `indexer_source_refs` entry is looked up
 by (file_id, chunk_id) in the course's chunk store. The corpus root is
 derived from the guide's own path (ancestor of academic_notes/) rather
-than from the refs' stored `root`, which can be stale."""
+than from the refs' stored `root`, which can be stale.
+
+Extra sources (a study_guide source plan) can add chunks beyond the guide's own refs, each tied
+to the topic that may cite it."""
 from __future__ import annotations
 
 import hashlib
 import json
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field, replace
 from pathlib import Path
+from typing import Sequence
 
 from core.indexer.chunk_index import load_chunks
 
@@ -37,6 +41,24 @@ class SourceChunk:
     path: str
     citation: str
     text: str
+    doc_type: str = ""
+    offering: str = ""
+
+
+@dataclass(frozen=True)
+class ExtraSource:
+    """A passage a topic may cite beyond the guide's own refs (from a study_guide source plan)."""
+    topic: str
+    chunk_id: str
+    file_id: str
+    path: str
+    citation: str
+    doc_type: str = ""
+    offering: str = ""
+
+
+def _norm_title(title: str) -> str:
+    return " ".join(title.split()).casefold()
 
 
 @dataclass
@@ -49,6 +71,12 @@ class GuideInput:
     sha256: str
     rel_path: str
     sources: list[SourceChunk]
+    topic_labels: dict[str, frozenset[str]] = field(default_factory=dict)
+
+    def labels_for(self, title: str) -> set[str]:
+        """The labels this topic may cite: its own planned set if it has one, else every label."""
+        mapped = self.topic_labels.get(_norm_title(title))
+        return set(mapped) if mapped is not None else {s.label for s in self.sources}
 
 
 def locate_vault(guide_path: Path) -> tuple[Path, str]:
@@ -84,7 +112,8 @@ def _parse_refs(raw: str | None) -> list[dict]:
     return refs
 
 
-def load_guide(guide_path: str | Path) -> GuideInput:
+def load_guide(guide_path: str | Path, extra_sources: Sequence[ExtraSource] | None = None, *,
+               share_own_refs: bool = False) -> GuideInput:
     path = Path(guide_path).resolve()
     if not path.is_file():
         raise SourceError(f"guide not found: {path}")
@@ -124,11 +153,38 @@ def load_guide(guide_path: str | Path) -> GuideInput:
             label=f"S{len(sources) + 1}", chunk_id=ref["chunk_id"], file_id=ref["file_id"],
             path=ref["path"], citation=str(ref.get("citation", "")), text=chunk["text"],
         ))
+
+    own_labels = [s.label for s in sources]
+    topic_labels: dict[str, set[str]] = {}
+    label_by_chunk = {s.chunk_id: s.label for s in sources}
+    for extra in extra_sources or ():
+        chunk = by_id.get(extra.chunk_id)
+        if chunk is None or chunk.get("file_id") != extra.file_id:
+            missing.append(extra.chunk_id)
+            continue
+        label = label_by_chunk.get(extra.chunk_id)
+        if label is not None and (extra.doc_type or extra.offering):
+            i = int(label[1:]) - 1
+            sources[i] = replace(sources[i], doc_type=extra.doc_type or sources[i].doc_type,
+                                 offering=extra.offering or sources[i].offering)
+        if label is None:
+            label = f"S{len(sources) + 1}"
+            sources.append(SourceChunk(
+                label=label, chunk_id=extra.chunk_id, file_id=extra.file_id, path=extra.path,
+                citation=extra.citation, text=chunk["text"], doc_type=extra.doc_type, offering=extra.offering,
+            ))
+            label_by_chunk[extra.chunk_id] = label
+        topic_labels.setdefault(_norm_title(extra.topic), set()).add(label)
     if missing:
         raise MissingSourcesError(missing)
+    if share_own_refs:  # the baseline's own passages stay citable by every topic (improve mode)
+        own = set(own_labels)
+        for key in topic_labels:
+            topic_labels[key] |= own
 
     return GuideInput(
         path=path, root=root, course=course, title=title, body=body.strip("\n") + "\n",
         sha256=hashlib.sha256(raw_bytes).hexdigest(),
         rel_path=path.relative_to(root).as_posix(), sources=sources,
+        topic_labels={k: frozenset(v) for k, v in topic_labels.items()},
     )

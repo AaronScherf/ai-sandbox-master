@@ -17,12 +17,14 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import sys
 from dataclasses import asdict
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import Sequence
 
-from agent.summary_enhance.llm import DEFAULT_MODEL, GeminiClient, LLMClient, UnusableResponse
+from agent.summary_enhance.llm import DEFAULT_MODEL, GeminiClient, LLMClient, UnusableResponse, usage_line
 from agent.summary_enhance.prompt import (
     build_plan_prompt, build_topic_prompt, build_worked_example_prompt,
 )
@@ -30,7 +32,7 @@ from agent.summary_enhance.render import render
 from agent.summary_enhance.schema import (
     PLAN_SCHEMA, TOPIC_SCHEMA, Enhanced, Topic, parse_plan, parse_topic,
 )
-from agent.summary_enhance.source_loader import GuideInput, SourceError, load_guide
+from agent.summary_enhance.source_loader import ExtraSource, GuideInput, SourceError, load_guide
 from agent.summary_enhance.validate import validate_plan, validate_topic, validate_worked_example
 from core.env.gemini_utils import get_gemini_client, load_dotenv_override
 
@@ -94,8 +96,30 @@ def _plan_topics(llm: LLMClient, guide: GuideInput) -> list[str]:
                        lambda p: llm.generate_structured(p, PLAN_SCHEMA), check)
 
 
-def _synthesize(llm: LLMClient, guide: GuideInput, title: str, others: list[str], min_words: int) -> Topic:
-    labels = {s.label for s in guide.sources}
+_H2_RE = re.compile(r"^## (?!#)(.*?)\s*$")
+
+
+def baseline_section(body: str, title: str) -> str | None:
+    """The guide's own "## <title>" section (up to the next H2), or None when it has none."""
+    want = " ".join(title.split()).casefold()
+    lines, start = body.splitlines(), None
+    for i, line in enumerate(lines):
+        m = _H2_RE.match(line)
+        if m and " ".join(m.group(1).split()).casefold() == want:
+            start = i
+            break
+    if start is None:
+        return None
+    end = next((j for j in range(start + 1, len(lines)) if _H2_RE.match(lines[j])), len(lines))
+    section = lines[start:end]
+    while section and (not section[-1].strip() or section[-1].strip() == "---"):
+        section.pop()
+    return "\n".join(section)
+
+
+def _synthesize(llm: LLMClient, guide: GuideInput, title: str, others: list[str], min_words: int,
+                mode: str = "rewrite", baseline_body: str | None = None) -> Topic:
+    labels = guide.labels_for(title)
 
     def check(data):
         try:
@@ -106,22 +130,24 @@ def _synthesize(llm: LLMClient, guide: GuideInput, title: str, others: list[str]
         topic.title = title  # render the requested spelling
         return topic, errors
 
-    return _with_retry(lambda errs: build_topic_prompt(guide, title, others, min_words, errs),
-                       lambda p: llm.generate_structured(p, TOPIC_SCHEMA), check)
+    return _with_retry(
+        lambda errs: build_topic_prompt(guide, title, others, min_words, errs, source_labels=labels, mode=mode,
+                                        baseline_body=baseline_body),
+        lambda p: llm.generate_structured(p, TOPIC_SCHEMA), check)
 
 
 def _grounded_text(topic: Topic) -> str:
     return "\n\n".join(b.text.strip() for s in topic.sections for b in s.blocks if b.type == "grounded")
 
 
-def _worked_example(llm: LLMClient, topic: Topic) -> str:
+def _worked_example(llm: LLMClient, topic: Topic, focus: str | None = None) -> str:
     grounded = _grounded_text(topic)
 
     def check(text):
         text = text.strip()
         return text, validate_worked_example(text)
 
-    return _with_retry(lambda errs: build_worked_example_prompt(topic.title, grounded, errs),
+    return _with_retry(lambda errs: build_worked_example_prompt(topic.title, grounded, errs, focus),
                        lambda p: llm.generate_text(p, code_execution=True), check)
 
 
@@ -160,6 +186,17 @@ def _load_env(env_file: str | None) -> None:
     load_dotenv(env_file, override=True)
 
 
+NEW_TOPIC_NOTE = "(no existing section for this topic; write it from the passages below)"
+
+
+def _words(text: str) -> int:
+    return len(text.split())
+
+
+def _section_body(section: str) -> str:
+    return "\n".join(section.splitlines()[1:]).strip()
+
+
 def _planned_calls(topics: list[str], worked_example: bool) -> str:
     if topics:
         n = len(topics) * (2 if worked_example else 1)
@@ -171,11 +208,54 @@ def _planned_calls(topics: list[str], worked_example: bool) -> str:
 def run(guide_path: str, *, topics: list[str], output: str | None = None, model: str | None = None,
         force: bool = False, dry_run: bool = False, llm: LLMClient | None = None,
         env_file: str | None = None, worked_example: bool = False,
-        min_words: int = DEFAULT_MIN_WORDS) -> int:
+        min_words: int = DEFAULT_MIN_WORDS, mode: str = "rewrite",
+        extra_sources: Sequence[ExtraSource] | None = None, baseline: str = "full",
+        only_below: int | None = None, carry_before: Sequence[str] = (),
+        carry_after: Sequence[str] = (), only_topics: Sequence[str] | None = None,
+        example_focus: str | None = None) -> int:
     try:
+        if only_below is not None and only_below < 1:
+            raise OutputError(f"--only-below must be a positive integer, got {only_below}")
+        if only_below is not None and not topics:
+            raise OutputError("--only-below needs a --topic for every section")
         if min_words < 1:
             raise OutputError(f"--min-words must be a positive integer, got {min_words}")
-        guide = load_guide(guide_path)
+        if mode not in ("rewrite", "improve"):
+            raise OutputError(f"--mode must be 'rewrite' or 'improve', got {mode!r}")
+        if baseline not in ("full", "topic"):
+            raise OutputError(f"--baseline must be 'full' or 'per-topic', got {baseline!r}")
+        guide = load_guide(guide_path, extra_sources, share_own_refs=(mode == "improve" and baseline == "full"))
+        bodies: dict[str, str | None] = {}
+        if baseline == "topic":
+            if not topics:
+                raise OutputError("--baseline per-topic needs a --topic for every section")
+            bodies = {t: baseline_section(guide.body, t) for t in topics}
+            fresh = [t for t, b in bodies.items() if b is None]
+            if fresh:
+                print(f"NOTE: --baseline per-topic: no existing section in the guide for: {', '.join(fresh)} "
+                      "(written fresh)")
+            bodies = {t: (b if b is not None else NEW_TOPIC_NOTE) for t, b in bodies.items()}
+        passthrough: dict[str, str] = {}
+        if only_below is not None:
+            for t in topics:
+                section = baseline_section(guide.body, t)
+                if section is not None and _words(_section_body(section)) >= only_below:
+                    passthrough[t] = _section_body(section)
+        if only_topics is not None:
+            unknown = [t for t in only_topics if t not in topics]
+            if unknown:
+                raise OutputError(f"--topics names no topic of this guide: {', '.join(unknown)}")
+            for t in topics:
+                section = baseline_section(guide.body, t)
+                if t not in only_topics and section is not None:
+                    passthrough[t] = _section_body(section)
+        carried: dict[str, str] = {}
+        for title in [*carry_before, *carry_after]:
+            section = baseline_section(guide.body, title)
+            if section is None:
+                raise OutputError(f"the guide has no '## {title}' section to carry through")
+            carried[title] = _section_body(section)
+        generate = [t for t in topics if t not in passthrough]
         out = resolve_output(guide, output, force)
         if env_file is not None and not Path(env_file).is_file():
             raise OutputError(f"--env-file not found: {env_file}")
@@ -184,15 +264,21 @@ def run(guide_path: str, *, topics: list[str], output: str | None = None, model:
         return EXIT_INPUT
 
     if dry_run:
-        sample = (build_topic_prompt(guide, topics[0], topics[1:], min_words) if topics
-                  else build_plan_prompt(guide))
-        print(f"DRY RUN: {len(guide.sources)} chunks, about {len(sample)} prompt characters per call, "
-              f"model {model or DEFAULT_MODEL}, {_planned_calls(topics, worked_example)}, "
-              f"topics {topics or '(model-chosen)'}, min {min_words} words per topic")
+        first = generate[0] if generate else None
+        sample = (build_topic_prompt(guide, first, [t for t in topics if t != first], min_words,
+                                     source_labels=guide.labels_for(first), mode=mode,
+                                     baseline_body=bodies.get(first)) if first
+                  else build_plan_prompt(guide) if not topics else "")
+        kept = (f", {len(passthrough)} topic(s) kept unchanged (draft section has at least {only_below} words)"
+                if passthrough else "")
+        carry = f", {len(carried)} section(s) carried through" if carried else ""
+        print(f"DRY RUN: {len(guide.sources)} chunks, mode {mode}, about {len(sample)} prompt characters per call, "
+              f"model {model or DEFAULT_MODEL}, {_planned_calls(generate if topics else topics, worked_example)}, "
+              f"topics {topics or '(model-chosen)'}, min {min_words} words per topic{kept}{carry}")
         print(f"DRY RUN: would write {out}")
         return EXIT_OK
 
-    if llm is None:
+    if llm is None and (generate or not topics):
         _load_env(env_file)
         client = get_gemini_client("PAID_GEMINI_KEY")
         if client is None:
@@ -201,12 +287,15 @@ def run(guide_path: str, *, topics: list[str], output: str | None = None, model:
 
     try:
         titles = list(topics) or _plan_topics(llm, guide)
-        done: list[Topic] = []
+        done: list[Topic] = [Topic(t, [], status="carried", passthrough=carried[t]) for t in carry_before]
         for i, title in enumerate(titles):
             others = [t for j, t in enumerate(titles) if j != i]
-            topic = _synthesize(llm, guide, title, others, min_words)
+            if title in passthrough:
+                done.append(Topic(title, [], status="unchanged", passthrough=passthrough[title]))
+                continue
+            topic = _synthesize(llm, guide, title, others, min_words, mode, bodies.get(title))
             if worked_example:
-                topic.worked_example = _worked_example(llm, topic)
+                topic.worked_example = _worked_example(llm, topic, example_focus)
             done.append(topic)
     except GenerationFailed as err:
         print("ERROR: model output failed validation twice; nothing written:")
@@ -217,17 +306,21 @@ def run(guide_path: str, *, topics: list[str], output: str | None = None, model:
         print(f"ERROR: model call failed: {err}")
         return EXIT_LLM
 
+    done.extend(Topic(t, [], status="carried", passthrough=carried[t]) for t in carry_after)
     enhanced = Enhanced(done)
+    usage = getattr(llm, "usage", None)
     generated_at = datetime.now(timezone.utc).isoformat(timespec="seconds")
     text: str | None = None
     try:
-        text = render(guide, enhanced, model=llm.model, generated_at=generated_at,
-                      worked_example=worked_example, min_words=min_words)
+        text = render(guide, enhanced, model=getattr(llm, "model", model or DEFAULT_MODEL), generated_at=generated_at,
+                      worked_example=worked_example, min_words=min_words, usage=usage)
         _atomic_write(out, text)
     except Exception as err:
         print(f"ERROR: could not write {out}: {err}")
         _save_recovery(out, enhanced, text)
         return EXIT_WRITE
+    if usage:
+        print(usage_line(usage))
     print(f"Wrote {out}")
     return EXIT_OK
 
@@ -239,8 +332,21 @@ def main(argv: list[str] | None = None) -> int:
                    help="section title; repeat per topic (omit to let the model plan the topics)")
     p.add_argument("--worked-example", action="store_true",
                    help="add a computed worked example per topic (code-execution call)")
+    p.add_argument("--example-focus", help="what the worked example computes (default: a test statistic and its decision rule)")
     p.add_argument("--min-words", type=int, default=DEFAULT_MIN_WORDS,
                    help=f"minimum words per topic (default {DEFAULT_MIN_WORDS})")
+    p.add_argument("--mode", choices=("rewrite", "improve"), default="rewrite",
+                   help="rewrite (default) or improve: treat the guide as a baseline to keep and extend")
+    p.add_argument("--baseline", choices=("full", "per-topic"), default="full",
+                   help="full: every topic sees the whole guide; per-topic: only its own '## <title>' section "
+                        "and its own passages (needs --topic for every section)")
+    p.add_argument("--only-below", type=int, metavar="WORDS",
+                   help="extend only: keep a topic's existing section unchanged when it already has at least "
+                        "this many words (needs --topic for every section)")
+    p.add_argument("--carry-before", action="append", default=[], metavar="TITLE",
+                   help="copy this existing '## TITLE' section through unchanged, before the topics")
+    p.add_argument("--carry-after", action="append", default=[], metavar="TITLE",
+                   help="copy this existing '## TITLE' section through unchanged, after the topics")
     p.add_argument("--output", help="explicit output .md path (must be inside academic_notes/)")
     p.add_argument("--model", help=f"Gemini model id (default {DEFAULT_MODEL})")
     p.add_argument("--env-file", help="load PAID_GEMINI_KEY from this .env (e.g. the main checkout's) "
@@ -250,7 +356,10 @@ def main(argv: list[str] | None = None) -> int:
     args = p.parse_args(argv)
     return run(args.guide, topics=args.topic, output=args.output, model=args.model,
                force=args.force, dry_run=args.dry_run, env_file=args.env_file,
-               worked_example=args.worked_example, min_words=args.min_words)
+               worked_example=args.worked_example, example_focus=args.example_focus, min_words=args.min_words,
+               mode=args.mode, extra_sources=None,
+               baseline="topic" if args.baseline == "per-topic" else "full",
+               only_below=args.only_below, carry_before=args.carry_before, carry_after=args.carry_after)
 
 
 if __name__ == "__main__":

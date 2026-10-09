@@ -3,6 +3,7 @@
 network; everything else (and every test) depends on the LLMClient protocol."""
 from __future__ import annotations
 
+import copy
 import json
 import re
 from typing import Protocol
@@ -46,14 +47,45 @@ def _truncated(response) -> bool:
     return False
 
 
+def usage_line(usage: dict) -> str:
+    """One-line token summary; the cached count (prompt tokens billed at the cache rate) only when non-zero."""
+    line = (f"Token usage: {usage['calls']} calls, {usage['prompt_tokens']} prompt tokens, "
+            f"{usage['output_tokens']} output tokens, {usage['thinking_tokens']} thinking tokens")
+    cached = usage.get("cached_tokens", 0)
+    return line + (f", {cached} of the prompt tokens cached" if cached else "")
+
+
 class GeminiClient:
     def __init__(self, client, model: str = DEFAULT_MODEL):
         self._client = client
         self.model = model
+        self.usage = {"calls": 0, "prompt_tokens": 0, "output_tokens": 0, "thinking_tokens": 0,
+                      "cached_tokens": 0}
+        self.thinking_level: str | None = None
+
+    def with_thinking(self, level: str | None) -> "GeminiClient":
+        """A view of this client that sends `thinking_level` (low/medium/high) on every call; usage is shared.
+        Thinking tokens bill as output, so structured judging calls run cheaper at a low level."""
+        view = copy.copy(self)
+        view.thinking_level = None if level in (None, "default") else level
+        return view
+
+    def _record_usage(self, response) -> None:
+        meta = getattr(response, "usage_metadata", None)
+        self.usage["calls"] += 1
+        if meta is None:
+            return
+        for key, attr in (("prompt_tokens", "prompt_token_count"), ("output_tokens", "candidates_token_count"),
+                          ("thinking_tokens", "thoughts_token_count"),
+                          ("cached_tokens", "cached_content_token_count")):
+            self.usage[key] += getattr(meta, attr, None) or 0
 
     def _generate(self, prompt: str, config: dict) -> str:
+        if self.thinking_level:
+            config = {**config, "thinking_config": {"thinking_level": self.thinking_level}}
         response = call_with_retries(lambda: self._client.models.generate_content(
             model=self.model, contents=prompt, config=config))
+        self._record_usage(response)
         if _truncated(response):
             raise UnusableResponse("response truncated (hit the output token limit)")
         text = getattr(response, "text", None)

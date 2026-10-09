@@ -1,0 +1,209 @@
+# guide_specs/econometrics/wald_lm_lr_tests.toml
+# New material: the baseline recipe plus class_2024 notes/slides/recitations (pinned files) and
+# previously unused textbook sections (discover rules, reviewed before use). Same prompt and
+# draft model as the baseline so run B1 isolates the new material; heading-prefix label matching.
+
+[guide]
+id = "wald_lm_lr_new_material"
+title = "Wald, Lagrange Multiplier, and Likelihood Ratio Tests"
+course = "econometrics"
+
+[models]
+draft = "gemini-3.1-flash-lite"
+enhance = "gemini-3.8-flash"
+
+[draft]
+prompt = "tutor_v1"
+label_match = "heading-prefix"
+top_k = 180
+file_top_k = 80
+
+[[note]]
+heading = "Source-reference discrepancy"
+body = "The course syllabus points to Hansen §§9.9, 9.11, and 9.16 for these tests. In the converted Hansen chapter, the headings identify §9.9 as *t*-ratios and the abuse of testing, §9.10 as Wald tests, §9.11 as homoskedastic Wald tests, §9.16 as Hausman tests, and §9.17 as score tests. Chapter 9 contains no section headed likelihood ratio test (Hansen section 5.13, \"Likelihood Ratio Test\", is included below as additional material)."
+
+[[topic]]
+title = "Cameron & Trivedi Section 7.2: Wald test"
+instruction = "Explain the Wald test: hypotheses, unrestricted estimation, statistic and covariance, asymptotic distribution, decision rule, examples, and invariance cautions."
+
+  [[topic.source]]
+  kind = "section"
+  book = "Cameron_Microeconometrics"
+  labels = ["7.2"]
+  exclude_labels = []
+  query = "Wald test linear nonlinear hypotheses covariance chi-square invariance"
+  max = 12
+
+  [[topic.source]]
+  kind = "file"
+  file = "class_2024/Class Notes/Slides/processed_outputs/slidesASYM.md"
+  query = "Wald test statistic homoskedastic covariance chi-square"
+  max = 6
+
+  [[topic.source]]
+  kind = "file"
+  file = "class_2024/Recitations/processed_outputs/Recitation 5.md"
+  query = "Wald test of nonlinear hypothesis delta method"
+  max = 6
+
+  [[topic.source]]
+  kind = "discover"
+  query = "Wald test statistic, linear and nonlinear restrictions, covariance estimator"
+  doc_types = ["textbook"]
+  exclude_guide = "academic_notes/econometrics/summaries/previous/wald_lm_lr_tests.md"
+  max = 8
+  min_score = 0.72
+  max_per_file = 4
+
+[[topic]]
+title = "Cameron & Trivedi Section 7.3: likelihood ratio test"
+instruction = "Explain the likelihood ratio test: restricted/unrestricted MLE, exact statistic if given, degrees of freedom and asymptotic distribution, decision rule, assumptions, examples, and choice versus Wald/LM."
+
+  [[topic.source]]
+  kind = "section"
+  book = "Cameron_Microeconometrics"
+  labels = ["7.3.1", "7.3.2", "7.3.3", "7.3.4"]
+  exclude_labels = ["7.3.5"]
+  query = "likelihood ratio test restricted unrestricted maximum likelihood chi-square"
+  max = 12
+
+  [[topic.source]]
+  kind = "file"
+  file = "class_2024/Recitations/processed_outputs/Recitation 3.md"
+  query = "likelihood ratio test restricted unrestricted other approaches to testing"
+  max = 6
+
+  [[topic.source]]
+  kind = "discover"
+  query = "likelihood ratio test statistic restricted and unrestricted log-likelihood chi-square"
+  doc_types = ["textbook"]
+  exclude_guide = "academic_notes/econometrics/summaries/previous/wald_lm_lr_tests.md"
+  max = 8
+  min_score = 0.72
+  max_per_file = 4
+
+[[topic]]
+title = "Cameron & Trivedi Section 7.3.5: Lagrange multiplier test"
+instruction = "Explain the LM/score test: null-restricted estimator, score and scaling, statistic and asymptotic reference distribution, decision rule, computation, examples, and comparison with LR/Wald."
+
+  [[topic.source]]
+  kind = "section"
+  book = "Cameron_Microeconometrics"
+  labels = ["7.3.1", "7.3.3", "7.3.5"]
+  exclude_labels = []
+  query = "Lagrange multiplier score test restricted estimator score statistic information chi-square"
+  max = 12
+
+  [[topic.source]]
+  kind = "file"
+  file = "class_2024/Class Notes/Slides/processed_outputs/slidesASYM.md"
+  query = "Lagrange multiplier score test restricted estimator statistic"
+  max = 6
+
+  [[topic.source]]
+  kind = "discover"
+  query = "Lagrange multiplier score test statistic computed at the restricted estimator"
+  doc_types = ["textbook"]
+  exclude_guide = "academic_notes/econometrics/summaries/previous/wald_lm_lr_tests.md"
+  max = 8
+  min_score = 0.72
+  max_per_file = 4
+
+[[topic]]
+title = "Hansen Section 9.10 and 9.11: Wald tests"
+instruction = "Explain Hansen's general and homoskedastic Wald tests: hypotheses, statistic, covariance, distribution and degrees of freedom, critical-value/p-value rule, assumptions and interpretation."
+
+  [[topic.source]]
+  kind = "section"
+  book = "Hansen_ECONOMETRICS"
+  labels = ["9.10", "9.11"]
+  exclude_labels = []
+  query = "Wald tests general and homoskedastic statistics covariance chi-square F"
+  max = 12
+
+  [[topic.source]]
+  kind = "file"
+  file = "class_2024/Class Notes/Slides/processed_outputs/slidesASYM.md"
+  query = "Wald test statistic homoskedastic covariance chi-square"
+  max = 6
+
+  [[topic.source]]
+  kind = "file"
+  file = "class_2024/Recitations/processed_outputs/Recitation 5.md"
+  query = "Wald test of nonlinear hypothesis delta method"
+  max = 6
+
+  [[topic.source]]
+  kind = "discover"
+  query = "Wald test statistic, linear and nonlinear restrictions, covariance estimator"
+  doc_types = ["textbook"]
+  exclude_guide = "academic_notes/econometrics/summaries/previous/wald_lm_lr_tests.md"
+  max = 8
+  min_score = 0.72
+  max_per_file = 4
+
+[[topic]]
+title = "Hansen Section 9.11 reference check: likelihood ratio test"
+instruction = "The course syllabus cites section 9.11 for a likelihood ratio test. Explain what the supplied section 9.11 excerpt actually covers and whether it provides a likelihood ratio test. Do not substitute another test or fill gaps with general knowledge; cite the evidence and state what is unavailable."
+
+  [[topic.source]]
+  kind = "section"
+  book = "Hansen_ECONOMETRICS"
+  labels = ["9.11"]
+  exclude_labels = []
+  query = "Section 9.11 likelihood ratio test compare likelihood statistic restricted unrestricted"
+  max = 12
+
+  [[topic.source]]
+  kind = "file"
+  file = "class_2024/Recitations/processed_outputs/Recitation 3.md"
+  query = "likelihood ratio test restricted unrestricted other approaches to testing"
+  max = 6
+
+  [[topic.source]]
+  kind = "discover"
+  query = "likelihood ratio test statistic restricted and unrestricted log-likelihood chi-square"
+  doc_types = ["textbook"]
+  exclude_guide = "academic_notes/econometrics/summaries/previous/wald_lm_lr_tests.md"
+  max = 8
+  min_score = 0.72
+  max_per_file = 4
+
+[[topic]]
+title = "Hansen Section 9.17: score (Lagrange multiplier) test"
+instruction = "Explain the score/LM test: restricted estimation, score and information/Hessian scaling, statistic, decision rule, relation to homoskedastic Wald/F in normal regression, and computational advantage. Cite each point and identify any details not in the excerpts."
+
+  [[topic.source]]
+  kind = "section"
+  book = "Hansen_ECONOMETRICS"
+  labels = ["9.17"]
+  exclude_labels = []
+  query = "score test restricted estimates gradient Hessian statistic chi-square normal regression"
+  max = 12
+
+  [[topic.source]]
+  kind = "file"
+  file = "class_2024/Class Notes/Slides/processed_outputs/slidesASYM.md"
+  query = "Lagrange multiplier score test restricted estimator statistic"
+  max = 6
+
+  [[topic.source]]
+  kind = "discover"
+  query = "Lagrange multiplier score test statistic computed at the restricted estimator"
+  doc_types = ["textbook"]
+  exclude_guide = "academic_notes/econometrics/summaries/previous/wald_lm_lr_tests.md"
+  max = 8
+  min_score = 0.72
+  max_per_file = 4
+
+[[comparison]]
+title = "Comparing and choosing among the three tests"
+instruction = "Compare the Wald, likelihood ratio, and Lagrange multiplier/score tests using only these selected Cameron & Trivedi and Hansen passages. Explain which estimates each requires, what each statistic measures, shared asymptotic relationships where stated, computation choices, and supported cautions. The retrieved Hansen passages do not supply a likelihood ratio section; make that limitation explicit. Cite every substantive comparison and do not fill gaps from outside knowledge."
+from = [
+  "Cameron & Trivedi Section 7.2: Wald test",
+  "Cameron & Trivedi Section 7.3: likelihood ratio test",
+  "Cameron & Trivedi Section 7.3.5: Lagrange multiplier test",
+  "Hansen Section 9.10 and 9.11: Wald tests",
+  "Hansen Section 9.17: score (Lagrange multiplier) test",
+]
+take = 3

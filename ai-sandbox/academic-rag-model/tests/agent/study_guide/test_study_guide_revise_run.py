@@ -1,0 +1,311 @@
+# tests/agent/study_guide/test_study_guide_revise_run.py
+import hashlib
+import json
+from pathlib import Path
+
+import pytest
+
+from agent.study_guide import cli
+from agent.study_guide.cli import cmd_plan, plan_path_for
+from agent.study_guide.revise.edits import ReviseError, load_report
+from agent.study_guide.revise.evidence import EvidenceChunk
+from agent.study_guide.revise.run import build_report, cmd_apply_revise, cmd_revise, report_path, revised_path
+from agent.study_guide.spec import load_spec
+from rv_helpers import ScriptedLLM, bag_embed
+from sg_helpers import CARDS, CHUNKS, StubSearch, hit, make_spec, root  # noqa: F401 (fixtures)
+
+SPEC = """
+[[topic]]
+title = "Wald"
+instruction = "Explain Wald."
+
+  [[topic.source]]
+  kind = "file"
+  file = "sl"
+
+[revise]
+criteria = ["relevance", "organization"]
+relevance_low = 0.3
+relevance_high = 0.9
+min_block_words = 20
+
+  [[revise.evidence]]
+  kind = "file"
+  file = "sl"
+"""
+HEADER = '[guide]\nid = "demo"\ntitle = "Demo guide"\ncourse = "econ"\n\n'
+GUIDE = ("---\ntitle: \"Demo\"\n---\n\n# Demo\n\n## Wald\n\n" + "wald statistic words " * 12 +
+         "\n\n## Software packages\n\n" + "package install words " * 12 + "\n")
+VOCAB = ["wald", "package"]
+EVIDENCE = [EvidenceChunk("e1", "Exam, p. 1", 1.0, (1.0, 0.0))]
+
+
+@pytest.fixture
+def env(make_spec, root, tmp_path):
+    make_spec(SPEC, header=HEADER)
+    spec_file = tmp_path / "spec.toml"
+    search = StubSearch({"textbook": [hit("cam-1", .9)]})
+    assert cmd_plan(str(spec_file), root, search=search, chunks=CHUNKS, cards=CARDS) == 0
+    guide = Path(root) / "academic_notes" / "econ" / "summaries" / "demo.md"
+    guide.write_text(GUIDE, encoding="utf-8")
+    return spec_file, load_spec(spec_file), guide
+
+
+def _build(spec, guide, llm=None, stages=("relevance", "organization")):
+    plan = cli.load_plan(plan_path_for(str(guide.parents[3]), spec))
+    return build_report(spec, str(guide), plan, stages=stages, llm=llm or ScriptedLLM([{"edits": []}]),
+                        embed=bag_embed(VOCAB), evidence=EVIDENCE, chunks=CHUNKS, now="2026-10-08T00:00:00+00:00")
+
+
+def test_report_has_hash_blocks_and_stage_edits(env):
+    _, spec, guide = env
+    report = _build(spec, guide)
+    assert report.guide_sha256 == hashlib.sha256(guide.read_bytes()).hexdigest()
+    assert [(e.stage, e.type) for e in report.edits] == [("relevance", "delete")]
+    assert report.edits[0].targets and len(report.blocks) >= 3 and report.protected_blocks
+
+
+def test_the_report_records_token_usage_per_unit(env):
+    _, spec, guide = env
+    report = _build(spec, guide, llm=ScriptedLLM([{"edits": []}]))
+    assert report.usage["relevance"]["calls"] == 0
+    assert report.usage["organization"] == {"calls": 1, "prompt_tokens": 100, "output_tokens": 10,
+                                            "thinking_tokens": 50, "cached_tokens": 0}
+
+
+def test_saved_usage_survives_a_resume_and_a_report_round_trip(env, tmp_path):
+    from agent.study_guide.revise.checkpoint import Checkpoint
+    from agent.study_guide.revise.edits import save_report
+    _, spec, guide = env
+    plan = cli.load_plan(plan_path_for(str(guide.parents[3]), spec))
+    cp = Checkpoint(tmp_path / "p.json", "k")
+    kw = dict(stages=("relevance", "organization"), embed=bag_embed(VOCAB), evidence=EVIDENCE, chunks=CHUNKS, checkpoint=cp)
+    build_report(spec, str(guide), plan, llm=ScriptedLLM([{"edits": []}]), **kw)
+    again = ScriptedLLM([])
+    report = build_report(spec, str(guide), plan, llm=again, **kw)
+    assert again.calls == [] and report.usage["organization"]["calls"] == 1
+    save_report(report, tmp_path / "r.json")
+    assert load_report(tmp_path / "r.json").usage == report.usage
+
+
+def test_usage_by_stage_sums_the_audited_sections():
+    from agent.study_guide.revise.run import usage_by_stage
+    one = {"calls": 1, "prompt_tokens": 100, "output_tokens": 10, "thinking_tokens": 50, "cached_tokens": 0}
+    got = usage_by_stage({"relevance": one, "correctness:A": one, "correctness:B": one})
+    assert list(got) == ["relevance", "correctness"] and got["correctness"]["calls"] == 2
+    assert got["correctness"]["thinking_tokens"] == 100
+
+
+def test_cmd_revise_prints_usage_for_each_stage(env, root, capsys):
+    spec_file, _, guide = env
+    cmd_revise(str(spec_file), root, guide_path=str(guide), llm=ScriptedLLM([{"edits": []}]), embed=bag_embed(VOCAB),
+               chunks=CHUNKS, cards=CARDS, search=lambda *a, **k: [], evidence=EVIDENCE)
+    out = capsys.readouterr().out
+    assert "organization: 1 calls" in out and "50 thinking" in out
+
+
+def test_stage_selection_limits_what_runs(env):
+    _, spec, guide = env
+    llm = ScriptedLLM([])
+    report = _build(spec, guide, llm=llm, stages=("relevance",))
+    assert llm.calls == [] and {e.stage for e in report.edits} == {"relevance"}
+
+
+def test_stages_outside_the_spec_criteria_are_refused(env):
+    _, spec, guide = env
+    with pytest.raises(ReviseError, match="criteria"):
+        _build(spec, guide, stages=("dedup",))
+
+
+def test_cmd_revise_writes_the_report_and_review_items(env, root):
+    spec_file, spec, guide = env
+    llm = ScriptedLLM([{"edits": []}])
+    code = cmd_revise(str(spec_file), root, guide_path=str(guide), llm=llm, embed=bag_embed(VOCAB), chunks=CHUNKS, cards=CARDS,
+                      search=lambda *a, **k: [], evidence=EVIDENCE)
+    assert code == 0
+    rp = report_path(root, spec, str(guide), "")
+    assert rp.is_file() and rp.with_name(rp.name.replace(".revise.json", ".revise.review.json")).is_file()
+
+
+def test_dry_run_makes_no_calls_and_writes_nothing(env, root, capsys):
+    spec_file, spec, guide = env
+    code = cmd_revise(str(spec_file), root, guide_path=str(guide), dry_run=True, chunks=CHUNKS, cards=CARDS)
+    out = capsys.readouterr().out
+    assert code == 0 and "DRY RUN" in out and "blocks" in out and not report_path(root, spec, str(guide), "").exists()
+
+
+def test_apply_revise_applies_accepted_edits_and_records_provenance(env, root, tmp_path):
+    spec_file, spec, guide = env
+    cmd_revise(str(spec_file), root, guide_path=str(guide), llm=ScriptedLLM([{"edits": []}]), embed=bag_embed(VOCAB),
+               chunks=CHUNKS, cards=CARDS, search=lambda *a, **k: [], evidence=EVIDENCE)
+    edit_id = load_report(report_path(root, spec, str(guide), "")).edits[0].id
+    decisions = tmp_path / "d.json"
+    decisions.write_text(json.dumps({edit_id: "accept"}), encoding="utf-8")
+    assert cmd_apply_revise(str(spec_file), root, guide_path=str(guide), decisions_path=str(decisions)) == 0
+    revised = revised_path(str(guide), "").read_text(encoding="utf-8")
+    assert "package install" not in revised and "wald statistic" in revised
+    assert "revised_from:" in revised and "revise_edits_applied: 1" in revised
+    assert "package install" in guide.read_text(encoding="utf-8")
+    assert revised_path(str(guide), "").with_name("demo.revised.changelog.md").is_file()
+
+
+def test_apply_revise_refuses_a_guide_that_changed_and_never_overwrites(env, root, tmp_path, capsys):
+    spec_file, spec, guide = env
+    cmd_revise(str(spec_file), root, guide_path=str(guide), llm=ScriptedLLM([{"edits": []}]), embed=bag_embed(VOCAB),
+               chunks=CHUNKS, cards=CARDS, search=lambda *a, **k: [], evidence=EVIDENCE)
+    decisions = tmp_path / "d.json"
+    decisions.write_text("{}", encoding="utf-8")
+    assert cmd_apply_revise(str(spec_file), root, guide_path=str(guide), decisions_path=str(decisions)) == 0
+    assert cmd_apply_revise(str(spec_file), root, guide_path=str(guide), decisions_path=str(decisions)) == 2
+    assert "already exists" in capsys.readouterr().out
+    guide.write_text(GUIDE + "\nextra\n", encoding="utf-8")
+    assert cmd_apply_revise(str(spec_file), root, guide_path=str(guide), decisions_path=str(decisions), force=True) == 2
+    assert "changed since" in capsys.readouterr().out
+
+
+def test_a_spec_without_a_revise_table_is_an_error(make_spec, root, tmp_path, capsys):
+    make_spec(SPEC.split("[revise]")[0], header=HEADER)
+    assert cmd_revise(str(tmp_path / "spec.toml"), root, guide_path="g.md", dry_run=True) == 2
+    assert "[revise]" in capsys.readouterr().out
+
+
+def test_main_dispatches_revise_commands(monkeypatch, tmp_path):
+    seen = {}
+    monkeypatch.setattr(cli, "cmd_revise", lambda spec, root, **kw: seen.setdefault("revise", kw) and 0)
+    monkeypatch.setattr(cli, "cmd_apply_revise", lambda spec, root, **kw: seen.setdefault("apply", kw) and 0)
+    assert cli.main(["revise", "s.toml", "--root", str(tmp_path), "--guide", "g.md", "--stages", "relevance,dedup",
+                     "--tag", "t", "--dry-run"]) == 0
+    assert seen["revise"]["stages"] == ["relevance", "dedup"] and seen["revise"]["dry_run"] is True
+    assert cli.main(["apply-revise", "s.toml", "--root", str(tmp_path), "--guide", "g.md", "--decisions", "d.json"]) == 0
+    assert seen["apply"]["decisions_path"] == "d.json"
+
+
+def test_a_tag_that_could_leave_the_vault_is_refused(env, root, tmp_path, capsys):
+    spec_file, spec, guide = env
+    assert cmd_revise(str(spec_file), root, guide_path=str(guide), tag="../evil", dry_run=True) == 2
+    assert "tag" in capsys.readouterr().out
+    decisions = tmp_path / "d.json"
+    decisions.write_text("{}", encoding="utf-8")
+    assert cmd_apply_revise(str(spec_file), root, guide_path=str(guide), decisions_path=str(decisions), tag="a/b") == 2
+    assert "tag" in capsys.readouterr().out
+
+
+def test_the_relevance_judge_runs_inside_the_relevance_stage(make_spec, root, tmp_path):
+    from agent.study_guide.revise.segment import segment, split_frontmatter
+    text = SPEC.replace("relevance_low = 0.3", "relevance_low = 0.0\njudge_fraction = 1.0\nscope = \"Only the Wald test.\"")
+    make_spec(text, header=HEADER)
+    spec_file = tmp_path / "spec.toml"
+    assert cmd_plan(str(spec_file), root, search=StubSearch({"textbook": [hit("cam-1", .9)]}), chunks=CHUNKS, cards=CARDS) == 0
+    guide = Path(root) / "academic_notes" / "econ" / "summaries" / "demo.md"
+    guide.write_text(GUIDE, encoding="utf-8")
+    spec = load_spec(spec_file)
+    pkg = next(b for b in segment(split_frontmatter(GUIDE)[1]) if b.heading_path[-1] == "Software packages")
+    llm = ScriptedLLM([{"verdicts": [{"block": pkg.id, "verdict": "delete", "rationale": "software tutorial"}]}])
+    report = _build(spec, guide, llm=llm, stages=("relevance",))
+    assert [(e.type, e.targets, e.rationale.startswith("judge:")) for e in report.edits] == [("delete", [pkg.id], True)]
+    assert "Only the Wald test." in llm.calls[0]
+
+
+def test_embedding_retries_after_a_transient_failure_and_then_gives_up():
+    from agent.study_guide.revise.run import _retrying
+    calls = []
+
+    def flaky(text):
+        calls.append(text)
+        if len(calls) < 3:
+            raise RuntimeError("429 RESOURCE_EXHAUSTED")
+        return [1.0]
+
+    assert _retrying(flaky, attempts=4, wait=0.0)("x") == [1.0] and len(calls) == 3
+
+    def broken(text):
+        raise RuntimeError("down")
+
+    with pytest.raises(RuntimeError, match="down"):
+        _retrying(broken, attempts=2, wait=0.0)("x")
+
+
+def test_the_inline_stage_needs_scope_terms_and_runs_when_they_exist(make_spec, root, tmp_path):
+    from agent.study_guide.revise.segment import segment, split_frontmatter
+    guide_text = GUIDE.replace("wald statistic words wald statistic words", "wald statistic words in MATLAB code wald statistic words", 1)
+    base = SPEC.replace('criteria = ["relevance", "organization"]', 'criteria = ["inline"]')
+    for text, ok in ((base, False), (base.replace("[revise]", '[revise]\nscope_terms = ["MATLAB"]', 1), True)):
+        make_spec(text, header=HEADER)
+        spec_file = tmp_path / "spec.toml"
+        assert cmd_plan(str(spec_file), root, search=StubSearch({"textbook": [hit("cam-1", .9)]}), chunks=CHUNKS, cards=CARDS) in (0, 2)
+        guide = Path(root) / "academic_notes" / "econ" / "summaries" / "demo.md"
+        guide.write_text(guide_text, encoding="utf-8")
+        spec = load_spec(spec_file)
+        wald = next(b for b in segment(split_frontmatter(guide_text)[1]) if b.heading_path[-1] == "Wald")
+        llm = ScriptedLLM([{"findings": [{"block": wald.id, "quote": "in MATLAB code ", "replacement": "", "rationale": "software"}]}])
+        if not ok:
+            with pytest.raises(ReviseError, match="scope_terms"):
+                _build(spec, guide, llm=llm, stages=("inline",))
+        else:
+            report = _build(spec, guide, llm=llm, stages=("inline",))
+            assert [(e.stage, e.type, e.quote) for e in report.edits] == [("inline", "fix", "in MATLAB code ")]
+
+
+def test_only_the_correctness_audit_keeps_full_thinking(env):
+    class Spy(ScriptedLLM):
+        def __init__(self, replies):
+            super().__init__(replies)
+            self.levels = []
+
+        def with_thinking(self, level):
+            outer = self
+
+            class View:
+                usage = outer.usage
+
+                def generate_structured(self, p, s):
+                    outer.levels.append(level)
+                    return outer.generate_structured(p, s)
+
+            return View()
+
+    _, spec, guide = env
+    spy = Spy([{"edits": []}])
+    _build(spec, guide, llm=spy)
+    assert spy.levels == ["low"]
+
+
+def test_dry_run_prints_a_cost_estimate_and_the_cap(env, root, capsys):
+    spec_file, _, guide = env
+    cmd_revise(str(spec_file), root, guide_path=str(guide), dry_run=True, chunks=CHUNKS, cards=CARDS, max_cost=0.5)
+    out = capsys.readouterr().out
+    assert "estimated cost" in out and "cap $0.50" in out
+
+
+def test_a_run_estimated_over_the_cap_is_refused_before_any_paid_call(env, root, capsys):
+    spec_file, spec, guide = env
+    llm = ScriptedLLM([])
+    code = cmd_revise(str(spec_file), root, guide_path=str(guide), llm=llm, embed=bag_embed(VOCAB), chunks=CHUNKS, cards=CARDS,
+                      search=lambda *a, **k: [], evidence=EVIDENCE, max_cost=1e-9)
+    assert code == 2 and llm.calls == [] and "estimated cost" in capsys.readouterr().out
+    assert not report_path(root, spec, str(guide), "").exists()
+
+
+def test_a_run_that_passes_the_cap_exits_3_and_keeps_its_partial_file(env, root, capsys):
+    spec_file, spec, guide = env
+    llm = ScriptedLLM([{"edits": []}])
+    # an estimate under the cap lets the run start; the real spend then passes it
+    import agent.study_guide.revise.run as run
+    orig = run.estimate_cost
+    run.estimate_cost = lambda *a, **k: 0.0
+    try:
+        code = cmd_revise(str(spec_file), root, guide_path=str(guide), llm=llm, embed=bag_embed(VOCAB), chunks=CHUNKS,
+                          cards=CARDS, search=lambda *a, **k: [], evidence=EVIDENCE, max_cost=1e-9)
+    finally:
+        run.estimate_cost = orig
+    out = capsys.readouterr().out
+    assert code == 3 and "--max-cost" in out and not report_path(root, spec, str(guide), "").exists()
+    assert report_path(root, spec, str(guide), "").with_name("demo.revise.partial.json").is_file()
+
+
+def test_skipping_the_estimate_check_still_enforces_the_runtime_cap(env, root, capsys):
+    spec_file, spec, guide = env
+    llm = ScriptedLLM([{"edits": []}])
+    code = cmd_revise(str(spec_file), root, guide_path=str(guide), llm=llm, embed=bag_embed(VOCAB), chunks=CHUNKS, cards=CARDS,
+                      search=lambda *a, **k: [], evidence=EVIDENCE, max_cost=1e-9, check_estimate=False)
+    assert code == 3 and len(llm.calls) == 1

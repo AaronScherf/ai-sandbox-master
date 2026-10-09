@@ -9,7 +9,7 @@ from agent.summary_enhance.schema import PLAN_SCHEMA, TOPIC_SCHEMA
 from agent.summary_enhance.source_loader import GuideInput
 from agent.summary_enhance.validate import MIN_SECTIONS, PLAN_MAX, PLAN_MIN
 
-PROMPT_VERSION = "2026-10-04.1"
+PROMPT_VERSION = "2026-10-08.1"
 
 # Runtime text: "\\beta", "\\frac" (two real backslashes). A plain "\beta" here would
 # teach the model the exact mistake we are warning about.
@@ -19,10 +19,11 @@ _LENGTH_FACTOR = 1.2
 _TOPIC_INSTRUCTIONS = """\
 You are writing one topic of a thorough, standalone study guide for a graduate student.
 You are given (1) an existing LLM-generated draft guide and (2) the exact textbook passages
-it was built from, each tagged with a label such as [S1]. Write the topic "{topic}".
-{others_line}
+it was built from, each tagged with a label such as [S1]. The topic to write, the other topics
+and the word target are given in the TASK section at the end.
+
 Length and structure
-  * Write at least {target} words in total across all blocks (several pages). Depth matters
+  * Write at least the target number of words in total across all blocks (several pages). Depth matters
     more than brevity: state the assumptions, build the derivation step by step, explain what
     each term in the statistic measures, give the decision rule, say when the test is valid or
     breaks down, compare how the different textbooks present it, and list common pitfalls.
@@ -54,6 +55,14 @@ Return ONLY JSON matching this schema, with no markdown fences or commentary:
 {schema}
 """
 
+# Everything above the TASK block is identical for every topic of a run, so the API can reuse its
+# cached prefix (implicit caching); keep topic-specific text below this line.
+_TASK = """\
+=== TASK ===
+Write the topic "{topic}".
+{others_line}Write at least {target} words in total across all blocks.
+"""
+
 _PLAN_INSTRUCTIONS = """\
 Read the draft study guide and the textbook passages below. List the {lo} to {hi} distinct
 topics a student should have a dedicated section on, in a sensible teaching order. Titles are
@@ -64,9 +73,7 @@ Return ONLY JSON matching this schema, with no markdown fences or commentary:
 """
 
 _WORKED_INSTRUCTIONS = """\
-Below are the explanation and formulas for the topic "{title}" from a study guide. Write a
-worked numeric example showing how to compute the test statistic, apply its decision rule, and
-reach a conclusion.
+Below are the explanation and formulas for the topic "{title}" from a study guide. {task}
   * Invent a small, simple dataset (a few observations or a small table) and state it
     explicitly. Call it illustrative.
   * Use the code execution tool to do ALL the arithmetic; report only numbers you computed.
@@ -84,10 +91,46 @@ reach a conclusion.
 """
 
 
-def _passages(guide: GuideInput) -> str:
-    parts = ["=== DRAFT GUIDE (not a source) ===\n" + guide.body, "=== TEXTBOOK PASSAGES ==="]
+_IMPROVE_INSTRUCTIONS = """\
+
+This is an IMPROVEMENT pass. The baseline guide below was written earlier from some of these
+passages. Keep what the passages support (and its good structure where it helps), correct or
+tighten anything the passages do not support, and integrate the additional passages (those marked
+as class notes, slides, recitations, or other textbook sections). Rules:
+  * Where a textbook and class notes or slides differ in notation, assumptions or claims, say so
+    plainly in a grounded block that cites both labels, and prefer the textbook.
+  * Class notes and slides may be hand-written or transcribed and can contain errors; do not repeat
+    a class-note claim that a textbook contradicts without saying so.
+  * Do not copy asides that are not about this topic (administrative remarks, other lectures).
+  * A class-notes point is grounded only if a class-notes passage supports it; your own additions
+    stay "external".
+"""
+
+_KIND_TEXT = {
+    "textbook": "textbook", "ta_notes": "class notes/slides", "handwritten_notes": "hand-written class notes",
+    "problem_set": "problem set", "excalidraw_notes": "lecture notes",
+}
+
+
+def _kind(source) -> str:
+    if not source.doc_type:
+        return ""
+    kind = _KIND_TEXT.get(source.doc_type, source.doc_type)
+    return f" ({kind}, {source.offering} offering)" if source.offering else f" ({kind})"
+
+
+def _passages(guide: GuideInput, labels: set[str] | None = None, mode: str = "rewrite",
+              body: str | None = None) -> str:
+    if mode == "improve":
+        head = ("=== BASELINE GUIDE (existing draft; keep what the passages support, correct or extend "
+                "the rest; it is not a source) ===\n")
+    else:
+        head = "=== DRAFT GUIDE (not a source) ===\n"
+    parts = [head + (guide.body if body is None else body), "=== TEXTBOOK PASSAGES ===" if mode != "improve" else "=== SOURCE PASSAGES ==="]
     for s in guide.sources:
-        parts.append(f"[{s.label}] {s.citation} -- {s.path}\n\"\"\"\n{s.text}\n\"\"\"")
+        if labels is not None and s.label not in labels:
+            continue
+        parts.append(f"[{s.label}]{_kind(s)} {s.citation} -- {s.path}\n\"\"\"\n{s.text}\n\"\"\"")
     return "\n\n".join(parts)
 
 
@@ -105,20 +148,29 @@ def build_plan_prompt(guide: GuideInput, errors: list[str] | None = None) -> str
 
 
 def build_topic_prompt(guide: GuideInput, topic: str, other_topics: list[str], min_words: int,
-                       errors: list[str] | None = None) -> str:
+                       errors: list[str] | None = None, *, source_labels: set[str] | None = None,
+                       mode: str = "rewrite", baseline_body: str | None = None) -> str:
     others_line = ""
     if other_topics:
         listed = ", ".join(json.dumps(t) for t in other_topics)
         others_line = (f"Other topics ({listed}) get their own sections of the finished guide; "
                        "do not duplicate their content beyond what this topic needs.\n")
     head = f"(prompt version {PROMPT_VERSION})\n\n" + _TOPIC_INSTRUCTIONS.format(
-        topic=topic, others_line=others_line, target=int(min_words * _LENGTH_FACTOR),
-        min_sections=MIN_SECTIONS, doubled=_DOUBLED_EXAMPLE,
-        schema=json.dumps(TOPIC_SCHEMA, indent=2))
-    return head + "\n" + _passages(guide) + _rejected(errors) + "\n"
+        min_sections=MIN_SECTIONS, doubled=_DOUBLED_EXAMPLE, schema=json.dumps(TOPIC_SCHEMA, indent=2))
+    if mode == "improve":
+        head += _IMPROVE_INSTRUCTIONS
+    task = _TASK.format(topic=topic, others_line=others_line, target=int(min_words * _LENGTH_FACTOR))
+    return (head + "\n" + _passages(guide, source_labels, mode, baseline_body) + "\n\n" + task
+            + _rejected(errors) + "\n")
 
 
-def build_worked_example_prompt(topic_title: str, grounded_text: str, errors: list[str] | None = None) -> str:
+_DEFAULT_WORKED_TASK = ("Write a worked numeric example showing how to compute the test statistic, apply its "
+                        "decision rule, and reach a conclusion.")
+
+
+def build_worked_example_prompt(topic_title: str, grounded_text: str, errors: list[str] | None = None,
+                                focus: str | None = None) -> str:
+    task = f"Write a worked numeric example that {focus}." if focus else _DEFAULT_WORKED_TASK
     return (f"(prompt version {PROMPT_VERSION})\n\n"
-            + _WORKED_INSTRUCTIONS.format(title=topic_title, grounded=grounded_text)
+            + _WORKED_INSTRUCTIONS.format(title=topic_title, grounded=grounded_text, task=task)
             + _rejected(errors) + "\n")

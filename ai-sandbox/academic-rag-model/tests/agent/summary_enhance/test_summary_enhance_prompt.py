@@ -6,7 +6,7 @@ from agent.summary_enhance.source_loader import load_guide
 
 
 def test_version():
-    assert PROMPT_VERSION == "2026-10-04.1"
+    assert PROMPT_VERSION == "2026-10-08.1"
 
 
 def test_topic_prompt_contents(vault):
@@ -59,3 +59,10 @@ def test_worked_example_prompt():
 def test_topic_prompt_says_sources_are_bare_labels(vault):
     prompt = build_topic_prompt(load_guide(vault.guide), "Wald test", [], 1400)
     assert 'bare labels such as "S1"' in prompt and "no brackets" in prompt
+
+
+def test_worked_example_prompt_can_name_what_the_example_computes():
+    focus = "computes Luce choice probabilities from weights and checks that a ratio is menu-independent"
+    prompt = build_worked_example_prompt("Luce model", "p = v/sum v", focus=focus)
+    assert focus in prompt and "test statistic" not in prompt and "code execution" in prompt
+    assert "test statistic" in build_worked_example_prompt("Wald test", "W")

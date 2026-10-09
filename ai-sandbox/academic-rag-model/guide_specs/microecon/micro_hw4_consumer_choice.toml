@@ -1,0 +1,635 @@
+# guide_specs/microecon/micro_hw4_consumer_choice.toml
+# Study guide for GR6211 Microeconomic Analysis I (Mark Dean), built around Homework 4 and the lectures up to
+# Consumer Choice 1: random utility and choice, then consumer choice and demand.
+#
+# Topic selection (confirmed by the owner 2026-10-09): taken from the lecture slides and problem sets first, the
+# textbooks second. Two background primer sections come first because the professor assumes a micro background the
+# owner does not have (demand-curve vocabulary, marginal rate of substitution, constrained optimisation).
+# Section 10 (expenditure minimisation, Hicksian demand, Slutsky) goes beyond the lectures given so far because
+# Homework 4 question 3 depends on it; its instruction says so.
+#
+# Textbook section rules use chapter numbers as labels (the converted Press headings read like 2.D, which the label
+# parser sees as chapter 2); the rule's query and max pick the relevant passages inside the chapter.
+#
+# Sourced from hand-converted and TA material too: Homework 2 and 3 (with the owner's own solutions) and the TA
+# solutions to Homeworks 1 to 3. Not yet in the index: the HW3/HW4 hints and guided solutions (no source PDF, so the
+# indexer cannot see them) and the 29 Sep and 1 Oct lecture canvases (not transcribed).
+#
+# Revise: the [revise] table below is part of the spec hash, so it is written now to keep the plan valid for the
+# later revise pass. Out-of-scope material is producer theory, risk, games and equilibrium.
+
+[guide]
+id = "micro_hw4_consumer_choice"
+title = "Microeconomic Analysis I: Random Choice through Consumer Demand (Homework 4 Study Guide)"
+course = "microecon"
+
+[models]
+draft = "gemini-3.8-flash"
+enhance = "gemini-3.8-flash"
+
+[draft]
+prompt = "guide_v1"
+min_words = 1200
+citations = "strip"
+label_match = "heading-prefix"
+top_k = 180
+file_top_k = 80
+
+[[note]]
+heading = "How to use this guide"
+body = "Sections 1 and 2 are a primer on the microeconomics the course assumes: the vocabulary of demand and the optimisation tools used to derive it. Sections 3 to 7 follow the first lectures (preference and utility, random choice, and where rational choice fails). Sections 8 to 11 cover consumer choice and demand, which is the content of Homework 4 questions 2 to 4. Section 10 goes beyond the lectures given so far because Homework 4 question 3 needs it."
+
+# ---------------------------------------------------------------------------------------------------
+# 1. Primer: demand vocabulary and the marginal rate of substitution
+[[topic]]
+title = "Micro toolkit: bundles, budget sets, the marginal rate of substitution and kinds of demand"
+instruction = "Write a primer for a reader with no undergraduate microeconomics. Define from first principles: a commodity bundle, price taking, the budget set and budget line, an indifference curve, the marginal rate of substitution (as the slope of an indifference curve and in terms of marginal utilities), diminishing marginal rate of substitution, and why indifference curves cannot cross. Then explain the kinds of demand: the demand curve itself and movement along it versus a shift of it, ordinary (Marshallian, in this course Walrasian) demand versus compensated (Hicksian) demand, normal, inferior and Giffen goods, substitutes and complements, the income and the substitution effect, and price, income and cross-price elasticities. Say in plain words what each object means before using notation, and flag the terms the lecture slides use without defining. Work at least two small numerical examples."
+construct_examples = true
+
+  [[topic.source]]
+  kind = "file"
+  file = "professor_notes/processed_outputs/6.Consumer_Choice_1.md"
+  query = "commodity bundles price takers budget constraint indifference curves marginal rate of substitution"
+  max = 10
+
+  [[topic.source]]
+  kind = "file"
+  file = "lecture_notes/processed_outputs/Microeconomics 2026-10-06 10.09.07.excalidraw.rag.md"
+  query = "indifference curve marginal rate of substitution budget set commodity bundle"
+  max = 8
+
+  [[topic.source]]
+  kind = "section"
+  book = "Press_Microeconomic_Theory_2011"
+  labels = ["2", "3"]
+  exclude_labels = []
+  query = "consumption set budget set Walrasian demand wealth effects normal inferior goods price effects"
+  max = 12
+
+  [[topic.source]]
+  kind = "file"
+  file = "textbooks/processed_outputs/Rubenstein_Lecture_Notes_in_Microeconomic_Theory_2026/Rubenstein_Lecture_Notes_in_Microeconomic_Theory_2026.md"
+  query = "consumer's world commodity bundles monotonicity budget set indifference curves"
+  max = 10
+
+  [[topic.source]]
+  kind = "discover"
+  query = "income effect substitution effect normal inferior Giffen goods elasticity of demand marginal rate of substitution"
+  doc_types = ["textbook"]
+  max = 12
+  min_score = 0.6
+  max_per_file = 6
+
+# ---------------------------------------------------------------------------------------------------
+# 2. Primer: constrained optimisation
+[[topic]]
+title = "Solving the consumer's problem: Lagrangians, Kuhn-Tucker conditions and corner solutions"
+instruction = "Teach the optimisation tools needed to derive demand, for a reader who has not used them before. Cover: the consumer's problem as maximising utility subject to the budget constraint; why the budget binds under monotone preferences; the Lagrangian and the first-order conditions; the tangency condition (marginal rate of substitution equals the price ratio) and its interpretation; why tangency fails at corners and kinks, and how the Kuhn-Tucker conditions handle inequality constraints; the interpretation of the multiplier. Work a complete derivation for an interior case and a separate worked derivation for a corner case, checking each solution against the budget. State which utility functions need the corner treatment."
+construct_examples = true
+
+  [[topic.source]]
+  kind = "file"
+  file = "professor_notes/processed_outputs/6.Consumer_Choice_1.md"
+  query = "tangency conditions Kuhn Tucker conditions Lagrangian first order conditions consumer's problem"
+  max = 12
+
+  [[topic.source]]
+  kind = "file"
+  file = "lecture_notes/processed_outputs/Microeconomics 2026-10-08 10.14.58.excalidraw.rag.md"
+  query = "consumer choice problem Lagrangian Kuhn Tucker tangency existence"
+  max = 8
+
+  [[topic.source]]
+  kind = "section"
+  book = "Press_Microeconomic_Theory_2011"
+  labels = ["3"]
+  exclude_labels = []
+  query = "utility maximization problem first-order conditions Lagrange multiplier Kuhn-Tucker"
+  max = 10
+
+  [[topic.source]]
+  kind = "file"
+  file = "textbooks/processed_outputs/Rubenstein_Lecture_Notes_in_Microeconomic_Theory_2026/Rubenstein_Lecture_Notes_in_Microeconomic_Theory_2026.md"
+  query = "differentiable preferences marginal rate of substitution consumer maximisation first order condition"
+  max = 8
+
+  [[topic.source]]
+  kind = "discover"
+  query = "constrained optimization Lagrange multipliers Kuhn-Tucker conditions consumer utility maximization corner solution"
+  doc_types = ["textbook"]
+  max = 12
+  min_score = 0.6
+  max_per_file = 6
+
+# ---------------------------------------------------------------------------------------------------
+# 3. Recap: preferences, choice and utility
+[[topic]]
+title = "Preferences, choice and utility representation"
+instruction = "Recap the foundation the later sections build on: a preference relation (complete and transitive), choice from sets of alternatives, preference maximisation as a model of choice, and what it means for a utility function to represent a preference relation on a finite set. Give the representation theorem for finite sets and the idea of its proof, the sense in which a utility function is only unique up to an increasing transformation (ordinal versus cardinal), and the role of the revealed-preference axioms. Say what each step is for. Include the homework-style questions a student would be asked and the usual mistakes."
+
+  [[topic.source]]
+  kind = "file"
+  file = "professor_notes/processed_outputs/2.Utility_Maximization_1.md"
+  query = "preference relation utility representation theorem finite set choice function"
+  max = 14
+
+  [[topic.source]]
+  kind = "file"
+  file = "professor_notes/processed_outputs/Utility_Maximization_1_Proofs.md"
+  query = "representation theorem proof induction utility"
+  max = 8
+
+  [[topic.source]]
+  kind = "file"
+  file = "lecture_notes/processed_outputs/Microeconomics with slides 2026-09-10 10.09.33.excalidraw.rag.md"
+  query = "preferences choice utility representation"
+  max = 6
+
+  [[topic.source]]
+  kind = "file"
+  file = "problem_sets/processed_outputs/homework_1_solutions.md"
+  query = "preference utility representation choice rationalizable"
+  max = 8
+
+  [[topic.source]]
+  kind = "section"
+  book = "Press_Microeconomic_Theory_2011"
+  labels = ["1", "3"]
+  exclude_labels = []
+  query = "preference relations choice rules weak axiom utility function representation"
+  max = 12
+
+  [[topic.source]]
+  kind = "file"
+  file = "textbooks/processed_outputs/Rubenstein_Lecture_Notes_in_Microeconomic_Theory_2026/Rubenstein_Lecture_Notes_in_Microeconomic_Theory_2026.md"
+  query = "utility representation preference relation choice functions rationalizing"
+  max = 10
+
+  [[topic.source]]
+  kind = "file"
+  file = "problem_sets/processed_outputs/homework_2_solutions.md"
+  query = "choice correspondence data set representation theorem alpha beta axioms variants"
+  max = 8
+
+  [[topic.source]]
+  kind = "file"
+  file = "problem_sets/processed_outputs/Homework_3.md"
+  query = "incomplete preference relation multi-utility representation"
+  max = 4
+
+  [[topic.source]]
+  kind = "file"
+  file = "problem_sets/processed_outputs/homework_3_solutions.md"
+  query = "incomplete preference relation multi-utility representation Szpilrajn"
+  max = 8
+
+  [[topic.source]]
+  kind = "file"
+  file = "problem_sets/TA_solutions/processed_outputs/Part_I_HW1_Sol.md"
+  query = "choice correspondence alpha beta WARP rationalizable utility representation"
+  max = 10
+
+  [[topic.source]]
+  kind = "file"
+  file = "problem_sets/TA_solutions/processed_outputs/Part_I_HW2_Sol.md"
+  query = "choice correspondence data set representation theorem variants outside option"
+  max = 8
+
+  [[topic.source]]
+  kind = "file"
+  file = "problem_sets/TA_solutions/processed_outputs/Part_I_HW3_Sol.md"
+  query = "incomplete preference relation multi-utility representation"
+  max = 8
+
+# ---------------------------------------------------------------------------------------------------
+# 4. Continuity, convexity, concavity, Debreu
+[[topic]]
+title = "Continuity, convexity, concavity and Debreu's theorem"
+instruction = "Explain what changes when the set of alternatives is infinite: why a utility representation may fail to exist (lexicographic preferences), order separability, continuity of a preference relation, and Debreu's theorem. Then convexity of preferences versus concavity and quasi-concavity of a utility function, and why convexity of preferences does not require a concave utility function. Use this to set up Homework 4 question 2 (a preference relation on the real line that is continuous and convex but has no concave representation) by explaining what must be checked, without writing out the answer. Define each condition before using it."
+
+  [[topic.source]]
+  kind = "file"
+  file = "professor_notes/processed_outputs/3.Utility_Maximization_2_part_1.md"
+  query = "non-finite set lexicographic preferences order separability continuity Debreu's theorem"
+  max = 14
+
+  [[topic.source]]
+  kind = "file"
+  file = "textbooks/processed_outputs/Rubenstein_Lecture_Notes_in_Microeconomic_Theory_2026/Rubenstein_Lecture_Notes_in_Microeconomic_Theory_2026.md"
+  query = "continuity of preferences Debreu's theorem lexicographic convexity concavity quasi-concavity"
+  max = 14
+
+  [[topic.source]]
+  kind = "file"
+  file = "lecture_notes/processed_outputs/Microeconomics with slides 2026-09-22 10.12.57.excalidraw.rag.md"
+  query = "continuity convexity utility representation infinite"
+  max = 8
+
+  [[topic.source]]
+  kind = "file"
+  file = "problem_sets/processed_outputs/Homework_4.md"
+  query = "convex continuous preferences concave function represents"
+  max = 4
+
+  [[topic.source]]
+  kind = "discover"
+  query = "Debreu representation theorem continuous preferences quasi-concave utility convex preferences"
+  doc_types = ["textbook"]
+  max = 14
+  min_score = 0.6
+  max_per_file = 8
+
+  [[topic.source]]
+  kind = "file"
+  file = "problem_sets/processed_outputs/homework_2_solutions.md"
+  query = "continuity definitions order separable countable dense set"
+  max = 8
+
+  [[topic.source]]
+  kind = "file"
+  file = "problem_sets/processed_outputs/homework_3_solutions.md"
+  query = "continuous strictly monotonic preference utility supremum diagonal bundle"
+  max = 8
+
+  [[topic.source]]
+  kind = "file"
+  file = "problem_sets/TA_solutions/processed_outputs/Part_I_HW2_Sol.md"
+  query = "continuity definitions order separable countable dense set"
+  max = 8
+
+  [[topic.source]]
+  kind = "file"
+  file = "problem_sets/TA_solutions/processed_outputs/Part_I_HW3_Sol.md"
+  query = "continuous strictly monotonic preference utility supremum diagonal bundle"
+  max = 8
+
+# ---------------------------------------------------------------------------------------------------
+# 5. Random utility
+[[topic]]
+title = "Random utility models and the characterisation of random choice"
+instruction = "Explain stochastic choice from the ground up: why observed choices from the same menu can differ, a random choice rule, and the random utility model (the decision maker draws a utility function or preference order, then maximises it). Cover rationalising a random choice rule, the Block-Marschak inequalities, the axiom of revealed stochastic preference, and the Kitamura-Stoye result, saying what each adds. Give a small worked example with three alternatives that checks the Block-Marschak inequalities."
+construct_examples = true
+
+  [[topic.source]]
+  kind = "file"
+  file = "professor_notes/processed_outputs/4.Random_choice.md"
+  query = "random utility rationalizing random choice rule Block Marschak axiom of revealed stochastic preference Kitamura Stoye"
+  max = 16
+
+  [[topic.source]]
+  kind = "file"
+  file = "problem_sets/processed_outputs/Homework_4.md"
+  query = "random choice probability of choosing set"
+  max = 4
+
+  [[topic.source]]
+  kind = "discover"
+  query = "random utility model stochastic choice Block Marschak inequalities random choice rule"
+  doc_types = ["textbook"]
+  max = 12
+  min_score = 0.55
+  max_per_file = 6
+
+  [[topic.source]]
+  kind = "file"
+  file = "problem_sets/processed_outputs/homework_3_solutions.md"
+  query = "random utility Block Marschak inequalities monotonicity stochastic choice"
+  max = 10
+
+  [[topic.source]]
+  kind = "file"
+  file = "problem_sets/TA_solutions/processed_outputs/Part_I_HW3_Sol.md"
+  query = "random utility Block Marschak inequalities monotonicity stochastic choice"
+  max = 10
+
+# ---------------------------------------------------------------------------------------------------
+# 6. Luce, monotonicity, consideration sets
+[[topic]]
+title = "The Luce model, monotonicity and the consideration-set model"
+instruction = "Cover the Luce model of random choice and its defining axiom (independence of irrelevant alternatives in the ratio form), the regularity or monotonicity property (the probability of choosing an option cannot rise when alternatives are added), and what each model implies. Then the random consideration-set model of Homework 4 question 1: a default alternative, a consideration probability for each alternative, choice of the best considered option, the resulting choice probability formula and why it follows, whether it satisfies monotonicity and the Luce axiom, the two axioms (I-asymmetry and I-independence) and what they say, and how the model speaks to choice overload. Teach how to derive and test each property; do not write out the final answers to the homework parts."
+
+  [[topic.source]]
+  kind = "file"
+  file = "professor_notes/processed_outputs/4.Random_choice.md"
+  query = "Luce model extension independence of irrelevant alternatives monotonicity random choice"
+  max = 12
+
+  [[topic.source]]
+  kind = "file"
+  file = "problem_sets/processed_outputs/Homework_4.md"
+  query = "consideration set default alternative Luce axiom monotonicity I-asymmetry I-independence choice overload"
+  max = 8
+
+  [[topic.source]]
+  kind = "file"
+  file = "professor_notes/processed_outputs/5.Failures Of Rationality.md"
+  query = "choice overload violation of independence of irrelevant alternatives"
+  max = 8
+
+  [[topic.source]]
+  kind = "discover"
+  query = "Luce choice axiom independence of irrelevant alternatives random consideration set attention choice probability"
+  doc_types = ["textbook"]
+  max = 12
+  min_score = 0.55
+  max_per_file = 6
+
+  [[topic.source]]
+  kind = "file"
+  file = "problem_sets/processed_outputs/homework_3_solutions.md"
+  query = "stochastic independence of irrelevant alternatives positivity Luce"
+  max = 6
+
+  [[topic.source]]
+  kind = "file"
+  file = "problem_sets/TA_solutions/processed_outputs/Part_I_HW3_Sol.md"
+  query = "stochastic independence of irrelevant alternatives positivity Luce"
+  max = 6
+
+# ---------------------------------------------------------------------------------------------------
+# 7. Failures of rationality
+[[topic]]
+title = "When choice is not rational: evidence against utility maximisation"
+instruction = "Explain the empirical evidence the course uses to test the model: violations of independence of irrelevant alternatives and choice overload, the asymmetric dominance (attraction) and compromise effects and why they violate monotonicity, failing to choose the best option, the endowment effect, default effects in retirement saving, preference reversals, and choice inconsistency over repeated menus. For each, state what the model predicts, what was observed, and which assumption fails. Keep the studies short and tie each to the property it breaks."
+
+  [[topic.source]]
+  kind = "file"
+  file = "professor_notes/processed_outputs/5.Failures Of Rationality.md"
+  query = "violations of IIA asymmetric dominance compromise effect endowment effect defaults preference reversal"
+  max = 18
+
+  [[topic.source]]
+  kind = "file"
+  file = "textbooks/processed_outputs/Rubenstein_Lecture_Notes_in_Microeconomic_Theory_2026/Rubenstein_Lecture_Notes_in_Microeconomic_Theory_2026.md"
+  query = "psychological motives not included in the framework framing choice procedures weak axiom"
+  max = 10
+
+  [[topic.source]]
+  kind = "discover"
+  query = "violations of rationality framing effects compromise effect endowment effect choice procedures"
+  doc_types = ["textbook"]
+  max = 10
+  min_score = 0.55
+  max_per_file = 6
+
+  [[topic.source]]
+  kind = "file"
+  file = "problem_sets/processed_outputs/homework_3_solutions.md"
+  query = "status quo bias default option choice problem"
+  max = 8
+
+  [[topic.source]]
+  kind = "file"
+  file = "problem_sets/processed_outputs/homework_2_solutions.md"
+  query = "contemplation time choice changes data set"
+  max = 6
+
+  [[topic.source]]
+  kind = "file"
+  file = "problem_sets/TA_solutions/processed_outputs/Part_I_HW3_Sol.md"
+  query = "status quo bias default option choice problem"
+  max = 8
+
+  [[topic.source]]
+  kind = "file"
+  file = "problem_sets/TA_solutions/processed_outputs/Part_I_HW2_Sol.md"
+  query = "contemplation time choice changes data set"
+  max = 6
+
+# ---------------------------------------------------------------------------------------------------
+# 8. Classes of preferences and the five utility families
+[[topic]]
+title = "Classes of preferences and the five standard utility functions"
+instruction = "Cover monotonic, strictly monotonic, convex, strictly convex, homothetic and quasi-linear preferences: the definition, the shape of the indifference curves, and what each means economically. Then the five standard utility functions of Homework 4 question 3 (Cobb-Douglas, constant elasticity of substitution, linear, Leontief and quasi-linear): sketch described in words, which properties each satisfies and why, the marginal rate of substitution of each, and the elasticity of substitution (its definition, its interpretation as how easily one good replaces another, and its value for each family). Show how the constant elasticity of substitution family contains the linear and Leontief cases as limits and Cobb-Douglas at its centre. Include one worked check of homotheticity and one of convexity."
+construct_examples = true
+
+  [[topic.source]]
+  kind = "file"
+  file = "professor_notes/processed_outputs/6.Consumer_Choice_1.md"
+  query = "convexity homothetic preferences quasi linear preferences indifference curves classes of preferences"
+  max = 14
+
+  [[topic.source]]
+  kind = "file"
+  file = "problem_sets/processed_outputs/Homework_4.md"
+  query = "Cobb-Douglas constant elasticity of substitution linear Leontief quasi-linear elasticity of substitution"
+  max = 6
+
+  [[topic.source]]
+  kind = "file"
+  file = "lecture_notes/processed_outputs/Microeconomics 2026-10-06 10.09.07.excalidraw.rag.md"
+  query = "monotonic convex quasilinear indifference curves homothetic"
+  max = 8
+
+  [[topic.source]]
+  kind = "file"
+  file = "textbooks/processed_outputs/Rubenstein_Lecture_Notes_in_Microeconomic_Theory_2026/Rubenstein_Lecture_Notes_in_Microeconomic_Theory_2026.md"
+  query = "monotonicity continuity convexity homothetic preferences quasi-linear preferences special classes"
+  max = 14
+
+  [[topic.source]]
+  kind = "section"
+  book = "Press_Microeconomic_Theory_2011"
+  labels = ["3"]
+  exclude_labels = []
+  query = "monotone convex homothetic quasilinear preferences Cobb-Douglas Leontief constant elasticity of substitution"
+  max = 10
+
+  [[topic.source]]
+  kind = "discover"
+  query = "constant elasticity of substitution Cobb-Douglas Leontief utility function elasticity of substitution homothetic quasilinear"
+  doc_types = ["textbook"]
+  max = 12
+  min_score = 0.6
+  max_per_file = 6
+
+# ---------------------------------------------------------------------------------------------------
+# 9. Walrasian demand
+[[topic]]
+title = "Walrasian demand, the indirect utility function and how demand responds to prices and wealth"
+instruction = "Define the Walrasian demand correspondence and function, state when a solution exists (continuity and a compact budget set) and when it is unique, and prove or explain its properties: homogeneity of degree zero, Walras' law, convexity or uniqueness under convexity, and continuity. Define the indirect utility function and its properties. Explain comparative statics: how demand moves with the own price, with other prices and with wealth; the demand function and price changes; and the law of demand and when it fails. Include a worked derivation of Walrasian demand and indirect utility for one of the Homework 4 utility families (Cobb-Douglas), and one corner case."
+construct_examples = true
+
+  [[topic.source]]
+  kind = "file"
+  file = "professor_notes/processed_outputs/6.Consumer_Choice_1.md"
+  query = "consumer's problem existence Walrasian demand correspondence properties demand function and prices"
+  max = 16
+
+  [[topic.source]]
+  kind = "file"
+  file = "lecture_notes/processed_outputs/Microeconomics 2026-10-08 10.14.58.excalidraw.rag.md"
+  query = "Walrasian demand correspondence homogeneity Walras law existence"
+  max = 8
+
+  [[topic.source]]
+  kind = "section"
+  book = "Press_Microeconomic_Theory_2011"
+  labels = ["2", "3"]
+  exclude_labels = []
+  query = "Walrasian demand correspondence function homogeneity Walras' law indirect utility function properties"
+  max = 14
+
+  [[topic.source]]
+  kind = "file"
+  file = "textbooks/processed_outputs/Rubenstein_Lecture_Notes_in_Microeconomic_Theory_2026/Rubenstein_Lecture_Notes_in_Microeconomic_Theory_2026.md"
+  query = "demand consumer choice budget set demand function"
+  max = 10
+
+  [[topic.source]]
+  kind = "discover"
+  query = "Walrasian demand correspondence indirect utility function homogeneity Walras law comparative statics"
+  doc_types = ["textbook"]
+  max = 12
+  min_score = 0.6
+  max_per_file = 6
+
+# ---------------------------------------------------------------------------------------------------
+# 10. Duality (ahead of the lectures)
+[[topic]]
+title = "Expenditure minimisation, Hicksian demand, duality and the Slutsky equation"
+instruction = "This material goes beyond the lectures given so far, but Homework 4 question 3 asks for Hicksian demand, indirect utility and the Slutsky matrix, so say plainly at the start that it is ahead of the course and introduce it from scratch. Cover: the expenditure minimisation problem as the mirror image of utility maximisation; the expenditure function and Hicksian (compensated) demand and their properties; the relationships between Walrasian demand, Hicksian demand, indirect utility and the expenditure function (duality, Shephard's lemma, Roy's identity); the Slutsky equation splitting a price change into a substitution effect and an income effect; and the Slutsky matrix, its symmetry and negative semidefiniteness, and what these say about rational demand. Work the Hicksian demand, expenditure function and Slutsky term for one Homework 4 family and show how the answer is checked."
+construct_examples = true
+
+  [[topic.source]]
+  kind = "section"
+  book = "Press_Microeconomic_Theory_2011"
+  labels = ["3"]
+  exclude_labels = []
+  query = "expenditure minimization problem expenditure function Hicksian demand duality Slutsky equation Slutsky matrix"
+  max = 18
+
+  [[topic.source]]
+  kind = "file"
+  file = "textbooks/processed_outputs/Rubenstein_Lecture_Notes_in_Microeconomic_Theory_2026/Rubenstein_Lecture_Notes_in_Microeconomic_Theory_2026.md"
+  query = "expenditure minimization Hicksian demand Slutsky substitution effect income effect"
+  max = 8
+
+  [[topic.source]]
+  kind = "file"
+  file = "problem_sets/processed_outputs/Homework_4.md"
+  query = "Hicksian demand indirect utility function Slutsky matrix"
+  max = 4
+
+  [[topic.source]]
+  kind = "file"
+  file = "professor_notes/processed_outputs/6.Consumer_Choice_1.md"
+  query = "Hicksian demand expenditure minimization duality Slutsky"
+  max = 6
+
+  [[topic.source]]
+  kind = "discover"
+  query = "expenditure function Hicksian compensated demand duality Shephard's lemma Roy's identity Slutsky equation"
+  doc_types = ["textbook"]
+  max = 14
+  min_score = 0.6
+  max_per_file = 8
+
+# ---------------------------------------------------------------------------------------------------
+# 11. Aggregation and revealed preference
+[[topic]]
+title = "Revealed preference for demand, aggregation and the representative consumer"
+instruction = "Explain when a demand correspondence can be rationalised by a preference relation (the weak axiom of revealed preference applied to budget sets, and what stronger conditions add), and the law of demand that follows. Then aggregation: aggregate demand as the sum of individual demands, why individual rationality does not give a rational aggregate, what it means for aggregate demand to be generated by a representative consumer, and the conditions under which one exists. Teach how to construct two rational consumers whose average choice from two budget sets violates the weak axiom, as Homework 4 question 4 asks, by explaining the structure of such a construction (a check on which budget sets and which bundles) without giving the specific numbers."
+
+  [[topic.source]]
+  kind = "file"
+  file = "professor_notes/processed_outputs/6.Consumer_Choice_1.md"
+  query = "rationalizing a demand correspondence weak axiom of revealed preference"
+  max = 10
+
+  [[topic.source]]
+  kind = "file"
+  file = "problem_sets/processed_outputs/Homework_4.md"
+  query = "representative consumer aggregate demand average behavior"
+  max = 4
+
+  [[topic.source]]
+  kind = "section"
+  book = "Press_Microeconomic_Theory_2011"
+  labels = ["2", "4"]
+  exclude_labels = []
+  query = "weak axiom of revealed preference law of demand aggregate demand representative consumer"
+  max = 18
+
+  [[topic.source]]
+  kind = "file"
+  file = "textbooks/processed_outputs/Rubenstein_Lecture_Notes_in_Microeconomic_Theory_2026/Rubenstein_Lecture_Notes_in_Microeconomic_Theory_2026.md"
+  query = "weak axiom revealed preference demand rationalizing choice correspondences"
+  max = 8
+
+  [[topic.source]]
+  kind = "discover"
+  query = "aggregate demand representative consumer weak axiom of revealed preference market demand"
+  doc_types = ["textbook"]
+  max = 10
+  min_score = 0.6
+  max_per_file = 6
+
+# ---------------------------------------------------------------------------------------------------
+[revise]
+model = "gemini-3.8-flash"
+criteria = ["relevance", "dedup", "correctness", "organization"]
+min_block_words = 60
+relevance_low = 0.68
+relevance_high = 0.80
+judge_fraction = 0.15
+light_thinking = "low"
+audit_thinking = "medium"
+max_cost = 1.0
+scope = "A study guide for a first-year PhD microeconomics course (GR6211, Mark Dean) covering random utility and stochastic choice, failures of rationality, and consumer choice and demand up to Walrasian and Hicksian demand, the Slutsky equation and aggregation, written for a reader without a microeconomics background. Out of scope: producer theory, choice under risk and uncertainty, game theory, general equilibrium and welfare economics."
+
+  [[revise.evidence]]
+  kind = "file"
+  file = "problem_sets/processed_outputs/Homework_4.md"
+  query = "random choice utility function demand Slutsky representative consumer"
+  max = 40
+  weight = 3.0
+
+  [[revise.evidence]]
+  kind = "file"
+  file = "professor_notes/processed_outputs/6.Consumer_Choice_1.md"
+  query = "consumer choice demand indifference curves preferences"
+  max = 40
+  weight = 2.0
+
+  [[revise.evidence]]
+  kind = "file"
+  file = "professor_notes/processed_outputs/4.Random_choice.md"
+  query = "random utility random choice Luce"
+  max = 40
+  weight = 2.0
+
+  [[revise.evidence]]
+  kind = "file"
+  file = "professor_notes/processed_outputs/5.Failures Of Rationality.md"
+  query = "violations of rationality choice"
+  max = 40
+  weight = 2.0
+
+  [[revise.evidence]]
+  kind = "file"
+  file = "professor_notes/processed_outputs/3.Utility_Maximization_2_part_1.md"
+  query = "continuity Debreu utility representation"
+  max = 40
+  weight = 2.0
+
+  [[revise.evidence]]
+  kind = "file"
+  file = "lecture_notes/processed_outputs/Microeconomics 2026-10-08 10.14.58.excalidraw.questions.md"
+  query = "consumer choice demand"
+  max = 40
+  weight = 2.0
+
+  [[revise.evidence]]
+  kind = "file"
+  file = "lecture_notes/processed_outputs/Microeconomics 2026-10-06 10.09.07.excalidraw.questions.md"
+  query = "consumer choice indifference curves"
+  max = 40
+  weight = 2.0
+
+  [[revise.evidence]]
+  kind = "file"
+  file = "syllabus/processed_outputs/G6211_Fall_2025_Syllabus_Part1.md"
+  query = "topics choice preference utility demand"
+  max = 40
+  weight = 1.0
