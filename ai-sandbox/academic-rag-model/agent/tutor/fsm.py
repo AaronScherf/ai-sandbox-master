@@ -1,5 +1,6 @@
-"""fsm.py -- the Socratic tutoring state machine as pure functions (spec §3.3).
-Nothing here touches disk: session.py replays the event log through
+# agent/tutor/fsm.py  (replace the whole file)
+"""fsm.py -- the Socratic tutoring state machine as pure functions (v1 spec §3.3,
+v1.1 §4). Nothing here touches disk: session.py replays the event log through
 replay() on every CLI call, so state can never drift from the log."""
 from __future__ import annotations
 
@@ -31,7 +32,7 @@ class FsmState:
     failed_at_level: int = 0
 
 
-def student_event(s: FsmState, intent: str, n_parts: int) -> tuple[FsmState, dict]:
+def student_event(s: FsmState, intent: str, n_parts: int, made_progress: bool = True) -> tuple[FsmState, dict]:
     if intent not in INTENTS:
         raise IllegalTransition(f"unknown intent {intent!r}; expected one of {sorted(INTENTS)}")
     if s.state == DONE:
@@ -45,8 +46,8 @@ def student_event(s: FsmState, intent: str, n_parts: int) -> tuple[FsmState, dic
             return replace(s, state=SYNTHESIS), {"hint_capped": False}
         return FsmState(part_index=s.part_index + 1), {"hint_capped": False}
     info = {"hint_capped": False}
-    if s.state == SYNTHESIS or intent == "define_request":
-        return s, info
+    if s.state in (SYNTHESIS, VERIFIED, AWAITING_ADVANCE) or intent == "define_request":
+        return s, info          # a closed part is never reopened by a side question
     new = s
     if intent in ("stuck", "hint_request"):
         if s.hint_level >= MAX_HINT_LEVEL:
@@ -55,12 +56,15 @@ def student_event(s: FsmState, intent: str, n_parts: int) -> tuple[FsmState, dic
             info["hint_capped"] = True
         else:
             new = replace(s, hint_level=s.hint_level + 1, failed_at_level=0)
-    if new.state in (LAUNCH, VERIFIED, AWAITING_ADVANCE):
+    elif intent == "attempt" and not made_progress:
+        new = replace(s, failed_at_level=s.failed_at_level + 1)
+    if new.state == LAUNCH:
         new = replace(new, state=WORKING)
     return new, info
 
 
 def verdict_event(s: FsmState, assessment: str) -> FsmState:
+    """v1 only; kept so v1 logs still replay."""
     if assessment not in ASSESSMENTS:
         raise IllegalTransition(f"unknown assessment {assessment!r}; expected one of {sorted(ASSESSMENTS)}")
     if s.state != WORKING:
@@ -68,6 +72,12 @@ def verdict_event(s: FsmState, assessment: str) -> FsmState:
     if assessment == "correct":
         return replace(s, state=VERIFIED)
     return replace(s, failed_at_level=s.failed_at_level + 1)
+
+
+def verify_clean_event(s: FsmState) -> FsmState:
+    if s.state != WORKING:
+        raise IllegalTransition(f"verify is only valid while WORKING (state is {s.state})")
+    return replace(s, state=VERIFIED)
 
 
 def checkin_event(s: FsmState) -> FsmState:
@@ -84,9 +94,11 @@ def replay(events: list[Event], n_parts: int) -> FsmState:
     s = FsmState()
     for e in events:
         if e.type == "student":
-            s, _ = student_event(s, e.intent, n_parts)
+            s, _ = student_event(s, e.intent, n_parts, e.data.get("made_progress", True))
         elif e.type == "verdict":
             s = verdict_event(s, e.data["assessment"])
+        elif e.type == "verify" and e.data.get("clean"):
+            s = verify_clean_event(s)
         elif e.type == "tutor_say" and e.data.get("checkin"):
             s = checkin_event(s)
         elif e.type == "session_end":

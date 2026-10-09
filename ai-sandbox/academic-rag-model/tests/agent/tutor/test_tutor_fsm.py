@@ -1,9 +1,11 @@
+# tests/agent/tutor/test_tutor_fsm.py
 import unittest
 
 from agent.tutor.events import Event
 from agent.tutor.fsm import (
     AWAITING_ADVANCE, DONE, LAUNCH, SYNTHESIS, VERIFIED, WORKING,
-    FsmState, IllegalTransition, checkin_event, finish_event, replay, student_event, verdict_event,
+    FsmState, IllegalTransition, checkin_event, finish_event, replay, student_event,
+    verdict_event, verify_clean_event,
 )
 
 
@@ -13,7 +15,7 @@ def S(**kw):
 
 class TestStudentEvents(unittest.TestCase):
     def test_first_attempt_moves_launch_to_working(self):
-        s, info = student_event(S(), "attempt", 2)
+        s, _ = student_event(S(), "attempt", 2)
         self.assertEqual((s.state, s.hint_level), (WORKING, 0))
 
     def test_define_request_never_changes_state_or_hint_level(self):
@@ -36,9 +38,21 @@ class TestStudentEvents(unittest.TestCase):
         self.assertEqual(s.hint_level, 3)
         self.assertFalse(info["hint_capped"])
 
-    def test_attempt_alone_never_raises_hint_level(self):
-        s, _ = student_event(S(state=WORKING, hint_level=1), "attempt", 2)
-        self.assertEqual(s.hint_level, 1)
+    def test_attempt_that_makes_progress_never_raises_or_fails(self):
+        s, _ = student_event(S(state=WORKING, hint_level=1), "attempt", 2, made_progress=True)
+        self.assertEqual((s.hint_level, s.failed_at_level), (1, 0))
+
+    def test_attempts_without_progress_count_as_failures_until_level_three_opens(self):
+        s = S(state=WORKING, hint_level=2)
+        for _ in range(2):
+            s, _ = student_event(s, "attempt", 2, made_progress=False)
+        self.assertEqual(s.failed_at_level, 2)
+        s, info = student_event(s, "stuck", 2)
+        self.assertEqual((s.hint_level, s.failed_at_level, info["hint_capped"]), (3, 0, False))
+
+    def test_first_attempt_without_progress_is_a_failure_at_level_zero(self):
+        s, _ = student_event(S(), "attempt", 2, made_progress=False)
+        self.assertEqual((s.state, s.failed_at_level), (WORKING, 1))
 
     def test_confirm_advance_illegal_while_working_or_launch(self):
         for st in (LAUNCH, WORKING):
@@ -57,9 +71,11 @@ class TestStudentEvents(unittest.TestCase):
         s, _ = student_event(S(part_index=1, state=AWAITING_ADVANCE), "confirm_advance", 2)
         self.assertEqual((s.part_index, s.state), (1, SYNTHESIS))
 
-    def test_questions_after_verification_return_to_working_same_part(self):
-        s, _ = student_event(S(state=AWAITING_ADVANCE), "has_questions", 2)
-        self.assertEqual((s.part_index, s.state), (0, WORKING))
+    def test_closed_part_stays_closed_for_questions_and_hint_requests(self):
+        for st in (VERIFIED, AWAITING_ADVANCE):
+            for intent in ("has_questions", "other", "attempt", "stuck", "hint_request", "define_request"):
+                s, _ = student_event(S(state=st, hint_level=1), intent, 2, made_progress=False)
+                self.assertEqual((s.state, s.hint_level, s.failed_at_level), (st, 1, 0), (st, intent))
 
     def test_unknown_intent_and_done_state_rejected(self):
         with self.assertRaises(IllegalTransition):
@@ -69,17 +85,18 @@ class TestStudentEvents(unittest.TestCase):
 
 
 class TestTutorSideEvents(unittest.TestCase):
-    def test_verdict_correct_verifies_and_other_verdicts_count_failures(self):
+    def test_verdict_event_is_kept_for_v1_logs(self):
         s = verdict_event(S(state=WORKING), "off_track")
         self.assertEqual((s.state, s.failed_at_level), (WORKING, 1))
-        s = verdict_event(s, "correct")
-        self.assertEqual(s.state, VERIFIED)
-
-    def test_verdict_only_while_working(self):
+        self.assertEqual(verdict_event(s, "correct").state, VERIFIED)
         with self.assertRaises(IllegalTransition):
             verdict_event(S(state=LAUNCH), "correct")
-        with self.assertRaises(IllegalTransition):
-            verdict_event(S(state=WORKING), "great")
+
+    def test_verify_clean_event_only_while_working(self):
+        self.assertEqual(verify_clean_event(S(state=WORKING)).state, VERIFIED)
+        for st in (LAUNCH, VERIFIED, AWAITING_ADVANCE):
+            with self.assertRaises(IllegalTransition):
+                verify_clean_event(S(state=st))
 
     def test_checkin_only_moves_verified(self):
         self.assertEqual(checkin_event(S(state=VERIFIED)).state, AWAITING_ADVANCE)
@@ -92,14 +109,27 @@ class TestTutorSideEvents(unittest.TestCase):
 
 
 class TestReplay(unittest.TestCase):
-    def test_replay_reproduces_state(self):
+    def test_replay_reproduces_state_with_verify_events(self):
         ev = lambda i, t, **kw: Event(id=i, ts="t", type=t, **kw)
         events = [
             ev(1, "session_start"),
-            ev(2, "student", intent="attempt"),
-            ev(3, "verdict", data={"assessment": "correct"}),
-            ev(4, "tutor_say", data={"checkin": True}),
-            ev(5, "student", intent="confirm_advance"),
+            ev(2, "student", intent="attempt", data={"made_progress": True}),
+            ev(3, "verify", data={"clean": False}),
+            ev(4, "student", intent="attempt", data={"made_progress": False}),
+            ev(5, "verify", data={"clean": True}),
+            ev(6, "close_part", data={"ratings": {}}),
+            ev(7, "tutor_say", data={"checkin": True}),
+            ev(8, "student", intent="has_questions"),
+            ev(9, "student", intent="confirm_advance"),
         ]
+        s = replay(events[:5], 2)
+        self.assertEqual((s.state, s.failed_at_level), (VERIFIED, 1))
+        s = replay(events[:8], 2)
+        self.assertEqual((s.part_index, s.state), (0, AWAITING_ADVANCE))
         s = replay(events, 2)
         self.assertEqual((s.part_index, s.state), (1, LAUNCH))
+
+    def test_replay_still_understands_v1_verdict_logs(self):
+        ev = lambda i, t, **kw: Event(id=i, ts="t", type=t, **kw)
+        events = [ev(1, "student", intent="attempt"), ev(2, "verdict", data={"assessment": "correct"})]
+        self.assertEqual(replay(events, 2).state, VERIFIED)
