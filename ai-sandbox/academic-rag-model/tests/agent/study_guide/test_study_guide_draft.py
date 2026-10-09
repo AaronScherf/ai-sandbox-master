@@ -303,3 +303,12 @@ def test_a_draft_stops_once_spend_passes_the_cap_and_keeps_the_finished_sections
         _run(spec, root, llm=llm, max_cost=0.5)
     assert len(llm.calls) == 1
     assert "ANSWER 1" in output_path(root, spec).with_name("demo.recovered.md").read_text(encoding="utf-8")
+
+
+def test_strip_removes_citations_written_as_markdown_links_to_nothing():
+    from agent.study_guide.draft import strip_citations
+    text = ("bundle $p \cdot x \leq w$ ([§2.E, p. 34](#); [§3.A, p. 51](#)): so\n"
+            "* **Walras' Law:** spends all ([Definition 2.E.1, p. 34](#)). Done [See the link](https://x.org).")
+    cleaned, residual = strip_citations(text, ["§2.E Budgets, p. 34"])
+    assert cleaned == ("bundle $p \cdot x \leq w$: so\n* **Walras' Law:** spends all. "
+                       "Done [See the link](https://x.org).") and residual == 0

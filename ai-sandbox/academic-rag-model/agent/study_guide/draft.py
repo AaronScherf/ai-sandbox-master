@@ -25,6 +25,7 @@ _PAGE_PIECE = r"[^;()\[\]]*?\bpp?\.\s?\d+(?:\s*[-\u2013]\s*\d+)?[^;()\[\]]*?"
 _PAGE_ITEM = rf"\[?{_PAGE_PIECE}\]?"
 _PAGE_CITATION_RE = re.compile(rf"\s*[\(\[]\s*{_PAGE_ITEM}(?:\s*;\s*{_PAGE_ITEM})*[\s;,]*[\)\]]")
 _EMPTY_PARENS_RE = re.compile(r"[ \t]+\([\s;,]*\)")
+_LINK_CITATION_RE = re.compile(r"[ \t]*\[[^\]\n]*\]\(#\)")  # the model sometimes writes a citation as [label](#)
 _HEADING_RE = re.compile(r"^(#{1,2})\s+(.*?)\s*$")
 
 
@@ -87,6 +88,8 @@ def _generate(llm, prompt: str) -> str:
 def strip_citations(text: str, labels: list[str]) -> tuple[str, int]:
     """Remove "(label; label)" and "[label]" groups made only of the section's own passage labels.
     Returns the cleaned text and how many citation-looking parentheticals were left unmatched."""
+    text = _LINK_CITATION_RE.sub("", text)
+    text = re.sub(r"[ \t]*\([\s;,]*\)", "", text)  # parentheses emptied by that
     labels = sorted({l for l in labels if l}, key=len, reverse=True)
     if labels:
         alt = "|".join(re.escape(l) for l in labels)
