@@ -20,6 +20,10 @@ Reusable pipeline for building study guides from indexed course material: a **gu
 - **Draft:** `<hub>/academic_notes/<course>/summaries/<id>[.<tag>].md`, a `derived_summary`
   whose `indexer_source_refs` lists every passage used.
 - Never overwrites without `--force`, never runs git, outputs stay inside `academic_notes/`.
+- Cost cap: `draft --max-cost USD` stops between sections (exit 3) and saves the finished ones to `<guide>.recovered.md`. `enhance --topics "frag1,frag2"` rewrites only the topics whose titles contain those fragments and passes the rest through unchanged; `--worked-example --example-focus "what the example computes"` replaces the default test-statistic example task for non-statistics topics.
+- Before planning a non-econometrics course: hand-converted markdown that has a source PDF is indexed by copying it to `academic_notes/<course>/<category>/processed_outputs/<pdf stem>.md` and running `rebuild` and `chunk`; markdown with no PDF cannot be indexed. Canvases (`*.excalidraw.md`) need an exported `.svg` or `.png` beside them. A `file` source rule needs that file's chunks in the index first, and `plan --force` discards review decisions.
+- Check the finished guide against the assignment it serves (coverage and consistency with the solutions) before relying on it; revise did not catch several errors in the first microeconomics guide.
+- Results and cost of the first non-econometrics run: `docs/status/agent/2026-10-09-microecon-hw4-guide-status.md`.
 - Design: `docs/superpowers/specs/agent/2026-10-05-study-guide-pipeline-design.md`.
   Provenance of the baseline: `docs/status/agent/2026-10-05-wald-guide-recovered-generation-status.md`.
 - Tests: `python -m pytest tests/agent/study_guide -q` (no network).
