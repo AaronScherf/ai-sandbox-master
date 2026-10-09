@@ -58,6 +58,15 @@ def test_arithmetic_check_applies_to_constructed_and_worked_blocks():
     assert "Python" in build_arith_prompt(blocks[2])
 
 
+def test_a_worked_block_with_no_computed_result_needs_no_recheck():
+    marker = "**Constructed example (not from the sources)** "
+    body = ("# T\n\n## Wald\n\n### Worked A\n\n" + marker + "n=100 with q = 3 restrictions and critical value 3.84.\n\n"
+            "### Worked B\n\n" + marker + "W = 4/0.436 = 9.17.\n\n"
+            "### Worked C\n\n" + marker + "\\frac{4}{0.436} \\approx 9.17.\n")
+    blocks = [b for b in segment(body) if b.constructed]
+    assert [needs_arithmetic_check(b) for b in blocks] == [False, True, True]
+
+
 def test_parse_arith_turns_failures_into_notes():
     blocks, _ = _blocks()
     text = 'Here is the result:\n[{"quote": "4/0.436 = 9.17", "computed": "9.174", "ok": true}, ' \

@@ -88,3 +88,10 @@ def test_max_cost_is_optional_and_must_be_non_negative(tmp_path):
     assert _load(tmp_path, BASE + "\n[revise]\nmax_cost = 1.5\n").revise.max_cost == 1.5
     with pytest.raises(SpecError, match="max_cost"):
         _load(tmp_path, BASE + "\n[revise]\nmax_cost = -1\n")
+
+
+def test_audit_thinking_defaults_to_medium_and_rejects_unknown_levels(tmp_path):
+    assert _load(tmp_path, BASE + "\n[revise]\n").revise.audit_thinking == "medium"
+    assert _load(tmp_path, BASE + '\n[revise]\naudit_thinking = "default"\n').revise.audit_thinking == "default"
+    with pytest.raises(SpecError, match="audit_thinking"):
+        _load(tmp_path, BASE + '\n[revise]\naudit_thinking = "off"\n')

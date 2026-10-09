@@ -59,8 +59,22 @@ def parse_audit(data: dict, blocks_by_id: dict[str, Block], labels: set[str], st
     return edits, problems
 
 
+# A line states a computed result when an operator, fraction or root sits left of an "=" or "≈" that is followed by a number.
+_RESULT_RE = re.compile(r"(?:=|≈|\\approx)\s*[-−]?\s*\d")
+_OPERATION_RE = re.compile(r"\d\s*(?:[/*×+−^]|\\times|\\cdot|-\s*\d)|\\frac|\\sqrt")
+
+
+def states_a_computed_result(text: str) -> bool:
+    for line in text.splitlines():
+        if any(_OPERATION_RE.search(line[:m.start()]) for m in _RESULT_RE.finditer(line)):
+            return True
+    return False
+
+
 def needs_arithmetic_check(block: Block) -> bool:
-    return bool(re.search(r"\d", block.text)) and (block.constructed or bool(_WORKED_RE.search(block.heading_path[-1] if block.heading_path else "")))
+    """Only a worked or constructed block that shows a calculation is rechecked in code (each recheck costs a call)."""
+    worked = block.constructed or bool(_WORKED_RE.search(block.heading_path[-1] if block.heading_path else ""))
+    return worked and states_a_computed_result(block.text)
 
 
 def build_arith_prompt(block: Block) -> str:

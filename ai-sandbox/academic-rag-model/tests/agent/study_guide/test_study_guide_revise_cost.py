@@ -73,3 +73,31 @@ def test_a_rerun_audits_only_the_sections_whose_text_or_sources_changed(make_spe
     third = ScriptedLLM([{"findings": []}])
     build_report(spec, str(guide), plan, llm=third, **kw)
     assert len(third.calls) == 1
+
+
+def test_the_audit_runs_at_the_spec_audit_thinking_level(make_spec, root, tmp_path):  # noqa: F811
+    from pathlib import Path
+    from agent.study_guide import cli
+    from agent.study_guide.cli import cmd_plan, plan_path_for
+    from agent.study_guide.revise.run import build_report
+    from agent.study_guide.spec import load_spec
+    from rv_helpers import bag_embed
+    from sg_helpers import CARDS, CHUNKS, StubSearch, hit
+    from test_study_guide_revise_run import EVIDENCE, GUIDE, HEADER, SPEC, VOCAB
+    make_spec(SPEC.replace('["relevance", "organization"]', '["correctness"]'), header=HEADER)
+    spec_file = tmp_path / "spec.toml"
+    assert cmd_plan(str(spec_file), root, search=StubSearch({"textbook": [hit("cam-1", .9)]}), chunks=CHUNKS, cards=CARDS) == 0
+    spec = load_spec(spec_file)
+    guide = Path(root) / "academic_notes" / "econ" / "summaries" / "demo.md"
+    guide.write_text(GUIDE, encoding="utf-8")
+    plan = cli.load_plan(plan_path_for(root, spec))
+    levels = []
+
+    class Spy(ScriptedLLM):
+        def with_thinking(self, level):
+            levels.append(level)
+            return self
+
+    build_report(spec, str(guide), plan, llm=Spy([{"findings": []}]), stages=("correctness",), embed=bag_embed(VOCAB),
+                 evidence=EVIDENCE, chunks=CHUNKS)
+    assert spec.revise.audit_thinking == "medium" and levels[-1] == "medium"

@@ -42,7 +42,9 @@ python -m agent.study_guide apply-revise <spec> --guide G --decisions D.json [--
   report. If the run dies (rate limit, crash, low memory), running the same command again reuses that work and only redoes
   the rest; the file is keyed on the guide and spec hashes, so a changed input starts over. `--no-resume` discards it.
 - Cost control. Thinking tokens bill as output and dominated the first full pass (about $1.90). Every stage except the
-  correctness audit runs at `light_thinking` (default `low`; `medium`, `high` or `default` allowed). The report records
+  correctness audit runs at `light_thinking` (default `low`; `medium`, `high` or `default` allowed); the audit runs at
+  `audit_thinking` (default `medium`), and rechecks in code only worked or constructed blocks that show a calculation
+  (an operator, fraction or root left of an `=` or `≈` followed by a number). The report records
   token usage per stage, and `revise` prints it. `--dry-run` prints a rough cost estimate (a prior report of the same
   guide gives per-call averages; otherwise defaults). With a cap (`--max-cost`, or `[revise] max_cost`), a run estimated
   over it is refused before any paid call, and a run whose real spend passes it stops between units (exit 3) with its

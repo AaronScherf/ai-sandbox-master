@@ -80,6 +80,7 @@ class ReviseSpec:
     judge_fraction: float = 0.0
     scope: str = ""
     scope_terms: tuple[str, ...] = ()
+    audit_thinking: str = "medium"  # thinking level for the correctness audit
     max_cost: float = 0.0  # USD cap for one revise run; 0 means no cap
     light_thinking: str = "low"  # thinking level for every stage except the correctness audit; "default" leaves it to the model
 
@@ -195,7 +196,7 @@ def _parse_revise(data: dict) -> ReviseSpec | None:
     if not isinstance(rev, dict):
         raise SpecError("[revise] must be a table")
     _check_keys(rev, {"model", "criteria", "relevance_low", "relevance_high", "dedup_similarity",
-                      "min_block_words", "evidence", "judge_fraction", "scope", "scope_terms", "light_thinking", "max_cost"}, "[revise]")
+                      "min_block_words", "evidence", "judge_fraction", "scope", "scope_terms", "light_thinking", "audit_thinking", "max_cost"}, "[revise]")
     criteria = _strs(rev, "criteria", "[revise]", default=DEFAULT_CRITERIA)
     bad = [c for c in criteria if c not in VALID_CRITERIA]
     if bad:
@@ -203,6 +204,9 @@ def _parse_revise(data: dict) -> ReviseSpec | None:
     light = _str(rev, "light_thinking", "[revise]", "low")
     if light not in ("low", "medium", "high", "default"):
         raise SpecError("[revise]: 'light_thinking' must be one of low, medium, high, default")
+    audit = _str(rev, "audit_thinking", "[revise]", "medium")
+    if audit not in ("low", "medium", "high", "default"):
+        raise SpecError("[revise]: 'audit_thinking' must be one of low, medium, high, default")
     max_cost = rev.get("max_cost", 0)
     if isinstance(max_cost, bool) or not isinstance(max_cost, (int, float)) or max_cost < 0:
         raise SpecError("[revise]: 'max_cost' must be a number of US dollars, 0 or more")
@@ -223,7 +227,7 @@ def _parse_revise(data: dict) -> ReviseSpec | None:
         relevance_low=low, relevance_high=high, dedup_similarity=_unit_float(rev, "dedup_similarity", 0.92, "[revise]"),
         min_block_words=_int(rev, "min_block_words", "[revise]", 60),
         judge_fraction=_unit_float(rev, "judge_fraction", 0.0, "[revise]"), scope=_str(rev, "scope", "[revise]", ""),
-        scope_terms=_strs(rev, "scope_terms", "[revise]"), light_thinking=light, max_cost=float(max_cost))
+        scope_terms=_strs(rev, "scope_terms", "[revise]"), light_thinking=light, audit_thinking=audit, max_cost=float(max_cost))
 
 
 def load_spec(path: str | Path) -> GuideSpec:

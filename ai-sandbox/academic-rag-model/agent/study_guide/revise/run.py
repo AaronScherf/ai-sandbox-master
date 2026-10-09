@@ -106,7 +106,8 @@ def build_report(spec: GuideSpec, guide_path: str, plan, *, stages, llm, embed, 
     embed = _memoized(embed)
     r, edits, protected, scores = spec.revise, [], [], {}
     usage: dict[str, dict] = {}
-    cheap = llm.with_thinking(r.light_thinking) if hasattr(llm, "with_thinking") else llm  # audit keeps full thinking
+    cheap = llm.with_thinking(r.light_thinking) if hasattr(llm, "with_thinking") else llm
+    auditor = llm.with_thinking(r.audit_thinking) if hasattr(llm, "with_thinking") else llm
 
     def unit(name, compute):
         """Run one unit of work, or reuse its saved result from an earlier run of the same inputs.
@@ -168,7 +169,7 @@ def build_report(spec: GuideSpec, guide_path: str, plan, *, stages, llm, embed, 
                     if hit is not None:
                         rows = [{**row, "id": f"cor-{start + i:03d}"} for i, row in enumerate(hit["edits"])]
                         return {"edits": rows, "problems": hit["problems"]}
-                    found, problems = audit_section(llm, title, section, passages, start=start)
+                    found, problems = audit_section(auditor, title, section, passages, start=start)
                     result = {"edits": [asdict(e) for e in found], "problems": problems}
                     if audit_cache:
                         audit_cache.put(key, result)
