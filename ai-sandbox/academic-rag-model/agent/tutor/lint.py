@@ -1,12 +1,14 @@
-"""lint.py -- conservative lexical checks on a tutor draft before it is sent
-(spec §4) and on glossary definitions at prep time (spec §3.1). A false
-positive costs one revision; a false negative costs a leak, so rules lean
-strict. Cannot catch paraphrased strategy hints (spec §11)."""
+# agent/tutor/lint.py  (replace the whole file)
+"""lint.py -- checks on a tutor draft before it is sent (v1 spec §4, v1.1 §6) and
+on glossary definitions at prep time. v1.1 adds claim disclosure (a draft may not
+match the recognizer of a claim the student has not reached) and the question
+form. A false positive costs one revision; a false negative costs a leak."""
 from __future__ import annotations
 
 import re
 from dataclasses import dataclass
 
+from agent.tutor.claims import tokenize
 from agent.tutor.fsm import LAUNCH, VERIFIED, WORKING
 
 
@@ -39,6 +41,12 @@ _SUBQ_LINE = re.compile(r"^\s*(?:\d+[.)]|[A-Za-z][.)]|[-*•])\s+.*\?\s*$", re.M
 _LATEX_IN_CHAT = re.compile(r"\$|\\\(|\\\[|\\[A-Za-z]{2,}")
 _CHECKIN = re.compile(r"lingering|any questions|ready to move on|move on", re.I)
 _BACKREF = re.compile(r"\b(?:part|question|problem)\s+\d", re.I)
+_SENTENCE_SPLIT = re.compile(r"(?<=[.!?])\s+")
+_STOP = {"that", "this", "with", "from", "have", "been", "were", "will", "would", "could", "should", "what",
+         "when", "where", "which", "there", "their", "them", "then", "than", "into", "your", "about", "also",
+         "just", "like", "does", "think", "said", "because", "these", "those", "every", "being"}
+MAX_FORM_WORDS = 60
+STATEMENT_RUN = 6
 
 
 def _normalize(text: str) -> str:
@@ -74,9 +82,41 @@ def _ngrams(text: str, n: int = 6) -> set[tuple]:
     return {tuple(words[i:i + n]) for i in range(len(words) - n + 1)}
 
 
+def _mask_statement_runs(tokens: list[str], statement_tokens: list[str], n: int = STATEMENT_RUN) -> list[str]:
+    runs = {tuple(statement_tokens[i:i + n]) for i in range(len(statement_tokens) - n + 1)}
+    masked = list(tokens)
+    for i in range(len(tokens) - n + 1):
+        if tuple(tokens[i:i + n]) in runs:
+            for j in range(i, i + n):
+                masked[j] = ""
+    return masked
+
+
+def _content_words(text: str) -> set[str]:
+    return {t for t in tokenize(text) if len(t) >= 4 and t not in _STOP}
+
+
+def check_form(text: str, last_student_text: str, max_words: int = MAX_FORM_WORDS) -> str | None:
+    """The question form (v1.1 §6): at most one question, a word cap, and at most one other
+    sentence which must restate the student's own words. Returns the reason or None."""
+    if text.count("?") > 1:
+        return "ask at most one question"
+    if len(text.split()) > max_words:
+        return f"use at most {max_words} words"
+    sentences = [s.strip() for s in _SENTENCE_SPLIT.split(text.strip()) if s.strip()]
+    statements = [s for s in sentences if not s.endswith("?")]
+    if len(statements) > 1:
+        return "use at most one non-question sentence"
+    if statements and len(_content_words(statements[0]) & _content_words(last_student_text)) < 2:
+        return ("the one non-question sentence must restate or acknowledge the student's own words "
+                "(share at least two content words with their last message)")
+    return None
+
+
 def lint_message(
     text: str, *, state: str, hint_level: int, student_text: str = "", statement: str = "",
     sealed_solution: str = "", allowed_exact=(), after_define: bool = False, forbidden_patterns=(),
+    blocked_claims: dict | None = None, form: bool = False, last_student_text: str = "",
 ) -> list[Violation]:
     if _normalize(text) in {_normalize(a) for a in allowed_exact}:
         return []
@@ -93,8 +133,17 @@ def lint_message(
             found.append(Violation("NOTATION_BRIDGE", f"a definition answer must not use the problem's notation: {hits}"))
     if sealed_solution and _ngrams(text) & _ngrams(sealed_solution):
         found.append(Violation("SEALED_OVERLAP", "draft repeats a phrase from the sealed solution"))
+    if blocked_claims:
+        masked = _mask_statement_runs(tokenize(text), tokenize(statement))
+        for cid, rec in blocked_claims.items():
+            if rec.matches_tokens(masked):
+                found.append(Violation("REVEALS_CLAIM", f"introduces an idea the student has not reached (claim {cid})"))
     if state == WORKING and hint_level < 3 and len(_SUBQ_LINE.findall(text)) >= 2:
         found.append(Violation("SUBQUESTION_LIST", "leading sub-question list before the student proposed a plan"))
+    if form:
+        reason = check_form(text, last_student_text)
+        if reason:
+            found.append(Violation("QUESTION_FORM", reason))
     if state == VERIFIED and not (_CHECKIN.search(text) and "?" in text):
         found.append(Violation("CHECKIN_MISSING", "ask whether they have lingering questions or are ready to move on"))
     for pattern in forbidden_patterns:

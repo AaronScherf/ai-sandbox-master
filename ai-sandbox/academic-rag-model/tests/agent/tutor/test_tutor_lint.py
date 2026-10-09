@@ -89,3 +89,59 @@ class TestLintGlossary(unittest.TestCase):
     def test_clean_definition_and_unrelated_term_pass(self):
         g = {"choice overload": "A finding that many options can make people choose nothing.", "lattice": "A poset with joins and meets."}
         self.assertEqual(lint_glossary(g, [STATEMENT]), [])
+
+
+from agent.tutor.claims import parse_recognizer
+from agent.tutor.lint import check_form
+
+BLOCKED = {"C3": parse_recognizer({"all": [["independen*"], ["multipl*", "product", "joint", "together"]], "window": 14})}
+STATEMENT2 = ("The probability of an alternative a being considered is gamma which is independent of the "
+              "probability of any other alternative being considered together here.")
+
+
+class TestDisclosure(unittest.TestCase):
+    def test_unreached_claim_is_rejected_by_id_only(self):
+        draft = "Since each item is considered independently, how would you express the probability of all those events together?"
+        v = lint(draft, blocked_claims=BLOCKED)
+        self.assertEqual(codes(v), {"REVEALS_CLAIM"})
+        self.assertIn("C3", v[0].detail)
+        self.assertNotIn("independen", v[0].detail)        # the recognizer words must not leak through the message
+
+    def test_neutral_question_passes_with_blocked_claims(self):
+        self.assertEqual(lint("What have you tried so far?", blocked_claims=BLOCKED), [])
+
+    def test_no_blocked_claims_means_no_disclosure_check(self):
+        self.assertEqual(lint("The events are independent so multiply them together."), [])
+
+    def test_quoting_the_problem_statement_is_not_a_reveal(self):
+        quote = "As written, independent of the probability of any other alternative being considered together, correct?"
+        self.assertEqual(lint(quote, statement=STATEMENT2, blocked_claims=BLOCKED), [])
+        paraphrase = "These are independent, so how do they combine together?"
+        self.assertIn("REVEALS_CLAIM", codes(lint(paraphrase, statement=STATEMENT2, blocked_claims=BLOCKED)))
+
+
+class TestQuestionForm(unittest.TestCase):
+    LAST = "I think the alternative needs to be considered and have the highest utility"
+
+    def form(self, text):
+        return lint(text, form=True, last_student_text=self.LAST)
+
+    def test_good_forms_pass(self):
+        self.assertEqual(self.form("What else has to happen for that alternative to be chosen?"), [])
+        self.assertEqual(self.form("You said the alternative needs the highest utility. What else has to happen?"), [])
+
+    def test_two_questions_rejected(self):
+        self.assertIn("QUESTION_FORM", codes(self.form("What do you mean? And why does it matter?")))
+
+    def test_word_cap_rejected(self):
+        self.assertIn("QUESTION_FORM", codes(self.form(" ".join(["word"] * 70) + "?")))
+
+    def test_second_statement_rejected(self):
+        self.assertIn("QUESTION_FORM", codes(self.form("You are right. That is the idea. What next?")))
+
+    def test_statement_must_echo_the_student(self):
+        reason = check_form("Items have prices. What do you think?", self.LAST)
+        self.assertIn("own words", reason)
+
+    def test_form_is_off_by_default(self):
+        self.assertEqual(lint("Two questions? Really? Yes, " + "word " * 80), [])
