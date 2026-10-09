@@ -27,7 +27,7 @@ Reusable pipeline for building study guides from indexed course material: a **gu
 ## revise (refine a large guide)
 
 ```
-python -m agent.study_guide revise       <spec> --guide G [--plan P] [--stages relevance,dedup,correctness,organization] [--tag T] [--dry-run] [--force] [--env-file F]
+python -m agent.study_guide revise       <spec> --guide G [--plan P] [--stages relevance,dedup,correctness,organization] [--tag T] [--dry-run] [--force] [--max-cost USD] [--no-resume] [--env-file F]
 python -m agent.study_guide apply-revise <spec> --guide G --decisions D.json [--tag T] [--force]
 ```
 
@@ -41,10 +41,17 @@ python -m agent.study_guide apply-revise <spec> --guide G --decisions D.json [--
 - A `revise` run saves each finished stage (and each audited section) to `<guide>[.<tag>].revise.partial.json` next to the
   report. If the run dies (rate limit, crash, low memory), running the same command again reuses that work and only redoes
   the rest; the file is keyed on the guide and spec hashes, so a changed input starts over. `--no-resume` discards it.
+- Cost control. Thinking tokens bill as output and dominated the first full pass (about $1.90). Every stage except the
+  correctness audit runs at `light_thinking` (default `low`; `medium`, `high` or `default` allowed). The report records
+  token usage per stage, and `revise` prints it. `--dry-run` prints a rough cost estimate (a prior report of the same
+  guide gives per-call averages; otherwise defaults). With a cap (`--max-cost`, or `[revise] max_cost`), a run estimated
+  over it is refused before any paid call, and a run whose real spend passes it stops between units (exit 3) with its
+  work saved, so rerunning with a higher cap resumes. Audits are cached by section text, source passages and model in
+  `guide_plans/revise.audit-cache.json`, so a rerun on a changed guide audits only the changed sections.
 - `apply-revise` is deterministic and calls no model: it applies the accepted edits (decisions file maps edit id to
   `accept` or `reject`; undecided counts as rejected), checks the post-conditions (guide not longer, no new page citations,
   no new heading problems, untouched blocks unchanged) and writes `<guide>.revised[.<tag>].md` and a changelog. It refuses a
   guide that changed since the report, and never overwrites without `--force`.
 - Spec: an optional `[revise]` table (`model`, `criteria`, `relevance_low`, `relevance_high`, `dedup_similarity`,
-  `min_block_words`, and `[[revise.evidence]]` rules with a `weight`; same rule keys as `[[topic.source]]`).
+  `min_block_words`, `judge_fraction`, `scope`, `scope_terms`, `light_thinking`, `max_cost`, and `[[revise.evidence]]` rules with a `weight`; same rule keys as `[[topic.source]]`).
 - Design: `docs/superpowers/specs/agent/2026-10-08-guide-revise-pipeline-design.md`.
