@@ -65,6 +65,45 @@ def test_report_has_hash_blocks_and_stage_edits(env):
     assert report.edits[0].targets and len(report.blocks) >= 3 and report.protected_blocks
 
 
+def test_the_report_records_token_usage_per_unit(env):
+    _, spec, guide = env
+    report = _build(spec, guide, llm=ScriptedLLM([{"edits": []}]))
+    assert report.usage["relevance"]["calls"] == 0
+    assert report.usage["organization"] == {"calls": 1, "prompt_tokens": 100, "output_tokens": 10,
+                                            "thinking_tokens": 50, "cached_tokens": 0}
+
+
+def test_saved_usage_survives_a_resume_and_a_report_round_trip(env, tmp_path):
+    from agent.study_guide.revise.checkpoint import Checkpoint
+    from agent.study_guide.revise.edits import save_report
+    _, spec, guide = env
+    plan = cli.load_plan(plan_path_for(str(guide.parents[3]), spec))
+    cp = Checkpoint(tmp_path / "p.json", "k")
+    kw = dict(stages=("relevance", "organization"), embed=bag_embed(VOCAB), evidence=EVIDENCE, chunks=CHUNKS, checkpoint=cp)
+    build_report(spec, str(guide), plan, llm=ScriptedLLM([{"edits": []}]), **kw)
+    again = ScriptedLLM([])
+    report = build_report(spec, str(guide), plan, llm=again, **kw)
+    assert again.calls == [] and report.usage["organization"]["calls"] == 1
+    save_report(report, tmp_path / "r.json")
+    assert load_report(tmp_path / "r.json").usage == report.usage
+
+
+def test_usage_by_stage_sums_the_audited_sections():
+    from agent.study_guide.revise.run import usage_by_stage
+    one = {"calls": 1, "prompt_tokens": 100, "output_tokens": 10, "thinking_tokens": 50, "cached_tokens": 0}
+    got = usage_by_stage({"relevance": one, "correctness:A": one, "correctness:B": one})
+    assert list(got) == ["relevance", "correctness"] and got["correctness"]["calls"] == 2
+    assert got["correctness"]["thinking_tokens"] == 100
+
+
+def test_cmd_revise_prints_usage_for_each_stage(env, root, capsys):
+    spec_file, _, guide = env
+    cmd_revise(str(spec_file), root, guide_path=str(guide), llm=ScriptedLLM([{"edits": []}]), embed=bag_embed(VOCAB),
+               chunks=CHUNKS, cards=CARDS, search=lambda *a, **k: [], evidence=EVIDENCE)
+    out = capsys.readouterr().out
+    assert "organization: 1 calls" in out and "50 thinking" in out
+
+
 def test_stage_selection_limits_what_runs(env):
     _, spec, guide = env
     llm = ScriptedLLM([])

@@ -41,6 +41,7 @@ class EditReport:
     blocks: list[dict]
     edits: list[Edit]
     protected_blocks: list[str]
+    usage: dict[str, dict] = field(default_factory=dict)  # token usage per unit of work (stage or audited section)
 
 
 def save_report(report: EditReport, path: str | Path) -> None:
@@ -53,7 +54,7 @@ def load_report(path: str | Path) -> EditReport:
     try:
         data = json.loads(Path(path).read_text(encoding="utf-8"))
         return EditReport(data["guide_path"], data["guide_sha256"], data["created_at"], data["blocks"],
-                          [Edit(**e) for e in data["edits"]], data["protected_blocks"])
+                          [Edit(**e) for e in data["edits"]], data["protected_blocks"], data.get("usage", {}))
     except (OSError, KeyError, TypeError, json.JSONDecodeError) as err:
         raise ReviseError(f"cannot read edit report {path}: {err}") from err
 

@@ -9,8 +9,13 @@ class ScriptedLLM:
         self.replies = list(replies)
         self.calls: list[str] = []
         self.kinds: list[str] = []
+        self.usage = {"calls": 0, "prompt_tokens": 0, "output_tokens": 0, "thinking_tokens": 0, "cached_tokens": 0}
 
     def _next(self):
+        self.usage["calls"] += 1
+        self.usage["prompt_tokens"] += 100
+        self.usage["output_tokens"] += 10
+        self.usage["thinking_tokens"] += 50
         reply = self.replies.pop(0)
         if isinstance(reply, Exception):
             raise reply

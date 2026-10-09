@@ -103,13 +103,19 @@ def build_report(spec: GuideSpec, guide_path: str, plan, *, stages, llm, embed, 
     blocks = segment(body)
     embed = _memoized(embed)
     r, edits, protected, scores = spec.revise, [], [], {}
+    usage: dict[str, dict] = {}
 
     def unit(name, compute):
-        """Run one unit of work, or reuse its saved result from an earlier run of the same inputs."""
+        """Run one unit of work, or reuse its saved result from an earlier run of the same inputs.
+        The tokens a unit spent are saved with it, so a resumed run still reports the whole cost."""
         saved = checkpoint.get(name) if checkpoint else None
         if saved is not None:
+            usage[name] = saved.get("_usage", {})
             return saved
+        before = dict(getattr(llm, "usage", None) or {})
         payload = compute()
+        after = getattr(llm, "usage", None) or {}
+        payload["_usage"] = usage[name] = {k: after[k] - before.get(k, 0) for k in after}
         if checkpoint:
             checkpoint.put(name, payload)
         return payload
@@ -178,7 +184,7 @@ def build_report(spec: GuideSpec, guide_path: str, plan, *, stages, llm, embed, 
         created_at=now or datetime.now(timezone.utc).isoformat(timespec="seconds"),
         blocks=[{"id": b.id, "heading_path": list(b.heading_path), "words": b.words,
                  "relevance": round(scores[b.id].score, 3) if b.id in scores else None} for b in blocks],
-        edits=edits, protected_blocks=protected)
+        edits=edits, protected_blocks=protected, usage=usage)
     mark_conflicts(report)
     problems = validate_report(report, blocks)
     if problems:
@@ -255,8 +261,25 @@ def cmd_revise(spec_path: str, root: str, *, guide_path: str, plan_path: str | N
     for e in report.edits:
         by_stage[e.stage] = by_stage.get(e.stage, 0) + 1
     print(f"Wrote {out}: {len(report.edits)} proposed edits {by_stage}; review them in the Artifact, then apply-revise.")
+    _print_stage_usage(report.usage)
     _print_usage(llm)
     return EXIT_OK
+
+
+def usage_by_stage(usage: dict[str, dict]) -> dict[str, dict]:
+    """Sum per-unit usage into per-stage totals (every audited section counts toward `correctness`)."""
+    out: dict[str, dict] = {}
+    for unit_name, u in usage.items():
+        total = out.setdefault(unit_name.split(":")[0], {})
+        for k, v in u.items():
+            total[k] = total.get(k, 0) + v
+    return out
+
+
+def _print_stage_usage(usage: dict[str, dict]) -> None:
+    for stage, u in usage_by_stage(usage).items():
+        print(f"  {stage}: {u.get('calls', 0)} calls, {u.get('prompt_tokens', 0)} prompt, "
+              f"{u.get('output_tokens', 0)} output, {u.get('thinking_tokens', 0)} thinking tokens")
 
 
 def _print_usage(llm) -> None:
