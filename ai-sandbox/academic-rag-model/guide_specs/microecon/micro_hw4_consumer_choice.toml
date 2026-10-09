@@ -11,9 +11,9 @@
 # Textbook section rules use chapter numbers as labels (the converted Press headings read like 2.D, which the label
 # parser sees as chapter 2); the rule's query and max pick the relevant passages inside the chapter.
 #
-# Not yet in the index (so not sourced here): Homework 3 and its solutions, Homework 2 solutions, the TA solutions,
-# the HW4 hints and guided solutions, and the 29 Sep and 1 Oct lecture canvases. Process and index them, then rebuild
-# the plan, to add them.
+# Sourced from hand-converted and TA material too: Homework 2 and 3 (with the owner's own solutions) and the TA
+# solutions to Homeworks 1 to 3. Not yet in the index: the HW3/HW4 hints and guided solutions (no source PDF, so the
+# indexer cannot see them) and the 29 Sep and 1 Oct lecture canvases (not transcribed).
 #
 # Revise: the [revise] table below is part of the spec hash, so it is written now to keep the plan valid for the
 # later revise pass. Out-of-scope material is producer theory, risk, games and equilibrium.
@@ -165,6 +165,42 @@ instruction = "Recap the foundation the later sections build on: a preference re
   query = "utility representation preference relation choice functions rationalizing"
   max = 10
 
+  [[topic.source]]
+  kind = "file"
+  file = "problem_sets/processed_outputs/homework_2_solutions.md"
+  query = "choice correspondence data set representation theorem alpha beta axioms variants"
+  max = 8
+
+  [[topic.source]]
+  kind = "file"
+  file = "problem_sets/processed_outputs/Homework_3.md"
+  query = "incomplete preference relation multi-utility representation"
+  max = 4
+
+  [[topic.source]]
+  kind = "file"
+  file = "problem_sets/processed_outputs/homework_3_solutions.md"
+  query = "incomplete preference relation multi-utility representation Szpilrajn"
+  max = 8
+
+  [[topic.source]]
+  kind = "file"
+  file = "problem_sets/TA_solutions/processed_outputs/Part_I_HW1_Sol.md"
+  query = "choice correspondence alpha beta WARP rationalizable utility representation"
+  max = 10
+
+  [[topic.source]]
+  kind = "file"
+  file = "problem_sets/TA_solutions/processed_outputs/Part_I_HW2_Sol.md"
+  query = "choice correspondence data set representation theorem variants outside option"
+  max = 8
+
+  [[topic.source]]
+  kind = "file"
+  file = "problem_sets/TA_solutions/processed_outputs/Part_I_HW3_Sol.md"
+  query = "incomplete preference relation multi-utility representation"
+  max = 8
+
 # ---------------------------------------------------------------------------------------------------
 # 4. Continuity, convexity, concavity, Debreu
 [[topic]]
@@ -203,6 +239,30 @@ instruction = "Explain what changes when the set of alternatives is infinite: wh
   min_score = 0.6
   max_per_file = 8
 
+  [[topic.source]]
+  kind = "file"
+  file = "problem_sets/processed_outputs/homework_2_solutions.md"
+  query = "continuity definitions order separable countable dense set"
+  max = 8
+
+  [[topic.source]]
+  kind = "file"
+  file = "problem_sets/processed_outputs/homework_3_solutions.md"
+  query = "continuous strictly monotonic preference utility supremum diagonal bundle"
+  max = 8
+
+  [[topic.source]]
+  kind = "file"
+  file = "problem_sets/TA_solutions/processed_outputs/Part_I_HW2_Sol.md"
+  query = "continuity definitions order separable countable dense set"
+  max = 8
+
+  [[topic.source]]
+  kind = "file"
+  file = "problem_sets/TA_solutions/processed_outputs/Part_I_HW3_Sol.md"
+  query = "continuous strictly monotonic preference utility supremum diagonal bundle"
+  max = 8
+
 # ---------------------------------------------------------------------------------------------------
 # 5. Random utility
 [[topic]]
@@ -229,6 +289,18 @@ construct_examples = true
   max = 12
   min_score = 0.55
   max_per_file = 6
+
+  [[topic.source]]
+  kind = "file"
+  file = "problem_sets/processed_outputs/homework_3_solutions.md"
+  query = "random utility Block Marschak inequalities monotonicity stochastic choice"
+  max = 10
+
+  [[topic.source]]
+  kind = "file"
+  file = "problem_sets/TA_solutions/processed_outputs/Part_I_HW3_Sol.md"
+  query = "random utility Block Marschak inequalities monotonicity stochastic choice"
+  max = 10
 
 # ---------------------------------------------------------------------------------------------------
 # 6. Luce, monotonicity, consideration sets
@@ -262,6 +334,18 @@ instruction = "Cover the Luce model of random choice and its defining axiom (ind
   min_score = 0.55
   max_per_file = 6
 
+  [[topic.source]]
+  kind = "file"
+  file = "problem_sets/processed_outputs/homework_3_solutions.md"
+  query = "stochastic independence of irrelevant alternatives positivity Luce"
+  max = 6
+
+  [[topic.source]]
+  kind = "file"
+  file = "problem_sets/TA_solutions/processed_outputs/Part_I_HW3_Sol.md"
+  query = "stochastic independence of irrelevant alternatives positivity Luce"
+  max = 6
+
 # ---------------------------------------------------------------------------------------------------
 # 7. Failures of rationality
 [[topic]]
@@ -287,6 +371,30 @@ instruction = "Explain the empirical evidence the course uses to test the model:
   max = 10
   min_score = 0.55
   max_per_file = 6
+
+  [[topic.source]]
+  kind = "file"
+  file = "problem_sets/processed_outputs/homework_3_solutions.md"
+  query = "status quo bias default option choice problem"
+  max = 8
+
+  [[topic.source]]
+  kind = "file"
+  file = "problem_sets/processed_outputs/homework_2_solutions.md"
+  query = "contemplation time choice changes data set"
+  max = 6
+
+  [[topic.source]]
+  kind = "file"
+  file = "problem_sets/TA_solutions/processed_outputs/Part_I_HW3_Sol.md"
+  query = "status quo bias default option choice problem"
+  max = 8
+
+  [[topic.source]]
+  kind = "file"
+  file = "problem_sets/TA_solutions/processed_outputs/Part_I_HW2_Sol.md"
+  query = "contemplation time choice changes data set"
+  max = 6
 
 # ---------------------------------------------------------------------------------------------------
 # 8. Classes of preferences and the five utility families
