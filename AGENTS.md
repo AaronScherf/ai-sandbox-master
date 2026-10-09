@@ -22,6 +22,16 @@ user, authorizes its documented API calls and the data transfers they require;
 keep calls within the requested inputs and options, and ask only if the run
 would materially expand that scope.
 
+## Codex completion updates
+
+- After a long-running code task or multi-stage implementation, summarize the
+  completed work and the current project status. Include the verification
+  results and any remaining tasks or gates; reporting only that tests finished
+  is not enough.
+- End each user-facing response with a concise question about next steps. When
+  work remains, recommend the most useful next action; when no follow-up is
+  apparent, ask whether the user wants to continue with another task or stop.
+
 ## Planning and architecture work
 
 When explicitly asked to plan or design a project change:
