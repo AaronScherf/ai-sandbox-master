@@ -184,7 +184,8 @@ def cmd_enhance(spec_path: str, root: str, *, draft_path: str, plan_path: str | 
                 model: str | None = None, tag: str = "", force: bool = False, dry_run: bool = False,
                 accept_unreviewed: bool = False, env_file: str | None = None, llm=None,
                 chunks=None, cards=None, output: str | None = None, baseline: str = "full",
-                only_below: int | None = None, only_topics: list[str] | None = None) -> int:
+                only_below: int | None = None, only_topics: list[str] | None = None,
+                example_focus: str | None = None) -> int:
     try:
         spec = load_spec(spec_path)
         validate_tag(tag)
@@ -213,7 +214,8 @@ def cmd_enhance(spec_path: str, root: str, *, draft_path: str, plan_path: str | 
         str(draft), topics=[t.title for t in spec.topics], output=output, model=model or spec.enhance_model,
         force=force, dry_run=dry_run, llm=llm, env_file=env_file, worked_example=worked_example,
         min_words=min_words, mode=mode, extra_sources=extras, baseline=baseline, only_below=only_below,
-        carry_before=carry_before, carry_after=carry_after, only_topics=only_topics)
+        carry_before=carry_before, carry_after=carry_after, only_topics=only_topics,
+        example_focus=example_focus)
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -257,6 +259,7 @@ def main(argv: list[str] | None = None) -> int:
     sp.add_argument("--worked-example", action="store_true")
     sp.add_argument("--baseline", choices=("full", "per-topic"), default="full",
                     help="per-topic: each topic sees only its own section of the draft and its own passages")
+    sp.add_argument("--example-focus", help="what the --worked-example computes (default: a test statistic and its decision rule)")
     sp.add_argument("--topics", help="comma-separated fragments of topic titles: enhance only those sections, keep the rest unchanged")
     sp.add_argument("--only-below", type=int, metavar="WORDS",
                     help="keep a topic's draft section unchanged when it already has at least this many words")
@@ -306,7 +309,8 @@ def main(argv: list[str] | None = None) -> int:
                            tag=args.tag, force=args.force, dry_run=args.dry_run,
                            accept_unreviewed=args.accept_unreviewed, env_file=args.env_file, output=args.output,
                            baseline="topic" if args.baseline == "per-topic" else "full", only_below=args.only_below,
-                           only_topics=[s.strip() for s in args.topics.split(",")] if args.topics else None)
+                           only_topics=[s.strip() for s in args.topics.split(",")] if args.topics else None,
+                           example_focus=args.example_focus)
     if args.command in ("plan", "run"):
         client = _paid_client(args.env_file)
         code = cmd_plan(args.spec, args.root, client=client, force=getattr(args, "force", False))

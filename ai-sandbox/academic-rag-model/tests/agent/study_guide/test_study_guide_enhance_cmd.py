@@ -249,3 +249,11 @@ def test_main_passes_topics(monkeypatch, tmp_path):
     assert seen["only_topics"] == ["Luce", "Wald"]
     assert main(["enhance", "s.toml", "--root", str(tmp_path), "--draft", "d.md"]) == 0
     assert seen["only_topics"] is None
+
+
+def test_main_passes_example_focus(monkeypatch, tmp_path):
+    seen = {}
+    monkeypatch.setattr(cli, "cmd_enhance", lambda spec, root, **kw: seen.update(kw) or 0)
+    assert main(["enhance", "s.toml", "--root", str(tmp_path), "--draft", "d.md", "--worked-example",
+                 "--example-focus", "Luce ratios"]) == 0
+    assert seen["example_focus"] == "Luce ratios"

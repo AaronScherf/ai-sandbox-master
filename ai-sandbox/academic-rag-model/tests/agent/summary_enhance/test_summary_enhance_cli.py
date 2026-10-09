@@ -286,3 +286,9 @@ def test_error_while_building_a_prompt_is_not_swallowed(vault, make_llm, monkeyp
 
     monkeypatch.setattr(enhance, "build_topic_prompt", boom)
     assert _go(vault, make_llm()) == 4
+
+
+def test_example_focus_reaches_the_worked_example_prompt(vault, make_llm):
+    llm = make_llm(_topic("Wald test"), WORKED_TEXT, _topic("LM test"), WORKED_TEXT)
+    assert _go(vault, llm, worked_example=True, example_focus="ratio of two choice probabilities") == 0
+    assert "ratio of two choice probabilities" in llm.calls[1] and "test statistic" not in llm.calls[1]

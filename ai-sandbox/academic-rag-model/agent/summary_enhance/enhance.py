@@ -140,14 +140,14 @@ def _grounded_text(topic: Topic) -> str:
     return "\n\n".join(b.text.strip() for s in topic.sections for b in s.blocks if b.type == "grounded")
 
 
-def _worked_example(llm: LLMClient, topic: Topic) -> str:
+def _worked_example(llm: LLMClient, topic: Topic, focus: str | None = None) -> str:
     grounded = _grounded_text(topic)
 
     def check(text):
         text = text.strip()
         return text, validate_worked_example(text)
 
-    return _with_retry(lambda errs: build_worked_example_prompt(topic.title, grounded, errs),
+    return _with_retry(lambda errs: build_worked_example_prompt(topic.title, grounded, errs, focus),
                        lambda p: llm.generate_text(p, code_execution=True), check)
 
 
@@ -211,7 +211,8 @@ def run(guide_path: str, *, topics: list[str], output: str | None = None, model:
         min_words: int = DEFAULT_MIN_WORDS, mode: str = "rewrite",
         extra_sources: Sequence[ExtraSource] | None = None, baseline: str = "full",
         only_below: int | None = None, carry_before: Sequence[str] = (),
-        carry_after: Sequence[str] = (), only_topics: Sequence[str] | None = None) -> int:
+        carry_after: Sequence[str] = (), only_topics: Sequence[str] | None = None,
+        example_focus: str | None = None) -> int:
     try:
         if only_below is not None and only_below < 1:
             raise OutputError(f"--only-below must be a positive integer, got {only_below}")
@@ -294,7 +295,7 @@ def run(guide_path: str, *, topics: list[str], output: str | None = None, model:
                 continue
             topic = _synthesize(llm, guide, title, others, min_words, mode, bodies.get(title))
             if worked_example:
-                topic.worked_example = _worked_example(llm, topic)
+                topic.worked_example = _worked_example(llm, topic, example_focus)
             done.append(topic)
     except GenerationFailed as err:
         print("ERROR: model output failed validation twice; nothing written:")
@@ -331,6 +332,7 @@ def main(argv: list[str] | None = None) -> int:
                    help="section title; repeat per topic (omit to let the model plan the topics)")
     p.add_argument("--worked-example", action="store_true",
                    help="add a computed worked example per topic (code-execution call)")
+    p.add_argument("--example-focus", help="what the worked example computes (default: a test statistic and its decision rule)")
     p.add_argument("--min-words", type=int, default=DEFAULT_MIN_WORDS,
                    help=f"minimum words per topic (default {DEFAULT_MIN_WORDS})")
     p.add_argument("--mode", choices=("rewrite", "improve"), default="rewrite",
@@ -354,7 +356,7 @@ def main(argv: list[str] | None = None) -> int:
     args = p.parse_args(argv)
     return run(args.guide, topics=args.topic, output=args.output, model=args.model,
                force=args.force, dry_run=args.dry_run, env_file=args.env_file,
-               worked_example=args.worked_example, min_words=args.min_words,
+               worked_example=args.worked_example, example_focus=args.example_focus, min_words=args.min_words,
                mode=args.mode, extra_sources=None,
                baseline="topic" if args.baseline == "per-topic" else "full",
                only_below=args.only_below, carry_before=args.carry_before, carry_after=args.carry_after)

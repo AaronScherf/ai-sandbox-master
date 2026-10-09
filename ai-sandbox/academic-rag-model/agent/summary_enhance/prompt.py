@@ -73,9 +73,7 @@ Return ONLY JSON matching this schema, with no markdown fences or commentary:
 """
 
 _WORKED_INSTRUCTIONS = """\
-Below are the explanation and formulas for the topic "{title}" from a study guide. Write a
-worked numeric example showing how to compute the test statistic, apply its decision rule, and
-reach a conclusion.
+Below are the explanation and formulas for the topic "{title}" from a study guide. {task}
   * Invent a small, simple dataset (a few observations or a small table) and state it
     explicitly. Call it illustrative.
   * Use the code execution tool to do ALL the arithmetic; report only numbers you computed.
@@ -166,7 +164,13 @@ def build_topic_prompt(guide: GuideInput, topic: str, other_topics: list[str], m
             + _rejected(errors) + "\n")
 
 
-def build_worked_example_prompt(topic_title: str, grounded_text: str, errors: list[str] | None = None) -> str:
+_DEFAULT_WORKED_TASK = ("Write a worked numeric example showing how to compute the test statistic, apply its "
+                        "decision rule, and reach a conclusion.")
+
+
+def build_worked_example_prompt(topic_title: str, grounded_text: str, errors: list[str] | None = None,
+                                focus: str | None = None) -> str:
+    task = f"Write a worked numeric example that {focus}." if focus else _DEFAULT_WORKED_TASK
     return (f"(prompt version {PROMPT_VERSION})\n\n"
-            + _WORKED_INSTRUCTIONS.format(title=topic_title, grounded=grounded_text)
+            + _WORKED_INSTRUCTIONS.format(title=topic_title, grounded=grounded_text, task=task)
             + _rejected(errors) + "\n")
