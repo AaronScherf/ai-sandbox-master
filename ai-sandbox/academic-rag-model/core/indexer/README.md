@@ -73,6 +73,11 @@ Run any script here as a module from the `academic-rag-model/` root, e.g.
   minimum-coverage safety net so no file goes untagged. A real (non-dry-run)
   run also patches each file's own `tags:` frontmatter line in place.
 
+The `index_search chunk` CLI holds the shared corpus write lock for a real run;
+`--dry-run` remains read-only. Other index writers have not adopted this lock
+yet, so this does not enable corpus-health apply actions or guarantee exclusion
+against those writers.
+
 ## Design docs
 
 `docs/superpowers/specs/indexer/2026-08-27-source-indexer-design.md` for the schema;

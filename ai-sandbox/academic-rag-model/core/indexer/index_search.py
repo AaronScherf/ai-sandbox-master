@@ -23,10 +23,11 @@ from datetime import datetime, timezone
 
 from google.genai import types
 
-from core.indexer.chunk_index import chunk, load_chunks
 from core.env.academic_hub_paths import TEXTBOOK_FOLDER_NAMES, resolve_output_dir, to_resources_root
+from core.env.corpus_write_lock import CorpusWriteLockError, corpus_write_lock
 from core.env.frontmatter import parse_frontmatter
 from core.env.gemini_utils import get_gemini_client, load_dotenv_override
+from core.indexer.chunk_index import chunk, load_chunks
 from core.indexer.index_card import (
     TEXTBOOK_CONTENT_SAMPLE_CHARS,
     EMBEDDING_DIMENSIONALITY,
@@ -905,7 +906,17 @@ def main() -> None:
         stats = retag(_single_root(args), client, dry_run=args.dry_run)
         print(stats)
     elif args.command == "chunk":
-        stats = chunk(_single_root(args), client, course=args.course, file=args.file, dry_run=args.dry_run)
+        root = _single_root(args)
+        if args.dry_run:
+            stats = chunk(root, client, course=args.course, file=args.file, dry_run=True)
+        else:
+            try:
+                # This writer changes only the selected corpus's .index/.
+                # Keep the lease through embedding and all shard writes.
+                with corpus_write_lock([root], "index chunk"):
+                    stats = chunk(root, client, course=args.course, file=args.file)
+            except CorpusWriteLockError as exc:
+                raise SystemExit(str(exc)) from exc
         print(stats)
     elif args.command == "ask":
         from agent.rag.rag_agent import answer_question
