@@ -9,15 +9,18 @@ from pathlib import Path
 
 from agent.study_guide.draft import DraftError, validate_tag
 from agent.study_guide.plan import PlanError
+from dataclasses import asdict
+
 from agent.study_guide.revise.apply import apply_edits, changelog
 from agent.study_guide.revise.audit import audit_section
+from agent.study_guide.revise.checkpoint import Checkpoint
 from agent.study_guide.revise.dedup import dedup_edits, find_duplicate_clusters
 from agent.study_guide.revise.judge import judge_candidates, judge_edits
 from agent.study_guide.revise.edits import (
-    EditReport, ReviseError, load_report, mark_conflicts, save_report, validate_report,
+    Edit, EditReport, ReviseError, load_report, mark_conflicts, save_report, validate_report,
 )
 from agent.study_guide.revise.organize import organize_edits
-from agent.study_guide.revise.relevance import relevance_edits, score_blocks
+from agent.study_guide.revise.relevance import Relevance, relevance_edits, score_blocks
 from agent.study_guide.revise.review import accepted_ids, write_review_items
 from agent.study_guide.revise.segment import segment, split_frontmatter
 from agent.study_guide.spec import GuideSpec, SpecError, load_spec
@@ -79,7 +82,16 @@ def _memoized(embed):
     return cached
 
 
-def build_report(spec: GuideSpec, guide_path: str, plan, *, stages, llm, embed, evidence, chunks, now: str | None = None) -> EditReport:
+def _edits(rows: list[dict]) -> list[Edit]:
+    return [Edit(**row) for row in rows]
+
+
+def _relevance(row: dict) -> Relevance:
+    return Relevance(row["block_id"], row["score"], tuple((c, s) for c, s in row["nearest"]), tuple(row["nearest_text"]))
+
+
+def build_report(spec: GuideSpec, guide_path: str, plan, *, stages, llm, embed, evidence, chunks, now: str | None = None,
+                 checkpoint: Checkpoint | None = None) -> EditReport:
     if spec.revise is None:
         raise ReviseError("the spec has no [revise] table")
     bad = [s for s in stages if s not in STAGES or s not in spec.revise.criteria]
@@ -90,31 +102,62 @@ def build_report(spec: GuideSpec, guide_path: str, plan, *, stages, llm, embed, 
     blocks = segment(body)
     embed = _memoized(embed)
     r, edits, protected, scores = spec.revise, [], [], {}
+
+    def unit(name, compute):
+        """Run one unit of work, or reuse its saved result from an earlier run of the same inputs."""
+        saved = checkpoint.get(name) if checkpoint else None
+        if saved is not None:
+            return saved
+        payload = compute()
+        if checkpoint:
+            checkpoint.put(name, payload)
+        return payload
+
     if "relevance" in stages:
-        scores = score_blocks(blocks, evidence, embed, min_words=r.min_block_words)
-        found, protected = relevance_edits(blocks, scores, low=r.relevance_low, high=r.relevance_high)
-        edits += found
-        if r.judge_fraction > 0:
-            ask = judge_candidates(blocks, scores, fraction=r.judge_fraction, protected=protected,
-                                   skip=[t for e in found for t in e.targets])
-            edits += judge_edits(llm, r.scope, {b.id: b for b in blocks}, ask, scores, start=len(found) + 1)
+        def do_relevance():
+            sc = score_blocks(blocks, evidence, embed, min_words=r.min_block_words)
+            found, prot = relevance_edits(blocks, sc, low=r.relevance_low, high=r.relevance_high)
+            if r.judge_fraction > 0:
+                ask = judge_candidates(blocks, sc, fraction=r.judge_fraction, protected=prot,
+                                       skip=[t for e in found for t in e.targets])
+                found = found + judge_edits(llm, r.scope, {b.id: b for b in blocks}, ask, sc, start=len(found) + 1)
+            return {"edits": [asdict(e) for e in found], "protected": prot, "scores": {k: asdict(v) for k, v in sc.items()}}
+
+        saved = unit("relevance", do_relevance)
+        edits += _edits(saved["edits"])
+        protected = saved["protected"]
+        scores = {k: _relevance(v) for k, v in saved["scores"].items()}
     flags: dict[str, list[str]] = {}
     if "dedup" in stages:
-        for cluster in find_duplicate_clusters(blocks, embed, similarity=r.dedup_similarity, min_words=r.min_block_words):
-            for bid in cluster:
-                flags.setdefault(bid, []).append("duplicate")
-        edits += dedup_edits(llm, blocks, embed, similarity=r.dedup_similarity, min_words=r.min_block_words, start=1)
+        def do_dedup():
+            fl: dict[str, list[str]] = {}
+            for cluster in find_duplicate_clusters(blocks, embed, similarity=r.dedup_similarity, min_words=r.min_block_words):
+                for bid in cluster:
+                    fl.setdefault(bid, []).append("duplicate")
+            found = dedup_edits(llm, blocks, embed, similarity=r.dedup_similarity, min_words=r.min_block_words, start=1)
+            return {"edits": [asdict(e) for e in found], "flags": fl}
+
+        saved = unit("dedup", do_dedup)
+        edits += _edits(saved["edits"])
+        flags = saved["flags"]
     if "correctness" in stages:
         for title in dict.fromkeys(b.heading_path[1] for b in blocks if len(b.heading_path) > 1):
             passages = section_passages(plan, spec, chunks, title)
             section = [b for b in blocks if len(b.heading_path) > 1 and b.heading_path[1] == title]
             if passages and section:
-                found, problems = audit_section(llm, title, section, passages, start=len([e for e in edits if e.stage == "correctness"]) + 1)
-                edits += found
-                for p in problems:
+                start = len([e for e in edits if e.stage == "correctness"]) + 1
+
+                def do_audit(title=title, section=section, passages=passages, start=start):
+                    found, problems = audit_section(llm, title, section, passages, start=start)
+                    return {"edits": [asdict(e) for e in found], "problems": problems}
+
+                saved = unit(f"correctness:{title}", do_audit)
+                edits += _edits(saved["edits"])
+                for p in saved["problems"]:
                     print(f"WARNING: audit of {title!r}: {p}")
     if "organization" in stages:
-        edits += organize_edits(llm, blocks, flags)
+        saved = unit("organization", lambda: {"edits": [asdict(e) for e in organize_edits(llm, blocks, flags)]})
+        edits += _edits(saved["edits"])
     for e in edits:
         e.protected = bool(set(e.targets) & set(protected)) and e.type in ("delete", "shrink", "merge")
     report = EditReport(
@@ -139,7 +182,7 @@ def _paid_llm(env_file, model):
 
 def cmd_revise(spec_path: str, root: str, *, guide_path: str, plan_path: str | None = None, stages=None, tag: str = "",
                dry_run: bool = False, force: bool = False, env_file: str | None = None, llm=None, embed=None,
-               client=None, chunks=None, cards=None, search=None, evidence=None) -> int:
+               client=None, chunks=None, cards=None, search=None, evidence=None, resume: bool = True) -> int:
     from agent.study_guide.cli import _load_plan_for
     try:
         validate_tag(tag)
@@ -176,8 +219,16 @@ def cmd_revise(spec_path: str, root: str, *, guide_path: str, plan_path: str | N
             if evidence is None:
                 from agent.study_guide.revise.evidence import load_evidence
                 evidence = load_evidence(spec, root, client=client, search=search, chunks=chunks, cards=cards) if "relevance" in stages else []
-        report = build_report(spec, guide_path, plan, stages=stages, llm=llm, embed=embed, evidence=evidence, chunks=chunks)
+        checkpoint = Checkpoint(out.with_name(out.name.replace(".revise.json", ".revise.partial.json")),
+                                hashlib.sha256((spec.sha256 + Path(guide_path).read_bytes().hex()).encode()).hexdigest())
+        if not resume:
+            checkpoint.clear()
+        report = build_report(spec, guide_path, plan, stages=stages, llm=llm, embed=embed, evidence=evidence, chunks=chunks,
+                              checkpoint=checkpoint)
+        if checkpoint.used:
+            print(f"Resumed from a saved partial run: reused {', '.join(dict.fromkeys(checkpoint.used))}")
         save_report(report, out)
+        checkpoint.clear()
         write_review_items(report, body, out.with_name(out.name.replace(".revise.json", ".revise.review.json")))
     except (SpecError, ReviseError, PlanError, DraftError, OSError) as err:
         print(f"ERROR: {err}")

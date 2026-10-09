@@ -38,6 +38,9 @@ python -m agent.study_guide apply-revise <spec> --guide G --decisions D.json [--
   `relevance_high`), `dedup` (one call per duplicate cluster), `correctness` (one call per section against its own plan
   passages, plus a code-execution recheck of worked and constructed examples), `organization` (mechanical heading fixes and
   one outline-only call). A stage must be listed in the spec's `[revise] criteria`.
+- A `revise` run saves each finished stage (and each audited section) to `<guide>[.<tag>].revise.partial.json` next to the
+  report. If the run dies (rate limit, crash, low memory), running the same command again reuses that work and only redoes
+  the rest; the file is keyed on the guide and spec hashes, so a changed input starts over. `--no-resume` discards it.
 - `apply-revise` is deterministic and calls no model: it applies the accepted edits (decisions file maps edit id to
   `accept` or `reject`; undecided counts as rejected), checks the post-conditions (guide not longer, no new page citations,
   no new heading problems, untouched blocks unchanged) and writes `<guide>.revised[.<tag>].md` and a changelog. It refuses a

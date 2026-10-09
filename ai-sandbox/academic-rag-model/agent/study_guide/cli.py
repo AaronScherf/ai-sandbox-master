@@ -259,6 +259,7 @@ def main(argv: list[str] | None = None) -> int:
     sp.add_argument("--tag", default="")
     sp.add_argument("--force", action="store_true")
     sp.add_argument("--dry-run", action="store_true")
+    sp.add_argument("--no-resume", action="store_true", help="ignore a saved partial run and start over")
 
     sp = sub.add_parser("apply-revise")
     common(sp)
@@ -273,7 +274,7 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "revise":
         return cmd_revise(args.spec, args.root, guide_path=args.guide, plan_path=args.plan,
                           stages=args.stages.split(",") if args.stages else None, tag=args.tag, force=args.force,
-                          dry_run=args.dry_run, env_file=args.env_file)
+                          dry_run=args.dry_run, env_file=args.env_file, resume=not args.no_resume)
     if args.command == "apply-revise":
         return cmd_apply_revise(args.spec, args.root, guide_path=args.guide, decisions_path=args.decisions,
                                 tag=args.tag, force=args.force)
