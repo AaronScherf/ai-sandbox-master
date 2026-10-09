@@ -32,6 +32,8 @@ Use for:
 
 Gemini in Antigravity is the default for:
 
+- Live Socratic tutoring sessions run through `agent/tutor` (start with its `bootstrap` command and follow the
+  printed contract); `agent/rag` is for one-off grounded lookups and `/draft` diagnosis, not tutoring sessions.
 - Using existing pipelines: live RAG study sessions, resume tailoring for a
   supplied job opportunity, conversions, indexing, and other documented runs.
 - Reviewing project documentation for accuracy, clarity, and consistency;

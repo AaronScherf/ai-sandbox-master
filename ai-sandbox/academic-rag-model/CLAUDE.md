@@ -15,6 +15,12 @@ Python 3.13 packages that convert academic PDFs/docs into Markdown, index them, 
 - API keys come from `../.env` (`GEMINI_API_KEY`, `PAID_GEMINI_KEY`). Never print or commit them. Don't trigger paid Gemini runs over large batches without asking.
 - **Worktrees have no `.env`** (it's gitignored). `load_dotenv_override()` falls back to the main checkout's `ai-sandbox/.env` (via git's common dir) when the local one is missing, so every pipeline works from `.worktrees/<task>/` unchanged -- but scripts that call `dotenv.load_dotenv` directly or read `../.env` themselves do not get this. If a key still reads as "not set", check it exists with `grep -c "^PAID_GEMINI_KEY=." <main-checkout>/ai-sandbox/.env` (never print the value). `GEMINI_API_KEY` may be a free-tier key (20 requests/day per model); use `get_gemini_client("PAID_GEMINI_KEY")` for pipeline runs.
 
+## Tutoring sessions
+
+Two different things are both called "tutor" in this repo; do not mix them up.
+- **Interactive Socratic tutoring session** (the user says "start a tutoring session", "tutor me on homework N", "office hours"): use `agent/tutor/`. Run `python -m agent.tutor.cli --hub-root <hub> --course <course> --problem-set <ps> bootstrap`, then follow the printed contract on every turn (`student` -> follow `guidance` -> `say`). Never improvise a tutoring session from `rag_agent.py`.
+- **One-off lookups and draft diagnosis** (`agent/rag/rag_agent.py` REPL: `/draft`, `/hint`, `/verify`, `/summarize`): the older metered-Gemini RAG Q&A agent. Use it only when the user asks for a quick grounded answer or a rubric check of a draft.
+
 ## Multi-agent routing
 
 See [the shared routing convention](../../docs/AGENT_ROUTING.md).

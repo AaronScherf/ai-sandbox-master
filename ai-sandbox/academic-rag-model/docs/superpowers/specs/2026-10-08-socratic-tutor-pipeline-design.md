@@ -41,8 +41,8 @@ tutor prep  ──► packet/  ────────────────�
 Builds a **packet** per problem set, reusing `problem_set_parser.extract_question`, `rag_agent.retrieve_passages`, existing `*_hints.md` and `*_guided_solutions.md`. The packet is cached, so prep runs once per problem set.
 
 **No paid LLM calls.** Prep is split into deterministic Python steps and agent-authored steps, run in a dedicated *prep session* of the same IDE agent (flat-rate):
-- Python (`tutor prep --collect`): parse the problem set, run retrieval, write `parts.json` skeletons and `grounding.md`, and emit a prep worklist.
-- Agent (follows the worklist): draft `glossary.json`, `rubric.json`, and each part's `concept_tags` / `expected_evidence`. It submits them through `tutor prep --submit`, which runs the glossary lint (§3.1) and schema validation and rejects bad drafts for revision.
+- Python (`prep-collect`): parse the problem set, run retrieval, write `parts.json` skeletons and `grounding.md`, and emit a prep worklist.
+- Agent (follows the worklist): draft `glossary.json`, `rubric.json`, and each part's `concept_tags` / `expected_evidence`. It submits them through `prep-submit`, which runs the glossary lint (§3.1) and schema validation and rejects bad drafts for revision.
 - The only remaining API dependency is the Gemini **query embedding** used by `retrieve_passages` / `core.indexer.index_search` (the index was built with those embeddings). It is one small call per query and runs on the free tier. Everything else is offline or agent-side.
 - Prep runs in a separate session from tutoring, so the agent that drafts sealed content is not mid-dialogue with the student. Packets are human-reviewable files; the user may edit them before the first session.
 - Trade-off: prep now needs an agent session rather than a headless batch run, and draft quality depends on the IDE model. The lints and the human review step are the quality gates.
@@ -54,7 +54,7 @@ Packet layout (`academic_notes/<course>/tutoring/<ps>/packet/`):
 - `rubric.json` — per part, the three axes with ratings (§5) and the evidence each rating needs.
 - `grounding.md` — retrieved course passages (notes, slides) for the tutor's internal use, with source citations.
 - `sealed/hints.md`, `sealed/solution.md` — internal verification only.
-- `prior_gaps.md` — rendered from the learner profile (§6): the concept tags the student rated Developing/Needs Review previously. Informational for the tutor and for the summary's action menu; never a source of hints.
+- `prior_gaps.md` — rendered from the learner profile (§6): the concept tags the student rated Developing/Needs Review previously, refreshed by `start` because the profile changes between sessions. Informational for the tutor and for the summary's action menu; never a source of hints.
 
 ### 3.2 Live: the `tutor` CLI (`python -m agent.tutor.cli`)
 
@@ -70,6 +70,8 @@ The agent calls the CLI on every turn. The CLI owns the state and returns what t
 | `close-part --evidence …` | Records the tri-axial rating (§5). Rejects any rating above the computed ceiling. |
 | `end --big-picture <file>` | Writes the synthesis event, renders the vault documents, and updates the learner profile. |
 | `audit <session>` | Re-lints a finished session from its log (§7). |
+
+Command names are flat in the implementation: `prep-collect`, `prep-submit`, `start`, `student`, `say`, `define`, `sealed`, `verdict`, `misconception`, `close-part`, `end`, `audit`, `bootstrap`. `verdict` and `misconception` record the agent's judgment of an attempt and the student's errors; they feed the FSM and the rating ceiling.
 
 Intent classification is done by the agent, since the CLI cannot read free text reliably. The student's verbatim text is stored with the label so the audit can catch mislabels (e.g., `confirm_advance` on a message that never asked to move on).
 
@@ -91,7 +93,7 @@ last part, after confirm_advance ─► SYNTHESIS ─► DONE
 Rules encoded as transitions, not prose:
 - `LAUNCH` allows only the verbatim neutral launch text ending "How would you like to approach this problem?". No hints, no setup.
 - Hint level starts at 0 and rises by at most one per explicit `stuck`/`hint_request` event. Level 3 requires at least two logged failed attempts at level 2. The tutor can never raise the level on its own initiative.
-- `VERIFIED` can only go to `AWAITING_ADVANCE`; the only exit to the next part is a logged `confirm_advance`.
+- `VERIFIED` goes to `AWAITING_ADVANCE` when the tutor's check-in passes `say`; the only exit to the next part is a logged student `confirm_advance`, valid from `VERIFIED` or `AWAITING_ADVANCE` (so a student who volunteers "let's move on" is not forced through a check-in), and only after `close-part` has recorded the part.
 - `define_request` is answered from `define` only and returns to the same state with the hint level unchanged.
 - The `say` lint is parameterized by state and hint level.
 
@@ -99,7 +101,7 @@ Rules encoded as transitions, not prose:
 
 Lexical and structural checks, intentionally conservative (false positives cost one revision; false negatives cost a leak):
 
-- **Technique lexicon** (contradiction, contrapositive, induction, "for the sake of", "suppose that …", construct/counterexample directives) blocked below hint level 2, and at level 2 unless the student named the technique first.
+- **Technique lexicon** (contradiction, contrapositive, induction, "for the sake of", "suppose that …", construct/counterexample directives) blocked below hint level 3 unless the student already used that technique's word in the current part.
 - **Notation bridge**: variables and symbols from the current part's `statement` appearing in a definition answer.
 - **Sealed overlap**: n-gram overlap of the draft with `sealed/solution.md` above a threshold.
 - **Pacing**: any message in `VERIFIED` that references the next part, or a draft in `WORKING` that ends with a leading sub-question list (≥2 enumerated sub-questions before the student has proposed a plan).
@@ -125,13 +127,13 @@ Per session (`…/<ps>/sessions/<YYYY-MM-DD-HHMM>/`):
 - `transcript.md` — word-for-word dialogue, rendered from the log.
 - `summary.md` — the student-facing four-part module.
 
-Per course: `…/tutoring/learner_profile.json` (+ rendered `learner_profile.md` for Obsidian). Keys are concept tags from `parts.json`; each holds the rating history `[{session, part, axis, rating, date}]` and open misconception tags. Updated only by `end`. Read by `tutor prep` to produce `prior_gaps.md`.
+Per course: `…/tutoring/learner_profile.json` (+ rendered `learner_profile.md` for Obsidian). Keys are concept tags from `parts.json`; each holds the rating history `[{session, part, axis, rating, date}]` and open misconception tags. Updated only by `end`. Read by `start`, which refreshes `prior_gaps.md`.
 
 Sync notes: `academic_notes/` is its own repo and the tablet syncs it, so session output is committed there by the user's normal sync. Sessions are append-only per directory, and the profile has a single writer (`end`), so there are no merge hot spots. The `sealed/` folder follows the repo's existing IP ignore rules; check them before staging.
 
 ## 7. Audit
 
-`tutor audit` replays the log and reports: advances without a preceding `confirm_advance`, hint-level jumps without a stuck/hint request, `sealed` reads outside permitted states, intent labels that contradict the student's text (keyword heuristic), and missing `say` coverage (tutor turns with no lint record, which means the agent bypassed the gate). The audit is the stand-in for the hard wall: drift becomes visible even when it isn't blocked.
+`tutor audit` replays the log and reports: advances without a preceding `confirm_advance`, hint-level jumps without a stuck/hint request, `sealed` reads outside permitted states, intent labels that contradict the student's text (keyword heuristic), and a proxy for missing `say` coverage: a student turn followed by another student turn (or the end of the session) with no `tutor_say` in between, which suggests the agent replied without the lint gate. The audit is the stand-in for the hard wall: drift becomes visible even when it isn't blocked.
 
 ## 8. Testing
 

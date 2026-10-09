@@ -1,5 +1,7 @@
 # RAG Tutoring Agent
 
+> Interactive tutoring sessions live in `agent/tutor/`; this package is the RAG Q&A and draft-diagnosis agent.
+
 A grounded question-answering agent that retrieves and cites real passages
 from whatever's been converted and indexed — textbooks, notes, essays,
 journal articles — usable directly as a multi-turn chat, or as a stateless
