@@ -41,6 +41,7 @@ from core.env.academic_hub_paths import (
     resolve_output_dir,
     to_resources_root,
 )
+from core.env.corpus_write_lock import CorpusWriteLockError, corpus_write_lock
 from pipelines.transcribe_notes.transcribe_excalidraw import (
     _TRANSCRIBE_MODEL as _EXCALIDRAW_MODEL,
     discover_excalidraw_files,
@@ -392,12 +393,21 @@ def main():
     if client is None:
         sys.exit(1)
 
-    report = run_plan(
-        plan, client, str(academic_hub_dir),
-        pdf_model=args.pdf_model, excalidraw_model=args.excalidraw_model,
-        expand_backend=args.expand_backend, use_grounding=args.grounding,
-        force_vision=args.force_vision,
-    )
+    try:
+        # The router writes Markdown in the nested notes repository and
+        # cards in the outer hub index. Keep both leases for the whole batch.
+        with corpus_write_lock(
+            [academic_hub_dir, academic_hub_dir / "academic_notes"],
+            "route notes transcription",
+        ):
+            report = run_plan(
+                plan, client, str(academic_hub_dir),
+                pdf_model=args.pdf_model, excalidraw_model=args.excalidraw_model,
+                expand_backend=args.expand_backend, use_grounding=args.grounding,
+                force_vision=args.force_vision,
+            )
+    except CorpusWriteLockError as exc:
+        raise SystemExit(str(exc)) from exc
     print_summary(plan, report)
 
     if any(r.status != "ok" for r in report.pdf_results + report.excalidraw_results):
