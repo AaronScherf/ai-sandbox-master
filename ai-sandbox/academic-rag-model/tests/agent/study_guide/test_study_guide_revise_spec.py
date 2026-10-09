@@ -81,3 +81,10 @@ def test_light_thinking_defaults_to_low_and_rejects_unknown_levels(tmp_path):
     assert _load(tmp_path, BASE + '\n[revise]\nlight_thinking = "default"\n').revise.light_thinking == "default"
     with pytest.raises(SpecError, match="light_thinking"):
         _load(tmp_path, BASE + '\n[revise]\nlight_thinking = "off"\n')
+
+
+def test_max_cost_is_optional_and_must_be_non_negative(tmp_path):
+    assert _load(tmp_path, BASE + "\n[revise]\n").revise.max_cost == 0.0
+    assert _load(tmp_path, BASE + "\n[revise]\nmax_cost = 1.5\n").revise.max_cost == 1.5
+    with pytest.raises(SpecError, match="max_cost"):
+        _load(tmp_path, BASE + "\n[revise]\nmax_cost = -1\n")

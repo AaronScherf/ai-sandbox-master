@@ -14,8 +14,9 @@ from dataclasses import asdict
 from agent.study_guide.revise.apply import apply_edits, changelog
 from agent.study_guide.revise.audit import audit_section
 from agent.study_guide.revise.checkpoint import Checkpoint
+from agent.study_guide.revise.cost import CostCapReached, cost_usd, estimate_cost
 from agent.study_guide.revise.dedup import dedup_edits, find_duplicate_clusters
-from agent.study_guide.revise.inline import inline_edits
+from agent.study_guide.revise.inline import inline_candidates, inline_edits
 from agent.study_guide.revise.judge import judge_candidates, judge_edits
 from agent.study_guide.revise.edits import (
     Edit, EditReport, ReviseError, load_report, mark_conflicts, save_report, validate_report,
@@ -28,7 +29,7 @@ from agent.study_guide.spec import GuideSpec, SpecError, load_spec
 from agent.summary_enhance.llm import usage_line
 
 STAGES = ("relevance", "dedup", "correctness", "organization", "inline")
-EXIT_OK, EXIT_INPUT, EXIT_LLM = 0, 2, 4
+EXIT_OK, EXIT_INPUT, EXIT_CAP, EXIT_LLM = 0, 2, 3, 4
 
 
 def report_path(root: str, spec: GuideSpec, guide_path: str, tag: str) -> Path:
@@ -92,7 +93,7 @@ def _relevance(row: dict) -> Relevance:
 
 
 def build_report(spec: GuideSpec, guide_path: str, plan, *, stages, llm, embed, evidence, chunks, now: str | None = None,
-                 checkpoint: Checkpoint | None = None) -> EditReport:
+                 checkpoint: Checkpoint | None = None, max_cost: float | None = None) -> EditReport:
     if spec.revise is None:
         raise ReviseError("the spec has no [revise] table")
     bad = [s for s in stages if s not in STAGES or s not in spec.revise.criteria]
@@ -119,6 +120,9 @@ def build_report(spec: GuideSpec, guide_path: str, plan, *, stages, llm, embed, 
         payload["_usage"] = usage[name] = {k: after[k] - before.get(k, 0) for k in after}
         if checkpoint:
             checkpoint.put(name, payload)
+        if max_cost and cost_usd(getattr(llm, "usage", None) or {}, r.model) > max_cost:
+            raise CostCapReached(f"spend passed the ${max_cost:.2f} cap after {name!r}; finished work is saved, "
+                                 f"so rerun with a higher --max-cost to resume")
         return payload
 
     if "relevance" in stages:
@@ -202,7 +206,8 @@ def _paid_llm(env_file, model):
 
 def cmd_revise(spec_path: str, root: str, *, guide_path: str, plan_path: str | None = None, stages=None, tag: str = "",
                dry_run: bool = False, force: bool = False, env_file: str | None = None, llm=None, embed=None,
-               client=None, chunks=None, cards=None, search=None, evidence=None, resume: bool = True) -> int:
+               client=None, chunks=None, cards=None, search=None, evidence=None, resume: bool = True,
+               max_cost: float | None = None) -> int:
     from agent.study_guide.cli import _load_plan_for
     try:
         validate_tag(tag)
@@ -218,6 +223,9 @@ def cmd_revise(spec_path: str, root: str, *, guide_path: str, plan_path: str | N
         plan, _, chunks = _load_plan_for(spec, root, plan_path, chunks, cards)
         _, body = split_frontmatter(Path(guide_path).read_text(encoding="utf-8"))
         blocks = segment(body)
+        cap = spec.revise.max_cost if max_cost is None else max_cost
+        estimate = estimate_cost(estimated_calls(spec, blocks, stages), spec.revise.model, _prior_usage(out))
+        cost_line = f"estimated cost ${estimate:.2f} (rough" + (f"; cap ${cap:.2f})" if cap else "; no cap)")
         if dry_run:
             sections = len({b.heading_path[1] for b in blocks if len(b.heading_path) > 1})
             calls = {"relevance": "judge batches of 12 over the lowest-scored and unscored blocks" if spec.revise.judge_fraction > 0 else 0, "dedup": "1 per duplicate cluster", "correctness": f"{sections} audit calls + 1 per worked block",
@@ -225,8 +233,11 @@ def cmd_revise(spec_path: str, root: str, *, guide_path: str, plan_path: str | N
             print(f"DRY RUN: {len(blocks)} blocks, {sum(b.words for b in blocks)} words, stages {stages}, "
                   f"{len(spec.revise.evidence)} evidence rule(s) (resolved at run time)")
             print("DRY RUN: model calls: " + ", ".join(f"{s}: {calls[s]}" for s in stages))
+            print(f"DRY RUN: {cost_line}")
             print(f"DRY RUN: would write {out}")
             return EXIT_OK
+        if cap and estimate > cap:
+            raise ReviseError(f"{cost_line} is over the cap; raise --max-cost, drop stages with --stages, or trim the spec")
         if llm is None or embed is None or evidence is None:
             paid = _paid_llm(env_file, spec.revise.model)
             if paid is None:
@@ -244,7 +255,7 @@ def cmd_revise(spec_path: str, root: str, *, guide_path: str, plan_path: str | N
         if not resume:
             checkpoint.clear()
         report = build_report(spec, guide_path, plan, stages=stages, llm=llm, embed=embed, evidence=evidence, chunks=chunks,
-                              checkpoint=checkpoint)
+                              checkpoint=checkpoint, max_cost=cap or None)
         if checkpoint.used:
             print(f"Resumed from a saved partial run: reused {', '.join(dict.fromkeys(checkpoint.used))}")
         save_report(report, out)
@@ -254,6 +265,10 @@ def cmd_revise(spec_path: str, root: str, *, guide_path: str, plan_path: str | N
         print(f"ERROR: {err}")
         _print_usage(llm)
         return EXIT_INPUT
+    except CostCapReached as err:
+        print(f"STOPPED: {err}")
+        _print_usage(llm)
+        return EXIT_CAP
     except Exception as err:  # API failure after the client's own retries
         print(f"ERROR: model or embedding call failed: {err}")
         _print_usage(llm)
@@ -265,6 +280,25 @@ def cmd_revise(spec_path: str, root: str, *, guide_path: str, plan_path: str | N
     _print_stage_usage(report.usage)
     _print_usage(llm)
     return EXIT_OK
+
+
+def estimated_calls(spec: GuideSpec, blocks, stages) -> dict[str, int]:
+    """Rough model-call counts per stage, from the guide's shape alone (no embeddings, so dedup clusters are a guess)."""
+    r = spec.revise
+    sections = len({b.heading_path[1] for b in blocks if len(b.heading_path) > 1})
+    counts = {"relevance": -(-int(len(blocks) * r.judge_fraction) // 12) + (1 if r.judge_fraction > 0 else 0),
+              "dedup": 10, "correctness": sections, "organization": 1,
+              "inline": -(-len(inline_candidates(blocks, r.scope_terms)) // 8)}
+    return {s: counts[s] for s in stages}
+
+
+def _prior_usage(out: Path) -> dict[str, dict] | None:
+    """Per-stage usage recorded by an earlier run of this guide, from its report or its partial file."""
+    try:
+        data = json.loads(out.read_text(encoding="utf-8"))
+        return usage_by_stage(data.get("usage") or {}) or None
+    except (OSError, ValueError, AttributeError):
+        return None
 
 
 def usage_by_stage(usage: dict[str, dict]) -> dict[str, dict]:

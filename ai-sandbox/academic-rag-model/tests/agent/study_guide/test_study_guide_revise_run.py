@@ -268,3 +268,36 @@ def test_only_the_correctness_audit_keeps_full_thinking(env):
     spy = Spy([{"edits": []}])
     _build(spec, guide, llm=spy)
     assert spy.levels == ["low"]
+
+
+def test_dry_run_prints_a_cost_estimate_and_the_cap(env, root, capsys):
+    spec_file, _, guide = env
+    cmd_revise(str(spec_file), root, guide_path=str(guide), dry_run=True, chunks=CHUNKS, cards=CARDS, max_cost=0.5)
+    out = capsys.readouterr().out
+    assert "estimated cost" in out and "cap $0.50" in out
+
+
+def test_a_run_estimated_over_the_cap_is_refused_before_any_paid_call(env, root, capsys):
+    spec_file, spec, guide = env
+    llm = ScriptedLLM([])
+    code = cmd_revise(str(spec_file), root, guide_path=str(guide), llm=llm, embed=bag_embed(VOCAB), chunks=CHUNKS, cards=CARDS,
+                      search=lambda *a, **k: [], evidence=EVIDENCE, max_cost=1e-9)
+    assert code == 2 and llm.calls == [] and "estimated cost" in capsys.readouterr().out
+    assert not report_path(root, spec, str(guide), "").exists()
+
+
+def test_a_run_that_passes_the_cap_exits_3_and_keeps_its_partial_file(env, root, capsys):
+    spec_file, spec, guide = env
+    llm = ScriptedLLM([{"edits": []}])
+    # an estimate under the cap lets the run start; the real spend then passes it
+    import agent.study_guide.revise.run as run
+    orig = run.estimate_cost
+    run.estimate_cost = lambda *a, **k: 0.0
+    try:
+        code = cmd_revise(str(spec_file), root, guide_path=str(guide), llm=llm, embed=bag_embed(VOCAB), chunks=CHUNKS,
+                          cards=CARDS, search=lambda *a, **k: [], evidence=EVIDENCE, max_cost=1e-9)
+    finally:
+        run.estimate_cost = orig
+    out = capsys.readouterr().out
+    assert code == 3 and "--max-cost" in out and not report_path(root, spec, str(guide), "").exists()
+    assert report_path(root, spec, str(guide), "").with_name("demo.revise.partial.json").is_file()
