@@ -15,6 +15,7 @@ from agent.study_guide.revise.apply import apply_edits, changelog
 from agent.study_guide.revise.audit import audit_section
 from agent.study_guide.revise.checkpoint import Checkpoint
 from agent.study_guide.revise.dedup import dedup_edits, find_duplicate_clusters
+from agent.study_guide.revise.inline import inline_edits
 from agent.study_guide.revise.judge import judge_candidates, judge_edits
 from agent.study_guide.revise.edits import (
     Edit, EditReport, ReviseError, load_report, mark_conflicts, save_report, validate_report,
@@ -26,7 +27,7 @@ from agent.study_guide.revise.segment import segment, split_frontmatter
 from agent.study_guide.spec import GuideSpec, SpecError, load_spec
 from agent.summary_enhance.llm import usage_line
 
-STAGES = ("relevance", "dedup", "correctness", "organization")
+STAGES = ("relevance", "dedup", "correctness", "organization", "inline")
 EXIT_OK, EXIT_INPUT, EXIT_LLM = 0, 2, 4
 
 
@@ -155,6 +156,18 @@ def build_report(spec: GuideSpec, guide_path: str, plan, *, stages, llm, embed, 
                 edits += _edits(saved["edits"])
                 for p in saved["problems"]:
                     print(f"WARNING: audit of {title!r}: {p}")
+    if "inline" in stages:
+        if not r.scope_terms:
+            raise ReviseError("the inline stage needs [revise] scope_terms")
+
+        def do_inline():
+            found, problems = inline_edits(llm, r.scope, blocks, r.scope_terms)
+            return {"edits": [asdict(e) for e in found], "problems": problems}
+
+        saved = unit("inline", do_inline)
+        edits += _edits(saved["edits"])
+        for p in saved["problems"]:
+            print(f"WARNING: inline sweep: {p}")
     if "organization" in stages:
         saved = unit("organization", lambda: {"edits": [asdict(e) for e in organize_edits(llm, blocks, flags)]})
         edits += _edits(saved["edits"])
@@ -201,7 +214,7 @@ def cmd_revise(spec_path: str, root: str, *, guide_path: str, plan_path: str | N
         if dry_run:
             sections = len({b.heading_path[1] for b in blocks if len(b.heading_path) > 1})
             calls = {"relevance": "judge batches of 12 over the lowest-scored and unscored blocks" if spec.revise.judge_fraction > 0 else 0, "dedup": "1 per duplicate cluster", "correctness": f"{sections} audit calls + 1 per worked block",
-                     "organization": 1}
+                     "organization": 1, "inline": "1 per 8 blocks that mention a scope term"}
             print(f"DRY RUN: {len(blocks)} blocks, {sum(b.words for b in blocks)} words, stages {stages}, "
                   f"{len(spec.revise.evidence)} evidence rule(s) (resolved at run time)")
             print("DRY RUN: model calls: " + ", ".join(f"{s}: {calls[s]}" for s in stages))

@@ -58,7 +58,8 @@ class NoteSpec:
     body: str
 
 
-VALID_CRITERIA = ("relevance", "dedup", "correctness", "organization")
+DEFAULT_CRITERIA = ("relevance", "dedup", "correctness", "organization")
+VALID_CRITERIA = DEFAULT_CRITERIA + ("inline",)
 
 
 @dataclass(frozen=True)
@@ -78,6 +79,7 @@ class ReviseSpec:
     min_block_words: int = 60
     judge_fraction: float = 0.0
     scope: str = ""
+    scope_terms: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -191,8 +193,8 @@ def _parse_revise(data: dict) -> ReviseSpec | None:
     if not isinstance(rev, dict):
         raise SpecError("[revise] must be a table")
     _check_keys(rev, {"model", "criteria", "relevance_low", "relevance_high", "dedup_similarity",
-                      "min_block_words", "evidence", "judge_fraction", "scope"}, "[revise]")
-    criteria = _strs(rev, "criteria", "[revise]", default=VALID_CRITERIA)
+                      "min_block_words", "evidence", "judge_fraction", "scope", "scope_terms"}, "[revise]")
+    criteria = _strs(rev, "criteria", "[revise]", default=DEFAULT_CRITERIA)
     bad = [c for c in criteria if c not in VALID_CRITERIA]
     if bad:
         raise SpecError(f"[revise]: criteria must be among {VALID_CRITERIA}, got {bad}")
@@ -212,7 +214,8 @@ def _parse_revise(data: dict) -> ReviseSpec | None:
         model=_str(rev, "model", "[revise]", DEFAULT_MODEL), criteria=criteria, evidence=tuple(evidence),
         relevance_low=low, relevance_high=high, dedup_similarity=_unit_float(rev, "dedup_similarity", 0.92, "[revise]"),
         min_block_words=_int(rev, "min_block_words", "[revise]", 60),
-        judge_fraction=_unit_float(rev, "judge_fraction", 0.0, "[revise]"), scope=_str(rev, "scope", "[revise]", ""))
+        judge_fraction=_unit_float(rev, "judge_fraction", 0.0, "[revise]"), scope=_str(rev, "scope", "[revise]", ""),
+        scope_terms=_strs(rev, "scope_terms", "[revise]"))
 
 
 def load_spec(path: str | Path) -> GuideSpec:

@@ -184,3 +184,24 @@ def test_embedding_retries_after_a_transient_failure_and_then_gives_up():
 
     with pytest.raises(RuntimeError, match="down"):
         _retrying(broken, attempts=2, wait=0.0)("x")
+
+
+def test_the_inline_stage_needs_scope_terms_and_runs_when_they_exist(make_spec, root, tmp_path):
+    from agent.study_guide.revise.segment import segment, split_frontmatter
+    guide_text = GUIDE.replace("wald statistic words wald statistic words", "wald statistic words in MATLAB code wald statistic words", 1)
+    base = SPEC.replace('criteria = ["relevance", "organization"]', 'criteria = ["inline"]')
+    for text, ok in ((base, False), (base.replace("[revise]", '[revise]\nscope_terms = ["MATLAB"]', 1), True)):
+        make_spec(text, header=HEADER)
+        spec_file = tmp_path / "spec.toml"
+        assert cmd_plan(str(spec_file), root, search=StubSearch({"textbook": [hit("cam-1", .9)]}), chunks=CHUNKS, cards=CARDS) in (0, 2)
+        guide = Path(root) / "academic_notes" / "econ" / "summaries" / "demo.md"
+        guide.write_text(guide_text, encoding="utf-8")
+        spec = load_spec(spec_file)
+        wald = next(b for b in segment(split_frontmatter(guide_text)[1]) if b.heading_path[-1] == "Wald")
+        llm = ScriptedLLM([{"findings": [{"block": wald.id, "quote": "in MATLAB code ", "replacement": "", "rationale": "software"}]}])
+        if not ok:
+            with pytest.raises(ReviseError, match="scope_terms"):
+                _build(spec, guide, llm=llm, stages=("inline",))
+        else:
+            report = _build(spec, guide, llm=llm, stages=("inline",))
+            assert [(e.stage, e.type, e.quote) for e in report.edits] == [("inline", "fix", "in MATLAB code ")]
