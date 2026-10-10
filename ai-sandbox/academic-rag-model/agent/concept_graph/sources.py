@@ -31,9 +31,24 @@ def _stem(path: str) -> str:
     return name
 
 
+_PAGE = re.compile(r",?\s*(p\. ?[\d\-–]+)$")
+
+
+def _clean_citation(citation: str, limit: int = 110) -> str:
+    """A citation that is safe to copy back exactly: one line, no markdown emphasis, bounded length."""
+    text = re.sub(r"\s+", " ", (citation or "").replace("*", "").replace("`", "")).strip()
+    page = _PAGE.search(text)
+    tail = f", {page.group(1)}" if page else ""
+    head = text[: page.start()] if page else text
+    if len(head) + len(tail) > limit:
+        head = head[: max(limit - len(tail) - 1, 10)].rstrip() + "…"
+    return head + tail
+
+
 def _chapter_ref(path: str, citation: str) -> str:
     m = _CHAPTER.search(path)
     base = f"ch. {int(m.group(1))}" if m else (_stem(path) or "unknown")
+    citation = _clean_citation(citation)
     return f"{base}, {citation}" if citation else base
 
 
