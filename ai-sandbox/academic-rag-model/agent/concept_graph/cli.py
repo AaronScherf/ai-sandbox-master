@@ -10,12 +10,15 @@ from pathlib import Path
 
 from pydantic import ValidationError
 
+from . import drivers, stages
 from . import scaffold as scaffold_mod
 from .build import BuildError, build
 from .gh_issues import close_issue, fetch_review_issues
+from .retrieval import IndexRetriever, make_gemini_client
 from .reviews import ReviewFile, apply_review, archive_review
 from .store import GraphDataError, GraphStore
 from .validate import errors, validate
+from .work import load_run, render_worklist
 
 
 def _cmd_validate(args) -> int:
@@ -89,6 +92,105 @@ def _cmd_scaffold(args) -> int:
     return 0
 
 
+def _work_root(args) -> Path:
+    if args.work_dir:
+        return Path(args.work_dir)
+    if args.hub_root:
+        return Path(args.hub_root) / ".agent_work" / "concept_graph"
+    raise ValueError("pass --work-dir (or --hub-root, which implies <hub-root>/.agent_work/concept_graph)")
+
+
+def _default_retriever(args):
+    if not args.hub_root or not args.course:
+        raise ValueError("retrieval needs --hub-root and --course")
+    return IndexRetriever(args.hub_root, args.course, make_gemini_client())
+
+
+def _collect_run(args):
+    store = GraphStore(args.graph_repo)
+    retriever = None if args.stage == "seed" else args.retriever_factory(args)
+    run = drivers.collect(args.stage, store, retriever, _work_root(args), run_id=args.run_id, section=args.section,
+                          nodes=args.node or None, redo=args.redo, top_k=args.top_k, hub_root=args.hub_root,
+                          course=args.course)
+    return store, run
+
+
+def _print_report(report: drivers.SubmitReport) -> None:
+    for task_id in report.applied:
+        print(f"applied {task_id}")
+    for task_id, reasons in report.bounced.items():
+        for reason in reasons:
+            print(f"BOUNCED {task_id}: {reason}")
+    for task_id, reason in report.skipped.items():
+        print(f"skipped {task_id}: {reason}")
+    print(f"{len(report.applied)} applied, {len(report.bounced)} bounced, {len(report.skipped)} skipped, "
+          f"{len(report.untouched)} not filled in yet")
+
+
+def _cmd_collect(args) -> int:
+    _, run = _collect_run(args)
+    if run is None:
+        print("Nothing to do: no items need this stage right now.")
+        return 0
+    print(f"run {run.run_id}: {len(run.tasks)} card(s) in {run.root}")
+    print(f"Fill each card's result block (see {run.root / 'worklist.md'}), then run: submit {run.run_id}")
+    return 0
+
+
+def _cmd_submit(args) -> int:
+    run = load_run(_work_root(args), args.run_id)
+    _print_report(drivers.submit(run, GraphStore(args.graph_repo), args.agent_name))
+    return 0
+
+
+def _cmd_status(args) -> int:
+    root = _work_root(args)
+    if args.run_id:
+        print(render_worklist(load_run(root, args.run_id)))
+        return 0
+    runs = sorted(p.parent.name for p in root.glob("*/manifest.json")) if root.is_dir() else []
+    print("\n".join(runs) if runs else f"no runs under {root}")
+    return 0
+
+
+BOOTSTRAP = """\
+Concept graph drafting: agent contract{run_line}
+Work directory: {work}
+{paths}
+1. Open worklist.md. For each task listed as pending or bounced, open its card in the cards folder.
+2. Read ## Instructions, ## Subject and ## Offered passages. Use only the offered passages as evidence.
+3. Write ONLY the YAML mapping inside the ```yaml fence under ## Result. Do not edit any other part of the card,
+   and do not edit any other file.
+4. Write in your own words: 8 or more consecutive words shared with a passage is rejected. Cite only the
+   (source, ref) pairs shown in the passage headers.
+5. When the cards are done, run:
+   python -m agent.concept_graph.cli --graph-repo {repo} --work-dir {work} submit {run_id} --agent-name <your name>
+6. A card that bounces gets a ## Bounced section listing why. Fix only those cards, then run submit again.
+Never copy source text, never edit the graph's data files directly, and never mark anything verified: a person does that.
+"""
+
+
+def _cmd_bootstrap(args) -> int:
+    work = _work_root(args)
+    run_id = args.run_id or "<run-id>"
+    paths = (f"Cards: {work / run_id / 'cards'}\nWorklist: {work / run_id / 'worklist.md'}" if args.run_id
+             else "(run `collect <stage>` first; it prints the run id)")
+    print(BOOTSTRAP.format(run_line=f" (run {args.run_id})" if args.run_id else "", work=work, paths=paths,
+                           repo=args.graph_repo, run_id=run_id))
+    return 0
+
+
+def _cmd_api(args) -> int:
+    store, run = _collect_run(args)
+    if run is None:
+        print("Nothing to do: no items need this stage right now.")
+        return 0
+    report = drivers.api_run(args.stage, run, store, args.complete_factory(args), args.approve_cost, agent_name=args.model)
+    print(f"run {run.run_id}")
+    _print_report(report)
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="concept_graph", description=__doc__)
     p.add_argument("--graph-repo", required=True, help="path to the graph repo checkout")
@@ -106,17 +208,47 @@ def build_parser() -> argparse.ArgumentParser:
     sc.add_argument("--holder", required=True, help="copyright holder name for LICENSE-CODE")
     sc.add_argument("--with-sample", action="store_true", help="include the 17-node sample graph")
     sc.add_argument("--contact", help="takedown contact text; defaults to the repo's GitHub issues page")
+
+    common = argparse.ArgumentParser(add_help=False)
+    common.add_argument("--hub-root", help="the academic-hub folder (retrieval, outline, default work directory)")
+    common.add_argument("--course", help="course folder name, e.g. microecon")
+    common.add_argument("--work-dir", help="private folder for task cards (never inside the graph repo); "
+                                           "default <hub-root>/.agent_work/concept_graph")
+    staged = argparse.ArgumentParser(add_help=False)
+    staged.add_argument("stage", choices=stages.STAGES)
+    staged.add_argument("--section", help="only this course section id")
+    staged.add_argument("--node", action="append", help="only this node id (repeatable)")
+    staged.add_argument("--redo", action="store_true", help="regenerate proposed items that already have a draft")
+    staged.add_argument("--top-k", type=int, default=6, help="passages retrieved per card")
+    staged.add_argument("--run-id", help="name for this run (default: <stage>-<timestamp>)")
+    sub.add_parser("collect", parents=[common, staged], help="write task cards for an agent to fill in")
+    sm = sub.add_parser("submit", parents=[common], help="validate and apply the cards an agent has filled in")
+    sm.add_argument("run_id")
+    sm.add_argument("--agent-name", default="ide-agent", help="recorded as the drafter in each item's provenance")
+    st = sub.add_parser("status", parents=[common], help="show a run's worklist, or list runs")
+    st.add_argument("run_id", nargs="?")
+    bs = sub.add_parser("bootstrap", parents=[common], help="print the contract an agent should follow")
+    bs.add_argument("run_id", nargs="?")
+    ap = sub.add_parser("api", parents=[common, staged], help="draft through the metered Gemini API (cost-gated)")
+    ap.add_argument("--approve-cost", type=float, help="maximum dollars you approve; required above $1")
+    ap.add_argument("--model", default="gemini-3.8-flash")
     return p
 
 
-def main(argv: list[str] | None = None) -> int:
+def main(argv: list[str] | None = None, *, retriever_factory=None, complete_factory=None) -> int:
     args = build_parser().parse_args(argv)
     args.graph_repo = Path(args.graph_repo)
+    args.retriever_factory = retriever_factory or _default_retriever
+    args.complete_factory = complete_factory or (lambda a: drivers.gemini_complete(a.model))
     handlers = {"validate": _cmd_validate, "build": _cmd_build, "apply-review": _cmd_apply_review,
-                "scaffold": _cmd_scaffold}
+                "scaffold": _cmd_scaffold, "collect": _cmd_collect, "submit": _cmd_submit, "status": _cmd_status,
+                "bootstrap": _cmd_bootstrap, "api": _cmd_api}
     try:
         return handlers[args.cmd](args)
-    except (GraphDataError, BuildError, FileExistsError) as exc:
+    except drivers.BudgetError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 2
+    except (GraphDataError, BuildError, FileExistsError, FileNotFoundError, ValueError, RuntimeError) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 1
 

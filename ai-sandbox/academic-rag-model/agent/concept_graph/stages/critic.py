@@ -31,7 +31,7 @@ Result: one YAML mapping:
 
 
 def make_tasks(store: GraphStore, retriever, *, section: str | None = None, nodes: list[str] | None = None,
-               redo: bool = False, top_k: int = 6) -> list[Task]:
+               redo: bool = False, top_k: int = 6, **_ignored) -> list[Task]:
     graph = store.read_all()
     by_id = {n.id: n for n in graph.nodes}
     names = {n.id: n.name for n in graph.nodes}

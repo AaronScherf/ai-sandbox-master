@@ -62,8 +62,12 @@ def extract_result(card_text: str) -> dict | None:
         raise ResultError("no YAML block under '## Result' (keep the ```yaml fence and write inside it)")
     if len(blocks) > 1:
         raise ResultError(f"expected exactly one YAML block under '## Result', found {len(blocks)}")
+    return parse_result_text(blocks[0])
+
+
+def parse_result_text(text: str) -> dict | None:
     try:
-        data = yaml.safe_load(blocks[0])
+        data = yaml.safe_load(text)
     except yaml.YAMLError as exc:
         raise ResultError(f"invalid YAML in the result block: {str(exc).splitlines()[0]}") from exc
     if data is None:
@@ -71,3 +75,9 @@ def extract_result(card_text: str) -> dict | None:
     if not isinstance(data, dict):
         raise ResultError("the result must be a YAML mapping (key: value), not a list or a single value")
     return data
+
+
+def result_from_response(response: str) -> dict | None:
+    """Read a model's reply: the first fenced block if it used one, else the whole reply as YAML."""
+    match = _FENCE.search(response or "")
+    return parse_result_text(match.group(1) if match else (response or ""))

@@ -30,7 +30,7 @@ Result: one YAML mapping with these keys:
 
 
 def make_tasks(store: GraphStore, retriever, *, section: str | None = None, nodes: list[str] | None = None,
-               redo: bool = False, top_k: int = 6) -> list[Task]:
+               redo: bool = False, top_k: int = 6, **_ignored) -> list[Task]:
     graph = store.read_all()
     states = {s.id: (s.state, s.title) for s in graph.sections}
     chosen = []
