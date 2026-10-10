@@ -1,6 +1,7 @@
 """Task cards: what an agent is asked to produce, and how its answer is read back."""
 from __future__ import annotations
 
+import datetime
 import re
 from dataclasses import dataclass, field
 
@@ -65,16 +66,35 @@ def extract_result(card_text: str) -> dict | None:
     return parse_result_text(blocks[0])
 
 
+def _plain(value):
+    """YAML turns an unquoted 2026-09-10 into a date; every value in a result is meant as text."""
+    if isinstance(value, dict):
+        return {k: _plain(v) for k, v in value.items()}
+    if isinstance(value, list):
+        return [_plain(v) for v in value]
+    if isinstance(value, (datetime.date, datetime.datetime)):
+        return value.isoformat()
+    return value
+
+
 def parse_result_text(text: str) -> dict | None:
     try:
         data = yaml.safe_load(text)
     except yaml.YAMLError as exc:
-        raise ResultError(f"invalid YAML in the result block: {str(exc).splitlines()[0]}") from exc
+        mark = getattr(exc, "problem_mark", None)
+        where = ""
+        if mark is not None:
+            lines = text.splitlines()
+            line = lines[mark.line] if mark.line < len(lines) else ""
+            where = f" (line {mark.line + 1}: {line.strip()!r})"
+        problem = str(getattr(exc, "problem", "") or str(exc).splitlines()[0])
+        raise ResultError(f"invalid YAML in the result block{where}: {problem}. Put any value that contains "
+                          f"a colon in double quotes, or write it as a | block") from exc
     if data is None:
         return None
     if not isinstance(data, dict):
         raise ResultError("the result must be a YAML mapping (key: value), not a list or a single value")
-    return data
+    return _plain(data)
 
 
 def result_from_response(response: str) -> dict | None:

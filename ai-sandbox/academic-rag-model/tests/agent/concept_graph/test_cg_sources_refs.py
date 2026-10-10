@@ -6,7 +6,7 @@ BOOK = "C:/hub/academic_notes/microecon/textbooks/processed_outputs/Rubenstein_M
 def test_markdown_emphasis_is_stripped_from_refs():
     source, ref = classify_passage(BOOK, "§**Definition 1.1: Complete binary relation**, p. 23")
     assert source == "rubinstein"
-    assert "*" not in ref and "Definition 1.1: Complete binary relation" in ref and ref.endswith("p. 23")
+    assert "*" not in ref and "Definition 1.1 - Complete binary relation" in ref and ref.endswith("p. 23")
 
 
 def test_property_names_with_emphasis_and_math_markers_are_cleaned():

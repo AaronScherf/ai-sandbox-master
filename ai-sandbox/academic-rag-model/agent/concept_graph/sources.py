@@ -36,7 +36,8 @@ _PAGE = re.compile(r",?\s*(p\. ?[\d\-–]+)$")
 
 def _clean_citation(citation: str, limit: int = 110) -> str:
     """A citation that is safe to copy back exactly: one line, no markdown emphasis, bounded length."""
-    text = re.sub(r"\s+", " ", (citation or "").replace("*", "").replace("`", "")).strip()
+    text = re.sub(r"\s+", " ", (citation or "").replace("*", "").replace("`", "").replace("#", "")).strip()
+    text = re.sub(r"\s*:\s*", " - ", text)  # a colon inside a plain YAML value would make it invalid
     page = _PAGE.search(text)
     tail = f", {page.group(1)}" if page else ""
     head = text[: page.start()] if page else text

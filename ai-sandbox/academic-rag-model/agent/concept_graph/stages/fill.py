@@ -19,6 +19,11 @@ Rules:
 - Cite only what was offered: each citation is the exact `source` and `ref` shown in an offered passage's header.
 - Say how the concept connects to its neighbours where that helps, but do not invent connections.
 - If the passages do not support the concept, say so in `explanation` and cite what you did use.
+- Finish every sentence and close every $ in your math; write \$ for a literal dollar sign. A result with an
+  odd number of $ is rejected as probably cut off.
+- YAML: put `gist` in double quotes; write `explanation`, `formal` and `example` as `|` blocks (use a | block for
+  any text with a colon, since an unquoted value containing a colon is invalid YAML); copy each citation's `ref`
+  exactly from the passage header and put it in double quotes.
 
 Result: one YAML mapping with these keys:
   gist:         one line, at most 160 characters (the hover label)
@@ -58,6 +63,10 @@ def make_tasks(store: GraphStore, retriever, *, section: str | None = None, node
     return tasks
 
 
+def _unclosed_math(text: str) -> bool:
+    return text.replace("\$", "").replace("$$", "").count("$") % 2 == 1
+
+
 def validate_result(entry: dict, result: dict, store: GraphStore) -> list[str]:
     problems = []
     unknown = sorted(set(result) - ALLOWED)
@@ -78,6 +87,10 @@ def validate_result(entry: dict, result: dict, store: GraphStore) -> list[str]:
             problems.append(f"{key}: must be text")
     problems += check_citations(result.get("citations"), entry)
     prose = {k: result[k] for k in ("gist", "explanation", "example") if isinstance(result.get(k), str)}
+    for name, text in prose.items():
+        if _unclosed_math(text):
+            problems.append(f"{name}: the math delimiters do not balance (an odd number of $), so a sentence may have "
+                            f"been cut off; finish it and close every $ (write \$ for a literal dollar sign)")
     problems += check_prose(prose, passage_texts(entry))
     return problems
 
