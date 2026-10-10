@@ -50,3 +50,6 @@ resvg-py
 # Resume Manager
 typst
 pyyaml
+pydantic
+networkx
+ruamel.yaml
