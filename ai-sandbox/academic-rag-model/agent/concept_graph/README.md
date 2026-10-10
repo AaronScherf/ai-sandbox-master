@@ -85,12 +85,14 @@ must_include:                 # each must end up as a node (a name, or a list of
   - [GARP, Generalized axiom of revealed preference]
 textbook_chapters:            # chapters whose section headings the seed card shows (source key or textbook folder name -> numbers)
   mwg: [1, 2, 3]
+min_nodes_per_section: 6   # every section must end with at least this many nodes (default 1)
 ```
 
 `seed` builds its evidence from files on disk: the syllabus (contact details stripped), the definitions, axioms and
 theorems labelled in each slide deck and lecture note (repeats dropped), textbook chapter titles, and the section
 headings of the chapters listed above. The card explains each vocabulary kind, shows a format example, and ends with a
-self-check. `submit` bounces a result that omits a required concept, repeats an existing name (compared ignoring case
+self-check. The required list is only a floor (an agent tends to deliver exactly what is required), so `submit` also
+bounces any section that would end with fewer than `min_nodes_per_section` nodes, as well as a result that omits a required concept, repeats an existing name (compared ignoring case
 and punctuation), or uses a kind, topic or section that does not exist. With `--redo`, `seed` is additive: the card
 lists what is already in the graph and asks only for what is missing. To use it for another course, run
 `scaffold`, fill in `config/seed.yaml`, and `collect seed --course <name>`; the hub is expected to have

@@ -117,6 +117,10 @@ must_include: []
 # Textbook chapters whose section headings the seed stage should see: source key -> chapter numbers.
 # Source keys: rubinstein, mwg, ok.   Example:  textbook_chapters: {mwg: [1, 2, 3]}
 textbook_chapters: {}
+
+# Every section must end up with at least this many nodes. The required list above is only a floor;
+# raise this to demand a fuller skeleton (a drafting agent tends to stop at the minimum it is given).
+min_nodes_per_section: 1
 """
 
 

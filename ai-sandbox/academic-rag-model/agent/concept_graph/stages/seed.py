@@ -84,7 +84,9 @@ Rules
 - Do not mention the instructors, teaching assistants or students. Eponymous concept names (Walras' law, Roy's
   identity, the Szpilrajn extension theorem) are fine.
 - Do not copy sentences from the materials: 8 or more consecutive words shared with a passage in a `gist` is rejected.
-- Every required concept in the Subject must appear as a node, even if the materials barely mention it.
+- Every required concept in the Subject must appear as a node, even if the materials barely mention it. The
+  required list is a minimum, not the target: expect many more nodes than it contains (typically 6 to 15 per
+  section). A section with fewer nodes than the minimum stated in the Subject is rejected, so never leave one empty.
 - Never mark anything verified.
 
 Result: one YAML mapping with keys topics (optional), sections and nodes. The example below only shows the format:
@@ -104,7 +106,8 @@ Self-check before you finish (the card is rejected if any of these fail):
   4. No two nodes share a name, and nothing already in the graph is repeated.
   5. Section `order` values are unique numbers and every `state` is taught, in_progress or planned.
   6. Every gist is one line, at most 160 characters, in your own words.
-  7. You wrote only inside the yaml fence under "## Result".
+  7. Every section ends up with at least the minimum number of nodes stated in the Subject.
+  8. You wrote only inside the yaml fence under "## Result".
 """
 
 ADDITIVE = """\
@@ -297,14 +300,17 @@ def make_tasks(store: GraphStore, retriever=None, *, hub_root: str | None = None
     body = "\n".join([
         f"Course: {course}", "",
         "Scope (from the owner):", config.scope.strip() or "(none given: use the syllabus)", "",
-        "Required concepts (each must appear as a node):", *(required or ["(none specified)"]), "",
+        "Required concepts (each must appear as a node; this list is only a floor):", *(required or ["(none specified)"]), "",
+        f"Every section must end up with at least {config.min_nodes_per_section} nodes (existing nodes count).", "",
         "Kinds (use exactly these words):", *kinds, "",
         "Topics so far: " + ", ".join(graph.vocab.topics), "",
         "Already in the graph (do not reuse these ids or repeat these concepts):", *(existing or ["- (nothing yet)"]), "",
         "Course materials:", context or "(no materials found)",
     ])
     instructions = INSTRUCTIONS + (ADDITIVE if has_content else "")
-    return [Task(id="seed", stage=STAGE, subject={"stage": "seed", "must_include": config.must_include},
+    return [Task(id="seed", stage=STAGE,
+                 subject={"stage": "seed", "must_include": config.must_include,
+                          "min_nodes_per_section": config.min_nodes_per_section},
                  instructions=instructions, context=body, passages=with_ids(passages))]
 
 
@@ -409,6 +415,18 @@ def validate_result(entry: dict, result: dict, store: GraphStore) -> list[str]:
                 problems.append(f"{tag}: gist must be one line of at most 160 characters")
             else:
                 problems += [f"{tag} {m}" for m in check_prose({"gist": gist}, passage_texts(entry))]
+
+    floor = (entry.get("subject", {}) or {}).get("min_nodes_per_section", 1)
+    counts = {sid: 0 for sid in section_ids}
+    for n in graph.nodes:
+        counts[n.section] = counts.get(n.section, 0) + 1
+    for n in nodes:
+        if isinstance(n, dict) and n.get("section") in counts:
+            counts[n["section"]] += 1
+    for sid in sorted(counts):
+        if counts[sid] < floor:
+            problems.append(f"section {sid!r} would end up with only {counts[sid]} node(s); each section needs at least "
+                            f"{floor} (add the concepts a student must learn in it)")
 
     all_names = [n.name for n in graph.nodes] + [n["name"] for n in nodes if isinstance(n, dict) and isinstance(n.get("name"), str)]
     missing = []
