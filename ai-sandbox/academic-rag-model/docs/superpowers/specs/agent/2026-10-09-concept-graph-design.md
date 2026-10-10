@@ -38,6 +38,7 @@ anyone but the maintainer.
 | D6 | Data + viewer live in a **separate public mini repo**, served by GitHub Pages. |
 | D7 | Default reviewer path is **Submit -> prefilled GitHub issue**; download-and-email is the fallback. |
 | D8 | Deviation from `academic-rag-model/CLAUDE.md` ("human-decision steps default to a db-backed Artifact"): the portable file/issue flow is first; an Artifact `db` adapter is a later phase behind the same storage interface. |
+| D9 | Edge types are a code constant (`EDGE_TYPES`), not a vocabulary entry, because their validation rules are code; only `kinds` and `topics` live in `config/vocab.yaml`. |
 
 ## Data model
 
@@ -113,6 +114,7 @@ definition, theorem, lemma, model, function, correspondence, identity, technique
 | `is_a` | "A is a B, that also ..." | A -> B; `condition` = what A adds. Taxonomy only (total order is_a partial order). |
 | `has_property` | "A has property P" | object -> property node (reflexivity, antisymmetry, transitivity). |
 | `defined_on` | "A is defined on B" | object -> the set/relation it lives on. |
+| `component_of` | "A is one of the conditions making up B" | A -> B; B is a bundle node such as "Sen's alpha and beta together", so B needs A. Lets a conjunction take part in an `iff`. |
 | `implies` | "A implies B, when ..." | A -> B; `condition` required; optional `via` theorem. |
 | `iff` | "A holds exactly when B, when ..." | one double-headed edge, never two edges; `condition` required. |
 | `hypothesis_of` | "A is an input to theorem T" | premise -> theorem node. |
@@ -180,8 +182,8 @@ value to tune on real output; it is a tripwire, not a legal guarantee.
 
 JSON Schema + Pydantic; no dangling `source`/`target`/`via`; no duplicate ids; every edge type used is in the
 vocabulary; `implies`/`iff` have `condition`; `via` references a `theorem`/`lemma` node; cycles detected in the
-subgraph of `is_a`, `implies`, `hypothesis_of`, `yields` (an `iff` pair is allowed, anything else is an error
-listing the cycle); orphan nodes warned; section ids exist. NetworkX does the graph checks.
+subgraph of the definitional edges (`is_a`, `defined_on`, `has_property`, `component_of`) are errors, since a definition cannot be circular; cycles among `implies`, `hypothesis_of`, `yields` are only warnings, because mutually implying results with different conditions are legitimate (rational preference => WARP, and WARP => rational preference on a rich enough domain);
+orphan nodes and unfilled nodes in taught sections are warned; section ids exist. NetworkX does the graph checks.
 
 ## Viewer (`agent/concept_graph/viewer/`, built to a single `index.html`)
 
@@ -194,7 +196,7 @@ inlined so the file works offline; size budget is 5 MB.
 - Click a node: side panel with gist, explanation, formal, example, citations, and every in/out edge written as a
   sentence ("Needs completeness and transitivity => ..."). Click an edge: type, condition, explanation, `via`.
 - **Dependency-path mode:** highlight everything a node transitively needs (reverse closure over `is_a`,
-  `defined_on`, `has_property`, `hypothesis_of`, `implies`).
+  `defined_on`, `has_property`, `component_of`, `hypothesis_of`, `yields`, `implies`, `iff`).
 - Any current browser (Chrome, Edge, Firefox, Safari), desktop or phone. Readable at a glance: node names are
   never truncated; zoom/pan and a "fit" button.
 
