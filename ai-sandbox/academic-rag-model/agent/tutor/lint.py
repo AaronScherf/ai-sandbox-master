@@ -95,18 +95,37 @@ def _content_words(text: str) -> set[str]:
     return {t for t in tokenize(text) if len(t) >= 4 and t not in _STOP}
 
 
+# Words a content-free warm sentence may use (besides words the student wrote).
+_WARM = {"thanks", "thank", "trying", "tried", "fair", "good", "great", "okay", "glad", "tricky", "tough", "hard",
+         "common", "normal", "worries", "sense", "understand", "started", "start", "together", "step", "help",
+         "difficult", "honest", "honestly", "totally", "really", "happy"}
+MAX_WARM_WORDS = 14
+
+
+def _is_warm(sentence: str, last_student_text: str) -> bool:
+    if len(sentence.split()) > MAX_WARM_WORDS:
+        return False
+    return _content_words(sentence) <= (_WARM | _content_words(last_student_text))
+
+
 def check_form(text: str, last_student_text: str, max_words: int = MAX_FORM_WORDS) -> str | None:
     """The question form (v1.1 §6): at most one question, a word cap, and at most one other
-    sentence which must restate the student's own words. Returns the reason or None."""
+    sentence which must restate the student's own words; one extra short sentence is allowed when it
+    carries no content beyond a small warm vocabulary and the student's words. Returns the reason or None."""
     if text.count("?") > 1:
         return "ask at most one question"
     if len(text.split()) > max_words:
         return f"use at most {max_words} words"
     sentences = [s.strip() for s in _SENTENCE_SPLIT.split(text.strip()) if s.strip()]
     statements = [s for s in sentences if not s.endswith("?")]
-    if len(statements) > 1:
-        return "use at most one non-question sentence"
-    if statements and len(_content_words(statements[0]) & _content_words(last_student_text)) < 2:
+    student_words = _content_words(last_student_text)
+    restating = [s for s in statements if len(_content_words(s) & student_words) >= 2]
+    rest = [s for s in statements if s not in restating]
+    warm = [s for s in rest if _is_warm(s, last_student_text)]
+    bad = [s for s in rest if s not in warm]
+    if len(restating) + len(bad) > 1 or len(warm) > 1:
+        return "use at most one non-question sentence, plus one short warm sentence with no content"
+    if bad:
         return ("the one non-question sentence must restate or acknowledge the student's own words "
                 "(share at least two content words with their last message)")
     return None
@@ -141,7 +160,11 @@ def lint_message(
     if state == WORKING and hint_level < 3 and len(_SUBQ_LINE.findall(text)) >= 2:
         found.append(Violation("SUBQUESTION_LIST", "leading sub-question list before the student proposed a plan"))
     if form:
-        reason = check_form(text, last_student_text)
+        shown = text
+        if after_define:      # the glossary definition is verbatim packet text, so it needs no echo of the student
+            for a in allowed_exact:
+                shown = shown.replace(a, " ")
+        reason = check_form(shown, last_student_text)
         if reason:
             found.append(Violation("QUESTION_FORM", reason))
     if state == VERIFIED and not (_CHECKIN.search(text) and "?" in text):

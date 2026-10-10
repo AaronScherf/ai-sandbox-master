@@ -143,6 +143,22 @@ class TestQuestionForm(unittest.TestCase):
         reason = check_form("Items have prices. What do you think?", self.LAST)
         self.assertIn("own words", reason)
 
+    def test_a_content_free_warm_sentence_may_precede_the_restatement(self):
+        self.assertEqual(self.form("Thanks for trying that. You said the alternative needs the highest utility. "
+                                   "What else has to happen?"), [])
+        self.assertEqual(self.form("That is a tricky one, and that is okay. What have you tried so far?"), [])
+
+    def test_a_warm_sentence_cannot_carry_content(self):
+        self.assertIn("QUESTION_FORM", codes(self.form("Good, utilities are compared across the menu. What next?")))
+        self.assertIn("QUESTION_FORM", codes(self.form("Thanks. You are right. That is the idea. What next?")))
+
+    def test_a_definition_answer_may_carry_a_follow_up_question(self):
+        d = "The empirical finding that facing many options can make a person less likely to choose anything at all."
+        draft = d + " Does that match how you read the setup?"
+        kw = dict(form=True, last_student_text="what is choice overload?", allowed_exact=(d,), after_define=True)
+        self.assertEqual(lint(draft, **kw), [])
+        self.assertIn("QUESTION_FORM", codes(lint("It means d gets chosen more. What do you think?", **kw)))
+
     def test_form_is_off_by_default(self):
         self.assertEqual(lint("Two questions? Really? Yes, " + "word " * 80), [])
 

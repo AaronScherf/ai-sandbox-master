@@ -381,6 +381,22 @@ class TestVerify(unittest.TestCase):
             close = [e for e in s.log.load() if e.type == "close_part"][0]
             self.assertEqual(close.data["ratings"]["rigor"]["rating"], PROF)
 
+    def test_a_missing_step_that_a_later_check_confirms_resolves_itself(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            _, s = make(tmp)
+            cover_q1(s)
+            s.verify()
+            r = s.verify([CHECK_Q1[0], {"step": 2, "status": "missing", "note": "never touched the second step",
+                                        "axis": "rigor"}])
+            self.assertEqual(r["unresolved"], ["defect-step-2"])
+            s.turn("attempt", "so the second step follows because nobody else picks it")
+            r2 = s.verify(CHECK_Q1)                                     # no --resolve needed
+            self.assertTrue(r2["closed"])
+            auto = [e for e in s.log.load() if e.type == "misconception_resolved"]
+            self.assertEqual([(e.data["tag"], e.data.get("auto")) for e in auto], [("defect-step-2", True)])
+            close = [e for e in s.log.load() if e.type == "close_part"][0]
+            self.assertEqual(close.data["ratings"]["rigor"]["rating"], PROF)
+
     def test_manual_establish_can_cover_a_route_but_needs_a_real_quote(self):
         with tempfile.TemporaryDirectory() as tmp:
             _, s = make(tmp)

@@ -460,8 +460,15 @@ class Session:
             raise Refused("run verify without --check-file first to receive the solution steps", ["verify"])
         entries = self._validate_check(check, len(steps), pe)
         defects = [e for e in entries if e["status"] != "confirmed"]
-        unresolved = [e.data["tag"] for e in self._unresolved(pe)]
         common = dict(part=part.part_id, hint_level=s.hint_level)
+        confirmed = {e["step"] for e in entries if e["status"] == "confirmed"}
+        for e in self._unresolved(pe):      # a step left open earlier and now confirmed needs no manual resolve
+            m = re.fullmatch(r"defect-step-(\d+)", e.data["tag"])
+            if m and int(m.group(1)) in confirmed:
+                self.log.append("misconception_resolved", state=WORKING,
+                                data={"tag": e.data["tag"], "axis": e.data.get("axis", "all"), "auto": True}, **common)
+        pe = self._part_events(self.log.load(), part.part_id)
+        unresolved = [e.data["tag"] for e in self._unresolved(pe)]
         if not defects and not unresolved:
             ratings = build_ratings(pe, downgrades)            # may raise before anything is logged
             self.log.append("verify", state=VERIFIED, data={"clean": True, "check": entries}, **common)
