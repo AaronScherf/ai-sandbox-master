@@ -102,3 +102,6 @@ Click a column heading to sort the scored table in either direction. **Filter**
 opens text, agent, and minimum-score controls; **Clear filters** restores the
 full table. These controls change the displayed view only, not stored scores
 or the default ranking order.
+In **Next three** and **Needs Estimate**, each task starts with its title and
+metadata visible. **Show details** reveals its source link, explanation, and
+editing controls; **Hide details** collapses them again without changing state.

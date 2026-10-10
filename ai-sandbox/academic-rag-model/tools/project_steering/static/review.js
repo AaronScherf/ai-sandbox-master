@@ -25,7 +25,7 @@ async function load() {
     const section = document.createElement('section'); section.append(txt('h2', name));
     if (!nodes.length) section.append(txt('p', 'No items.'));
     if (name === 'Full scored order' && nodes.length) section.append(scoredTable(nodes));
-    else for (const node of nodes) section.append(card(node));
+    else for (const node of nodes) section.append(card(node, name === 'Next three' || name === 'needs estimate'));
     root.append(section);
   }
   if (data.warnings.length || data.notices.length) {
@@ -286,7 +286,7 @@ function scoreBatches(data) {
   });
   section.append(button); return section;
 }
-function card(node) {
+function card(node, collapsed = false) {
   const task = node.task, decision = node.decision || {};
   const route = snapshot.routing.tasks[task.task_id];
   const article = document.createElement('article');
@@ -383,7 +383,22 @@ function card(node) {
       const result = await response.json(); if (!response.ok) throw Error(result.error); await load();
     } catch (e) { error.textContent = String(e.message); }
   });
-  article.append(form); return article;
+  article.append(form);
+  if (collapsed) {
+    const toggle = document.createElement('button'); toggle.type = 'button'; toggle.textContent = 'Show details';
+    toggle.setAttribute('aria-expanded', 'false');
+    toggle.setAttribute('aria-label', `Show details for ${task.task_id}`);
+    const body = document.createElement('div'); body.className = 'task-detail-body'; body.hidden = true;
+    while (article.children.length > 2) body.append(article.children[2]);
+    toggle.addEventListener('click', () => {
+      body.hidden = !body.hidden;
+      toggle.textContent = body.hidden ? 'Show details' : 'Hide details';
+      toggle.setAttribute('aria-expanded', String(!body.hidden));
+      toggle.setAttribute('aria-label', `${body.hidden ? 'Show' : 'Hide'} details for ${task.task_id}`);
+    });
+    article.append(toggle, body);
+  }
+  return article;
 }
 document.getElementById('close').addEventListener('click', async () => {
   await fetch('/api/close',{method:'POST',headers:{'Content-Type':'application/json','Origin':location.origin,
