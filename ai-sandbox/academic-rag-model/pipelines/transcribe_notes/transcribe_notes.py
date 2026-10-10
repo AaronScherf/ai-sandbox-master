@@ -48,6 +48,15 @@ import re
 import sys
 from contextlib import nullcontext
 from pathlib import Path
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    # Type-hint only -- agent_driver.py imports repair_batch/
+    # transcribe_page_via_gemini from THIS module at its own module level,
+    # so a real (non-TYPE_CHECKING) import here would be a circular
+    # import. AgentPending/ApiDriver are imported lazily inside
+    # process_pdf() instead, where they're actually used at runtime.
+    from pipelines.transcribe_notes.agent_driver import TranscriptionDriver
 
 from core.env.academic_hub_paths import find_containing_offering_label, resolve_output_dir
 from core.env.corpus_write_lock import CorpusWriteLockError, corpus_write_lock
@@ -74,6 +83,25 @@ from core.indexer.index_card import (
 )
 
 _CODE_FENCE_RE = re.compile(r"^```(?:markdown)?\s*\n(.*)\n```\s*$", re.DOTALL)
+
+
+def _load_driver_provenance(cache_path: str) -> dict[str, str]:
+    """Reads the optional <name>_pages_driver.json sidecar submit writes
+    next to _pages_cache.json: {"<page>": "agent"} for agent-submitted
+    pages. A page absent from this file was API-sourced. Returns {} if
+    the sidecar doesn't exist (a pure-API-driver document)."""
+    driver_path = cache_path.replace("_pages_cache.json", "_pages_driver.json")
+    return load_json_cache(driver_path)
+
+
+def _driver_frontmatter_fields(cache_path: str, page_numbers: list[int]) -> dict:
+    provenance = _load_driver_provenance(cache_path)
+    agent_pages = sorted(int(p) for p in provenance if int(p) in page_numbers)
+    if not agent_pages:
+        return {"driver": "api"}
+    if len(agent_pages) == len(page_numbers):
+        return {"driver": "agent", "agent_name": next(iter(provenance.values()))}
+    return {"driver": "mixed", "agent_name": next(iter(provenance.values())), "agent_pages": agent_pages}
 
 # Checked FIRST, unconditionally: known messy-export sources, regardless
 # of any other marker also present. Confirmed necessary against a real
@@ -1095,10 +1123,16 @@ def link_duplicate_note(academic_hub_root: str, canonical_course: str, canonical
 
 
 def process_pdf(pdf_path: str, client, model_override: str | None, academic_hub_root: str,
-                dry_run: bool = False, known_doc_types=KNOWN_DOC_TYPES, force_vision: bool = False) -> None:
+                dry_run: bool = False, known_doc_types=KNOWN_DOC_TYPES, force_vision: bool = False,
+                driver: TranscriptionDriver | None = None, collect_mode: bool = False) -> None:
+    from pipelines.transcribe_notes.agent_driver import AgentPending, ApiDriver, NullDriverFired
+
+    if driver is None:
+        driver = ApiDriver(client)
     base_name = os.path.splitext(os.path.basename(pdf_path))[0]
     output_dir = resolve_output_dir(pdf_path)
-    os.makedirs(output_dir, exist_ok=True)
+    if not collect_mode:
+        os.makedirs(output_dir, exist_ok=True)
     md_path = os.path.join(output_dir, f"{base_name}.md")
     cache_path = os.path.join(output_dir, f"{base_name}_pages_cache.json")
 
@@ -1112,7 +1146,7 @@ def process_pdf(pdf_path: str, client, model_override: str | None, academic_hub_
         canonical_course, canonical_card = existing
         folder_category = derive_folder_category(pdf_path)
         offering_label = find_containing_offering_label(pdf_path)
-        if dry_run:
+        if dry_run or collect_mode:
             print(f"[{base_name}] would link to existing transcription at "
                   f"{canonical_card['path']} (byte-identical source, no API calls needed).")
             return
@@ -1153,7 +1187,7 @@ def process_pdf(pdf_path: str, client, model_override: str | None, academic_hub_
     if not force_vision and reliable_pagination and not defective_page_numbers:
         print(f"[{base_name}] {total_pages} page(s) -- clean machine-generated text "
               f"detected, using free local extraction (0 API calls).")
-        if dry_run:
+        if dry_run or collect_mode:
             print(f"  would extract all {total_pages} pages locally, no API calls needed.")
             return
         assert all_page_texts is not None
@@ -1194,13 +1228,15 @@ def process_pdf(pdf_path: str, client, model_override: str | None, academic_hub_
                     continue
                 prompt = build_batch_transcription_prompt(batch, before_ctx, after_ctx, total_pages)
                 try:
-                    parsed = call_with_retries(
-                        lambda: repair_batch(client, model, pdf_path, batch, prompt)
-                    )
+                    parsed = driver.transcribe_batch(pdf_path, model, batch, prompt)
                     for p, text in parsed.items():
                         cache[str(p)] = text
                     save_json_cache(cache_path, cache)
                     print(f"  pages {batch[0]}-{batch[-1]}: repaired via batch ({len(batch)} pages)")
+                except AgentPending:
+                    print(f"  pages {batch[0]}-{batch[-1]}: pending (agent task card written)")
+                except NullDriverFired:
+                    raise
                 except Exception as err:
                     print(f"  WARNING: batch repair failed for pages {batch} ({err}); "
                           f"falling back to individual per-page calls.")
@@ -1217,13 +1253,24 @@ def process_pdf(pdf_path: str, client, model_override: str | None, academic_hub_
                             print(f"    WARNING: giving up on page {p} after retries ({page_err}); "
                                   f"keeping its local text as-is -- rerun to retry.")
 
+        if collect_mode:
+            still_pending = [p for p in defective_page_numbers if str(p) not in cache]
+            if still_pending:
+                print(f"[{base_name}] collect: {len(defective_page_numbers) - len(still_pending)}/"
+                      f"{len(defective_page_numbers)} repaired page(s) cached, {len(still_pending)} "
+                      f"pending -- task card(s) written.")
+            else:
+                print(f"[{base_name}] collect: all {len(defective_page_numbers)} repaired page(s) "
+                      f"cached -- ready for submit's rerun.")
+            return
+
         pages_text = {str(n): all_page_texts[n - 1].strip() for n in range(1, total_pages + 1)}
         pages_text.update(cache)
         final_md = build_final_markdown(pages_text, total_pages)
         frontmatter = build_frontmatter({
             **base_metadata, "routing": "hybrid", "model": model,
             "pages_repaired": len(defective_page_numbers), "repaired_pages": defective_page_numbers,
-            "tags": [],
+            "tags": [], **_driver_frontmatter_fields(cache_path, defective_page_numbers),
         })
         _write_markdown_and_index(
             md_path, frontmatter, final_md, pdf_path, academic_hub_root,
@@ -1271,13 +1318,15 @@ def process_pdf(pdf_path: str, client, model_override: str | None, academic_hub_
                 continue
             prompt = build_batch_transcription_prompt(batch, "", "", total_pages)
             try:
-                parsed = call_with_retries(
-                    lambda: repair_batch(client, model, pdf_path, batch, prompt)
-                )
+                parsed = driver.transcribe_batch(pdf_path, model, batch, prompt)
                 for p, text in parsed.items():
                     cache[str(p)] = text
                 save_json_cache(cache_path, cache)
                 print(f"  pages {batch[0]}-{batch[-1]}: transcribed via batch ({len(batch)} pages)")
+            except AgentPending:
+                print(f"  pages {batch[0]}-{batch[-1]}: pending (agent task card written)")
+            except NullDriverFired:
+                raise
             except Exception as err:
                 print(f"  WARNING: batch transcription failed for pages {batch} ({err}); "
                       f"falling back to individual per-page calls.")
@@ -1296,11 +1345,21 @@ def process_pdf(pdf_path: str, client, model_override: str | None, academic_hub_
                               f"local text is already known unreliable so it's omitted "
                               f"entirely rather than used as a fallback -- rerun to retry.")
 
+        if collect_mode:
+            pending = total_pages - len(cache)
+            if pending:
+                print(f"[{base_name}] collect: {len(cache)}/{total_pages} page(s) cached, "
+                      f"{pending} pending -- task card(s) written.")
+            else:
+                print(f"[{base_name}] collect: all {total_pages} page(s) cached -- "
+                      f"ready for submit's rerun.")
+            return
+
         final_md = build_final_markdown(cache, total_pages)
         frontmatter = build_frontmatter({
             **base_metadata, "routing": "gemini_batched", "model": model,
             "pages_repaired": len(defective_page_numbers), "repaired_pages": defective_page_numbers,
-            "tags": [],
+            "tags": [], **_driver_frontmatter_fields(cache_path, list(range(1, total_pages + 1))),
         })
         _write_markdown_and_index(
             md_path, frontmatter, final_md, pdf_path, academic_hub_root,
@@ -1340,9 +1399,13 @@ def process_pdf(pdf_path: str, client, model_override: str | None, academic_hub_
 
         try:
             image_bytes = render_page_to_image_bytes(pdf_path, page_num - 1, dpi=dpi)
-            transcription = call_with_retries(
-                lambda: transcribe_page_via_gemini(client, model, image_bytes, prompt)
-            )
+            transcription = driver.transcribe_page(pdf_path, model, page_num, prompt, image_bytes, total_pages)
+        except AgentPending:
+            print(f"  page {page_num}: pending (agent task card written); "
+                  f"stopping here for strict ordering.")
+            break
+        except NullDriverFired:
+            raise
         except Exception as err:
             # Accumulating context means later pages depend on this one --
             # skipping ahead would silently degrade every subsequent
@@ -1355,12 +1418,22 @@ def process_pdf(pdf_path: str, client, model_override: str | None, academic_hub_
         save_json_cache(cache_path, cache)
         print(f"  [{page_num}/{total_pages}] transcribed ({len(transcription)} chars)")
 
+    if collect_mode:
+        pending = total_pages - len(cache)
+        if pending:
+            print(f"[{base_name}] collect: {len(cache)}/{total_pages} page(s) cached, {pending} "
+                  f"pending -- task card(s) written; strict ordering means later pages wait.")
+        else:
+            print(f"[{base_name}] collect: all {total_pages} page(s) cached -- "
+                  f"ready for submit's rerun.")
+        return
+
     final_md = build_final_markdown(cache, total_pages)
     frontmatter = build_frontmatter({
         **base_metadata,
         "routing": "gemini_accumulating",
         "model": model,
-        "tags": [],
+        "tags": [], **_driver_frontmatter_fields(cache_path, list(range(1, total_pages + 1))),
     })
     _write_markdown_and_index(
         md_path, frontmatter, final_md, pdf_path, academic_hub_root,
@@ -1393,15 +1466,111 @@ def main():
         "--force-vision", action="store_true",
         help="Force vision transcription via Gemini, bypassing local text extraction even if the PDF appears cleanly machine-generated.",
     )
+    parser.add_argument("--driver", choices=["api", "agent"], default="api", help="Transcription transport.")
+    parser.add_argument("--collect", action="store_true", help="With --driver agent: write task cards instead of transcribing.")
+    parser.add_argument("--run-id", default=None, help="Run id for --collect/--submit's .agent_work/ directory (default: a timestamp).")
+    parser.add_argument("--submit", default=None, metavar="RUN_ID", help="Validate filled task cards for this run and write through.")
+    parser.add_argument("--bootstrap", default=None, metavar="RUN_ID", help="Print the agent's operating contract for this run.")
     args = parser.parse_args()
+
+    if args.bootstrap:
+        print(f"""Agent-driven transcription contract for run '{args.bootstrap}':
+
+1. Open each document's directory under .agent_work/{args.bootstrap}/<doc-slug>/.
+2. Read worklist.md to see which task cards are pending.
+3. For each pending task-NNNN.md: read every page's image and prompt in
+   the card, then fill ONLY the "Agent output" section at the bottom with
+   one "--- PAGE <number> ---" section per page, in order, using exactly
+   the page numbers the card lists. Never edit any other file or section.
+4. For a tier-3 card with more than one page: only the first page has
+   real prior-page context supplied. For every later page in that same
+   card, carry forward your own transcription of the card's earlier
+   pages as continuity context.
+5. Once you've filled one or more cards, run:
+   python -m pipelines.transcribe_notes.transcribe_notes --notes-subdir <dir> --submit {args.bootstrap}
+6. If a card comes back marked "bounced: <reason>" in worklist.md, redo
+   only that card in place and re-run step 5.
+7. Stop once worklist.md shows nothing "pending"/"filled" left for this run.
+""")
+        return
 
     load_dotenv_override()
 
-    academic_hub_dir = Path(__file__).resolve().parent.parent.parent.parent / "academic-hub"
+    academic_hub_dir = Path(os.environ.get("ACADEMIC_HUB_ROOT_OVERRIDE") or (
+        Path(__file__).resolve().parent.parent.parent.parent / "academic-hub"
+    ))
     notes_dir = academic_hub_dir / args.notes_subdir
     pdf_paths = discover_pdf_files(str(notes_dir), args.file)
     if not pdf_paths:
         print(f"No PDF files found under {notes_dir}.")
+        sys.exit(1)
+
+    if args.submit:
+        from pipelines.transcribe_notes.agent_submit import submit_doc
+        from pipelines.transcribe_notes.agent_work import agent_work_dir
+
+        client = get_gemini_client()
+        if client is None:
+            sys.exit(1)
+        run_dir = agent_work_dir(str(academic_hub_dir), args.submit)
+        if not os.path.isdir(run_dir):
+            print(f"No .agent_work run directory found for run '{args.submit}' at {run_dir}.")
+            sys.exit(1)
+        from core.indexer.index_card import compute_file_id
+        from pipelines.transcribe_notes.agent_work import doc_slug_for
+
+        # Match by the same file_id-derived slug AgentDriver used to name
+        # the document's directory, not by reconstructing a basename from
+        # the slug -- avoids ever matching the wrong PDF under a
+        # mismatched --notes-subdir (final review I1).
+        pdf_by_slug = {doc_slug_for(p, compute_file_id(p)): p for p in pdf_paths}
+        lease = corpus_write_lock(
+            [academic_hub_dir, academic_hub_dir / "academic_notes"], "notes PDF transcription (agent submit)",
+        )
+        with lease:
+            for doc_slug in sorted(os.listdir(run_dir)):
+                pdf_path = pdf_by_slug.get(doc_slug)
+                if pdf_path is None:
+                    print(f"Skipping {doc_slug}: no matching PDF found under {args.notes_subdir}.")
+                    continue
+                try:
+                    status = submit_doc(
+                        str(academic_hub_dir), str(academic_hub_dir), args.submit, doc_slug, pdf_path,
+                        client, args.model, force_vision=args.force_vision,
+                    )
+                except Exception as err:
+                    # Final review I6: one document's malformed manifest/
+                    # card must not abort every other document's submit.
+                    print(f"[{doc_slug}] error: {err}")
+                    continue
+                print(f"[{doc_slug}] {status}")
+        return
+
+    if args.collect:
+        if args.driver != "agent":
+            print("--collect requires --driver agent.")
+            sys.exit(1)
+        import datetime
+
+        from pipelines.transcribe_notes.agent_work import AgentDriver, dedupe_by_file_id
+
+        run_id = args.run_id or datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+        canonical_pdf_paths, _duplicates_of = dedupe_by_file_id(pdf_paths)
+        driver = AgentDriver(str(academic_hub_dir), run_id)
+        for pdf_path in canonical_pdf_paths:
+            process_pdf(
+                pdf_path, None, args.model, str(academic_hub_dir),
+                force_vision=args.force_vision, driver=driver, collect_mode=True,
+            )
+        print(f"Collect run '{run_id}' complete under {academic_hub_dir / '.agent_work' / run_id}.")
+        return
+
+    if args.driver == "agent":
+        # Final review I3: reaching here means --collect/--submit weren't
+        # given, so this would otherwise fall through to the plain API
+        # loop below and spend real money across the whole --notes-subdir
+        # -- exactly what --driver agent is meant to avoid.
+        print("--driver agent requires --collect or --submit.")
         sys.exit(1)
 
     client = None

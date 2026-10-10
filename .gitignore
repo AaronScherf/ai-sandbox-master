@@ -71,6 +71,10 @@ ai-sandbox/academic-hub/**/textbooks/**/images/
 # problem sets, solutions). Only academic_notes/ is synced between devices.
 ai-sandbox/academic-hub/academic_resources/**/*.pdf
 ai-sandbox/academic-hub/academic_resources/microecon/2024_class/
+# 2026-10-09: agent-driven transcription mode's working directory --
+# rendered page images and task cards, never meant to be committed (the
+# page images are course material and this repo is public).
+ai-sandbox/academic-hub/.agent_work/
 # local MCP server config (may hold tokens)
 /.mcp.json
 ai-sandbox/academic-hub/**/lecture-slides/
