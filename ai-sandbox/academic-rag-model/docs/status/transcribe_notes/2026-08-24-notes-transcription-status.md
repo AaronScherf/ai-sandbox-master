@@ -1233,3 +1233,68 @@ misread seen was a heading ("Microcon" for "Microecon").
   linking/resolver work are tracked in their own status docs.
 
 Full suite on `main` after the question-resolver merge (`e55402c`): 2148 passing.
+
+## 2026-10-09: prior-year microecon folders dry-run; agent-driven (subscription) transcription proposed, not built
+
+**Why this entry exists.** `academic_resources/microecon/2024_class/` and
+`2025_class/` (86 PDFs, 77 unique by hash) were never converted: the router
+(`route_notes_transcribe.py`) only sweeps folders that carry a
+`.notes_subset.json` prior-offering marker, and these had none. They are
+wanted as corpus for the microecon concept-graph project and for the tutor.
+Markers `{"label": "2024"}` and `{"label": "2025"}` were added on 2026-10-09
+(`2024_class/` is gitignored; the `2025_class/` marker is untracked and was
+left uncommitted pending a decision on ignoring that folder too). Nothing
+has been transcribed.
+
+**Dry-run result** (`transcribe_notes --dry-run` per leaf folder; no API
+calls, no write lock; it did create empty `academic_notes/microecon/{2024,2025}_class/`
+folders, because `process_pdf` calls `os.makedirs` before checking
+`dry_run`). 79 documents listed:
+
+| Tier | Docs | Pages | Gemini pages |
+|---|---|---|---|
+| Local, free | 19 | 179 | 0 |
+| Whole-document batch (`gemini-3.1-flash-lite`, 150 DPI) | 33 | 460 | 460 |
+| Hybrid (local, defective pages repaired) | 27 | 1,579 | 53 |
+| Handwritten / unreliable pagination (`gemini-3.6-flash`, 200 DPI, strictly ordered) | 7 | 125 | 125 |
+
+Eight groups of byte-identical PDFs (mostly exam-prep files shared by both
+years) will be linked to one transcription by `find_existing_transcription`,
+not paid for twice.
+
+**Cost estimate.** Prices for `flash-lite` and `3.6-flash` are not in the
+repo; only `gemini-3.8-flash` is (`agent/study_guide/revise/cost.py`:
+$0.75 in / $3.75 out per million tokens). Using it as a ceiling for every
+tier: roughly $2.1 for the 513 flash-lite pages and $1.6 for the 125
+tier-3 pages, about $1 to $4 in total, probably toward the low end. This is
+a token-count guess, not a measurement; count real tokens on a few sample
+pages before quoting a tighter number.
+
+**Proposed feature: agent-driven mode for large runs.** The user wants the
+subscription IDE agent (Antigravity first; Claude Code works too) to be a
+selectable transcription backend instead of metered Gemini calls, and
+possibly a general option for any large run. It is a new feature, not a
+flag flip. Shape, modeled on `agent/tutor` (`prep-collect` / `prep-submit`)
+and on the study-guide subscription-agent decision:
+
+1. `collect`: for each PDF/page range that would call Gemini, render page
+   images locally (PyMuPDF, same DPI as the tier), and write a worklist
+   plus a self-contained task card holding the transcription prompt for
+   that tier, the image paths, and the exact output path.
+2. The agent fills the cards: one Markdown file per page range, in order
+   (tier 3 must stay strictly sequential because of accumulated context).
+3. `submit`: validate (every page present and non-empty, page count matches,
+   math delimiters balanced, no truncation marker), then run the existing
+   `build_final_markdown` / `_write_markdown_and_index` path so frontmatter,
+   caches, offering labels and indexing are identical to API output.
+   A bad file is bounced back with the reason.
+4. `--driver api` stays the default fallback when no subscription agent is
+   available; prompts and validators are shared, only the transport differs.
+
+Open questions for the build: whether to reuse the per-page cache format so
+agent output and API output are interchangeable on resume; how an agent
+reads 150 to 200 DPI images in bulk without exhausting its context (batch
+size per card); and a truly local Ollama vision model remains untested and
+likely weak on handwritten math (the README says even Marker/Surya OCR does
+poorly on handwriting). Tracker: `docs/trackers/academic_hub_to_do.md`,
+Notes Transcription section (added 2026-10-09).
