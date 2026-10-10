@@ -12,7 +12,8 @@ from agent.tutor import fsm
 from agent.tutor.claims import AXES_ALL, tokenize
 from agent.tutor.events import Event, EventLog
 from agent.tutor.fsm import (
-    AWAITING_ADVANCE, LAUNCH, SYNTHESIS, VERIFIED, WORKING, FsmState, IllegalTransition, replay, student_event,
+    AWAITING_ADVANCE, LAUNCH, PAUSED, SYNTHESIS, VERIFIED, WORKING, FsmState, IllegalTransition, fresh_index,
+    offerable, replay, status_of, student_event,
 )
 from agent.tutor.ledger import IGNORED_INTENTS, build_ledger, next_claim
 from agent.tutor.lint import lint_message
@@ -21,6 +22,7 @@ from agent.tutor.paths import TutorPaths
 from agent.tutor.profile import load_profile, open_gaps, save_profile, update_profile
 from agent.tutor.ratings import build_ratings
 from agent.tutor.render import write_session_docs
+from agent.tutor.skip import counts_as_skip, is_real_attempt
 
 CHECK_STATUSES = ("confirmed", "missing", "wrong")
 
@@ -30,6 +32,7 @@ _NEXT = {
     VERIFIED: ["say (the check-in question)"],
     AWAITING_ADVANCE: ["turn (the student's reply)", "say (answer a question)"],
     SYNTHESIS: ["say (closing message)", "end --big-picture-file F"],
+    fsm.PAUSED: ["start (resume)", "start --fresh"],
 }
 _LEVEL_RULES = {
     0: "Level 0: no hints. Ask what the student is thinking.",
@@ -77,6 +80,11 @@ def split_steps(section: str) -> list[str]:
         steps.append("\n".join(cur).strip())
         return [s for s in steps if s]
     return [p.strip() for p in re.split(r"\n\s*\n", section) if p.strip()]
+
+
+def _parked(packet, indices, s=None):
+    return [{"part_id": packet.parts[i].part_id, "label": packet.parts[i].label or packet.parts[i].part_id,
+             "status": (status_of(s, i) if s is not None else None)} for i in indices]
 
 
 class Session:
@@ -179,12 +187,19 @@ class Session:
                 seen.add(tag)
         return out
 
+    @staticmethod
+    def _attempt_no(pe: list[Event]) -> int:
+        return 1 + sum(1 for e in pe if e.type == "student" and e.intent == "revisit")
+
     def _form_active(self, s: FsmState, pe: list[Event]) -> bool:
         return s.state == WORKING and (s.hint_level <= 1 or (self._released(pe) and s.hint_level < 3))
 
-    def _rules(self, s: FsmState, ledger, unresolved: list[Event], form: bool) -> str:
+    def _rules(self, s: FsmState, ledger, unresolved: list[Event], form: bool, extra=()) -> str:
+        return " ".join([self._rules_base(s, ledger, unresolved, form), *extra])
+
+    def _rules_base(self, s: FsmState, ledger, unresolved: list[Event], form: bool) -> str:
         if s.state == LAUNCH:
-            return "Send ONLY launch_text through say, then wait for the student."
+            return "Send launch_text through say, then wait for the student."
         if s.state == SYNTHESIS:
             return "All parts are closed. Write the big-picture synthesis and run end."
         if s.state == VERIFIED:
@@ -213,6 +228,36 @@ class Session:
         ledger = build_ledger(pc, pe)
         unresolved = self._unresolved(pe)
         by_tag = {p.tag: p for p in pc.pitfalls}
+        last_student = next((e for e in reversed(events) if e.type == "student"), None)
+        answered = last_student is not None and any(e.type == "tutor_say" and e.id > last_student.id for e in events)
+        extra = []
+        nudge = (s.state == WORKING and s.skip_requests == 1 and last_student is not None
+                 and last_student.data.get("skip") and not answered)
+        if nudge:
+            extra.append("The student asked to skip. Do NOT agree or move on, and do not mention the next question. "
+                         "Reply with ONE question that invites them to try a first step. If they ask again, the "
+                         "part is parked and can be revisited later.")
+        parked_now = None
+        if s.state == LAUNCH and last_student is not None and last_student.data.get("skip_ended") and not answered:
+            idx = next(i for i, p in enumerate(self.packet.parts) if p.part_id == last_student.part)
+            parked_now = _parked(self.packet, [idx], s)[0]
+            extra.append("The previous question is parked. Send launch_text through say; you may put ONE short "
+                         "sentence (max 20 words, no question, no content) before it saying the earlier question "
+                         "can be revisited later.")
+        offer = list(offerable(s))
+        if offer:
+            names = ", ".join(self.packet.parts[i].label or self.packet.parts[i].part_id for i in offer)
+            extra.append(f"Parked earlier: {names}. Your message must also offer to go back to "
+                         f"{'it' if len(offer) == 1 else 'them'} (name it); do not name the next question.")
+        if s.state in (AWAITING_ADVANCE, SYNTHESIS) and s.queue:
+            extra.append("If the student wants to go back, run turn --intent revisit --part <part_id> (a parked part "
+                         "from revisit_options). If they want to move on, label it confirm_advance."
+                         if s.state == AWAITING_ADVANCE else
+                         "Offer the parked parts once more in the closing message; if the student declines, run end.")
+        attempt_no = self._attempt_no(pe)
+        if s.state == WORKING and attempt_no > 1:
+            extra.append(f"This is a revisit (attempt {attempt_no}); the earlier work still counts. Hint level is "
+                         f"restored to {s.hint_level}.")
         out = {
             "ok": True, "session": self.session_id, "state": s.state, "part_id": part.part_id,
             "label": part.label or part.part_id, "part_index": s.part_index, "n_parts": len(self.packet.parts),
@@ -224,9 +269,18 @@ class Session:
                              for e in unresolved],
             "verify_available": s.state == WORKING and ledger.covered,
             "solution_released": self._released(pe),
-            "rules": self._rules(s, ledger, unresolved, self._form_active(s, pe)),
+            "rules": self._rules(s, ledger, unresolved, self._form_active(s, pe), extra),
             "next": _NEXT.get(s.state, []), "prior_gaps": self._prior_gaps(),
         }
+        out["skip_requests"] = s.skip_requests
+        out["attempt"] = attempt_no
+        out["deferred_queue"] = _parked(self.packet, s.queue, s)
+        if offer:
+            out["revisit_offer"] = _parked(self.packet, offer, s)
+        if s.state in (AWAITING_ADVANCE, SYNTHESIS) and s.queue:
+            out["revisit_options"] = _parked(self.packet, s.queue, s)
+        if parked_now:
+            out["parked"] = parked_now
         if s.state == LAUNCH:
             out["launch_text"] = part.launch_text()
         nxt = next_claim(pc, ledger)
@@ -245,7 +299,8 @@ class Session:
     # ---- turn ---------------------------------------------------------
     def turn(self, intent: str, text: str, *, admits_gap: str | None = None, establish: str | None = None,
              establish_quote: str | None = None, flag_slip: str | None = None, slip_quote: str | None = None,
-             resolve: str | None = None, resolve_quote: str | None = None, define_term: str | None = None) -> dict:
+             resolve: str | None = None, resolve_quote: str | None = None, define_term: str | None = None, skip: bool = False,
+             revisit_part: str | None = None) -> dict:
         if not (text or "").strip():
             raise ValueError("student text is empty; pass the student's verbatim message")
         events = self.log.load()
@@ -258,6 +313,10 @@ class Session:
         prev = build_ledger(pc, pe)
         now = build_ledger(pc, pe, extra_student_text=virtual)
         newly = [c for c in now.established if c not in prev.established]
+        new_pitfalls = [p.id for p in pc.pitfalls if p.id in now.pitfalls_hit and p.id not in prev.pitfalls_hit]
+        skip_now = counts_as_skip(intent, text, skip, s.state in (LAUNCH, WORKING))
+        real = is_real_attempt(intent, text, bool(newly or new_pitfalls), admits_gap is not None)
+        target = self._resolve_revisit(s, intent, revisit_part)
 
         manual = any(x is not None for x in (establish, flag_slip, resolve))
         if manual and intent == "confirm_advance":
@@ -282,15 +341,22 @@ class Session:
                 raise ValueError("--resolve needs --resolve-quote: at least 3 words the student actually wrote in this part (or their whole message if it is shorter)")
 
         try:
-            new, info = student_event(s, intent, len(self.packet.parts), bool(newly))
+            new, info = student_event(s, intent, len(self.packet.parts), bool(newly),
+                                      skip=skip_now, real_attempt=real, revisit=target)
         except IllegalTransition as err:
             extra = " Run verify first; a clean verify closes the part." if s.state == WORKING and prev.covered else ""
             raise Refused(str(err) + extra, _NEXT.get(s.state, [])) from err
 
-        part_id = self.packet.parts[new.part_index].part_id
+        part_id = part.part_id if info.get("skip_ended") else self.packet.parts[new.part_index].part_id
         data = dict(info)
         data["made_progress"] = bool(newly)
         data["established"] = newly
+        data["real_attempt"] = real
+        if skip_now:
+            data["skip"] = True
+        if target is not None:
+            data["revisit"] = target
+            data["revisit_part"] = self.packet.parts[target].part_id
         if admits_gap:
             data.update(admits_gap=True, gap_axis=admits_gap)
         student_ev = self.log.append("student", part=part_id, state=new.state, hint_level=new.hint_level,
@@ -311,6 +377,10 @@ class Session:
                 self.log.append("misconception_resolved", data={"tag": resolve, "axis": "all", "manual": True,
                                                                 "quote": resolve_quote}, **common)
             self._auto_resolve(part, pc, new)
+            if info.get("skip_ended"):
+                self.log.append("part_status", part=part.part_id, state=new.state, hint_level=s.hint_level,
+                                data={"status": info["part_status"], "attempt": self._attempt_no(pe),
+                                      "real_attempt": info["had_real_attempt"], "skip_requests": info["skip_count"]})
 
         definition, definition_error = None, None
         if define_term:
@@ -327,6 +397,29 @@ class Session:
             brief["definition_error"] = definition_error
             brief["terms"] = sorted(self.packet.glossary)
         return brief
+
+    def _resolve_revisit(self, s: FsmState, intent: str, ref: str | None) -> int | None:
+        if intent != "revisit":
+            if ref:
+                raise ValueError("--part is only used with --intent revisit")
+            return None
+        if s.state not in (AWAITING_ADVANCE, SYNTHESIS):
+            return None                                   # the FSM explains why
+        names = ", ".join(f"{p['part_id']} ({p['label']})" for p in _parked(self.packet, s.queue))
+        if not s.queue:
+            raise Refused("no parts are parked, so there is nothing to go back to", _NEXT.get(s.state, []))
+        if ref is None:
+            if len(s.queue) == 1:
+                return s.queue[0]
+            raise Refused(f"several parts are parked: {names}; pass --part with one of these ids",
+                          ["turn --intent revisit --part <part_id> --stdin"])
+        key = _norm(ref).lower()
+        for i in s.queue:
+            p = self.packet.parts[i]
+            label = (p.label or "").lower()
+            if key in (p.part_id.lower(), label, label.rsplit(" ", 1)[-1]):
+                return i
+        raise Refused(f"{ref!r} is not a parked part; parked: {names}", ["turn --intent revisit --part <part_id> --stdin"])
 
     def _auto_resolve(self, part, pc, st: FsmState) -> None:
         pe = self._part_events(self.log.load(), part.part_id)

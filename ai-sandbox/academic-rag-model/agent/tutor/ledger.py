@@ -10,7 +10,7 @@ from dataclasses import dataclass
 from agent.tutor.claims import Claim, PartClaims
 from agent.tutor.events import Event
 
-IGNORED_INTENTS = frozenset({"confirm_advance", "define_request"})
+IGNORED_INTENTS = frozenset({"confirm_advance", "define_request", "revisit"})
 
 
 @dataclass

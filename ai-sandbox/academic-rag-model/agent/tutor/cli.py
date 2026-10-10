@@ -84,6 +84,8 @@ def _build_parser() -> argparse.ArgumentParser:
     t.add_argument("--slip-quote")
     t.add_argument("--resolve")
     t.add_argument("--resolve-quote")
+    t.add_argument("--skip", action="store_true")
+    t.add_argument("--part")
 
     sy = sub.add_parser("say")
     _add_text_args(sy)
@@ -131,6 +133,7 @@ def _dispatch(args, paths: TutorPaths) -> dict:
             args.intent, _text(args), admits_gap=args.admits_gap, establish=args.establish,
             establish_quote=args.establish_quote, flag_slip=args.flag_slip, slip_quote=args.slip_quote,
             resolve=args.resolve, resolve_quote=args.resolve_quote, define_term=args.define,
+            skip=args.skip, revisit_part=args.part,
         )
     if args.cmd == "say":
         return session.say(_text(args), check=args.check)
