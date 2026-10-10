@@ -164,7 +164,7 @@ Work directory: {work}
 4. Write in your own words: 8 or more consecutive words shared with a passage is rejected. Cite only the
    (source, ref) pairs shown in the passage headers.
 5. When the cards are done, run:
-   python -m agent.concept_graph.cli --graph-repo {repo} --work-dir {work} submit {run_id} --agent-name <your name>
+   python -m agent.concept_graph.cli --graph-repo "{repo}" submit {run_id} --work-dir "{work}" --agent-name YOUR-NAME
 6. A card that bounces gets a ## Bounced section listing why. Fix only those cards, then run submit again.
 Never copy source text, never edit the graph's data files directly, and never mark anything verified: a person does that.
 """

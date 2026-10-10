@@ -80,9 +80,9 @@ Each stage turns corpus passages into **proposed** items that a person then revi
 
 ```
 python -m agent.concept_graph.cli --graph-repo G collect fill --hub-root H --course microecon   # writes task cards
-python -m agent.concept_graph.cli --graph-repo G --work-dir W bootstrap <run-id>                 # the agent's contract
+python -m agent.concept_graph.cli --graph-repo G bootstrap <run-id> --work-dir W                 # the agent's contract
 # the agent fills the yaml block under "## Result" in each card
-python -m agent.concept_graph.cli --graph-repo G --work-dir W submit <run-id> --agent-name NAME  # validate + apply
+python -m agent.concept_graph.cli --graph-repo G submit <run-id> --work-dir W --agent-name NAME  # validate + apply
 ```
 
 Cards that fail validation are bounced with the reasons written onto the card; fix only those and submit again.

@@ -72,3 +72,21 @@ def test_cli_rejects_a_crafted_run_id(tmp_path, capsys):
     root, work = setup(tmp_path)
     assert cli(root, "collect", "fill", "--work-dir", str(work), "--run-id", "../graph/evil") == 1
     assert "run id" in capsys.readouterr().err
+
+
+def test_the_submit_command_printed_by_bootstrap_actually_parses(tmp_path, capsys):
+    import shlex
+    from pathlib import Path
+
+    from agent.concept_graph.cli import build_parser
+
+    root, work = setup(tmp_path)
+    cli(root, "collect", "fill", "--work-dir", str(work), "--run-id", "r1")
+    capsys.readouterr()
+    cli(root, "bootstrap", "r1", "--work-dir", str(work))
+    out = capsys.readouterr().out
+    line = next(l.strip() for l in out.splitlines() if l.strip().startswith("python -m agent.concept_graph.cli"))
+    tokens = [t.strip('"') for t in shlex.split(line, posix=False)[3:]]
+    args = build_parser().parse_args(tokens)
+    assert args.cmd == "submit" and args.run_id == "r1" and Path(args.work_dir) == work
+    assert args.agent_name != "ide-agent"  # the contract asks the agent to name itself
