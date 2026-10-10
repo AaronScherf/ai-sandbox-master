@@ -9,16 +9,46 @@ from cg_helpers import copy_sample, entry_for
 PROV = {"driver": "agent", "agent": "test-agent", "run": "r1"}
 
 
+SYLLABUS = """---
+source_pdf: academic_resources/microecon/syllabus/Syllabus.pdf
+routing: gemini_accumulating
+---
+
+<!-- page 1 -->
+
+**GR6211: Microeconomic Analysis I Part I**
+
+**Professor:** Jane Q. Professor
+
+**Email:** jane.professor@example.test
+
+**Office Hours:** {hours}
+
+**Teaching Assistant:** Some Assistant
+
+**Website:** http://www.example.test/~jqp
+
+<u>**Course Description**</u>
+
+Course topics: preferences and choice, utility maximization, demand and producer theory, then risk.
+"""
+
+
 def make_hub(tmp_path):
     notes = tmp_path / "hub" / "academic_notes" / "microecon"
     files = {
-        "syllabus/processed_outputs/Syllabus.md": "Course topics: preferences and choice, utility, demand.",
+        "syllabus/processed_outputs/Syllabus.md": SYLLABUS.format(hours="Wednesdays 3:00-4:00"),
+        "syllabus/processed_outputs/Syllabus (1).md": SYLLABUS.format(hours="Thursdays 4:00-5:00"),
         "textbooks/processed_outputs/Rubenstein_Lecture_Notes_2026/chapters/00_front_matter.rag.md": "front matter text",
         "textbooks/processed_outputs/Rubenstein_Lecture_Notes_2026/chapters/01_introduction.rag.md": "intro",
         "textbooks/processed_outputs/Rubenstein_Lecture_Notes_2026/chapters/02_preferences.rag.md": "prefs",
         "lecture_notes/processed_outputs/Microeconomics 2026-09-07.excalidraw.rag.md": "notes",
         "lecture_notes/processed_outputs/Microeconomics 2026-09-10 10.09.33.excalidraw.rag.md": "notes",
+        "lecture_notes/Microeconomics 2026-09-29 10.07.07.excalidraw.md": "raw note, not yet processed",
         "professor_notes/processed_outputs/2.Utility_Maximization_1.md": "slides",
+        "professor_notes/processed_outputs/10.Late_Topic.md": "slides",
+        "professor_notes/processed_outputs/1.Course_Intro.md": "slides",
+        "professor_notes/processed_outputs/2.Utility_Maximization_1_Proofs.md": "proofs",
     }
     for rel, text in files.items():
         path = notes / rel
@@ -56,7 +86,6 @@ def task_for(tmp_path, store=None):
 def test_outline_context_lists_chapters_and_dates_from_a_tmp_hub(tmp_path):
     context, passages = seed.outline_context(str(make_hub(tmp_path)), "microecon")
     assert "2026-09-07" in context and "2026-09-10" in context and "Utility Maximization 1" in context
-    assert "Course topics: preferences" in context
     toc = next(p for p in passages if p.source == "rubinstein")
     assert "Introduction" in toc.text and "Preferences" in toc.text and "front matter" not in toc.text.lower()
 
@@ -135,3 +164,31 @@ def test_seeded_graph_validates_apart_from_unfilled_warnings(tmp_path):
     issues = validate(store.read_all())
     assert errors(issues) == []
     assert {i.code for i in issues} <= {"orphan", "unfilled"}
+
+
+def test_syllabus_excerpt_drops_contact_details_and_file_metadata_and_is_not_duplicated(tmp_path):
+    context, passages = seed.outline_context(str(make_hub(tmp_path)), "microecon")
+    syllabi = [p for p in passages if p.source == "other"]
+    assert len(syllabi) == 1  # the two near-identical syllabi differ only in office hours
+    text = syllabi[0].text
+    assert "Course topics: preferences and choice" in text
+    for gone in ("@", "Professor:", "Jane", "Assistant", "Office Hours", "source_pdf", "routing", "http", "<!-- page"):
+        assert gone not in text, gone
+
+
+def test_context_points_to_the_passages_instead_of_repeating_them(tmp_path):
+    context, passages = seed.outline_context(str(make_hub(tmp_path)), "microecon")
+    assert "Course topics" not in context and "1. Introduction" not in context
+    assert "offered passages" in context.lower()
+
+
+def test_lecture_dates_include_notes_that_have_not_been_processed_yet(tmp_path):
+    context, _ = seed.outline_context(str(make_hub(tmp_path)), "microecon")
+    assert "2026-09-29" in context
+
+
+def test_slide_sets_are_in_numeric_course_order_and_proofs_are_left_out(tmp_path):
+    context, _ = seed.outline_context(str(make_hub(tmp_path)), "microecon")
+    line = next(l for l in context.splitlines() if l.startswith("Professor slide sets"))
+    assert line.index("Course Intro") < line.index("Utility Maximization 1") < line.index("Late Topic")
+    assert "Proofs" not in line

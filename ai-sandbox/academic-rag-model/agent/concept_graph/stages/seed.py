@@ -20,6 +20,18 @@ NODE_KEYS = {"id", "name", "kind", "section", "topic", "gist"}
 STATES = ("taught", "in_progress", "planned")
 _SLUG = re.compile(SLUG)
 _DATE = re.compile(r"\d{4}-\d{2}-\d{2}")
+_FRONTMATTER = re.compile(r"\A---\n.*?\n---\s*\n", re.DOTALL)
+_PAGE_MARK = re.compile(r"<!--.*?-->")
+_PRIVATE_LINE = re.compile(r"(?i)(e-?mail|@|https?://|office hours|professor:|teaching assistant|recitation|website|courseworks|classes:)")
+
+
+def _clean_syllabus(text: str) -> str:
+    """The syllabus text minus file metadata and contact details (names, emails, hours, links)."""
+    text = _FRONTMATTER.sub("", text.replace("\r\n", "\n"), count=1)
+    text = _PAGE_MARK.sub("", text)
+    kept = [ln for ln in text.splitlines() if not _PRIVATE_LINE.search(ln)]
+    return re.sub(r"\n{3,}", "\n\n", "\n".join(kept)).strip()
+
 
 INSTRUCTIONS = """\
 Propose the outline of this course as a concept graph skeleton, using only the course materials listed below.
@@ -48,21 +60,22 @@ def _title(file_stem: str) -> str:
 
 
 def outline_context(hub_root: str, course: str, *, max_chars: int = 12000) -> tuple[str, list[Passage]]:
-    """Describe the course from files on disk only (no model, no embedding): syllabus excerpts, textbook chapter
-    titles, lecture dates and professor-note titles."""
+    """Describe the course from files on disk only (no model, no embedding).
+
+    The syllabus excerpt (cleaned of contact details) and each textbook's chapter titles become offered passages;
+    the context text carries the lecture dates and slide-set titles and points to the passages."""
     base = Path(hub_root) / "academic_notes" / course
     lines: list[str] = []
     passages: list[Passage] = []
 
     seen_text: set[str] = set()
     for f in sorted((base / "syllabus" / "processed_outputs").glob("*.md")):
-        text = f.read_text(encoding="utf-8", errors="ignore")[:3000].strip()
+        text = _clean_syllabus(f.read_text(encoding="utf-8", errors="ignore"))[:3000].strip()
         if not text or text in seen_text:
             continue
         seen_text.add(text)
         source, ref = classify_passage(str(f))
         passages.append(Passage(id="", source=source, ref=ref, text=text, path=str(f)))
-        lines += [f"Syllabus excerpt ({f.stem}):", text, ""]
 
     for chapters in sorted((base / "textbooks" / "processed_outputs").glob("*/chapters")):
         titles = []
@@ -74,17 +87,25 @@ def outline_context(hub_root: str, course: str, *, max_chars: int = 12000) -> tu
         if titles:
             source, _ = classify_passage(str(chapters / "x.rag.md"))
             passages.append(Passage(id="", source=source, ref="table of contents", text="\n".join(titles), path=str(chapters)))
-            lines += [f"Textbook contents ({chapters.parent.name}):"] + titles + [""]
 
-    dates = sorted({m.group(0) for f in (base / "lecture_notes" / "processed_outputs").glob("*.md")
-                    for m in [_DATE.search(f.name)] if m})
+    notes = [*(base / "lecture_notes").glob("*.md"), *(base / "lecture_notes" / "processed_outputs").glob("*.md")]
+    dates = sorted({m.group(0) for f in notes for m in [_DATE.search(f.name)] if m})
     if dates:
         lines += ["Lecture dates with notes: " + ", ".join(dates), ""]
-    slides = sorted({classify_passage(str(f))[1] for f in (base / "professor_notes" / "processed_outputs").glob("*.md")
-                     if "proofs" not in f.name.lower()})
+
+    def slide_key(f: Path):
+        m = re.match(r"(\d+)\.", f.name)
+        return (int(m.group(1)) if m else 10_000, f.name)
+
+    slides = []
+    for f in sorted((base / "professor_notes" / "processed_outputs").glob("*.md"), key=slide_key):
+        title = classify_passage(str(f))[1]
+        if "proof" not in f.name.lower() and title not in slides:
+            slides.append(title)
     if slides:
         lines += ["Professor slide sets (in course order): " + "; ".join(slides), ""]
 
+    lines += ["The syllabus excerpt and each textbook's table of contents are under 'Offered passages' below."]
     context = "\n".join(lines).strip()
     if len(context) > max_chars:
         context = context[:max_chars] + "\n[context truncated]"
