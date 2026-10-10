@@ -14,7 +14,7 @@ from tools.project_steering.parser import ParsedTracker, Task
 
 
 def make_report(parsed: ParsedTracker, *, tracker: Path, source_hash: str, source_bytes: int,
-                duration_seconds: float) -> dict:
+                duration_seconds: float, ranking: dict | None = None, revision: int = 0) -> dict:
     ordered = sorted(parsed.tasks, key=lambda task: (
         not task.urgent_suggestion, task.section.casefold(), task.title.casefold(), task.task_id
     ))
@@ -26,12 +26,15 @@ def make_report(parsed: ParsedTracker, *, tracker: Path, source_hash: str, sourc
         "source_bytes": source_bytes,
         "duration_seconds": round(duration_seconds, 3),
         "coverage_complete": parsed.coverage_complete,
+        "state_revision": revision,
         "task_count": len(ordered),
         "warning_count": len(parsed.warnings),
         "excluded_count": len(parsed.excluded),
         "tasks": [task.to_dict() for task in ordered],
         "warnings": [warning.to_dict() for warning in parsed.warnings],
         "excluded": [item.to_dict() for item in parsed.excluded],
+        "notices": [item.to_dict() for item in parsed.notices],
+        "ranking": ranking,
     }
 
 
@@ -42,7 +45,7 @@ def _task_line(task: dict) -> str:
     if task["deferred_suggestion"]:
         flags.append("defer wording; unreviewed")
     suffix = f" — {', '.join(flags)}" if flags else ""
-    return f"- **{escape(task['title'])}** ({task['task_id']}, source line {task['first_line']}; effort/impact unknown){suffix}"
+    return f"- **{escape(task['title'])}** ({task['task_id']}, source line {task['first_line']}){suffix}"
 
 
 def render_markdown(report: dict) -> str:
@@ -51,13 +54,35 @@ def render_markdown(report: dict) -> str:
         "",
         f"Source: `{report['tracker']}` at SHA-256 `{report['source_sha256']}`.",
         f"Coverage: {'complete' if report['coverage_complete'] else 'PARTIAL'}; "
-        f"{report['task_count']} dated tasks; {report['warning_count']} needs-review entries; "
+        f"{report['task_count']} tasks; {report['warning_count']} unresolved entries; "
         f"{report['excluded_count']} structured exclusions.",
         "",
-        "This provisional view has no owner-reviewed scores, effort estimates, or confirmed dependencies. "
-        "The order below is a reading order, not an authoritative priority ranking.",
+        ("Owner-reviewed rankings appear below where available; unknown fields stay unranked."
+         if report.get("ranking") else
+         "This provisional view has no owner-reviewed scores, effort estimates, or confirmed dependencies. "
+         "The order below is a reading order, not an authoritative priority ranking."),
         "",
     ]
+    ranking = report.get("ranking")
+    if ranking:
+        lines.extend(["## Next three for review", ""])
+        for node in ranking["shortlist"]:
+            task = node["task"]
+            lines.append(f"- **{escape(task['title'])}** ({task['task_id']}; score {node['score']}; "
+                         f"impact +{node['terms']['impact']}, urgency +{node['terms']['urgency']}, "
+                         f"unlock +{node['terms']['unlock']}, effort -{node['terms']['effort_penalty']})")
+        if not ranking["shortlist"]:
+            lines.append("- No owner-scored ready tasks yet.")
+        lines.extend(["", "## Full scored order", ""])
+        for node in ranking["ready"]:
+            lines.append(f"- {escape(node['task']['title'])} ({node['task']['task_id']}; score {node['score']})")
+        lines.append("")
+        for group, nodes in ranking["groups"].items():
+            if nodes:
+                lines.extend([f"## {group.replace('_', ' ').title()}", ""])
+                for node in nodes:
+                    lines.append(f"- {escape(node['task']['title'])} ({node['task']['task_id']})")
+                lines.append("")
     urgent = [task for task in report["tasks"] if task["urgent_suggestion"]]
     if urgent:
         lines.extend(["## Explicit urgency signals to review", ""])
@@ -74,6 +99,11 @@ def render_markdown(report: dict) -> str:
         lines.extend(["## Needs classification", ""])
         for warning in report["warnings"]:
             lines.append(f"- Line {warning['first_line']} ({warning['kind']}): {escape(warning['excerpt'])}")
+        lines.append("")
+    if report.get("notices"):
+        lines.extend(["## Classification notes", ""])
+        for notice in report["notices"]:
+            lines.append(f"- Line {notice['first_line']} ({notice['kind']}): {escape(notice['excerpt'])}")
         lines.append("")
     if report["excluded"]:
         lines.extend(["## Structured notes excluded from task ranking", ""])

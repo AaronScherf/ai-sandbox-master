@@ -11,6 +11,7 @@ from datetime import date
 _HEADING = re.compile(r"^(#{1,6})\s+(.+?)\s*$")
 _ADDED = re.compile(r"\(added (\d{4}-\d{2}-\d{2})(?:[;,] updated (\d{4}-\d{2}-\d{2}))?\)\s*$")
 _SPACE = re.compile(r"\s+")
+_ID = re.compile(r"^<!-- (TODO-\d{4,}) --> ")
 
 
 @dataclass(frozen=True)
@@ -49,6 +50,7 @@ class ParsedTracker:
     tasks: tuple[Task, ...]
     warnings: tuple[Diagnostic, ...]
     excluded: tuple[Diagnostic, ...]
+    notices: tuple[Diagnostic, ...] = ()
 
     @property
     def coverage_complete(self) -> bool:
@@ -60,15 +62,12 @@ def _normalize(text: str) -> str:
 
 
 def parse_tracker(text: str) -> ParsedTracker:
-    """Recognize dated top-level bullets; surface uncertain entries explicitly.
-
-    Subsections and the pasted textbook example are retained as exclusions,
-    never fed into the provisional ranked queue.
-    """
+    """Recognize task bullets and surface uncertain entries explicitly."""
     lines = text.splitlines()
     tasks: list[Task] = []
     warnings: list[Diagnostic] = []
     excluded: list[Diagnostic] = []
+    notices: list[Diagnostic] = []
     section = ""
     in_subsection = False
     in_example = False
@@ -76,6 +75,7 @@ def parse_tracker(text: str) -> ParsedTracker:
     pending_start = 0
     pending_exclusion: str | None = None
     seen_identity: dict[str, int] = {}
+    seen_ids: set[str] = set()
 
     def finish() -> None:
         nonlocal pending, pending_start, pending_exclusion
@@ -85,31 +85,53 @@ def parse_tracker(text: str) -> ParsedTracker:
             pending.pop()
         body = "\n".join(pending)
         end = pending_start + len(pending) - 1
-        excerpt = _normalize(pending[0][2:])[:150]
+        raw_title = pending[0][2:]
+        excerpt = _normalize(raw_title)[:150]
         match = _ADDED.search(body)
-        if pending_exclusion is not None:
-            if pending_exclusion == "subsection" and match is not None:
-                warnings.append(Diagnostic("dated_subsection_bullet", pending_start, end, section, excerpt))
-            else:
-                excluded.append(Diagnostic(pending_exclusion, pending_start, end, section, excerpt))
-        elif match is None:
-            warnings.append(Diagnostic("undated_bullet", pending_start, end, section, excerpt))
+        if pending_exclusion in {"example", "outside_section"} or (pending_exclusion == "subsection" and match is None and section.startswith("Git Workflow Between Agents")):
+            excluded.append(Diagnostic(pending_exclusion or "outside_section", pending_start, end, section, excerpt))
         else:
+            if pending_exclusion == "subsection":
+                notices.append(Diagnostic("dated_subsection_bullet", pending_start, end, section, excerpt))
             try:
-                added = date.fromisoformat(match.group(1)).isoformat()
-                updated = date.fromisoformat(match.group(2)).isoformat() if match.group(2) else None
+                added = date.fromisoformat(match.group(1)).isoformat() if match else "unknown"
+                updated = date.fromisoformat(match.group(2)).isoformat() if match and match.group(2) else None
             except ValueError:
                 warnings.append(Diagnostic("invalid_date", pending_start, end, section, excerpt))
             else:
-                normalized = _normalize(body)
+                if match is None:
+                    notices.append(Diagnostic("undated_bullet", pending_start, end, section, excerpt))
+                id_match = _ID.match(raw_title)
+                if "<!--" in raw_title[:50] and id_match is None:
+                    warnings.append(Diagnostic("ambiguous_marker", pending_start, end, section, excerpt))
+                    pending = []
+                    pending_start = 0
+                    pending_exclusion = None
+                    return
+                marker = id_match.group(1) if id_match else None
+                if marker and marker in seen_ids:
+                    warnings.append(Diagnostic("duplicate_id", pending_start, end, section, excerpt))
+                    pending = []
+                    pending_start = 0
+                    pending_exclusion = None
+                    return
+                clean_first = "- " + raw_title[id_match.end():] if id_match else pending[0]
+                clean_body = "\n".join([clean_first, *pending[1:]])
+                normalized = _normalize(clean_body)
                 fingerprint = hashlib.sha256(normalized.encode("utf-8")).hexdigest()
                 identity = hashlib.sha256((section + "\0" + normalized).encode("utf-8")).hexdigest()[:12]
                 count = seen_identity.get(identity, 0) + 1
                 seen_identity[identity] = count
                 if count > 1:
                     warnings.append(Diagnostic("duplicate_body", pending_start, end, section, excerpt))
-                task_id = f"P-{identity}" if count == 1 else f"P-{identity}-{count}"
-                title = _ADDED.sub("", pending[0][2:]).strip()
+                    pending = []
+                    pending_start = 0
+                    pending_exclusion = None
+                    return
+                task_id = marker or f"P-{identity}"
+                if marker:
+                    seen_ids.add(marker)
+                title = _ADDED.sub("", clean_first[2:]).strip()
                 title = _normalize(title).strip(" *")[:150]
                 lower_body = normalized.casefold()
                 tasks.append(Task(
@@ -122,6 +144,7 @@ def parse_tracker(text: str) -> ParsedTracker:
                     first_line=pending_start,
                     last_line=end,
                     fingerprint=fingerprint,
+                    provisional=marker is None,
                     urgent_suggestion=bool(re.search(r"\burgent\b", pending[0], re.IGNORECASE)),
                     deferred_suggestion=("paused at user request" in lower_body or "deferred by the user" in lower_body),
                 ))
@@ -157,4 +180,7 @@ def parse_tracker(text: str) -> ParsedTracker:
         if line.strip().casefold().startswith("example from "):
             in_example = True
     finish()
-    return ParsedTracker(tuple(tasks), tuple(warnings), tuple(excluded))
+    if any(not task.provisional for task in tasks):
+        warnings.extend(Diagnostic("needs_id", task.first_line, task.last_line, task.section, task.title)
+                        for task in tasks if task.provisional)
+    return ParsedTracker(tuple(tasks), tuple(warnings), tuple(excluded), tuple(notices))

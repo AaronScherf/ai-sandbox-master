@@ -32,22 +32,23 @@ Example from Hansen:
 
 def test_parser_preserves_multiline_task_and_surfaces_undated_work():
     parsed = parse_tracker(TRACKER)
-    assert len(parsed.tasks) == 3
+    assert len(parsed.tasks) == 4
     assert parsed.tasks[0].first_line == 4
     assert parsed.tasks[0].last_line == 5
     assert parsed.tasks[0].updated == "2026-10-09"
     assert parsed.tasks[0].urgent_suggestion
     assert parsed.tasks[1].deferred_suggestion
-    assert parsed.warnings[0].kind == "undated_bullet"
-    assert parsed.warnings[0].first_line == 10
+    assert parsed.notices[0].kind == "undated_bullet"
+    assert parsed.notices[0].first_line == 10
+    assert parsed.tasks[2].added == "unknown"
     assert len(parsed.excluded) == 2
-    assert not parsed.coverage_complete
+    assert parsed.coverage_complete
 
 
 def test_invalid_date_and_duplicate_body_are_visible():
     parsed = parse_tracker("## Work\n- Valid. (added 2026-10-04)\n- Valid. (added 2026-10-04)\n- Bad. (added 2026-99-99)\n")
-    assert len(parsed.tasks) == 2
-    assert len({task.task_id for task in parsed.tasks}) == 2
+    assert len(parsed.tasks) == 1
+    assert len({task.task_id for task in parsed.tasks}) == 1
     assert {warning.kind for warning in parsed.warnings} == {"duplicate_body", "invalid_date"}
 
 
@@ -57,30 +58,30 @@ def test_comma_updated_date_variant_from_live_tracker():
     assert parsed.tasks[0].updated == "2026-10-06"
 
 
-def test_dated_bullet_under_subsection_needs_review():
+def test_dated_bullet_under_subsection_is_eligible():
     parsed = parse_tracker("## Brainstorm\n### Notes\n- A real follow-up. (added 2026-10-07)\n")
-    assert parsed.tasks == ()
-    assert parsed.warnings[0].kind == "dated_subsection_bullet"
-    assert not parsed.coverage_complete
+    assert len(parsed.tasks) == 1
+    assert parsed.notices[0].kind == "dated_subsection_bullet"
+    assert parsed.coverage_complete
 
 
-def test_scan_writes_partial_view_without_changing_tracker(tmp_path: Path, capsys):
+def test_scan_writes_complete_view_without_changing_tracker(tmp_path: Path, capsys):
     tracker = tmp_path / "tracker.md"
     state = tmp_path / "state"
     tracker.write_text(TRACKER, encoding="utf-8")
     before = tracker.read_bytes()
 
-    assert main(["scan", "--tracker", str(tracker), "--state-dir", str(state), "--format", "json"]) == 2
+    assert main(["scan", "--tracker", str(tracker), "--state-dir", str(state), "--format", "json"]) == 0
     stdout = json.loads(capsys.readouterr().out)
     latest = json.loads((state / "latest.json").read_text(encoding="utf-8"))
     snapshot = json.loads((state / latest["snapshot"]).read_text(encoding="utf-8"))
     view = (state / latest["ranked_view"]).read_text(encoding="utf-8")
 
-    assert not stdout["coverage_complete"]
+    assert stdout["coverage_complete"]
     assert snapshot["source_sha256"] == latest["source_sha256"]
     assert "Missing hats from estimators" in view
-    assert "PARTIAL" in view
-    assert "not an authoritative priority ranking" in view
+    assert "Coverage: complete" in view
+    assert "No owner-scored ready tasks yet" in view
     assert tracker.read_bytes() == before
 
 
