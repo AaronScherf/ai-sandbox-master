@@ -27,7 +27,9 @@ would materially expand that scope.
 - After a long-running code task or multi-stage implementation, summarize the
   completed work and the current project status. Include the verification
   results and any remaining tasks or gates; reporting only that tests finished
-  is not enough.
+  is not enough. Distinguish a reviewed design, passing fixture tests, a
+  successful live run, and behavior observed over time; do not present one as
+  evidence of another.
 - End each user-facing response with a concise question about next steps. When
   work remains, recommend the most useful next action; when no follow-up is
   apparent, ask whether the user wants to continue with another task or stop.
@@ -66,11 +68,27 @@ When explicitly asked to plan or design a project change:
   Git repository, which are nested or external checkouts, and how sync
   processes affect writes. Never infer that a directory is a separate
   repository from its name or role.
-- State plainly when a design introduces new infrastructure (a server, a
-  persistent store, locking, a multi-phase rollout) beyond what a minimal
-  version of the request would need, and identify which early phase(s)
-  already deliver usable value on their own, rather than gating all value
-  behind full-spec approval.
+- After incorporating design review, re-read the original request and derive
+  the smallest usable release again. State which new infrastructure (such as
+  a server, persistent store, locking, or a multi-phase rollout) is necessary
+  for that release, which belongs to later phases, and which early phase can
+  deliver value on its own.
+
+## Project implementation
+
+- Before a multi-stage implementation, map every requirement and the plan's
+  global constraints to tasks and acceptance evidence, including constraints
+  stated outside individual task acceptance criteria. Record what is blocked
+  or deferred. After each milestone, update the plan's status and distinguish
+  implemented behavior, fixture-tested behavior, live observations, and work
+  still unverified.
+- Before enabling a repair action, require an exact target selector,
+  machine-readable results for each target, coordination with every writer to
+  each destination, atomic output where interruption could corrupt state, and
+  a post-run audit. If any part is missing, keep that action blocked.
+- For a scanner or migration, compare a small, varied sample of live read-only
+  findings with the underlying files or records. Record false positives and
+  correct classification rules before treating aggregate counts as reliable.
 
 ## Git
 
