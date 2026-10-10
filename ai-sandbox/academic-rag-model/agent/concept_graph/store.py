@@ -118,6 +118,80 @@ class GraphStore:
                     return
         raise KeyError(f"{kind} {item_id!r} not found")
 
+    # -- adding new items (used by the drafting stages) ----------------------------
+    @staticmethod
+    def _prepare(item: dict) -> dict:
+        """A plain, YAML-ready copy: None values dropped, multi-line strings kept as literal blocks."""
+        out = {}
+        for key, value in item.items():
+            if value is None:
+                continue
+            if isinstance(value, dict):
+                value = GraphStore._prepare(value)
+            elif isinstance(value, list):
+                value = [GraphStore._prepare(v) if isinstance(v, dict) else v for v in value]
+            elif isinstance(value, str) and "\n" in value:
+                value = LiteralScalarString(value if value.endswith("\n") else value + "\n")
+            out[key] = value
+        return out
+
+    def _append_items(self, path: Path, items: list[dict]) -> None:
+        data = self._load(path)
+        if data is None:
+            data = []
+        for item in items:
+            data.append(self._prepare(item))
+        if hasattr(data, "fa"):
+            data.fa.set_block_style()
+        self._save(path, data)
+
+    def add_sections(self, sections: list[dict]) -> None:
+        existing = {s.id for s in self.read_all().sections}
+        for s in sections:
+            if s["id"] in existing:
+                raise ValueError(f"section {s['id']!r} already exists")
+            existing.add(s["id"])
+        self._append_items(self.root / "data" / "sections.yaml", sections)
+
+    def add_nodes(self, section_id: str, nodes: list[dict]) -> None:
+        existing = {n.id for n in self.read_all().nodes}
+        for n in nodes:
+            if n["id"] in existing:
+                raise ValueError(f"node {n['id']!r} already exists")
+            if n.get("section") != section_id:
+                raise ValueError(f"node {n['id']!r} has section {n.get('section')!r}, expected {section_id!r}")
+            existing.add(n["id"])
+        self._append_items(self.root / "data" / "nodes" / f"{section_id}.yaml", nodes)
+
+    def add_edges(self, edges: list[dict]) -> None:
+        graph = self.read_all()
+        order = {s.id: s.order for s in graph.sections}
+        section_of = {n.id: n.section for n in graph.nodes}
+        existing = {e.id for e in graph.edges}
+        by_file: dict[str, list[dict]] = {}
+        for e in edges:
+            if e["id"] in existing:
+                raise ValueError(f"edge {e['id']!r} already exists")
+            for end in (e["source"], e["target"]):
+                if end not in section_of:
+                    raise ValueError(f"edge {e['id']!r} refers to unknown node {end!r}")
+            existing.add(e["id"])
+            home = max((section_of[e["source"]], section_of[e["target"]]), key=lambda s: order.get(s, 0))
+            by_file.setdefault(home, []).append(e)
+        for section_id, items in by_file.items():
+            self._append_items(self.root / "data" / "edges" / f"{section_id}.yaml", items)
+
+    def add_vocab(self, kinds=(), topics=()) -> None:
+        path = self.root / "config" / "vocab.yaml"
+        data = self._load(path)
+        if data is None:
+            raise GraphDataError(f"missing vocab file: {path}")
+        for key, wanted in (("kinds", kinds), ("topics", topics)):
+            for entry in wanted:
+                if entry not in data[key]:
+                    data[key].append(entry)
+        self._save(path, data)
+
     def add_rejected(self, kind: Literal["node", "edge"], item_id: str) -> None:
         path = self.root / "data" / "rejected.yaml"
         data = self._load(path)
