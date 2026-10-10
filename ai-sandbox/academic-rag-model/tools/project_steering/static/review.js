@@ -3,11 +3,19 @@ let snapshot;
 const root = document.getElementById('root');
 const error = document.getElementById('error');
 const txt = (tag, value) => { const el = document.createElement(tag); el.textContent = value; return el; };
+async function post(path, payload) {
+  const response = await fetch(path, {method:'POST',headers:{'Content-Type':'application/json',
+    'X-Project-Steering-Token':token},body:JSON.stringify(payload)});
+  const result = await response.json();
+  if (!response.ok) throw Error(result.error || 'Save failed');
+  return result;
+}
 async function load() {
   const response = await fetch('/api/tasks?token=' + encodeURIComponent(token));
   const data = await response.json();
   if (!response.ok) throw Error(data.error || 'Review unavailable');
   snapshot = data; root.replaceChildren(); error.textContent = '';
+  root.append(routingBatches(data));
   const sections = [
     ['Next three', data.ranking.shortlist], ['Full scored order', data.ranking.ready],
     ...Object.entries(data.ranking.groups).map(([name, nodes]) => [name.replaceAll('_', ' '), nodes])
@@ -24,8 +32,44 @@ async function load() {
     root.append(section);
   }
 }
+function routingBatches(data) {
+  const section = document.createElement('section'); section.append(txt('h2', 'Agent routing'));
+  section.append(txt('p', 'Proposed routes are unapproved. Only approved routes enter actual agent batches.'));
+  const byId = Object.fromEntries(data.tasks.map(task => [task.task_id, task]));
+  const selected = new Set();
+  for (const [kind, batches] of [['Approved batches',data.routing.approved_batches],
+                                  ['Proposed batches — unapproved',data.routing.proposed_batches]]) {
+    section.append(txt('h3', kind));
+    for (const [agent, ids] of Object.entries(batches)) {
+      const details = document.createElement('details');
+      details.append(txt('summary', `${agent}: ${ids.length} tasks`));
+      for (const id of ids) {
+        const line = document.createElement('p');
+        if (kind.startsWith('Proposed')) {
+          const input = document.createElement('input'); input.type = 'checkbox'; input.value = id;
+          input.addEventListener('change', () => input.checked ? selected.add(id) : selected.delete(id));
+          line.append(input);
+        }
+        line.append(txt('span', ` ${id} · ${byId[id]?.title || id}`)); details.append(line);
+      }
+      section.append(details);
+    }
+  }
+  const button = document.createElement('button'); button.textContent = 'Approve selected proposed routes and tags';
+  button.addEventListener('click', async () => {
+    if (!selected.size) { error.textContent = 'Select proposed tasks first.'; return; }
+    try {
+      const result = await post('/api/routing/approve', {source_sha256:snapshot.source_sha256,
+        revision:snapshot.revision,task_ids:[...selected]});
+      await load();
+      if (result.stale.length) error.textContent = `Skipped stale suggestions: ${result.stale.join(', ')}`;
+    } catch (e) { error.textContent = String(e.message); }
+  });
+  section.append(button); return section;
+}
 function card(node) {
   const task = node.task, decision = node.decision || {};
+  const route = snapshot.routing.tasks[task.task_id];
   const article = document.createElement('article');
   article.append(txt('h3', task.title));
   article.append(txt('small', `${task.task_id} · ${task.section} · added ${task.added} · line ${task.first_line}`));
@@ -34,6 +78,37 @@ function card(node) {
   article.append(txt('p', node.score === null ? node.reasons.join('; ') || 'Needs owner estimates' :
     `Score ${node.score}: impact +${node.terms.impact}, urgency +${node.terms.urgency}, unlock +${node.terms.unlock}, effort −${node.terms.effort_penalty}`));
   if (node.selection_reason) article.append(txt('p', node.selection_reason));
+  const proposed = Object.entries(route.proposed).filter(([,value]) => value !== null)
+    .map(([field,value]) => `${field}: ${value}`).join('; ');
+  const approved = Object.entries(route.approved).filter(([,value]) => value !== null)
+    .map(([field,value]) => `${field}: ${value}`).join('; ');
+  article.append(txt('p', `Route: ${route.agent} (${route.agent_source}). Approved tags: ${approved || 'none'}.`));
+  if (proposed) article.append(txt('p', `Proposed — ${route.proposal_status}: ${proposed}`));
+  const routeForm = document.createElement('form');
+  const choices = {agent:['claude','gemini','codex','needs_human'],
+    complexity:['trivial','moderate','complex'], difficulty:['low','medium','high'],
+    context:['self_contained','needs_repo_context','needs_external_context']};
+  for (const [field, values] of Object.entries(choices)) {
+    const label = document.createElement('label'); label.append(txt('span', field + ' '));
+    const select = document.createElement('select'); select.name = field;
+    for (const value of ['',...values]) { const option = document.createElement('option'); option.value = value;
+      option.textContent = value || '(unapproved)'; option.selected = (route.approved[field] || '') === value;
+      select.append(option); }
+    label.append(select); routeForm.append(label);
+  }
+  const dateLabel = document.createElement('label'); dateLabel.append(txt('span','Not before '));
+  const notBefore = document.createElement('input'); notBefore.type = 'date'; notBefore.name = 'not_before';
+  notBefore.value = route.not_before || ''; dateLabel.append(notBefore); routeForm.append(dateLabel);
+  const routeButton = document.createElement('button'); routeButton.textContent = 'Save route and tags'; routeForm.append(routeButton);
+  routeForm.addEventListener('submit', async event => {
+    event.preventDefault(); const fields = new FormData(routeForm);
+    const changes = Object.fromEntries(Object.keys(choices).map(field => [field, fields.get(field) || null]));
+    changes.not_before = fields.get('not_before') || null;
+    try { await post('/api/routing/decision', {task_id:task.task_id, fingerprint:task.fingerprint,
+      source_sha256:snapshot.source_sha256, revision:snapshot.revision, changes}); await load();
+    } catch (e) { error.textContent = String(e.message); }
+  });
+  article.append(routeForm);
   const form = document.createElement('form');
   for (const [field, choices] of [['impact', ['unknown',0,1,2,3]], ['urgency',['unknown',0,1,2,3]],
       ['effort',['unknown','<2h','half_day','1_2_days','larger']], ['status',['candidate','in_progress','done','deferred','declined']]]) {

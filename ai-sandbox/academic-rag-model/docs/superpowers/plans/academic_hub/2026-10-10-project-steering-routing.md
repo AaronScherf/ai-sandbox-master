@@ -1,0 +1,28 @@
+# Project Steering: Agent Routing and Time Gates
+
+**Status:** implemented and fixture-tested in `codex/todo-steering-routing`; live draft import and scan verified locally. No route has been owner-approved, and the branch is not yet landed.
+
+The existing scanner ranks work but has no agent assignment. This extension adds proposed Claude/Gemini/Codex/Needs Human Review lanes and complexity, difficulty, and context tags. The canonical tracker and `docs/AGENT_ROUTING.md` remain the sources for task wording and routing policy. A separate, explicit Claude pass may suggest tags for current tasks; `scan` and `review` make no model call. Imported tags are proposals until the owner approves them in the local loopback page. New tasks safely resolve to Needs Human Review.
+
+Claude reviewed the state and approval boundary on 2026-10-10. Existing version-1 decision ledgers must upgrade additively to version 2, retaining scores, dependencies, status, and timestamps. Per task, each of `agent`, `complexity`, `difficulty`, and `context` has an approved value, a `_suggested` value, and an approved `_source`. Import writes only `_suggested` values, `suggested_batch`, and `suggested_fingerprint`; the owner action alone copies proposals to approved values. A changed task fingerprint makes proposals stale for review but does not erase approved overrides. Fallback is `needs_human`; only fully approved tags enter an actual agent batch. A separate proposed-batch view may help the owner inspect the draft without silently assigning work.
+
+`not_before` is an owner decision independent of priority. Tasks with `not_before > today` remain visible in review but are excluded from today's shortlist and dispatch batches. For `TODO-0024`, the user stated that the October 10–16 trial review cannot be completed for a week, so the local decision should use `not_before=2026-10-17`. This date is a hard gate rather than a score penalty. Existing `defer_until` continues to mean a reviewed defer that returns to review when expired; this task's user instruction should be represented by `not_before` once the new field is available.
+
+| Requirement and global constraint | Implementation task | Acceptance evidence |
+|---|---|---|
+| Stable, reviewable route and three tags | Version-2 additive state fields; pure route resolution | v1 migration, new-task fallback, override and stale-proposal fixtures |
+| One-time model use, never in scan | Explicit all-or-nothing draft import command | Static call-path check, malformed/stale batch rejection, unchanged state on failure |
+| Human decision surface and useful batching | Proposed and approved lanes in loopback page; selected batch approval | HTTP/UI checks for labels, revision/fingerprint conflicts, and persistence |
+| Trial task out of today's work until October 17 | `not_before` hard gate and local owner state update | Fixed-date ranking fixtures and live read-only scan |
+| Canonical source, no unattended Git/corpus writes | Tracker read only; local state under outer Git common directory | Status audit before/after live scan and import |
+| Honest project status | Separate design, fixture, live, owner, scheduled evidence | Handoff notes and plan status update |
+
+All local state and draft artifacts stay under the outer Git common directory's `project-steering/` area, outside the nested notes repository. The one-time import validates source hash, exact stable IDs and fingerprints, enum values, and a state revision before an atomic write under the existing OS lock. A failed import changes zero state bytes. The scan remains O(tracker bytes plus task/state size), with no corpus walk, network, or LLM call. No unattended scheduler is installed in this change; absent a reviewer, proposals simply wait. `M3` daily scheduling is still separate.
+
+The smallest usable release is one explicit draft import plus a refreshed ranked report and a review page that shows proposed lanes. Batch approval makes those lanes actionable; no server, new database, or second tracker migration is required. Existing scoring and effort estimation remain owner decisions and are not silently imported from the earlier Claude score draft.
+
+## Verification and next gate
+
+The package's 30 focused tests pass, including malformed-batch atomicity, owner override preservation, stale-task rejection, HTTP approval authorization, and the October 17 date boundary. `node --check` passes for the review page script. On the current 68-task tracker, a one-time Claude draft was imported as suggestions into the local version-2 ledger; the tracker hash and every task ID/fingerprint matched. A varied read-only sample checked task text, routing rationale, and the project routing guide: architectural review tasks went to Claude, a documented indexer run to Gemini, and scoped conversion fixes to Codex. Some low-confidence conversion bugs have sparse task descriptions; their proposals remain reviewable rather than approved.
+
+The live scan shows 67 eligible proposed routes (29 Claude, 7 Gemini, 29 Codex, 2 Needs Human Review), zero approved routes, and zero stale proposals. `TODO-0024` is the remaining proposed route but is gated until 2026-10-17, absent from the shortlist and dispatch batches. These are live local observations, not evidence that the proposed agents are correct or that a scheduled run works. Owner review and branch landing remain open; daily scheduling remains deferred to M3.

@@ -14,7 +14,8 @@ from tools.project_steering.parser import ParsedTracker, Task
 
 
 def make_report(parsed: ParsedTracker, *, tracker: Path, source_hash: str, source_bytes: int,
-                duration_seconds: float, ranking: dict | None = None, revision: int = 0) -> dict:
+                duration_seconds: float, ranking: dict | None = None, revision: int = 0,
+                routing: dict | None = None) -> dict:
     ordered = sorted(parsed.tasks, key=lambda task: (
         not task.urgent_suggestion, task.section.casefold(), task.title.casefold(), task.task_id
     ))
@@ -35,6 +36,7 @@ def make_report(parsed: ParsedTracker, *, tracker: Path, source_hash: str, sourc
         "excluded": [item.to_dict() for item in parsed.excluded],
         "notices": [item.to_dict() for item in parsed.notices],
         "ranking": ranking,
+        "routing": routing,
     }
 
 
@@ -64,6 +66,16 @@ def render_markdown(report: dict) -> str:
         "",
     ]
     ranking = report.get("ranking")
+    routing = report.get("routing")
+    if routing:
+        lines.extend(["## Agent batches", ""])
+        for agent, task_ids in routing["approved_batches"].items():
+            lines.append(f"- {agent}: {len(task_ids)} approved tasks")
+        lines.append("")
+        lines.extend(["## Proposed agent batches — unapproved", ""])
+        for agent, task_ids in routing["proposed_batches"].items():
+            lines.append(f"- {agent}: {len(task_ids)} suggestions")
+        lines.append("")
     if ranking:
         lines.extend(["## Next three for review", ""])
         for node in ranking["shortlist"]:

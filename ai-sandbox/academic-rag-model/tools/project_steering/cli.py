@@ -15,6 +15,7 @@ from tools.project_steering.parser import parse_tracker
 from tools.project_steering.report import make_report, publish_report, render_markdown
 from tools.project_steering.identity import apply_ids, preview_ids
 from tools.project_steering.ranking import rank
+from tools.project_steering.routing import route_view
 from tools.project_steering.state import DecisionStore
 
 
@@ -33,6 +34,10 @@ def build_parser() -> argparse.ArgumentParser:
     review = commands.add_parser("review", help="open the local owner-decision page")
     review.add_argument("--tracker", type=Path, required=True)
     review.add_argument("--state-dir", type=Path, required=True)
+    routing_import = commands.add_parser("import-routing", help="import one reviewed source snapshot as unapproved routing suggestions")
+    routing_import.add_argument("--tracker", type=Path, required=True)
+    routing_import.add_argument("--state-dir", type=Path, required=True)
+    routing_import.add_argument("--draft", type=Path, required=True, help="absolute path to one-time routing draft JSON")
     return parser
 
 
@@ -61,6 +66,28 @@ def main(argv: list[str] | None = None) -> int:
     if hasattr(args, "state_dir") and not _state_dir_is_safe(args.tracker, args.state_dir):
         print("state-dir must be outside tracked source (the Git common directory is allowed)", file=sys.stderr)
         return 2
+    if args.command == "import-routing":
+        if not args.draft.is_absolute():
+            print("draft must be an absolute path", file=sys.stderr)
+            return 2
+        try:
+            source = args.tracker.read_bytes()
+            parsed = parse_tracker(source.decode("utf-8-sig"))
+            if not parsed.coverage_complete or args.tracker.read_bytes() != source:
+                raise ValueError("tracker changed or has unresolved diagnostics")
+            payload = json.loads(args.draft.read_text(encoding="utf-8-sig"))
+            store = DecisionStore(args.state_dir)
+            revision = store.read()["revision"]
+            if args.tracker.read_bytes() != source:
+                raise ValueError("tracker changed during routing import")
+            state = store.import_routing(parsed.tasks, payload, revision=revision,
+                                         source_sha256=hashlib.sha256(source).hexdigest())
+            print(json.dumps({"imported": len(payload["rows"]), "batch": payload["batch"],
+                              "state_revision": state["revision"]}, sort_keys=True))
+            return 0
+        except (OSError, UnicodeError, ValueError, TypeError, KeyError, StateError) as exc:
+            print(f"routing import failed: {exc}", file=sys.stderr)
+            return 2
     if args.command in {"preview-ids", "apply-ids"}:
         try:
             if args.command == "preview-ids":
@@ -90,10 +117,11 @@ def main(argv: list[str] | None = None) -> int:
             return 2
         state = DecisionStore(args.state_dir).reconcile(parsed.tasks)
         ranking = rank(parsed.tasks, state)
+        routing = route_view(parsed.tasks, state, ranking)
         report = make_report(
             parsed, tracker=args.tracker, source_hash=hashlib.sha256(source).hexdigest(),
             source_bytes=len(source), duration_seconds=time.monotonic() - started,
-            ranking=ranking, revision=state["revision"],
+            ranking=ranking, revision=state["revision"], routing=routing,
         )
         markdown = render_markdown(report)
         latest = publish_report(args.state_dir, report, markdown)

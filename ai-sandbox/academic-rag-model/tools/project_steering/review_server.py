@@ -14,6 +14,7 @@ from urllib.parse import parse_qs, urlsplit
 
 from tools.project_steering.parser import parse_tracker
 from tools.project_steering.ranking import rank
+from tools.project_steering.routing import route_view
 from tools.project_steering.state import DecisionError, DecisionStore
 from tools.corpus_health.state import StateError
 
@@ -90,9 +91,11 @@ class Handler(BaseHTTPRequestHandler):
             if latest["source_sha256"] != source_hash:
                 raise DecisionError("tracker changed since scan; run scan again")
             parsed = parse_tracker(self.server.tracker.read_text(encoding="utf-8-sig"))
+            ranking = rank(tasks, state)
             payload = {"source_sha256": source_hash, "revision": state["revision"],
                        "tracker_uri": self.server.tracker.as_uri(),
-                       "ranking": rank(tasks, state), "tasks": [task.to_dict() for task in tasks],
+                       "ranking": ranking, "routing": route_view(tasks, state, ranking),
+                       "tasks": [task.to_dict() for task in tasks],
                        "warnings": [item.to_dict() for item in parsed.warnings],
                        "notices": [item.to_dict() for item in parsed.notices]}
             self.send(200, json.dumps(payload, ensure_ascii=False).encode("utf-8"))
@@ -101,7 +104,7 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_POST(self) -> None:
         path = urlsplit(self.path).path
-        if not self.authorized(post=True) or path not in {"/api/decision", "/api/close"}:
+        if not self.authorized(post=True) or path not in {"/api/decision", "/api/routing/decision", "/api/routing/approve", "/api/close"}:
             self.send(403, b"forbidden", "text/plain; charset=utf-8")
             return
         try:
@@ -116,12 +119,25 @@ class Handler(BaseHTTPRequestHandler):
             source_hash, tasks, _ = self.server.snapshot()
             if request.get("source_sha256") != source_hash:
                 raise DecisionError("stale tracker snapshot")
+            if path == "/api/routing/approve":
+                data, result = self.server.store.batch_approve(
+                    tasks, revision=request["revision"], task_ids=request["task_ids"])
+                self.send(200, json.dumps({**result, "revision": data["revision"]}).encode("utf-8"))
+                return
             task = next((item for item in tasks if item.task_id == request.get("task_id")), None)
             if task is None:
                 raise DecisionError("unknown task ID")
-            data = self.server.store.decide(task, revision=request["revision"],
-                                            fingerprint=request["fingerprint"], changes=request["changes"])
-            self.send(200, json.dumps({"revision": data["revision"], "ranking": rank(tasks, data)}).encode("utf-8"))
+            if path == "/api/routing/decision":
+                data = self.server.store.route_decide(
+                    task, revision=request["revision"], fingerprint=request["fingerprint"],
+                    changes=request["changes"])
+            else:
+                data = self.server.store.decide(
+                    task, revision=request["revision"], fingerprint=request["fingerprint"],
+                    changes=request["changes"])
+            ranking = rank(tasks, data)
+            self.send(200, json.dumps({"revision": data["revision"], "ranking": ranking,
+                                       "routing": route_view(tasks, data, ranking)}).encode("utf-8"))
         except (OSError, ValueError, KeyError, TypeError, StateError) as exc:
             self.send(409, json.dumps({"error": str(exc)}).encode("utf-8"))
 

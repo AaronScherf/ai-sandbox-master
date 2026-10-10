@@ -10,7 +10,8 @@ from tools.project_steering.parser import Task
 PENALTY = {"<2h": 0, "half_day": 1, "1_2_days": 2, "larger": 3}
 
 
-def rank(tasks: tuple[Task, ...], state: dict) -> dict:
+def rank(tasks: tuple[Task, ...], state: dict, *, today: date | None = None) -> dict:
+    today = today or date.today()
     by_id = {task.task_id: task for task in tasks}
     decisions = state.get("tasks", {})
     active = {"candidate", "in_progress"}
@@ -57,8 +58,11 @@ def rank(tasks: tuple[Task, ...], state: dict) -> dict:
             node["group"] = status
         elif status == "deferred":
             until = entry.get("defer_until")
-            node["group"] = "needs_review" if until and until <= date.today().isoformat() else "deferred"
+            node["group"] = "needs_review" if until and until <= today.isoformat() else "deferred"
             node["reasons"].append("deferral expired" if node["group"] == "needs_review" else "deferred until " + str(until))
+        elif entry.get("not_before") and entry["not_before"] > today.isoformat():
+            node["group"] = "not_before"
+            node["reasons"].append("not available before " + entry["not_before"])
         elif any(decisions.get(dep, {}).get("status") != "done" for dep in entry.get("depends_on", [])):
             node["group"] = "blocked"
             node["reasons"].append("confirmed dependency incomplete")
@@ -99,4 +103,4 @@ def rank(tasks: tuple[Task, ...], state: dict) -> dict:
         remaining.remove(chosen)
     return {"ready": ready, "shortlist": shortlist,
             "groups": {group: [node for node in nodes.values() if node["group"] == group]
-                       for group in ("blocked", "needs_estimate", "needs_review", "deferred", "declined", "done")}}
+                       for group in ("blocked", "needs_estimate", "needs_review", "not_before", "deferred", "declined", "done")}}

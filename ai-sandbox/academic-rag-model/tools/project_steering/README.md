@@ -40,3 +40,26 @@ unreviewed suggestions, not automatic priority or status decisions.
 
 The daily scheduler is still a later milestone in the
 [plan](../../docs/superpowers/plans/academic_hub/2026-10-09-project-steering.md).
+
+## Agent routing suggestions
+
+The tracker does not assign an agent by itself. A separate, one-time Claude
+classification can be imported as **unapproved suggestions** with
+`import-routing --tracker <absolute-path> --state-dir <absolute-path>
+--draft <absolute-json-path>`. The JSON must identify the current tracker hash,
+stable task IDs and fingerprints, and valid agent/complexity/difficulty/context
+values. The import is locked, atomic, and rejects a stale or invalid batch.
+It never approves a route or changes the tracker. `scan` makes no model call;
+new tasks default to Needs Human Review until someone supplies a route.
+
+Open `review` to see proposed and approved agent batches. Select proposed tasks
+and use **Approve selected proposed routes and tags**, or override the agent and
+tags on an individual task. Only approved routes with approved complexity,
+difficulty, and context tags enter actual agent batches. Proposals whose task
+text changed since import are marked stale and cannot be batch-approved.
+The routing policy is [AGENT_ROUTING.md](../../../../docs/AGENT_ROUTING.md).
+
+`not_before` is a separate owner-controlled date gate. It keeps a task visible
+but out of today's shortlist and agent batches until that date; it does not
+change the task's score. This suits a task such as a trial review that cannot
+begin until its scheduled runs finish.
