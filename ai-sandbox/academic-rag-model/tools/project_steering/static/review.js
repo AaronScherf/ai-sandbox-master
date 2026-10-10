@@ -92,11 +92,25 @@ function scoreBatches(data) {
   const details = document.createElement('details'); details.open = true;
   details.append(txt('summary', `Codex-task score suggestions: ${ids.length} awaiting review`));
   if (ids.length) {
+    const controls = document.createElement('div');
     const label = document.createElement('label'); const all = document.createElement('input'); all.type = 'checkbox';
     all.setAttribute('aria-label', 'Select all proposed score estimates');
     all.addEventListener('change', () => { for (const input of inputs) { input.checked = all.checked;
       if (all.checked) selected.add(input.value); else selected.delete(input.value); } });
-    label.append(all, txt('span', ` Select all ${ids.length}`)); details.append(label);
+    label.append(all, txt('span', ` Select all ${ids.length}`)); controls.append(label);
+    for (const confidence of ['high', 'medium', 'low']) {
+      const matching = ids.filter(id => data.score_proposals[id].confidence === confidence).length;
+      const button = document.createElement('button'); button.type = 'button';
+      button.textContent = `Select ${confidence} only (${matching})`;
+      button.addEventListener('click', () => {
+        selected.clear();
+        for (const input of inputs) { input.checked = data.score_proposals[input.value].confidence === confidence;
+          if (input.checked) selected.add(input.value); }
+        all.checked = inputs.every(input => input.checked);
+      });
+      controls.append(button);
+    }
+    details.append(controls);
     for (const id of ids) {
       const row = data.score_proposals[id], line = document.createElement('p');
       const input = document.createElement('input'); input.type = 'checkbox'; input.value = id; inputs.push(input);

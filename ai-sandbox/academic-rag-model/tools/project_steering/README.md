@@ -82,3 +82,6 @@ entered by the owner. A changed task is skipped as stale. Unknown effort stays
 in Needs Estimate even when its impact and urgency are approved. The proposed
 agent batches are separate: their checkboxes approve routing tags, never scores.
 Each proposed agent batch has a select-all checkbox for faster routing review.
+The potential-priority section also has high-, medium-, and low-confidence
+selection buttons. Each selects only that level for review; confidence is
+advisory and never changes the ranking formula.
