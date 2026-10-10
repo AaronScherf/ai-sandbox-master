@@ -93,3 +93,28 @@ def test_with_sample_never_copies_built_output_from_a_sample_dir_that_was_built_
     root = tmp_path / "new-graph"
     scaffold(root, "someone/g", "Some One", 2026, with_sample=True, fetch_text=fake_fetch)
     assert not (root / "index.html").exists() and not (root / "build").exists()
+
+
+def test_fetching_the_license_identifies_itself_because_the_default_python_agent_is_refused(monkeypatch):
+    import agent.concept_graph.scaffold as sc
+    seen = {}
+
+    class FakeResponse:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *exc):
+            return False
+
+        def read(self):
+            return "license text".encode("utf-8")
+
+    def fake_urlopen(request):
+        seen["agent"] = request.get_header("User-agent")
+        seen["url"] = request.full_url
+        return FakeResponse()
+
+    monkeypatch.setattr(sc.urllib.request, "urlopen", fake_urlopen)
+    assert sc.fetch_url_text("https://example.test/x.txt") == "license text"
+    assert seen["url"] == "https://example.test/x.txt"
+    assert seen["agent"] and "python-urllib" not in seen["agent"].lower()

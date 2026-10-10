@@ -102,7 +102,9 @@ topics: [order-theory, rational-choice, revealed-preference, demand]
 
 
 def fetch_url_text(url: str) -> str:
-    with urllib.request.urlopen(url) as resp:
+    # creativecommons.org answers 403 to urllib's default User-Agent, so identify this tool.
+    request = urllib.request.Request(url, headers={"User-Agent": "concept-graph-scaffold/1.0"})
+    with urllib.request.urlopen(request) as resp:
         return resp.read().decode("utf-8")
 
 
