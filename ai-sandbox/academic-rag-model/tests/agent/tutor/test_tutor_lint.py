@@ -107,6 +107,12 @@ class TestDisclosure(unittest.TestCase):
         self.assertIn("C3", v[0].detail)
         self.assertNotIn("independen", v[0].detail)        # the recognizer words must not leak through the message
 
+    def test_the_relayed_glossary_definition_is_not_a_reveal_but_the_tutors_own_words_still_are(self):
+        d = "Two things being independent means knowing one tells you nothing about the other, so they multiply together."
+        kw = dict(blocked_claims=BLOCKED, allowed_exact=(d,), after_define=True)
+        self.assertEqual(lint(d + " Does that match how you read it?", **kw), [])
+        self.assertIn("REVEALS_CLAIM", codes(lint(d + " So independent events multiply together here?", **kw)))
+
     def test_neutral_question_passes_with_blocked_claims(self):
         self.assertEqual(lint("What have you tried so far?", blocked_claims=BLOCKED), [])
 

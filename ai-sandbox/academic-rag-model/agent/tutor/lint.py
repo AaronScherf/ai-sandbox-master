@@ -139,6 +139,10 @@ def lint_message(
     if _normalize(text) in {_normalize(a) for a in allowed_exact}:
         return []
     found: list[Violation] = []
+    body = text                 # the tutor's own words: a relayed glossary definition is packet text, not a reveal
+    if after_define:
+        for a in allowed_exact:
+            body = body.replace(a, " ")
     if state == LAUNCH:
         found.append(Violation("LAUNCH_NOT_VERBATIM", "In LAUNCH send exactly the launch text, nothing added or changed."))
     if hint_level < 3:
@@ -149,10 +153,10 @@ def lint_message(
         hits = symbol_hits(text, extract_symbols(statement))
         if hits:
             found.append(Violation("NOTATION_BRIDGE", f"a definition answer must not use the problem's notation: {hits}"))
-    if sealed_solution and _ngrams(text) & _ngrams(sealed_solution):
+    if sealed_solution and _ngrams(body) & _ngrams(sealed_solution):
         found.append(Violation("SEALED_OVERLAP", "draft repeats a phrase from the sealed solution"))
     if blocked_claims:
-        tokens = tokenize(text)
+        tokens = tokenize(body)
         copied = _statement_run_positions(tokens, tokenize(statement))
         for cid, rec in blocked_claims.items():
             if rec.matches_tokens(tokens, masked=copied):
@@ -160,11 +164,7 @@ def lint_message(
     if state == WORKING and hint_level < 3 and len(_SUBQ_LINE.findall(text)) >= 2:
         found.append(Violation("SUBQUESTION_LIST", "leading sub-question list before the student proposed a plan"))
     if form:
-        shown = text
-        if after_define:      # the glossary definition is verbatim packet text, so it needs no echo of the student
-            for a in allowed_exact:
-                shown = shown.replace(a, " ")
-        reason = check_form(shown, last_student_text)
+        reason = check_form(body, last_student_text)
         if reason:
             found.append(Violation("QUESTION_FORM", reason))
     if state == VERIFIED and not (_CHECKIN.search(text) and "?" in text):
