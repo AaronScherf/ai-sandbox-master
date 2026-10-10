@@ -24,7 +24,8 @@ async function load() {
   for (const [name, nodes] of sections) {
     const section = document.createElement('section'); section.append(txt('h2', name));
     if (!nodes.length) section.append(txt('p', 'No items.'));
-    for (const node of nodes) section.append(card(node));
+    if (name === 'Full scored order' && nodes.length) section.append(scoredTable(nodes));
+    else for (const node of nodes) section.append(card(node));
     root.append(section);
   }
   if (data.warnings.length || data.notices.length) {
@@ -45,16 +46,32 @@ function routingBatches(data) {
       const details = document.createElement('details');
       details.append(txt('summary', `${agent}: ${ids.length} tasks`));
       const inputs = [];
+      const withScores = ids.filter(id => ['unapproved', 'approved'].includes(data.score_proposals[id]?.status));
       if (kind.startsWith('Proposed') && ids.length) {
+        const controls = document.createElement('div'); controls.className = 'batch-controls';
         const selectAll = document.createElement('label');
         const toggle = document.createElement('input'); toggle.type = 'checkbox';
         toggle.setAttribute('aria-label', `Select all ${agent} proposed routes`);
         toggle.addEventListener('change', () => {
           for (const input of inputs) { input.checked = toggle.checked;
             if (toggle.checked) selected.add(input.value); else selected.delete(input.value); }
+          if (details._selectScores) details._selectScores.checked = false;
         });
-        selectAll.append(toggle, txt('span', ` Select all ${agent} (${ids.length})`)); details.append(selectAll);
+        selectAll.append(toggle, txt('span', ` Select all ${agent} (${ids.length})`)); controls.append(selectAll);
         details._selectAll = toggle;
+        const scoreLabel = document.createElement('label');
+        const scoreToggle = document.createElement('input'); scoreToggle.type = 'checkbox';
+        scoreToggle.setAttribute('aria-label', `Select only ${agent} proposed routes with score estimates`);
+        scoreToggle.disabled = !withScores.length;
+        scoreToggle.addEventListener('change', () => {
+          for (const input of inputs) {
+            input.checked = scoreToggle.checked && withScores.includes(input.value);
+            if (input.checked) selected.add(input.value); else selected.delete(input.value);
+          }
+          toggle.checked = inputs.every(input => input.checked);
+        });
+        scoreLabel.append(scoreToggle, txt('span', ` Select with score estimates only (${withScores.length})`));
+        controls.append(scoreLabel); details.append(controls); details._selectScores = scoreToggle;
       }
       for (const id of ids) {
         const line = document.createElement('p');
@@ -62,7 +79,8 @@ function routingBatches(data) {
           const input = document.createElement('input'); input.type = 'checkbox'; input.value = id;
           inputs.push(input);
           input.addEventListener('change', () => { if (input.checked) selected.add(id); else selected.delete(id);
-            details._selectAll.checked = inputs.every(box => box.checked); });
+            details._selectAll.checked = inputs.every(box => box.checked);
+            details._selectScores.checked = inputs.every(box => box.checked === withScores.includes(box.value)); });
           line.append(input);
         }
         line.append(txt('span', ` ${id} · ${byId[id]?.title || id}`)); details.append(line);
@@ -81,6 +99,61 @@ function routingBatches(data) {
     } catch (e) { error.textContent = String(e.message); }
   });
   section.append(button); return section;
+}
+function scoredTable(nodes) {
+  const wrapper = document.createElement('div'); wrapper.className = 'table-scroll';
+  const table = document.createElement('table'); table.className = 'scored-table';
+  const thead = document.createElement('thead'), heading = document.createElement('tr');
+  for (const label of ['# / ID', 'Task (three words)', 'Pipeline / section', 'Added', 'Score', 'Impact', 'Urgency', 'Effort', 'Agent / tags', 'Actions']) {
+    const th = txt('th', label); th.scope = 'col'; heading.append(th);
+  }
+  thead.append(heading); table.append(thead);
+  const tbody = document.createElement('tbody');
+  nodes.forEach((node, index) => {
+    const task = node.task, decision = node.decision || {}, route = snapshot.routing.tasks[task.task_id];
+    const tr = document.createElement('tr');
+    tr.append(txt('td', `${index + 1} · ${task.task_id}`));
+    const words = task.title.trim().split(/\s+/).slice(0, 3).join(' ');
+    const taskCell = document.createElement('td'); taskCell.title = `${task.task_id}: ${task.title}`; tr.append(taskCell);
+    const sectionCell = txt('td', task.section); sectionCell.title = task.section; tr.append(sectionCell);
+    tr.append(txt('td', task.added), txt('td', String(node.score)));
+    const selects = {};
+    for (const [field, values] of [['impact',[0,1,2,3]], ['urgency',[0,1,2,3]],
+      ['effort',['unknown','<2h','half_day','1_2_days','larger']]]) {
+      const cell = document.createElement('td'), select = document.createElement('select');
+      select.setAttribute('aria-label', `${field} for ${task.task_id}`);
+      for (const value of values) {
+        const option = document.createElement('option'); option.value = value; option.textContent = String(value);
+        option.selected = String(decision[field]) === String(value); select.append(option);
+      }
+      selects[field] = select; cell.append(select); tr.append(cell);
+    }
+    const routeValues = route.fully_approved ? route.approved : route.proposed;
+    const routeLabels = ['agent','complexity','difficulty','context'].map(field => routeValues[field]).filter(Boolean);
+    const tags = routeLabels.length ? `${route.fully_approved ? '' : 'Proposed: '}${routeLabels.join(' · ')}` : 'Needs Human Review';
+    const tagCell = txt('td', tags); tagCell.title = tags; tr.append(tagCell);
+    const actions = document.createElement('td'); actions.className = 'table-actions';
+    const save = document.createElement('button'); save.type = 'button'; save.textContent = 'Save scores';
+    save.setAttribute('aria-label', `Save scores for ${task.task_id}`);
+    save.addEventListener('click', async () => {
+      const changes = {impact:Number(selects.impact.value), urgency:Number(selects.urgency.value), effort:selects.effort.value};
+      try { await post('/api/decision', {task_id:task.task_id, fingerprint:task.fingerprint,
+        source_sha256:snapshot.source_sha256, revision:snapshot.revision, changes}); await load();
+      } catch (e) { error.textContent = String(e.message); }
+    });
+    const expand = document.createElement('button'); expand.type = 'button'; expand.textContent = words;
+    expand.className = 'task-expand'; expand.title = task.title;
+    expand.setAttribute('aria-expanded', 'false'); expand.setAttribute('aria-label', `Show details for ${task.task_id}: ${task.title}`);
+    const detailRow = document.createElement('tr'); detailRow.hidden = true; detailRow.className = 'detail-row';
+    const detailCell = document.createElement('td'); detailCell.colSpan = 10; detailRow.append(detailCell);
+    expand.addEventListener('click', () => {
+      detailRow.hidden = !detailRow.hidden; expand.setAttribute('aria-expanded', String(!detailRow.hidden));
+      expand.setAttribute('aria-label', `${detailRow.hidden ? 'Show' : 'Hide'} details for ${task.task_id}: ${task.title}`);
+      if (!detailRow.hidden && !detailCell.hasChildNodes()) detailCell.append(card(node));
+    });
+    taskCell.append(expand); actions.append(save); tr.append(actions); tbody.append(tr, detailRow);
+  });
+  table.append(tbody); wrapper.append(table); return wrapper;
 }
 function scoreBatches(data) {
   const section = document.createElement('section'); section.append(txt('h2', 'Potential priority estimates'));

@@ -82,6 +82,15 @@ entered by the owner. A changed task is skipped as stale. Unknown effort stays
 in Needs Estimate even when its impact and urgency are approved. The proposed
 agent batches are separate: their checkboxes approve routing tags, never scores.
 Each proposed agent batch has a select-all checkbox for faster routing review.
+It also has a **Select with score estimates only** checkbox to check just the tasks with
+current, non-stale suggested scores in that agent batch. This still approves
+routing and tags only; score approval remains a separate action.
 The potential-priority section also has high-, medium-, and low-confidence
 selection buttons. Each selects only that level for review; confidence is
 advisory and never changes the ranking formula.
+
+The **Full scored order** uses a scrollable table with task index, a three-word
+title preview, pipeline/section, added date, score, tags, and editable impact,
+urgency, and effort. Save scores updates the owner decision and reorders the
+ranking. Click a task's title preview to expand its full title, source link,
+dependencies, status, route, and other existing controls.
