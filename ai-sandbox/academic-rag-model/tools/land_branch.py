@@ -127,6 +127,19 @@ def find_overlaps(worktree: Path, branch_changed: set[str]) -> list[str]:
     return sorted(overlaps)
 
 
+def _is_documentation_only(changed: set[str]) -> bool:
+    """True if every changed path is Markdown -- nothing pytest can read.
+
+    Deliberately an allowlist of exactly one safe extension, not "no .py
+    changed": a branch that only touches a dependency pin, a lockfile, a
+    pytest/tox config, or a non-.py fixture under tests/ changed no .py file
+    either, but could still change what the suite does. Those fall through
+    to select_test_targets()/run_checks()'s "no mapped targets -> run
+    everything" fallback instead of being treated as skippable here.
+    """
+    return all(path.endswith(".md") for path in changed)
+
+
 def select_test_targets(changed: set[str], project_root: Path) -> list[str]:
     """Map changed .py files to test directories. Empty means no code changed."""
     targets: set[str] = set()
@@ -152,8 +165,7 @@ def select_test_targets(changed: set[str], project_root: Path) -> list[str]:
 
 
 def run_checks(project_root: Path, changed: set[str], full: bool) -> tuple[str, list[str], float]:
-    code_changed = any(p.endswith(".py") for p in changed)
-    if not code_changed and not full:
+    if not full and _is_documentation_only(changed):
         return "skipped", [], 0.0
     targets = ["tests/"] if full else select_test_targets(changed, project_root)
     if not targets:

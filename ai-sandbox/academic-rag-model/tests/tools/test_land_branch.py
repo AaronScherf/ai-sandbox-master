@@ -156,6 +156,28 @@ class LandBranchTests(unittest.TestCase):
         self.assertEqual(result.checks, "skipped")
         self.assertEqual(result.check_targets, [])
 
+    def test_check_runs_full_suite_for_non_py_non_doc_change(self):
+        # A dependency pin, lockfile, or test fixture can change what the
+        # suite does without touching a .py file -- must not be treated as
+        # skippable the way a Markdown-only branch is.
+        (self.repo / "tests" / "core").mkdir(parents=True)
+        write_and_commit(
+            self.repo, {"tests/core/test_existing.py": "def test_existing():\n    assert True\n"},
+            "seed existing passing test",
+        )
+        wt2 = self.tmp / "wt2"
+        git(self.repo, "worktree", "add", "-q", "-b", "claude/t2", str(wt2), "main")
+        write_and_commit(wt2, {"requirements.txt": "pytest==9\n"}, "pin a dependency")
+        result = check(wt2, subdir="")
+        self.assertEqual(result.checks, "passed")
+        self.assertEqual(result.check_targets, ["tests/"])
+
+    def test_check_runs_full_suite_for_docs_mixed_with_other_change(self):
+        write_and_commit(self.wt, {"docs/note.md": "hi\n", "requirements.txt": "pytest==9\n"}, "mixed")
+        result = check(self.wt, subdir="")
+        self.assertNotEqual(result.checks, "skipped")
+        self.assertEqual(result.check_targets, ["tests/"])
+
 
 class LandingLogTests(unittest.TestCase):
     def setUp(self):

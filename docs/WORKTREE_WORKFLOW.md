@@ -106,6 +106,13 @@ on their own. When a task branch is finished, the agent:
    The check verifies the branch is clean, not on `main`, and not already
    published; rebases it onto `main`; runs the full test suite (`--full` is the
    landing gate, spec decision 7); and reports overlaps. It never merges or pushes.
+   Omit `--full` only when every file the branch changed since its merge-base
+   with `main` is Markdown (check with `git diff --name-only main...HEAD`
+   inside the worktree): `land_branch` itself then reports `checks: skipped`
+   with no pytest run, since nothing a test can read changed. Pass `--full`
+   for every other branch, including one that mixes a Markdown file with
+   anything else (a dependency pin, a lockfile, a non-`.py` test fixture) --
+   don't treat "mostly docs" as equivalent to doc-only.
 2. Commits its finished work to its own task branch if not already committed.
    Local commits to a task branch in its own worktree are pre-authorized and
    need no ask. Then asks the user in one message: may I merge and push commit
