@@ -71,7 +71,9 @@ def _build_parser() -> argparse.ArgumentParser:
     c.add_argument("--solutions-file")
     c.add_argument("--force", action="store_true")
     sub.add_parser("prep-submit")
-    sub.add_parser("start")
+    st = sub.add_parser("start")
+    st.add_argument("--fresh", action="store_true")
+    sub.add_parser("pause")
 
     t = sub.add_parser("turn")
     t.add_argument("--intent", required=True, choices=sorted(INTENTS))
@@ -97,7 +99,8 @@ def _build_parser() -> argparse.ArgumentParser:
     v.add_argument("--why")
 
     e = sub.add_parser("end")
-    e.add_argument("--big-picture-file", required=True)
+    e.add_argument("--big-picture-file")
+    e.add_argument("--partial", action="store_true")
     sub.add_parser("audit")
     sub.add_parser("bootstrap")
     return p
@@ -123,7 +126,7 @@ def _dispatch(args, paths: TutorPaths) -> dict:
             template = template.replace(key, value)
         return {"ok": True, "_raw": template}
     if args.cmd == "start":
-        return Session.start(paths).view()
+        return Session.start(paths, fresh=args.fresh).view()
     if args.cmd == "audit":
         session = Session.open(paths, args.session or Session.latest_session_id(paths))
         return {"ok": True, "findings": [f.to_dict() for f in audit_mod.audit(session.log.load(), session.packet)]}
@@ -140,7 +143,11 @@ def _dispatch(args, paths: TutorPaths) -> dict:
     if args.cmd == "verify":
         check = json.loads(_read(args.check_file)) if args.check_file else None
         return session.verify(check, _downgrades(args.downgrade, args.why))
+    if args.cmd == "pause" or (args.cmd == "end" and args.partial):
+        return session.pause()
     if args.cmd == "end":
+        if not args.big_picture_file:
+            raise ValueError("end needs --big-picture-file (or use --partial / pause to stop for now)")
         return session.end(_read(args.big_picture_file))
     raise ValueError(f"unknown command {args.cmd}")
 

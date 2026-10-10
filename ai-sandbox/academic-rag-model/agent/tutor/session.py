@@ -122,9 +122,12 @@ class Session:
         return None
 
     @classmethod
-    def start(cls, paths: TutorPaths, now: datetime | None = None) -> "Session":
+    def start(cls, paths: TutorPaths, now: datetime | None = None, fresh: bool = False) -> "Session":
         packet = load_packet(paths)
         sid = cls._latest_open(paths)
+        if sid is not None and fresh:
+            cls(paths, sid, packet)._end_partial()
+            sid = None
         if sid is None:
             base = (now or datetime.now()).strftime("%Y-%m-%d-%H%M")
             sid, n = base, 1
@@ -136,6 +139,11 @@ class Session:
                                data={"problem_set": paths.problem_set})
         else:
             session = cls(paths, sid, packet)
+            s = session._fsm()
+            if s.state == fsm.PAUSED:
+                back = fsm.resume_event(s)
+                session.log.append("resumed", part=packet.parts[s.part_index].part_id, state=back.state,
+                                   hint_level=back.hint_level)
         session._write_prior_gaps()
         return session
 
@@ -175,6 +183,9 @@ class Session:
     def _require_live(s: FsmState) -> None:
         if s.state == fsm.DONE:
             raise Refused("session has ended; start a new session", ["start"])
+        if s.state == fsm.PAUSED:
+            raise Refused("session is paused; run start to resume it, or start --fresh to begin a new one",
+                          ["start", "start --fresh"])
 
     @staticmethod
     def _part_events(events: list[Event], part_id: str) -> list[Event]:
@@ -284,6 +295,8 @@ class Session:
             "rules": self._rules(s, ledger, unresolved, self._form_active(s, pe), extra),
             "next": _NEXT.get(s.state, []), "prior_gaps": self._prior_gaps(),
         }
+        if events and events[-1].type == "resumed":
+            out["resumed"] = True
         out["skip_requests"] = s.skip_requests
         out["attempt"] = attempt_no
         out["deferred_queue"] = _parked(self.packet, s.queue, s)
@@ -618,6 +631,29 @@ class Session:
         return {**self._brief(), "closed": False, "defects": defects, "unresolved": unresolved_now}
 
     # ---- end ----------------------------------------------------------
+    def _render_partial(self, note: str) -> dict:
+        events = self.log.load()
+        date = self.session_id[:10]
+        transcript, summary = write_session_docs(self.dir, events, self.packet, note, self._prior_gaps(), date)
+        profile = update_profile(load_profile(self.paths.profile_json), session_id=self.session_id, date=date,
+                                 events=events, packet=self.packet)
+        save_profile(self.paths.profile_json, self.paths.profile_md, profile)
+        return {"transcript": transcript, "summary": summary, "profile": self.paths.profile_json}
+
+    def pause(self) -> dict:
+        s = self._fsm()
+        self._require_live(s)
+        part = self.packet.parts[s.part_index]
+        self.log.append("paused", part=part.part_id, state=fsm.PAUSED, hint_level=s.hint_level)
+        return {"ok": True, "paused": True, **self._render_partial("Session paused before every part was covered."),
+                "next": ["start (resume)", "start --fresh"]}
+
+    def _end_partial(self) -> None:
+        s = self._fsm()
+        part = self.packet.parts[s.part_index]
+        self.log.append("session_end", part=part.part_id, state=fsm.DONE, data={"partial": True})
+        self._render_partial("Session ended before every part was covered.")
+
     def end(self, big_picture: str) -> dict:
         events = self.log.load()
         s = self._fsm(events)
