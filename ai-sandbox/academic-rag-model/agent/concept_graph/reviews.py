@@ -93,14 +93,28 @@ def apply_review(store: GraphStore, review: ReviewFile, today: str) -> ApplyRepo
             report.applied.append(f"{label}: accepted")
 
         elif d.action == "reject":
+            if current.status == "verified":
+                # The viewer only offers Reject on unreviewed items, so a reject arriving for a verified one means
+                # someone accepted or edited it after this review was made. Disagreements are the maintainer's call.
+                msg = (f"{who} {today}: {label}: rejected, but it has since been verified by someone else; "
+                       f"left unchanged for you to decide")
+                _append(store.root / "review-conflicts.md", "- " + msg)
+                report.conflicts.append(msg)
+                continue
+            taken = []
             if kind == "node":
                 graph = store.read_all()
-                for e in [e for e in graph.edges if item_id in (e.source, e.target)]:
-                    store.remove_item("edge", e.id)
-                    store.add_rejected("edge", e.id)
+                for e in graph.edges:
+                    if item_id in (e.source, e.target):
+                        store.remove_item("edge", e.id)
+                        store.add_rejected("edge", e.id)
+                        taken.append(e.id + (" (verified)" if e.status == "verified" else ""))
+                    elif e.via == item_id:
+                        store.update_item("edge", e.id, {"via": None})
+                        report.applied.append(f"edge {e.id}: via cleared because theorem {item_id} was rejected")
             store.remove_item(kind, item_id)
             store.add_rejected(kind, item_id)
-            report.applied.append(f"{label}: rejected")
+            report.applied.append(f"{label}: rejected" + (f" (also removed edges: {', '.join(taken)})" if taken else ""))
 
         elif d.action == "edit":
             existing = getattr(current, d.field)

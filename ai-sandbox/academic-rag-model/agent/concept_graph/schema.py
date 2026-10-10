@@ -101,6 +101,13 @@ class Vocab(_Model):
     topics: list[str]
 
 
+class Site(_Model):
+    """config/site.yaml: the only per-site settings, shipped into the public page, so validated like the rest."""
+
+    title: str = "Concept graph"
+    repo: str | None = Field(default=None, pattern=r"^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$")
+
+
 class Rejected(_Model):
     kind: Literal["node", "edge"]
     id: str

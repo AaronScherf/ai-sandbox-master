@@ -9,7 +9,7 @@ from pydantic import ValidationError
 from ruamel.yaml import YAML
 from ruamel.yaml.scalarstring import LiteralScalarString
 
-from .schema import Edge, Graph, Node, Rejected, Section, Vocab
+from .schema import Edge, Graph, Node, Rejected, Section, Site, Vocab
 
 
 class GraphDataError(Exception):
@@ -70,7 +70,8 @@ class GraphStore:
         if raw_vocab is None:
             raise GraphDataError(f"missing vocab file: {vocab_path}")
         vocab = self._model(Vocab, raw_vocab, vocab_path)
-        site = _plain(self._load(self.root / "config" / "site.yaml") or {})
+        site_path = self.root / "config" / "site.yaml"
+        site = self._model(Site, self._load(site_path) or {}, site_path).model_dump()
 
         sections_path = self.root / "data" / "sections.yaml"
         sections = [self._model(Section, s, sections_path) for s in (self._load(sections_path) or [])]

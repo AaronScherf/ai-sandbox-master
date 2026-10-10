@@ -17,9 +17,9 @@ The LLM drafting stages (Plan B) and publishing the public repo are **not done**
 
 ## Verification
 
-- `python -m pytest tests/agent/concept_graph -q`: 68 passed (Node logic tests: 15 of 15, run through pytest).
+- `python -m pytest tests/agent/concept_graph -q`: 74 passed (Node logic tests: 17 of 17, run through pytest).
 - Rest of the repo's suite (run with the main checkout's full venv, `--ignore=tests/agent/concept_graph`, because the
-  worktree venv only carries this package's dependencies): see "Rest-of-repo suite" below.
+  worktree venv only carries this package's dependencies): 2972 passed, 34 subtests passed, exit 0.
 - The page was checked in headless Chrome (screenshots plus injected probe scripts, because no interactive browser was
   available to the implementer): title and 17 nodes, section bands with later sections higher, planned section faded,
   proposed items dashed, node and edge panels with sentences, "show what this needs" fading, accept/reject/edit/comment
@@ -51,6 +51,18 @@ The LLM drafting stages (Plan B) and publishing the public repo are **not done**
 2. Owner-gated: create the public repo, push, enable Pages, create the `review` label (plan Task 11).
 3. Later: Artifact review adapter, Obsidian by-product.
 
-## Rest-of-repo suite
+## Final review and fix pass
 
-(filled in when the run finishes)
+A fresh reviewer read the whole branch after Task 10. Findings and what was done:
+
+- **Fixed (each with a test that failed first):** a reject for an item someone else had since verified deleted it silently;
+  it is now a conflict entry. Rejecting a theorem node left dangling `via` references that broke the next build; `via` is
+  now cleared on those edges. Rejecting a node now lists the edges it removed. `gist` could not be edited in the page
+  (backend supported it); it now can (checked in the built page, no automated DOM test). Two prices in one passage
+  rendered as broken math; inline math must now hug its dollar signs and not be followed by a digit. `config/site.yaml`
+  was the one unvalidated file shipped to the public page; it is now a validated model. `scaffold --with-sample` could copy
+  stale build output from `sample_data/`; it no longer does.
+- **Deferred minors:** `data-etype` in `app.js` is inserted without `esc()` (safe today because edge types are a
+  validated 9-value enum, but the Task 5 ruling overstated "every dynamic string"); `scaffold --contact` does not warn
+  about an email address; `gh issue list --limit 100` silently truncates; vendored JS can be rewritten to CRLF by git
+  (hash not re-verified at build); Cytoscape `width: "label"` deprecation notice.

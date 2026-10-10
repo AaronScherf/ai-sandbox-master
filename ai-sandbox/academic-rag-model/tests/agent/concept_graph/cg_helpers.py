@@ -7,5 +7,5 @@ SAMPLE = Path(__file__).resolve().parents[3] / "agent" / "concept_graph" / "samp
 def copy_sample(dest: Path) -> Path:
     """Copy the sample graph into dest/graph and return that directory."""
     target = Path(dest) / "graph"
-    shutil.copytree(SAMPLE, target)
+    shutil.copytree(SAMPLE, target, ignore=shutil.ignore_patterns("index.html", "build"))
     return target

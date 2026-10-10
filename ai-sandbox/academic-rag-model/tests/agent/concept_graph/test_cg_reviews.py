@@ -132,3 +132,37 @@ def test_archive_review_copies_the_file_without_overwriting(tmp_path):
     second = archive_review(root, r, TODAY)
     assert first != second and first.parent == root / "reviews" / "applied"
     assert json.loads(first.read_text(encoding="utf-8"))["reviewer"]["name"] == "Ada Lovelace"
+
+
+def test_reject_of_an_item_someone_else_already_verified_is_a_conflict_not_a_deletion(tmp_path):
+    store = GraphStore(copy_sample(tmp_path))
+    apply_review(store, review("Ada", {"target": {"kind": "node", "id": "preorder"}, "action": "accept"}), TODAY)
+    rep = apply_review(store, review("Bo", {"target": {"kind": "node", "id": "preorder"}, "action": "reject"}), TODAY)
+    g = store.read_all()
+    assert node(g, "preorder").status == "verified"  # still there
+    assert g.rejected == []  # no tombstone
+    assert len(rep.conflicts) == 1 and not rep.applied
+    text = (store.root / "review-conflicts.md").read_text(encoding="utf-8")
+    assert "Bo" in text and "node preorder" in text
+
+
+def test_rejecting_a_theorem_clears_via_on_edges_that_named_it_instead_of_breaking_the_build(tmp_path):
+    from agent.concept_graph.validate import errors, validate
+    root = copy_sample(tmp_path)
+    path = root / "data" / "edges" / "s02-choice.yaml"
+    path.write_text(path.read_text(encoding="utf-8") + (
+        "- id: reflexivity--implies--transitivity\n  source: reflexivity\n  type: implies\n  target: transitivity\n"
+        "  condition: just for the test\n  via: szpilrajn-extension\n  status: proposed\n"), encoding="utf-8")
+    store = GraphStore(root)
+    rep = apply_review(store, review("Ada", {"target": {"kind": "node", "id": "szpilrajn-extension"}, "action": "reject"}), TODAY)
+    g = store.read_all()
+    kept = next(e for e in g.edges if e.id == "reflexivity--implies--transitivity")
+    assert kept.via is None
+    assert errors(validate(g)) == []
+    assert any("via" in line for line in rep.applied)
+
+
+def test_rejecting_a_node_reports_the_edges_it_took_with_it(tmp_path):
+    store = GraphStore(copy_sample(tmp_path))
+    rep = apply_review(store, review("Ada", {"target": {"kind": "node", "id": "reflexivity"}, "action": "reject"}), TODAY)
+    assert any("preorder--has_property--reflexivity" in line for line in rep.applied)

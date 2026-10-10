@@ -67,3 +67,18 @@ def test_bad_item_error_names_the_file(tmp_path):
     path.write_text(path.read_text(encoding="utf-8") + "  colour: red\n", encoding="utf-8")
     with pytest.raises(GraphDataError, match="s03-demand.yaml"):
         GraphStore(root).read_all()
+
+
+def test_site_config_with_an_unknown_key_is_rejected_and_names_the_file(tmp_path):
+    root = copy_sample(tmp_path)
+    path = root / "config" / "site.yaml"
+    path.write_text(path.read_text(encoding="utf-8") + "contact_email: someone@example.test\n", encoding="utf-8")
+    with pytest.raises(GraphDataError, match="site.yaml"):
+        GraphStore(root).read_all()
+
+
+def test_site_repo_must_look_like_owner_slash_name(tmp_path):
+    root = copy_sample(tmp_path)
+    (root / "config" / "site.yaml").write_text("title: T\nrepo: https://github.com/a/b\n", encoding="utf-8")
+    with pytest.raises(GraphDataError, match="site.yaml"):
+        GraphStore(root).read_all()

@@ -122,7 +122,9 @@
 
   function splitMath(text) {
     var out = [];
-    var re = /\$\$([\s\S]+?)\$\$|\$([^$\n]+?)\$/g;
+    // Inline math must hug its dollar signs ("$x$"), and the closing one must not be followed by a digit, so
+    // two prices in one passage ("$5 today, $10 tomorrow") stay plain text.
+    var re = /\$\$([\s\S]+?)\$\$|\$(?!\s)([^$\n]*?[^\s$])\$(?!\d)/g;
     var last = 0, m;
     text = text || "";
     while ((m = re.exec(text))) {

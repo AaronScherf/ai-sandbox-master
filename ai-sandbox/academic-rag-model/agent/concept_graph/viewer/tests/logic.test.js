@@ -142,3 +142,15 @@ test("safeStorage reads and writes through a working localStorage", () => {
   assert.equal(s.set("k", "v"), true);
   assert.equal(s.get("k"), "v");
 });
+
+test("splitMath keeps two prices in one passage as plain text", () => {
+  assert.deepEqual(CG.splitMath("costs $5 today, $10 tomorrow"), [{ type: "text", value: "costs $5 today, $10 tomorrow" }]);
+  assert.deepEqual(CG.splitMath("$5 and $6"), [{ type: "text", value: "$5 and $6" }]);
+});
+
+test("splitMath still finds several real math spans in one passage", () => {
+  assert.deepEqual(CG.splitMath("$x$ and $y$ with $R \subseteq X$."), [
+    { type: "inline", value: "x" }, { type: "text", value: " and " }, { type: "inline", value: "y" },
+    { type: "text", value: " with " }, { type: "inline", value: "R \subseteq X" }, { type: "text", value: "." },
+  ]);
+});

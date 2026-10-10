@@ -264,7 +264,7 @@
       "<h2>" + esc(n.name) + "</h2>" +
       '<p class="meta">' + esc(n.kind) + " &middot; " + esc(n.topic) + " &middot; " + esc(sec ? sec.title : n.section) +
       ' <span class="badge ' + n.status + '">' + n.status + "</span>" + criticBadge(n) + "</p>" +
-      (n.gist ? '<p class="gist"><strong>' + esc(effective("node", n.id, "gist")) + "</strong></p>" : "") +
+      fieldBlock("node", n.id, "gist", "Summary") +
       '<div class="actions"><button type="button" class="' + (prereqMode ? "on" : "") + '" data-act="prereq">Show what this needs</button></div>' +
       fieldBlock("node", n.id, "explanation", "Explanation") +
       fieldBlock("node", n.id, "formal", "Formal statement") +

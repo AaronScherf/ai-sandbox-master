@@ -79,3 +79,17 @@ def test_cli_scaffold_command(tmp_path, monkeypatch):
     root = tmp_path / "via-cli"
     code = main(["--graph-repo", str(root), "scaffold", "--repo", "someone/g", "--holder", "Some One"])
     assert code == 0 and (root / "NOTICE.md").is_file()
+
+
+def test_with_sample_never_copies_built_output_from_a_sample_dir_that_was_built_in_place(tmp_path, monkeypatch):
+    import shutil
+    import agent.concept_graph.scaffold as sc
+    sample = tmp_path / "sample"
+    shutil.copytree(sc.SAMPLE, sample)
+    (sample / "index.html").write_text("stale page", encoding="utf-8")
+    (sample / "build").mkdir()
+    (sample / "build" / "graph.json").write_text("{}", encoding="utf-8")
+    monkeypatch.setattr(sc, "SAMPLE", sample)
+    root = tmp_path / "new-graph"
+    scaffold(root, "someone/g", "Some One", 2026, with_sample=True, fetch_text=fake_fetch)
+    assert not (root / "index.html").exists() and not (root / "build").exists()

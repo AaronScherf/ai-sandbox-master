@@ -135,6 +135,8 @@ def scaffold(root: Path, repo: str, holder: str, year: int, with_sample: bool = 
         path.write_text(text, encoding="utf-8", newline="\n")
     created = sorted(files)
     if with_sample:
-        shutil.copytree(SAMPLE, root, dirs_exist_ok=True, ignore=shutil.ignore_patterns("site.yaml"))
+        # site.yaml keeps the real repo; index.html and build/ are build output, never source.
+        shutil.copytree(SAMPLE, root, dirs_exist_ok=True,
+                        ignore=shutil.ignore_patterns("site.yaml", "index.html", "build"))
         created += ["(sample sections, nodes and edges copied in)"]
     return created
