@@ -537,9 +537,14 @@ class Session:
         old = next(p for p in self.packet.parts if p.part_id == parked_id)
         old_pc = self.packet.claims[old.part_id]
         old_ledger = build_ledger(old_pc, self._part_events(self.log.load(), old.part_id))
-        blocked = {c.id: c.recognizer for c in old_pc.claims if c.id not in old_ledger.established}
-        issues += lint_message(prefix, state=WORKING, hint_level=0, statement=old.statement,
-                               sealed_solution=sealed_section(self._solution, old.part_id) or "", blocked_claims=blocked)
+        blocked = {f"{old.part_id}.{c.id}": c.recognizer for c in old_pc.claims if c.id not in old_ledger.established}
+        new_pc = self.packet.claims[part.part_id]
+        blocked.update({f"{part.part_id}.{c.id}": c.recognizer for c in new_pc.claims})      # nothing is established yet
+        student_text = " ".join(e.text or "" for e in self.log.load() if e.type == "student" and e.part == old.part_id)
+        sealed = " ".join(sealed_section(self._solution, p.part_id) or "" for p in (old, part))
+        issues += lint_message(prefix, state=WORKING, hint_level=0, student_text=student_text,
+                               statement=f"{old.statement} {part.statement}", sealed_solution=sealed,
+                               blocked_claims=blocked)
         return issues
 
     # ---- verify -------------------------------------------------------

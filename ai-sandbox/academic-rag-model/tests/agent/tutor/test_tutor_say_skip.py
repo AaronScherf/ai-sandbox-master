@@ -51,6 +51,23 @@ class TestLaunchAck(unittest.TestCase):
             self.assertIn("LAUNCH_ACK", codes(s.say("Want to come back later? " + LAUNCH_Q2, check=True)))
             self.assertIn("LAUNCH_NOT_VERBATIM", codes(s.say("Q2: pick an approach.", check=True)))
 
+    def test_the_acknowledgement_may_not_leak_the_next_parts_claims(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            _, s = make(tmp)
+            park_q1(s)
+            leak = "Remember that all the non-positive numbers are indifferent to each other. " + LAUNCH_Q2
+            self.assertIn("REVEALS_CLAIM", codes(s.say(leak, check=True)))
+            self.assertFalse(s.say(leak)["ok"])
+
+    def test_the_acknowledgement_may_use_a_technique_word_the_student_already_used(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            _, s = make(tmp)
+            s.turn("other", "maybe induction works but I would rather skip this", skip=True)
+            s.say(NUDGE)
+            s.turn("other", "please skip it, I want to move on", skip=True)
+            ok = s.say("We can return to the induction idea later. " + LAUNCH_Q2, check=True)
+            self.assertTrue(ok["ok"], ok)
+
     def test_no_acknowledgement_is_allowed_without_a_skip(self):
         with tempfile.TemporaryDirectory() as tmp:
             _, s = make(tmp)
