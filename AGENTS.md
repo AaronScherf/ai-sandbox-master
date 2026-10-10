@@ -22,6 +22,18 @@ user, authorizes its documented API calls and the data transfers they require;
 keep calls within the requested inputs and options, and ask only if the run
 would materially expand that scope.
 
+## Owner decisions and task stages
+
+Treat workflow stages literally. A statement that a batch is already approved
+describes existing state; it does not authorize approving additional proposals.
+Verify which items are approved before writing owner decisions, and apply only
+the specific decisions the user asks to make.
+
+A request to select, rank, or recommend a to-do item authorizes assessment and
+a recommendation only. Do not create a worktree, edit files, run implementation
+tests, or commit for that item until the user explicitly asks to start or fix it.
+Once implementation is requested, follow the Git landing approval rules below.
+
 ## Codex completion updates
 
 - After a long-running code task or multi-stage implementation, summarize the

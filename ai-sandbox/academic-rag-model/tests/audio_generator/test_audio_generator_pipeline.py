@@ -1,6 +1,6 @@
 import os
 import tempfile
-import time
+import threading
 import unittest
 from unittest.mock import patch
 
@@ -286,6 +286,7 @@ class TestRunPipelineNotesEpisodes(unittest.TestCase):
     @patch("audio_generator.pipeline.synthesize_speech")
     @patch("audio_generator.pipeline.narrate_sections")
     @patch("audio_generator.pipeline.discover_source_files")
+    @patch("audio_generator.pipeline.AUDIOGEN_SECTIONS_SYNTH_MAX_WORKERS", 3)
     def test_episode_synthesis_is_dispatched_concurrently_not_one_at_a_time(self, mock_discover, mock_narrate_sections, mock_synthesize):
         with tempfile.TemporaryDirectory() as hub, tempfile.TemporaryDirectory() as audio_generator_root:
             source = _make_source(hub, content="# A\nbody\n\n# B\nbody\n\n# C\nbody")
@@ -297,15 +298,16 @@ class TestRunPipelineNotesEpisodes(unittest.TestCase):
                 NarratedSection(title="B", text="b" * 20000),
                 NarratedSection(title="C", text="c" * 20000),
             ]
-            mock_synthesize.side_effect = lambda *a, **kw: time.sleep(0.15)
+            # All three calls must be active before any can finish. A sequential
+            # dispatcher breaks the barrier and reports failed episodes.
+            barrier = threading.Barrier(3)
+            mock_synthesize.side_effect = lambda *a, **kw: barrier.wait(timeout=10)
 
-            start = time.monotonic()
-            run_pipeline("math-camp", hub, audio_generator_root, ["notes"], engine="piper")
-            elapsed = time.monotonic() - start
+            summary = run_pipeline("math-camp", hub, audio_generator_root, ["notes"], engine="piper")
 
-            # 3 episodes x 0.15s each: sequential would take >= 0.45s; concurrent
-            # (up to AUDIOGEN_SECTIONS_SYNTH_MAX_WORKERS=3, the default) should be well under that.
-            self.assertLess(elapsed, 0.3)
+            self.assertEqual(mock_synthesize.call_count, 3)
+            self.assertEqual(summary["generated"], 3)
+            self.assertEqual(summary["failed"], 0)
 
     @patch("audio_generator.pipeline.synthesize_speech")
     @patch("audio_generator.pipeline.narrate_sections")
