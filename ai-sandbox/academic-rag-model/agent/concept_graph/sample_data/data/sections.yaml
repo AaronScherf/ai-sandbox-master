@@ -1,0 +1,15 @@
+- id: s01-binary-relations
+  title: Binary relations and orders
+  order: 1
+  state: taught
+  lectures: []
+- id: s02-choice
+  title: Choice and revealed preference
+  order: 2
+  state: taught
+  lectures: []
+- id: s03-demand
+  title: Consumer demand
+  order: 3
+  state: planned
+  lectures: []

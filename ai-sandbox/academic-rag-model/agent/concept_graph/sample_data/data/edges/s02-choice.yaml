@@ -1,0 +1,41 @@
+- id: choice-structure--defined_on--set
+  source: choice-structure
+  type: defined_on
+  target: set
+  explanation: Menus and choices are subsets of a set $X$ of alternatives.
+  status: proposed
+- id: sen-alpha--component_of--sen-alpha-beta
+  source: sen-alpha
+  type: component_of
+  target: sen-alpha-beta
+  status: proposed
+- id: sen-beta--component_of--sen-alpha-beta
+  source: sen-beta
+  type: component_of
+  target: sen-alpha-beta
+  status: proposed
+- id: sen-alpha-beta--iff--warp
+  source: sen-alpha-beta
+  type: iff
+  target: warp
+  condition: choices are defined on a rich enough family of menus (confirm the exact domain condition in the course notes)
+  explanation: Satisfying both of Sen's conditions is the same as satisfying the weak axiom.
+  status: proposed
+- id: rational-preference--implies--warp
+  source: rational-preference
+  type: implies
+  target: warp
+  condition: choices are the most-preferred elements of each menu
+  explanation: Choosing the best element under a rational preference always satisfies the weak axiom.
+  citations:
+    - {source: mwg, ref: "1.D"}
+  status: proposed
+- id: warp--implies--rational-preference
+  source: warp
+  type: implies
+  target: rational-preference
+  condition: the family of menus contains every subset of up to three elements
+  explanation: Under that richness condition, weak-axiom behaviour can be rationalized by some rational preference.
+  citations:
+    - {source: mwg, ref: "1.D"}
+  status: proposed

@@ -1,0 +1,66 @@
+- id: binary-relation--defined_on--set
+  source: binary-relation
+  type: defined_on
+  target: set
+  explanation: A binary relation on $X$ is a set of ordered pairs drawn from $X$.
+  status: proposed
+- id: preorder--is_a--binary-relation
+  source: preorder
+  type: is_a
+  target: binary-relation
+  condition: it is reflexive and transitive
+  explanation: A preorder is a binary relation with two extra properties.
+  status: proposed
+- id: preorder--has_property--reflexivity
+  source: preorder
+  type: has_property
+  target: reflexivity
+  status: proposed
+- id: preorder--has_property--transitivity
+  source: preorder
+  type: has_property
+  target: transitivity
+  status: proposed
+- id: partial-order--is_a--preorder
+  source: partial-order
+  type: is_a
+  target: preorder
+  condition: it is also antisymmetric
+  explanation: Adding antisymmetry removes ties between distinct elements.
+  status: proposed
+- id: partial-order--has_property--antisymmetry
+  source: partial-order
+  type: has_property
+  target: antisymmetry
+  status: proposed
+- id: total-order--is_a--partial-order
+  source: total-order
+  type: is_a
+  target: partial-order
+  condition: it is also complete, so every pair is comparable
+  explanation: Adding completeness removes incomparable pairs.
+  status: proposed
+- id: total-order--has_property--completeness
+  source: total-order
+  type: has_property
+  target: completeness
+  status: proposed
+- id: partial-order--hypothesis_of--szpilrajn-extension
+  source: partial-order
+  type: hypothesis_of
+  target: szpilrajn-extension
+  explanation: The theorem starts from an arbitrary partial order.
+  status: proposed
+- id: szpilrajn-extension--yields--total-order
+  source: szpilrajn-extension
+  type: yields
+  target: total-order
+  explanation: The conclusion is a total order that extends the original.
+  status: proposed
+- id: rational-preference--is_a--preorder
+  source: rational-preference
+  type: is_a
+  target: preorder
+  condition: it is also complete
+  explanation: A rational preference relation is a complete preorder.
+  status: proposed

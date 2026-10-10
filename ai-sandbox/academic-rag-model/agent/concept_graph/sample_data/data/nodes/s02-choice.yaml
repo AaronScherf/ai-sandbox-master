@@ -1,0 +1,60 @@
+- id: choice-structure
+  name: Choice structure
+  kind: structure
+  section: s02-choice
+  topic: revealed-preference
+  gist: A family of available sets together with what is chosen from each.
+  explanation: |
+    A choice structure pairs a family of budget sets (the menus that might be offered) with a rule saying which
+    elements are chosen from each menu. It describes behaviour directly, without mentioning preferences.
+  citations:
+    - {source: mwg, ref: "1.C"}
+  status: proposed
+- id: sen-alpha
+  name: Sen's alpha
+  kind: axiom
+  section: s02-choice
+  topic: revealed-preference
+  gist: Something chosen from a big menu is still chosen from any smaller menu that contains it.
+  explanation: |
+    If an element is chosen from a menu and it also belongs to a smaller menu inside it, it must be chosen
+    from the smaller one too. Shrinking the menu cannot make a still-available winner lose.
+  citations:
+    - {source: lecture, ref: "choice and revealed preference"}
+  status: proposed
+- id: sen-beta
+  name: Sen's beta
+  kind: axiom
+  section: s02-choice
+  topic: revealed-preference
+  gist: If two elements are both chosen from a small menu, a bigger menu cannot choose one without the other.
+  explanation: |
+    When two elements tie as chosen in a small menu, then in any larger menu that contains it, choosing one of
+    them forces choosing the other as well.
+  citations:
+    - {source: lecture, ref: "choice and revealed preference"}
+  status: proposed
+- id: sen-alpha-beta
+  name: Sen's alpha and beta together
+  kind: axiom
+  section: s02-choice
+  topic: revealed-preference
+  gist: The bundle of both consistency conditions at once.
+  explanation: |
+    A bundle node: the choice structure satisfies Sen's alpha and Sen's beta simultaneously. It exists so the
+    equivalence with the weak axiom can be drawn as one edge.
+  citations:
+    - {source: lecture, ref: "choice and revealed preference"}
+  status: proposed
+- id: warp
+  name: Weak axiom of revealed preference
+  kind: axiom
+  section: s02-choice
+  topic: revealed-preference
+  gist: If x is chosen when y is available, then y is never chosen without x being chosen too whenever both are available.
+  explanation: |
+    The weak axiom captures "observed consistent choice behaviour". If you ever pick $x$ while $y$ was on the
+    menu, you may not pick $y$ without also picking $x$ in another menu where both are available.
+  citations:
+    - {source: mwg, ref: "1.C"}
+  status: proposed

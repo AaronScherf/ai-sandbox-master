@@ -1,0 +1,146 @@
+- id: set
+  name: Set
+  kind: structure
+  section: s01-binary-relations
+  topic: order-theory
+  gist: A collection of distinct objects; the ground floor everything else is built on.
+  explanation: |
+    A set is just a collection of distinct things, with no order and no repeats. Alternatives, bundles of goods
+    and states of the world are all modelled as elements of some set $X$.
+  citations:
+    - {source: ok, ref: "ch. 1"}
+  status: proposed
+- id: binary-relation
+  name: Binary relation
+  kind: object
+  section: s01-binary-relations
+  topic: order-theory
+  gist: A rule that says, for some ordered pairs of elements of a set, that the first is related to the second.
+  explanation: |
+    A binary relation $R$ on a set $X$ is a collection of ordered pairs of elements of $X$. Writing $x R y$ means
+    the pair $(x, y)$ is in the collection. Preferences, "at least as good as" and "is a multiple of" are all
+    binary relations.
+  formal: |
+    $R \subseteq X \times X$.
+  citations:
+    - {source: rubinstein, ref: "ch. 2"}
+  status: proposed
+- id: reflexivity
+  name: Reflexivity
+  kind: property
+  section: s01-binary-relations
+  topic: order-theory
+  gist: Everything is related to itself.
+  explanation: |
+    A relation is reflexive when every element is related to itself. For "at least as good as" this says each
+    alternative is at least as good as itself.
+  formal: |
+    $\forall x \in X:\ x R x$.
+  citations:
+    - {source: rubinstein, ref: "ch. 2"}
+  status: proposed
+- id: transitivity
+  name: Transitivity
+  kind: property
+  section: s01-binary-relations
+  topic: order-theory
+  gist: If a is related to b and b to c, then a is related to c.
+  explanation: |
+    Chains of comparisons carry through. If $x$ is at least as good as $y$ and $y$ is at least as good as $z$,
+    then $x$ is at least as good as $z$.
+  formal: |
+    $\forall x, y, z:\ x R y \wedge y R z \Rightarrow x R z$.
+  citations:
+    - {source: rubinstein, ref: "ch. 2"}
+  status: proposed
+- id: antisymmetry
+  name: Antisymmetry
+  kind: property
+  section: s01-binary-relations
+  topic: order-theory
+  gist: Two different elements are never related in both directions.
+  explanation: |
+    If two elements are related in both directions they must be the same element. This is what rules out ties
+    between distinct elements.
+  formal: |
+    $\forall x, y:\ x R y \wedge y R x \Rightarrow x = y$.
+  citations:
+    - {source: rubinstein, ref: "ch. 2"}
+  status: proposed
+- id: completeness
+  name: Completeness
+  kind: property
+  section: s01-binary-relations
+  topic: order-theory
+  gist: Any two elements can be compared.
+  explanation: |
+    For every pair of elements, at least one is related to the other. Nothing is left incomparable.
+  formal: |
+    $\forall x, y:\ x R y \vee y R x$.
+  citations:
+    - {source: rubinstein, ref: "ch. 2"}
+  status: proposed
+- id: preorder
+  name: Preorder
+  kind: object
+  section: s01-binary-relations
+  topic: order-theory
+  gist: A binary relation that is reflexive and transitive.
+  explanation: |
+    A preorder is the weakest useful notion of ranking: every element ranks with itself and comparisons chain
+    together, but ties between different elements are allowed and some pairs may be incomparable.
+  citations:
+    - {source: rubinstein, ref: "ch. 2"}
+  status: proposed
+- id: partial-order
+  name: Partial order
+  kind: object
+  section: s01-binary-relations
+  topic: order-theory
+  gist: A preorder that is also antisymmetric.
+  explanation: |
+    A partial order ranks elements without ties between distinct elements, but may leave some pairs
+    incomparable. Divisibility on the positive integers is the standard example.
+  citations:
+    - {source: rubinstein, ref: "ch. 2"}
+  status: proposed
+- id: total-order
+  name: Total order
+  kind: object
+  section: s01-binary-relations
+  topic: order-theory
+  gist: A partial order in which every pair is comparable.
+  explanation: |
+    A total order lines all the elements up on a single ladder: no ties between distinct elements and no
+    incomparable pairs.
+  citations:
+    - {source: rubinstein, ref: "ch. 2"}
+  status: proposed
+- id: szpilrajn-extension
+  name: Szpilrajn extension theorem
+  kind: theorem
+  section: s01-binary-relations
+  topic: order-theory
+  gist: Every partial order can be completed into a total order without contradicting it.
+  explanation: |
+    Given any partial order, one can add comparisons for the incomparable pairs and obtain a total order that
+    still ranks every pair the original already ranked in the same way. For infinite sets the proof needs the
+    axiom of choice.
+  citations:
+    - {source: ok, ref: "ch. 1"}
+  status: proposed
+- id: rational-preference
+  name: Rational preference relation
+  kind: object
+  section: s01-binary-relations
+  topic: rational-choice
+  gist: A complete and transitive "at least as good as" relation.
+  explanation: |
+    A decision maker's preferences are called rational when they are complete (any two alternatives can be
+    compared) and transitive (comparisons chain). Everything in standard consumer theory starts here.
+  formal: |
+    $\succsim$ is complete and transitive on $X$.
+  citations:
+    - {source: mwg, ref: "1.B"}
+    - {source: rubinstein, ref: "ch. 2"}
+  status: proposed

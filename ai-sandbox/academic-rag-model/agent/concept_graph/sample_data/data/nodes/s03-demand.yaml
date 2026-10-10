@@ -1,0 +1,6 @@
+- id: walrasian-demand
+  name: Walrasian demand
+  kind: correspondence
+  section: s03-demand
+  topic: demand
+  status: proposed
