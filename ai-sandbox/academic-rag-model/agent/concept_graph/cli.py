@@ -10,6 +10,7 @@ from pathlib import Path
 
 from pydantic import ValidationError
 
+from . import scaffold as scaffold_mod
 from .build import BuildError, build
 from .gh_issues import close_issue, fetch_review_issues
 from .reviews import ReviewFile, apply_review, archive_review
@@ -77,6 +78,17 @@ def _cmd_apply_review(args) -> int:
     return 1 if failed else 0
 
 
+def _cmd_scaffold(args) -> int:
+    created = scaffold_mod.scaffold(
+        args.graph_repo, args.repo, args.holder, dt.date.today().year,
+        with_sample=args.with_sample, contact=args.contact,
+    )
+    print(f"scaffolded {args.graph_repo}:")
+    for rel in created:
+        print("   ", rel)
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="concept_graph", description=__doc__)
     p.add_argument("--graph-repo", required=True, help="path to the graph repo checkout")
@@ -89,16 +101,22 @@ def build_parser() -> argparse.ArgumentParser:
     ar.add_argument("--commit", action="store_true", help="commit the result in the graph repo, one commit per reviewer")
     ar.add_argument("--close-applied", action="store_true", help="close each GitHub issue after applying it")
     ar.add_argument("--today", help="override today's date (YYYY-MM-DD), for tests")
+    sc = sub.add_parser("scaffold", help="create a new graph repo skeleton at --graph-repo")
+    sc.add_argument("--repo", required=True, metavar="OWNER/NAME", help="the GitHub repository this graph will live in")
+    sc.add_argument("--holder", required=True, help="copyright holder name for LICENSE-CODE")
+    sc.add_argument("--with-sample", action="store_true", help="include the 17-node sample graph")
+    sc.add_argument("--contact", help="takedown contact text; defaults to the repo's GitHub issues page")
     return p
 
 
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     args.graph_repo = Path(args.graph_repo)
-    handlers = {"validate": _cmd_validate, "build": _cmd_build, "apply-review": _cmd_apply_review}
+    handlers = {"validate": _cmd_validate, "build": _cmd_build, "apply-review": _cmd_apply_review,
+                "scaffold": _cmd_scaffold}
     try:
         return handlers[args.cmd](args)
-    except (GraphDataError, BuildError) as exc:
+    except (GraphDataError, BuildError, FileExistsError) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 1
 
