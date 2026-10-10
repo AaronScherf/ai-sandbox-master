@@ -1,0 +1,24 @@
+{
+  "files": [
+    {
+      "file": "cytoscape.min.js",
+      "url": "https://cdn.jsdelivr.net/npm/cytoscape@3.30.2/dist/cytoscape.min.js",
+      "sha256": "83e8c54a6bec655bfd81df07df605649c268af69aeca67a5ea2da54ea42dac81"
+    },
+    {
+      "file": "katex.min.js",
+      "url": "https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js",
+      "sha256": "e6bfe5deebd4c7ccd272055bab63bd3ab2c73b907b6e6a22d352740a81381fd4"
+    },
+    {
+      "file": "cytoscape.LICENSE",
+      "url": "https://raw.githubusercontent.com/cytoscape/cytoscape.js/v3.30.2/LICENSE",
+      "sha256": "a29c0d78a54de204b78357976c3d272a573b8592d0478b9db07af3f1da31a65a"
+    },
+    {
+      "file": "katex.LICENSE",
+      "url": "https://raw.githubusercontent.com/KaTeX/KaTeX/v0.16.11/LICENSE",
+      "sha256": "766ccc1f306c885aa45542a9846bbd0a505b27a0374f146778171c2254ce18e3"
+    }
+  ]
+}
