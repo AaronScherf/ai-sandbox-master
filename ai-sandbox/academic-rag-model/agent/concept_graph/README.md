@@ -5,9 +5,9 @@ A study aid for the microeconomics course: a directed **concept graph** whose no
 connect and **under what conditions** one implies another. It is read by people, in a single self-contained
 HTML page, and reviewed by colleagues through that page. Design: [`docs/superpowers/specs/agent/2026-10-09-concept-graph-design.md`](../../docs/superpowers/specs/agent/2026-10-09-concept-graph-design.md).
 
-This package is the **core** (data, validation, viewer, review loop, repo scaffolding). The LLM stages that
-draft nodes and edges from the corpus (`seed`, `fill`, `link`, `critic`, agent/API drivers, IP guard) are a
-separate follow-up plan and are **not built yet**.
+This package has two halves: the **core** (data, validation, viewer, review loop, repo scaffolding) and the
+**drafting stages** (`seed`, `fill`, `link`, `critic`) that propose nodes, explanations and edges from the
+corpus for people to review. Nothing a stage writes is ever `verified`.
 
 All commands run from `ai-sandbox/academic-rag-model/` as modules:
 
@@ -65,6 +65,44 @@ python -m agent.concept_graph.cli --graph-repo agent/concept_graph/sample_data b
   bad `via`, self-loops, and cycles among definitional edges. Cycles among `implies`/`hypothesis_of`/`yields`
   are warnings (mutually implying results with different conditions are legitimate).
 
+## Drafting stages
+
+Each stage turns corpus passages into **proposed** items that a person then reviews in the page.
+
+| Stage | What it proposes |
+|---|---|
+| `seed` | The course outline (sections) and a skeleton of concept nodes, from the hub's syllabus, textbook chapter titles, lecture dates and slide titles. For starting a graph. |
+| `fill` | `gist`, `explanation`, optional `formal`/`example`, and citations for each unfilled node in a taught section. |
+| `link` | Typed edges between existing nodes (with conditions and `via`), each citing evidence. |
+| `critic` | A blind second look at each proposed edge: `supports`, `weak` or `unsupported`, with a note. |
+
+**Agent workflow (default; costs subscription quota, not API dollars):**
+
+```
+python -m agent.concept_graph.cli --graph-repo G collect fill --hub-root H --course microecon   # writes task cards
+python -m agent.concept_graph.cli --graph-repo G --work-dir W bootstrap <run-id>                 # the agent's contract
+# the agent fills the yaml block under "## Result" in each card
+python -m agent.concept_graph.cli --graph-repo G --work-dir W submit <run-id> --agent-name NAME  # validate + apply
+```
+
+Cards that fail validation are bounced with the reasons written onto the card; fix only those and submit again.
+`status` shows the worklist.
+
+**What `submit` enforces:** the result must match the stage's shape; prose must be in the drafter's own words
+(8 or more consecutive words shared with an offered passage is rejected, LaTeX `formal` text excepted); every
+citation must be a `(source, ref)` pair that was offered on that card; edges may only connect existing node ids,
+need a `condition` when they are `implies`/`iff`, and must not repeat an existing or rejected edge or create a
+definitional cycle. Verified items are never overwritten, and `submit` twice does nothing the second time.
+
+**Private work directory.** Cards and the manifest contain retrieved source text. The work directory defaults to
+`<hub-root>/.agent_work/concept_graph/` and the tool refuses one inside the graph repo.
+
+**API fallback:** `api <stage> --approve-cost USD` sends the same cards to Gemini (paid key), prints an estimate
+first and refuses above $1 without `--approve-cost`; replies go through the same validation.
+
+Retrieval uses the repo's passage search (`agent.rag.rag_agent.retrieve_passages`); its only network call is the
+query embedding. Source keys: `rubinstein`, `mwg`, `ok`, `lecture`, `slides`, `hw`, `other`.
+
 ## Reviewing
 
 In the page, a reviewer types a name and accepts, rejects, edits or comments on items. **Submit review** opens a
@@ -93,4 +131,4 @@ test is skipped if Node is not installed. The page itself was checked by hand in
 
 ## Not built yet
 
-`seed`, `fill`, `link`, `critic`, the agent and API drivers, the IP guard, and the Artifact review adapter.
+The Artifact review adapter and an Obsidian export.
