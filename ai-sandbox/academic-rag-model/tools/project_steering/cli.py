@@ -38,6 +38,10 @@ def build_parser() -> argparse.ArgumentParser:
     routing_import.add_argument("--tracker", type=Path, required=True)
     routing_import.add_argument("--state-dir", type=Path, required=True)
     routing_import.add_argument("--draft", type=Path, required=True, help="absolute path to one-time routing draft JSON")
+    score_import = commands.add_parser("import-scores", help="import provisional task scores without approving them")
+    score_import.add_argument("--tracker", type=Path, required=True)
+    score_import.add_argument("--state-dir", type=Path, required=True)
+    score_import.add_argument("--draft", type=Path, required=True, help="absolute path to score draft JSON")
     return parser
 
 
@@ -66,7 +70,7 @@ def main(argv: list[str] | None = None) -> int:
     if hasattr(args, "state_dir") and not _state_dir_is_safe(args.tracker, args.state_dir):
         print("state-dir must be outside tracked source (the Git common directory is allowed)", file=sys.stderr)
         return 2
-    if args.command == "import-routing":
+    if args.command in {"import-routing", "import-scores"}:
         if not args.draft.is_absolute():
             print("draft must be an absolute path", file=sys.stderr)
             return 2
@@ -80,8 +84,9 @@ def main(argv: list[str] | None = None) -> int:
             revision = store.read()["revision"]
             if args.tracker.read_bytes() != source:
                 raise ValueError("tracker changed during routing import")
-            state = store.import_routing(parsed.tasks, payload, revision=revision,
-                                         source_sha256=hashlib.sha256(source).hexdigest())
+            importer = store.import_routing if args.command == "import-routing" else store.import_scores
+            state = importer(parsed.tasks, payload, revision=revision,
+                             source_sha256=hashlib.sha256(source).hexdigest())
             print(json.dumps({"imported": len(payload["rows"]), "batch": payload["batch"],
                               "state_revision": state["revision"]}, sort_keys=True))
             return 0

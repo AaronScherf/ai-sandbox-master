@@ -63,3 +63,22 @@ The routing policy is [AGENT_ROUTING.md](../../../../docs/AGENT_ROUTING.md).
 but out of today's shortlist and agent batches until that date; it does not
 change the task's score. This suits a task such as a trial review that cannot
 begin until its scheduled runs finish.
+
+## Potential priority estimates
+
+`import-scores --tracker <absolute-path> --state-dir <absolute-path> --draft
+<absolute-json-path>` loads a source-hash- and task-fingerprint-checked score
+draft into local **suggested** fields. It does not change the approved impact,
+urgency, or effort fields, or add dependency edges. A failed batch changes no
+state bytes. Each row carries `id`, `fingerprint`, `impact` (0–3), `urgency`
+(0–3), `effort` (a listed band or `unknown`), `confidence`, and `rationale`.
+The draft envelope carries `source_sha256`, `batch`, and `rows`.
+
+The review page shows suggested scores beside each task's editable inputs.
+Use **Fill fields from potential score** to adjust and save one item, or select
+suggestions in the priority section and use **Approve selected score estimates**.
+Approval fills only still-unknown score fields, preserving values already
+entered by the owner. A changed task is skipped as stale. Unknown effort stays
+in Needs Estimate even when its impact and urgency are approved. The proposed
+agent batches are separate: their checkboxes approve routing tags, never scores.
+Each proposed agent batch has a select-all checkbox for faster routing review.

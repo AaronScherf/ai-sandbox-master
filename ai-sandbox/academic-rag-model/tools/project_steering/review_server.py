@@ -22,6 +22,22 @@ STATIC = Path(__file__).parent / "static"
 MAX_BODY = 64 * 1024
 
 
+def score_proposals(tasks: tuple, state: dict) -> dict:
+    rows = {}
+    for task in tasks:
+        entry = state["tasks"].get(task.task_id, {})
+        suggestion = entry.get("score_suggested")
+        if not suggestion:
+            continue
+        rows[task.task_id] = {
+            **suggestion,
+            "status": ("stale" if suggestion.get("fingerprint") != task.fingerprint or entry.get("recheck")
+                       else "approved" if entry.get("score_approved_fingerprint") == task.fingerprint
+                       else "unapproved"),
+        }
+    return rows
+
+
 class ReviewServer(ThreadingHTTPServer):
     daemon_threads = True
     allow_reuse_address = False
@@ -95,6 +111,7 @@ class Handler(BaseHTTPRequestHandler):
             payload = {"source_sha256": source_hash, "revision": state["revision"],
                        "tracker_uri": self.server.tracker.as_uri(),
                        "ranking": ranking, "routing": route_view(tasks, state, ranking),
+                       "score_proposals": score_proposals(tasks, state),
                        "tasks": [task.to_dict() for task in tasks],
                        "warnings": [item.to_dict() for item in parsed.warnings],
                        "notices": [item.to_dict() for item in parsed.notices]}
@@ -104,7 +121,7 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_POST(self) -> None:
         path = urlsplit(self.path).path
-        if not self.authorized(post=True) or path not in {"/api/decision", "/api/routing/decision", "/api/routing/approve", "/api/close"}:
+        if not self.authorized(post=True) or path not in {"/api/decision", "/api/routing/decision", "/api/routing/approve", "/api/scores/approve", "/api/close"}:
             self.send(403, b"forbidden", "text/plain; charset=utf-8")
             return
         try:
@@ -121,6 +138,11 @@ class Handler(BaseHTTPRequestHandler):
                 raise DecisionError("stale tracker snapshot")
             if path == "/api/routing/approve":
                 data, result = self.server.store.batch_approve(
+                    tasks, revision=request["revision"], task_ids=request["task_ids"])
+                self.send(200, json.dumps({**result, "revision": data["revision"]}).encode("utf-8"))
+                return
+            if path == "/api/scores/approve":
+                data, result = self.server.store.approve_scores(
                     tasks, revision=request["revision"], task_ids=request["task_ids"])
                 self.send(200, json.dumps({**result, "revision": data["revision"]}).encode("utf-8"))
                 return

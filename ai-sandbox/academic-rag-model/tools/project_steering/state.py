@@ -14,6 +14,7 @@ from tools.project_steering.routing import FIELDS, VALUES
 VERSION = 2
 EFFORT = {"unknown", "<2h", "half_day", "1_2_days", "larger"}
 STATUSES = {"candidate", "in_progress", "deferred", "declined", "done"}
+SCORE_FIELDS = ("impact", "urgency", "effort")
 
 
 class DecisionError(ValueError):
@@ -116,9 +117,90 @@ class DecisionStore:
                 raise DecisionError("deferred status requires a date")
             entry.update(changes)
             entry["reviewed_at"] = datetime.now(timezone.utc).isoformat()
+            if any(field in changes for field in SCORE_FIELDS):
+                entry["score_approved_fingerprint"] = task.fingerprint
             data["revision"] += 1
             self._write(data)
             return data
+
+    def import_scores(self, tasks: tuple[Task, ...], payload: dict, *, revision: int,
+                      source_sha256: str) -> dict:
+        """Keep assistant estimates separate from owner-approved score fields."""
+        if not isinstance(payload, dict) or set(payload) != {"source_sha256", "batch", "rows"}:
+            raise DecisionError("invalid score draft envelope")
+        if payload["source_sha256"] != source_sha256:
+            raise DecisionError("stale score draft source hash")
+        batch = payload["batch"]
+        if not isinstance(batch, str) or not batch or len(batch) > 80 or not all(c.isalnum() or c in "_-" for c in batch):
+            raise DecisionError("invalid score draft batch ID")
+        rows = payload["rows"]
+        if not isinstance(rows, list) or not rows:
+            raise DecisionError("score draft has no rows")
+        current = {task.task_id: task for task in tasks if not task.provisional}
+        seen: set[str] = set()
+        for row in rows:
+            if not isinstance(row, dict) or set(row) != {"id", "fingerprint", *SCORE_FIELDS, "confidence", "rationale"}:
+                raise DecisionError("invalid score draft row")
+            task_id = row["id"]
+            if not isinstance(task_id, str) or task_id in seen or task_id not in current:
+                raise DecisionError(f"duplicate or unknown score task ID: {task_id}")
+            seen.add(task_id)
+            if row["fingerprint"] != current[task_id].fingerprint:
+                raise DecisionError(f"stale score draft fingerprint: {task_id}")
+            if (type(row["impact"]) is not int or row["impact"] not in range(4)
+                    or type(row["urgency"]) is not int or row["urgency"] not in range(4)
+                    or not isinstance(row["effort"], str) or row["effort"] not in EFFORT
+                    or not isinstance(row["confidence"], str) or row["confidence"] not in {"low", "medium", "high"}
+                    or not isinstance(row["rationale"], str)):
+                raise DecisionError(f"invalid score estimate: {task_id}")
+        with _exclusive_lock(self.lock):
+            data = self._read()
+            if data["revision"] != revision:
+                raise DecisionError("stale state revision; retry import")
+            if any(task_id not in data["tasks"] or data["tasks"][task_id].get("fingerprint") != current[task_id].fingerprint
+                   for task_id in seen):
+                raise DecisionError("state is stale; rescan before score import")
+            for row in rows:
+                data["tasks"][row["id"]]["score_suggested"] = {
+                    **{field: row[field] for field in SCORE_FIELDS},
+                    "confidence": row["confidence"], "rationale": row["rationale"],
+                    "fingerprint": row["fingerprint"], "batch": batch,
+                }
+            data["revision"] += 1
+            self._write(data)
+            return data
+
+    def approve_scores(self, tasks: tuple[Task, ...], *, revision: int,
+                       task_ids: list[str]) -> tuple[dict, dict]:
+        if not isinstance(task_ids, list) or not task_ids or any(not isinstance(x, str) for x in task_ids) or len(task_ids) != len(set(task_ids)):
+            raise DecisionError("select unique task IDs to approve")
+        current = {task.task_id: task for task in tasks if not task.provisional}
+        if any(task_id not in current for task_id in task_ids):
+            raise DecisionError("unknown task ID in score approval")
+        with _exclusive_lock(self.lock):
+            data = self._read()
+            if data["revision"] != revision:
+                raise DecisionError("stale state revision; reload review page")
+            applied: list[str] = []
+            stale: list[str] = []
+            for task_id in task_ids:
+                entry = data["tasks"].get(task_id)
+                suggestion = entry.get("score_suggested") if entry else None
+                if (not entry or entry.get("vanished") or entry.get("recheck")
+                        or not isinstance(suggestion, dict)
+                        or suggestion.get("fingerprint") != current[task_id].fingerprint):
+                    stale.append(task_id)
+                    continue
+                for field in SCORE_FIELDS:
+                    if entry.get(field) is None or (field == "effort" and entry.get(field) == "unknown"):
+                        entry[field] = suggestion[field]
+                entry["score_approved_fingerprint"] = current[task_id].fingerprint
+                entry["reviewed_at"] = datetime.now(timezone.utc).isoformat()
+                applied.append(task_id)
+            if applied:
+                data["revision"] += 1
+                self._write(data)
+            return data, {"applied": applied, "stale": stale}
 
     def import_routing(self, tasks: tuple[Task, ...], payload: dict, *, revision: int,
                        source_sha256: str) -> dict:

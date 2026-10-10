@@ -15,6 +15,7 @@ async function load() {
   const data = await response.json();
   if (!response.ok) throw Error(data.error || 'Review unavailable');
   snapshot = data; root.replaceChildren(); error.textContent = '';
+  root.append(scoreBatches(data));
   root.append(routingBatches(data));
   const sections = [
     ['Next three', data.ranking.shortlist], ['Full scored order', data.ranking.ready],
@@ -43,11 +44,25 @@ function routingBatches(data) {
     for (const [agent, ids] of Object.entries(batches)) {
       const details = document.createElement('details');
       details.append(txt('summary', `${agent}: ${ids.length} tasks`));
+      const inputs = [];
+      if (kind.startsWith('Proposed') && ids.length) {
+        const selectAll = document.createElement('label');
+        const toggle = document.createElement('input'); toggle.type = 'checkbox';
+        toggle.setAttribute('aria-label', `Select all ${agent} proposed routes`);
+        toggle.addEventListener('change', () => {
+          for (const input of inputs) { input.checked = toggle.checked;
+            if (toggle.checked) selected.add(input.value); else selected.delete(input.value); }
+        });
+        selectAll.append(toggle, txt('span', ` Select all ${agent} (${ids.length})`)); details.append(selectAll);
+        details._selectAll = toggle;
+      }
       for (const id of ids) {
         const line = document.createElement('p');
         if (kind.startsWith('Proposed')) {
           const input = document.createElement('input'); input.type = 'checkbox'; input.value = id;
-          input.addEventListener('change', () => input.checked ? selected.add(id) : selected.delete(id));
+          inputs.push(input);
+          input.addEventListener('change', () => { if (input.checked) selected.add(id); else selected.delete(id);
+            details._selectAll.checked = inputs.every(box => box.checked); });
           line.append(input);
         }
         line.append(txt('span', ` ${id} · ${byId[id]?.title || id}`)); details.append(line);
@@ -67,6 +82,41 @@ function routingBatches(data) {
   });
   section.append(button); return section;
 }
+function scoreBatches(data) {
+  const section = document.createElement('section'); section.append(txt('h2', 'Potential priority estimates'));
+  section.append(txt('p', 'These estimates are unapproved. Approve selected values to put them into the scored ranking, or adjust one task in its fields below. Unknown effort stays in Needs Estimate.'));
+  const byId = Object.fromEntries(data.tasks.map(task => [task.task_id, task]));
+  const ids = Object.entries(data.score_proposals).filter(([,row]) => row.status === 'unapproved')
+    .map(([id]) => id);
+  const selected = new Set(), inputs = [];
+  const details = document.createElement('details'); details.open = true;
+  details.append(txt('summary', `Codex-task score suggestions: ${ids.length} awaiting review`));
+  if (ids.length) {
+    const label = document.createElement('label'); const all = document.createElement('input'); all.type = 'checkbox';
+    all.setAttribute('aria-label', 'Select all proposed score estimates');
+    all.addEventListener('change', () => { for (const input of inputs) { input.checked = all.checked;
+      if (all.checked) selected.add(input.value); else selected.delete(input.value); } });
+    label.append(all, txt('span', ` Select all ${ids.length}`)); details.append(label);
+    for (const id of ids) {
+      const row = data.score_proposals[id], line = document.createElement('p');
+      const input = document.createElement('input'); input.type = 'checkbox'; input.value = id; inputs.push(input);
+      input.addEventListener('change', () => { if (input.checked) selected.add(id); else selected.delete(id);
+        all.checked = inputs.every(box => box.checked); });
+      line.append(input, txt('span', ` ${id} · ${byId[id]?.title || id} · impact ${row.impact}, urgency ${row.urgency}, effort ${row.effort} (${row.confidence} confidence)`));
+      details.append(line);
+    }
+  }
+  section.append(details);
+  const button = document.createElement('button'); button.textContent = 'Approve selected score estimates';
+  button.addEventListener('click', async () => {
+    if (!selected.size) { error.textContent = 'Select score estimates first.'; return; }
+    try { const result = await post('/api/scores/approve', {source_sha256:snapshot.source_sha256,
+      revision:snapshot.revision,task_ids:[...selected]}); await load();
+      if (result.stale.length) error.textContent = `Skipped stale scores: ${result.stale.join(', ')}`;
+    } catch (e) { error.textContent = String(e.message); }
+  });
+  section.append(button); return section;
+}
 function card(node) {
   const task = node.task, decision = node.decision || {};
   const route = snapshot.routing.tasks[task.task_id];
@@ -78,6 +128,8 @@ function card(node) {
   article.append(txt('p', node.score === null ? node.reasons.join('; ') || 'Needs owner estimates' :
     `Score ${node.score}: impact +${node.terms.impact}, urgency +${node.terms.urgency}, unlock +${node.terms.unlock}, effort −${node.terms.effort_penalty}`));
   if (node.selection_reason) article.append(txt('p', node.selection_reason));
+  const scoreProposal = snapshot.score_proposals[task.task_id];
+  if (scoreProposal) article.append(txt('p', `Potential score (${scoreProposal.status}, ${scoreProposal.confidence} confidence): impact ${scoreProposal.impact}, urgency ${scoreProposal.urgency}, effort ${scoreProposal.effort}. ${scoreProposal.rationale}`));
   const proposed = Object.entries(route.proposed).filter(([,value]) => value !== null)
     .map(([field,value]) => `${field}: ${value}`).join('; ');
   const approved = Object.entries(route.approved).filter(([,value]) => value !== null)
@@ -117,6 +169,12 @@ function card(node) {
     for (const value of choices) { const option = document.createElement('option'); option.value = value;
       option.textContent = String(value); option.selected = String(decision[field] ?? 'unknown') === String(value); select.append(option); }
     label.append(select); form.append(label);
+  }
+  if (scoreProposal && scoreProposal.status === 'unapproved') {
+    const use = document.createElement('button'); use.type = 'button'; use.textContent = 'Fill fields from potential score';
+    use.addEventListener('click', () => { for (const field of ['impact','urgency','effort'])
+      form.elements.namedItem(field).value = String(scoreProposal[field]); });
+    form.append(use);
   }
   for (const [field, value] of [['depends_on', (decision.depends_on || []).join(', ')], ['defer_until', decision.defer_until || '']]) {
     const label = document.createElement('label'); label.append(txt('span', field + ' '));
