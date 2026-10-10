@@ -1441,16 +1441,40 @@ def main():
         "--force-vision", action="store_true",
         help="Force vision transcription via Gemini, bypassing local text extraction even if the PDF appears cleanly machine-generated.",
     )
+    parser.add_argument("--driver", choices=["api", "agent"], default="api", help="Transcription transport.")
+    parser.add_argument("--collect", action="store_true", help="With --driver agent: write task cards instead of transcribing.")
+    parser.add_argument("--run-id", default=None, help="Run id for --collect/--submit's .agent_work/ directory (default: a timestamp).")
     args = parser.parse_args()
 
     load_dotenv_override()
 
-    academic_hub_dir = Path(__file__).resolve().parent.parent.parent.parent / "academic-hub"
+    academic_hub_dir = Path(os.environ.get("ACADEMIC_HUB_ROOT_OVERRIDE") or (
+        Path(__file__).resolve().parent.parent.parent.parent / "academic-hub"
+    ))
     notes_dir = academic_hub_dir / args.notes_subdir
     pdf_paths = discover_pdf_files(str(notes_dir), args.file)
     if not pdf_paths:
         print(f"No PDF files found under {notes_dir}.")
         sys.exit(1)
+
+    if args.collect:
+        if args.driver != "agent":
+            print("--collect requires --driver agent.")
+            sys.exit(1)
+        import datetime
+
+        from pipelines.transcribe_notes.agent_work import AgentDriver, dedupe_by_file_id
+
+        run_id = args.run_id or datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+        canonical_pdf_paths, _duplicates_of = dedupe_by_file_id(pdf_paths)
+        driver = AgentDriver(str(academic_hub_dir), run_id)
+        for pdf_path in canonical_pdf_paths:
+            process_pdf(
+                pdf_path, None, args.model, str(academic_hub_dir),
+                force_vision=args.force_vision, driver=driver, collect_mode=True,
+            )
+        print(f"Collect run '{run_id}' complete under {academic_hub_dir / '.agent_work' / run_id}.")
+        return
 
     client = None
     if not args.dry_run:
