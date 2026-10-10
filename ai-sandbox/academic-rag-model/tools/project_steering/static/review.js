@@ -46,7 +46,7 @@ function routingBatches(data) {
       const details = document.createElement('details');
       details.append(txt('summary', `${agent}: ${ids.length} tasks`));
       const inputs = [];
-      const withScores = ids.filter(id => ['unapproved', 'approved'].includes(data.score_proposals[id]?.status));
+      const withScores = ids.filter(id => data.score_proposals[id]?.status === 'approved');
       if (kind.startsWith('Proposed') && ids.length) {
         const controls = document.createElement('div'); controls.className = 'batch-controls';
         const selectAll = document.createElement('label');
@@ -61,7 +61,7 @@ function routingBatches(data) {
         details._selectAll = toggle;
         const scoreLabel = document.createElement('label');
         const scoreToggle = document.createElement('input'); scoreToggle.type = 'checkbox';
-        scoreToggle.setAttribute('aria-label', `Select only ${agent} proposed routes with score estimates`);
+        scoreToggle.setAttribute('aria-label', `Select only ${agent} proposed routes with approved score estimates`);
         scoreToggle.disabled = !withScores.length;
         scoreToggle.addEventListener('change', () => {
           for (const input of inputs) {
@@ -70,7 +70,7 @@ function routingBatches(data) {
           }
           toggle.checked = inputs.every(input => input.checked);
         });
-        scoreLabel.append(scoreToggle, txt('span', ` Select with score estimates only (${withScores.length})`));
+        scoreLabel.append(scoreToggle, txt('span', ` Select with approved scores only (${withScores.length})`));
         controls.append(scoreLabel); details.append(controls); details._selectScores = scoreToggle;
       }
       for (const id of ids) {
@@ -101,14 +101,49 @@ function routingBatches(data) {
   section.append(button); return section;
 }
 function scoredTable(nodes) {
+  const container = document.createElement('div');
+  const filterButton = document.createElement('button'); filterButton.type = 'button'; filterButton.textContent = 'Filter';
+  filterButton.setAttribute('aria-expanded', 'false');
+  const filters = document.createElement('div'); filters.className = 'table-filters'; filters.hidden = true;
+  const search = document.createElement('input'); search.type = 'search'; search.placeholder = 'Task, ID, pipeline, or tag';
+  search.setAttribute('aria-label', 'Filter scored tasks by text');
+  const agentFilter = document.createElement('select'); agentFilter.setAttribute('aria-label', 'Filter scored tasks by agent');
+  for (const value of ['', 'claude', 'gemini', 'codex', 'needs_human']) {
+    const option = document.createElement('option'); option.value = value;
+    option.textContent = value || 'All agents'; agentFilter.append(option);
+  }
+  const minimum = document.createElement('input'); minimum.type = 'number'; minimum.placeholder = 'Minimum score';
+  minimum.setAttribute('aria-label', 'Minimum score');
+  const clear = document.createElement('button'); clear.type = 'button'; clear.textContent = 'Clear filters';
+  const count = txt('small', `${nodes.length} of ${nodes.length} tasks`);
+  filters.append(search, agentFilter, minimum, clear);
+  filterButton.addEventListener('click', () => {
+    filters.hidden = !filters.hidden; filterButton.textContent = filters.hidden ? 'Filter' : 'Hide filters';
+    filterButton.setAttribute('aria-expanded', String(!filters.hidden));
+    if (!filters.hidden) search.focus();
+  });
+  container.append(filterButton, count, filters);
   const wrapper = document.createElement('div'); wrapper.className = 'table-scroll';
   const table = document.createElement('table'); table.className = 'scored-table';
   const thead = document.createElement('thead'), heading = document.createElement('tr');
-  for (const label of ['# / ID', 'Task (three words)', 'Pipeline / section', 'Added', 'Score', 'Impact', 'Urgency', 'Effort', 'Agent / tags', 'Actions']) {
-    const th = txt('th', label); th.scope = 'col'; heading.append(th);
+  const columns = [['rank','# / ID'], ['task','Task (three words)'], ['section','Pipeline / section'],
+    ['added','Added'], ['score','Score'], ['impact','Impact'], ['urgency','Urgency'],
+    ['effort','Effort'], ['tags','Agent / tags'], [null,'Actions']];
+  const headers = {}; let sortKey = 'rank', ascending = true;
+  for (const [key,label] of columns) {
+    const th = document.createElement('th'); th.scope = 'col';
+    if (key) {
+      const button = document.createElement('button'); button.type = 'button'; button.className = 'sort-header';
+      button.textContent = label; button.setAttribute('aria-label', `Sort by ${label}`);
+      button.addEventListener('click', () => { ascending = sortKey === key ? !ascending : true;
+        sortKey = key; sortRows(); });
+      th.append(button); headers[key] = th;
+    } else th.textContent = label;
+    heading.append(th);
   }
+  headers.rank.setAttribute('aria-sort', 'ascending');
   thead.append(heading); table.append(thead);
-  const tbody = document.createElement('tbody');
+  const tbody = document.createElement('tbody'), records = [];
   nodes.forEach((node, index) => {
     const task = node.task, decision = node.decision || {}, route = snapshot.routing.tasks[task.task_id];
     const tr = document.createElement('tr');
@@ -146,54 +181,101 @@ function scoredTable(nodes) {
     expand.setAttribute('aria-expanded', 'false'); expand.setAttribute('aria-label', `Show details for ${task.task_id}: ${task.title}`);
     const detailRow = document.createElement('tr'); detailRow.hidden = true; detailRow.className = 'detail-row';
     const detailCell = document.createElement('td'); detailCell.colSpan = 10; detailRow.append(detailCell);
+    const record = {node, index, row:tr, details:detailRow, expanded:false, selects, tags,
+      agent:routeValues.agent || route.agent};
     expand.addEventListener('click', () => {
-      detailRow.hidden = !detailRow.hidden; expand.setAttribute('aria-expanded', String(!detailRow.hidden));
-      expand.setAttribute('aria-label', `${detailRow.hidden ? 'Show' : 'Hide'} details for ${task.task_id}: ${task.title}`);
-      if (!detailRow.hidden && !detailCell.hasChildNodes()) detailCell.append(card(node));
+      record.expanded = !record.expanded; detailRow.hidden = !record.expanded;
+      expand.setAttribute('aria-expanded', String(record.expanded));
+      expand.setAttribute('aria-label', `${record.expanded ? 'Hide' : 'Show'} details for ${task.task_id}: ${task.title}`);
+      if (record.expanded && !detailCell.hasChildNodes()) detailCell.append(card(node));
     });
-    taskCell.append(expand); actions.append(save); tr.append(actions); tbody.append(tr, detailRow);
+    taskCell.append(expand); actions.append(save); tr.append(actions); tbody.append(tr, detailRow); records.push(record);
   });
-  table.append(tbody); wrapper.append(table); return wrapper;
+  function sortValue(record, key) {
+    const task = record.node.task;
+    if (key === 'rank') return record.index;
+    if (key === 'task') return task.title.toLowerCase();
+    if (key === 'section') return task.section.toLowerCase();
+    if (key === 'added') return task.added;
+    if (key === 'score') return record.node.score;
+    if (key === 'impact' || key === 'urgency') return Number(record.selects[key].value);
+    if (key === 'effort') return ['<2h','half_day','1_2_days','larger','unknown'].indexOf(record.selects.effort.value);
+    return record.tags.toLowerCase();
+  }
+  function sortRows() {
+    for (const [key,th] of Object.entries(headers)) th.setAttribute('aria-sort',
+      key === sortKey ? ascending ? 'ascending' : 'descending' : 'none');
+    records.sort((a,b) => {
+      const left = sortValue(a,sortKey), right = sortValue(b,sortKey);
+      if (sortKey === 'added' && (left === 'unknown' || right === 'unknown')) {
+        if (left !== right) return left === 'unknown' ? 1 : -1;
+      }
+      const compared = typeof left === 'number' ? left - right : left.localeCompare(right);
+      return (ascending ? compared : -compared) || a.index - b.index;
+    });
+    tbody.replaceChildren(...records.flatMap(record => [record.row, record.details]));
+  }
+  function applyFilters() {
+    const query = search.value.trim().toLowerCase(), min = minimum.value === '' ? null : Number(minimum.value);
+    let shown = 0;
+    for (const record of records) {
+      const task = record.node.task;
+      const text = `${task.task_id} ${task.title} ${task.section} ${record.tags}`.toLowerCase();
+      const visible = (!query || text.includes(query)) && (!agentFilter.value || record.agent === agentFilter.value)
+        && (min === null || record.node.score >= min);
+      record.row.hidden = !visible; record.details.hidden = !visible || !record.expanded;
+      if (visible) shown++;
+    }
+    count.textContent = `${shown} of ${nodes.length} tasks`;
+  }
+  for (const input of [search, agentFilter, minimum]) input.addEventListener('input', applyFilters);
+  clear.addEventListener('click', () => { search.value = ''; agentFilter.value = ''; minimum.value = ''; applyFilters(); });
+  table.append(tbody); wrapper.append(table); container.append(wrapper); return container;
 }
 function scoreBatches(data) {
   const section = document.createElement('section'); section.append(txt('h2', 'Potential priority estimates'));
-  section.append(txt('p', 'These estimates are unapproved. Approve selected values to put them into the scored ranking, or adjust one task in its fields below. Unknown effort stays in Needs Estimate.'));
+  section.append(txt('p', 'These are provisional estimates grouped by proposed agent. Approve selected values to put them into the scored ranking, or adjust one task in its fields below. Unknown effort stays in Needs Estimate.'));
   const byId = Object.fromEntries(data.tasks.map(task => [task.task_id, task]));
   const ids = Object.entries(data.score_proposals).filter(([,row]) => row.status === 'unapproved')
     .map(([id]) => id);
-  const selected = new Set(), inputs = [];
-  const details = document.createElement('details'); details.open = true;
-  details.append(txt('summary', `Codex-task score suggestions: ${ids.length} awaiting review`));
-  if (ids.length) {
-    const controls = document.createElement('div');
-    const label = document.createElement('label'); const all = document.createElement('input'); all.type = 'checkbox';
-    all.setAttribute('aria-label', 'Select all proposed score estimates');
-    all.addEventListener('change', () => { for (const input of inputs) { input.checked = all.checked;
-      if (all.checked) selected.add(input.value); else selected.delete(input.value); } });
-    label.append(all, txt('span', ` Select all ${ids.length}`)); controls.append(label);
+  const agentFor = id => { const route = data.routing.tasks[id];
+    return route.fully_approved ? route.agent : route.proposed.agent || 'needs_human'; };
+  const selected = new Set();
+  for (const [agent,label] of [['claude','Claude'], ['gemini','Gemini'], ['codex','Codex'], ['needs_human','Needs Human Review']]) {
+    const agentIds = ids.filter(id => agentFor(id) === agent);
+    const details = document.createElement('details');
+    details.append(txt('summary', `${label}: ${agentIds.length} awaiting review`));
+    if (!agentIds.length) { details.append(txt('p', 'No pending estimates.')); section.append(details); continue; }
+    const controls = document.createElement('div'); controls.className = 'batch-controls';
+    const inputs = [];
+    const select = (input, checked) => { input.checked = checked;
+      if (checked) selected.add(input.value); else selected.delete(input.value); };
+    const allLabel = document.createElement('label'), all = document.createElement('input'); all.type = 'checkbox';
+    all.setAttribute('aria-label', `Select all ${label} score estimates`);
+    all.addEventListener('change', () => { for (const input of inputs) select(input, all.checked); });
+    allLabel.append(all, txt('span', ` Select all ${agentIds.length}`)); controls.append(allLabel);
     for (const confidence of ['high', 'medium', 'low']) {
-      const matching = ids.filter(id => data.score_proposals[id].confidence === confidence).length;
+      const matching = agentIds.filter(id => data.score_proposals[id].confidence === confidence).length;
       const button = document.createElement('button'); button.type = 'button';
-      button.textContent = `Select ${confidence} only (${matching})`;
+      button.textContent = `Select ${confidence} only (${matching})`; button.disabled = !matching;
       button.addEventListener('click', () => {
-        selected.clear();
-        for (const input of inputs) { input.checked = data.score_proposals[input.value].confidence === confidence;
-          if (input.checked) selected.add(input.value); }
+        for (const input of inputs) select(input, data.score_proposals[input.value].confidence === confidence);
         all.checked = inputs.every(input => input.checked);
       });
       controls.append(button);
     }
     details.append(controls);
-    for (const id of ids) {
+    for (const id of agentIds) {
       const row = data.score_proposals[id], line = document.createElement('p');
       const input = document.createElement('input'); input.type = 'checkbox'; input.value = id; inputs.push(input);
-      input.addEventListener('change', () => { if (input.checked) selected.add(id); else selected.delete(id);
+      input.setAttribute('aria-label', `Select score estimate for ${id}`);
+      input.addEventListener('change', () => { select(input, input.checked);
         all.checked = inputs.every(box => box.checked); });
       line.append(input, txt('span', ` ${id} · ${byId[id]?.title || id} · impact ${row.impact}, urgency ${row.urgency}, effort ${row.effort} (${row.confidence} confidence)`));
-      details.append(line);
+      line.append(txt('small', ` ${row.rationale}`)); details.append(line);
     }
+    section.append(details);
   }
-  section.append(details);
   const button = document.createElement('button'); button.textContent = 'Approve selected score estimates';
   button.addEventListener('click', async () => {
     if (!selected.size) { error.textContent = 'Select score estimates first.'; return; }
