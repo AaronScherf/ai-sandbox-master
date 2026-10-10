@@ -55,3 +55,32 @@ A fresh reviewer read the whole branch. Findings and what was done (each fix has
   was not measured on a full 150-card submit.
 - **Deferred minor:** `cli.main` catches bare `ValueError`/`RuntimeError`, so an unrelated programming error prints as
   `error: ...` without a traceback.
+
+## First real seed run on microecon (2026-10-10) and what it taught us
+
+`seed` was run for real with Antigravity (Gemini, subscription) filling the cards; `submit` was run by Claude Code.
+Three passes, each exposing a flaw in the stage that was then fixed with tests:
+
+1. **Pass 1** (chapter titles, syllabus, slide titles only): 8 sections, 49 nodes, but it missed the foundations the
+   owner cared about (preorder, partial and total order, Szpilrajn, Sen's alpha and beta, GARP). Cause: the card
+   never showed the model those concepts, and nothing required them. Also found: the syllabus text carried the
+   instructor's and TA's names and emails; slide sets were listed alphabetically although labelled "in course order";
+   two lecture dates were missed because unprocessed notes were ignored.
+2. **Redesign:** evidence now includes the labelled statements in slides and lecture notes ("Axiom β ...",
+   "Theorem" plus its statement) and the section headings of in-scope textbook chapters; a per-course
+   `config/seed.yaml` (scope, `must_include` with aliases, `textbook_chapters`, `min_nodes_per_section`); a kind
+   glossary, a format example and a self-check on the card; validation that bounces missing required concepts and
+   duplicate names. One real bug found on the way: the printed `submit` command had its options in an order that does
+   not parse.
+3. **Pass 2** (redesigned card): the model returned almost exactly the required list (30 nodes) and left two
+   sections empty. Lesson: **a required list becomes the target unless a floor is enforced.** Fix: the card calls the
+   list a floor, and `submit` bounces any section below `min_nodes_per_section`.
+4. **Pass 3** (additive, floor 6): 59 nodes in 8 sections; all 31 required concepts present; 0 validation errors.
+
+Known weaknesses of the result (to review by hand or with another additive pass): no section for choice over time
+although the syllabus mentions it; no nodes yet for framing, status-quo bias or menu dependence; four sections sit
+exactly at the floor of 6; the Szpilrajn theorem landed in the revealed-preference section, not with orders.
+
+To reuse for another course: `scaffold`, fill `config/seed.yaml`, `collect seed --course <name>`, give the card to the
+drafting agent, `submit`; use `collect seed --redo` for additive passes. The corpus classifier names only three
+textbooks (rubinstein, mwg, ok); other books are scoped in `seed.yaml` by their folder name.
