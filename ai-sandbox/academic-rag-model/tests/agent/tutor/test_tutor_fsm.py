@@ -61,7 +61,7 @@ class TestStudentEvents(unittest.TestCase):
 
     def test_confirm_advance_from_awaiting_goes_to_next_part_launch_and_resets_hints(self):
         s, _ = student_event(S(part_index=0, state=AWAITING_ADVANCE, hint_level=2, failed_at_level=1), "confirm_advance", 2)
-        self.assertEqual(s, FsmState(part_index=1, state=LAUNCH, hint_level=0, failed_at_level=0))
+        self.assertEqual(s, FsmState(part_index=1, state=LAUNCH, hint_level=0, failed_at_level=0, cursor=2))
 
     def test_confirm_advance_from_verified_is_allowed(self):
         s, _ = student_event(S(state=VERIFIED), "confirm_advance", 2)
