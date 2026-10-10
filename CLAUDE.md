@@ -26,6 +26,14 @@ When I say "add this as a pending to-do" (or "add to pending", "put it on the to
 - Reply with one line naming the heading used.
 - **Exempt from the worktree rule.** Make this edit directly in the main checkout, on `main`, without creating a worktree or branch. Stage only that one file by path (never `git add -A`), commit it to `main` with a message starting `todo:`, and leave everything else in the checkout untouched. Standing authorization for this single file only; any other change keeps the worktree procedure.
 
+## Reviewable documents
+
+Whenever Claude asks me to review a document (a spec, plan, status doc, or
+any other file), present a clickable link to it, not just the path. A
+committed file not yet pushed gets a `file://` link to its absolute local
+path; a file already on a pushed branch/PR can instead link to its GitHub
+URL. Do this without being asked each time.
+
 ## Multi-agent routing
 
 Gemini (Antigravity) and Codex also work this repo. See
