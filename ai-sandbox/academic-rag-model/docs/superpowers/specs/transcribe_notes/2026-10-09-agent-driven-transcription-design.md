@@ -17,6 +17,25 @@ section's "Fix vs. first draft" note). Several should-fix points
 bounce criteria, provenance fields, seam location) are incorporated too.
 Verified by re-reading the relevant code; nothing executed.
 
+**Revision note (2026-10-09c):** the same peer did a second pass on
+commit `add8381` and confirmed the four blockers are fixed, with six
+further points folded in below: `collect` must never write regardless of
+pending state, not only when something is pending (tier-1 docs and
+fully-cached docs have nothing pending and would otherwise still write);
+`collect` must also short-circuit `process_pdf`'s duplicate-link branch
+and skip `os.makedirs`, not just the tier write calls; tier-3's `Driver`
+needed its multi-page-card mechanics spelled out, since `transcribe_page`
+is a per-page call but cards are 5–8 pages; `submit`'s re-run of
+`process_pdf` needed an explicit guard against spending money on a
+partially-submitted document; `.agent_work/` is confirmed **not**
+gitignored today (a real risk on a public repo) and the `.gitignore` rule
+is now a required plan task, not an open item; and four smaller points
+(mixed-driver provenance, scoping the length-warning to tier-2 only, a
+`bootstrap` subcommand printing the agent's operating contract, and
+simplifying duplicate handling to a plain re-run). Verified by re-reading
+the relevant code, including confirming `academic-hub/.agent_work/` is
+not currently gitignored; nothing executed.
+
 ## Why
 
 `transcribe_notes.py` routes documents to the cheapest tier that fits (local
@@ -90,17 +109,31 @@ class AgentPending(Exception):
 
 class TranscriptionDriver(Protocol):
     def transcribe_batch(self, pdf_path, batch, prompt, image_paths) -> dict[int, str]  # raises AgentPending
-    def transcribe_page(self, pdf_path, page_num, prompt, image_path) -> str            # raises AgentPending
+    def transcribe_page(self, pdf_path, page_num, prompt, image_path, total_pages) -> str  # raises AgentPending
 ```
 
 - **`ApiDriver`** (default, `--driver api`): wraps today's
   `transcribe_batch_via_gemini`/`transcribe_page_via_gemini` calls
   unchanged, still through `call_with_retries`. No behavior change from
   today.
-- **`AgentDriver`** (`--driver agent`): makes no network call. It renders
-  the batch/page's images (same DPI as the tier, via
-  `render_page_to_image_bytes`), writes a task card, appends a row to the
-  run manifest, and raises `AgentPending`.
+- **`AgentDriver`** (`--driver agent`): makes no network call. For a
+  batch call (`transcribe_batch`), it renders the batch's images, writes
+  one task card for the whole batch, and raises `AgentPending` — the
+  batch tiers already call this once per batch, so no further change is
+  needed there. Tier-3 is different: `process_pdf`'s tier-3 loop calls
+  `transcribe_page` once *per page*, but a tier-3 card covers 5–8 pages.
+  On the call for a card's first pending page `n`, `AgentDriver.transcribe_page`
+  stages a card covering pages `n..min(n+k-1, total_pages)` (it receives
+  `total_pages` precisely so it can clamp at the document's end), writing
+  each page's own `hint_text` and image into that one card, then raises
+  `AgentPending` for page `n`. `process_pdf`'s existing tier-3 `break` on
+  any exception (`transcribe_notes.py` ~1346-1352) then ends the loop
+  exactly as it does for a real API failure — this is why no change to
+  tier-3's loop body is needed beyond the `except AgentPending` split: the
+  loop was already built to stop and let a rerun resume from the first
+  uncached page. `submit` later writes all `k` pages from that one card
+  into the cache at once, so the next `collect`/rerun resumes past the
+  whole card, not just page `n`.
 
 ### Fix vs. first draft (BLOCKING #1 and #7)
 
@@ -148,13 +181,40 @@ corrupt index card, and still trigger a metered Gemini classification call
 for every document (`main()` also builds a real Gemini client unless
 `--dry-run`, ~1408).
 
-Fix: a `collect_pdf(pdf_path, ...)` entry point wraps `process_pdf`'s tier
-logic but checks, right before each tier's `_write_markdown_and_index`
-call, whether any page in that tier is still pending (not in the cache).
-If so, it returns immediately without writing anything — same "stop, rerun
-later" contract tier-3 already uses for a real API failure, just applied
-uniformly. `collect` mode never reaches `_write_markdown_and_index` and
-therefore never needs the classification client or the write lock.
+Fix, revised again after the second review: the first fix ("return early
+if anything is pending") was still wrong — a tier-1 (fully clean, 0 API
+calls) document, or a document whose pages are *all already cached* from
+a prior run, has nothing pending, so it would fall through to
+`_write_markdown_and_index` anyway and need the classification client and
+write lock, contradicting "collect needs no client/no lock." Corrected
+rule: a `collect_pdf(pdf_path, ...)` entry point **never calls
+`_write_markdown_and_index`, unconditionally** — not "only when
+something is pending." Concretely:
+
+- Tier-1 documents (no `AgentDriver` call happens at all, since they need
+  zero API calls either way) are **skipped entirely** in collect mode —
+  reported as "nothing to collect, already free," not routed through the
+  write path at all.
+- For every other tier, `collect_pdf` runs the same batching/loop logic as
+  `process_pdf` but replaces the write call with a report: "N/M pages
+  cached, 0 pending — ready for submit's rerun" or "N/M pages cached, K
+  pending — task cards written," and returns before reaching
+  `_write_markdown_and_index` either way.
+
+This also fixes a second instance of the same bug at the top of
+`process_pdf` (~1109-1122): the `find_existing_transcription` /
+`link_duplicate_note` branch runs *before* any tier routing, and
+`link_duplicate_note` performs a real index write (`save_shard`) that
+needs the write lock — confirmed by the peer review hitting a transient
+`PermissionError` on `os.replace(.index/microecon.json, ...)` from this
+exact branch during a real run. In collect mode, a byte-identical match
+is reported ("would link to <path>, 0 API calls needed") instead of
+calling `link_duplicate_note`. `process_pdf` also calls
+`os.makedirs(output_dir, exist_ok=True)` before any of this, which
+creates an empty `academic_notes/<course>/...` directory even when
+nothing is ultimately written; harmless on its own, but `collect_pdf`
+skips it too since there is never anything to write there in collect
+mode.
 
 ### Fix vs. first draft (BLOCKING #4: card/image location)
 
@@ -169,9 +229,18 @@ tablet.
 Fix: task cards, images, and the run manifest go under
 `academic-hub/.agent_work/<run-id>/<doc-slug>/` — a dot-directory at the
 hub root, outside both `academic_notes/` and `academic_resources/`.
-Implementation must confirm (not assume) that `core/indexer` and the
-hub's `.gitignore` already skip dot-directories, or add an explicit
-exclusion before the first real run.
+
+**Confirmed by the second review: `academic-hub/.agent_work/` is NOT
+gitignored today** (`git check-ignore` returns no match), and this repo
+is public — the rendered page images are course material. Adding a
+`.gitignore` rule for `ai-sandbox/academic-hub/.agent_work/` is therefore
+a **required plan task that lands before the first `collect` run**, not
+an open item to confirm later. `core/indexer/index_search.py` does skip
+dot-directories during its own directory walk (lines 259 and 283), but
+that only covers that one indexer entry point — the plan must include a
+test that `.agent_work/` content is not discovered by any of
+`postprocess_discovery.py`, `corpus_health`, or `offering_links.py`
+either, rather than assuming the one confirmed skip generalizes.
 
 ### Task cards and run manifest
 
@@ -215,8 +284,13 @@ not-yet-transcribed byte-identical copies in the same `collect` run (the
 status doc's dry-run found 8 such groups across `2024_class`/`2025_class`).
 Fix: `collect` computes `file_id` for every discovered PDF up front and
 dedupes within the run before creating any cards — one canonical set of
-cards per unique `file_id`, with the duplicate(s) linked via
-`link_duplicate_note` once the canonical copy is submitted.
+cards per unique `file_id`. **Simplified per the second review (point
+6d):** rather than calling `link_duplicate_note` directly for each
+duplicate once the canonical copy is submitted, the duplicate is simply
+left for a later `process_pdf` run (API or agent collect) over its own
+folder — by then `find_existing_transcription` finds the now-finished
+canonical card and links it through the existing, already-tested path,
+with no new call site needed.
 
 ## `submit`
 
@@ -239,14 +313,25 @@ bodies, not factored out.
 
 Fix: after validation passes and pages are written into
 `_pages_cache.json`, `submit` does not reimplement any of that — it simply
-**re-runs `process_pdf` for that document** (with the real `ApiDriver` or
-no driver at all) once every page/batch the current tier needs is already
-cached. `process_pdf`'s own cache-check branches
-(`if all(str(p) in cache for p in batch): continue`, tier-3's
+**re-runs `process_pdf` for that document** once every page/batch the
+current tier needs is already cached. `process_pdf`'s own cache-check
+branches (`if all(str(p) in cache for p in batch): continue`, tier-3's
 `if str(page_num) in cache: continue`) mean it falls straight through to
 the unchanged `_write_markdown_and_index` call with zero new API calls,
 getting frontmatter/merge/routing/offering_label construction for free
 and identical to a pure-API run.
+
+**Guard (second review, point 4):** "re-runs `process_pdf`" needs a
+condition and a safety net, or a bug could spend real money. (1) The
+rerun only fires when the manifest shows **every** card for that document
+is `submitted` — a document with one card still `pending`/`bounced` is
+left alone; `submit` reports it as incomplete rather than re-running
+anything. (2) The rerun is invoked with a `NullDriver` that raises on any
+`transcribe_batch`/`transcribe_page` call instead of the real `ApiDriver`
+— since every page should already be cached at that point, a `NullDriver`
+call ever actually firing means a cache-completeness bug, and it's
+surfaced as a hard error rather than silently falling through to a paid
+API call.
 
 ### Validation
 
@@ -266,8 +351,12 @@ amounts in econ problem sets. Narrowed to:
 - **Warn only (logged, doesn't block)**: output length far shorter than
   the page's local-text hint length (should-fix: cheap anti-skipping
   signal — catches a page the agent summarized or skipped instead of
-  transcribing); anything else that looked unusual but didn't match a
-  bounce rule.
+  transcribing). **Scoped to tier-2 (hybrid/whole-document batch) cards
+  only** (second review, point 6b): tier-2's `hint_text` is the PDF's own
+  embedded text layer and is a meaningful length baseline, but tier-3's
+  hint is handwriting-app text extraction that's often empty or junk, so
+  the same comparison there would just be noise. Anything else that
+  looked unusual but didn't match a bounce rule is also warn-only.
 
 A bounced card is re-marked `bounced: <reason>` in the manifest; the agent
 re-reads that one card, redoes it in place, and `submit` is re-run.
@@ -277,10 +366,17 @@ Nothing else in the document is touched.
 
 `model` in frontmatter currently records the real Gemini model
 (`gemini-3.1-flash-lite`, etc.) and would be false for agent-transcribed
-pages. Add `driver: api | agent` and, when `agent`, the agent's name
-(e.g. `agent_name: antigravity`) to the frontmatter metadata dict passed
-into `build_frontmatter`. `routing` itself is left untouched (see
-Non-goals) since `postprocess_discovery.py` branches on its exact values.
+pages. Add `driver: api | agent | mixed` and, when any pages are
+agent-transcribed, `agent_name` (e.g. `antigravity`) and the list of
+agent-transcribed page numbers, to the frontmatter metadata dict passed
+into `build_frontmatter`. A document is `mixed` when some of its pages
+were submitted via the agent driver and others via the API driver (e.g.
+a bounced tier-2 batch finished with `--driver api` instead of a redo) —
+`submit`'s rerun of `process_pdf` (see the guard above) must pass this
+per-page provenance through from the manifest rather than assuming the
+whole document used one driver (second review, point 6a). `routing`
+itself is left untouched (see Non-goals) since `postprocess_discovery.py`
+branches on its exact values.
 
 Because both drivers write into the same `_pages_cache.json`, a run isn't
 locked to one driver end-to-end: `--driver api` can finish any cards the
@@ -292,18 +388,38 @@ agent skipped, or vice versa, on a plain rerun of `process_pdf`.
 --driver {api, agent}     # default: api (today's behavior, unchanged)
 --collect                 # with --driver agent: render + write task cards + manifest, no transcription, no client, no lock
 --submit <run-id> [--doc <slug>]   # validate filled cards, write cache, re-run process_pdf to finish the write path
+--bootstrap <run-id>      # print the agent's operating contract (see below)
 ```
 
 `--driver agent` is a general flag on the existing
 `transcribe_notes`/`route_notes_transcribe` CLI, not a microecon-specific
 mode — any large `--notes-subdir` run can use it.
 
+**`bootstrap` (second review, point 6c):** the user wants a contract to
+paste directly into Antigravity, the same way `agent/tutor bootstrap`
+prints one. `--bootstrap <run-id>` prints: read `worklist.md`/
+`manifest.json` for this run; fill only the `## Agent output` section of
+each `task-NNNN.md`, never touch any other file or section; for a
+tier-3 card, carry transcribed context forward *within* the card from
+page to page (only the card's first page gets real prior context from
+the cache); once a card (or a batch of cards) is filled, run `submit`;
+if a card comes back `bounced: <reason>`, redo only that card in place
+and re-run `submit`; stop and report once the worklist shows nothing
+`pending`/`filled` left for this run.
+
+## Required before the first real run (not optional open items)
+
+- Add a `.gitignore` rule for `ai-sandbox/academic-hub/.agent_work/`
+  before any `collect` is run against real documents.
+- A test confirming `.agent_work/` content is not discovered by
+  `postprocess_discovery.py`, `corpus_health`, or `offering_links.py` (the
+  indexer's own dot-directory skip at `index_search.py:259,283` is
+  confirmed but doesn't cover these other entry points).
+
 ## Open items for the implementation plan
 
 - Exact tier-3 agent batch size (`_AGENT_TIER3_BATCH_SIZE`): 5–8 pages,
   pick a default from real context-window behavior during implementation.
-- Confirm `core/indexer` and the hub's `.gitignore` skip
-  `academic-hub/.agent_work/`; add an explicit exclusion if not.
 - Exact `manifest.json` schema and `task-NNNN.md` template field names.
 - Whether `submit`'s auto-staging of the next tier-3 card should have a
   cap (bound work-dir size) — default to staging exactly one ahead until
