@@ -84,6 +84,25 @@ from core.indexer.index_card import (
 
 _CODE_FENCE_RE = re.compile(r"^```(?:markdown)?\s*\n(.*)\n```\s*$", re.DOTALL)
 
+
+def _load_driver_provenance(cache_path: str) -> dict[str, str]:
+    """Reads the optional <name>_pages_driver.json sidecar submit writes
+    next to _pages_cache.json: {"<page>": "agent"} for agent-submitted
+    pages. A page absent from this file was API-sourced. Returns {} if
+    the sidecar doesn't exist (a pure-API-driver document)."""
+    driver_path = cache_path.replace("_pages_cache.json", "_pages_driver.json")
+    return load_json_cache(driver_path)
+
+
+def _driver_frontmatter_fields(cache_path: str, page_numbers: list[int]) -> dict:
+    provenance = _load_driver_provenance(cache_path)
+    agent_pages = sorted(int(p) for p in provenance if int(p) in page_numbers)
+    if not agent_pages:
+        return {"driver": "api"}
+    if len(agent_pages) == len(page_numbers):
+        return {"driver": "agent", "agent_name": next(iter(provenance.values()))}
+    return {"driver": "mixed", "agent_name": next(iter(provenance.values())), "agent_pages": agent_pages}
+
 # Checked FIRST, unconditionally: known messy-export sources, regardless
 # of any other marker also present. Confirmed necessary against a real
 # file -- "Microsoft® OneNote® for Microsoft 365" contains "microsoft" as
@@ -1249,7 +1268,7 @@ def process_pdf(pdf_path: str, client, model_override: str | None, academic_hub_
         frontmatter = build_frontmatter({
             **base_metadata, "routing": "hybrid", "model": model,
             "pages_repaired": len(defective_page_numbers), "repaired_pages": defective_page_numbers,
-            "tags": [],
+            "tags": [], **_driver_frontmatter_fields(cache_path, defective_page_numbers),
         })
         _write_markdown_and_index(
             md_path, frontmatter, final_md, pdf_path, academic_hub_root,
@@ -1336,7 +1355,7 @@ def process_pdf(pdf_path: str, client, model_override: str | None, academic_hub_
         frontmatter = build_frontmatter({
             **base_metadata, "routing": "gemini_batched", "model": model,
             "pages_repaired": len(defective_page_numbers), "repaired_pages": defective_page_numbers,
-            "tags": [],
+            "tags": [], **_driver_frontmatter_fields(cache_path, list(range(1, total_pages + 1))),
         })
         _write_markdown_and_index(
             md_path, frontmatter, final_md, pdf_path, academic_hub_root,
@@ -1408,7 +1427,7 @@ def process_pdf(pdf_path: str, client, model_override: str | None, academic_hub_
         **base_metadata,
         "routing": "gemini_accumulating",
         "model": model,
-        "tags": [],
+        "tags": [], **_driver_frontmatter_fields(cache_path, list(range(1, total_pages + 1))),
     })
     _write_markdown_and_index(
         md_path, frontmatter, final_md, pdf_path, academic_hub_root,
