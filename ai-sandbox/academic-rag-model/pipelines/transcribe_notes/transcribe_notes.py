@@ -1463,7 +1463,30 @@ def main():
     parser.add_argument("--driver", choices=["api", "agent"], default="api", help="Transcription transport.")
     parser.add_argument("--collect", action="store_true", help="With --driver agent: write task cards instead of transcribing.")
     parser.add_argument("--run-id", default=None, help="Run id for --collect/--submit's .agent_work/ directory (default: a timestamp).")
+    parser.add_argument("--submit", default=None, metavar="RUN_ID", help="Validate filled task cards for this run and write through.")
+    parser.add_argument("--bootstrap", default=None, metavar="RUN_ID", help="Print the agent's operating contract for this run.")
     args = parser.parse_args()
+
+    if args.bootstrap:
+        print(f"""Agent-driven transcription contract for run '{args.bootstrap}':
+
+1. Open each document's directory under .agent_work/{args.bootstrap}/<doc-slug>/.
+2. Read worklist.md to see which task cards are pending.
+3. For each pending task-NNNN.md: read every page's image and prompt in
+   the card, then fill ONLY the "Agent output" section at the bottom with
+   one "--- PAGE <number> ---" section per page, in order, using exactly
+   the page numbers the card lists. Never edit any other file or section.
+4. For a tier-3 card with more than one page: only the first page has
+   real prior-page context supplied. For every later page in that same
+   card, carry forward your own transcription of the card's earlier
+   pages as continuity context.
+5. Once you've filled one or more cards, run:
+   python -m pipelines.transcribe_notes.transcribe_notes --notes-subdir <dir> --submit {args.bootstrap}
+6. If a card comes back marked "bounced: <reason>" in worklist.md, redo
+   only that card in place and re-run step 5.
+7. Stop once worklist.md shows nothing "pending"/"filled" left for this run.
+""")
+        return
 
     load_dotenv_override()
 
@@ -1475,6 +1498,32 @@ def main():
     if not pdf_paths:
         print(f"No PDF files found under {notes_dir}.")
         sys.exit(1)
+
+    if args.submit:
+        from pipelines.transcribe_notes.agent_submit import submit_doc
+        from pipelines.transcribe_notes.agent_work import agent_work_dir
+
+        client = get_gemini_client()
+        if client is None:
+            sys.exit(1)
+        run_dir = agent_work_dir(str(academic_hub_dir), args.submit)
+        if not os.path.isdir(run_dir):
+            print(f"No .agent_work run directory found for run '{args.submit}' at {run_dir}.")
+            sys.exit(1)
+        pdf_by_basename = {os.path.splitext(os.path.basename(p))[0]: p for p in pdf_paths}
+        lease = corpus_write_lock(
+            [academic_hub_dir, academic_hub_dir / "academic_notes"], "notes PDF transcription (agent submit)",
+        )
+        with lease:
+            for doc_slug in sorted(os.listdir(run_dir)):
+                base_name = doc_slug.rsplit("--", 1)[0]
+                pdf_path = pdf_by_basename.get(base_name)
+                if pdf_path is None:
+                    print(f"Skipping {doc_slug}: no matching PDF found under {args.notes_subdir}.")
+                    continue
+                status = submit_doc(str(academic_hub_dir), str(academic_hub_dir), args.submit, doc_slug, pdf_path, client, args.model)
+                print(f"[{doc_slug}] {status}")
+        return
 
     if args.collect:
         if args.driver != "agent":
