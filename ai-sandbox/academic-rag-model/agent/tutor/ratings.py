@@ -15,7 +15,18 @@ class RatingRejected(ValueError):
     pass
 
 
+def _revisits(part_events: list[Event]) -> list[Event]:
+    return [e for e in part_events if e.type == "student" and e.intent == "revisit"]
+
+
 def ceiling(part_events: list[Event], axis: str) -> tuple[str, list[str]]:
+    rating, reasons = _base_ceiling(part_events, axis)
+    if _revisits(part_events) and rating == RATINGS[2]:
+        return RATINGS[1], reasons + ["revisited after being parked"]
+    return rating, reasons
+
+
+def _base_ceiling(part_events: list[Event], axis: str) -> tuple[str, list[str]]:
     applies = lambda e, key: e.data.get(key, "all") in (axis, "all")
     max_hint = max((e.hint_level for e in part_events), default=0)
     miscs = [e for e in part_events if e.type == "misconception" and applies(e, "axis")]
@@ -48,6 +59,7 @@ def cap_evidence(part_events: list[Event], axis: str) -> list[int]:
            if e.type == "student" and e.intent in ("stuck", "hint_request") and e.hint_level >= 1]
     ids += [e.id for e in part_events if e.type == "misconception" and applies(e, "axis")]
     ids += [e.id for e in part_events if e.type == "student" and e.data.get("admits_gap") and applies(e, "gap_axis")]
+    ids += [e.id for e in _revisits(part_events) if RATINGS.index(ceiling(part_events, axis)[0]) <= 1]
     if not ids:
         ids = [e.id for e in part_events if e.type == "student" and e.data.get("established")]
     if not ids:

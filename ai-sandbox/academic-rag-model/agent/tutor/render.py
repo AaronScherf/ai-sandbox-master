@@ -6,6 +6,7 @@ import os
 from agent.tutor.events import Event
 from agent.tutor.packet import Packet
 from agent.tutor.ratings import AXES, RATINGS
+from agent.tutor.status import final_status
 
 AXIS_NAMES = {"conceptual": "Conceptual Fluency", "rigor": "Mathematical Rigor & Notation", "directness": "Directness & Proof Elegance"}
 
@@ -36,7 +37,9 @@ def render_summary(events: list[Event], packet: Packet, big_picture: str, prior_
              "|---|---|" + "---|" * len(AXES)]
     for part in packet.parts:
         r = closed.get(part.part_id)
-        cells = [r[a]["rating"] if r else "—" for a in AXES]
+        st = final_status(events, part.part_id)
+        word = {"deferred": "deferred", "skipped": "not covered", "revisiting": "in progress"}.get(st, "—")
+        cells = [r[a]["rating"] if r and st == "rated" else word for a in AXES]
         lines.append(f"| {part.label or part.part_id} | {', '.join(part.concept_tags)} | " + " | ".join(cells) + " |")
     lines += ["", "## 2. Big Picture", "", big_picture.strip(), "", "## 3. Tri-Axial Rubric", ""]
     for part in packet.parts:
@@ -61,10 +64,20 @@ def render_summary(events: list[Event], packet: Packet, big_picture: str, prior_
             review += [t for t in part.concept_tags if t not in review]
     for tag in review:
         lines.append(f"- Review `{tag}` (rated Developing / Needs Review this session)")
+    flagged = False
+    for part in packet.parts:
+        st = final_status(events, part.part_id)
+        if st == "deferred":
+            flagged = True
+            for tag in part.concept_tags:
+                lines.append(f"- Revisit `{tag}` ({part.label or part.part_id} was deferred after an attempt)")
+        elif st == "skipped":
+            flagged = True
+            lines.append(f"- {part.label or part.part_id} was not covered")
     for tag in prior_gaps:
         if tag not in review:
             lines.append(f"- Previously flagged, still open: `{tag}`")
-    if not review and not prior_gaps:
+    if not review and not prior_gaps and not flagged:
         lines.append("- No review items flagged.")
     return "\n".join(lines) + "\n"
 

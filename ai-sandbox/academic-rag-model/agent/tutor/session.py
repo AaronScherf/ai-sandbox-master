@@ -606,7 +606,7 @@ class Session:
         if not defects and not unresolved:
             ratings = build_ratings(pe, downgrades)            # may raise before anything is logged
             self.log.append("verify", state=VERIFIED, data={"clean": True, "check": entries}, **common)
-            self.log.append("close_part", state=VERIFIED, data={"ratings": ratings}, **common)
+            self.log.append("close_part", state=VERIFIED, data={"ratings": ratings, "attempt": self._attempt_no(pe)}, **common)
             return {**self._brief(), "closed": True}
         self.log.append("verify", state=WORKING, data={"clean": False, "check": entries}, **common)
         for d in defects:
