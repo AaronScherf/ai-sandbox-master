@@ -161,3 +161,27 @@ def test_added_items_validate_cleanly(tmp_path):
     store.add_edges([{"id": "walrasian-demand--defined_on--budget-set", "source": "walrasian-demand",
                       "type": "defined_on", "target": "budget-set", "status": "proposed"}])
     assert errors(validate(store.read_all())) == []
+
+
+def test_seed_config_defaults_to_empty_when_the_file_is_absent(tmp_path):
+    cfg = GraphStore(copy_sample(tmp_path)).read_seed_config()
+    assert cfg.scope == "" and cfg.must_include == [] and cfg.textbook_chapters == {}
+
+
+def test_seed_config_loads_scope_must_include_with_aliases_and_chapters(tmp_path):
+    root = copy_sample(tmp_path)
+    (root / "config" / "seed.yaml").write_text(
+        "scope: Choice theory only.\n"
+        "must_include:\n  - Preorder\n  - [GARP, Generalized axiom of revealed preference]\n"
+        "textbook_chapters:\n  mwg: [1, 2]\n", encoding="utf-8")
+    cfg = GraphStore(root).read_seed_config()
+    assert cfg.scope == "Choice theory only."
+    assert cfg.must_include == ["Preorder", ["GARP", "Generalized axiom of revealed preference"]]
+    assert cfg.textbook_chapters == {"mwg": [1, 2]}
+
+
+def test_seed_config_rejects_unknown_keys_and_names_the_file(tmp_path):
+    root = copy_sample(tmp_path)
+    (root / "config" / "seed.yaml").write_text("scope: x\nnonsense: 1\n", encoding="utf-8")
+    with pytest.raises(GraphDataError, match="seed.yaml"):
+        GraphStore(root).read_seed_config()

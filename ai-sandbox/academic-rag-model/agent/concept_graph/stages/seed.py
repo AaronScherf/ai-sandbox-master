@@ -1,13 +1,15 @@
 """Stage seed: propose the course outline (sections) and a skeleton of concept nodes from the hub's files.
 
-Seed is for starting a graph. It never edits anything that exists; the owner edits the skeleton before `fill`."""
+Seed is for starting a graph (or, with --redo, adding what is missing). It never edits anything that exists; the
+owner reviews the skeleton before `fill`. Course-specific knowledge the files cannot carry (what is in scope, which
+concepts must appear, which textbook chapters matter) comes from an optional `config/seed.yaml`."""
 from __future__ import annotations
 
 import re
 from pathlib import Path
 
 from ..ipguard import check_prose
-from ..schema import SLUG
+from ..schema import SLUG, SeedConfig
 from ..sources import Passage, classify_passage
 from ..store import GraphStore
 from ..tasks import Task
@@ -23,6 +25,99 @@ _DATE = re.compile(r"\d{4}-\d{2}-\d{2}")
 _FRONTMATTER = re.compile(r"\A---\n.*?\n---\s*\n", re.DOTALL)
 _PAGE_MARK = re.compile(r"<!--.*?-->")
 _PRIVATE_LINE = re.compile(r"(?i)(e-?mail|@|https?://|office hours|professor:|teaching assistant|recitation|website|courseworks|classes:)")
+_STATEMENT = re.compile(
+    r"^[\s*_#>\-]*(definition|theorem|axiom|lemma|proposition|corollary|assumption|property|postulate)\b[\s:.\-–—]*(.*)$",
+    re.IGNORECASE)
+_HEADING = re.compile(r"^(#{1,3})\s+(.+?)\s*#*\s*$")
+_BORING_HEADINGS = ("related notes", "bibliographic notes", "bibliography", "references", "table of contents", "contents")
+
+KIND_HELP = {
+    "object": "a mathematical object or class of objects (a relation, an order, a preference relation)",
+    "structure": "a set-up made of several parts (a choice structure, a budget set, a consumer's problem)",
+    "property": "a condition an object may satisfy (completeness, transitivity, continuity)",
+    "axiom": "an assumed or testable consistency condition on behaviour or preferences (WARP, independence)",
+    "definition": "a defined notion that is neither an object nor a property",
+    "theorem": "a named result with a proof (an existence, representation or equivalence result)",
+    "lemma": "a supporting result used to prove a theorem",
+    "model": "a complete economic model or problem (the utility maximization problem, a random utility model)",
+    "function": "a function (a utility, expenditure or indirect utility function)",
+    "correspondence": "a set-valued map (Walrasian demand)",
+    "identity": "an equation that always holds (Roy's identity, Walras' law)",
+    "technique": "a method of proof or analysis (a Lagrangian argument, a revealed-preference test)",
+    "example": "a named standard example or counterexample",
+}
+
+INSTRUCTIONS = """\
+Propose the concept-graph skeleton for this course: the course outline (sections) and the concepts (nodes) that
+belong in each section. People will review your skeleton before anything is written about each concept.
+
+How to work
+1. Read the Subject: the scope, the concepts the owner requires, what is already in the graph, the vocabulary
+   (with what each kind means) and the lecture timeline.
+2. Read the offered passages. They are extracts of the course's own materials: the syllabus, slide decks (with the
+   definitions, axioms and theorems they state), lecture notes, and the contents and section headings of the
+   textbook chapters that are in scope. They are your evidence for what the course covers and in what order.
+3. Write the result in the format below, then run the self-check.
+
+Sections
+- In teaching order. `id` is a slug such as s01-binary-relations; `order` is a unique number (1, 2, 3 ...; fractions
+  are fine for inserting later); `title` is short.
+- `state`: taught = the course has lecture notes or slides for it; in_progress = only partly covered so far;
+  planned = in the syllabus or in the textbook scope but with no lecture material yet.
+- `lectures`: the ISO dates from the timeline that belong to the section (leave out if none).
+- Follow the order the course teaches (slide-set order and lecture dates) where it differs from the textbooks'. If
+  the course relies on background mathematics (sets, relations, orders), give it a first section, however brief.
+
+Concepts
+- Include every definition, property, axiom, named theorem or lemma, model, function, correspondence and identity
+  that the materials name or use, and that a student must learn. Leave out passing remarks and exercise details.
+- One concept per node. A property that other concepts are defined by (for example transitivity) gets its own node.
+  An axiom and the theorem relating it to another axiom are separate nodes.
+- If the materials use several names for one concept, use the most common as `name` and mention the others in `gist`.
+- `kind`: exactly one of the kinds in the Subject, chosen with the explanations given there. `topic`: the thematic
+  area; use an existing topic or declare a new slug under `topics`. `gist` (optional): one line, at most 160
+  characters, in your own words.
+
+Rules
+- ids are slugs (lowercase letters, digits, hyphens), unique across all sections and all nodes, and never reuse an
+  id that is already in the graph.
+- Do not mention the instructors, teaching assistants or students. Eponymous concept names (Walras' law, Roy's
+  identity, the Szpilrajn extension theorem) are fine.
+- Do not copy sentences from the materials: 8 or more consecutive words shared with a passage in a `gist` is rejected.
+- Every required concept in the Subject must appear as a node, even if the materials barely mention it.
+- Never mark anything verified.
+
+Result: one YAML mapping with keys topics (optional), sections and nodes. The example below only shows the format:
+its names are placeholders, so do not copy them.
+
+    topics: [example-topic]
+    sections:
+      - {id: s01-example-section, title: Example section, order: 1, state: taught, lectures: ["2026-09-07"]}
+    nodes:
+      - {id: example-concept, name: Example concept, kind: property, section: s01-example-section,
+         topic: example-topic, gist: "One line saying what it is, in your own words."}
+
+Self-check before you finish (the card is rejected if any of these fail):
+  1. Every id is a unique slug, and every node's `section` is one of your sections or an existing one.
+  2. Every `kind` is exactly one of the listed kinds; every `topic` is listed or declared under `topics`.
+  3. Every required concept appears as a node whose name matches it (or one of its aliases).
+  4. No two nodes share a name, and nothing already in the graph is repeated.
+  5. Section `order` values are unique numbers and every `state` is taught, in_progress or planned.
+  6. Every gist is one line, at most 160 characters, in your own words.
+  7. You wrote only inside the yaml fence under "## Result".
+"""
+
+ADDITIVE = """\
+
+This graph already has content (listed under Subject). Add ONLY what is missing: new nodes, in existing sections
+(use the section's existing id) or in new sections. Do not repeat a concept that is already listed, even under another
+name or id. If nothing is missing from a section, leave it alone.
+"""
+
+
+def _title(file_stem: str) -> str:
+    text = re.sub(r"^\d+_", "", file_stem).replace("_", " ").strip()
+    return text[:1].upper() + text[1:]
 
 
 def _clean_syllabus(text: str) -> str:
@@ -33,83 +128,150 @@ def _clean_syllabus(text: str) -> str:
     return re.sub(r"\n{3,}", "\n\n", "\n".join(kept)).strip()
 
 
-INSTRUCTIONS = """\
-Propose the outline of this course as a concept graph skeleton, using only the course materials listed below.
+def statement_anchors(text: str, limit: int = 25, width: int = 180) -> list[str]:
+    """Labelled statements in slides or notes ("Axiom β If x, y ...", "Theorem" followed by its statement), each as
+    one line. Slides repeat statements as they build up, so repeats are dropped; a bare label is not an anchor."""
+    lines = [ln.strip() for ln in text.replace("\r\n", "\n").split("\n")]
+    out: list[str] = []
+    seen: set[str] = set()
+    for i, line in enumerate(lines):
+        if line.startswith("## Related notes"):
+            break
+        m = _STATEMENT.match(line)
+        if not m:
+            continue
+        parts = [m.group(2).strip(" *_#>:-")] if m.group(2).strip(" *_#>:-") else []
+        j = i + 1
+        while len(" ".join(parts)) < 60 and j < len(lines) and len(parts) < 3:
+            nxt = lines[j]
+            j += 1
+            if not nxt or nxt.startswith("<!--"):
+                continue
+            if nxt.startswith("#") or _STATEMENT.match(nxt):
+                break
+            parts.append(nxt)
+        if not parts:
+            continue
+        anchor = re.sub(r"\s+", " ", " ".join([m.group(1).capitalize(), *parts])).strip()[:width]
+        if anchor.lower() in seen:
+            continue
+        seen.add(anchor.lower())
+        out.append(anchor)
+        if len(out) >= limit:
+            break
+    return out
 
-Produce:
-- `sections`: the course in teaching order. Each has an `id` (a slug such as s01-binary-relations), a `title`, a numeric
-  `order` (unique; 1, 2, 3 ...; use fractions to insert later), and a `state`: taught (lecture dates exist for it),
-  in_progress, or planned (in the syllabus or textbook but not yet taught). Add `lectures` (ISO dates) where known.
-- `nodes`: the key concepts, definitions, properties, axioms and theorems of each section (roughly 5 to 15 per
-  section). Each has an `id` (slug), a `name`, a `kind` from the vocabulary, its `section`, a `topic`, and an optional
-  one-line `gist` in your own words.
-- `topics`: any new thematic topics you use (the existing ones are listed).
 
-Rules: use slugs (lowercase letters, digits, hyphens) for ids; do not reuse an existing id; each node's `kind` and
-`topic` must come from the vocabulary or from the `topics` you add; do not include names of people; do not copy
-sentences from the materials (8 or more consecutive shared words in a `gist` is rejected). Prefer fewer, well-chosen
-concepts over exhaustive lists: a person will review this skeleton before anything is written about each node.
-
-Result: one YAML mapping with keys topics (optional), sections, nodes.
-"""
-
-
-def _title(file_stem: str) -> str:
-    text = re.sub(r"^\d+_", "", file_stem).replace("_", " ").strip()
-    return text[:1].upper() + text[1:]
+def section_headings(text: str, limit: int = 40) -> list[str]:
+    """Markdown headings of levels 1-3, without boilerplate sections, each once."""
+    out: list[str] = []
+    for ln in text.replace("\r\n", "\n").split("\n"):
+        m = _HEADING.match(ln.strip())
+        if not m:
+            continue
+        title = m.group(2).strip()
+        if title.lower().startswith(_BORING_HEADINGS) or title in out:
+            continue
+        out.append(title)
+        if len(out) >= limit:
+            break
+    return out
 
 
-def outline_context(hub_root: str, course: str, *, max_chars: int = 12000) -> tuple[str, list[Passage]]:
+def _bullets(items: list[str]) -> str:
+    return "\n".join(f"- {i}" for i in items)
+
+
+def outline_context(hub_root: str, course: str, *, config: SeedConfig | None = None,
+                    max_chars: int = 12000) -> tuple[str, list[Passage]]:
     """Describe the course from files on disk only (no model, no embedding).
 
-    The syllabus excerpt (cleaned of contact details) and each textbook's chapter titles become offered passages;
-    the context text carries the lecture dates and slide-set titles and points to the passages."""
+    Offered passages: the syllabus excerpt (contact details removed), the labelled statements found in each slide
+    deck and lecture note, each textbook's chapter titles, and the section headings of the chapters the config puts
+    in scope. The context text carries the lecture dates and slide-set order and points to the passages."""
+    config = config or SeedConfig()
     base = Path(hub_root) / "academic_notes" / course
     lines: list[str] = []
     passages: list[Passage] = []
 
+    def add(path: Path, text: str, ref: str | None = None, source: str | None = None) -> None:
+        s, r = classify_passage(str(path))
+        passages.append(Passage(id="", source=source or s, ref=ref or r, text=text, path=str(path)))
+
     seen_text: set[str] = set()
     for f in sorted((base / "syllabus" / "processed_outputs").glob("*.md")):
         text = _clean_syllabus(f.read_text(encoding="utf-8", errors="ignore"))[:3000].strip()
-        if not text or text in seen_text:
-            continue
-        seen_text.add(text)
-        source, ref = classify_passage(str(f))
-        passages.append(Passage(id="", source=source, ref=ref, text=text, path=str(f)))
-
-    for chapters in sorted((base / "textbooks" / "processed_outputs").glob("*/chapters")):
-        titles = []
-        for ch in sorted(chapters.glob("*.rag.md")):
-            stem = ch.name[: -len(".rag.md")]
-            m = re.match(r"(\d+)_", stem)
-            if m and int(m.group(1)) > 0:
-                titles.append(f"{int(m.group(1))}. {_title(stem)}")
-        if titles:
-            source, _ = classify_passage(str(chapters / "x.rag.md"))
-            passages.append(Passage(id="", source=source, ref="table of contents", text="\n".join(titles), path=str(chapters)))
-
-    notes = [*(base / "lecture_notes").glob("*.md"), *(base / "lecture_notes" / "processed_outputs").glob("*.md")]
-    dates = sorted({m.group(0) for f in notes for m in [_DATE.search(f.name)] if m})
-    if dates:
-        lines += ["Lecture dates with notes: " + ", ".join(dates), ""]
+        if text and text not in seen_text:
+            seen_text.add(text)
+            add(f, text)
 
     def slide_key(f: Path):
         m = re.match(r"(\d+)\.", f.name)
         return (int(m.group(1)) if m else 10_000, f.name)
 
-    slides = []
+    slides: list[str] = []
     for f in sorted((base / "professor_notes" / "processed_outputs").glob("*.md"), key=slide_key):
         title = classify_passage(str(f))[1]
+        anchors = statement_anchors(f.read_text(encoding="utf-8", errors="ignore"))
+        if anchors:
+            add(f, "Statements found in these slides:\n" + _bullets(anchors))
         if "proof" not in f.name.lower() and title not in slides:
             slides.append(title)
+
+    lecture_dir = base / "lecture_notes"
+    by_date: dict[str, Path] = {}
+    for f in [*lecture_dir.glob("*.md"), *(lecture_dir / "processed_outputs").glob("*.md")]:
+        m = _DATE.search(f.name)
+        if m and (m.group(0) not in by_date or f.name.endswith(".rag.md")):
+            by_date[m.group(0)] = f
+    for date in sorted(by_date):
+        anchors = statement_anchors(by_date[date].read_text(encoding="utf-8", errors="ignore"), limit=12)
+        if anchors:
+            add(by_date[date], f"Statements found in the lecture notes of {date}:\n" + _bullets(anchors),
+                ref=date, source="lecture")
+
+    for chapters in sorted((base / "textbooks" / "processed_outputs").glob("*/chapters")):
+        source = classify_passage(str(chapters / "x.rag.md"))[0]
+        titles = []
+        wanted = set(config.textbook_chapters.get(source, []))
+        for ch in sorted(chapters.glob("*.rag.md")):
+            stem = ch.name[: -len(".rag.md")]
+            m = re.match(r"(\d+)_", stem)
+            if not (m and int(m.group(1)) > 0):
+                continue
+            number = int(m.group(1))
+            titles.append(f"{number}. {_title(stem)}")
+            if number in wanted:
+                heads = section_headings(ch.read_text(encoding="utf-8", errors="ignore"))
+                if heads:
+                    add(ch, f"Section headings of chapter {number} ({_title(stem)}):\n" + _bullets(heads),
+                        ref=f"ch. {number} section headings", source=source)
+        if titles:
+            add(chapters, "\n".join(titles), ref="table of contents", source=source)
+
+    if by_date:
+        lines += ["Lecture dates with notes: " + ", ".join(sorted(by_date)), ""]
     if slides:
         lines += ["Professor slide sets (in course order): " + "; ".join(slides), ""]
-
-    lines += ["The syllabus excerpt and each textbook's table of contents are under 'Offered passages' below."]
+    lines += ["The syllabus excerpt, the statements found in slides and lecture notes, and the textbook contents and "
+              "section headings are under 'Offered passages' below."]
     context = "\n".join(lines).strip()
     if len(context) > max_chars:
         context = context[:max_chars] + "\n[context truncated]"
     return context, passages
+
+
+def _norm(name: str) -> str:
+    return " ".join(re.sub(r"[^\w\s]", " ", name.lower().replace("'", "").replace("’", "")).split())
+
+
+def _aliases(entry) -> list[str]:
+    return [entry] if isinstance(entry, str) else list(entry)
+
+
+def _matches(alias: str, name: str) -> bool:
+    a, n = _norm(alias), _norm(name)
+    return bool(a) and (a == n or f" {a} " in f" {n} ")
 
 
 def make_tasks(store: GraphStore, retriever=None, *, hub_root: str | None = None, course: str | None = None,
@@ -117,19 +279,31 @@ def make_tasks(store: GraphStore, retriever=None, *, hub_root: str | None = None
     if not hub_root or not course:
         raise ValueError("seed needs --hub-root and --course")
     graph = store.read_all()
+    has_content = bool(graph.sections or graph.nodes)
     if any(s.state in ("taught", "in_progress") for s in graph.sections) and not redo:
         raise ValueError("the graph already has taught sections; seed is for starting a graph (use --redo to add to it)")
-    context, passages = outline_context(hub_root, course)
-    existing = [f"- section {s.id} (order {s.order}, {s.state}): {s.title}" for s in graph.sections]
-    existing += [f"- node {n.id}" for n in graph.nodes]
+    config = store.read_seed_config()
+    context, passages = outline_context(hub_root, course, config=config)
+
+    existing =[f"- section {s.id} (order {s.order:g}, {s.state}): {s.title}" for s in graph.sections]
+    existing += [f"- node {n.id}: {n.name} (section {n.section})" for n in graph.nodes]
+    required = []
+    for entry in config.must_include:
+        names = _aliases(entry)
+        required.append(names[0] + (f"   (also written: {'; '.join(names[1:])})" if len(names) > 1 else ""))
+    kinds = [f"- {k}: {KIND_HELP.get(k, '(no description)')}" for k in graph.vocab.kinds]
     body = "\n".join([
         f"Course: {course}", "",
-        "Vocabulary. kinds: " + ", ".join(graph.vocab.kinds), "topics: " + ", ".join(graph.vocab.topics), "",
-        "Already in the graph (do not reuse these ids):", *(existing or ["- (nothing yet)"]), "",
+        "Scope (from the owner):", config.scope.strip() or "(none given: use the syllabus)", "",
+        "Required concepts (each must appear as a node):", *(required or ["(none specified)"]), "",
+        "Kinds (use exactly these words):", *kinds, "",
+        "Topics so far: " + ", ".join(graph.vocab.topics), "",
+        "Already in the graph (do not reuse these ids or repeat these concepts):", *(existing or ["- (nothing yet)"]), "",
         "Course materials:", context or "(no materials found)",
     ])
-    return [Task(id="seed", stage=STAGE, subject={"stage": "seed"}, instructions=INSTRUCTIONS, context=body,
-                 passages=with_ids(passages))]
+    instructions = INSTRUCTIONS + (ADDITIVE if has_content else "")
+    return [Task(id="seed", stage=STAGE, subject={"stage": "seed", "must_include": config.must_include},
+                 instructions=instructions, context=body, passages=with_ids(passages))]
 
 
 def validate_result(entry: dict, result: dict, store: GraphStore) -> list[str]:
@@ -189,6 +363,8 @@ def validate_result(entry: dict, result: dict, store: GraphStore) -> list[str]:
 
     section_ids = taken_sections | set(new_sections)
     taken_nodes = {n.id for n in graph.nodes}
+    names_seen = {_norm(n.name): n for n in graph.nodes}
+    new_names: dict[str, str] = {}
     seen_nodes: set[str] = set()
     for i, n in enumerate(nodes, 1):
         tag = f"node {i}"
@@ -207,8 +383,18 @@ def validate_result(entry: dict, result: dict, store: GraphStore) -> list[str]:
             problems.append(f"{tag}: id {nid!r} appears twice")
         else:
             seen_nodes.add(nid)
-        if not isinstance(n.get("name"), str) or not n["name"].strip():
+        name = n.get("name")
+        if not isinstance(name, str) or not name.strip():
             problems.append(f"{tag}: name is required")
+        else:
+            key = _norm(name)
+            if key in names_seen:
+                other = names_seen[key]
+                problems.append(f"{tag}: name {name!r} already exists as node {other.id!r} ({other.name})")
+            elif key in new_names:
+                problems.append(f"{tag}: name {name!r} duplicates node {new_names[key]!r} in this result")
+            else:
+                new_names[key] = nid if isinstance(nid, str) else "?"
         if n.get("kind") not in graph.vocab.kinds:
             problems.append(f"{tag}: kind {n.get('kind')!r} is not in the vocabulary ({', '.join(graph.vocab.kinds)})")
         if n.get("section") not in section_ids:
@@ -221,6 +407,16 @@ def validate_result(entry: dict, result: dict, store: GraphStore) -> list[str]:
                 problems.append(f"{tag}: gist must be one line of at most 160 characters")
             else:
                 problems += [f"{tag} {m}" for m in check_prose({"gist": gist}, passage_texts(entry))]
+
+    all_names = [n.name for n in graph.nodes] + [n["name"] for n in nodes if isinstance(n, dict) and isinstance(n.get("name"), str)]
+    missing = []
+    for required in (entry.get("subject", {}).get("must_include") or []):
+        aliases = _aliases(required)
+        if not any(_matches(a, name) for a in aliases for name in all_names):
+            missing.append(aliases[0] + (f" (or {', '.join(aliases[1:])})" if len(aliases) > 1 else ""))
+    if missing:
+        problems.append("required concept(s) missing: " + "; ".join(missing)
+                        + ". Add each as a node (any reasonable id); its name must match.")
     return problems
 
 

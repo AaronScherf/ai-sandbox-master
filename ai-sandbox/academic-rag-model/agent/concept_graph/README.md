@@ -76,6 +76,27 @@ Each stage turns corpus passages into **proposed** items that a person then revi
 | `link` | Typed edges between existing nodes (with conditions and `via`), each citing evidence. |
 | `critic` | A blind second look at each proposed edge: `supports`, `weak` or `unsupported`, with a note. |
 
+**Seed config (optional, per course).** `config/seed.yaml` in the graph repo carries what the files cannot say:
+
+```yaml
+scope: "Choice theory only: consumer behaviour, producer theory, risk, time. No game theory or general equilibrium."
+must_include:                 # each must end up as a node (a name, or a list of alternative names)
+  - Preorder
+  - [GARP, Generalized axiom of revealed preference]
+textbook_chapters:            # chapters whose section headings the seed card shows (source key -> numbers)
+  mwg: [1, 2, 3]
+```
+
+`seed` builds its evidence from files on disk: the syllabus (contact details stripped), the definitions, axioms and
+theorems labelled in each slide deck and lecture note (repeats dropped), textbook chapter titles, and the section
+headings of the chapters listed above. The card explains each vocabulary kind, shows a format example, and ends with a
+self-check. `submit` bounces a result that omits a required concept, repeats an existing name (compared ignoring case
+and punctuation), or uses a kind, topic or section that does not exist. With `--redo`, `seed` is additive: the card
+lists what is already in the graph and asks only for what is missing. To use it for another course, run
+`scaffold`, fill in `config/seed.yaml`, and `collect seed --course <name>`; the hub is expected to have
+`academic_notes/<course>/{syllabus,professor_notes,lecture_notes,textbooks}/processed_outputs/`, and any folder that
+is missing is skipped.
+
 **Agent workflow (default; costs subscription quota, not API dollars):**
 
 ```

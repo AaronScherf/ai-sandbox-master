@@ -101,7 +101,7 @@ def test_seed_refuses_when_the_graph_already_has_taught_sections(tmp_path):
 def test_task_card_tells_the_agent_the_vocabulary_and_existing_ids(tmp_path):
     store, task, entry = task_for(tmp_path)
     assert "object" in task.context and "order-theory" in task.context
-    assert task.subject == {"stage": "seed"}
+    assert task.subject["stage"] == "seed" and task.subject["must_include"] == []
 
 
 def test_valid_result_is_accepted(tmp_path):

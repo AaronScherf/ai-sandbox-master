@@ -101,6 +101,25 @@ topics: [order-theory, rational-choice, revealed-preference, demand]
 """
 
 
+SEED_TEMPLATE = """\
+# Optional hints for the seed stage: what this course's files cannot say by themselves.
+# See agent/concept_graph/README.md ("Seed config").
+
+# What is in and out of this graph, in a sentence or two (shown to the drafting agent).
+scope: ""
+
+# Concepts that must end up as nodes. Each entry is a name, or a list of alternative names:
+#   must_include:
+#     - Preorder
+#     - [GARP, Generalized axiom of revealed preference]
+must_include: []
+
+# Textbook chapters whose section headings the seed stage should see: source key -> chapter numbers.
+# Source keys: rubinstein, mwg, ok.   Example:  textbook_chapters: {mwg: [1, 2, 3]}
+textbook_chapters: {}
+"""
+
+
 def fetch_url_text(url: str) -> str:
     # creativecommons.org answers 403 to urllib's default User-Agent, so identify this tool.
     request = urllib.request.Request(url, headers={"User-Agent": "concept-graph-scaffold/1.0"})
@@ -122,6 +141,7 @@ def scaffold(root: Path, repo: str, holder: str, year: int, with_sample: bool = 
         ".gitignore": ".venv/\n__pycache__/\n*.pyc\nwork/\n",
         ".github/ISSUE_TEMPLATE/review.yml": ISSUE_FORM,
         "config/vocab.yaml": VOCAB,
+        "config/seed.yaml": SEED_TEMPLATE,
         "config/site.yaml": f"title: Microeconomics concept graph\nrepo: {repo}\n",
         "data/sections.yaml": "[]\n",
         "data/rejected.yaml": "[]\n",

@@ -9,7 +9,7 @@ from pydantic import ValidationError
 from ruamel.yaml import YAML
 from ruamel.yaml.scalarstring import LiteralScalarString
 
-from .schema import Edge, Graph, Node, Rejected, Section, Site, Vocab
+from .schema import Edge, Graph, Node, Rejected, SeedConfig, Section, Site, Vocab
 
 
 class GraphDataError(Exception):
@@ -95,6 +95,11 @@ class GraphStore:
             sections=sections, nodes=nodes, edges=edges, rejected=rejected,
             vocab=vocab, site=site, node_files=node_files,
         )
+
+    def read_seed_config(self) -> SeedConfig:
+        path = self.root / "config" / "seed.yaml"
+        raw = self._load(path)
+        return self._model(SeedConfig, raw or {}, path)
 
     # -- writing ---------------------------------------------------------------
     def update_item(self, kind: Literal["node", "edge"], item_id: str, changes: dict) -> None:
