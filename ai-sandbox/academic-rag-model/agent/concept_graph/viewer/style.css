@@ -53,6 +53,7 @@ button.on { border-color: var(--accent); background: color-mix(in srgb, var(--ac
 math { font-size: 1.05em; }
 #toast { position: fixed; left: 50%; bottom: 16px; transform: translateX(-50%); background: var(--fg); color: var(--bg); padding: 8px 14px; border-radius: 8px; max-width: 90vw; z-index: 10; }
 .hint { color: var(--muted); }
+.saved { color: var(--ok); font-size: 0.85rem; margin: 2px 0 0; }
 @media (max-width: 1000px) {
   html, body { overflow: auto; height: auto; }
   #layout { display: flex; flex-direction: column; overflow: visible; }

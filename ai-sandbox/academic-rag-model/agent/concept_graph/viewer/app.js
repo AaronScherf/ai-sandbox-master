@@ -22,6 +22,7 @@
   var selected = null; // {kind, id}
   var prereqMode = false;
   var editing = null; // field name being edited
+  var flash = null; // {kind, id, text}: a "saved" confirmation shown under the review buttons
   var filters = { q: "", topics: [], sections: [], kinds: [], statuses: [] };
   var hiddenEdgeTypes = new Set();
 
@@ -151,7 +152,7 @@
   }
 
   function select(kind, id, focus) {
-    selected = { kind: kind, id: id }; editing = null;
+    selected = { kind: kind, id: id }; editing = null; flash = null;
     cy.elements().unselect();
     cy.edges().removeClass("labelled");
     var el = cy.getElementById(id);
@@ -249,7 +250,9 @@
       (it.status === "proposed" ? '<button type="button" class="' + (acc ? "on" : "") + '" data-act="accept">Accept</button>' +
         '<button type="button" class="' + (rej ? "on" : "") + '" data-act="reject">Reject</button>' : "") +
       "</div><textarea id=\"comment-box\" placeholder=\"Optional comment for the maintainer\" rows=\"2\" style=\"width:100%\">" + esc(cm ? cm.comment : "") + "</textarea>" +
-      '<div class="actions"><button type="button" data-act="comment">Save comment</button></div></div>';
+      '<div class="actions"><button type="button" data-act="comment">Save comment</button></div>' +
+      (flash && flash.kind === kind && flash.id === id ? '<p class="saved" role="status">' + esc(flash.text) + "</p>" : "") +
+      "</div>";
   }
   function renderPanel() {
     var p = $("#panel");
@@ -303,10 +306,12 @@
     if (act === "save-edit") {
       var text = $("#edit-box").value;
       editing = null;
-      return decide(kind, id, "edit", { field: field, base_hash: item(kind, id).hashes[field], new_value: text });
+      decide(kind, id, "edit", { field: field, base_hash: item(kind, id).hashes[field], new_value: text });
+      return toast("Edit saved. It will be included when you submit your review.");
     }
     if (act === "comment") {
       var c = $("#comment-box").value.trim();
+      flash = { kind: kind, id: id, text: c ? "Comment saved." : "Comment removed." };
       return c ? decide(kind, id, "comment", { comment: c }) : undecide(kind, id, "comment");
     }
   });
