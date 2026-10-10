@@ -9,7 +9,7 @@
   }
 }
 * { box-sizing: border-box; }
-html, body { margin: 0; height: 100%; }
+html, body { margin: 0; height: 100%; overflow: hidden; }
 body { background: var(--bg); color: var(--fg); font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; display: flex; flex-direction: column; }
 #top { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; padding: 8px 16px; border-bottom: 1px solid var(--line); }
 #top h1 { font-size: 1.1rem; margin: 0; flex: 1 1 220px; }
@@ -19,12 +19,13 @@ button { font: inherit; padding: 4px 10px; border: 1px solid var(--line); border
 button:hover { border-color: var(--accent); }
 button.primary { background: var(--accent); color: var(--bg); border-color: var(--accent); }
 button.on { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 18%, var(--card)); }
-#layout { flex: 1; min-height: 0; display: grid; grid-template-columns: 280px 1fr 380px; }
+#layout { flex: 1; min-height: 0; display: grid; grid-template-columns: 280px minmax(0, 1fr) 380px; }
 #sidebar, #panel { overflow: auto; padding: 12px; background: var(--card); }
 #sidebar { border-right: 1px solid var(--line); }
 #panel { border-left: 1px solid var(--line); }
-#cy { min-height: 60vh; background: var(--bg); }
+#cy { min-width: 0; min-height: 0; overflow: hidden; position: relative; background: var(--bg); }
 #search { width: 100%; padding: 6px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--fg); }
+#btn-fit { width: 100%; margin-top: 8px; }
 .filters { display: grid; gap: 8px; margin: 10px 0; }
 .filters label { display: flex; gap: 6px; align-items: center; color: var(--muted); }
 .filters select { flex: 1; padding: 3px; background: var(--bg); color: var(--fg); border: 1px solid var(--line); border-radius: 6px; }
@@ -53,7 +54,8 @@ math { font-size: 1.05em; }
 #toast { position: fixed; left: 50%; bottom: 16px; transform: translateX(-50%); background: var(--fg); color: var(--bg); padding: 8px 14px; border-radius: 8px; max-width: 90vw; z-index: 10; }
 .hint { color: var(--muted); }
 @media (max-width: 1000px) {
-  #layout { display: flex; flex-direction: column; overflow: auto; }
+  html, body { overflow: auto; height: auto; }
+  #layout { display: flex; flex-direction: column; overflow: visible; }
   #sidebar { border-right: none; border-bottom: 1px solid var(--line); max-height: 40vh; }
   #cy { height: 62vh; flex: none; }
   #panel { border-left: none; border-top: 1px solid var(--line); }

@@ -103,7 +103,7 @@
     layout: { name: "preset" },
     wheelSensitivity: 0.25, minZoom: 0.08, maxZoom: 3,
     style: [
-      { selector: "node", style: { "background-color": "data(color)", label: "data(label)", color: "#fff", "text-wrap": "wrap", "text-max-width": 170, "font-size": 13, "text-valign": "center", "text-halign": "center", shape: "round-rectangle", width: "label", height: "label", padding: "10px", "border-width": 2, "border-color": "data(color)" } },
+      { selector: "node", style: { "background-color": "data(color)", label: "data(label)", color: "#fff", "text-wrap": "wrap", "text-max-width": 150, "font-size": 16, "text-valign": "center", "text-halign": "center", shape: "round-rectangle", width: "label", height: "label", padding: "10px", "border-width": 2, "border-color": "data(color)" } },
       { selector: "node[status = 'proposed']", style: { "border-style": "dashed", "border-color": "#e7e5e4" } },
       { selector: "node.planned", style: { opacity: 0.4 } },
       { selector: "node.accepted", style: { "border-color": "#16a34a", "border-width": 4, "border-style": "solid" } },
@@ -362,5 +362,14 @@
   // ---- start ----------------------------------------------------------------
   $("#title").textContent = (G.site && G.site.title) || "Concept graph";
   buildFilters(); persist(); paintDecisions(); applyFilters();
-  window.addEventListener("resize", function () { cy.resize(); });
+  // Keep the whole graph in view until the reader moves it themselves: the window may still be settling
+  // to its final size when the page first draws, and a phone can rotate.
+  var touched = false;
+  ["wheel", "mousedown", "touchstart"].forEach(function (name) {
+    $("#cy").addEventListener(name, function () { touched = true; }, { passive: true });
+  });
+  function refit() { cy.resize(); if (!touched) cy.fit(undefined, 30); }
+  window.addEventListener("resize", refit);
+  window.addEventListener("load", refit);
+  $("#btn-fit").addEventListener("click", function () { touched = false; refit(); });
 })();

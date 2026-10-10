@@ -67,8 +67,8 @@
 
   function computeLayout(nodes, edges, sections, opts) {
     opts = opts || {};
-    var dx = opts.dx || 190, dy = opts.dy || 240, rowGap = opts.rowGap || 90;
-    var perRow = opts.perRow || 8, sweeps = opts.sweeps == null ? 4 : opts.sweeps;
+    var dx = opts.dx || 210, dy = opts.dy || 230, rowGap = opts.rowGap || 90;
+    var perRow = opts.perRow || 5, sweeps = opts.sweeps == null ? 4 : opts.sweeps;
     var orderOf = new Map(sections.map(function (s) { return [s.id, s.order]; }));
     var bands = Array.from(new Set(nodes.map(function (n) { return n.section; })))
       .sort(function (a, b) { return orderOf.get(a) - orderOf.get(b); });
