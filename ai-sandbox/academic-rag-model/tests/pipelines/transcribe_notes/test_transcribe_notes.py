@@ -3,7 +3,10 @@ import tempfile
 import unittest
 from unittest.mock import MagicMock, patch
 
+from core.env.gemini_utils import load_json_cache
 from core.indexer.index_card import KNOWN_DOC_TYPES, compute_file_id, load_shard, save_shard
+
+from pipelines.transcribe_notes.agent_driver import AgentPending
 
 from pipelines.transcribe_notes.transcribe_notes import (
     build_accumulated_context,
@@ -1114,13 +1117,104 @@ class TestProcessPdfLinksDuplicates(unittest.TestCase):
                 with patch("pipelines.transcribe_notes.transcribe_notes.has_reliable_pagination", return_value=True):
                     with patch("pipelines.transcribe_notes.transcribe_notes.extract_all_page_texts", return_value=["clean text"]):
                         with patch("pipelines.transcribe_notes.transcribe_notes.page_looks_defective", return_value=False):
-                            with patch("pipelines.transcribe_notes.transcribe_notes.repair_batch", return_value={1: "$$x=1$$"}) as mock_batch:
+                            with patch("pipelines.transcribe_notes.agent_driver.repair_batch", return_value={1: "$$x=1$$"}) as mock_batch:
                                 with patch("pipelines.transcribe_notes.transcribe_notes._write_markdown_and_index") as mock_write:
                                     process_pdf(pdf_path, client, None, tmp, force_vision=True)
                                     mock_batch.assert_called_once()
                                     self.assertTrue(mock_write.called)
                                     frontmatter = mock_write.call_args[0][1]
                                     self.assertIn("routing: gemini_batched", frontmatter)
+
+
+class TestAgentPendingSeam(unittest.TestCase):
+    """AgentPending must short-circuit retries, per-page fallback, and any
+    cache write at process_pdf's batch and tier-3 driver call sites."""
+
+    def test_hybrid_batch_pending_skips_per_page_fallback_and_cache_write(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            pdf_path = os.path.join(tmp, "academic_notes", "microecon", "problem_sets", "hw4.pdf")
+            os.makedirs(os.path.dirname(pdf_path))
+            with open(pdf_path, "wb") as f:
+                f.write(b"%PDF-1.4 mock")
+
+            # 10 pages, only 1 defective -- a 10% defect ratio is exactly
+            # at _MAX_DEFECT_RATIO_FOR_HYBRID, which routes to hybrid
+            # repair rather than whole-document batching (defect_ratio
+            # must be <= 0.10, not just < 0.10).
+            mock_reader = MagicMock()
+            mock_reader.pages = [MagicMock() for _ in range(10)]
+            mock_reader.metadata = {"/Producer": "pdfTeX"}
+            page_texts = ["clean text"] * 10
+            page_texts[1] = "D5 collapsed exponent"  # page 2 (index 1) looks defective
+
+            driver = MagicMock()
+            driver.transcribe_batch.side_effect = AgentPending()
+
+            with patch("pypdf.PdfReader", return_value=mock_reader):
+                with patch("pipelines.transcribe_notes.transcribe_notes.has_reliable_pagination", return_value=True):
+                    with patch(
+                        "pipelines.transcribe_notes.transcribe_notes.extract_all_page_texts",
+                        return_value=page_texts,
+                    ):
+                        with patch(
+                            "pipelines.transcribe_notes.transcribe_notes.page_looks_defective",
+                            side_effect=lambda text, **_: "collapsed" in text,
+                        ):
+                            with patch("pipelines.transcribe_notes.transcribe_notes._write_markdown_and_index") as mock_write:
+                                process_pdf(pdf_path, None, None, tmp, driver=driver, collect_mode=True)
+                                driver.transcribe_batch.assert_called_once()
+                                mock_write.assert_not_called()  # collect_mode never reaches the write path
+
+            cache_path = os.path.join(tmp, "academic_notes", "microecon", "problem_sets", "processed_outputs", "hw4_pages_cache.json")
+            self.assertEqual(load_json_cache(cache_path), {})  # nothing written -- still pending
+
+    def test_tier3_page_pending_stops_loop_and_writes_nothing(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            pdf_path = os.path.join(tmp, "academic_notes", "microecon", "ta_notes", "scan.pdf")
+            os.makedirs(os.path.dirname(pdf_path))
+            with open(pdf_path, "wb") as f:
+                f.write(b"%PDF-1.4 mock")
+
+            mock_reader = MagicMock()
+            mock_reader.pages = [MagicMock(), MagicMock(), MagicMock()]
+            mock_reader.metadata = {}  # no reliable-pagination markers -> tier 3
+
+            driver = MagicMock()
+            driver.transcribe_page.side_effect = AgentPending()
+
+            with patch("pypdf.PdfReader", return_value=mock_reader):
+                with patch("pipelines.transcribe_notes.transcribe_notes.render_page_to_image_bytes", return_value=b"img"):
+                    with patch("pipelines.transcribe_notes.transcribe_notes.extract_page_text", return_value="hint"):
+                        with patch("pipelines.transcribe_notes.transcribe_notes._write_markdown_and_index") as mock_write:
+                            process_pdf(pdf_path, None, None, tmp, driver=driver, collect_mode=True)
+                            driver.transcribe_page.assert_called_once()  # loop stopped after page 1, no retry
+                            mock_write.assert_not_called()
+
+            cache_path = os.path.join(tmp, "academic_notes", "microecon", "ta_notes", "processed_outputs", "scan_pages_cache.json")
+            self.assertEqual(load_json_cache(cache_path), {})
+
+    def test_default_driver_is_api_driver_when_none_passed(self):
+        # Existing callers (and every pre-existing test in this file) that
+        # don't pass `driver=` must see identical behavior to before this
+        # change -- this is covered by simply running the full existing
+        # suite in this file unmodified; no new test needed here beyond
+        # confirming process_pdf still accepts the old positional-args
+        # call shape with no driver kwarg at all:
+        with tempfile.TemporaryDirectory() as tmp:
+            pdf_path = os.path.join(tmp, "academic_notes", "microecon", "problem_sets", "hw4.pdf")
+            os.makedirs(os.path.dirname(pdf_path))
+            with open(pdf_path, "wb") as f:
+                f.write(b"%PDF-1.4 mock")
+            mock_reader = MagicMock()
+            mock_reader.pages = [MagicMock()]
+            mock_reader.metadata = {"/Producer": "pdfTeX"}
+            with patch("pypdf.PdfReader", return_value=mock_reader):
+                with patch("pipelines.transcribe_notes.transcribe_notes.has_reliable_pagination", return_value=True):
+                    with patch("pipelines.transcribe_notes.transcribe_notes.extract_all_page_texts", return_value=["clean text"]):
+                        with patch("pipelines.transcribe_notes.transcribe_notes.page_looks_defective", return_value=False):
+                            with patch("pipelines.transcribe_notes.transcribe_notes._write_markdown_and_index") as mock_write:
+                                process_pdf(pdf_path, MagicMock(), None, tmp)  # no driver kwarg at all
+                                mock_write.assert_called_once()
 
 
 if __name__ == "__main__":

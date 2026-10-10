@@ -48,6 +48,15 @@ import re
 import sys
 from contextlib import nullcontext
 from pathlib import Path
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    # Type-hint only -- agent_driver.py imports repair_batch/
+    # transcribe_page_via_gemini from THIS module at its own module level,
+    # so a real (non-TYPE_CHECKING) import here would be a circular
+    # import. AgentPending/ApiDriver are imported lazily inside
+    # process_pdf() instead, where they're actually used at runtime.
+    from pipelines.transcribe_notes.agent_driver import TranscriptionDriver
 
 from core.env.academic_hub_paths import find_containing_offering_label, resolve_output_dir
 from core.env.corpus_write_lock import CorpusWriteLockError, corpus_write_lock
@@ -1095,10 +1104,16 @@ def link_duplicate_note(academic_hub_root: str, canonical_course: str, canonical
 
 
 def process_pdf(pdf_path: str, client, model_override: str | None, academic_hub_root: str,
-                dry_run: bool = False, known_doc_types=KNOWN_DOC_TYPES, force_vision: bool = False) -> None:
+                dry_run: bool = False, known_doc_types=KNOWN_DOC_TYPES, force_vision: bool = False,
+                driver: TranscriptionDriver | None = None, collect_mode: bool = False) -> None:
+    from pipelines.transcribe_notes.agent_driver import AgentPending, ApiDriver
+
+    if driver is None:
+        driver = ApiDriver(client)
     base_name = os.path.splitext(os.path.basename(pdf_path))[0]
     output_dir = resolve_output_dir(pdf_path)
-    os.makedirs(output_dir, exist_ok=True)
+    if not collect_mode:
+        os.makedirs(output_dir, exist_ok=True)
     md_path = os.path.join(output_dir, f"{base_name}.md")
     cache_path = os.path.join(output_dir, f"{base_name}_pages_cache.json")
 
@@ -1112,7 +1127,7 @@ def process_pdf(pdf_path: str, client, model_override: str | None, academic_hub_
         canonical_course, canonical_card = existing
         folder_category = derive_folder_category(pdf_path)
         offering_label = find_containing_offering_label(pdf_path)
-        if dry_run:
+        if dry_run or collect_mode:
             print(f"[{base_name}] would link to existing transcription at "
                   f"{canonical_card['path']} (byte-identical source, no API calls needed).")
             return
@@ -1153,7 +1168,7 @@ def process_pdf(pdf_path: str, client, model_override: str | None, academic_hub_
     if not force_vision and reliable_pagination and not defective_page_numbers:
         print(f"[{base_name}] {total_pages} page(s) -- clean machine-generated text "
               f"detected, using free local extraction (0 API calls).")
-        if dry_run:
+        if dry_run or collect_mode:
             print(f"  would extract all {total_pages} pages locally, no API calls needed.")
             return
         assert all_page_texts is not None
@@ -1194,13 +1209,13 @@ def process_pdf(pdf_path: str, client, model_override: str | None, academic_hub_
                     continue
                 prompt = build_batch_transcription_prompt(batch, before_ctx, after_ctx, total_pages)
                 try:
-                    parsed = call_with_retries(
-                        lambda: repair_batch(client, model, pdf_path, batch, prompt)
-                    )
+                    parsed = driver.transcribe_batch(pdf_path, model, batch, prompt)
                     for p, text in parsed.items():
                         cache[str(p)] = text
                     save_json_cache(cache_path, cache)
                     print(f"  pages {batch[0]}-{batch[-1]}: repaired via batch ({len(batch)} pages)")
+                except AgentPending:
+                    print(f"  pages {batch[0]}-{batch[-1]}: pending (agent task card written)")
                 except Exception as err:
                     print(f"  WARNING: batch repair failed for pages {batch} ({err}); "
                           f"falling back to individual per-page calls.")
@@ -1216,6 +1231,17 @@ def process_pdf(pdf_path: str, client, model_override: str | None, academic_hub_
                         except Exception as page_err:
                             print(f"    WARNING: giving up on page {p} after retries ({page_err}); "
                                   f"keeping its local text as-is -- rerun to retry.")
+
+        if collect_mode:
+            still_pending = [p for p in defective_page_numbers if str(p) not in cache]
+            if still_pending:
+                print(f"[{base_name}] collect: {len(defective_page_numbers) - len(still_pending)}/"
+                      f"{len(defective_page_numbers)} repaired page(s) cached, {len(still_pending)} "
+                      f"pending -- task card(s) written.")
+            else:
+                print(f"[{base_name}] collect: all {len(defective_page_numbers)} repaired page(s) "
+                      f"cached -- ready for submit's rerun.")
+            return
 
         pages_text = {str(n): all_page_texts[n - 1].strip() for n in range(1, total_pages + 1)}
         pages_text.update(cache)
@@ -1271,13 +1297,13 @@ def process_pdf(pdf_path: str, client, model_override: str | None, academic_hub_
                 continue
             prompt = build_batch_transcription_prompt(batch, "", "", total_pages)
             try:
-                parsed = call_with_retries(
-                    lambda: repair_batch(client, model, pdf_path, batch, prompt)
-                )
+                parsed = driver.transcribe_batch(pdf_path, model, batch, prompt)
                 for p, text in parsed.items():
                     cache[str(p)] = text
                 save_json_cache(cache_path, cache)
                 print(f"  pages {batch[0]}-{batch[-1]}: transcribed via batch ({len(batch)} pages)")
+            except AgentPending:
+                print(f"  pages {batch[0]}-{batch[-1]}: pending (agent task card written)")
             except Exception as err:
                 print(f"  WARNING: batch transcription failed for pages {batch} ({err}); "
                       f"falling back to individual per-page calls.")
@@ -1295,6 +1321,16 @@ def process_pdf(pdf_path: str, client, model_override: str | None, academic_hub_
                         print(f"    WARNING: giving up on page {p} after retries ({page_err}); "
                               f"local text is already known unreliable so it's omitted "
                               f"entirely rather than used as a fallback -- rerun to retry.")
+
+        if collect_mode:
+            pending = total_pages - len(cache)
+            if pending:
+                print(f"[{base_name}] collect: {len(cache)}/{total_pages} page(s) cached, "
+                      f"{pending} pending -- task card(s) written.")
+            else:
+                print(f"[{base_name}] collect: all {total_pages} page(s) cached -- "
+                      f"ready for submit's rerun.")
+            return
 
         final_md = build_final_markdown(cache, total_pages)
         frontmatter = build_frontmatter({
@@ -1340,9 +1376,11 @@ def process_pdf(pdf_path: str, client, model_override: str | None, academic_hub_
 
         try:
             image_bytes = render_page_to_image_bytes(pdf_path, page_num - 1, dpi=dpi)
-            transcription = call_with_retries(
-                lambda: transcribe_page_via_gemini(client, model, image_bytes, prompt)
-            )
+            transcription = driver.transcribe_page(pdf_path, model, page_num, prompt, image_bytes, total_pages)
+        except AgentPending:
+            print(f"  page {page_num}: pending (agent task card written); "
+                  f"stopping here for strict ordering.")
+            break
         except Exception as err:
             # Accumulating context means later pages depend on this one --
             # skipping ahead would silently degrade every subsequent
@@ -1354,6 +1392,16 @@ def process_pdf(pdf_path: str, client, model_override: str | None, academic_hub_
         cache[str(page_num)] = transcription
         save_json_cache(cache_path, cache)
         print(f"  [{page_num}/{total_pages}] transcribed ({len(transcription)} chars)")
+
+    if collect_mode:
+        pending = total_pages - len(cache)
+        if pending:
+            print(f"[{base_name}] collect: {len(cache)}/{total_pages} page(s) cached, {pending} "
+                  f"pending -- task card(s) written; strict ordering means later pages wait.")
+        else:
+            print(f"[{base_name}] collect: all {total_pages} page(s) cached -- "
+                  f"ready for submit's rerun.")
+        return
 
     final_md = build_final_markdown(cache, total_pages)
     frontmatter = build_frontmatter({
