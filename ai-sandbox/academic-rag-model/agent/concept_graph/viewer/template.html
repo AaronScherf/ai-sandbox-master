@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{{TITLE}}}</title>
+<style>{{{STYLE}}}</style>
+</head>
+<body>
+<header id="top">
+  <h1 id="title"></h1>
+  <div id="review-bar">
+    <label>Your name <input id="reviewer" type="text" autocomplete="name" placeholder="for review credit"></label>
+    <span id="decision-count" aria-live="polite">0 decisions</span>
+    <button id="btn-submit" type="button">Submit review</button>
+    <button id="btn-download" type="button">Download review</button>
+    <button id="btn-clear" type="button" title="Forget all my pending decisions">Clear</button>
+  </div>
+</header>
+<main id="layout">
+  <aside id="sidebar" aria-label="Browse concepts">
+    <input id="search" type="search" placeholder="Search concepts" aria-label="Search concepts">
+    <div class="filters">
+      <div id="f-topics" class="chips" aria-label="Topics"></div>
+      <label>Status
+        <select id="f-status"><option value="">All</option><option value="verified">Verified</option><option value="proposed">Proposed</option></select>
+      </label>
+      <label>Kind <select id="f-kind"><option value="">All</option></select></label>
+      <div id="f-edges" class="chips" aria-label="Edge types"></div>
+    </div>
+    <details id="legend"><summary>How to read this</summary><div id="legend-body"></div></details>
+    <nav id="name-list" aria-label="Concept list"></nav>
+  </aside>
+  <div id="cy" role="img" aria-label="Concept graph"></div>
+  <section id="panel" aria-live="polite"><p class="hint">Click a concept or a connection to read about it.</p></section>
+</main>
+<div id="toast" role="status" hidden></div>
+<script type="application/json" id="graph-data">{{{GRAPH}}}</script>
+<script>{{{VENDOR}}}</script>
+<script>{{{LOGIC}}}</script>
+<script>{{{APP}}}</script>
+</body>
+</html>
