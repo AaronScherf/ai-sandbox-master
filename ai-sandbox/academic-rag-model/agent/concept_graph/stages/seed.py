@@ -233,7 +233,9 @@ def outline_context(hub_root: str, course: str, *, config: SeedConfig | None = N
     for chapters in sorted((base / "textbooks" / "processed_outputs").glob("*/chapters")):
         source = classify_passage(str(chapters / "x.rag.md"))[0]
         titles = []
-        wanted = set(config.textbook_chapters.get(source, []))
+        # Known books are listed by source key (mwg, rubinstein, ok); any other book by its folder name.
+        by_name = {k.lower(): v for k, v in config.textbook_chapters.items()}
+        wanted = set(config.textbook_chapters.get(source) or by_name.get(chapters.parent.name.lower(), []))
         for ch in sorted(chapters.glob("*.rag.md")):
             stem = ch.name[: -len(".rag.md")]
             m = re.match(r"(\d+)_", stem)

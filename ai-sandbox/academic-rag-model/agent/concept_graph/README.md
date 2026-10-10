@@ -83,7 +83,7 @@ scope: "Choice theory only: consumer behaviour, producer theory, risk, time. No 
 must_include:                 # each must end up as a node (a name, or a list of alternative names)
   - Preorder
   - [GARP, Generalized axiom of revealed preference]
-textbook_chapters:            # chapters whose section headings the seed card shows (source key -> numbers)
+textbook_chapters:            # chapters whose section headings the seed card shows (source key or textbook folder name -> numbers)
   mwg: [1, 2, 3]
 ```
 
