@@ -29,6 +29,23 @@ class TestHonestFlowIsClean(unittest.TestCase):
             self.assertEqual(codes(audit(s.log.load(), s.packet)), [])
 
 
+class TestEndAfterRevisit(unittest.TestCase):
+    def test_ending_after_revisiting_an_earlier_part_is_not_an_unconfirmed_move(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            _, s = make(tmp)
+            park_q1(s)
+            s.say(LAUNCH_Q2)
+            close_q2_said(s)
+            s.say(CHECKIN_OFFER)
+            s.turn("revisit", "yes let's go back to the first question")
+            s.say(Q)
+            close_q1_said(s)
+            s.say(CHECKIN)
+            s.turn("confirm_advance", "yes, I am done, thanks")
+            s.end("Big picture text.")                    # synthesis/session_end are logged under the last part (q2)
+            self.assertEqual(codes(audit(s.log.load(), s.packet)), [])
+
+
 class TestFindings(unittest.TestCase):
     def test_uncounted_skip_phrase_in_an_attempt_is_listed(self):
         with tempfile.TemporaryDirectory() as tmp:

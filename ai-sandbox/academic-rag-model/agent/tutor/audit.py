@@ -47,7 +47,7 @@ def audit(events: list[Event], packet: Packet) -> list[Finding]:
     move_ok = False
     for e in events:
         mover = e.type == "student" and (e.intent in ("confirm_advance", "revisit") or e.data.get("skip_ended"))
-        if e.part and prev_part and e.part != prev_part:
+        if e.part and prev_part and e.part != prev_part and e.type not in ("synthesis", "session_end"):
             if not (mover or move_ok):
                 found.append(Finding("ADVANCE_WITHOUT_CONFIRM", e.id, f"moved from {prev_part} to {e.part} without a student confirm_advance, revisit or second skip request"))
             move_ok = False
