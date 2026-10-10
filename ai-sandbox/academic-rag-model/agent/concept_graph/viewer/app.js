@@ -120,6 +120,30 @@
       { selector: "edge:selected", style: { width: 4, "line-color": "#f59e0b", "target-arrow-color": "#f59e0b" } }
     ]
   });
+  // An edge between two boxes that are not neighbours in the same row would run straight through the boxes
+  // between them, so arc those edges above the row (further for longer jumps).
+  (function arcLongEdges() {
+    var rows = new Map();
+    G.nodes.forEach(function (n) {
+      var key = String(pos[n.id].y);
+      if (!rows.has(key)) rows.set(key, []);
+      rows.get(key).push(n.id);
+    });
+    var place = new Map();
+    rows.forEach(function (ids, key) {
+      ids.sort(function (a, b) { return pos[a].x - pos[b].x; });
+      ids.forEach(function (id, i) { place.set(id, { row: key, i: i }); });
+    });
+    cy.edges().forEach(function (e) {
+      var a = place.get(e.data("source")), b = place.get(e.data("target"));
+      if (!a || !b || a.row !== b.row) return;
+      var gap = Math.abs(a.i - b.i);
+      if (gap < 2) return;
+      var rightward = pos[e.data("source")].x < pos[e.data("target")].x;
+      var height = 55 + 35 * (gap - 2);
+      e.style({ "curve-style": "unbundled-bezier", "control-point-distances": [rightward ? -height : height], "control-point-weights": [0.5] });
+    });
+  })();
   cy.fit(undefined, 30);
 
   function paintDecisions() {
