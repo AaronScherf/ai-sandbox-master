@@ -1,6 +1,6 @@
 # Project Steering and To-Do Review: Implementation Plan
 
-**Status:** Draft plan; no project-steering code, ID migration, or scheduled job has been run.
+**Status (2026-10-09):** M1 scanner is implemented on `codex/todo-steering-scanner`, not yet landed. Nine focused fixture tests pass. A live read-only scan completed in 0.025 seconds and produced a deliberately partial view: 61 dated tasks, seven needs-review entries, and 29 structured exclusions. M2 IDs/decisions/review and M3 scheduling are unimplemented. The design review gate below remains open.
 **Date:** 2026-10-09
 **Spec:** [2026-10-09 project-steering design](../../specs/academic_hub/2026-10-09-project-steering-design.md)
 **Scope:** One tracker-backed, model-free ranked view and interactive local review flow. The tutoring-packet prompt linked in the request is unrelated and outside the read and write set.
@@ -53,6 +53,8 @@ Each milestone must update this plan's status with **implemented behavior**, **f
 
 ## Task 1 — Establish a parser truth set from the live tracker
 
+**Progress (2026-10-09):** A varied read-only source check covered the short project-steering item (line 70), the dated parent of the Git-workflow brainstorm (line 73), explanatory subsection bullets (from line 79), its dated follow-up (line 201), the multiline urgent note task (lines 204–224), paused note tasks (lines 225 and 226), the comma-updated visualization item (line 256), six undated textbook bullets (lines 272–278), two dated textbook items (lines 279–280), and the pasted example beginning at line 284. The first parser pass falsely omitted line 256 because it used a comma in its updated-date marker; the parser now accepts both comma and semicolon. The line-201 task is explicitly flagged as `dated_subsection_bullet`, pending the design decision, rather than silently counted as excluded. The six undated textbook bullets are also flagged. The remaining 29 exclusions are subsection notes in the Git brainstorm; the pasted example contains no task bullet in the inspected span. No false positive was observed in this sample, but the full tracker has not been manually labeled item by item.
+
 **Files:** Read `docs/trackers/academic_hub_to_do.md`; create a small, synthetic `tests/tools/project_steering/fixtures/` set and a classification table in the implementation handoff or focused status note. Do not copy the linked packet or nested notes content.
 
 **Steps:** Record the exact boundaries for a short task, multiline task, nested bullet, urgent item, paused/deferred item, updated-date marker, section transition, Git-workflow brainstorm, undated textbook work item, and pasted textbook example. Count eligible tasks and ambiguous bullets manually from those spans. Specify the accepted date grammar, including `(added YYYY-MM-DD; updated YYYY-MM-DD)`. Treat a malformed or undated bullet as a warning or `needs_review` candidate, never a silently dropped task. Confirm that the `##` heading and continuation indentation rules work on this varied sample before trusting whole-file counts.
@@ -60,6 +62,8 @@ Each milestone must update this plan's status with **implemented behavior**, **f
 **Acceptance:** A reviewed table maps each chosen source span to `task`, `continuation`, or `excluded/needs_review` with a reason. It explicitly records the fate of the undated textbook bullets; until the design gate resolves them, no report claims complete coverage. No aggregate count is labeled reliable until the parser agrees with this sample. This task is read-only against the live tracker.
 
 ## Task 2 — Ship the independently useful scanner and generated view (M1)
+
+**Progress (2026-10-09):** Parser, CLI, generated Markdown/JSON, atomic generation pointer, README, and nine focused tests are implemented on the M1 branch. The live scan read the tracker in this worktree and wrote reports only to a local temporary state directory; the tracker was unchanged. Its exit was `2` because coverage is intentionally partial (61 tasks, seven warnings, 29 exclusions). This verifies a successful live read-only scan and honest partial-coverage reporting; it does not verify ranking quality or a scheduled run. The branch's full landing gate is still pending at this update.
 
 **Files:** Create `tools/project_steering/{__init__,__main__,cli,parser,ranking,report}.py`, `tools/project_steering/README.md`, and focused `tests/tools/project_steering/` tests. Add a package entry to the main `README.md` only when the command exists.
 
