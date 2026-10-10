@@ -16,7 +16,7 @@ from agent.tutor.fsm import (
     offerable, replay, status_of, student_event,
 )
 from agent.tutor.ledger import IGNORED_INTENTS, build_ledger, next_claim
-from agent.tutor.lint import lint_message
+from agent.tutor.lint import Violation, lint_message
 from agent.tutor.packet import Packet, load_packet, read_solution, sealed_section
 from agent.tutor.paths import TutorPaths
 from agent.tutor.profile import load_profile, open_gaps, save_profile, update_profile
@@ -55,6 +55,7 @@ def _norm(text: str | None) -> str:
 
 
 MIN_QUOTE_TOKENS = 3
+MAX_ACK_WORDS = 20
 
 
 def _quote_ok(quote: str | None, texts: list[str]) -> bool:
@@ -85,6 +86,17 @@ def split_steps(section: str) -> list[str]:
 def _parked(packet, indices, s=None):
     return [{"part_id": packet.parts[i].part_id, "label": packet.parts[i].label or packet.parts[i].part_id,
              "status": (status_of(s, i) if s is not None else None)} for i in indices]
+
+
+def _mention(part) -> re.Pattern:
+    """Matches the part by id, by label, or by the number at the end of its label ("1.2")."""
+    alts = [rf"\b{re.escape(part.part_id)}\b"]
+    if part.label:
+        alts.append(re.escape(part.label) + r"(?!\d|\.\d)")
+        tail = part.label.split()[-1]
+        if any(ch.isdigit() for ch in tail):
+            alts.append(rf"(?<![\d.]){re.escape(tail)}(?!\d)")
+    return re.compile("|".join(alts), re.I)
 
 
 class Session:
@@ -455,9 +467,11 @@ class Session:
                     break
                 if e.type == "student":
                     break
+        nxt_index = fsm.fresh_index(s)
+        nudge = bool(last_student and last_student.data.get("skip") and not last_student.data.get("skip_ended")
+                     and s.state == WORKING and not any(e.type == "tutor_say" and e.id > last_student.id for e in events))
         forbidden = []
-        nxt_index = s.part_index + 1
-        if s.state in (VERIFIED, AWAITING_ADVANCE) and nxt_index < len(self.packet.parts):
+        if (s.state in (VERIFIED, AWAITING_ADVANCE) or nudge) and nxt_index < len(self.packet.parts):
             n = self.packet.parts[nxt_index]
             forbidden = [rf"\b{re.escape(n.part_id)}\b"] + ([rf"\b{re.escape(n.label)}\b"] if n.label else [])
         blocked = {}
@@ -467,12 +481,21 @@ class Session:
                 if c.id in ledger.established or (s.hint_level >= 3 and nc is not None and c.id == nc.id):
                     continue
                 blocked[c.id] = c.recognizer
+        offer_parts = [self.packet.parts[i] for i in fsm.offerable(s)]
+        must = [(p.label or p.part_id, _mention(p)) for p in offer_parts]
+        queued = [(self.packet.parts[i].label or self.packet.parts[i].part_id, _mention(self.packet.parts[i])) for i in s.queue]
+        ack_issues: list[Violation] = []
+        if s.state == LAUNCH and last_student and last_student.data.get("skip_ended"):
+            ack_issues = self._ack_issues(text, part, last_student.part)
+            if not ack_issues and _norm(text) != _norm(part.launch_text()) and _norm(text).endswith(_norm(part.launch_text())):
+                allowed.append(text)
         violations = lint_message(
             text, state=s.state, hint_level=s.hint_level, student_text=student_text, statement=part.statement,
             sealed_solution=sealed_section(self._solution, part.part_id) or "", allowed_exact=allowed,
             after_define=after_define, forbidden_patterns=forbidden, blocked_claims=blocked,
             form=self._form_active(s, pe), last_student_text=last_text,
-        )
+            skip_nudge=nudge, must_mention=must, queued_patterns=queued,
+        ) + ack_issues
         if violations:
             payload = [v.to_dict() for v in violations]
             if not check:
@@ -485,8 +508,26 @@ class Session:
         checkin = s.state == VERIFIED
         new = fsm.checkin_event(s) if checkin else s
         self.log.append("tutor_say", part=part.part_id, state=new.state, hint_level=new.hint_level, text=text,
-                        data={"checkin": checkin})
+                        data={"checkin": checkin, "offer": [p.part_id for p in offer_parts]})
         return {**self._brief(), "send": text}
+
+    def _ack_issues(self, text: str, part, parked_id: str) -> list[Violation]:
+        launch, full = _norm(part.launch_text()), _norm(text)
+        if not full.endswith(launch) or full == launch:
+            return []                                              # plain LAUNCH_NOT_VERBATIM handles it
+        prefix = full[: len(full) - len(launch)].strip()
+        issues: list[Violation] = []
+        if len(prefix.split()) > MAX_ACK_WORDS:
+            issues.append(Violation("LAUNCH_ACK", f"keep the acknowledgement to {MAX_ACK_WORDS} words"))
+        if "?" in prefix:
+            issues.append(Violation("LAUNCH_ACK", "the acknowledgement must not be a question"))
+        old = next(p for p in self.packet.parts if p.part_id == parked_id)
+        old_pc = self.packet.claims[old.part_id]
+        old_ledger = build_ledger(old_pc, self._part_events(self.log.load(), old.part_id))
+        blocked = {c.id: c.recognizer for c in old_pc.claims if c.id not in old_ledger.established}
+        issues += lint_message(prefix, state=WORKING, hint_level=0, statement=old.statement,
+                               sealed_solution=sealed_section(self._solution, old.part_id) or "", blocked_claims=blocked)
+        return issues
 
     # ---- verify -------------------------------------------------------
     def _validate_check(self, check, n_steps: int, pe: list[Event]) -> list[dict]:
@@ -583,9 +624,15 @@ class Session:
         self._require_live(s)
         if s.state != SYNTHESIS:
             raise Refused(f"cannot end from state {s.state}; finish and close every part first", _NEXT.get(s.state, []))
-        missing = [p.part_id for p in self.packet.parts if not self._closed(events, p.part_id)]
+        parked = set(s.queue)
+        missing = [p.part_id for i, p in enumerate(self.packet.parts) if not self._closed(events, p.part_id) and i not in parked]
         if missing:
             raise Refused(f"parts not closed: {missing}", ["verify"])
+        last_say = next((e for e in reversed(events) if e.type == "tutor_say"), None)
+        if parked and not (last_say and last_say.state == SYNTHESIS and last_say.data.get("offer")):
+            names = ", ".join(self.packet.parts[i].label or self.packet.parts[i].part_id for i in s.queue)
+            raise Refused(f"parked parts remain ({names}); say a closing message that offers to go back to them, "
+                          "then run end", ["say (closing message offering the parked parts)"])
         last = self.packet.parts[-1].part_id
         self.log.append("synthesis", part=last, state=SYNTHESIS, text=big_picture)
         self.log.append("session_end", part=last, state=fsm.DONE)

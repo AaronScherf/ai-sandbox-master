@@ -131,10 +131,14 @@ def check_form(text: str, last_student_text: str, max_words: int = MAX_FORM_WORD
     return None
 
 
+_INVITE = re.compile(r"\b(?:try|tried|trying|attempt|start|begin|first step|so far|instinct|idea|approach|guess)\b", re.I)
+
+
 def lint_message(
     text: str, *, state: str, hint_level: int, student_text: str = "", statement: str = "",
     sealed_solution: str = "", allowed_exact=(), after_define: bool = False, forbidden_patterns=(),
     blocked_claims: dict | None = None, form: bool = False, last_student_text: str = "",
+    skip_nudge: bool = False, must_mention=(), queued_patterns=(),
 ) -> list[Violation]:
     if _normalize(text) in {_normalize(a) for a in allowed_exact}:
         return []
@@ -169,6 +173,17 @@ def lint_message(
             found.append(Violation("QUESTION_FORM", reason))
     if state == VERIFIED and not (_CHECKIN.search(text) and "?" in text):
         found.append(Violation("CHECKIN_MISSING", "ask whether they have lingering questions or are ready to move on"))
+    if skip_nudge and not ("?" in text and _INVITE.search(text)):
+        found.append(Violation("SKIP_NUDGE", "the student asked to skip: reply with one question that invites them to "
+                                             "try a first step; do not agree and do not move on"))
+    for label, rx in must_mention:
+        if not rx.search(text):
+            found.append(Violation("REVISIT_OFFER_MISSING", f"offer to go back to {label} (parked earlier)"))
+    if state == WORKING:
+        for label, rx in queued_patterns:
+            if rx.search(text):
+                found.append(Violation("REVISIT_MID_PART", f"do not bring up {label} while another part is being worked"))
+                break
     for pattern in forbidden_patterns:
         if re.search(pattern, text, re.I):
             found.append(Violation("NEXT_PART_REFERENCE", "do not mention the next part before the student confirms advancing"))
