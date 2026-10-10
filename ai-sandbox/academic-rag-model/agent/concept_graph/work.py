@@ -69,6 +69,15 @@ class Run:
         self.set_status(task_id, "bounced", reasons)
 
 
+def task_entry(task: Task) -> dict:
+    """The manifest record for one task: everything validation needs, so the card itself is never trusted."""
+    return {
+        "id": task.id, "subject": task.subject, "status": "pending", "attempts": 0, "reasons": [],
+        "offered": [list(p.offered) for p in task.passages],
+        "passages": [{"id": p.id, "source": p.source, "ref": p.ref, "text": p.text, "path": p.path} for p in task.passages],
+    }
+
+
 def render_worklist(run: Run) -> str:
     lines = [f"# Worklist: run {run.run_id} (stage: {run.stage})", "",
              "Fill the yaml block under `## Result` in each card listed as pending or bounced.", "",
@@ -101,11 +110,7 @@ def create_run(work_root: str | Path, graph_repo: str | Path, stage: str, tasks:
     data = {
         "run_id": run_id, "stage": stage, "created": dt.datetime.now().isoformat(timespec="seconds"),
         "graph_repo": str(graph_repo),
-        "tasks": [{
-            "id": t.id, "subject": t.subject, "status": "pending", "attempts": 0, "reasons": [],
-            "offered": [list(p.offered) for p in t.passages],
-            "passages": [{"id": p.id, "source": p.source, "ref": p.ref, "text": p.text, "path": p.path} for p in t.passages],
-        } for t in tasks],
+        "tasks": [task_entry(t) for t in tasks],
     }
     run = Run(root, data)
     for t in tasks:
