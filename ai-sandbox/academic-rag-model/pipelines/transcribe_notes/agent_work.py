@@ -89,3 +89,150 @@ def dedupe_by_file_id(pdf_paths: list[str]) -> tuple[list[str], dict[str, list[s
     canonical = [paths[0] for paths in by_id.values()]
     duplicates_of = {paths[0]: paths[1:] for paths in by_id.values() if len(paths) > 1}
     return canonical, duplicates_of
+
+
+from pipelines.transcribe_notes.agent_driver import AgentPending
+from pipelines.transcribe_notes.transcribe_notes import (
+    _ACCUMULATION_WINDOW,
+    build_accumulated_context,
+    build_transcription_prompt,
+    extract_page_text,
+    load_json_cache,
+    render_page_to_image_bytes,
+    resolve_output_dir,
+)
+
+_AGENT_TIER3_BATCH_SIZE = 6
+
+_AGENT_OUTPUT_HEADER = "## Agent output"
+
+
+def render_task_card(
+    doc_dir: str, task_id: str, tier: str, pages: list[int],
+    page_prompts: dict[int, str], image_paths: dict[int, str], note: str | None = None,
+) -> None:
+    os.makedirs(doc_dir, exist_ok=True)
+    lines = [f"# {task_id} ({tier}, pages {pages[0]}-{pages[-1]})", ""]
+    if note:
+        lines += [note, ""]
+    for page in pages:
+        lines += [f"## Page {page}", "", f"Image: `{image_paths[page]}`", "", page_prompts[page], ""]
+    lines += [
+        "## Expected output",
+        "",
+        "One section per page above, in order, using this exact format:",
+        "",
+        "```",
+        "--- PAGE <number> ---",
+        "<transcribed markdown for that page>",
+        "```",
+        "",
+        _AGENT_OUTPUT_HEADER,
+        "",
+    ]
+    with open(os.path.join(doc_dir, f"{task_id}.md"), "w", encoding="utf-8") as f:
+        f.write("\n".join(lines) + "\n")
+
+
+def parse_task_card_output(doc_dir: str, task_id: str) -> str | None:
+    card_path = os.path.join(doc_dir, f"{task_id}.md")
+    with open(card_path, "r", encoding="utf-8") as f:
+        content = f.read()
+    idx = content.find(_AGENT_OUTPUT_HEADER)
+    if idx == -1:
+        return None
+    output = content[idx + len(_AGENT_OUTPUT_HEADER):].strip()
+    return output or None
+
+
+class AgentDriver:
+    """TranscriptionDriver that writes task cards instead of calling
+    Gemini. One instance is reused across every document in a collect
+    run; `last_doc_slug` records the slug used for the most recent
+    call, for callers (and tests) that need to locate that document's
+    work directory afterward."""
+
+    def __init__(self, hub_root: str, run_id: str, agent_name: str = "antigravity"):
+        self.hub_root = hub_root
+        self.run_id = run_id
+        self.agent_name = agent_name
+        self._task_counters: dict[str, int] = {}
+        self.last_doc_slug: str | None = None
+
+    def _next_task_id(self, doc_slug: str) -> str:
+        n = self._task_counters.get(doc_slug, 0) + 1
+        self._task_counters[doc_slug] = n
+        return f"task-{n:04d}"
+
+    def _doc_dir(self, pdf_path: str) -> tuple[str, str]:
+        file_id = compute_file_id(pdf_path)
+        doc_slug = doc_slug_for(pdf_path, file_id)
+        self.last_doc_slug = doc_slug
+        return doc_work_dir(self.hub_root, self.run_id, doc_slug), doc_slug
+
+    def transcribe_batch(self, pdf_path: str, model: str, batch: list[int], prompt: str) -> dict[int, str]:
+        doc_dir, _ = self._doc_dir(pdf_path)
+        task_id = self._next_task_id(self.last_doc_slug)
+        image_dir = os.path.join(doc_dir, "images")
+        os.makedirs(image_dir, exist_ok=True)
+        image_paths = {}
+        for page in batch:
+            image_bytes = render_page_to_image_bytes(pdf_path, page - 1, dpi=150)
+            rel_path = os.path.join("images", f"page-{page:04d}.png")
+            with open(os.path.join(doc_dir, rel_path), "wb") as f:
+                f.write(image_bytes)
+            image_paths[page] = rel_path
+        page_prompts = {page: prompt for page in batch}  # one shared batch prompt, same for every page in it
+        render_task_card(doc_dir, task_id, "batch", batch, page_prompts, image_paths)
+        entries = load_manifest(doc_dir)
+        entries.append(ManifestEntry(task_id=task_id, tier="batch", pages=list(batch), status="pending"))
+        save_manifest(doc_dir, entries)
+        render_worklist(doc_dir, entries)
+        raise AgentPending()
+
+    def transcribe_page(
+        self, pdf_path: str, model: str, page_num: int, prompt: str, image_bytes: bytes, total_pages: int,
+    ) -> str:
+        doc_dir, _ = self._doc_dir(pdf_path)
+        task_id = self._next_task_id(self.last_doc_slug)
+        last_page = min(page_num + _AGENT_TIER3_BATCH_SIZE - 1, total_pages)
+        pages = list(range(page_num, last_page + 1))
+
+        image_dir = os.path.join(doc_dir, "images")
+        os.makedirs(image_dir, exist_ok=True)
+        image_paths = {}
+        page_prompts = {}
+        for page in pages:
+            page_image_bytes = image_bytes if page == page_num else render_page_to_image_bytes(
+                pdf_path, page - 1, dpi=200,
+            )
+            rel_path = os.path.join("images", f"page-{page:04d}.png")
+            with open(os.path.join(doc_dir, rel_path), "wb") as f:
+                f.write(page_image_bytes)
+            image_paths[page] = rel_path
+            if page == page_num:
+                # Only the card's first page gets real prior-page context,
+                # from already-submitted cache entries -- the prompt passed
+                # in already has that context baked in (built by process_pdf).
+                page_prompts[page] = prompt
+            else:
+                hint_text = extract_page_text(pdf_path, page - 1)
+                page_prompts[page] = build_transcription_prompt(
+                    accumulated_context="", hint_text=hint_text, page_number=page,
+                    total_pages=total_pages, hint_is_high_confidence=False,
+                )
+
+        note = (
+            "Strict page order within this card: only Page "
+            f"{page_num} above has real prior-page context supplied. For "
+            "every later page in this card, carry forward YOUR OWN "
+            "transcription of this card's earlier pages as continuity "
+            "context -- do not transcribe each page in isolation."
+        ) if len(pages) > 1 else None
+
+        render_task_card(doc_dir, task_id, "tier3", pages, page_prompts, image_paths, note=note)
+        entries = load_manifest(doc_dir)
+        entries.append(ManifestEntry(task_id=task_id, tier="tier3", pages=pages, status="pending"))
+        save_manifest(doc_dir, entries)
+        render_worklist(doc_dir, entries)
+        raise AgentPending()
