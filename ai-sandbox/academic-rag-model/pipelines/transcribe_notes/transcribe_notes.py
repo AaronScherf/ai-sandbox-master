@@ -1125,7 +1125,7 @@ def link_duplicate_note(academic_hub_root: str, canonical_course: str, canonical
 def process_pdf(pdf_path: str, client, model_override: str | None, academic_hub_root: str,
                 dry_run: bool = False, known_doc_types=KNOWN_DOC_TYPES, force_vision: bool = False,
                 driver: TranscriptionDriver | None = None, collect_mode: bool = False) -> None:
-    from pipelines.transcribe_notes.agent_driver import AgentPending, ApiDriver
+    from pipelines.transcribe_notes.agent_driver import AgentPending, ApiDriver, NullDriverFired
 
     if driver is None:
         driver = ApiDriver(client)
@@ -1235,6 +1235,8 @@ def process_pdf(pdf_path: str, client, model_override: str | None, academic_hub_
                     print(f"  pages {batch[0]}-{batch[-1]}: repaired via batch ({len(batch)} pages)")
                 except AgentPending:
                     print(f"  pages {batch[0]}-{batch[-1]}: pending (agent task card written)")
+                except NullDriverFired:
+                    raise
                 except Exception as err:
                     print(f"  WARNING: batch repair failed for pages {batch} ({err}); "
                           f"falling back to individual per-page calls.")
@@ -1323,6 +1325,8 @@ def process_pdf(pdf_path: str, client, model_override: str | None, academic_hub_
                 print(f"  pages {batch[0]}-{batch[-1]}: transcribed via batch ({len(batch)} pages)")
             except AgentPending:
                 print(f"  pages {batch[0]}-{batch[-1]}: pending (agent task card written)")
+            except NullDriverFired:
+                raise
             except Exception as err:
                 print(f"  WARNING: batch transcription failed for pages {batch} ({err}); "
                       f"falling back to individual per-page calls.")
@@ -1400,6 +1404,8 @@ def process_pdf(pdf_path: str, client, model_override: str | None, academic_hub_
             print(f"  page {page_num}: pending (agent task card written); "
                   f"stopping here for strict ordering.")
             break
+        except NullDriverFired:
+            raise
         except Exception as err:
             # Accumulating context means later pages depend on this one --
             # skipping ahead would silently degrade every subsequent
@@ -1510,18 +1516,33 @@ def main():
         if not os.path.isdir(run_dir):
             print(f"No .agent_work run directory found for run '{args.submit}' at {run_dir}.")
             sys.exit(1)
-        pdf_by_basename = {os.path.splitext(os.path.basename(p))[0]: p for p in pdf_paths}
+        from core.indexer.index_card import compute_file_id
+        from pipelines.transcribe_notes.agent_work import doc_slug_for
+
+        # Match by the same file_id-derived slug AgentDriver used to name
+        # the document's directory, not by reconstructing a basename from
+        # the slug -- avoids ever matching the wrong PDF under a
+        # mismatched --notes-subdir (final review I1).
+        pdf_by_slug = {doc_slug_for(p, compute_file_id(p)): p for p in pdf_paths}
         lease = corpus_write_lock(
             [academic_hub_dir, academic_hub_dir / "academic_notes"], "notes PDF transcription (agent submit)",
         )
         with lease:
             for doc_slug in sorted(os.listdir(run_dir)):
-                base_name = doc_slug.rsplit("--", 1)[0]
-                pdf_path = pdf_by_basename.get(base_name)
+                pdf_path = pdf_by_slug.get(doc_slug)
                 if pdf_path is None:
                     print(f"Skipping {doc_slug}: no matching PDF found under {args.notes_subdir}.")
                     continue
-                status = submit_doc(str(academic_hub_dir), str(academic_hub_dir), args.submit, doc_slug, pdf_path, client, args.model)
+                try:
+                    status = submit_doc(
+                        str(academic_hub_dir), str(academic_hub_dir), args.submit, doc_slug, pdf_path,
+                        client, args.model, force_vision=args.force_vision,
+                    )
+                except Exception as err:
+                    # Final review I6: one document's malformed manifest/
+                    # card must not abort every other document's submit.
+                    print(f"[{doc_slug}] error: {err}")
+                    continue
                 print(f"[{doc_slug}] {status}")
         return
 
@@ -1543,6 +1564,14 @@ def main():
             )
         print(f"Collect run '{run_id}' complete under {academic_hub_dir / '.agent_work' / run_id}.")
         return
+
+    if args.driver == "agent":
+        # Final review I3: reaching here means --collect/--submit weren't
+        # given, so this would otherwise fall through to the plain API
+        # loop below and spend real money across the whole --notes-subdir
+        # -- exactly what --driver agent is meant to avoid.
+        print("--driver agent requires --collect or --submit.")
+        sys.exit(1)
 
     client = None
     if not args.dry_run:

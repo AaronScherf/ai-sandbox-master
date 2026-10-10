@@ -56,8 +56,14 @@ def load_manifest(doc_dir: str) -> list[ManifestEntry]:
     if not os.path.exists(path):
         return []
     with open(path, "r", encoding="utf-8") as f:
-        raw = json.load(f)
-    return [ManifestEntry(**entry) for entry in raw]
+        try:
+            raw = json.load(f)
+        except json.JSONDecodeError as err:
+            raise ValueError(f"manifest at {path} is not valid JSON: {err}") from err
+    try:
+        return [ManifestEntry(**entry) for entry in raw]
+    except TypeError as err:
+        raise ValueError(f"manifest at {path} has an unexpected entry shape: {err}") from err
 
 
 def save_manifest(doc_dir: str, entries: list[ManifestEntry]) -> None:
@@ -168,10 +174,29 @@ class AgentDriver:
         file_id = compute_file_id(pdf_path)
         doc_slug = doc_slug_for(pdf_path, file_id)
         self.last_doc_slug = doc_slug
-        return doc_work_dir(self.hub_root, self.run_id, doc_slug), doc_slug
+        doc_dir = doc_work_dir(self.hub_root, self.run_id, doc_slug)
+        if doc_slug not in self._task_counters:
+            # A fresh AgentDriver instance (submit's auto-stage, or a
+            # second --collect with the same --run-id) must continue
+            # numbering from whatever this document's manifest already
+            # has, not restart at task-0001 and overwrite an existing
+            # card (final review, finding C2).
+            max_n = 0
+            for entry in load_manifest(doc_dir):
+                try:
+                    max_n = max(max_n, int(entry.task_id.rsplit("-", 1)[1]))
+                except (IndexError, ValueError):
+                    continue
+            self._task_counters[doc_slug] = max_n
+        return doc_dir, doc_slug
 
     def transcribe_batch(self, pdf_path: str, model: str, batch: list[int], prompt: str) -> dict[int, str]:
         doc_dir, _ = self._doc_dir(pdf_path)
+        for entry in load_manifest(doc_dir):
+            if entry.status != "submitted" and entry.pages == list(batch):
+                # Already staged (and not yet submitted) -- a re-collect
+                # must not overwrite the agent's in-progress card.
+                raise AgentPending()
         task_id = self._next_task_id(self.last_doc_slug)
         image_dir = os.path.join(doc_dir, "images")
         os.makedirs(image_dir, exist_ok=True)
@@ -194,6 +219,11 @@ class AgentDriver:
         self, pdf_path: str, model: str, page_num: int, prompt: str, image_bytes: bytes, total_pages: int,
     ) -> str:
         doc_dir, _ = self._doc_dir(pdf_path)
+        for entry in load_manifest(doc_dir):
+            if entry.status != "submitted" and entry.tier == "tier3" and entry.pages and entry.pages[0] == page_num:
+                # Already staged (and not yet submitted) -- same reason as
+                # transcribe_batch above.
+                raise AgentPending()
         task_id = self._next_task_id(self.last_doc_slug)
         last_page = min(page_num + _AGENT_TIER3_BATCH_SIZE - 1, total_pages)
         pages = list(range(page_num, last_page + 1))

@@ -63,12 +63,29 @@ class TestValidateCardOutput(unittest.TestCase):
         self.assertIsNone(result.bounce_reason)
         self.assertEqual(result.warnings, [])
 
+    def test_duplicate_page_text_bounces(self):
+        # Final review I7: a copy-paste mistake (same text pasted into two
+        # pages of the same card) must bounce, not be published as if
+        # both pages were transcribed correctly.
+        duplicated_text = "This is a long enough transcribed passage to not be a coincidence."
+        output = f"--- PAGE 1 ---\n{duplicated_text}\n\n--- PAGE 2 ---\n{duplicated_text}\n"
+        result = validate_card_output(output, expected_pages=[1, 2], tier="tier3")
+        self.assertIsNotNone(result.bounce_reason)
+        self.assertIn("duplicate", result.bounce_reason)
 
-def _write_minimal_tier3_pdf(path: str) -> None:
+    def test_short_identical_pages_do_not_bounce_as_duplicates(self):
+        # A short, genuinely repeated phrase (e.g. a bare page number or a
+        # one-word heading) is not evidence of a copy-paste mistake.
+        output = "--- PAGE 1 ---\n(continued)\n\n--- PAGE 2 ---\n(continued)\n"
+        result = validate_card_output(output, expected_pages=[1, 2], tier="tier3")
+        self.assertIsNone(result.bounce_reason)
+
+
+def _write_minimal_tier3_pdf(path: str, pages: int = 2) -> None:
     import pymupdf
 
     doc = pymupdf.open()
-    for _ in range(2):
+    for _ in range(pages):
         page = doc.new_page()
         page.insert_text((72, 72), "handwritten-looking content")
     doc.save(path)
@@ -185,6 +202,120 @@ class TestSubmitDoc(unittest.TestCase):
             entries = load_manifest(doc_dir)
             self.assertEqual(entries[0].status, "bounced")
             self.assertIn("missing", entries[0].bounce_reason)
+
+
+class TestSubmitDocMultiCardTier3(unittest.TestCase):
+    """Final review C1: submitting the first card of a multi-card tier-3
+    document must not finalize the write (partial .md, paid classification
+    call) and report "complete" -- it must auto-stage the next card and
+    report incomplete, exactly as the spec's BLOCKING #2 requires."""
+
+    def _fill_card(self, doc_dir: str, task_id: str, pages: list[int]) -> None:
+        card_path = os.path.join(doc_dir, f"{task_id}.md")
+        with open(card_path, encoding="utf-8") as f:
+            content = f.read()
+        body = "\n\n".join(f"--- PAGE {p} ---\nText for page {p}." for p in pages) + "\n"
+        with open(card_path, "w", encoding="utf-8") as f:
+            f.write(content.replace("## Agent output\n\n", f"## Agent output\n\n{body}"))
+
+    def test_submitting_first_card_of_multi_card_doc_does_not_finalize(self):
+        with tempfile.TemporaryDirectory() as hub:
+            notes_dir = os.path.join(hub, "notes")
+            os.makedirs(notes_dir)
+            pdf_path = os.path.join(notes_dir, "doc.pdf")
+            _write_minimal_tier3_pdf(pdf_path, pages=8)  # 2 tier-3 cards: 1-6, 7-8
+
+            driver = AgentDriver(hub, "run-1")
+            from pipelines.transcribe_notes.transcribe_notes import process_pdf
+            process_pdf(pdf_path, None, None, hub, driver=driver, collect_mode=True)
+            doc_slug = driver.last_doc_slug
+            doc_dir = os.path.join(hub, ".agent_work", "run-1", doc_slug)
+
+            entries = load_manifest(doc_dir)
+            self.assertEqual(len(entries), 1)  # only the first card staged so far
+            self.assertEqual(entries[0].pages, [1, 2, 3, 4, 5, 6])
+            self._fill_card(doc_dir, entries[0].task_id, entries[0].pages)
+
+            status = submit_doc(hub, hub, "run-1", doc_slug, pdf_path, MagicMock(), None)
+
+            # Must NOT report complete, and must NOT have written a
+            # partial .md file -- it must instead auto-stage card 2.
+            self.assertNotEqual(status, "complete")
+            md_path = os.path.join(notes_dir, "processed_outputs", "doc.md")
+            self.assertFalse(os.path.exists(md_path), "a partial .md was written for an incomplete document")
+
+            entries = load_manifest(doc_dir)
+            self.assertEqual(len(entries), 2)  # card 2 auto-staged
+            self.assertEqual(entries[1].pages, [7, 8])
+
+            # Finish the document: fill and submit card 2.
+            self._fill_card(doc_dir, entries[1].task_id, entries[1].pages)
+            final_status = submit_doc(hub, hub, "run-1", doc_slug, pdf_path, MagicMock(), None)
+            self.assertEqual(final_status, "complete")
+            self.assertTrue(os.path.exists(md_path))
+            with open(md_path, encoding="utf-8") as f:
+                written = f.read()
+            for page in range(1, 9):
+                self.assertIn(f"Text for page {page}.", written)
+
+
+class TestSubmitDocForceVision(unittest.TestCase):
+    """Final review I5: --force-vision used at collect time must be
+    preserved through submit's rerun, or the rerun routes a clean,
+    reliably-paginated document to tier-1 local extraction and discards
+    the agent's transcription."""
+
+    def test_force_vision_is_preserved_through_submits_rerun(self):
+        from unittest.mock import patch
+
+        with tempfile.TemporaryDirectory() as tmp:
+            pdf_path = os.path.join(tmp, "notes", "hw.pdf")
+            os.makedirs(os.path.dirname(pdf_path))
+            with open(pdf_path, "wb") as f:
+                f.write(b"%PDF-1.4 mock")
+
+            mock_reader = MagicMock()
+            mock_reader.pages = [MagicMock()]
+            mock_reader.metadata = {"/Producer": "pdfTeX"}
+
+            with patch("pypdf.PdfReader", return_value=mock_reader):
+                with patch("pipelines.transcribe_notes.transcribe_notes.has_reliable_pagination", return_value=True):
+                    with patch("pipelines.transcribe_notes.transcribe_notes.extract_all_page_texts", return_value=["clean text"]):
+                        with patch("pipelines.transcribe_notes.transcribe_notes.page_looks_defective", return_value=False):
+                            with patch(
+                                "pipelines.transcribe_notes.agent_work.render_page_to_image_bytes",
+                                return_value=b"fake-png-bytes",
+                            ):
+                                from pipelines.transcribe_notes.transcribe_notes import process_pdf
+
+                                driver = AgentDriver(tmp, "run-1")
+                                process_pdf(pdf_path, None, None, tmp, force_vision=True, driver=driver, collect_mode=True)
+                            doc_slug = driver.last_doc_slug
+                            doc_dir = os.path.join(tmp, ".agent_work", "run-1", doc_slug)
+                            entries = load_manifest(doc_dir)
+                            self.assertEqual(len(entries), 1)
+                            card_path = os.path.join(doc_dir, f"{entries[0].task_id}.md")
+                            with open(card_path, encoding="utf-8") as f:
+                                content = f.read()
+                            with open(card_path, "w", encoding="utf-8") as f:
+                                f.write(content.replace(
+                                    "## Agent output\n\n", "## Agent output\n\n--- PAGE 1 ---\nAgent text.\n",
+                                ))
+
+                            with patch("pipelines.transcribe_notes.transcribe_notes._write_markdown_and_index") as mock_write:
+                                with patch(
+                                    "pipelines.transcribe_notes.agent_submit.extract_page_text", return_value="hint",
+                                ):
+                                    status = submit_doc(
+                                        tmp, tmp, "run-1", doc_slug, pdf_path, MagicMock(), None, force_vision=True,
+                                    )
+                            self.assertEqual(status, "complete")
+                            mock_write.assert_called_once()
+                            frontmatter = mock_write.call_args[0][1]
+                            # Must still be the batch tier force_vision routed it to at
+                            # collect time, not tier-1 local extraction (which would
+                            # silently discard the agent's transcribed text).
+                            self.assertIn("routing: gemini_batched", frontmatter)
 
 
 if __name__ == "__main__":

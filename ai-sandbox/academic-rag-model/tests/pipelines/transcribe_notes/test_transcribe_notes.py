@@ -1217,6 +1217,63 @@ class TestAgentPendingSeam(unittest.TestCase):
                                 mock_write.assert_called_once()
 
 
+class TestNullDriverSafetyNet(unittest.TestCase):
+    """Final review I2: a NullDriverFired error (submit's rerun hitting an
+    uncached batch/page -- a cache-completeness bug) must propagate, not
+    be caught by the generic `except Exception` fallback and silently
+    retried with the real paid client."""
+
+    def test_whole_doc_batch_tier_propagates_null_driver_fired(self):
+        from pipelines.transcribe_notes.agent_driver import NullDriverFired
+
+        with tempfile.TemporaryDirectory() as tmp:
+            pdf_path = os.path.join(tmp, "academic_notes", "microecon", "problem_sets", "hw4.pdf")
+            os.makedirs(os.path.dirname(pdf_path))
+            with open(pdf_path, "wb") as f:
+                f.write(b"%PDF-1.4 mock")
+
+            mock_reader = MagicMock()
+            mock_reader.pages = [MagicMock()]
+            mock_reader.metadata = {"/Producer": "pdfTeX"}
+            real_client = MagicMock()
+
+            with patch("pypdf.PdfReader", return_value=mock_reader):
+                with patch("pipelines.transcribe_notes.transcribe_notes.has_reliable_pagination", return_value=True):
+                    with patch("pipelines.transcribe_notes.transcribe_notes.extract_all_page_texts", return_value=["clean text"]):
+                        with patch("pipelines.transcribe_notes.transcribe_notes.page_looks_defective", return_value=False):
+                            with patch("pipelines.transcribe_notes.transcribe_notes.repair_page_individually") as mock_fallback:
+                                from pipelines.transcribe_notes.agent_driver import NullDriver
+
+                                with self.assertRaises(NullDriverFired):
+                                    process_pdf(
+                                        pdf_path, real_client, None, tmp,
+                                        force_vision=True, driver=NullDriver(),
+                                    )
+                                mock_fallback.assert_not_called()  # never silently fell back to a real call
+
+    def test_tier3_propagates_null_driver_fired(self):
+        from pipelines.transcribe_notes.agent_driver import NullDriver, NullDriverFired
+
+        with tempfile.TemporaryDirectory() as tmp:
+            pdf_path = os.path.join(tmp, "academic_notes", "microecon", "ta_notes", "scan.pdf")
+            os.makedirs(os.path.dirname(pdf_path))
+            with open(pdf_path, "wb") as f:
+                f.write(b"%PDF-1.4 mock")
+
+            mock_reader = MagicMock()
+            mock_reader.pages = [MagicMock()]
+            mock_reader.metadata = {}
+            real_client = MagicMock()
+
+            with patch("pypdf.PdfReader", return_value=mock_reader):
+                with patch("pipelines.transcribe_notes.transcribe_notes.render_page_to_image_bytes", return_value=b"img"):
+                    with patch("pipelines.transcribe_notes.transcribe_notes.extract_page_text", return_value="hint"):
+                        with patch("pipelines.transcribe_notes.transcribe_notes._write_markdown_and_index") as mock_write:
+                            with self.assertRaises(NullDriverFired):
+                                process_pdf(pdf_path, real_client, None, tmp, driver=NullDriver())
+                            mock_write.assert_not_called()  # never silently fell through to a real write
+
+
 if __name__ == "__main__":
     unittest.main()
 

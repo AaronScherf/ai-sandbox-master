@@ -28,6 +28,7 @@ from pipelines.transcribe_notes.transcribe_notes import (
 )
 
 _MIN_LENGTH_RATIO_FOR_WARNING = 0.3  # output shorter than 30% of the local-text hint's length warns (tier-2 only)
+_MIN_LENGTH_FOR_DUPLICATE_CHECK = 40  # shorter identical text (e.g. "(continued)") isn't evidence of a copy-paste mistake
 
 
 @dataclass
@@ -68,6 +69,21 @@ def validate_card_output(
             result.bounce_reason = f"page {page} has unbalanced $$ display-math delimiters"
             return result
 
+    # Final review I7: a copy-paste mistake (the agent pastes one page's
+    # text into another page of the same card) publishes a duplicate
+    # page as if both were transcribed correctly. Only flags text long
+    # enough that an exact match isn't just a short, legitimately
+    # repeated phrase (a bare "(continued)", a page number, a heading).
+    seen: dict[str, int] = {}
+    for page in sorted(parsed):
+        normalized = parsed[page].strip()
+        if len(normalized) < _MIN_LENGTH_FOR_DUPLICATE_CHECK:
+            continue
+        if normalized in seen:
+            result.bounce_reason = f"page {page} is a duplicate of page {seen[normalized]} (copy-paste?)"
+            return result
+        seen[normalized] = page
+
     if tier == "batch" and local_text_hints:
         for page, text in parsed.items():
             hint = local_text_hints.get(page)
@@ -88,16 +104,27 @@ def _cache_paths_for(pdf_path: str) -> tuple[str, str]:
     return cache_path, driver_path
 
 
+def _md_path_for(pdf_path: str) -> str:
+    base_name = os.path.splitext(os.path.basename(pdf_path))[0]
+    return os.path.join(resolve_output_dir(pdf_path), f"{base_name}.md")
+
+
 def submit_doc(
     hub_root: str, academic_hub_root: str, run_id: str, doc_slug: str,
     pdf_path: str, client, model_override: str | None, agent_name: str = "antigravity",
+    force_vision: bool = False,
 ) -> str:
     doc_dir = doc_work_dir(hub_root, run_id, doc_slug)
     entries = load_manifest(doc_dir)
     if not entries:
         return "incomplete: no manifest found for this document"
 
-    if all(e.status == "submitted" for e in entries):
+    # "already complete" means the .md was actually written, not merely
+    # that every manifest entry so far shows submitted -- a multi-card
+    # tier-3 document has more entries yet to be staged (see is_tier3
+    # below), and a previous write attempt may have failed (final review
+    # I4), in which case this must retry rather than report done forever.
+    if all(e.status == "submitted" for e in entries) and os.path.exists(_md_path_for(pdf_path)):
         return "already complete"
 
     cache_path, driver_path = _cache_paths_for(pdf_path)
@@ -137,18 +164,39 @@ def submit_doc(
         remaining = sum(1 for e in entries if e.status != "submitted")
         return f"incomplete: {remaining} card(s) still pending/bounced"
 
-    process_pdf(pdf_path, client, model_override, academic_hub_root, driver=NullDriver())
+    # Final review C1: "every manifest entry submitted" does NOT mean "the
+    # whole document is cached" for a multi-card tier-3 document -- only
+    # the cards staged SO FAR are in the manifest. Finalizing the write
+    # here would publish a partial .md and make a paid classification
+    # call on every round trip but the last one. Only tier-3 can have this
+    # gap (manifest entries record tier3 only when AgentDriver.transcribe_page
+    # staged them; batch tiers always stage every needed batch in one
+    # collect call, so "all submitted" is already complete for those).
+    is_tier3 = any(e.tier == "tier3" for e in entries)
+    if is_tier3:
+        import pypdf
 
-    from pipelines.transcribe_notes.agent_work import AgentDriver
+        total_pages = len(pypdf.PdfReader(pdf_path).pages)
+        if len(cache) < total_pages:
+            from pipelines.transcribe_notes.agent_work import AgentDriver
 
-    total_cached = len(load_json_cache(cache_path))
-    import pypdf
+            next_driver = AgentDriver(hub_root, run_id, agent_name=agent_name)
+            process_pdf(
+                pdf_path, None, model_override, academic_hub_root,
+                force_vision=force_vision, driver=next_driver, collect_mode=True,
+            )
+            return f"incomplete: {len(cache)}/{total_pages} page(s) cached, next card staged"
 
-    total_pages = len(pypdf.PdfReader(pdf_path).pages)
-    if total_cached < total_pages:
-        # Tier-3 document with more pages beyond this card -- stage the
-        # next one now rather than waiting for a separate collect run.
-        next_driver = AgentDriver(hub_root, run_id, agent_name=agent_name)
-        process_pdf(pdf_path, None, model_override, academic_hub_root, driver=next_driver, collect_mode=True)
+    try:
+        process_pdf(
+            pdf_path, client, model_override, academic_hub_root,
+            force_vision=force_vision, driver=NullDriver(),
+        )
+    except Exception as err:
+        # Don't leave the document stuck "complete" if the final write
+        # itself fails (final review I4) -- the "already complete" guard
+        # above also checks the .md file actually exists, so a later
+        # submit call will retry this.
+        return f"write failed: {err}"
 
     return "complete"

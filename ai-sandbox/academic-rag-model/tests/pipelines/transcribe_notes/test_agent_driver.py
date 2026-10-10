@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import MagicMock, patch
 
-from pipelines.transcribe_notes.agent_driver import AgentPending, ApiDriver, NullDriver
+from pipelines.transcribe_notes.agent_driver import AgentPending, ApiDriver, NullDriver, NullDriverFired
 
 
 class TestApiDriver(unittest.TestCase):
@@ -25,15 +25,19 @@ class TestApiDriver(unittest.TestCase):
 
 
 class TestNullDriver(unittest.TestCase):
-    def test_transcribe_batch_raises(self):
+    def test_transcribe_batch_raises_null_driver_fired(self):
         driver = NullDriver()
-        with self.assertRaises(RuntimeError):
+        with self.assertRaises(NullDriverFired):
             driver.transcribe_batch("fake.pdf", "model-x", [1, 2], "prompt")
 
-    def test_transcribe_page_raises(self):
+    def test_transcribe_page_raises_null_driver_fired(self):
         driver = NullDriver()
-        with self.assertRaises(RuntimeError):
+        with self.assertRaises(NullDriverFired):
             driver.transcribe_page("fake.pdf", "model-x", 1, "prompt", b"bytes", 5)
+
+    def test_null_driver_fired_is_a_runtime_error(self):
+        # Code that still catches the old RuntimeError type keeps working.
+        self.assertTrue(issubclass(NullDriverFired, RuntimeError))
 
 
 class TestAgentPending(unittest.TestCase):

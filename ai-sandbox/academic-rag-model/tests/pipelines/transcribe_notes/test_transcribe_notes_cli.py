@@ -129,5 +129,30 @@ class TestSubmitAndBootstrapCLI(unittest.TestCase):
             self.assertIn("driver: agent", written)
 
 
+class TestDriverAgentRequiresCollectOrSubmit(unittest.TestCase):
+    """Final review I3: --driver agent on the plain (non-collect,
+    non-submit) path must refuse, not silently fall back to the real
+    paid API across the whole --notes-subdir."""
+
+    def test_driver_agent_without_collect_or_submit_refuses(self):
+        with tempfile.TemporaryDirectory() as hub:
+            notes_dir = os.path.join(hub, "academic_notes", "course", "ta_notes")
+            os.makedirs(notes_dir)
+            _write_minimal_pdf(os.path.join(notes_dir, "sample.pdf"))
+
+            env = dict(os.environ)
+            env.pop("GEMINI_API_KEY", None)
+            env.pop("PAID_GEMINI_KEY", None)
+            result = subprocess.run(
+                [sys.executable, "-m", "pipelines.transcribe_notes.transcribe_notes",
+                 "--notes-subdir", "academic_notes/course/ta_notes", "--driver", "agent"],
+                cwd=_PACKAGE_ROOT,
+                env={**env, "ACADEMIC_HUB_ROOT_OVERRIDE": hub},
+                capture_output=True, text=True,
+            )
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("--collect", result.stdout + result.stderr)
+
+
 if __name__ == "__main__":
     unittest.main()

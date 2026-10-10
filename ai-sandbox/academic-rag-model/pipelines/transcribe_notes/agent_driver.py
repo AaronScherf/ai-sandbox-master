@@ -51,6 +51,16 @@ class ApiDriver:
         return call_with_retries(lambda: transcribe_page_via_gemini(self.client, model, image_bytes, prompt))
 
 
+class NullDriverFired(RuntimeError):
+    """Raised by NullDriver when it's called at all -- a cache-
+    completeness bug, since every page/batch should have hit
+    process_pdf's own cache-check branches first. Caught explicitly
+    (ahead of `except Exception`) at process_pdf's three call sites so
+    it propagates as a hard error instead of falling through to the
+    real per-page fallback with a real (possibly paid) client -- final
+    review finding I2."""
+
+
 class NullDriver:
     """Used by submit's re-run of process_pdf once every page is already
     cached: every page/batch should hit process_pdf's own cache-check
@@ -59,7 +69,7 @@ class NullDriver:
     falling through to a paid API call."""
 
     def transcribe_batch(self, pdf_path: str, model: str, batch: list[int], prompt: str) -> dict[int, str]:
-        raise RuntimeError(
+        raise NullDriverFired(
             f"NullDriver: unexpected live call for batch {batch} in {pdf_path} -- "
             "the cache should already be complete at this point."
         )
@@ -67,7 +77,7 @@ class NullDriver:
     def transcribe_page(
         self, pdf_path: str, model: str, page_num: int, prompt: str, image_bytes: bytes, total_pages: int,
     ) -> str:
-        raise RuntimeError(
+        raise NullDriverFired(
             f"NullDriver: unexpected live call for page {page_num} in {pdf_path} -- "
             "the cache should already be complete at this point."
         )
