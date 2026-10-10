@@ -19,7 +19,8 @@ into the public graph repo.
 
 ## Verification
 
-- `python -m pytest tests/agent/concept_graph -q`: see the final count in the "Final review" section below.
+- `python -m pytest tests/agent/concept_graph -q`: 195 passed.
+- Rest of the repo's suite (main checkout's full venv, `--ignore=tests/agent/concept_graph`): 2972 passed, 34 subtests passed.
 - The IndexRetriever's live path (real index and key) is **not** exercised; its mapping is tested with a stand-in
   module. The Gemini completion function is not exercised (paid); the API driver is tested with a fake.
 - No stage has been run on the real corpus.
@@ -37,3 +38,20 @@ into the public graph repo.
    with `--approve-cost`, by the API. Do it after the remaining prior-year documents are transcribed.
 2. Then `offering_links` on the prior-year material, to mark duplicated context.
 3. Later: Artifact review adapter, Obsidian export.
+
+## Final review and fix pass
+
+A fresh reviewer read the whole branch. Findings and what was done (each fix has a test that failed first):
+
+- **Fixed, serious:** a crafted `--run-id` (`../graph/evil`, an absolute path) wrote task cards, which carry retrieved
+  source text, inside the graph repo, defeating the work-directory guard. Run ids are now limited to letters, digits,
+  dots, hyphens and underscores, and the final run folder is checked against the graph repo too.
+- **Fixed:** `api` crashed the whole run on a non-text or unparseable model reply; it now bounces that card and goes on.
+- **Fixed:** if applying a validated card fails midway (a disk error), the bounce message now says part of the card
+  may already be in the graph and to check the data files before resubmitting (the store stays non-transactional).
+- **Accepted limits:** the IP guard is a tripwire. It compares against each passage separately and ignores
+  everything but letters and digits, so invisible-character tricks or stitching short fragments from two passages are
+  not caught; the owner review before anything is `verified` is the backstop. Its cost grows with passage length and
+  was not measured on a full 150-card submit.
+- **Deferred minor:** `cli.main` catches bare `ValueError`/`RuntimeError`, so an unrelated programming error prints as
+  `error: ...` without a traceback.

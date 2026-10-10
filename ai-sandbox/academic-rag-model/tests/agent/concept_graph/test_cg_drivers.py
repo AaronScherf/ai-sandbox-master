@@ -192,3 +192,25 @@ def test_api_run_survives_one_failing_task(tmp_path):
     complete = make_complete(fail_for=("fill-preorder",))
     report = drivers.api_run("fill", run, store, complete, approve_cost=1.0)
     assert report.applied == ["fill-warp"] and any("api down" in r for r in report.bounced["fill-preorder"])
+
+
+def test_api_run_bounces_a_non_text_reply_and_keeps_going(tmp_path):
+    store, run = setup(tmp_path, blanks=("preorder", "warp"))
+    replies = iter([{"text": "not a string"}, "```yaml\n" + GOOD + "```"])
+    report = drivers.api_run("fill", run, store, lambda prompt: next(replies), approve_cost=1.0)
+    assert list(report.bounced) == ["fill-preorder"] and "not text" in report.bounced["fill-preorder"][0]
+    assert report.applied == ["fill-warp"]
+
+
+def test_a_failure_while_applying_says_part_of_the_card_may_already_be_in_the_graph(tmp_path, monkeypatch):
+    store, run = setup(tmp_path)
+    fill_card(run, "fill-preorder", GOOD)
+    from agent.concept_graph.stages import fill
+
+    def explode(store_, entry, result, provenance):
+        raise OSError("disk full")
+
+    monkeypatch.setattr(fill, "apply_result", explode)
+    report = drivers.submit(run, store, "test-agent")
+    reason = report.bounced["fill-preorder"][0]
+    assert "disk full" in reason and "may already be in the graph" in reason

@@ -88,3 +88,21 @@ def test_worklist_lists_status_per_task(tmp_path):
     run.bounce("fill-b", ["bad"])
     text = render_worklist(run)
     assert "fill-a" in text and "applied" in text and "fill-b" in text and "bounced" in text
+
+
+@pytest.mark.parametrize("bad", ["../graph/evil", "..", "a/b", "a\b", "/abs/path", "C:/abs/path", ".hidden", "", "x y"])
+def test_a_crafted_run_id_cannot_escape_the_work_dir_or_reach_the_graph_repo(tmp_path, bad):
+    repo = tmp_path / "graph"
+    repo.mkdir()
+    with pytest.raises(ValueError, match="run id"):
+        create_run(tmp_path / "work", repo, "fill", tasks(), run_id=bad)
+    assert list(repo.rglob("*")) == []
+    with pytest.raises(ValueError, match="run id"):
+        load_run(tmp_path / "work", bad)
+
+
+def test_ordinary_run_ids_are_accepted(tmp_path):
+    repo = tmp_path / "graph"
+    repo.mkdir()
+    run = create_run(tmp_path / "work", repo, "fill", tasks(), run_id="fill-2026-10-10_v2.1")
+    assert run.root.parent == tmp_path / "work"

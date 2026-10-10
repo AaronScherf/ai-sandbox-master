@@ -50,7 +50,8 @@ def _process(run: Run, store: GraphStore, mod, entry: dict, result: dict, agent_
             return
         reason = mod.apply_result(store, entry, result, provenance(driver, agent_name, run.run_id))
     except Exception as exc:  # one bad card must never stop the others
-        reasons = [f"could not process this card: {exc}"]
+        reasons = [f"could not process this card: {exc}. If this was a file or disk problem, part of the card may "
+                   f"already be in the graph; check the data files before submitting again"]
         run.bounce(task_id, reasons)
         report.bounced[task_id] = reasons
         return
@@ -112,9 +113,13 @@ def api_run(stage: str, run: Run, store: GraphStore, complete, approve_cost: flo
             run.bounce(task_id, [f"api call failed: {exc}"])
             report.bounced[task_id] = [f"api call failed: {exc}"]
             continue
+        if not isinstance(reply, str):
+            run.bounce(task_id, ["the api reply was not text"])
+            report.bounced[task_id] = ["the api reply was not text"]
+            continue
         try:
             result = result_from_response(reply)
-        except ResultError as exc:
+        except Exception as exc:  # a bad reply is one bounced card, never a crashed run
             run.bounce(task_id, [str(exc)])
             report.bounced[task_id] = [str(exc)]
             continue

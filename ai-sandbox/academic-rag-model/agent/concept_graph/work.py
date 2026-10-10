@@ -6,12 +6,22 @@ from __future__ import annotations
 import datetime as dt
 import json
 import os
+import re
 from dataclasses import dataclass
 from pathlib import Path
 
 from .tasks import Task, render_card
 
 STATUSES = ("pending", "filled", "applied", "bounced", "skipped")
+_RUN_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
+
+
+def _check_run_id(run_id: str) -> str:
+    """A run id becomes a folder name under the work directory, so it may not carry a path."""
+    if not isinstance(run_id, str) or not _RUN_ID.match(run_id):
+        raise ValueError(f"invalid run id {run_id!r}: use letters, digits, dots, hyphens and underscores, "
+                         f"starting with a letter or digit (no slashes)")
+    return run_id
 
 
 @dataclass
@@ -99,6 +109,8 @@ def create_run(work_root: str | Path, graph_repo: str | Path, stage: str, tasks:
     if _inside(work_root, graph_repo):
         raise ValueError(f"the work directory {work_root} is inside the graph repo {graph_repo}; "
                          f"cards hold source text and must stay private")
+    if run_id is not None:
+        _check_run_id(run_id)
     if run_id is None:
         base = f"{stage}-{dt.datetime.now():%Y%m%d-%H%M%S}"
         run_id, n = base, 1
@@ -106,6 +118,8 @@ def create_run(work_root: str | Path, graph_repo: str | Path, stage: str, tasks:
             n += 1
             run_id = f"{base}-{n}"
     root = work_root / run_id
+    if _inside(root, graph_repo):
+        raise ValueError(f"the run folder {root} is inside the graph repo {graph_repo}; cards hold source text and must stay private")
     (root / "cards").mkdir(parents=True, exist_ok=False)
     data = {
         "run_id": run_id, "stage": stage, "created": dt.datetime.now().isoformat(timespec="seconds"),
@@ -120,7 +134,7 @@ def create_run(work_root: str | Path, graph_repo: str | Path, stage: str, tasks:
 
 
 def load_run(work_root: str | Path, run_id: str) -> Run:
-    root = Path(work_root) / run_id
+    root = Path(work_root) / _check_run_id(run_id)
     path = root / "manifest.json"
     if not path.is_file():
         raise FileNotFoundError(f"no run {run_id!r} under {work_root}")

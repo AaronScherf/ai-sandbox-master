@@ -66,3 +66,9 @@ def test_cli_api_refuses_over_budget_with_exit_code_two_and_no_calls(tmp_path, c
                complete_factory=lambda a: (lambda prompt: calls.append(prompt) or GOOD))
     assert code == 2 and calls == []
     assert "estimate" in capsys.readouterr().err
+
+
+def test_cli_rejects_a_crafted_run_id(tmp_path, capsys):
+    root, work = setup(tmp_path)
+    assert cli(root, "collect", "fill", "--work-dir", str(work), "--run-id", "../graph/evil") == 1
+    assert "run id" in capsys.readouterr().err
