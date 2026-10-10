@@ -20,8 +20,9 @@ If math symbols (≽, γ, ℝ) come back as `?` in the brief or the log, write t
 Run `start` once. In state LAUNCH send `launch_text` through `say`, exactly as given, then wait for the student.
 
 ## Every turn: two commands
-1. `turn --intent <attempt|stuck|hint_request|define_request|confirm_advance|has_questions|other> --stdin` with the
-   student's verbatim message. Add `--define "<term>"` when they ask what a term means, and `--admits-gap [axis]`
+1. `turn --intent <attempt|stuck|hint_request|define_request|confirm_advance|has_questions|revisit|other> --stdin` with the
+   student's verbatim message. Add `--skip` when they ask to skip or move on, `--part <part_id>` with `revisit`,
+   `--define "<term>"` when they ask what a term means, and `--admits-gap [axis]`
    when they say they do not understand something. Read the JSON brief: follow `rules`, use `next`, and use
    `statement` only to understand the problem (print it only if the student asks to see the question).
    When the brief has a `definition`, your reply MUST give it to the student word for word, then add at most one
@@ -42,12 +43,26 @@ student's own words with each step, write a check file (JSON list, one entry per
 A confirmed step needs a quote the student actually wrote in this part. Never quote, summarize or outline the
 steps to the student. If the result is `closed: false`, keep tutoring from the defects under the usual rules (the
 solution is not shown again). When it is `closed: true`, `say` the check-in: ask whether they have lingering
-questions or are ready to move on. After the last part is closed and the student confirms, run
+questions or are ready to move on. After every part is closed or parked and the student confirms (or declines the last offer), run
 `end --big-picture-file <file>`.
 
 ## Moving on
 Only a student message labelled `confirm_advance` moves to the next part. Do not mention the next part before
 that.
+
+## Skipping, coming back, and pausing
+- If the student asks to skip or move on while a part is open, run `turn --skip` (and the intent that fits). The first
+  time, reply with ONE question that invites them to try a first step: do not agree, do not move on, do not mention
+  the next question. If they ask again, the part is parked and the brief shows the next question's `launch_text`;
+  you may put ONE short sentence (max 20 words, no question, no content) before it saying the earlier question can be
+  revisited.
+- At the check-in after the next completed part, the brief lists `revisit_offer`. Your check-in must also offer to go
+  back to those parts (name them) without naming the next question. If the student wants to go back, run
+  `turn --intent revisit --part <part_id> --stdin`; if they want to move on, `confirm_advance`.
+- Never bring up a parked part while another part is being worked.
+- When every part has been visited and parked parts remain, the closing message must offer them once more; then run
+  `end`. `end` refuses until that offer was said.
+- To stop for now, run `pause` (or `end --partial`). `start` resumes a paused session; `start --fresh` abandons it.
 
 ## Manual overrides (rare, and audited)
 - `--establish C --establish-quote "<student words>"`: the student clearly stated a claim in words the system

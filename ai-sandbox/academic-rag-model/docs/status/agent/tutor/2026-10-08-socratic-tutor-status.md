@@ -62,3 +62,19 @@ PowerShell stdin check (Task 10): `$OutputEncoding = [Text.UTF8Encoding]::new($f
 2. Decide on the independent judge from those results.
 3. Plan B: skip/defer/revisit, `pause`, profile v2, and their audit checks.
 4. The one-sentence Antigravity entry point.
+
+
+## v1.1 Plan B (skip / defer / revisit, pause, profile v2)
+
+Landed on branch `claude/tutor-v1-1-plan-b` (not yet on main; waits for the live Plan A run).
+
+- Two-request skip: request 1 needs a "try it" nudge question; request 2 parks the part as `skipped` (no real attempt) or `deferred` (at least one real attempt: 8+ words outside skip phrases on an `attempt` turn, or a newly matched claim/pitfall; an `--admits-gap` turn never counts). A skip phrase inside an `attempt` turn is not a skip unless `--skip` is passed; the audit lists those turns.
+- Parked parts are offered only at the check-in after the next completed part, and once more in the closing message; `end` is refused until that offer is said. Mentioning a parked part mid-part is a lint error.
+- Revisit reopens the part at its saved hint level with claims intact, as attempt 2; its rating is capped at Proficient on every axis.
+- Profile `schema_version` 2 (`status`, `attempt`); v1 files load as rated attempt 1; `update_profile` is idempotent per session, so `pause` then `end` does not duplicate history.
+- `pause` / `end --partial`, `start` resumes, `start --fresh` ends the open session as partial.
+- Audit adds `SKIP_TOO_EARLY`, `SKIP_WITHOUT_NUDGE`, `REVISIT_OFFER_MISSING`, `REVISIT_MID_PART`, `SKIP_PHRASE_UNCOUNTED`, and exempts legitimate part moves from `ADVANCE_WITHOUT_CONFIRM`.
+
+Rulings: `skip_request` is `data.skip` on the student event, not its own event; the ending skip message is logged under the parked part followed by `part_status`; one short acknowledgement (at most 20 words, no question, no claim content) may precede the launch line after a skip; the regression test found that `synthesis`/`session_end` are logged under the last part, so the audit now exempts them from the part-move check.
+
+Live validation pending: the tunables (8 words, 20 words, 60 words) are guesses.

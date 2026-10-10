@@ -10,8 +10,8 @@ model call happens at runtime.
 Not the same thing as `agent/rag/` (the RAG Q&A and `/draft` diagnosis REPL). For a tutoring session, use this package.
 
 Design: `docs/superpowers/specs/2026-10-08-socratic-tutor-v1-1-design.md` (amends the v1 spec). Plan:
-`docs/superpowers/plans/2026-10-08-socratic-tutor-v1-1-plan-a.md`. Skip/defer/revisit/pause and profile v2 (Plan B)
-are not built yet.
+`docs/superpowers/plans/2026-10-08-socratic-tutor-v1-1-plan-a.md`. Skip/defer/revisit, pause and profile v2 (Plan B):
+`docs/superpowers/plans/2026-10-09-socratic-tutor-v1-1-plan-b.md`.
 
 ## Flow
 
@@ -38,11 +38,12 @@ python -m agent.tutor.cli --hub-root ../academic-hub --course microecon --proble
 | `prep-collect --problem-set-file F --question-ref N [--hints-file --solutions-file --force]` | Build the packet skeleton. |
 | `prep-submit` | Validate the packet (including the self-test) and write the marker. |
 | `bootstrap` | Print the agent's operating contract with paths filled in. |
-| `start` | Create or resume a session; returns the brief with `launch_text`. |
-| `turn --intent I (--stdin \| --text-file F \| --text T) [--admits-gap [axis]] [--define TERM] [--establish C --establish-quote Q] [--flag-slip TAG[:axis] --slip-quote Q] [--resolve TAG --resolve-quote Q]` | Log a student message and return the brief. Manual flags need a quote the student wrote. |
+| `start [--fresh]` | Create or resume a session (a paused one resumes); `--fresh` ends the open one as partial and begins a new one. Returns the brief with `launch_text`. |
+| `turn --intent I (--stdin \| --text-file F \| --text T) [--admits-gap [axis]] [--define TERM] [--establish C --establish-quote Q] [--flag-slip TAG[:axis] --slip-quote Q] [--resolve TAG --resolve-quote Q] [--skip] [--part P]` | Log a student message and return the brief. Manual flags need a quote the student wrote. `--skip` marks a skip request; `--part` names the parked part for `--intent revisit`. |
 | `say (--stdin \| --text-file F \| --text T) [--check]` | Lint a tutor draft; `ok` returns `send`. `--check` logs nothing. A rejection is normal. |
 | `verify [--check-file F] [--downgrade axis=rating ... --why TEXT]` | Without a file: release the solution steps once. With a file: submit the step check. |
-| `end --big-picture-file F` | Finish the session and render documents. |
+| `pause` | Stop for now: write the documents and the profile and block turns until `start`. |
+| `end --big-picture-file F` / `end --partial` | Finish the session and render documents (`--partial` is `pause`). Refused while parked parts have not been offered in a closing message. |
 | `audit [--session ID]` | Re-lint a session (open or finished) from its log. |
 
 Exit code 0 when `ok`, 2 otherwise; output is JSON. Every error is `{"ok": false, "error": ..., "next": [...]}`.
@@ -68,7 +69,7 @@ before the student confirms; Unicode math in chat.
 ## Vault output
 
 `<ps>/sessions/<YYYY-MM-DD-HHMM>/{events.jsonl,transcript.md,summary.md}` and `tutoring/learner_profile.{json,md}`
-(`schema_version` 1; single writer: `end`).
+(`schema_version` 2: history entries carry `status` rated | deferred | skipped and `attempt`; written by `end` and `pause`).
 
 ## Known limits
 
@@ -84,4 +85,4 @@ before the student confirms; Unicode math in chat.
 - Intent labels come from the agent; the audit cross-checks obvious mismatches.
 - Piping text through PowerShell needs `$OutputEncoding = [Text.UTF8Encoding]::new($false)` (in the bootstrap
   contract). Verified on Windows PowerShell 5.1; fall back to `--text-file` if symbols turn into `?`.
-- Not yet built (Plan B): skip/defer/revisit, `pause`, profile v2.
+- The 8-word real-attempt threshold, the 20-word acknowledgement and the 60-word question cap are guesses to tune from live runs.
