@@ -59,7 +59,29 @@ class Recognizer:
         return self.matches_tokens(tokenize(text))
 
 
-def parse_recognizer(raw, where: str = "recognizer") -> Recognizer:
+@dataclass(frozen=True)
+class AnyOf:
+    """Several recognizers for one idea (e.g. textbook wording and everyday wording): matches if any option does."""
+    options: tuple
+
+    def matches_tokens(self, tokens: list[str], masked=None) -> bool:
+        return any(o.matches_tokens(tokens, masked=masked) for o in self.options)
+
+    def matches(self, text: str) -> bool:
+        return self.matches_tokens(tokenize(text))
+
+
+def parse_recognizer(raw, where: str = "recognizer") -> "Recognizer | AnyOf":
+    if isinstance(raw, dict) and "any_of" in raw:
+        options = raw["any_of"]
+        if set(raw) != {"any_of"} or not isinstance(options, list) or len(options) < 2:
+            raise ClaimsError(f"{where}: 'any_of' must be the only key and list at least two recognizers")
+        parsed = []
+        for i, o in enumerate(options):
+            if isinstance(o, dict) and "any_of" in o:
+                raise ClaimsError(f"{where}.any_of[{i}]: any_of cannot be nested")
+            parsed.append(parse_recognizer(o, f"{where}.any_of[{i}]"))
+        return AnyOf(tuple(parsed))
     if not isinstance(raw, dict) or set(raw) - {"all", "window"}:
         raise ClaimsError(f"{where}: must be an object with only 'all' and 'window'")
     groups, window = raw.get("all"), raw.get("window")
@@ -181,7 +203,7 @@ def parse_claims(raw, part_ids: list[str]) -> tuple[dict, list[str]]:
     return out, errors
 
 
-def _unmatched(rec: Recognizer, samples: list) -> list[str]:
+def _unmatched(rec, samples: list) -> list[str]:
     return [s for s in samples if not rec.matches(s)]
 
 

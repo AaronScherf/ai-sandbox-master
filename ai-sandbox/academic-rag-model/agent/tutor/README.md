@@ -57,6 +57,8 @@ optional reference and is not used at runtime.
 A recognizer is `{"all": [[entry, ...], ...], "window": N}`: every group must have a hit within N consecutive words.
 An entry matches a whole word; one ending in `*` matches a prefix. Example (a claim that the others must not be
 considered): `{"all": [["consider*"], ["better", "higher"], ["not", "never", "fail*"]], "window": 14}`.
+Optional (not used by any packet yet; try it live before relying on it): `{"any_of": [recognizer, recognizer, ...]}` (two or more, not nested)
+matches when any option does, for an idea students state in two quite different vocabularies.
 
 ## `say` rules
 
