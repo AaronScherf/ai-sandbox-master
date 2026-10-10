@@ -1,5 +1,10 @@
 # Pending Improvements for the Academic Hub by Subproject
 
+To run this tracker as an interactive webpage, run the following in the terminal from the project root:
+```powershell
+cd .\ai-sandbox\academic-rag-model; .\.venv\Scripts\python.exe -m tools.project_steering review --tracker (Resolve-Path .\docs\trackers\academic_hub_to_do.md).Path --state-dir (Resolve-Path ..\..\.git\project-steering\owner).Path
+```
+
 <!-- Convention: one bullet per pending item under its subproject's `##` heading, ending in
      `(added YYYY-MM-DD)`. New sections go directly under this title: the file ends in pasted
      example text, so don't append at the end. Agents add items when asked to "add this as a
