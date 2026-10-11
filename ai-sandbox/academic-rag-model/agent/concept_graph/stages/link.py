@@ -127,7 +127,7 @@ def validate_result(entry: dict, result: dict, store: GraphStore) -> list[str]:
             problems.append(f"{tag}: one end must be this task's node {node_id!r}")
         eid = edge_id(src, typ, tgt)
         if eid in existing:
-            problems.append(f"{tag}: {eid} already exists")
+            continue  # two cards often propose the same edge from opposite ends; the graph already has it
         if eid in tombstones:
             problems.append(f"{tag}: {eid} was rejected earlier and must not be proposed again")
         if eid in seen:
@@ -176,12 +176,14 @@ def apply_result(store: GraphStore, entry: dict, result: dict, provenance: dict)
     for e in edges:
         eid = edge_id(e["source"], e["type"], e["target"])
         if eid in existing:
-            return f"edge {eid} already exists; nothing applied"
+            continue
         item = {"id": eid, "source": e["source"], "type": e["type"], "target": e["target"],
                 "condition": e.get("condition"), "via": e.get("via"), "explanation": e["explanation"].strip(),
                 "citations": [{"source": c["source"], "ref": c["ref"]} for c in e["citations"]],
                 "status": "proposed", "provenance": provenance}
         prepared.append(item)
+    if not prepared:
+        return None
     try:
         store.add_edges(prepared)
     except ValueError as exc:

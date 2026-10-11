@@ -96,10 +96,10 @@ def test_via_must_be_a_theorem_and_only_on_implies_or_iff(tmp_path):
     assert any("via" in m for m in link.validate_result(entry, {"edges": [edge(via="szpilrajn-extension")]}, store))
 
 
-def test_duplicate_existing_edge_is_bounced_with_a_reason(tmp_path):
+def test_an_edge_that_already_exists_is_skipped_not_bounced(tmp_path):
     store, task, entry = prepared(tmp_path, node="preorder", redo=True)
     dup = {"source": "preorder", "type": "is_a", "target": "binary-relation", "explanation": "Already there.", "citations": CITE}
-    assert any("already exists" in m for m in link.validate_result(entry, {"edges": [dup]}, store))
+    assert link.validate_result(entry, {"edges": [dup]}, store) == []
 
 
 def test_tombstoned_edge_is_not_reproposed(tmp_path):
@@ -141,9 +141,18 @@ def test_apply_computes_canonical_ids_and_writes_proposed_edges(tmp_path):
     assert imp.condition == "menus are rich"
 
 
-def test_apply_after_the_edge_appeared_meanwhile_reports_instead_of_crashing(tmp_path):
+def test_apply_skips_an_edge_that_appeared_meanwhile_and_still_applies_the_rest(tmp_path):
     store, task, entry = prepared(tmp_path)
     store.add_edges([{"id": "choice-function--defined_on--set", "source": "choice-function", "type": "defined_on",
                       "target": "set", "status": "proposed"}])
-    reason = link.apply_result(store, entry, {"edges": [edge()]}, PROV)
-    assert reason and "already exists" in reason
+    other = edge(type="implies", target="warp", condition="menus are rich", via="szpilrajn-extension")
+    assert link.apply_result(store, entry, {"edges": [edge(), other]}, PROV) is None
+    ids = {e.id for e in store.read_all().edges}
+    assert "choice-function--implies--warp" in ids
+
+
+def test_a_result_of_only_existing_edges_applies_nothing_and_is_fine(tmp_path):
+    store, task, entry = prepared(tmp_path)
+    store.add_edges([{"id": "choice-function--defined_on--set", "source": "choice-function", "type": "defined_on",
+                      "target": "set", "status": "proposed"}])
+    assert link.apply_result(store, entry, {"edges": [edge()]}, PROV) is None
