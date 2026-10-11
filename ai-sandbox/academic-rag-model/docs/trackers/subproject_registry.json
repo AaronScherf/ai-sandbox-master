@@ -1,0 +1,1717 @@
+{
+  "$schema": "subproject_registry.schema.json",
+  "version": "1.0.0",
+  "baseline": {
+    "monorepo": "4eaa5bffdff2598d22d8edae9ed19c6199bb0686",
+    "website": "ebc836ad2dccfc357d57d4504a00bc4dd75a07bb"
+  },
+  "subprojects": {
+    "source_indexer": {
+      "name": "Source Indexer",
+      "kind": "code",
+      "category": "academic-hub",
+      "lifecycle": "active",
+      "package": "core/indexer",
+      "code_paths": [
+        "ai-sandbox/academic-rag-model/core/indexer"
+      ],
+      "readme_path": "ai-sandbox/academic-rag-model/core/indexer/README.md",
+      "readme_absence_reason": null,
+      "status_docs": [
+        {
+          "path": "ai-sandbox/academic-rag-model/docs/status/indexer/2026-08-29-source-indexer-status.md",
+          "role": "current",
+          "lifecycle_ids": [
+            "source-indexer-core"
+          ]
+        },
+        {
+          "path": "ai-sandbox/academic-rag-model/docs/status/indexer/2026-08-29-passage-embeddings-status.md",
+          "role": "current",
+          "lifecycle_ids": [
+            "passage-embeddings"
+          ]
+        },
+        {
+          "path": "ai-sandbox/academic-rag-model/docs/status/indexer/2026-10-03-cross-offering-linkage-status.md",
+          "role": "current",
+          "lifecycle_ids": [
+            "cross-offering-linkage"
+          ]
+        }
+      ],
+      "status_absence_reason": null,
+      "lifecycle_records": {
+        "source-indexer-core": {
+          "state": "current",
+          "supersedes": [],
+          "specs": [
+            "ai-sandbox/academic-rag-model/docs/superpowers/specs/indexer/2026-08-27-source-indexer-design.md"
+          ],
+          "implementation_plans": [
+            "ai-sandbox/academic-rag-model/docs/superpowers/plans/indexer/2026-08-28-source-indexer-core.md",
+            "ai-sandbox/academic-rag-model/docs/superpowers/plans/indexer/2026-08-28-source-indexer-retag.md"
+          ],
+          "test_paths": [
+            "ai-sandbox/academic-rag-model/tests/core/indexer/test_index_card.py",
+            "ai-sandbox/academic-rag-model/tests/core/indexer/test_index_search.py"
+          ],
+          "absence_reasons": {
+            "specs": null,
+            "implementation_plans": null,
+            "test_paths": null
+          }
+        },
+        "passage-embeddings": {
+          "state": "current",
+          "supersedes": [],
+          "specs": [
+            "ai-sandbox/academic-rag-model/docs/superpowers/specs/indexer/2026-08-29-passage-embeddings-design.md"
+          ],
+          "implementation_plans": [
+            "ai-sandbox/academic-rag-model/docs/superpowers/plans/indexer/2026-08-29-passage-embeddings.md"
+          ],
+          "test_paths": [
+            "ai-sandbox/academic-rag-model/tests/core/indexer/test_chunk_index.py"
+          ],
+          "absence_reasons": {
+            "specs": null,
+            "implementation_plans": null,
+            "test_paths": null
+          }
+        },
+        "cross-offering-linkage": {
+          "state": "current",
+          "supersedes": [],
+          "specs": [
+            "ai-sandbox/academic-rag-model/docs/superpowers/specs/indexer/2026-10-03-cross-offering-linkage-design.md"
+          ],
+          "implementation_plans": [
+            "ai-sandbox/academic-rag-model/docs/superpowers/plans/indexer/2026-10-03-cross-offering-linkage.md"
+          ],
+          "test_paths": [
+            "ai-sandbox/academic-rag-model/tests/core/indexer/test_offering_links.py"
+          ],
+          "absence_reasons": {
+            "specs": null,
+            "implementation_plans": null,
+            "test_paths": null
+          }
+        },
+        "duplicate-detection": {
+          "state": "current",
+          "supersedes": [],
+          "specs": [
+            "ai-sandbox/academic-rag-model/docs/superpowers/specs/indexer/2026-09-17-cross-course-duplicate-textbook-detection-design.md"
+          ],
+          "implementation_plans": [
+            "ai-sandbox/academic-rag-model/docs/superpowers/plans/indexer/2026-09-17-cross-course-duplicate-textbook-detection.md",
+            "ai-sandbox/academic-rag-model/docs/superpowers/plans/indexer/2026-09-20-duplicate-auto-resolution.md"
+          ],
+          "test_paths": [
+            "ai-sandbox/academic-rag-model/tests/core/indexer/test_duplicate_check.py"
+          ],
+          "absence_reasons": {
+            "specs": null,
+            "implementation_plans": null,
+            "test_paths": null
+          }
+        },
+        "subset-note-linking": {
+          "state": "proposed",
+          "supersedes": [],
+          "specs": [
+            "ai-sandbox/academic-rag-model/docs/superpowers/specs/indexer/2026-10-03-subset-note-linking-design.md"
+          ],
+          "implementation_plans": [
+            "ai-sandbox/academic-rag-model/docs/superpowers/plans/indexer/2026-10-03-subset-note-linking.md"
+          ],
+          "test_paths": [
+            "ai-sandbox/academic-rag-model/tests/core/indexer/test_offering_links.py"
+          ],
+          "absence_reasons": {
+            "specs": null,
+            "implementation_plans": null,
+            "test_paths": null
+          }
+        }
+      },
+      "website": {
+        "policy": "required",
+        "page": "content/projects/academic-hub/source_indexer/index.md",
+        "reason": null
+      },
+      "members": [],
+      "archive_reason": null
+    },
+    "transcribe_notes": {
+      "name": "Notes Transcription",
+      "kind": "code",
+      "category": "academic-hub",
+      "lifecycle": "active",
+      "package": "pipelines/transcribe_notes",
+      "code_paths": [
+        "ai-sandbox/academic-rag-model/pipelines/transcribe_notes"
+      ],
+      "readme_path": "ai-sandbox/academic-rag-model/pipelines/transcribe_notes/README.md",
+      "readme_absence_reason": null,
+      "status_docs": [
+        {
+          "path": "ai-sandbox/academic-rag-model/docs/status/transcribe_notes/2026-08-24-notes-transcription-status.md",
+          "role": "current",
+          "lifecycle_ids": [
+            "notes-transcription"
+          ]
+        }
+      ],
+      "status_absence_reason": null,
+      "lifecycle_records": {
+        "notes-transcription": {
+          "state": "current",
+          "supersedes": [],
+          "specs": [],
+          "implementation_plans": [],
+          "test_paths": [
+            "ai-sandbox/academic-rag-model/tests/pipelines/transcribe_notes/test_transcribe_notes.py"
+          ],
+          "absence_reasons": {
+            "specs": "No standalone design spec is established for this operational baseline.",
+            "implementation_plans": "No standalone implementation plan is established for this operational baseline.",
+            "test_paths": null
+          }
+        },
+        "excalidraw-transcription": {
+          "state": "current",
+          "supersedes": [],
+          "specs": [
+            "ai-sandbox/academic-rag-model/docs/superpowers/specs/transcribe_notes/2026-09-09-excalidraw-notes-transcription-design.md"
+          ],
+          "implementation_plans": [
+            "ai-sandbox/academic-rag-model/docs/superpowers/plans/transcribe_notes/2026-09-09-excalidraw-notes-transcription.md"
+          ],
+          "test_paths": [
+            "ai-sandbox/academic-rag-model/tests/pipelines/transcribe_notes/test_transcribe_excalidraw.py"
+          ],
+          "absence_reasons": {
+            "specs": null,
+            "implementation_plans": null,
+            "test_paths": null
+          }
+        },
+        "subset-discovery": {
+          "state": "current",
+          "supersedes": [],
+          "specs": [
+            "ai-sandbox/academic-rag-model/docs/superpowers/specs/transcribe_notes/2026-10-03-notes-subset-discovery-design.md"
+          ],
+          "implementation_plans": [
+            "ai-sandbox/academic-rag-model/docs/superpowers/plans/transcribe_notes/2026-10-03-notes-subset-discovery.md"
+          ],
+          "test_paths": [
+            "ai-sandbox/academic-rag-model/tests/pipelines/transcribe_notes/test_agent_work_discovery_exclusion.py"
+          ],
+          "absence_reasons": {
+            "specs": null,
+            "implementation_plans": null,
+            "test_paths": null
+          }
+        },
+        "agent-driven-transcription": {
+          "state": "proposed",
+          "supersedes": [],
+          "specs": [
+            "ai-sandbox/academic-rag-model/docs/superpowers/specs/transcribe_notes/2026-10-09-agent-driven-transcription-design.md"
+          ],
+          "implementation_plans": [
+            "ai-sandbox/academic-rag-model/docs/superpowers/plans/2026-10-09-agent-driven-transcription-plan.md"
+          ],
+          "test_paths": [
+            "ai-sandbox/academic-rag-model/tests/pipelines/transcribe_notes/test_agent_driver.py"
+          ],
+          "absence_reasons": {
+            "specs": null,
+            "implementation_plans": null,
+            "test_paths": null
+          }
+        }
+      },
+      "website": {
+        "policy": "required",
+        "page": "content/projects/academic-hub/notes_transcription/index.md",
+        "reason": null
+      },
+      "members": [],
+      "archive_reason": null
+    },
+    "convert_textbook": {
+      "name": "Textbook Conversion",
+      "kind": "code",
+      "category": "academic-hub",
+      "lifecycle": "active",
+      "package": "pipelines/convert_textbook",
+      "code_paths": [
+        "ai-sandbox/academic-rag-model/pipelines/convert_textbook"
+      ],
+      "readme_path": "ai-sandbox/academic-rag-model/pipelines/convert_textbook/README.md",
+      "readme_absence_reason": null,
+      "status_docs": [
+        {
+          "path": "ai-sandbox/academic-rag-model/docs/status/convert_textbook/2026-09-10-textbook-conversion-status.md",
+          "role": "current",
+          "lifecycle_ids": [
+            "textbook-conversion"
+          ]
+        },
+        {
+          "path": "ai-sandbox/academic-rag-model/docs/status/convert_textbook/2026-08-22-chapter-aware-chunking-status.md",
+          "role": "current",
+          "lifecycle_ids": [
+            "chapter-chunking"
+          ]
+        },
+        {
+          "path": "ai-sandbox/academic-rag-model/docs/status/convert_textbook/2026-08-23-image-description-status.md",
+          "role": "current",
+          "lifecycle_ids": [
+            "image-description"
+          ]
+        }
+      ],
+      "status_absence_reason": null,
+      "lifecycle_records": {
+        "textbook-conversion": {
+          "state": "current",
+          "supersedes": [],
+          "specs": [
+            "ai-sandbox/academic-rag-model/docs/superpowers/specs/convert_textbook/2026-09-20-textbook-conversion-skill-design.md",
+            "ai-sandbox/academic-rag-model/docs/superpowers/specs/convert_textbook/2026-09-20-textbook-conversion-walkaway-execution-design.md",
+            "ai-sandbox/academic-rag-model/docs/superpowers/specs/2026-09-21-source-asset-relocation-design.md"
+          ],
+          "implementation_plans": [
+            "ai-sandbox/academic-rag-model/docs/superpowers/plans/convert_textbook/2026-08-20-vm-validation-checklist.md",
+            "ai-sandbox/academic-rag-model/docs/superpowers/plans/convert_textbook/2026-09-20-oom-cost-escalation-ladder.md",
+            "ai-sandbox/academic-rag-model/docs/superpowers/plans/convert_textbook/2026-09-20-rebuild-safety-fix.md",
+            "ai-sandbox/academic-rag-model/docs/superpowers/plans/convert_textbook/2026-09-21-source-asset-relocation.md"
+          ],
+          "test_paths": [
+            "ai-sandbox/academic-rag-model/tests/pipelines/convert_textbook/test_convert_textbook.py"
+          ],
+          "absence_reasons": {
+            "specs": null,
+            "implementation_plans": null,
+            "test_paths": null
+          }
+        },
+        "chapter-chunking": {
+          "state": "current",
+          "supersedes": [],
+          "specs": [
+            "ai-sandbox/academic-rag-model/docs/superpowers/specs/convert_textbook/2026-08-19-textbook-chunking-and-page-tracking-design.md"
+          ],
+          "implementation_plans": [
+            "ai-sandbox/academic-rag-model/docs/superpowers/plans/convert_textbook/2026-08-20-chapter-aware-chunking.md"
+          ],
+          "test_paths": [
+            "ai-sandbox/academic-rag-model/tests/pipelines/convert_textbook/test_chapter_index.py"
+          ],
+          "absence_reasons": {
+            "specs": null,
+            "implementation_plans": null,
+            "test_paths": null
+          }
+        },
+        "image-description": {
+          "state": "current",
+          "supersedes": [],
+          "specs": [],
+          "implementation_plans": [],
+          "test_paths": [
+            "ai-sandbox/academic-rag-model/tests/pipelines/convert_textbook/test_describe_images.py"
+          ],
+          "absence_reasons": {
+            "specs": "No standalone design spec is established for this operational baseline.",
+            "implementation_plans": "No standalone implementation plan is established for this operational baseline.",
+            "test_paths": null
+          }
+        },
+        "vm-ram-sizing": {
+          "state": "current",
+          "supersedes": [],
+          "specs": [
+            "ai-sandbox/academic-rag-model/docs/superpowers/specs/convert_textbook/2026-09-20-vm-ram-sizing-logging-design.md"
+          ],
+          "implementation_plans": [
+            "ai-sandbox/academic-rag-model/docs/superpowers/plans/convert_textbook/2026-09-20-vm-ram-sizing-logging.md"
+          ],
+          "test_paths": [
+            "ai-sandbox/academic-rag-model/tests/pipelines/convert_textbook/test_vm_sizing_log.py"
+          ],
+          "absence_reasons": {
+            "specs": null,
+            "implementation_plans": null,
+            "test_paths": null
+          }
+        }
+      },
+      "website": {
+        "policy": "required",
+        "page": "content/projects/academic-hub/marker_conversion/index.md",
+        "reason": null
+      },
+      "members": [],
+      "archive_reason": null
+    },
+    "postprocess_notes": {
+      "name": "Notes Post-Processing",
+      "kind": "code",
+      "category": "academic-hub",
+      "lifecycle": "active",
+      "package": "pipelines/postprocess_notes",
+      "code_paths": [
+        "ai-sandbox/academic-rag-model/pipelines/postprocess_notes"
+      ],
+      "readme_path": null,
+      "readme_absence_reason": "The postprocess package has no standalone README; its status and design describe it.",
+      "status_docs": [
+        {
+          "path": "ai-sandbox/academic-rag-model/docs/status/postprocess_notes/2026-08-27-notes-postprocessing-status.md",
+          "role": "current",
+          "lifecycle_ids": [
+            "notes-postprocessing"
+          ]
+        }
+      ],
+      "status_absence_reason": null,
+      "lifecycle_records": {
+        "notes-postprocessing": {
+          "state": "current",
+          "supersedes": [],
+          "specs": [
+            "ai-sandbox/academic-rag-model/docs/superpowers/specs/postprocess_notes/2026-08-26-notes-postprocessing-design.md"
+          ],
+          "implementation_plans": [
+            "ai-sandbox/academic-rag-model/docs/superpowers/plans/transcribe_notes/2026-08-26-notes-postprocessing.md"
+          ],
+          "test_paths": [
+            "ai-sandbox/academic-rag-model/tests/pipelines/postprocess_notes/test_postprocess_notes.py"
+          ],
+          "absence_reasons": {
+            "specs": null,
+            "implementation_plans": null,
+            "test_paths": null
+          }
+        }
+      },
+      "website": {
+        "policy": "required",
+        "page": "content/projects/academic-hub/postprocess_notes/index.md",
+        "reason": null
+      },
+      "members": [],
+      "archive_reason": null
+    },
+    "generate_video_notes": {
+      "name": "Video Lecture Notes",
+      "kind": "code",
+      "category": "academic-hub",
+      "lifecycle": "active",
+      "package": "pipelines/generate_video_notes",
+      "code_paths": [
+        "ai-sandbox/academic-rag-model/pipelines/generate_video_notes"
+      ],
+      "readme_path": "ai-sandbox/academic-rag-model/pipelines/generate_video_notes/README.md",
+      "readme_absence_reason": null,
+      "status_docs": [
+        {
+          "path": "ai-sandbox/academic-rag-model/docs/status/generate_video_notes/2026-09-06-video-lecture-notes-status.md",
+          "role": "current",
+          "lifecycle_ids": [
+            "video-notes"
+          ]
+        }
+      ],
+      "status_absence_reason": null,
+      "lifecycle_records": {
+        "video-notes": {
+          "state": "current",
+          "supersedes": [],
+          "specs": [
+            "ai-sandbox/academic-rag-model/docs/superpowers/specs/generate_video_notes/2026-09-06-video-lecture-notes-design.md"
+          ],
+          "implementation_plans": [
+            "ai-sandbox/academic-rag-model/docs/superpowers/plans/generate_video_notes/2026-09-06-video-lecture-notes.md"
+          ],
+          "test_paths": [
+            "ai-sandbox/academic-rag-model/tests/pipelines/generate_video_notes/test_pipeline.py"
+          ],
+          "absence_reasons": {
+            "specs": null,
+            "implementation_plans": null,
+            "test_paths": null
+          }
+        }
+      },
+      "website": {
+        "policy": "required",
+        "page": "content/projects/academic-hub/video_notes/index.md",
+        "reason": null
+      },
+      "members": [],
+      "archive_reason": null
+    },
+    "convert_essays": {
+      "name": "Research Notes Conversion",
+      "kind": "code",
+      "category": "ai-research-assistant",
+      "lifecycle": "active",
+      "package": "pipelines/convert_essays",
+      "code_paths": [
+        "ai-sandbox/academic-rag-model/pipelines/convert_essays"
+      ],
+      "readme_path": "ai-sandbox/academic-rag-model/pipelines/convert_essays/README.md",
+      "readme_absence_reason": null,
+      "status_docs": [
+        {
+          "path": "ai-sandbox/academic-rag-model/docs/status/convert_essays/2026-09-01-research-notes-conversion-status.md",
+          "role": "current",
+          "lifecycle_ids": [
+            "research-notes-conversion"
+          ]
+        }
+      ],
+      "status_absence_reason": null,
+      "lifecycle_records": {
+        "research-notes-conversion": {
+          "state": "current",
+          "supersedes": [],
+          "specs": [],
+          "implementation_plans": [],
+          "test_paths": [
+            "ai-sandbox/academic-rag-model/tests/pipelines/convert_essays/test_convert_essays.py"
+          ],
+          "absence_reasons": {
+            "specs": "No standalone design spec is established for this operational baseline.",
+            "implementation_plans": "No standalone implementation plan is established for this operational baseline.",
+            "test_paths": null
+          }
+        }
+      },
+      "website": {
+        "policy": "required",
+        "page": "content/projects/ai-research-assistant/research_notes_conversion/index.md",
+        "reason": null
+      },
+      "members": [],
+      "archive_reason": null
+    },
+    "convert_journal_articles": {
+      "name": "Journal Article Transcription",
+      "kind": "code",
+      "category": "ai-research-assistant",
+      "lifecycle": "active",
+      "package": "pipelines/convert_journal_articles",
+      "code_paths": [
+        "ai-sandbox/academic-rag-model/pipelines/convert_journal_articles"
+      ],
+      "readme_path": "ai-sandbox/academic-rag-model/pipelines/convert_journal_articles/README.md",
+      "readme_absence_reason": null,
+      "status_docs": [
+        {
+          "path": "ai-sandbox/academic-rag-model/docs/status/convert_journal_articles/2026-09-01-journal-article-transcription-status.md",
+          "role": "current",
+          "lifecycle_ids": [
+            "journal-transcription"
+          ]
+        }
+      ],
+      "status_absence_reason": null,
+      "lifecycle_records": {
+        "journal-transcription": {
+          "state": "current",
+          "supersedes": [],
+          "specs": [],
+          "implementation_plans": [],
+          "test_paths": [
+            "ai-sandbox/academic-rag-model/tests/pipelines/convert_journal_articles/test_convert_journal_articles.py"
+          ],
+          "absence_reasons": {
+            "specs": "No standalone design spec is established for this operational baseline.",
+            "implementation_plans": "No standalone implementation plan is established for this operational baseline.",
+            "test_paths": null
+          }
+        }
+      },
+      "website": {
+        "policy": "required",
+        "page": "content/projects/ai-research-assistant/journal_article_transcription/index.md",
+        "reason": null
+      },
+      "members": [],
+      "archive_reason": null
+    },
+    "discover_journal_articles": {
+      "name": "Journal Discovery",
+      "kind": "code",
+      "category": "ai-research-assistant",
+      "lifecycle": "active",
+      "package": "discovery/discover_journal_articles",
+      "code_paths": [
+        "ai-sandbox/academic-rag-model/discovery/discover_journal_articles"
+      ],
+      "readme_path": "ai-sandbox/academic-rag-model/discovery/discover_journal_articles/README.md",
+      "readme_absence_reason": null,
+      "status_docs": [
+        {
+          "path": "ai-sandbox/academic-rag-model/docs/status/discover_journal_articles/2026-09-01-journal-discovery-status.md",
+          "role": "current",
+          "lifecycle_ids": [
+            "journal-discovery"
+          ]
+        }
+      ],
+      "status_absence_reason": null,
+      "lifecycle_records": {
+        "journal-discovery": {
+          "state": "current",
+          "supersedes": [],
+          "specs": [
+            "ai-sandbox/academic-rag-model/docs/superpowers/specs/discover_journal_articles/2026-08-31-journal-discovery-design.md",
+            "ai-sandbox/academic-rag-model/docs/superpowers/specs/discover_journal_articles/2026-09-02-journal-discovery-snowball-design.md"
+          ],
+          "implementation_plans": [
+            "ai-sandbox/academic-rag-model/docs/superpowers/plans/discover_journal_articles/2026-09-01-journal-discovery-plan.md",
+            "ai-sandbox/academic-rag-model/docs/superpowers/plans/discover_journal_articles/2026-09-02-journal-discovery-snowball-plan.md"
+          ],
+          "test_paths": [
+            "ai-sandbox/academic-rag-model/tests/discovery/discover_journal_articles/test_discover.py"
+          ],
+          "absence_reasons": {
+            "specs": null,
+            "implementation_plans": null,
+            "test_paths": null
+          }
+        }
+      },
+      "website": {
+        "policy": "required",
+        "page": "content/projects/ai-research-assistant/journal_discovery/index.md",
+        "reason": null
+      },
+      "members": [],
+      "archive_reason": null
+    },
+    "rag": {
+      "name": "RAG Analysis",
+      "kind": "code",
+      "category": "academic-hub",
+      "lifecycle": "active",
+      "package": "agent/rag",
+      "code_paths": [
+        "ai-sandbox/academic-rag-model/agent/rag"
+      ],
+      "readme_path": "ai-sandbox/academic-rag-model/agent/rag/README.md",
+      "readme_absence_reason": null,
+      "status_docs": [
+        {
+          "path": "ai-sandbox/academic-rag-model/docs/status/agent/rag/2026-08-30-rag-agent-status.md",
+          "role": "current",
+          "lifecycle_ids": [
+            "rag-agent"
+          ]
+        },
+        {
+          "path": "ai-sandbox/academic-rag-model/docs/status/agent/rag/2026-10-03-question-resolver-status.md",
+          "role": "current",
+          "lifecycle_ids": [
+            "question-resolver"
+          ]
+        }
+      ],
+      "status_absence_reason": null,
+      "lifecycle_records": {
+        "rag-agent": {
+          "state": "current",
+          "supersedes": [],
+          "specs": [
+            "ai-sandbox/academic-rag-model/docs/superpowers/specs/agent/rag/2026-08-30-rag-agent-design.md"
+          ],
+          "implementation_plans": [
+            "ai-sandbox/academic-rag-model/docs/superpowers/plans/agent/rag/2026-08-30-rag-agent.md"
+          ],
+          "test_paths": [
+            "ai-sandbox/academic-rag-model/tests/agent/rag/test_rag_agent.py"
+          ],
+          "absence_reasons": {
+            "specs": null,
+            "implementation_plans": null,
+            "test_paths": null
+          }
+        },
+        "question-resolver": {
+          "state": "current",
+          "supersedes": [],
+          "specs": [
+            "ai-sandbox/academic-rag-model/docs/superpowers/specs/agent/rag/2026-10-03-question-resolver-design.md"
+          ],
+          "implementation_plans": [
+            "ai-sandbox/academic-rag-model/docs/superpowers/plans/agent/rag/2026-10-03-question-resolver.md"
+          ],
+          "test_paths": [
+            "ai-sandbox/academic-rag-model/tests/agent/rag/test_resolve_questions.py"
+          ],
+          "absence_reasons": {
+            "specs": null,
+            "implementation_plans": null,
+            "test_paths": null
+          }
+        },
+        "combined-report": {
+          "state": "current",
+          "supersedes": [],
+          "specs": [
+            "ai-sandbox/academic-rag-model/docs/superpowers/specs/2026-09-05-combined-report-design.md"
+          ],
+          "implementation_plans": [
+            "ai-sandbox/academic-rag-model/docs/superpowers/plans/2026-09-05-combined-report.md"
+          ],
+          "test_paths": [
+            "ai-sandbox/academic-rag-model/tests/agent/rag/test_report_builder.py"
+          ],
+          "absence_reasons": {
+            "specs": null,
+            "implementation_plans": null,
+            "test_paths": null
+          }
+        }
+      },
+      "website": {
+        "policy": "required",
+        "page": "content/projects/academic-hub/rag_analysis/index.md",
+        "reason": null
+      },
+      "members": [],
+      "archive_reason": null
+    },
+    "tutor_diagnosis": {
+      "name": "Tutor Diagnosis",
+      "kind": "code",
+      "category": "academic-hub",
+      "lifecycle": "active",
+      "package": "agent/rag (tutor diagnosis)",
+      "code_paths": [
+        "ai-sandbox/academic-rag-model/agent/rag/tutor_diagnosis.py"
+      ],
+      "readme_path": "ai-sandbox/academic-rag-model/agent/rag/README.md",
+      "readme_absence_reason": null,
+      "status_docs": [
+        {
+          "path": "ai-sandbox/academic-rag-model/docs/status/agent/rag/2026-09-27-tutor-diagnosis-status.md",
+          "role": "current",
+          "lifecycle_ids": [
+            "tutor-diagnosis"
+          ]
+        }
+      ],
+      "status_absence_reason": null,
+      "lifecycle_records": {
+        "tutor-diagnosis": {
+          "state": "current",
+          "supersedes": [],
+          "specs": [
+            "ai-sandbox/academic-rag-model/docs/superpowers/specs/agent/rag/2026-09-27-tutor-diagnosis-design.md"
+          ],
+          "implementation_plans": [
+            "ai-sandbox/academic-rag-model/docs/superpowers/plans/agent/rag/2026-09-27-tutor-diagnosis-plan.md"
+          ],
+          "test_paths": [
+            "ai-sandbox/academic-rag-model/tests/agent/rag/test_tutor_diagnosis.py"
+          ],
+          "absence_reasons": {
+            "specs": null,
+            "implementation_plans": null,
+            "test_paths": null
+          }
+        }
+      },
+      "website": {
+        "policy": "required",
+        "page": "content/projects/academic-hub/tutor_diagnosis/index.md",
+        "reason": null
+      },
+      "members": [],
+      "archive_reason": null
+    },
+    "socratic_tutor": {
+      "name": "Socratic Tutor",
+      "kind": "code",
+      "category": "academic-hub",
+      "lifecycle": "active",
+      "package": "agent/tutor",
+      "code_paths": [
+        "ai-sandbox/academic-rag-model/agent/tutor"
+      ],
+      "readme_path": "ai-sandbox/academic-rag-model/agent/tutor/README.md",
+      "readme_absence_reason": null,
+      "status_docs": [
+        {
+          "path": "ai-sandbox/academic-rag-model/docs/status/agent/tutor/2026-10-08-socratic-tutor-status.md",
+          "role": "current",
+          "lifecycle_ids": [
+            "socratic-tutor",
+            "socratic-tutor-v1-1"
+          ]
+        }
+      ],
+      "status_absence_reason": null,
+      "lifecycle_records": {
+        "socratic-tutor": {
+          "state": "current",
+          "supersedes": [],
+          "specs": [
+            "ai-sandbox/academic-rag-model/docs/superpowers/specs/2026-10-08-socratic-tutor-pipeline-design.md"
+          ],
+          "implementation_plans": [
+            "ai-sandbox/academic-rag-model/docs/superpowers/plans/2026-10-08-socratic-tutor-pipeline.md"
+          ],
+          "test_paths": [
+            "ai-sandbox/academic-rag-model/tests/agent/tutor/test_tutor_cli.py"
+          ],
+          "absence_reasons": {
+            "specs": null,
+            "implementation_plans": null,
+            "test_paths": null
+          }
+        },
+        "socratic-tutor-v1-1": {
+          "state": "current",
+          "supersedes": [],
+          "specs": [
+            "ai-sandbox/academic-rag-model/docs/superpowers/specs/2026-10-08-socratic-tutor-v1-1-design.md"
+          ],
+          "implementation_plans": [
+            "ai-sandbox/academic-rag-model/docs/superpowers/plans/2026-10-08-socratic-tutor-v1-1-plan-a.md",
+            "ai-sandbox/academic-rag-model/docs/superpowers/plans/2026-10-09-socratic-tutor-v1-1-plan-b.md"
+          ],
+          "test_paths": [
+            "ai-sandbox/academic-rag-model/tests/agent/tutor/test_tutor_regression.py"
+          ],
+          "absence_reasons": {
+            "specs": null,
+            "implementation_plans": null,
+            "test_paths": null
+          }
+        }
+      },
+      "website": {
+        "policy": "required",
+        "page": "content/projects/academic-hub/socratic_tutor/index.md",
+        "reason": null
+      },
+      "members": [],
+      "archive_reason": null
+    },
+    "visualization": {
+      "name": "Visualization Agent",
+      "kind": "code",
+      "category": "academic-hub",
+      "lifecycle": "active",
+      "package": "agent/viz",
+      "code_paths": [
+        "ai-sandbox/academic-rag-model/agent/viz"
+      ],
+      "readme_path": "ai-sandbox/academic-rag-model/agent/viz/README.md",
+      "readme_absence_reason": null,
+      "status_docs": [
+        {
+          "path": "ai-sandbox/academic-rag-model/docs/status/agent/viz/2026-09-02-visualization-agent-status.md",
+          "role": "current",
+          "lifecycle_ids": [
+            "visualization",
+            "viz-example-store",
+            "viz-ollama-retry"
+          ]
+        }
+      ],
+      "status_absence_reason": null,
+      "lifecycle_records": {
+        "visualization": {
+          "state": "current",
+          "supersedes": [],
+          "specs": [
+            "ai-sandbox/academic-rag-model/docs/superpowers/specs/agent/viz/2026-09-02-visualization-agent-design.md"
+          ],
+          "implementation_plans": [
+            "ai-sandbox/academic-rag-model/docs/superpowers/plans/agent/viz/2026-09-02-visualization-agent.md"
+          ],
+          "test_paths": [
+            "ai-sandbox/academic-rag-model/tests/agent/viz/test_viz_agent.py"
+          ],
+          "absence_reasons": {
+            "specs": null,
+            "implementation_plans": null,
+            "test_paths": null
+          }
+        },
+        "viz-example-store": {
+          "state": "current",
+          "supersedes": [],
+          "specs": [
+            "ai-sandbox/academic-rag-model/docs/superpowers/specs/agent/viz/2026-09-03-viz-example-store-design.md"
+          ],
+          "implementation_plans": [
+            "ai-sandbox/academic-rag-model/docs/superpowers/plans/agent/viz/2026-09-03-viz-example-store.md"
+          ],
+          "test_paths": [
+            "ai-sandbox/academic-rag-model/tests/agent/viz/test_example_store.py"
+          ],
+          "absence_reasons": {
+            "specs": null,
+            "implementation_plans": null,
+            "test_paths": null
+          }
+        },
+        "viz-ollama-retry": {
+          "state": "current",
+          "supersedes": [],
+          "specs": [
+            "ai-sandbox/academic-rag-model/docs/superpowers/specs/agent/viz/2026-09-03-viz-ollama-retry-hardening-design.md"
+          ],
+          "implementation_plans": [
+            "ai-sandbox/academic-rag-model/docs/superpowers/plans/agent/viz/2026-09-03-viz-ollama-retry-hardening.md"
+          ],
+          "test_paths": [
+            "ai-sandbox/academic-rag-model/tests/agent/viz/test_llm_fallback.py"
+          ],
+          "absence_reasons": {
+            "specs": null,
+            "implementation_plans": null,
+            "test_paths": null
+          }
+        },
+        "combined-report": {
+          "state": "current",
+          "supersedes": [],
+          "specs": [
+            "ai-sandbox/academic-rag-model/docs/superpowers/specs/2026-09-05-combined-report-design.md"
+          ],
+          "implementation_plans": [
+            "ai-sandbox/academic-rag-model/docs/superpowers/plans/2026-09-05-combined-report.md"
+          ],
+          "test_paths": [
+            "ai-sandbox/academic-rag-model/tests/agent/viz/test_viz_agent.py"
+          ],
+          "absence_reasons": {
+            "specs": null,
+            "implementation_plans": null,
+            "test_paths": null
+          }
+        }
+      },
+      "website": {
+        "policy": "required",
+        "page": "content/projects/academic-hub/visualization/index.md",
+        "reason": null
+      },
+      "members": [],
+      "archive_reason": null
+    },
+    "problem_generation": {
+      "name": "Problem Generation",
+      "kind": "code",
+      "category": "academic-hub",
+      "lifecycle": "active",
+      "package": "agent/problem_gen",
+      "code_paths": [
+        "ai-sandbox/academic-rag-model/agent/problem_gen"
+      ],
+      "readme_path": "ai-sandbox/academic-rag-model/agent/problem_gen/README.md",
+      "readme_absence_reason": null,
+      "status_docs": [
+        {
+          "path": "ai-sandbox/academic-rag-model/docs/status/agent/problem_gen/2026-09-05-problem-generation-status.md",
+          "role": "current",
+          "lifecycle_ids": [
+            "problem-generation"
+          ]
+        }
+      ],
+      "status_absence_reason": null,
+      "lifecycle_records": {
+        "problem-generation": {
+          "state": "current",
+          "supersedes": [],
+          "specs": [
+            "ai-sandbox/academic-rag-model/docs/superpowers/specs/agent/problem_gen/2026-09-03-problem-generation-design.md"
+          ],
+          "implementation_plans": [
+            "ai-sandbox/academic-rag-model/docs/superpowers/plans/agent/problem_gen/2026-09-03-problem-generation-plan.md"
+          ],
+          "test_paths": [
+            "ai-sandbox/academic-rag-model/tests/agent/problem_gen/test_generator.py"
+          ],
+          "absence_reasons": {
+            "specs": null,
+            "implementation_plans": null,
+            "test_paths": null
+          }
+        }
+      },
+      "website": {
+        "policy": "required",
+        "page": "content/projects/academic-hub/problem_generation/index.md",
+        "reason": null
+      },
+      "members": [],
+      "archive_reason": null
+    },
+    "problem_corpus": {
+      "name": "Problem Corpus",
+      "kind": "code",
+      "category": "academic-hub",
+      "lifecycle": "active",
+      "package": "agent/problem_corpus",
+      "code_paths": [
+        "ai-sandbox/academic-rag-model/agent/problem_corpus"
+      ],
+      "readme_path": "ai-sandbox/academic-rag-model/agent/problem_corpus/README.md",
+      "readme_absence_reason": null,
+      "status_docs": [
+        {
+          "path": "ai-sandbox/academic-rag-model/docs/status/agent/problem_corpus/2026-09-06-problem-corpus-extraction-status.md",
+          "role": "current",
+          "lifecycle_ids": [
+            "problem-corpus"
+          ]
+        }
+      ],
+      "status_absence_reason": null,
+      "lifecycle_records": {
+        "problem-corpus": {
+          "state": "current",
+          "supersedes": [],
+          "specs": [
+            "ai-sandbox/academic-rag-model/docs/superpowers/specs/agent/problem_corpus/2026-09-06-problem-corpus-extraction-design.md"
+          ],
+          "implementation_plans": [
+            "ai-sandbox/academic-rag-model/docs/superpowers/plans/agent/problem_corpus/2026-09-06-problem-corpus-extraction.md"
+          ],
+          "test_paths": [
+            "ai-sandbox/academic-rag-model/tests/agent/problem_corpus/test_extractor.py"
+          ],
+          "absence_reasons": {
+            "specs": null,
+            "implementation_plans": null,
+            "test_paths": null
+          }
+        }
+      },
+      "website": {
+        "policy": "required",
+        "page": "content/projects/academic-hub/problem_corpus/index.md",
+        "reason": null
+      },
+      "members": [],
+      "archive_reason": null
+    },
+    "study_guide": {
+      "name": "Study Guide",
+      "kind": "code",
+      "category": "academic-hub",
+      "lifecycle": "active",
+      "package": "agent/study_guide",
+      "code_paths": [
+        "ai-sandbox/academic-rag-model/agent/study_guide",
+        "ai-sandbox/academic-rag-model/agent/rag/generate_quiz_guide.py"
+      ],
+      "readme_path": "ai-sandbox/academic-rag-model/agent/study_guide/README.md",
+      "readme_absence_reason": null,
+      "status_docs": [
+        {
+          "path": "ai-sandbox/academic-rag-model/docs/status/agent/study_guide/2026-10-05-quiz-study-guide-generation-status.md",
+          "role": "historical",
+          "lifecycle_ids": [
+            "study-guide-pipeline"
+          ]
+        },
+        {
+          "path": "ai-sandbox/academic-rag-model/docs/status/agent/2026-10-05-wald-guide-recovered-generation-status.md",
+          "role": "historical",
+          "lifecycle_ids": [
+            "study-guide-pipeline"
+          ]
+        },
+        {
+          "path": "ai-sandbox/academic-rag-model/docs/status/agent/2026-10-07-study-guide-comparison-status.md",
+          "role": "current",
+          "lifecycle_ids": [
+            "study-guide-pipeline"
+          ]
+        },
+        {
+          "path": "ai-sandbox/academic-rag-model/docs/status/agent/2026-10-09-microecon-hw4-guide-status.md",
+          "role": "historical",
+          "lifecycle_ids": [
+            "study-guide-pipeline"
+          ]
+        }
+      ],
+      "status_absence_reason": null,
+      "lifecycle_records": {
+        "study-guide-pipeline": {
+          "state": "current",
+          "supersedes": [],
+          "specs": [
+            "ai-sandbox/academic-rag-model/docs/superpowers/specs/agent/2026-10-05-study-guide-pipeline-design.md"
+          ],
+          "implementation_plans": [
+            "ai-sandbox/academic-rag-model/docs/superpowers/plans/2026-10-05-study-guide-pipeline.md"
+          ],
+          "test_paths": [
+            "ai-sandbox/academic-rag-model/tests/agent/study_guide/test_study_guide_cli.py"
+          ],
+          "absence_reasons": {
+            "specs": null,
+            "implementation_plans": null,
+            "test_paths": null
+          }
+        },
+        "guide-revision": {
+          "state": "current",
+          "supersedes": [],
+          "specs": [
+            "ai-sandbox/academic-rag-model/docs/superpowers/specs/agent/2026-10-08-guide-revise-pipeline-design.md"
+          ],
+          "implementation_plans": [
+            "ai-sandbox/academic-rag-model/docs/superpowers/plans/2026-10-08-guide-revise-pipeline.md"
+          ],
+          "test_paths": [
+            "ai-sandbox/academic-rag-model/tests/agent/study_guide/test_study_guide_revise_apply.py"
+          ],
+          "absence_reasons": {
+            "specs": null,
+            "implementation_plans": null,
+            "test_paths": null
+          }
+        }
+      },
+      "website": {
+        "policy": "required",
+        "page": "content/projects/academic-hub/study_guide_pipeline/index.md",
+        "reason": null
+      },
+      "members": [],
+      "archive_reason": null
+    },
+    "summary_enhancement": {
+      "name": "Summary Enhancement",
+      "kind": "code",
+      "category": "academic-hub",
+      "lifecycle": "active",
+      "package": "agent/summary_enhance",
+      "code_paths": [
+        "ai-sandbox/academic-rag-model/agent/summary_enhance"
+      ],
+      "readme_path": "ai-sandbox/academic-rag-model/agent/summary_enhance/README.md",
+      "readme_absence_reason": null,
+      "status_docs": [
+        {
+          "path": "ai-sandbox/academic-rag-model/docs/status/agent/summary_enhance/2026-10-03-summary-enhancement-status.md",
+          "role": "current",
+          "lifecycle_ids": [
+            "summary-enhancement-v1",
+            "summary-enhancement-v2"
+          ]
+        }
+      ],
+      "status_absence_reason": null,
+      "lifecycle_records": {
+        "summary-enhancement-v1": {
+          "state": "superseded",
+          "supersedes": [],
+          "specs": [
+            "ai-sandbox/academic-rag-model/docs/superpowers/specs/agent/2026-10-03-summary-enhancement-design.md"
+          ],
+          "implementation_plans": [
+            "ai-sandbox/academic-rag-model/docs/superpowers/plans/2026-10-03-summary-enhancement.md"
+          ],
+          "test_paths": [
+            "ai-sandbox/academic-rag-model/tests/agent/summary_enhance/test_summary_enhance_cli.py"
+          ],
+          "absence_reasons": {
+            "specs": null,
+            "implementation_plans": null,
+            "test_paths": null
+          }
+        },
+        "summary-enhancement-v2": {
+          "state": "current",
+          "supersedes": [
+            "summary-enhancement-v1"
+          ],
+          "specs": [
+            "ai-sandbox/academic-rag-model/docs/superpowers/specs/agent/2026-10-03-summary-enhancement-v2-design.md"
+          ],
+          "implementation_plans": [
+            "ai-sandbox/academic-rag-model/docs/superpowers/plans/2026-10-03-summary-enhancement-v2.md"
+          ],
+          "test_paths": [
+            "ai-sandbox/academic-rag-model/tests/agent/summary_enhance/test_summary_enhance_validate.py"
+          ],
+          "absence_reasons": {
+            "specs": null,
+            "implementation_plans": null,
+            "test_paths": null
+          }
+        }
+      },
+      "website": {
+        "policy": "required",
+        "page": "content/projects/academic-hub/summary_enhancement/index.md",
+        "reason": null
+      },
+      "members": [],
+      "archive_reason": null
+    },
+    "resume_manager": {
+      "name": "Resume Manager",
+      "kind": "code",
+      "category": "standalone",
+      "lifecycle": "active",
+      "package": "resume_manager",
+      "code_paths": [
+        "ai-sandbox/academic-rag-model/resume_manager"
+      ],
+      "readme_path": "ai-sandbox/academic-rag-model/resume_manager/README.md",
+      "readme_absence_reason": null,
+      "status_docs": [
+        {
+          "path": "ai-sandbox/academic-rag-model/docs/status/resume_manager/2026-09-09-resume-manager-status.md",
+          "role": "current",
+          "lifecycle_ids": [
+            "resume-manager"
+          ]
+        },
+        {
+          "path": "ai-sandbox/academic-rag-model/docs/status/resume_manager/2026-09-28-resume-manager-tailoring-guidance-status.md",
+          "role": "current",
+          "lifecycle_ids": [
+            "resume-tailoring"
+          ]
+        }
+      ],
+      "status_absence_reason": null,
+      "lifecycle_records": {
+        "resume-manager": {
+          "state": "current",
+          "supersedes": [],
+          "specs": [
+            "ai-sandbox/academic-rag-model/docs/superpowers/specs/resume_manager/2026-09-09-resume-manager-design.md"
+          ],
+          "implementation_plans": [
+            "ai-sandbox/academic-rag-model/docs/superpowers/plans/resume_manager/2026-09-09-resume-manager-plan.md"
+          ],
+          "test_paths": [
+            "ai-sandbox/academic-rag-model/tests/resume_manager/test_resume_manager_package.py"
+          ],
+          "absence_reasons": {
+            "specs": null,
+            "implementation_plans": null,
+            "test_paths": null
+          }
+        },
+        "resume-tailoring": {
+          "state": "current",
+          "supersedes": [],
+          "specs": [],
+          "implementation_plans": [
+            "ai-sandbox/academic-rag-model/docs/superpowers/plans/resume_manager/2026-09-26-resume-manager-page-fit-plan.md",
+            "ai-sandbox/academic-rag-model/docs/superpowers/plans/resume_manager/2026-09-27-apply-from-prompt-plan.md"
+          ],
+          "test_paths": [
+            "ai-sandbox/academic-rag-model/tests/resume_manager/test_tailor_resume_cli.py"
+          ],
+          "absence_reasons": {
+            "specs": "No standalone design spec is established for this operational baseline.",
+            "implementation_plans": null,
+            "test_paths": null
+          }
+        }
+      },
+      "website": {
+        "policy": "required",
+        "page": "content/projects/resume_manager/index.md",
+        "reason": null
+      },
+      "members": [],
+      "archive_reason": null
+    },
+    "audio_generator": {
+      "name": "Audio Generator",
+      "kind": "code",
+      "category": "academic-hub",
+      "lifecycle": "active",
+      "package": "audio_generator",
+      "code_paths": [
+        "ai-sandbox/academic-rag-model/audio_generator"
+      ],
+      "readme_path": "ai-sandbox/academic-rag-model/audio_generator/README.md",
+      "readme_absence_reason": null,
+      "status_docs": [
+        {
+          "path": "ai-sandbox/academic-rag-model/docs/status/audio_generator/2026-09-09-audio-generator-status.md",
+          "role": "current",
+          "lifecycle_ids": [
+            "audio-generator"
+          ]
+        }
+      ],
+      "status_absence_reason": null,
+      "lifecycle_records": {
+        "audio-generator": {
+          "state": "current",
+          "supersedes": [],
+          "specs": [
+            "ai-sandbox/academic-rag-model/docs/superpowers/specs/audio_generator/2026-09-06-audio-generator-design.md"
+          ],
+          "implementation_plans": [
+            "ai-sandbox/academic-rag-model/docs/superpowers/plans/audio_generator/2026-09-06-audio-generator.md"
+          ],
+          "test_paths": [
+            "ai-sandbox/academic-rag-model/tests/audio_generator/test_audio_generator_pipeline.py"
+          ],
+          "absence_reasons": {
+            "specs": null,
+            "implementation_plans": null,
+            "test_paths": null
+          }
+        }
+      },
+      "website": {
+        "policy": "required",
+        "page": "content/projects/academic-hub/audio_generator/index.md",
+        "reason": null
+      },
+      "members": [],
+      "archive_reason": null
+    },
+    "corpus_health": {
+      "name": "Corpus Health",
+      "kind": "code",
+      "category": "academic-hub",
+      "lifecycle": "active",
+      "package": "tools/corpus_health",
+      "code_paths": [
+        "ai-sandbox/academic-rag-model/tools/corpus_health"
+      ],
+      "readme_path": "ai-sandbox/academic-rag-model/tools/corpus_health/README.md",
+      "readme_absence_reason": null,
+      "status_docs": [
+        {
+          "path": "ai-sandbox/academic-rag-model/docs/status/academic_hub/2026-10-08-corpus-health-capability-inventory.md",
+          "role": "historical",
+          "lifecycle_ids": [
+            "corpus-health"
+          ]
+        },
+        {
+          "path": "ai-sandbox/academic-rag-model/docs/status/academic_hub/2026-10-09-corpus-health-apply-first-adapter-decision.md",
+          "role": "current",
+          "lifecycle_ids": [
+            "corpus-health"
+          ]
+        },
+        {
+          "path": "ai-sandbox/academic-rag-model/docs/status/academic_hub/2026-10-09-corpus-health-implementation-retrospective.md",
+          "role": "current",
+          "lifecycle_ids": [
+            "corpus-health"
+          ]
+        }
+      ],
+      "status_absence_reason": null,
+      "lifecycle_records": {
+        "corpus-health": {
+          "state": "current",
+          "supersedes": [],
+          "specs": [
+            "ai-sandbox/academic-rag-model/docs/superpowers/specs/academic_hub/2026-10-07-corpus-health-orchestrator-design.md"
+          ],
+          "implementation_plans": [
+            "ai-sandbox/academic-rag-model/docs/superpowers/plans/academic_hub/2026-10-08-corpus-health-orchestrator.md"
+          ],
+          "test_paths": [
+            "ai-sandbox/academic-rag-model/tests/tools/corpus_health/test_scanner.py",
+            "ai-sandbox/academic-rag-model/tests/tools/corpus_health/test_corpus_health_apply.py"
+          ],
+          "absence_reasons": {
+            "specs": null,
+            "implementation_plans": null,
+            "test_paths": null
+          }
+        }
+      },
+      "website": {
+        "policy": "required",
+        "page": "content/projects/academic-hub/corpus_health/index.md",
+        "reason": null
+      },
+      "members": [],
+      "archive_reason": null
+    },
+    "project_steering": {
+      "name": "Project Steering",
+      "kind": "code",
+      "category": "academic-hub",
+      "lifecycle": "active",
+      "package": "tools/project_steering",
+      "code_paths": [
+        "ai-sandbox/academic-rag-model/tools/project_steering"
+      ],
+      "readme_path": "ai-sandbox/academic-rag-model/tools/project_steering/README.md",
+      "readme_absence_reason": null,
+      "status_docs": [
+        {
+          "path": "ai-sandbox/academic-rag-model/docs/status/academic_hub/2026-10-10-project-steering-status.md",
+          "role": "current",
+          "lifecycle_ids": [
+            "project-steering"
+          ]
+        }
+      ],
+      "status_absence_reason": null,
+      "lifecycle_records": {
+        "project-steering": {
+          "state": "current",
+          "supersedes": [],
+          "specs": [
+            "ai-sandbox/academic-rag-model/docs/superpowers/specs/academic_hub/2026-10-09-project-steering-design.md"
+          ],
+          "implementation_plans": [
+            "ai-sandbox/academic-rag-model/docs/superpowers/plans/academic_hub/2026-10-09-project-steering.md",
+            "ai-sandbox/academic-rag-model/docs/superpowers/plans/academic_hub/2026-10-10-project-steering-routing.md"
+          ],
+          "test_paths": [
+            "ai-sandbox/academic-rag-model/tests/tools/project_steering/test_scan.py",
+            "ai-sandbox/academic-rag-model/tests/tools/project_steering/test_routing.py"
+          ],
+          "absence_reasons": {
+            "specs": null,
+            "implementation_plans": null,
+            "test_paths": null
+          }
+        }
+      },
+      "website": {
+        "policy": "required",
+        "page": "content/projects/academic-hub/project_steering/index.md",
+        "reason": null
+      },
+      "members": [],
+      "archive_reason": null
+    },
+    "guided_solutions": {
+      "name": "Guided Solutions",
+      "kind": "operational",
+      "category": "academic-hub",
+      "lifecycle": "active",
+      "package": "agent/problem_sets (operational workflow)",
+      "code_paths": [],
+      "readme_path": null,
+      "readme_absence_reason": "No standalone agent/problem_sets code package or README exists; this is an operational workflow.",
+      "status_docs": [
+        {
+          "path": "ai-sandbox/academic-rag-model/docs/status/agent/problem_sets/2026-10-06-guided-solutions-proof-pipeline-status.md",
+          "role": "current",
+          "lifecycle_ids": [
+            "guided-solutions"
+          ]
+        }
+      ],
+      "status_absence_reason": null,
+      "lifecycle_records": {
+        "guided-solutions": {
+          "state": "current",
+          "supersedes": [],
+          "specs": [],
+          "implementation_plans": [],
+          "test_paths": [],
+          "absence_reasons": {
+            "specs": "The run audit/status defines this manually operated workflow; no separate design spec exists.",
+            "implementation_plans": "The run audit/status is the replicable procedure; no standalone implementation plan exists.",
+            "test_paths": "The guided-solutions workflow has no dedicated automated test suite."
+          }
+        }
+      },
+      "website": {
+        "policy": "required",
+        "page": "content/projects/academic-hub/guided_solutions/index.md",
+        "reason": null
+      },
+      "members": [],
+      "archive_reason": null
+    },
+    "obsidian_git_sync": {
+      "name": "Obsidian Git Sync",
+      "kind": "configuration",
+      "category": "academic-hub",
+      "lifecycle": "active",
+      "package": "obsidian_git_sync (configuration)",
+      "code_paths": [
+        "ai-sandbox/.obsidian"
+      ],
+      "readme_path": null,
+      "readme_absence_reason": "Configuration is under ai-sandbox/.obsidian, without a standalone README.",
+      "status_docs": [
+        {
+          "path": "ai-sandbox/academic-rag-model/docs/status/2026-09-21-obsidian-git-sync-status.md",
+          "role": "historical",
+          "lifecycle_ids": [
+            "obsidian-sync"
+          ]
+        },
+        {
+          "path": "ai-sandbox/academic-rag-model/docs/status/2026-09-26-obsidian-git-sync-status.md",
+          "role": "current",
+          "lifecycle_ids": [
+            "obsidian-sync"
+          ]
+        }
+      ],
+      "status_absence_reason": null,
+      "lifecycle_records": {
+        "obsidian-sync": {
+          "state": "current",
+          "supersedes": [],
+          "specs": [],
+          "implementation_plans": [],
+          "test_paths": [],
+          "absence_reasons": {
+            "specs": "No dedicated design spec exists for the Obsidian plugin configuration.",
+            "implementation_plans": "The dated status records document the configuration and transition; no standalone implementation plan exists.",
+            "test_paths": "No dedicated automated test path exists for the local Obsidian plugin configuration."
+          }
+        }
+      },
+      "website": {
+        "policy": "required",
+        "page": "content/projects/academic-hub/obsidian_git_sync/index.md",
+        "reason": null
+      },
+      "members": [],
+      "archive_reason": null
+    },
+    "core_env": {
+      "name": "Core Environment Helpers",
+      "kind": "code",
+      "category": "academic-hub",
+      "lifecycle": "active",
+      "package": "core/env",
+      "code_paths": [
+        "ai-sandbox/academic-rag-model/core/env"
+      ],
+      "readme_path": null,
+      "readme_absence_reason": "Shared core/env infrastructure has no dedicated README.",
+      "status_docs": [],
+      "status_absence_reason": "No dedicated core/env status record; its behavior is documented by callers and tests.",
+      "lifecycle_records": {
+        "core-env": {
+          "state": "current",
+          "supersedes": [],
+          "specs": [],
+          "implementation_plans": [],
+          "test_paths": [
+            "ai-sandbox/academic-rag-model/tests/core/env/test_gemini_utils.py",
+            "ai-sandbox/academic-rag-model/tests/core/env/test_frontmatter.py"
+          ],
+          "absence_reasons": {
+            "specs": "No standalone design spec is established for this operational baseline.",
+            "implementation_plans": "No standalone implementation plan is established for this operational baseline.",
+            "test_paths": null
+          }
+        }
+      },
+      "website": {
+        "policy": "internal",
+        "page": null,
+        "reason": "Shared environment infrastructure is not a standalone public project."
+      },
+      "members": [],
+      "archive_reason": null
+    },
+    "concept_graph": {
+      "name": "Concept Graph",
+      "kind": "code",
+      "category": "academic-hub",
+      "lifecycle": "active",
+      "package": "agent/concept_graph",
+      "code_paths": [
+        "ai-sandbox/academic-rag-model/agent/concept_graph"
+      ],
+      "readme_path": "ai-sandbox/academic-rag-model/agent/concept_graph/README.md",
+      "readme_absence_reason": null,
+      "status_docs": [
+        {
+          "path": "ai-sandbox/academic-rag-model/docs/status/agent/concept_graph/2026-10-09-concept-graph-core-status.md",
+          "role": "current",
+          "lifecycle_ids": [
+            "concept-graph-core"
+          ]
+        },
+        {
+          "path": "ai-sandbox/academic-rag-model/docs/status/agent/concept_graph/2026-10-10-concept-graph-pipeline-status.md",
+          "role": "current",
+          "lifecycle_ids": [
+            "concept-graph-pipeline"
+          ]
+        }
+      ],
+      "status_absence_reason": null,
+      "lifecycle_records": {
+        "concept-graph-core": {
+          "state": "current",
+          "supersedes": [],
+          "specs": [
+            "ai-sandbox/academic-rag-model/docs/superpowers/specs/agent/2026-10-09-concept-graph-design.md"
+          ],
+          "implementation_plans": [
+            "ai-sandbox/academic-rag-model/docs/superpowers/plans/2026-10-09-concept-graph-core.md"
+          ],
+          "test_paths": [
+            "ai-sandbox/academic-rag-model/tests/agent/concept_graph/test_cg_store.py",
+            "ai-sandbox/academic-rag-model/tests/agent/concept_graph/test_cg_build.py"
+          ],
+          "absence_reasons": {
+            "specs": null,
+            "implementation_plans": null,
+            "test_paths": null
+          }
+        },
+        "concept-graph-pipeline": {
+          "state": "current",
+          "supersedes": [],
+          "specs": [
+            "ai-sandbox/academic-rag-model/docs/superpowers/specs/agent/2026-10-09-concept-graph-design.md"
+          ],
+          "implementation_plans": [
+            "ai-sandbox/academic-rag-model/docs/superpowers/plans/2026-10-10-concept-graph-pipeline.md"
+          ],
+          "test_paths": [
+            "ai-sandbox/academic-rag-model/tests/agent/concept_graph/test_cg_cli_stages.py"
+          ],
+          "absence_reasons": {
+            "specs": null,
+            "implementation_plans": null,
+            "test_paths": null
+          }
+        }
+      },
+      "website": {
+        "policy": "required",
+        "page": "content/projects/academic-hub/concept_graph/index.md",
+        "reason": null
+      },
+      "members": [],
+      "archive_reason": null
+    },
+    "academic_hub_overview": {
+      "name": "Academic Hub Overview",
+      "kind": "overview",
+      "category": "academic-hub",
+      "lifecycle": "active",
+      "package": null,
+      "code_paths": [],
+      "readme_path": null,
+      "readme_absence_reason": "Editorial overview has no package README.",
+      "status_docs": [],
+      "status_absence_reason": "Editorial overview has no separate monorepo status document.",
+      "lifecycle_records": {
+        "overview": {
+          "state": "current",
+          "supersedes": [],
+          "specs": [],
+          "implementation_plans": [],
+          "test_paths": [],
+          "absence_reasons": {
+            "specs": "The overview is an editorial aggregation, not a software design.",
+            "implementation_plans": "The overview has no standalone implementation plan.",
+            "test_paths": "The overview has no dedicated automated test path."
+          }
+        }
+      },
+      "website": {
+        "policy": "required",
+        "page": "content/projects/academic-hub-overview/index.md",
+        "reason": null
+      },
+      "members": [
+        "source_indexer",
+        "transcribe_notes",
+        "convert_textbook",
+        "postprocess_notes",
+        "generate_video_notes",
+        "rag",
+        "tutor_diagnosis",
+        "socratic_tutor",
+        "visualization",
+        "problem_generation",
+        "problem_corpus",
+        "study_guide",
+        "summary_enhancement",
+        "audio_generator",
+        "corpus_health",
+        "project_steering",
+        "guided_solutions",
+        "obsidian_git_sync",
+        "concept_graph"
+      ],
+      "archive_reason": null
+    },
+    "research_overview": {
+      "name": "AI Research Assistant Overview",
+      "kind": "overview",
+      "category": "ai-research-assistant",
+      "lifecycle": "active",
+      "package": null,
+      "code_paths": [],
+      "readme_path": null,
+      "readme_absence_reason": "Editorial overview has no package README.",
+      "status_docs": [],
+      "status_absence_reason": "Editorial overview has no separate monorepo status document.",
+      "lifecycle_records": {
+        "overview": {
+          "state": "current",
+          "supersedes": [],
+          "specs": [],
+          "implementation_plans": [],
+          "test_paths": [],
+          "absence_reasons": {
+            "specs": "The overview is an editorial aggregation, not a software design.",
+            "implementation_plans": "The overview has no standalone implementation plan.",
+            "test_paths": "The overview has no dedicated automated test path."
+          }
+        }
+      },
+      "website": {
+        "policy": "required",
+        "page": "content/projects/ai-research-assistant-overview/index.md",
+        "reason": null
+      },
+      "members": [
+        "convert_essays",
+        "convert_journal_articles",
+        "discover_journal_articles"
+      ],
+      "archive_reason": null
+    }
+  },
+  "discovery_exclusions": [
+    {
+      "path": "ai-sandbox/academic-rag-model/archive/old_attempts",
+      "reason": "Superseded prototypes are outside the active subproject inventory."
+    },
+    {
+      "path": "ai-sandbox/academic-rag-model/tests",
+      "reason": "Test packages are evidence paths, not standalone public subprojects."
+    }
+  ]
+}

@@ -1,0 +1,153 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "subproject_registry.schema.json",
+  "title": "Subproject website registry",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["$schema", "version", "baseline", "subprojects", "discovery_exclusions"],
+  "properties": {
+    "$schema": {"const": "subproject_registry.schema.json"},
+    "version": {"const": "1.0.0"},
+    "baseline": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["monorepo", "website"],
+      "properties": {
+        "monorepo": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+        "website": {"type": "string", "pattern": "^[0-9a-f]{40}$"}
+      }
+    },
+    "subprojects": {
+      "type": "object",
+      "minProperties": 1,
+      "propertyNames": {"pattern": "^[a-z][a-z0-9_]*$"},
+      "additionalProperties": {"$ref": "#/$defs/entry"}
+    },
+    "discovery_exclusions": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["path", "reason"],
+        "properties": {
+          "path": {"$ref": "#/$defs/path"},
+          "reason": {"$ref": "#/$defs/nonempty"}
+        }
+      }
+    }
+  },
+  "$defs": {
+    "nonempty": {"type": "string", "minLength": 1, "pattern": "\\S"},
+    "path": {"type": "string", "minLength": 1},
+    "paths": {"type": "array", "uniqueItems": true, "items": {"$ref": "#/$defs/path"}},
+    "nullableReason": {"oneOf": [{"type": "null"}, {"$ref": "#/$defs/nonempty"}]},
+    "status": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "role", "lifecycle_ids"],
+      "properties": {
+        "path": {"$ref": "#/$defs/path"},
+        "role": {"enum": ["current", "historical"]},
+        "lifecycle_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"type": "string", "pattern": "^[a-z][a-z0-9-]*$"}
+        }
+      }
+    },
+    "website": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["policy", "page", "reason"],
+      "properties": {
+        "policy": {"enum": ["required", "internal"]},
+        "page": {"oneOf": [{"type": "null"}, {"$ref": "#/$defs/path"}]},
+        "reason": {"$ref": "#/$defs/nullableReason"}
+      },
+      "allOf": [
+        {"if": {"properties": {"policy": {"const": "required"}}},
+         "then": {"properties": {"page": {"$ref": "#/$defs/path"}, "reason": {"type": "null"}}},
+         "else": {"properties": {"page": {"type": "null"}, "reason": {"$ref": "#/$defs/nonempty"}}}}
+      ]
+    },
+    "lifecycle": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["state", "supersedes", "specs", "implementation_plans", "test_paths", "absence_reasons"],
+      "properties": {
+        "state": {"enum": ["proposed", "current", "superseded"]},
+        "supersedes": {
+          "type": "array", "uniqueItems": true,
+          "items": {"type": "string", "pattern": "^[a-z][a-z0-9-]*$"}
+        },
+        "specs": {"$ref": "#/$defs/paths"},
+        "implementation_plans": {"$ref": "#/$defs/paths"},
+        "test_paths": {"$ref": "#/$defs/paths"},
+        "absence_reasons": {
+          "type": "object", "additionalProperties": false,
+          "required": ["specs", "implementation_plans", "test_paths"],
+          "properties": {
+            "specs": {"$ref": "#/$defs/nullableReason"},
+            "implementation_plans": {"$ref": "#/$defs/nullableReason"},
+            "test_paths": {"$ref": "#/$defs/nullableReason"}
+          }
+        }
+      },
+      "allOf": [
+        {"if": {"properties": {"specs": {"maxItems": 0}}},
+         "then": {"properties": {"absence_reasons": {"properties": {"specs": {"$ref": "#/$defs/nonempty"}}}}},
+         "else": {"properties": {"absence_reasons": {"properties": {"specs": {"type": "null"}}}}}},
+        {"if": {"properties": {"implementation_plans": {"maxItems": 0}}},
+         "then": {"properties": {"absence_reasons": {"properties": {"implementation_plans": {"$ref": "#/$defs/nonempty"}}}}},
+         "else": {"properties": {"absence_reasons": {"properties": {"implementation_plans": {"type": "null"}}}}}},
+        {"if": {"properties": {"test_paths": {"maxItems": 0}}},
+         "then": {"properties": {"absence_reasons": {"properties": {"test_paths": {"$ref": "#/$defs/nonempty"}}}}},
+         "else": {"properties": {"absence_reasons": {"properties": {"test_paths": {"type": "null"}}}}}}
+      ]
+    },
+    "entry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "kind", "category", "lifecycle", "package", "code_paths", "readme_path", "readme_absence_reason", "status_docs", "status_absence_reason", "lifecycle_records", "website", "members", "archive_reason"],
+      "properties": {
+        "name": {"$ref": "#/$defs/nonempty"},
+        "kind": {"enum": ["code", "operational", "configuration", "overview"]},
+        "category": {"enum": ["academic-hub", "ai-research-assistant", "standalone"]},
+        "lifecycle": {"enum": ["active", "archived"]},
+        "package": {"oneOf": [{"type": "null"}, {"$ref": "#/$defs/nonempty"}]},
+        "code_paths": {"$ref": "#/$defs/paths"},
+        "readme_path": {"oneOf": [{"type": "null"}, {"$ref": "#/$defs/path"}]},
+        "readme_absence_reason": {"$ref": "#/$defs/nullableReason"},
+        "status_docs": {"type": "array", "items": {"$ref": "#/$defs/status"}},
+        "status_absence_reason": {"$ref": "#/$defs/nullableReason"},
+        "lifecycle_records": {
+          "type": "object",
+          "propertyNames": {"pattern": "^[a-z][a-z0-9-]*$"},
+          "additionalProperties": {"$ref": "#/$defs/lifecycle"}
+        },
+        "website": {"$ref": "#/$defs/website"},
+        "members": {"type": "array", "uniqueItems": true, "items": {"type": "string", "pattern": "^[a-z][a-z0-9_]*$"}},
+        "archive_reason": {"$ref": "#/$defs/nullableReason"}
+      },
+      "allOf": [
+        {"if": {"properties": {"readme_path": {"type": "null"}}},
+         "then": {"properties": {"readme_absence_reason": {"$ref": "#/$defs/nonempty"}}},
+         "else": {"properties": {"readme_absence_reason": {"type": "null"}}}},
+        {"if": {"properties": {"status_docs": {"maxItems": 0}}},
+         "then": {"properties": {"status_absence_reason": {"$ref": "#/$defs/nonempty"}}},
+         "else": {"properties": {"status_absence_reason": {"type": "null"}}}},
+        {"if": {"properties": {"lifecycle": {"const": "archived"}}},
+         "then": {"properties": {"archive_reason": {"$ref": "#/$defs/nonempty"}}},
+         "else": {"properties": {"archive_reason": {"type": "null"}}}},
+        {"if": {"properties": {"kind": {"const": "overview"}}},
+         "then": {"properties": {"package": {"type": "null"}, "code_paths": {"maxItems": 0}, "members": {"minItems": 1}}},
+         "else": {"properties": {"package": {"$ref": "#/$defs/nonempty"}, "members": {"maxItems": 0}}}},
+        {"if": {"properties": {"kind": {"enum": ["operational", "overview"]}}},
+         "then": {"properties": {"code_paths": {"maxItems": 0}}}},
+        {"if": {"properties": {"kind": {"enum": ["code", "configuration"]}, "lifecycle": {"const": "active"}}},
+         "then": {"properties": {"code_paths": {"minItems": 1}}}}
+      ]
+    }
+  }
+}

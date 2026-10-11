@@ -17,6 +17,7 @@ plotly
 # Testing
 pytest
 pytest-patch
+jsonschema>=4.23,<5  # local Draft 2020-12 website registry validation; no remote schema resolution
 
 # Utilities (observed in venv)
 tqdm

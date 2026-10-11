@@ -19,7 +19,7 @@ The approved inventory baseline is 24 components plus two overviews: 16 existing
 | Stage | Implemented | Fixture-tested | Live evidence | Remaining gate |
 | --- | --- | --- | --- | --- |
 | Owner decisions | D1–D3, strict finding policy and public-link policy recorded | Documentation checks only | Roots, inventory, timestamp sample in review | G0 resolved; refresh inventory at T1 |
-| M1 schema/registry | No | No | Paths inspected; manifest absent | G1 |
+| M1 schema/registry (T1) | 26-entry registry, Draft 2020-12 schema, local loader and declared dependency in task branch | 29 targeted validation fixtures passed | Read-only inventory at monorepo `4eaa5bf` and website `ebc836a`: 18 existing pages, seven planned absent pages, no missing configured monorepo paths | G1 review before T2; full landing check at branch handoff |
 | M1 scanner | No | No | No checker run; review sample found false positives | G2 |
 | M2 metadata/links | No | No | Website inspected read-only; no changed-site build | G3 |
 | M3 content | No | No | Editorial baseline subject to revalidation | Batch review/publication |
@@ -77,6 +77,8 @@ Author actual Draft 2020-12 schema/local-only loader. Cover duplicate JSON keys,
 Inventory lifecycle records separately from page coverage. Search `docs/superpowers/specs/`, `docs/superpowers/plans/`, `docs/brainstorms/`, package status records and `tests/`; classify by content, not directory or dates. For each component, enumerate specs, implementation plans and explicit test paths, map each status record to applicable lifecycle IDs, and identify legacy backlink gaps. Include multi-feature/multi-plan cases and deliberately absent operational tests without inventing provenance. Unknown mappings remain LIFECYCLE_UNMAPPED findings. Preserve superseded records and historical status associations. Shared status files use the union of required references across components.
 
 **G1:** Reviewed manifest covers approved inventory; executable schema exists; valid/invalid fixtures pass; disk paths/types checked. Explain status roles, lifecycle relationships/absence reasons, membership and exclusions. Schema fixtures cover lifecycle ID uniqueness, dangling/cyclic supersession, missing spec/plan/test files and differing current/historical records. Complete G1 before implementing scanner logic against the contract.
+
+T1 inventory note (2026-10-11): the 26 entries contain 36 unique status records and 46 lifecycle revisions. The study-guide run audits are distinct from its ongoing comparison status; RAG and tutor diagnosis have separate IDs despite shared code; indexer and Concept Graph retain feature-specific status records. Guided Solutions has no invented code folder, and core/env has no public page. The combined-report design/plan are shared across RAG and Visualization. At this baseline, none of the 36 mapped status documents or 45 distinct mapped plans has a normalized `## Lifecycle references` section; T6a owns that legacy backfill. Existing prose links remain evidence, but no completed migration or checker result is claimed. The local validator checks structure/identity/path containment and the inventory check found no missing configured monorepo path; website existence remains an M3 finding rather than invalid configuration.
 
 ### T2 — Roots and local Git evidence (M1)
 
