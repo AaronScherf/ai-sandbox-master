@@ -183,3 +183,11 @@ These are gates, not assertions that implementation tests have passed.
 | M3 factual claims | Editorial source review; separate repo commits and publication gates | Deferred |
 
 **Recommended next action:** have Claude/the design author amend the spec and plan for R1–R6, then re-review those contracts before M1 coding. The necessary first release remains one registry, one schema and one local CLI with tests. The reviewed design is feasible after amendment; no fixture suite, implemented scanner live run, Hugo build, deployment, or longitudinal behavior is claimed by this review.
+
+## Addendum - Lifecycle Scope Extension (2026-10-11)
+
+At the owner's request, the [design](specs/2026-10-10-subproject-website-sync-design.md) and [plan](specs/2026-10-10-subproject-website-sync-plan.md) now propose explicit lifecycle records for specs, implementation plans and test paths, plus status-document backlinks to the applicable records. The [tracker](../trackers/subproject_website_status_tracker.md#8-lifecycle-traceability-extension-2026-10-11) records this additional scope. This addendum preserves the original review's findings/verdict; it does not retroactively assert implementation or architecture approval.
+
+Additional acceptance checks: separate specs from plans even when stored together; support multiple plans/status records per design; preserve historical revision links and explicit supersession; validate local test references without executing them or claiming they passed; distinguish unexplored inventory from intentional absence; and never infer architectural obsolescence from newer code/status/test timestamps. Specs can remain valid through routine code changes. Plan checkbox edits do not create new architectural revisions.
+
+M1 must report lifecycle-reference integrity and a concrete legacy-backfill backlog. Plan T6a owns manual monorepo backlink migration independently of website-only M2. D2 must review the expanded schema/backlink convention before implementation. The scanner's own future status must link its actual spec/plan/tests with revision-specific run evidence. These are proposed acceptance criteria, not test results or a completed migration.

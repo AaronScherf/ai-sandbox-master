@@ -12,7 +12,7 @@
 
 ## 1. Executive Summary & Audit Overview
 
-This tracker monitors alignment across the three functional tiers of the portfolio and knowledge repository:
+This tracker preserves the original three-tier audit and now plans full lifecycle traceability (section 8): specs -> implementation plans -> code/tests -> status evidence -> website material. The original audited tiers were:
 1. **Subprojects in `academic-rag-model`**: Implementation code, tests, and local package documentation.
 2. **Status Docs in `academic-rag-model/docs/status/`**: Historical and operational narrative logs recording architectural decisions, bug investigations, and empirical validation runs.
 3. **Website Project Pages in `personal-website/AaronScherf.github.io/content/projects/`**: Public-facing portfolio documentation explaining tools, real-world context, empirical testing, and ongoing development.
@@ -172,3 +172,19 @@ The original matrix above preserves its dated editorial scope. Corrections do no
 The union is **24 component candidates plus two overviews**. Under the proposed policies there are 16 existing component pages, six original missing pages, one additional proposed concept-graph page, one internal component, and two existing overviews. M2 would cover 16 existing components plus two overviews. These policies are proposals, not owner decisions.
 
 Design decisions D1 (scope/publication), D2 (schema/frontmatter) and D3 (runtime/dependencies) remain with Claude/the design author. The six original content tasks, three page revisions, overview revision and summary-enhancement status update remain open. No code, website edits, checker run, build or publication is claimed by these documentation amendments.
+
+## 8. Lifecycle Traceability Extension (2026-10-11)
+
+Owner-requested scope addition: track design specs and implementation plans as stable architectural baselines, associate tests, and make status records point back to the applicable specs/plans/tests. Canonical fields and backlink syntax live in the [design's lifecycle contract](../brainstorms/specs/2026-10-10-subproject-website-sync-design.md#lifecycle-traceability); implementation and backfill gates are in [T1/T3/T4/T6a of the plan](../brainstorms/specs/2026-10-10-subproject-website-sync-plan.md). D2 remains proposed; no registry, scanner or backlink migration has run.
+
+| Lifecycle surface | Required tracking | Change / evidence policy |
+| --- | --- | --- |
+| Specs | Explicit revision ID, separate spec paths, current/proposed/superseded relationships | Revise for architecture changes; no timestamp staleness inferred from routine code edits |
+| Implementation plans | Separate plan paths tied to the applicable specs and tests | Track tasks/evidence without rewriting historical architecture; folder name does not define document type |
+| Status docs | Lifecycle IDs plus human-readable local links to specs, plans and test paths | Preserve historical associations; current status referring only to superseded designs requires review |
+| Tests | Explicit test files/directories associated with lifecycle records | Existence is not a passing run; record command, tested revision, date/outcome separately |
+| Website | Existing source/status links and projected status lifecycle IDs | Trace through status to design/tests; do not copy private evidence into public pages |
+
+Lifecycle coverage is separate from website coverage and history-gap warnings. The original matrix did not audit spec/plan/test associations, so none is marked complete by this extension. M1 inventories known relationships and reports unknown/missing/backlink gaps; T6a backfills scoped legacy status/plan links in monorepo commits. Operational components may explain genuine absence; unresearched mappings must remain unknown. No age-based SPEC_OUTDATED/PLAN_OUTDATED classification is added.
+
+Sample evidence already in this repository: project-steering's status links its implementation plan; concept-graph's status names both plan and spec and separately qualifies fixture results versus untested live execution. These are useful precedents, not proof of complete machine-readable backlinks. The sync pipeline's own future implementation status must follow the same lifecycle contract when its code/tests exist.

@@ -24,8 +24,9 @@ This revision replaces contradictory contracts in the initial draft. Factual cor
 | REQ-8 | Validate YAML, source/status links, the actual HugoBlox production build and representative rendered pages. |
 | REQ-9 | Real independent Git fixtures, a varied live sample, discrepancy records and measured performance. |
 | REQ-10 | No scheduling, steering ingestion, staged-index certification, automated repair or publication in M1. |
+| REQ-11 | Trace specs, implementation plans, status records and test references through explicit design revisions; status records link back to the applicable documents/tests. Routine code changes do not require rewriting architecture documents. |
 
-**M1 remains the smallest usable release:** registry, schema, read-only CLI, documentation and tests. It provides inventory and metadata diagnostics plus history warnings before website edits. It needs no server, database, persistent cache, decision ledger, scheduler or repair command. M2 adds metadata and visible links; M3 separately reconciles prose/status records.
+**M1 remains the smallest usable release:** registry, schema, read-only CLI, documentation and tests. It provides inventory and metadata diagnostics plus history warnings before website edits. It needs no server, database, persistent cache, decision ledger, scheduler or repair command. M2 adds metadata and visible links; M3 separately reconciles prose/status records and backfills lifecycle links. M1 also validates explicit lifecycle references without running the referenced tests.
 
 Remove the earlier exact-semantic-audit-reproduction and mandatory sub-500 ms claims. The review measured 1.574 seconds for eight sequential Windows Git calls and identified two timestamp false positives against editorial labels. Sub-500 ms is an optimization aspiration; record cold/warm end-to-end timings before promising hook suitability. Provisioning dependencies and building the site are separate from offline checker execution.
 
@@ -95,14 +96,14 @@ Files: `docs/trackers/subproject_registry.json` and adjacent `subproject_registr
 | `package` | Component logical label; null for overview. Never concatenate into a disk path. |
 | `code_paths` | Unique literal monorepo-relative files/directories. Nonempty for active code/configuration; empty for operational/overview. |
 | `readme_path`, `readme_absence_reason` | README path or null; exactly one of path or nonempty reason populated. Never invent missing READMEs for core/env, postprocess or operational records. |
-| `status_docs`, `status_absence_reason` | Unique records `{path, role}`; role current/historical. Nonempty list uses null absence reason; empty list requires a reason. Roles come from content, not filename dates. |
-| `specs` | Unique monorepo-relative spec/plan files; may be empty. Existence checks only. |
+| `status_docs`, `status_absence_reason` | Unique records `{path, role, lifecycle_ids}`; lifecycle_ids identifies the applicable lifecycle records below (empty means not yet mapped and is reported); role current/historical. Nonempty list uses null absence reason; empty list requires a reason. Roles come from content, not filename dates. |
+| `lifecycle_records` | Explicit revision records keyed by stable component-local ID; each separates specs, implementation_plans and test_paths and records state/supersession. Replaces the former untyped specs list; see Lifecycle traceability below. |
 | `website` | `{policy, page, reason}`. Required: non-null website-relative target even before creation, null reason. Internal: null page, nonempty reason. |
 | `members` | Overview-only nonempty list of existing non-overview IDs; empty for components. Active public rosters exclude internal/archived components. |
 | `archive_reason` | Nonempty for archived; null for active. |
 | `discovery_exclusions` | Unique `{path, reason}` records, monorepo-relative, for deliberately excluded package candidates. |
 
-Representative entry (ID is the enclosing key):
+Illustrative entry (ID is the enclosing key): paths exist, but lifecycle association/state below is a proposed mapping, not an approved baseline or verified test run. T1 must inventory the other transcription features as separate records.
 
 ```json
 {
@@ -112,28 +113,75 @@ Representative entry (ID is the enclosing key):
     "category": "academic-hub",
     "lifecycle": "active",
     "package": "pipelines/transcribe_notes",
-    "code_paths": ["ai-sandbox/academic-rag-model/pipelines/transcribe_notes"],
+    "code_paths": [
+      "ai-sandbox/academic-rag-model/pipelines/transcribe_notes"
+    ],
     "readme_path": "ai-sandbox/academic-rag-model/pipelines/transcribe_notes/README.md",
     "readme_absence_reason": null,
     "status_docs": [
-      {"path": "ai-sandbox/academic-rag-model/docs/status/transcribe_notes/2026-08-24-notes-transcription-status.md", "role": "current"}
+      {
+        "path": "ai-sandbox/academic-rag-model/docs/status/transcribe_notes/2026-08-24-notes-transcription-status.md",
+        "role": "current",
+        "lifecycle_ids": [
+          "agent-driven-transcription"
+        ]
+      }
     ],
     "status_absence_reason": null,
-    "specs": ["ai-sandbox/academic-rag-model/docs/superpowers/specs/transcribe_notes/2026-10-09-agent-driven-transcription-design.md"],
-    "website": {"policy": "required", "page": "content/projects/academic-hub/notes_transcription/index.md", "reason": null},
+    "website": {
+      "policy": "required",
+      "page": "content/projects/academic-hub/notes_transcription/index.md",
+      "reason": null
+    },
     "members": [],
-    "archive_reason": null
+    "archive_reason": null,
+    "lifecycle_records": {
+      "agent-driven-transcription": {
+        "state": "proposed",
+        "supersedes": [],
+        "specs": [
+          "ai-sandbox/academic-rag-model/docs/superpowers/specs/transcribe_notes/2026-10-09-agent-driven-transcription-design.md"
+        ],
+        "implementation_plans": [
+          "ai-sandbox/academic-rag-model/docs/superpowers/plans/2026-10-09-agent-driven-transcription-plan.md"
+        ],
+        "test_paths": [
+          "ai-sandbox/academic-rag-model/tests/pipelines/transcribe_notes/test_agent_driver.py"
+        ],
+        "absence_reasons": {
+          "specs": null,
+          "implementation_plans": null,
+          "test_paths": null
+        }
+      }
+    }
   }
 }
 ```
 
 Enumerate study-guide's canonical pipeline status and scattered run histories and indexer's multiple feature docs. Historical records receive existence/link checks but cannot prove current documentation freshness. Guided Solutions uses its operational status, empty code paths and an explained null README. Overview records use membership, not fake monorepo-root code history. Archived records retain identity and historical paths; missing historical source paths are informational after explicit archival, while owned pages still undergo metadata checks.
 
+### Lifecycle traceability
+
+Added at the owner's request on 2026-10-11. This extends D2's proposed schema; it does not approve D1-D3 or implement a migration. Keep the runtime as a local read-only checker, not a new lifecycle service.
+
+Each `lifecycle_records` value contains `state` (proposed/current/superseded), `supersedes` (IDs within this component), unique `specs`, `implementation_plans`, and `test_paths` arrays, plus `absence_reasons` with exactly those three keys. Document paths are monorepo-relative Markdown files; test paths are explicit monorepo-relative files or directories, never shell commands or executable selectors. Shared files are allowed across components/revisions; duplicate paths within one list are not. Empty lists require a nonempty reviewed absence reason; populated lists require null reasons. An empty lifecycle_records object or empty status lifecycle_ids is allowed during inventory, but emits LIFECYCLE_UNMAPPED; do not disguise unknown inventory as an intentional absence. Overview/operational records may explicitly document why specs, a plan or automated tests are not applicable.
+
+Validate record IDs, enums, all paths, absence conditions, dangling references and supersession cycles. Current implementation plans link back to their listed specs. Every mapped status record links back to the union of its lifecycle records' specs, implementation plans and test paths. One status may reference several feature/revision records; one spec may have several plans. Do not infer these relationships from filename similarity, dates, package nesting or latest commit time. Inspect both `docs/superpowers/{specs,plans}/` and `docs/brainstorms/` (this sync plan itself lives under a specs directory), and explicit cross-package documents. Directory location is not document kind.
+
+The canonical mapping is the registry. For deterministic, human-readable backlinks, the proposed migration adds a `## Lifecycle references` section to status records and implementation plans. Inside it, use `### Specs`, `### Implementation plans` (status records only), and `### Tests` headings with ordinary inline Markdown links relative to the containing document. Empty categories state the matching absence reason. The checker resolves these links against the registry, validates containment/existence and compares sets; it does not parse arbitrary prose to infer relationships. Existing prose links may remain, but legacy documents lacking this section are reported as unmapped/backlink gaps until explicitly backfilled. No automatic Markdown rewrite is part of the scanner. For shared status files, compare against the union of mappings for that file across components to avoid contradictory requirements.
+
+Backlink completeness is separate from evidence of execution. A status record claiming verification must also state the tested source revision, exact command/scope, observation date, outcome and evidence location when available; distinguish fixture results, live runs and unverified behavior. Old evidence retains its original revision/date. The checker validates reference structure and reports recorded evidence as unverified prose; it neither runs test commands nor treats a referenced test file as a passing test. Runtime evidence parsing/attestation remains outside M1.
+
+Specs and plans are relatively stable baselines. Routine bug fixes, new tests, status updates, or plan checkbox updates do not require an architecture rewrite or trigger SPEC_OUTDATED/PLAN_OUTDATED warnings. An architectural change creates an explicitly reviewed new lifecycle record or amendment; `supersedes` states which earlier record(s) it replaces. Transition proposed -> current and old current -> superseded only by an explicit reviewed registry edit, never timestamps. Different active feature records may coexist. Historical status records keep their old revision links; current status records referencing only superseded records produce a review finding, not silent relinking. Renames update paths while retaining record IDs; missing historical docs/tests remain visible gaps rather than being erased. If a referenced file is amended in place, preserve the historical baseline with a Git commit link in the status evidence; the first-release checker verifies current-checkout file links only, not historical blobs. A moved/removed historical file therefore requires a reviewed mapping change or remains a reported missing path.
+
+Website projection retains the status records with their lifecycle_ids, enabling page -> status -> lifecycle traceability without duplicating the entire lifecycle registry in frontmatter. M2's visible source/status links remain required; publishing additional design/test links is an explicit editorial choice. No private run artifacts are copied to the website. M1 reports lifecycle gaps immediately; M3 backfills existing monorepo status/plan links under a separate owned commit, independently of website edits.
+
 ### Schema and semantic validation
 
 Propose JSON Schema Draft 2020-12 with required keys, `additionalProperties: false` at contract objects, strict versions/enums, nonempty strings, unique arrays and conditional nullability. The actual schema is an M1 Task 1 deliverable that must pass positive/negative fixtures before scanner logic; this prose is not evidence of an existing validated schema.
 
-Reject duplicate JSON keys during loading. Semantic validation also rejects duplicate status paths even with different roles, page ownership collisions, Windows case collisions, invalid members and conflicting exclusions. Paths use forward slashes relative to their named repository root. Reject absolute/drive/UNC paths, backslashes, dot/traversal segments, wildcard/pathspec magic and resolved symlink escapes. Verify file/directory kinds. A well-formed registry pointing to a missing target yields a finding; registry/schema/YAML parse/read failure yields incomplete coverage.
+Reject duplicate JSON keys during loading. Semantic validation also rejects duplicate status paths even with different roles, page ownership collisions, Windows case collisions, invalid members and conflicting exclusions. Paths use forward slashes relative to their named repository root. Reject absolute/drive/UNC paths, backslashes, dot/traversal segments, wildcard/pathspec magic and resolved symlink escapes. Verify file/directory kinds. Lifecycle records use the same strict schema/path checks; reject dangling status lifecycle_ids and supersedes references and cycles. A well-formed registry pointing to a missing target yields a finding; registry/schema/YAML parse/read failure yields incomplete coverage.
 
 D3 recommends existing PyYAML with safe loading plus duplicate-key rejection and an explicitly declared local `jsonschema` dependency. Remove the stdlib-only claim. No hand-written arbitrary-YAML parser. Resolve only the adjacent schema/local definitions, never remote schema URLs. Dependency provisioning is separate; select/test a compatible constraint in M1 after D3 is resolved.
 
@@ -152,6 +200,7 @@ params:
     status_docs:
       - path: ai-sandbox/academic-rag-model/docs/status/transcribe_notes/2026-08-24-notes-transcription-status.md
         role: current
+        lifecycle_ids: [agent-driven-transcription]
     members: []
 ```
 
@@ -199,7 +248,7 @@ Capture relevant path inventories, content fingerprints and HEADs before/after p
 
 ### History and finding semantics
 
-For clean tracked inputs with complete history, use `git log -1 --format=%ct <pinned-head> -- <literal-path>`, caching unique path queries within a run. `t_code` is the maximum returned code-path timestamp, a defined heuristic, not a semantic change clock. Compare each current status record separately to code and page; do not aggregate all status docs into a freshness certification. Compare code to page when code exists. Operational records get doc-to-page checks; overview freshness is not assessed in M1. Historical docs are excluded from freshness comparisons.
+For clean tracked inputs with complete history, use `git log -1 --format=%ct <pinned-head> -- <literal-path>`, caching unique path queries within a run. `t_code` is the maximum returned code-path timestamp, a defined heuristic, not a semantic change clock. Compare each current status record separately to code and page; do not aggregate all status docs into a freshness certification. Compare code to page when code exists. Operational records get doc-to-page checks; overview freshness is not assessed in M1. Historical docs are excluded from freshness comparisons. Specs, implementation plans and test paths receive lifecycle-reference checks only; their timestamps never determine architectural staleness. All lifecycle input files participate in consistency/dirty-input detection without becoming freshness inputs.
 
 A gap strictly greater than nonnegative tolerance (default 3600 seconds) emits a warning; equality does not. The window cannot prove concurrent commits. Clock skew, rebases, cosmetic and metadata-only edits may give misleading ordering. Missing timestamps are unknown, never zero. A report with no history gaps does not certify prose. M2 metadata commits must never close the independent editorial backlog.
 
@@ -207,7 +256,9 @@ A gap strictly greater than nonnegative tolerance (default 3600 seconds) emits a
 | --- | --- |
 | UNREGISTERED_COMPONENT | Candidate has no entry/exclusion; actionable |
 | MISSING_WEBSITE_PAGE | Active required target absent on disk; actionable |
-| MISSING_SOURCE_PATH / MISSING_README / MISSING_STATUS_DOC / MISSING_SPEC | Configured active path absent; actionable |
+| MISSING_SOURCE_PATH / MISSING_README / MISSING_STATUS_DOC | Configured active path absent; actionable |
+| MISSING_SPEC / MISSING_IMPLEMENTATION_PLAN / MISSING_TEST_PATH | Configured lifecycle target absent, including historical references; actionable |
+| LIFECYCLE_UNMAPPED / LIFECYCLE_BACKLINK_MISMATCH / LIFECYCLE_REVIEW_REQUIRED | Missing inventory, missing/differing normalized backlink section, or current status referring only to superseded baselines; actionable, not age-based |
 | METADATA_MISMATCH | Missing/differing projection, duplicate owner or differing required source/status links; actionable |
 | ORPHANED_PAGE | Page claims unknown ID or conflicts with registered page ownership; actionable |
 | WEBSITE_HISTORY_GAP / STATUS_HISTORY_GAP | Heuristic warning with source/target timestamps; actionable under strict mode |
@@ -216,7 +267,7 @@ A gap strictly greater than nonnegative tolerance (default 3600 seconds) emits a
 
 Multiple findings coexist. Scan registered targets and all `content/projects/**/index.md` pages claiming canonical or legacy metadata. Unrelated portfolio pages without a claim are not orphaned. A registered page with deleted source receives a missing-source finding; successful historical lookup cannot conceal absence.
 
-JSON envelope: report version, coverage_complete, absolute roots and HEADs, registry fingerprint, tolerance, dirty summaries, component results (ID, per-target evidence, metadata/freshness states, findings), sorted findings and counts. Findings carry `(component_id, kind, target)` and input fingerprints; unknown pages retain claimed ID/path. Sort by ID/kind/target; diagnostics on stderr. All formats render one result model. Exclude volatile timing fields from deterministic payloads; measure performance separately.
+JSON envelope: report version, coverage_complete, absolute roots and HEADs, registry fingerprint, tolerance, dirty summaries, component results (ID, per-target evidence, metadata/freshness states, lifecycle records and normalized backlink results, findings), sorted findings and counts. Findings carry `(component_id, kind, target)` and input fingerprints; unknown pages retain claimed ID/path. Sort by ID/kind/target; diagnostics on stderr. All formats render one result model. Exclude volatile timing fields from deterministic payloads; measure performance separately.
 
 Exit **0**: complete non-strict report, or complete strict report with no actionable finding. Exit **1**: complete strict report with any actionable finding. Exit **2**: usage/configuration/parse/Git failure or incomplete coverage regardless of strictness; takes precedence. Runtime failures after format selection produce structured error output; argparse usage failures may use stderr. Non-strict zero does not mean no findings or accurate prose.
 
@@ -228,6 +279,7 @@ Exit **0**: complete non-strict report, or complete strict report with no action
 | Inventory | Bounded packages, explicit operational/config records, claiming pages | Read-only enumeration | Repeatable findings on fixed inputs | Every approved row and missing/extra cases |
 | History diagnostics | Separate roots/SHAs and literal paths | Local Git, no model/network | Per-path heuristic evidence | Independent Git fixtures and varied live sample |
 | Metadata/links | Registered/claiming bundles | Safe YAML, no URL requests | Exact projection/local-link diagnostics | Multi-status, package-less, duplicate/unrelated cases |
+| Lifecycle references | Explicit specs/plans/status/test paths and normalized backlink sections | Local reads only; never test execution | Deterministic revision/link gaps, no age-based invalidation | Multi-plan/multi-status, historical/superseded, missing-link and no-test-run fixtures |
 | Reports | One model, three formats | Stdout only | Stable ordering/completeness | Format parity and all exits |
 | M2 edits/build | Explicit website allowlist/build outputs | Website writes, build provisioning separate | Reviewed patch, no duplicate insertion | Diff, YAML, production build, rendered sample |
 | Scheduler/steering/repair | Unsupported in this release | Would introduce writes/state | Deferred | Separate design/ingestion contract |
@@ -249,7 +301,7 @@ Substantive choices remain with Claude/the design author under the repository ro
 | Decision | Recommendation | Status |
 | --- | --- | --- |
 | D1 — Scope/policy | 24 components + two overviews; core_env internal; concept_graph required; one component per page; M2 covers 16 existing components + two overviews | Pending design-author decision |
-| D2 — Schema/metadata | Stable-ID contract, strict local schema, params.subproject projection; shared component pages deferred | Pending design-author decision |
+| D2 — Schema/metadata | Stable-ID contract including lifecycle_records, status lifecycle_ids and normalized status/plan backlinks; strict local schema and params.subproject projection; shared component pages deferred | Pending design-author decision |
 | D3 — Runtime | Workspace-plus-HEAD diagnostics, explicit website root, safe YAML/local jsonschema, 0/1/2 exits, stdout only, measured latency | Pending design-author decision |
 
 After decisions, follow the plan's requirement-to-evidence gates. Schema validation precedes scanner logic; real-Git fixtures and live samples precede M2; production build/render inspection precede M2 completion. M3 editorial review/publication remain separate. This design claims no implemented scanner, passing fixtures, successful live run or deployed behavior.
