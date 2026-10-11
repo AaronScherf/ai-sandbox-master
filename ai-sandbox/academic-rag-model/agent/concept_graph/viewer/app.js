@@ -27,9 +27,10 @@
   var hiddenEdgeTypes = new Set();
 
   // ---- rendering helpers ----------------------------------------------------
-  function rich(text) {
+  function rich(text, opts) {
     if (!text) return "";
-    return "<p>" + CG.splitMath(text).map(function (p) {
+    var splitter = opts && opts.formal ? CG.splitFormal : CG.splitMath;
+    return "<p>" + splitter(text).map(function (p) {
       if (p.type === "text") return esc(p.value).replace(/\n\n+/g, "</p><p>").replace(/\n/g, "<br>");
       try {
         return window.katex.renderToString(p.value, { displayMode: p.type === "display", output: "mathml", throwOnError: false });
@@ -242,7 +243,7 @@
   }
 
   // ---- detail panel ---------------------------------------------------------
-  function fieldBlock(kind, id, field, label) {
+  function fieldBlock(kind, id, field, label, opts) {
     var it = item(kind, id);
     var value = effective(kind, id, field);
     if (!value && editing !== field) {
@@ -255,7 +256,7 @@
     }
     var edited = decisionsFor(kind, id).some(function (d) { return d.action === "edit" && d.field === field; });
     return '<div class="field"><h4>' + label + (edited ? ' <span class="badge proposed">edited</span>' : "") +
-      '<button type="button" data-act="edit" data-field="' + field + '">Edit</button></h4>' + rich(value) + "</div>";
+      '<button type="button" data-act="edit" data-field="' + field + '">Edit</button></h4>' + rich(value, opts) + "</div>";
   }
   function citations(it) {
     if (!it.citations || !it.citations.length) return "";
@@ -294,7 +295,7 @@
       fieldBlock("node", n.id, "gist", "Summary") +
       '<div class="actions"><button type="button" class="' + (prereqMode ? "on" : "") + '" data-act="prereq">Show what this needs</button></div>' +
       fieldBlock("node", n.id, "explanation", "Explanation") +
-      fieldBlock("node", n.id, "formal", "Formal statement") +
+      fieldBlock("node", n.id, "formal", "Formal statement", { formal: true }) +
       fieldBlock("node", n.id, "example", "Example") +
       citations(n) +
       '<div class="field"><h4>Connections</h4><ul class="conn">' +

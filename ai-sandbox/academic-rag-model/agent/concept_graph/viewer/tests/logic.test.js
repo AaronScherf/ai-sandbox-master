@@ -154,3 +154,24 @@ test("splitMath still finds several real math spans in one passage", () => {
     { type: "text", value: " with " }, { type: "inline", value: "R \subseteq X" }, { type: "text", value: "." },
   ]);
 });
+
+test("splitFormal returns empty array for empty or whitespace-only text", () => {
+  assert.deepEqual(CG.splitFormal(""), []);
+  assert.deepEqual(CG.splitFormal("   "), []);
+  assert.deepEqual(CG.splitFormal(null), []);
+  assert.deepEqual(CG.splitFormal(undefined), []);
+});
+
+test("splitFormal treats bare LaTeX without dollar signs as one display part", () => {
+  const latex = "\\forall x, y, z \\in X, \\quad x R x \\quad \\text{and} ...";
+  assert.deepEqual(CG.splitFormal(latex), [{ type: "display", value: latex }]);
+  assert.deepEqual(CG.splitFormal("  " + latex + "\n"), [{ type: "display", value: latex }]);
+});
+
+test("splitFormal delegates to splitMath when text contains dollar signs", () => {
+  const withMath = "Let $x \\in X$, then $$f(x) = y$$.";
+  assert.deepEqual(CG.splitFormal(withMath), CG.splitMath(withMath));
+  const inlineOnly = "Let $x \\in X$.";
+  assert.deepEqual(CG.splitFormal(inlineOnly), CG.splitMath(inlineOnly));
+});
+

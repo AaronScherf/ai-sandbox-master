@@ -137,6 +137,14 @@
     return out;
   }
 
+  function splitFormal(text) {
+    text = text || "";
+    if (text.indexOf("$") !== -1) return splitMath(text);
+    var trimmed = text.trim();
+    if (!trimmed) return [];
+    return [{ type: "display", value: trimmed }];
+  }
+
   function filterNodes(nodes, f) {
     var q = (f.q || "").trim().toLowerCase();
     function ok(list, value) { return !list || list.length === 0 || list.indexOf(value) !== -1; }
@@ -190,7 +198,7 @@
 
   return {
     edgeSentence: edgeSentence, needsPairs: needsPairs, prerequisites: prerequisites,
-    computeLayout: computeLayout, splitMath: splitMath, filterNodes: filterNodes,
+    computeLayout: computeLayout, splitMath: splitMath, splitFormal: splitFormal, filterNodes: filterNodes,
     decisionKey: decisionKey, recordDecision: recordDecision, buildReview: buildReview,
     issueUrl: issueUrl, safeStorage: safeStorage
   };
