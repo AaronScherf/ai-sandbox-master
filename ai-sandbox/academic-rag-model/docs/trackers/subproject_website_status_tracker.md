@@ -1,8 +1,11 @@
 # Academic Hub Subproject, Status Doc, and Website Project Page Tracker
 
-**Audit Date:** 2026-10-10  
-**Evaluator:** Gemini Agent (Antigravity)  
-**Monorepo Checkout:** `ai-sandbox-master` (branch: `main`, commit: `8b0c7b7`)  
+**Audit Date:** 2026-10-10
+
+**Evaluator:** Gemini Agent (Antigravity); inventory/contract corrections by Codex, 2026-10-11
+
+**Monorepo Checkout:** `ai-sandbox-master` (branch: `main`, commit: `8b0c7b7`)
+
 **Website Repository:** `ai-sandbox/personal-website/AaronScherf.github.io` (branch: `main`, commit: `ebc836a`)
 
 ---
@@ -15,11 +18,11 @@ This tracker monitors alignment across the three functional tiers of the portfol
 3. **Website Project Pages in `personal-website/AaronScherf.github.io/content/projects/`**: Public-facing portfolio documentation explaining tools, real-world context, empirical testing, and ongoing development.
 
 ### Key Audit Metrics
-* **Total Subprojects & Components Audited:** 21 substantive components (+ 2 ecosystem overview portals).
+* **Corrected Original Matrix Count:** 22 component rows and one overview row. The website has 16 existing component pages and two overview pages; the research overview was omitted from this matrix. See section 7 for the expanded proposal.
 * **Website Repository State:** The website repository has had **no commits since October 5, 2026** (`ebc836a` on 2026-10-05 22:56:18 EDT).
 * **Monorepo State:** Between October 5 and October 10, 2026, **over 35 commits landed on `main`**, introducing major new subprojects and substantial pipeline evolutions.
-* **Status Doc Currency:** 20 components have current status docs; **1 component has an outdated status doc** (`agent/summary_enhance` stops at v1 and misses v2 extensions).
-* **Website Coverage Gap:** **8 substantive subprojects are completely missing website project pages**.
+* **Status Doc Currency:** The original audit identified one outdated status record (`agent/summary_enhance`, missing v2 extensions). This is an editorial finding, not a machine-verified count of all current records.
+* **Original Website Coverage Gap:** **Six named components lack pages**, matching the matrix and section 3. The original count of eight was unsupported. Concept Graph is an additional proposed target from a later main baseline, not an unnamed original finding.
 * **Website Currency Gap:** **3 existing project pages + 1 ecosystem overview page are materially outdated** due to advancements that landed between October 5 and October 10.
 
 ---
@@ -36,7 +39,7 @@ This tracker monitors alignment across the three functional tiers of the portfol
 | **`pipelines/convert_essays`**<br>(Research Notes) | `pipelines/convert_essays/` | `a893750`<br>(2026-09-30) | • `convert_essays/2026-09-01-research-notes-conversion-status.md` | `ai-research-assistant/research_notes_conversion/index.md` | **Aligned**: Accurately describes local `.docx` extraction and index card integration. |
 | **`pipelines/convert_journal_articles`**<br>(Article Transcription) | `pipelines/convert_journal_articles/` | `a893750`<br>(2026-09-30) | • `convert_journal_articles/2026-09-01-journal-article-transcription-status.md` | `ai-research-assistant/journal_article_transcription/index.md` | **Aligned**: Accurately describes tiered routing reused for journal PDFs. |
 | **`discovery/discover_journal_articles`**<br>(Literature Discovery) | `discovery/discover_journal_articles/` | `a893750`<br>(2026-09-30) | • `discover_journal_articles/2026-09-01-journal-discovery-status.md` (Updated Oct 4) | `ai-research-assistant/journal_discovery/index.md` | **Aligned**: Accurately describes OpenAlex discovery, CORE download, metadata reconciliation, and EZProxy fallback. |
-| **`agent/rag` (Core Q&A)**<br>(Grounding & REPL) | `agent/rag/` | `5fb2303`<br>(2026-10-08) | • `agent/rag/2026-08-30-rag-agent-status.md`<br>• `agent/rag/2026-10-03-question-resolver-status.md` | `academic-hub/rag_analysis/index.md` | **Page Outdated**: Lists lack of memory and lack of problem generation as limitations (both solved); omits Question Resolver (Oct 3). |
+| **`agent/rag` (Core Q&A)**<br>(Grounding & REPL) | `agent/rag/` | `5fb2303`<br>(2026-10-08) | • `agent/rag/2026-08-30-rag-agent-status.md`<br>• `agent/rag/2026-10-03-question-resolver-status.md` | `academic-hub/rag_analysis/index.md` | **Page Outdated**: Needs scoped descriptions of persisted diagnosis/summary records and separate problem-generation routing; full conversation restoration is not established. Omits Question Resolver (Oct 3). |
 | **`agent/rag` (Tutor Diagnosis)**<br>(Hint & Draft Evaluation) | `agent/rag/tutor_diagnosis.py` | `5621aa6`<br>(2026-09-29) | • `agent/rag/2026-09-27-tutor-diagnosis-status.md` (Updated Oct 8) | `academic-hub/tutor_diagnosis/index.md` | **Aligned for REPL**: Accurately covers 3-axis rubric, hints, and verification. (Note: does not mention evolution into `agent/tutor`). |
 | **`agent/tutor`**<br>(Socratic Tutor Gate) | `agent/tutor/` | `0ecfe1f`<br>(2026-10-10) | • `agent/tutor/2026-10-08-socratic-tutor-status.md` (Updated Oct 10, commit `d7782c0`) | *None* | **Missing Page**: Mature subproject completed Oct 8–10; has full CLI, FSM, claims ledger, and profile v2. No website page exists. |
 | **`agent/viz`**<br>(Visualization Sub-Agent) | `agent/viz/` | `38239eb`<br>(2026-09-30) | • `agent/viz/2026-09-02-visualization-agent-status.md` | `academic-hub/visualization/index.md` | **Aligned**: Accurately describes Plotly templates and local LLM fallback. |
@@ -54,9 +57,9 @@ This tracker monitors alignment across the three functional tiers of the portfol
 
 ---
 
-## 3. Subprojects Missing Website Pages (8 Components)
+## 3. Original Missing Website Pages (6 Components)
 
-The following substantive systems have completed code implementations and narrative status documentation, but have no presence on the personal website:
+The following six components have no website page at the audit baseline. Most have code implementations; Guided Solutions is documented operational work without a standalone code folder. Implementation and live-run claims must be revalidated before writing public prose:
 
 1. **`agent/tutor` — Socratic Tutor Session Gate & Learner Profile**
    * *What it does:* CLI session gate that enforces a pedagogically strict finite state machine (FSM) for live tutoring sessions. An IDE agent handles dialogue while the CLI checks claims against prep-authored recognizers, seals/releases solution checkpoints, caps rubric ratings by logged evidence, and persists sessions and a learner profile v2 to the vault.
@@ -71,7 +74,7 @@ The following substantive systems have completed code implementations and narrat
 3. **`agent/summary_enhance` — Summary Enhancement Engine**
    * *What it does:* Post-processes RAG-generated summaries into standalone pedagogical study guides with per-topic source sets, improve mode, worked-example generator with verified code execution, display math formatting, and prompt-caching optimization.
    * *Status documentation:* `docs/status/agent/summary_enhance/2026-10-03-summary-enhancement-status.md`
-   * *Target website location:* `content/projects/academic-hub/summary_enhancement/index.md` (or integrated into Study Guide Pipeline)
+   * *Target website location:* `content/projects/academic-hub/summary_enhancement/index.md` (separate page proposed; shared-page aggregation deferred pending a reviewed contract)
 
 4. **`tools/corpus_health` — Academic Hub Corpus Health Scanner & Adapter Repair**
    * *What it does:* Automated scanner that verifies corpus health across hundreds of academic documents, index cards, and vector chunks. Features a local web review server for owner approvals, daily automated scanning via PowerShell, and exact-match chunk repair adapters.
@@ -109,14 +112,14 @@ The following substantive systems have completed code implementations and narrat
 
 ### 3. `academic-hub/rag_analysis/index.md`
 * **Stale Limitations:** Under *Ongoing Development* (lines 38–41), the page lists limitations that have since been resolved:
-  * *"has no persistent memory across process runs"* -> Resolved by `tutor_diagnosis` session event logs and `agent/tutor` learner profiles.
-  * *"actively works against generating a genuinely new problem set"* -> Resolved by the dedicated `agent/problem_gen` subproject.
+  * *"has no persistent memory across process runs"* -> Describe persisted diagnosis/gap events and summaries separately from full conversation restoration. The RAG REPL initializes conversation history anew; `agent/tutor` profiles belong to a separate component.
+  * *"actively works against generating a genuinely new problem set"* -> Describe the separate `agent/problem_gen` route; do not imply that grounded retrieval itself now invents problems.
 * **Missing Features:**
   * **Question Resolver** (`question_resolver.py`, Oct 3): disambiguates underspecified questions using syllabus and course schedule context.
 
 ### 4. `academic-hub-overview/index.md`
 * **Stale Roster:** Hardcodes: *"Twelve subprojects currently make up the hub across conversion, indexing, and tutoring layers..."*
-* **Correction:** Expand roster to include the 6 newer systems (Socratic Tutor, Study Guide Pipeline, Summary Enhancement, Guided Solutions, Corpus Health, and Project Steering).
+* **Correction:** Reconcile the roster with approved registry membership, including the six original missing-page components and any approved current-main additions. Do not hardcode an 18-system count before the scope decision.
 
 ---
 
@@ -137,39 +140,35 @@ The following substantive systems have completed code implementations and narrat
 
 ### Current Linking Analysis
 An audit of frontmatter and content across all website project pages revealed:
-1. **No Explicit Status Doc Links (except one):** Only `academic-hub/obsidian_git_sync/index.md` explicitly links to status docs in its frontmatter `links:` block. None of the other 12 project pages link to status docs or README files.
+1. **No Explicit Status Doc Links (except one):** Only `academic-hub/obsidian_git_sync/index.md` explicitly links to status docs in its frontmatter `links:` block. The relevant baseline contains 15 other component pages; verify their individual links during M2 rather than reusing the erroneous 13-page total.
 2. **Inconsistent GitHub URL Granularity:**
    * 10 pages link directly to their specific subproject directory (e.g. `.../ai-sandbox/academic-rag-model/audio_generator`).
    * 5 pages link only to the top-level repository root (`.../ai-sandbox/academic-rag-model`), losing subproject traceability (`marker_conversion`, `notes_transcription`, `journal_article_transcription`, `journal_discovery`, `research_notes_conversion`).
 3. **No Back-Links from Code/Docs:** Subproject READMEs and status docs do not link to their corresponding website pages.
 
-### Proposed Frontmatter Schema for Automated Drift Detection
-To enable automated verification scripts to detect when code or status docs advance past website pages, website project pages should adopt standard YAML frontmatter metadata:
+### Canonical Linking and Verification Contract
 
-```yaml
----
-title: Notes Transcription Pipeline
-date: 2026-08-27
-type: academic-hub-project
-subproject:
-  package: pipelines/transcribe_notes
-  readme: ai-sandbox/academic-rag-model/pipelines/transcribe_notes/README.md
-  status_docs:
-    - ai-sandbox/academic-rag-model/docs/status/transcribe_notes/2026-08-24-notes-transcription-status.md
-  primary_source_files:
-    - ai-sandbox/academic-rag-model/pipelines/transcribe_notes/transcribe_notes.py
-    - ai-sandbox/academic-rag-model/pipelines/transcribe_notes/agent_transcribe.py
-links:
-  - type: site
-    icon: brands/github
-    label: GitHub
-    url: https://github.com/AaronScherf/ai-sandbox-master/tree/main/ai-sandbox/academic-rag-model/pipelines/transcribe_notes
----
-```
+The [amended design](../brainstorms/specs/2026-10-10-subproject-website-sync-design.md) is the sole schema/CLI proposal; the [implementation plan](../brainstorms/specs/2026-10-10-subproject-website-sync-plan.md) defines task gates. Do not implement a separate schema from this tracker.
 
-### Proposed Automated Verification Workflow
-With structured metadata or a shared registry (`docs/trackers/subproject_registry.json`), an automated CLI tool (e.g. `python -m tools.audit_website_currency`) can:
-1. Compare `git log -n 1 --format=%cd` of `subproject.package` against the project page's `git log`.
-2. Inspect whether any commits touched the subproject code after the website page's last commit date.
-3. Check for any package directory under `academic-rag-model/` lacking a registered website page.
-4. Output a machine-readable report or feed directly into `tools.project_steering` as reviewable to-do items.
+The proposal uses immutable IDs, repo-root-relative paths, explicit current/historical status lists, operational/configuration/overview kinds, and a matching `params.subproject` projection. The proposed checker is `python -B -m tools.audit_website_sync`, invoked from the package root with an explicit website checkout. The old `audit_website_currency` name and conflicting top-level frontmatter example are superseded. The website is HugoBlox Academic CV.
+
+Git timestamps produce **history warnings**, not semantic alignment verdicts. The [review](../brainstorms/2026-10-10-subproject-website-sync-codex-review.md) demonstrates timestamp flags for textbook/postprocess pages this editorial audit calls aligned. Conversely, committing metadata can advance page timestamps without repairing prose. Keep this content backlog independent: no checker or M2 metadata commit automatically resolves these findings. Each item needs source-backed editorial review before completion.
+
+Correct the five generic component links listed above. Journal discovery's target is `ai-sandbox/academic-rag-model/discovery/discover_journal_articles`, not a pipelines directory. Preserve legitimate overview root links and Obsidian's status-file links. Metadata does not substitute for visible source/status links. Scheduling, steering ingestion and automated repairs are deferred; existing steering has no established website-report ingestion API.
+
+## 7. Review Reconciliation and Expanded Scope Proposal
+
+The original matrix above preserves its dated editorial scope. Corrections do not certify all prose or refresh every historical commit reference. Proposed additions/dispositions at the review baseline (`44046eb`, carried into `519a2f6`) are:
+
+| Item | Evidence / correction | Proposed disposition |
+| --- | --- | --- |
+| Tutor diagnosis | Existing matrix row and website page; omitted by original plan | Separate stable identity from RAG Q&A |
+| Obsidian sync | Existing matrix row/page; configuration outside Python package root | Configuration identity, source under `ai-sandbox/.obsidian/` |
+| Research overview | Existing `ai-research-assistant-overview/index.md`, omitted from matrix | Explicit overview identity and membership |
+| core/env | Original plan added it; initializer exists but no README | Internal infrastructure with reason; publication policy pending D1 |
+| agent/concept_graph | Code/status docs on later main; absent at 777f507 | Additional proposed page, subject to D1; no implied live-run success |
+| Guided Solutions | Operational status record, no `agent/problem_sets/` code folder | Operational identity with explained absent code/README |
+
+The union is **24 component candidates plus two overviews**. Under the proposed policies there are 16 existing component pages, six original missing pages, one additional proposed concept-graph page, one internal component, and two existing overviews. M2 would cover 16 existing components plus two overviews. These policies are proposals, not owner decisions.
+
+Design decisions D1 (scope/publication), D2 (schema/frontmatter) and D3 (runtime/dependencies) remain with Claude/the design author. The six original content tasks, three page revisions, overview revision and summary-enhancement status update remain open. No code, website edits, checker run, build or publication is claimed by these documentation amendments.

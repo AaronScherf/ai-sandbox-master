@@ -1,180 +1,255 @@
 # Subproject Website Alignment & Automated Verification: Design Spec
 
-**Status:** Draft for design review  
-**Date:** 2026-10-10  
-**Authors:** Aaron Scherf & Gemini Agent  
-**Source Request:** Implement both a central registry of subproject connections and website frontmatter cross-links, plus a lightweight automated checker to identify missing or outdated docs/pages, followed by an implementation plan.
+**Status:** Amended proposal; decisions D1–D3 pending; implementation not started.
 
----
+**Date:** 2026-10-10; amendment completed 2026-10-11
 
-## 1. Requirements and Constraints
+**Original authors:** Aaron Scherf & Gemini Agent; review amendments by Codex at the owner's request.
 
-1. **Dual-Layer Connection Architecture:**
-   * **Central Registry:** Maintain a single canonical, machine-readable registry file in the monorepo (`docs/trackers/subproject_registry.json`) mapping every package in `academic-rag-model` to its code directory, README, status documents, and website project page.
-   * **In-Page Frontmatter Links:** Standardize YAML frontmatter on website project pages (`content/projects/.../index.md`) with explicit `subproject:` metadata and verified GitHub repository/status doc links.
-   * **Bidirectional Integrity:** The automated checker must verify that the central registry and the website page frontmatter agree, flagging any discrepancy.
+**References:** [Codex review](../2026-10-10-subproject-website-sync-codex-review.md), [implementation plan](2026-10-10-subproject-website-sync-plan.md), [audit tracker](../../trackers/subproject_website_status_tracker.md).
 
-2. **Model-Free, Zero-Cost Verification:**
-   * The checker must execute locally without API calls, LLM tokens, cloud network access, or paid quotas.
-   * Drift checks must rely solely on local file existence and Git commit timestamps (`git log -1 --format=%ct`).
-   * Execution time must be sub-second (target < 500 ms) so it can run on demand, in pre-commit hooks, or within CI workflows.
+This revision replaces contradictory contracts in the initial draft. Factual corrections are incorporated; recommended architecture choices are explicit proposals for Claude/the design author, not recorded owner approvals. The original review remains a historical assessment of the previous draft.
 
-3. **Multi-Repository Boundaries:**
-   * **Monorepo Checkout:** `ai-sandbox-master` containing Python packages, tests, tools, status docs, and trackers.
-   * **Personal Website Repository:** `ai-sandbox/personal-website/AaronScherf.github.io` is a distinct, independently versioned Git checkout.
-   * The tool must query Git history across both repository roots using `git -C <repo_root>` without assuming shared Git objects, index states, or branch names.
+## 1. Requirements and Smallest Usable Release
 
-4. **Idempotency and Non-Destructive Behavior:**
-   * The verification checker must be strictly read-only by default (`--check` / `--report`), producing structured findings without altering files.
-   * Any future metadata synchronization (`--sync-frontmatter`) must be explicitly targeted, previewed, and committed via dedicated Git worktrees.
+| ID | Requirement / constraint |
+| --- | --- |
+| REQ-1 | Account for all audited components, both overviews and current-main additions using stable identity and explicit website policy. Discovery suggests omissions; it does not decide publication scope. |
+| REQ-2 | One canonical registry and strict local schema; validate the same frontmatter projection in both directions. |
+| REQ-3 | Checker execution is read-only, local, model-free and network-free: zero API tokens, model inference, Git downloads or remote schema resolution. |
+| REQ-4 | Independent repository roots, histories, indexes and HEADs. M1 writes only monorepo files; M2 writes only an owned website worktree. |
+| REQ-5 | Separate structural integrity, history warnings and editorial accuracy. Timestamps cannot certify semantic alignment or close content tasks. |
+| REQ-6 | Deterministic text/JSON/Markdown reports, per-target evidence, explicit coverage completeness and exit codes. |
+| REQ-7 | Define cwd, dirty/untracked inputs, absent history, renames, archival and changes during a scan. |
+| REQ-8 | Validate YAML, source/status links, the actual HugoBlox production build and representative rendered pages. |
+| REQ-9 | Real independent Git fixtures, a varied live sample, discrepancy records and measured performance. |
+| REQ-10 | No scheduling, steering ingestion, staged-index certification, automated repair or publication in M1. |
 
-5. **Precise Drift Classification:**
-   * `ALIGNED`: Code, status docs, and website project page are all present and synchronized within acceptable commit windows.
-   * `MISSING_WEBSITE_PAGE`: A substantive subproject exists in the codebase but has no corresponding website project page.
-   * `WEBSITE_PAGE_OUTDATED`: Subproject code on `main` has commits newer than the website page's latest Git commit.
-   * `STATUS_DOC_OUTDATED`: Subproject code has commits newer than the latest corresponding status doc in `docs/status/<package>/`.
-   * `ORPHANED_PAGE`: A website page references a subproject package or doc path that no longer exists in the monorepo.
-   * `METADATA_MISMATCH`: Discrepancy between central registry metadata and website page frontmatter.
+**M1 remains the smallest usable release:** registry, schema, read-only CLI, documentation and tests. It provides inventory and metadata diagnostics plus history warnings before website edits. It needs no server, database, persistent cache, decision ledger, scheduler or repair command. M2 adds metadata and visible links; M3 separately reconciles prose/status records.
 
----
+Remove the earlier exact-semantic-audit-reproduction and mandatory sub-500 ms claims. The review measured 1.574 seconds for eight sequential Windows Git calls and identified two timestamp false positives against editorial labels. Sub-500 ms is an optimization aspiration; record cold/warm end-to-end timings before promising hook suitability. Provisioning dependencies and building the site are separate from offline checker execution.
 
-## 2. Verified Repository Facts & Adjacent Work
+## 2. Evidence, Adjacent Work and Repository Boundaries
 
-* **Monorepo Layout:**
-  * Packages are grouped by role: `core/`, `pipelines/`, `discovery/`, `agent/`, `resume_manager/`, `audio_generator/`, and `tools/`.
-  * Status documents live under `ai-sandbox/academic-rag-model/docs/status/<package>/`.
-  * Trackers live in `ai-sandbox/academic-rag-model/docs/trackers/` (`academic_hub_to_do.md`, `academic_hub_completed.md`, `subproject_website_status_tracker.md`).
-* **Personal Website Layout:**
-  * Hugo static site rooted at `ai-sandbox/personal-website/AaronScherf.github.io/`.
-  * Project pages reside in `content/projects/<category>/<slug>/index.md`.
-  * Project frontmatter currently includes `title`, `date`, `type`, `tags`, `image`, and `links` (containing generic GitHub links, but no structured subproject mapping).
-* **Adjacent Tools & Prior Art:**
-  * `tools/corpus_health/` demonstrates model-free discovery and deterministic state management.
-  * `tools/project_steering/` demonstrates markdown parsing, multi-factor scoring, and local review serving.
-  * `tools/audit_metadata.py` demonstrates programmatic metadata inspection across vault items.
+Original audit: monorepo `8b0c7b7`; original spec/plan landed at `777f507`; review inspected main `44046eb`; amendments based on `519a2f6`. Website rechecked read-only at `ebc836ad2dccfc357d57d4504a00bc4dd75a07bb`, clean. These describe local checkouts, not the deployed site.
 
----
+Read package `CLAUDE.md`/`README.md` and outer `AGENTS.md`, `docs/AGENT_ROUTING.md`, `docs/WORKTREE_WORKFLOW.md`. Adjacent implementations: `tools/audit_metadata.py`, `tools/corpus_health/README.md`, `tools/project_steering/README.md`; associated specs/plans under `docs/superpowers/{specs,plans}/academic_hub/` and status records under `docs/status/academic_hub/`. Check `docs/trackers/academic_hub_to_do.md` and the concept-graph specs/plans/status when freezing scope. Existing steering reads a tracker; no website-finding ingestion API is established.
 
-## 3. Scope and Capability Inventory
+| Destination | Repository / ownership | Permitted writes |
+| --- | --- | --- |
+| Registry/schema, checker/tests, dependency manifest and docs | Outer `ai-sandbox-master`, owned task worktree | M1 |
+| `content/projects/` | Independent website repository, owned website worktree | M2 and website portion of M3 |
+| Summary-enhancement status and changed registry mappings | Outer monorepo | Separate M3 commits |
+| Hugo generated output/cache | Owned website worktree or explicit isolated build destinations | Build validation only |
+| Vault notes, live index, cloud outputs, Obsidian configuration | Outside task write scope | None |
 
-| Capability | Discovery and Scope | Side Effects / Cost | Output and Idempotency | Verification |
-| :--- | :--- | :--- | :--- | :--- |
-| **Central Registry (`subproject_registry.json`)** | All Python packages and tools in `academic-rag-model` | None (static JSON file) | Canonical ground truth mapping; fully idempotent | Schema validation against `subproject_registry.schema.json` |
-| **Website Frontmatter Standard** | All markdown project pages in `content/projects/` | None until edited | Machine-readable `subproject:` block in Hugo YAML | YAML parser validation |
-| **Read-Only Automated Checker (`tools/audit_website_sync.py`)** | Both Git repos, local disk paths, Git logs | Local read only; 0 API calls, 0 cost | Machine-readable JSON report + formatted markdown summary | Unit tests on mock repo histories and live run comparison |
-| **Steering Queue Integration (Optional)** | Ingests drift findings into `academic_hub_to_do.md` | Non-destructive review items | Structured to-do entries for missing/outdated pages | Parser compatibility with `tools.project_steering` |
+Actual website root is `C:/Users/theaa/ai-sandbox-master/ai-sandbox/personal-website/AaronScherf.github.io`. Outer `git ls-files ai-sandbox/personal-website` lists no website files. Outer worktrees do not populate/isolate it. Website `CLAUDE.md`, `go.mod` and `config/_default/module.yaml` establish **HugoBlox Academic CV**, not Blowfish. Read its local `docs/AGENT_ROUTING.md`; website pushes to main deploy through GitHub Actions. Build provisioning may download modules/packages and is not part of the offline scan. Coordinate sole writers and build outputs; a worktree does not coordinate Obsidian or external sync.
 
----
+## 3. Inventory and Discovery (D1)
 
-## 4. Data Model & Specifications
+The original audit matrix has 22 components plus one overview and six missing-page entries. The website has 16 existing component pages plus two overviews. Original Task 1's 21 entries omitted tutor diagnosis/Obsidian sync and added `core/env`. Current main adds `agent/concept_graph`, absent at `777f507`.
 
-### 4.1 Central Registry Schema (`subproject_registry.json`)
+Proposed registry: **24 components plus two overviews**. Stable IDs below are proposed under D2; publication policies and overview membership require D1. Page suffixes are relative to `content/projects/`; actual registry values include that prefix.
 
-The central manifest will be placed at `ai-sandbox/academic-rag-model/docs/trackers/subproject_registry.json`.
+| Stable ID | Package / logical label | Page suffix or disposition |
+| --- | --- | --- |
+| source_indexer | core/indexer | academic-hub/source_indexer/index.md |
+| transcribe_notes | pipelines/transcribe_notes | academic-hub/notes_transcription/index.md |
+| convert_textbook | pipelines/convert_textbook | academic-hub/marker_conversion/index.md |
+| postprocess_notes | pipelines/postprocess_notes | academic-hub/postprocess_notes/index.md |
+| generate_video_notes | pipelines/generate_video_notes | academic-hub/video_notes/index.md |
+| convert_essays | pipelines/convert_essays | ai-research-assistant/research_notes_conversion/index.md |
+| convert_journal_articles | pipelines/convert_journal_articles | ai-research-assistant/journal_article_transcription/index.md |
+| discover_journal_articles | discovery/discover_journal_articles | ai-research-assistant/journal_discovery/index.md |
+| rag | agent/rag | academic-hub/rag_analysis/index.md |
+| tutor_diagnosis | agent/rag | academic-hub/tutor_diagnosis/index.md; code target `agent/rag/tutor_diagnosis.py` |
+| socratic_tutor | agent/tutor | Missing: academic-hub/socratic_tutor/index.md |
+| visualization | agent/viz | academic-hub/visualization/index.md |
+| problem_generation | agent/problem_gen | academic-hub/problem_generation/index.md |
+| problem_corpus | agent/problem_corpus | academic-hub/problem_corpus/index.md |
+| study_guide | agent/study_guide | Missing: academic-hub/study_guide_pipeline/index.md |
+| summary_enhancement | agent/summary_enhance | Missing: academic-hub/summary_enhancement/index.md |
+| resume_manager | resume_manager | resume_manager/index.md |
+| audio_generator | audio_generator | academic-hub/audio_generator/index.md |
+| corpus_health | tools/corpus_health | Missing: academic-hub/corpus_health/index.md |
+| project_steering | tools/project_steering | Missing: academic-hub/project_steering/index.md |
+| guided_solutions | agent/problem_sets (operational label) | Missing: academic-hub/guided_solutions/index.md; no code folder |
+| obsidian_git_sync | obsidian_git_sync (configuration label) | academic-hub/obsidian_git_sync/index.md; source root `ai-sandbox/.obsidian/` |
+| core_env | core/env | Proposed internal infrastructure, no required page; retain reason |
+| concept_graph | agent/concept_graph | Newly proposed: academic-hub/concept_graph/index.md |
+| academic_hub_overview | null | academic-hub-overview/index.md; kind overview |
+| research_overview | null | ai-research-assistant-overview/index.md; kind overview |
+
+If D1 accepts these policies, M3 contains six original missing pages plus one newly scoped concept-graph page. Do not invent an eighth original target. Proposed overview membership: required academic-hub components for the hub overview; the three research-category components for the research overview. Shared infrastructure may be linked in prose without expanding that roster. Settle exact membership/category in D1 rather than hardcoding an 18-system claim.
+
+Discovery is bounded filesystem/Git inventory, never imports. Inspect immediate child package directories under `core/`, `pipelines/`, `discovery/`, `agent/`, `tools/`, plus the two standalone apps. An initializer suffices for a candidate; no README prerequisite. Include non-ignored untracked candidates with untracked evidence. Explicit entries cover operational/configuration/file-level cases. Exclude archives, environments, caches, tests, internal subpackages and symlink traversal. Small standalone tool scripts are outside automatic package discovery; record specific package-candidate exclusions with rationale. An unknown candidate triggers review, not page creation.
+
+## 4. Proposed Data Contract (D2)
+
+Files: `docs/trackers/subproject_registry.json` and adjacent `subproject_registry.schema.json`, relative to `academic-rag-model/`. The `subprojects` object is keyed by immutable ID. Package labels are neither IDs nor disk paths. Components may share a package/code subtree but may not own the same page in M1. Combining summary enhancement into study-guide content is deferred unless a shared-page schema is separately reviewed.
+
+| Field | Proposed contract |
+| --- | --- |
+| Envelope | Required `$schema` (exact adjacent filename), `version` (`1.0.0`), `baseline` (monorepo/website inventory commit IDs), `subprojects`, `discovery_exclusions`. Baseline records provenance, not runtime refs. |
+| Entry `name`, `kind`, `category`, `lifecycle` | Nonempty name; kind code/operational/configuration/overview; category academic-hub/ai-research-assistant/standalone; lifecycle active/archived. |
+| `package` | Component logical label; null for overview. Never concatenate into a disk path. |
+| `code_paths` | Unique literal monorepo-relative files/directories. Nonempty for active code/configuration; empty for operational/overview. |
+| `readme_path`, `readme_absence_reason` | README path or null; exactly one of path or nonempty reason populated. Never invent missing READMEs for core/env, postprocess or operational records. |
+| `status_docs`, `status_absence_reason` | Unique records `{path, role}`; role current/historical. Nonempty list uses null absence reason; empty list requires a reason. Roles come from content, not filename dates. |
+| `specs` | Unique monorepo-relative spec/plan files; may be empty. Existence checks only. |
+| `website` | `{policy, page, reason}`. Required: non-null website-relative target even before creation, null reason. Internal: null page, nonempty reason. |
+| `members` | Overview-only nonempty list of existing non-overview IDs; empty for components. Active public rosters exclude internal/archived components. |
+| `archive_reason` | Nonempty for archived; null for active. |
+| `discovery_exclusions` | Unique `{path, reason}` records, monorepo-relative, for deliberately excluded package candidates. |
+
+Representative entry (ID is the enclosing key):
 
 ```json
 {
-  "$schema": "./subproject_registry.schema.json",
-  "version": "1.0.0",
-  "last_updated": "2026-10-10",
-  "subprojects": {
-    "pipelines/transcribe_notes": {
-      "id": "transcribe_notes",
-      "name": "Notes Transcription Pipeline",
-      "category": "academic-hub",
-      "role": "pipeline",
-      "code_path": "ai-sandbox/academic-rag-model/pipelines/transcribe_notes",
-      "readme_path": "ai-sandbox/academic-rag-model/pipelines/transcribe_notes/README.md",
-      "status_dir": "ai-sandbox/academic-rag-model/docs/status/transcribe_notes",
-      "status_docs": [
-        "ai-sandbox/academic-rag-model/docs/status/transcribe_notes/2026-08-24-notes-transcription-status.md"
-      ],
-      "specs": [
-        "ai-sandbox/academic-rag-model/docs/superpowers/specs/transcribe_notes/2026-10-09-agent-driven-transcription-design.md"
-      ],
-      "website_page": "content/projects/academic-hub/notes_transcription/index.md",
-      "github_url": "https://github.com/AaronScherf/ai-sandbox-master/tree/main/ai-sandbox/academic-rag-model/pipelines/transcribe_notes"
-    },
-    "agent/tutor": {
-      "id": "socratic_tutor",
-      "name": "Socratic Tutor Session Gate",
-      "category": "academic-hub",
-      "role": "agent",
-      "code_path": "ai-sandbox/academic-rag-model/agent/tutor",
-      "readme_path": "ai-sandbox/academic-rag-model/agent/tutor/README.md",
-      "status_dir": "ai-sandbox/academic-rag-model/docs/status/agent/tutor",
-      "status_docs": [
-        "ai-sandbox/academic-rag-model/docs/status/agent/tutor/2026-10-08-socratic-tutor-status.md"
-      ],
-      "specs": [
-        "ai-sandbox/academic-rag-model/docs/superpowers/specs/2026-10-08-socratic-tutor-v1-1-design.md"
-      ],
-      "website_page": null,
-      "github_url": "https://github.com/AaronScherf/ai-sandbox-master/tree/main/ai-sandbox/academic-rag-model/agent/tutor"
-    }
+  "transcribe_notes": {
+    "name": "Notes Transcription Pipeline",
+    "kind": "code",
+    "category": "academic-hub",
+    "lifecycle": "active",
+    "package": "pipelines/transcribe_notes",
+    "code_paths": ["ai-sandbox/academic-rag-model/pipelines/transcribe_notes"],
+    "readme_path": "ai-sandbox/academic-rag-model/pipelines/transcribe_notes/README.md",
+    "readme_absence_reason": null,
+    "status_docs": [
+      {"path": "ai-sandbox/academic-rag-model/docs/status/transcribe_notes/2026-08-24-notes-transcription-status.md", "role": "current"}
+    ],
+    "status_absence_reason": null,
+    "specs": ["ai-sandbox/academic-rag-model/docs/superpowers/specs/transcribe_notes/2026-10-09-agent-driven-transcription-design.md"],
+    "website": {"policy": "required", "page": "content/projects/academic-hub/notes_transcription/index.md", "reason": null},
+    "members": [],
+    "archive_reason": null
   }
 }
 ```
 
-### 4.2 Website Frontmatter Specification
+Enumerate study-guide's canonical pipeline status and scattered run histories and indexer's multiple feature docs. Historical records receive existence/link checks but cannot prove current documentation freshness. Guided Solutions uses its operational status, empty code paths and an explained null README. Overview records use membership, not fake monorepo-root code history. Archived records retain identity and historical paths; missing historical source paths are informational after explicit archival, while owned pages still undergo metadata checks.
 
-Each `content/projects/<category>/<slug>/index.md` will include a structured `subproject:` block:
+### Schema and semantic validation
+
+Propose JSON Schema Draft 2020-12 with required keys, `additionalProperties: false` at contract objects, strict versions/enums, nonempty strings, unique arrays and conditional nullability. The actual schema is an M1 Task 1 deliverable that must pass positive/negative fixtures before scanner logic; this prose is not evidence of an existing validated schema.
+
+Reject duplicate JSON keys during loading. Semantic validation also rejects duplicate status paths even with different roles, page ownership collisions, Windows case collisions, invalid members and conflicting exclusions. Paths use forward slashes relative to their named repository root. Reject absolute/drive/UNC paths, backslashes, dot/traversal segments, wildcard/pathspec magic and resolved symlink escapes. Verify file/directory kinds. A well-formed registry pointing to a missing target yields a finding; registry/schema/YAML parse/read failure yields incomplete coverage.
+
+D3 recommends existing PyYAML with safe loading plus duplicate-key rejection and an explicitly declared local `jsonschema` dependency. Remove the stdlib-only claim. No hand-written arbitrary-YAML parser. Resolve only the adjacent schema/local definitions, never remote schema URLs. Dependency provisioning is separate; select/test a compatible constraint in M1 after D3 is resolved.
+
+### Website projection
+
+Use `params.subproject`, preserving existing parameters and page fields. Hugo documents custom fields under `params` ([frontmatter](https://gohugo.io/content-management/front-matter/), [Page.Params](https://gohugo.io/methods/page/params/)); pinned HugoBlox build/render checks remain M2 gates. Do not alter type, body, dates, tags, images or draft state merely to add metadata.
 
 ```yaml
----
-title: Notes Transcription Pipeline
-date: 2026-08-27
-type: academic-hub-project
-subproject:
-  id: transcribe_notes
-  package: pipelines/transcribe_notes
-  monorepo_rel_path: ai-sandbox/academic-rag-model/pipelines/transcribe_notes
-  readme: ai-sandbox/academic-rag-model/pipelines/transcribe_notes/README.md
-  primary_status_doc: ai-sandbox/academic-rag-model/docs/status/transcribe_notes/2026-08-24-notes-transcription-status.md
-links:
-  - type: site
-    icon: brands/github
-    label: GitHub
-    url: https://github.com/AaronScherf/ai-sandbox-master/tree/main/ai-sandbox/academic-rag-model/pipelines/transcribe_notes
----
+params:
+  subproject:
+    id: transcribe_notes
+    package: pipelines/transcribe_notes
+    code_paths:
+      - ai-sandbox/academic-rag-model/pipelines/transcribe_notes
+    readme_path: ai-sandbox/academic-rag-model/pipelines/transcribe_notes/README.md
+    status_docs:
+      - path: ai-sandbox/academic-rag-model/docs/status/transcribe_notes/2026-08-24-notes-transcription-status.md
+        role: current
+    members: []
 ```
 
----
+Compare ID, package, code paths, README, status records and members to the same registry fields; list order is immaterial after uniqueness checks. Never compare package to code path. Overview projection has null package/README, empty code/status lists and populated members. Reject unknown keys within this block, allowing unrelated Hugo frontmatter. Missing/legacy top-level/dual blocks are diagnostics; M2 installs one canonical block. Duplicate owners and unknown IDs are reported in both scan directions.
 
-## 5. Automated Checker Architecture (`tools/audit_website_sync.py`)
+Visible `links:` separately expose component source and every status record; metadata does not render links automatically. Derive GitHub tree/main URLs for directories and blob/main URLs for files from locally verified targets. Preserve overview root links and existing Obsidian status links. Guided Solutions can use its operational status as its source. No network URL probing in the checker.
 
-### 5.1 CLI Interface
+## 5. Proposed CLI and Execution Contract (D3)
+
 ```powershell
-python -m tools.audit_website_sync [--registry PATH] [--website-root PATH] [--json] [--strict]
+# From the selected monorepo worktree's academic-rag-model directory:
+python -B -m tools.audit_website_sync --website-root <absolute-website-checkout> `
+  [--monorepo-root PATH] [--registry PATH] [--format text|json|markdown] `
+  [--tolerance-seconds 3600] [--strict]
 ```
 
-### 5.2 Verification Pipeline
-1. **Load Registry:** Ingest `subproject_registry.json`. Validate schema and ensure every entry defines required paths.
-2. **Subproject Code Discovery:** Verify whether any directory under `ai-sandbox/academic-rag-model/` containing an `__init__.py` and `README.md` is absent from the registry (detecting untracked subprojects).
-3. **Existence Check:** Verify that configured `code_path`, `readme_path`, and `status_docs` exist in the monorepo, and `website_page` exists in the website checkout (if non-null).
-4. **Git Timestamp Analysis:**
-   * Query `t_code = git log -1 --format=%ct -- <code_path>` in the monorepo.
-   * Query `t_status = max(git log -1 --format=%ct -- <doc>)` for all linked status docs.
-   * Query `t_website = git log -1 --format=%ct -- <website_page>` in the website repository.
-5. **Drift Evaluation:**
-   * If `website_page is None` -> Classify as `MISSING_WEBSITE_PAGE`.
-   * If `t_code > t_website + TOLERANCE_SECONDS` (e.g., 3600s) -> Classify as `WEBSITE_PAGE_OUTDATED`.
-   * If `t_code > t_status + TOLERANCE_SECONDS` -> Classify as `STATUS_DOC_OUTDATED`.
-   * If `website_page` has frontmatter `subproject.package != registry.package` -> Classify as `METADATA_MISMATCH`.
-6. **Report Generation:** Output formatted summary tables, status badges, and actionable next steps.
+Brackets denote optional flags. No `--json`, `--check`, `--report`, output-file or sync flags in M1. Stdout only; external redirection is caller-owned and should target outside scanned inputs. `-B` prevents bytecode writes. No configuration rewriting or runtime prompts.
 
----
+Website root is required to avoid guessing nested checkouts. Default monorepo derives from the executing module location, not cwd; explicit root must be the selected Git toplevel containing the expected package. Default registry is anchored to that selected root. User-supplied relative paths resolve against invocation cwd. Verify both toplevels and distinct Git common directories, including worktree `.git` files and standalone website clones. Wrong/missing roots fail incomplete, never fall back to the enclosing repo.
 
-## 6. Phased Implementation Plan Outline
+Module discovery still requires the package on Python's import path. Bare module invocation from arbitrary cwd is unsupported. From monorepo/website/unrelated cwd, use this wrapper:
 
-* **Phase 1: Registry Foundation & Scanner Tooling (Monorepo only)**
-  * Create `ai-sandbox/academic-rag-model/docs/trackers/subproject_registry.json` covering all 21 subprojects.
-  * Implement `ai-sandbox/academic-rag-model/tools/audit_website_sync.py` with full CLI and test coverage.
-  * Verify that running the tool reproduces the findings of the 2026-10-10 audit.
-* **Phase 2: Website Frontmatter Alignment (Website repo only)**
-  * Update existing 13 website project pages in a dedicated `AaronScherf.github.io` worktree to include the `subproject:` frontmatter block and correct granular GitHub URLs.
-  * Run `audit_website_sync.py` to confirm zero metadata mismatches.
-* **Phase 3: Content Reconciliation (Website & Status Docs)**
-  * Draft missing website project pages for the 8 identified components (prioritizing Socratic Tutor, Study Guide Pipeline, and Corpus Health).
-  * Update outdated pages (`source_indexer`, `notes_transcription`, `rag_analysis`, and `academic-hub-overview`).
-  * Draft the v2 update for `agent/summary_enhance` status documentation.
+```powershell
+$syncMonorepo = 'C:\path\to\owned-monorepo-worktree'
+$syncWebsite = 'C:\path\to\selected-website-checkout'
+Push-Location (Join-Path $syncMonorepo 'ai-sandbox/academic-rag-model')
+try {
+    python -B -m tools.audit_website_sync --monorepo-root $syncMonorepo --website-root $syncWebsite --format json
+    $syncExit = $LASTEXITCODE
+} finally {
+    Pop-Location
+}
+# Hook/CI wrappers propagate $syncExit to their caller.
+```
+
+### Snapshot and Git rules
+
+M1 checks **workspace structure/metadata plus pinned HEAD history** for each checkout, not staged-index or arbitrary-ref snapshots. Resolve both HEAD SHAs independently at start; query each explicit SHA. Do not assume a website main branch or shared objects/refs.
+
+Use Git argument arrays, verified `-C` roots, `--literal-pathspecs`, pinned SHA and `--` before paths. Sanitize inherited repository/index/object/config-selection environment (including GIT_DIR, GIT_WORK_TREE, GIT_INDEX_FILE, GIT_COMMON_DIR, GIT_OBJECT_DIRECTORY, GIT_ALTERNATE_OBJECT_DIRECTORIES and config injection variables), disable optional locks/lazy fetch and specify/test supported Git behavior. No fetch/pull, external diff, shell interpolation, dotenv or pipeline/client imports. Missing local objects, shallow history, unborn HEAD, Git failure and timeout yield incomplete coverage. Use bounded subprocess timeouts, no implicit retry/download. See [Git command/environment reference](https://git-scm.com/docs/git).
+
+Read disk metadata and report relevant staged/unstaged/untracked state. Unrelated dirtiness is repository-level information, not a failure for unaffected targets. Relevant dirty inputs undergo structural checks but freshness is unknown/incomplete. An untracked page can satisfy disk presence without having known committed history. An absent planned required page is an ordinary finding, not an operational failure. A deleted required source remains missing even if Git has old history.
+
+Capture relevant path inventories, content fingerprints and HEADs before/after processing; observed changes yield incomplete coverage. Include tracked/untracked state for code directories. Consistency fingerprints do not constitute semantic approval. This detects observed changes without claiming a transactional snapshot of two writable repos. Never lock or mutate another writer's checkout. Clean owned worktrees provide reproducible acceptance inputs.
+
+### History and finding semantics
+
+For clean tracked inputs with complete history, use `git log -1 --format=%ct <pinned-head> -- <literal-path>`, caching unique path queries within a run. `t_code` is the maximum returned code-path timestamp, a defined heuristic, not a semantic change clock. Compare each current status record separately to code and page; do not aggregate all status docs into a freshness certification. Compare code to page when code exists. Operational records get doc-to-page checks; overview freshness is not assessed in M1. Historical docs are excluded from freshness comparisons.
+
+A gap strictly greater than nonnegative tolerance (default 3600 seconds) emits a warning; equality does not. The window cannot prove concurrent commits. Clock skew, rebases, cosmetic and metadata-only edits may give misleading ordering. Missing timestamps are unknown, never zero. A report with no history gaps does not certify prose. M2 metadata commits must never close the independent editorial backlog.
+
+| Finding | Meaning / strict behavior |
+| --- | --- |
+| UNREGISTERED_COMPONENT | Candidate has no entry/exclusion; actionable |
+| MISSING_WEBSITE_PAGE | Active required target absent on disk; actionable |
+| MISSING_SOURCE_PATH / MISSING_README / MISSING_STATUS_DOC / MISSING_SPEC | Configured active path absent; actionable |
+| METADATA_MISMATCH | Missing/differing projection, duplicate owner or differing required source/status links; actionable |
+| ORPHANED_PAGE | Page claims unknown ID or conflicts with registered page ownership; actionable |
+| WEBSITE_HISTORY_GAP / STATUS_HISTORY_GAP | Heuristic warning with source/target timestamps; actionable under strict mode |
+| DIRTY_INPUT / HISTORY_UNAVAILABLE / INPUT_CHANGED / SCAN_ERROR | Relevant evidence unavailable/unstable; coverage incomplete |
+| INTERNAL_COMPONENT / ARCHIVED_COMPONENT / FRESHNESS_NOT_APPLICABLE | Explained informational disposition; not strict failure |
+
+Multiple findings coexist. Scan registered targets and all `content/projects/**/index.md` pages claiming canonical or legacy metadata. Unrelated portfolio pages without a claim are not orphaned. A registered page with deleted source receives a missing-source finding; successful historical lookup cannot conceal absence.
+
+JSON envelope: report version, coverage_complete, absolute roots and HEADs, registry fingerprint, tolerance, dirty summaries, component results (ID, per-target evidence, metadata/freshness states, findings), sorted findings and counts. Findings carry `(component_id, kind, target)` and input fingerprints; unknown pages retain claimed ID/path. Sort by ID/kind/target; diagnostics on stderr. All formats render one result model. Exclude volatile timing fields from deterministic payloads; measure performance separately.
+
+Exit **0**: complete non-strict report, or complete strict report with no actionable finding. Exit **1**: complete strict report with any actionable finding. Exit **2**: usage/configuration/parse/Git failure or incomplete coverage regardless of strictness; takes precedence. Runtime failures after format selection produce structured error output; argparse usage failures may use stderr. Non-strict zero does not mean no findings or accurate prose.
+
+## 6. Capability, Cost and Verification
+
+| Capability | Discovery / scope | Side effects / cost | Output / idempotency | Evidence |
+| --- | --- | --- | --- | --- |
+| Registry validation | Selected registry/bundled schema | Local reads/imports | Stable diagnostics | Positive/negative fixtures and semantic checks |
+| Inventory | Bounded packages, explicit operational/config records, claiming pages | Read-only enumeration | Repeatable findings on fixed inputs | Every approved row and missing/extra cases |
+| History diagnostics | Separate roots/SHAs and literal paths | Local Git, no model/network | Per-path heuristic evidence | Independent Git fixtures and varied live sample |
+| Metadata/links | Registered/claiming bundles | Safe YAML, no URL requests | Exact projection/local-link diagnostics | Multi-status, package-less, duplicate/unrelated cases |
+| Reports | One model, three formats | Stdout only | Stable ordering/completeness | Format parity and all exits |
+| M2 edits/build | Explicit website allowlist/build outputs | Website writes, build provisioning separate | Reviewed patch, no duplicate insertion | Diff, YAML, production build, rendered sample |
+| Scheduler/steering/repair | Unsupported in this release | Would introduce writes/state | Deferred | Separate design/ingestion contract |
+
+Measure cold/warm wall time, Git process count and inventory size on Windows. Cache/deduplicate per invocation; batch only with fixture evidence of equivalent behavior. Do not add a daemon or weaken checks to meet the 500 ms aspiration. A hook may use workspace diagnostics, but staged-content certification is deferred. CI must pre-provision both full-history checkouts; the checker never clones them.
+
+## 7. Lifecycle, Human Decisions and Deferred Work
+
+Renames retain immutable IDs and update paths. Archival is an explicit lifecycle edit with reason, never inferred from disappearance. Creating a predeclared page needs no registry change solely for existence; changed paths/new status docs/scope changes require a separate outer commit. M2 cannot approve or resolve M3 content tasks.
+
+M1 has no accept/defer/decline store and prompts no human at runtime. Stdout is inspection output, not a hand-edited decision ledger; the package's interactive-Artifact rule does not require a new UI. Future owner decisions must use the established interactive-review convention. Stable finding IDs plus relevant evidence fingerprints must preserve unchanged declines/deferrals and invalidate resolutions after relevant input changes.
+
+Scheduling/steering needs a later design naming execution mechanism/command, roots, measured scan cost, persistent machine state, atomic reports, retries, supported ingestion API and human review surface. No human available means pending findings, never automatic approval or repair. Any repair needs exact selectors, per-target results, all-writer coordination, atomic output and post-run audit before enabling.
+
+## 8. Decisions and Release Gates
+
+Substantive choices remain with Claude/the design author under the repository routing rules. These recommendations are reviewable; this revision does not record approval.
+
+| Decision | Recommendation | Status |
+| --- | --- | --- |
+| D1 — Scope/policy | 24 components + two overviews; core_env internal; concept_graph required; one component per page; M2 covers 16 existing components + two overviews | Pending design-author decision |
+| D2 — Schema/metadata | Stable-ID contract, strict local schema, params.subproject projection; shared component pages deferred | Pending design-author decision |
+| D3 — Runtime | Workspace-plus-HEAD diagnostics, explicit website root, safe YAML/local jsonschema, 0/1/2 exits, stdout only, measured latency | Pending design-author decision |
+
+After decisions, follow the plan's requirement-to-evidence gates. Schema validation precedes scanner logic; real-Git fixtures and live samples precede M2; production build/render inspection precede M2 completion. M3 editorial review/publication remain separate. This design claims no implemented scanner, passing fixtures, successful live run or deployed behavior.

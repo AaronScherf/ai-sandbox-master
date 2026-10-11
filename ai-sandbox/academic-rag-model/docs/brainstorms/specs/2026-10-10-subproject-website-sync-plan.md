@@ -1,178 +1,144 @@
 # Subproject Website Alignment & Automated Verification: Implementation Plan
 
-**Status:** Draft for review  
-**Date:** 2026-10-10  
-**Spec:** [2026-10-10 subproject-website-sync design](2026-10-10-subproject-website-sync-design.md)  
-**Scope:** Establish a canonical central registry manifest, standardize website project page frontmatter, and implement a model-free automated CLI checker for continuous drift detection.  
+**Status:** Amended proposal; blocked on design decisions D1–D3. No implementation started.
 
----
+**Date:** 2026-10-10; amendment resumed 2026-10-11.
 
-## 1. Goal and Release Boundaries
+**Spec:** [Canonical design/contracts](2026-10-10-subproject-website-sync-design.md)
 
-The goal is to eliminate documentation drift between the active Python codebase in `ai-sandbox/academic-rag-model/`, its operational status documents in `docs/status/`, and the public project descriptions in `ai-sandbox/personal-website/AaronScherf.github.io/content/projects/`.
+**Review:** [Codex architectural review](../2026-10-10-subproject-website-sync-codex-review.md)
 
-We deliver this across three sequential, independently verifiable milestones:
+**Editorial baseline:** [Audit tracker](../../trackers/subproject_website_status_tracker.md)
 
-1. **M1 — Central Registry & Read-Only Automated Scanner (Monorepo only):**
-   * Author the canonical manifest `subproject_registry.json` covering all 21 substantive subprojects/tools and 2 overview pages.
-   * Author JSON Schema validation (`subproject_registry.schema.json`).
-   * Implement `tools/audit_website_sync.py` with zero-cost Git timestamp comparison and drift classification.
-   * Add automated test suite with synthetic Git history fixtures.
-   * *Outcome:* An immediate, verifiable CLI tool reproducing the 2026-10-10 audit findings with 0 edits to website content.
+## 1. Release Boundaries and Current Evidence
 
-2. **M2 — Website Frontmatter Alignment (Website repository worktree):**
-   * Update the existing 13 website project pages in a dedicated `AaronScherf.github.io` worktree to include structured `subproject:` YAML frontmatter.
-   * Upgrade the 5 pages linking to generic repo root URLs to point directly to their subproject package paths on GitHub.
-   * Run the M1 checker to verify bidirectional consistency and zero metadata mismatches.
+M1 delivers a registry, strict schema and read-only local CLI with tests. It reports coverage, metadata integrity and heuristic history gaps without editing website files or certifying prose accuracy. M2 installs metadata/visible links in a dedicated website worktree. M3 reconciles content/status records with source evidence and separate repository commits.
 
-3. **M3 — Content & Documentation Reconciliation (Backlog execution):**
-   * Author new project pages for the 8 missing subprojects identified in the audit (prioritizing `agent/tutor`, `agent/study_guide`, `tools/corpus_health`, and `tools/project_steering`).
-   * Update the 3 existing outdated project pages (`source_indexer`, `notes_transcription`, `rag_analysis`) and the `academic-hub-overview` portal.
-   * Author the v2 status doc update for `agent/summary_enhance`.
+The proposed inventory is 24 components plus two overviews: 16 existing component pages, two existing overview pages, six original missing pages, one newly proposed concept-graph page, and internal core/env infrastructure. D1 must settle publication/overview policies before registry authoring. These are the recorded review-baseline counts, not a claim that later checkouts cannot change.
 
----
+| Stage | Implemented | Fixture-tested | Live evidence | Remaining gate |
+| --- | --- | --- | --- | --- |
+| Review amendments | Spec/plan/tracker corrections drafted | Documentation checks only | Roots, inventory, timestamp sample in review | D1–D3 unresolved |
+| M1 schema/registry | No | No | Paths inspected; manifest absent | G0 then G1 |
+| M1 scanner | No | No | No checker run; review sample found false positives | G2 |
+| M2 metadata/links | No | No | Website inspected read-only; no changed-site build | G3 |
+| M3 content | No | No | Editorial baseline subject to revalidation | Batch review/publication |
 
-## 2. Verified Inputs and Repository Boundaries
+Update this table after each milestone with commits, commands, results, limitations and remaining work. Design approval, passing fixtures, live observations and longitudinal behavior are distinct evidence.
 
-* **Monorepo Checkout (`ai-sandbox-master`):**
-  * Root path: `c:\Users\theaa\ai-sandbox-master`
-  * Python pipeline packages: `ai-sandbox/academic-rag-model/` (`core/`, `pipelines/`, `discovery/`, `agent/`, `resume_manager/`, `audio_generator/`, `tools/`)
-  * Tracker directory: `ai-sandbox/academic-rag-model/docs/trackers/`
-* **Personal Website Repository (`AaronScherf.github.io`):**
-  * Root path: `c:\Users\theaa\ai-sandbox-master\ai-sandbox\personal-website\AaronScherf.github.io`
-  * Separate Git repository with its own branch history and commit log.
-  * Project markdown files: `content/projects/<category>/<slug>/index.md`
-* **Git Worktree Rules:**
-  * Changes to the monorepo must be isolated in dedicated `gemini/<task>` worktrees.
-  * Edits to the website repository must be executed in a dedicated worktree belonging to `AaronScherf.github.io`.
-  * Writers must never cross repository boundaries within a single commit.
+## 2. Ownership and Repository Map
 
----
+Follow the outer [worktree procedure](../../../../../docs/WORKTREE_WORKFLOW.md) and [routing convention](../../../../../docs/AGENT_ROUTING.md). Use a fresh owned agent/task branch according to assignment; do not reuse a published review branch. Resolve D1–D3 with Claude/the design author before coding.
 
-## 3. Capability & Operation Table
+| Stage | Write scope | Read scope / constraints |
+| --- | --- | --- |
+| M1 | Outer academic-rag-model: registry/schema, checker/tests, README and explicit dependency change | Explicit website root read-only; no vault scan, sync or API-client initialization |
+| M2 | Website worktree: allowlisted project pages and isolated build outputs | Committed M1 registry read-only; no outer writes |
+| M3 website | Website worktree per content batch | Code/status read-only; preserve draft/publication rules |
+| M3 status/mappings | Separate outer worktree and commit | Status records and changed registry mappings; never in website commits |
 
-| Operation | Discovery & Scope | Cost & Side Effects | Output & Idempotency | Acceptance Evidence |
-| :--- | :--- | :--- | :--- | :--- |
-| **Validate Registry** | One file: `docs/trackers/subproject_registry.json` | Local CPU, no API calls | Schema validation pass/fail | Unit test validating every subproject path against disk |
-| **Discover Monorepo Packages** | Scans `academic-rag-model/` for directories with `__init__.py` and `README.md` | Read-only directory traversal | List of active subprojects | Zero active packages omitted from the registry |
-| **Query Git Timestamps** | `git -C <repo> log -1 --format=%ct` across code, status doc, and website page | Zero API calls; sub-second process execution | Epoch timestamps for drift comparison | Matches manual `git log` inspection on main |
-| **Audit Website Frontmatter** | Scans all `index.md` files in `content/projects/` | Read-only YAML parsing | Structured metadata matching registry | 100% agreement on package identifiers |
-| **Generate Drift Report** | Full drift comparison across all 21 subprojects | Read-only; stdout or JSON/Markdown file | Deterministic report reproducing audit matrix | Zero false positives/negatives against manual baseline |
+Website root is `C:/Users/theaa/ai-sandbox-master/ai-sandbox/personal-website/AaronScherf.github.io`, independently versioned. Outer worktrees do not create it. Read its `CLAUDE.md`/`docs/AGENT_ROUTING.md`, verify root/branch/status and an ignore rule before nesting a worktree. Keep one writer per checkout and coordinate build outputs. Do not run workspace_generator or modify live Obsidian/vault data to initialize work.
 
----
+## 3. Requirement-to-Task and Review Traceability
 
-## 4. Global Contracts and Traceability
+| Requirement / review finding | Tasks | Acceptance evidence |
+| --- | --- | --- |
+| REQ-1 / R1 inventory | T0–T1 | All inventory rows accounted for; original six missing and existing pages traced |
+| REQ-2 / R3 metadata/schema | T1,T3,T5 | Actual strict schema, positive/negative fixtures, identical bidirectional projection |
+| REQ-3 / R4–R5 offline/read-only | T2–T4 | Denied-network run including child Git; no lazy fetch/remote schema; unchanged bytes/status |
+| REQ-4 / R4 boundaries | T2,T4,T5 | Independent repos/branches/worktrees, explicit roots/SHAs and write allowlists |
+| REQ-5 / R2 semantic limits | T3–T4,T6 | Heuristic labels, per-doc evidence, metadata-only-commit regression, independent editorial backlog |
+| REQ-6 / R5 reports/exits | T3–T4 | Deterministic JSON, format parity, finding/exit combinations and error precedence |
+| REQ-7 / R3–R5 edges | T1–T4 | Rename/archive, dirty/untracked/staged, cwd/path, missing history/input-change fixtures |
+| REQ-8 / R6 Hugo/links | T5 | Five corrected URLs, source/status links, safe patch, production build/rendered inspection |
+| REQ-9 / R2,R5 evidence | T4 | Real Git fixtures, varied live sample/discrepancies, cold/warm timings |
+| REQ-10 / proportionality | T0–T6 | No server/state/scheduler/repair/publication; deferred scope explicit |
+| R7 narrative accuracy | T6 | Scoped persistence claims, operational Guided Solutions, evidence-backed concept graph |
 
-| Requirement | Implementation Component | Verification Evidence |
-| :--- | :--- | :--- |
-| **Dual-Layer Linking** | `subproject_registry.json` + website frontmatter `subproject:` block | Verification tool validates mutual agreement between registry and page frontmatter |
-| **Model-Free, Zero API Cost** | `tools/audit_website_sync.py` uses only Python standard library and `git log` | Zero network calls, zero token usage, sub-500ms execution |
-| **Multi-Repo Safety** | Git queries use explicit `-C <repo_path>` | Operates cleanly whether invoked from monorepo root or package directory |
-| **Non-Destructive Execution** | Checker default mode is read-only | Running `python -m tools.audit_website_sync` leaves Git status completely clean |
-| **Drift Classification** | Explicit enums: `ALIGNED`, `MISSING_WEBSITE_PAGE`, `WEBSITE_PAGE_OUTDATED`, `STATUS_DOC_OUTDATED`, `METADATA_MISMATCH` | Synthetic test cases covering every drift state |
+The [design capability table](2026-10-10-subproject-website-sync-design.md#6-capability-cost-and-verification) owns discovery, costs, output and idempotency. This plan adds ordering/evidence rather than a competing schema or CLI.
 
----
+## 4. Ordered Tasks and Gates
 
-## 5. Detailed Task Breakdown
+### T0 — Resolve architecture (G0, before coding)
 
-### Task 1 — Create Central Registry Manifest & JSON Schema (M1)
+Owner: Claude/the design author. Review D1 publication/overview policies, D2 schema/frontmatter and D3 runtime/dependencies. Record explicit decisions in the spec and update the plan if choices change. Account for R1–R7 through amendments or explicit deferrals/rationale. Requesting amendments or landing a review does not approve design decisions.
 
-* **Files to create:**
-  * `ai-sandbox/academic-rag-model/docs/trackers/subproject_registry.json`
-  * `ai-sandbox/academic-rag-model/docs/trackers/subproject_registry.schema.json`
-* **Implementation Details:**
-  * Define all 21 substantive subprojects and tools identified in the 2026-10-10 audit:
-    * `core/indexer`, `core/env`
-    * `pipelines/convert_textbook`, `pipelines/transcribe_notes`, `pipelines/convert_essays`, `pipelines/convert_journal_articles`, `pipelines/postprocess_notes`, `pipelines/generate_video_notes`
-    * `discovery/discover_journal_articles`
-    * `agent/rag`, `agent/tutor`, `agent/viz`, `agent/problem_gen`, `agent/problem_corpus`, `agent/study_guide`, `agent/summary_enhance`, `agent/problem_sets`
-    * `resume_manager`, `audio_generator`
-    * `tools/corpus_health`, `tools/project_steering`
-  * Each entry records: `id`, `name`, `category` (`academic-hub` / `ai-research-assistant` / `standalone`), `role` (`pipeline` / `agent` / `tool` / `core`), `code_path`, `readme_path`, `status_docs` (list of relative paths), and `website_page` (relative path in website repo, or `null`).
-* **Acceptance:** Schema validation passes cleanly; every non-null path in the registry points to an existing file on disk.
+**G0:** D1–D3 resolved and canonical contract consistent. No silent coding defaults for blockers. The original Blocked verdict remains historical; new sign-off must identify the amended revision.
 
----
+### T1 — Manifest/schema and validation (M1, G1)
 
-### Task 2 — Implement Automated Verification Tool & Unit Tests (M1)
+Create `docs/trackers/subproject_registry.json`, adjacent `subproject_registry.schema.json`, and schema/loader fixtures in `tests/tools/test_audit_website_sync.py`. Add the reviewed local validator dependency to `requirements.txt` if D3 selects it; provision only an implementation-worktree environment. The eventual code/schema/dependency branch requires the full landing suite.
 
-* **Files to create:**
-  * `ai-sandbox/academic-rag-model/tools/audit_website_sync.py`
-  * `ai-sandbox/academic-rag-model/tests/tools/test_audit_website_sync.py`
-* **Implementation Details:**
-  * Standard CLI:
-    ```powershell
-    python -m tools.audit_website_sync [--registry PATH] [--website-root PATH] [--format text|json|markdown] [--strict]
-    ```
-  * Execution Flow:
-    1. Resolve monorepo root and website root paths automatically or from CLI arguments.
-    2. Ingest and schema-validate `subproject_registry.json`.
-    3. Discover package directories under `academic-rag-model/` and alert if any new package lacks a registry entry.
-    4. For each registered subproject:
-       - Query latest commit timestamp for `code_path` in monorepo (`t_code`).
-       - Query latest commit timestamp for `status_docs` in monorepo (`t_status`).
-       - If `website_page` is null, flag as `MISSING_WEBSITE_PAGE`.
-       - If `website_page` exists, query its latest commit timestamp in website repo (`t_page`).
-       - If `t_code > t_page + 3600`, flag as `WEBSITE_PAGE_OUTDATED`.
-       - If `t_code > t_status + 3600`, flag as `STATUS_DOC_OUTDATED`.
-       - Parse website page YAML frontmatter and verify `subproject.package == entry.code_path`. If divergent, flag as `METADATA_MISMATCH`.
-    5. Render formatted console summary table, JSON payload, or Markdown output.
-    6. Exit code 0 if fully aligned; exit code 1 if missing or outdated pages are detected under `--strict`.
-  * Unit tests:
-    * Mock Git runner testing all drift classifications.
-    * Schema validation unit tests.
-* **Acceptance:** Tests pass with `pytest tests/tools/test_audit_website_sync.py -q`. Running against live repositories reproduces the exact findings from the 2026-10-10 audit report.
+Populate the approved inventory with separate RAG/tutor-diagnosis IDs. Resolve all status paths, including indexer feature docs and scattered study-guide histories. Classify current/historical from content. Use explained null READMEs/empty code paths where permitted; never invent Guided Solutions code or infrastructure status. Retain required target page paths before creation, so existence changes are detectable without null-to-path edits.
 
----
+Author actual Draft 2020-12 schema/local-only loader. Cover duplicate JSON keys, unknown keys/versions/enums, conditional nullability, invalid paths, duplicate status/page ownership, Windows case collisions, symlink escapes, invalid overview members and conflicting exclusions. Separate invalid configuration from missing-target findings: planned nonexistent website pages remain schema-valid.
 
-### Task 3 — Standardize Website Frontmatter & Fix Granular Links (M2)
+**G1:** Reviewed manifest covers approved inventory; executable schema exists; valid/invalid fixtures pass; disk paths/types checked. Explain status roles, membership and exclusions. Complete G1 before implementing scanner logic against the contract.
 
-* **Target Repository:** `ai-sandbox/personal-website/AaronScherf.github.io`
-* **Branch/Worktree:** Dedicated worktree `AaronScherf.github.io/.worktrees/gemini-frontmatter-sync` on branch `gemini/frontmatter-sync`.
-* **Implementation Details:**
-  * For each of the 13 existing project pages:
-    * Inject the structured `subproject:` YAML block:
-      ```yaml
-      subproject:
-        id: <slug>
-        package: <relative_monorepo_package>
-        readme: <relative_monorepo_readme>
-        status_docs:
-          - <relative_monorepo_status_doc>
-      ```
-    * Fix the 5 project pages that link to the generic repo root so their `links:` block points directly to the subproject package directory on GitHub:
-      * `marker_conversion` -> `.../tree/main/ai-sandbox/academic-rag-model/pipelines/convert_textbook`
-      * `notes_transcription` -> `.../tree/main/ai-sandbox/academic-rag-model/pipelines/transcribe_notes`
-      * `journal_article_transcription` -> `.../tree/main/ai-sandbox/academic-rag-model/pipelines/convert_journal_articles`
-      * `journal_discovery` -> `.../tree/main/ai-sandbox/academic-rag-model/pipelines/discover_journal_articles`
-      * `research_notes_conversion` -> `.../tree/main/ai-sandbox/academic-rag-model/pipelines/convert_essays`
-* **Acceptance:** Hugo build succeeds (`hugo --minify`); `python -m tools.audit_website_sync` reports `METADATA_MISMATCH: 0`.
+### T2 — Roots and local Git evidence (M1)
 
----
+Create `tools/audit_website_sync.py` using design section 5. Restrict imports to local parsing/validation and Python/Git; no pipelines, indexers, models or dotenv. Implement explicit website root, anchored/explicit monorepo/registry, wrapper invocation, root identity checks and independently pinned HEADs. Support worktree `.git` files, standalone clones and distinct branch names.
 
-### Task 4 — Content Reconciliation Backlog (M3)
+Use literal Git argument arrays, sanitized repository/index/object/config environment, disabled optional locks/lazy fetch and bounded timeouts. Cache unique paths per invocation. Check history completeness and relevant tracked/dirty/untracked state; detect observed relevant path/HEAD changes. No staged-only/arbitrary-ref mode.
 
-* **Scope:** Author missing project pages, refresh outdated project pages, and update status records.
-* **Work Packages:**
-  * **Package 4.1: High-Priority Missing Pages:**
-    * `content/projects/academic-hub/socratic_tutor/index.md` (`agent/tutor`)
-    * `content/projects/academic-hub/study_guide_pipeline/index.md` (`agent/study_guide`)
-    * `content/projects/academic-hub/corpus_health/index.md` (`tools/corpus_health`)
-    * `content/projects/academic-hub/project_steering/index.md` (`tools/project_steering`)
-  * **Package 4.2: Remaining Missing Pages:**
-    * `content/projects/academic-hub/summary_enhancement/index.md` (`agent/summary_enhance`)
-    * `content/projects/academic-hub/guided_solutions/index.md` (`agent/problem_sets`)
-  * **Package 4.3: Outdated Existing Pages:**
-    * Update `source_indexer/index.md` (passage embeddings completed, cross-offering linkage, chunk repair adapter).
-    * Update `notes_transcription/index.md` (agent-driven transcription mode, Excalidraw, subset discovery).
-    * Update `rag_analysis/index.md` (session memory solved, question resolver, problem generator separation).
-    * Update `academic-hub-overview/index.md` (expand roster from 12 to 18 systems).
-  * **Package 4.4: Outdated Status Docs:**
-    * Author `docs/status/agent/summary_enhance/2026-10-09-summary-enhancement-v2-status.md` covering per-topic source sets, improve mode, worked examples, and prompt caching.
+Acceptance: independent real-repo/worktree fixtures cannot bleed indexes/refs/environment; wrong roots/missing objects fail incomplete. Wrapper works from outer/package/website/unrelated cwd. Spaces/Windows paths stay literal. Verify supported Git controls, not merely their appearance in code.
 
----
+### T3 — Discovery, metadata and reports (M1)
 
-## 6. Review Gates & Landing Procedures
+Implement bounded package discovery/exclusions without requiring READMEs. Scan registered targets plus claiming website pages, preserving unrelated portfolio projects. Safe YAML rejects duplicate keys. Validate the exact params.subproject projection, required local source/status links, unknown IDs and duplicate owners; retain multiple findings per component.
 
-1. **Gate 1 (M1 Review):** User reviews `subproject_registry.json` and `tools/audit_website_sync.py` results on `gemini/website-status-tracker` before any website repository files are touched.
-2. **Gate 2 (M2 Landing):** User reviews website frontmatter diffs in the dedicated website worktree before merging to `main`.
-3. **Gate 3 (M3 Content Batches):** Each new project page or major revision is drafted and reviewed independently in accordance with the project's editorial guidelines.
+Implement per-current-doc/code-to-page history warnings with strict greater-than tolerance, never semantic ALIGNED. Dirty/untracked freshness is unknown; operational/overview records use applicable checks. Text/JSON/Markdown share one sorted model and 0/1/2 policy. Stdout only; no generated files, tracker edits or sync.
+
+Acceptance: every design finding category covered, formats agree, runtime JSON remains parseable and exit 2 takes precedence. Metadata-only commits may change warnings but cannot complete editorial tasks. Historical/newer status edits cannot certify all docs as fresh.
+
+### T4 — Fixtures, live sampling and documentation (M1, G2)
+
+Use independent temporary real Git repositories with deterministic dates and different branch names; mocks supplement them. Cover linked worktrees, shallow/missing history, missing objects, empty Git output/timeouts; 3599/3600/3601-second boundaries, skew/nonmonotonic dates, metadata-only commits, historical-status edits, package-less records, multi-status records, deleted/renamed/archived entries and unknown pages.
+
+Cover dirty/staged/untracked inputs, partial staging (workspace reporting, not index certification), deletion with old history, concurrent changes, unrelated dirtiness, traversal/symlink escape, arbitrary cwd and inherited Git overrides. Deny network for checker and subprocesses: socket mocks alone do not prove Git offline. Test no lazy fetch for partial-clone missing objects. Compare pre/post bytes and tracked/untracked status with bytecode/Git optional locks disabled.
+
+Run `python -B -m pytest tests/tools/test_audit_website_sync.py -q` and the required full landing gate. Document module/wrapper invocation in README. Record Git/Python/dependency versions, cold/warm timings, process counts and inventory size; no unmeasured sub-500 ms promise.
+
+Live sampling records explicit roots, HEADs and initial dirtiness. Inspect source indexer, textbook/postprocess (known timestamp/editorial mismatch), video notes, a missing page, study-guide multi-status, Guided Solutions, tutor diagnosis and Obsidian. Compare files/Git and retain discrepancies. Relevant live dirtiness can correctly cause exit 2: record it, then use clean owned fixtures/worktrees for reproducible acceptance, without cleaning another checkout.
+
+**G2:** G1 plus fixtures, full-suite landing check, varied live report with false-positive/unknown explanations, denied-network/no-write evidence and latency measurements. User reviews the concrete M1 registry/report before M2 edits. Passing M1 does not repair content or prove prose accuracy.
+
+### T5 — Website metadata and visible links (M2, G3)
+
+After G2, create a website-owned worktree using the committed M1 mapping. Under D1's proposal the allowlist is **16 existing component pages plus two overviews** in design section 3. Do not create proposed missing pages in M2.
+
+Insert canonical metadata under params, preserving unrelated fields/body/publication state. Add visible source/status links and approved overview members. Preserve existing Obsidian and intentional overview root links. Repeat insertion must produce no duplicates; avoid whole-file YAML rewriting. Review the exact metadata/link patch.
+
+Five replacements relative to `https://github.com/AaronScherf/ai-sandbox-master/tree/main/ai-sandbox/academic-rag-model/`:
+
+| Website component | Correct source suffix |
+| --- | --- |
+| marker_conversion | pipelines/convert_textbook |
+| notes_transcription | pipelines/transcribe_notes |
+| journal_article_transcription | pipelines/convert_journal_articles |
+| journal_discovery | discovery/discover_journal_articles |
+| research_notes_conversion | pipelines/convert_essays |
+
+Run the M1 checker against the exact website worktree via its wrapper. During edits metadata can pass while dirty-page history causes exit 2; inspect metadata without claiming full acceptance. Commit the patch locally and rerun on a clean committed pair for final evidence. Missing pages/history warnings may still cause strict exit 1. G3 requires zero metadata mismatches/orphaned claims for owned targets, not an empty content backlog.
+
+Provision pinned Hugo Extended/modules/JS dependencies separately. Run `pnpm run build` (Hugo plus Pagefind); inspect generated changes and representative component, multi-status, configuration and overview pages. Check visible links and absence of unintended metadata rendering. Preserve drafts; no publication/push as part of build checks.
+
+**G3:** Website-only patch, YAML/metadata/local-link checks, production build, rendered samples and unresolved findings recorded. Contract/registry changes require separate outer commits. Website landing/publication needs its own approval.
+
+### T6 — Content/status reconciliation (M3 backlog)
+
+Review pages independently at approved targets. Prioritize Socratic Tutor, Study Guide, Corpus Health and Project Steering; then Summary Enhancement and Guided Solutions. Proposed Concept Graph is a seventh current-main addition under D1, not an original eighth finding. Its status files have historical not-merged/not-run claims: verify landed code independently and never infer live-corpus success from fixtures.
+
+Refresh Source Indexer, Notes Transcription, RAG Analysis and Academic Hub overview. For RAG, distinguish persisted diagnosis/gap events and summaries from full conversation restoration: REPL history starts anew; tutor profiles belong to another component. Describe actual problem-generation routing/question resolution. Guided Solutions is operational work, not a standalone executable. Derive overview prose from approved membership and shipped behavior, not a hardcoded count.
+
+Update summary-enhancement status in a separate outer worktree. A new status file requires registry references/roles updated there and a dependent website metadata patch in its own repository. Record both commits and expected intermediate mismatch. Predeclared page creation alone needs no registry edit. New pages remain drafts until publication is requested.
+
+Acceptance: source-backed distinctions among design/fixtures/live evidence, editorial review, mapping checks, build/preview and separate publication authorization. No automatic steering ingestion/content pipeline is assumed.
+
+## 5. Deferred Capabilities and Landing
+
+Deferred: staged-index checks, arbitrary-ref mode, shared component pages, semantic-approval markers, scheduler/steering ingestion, persistent decisions, metadata repair and publication. None is required for M1's useful local report. Future repair/unattended work must meet design section 7 safeguards.
+
+For each milestone stage explicit paths, check the owned repository, commit and follow landing rules. Markdown-only amendments use the doc-only check; eventual M1 code/schema/dependencies require `tools.land_branch check --full`. Approval names an exact SHA. Website main pushes deploy and require publication authorization. Preserve unrelated work and report overlaps/main's status snapshot before landing.
+
+Next action: design-author review of D1–D3 against this amended revision. Landing these documents preserves a proposal; it does not authorize M1 implementation or certify its tests.
