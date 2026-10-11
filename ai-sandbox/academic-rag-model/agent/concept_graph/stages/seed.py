@@ -8,7 +8,7 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-from ..ipguard import check_prose
+from ..ipguard import check_meta, check_prose
 from ..schema import SLUG, SeedConfig
 from ..sources import Passage, classify_passage
 from ..store import GraphStore
@@ -414,6 +414,7 @@ def validate_result(entry: dict, result: dict, store: GraphStore) -> list[str]:
             if not isinstance(gist, str) or "\n" in gist.strip() or len(gist.strip()) > 160:
                 problems.append(f"{tag}: gist must be one line of at most 160 characters")
             else:
+                problems += [f"{tag} {m}" for m in check_meta({"gist": gist})]
                 problems += [f"{tag} {m}" for m in check_prose({"gist": gist}, passage_texts(entry))]
 
     floor = (entry.get("subject", {}) or {}).get("min_nodes_per_section", 1)

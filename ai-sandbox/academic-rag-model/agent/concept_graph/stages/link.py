@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from pydantic import ValidationError
 
-from ..ipguard import check_prose
+from ..ipguard import check_meta, check_prose
 from ..schema import (
     CONDITION_REQUIRED, EDGE_TYPES, VIA_ALLOWED, VIA_KINDS, Citation, Edge, edge_id,
 )
@@ -34,6 +34,7 @@ Rules:
 - Do not repeat an existing edge and do not propose a rejected one (both are listed).
 - Write `explanation` (and `condition`) in your OWN words; 8 or more consecutive words shared with a passage is rejected.
 - Cite only offered passages: copy `source` and `ref` exactly.
+- Explain the relationship itself; never mention the passages or sources in `explanation` or `condition`.
 - It is fine to propose no edges: return `edges: []`. A wrong implication is worse than a missing one.
 
 Result: one YAML mapping:
@@ -147,6 +148,7 @@ def validate_result(entry: dict, result: dict, store: GraphStore) -> list[str]:
             problems.append(f"{tag}: explanation is required")
         prose = {f"{tag} explanation": explanation if isinstance(explanation, str) else "",
                  f"{tag} condition": condition if isinstance(condition, str) else ""}
+        problems += check_meta(prose)
         problems += check_prose(prose, passage_texts(entry))
         problems += [f"{tag}: {m}" for m in check_citations(e.get("citations"), entry)]
         try:

@@ -1,7 +1,7 @@
 """Stage fill: draft the explanation of each proposed node from retrieved passages, in the drafter's own words."""
 from __future__ import annotations
 
-from ..ipguard import check_prose
+from ..ipguard import check_meta, check_prose
 from ..store import GraphStore
 from ..tasks import Task
 from .common import check_citations, neighbour_lines, passage_texts, with_ids
@@ -18,7 +18,9 @@ Rules:
   any passage is rejected. (A formal statement in LaTeX may follow the source's notation.)
 - Cite only what was offered: each citation is the exact `source` and `ref` shown in an offered passage's header.
 - Say how the concept connects to its neighbours where that helps, but do not invent connections.
-- If the passages do not support the concept, say so in `explanation` and cite what you did use.
+- Never mention the passages, the sources, or what they do or do not cover: write as a textbook would, about the
+  concept itself. If the passages are thin, write less (and cite what you used); do not comment on it. A result that
+  talks about the passages is rejected.
 - Finish every sentence and close every $ in your math; write \$ for a literal dollar sign. A result with an
   odd number of $ is rejected as probably cut off.
 - YAML: put `gist` in double quotes; write `explanation`, `formal` and `example` as `|` blocks (use a | block for
@@ -91,6 +93,7 @@ def validate_result(entry: dict, result: dict, store: GraphStore) -> list[str]:
         if _unclosed_math(text):
             problems.append(f"{name}: the math delimiters do not balance (an odd number of $), so a sentence may have "
                             f"been cut off; finish it and close every $ (write \$ for a literal dollar sign)")
+    problems += check_meta(prose)
     problems += check_prose(prose, passage_texts(entry))
     return problems
 

@@ -53,3 +53,26 @@ def check_prose(fields: dict[str, str], passages: list[str], limit: int = IP_RUN
             problems.append(f"{name}: shares {n} consecutive words with an offered passage ({run[:90]!r}); "
                             f"reword it in your own words")
     return problems
+
+
+_META = [
+    re.compile(r"\bthe\s+(?:passages?|excerpts?)\b(?!\s+of\b)", re.I),
+    re.compile(r"\b(?:offered|provided|supplied|retrieved|these|those)\s+(?:passages?|sources?|excerpts?|materials?|texts?)\b", re.I),
+    re.compile(r"\baccording to (?:the|these|those) (?:passages?|sources?|excerpts?|lecture notes|slides|textbook|text)\b", re.I),
+    re.compile(r"\bnot (?:explicitly|directly) (?:defined?|stated|mentioned|covered|given|discussed)\b", re.I),
+    re.compile(r"\b(?:slides|lecture notes|lecture|textbook|notes)\s+(?:do|does|did)\s+not\b", re.I),
+]
+
+
+def check_meta(fields: dict[str, str]) -> list[str]:
+    """One message per field that comments on the sources ("the offered passages do not define...") instead of
+    teaching the concept. Public prose should read like a textbook, not like a report on its own evidence."""
+    problems = []
+    for name, text in fields.items():
+        for pattern in _META:
+            match = pattern.search(text or "")
+            if match:
+                problems.append(f"{name}: talks about the sources ({match.group(0)!r}) instead of the concept; "
+                                f"describe the concept itself and never mention passages, sources or what they cover")
+                break
+    return problems
