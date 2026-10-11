@@ -113,6 +113,73 @@ def test_changed_text_flags_stale_and_batch_skips_only_that_task(tmp_path: Path)
     assert "agent" not in state["tasks"][changed[1].task_id]
 
 
+def test_batch_unapprove_round_trip_preserves_scores_and_other_routes(tmp_path: Path):
+    tasks = parse_tracker(SOURCE).tasks
+    store = DecisionStore(tmp_path)
+    state = store.reconcile(tasks)
+    state = store.import_routing(tasks, draft(tasks), revision=state["revision"], source_sha256="abc")
+    state = store.decide(tasks[0], revision=state["revision"], fingerprint=tasks[0].fingerprint,
+                         changes={"impact": 2, "urgency": 1, "effort": "<2h"})
+    state, result = store.batch_approve(tasks, revision=state["revision"],
+                                        task_ids=[task.task_id for task in tasks])
+    assert result["stale"] == []
+    state = store.route_decide(tasks[0], revision=state["revision"], fingerprint=tasks[0].fingerprint,
+                               changes={"agent": "codex", "not_before": "2026-10-01"})
+    before = state["tasks"][tasks[0].task_id].copy()
+    other = state["tasks"][tasks[1].task_id].copy()
+    assert route_for(tasks[0], before)["can_unapprove"]
+
+    state, result = store.batch_unapprove(tasks, revision=state["revision"], task_ids=[tasks[0].task_id])
+    assert result == {"applied": [tasks[0].task_id], "stale": []}
+    entry = state["tasks"][tasks[0].task_id]
+    assert all(entry[field] is None and entry[field + "_source"] is None
+               for field in ("agent", "complexity", "difficulty", "context"))
+    assert entry["agent_suggested"] == "gemini"
+    assert (entry["impact"], entry["urgency"], entry["effort"], entry["not_before"]) == (
+        before["impact"], before["urgency"], before["effort"], before["not_before"])
+    assert state["tasks"][tasks[1].task_id] == other
+    view = route_view(tasks, state, rank(tasks, state), today=date(2026, 10, 10))
+    assert view["proposed_batches"]["gemini"] == [tasks[0].task_id]
+    assert view["approved_batches"]["claude"] == [tasks[1].task_id]
+
+    state, result = store.batch_approve(tasks, revision=state["revision"], task_ids=[tasks[0].task_id])
+    assert result["applied"] == [tasks[0].task_id]
+    assert state["tasks"][tasks[0].task_id]["agent"] == "gemini"
+
+
+def test_batch_unapprove_skips_stale_or_missing_proposals(tmp_path: Path):
+    tasks = parse_tracker(SOURCE).tasks
+    store = DecisionStore(tmp_path)
+    state = store.reconcile(tasks)
+    state = store.import_routing(tasks, draft(tasks), revision=state["revision"], source_sha256="abc")
+    state, _ = store.batch_approve(tasks, revision=state["revision"],
+                                   task_ids=[task.task_id for task in tasks])
+    changed = parse_tracker(SOURCE.replace("Design new scheduler", "Design a different scheduler")).tasks
+    state = store.reconcile(changed)
+    before_stale = state["tasks"][changed[1].task_id].copy()
+    state, result = store.batch_unapprove(changed, revision=state["revision"],
+                                          task_ids=[task.task_id for task in changed])
+    assert result == {"applied": [changed[0].task_id], "stale": [changed[1].task_id]}
+    assert state["tasks"][changed[1].task_id] == before_stale
+    stale_revision = state["revision"] - 1
+    before_bytes = store.path.read_bytes()
+    with pytest.raises(DecisionError, match="stale state revision"):
+        store.batch_unapprove(changed, revision=stale_revision, task_ids=[changed[1].task_id])
+    assert store.path.read_bytes() == before_bytes
+
+    alone = DecisionStore(tmp_path / "no-proposal")
+    no_proposal = alone.reconcile((tasks[0],))
+    no_proposal = alone.route_decide(
+        tasks[0], revision=no_proposal["revision"], fingerprint=tasks[0].fingerprint,
+        changes={"agent": "codex", "complexity": "moderate",
+                 "difficulty": "medium", "context": "needs_repo_context"})
+    assert not route_for(tasks[0], no_proposal["tasks"][tasks[0].task_id])["can_unapprove"]
+    unchanged, result = alone.batch_unapprove((tasks[0],), revision=no_proposal["revision"],
+                                               task_ids=[tasks[0].task_id])
+    assert result == {"applied": [], "stale": [tasks[0].task_id]}
+    assert unchanged["revision"] == no_proposal["revision"]
+
+
 def test_not_before_gate_excludes_today_then_readmits_without_score_penalty(tmp_path: Path):
     task = parse_tracker("## Trial\n- <!-- TODO-0024 --> Review scheduled runs. (added 2026-10-10)\n").tasks[0]
     store = DecisionStore(tmp_path)
@@ -157,5 +224,20 @@ def test_http_batch_approval_requires_revision_and_origin(tmp_path: Path):
         conn.request("POST", "/api/routing/approve", body=json.dumps(payload), headers=headers)
         assert conn.getresponse().status == 409
         assert store.read()["tasks"][tasks[0].task_id]["agent"] == "gemini"
+        updated = store.read()
+        payload["revision"] = updated["revision"]
+        conn.request("POST", "/api/routing/unapprove", body=json.dumps(payload),
+                     headers={"Content-Type": "application/json", "X-Project-Steering-Token": server.token})
+        assert conn.getresponse().status == 403
+        conn.request("POST", "/api/routing/unapprove", body=json.dumps(payload), headers=headers)
+        response = conn.getresponse()
+        assert response.status == 200
+        assert json.loads(response.read())["applied"] == [tasks[0].task_id]
+        conn.request("POST", "/api/routing/unapprove", body=json.dumps(payload), headers=headers)
+        assert conn.getresponse().status == 409
+        conn.request("GET", "/api/tasks?token=" + server.token)
+        refreshed = json.loads(conn.getresponse().read())
+        assert refreshed["routing"]["proposed_batches"]["gemini"] == [tasks[0].task_id]
+        assert refreshed["routing"]["approved_batches"]["gemini"] == []
     finally:
         server.shutdown(); server.server_close(); thread.join(timeout=3)

@@ -36,9 +36,9 @@ async function load() {
 }
 function routingBatches(data) {
   const section = document.createElement('section'); section.append(txt('h2', 'Agent routing'));
-  section.append(txt('p', 'Proposed routes are unapproved. Only approved routes enter actual agent batches.'));
+  section.append(txt('p', 'Proposed routes are unapproved. Select approved tasks with a current proposal to return them for review; scores stay unchanged.'));
   const byId = Object.fromEntries(data.tasks.map(task => [task.task_id, task]));
-  const selected = new Set();
+  const selectedProposed = new Set(), selectedApproved = new Set();
   for (const [kind, batches] of [['Approved batches',data.routing.approved_batches],
                                   ['Proposed batches — unapproved',data.routing.proposed_batches]]) {
     section.append(txt('h3', kind));
@@ -46,15 +46,29 @@ function routingBatches(data) {
       const details = document.createElement('details');
       details.append(txt('summary', `${agent}: ${ids.length} tasks`));
       const inputs = [];
+      const isProposed = kind.startsWith('Proposed');
+      const returnable = ids.filter(id => data.routing.tasks[id]?.can_unapprove);
       const withScores = ids.filter(id => data.score_proposals[id]?.status === 'approved');
-      if (kind.startsWith('Proposed') && ids.length) {
+      if (!isProposed && returnable.length) {
+        const controls = document.createElement('div'); controls.className = 'batch-controls';
+        const selectAll = document.createElement('label');
+        const toggle = document.createElement('input'); toggle.type = 'checkbox';
+        toggle.setAttribute('aria-label', `Select all ${agent} approved routes with current proposals`);
+        toggle.addEventListener('change', () => {
+          for (const input of inputs) { input.checked = toggle.checked;
+            if (toggle.checked) selectedApproved.add(input.value); else selectedApproved.delete(input.value); }
+        });
+        selectAll.append(toggle, txt('span', ` Select all returnable ${agent} (${returnable.length})`));
+        controls.append(selectAll); details.append(controls); details._selectAll = toggle;
+      }
+      if (isProposed && ids.length) {
         const controls = document.createElement('div'); controls.className = 'batch-controls';
         const selectAll = document.createElement('label');
         const toggle = document.createElement('input'); toggle.type = 'checkbox';
         toggle.setAttribute('aria-label', `Select all ${agent} proposed routes`);
         toggle.addEventListener('change', () => {
           for (const input of inputs) { input.checked = toggle.checked;
-            if (toggle.checked) selected.add(input.value); else selected.delete(input.value); }
+            if (toggle.checked) selectedProposed.add(input.value); else selectedProposed.delete(input.value); }
           if (details._selectScores) details._selectScores.checked = false;
         });
         selectAll.append(toggle, txt('span', ` Select all ${agent} (${ids.length})`)); controls.append(selectAll);
@@ -66,7 +80,7 @@ function routingBatches(data) {
         scoreToggle.addEventListener('change', () => {
           for (const input of inputs) {
             input.checked = scoreToggle.checked && withScores.includes(input.value);
-            if (input.checked) selected.add(input.value); else selected.delete(input.value);
+            if (input.checked) selectedProposed.add(input.value); else selectedProposed.delete(input.value);
           }
           toggle.checked = inputs.every(input => input.checked);
         });
@@ -75,30 +89,57 @@ function routingBatches(data) {
       }
       for (const id of ids) {
         const line = document.createElement('p');
-        if (kind.startsWith('Proposed')) {
+        if (isProposed) {
           const input = document.createElement('input'); input.type = 'checkbox'; input.value = id;
+          input.setAttribute('aria-label', `Select proposed route ${id}`);
           inputs.push(input);
-          input.addEventListener('change', () => { if (input.checked) selected.add(id); else selected.delete(id);
+          input.addEventListener('change', () => { if (input.checked) selectedProposed.add(id); else selectedProposed.delete(id);
             details._selectAll.checked = inputs.every(box => box.checked);
             details._selectScores.checked = inputs.every(box => box.checked === withScores.includes(box.value)); });
           line.append(input);
+        } else if (data.routing.tasks[id]?.can_unapprove) {
+          const input = document.createElement('input'); input.type = 'checkbox'; input.value = id;
+          input.setAttribute('aria-label', `Select approved route ${id} to return to proposed`);
+          inputs.push(input);
+          input.addEventListener('change', () => {
+            if (input.checked) selectedApproved.add(id); else selectedApproved.delete(id);
+            details._selectAll.checked = inputs.every(box => box.checked);
+          });
+          line.append(input);
         }
         line.append(txt('span', ` ${id} · ${byId[id]?.title || id}`)); details.append(line);
+        if (!isProposed) {
+          const proposal = data.routing.tasks[id];
+          line.append(txt('small', proposal?.can_unapprove
+            ? ` — returns to proposed ${proposal.proposed.agent}`
+            : ' — no current proposal to return to'));
+        }
       }
       section.append(details);
     }
   }
   const button = document.createElement('button'); button.textContent = 'Approve selected proposed routes and tags';
   button.addEventListener('click', async () => {
-    if (!selected.size) { error.textContent = 'Select proposed tasks first.'; return; }
+    if (!selectedProposed.size) { error.textContent = 'Select proposed tasks first.'; return; }
     try {
       const result = await post('/api/routing/approve', {source_sha256:snapshot.source_sha256,
-        revision:snapshot.revision,task_ids:[...selected]});
+        revision:snapshot.revision,task_ids:[...selectedProposed]});
       await load();
       if (result.stale.length) error.textContent = `Skipped stale suggestions: ${result.stale.join(', ')}`;
     } catch (e) { error.textContent = String(e.message); }
   });
-  section.append(button); return section;
+  const returnButton = document.createElement('button');
+  returnButton.type = 'button'; returnButton.textContent = 'Return selected approved routes to proposed';
+  returnButton.addEventListener('click', async () => {
+    if (!selectedApproved.size) { error.textContent = 'Select approved tasks with current proposals first.'; return; }
+    try {
+      const result = await post('/api/routing/unapprove', {source_sha256:snapshot.source_sha256,
+        revision:snapshot.revision,task_ids:[...selectedApproved]});
+      await load();
+      if (result.stale.length) error.textContent = `Skipped stale or ineligible routes: ${result.stale.join(', ')}`;
+    } catch (e) { error.textContent = String(e.message); }
+  });
+  section.append(button, returnButton); return section;
 }
 function scoredTable(nodes) {
   const container = document.createElement('div');

@@ -25,6 +25,9 @@ def route_for(task: Task, entry: dict) -> dict:
     fully_approved = all(approved[field] in VALUES[field] and entry.get(field + "_source") == "owner"
                          for field in FIELDS)
     has_proposal = any(proposed.values())
+    can_unapprove = (fully_approved and entry.get("fingerprint") == task.fingerprint
+                     and entry.get("suggested_fingerprint") == task.fingerprint
+                     and all(proposed[field] in VALUES[field] for field in FIELDS))
     return {
         "task_id": task.task_id,
         "agent": approved["agent"] if fully_approved else "needs_human",
@@ -35,6 +38,7 @@ def route_for(task: Task, entry: dict) -> dict:
         "suggested_batch": entry.get("suggested_batch"),
         "not_before": entry.get("not_before"),
         "fully_approved": fully_approved,
+        "can_unapprove": can_unapprove,
     }
 
 

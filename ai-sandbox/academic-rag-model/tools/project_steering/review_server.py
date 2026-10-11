@@ -121,7 +121,7 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_POST(self) -> None:
         path = urlsplit(self.path).path
-        if not self.authorized(post=True) or path not in {"/api/decision", "/api/routing/decision", "/api/routing/approve", "/api/scores/approve", "/api/close"}:
+        if not self.authorized(post=True) or path not in {"/api/decision", "/api/routing/decision", "/api/routing/approve", "/api/routing/unapprove", "/api/scores/approve", "/api/close"}:
             self.send(403, b"forbidden", "text/plain; charset=utf-8")
             return
         try:
@@ -138,6 +138,11 @@ class Handler(BaseHTTPRequestHandler):
                 raise DecisionError("stale tracker snapshot")
             if path == "/api/routing/approve":
                 data, result = self.server.store.batch_approve(
+                    tasks, revision=request["revision"], task_ids=request["task_ids"])
+                self.send(200, json.dumps({**result, "revision": data["revision"]}).encode("utf-8"))
+                return
+            if path == "/api/routing/unapprove":
+                data, result = self.server.store.batch_unapprove(
                     tasks, revision=request["revision"], task_ids=request["task_ids"])
                 self.send(200, json.dumps({**result, "revision": data["revision"]}).encode("utf-8"))
                 return

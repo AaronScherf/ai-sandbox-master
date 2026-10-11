@@ -57,6 +57,12 @@ and use **Approve selected proposed routes and tags**, or override the agent and
 tags on an individual task. Only approved routes with approved complexity,
 difficulty, and context tags enter actual agent batches. Proposals whose task
 text changed since import are marked stale and cannot be batch-approved.
+Approved batches also have per-task checkboxes and **Select all returnable** for
+tasks with a current valid proposal. **Return selected approved routes to
+proposed** clears only their approved agent and routing tags, so they reappear
+in the proposed batch for the originally suggested agent. Scores, priority,
+status, and time gates are preserved. Fallback Needs Human Review items and
+owner routes without a current proposal have no return checkbox.
 The routing policy is [AGENT_ROUTING.md](../../../../docs/AGENT_ROUTING.md).
 
 `not_before` is a separate owner-controlled date gate. It keeps a task visible

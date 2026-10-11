@@ -9,7 +9,7 @@ from pathlib import Path
 from tools.corpus_health.state import _exclusive_lock
 from tools.project_steering.parser import Task
 from tools.project_steering.report import _write_atomic
-from tools.project_steering.routing import FIELDS, VALUES
+from tools.project_steering.routing import FIELDS, VALUES, route_for
 
 VERSION = 2
 EFFORT = {"unknown", "<2h", "half_day", "1_2_days", "larger"}
@@ -304,6 +304,38 @@ class DecisionStore:
                     if entry.get(field + "_source") != "owner":
                         entry[field] = entry[field + "_suggested"]
                         entry[field + "_source"] = "owner"
+                entry["reviewed_at"] = datetime.now(timezone.utc).isoformat()
+                applied.append(task_id)
+            if applied:
+                data["revision"] += 1
+                self._write(data)
+            return data, {"applied": applied, "stale": stale}
+
+    def batch_unapprove(self, tasks: tuple[Task, ...], *, revision: int,
+                        task_ids: list[str]) -> tuple[dict, dict]:
+        """Return selected owner-approved routes to their current proposals."""
+        if (not isinstance(task_ids, list) or not task_ids
+                or any(not isinstance(x, str) for x in task_ids)
+                or len(task_ids) != len(set(task_ids))):
+            raise DecisionError("select unique task IDs to return to proposed")
+        current = {task.task_id: task for task in tasks if not task.provisional}
+        if any(task_id not in current for task_id in task_ids):
+            raise DecisionError("unknown task ID in batch unapproval")
+        with _exclusive_lock(self.lock):
+            data = self._read()
+            if data["revision"] != revision:
+                raise DecisionError("stale state revision; reload review page")
+            applied: list[str] = []
+            stale: list[str] = []
+            for task_id in task_ids:
+                entry = data["tasks"].get(task_id)
+                if (not entry or entry.get("vanished") or entry.get("recheck")
+                        or not route_for(current[task_id], entry)["can_unapprove"]):
+                    stale.append(task_id)
+                    continue
+                for field in FIELDS:
+                    entry[field] = None
+                    entry[field + "_source"] = None
                 entry["reviewed_at"] = datetime.now(timezone.utc).isoformat()
                 applied.append(task_id)
             if applied:
