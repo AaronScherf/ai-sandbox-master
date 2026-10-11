@@ -9,6 +9,7 @@ from audio_generator.sections import (
     narrate_sections,
     split_into_sections,
 )
+from audio_generator.cleaner import clean_markdown_for_speech
 
 
 class TestSplitIntoSections(unittest.TestCase):
@@ -48,6 +49,28 @@ def _narrated(title: str, char_count: int) -> NarratedSection:
 
 
 class TestGroupSectionsIntoEpisodes(unittest.TestCase):
+    def test_oversized_headerless_section_splits_at_paragraphs(self):
+        paragraphs = [f"Paragraph {i}: " + chr(97 + i) * 6500 for i in range(5)]
+        sections = split_into_sections("\n\n".join(paragraphs), max_chars=20000)
+        self.assertGreater(len(sections), 1)
+        self.assertTrue(all(section.title is None for section in sections))
+
+        narrated = [NarratedSection(title="", text=clean_markdown_for_speech(s.body)) for s in sections]
+        episodes = group_sections_into_episodes(
+            narrated, chars_per_minute=1000, target_min_minutes=10, target_max_minutes=20,
+        )
+        self.assertGreater(len(episodes), 1)
+        self.assertTrue(all(len(episode.text) <= 20000 for episode in episodes))
+        self.assertEqual(" ".join(episode.text for episode in episodes), " ".join(paragraphs))
+
+    def test_paragraph_boundary_wins_over_minimum_when_next_piece_would_exceed_maximum(self):
+        sections = [_narrated("A", 9000), _narrated("B", 12000)]
+        episodes = group_sections_into_episodes(
+            sections, chars_per_minute=1000, target_min_minutes=10, target_max_minutes=20,
+        )
+        self.assertEqual([episode.section_titles for episode in episodes], [["A"], ["B"]])
+        self.assertTrue(all(len(episode.text) <= 20000 for episode in episodes))
+
     def test_short_sections_are_grouped_into_one_episode(self):
         sections = [_narrated("A", 1000), _narrated("B", 1000)]
         episodes = group_sections_into_episodes(sections, chars_per_minute=1000, target_min_minutes=10, target_max_minutes=20)
@@ -62,9 +85,9 @@ class TestGroupSectionsIntoEpisodes(unittest.TestCase):
         self.assertEqual(episodes[0].section_titles, ["A"])
         self.assertEqual(episodes[1].section_titles, ["B"])
 
-    def test_keeps_grouping_past_the_max_if_the_minimum_has_not_yet_been_met(self):
-        # A single section far exceeding target-max, on its own, still becomes one episode
-        # (never split inside a section -- spec §3.2).
+    def test_indivisible_oversized_paragraph_stays_in_one_episode(self):
+        # No paragraph boundary remains, so preserving the paragraph takes
+        # precedence over the target maximum.
         sections = [_narrated("Huge", 50000)]
         episodes = group_sections_into_episodes(sections, chars_per_minute=1000, target_min_minutes=10, target_max_minutes=20)
         self.assertEqual(len(episodes), 1)

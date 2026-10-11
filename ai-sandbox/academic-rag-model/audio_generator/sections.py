@@ -18,7 +18,7 @@ from dataclasses import dataclass, field
 from core.env.gemini_utils import get_gemini_client, load_dotenv_override
 
 from audio_generator.cleaner import clean_markdown_for_speech
-from audio_generator.narrate import chunk_for_narration, narrate_chunks
+from audio_generator.narrate import _split_into_pieces, chunk_for_narration, narrate_chunks
 
 AUDIOGEN_SECTIONS_CHARS_PER_MINUTE = int(os.environ.get("AUDIOGEN_SECTIONS_CHARS_PER_MINUTE", "969"))
 AUDIOGEN_SECTIONS_TARGET_MIN_MINUTES = int(os.environ.get("AUDIOGEN_SECTIONS_TARGET_MIN_MINUTES", "10"))
@@ -45,12 +45,45 @@ class Episode:
     section_titles: list[str] = field(default_factory=list)
 
 
-def split_into_sections(md_text: str) -> list[Section]:
-    """Splits raw markdown at every ATX header line, any depth (spec
-    §3.2 -- grouping, not header depth, controls final output length)."""
+def _split_oversized_section(section: Section, max_chars: int) -> list[Section]:
+    """Split a long raw section on narration's paragraph/code-block boundaries.
+
+    Cleaner later flattens whitespace, so these boundaries must be kept as
+    separate sections before narration. An indivisible paragraph can still
+    exceed the target; it remains intact rather than being cut mid-sentence.
+    Repeating the title gives each continuation a useful episode label.
+    """
+    title_len = len(section.title or "") + (2 if section.title else 0)
+    if title_len + len(section.body) <= max_chars:
+        return [section]
+
+    pieces = [piece.strip() for piece in _split_into_pieces(section.body)]
+    if len(pieces) < 2:
+        return [section]
+
+    split_sections: list[Section] = []
+    current: list[str] = []
+    for piece in pieces:
+        candidate = "\n\n".join([*current, piece])
+        if current and title_len + len(candidate) > max_chars:
+            split_sections.append(Section(title=section.title, body="\n\n".join(current)))
+            current = []
+        current.append(piece)
+    if current:
+        split_sections.append(Section(title=section.title, body="\n\n".join(current)))
+    return split_sections
+
+
+def split_into_sections(
+    md_text: str,
+    max_chars: int = AUDIOGEN_SECTIONS_CHARS_PER_MINUTE * AUDIOGEN_SECTIONS_TARGET_MAX_MINUTES,
+) -> list[Section]:
+    """Split raw Markdown at every ATX header, then oversized leaf sections
+    at paragraph boundaries before narration removes those boundaries.
+    """
     matches = list(_HEADER_PATTERN.finditer(md_text))
     if not matches:
-        return [Section(title=None, body=md_text)]
+        return _split_oversized_section(Section(title=None, body=md_text), max_chars)
 
     sections: list[Section] = []
     if matches[0].start() > 0 and md_text[:matches[0].start()].strip():
@@ -60,7 +93,7 @@ def split_into_sections(md_text: str) -> list[Section]:
         start = match.end()
         end = matches[i + 1].start() if i + 1 < len(matches) else len(md_text)
         sections.append(Section(title=match.group(2).strip(), body=md_text[start:end]))
-    return sections
+    return [part for section in sections for part in _split_oversized_section(section, max_chars)]
 
 
 def narrate_sections(sections: list[Section]) -> list[NarratedSection]:
@@ -109,28 +142,21 @@ def group_sections_into_episodes(
     target_min_minutes: int = AUDIOGEN_SECTIONS_TARGET_MIN_MINUTES,
     target_max_minutes: int = AUDIOGEN_SECTIONS_TARGET_MAX_MINUTES,
 ) -> list[Episode]:
-    """Greedily groups consecutive sections (order preserved) into
-    episodes targeting a [target_min_minutes, target_max_minutes] band of
-    resulting audio, using chars_per_minute as the (real, measured --
-    spec §3.2) conversion. A section already past target_min on its own
-    is never merged with the next if that would exceed target_max; a
-    section that hasn't yet reached target_min is merged regardless of
-    target_max, so a single section longer than target_max on its own
-    still becomes its own (over-length) episode -- this never splits
-    inside one section (spec §3.2, flagged §9 as a known limitation)."""
-    min_chars = chars_per_minute * target_min_minutes
+    """Greedily pack consecutive narrated sections up to target_max.
+
+    The minimum is a soft target: a paragraph boundary may force a shorter
+    episode. An indivisible paragraph can still exceed the maximum on its
+    own, but no neighbor is merged into that episode.
+    """
     max_chars = chars_per_minute * target_max_minutes
 
     episodes: list[Episode] = []
     current: list[NarratedSection] = []
-    current_len = 0
     for section in narrated_sections:
-        section_len = len(section.title) + len(section.text)
-        if current and current_len >= min_chars and current_len + section_len > max_chars:
+        if current and len(_episode_text([*current, section])) > max_chars:
             episodes.append(Episode(text=_episode_text(current), section_titles=[s.title for s in current if s.title]))
-            current, current_len = [], 0
+            current = []
         current.append(section)
-        current_len += section_len
     if current:
         episodes.append(Episode(text=_episode_text(current), section_titles=[s.title for s in current if s.title]))
     return episodes

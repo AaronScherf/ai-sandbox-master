@@ -2631,6 +2631,17 @@ Full narrative, per-episode breakdown table, and the "this test exercised
 the hard case, not the primary intended use case" scope note:
 `docs/status/2026-09-09-audio-generator-status.md`.
 
+**2026-10-10 follow-up, TODO-0055 resolved for paragraph-delimited sections:**
+`sections.py` now divides oversized raw sections on the same paragraph and
+fenced-code boundaries used by narration, before cleaning removes blank
+lines. Episode grouping refuses a next unit that would exceed the target
+maximum, even when the current episode is below the soft minimum. An
+indivisible paragraph can still exceed the maximum. The new headerless
+oversized-section and under-minimum tests in
+`tests/audio_generator/test_sections.py` pass (16 section tests; 89 tests
+across `tests/audio_generator/`). This is fixture evidence, not a fresh
+live run of `LN_Probability.md` or a listening-quality assessment.
+
 - [ ] **Step 13: Commit**
 
 ```bash

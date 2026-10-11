@@ -20,7 +20,8 @@ against the same file: **227.1s narration + 1165.3s parallel synthesis =
 23.2 min total**, producing 9 separately listenable episodes instead of
 one 3h22m file. One real limitation was confirmed in the process (§9: an
 undivided 711-line section produced a 62-minute over-length episode) —
-deliberately left unfixed pending a listening-quality review. Full
+resolved for paragraph-delimited sections by the 2026-10-10 fallback
+described in §3.2 and §9. Full
 real-world validation narrative: `docs/status/2026-09-09-audio-generator-status.md`.
 Scoped to the `notes` content type only — `textbook` chapter-reuse is a
 separate, deferred investigation (§3.2, §9). **Important scope note
@@ -361,10 +362,13 @@ different pace).
    output length. `Section.title` is the header text (leading `#`s and
    whitespace stripped); `Section.body` is the raw text from just after
    that header to just before the next one (or EOF). Content before the
-   first header, if any, becomes a title-less leading `Section`. **A file
-   with no headers at all produces exactly one `Section`** — the whole
-   file — which is exactly today's (pre-this-revision) behavior, so this
-   is a strict superset, not a breaking change for headerless notes.
+   first header, if any, becomes a title-less leading `Section`. A file
+   with no headers initially produces one `Section` for the whole file.
+   As of the 2026-10-10 fallback, any oversized section is further split
+   at the paragraph/fenced-code boundaries used by
+   `narrate._split_into_pieces()`, before narration removes blank lines.
+   A continuation repeats the title for the episode index and spoken
+   orientation. Indivisible paragraphs stay intact.
 2. Every `Section.body` is chunked (reusing `narrate.py`'s existing
    paragraph/code-block-aware chunking, exposed as `narrate.chunk_for_narration()`),
    and **every section's chunks are flattened into one list before
@@ -398,15 +402,12 @@ different pace).
 3. `group_sections_into_episodes(narrated_sections, target_min_minutes=10, target_max_minutes=20, chars_per_minute=AUDIOGEN_SECTIONS_CHARS_PER_MINUTE) -> list[Episode]`
    greedily packs consecutive narrated sections (order preserved) until
    adding the next one would exceed the target-max character equivalent,
-   *unless* the current episode hasn't yet reached the target-min
-   equivalent (in which case it's included anyway — the same
-   floor-then-ceiling shape `narrate.py`'s own `_group_into_chunks` uses,
-   just with a floor as well as a ceiling). **A single section that alone
-   exceeds the target-max on its own becomes its own, over-length episode
-   — this revision never splits *inside* one section.** Expected to be
-   rare (most real course notes subdivide well below 10-20 minutes'
-   worth of text per header), but a genuinely long, headerless chapter
-   would hit this; flagged in §9 as a known limitation, not solved here.
+   using the target-max character equivalent as a ceiling whenever a
+   paragraph boundary permits it. The target minimum is soft: grouping
+   may stop below it to avoid exceeding the maximum. An indivisible
+   paragraph may still produce an over-length episode. The pre-narration
+   split uses raw-section length as an estimate; a rewrite can expand
+   one unit after its paragraph boundaries have been removed. See §9.
 4. One `synthesize_speech()` call per `Episode`, writing
    `<name>__part01.mp3`, `<name>__part02.mp3`, etc. (zero-padded,
    sibling of the source, same directory — §5's existing sibling-output
@@ -586,19 +587,20 @@ inside their subproject packages, and note the `tests/test_discovery.py`/
   changed. Revisit only if real usage shows the wasted regeneration
   matters at the intended volume (a few files/week makes this unlikely to
   bite in practice).
-- **CONFIRMED (§3.2), real (2026-09-09): a single header-delimited section
-  longer than the target-max on its own becomes its own over-length
-  episode** — this revision never splits inside one section. Originally
-  flagged as "not expected to be common," but the very first real
-  end-to-end run against `LN_Probability.md` hit this: one section
-  ("1.5 Probability measures," 711 raw lines with zero sub-headers)
-  produced a 60,389-char (~62 min) episode, 3x the 20-minute target — see
-  `docs/status/2026-09-09-audio-generator-status.md` for the full account. Not
-  common-in-theory turned out to be real-in-practice on the first try.
-  **Not fixed yet, deliberately** — deferred pending a listening-quality
-  review of the real files this run produced, per the user's explicit
-  request, before deciding whether/how to add paragraph-level fallback
-  splitting for an over-long leaf section.
+- **RESOLVED for paragraph-delimited sections (2026-10-10):** The
+  2026-09-09 live run against `LN_Probability.md` found a 711-line section
+  ("1.5 Probability measures") that produced a 60,389-char (~62 min)
+  episode, 3x the target; see `docs/status/2026-09-09-audio-generator-status.md`.
+  `sections.py` now splits oversized raw sections at narration's existing
+  paragraph/code-block boundaries before cleaning removes blank lines,
+  then groups narrated units with a hard maximum where boundaries permit.
+  `tests/audio_generator/test_sections.py` covers a headerless oversized
+  section becoming several in-range episodes, a minimum-vs-maximum case,
+  and the indivisible-paragraph exception; all 16 section tests and all
+  89 audio-generator tests passed. These are fixture tests; the real
+  `LN_Probability.md` audio has not been regenerated or listened to with
+  this fallback. Narration expansion can also leave one post-cleaning
+  unit over-length, since its original paragraph boundaries are gone.
 - **NEW (§3.2): `textbook` chapter-splitting reuse is unexplored** —
   whether `textbook/chapter_index.py`'s PDF-anchored chapter boundaries
   survive textbook conversion anywhere `audio_generator` could read them

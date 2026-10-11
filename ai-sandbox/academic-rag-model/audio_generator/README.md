@@ -109,9 +109,10 @@ header level, each section is narrated/cleaned independently, and
 consecutive sections are grouped into episodes targeting 10-20 minutes of
 resulting audio — using a real, measured conversion (`AUDIOGEN_SECTIONS_CHARS_PER_MINUTE`,
 default `969` characters of final text per minute, calibrated against one
-real Piper run) rather than a fixed header depth. A single section that's
-already longer than the target on its own becomes its own (over-length)
-episode — this never splits inside one section.
+real Piper run) rather than a fixed header depth. An oversized section is
+split at paragraph boundaries before narration, which otherwise removes
+those boundaries. Episode grouping treats the maximum as a ceiling when a
+boundary is available; a single indivisible paragraph may still exceed it.
 
 `textbook` content is unaffected (still exactly one `<name>.mp3` per
 source) — it has its own separate, more sophisticated chapter-boundary

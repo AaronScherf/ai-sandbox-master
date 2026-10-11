@@ -271,7 +271,6 @@ cd .\ai-sandbox\academic-rag-model; .\.venv\Scripts\python.exe -m tools.project_
 - <!-- TODO-0054 --> Dual visualization modality (LLM-generated scientific diagrams alongside Plotly): evaluate and integrate LLM-generated conceptual diagrams for abstract theoretical geometry (such as the Testing Trinity likelihood surface) rather than strictly Python Plotly code. (added 2026-10-05)
 
 ## Audio Generator (`audio_generator`)
-- <!-- TODO-0055 --> Paragraph-level splitting fallback for oversized sections: in `sections.py`, split oversized sections by paragraph boundaries when individual markdown sections exceed the TTS chunk limit, preventing oversized audio parts. (added 2026-10-04)
 - <!-- TODO-0056 --> LLM summary-to-audio pipeline: build the direct workflow for generating audio from synthesized lecture summaries rather than raw note transcripts. (added 2026-10-04)
 - <!-- TODO-0057 --> Textbook chapter-boundary integration: connect `chapter_index.py` from `convert_textbook` to enable narrated audio overviews per textbook chapter. (added 2026-10-04)
 
