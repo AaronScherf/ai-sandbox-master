@@ -120,6 +120,88 @@
     return pos;
   }
 
+  // Starting from the section rows, let connected concepts attract and every pair repel (Fruchterman-Reingold),
+  // with a soft pull toward the section's height so the course still reads bottom to top, and a weak pull toward
+  // the topic's centre of mass. A fixed iteration count and no randomness keep the picture identical on every load;
+  // a last pass pushes apart any boxes that still overlap.
+  function spreadLayout(nodes, edges, sections, opts) {
+    opts = opts || {};
+    var boxW = opts.boxW || 170, boxH = opts.boxH || 56;
+    var iterations = opts.iterations || 400;
+    var k = opts.idealLength || 200, bandGap = opts.bandGap || 220;
+    var bandPull = opts.bandPull == null ? 0.35 : opts.bandPull, topicPull = opts.topicPull == null ? 0.04 : opts.topicPull;
+    var gravity = opts.gravity == null ? 0.15 : opts.gravity, reach = (opts.reach || 3) * k;
+    var seed = computeLayout(nodes, edges, sections, opts);
+    var n = nodes.length;
+    if (n <= 1) return seed;
+
+    var orderOf = new Map(sections.map(function (s) { return [s.id, s.order]; }));
+    var bands = Array.from(new Set(nodes.map(function (m) { return m.section; })))
+      .sort(function (a, b) { return orderOf.get(a) - orderOf.get(b); });
+    var targetY = new Map(bands.map(function (b, i) { return [b, -i * bandGap]; }));
+    var index = new Map(nodes.map(function (m, i) { return [m.id, i]; }));
+    var px = [], py = [];
+    nodes.forEach(function (m, i) {  // a small repeatable offset so identical seeds can separate
+      px.push(seed[m.id].x + ((i * 37) % 11 - 5) * 4);
+      py.push(seed[m.id].y + ((i * 53) % 13 - 6) * 4);
+    });
+    var links = [];
+    edges.forEach(function (e) {
+      if (index.has(e.source) && index.has(e.target) && e.source !== e.target) links.push([index.get(e.source), index.get(e.target)]);
+    });
+    var topics = Array.from(new Set(nodes.map(function (m) { return m.topic; })));
+    var topicOf = nodes.map(function (m) { return topics.indexOf(m.topic); });
+
+    for (var it = 0; it < iterations; it++) {
+      var fx = new Array(n).fill(0), fy = new Array(n).fill(0);
+      var i, j, dx, dy, d, f;
+      for (i = 0; i < n; i++) {
+        for (j = i + 1; j < n; j++) {
+          dx = px[i] - px[j]; dy = py[i] - py[j];
+          d = Math.sqrt(dx * dx + dy * dy);
+          if (d < 1) { dx = 1; dy = 0; d = 1; }
+          if (d > reach) continue;  // far-apart concepts ignore each other, so loose ones are not flung away
+          f = (k * k) / d / d;  // repulsion k^2/d, split into its x/y parts
+          fx[i] += dx * f; fy[i] += dy * f; fx[j] -= dx * f; fy[j] -= dy * f;
+        }
+      }
+      links.forEach(function (l) {
+        dx = px[l[0]] - px[l[1]]; dy = py[l[0]] - py[l[1]];
+        d = Math.sqrt(dx * dx + dy * dy) || 1;
+        f = d / k;  // attraction d^2/k, split into its x/y parts
+        fx[l[0]] -= dx * f; fy[l[0]] -= dy * f; fx[l[1]] += dx * f; fy[l[1]] += dy * f;
+      });
+      var cx = topics.map(function () { return 0; }), cy = topics.map(function () { return 0; }), cn = topics.map(function () { return 0; });
+      for (i = 0; i < n; i++) { cx[topicOf[i]] += px[i]; cy[topicOf[i]] += py[i]; cn[topicOf[i]]++; }
+      var maxStep = 60 * (1 - it / iterations) + 1;
+      for (i = 0; i < n; i++) {
+        fy[i] += (targetY.get(nodes[i].section) - py[i]) * bandPull;
+        fx[i] += (cx[topicOf[i]] / cn[topicOf[i]] - px[i]) * topicPull;
+        fy[i] += (cy[topicOf[i]] / cn[topicOf[i]] - py[i]) * topicPull;
+        fx[i] -= px[i] * gravity;
+        var mag = Math.sqrt(fx[i] * fx[i] + fy[i] * fy[i]);
+        if (mag > 0) { var s = Math.min(mag, maxStep) / mag; px[i] += fx[i] * s; py[i] += fy[i] * s; }
+      }
+    }
+
+    for (var pass = 0, moved = true; pass < 500 && moved; pass++) {
+      moved = false;
+      for (var a = 0; a < n; a++) {
+        for (var b = a + 1; b < n; b++) {
+          var ddx = px[a] - px[b], ddy = py[a] - py[b];
+          var ox = boxW + 1 - Math.abs(ddx), oy = boxH + 1 - Math.abs(ddy);
+          if (ox <= 0 || oy <= 0) continue;
+          moved = true;
+          if (ox < oy) { var sx = (ddx === 0 ? (a < b ? 1 : -1) : Math.sign(ddx)) * ox / 2; px[a] += sx; px[b] -= sx; }
+          else { var sy = (ddy === 0 ? (a < b ? 1 : -1) : Math.sign(ddy)) * oy / 2; py[a] += sy; py[b] -= sy; }
+        }
+      }
+    }
+    var out = {};
+    nodes.forEach(function (m, i) { out[m.id] = { x: Math.round(px[i] * 10) / 10, y: Math.round(py[i] * 10) / 10 }; });
+    return out;
+  }
+
   function splitMath(text) {
     var out = [];
     // Inline math must hug its dollar signs ("$x$"), and the closing one must not be followed by a digit, so
@@ -198,7 +280,7 @@
 
   return {
     edgeSentence: edgeSentence, needsPairs: needsPairs, prerequisites: prerequisites,
-    computeLayout: computeLayout, splitMath: splitMath, splitFormal: splitFormal, filterNodes: filterNodes,
+    computeLayout: computeLayout, spreadLayout: spreadLayout, splitMath: splitMath, splitFormal: splitFormal, filterNodes: filterNodes,
     decisionKey: decisionKey, recordDecision: recordDecision, buildReview: buildReview,
     issueUrl: issueUrl, safeStorage: safeStorage
   };
