@@ -169,6 +169,17 @@ class TestTurn(unittest.TestCase):
             self.assertIn("flurb", b["definition_error"])
             self.assertIn("choice overload", b["terms"])
 
+    def test_a_definition_asked_at_the_launch_line_is_answered_with_a_follow_up_question(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            _, s = make(tmp)
+            self.assertTrue(s.say(s.view()["launch_text"])["ok"])
+            b = s.turn("define_request", "what is choice overload?", define_term="Choice Overload")
+            self.assertEqual(b["state"], "LAUNCH")
+            self.assertTrue(s.say(b["definition"] + " Does that match how you read the setup?")["ok"])
+            bad = s.say(b["definition"] + " Also d is chosen more often. Why? Really?")
+            self.assertFalse(bad["ok"])
+            self.assertFalse(s.say("Question 1.1. Something else entirely.")["ok"])
+
     def test_empty_text_and_bad_manual_actions_log_nothing(self):
         with tempfile.TemporaryDirectory() as tmp:
             _, s = make(tmp)

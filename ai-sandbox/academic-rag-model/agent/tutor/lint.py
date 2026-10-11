@@ -147,8 +147,13 @@ def lint_message(
     if after_define:
         for a in allowed_exact:
             body = body.replace(a, " ")
-    if state == LAUNCH:
+    relayed = body != text      # the glossary definition was found in the draft
+    if state == LAUNCH and not relayed:
         found.append(Violation("LAUNCH_NOT_VERBATIM", "In LAUNCH send exactly the launch text, nothing added or changed."))
+    if state == LAUNCH and relayed:     # a definition asked at the launch line: definition plus one short question
+        reason = check_form(body, last_student_text)
+        if reason:
+            found.append(Violation("QUESTION_FORM", reason))
     if hint_level < 3:
         for name, rx in TECHNIQUES.items():
             if rx.search(text) and not rx.search(student_text):
