@@ -1,6 +1,6 @@
 # Subproject Website Alignment & Automated Verification: Implementation Plan
 
-**Status:** Amended proposal; blocked on design decisions D1–D3. No implementation started.
+**Status:** D1–D3 and the M1 finding policy approved by the owner on 2026-10-11; implementation not started.
 
 **Date:** 2026-10-10; amendment resumed 2026-10-11.
 
@@ -14,12 +14,12 @@
 
 M1 delivers a registry, strict schema and read-only local CLI with tests. It reports coverage, metadata integrity and heuristic history gaps without editing website files or certifying prose accuracy. It also traces specs, implementation plans, status backlinks and test references; it does not execute those tests or require architecture docs to follow every code commit. M2 installs metadata/visible links in a dedicated website worktree. M3 reconciles content/status records with source evidence and separate repository commits.
 
-The proposed inventory is 24 components plus two overviews: 16 existing component pages, two existing overview pages, six original missing pages, one newly proposed concept-graph page, and internal core/env infrastructure. D1 must settle publication/overview policies before registry authoring. These are the recorded review-baseline counts, not a claim that later checkouts cannot change.
+The approved inventory baseline is 24 components plus two overviews: 16 existing component pages, two existing overview pages, six original missing pages, one newly scoped concept-graph page, and internal core/env infrastructure. T1 refreshes the live inventory before registry authoring. These are the recorded review-baseline counts, not a claim that later checkouts cannot change.
 
 | Stage | Implemented | Fixture-tested | Live evidence | Remaining gate |
 | --- | --- | --- | --- | --- |
-| Review amendments | Spec/plan/tracker corrections drafted | Documentation checks only | Roots, inventory, timestamp sample in review | D1–D3 unresolved |
-| M1 schema/registry | No | No | Paths inspected; manifest absent | G0 then G1 |
+| Owner decisions | D1–D3, strict finding policy and public-link policy recorded | Documentation checks only | Roots, inventory, timestamp sample in review | G0 resolved; refresh inventory at T1 |
+| M1 schema/registry | No | No | Paths inspected; manifest absent | G1 |
 | M1 scanner | No | No | No checker run; review sample found false positives | G2 |
 | M2 metadata/links | No | No | Website inspected read-only; no changed-site build | G3 |
 | M3 content | No | No | Editorial baseline subject to revalidation | Batch review/publication |
@@ -28,7 +28,7 @@ Update this table after each milestone with commits, commands, results, limitati
 
 ## 2. Ownership and Repository Map
 
-Follow the outer [worktree procedure](../../../../../docs/WORKTREE_WORKFLOW.md) and [routing convention](../../../../../docs/AGENT_ROUTING.md). Use a fresh owned agent/task branch according to assignment; do not reuse a published review branch. Resolve D1–D3 with Claude/the design author before coding.
+Follow the outer [worktree procedure](../../../../../docs/WORKTREE_WORKFLOW.md) and [routing convention](../../../../../docs/AGENT_ROUTING.md). Use a fresh owned agent/task branch according to assignment; do not reuse a published review branch. The owner resolved D1–D3 in the linked design; verify the decision docs are landed before M1 coding.
 
 | Stage | Write scope | Read scope / constraints |
 | --- | --- | --- |
@@ -60,15 +60,15 @@ The [design capability table](2026-10-10-subproject-website-sync-design.md#6-cap
 
 ## 4. Ordered Tasks and Gates
 
-### T0 — Resolve architecture (G0, before coding)
+### T0 — Record owner decisions (G0, before coding)
 
-Owner: Claude/the design author. Review D1 publication/overview policies, D2 schema/frontmatter (including lifecycle records and backlinks) and D3 runtime/dependencies. Record explicit decisions in the spec and update the plan if choices change. Account for R1–R7 through amendments or explicit deferrals/rationale. Requesting amendments or landing a review does not approve design decisions.
+The owner approved D1 publication/overview policies, D2 schema/frontmatter and lifecycle backfill, D3 runtime/dependencies and strict finding policy, plus the visible website-link policy on 2026-10-11. The design records those choices; R1–R7 remain mapped to the plan's implementation gates. Do not reinterpret this documentation approval as an implemented or tested checker.
 
-**G0:** D1–D3 resolved and canonical contract consistent. No silent coding defaults for blockers. The original Blocked verdict remains historical; new sign-off must identify the amended revision.
+**G0:** Decision contract resolved by the owner in the amended design. The original review's Blocked verdict remains historical for its earlier draft. M1 starts from the landed contract and a refreshed live inventory; any newly discovered substantive architecture choice returns to owner review.
 
 ### T1 — Manifest/schema and validation (M1, G1)
 
-Create `docs/trackers/subproject_registry.json`, adjacent `subproject_registry.schema.json`, and schema/loader fixtures in `tests/tools/test_audit_website_sync.py`. Add the reviewed local validator dependency to `requirements.txt` if D3 selects it; provision only an implementation-worktree environment. The eventual code/schema/dependency branch requires the full landing suite.
+Create `docs/trackers/subproject_registry.json`, adjacent `subproject_registry.schema.json`, and schema/loader fixtures in `tests/tools/test_audit_website_sync.py`. D3 selects local `jsonschema` alongside existing PyYAML; select/test a compatible dependency constraint in `requirements.txt` and provision only an implementation-worktree environment. The eventual code/schema/dependency branch requires the full landing suite.
 
 Populate the approved inventory with separate RAG/tutor-diagnosis IDs. Resolve all status paths, including indexer feature docs and scattered study-guide histories. Classify current/historical from content. Use explained null READMEs/empty code paths where permitted; never invent Guided Solutions code or infrastructure status. Retain required target page paths before creation, so existence changes are detectable without null-to-path edits.
 
@@ -90,11 +90,11 @@ Acceptance: independent real-repo/worktree fixtures cannot bleed indexes/refs/en
 
 Implement bounded package discovery/exclusions without requiring READMEs. Scan registered targets plus claiming website pages, preserving unrelated portfolio projects. Safe YAML rejects duplicate keys. Validate the exact params.subproject projection, required local source/status links, unknown IDs and duplicate owners; retain multiple findings per component.
 
-Implement per-current-doc/code-to-page history warnings with strict greater-than tolerance, never semantic ALIGNED. Dirty/untracked freshness is unknown; operational/overview records use applicable checks. Text/JSON/Markdown share one sorted model and 0/1/2 policy. Stdout only; no generated files, tracker edits or sync.
+Implement per-current-doc/code-to-page history warnings with strict greater-than tolerance, never semantic ALIGNED. These warnings do not block `--strict`. Dirty/untracked freshness is unknown; operational/overview records use applicable checks. Text/JSON/Markdown share one sorted model and 0/1/2 policy, including severity, `blocks_strict` and counts by severity. Stdout only; no generated files, tracker edits or sync.
 
-Add lifecycle-reference checking: resolve the documented Lifecycle references sections in plans/status docs, compare normalized local links to canonical registry records, and expose missing specs, implementation plans, tests, backlinks and unmapped/review-needed lifecycle associations. Do not follow arbitrary external URLs, infer coverage from prose, or invoke linked tests/commands. Historic backlinks stay tied to their described revision; current status using only superseded records is a review finding. Spec/plan/test timestamps are excluded from age-based warnings.
+Add lifecycle-reference checking: resolve the documented Lifecycle references sections in plans/status docs, compare normalized local links to canonical registry records, and expose missing specs, implementation plans, tests, backlinks and unmapped/review-needed lifecycle associations. Missing normalized sections on legacy documents are LIFECYCLE_BACKFILL_PENDING warnings for T6a; a present section with invalid or differing references is a strict-blocking LIFECYCLE_BACKLINK_MISMATCH. Unknown lifecycle mappings and current status using only superseded records are review warnings, not strict blockers. Missing configured spec/plan/test paths remain strict blockers. Do not follow arbitrary external URLs, infer coverage from prose, or invoke linked tests/commands. Historic backlinks stay tied to their described revision. Spec/plan/test timestamps are excluded from age-based warnings.
 
-Acceptance: every design finding category covered, formats agree, runtime JSON remains parseable and exit 2 takes precedence. Metadata-only commits may change warnings but cannot complete editorial tasks. Historical/newer status edits cannot certify all docs as fresh.
+Acceptance: every design finding category covered, formats agree, warning-only complete strict scans exit 0, blocking findings exit 1, and incomplete scans exit 2 with precedence. Runtime JSON remains parseable. Metadata-only commits may change warnings but cannot complete editorial tasks. Historical/newer status edits cannot certify all docs as fresh.
 
 ### T4 — Fixtures, live sampling and documentation (M1, G2)
 
@@ -102,7 +102,7 @@ Use independent temporary real Git repositories with deterministic dates and dif
 
 Cover dirty/staged/untracked inputs, partial staging (workspace reporting, not index certification), deletion with old history, concurrent changes, unrelated dirtiness, traversal/symlink escape, arbitrary cwd and inherited Git overrides. Deny network for checker and subprocesses: socket mocks alone do not prove Git offline. Test no lazy fetch for partial-clone missing objects. Compare pre/post bytes and tracked/untracked status with bytecode/Git optional locks disabled.
 
-Lifecycle fixtures must cover old-but-current specs with newer code, routine plan checkbox/test edits, explicit architectural supersession, several plans per spec, several lifecycle IDs per status, shared status files, missing/wrong backlinks, cross-directory plans, documented lack of tests, unknown inventory, path escapes and renamed/removed historical files. Assert that reading test references never executes them and that file existence never becomes a passing-test claim. Check metadata projection parity for status lifecycle_ids and all new finding/exit combinations.
+Lifecycle fixtures must cover old-but-current specs with newer code, routine plan checkbox/test edits, explicit architectural supersession, several plans per spec, several lifecycle IDs per status, shared status files, missing/wrong backlinks, cross-directory plans, documented lack of tests, unknown inventory, path escapes and renamed/removed historical files. Distinguish absent legacy sections from incorrect present sections and verify severity/strict exits. Assert that reading test references never executes them and that file existence never becomes a passing-test claim. Check metadata projection parity for status lifecycle_ids and all new finding/exit combinations.
 
 Run `python -B -m pytest tests/tools/test_audit_website_sync.py -q` and the required full landing gate. Document module/wrapper invocation in README. Record Git/Python/dependency versions, cold/warm timings, process counts and inventory size; no unmeasured sub-500 ms promise.
 
@@ -110,13 +110,13 @@ Live sampling records explicit roots, HEADs and initial dirtiness. Inspect sourc
 
 Create the checker's own implementation status record under `docs/status/tools/website_sync/` when implementation exists. Link this spec, this plan and the actual new test module; record tested SHA, command, date, outcome and evidence, and distinguish fixtures from live samples. No such implementation status/test result is fabricated during this documentation task. Inventory the newly implemented checker itself explicitly at that stage, separately from the 26-record historical proposal baseline.
 
-**G2:** G1 plus fixtures, full-suite landing check, varied live report with false-positive/unknown explanations, denied-network/no-write evidence and latency measurements. Report lifecycle coverage separately: valid known links and an enumerated legacy-backfill backlog are required; zero legacy gaps is a T6a gate, not a reason to delay the useful M1 scanner. User reviews the concrete M1 registry/report before M2 edits. Passing M1 does not repair content or prove prose accuracy.
+**G2:** G1 plus fixtures, full-suite landing check, varied live report with false-positive/unknown explanations, denied-network/no-write evidence and latency measurements. Report lifecycle coverage separately: valid known links and an enumerated legacy-backfill backlog are required; zero legacy gaps is a T6a gate, not a reason to delay the useful M1 scanner. Missing approved M3 pages and pre-M2 metadata still block a global `--strict` run; G2 accepts their enumerated findings and uses fixture strict-exit evidence. Do not install a global strict hook/CI gate before those blockers are resolved. User reviews the concrete M1 registry/report before M2 edits. Passing M1 does not repair content or prove prose accuracy.
 
 ### T5 — Website metadata and visible links (M2, G3)
 
-After G2, create a website-owned worktree using the committed M1 mapping. Under D1's proposal the allowlist is **16 existing component pages plus two overviews** in design section 3. Do not create proposed missing pages in M2.
+After G2, create a website-owned worktree using the committed M1 mapping. D1's approved allowlist is **16 existing component pages plus two overviews** in design section 3. Do not create the seven missing pages in M2.
 
-Insert canonical metadata under params, preserving unrelated fields/body/publication state. Add visible source/status links and approved overview members. Preserve existing Obsidian and intentional overview root links. Repeat insertion must produce no duplicates; avoid whole-file YAML rewriting. Review the exact metadata/link patch.
+Insert canonical metadata under params, preserving unrelated fields/body/publication state. Add visible source/status links and approved overview members. Status docs provide onward links to specs/plans/tests; direct website links to those documents are optional editorial additions. Preserve existing Obsidian and intentional overview root links. Repeat insertion must produce no duplicates; avoid whole-file YAML rewriting. Review the exact metadata/link patch.
 
 Five replacements relative to `https://github.com/AaronScherf/ai-sandbox-master/tree/main/ai-sandbox/academic-rag-model/`:
 
@@ -128,7 +128,7 @@ Five replacements relative to `https://github.com/AaronScherf/ai-sandbox-master/
 | journal_discovery | discovery/discover_journal_articles |
 | research_notes_conversion | pipelines/convert_essays |
 
-Run the M1 checker against the exact website worktree via its wrapper. During edits metadata can pass while dirty-page history causes exit 2; inspect metadata without claiming full acceptance. Commit the patch locally and rerun on a clean committed pair for final evidence. Missing pages/history warnings may still cause strict exit 1. G3 requires zero metadata mismatches/orphaned claims for owned targets, not an empty content backlog.
+Run the M1 checker against the exact website worktree via its wrapper. During edits metadata can pass while dirty-page history causes exit 2; inspect metadata without claiming full acceptance. Commit the patch locally and rerun on a clean committed pair for final evidence. Missing required pages still cause strict exit 1; heuristic history and legacy lifecycle warnings do not. G3 requires zero metadata mismatches/orphaned claims for owned targets, not an empty content backlog.
 
 Provision pinned Hugo Extended/modules/JS dependencies separately. Run `pnpm run build` (Hugo plus Pagefind); inspect generated changes and representative component, multi-status, configuration and overview pages. Check visible links and absence of unintended metadata rendering. Preserve drafts; no publication/push as part of build checks.
 
@@ -142,7 +142,7 @@ Acceptance: all approved targets have matching local backlinks or reviewed expli
 
 ### T6 — Content/status reconciliation (M3 backlog)
 
-Review pages independently at approved targets. Prioritize Socratic Tutor, Study Guide, Corpus Health and Project Steering; then Summary Enhancement and Guided Solutions. Proposed Concept Graph is a seventh current-main addition under D1, not an original eighth finding. Its status files have historical not-merged/not-run claims: verify landed code independently and never infer live-corpus success from fixtures.
+Review pages independently at approved targets. Prioritize Socratic Tutor, Study Guide, Corpus Health and Project Steering; then Summary Enhancement and Guided Solutions. Concept Graph is the approved seventh current-main addition under D1, not an original eighth finding. Its status files have historical not-merged/not-run claims: verify landed code independently and never infer live-corpus success from fixtures.
 
 Refresh Source Indexer, Notes Transcription, RAG Analysis and Academic Hub overview. For RAG, distinguish persisted diagnosis/gap events and summaries from full conversation restoration: REPL history starts anew; tutor profiles belong to another component. Describe actual problem-generation routing/question resolution. Guided Solutions is operational work, not a standalone executable. Derive overview prose from approved membership and shipped behavior, not a hardcoded count.
 
@@ -166,4 +166,4 @@ For each milestone stage explicit paths, check the owned repository, commit and 
 
 The checker and its planned `tests/tools/test_audit_website_sync.py` do not exist at this planning stage. T1/T4 create and verify them; T4 then records actual results in the implementation status. Documentation link/example checks performed on this proposal are not checker fixture or live-run evidence.
 
-Next action: design-author review of D1–D3 against this amended revision. Landing these documents preserves a proposal; it does not authorize M1 implementation or certify its tests.
+Next action after these decision docs land: begin M1 in a new owned worktree, starting with the live inventory and G1 registry/schema. No M1 implementation, fixture run or live checker result is claimed by this document.
