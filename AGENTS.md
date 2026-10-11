@@ -46,6 +46,21 @@ Once implementation is requested, follow the Git landing approval rules below.
   work remains, recommend the most useful next action; when no follow-up is
   apparent, ask whether the user wants to continue with another task or stop.
 
+## Local file links for review
+
+Whenever asking the user to review a file, or responding to the user's request
+for a file to review, include a clickable Markdown link to that file in local
+project storage. Use the full absolute Windows filepath as the visible label
+and the absolute forward-slash path in angle brackets as the link target:
+
+```markdown
+[C:\Users\theaa\ai-sandbox-master\AGENTS.md](<C:/Users/theaa/ai-sandbox-master/AGENTS.md>)
+```
+
+Resolve the actual file location before linking: use the task worktree for
+unmerged changes and the main checkout after landing. Do not substitute a bare
+filename, a code-formatted path, or a GitHub link for the clickable local path.
+
 ## Planning and architecture work
 
 When explicitly asked to plan or design a project change:
