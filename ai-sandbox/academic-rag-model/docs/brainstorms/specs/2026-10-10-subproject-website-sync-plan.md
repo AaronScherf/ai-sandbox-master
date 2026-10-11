@@ -20,7 +20,8 @@ The approved inventory baseline is 24 components plus two overviews: 16 existing
 | --- | --- | --- | --- | --- |
 | Owner decisions | D1–D3, strict finding policy and public-link policy recorded | Documentation checks only | Roots, inventory, timestamp sample in review | G0 resolved; refresh inventory at T1 |
 | M1 schema/registry (T1) | 26-entry registry, Draft 2020-12 schema, local loader and declared dependency in task branch | 29 targeted validation fixtures passed | Read-only inventory at monorepo `4eaa5bf` and website `ebc836a`: 18 existing pages, seven planned absent pages, no missing configured monorepo paths | G1 review before T2; full landing check at branch handoff |
-| M1 scanner | No | No | No checker run; review sample found false positives | G2 |
+| M1 Git evidence (T2) | Local-only CLI foundation in task branch; roots, pinned HEADs, literal Git paths, sanitized environment, relevant dirty/untracked state and change fingerprints | 37 focused registry/Git fixtures passed | Read-only T2 probe at monorepo `f54dcdf` and website `ebc836a` resolved 208 monorepo and 25 website paths; full audit coverage intentionally incomplete | T3 findings/reports, T4 G2 acceptance |
+| M1 scanner (T3–T4) | No discovery, metadata, lifecycle findings or complete reports yet | No | T2 probe is not a completed checker run | G2 |
 | M2 metadata/links | No | No | Website inspected read-only; no changed-site build | G3 |
 | M3 content | No | No | Editorial baseline subject to revalidation | Batch review/publication |
 
@@ -87,6 +88,8 @@ Create `tools/audit_website_sync.py` using design section 5. Restrict imports to
 Use literal Git argument arrays, sanitized repository/index/object/config environment, disabled optional locks/lazy fetch and bounded timeouts. Cache unique paths per invocation. Check history completeness and relevant tracked/dirty/untracked state; detect observed relevant path/HEAD changes. No staged-only/arbitrary-ref mode.
 
 Acceptance: independent real-repo/worktree fixtures cannot bleed indexes/refs/environment; wrong roots/missing objects fail incomplete. Wrapper works from outer/package/website/unrelated cwd. Spaces/Windows paths stay literal. Verify supported Git controls, not merely their appearance in code.
+
+T2 implementation note (2026-10-11): the task branch pins each checkout independently and tests separate common directories, linked worktree `.git` files, inherited Git environment poisoning, shallow/unborn history, literal paths, dirty/untracked input and observed changes. The CLI exits 2 with an explicitly incomplete T2 envelope until T3 supplies discovery, metadata, lifecycle findings and the approved final report model. This probe is an execution prerequisite, not G2 sign-off or semantic website alignment.
 
 ### T3 — Discovery, metadata and reports (M1)
 
