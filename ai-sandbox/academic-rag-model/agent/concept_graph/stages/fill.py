@@ -21,7 +21,7 @@ Rules:
 - Never mention the passages, the sources, or what they do or do not cover: write as a textbook would, about the
   concept itself. If the passages are thin, write less (and cite what you used); do not comment on it. A result that
   talks about the passages is rejected.
-- Finish every sentence and close every $ in your math; write \$ for a literal dollar sign. A result with an
+- Finish every sentence and close every $ in your math; write \\$ for a literal dollar sign. A result with an
   odd number of $ is rejected as probably cut off.
 - YAML: put `gist` in double quotes; write `explanation`, `formal` and `example` as `|` blocks (use a | block for
   any text with a colon, since an unquoted value containing a colon is invalid YAML); copy each citation's `ref`
@@ -66,7 +66,7 @@ def make_tasks(store: GraphStore, retriever, *, section: str | None = None, node
 
 
 def _unclosed_math(text: str) -> bool:
-    return text.replace("\$", "").replace("$$", "").count("$") % 2 == 1
+    return text.replace("\\$", "").replace("$$", "").count("$") % 2 == 1
 
 
 def validate_result(entry: dict, result: dict, store: GraphStore) -> list[str]:
@@ -92,7 +92,7 @@ def validate_result(entry: dict, result: dict, store: GraphStore) -> list[str]:
     for name, text in prose.items():
         if _unclosed_math(text):
             problems.append(f"{name}: the math delimiters do not balance (an odd number of $), so a sentence may have "
-                            f"been cut off; finish it and close every $ (write \$ for a literal dollar sign)")
+                            f"been cut off; finish it and close every $ (write \\$ for a literal dollar sign)")
     problems += check_meta(prose)
     problems += check_prose(prose, passage_texts(entry))
     return problems
