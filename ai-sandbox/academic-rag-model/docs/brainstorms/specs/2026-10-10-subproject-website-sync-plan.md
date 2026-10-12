@@ -1,6 +1,6 @@
 # Subproject Website Alignment & Automated Verification: Implementation Plan
 
-**Status:** D1–D3 and the M1 finding policy approved; T1–T4/G2 landed on monorepo `main`. T5/M2 is committed in a separate website task branch with local G3 evidence; website landing/publication is pending.
+**Status:** D1–D3 and the M1 finding policy approved; T1–T4/G2 landed on monorepo `main`. T5/M2 landed on website `main` at `4e4d710`. The seven-page T6/M3 draft batch is committed at website `a669436` for review; publication, remaining T6 reconciliation, and T6a lifecycle backlinks are pending.
 
 **Date:** 2026-10-10; amendment resumed 2026-10-11.
 
@@ -23,8 +23,8 @@ The approved inventory baseline is 24 components plus two overviews: 16 existing
 | M1 Git evidence (T2) | Landed at `1ef5a68`: local-only CLI foundation; roots, pinned HEADs, literal Git paths, sanitized environment, relevant dirty/untracked state and change fingerprints | 37 focused registry/Git fixtures and full landing suite passed | Read-only T2 probe at monorepo `f54dcdf` and website `ebc836a` resolved 208 monorepo and 25 website paths; full audit coverage intentionally incomplete | G2 completed through T4. |
 | M1 scanner (T3) | Landed at `03ff76a`: bounded discovery, canonical metadata/visible-link checks, lifecycle backlinks, heuristic history findings and complete text/JSON/Markdown reports | 52 focused registry/Git/scanner fixtures and full landing suite passed | Read-only local strict scan at monorepo `1ef5a68` and website `ebc836a`: coverage complete, exit 1, 41 errors/100 warnings/3 info; a varied file/history sample matched the reported categories | G2 completed through T4; M1 never certifies prose. |
 | M1 G2 verification (T4, landed) | README, status record and wider real-Git fixtures landed at `106f1c8` | 60 combined focused tests passed in 169.67s; 3,459 tests and 34 subtests passed before the final two targeted fixtures; full landing check passed on the final commit in 906.5s | Read-only scan of Task 3 commit `03ff76a` and website `ebc836a`: 26 records, complete coverage, 41 errors/102 warnings/3 info; 44.078s cold and 38.113s warm, 265 Git processes each; eight-component sample matched | G2 complete; owner accepted the registry/report before M2 edits. M1 does not certify prose. |
-| M2 metadata/links (T5, branch committed) | Website-only `4e4d710`: 16 existing component pages and two overviews; canonical metadata, 23 added source/status links and five corrected source URLs; no page-body or publication-field changes | Idempotent second pass, exact 18-page allowlist/body/frontmatter check, and 39 required links verified in YAML and generated HTML; Hugo Extended 0.163.3 built 104 pages, Pagefind indexed 31 separately | Clean strict scan at monorepo `106f1c8` and website `4e4d710`: complete, 18 matched metadata, zero metadata errors, seven missing-M3-page errors, 94 warnings, three info; local Edge screenshots of component, configuration and overview pages | Review exact website patch and approve its separate landing/push; the documented one-command build is blocked by local pnpm PATH/lockfile drift, with equivalent stages passed and a local bug report. Seven M3 pages and T6a backlinks remain. |
-| M3 content | No | No | Editorial baseline subject to revalidation | Batch review/publication |
+| M2 metadata/links (T5, landed) | Website-only `4e4d710` on `main`: 16 existing component pages and two overviews; canonical metadata, 23 added source/status links and five corrected source URLs; no page-body or publication-field changes | Idempotent second pass, exact 18-page allowlist/body/frontmatter check, and 39 required links verified in YAML and generated HTML; Hugo Extended 0.163.3 built 104 pages, Pagefind indexed 31 separately | Clean strict scan at monorepo `106f1c8` and website `4e4d710`: complete, 18 matched metadata, zero metadata errors, seven missing-M3-page errors, 94 warnings, three info; website deployment workflow succeeded and the live Source Indexer page showed its source/status links | The documented one-command local build is blocked by pnpm PATH/lockfile drift; equivalent stages and deployed build passed. Seven M3 pages and T6a backlinks remained at the M2 gate. |
+| M3 seven-page draft batch (T6, branch committed) | Website-only `a669436` on `codex/website-sync-m3-pages`: Socratic Tutor, Study Guide, Summary Enhancement, Corpus Health, Project Steering, Guided Solutions, and Concept Graph pages, all `draft: true`; current-source and run-status distinctions reviewed | Hugo Extended 0.163.3 `--buildDrafts --minify` built 185 pages; Pagefind completed separately; generated HTML exists for all seven drafts | Clean strict scan at monorepo `106f1c8` and website `a669436`: 25 matched metadata records, zero errors, 99 warnings (82 lifecycle backlinks, 17 status-history gaps), three info; this checks mappings and links, not prose truth or live pipeline behavior | Editorial review and separate website publication authorization; remaining T6 existing-page/status reconciliation and T6a lifecycle backlinks. No M3 draft is on website `main`. |
 
 Update this table after each milestone with commits, commands, results, limitations and remaining work. Design approval, passing fixtures, live observations and longitudinal behavior are distinct evidence.
 
@@ -168,12 +168,12 @@ were installed without a lockfile write. A local ignored bug report retains
 the exact failures. Neither build tooling nor the website's tracked
 dependencies/config were changed by T5.
 
-These are local build, fixture-style and read-only checker observations, not a
-deployed-site check or evidence that page prose is current. The overview body
-still describes the existing twelve Academic Hub pages; the approved registry
-membership includes seven planned pages that M3 must create and describe.
-Website push to `main` deploys, so publication and T5 landing remain pending
-the owner's review and approval.
+These T5 observations were local build, fixture-style and read-only checker
+evidence, not a prose-accuracy verdict. After owner approval, T5 landed at
+`4e4d710`; its deployment workflow succeeded and the live Source Indexer page
+showed the expected links. The overview body still describes the earlier
+Academic Hub set; the seven additional component pages are drafted at M3
+`a669436` but have not been published.
 
 ### T6a - Backfill lifecycle links (monorepo portion of M3)
 
@@ -211,5 +211,6 @@ The landed checker is covered by [registry fixtures](../../../tests/tools/test_a
 implementation status and section 1 above record the actual verification;
 documentation link/example checks are not checker fixture or live-run evidence.
 
-The next gate is review and publication approval for the separate M2 website
-commit. M3 content and T6a lifecycle backlink work remain pending.
+The next gate for the seven drafted pages is editorial review and separate
+website landing/publication approval. Existing-page and status reconciliation,
+plus T6a lifecycle backlink work, remain pending.
