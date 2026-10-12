@@ -9,6 +9,7 @@ import subprocess
 
 import pytest
 
+from tools import audit_website_sync as cli
 from tools.audit_website_sync import AuditError, GitRepository, select_repositories
 
 
@@ -141,3 +142,30 @@ def test_missing_local_head_object_fails_without_fetch(tmp_path: Path) -> None:
     object_path.unlink()
     with pytest.raises(AuditError, match="Git failed"):
         GitRepository(root, kind="monorepo")
+
+
+def test_git_timeout_is_incomplete_not_a_clean_result(tmp_path: Path,
+                                                       monkeypatch: pytest.MonkeyPatch) -> None:
+    root = repo(tmp_path / "root", "one.txt", "one")
+
+    def timeout(command, **_kwargs):
+        raise subprocess.TimeoutExpired(command, timeout=cli.GIT_TIMEOUT_SECONDS)
+
+    monkeypatch.setattr(cli.subprocess, "run", timeout)
+    with pytest.raises(AuditError, match="Git unavailable"):
+        GitRepository(root, kind="monorepo")
+
+
+def test_partial_clone_missing_blob_never_lazy_fetches(tmp_path: Path) -> None:
+    source = repo(tmp_path / "source", "file.txt", "hello\n")
+    git(source, "config", "uploadpack.allowfilter", "true")
+    partial = tmp_path / "partial"
+    subprocess.run(["git", "clone", "-q", "--filter=blob:none", "--no-checkout",
+                    source.as_uri(), str(partial)], check=True)
+    git(partial, "read-tree", "HEAD")
+    (partial / "file.txt").write_text("hello\n", encoding="utf-8")
+    # A fetch attempt would need this unavailable transport. The audit must
+    # report incomplete local evidence instead of contacting the promisor.
+    git(partial, "remote", "set-url", "origin", "http://127.0.0.1:1/denied")
+    with pytest.raises(AuditError, match="lazy fetching disabled"):
+        GitRepository(partial, kind="website").evidence("file.txt")

@@ -44,6 +44,44 @@ standalone apps and a `tools/` folder of small bridge scripts.
 - `archive/old_attempts/` — superseded, unmaintained prototypes; not part of the active pipeline.
 - `docs/` — narrative status docs and specs for each subproject's real design history (bugs found and fixed, generalizations made, evidence behind the numbers), subfoldered by package within each doc-type folder (e.g. `docs/status/<package>/`) — start with the most recently dated file in a subproject's subfolder if you want the "why," not just the "what."
 
+## Website sync audit
+
+The local website sync checker compares the registry, committed Git history,
+website frontmatter and links, and lifecycle references across the monorepo and
+the separate website checkout. It reads both repositories and prints a report;
+it does not change either checkout or assess whether page prose is accurate.
+From this directory, run:
+
+```powershell
+python -B -m tools.audit_website_sync --website-root 'C:\path\to\website-checkout' --format text
+```
+
+Pass `--monorepo-root` to select another monorepo worktree and `--registry` to
+select a registry in that checkout. `--format json` and `--format markdown`
+produce machine-readable and review-friendly reports. `--strict` returns 1
+for complete scans with blocking findings; incomplete scans return 2, and
+otherwise the checker returns 0. Existing missing pages and metadata gaps can
+therefore make `--strict` return 1 until their planned website work is done.
+Git timestamp gaps are warnings, not a claim that prose is stale or current.
+
+For invocation from another directory, change to this package directory in a
+wrapper before running the module; an explicit repository root alone does not
+put `tools` on Python's import path:
+
+```powershell
+$syncMonorepo = 'C:\path\to\monorepo-worktree'
+$syncWebsite = 'C:\path\to\website-checkout'
+Push-Location (Join-Path $syncMonorepo 'ai-sandbox/academic-rag-model')
+try {
+    python -B -m tools.audit_website_sync --monorepo-root $syncMonorepo --website-root $syncWebsite --format json
+    $syncExit = $LASTEXITCODE
+} finally {
+    Pop-Location
+}
+```
+
+The wrapper should propagate `$syncExit` if its caller needs the exit code.
+
 ## Requirements
 
 - **Python 3.13+** (pinned in `.python-version`). `requirements.txt`'s

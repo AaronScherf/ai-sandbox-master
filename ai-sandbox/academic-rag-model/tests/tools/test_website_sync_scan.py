@@ -6,6 +6,7 @@ import copy
 import json
 import os
 from pathlib import Path
+import socket
 import subprocess
 
 import pytest
@@ -288,3 +289,240 @@ def test_historical_status_does_not_produce_age_warning(fixture: tuple[Path, Pat
     report = scan((monorepo, website, modified))
     assert "STATUS_HISTORY_GAP" not in kinds(report)
     assert "WEBSITE_HISTORY_GAP" not in kinds(report)
+
+
+def test_metadata_only_page_commit_does_not_certify_prose(fixture: tuple[Path, Path, dict]) -> None:
+    monorepo, website, registry = fixture
+    put(monorepo, CODE + "/__init__.py", "# behavior changed\n")
+    commit(monorepo, timestamp=1_700_010_000)
+    first = scan((monorepo, website, registry))
+    assert "WEBSITE_HISTORY_GAP" in kinds(first)
+
+    put(website, PAGE, page().replace("title: Demo\n", "title: Demo\nlast_updated: fixture\n"))
+    commit(website, timestamp=1_700_010_001)
+    second = scan((monorepo, website, registry))
+    assert "WEBSITE_HISTORY_GAP" not in kinds(second)
+    assert second["coverage_complete"] is True
+    # Commit clocks are advisory evidence; the scanner cannot certify prose.
+    assert not any(row["kind"] == "METADATA_MISMATCH" for row in second["findings"])
+
+
+def test_partial_staging_marks_relevant_workspace_incomplete(fixture: tuple[Path, Path, dict]) -> None:
+    monorepo, website, registry = fixture
+    put(monorepo, STATUS, "# staged status\n")
+    git(monorepo, "add", "--", STATUS)
+    put(monorepo, STATUS, "# later workspace status\n")
+    put(monorepo, "unrelated.txt", "outside audit scope\n")
+
+    result = scan((monorepo, website, registry))
+    assert result["coverage_complete"] is False
+    dirty = [row for row in result["findings"] if row["kind"] == "DIRTY_INPUT"]
+    assert any(row["target"] == STATUS for row in dirty)
+    assert not any(row["target"] == "unrelated.txt" for row in dirty)
+    assert (monorepo / STATUS).read_text(encoding="utf-8") == "# later workspace status\n"
+    assert git(monorepo, "diff", "--cached", "--name-only", "--", STATUS) == STATUS
+    assert git(monorepo, "diff", "--name-only", "--", STATUS) == STATUS
+
+
+def test_deleted_historical_source_is_archived_not_current_missing(fixture: tuple[Path, Path, dict]) -> None:
+    monorepo, website, registry = fixture
+    modified = copy.deepcopy(registry)
+    modified["subprojects"]["demo"]["lifecycle"] = "archived"
+    modified["subprojects"]["demo"]["archive_reason"] = "Moved to archive"
+    (monorepo / PACKAGE / "archive").mkdir(parents=True)
+    git(monorepo, "mv", CODE, f"{PACKAGE}/archive/demo")
+    commit(monorepo)
+
+    result = scan((monorepo, website, modified))
+    assert result["coverage_complete"] is True
+    assert any(row["kind"] == "ARCHIVED_COMPONENT" and row["target"] == CODE
+               for row in result["findings"])
+    assert not any(row["kind"] == "MISSING_SOURCE_PATH" and row["target"] == CODE
+                   for row in result["findings"])
+
+
+def test_scan_only_reads_repositories_and_uses_offline_git(fixture: tuple[Path, Path, dict],
+                                                           monkeypatch: pytest.MonkeyPatch) -> None:
+    monorepo, website, _ = fixture
+
+    def files(root: Path) -> dict[str, bytes]:
+        return {path.relative_to(root).as_posix(): path.read_bytes()
+                for path in root.rglob("*") if path.is_file()}
+
+    before = (files(monorepo), files(website))
+    actual_run = subprocess.run
+    calls: list[tuple[str, ...]] = []
+
+    def guarded_run(command, *args, **kwargs):
+        assert command[0] == "git"
+        action = next(part for part in command if part in
+                      {"rev-parse", "cat-file", "log", "ls-files", "diff", "fetch", "pull", "push"})
+        assert action in {"rev-parse", "cat-file", "log", "ls-files", "diff"}
+        assert kwargs["env"]["GIT_NO_LAZY_FETCH"] == "1"
+        assert kwargs["env"]["GIT_OPTIONAL_LOCKS"] == "0"
+        calls.append(tuple(command))
+        return actual_run(command, *args, **kwargs)
+
+    def deny_connection(*_: object) -> None:
+        raise AssertionError("scanner attempted a Python network connection")
+
+    # Any HTTP transport accidentally started by child Git would be sent to a
+    # closed local proxy, while the Git command guard also rejects fetch/pull.
+    for key in ("HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY"):
+        monkeypatch.setenv(key, "http://127.0.0.1:1")
+    monkeypatch.setenv("NO_PROXY", "")
+    monkeypatch.setattr(cli.subprocess, "run", guarded_run)
+    monkeypatch.setattr(socket.socket, "connect", deny_connection)
+    result = scan(fixture)
+    assert result["coverage_complete"] is True
+    assert calls
+    assert (files(monorepo), files(website)) == before
+
+
+def test_status_lifecycle_ids_must_match_page_projection(fixture: tuple[Path, Path, dict]) -> None:
+    monorepo, website, registry = fixture
+    put(website, PAGE, page().replace("v1", "unexpected-revision"))
+    commit(website)
+
+    result = scan((monorepo, website, registry))
+    assert result["coverage_complete"] is True
+    assert any(row["kind"] == "METADATA_MISMATCH" and
+               row["detail"] == "params.subproject differs from canonical registry projection"
+               for row in result["findings"])
+
+
+def test_referenced_test_is_only_inspected_never_executed(fixture: tuple[Path, Path, dict],
+                                                          tmp_path: Path) -> None:
+    monorepo, website, registry = fixture
+    marker = tmp_path / "executed"
+    put(monorepo, TEST, f"from pathlib import Path\nPath({str(marker)!r}).write_text('ran')\n")
+    commit(monorepo)
+
+    result = scan((monorepo, website, registry))
+    assert result["coverage_complete"] is True
+    assert marker.exists() is False
+    assert "SCAN_ERROR" not in kinds(result)
+
+
+def test_clock_skew_does_not_create_a_false_history_gap(fixture: tuple[Path, Path, dict]) -> None:
+    monorepo, website, registry = fixture
+    put(monorepo, CODE + "/__init__.py", "# later commit with an older clock\n")
+    commit(monorepo, timestamp=1_699_990_000)
+
+    result = scan((monorepo, website, registry))
+    assert result["coverage_complete"] is True
+    assert "WEBSITE_HISTORY_GAP" not in kinds(result)
+    assert "STATUS_HISTORY_GAP" not in kinds(result)
+
+
+def test_shared_status_unions_multiple_lifecycle_revisions(fixture: tuple[Path, Path, dict]) -> None:
+    monorepo, website, registry = fixture
+    modified = copy.deepcopy(registry)
+    demo = modified["subprojects"]["demo"]
+    spec_two = f"{PACKAGE}/docs/superpowers/specs/second.md"
+    plan_two = f"{PACKAGE}/docs/superpowers/plans/second.md"
+    extra_plan = f"{PACKAGE}/docs/superpowers/plans/extra.md"
+    test_two = f"{PACKAGE}/tests/second.py"
+    demo["lifecycle_records"]["v1"]["implementation_plans"].append(extra_plan)
+    revision_two = copy.deepcopy(demo["lifecycle_records"]["v1"])
+    revision_two.update(specs=[spec_two], implementation_plans=[plan_two], test_paths=[test_two])
+    demo["lifecycle_records"]["v2"] = revision_two
+    demo["status_docs"][0]["lifecycle_ids"] = ["v1", "v2"]
+    second = copy.deepcopy(demo)
+    second.update(name="Second", kind="operational", package="agent/second", code_paths=[],
+                  website={"policy": "internal", "page": None, "reason": "Fixture"})
+    modified["subprojects"]["second"] = second
+
+    for path in (spec_two, plan_two, extra_plan, test_two):
+        put(monorepo, path, "# fixture\n")
+    status = monorepo / STATUS
+    def link(source: Path, path: str) -> str:
+        return f"- [Reference]({os.path.relpath(monorepo / path, source.parent).replace(chr(92), '/')})\n"
+
+    put(monorepo, STATUS,
+        "## Lifecycle references\n### Specs\n" + link(status, SPEC) + link(status, spec_two) +
+        "### Implementation plans\n" + link(status, PLAN) + link(status, extra_plan) + link(status, plan_two) +
+        "### Tests\n" + link(status, TEST) + link(status, test_two))
+    for plan, spec, test in ((PLAN, SPEC, TEST), (extra_plan, SPEC, TEST),
+                             (plan_two, spec_two, test_two)):
+        source = monorepo / plan
+        put(monorepo, plan, "## Lifecycle references\n### Specs\n" + link(source, spec) +
+            "### Tests\n" + link(source, test))
+    put(website, PAGE, page(demo))
+    commit(monorepo)
+    commit(website)
+
+    report = scan((monorepo, website, modified))
+    assert report["coverage_complete"] is True
+    assert not any(row["kind"] == "LIFECYCLE_BACKLINK_MISMATCH" for row in report["findings"])
+    assert not any(row["kind"] == "LIFECYCLE_BACKFILL_PENDING" and row["target"] == STATUS
+                   for row in report["findings"])
+
+    put(monorepo, STATUS, status.read_text(encoding="utf-8").replace(link(status, spec_two), ""))
+    commit(monorepo)
+    broken = scan((monorepo, website, modified))
+    owners = {row["component_id"] for row in broken["findings"]
+              if row["kind"] == "LIFECYCLE_BACKLINK_MISMATCH" and row["target"] == STATUS}
+    assert owners == {"demo", "second"}
+
+
+def test_documented_absence_of_tests_is_not_a_test_pass(fixture: tuple[Path, Path, dict]) -> None:
+    monorepo, website, registry = fixture
+    modified = copy.deepcopy(registry)
+    revision = modified["subprojects"]["demo"]["lifecycle_records"]["v1"]
+    revision["test_paths"] = []
+    reason = "No automated tests for this manual step"
+    revision["absence_reasons"]["test_paths"] = reason
+
+    def link(source: Path, target: str) -> str:
+        return os.path.relpath(monorepo / target, source.parent).replace("\\", "/")
+
+    status, plan = monorepo / STATUS, monorepo / PLAN
+    put(monorepo, STATUS,
+        "## Lifecycle references\n### Specs\n- [Spec](" + link(status, SPEC) + ")\n"
+        "### Implementation plans\n- [Plan](" + link(status, PLAN) + ")\n"
+        "### Tests\n" + reason + "\n")
+    put(monorepo, PLAN,
+        "## Lifecycle references\n### Specs\n- [Spec](" + link(plan, SPEC) + ")\n"
+        "### Tests\n" + reason + "\n")
+    commit(monorepo)
+    report = scan((monorepo, website, modified))
+    assert report["coverage_complete"] is True
+    assert "MISSING_TEST_PATH" not in kinds(report)
+    assert "LIFECYCLE_BACKLINK_MISMATCH" not in kinds(report)
+
+    put(monorepo, PLAN, plan.read_text(encoding="utf-8").replace(reason, "No tests"))
+    commit(monorepo)
+    assert "LIFECYCLE_BACKLINK_MISMATCH" in kinds(scan((monorepo, website, modified)))
+
+
+def test_routine_code_plan_and_test_edits_do_not_age_a_current_spec(
+        fixture: tuple[Path, Path, dict]) -> None:
+    monorepo, website, registry = fixture
+    put(monorepo, CODE + "/__init__.py", "# routine fix\n")
+    commit(monorepo, timestamp=1_700_010_000)
+    put(monorepo, PLAN, "# Plan\n- [x] Routine task\n")
+    put(monorepo, TEST, "# Updated regression fixture\n")
+    commit(monorepo, timestamp=1_700_010_001)
+
+    result = scan((monorepo, website, registry))
+    assert result["coverage_complete"] is True
+    assert "WEBSITE_HISTORY_GAP" in kinds(result)
+    assert "STATUS_HISTORY_GAP" in kinds(result)
+    assert "LIFECYCLE_REVIEW_REQUIRED" not in kinds(result)
+    assert "LIFECYCLE_BACKLINK_MISMATCH" not in kinds(result)
+
+
+def test_renamed_historical_status_remains_a_missing_mapped_target(
+        fixture: tuple[Path, Path, dict]) -> None:
+    monorepo, website, registry = fixture
+    modified = copy.deepcopy(registry)
+    modified["subprojects"]["demo"]["status_docs"][0]["role"] = "historical"
+    git(monorepo, "mv", STATUS, f"{PACKAGE}/docs/status/renamed.md")
+    commit(monorepo)
+
+    result = scan((monorepo, website, modified))
+    assert result["coverage_complete"] is True
+    assert any(row["kind"] == "MISSING_STATUS_DOC" and row["target"] == STATUS
+               for row in result["findings"])
+    assert "STATUS_HISTORY_GAP" not in kinds(result)

@@ -1,6 +1,6 @@
 # Subproject Website Alignment & Automated Verification: Implementation Plan
 
-**Status:** D1–D3 and the M1 finding policy approved; T1 and T2 landed on `main`, T3 implemented in its task branch, T4/G2 pending.
+**Status:** D1–D3 and the M1 finding policy approved; T1–T3 landed on `main`, T4/G2 verification committed in its task branch with the landing gate pending.
 
 **Date:** 2026-10-10; amendment resumed 2026-10-11.
 
@@ -22,6 +22,7 @@ The approved inventory baseline is 24 components plus two overviews: 16 existing
 | M1 schema/registry (T1) | Landed at `f54dcdf`: 26-entry registry, Draft 2020-12 schema, local loader and declared dependency | 29 targeted validation fixtures and full landing suite passed | Read-only inventory at monorepo `4eaa5bf` and website `ebc836a`: 18 existing pages, seven planned absent pages, no missing configured monorepo paths | T4/G2 combined acceptance |
 | M1 Git evidence (T2) | Landed at `1ef5a68`: local-only CLI foundation; roots, pinned HEADs, literal Git paths, sanitized environment, relevant dirty/untracked state and change fingerprints | 37 focused registry/Git fixtures and full landing suite passed | Read-only T2 probe at monorepo `f54dcdf` and website `ebc836a` resolved 208 monorepo and 25 website paths; full audit coverage intentionally incomplete | T4/G2 combined acceptance |
 | M1 scanner (T3) | Bounded discovery, canonical metadata/visible-link checks, lifecycle backlinks, heuristic history findings and complete text/JSON/Markdown reports in task branch | 52 focused registry/Git/scanner fixtures passed | Read-only local strict scan at monorepo `1ef5a68` and website `ebc836a`: coverage complete, exit 1, 41 errors/100 warnings/3 info; a varied file/history sample matched the reported categories | T4 G2: wider real-Git edge fixtures, offline denial, performance and documentation |
+| M1 G2 verification (T4, in progress) | README invocation and implementation status recorded in task branch | 60 combined registry/Git/scanner fixtures passed in 169.67s; five additional targeted fixtures passed; full suite passed 3,459 tests and 34 subtests before the final two targeted fixtures; final landing gate pending | Read-only scan of Task 3 commit `03ff76a` and website `ebc836a`: 26 records, complete coverage, 41 errors/102 warnings/3 info; 44.078s cold and 38.113s warm, 265 Git processes each; eight-component source/page/history sample matched | Full landing gate and owner review before M2 edits; details in `docs/status/tools/website_sync/2026-10-11-website-sync-m1-status.md` |
 | M2 metadata/links | No | No | Website inspected read-only; no changed-site build | G3 |
 | M3 content | No | No | Editorial baseline subject to revalidation | Batch review/publication |
 
