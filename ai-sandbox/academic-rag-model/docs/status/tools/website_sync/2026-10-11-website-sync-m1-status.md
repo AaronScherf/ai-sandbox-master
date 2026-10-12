@@ -1,9 +1,10 @@
 # Website sync M1 implementation status — 2026-10-11
 
 The M1 checker landed on monorepo `main` at
-`03ff76abe90b746f817d1ed4707a7980ac989a37`. Its G2 verification is
-being completed in `codex/website-sync-m1-g2`; this record
-does not certify website prose, repair pages, or close the M2/M3 backlog.
+`03ff76abe90b746f817d1ed4707a7980ac989a37`. Its G2 verification
+subsequently landed at `106f1c8cd05fab6a4264bac3dcc7d36fd9d43399`.
+This record does not certify website prose, repair pages, or close the M2/M3
+backlog.
 
 The implemented checker itself is a new inventory item, separate from the
 26-record historical registry baseline: `tools/audit_website_sync.py` is the
@@ -80,13 +81,14 @@ source/status gap of 680,899 seconds. No discrepancy was found in this sample.
 Git timestamps remain heuristic; a metadata-only page commit can clear the
 history warning while leaving page prose stale, as a fixture now demonstrates.
 
-## G2 landing gate
+## G2 landing gate and outcome
 
-The remaining automated gate is the full landing check on the final Task 4
-commit. The fixture set now covers the specified local Git, lifecycle,
+The full landing check passed on the final Task 4 commit at `106f1c8`,
+running `tests/` in 906.5 seconds. The fixture set covers the specified local Git, lifecycle,
 missing-history, source/page and exit-policy boundaries; its read-only and
 offline evidence is described above.
 The live global `--strict` result is expected to remain 1 until M2 metadata
 and M3 missing-page work. Do not install a global strict hook before those
-blockers are resolved. User review of the concrete registry and report remains
-the gate before website edits.
+blockers are resolved. The owner accepted the concrete registry/report and
+requested M2 website edits on 2026-10-11; their status is recorded separately
+in the implementation plan.
