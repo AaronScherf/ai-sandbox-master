@@ -1,6 +1,6 @@
 # Subproject Website Alignment & Automated Verification: Implementation Plan
 
-**Status:** D1–D3 and the M1 finding policy approved by the owner on 2026-10-11; implementation not started.
+**Status:** D1–D3 and the M1 finding policy approved; T1 and T2 landed on `main`, T3 implemented in its task branch, T4/G2 pending.
 
 **Date:** 2026-10-10; amendment resumed 2026-10-11.
 
@@ -19,9 +19,9 @@ The approved inventory baseline is 24 components plus two overviews: 16 existing
 | Stage | Implemented | Fixture-tested | Live evidence | Remaining gate |
 | --- | --- | --- | --- | --- |
 | Owner decisions | D1–D3, strict finding policy and public-link policy recorded | Documentation checks only | Roots, inventory, timestamp sample in review | G0 resolved; refresh inventory at T1 |
-| M1 schema/registry (T1) | 26-entry registry, Draft 2020-12 schema, local loader and declared dependency in task branch | 29 targeted validation fixtures passed | Read-only inventory at monorepo `4eaa5bf` and website `ebc836a`: 18 existing pages, seven planned absent pages, no missing configured monorepo paths | G1 review before T2; full landing check at branch handoff |
-| M1 Git evidence (T2) | Local-only CLI foundation in task branch; roots, pinned HEADs, literal Git paths, sanitized environment, relevant dirty/untracked state and change fingerprints | 37 focused registry/Git fixtures passed | Read-only T2 probe at monorepo `f54dcdf` and website `ebc836a` resolved 208 monorepo and 25 website paths; full audit coverage intentionally incomplete | T3 findings/reports, T4 G2 acceptance |
-| M1 scanner (T3–T4) | No discovery, metadata, lifecycle findings or complete reports yet | No | T2 probe is not a completed checker run | G2 |
+| M1 schema/registry (T1) | Landed at `f54dcdf`: 26-entry registry, Draft 2020-12 schema, local loader and declared dependency | 29 targeted validation fixtures and full landing suite passed | Read-only inventory at monorepo `4eaa5bf` and website `ebc836a`: 18 existing pages, seven planned absent pages, no missing configured monorepo paths | T4/G2 combined acceptance |
+| M1 Git evidence (T2) | Landed at `1ef5a68`: local-only CLI foundation; roots, pinned HEADs, literal Git paths, sanitized environment, relevant dirty/untracked state and change fingerprints | 37 focused registry/Git fixtures and full landing suite passed | Read-only T2 probe at monorepo `f54dcdf` and website `ebc836a` resolved 208 monorepo and 25 website paths; full audit coverage intentionally incomplete | T4/G2 combined acceptance |
+| M1 scanner (T3) | Bounded discovery, canonical metadata/visible-link checks, lifecycle backlinks, heuristic history findings and complete text/JSON/Markdown reports in task branch | 52 focused registry/Git/scanner fixtures passed | Read-only local strict scan at monorepo `1ef5a68` and website `ebc836a`: coverage complete, exit 1, 41 errors/100 warnings/3 info; a varied file/history sample matched the reported categories | T4 G2: wider real-Git edge fixtures, offline denial, performance and documentation |
 | M2 metadata/links | No | No | Website inspected read-only; no changed-site build | G3 |
 | M3 content | No | No | Editorial baseline subject to revalidation | Batch review/publication |
 
@@ -100,6 +100,8 @@ Implement per-current-doc/code-to-page history warnings with strict greater-than
 Add lifecycle-reference checking: resolve the documented Lifecycle references sections in plans/status docs, compare normalized local links to canonical registry records, and expose missing specs, implementation plans, tests, backlinks and unmapped/review-needed lifecycle associations. Missing normalized sections on legacy documents are LIFECYCLE_BACKFILL_PENDING warnings for T6a; a present section with invalid or differing references is a strict-blocking LIFECYCLE_BACKLINK_MISMATCH. Unknown lifecycle mappings and current status using only superseded records are review warnings, not strict blockers. Missing configured spec/plan/test paths remain strict blockers. Do not follow arbitrary external URLs, infer coverage from prose, or invoke linked tests/commands. Historic backlinks stay tied to their described revision. Spec/plan/test timestamps are excluded from age-based warnings.
 
 Acceptance: every design finding category covered, formats agree, warning-only complete strict scans exit 0, blocking findings exit 1, and incomplete scans exit 2 with precedence. Runtime JSON remains parseable. Metadata-only commits may change warnings but cannot complete editorial tasks. Historical/newer status edits cannot certify all docs as fresh.
+
+T3 implementation note (2026-10-11): current complete reports keep structural blockers separate from nonblocking timestamp and legacy-backfill warnings. The live strict exit 1 reflects seven approved missing pages and 34 metadata findings; it is not a semantic accuracy verdict or a failed T3 implementation. The 82 LIFECYCLE_BACKFILL_PENDING findings represent the pre-T6a normalized-section backlog, with shared documents allowed to appear under more than one owner. A read-only sample checked an absent Concept Graph page, an Audio Generator page missing status links, an indexer status without the normalized section, and a textbook code/status timestamp gap. No incorrect classification was found in that sample; T4 still owns broader sampling and G2 acceptance.
 
 ### T4 — Fixtures, live sampling and documentation (M1, G2)
 

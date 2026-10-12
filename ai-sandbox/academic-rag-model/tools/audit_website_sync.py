@@ -1,8 +1,4 @@
-"""Read-only, offline website-sync audit (Git evidence foundation, M1 T2).
-
-The T3 scanner will consume this module's pinned, independently verified Git
-snapshots. Until then the CLI deliberately reports incomplete audit coverage.
-"""
+"""Read-only, offline website-sync audit over independent local Git checkouts."""
 
 from __future__ import annotations
 
@@ -27,6 +23,10 @@ class AuditError(RuntimeError):
     """Input or Git evidence is unavailable, so audit coverage is incomplete."""
 
 
+class InputChanged(AuditError):
+    """A selected HEAD or relevant disk input changed during the audit."""
+
+
 def _git_environment() -> dict[str, str]:
     # Git may inherit an index, object store, worktree, config injection, or a
     # remote transport from the caller. Never pass any inherited GIT_* setting.
@@ -35,14 +35,13 @@ def _git_environment() -> dict[str, str]:
         GIT_OPTIONAL_LOCKS="0",
         GIT_NO_LAZY_FETCH="1",
         GIT_TERMINAL_PROMPT="0",
-        GIT_CONFIG_NOSYSTEM="1",
-        GIT_CONFIG_GLOBAL=os.devnull,
     )
     return environment
 
 
 def _git(root: Path, *args: str) -> bytes:
-    command = ["git", "--no-optional-locks", "--literal-pathspecs", "-C", str(root), *args]
+    command = ["git", "--no-optional-locks", "--literal-pathspecs", "-C", str(root),
+               "-c", "core.fsmonitor=false", *args]
     try:
         result = subprocess.run(
             command, env=_git_environment(), stdout=subprocess.PIPE,
@@ -111,8 +110,25 @@ class GitRepository:
         """Disk, index and committed-history evidence for one literal path."""
         tracked = _git(self.root, "ls-files", "-z", "--", relative).decode("utf-8").split("\0")
         untracked = _git(self.root, "ls-files", "--others", "--exclude-standard", "-z", "--", relative).decode("utf-8").split("\0")
-        status = _git(self.root, "status", "--porcelain=v1", "-z", "--untracked-files=all", "--", relative)
+        status = self._content_status([relative])
         return self._build_evidence(relative, [p for p in tracked if p], [p for p in untracked if p], status)
+
+    def _content_status(self, paths: list[str]) -> bytes:
+        # `status --porcelain` may report racily-clean files as modified when
+        # optional locks prohibit an index refresh. Content diffs avoid that
+        # false incomplete result without writing the selected checkout.
+        status = bytearray()
+        for label, flags in ((b"S", ("--cached",)), (b"U", ())):
+            names = _git(self.root, "diff", "--no-ext-diff", "--no-textconv", "--no-renames",
+                         "--name-only", "-z", *flags, "--", *paths)
+            for name in names.split(b"\0"):
+                if name:
+                    status.extend(label + b" " + name + b"\0")
+        names = _git(self.root, "ls-files", "--others", "--exclude-standard", "-z", "--", *paths)
+        for name in names.split(b"\0"):
+            if name:
+                status.extend(b"? " + name + b"\0")
+        return bytes(status)
 
     def _build_evidence(self, relative: str, tracked: list[str], untracked: list[str], status: bytes) -> dict[str, Any]:
         target = self._safe_path(relative)
@@ -154,22 +170,14 @@ class GitRepository:
             return {}
         tracked = [part.decode("utf-8") for part in _git(self.root, "ls-files", "-z", "--", *ordered).split(b"\0") if part]
         untracked = [part.decode("utf-8") for part in _git(self.root, "ls-files", "--others", "--exclude-standard", "-z", "--", *ordered).split(b"\0") if part]
-        raw_status = _git(self.root, "status", "--porcelain=v1", "-z", "--untracked-files=all", "--", *ordered)
+        raw_status = self._content_status(ordered)
         status_rows: list[tuple[str, bytes]] = []
-        chunks = raw_status.split(b"\0")
-        index = 0
-        while index < len(chunks) and chunks[index]:
-            row = chunks[index]
-            if len(row) < 4 or row[2:3] != b" ":
-                raise AuditError(f"invalid Git status record in {self.root}")
-            name = row[3:].decode("utf-8")
-            status_rows.append((name, row + b"\0"))
-            if b"R" in row[:2] or b"C" in row[:2]:
-                index += 1
-                if index >= len(chunks) or not chunks[index]:
-                    raise AuditError(f"incomplete Git rename record in {self.root}")
-                status_rows.append((chunks[index].decode("utf-8"), row + b"\0" + chunks[index] + b"\0"))
-            index += 1
+        for row in raw_status.split(b"\0"):
+            if not row:
+                continue
+            if len(row) < 3 or row[1:2] != b" ":
+                raise AuditError(f"invalid Git content-status record in {self.root}")
+            status_rows.append((row[2:].decode("utf-8"), row + b"\0"))
         def applies(name: str, path: str) -> bool:
             return name == path or name.startswith(path + "/")
         return {
@@ -184,11 +192,11 @@ class GitRepository:
 
     def assert_unchanged(self, snapshot: dict[str, dict[str, Any]]) -> None:
         if _git_text(self.root, "rev-parse", "--verify", "HEAD^{commit}") != self.head:
-            raise AuditError(f"HEAD changed during scan: {self.root}")
+            raise InputChanged(f"HEAD changed during scan: {self.root}")
         current = self.snapshot(set(snapshot))
         for path, original in snapshot.items():
             if current[path] != original:
-                raise AuditError(f"relevant input changed during scan: {self.root / path}")
+                raise InputChanged(f"relevant input changed during scan: {self.root / path}")
 
 
 def select_repositories(monorepo_root: Path, website_root: Path) -> tuple[GitRepository, GitRepository]:
@@ -232,43 +240,50 @@ def _parser() -> argparse.ArgumentParser:
 
 def main(argv: list[str] | None = None) -> int:
     args = _parser().parse_args(argv)
-    if args.tolerance_seconds < 0:
-        print("tolerance-seconds must be nonnegative", file=sys.stderr)
-        return 2
-    monorepo_root = _resolve_input(args.monorepo_root or Path(__file__).resolve().parents[3])
-    website_root = _resolve_input(args.website_root)
-    registry_path = _resolve_input(args.registry or monorepo_root / DEFAULT_REGISTRY)
+    # Imported after the evidence classes are defined to avoid importing YAML
+    # or scanner logic in low-level Git fixture tests.
+    from tools.website_sync_scan import Scan
+
     try:
+        if args.tolerance_seconds < 0:
+            raise AuditError("tolerance-seconds must be nonnegative")
+        monorepo_root = _resolve_input(args.monorepo_root or Path(__file__).resolve().parents[3])
+        website_root = _resolve_input(args.website_root)
+        registry_path = _resolve_input(args.registry or monorepo_root / DEFAULT_REGISTRY)
         monorepo, website = select_repositories(monorepo_root, website_root)
         registry = load_registry(registry_path, monorepo.root, website.root)
-        monorepo_paths, website_paths = _registry_paths(registry)
-        monorepo_paths.add(registry_path.relative_to(monorepo.root).as_posix())
-        monorepo_paths.add(registry_path.with_name("subproject_registry.schema.json").relative_to(monorepo.root).as_posix())
-        before_m = monorepo.snapshot(monorepo_paths)
-        before_w = website.snapshot(website_paths)
-        monorepo.assert_unchanged(before_m)
-        website.assert_unchanged(before_w)
-        result = {
-            "report_version": "0.1.0-t2",
-            "coverage_complete": False,
-            "reason": "T3 discovery, metadata and findings are not implemented",
-            "monorepo_root": str(monorepo.root),
-            "website_root": str(website.root),
-            "monorepo_head": monorepo.head,
-            "website_head": website.head,
-            "monorepo_paths": len(before_m),
-            "website_paths": len(before_w),
-            "relevant_dirty_paths": sum(row["dirty"] for row in before_m.values()) + sum(row["dirty"] for row in before_w.values()),
-        }
+        result = Scan(registry, monorepo, website, registry_path, args.tolerance_seconds).run()
     except (AuditError, RegistryError, OSError, ValueError, UnicodeError) as exc:
-        result = {"report_version": "0.1.0-t2", "coverage_complete": False, "error": str(exc)}
+        kind = "INPUT_CHANGED" if isinstance(exc, InputChanged) else "SCAN_ERROR"
+        result = {"report_version": "1.0.0", "coverage_complete": False,
+                  "error": str(exc), "findings": [{"component_id": "<scan>", "kind": kind,
+                                                   "target": "<scan>", "severity": "error",
+                                                   "blocks_strict": False, "detail": str(exc),
+                                                   "evidence": {}, "input_fingerprints": {}}],
+                  "counts": {"error": 1, "warning": 0, "info": 0}}
     if args.format == "json":
         print(json.dumps(result, sort_keys=True))
     elif args.format == "markdown":
-        print("# Website sync audit\n\nCoverage: incomplete\n\n" + result.get("error", result.get("reason", "")))
+        print("# Website sync audit\n\nCoverage: " + ("complete" if result["coverage_complete"] else "incomplete"))
+        if "error" in result:
+            print(f"\n**{result['findings'][0]['kind']}**: {result['error']}")
+        else:
+            print(f"\nFindings: {len(result['findings'])} "
+                  f"(errors {result['counts']['error']}, warnings {result['counts']['warning']}, info {result['counts']['info']})")
+            for row in result["findings"]:
+                print(f"- **{row['severity']}** `{row['component_id']}` `{row['kind']}` `{row['target']}`: {row['detail']}")
     else:
-        print("Website sync audit: incomplete — " + result.get("error", result.get("reason", "")))
-    return 2
+        print("Website sync audit: " + ("complete" if result["coverage_complete"] else "incomplete"))
+        if "error" in result:
+            print(f"{result['findings'][0]['kind']}: {result['error']}")
+        else:
+            print(f"Findings: {len(result['findings'])} "
+                  f"(errors {result['counts']['error']}, warnings {result['counts']['warning']}, info {result['counts']['info']})")
+            for row in result["findings"]:
+                print(f"{row['severity'].upper()} {row['component_id']} {row['kind']} {row['target']}: {row['detail']}")
+    if not result["coverage_complete"]:
+        return 2
+    return 1 if args.strict and any(row["blocks_strict"] for row in result["findings"]) else 0
 
 
 if __name__ == "__main__":
