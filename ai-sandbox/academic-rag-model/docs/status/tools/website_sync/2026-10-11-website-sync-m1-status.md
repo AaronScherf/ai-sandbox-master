@@ -1,5 +1,11 @@
 # Website sync M1 implementation status — 2026-10-11
 
+**Current status (2026-10-12):** M1–M3 implementation is landed. The latest
+strict audit passes with zero errors and zero lifecycle gaps. Seven new website
+pages remain drafts pending editorial review and separate publication approval.
+The M1 evidence below is historical; the M1–M3 closeout section records the
+current project state.
+
 The M1 checker landed on monorepo `main` at
 `03ff76abe90b746f817d1ed4707a7980ac989a37`. Its G2 verification
 subsequently landed at `106f1c8cd05fab6a4264bac3dcc7d36fd9d43399`.
@@ -87,8 +93,63 @@ The full landing check passed on the final Task 4 commit at `106f1c8`,
 running `tests/` in 906.5 seconds. The fixture set covers the specified local Git, lifecycle,
 missing-history, source/page and exit-policy boundaries; its read-only and
 offline evidence is described above.
-The live global `--strict` result is expected to remain 1 until M2 metadata
-and M3 missing-page work. Do not install a global strict hook before those
-blockers are resolved. The owner accepted the concrete registry/report and
-requested M2 website edits on 2026-10-11; their status is recorded separately
-in the implementation plan.
+At this M1 gate, the live global `--strict` result was expected to remain 1
+until M2 metadata and M3 missing-page work. The owner accepted the concrete
+registry/report and requested M2 website edits on 2026-10-11; later outcomes
+are recorded below and in the implementation plan.
+
+## M1–M3 implementation closeout (2026-10-12)
+
+The delivered workflow is a **read-only local audit** of a canonical 26-entry
+registry against independently pinned monorepo and website checkouts, followed
+by separately reviewed website and source-document edits. It checks path
+coverage, website metadata and visible links, lifecycle references, and Git
+history. It does not synchronize prose automatically, certify semantic
+accuracy, publish drafts, run referenced tests, or schedule unattended work.
+
+- **M1 verification:** The registry, Draft 2020-12 schema, local Git evidence,
+  deterministic reports and scanner landed through `106f1c8`. G2's 60 focused
+  fixtures and the full landing suite passed; the M1 live sample and denied-
+  network/no-write checks are recorded above. The owner accepted this gate
+  before website edits. Those tests establish checker behavior, not page prose.
+- **M2 website alignment:** Website `4e4d710` added canonical metadata and
+  visible source/status links to 16 existing component pages and two overviews,
+  including five corrected source URLs. An idempotent second pass, generated
+  HTML/link checks and a production build passed. The deployment and a live
+  Source Indexer page check succeeded; no page-body or publication fields were
+  changed in this batch.
+- **M3 content and status:** Website `a669436` added seven pages—Socratic
+  Tutor, Study Guide, Summary Enhancement, Corpus Health, Project Steering,
+  Guided Solutions and Concept Graph—with `draft: true`. Website `015954a`
+  refreshed Source Indexer, Notes Transcription, RAG Analysis and Academic Hub
+  overview. Monorepo `872cbbe` landed paired Summary Enhancement and Notes
+  Transcription status updates. The website's production build and deployment
+  succeeded at `015954a`; the drafts were absent from production output. These
+  were source-backed editorial checks, not new live runs of those pipelines.
+- **T6a lifecycle backfill:** Monorepo `11c184d` landed normalized references
+  or explicit registry absence reasons in 36 status documents and 45 plans.
+  Each of the 81 files retained its original bytes with only an appended
+  section. The doc-only landing check passed; it skipped the test suite under
+  the repository's Markdown-only rule.
+
+The final clean read-only command, `python -B -m tools.audit_website_sync
+--website-root <website-checkout> --format json --strict`, ran at monorepo
+`11c184d` and website `015954a`. It exited **0** with complete coverage,
+**zero errors**, **32 warnings**, and **three informational findings**. The
+warnings are all `WEBSITE_HISTORY_GAP`: recently committed status documents
+are newer than their website pages. They are timestamp prompts for editorial
+review, not evidence that prose is inaccurate. There are no remaining
+`LIFECYCLE_BACKFILL_PENDING` or `LIFECYCLE_BACKLINK_MISMATCH` findings. The
+website deployment workflow for `015954a` completed successfully; this is
+deployment evidence, not evidence of ongoing content synchronization.
+
+**Remaining gate:** Review the seven drafts against current source behavior,
+make any editorial corrections, and obtain separate authorization for the
+pages selected for publication. Publication then requires changing approved
+draft flags, building and inspecting the rendered pages, deploying, and
+checking the live pages. The 32 heuristic history warnings can be triaged
+during that review; they do not block the current strict audit. The local
+one-command `pnpm run build` PATH/lockfile drift remains deferred, as do any
+future scheduler, repair action, or automated content sync. None is required
+for the completed M1–M3 implementation. No new pipeline run or longitudinal
+behavior was established by this closeout.
