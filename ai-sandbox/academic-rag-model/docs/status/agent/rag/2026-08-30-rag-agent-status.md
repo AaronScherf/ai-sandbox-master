@@ -183,3 +183,16 @@ Two functional enhancements shipped to the RAG tutor:
    - Fixed retrieval feedback loop in the Question Resolver: when generating answers to embedded questions in transcribed lecture notes, the tutor now excludes the source note itself using its canonical hub-relative path, preventing the model from citing unverified question text as its own factual justification.
    - Kept answer attachment stable when question ordinals shift during interactive editing.
 
+## Lifecycle references
+
+### Specs
+
+- [2026-08-30-rag-agent-design](../../../superpowers/specs/agent/rag/2026-08-30-rag-agent-design.md)
+
+### Implementation plans
+
+- [2026-08-30-rag-agent](../../../superpowers/plans/agent/rag/2026-08-30-rag-agent.md)
+
+### Tests
+
+- [test_rag_agent](../../../../tests/agent/rag/test_rag_agent.py)

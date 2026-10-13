@@ -1311,3 +1311,13 @@ Validated against the real Analysis_Exercises.pdf page 6 bug this
 subproject started from -- the radical-as-p error is found, re-verified
 against the source PDF, and corrected in place."
 ```
+
+## Lifecycle references
+
+### Specs
+
+- [2026-08-26-notes-postprocessing-design](../../specs/postprocess_notes/2026-08-26-notes-postprocessing-design.md)
+
+### Tests
+
+- [test_postprocess_notes](../../../../tests/pipelines/postprocess_notes/test_postprocess_notes.py)

@@ -941,3 +941,13 @@ git commit -m "docs(indexer): document subset linking; correct overrides path in
 ```
 
 Applying the links writes to the main checkout's `.index/microecon.json`; ask the user, then run the same command without `--dry-run`, and verify with `python -m core.indexer.index_search --root <hub> query "preference relation utility representation" --course microecon` that only "with slides" notes appear, and that adding `--include-subsets` also shows the handwriting-only ones.
+
+## Lifecycle references
+
+### Specs
+
+- [2026-10-03-subset-note-linking-design](../../specs/indexer/2026-10-03-subset-note-linking-design.md)
+
+### Tests
+
+- [test_offering_links](../../../../tests/core/indexer/test_offering_links.py)

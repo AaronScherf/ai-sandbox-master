@@ -1542,3 +1542,13 @@ After Task 13, run the full test suite once to confirm nothing regressed across 
 
 Run: `python -m pytest tests/ -v`
 Expected: PASS (every existing test in the project, plus every new test added in Tasks 1-8).
+
+## Lifecycle references
+
+### Specs
+
+- [2026-09-27-tutor-diagnosis-design](../../../specs/agent/rag/2026-09-27-tutor-diagnosis-design.md)
+
+### Tests
+
+- [test_tutor_diagnosis](../../../../../tests/agent/rag/test_tutor_diagnosis.py)

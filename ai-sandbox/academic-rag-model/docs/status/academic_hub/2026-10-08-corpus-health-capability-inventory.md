@@ -45,3 +45,18 @@ generic fingerprint for Markdown or Excalidraw.
 - Any later write to the outer corpus/index requires all participating direct
   writers to adopt the same lock contract.
 - The project steering / `what_to_do_today` workflow remains separate.
+
+## Lifecycle references
+
+### Specs
+
+- [2026-10-07-corpus-health-orchestrator-design](../../superpowers/specs/academic_hub/2026-10-07-corpus-health-orchestrator-design.md)
+
+### Implementation plans
+
+- [2026-10-08-corpus-health-orchestrator](../../superpowers/plans/academic_hub/2026-10-08-corpus-health-orchestrator.md)
+
+### Tests
+
+- [test_corpus_health_apply](../../../tests/tools/corpus_health/test_corpus_health_apply.py)
+- [test_scanner](../../../tests/tools/corpus_health/test_scanner.py)

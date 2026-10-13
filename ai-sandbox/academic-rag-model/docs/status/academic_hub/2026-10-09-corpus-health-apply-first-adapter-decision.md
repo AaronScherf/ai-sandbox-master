@@ -268,3 +268,18 @@ For an `accepted`, still-pending `index_chunks_missing_or_stale` finding:
 | `index_card_missing`, `index_card_stale` | `blocked`, permanent until a new adapter exists | `rebuild` has no single-file scope; building one is new scope, not mechanical adoption |
 | note/Excalidraw/enhancement/question-resolution/postprocessing | Blocked, unchanged | Per `c76d94d` (2026-10-09): source pipeline quality + `academic_notes/` sync-quiescence gate |
 | textbook GPU/VM conversion | Blocked, unchanged | Per plan: no cloud/VM automation in v1 |
+
+## Lifecycle references
+
+### Specs
+
+- [2026-10-07-corpus-health-orchestrator-design](../../superpowers/specs/academic_hub/2026-10-07-corpus-health-orchestrator-design.md)
+
+### Implementation plans
+
+- [2026-10-08-corpus-health-orchestrator](../../superpowers/plans/academic_hub/2026-10-08-corpus-health-orchestrator.md)
+
+### Tests
+
+- [test_corpus_health_apply](../../../tests/tools/corpus_health/test_corpus_health_apply.py)
+- [test_scanner](../../../tests/tools/corpus_health/test_scanner.py)

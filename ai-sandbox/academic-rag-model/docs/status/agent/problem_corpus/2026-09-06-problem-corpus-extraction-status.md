@@ -258,3 +258,17 @@ local-corpus-first-then-Gemini generation pipeline, and
 similar-problems-as-templates for guided generation. None started yet;
 all depend on this corpus being trustworthy enough first, which is why
 the two to-do items above matter before any of them get picked up.
+
+## Lifecycle references
+
+### Specs
+
+- [2026-09-06-problem-corpus-extraction-design](../../../superpowers/specs/agent/problem_corpus/2026-09-06-problem-corpus-extraction-design.md)
+
+### Implementation plans
+
+- [2026-09-06-problem-corpus-extraction](../../../superpowers/plans/agent/problem_corpus/2026-09-06-problem-corpus-extraction.md)
+
+### Tests
+
+- [test_extractor](../../../../tests/agent/problem_corpus/test_extractor.py)

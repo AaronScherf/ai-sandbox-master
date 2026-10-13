@@ -308,3 +308,17 @@ The first full pass cost about $1.90 because thinking tokens (357k) were ten tim
 A full revise pass on the a3 draft (tag `cost`) with the new controls cost about $1.60 in two runs ($1.25 cap, stopped after 7 audit sections; then a $1.00-cap resume that cost $0.29), against $1.90 before. Relevance (with judge), dedup, inline and organization cost about $0.09 together; the correctness audit is nearly all of the rest (about $1.5 for 9 audited sections; the other 12 have no plan passages). `thinking_level = "low"` was accepted by the API (0 thinking tokens in the cheap stages). The first 7 audits ran at full thinking and the last 2 at `audit_thinking = "medium"` with the narrower recheck rule, so the saving from those two changes is not isolated. Audit quality at medium thinking was not compared. All 9 audits are in the audit cache, so a rerun on a similar guide costs little.
 
 Review: the owner declined a new review, so the 38 new edits were matched to the earlier 30 decisions by stage, type and target block (20 carried: 16 accept, 4 reject; one decision per match). The 18 unmatched edits were left undecided, which counts as rejected: 2 relevance deletes, 1 dedup link, 4 correctness items, 7 inline cuts and 3 organization retitles. `apply-revise --tag cost` applied 12 text edits and wrote `summaries/wald_lm_lr_topic_first.a3.revised.cost.md` (41,428 words; the earlier final is 41,138). It still has 3 MATLAB mentions, because the matching inline cuts are among the undecided edits. Open: review those 18 when convenient; consider auditing only sections whose plan passages are numeric; compare medium against full thinking on one section.
+
+## Lifecycle references
+
+### Specs
+
+- [2026-10-05-study-guide-pipeline-design](../../superpowers/specs/agent/2026-10-05-study-guide-pipeline-design.md)
+
+### Implementation plans
+
+- [2026-10-05-study-guide-pipeline](../../superpowers/plans/2026-10-05-study-guide-pipeline.md)
+
+### Tests
+
+- [test_study_guide_cli](../../../tests/agent/study_guide/test_study_guide_cli.py)

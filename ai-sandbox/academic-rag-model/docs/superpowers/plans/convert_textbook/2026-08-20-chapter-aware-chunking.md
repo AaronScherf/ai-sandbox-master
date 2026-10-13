@@ -1952,3 +1952,13 @@ git commit -m "Add VM validation checklist for chapter-aware chunking"
 **Type/signature consistency checked:** `ChapterEntry` fields, `process_page_range`'s new parameters, and `compute_chunk_boundaries`'s return tuple are used identically everywhere they're referenced across Tasks 1-11.
 
 **Known gap, called out rather than hidden:** Task 11's `compute_chunk_boundaries` re-converts the front-matter span a second time in the outline-present branch (once for `compute_folio_offset`'s TOC text, once again implicitly via the normal per-chunk loop). Left as-is rather than threading the result through `process_one_pdf`'s checkpoint machinery, to keep this task's scope bounded -- flagged in Task 13's checklist as something to revisit only if the VM run shows it actually costs meaningful time.
+
+## Lifecycle references
+
+### Specs
+
+- [2026-08-19-textbook-chunking-and-page-tracking-design](../../specs/convert_textbook/2026-08-19-textbook-chunking-and-page-tracking-design.md)
+
+### Tests
+
+- [test_chapter_index](../../../../tests/pipelines/convert_textbook/test_chapter_index.py)

@@ -488,3 +488,13 @@ Expected: succeeds, produces a PDF with (a) Education/Awards/Publications/Skills
 - [x] **Step 3: Visually inspect the resulting PDF**
 
 Read the generated `Tailored_Resume.pdf` and confirm both effects are visible in the actual layout, not just in test assertions.
+
+## Lifecycle references
+
+### Specs
+
+- No standalone design spec is established for this operational baseline.
+
+### Tests
+
+- [test_tailor_resume_cli](../../../../tests/resume_manager/test_tailor_resume_cli.py)

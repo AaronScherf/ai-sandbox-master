@@ -66,3 +66,18 @@ A fresh reviewer read the whole branch after Task 10. Findings and what was done
   validated 9-value enum, but the Task 5 ruling overstated "every dynamic string"); `scaffold --contact` does not warn
   about an email address; `gh issue list --limit 100` silently truncates; vendored JS can be rewritten to CRLF by git
   (hash not re-verified at build); Cytoscape `width: "label"` deprecation notice.
+
+## Lifecycle references
+
+### Specs
+
+- [2026-10-09-concept-graph-design](../../../superpowers/specs/agent/2026-10-09-concept-graph-design.md)
+
+### Implementation plans
+
+- [2026-10-09-concept-graph-core](../../../superpowers/plans/2026-10-09-concept-graph-core.md)
+
+### Tests
+
+- [test_cg_build](../../../../tests/agent/concept_graph/test_cg_build.py)
+- [test_cg_store](../../../../tests/agent/concept_graph/test_cg_store.py)

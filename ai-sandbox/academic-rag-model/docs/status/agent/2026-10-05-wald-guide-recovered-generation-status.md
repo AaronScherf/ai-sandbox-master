@@ -158,3 +158,17 @@ out.parent.mkdir(parents=True, exist_ok=True)
 out.write_text(header + "\n\n---\n\n".join(blocks) + "\n", encoding="utf-8")
 print(f"Wrote {out}; model={TUTOR_MODEL}; chars={out.stat().st_size}")
 ```
+
+## Lifecycle references
+
+### Specs
+
+- [2026-10-05-study-guide-pipeline-design](../../superpowers/specs/agent/2026-10-05-study-guide-pipeline-design.md)
+
+### Implementation plans
+
+- [2026-10-05-study-guide-pipeline](../../superpowers/plans/2026-10-05-study-guide-pipeline.md)
+
+### Tests
+
+- [test_study_guide_cli](../../../tests/agent/study_guide/test_study_guide_cli.py)

@@ -4206,3 +4206,13 @@ Then ask the user, in one message, whether to merge and push the head SHA to `ma
 **Type and name consistency:** `Recognizer.matches` / `matches_tokens` (Task 1) are used by `ledger`, `lint`, `claims.self_test`; `parse_claims -> (dict, list[str])` (Task 2) is used by `packet.validate_packet` and `load_packet`; `build_ledger(pc, part_events, extra_student_text=None)`, `PartLedger.covered`, `next_claim` (Task 3) and `IGNORED_INTENTS` are used by `session` and `audit`; `student_event(..., made_progress)` and `verify_clean_event` (Task 5) match `session.turn` and `replay`; `lint_message(..., blocked_claims, form, last_student_text)` (Task 6) matches the `say` call; `build_ratings(part_events, downgrades)` (Task 7) matches `verify` and the CLI's `{axis: (rating, why)}`; `Refused.next_commands` (Task 8) matches `cli.main`; event names (`establish`, `verify_release`, `verify`, `defect`, `close_part`) are the same in `session`, `fsm.replay`, `render`, `audit` and the tests.
 
 **Residual risks to watch during execution:** (1) sample text in `sample_packet.py` is hand-matched to the recognizers; the self-test reports the offending sample if one slips. (2) The Task 10 PowerShell smoke test may show that stdin mangles non-ASCII on this machine; the fallback is spelled out. (3) `_form_active` and the disclosure rule interact at hint level 2 (form off, disclosure on); Task 11 scenario 7 pins that.
+
+## Lifecycle references
+
+### Specs
+
+- [2026-10-08-socratic-tutor-v1-1-design](../specs/2026-10-08-socratic-tutor-v1-1-design.md)
+
+### Tests
+
+- [test_tutor_regression](../../../tests/agent/tutor/test_tutor_regression.py)

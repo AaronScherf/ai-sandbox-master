@@ -1542,3 +1542,13 @@ Not spec'd, in rough order a future session might pick up:
 git add ai-sandbox/academic-rag-model/docs/status/2026-09-02-visualization-agent-status.md
 git commit -m "docs(viz): add status summary after real-corpus validation"
 ```
+
+## Lifecycle references
+
+### Specs
+
+- [2026-09-02-visualization-agent-design](../../../specs/agent/viz/2026-09-02-visualization-agent-design.md)
+
+### Tests
+
+- [test_viz_agent](../../../../../tests/agent/viz/test_viz_agent.py)

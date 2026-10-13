@@ -1241,3 +1241,13 @@ Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>"
 - **Placeholder scan:** no TBD/TODO; every step shows real, complete code.
 - **Type/signature consistency:** `find_exact_duplicate`, `find_fuzzy_candidates`, `copy_duplicate_artifacts`, and `run_duplicate_check`'s signatures are identical between their "Interfaces" declaration and their implementation across Tasks 2-6 -- checked by hand while writing this plan (in particular, `new_source_pdf_path` is threaded through consistently rather than re-derived).
 - **Scope:** single cohesive plan -- the two documentation files depend on the CLI's final flag names, so they're sequenced last (Task 7) rather than split into their own plan.
+
+## Lifecycle references
+
+### Specs
+
+- [2026-09-17-cross-course-duplicate-textbook-detection-design](../../specs/indexer/2026-09-17-cross-course-duplicate-textbook-detection-design.md)
+
+### Tests
+
+- [test_duplicate_check](../../../../tests/core/indexer/test_duplicate_check.py)

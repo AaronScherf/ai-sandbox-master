@@ -2483,3 +2483,13 @@ Claude-Session: https://claude.ai/code/session_01XMPj3X98CBxd3PsEL63e3U
 EOF
 )"
 ```
+
+## Lifecycle references
+
+### Specs
+
+- [2026-09-09-resume-manager-design](../../specs/resume_manager/2026-09-09-resume-manager-design.md)
+
+### Tests
+
+- [test_resume_manager_package](../../../../tests/resume_manager/test_resume_manager_package.py)

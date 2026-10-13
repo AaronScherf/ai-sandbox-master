@@ -3018,3 +3018,13 @@ Then ask the user, in one message, whether to merge and push the head SHA to `ma
 - `Session.student` takes `misconceptions` as `(tag, axis)` pairs everywhere (Tasks 8, 10, 11); a bare string will fail to unpack.
 - Lexical lint thresholds (sealed overlap ≥ 2 six-grams, technique lexicon) are tuned on fixtures only; the first real prep run should add false-positive cases to `test_tutor_lint.py`.
 - `prep-collect` is not covered by an automated CLI test (needs the embedding client); `prep.collect` itself is covered with an injected `retrieve`.
+
+## Lifecycle references
+
+### Specs
+
+- [2026-10-08-socratic-tutor-pipeline-design](../specs/2026-10-08-socratic-tutor-pipeline-design.md)
+
+### Tests
+
+- [test_tutor_cli](../../../tests/agent/tutor/test_tutor_cli.py)

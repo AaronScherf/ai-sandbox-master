@@ -146,3 +146,17 @@ and the image-description runs that followed:
   filtered, left to the per-image LLM skip decision instead. Given the
   content-quality spot-check above, this hasn't shown up as a real problem
   in practice; worth revisiting only if it does.
+
+## Lifecycle references
+
+### Specs
+
+- No standalone design spec is established for this operational baseline.
+
+### Implementation plans
+
+- No standalone implementation plan is established for this operational baseline.
+
+### Tests
+
+- [test_describe_images](../../../tests/pipelines/convert_textbook/test_describe_images.py)

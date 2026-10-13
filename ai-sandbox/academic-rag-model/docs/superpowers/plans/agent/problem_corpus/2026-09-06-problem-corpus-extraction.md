@@ -1430,3 +1430,13 @@ checked.>
 git add docs/status/2026-09-06-problem-corpus-extraction-status.md
 git commit -m "docs(problem_corpus): record real end-to-end validation results"
 ```
+
+## Lifecycle references
+
+### Specs
+
+- [2026-09-06-problem-corpus-extraction-design](../../../specs/agent/problem_corpus/2026-09-06-problem-corpus-extraction-design.md)
+
+### Tests
+
+- [test_extractor](../../../../../tests/agent/problem_corpus/test_extractor.py)

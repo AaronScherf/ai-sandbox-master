@@ -1611,3 +1611,15 @@ orphaned cards rather than guessing.
   of a deleted/renamed source PDF too, not just these 3. Commit `921cca5`
   (code + test), all 3 remaining orphaned cards confirmed to have real
   embeddings and are now correctly surfaced by search.
+
+## Lifecycle references
+
+### Specs
+
+- [2026-09-21-source-asset-relocation-design](../../specs/2026-09-21-source-asset-relocation-design.md)
+- [2026-09-20-textbook-conversion-skill-design](../../specs/convert_textbook/2026-09-20-textbook-conversion-skill-design.md)
+- [2026-09-20-textbook-conversion-walkaway-execution-design](../../specs/convert_textbook/2026-09-20-textbook-conversion-walkaway-execution-design.md)
+
+### Tests
+
+- [test_convert_textbook](../../../../tests/pipelines/convert_textbook/test_convert_textbook.py)

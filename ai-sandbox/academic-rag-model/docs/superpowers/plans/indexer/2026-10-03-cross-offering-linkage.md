@@ -1453,3 +1453,13 @@ git commit -m "feat(indexer): add offering_links CLI (--course, --dry-run, --res
 ## After implementation
 
 The two threshold constants (`OFFERING_LINK_AUTO_THRESHOLD = 0.90`, `OFFERING_LINK_REVIEW_THRESHOLD = 0.80`) are starting guesses. Before relying on real output, run `python -m core.indexer.offering_links --course econometrics --dry-run` against the real corpus (`class_2024` alongside current econometrics content) and inspect the actual similarity distribution it reports, adjusting the two constants if the real numbers suggest the bar is in the wrong place -- same empirical-calibration step `retag.py`'s own `TAG_ASSIGNMENT_THRESHOLD` went through. This is a manual follow-up outside this plan's test scope, since it needs the real embeddings, not fixtures.
+
+## Lifecycle references
+
+### Specs
+
+- [2026-10-03-cross-offering-linkage-design](../../specs/indexer/2026-10-03-cross-offering-linkage-design.md)
+
+### Tests
+
+- [test_offering_links](../../../../tests/core/indexer/test_offering_links.py)

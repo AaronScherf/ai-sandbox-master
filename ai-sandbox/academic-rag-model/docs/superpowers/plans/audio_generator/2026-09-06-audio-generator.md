@@ -2668,3 +2668,13 @@ Claude-Session: https://claude.ai/code/session_01BaWkFCR7CdMinG5BxgB6uu
 EOF
 )"
 ```
+
+## Lifecycle references
+
+### Specs
+
+- [2026-09-06-audio-generator-design](../../specs/audio_generator/2026-09-06-audio-generator-design.md)
+
+### Tests
+
+- [test_audio_generator_pipeline](../../../../tests/audio_generator/test_audio_generator_pipeline.py)

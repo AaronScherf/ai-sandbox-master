@@ -313,3 +313,15 @@ the re-review found no new Critical/Important breakage):
 
 (running list -- add to this as issues turn up; don't just fix and forget,
 note *why* so future books don't hit the same surprise)
+
+## Lifecycle references
+
+### Specs
+
+- [2026-09-21-source-asset-relocation-design](../../specs/2026-09-21-source-asset-relocation-design.md)
+- [2026-09-20-textbook-conversion-skill-design](../../specs/convert_textbook/2026-09-20-textbook-conversion-skill-design.md)
+- [2026-09-20-textbook-conversion-walkaway-execution-design](../../specs/convert_textbook/2026-09-20-textbook-conversion-walkaway-execution-design.md)
+
+### Tests
+
+- [test_convert_textbook](../../../../tests/pipelines/convert_textbook/test_convert_textbook.py)

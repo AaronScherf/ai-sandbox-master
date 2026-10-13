@@ -677,3 +677,13 @@ Fill in the `## Retry-hardening validation` section's body with what Steps 2-3 a
 git add ai-sandbox/academic-rag-model/docs/status/2026-09-02-visualization-agent-status.md
 git commit -m "docs(viz): record retry-hardening real-corpus validation results"
 ```
+
+## Lifecycle references
+
+### Specs
+
+- [2026-09-03-viz-ollama-retry-hardening-design](../../../specs/agent/viz/2026-09-03-viz-ollama-retry-hardening-design.md)
+
+### Tests
+
+- [test_llm_fallback](../../../../../tests/agent/viz/test_llm_fallback.py)

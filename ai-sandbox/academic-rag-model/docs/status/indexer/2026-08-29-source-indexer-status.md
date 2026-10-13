@@ -450,3 +450,19 @@ handful of small files per save); `embedded_slides` matches only an unquoted
 `true`; an ignored `force` override (missing target, cycle) gives no warning.
 
 Full suite on `main` after the question-resolver merge (`e55402c`): 2148 passing.
+
+## Lifecycle references
+
+### Specs
+
+- [2026-08-27-source-indexer-design](../../superpowers/specs/indexer/2026-08-27-source-indexer-design.md)
+
+### Implementation plans
+
+- [2026-08-28-source-indexer-core](../../superpowers/plans/indexer/2026-08-28-source-indexer-core.md)
+- [2026-08-28-source-indexer-retag](../../superpowers/plans/indexer/2026-08-28-source-indexer-retag.md)
+
+### Tests
+
+- [test_index_card](../../../tests/core/indexer/test_index_card.py)
+- [test_index_search](../../../tests/core/indexer/test_index_search.py)

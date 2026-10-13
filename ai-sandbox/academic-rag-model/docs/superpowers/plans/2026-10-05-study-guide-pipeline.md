@@ -3474,3 +3474,13 @@ Use `--dry-run` first for each. B1 isolates the new material (same model as the 
 - [ ] **Step 6: Review by hand and write up**
 
 Compare B0, B1, B2, E1 and the original: coverage against a checklist built from the class slides (topics the slides cover that the textbook-only guide lacks), factual spot-checks of at least three claims per run against the cited passages, any class-notes errors that leaked in, structure and length, and citation traceability. Write the findings, the retrieval overlap from Step 1, the calibrated `min_score`, and cost/time per run to `docs/status/agent/<date>-study-guide-comparison-status.md`; commit it with explicit paths. Do not commit or push the vault; merging the branch is the integrator's step.
+
+## Lifecycle references
+
+### Specs
+
+- [2026-10-05-study-guide-pipeline-design](../specs/agent/2026-10-05-study-guide-pipeline-design.md)
+
+### Tests
+
+- [test_study_guide_cli](../../../tests/agent/study_guide/test_study_guide_cli.py)

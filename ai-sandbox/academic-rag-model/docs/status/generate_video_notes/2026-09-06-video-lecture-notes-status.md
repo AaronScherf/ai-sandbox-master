@@ -222,3 +222,17 @@ the citation question being re-verified above.
 **Indexing:** all 3 new cards correctly landed as `doc_type:
 "lecture_notes"` (Bug #1's fix holding up under a second, larger real
 run).
+
+## Lifecycle references
+
+### Specs
+
+- [2026-09-06-video-lecture-notes-design](../../superpowers/specs/generate_video_notes/2026-09-06-video-lecture-notes-design.md)
+
+### Implementation plans
+
+- [2026-09-06-video-lecture-notes](../../superpowers/plans/generate_video_notes/2026-09-06-video-lecture-notes.md)
+
+### Tests
+
+- [test_pipeline](../../../tests/pipelines/generate_video_notes/test_pipeline.py)

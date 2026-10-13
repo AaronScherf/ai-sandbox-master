@@ -284,3 +284,13 @@ the Review Focus above; fix Critical/Important with tests that fail first; recor
 
 **Out of scope:** running any stage on the real corpus or into the public repo (owner-gated, after the
 transcription of the remaining documents and `offering_links`); the Artifact review adapter; Obsidian export.
+
+## Lifecycle references
+
+### Specs
+
+- [2026-10-09-concept-graph-design](../specs/agent/2026-10-09-concept-graph-design.md)
+
+### Tests
+
+- [test_cg_cli_stages](../../../tests/agent/concept_graph/test_cg_cli_stages.py)

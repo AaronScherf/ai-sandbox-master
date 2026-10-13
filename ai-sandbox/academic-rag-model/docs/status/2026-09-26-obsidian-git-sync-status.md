@@ -123,3 +123,17 @@ load-bearing for anything touching plugin config or code going forward:**
 - If the stylus-menu plugin gets edited again, repeat the manual
   copy — no sync-side fix exists for that class of file, see the hard
   denylist note above.
+
+## Lifecycle references
+
+### Specs
+
+- No dedicated design spec exists for the Obsidian plugin configuration.
+
+### Implementation plans
+
+- The dated status records document the configuration and transition; no standalone implementation plan exists.
+
+### Tests
+
+- No dedicated automated test path exists for the local Obsidian plugin configuration.

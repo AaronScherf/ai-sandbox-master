@@ -68,3 +68,18 @@ before using an application output.
 - Keep reviewing dropped metrics flagged in each application's
   `validation_report.txt`; the prompt's preservation rule does not guarantee
   that every run retains every metric.
+
+## Lifecycle references
+
+### Specs
+
+- No standalone design spec is established for this operational baseline.
+
+### Implementation plans
+
+- [2026-09-26-resume-manager-page-fit-plan](../../superpowers/plans/resume_manager/2026-09-26-resume-manager-page-fit-plan.md)
+- [2026-09-27-apply-from-prompt-plan](../../superpowers/plans/resume_manager/2026-09-27-apply-from-prompt-plan.md)
+
+### Tests
+
+- [test_tailor_resume_cli](../../../tests/resume_manager/test_tailor_resume_cli.py)

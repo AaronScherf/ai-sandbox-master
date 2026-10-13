@@ -1816,3 +1816,13 @@ the written `.md`/frontmatter before trusting the pipeline on the full
 flag it to the user before running `--collect` against real course PDFs,
 per "ask the user before any run estimated over $1" (this run is $0, but
 it does touch real `academic_notes/` output paths).
+
+## Lifecycle references
+
+### Specs
+
+- [2026-10-09-agent-driven-transcription-design](../specs/transcribe_notes/2026-10-09-agent-driven-transcription-design.md)
+
+### Tests
+
+- [test_agent_driver](../../../tests/pipelines/transcribe_notes/test_agent_driver.py)

@@ -132,3 +132,14 @@ M2 is Tasks 3–5. In addition to each task's own **Acceptance** above, M2 as a 
 - After the M2 live review, revisit the original request and the smallest usable release: keep M1 available on its own; M2 is required for personalized recommendations and durable choices; M3 changes convenience, not ranking correctness. Reassess whether any further service, store, or rollout phase is actually necessary before adding it.
 
 The implementation handoff should record branch/path, changed files, focused and landing-gate results, live sample classification, measured scan runtime, and which milestone is merely implemented versus exercised on live data. Update this plan's status after each milestone rather than treating fixture tests as proof of a working daily workflow.
+
+## Lifecycle references
+
+### Specs
+
+- [2026-10-09-project-steering-design](../../specs/academic_hub/2026-10-09-project-steering-design.md)
+
+### Tests
+
+- [test_routing](../../../../tests/tools/project_steering/test_routing.py)
+- [test_scan](../../../../tests/tools/project_steering/test_scan.py)

@@ -18,3 +18,19 @@ The canonical pending list is [`academic_hub_to_do.md`](../../trackers/academic_
 ## Remaining work
 
 Owner review of the remaining score and route proposals, dependency judgments, and the plan's full M2 acceptance evidence are still open. M3 unattended scheduling is not implemented. Bugs and resumable branch work remain outside this tracker-backed v1 until they have stable identity and deduplication rules.
+
+## Lifecycle references
+
+### Specs
+
+- [2026-10-09-project-steering-design](../../superpowers/specs/academic_hub/2026-10-09-project-steering-design.md)
+
+### Implementation plans
+
+- [2026-10-09-project-steering](../../superpowers/plans/academic_hub/2026-10-09-project-steering.md)
+- [2026-10-10-project-steering-routing](../../superpowers/plans/academic_hub/2026-10-10-project-steering-routing.md)
+
+### Tests
+
+- [test_routing](../../../tests/tools/project_steering/test_routing.py)
+- [test_scan](../../../tests/tools/project_steering/test_scan.py)

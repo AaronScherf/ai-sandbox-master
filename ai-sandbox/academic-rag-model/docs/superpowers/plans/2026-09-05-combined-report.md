@@ -775,3 +775,14 @@ Expected: a `report: ...` line is printed alongside the existing `visualization:
 git add rag/rag_agent.py indexer/index_search.py
 git commit -m "feat(rag): add --report flag to both CLI consumers"
 ```
+
+## Lifecycle references
+
+### Specs
+
+- [2026-09-05-combined-report-design](../specs/2026-09-05-combined-report-design.md)
+
+### Tests
+
+- [test_report_builder](../../../tests/agent/rag/test_report_builder.py)
+- [test_viz_agent](../../../tests/agent/viz/test_viz_agent.py)

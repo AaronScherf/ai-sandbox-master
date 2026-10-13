@@ -143,3 +143,17 @@ This iterative process provides a concrete specification for the reproducible, d
 ### Stage 5: Visual Asset Pipeline Integration
 * Call `agent.viz` for parameterized Plotly curves or generate high-resolution scientific diagrams for theoretical geometry.
 * Persist images permanently to `<vault>/<course>/summaries/assets/` rather than leaving them in transient agent workspaces.
+
+## Lifecycle references
+
+### Specs
+
+- [2026-10-05-study-guide-pipeline-design](../../../superpowers/specs/agent/2026-10-05-study-guide-pipeline-design.md)
+
+### Implementation plans
+
+- [2026-10-05-study-guide-pipeline](../../../superpowers/plans/2026-10-05-study-guide-pipeline.md)
+
+### Tests
+
+- [test_study_guide_cli](../../../../tests/agent/study_guide/test_study_guide_cli.py)

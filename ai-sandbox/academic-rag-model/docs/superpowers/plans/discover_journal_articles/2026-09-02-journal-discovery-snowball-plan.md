@@ -1242,3 +1242,14 @@ git commit -m "docs(journal_discovery): document citation snowball sampling"
 - **Spec coverage:** S1 goals (seed from corpus + `--seed-doi` override -> Task 4; relevance-scoring gate reused unmodified -> Task 5; checkbox worklist, never auto-fetched -> Tasks 3, 5; confirm reuses the existing access chain -> Task 6; never re-propose already-seen -> Tasks 2, 4) all map to a task. S2 architecture (module lives inside `journal_discovery`) -> Task 4-6's import structure. S3 components map 1:1 to Tasks 1 (`discovery.py`), 2 (`manifest.py`), 3 (`worklist.py`), 4-6 (`snowball.py`). S4 data flow is exactly `propose()`/`confirm()`. S5 state model (the `"proposed"` status, `skip_already_seen` treating it as seen, `confirm` bypassing that filter) is enforced by Task 2's test (`test_proposed_status_also_treated_as_seen`) and Task 6's design (`confirm` reads `status == "proposed"` directly, never calls `skip_already_seen`). S6 error handling (unresolvable seed, `FetchError` on DOI lookup) -> Tasks 1, 4. S7 testing conventions followed throughout. S8 follow-ons are explicitly not implemented by this plan, matching the spec's own "not decided" framing.
 - **Placeholder scan:** none found -- every step has runnable code or an explicit, justified deviation (the `pdf_filename()` relocation from `discovery.py` to `topic_routing.py` in Task 1, decided and explained inline to avoid a circular import, not left as a TODO).
 - **Type consistency:** `Work` (unchanged, from `discovery.py`) flows through every new function identically to how `discover.py` already uses it. `ScoredWork` (unchanged, from `relevance.py`) is consumed the same way in `propose()` as in `discover.run()`. `AccessResult` (unchanged, from `access.py`) is consumed the same way in `confirm()` as in `discover.run()`. Function names introduced in one task (`doi_url`, `pdf_filename`, `skip_already_seen`, `resolve_work_by_doi`, `iter_citing_works`, `iter_seed_openalex_ids`, `iter_snowball_candidates`) are used identically by every later task that imports them.
+
+## Lifecycle references
+
+### Specs
+
+- [2026-08-31-journal-discovery-design](../../specs/discover_journal_articles/2026-08-31-journal-discovery-design.md)
+- [2026-09-02-journal-discovery-snowball-design](../../specs/discover_journal_articles/2026-09-02-journal-discovery-snowball-design.md)
+
+### Tests
+
+- [test_discover](../../../../tests/discovery/discover_journal_articles/test_discover.py)

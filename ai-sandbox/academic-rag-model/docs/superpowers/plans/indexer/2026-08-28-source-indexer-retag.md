@@ -788,3 +788,14 @@ git commit -m "feat(retag): add many-to-many assignment, retag() orchestration, 
 - **Type consistency checked:** `discover_tags()`'s return type (`tuple[list[dict], dict]`) matches how `retag()` (Task 3) unpacks it. `assign_tags()`'s `all_cards`/`known_tags` parameter shapes match exactly what `discover_tags()` consumes and produces, so `retag()` can pass `updated_tags` straight through. `TAG_ASSIGNMENT_THRESHOLD` is defined once in `retag.py` (Task 3) and consumed by both `assign_tags()`'s default and `retag()`'s default, not duplicated. `list_courses()` (Task 1) is used identically by `find_card_by_file_id()` (Plan 1, refactored) and `retag.py`'s `_load_all_cards()` (Task 3) — one enumeration rule, not two.
 - **The core design fix is directly tested:** `test_card_matching_multiple_tags_gets_all_of_them` (Task 3) and `test_transitive_bridge_merges_into_one_component` (Task 2) together demonstrate exactly the problem (connected components merge bridging files into one cluster) and its fix (assignment checks every tag independently, unrestricted by cluster membership) — this is the single most important behavior in this plan, not left as an assumption.
 - **No placeholders:** every step has runnable code. `CLUSTER_SIMILARITY_THRESHOLD`/`TAG_ASSIGNMENT_THRESHOLD`/`MIN_TAG_CLUSTER_SIZE`/`TAG_FUZZY_MATCH_THRESHOLD` are explicitly flagged (Global Constraints) as starting values expected to need real-corpus tuning, not asserted as correct.
+
+## Lifecycle references
+
+### Specs
+
+- [2026-08-27-source-indexer-design](../../specs/indexer/2026-08-27-source-indexer-design.md)
+
+### Tests
+
+- [test_index_card](../../../../tests/core/indexer/test_index_card.py)
+- [test_index_search](../../../../tests/core/indexer/test_index_search.py)

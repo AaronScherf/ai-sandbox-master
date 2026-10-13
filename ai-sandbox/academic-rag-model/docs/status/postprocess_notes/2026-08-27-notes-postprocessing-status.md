@@ -262,3 +262,17 @@ expand-before-ingestion step) -- see
 `docs/status/2026-08-24-notes-transcription-status.md`'s "2026-09-07"
 section for the full brainstorm. Noted here only so a future pass over
 `handwritten_notes` doesn't re-flag the same pattern as an in-scope defect.
+
+## Lifecycle references
+
+### Specs
+
+- [2026-08-26-notes-postprocessing-design](../../superpowers/specs/postprocess_notes/2026-08-26-notes-postprocessing-design.md)
+
+### Implementation plans
+
+- [2026-08-26-notes-postprocessing](../../superpowers/plans/transcribe_notes/2026-08-26-notes-postprocessing.md)
+
+### Tests
+
+- [test_postprocess_notes](../../../tests/pipelines/postprocess_notes/test_postprocess_notes.py)

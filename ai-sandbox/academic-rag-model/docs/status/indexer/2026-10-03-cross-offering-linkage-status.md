@@ -32,3 +32,17 @@ implementation plan: `docs/superpowers/plans/indexer/2026-10-03-cross-offering-l
 - **TestSuite**: All tests passing across `tests/core/indexer/test_offering_links.py`.
 - **Directory Depth Fix (`a1c7e41`)**: Fixed academic-hub path resolution depth in the CLI where the relative root was off by one directory level when invoked from the repository root.
 - **Review Hardening (`3471c35`)**: Addressed review findings #1–#6 and #8: handling cards lacking embeddings, isolating markdown write failures from index card updates, and handling malformed ledger files.
+
+## Lifecycle references
+
+### Specs
+
+- [2026-10-03-cross-offering-linkage-design](../../superpowers/specs/indexer/2026-10-03-cross-offering-linkage-design.md)
+
+### Implementation plans
+
+- [2026-10-03-cross-offering-linkage](../../superpowers/plans/indexer/2026-10-03-cross-offering-linkage.md)
+
+### Tests
+
+- [test_offering_links](../../../tests/core/indexer/test_offering_links.py)

@@ -434,3 +434,16 @@ The test run revealed five recurring pedagogical deviations that must be constra
 
 These findings specify the blueprint for an explicit **Finite-State Machine (FSM) controller** and **negative system prompt constraints** when upgrading the tutoring agent in this package.
 
+## Lifecycle references
+
+### Specs
+
+- [2026-09-27-tutor-diagnosis-design](../../../superpowers/specs/agent/rag/2026-09-27-tutor-diagnosis-design.md)
+
+### Implementation plans
+
+- [2026-09-27-tutor-diagnosis-plan](../../../superpowers/plans/agent/rag/2026-09-27-tutor-diagnosis-plan.md)
+
+### Tests
+
+- [test_tutor_diagnosis](../../../../tests/agent/rag/test_tutor_diagnosis.py)

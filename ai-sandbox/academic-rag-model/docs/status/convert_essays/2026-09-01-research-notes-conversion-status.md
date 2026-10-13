@@ -112,3 +112,17 @@ worth building. The document-type vocabulary is already built to be
 extended per corpus rather than shared, so whatever comes next slots in
 the same way `personal_essay`/`research_notes` already did, with no
 changes needed to the retrieval layer underneath.
+
+## Lifecycle references
+
+### Specs
+
+- No standalone design spec is established for this operational baseline.
+
+### Implementation plans
+
+- No standalone implementation plan is established for this operational baseline.
+
+### Tests
+
+- [test_convert_essays](../../../tests/pipelines/convert_essays/test_convert_essays.py)

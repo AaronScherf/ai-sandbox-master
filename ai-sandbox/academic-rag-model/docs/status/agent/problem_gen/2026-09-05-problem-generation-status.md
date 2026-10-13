@@ -598,3 +598,17 @@ None of this is built yet. It's recorded here so the reasoning behind
 it (why a structured, growing, provenance-tagged corpus matters, and
 why it pairs naturally with a Gemini-backed generation tier) survives
 until it's actually picked up.
+
+## Lifecycle references
+
+### Specs
+
+- [2026-09-03-problem-generation-design](../../../superpowers/specs/agent/problem_gen/2026-09-03-problem-generation-design.md)
+
+### Implementation plans
+
+- [2026-09-03-problem-generation-plan](../../../superpowers/plans/agent/problem_gen/2026-09-03-problem-generation-plan.md)
+
+### Tests
+
+- [test_generator](../../../../tests/agent/problem_gen/test_generator.py)

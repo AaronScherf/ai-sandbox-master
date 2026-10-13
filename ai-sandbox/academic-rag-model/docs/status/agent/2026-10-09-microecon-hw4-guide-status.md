@@ -97,3 +97,17 @@ both modes share the neutral prompt and the per-course floor. Tracker entry in
 Draft `--max-cost`; link and empty-math citation stripping; enhance `--topics`; plain-text
 citation instruction in the draft prompt; `--example-focus`; spec sources. Tests: 1,014 agent
 tests passed at the last full run.
+
+## Lifecycle references
+
+### Specs
+
+- [2026-10-05-study-guide-pipeline-design](../../superpowers/specs/agent/2026-10-05-study-guide-pipeline-design.md)
+
+### Implementation plans
+
+- [2026-10-05-study-guide-pipeline](../../superpowers/plans/2026-10-05-study-guide-pipeline.md)
+
+### Tests
+
+- [test_study_guide_cli](../../../tests/agent/study_guide/test_study_guide_cli.py)

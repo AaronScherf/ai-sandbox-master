@@ -567,3 +567,16 @@ Between 2026-09-26 and 2026-09-28, major tailoring engine refinements and qualit
    - Added qualitative fact validation in `validate.py` to ensure tailored claims remain grounded in master facts, verifying that semantic meaning is preserved without fabricated achievements.
    - Added Markdown synchronization tool (`markdown_sync.py`) to keep `.md` resumes synchronized with `.yaml` structures.
 
+## Lifecycle references
+
+### Specs
+
+- [2026-09-09-resume-manager-design](../../superpowers/specs/resume_manager/2026-09-09-resume-manager-design.md)
+
+### Implementation plans
+
+- [2026-09-09-resume-manager-plan](../../superpowers/plans/resume_manager/2026-09-09-resume-manager-plan.md)
+
+### Tests
+
+- [test_resume_manager_package](../../../tests/resume_manager/test_resume_manager_package.py)

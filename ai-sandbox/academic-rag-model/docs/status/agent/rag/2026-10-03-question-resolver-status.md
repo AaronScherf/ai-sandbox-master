@@ -124,3 +124,17 @@ open tags remain.
   note types is out of scope for now.
 
 Full suite on `main` after the merge: 2148 passing.
+
+## Lifecycle references
+
+### Specs
+
+- [2026-10-03-question-resolver-design](../../../superpowers/specs/agent/rag/2026-10-03-question-resolver-design.md)
+
+### Implementation plans
+
+- [2026-10-03-question-resolver](../../../superpowers/plans/agent/rag/2026-10-03-question-resolver.md)
+
+### Tests
+
+- [test_resolve_questions](../../../../tests/agent/rag/test_resolve_questions.py)

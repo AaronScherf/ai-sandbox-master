@@ -528,3 +528,15 @@ Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>"
 - **Placeholder scan:** no TBD/TODO; every step shows real, complete code matching the actual current content of both files (verified by reading them directly before writing this plan, not from an earlier draft).
 - **Type/signature consistency:** `copy_duplicate_artifacts`'s signature is unchanged (Task 1 only adds a dict key internally); `rebuild()`'s signature is unchanged (Task 2 only adds a `stats` dict key). Checked against the real, current file contents of `indexer/duplicate_check.py` and `indexer/index_search.py`, not the original 2026-09-17 plan's draft code (which was found, during this session's review, to have already drifted from the shipped implementation in an unrelated spot — the dismissals path).
 - **Scope:** three independently-testable code/test tasks plus one documentation task, all confined to the two files and one spec doc Component 3 names — no change to Tier 1/Tier 2 detection logic, no predictive VM sizing, no batch-splitting, matching the sibling spec's Non-goals.
+
+## Lifecycle references
+
+### Specs
+
+- [2026-09-21-source-asset-relocation-design](../../specs/2026-09-21-source-asset-relocation-design.md)
+- [2026-09-20-textbook-conversion-skill-design](../../specs/convert_textbook/2026-09-20-textbook-conversion-skill-design.md)
+- [2026-09-20-textbook-conversion-walkaway-execution-design](../../specs/convert_textbook/2026-09-20-textbook-conversion-walkaway-execution-design.md)
+
+### Tests
+
+- [test_convert_textbook](../../../../tests/pipelines/convert_textbook/test_convert_textbook.py)

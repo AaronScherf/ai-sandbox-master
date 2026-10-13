@@ -29,3 +29,18 @@ Three pre-installation read-only live scans on October 9 took 21.1-27.7 seconds 
 After the October 10-16 run window, inspect each scheduled task result and JSON/log pair for completion, runtime, root availability, and changes in finding counts. Manually sample findings from different courses and kinds, including textbook identity, generated-file exclusions, frontmatter, and intentionally deferred Math Camp PDFs; classify true gaps versus scanner false positives. Confirm that declined/deferred findings remain stable across days and that a changed source returns for review. Record any missed-run/catch-up behavior observed on this machine. Only then assess whether the scanner's policies and operating mode are reliable enough for continued daily use.
 
 Do not interpret the end of the trial as approval for unattended fixes. Any additional apply adapter needs its own exact input selector, cost and destination policy, participating writer coverage, and target-level postcondition check. Revisit note repairs only after the source pipeline and `academic_notes/` sync-quiescence work are complete.
+
+## Lifecycle references
+
+### Specs
+
+- [2026-10-07-corpus-health-orchestrator-design](../../superpowers/specs/academic_hub/2026-10-07-corpus-health-orchestrator-design.md)
+
+### Implementation plans
+
+- [2026-10-08-corpus-health-orchestrator](../../superpowers/plans/academic_hub/2026-10-08-corpus-health-orchestrator.md)
+
+### Tests
+
+- [test_corpus_health_apply](../../../tests/tools/corpus_health/test_corpus_health_apply.py)
+- [test_scanner](../../../tests/tools/corpus_health/test_scanner.py)

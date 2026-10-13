@@ -1199,3 +1199,13 @@ Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>"
 - **Type/signature consistency:** `copy_duplicate_artifacts`'s new `pending_confirmation` parameter (Task 2) is consumed with the same name and position in Task 3's call. `run_duplicate_check`'s new `auto_skipped_pending_confirmation` return key (Task 3) is read identically in Task 4's `_print_report`. `reject_pending_confirmation`/`confirm_pending_confirmation` (Task 5) consume the exact entry-dict shape Task 3 produces (`incoming_file_id`, `course`, `matched_file_id`, `new_card_file_id`).
 - **Real-fixture verification:** this plan's Task 3 fixture changes were derived by tracing the actual `extract_bibliographic_info_from_filename`/`score_candidate` logic by hand against real filenames, not assumed — confirmed the "Ok_RealAnalysis..." fixture scores 1.0 (author+title+year all match) and the Mas-Colell/Rubinstein fixture scores ~0.71 (title overlap only), placing each correctly on either side of the proposed 0.85 threshold.
 - **Scope:** five tasks, all confined to `indexer/duplicate_check.py` and its test file — no change to `indexer/index_search.py` (that's the sibling rebuild-safety-fix plan) or the OOM/cost escalation ladder (a separate sibling plan).
+
+## Lifecycle references
+
+### Specs
+
+- [2026-09-17-cross-course-duplicate-textbook-detection-design](../../specs/indexer/2026-09-17-cross-course-duplicate-textbook-detection-design.md)
+
+### Tests
+
+- [test_duplicate_check](../../../../tests/core/indexer/test_duplicate_check.py)

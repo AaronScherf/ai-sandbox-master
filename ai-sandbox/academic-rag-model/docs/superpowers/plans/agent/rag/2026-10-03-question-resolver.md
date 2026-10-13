@@ -1798,3 +1798,13 @@ git commit -m "docs: document the question resolver; clarify grounded check and 
 ```
 
 The real run (about 14-21 paid model calls, writes four sidecars and markers into the main checkout's vault) happens only with the user's go-ahead: `PYTHONPATH="$(pwd -W)" $PY -m agent.rag.resolve_questions --root <hub> --course microecon`, then `python -m core.indexer.index_search --root <hub> rebuild --course microecon` to index the sidecars, and a `query` to confirm a resolved answer is retrievable and the `.rag.md` shows markers.
+
+## Lifecycle references
+
+### Specs
+
+- [2026-10-03-question-resolver-design](../../../specs/agent/rag/2026-10-03-question-resolver-design.md)
+
+### Tests
+
+- [test_resolve_questions](../../../../../tests/agent/rag/test_resolve_questions.py)

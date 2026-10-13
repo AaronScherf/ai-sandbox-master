@@ -121,3 +121,21 @@ Score every arm on: explanations the student could use; solution leaks and near-
 - Is the unique value the live guarantee, the audit trail, or the learner profile? The answer decides between ideas 5 and 7.
 
 Known small defects to fix under any option: the revisit rule above; recognizers for `q1_2`..`q1_6`; rating evidence should exclude answer requests; the audit's `INTENT_MISMATCH` is too strict on "stuck" labels.
+
+## Lifecycle references
+
+### Specs
+
+- [2026-10-08-socratic-tutor-pipeline-design](../../../superpowers/specs/2026-10-08-socratic-tutor-pipeline-design.md)
+- [2026-10-08-socratic-tutor-v1-1-design](../../../superpowers/specs/2026-10-08-socratic-tutor-v1-1-design.md)
+
+### Implementation plans
+
+- [2026-10-08-socratic-tutor-pipeline](../../../superpowers/plans/2026-10-08-socratic-tutor-pipeline.md)
+- [2026-10-08-socratic-tutor-v1-1-plan-a](../../../superpowers/plans/2026-10-08-socratic-tutor-v1-1-plan-a.md)
+- [2026-10-09-socratic-tutor-v1-1-plan-b](../../../superpowers/plans/2026-10-09-socratic-tutor-v1-1-plan-b.md)
+
+### Tests
+
+- [test_tutor_cli](../../../../tests/agent/tutor/test_tutor_cli.py)
+- [test_tutor_regression](../../../../tests/agent/tutor/test_tutor_regression.py)

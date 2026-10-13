@@ -2138,3 +2138,13 @@ Claude-Session: https://claude.ai/code/session_01RSVwgCfAbdoph7ua8uziz8
 EOF
 )"
 ```
+
+## Lifecycle references
+
+### Specs
+
+- [2026-09-06-video-lecture-notes-design](../../specs/generate_video_notes/2026-09-06-video-lecture-notes-design.md)
+
+### Tests
+
+- [test_pipeline](../../../../tests/pipelines/generate_video_notes/test_pipeline.py)

@@ -875,3 +875,21 @@ Shipped memory and resource telemetry logging for textbook batch conversions on 
 - **Log output**: Emits timestamped resource snapshots to `vm_sizing.log` in the run directory alongside conversion logs.
 - **OOM diagnostic integration**: Provides concrete pre-crash resource curves to disambiguate kernel OOM killer events from container or GPU driver crashes during large PDF conversion runs.
 
+## Lifecycle references
+
+### Specs
+
+- [2026-09-21-source-asset-relocation-design](../../superpowers/specs/2026-09-21-source-asset-relocation-design.md)
+- [2026-09-20-textbook-conversion-skill-design](../../superpowers/specs/convert_textbook/2026-09-20-textbook-conversion-skill-design.md)
+- [2026-09-20-textbook-conversion-walkaway-execution-design](../../superpowers/specs/convert_textbook/2026-09-20-textbook-conversion-walkaway-execution-design.md)
+
+### Implementation plans
+
+- [2026-08-20-vm-validation-checklist](../../superpowers/plans/convert_textbook/2026-08-20-vm-validation-checklist.md)
+- [2026-09-20-oom-cost-escalation-ladder](../../superpowers/plans/convert_textbook/2026-09-20-oom-cost-escalation-ladder.md)
+- [2026-09-20-rebuild-safety-fix](../../superpowers/plans/convert_textbook/2026-09-20-rebuild-safety-fix.md)
+- [2026-09-21-source-asset-relocation](../../superpowers/plans/convert_textbook/2026-09-21-source-asset-relocation.md)
+
+### Tests
+
+- [test_convert_textbook](../../../tests/pipelines/convert_textbook/test_convert_textbook.py)

@@ -559,3 +559,13 @@ python -m pipelines.transcribe_notes.route_notes_transcribe --course econometric
 ```
 
 to confirm the full real file list before spending any API calls. This is a separate, manual follow-up step outside this plan's test scope — it touches real `academic-hub/` content, not fixtures.
+
+## Lifecycle references
+
+### Specs
+
+- [2026-10-03-notes-subset-discovery-design](../../specs/transcribe_notes/2026-10-03-notes-subset-discovery-design.md)
+
+### Tests
+
+- [test_agent_work_discovery_exclusion](../../../../tests/pipelines/transcribe_notes/test_agent_work_discovery_exclusion.py)

@@ -1034,3 +1034,13 @@ vm_sizing_log.jsonl is meant to be committed."
 - [ ] Confirm `docs/status/vm_sizing_raw/` is gitignored: `git check-ignore -q docs/status/vm_sizing_raw/anything` exits 0.
 
 This plan intentionally stops at observability. Do not add machine-type selection, batch-splitting, or any provisioning-behavior change here — that's Phase 2, a separate future spec once `docs/status/vm_sizing_log.jsonl` has real data in it.
+
+## Lifecycle references
+
+### Specs
+
+- [2026-09-20-vm-ram-sizing-logging-design](../../specs/convert_textbook/2026-09-20-vm-ram-sizing-logging-design.md)
+
+### Tests
+
+- [test_vm_sizing_log](../../../../tests/pipelines/convert_textbook/test_vm_sizing_log.py)

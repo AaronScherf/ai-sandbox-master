@@ -709,3 +709,15 @@ Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>"
 - **Placeholder scan:** no TBD/TODO; every code step shows complete, verified-against-the-real-file content; every documentation step shows the complete replacement prose, not a summary of what to write.
 - **Type/signature consistency:** `parse_book_windows`'s new dict keys (Task 2) match exactly what Task 1's marker produces (`cumulative_pages_so_far`, `cumulative_file_size_bytes_so_far`); `build_rows` passes them through under the same names into the JSONL schema.
 - **Scope:** two code tasks confined to the RAM-sizing observability pipeline (no change to VM provisioning behavior itself, matching the original Phase 1 spec's own constraint), four documentation tasks confined to `convert_textbook_agent_instructions.md`, none touching `convert_textbook_instructions.md`, `indexer/duplicate_check.py`, or `indexer/index_search.py` (the sibling plans' territory).
+
+## Lifecycle references
+
+### Specs
+
+- [2026-09-21-source-asset-relocation-design](../../specs/2026-09-21-source-asset-relocation-design.md)
+- [2026-09-20-textbook-conversion-skill-design](../../specs/convert_textbook/2026-09-20-textbook-conversion-skill-design.md)
+- [2026-09-20-textbook-conversion-walkaway-execution-design](../../specs/convert_textbook/2026-09-20-textbook-conversion-walkaway-execution-design.md)
+
+### Tests
+
+- [test_convert_textbook](../../../../tests/pipelines/convert_textbook/test_convert_textbook.py)

@@ -1468,3 +1468,13 @@ Open the output (not in terminal scrollback beyond a skim) and check: three `##`
 - [ ] **Step 6: Hand off**
 
 Do not commit or push the vault from this task. Tell the user the output path and that committing/pushing to the private vault repo is their call. Commit any `DEFAULT_MODEL`/prompt changes in the worktree with explicit paths. Final integration of `claude/summary-enhance` into `main` is the integrator's step per `docs/WORKTREE_WORKFLOW.md`.
+
+## Lifecycle references
+
+### Specs
+
+- [2026-10-03-summary-enhancement-design](../specs/agent/2026-10-03-summary-enhancement-design.md)
+
+### Tests
+
+- [test_summary_enhance_cli](../../../tests/agent/summary_enhance/test_summary_enhance_cli.py)

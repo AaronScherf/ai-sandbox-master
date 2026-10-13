@@ -189,3 +189,17 @@ today's fragility doesn't just relocate to a new pair of folders.
 6. Confirm tablet sync is actually fixed (open item from this session,
    independent of the restructuring) before layering more changes on
    top of a repo the tablet still can't reliably pull.
+
+## Lifecycle references
+
+### Specs
+
+- No dedicated design spec exists for the Obsidian plugin configuration.
+
+### Implementation plans
+
+- The dated status records document the configuration and transition; no standalone implementation plan exists.
+
+### Tests
+
+- No dedicated automated test path exists for the local Obsidian plugin configuration.

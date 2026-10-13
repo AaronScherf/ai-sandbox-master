@@ -670,3 +670,13 @@ Read the full `README.md` top to bottom once. Confirm: the new section reads cle
 git add resume_manager/README.md
 git commit -m "docs(resume-manager): document apply_from_prompt and tailoring routing"
 ```
+
+## Lifecycle references
+
+### Specs
+
+- No standalone design spec is established for this operational baseline.
+
+### Tests
+
+- [test_tailor_resume_cli](../../../../tests/resume_manager/test_tailor_resume_cli.py)

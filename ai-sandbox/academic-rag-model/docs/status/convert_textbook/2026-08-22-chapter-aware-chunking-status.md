@@ -157,3 +157,17 @@ available to validate against.
 Image-to-text description for the `images/` folders, so a RAG/study
 pipeline can consume figure descriptions directly instead of an opaque
 image reference -- **done**, see `docs/status/2026-08-23-image-description-status.md`.
+
+## Lifecycle references
+
+### Specs
+
+- [2026-08-19-textbook-chunking-and-page-tracking-design](../../superpowers/specs/convert_textbook/2026-08-19-textbook-chunking-and-page-tracking-design.md)
+
+### Implementation plans
+
+- [2026-08-20-chapter-aware-chunking](../../superpowers/plans/convert_textbook/2026-08-20-chapter-aware-chunking.md)
+
+### Tests
+
+- [test_chapter_index](../../../tests/pipelines/convert_textbook/test_chapter_index.py)

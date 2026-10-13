@@ -3620,3 +3620,14 @@ Following the root `CLAUDE.md` "Pending to-dos" rule (directly on `main`, one fi
 **4. Review Focus.** Six items listed, each mapped to a named test above.
 
 **Known risk to watch during execution:** the Cytoscape `width: "label"` style plus `text-max-width` is believed to size boxes to wrapped labels; if boxes clip long names in the manual check (Task 6 Step 7, item 1), set `text-max-width` larger or switch `text-wrap` handling before declaring the task done. The URL paths in `vendor.lock.json` are believed correct for the pinned versions and are verified by the first fetch in Task 4 Step 7.
+
+## Lifecycle references
+
+### Specs
+
+- [2026-10-09-concept-graph-design](../specs/agent/2026-10-09-concept-graph-design.md)
+
+### Tests
+
+- [test_cg_build](../../../tests/agent/concept_graph/test_cg_build.py)
+- [test_cg_store](../../../tests/agent/concept_graph/test_cg_store.py)

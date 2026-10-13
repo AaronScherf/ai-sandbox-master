@@ -714,3 +714,19 @@ reorganizing the journal collection into useful topic groupings. Keep the
 file moves and the related folder references/metadata in sync. This is a
 recorded requirement for future work; no corpus-wide reorganization step
 is implemented yet.
+
+## Lifecycle references
+
+### Specs
+
+- [2026-08-31-journal-discovery-design](../../superpowers/specs/discover_journal_articles/2026-08-31-journal-discovery-design.md)
+- [2026-09-02-journal-discovery-snowball-design](../../superpowers/specs/discover_journal_articles/2026-09-02-journal-discovery-snowball-design.md)
+
+### Implementation plans
+
+- [2026-09-01-journal-discovery-plan](../../superpowers/plans/discover_journal_articles/2026-09-01-journal-discovery-plan.md)
+- [2026-09-02-journal-discovery-snowball-plan](../../superpowers/plans/discover_journal_articles/2026-09-02-journal-discovery-snowball-plan.md)
+
+### Tests
+
+- [test_discover](../../../tests/discovery/discover_journal_articles/test_discover.py)

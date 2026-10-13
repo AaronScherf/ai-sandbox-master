@@ -2163,3 +2163,14 @@ git commit -m "docs(journal_discovery): add usage instructions and config placeh
 - **Spec coverage:** S1 goals (relevance threshold + numeric ceiling → Task 3; tiered access + pacing → Task 6; topic routing + sidecar → Tasks 4–5; dedup → Task 4; Zotero → Task 8; PDF-on-disk-only boundary → Task 9) all have a task. S2 architecture (sibling package, no `indexer/` import) → Task 1 scaffolding + enforced by every task's imports. S3 components map 1:1 to Tasks 2–6, 8. S4 data flow is exactly `run()` in Task 9. S5 dedup → Task 4. S6 error handling → Tasks 1 (retry), 6 (content-type, EZProxy degrade), 4 (no-abstract sidecar). S7 testing conventions followed throughout. S8/S9 are narrative/rationale sections, not implementable — Task 7 implements S9's one actionable item (EZProxy validation).
 - **Placeholder scan:** none found — every step has runnable code or a concrete manual action.
 - **Type consistency:** `Work` (Task 2) is consumed with the same field names by Tasks 3–6, 8–9. `AccessResult` (Task 6) fields (`status`, `content`, `tier`) match how Task 9 reads them. `ScoredWork` (Task 3) fields (`work`, `score`) match Task 9's usage. Function names (`resolve_works`, `select_relevant_works`, `resolve_full_text`, `route_to_folder`, `write_sidecar`, `manifest_key`/`is_seen`/`record_outcome`/`load_manifest`/`save_manifest`/`manifest_path`, `sync_to_zotero`) are identical between the task that defines them and every task that imports them.
+
+## Lifecycle references
+
+### Specs
+
+- [2026-08-31-journal-discovery-design](../../specs/discover_journal_articles/2026-08-31-journal-discovery-design.md)
+- [2026-09-02-journal-discovery-snowball-design](../../specs/discover_journal_articles/2026-09-02-journal-discovery-snowball-design.md)
+
+### Tests
+
+- [test_discover](../../../../tests/discovery/discover_journal_articles/test_discover.py)

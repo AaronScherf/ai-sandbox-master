@@ -151,3 +151,17 @@ whether/how to fix this.
   weekly summary → mp3" pipeline itself is designed — not started.
 - `textbook` chapter-boundary reuse via `textbook/chapter_index.py`
   remains unexplored (spec §9).
+
+## Lifecycle references
+
+### Specs
+
+- [2026-09-06-audio-generator-design](../../superpowers/specs/audio_generator/2026-09-06-audio-generator-design.md)
+
+### Implementation plans
+
+- [2026-09-06-audio-generator](../../superpowers/plans/audio_generator/2026-09-06-audio-generator.md)
+
+### Tests
+
+- [test_audio_generator_pipeline](../../../tests/audio_generator/test_audio_generator_pipeline.py)

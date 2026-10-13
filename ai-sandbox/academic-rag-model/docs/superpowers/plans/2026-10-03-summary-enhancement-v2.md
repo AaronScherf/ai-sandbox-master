@@ -2119,3 +2119,13 @@ Open the output. Check: about 1400+ words per topic and at least three `###` sub
 - [ ] **Step 5: Hand off**
 
 Do not commit or push the vault from this task. Tell the user the output path, that the v1 file is untouched, and that replacing it and committing/pushing to the private vault repo are their calls. Commit any `llm.py` or prompt changes in the worktree with explicit paths. Merging `claude/summary-enhance-v2` into main is the integrator's step per `docs/WORKTREE_WORKFLOW.md`.
+
+## Lifecycle references
+
+### Specs
+
+- [2026-10-03-summary-enhancement-v2-design](../specs/agent/2026-10-03-summary-enhancement-v2-design.md)
+
+### Tests
+
+- [test_summary_enhance_validate](../../../tests/agent/summary_enhance/test_summary_enhance_validate.py)

@@ -1773,3 +1773,13 @@ Not part of this plan (deliberately, per spec §9 and this plan's own scope):
 - Running `chunk` for real against the live `academic-hub` corpus (a real-data validation step, follow this session's established pattern: `chunk --dry-run` first, spot-check a few real chunks by hand, then a real run) -- do this once the plan above is fully implemented and tested, as a separate follow-up action, not a plan task.
 - Wiring `chunk` into any pipeline hook (explicitly deferred, spec §2/§9).
 - Cross-chunk deduplication, chunk-level tags, ANN indexing (all spec §9, explicitly not built here).
+
+## Lifecycle references
+
+### Specs
+
+- [2026-08-29-passage-embeddings-design](../../specs/indexer/2026-08-29-passage-embeddings-design.md)
+
+### Tests
+
+- [test_chunk_index](../../../../tests/core/indexer/test_chunk_index.py)

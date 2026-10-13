@@ -2192,3 +2192,13 @@ Where to check next (each is a separate decision, none is started):
 - `agent/problem_gen`, `agent/problem_corpus`, `agent/viz`: check volume per run first.
 - `agent/rag` (`rag_agent.py`, `tutor_diagnosis.py`, `resolve_questions.py`): interactive, so no batch; a fixed system prompt and corpus excerpt first may hit implicit caching.
 - Unverified: whether code execution and structured output work inside batch jobs (the revise audit uses both), and whether the SDK key tier allows batch.
+
+## Lifecycle references
+
+### Specs
+
+- [2026-10-08-guide-revise-pipeline-design](../specs/agent/2026-10-08-guide-revise-pipeline-design.md)
+
+### Tests
+
+- [test_study_guide_revise_apply](../../../tests/agent/study_guide/test_study_guide_revise_apply.py)

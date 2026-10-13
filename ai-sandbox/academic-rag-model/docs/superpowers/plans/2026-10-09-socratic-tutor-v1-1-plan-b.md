@@ -2279,3 +2279,13 @@ git commit -m "docs(tutor): Plan B contract, README, status and end-to-end skip 
 **Placeholder scan:** no TBD/TODO steps; every code step carries its code.
 
 **Type consistency:** `student_event` kwargs `skip/real_attempt/revisit`, `info` keys (`skip_count`, `skip_ended`, `part_status`, `had_real_attempt`, `revisited`), event `data` keys (`skip`, `real_attempt`, `revisit`, `revisit_part`, `skip_ended`), `fresh_index`, `offerable`, `status_of`, `attempt_records`, `final_status`, `_attempt_no`, `_mention`, `MAX_ACK_WORDS` are used with the same names in every task.
+
+## Lifecycle references
+
+### Specs
+
+- [2026-10-08-socratic-tutor-v1-1-design](../specs/2026-10-08-socratic-tutor-v1-1-design.md)
+
+### Tests
+
+- [test_tutor_regression](../../../tests/agent/tutor/test_tutor_regression.py)

@@ -303,3 +303,16 @@ The full pedagogical history and architectural findings from the session are per
 
 These documents serve as the foundational specification for future enhancements to `academic-rag-model`'s autonomous tutoring and problem set assistance workflows.
 
+## Lifecycle references
+
+### Specs
+
+- The run audit/status defines this manually operated workflow; no separate design spec exists.
+
+### Implementation plans
+
+- The run audit/status is the replicable procedure; no standalone implementation plan exists.
+
+### Tests
+
+- The guided-solutions workflow has no dedicated automated test suite.

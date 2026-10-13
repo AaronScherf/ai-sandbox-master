@@ -677,3 +677,23 @@ speculation:**
    data on which questions actually benefit from a plot.
 7. Parameter extraction from retrieved content, if generic illustrative
    examples turn out to be a real limitation in practice.
+
+## Lifecycle references
+
+### Specs
+
+- [2026-09-02-visualization-agent-design](../../../superpowers/specs/agent/viz/2026-09-02-visualization-agent-design.md)
+- [2026-09-03-viz-example-store-design](../../../superpowers/specs/agent/viz/2026-09-03-viz-example-store-design.md)
+- [2026-09-03-viz-ollama-retry-hardening-design](../../../superpowers/specs/agent/viz/2026-09-03-viz-ollama-retry-hardening-design.md)
+
+### Implementation plans
+
+- [2026-09-02-visualization-agent](../../../superpowers/plans/agent/viz/2026-09-02-visualization-agent.md)
+- [2026-09-03-viz-example-store](../../../superpowers/plans/agent/viz/2026-09-03-viz-example-store.md)
+- [2026-09-03-viz-ollama-retry-hardening](../../../superpowers/plans/agent/viz/2026-09-03-viz-ollama-retry-hardening.md)
+
+### Tests
+
+- [test_example_store](../../../../tests/agent/viz/test_example_store.py)
+- [test_llm_fallback](../../../../tests/agent/viz/test_llm_fallback.py)
+- [test_viz_agent](../../../../tests/agent/viz/test_viz_agent.py)

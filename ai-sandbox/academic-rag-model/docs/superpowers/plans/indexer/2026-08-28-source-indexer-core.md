@@ -2211,3 +2211,14 @@ git commit -m "feat(indexer): link .rag.md back to its index card and _metadata.
 - **Type consistency checked:** `reconcile_and_write`'s parameter names/order match across Task 4 (definition), Task 5 (`_reconcile_one`'s call, both notes and textbook paths), Task 8 (`_write_markdown_and_index`'s call), and Task 9's call — all use the same keyword arguments (`file_id`, `path`, `source_pdf_path`, `course`, `folder_category`, `content_sample`, `page_count`, `client`). `set_rag_md_path`'s signature matches between Task 4 (definition) and Task 10 (`link_rag_md`'s call). `SearchResult`'s fields (`path`, `course`, `doc_type`, `score`, `reason`) match spec §6 exactly, with `path` resolving `rag_md_path` first. `KNOWN_LEVELS` ordering (`introductory` < `intermediate` < `advanced`) is defined once in `index_card.py` and consumed identically by Task 6's `max_level` filter and Task 7's CLI `choices`. `TEXTBOOK_CONTENT_SAMPLE_CHARS` (Task 1) is the same constant used by both Task 5's textbook backfill and Task 9's live hook, so they read the same amount of content.
 - **Client construction consistency:** every indexing call (Tasks 2's `generate_index_card`/`embed_content`, Task 6's query embedding) takes a caller-supplied `client`; every caller (Task 7's CLI, Task 8's `transcribe_notes.py` hook, Task 9's `convert_textbook.py` hook, Task 10 reusing `describe_images.py`'s existing `client` parameter) builds it via `gemini_utils.get_gemini_client()` — no Vertex path anywhere in this plan (Global Constraints).
 - **No placeholders:** every step has runnable code; the one deliberately unbuilt piece (textbook backfill for the 5 books that predate `source_pdf_path`) is called out explicitly with its reason and its fix (re-run `convert_textbook.py`), not left as a vague TODO.
+
+## Lifecycle references
+
+### Specs
+
+- [2026-08-27-source-indexer-design](../../specs/indexer/2026-08-27-source-indexer-design.md)
+
+### Tests
+
+- [test_index_card](../../../../tests/core/indexer/test_index_card.py)
+- [test_index_search](../../../../tests/core/indexer/test_index_search.py)

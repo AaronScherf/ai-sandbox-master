@@ -84,3 +84,17 @@ exactly at the floor of 6; the Szpilrajn theorem landed in the revealed-preferen
 To reuse for another course: `scaffold`, fill `config/seed.yaml`, `collect seed --course <name>`, give the card to the
 drafting agent, `submit`; use `collect seed --redo` for additive passes. The corpus classifier names only three
 textbooks (rubinstein, mwg, ok); other books are scoped in `seed.yaml` by their folder name.
+
+## Lifecycle references
+
+### Specs
+
+- [2026-10-09-concept-graph-design](../../../superpowers/specs/agent/2026-10-09-concept-graph-design.md)
+
+### Implementation plans
+
+- [2026-10-10-concept-graph-pipeline](../../../superpowers/plans/2026-10-10-concept-graph-pipeline.md)
+
+### Tests
+
+- [test_cg_cli_stages](../../../../tests/agent/concept_graph/test_cg_cli_stages.py)

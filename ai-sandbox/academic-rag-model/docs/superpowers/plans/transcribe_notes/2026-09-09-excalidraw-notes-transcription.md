@@ -1353,3 +1353,13 @@ Update `docs/trackers/2026-08-30-academic-hub-status.md`'s notes-transcription b
 git add docs/status/2026-08-24-notes-transcription-status.md docs/trackers/2026-08-30-academic-hub-status.md "docs/brainstorms/Academic Hub Progress Reflections.md"
 git commit -m "docs(excalidraw): record real-corpus validation results"
 ```
+
+## Lifecycle references
+
+### Specs
+
+- [2026-09-09-excalidraw-notes-transcription-design](../../specs/transcribe_notes/2026-09-09-excalidraw-notes-transcription-design.md)
+
+### Tests
+
+- [test_transcribe_excalidraw](../../../../tests/pipelines/transcribe_notes/test_transcribe_excalidraw.py)

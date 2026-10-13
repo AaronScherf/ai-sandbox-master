@@ -249,3 +249,14 @@ These defaults are intentionally conservative and can be changed during plan rev
 - Changing Git commit/merge/push behavior or automatically cleaning branches/files.
 - Reading or copying third-party source text into reports.
 - Running this plan against the live corpus or invoking paid/cloud pipelines during development.
+
+## Lifecycle references
+
+### Specs
+
+- [2026-10-07-corpus-health-orchestrator-design](../../specs/academic_hub/2026-10-07-corpus-health-orchestrator-design.md)
+
+### Tests
+
+- [test_corpus_health_apply](../../../../tests/tools/corpus_health/test_corpus_health_apply.py)
+- [test_scanner](../../../../tests/tools/corpus_health/test_scanner.py)

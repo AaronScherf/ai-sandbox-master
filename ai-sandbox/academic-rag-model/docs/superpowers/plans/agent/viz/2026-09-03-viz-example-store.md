@@ -1114,3 +1114,13 @@ Expected: a `VizResult(source='llm_fallback')` is printed, and `../academic-hub/
 git add viz/viz_agent.py viz/templates/__init__.py viz/README.md
 git commit -m "feat(viz): wire example store into the production call site, document it"
 ```
+
+## Lifecycle references
+
+### Specs
+
+- [2026-09-03-viz-example-store-design](../../../specs/agent/viz/2026-09-03-viz-example-store-design.md)
+
+### Tests
+
+- [test_example_store](../../../../../tests/agent/viz/test_example_store.py)

@@ -96,3 +96,17 @@ for the shared roadmap. A separate `journal_discovery/` subproject
 (automatically finding and downloading candidate papers, rather than
 hand-populating this folder) is in active development and not yet
 covered by a status doc here.
+
+## Lifecycle references
+
+### Specs
+
+- No standalone design spec is established for this operational baseline.
+
+### Implementation plans
+
+- No standalone implementation plan is established for this operational baseline.
+
+### Tests
+
+- [test_convert_journal_articles](../../../tests/pipelines/convert_journal_articles/test_convert_journal_articles.py)

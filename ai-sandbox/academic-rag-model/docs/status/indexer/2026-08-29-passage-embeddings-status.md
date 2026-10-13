@@ -36,3 +36,17 @@ implementation plan: `docs/superpowers/plans/indexer/2026-08-29-passage-embeddin
 
 - Dynamic chunk size tuning based on content density (e.g. dense proofs vs. narrative summaries).
 - Local Ollama embedding fallback for offline operation when API keys are unset.
+
+## Lifecycle references
+
+### Specs
+
+- [2026-08-29-passage-embeddings-design](../../superpowers/specs/indexer/2026-08-29-passage-embeddings-design.md)
+
+### Implementation plans
+
+- [2026-08-29-passage-embeddings](../../superpowers/plans/indexer/2026-08-29-passage-embeddings.md)
+
+### Tests
+
+- [test_chunk_index](../../../tests/core/indexer/test_chunk_index.py)

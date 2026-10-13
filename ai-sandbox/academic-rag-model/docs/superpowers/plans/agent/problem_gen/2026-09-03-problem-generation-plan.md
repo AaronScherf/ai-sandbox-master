@@ -1577,3 +1577,13 @@ Claude-Session: https://claude.ai/code/session_014e9EKiax53st5ixeMK2576
 EOF
 )"
 ```
+
+## Lifecycle references
+
+### Specs
+
+- [2026-09-03-problem-generation-design](../../../specs/agent/problem_gen/2026-09-03-problem-generation-design.md)
+
+### Tests
+
+- [test_generator](../../../../../tests/agent/problem_gen/test_generator.py)
