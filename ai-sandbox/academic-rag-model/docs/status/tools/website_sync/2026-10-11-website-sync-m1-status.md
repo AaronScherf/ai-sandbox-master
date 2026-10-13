@@ -1,10 +1,11 @@
 # Website sync M1 implementation status — 2026-10-11
 
-**Current status (2026-10-12):** M1–M3 implementation is landed. The latest
-strict audit passes with zero errors and zero lifecycle gaps. Seven new website
-pages remain drafts pending editorial review and separate publication approval.
-The M1 evidence below is historical; the M1–M3 closeout section records the
-current project state.
+**Current status (2026-10-13):** M1–M3 implementation and T6a are landed.
+The seven new Academic Hub pages are public on website `main` at `88124e4`,
+and that revision's GitHub Pages deployment succeeded. The latest strict audit
+has complete coverage and zero errors. A readability review covered 28 project
+pages and 10 blog posts; substantive prose revisions remain editorial work.
+The M1 evidence and the M1–M3 closeout below record their historical gates.
 
 The M1 checker landed on monorepo `main` at
 `03ff76abe90b746f817d1ed4707a7980ac989a37`. Its G2 verification
@@ -143,13 +144,33 @@ review, not evidence that prose is inaccurate. There are no remaining
 website deployment workflow for `015954a` completed successfully; this is
 deployment evidence, not evidence of ongoing content synchronization.
 
-**Remaining gate:** Review the seven drafts against current source behavior,
-make any editorial corrections, and obtain separate authorization for the
-pages selected for publication. Publication then requires changing approved
-draft flags, building and inspecting the rendered pages, deploying, and
-checking the live pages. The 32 heuristic history warnings can be triaged
-during that review; they do not block the current strict audit. The local
-one-command `pnpm run build` PATH/lockfile drift remains deferred, as do any
-future scheduler, repair action, or automated content sync. None is required
-for the completed M1–M3 implementation. No new pipeline run or longitudinal
-behavior was established by this closeout.
+**At this closeout:** The seven pages were still drafts. The 32 heuristic
+history warnings were nonblocking editorial prompts. The local one-command
+`pnpm run build` PATH/lockfile drift, any future scheduler, repair action,
+and automated content sync were deferred; none was required for M1–M3.
+No new pipeline run or longitudinal behavior was established by this closeout.
+
+## Publication and readability review (2026-10-13)
+
+Website `88124e4` changed the seven M3 pages to `draft: false` and updated
+the Academic Hub overview to link to them as published pages. A site-wide
+review of 28 substantive project pages and 10 substantive blog posts removed
+26 unused image-generation prompts from frontmatter, 19 redundant `Figure:`
+lines, and one reference to an earlier status narrative. Nine HugoBlox example
+pages remain drafts. The review ranked pages for later nontechnical prose
+revision; it did not rewrite the long implementation narratives or certify
+every page's factual accuracy.
+
+Hugo Extended 0.163.3 built 119 production pages locally. Generated output
+included all seven newly public pages and excluded the example drafts. The
+GitHub Pages workflow for `88124e4` built and deployed successfully. A clean
+strict registry audit at monorepo `11c184d` and website `88124e4` exited 0
+with complete coverage, zero errors, three nonblocking website-history
+warnings, and three informational findings. This is publication and metadata
+evidence, not a new run of the underlying study or research pipelines.
+
+**Editorial follow-up:** Revise the most technical pages for nontechnical
+readers, starting with Notes Transcription, Marker PDF Conversion, Resume
+Manager, Visualization Sub-Agent, and Source Indexer. The deferred build-tool
+PATH/lockfile issue and unattended sync/repair capabilities remain separate
+work; neither blocks the published pages.

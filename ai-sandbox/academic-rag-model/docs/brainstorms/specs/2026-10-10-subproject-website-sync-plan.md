@@ -1,6 +1,6 @@
 # Subproject Website Alignment & Automated Verification: Implementation Plan
 
-**Status:** D1–D3 and the M1 finding policy approved; T1–T4/G2 landed on monorepo `main`. T5/M2 landed on website `main` at `4e4d710`. Both T6/M3 website batches landed at `015954a`; the seven new pages remain drafts. The paired T6 source-status update landed on monorepo `main` at `872cbbe`. T6a lifecycle backlinks landed on monorepo `main` at `11c184d`. M1–M3 implementation is complete; editorial review and publication remain separate.
+**Status:** D1–D3 and the M1 finding policy approved; T1–T4/G2 landed on monorepo `main`. T5/M2 landed on website `main` at `4e4d710`. Both T6/M3 website batches landed at `015954a`; the paired T6 source-status update landed on monorepo `main` at `872cbbe`. T6a lifecycle backlinks landed on monorepo `main` at `11c184d`. Website `88124e4` published the seven M3 pages and deployed successfully. M1–M3 implementation and publication are complete; nontechnical prose revision remains editorial follow-up.
 
 **Date:** 2026-10-10; amendment resumed 2026-10-11.
 
@@ -213,7 +213,11 @@ The landed checker is covered by [registry fixtures](../../../tests/tools/test_a
 implementation status and section 1 above record the actual verification;
 documentation link/example checks are not checker fixture or live-run evidence.
 
-The seven drafted pages are on website `main` as drafts; their public publication
-still needs editorial review and explicit approval. The existing-page/status
-refresh is landed in both repositories. T6a backlinks landed on monorepo
-`main` at `11c184d` and passed the clean strict audit.
+At the M3 implementation gate, the seven new pages were drafts. Website
+`88124e4` later published them with explicit owner authorization and removed
+leftover drafting artifacts from the project and blog pages. Its local
+production build and GitHub Pages deployment succeeded. The existing-page/
+status refresh is landed in both repositories. T6a backlinks landed on
+monorepo `main` at `11c184d`; a clean strict audit against website `88124e4`
+exited 0 with zero errors and complete coverage. The remaining editorial work
+is readability revision, not a publication gate.
