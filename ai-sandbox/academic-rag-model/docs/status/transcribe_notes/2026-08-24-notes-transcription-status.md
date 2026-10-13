@@ -1298,3 +1298,9 @@ size per card); and a truly local Ollama vision model remains untested and
 likely weak on handwritten math (the README says even Marker/Surya OCR does
 poorly on handwriting). Tracker: `docs/trackers/academic_hub_to_do.md`,
 Notes Transcription section (added 2026-10-09).
+
+## 2026-10-12 addendum: agent-driver implementation landed
+
+The October 9 proposal above is historical. The PDF CLI now accepts `--driver agent --collect`, `--bootstrap <run-id>`, and `--submit <run-id>` (`8a0cc81`, `d933aed`, with final review fixes in `e272757`). Collect prepares task cards and page images; an IDE agent fills the cards; submit validates them and uses the existing cache, Markdown output, provenance and index path. API remains the default driver. The implementation includes tests for card validation, resumption, CLI wiring, and prevention of an accidental paid API call during the submit rerun. This is a manual agent handoff, not a scheduled or autonomous transcription service.
+
+A real prior-year microeconomics validation run is recorded in `docs/trackers/academic_hub_to_do.md` at `TODO-0069`: the canonical 28-page duplicate was written, and a no-op submit against the other byte-identical source left two empty cache sidecars. The tracker records that follow-up; it does not establish that the whole prior-year backlog was transcribed or reviewed. The initial 79-document listing above was a dry run and cost estimate, not a completed live batch. Agent-produced mathematical text still needs review against its source pages.
