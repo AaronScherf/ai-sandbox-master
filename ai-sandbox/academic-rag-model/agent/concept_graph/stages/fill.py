@@ -53,6 +53,7 @@ def make_tasks(store: GraphStore, retriever, *, section: str | None = None, node
         if n.explanation.strip() and not redo:
             continue
         chosen.append(n)
+    hints = store.read_seed_config().fill_hints
     tasks = []
     for n in chosen:
         passages = with_ids(retriever.retrieve(f"{n.name} {n.gist} {n.kind}".strip(), top_k))
@@ -60,6 +61,9 @@ def make_tasks(store: GraphStore, retriever, *, section: str | None = None, node
                  f"Course section: {states.get(n.section, ('', n.section))[1]}",
                  f"Current one-line summary: {n.gist or '(none yet)'}", "Connections already in the graph:"]
         lines += [f"- {s}" for s in neighbour_lines(graph, n.id)] or ["- (none yet)"]
+        if hints.get(n.id):
+            lines += ["", "The owner asks that this node also covers (state it in the explanation, and put any "
+                          "formulas in `formal`):", hints[n.id].strip()]
         tasks.append(Task(id=f"fill-{n.id}", stage=STAGE, subject={"node": n.id}, instructions=INSTRUCTIONS,
                           context="\n".join(lines), passages=passages))
     return tasks

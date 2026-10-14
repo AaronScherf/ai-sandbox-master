@@ -14,7 +14,7 @@ from . import drivers, stages
 from . import scaffold as scaffold_mod
 from .build import BuildError, build
 from .gh_issues import close_issue, fetch_review_issues
-from .retrieval import IndexRetriever, make_gemini_client
+from .retrieval import make_resilient_retriever
 from .reviews import ReviewFile, apply_review, archive_review
 from .store import GraphDataError, GraphStore
 from .validate import errors, validate
@@ -103,15 +103,23 @@ def _work_root(args) -> Path:
 def _default_retriever(args):
     if not args.hub_root or not args.course:
         raise ValueError("retrieval needs --hub-root and --course")
-    return IndexRetriever(args.hub_root, args.course, make_gemini_client())
+    return make_resilient_retriever(args.hub_root, args.course)
 
 
 def _collect_run(args):
     store = GraphStore(args.graph_repo)
     retriever = None if args.stage == "seed" else args.retriever_factory(args)
+    nodes, redo, top_k = args.node or None, args.redo, args.top_k
+    if args.orphans:
+        # a node with no edges at all: ask again with every candidate and a wider retrieval
+        graph = store.read_all()
+        linked = {end for e in graph.edges for end in (e.source, e.target, e.via)}
+        nodes = [n.id for n in graph.nodes if n.id not in linked and n.explanation.strip()]
+        if not nodes:
+            return store, None
+        redo, top_k = True, max(top_k, 10)
     run = drivers.collect(args.stage, store, retriever, _work_root(args), run_id=args.run_id, section=args.section,
-                          nodes=args.node or None, redo=args.redo, top_k=args.top_k, hub_root=args.hub_root,
-                          course=args.course)
+                          nodes=nodes, redo=redo, top_k=top_k, hub_root=args.hub_root, course=args.course)
     return store, run
 
 
@@ -218,6 +226,8 @@ def build_parser() -> argparse.ArgumentParser:
     staged.add_argument("stage", choices=stages.STAGES)
     staged.add_argument("--section", help="only this course section id")
     staged.add_argument("--node", action="append", help="only this node id (repeatable)")
+    staged.add_argument("--orphans", action="store_true",
+                        help="only nodes that have no edges yet (implies --redo and at least --top-k 10)")
     staged.add_argument("--redo", action="store_true", help="regenerate proposed items that already have a draft")
     staged.add_argument("--top-k", type=int, default=6, help="passages retrieved per card")
     staged.add_argument("--run-id", help="name for this run (default: <stage>-<timestamp>)")
