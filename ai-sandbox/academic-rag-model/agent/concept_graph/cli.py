@@ -15,7 +15,7 @@ from . import scaffold as scaffold_mod
 from .build import BuildError, build
 from .gh_issues import close_issue, fetch_review_issues
 from .retrieval import make_resilient_retriever
-from .reviews import ReviewFile, apply_review, archive_review
+from .reviews import ReviewFile, apply_proposals, apply_review, archive_review
 from .store import GraphDataError, GraphStore
 from .validate import errors, validate
 from .work import load_run, render_worklist
@@ -78,6 +78,17 @@ def _cmd_apply_review(args) -> int:
             _git_commit(args.graph_repo, review.reviewer.name)
         if args.close_applied and issue_number is not None:
             close_issue(args.from_issues, issue_number)
+    if inputs:
+        round_report = apply_proposals(store, [r for _, r, _ in inputs], args.today or dt.date.today().isoformat())
+        if round_report.applied or round_report.conflicts or round_report.comments:
+            print(f"proposals: {len(round_report.applied)} applied, {len(round_report.conflicts)} conflict(s), "
+                  f"{len(round_report.comments)} comment(s)")
+            for line in round_report.applied:
+                print("   ", line)
+            if round_report.conflicts:
+                print(f"    conflicts need your decision: see {args.graph_repo / 'review-conflicts.md'}")
+            if args.commit:
+                _git_commit(args.graph_repo, "proposals")
     return 1 if failed else 0
 
 

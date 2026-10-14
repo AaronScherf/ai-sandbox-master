@@ -9,7 +9,9 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-from .schema import EDITABLE_EDGE_FIELDS, EDITABLE_NODE_FIELDS, field_hash
+from .schema import EDITABLE_EDGE_FIELDS, EDITABLE_NODE_FIELDS, edge_id, field_hash
+from .proposals import (EdgeProposal, NodeProposal, check_edge, check_node, cluster, find_similar_existing,
+                        merge_cluster, merge_edges, slug_from_name)
 from .store import GraphStore
 
 
@@ -23,15 +25,23 @@ class Target(_Model):
 
 
 class Decision(_Model):
-    target: Target
-    action: Literal["accept", "reject", "edit", "comment"]
+    target: Target | None = None
+    action: Literal["accept", "reject", "edit", "comment", "add_node", "add_edge"]
     field: str | None = None
     base_hash: str | None = None
     new_value: str | None = None
     comment: str | None = None
+    proposal: NodeProposal | EdgeProposal | None = None
 
     @model_validator(mode="after")
     def _check(self):
+        if self.action in ("add_node", "add_edge"):
+            want = NodeProposal if self.action == "add_node" else EdgeProposal
+            if not isinstance(self.proposal, want) or self.target is not None:
+                raise ValueError(f"{self.action} needs a matching proposal and no target")
+            return self
+        if self.target is None or self.proposal is not None:
+            raise ValueError(f"{self.action} needs a target and no proposal")
         if self.action == "edit":
             allowed = EDITABLE_NODE_FIELDS if self.target.kind == "node" else EDITABLE_EDGE_FIELDS
             if self.field not in allowed:
@@ -48,11 +58,17 @@ class Reviewer(_Model):
 
 
 class ReviewFile(_Model):
-    schema_version: Literal[1]
+    schema_version: Literal[1, 2]
     graph_version: str
     reviewer: Reviewer
     created: str
     decisions: list[Decision]
+
+    @model_validator(mode="after")
+    def _proposals_need_version_2(self):
+        if self.schema_version == 1 and any(d.action in ("add_node", "add_edge") for d in self.decisions):
+            raise ValueError("proposals need schema_version 2")
+        return self
 
 
 @dataclass
@@ -78,6 +94,8 @@ def apply_review(store: GraphStore, review: ReviewFile, today: str) -> ApplyRepo
     report = ApplyReport()
     who = review.reviewer.name
     for d in review.decisions:
+        if d.action in ("add_node", "add_edge"):
+            continue  # handled once per round by apply_proposals
         kind, item_id = d.target.kind, d.target.id
         label = f"{kind} {item_id}"
         current = _find(store, kind, item_id)
@@ -146,3 +164,91 @@ def archive_review(root: Path, review: ReviewFile, today: str) -> Path:
         n += 1
     path.write_text(json.dumps(review.model_dump(mode="json", exclude_none=True), indent=2) + "\n", encoding="utf-8", newline="\n")
     return path
+
+
+def apply_proposals(store: GraphStore, reviews: list[ReviewFile], today: str) -> ApplyReport:
+    """One pass over every review in the round: cluster duplicate concepts, validate, write proposed items."""
+    report = ApplyReport()
+    node_items: list[tuple[NodeProposal, str]] = []
+    edge_items: list[tuple[EdgeProposal, str]] = []
+    for r in reviews:
+        for d in r.decisions:
+            if d.action == "add_node":
+                node_items.append((d.proposal, r.reviewer.name))
+            elif d.action == "add_edge":
+                edge_items.append((d.proposal, r.reviewer.name))
+    if not node_items and not edge_items:
+        return report
+    graph = store.read_all()
+    conflicts_file = store.root / "review-conflicts.md"
+
+    def conflict(who: list[str], label: str, reason: str) -> None:
+        msg = f"{'; '.join(who)} {today}: proposal {label}: {reason}"
+        _append(conflicts_file, "- " + msg)
+        report.conflicts.append(msg)
+
+    new_nodes: list[dict] = []
+    new_ids: set[str] = set()
+    pending_edges: list[tuple[EdgeProposal, str]] = list(edge_items)
+    for group in cluster(node_items):
+        merged = merge_cluster(group)
+        label = f"concept {merged.name!r}"
+        for line in merged.decisions:
+            conflict(merged.reviewers, label, line)
+        if len(group) > 1:
+            report.applied.append(f"{label}: merged {len(group)} proposals from {', '.join(merged.reviewers)}")
+        existing = find_similar_existing(graph, merged.name)
+        if existing is not None:
+            who = merged.reviewers
+            if merged.note:
+                _append(store.root / "review-comments.md",
+                        f"- {'; '.join(who)} {today} on node {existing.id}: proposed as a new concept "
+                        f"({merged.name}): {merged.note}")
+                report.comments.append(f"node {existing.id}: proposal note recorded")
+            conflict(who, label, f"treated as proposals about existing concept {existing.id!r}: confirm, or "
+                                 f"re-propose it as a separate concept")
+            for c in merged.connections:
+                src, dst = (existing.id, c.other) if c.direction == "out" else (c.other, existing.id)
+                pending_edges += [(EdgeProposal(source=src, type=c.type, target=dst, condition=c.condition,
+                                                note=c.note), w) for w in who]
+            continue
+        problems = check_node(graph, merged.name, merged.kind, merged.section, merged.topic, merged.note)
+        slug = slug_from_name(merged.name)
+        if slug in new_ids:
+            problems.append(f"{slug!r} was proposed twice in this round")
+        if problems:
+            conflict(merged.reviewers, label, "; ".join(problems))
+            continue
+        new_ids.add(slug)
+        new_nodes.append({"id": slug, "name": merged.name, "kind": merged.kind, "section": merged.section,
+                          "topic": merged.topic, "gist": merged.note, "explanation": "", "status": "proposed",
+                          "provenance": {"driver": "reviewer", "agent": "; ".join(merged.reviewers), "run": today}})
+        report.applied.append(f"node {slug}: proposed by {', '.join(merged.reviewers)}")
+        for c in merged.connections:
+            src, dst = (slug, c.other) if c.direction == "out" else (c.other, slug)
+            pending_edges += [(EdgeProposal(source=src, type=c.type, target=dst, condition=c.condition,
+                                            note=c.note), w) for w in merged.reviewers]
+
+    staged: list[tuple[str, str, str]] = []
+    new_edges: list[dict] = []
+    for e, who in sorted(merge_edges(pending_edges), key=lambda i: edge_id(i[0].source, i[0].type, i[0].target)):
+        eid = edge_id(e.source, e.type, e.target)
+        errs, warns = check_edge(graph, e.source, e.type, e.target, e.condition, e.note, new_ids=new_ids,
+                                 staged=staged)
+        if errs:
+            conflict(who, f"connection {eid}", "; ".join(errs))
+            continue
+        staged.append((e.source, e.type, e.target))
+        new_edges.append({"id": eid, "source": e.source, "type": e.type, "target": e.target,
+                          "condition": e.condition, "explanation": e.note, "status": "proposed",
+                          "provenance": {"driver": "reviewer", "agent": "; ".join(who), "run": today}})
+        report.applied.append(f"edge {eid}: proposed by {', '.join(who)}" +
+                              (f" (warning: {'; '.join(warns)})" if warns else ""))
+    by_section: dict[str, list[dict]] = {}
+    for n in new_nodes:
+        by_section.setdefault(n["section"], []).append(n)
+    for section_id, nodes in by_section.items():
+        store.add_nodes(section_id, nodes)
+    if new_edges:
+        store.add_edges(new_edges)
+    return report
