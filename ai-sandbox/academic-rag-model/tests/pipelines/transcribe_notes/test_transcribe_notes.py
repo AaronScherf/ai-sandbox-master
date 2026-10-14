@@ -57,6 +57,24 @@ class TestDiscoverPdfFiles(unittest.TestCase):
             open(os.path.join(tmp, "notes.txt"), "w").close()
             self.assertEqual(discover_pdf_files(tmp), [])
 
+    def test_skips_pdf_with_nonempty_same_stem_markdown_source(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            for name in ("homework.pdf", "homework.md", "other.pdf", "other_notes.md"):
+                with open(os.path.join(tmp, name), "w") as file:
+                    file.write("source")
+            files = discover_pdf_files(tmp)
+            self.assertEqual([os.path.basename(path) for path in files], ["other.pdf"])
+
+    def test_keeps_pdf_when_matching_markdown_is_only_a_transcription_output(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            pdf = os.path.join(tmp, "lecture.pdf")
+            open(pdf, "w").close()
+            output_dir = os.path.join(tmp, "processed_outputs")
+            os.mkdir(output_dir)
+            with open(os.path.join(output_dir, "lecture.md"), "w") as file:
+                file.write("transcribed")
+            self.assertEqual(discover_pdf_files(tmp), [pdf])
+
 
 class TestBuildAccumulatedContext(unittest.TestCase):
     def test_joins_prior_pages_in_order(self):

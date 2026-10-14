@@ -26,6 +26,28 @@ def _write_minimal_pdf(path: str) -> None:
 
 
 class TestCollectCLI(unittest.TestCase):
+    def test_pdf_export_with_authored_markdown_skips_without_api(self):
+        with tempfile.TemporaryDirectory() as hub:
+            notes_dir = os.path.join(hub, "academic_notes", "course", "problem_sets")
+            os.makedirs(notes_dir)
+            with open(os.path.join(notes_dir, "homework.pdf"), "wb") as file:
+                file.write(b"export")
+            with open(os.path.join(notes_dir, "homework.md"), "w") as file:
+                file.write("authored source")
+
+            env = dict(os.environ)
+            env.pop("GEMINI_API_KEY", None)
+            env.pop("PAID_GEMINI_KEY", None)
+            result = subprocess.run(
+                [sys.executable, "-m", "pipelines.transcribe_notes.transcribe_notes",
+                 "--notes-subdir", "academic_notes/course/problem_sets", "--file", "homework.pdf", "--dry-run"],
+                cwd=_PACKAGE_ROOT,
+                env={**env, "ACADEMIC_HUB_ROOT_OVERRIDE": hub},
+                capture_output=True, text=True,
+            )
+            self.assertEqual(result.returncode, 0, msg=result.stderr)
+            self.assertIn("Skipping 1 PDF export", result.stdout)
+
     def test_collect_runs_with_no_api_key_and_writes_a_task_card(self):
         with tempfile.TemporaryDirectory() as hub:
             # --notes-subdir is resolved directly under the hub root

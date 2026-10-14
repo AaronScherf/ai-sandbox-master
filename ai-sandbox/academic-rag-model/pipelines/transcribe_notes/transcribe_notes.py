@@ -58,7 +58,7 @@ if TYPE_CHECKING:
     # process_pdf() instead, where they're actually used at runtime.
     from pipelines.transcribe_notes.agent_driver import TranscriptionDriver
 
-from core.env.academic_hub_paths import find_containing_offering_label, resolve_output_dir
+from core.env.academic_hub_paths import find_containing_offering_label, resolve_output_dir, to_notes_root
 from core.env.corpus_write_lock import CorpusWriteLockError, corpus_write_lock
 from core.env.frontmatter import parse_frontmatter, render_frontmatter
 from core.env.gemini_utils import (
@@ -629,14 +629,31 @@ def build_frontmatter(metadata: dict) -> str:
     return "\n".join(lines) + "\n\n"
 
 
-def discover_pdf_files(notes_dir: str, file_filter: str | None = None) -> list[str]:
+def has_authored_markdown_peer(pdf_path: str) -> bool:
+    """A same-stem Markdown source outside processed_outputs supersedes its PDF export."""
+    stem, _ = os.path.splitext(pdf_path)
+    candidates = [stem + ".md"]
+    try:
+        mirrored = to_notes_root(pdf_path)
+    except ValueError:
+        pass
+    else:
+        if mirrored != pdf_path:
+            candidates.append(os.path.splitext(mirrored)[0] + ".md")
+    return any(os.path.isfile(path) and os.path.getsize(path) > 0 for path in candidates)
+
+
+def discover_pdf_files(notes_dir: str, file_filter: str | None = None,
+                       skip_authored_markdown: bool = True) -> list[str]:
     if not os.path.isdir(notes_dir):
         return []
     files = []
     for name in sorted(os.listdir(notes_dir)):
         if name.lower().endswith(".pdf"):
             if file_filter is None or name == file_filter:
-                files.append(os.path.join(notes_dir, name))
+                path = os.path.join(notes_dir, name)
+                if not skip_authored_markdown or not has_authored_markdown_peer(path):
+                    files.append(path)
     return files
 
 
@@ -1500,8 +1517,12 @@ def main():
         Path(__file__).resolve().parent.parent.parent.parent / "academic-hub"
     ))
     notes_dir = academic_hub_dir / args.notes_subdir
-    pdf_paths = discover_pdf_files(str(notes_dir), args.file)
+    pdf_candidates = discover_pdf_files(str(notes_dir), args.file, skip_authored_markdown=False)
+    pdf_paths = [path for path in pdf_candidates if not has_authored_markdown_peer(path)]
     if not pdf_paths:
+        if pdf_candidates:
+            print(f"Skipping {len(pdf_candidates)} PDF export(s) with same-name Markdown sources under {notes_dir}.")
+            return
         print(f"No PDF files found under {notes_dir}.")
         sys.exit(1)
 

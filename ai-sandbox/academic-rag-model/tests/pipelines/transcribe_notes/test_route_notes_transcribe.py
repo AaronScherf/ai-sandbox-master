@@ -87,6 +87,21 @@ def test_discover_pdf_sources_also_finds_pdfs_migrated_to_academic_resources(tmp
     assert [os.path.basename(p) for p in paths] == ["01-terms.pdf"]
 
 
+def test_discover_pdf_sources_skips_export_with_authored_markdown_in_mirrored_notes(tmp_path):
+    notes_dir = tmp_path / "academic_notes" / "microecon" / "problem_sets"
+    notes_dir.mkdir(parents=True)
+    (notes_dir / "homework_1_solutions.md").write_text("original solutions")
+    (notes_dir / "empty.md").write_text("")
+    resources_dir = tmp_path / "academic_resources" / "microecon" / "problem_sets"
+    resources_dir.mkdir(parents=True)
+    for name in ("homework_1_solutions.pdf", "empty.pdf", "other.pdf"):
+        (resources_dir / name).write_bytes(b"pdf")
+
+    paths = discover_pdf_sources(str(tmp_path / "academic_notes" / "microecon"))
+
+    assert sorted(os.path.basename(path) for path in paths) == ["empty.pdf", "other.pdf"]
+
+
 def test_discover_pdf_sources_ignores_academic_resources_categories_with_no_notes_counterpart(tmp_path):
     # academic_resources/<course>/textbooks/ has no academic_notes/<course>/textbooks/
     # counterpart -- must stay out of scope (that's convert_textbook.py's
