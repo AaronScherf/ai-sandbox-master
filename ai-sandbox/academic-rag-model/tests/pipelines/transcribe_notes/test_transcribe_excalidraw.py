@@ -179,6 +179,23 @@ def test_transcribe_chunks_skips_a_chunk_that_fails_after_retries():
     assert cache == {"0": "ok text", "2": "ok text"}
 
 
+def test_transcribe_chunks_retries_an_empty_response():
+    def retry_once(fn):
+        try:
+            return fn()
+        except ValueError:
+            return fn()
+
+    with patch("pipelines.transcribe_notes.transcribe_excalidraw.transcribe_page_via_gemini",
+               side_effect=["  ", "recovered text"]) as mock_transcribe:
+        with patch("pipelines.transcribe_notes.transcribe_excalidraw.call_with_retries",
+                   side_effect=retry_once):
+            cache = transcribe_chunks(client=object(), model="m", chunk_bytes=[b"img"])
+
+    assert cache == {"0": "recovered text"}
+    assert mock_transcribe.call_count == 2
+
+
 from pipelines.transcribe_notes.transcribe_excalidraw import build_expansion_prompt, expand_via_gemini
 
 
@@ -525,6 +542,28 @@ def test_process_excalidraw_note_aborts_without_writing_when_a_chunk_failed(tmp_
     mock_expand.assert_not_called()
     mock_write.assert_not_called()
     assert "chunk 2" in capsys.readouterr().out
+
+
+def test_process_excalidraw_note_aborts_on_empty_chunk(tmp_path):
+    md_path = tmp_path / "Drawing.excalidraw.md"
+    png_path = tmp_path / "Drawing.excalidraw.png"
+    md_path.write_text("---\n---\n")
+    png_path.write_bytes(b"x")
+
+    with patch("pipelines.transcribe_notes.transcribe_excalidraw.load_canvas_image", return_value=object()), \
+         patch("pipelines.transcribe_notes.transcribe_excalidraw.chunk_image", return_value=["c1"]), \
+         patch("pipelines.transcribe_notes.transcribe_excalidraw.resize_chunk_for_api", return_value=b"b"), \
+         patch("pipelines.transcribe_notes.transcribe_excalidraw.transcribe_chunks", return_value={"0": " "}), \
+         patch("pipelines.transcribe_notes.transcribe_excalidraw.expand_transcription") as mock_expand, \
+         patch("pipelines.transcribe_notes.transcribe_excalidraw.write_outputs") as mock_write:
+        result = process_excalidraw_note(
+            str(md_path), str(png_path), client=object(), model="m",
+            expand_backend="gemini", academic_hub_root=str(tmp_path),
+        )
+
+    assert result is False
+    mock_expand.assert_not_called()
+    mock_write.assert_not_called()
 
 
 def test_process_excalidraw_note_returns_true_on_success(tmp_path):

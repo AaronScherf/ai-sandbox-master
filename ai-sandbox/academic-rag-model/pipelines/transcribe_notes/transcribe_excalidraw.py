@@ -217,8 +217,14 @@ def transcribe_chunks(client, model: str, chunk_bytes: list[bytes], has_slides: 
     for chunk_index, image_bytes in enumerate(chunk_bytes):
         accumulated_context = _accumulated_chunk_context(cache, chunk_index, window=_ACCUMULATION_WINDOW)
         prompt = build_chunk_transcription_prompt(accumulated_context, chunk_index, total_chunks, has_slides)
+        def transcribe_nonempty() -> str:
+            text = transcribe_page_via_gemini(client, model, image_bytes, prompt)
+            if not text or not text.strip():
+                raise ValueError("empty chunk transcription")
+            return text
+
         try:
-            text = call_with_retries(lambda: transcribe_page_via_gemini(client, model, image_bytes, prompt))
+            text = call_with_retries(transcribe_nonempty)
             cache[str(chunk_index)] = text
         except Exception as err:
             print(f"WARNING: chunk {chunk_index + 1}/{total_chunks} failed after retries ({err}); skipping.")
@@ -515,7 +521,7 @@ def process_excalidraw_note(
     chunk_bytes = [resize_chunk_for_api(c) for c in chunks]
 
     cache = transcribe_chunks(client, model, chunk_bytes, has_slides=has_slides)
-    missing = [i + 1 for i in range(len(chunks)) if str(i) not in cache]
+    missing = [i + 1 for i in range(len(chunks)) if not cache.get(str(i), "").strip()]
     if missing:
         print(f"ERROR: {os.path.basename(excalidraw_md_path)}: chunk {', '.join(map(str, missing))} of "
               f"{len(chunks)} failed transcription -- not writing or indexing a truncated transcript; rerun later.")
