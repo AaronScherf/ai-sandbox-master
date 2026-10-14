@@ -19,6 +19,11 @@
   var decisions = [];
   try { decisions = JSON.parse(storage.get(STORE_KEY) || "[]"); } catch (e) { decisions = []; }
   var reviewer = storage.get("cg-reviewer") || "";
+  var PROPOSAL_KEY = "cg-proposals-" + G.graph_version;
+  var proposals = [];
+  try { proposals = JSON.parse(storage.get(PROPOSAL_KEY) || "[]"); } catch (e) { proposals = []; }
+  var KINDS = (G.vocab && G.vocab.kinds) || Array.from(new Set(G.nodes.map(function (n) { return n.kind; }))).sort();
+  var pickOrder = []; // concept ids in the order they were selected, so the first one is the source
   var selected = null; // {kind, id}
   var prereqMode = false;
   var editing = null; // field name being edited
@@ -45,7 +50,10 @@
   }
   function persist() {
     storage.set(STORE_KEY, JSON.stringify(decisions));
-    $("#decision-count").textContent = decisions.length + (decisions.length === 1 ? " decision" : " decisions");
+    storage.set(PROPOSAL_KEY, JSON.stringify(proposals));
+    var n = decisions.length + proposals.length;
+    $("#decision-count").textContent = n + (n === 1 ? " decision" : " decisions");
+    renderProposals();
   }
 
   // ---- decisions ------------------------------------------------------------
@@ -107,6 +115,8 @@
     style: [
       { selector: "node", style: { "background-color": "data(color)", label: "data(label)", color: "#fff", "text-wrap": "wrap", "text-max-width": 150, "font-size": 16, "text-valign": "center", "text-halign": "center", shape: "round-rectangle", width: "label", height: "label", padding: "10px", "border-width": 2, "border-color": "data(color)" } },
       { selector: "node[status = 'proposed']", style: { "border-style": "dashed", "border-color": "#e7e5e4" } },
+      { selector: "node.ghost", style: { opacity: 0.75, "border-style": "dotted", "border-width": 3, "border-color": "#a8a29e" } },
+      { selector: "edge.ghost", style: { opacity: 0.75, "line-style": "dotted" } },
       { selector: "node.planned", style: { opacity: 0.4 } },
       { selector: "node.accepted", style: { "border-color": "#16a34a", "border-width": 4, "border-style": "solid" } },
       { selector: "node.rejected, edge.rejected", style: { opacity: 0.25 } },
@@ -135,10 +145,10 @@
 
   function applyFilters() {
     var visible = new Set(CG.filterNodes(G.nodes, filters).map(function (n) { return n.id; }));
-    cy.nodes().forEach(function (n) { n.toggleClass("hidden", !visible.has(n.id())); });
+    cy.nodes().forEach(function (n) { n.toggleClass("hidden", !n.hasClass("ghost") && !visible.has(n.id())); });
     cy.edges().forEach(function (e) {
       var hide = hiddenEdgeTypes.has(e.data("type")) || !visible.has(e.data("source")) || !visible.has(e.data("target"));
-      e.toggleClass("hidden", hide);
+      e.toggleClass("hidden", !e.hasClass("ghost") && hide);
     });
     renderNameList(visible);
   }
@@ -165,8 +175,8 @@
     }
     applyPrereqMode(); renderPanel(); renderNameList();
   }
-  cy.on("tap", "node", function (ev) { select("node", ev.target.id(), false); });
-  cy.on("tap", "edge", function (ev) { select("edge", ev.target.id(), false); });
+  cy.on("tap", "node", function (ev) { if (ev.target.hasClass("ghost")) return; select("node", ev.target.id(), false); });
+  cy.on("tap", "edge", function (ev) { if (ev.target.hasClass("ghost")) return; select("edge", ev.target.id(), false); });
   cy.on("tap", function (ev) { if (ev.target === cy) { selected = null; cy.elements().unselect(); cy.edges().removeClass("labelled"); applyPrereqMode(); renderPanel(); renderNameList(); } });
 
   // ---- sidebar --------------------------------------------------------------
@@ -269,7 +279,8 @@
       '<p class="meta">' + esc(n.kind) + " &middot; " + esc(n.topic) + " &middot; " + esc(sec ? sec.title : n.section) +
       ' <span class="badge ' + n.status + '">' + n.status + "</span>" + criticBadge(n) + "</p>" +
       fieldBlock("node", n.id, "gist", "Summary") +
-      '<div class="actions"><button type="button" class="' + (prereqMode ? "on" : "") + '" data-act="prereq">Show what this needs</button></div>' +
+      '<div class="actions"><button type="button" class="' + (prereqMode ? "on" : "") + '" data-act="prereq">Show what this needs</button>' +
+      '<button type="button" data-act="propose-from">Propose a connection from this concept</button></div>' +
       fieldBlock("node", n.id, "explanation", "Explanation") +
       fieldBlock("node", n.id, "formal", "Formal statement", { formal: true }) +
       fieldBlock("node", n.id, "example", "Example") +
@@ -296,6 +307,7 @@
     if (b.hasAttribute("data-edge")) return select("edge", b.getAttribute("data-edge"), true);
     if (b.hasAttribute("data-node")) return select("node", b.getAttribute("data-node"), true);
     var act = b.getAttribute("data-act"); if (!act || !selected) return;
+    if (act === "propose-from") return openProposal("edge", selected.id, []);
     var kind = selected.kind, id = selected.id, field = b.getAttribute("data-field");
     if (act === "accept" || act === "reject") {
       var already = decisionsFor(kind, id).some(function (d) { return d.action === act; });
@@ -323,7 +335,7 @@
     $("#reviewer").focus(); toast("Please type your name first so your review can be credited.");
     return false;
   }
-  function currentReview() { return CG.buildReview(G, decisions, reviewer.trim(), new Date().toISOString()); }
+  function currentReview() { return CG.buildReview(G, decisions, reviewer.trim(), new Date().toISOString(), proposals); }
   function copyText(text) {
     if (navigator.clipboard && navigator.clipboard.writeText) {
       return navigator.clipboard.writeText(text).then(function () { return true; }, function () { return false; });
@@ -359,11 +371,179 @@
   $("#btn-submit").addEventListener("click", submit);
   $("#btn-download").addEventListener("click", download);
   $("#btn-clear").addEventListener("click", function () {
-    if (decisions.length && !window.confirm("Forget all " + decisions.length + " pending decisions?")) return;
-    decisions = []; persist(); paintDecisions(); renderPanel();
+    var count = decisions.length + proposals.length;
+    if (count && !window.confirm("Forget all " + count + " pending decisions and proposals?")) return;
+    decisions = []; proposals = []; persist(); paintDecisions(); renderPanel();
   });
   $("#reviewer").value = reviewer;
   $("#reviewer").addEventListener("input", function (ev) { reviewer = ev.target.value; storage.set("cg-reviewer", reviewer); });
+
+  function proposalLabel(p) {
+    return p.action === "add_node" ? "Concept: " + p.proposal.name
+      : "Connection: " + nameOf(p.proposal.source) + " → " + nameOf(p.proposal.target) + " (" + p.proposal.type + ")";
+  }
+  function renderProposals() {
+    var box = $("#my-proposals");
+    box.hidden = proposals.length === 0;
+    $("#proposal-list").innerHTML = proposals.map(function (p, i) {
+      return "<li><span>" + esc(proposalLabel(p)) + '</span><button type="button" data-withdraw="' + i + '">Withdraw</button></li>';
+    }).join("");
+    cy.elements(".ghost").remove();
+    var placed = new Map();
+    proposals.forEach(function (p, i) {
+      if (p.action !== "add_node") return;
+      var id = "ghost-" + CG.slugFromName(p.proposal.name);
+      var near = (p.proposal.connections || []).map(function (c) { return cy.getElementById(c.other); }).filter(function (e) { return e.nonempty(); });
+      var base = near.length ? near[0].position() : { x: 0, y: 0 };
+      cy.add({ group: "nodes", classes: "ghost", data: { id: id, label: p.proposal.name, color: "#78716c", status: "proposed" },
+               position: { x: base.x + 60 + 40 * i, y: base.y + 90 } });
+      placed.set(CG.slugFromName(p.proposal.name), id);
+      (p.proposal.connections || []).forEach(function (c, k) {
+        if (!cy.getElementById(c.other).nonempty()) return;
+        var s = c.direction === "in" ? c.other : id, t = c.direction === "in" ? id : c.other;
+        cy.add({ group: "edges", classes: "ghost", data: { id: id + "-c" + k, source: s, target: t, color: "#78716c", arrow: "triangle", status: "proposed" } });
+      });
+    });
+    proposals.forEach(function (p, i) {
+      if (p.action !== "add_edge") return;
+      var s = placed.get(p.proposal.source) || p.proposal.source, t = placed.get(p.proposal.target) || p.proposal.target;
+      if (cy.getElementById(s).nonempty() && cy.getElementById(t).nonempty()) {
+        cy.add({ group: "edges", classes: "ghost", data: { id: "ghost-e" + i, source: s, target: t, color: "#78716c", arrow: "triangle", status: "proposed" } });
+      }
+    });
+  }
+  $("#proposal-list").addEventListener("click", function (ev) {
+    var b = ev.target.closest("button[data-withdraw]"); if (!b) return;
+    proposals.splice(Number(b.getAttribute("data-withdraw")), 1);
+    persist();
+  });
+
+  var dialog = $("#propose-dialog"), form = $("#propose-form");
+  function nodeOptions(selectedId) {
+    return G.nodes.slice().sort(function (a, b) { return a.name.localeCompare(b.name); }).map(function (n) {
+      return '<option value="' + esc(n.id) + '"' + (n.id === selectedId ? " selected" : "") + ">" + esc(n.name) + "</option>";
+    }).join("");
+  }
+  function typeOptions(current) {
+    return Object.keys(EDGE_STYLE).map(function (t) {
+      return '<option value="' + t + '"' + (t === current ? " selected" : "") + ">" + esc(EDGE_STYLE[t].label) + "</option>";
+    }).join("");
+  }
+  function connectionRow(c) {
+    c = c || {};
+    return '<div class="row" data-conn><select data-f="other">' + nodeOptions(c.other) + '</select>' +
+      '<select data-f="type">' + typeOptions(c.type || "is_a") + '</select>' +
+      '<select data-f="direction"><option value="out"' + (c.direction === "in" ? "" : " selected") + '>this → that</option>' +
+      '<option value="in"' + (c.direction === "in" ? " selected" : "") + '>that → this</option></select>' +
+      '<button type="button" data-remove-row>×</button>' +
+      '<input type="text" data-f="condition" placeholder="Condition (needed for implies / iff)" value="' + esc(c.condition || "") + '" style="grid-column: 1 / -1">' +
+      '</div>';
+  }
+  function openNodeForm() {
+    form.innerHTML = '<h2 id="propose-title">Propose a concept</h2>' +
+      '<label>Name<input type="text" id="p-name" maxlength="120"></label><div id="p-similar" class="similar" hidden></div>' +
+      '<label>Kind<select id="p-kind">' + KINDS.map(function (k) { return "<option>" + esc(k) + "</option>"; }).join("") + "</select></label>" +
+      '<label>Section<select id="p-section">' + G.sections.slice().sort(function (a, b) { return a.order - b.order; }).map(function (s) {
+        return '<option value="' + esc(s.id) + '">' + esc(s.title || s.id) + "</option>"; }).join("") + "</select></label>" +
+      '<label>Topic<select id="p-topic">' + G.vocab.topics.map(function (t) { return "<option>" + esc(t) + "</option>"; }).join("") + "</select></label>" +
+      '<label>One-line note (optional, 200 characters)<input type="text" id="p-note" maxlength="200"></label>' +
+      '<label>Connections (optional)</label><div id="p-conns"></div>' +
+      '<button type="button" id="p-add-conn">Add a connection</button>' +
+      '<div class="errors" id="p-errors" hidden></div>' +
+      '<div class="buttons"><button type="button" id="p-cancel">Cancel</button><button type="button" id="p-save">Add proposal</button></div>';
+    $("#p-name").addEventListener("input", function () {
+      var s = CG.similarNodes(G.nodes, $("#p-name").value, 3), box = $("#p-similar");
+      box.hidden = !s.length;
+      box.innerHTML = s.length ? "Similar existing: " + s.map(function (n) { return esc(n.name); }).join(", ") +
+        ". Propose a connection instead if it is the same idea." : "";
+    });
+    $("#p-add-conn").addEventListener("click", function () { $("#p-conns").insertAdjacentHTML("beforeend", connectionRow()); });
+    $("#p-save").addEventListener("click", function () {
+      var conns = Array.from(form.querySelectorAll("[data-conn]")).map(function (row) {
+        var g = function (f) { return row.querySelector('[data-f="' + f + '"]').value; };
+        return { other: g("other"), type: g("type"), direction: g("direction"), condition: g("condition").trim() || null, note: "" };
+      });
+      var p = { name: $("#p-name").value.trim(), kind: $("#p-kind").value, section: $("#p-section").value,
+                topic: $("#p-topic").value, note: $("#p-note").value.trim(), connections: conns };
+      saveProposal({ action: "add_node", proposal: p });
+    });
+    finishForm();
+  }
+  function openEdgeForm(sourceId, targetIds) {
+    var rows = (targetIds && targetIds.length ? targetIds : [""]).map(function (t) { return t; });
+    form.innerHTML = '<h2 id="propose-title">Propose a connection</h2>' +
+      '<label>From<select id="e-source">' + nodeOptions(sourceId) + "</select></label>" +
+      '<button type="button" id="e-swap" title="Swap direction">Swap direction ⇅</button>' +
+      '<label>To</label><div id="e-rows"></div>' +
+      '<button type="button" id="e-add">Add another target</button>' +
+      '<div class="errors" id="p-errors" hidden></div>' +
+      '<div class="buttons"><button type="button" id="p-cancel">Cancel</button><button type="button" id="p-save">Add proposal</button></div>';
+    rows.forEach(function (t) {
+      $("#e-rows").insertAdjacentHTML("beforeend", '<div class="row" data-edge-row><select data-f="target">' + nodeOptions(t) + "</select>" +
+        '<select data-f="type">' + typeOptions("is_a") + '</select><span></span><button type="button" data-remove-row>×</button>' +
+        '<input type="text" data-f="condition" placeholder="Condition (needed for implies / iff)" style="grid-column: 1 / -1"></div>');
+    });
+    $("#e-add").addEventListener("click", function () {
+      $("#e-rows").insertAdjacentHTML("beforeend", '<div class="row" data-edge-row><select data-f="target">' + nodeOptions("") + "</select>" +
+        '<select data-f="type">' + typeOptions("is_a") + '</select><span></span><button type="button" data-remove-row>×</button>' +
+        '<input type="text" data-f="condition" placeholder="Condition (needed for implies / iff)" style="grid-column: 1 / -1"></div>');
+    });
+    $("#e-swap").addEventListener("click", function () {
+      var row = form.querySelector("[data-edge-row] [data-f=target]"), src = $("#e-source");
+      if (!row) return;
+      var t = row.value; row.value = src.value; src.value = t;
+    });
+    $("#p-save").addEventListener("click", function () {
+      var added = 0, source = $("#e-source").value;
+      var made = Array.from(form.querySelectorAll("[data-edge-row]")).map(function (row) {
+        var g = function (f) { return row.querySelector('[data-f="' + f + '"]').value; };
+        return { action: "add_edge", proposal: { source: source, type: g("type"), target: g("target"), condition: g("condition").trim() || null, note: "" } };
+      });
+      var all = [];
+      for (var i = 0; i < made.length; i++) {
+        var res = CG.checkProposal(G, made[i].proposal, proposals.concat(all));
+        if (res.errors.length) return showErrors(res.errors);
+        all.push(made[i]);
+      }
+      proposals = proposals.concat(all); added = all.length;
+      dialog.close(); persist(); toast(added + " connection" + (added === 1 ? "" : "s") + " added to your proposals.");
+    });
+    finishForm();
+  }
+  function showErrors(list) {
+    var box = $("#p-errors"); box.hidden = false;
+    box.innerHTML = list.map(function (m) { return "<div>" + esc(m) + "</div>"; }).join("");
+  }
+  function saveProposal(p) {
+    var res = CG.checkProposal(G, p.proposal, proposals);
+    if (res.errors.length) return showErrors(res.errors);
+    proposals.push(p); dialog.close(); persist(); toast("Added to your proposals. Submit your review to send it.");
+  }
+  form.addEventListener("click", function (ev) {
+    if (ev.target.hasAttribute("data-remove-row")) ev.target.closest(".row").remove();
+    if (ev.target.id === "p-cancel") dialog.close();
+  });
+  function finishForm() { if (!dialog.open) dialog.showModal(); }
+  function openProposal(kind, sourceId, targetIds) {
+    if (!needName()) return;
+    if (kind === "node") openNodeForm(); else openEdgeForm(sourceId || "", targetIds || []);
+  }
+
+  $("#btn-propose").addEventListener("click", function () { var m = $("#propose-menu"); m.hidden = !m.hidden; });
+  $("#propose-menu").addEventListener("click", function (ev) {
+    var b = ev.target.closest("button[data-propose]"); if (!b) return;
+    $("#propose-menu").hidden = true; openProposal(b.getAttribute("data-propose"));
+  });
+
+  cy.on("select unselect", "node", function () {
+    var ids = cy.nodes(":selected").filter(function (n) { return !n.hasClass("ghost"); }).map(function (n) { return n.id(); });
+    pickOrder = pickOrder.filter(function (id) { return ids.indexOf(id) !== -1; });
+    ids.forEach(function (id) { if (pickOrder.indexOf(id) === -1) pickOrder.push(id); });
+    $("#btn-connect").hidden = pickOrder.length < 2;
+  });
+  $("#btn-connect").addEventListener("click", function () {
+    openProposal("edge", pickOrder[0], pickOrder.slice(1));
+  });
 
   // ---- start ----------------------------------------------------------------
   $("#title").textContent = (G.site && G.site.title) || "Concept graph";

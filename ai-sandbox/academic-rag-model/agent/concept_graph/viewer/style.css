@@ -61,3 +61,18 @@ math { font-size: 1.05em; }
   #cy { height: 62vh; flex: none; }
   #panel { border-left: none; border-top: 1px solid var(--line); }
 }
+
+.menu { position: relative; display: inline-block; }
+.menu-body { position: absolute; right: 0; top: 100%; background: var(--bg); border: 1px solid var(--line, #d6d3d1); border-radius: 8px; padding: 4px; z-index: 12; display: flex; flex-direction: column; min-width: 160px; }
+.menu-body[hidden] { display: none; }
+#btn-connect { position: fixed; left: 50%; top: 72px; transform: translateX(-50%); z-index: 11; padding: 8px 14px; border-radius: 999px; }
+#propose-dialog { border: 1px solid var(--line, #d6d3d1); border-radius: 12px; padding: 16px; max-width: min(560px, 92vw); background: var(--bg); color: var(--fg); }
+#propose-form label { display: block; margin: 8px 0 2px; font-weight: 600; font-size: 0.9em; }
+#propose-form input[type=text], #propose-form select, #propose-form textarea { width: 100%; box-sizing: border-box; }
+#propose-form .row { display: grid; grid-template-columns: 1.4fr 1fr 1fr auto; gap: 6px; margin: 6px 0; align-items: center; }
+#propose-form .errors { color: #b91c1c; margin: 8px 0; }
+#propose-form .similar { background: #fef9c3; padding: 6px 8px; border-radius: 6px; margin-top: 6px; }
+#propose-form .buttons { display: flex; gap: 8px; justify-content: flex-end; margin-top: 12px; }
+#my-proposals ul { list-style: none; padding: 0; margin: 0; }
+#my-proposals li { display: flex; gap: 6px; justify-content: space-between; padding: 4px 0; font-size: 0.9em; }
+@media (max-width: 640px) { #propose-form .row { grid-template-columns: 1fr 1fr; } }

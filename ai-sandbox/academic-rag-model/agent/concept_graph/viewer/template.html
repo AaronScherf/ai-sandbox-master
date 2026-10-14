@@ -15,6 +15,11 @@
     <button id="btn-submit" type="button">Submit review</button>
     <button id="btn-download" type="button">Download review</button>
     <button id="btn-clear" type="button" title="Forget all my pending decisions">Clear</button>
+    <span class="menu"><button id="btn-propose" type="button" aria-haspopup="true">Propose &#9662;</button>
+      <span id="propose-menu" class="menu-body" hidden>
+        <button type="button" data-propose="node">New concept</button>
+        <button type="button" data-propose="edge">New connection</button>
+      </span></span>
   </div>
 </header>
 <main id="layout">
@@ -31,10 +36,13 @@
     </div>
     <details id="legend"><summary>How to read this</summary><div id="legend-body"></div></details>
     <nav id="name-list" aria-label="Concept list"></nav>
+    <section id="my-proposals" hidden><h3>Your proposals</h3><ul id="proposal-list"></ul></section>
   </aside>
   <div id="cy" role="img" aria-label="Concept graph"></div>
   <section id="panel" aria-live="polite"><p class="hint">Click a concept or a connection to read about it.</p></section>
 </main>
+<button id="btn-connect" type="button" hidden>Add connection</button>
+<dialog id="propose-dialog" aria-labelledby="propose-title"><form method="dialog" id="propose-form"></form></dialog>
 <div id="toast" role="status" hidden></div>
 <script type="application/json" id="graph-data">{{{GRAPH}}}</script>
 <script>{{{VENDOR}}}</script>
