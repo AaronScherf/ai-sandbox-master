@@ -640,7 +640,17 @@ def has_authored_markdown_peer(pdf_path: str) -> bool:
     else:
         if mirrored != pdf_path:
             candidates.append(os.path.splitext(mirrored)[0] + ".md")
-    return any(os.path.isfile(path) and os.path.getsize(path) > 0 for path in candidates)
+    for path in candidates:
+        if "processed_outputs" in Path(path).parts or not os.path.isfile(path):
+            continue
+        with open(path, encoding="utf-8-sig") as source:
+            prefix = source.read(4096)
+        if not prefix.strip():
+            continue
+        fields, _ = parse_frontmatter(prefix)
+        if "source_pdf" not in fields and "source_excalidraw" not in fields:
+            return True
+    return False
 
 
 def discover_pdf_files(notes_dir: str, file_filter: str | None = None,

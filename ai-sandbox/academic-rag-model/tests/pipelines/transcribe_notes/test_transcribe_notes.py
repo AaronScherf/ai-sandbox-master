@@ -75,6 +75,14 @@ class TestDiscoverPdfFiles(unittest.TestCase):
                 file.write("transcribed")
             self.assertEqual(discover_pdf_files(tmp), [pdf])
 
+    def test_keeps_pdf_when_same_stem_peer_has_transcription_provenance(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            pdf = os.path.join(tmp, "lecture.pdf")
+            open(pdf, "w").close()
+            with open(os.path.join(tmp, "lecture.md"), "w", encoding="utf-8") as file:
+                file.write("---\nsource_pdf: lecture.pdf\nrouting: local\n---\n\nTranscribed")
+            self.assertEqual(discover_pdf_files(tmp), [pdf])
+
 
 class TestBuildAccumulatedContext(unittest.TestCase):
     def test_joins_prior_pages_in_order(self):
