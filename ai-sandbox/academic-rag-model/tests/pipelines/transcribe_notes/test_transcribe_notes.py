@@ -83,6 +83,14 @@ class TestDiscoverPdfFiles(unittest.TestCase):
                 file.write("---\nsource_pdf: lecture.pdf\nrouting: local\n---\n\nTranscribed")
             self.assertEqual(discover_pdf_files(tmp), [pdf])
 
+    def test_skips_authored_peer_even_if_legacy_metadata_names_source_pdf(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            pdf = os.path.join(tmp, "homework_1_solutions.pdf")
+            open(pdf, "w").close()
+            with open(os.path.join(tmp, "homework_1_solutions.md"), "w", encoding="utf-8") as file:
+                file.write("---\nsource_pdf: homework_1_solutions.pdf\nauthored_source: true\n---\n\nAuthored answer")
+            self.assertEqual(discover_pdf_files(tmp), [])
+
 
 class TestBuildAccumulatedContext(unittest.TestCase):
     def test_joins_prior_pages_in_order(self):

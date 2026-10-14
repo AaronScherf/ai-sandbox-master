@@ -648,7 +648,9 @@ def has_authored_markdown_peer(pdf_path: str) -> bool:
         if not prefix.strip():
             continue
         fields, _ = parse_frontmatter(prefix)
-        if "source_pdf" not in fields and "source_excalidraw" not in fields:
+        if fields.get("authored_source", "").lower() == "true" or (
+            "source_pdf" not in fields and "source_excalidraw" not in fields
+        ):
             return True
     return False
 
