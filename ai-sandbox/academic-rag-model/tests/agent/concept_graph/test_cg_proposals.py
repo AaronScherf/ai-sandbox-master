@@ -79,3 +79,55 @@ def test_check_edge_rules():
     assert any("cycle" in m for m in warnings)
     assert run("a", "is_a", "new-one", new_ids={"new-one"}) == ([], [])
     assert any("already exists" in m for m in run("a", "is_a", "c", staged=[("a", "is_a", "c")])[0])
+
+
+def np(name, who, kind="property", section="s1", topic="t", note="", conns=()):
+    return (P.NodeProposal(name=name, kind=kind, section=section, topic=topic, note=note, connections=list(conns)), who)
+
+
+def test_cluster_groups_similar_names_and_leaves_others():
+    items = [np("Walrasian demand", "Ana"), np("Budget set", "Ben"), np("Walrasian demand correspondence", "Cy")]
+    groups = P.cluster(items)
+    assert sorted(len(g) for g in groups) == [1, 2]
+
+
+def test_merge_takes_majority_name_kind_and_unions_connections():
+    c1 = P.Connection(other="u", type="is_a", direction="out", condition=None, note="n1")
+    c2 = P.Connection(other="u", type="is_a", direction="out", condition=None, note="n2")
+    c3 = P.Connection(other="w", type="implies", direction="out", condition="when convex", note="")
+    cl = [np("Quasi concavity", "Ana", kind="property", note="Upper sets are convex.", conns=[c1]),
+          np("Quasi-concavity", "Ben", kind="property", note="Ranks bundles.", conns=[c2, c3]),
+          np("Quasi concavity", "Cy", kind="axiom")]
+    m = P.merge_cluster(cl)
+    assert m.name == "Quasi concavity" and m.kind == "property"
+    assert sorted(m.reviewers) == ["Ana", "Ben", "Cy"]
+    assert {(c.other, c.type) for c in m.connections} == {("u", "is_a"), ("w", "implies")}
+    assert "Ana: Upper sets are convex." in m.note and "Ben: Ranks bundles." in m.note
+    assert len(m.note) <= P.NOTE_MAX
+    assert m.decisions == []
+
+
+def test_merge_tie_is_flagged_and_does_not_depend_on_read_order():
+    a = [np("Foo bar", "Zoe", kind="axiom"), np("Foo bar", "Abe", kind="property")]
+    m1, m2 = P.merge_cluster(a), P.merge_cluster(list(reversed(a)))
+    assert m1.kind == m2.kind == "property"                  # Abe sorts first
+    assert any("kind" in d and "Abe" in d and "Zoe" in d for d in m1.decisions)
+
+
+def test_merge_name_tie_prefers_the_more_specific_form():
+    m = P.merge_cluster([np("Walrasian demand", "Ana"), np("Walrasian demand correspondence", "Ben")])
+    assert m.name == "Walrasian demand correspondence"
+
+
+def test_single_proposal_keeps_its_note_without_a_name_prefix():
+    assert P.merge_cluster([np("Foo bar", "Ana", note="Just this.")]).note == "Just this."
+
+
+def test_merge_edges_joins_conditions_and_notes():
+    e1 = (P.EdgeProposal(source="a", type="implies", target="b", condition="single valued", note="x"), "Ana")
+    e2 = (P.EdgeProposal(source="a", type="implies", target="b", condition="continuous", note="y"), "Ben")
+    e3 = (P.EdgeProposal(source="a", type="is_a", target="b"), "Cy")
+    merged = P.merge_edges([e1, e2, e3])
+    assert len(merged) == 2
+    implies = next(e for e, _ in merged if e.type == "implies")
+    assert implies.condition == "continuous; single valued" and "Ana: x" in implies.note and "Ben: y" in implies.note

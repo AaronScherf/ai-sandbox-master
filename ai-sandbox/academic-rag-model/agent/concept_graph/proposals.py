@@ -158,3 +158,101 @@ def check_edge(graph: Graph, source: str, type_: str, target: str, condition: st
             if g.has_node(source) and g.has_node(target) and nx.has_path(g, target, source):
                 bucket.append(f"this would close a {label} cycle between {source!r} and {target!r}")
     return errors, warnings
+
+
+
+
+@dataclass
+class Merged:
+    name: str
+    kind: str
+    section: str
+    topic: str
+    note: str
+    connections: list[Connection]
+    reviewers: list[str]
+    decisions: list[str] = field(default_factory=list)
+
+
+def cluster(items: list[tuple[NodeProposal, str]]) -> list[list[tuple[NodeProposal, str]]]:
+    """Group proposals whose names are similar (transitively), keeping first-seen order of groups."""
+    groups: list[list[tuple[NodeProposal, str]]] = []
+    for item in items:
+        hits = [g for g in groups if any(similar_names(item[0].name, other[0].name) for other in g)]
+        if not hits:
+            groups.append([item])
+            continue
+        hits[0].append(item)
+        for extra in hits[1:]:
+            hits[0].extend(extra)
+            groups.remove(extra)
+    return groups
+
+
+def _majority(values: list[tuple[str, str]], label: str) -> tuple[str, list[str]]:
+    """values are (value, reviewer). A tie is broken by reviewer name, never by read order, and reported."""
+    counts = Counter(v for v, _ in values)
+    top = max(counts.values())
+    leaders = sorted((v for v, c in counts.items() if c == top))
+    if len(leaders) == 1:
+        return leaders[0], []
+    first = min((r, v) for v, r in values if v in leaders)
+    detail = "; ".join(f"{r} chose {v}" for v, r in sorted(values, key=lambda x: (x[1], x[0])))
+    return first[1], [f"{label} needs a decision: {detail} (written as {first[1]!r} by name order)"]
+
+
+def merge_cluster(items: list[tuple[NodeProposal, str]]) -> Merged:
+    decisions: list[str] = []
+    forms = Counter(normalize_name(p.name) for p, _ in items)
+    top = max(forms.values())
+    best = sorted((f for f, c in forms.items() if c == top), key=lambda f: (-len(f), f))[0]
+    name = next(p.name for p, _ in items if normalize_name(p.name) == best)
+    chosen = {}
+    for label in ("kind", "section", "topic"):
+        chosen[label], flagged = _majority([(getattr(p, label), who) for p, who in items], label)
+        decisions += flagged
+    conns: dict[tuple[str, str, str], Connection] = {}
+    for p, who in items:
+        for c in p.connections:
+            key = (c.other, c.type, c.direction)
+            if key not in conns:
+                conns[key] = c.model_copy()
+            else:
+                have = conns[key]
+                parts = sorted({x for x in (have.condition, c.condition) if x})
+                have.condition = "; ".join(parts) or None
+    reviewers = sorted({who for _, who in items})
+    notes = [(who, p.note.strip()) for p, who in sorted(items, key=lambda i: i[1]) if p.note.strip()]
+    if len(items) == 1:
+        note = notes[0][1] if notes else ""
+    else:
+        note = " | ".join(f"{who}: {text}" for who, text in notes)
+    if len(note) > NOTE_MAX:
+        note = note[: NOTE_MAX - 1].rstrip() + "…"
+    return Merged(name=name, note=note, connections=list(conns.values()), reviewers=reviewers,
+                  decisions=decisions, **chosen)
+
+
+def merge_edges(items: list[tuple[EdgeProposal, str]]) -> list[tuple[EdgeProposal, list[str]]]:
+    """Collapse proposals for the same edge id; conditions and notes are joined, reviewers kept."""
+    out: dict[str, tuple[EdgeProposal, list[str], list[tuple[str, str]]]] = {}
+    for e, who in items:
+        key = edge_id(e.source, e.type, e.target)
+        if key not in out:
+            out[key] = (e.model_copy(), [who], [(who, e.note.strip())] if e.note.strip() else [])
+            continue
+        have, who_list, notes = out[key]
+        parts = sorted({x for x in (have.condition, e.condition) if x})
+        have.condition = "; ".join(parts) or None
+        if who not in who_list:
+            who_list.append(who)
+        if e.note.strip():
+            notes.append((who, e.note.strip()))
+    result = []
+    for have, who_list, notes in out.values():
+        if len(notes) > 1:
+            have.note = " | ".join(f"{w}: {t}" for w, t in sorted(notes))[:NOTE_MAX]
+        elif notes:
+            have.note = notes[0][1] if len(who_list) == 1 else f"{notes[0][0]}: {notes[0][1]}"
+        result.append((have, sorted(who_list)))
+    return result
