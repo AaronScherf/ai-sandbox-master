@@ -33,3 +33,19 @@ def test_ref_is_never_empty():
 def test_passage_exposes_its_offered_citation():
     p = Passage(id="P1", source="mwg", ref="ch. 1", text="t", path="p")
     assert p.offered == ("mwg", "ch. 1")
+
+
+def test_earlier_years_keep_their_own_source_keys():
+    hub = "C:/hub/academic-hub/academic_notes/microecon"
+    cases = {
+        f"{hub}/2024_class/Post lecture notes/processed_outputs/7.Consumer_Choice_2.md": ("slides-2024", "Consumer Choice 2"),
+        f"{hub}/2024_class/Pre Lecture Notes/processed_outputs/6.Consumer_Choice_1_for_circulation.md": ("slides-pre-2024", "Consumer Choice 1"),
+        f"{hub}/2025_class/Post-Lecture Notes/processed_outputs/11.Production.md": ("slides-2025", "Production"),
+        f"{hub}/2025_class/Homeworks/Solutions/processed_outputs/HW3_Sol.md": ("hw-2025", "HW3 Sol"),
+        f"{hub}/2025_class/proofs/processed_outputs/Proofs_Consumer_Choice_1.md": ("proofs-2025", "Proofs Consumer Choice 1"),
+        f"{hub}/2024_class/Exam Prep/processed_outputs/2023 solution.md": ("exam-2024", "2023 solution"),
+        f"{hub}/2025_class/processed_outputs/Micro_I_Recitation_Notes.md": ("recitation-2025", "Micro I Recitation Notes"),
+        f"{hub}/2025_class/processed_outputs/Midterm_Suggested Solutions.md": ("exam-2025", "Midterm Suggested Solutions"),
+    }
+    for path, expected in cases.items():
+        assert classify_passage(path, "") == expected, path

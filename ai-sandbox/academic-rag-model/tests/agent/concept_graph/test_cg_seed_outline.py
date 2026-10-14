@@ -164,3 +164,16 @@ def test_duplicate_names_are_bounced_even_with_different_ids_or_punctuation(tmp_
     seed.apply_result(store, entry, GOOD, PROV)
     again = {"nodes": [{"id": "pr3", "name": "Preference Relation", "kind": "object", "section": "s01-preferences", "topic": "preferences"}]}
     assert any("already" in m and "Preference relation" in m for m in seed.validate_result(entry, again, store))
+
+
+def test_outline_offers_earlier_years_post_lecture_slides_under_their_own_source(tmp_path):
+    hub = rich_hub(tmp_path)
+    for year, folder in (("2024", "Post lecture notes"), ("2025", "Post-Lecture Notes")):
+        d = hub / "academic_notes" / "microecon" / f"{year}_class" / folder / "processed_outputs"
+        d.mkdir(parents=True)
+        (d / "8.Production.md").write_text("Production\n\nDefinition\nA production set is a set of feasible input-output plans\n",
+                                           encoding="utf-8")
+    context, passages = seed.outline_context(str(hub), "microecon")
+    assert {p.source for p in passages if p.source.endswith(("2024", "2025"))} == {"slides-2024", "slides-2025"}
+    assert any(p.source == "slides-2025" and p.ref == "Production" for p in passages)
+    assert "2024 class slide sets (in order): Production" in context

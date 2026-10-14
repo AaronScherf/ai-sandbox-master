@@ -7,6 +7,11 @@ from pathlib import PurePosixPath
 
 _DATE = re.compile(r"\d{4}-\d{2}-\d{2}")
 _CHAPTER = re.compile(r"/chapters/(\d+)_")
+_PRIOR_YEAR = re.compile(r"/(20\d\d)_class/(.*)$")
+# Earlier years of the course: (words in the path under the year folder, source key). First match wins.
+_PRIOR_KINDS = (("proof", "proofs"), ("recitation", "recitation"), ("homework", "hw"), ("/hw", "hw"),
+                ("exam", "exam"), ("midterm", "exam"), ("survival", "exam"), ("syllabus", "syllabus"),
+                ("pre lecture", "slides-pre"), ("post", "slides"))
 
 
 @dataclass(frozen=True)
@@ -66,6 +71,12 @@ def classify_passage(path: str, citation: str = "") -> tuple[str, str]:
     if "ok_real_analysis" in low:
         return ("ok", _chapter_ref(p, citation))
     stem = _stem(p) or "unknown"
+    prior = _PRIOR_YEAR.search(low)
+    if prior:  # an earlier year's class folder, kept apart from this year's material by a year suffix on the key
+        rest = "/" + prior.group(2)
+        kind = next((key for word, key in _PRIOR_KINDS if word in rest), "other")
+        topic = re.sub(r"^\d+\.\s*", "", re.sub(r"_for_circulation.*$", "", stem)).replace("_", " ").strip()
+        return (f"{kind}-{prior.group(1)}", topic or stem)
     if "/lecture_notes/" in low:
         m = _DATE.search(stem)
         return ("lecture", m.group(0) if m else stem)

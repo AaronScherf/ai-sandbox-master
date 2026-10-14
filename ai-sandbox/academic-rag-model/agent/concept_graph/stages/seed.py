@@ -254,10 +254,27 @@ def outline_context(hub_root: str, course: str, *, config: SeedConfig | None = N
         if titles:
             add(chapters, "\n".join(titles), ref="table of contents", source=source)
 
+    # Earlier years of the course: their post-lecture slide sets show how the later topics (consumer choice 2,
+    # production, risk and uncertainty) are taught, before this year's lectures reach them.
+    prior_decks: list[str] = []
+    for year_dir in sorted(base.glob("20??_class")):
+        decks = []
+        for f in sorted(year_dir.glob("*ost*ecture*/processed_outputs/*.md"), key=slide_key):
+            anchors = statement_anchors(f.read_text(encoding="utf-8", errors="ignore"))
+            title = classify_passage(str(f))[1]
+            if anchors:
+                add(f, f"Statements found in the {year_dir.name[:4]} class slides:\n" + _bullets(anchors))
+            if title not in decks:
+                decks.append(title)
+        if decks:
+            prior_decks.append(f"{year_dir.name[:4]} class slide sets (in order): " + "; ".join(decks))
+
     if by_date:
         lines += ["Lecture dates with notes: " + ", ".join(sorted(by_date)), ""]
     if slides:
         lines += ["Professor slide sets (in course order): " + "; ".join(slides), ""]
+    if prior_decks:
+        lines += [*prior_decks, ""]
     lines += ["The syllabus excerpt, the statements found in slides and lecture notes, and the textbook contents and "
               "section headings are under 'Offered passages' below."]
     context = "\n".join(lines).strip()
