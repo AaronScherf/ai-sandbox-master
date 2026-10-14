@@ -1,0 +1,18 @@
+{
+  "similar": [
+    ["Sen's alpha", "Sens alpha"],
+    ["Walrasian demand", "Walrasian demand correspondence"],
+    ["Cobb-Douglas utility", "Cobb Douglas utility function"],
+    ["Expected utility", "Expected utility theorem"],
+    ["Hicksian demand", "Hicksian demnd"],
+    ["Weak axiom of revealed preference", "weak axiom of revealed preference"]
+  ],
+  "different": [
+    ["Utility function", "Indirect utility function"],
+    ["Strong axiom of revealed preference", "Weak axiom of revealed preference"],
+    ["First order stochastic dominance", "Second order stochastic dominance"],
+    ["Relative risk aversion", "Absolute risk aversion"],
+    ["Set", "Sat"],
+    ["Expenditure function", "Expenditure minimization problem"]
+  ]
+}
