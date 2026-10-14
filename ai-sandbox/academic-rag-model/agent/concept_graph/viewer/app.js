@@ -392,7 +392,7 @@
     var placed = new Map();
     proposals.forEach(function (p, i) {
       if (p.action !== "add_node") return;
-      var id = "ghost-" + CG.slugFromName(p.proposal.name);
+      var id = "ghost-n" + i;  // by position, so two proposals can never share an element id
       var near = (p.proposal.connections || []).map(function (c) { return cy.getElementById(c.other); }).filter(function (e) { return e.nonempty(); });
       var base = near.length ? near[0].position() : { x: 0, y: 0 };
       cy.add({ group: "nodes", classes: "ghost", data: { id: id, label: p.proposal.name, color: "#78716c", status: "proposed" },
@@ -408,7 +408,7 @@
       if (p.action !== "add_edge") return;
       var s = placed.get(p.proposal.source) || p.proposal.source, t = placed.get(p.proposal.target) || p.proposal.target;
       if (cy.getElementById(s).nonempty() && cy.getElementById(t).nonempty()) {
-        cy.add({ group: "edges", classes: "ghost", data: { id: "ghost-e" + i, source: s, target: t, color: "#78716c", arrow: "triangle", status: "proposed" } });
+        cy.add({ group: "edges", classes: "ghost", data: { id: "ghost-edge-" + i, source: s, target: t, color: "#78716c", arrow: "triangle", status: "proposed" } });
       }
     });
   }

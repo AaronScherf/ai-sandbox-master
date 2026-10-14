@@ -10,7 +10,7 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from .schema import EDITABLE_EDGE_FIELDS, EDITABLE_NODE_FIELDS, edge_id, field_hash
-from .proposals import (EdgeProposal, NodeProposal, check_edge, check_node, cluster, find_similar_existing,
+from .proposals import (NAME_MAX, NOTE_MAX, EdgeProposal, NodeProposal, check_edge, check_node, cluster, find_similar_existing,
                         merge_cluster, merge_edges, slug_from_name)
 from .store import GraphStore
 
@@ -86,6 +86,7 @@ def _find(store: GraphStore, kind: str, item_id: str):
 
 
 def _append(path: Path, line: str) -> None:
+    line = re.sub(r"[\r\n]+", " ", line)  # reviewer-supplied text must not start lines of its own
     with path.open("a", encoding="utf-8", newline="\n") as fh:
         fh.write(line + "\n")
 
@@ -171,13 +172,18 @@ def apply_proposals(store: GraphStore, reviews: list[ReviewFile], today: str) ->
     report = ApplyReport()
     node_items: list[tuple[NodeProposal, str]] = []
     edge_items: list[tuple[EdgeProposal, str]] = []
+    too_long: list[tuple[str, str]] = []
     for r in reviews:
         for d in r.decisions:
             if d.action == "add_node":
+                if len(d.proposal.name) > NAME_MAX or len(d.proposal.note or "") > NOTE_MAX:
+                    # checked before any name comparison, which is quadratic in the name length
+                    too_long.append((r.reviewer.name, d.proposal.name[:60]))
+                    continue
                 node_items.append((d.proposal, r.reviewer.name))
             elif d.action == "add_edge":
                 edge_items.append((d.proposal, r.reviewer.name))
-    if not node_items and not edge_items:
+    if not node_items and not edge_items and not too_long:
         return report
     graph = store.read_all()
     conflicts_file = store.root / "review-conflicts.md"
@@ -187,6 +193,10 @@ def apply_proposals(store: GraphStore, reviews: list[ReviewFile], today: str) ->
         _append(conflicts_file, "- " + msg)
         report.conflicts.append(msg)
 
+    for who_name, label_name in too_long:
+        conflict([who_name], f"concept {label_name!r}",
+                 f"name is longer than {NAME_MAX} characters or note is longer than {NOTE_MAX}; shorten it and "
+                 f"propose again")
     new_nodes: list[dict] = []
     new_ids: set[str] = set()
     pending_edges: list[tuple[EdgeProposal, str]] = list(edge_items)

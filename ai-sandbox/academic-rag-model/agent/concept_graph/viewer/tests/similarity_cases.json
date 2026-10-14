@@ -1,18 +1,74 @@
 {
   "similar": [
-    ["Sen's alpha", "Sens alpha"],
-    ["Walrasian demand", "Walrasian demand correspondence"],
-    ["Cobb-Douglas utility", "Cobb Douglas utility function"],
-    ["Expected utility", "Expected utility theorem"],
-    ["Hicksian demand", "Hicksian demnd"],
-    ["Weak axiom of revealed preference", "weak axiom of revealed preference"]
+    [
+      "Sen's alpha",
+      "Sens alpha"
+    ],
+    [
+      "Walrasian demand",
+      "Walrasian demand correspondence"
+    ],
+    [
+      "Cobb-Douglas utility",
+      "Cobb Douglas utility function"
+    ],
+    [
+      "Expected utility",
+      "Expected utility theorem"
+    ],
+    [
+      "Hicksian demand",
+      "Hicksian demnd"
+    ],
+    [
+      "Weak axiom of revealed preference",
+      "weak axiom of revealed preference"
+    ]
   ],
   "different": [
-    ["Utility function", "Indirect utility function"],
-    ["Strong axiom of revealed preference", "Weak axiom of revealed preference"],
-    ["First order stochastic dominance", "Second order stochastic dominance"],
-    ["Relative risk aversion", "Absolute risk aversion"],
-    ["Set", "Sat"],
-    ["Expenditure function", "Expenditure minimization problem"]
+    [
+      "Utility function",
+      "Indirect utility function"
+    ],
+    [
+      "Strong axiom of revealed preference",
+      "Weak axiom of revealed preference"
+    ],
+    [
+      "First order stochastic dominance",
+      "Second order stochastic dominance"
+    ],
+    [
+      "Relative risk aversion",
+      "Absolute risk aversion"
+    ],
+    [
+      "Set",
+      "Sat"
+    ],
+    [
+      "Expenditure function",
+      "Expenditure minimization problem"
+    ],
+    [
+      "Compensated demand",
+      "Uncompensated demand"
+    ],
+    [
+      "Strictly quasi-concave utility function",
+      "Quasi-concave utility function"
+    ],
+    [
+      "Strictly convex preference relation",
+      "Convex preference relation"
+    ],
+    [
+      "Locally non-satiated preferences",
+      "Non-satiated preferences"
+    ],
+    [
+      "Demand demand supply",
+      "Demand supply curve"
+    ]
   ]
 }

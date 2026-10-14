@@ -289,7 +289,21 @@
   }
   function slugFromName(name) { return normalizeName(name).split(" ").filter(Boolean).join("-"); }
   function tokens(name) {
-    return normalizeName(name).split(" ").filter(function (t) { return t && FILLER.indexOf(t) === -1; });
+    var all = normalizeName(name).split(" ").filter(function (t) { return t && FILLER.indexOf(t) === -1; });
+    return all.filter(function (t, i) { return all.indexOf(t) === i; }); // a set, as on the server
+  }
+  var QUALIFIERS = ["strictly", "strict", "locally", "globally", "weak", "weakly", "strong", "strongly", "non", "not",
+    "anti", "quasi", "marginal", "relative", "absolute", "average"];
+  var NEGATING_PREFIXES = ["un", "non", "in", "im", "ir", "dis"];
+  function opposed(ta, tb) {
+    var onlyA = ta.filter(function (t) { return tb.indexOf(t) === -1; });
+    var onlyB = tb.filter(function (t) { return ta.indexOf(t) === -1; });
+    if (onlyA.concat(onlyB).some(function (t) { return QUALIFIERS.indexOf(t) !== -1; })) return true;
+    return onlyA.some(function (x) {
+      return onlyB.some(function (y) {
+        return NEGATING_PREFIXES.some(function (pre) { return y === pre + x || x === pre + y; });
+      });
+    });
   }
   function distance(a, b) {
     var prev = []; for (var j = 0; j <= b.length; j++) prev.push(j);
@@ -312,6 +326,7 @@
       var inBig = function (t) { return big.indexOf(t) !== -1; };
       var extra = big.filter(function (t) { return small.indexOf(t) === -1; });
       if (small.length >= 2 && small.every(inBig) && extra.every(function (t) { return GENERIC.indexOf(t) !== -1; })) return true;
+      if (opposed(ta, tb)) return false;
       var shared = ta.filter(function (t) { return tb.indexOf(t) !== -1; }).length;
       var union = new Set(ta.concat(tb)).size;
       if (shared / union >= 0.75) return true;
@@ -338,6 +353,9 @@
       if (!graph.sections.some(function (s) { return s.id === p.section; })) errors.push("section '" + p.section + "' does not exist");
       if ((p.note || "").length > NOTE_MAX) errors.push("note is longer than " + NOTE_MAX + " characters");
       similar = similarNodes(graph.nodes, p.name, 3);
+      if ((pending || []).some(function (x) { return x.action === "add_node" && similarNames(x.proposal.name, p.name); })) {
+        errors.push("a concept like this is already in your proposals");
+      }
       (p.connections || []).forEach(function (c) {
         if (!ids.has(c.other)) errors.push("connection to '" + c.other + "': not a concept in the graph");
         if (CONDITION_REQUIRED.indexOf(c.type) !== -1 && !(c.condition || "").trim()) errors.push("a " + c.type + " connection needs a condition");

@@ -19,6 +19,10 @@ NOTE_MAX = 200
 GENERIC = frozenset({"function", "correspondence", "relation", "problem", "theorem", "axiom", "condition",
                      "property", "set", "model", "equation", "lemma", "principle", "assumption"})
 _FILLER = frozenset({"of", "the", "a", "an", "and", "for", "in", "to"})
+# A word like these in only one of two names makes them different concepts, however close the spelling.
+QUALIFIERS = frozenset({"strictly", "strict", "locally", "globally", "weak", "weakly", "strong", "strongly", "non",
+                        "not", "anti", "quasi", "marginal", "relative", "absolute", "average"})
+_NEGATING_PREFIXES = ("un", "non", "in", "im", "ir", "dis")
 
 
 class _Model(BaseModel):
@@ -73,6 +77,18 @@ def _distance(a: str, b: str) -> int:
     return prev[-1]
 
 
+def _opposed(ta: set[str], tb: set[str]) -> bool:
+    """True when the names differ by a qualifier or by a negating prefix ("compensated" and "uncompensated")."""
+    only_a, only_b = ta - tb, tb - ta
+    if (only_a | only_b) & QUALIFIERS:
+        return True
+    for x in only_a:
+        for y in only_b:
+            if any(y == pre + x or x == pre + y for pre in _NEGATING_PREFIXES):
+                return True
+    return False
+
+
 def similar_names(a: str, b: str) -> bool:
     na, nb = normalize_name(a), normalize_name(b)
     if not na or not nb:
@@ -84,6 +100,8 @@ def similar_names(a: str, b: str) -> bool:
         small, big = (ta, tb) if len(ta) <= len(tb) else (tb, ta)
         if len(small) >= 2 and small <= big and (big - small) <= GENERIC:
             return True
+        if _opposed(ta, tb):
+            return False
         if len(ta & tb) / len(ta | tb) >= 0.75:
             return True
     return _distance(na, nb) <= 0.10 * max(len(na), len(nb))
@@ -143,6 +161,8 @@ def check_edge(graph: Graph, source: str, type_: str, target: str, condition: st
         errors.append(f"{eid} was rejected earlier and must not be proposed again")
     if type_ in CONDITION_REQUIRED and not (condition or "").strip():
         errors.append(f"a {type_} connection needs a condition (when does it hold?)")
+    if len(note or "") > NOTE_MAX:
+        errors.append(f"note is longer than {NOTE_MAX} characters")
     if note:
         errors += check_meta({"note": note})
     if type_ == "implies" and ((source, "iff", target) in have or (target, "iff", source) in have):

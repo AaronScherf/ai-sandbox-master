@@ -52,3 +52,9 @@ test("buildReview emits version 2 and appends proposals after decisions", () => 
   assert.equal(r.decisions.length, 2);
   assert.equal(r.decisions[1].action, "add_edge");
 });
+
+test("checkProposal refuses a concept that is already among the pending proposals", () => {
+  const pending = [{ action: "add_node", proposal: { name: "foo bar", kind: "object", section: "s1", topic: "demand", note: "", connections: [] } }];
+  const again = { name: "Foo  Bar", kind: "object", section: "s1", topic: "demand", note: "", connections: [] };
+  assert.match(CG.checkProposal(graph, again, pending).errors.join(" "), /already in your proposals/);
+});

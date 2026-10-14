@@ -65,6 +65,7 @@ def _cmd_apply_review(args) -> int:
             print(f"error: {p}", file=sys.stderr)
             failed = True
 
+    to_close: list[int] = []  # closed only after proposals are written, so a failure leaves them open
     for label, review, issue_number in inputs:
         report = apply_review(store, review, today)
         archive_review(args.graph_repo, review, today)
@@ -77,7 +78,7 @@ def _cmd_apply_review(args) -> int:
         if args.commit:
             _git_commit(args.graph_repo, review.reviewer.name)
         if args.close_applied and issue_number is not None:
-            close_issue(args.from_issues, issue_number)
+            to_close.append(issue_number)
     if inputs:
         round_report = apply_proposals(store, [r for _, r, _ in inputs], args.today or dt.date.today().isoformat())
         if round_report.applied or round_report.conflicts or round_report.comments:
@@ -89,6 +90,8 @@ def _cmd_apply_review(args) -> int:
                 print(f"    conflicts need your decision: see {args.graph_repo / 'review-conflicts.md'}")
             if args.commit:
                 _git_commit(args.graph_repo, "proposals")
+    for number in to_close:
+        close_issue(args.from_issues, number)
     return 1 if failed else 0
 
 

@@ -131,3 +131,9 @@ def test_merge_edges_joins_conditions_and_notes():
     assert len(merged) == 2
     implies = next(e for e, _ in merged if e.type == "implies")
     assert implies.condition == "continuous; single valued" and "Ana: x" in implies.note and "Ben: y" in implies.note
+
+
+def test_edge_note_over_the_limit_is_an_error():
+    g = graph([node("a", "A"), node("b", "B")])
+    errors, _ = P.check_edge(g, "a", "is_a", "b", None, "w " * 150)
+    assert any("200" in m for m in errors)

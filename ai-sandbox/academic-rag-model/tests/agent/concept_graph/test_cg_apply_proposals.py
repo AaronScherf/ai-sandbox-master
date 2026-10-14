@@ -135,3 +135,36 @@ def test_a_viewer_style_review_round_trips_through_the_cli_and_build(store, tmp_
     assert main(["--graph-repo", str(store.root), "build"]) == 0
     built = json.loads((store.root / "build" / "graph.json").read_text(encoding="utf-8"))
     assert any(n["id"] == "quasi-concavity" and n["status"] == "proposed" for n in built["nodes"])
+
+
+def test_overlong_name_and_note_bounce_without_a_name_comparison(store):
+    r = review("Ada", add_node("x" * 300), add_node("Short one", note="w " * 150),
+               add_edge(store.read_all().nodes[0].id, "is_a", store.read_all().nodes[1].id, note="n " * 150))
+    report = apply_proposals(store, [r], "2026-10-20")
+    text = (store.root / "review-conflicts.md").read_text(encoding="utf-8")
+    assert len(report.conflicts) == 3 and "120" in text and "200" in text
+    assert not any(n.id == "short-one" for n in store.read_all().nodes)
+
+
+def test_reviewer_names_cannot_forge_lines_in_the_conflicts_file(store):
+    r = review("Ada" + chr(10) + "- FAKE: all good", add_node("Odd one", kind="widget"))
+    apply_proposals(store, [r], "2026-10-20")
+    lines = (store.root / "review-conflicts.md").read_text(encoding="utf-8").splitlines()
+    assert len(lines) == 1 and not any(ln.startswith("- FAKE") for ln in lines)
+
+
+def test_issues_are_not_closed_if_applying_proposals_fails(store, tmp_path, monkeypatch):
+    from agent.concept_graph import cli
+    r = review("Ada", add_node("Quasi concavity"))
+    closed = []
+    monkeypatch.setattr(cli, "fetch_review_issues", lambda repo: ([(7, r)], []))
+    monkeypatch.setattr(cli, "close_issue", lambda repo, n: closed.append(n))
+    def boom(*a, **k):
+        raise RuntimeError("disk full")
+    monkeypatch.setattr(cli, "apply_proposals", boom)
+    try:
+        rc = cli.main(["--graph-repo", str(store.root), "apply-review", "--from-issues", "o/r", "--close-applied",
+                       "--today", "2026-10-20"])
+    except RuntimeError:
+        rc = 1
+    assert rc != 0 and closed == []
