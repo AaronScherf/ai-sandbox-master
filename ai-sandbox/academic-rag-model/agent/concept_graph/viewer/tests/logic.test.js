@@ -106,7 +106,7 @@ test("recordDecision replaces the same decision and keeps accept and reject excl
 test("buildReview has the shape apply-review expects", () => {
   const r = CG.buildReview({ graph_version: "abc123" }, [{ target: { kind: "node", id: "n" }, action: "accept" }], "Ada", "2026-10-20T00:00:00Z");
   assert.deepEqual(r, {
-    schema_version: 1, graph_version: "abc123", reviewer: { name: "Ada" }, created: "2026-10-20T00:00:00Z",
+    schema_version: 2, graph_version: "abc123", reviewer: { name: "Ada" }, created: "2026-10-20T00:00:00Z",
     decisions: [{ target: { kind: "node", id: "n" }, action: "accept" }],
   });
 });

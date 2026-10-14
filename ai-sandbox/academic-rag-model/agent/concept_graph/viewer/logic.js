@@ -252,13 +252,13 @@
     return kept;
   }
 
-  function buildReview(graph, decisions, reviewerName, nowIso) {
+  function buildReview(graph, decisions, reviewerName, nowIso, proposals) {
     return {
-      schema_version: 1,
+      schema_version: 2,
       graph_version: graph.graph_version,
       reviewer: { name: reviewerName },
       created: nowIso,
-      decisions: decisions
+      decisions: decisions.concat(proposals || [])
     };
   }
 
@@ -278,10 +278,89 @@
     };
   }
 
+  var GENERIC = ["function", "correspondence", "relation", "problem", "theorem", "axiom", "condition", "property",
+    "set", "model", "equation", "lemma", "principle", "assumption"];
+  var FILLER = ["of", "the", "a", "an", "and", "for", "in", "to"];
+  var NAME_MAX = 120, NOTE_MAX = 200;
+  var CONDITION_REQUIRED = ["implies", "iff"];
+
+  function normalizeName(name) {
+    return String(name || "").toLowerCase().replace(/[’']/g, "").replace(/[^a-z0-9]+/g, " ").trim().split(/\s+/).filter(Boolean).join(" ");
+  }
+  function slugFromName(name) { return normalizeName(name).split(" ").filter(Boolean).join("-"); }
+  function tokens(name) {
+    return normalizeName(name).split(" ").filter(function (t) { return t && FILLER.indexOf(t) === -1; });
+  }
+  function distance(a, b) {
+    var prev = []; for (var j = 0; j <= b.length; j++) prev.push(j);
+    for (var i = 1; i <= a.length; i++) {
+      var cur = [i];
+      for (var k = 1; k <= b.length; k++) {
+        cur.push(Math.min(prev[k] + 1, cur[k - 1] + 1, prev[k - 1] + (a[i - 1] === b[k - 1] ? 0 : 1)));
+      }
+      prev = cur;
+    }
+    return prev[b.length];
+  }
+  function similarNames(a, b) {
+    var na = normalizeName(a), nb = normalizeName(b);
+    if (!na || !nb) return false;
+    if (na === nb) return true;
+    var ta = tokens(a), tb = tokens(b);
+    if (ta.length && tb.length) {
+      var small = ta.length <= tb.length ? ta : tb, big = ta.length <= tb.length ? tb : ta;
+      var inBig = function (t) { return big.indexOf(t) !== -1; };
+      var extra = big.filter(function (t) { return small.indexOf(t) === -1; });
+      if (small.length >= 2 && small.every(inBig) && extra.every(function (t) { return GENERIC.indexOf(t) !== -1; })) return true;
+      var shared = ta.filter(function (t) { return tb.indexOf(t) !== -1; }).length;
+      var union = new Set(ta.concat(tb)).size;
+      if (shared / union >= 0.75) return true;
+    }
+    return distance(na, nb) <= 0.10 * Math.max(na.length, nb.length);
+  }
+  function similarNodes(nodes, name, limit) {
+    return nodes.filter(function (n) { return similarNames(n.name, name); }).slice(0, limit || 3);
+  }
+
+  // Mirrors proposals.py check_node / check_edge so the form can say what is wrong before anything is sent.
+  function checkProposal(graph, p, pending) {
+    var errors = [], similar = [];
+    var ids = new Set(graph.nodes.map(function (n) { return n.id; }));
+    (pending || []).forEach(function (x) { if (x.action === "add_node") ids.add(slugFromName(x.proposal.name)); });
+    if (p.name !== undefined) {
+      var slug = slugFromName(p.name);
+      if (!String(p.name).trim()) errors.push("name is empty");
+      else if (p.name.length > NAME_MAX) errors.push("name is longer than " + NAME_MAX + " characters");
+      else if (!slug) errors.push("name does not give a usable id");
+      if (slug && graph.nodes.some(function (n) { return n.id === slug; })) errors.push("'" + slug + "' is already a concept in the graph");
+      if (graph.vocab.kinds.indexOf(p.kind) === -1) errors.push("kind '" + p.kind + "' is not one of " + graph.vocab.kinds.join(", "));
+      if (graph.vocab.topics.indexOf(p.topic) === -1) errors.push("topic '" + p.topic + "' is not one of " + graph.vocab.topics.join(", "));
+      if (!graph.sections.some(function (s) { return s.id === p.section; })) errors.push("section '" + p.section + "' does not exist");
+      if ((p.note || "").length > NOTE_MAX) errors.push("note is longer than " + NOTE_MAX + " characters");
+      similar = similarNodes(graph.nodes, p.name, 3);
+      (p.connections || []).forEach(function (c) {
+        if (!ids.has(c.other)) errors.push("connection to '" + c.other + "': not a concept in the graph");
+        if (CONDITION_REQUIRED.indexOf(c.type) !== -1 && !(c.condition || "").trim()) errors.push("a " + c.type + " connection needs a condition");
+      });
+    } else {
+      if (!ids.has(p.source)) errors.push("source '" + p.source + "' is not a concept in the graph");
+      if (!ids.has(p.target)) errors.push("target '" + p.target + "' is not a concept in the graph");
+      if (p.source === p.target) errors.push("a concept cannot connect to itself");
+      if (CONDITION_REQUIRED.indexOf(p.type) !== -1 && !(p.condition || "").trim()) errors.push("a " + p.type + " connection needs a condition (when does it hold?)");
+      var id = p.source + "--" + p.type + "--" + p.target;
+      var taken = graph.edges.some(function (e) { return e.id === id; }) ||
+        (pending || []).some(function (x) { return x.action === "add_edge" && x.proposal.source + "--" + x.proposal.type + "--" + x.proposal.target === id; });
+      if (taken) errors.push(id + " already exists");
+    }
+    return { errors: errors, similar: similar };
+  }
+
   return {
     edgeSentence: edgeSentence, needsPairs: needsPairs, prerequisites: prerequisites,
     computeLayout: computeLayout, spreadLayout: spreadLayout, splitMath: splitMath, splitFormal: splitFormal, filterNodes: filterNodes,
     decisionKey: decisionKey, recordDecision: recordDecision, buildReview: buildReview,
+    normalizeName: normalizeName, slugFromName: slugFromName, similarNames: similarNames,
+    similarNodes: similarNodes, checkProposal: checkProposal,
     issueUrl: issueUrl, safeStorage: safeStorage
   };
 });
