@@ -117,3 +117,21 @@ def test_the_same_edge_from_two_reviewers_is_one_edge_with_both_conditions(store
     e = next(e for e in store.read_all().edges if e.id == f"{a}--implies--{b}")
     assert "single valued" in e.condition and "continuous" in e.condition
     assert e.provenance.agent == "Ana; Ben"
+
+
+def test_a_viewer_style_review_round_trips_through_the_cli_and_build(store, tmp_path, capsys):
+    from agent.concept_graph.cli import main
+    g = store.read_all()
+    other = g.nodes[0].id
+    payload = {"schema_version": 2, "graph_version": "v", "reviewer": {"name": "Ada"}, "created": "t",
+               "decisions": [add_node("Quasi concavity", note="Upper sets are convex.",
+                                      connections=[{"other": other, "type": "is_a", "direction": "out"}])]}
+    f = tmp_path / "review.json"
+    f.write_text(json.dumps(payload), encoding="utf-8")
+    assert main(["--graph-repo", str(store.root), "apply-review", str(f), "--today", "2026-10-20"]) == 0
+    out = capsys.readouterr().out
+    assert "proposals: " in out and "quasi-concavity" in out
+    assert main(["--graph-repo", str(store.root), "validate"]) == 0
+    assert main(["--graph-repo", str(store.root), "build"]) == 0
+    built = json.loads((store.root / "build" / "graph.json").read_text(encoding="utf-8"))
+    assert any(n["id"] == "quasi-concavity" and n["status"] == "proposed" for n in built["nodes"])

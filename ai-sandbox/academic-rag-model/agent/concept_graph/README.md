@@ -137,6 +137,23 @@ field has changed since (or two reviewers edited it differently) the edit goes t
 maintainer. Rejecting a node also removes and tombstones its edges. Accepting sets `status: verified` with the
 reviewer's name and date. Use `--commit` for one `review: apply <name>` commit per reviewer.
 
+### Proposing concepts and connections
+
+The **Propose** menu adds two kinds of decision to a review (review file `schema_version` 2; version 1 files still
+apply): a **new concept** (name, kind, section and topic dropdowns, an optional 200-character note and optional
+connections) and a **new connection** (source, type dropdown, one or more targets, a condition for `implies` and
+`iff`). Selecting two or more concepts with Shift or Ctrl-click shows **Add connection**; the first one selected is the
+source. Proposals sit in "Your proposals" and as dotted ghost items until the review is sent, and can be withdrawn.
+
+`apply-review` handles all proposals of a round in one pass after the per-review loop (`reviews.apply_proposals`,
+rules in `proposals.py`, mirrored in `viewer/logic.js`). Concepts with similar names are clustered and merged
+(majority kind/section/topic, union of connections, every reviewer's note kept with their name); a tie is written to
+`review-conflicts.md` as "needs a decision". A proposal similar to an existing concept is not created again: its
+connections become edge proposals against the existing concept and its note goes to `review-comments.md`. Invalid
+proposals go to `review-conflicts.md` with the reason. Accepted proposals are written as `status: proposed` with
+`provenance.driver: reviewer`. Then draft them like any other node: `collect fill --node <id>`,
+`collect link --node <id> --redo`, `collect critic`.
+
 ## Vendored libraries
 
 `viewer/vendor/` holds Cytoscape.js and KaTeX (MIT; licenses alongside), fetched once by
@@ -154,4 +171,5 @@ test is skipped if Node is not installed. The page itself was checked by hand in
 
 ## Not built yet
 
-The Artifact review adapter and an Obsidian export.
+The Artifact review adapter and an Obsidian export; drag-to-connect on the canvas and an agent stage that
+rewrites merged proposal notes.
