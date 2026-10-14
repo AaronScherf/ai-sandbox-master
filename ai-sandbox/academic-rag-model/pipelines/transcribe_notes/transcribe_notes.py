@@ -653,8 +653,7 @@ def has_authored_markdown_peer(pdf_path: str) -> bool:
     return False
 
 
-def discover_pdf_files(notes_dir: str, file_filter: str | None = None,
-                       skip_authored_markdown: bool = True) -> list[str]:
+def discover_pdf_files(notes_dir: str, file_filter: str | None = None) -> list[str]:
     if not os.path.isdir(notes_dir):
         return []
     files = []
@@ -662,7 +661,7 @@ def discover_pdf_files(notes_dir: str, file_filter: str | None = None,
         if name.lower().endswith(".pdf"):
             if file_filter is None or name == file_filter:
                 path = os.path.join(notes_dir, name)
-                if not skip_authored_markdown or not has_authored_markdown_peer(path):
+                if not has_authored_markdown_peer(path):
                     files.append(path)
     return files
 
@@ -1527,11 +1526,13 @@ def main():
         Path(__file__).resolve().parent.parent.parent.parent / "academic-hub"
     ))
     notes_dir = academic_hub_dir / args.notes_subdir
-    pdf_candidates = discover_pdf_files(str(notes_dir), args.file, skip_authored_markdown=False)
-    pdf_paths = [path for path in pdf_candidates if not has_authored_markdown_peer(path)]
+    pdf_paths = discover_pdf_files(str(notes_dir), args.file)
     if not pdf_paths:
-        if pdf_candidates:
-            print(f"Skipping {len(pdf_candidates)} PDF export(s) with same-name Markdown sources under {notes_dir}.")
+        skipped = [name for name in os.listdir(notes_dir) if name.lower().endswith(".pdf")
+                   and (args.file is None or name == args.file)
+                   and has_authored_markdown_peer(str(notes_dir / name))] if notes_dir.is_dir() else []
+        if skipped:
+            print(f"Skipping {len(skipped)} PDF export(s) with same-name Markdown sources under {notes_dir}.")
             return
         print(f"No PDF files found under {notes_dir}.")
         sys.exit(1)
