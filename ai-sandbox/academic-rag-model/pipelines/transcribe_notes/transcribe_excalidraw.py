@@ -400,6 +400,7 @@ def expand_transcription(
     client, raw_markdown: str, backend: str = "gemini", retrieved_passages: list[str] | None = None,
     has_slides: bool = False, driver: "ExcalidrawDriver | None" = None,
     excalidraw_md_path: str | None = None, cache: dict[str, str] | None = None,
+    collect_mode: bool = False,
 ) -> tuple[str | None, dict]:
     """backend='gemini' (default) or 'ollama' (opt-in). Routes every
     generative call through `driver` (default ExcalidrawApiDriver), caching
@@ -414,6 +415,31 @@ def expand_transcription(
     cache = {} if cache is None else cache
     grounded = bool(retrieved_passages)
     segments = _expansion_segments(raw_markdown, has_slides)
+
+    if collect_mode:
+        missing = []
+        for i, (label, text) in enumerate(segments):
+            if label == "Slide" or cache.get(str(i), "").strip():
+                continue
+            neighbors = [
+                segments[j][1] for j in (i - 1, i + 1)
+                if 0 <= j < len(segments) and segments[j][0] == "Slide"
+            ] if has_slides else []
+            prompt = (
+                build_handwriting_expansion_prompt(text, neighbors, retrieved_passages) if has_slides
+                else build_expansion_prompt(raw_markdown, retrieved_passages, has_slides=False)
+            )
+            missing.append((i, prompt))
+        if not missing:
+            return None, {}  # nothing to stage -- caller must check whether cache is already complete
+        try:
+            staged = driver.stage_segments(excalidraw_md_path, missing, len(segments))
+        except AgentPending:
+            raise
+        for segment_index, text in staged.items():
+            if text and text.strip():
+                cache[str(segment_index)] = text
+        return None, {}  # collect never finishes assembly -- same contract as transcribe_chunks' collect_mode
 
     if not has_slides:
         # Single segment covering the whole document -- output format must
@@ -627,6 +653,16 @@ def process_excalidraw_note(
     retrieved_passages = _retrieve_grounding(
         excalidraw_md_path, raw_markdown, client, academic_hub_root, use_grounding,
     )
+
+    if collect_mode:
+        exp_cache_path, _ = expansion_cache_paths_for(excalidraw_md_path)
+        exp_cache = load_json_cache(exp_cache_path)
+        expand_transcription(
+            client, raw_markdown, expand_backend, retrieved_passages, has_slides=has_slides,
+            driver=driver, excalidraw_md_path=excalidraw_md_path, cache=exp_cache, collect_mode=True,
+        )
+        save_json_cache(exp_cache_path, exp_cache)
+        return True
 
     exp_cache_path, _ = expansion_cache_paths_for(excalidraw_md_path)
     exp_cache = load_json_cache(exp_cache_path)

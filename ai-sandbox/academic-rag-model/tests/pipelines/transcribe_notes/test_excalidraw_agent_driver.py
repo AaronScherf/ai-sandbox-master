@@ -40,3 +40,13 @@ def test_null_driver_stage_chunks_raises_when_anything_is_missing():
     driver = ExcalidrawNullDriver()
     with pytest.raises(NullDriverFired):
         driver.stage_chunks("note.excalidraw.md", "model", missing=[(0, "p", b"img")], total_chunks=1)
+
+
+def test_api_driver_stage_segments_expands_each_missing_one():
+    class FakeApiLikeDriver(ExcalidrawApiDriver):
+        def expand(self, excalidraw_md_path, prompt, segment_index, total_segments):
+            return f"expanded {segment_index}"
+
+    driver = FakeApiLikeDriver(client=object())
+    result = driver.stage_segments("note.excalidraw.md", missing=[(1, "prompt 1"), (3, "prompt 3")], total_segments=4)
+    assert result == {1: "expanded 1", 3: "expanded 3"}

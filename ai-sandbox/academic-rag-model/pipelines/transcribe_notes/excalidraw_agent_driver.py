@@ -38,6 +38,10 @@ class ExcalidrawDriver(Protocol):
         self, excalidraw_md_path: str, model: str, missing: list[tuple[int, str, bytes]], total_chunks: int,
     ) -> dict[int, str]: ...
 
+    def stage_segments(
+        self, excalidraw_md_path: str, missing: list[tuple[int, str]], total_segments: int,
+    ) -> dict[int, str]: ...
+
 
 class ExcalidrawApiDriver:
     """Default driver: reproduces transcribe_excalidraw.py's existing direct
@@ -85,6 +89,14 @@ class ExcalidrawApiDriver:
             )
         return results
 
+    def stage_segments(
+        self, excalidraw_md_path: str, missing: list[tuple[int, str]], total_segments: int,
+    ) -> dict[int, str]:
+        return {
+            segment_index: self.expand(excalidraw_md_path, prompt, segment_index, total_segments)
+            for segment_index, prompt in missing
+        }
+
 
 class ExcalidrawNullDriver:
     """Used once every chunk/segment is already cached: a live call here is
@@ -113,5 +125,13 @@ class ExcalidrawNullDriver:
     ) -> dict[int, str]:
         raise NullDriverFired(
             f"ExcalidrawNullDriver: unexpected stage_chunks call for {excalidraw_md_path} -- "
+            "the cache should already be complete at this point."
+        )
+
+    def stage_segments(
+        self, excalidraw_md_path: str, missing: list[tuple[int, str]], total_segments: int,
+    ) -> dict[int, str]:
+        raise NullDriverFired(
+            f"ExcalidrawNullDriver: unexpected stage_segments call for {excalidraw_md_path} -- "
             "the cache should already be complete at this point."
         )

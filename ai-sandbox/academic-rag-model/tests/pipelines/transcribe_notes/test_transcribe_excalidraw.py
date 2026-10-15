@@ -365,6 +365,24 @@ def test_expand_transcription_slide_aware_only_generates_missing_segments():
     assert "Slide one" in text and "Slide two" in text
 
 
+def test_expand_transcription_collect_mode_stages_all_missing_segments_in_one_call():
+    captured = {}
+
+    class FakeDriver:
+        backend = "gemini"
+
+        def stage_segments(self, excalidraw_md_path, missing, total_segments):
+            captured["missing"] = missing
+            return {}
+
+    raw = "**[Slide]**\nSlide one\n\n**[Handwritten]**\nNote one\n\n**[Handwritten]**\nNote two"
+    expand_transcription(
+        client=object(), raw_markdown=raw, has_slides=True, driver=FakeDriver(),
+        excalidraw_md_path="note.excalidraw.md", cache={}, collect_mode=True,
+    )
+    assert [m[0] for m in captured["missing"]] == [1, 2]  # both Handwritten segments, Slide excluded
+
+
 from pipelines.transcribe_notes.transcribe_excalidraw import write_outputs
 
 
