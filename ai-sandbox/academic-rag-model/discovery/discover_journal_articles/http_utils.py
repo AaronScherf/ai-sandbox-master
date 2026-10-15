@@ -64,6 +64,23 @@ def is_pdf_response(response: requests.Response) -> bool:
     return "application/pdf" in response.headers.get("Content-Type", "").lower()
 
 
+def is_valid_pdf_bytes(content: bytes) -> bool:
+    """Checks the %PDF- magic bytes and that pypdf can actually open the
+    content -- is_pdf_response() alone trusts the Content-Type header,
+    which a misconfigured host or error page can mislabel."""
+    if not content.startswith(b"%PDF-"):
+        return False
+    import io
+
+    from pypdf import PdfReader
+
+    try:
+        PdfReader(io.BytesIO(content))
+    except Exception:
+        return False
+    return True
+
+
 def paced_sleep(pace_per_hour: float, jitter: float = 0.3) -> None:
     """Sleeps min_interval = 3600/pace_per_hour seconds, jittered +/-jitter
     (default +/-30%) so the request cadence isn't perfectly periodic --

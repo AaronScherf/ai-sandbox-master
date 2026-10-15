@@ -53,6 +53,29 @@ class TestIsPdfResponse(unittest.TestCase):
         self.assertFalse(is_pdf_response(response))
 
 
+class TestIsValidPdfBytes(unittest.TestCase):
+    def _minimal_valid_pdf_bytes(self) -> bytes:
+        import io
+        from pypdf import PdfWriter
+        writer = PdfWriter()
+        writer.add_blank_page(width=72, height=72)
+        buf = io.BytesIO()
+        writer.write(buf)
+        return buf.getvalue()
+
+    def test_true_for_a_real_parseable_pdf(self):
+        from discovery.discover_journal_articles.http_utils import is_valid_pdf_bytes
+        self.assertTrue(is_valid_pdf_bytes(self._minimal_valid_pdf_bytes()))
+
+    def test_false_without_pdf_magic_bytes(self):
+        from discovery.discover_journal_articles.http_utils import is_valid_pdf_bytes
+        self.assertFalse(is_valid_pdf_bytes(b"<html>not a pdf</html>"))
+
+    def test_false_for_magic_bytes_with_garbage_body(self):
+        from discovery.discover_journal_articles.http_utils import is_valid_pdf_bytes
+        self.assertFalse(is_valid_pdf_bytes(b"%PDF-1.4\nthis is not actually a valid pdf body at all"))
+
+
 class TestPacedSleep(unittest.TestCase):
     @patch("discovery.discover_journal_articles.http_utils.time.sleep")
     @patch("discovery.discover_journal_articles.http_utils.random.uniform")

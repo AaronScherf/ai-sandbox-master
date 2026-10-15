@@ -27,7 +27,13 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from discovery.discover_journal_articles.discovery import Work
-from discovery.discover_journal_articles.http_utils import FetchError, fetch_with_retries, is_pdf_response, paced_sleep
+from discovery.discover_journal_articles.http_utils import (
+    FetchError,
+    fetch_with_retries,
+    is_pdf_response,
+    is_valid_pdf_bytes,
+    paced_sleep,
+)
 
 _UNPAYWALL_BASE = "https://api.unpaywall.org/v2"
 _SEMANTIC_SCHOLAR_BASE = "https://api.semanticscholar.org/graph/v1/paper"
@@ -133,7 +139,7 @@ def _download(url: str, pace_per_hour: float, cookies: dict | None = None) -> by
         # simply didn't work for this paper; the caller falls through to
         # the next tier / needs_manual, exactly like a non-PDF response.
         return None
-    if response.status_code != 200 or not is_pdf_response(response):
+    if response.status_code != 200 or not is_pdf_response(response) or not is_valid_pdf_bytes(response.content):
         return None
     return response.content
 
