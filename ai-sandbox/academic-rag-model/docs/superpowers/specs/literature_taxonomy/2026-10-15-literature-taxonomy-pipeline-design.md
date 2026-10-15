@@ -1,6 +1,6 @@
 # Literature taxonomy pipeline: design spec
 
-Date: 2026-10-15. Status: **design, awaiting owner review**. No implementation approved.
+Date: 2026-10-15. Status: **approved by the owner 2026-10-15; amended the same day** (indexer embeddings corrected, API policy for indexing clarified, driver-default alignment added; see sections 3, 6, 8, 10, 13). Stage 0 implementation approved; later stages need their own plans.
 Owner: Aaron Scherf. Author: Claude (architecture), from a brainstorm with the owner on 2026-10-15.
 Related pitch: `ai-sandbox/research/independent-research/notes/Pitch - Structured Literature Taxonomy and Research Hub Extension.md`
 (this spec supersedes its Section 03/05 on *how*; its schema ideas, landscape analysis and project synergies stand).
@@ -44,7 +44,7 @@ Verified by reading code and docs in this session (main at `c406ce3`). Items mar
 | Defect heuristic | `page_looks_defective()` is tuned to LaTeX math notes; flags 32-43% of paper pages *(docs only)*. In agent mode this inflates task cards to relay. |
 | Task-card system (generic) | `agent/concept_graph/{tasks,work,drivers}.py`: `Task`, `render_card`, `extract_result` (one fenced YAML mapping under `## Result`), `Run` manifest (statuses pending/filled/applied/bounced/skipped), per-stage hooks `make_tasks` / `validate_result` / `apply_result`, `collect` / `submit` / `api_run` with a `$` estimate gate and `--approve-cost`. `tasks.py` and `work.py` are almost fully generic; `drivers.py` binds to `GraphStore` and `stages`. Importers are only concept_graph's own modules and 6 test files. |
 | Task-card system (transcription) | `pipelines/transcribe_notes/agent_work.py`: image-page cards, pipe-delimited output. A separate, working system; **left alone** by this spec. |
-| Index | `core/indexer/index_card.py`: cards keyed by `file_id` (hash of file bytes), embeddings via MiniLM. Journal conversion indexes into `research/.index/`, not the academic-hub index. |
+| Index | `core/indexer/index_card.py`: cards keyed by `file_id` (hash of file bytes). Card summaries are generated and cards/chunks/tags/queries are embedded through the Gemini API (`EMBEDDING_MODEL = "gemini-embedding-001"`, 768 dimensions, `index_card.py:25`); submit in agent mode still runs this normal indexing step. MiniLM (`all-MiniLM-L6-v2`) appears **only** in discovery's `relevance.py`, not in the indexer. Journal conversion indexes into `research/.index/`, not the academic-hub index. *(Corrected 2026-10-15: an earlier draft attributed MiniLM to the indexer.)* |
 | Discovery | OpenAlex-only candidate discovery; sidecars (`metadata_sidecar.py`), `manifest.py`, snowball. Folder routing uses level-0 Concepts and a single label (known issue, see the 2026-10-14 audit). |
 | Pitch schema | `EmpiricalStudyTaxonomy` (countries, scale, methods, datasets, hazards, intervention, outcomes, study type). Assumes an API/Instructor extraction call; this spec replaces that with task cards. |
 
@@ -64,7 +64,7 @@ Option **A (file contracts, derived database)** was chosen over database-first a
 Principles:
 
 1. **Files are the source of truth; the database is derived and rebuildable.** `study_record.json` per paper, keyed by `file_id`, under `research/.index/study_records/`.
-2. **Every LLM step is a task card** (collect, relay to Antigravity, submit). The paid API is an explicit opt-in behind the existing cost gate and the over-$1 warning. No stage silently falls back to the API.
+2. **Every generative LLM step is a task card** (collect, relay to Antigravity, submit). The paid API is an explicit opt-in behind the existing cost gate and the over-$1 warning. No stage silently falls back to the API. Owner decision 2026-10-15: the indexer's own small API calls (index-card summary and embeddings) are acceptable and are not replaced by this work.
 3. **Code validates; Claude is not in the loop.** Schema, vocabulary membership, quote presence and citation integrity are checked in code on submit; failures bounce back with reasons.
 4. **Every extracted facet carries evidence** `{value, quote, locator}`; the quote must be found in the transcript.
 5. **Humans review exceptions only**, through an interactive Artifact (repo rule), not hand-edited files.
@@ -90,7 +90,8 @@ To confirm during planning: hidden graph-only fields on `provenance()` or `Passa
 
 ### Stage 1: transcription (adapt existing)
 
-1. Expose the existing driver on `convert_journal_articles.py`: `--driver {agent,api}` (**default `agent`**), `--collect`, `--submit RUN_ID`, `--run-id`, reusing `AgentDriver` and `agent_submit.submit_doc`. Adopt the "no hidden generative fallback" guardrail. `--driver api` keeps the existing client path and the over-$1 warning.
+1. Expose the existing driver on `convert_journal_articles.py`: `--driver {agent,api}` (**default `agent`**), `--collect`, `--submit RUN_ID`, `--run-id`, reusing `AgentDriver` and `agent_submit.submit_doc`. Adopt the "no hidden generative fallback" guardrail and the submit-time `--allow-api-fallback` semantics from the Excalidraw agent-driver plan (`claude/excalidraw-agent-driver`). `--driver api` keeps the existing client path and the over-$1 warning. `convert_journal_articles` calls `process_pdf` directly, so flipping the default in `transcribe_notes.py`'s own CLI does **not** reach it; the journal CLI sets its own default. This stage is planned against the landed Excalidraw work, not the current `main`.
+   Index-card generation and embedding at submit time still use the API (accepted, see section 8); the plan must make that call explicit and keep it separate from transcription so agent-mode runs report it.
 2. Add a journal-prose profile to `page_looks_defective()`: calibrate against the real papers, with regression fixtures. Target: defective-page rate under ~10% for born-digital PDFs. Acceptance is measured, not asserted.
 3. Carry identity into the index card from the discovery sidecar: `openalex_id`, DOI, OpenAlex topic IDs, ISO-3166 country codes.
 4. Optionally keep rendered page images for pages with result tables so extraction cards can attach them (section 6.2).
@@ -127,7 +128,7 @@ Review Artifact: only flagged items (low appraisal confidence, proposed terms, q
 
 ### Stage 3: synthesis (text artifact)
 
-- **Grouping**: candidate clusters from OpenAlex topic IDs, MiniLM similarity and 3ie facet overlap; or a facet query supplied by the owner. Proposals are reviewed through an Artifact.
+- **Grouping**: candidate clusters from OpenAlex topic IDs, similarity over the card embeddings already stored in the index (`gemini-embedding-001`; no new API calls at clustering time) and 3ie facet overlap; or a facet query supplied by the owner. Proposals are reviewed through an Artifact.
 - **Per-paper annotation**: rendered **deterministically** from the record (study, setting, design, data, findings with quotes); a task card adds only a short "contribution and limitations" note.
 - **Per-cluster synthesis**: a task card receives annotations for ~15-20 papers (hierarchical for larger clusters). Validation: every claim cites papers within the cluster, every number traces to a record result quote.
 - **Outputs**: Markdown literature review and annotated bibliography under `research/literature_reviews/<topic>/` with vault-friendly frontmatter. The bibliography never depends on the LLM.
@@ -158,7 +159,8 @@ A thin conversational layer in the style of `agent/tutor`'s bootstrap contract. 
 
 ## 8. Cost, safety and operational guardrails
 
-- Subscription route default; `--driver api` opt-in with the cost estimate gate; warn and get a go-ahead before any call or run estimated over $1.
+- Subscription route default for generative steps; `--driver api` opt-in with the cost estimate gate; warn and get a go-ahead before any call or run estimated over $1.
+- Indexer API calls (card summary generation, embeddings) are accepted as small and stay on the API; embeddings cannot be produced by a subscription agent (it would need a local embedding backend and a coordinated rebuild, out of scope here). A change of embedding model is a separate migration.
 - No paid fallback when agent work is pending; pending is a reported status.
 - Cards hold source text: run directories live under a gitignored `.agent_work/` outside any published repo.
 - Repository is public: never commit PDFs or transcripts of copyrighted papers; records and quotes stay in ignored index locations unless the owner decides otherwise. (To confirm: whether short quotes in `study_record.json` are acceptable to commit; default is to keep `research/.index/` uncommitted as today.)
@@ -175,8 +177,8 @@ A thin conversational layer in the style of `agent/tutor`'s bootstrap contract. 
 
 | # | Work | Depends on | Notes |
 | --- | --- | --- | --- |
-| 0 | `core/agent_tasks/` extraction, concept_graph as consumer | none | Safety gates in section 5 |
-| 1 | Journal converter driver wiring, heuristic profile, card identity fields | 0 not required, but coordinate | Matches pitch Step 1 prerequisites |
+| 0 | `core/agent_tasks/` extraction, concept_graph as consumer | none (independent of the notes-pipeline worktrees) | Safety gates in section 5; plan: `docs/superpowers/plans/literature_taxonomy/2026-10-15-stage0-core-agent-tasks.md` |
+| 1 | Journal converter driver wiring, heuristic profile, card identity fields | landing of `claude/excalidraw-agent-driver` (shares `process_pdf`, driver flags and defaults) | Matches pitch Step 1 prerequisites; plan after that lands |
 | 2 | Schema, vocab, extraction stage, gold set pilot on harvested papers | 0, 1 | Pitch Step 1 (October) |
 | 3 | Derived database, evidence matrix, CLI | 2 | Pitch Steps 2-3 (Nov-Dec) |
 | 4 | Synthesis | 2, 3 | |
@@ -200,4 +202,13 @@ Each numbered item gets its own implementation plan; this spec is the umbrella.
 
 ## 13. Overlapping work (as of this commit)
 
-Open worktrees touching nearby code: `claude/notes-pipeline-consolidation` and `codex/notes-subscription-investigation` (transcribe_notes agent driver, router flags), `claude/excalidraw-agent-driver`, `claude/journal-discovery-minors` and `codex/journal-discovery-audit` (discovery fixes, metadata sidecar). Stage 1 must start from their landed results; stage 0 touches `core/` and `agent/concept_graph/` and needs `tools.active_work` clear before landing.
+Reviewed 2026-10-15 against all open worktrees. None changes journal-article transcription (`convert_journal_articles.py`, `page_looks_defective()`).
+
+| Worktree | State | Effect on this work |
+| --- | --- | --- |
+| `claude/excalidraw-agent-driver` | spec and plan committed, implementation in progress | Notes-only, but flips driver defaults to `agent`, adds `--allow-api-fallback`, and reuses `agent_work`/`agent_driver`/`agent_submit`. **Stage 1 plans against its landed result.** No file overlap with stage 0. |
+| `claude/notes-pipeline-consolidation` | spec on `main` (`c406ce3`) | Source of the "no hidden generative fallback" guardrail adopted here. |
+| `codex/notes-subscription-investigation` | untracked status doc | Source of the finding that submit still uses the API for index cards and embeddings (section 3). Recommends separating agent metadata authoring from embeddings; revisit for journal papers when that lands. |
+| `codex/journal-discovery-audit`, `claude/journal-discovery-minors` | audit; minors merged | Discovery and routing only; relevant to stage 1's sidecar identity fields and the folder-routing caveat in section 7, not to transcription. |
+
+Stage 0 touches `core/agent_tasks/` and `agent/concept_graph/` only and needs `tools.active_work` clear before landing.
