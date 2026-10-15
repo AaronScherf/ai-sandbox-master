@@ -87,11 +87,33 @@ terminus is a current, searchable corpus (through chunk/embed), not an enhanced
 study guide — enhance only applies to guides that already exist, so it can't be
 a universal default step for arbitrary lecture notes.
 
+## Amendment (2026-10-15): agent is the default driver, API fallback is explicit
+
+Owner follow-up after Stage 1 shipped: the subscription path should be the
+default, not something you have to opt into every invocation, while keeping
+the "no silent cost" property Stage 1 built in. Two changes, applying to both
+the PDF driver (Stage 1) and the Excalidraw driver (Stage 2):
+
+- **`--driver` now defaults to `"agent"`**, not `"api"`. `--driver api`
+  remains available as the explicit opt-out for a fully metered run.
+- **New `--allow-api-fallback` flag, usable only with `--submit RUN_ID`.**
+  Without it, `submit`'s behavior is unchanged — a document with any
+  pending/bounced cards reports `"incomplete: N card(s) still pending/
+  bounced"` and stops. With it, `submit` finishes those same remaining
+  pages/chunks via the metered API (`ApiDriver`/`ExcalidrawApiDriver`)
+  instead of leaving them pending, in that same call. It never runs on its
+  own — collect never calls it, and a plain `--submit` without the flag never
+  falls back. This is the "explicit fallback allowed" the no-hidden-fallback
+  guardrail below always intended: the fallback must be a choice made at
+  invocation time, visible on the command line, never an automatic retry.
+
 ## Guardrails (apply to every stage below)
 
 - **No hidden generative fallback.** If `--driver agent` is requested and the
   agent step for a file hasn't been submitted yet, that file's status is
   "pending agent work" — never silently retried against the metered API.
+  An explicit `--allow-api-fallback` at `--submit` time is the one sanctioned
+  exception (see the amendment above); it is opt-in and visible, not hidden.
 - **Warn over $1.** Any stage that estimates or falls back to a metered run over
   $1 stops and asks first (per [[feedback_warn_api_calls_over_one_dollar]]).
 - **Per-stage call counters**, printed in the run summary, so a real run can

@@ -17,6 +17,12 @@ deferred when `route_notes_transcribe.py` runs with `--driver agent`. Once
 this lands, "update my notes for `<course>`" (the Stage-1 goal) covers
 Excalidraw notes on the subscription path too, not just PDFs.
 
+**Post-review amendment (2026-10-15):** the consolidated-pipeline spec's
+default driver flipped from `"api"` to `"agent"`, with a new explicit
+`--allow-api-fallback` flag at `--submit` time (see that spec's "Amendment"
+section). This spec's CLI-integration section below is written against that
+amended default, not Stage 1's original `default="api"` text.
+
 ## Verified current state (this session, commit `c406ce3`)
 
 - `transcribe_chunks()` (`transcribe_excalidraw.py:214`) calls
@@ -153,7 +159,7 @@ card staged" rather than "complete."
 ### CLI integration
 
 `route_notes_transcribe.py` stops calling `_defer_excalidraw_for_agent_driver`
-on the Excalidraw todo list when `--driver agent` is given; instead it
+on the Excalidraw todo list under the (now-default) agent driver; instead it
 dedupes (reusing `dedupe_by_file_id`, generalized to accept any path list —
 it already only touches `compute_file_id`, which works on any file) and
 passes the Excalidraw pairs into `run_plan` alongside the PDF path, using
@@ -162,13 +168,18 @@ matches collected Excalidraw doc-slugs the same way it already matches PDF
 slugs (by `doc_slug_for(md_path, compute_file_id(md_path))`).
 `--bootstrap`'s printed contract is updated to say Excalidraw notes are
 included now, replacing Stage 1's "Excalidraw notes are not part of this
-run" line.
+run" line. `--submit --allow-api-fallback` finishes a note's remaining
+pending/bounced chunk or expansion cards via `ExcalidrawApiDriver`, same as
+the PDF path — see the consolidated-pipeline spec's amendment.
 
 ## Guardrails (carried over from the consolidated-pipeline spec)
 
 - No hidden generative fallback: a note with a pending expansion card is
   reported "pending agent work," never silently re-expanded through a
-  metered call.
+  metered call. `--allow-api-fallback` at `--submit` time is the one
+  sanctioned, explicit exception (see the consolidated-pipeline spec's
+  amendment) — it is never implied by a timeout, an error, or any other
+  automatic condition.
 - Grounding retrieval (`_retrieve_grounding`, `search_passages`) stays on the
   direct API path always — it's an embedding/retrieval call, not a
   generative one, same reasoning the consolidated-pipeline spec used to keep
