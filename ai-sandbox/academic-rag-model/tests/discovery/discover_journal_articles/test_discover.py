@@ -288,6 +288,32 @@ class TestRun(unittest.TestCase):
             mock_resolve_full_text.assert_called_once()
 
 
+class TestDefaultTimeBudget(unittest.TestCase):
+    @patch("discovery.discover_journal_articles.discover.load_dotenv_override")
+    @patch("discovery.discover_journal_articles.discover.run")
+    def test_default_time_budget_is_fifteen_minutes(self, mock_run, mock_load_dotenv):
+        # Confirmed real (code review finding, 2026-10-15): A.5's spec
+        # suggested a generous default (~15 min) so a run that hits
+        # sustained 429/504s stops and reports partial results instead
+        # of running unbounded by default. The CLI shipped with no
+        # default at all (None -- unlimited).
+        import os
+        from unittest.mock import patch as _patch
+
+        mock_run.return_value = {
+            "retrieved": 0, "examined": 0, "accepted": 0, "already_seen": 0,
+            "fetched": 0, "needs_manual": 0, "stopped_reason": None,
+        }
+
+        with _patch("sys.argv", ["discover.py", "--faculty", "Jane Doe", "--relevance-prompt", "x"]), \
+             _patch.dict(os.environ, {"OPENALEX_CONTACT_EMAIL": "me@example.com"}):
+            from discovery.discover_journal_articles.discover import main
+            main()
+
+        passed_args = mock_run.call_args[0][0]
+        self.assertEqual(passed_args.time_budget_seconds, 900.0)
+
+
 class TestMainRetryFlagInteraction(unittest.TestCase):
     @patch("discovery.discover_journal_articles.discover.load_dotenv_override")
     @patch("discovery.discover_journal_articles.discover.retry_needs_manual")

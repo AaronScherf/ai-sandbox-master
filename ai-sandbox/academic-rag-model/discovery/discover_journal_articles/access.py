@@ -24,6 +24,7 @@ needlessly slow with no actual safety benefit.
 """
 from __future__ import annotations
 
+import time
 from dataclasses import dataclass
 
 from discovery.discover_journal_articles.discovery import Work
@@ -167,23 +168,34 @@ def _oa_candidates(work: Work, mailto: str, core_api_key: str | None):
 
 def resolve_full_text(
     work: Work, mailto: str, ezproxy_cookie: str | None, pace_per_hour: float, core_api_key: str | None = None,
+    deadline: float | None = None,
 ) -> AccessResult:
+    """deadline, when given, is a time.monotonic() timestamp checked
+    before each individual download attempt -- A.5's per-run budget was
+    previously only checked between papers in discover.py's own loop, so
+    one paper's full OA+arXiv+EZProxy chain under sustained 429s could
+    still run well past the budget before the next check."""
+    def _deadline_exhausted() -> bool:
+        return deadline is not None and time.monotonic() >= deadline
+
     seen_urls: set[str] = set()
     for tier, url in _oa_candidates(work, mailto, core_api_key):
         if url in seen_urls:
             continue
         seen_urls.add(url)
+        if _deadline_exhausted():
+            return AccessResult(status="needs_manual")
         content = _download(url, 0)  # OA hosts carry none of the EZProxy account-safety risk
         if content:
             return AccessResult(status="fetched", content=content, tier=tier)
 
     arxiv_url = try_arxiv_url(work.arxiv_id)
-    if arxiv_url:
+    if arxiv_url and not _deadline_exhausted():
         content = _download(arxiv_url, 0)  # arXiv is a real API, not a scraping target
         if content:
             return AccessResult(status="fetched", content=content, tier="arxiv")
 
-    if ezproxy_cookie and work.doi:
+    if ezproxy_cookie and work.doi and not _deadline_exhausted():
         ezproxy_url = build_ezproxy_url(f"https://doi.org/{work.doi}")
         content = _download(ezproxy_url, pace_per_hour, cookies={"ezproxy": ezproxy_cookie})
         if content:

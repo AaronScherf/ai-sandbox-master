@@ -350,6 +350,30 @@ class TestResolveFullText(unittest.TestCase):
         self.assertEqual(result.status, "needs_manual")
         self.assertIsNone(result.content)
 
+    @patch("discovery.discover_journal_articles.access.time.monotonic")
+    @patch("discovery.discover_journal_articles.access.paced_sleep")
+    @patch("discovery.discover_journal_articles.access.fetch_with_retries")
+    def test_deadline_exhausted_mid_chain_stops_before_the_next_download(
+        self, mock_fetch, mock_pace, mock_monotonic
+    ):
+        # Confirmed real (code review finding, 2026-10-15): the per-run
+        # time budget (A.5) was only checked between papers in
+        # discover.py's loop -- one paper's own OA -> arXiv -> EZProxy
+        # chain under sustained 429s could run arbitrarily long before
+        # the next check. resolve_full_text() must honor a deadline
+        # between its own tiers too, not just let the caller stop
+        # between papers.
+        mock_fetch.return_value = _pdf_response(_REAL_PDF_BYTES)
+        mock_monotonic.return_value = 1000.0  # already past the deadline
+        work = _work(doi="10.1/abc", oa_url="https://x.com/p.pdf", arxiv_id="1234.5678")
+
+        result = resolve_full_text(
+            work, "me@example.com", ezproxy_cookie=None, pace_per_hour=25, deadline=999.0,
+        )
+
+        self.assertEqual(result.status, "needs_manual")
+        mock_fetch.assert_not_called()
+
 
 if __name__ == "__main__":
     unittest.main()

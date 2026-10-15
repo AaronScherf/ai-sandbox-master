@@ -95,7 +95,7 @@ def run(args: argparse.Namespace) -> dict:
         work = scored_work.work
         key = manifest_key(work)
 
-        result = resolve_full_text(work, mailto, ezproxy_cookie, args.pace_per_hour, core_api_key)
+        result = resolve_full_text(work, mailto, ezproxy_cookie, args.pace_per_hour, core_api_key, deadline=deadline)
         if result.status == "fetched":
             folder = route_to_folder(args.articles_dir, work)
             pdf_path = folder / pdf_filename(work)
@@ -181,9 +181,10 @@ def main():
                               "Columbia account from automated-abuse detection. Does not affect OA/arXiv "
                               "downloads, which carry none of that risk and are never paced.")
     parser.add_argument(
-        "--time-budget-seconds", type=float, default=None,
+        "--time-budget-seconds", type=float, default=900.0,
         help="Stop the fetch loop cleanly after this many seconds of wall-clock time, reporting partial "
-             "counts instead of implying the run completed. Omit for no limit.",
+             "counts instead of implying the run completed. Default 900 (15 min), per spec A.5; pass 0 "
+             "for no limit.",
     )
     parser.add_argument(
         "--retry", action="append", default=[], metavar="ID",
