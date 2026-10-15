@@ -9,6 +9,7 @@ import pytest
 from core.env import gemini_utils
 from core.indexer.index_card import compute_file_id
 from pipelines.transcribe_notes import agent_submit, agent_work
+from pipelines.transcribe_notes import excalidraw_agent_submit, excalidraw_agent_work
 from pipelines.transcribe_notes import route_notes_transcribe as router
 
 
@@ -38,6 +39,12 @@ def _setup(tmp_path, monkeypatch, argv, pdf_todo=None, excalidraw_todo=None):
     return hub
 
 
+def test_default_driver_is_agent_not_api(tmp_path, monkeypatch):
+    _setup(tmp_path, monkeypatch, [])
+    parsed = router._build_arg_parser().parse_args([])
+    assert parsed.driver == "agent"
+
+
 def test_bootstrap_prints_contract_without_touching_the_corpus(tmp_path, monkeypatch, capsys):
     monkeypatch.setattr(router, "build_plan", lambda *a, **k: pytest.fail("bootstrap must not build a plan"))
     monkeypatch.setattr(sys, "argv", ["route_notes_transcribe", "--bootstrap", "run1"])
@@ -47,7 +54,7 @@ def test_bootstrap_prints_contract_without_touching_the_corpus(tmp_path, monkeyp
     out = capsys.readouterr().out
     assert "run1" in out
     assert "route_notes_transcribe --submit run1" in out
-    assert "Excalidraw notes are not part of this run" in out
+    assert "SEGMENT" in out
 
 
 def test_driver_agent_without_collect_or_submit_exits(tmp_path, monkeypatch):
@@ -57,12 +64,14 @@ def test_driver_agent_without_collect_or_submit_exits(tmp_path, monkeypatch):
 
 
 def test_collect_requires_agent_driver(tmp_path, monkeypatch):
-    _setup(tmp_path, monkeypatch, ["--collect"], pdf_todo=["a.pdf"])
+    # --driver now defaults to "agent", so bare --collect is valid on its own;
+    # this checks that --collect still conflicts with an *explicit* --driver api.
+    _setup(tmp_path, monkeypatch, ["--collect", "--driver", "api"], pdf_todo=["a.pdf"])
     with pytest.raises(SystemExit):
         router.main()
 
 
-def test_collect_defers_excalidraw_and_never_touches_the_api_client(tmp_path, monkeypatch, capsys):
+def test_collect_includes_excalidraw_with_its_own_agent_driver(tmp_path, monkeypatch):
     _setup(
         tmp_path, monkeypatch, ["--driver", "agent", "--collect", "--run-id", "r1"],
         pdf_todo=[str(tmp_path / "a.pdf")],
@@ -82,15 +91,16 @@ def test_collect_defers_excalidraw_and_never_touches_the_api_client(tmp_path, mo
     monkeypatch.setattr(agent_work, "AgentDriver", lambda hub_root, run_id: SimpleNamespace(
         hub_root=hub_root, run_id=run_id,
     ))
+    monkeypatch.setattr(excalidraw_agent_work, "ExcalidrawAgentDriver", lambda hub_root, run_id: SimpleNamespace(
+        hub_root=hub_root, run_id=run_id,
+    ))
 
     router.main()
 
     assert captured_kwargs["collect_mode"] is True
     assert captured_kwargs["client"] is None
-    assert captured_kwargs["excalidraw_todo"] == []
-    out = capsys.readouterr().out
-    assert "Deferred" in out
-    assert "r1" in out
+    assert captured_kwargs["excalidraw_todo"] == [("note.excalidraw.md", "note.excalidraw.svg")]
+    assert captured_kwargs["excalidraw_driver"].run_id == "r1"
 
 
 def test_submit_matches_collected_docs_by_slug_and_skips_unmatched(tmp_path, monkeypatch, capsys):
@@ -116,4 +126,4 @@ def test_submit_matches_collected_docs_by_slug_and_skips_unmatched(tmp_path, mon
     assert len(submitted) == 1
     assert submitted[0][3] == known_slug
     out = capsys.readouterr().out
-    assert "no matching pending PDF" in out
+    assert "no matching pending document" in out

@@ -323,7 +323,7 @@ def test_run_plan_dispatches_pdfs_and_excalidraw_to_the_right_function(tmp_path)
         out.mkdir(exist_ok=True)
         (out / "a.md").write_text("transcribed")
 
-    def fake_process_excalidraw_note(md_path, image_path, client, model, expand_backend, academic_hub_root, use_grounding=False, dry_run=False):
+    def fake_process_excalidraw_note(md_path, image_path, client, model, expand_backend, academic_hub_root, use_grounding=False, dry_run=False, **_kwargs):
         out = lecture_dir / "processed_outputs"
         out.mkdir(exist_ok=True)
         (out / "b.excalidraw.rag.md").write_text("expanded")

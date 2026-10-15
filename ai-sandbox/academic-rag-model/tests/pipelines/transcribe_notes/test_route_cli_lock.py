@@ -24,7 +24,10 @@ def _setup(tmp_path, monkeypatch, *, dry_run=False):
     notes = _git_init(hub / "academic_notes")
     fake_script = outer / "academic-rag-model" / "pipelines" / "transcribe_notes" / "router.py"
     monkeypatch.setattr(router, "__file__", str(fake_script))
-    monkeypatch.setattr(sys, "argv", ["route_notes_transcribe", *(["--dry-run"] if dry_run else [])])
+    monkeypatch.setattr(
+        sys, "argv",
+        ["route_notes_transcribe", "--driver", "api", *(["--dry-run"] if dry_run else [])],
+    )
     monkeypatch.setattr(router, "build_plan", lambda *args, **kwargs: SimpleNamespace(
         pdf_todo=[str(notes / "one.pdf")], pdf_skipped=[],
         excalidraw_todo=[], excalidraw_skipped=[],
