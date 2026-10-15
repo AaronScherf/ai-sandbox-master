@@ -373,12 +373,112 @@
     return { errors: errors, similar: similar };
   }
 
+  function sortedSections(sections) { return sections.slice().sort(function (a, b) { return a.order - b.order; }); }
+  function listOrder(sections, nodes) {
+    var out = [];
+    sortedSections(sections).forEach(function (s) {
+      nodes.filter(function (n) { return n.section === s.id; })
+        .sort(function (a, b) { return a.name.localeCompare(b.name); })
+        .forEach(function (n) { out.push(n.id); });
+    });
+    return out;
+  }
+  function rangeIds(order, a, b) {
+    var i = order.indexOf(a), j = order.indexOf(b);
+    if (j === -1) return [];
+    if (i === -1) return [b];
+    return order.slice(Math.min(i, j), Math.max(i, j) + 1);
+  }
+  function toggleId(ids, id) {
+    return ids.indexOf(id) === -1 ? ids.concat([id]) : ids.filter(function (x) { return x !== id; });
+  }
+  function groupBySection(sections, nodes, selectedIds, visibleIds) {
+    var chosen = new Set(selectedIds);
+    var out = [];
+    sortedSections(sections).forEach(function (s) {
+      var members = nodes.filter(function (n) { return n.section === s.id; });
+      var shown = members.filter(function (n) { return visibleIds.has(n.id); });
+      var ids = shown.filter(function (n) { return chosen.has(n.id); }).map(function (n) { return n.id; });
+      if (!ids.length) return;
+      out.push({ section: s, ids: ids, total: shown.length, full: ids.length === shown.length,
+                 filtered: shown.length < members.length });
+    });
+    return out;
+  }
+  function expandedSection(groups, newIds, nodesById) {
+    var fresh = new Set(newIds), best = null, bestCount = -1;
+    groups.forEach(function (g) {
+      var c = g.ids.filter(function (id) { return fresh.has(id); }).length;
+      if (c > bestCount) { best = g.section.id; bestCount = c; }
+    });
+    return best || (groups.length ? groups[groups.length - 1].section.id : null);
+  }
+  function sectionButtonClick(active, sectionId) {
+    var i = active.indexOf(sectionId);
+    if (i === -1) return { active: active.concat([sectionId]), select: sectionId };
+    var next = active.filter(function (x) { return x !== sectionId; });
+    return { active: next, select: null };
+  }
+  function connectionRows(mode, chosen, ids, ord) {
+    function key(id) { var o = ord[id] || [0, id]; return o; }
+    function cmp(a, b) { var x = key(a), y = key(b); return x[0] - y[0] || String(x[1]).localeCompare(String(y[1])); }
+    var others = ids.filter(function (id) { return id !== chosen; });
+    if (mode === "one_to_many") return others.map(function (id) { return { source: chosen, target: id }; });
+    if (mode === "many_to_one") return others.map(function (id) { return { source: id, target: chosen }; });
+    var sorted = ids.slice().sort(cmp);
+    if (mode === "chain") {
+      return sorted.slice(1).map(function (id, i) { return { source: sorted[i], target: id }; });
+    }
+    if (mode === "all_pairs") {
+      if (sorted.length > 4) return [];
+      var rows = [];
+      for (var i = 0; i < sorted.length; i++) for (var j = i + 1; j < sorted.length; j++) rows.push({ source: sorted[i], target: sorted[j] });
+      return rows;
+    }
+    return [];
+  }
+  var CELL_W = 200, CELL_H = 74;
+  function gridInside(members, cx, cy, out) {
+    var cols = Math.max(1, Math.ceil(Math.sqrt(members.length)));
+    members.forEach(function (n, k) {
+      out[n.id] = { x: cx + (k % cols) * CELL_W, y: cy + Math.floor(k / cols) * CELL_H };
+    });
+    return { w: cols * CELL_W, h: Math.ceil(members.length / cols) * CELL_H };
+  }
+  function clusterLayout(nodes, sections) {
+    var out = {}, perRow = 3, gapX = 260, gapY = 200;
+    var rowH = 0, x = 0, y = 0, colIndex = 0;
+    sortedSections(sections).forEach(function (s) {
+      var members = nodes.filter(function (n) { return n.section === s.id; })
+        .sort(function (a, b) { return a.name.localeCompare(b.name); });
+      if (!members.length) return;
+      var size = gridInside(members, x, y, out);
+      rowH = Math.max(rowH, size.h);
+      colIndex += 1;
+      if (colIndex % perRow === 0) { x = 0; y += rowH + gapY; rowH = 0; } else { x += size.w + gapX; }
+    });
+    return out;
+  }
+  function timelineLayout(nodes, sections) {
+    var out = {}, x = 0;
+    sortedSections(sections).forEach(function (s) {
+      var members = nodes.filter(function (n) { return n.section === s.id; })
+        .sort(function (a, b) { return a.name.localeCompare(b.name); });
+      members.forEach(function (n, k) { out[n.id] = { x: x, y: k * CELL_H }; });
+      x += CELL_W + 80;
+    });
+    return out;
+  }
+
   return {
     edgeSentence: edgeSentence, needsPairs: needsPairs, prerequisites: prerequisites,
     computeLayout: computeLayout, spreadLayout: spreadLayout, splitMath: splitMath, splitFormal: splitFormal, filterNodes: filterNodes,
     decisionKey: decisionKey, recordDecision: recordDecision, buildReview: buildReview,
     normalizeName: normalizeName, slugFromName: slugFromName, similarNames: similarNames,
     similarNodes: similarNodes, checkProposal: checkProposal,
+    listOrder: listOrder, rangeIds: rangeIds, toggleId: toggleId, groupBySection: groupBySection,
+    expandedSection: expandedSection, sectionButtonClick: sectionButtonClick, connectionRows: connectionRows,
+    clusterLayout: clusterLayout, timelineLayout: timelineLayout,
     issueUrl: issueUrl, safeStorage: safeStorage
   };
 });
