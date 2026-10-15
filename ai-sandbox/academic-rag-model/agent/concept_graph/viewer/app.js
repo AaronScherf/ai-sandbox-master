@@ -36,7 +36,8 @@
   function visibleSet() {
     return new Set(CG.filterNodes(G.nodes, filters).map(function (n) { return n.id; }));
   }
-  function setSelection(ids) {
+  function setSelection(ids, ordered) {
+    if (ordered !== undefined) orderedPick = ordered; // true: first concept is the source; false: an unordered group
     var before = new Set(selectedIds());
     lastAdded = ids.filter(function (id) { return !before.has(id); });
     cy.batch(function () {
@@ -409,7 +410,7 @@
     if (b.hasAttribute("data-edge")) return select("edge", b.getAttribute("data-edge"), true);
     if (b.hasAttribute("data-node")) return select("node", b.getAttribute("data-node"), true);
     var act = b.getAttribute("data-act"); if (!act || !selected) return;
-    if (act === "propose-from") return openProposal("edge", selected.id, []);
+    if (act === "propose-from") return openProposal("edge", [selected.id], true);
     var kind = selected.kind, id = selected.id, field = b.getAttribute("data-field");
     if (act === "accept" || act === "reject") {
       var already = decisionsFor(kind, id).some(function (d) { return d.action === act; });
@@ -542,12 +543,12 @@
       '</div>';
   }
   function openNodeForm() {
+    form.onclick = null; form.onchange = null; // the connection form assigns these
     form.innerHTML = '<h2 id="propose-title">Propose a concept</h2>' +
       '<label>Name<input type="text" id="p-name" maxlength="120"></label><div id="p-similar" class="similar" hidden></div>' +
       '<label>Kind<select id="p-kind">' + KINDS.map(function (k) { return "<option>" + esc(k) + "</option>"; }).join("") + "</select></label>" +
       '<label>Section<select id="p-section">' + G.sections.slice().sort(function (a, b) { return a.order - b.order; }).map(function (s) {
         return '<option value="' + esc(s.id) + '">' + esc(s.title || s.id) + "</option>"; }).join("") + "</select></label>" +
-      '<label>Topic<select id="p-topic">' + G.vocab.topics.map(function (t) { return "<option>" + esc(t) + "</option>"; }).join("") + "</select></label>" +
       '<label>One-line note (optional, 200 characters)<input type="text" id="p-note" maxlength="200"></label>' +
       '<label>Connections (optional)</label><div id="p-conns"></div>' +
       '<button type="button" id="p-add-conn">Add a connection</button>' +
@@ -566,51 +567,93 @@
         return { other: g("other"), type: g("type"), direction: g("direction"), condition: g("condition").trim() || null, note: "" };
       });
       var p = { name: $("#p-name").value.trim(), kind: $("#p-kind").value, section: $("#p-section").value,
-                topic: $("#p-topic").value, note: $("#p-note").value.trim(), connections: conns };
+                topic: (sectionsById.get($("#p-section").value) || {}).topic || G.vocab.topics[0], note: $("#p-note").value.trim(), connections: conns };
       saveProposal({ action: "add_node", proposal: p });
     });
     finishForm();
   }
-  function openEdgeForm(sourceId, targetIds) {
-    var rows = (targetIds && targetIds.length ? targetIds : [""]).map(function (t) { return t; });
-    form.innerHTML = '<h2 id="propose-title">Propose a connection</h2>' +
-      '<label>From<select id="e-source">' + nodeOptions(sourceId) + "</select></label>" +
-      '<button type="button" id="e-swap" title="Swap direction">Swap direction ⇅</button>' +
-      '<label>To</label><div id="e-rows"></div>' +
-      '<button type="button" id="e-add">Add another target</button>' +
-      '<div class="errors" id="p-errors" hidden></div>' +
-      '<div class="buttons"><button type="button" id="p-cancel">Cancel</button><button type="button" id="p-save">Add proposal</button></div>';
-    rows.forEach(function (t) {
-      $("#e-rows").insertAdjacentHTML("beforeend", '<div class="row" data-edge-row><select data-f="target">' + nodeOptions(t) + "</select>" +
-        '<select data-f="type">' + typeOptions("is_a") + '</select><span></span><button type="button" data-remove-row>×</button>' +
-        '<input type="text" data-f="condition" placeholder="Condition (needed for implies / iff)" style="grid-column: 1 / -1"></div>');
-    });
-    $("#e-add").addEventListener("click", function () {
-      $("#e-rows").insertAdjacentHTML("beforeend", '<div class="row" data-edge-row><select data-f="target">' + nodeOptions("") + "</select>" +
-        '<select data-f="type">' + typeOptions("is_a") + '</select><span></span><button type="button" data-remove-row>×</button>' +
-        '<input type="text" data-f="condition" placeholder="Condition (needed for implies / iff)" style="grid-column: 1 / -1"></div>');
-    });
-    $("#e-swap").addEventListener("click", function () {
-      var row = form.querySelector("[data-edge-row] [data-f=target]"), src = $("#e-source");
-      if (!row) return;
-      var t = row.value; row.value = src.value; src.value = t;
-    });
-    $("#p-save").addEventListener("click", function () {
-      var added = 0, source = $("#e-source").value;
-      var made = Array.from(form.querySelectorAll("[data-edge-row]")).map(function (row) {
-        var g = function (f) { return row.querySelector('[data-f="' + f + '"]').value; };
-        return { action: "add_edge", proposal: { source: source, type: g("type"), target: g("target"), condition: g("condition").trim() || null, note: "" } };
+  function openEdgeForm(ids, ordered) {
+    ids = ids || [];
+    var order = {};
+    G.nodes.forEach(function (n) { var s = sectionsById.get(n.section); order[n.id] = [s ? s.order : 0, n.name]; });
+    var chosen = ids.slice().sort(function (x, y) { return order[x][0] - order[y][0] || String(order[x][1]).localeCompare(String(order[y][1])); })[0] || "";
+    if (ordered && ids.length) chosen = ids[0];
+    var mode = "one_to_many";
+    var rows = [];
+    function rebuildRows() {
+      rows = (ids.length >= 2 ? CG.connectionRows(mode, chosen, ids, order) : [{ source: chosen, target: "" }])
+        .map(function (r) { return { a: r.source, b: r.target, type: "is_a", condition: "" }; });
+    }
+    function draw() {
+      var chooser = (!ordered && ids.length >= 2)
+        ? '<label>Mode<select id="e-mode">' +
+          [["one_to_many", "One to many"], ["many_to_one", "Many to one"], ["chain", "Chain in course order"],
+           ["all_pairs", "All pairs (up to 4 concepts)"]].map(function (m) {
+            return '<option value="' + m[0] + '"' + (m[0] === mode ? " selected" : "") + ">" + m[1] + "</option>"; }).join("") + "</select></label>" +
+          "<label>" + (mode === "many_to_one" ? "To (the chosen concept)" : "From (the chosen concept)") +
+          '<select id="e-chosen">' + ids.map(function (id) {
+            return '<option value="' + esc(id) + '"' + (id === chosen ? " selected" : "") + ">" + esc(nameOf(id)) + "</option>"; }).join("") + "</select></label>"
+        : "";
+      form.innerHTML = '<h2 id="propose-title">Propose a connection</h2>' + chooser +
+        (mode === "all_pairs" && ids.length > 4 ? '<div class="errors">All pairs needs four or fewer concepts.</div>' : "") +
+        '<div id="e-rows">' + rows.map(function (r, i) {
+          return '<div class="row sentence" data-i="' + i + '">' +
+            '<span class="from">' + (r.a ? esc(nameOf(r.a)) : '<select data-f="a">' + nodeOptions("") + "</select>") + "</span>" +
+            '<select data-f="type">' + typeOptions(r.type) + "</select>" +
+            '<select data-f="b">' + nodeOptions(r.b) + "</select>" +
+            '<button type="button" data-reverse="' + i + '" title="Reverse this row">\u21c4</button>' +
+            '<button type="button" data-del="' + i + '">\u00d7</button>' +
+            '<input type="text" data-f="condition" placeholder="Condition (needed for implies / iff)" value="' + esc(r.condition) + '" style="grid-column: 1 / -1">' +
+            "</div>";
+        }).join("") + "</div>" +
+        '<button type="button" id="e-reverse-all">Reverse all rows</button> <button type="button" id="e-add">Add a row</button>' +
+        '<div class="errors" id="p-errors" hidden></div>' +
+        '<div class="buttons"><button type="button" id="p-cancel">Cancel</button><button type="button" id="p-save">Add proposal</button></div>';
+    }
+    function readRows() {
+      Array.from(form.querySelectorAll("[data-i]")).forEach(function (el) {
+        var r = rows[Number(el.getAttribute("data-i"))]; if (!r) return;
+        var a = el.querySelector('[data-f="a"]');
+        r.type = el.querySelector('[data-f="type"]').value;
+        r.b = el.querySelector('[data-f="b"]').value;
+        r.condition = el.querySelector('[data-f="condition"]').value;
+        if (a) r.a = a.value;
       });
-      var all = [];
-      for (var i = 0; i < made.length; i++) {
-        var res = CG.checkProposal(G, made[i].proposal, proposals.concat(all));
-        if (res.errors.length) return showErrors(res.errors);
-        all.push(made[i]);
+    }
+    form.onchange = function (ev) {
+      if (ev.target.id === "e-mode") { mode = ev.target.value; rebuildRows(); draw(); }
+      else if (ev.target.id === "e-chosen") { chosen = ev.target.value; rebuildRows(); draw(); }
+    };
+    form.onclick = function (ev) {
+      var t = ev.target;
+      if (t.id === "p-cancel") return dialog.close();
+      if (t.hasAttribute("data-reverse")) {
+        readRows(); var r = rows[Number(t.getAttribute("data-reverse"))];
+        var tmp = r.a; r.a = r.b; r.b = tmp; draw();
+      } else if (t.id === "e-reverse-all") {
+        readRows(); rows.forEach(function (r) { var x = r.a; r.a = r.b; r.b = x; }); draw();
+      } else if (t.hasAttribute("data-del")) {
+        readRows(); rows.splice(Number(t.getAttribute("data-del")), 1); draw();
+      } else if (t.id === "e-add") {
+        readRows(); rows.push({ a: chosen, b: "", type: "is_a", condition: "" }); draw();
+      } else if (t.id === "p-save") {
+        readRows();
+        var made = rows.map(function (r) {
+          return { action: "add_edge", proposal: { source: r.a, type: r.type, target: r.b, condition: (r.condition || "").trim() || null, note: "" } };
+        });
+        var all = [];
+        for (var i = 0; i < made.length; i++) {
+          var res = CG.checkProposal(G, made[i].proposal, proposals.concat(all));
+          if (res.errors.length) return showErrors(res.errors);
+          all.push(made[i]);
+        }
+        if (!all.length) return showErrors(["Add at least one connection."]);
+        proposals = proposals.concat(all);
+        dialog.close(); persist(); toast(all.length + " connection" + (all.length === 1 ? "" : "s") + " added to your proposals.");
       }
-      proposals = proposals.concat(all); added = all.length;
-      dialog.close(); persist(); toast(added + " connection" + (added === 1 ? "" : "s") + " added to your proposals.");
-    });
-    finishForm();
+    };
+    rebuildRows(); draw();
+    if (!dialog.open) dialog.showModal();
   }
   function showErrors(list) {
     var box = $("#p-errors"); box.hidden = false;
@@ -626,9 +669,9 @@
     if (ev.target.id === "p-cancel") dialog.close();
   });
   function finishForm() { if (!dialog.open) dialog.showModal(); }
-  function openProposal(kind, sourceId, targetIds) {
+  function openProposal(kind, ids, ordered) {
     if (!needName()) return;
-    if (kind === "node") openNodeForm(); else openEdgeForm(sourceId || "", targetIds || []);
+    if (kind === "node") openNodeForm(); else openEdgeForm(ids || [], ordered);
   }
 
   $("#btn-propose").addEventListener("click", function () { var m = $("#propose-menu"); m.hidden = !m.hidden; });
@@ -655,7 +698,7 @@
   });
   cy.on("boxselect", function () { orderedPick = false; });
   $("#btn-connect").addEventListener("click", function () {
-    openProposal("edge", pickOrder[0], pickOrder.slice(1));
+    openProposal("edge", pickOrder.slice(), orderedPick);
   });
 
   document.addEventListener("keydown", function (ev) { if (ev.key === "Escape") setSelection([]); });
@@ -665,9 +708,57 @@
                     groups: function () { return CG.groupBySection(G.sections, G.nodes, selectedIds(), visibleSet()); } };
   }
 
+  var LAYOUTS = [
+    { id: "spread", name: "Spread", compute: function () { return CG.spreadLayout(G.nodes, G.edges, G.sections); } },
+    { id: "rows", name: "Section rows", compute: function () { return CG.computeLayout(G.nodes, G.edges, G.sections); } },
+    { id: "cluster", name: "By section", compute: function () { return CG.clusterLayout(G.nodes, G.sections); } },
+    { id: "timeline", name: "Course timeline", compute: function () { return CG.timelineLayout(G.nodes, G.sections); } }
+  ].concat((G.layouts || []).map(function (l) {
+    return { id: "file:" + l.id, name: l.name, compute: function () {
+      var base = CG.spreadLayout(G.nodes, G.edges, G.sections), out = {};
+      G.nodes.forEach(function (n) { out[n.id] = l.positions[n.id] || base[n.id]; });
+      return out;
+    } };
+  }));
+  var DEBUG = /[?&]debug\b/.test(location.search); // headless tests: animation frames do not advance there
+  var currentLayout = storage.get("cg-layout-" + G.graph_version) || "spread";
+  function movedKey(id) { return "cg-moved-" + G.graph_version + "-" + id; }
+  function layoutPositions(id) {
+    var def = LAYOUTS.filter(function (l) { return l.id === id; })[0] || LAYOUTS[0];
+    var pos = def.compute();
+    try { var moved = JSON.parse(storage.get(movedKey(def.id)) || "{}"); Object.keys(moved).forEach(function (k) { if (pos[k]) pos[k] = moved[k]; }); } catch (e) { /* none */ }
+    return pos;
+  }
+  function applyLayout(id, animate) {
+    currentLayout = id; storage.set("cg-layout-" + G.graph_version, id);
+    var pos = layoutPositions(id);
+    cy.layout({ name: "preset", positions: function (n) { return pos[n.id()]; }, animate: !!animate && !DEBUG,
+      animationDuration: 350, fit: false }).run();
+    setTimeout(function () { touched = false; refit(); }, animate ? 400 : 0);
+  }
+  $("#layout-select").innerHTML = LAYOUTS.map(function (l) {
+    return '<option value="' + esc(l.id) + '"' + (l.id === currentLayout ? " selected" : "") + ">" + esc(l.name) + "</option>";
+  }).join("");
+  $("#layout-select").addEventListener("change", function (ev) { applyLayout(ev.target.value, true); });
+  cy.on("dragfree", "node", function () {
+    var moved = {};
+    cy.nodes().forEach(function (n) { if (!n.hasClass("ghost")) moved[n.id()] = { x: Math.round(n.position("x")), y: Math.round(n.position("y")) }; });
+    storage.set(movedKey(currentLayout), JSON.stringify(moved));
+  });
+  $("#btn-layout-reset").addEventListener("click", function () {
+    storage.set(movedKey(currentLayout), "{}"); applyLayout(currentLayout, true);
+  });
+  $("#btn-layout-download").addEventListener("click", function () {
+    var positions = {};
+    cy.nodes().forEach(function (n) { if (!n.hasClass("ghost")) positions[n.id()] = { x: Math.round(n.position("x")), y: Math.round(n.position("y")) }; });
+    var blob = new Blob([JSON.stringify({ name: "My layout", positions: positions }, null, 2)], { type: "application/json" });
+    var a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "layout-my-layout.json"; a.click();
+  });
+
   // ---- start ----------------------------------------------------------------
   $("#title").textContent = (G.site && G.site.title) || "Concept graph";
   buildFilters(); persist(); paintDecisions(); applyFilters();
+  if (currentLayout !== "spread") applyLayout(currentLayout, false);
   // Keep the whole graph in view until the reader moves it themselves: the window may still be settling
   // to its final size when the page first draws, and a phone can rotate.
   var touched = false;

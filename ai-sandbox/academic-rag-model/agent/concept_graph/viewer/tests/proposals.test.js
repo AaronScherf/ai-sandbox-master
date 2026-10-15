@@ -58,3 +58,9 @@ test("checkProposal refuses a concept that is already among the pending proposal
   const again = { name: "Foo  Bar", kind: "object", section: "s1", topic: "demand", note: "", connections: [] };
   assert.match(CG.checkProposal(graph, again, pending).errors.join(" "), /already in your proposals/);
 });
+
+test("a section that declares a topic makes the proposal's own topic irrelevant", () => {
+  const g = Object.assign({}, graph, { sections: [{ id: "s1", order: 1, topic: "demand" }] });
+  const p = { name: "Quasi concavity", kind: "property", section: "s1", topic: "", note: "", connections: [] };
+  assert.deepEqual(CG.checkProposal(g, p, []).errors, []);
+});

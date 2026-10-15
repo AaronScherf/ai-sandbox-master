@@ -90,3 +90,8 @@ math { font-size: 1.05em; }
 #panel details > summary { cursor: pointer; font-weight: 600; }
 #panel .sec-summary { margin: 8px 0; }
 #panel .chosen li { display: flex; justify-content: space-between; gap: 6px; }
+
+#propose-form .row.sentence { grid-template-columns: 1.2fr 0.9fr 1.2fr auto auto; }
+#propose-form .row.sentence .from { font-weight: 600; }
+.layout-row { display: block; margin-top: 8px; }
+.layout-row select { width: 100%; }

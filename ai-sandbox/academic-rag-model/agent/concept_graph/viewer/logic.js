@@ -349,7 +349,8 @@
       else if (!slug) errors.push("name does not give a usable id");
       if (slug && graph.nodes.some(function (n) { return n.id === slug; })) errors.push("'" + slug + "' is already a concept in the graph");
       if (graph.vocab.kinds.indexOf(p.kind) === -1) errors.push("kind '" + p.kind + "' is not one of " + graph.vocab.kinds.join(", "));
-      if (graph.vocab.topics.indexOf(p.topic) === -1) errors.push("topic '" + p.topic + "' is not one of " + graph.vocab.topics.join(", "));
+      var propSection = graph.sections.filter(function (x) { return x.id === p.section; })[0];
+      if (!(propSection && propSection.topic) && graph.vocab.topics.indexOf(p.topic) === -1) errors.push("topic '" + p.topic + "' is not one of " + graph.vocab.topics.join(", "));
       if (!graph.sections.some(function (s) { return s.id === p.section; })) errors.push("section '" + p.section + "' does not exist");
       if ((p.note || "").length > NOTE_MAX) errors.push("note is longer than " + NOTE_MAX + " characters");
       similar = similarNodes(graph.nodes, p.name, 3);
