@@ -77,3 +77,16 @@ math { font-size: 1.05em; }
 #my-proposals ul { list-style: none; padding: 0; margin: 0; }
 #my-proposals li { display: flex; gap: 6px; justify-content: space-between; padding: 4px 0; font-size: 0.9em; }
 @media (max-width: 640px) { #propose-form .row { grid-template-columns: 1fr 1fr; } }
+
+.list-tools { display: flex; gap: 6px; margin-top: 8px; }
+.list-tools button { flex: 1; font-size: 0.85em; }
+#name-list h3 { display: flex; align-items: center; gap: 4px; cursor: default; }
+#name-list h3 .chev { width: auto; flex: 0 0 auto; display: inline-block; border: 0; background: none; color: inherit; cursor: pointer; padding: 0 4px; }
+#name-list h3 .sec-title { width: auto; flex: 1 1 auto; text-transform: inherit; letter-spacing: inherit; padding: 0; text-align: left; border: 0; background: none; color: inherit; font: inherit; cursor: pointer; }
+#name-list h3 .sec-count { flex: 0 0 auto; font-size: 0.8em; opacity: 0.75; text-transform: none; }
+#name-list .collapsed-group { display: none; }
+#name-list button.sel { outline: 2px solid #f59e0b; }
+#panel details { border: 1px solid var(--line); border-radius: 8px; margin: 8px 0; padding: 4px 8px; }
+#panel details > summary { cursor: pointer; font-weight: 600; }
+#panel .sec-summary { margin: 8px 0; }
+#panel .chosen li { display: flex; justify-content: space-between; gap: 6px; }

@@ -24,6 +24,26 @@
   try { proposals = JSON.parse(storage.get(PROPOSAL_KEY) || "[]"); } catch (e) { proposals = []; }
   var KINDS = (G.vocab && G.vocab.kinds) || Array.from(new Set(G.nodes.map(function (n) { return n.kind; }))).sort();
   var pickOrder = []; // concept ids in the order they were selected, so the first one is the source
+  var orderedPick = true;           // true after clicks and Ctrl-clicks (first = source); false after box, range or section
+  var collapsed = new Set();
+  try { JSON.parse(storage.get("cg-collapsed-" + G.graph_version) || "[]").forEach(function (id) { collapsed.add(id); }); } catch (e) { /* none */ }
+  var activeSections = [];          // section ids whose button is highlighted (the filter)
+  var lastListId = null;            // anchor for Shift-click ranges in the concept list
+  var lastAdded = [];               // concepts added by the latest selection gesture
+  function selectedIds() {
+    return cy.nodes(":selected").filter(function (n) { return !n.hasClass("ghost"); }).map(function (n) { return n.id(); });
+  }
+  function visibleSet() {
+    return new Set(CG.filterNodes(G.nodes, filters).map(function (n) { return n.id; }));
+  }
+  function setSelection(ids) {
+    var before = new Set(selectedIds());
+    lastAdded = ids.filter(function (id) { return !before.has(id); });
+    cy.batch(function () {
+      cy.elements().unselect();
+      ids.forEach(function (id) { var el = cy.getElementById(id); if (el.nonempty() && !el.hasClass("hidden")) el.select(); });
+    });
+  }
   var selected = null; // {kind, id}
   var prereqMode = false;
   var editing = null; // field name being edited
@@ -150,6 +170,8 @@
       var hide = hiddenEdgeTypes.has(e.data("type")) || !visible.has(e.data("source")) || !visible.has(e.data("target"));
       e.toggleClass("hidden", !e.hasClass("ghost") && hide);
     });
+    var still = selectedIds().filter(function (id) { return visible.has(id); });
+    if (still.length !== selectedIds().length) setSelection(still);
     renderNameList(visible);
   }
 
@@ -175,39 +197,95 @@
     }
     applyPrereqMode(); renderPanel(); renderNameList();
   }
-  cy.on("tap", "node", function (ev) { if (ev.target.hasClass("ghost")) return; select("node", ev.target.id(), false); });
+    cy.on("tap", "node", function (ev) {
+    if (ev.target.hasClass("ghost")) return;
+    var oe = ev.originalEvent || {};
+    if (oe.ctrlKey || oe.metaKey || oe.shiftKey) { lastAdded = [ev.target.id()]; return; } // Cytoscape toggles it
+    lastListId = ev.target.id();
+    select("node", ev.target.id(), false);
+  });
   cy.on("tap", "edge", function (ev) { if (ev.target.hasClass("ghost")) return; select("edge", ev.target.id(), false); });
   cy.on("tap", function (ev) { if (ev.target === cy) { selected = null; cy.elements().unselect(); cy.edges().removeClass("labelled"); applyPrereqMode(); renderPanel(); renderNameList(); } });
 
   // ---- sidebar --------------------------------------------------------------
-  function renderNameList(visibleSet) {
-    var visible = visibleSet || new Set(CG.filterNodes(G.nodes, filters).map(function (n) { return n.id; }));
+  function renderNameList(visibleArg) {
+    var visible = visibleArg || visibleSet();
+    var sel = new Set(selectedIds());
     var html = "";
     G.sections.slice().sort(function (a, b) { return a.order - b.order; }).forEach(function (s) {
       var list = G.nodes.filter(function (n) { return n.section === s.id && visible.has(n.id); })
         .sort(function (a, b) { return a.name.localeCompare(b.name); });
       if (!list.length) return;
-      html += "<h3>" + esc(s.title) + (s.state === "planned" ? " (planned)" : "") + "</h3>";
+      var open = !collapsed.has(s.id) || (filters.q || "").trim() !== "";
+      var count = list.filter(function (n) { return sel.has(n.id); }).length;
+      html += '<h3><button type="button" class="chev" data-chev="' + esc(s.id) + '" aria-expanded="' + open + '">' + (open ? "\u25be" : "\u25b8") + "</button>" +
+        '<button type="button" class="sec-title" data-section-head="' + esc(s.id) + '">' + esc(s.title) + (s.state === "planned" ? " (planned)" : "") + "</button>" +
+        (count ? '<span class="sec-count">' + count + " of " + list.length + " selected</span>" : "") + "</h3>";
+      html += '<div class="sec-group' + (open ? "" : " collapsed-group") + '">';
       list.forEach(function (n) {
-        var cls = (s.state === "planned" ? "planned " : "") + (selected && selected.id === n.id ? "sel" : "");
+        var cls = (s.state === "planned" ? "planned " : "") + (sel.has(n.id) ? "sel" : "");
         html += '<button type="button" class="' + cls + '" data-node="' + esc(n.id) + '">' + esc(n.name) + "</button>";
       });
+      html += "</div>";
     });
     $("#name-list").innerHTML = html || '<p class="hint">No concepts match.</p>';
   }
+  function saveCollapsed() { storage.set("cg-collapsed-" + G.graph_version, JSON.stringify(Array.from(collapsed))); }
   $("#name-list").addEventListener("click", function (ev) {
-    var b = ev.target.closest("button[data-node]");
-    if (b) select("node", b.getAttribute("data-node"), true);
+    var chev = ev.target.closest("button[data-chev]");
+    if (chev) {
+      var sid = chev.getAttribute("data-chev");
+      if (collapsed.has(sid)) collapsed.delete(sid); else collapsed.add(sid);
+      saveCollapsed(); renderNameList(); return;
+    }
+    var head = ev.target.closest("button[data-section-head]");
+    if (head) { selectSection(head.getAttribute("data-section-head")); return; }
+    var b = ev.target.closest("button[data-node]"); if (!b) return;
+    var id = b.getAttribute("data-node");
+    var mod = ev.ctrlKey || ev.metaKey, shift = ev.shiftKey;
+    orderedPick = true;
+    if (shift && lastListId) {
+      var vis = visibleSet();
+      setSelection(CG.rangeIds(CG.listOrder(G.sections, G.nodes), lastListId, id).filter(function (x) { return vis.has(x); }));
+      orderedPick = false;
+    } else if (mod) {
+      setSelection(CG.toggleId(selectedIds(), id)); lastListId = id;
+    } else {
+      lastListId = id; select("node", id, true);
+    }
   });
+  $("#btn-collapse-all").addEventListener("click", function () {
+    G.sections.forEach(function (s) { collapsed.add(s.id); }); saveCollapsed(); renderNameList();
+  });
+  $("#btn-expand-all").addEventListener("click", function () { collapsed.clear(); saveCollapsed(); renderNameList(); });
+  function selectSection(sectionId) {
+    var vis = visibleSet();
+    setSelection(G.nodes.filter(function (n) { return n.section === sectionId && vis.has(n.id); }).map(function (n) { return n.id; }));
+    orderedPick = false;
+  }
 
   function buildFilters() {
     var topics = $("#f-topics");
-    topics.innerHTML = G.vocab.topics.map(function (t) { return '<button type="button" data-topic="' + esc(t) + '">' + esc(t) + "</button>"; }).join("");
+    var ordered = G.sections.slice().sort(function (a, b) { return a.order - b.order; });
+    topics.innerHTML = ordered.map(function (s) {
+      return '<button type="button" data-section="' + esc(s.id) + '" title="' + esc(s.title) + '">' + esc(s.short || s.title) + "</button>";
+    }).join("");
     topics.addEventListener("click", function (ev) {
-      var b = ev.target.closest("button[data-topic]"); if (!b) return;
-      var t = b.getAttribute("data-topic"), i = filters.topics.indexOf(t);
-      if (i === -1) filters.topics.push(t); else filters.topics.splice(i, 1);
-      b.classList.toggle("on", i === -1); applyFilters();
+      var b = ev.target.closest("button[data-section]"); if (!b) return;
+      var sid = b.getAttribute("data-section");
+      var step = CG.sectionButtonClick(activeSections, sid);
+      var removed = activeSections.filter(function (x) { return step.active.indexOf(x) === -1; });
+      activeSections = step.active;
+      filters.sections = activeSections.slice();
+      Array.from(topics.querySelectorAll("button")).forEach(function (x) {
+        x.classList.toggle("on", activeSections.indexOf(x.getAttribute("data-section")) !== -1);
+      });
+      applyFilters();
+      if (step.select) selectSection(step.select);
+      else if (removed.length) {
+        var gone = new Set(G.nodes.filter(function (n) { return removed.indexOf(n.section) !== -1; }).map(function (n) { return n.id; }));
+        setSelection(selectedIds().filter(function (id) { return !gone.has(id); }));
+      }
     });
     var kinds = Array.from(new Set(G.nodes.map(function (n) { return n.kind; }))).sort();
     $("#f-kind").insertAdjacentHTML("beforeend", kinds.map(function (k) { return '<option value="' + esc(k) + '">' + esc(k) + "</option>"; }).join(""));
@@ -223,7 +301,7 @@
       b.classList.toggle("on", !hiddenEdgeTypes.has(t)); applyFilters();
     });
     $("#legend-body").innerHTML =
-      "<p>Boxes are concepts, coloured by topic; higher on the page means later in the course. A dashed outline means not yet reviewed. Faded boxes are in sections not taught yet.</p>" +
+      "<p>Boxes are concepts, coloured by section; higher on the page means later in the course. A dashed outline means not yet reviewed. Faded boxes are in sections not taught yet.</p>" +
       "<p>Arrows read as sentences: select a concept to see every connection written out.</p><ul>" +
       Object.keys(EDGE_STYLE).map(function (t) { return '<li><span style="color:' + EDGE_STYLE[t].color + '">&#9632;</span> ' + esc(EDGE_STYLE[t].label) + "</li>"; }).join("") + "</ul>";
   }
@@ -265,8 +343,28 @@
       (flash && flash.kind === kind && flash.id === id ? '<p class="saved" role="status">' + esc(flash.text) + "</p>" : "") +
       "</div>";
   }
+  function renderGroupPanel(p, ids) {
+    var vis = visibleSet();
+    var groups = CG.groupBySection(G.sections, G.nodes, ids, vis);
+    var open = CG.expandedSection(groups, lastAdded.length ? lastAdded : ids, nodesById);
+    p.innerHTML = "<h2>" + ids.length + " concepts selected</h2>" +
+      '<div class="actions"><button type="button" data-act="clear-selection">Clear selection</button>' +
+      '<button type="button" data-act="add-connection"' + (ids.length > 12 ? " disabled title=\"Select 12 or fewer concepts to propose connections\"" : "") + ">Add connection</button></div>" +
+      groups.map(function (g) {
+        var s = g.section;
+        var head = esc(s.short || s.title) + ", " + g.ids.length + " of " + g.total + " selected" + (g.filtered ? " (filtered)" : "");
+        var body = (g.full && s.summary ? '<p class="sec-summary">' + esc(s.summary) + "</p>" : "") +
+          '<ul class="chosen">' + g.ids.map(function (id) {
+            return '<li><button type="button" data-node="' + esc(id) + '">' + esc(nameOf(id)) + '</button>' +
+              '<button type="button" data-remove="' + esc(id) + '" aria-label="Remove ' + esc(nameOf(id)) + ' from the selection">\u00d7</button></li>';
+          }).join("") + "</ul>";
+        return "<details" + (s.id === open ? " open" : "") + "><summary>" + head + "</summary>" + body + "</details>";
+      }).join("");
+  }
   function renderPanel() {
     var p = $("#panel");
+    var ids = selectedIds();
+    if (ids.length >= 2) return renderGroupPanel(p, ids);
     if (!selected) { p.innerHTML = '<p class="hint">Click a concept or a connection to read about it.</p>'; return; }
     if (selected.kind === "node") return renderNode(p);
     return renderEdge(p);
@@ -304,6 +402,10 @@
 
   $("#panel").addEventListener("click", function (ev) {
     var b = ev.target.closest("button"); if (!b) return;
+    if (b.hasAttribute("data-remove")) { setSelection(CG.toggleId(selectedIds(), b.getAttribute("data-remove"))); return; }
+    if (b.getAttribute("data-act") === "clear-selection") { setSelection([]); return; }
+    if (b.getAttribute("data-act") === "add-connection") { $("#btn-connect").click(); return; }
+    if (b.hasAttribute("data-node") && (ev.ctrlKey || ev.metaKey)) { setSelection(CG.toggleId(selectedIds(), b.getAttribute("data-node"))); return; }
     if (b.hasAttribute("data-edge")) return select("edge", b.getAttribute("data-edge"), true);
     if (b.hasAttribute("data-node")) return select("node", b.getAttribute("data-node"), true);
     var act = b.getAttribute("data-act"); if (!act || !selected) return;
@@ -535,15 +637,33 @@
     $("#propose-menu").hidden = true; openProposal(b.getAttribute("data-propose"));
   });
 
-  cy.on("select unselect", "node", function () {
-    var ids = cy.nodes(":selected").filter(function (n) { return !n.hasClass("ghost"); }).map(function (n) { return n.id(); });
+  var changeQueued = false;
+  function onSelectionChanged() {
+    changeQueued = false;
+    var ids = selectedIds();
     pickOrder = pickOrder.filter(function (id) { return ids.indexOf(id) !== -1; });
     ids.forEach(function (id) { if (pickOrder.indexOf(id) === -1) pickOrder.push(id); });
-    $("#btn-connect").hidden = pickOrder.length < 2;
+    if (ids.length === 1) selected = { kind: "node", id: ids[0] };
+    else if (ids.length === 0 && selected && selected.kind === "node") selected = null;
+    $("#btn-connect").hidden = ids.length < 2 || ids.length > 12;
+    renderPanel(); renderNameList();
+  }
+  cy.on("select unselect", "node", function () {
+    if (changeQueued) return;
+    changeQueued = true;
+    Promise.resolve().then(onSelectionChanged);
   });
+  cy.on("boxselect", function () { orderedPick = false; });
   $("#btn-connect").addEventListener("click", function () {
     openProposal("edge", pickOrder[0], pickOrder.slice(1));
   });
+
+  document.addEventListener("keydown", function (ev) { if (ev.key === "Escape") setSelection([]); });
+
+  if (/[?&]debug\b/.test(location.search)) {
+    window.__cg = { cy: cy, selectedIds: selectedIds, setSelection: setSelection,
+                    groups: function () { return CG.groupBySection(G.sections, G.nodes, selectedIds(), visibleSet()); } };
+  }
 
   // ---- start ----------------------------------------------------------------
   $("#title").textContent = (G.site && G.site.title) || "Concept graph";
