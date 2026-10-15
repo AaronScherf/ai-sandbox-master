@@ -3,6 +3,8 @@ from __future__ import annotations
 
 import dataclasses
 
+from core.agent_tasks.loop import provenance  # noqa: F401  (the shared definition; re-exported for the stages)
+
 from ..schema import Graph
 from ..sources import Passage
 
@@ -54,7 +56,3 @@ def check_citations(citations, entry: dict) -> list[str]:
         elif (c["source"], c["ref"]) not in offered:
             problems.append(f"citations: {c['source']} / {c['ref']} was not offered on this card; cite only offered passages")
     return problems
-
-
-def provenance(driver: str, agent: str | None, run: str) -> dict:
-    return {"driver": driver, "agent": agent, "run": run}
