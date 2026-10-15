@@ -251,5 +251,80 @@ class TestRun(unittest.TestCase):
             mock_resolve_full_text.assert_called_once()
 
 
+class TestRetryNeedsManual(unittest.TestCase):
+    @patch("discovery.discover_journal_articles.discover.resolve_work_by_doi")
+    @patch("discovery.discover_journal_articles.discover.resolve_full_text")
+    def test_retries_a_named_needs_manual_entry_and_records_success(self, mock_resolve_full_text, mock_resolve_by_doi):
+        with tempfile.TemporaryDirectory() as tmp:
+            from discovery.discover_journal_articles.manifest import manifest_path, record_outcome, save_manifest, load_manifest
+            path = manifest_path(tmp)
+            manifest = load_manifest(path)
+            record_outcome(manifest, "10.1/abc", "needs_manual", folder="climate-change",
+                            metadata={"title": "Paper 1", "authors": [], "year": 2024, "doi_url": "https://doi.org/10.1/abc"})
+            save_manifest(path, manifest)
+
+            mock_resolve_by_doi.return_value = _work(1, doi="10.1/abc")
+            mock_resolve_full_text.return_value = AccessResult(status="fetched", content=b"%PDF-1.4", tier="unpaywall")
+
+            from discovery.discover_journal_articles.discover import retry_needs_manual
+            args = _args(articles_dir=tmp, mailto="me@example.com", ezproxy_cookie=None, retry=["10.1/abc"])
+            counts = retry_needs_manual(args)
+
+            self.assertEqual(counts["fetched"], 1)
+            manifest = load_manifest(path)
+            self.assertEqual(manifest["10.1/abc"]["status"], "fetched")
+
+    @patch("discovery.discover_journal_articles.discover.resolve_work_by_doi")
+    @patch("discovery.discover_journal_articles.discover.resolve_full_text")
+    def test_retry_failure_leaves_entry_needs_manual(self, mock_resolve_full_text, mock_resolve_by_doi):
+        with tempfile.TemporaryDirectory() as tmp:
+            from discovery.discover_journal_articles.manifest import manifest_path, record_outcome, save_manifest, load_manifest
+            path = manifest_path(tmp)
+            manifest = load_manifest(path)
+            record_outcome(manifest, "10.1/abc", "needs_manual", folder="climate-change")
+            save_manifest(path, manifest)
+
+            mock_resolve_by_doi.return_value = _work(1, doi="10.1/abc")
+            mock_resolve_full_text.return_value = AccessResult(status="needs_manual")
+
+            from discovery.discover_journal_articles.discover import retry_needs_manual
+            args = _args(articles_dir=tmp, mailto="me@example.com", ezproxy_cookie=None, retry=["10.1/abc"])
+            counts = retry_needs_manual(args)
+
+            self.assertEqual(counts["needs_manual"], 1)
+
+    def test_retry_only_touches_named_ids_not_the_rest_of_the_manifest(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            from discovery.discover_journal_articles.manifest import manifest_path, record_outcome, save_manifest, load_manifest
+            path = manifest_path(tmp)
+            manifest = load_manifest(path)
+            record_outcome(manifest, "10.1/other", "fetched", folder="misc")
+            save_manifest(path, manifest)
+
+            from discovery.discover_journal_articles.discover import retry_needs_manual
+            args = _args(articles_dir=tmp, mailto="me@example.com", ezproxy_cookie=None, retry=["10.1/not-in-manifest"])
+            counts = retry_needs_manual(args)
+
+            self.assertEqual(counts["not_found"], 1)
+            manifest = load_manifest(path)
+            self.assertEqual(manifest["10.1/other"]["status"], "fetched")
+
+    def test_retry_skips_an_openalex_id_only_entry_without_crashing(self):
+        # No bare DOI to look up by -- resolve_work_by_doi has nothing to
+        # query. Must be reported as not_found, not raise.
+        with tempfile.TemporaryDirectory() as tmp:
+            from discovery.discover_journal_articles.manifest import manifest_path, record_outcome, save_manifest, load_manifest
+            path = manifest_path(tmp)
+            manifest = load_manifest(path)
+            record_outcome(manifest, "https://openalex.org/W123", "needs_manual", folder="misc")
+            save_manifest(path, manifest)
+
+            from discovery.discover_journal_articles.discover import retry_needs_manual
+            args = _args(articles_dir=tmp, mailto="me@example.com", ezproxy_cookie=None, retry=["https://openalex.org/W123"])
+            counts = retry_needs_manual(args)
+
+            self.assertEqual(counts["not_found"], 1)
+
+
 if __name__ == "__main__":
     unittest.main()
