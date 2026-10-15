@@ -18,6 +18,7 @@ from pipelines.transcribe_notes.route_notes_transcribe import (
     find_subset_roots,
     pdf_output_path,
     run_plan,
+    sync_resource_backups,
 )
 
 
@@ -317,7 +318,7 @@ def test_run_plan_dispatches_pdfs_and_excalidraw_to_the_right_function(tmp_path)
         excalidraw_todo=[(str(lecture_dir / "b.excalidraw.md"), str(lecture_dir / "b.excalidraw.svg"))],
     )
 
-    def fake_process_pdf(pdf_path, client, model, academic_hub_root, dry_run=False):
+    def fake_process_pdf(pdf_path, client, model, academic_hub_root, dry_run=False, **_kwargs):
         out = ta_dir / "processed_outputs"
         out.mkdir(exist_ok=True)
         (out / "a.md").write_text("transcribed")
@@ -341,7 +342,7 @@ def test_run_plan_records_failure_without_stopping_the_batch(tmp_path):
     ta_dir = _make_course(tmp_path, "econometrics", "ta_notes", {"bad.pdf": b"x", "good.pdf": b"x"})
     plan = PipelinePlan(pdf_todo=[str(ta_dir / "bad.pdf"), str(ta_dir / "good.pdf")])
 
-    def fake_process_pdf(pdf_path, client, model, academic_hub_root, dry_run=False):
+    def fake_process_pdf(pdf_path, client, model, academic_hub_root, dry_run=False, **_kwargs):
         if "bad" in pdf_path:
             raise ValueError("simulated API failure")
         out = ta_dir / "processed_outputs"
@@ -715,6 +716,117 @@ def test_run_plan_passes_force_vision_to_process_pdf():
     with patch("pipelines.transcribe_notes.route_notes_transcribe.process_pdf") as mock_process:
         with patch("pipelines.transcribe_notes.route_notes_transcribe._is_nonempty_file", return_value=True):
             report = run_plan(plan, client=None, academic_hub_root="/dummy", force_vision=True)
-            mock_process.assert_called_once_with("some/path/doc.pdf", None, None, "/dummy", force_vision=True)
+            mock_process.assert_called_once_with(
+                "some/path/doc.pdf", None, None, "/dummy",
+                force_vision=True, driver=None, collect_mode=False,
+            )
             assert report.pdf_results[0].status == "ok"
+
+
+def test_run_plan_passes_agent_driver_and_collect_mode_to_process_pdf():
+    plan = PipelinePlan(pdf_todo=["some/path/doc.pdf"])
+    sentinel_driver = object()
+    with patch("pipelines.transcribe_notes.route_notes_transcribe.process_pdf") as mock_process:
+        report = run_plan(
+            plan, client=None, academic_hub_root="/dummy",
+            driver=sentinel_driver, collect_mode=True,
+        )
+    mock_process.assert_called_once_with(
+        "some/path/doc.pdf", None, None, "/dummy",
+        force_vision=False, driver=sentinel_driver, collect_mode=True,
+    )
+    # Collect mode writes a task card, not the real output file -- must not
+    # be flagged "output_missing" just because nothing landed on disk yet.
+    assert report.pdf_results[0].status == "collected"
+
+
+def _make_excalidraw_pair(tmp_path, course, category, name, svg_bytes=b"<svg></svg>"):
+    notes_dir = tmp_path / "academic_notes" / course / category
+    notes_dir.mkdir(parents=True, exist_ok=True)
+    md_path = notes_dir / f"{name}.excalidraw.md"
+    img_path = notes_dir / f"{name}.excalidraw.svg"
+    md_path.write_text("---\n---\n")
+    img_path.write_bytes(svg_bytes)
+    return str(md_path), str(img_path)
+
+
+def test_sync_resource_backups_copies_to_mirrored_resources_path(tmp_path):
+    md_path, img_path = _make_excalidraw_pair(tmp_path, "econometrics", "lecture_notes", "a")
+
+    results = sync_resource_backups([(md_path, img_path)])
+
+    dest = tmp_path / "academic_resources" / "econometrics" / "lecture_notes" / "a.excalidraw.svg"
+    assert dest.is_file()
+    assert dest.read_bytes() == b"<svg></svg>"
+    assert results == [type(results[0])(img_path, str(dest), "copied")]
+
+
+def test_sync_resource_backups_skips_when_destination_already_current(tmp_path):
+    md_path, img_path = _make_excalidraw_pair(tmp_path, "econometrics", "lecture_notes", "a")
+    sync_resource_backups([(md_path, img_path)])  # first backup
+
+    results = sync_resource_backups([(md_path, img_path)])  # unchanged source
+
+    assert results[0].status == "up_to_date"
+
+
+def test_sync_resource_backups_overwrites_stale_destination_with_newer_source(tmp_path):
+    md_path, img_path = _make_excalidraw_pair(tmp_path, "econometrics", "lecture_notes", "a", b"<svg>v1</svg>")
+    sync_resource_backups([(md_path, img_path)])
+
+    # Simulate the plugin re-exporting the canvas with new content.
+    future = os.path.getmtime(img_path) + 5
+    with open(img_path, "wb") as f:
+        f.write(b"<svg>v2</svg>")
+    os.utime(img_path, (future, future))
+
+    results = sync_resource_backups([(md_path, img_path)])
+
+    dest = tmp_path / "academic_resources" / "econometrics" / "lecture_notes" / "a.excalidraw.svg"
+    assert results[0].status == "copied"
+    assert dest.read_bytes() == b"<svg>v2</svg>"
+
+
+def test_sync_resource_backups_runs_regardless_of_transcription_status(tmp_path):
+    # The owner's requirement: back up the latest auto-export every run,
+    # whether or not the note itself still needs (re-)transcription.
+    md_path, img_path = _make_excalidraw_pair(tmp_path, "microecon", "lecture_notes", "b")
+
+    results = sync_resource_backups([(md_path, img_path)])
+
+    assert results[0].status == "copied"
+
+
+def test_sync_resource_backups_dry_run_does_not_write(tmp_path):
+    md_path, img_path = _make_excalidraw_pair(tmp_path, "econometrics", "lecture_notes", "a")
+
+    results = sync_resource_backups([(md_path, img_path)], dry_run=True)
+
+    dest = tmp_path / "academic_resources" / "econometrics" / "lecture_notes" / "a.excalidraw.svg"
+    assert results[0].status == "copied"
+    assert not dest.exists()
+
+
+def test_sync_resource_backups_dedupes_by_destination(tmp_path):
+    # A marked prior-offering subset can surface the same image_path via
+    # more than one discovery path -- must only copy it once.
+    md_path, img_path = _make_excalidraw_pair(tmp_path, "econometrics", "lecture_notes", "a")
+
+    results = sync_resource_backups([(md_path, img_path), (md_path, img_path)])
+
+    assert len(results) == 1
+
+
+def test_sync_resource_backups_reports_failure_without_raising(tmp_path, monkeypatch):
+    md_path, img_path = _make_excalidraw_pair(tmp_path, "econometrics", "lecture_notes", "a")
+
+    def boom(*args, **kwargs):
+        raise OSError("disk full")
+
+    monkeypatch.setattr("pipelines.transcribe_notes.route_notes_transcribe.shutil.copy2", boom)
+
+    results = sync_resource_backups([(md_path, img_path)])
+
+    assert results[0].status == "failed"
+    assert "disk full" in results[0].error
 

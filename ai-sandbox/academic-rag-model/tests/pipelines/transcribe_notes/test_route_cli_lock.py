@@ -26,7 +26,8 @@ def _setup(tmp_path, monkeypatch, *, dry_run=False):
     monkeypatch.setattr(router, "__file__", str(fake_script))
     monkeypatch.setattr(sys, "argv", ["route_notes_transcribe", *(["--dry-run"] if dry_run else [])])
     monkeypatch.setattr(router, "build_plan", lambda *args, **kwargs: SimpleNamespace(
-        pdf_todo=[str(notes / "one.pdf")], excalidraw_todo=[],
+        pdf_todo=[str(notes / "one.pdf")], pdf_skipped=[],
+        excalidraw_todo=[], excalidraw_skipped=[],
     ))
     monkeypatch.setattr(router, "print_summary", lambda *args: None)
     monkeypatch.setattr(gemini_utils, "load_dotenv_override", lambda: None)

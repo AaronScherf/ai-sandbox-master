@@ -31,9 +31,11 @@ from __future__ import annotations
 
 import argparse
 import os
+import shutil
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from core.env.academic_hub_paths import (
     TEXTBOOK_FOLDER_NAMES,
@@ -48,6 +50,9 @@ from pipelines.transcribe_notes.transcribe_excalidraw import (
     process_excalidraw_note,
 )
 from pipelines.transcribe_notes.transcribe_notes import discover_pdf_files, process_pdf
+
+if TYPE_CHECKING:
+    from pipelines.transcribe_notes.agent_driver import TranscriptionDriver
 
 _SKIP_DIR_NAMES = frozenset({"processed_outputs"})
 
@@ -236,6 +241,59 @@ def filter_unprocessed_excalidraw(pairs, force: bool = False) -> list[tuple[str,
 
 
 @dataclass
+class BackupResult:
+    source: str
+    dest: str
+    status: str  # "copied", "up_to_date", or "failed"
+    error: str | None = None
+
+
+def sync_resource_backups(pairs, dry_run: bool = False) -> list[BackupResult]:
+    """Copies each Excalidraw pair's plugin-auto-exported image (the
+    .svg/.png next to the note under academic_notes/) to its mirrored
+    location under academic_resources/, so the auto-export -- which the
+    plugin overwrites on every note open, independent of transcription
+    status -- gets a persistent backup. Runs over every discovered pair,
+    not just ones still needing transcription: the owner wants the latest
+    export preserved every run regardless of whether the note itself was
+    reprocessed. Deduplicates by destination first, since a marked prior-
+    offering subset can make the same image_path appear via more than one
+    discovery path. Deliberate duplication between the two trees is
+    accepted (not deleting the academic_notes/ copy); only copies when the
+    destination is missing or older than the source, so an unrelated
+    corpus with many already-backed-up notes doesn't rewrite every file
+    on every run."""
+    results: list[BackupResult] = []
+    seen_dests: set[str] = set()
+    for _md_path, image_path in pairs:
+        try:
+            dest = to_resources_root(image_path)
+        except ValueError:
+            continue  # image not under academic_notes/ (already resources-side); nothing to mirror.
+        if dest in seen_dests:
+            continue
+        seen_dests.add(dest)
+        if os.path.normcase(os.path.abspath(dest)) == os.path.normcase(os.path.abspath(image_path)):
+            continue  # source and destination are the same path; nothing to back up.
+
+        needs_copy = not os.path.isfile(dest) or os.path.getmtime(image_path) > os.path.getmtime(dest)
+        if not needs_copy:
+            results.append(BackupResult(image_path, dest, "up_to_date"))
+            continue
+        if dry_run:
+            results.append(BackupResult(image_path, dest, "copied"))
+            continue
+        try:
+            os.makedirs(os.path.dirname(dest), exist_ok=True)
+            shutil.copy2(image_path, dest)
+            results.append(BackupResult(image_path, dest, "copied"))
+        except OSError as err:
+            print(f"WARNING: failed to back up {image_path} to {dest}: {err}")
+            results.append(BackupResult(image_path, dest, "failed", str(err)))
+    return results
+
+
+@dataclass
 class PipelinePlan:
     pdf_todo: list[str] = field(default_factory=list)
     pdf_skipped: list[str] = field(default_factory=list)
@@ -295,18 +353,30 @@ def run_plan(
     pdf_model: str | None = None, excalidraw_model: str | None = None,
     expand_backend: str = "gemini", use_grounding: bool = False,
     force_vision: bool = False,
+    driver: "TranscriptionDriver | None" = None, collect_mode: bool = False,
 ) -> RunReport:
+    """driver/collect_mode plumb transcribe_notes.py's agent-driven PDF
+    transport through to process_pdf unchanged -- see agent_driver.py.
+    Excalidraw has no agent driver yet (2026-10-15 design spec), so
+    process_excalidraw_note is always called with the plain API path;
+    callers that want subscription-only runs must not put Excalidraw
+    pairs in plan.excalidraw_todo (main() enforces this)."""
     report = RunReport()
 
     for pdf_path in plan.pdf_todo:
         try:
-            if force_vision:
-                process_pdf(pdf_path, client, pdf_model, academic_hub_root, force_vision=True)
-            else:
-                process_pdf(pdf_path, client, pdf_model, academic_hub_root)
+            process_pdf(
+                pdf_path, client, pdf_model, academic_hub_root,
+                force_vision=force_vision, driver=driver, collect_mode=collect_mode,
+            )
         except Exception as err:
             print(f"ERROR: {pdf_path} failed: {err}")
             report.pdf_results.append(RunResult(pdf_path, "failed", str(err)))
+            continue
+        if collect_mode:
+            # Collect only ever writes task cards under .agent_work/, never
+            # the real output file -- there is nothing to verify on disk yet.
+            report.pdf_results.append(RunResult(pdf_path, "collected"))
             continue
         status = "ok" if _is_nonempty_file(pdf_output_path(pdf_path)) else "output_missing"
         if status == "output_missing":
@@ -331,17 +401,42 @@ def run_plan(
     return report
 
 
+_TERMINAL_OK_STATUSES = frozenset({"ok", "collected"})
+
+
 def print_summary(plan: PipelinePlan, report: RunReport | None = None) -> None:
     print(f"PDF: {len(plan.pdf_todo)} to process, {len(plan.pdf_skipped)} already done")
     print(f"Excalidraw: {len(plan.excalidraw_todo)} to process, {len(plan.excalidraw_skipped)} already done")
     if report is None:
         return
     all_results = report.pdf_results + report.excalidraw_results
-    ok = sum(1 for r in all_results if r.status == "ok")
-    problems = [r for r in all_results if r.status != "ok"]
+    ok = sum(1 for r in all_results if r.status in _TERMINAL_OK_STATUSES)
+    problems = [r for r in all_results if r.status not in _TERMINAL_OK_STATUSES]
     print(f"Completed: {ok} succeeded, {len(problems)} failed/incomplete")
     for r in problems:
         print(f"  [{r.status}] {r.path}" + (f": {r.error}" if r.error else ""))
+
+
+def print_backup_summary(results: list[BackupResult]) -> None:
+    if not results:
+        return
+    copied = [r for r in results if r.status == "copied"]
+    failed = [r for r in results if r.status == "failed"]
+    up_to_date = len(results) - len(copied) - len(failed)
+    print(f"SVG/PNG backups: {len(copied)} copied, {up_to_date} already current, {len(failed)} failed")
+    for r in failed:
+        print(f"  [failed] {r.source} -> {r.dest}: {r.error}")
+
+
+def _defer_excalidraw_for_agent_driver(plan: PipelinePlan) -> int:
+    """Excalidraw has no agent driver yet (2026-10-15 design spec): an
+    agent-driven run must never silently fall back to spending metered API
+    calls on the Excalidraw items it can't collect/submit. Clears
+    plan.excalidraw_todo in place and returns how many were deferred, so
+    the caller can report them."""
+    deferred = len(plan.excalidraw_todo)
+    plan.excalidraw_todo = []
+    return deferred
 
 
 def main():
@@ -349,7 +444,9 @@ def main():
         description="Discover notes with no existing transcription across every course under "
                     "academic_notes/, and route each to the right pipeline by filetype -- "
                     ".pdf to transcribe_notes.py, .excalidraw.md (+.png/.svg) to "
-                    "transcribe_excalidraw.py. No LLM decides routing; safe to run unattended."
+                    "transcribe_excalidraw.py. No LLM decides routing; safe to run unattended. "
+                    "Also backs up every discovered Excalidraw note's auto-exported .svg/.png "
+                    "into academic_resources/, independent of transcription status."
     )
     parser.add_argument("--course", action="append", default=None,
                          help="Limit to this course (repeatable). Default: every course under academic_notes/.")
@@ -368,7 +465,42 @@ def main():
         "--force-vision", action="store_true",
         help="Force vision transcription via Gemini for all routed PDFs, bypassing local text extraction.",
     )
+    parser.add_argument(
+        "--driver", choices=["api", "agent"], default="api",
+        help="Transcription transport for PDFs. Excalidraw always uses the API path -- there is "
+             "no agent driver for it yet.",
+    )
+    parser.add_argument("--collect", action="store_true",
+                         help="With --driver agent: write PDF task cards instead of transcribing.")
+    parser.add_argument("--run-id", default=None,
+                         help="Run id for --collect/--submit's .agent_work/ directory (default: a timestamp).")
+    parser.add_argument("--submit", default=None, metavar="RUN_ID",
+                         help="Validate this run's filled PDF task cards and write them through.")
+    parser.add_argument("--bootstrap", default=None, metavar="RUN_ID",
+                         help="Print the agent's operating contract for this run.")
     args = parser.parse_args()
+
+    if args.bootstrap:
+        print(f"""Agent-driven transcription contract for run '{args.bootstrap}':
+
+1. Open each document's directory under .agent_work/{args.bootstrap}/<doc-slug>/.
+2. Read worklist.md to see which task cards are pending.
+3. For each pending task-NNNN.md: read every page's image and prompt in
+   the card, then fill ONLY the "Agent output" section at the bottom with
+   one "--- PAGE <number> ---" section per page, in order, using exactly
+   the page numbers the card lists. Never edit any other file or section.
+4. For a tier-3 card with more than one page: only the first page has
+   real prior-page context supplied. For every later page in that same
+   card, carry forward your own transcription of the card's earlier
+   pages as continuity context.
+5. Once you've filled one or more cards, run:
+   python -m pipelines.transcribe_notes.route_notes_transcribe --submit {args.bootstrap}
+6. If a card comes back marked "bounced: <reason>" in worklist.md, redo
+   only that card in place and re-run step 5.
+7. Stop once worklist.md shows nothing "pending"/"filled" left for this run.
+   Excalidraw notes are not part of this run -- they still need the API path.
+""")
+        return
 
     from core.env.gemini_utils import get_gemini_client, load_dotenv_override
     load_dotenv_override()
@@ -376,22 +508,113 @@ def main():
     academic_hub_dir = Path(__file__).resolve().parent.parent.parent.parent / "academic-hub"
     plan = build_plan(str(academic_hub_dir), courses=args.course, force=args.force)
     print_summary(plan)
-
-    total_todo = len(plan.pdf_todo) + len(plan.excalidraw_todo)
-    if total_todo == 0:
-        print("Nothing to do.")
-        return
+    all_excalidraw_pairs = plan.excalidraw_todo + plan.excalidraw_skipped
 
     if args.dry_run:
+        deferred = _defer_excalidraw_for_agent_driver(plan) if args.driver == "agent" else 0
         for p in plan.pdf_todo:
             print(f"  [pdf] would process: {p}")
         for md, img in plan.excalidraw_todo:
             print(f"  [excalidraw] would process: {md} (+ {os.path.basename(img)})")
+        if deferred:
+            print(f"  [excalidraw] {deferred} note(s) deferred -- no agent driver yet.")
+        for r in sync_resource_backups(all_excalidraw_pairs, dry_run=True):
+            if r.status == "copied":
+                print(f"  [backup] would copy: {r.source} -> {r.dest}")
         return
 
-    client = get_gemini_client("PAID_GEMINI_KEY" if args.use_paid_key else "GEMINI_API_KEY")
-    if client is None:
+    if args.collect and args.driver != "agent":
+        print("--collect requires --driver agent.")
         sys.exit(1)
+    if args.driver == "agent" and not args.collect and not args.submit:
+        print("--driver agent requires --collect or --submit.")
+        sys.exit(1)
+
+    if args.collect:
+        import datetime
+
+        from pipelines.transcribe_notes.agent_work import AgentDriver, dedupe_by_file_id
+
+        deferred = _defer_excalidraw_for_agent_driver(plan)
+        run_id = args.run_id or datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+        canonical_pdf_paths, _duplicates_of = dedupe_by_file_id(plan.pdf_todo)
+        plan.pdf_todo = canonical_pdf_paths
+        driver = AgentDriver(str(academic_hub_dir), run_id)
+        try:
+            with corpus_write_lock(
+                [academic_hub_dir, academic_hub_dir / "academic_notes"],
+                "route notes transcription (agent collect)",
+            ):
+                backup_results = sync_resource_backups(all_excalidraw_pairs)
+                report = run_plan(
+                    plan, None, str(academic_hub_dir), pdf_model=args.pdf_model,
+                    force_vision=args.force_vision, driver=driver, collect_mode=True,
+                )
+        except CorpusWriteLockError as exc:
+            raise SystemExit(str(exc)) from exc
+        print_backup_summary(backup_results)
+        print_summary(plan, report)
+        if deferred:
+            print(f"Deferred (no agent driver yet for Excalidraw): {deferred} note(s) -- "
+                  f"rerun without --driver agent to process them via the API.")
+        print(f"Collect run '{run_id}' complete under {academic_hub_dir / '.agent_work' / run_id}.")
+        return
+
+    if args.submit:
+        from core.indexer.index_card import compute_file_id
+        from pipelines.transcribe_notes.agent_submit import submit_doc
+        from pipelines.transcribe_notes.agent_work import agent_work_dir, doc_slug_for
+
+        client = get_gemini_client("PAID_GEMINI_KEY" if args.use_paid_key else "GEMINI_API_KEY")
+        if client is None:
+            sys.exit(1)
+        run_dir = agent_work_dir(str(academic_hub_dir), args.submit)
+        if not os.path.isdir(run_dir):
+            print(f"No .agent_work run directory found for run '{args.submit}' at {run_dir}.")
+            sys.exit(1)
+
+        # Matched the same way agent_submit's own CLI does: by the
+        # file_id-derived slug AgentDriver used, built from whatever is
+        # still pending transcription under this course filter -- a
+        # collected-but-not-yet-submitted PDF has no output file yet, so
+        # it's still in plan.pdf_todo at submit time.
+        pdf_by_slug = {doc_slug_for(p, compute_file_id(p)): p for p in plan.pdf_todo}
+        try:
+            with corpus_write_lock(
+                [academic_hub_dir, academic_hub_dir / "academic_notes"],
+                "route notes transcription (agent submit)",
+            ):
+                backup_results = sync_resource_backups(all_excalidraw_pairs)
+                for doc_slug in sorted(os.listdir(run_dir)):
+                    pdf_path = pdf_by_slug.get(doc_slug)
+                    if pdf_path is None:
+                        print(f"WARNING: no matching pending PDF for collected doc '{doc_slug}' "
+                              f"(already submitted, or outside this --course filter?) -- skipping.")
+                        continue
+                    try:
+                        status = submit_doc(
+                            str(academic_hub_dir), str(academic_hub_dir), args.submit, doc_slug,
+                            pdf_path, client, args.pdf_model, force_vision=args.force_vision,
+                        )
+                    except Exception as err:
+                        print(f"[{doc_slug}] error: {err}")
+                        continue
+                    print(f"[{doc_slug}] {status}")
+        except CorpusWriteLockError as exc:
+            raise SystemExit(str(exc)) from exc
+        print_backup_summary(backup_results)
+        return
+
+    total_todo = len(plan.pdf_todo) + len(plan.excalidraw_todo)
+    if total_todo == 0 and not all_excalidraw_pairs:
+        print("Nothing to do.")
+        return
+
+    client = None
+    if total_todo > 0:
+        client = get_gemini_client("PAID_GEMINI_KEY" if args.use_paid_key else "GEMINI_API_KEY")
+        if client is None:
+            sys.exit(1)
 
     try:
         # The router writes Markdown in the nested notes repository and
@@ -400,17 +623,22 @@ def main():
             [academic_hub_dir, academic_hub_dir / "academic_notes"],
             "route notes transcription",
         ):
-            report = run_plan(
-                plan, client, str(academic_hub_dir),
-                pdf_model=args.pdf_model, excalidraw_model=args.excalidraw_model,
-                expand_backend=args.expand_backend, use_grounding=args.grounding,
-                force_vision=args.force_vision,
+            backup_results = sync_resource_backups(all_excalidraw_pairs)
+            report = (
+                run_plan(
+                    plan, client, str(academic_hub_dir),
+                    pdf_model=args.pdf_model, excalidraw_model=args.excalidraw_model,
+                    expand_backend=args.expand_backend, use_grounding=args.grounding,
+                    force_vision=args.force_vision,
+                )
+                if total_todo > 0 else RunReport()
             )
     except CorpusWriteLockError as exc:
         raise SystemExit(str(exc)) from exc
+    print_backup_summary(backup_results)
     print_summary(plan, report)
 
-    if any(r.status != "ok" for r in report.pdf_results + report.excalidraw_results):
+    if any(r.status not in _TERMINAL_OK_STATUSES for r in report.pdf_results + report.excalidraw_results):
         sys.exit(1)
 
 
