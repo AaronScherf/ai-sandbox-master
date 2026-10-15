@@ -14,6 +14,7 @@ def _args(**overrides):
     defaults = dict(
         faculty=["Jane Doe"], topic=[], relevance_prompt="climate", relevance_threshold=0.5,
         batch_size=25, max_results=100, max_examined=300, pace_per_hour=25.0, zotero=False,
+        time_budget_seconds=None,
     )
     defaults.update(overrides)
     return argparse.Namespace(**defaults)
@@ -208,6 +209,46 @@ class TestRun(unittest.TestCase):
 
             self.assertEqual(counts["examined"], 5)
             self.assertEqual(counts["accepted"], 1)
+
+    @patch("discovery.discover_journal_articles.discover.time.monotonic")
+    @patch("discovery.discover_journal_articles.discover.load_relevance_model", return_value=MagicMock())
+    @patch("discovery.discover_journal_articles.discover.resolve_works", return_value=iter([]))
+    @patch("discovery.discover_journal_articles.discover.select_relevant_works")
+    @patch("discovery.discover_journal_articles.discover.resolve_full_text")
+    def test_stops_cleanly_when_time_budget_is_exhausted(
+        self, mock_resolve_full_text, mock_select, mock_resolve_works, mock_load_model, mock_monotonic
+    ):
+        with tempfile.TemporaryDirectory() as tmp:
+            work_a, work_b = _work(7), _work(8, doi="10.1/def")
+            mock_select.return_value = ([ScoredWork(work=work_a, score=0.9), ScoredWork(work=work_b, score=0.9)], 2)
+            mock_resolve_full_text.return_value = AccessResult(status="fetched", content=b"%PDF-1.4", tier="open_access")
+            # Deadline check happens once before the loop (sets the
+            # deadline) and once per iteration: 0.0 establishes the
+            # deadline, 100.0 is already past a 1-second budget on the
+            # first per-item check.
+            mock_monotonic.side_effect = [0.0, 100.0, 100.0]
+
+            counts = run(_args(articles_dir=tmp, mailto="me@example.com", ezproxy_cookie=None, time_budget_seconds=1.0))
+
+            self.assertEqual(counts["stopped_reason"], "time_budget_exhausted")
+            mock_resolve_full_text.assert_not_called()
+
+    @patch("discovery.discover_journal_articles.discover.load_relevance_model", return_value=MagicMock())
+    @patch("discovery.discover_journal_articles.discover.resolve_works", return_value=iter([]))
+    @patch("discovery.discover_journal_articles.discover.select_relevant_works")
+    @patch("discovery.discover_journal_articles.discover.resolve_full_text")
+    def test_no_time_budget_means_stopped_reason_is_none(
+        self, mock_resolve_full_text, mock_select, mock_resolve_works, mock_load_model
+    ):
+        with tempfile.TemporaryDirectory() as tmp:
+            work = _work(9)
+            mock_select.return_value = ([ScoredWork(work=work, score=0.9)], 1)
+            mock_resolve_full_text.return_value = AccessResult(status="fetched", content=b"%PDF-1.4", tier="open_access")
+
+            counts = run(_args(articles_dir=tmp, mailto="me@example.com", ezproxy_cookie=None))
+
+            self.assertIsNone(counts["stopped_reason"])
+            mock_resolve_full_text.assert_called_once()
 
 
 if __name__ == "__main__":

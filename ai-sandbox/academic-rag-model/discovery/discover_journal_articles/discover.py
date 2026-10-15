@@ -12,6 +12,7 @@ from __future__ import annotations
 import argparse
 import os
 import sys
+import time
 from pathlib import Path
 
 from core.env.gemini_utils import load_dotenv_override
@@ -57,7 +58,10 @@ def run(args: argparse.Namespace) -> dict:
 
     manifest_file = manifest_path(args.articles_dir)
     manifest = load_manifest(manifest_file)
-    counts = {"examined": 0, "accepted": 0, "already_seen": 0, "fetched": 0, "needs_manual": 0}
+    counts = {"examined": 0, "accepted": 0, "already_seen": 0, "fetched": 0, "needs_manual": 0, "stopped_reason": None}
+
+    time_budget_seconds = getattr(args, "time_budget_seconds", None)
+    deadline = time.monotonic() + time_budget_seconds if time_budget_seconds else None
 
     model = load_relevance_model()
     works = resolve_works(args.faculty, args.topic, mailto, args.batch_size)
@@ -70,6 +74,10 @@ def run(args: argparse.Namespace) -> dict:
     counts["accepted"] = len(scored)
 
     for scored_work in scored:
+        if deadline is not None and time.monotonic() >= deadline:
+            counts["stopped_reason"] = "time_budget_exhausted"
+            break
+
         work = scored_work.work
         key = manifest_key(work)
 
@@ -117,6 +125,11 @@ def main():
                          help="EZProxy download attempts per hour, jittered +/-30%% -- protects your own "
                               "Columbia account from automated-abuse detection. Does not affect OA/arXiv "
                               "downloads, which carry none of that risk and are never paced.")
+    parser.add_argument(
+        "--time-budget-seconds", type=float, default=None,
+        help="Stop the fetch loop cleanly after this many seconds of wall-clock time, reporting partial "
+             "counts instead of implying the run completed. Omit for no limit.",
+    )
     parser.add_argument("--zotero", action="store_true", help="Also sync fetched papers into Zotero.")
     default_articles_dir = Path(__file__).resolve().parent.parent.parent.parent / "research" / "journal-articles"
     parser.add_argument("--articles-dir", default=str(default_articles_dir))
@@ -137,6 +150,8 @@ def main():
     print(f"Accepted (passed relevance threshold): {counts['accepted']}")
     print(f"Fetched: {counts['fetched']}")
     print(f"Needs manual download: {counts['needs_manual']}")
+    if counts["stopped_reason"]:
+        print(f"\nWARNING: run stopped early ({counts['stopped_reason']}); the counts above are partial.")
     if counts["needs_manual"] or counts["already_seen"]:
         print(f"Manual-download worklist: {Path(args.articles_dir) / 'needs_manual_downloads.md'}")
 
