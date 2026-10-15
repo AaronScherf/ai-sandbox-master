@@ -15,7 +15,7 @@ from discovery.discover_journal_articles.discovery import (
 
 
 def _openalex_work(title="Untitled", doi="https://doi.org/10.1/abc", arxiv_url=None, work_type="article",
-                    concepts=None):
+                    concepts=None, topics=None):
     return {
         "id": "https://openalex.org/W1",
         "doi": doi,
@@ -28,6 +28,7 @@ def _openalex_work(title="Untitled", doi="https://doi.org/10.1/abc", arxiv_url=N
             {"display_name": "Climate change", "score": 0.9, "level": 2},
             {"display_name": "Economics", "score": 0.4, "level": 0},
         ],
+        "topics": topics if topics is not None else [],
         "open_access": {"is_oa": True, "oa_url": "https://example.com/paper.pdf"},
         "locations": [{"landing_page_url": arxiv_url}] if arxiv_url else [],
     }
@@ -252,6 +253,45 @@ class TestResolveWorks(unittest.TestCase):
 
         self.assertEqual(results, [])
         mock_iter_author.assert_not_called()
+
+
+class TestWorkFromOpenalexTopics(unittest.TestCase):
+    @patch("discovery.discover_journal_articles.discovery.fetch_with_retries")
+    def test_parses_topics_sorted_by_score_descending(self, mock_fetch):
+        mock_fetch.side_effect = [
+            _response({"results": [_openalex_work(topics=[
+                {"id": "https://openalex.org/T1", "display_name": "Business", "score": 0.4},
+                {"id": "https://openalex.org/T2", "display_name": "Soil Carbon and Nitrogen Dynamics", "score": 0.9},
+            ])]}),
+            _response({"results": []}),
+        ]
+        works = list(iter_author_works("https://openalex.org/A1", "me@example.com", batch_size=25))
+
+        self.assertEqual([t.display_name for t in works[0].topics], ["Soil Carbon and Nitrogen Dynamics", "Business"])
+        self.assertAlmostEqual(works[0].topics[0].score, 0.9)
+        self.assertEqual(works[0].topics[0].id, "https://openalex.org/T2")
+
+    @patch("discovery.discover_journal_articles.discovery.fetch_with_retries")
+    def test_no_topics_yields_empty_list(self, mock_fetch):
+        mock_fetch.side_effect = [
+            _response({"results": [_openalex_work()]}),
+            _response({"results": []}),
+        ]
+        works = list(iter_author_works("https://openalex.org/A1", "me@example.com", batch_size=25))
+
+        self.assertEqual(works[0].topics, [])
+
+    @patch("discovery.discover_journal_articles.discovery.fetch_with_retries")
+    def test_a_topic_entry_without_a_display_name_is_skipped(self, mock_fetch):
+        mock_fetch.side_effect = [
+            _response({"results": [_openalex_work(topics=[
+                {"id": "https://openalex.org/T1", "display_name": None, "score": 0.9},
+            ])]}),
+            _response({"results": []}),
+        ]
+        works = list(iter_author_works("https://openalex.org/A1", "me@example.com", batch_size=25))
+
+        self.assertEqual(works[0].topics, [])
 
 
 if __name__ == "__main__":

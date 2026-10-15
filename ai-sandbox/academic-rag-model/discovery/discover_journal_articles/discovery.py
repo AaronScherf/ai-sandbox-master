@@ -25,6 +25,13 @@ _EXCLUDED_WORK_TYPES = frozenset({"dataset"})
 
 
 @dataclass
+class Topic:
+    id: str
+    display_name: str
+    score: float
+
+
+@dataclass
 class Work:
     openalex_id: str
     doi: str | None
@@ -33,6 +40,7 @@ class Work:
     year: int | None
     abstract: str | None
     concepts: list[str] = field(default_factory=list)
+    topics: list[Topic] = field(default_factory=list)
     oa_url: str | None = None
     is_oa: bool = False
     arxiv_id: str | None = None
@@ -77,6 +85,21 @@ def _extract_arxiv_id(record: dict) -> str | None:
     return None
 
 
+def _parse_topics(record: dict) -> list[Topic]:
+    """Unlike deprecated Concepts (see the comment in _work_from_openalex
+    below), Topics have no numeric "level" to sort by -- ranking by
+    score alone is the correct behavior here, and is itself the fix for
+    the single-broadest-Concept folder-routing bug (topic_routing.py's
+    propose_folder, added separately)."""
+    topics = []
+    for entry in record.get("topics") or []:
+        display_name = entry.get("display_name")
+        if not display_name:
+            continue
+        topics.append(Topic(id=entry.get("id") or "", display_name=display_name, score=entry.get("score") or 0.0))
+    return sorted(topics, key=lambda t: -t.score)
+
+
 def _work_from_openalex(record: dict) -> Work:
     # Confirmed live 2026-09-02: the top-scored concept is often a
     # narrow, homonym-prone level-2/3 concept (e.g. "GRASP" the
@@ -102,6 +125,7 @@ def _work_from_openalex(record: dict) -> Work:
         year=record.get("publication_year"),
         abstract=reconstruct_abstract(record.get("abstract_inverted_index")),
         concepts=[c.get("display_name") for c in concepts if c.get("display_name")],
+        topics=_parse_topics(record),
         oa_url=open_access.get("oa_url"),
         is_oa=bool(open_access.get("is_oa")),
         arxiv_id=_extract_arxiv_id(record),
