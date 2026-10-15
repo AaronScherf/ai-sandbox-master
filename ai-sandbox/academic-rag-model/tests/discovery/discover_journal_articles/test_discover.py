@@ -288,6 +288,56 @@ class TestRun(unittest.TestCase):
             mock_resolve_full_text.assert_called_once()
 
 
+class TestMainRetryFlagInteraction(unittest.TestCase):
+    @patch("discovery.discover_journal_articles.discover.load_dotenv_override")
+    @patch("discovery.discover_journal_articles.discover.retry_needs_manual")
+    def test_retry_with_faculty_topic_or_zotero_warns_they_are_ignored(
+        self, mock_retry, mock_load_dotenv
+    ):
+        # Confirmed real (code review finding, 2026-10-15): --retry's
+        # dispatch branch in main() never touches --faculty/--topic/
+        # --zotero, but argparse happily accepts them alongside
+        # --retry and main() said nothing -- a user combining flags from
+        # a normal run with --retry got no feedback that three of them
+        # did nothing.
+        import contextlib
+        import io
+        import os
+        from unittest.mock import patch as _patch
+
+        mock_retry.return_value = {"fetched": 0, "needs_manual": 1, "not_found": 0}
+
+        buf = io.StringIO()
+        with _patch("sys.argv", ["discover.py", "--retry", "10.1/abc", "--faculty", "Jane Doe", "--zotero"]), \
+             _patch.dict(os.environ, {"OPENALEX_CONTACT_EMAIL": "me@example.com"}), \
+             contextlib.redirect_stdout(buf):
+            from discovery.discover_journal_articles.discover import main
+            main()
+
+        self.assertIn("--faculty", buf.getvalue())
+        self.assertIn("--zotero", buf.getvalue())
+        self.assertIn("ignores", buf.getvalue().lower())
+
+    @patch("discovery.discover_journal_articles.discover.load_dotenv_override")
+    @patch("discovery.discover_journal_articles.discover.retry_needs_manual")
+    def test_retry_alone_prints_no_ignored_flag_warning(self, mock_retry, mock_load_dotenv):
+        import contextlib
+        import io
+        import os
+        from unittest.mock import patch as _patch
+
+        mock_retry.return_value = {"fetched": 0, "needs_manual": 1, "not_found": 0}
+
+        buf = io.StringIO()
+        with _patch("sys.argv", ["discover.py", "--retry", "10.1/abc"]), \
+             _patch.dict(os.environ, {"OPENALEX_CONTACT_EMAIL": "me@example.com"}), \
+             contextlib.redirect_stdout(buf):
+            from discovery.discover_journal_articles.discover import main
+            main()
+
+        self.assertNotIn("ignores", buf.getvalue().lower())
+
+
 class TestRetryNeedsManual(unittest.TestCase):
     @patch("discovery.discover_journal_articles.discover.resolve_work_by_doi")
     @patch("discovery.discover_journal_articles.discover.resolve_full_text")

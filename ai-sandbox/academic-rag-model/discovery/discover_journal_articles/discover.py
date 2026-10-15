@@ -200,6 +200,15 @@ def main():
         sys.exit(1)
 
     if args.retry:
+        ignored = [
+            flag for flag, present in (
+                ("--faculty", bool(args.faculty)),
+                ("--topic", bool(args.topic)),
+                ("--zotero", args.zotero),
+            ) if present
+        ]
+        if ignored:
+            print(f"WARNING: --retry ignores {', '.join(ignored)} -- it only re-attempts the named IDs.")
         counts = retry_needs_manual(args)
         print(f"\nRetried: {len(args.retry)}")
         print(f"Fetched: {counts['fetched']}")
