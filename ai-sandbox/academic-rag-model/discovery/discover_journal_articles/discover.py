@@ -18,7 +18,12 @@ from pathlib import Path
 from core.env.gemini_utils import load_dotenv_override
 from discovery.discover_journal_articles.access import resolve_full_text
 from discovery.discover_journal_articles.atomic_io import write_bytes_atomic
-from discovery.discover_journal_articles.discovery import doi_url, resolve_work_by_doi, resolve_works
+from discovery.discover_journal_articles.discovery import (
+    doi_url,
+    resolve_work_by_doi,
+    resolve_work_by_openalex_id,
+    resolve_works,
+)
 from discovery.discover_journal_articles.manifest import (
     load_manifest,
     manifest_key,
@@ -124,8 +129,8 @@ def retry_needs_manual(args: argparse.Namespace) -> dict:
     """Re-attempts full-text access for exactly the manifest keys named
     in args.retry, under the current (fixed) fallback chain -- never
     touches discovery/scoring or any other manifest entry. A manifest
-    key built from an OpenAlex id rather than a DOI (no bare DOI to
-    query by) is reported as not_found rather than attempted."""
+    key built from an OpenAlex id (rather than a DOI) is resolved via
+    GET /works/{id} directly instead of resolve_work_by_doi."""
     mailto = getattr(args, "mailto", None) or os.environ.get("OPENALEX_CONTACT_EMAIL")
     ezproxy_cookie = getattr(args, "ezproxy_cookie", None) or os.environ.get("EZPROXY_SESSION_COOKIE")
     core_api_key = getattr(args, "core_api_key", None) or os.environ.get("CORE_API_KEY")
@@ -136,11 +141,11 @@ def retry_needs_manual(args: argparse.Namespace) -> dict:
 
     for key in args.retry:
         entry = manifest.get(key)
-        if entry is None or entry.get("status") != "needs_manual" or key.startswith("http"):
+        if entry is None or entry.get("status") != "needs_manual":
             counts["not_found"] += 1
             continue
 
-        work = resolve_work_by_doi(key, mailto)
+        work = resolve_work_by_openalex_id(key, mailto) if key.startswith("http") else resolve_work_by_doi(key, mailto)
         if work is None:
             counts["not_found"] += 1
             continue

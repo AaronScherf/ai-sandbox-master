@@ -203,6 +203,20 @@ def resolve_work_by_doi(doi: str, mailto: str) -> Work | None:
     return _work_from_openalex(response.json())
 
 
+def resolve_work_by_openalex_id(openalex_id: str, mailto: str) -> Work | None:
+    """Looks a Work up directly by its OpenAlex ID (GET /works/{id}),
+    for manifest keys that were built from an OpenAlex ID rather than a
+    DOI -- OpenAlex accepts the full https://openalex.org/W... URL as
+    the path segment, same as resolve_work_by_doi's doi.org URL."""
+    try:
+        response = fetch_with_retries("GET", f"{_OPENALEX_BASE}/works/{openalex_id}", params={"mailto": mailto})
+    except FetchError:
+        return None
+    if response.status_code != 200:
+        return None
+    return _work_from_openalex(response.json())
+
+
 def iter_citing_works(openalex_id: str, mailto: str, batch_size: int):
     page = 1
     while True:

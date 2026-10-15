@@ -2,9 +2,10 @@
 backfill_topics.py
 One-time pass per spec Section B.3: existing sidecars only ever stored
 flat Concept display-names (Topics weren't fetched historically). Looks
-up each manifest entry by DOI against the live OpenAlex API and writes
-the resulting `topics` list into that paper's existing sidecar, touching
-nothing else -- not its folder, not its PDF.
+up each manifest entry against the live OpenAlex API -- by DOI, or by
+GET /works/{id} directly for an entry keyed by OpenAlex ID instead of a
+DOI -- and writes the resulting `topics` list into that paper's
+existing sidecar, touching nothing else -- not its folder, not its PDF.
 """
 from __future__ import annotations
 
@@ -15,7 +16,7 @@ from pathlib import Path
 
 from core.env.gemini_utils import load_dotenv_override
 from discovery.discover_journal_articles.atomic_io import write_json_atomic
-from discovery.discover_journal_articles.discovery import resolve_work_by_doi
+from discovery.discover_journal_articles.discovery import resolve_work_by_doi, resolve_work_by_openalex_id
 from discovery.discover_journal_articles.manifest import load_manifest, manifest_path
 from discovery.discover_journal_articles.topic_routing import sanitize_topic_name
 
@@ -27,7 +28,7 @@ def _sidecar_path_for(articles_dir: Path, folder: str, key: str) -> Path:
 
 def backfill_topics(manifest: dict, articles_dir, mailto: str) -> dict:
     articles_dir = Path(articles_dir)
-    counts = {"updated": 0, "skipped_no_folder": 0, "skipped_no_doi": 0, "skipped_not_found": 0}
+    counts = {"updated": 0, "skipped_no_folder": 0, "skipped_not_found": 0}
 
     for key, entry in manifest.items():
         folder = entry.get("folder")
@@ -38,11 +39,7 @@ def backfill_topics(manifest: dict, articles_dir, mailto: str) -> dict:
         if not sidecar.exists():
             counts["skipped_no_folder"] += 1
             continue
-        if key.startswith("http"):
-            counts["skipped_no_doi"] += 1
-            continue
-
-        work = resolve_work_by_doi(key, mailto)
+        work = resolve_work_by_openalex_id(key, mailto) if key.startswith("http") else resolve_work_by_doi(key, mailto)
         if work is None:
             counts["skipped_not_found"] += 1
             continue
@@ -79,7 +76,6 @@ def main():
     counts = backfill_topics(manifest, args.articles_dir, mailto)
     print(f"Updated: {counts['updated']}")
     print(f"Skipped (no folder/sidecar): {counts['skipped_no_folder']}")
-    print(f"Skipped (no DOI): {counts['skipped_no_doi']}")
     print(f"Skipped (not found in OpenAlex): {counts['skipped_not_found']}")
 
 

@@ -185,6 +185,39 @@ class TestResolveWorkByDoi(unittest.TestCase):
         self.assertIsNone(resolve_work_by_doi("10.1/unknown", "me@example.com"))
 
 
+class TestResolveWorkByOpenalexId(unittest.TestCase):
+    # Confirmed real (code review finding, 2026-10-15): --retry and
+    # backfill_topics.py both skip manifest keys built from an OpenAlex
+    # ID (rather than a DOI) with "not found" / "no sidecar", even
+    # though OpenAlex's GET /works/{id} works directly on that same ID
+    # -- the plan scoped this out deliberately, but it's a real, if
+    # narrow, coverage gap worth closing.
+    @patch("discovery.discover_journal_articles.discovery.fetch_with_retries")
+    def test_returns_parsed_work(self, mock_fetch):
+        from discovery.discover_journal_articles.discovery import resolve_work_by_openalex_id
+        mock_fetch.return_value = _response(_openalex_work(doi="https://doi.org/10.1/abc"))
+
+        work = resolve_work_by_openalex_id("https://openalex.org/W1", "me@example.com")
+
+        self.assertIsInstance(work, Work)
+        self.assertEqual(work.openalex_id, "https://openalex.org/W1")
+        args, _ = mock_fetch.call_args
+        self.assertIn("https://openalex.org/W1", args[1])
+
+    @patch("discovery.discover_journal_articles.discovery.fetch_with_retries")
+    def test_none_on_non_200(self, mock_fetch):
+        from discovery.discover_journal_articles.discovery import resolve_work_by_openalex_id
+        mock_fetch.return_value = _response({}, status_code=404)
+        self.assertIsNone(resolve_work_by_openalex_id("https://openalex.org/W999", "me@example.com"))
+
+    @patch("discovery.discover_journal_articles.discovery.fetch_with_retries")
+    def test_none_on_fetch_error(self, mock_fetch):
+        from discovery.discover_journal_articles.discovery import resolve_work_by_openalex_id
+        from discovery.discover_journal_articles.http_utils import FetchError
+        mock_fetch.side_effect = FetchError("not found")
+        self.assertIsNone(resolve_work_by_openalex_id("https://openalex.org/W999", "me@example.com"))
+
+
 class TestIterCitingWorks(unittest.TestCase):
     @patch("discovery.discover_journal_articles.discovery.fetch_with_retries")
     def test_pages_until_empty(self, mock_fetch):

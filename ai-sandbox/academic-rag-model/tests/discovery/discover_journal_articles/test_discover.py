@@ -452,9 +452,15 @@ class TestRetryNeedsManual(unittest.TestCase):
             manifest = load_manifest(path)
             self.assertEqual(manifest["10.1/other"]["status"], "fetched")
 
-    def test_retry_skips_an_openalex_id_only_entry_without_crashing(self):
-        # No bare DOI to look up by -- resolve_work_by_doi has nothing to
-        # query. Must be reported as not_found, not raise.
+    @patch("discovery.discover_journal_articles.discover.resolve_work_by_openalex_id")
+    @patch("discovery.discover_journal_articles.discover.resolve_full_text")
+    def test_retry_resolves_an_openalex_id_only_entry_by_direct_lookup(
+        self, mock_resolve_full_text, mock_resolve_by_id
+    ):
+        # Confirmed real (code review finding, 2026-10-15): a manifest
+        # key built from an OpenAlex ID (no bare DOI to query by) was
+        # reported as not_found unconditionally, even though OpenAlex's
+        # GET /works/{id} resolves that exact ID directly.
         with tempfile.TemporaryDirectory() as tmp:
             from discovery.discover_journal_articles.manifest import manifest_path, record_outcome, save_manifest, load_manifest
             path = manifest_path(tmp)
@@ -462,8 +468,29 @@ class TestRetryNeedsManual(unittest.TestCase):
             record_outcome(manifest, "https://openalex.org/W123", "needs_manual", folder="misc")
             save_manifest(path, manifest)
 
+            mock_resolve_by_id.return_value = _work(123, doi=None)
+            mock_resolve_full_text.return_value = AccessResult(status="fetched", content=b"%PDF-1.4", tier="unpaywall")
+
             from discovery.discover_journal_articles.discover import retry_needs_manual
             args = _args(articles_dir=tmp, mailto="me@example.com", ezproxy_cookie=None, retry=["https://openalex.org/W123"])
+            counts = retry_needs_manual(args)
+
+            self.assertEqual(counts["fetched"], 1)
+            mock_resolve_by_id.assert_called_once_with("https://openalex.org/W123", "me@example.com")
+
+    @patch("discovery.discover_journal_articles.discover.resolve_work_by_openalex_id")
+    def test_retry_reports_not_found_when_openalex_id_lookup_fails(self, mock_resolve_by_id):
+        with tempfile.TemporaryDirectory() as tmp:
+            from discovery.discover_journal_articles.manifest import manifest_path, record_outcome, save_manifest, load_manifest
+            path = manifest_path(tmp)
+            manifest = load_manifest(path)
+            record_outcome(manifest, "https://openalex.org/W999", "needs_manual", folder="misc")
+            save_manifest(path, manifest)
+
+            mock_resolve_by_id.return_value = None
+
+            from discovery.discover_journal_articles.discover import retry_needs_manual
+            args = _args(articles_dir=tmp, mailto="me@example.com", ezproxy_cookie=None, retry=["https://openalex.org/W999"])
             counts = retry_needs_manual(args)
 
             self.assertEqual(counts["not_found"], 1)
