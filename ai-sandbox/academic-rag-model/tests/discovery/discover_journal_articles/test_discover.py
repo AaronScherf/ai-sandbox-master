@@ -276,6 +276,36 @@ class TestRetryNeedsManual(unittest.TestCase):
 
     @patch("discovery.discover_journal_articles.discover.resolve_work_by_doi")
     @patch("discovery.discover_journal_articles.discover.resolve_full_text")
+    def test_retry_success_removes_entry_from_needs_manual_worklist(self, mock_resolve_full_text, mock_resolve_by_doi):
+        # Confirmed real (code review finding, 2026-10-15): run() rewrites
+        # needs_manual_downloads.md but retry_needs_manual() never did, so
+        # a paper successfully retried still appeared on the manual-
+        # download list -- a user could waste time re-downloading it by
+        # hand.
+        with tempfile.TemporaryDirectory() as tmp:
+            from discovery.discover_journal_articles.manifest import manifest_path, record_outcome, save_manifest, load_manifest
+            path = manifest_path(tmp)
+            manifest = load_manifest(path)
+            record_outcome(manifest, "10.1/abc", "needs_manual", folder="climate-change",
+                            metadata={"title": "Paper 1", "authors": [], "year": 2024, "doi_url": "https://doi.org/10.1/abc"})
+            save_manifest(path, manifest)
+
+            from discovery.discover_journal_articles.worklist import write_needs_manual_worklist
+            write_needs_manual_worklist(load_manifest(path), tmp)
+            worklist_path = Path(tmp) / "needs_manual_downloads.md"
+            self.assertIn("Paper 1", worklist_path.read_text(encoding="utf-8"))
+
+            mock_resolve_by_doi.return_value = _work(1, doi="10.1/abc")
+            mock_resolve_full_text.return_value = AccessResult(status="fetched", content=b"%PDF-1.4", tier="unpaywall")
+
+            from discovery.discover_journal_articles.discover import retry_needs_manual
+            args = _args(articles_dir=tmp, mailto="me@example.com", ezproxy_cookie=None, retry=["10.1/abc"])
+            retry_needs_manual(args)
+
+            self.assertNotIn("Paper 1", worklist_path.read_text(encoding="utf-8"))
+
+    @patch("discovery.discover_journal_articles.discover.resolve_work_by_doi")
+    @patch("discovery.discover_journal_articles.discover.resolve_full_text")
     def test_retry_failure_leaves_entry_needs_manual(self, mock_resolve_full_text, mock_resolve_by_doi):
         with tempfile.TemporaryDirectory() as tmp:
             from discovery.discover_journal_articles.manifest import manifest_path, record_outcome, save_manifest, load_manifest

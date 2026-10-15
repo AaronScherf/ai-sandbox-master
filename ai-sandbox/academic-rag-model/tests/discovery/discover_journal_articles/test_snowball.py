@@ -112,7 +112,7 @@ class TestPropose(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             work = _work(1, doi="10.1/citer")
             mock_candidates.return_value = iter([work])
-            mock_select.return_value = [ScoredWork(work=work, score=0.75)]
+            mock_select.return_value = ([ScoredWork(work=work, score=0.75)], 1)
 
             counts = propose(_propose_args(articles_dir=tmp, mailto="me@example.com"))
 
@@ -134,7 +134,7 @@ class TestPropose(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             work = _work(1, doi="10.1/citer")
             mock_candidates.return_value = iter([work])
-            mock_select.return_value = [ScoredWork(work=work, score=0.75)]
+            mock_select.return_value = ([ScoredWork(work=work, score=0.75)], 1)
 
             propose(_propose_args(articles_dir=tmp, mailto="me@example.com"))
 
@@ -159,13 +159,49 @@ class TestPropose(unittest.TestCase):
                 return iter([work])
 
             mock_candidates.side_effect = fake_candidates
-            mock_select.return_value = [ScoredWork(work=work, score=0.75)]
+            mock_select.return_value = ([ScoredWork(work=work, score=0.75)], 1)
 
             propose(_propose_args(articles_dir=tmp, mailto="me@example.com"))
 
             from discovery.discover_journal_articles.manifest import load_manifest, manifest_path
             manifest = load_manifest(manifest_path(tmp))
             self.assertEqual(manifest["10.1/citer"]["cites_seed"], "10.1/seed-paper")
+
+
+class TestProposeCountsWithRealSelectRelevantWorks(unittest.TestCase):
+    @patch("discovery.discover_journal_articles.snowball.load_relevance_model")
+    @patch("discovery.discover_journal_articles.snowball.iter_snowball_candidates")
+    def test_examined_and_accepted_reported_without_mocking_select_relevant_works(self, mock_candidates, mock_load_model):
+        # Confirmed real (code review finding, 2026-10-15): select_relevant_works
+        # has returned (scored, examined) since Task 4, but propose() still
+        # did `scored = select_relevant_works(...)` and crashed with
+        # AttributeError: 'list' object has no attribute 'work' on every
+        # real run -- every existing propose() test mocked
+        # select_relevant_works directly, so the mismatch was invisible to
+        # the suite. This test runs the real function so a future
+        # signature drift can't hide again.
+        def encode(text, normalize_embeddings=True):
+            encoded = MagicMock()
+            vectors = {"climate": [1.0, 0.0], "on topic": [1.0, 0.0], "off topic": [0.0, 1.0]}
+            encoded.tolist.return_value = vectors.get(text, [0.0, 0.0])
+            return encoded
+
+        model = MagicMock()
+        model.encode.side_effect = encode
+        mock_load_model.return_value = model
+
+        on_topic_work = _work(1, doi="10.1/on-topic")
+        on_topic_work.abstract = "on topic"
+        off_topic_work = _work(2, doi="10.1/off-topic")
+        off_topic_work.abstract = "off topic"
+        mock_candidates.return_value = iter([on_topic_work, off_topic_work])
+
+        with tempfile.TemporaryDirectory() as tmp:
+            counts = propose(_propose_args(articles_dir=tmp, mailto="me@example.com", relevance_prompt="climate"))
+
+        self.assertEqual(counts["examined"], 2)
+        self.assertEqual(counts["accepted"], 1)
+        self.assertEqual(counts["proposed"], 1)
 
 
 def _confirm_args(**overrides):

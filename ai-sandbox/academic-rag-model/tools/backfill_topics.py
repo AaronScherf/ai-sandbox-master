@@ -57,10 +57,16 @@ def backfill_topics(manifest: dict, articles_dir, mailto: str) -> dict:
     return counts
 
 
+def _default_articles_dir() -> Path:
+    # tools/backfill_topics.py sits at the same depth as tools/audit_metadata.py
+    # and tools/reconcile_needs_manual.py -- three parents up from this file
+    # reaches <ai-sandbox>/, matching their own default.
+    return Path(__file__).resolve().parent.parent.parent / "research" / "journal-articles"
+
+
 def main():
     parser = argparse.ArgumentParser(description="Backfill OpenAlex Topics data into existing journal-article sidecars.")
-    default_articles_dir = Path(__file__).resolve().parent.parent / "research" / "journal-articles"
-    parser.add_argument("--articles-dir", default=str(default_articles_dir))
+    parser.add_argument("--articles-dir", default=str(_default_articles_dir()))
     args = parser.parse_args()
 
     load_dotenv_override()

@@ -95,14 +95,25 @@ def resolve_folder_proposal(manifest: dict, articles_dir, key: str, chosen_folde
     entry = manifest.get(key)
     if entry is None:
         raise KeyError(f"{key!r} not found in manifest")
+    if not chosen_folder or sanitize_topic_name(chosen_folder) != chosen_folder:
+        raise ValueError(
+            f"{chosen_folder!r} is not a valid sanitized folder name "
+            f"(expected {sanitize_topic_name(chosen_folder)!r})"
+        )
 
     articles_dir = Path(articles_dir)
     current_folder = entry.get("folder") or "misc"
     stem = sanitize_topic_name(key)[:80] or "paper"
     old_dir = articles_dir / current_folder
-    pdf_path = old_dir / f"{stem}.pdf"
-    sidecar_path = old_dir / f"{stem}.meta.json"
+    new_dir = articles_dir / chosen_folder
+    old_pdf, old_sidecar = old_dir / f"{stem}.pdf", old_dir / f"{stem}.meta.json"
+    new_pdf, new_sidecar = new_dir / f"{stem}.pdf", new_dir / f"{stem}.meta.json"
 
+    # Idempotency: a prior call may have crashed (or hit a file another
+    # process had open) after moving one file but not the other. Resume
+    # from wherever each file actually is instead of failing on a
+    # source that's already gone.
+    sidecar_path = old_sidecar if old_sidecar.exists() else new_sidecar
     sidecar_data = json.loads(sidecar_path.read_text(encoding="utf-8"))
     topics_data = sidecar_data.get("topics") or []
     sidecar_data["tags"] = sorted({
@@ -110,16 +121,28 @@ def resolve_folder_proposal(manifest: dict, articles_dir, key: str, chosen_folde
     })
 
     if chosen_folder != current_folder:
-        new_dir = articles_dir / chosen_folder
         new_dir.mkdir(parents=True, exist_ok=True)
-        pdf_path.replace(new_dir / pdf_path.name)
-        sidecar_path = sidecar_path.replace(new_dir / sidecar_path.name)
+        if old_pdf.exists():
+            old_pdf.replace(new_pdf)
+        elif not new_pdf.exists():
+            raise FileNotFoundError(f"PDF not found at {old_pdf} or {new_pdf}")
+        if sidecar_path == old_sidecar:
+            sidecar_path = old_sidecar.replace(new_sidecar)
         entry["folder"] = chosen_folder
 
     write_json_atomic(sidecar_path, sidecar_data)
 
     topics = [Topic(id=t["id"], display_name=t["display_name"], score=t["score"]) for t in topics_data]
     entry["topic_decision_fingerprint"] = topics_fingerprint(topics)
+
+
+def parse_resolve_arg(value: str) -> tuple[str, str]:
+    """Splits a --resolve KEY:FOLDER argument on the LAST colon, not the
+    first -- a manifest key built from an OpenAlex id is itself a URL
+    containing colons (e.g. "https://openalex.org/W123"), so
+    str.partition(":") would wrongly cut it down to "https"."""
+    key, _, folder = value.rpartition(":")
+    return key, folder
 
 
 def main():
@@ -142,7 +165,7 @@ def main():
         return
 
     if args.resolve:
-        key, _, folder = args.resolve.partition(":")
+        key, folder = parse_resolve_arg(args.resolve)
         resolve_folder_proposal(manifest, args.articles_dir, key, folder)
         save_manifest(manifest_file, manifest)
         print(f"Applied: {key} -> {folder}")

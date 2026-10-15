@@ -143,6 +143,7 @@ def retry_needs_manual(args: argparse.Namespace) -> dict:
             counts["needs_manual"] += 1
 
     save_manifest(manifest_file, manifest)
+    write_needs_manual_worklist(manifest, args.articles_dir)
     return counts
 
 

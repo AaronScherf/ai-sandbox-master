@@ -5,7 +5,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from discovery.discover_journal_articles.discovery import Topic, Work
-from tools.backfill_topics import backfill_topics
+from tools.backfill_topics import _default_articles_dir, backfill_topics
 
 
 def _sidecar(folder_dir: Path, stem: str, extra: dict | None = None) -> None:
@@ -20,6 +20,21 @@ def _work_with_topics():
         openalex_id="W1", doi="10.1/abc", title="A Paper", authors=[], year=2024, abstract=None,
         topics=[Topic(id="https://openalex.org/T1", display_name="Climate Adaptation", score=0.9)],
     )
+
+
+class TestDefaultArticlesDir(unittest.TestCase):
+    def test_matches_sibling_tools_default(self):
+        # Confirmed real (code review finding, 2026-10-15): this file lives
+        # at the same depth under academic-rag-model/ as audit_metadata.py
+        # and reconcile_needs_manual.py (both tools/<file>.py), so it must
+        # resolve the same number of parents up to <ai-sandbox>/research/
+        # journal-articles/. The original code used one fewer parent,
+        # landing inside academic-rag-model/ where that folder doesn't
+        # exist -- load_manifest() then silently returns {} and the script
+        # reports "Updated: 0" with no error.
+        import tools.audit_metadata as audit_metadata
+        sibling_default = Path(audit_metadata.__file__).resolve().parent.parent.parent / "research" / "journal-articles"
+        self.assertEqual(_default_articles_dir(), sibling_default)
 
 
 class TestBackfillTopics(unittest.TestCase):
