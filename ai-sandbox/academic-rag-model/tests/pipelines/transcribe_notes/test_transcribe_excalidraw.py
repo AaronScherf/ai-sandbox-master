@@ -140,6 +140,7 @@ def test_assemble_raw_markdown_skips_missing_chunks():
     assert result == "<!-- chunk 1 -->\n\nfirst chunk text"
 
 
+import unittest.mock
 from unittest.mock import patch
 
 import pytest
@@ -293,36 +294,75 @@ def test_expand_via_ollama_returns_none_on_timeout():
     assert result is None
 
 
+def _fake_gemini_client(text: str):
+    client = unittest.mock.MagicMock()
+    client.models.generate_content.return_value.text = text
+    return client
+
+
 def test_expand_transcription_gemini_backend():
-    with patch("pipelines.transcribe_notes.transcribe_excalidraw.expand_via_gemini", return_value="Gemini prose"):
-        text, meta = expand_transcription(client=object(), raw_markdown="shorthand", backend="gemini")
+    client = _fake_gemini_client("Gemini prose")
+    text, meta = expand_transcription(client=client, raw_markdown="shorthand", backend="gemini")
     assert text == "Gemini prose"
     assert meta["expansion_backend"] == "gemini"
     assert meta["grounded"] is False
 
 
 def test_expand_transcription_ollama_backend_success():
-    with patch("pipelines.transcribe_notes.transcribe_excalidraw.expand_via_ollama", return_value="Ollama prose"):
+    with patch("pipelines.transcribe_notes.excalidraw_agent_driver.call_ollama", return_value="Ollama prose"):
         text, meta = expand_transcription(client=object(), raw_markdown="shorthand", backend="ollama")
     assert text == "Ollama prose"
     assert meta["expansion_backend"] == "ollama"
 
 
 def test_expand_transcription_ollama_falls_back_to_gemini_when_unreachable():
-    with patch("pipelines.transcribe_notes.transcribe_excalidraw.expand_via_ollama", return_value=None), \
-         patch("pipelines.transcribe_notes.transcribe_excalidraw.expand_via_gemini", return_value="Gemini fallback prose"):
-        text, meta = expand_transcription(client=object(), raw_markdown="shorthand", backend="ollama")
+    client = _fake_gemini_client("Gemini fallback prose")
+    with patch("pipelines.transcribe_notes.excalidraw_agent_driver.call_ollama", return_value=None):
+        text, meta = expand_transcription(client=client, raw_markdown="shorthand", backend="ollama")
     assert text == "Gemini fallback prose"
     assert meta["expansion_backend"] == "gemini"
 
 
 def test_expand_transcription_marks_grounded_when_passages_given():
-    with patch("pipelines.transcribe_notes.transcribe_excalidraw.expand_via_gemini", return_value="Gemini prose"):
-        _text, meta = expand_transcription(
-            client=object(), raw_markdown="shorthand", backend="gemini",
-            retrieved_passages=["some textbook passage"],
-        )
+    client = _fake_gemini_client("Gemini prose")
+    _text, meta = expand_transcription(
+        client=client, raw_markdown="shorthand", backend="gemini",
+        retrieved_passages=["some textbook passage"],
+    )
     assert meta["grounded"] is True
+
+
+def test_expand_transcription_non_slide_skips_already_cached_segment():
+    class FakeDriver:
+        def expand(self, excalidraw_md_path, prompt, segment_index, total_segments):
+            pytest.fail("must not call the driver -- segment 0 is already cached")
+
+    text, meta = expand_transcription(
+        client=object(), raw_markdown="shorthand notes", driver=FakeDriver(),
+        excalidraw_md_path="note.excalidraw.md", cache={"0": "already expanded"},
+    )
+    assert text == "already expanded"
+
+
+def test_expand_transcription_slide_aware_only_generates_missing_segments():
+    requested = []
+
+    class FakeDriver:
+        backend = "gemini"
+
+        def expand(self, excalidraw_md_path, prompt, segment_index, total_segments):
+            requested.append(segment_index)
+            return f"expanded segment {segment_index}"
+
+    raw = "**[Slide]**\nSlide one\n\n**[Handwritten]**\nNote one\n\n**[Slide]**\nSlide two\n\n**[Handwritten]**\nNote two"
+    text, meta = expand_transcription(
+        client=object(), raw_markdown=raw, has_slides=True, driver=FakeDriver(),
+        excalidraw_md_path="note.excalidraw.md", cache={"1": "already expanded note one"},
+    )
+    assert requested == [3]  # segment 1 (first Handwritten) already cached, only segment 3 generated
+    assert "already expanded note one" in text
+    assert "expanded segment 3" in text
+    assert "Slide one" in text and "Slide two" in text
 
 
 from pipelines.transcribe_notes.transcribe_excalidraw import write_outputs

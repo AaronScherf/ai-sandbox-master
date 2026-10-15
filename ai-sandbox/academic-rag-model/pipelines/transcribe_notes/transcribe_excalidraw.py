@@ -382,49 +382,80 @@ def expand_with_verbatim_slides(
     return "\n\n".join(out)
 
 
-def _expand_slide_note(client, raw_markdown: str, backend: str, retrieved_passages) -> tuple[str, dict]:
-    state = {"backend": backend}
+def expansion_cache_paths_for(excalidraw_md_path: str) -> tuple[str, str]:
+    base_name = os.path.basename(excalidraw_md_path)[: -len(".excalidraw.md")]
+    output_dir = resolve_output_dir(excalidraw_md_path)
+    cache_path = os.path.join(output_dir, f"{base_name}_expansion_cache.json")
+    driver_path = cache_path.replace("_expansion_cache.json", "_expansion_driver.json")
+    return cache_path, driver_path
 
-    def generate(prompt: str) -> str:
-        if state["backend"] == "ollama":
-            result = call_ollama(prompt, model=_EXPANSION_MODEL_OLLAMA, request_timeout=300)
-            if isinstance(result, str):
-                return result
-            print("WARNING: Ollama expansion backend unreachable; falling back to Gemini.")
-            state["backend"] = "gemini"
-        response = client.models.generate_content(
-            model=_EXPANSION_MODEL_GEMINI, contents=[prompt],
-            config={"temperature": 0, "thinking_config": {"thinking_level": "minimal"}},
-        )
-        return response.text or ""
 
-    text = expand_with_verbatim_slides(raw_markdown, generate, retrieved_passages)
-    model = _EXPANSION_MODEL_OLLAMA if state["backend"] == "ollama" else _EXPANSION_MODEL_GEMINI
-    return text, {
-        "expansion_backend": state["backend"], "expansion_model": model,
-        "grounded": bool(retrieved_passages), "slides_verbatim": True,
-    }
+def _expansion_segments(raw_markdown: str, has_slides: bool) -> list[tuple[str, str]]:
+    if not has_slides:
+        return [("Handwritten", raw_markdown)]
+    return split_labeled_segments(raw_markdown)
 
 
 def expand_transcription(
     client, raw_markdown: str, backend: str = "gemini", retrieved_passages: list[str] | None = None,
-    has_slides: bool = False,
+    has_slides: bool = False, driver: "ExcalidrawDriver | None" = None,
+    excalidraw_md_path: str | None = None, cache: dict[str, str] | None = None,
 ) -> tuple[str | None, dict]:
-    """backend='gemini' (default) or 'ollama' (opt-in, matches
-    VIZ_BACKEND/PROBLEMGEN_BACKEND's existing env-var pattern at the CLI
-    layer -- see main()). Falls back to Gemini if Ollama is requested but
-    unreachable, printing a warning, rather than failing the whole
-    document."""
+    """backend='gemini' (default) or 'ollama' (opt-in). Routes every
+    generative call through `driver` (default ExcalidrawApiDriver), caching
+    each segment's expanded text by its position in `_expansion_segments`'s
+    output so a resumed call never re-expands an already-cached segment.
+    Slide segments are never generated (kept verbatim) and never cached."""
+    from pipelines.transcribe_notes.agent_driver import AgentPending
+    from pipelines.transcribe_notes.excalidraw_agent_driver import ExcalidrawApiDriver
+
+    if driver is None:
+        driver = ExcalidrawApiDriver(client, backend=backend)
+    cache = {} if cache is None else cache
     grounded = bool(retrieved_passages)
-    if has_slides:
-        return _expand_slide_note(client, raw_markdown, backend, retrieved_passages)
-    if backend == "ollama":
-        text = expand_via_ollama(raw_markdown, retrieved_passages=retrieved_passages, has_slides=has_slides)
-        if text is not None:
-            return text, {"expansion_backend": "ollama", "expansion_model": _EXPANSION_MODEL_OLLAMA, "grounded": grounded}
-        print("WARNING: Ollama expansion backend unreachable; falling back to Gemini.")
-    text = expand_via_gemini(client, _EXPANSION_MODEL_GEMINI, raw_markdown, retrieved_passages, has_slides)
-    return text, {"expansion_backend": "gemini", "expansion_model": _EXPANSION_MODEL_GEMINI, "grounded": grounded}
+    segments = _expansion_segments(raw_markdown, has_slides)
+
+    if not has_slides:
+        # Single segment covering the whole document -- output format must
+        # stay the bare expanded text, no "**[Notes]**" wrapper.
+        if cache.get("0", "").strip():
+            return cache["0"], {"expansion_backend": driver.backend if hasattr(driver, "backend") else backend,
+                                 "expansion_model": _EXPANSION_MODEL_GEMINI, "grounded": grounded}
+        prompt = build_expansion_prompt(raw_markdown, retrieved_passages, has_slides=False)
+        try:
+            text = driver.expand(excalidraw_md_path, prompt, 0, 1)
+        except AgentPending:
+            raise
+        cache["0"] = text
+        backend_used = driver.backend if hasattr(driver, "backend") else backend
+        return text, {"expansion_backend": backend_used, "expansion_model": _EXPANSION_MODEL_GEMINI, "grounded": grounded}
+
+    out: list[str] = []
+    for i, (label, text) in enumerate(segments):
+        if label == "Slide":
+            out.append(f"**[Slide]**\n{text}")
+            continue
+        if cache.get(str(i), "").strip():
+            out.append(f"**[Notes]**\n{cache[str(i)]}")
+            continue
+        neighbors = [
+            segments[j][1] for j in (i - 1, i + 1)
+            if 0 <= j < len(segments) and segments[j][0] == "Slide"
+        ]
+        prompt = build_handwriting_expansion_prompt(text, neighbors, retrieved_passages)
+        try:
+            expanded = driver.expand(excalidraw_md_path, prompt, i, len(segments))
+        except AgentPending:
+            raise
+        expanded = (expanded or "").strip() or text  # keep raw text if generation came back empty
+        cache[str(i)] = expanded
+        out.append(f"**[Notes]**\n{expanded}")
+
+    backend_used = driver.backend if hasattr(driver, "backend") else backend
+    return "\n\n".join(out), {
+        "expansion_backend": backend_used, "expansion_model": _EXPANSION_MODEL_GEMINI,
+        "grounded": grounded, "slides_verbatim": True,
+    }
 
 
 def write_outputs(
@@ -521,9 +552,18 @@ def reexpand_excalidraw_note(
     retrieved_passages = _retrieve_grounding(
         excalidraw_md_path, raw_markdown, client, academic_hub_root, use_grounding,
     )
+    from core.env.gemini_utils import save_json_cache
+
+    # A fresh cache (never loaded from disk): reexpand's whole purpose is a
+    # forced full regeneration (e.g. after an expansion-prompt change), so it
+    # must not skip segments the persisted cache still has from a prior run.
+    exp_cache_path, _ = expansion_cache_paths_for(excalidraw_md_path)
+    exp_cache: dict[str, str] = {}
     expanded_markdown, expansion_meta = expand_transcription(
         client, raw_markdown, expand_backend, retrieved_passages, has_slides=has_slides,
+        excalidraw_md_path=excalidraw_md_path, cache=exp_cache,
     )
+    save_json_cache(exp_cache_path, exp_cache)
     write_outputs(
         excalidraw_md_path=excalidraw_md_path, image_path=image_path,
         raw_markdown=raw_markdown, expanded_markdown=expanded_markdown or "",
@@ -588,7 +628,13 @@ def process_excalidraw_note(
         excalidraw_md_path, raw_markdown, client, academic_hub_root, use_grounding,
     )
 
-    expanded_markdown, expansion_meta = expand_transcription(client, raw_markdown, expand_backend, retrieved_passages, has_slides=has_slides)
+    exp_cache_path, _ = expansion_cache_paths_for(excalidraw_md_path)
+    exp_cache = load_json_cache(exp_cache_path)
+    expanded_markdown, expansion_meta = expand_transcription(
+        client, raw_markdown, expand_backend, retrieved_passages, has_slides=has_slides,
+        driver=driver, excalidraw_md_path=excalidraw_md_path, cache=exp_cache,
+    )
+    save_json_cache(exp_cache_path, exp_cache)
 
     write_outputs(
         excalidraw_md_path=excalidraw_md_path, image_path=image_path,
