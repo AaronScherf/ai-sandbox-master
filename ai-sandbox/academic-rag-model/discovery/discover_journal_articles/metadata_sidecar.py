@@ -25,6 +25,7 @@ def write_sidecar(pdf_path, work: Work, relevance_score: float | None, source_ti
         "doi": work.doi,
         "openalex_id": work.openalex_id,
         "concepts": work.concepts,
+        "topics": [{"id": t.id, "display_name": t.display_name, "score": t.score} for t in work.topics],
         "source_tier": source_tier,
         "relevance_score": relevance_score,
         "page_count": work.page_count,

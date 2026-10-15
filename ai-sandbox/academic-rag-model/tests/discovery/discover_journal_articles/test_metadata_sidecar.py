@@ -3,7 +3,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from discovery.discover_journal_articles.discovery import Work
+from discovery.discover_journal_articles.discovery import Topic, Work
 from discovery.discover_journal_articles.metadata_sidecar import sidecar_path, write_sidecar
 
 
@@ -11,6 +11,7 @@ def _work():
     return Work(
         openalex_id="W1", doi="10.1/abc", title="A Paper", authors=["Jane Doe"],
         year=2024, abstract="...", concepts=["Climate change"], page_count=12,
+        topics=[Topic(id="https://openalex.org/T1", display_name="Climate Adaptation", score=0.87)],
     )
 
 
@@ -43,6 +44,14 @@ class TestWriteSidecar(unittest.TestCase):
             write_sidecar(pdf_path, _work(), relevance_score=None, source_tier="ezproxy")
             data = json.loads((Path(tmp) / "paper.meta.json").read_text(encoding="utf-8"))
             self.assertIsNone(data["relevance_score"])
+
+    def test_writes_topics(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            pdf_path = Path(tmp) / "paper.pdf"
+            write_sidecar(pdf_path, _work(), relevance_score=0.82, source_tier="open_access")
+
+            data = json.loads((Path(tmp) / "paper.meta.json").read_text(encoding="utf-8"))
+            self.assertEqual(data["topics"], [{"id": "https://openalex.org/T1", "display_name": "Climate Adaptation", "score": 0.87}])
 
 
 if __name__ == "__main__":
