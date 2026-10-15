@@ -29,7 +29,7 @@ class BuildResult:
     warnings: list[Issue]
 
 
-def graph_payload(graph: Graph) -> dict:
+def graph_payload(graph: Graph, layouts: list[dict] | None = None) -> dict:
     section_order = {s.id: s.order for s in graph.sections}
     sections = [s.model_dump(mode="json") for s in sorted(graph.sections, key=lambda s: s.order)]
 
@@ -51,6 +51,7 @@ def graph_payload(graph: Graph) -> dict:
         "edges": edges,
         "vocab": graph.vocab.model_dump(mode="json"),
         "site": graph.site,
+        "layouts": layouts or [],
     }
     canonical = json.dumps(body, sort_keys=True, ensure_ascii=False)
     version = hashlib.sha256(canonical.encode("utf-8")).hexdigest()[:12]
@@ -72,6 +73,27 @@ def _read_vendor(vendor_dir: Path) -> str:
     return "\n;\n".join(parts)
 
 
+def _read_layouts(root: Path, node_ids: set[str]) -> list[dict]:
+    """config/layouts/*.json: shared layout presets, validated against the graph's concept ids."""
+    folder = root / "config" / "layouts"
+    out = []
+    for path in sorted(folder.glob("*.json")) if folder.is_dir() else []:
+        try:
+            raw = json.loads(path.read_text(encoding="utf-8"))
+            name, positions = raw["name"], raw["positions"]
+            clean = {}
+            for node_id, point in positions.items():
+                clean[node_id] = {"x": float(point["x"]), "y": float(point["y"])}
+        except (OSError, ValueError, KeyError, TypeError, AttributeError) as exc:
+            raise BuildError(f"{path.name}: not a valid layout file ({exc}); expected "
+                             f'{{"name": ..., "positions": {{id: {{"x": n, "y": n}}}}}}') from exc
+        unknown = sorted(set(clean) - node_ids)
+        if unknown:
+            raise BuildError(f"{path.name}: unknown concept id(s) {unknown[:5]}; rebuild the layout from the current graph")
+        out.append({"id": path.stem, "name": str(name), "positions": clean})
+    return out
+
+
 def build(root: str | Path, vendor_dir: str | Path | None = None) -> BuildResult:
     root = Path(root)
     graph = GraphStore(root).read_all()
@@ -80,7 +102,7 @@ def build(root: str | Path, vendor_dir: str | Path | None = None) -> BuildResult
     if bad:
         raise BuildError("graph has errors:\n" + "\n".join(f"  [{i.code}] {i.message}" for i in bad))
 
-    payload = graph_payload(graph)
+    payload = graph_payload(graph, _read_layouts(root, {n.id for n in graph.nodes}))
     vendor = _read_vendor(Path(vendor_dir) if vendor_dir else VIEWER_DIR / "vendor")
     graph_json_text = json.dumps(payload, indent=2, ensure_ascii=False, sort_keys=True) + "\n"
     inline_json = json.dumps(payload, ensure_ascii=False, sort_keys=True)
