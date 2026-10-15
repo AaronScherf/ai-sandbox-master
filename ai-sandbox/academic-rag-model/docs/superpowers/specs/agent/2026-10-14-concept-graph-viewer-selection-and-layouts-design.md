@@ -33,21 +33,24 @@ switch between ready-made layouts.
   stops multi-select working today.
 - **Shift-drag on empty canvas** (Cytoscape box selection) selects everything inside; dragging any selected concept
   moves all selected concepts. Neither is disabled in the viewer today.
+- **Removing one concept**: Ctrl, Cmd or Shift-tap on an already selected concept deselects just that concept and
+  keeps the rest, so a group can be built up and trimmed without starting again.
 - **Escape** or **Clear selection** empties the selection. Hiding a topic deselects its concepts, so nothing hidden is
   ever selected.
 
 ## Selection in the concept list (left sidebar)
 
 - **Click** a concept name: replaces the selection with that concept (and centres it, as today).
-- **Ctrl or Cmd-click**: toggles that concept in the selection.
+- **Ctrl or Cmd-click**: toggles that concept: adds it, or removes it when it is already selected.
 - **Shift-click**: selects the range, in the list's displayed order, between the last-clicked concept and this one,
   including both ends. The range crosses section headings: `Total order` then Shift-click `Continuous preference`
   selects every concept listed between them, in list order.
-- Clicking a concept name inside the right panel's lists behaves as a plain click in the concept list.
+- Clicking a concept name inside the right panel's lists behaves as a plain click in the concept list; Ctrl or
+  Cmd-click there toggles it, and each listed concept also has a small remove (x) control.
 
 ## Topic buttons
 
-The filter semantics are unchanged: a highlighted button means that topic is visible; with none highlighted
+Plain click only: there are no Ctrl or Shift variants on the topic buttons. The filter semantics are unchanged: a highlighted button means that topic is visible; with none highlighted
 everything is visible; clicking a button from that state shows only that topic.
 
 | Action | Visible | Selected | Right panel |
@@ -55,8 +58,6 @@ everything is visible; clicking a button from that state shows only that topic.
 | Click a non-highlighted button | adds the topic (from none highlighted: only that topic) | that topic's visible concepts replace the selection | grouped list; the topic's summary when it is fully selected |
 | Click a highlighted button, others still highlighted | hides that topic | its concepts are deselected | whatever is still selected, grouped |
 | Click the only highlighted button | whole map back | nothing | plain panel, no summary |
-| Ctrl-click a non-highlighted button | adds the topic | its concepts are added to the selection | grouped, the new topic expanded |
-| Shift-click a button | adds every button between the last-clicked button and this one, in button order | all their concepts are selected | grouped, one section per topic |
 
 ## Right panel for a selection
 
@@ -70,9 +71,23 @@ everything is visible; clicking a button from that state shows only that topic.
     selected concepts, ties by button order.
 - "All visible concepts of a topic" is measured after the current filters (kind, status, search), and the heading says
   "(filtered)" when some are hidden, so a filter cannot make a summary unreachable.
-- **Topic summary text**: the topic's `description` from `config/vocab.yaml` when present; otherwise a composed
-  placeholder from the member concepts' one-line summaries, with their count and the sections they span. A later agent
-  stage can draft the descriptions with no viewer change.
+- **Summary text is always agent-drafted.** A topic's summary is its `description`, a cohesive short paragraph in
+  the owner's review flow (see *Summary stage*). The page never shows concatenated one-line summaries: when a topic or
+  section has no description yet, the panel shows the concept list only, and `validate` warns about the missing
+  description. A composed placeholder exists only behind `?debug` for development.
+- **Section selection**: clicking a section heading in the concept list selects every visible concept of that section
+  and shows that section's summary above the grouped list. Topic summaries still appear for any topic that is fully
+  selected.
+
+## Summary stage
+
+A small agent stage (`summary`, same card, validate and submit flow as `fill`) drafts one summary per topic and per
+section: 8 + 8 cards today. Each card shows the member concepts (names, one-line summaries, explanations) and the
+relevant retrieved passages, and asks for one cohesive paragraph of at most about 90 words in the agent's own
+words, with the same meta-commentary and own-words checks as `fill`. Results are stored in
+`config/topics.yaml` (`{topic-id: {description}}`) and as a `summary` field on each section in
+`data/sections.yaml`; `build` embeds them in `graph.json`. Because a topic's membership changes as concepts are
+added, `validate` also warns when a description is older than its membership (hash of the member ids).
 
 ## Connection proposals from a selection
 
@@ -114,9 +129,8 @@ everything is visible; clicking a button from that state shows only that topic.
 ## Out of scope
 
 Live or on-the-fly generated summaries, shared user-made layouts, proposing topics, drag-to-connect on the canvas, and
-section-level summaries (the list headings are sections; only topics have summaries).
+summaries for arbitrary combinations of concepts (only whole topics and whole sections have summaries).
 
 ## Open items
 
-- Section summaries could reuse the same panel if wanted later.
-- The topic description stage (a few cards) is separate work.
+- Wording of the summary stage's card (how long, how technical) is settled when the stage is written.
