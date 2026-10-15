@@ -188,8 +188,14 @@ def apply_proposals(store: GraphStore, reviews: list[ReviewFile], today: str) ->
     graph = store.read_all()
     conflicts_file = store.root / "review-conflicts.md"
 
+    def recorded(line: str) -> bool:
+        return conflicts_file.exists() and ("- " + line) in conflicts_file.read_text(encoding="utf-8").splitlines()
+
     def conflict(who: list[str], label: str, reason: str) -> None:
         msg = f"{'; '.join(who)} {today}: proposal {label}: {reason}"
+        if recorded(msg):  # applying the same review again must not repeat its lines
+            report.skipped.append(f"{label}: conflict already recorded")
+            return
         _append(conflicts_file, "- " + msg)
         report.conflicts.append(msg)
 
@@ -205,9 +211,18 @@ def apply_proposals(store: GraphStore, reviews: list[ReviewFile], today: str) ->
         label = f"concept {merged.name!r}"
         for line in merged.decisions:
             conflict(merged.reviewers, label, line)
+        existing = find_similar_existing(graph, merged.name)
+        prov = existing.provenance if existing is not None else None
+        if (existing is not None and existing.status == "proposed" and prov is not None and prov.driver == "reviewer"
+                and set(merged.reviewers) <= set((prov.agent or "").split("; "))):
+            report.skipped.append(f"{label}: already proposed by {', '.join(merged.reviewers)} as {existing.id!r}")
+            continue
         if len(group) > 1:
             report.applied.append(f"{label}: merged {len(group)} proposals from {', '.join(merged.reviewers)}")
-        existing = find_similar_existing(graph, merged.name)
+            info = (f"{'; '.join(merged.reviewers)} {today}: merged {len(group)} proposals for "
+                    f"concept {merged.name!r} (informational, nothing to decide)")
+            if not recorded(info):
+                _append(conflicts_file, "- " + info)
         if existing is not None:
             who = merged.reviewers
             if merged.note:
@@ -227,7 +242,10 @@ def apply_proposals(store: GraphStore, reviews: list[ReviewFile], today: str) ->
         if slug in new_ids:
             problems.append(f"{slug!r} was proposed twice in this round")
         if problems:
-            conflict(merged.reviewers, label, "; ".join(problems))
+            lost = len(merged.connections)
+            conflict(merged.reviewers, label, "; ".join(problems) +
+                     (f"; its {lost} connection{'s' if lost != 1 else ''} {'were' if lost != 1 else 'was'} not applied"
+                      if lost else ""))
             continue
         new_ids.add(slug)
         new_nodes.append({"id": slug, "name": merged.name, "kind": merged.kind, "section": merged.section,
@@ -245,6 +263,12 @@ def apply_proposals(store: GraphStore, reviews: list[ReviewFile], today: str) ->
     new_edges: list[dict] = []
     for e, who in sorted(merge_edges(pending_edges), key=lambda i: edge_id(i[0].source, i[0].type, i[0].target)):
         eid = edge_id(e.source, e.type, e.target)
+        old = next((x for x in graph.edges if x.id == eid), None)
+        oprov = old.provenance if old is not None else None
+        if (old is not None and old.status == "proposed" and oprov is not None and oprov.driver == "reviewer"
+                and set(who) <= set((oprov.agent or "").split("; "))):
+            report.skipped.append(f"connection {eid}: already proposed by {', '.join(who)}")
+            continue
         errs, warns = check_edge(graph, e.source, e.type, e.target, e.condition, e.note, new_ids=new_ids,
                                  staged=staged)
         if errs:

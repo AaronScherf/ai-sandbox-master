@@ -34,3 +34,13 @@ def test_collect_link_prompt_says_link_and_asks_for_cross_section_edges(tmp_path
     assert cli(root, "collect", "link", "--node", "preorder", "--redo", "--work-dir", str(work), "--run-id", "l1") == 0
     saved = (work / "l1" / "PROMPT.md").read_text(encoding="utf-8")
     assert "LINK run l1" in saved and "other sections" in saved and "FILL" not in saved
+
+
+def test_summary_prompt_does_not_ask_for_citations_but_fill_prompt_does(tmp_path):
+    root = copy_sample(tmp_path)
+    blank_explanations(GraphStore(root), ["preorder"])
+    work = tmp_path / "work"
+    assert cli(root, "collect", "summary", "--work-dir", str(work), "--run-id", "s1") == 0
+    assert cli(root, "collect", "fill", "--work-dir", str(work), "--run-id", "f1") == 0
+    assert "citation" not in (work / "s1" / "PROMPT.md").read_text(encoding="utf-8").lower()
+    assert "citation" in (work / "f1" / "PROMPT.md").read_text(encoding="utf-8").lower()

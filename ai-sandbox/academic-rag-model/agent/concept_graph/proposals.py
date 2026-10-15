@@ -227,7 +227,8 @@ def merge_cluster(items: list[tuple[NodeProposal, str]]) -> Merged:
     forms = Counter(normalize_name(p.name) for p, _ in items)
     top = max(forms.values())
     best = sorted((f for f, c in forms.items() if c == top), key=lambda f: (-len(f), f))[0]
-    name = next(p.name for p, _ in items if normalize_name(p.name) == best)
+    spellings = Counter(p.name for p, _ in items if normalize_name(p.name) == best)
+    name = sorted(spellings, key=lambda n: (-spellings[n], n))[0]  # most common spelling; a tie by text, not read order
     chosen = {}
     for label in ("kind", "section"):
         chosen[label], flagged = _majority([(getattr(p, label), who) for p, who in items], label)
@@ -243,7 +244,7 @@ def merge_cluster(items: list[tuple[NodeProposal, str]]) -> Merged:
                 conns[key] = c.model_copy()
             else:
                 have = conns[key]
-                parts = sorted({x for x in (have.condition, c.condition) if x})
+                parts = sorted({x for s_ in (have.condition, c.condition) if s_ for x in s_.split("; ")})
                 have.condition = "; ".join(parts) or None
     reviewers = sorted({who for _, who in items})
     notes = [(who, p.note.strip()) for p, who in sorted(items, key=lambda i: i[1]) if p.note.strip()]
@@ -266,7 +267,7 @@ def merge_edges(items: list[tuple[EdgeProposal, str]]) -> list[tuple[EdgeProposa
             out[key] = (e.model_copy(), [who], [(who, e.note.strip())] if e.note.strip() else [])
             continue
         have, who_list, notes = out[key]
-        parts = sorted({x for x in (have.condition, e.condition) if x})
+        parts = sorted({x for s_ in (have.condition, e.condition) if s_ for x in s_.split("; ")})
         have.condition = "; ".join(parts) or None
         if who not in who_list:
             who_list.append(who)

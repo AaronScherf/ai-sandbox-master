@@ -52,11 +52,11 @@ def graph_payload(graph: Graph, layouts: list[dict] | None = None) -> dict:
         "edges": edges,
         "vocab": graph.vocab.model_dump(mode="json"),
         "site": graph.site,
-        "layouts": layouts or [],
     }
     canonical = json.dumps(body, sort_keys=True, ensure_ascii=False)
     version = hashlib.sha256(canonical.encode("utf-8")).hexdigest()[:12]
-    return {"graph_version": version, **body}
+    # layout presets are display data: adding one must not change the version, which keys readers' saved work
+    return {"graph_version": version, "layouts": layouts or [], **body}
 
 
 def _script_safe(text: str) -> str:

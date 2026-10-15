@@ -63,6 +63,7 @@ def agent_prompt(run: Run, *, submit_hint: str | None = None) -> str:
     check = (f'\nCheck first: this is a {noun} run. Open any one card; the first line under "## Instructions" should be:\n'
              f'  "{first}"\nIf it is not, you were given the wrong run: stop and tell me.\n') if first else ""
     steps = STEPS.get(stage, "- Follow each card's instructions.")
+    common = "\n".join(l for l in COMMON.splitlines() if not (stage == "summary" and "citation" in l.lower()))
     return f"""\
 Run the concept-graph {noun} run {run.run_id} ({count} card{"s" if count != 1 else ""}).
 Run dir: {run.root}
@@ -71,7 +72,7 @@ For every card in the cards folder of the run dir:
 1. Open the card and follow its "## Instructions" exactly; the card is the authority for this task.
 2. Use only the offered passages as evidence.
 {steps}
-{COMMON}
+{common}
 
 Fill the YAML under "## Result" in each card. Do not run submit yourself; tell me when you are done.
 {submit_hint or ""}""".rstrip() + "\n"

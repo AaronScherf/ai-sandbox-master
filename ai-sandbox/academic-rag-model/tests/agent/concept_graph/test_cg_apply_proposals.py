@@ -178,3 +178,34 @@ def test_a_new_concept_takes_its_sections_topic(store):
     apply_proposals(store, [r], "2026-10-20")
     n = next(x for x in store.read_all().nodes if x.id == "quasi-concavity")
     assert n.topic == other
+
+
+def test_a_merge_is_noted_in_the_conflicts_file_as_information(store):
+    a = review("Ana", add_node("Quasi concavity"))
+    b = review("Ben", add_node("Quasi-concavity"))
+    apply_proposals(store, [a, b], "2026-10-20")
+    text = (store.root / "review-conflicts.md").read_text(encoding="utf-8")
+    assert "merged 2 proposals" in text and "informational" in text
+
+
+def test_a_bounced_concepts_connections_are_named_in_its_conflict_line(store):
+    other = store.read_all().nodes[0].id
+    r = review("Ada", add_node("Odd one", kind="widget",
+                               connections=[{"other": other, "type": "is_a", "direction": "out"}]))
+    apply_proposals(store, [r], "2026-10-20")
+    assert "1 connection" in (store.root / "review-conflicts.md").read_text(encoding="utf-8")
+
+
+def test_applying_the_same_review_twice_is_a_no_op(store):
+    other = store.read_all().nodes[0].id
+    r = review("Ada", add_node("Quasi concavity", note="Upper sets are convex.",
+                               connections=[{"other": other, "type": "is_a", "direction": "out"}]),
+               add_edge(other, "is_a", store.read_all().nodes[1].id))
+    first = apply_proposals(store, [r], "2026-10-20")
+    nodes, edges = len(store.read_all().nodes), len(store.read_all().edges)
+    conflicts = store.root / "review-conflicts.md"
+    before = conflicts.read_text(encoding="utf-8") if conflicts.exists() else ""
+    again = apply_proposals(store, [r], "2026-10-20")
+    assert (len(store.read_all().nodes), len(store.read_all().edges)) == (nodes, edges)
+    assert (conflicts.read_text(encoding="utf-8") if conflicts.exists() else "") == before
+    assert again.skipped and not again.conflicts and first.applied

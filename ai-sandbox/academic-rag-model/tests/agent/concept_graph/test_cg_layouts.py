@@ -68,3 +68,12 @@ def test_a_non_finite_position_fails_the_build(tmp_path):
     with pytest.raises(BuildError) as exc:
         build(root)
     assert "nan.json" in str(exc.value)
+
+
+def test_adding_a_layout_does_not_change_the_graph_version(tmp_path):
+    root = copy_sample(tmp_path)
+    first = json.loads(build(root).graph_json.read_text(encoding="utf-8"))
+    node_id = first["nodes"][0]["id"]
+    write_layout(root, "extra", {"name": "Extra", "positions": {node_id: {"x": 1, "y": 2}}})
+    second = json.loads(build(root).graph_json.read_text(encoding="utf-8"))
+    assert second["layouts"] and first["graph_version"] == second["graph_version"]

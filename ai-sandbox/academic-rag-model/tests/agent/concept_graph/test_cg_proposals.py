@@ -137,3 +137,22 @@ def test_edge_note_over_the_limit_is_an_error():
     g = graph([node("a", "A"), node("b", "B")])
     errors, _ = P.check_edge(g, "a", "is_a", "b", None, "w " * 150)
     assert any("200" in m for m in errors)
+
+
+def test_a_condition_given_by_three_reviewers_is_not_repeated():
+    mk = lambda cond, who: (P.EdgeProposal(source="a", type="implies", target="b", condition=cond), who)
+    merged = P.merge_edges([mk("alpha", "Bob"), mk("beta", "Cy"), mk("alpha", "Dee"), mk("alpha; beta", "Eve")])
+    assert merged[0][0].condition == "alpha; beta"
+
+
+def test_the_merged_name_does_not_depend_on_read_order():
+    a = np("Quasi concavity", "Zoe")
+    b = np("quasi-concavity", "Abe")
+    assert P.merge_cluster([a, b]).name == P.merge_cluster([b, a]).name
+
+
+def test_connection_conditions_in_a_cluster_are_not_repeated():
+    c = lambda cond: P.Connection(other="u", type="implies", direction="out", condition=cond)
+    m = P.merge_cluster([np("Foo bar", "Ana", conns=[c("x")]), np("Foo bar", "Ben", conns=[c("x")]),
+                         np("Foo bar", "Cy", conns=[c("y")])])
+    assert m.connections[0].condition == "x; y"
