@@ -63,7 +63,26 @@ class TestBackfillTopics(unittest.TestCase):
             counts = backfill_topics(manifest, tmp, "me@example.com")
             self.assertEqual(counts["skipped_no_folder"], 1)
 
-    def test_skips_an_openalex_id_only_key_without_crashing(self):
+    @patch("tools.backfill_topics.resolve_work_by_openalex_id")
+    def test_resolves_an_openalex_id_only_key_by_direct_lookup(self, mock_resolve_by_id):
+        # Confirmed real (code review finding, 2026-10-15): an
+        # OpenAlex-id-only manifest key was unconditionally skipped as
+        # "no DOI", even though OpenAlex's GET /works/{id} resolves that
+        # exact ID directly -- the plan scoped this out deliberately,
+        # but it's a real, if narrow, coverage gap.
+        with tempfile.TemporaryDirectory() as tmp:
+            articles_dir = Path(tmp)
+            _sidecar(articles_dir / "misc", "https-openalex-org-w1"[:80])
+            manifest = {"https://openalex.org/W1": {"status": "fetched", "folder": "misc"}}
+            mock_resolve_by_id.return_value = _work_with_topics()
+
+            counts = backfill_topics(manifest, articles_dir, "me@example.com")
+
+            self.assertEqual(counts["updated"], 1)
+            mock_resolve_by_id.assert_called_once_with("https://openalex.org/W1", "me@example.com")
+
+    @patch("tools.backfill_topics.resolve_work_by_openalex_id", return_value=None)
+    def test_skips_an_openalex_id_only_key_not_found_in_openalex(self, mock_resolve_by_id):
         with tempfile.TemporaryDirectory() as tmp:
             articles_dir = Path(tmp)
             _sidecar(articles_dir / "misc", "https-openalex-org-w1"[:80])
@@ -71,7 +90,7 @@ class TestBackfillTopics(unittest.TestCase):
 
             counts = backfill_topics(manifest, articles_dir, "me@example.com")
 
-            self.assertEqual(counts["skipped_no_doi"], 1)
+            self.assertEqual(counts["skipped_not_found"], 1)
 
     @patch("tools.backfill_topics.resolve_work_by_doi", return_value=None)
     def test_skips_a_doi_not_found_in_openalex(self, mock_resolve):

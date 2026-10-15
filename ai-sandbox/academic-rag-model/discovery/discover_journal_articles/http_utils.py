@@ -27,9 +27,13 @@ def _parse_retry_after(value: str | None) -> float | None:
     if not value:
         return None
     try:
-        return float(value)
+        seconds = float(value)
     except ValueError:
-        pass
+        seconds = None
+    if seconds is not None:
+        if seconds != seconds:  # NaN is unparseable for our purposes
+            return None
+        return max(seconds, 0.0)
     try:
         retry_at = parsedate_to_datetime(value)
     except (TypeError, ValueError):
@@ -99,10 +103,11 @@ def is_valid_pdf_bytes(content: bytes) -> bool:
     from pypdf import PdfReader
 
     try:
-        PdfReader(io.BytesIO(content))
+        reader = PdfReader(io.BytesIO(content))
+        page_count = len(reader.pages)
     except Exception:
         return False
-    return True
+    return page_count > 0
 
 
 def paced_sleep(pace_per_hour: float, jitter: float = 0.3) -> None:

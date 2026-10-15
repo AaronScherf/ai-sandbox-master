@@ -210,6 +210,43 @@ class TestRun(unittest.TestCase):
             self.assertEqual(counts["examined"], 5)
             self.assertEqual(counts["accepted"], 1)
 
+    @patch("discovery.discover_journal_articles.discover.load_relevance_model", return_value=MagicMock())
+    @patch("discovery.discover_journal_articles.discover.resolve_works")
+    @patch("discovery.discover_journal_articles.discover.select_relevant_works")
+    @patch("discovery.discover_journal_articles.discover.resolve_full_text")
+    def test_retrieved_counts_every_candidate_before_dedup(
+        self, mock_resolve_full_text, mock_select, mock_resolve_works, mock_load_model
+    ):
+        # Spec A.3: the final summary prints retrieved, deduplicated
+        # (already_seen), examined, accepted, and fetched as five
+        # distinct counts. "retrieved" is everything resolve_works
+        # yielded, before skip_already_seen filters it -- so it must
+        # stay >= already_seen + examined even when some candidates are
+        # filtered as already-seen before relevance scoring ever runs.
+        with tempfile.TemporaryDirectory() as tmp:
+            seen_work = _work(7, doi="10.1/seen")
+            new_work = _work(8, doi="10.1/new")
+            mock_resolve_works.return_value = iter([seen_work, new_work])
+
+            def _select_side_effect(works, *a, **kw):
+                materialized = list(works)
+                return [ScoredWork(work=w, score=1.0) for w in materialized], len(materialized)
+
+            mock_select.side_effect = _select_side_effect
+            mock_resolve_full_text.return_value = AccessResult(status="fetched", content=b"%PDF-1.4", tier="open_access")
+
+            from discovery.discover_journal_articles.manifest import manifest_path, record_outcome, save_manifest, load_manifest
+            path = manifest_path(tmp)
+            manifest = load_manifest(path)
+            record_outcome(manifest, "10.1/seen", "fetched", folder="climate-change")
+            save_manifest(path, manifest)
+
+            counts = run(_args(articles_dir=tmp, mailto="me@example.com", ezproxy_cookie=None))
+
+            self.assertEqual(counts["retrieved"], 2)
+            self.assertEqual(counts["already_seen"], 1)
+            self.assertEqual(counts["examined"], 1)
+
     @patch("discovery.discover_journal_articles.discover.time.monotonic")
     @patch("discovery.discover_journal_articles.discover.load_relevance_model", return_value=MagicMock())
     @patch("discovery.discover_journal_articles.discover.resolve_works", return_value=iter([]))
@@ -249,6 +286,82 @@ class TestRun(unittest.TestCase):
 
             self.assertIsNone(counts["stopped_reason"])
             mock_resolve_full_text.assert_called_once()
+
+
+class TestDefaultTimeBudget(unittest.TestCase):
+    @patch("discovery.discover_journal_articles.discover.load_dotenv_override")
+    @patch("discovery.discover_journal_articles.discover.run")
+    def test_default_time_budget_is_fifteen_minutes(self, mock_run, mock_load_dotenv):
+        # Confirmed real (code review finding, 2026-10-15): A.5's spec
+        # suggested a generous default (~15 min) so a run that hits
+        # sustained 429/504s stops and reports partial results instead
+        # of running unbounded by default. The CLI shipped with no
+        # default at all (None -- unlimited).
+        import os
+        from unittest.mock import patch as _patch
+
+        mock_run.return_value = {
+            "retrieved": 0, "examined": 0, "accepted": 0, "already_seen": 0,
+            "fetched": 0, "needs_manual": 0, "stopped_reason": None,
+        }
+
+        with _patch("sys.argv", ["discover.py", "--faculty", "Jane Doe", "--relevance-prompt", "x"]), \
+             _patch.dict(os.environ, {"OPENALEX_CONTACT_EMAIL": "me@example.com"}):
+            from discovery.discover_journal_articles.discover import main
+            main()
+
+        passed_args = mock_run.call_args[0][0]
+        self.assertEqual(passed_args.time_budget_seconds, 900.0)
+
+
+class TestMainRetryFlagInteraction(unittest.TestCase):
+    @patch("discovery.discover_journal_articles.discover.load_dotenv_override")
+    @patch("discovery.discover_journal_articles.discover.retry_needs_manual")
+    def test_retry_with_faculty_topic_or_zotero_warns_they_are_ignored(
+        self, mock_retry, mock_load_dotenv
+    ):
+        # Confirmed real (code review finding, 2026-10-15): --retry's
+        # dispatch branch in main() never touches --faculty/--topic/
+        # --zotero, but argparse happily accepts them alongside
+        # --retry and main() said nothing -- a user combining flags from
+        # a normal run with --retry got no feedback that three of them
+        # did nothing.
+        import contextlib
+        import io
+        import os
+        from unittest.mock import patch as _patch
+
+        mock_retry.return_value = {"fetched": 0, "needs_manual": 1, "not_found": 0}
+
+        buf = io.StringIO()
+        with _patch("sys.argv", ["discover.py", "--retry", "10.1/abc", "--faculty", "Jane Doe", "--zotero"]), \
+             _patch.dict(os.environ, {"OPENALEX_CONTACT_EMAIL": "me@example.com"}), \
+             contextlib.redirect_stdout(buf):
+            from discovery.discover_journal_articles.discover import main
+            main()
+
+        self.assertIn("--faculty", buf.getvalue())
+        self.assertIn("--zotero", buf.getvalue())
+        self.assertIn("ignores", buf.getvalue().lower())
+
+    @patch("discovery.discover_journal_articles.discover.load_dotenv_override")
+    @patch("discovery.discover_journal_articles.discover.retry_needs_manual")
+    def test_retry_alone_prints_no_ignored_flag_warning(self, mock_retry, mock_load_dotenv):
+        import contextlib
+        import io
+        import os
+        from unittest.mock import patch as _patch
+
+        mock_retry.return_value = {"fetched": 0, "needs_manual": 1, "not_found": 0}
+
+        buf = io.StringIO()
+        with _patch("sys.argv", ["discover.py", "--retry", "10.1/abc"]), \
+             _patch.dict(os.environ, {"OPENALEX_CONTACT_EMAIL": "me@example.com"}), \
+             contextlib.redirect_stdout(buf):
+            from discovery.discover_journal_articles.discover import main
+            main()
+
+        self.assertNotIn("ignores", buf.getvalue().lower())
 
 
 class TestRetryNeedsManual(unittest.TestCase):
@@ -339,9 +452,15 @@ class TestRetryNeedsManual(unittest.TestCase):
             manifest = load_manifest(path)
             self.assertEqual(manifest["10.1/other"]["status"], "fetched")
 
-    def test_retry_skips_an_openalex_id_only_entry_without_crashing(self):
-        # No bare DOI to look up by -- resolve_work_by_doi has nothing to
-        # query. Must be reported as not_found, not raise.
+    @patch("discovery.discover_journal_articles.discover.resolve_work_by_openalex_id")
+    @patch("discovery.discover_journal_articles.discover.resolve_full_text")
+    def test_retry_resolves_an_openalex_id_only_entry_by_direct_lookup(
+        self, mock_resolve_full_text, mock_resolve_by_id
+    ):
+        # Confirmed real (code review finding, 2026-10-15): a manifest
+        # key built from an OpenAlex ID (no bare DOI to query by) was
+        # reported as not_found unconditionally, even though OpenAlex's
+        # GET /works/{id} resolves that exact ID directly.
         with tempfile.TemporaryDirectory() as tmp:
             from discovery.discover_journal_articles.manifest import manifest_path, record_outcome, save_manifest, load_manifest
             path = manifest_path(tmp)
@@ -349,8 +468,29 @@ class TestRetryNeedsManual(unittest.TestCase):
             record_outcome(manifest, "https://openalex.org/W123", "needs_manual", folder="misc")
             save_manifest(path, manifest)
 
+            mock_resolve_by_id.return_value = _work(123, doi=None)
+            mock_resolve_full_text.return_value = AccessResult(status="fetched", content=b"%PDF-1.4", tier="unpaywall")
+
             from discovery.discover_journal_articles.discover import retry_needs_manual
             args = _args(articles_dir=tmp, mailto="me@example.com", ezproxy_cookie=None, retry=["https://openalex.org/W123"])
+            counts = retry_needs_manual(args)
+
+            self.assertEqual(counts["fetched"], 1)
+            mock_resolve_by_id.assert_called_once_with("https://openalex.org/W123", "me@example.com")
+
+    @patch("discovery.discover_journal_articles.discover.resolve_work_by_openalex_id")
+    def test_retry_reports_not_found_when_openalex_id_lookup_fails(self, mock_resolve_by_id):
+        with tempfile.TemporaryDirectory() as tmp:
+            from discovery.discover_journal_articles.manifest import manifest_path, record_outcome, save_manifest, load_manifest
+            path = manifest_path(tmp)
+            manifest = load_manifest(path)
+            record_outcome(manifest, "https://openalex.org/W999", "needs_manual", folder="misc")
+            save_manifest(path, manifest)
+
+            mock_resolve_by_id.return_value = None
+
+            from discovery.discover_journal_articles.discover import retry_needs_manual
+            args = _args(articles_dir=tmp, mailto="me@example.com", ezproxy_cookie=None, retry=["https://openalex.org/W999"])
             counts = retry_needs_manual(args)
 
             self.assertEqual(counts["not_found"], 1)

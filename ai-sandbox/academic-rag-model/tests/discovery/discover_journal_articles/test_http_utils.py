@@ -109,6 +109,28 @@ class TestFetchWithRetriesTimeoutAndRetryAfter(unittest.TestCase):
 
     @patch("discovery.discover_journal_articles.http_utils.time.sleep")
     @patch("discovery.discover_journal_articles.http_utils.requests.request")
+    def test_negative_numeric_retry_after_clamps_to_zero(self, mock_request, mock_sleep):
+        rate_limited = MagicMock(status_code=429, headers={"Retry-After": "-5"})
+        success = MagicMock(status_code=200, headers={})
+        mock_request.side_effect = [rate_limited, success]
+
+        fetch_with_retries("GET", "https://example.com")
+
+        mock_sleep.assert_called_once_with(0.0)
+
+    @patch("discovery.discover_journal_articles.http_utils.time.sleep")
+    @patch("discovery.discover_journal_articles.http_utils.requests.request")
+    def test_nan_retry_after_falls_back_to_default_backoff(self, mock_request, mock_sleep):
+        rate_limited = MagicMock(status_code=429, headers={"Retry-After": "nan"})
+        success = MagicMock(status_code=200, headers={})
+        mock_request.side_effect = [rate_limited, success]
+
+        fetch_with_retries("GET", "https://example.com", backoff_seconds=2.0)
+
+        mock_sleep.assert_called_once_with(2.0)
+
+    @patch("discovery.discover_journal_articles.http_utils.time.sleep")
+    @patch("discovery.discover_journal_articles.http_utils.requests.request")
     def test_malformed_retry_after_falls_back_to_default_backoff(self, mock_request, mock_sleep):
         rate_limited = MagicMock(status_code=429, headers={"Retry-After": "not-a-value"})
         success = MagicMock(status_code=200, headers={})
@@ -140,6 +162,22 @@ class TestIsValidPdfBytes(unittest.TestCase):
     def test_false_for_magic_bytes_with_garbage_body(self):
         from discovery.discover_journal_articles.http_utils import is_valid_pdf_bytes
         self.assertFalse(is_valid_pdf_bytes(b"%PDF-1.4\nthis is not actually a valid pdf body at all"))
+
+    def test_false_for_a_pdf_whose_page_tree_resolves_to_zero_pages(self):
+        # Confirmed real (code review finding, 2026-10-15): PdfReader()
+        # parses the header/xref/trailer lazily and doesn't walk the page
+        # tree until something accesses .pages. A /Kids entry pointing at
+        # a nonexistent object makes pypdf silently drop it and resolve
+        # to zero pages instead of raising -- is_valid_pdf_bytes() must
+        # reject that too, not just a hard parse error.
+        import re
+
+        from discovery.discover_journal_articles.http_utils import is_valid_pdf_bytes
+
+        valid = self._minimal_valid_pdf_bytes()
+        kids_ref = re.search(rb"/Kids\s*\[\s*\d+\s+0\s+R", valid)
+        broken = valid.replace(kids_ref.group(0), b"/Kids [ 9999 0 R")
+        self.assertFalse(is_valid_pdf_bytes(broken))
 
 
 class TestPacedSleep(unittest.TestCase):

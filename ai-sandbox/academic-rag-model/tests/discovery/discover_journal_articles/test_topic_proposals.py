@@ -69,6 +69,33 @@ class TestBuildProposalsLedger(unittest.TestCase):
 
             self.assertEqual(entries, [])
 
+    def test_counts_skipped_entries_when_a_counts_dict_is_passed(self):
+        # Confirmed real (code review finding, 2026-10-15): skipped
+        # entries (no folder, no sidecar on disk, or an empty topics
+        # list) vanished silently -- there was no way to tell "47
+        # entries, all skipped" apart from "47 entries, all classified".
+        with tempfile.TemporaryDirectory() as tmp:
+            articles_dir = Path(tmp)
+            _write_sidecar(articles_dir / "misc", "10-1-empty-topics", "No Topics Yet", [])
+            manifest = {
+                "10.1/no-sidecar": {"status": "fetched", "folder": "misc"},
+                "10.1/empty-topics": {"status": "fetched", "folder": "misc"},
+                "10.1/no-folder": {"status": "fetched", "folder": None},
+                "10.1/needs-manual": {"status": "needs_manual", "folder": "misc"},
+            }
+            counts = {
+                "skipped_not_active": 0, "skipped_no_folder": 0,
+                "skipped_no_sidecar": 0, "skipped_no_topics": 0,
+            }
+
+            entries = build_proposals_ledger(manifest, articles_dir, counts=counts)
+
+            self.assertEqual(entries, [])
+            self.assertEqual(counts["skipped_not_active"], 1)
+            self.assertEqual(counts["skipped_no_folder"], 1)
+            self.assertEqual(counts["skipped_no_sidecar"], 1)
+            self.assertEqual(counts["skipped_no_topics"], 1)
+
     def test_skips_a_needs_manual_entry_with_no_pdf_yet(self):
         with tempfile.TemporaryDirectory() as tmp:
             articles_dir = Path(tmp)
@@ -229,6 +256,26 @@ class TestResolveFolderProposal(unittest.TestCase):
 
             with self.assertRaises(ValueError):
                 resolve_folder_proposal(manifest, articles_dir, "10.1/abc", "Climate Change")
+
+
+class TestRejectHelpText(unittest.TestCase):
+    def test_reject_help_text_does_not_claim_nothing_else_changes(self):
+        # Confirmed real (code review finding, 2026-10-15): --reject's
+        # help text said "without changing anything else", but
+        # resolve_folder_proposal() always rewrites the sidecar's tags
+        # (correct per spec B.5) -- the help text was just inaccurate.
+        import contextlib
+        import io
+        from unittest.mock import patch
+
+        from discovery.discover_journal_articles.topic_proposals import main
+
+        buf = io.StringIO()
+        with patch("sys.argv", ["topic_proposals.py", "--help"]), self.assertRaises(SystemExit):
+            with contextlib.redirect_stdout(buf):
+                main()
+
+        self.assertNotIn("without changing anything else", buf.getvalue())
 
 
 if __name__ == "__main__":

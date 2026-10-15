@@ -24,3 +24,20 @@ def write_json_atomic(path, data) -> None:
         if os.path.exists(tmp_name):
             os.remove(tmp_name)
         raise
+
+
+def write_bytes_atomic(path, data: bytes) -> None:
+    """Same crash-safety as write_json_atomic, for PDF writes -- a crash
+    mid-write (or another process reading the same path) never sees a
+    half-written file."""
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    fd, tmp_name = tempfile.mkstemp(dir=path.parent, prefix=f".{path.name}.", suffix=".tmp")
+    try:
+        with os.fdopen(fd, "wb") as f:
+            f.write(data)
+        os.replace(tmp_name, path)
+    except Exception:
+        if os.path.exists(tmp_name):
+            os.remove(tmp_name)
+        raise

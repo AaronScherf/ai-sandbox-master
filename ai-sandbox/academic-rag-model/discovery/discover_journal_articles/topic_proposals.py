@@ -40,22 +40,35 @@ def _sidecar_path_for(folder_dir: Path, key: str) -> Path:
     return folder_dir / f"{stem}.meta.json"
 
 
-def build_proposals_ledger(manifest: dict, articles_dir) -> list[dict]:
+def build_proposals_ledger(manifest: dict, articles_dir, counts: dict | None = None) -> list[dict]:
+    """counts, when passed, is incremented in place per spec reporting
+    need: skipped_not_active (status outside _ACTIVE_STATUSES),
+    skipped_no_folder, skipped_no_sidecar (sidecar missing on disk), and
+    skipped_no_topics (sidecar has no stored Topics yet) -- so --build
+    can report "N skipped (reason)" instead of a bare entry count."""
     articles_dir = Path(articles_dir)
     entries = []
     for key, manifest_entry in manifest.items():
         if manifest_entry.get("status") not in _ACTIVE_STATUSES:
+            if counts is not None:
+                counts["skipped_not_active"] += 1
             continue
         folder = manifest_entry.get("folder")
         if not folder:
+            if counts is not None:
+                counts["skipped_no_folder"] += 1
             continue
         sidecar = _sidecar_path_for(articles_dir / folder, key)
         if not sidecar.exists():
+            if counts is not None:
+                counts["skipped_no_sidecar"] += 1
             continue
 
         sidecar_data = json.loads(sidecar.read_text(encoding="utf-8"))
         topics_data = sidecar_data.get("topics") or []
         if not topics_data:
+            if counts is not None:
+                counts["skipped_no_topics"] += 1
             continue
 
         topics = [Topic(id=t["id"], display_name=t["display_name"], score=t["score"]) for t in topics_data]
@@ -74,8 +87,8 @@ def build_proposals_ledger(manifest: dict, articles_dir) -> list[dict]:
     return entries
 
 
-def write_proposals_ledger(manifest: dict, articles_dir) -> Path:
-    entries = build_proposals_ledger(manifest, articles_dir)
+def write_proposals_ledger(manifest: dict, articles_dir, counts: dict | None = None) -> Path:
+    entries = build_proposals_ledger(manifest, articles_dir, counts=counts)
     path = proposals_ledger_path(articles_dir)
     write_json_atomic(path, entries)
     return path
@@ -153,15 +166,25 @@ def main():
     parser.add_argument("--articles-dir", default=str(default_articles_dir))
     parser.add_argument("--build", action="store_true", help="(Re)write the review ledger from the current manifest/sidecars.")
     parser.add_argument("--resolve", metavar="KEY:FOLDER", help="Apply an accepted decision: move KEY into FOLDER (or keep it, tagging only, if FOLDER matches the current folder).")
-    parser.add_argument("--reject", metavar="KEY", help="Record that KEY's current folder was explicitly kept as-is, without changing anything else.")
+    parser.add_argument("--reject", metavar="KEY", help="Keep KEY in its current folder, recording the decision as reviewed. Still rewrites its sidecar tags from current topic scores, same as --resolve into the same folder.")
     args = parser.parse_args()
 
     manifest_file = manifest_path(args.articles_dir)
     manifest = load_manifest(manifest_file)
 
     if args.build:
-        path = write_proposals_ledger(manifest, args.articles_dir)
+        counts = {"skipped_not_active": 0, "skipped_no_folder": 0, "skipped_no_sidecar": 0, "skipped_no_topics": 0}
+        path = write_proposals_ledger(manifest, args.articles_dir, counts=counts)
         print(f"Wrote {path}")
+        total_skipped = sum(counts.values())
+        if total_skipped:
+            print(
+                f"Skipped {total_skipped} manifest entries: "
+                f"{counts['skipped_not_active']} not active, "
+                f"{counts['skipped_no_folder']} no folder, "
+                f"{counts['skipped_no_sidecar']} no sidecar on disk, "
+                f"{counts['skipped_no_topics']} no topics stored yet."
+            )
         return
 
     if args.resolve:

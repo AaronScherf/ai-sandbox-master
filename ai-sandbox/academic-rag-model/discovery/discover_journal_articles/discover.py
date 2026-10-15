@@ -17,7 +17,13 @@ from pathlib import Path
 
 from core.env.gemini_utils import load_dotenv_override
 from discovery.discover_journal_articles.access import resolve_full_text
-from discovery.discover_journal_articles.discovery import doi_url, resolve_work_by_doi, resolve_works
+from discovery.discover_journal_articles.atomic_io import write_bytes_atomic
+from discovery.discover_journal_articles.discovery import (
+    doi_url,
+    resolve_work_by_doi,
+    resolve_work_by_openalex_id,
+    resolve_works,
+)
 from discovery.discover_journal_articles.manifest import (
     load_manifest,
     manifest_key,
@@ -39,6 +45,16 @@ _DEFAULT_RELEVANCE_THRESHOLD = 0.5
 _DEFAULT_PACE_PER_HOUR = 25.0
 
 
+def _count_retrieved(works, counts: dict):
+    """Wraps the lazy resolve_works() generator to count every candidate
+    OpenAlex actually returned, before skip_already_seen filters any of
+    them -- spec A.3's "retrieved" count, distinct from "already_seen"
+    (deduplicated) and "examined" (scored)."""
+    for work in works:
+        counts["retrieved"] += 1
+        yield work
+
+
 def _sync_zotero_if_configured(work, pdf_path, topic_folder: str, args) -> None:
     library_id = getattr(args, "zotero_library_id", None) or os.environ.get("ZOTERO_LIBRARY_ID")
     api_key = getattr(args, "zotero_api_key", None) or os.environ.get("ZOTERO_API_KEY")
@@ -58,14 +74,17 @@ def run(args: argparse.Namespace) -> dict:
 
     manifest_file = manifest_path(args.articles_dir)
     manifest = load_manifest(manifest_file)
-    counts = {"examined": 0, "accepted": 0, "already_seen": 0, "fetched": 0, "needs_manual": 0, "stopped_reason": None}
+    counts = {
+        "retrieved": 0, "examined": 0, "accepted": 0, "already_seen": 0,
+        "fetched": 0, "needs_manual": 0, "stopped_reason": None,
+    }
 
     time_budget_seconds = getattr(args, "time_budget_seconds", None)
     deadline = time.monotonic() + time_budget_seconds if time_budget_seconds else None
 
     model = load_relevance_model()
     works = resolve_works(args.faculty, args.topic, mailto, args.batch_size)
-    unseen_works = skip_already_seen(works, manifest, counts)
+    unseen_works = skip_already_seen(_count_retrieved(works, counts), manifest, counts)
     scored, examined = select_relevant_works(
         unseen_works, model, args.relevance_prompt, args.relevance_threshold,
         args.max_results, args.max_examined,
@@ -81,11 +100,11 @@ def run(args: argparse.Namespace) -> dict:
         work = scored_work.work
         key = manifest_key(work)
 
-        result = resolve_full_text(work, mailto, ezproxy_cookie, args.pace_per_hour, core_api_key)
+        result = resolve_full_text(work, mailto, ezproxy_cookie, args.pace_per_hour, core_api_key, deadline=deadline)
         if result.status == "fetched":
             folder = route_to_folder(args.articles_dir, work)
             pdf_path = folder / pdf_filename(work)
-            pdf_path.write_bytes(result.content)
+            write_bytes_atomic(pdf_path, result.content)
             write_sidecar(pdf_path, work, scored_work.score, result.tier)
             record_outcome(manifest, key, "fetched", folder=folder.name)
             counts["fetched"] += 1
@@ -110,8 +129,8 @@ def retry_needs_manual(args: argparse.Namespace) -> dict:
     """Re-attempts full-text access for exactly the manifest keys named
     in args.retry, under the current (fixed) fallback chain -- never
     touches discovery/scoring or any other manifest entry. A manifest
-    key built from an OpenAlex id rather than a DOI (no bare DOI to
-    query by) is reported as not_found rather than attempted."""
+    key built from an OpenAlex id (rather than a DOI) is resolved via
+    GET /works/{id} directly instead of resolve_work_by_doi."""
     mailto = getattr(args, "mailto", None) or os.environ.get("OPENALEX_CONTACT_EMAIL")
     ezproxy_cookie = getattr(args, "ezproxy_cookie", None) or os.environ.get("EZPROXY_SESSION_COOKIE")
     core_api_key = getattr(args, "core_api_key", None) or os.environ.get("CORE_API_KEY")
@@ -122,11 +141,11 @@ def retry_needs_manual(args: argparse.Namespace) -> dict:
 
     for key in args.retry:
         entry = manifest.get(key)
-        if entry is None or entry.get("status") != "needs_manual" or key.startswith("http"):
+        if entry is None or entry.get("status") != "needs_manual":
             counts["not_found"] += 1
             continue
 
-        work = resolve_work_by_doi(key, mailto)
+        work = resolve_work_by_openalex_id(key, mailto) if key.startswith("http") else resolve_work_by_doi(key, mailto)
         if work is None:
             counts["not_found"] += 1
             continue
@@ -135,7 +154,7 @@ def retry_needs_manual(args: argparse.Namespace) -> dict:
         if result.status == "fetched":
             folder = route_to_folder(args.articles_dir, work)
             pdf_path = folder / pdf_filename(work)
-            pdf_path.write_bytes(result.content)
+            write_bytes_atomic(pdf_path, result.content)
             write_sidecar(pdf_path, work, entry.get("relevance_score"), result.tier)
             record_outcome(manifest, key, "fetched", folder=folder.name)
             counts["fetched"] += 1
@@ -167,9 +186,10 @@ def main():
                               "Columbia account from automated-abuse detection. Does not affect OA/arXiv "
                               "downloads, which carry none of that risk and are never paced.")
     parser.add_argument(
-        "--time-budget-seconds", type=float, default=None,
+        "--time-budget-seconds", type=float, default=900.0,
         help="Stop the fetch loop cleanly after this many seconds of wall-clock time, reporting partial "
-             "counts instead of implying the run completed. Omit for no limit.",
+             "counts instead of implying the run completed. Default 900 (15 min), per spec A.5; pass 0 "
+             "for no limit.",
     )
     parser.add_argument(
         "--retry", action="append", default=[], metavar="ID",
@@ -187,6 +207,15 @@ def main():
         sys.exit(1)
 
     if args.retry:
+        ignored = [
+            flag for flag, present in (
+                ("--faculty", bool(args.faculty)),
+                ("--topic", bool(args.topic)),
+                ("--zotero", args.zotero),
+            ) if present
+        ]
+        if ignored:
+            print(f"WARNING: --retry ignores {', '.join(ignored)} -- it only re-attempts the named IDs.")
         counts = retry_needs_manual(args)
         print(f"\nRetried: {len(args.retry)}")
         print(f"Fetched: {counts['fetched']}")
@@ -201,7 +230,8 @@ def main():
 
     counts = run(args)
 
-    print(f"\nExamined and scored: {counts['examined']}")
+    print(f"\nRetrieved: {counts['retrieved']}")
+    print(f"Examined and scored: {counts['examined']}")
     print(f"Already seen (skipped): {counts['already_seen']}")
     print(f"Accepted (passed relevance threshold): {counts['accepted']}")
     print(f"Fetched: {counts['fetched']}")
