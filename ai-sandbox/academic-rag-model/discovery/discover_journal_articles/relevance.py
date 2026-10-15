@@ -84,7 +84,7 @@ def select_relevant_works(
     threshold: float,
     max_results: int,
     max_examined: int,
-) -> list[ScoredWork]:
+) -> tuple[list[ScoredWork], int]:
     """Consumes `works` lazily (spec S4 step 2): stops examining candidates
     once max_examined have been scored, or once max_results have passed
     the threshold, whichever comes first. Every candidate -- abstract- or
@@ -114,4 +114,4 @@ def select_relevant_works(
             if len(scored) >= max_results:
                 break
 
-    return scored
+    return scored, examined

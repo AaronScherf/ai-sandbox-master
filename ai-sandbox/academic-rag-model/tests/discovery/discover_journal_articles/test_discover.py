@@ -36,7 +36,7 @@ class TestRun(unittest.TestCase):
     ):
         with tempfile.TemporaryDirectory() as tmp:
             work = _work(1)
-            mock_select.return_value = [ScoredWork(work=work, score=0.9)]
+            mock_select.return_value = ([ScoredWork(work=work, score=0.9)], 1)
             mock_resolve_full_text.return_value = AccessResult(status="fetched", content=b"%PDF-1.4", tier="open_access")
 
             counts = run(_args(articles_dir=tmp, mailto="me@example.com", ezproxy_cookie=None))
@@ -62,7 +62,7 @@ class TestRun(unittest.TestCase):
     ):
         with tempfile.TemporaryDirectory() as tmp:
             work = _work(2)
-            mock_select.return_value = [ScoredWork(work=work, score=0.9)]
+            mock_select.return_value = ([ScoredWork(work=work, score=0.9)], 1)
             mock_resolve_full_text.return_value = AccessResult(status="needs_manual")
 
             counts = run(_args(articles_dir=tmp, mailto="me@example.com", ezproxy_cookie=None))
@@ -84,7 +84,7 @@ class TestRun(unittest.TestCase):
         # the user has somewhere obvious to drop the file by hand.
         with tempfile.TemporaryDirectory() as tmp:
             work = _work(2)
-            mock_select.return_value = [ScoredWork(work=work, score=0.9)]
+            mock_select.return_value = ([ScoredWork(work=work, score=0.9)], 1)
             mock_resolve_full_text.return_value = AccessResult(status="needs_manual")
 
             run(_args(articles_dir=tmp, mailto="me@example.com", ezproxy_cookie=None))
@@ -106,7 +106,7 @@ class TestRun(unittest.TestCase):
     ):
         with tempfile.TemporaryDirectory() as tmp:
             work = _work(2)
-            mock_select.return_value = [ScoredWork(work=work, score=0.9)]
+            mock_select.return_value = ([ScoredWork(work=work, score=0.9)], 1)
             mock_resolve_full_text.return_value = AccessResult(status="needs_manual")
 
             run(_args(articles_dir=tmp, mailto="me@example.com", ezproxy_cookie=None))
@@ -135,7 +135,13 @@ class TestRun(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             work = _work(3)  # doi="10.1/abc"
             mock_resolve_works.return_value = iter([work])
-            mock_select.side_effect = lambda works, *a, **kw: [ScoredWork(work=w, score=1.0) for w in works]
+            def _select_side_effect(works, *a, **kw):
+                # works may be a one-shot generator -- materialize once,
+                # not twice, or the second pass sees an exhausted iterator.
+                materialized = list(works)
+                return [ScoredWork(work=w, score=1.0) for w in materialized], len(materialized)
+
+            mock_select.side_effect = _select_side_effect
 
             from discovery.discover_journal_articles.manifest import manifest_path, record_outcome, save_manifest, load_manifest
             path = manifest_path(tmp)
@@ -159,7 +165,7 @@ class TestRun(unittest.TestCase):
     ):
         with tempfile.TemporaryDirectory() as tmp:
             work = _work(4)
-            mock_select.return_value = [ScoredWork(work=work, score=0.9)]
+            mock_select.return_value = ([ScoredWork(work=work, score=0.9)], 1)
             mock_resolve_full_text.return_value = AccessResult(status="fetched", content=b"%PDF-1.4", tier="open_access")
 
             run(_args(
@@ -179,12 +185,29 @@ class TestRun(unittest.TestCase):
     ):
         with tempfile.TemporaryDirectory() as tmp:
             work = _work(5)
-            mock_select.return_value = [ScoredWork(work=work, score=0.9)]
+            mock_select.return_value = ([ScoredWork(work=work, score=0.9)], 1)
             mock_resolve_full_text.return_value = AccessResult(status="fetched", content=b"%PDF-1.4", tier="open_access")
 
             run(_args(articles_dir=tmp, mailto="me@example.com", ezproxy_cookie=None, zotero=False))
 
             mock_sync.assert_not_called()
+
+    @patch("discovery.discover_journal_articles.discover.load_relevance_model", return_value=MagicMock())
+    @patch("discovery.discover_journal_articles.discover.resolve_works", return_value=iter([]))
+    @patch("discovery.discover_journal_articles.discover.select_relevant_works")
+    @patch("discovery.discover_journal_articles.discover.resolve_full_text")
+    def test_examined_and_accepted_are_reported_separately(
+        self, mock_resolve_full_text, mock_select, mock_resolve_works, mock_load_model
+    ):
+        with tempfile.TemporaryDirectory() as tmp:
+            work = _work(6)
+            mock_select.return_value = ([ScoredWork(work=work, score=0.9)], 5)
+            mock_resolve_full_text.return_value = AccessResult(status="fetched", content=b"%PDF-1.4", tier="open_access")
+
+            counts = run(_args(articles_dir=tmp, mailto="me@example.com", ezproxy_cookie=None))
+
+            self.assertEqual(counts["examined"], 5)
+            self.assertEqual(counts["accepted"], 1)
 
 
 if __name__ == "__main__":

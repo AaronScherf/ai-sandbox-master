@@ -57,16 +57,17 @@ def run(args: argparse.Namespace) -> dict:
 
     manifest_file = manifest_path(args.articles_dir)
     manifest = load_manifest(manifest_file)
-    counts = {"examined": 0, "already_seen": 0, "fetched": 0, "needs_manual": 0}
+    counts = {"examined": 0, "accepted": 0, "already_seen": 0, "fetched": 0, "needs_manual": 0}
 
     model = load_relevance_model()
     works = resolve_works(args.faculty, args.topic, mailto, args.batch_size)
     unseen_works = skip_already_seen(works, manifest, counts)
-    scored = select_relevant_works(
+    scored, examined = select_relevant_works(
         unseen_works, model, args.relevance_prompt, args.relevance_threshold,
         args.max_results, args.max_examined,
     )
-    counts["examined"] = len(scored)
+    counts["examined"] = examined
+    counts["accepted"] = len(scored)
 
     for scored_work in scored:
         work = scored_work.work
@@ -133,6 +134,7 @@ def main():
 
     print(f"\nExamined and scored: {counts['examined']}")
     print(f"Already seen (skipped): {counts['already_seen']}")
+    print(f"Accepted (passed relevance threshold): {counts['accepted']}")
     print(f"Fetched: {counts['fetched']}")
     print(f"Needs manual download: {counts['needs_manual']}")
     if counts["needs_manual"] or counts["already_seen"]:

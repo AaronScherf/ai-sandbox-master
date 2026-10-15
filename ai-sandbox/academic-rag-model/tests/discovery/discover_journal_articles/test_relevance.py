@@ -90,7 +90,7 @@ class TestSelectRelevantWorks(unittest.TestCase):
         })
         works = [_work(1, "on topic"), _work(2, "off topic")]
 
-        selected = select_relevant_works(
+        selected, examined = select_relevant_works(
             works, model, "prompt", threshold=0.5, max_results=10, max_examined=10,
         )
 
@@ -100,7 +100,7 @@ class TestSelectRelevantWorks(unittest.TestCase):
         model = self._model_scoring({"prompt": [1.0, 0.0], "on topic": [1.0, 0.0]})
         works = [_work(i, "on topic") for i in range(5)]
 
-        selected = select_relevant_works(
+        selected, examined = select_relevant_works(
             works, model, "prompt", threshold=0.5, max_results=2, max_examined=10,
         )
 
@@ -110,7 +110,7 @@ class TestSelectRelevantWorks(unittest.TestCase):
         model = self._model_scoring({"prompt": [1.0, 0.0], "on topic": [1.0, 0.0]})
         works = [_work(i, "on topic") for i in range(5)]
 
-        selected = select_relevant_works(
+        selected, examined = select_relevant_works(
             works, model, "prompt", threshold=0.5, max_results=100, max_examined=3,
         )
 
@@ -124,7 +124,7 @@ class TestSelectRelevantWorks(unittest.TestCase):
         model = self._model_scoring({"prompt": [1.0, 0.0], "on topic": [1.0, 0.0]})
         works = [_work(1, "on topic"), _work(2, None, title="on topic")]
 
-        selected = select_relevant_works(
+        selected, examined = select_relevant_works(
             works, model, "prompt", threshold=0.5, max_results=10, max_examined=10,
         )
 
@@ -137,7 +137,7 @@ class TestSelectRelevantWorks(unittest.TestCase):
         })
         works = [_work(1, "on topic"), _work(2, None, title="off topic")]
 
-        selected = select_relevant_works(
+        selected, examined = select_relevant_works(
             works, model, "prompt", threshold=0.5, max_results=10, max_examined=10,
         )
 
@@ -155,7 +155,7 @@ class TestSelectRelevantWorks(unittest.TestCase):
             _work(2, "on topic", title="Causal Inference From Hypothetical Evaluations!"),
         ]
 
-        selected = select_relevant_works(
+        selected, examined = select_relevant_works(
             works, model, "prompt", threshold=0.5, max_results=10, max_examined=10,
         )
 
@@ -168,7 +168,7 @@ class TestSelectRelevantWorks(unittest.TestCase):
             _work(2, "on topic", title="Paper Two"),
         ]
 
-        selected = select_relevant_works(
+        selected, examined = select_relevant_works(
             works, model, "prompt", threshold=0.5, max_results=10, max_examined=10,
         )
 
@@ -181,11 +181,27 @@ class TestSelectRelevantWorks(unittest.TestCase):
             _work(2, None, title="On Topic"),
         ]
 
-        selected = select_relevant_works(
+        selected, examined = select_relevant_works(
             works, model, "prompt", threshold=0.5, max_results=10, max_examined=10,
         )
 
         self.assertEqual([sw.work.openalex_id for sw in selected], ["W1"])
+
+    def test_examined_counts_every_scored_candidate_not_just_accepted(self):
+        # Confirmed real: today's caller mislabels len(accepted) as
+        # "examined" -- a candidate that was scored and rejected (below
+        # threshold) must still count toward examined.
+        model = self._model_scoring({
+            "prompt": [1.0, 0.0], "on topic": [1.0, 0.0], "off topic": [0.0, 1.0],
+        })
+        works = [_work(1, "on topic"), _work(2, "off topic"), _work(3, "off topic")]
+
+        selected, examined = select_relevant_works(
+            works, model, "prompt", threshold=0.5, max_results=10, max_examined=10,
+        )
+
+        self.assertEqual(len(selected), 1)
+        self.assertEqual(examined, 3)
 
 
 if __name__ == "__main__":
