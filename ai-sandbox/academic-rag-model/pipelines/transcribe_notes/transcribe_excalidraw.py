@@ -211,10 +211,15 @@ def assemble_raw_markdown(cache: dict, total_chunks: int) -> str:
     return "\n\n".join(parts)
 
 
-def transcribe_chunks(client, model: str, chunk_bytes: list[bytes], has_slides: bool = False) -> dict[str, str]:
-    cache: dict[str, str] = {}
+def transcribe_chunks(
+    client, model: str, chunk_bytes: list[bytes], has_slides: bool = False,
+    cache: dict[str, str] | None = None,
+) -> dict[str, str]:
+    cache = {} if cache is None else cache
     total_chunks = len(chunk_bytes)
     for chunk_index, image_bytes in enumerate(chunk_bytes):
+        if cache.get(str(chunk_index), "").strip():
+            continue  # already cached -- resumable, no API call
         accumulated_context = _accumulated_chunk_context(cache, chunk_index, window=_ACCUMULATION_WINDOW)
         prompt = build_chunk_transcription_prompt(accumulated_context, chunk_index, total_chunks, has_slides)
         def transcribe_nonempty() -> str:
@@ -499,6 +504,14 @@ def reexpand_excalidraw_note(
     return True
 
 
+def chunk_cache_paths_for(excalidraw_md_path: str) -> tuple[str, str]:
+    base_name = os.path.basename(excalidraw_md_path)[: -len(".excalidraw.md")]
+    output_dir = resolve_output_dir(excalidraw_md_path)
+    cache_path = os.path.join(output_dir, f"{base_name}_chunks_cache.json")
+    driver_path = cache_path.replace("_chunks_cache.json", "_chunks_driver.json")
+    return cache_path, driver_path
+
+
 def process_excalidraw_note(
     excalidraw_md_path: str, image_path: str, client, model: str,
     expand_backend: str, academic_hub_root: str, use_grounding: bool = False, dry_run: bool = False,
@@ -520,7 +533,11 @@ def process_excalidraw_note(
     print(f"  {len(chunks)} chunks")
     chunk_bytes = [resize_chunk_for_api(c) for c in chunks]
 
-    cache = transcribe_chunks(client, model, chunk_bytes, has_slides=has_slides)
+    from core.env.gemini_utils import load_json_cache, save_json_cache
+    cache_path, _ = chunk_cache_paths_for(excalidraw_md_path)
+    os.makedirs(os.path.dirname(cache_path), exist_ok=True)
+    cache = transcribe_chunks(client, model, chunk_bytes, has_slides=has_slides, cache=load_json_cache(cache_path))
+    save_json_cache(cache_path, cache)
     missing = [i + 1 for i in range(len(chunks)) if not cache.get(str(i), "").strip()]
     if missing:
         print(f"ERROR: {os.path.basename(excalidraw_md_path)}: chunk {', '.join(map(str, missing))} of "

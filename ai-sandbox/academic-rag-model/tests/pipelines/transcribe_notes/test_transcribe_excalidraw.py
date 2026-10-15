@@ -179,6 +179,17 @@ def test_transcribe_chunks_skips_a_chunk_that_fails_after_retries():
     assert cache == {"0": "ok text", "2": "ok text"}
 
 
+def test_transcribe_chunks_skips_chunks_already_in_the_cache():
+    with patch("pipelines.transcribe_notes.transcribe_excalidraw.transcribe_page_via_gemini") as mock_transcribe:
+        mock_transcribe.return_value = "freshly transcribed"
+        cache = transcribe_chunks(
+            client=object(), model="gemini-3.6-flash", chunk_bytes=[b"img0", b"img1"],
+            cache={"0": "already cached text"},
+        )
+    assert cache == {"0": "already cached text", "1": "freshly transcribed"}
+    mock_transcribe.assert_called_once()  # chunk 0 never requested
+
+
 def test_transcribe_chunks_retries_an_empty_response():
     def retry_once(fn):
         try:
@@ -339,7 +350,9 @@ def test_write_outputs_records_svg_source_filename(tmp_path):
     assert "source_image: academic_notes/econometrics/lecture_notes/Econometrics 2026-09-09.excalidraw.svg" in raw_content
 
 
-from pipelines.transcribe_notes.transcribe_excalidraw import process_excalidraw_note
+import json
+
+from pipelines.transcribe_notes.transcribe_excalidraw import chunk_cache_paths_for, process_excalidraw_note
 
 
 def test_process_excalidraw_note_dry_run_does_not_call_apis(tmp_path):
@@ -381,6 +394,29 @@ def test_process_excalidraw_note_runs_full_pipeline(tmp_path):
     assert call_kwargs["raw_markdown"] == "<!-- chunk 1 -->\n\nraw text 0\n\n<!-- chunk 2 -->\n\nraw text 1"
     assert call_kwargs["expanded_markdown"] == "expanded text"
     assert call_kwargs["num_chunks"] == 2
+
+
+def test_process_excalidraw_note_writes_and_reuses_a_chunk_cache(tmp_path):
+    hub = tmp_path / "hub"
+    notes_dir = hub / "academic_notes" / "econ" / "lecture_notes"
+    notes_dir.mkdir(parents=True)
+    md_path = notes_dir / "canvas.excalidraw.md"
+    img_path = notes_dir / "canvas.excalidraw.svg"
+    md_path.write_text("scene")
+    img_path.write_bytes(b"<svg></svg>")
+
+    with patch("pipelines.transcribe_notes.transcribe_excalidraw.load_canvas_image", return_value=object()), \
+         patch("pipelines.transcribe_notes.transcribe_excalidraw.chunk_image", return_value=[object(), object()]), \
+         patch("pipelines.transcribe_notes.transcribe_excalidraw.resize_chunk_for_api", side_effect=lambda c: b"bytes"), \
+         patch("pipelines.transcribe_notes.transcribe_excalidraw.transcribe_page_via_gemini", return_value="transcribed"), \
+         patch("pipelines.transcribe_notes.transcribe_excalidraw.expand_transcription", return_value=("expanded", {"expansion_backend": "gemini", "expansion_model": "m", "grounded": False})):
+        process_excalidraw_note(str(md_path), str(img_path), object(), "model", "gemini", str(hub))
+
+    cache_path, _ = chunk_cache_paths_for(str(md_path))
+    assert os.path.exists(cache_path)
+    with open(cache_path, encoding="utf-8") as f:
+        saved = json.load(f)
+    assert saved == {"0": "transcribed", "1": "transcribed"}
 
 
 def test_process_excalidraw_note_runs_full_pipeline_from_an_svg_source(tmp_path):
