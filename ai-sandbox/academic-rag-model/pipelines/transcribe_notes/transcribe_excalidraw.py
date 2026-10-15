@@ -218,7 +218,7 @@ def assemble_raw_markdown(cache: dict, total_chunks: int) -> str:
 def transcribe_chunks(
     client, model: str, chunk_bytes: list[bytes], has_slides: bool = False,
     cache: dict[str, str] | None = None, driver: "ExcalidrawDriver | None" = None,
-    excalidraw_md_path: str | None = None,
+    excalidraw_md_path: str | None = None, collect_mode: bool = False,
 ) -> dict[str, str]:
     from pipelines.transcribe_notes.agent_driver import AgentPending
     from pipelines.transcribe_notes.excalidraw_agent_driver import ExcalidrawApiDriver
@@ -227,6 +227,25 @@ def transcribe_chunks(
     if driver is None:
         driver = ExcalidrawApiDriver(client)
     total_chunks = len(chunk_bytes)
+
+    if collect_mode:
+        missing = [
+            (i, build_chunk_transcription_prompt(
+                _accumulated_chunk_context(cache, i, window=_ACCUMULATION_WINDOW), i, total_chunks, has_slides,
+            ), chunk_bytes[i])
+            for i in range(total_chunks) if not cache.get(str(i), "").strip()
+        ]
+        if not missing:
+            return cache
+        try:
+            staged = driver.stage_chunks(excalidraw_md_path, model, missing, total_chunks)
+        except AgentPending:
+            raise
+        for chunk_index, text in staged.items():
+            if text and text.strip():
+                cache[str(chunk_index)] = text
+        return cache
+
     for chunk_index, image_bytes in enumerate(chunk_bytes):
         if cache.get(str(chunk_index), "").strip():
             continue  # already cached -- resumable, no driver call
@@ -527,6 +546,7 @@ def chunk_cache_paths_for(excalidraw_md_path: str) -> tuple[str, str]:
 def process_excalidraw_note(
     excalidraw_md_path: str, image_path: str, client, model: str,
     expand_backend: str, academic_hub_root: str, use_grounding: bool = False, dry_run: bool = False,
+    driver: "ExcalidrawDriver | None" = None, collect_mode: bool = False,
 ) -> bool:
     """Returns True when the note was written (or on a dry run), False when it was
     aborted because a chunk failed transcription -- a truncated transcript is
@@ -548,8 +568,15 @@ def process_excalidraw_note(
     from core.env.gemini_utils import load_json_cache, save_json_cache
     cache_path, _ = chunk_cache_paths_for(excalidraw_md_path)
     os.makedirs(os.path.dirname(cache_path), exist_ok=True)
-    cache = transcribe_chunks(client, model, chunk_bytes, has_slides=has_slides, cache=load_json_cache(cache_path))
+    cache = transcribe_chunks(
+        client, model, chunk_bytes, has_slides=has_slides, cache=load_json_cache(cache_path),
+        driver=driver, excalidraw_md_path=excalidraw_md_path, collect_mode=collect_mode,
+    )
     save_json_cache(cache_path, cache)
+    if collect_mode:
+        missing_after_collect = [i + 1 for i in range(len(chunks)) if not cache.get(str(i), "").strip()]
+        if missing_after_collect:
+            return True  # task card(s) staged; nothing more to do this call
     missing = [i + 1 for i in range(len(chunks)) if not cache.get(str(i), "").strip()]
     if missing:
         print(f"ERROR: {os.path.basename(excalidraw_md_path)}: chunk {', '.join(map(str, missing))} of "

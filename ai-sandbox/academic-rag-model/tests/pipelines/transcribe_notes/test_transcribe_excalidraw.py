@@ -142,6 +142,8 @@ def test_assemble_raw_markdown_skips_missing_chunks():
 
 from unittest.mock import patch
 
+import pytest
+
 from pipelines.transcribe_notes.transcribe_excalidraw import transcribe_chunks
 
 
@@ -205,6 +207,39 @@ def test_transcribe_chunks_retries_an_empty_response():
 
     assert cache == {"0": "recovered text"}
     assert mock_transcribe.call_count == 2
+
+
+def test_transcribe_chunks_collect_mode_calls_stage_chunks_once_with_all_missing():
+    captured = {}
+
+    class FakeDriver:
+        def stage_chunks(self, excalidraw_md_path, model, missing, total_chunks):
+            captured["missing"] = missing
+            return {}
+
+        def transcribe_chunk(self, *a, **k):
+            pytest.fail("sequential path must not run in collect_mode")
+
+    transcribe_chunks(
+        client=object(), model="m", chunk_bytes=[b"img0", b"img1"],
+        cache={}, driver=FakeDriver(), excalidraw_md_path="note.excalidraw.md", collect_mode=True,
+    )
+    assert [m[0] for m in captured["missing"]] == [0, 1]
+
+
+def test_transcribe_chunks_collect_mode_only_stages_still_missing_chunks():
+    captured = {}
+
+    class FakeDriver:
+        def stage_chunks(self, excalidraw_md_path, model, missing, total_chunks):
+            captured["missing"] = missing
+            return {}
+
+    transcribe_chunks(
+        client=object(), model="m", chunk_bytes=[b"img0", b"img1"],
+        cache={"0": "already done"}, driver=FakeDriver(), excalidraw_md_path="note.excalidraw.md", collect_mode=True,
+    )
+    assert [m[0] for m in captured["missing"]] == [1]
 
 
 from pipelines.transcribe_notes.transcribe_excalidraw import build_expansion_prompt, expand_via_gemini
