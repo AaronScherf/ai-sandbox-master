@@ -41,7 +41,7 @@ class NodeProposal(_Model):
     name: str
     kind: str
     section: str
-    topic: str
+    topic: str = ""  # ignored when the section declares a topic
     note: str = ""
     connections: list[Connection] = []
 
@@ -126,9 +126,10 @@ def check_node(graph: Graph, name: str, kind: str, section: str, topic: str, not
         problems.append(f"{slug!r} was rejected earlier and must not be proposed again")
     if kind not in graph.vocab.kinds:
         problems.append(f"kind {kind!r} is not one of {', '.join(graph.vocab.kinds)}")
-    if topic not in graph.vocab.topics:
+    sec = next((s for s in graph.sections if s.id == section), None)
+    if not (sec and sec.topic) and topic not in graph.vocab.topics:
         problems.append(f"topic {topic!r} is not one of {', '.join(graph.vocab.topics)}")
-    if section not in {s.id for s in graph.sections}:
+    if sec is None:
         problems.append(f"section {section!r} does not exist")
     if len(note or "") > NOTE_MAX:
         problems.append(f"note is longer than {NOTE_MAX} characters")
@@ -228,9 +229,12 @@ def merge_cluster(items: list[tuple[NodeProposal, str]]) -> Merged:
     best = sorted((f for f, c in forms.items() if c == top), key=lambda f: (-len(f), f))[0]
     name = next(p.name for p, _ in items if normalize_name(p.name) == best)
     chosen = {}
-    for label in ("kind", "section", "topic"):
+    for label in ("kind", "section"):
         chosen[label], flagged = _majority([(getattr(p, label), who) for p, who in items], label)
         decisions += flagged
+    topics = [(p.topic, who) for p, who in items if p.topic]
+    chosen["topic"], flagged = _majority(topics, "topic") if topics else ("", [])
+    decisions += flagged
     conns: dict[tuple[str, str, str], Connection] = {}
     for p, who in items:
         for c in p.connections:

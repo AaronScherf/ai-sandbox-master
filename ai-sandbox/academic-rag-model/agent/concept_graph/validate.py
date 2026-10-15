@@ -7,6 +7,7 @@ from dataclasses import dataclass
 import networkx as nx
 
 from .schema import (
+    member_hash,
     CONDITION_REQUIRED, DEFINITIONAL_TYPES, EDGE_TYPES, LOGICAL_TYPES, VIA_ALLOWED, VIA_KINDS,
     Graph, edge_id,
 )
@@ -100,4 +101,18 @@ def validate(graph: Graph) -> list[Issue]:
             warn("orphan", f"node {n.id!r} has no edges", n.id)
         if not n.explanation.strip():
             warn("unfilled", f"node {n.id!r} is in a {state} section but has no explanation", n.id)
+    members: dict[str, list[str]] = {}
+    for n in graph.nodes:
+        members.setdefault(n.section, []).append(n.id)
+        sec = sections.get(n.section)
+        if sec is not None and sec.topic and n.topic != sec.topic:
+            err("topic-mismatch", f"node {n.id!r} has topic {n.topic!r} but its section {sec.id!r} has topic "
+                                  f"{sec.topic!r}", n.id)
+    for sec in graph.sections:
+        if sec.state == "planned" or not sec.topic or not members.get(sec.id):
+            continue  # summaries are expected once a section declares a topic (a migrated graph)
+        if not (sec.summary or "").strip():
+            warn("missing-summary", f"section {sec.id!r} has no summary yet", sec.id)
+        elif sec.summary_hash != member_hash(members[sec.id]):
+            warn("stale-summary", f"section {sec.id!r} changed membership since its summary was drafted", sec.id)
     return issues

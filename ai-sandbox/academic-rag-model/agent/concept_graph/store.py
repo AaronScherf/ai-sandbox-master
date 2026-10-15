@@ -113,6 +113,17 @@ class GraphStore:
                     return
         raise KeyError(f"{kind} {item_id!r} not found")
 
+    def update_section(self, section_id: str, changes: dict) -> None:
+        path = self.root / "data" / "sections.yaml"
+        data = self._load(path) or []
+        for item in data:
+            if item.get("id") == section_id:
+                for key, value in changes.items():
+                    item[key] = value
+                self._save(path, data)
+                return
+        raise KeyError(f"section {section_id!r} not found")
+
     def remove_item(self, kind: Literal["node", "edge"], item_id: str) -> None:
         for path in self._files(kind):
             data = self._load(path) or []

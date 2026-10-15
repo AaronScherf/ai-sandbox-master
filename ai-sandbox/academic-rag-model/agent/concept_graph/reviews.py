@@ -231,7 +231,9 @@ def apply_proposals(store: GraphStore, reviews: list[ReviewFile], today: str) ->
             continue
         new_ids.add(slug)
         new_nodes.append({"id": slug, "name": merged.name, "kind": merged.kind, "section": merged.section,
-                          "topic": merged.topic, "gist": merged.note, "explanation": "", "status": "proposed",
+                          "topic": next((sc.topic for sc in graph.sections if sc.id == merged.section and sc.topic),
+                                        merged.topic),
+                          "gist": merged.note, "explanation": "", "status": "proposed",
                           "provenance": {"driver": "reviewer", "agent": "; ".join(merged.reviewers), "run": today}})
         report.applied.append(f"node {slug}: proposed by {', '.join(merged.reviewers)}")
         for c in merged.connections:

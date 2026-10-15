@@ -71,6 +71,10 @@ class Section(_Model):
     state: SectionState
     lectures: list[str] = Field(default_factory=list)
     syllabus_ref: str | None = None
+    topic: str | None = None
+    short: str | None = None
+    summary: str | None = None
+    summary_hash: str | None = None
 
 
 class Node(_Item):
@@ -143,6 +147,11 @@ class Graph:
 
 def edge_id(source: str, type_: str, target: str) -> str:
     return f"{source}--{type_}--{target}"
+
+
+def member_hash(ids: list[str]) -> str:
+    """Stable hash of a section's membership; a summary drafted for other members is stale."""
+    return hashlib.sha256(("\n").join(sorted(ids)).encode("utf-8")).hexdigest()[:16]
 
 
 def field_hash(value: str | None) -> str:

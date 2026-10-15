@@ -168,3 +168,13 @@ def test_issues_are_not_closed_if_applying_proposals_fails(store, tmp_path, monk
     except RuntimeError:
         rc = 1
     assert rc != 0 and closed == []
+
+
+def test_a_new_concept_takes_its_sections_topic(store):
+    g = store.read_all()
+    other = next(t for t in g.vocab.topics if t != TOPIC)
+    store.update_section(SECTION, {"topic": other})
+    r = review("Ada", add_node("Quasi concavity", topic=""))
+    apply_proposals(store, [r], "2026-10-20")
+    n = next(x for x in store.read_all().nodes if x.id == "quasi-concavity")
+    assert n.topic == other
