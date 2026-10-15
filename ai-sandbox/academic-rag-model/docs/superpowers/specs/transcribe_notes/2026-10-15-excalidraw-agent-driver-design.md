@@ -1,6 +1,6 @@
 # Excalidraw agent driver — design spec
 
-**Status:** draft, not yet implemented.
+**Status:** implemented on branch `claude/excalidraw-agent-driver` (2026-10-15), 346/346 tests passing.
 **Branch:** `claude/excalidraw-agent-driver`.
 **Follows:** `docs/superpowers/specs/transcribe_notes/
 2026-10-15-consolidated-pipeline-design.md`'s Stage 2 ("Excalidraw agent
