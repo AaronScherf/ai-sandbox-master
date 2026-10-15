@@ -186,7 +186,7 @@ class TestResolveFullText(unittest.TestCase):
 
         result = resolve_full_text(work, "me@example.com", ezproxy_cookie=None, pace_per_hour=25)
 
-        self.assertEqual(result.tier, "open_access")
+        self.assertEqual(result.tier, "semantic_scholar")
         self.assertEqual(result.content, _REAL_PDF_BYTES)
         mock_pace.assert_called_once_with(0)
 
@@ -206,7 +206,7 @@ class TestResolveFullText(unittest.TestCase):
             work, "me@example.com", ezproxy_cookie=None, pace_per_hour=25, core_api_key="my-api-key",
         )
 
-        self.assertEqual(result.tier, "open_access")
+        self.assertEqual(result.tier, "core")
         self.assertEqual(result.content, _REAL_PDF_BYTES)
         mock_pace.assert_called_once_with(0)
 
@@ -263,6 +263,42 @@ class TestResolveFullText(unittest.TestCase):
         # The EZProxy tier is the only one where account-safety pacing
         # actually matters -- the real --pace-per-hour value is used here.
         mock_pace.assert_called_once_with(25)
+
+    @patch("discovery.discover_journal_articles.access.paced_sleep")
+    @patch("discovery.discover_journal_articles.access.fetch_with_retries")
+    def test_falls_through_to_next_oa_provider_when_first_oa_url_fails_download(self, mock_fetch, mock_pace):
+        # The audit's core finding: a present-but-broken oa_url must not
+        # block trying Unpaywall/Semantic Scholar/CORE -- only an
+        # exhausted provider list reaches needs_manual.
+        broken_oa_download = _html_response()
+        unpaywall_lookup = MagicMock(status_code=200)
+        unpaywall_lookup.json.return_value = {"best_oa_location": {"url_for_pdf": "https://x.com/unpaywall.pdf"}}
+        mock_fetch.side_effect = [broken_oa_download, unpaywall_lookup, _pdf_response(_REAL_PDF_BYTES)]
+        work = _work(doi="10.1/abc", oa_url="https://x.com/broken.pdf")
+
+        result = resolve_full_text(work, "me@example.com", ezproxy_cookie=None, pace_per_hour=25)
+
+        self.assertEqual(result.tier, "unpaywall")
+        self.assertEqual(result.content, _REAL_PDF_BYTES)
+
+    @patch("discovery.discover_journal_articles.access.paced_sleep")
+    @patch("discovery.discover_journal_articles.access.fetch_with_retries")
+    def test_does_not_redownload_a_url_already_tried_by_an_earlier_provider(self, mock_fetch, mock_pace):
+        same_url = "https://x.com/shared.pdf"
+        broken_download = _html_response()
+        unpaywall_lookup = MagicMock(status_code=200)
+        unpaywall_lookup.json.return_value = {"best_oa_location": {"url_for_pdf": same_url}}
+        no_s2 = MagicMock(status_code=200)
+        no_s2.json.return_value = {"openAccessPdf": None}
+        mock_fetch.side_effect = [broken_download, unpaywall_lookup, no_s2]
+        work = _work(doi="10.1/abc", oa_url=same_url)
+
+        result = resolve_full_text(work, "me@example.com", ezproxy_cookie=None, pace_per_hour=25)
+
+        self.assertEqual(result.status, "needs_manual")
+        # oa_url download + unpaywall lookup + semantic_scholar lookup = 3 --
+        # same_url must never be re-downloaded a second time via unpaywall.
+        self.assertEqual(mock_fetch.call_count, 3)
 
     @patch("discovery.discover_journal_articles.access.paced_sleep")
     @patch("discovery.discover_journal_articles.access.fetch_with_retries")

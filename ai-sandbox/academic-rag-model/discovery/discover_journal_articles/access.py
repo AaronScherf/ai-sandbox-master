@@ -144,17 +144,38 @@ def _download(url: str, pace_per_hour: float, cookies: dict | None = None) -> by
     return response.content
 
 
+def _oa_candidates(work: Work, mailto: str, core_api_key: str | None):
+    """Lazily yields (tier_name, url) pairs in provider-preference order.
+    Each try_*() call only runs once the generator is advanced past the
+    previous yield -- a successful early tier never queries a later one,
+    but a *failed download* of an early tier's URL (handled by the
+    caller) resumes this generator to fetch the next candidate, instead
+    of giving up after the first present-but-broken URL (the audit's
+    core finding)."""
+    if work.oa_url:
+        yield "open_access", work.oa_url
+    url = try_unpaywall(work.doi, mailto)
+    if url:
+        yield "unpaywall", url
+    url = try_semantic_scholar(work.doi)
+    if url:
+        yield "semantic_scholar", url
+    url = try_core(work.doi, core_api_key)
+    if url:
+        yield "core", url
+
+
 def resolve_full_text(
     work: Work, mailto: str, ezproxy_cookie: str | None, pace_per_hour: float, core_api_key: str | None = None,
 ) -> AccessResult:
-    oa_url = (
-        work.oa_url or try_unpaywall(work.doi, mailto) or try_semantic_scholar(work.doi)
-        or try_core(work.doi, core_api_key)
-    )
-    if oa_url:
-        content = _download(oa_url, 0)  # OA hosts carry none of the EZProxy account-safety risk
+    seen_urls: set[str] = set()
+    for tier, url in _oa_candidates(work, mailto, core_api_key):
+        if url in seen_urls:
+            continue
+        seen_urls.add(url)
+        content = _download(url, 0)  # OA hosts carry none of the EZProxy account-safety risk
         if content:
-            return AccessResult(status="fetched", content=content, tier="open_access")
+            return AccessResult(status="fetched", content=content, tier=tier)
 
     arxiv_url = try_arxiv_url(work.arxiv_id)
     if arxiv_url:
