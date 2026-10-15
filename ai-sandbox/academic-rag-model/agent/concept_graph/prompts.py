@@ -26,13 +26,17 @@ STEPS = {
 - Prefer connections to concepts in other sections as well as the same section; edges that already exist are skipped.
 - `condition` is required for implies and iff. Avoid definitional cycles. An empty edge list is allowed when nothing is
   supported.""",
+    "summary": """\
+- Write one cohesive paragraph of at most 110 words about how this section's concepts fit together and why they
+  matter for what follows. Do not list the concepts one by one.
+- Describe the ideas themselves; never mention the passages, the sources, or the lectures.""",
     "critic": """\
 - Judge only whether the cited passages support the claim as stated, including its direction and any condition.
 - Give a verdict of supports, weak or unsupported, and a one-sentence note. Do not edit the claim or its citations.
 - Be strict with implies and iff claims: check the direction and that the condition is actually given.""",
 }
 
-STAGE_NOUN = {"seed": "SEED", "fill": "FILL", "link": "LINK", "critic": "CRITIC"}
+STAGE_NOUN = {"seed": "SEED", "fill": "FILL", "link": "LINK", "critic": "CRITIC", "summary": "SUMMARY"}
 
 
 def _first_instruction(run: Run) -> str:
