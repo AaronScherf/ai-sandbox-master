@@ -24,3 +24,25 @@ Plan: `docs/superpowers/plans/2026-10-14-concept-graph-reviewer-proposals.md`.
 - An agent "reconcile" stage that rewrites merged proposal notes (the fill stage rewrites prose from sources today).
 - Drag-to-connect on the canvas; proposing a new section; proposing a `via` theorem; reviewer-written explanations.
 - Similarity thresholds (0.75 overlap, 10% edit distance) are untuned against real proposals.
+
+## Viewer selection, sections and layouts (2026-10-14)
+
+Spec: `docs/superpowers/specs/agent/2026-10-14-concept-graph-viewer-selection-and-layouts-design.md`; plan:
+`docs/superpowers/plans/2026-10-14-concept-graph-viewer-selection-and-layouts.md`.
+
+- The section became the single grouping (`topic`, `short`, `summary`, `summary_hash` on sections; `topic-mismatch`
+  error; `missing-summary` and `stale-summary` warnings for sections that declare a topic).
+- Additive selection on the canvas (the old tap handler cleared the selection, so multi-select never worked),
+  concept-list Ctrl and Shift selection, collapsible headings, section buttons that select and summarise, a grouped
+  right panel.
+- Connection form: modes for groups, sentence rows, per-row reverse. Concept form: no topic dropdown.
+- Layout presets (computed and `config/layouts/*.json`), Download layout, per-browser positions with Reset.
+- `summary` stage (8 cards).
+
+Verified: pytest tests/agent/concept_graph (320), node viewer tests (45), and headless Edge runs with `?debug` for
+selection, ranges across a collapsed section, section buttons on the real graph copy, the connection form and the
+timeline layout.
+
+Open: the 8 section summaries are not drafted yet (run `collect summary`, then `submit`); the migration of the
+graph repo's section fields and 8 concept topics is scripted in the plan (Task 7) and waits for this branch to land;
+section summaries are not shown anywhere until then.

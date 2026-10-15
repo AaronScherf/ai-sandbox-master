@@ -157,6 +157,31 @@ proposals go to `review-conflicts.md` with the reason. Accepted proposals are wr
 `provenance.driver: reviewer`. Then draft them like any other node: `collect fill --node <id>`,
 `collect link --node <id> --redo`, `collect critic`.
 
+### Sections, selection and layouts
+
+The **section** is the single grouping: each section in `data/sections.yaml` declares a `topic` slug and a `short`
+label, and `validate` errors when a concept's `topic` differs from its section's. The buttons at the top of the left
+sidebar are the sections' short labels (they filter, and a click also selects that section's concepts and shows its
+summary); the headings in the concept list are the same sections' full titles, with a chevron to collapse them.
+
+Selection: Ctrl, Cmd or Shift-click toggles a concept on the canvas, in the concept list and in the right panel; a plain
+click replaces the selection; Shift-click in the list selects the range in list order (collapsed sections included);
+Shift-drag on empty canvas box-selects and a selected group drags together. The right panel groups a selection by
+section; a fully selected section shows its `summary`. Add connection from a selection: clicks and Ctrl-clicks make the
+first concept the source; a group (box, range, section) opens a mode chooser (one to many, many to one, chain, all
+pairs). Rows read as sentences and each row has its own reverse button.
+
+Layouts: the Layout dropdown offers Spread, Section rows, By section and Course timeline, plus any
+`config/layouts/<name>.json` (`{"name": ..., "positions": {id: {"x": n, "y": n}}}`), which `build` validates and
+embeds. "Download layout" saves the current positions in that format; dragged positions are kept per browser.
+
+Summaries: `collect summary` writes one card per section (8 today); `submit` stores the paragraph as the section's
+`summary` with a hash of its members, and `validate` warns when a summary is missing or stale. The page never shows
+composed summaries.
+
+Debugging: open the page with `?debug` to expose `window.__cg` (the Cytoscape instance and selection helpers) and to
+turn layout animation off, which headless browsers need.
+
 ## Vendored libraries
 
 `viewer/vendor/` holds Cytoscape.js and KaTeX (MIT; licenses alongside), fetched once by
