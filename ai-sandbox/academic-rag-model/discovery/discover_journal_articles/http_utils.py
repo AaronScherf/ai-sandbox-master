@@ -27,9 +27,13 @@ def _parse_retry_after(value: str | None) -> float | None:
     if not value:
         return None
     try:
-        return float(value)
+        seconds = float(value)
     except ValueError:
-        pass
+        seconds = None
+    if seconds is not None:
+        if seconds != seconds:  # NaN is unparseable for our purposes
+            return None
+        return max(seconds, 0.0)
     try:
         retry_at = parsedate_to_datetime(value)
     except (TypeError, ValueError):
