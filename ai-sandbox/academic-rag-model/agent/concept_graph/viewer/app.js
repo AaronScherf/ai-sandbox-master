@@ -221,7 +221,7 @@
       if (!list.length) return;
       var open = !collapsed.has(s.id) || (filters.q || "").trim() !== "";
       var count = list.filter(function (n) { return sel.has(n.id); }).length;
-      html += '<h3><button type="button" class="chev" data-chev="' + esc(s.id) + '" aria-expanded="' + open + '">' + (open ? "\u25be" : "\u25b8") + "</button>" +
+      html += '<h3><button type="button" class="chev" data-chev="' + esc(s.id) + '" aria-expanded="' + open + '" aria-label="' + (open ? "Collapse " : "Expand ") + esc(s.title) + '">' + (open ? "\u25be" : "\u25b8") + "</button>" +
         '<button type="button" class="sec-title" data-section-head="' + esc(s.id) + '">' + esc(s.title) + (s.state === "planned" ? " (planned)" : "") + "</button>" +
         (count ? '<span class="sec-count">' + count + " of " + list.length + " selected</span>" : "") + "</h3>";
       html += '<div class="sec-group' + (open ? "" : " collapsed-group") + '">';
@@ -231,7 +231,14 @@
       });
       html += "</div>";
     });
+    var ae = document.activeElement, key = null;
+    if (ae && ae.closest && ae.closest("#name-list")) {
+      ["data-node", "data-chev", "data-section-head"].forEach(function (attr) {
+        if (!key && ae.getAttribute(attr)) key = [attr, ae.getAttribute(attr)];
+      });
+    }
     $("#name-list").innerHTML = html || '<p class="hint">No concepts match.</p>';
+    if (key) { var back = $('#name-list [' + key[0] + '="' + key[1] + '"]'); if (back) back.focus(); }
   }
   function saveCollapsed() { storage.set("cg-collapsed-" + G.graph_version, JSON.stringify(Array.from(collapsed))); }
   $("#name-list").addEventListener("click", function (ev) {
@@ -270,7 +277,7 @@
     var topics = $("#f-topics");
     var ordered = G.sections.slice().sort(function (a, b) { return a.order - b.order; });
     topics.innerHTML = ordered.map(function (s) {
-      return '<button type="button" data-section="' + esc(s.id) + '" title="' + esc(s.title) + '">' + esc(s.short || s.title) + "</button>";
+      return '<button type="button" data-section="' + esc(s.id) + '" aria-pressed="false" title="' + esc(s.title) + '">' + esc(s.short || s.title) + "</button>";
     }).join("");
     topics.addEventListener("click", function (ev) {
       var b = ev.target.closest("button[data-section]"); if (!b) return;
@@ -280,7 +287,8 @@
       activeSections = step.active;
       filters.sections = activeSections.slice();
       Array.from(topics.querySelectorAll("button")).forEach(function (x) {
-        x.classList.toggle("on", activeSections.indexOf(x.getAttribute("data-section")) !== -1);
+        var on = activeSections.indexOf(x.getAttribute("data-section")) !== -1;
+        x.classList.toggle("on", on); x.setAttribute("aria-pressed", on ? "true" : "false");
       });
       applyFilters();
       if (step.select) selectSection(step.select);
@@ -499,20 +507,20 @@
       var id = "ghost-n" + i;  // by position, so two proposals can never share an element id
       var near = (p.proposal.connections || []).map(function (c) { return cy.getElementById(c.other); }).filter(function (e) { return e.nonempty(); });
       var base = near.length ? near[0].position() : { x: 0, y: 0 };
-      cy.add({ group: "nodes", classes: "ghost", data: { id: id, label: p.proposal.name, color: "#78716c", status: "proposed" },
+      cy.add({ group: "nodes", classes: "ghost", selectable: false, data: { id: id, label: p.proposal.name, color: "#78716c", status: "proposed" },
                position: { x: base.x + 60 + 40 * i, y: base.y + 90 } });
       placed.set(CG.slugFromName(p.proposal.name), id);
       (p.proposal.connections || []).forEach(function (c, k) {
         if (!cy.getElementById(c.other).nonempty()) return;
         var s = c.direction === "in" ? c.other : id, t = c.direction === "in" ? id : c.other;
-        cy.add({ group: "edges", classes: "ghost", data: { id: id + "-c" + k, source: s, target: t, color: "#78716c", arrow: "triangle", status: "proposed" } });
+        cy.add({ group: "edges", classes: "ghost", selectable: false, data: { id: id + "-c" + k, source: s, target: t, color: "#78716c", arrow: "triangle", status: "proposed" } });
       });
     });
     proposals.forEach(function (p, i) {
       if (p.action !== "add_edge") return;
       var s = placed.get(p.proposal.source) || p.proposal.source, t = placed.get(p.proposal.target) || p.proposal.target;
       if (cy.getElementById(s).nonempty() && cy.getElementById(t).nonempty()) {
-        cy.add({ group: "edges", classes: "ghost", data: { id: "ghost-edge-" + i, source: s, target: t, color: "#78716c", arrow: "triangle", status: "proposed" } });
+        cy.add({ group: "edges", classes: "ghost", selectable: false, data: { id: "ghost-edge-" + i, source: s, target: t, color: "#78716c", arrow: "triangle", status: "proposed" } });
       }
     });
   }
@@ -541,6 +549,7 @@
       '<option value="in"' + (c.direction === "in" ? " selected" : "") + '>that → this</option></select>' +
       '<button type="button" data-remove-row>×</button>' +
       '<input type="text" data-f="condition" placeholder="Condition (needed for implies / iff)" value="' + esc(c.condition || "") + '" style="grid-column: 1 / -1">' +
+      '<input type="text" data-f="note" maxlength="200" placeholder="Note (optional)" style="grid-column: 1 / -1">' +
       '</div>';
   }
   function openNodeForm() {
@@ -559,8 +568,13 @@
     $("#p-name").addEventListener("input", function () {
       var s = CG.similarNodes(G.nodes, $("#p-name").value, 3), box = $("#p-similar");
       box.hidden = !s.length;
-      box.innerHTML = s.length ? "Similar existing: " + s.map(function (n) { return esc(n.name); }).join(", ") +
+      box.innerHTML = s.length ? "Similar existing: " + s.map(function (n) {
+        return '<button type="button" data-goto="' + esc(n.id) + '">' + esc(n.name) + "</button>"; }).join(" ") +
         ". Propose a connection instead if it is the same idea." : "";
+    });
+    $("#p-similar").addEventListener("click", function (ev) {
+      var b = ev.target.closest("button[data-goto]"); if (!b) return;
+      dialog.close(); select("node", b.getAttribute("data-goto"), true);
     });
     function syncTopicRow() {
       var sec = sectionsById.get($("#p-section").value);
@@ -571,7 +585,7 @@
     $("#p-save").addEventListener("click", function () {
       var conns = Array.from(form.querySelectorAll("[data-conn]")).map(function (row) {
         var g = function (f) { return row.querySelector('[data-f="' + f + '"]').value; };
-        return { other: g("other"), type: g("type"), direction: g("direction"), condition: g("condition").trim() || null, note: "" };
+        return { other: g("other"), type: g("type"), direction: g("direction"), condition: g("condition").trim() || null, note: g("note").trim() };
       });
       var p = { name: $("#p-name").value.trim(), kind: $("#p-kind").value, section: $("#p-section").value,
                 topic: (sectionsById.get($("#p-section").value) || {}).topic || $("#p-topic").value, note: $("#p-note").value.trim(), connections: conns };
@@ -589,7 +603,7 @@
     var rows = [];
     function rebuildRows() {
       rows = (ids.length >= 2 ? CG.connectionRows(mode, chosen, ids, order) : [{ source: chosen, target: "" }])
-        .map(function (r) { return { a: r.source, b: r.target, type: "is_a", condition: "" }; });
+        .map(function (r) { return { a: r.source, b: r.target, type: "is_a", condition: "", note: "" }; });
     }
     function draw() {
       var chooser = (!ordered && ids.length >= 2)
@@ -611,6 +625,7 @@
             '<button type="button" data-reverse="' + i + '" title="Reverse this row">\u21c4</button>' +
             '<button type="button" data-del="' + i + '">\u00d7</button>' +
             '<input type="text" data-f="condition" placeholder="Condition (needed for implies / iff)" value="' + esc(r.condition) + '" style="grid-column: 1 / -1">' +
+            '<input type="text" data-f="note" maxlength="200" placeholder="Note (optional)" value="' + esc(r.note || "") + '" style="grid-column: 1 / -1">' +
             "</div>";
         }).join("") + "</div>" +
         '<button type="button" id="e-reverse-all">Reverse all rows</button> <button type="button" id="e-add">Add a row</button>' +
@@ -624,6 +639,7 @@
         r.type = el.querySelector('[data-f="type"]').value;
         r.b = el.querySelector('[data-f="b"]').value;
         r.condition = el.querySelector('[data-f="condition"]').value;
+        r.note = el.querySelector('[data-f="note"]').value;
         if (a) r.a = a.value;
       });
     }
@@ -642,11 +658,12 @@
       } else if (t.hasAttribute("data-del")) {
         readRows(); rows.splice(Number(t.getAttribute("data-del")), 1); draw();
       } else if (t.id === "e-add") {
-        readRows(); rows.push({ a: chosen, b: "", type: "is_a", condition: "" }); draw();
+        readRows(); rows.push(mode === "many_to_one" ? { a: "", b: chosen, type: "is_a", condition: "", note: "" }
+                                              : { a: chosen, b: "", type: "is_a", condition: "", note: "" }); draw();
       } else if (t.id === "p-save") {
         readRows();
         var made = rows.map(function (r) {
-          return { action: "add_edge", proposal: { source: r.a, type: r.type, target: r.b, condition: (r.condition || "").trim() || null, note: "" } };
+          return { action: "add_edge", proposal: { source: r.a, type: r.type, target: r.b, condition: (r.condition || "").trim() || null, note: (r.note || "").trim() } };
         });
         var all = [];
         for (var i = 0; i < made.length; i++) {
@@ -696,10 +713,20 @@
     var fresh = ids.filter(function (id) { return !prevSel.has(id); });
     if (fresh.length) lastAdded = fresh;
     prevSel = new Set(ids);
-    if (ids.length === 1) selected = { kind: "node", id: ids[0] };
-    else if (ids.length === 0 && selected && selected.kind === "node") selected = null;
-    $("#btn-connect").hidden = ids.length < 2 || ids.length > 12;
-    renderPanel(); renderNameList();
+    var before = selected && selected.kind === "node" ? selected.id : null;
+    if (ids.length > 0 && selected && selected.kind === "edge") { cy.edges(":selected").unselect(); selected = null; }
+    if (ids.length === 1) {
+      if (ids[0] !== before) { editing = null; flash = null; }
+      selected = { kind: "node", id: ids[0] };
+    } else if (ids.length === 0 && selected && selected.kind === "node") selected = null;
+    else if (ids.length > 1) { editing = null; flash = null; }
+    cy.edges().removeClass("labelled");
+    if (ids.length === 1) cy.getElementById(ids[0]).connectedEdges().addClass("labelled");
+    var connect = $("#btn-connect");
+    connect.hidden = ids.length < 2;
+    connect.disabled = ids.length > 12;
+    connect.title = ids.length > 12 ? "Select 12 or fewer concepts to propose connections" : "";
+    applyPrereqMode(); renderPanel(); renderNameList();
   }
   cy.on("select unselect", "node", function () {
     if (changeQueued) return;
