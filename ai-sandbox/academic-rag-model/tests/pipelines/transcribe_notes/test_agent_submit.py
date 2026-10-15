@@ -2,6 +2,7 @@
 import os
 import tempfile
 import unittest
+import unittest.mock
 from unittest.mock import MagicMock
 
 from pipelines.transcribe_notes.agent_submit import submit_doc, validate_card_output
@@ -108,6 +109,28 @@ class TestSubmitDoc(unittest.TestCase):
 
             status = submit_doc(hub, hub, "run-1", doc_slug, pdf_path, MagicMock(), None)
             self.assertTrue(status.startswith("incomplete"))
+
+    def test_submit_doc_allow_api_fallback_calls_process_pdf_with_api_driver(self):
+        with tempfile.TemporaryDirectory() as hub:
+            notes_dir = os.path.join(hub, "notes")
+            os.makedirs(notes_dir)
+            pdf_path = os.path.join(notes_dir, "doc.pdf")
+            _write_minimal_tier3_pdf(pdf_path)
+
+            driver = AgentDriver(hub, "run-1")
+            from pipelines.transcribe_notes.transcribe_notes import process_pdf
+            process_pdf(pdf_path, None, None, hub, driver=driver, collect_mode=True)
+            doc_slug = driver.last_doc_slug
+
+            with unittest.mock.patch("pipelines.transcribe_notes.agent_submit.process_pdf") as mock_process:
+                status = submit_doc(
+                    hub, hub, "run-1", doc_slug, pdf_path, client=MagicMock(), model_override=None,
+                    allow_api_fallback=True,
+                )
+            self.assertIn("api fallback", status)
+            _, kwargs = mock_process.call_args
+            from pipelines.transcribe_notes.agent_driver import ApiDriver
+            self.assertIsInstance(kwargs["driver"], ApiDriver)
 
     def test_complete_writes_cache_and_reruns_process_pdf(self):
         with tempfile.TemporaryDirectory() as hub:

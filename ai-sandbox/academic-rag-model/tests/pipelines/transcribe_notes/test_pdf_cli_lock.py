@@ -23,7 +23,7 @@ def _setup(tmp_path, monkeypatch, *, dry_run=False):
     fake_script = outer / "academic-rag-model" / "pipelines" / "transcribe_notes" / "transcribe_notes.py"
     monkeypatch.setattr(pdf_cli, "__file__", str(fake_script))
     monkeypatch.setattr(sys, "argv", [
-        "transcribe_notes", "--notes-subdir", "academic_resources/econometrics",
+        "transcribe_notes", "--notes-subdir", "academic_resources/econometrics", "--driver", "api",
         *(["--dry-run"] if dry_run else []),
     ])
     monkeypatch.setattr(pdf_cli, "load_dotenv_override", lambda: None)

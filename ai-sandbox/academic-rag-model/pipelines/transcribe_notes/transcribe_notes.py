@@ -1494,10 +1494,19 @@ def main():
         "--force-vision", action="store_true",
         help="Force vision transcription via Gemini, bypassing local text extraction even if the PDF appears cleanly machine-generated.",
     )
-    parser.add_argument("--driver", choices=["api", "agent"], default="api", help="Transcription transport.")
+    parser.add_argument(
+        "--driver", choices=["api", "agent"], default="agent",
+        help="Transcription transport. Default: agent (the Antigravity subscription). "
+             "Use 'api' for a fully metered run.",
+    )
     parser.add_argument("--collect", action="store_true", help="With --driver agent: write task cards instead of transcribing.")
     parser.add_argument("--run-id", default=None, help="Run id for --collect/--submit's .agent_work/ directory (default: a timestamp).")
     parser.add_argument("--submit", default=None, metavar="RUN_ID", help="Validate filled task cards for this run and write through.")
+    parser.add_argument(
+        "--allow-api-fallback", action="store_true",
+        help="With --submit: finish any still-pending/bounced cards via the metered API instead "
+             "of leaving them pending. Explicit opt-in only -- never automatic.",
+    )
     parser.add_argument("--bootstrap", default=None, metavar="RUN_ID", help="Print the agent's operating contract for this run.")
     args = parser.parse_args()
 
@@ -1571,6 +1580,7 @@ def main():
                     status = submit_doc(
                         str(academic_hub_dir), str(academic_hub_dir), args.submit, doc_slug, pdf_path,
                         client, args.model, force_vision=args.force_vision,
+                        allow_api_fallback=args.allow_api_fallback,
                     )
                 except Exception as err:
                     # Final review I6: one document's malformed manifest/

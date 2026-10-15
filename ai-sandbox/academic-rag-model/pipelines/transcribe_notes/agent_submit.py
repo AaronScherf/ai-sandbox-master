@@ -112,7 +112,7 @@ def _md_path_for(pdf_path: str) -> str:
 def submit_doc(
     hub_root: str, academic_hub_root: str, run_id: str, doc_slug: str,
     pdf_path: str, client, model_override: str | None, agent_name: str = "antigravity",
-    force_vision: bool = False,
+    force_vision: bool = False, allow_api_fallback: bool = False,
 ) -> str:
     doc_dir = doc_work_dir(hub_root, run_id, doc_slug)
     entries = load_manifest(doc_dir)
@@ -160,7 +160,7 @@ def submit_doc(
     save_manifest(doc_dir, entries)
     render_worklist(doc_dir, entries)
 
-    if not all(e.status == "submitted" for e in entries):
+    if not all(e.status == "submitted" for e in entries) and not allow_api_fallback:
         remaining = sum(1 for e in entries if e.status != "submitted")
         return f"incomplete: {remaining} card(s) still pending/bounced"
 
@@ -173,7 +173,7 @@ def submit_doc(
     # staged them; batch tiers always stage every needed batch in one
     # collect call, so "all submitted" is already complete for those).
     is_tier3 = any(e.tier == "tier3" for e in entries)
-    if is_tier3:
+    if is_tier3 and not allow_api_fallback:
         import pypdf
 
         total_pages = len(pypdf.PdfReader(pdf_path).pages)
@@ -188,9 +188,12 @@ def submit_doc(
             return f"incomplete: {len(cache)}/{total_pages} page(s) cached, next card staged"
 
     try:
+        from pipelines.transcribe_notes.agent_driver import ApiDriver
+
+        driver = ApiDriver(client) if allow_api_fallback else NullDriver()
         process_pdf(
             pdf_path, client, model_override, academic_hub_root,
-            force_vision=force_vision, driver=NullDriver(),
+            force_vision=force_vision, driver=driver,
         )
     except Exception as err:
         # Don't leave the document stuck "complete" if the final write
@@ -199,4 +202,4 @@ def submit_doc(
         # submit call will retry this.
         return f"write failed: {err}"
 
-    return "complete"
+    return "complete" if not allow_api_fallback else "complete (api fallback used for remaining pages)"
