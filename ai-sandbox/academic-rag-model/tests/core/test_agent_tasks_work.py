@@ -65,3 +65,14 @@ def test_run_ids_may_not_carry_a_path(tmp_path):
     repo.mkdir()
     with pytest.raises(ValueError, match="invalid run id"):
         create_run(tmp_path / "work", repo, "demo", [_task()], run_id="../evil")
+
+
+def test_non_ascii_card_text_is_written_with_unix_newlines_and_round_trips(tmp_path):
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    task = Task(id="t-1", stage="demo", subject={}, instructions="Do.",
+                context="Élasticité β = 0.5 — “quoted”\nsecond line")
+    run = create_run(tmp_path / "work", repo, "demo", [task], run_id="r1")
+    raw = run.card_path("t-1").read_bytes()
+    assert b"\r\n" not in raw
+    assert raw.decode("utf-8") == render_card(task)
