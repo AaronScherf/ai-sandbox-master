@@ -103,10 +103,11 @@ def is_valid_pdf_bytes(content: bytes) -> bool:
     from pypdf import PdfReader
 
     try:
-        PdfReader(io.BytesIO(content))
+        reader = PdfReader(io.BytesIO(content))
+        page_count = len(reader.pages)
     except Exception:
         return False
-    return True
+    return page_count > 0
 
 
 def paced_sleep(pace_per_hour: float, jitter: float = 0.3) -> None:
