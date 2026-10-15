@@ -563,6 +563,13 @@
       "status_docs": [
         {
           "path": "ai-sandbox/academic-rag-model/docs/status/discover_journal_articles/2026-09-01-journal-discovery-status.md",
+          "role": "historical",
+          "lifecycle_ids": [
+            "journal-discovery"
+          ]
+        },
+        {
+          "path": "ai-sandbox/academic-rag-model/docs/status/discover_journal_articles/2026-10-15-reliability-classification-and-validation-status.md",
           "role": "current",
           "lifecycle_ids": [
             "journal-discovery"
