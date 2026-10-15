@@ -17,6 +17,7 @@ from pathlib import Path
 
 from core.env.gemini_utils import load_dotenv_override
 from discovery.discover_journal_articles.access import resolve_full_text
+from discovery.discover_journal_articles.atomic_io import write_bytes_atomic
 from discovery.discover_journal_articles.discovery import doi_url, resolve_work_by_doi, resolve_works
 from discovery.discover_journal_articles.manifest import (
     load_manifest,
@@ -98,7 +99,7 @@ def run(args: argparse.Namespace) -> dict:
         if result.status == "fetched":
             folder = route_to_folder(args.articles_dir, work)
             pdf_path = folder / pdf_filename(work)
-            pdf_path.write_bytes(result.content)
+            write_bytes_atomic(pdf_path, result.content)
             write_sidecar(pdf_path, work, scored_work.score, result.tier)
             record_outcome(manifest, key, "fetched", folder=folder.name)
             counts["fetched"] += 1
@@ -148,7 +149,7 @@ def retry_needs_manual(args: argparse.Namespace) -> dict:
         if result.status == "fetched":
             folder = route_to_folder(args.articles_dir, work)
             pdf_path = folder / pdf_filename(work)
-            pdf_path.write_bytes(result.content)
+            write_bytes_atomic(pdf_path, result.content)
             write_sidecar(pdf_path, work, entry.get("relevance_score"), result.tier)
             record_outcome(manifest, key, "fetched", folder=folder.name)
             counts["fetched"] += 1
