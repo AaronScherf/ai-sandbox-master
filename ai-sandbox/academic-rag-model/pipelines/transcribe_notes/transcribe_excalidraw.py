@@ -20,6 +20,7 @@ import re
 import sys
 from contextlib import nullcontext
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from core.env.academic_hub_paths import resolve_output_dir, to_resources_root
 from core.env.corpus_write_lock import CorpusWriteLockError, corpus_write_lock
@@ -43,6 +44,9 @@ from core.indexer.questions import apply_markers
 from core.indexer.related import link_subsets
 from pipelines.transcribe_notes.excalidraw_chunking import chunk_image, load_canvas_image, resize_chunk_for_api
 from pipelines.transcribe_notes.transcribe_notes import build_frontmatter, transcribe_page_via_gemini
+
+if TYPE_CHECKING:
+    from pipelines.transcribe_notes.excalidraw_agent_driver import ExcalidrawDriver
 
 _EXPANSION_MODEL_GEMINI = "gemini-3.1-flash-lite"  # text-only reasoning task, matches
                                                      # problem_gen's/viz's own default tier
@@ -213,24 +217,32 @@ def assemble_raw_markdown(cache: dict, total_chunks: int) -> str:
 
 def transcribe_chunks(
     client, model: str, chunk_bytes: list[bytes], has_slides: bool = False,
-    cache: dict[str, str] | None = None,
+    cache: dict[str, str] | None = None, driver: "ExcalidrawDriver | None" = None,
+    excalidraw_md_path: str | None = None,
 ) -> dict[str, str]:
+    from pipelines.transcribe_notes.agent_driver import AgentPending
+    from pipelines.transcribe_notes.excalidraw_agent_driver import ExcalidrawApiDriver
+
     cache = {} if cache is None else cache
+    if driver is None:
+        driver = ExcalidrawApiDriver(client)
     total_chunks = len(chunk_bytes)
     for chunk_index, image_bytes in enumerate(chunk_bytes):
         if cache.get(str(chunk_index), "").strip():
-            continue  # already cached -- resumable, no API call
+            continue  # already cached -- resumable, no driver call
         accumulated_context = _accumulated_chunk_context(cache, chunk_index, window=_ACCUMULATION_WINDOW)
         prompt = build_chunk_transcription_prompt(accumulated_context, chunk_index, total_chunks, has_slides)
         def transcribe_nonempty() -> str:
-            text = transcribe_page_via_gemini(client, model, image_bytes, prompt)
+            text = driver.transcribe_chunk(excalidraw_md_path, model, chunk_index, total_chunks, prompt, image_bytes)
             if not text or not text.strip():
                 raise ValueError("empty chunk transcription")
             return text
 
         try:
-            text = call_with_retries(transcribe_nonempty)
+            text = transcribe_nonempty()
             cache[str(chunk_index)] = text
+        except AgentPending:
+            raise  # must propagate uncaught -- never retried, never falls through
         except Exception as err:
             print(f"WARNING: chunk {chunk_index + 1}/{total_chunks} failed after retries ({err}); skipping.")
     return cache

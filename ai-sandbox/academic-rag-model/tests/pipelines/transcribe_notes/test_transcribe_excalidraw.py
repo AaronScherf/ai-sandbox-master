@@ -146,7 +146,7 @@ from pipelines.transcribe_notes.transcribe_excalidraw import transcribe_chunks
 
 
 def test_transcribe_chunks_builds_cache_keyed_by_index():
-    with patch("pipelines.transcribe_notes.transcribe_excalidraw.transcribe_page_via_gemini") as mock_transcribe:
+    with patch("pipelines.transcribe_notes.excalidraw_agent_driver.transcribe_page_via_gemini") as mock_transcribe:
         mock_transcribe.side_effect = ["first chunk text", "second chunk text"]
         cache = transcribe_chunks(client=object(), model="gemini-3.6-flash", chunk_bytes=[b"img0", b"img1"])
     assert cache == {"0": "first chunk text", "1": "second chunk text"}
@@ -159,7 +159,7 @@ def test_transcribe_chunks_passes_accumulated_context_from_prior_chunks():
         captured_prompts.append(prompt)
         return f"text for chunk with prompt len {len(prompt)}"
 
-    with patch("pipelines.transcribe_notes.transcribe_excalidraw.transcribe_page_via_gemini", side_effect=fake_transcribe):
+    with patch("pipelines.transcribe_notes.excalidraw_agent_driver.transcribe_page_via_gemini", side_effect=fake_transcribe):
         transcribe_chunks(client=object(), model="gemini-3.6-flash", chunk_bytes=[b"img0", b"img1"])
 
     # second call's prompt must include the first chunk's already-transcribed text
@@ -172,15 +172,15 @@ def test_transcribe_chunks_skips_a_chunk_that_fails_after_retries():
             raise ValueError("simulated repetition-loop failure")
         return "ok text"
 
-    with patch("pipelines.transcribe_notes.transcribe_excalidraw.transcribe_page_via_gemini", side_effect=fake_transcribe):
-        with patch("pipelines.transcribe_notes.transcribe_excalidraw.call_with_retries", side_effect=lambda fn: fn()):
+    with patch("pipelines.transcribe_notes.excalidraw_agent_driver.transcribe_page_via_gemini", side_effect=fake_transcribe):
+        with patch("pipelines.transcribe_notes.excalidraw_agent_driver.call_with_retries", side_effect=lambda fn: fn()):
             cache = transcribe_chunks(client=object(), model="gemini-3.6-flash", chunk_bytes=[b"img0", b"img1", b"img2"])
 
     assert cache == {"0": "ok text", "2": "ok text"}
 
 
 def test_transcribe_chunks_skips_chunks_already_in_the_cache():
-    with patch("pipelines.transcribe_notes.transcribe_excalidraw.transcribe_page_via_gemini") as mock_transcribe:
+    with patch("pipelines.transcribe_notes.excalidraw_agent_driver.transcribe_page_via_gemini") as mock_transcribe:
         mock_transcribe.return_value = "freshly transcribed"
         cache = transcribe_chunks(
             client=object(), model="gemini-3.6-flash", chunk_bytes=[b"img0", b"img1"],
@@ -197,9 +197,9 @@ def test_transcribe_chunks_retries_an_empty_response():
         except ValueError:
             return fn()
 
-    with patch("pipelines.transcribe_notes.transcribe_excalidraw.transcribe_page_via_gemini",
+    with patch("pipelines.transcribe_notes.excalidraw_agent_driver.transcribe_page_via_gemini",
                side_effect=["  ", "recovered text"]) as mock_transcribe:
-        with patch("pipelines.transcribe_notes.transcribe_excalidraw.call_with_retries",
+        with patch("pipelines.transcribe_notes.excalidraw_agent_driver.call_with_retries",
                    side_effect=retry_once):
             cache = transcribe_chunks(client=object(), model="m", chunk_bytes=[b"img"])
 
@@ -408,7 +408,7 @@ def test_process_excalidraw_note_writes_and_reuses_a_chunk_cache(tmp_path):
     with patch("pipelines.transcribe_notes.transcribe_excalidraw.load_canvas_image", return_value=object()), \
          patch("pipelines.transcribe_notes.transcribe_excalidraw.chunk_image", return_value=[object(), object()]), \
          patch("pipelines.transcribe_notes.transcribe_excalidraw.resize_chunk_for_api", side_effect=lambda c: b"bytes"), \
-         patch("pipelines.transcribe_notes.transcribe_excalidraw.transcribe_page_via_gemini", return_value="transcribed"), \
+         patch("pipelines.transcribe_notes.excalidraw_agent_driver.transcribe_page_via_gemini", return_value="transcribed"), \
          patch("pipelines.transcribe_notes.transcribe_excalidraw.expand_transcription", return_value=("expanded", {"expansion_backend": "gemini", "expansion_model": "m", "grounded": False})):
         process_excalidraw_note(str(md_path), str(img_path), object(), "model", "gemini", str(hub))
 
@@ -531,7 +531,7 @@ def test_transcribe_chunks_forwards_has_slides_to_prompt():
         captured.append(prompt)
         return "t"
 
-    with patch("pipelines.transcribe_notes.transcribe_excalidraw.transcribe_page_via_gemini", side_effect=fake):
+    with patch("pipelines.transcribe_notes.excalidraw_agent_driver.transcribe_page_via_gemini", side_effect=fake):
         transcribe_chunks(client=object(), model="m", chunk_bytes=[b"a"], has_slides=True)
     assert "slide" in captured[0].lower()
 
