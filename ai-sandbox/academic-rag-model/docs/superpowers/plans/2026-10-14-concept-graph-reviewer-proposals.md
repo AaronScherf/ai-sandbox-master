@@ -1465,3 +1465,14 @@ Expected: all pass, no `SyntaxWarning` (see `test_cg_no_syntax_warnings.py`).
 git add agent/concept_graph/README.md docs/trackers/academic_hub_to_do.md docs/status/agent/concept_graph/2026-10-14-concept-graph-proposals-status.md tests/agent/concept_graph/test_cg_apply_proposals.py
 git commit -m "docs(concept_graph): reviewer proposals README, status and tracker"
 ```
+
+## Lifecycle references
+
+### Specs
+
+- [2026-10-14-concept-graph-reviewer-proposals-design](../specs/agent/2026-10-14-concept-graph-reviewer-proposals-design.md)
+
+### Tests
+
+- [test_cg_proposals](../../../tests/agent/concept_graph/test_cg_proposals.py)
+- [test_cg_apply_proposals](../../../tests/agent/concept_graph/test_cg_apply_proposals.py)

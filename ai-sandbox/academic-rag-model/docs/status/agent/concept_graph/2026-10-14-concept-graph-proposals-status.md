@@ -46,3 +46,23 @@ timeline layout.
 Open: the 8 section summaries are not drafted yet (run `collect summary`, then `submit`); the migration of the
 graph repo's section fields and 8 concept topics is scripted in the plan (Task 7) and waits for this branch to land;
 section summaries are not shown anywhere until then.
+
+## Lifecycle references
+
+### Specs
+
+- [2026-10-14-concept-graph-reviewer-proposals-design](../../../superpowers/specs/agent/2026-10-14-concept-graph-reviewer-proposals-design.md)
+- [2026-10-14-concept-graph-viewer-selection-and-layouts-design](../../../superpowers/specs/agent/2026-10-14-concept-graph-viewer-selection-and-layouts-design.md)
+
+### Implementation plans
+
+- [2026-10-14-concept-graph-reviewer-proposals](../../../superpowers/plans/2026-10-14-concept-graph-reviewer-proposals.md)
+- [2026-10-14-concept-graph-viewer-selection-and-layouts](../../../superpowers/plans/2026-10-14-concept-graph-viewer-selection-and-layouts.md)
+
+### Tests
+
+- [test_cg_proposals](../../../../tests/agent/concept_graph/test_cg_proposals.py)
+- [test_cg_apply_proposals](../../../../tests/agent/concept_graph/test_cg_apply_proposals.py)
+- [test_cg_sections](../../../../tests/agent/concept_graph/test_cg_sections.py)
+- [test_cg_layouts](../../../../tests/agent/concept_graph/test_cg_layouts.py)
+- [test_cg_stage_summary](../../../../tests/agent/concept_graph/test_cg_stage_summary.py)

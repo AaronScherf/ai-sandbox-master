@@ -104,13 +104,13 @@ without changing the filters.
   says "(filtered)" when some are hidden, so a filter cannot make a summary unreachable.
 - **Summary text is always agent-drafted** (see *Summary stage*). The page never shows concatenated one-line
   summaries: when a section has no summary yet, the panel shows the concept list only, and `validate` warns about the
-  missing summary. A composed placeholder exists only behind `?debug`, for development.
+  missing summary (for sections that declare a topic). No composed placeholder was built.
 
 ## Summary stage
 
 A small agent stage (`summary`, same card, validate and submit flow as `fill`) drafts one summary per section: 8
 cards today. Each card shows the section's concepts (names, one-line summaries, explanations) and the relevant
-retrieved passages, and asks for one cohesive paragraph of at most about 90 words in the agent's own words, with the
+retrieved passages, and asks for one cohesive paragraph of at most 110 words in the agent's own words, with the
 same meta-commentary and own-words checks as `fill`. Results are stored as a `summary` field on each section in
 `data/sections.yaml`; `build` embeds them in `graph.json`. Because a section's membership changes as concepts are
 added, `validate` warns when a summary is older than its membership (a hash of the member ids is stored with it).

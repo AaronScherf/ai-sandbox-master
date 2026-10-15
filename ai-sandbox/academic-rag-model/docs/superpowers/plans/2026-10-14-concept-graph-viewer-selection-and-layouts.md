@@ -1250,3 +1250,15 @@ warnings remain until Task 8). Check that `config/vocab.yaml` topics are exactly
 git add agent/concept_graph/README.md docs/status/agent/concept_graph/2026-10-14-concept-graph-proposals-status.md docs/trackers/academic_hub_to_do.md
 git commit -m "docs(concept_graph): viewer selection, sections as the grouping, summaries and layouts"
 ```
+
+## Lifecycle references
+
+### Specs
+
+- [2026-10-14-concept-graph-viewer-selection-and-layouts-design](../specs/agent/2026-10-14-concept-graph-viewer-selection-and-layouts-design.md)
+
+### Tests
+
+- [test_cg_sections](../../../tests/agent/concept_graph/test_cg_sections.py)
+- [test_cg_layouts](../../../tests/agent/concept_graph/test_cg_layouts.py)
+- [test_cg_stage_summary](../../../tests/agent/concept_graph/test_cg_stage_summary.py)

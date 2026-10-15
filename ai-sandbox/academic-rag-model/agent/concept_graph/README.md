@@ -182,6 +182,17 @@ composed summaries.
 Debugging: open the page with `?debug` to expose `window.__cg` (the Cytoscape instance and selection helpers) and to
 turn layout animation off, which headless browsers need.
 
+### Options added with the later rounds
+
+- **Retrieval fallback:** `collect` tries the paid key, then the free key, then local keyword search, moving on only
+  for quota or rate-limit errors (a notice is printed; keyword matches are weaker, so check those cards).
+- **`collect link --orphans`** asks again, with a wider retrieval, for explained concepts that have no edges.
+- **`fill_hints`** in `config/seed.yaml` (`{node-id: what the explanation should also cover}`) shows an owner's request
+  on that node's fill card.
+- **`min_nodes_per_section`** in `config/seed.yaml` is a floor for the additive seed (`collect seed --redo`), not a cap.
+- **Summaries** (`collect summary`) and **layout presets** (`config/layouts/*.json`) are described under "Sections,
+  selection and layouts".
+
 ## Vendored libraries
 
 `viewer/vendor/` holds Cytoscape.js and KaTeX (MIT; licenses alongside), fetched once by

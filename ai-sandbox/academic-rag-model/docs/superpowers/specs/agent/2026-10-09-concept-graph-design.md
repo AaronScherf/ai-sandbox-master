@@ -1,6 +1,11 @@
 # Concept Graph: Design
 
-Status: draft for owner review (2026-10-09). Nothing is implemented. This spec consolidates the brainstorm held
+Status: implemented (updated 2026-10-15). The original text below is the design as accepted on 2026-10-09; for
+what shipped, what changed and what is open, read the current status doc
+`docs/status/agent/concept_graph/2026-10-15-concept-graph-status.md` and the follow-on specs
+`2026-10-14-concept-graph-reviewer-proposals-design.md` (reviewer proposals) and
+`2026-10-14-concept-graph-viewer-selection-and-layouts-design.md` (sections as the grouping, selection, summaries,
+layouts). Where they differ, the later documents win. This spec consolidates the brainstorm held
 on 2026-10-09; each decision below was put to the owner and accepted unless marked *open*.
 
 ## Intent

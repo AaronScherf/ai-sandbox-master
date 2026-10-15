@@ -1563,6 +1563,22 @@
           "lifecycle_ids": [
             "concept-graph-pipeline"
           ]
+        },
+        {
+          "path": "ai-sandbox/academic-rag-model/docs/status/agent/concept_graph/2026-10-14-concept-graph-proposals-status.md",
+          "role": "historical",
+          "lifecycle_ids": [
+            "concept-graph-proposals",
+            "concept-graph-viewer"
+          ]
+        },
+        {
+          "path": "ai-sandbox/academic-rag-model/docs/status/agent/concept_graph/2026-10-15-concept-graph-status.md",
+          "role": "current",
+          "lifecycle_ids": [
+            "concept-graph-proposals",
+            "concept-graph-viewer"
+          ]
         }
       ],
       "status_absence_reason": null,
@@ -1597,6 +1613,45 @@
           ],
           "test_paths": [
             "ai-sandbox/academic-rag-model/tests/agent/concept_graph/test_cg_cli_stages.py"
+          ],
+          "absence_reasons": {
+            "specs": null,
+            "implementation_plans": null,
+            "test_paths": null
+          }
+        },
+        "concept-graph-proposals": {
+          "state": "current",
+          "supersedes": [],
+          "specs": [
+            "ai-sandbox/academic-rag-model/docs/superpowers/specs/agent/2026-10-14-concept-graph-reviewer-proposals-design.md"
+          ],
+          "implementation_plans": [
+            "ai-sandbox/academic-rag-model/docs/superpowers/plans/2026-10-14-concept-graph-reviewer-proposals.md"
+          ],
+          "test_paths": [
+            "ai-sandbox/academic-rag-model/tests/agent/concept_graph/test_cg_proposals.py",
+            "ai-sandbox/academic-rag-model/tests/agent/concept_graph/test_cg_apply_proposals.py"
+          ],
+          "absence_reasons": {
+            "specs": null,
+            "implementation_plans": null,
+            "test_paths": null
+          }
+        },
+        "concept-graph-viewer": {
+          "state": "current",
+          "supersedes": [],
+          "specs": [
+            "ai-sandbox/academic-rag-model/docs/superpowers/specs/agent/2026-10-14-concept-graph-viewer-selection-and-layouts-design.md"
+          ],
+          "implementation_plans": [
+            "ai-sandbox/academic-rag-model/docs/superpowers/plans/2026-10-14-concept-graph-viewer-selection-and-layouts.md"
+          ],
+          "test_paths": [
+            "ai-sandbox/academic-rag-model/tests/agent/concept_graph/test_cg_sections.py",
+            "ai-sandbox/academic-rag-model/tests/agent/concept_graph/test_cg_layouts.py",
+            "ai-sandbox/academic-rag-model/tests/agent/concept_graph/test_cg_stage_summary.py"
           ],
           "absence_reasons": {
             "specs": null,
