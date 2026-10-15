@@ -69,6 +69,8 @@ python -m agent.concept_graph.cli --graph-repo agent/concept_graph/sample_data b
 
 Each stage turns corpus passages into **proposed** items that a person then reviews in the page.
 
+The task cards, run manifests and the collect/submit/api loop behind these stages now live in [`core/agent_tasks/`](../../core/agent_tasks/README.md), shared with other pipelines. `tasks.py` and `work.py` here are compatibility shims that re-export from core, and `drivers.py` is the thin adapter that binds the generic loop to the graph store and the stage registry. Existing import paths, the card format and the manifest keys are unchanged, so runs already on disk can still be submitted.
+
 | Stage | What it proposes |
 |---|---|
 | `seed` | The course outline (sections) and a skeleton of concept nodes, from the hub's syllabus, textbook chapter titles, lecture dates and slide titles. For starting a graph. |
