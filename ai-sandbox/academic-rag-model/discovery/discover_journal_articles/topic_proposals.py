@@ -153,7 +153,7 @@ def main():
     parser.add_argument("--articles-dir", default=str(default_articles_dir))
     parser.add_argument("--build", action="store_true", help="(Re)write the review ledger from the current manifest/sidecars.")
     parser.add_argument("--resolve", metavar="KEY:FOLDER", help="Apply an accepted decision: move KEY into FOLDER (or keep it, tagging only, if FOLDER matches the current folder).")
-    parser.add_argument("--reject", metavar="KEY", help="Record that KEY's current folder was explicitly kept as-is, without changing anything else.")
+    parser.add_argument("--reject", metavar="KEY", help="Keep KEY in its current folder, recording the decision as reviewed. Still rewrites its sidecar tags from current topic scores, same as --resolve into the same folder.")
     args = parser.parse_args()
 
     manifest_file = manifest_path(args.articles_dir)

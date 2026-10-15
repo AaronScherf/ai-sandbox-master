@@ -231,5 +231,25 @@ class TestResolveFolderProposal(unittest.TestCase):
                 resolve_folder_proposal(manifest, articles_dir, "10.1/abc", "Climate Change")
 
 
+class TestRejectHelpText(unittest.TestCase):
+    def test_reject_help_text_does_not_claim_nothing_else_changes(self):
+        # Confirmed real (code review finding, 2026-10-15): --reject's
+        # help text said "without changing anything else", but
+        # resolve_folder_proposal() always rewrites the sidecar's tags
+        # (correct per spec B.5) -- the help text was just inaccurate.
+        import contextlib
+        import io
+        from unittest.mock import patch
+
+        from discovery.discover_journal_articles.topic_proposals import main
+
+        buf = io.StringIO()
+        with patch("sys.argv", ["topic_proposals.py", "--help"]), self.assertRaises(SystemExit):
+            with contextlib.redirect_stdout(buf):
+                main()
+
+        self.assertNotIn("without changing anything else", buf.getvalue())
+
+
 if __name__ == "__main__":
     unittest.main()
