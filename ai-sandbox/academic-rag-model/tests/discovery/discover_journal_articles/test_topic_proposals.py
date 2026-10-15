@@ -107,5 +107,66 @@ class TestWriteProposalsLedger(unittest.TestCase):
             self.assertEqual(len(entries), 1)
 
 
+from discovery.discover_journal_articles.manifest import load_manifest, manifest_path, record_outcome, save_manifest
+from discovery.discover_journal_articles.topic_proposals import resolve_folder_proposal
+
+
+class TestResolveFolderProposal(unittest.TestCase):
+    def _setup(self, tmp, topics_data):
+        articles_dir = Path(tmp)
+        _write_sidecar(articles_dir / "business", "10-1-abc", "Carbon Farming", topics_data)
+        (articles_dir / "business" / "10-1-abc.pdf").write_bytes(b"%PDF-1.4")
+        manifest = {"10.1/abc": {"status": "fetched", "folder": "business"}}
+        return articles_dir, manifest
+
+    def test_moves_pdf_and_sidecar_when_chosen_folder_differs(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            topics_data = [
+                {"id": "T1", "display_name": "Business", "score": 0.39},
+                {"id": "T2", "display_name": "Soil Carbon and Nitrogen Dynamics", "score": 0.9},
+            ]
+            articles_dir, manifest = self._setup(tmp, topics_data)
+
+            resolve_folder_proposal(manifest, articles_dir, "10.1/abc", "soil-carbon-and-nitrogen-dynamics")
+
+            new_dir = articles_dir / "soil-carbon-and-nitrogen-dynamics"
+            self.assertTrue((new_dir / "10-1-abc.pdf").exists())
+            self.assertTrue((new_dir / "10-1-abc.meta.json").exists())
+            self.assertFalse((articles_dir / "business" / "10-1-abc.pdf").exists())
+            self.assertEqual(manifest["10.1/abc"]["folder"], "soil-carbon-and-nitrogen-dynamics")
+
+    def test_keeping_current_folder_still_writes_tags_and_fingerprint(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            topics_data = [
+                {"id": "T1", "display_name": "Business", "score": 0.39},
+                {"id": "T2", "display_name": "Soil Carbon and Nitrogen Dynamics", "score": 0.9},
+            ]
+            articles_dir, manifest = self._setup(tmp, topics_data)
+
+            resolve_folder_proposal(manifest, articles_dir, "10.1/abc", "business")
+
+            sidecar = json.loads((articles_dir / "business" / "10-1-abc.meta.json").read_text(encoding="utf-8"))
+            self.assertIn("soil-carbon-and-nitrogen-dynamics", sidecar["tags"])
+            self.assertIn("topic_decision_fingerprint", manifest["10.1/abc"])
+
+    def test_tags_exclude_topics_below_the_relevance_floor(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            topics_data = [
+                {"id": "T1", "display_name": "Business", "score": 0.39},
+                {"id": "T2", "display_name": "Negligible Side Topic", "score": 0.05},
+            ]
+            articles_dir, manifest = self._setup(tmp, topics_data)
+
+            resolve_folder_proposal(manifest, articles_dir, "10.1/abc", "business")
+
+            sidecar = json.loads((articles_dir / "business" / "10-1-abc.meta.json").read_text(encoding="utf-8"))
+            self.assertNotIn("negligible-side-topic", sidecar["tags"])
+
+    def test_raises_key_error_for_an_unknown_manifest_key(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            with self.assertRaises(KeyError):
+                resolve_folder_proposal({}, tmp, "10.1/missing", "misc")
+
+
 if __name__ == "__main__":
     unittest.main()

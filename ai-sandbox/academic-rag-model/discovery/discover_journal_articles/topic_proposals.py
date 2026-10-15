@@ -15,6 +15,7 @@ from pathlib import Path
 
 from discovery.discover_journal_articles.atomic_io import write_json_atomic
 from discovery.discover_journal_articles.discovery import Topic
+from discovery.discover_journal_articles.manifest import load_manifest, manifest_path, save_manifest
 from discovery.discover_journal_articles.topic_routing import propose_folder, sanitize_topic_name
 
 _ACTIVE_STATUSES = frozenset({"fetched", "downloaded"})
@@ -78,3 +79,83 @@ def write_proposals_ledger(manifest: dict, articles_dir) -> Path:
     path = proposals_ledger_path(articles_dir)
     write_json_atomic(path, entries)
     return path
+
+
+_TAG_RELEVANCE_FLOOR = 0.2
+
+
+def resolve_folder_proposal(manifest: dict, articles_dir, key: str, chosen_folder: str) -> None:
+    """Applies exactly one accepted decision from the review ledger:
+    moves the paper's PDF+sidecar into chosen_folder only if it differs
+    from the current folder, writes every above-floor topic into the
+    sidecar as a tag regardless of which folder was chosen, and updates
+    manifest[key]. Never called automatically -- only from an explicit
+    --resolve KEY:FOLDER CLI call driven by a human decision recorded in
+    the review Artifact."""
+    entry = manifest.get(key)
+    if entry is None:
+        raise KeyError(f"{key!r} not found in manifest")
+
+    articles_dir = Path(articles_dir)
+    current_folder = entry.get("folder") or "misc"
+    stem = sanitize_topic_name(key)[:80] or "paper"
+    old_dir = articles_dir / current_folder
+    pdf_path = old_dir / f"{stem}.pdf"
+    sidecar_path = old_dir / f"{stem}.meta.json"
+
+    sidecar_data = json.loads(sidecar_path.read_text(encoding="utf-8"))
+    topics_data = sidecar_data.get("topics") or []
+    sidecar_data["tags"] = sorted({
+        sanitize_topic_name(t["display_name"]) for t in topics_data if t.get("score", 0) > _TAG_RELEVANCE_FLOOR
+    })
+
+    if chosen_folder != current_folder:
+        new_dir = articles_dir / chosen_folder
+        new_dir.mkdir(parents=True, exist_ok=True)
+        pdf_path.replace(new_dir / pdf_path.name)
+        sidecar_path = sidecar_path.replace(new_dir / sidecar_path.name)
+        entry["folder"] = chosen_folder
+
+    write_json_atomic(sidecar_path, sidecar_data)
+
+    topics = [Topic(id=t["id"], display_name=t["display_name"], score=t["score"]) for t in topics_data]
+    entry["topic_decision_fingerprint"] = topics_fingerprint(topics)
+
+
+def main():
+    import argparse
+
+    parser = argparse.ArgumentParser(description="Build or apply the classification proposal review ledger.")
+    default_articles_dir = Path(__file__).resolve().parent.parent.parent.parent / "research" / "journal-articles"
+    parser.add_argument("--articles-dir", default=str(default_articles_dir))
+    parser.add_argument("--build", action="store_true", help="(Re)write the review ledger from the current manifest/sidecars.")
+    parser.add_argument("--resolve", metavar="KEY:FOLDER", help="Apply an accepted decision: move KEY into FOLDER (or keep it, tagging only, if FOLDER matches the current folder).")
+    parser.add_argument("--reject", metavar="KEY", help="Record that KEY's current folder was explicitly kept as-is, without changing anything else.")
+    args = parser.parse_args()
+
+    manifest_file = manifest_path(args.articles_dir)
+    manifest = load_manifest(manifest_file)
+
+    if args.build:
+        path = write_proposals_ledger(manifest, args.articles_dir)
+        print(f"Wrote {path}")
+        return
+
+    if args.resolve:
+        key, _, folder = args.resolve.partition(":")
+        resolve_folder_proposal(manifest, args.articles_dir, key, folder)
+        save_manifest(manifest_file, manifest)
+        print(f"Applied: {key} -> {folder}")
+        return
+
+    if args.reject:
+        resolve_folder_proposal(manifest, args.articles_dir, args.reject, manifest[args.reject].get("folder") or "misc")
+        save_manifest(manifest_file, manifest)
+        print(f"Kept {args.reject} in its current folder; recorded as reviewed.")
+        return
+
+    parser.error("one of --build, --resolve, or --reject is required")
+
+
+if __name__ == "__main__":
+    main()
