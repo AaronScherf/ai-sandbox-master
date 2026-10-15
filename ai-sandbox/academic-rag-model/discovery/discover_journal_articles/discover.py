@@ -39,6 +39,16 @@ _DEFAULT_RELEVANCE_THRESHOLD = 0.5
 _DEFAULT_PACE_PER_HOUR = 25.0
 
 
+def _count_retrieved(works, counts: dict):
+    """Wraps the lazy resolve_works() generator to count every candidate
+    OpenAlex actually returned, before skip_already_seen filters any of
+    them -- spec A.3's "retrieved" count, distinct from "already_seen"
+    (deduplicated) and "examined" (scored)."""
+    for work in works:
+        counts["retrieved"] += 1
+        yield work
+
+
 def _sync_zotero_if_configured(work, pdf_path, topic_folder: str, args) -> None:
     library_id = getattr(args, "zotero_library_id", None) or os.environ.get("ZOTERO_LIBRARY_ID")
     api_key = getattr(args, "zotero_api_key", None) or os.environ.get("ZOTERO_API_KEY")
@@ -58,14 +68,17 @@ def run(args: argparse.Namespace) -> dict:
 
     manifest_file = manifest_path(args.articles_dir)
     manifest = load_manifest(manifest_file)
-    counts = {"examined": 0, "accepted": 0, "already_seen": 0, "fetched": 0, "needs_manual": 0, "stopped_reason": None}
+    counts = {
+        "retrieved": 0, "examined": 0, "accepted": 0, "already_seen": 0,
+        "fetched": 0, "needs_manual": 0, "stopped_reason": None,
+    }
 
     time_budget_seconds = getattr(args, "time_budget_seconds", None)
     deadline = time.monotonic() + time_budget_seconds if time_budget_seconds else None
 
     model = load_relevance_model()
     works = resolve_works(args.faculty, args.topic, mailto, args.batch_size)
-    unseen_works = skip_already_seen(works, manifest, counts)
+    unseen_works = skip_already_seen(_count_retrieved(works, counts), manifest, counts)
     scored, examined = select_relevant_works(
         unseen_works, model, args.relevance_prompt, args.relevance_threshold,
         args.max_results, args.max_examined,
@@ -201,7 +214,8 @@ def main():
 
     counts = run(args)
 
-    print(f"\nExamined and scored: {counts['examined']}")
+    print(f"\nRetrieved: {counts['retrieved']}")
+    print(f"Examined and scored: {counts['examined']}")
     print(f"Already seen (skipped): {counts['already_seen']}")
     print(f"Accepted (passed relevance threshold): {counts['accepted']}")
     print(f"Fetched: {counts['fetched']}")

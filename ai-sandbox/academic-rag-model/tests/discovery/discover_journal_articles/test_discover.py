@@ -210,6 +210,43 @@ class TestRun(unittest.TestCase):
             self.assertEqual(counts["examined"], 5)
             self.assertEqual(counts["accepted"], 1)
 
+    @patch("discovery.discover_journal_articles.discover.load_relevance_model", return_value=MagicMock())
+    @patch("discovery.discover_journal_articles.discover.resolve_works")
+    @patch("discovery.discover_journal_articles.discover.select_relevant_works")
+    @patch("discovery.discover_journal_articles.discover.resolve_full_text")
+    def test_retrieved_counts_every_candidate_before_dedup(
+        self, mock_resolve_full_text, mock_select, mock_resolve_works, mock_load_model
+    ):
+        # Spec A.3: the final summary prints retrieved, deduplicated
+        # (already_seen), examined, accepted, and fetched as five
+        # distinct counts. "retrieved" is everything resolve_works
+        # yielded, before skip_already_seen filters it -- so it must
+        # stay >= already_seen + examined even when some candidates are
+        # filtered as already-seen before relevance scoring ever runs.
+        with tempfile.TemporaryDirectory() as tmp:
+            seen_work = _work(7, doi="10.1/seen")
+            new_work = _work(8, doi="10.1/new")
+            mock_resolve_works.return_value = iter([seen_work, new_work])
+
+            def _select_side_effect(works, *a, **kw):
+                materialized = list(works)
+                return [ScoredWork(work=w, score=1.0) for w in materialized], len(materialized)
+
+            mock_select.side_effect = _select_side_effect
+            mock_resolve_full_text.return_value = AccessResult(status="fetched", content=b"%PDF-1.4", tier="open_access")
+
+            from discovery.discover_journal_articles.manifest import manifest_path, record_outcome, save_manifest, load_manifest
+            path = manifest_path(tmp)
+            manifest = load_manifest(path)
+            record_outcome(manifest, "10.1/seen", "fetched", folder="climate-change")
+            save_manifest(path, manifest)
+
+            counts = run(_args(articles_dir=tmp, mailto="me@example.com", ezproxy_cookie=None))
+
+            self.assertEqual(counts["retrieved"], 2)
+            self.assertEqual(counts["already_seen"], 1)
+            self.assertEqual(counts["examined"], 1)
+
     @patch("discovery.discover_journal_articles.discover.time.monotonic")
     @patch("discovery.discover_journal_articles.discover.load_relevance_model", return_value=MagicMock())
     @patch("discovery.discover_journal_articles.discover.resolve_works", return_value=iter([]))
