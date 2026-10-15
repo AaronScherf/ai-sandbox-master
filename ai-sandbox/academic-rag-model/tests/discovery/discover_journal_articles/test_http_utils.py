@@ -53,6 +53,72 @@ class TestIsPdfResponse(unittest.TestCase):
         self.assertFalse(is_pdf_response(response))
 
 
+class TestFetchWithRetriesTimeoutAndRetryAfter(unittest.TestCase):
+    @patch("discovery.discover_journal_articles.http_utils.time.sleep")
+    @patch("discovery.discover_journal_articles.http_utils.requests.request")
+    def test_defaults_to_a_30_second_timeout(self, mock_request, mock_sleep):
+        mock_request.return_value = MagicMock(status_code=200, headers={})
+
+        fetch_with_retries("GET", "https://example.com")
+
+        _, kwargs = mock_request.call_args
+        self.assertEqual(kwargs["timeout"], 30.0)
+
+    @patch("discovery.discover_journal_articles.http_utils.time.sleep")
+    @patch("discovery.discover_journal_articles.http_utils.requests.request")
+    def test_caller_supplied_timeout_is_not_overridden(self, mock_request, mock_sleep):
+        mock_request.return_value = MagicMock(status_code=200, headers={})
+
+        fetch_with_retries("GET", "https://example.com", timeout=5)
+
+        _, kwargs = mock_request.call_args
+        self.assertEqual(kwargs["timeout"], 5)
+
+    @patch("discovery.discover_journal_articles.http_utils.time.sleep")
+    @patch("discovery.discover_journal_articles.http_utils.requests.request")
+    def test_retry_after_accepts_an_http_date(self, mock_request, mock_sleep):
+        from email.utils import format_datetime
+        from datetime import datetime, timedelta, timezone
+
+        retry_at = datetime.now(timezone.utc) + timedelta(seconds=10)
+        rate_limited = MagicMock(status_code=429, headers={"Retry-After": format_datetime(retry_at, usegmt=True)})
+        success = MagicMock(status_code=200, headers={})
+        mock_request.side_effect = [rate_limited, success]
+
+        response = fetch_with_retries("GET", "https://example.com")
+
+        self.assertIs(response, success)
+        mock_sleep.assert_called_once()
+        waited = mock_sleep.call_args[0][0]
+        self.assertAlmostEqual(waited, 10.0, delta=1.0)
+
+    @patch("discovery.discover_journal_articles.http_utils.time.sleep")
+    @patch("discovery.discover_journal_articles.http_utils.requests.request")
+    def test_retry_after_in_the_past_clamps_to_zero(self, mock_request, mock_sleep):
+        from email.utils import format_datetime
+        from datetime import datetime, timedelta, timezone
+
+        retry_at = datetime.now(timezone.utc) - timedelta(seconds=30)
+        rate_limited = MagicMock(status_code=429, headers={"Retry-After": format_datetime(retry_at, usegmt=True)})
+        success = MagicMock(status_code=200, headers={})
+        mock_request.side_effect = [rate_limited, success]
+
+        fetch_with_retries("GET", "https://example.com")
+
+        mock_sleep.assert_called_once_with(0.0)
+
+    @patch("discovery.discover_journal_articles.http_utils.time.sleep")
+    @patch("discovery.discover_journal_articles.http_utils.requests.request")
+    def test_malformed_retry_after_falls_back_to_default_backoff(self, mock_request, mock_sleep):
+        rate_limited = MagicMock(status_code=429, headers={"Retry-After": "not-a-value"})
+        success = MagicMock(status_code=200, headers={})
+        mock_request.side_effect = [rate_limited, success]
+
+        fetch_with_retries("GET", "https://example.com", backoff_seconds=2.0)
+
+        mock_sleep.assert_called_once_with(2.0)
+
+
 class TestIsValidPdfBytes(unittest.TestCase):
     def _minimal_valid_pdf_bytes(self) -> bytes:
         import io

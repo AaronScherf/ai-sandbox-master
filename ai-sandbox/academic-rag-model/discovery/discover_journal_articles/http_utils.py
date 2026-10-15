@@ -10,12 +10,33 @@ from __future__ import annotations
 
 import random
 import time
+from datetime import datetime, timezone
+from email.utils import parsedate_to_datetime
 
 import requests
 
 
 class FetchError(RuntimeError):
     """Raised when an HTTP request fails after exhausting all retries."""
+
+
+def _parse_retry_after(value: str | None) -> float | None:
+    """Accepts either a numeric seconds value or an HTTP-date (RFC 7231
+    allows both). Returns None if the header is absent or unparseable
+    either way, so the caller falls back to its own default backoff."""
+    if not value:
+        return None
+    try:
+        return float(value)
+    except ValueError:
+        pass
+    try:
+        retry_at = parsedate_to_datetime(value)
+    except (TypeError, ValueError):
+        return None
+    if retry_at.tzinfo is None:
+        retry_at = retry_at.replace(tzinfo=timezone.utc)
+    return max((retry_at - datetime.now(timezone.utc)).total_seconds(), 0.0)
 
 
 def fetch_with_retries(
@@ -25,8 +46,10 @@ def fetch_with_retries(
     retries: int = 3,
     backoff_seconds: float = 2.0,
     max_wait_seconds: float = 60.0,
+    timeout: float = 30.0,
     **request_kwargs,
 ) -> requests.Response:
+    request_kwargs.setdefault("timeout", timeout)
     last_response = None
     last_error = None
     for attempt in range(retries):
@@ -44,8 +67,9 @@ def fetch_with_retries(
         last_response = response
         retryable = response.status_code == 429 or response.status_code >= 500
         if retryable and attempt < retries - 1:
-            retry_after = response.headers.get("Retry-After")
-            wait = float(retry_after) if retry_after else backoff_seconds * (attempt + 1)
+            wait = _parse_retry_after(response.headers.get("Retry-After"))
+            if wait is None:
+                wait = backoff_seconds * (attempt + 1)
             time.sleep(min(wait, max_wait_seconds))
             continue
         break
