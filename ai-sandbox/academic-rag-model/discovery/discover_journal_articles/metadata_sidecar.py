@@ -7,9 +7,9 @@ which this subproject never touches.
 """
 from __future__ import annotations
 
-import json
 from pathlib import Path
 
+from discovery.discover_journal_articles.atomic_io import write_json_atomic
 from discovery.discover_journal_articles.discovery import Work
 
 
@@ -25,9 +25,9 @@ def write_sidecar(pdf_path, work: Work, relevance_score: float | None, source_ti
         "doi": work.doi,
         "openalex_id": work.openalex_id,
         "concepts": work.concepts,
+        "topics": [{"id": t.id, "display_name": t.display_name, "score": t.score} for t in work.topics],
         "source_tier": source_tier,
         "relevance_score": relevance_score,
         "page_count": work.page_count,
     }
-    with open(sidecar_path(pdf_path), "w", encoding="utf-8") as f:
-        json.dump(data, f, indent=2)
+    write_json_atomic(sidecar_path(pdf_path), data)

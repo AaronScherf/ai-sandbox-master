@@ -12,11 +12,12 @@ from __future__ import annotations
 import argparse
 import os
 import sys
+import time
 from pathlib import Path
 
 from core.env.gemini_utils import load_dotenv_override
 from discovery.discover_journal_articles.access import resolve_full_text
-from discovery.discover_journal_articles.discovery import doi_url, resolve_works
+from discovery.discover_journal_articles.discovery import doi_url, resolve_work_by_doi, resolve_works
 from discovery.discover_journal_articles.manifest import (
     load_manifest,
     manifest_key,
@@ -57,18 +58,26 @@ def run(args: argparse.Namespace) -> dict:
 
     manifest_file = manifest_path(args.articles_dir)
     manifest = load_manifest(manifest_file)
-    counts = {"examined": 0, "already_seen": 0, "fetched": 0, "needs_manual": 0}
+    counts = {"examined": 0, "accepted": 0, "already_seen": 0, "fetched": 0, "needs_manual": 0, "stopped_reason": None}
+
+    time_budget_seconds = getattr(args, "time_budget_seconds", None)
+    deadline = time.monotonic() + time_budget_seconds if time_budget_seconds else None
 
     model = load_relevance_model()
     works = resolve_works(args.faculty, args.topic, mailto, args.batch_size)
     unseen_works = skip_already_seen(works, manifest, counts)
-    scored = select_relevant_works(
+    scored, examined = select_relevant_works(
         unseen_works, model, args.relevance_prompt, args.relevance_threshold,
         args.max_results, args.max_examined,
     )
-    counts["examined"] = len(scored)
+    counts["examined"] = examined
+    counts["accepted"] = len(scored)
 
     for scored_work in scored:
+        if deadline is not None and time.monotonic() >= deadline:
+            counts["stopped_reason"] = "time_budget_exhausted"
+            break
+
         work = scored_work.work
         key = manifest_key(work)
 
@@ -97,6 +106,47 @@ def run(args: argparse.Namespace) -> dict:
     return counts
 
 
+def retry_needs_manual(args: argparse.Namespace) -> dict:
+    """Re-attempts full-text access for exactly the manifest keys named
+    in args.retry, under the current (fixed) fallback chain -- never
+    touches discovery/scoring or any other manifest entry. A manifest
+    key built from an OpenAlex id rather than a DOI (no bare DOI to
+    query by) is reported as not_found rather than attempted."""
+    mailto = getattr(args, "mailto", None) or os.environ.get("OPENALEX_CONTACT_EMAIL")
+    ezproxy_cookie = getattr(args, "ezproxy_cookie", None) or os.environ.get("EZPROXY_SESSION_COOKIE")
+    core_api_key = getattr(args, "core_api_key", None) or os.environ.get("CORE_API_KEY")
+
+    manifest_file = manifest_path(args.articles_dir)
+    manifest = load_manifest(manifest_file)
+    counts = {"fetched": 0, "needs_manual": 0, "not_found": 0}
+
+    for key in args.retry:
+        entry = manifest.get(key)
+        if entry is None or entry.get("status") != "needs_manual" or key.startswith("http"):
+            counts["not_found"] += 1
+            continue
+
+        work = resolve_work_by_doi(key, mailto)
+        if work is None:
+            counts["not_found"] += 1
+            continue
+
+        result = resolve_full_text(work, mailto, ezproxy_cookie, args.pace_per_hour, core_api_key)
+        if result.status == "fetched":
+            folder = route_to_folder(args.articles_dir, work)
+            pdf_path = folder / pdf_filename(work)
+            pdf_path.write_bytes(result.content)
+            write_sidecar(pdf_path, work, entry.get("relevance_score"), result.tier)
+            record_outcome(manifest, key, "fetched", folder=folder.name)
+            counts["fetched"] += 1
+        else:
+            counts["needs_manual"] += 1
+
+    save_manifest(manifest_file, manifest)
+    write_needs_manual_worklist(manifest, args.articles_dir)
+    return counts
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="Resolve a faculty name or topic query into full-text PDFs under research/journal-articles/."
@@ -104,9 +154,9 @@ def main():
     parser.add_argument("--faculty", action="append", default=[], help="Faculty name to query (repeatable).")
     parser.add_argument("--topic", action="append", default=[], help="Topic/keyword query (repeatable).")
     parser.add_argument(
-        "--relevance-prompt", required=True,
+        "--relevance-prompt",
         help="Free-text description of what you're actually looking for -- scored against each "
-             "candidate's abstract, not just matched by author/topic name.",
+             "candidate's abstract, not just matched by author/topic name. Required unless using --retry.",
     )
     parser.add_argument("--relevance-threshold", type=float, default=_DEFAULT_RELEVANCE_THRESHOLD)
     parser.add_argument("--batch-size", type=int, default=_DEFAULT_BATCH_SIZE)
@@ -116,25 +166,48 @@ def main():
                          help="EZProxy download attempts per hour, jittered +/-30%% -- protects your own "
                               "Columbia account from automated-abuse detection. Does not affect OA/arXiv "
                               "downloads, which carry none of that risk and are never paced.")
+    parser.add_argument(
+        "--time-budget-seconds", type=float, default=None,
+        help="Stop the fetch loop cleanly after this many seconds of wall-clock time, reporting partial "
+             "counts instead of implying the run completed. Omit for no limit.",
+    )
+    parser.add_argument(
+        "--retry", action="append", default=[], metavar="ID",
+        help="Re-attempt access for this existing needs_manual manifest key (bare DOI only; repeatable). "
+             "Skips discovery/scoring entirely and touches no other manifest entry.",
+    )
     parser.add_argument("--zotero", action="store_true", help="Also sync fetched papers into Zotero.")
     default_articles_dir = Path(__file__).resolve().parent.parent.parent.parent / "research" / "journal-articles"
     parser.add_argument("--articles-dir", default=str(default_articles_dir))
     args = parser.parse_args()
-
-    if not args.faculty and not args.topic:
-        parser.error("at least one --faculty or --topic is required")
 
     load_dotenv_override()
     if not os.environ.get("OPENALEX_CONTACT_EMAIL"):
         print("ERROR: OPENALEX_CONTACT_EMAIL must be set in .env (required by OpenAlex/Unpaywall).")
         sys.exit(1)
 
+    if args.retry:
+        counts = retry_needs_manual(args)
+        print(f"\nRetried: {len(args.retry)}")
+        print(f"Fetched: {counts['fetched']}")
+        print(f"Still needs manual: {counts['needs_manual']}")
+        print(f"Not found / not retryable: {counts['not_found']}")
+        return
+
+    if not args.relevance_prompt:
+        parser.error("--relevance-prompt is required (unless using --retry)")
+    if not args.faculty and not args.topic:
+        parser.error("at least one --faculty or --topic is required (unless using --retry)")
+
     counts = run(args)
 
     print(f"\nExamined and scored: {counts['examined']}")
     print(f"Already seen (skipped): {counts['already_seen']}")
+    print(f"Accepted (passed relevance threshold): {counts['accepted']}")
     print(f"Fetched: {counts['fetched']}")
     print(f"Needs manual download: {counts['needs_manual']}")
+    if counts["stopped_reason"]:
+        print(f"\nWARNING: run stopped early ({counts['stopped_reason']}); the counts above are partial.")
     if counts["needs_manual"] or counts["already_seen"]:
         print(f"Manual-download worklist: {Path(args.articles_dir) / 'needs_manual_downloads.md'}")
 

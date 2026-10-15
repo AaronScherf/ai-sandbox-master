@@ -14,6 +14,7 @@ def _args(**overrides):
     defaults = dict(
         faculty=["Jane Doe"], topic=[], relevance_prompt="climate", relevance_threshold=0.5,
         batch_size=25, max_results=100, max_examined=300, pace_per_hour=25.0, zotero=False,
+        time_budget_seconds=None,
     )
     defaults.update(overrides)
     return argparse.Namespace(**defaults)
@@ -36,7 +37,7 @@ class TestRun(unittest.TestCase):
     ):
         with tempfile.TemporaryDirectory() as tmp:
             work = _work(1)
-            mock_select.return_value = [ScoredWork(work=work, score=0.9)]
+            mock_select.return_value = ([ScoredWork(work=work, score=0.9)], 1)
             mock_resolve_full_text.return_value = AccessResult(status="fetched", content=b"%PDF-1.4", tier="open_access")
 
             counts = run(_args(articles_dir=tmp, mailto="me@example.com", ezproxy_cookie=None))
@@ -62,7 +63,7 @@ class TestRun(unittest.TestCase):
     ):
         with tempfile.TemporaryDirectory() as tmp:
             work = _work(2)
-            mock_select.return_value = [ScoredWork(work=work, score=0.9)]
+            mock_select.return_value = ([ScoredWork(work=work, score=0.9)], 1)
             mock_resolve_full_text.return_value = AccessResult(status="needs_manual")
 
             counts = run(_args(articles_dir=tmp, mailto="me@example.com", ezproxy_cookie=None))
@@ -84,7 +85,7 @@ class TestRun(unittest.TestCase):
         # the user has somewhere obvious to drop the file by hand.
         with tempfile.TemporaryDirectory() as tmp:
             work = _work(2)
-            mock_select.return_value = [ScoredWork(work=work, score=0.9)]
+            mock_select.return_value = ([ScoredWork(work=work, score=0.9)], 1)
             mock_resolve_full_text.return_value = AccessResult(status="needs_manual")
 
             run(_args(articles_dir=tmp, mailto="me@example.com", ezproxy_cookie=None))
@@ -106,7 +107,7 @@ class TestRun(unittest.TestCase):
     ):
         with tempfile.TemporaryDirectory() as tmp:
             work = _work(2)
-            mock_select.return_value = [ScoredWork(work=work, score=0.9)]
+            mock_select.return_value = ([ScoredWork(work=work, score=0.9)], 1)
             mock_resolve_full_text.return_value = AccessResult(status="needs_manual")
 
             run(_args(articles_dir=tmp, mailto="me@example.com", ezproxy_cookie=None))
@@ -135,7 +136,13 @@ class TestRun(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             work = _work(3)  # doi="10.1/abc"
             mock_resolve_works.return_value = iter([work])
-            mock_select.side_effect = lambda works, *a, **kw: [ScoredWork(work=w, score=1.0) for w in works]
+            def _select_side_effect(works, *a, **kw):
+                # works may be a one-shot generator -- materialize once,
+                # not twice, or the second pass sees an exhausted iterator.
+                materialized = list(works)
+                return [ScoredWork(work=w, score=1.0) for w in materialized], len(materialized)
+
+            mock_select.side_effect = _select_side_effect
 
             from discovery.discover_journal_articles.manifest import manifest_path, record_outcome, save_manifest, load_manifest
             path = manifest_path(tmp)
@@ -159,7 +166,7 @@ class TestRun(unittest.TestCase):
     ):
         with tempfile.TemporaryDirectory() as tmp:
             work = _work(4)
-            mock_select.return_value = [ScoredWork(work=work, score=0.9)]
+            mock_select.return_value = ([ScoredWork(work=work, score=0.9)], 1)
             mock_resolve_full_text.return_value = AccessResult(status="fetched", content=b"%PDF-1.4", tier="open_access")
 
             run(_args(
@@ -179,12 +186,174 @@ class TestRun(unittest.TestCase):
     ):
         with tempfile.TemporaryDirectory() as tmp:
             work = _work(5)
-            mock_select.return_value = [ScoredWork(work=work, score=0.9)]
+            mock_select.return_value = ([ScoredWork(work=work, score=0.9)], 1)
             mock_resolve_full_text.return_value = AccessResult(status="fetched", content=b"%PDF-1.4", tier="open_access")
 
             run(_args(articles_dir=tmp, mailto="me@example.com", ezproxy_cookie=None, zotero=False))
 
             mock_sync.assert_not_called()
+
+    @patch("discovery.discover_journal_articles.discover.load_relevance_model", return_value=MagicMock())
+    @patch("discovery.discover_journal_articles.discover.resolve_works", return_value=iter([]))
+    @patch("discovery.discover_journal_articles.discover.select_relevant_works")
+    @patch("discovery.discover_journal_articles.discover.resolve_full_text")
+    def test_examined_and_accepted_are_reported_separately(
+        self, mock_resolve_full_text, mock_select, mock_resolve_works, mock_load_model
+    ):
+        with tempfile.TemporaryDirectory() as tmp:
+            work = _work(6)
+            mock_select.return_value = ([ScoredWork(work=work, score=0.9)], 5)
+            mock_resolve_full_text.return_value = AccessResult(status="fetched", content=b"%PDF-1.4", tier="open_access")
+
+            counts = run(_args(articles_dir=tmp, mailto="me@example.com", ezproxy_cookie=None))
+
+            self.assertEqual(counts["examined"], 5)
+            self.assertEqual(counts["accepted"], 1)
+
+    @patch("discovery.discover_journal_articles.discover.time.monotonic")
+    @patch("discovery.discover_journal_articles.discover.load_relevance_model", return_value=MagicMock())
+    @patch("discovery.discover_journal_articles.discover.resolve_works", return_value=iter([]))
+    @patch("discovery.discover_journal_articles.discover.select_relevant_works")
+    @patch("discovery.discover_journal_articles.discover.resolve_full_text")
+    def test_stops_cleanly_when_time_budget_is_exhausted(
+        self, mock_resolve_full_text, mock_select, mock_resolve_works, mock_load_model, mock_monotonic
+    ):
+        with tempfile.TemporaryDirectory() as tmp:
+            work_a, work_b = _work(7), _work(8, doi="10.1/def")
+            mock_select.return_value = ([ScoredWork(work=work_a, score=0.9), ScoredWork(work=work_b, score=0.9)], 2)
+            mock_resolve_full_text.return_value = AccessResult(status="fetched", content=b"%PDF-1.4", tier="open_access")
+            # Deadline check happens once before the loop (sets the
+            # deadline) and once per iteration: 0.0 establishes the
+            # deadline, 100.0 is already past a 1-second budget on the
+            # first per-item check.
+            mock_monotonic.side_effect = [0.0, 100.0, 100.0]
+
+            counts = run(_args(articles_dir=tmp, mailto="me@example.com", ezproxy_cookie=None, time_budget_seconds=1.0))
+
+            self.assertEqual(counts["stopped_reason"], "time_budget_exhausted")
+            mock_resolve_full_text.assert_not_called()
+
+    @patch("discovery.discover_journal_articles.discover.load_relevance_model", return_value=MagicMock())
+    @patch("discovery.discover_journal_articles.discover.resolve_works", return_value=iter([]))
+    @patch("discovery.discover_journal_articles.discover.select_relevant_works")
+    @patch("discovery.discover_journal_articles.discover.resolve_full_text")
+    def test_no_time_budget_means_stopped_reason_is_none(
+        self, mock_resolve_full_text, mock_select, mock_resolve_works, mock_load_model
+    ):
+        with tempfile.TemporaryDirectory() as tmp:
+            work = _work(9)
+            mock_select.return_value = ([ScoredWork(work=work, score=0.9)], 1)
+            mock_resolve_full_text.return_value = AccessResult(status="fetched", content=b"%PDF-1.4", tier="open_access")
+
+            counts = run(_args(articles_dir=tmp, mailto="me@example.com", ezproxy_cookie=None))
+
+            self.assertIsNone(counts["stopped_reason"])
+            mock_resolve_full_text.assert_called_once()
+
+
+class TestRetryNeedsManual(unittest.TestCase):
+    @patch("discovery.discover_journal_articles.discover.resolve_work_by_doi")
+    @patch("discovery.discover_journal_articles.discover.resolve_full_text")
+    def test_retries_a_named_needs_manual_entry_and_records_success(self, mock_resolve_full_text, mock_resolve_by_doi):
+        with tempfile.TemporaryDirectory() as tmp:
+            from discovery.discover_journal_articles.manifest import manifest_path, record_outcome, save_manifest, load_manifest
+            path = manifest_path(tmp)
+            manifest = load_manifest(path)
+            record_outcome(manifest, "10.1/abc", "needs_manual", folder="climate-change",
+                            metadata={"title": "Paper 1", "authors": [], "year": 2024, "doi_url": "https://doi.org/10.1/abc"})
+            save_manifest(path, manifest)
+
+            mock_resolve_by_doi.return_value = _work(1, doi="10.1/abc")
+            mock_resolve_full_text.return_value = AccessResult(status="fetched", content=b"%PDF-1.4", tier="unpaywall")
+
+            from discovery.discover_journal_articles.discover import retry_needs_manual
+            args = _args(articles_dir=tmp, mailto="me@example.com", ezproxy_cookie=None, retry=["10.1/abc"])
+            counts = retry_needs_manual(args)
+
+            self.assertEqual(counts["fetched"], 1)
+            manifest = load_manifest(path)
+            self.assertEqual(manifest["10.1/abc"]["status"], "fetched")
+
+    @patch("discovery.discover_journal_articles.discover.resolve_work_by_doi")
+    @patch("discovery.discover_journal_articles.discover.resolve_full_text")
+    def test_retry_success_removes_entry_from_needs_manual_worklist(self, mock_resolve_full_text, mock_resolve_by_doi):
+        # Confirmed real (code review finding, 2026-10-15): run() rewrites
+        # needs_manual_downloads.md but retry_needs_manual() never did, so
+        # a paper successfully retried still appeared on the manual-
+        # download list -- a user could waste time re-downloading it by
+        # hand.
+        with tempfile.TemporaryDirectory() as tmp:
+            from discovery.discover_journal_articles.manifest import manifest_path, record_outcome, save_manifest, load_manifest
+            path = manifest_path(tmp)
+            manifest = load_manifest(path)
+            record_outcome(manifest, "10.1/abc", "needs_manual", folder="climate-change",
+                            metadata={"title": "Paper 1", "authors": [], "year": 2024, "doi_url": "https://doi.org/10.1/abc"})
+            save_manifest(path, manifest)
+
+            from discovery.discover_journal_articles.worklist import write_needs_manual_worklist
+            write_needs_manual_worklist(load_manifest(path), tmp)
+            worklist_path = Path(tmp) / "needs_manual_downloads.md"
+            self.assertIn("Paper 1", worklist_path.read_text(encoding="utf-8"))
+
+            mock_resolve_by_doi.return_value = _work(1, doi="10.1/abc")
+            mock_resolve_full_text.return_value = AccessResult(status="fetched", content=b"%PDF-1.4", tier="unpaywall")
+
+            from discovery.discover_journal_articles.discover import retry_needs_manual
+            args = _args(articles_dir=tmp, mailto="me@example.com", ezproxy_cookie=None, retry=["10.1/abc"])
+            retry_needs_manual(args)
+
+            self.assertNotIn("Paper 1", worklist_path.read_text(encoding="utf-8"))
+
+    @patch("discovery.discover_journal_articles.discover.resolve_work_by_doi")
+    @patch("discovery.discover_journal_articles.discover.resolve_full_text")
+    def test_retry_failure_leaves_entry_needs_manual(self, mock_resolve_full_text, mock_resolve_by_doi):
+        with tempfile.TemporaryDirectory() as tmp:
+            from discovery.discover_journal_articles.manifest import manifest_path, record_outcome, save_manifest, load_manifest
+            path = manifest_path(tmp)
+            manifest = load_manifest(path)
+            record_outcome(manifest, "10.1/abc", "needs_manual", folder="climate-change")
+            save_manifest(path, manifest)
+
+            mock_resolve_by_doi.return_value = _work(1, doi="10.1/abc")
+            mock_resolve_full_text.return_value = AccessResult(status="needs_manual")
+
+            from discovery.discover_journal_articles.discover import retry_needs_manual
+            args = _args(articles_dir=tmp, mailto="me@example.com", ezproxy_cookie=None, retry=["10.1/abc"])
+            counts = retry_needs_manual(args)
+
+            self.assertEqual(counts["needs_manual"], 1)
+
+    def test_retry_only_touches_named_ids_not_the_rest_of_the_manifest(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            from discovery.discover_journal_articles.manifest import manifest_path, record_outcome, save_manifest, load_manifest
+            path = manifest_path(tmp)
+            manifest = load_manifest(path)
+            record_outcome(manifest, "10.1/other", "fetched", folder="misc")
+            save_manifest(path, manifest)
+
+            from discovery.discover_journal_articles.discover import retry_needs_manual
+            args = _args(articles_dir=tmp, mailto="me@example.com", ezproxy_cookie=None, retry=["10.1/not-in-manifest"])
+            counts = retry_needs_manual(args)
+
+            self.assertEqual(counts["not_found"], 1)
+            manifest = load_manifest(path)
+            self.assertEqual(manifest["10.1/other"]["status"], "fetched")
+
+    def test_retry_skips_an_openalex_id_only_entry_without_crashing(self):
+        # No bare DOI to look up by -- resolve_work_by_doi has nothing to
+        # query. Must be reported as not_found, not raise.
+        with tempfile.TemporaryDirectory() as tmp:
+            from discovery.discover_journal_articles.manifest import manifest_path, record_outcome, save_manifest, load_manifest
+            path = manifest_path(tmp)
+            manifest = load_manifest(path)
+            record_outcome(manifest, "https://openalex.org/W123", "needs_manual", folder="misc")
+            save_manifest(path, manifest)
+
+            from discovery.discover_journal_articles.discover import retry_needs_manual
+            args = _args(articles_dir=tmp, mailto="me@example.com", ezproxy_cookie=None, retry=["https://openalex.org/W123"])
+            counts = retry_needs_manual(args)
+
+            self.assertEqual(counts["not_found"], 1)
 
 
 if __name__ == "__main__":

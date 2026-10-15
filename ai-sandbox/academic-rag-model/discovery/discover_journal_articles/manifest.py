@@ -11,6 +11,7 @@ import json
 from datetime import datetime, timezone
 from pathlib import Path
 
+from discovery.discover_journal_articles.atomic_io import write_json_atomic
 from discovery.discover_journal_articles.discovery import Work
 
 
@@ -27,10 +28,7 @@ def load_manifest(path) -> dict:
 
 
 def save_manifest(path, manifest: dict) -> None:
-    path = Path(path)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with open(path, "w", encoding="utf-8") as f:
-        json.dump(manifest, f, indent=2, sort_keys=True)
+    write_json_atomic(path, manifest)
 
 
 def manifest_key(work: Work) -> str:

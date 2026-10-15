@@ -83,18 +83,19 @@ def iter_snowball_candidates(
 def propose(args) -> dict:
     manifest_file = manifest_path(args.articles_dir)
     manifest = load_manifest(manifest_file)
-    counts = {"examined": 0, "already_seen": 0, "proposed": 0}
+    counts = {"examined": 0, "accepted": 0, "already_seen": 0, "proposed": 0}
     seed_map: dict[str, str] = {}
 
     model = load_relevance_model()
     candidates = iter_snowball_candidates(
         manifest, args.mailto, args.batch_size, counts, seed_map, args.seed_doi or None,
     )
-    scored = select_relevant_works(
+    scored, examined = select_relevant_works(
         candidates, model, args.relevance_prompt, args.relevance_threshold,
         args.max_results, args.max_examined,
     )
-    counts["examined"] = len(scored)
+    counts["examined"] = examined
+    counts["accepted"] = len(scored)
 
     for scored_work in scored:
         work = scored_work.work
@@ -216,6 +217,7 @@ def main():
         counts = propose(args)
         print(f"\nExamined: {counts['examined']}")
         print(f"Already seen (skipped): {counts['already_seen']}")
+        print(f"Accepted (passed relevance threshold): {counts['accepted']}")
         print(f"Proposed: {counts['proposed']}")
         if counts["proposed"]:
             print(f"Review: {Path(args.articles_dir) / 'snowball_candidates.md'}")
