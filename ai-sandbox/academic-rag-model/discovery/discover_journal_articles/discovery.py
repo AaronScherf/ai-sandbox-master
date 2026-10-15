@@ -171,7 +171,11 @@ def iter_author_works(author_id: str, mailto: str, batch_size: int):
 def iter_topic_works(keywords: str, mailto: str, batch_size: int, ror: str | None = None):
     page = 1
     while True:
-        search_filter = f"default.search:{keywords}"
+        # OpenAlex's filter syntax treats a bare comma as the filter
+        # separator (400 "A filter value contains an unescaped comma"),
+        # so a free-text --topic phrase containing one must be quoted.
+        quoted_keywords = f'"{keywords}"' if "," in keywords else keywords
+        search_filter = f"default.search:{quoted_keywords}"
         if ror:
             search_filter += f",institutions.ror:{ror}"
         params = {

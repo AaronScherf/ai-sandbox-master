@@ -257,6 +257,21 @@ class TestIterTopicWorks(unittest.TestCase):
         works = list(iter_topic_works("climate displacement", "me@example.com", batch_size=25))
         self.assertEqual(works, [])
 
+    @patch("discovery.discover_journal_articles.discovery.fetch_with_retries")
+    def test_quotes_a_keyword_phrase_containing_a_literal_comma(self, mock_fetch):
+        # Confirmed real (real-run validation, 2026-10-15): OpenAlex's filter
+        # syntax treats a bare comma as the filter separator and rejects the
+        # whole request with 400 ("A filter value contains an unescaped
+        # comma") whenever a multi-word --topic phrase like "disaster
+        # resilience, response, recovery" is passed through unquoted.
+        mock_fetch.side_effect = [
+            _response({"results": [_openalex_work()]}),
+            _response({"results": []}),
+        ]
+        list(iter_topic_works("disaster resilience, response, recovery", "me@example.com", batch_size=25))
+        first_call_params = mock_fetch.call_args_list[0].kwargs["params"]
+        self.assertEqual(first_call_params["filter"], 'default.search:"disaster resilience, response, recovery"')
+
 
 class TestResolveWorks(unittest.TestCase):
     @patch("discovery.discover_journal_articles.discovery.iter_topic_works")
