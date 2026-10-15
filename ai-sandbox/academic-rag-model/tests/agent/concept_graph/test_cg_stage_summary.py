@@ -49,3 +49,26 @@ def test_apply_stores_the_summary_and_the_membership_hash(tmp_path):
     after = next(s for s in store.read_all().sections if s.id == sid)
     ids = [n.id for n in store.read_all().nodes if n.section == sid]
     assert after.summary == GOOD and after.summary_hash == member_hash(ids)
+
+
+def test_the_card_shows_an_excerpt_of_each_concepts_explanation(tmp_path):
+    store, tasks = make(tmp_path)
+    g = store.read_all()
+    texts = " ".join(t.context for t in tasks)
+    shown = [n for n in g.nodes if n.explanation.strip() and any(n.section == t.subject["section"] for t in tasks)]
+    assert shown and all(n.explanation.strip()[:30] in texts for n in shown)
+
+
+def test_the_membership_hash_is_the_one_at_collect_time(tmp_path):
+    from agent.concept_graph.schema import Node
+    from agent.concept_graph.validate import validate
+    store, tasks = make(tmp_path)
+    entry = entry_for(tasks[0])
+    sid = entry["subject"]["section"]
+    store.update_section(sid, {"topic": next(n.topic for n in store.read_all().nodes if n.section == sid)})
+    donor = next(n for n in store.read_all().nodes if n.section == sid)
+    store.add_nodes(sid, [{"id": "added-after-collect", "name": "Added after collect", "kind": donor.kind,
+                           "section": sid, "topic": donor.topic, "explanation": "x", "status": "proposed"}])
+    summary.apply_result(store, entry, {"summary": GOOD}, {"driver": "agent"})
+    stale = [i for i in validate(store.read_all()) if i.code == "stale-summary" and i.ref == sid]
+    assert stale, "a summary drafted before a concept was added must be reported stale"

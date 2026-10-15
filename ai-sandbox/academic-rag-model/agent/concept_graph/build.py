@@ -4,6 +4,7 @@ from __future__ import annotations
 import hashlib
 import html
 import json
+import math
 import re
 from dataclasses import dataclass
 from pathlib import Path
@@ -83,7 +84,10 @@ def _read_layouts(root: Path, node_ids: set[str]) -> list[dict]:
             name, positions = raw["name"], raw["positions"]
             clean = {}
             for node_id, point in positions.items():
-                clean[node_id] = {"x": float(point["x"]), "y": float(point["y"])}
+                x, y = float(point["x"]), float(point["y"])
+                if not (math.isfinite(x) and math.isfinite(y)):
+                    raise ValueError(f"position of {node_id!r} is not a finite number")
+                clean[node_id] = {"x": x, "y": y}
         except (OSError, ValueError, KeyError, TypeError, AttributeError) as exc:
             raise BuildError(f"{path.name}: not a valid layout file ({exc}); expected "
                              f'{{"name": ..., "positions": {{id: {{"x": n, "y": n}}}}}}') from exc

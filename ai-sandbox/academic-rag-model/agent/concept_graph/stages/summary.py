@@ -41,9 +41,12 @@ def make_tasks(store: GraphStore, retriever, *, section: str | None = None, redo
         lines = [f"Section: {s.title}   (id: {s.id})", f"Short label: {s.short or s.title}", "", "Concepts in this section:"]
         for n in sorted(members, key=lambda n: n.name.lower()):
             lines.append(f"- {n.name} ({n.kind}): {n.gist or '(no one-line summary)'}")
+            excerpt = " ".join((n.explanation or "").split())
+            if excerpt:
+                lines.append("    " + (excerpt if len(excerpt) <= 240 else excerpt[:237].rstrip() + "..."))
         query = f"{s.title} " + " ".join(n.name for n in members[:12])
         passages = with_ids(retriever.retrieve(query, top_k))
-        tasks.append(Task(id=f"summary-{s.id}", stage=STAGE, subject={"section": s.id}, instructions=INSTRUCTIONS,
+        tasks.append(Task(id=f"summary-{s.id}", stage=STAGE, subject={"section": s.id, "members": member_hash([n.id for n in members])}, instructions=INSTRUCTIONS,
                           context="\n".join(lines), passages=passages))
     return tasks
 
@@ -73,6 +76,7 @@ def validate_result(entry: dict, result: dict, store: GraphStore) -> list[str]:
 def apply_result(store: GraphStore, entry: dict, result: dict, provenance: dict) -> str | None:
     sid = entry["subject"]["section"]
     graph = store.read_all()
-    ids = [n.id for n in graph.nodes if n.section == sid]
-    store.update_section(sid, {"summary": result["summary"].strip(), "summary_hash": member_hash(ids)})
+    # the hash of the members the card was made from, so a concept added since is reported as a stale summary
+    drafted_for = entry["subject"].get("members") or member_hash([n.id for n in graph.nodes if n.section == sid])
+    store.update_section(sid, {"summary": result["summary"].strip(), "summary_hash": drafted_for})
     return None

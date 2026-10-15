@@ -29,6 +29,7 @@
   try { JSON.parse(storage.get("cg-collapsed-" + G.graph_version) || "[]").forEach(function (id) { collapsed.add(id); }); } catch (e) { /* none */ }
   var activeSections = [];          // section ids whose button is highlighted (the filter)
   var lastListId = null;            // anchor for Shift-click ranges in the concept list
+  var prevSel = new Set();          // the selection before the latest change
   var lastAdded = [];               // concepts added by the latest selection gesture
   function selectedIds() {
     return cy.nodes(":selected").filter(function (n) { return !n.hasClass("ghost"); }).map(function (n) { return n.id(); });
@@ -187,6 +188,7 @@
 
   function select(kind, id, focus) {
     selected = { kind: kind, id: id }; editing = null; flash = null;
+    orderedPick = true; // a plain tap or click starts a new ordered pick
     cy.elements().unselect();
     cy.edges().removeClass("labelled");
     var el = cy.getElementById(id);
@@ -244,7 +246,6 @@
     var b = ev.target.closest("button[data-node]"); if (!b) return;
     var id = b.getAttribute("data-node");
     var mod = ev.ctrlKey || ev.metaKey, shift = ev.shiftKey;
-    orderedPick = true;
     if (shift && lastListId) {
       var vis = visibleSet();
       setSelection(CG.rangeIds(CG.listOrder(G.sections, G.nodes), lastListId, id).filter(function (x) { return vis.has(x); }));
@@ -354,7 +355,7 @@
       groups.map(function (g) {
         var s = g.section;
         var head = esc(s.short || s.title) + ", " + g.ids.length + " of " + g.total + " selected" + (g.filtered ? " (filtered)" : "");
-        var body = (g.full && s.summary ? '<p class="sec-summary">' + esc(s.summary) + "</p>" : "") +
+        var body = (g.full && s.summary ? '<div class="sec-summary">' + rich(s.summary) + "</div>" : "") +
           '<ul class="chosen">' + g.ids.map(function (id) {
             return '<li><button type="button" data-node="' + esc(id) + '">' + esc(nameOf(id)) + '</button>' +
               '<button type="button" data-remove="' + esc(id) + '" aria-label="Remove ' + esc(nameOf(id)) + ' from the selection">\u00d7</button></li>';
@@ -549,6 +550,7 @@
       '<label>Kind<select id="p-kind">' + KINDS.map(function (k) { return "<option>" + esc(k) + "</option>"; }).join("") + "</select></label>" +
       '<label>Section<select id="p-section">' + G.sections.slice().sort(function (a, b) { return a.order - b.order; }).map(function (s) {
         return '<option value="' + esc(s.id) + '">' + esc(s.title || s.id) + "</option>"; }).join("") + "</select></label>" +
+      '<label id="p-topic-row">Topic<select id="p-topic">' + G.vocab.topics.map(function (t) { return "<option>" + esc(t) + "</option>"; }).join("") + "</select></label>" +
       '<label>One-line note (optional, 200 characters)<input type="text" id="p-note" maxlength="200"></label>' +
       '<label>Connections (optional)</label><div id="p-conns"></div>' +
       '<button type="button" id="p-add-conn">Add a connection</button>' +
@@ -560,6 +562,11 @@
       box.innerHTML = s.length ? "Similar existing: " + s.map(function (n) { return esc(n.name); }).join(", ") +
         ". Propose a connection instead if it is the same idea." : "";
     });
+    function syncTopicRow() {
+      var sec = sectionsById.get($("#p-section").value);
+      $("#p-topic-row").hidden = !!(sec && sec.topic);
+    }
+    $("#p-section").addEventListener("change", syncTopicRow); syncTopicRow();
     $("#p-add-conn").addEventListener("click", function () { $("#p-conns").insertAdjacentHTML("beforeend", connectionRow()); });
     $("#p-save").addEventListener("click", function () {
       var conns = Array.from(form.querySelectorAll("[data-conn]")).map(function (row) {
@@ -567,7 +574,7 @@
         return { other: g("other"), type: g("type"), direction: g("direction"), condition: g("condition").trim() || null, note: "" };
       });
       var p = { name: $("#p-name").value.trim(), kind: $("#p-kind").value, section: $("#p-section").value,
-                topic: (sectionsById.get($("#p-section").value) || {}).topic || G.vocab.topics[0], note: $("#p-note").value.trim(), connections: conns };
+                topic: (sectionsById.get($("#p-section").value) || {}).topic || $("#p-topic").value, note: $("#p-note").value.trim(), connections: conns };
       saveProposal({ action: "add_node", proposal: p });
     });
     finishForm();
@@ -686,6 +693,9 @@
     var ids = selectedIds();
     pickOrder = pickOrder.filter(function (id) { return ids.indexOf(id) !== -1; });
     ids.forEach(function (id) { if (pickOrder.indexOf(id) === -1) pickOrder.push(id); });
+    var fresh = ids.filter(function (id) { return !prevSel.has(id); });
+    if (fresh.length) lastAdded = fresh;
+    prevSel = new Set(ids);
     if (ids.length === 1) selected = { kind: "node", id: ids[0] };
     else if (ids.length === 0 && selected && selected.kind === "node") selected = null;
     $("#btn-connect").hidden = ids.length < 2 || ids.length > 12;
@@ -701,7 +711,12 @@
     openProposal("edge", pickOrder.slice(), orderedPick);
   });
 
-  document.addEventListener("keydown", function (ev) { if (ev.key === "Escape") setSelection([]); });
+  document.addEventListener("keydown", function (ev) {
+    if (ev.key !== "Escape") return;
+    var tag = ev.target && ev.target.tagName;
+    if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || document.querySelector("dialog[open]")) return;
+    selected = null; setSelection([]); cy.edges().removeClass("labelled"); renderPanel(); renderNameList();
+  });
 
   if (/[?&]debug\b/.test(location.search)) {
     window.__cg = { cy: cy, selectedIds: selectedIds, setSelection: setSelection,
@@ -758,7 +773,8 @@
   // ---- start ----------------------------------------------------------------
   $("#title").textContent = (G.site && G.site.title) || "Concept graph";
   buildFilters(); persist(); paintDecisions(); applyFilters();
-  if (currentLayout !== "spread") applyLayout(currentLayout, false);
+  if (!LAYOUTS.some(function (l) { return l.id === currentLayout; })) currentLayout = "spread";
+  applyLayout(currentLayout, false); // also restores this browser's saved moves for that layout
   // Keep the whole graph in view until the reader moves it themselves: the window may still be settling
   // to its final size when the page first draws, and a phone can rotate.
   var touched = false;

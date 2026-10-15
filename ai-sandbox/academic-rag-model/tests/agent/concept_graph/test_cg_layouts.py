@@ -57,3 +57,14 @@ def test_section_topic_short_and_summary_reach_the_page_data(tmp_path):
     sec = next(s for s in data["sections"] if s["id"] == sid)
     assert sec["short"] == "Short" and sec["summary"] == "A summary."
 
+
+
+def test_a_non_finite_position_fails_the_build(tmp_path):
+    root = copy_sample(tmp_path)
+    first = json.loads(build(root).graph_json.read_text(encoding="utf-8"))["nodes"][0]["id"]
+    d = root / "config" / "layouts"
+    d.mkdir(parents=True, exist_ok=True)
+    (d / "nan.json").write_text('{"name": "Nan", "positions": {"%s": {"x": NaN, "y": 1}}}' % first, encoding="utf-8")
+    with pytest.raises(BuildError) as exc:
+        build(root)
+    assert "nan.json" in str(exc.value)

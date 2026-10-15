@@ -95,3 +95,5 @@ math { font-size: 1.05em; }
 #propose-form .row.sentence .from { font-weight: 600; }
 .layout-row { display: block; margin-top: 8px; }
 .layout-row select { width: 100%; }
+
+#propose-form [hidden] { display: none !important; }
