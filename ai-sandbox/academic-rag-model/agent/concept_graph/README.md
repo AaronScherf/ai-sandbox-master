@@ -104,6 +104,9 @@ is missing is skipped.
 ```
 python -m agent.concept_graph.cli --graph-repo G collect fill --hub-root H --course microecon   # writes task cards
 python -m agent.concept_graph.cli --graph-repo G bootstrap <run-id> --work-dir W                 # the agent's contract
+# collect also prints (and saves as PROMPT.md in the run folder) a ready-to-paste prompt for the agent:
+# it names the stage, the run folder and card count, shows a card's first instruction line so the agent can
+# confirm it has the right run, lists the stage's rules and says not to submit
 # the agent fills the yaml block under "## Result" in each card
 python -m agent.concept_graph.cli --graph-repo G submit <run-id> --work-dir W --agent-name NAME  # validate + apply
 ```

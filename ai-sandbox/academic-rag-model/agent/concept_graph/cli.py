@@ -14,6 +14,7 @@ from . import drivers, stages
 from . import scaffold as scaffold_mod
 from .build import BuildError, build
 from .gh_issues import close_issue, fetch_review_issues
+from .prompts import agent_prompt
 from .retrieval import make_resilient_retriever
 from .reviews import ReviewFile, apply_proposals, apply_review, archive_review
 from .store import GraphDataError, GraphStore
@@ -156,6 +157,10 @@ def _cmd_collect(args) -> int:
         return 0
     print(f"run {run.run_id}: {len(run.tasks)} card(s) in {run.root}")
     print(f"Fill each card's result block (see {run.root / 'worklist.md'}), then run: submit {run.run_id}")
+    prompt = agent_prompt(run)
+    (run.root / "PROMPT.md").write_text(prompt, encoding="utf-8", newline="\n")
+    print(f"\nPrompt for the agent (also saved as {run.root / 'PROMPT.md'}):\n")
+    print(prompt)
     return 0
 
 
