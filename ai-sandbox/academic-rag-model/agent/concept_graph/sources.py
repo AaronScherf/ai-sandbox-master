@@ -2,8 +2,9 @@
 from __future__ import annotations
 
 import re
-from dataclasses import dataclass
 from pathlib import PurePosixPath
+
+from core.agent_tasks.tasks import Passage  # noqa: F401  (re-exported: the very object core defines)
 
 _DATE = re.compile(r"\d{4}-\d{2}-\d{2}")
 _CHAPTER = re.compile(r"/chapters/(\d+)_")
@@ -12,19 +13,6 @@ _PRIOR_YEAR = re.compile(r"/(20\d\d)_class/(.*)$")
 _PRIOR_KINDS = (("proof", "proofs"), ("recitation", "recitation"), ("homework", "hw"), ("/hw", "hw"),
                 ("exam", "exam"), ("midterm", "exam"), ("survival", "exam"), ("syllabus", "syllabus"),
                 ("pre lecture", "slides-pre"), ("post", "slides"))
-
-
-@dataclass(frozen=True)
-class Passage:
-    id: str
-    source: str
-    ref: str
-    text: str
-    path: str = ""
-
-    @property
-    def offered(self) -> tuple[str, str]:
-        return (self.source, self.ref)
 
 
 def _stem(path: str) -> str:
