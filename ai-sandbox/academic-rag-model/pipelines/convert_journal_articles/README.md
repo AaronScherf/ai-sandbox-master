@@ -35,6 +35,11 @@ tiered cost-routing (free local extraction, hybrid repair, full
 Gemini-vision transcription), same caching, same indexing hook -- just
 pointed at a different folder with a different `known_doc_types`.
 
+**Default transport (2026-10-16, literature taxonomy stage 1):** transcription runs through the
+Antigravity subscription as task cards, not the paid API. `--driver agent` is the default and a bare
+run does nothing and exits 1; use `--driver api` for the old fully metered behaviour. Index-card
+summaries and embeddings still use the Gemini API at submit time (small calls); transcription does not.
+
 ### Step 1: One-time local setup
 
 Same dependencies as `pipelines/transcribe_notes/transcribe_notes.py` -- no new ones.
@@ -51,8 +56,24 @@ thematic subfolders go (`journal-articles/economics/paper.pdf`,
 `journal-articles/economics/development/paper.pdf`, ...).
 
 ```powershell
-python -m pipelines.convert_journal_articles.convert_journal_articles
+# 1. Stage task cards for every paper that needs transcription (no API calls)
+python -m pipelines.convert_journal_articles.convert_journal_articles --collect --run-id r1
+# 2. In Antigravity, follow the contract printed by --bootstrap r1 and fill the cards
+python -m pipelines.convert_journal_articles.convert_journal_articles --bootstrap r1
+# 3. Validate, write and index. Clean machine-text papers have no cards and convert locally here.
+python -m pipelines.convert_journal_articles.convert_journal_articles --submit r1
 ```
+
+* Cards and page images live in `<index-root>/.agent_work/<run-id>/` (`research/.agent_work/` by default).
+  They hold paper text, so that folder is gitignored; never commit it.
+* `--submit` leaves a pending or bounced card pending. `--allow-api-fallback` is the explicit, never
+  automatic opt-in to finish those via the metered API.
+* `--driver api` runs the original single-step metered path. Warn before running it over a large
+  batch (project rule: over $1 needs a go-ahead).
+* `--backfill-identity` stamps OpenAlex id, DOI, topics and year from each paper's discovery
+  `.meta.json` sidecar onto its index card. No transcription, no API calls; papers converted before
+  this existed need it once. Newly converted papers are stamped automatically.
+* `--dry-run` works with any driver and needs no flags.
 
 * Defaults to `research/journal-articles` (the folder next to this
   project). Pass `--articles-dir <path>` to point at a different folder.
@@ -103,7 +124,13 @@ running against the actual corpus rather than assumed upfront:
   expensive full-page vision transcription for no reason. This benefits
   `academic-hub`'s own notes pipeline too, not just this corpus.
 
-One thing confirmed live but *not* changed: `page_looks_defective()`'s
+**Defect heuristic (updated 2026-10-16):** `page_looks_defective()` was tuned against LaTeX math notes.
+This converter now passes `check_math_notation=False` (a bare `R2` or `H1` in a paper is a statistic or
+hypothesis label, not a lost exponent). `defect_audit.py` measures the effect per signal without printing
+page text: `python -m pipelines.convert_journal_articles.defect_audit --articles-dir <dir> --no-math-notation`.
+Measured result and what remains: `docs/status/convert_journal_articles/2026-10-16-stage1-driver-wiring.md`.
+
+Original observation, before that change: `page_looks_defective()`'s
 heuristics (tuned against LaTeX-typeset math lecture notes) flag a real,
 substantial fraction of pages in every one of the 4 real papers tested
 (32-43%) -- enough to push all of them into whole-document Gemini

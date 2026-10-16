@@ -1,6 +1,6 @@
 # Literature taxonomy pipeline: design spec
 
-Date: 2026-10-15. Status: **approved by the owner 2026-10-15; amended the same day** (indexer embeddings corrected, API policy for indexing clarified, driver-default alignment added; see sections 3, 6, 8, 10, 13). Stage 0 implementation approved; later stages need their own plans.
+Date: 2026-10-15. Status: **approved by the owner 2026-10-15; amended the same day** (indexer embeddings corrected, API policy for indexing clarified, driver-default alignment added; see sections 3, 6, 8, 10, 13). Stage 0 implementation approved and landed 2026-10-15; stage 1 built 2026-10-16 on `claude/journal-agent-driver` (see the amendments in section 6 and `docs/status/convert_journal_articles/2026-10-16-stage1-driver-wiring.md`); later stages need their own plans.
 Owner: Aaron Scherf. Author: Claude (architecture), from a brainstorm with the owner on 2026-10-15.
 Related pitch: `ai-sandbox/research/independent-research/notes/Pitch - Structured Literature Taxonomy and Research Hub Extension.md`
 (this spec supersedes its Section 03/05 on *how*; its schema ideas, landscape analysis and project synergies stand).
@@ -94,7 +94,10 @@ To confirm during planning: hidden graph-only fields on `provenance()` or `Passa
    Index-card generation and embedding at submit time still use the API (accepted, see section 8); the plan must make that call explicit and keep it separate from transcription so agent-mode runs report it.
 2. Add a journal-prose profile to `page_looks_defective()`: calibrate against the real papers, with regression fixtures. Target: defective-page rate under ~10% for born-digital PDFs. Acceptance is measured, not asserted.
 3. Carry identity into the index card from the discovery sidecar: `openalex_id`, DOI, OpenAlex topic IDs, ISO-3166 country codes.
+   *(Amended 2026-10-16: the sidecar carries no country data, so stage 1 stamps `openalex_id`, `doi`, `openalex_topics` and `publication_year` only. ISO country codes come from the stage-2 extraction record (study country); author-affiliation countries would need discovery to request OpenAlex institution data and are deferred.)*
 4. Optionally keep rendered page images for pages with result tables so extraction cards can attach them (section 6.2).
+   *(Amended 2026-10-16: deferred to stage 2, where `Task.attachments` consumes them; nothing reads them earlier.)*
+5. *(Added 2026-10-16.)* In agent mode `collect` never writes, so a clean machine-text paper has no cards and the notes submit loop never visits it. The journal `--submit` therefore also converts card-less papers locally with a `NullDriver` (0 transcription calls) and reports any that actually need `--collect`. `submit_doc` gained `known_doc_types` and `check_math_notation` passthroughs so its rerun routes a paper exactly as collect did.
 
 ### Stage 2: extraction (new: `agent/literature/`)
 
