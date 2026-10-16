@@ -30,6 +30,7 @@ def _setup(tmp_path, monkeypatch, argv, pdf_todo=None, excalidraw_todo=None):
     monkeypatch.setattr(router, "build_plan", lambda *args, **kwargs: SimpleNamespace(
         pdf_todo=list(pdf_todo or []), pdf_skipped=[],
         excalidraw_todo=list(excalidraw_todo or []), excalidraw_skipped=[],
+        courses=[], resolve_questions_todo=[],
     ))
     monkeypatch.setattr(router, "print_summary", lambda *args: None)
     monkeypatch.setattr(router, "sync_resource_backups", lambda *args, **kwargs: [])

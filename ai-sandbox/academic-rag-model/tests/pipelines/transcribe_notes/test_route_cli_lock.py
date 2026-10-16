@@ -31,6 +31,7 @@ def _setup(tmp_path, monkeypatch, *, dry_run=False):
     monkeypatch.setattr(router, "build_plan", lambda *args, **kwargs: SimpleNamespace(
         pdf_todo=[str(notes / "one.pdf")], pdf_skipped=[],
         excalidraw_todo=[], excalidraw_skipped=[],
+        courses=[], resolve_questions_todo=[],
     ))
     monkeypatch.setattr(router, "print_summary", lambda *args: None)
     monkeypatch.setattr(gemini_utils, "load_dotenv_override", lambda: None)
