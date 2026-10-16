@@ -376,6 +376,17 @@ def test_cli_dry_run_lists_questions_without_any_api_call(tmp_path, capsys):
     assert not os.path.exists(sidecar_path_for(raw))
 
 
+def test_cli_dry_run_works_under_the_default_agent_driver_without_collect_or_submit(tmp_path, capsys):
+    # --dry-run never calls a driver at all, so it must not be blocked by
+    # the "--driver agent requires --collect or --submit" guard.
+    hub, raw = _hub(tmp_path)
+    with patch.object(rq, "get_gemini_client", side_effect=AssertionError("no client in dry-run")), \
+         patch.object(rq, "resolve_question", side_effect=AssertionError("no resolve in dry-run")):
+        assert rq.main(["--root", hub, "--dry-run"]) == 0
+    out = capsys.readouterr().out
+    assert "2 question(s)" in out and "why not reflexivity?" in out
+
+
 def test_cli_skips_notes_that_are_a_subset_of_another(tmp_path, capsys):
     hub, raw = _hub(tmp_path)
     rel_rag = os.path.relpath(rag_path_for(raw), hub).replace(os.sep, "/")

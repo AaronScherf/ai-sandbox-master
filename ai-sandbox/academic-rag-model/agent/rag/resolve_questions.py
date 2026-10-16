@@ -396,7 +396,7 @@ def main(argv: list[str] | None = None) -> int:
     if args.collect and args.driver != "agent":
         print("--collect requires --driver agent.")
         return 1
-    if args.driver == "agent" and not args.collect and not args.submit:
+    if args.driver == "agent" and not args.collect and not args.submit and not args.dry_run:
         print("--driver agent requires --collect or --submit.")
         return 1
 
