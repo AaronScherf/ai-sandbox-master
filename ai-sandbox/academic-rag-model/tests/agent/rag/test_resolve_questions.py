@@ -253,6 +253,37 @@ def test_redo_in_collect_mode_does_not_re_extract_already_cached_key_terms(tmp_p
         resolve_note(raw, hub, client=object(), roots=[hub], driver=FakeDriver(), collect_mode=True, redo=True)
 
 
+def test_redo_in_collect_mode_forces_restaging_an_already_cached_answer(tmp_path):
+    # Final-review Important finding #1: --redo must force re-answering
+    # end-to-end, not silently no-op because the answer is already in the
+    # per-note answers cache from a prior run.
+    hub, raw = _hub(tmp_path)
+    tags = find_tags(BODY)
+    import json
+    with open(keyterms_cache_path_for(raw), "w", encoding="utf-8") as f:
+        json.dump({t.qid: ["term"] for t in tags}, f)
+    with open(answers_cache_path_for(raw), "w", encoding="utf-8") as f:
+        json.dump({t.qid: "stale cached answer" for t in tags}, f)
+    from core.indexer.questions import Entry, write_sidecar
+    write_sidecar(sidecar_path_for(raw), {}, [
+        Entry(qid=t.qid, question=t.text, grounded=True, model="m", resolved_at="t", answer="stale cached answer")
+        for t in tags
+    ])
+
+    class FakeDriver:
+        def stage_key_terms(self, note_key, missing):
+            pytest.fail("key-term stage must not run -- every qid is already cached")
+
+        def stage_answers(self, note_key, missing):
+            self.answer_calls = missing
+            return {}
+
+    driver = FakeDriver()
+    with patch.object(rq, "retrieve_passages", return_value=[]):
+        resolve_note(raw, hub, client=object(), roots=[hub], driver=driver, collect_mode=True, redo=True)
+    assert {qid for qid, _prompt in driver.answer_calls} == {t.qid for t in tags}
+
+
 def test_resolve_note_collect_mode_stages_answers_once_key_terms_are_cached(tmp_path):
     hub, raw = _hub(tmp_path)
 
@@ -374,6 +405,23 @@ def test_cli_dry_run_lists_questions_without_any_api_call(tmp_path, capsys):
     out = capsys.readouterr().out
     assert "2 question(s)" in out and "why not reflexivity?" in out
     assert not os.path.exists(sidecar_path_for(raw))
+
+
+def test_cli_dry_run_rejects_collect(tmp_path, capsys):
+    # Final-review Important finding #2: --dry-run must never run the real
+    # operation when combined with --collect/--submit -- it's the flag a
+    # cautious user adds before risking a paid run.
+    hub, raw = _hub(tmp_path)
+    with patch.object(rq, "get_gemini_client", side_effect=AssertionError("dry-run must make no client")):
+        assert rq.main(["--root", hub, "--dry-run", "--collect"]) == 1
+    assert "cannot be combined" in capsys.readouterr().out
+
+
+def test_cli_dry_run_rejects_submit(tmp_path, capsys):
+    hub, raw = _hub(tmp_path)
+    with patch.object(rq, "get_gemini_client", side_effect=AssertionError("dry-run must make no client")):
+        assert rq.main(["--root", hub, "--dry-run", "--submit", "run-1"]) == 1
+    assert "cannot be combined" in capsys.readouterr().out
 
 
 def test_cli_dry_run_works_under_the_default_agent_driver_without_collect_or_submit(tmp_path, capsys):

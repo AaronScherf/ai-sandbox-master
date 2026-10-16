@@ -13,16 +13,16 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 
 from core.env.gemini_utils import load_json_cache, save_json_cache
-from agent.rag.rag_agent import _term_match_count, retrieve_passages
 from agent.rag.resolve_questions import (
+    _build_answer_staging,
+    _build_key_term_prompt,
     _rel,
     answers_cache_path_for,
-    build_answer_prompt,
+    answers_meta_cache_path_for,
     keyterms_cache_path_for,
-    question_context,
     _parse_key_terms,
 )
-from core.indexer.questions import Entry, Tag, find_tags, read_sidecar, sidecar_path_for, write_sidecar
+from core.indexer.questions import Entry, find_tags, read_sidecar, sidecar_path_for, write_sidecar
 from core.indexer.index_card import derive_course
 from pipelines.transcribe_notes.agent_driver import AgentPending
 from pipelines.transcribe_notes.agent_work import doc_work_dir, load_manifest, render_worklist, save_manifest
@@ -68,7 +68,7 @@ def validate_answer_card_output(raw_output: str, expected_qids: list[str]) -> Va
 def submit_doc(
     hub_root: str, academic_hub_root: str, run_id: str, doc_slug: str,
     raw_path: str, hub: str, client, model_override: str | None,
-    agent_name: str = "antigravity", allow_api_fallback: bool = False,
+    agent_name: str = "antigravity", allow_api_fallback: bool = False, redo: bool = False,
 ) -> str:
     doc_dir = doc_work_dir(hub_root, run_id, doc_slug)
     entries = load_manifest(doc_dir)
@@ -111,10 +111,25 @@ def submit_doc(
         remaining = sum(1 for e in entries if e.status != "submitted")
         return f"incomplete: {remaining} card(s) still pending/bounced"
 
-    tags = find_tags(_read_raw_body(raw_path))
+    body = _read_raw_body(raw_path)
+    tags = find_tags(body)
     _, sidecar_entries = read_sidecar(sidecar_path_for(raw_path))
     answered = {e.qid for e in sidecar_entries}
-    pending_tags = [t for t in tags if t.qid not in answered]
+
+    # Scope this submit to the qids this run's manifest actually collected --
+    # a tag elsewhere in the note that was never part of this run must not
+    # block completion (finalize_note_answers already treats it as "not part
+    # of this run"; submit's own pending_tags must agree, or a note with any
+    # uncollected tag can never finish a run). A manifest qid with no
+    # matching current tag means the question text changed (a retranscription
+    # ran between collect and submit, changing its qid) -- warn, don't crash.
+    manifest_qids = {qid for e in entries for qid in e.pages}
+    current_qids = {t.qid for t in tags}
+    orphaned = sorted(manifest_qids - current_qids)
+    if orphaned:
+        print(f"WARNING: {len(orphaned)} collected question(s) no longer match any tag in "
+              f"'{doc_slug}' (question text changed or the note was retranscribed?) -- skipping: {orphaned}")
+    pending_tags = [t for t in tags if t.qid in manifest_qids and (redo or t.qid not in answered)]
 
     if allow_api_fallback:
         driver = QuestionResolverApiDriver(client)
@@ -123,14 +138,14 @@ def submit_doc(
 
     keyterms_cache = load_json_cache(keyterms_path)
     answers_cache = load_json_cache(answers_path)
+    # Redo never forces key-term re-extraction, only re-answering -- a
+    # deliberate scope decision (same one the collect path pins), since the
+    # question text (and therefore its qid and key terms) hasn't changed just
+    # because --redo was passed.
     still_missing_keyterms = [t for t in pending_tags if t.qid not in keyterms_cache]
     if still_missing_keyterms:
         if allow_api_fallback:
-            from agent.rag.resolve_questions import _KEY_TERM_PROMPT_TEMPLATE
-
-            missing = [
-                (t.qid, _KEY_TERM_PROMPT_TEMPLATE.format(question=t.text)) for t in still_missing_keyterms
-            ]
+            missing = [(t.qid, _build_key_term_prompt(t, body)) for t in still_missing_keyterms]
             staged = driver.stage_key_terms(raw_path, missing)
             for qid, text in staged.items():
                 keyterms_cache[qid] = _parse_key_terms(text)
@@ -138,21 +153,21 @@ def submit_doc(
         else:
             return "incomplete: key-term card not yet staged for this run"
 
-    still_missing_answers = [t for t in pending_tags if t.qid not in answers_cache]
+    still_missing_answers = [t for t in pending_tags if redo or t.qid not in answers_cache]
     if still_missing_answers:
-        body = _read_raw_body(raw_path)
         course = derive_course(_rel(hub, raw_path))
         exclude = {_rel(hub, raw_path.replace(".excalidraw.md", ".excalidraw.rag.md")),
                    _rel(hub, sidecar_path_for(raw_path))}
+        meta_path = answers_meta_cache_path_for(raw_path)
+        meta_cache = load_json_cache(meta_path)
         missing = []
         for tag in still_missing_answers:
-            key_terms = keyterms_cache.get(tag.qid, [])
-            context, neighbors = question_context(body, tag.ordinal)
-            found = retrieve_passages([hub], f"{tag.text}\n{context[:300]}", client, course=course, key_terms=key_terms)
-            passages = [p for p in found if p.path.replace("\\", "/") not in exclude]
-            grounded = bool(passages) and (not key_terms or any(_term_match_count(p.text, key_terms) for p in passages))
-            prompt = build_answer_prompt(tag.text, context, neighbors, passages if grounded else None)
+            prompt, grounded, sources, stored_context = _build_answer_staging(
+                tag, body, keyterms_cache, client, [hub], course, exclude,
+            )
+            meta_cache[tag.qid] = {"grounded": grounded, "sources": sources, "context": stored_context}
             missing.append((tag.qid, prompt))
+        save_json_cache(meta_path, meta_cache)
         try:
             staged = driver.stage_answers(raw_path, missing)
         except AgentPending:
@@ -161,7 +176,9 @@ def submit_doc(
             answers_cache[qid] = text
         save_json_cache(answers_path, answers_cache)
 
-    finalize_note_answers(raw_path, hub, client, [hub], model_label="api-fallback" if allow_api_fallback else "antigravity")
+    finalize_note_answers(
+        raw_path, hub, model_label="api-fallback" if allow_api_fallback else "antigravity", redo=redo,
+    )
     return "complete" if not allow_api_fallback else "complete (api fallback used for remaining questions)"
 
 
@@ -171,13 +188,16 @@ def _read_raw_body(raw_path: str) -> str:
         return parse_frontmatter(f.read())[1]
 
 
-def finalize_note_answers(raw_path: str, hub: str, client, roots: list[str], model_label: str = "antigravity") -> None:
-    """Builds complete Entry objects from the answers cache and writes the
-    sidecar -- never calls any driver. A qid in `tags` but absent from both
-    the sidecar and the answers cache is simply not part of this run (e.g.
-    a question added by a retranscription after this run's collect already
-    happened) and is left untouched, same as the existing sequential path's
-    own by-qid skip logic."""
+def finalize_note_answers(raw_path: str, hub: str, model_label: str = "antigravity", redo: bool = False) -> None:
+    """Builds complete Entry objects from the answers cache and the
+    answers-meta cache (grounded/sources/context captured at staging time)
+    and writes the sidecar -- never calls any driver, and never re-runs
+    retrieval, so the sidecar's grounded label always matches what the agent
+    was actually shown, even if the corpus changes between collect and
+    submit. A qid in `tags` but absent from the answers cache is simply not
+    part of this run (e.g. a question added by a retranscription after this
+    run's collect already happened) and is left untouched, same as the
+    existing sequential path's own by-qid skip logic."""
     from core.indexer.questions import apply_markers, rag_path_for
 
     body = _read_raw_body(raw_path)
@@ -186,35 +206,30 @@ def finalize_note_answers(raw_path: str, hub: str, client, roots: list[str], mod
     rag_path = rag_path_for(raw_path)
     fields, entries = read_sidecar(sidecar)
     by_id = {e.qid: e for e in entries}
-    course = derive_course(_rel(hub, raw_path))
-    exclude = {_rel(hub, rag_path), _rel(hub, sidecar)}
 
-    keyterms_cache = load_json_cache(keyterms_cache_path_for(raw_path))
     answers_cache = load_json_cache(answers_cache_path_for(raw_path))
+    meta_cache = load_json_cache(answers_meta_cache_path_for(raw_path))
 
     for tag in tags:
-        if tag.qid in by_id or tag.qid not in answers_cache:
+        if (tag.qid in by_id and not redo) or tag.qid not in answers_cache:
             continue
-        try:
-            key_terms = keyterms_cache.get(tag.qid, [])
-            context, neighbors = question_context(body, tag.ordinal)
-            found = retrieve_passages(roots, f"{tag.text}\n{context[:300]}", client, course=course, key_terms=key_terms)
-            passages = [p for p in found if p.path.replace("\\", "/") not in exclude]
-            grounded = bool(passages) and (not key_terms or any(_term_match_count(p.text, key_terms) for p in passages))
-            by_id[tag.qid] = Entry(
-                qid=tag.qid, question=tag.text, grounded=grounded, model=model_label,
-                resolved_at=datetime.now(timezone.utc).isoformat(),
-                context=" ".join(context.split())[:600], answer=answers_cache[tag.qid],
-                sources=[f"{p.path} ({p.citation})" if p.citation else p.path for p in passages] if grounded else [],
-            )
-        except Exception as err:
-            # One question's retrieval failing must not lose every other
-            # already-cached answer in this note -- same per-question
-            # resilience resolve_note's own sequential loop already has.
-            # No AgentPending/NullDriverFired risk here: finalize never
-            # calls any driver, so a bare except is safe, not a guardrail
-            # violation.
-            print(f"WARNING: {tag.qid} finalize failed: {err}")
+        meta = meta_cache.get(tag.qid)
+        if meta is None:
+            # Staging always writes this tag's meta entry before the answer
+            # can land in answers_cache (both this module's fallback path and
+            # resolve_questions._collect_note_answers do this unconditionally),
+            # so a missing entry means a cache predating the meta cache, or a
+            # hand-edited cache file. Never guess grounded/sources from
+            # nothing -- skip this qid, leave every other already-cached
+            # answer in the note untouched, same per-question resilience
+            # resolve_note's own sequential loop already has.
+            print(f"WARNING: {tag.qid} has an answer but no staging metadata -- skipping (re-collect to fix).")
+            continue
+        by_id[tag.qid] = Entry(
+            qid=tag.qid, question=tag.text, grounded=meta["grounded"], model=model_label,
+            resolved_at=datetime.now(timezone.utc).isoformat(),
+            context=meta["context"], answer=answers_cache[tag.qid], sources=meta["sources"],
+        )
 
     in_order = [by_id[t.qid] for t in tags if t.qid in by_id]
     leftover = [e for qid, e in by_id.items() if qid not in {t.qid for t in tags}]

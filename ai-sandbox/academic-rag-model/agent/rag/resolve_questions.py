@@ -44,6 +44,15 @@ def answers_cache_path_for(raw_path: str) -> str:
     return raw_path[: -len(".excalidraw.md")] + ".excalidraw.answers_cache.json"
 
 
+def answers_meta_cache_path_for(raw_path: str) -> str:
+    """Grounded/sources/context for each staged answer, captured at the
+    moment retrieval ran for that answer (collect or fallback staging) --
+    never recomputed at finalize, so the sidecar's grounded label always
+    matches what the agent actually saw in its prompt, even if the corpus
+    changes between collect and submit."""
+    return raw_path[: -len(".excalidraw.md")] + ".excalidraw.answers_meta_cache.json"
+
+
 RESOLVER_MODEL = "gemini-3.6-flash"  # the stronger tier: answers are persisted and indexed
 _CONTEXT_CHARS = 1500
 _NEIGHBOR_CHARS = 800
@@ -205,28 +214,58 @@ def discover_notes(hub: str, course: str | None = None, note: str | None = None)
     return sorted(found)
 
 
+def _build_key_term_prompt(tag: Tag, body: str) -> str:
+    """Same question+context shape the API path (`resolve_question`) feeds
+    to `_extract_key_terms` -- used identically by the agent/collect path
+    and submit's --allow-api-fallback path, so grounding quality does not
+    drift between driver transports."""
+    context, _neighbors = question_context(body, tag.ordinal)
+    return _KEY_TERM_PROMPT_TEMPLATE.format(question=f"{tag.text}\n{context}")
+
+
+def _build_answer_staging(
+    tag: Tag, body: str, keyterms_cache: dict, client, roots: list[str],
+    course: str | None, exclude: set[str],
+) -> tuple[str, bool, list[str], str]:
+    """Runs retrieval exactly once for this tag and returns
+    (prompt, grounded, sources, stored_context). The caller persists the
+    grounded/sources/context alongside the staged prompt (the answers-meta
+    cache) so a later finalize never re-runs retrieval and can't disagree
+    with what the agent was actually shown."""
+    key_terms = keyterms_cache.get(tag.qid, [])
+    context, neighbors = question_context(body, tag.ordinal)
+    found = retrieve_passages(roots, f"{tag.text}\n{context[:300]}", client, course=course, key_terms=key_terms)
+    passages = [p for p in found if p.path.replace("\\", "/") not in exclude]
+    grounded = bool(passages) and (not key_terms or any(_term_match_count(p.text, key_terms) for p in passages))
+    prompt = build_answer_prompt(tag.text, context, neighbors, passages if grounded else None)
+    sources = [f"{p.path} ({p.citation})" if p.citation else p.path for p in passages] if grounded else []
+    stored_context = " ".join(context.split())[:_STORED_CONTEXT_CHARS]
+    return prompt, grounded, sources, stored_context
+
+
 def _collect_note_answers(
     raw_path: str, body: str, pending_tags: list[Tag], client, roots: list[str],
-    course: str | None, exclude: set[str], driver, keyterms_cache: dict,
+    course: str | None, exclude: set[str], driver, keyterms_cache: dict, redo: bool = False,
 ) -> None:
     from core.env.gemini_utils import load_json_cache, save_json_cache
     from pipelines.transcribe_notes.agent_driver import AgentPending
 
     answers_path = answers_cache_path_for(raw_path)
     answers_cache = load_json_cache(answers_path)
+    meta_path = answers_meta_cache_path_for(raw_path)
+    meta_cache = load_json_cache(meta_path)
     missing_answers = []
     for tag in pending_tags:
-        if tag.qid in answers_cache:
+        if not redo and tag.qid in answers_cache:
             continue
-        key_terms = keyterms_cache.get(tag.qid, [])
-        context, neighbors = question_context(body, tag.ordinal)
-        found = retrieve_passages(roots, f"{tag.text}\n{context[:300]}", client, course=course, key_terms=key_terms)
-        passages = [p for p in found if p.path.replace("\\", "/") not in exclude]
-        grounded = bool(passages) and (not key_terms or any(_term_match_count(p.text, key_terms) for p in passages))
-        prompt = build_answer_prompt(tag.text, context, neighbors, passages if grounded else None)
+        prompt, grounded, sources, stored_context = _build_answer_staging(
+            tag, body, keyterms_cache, client, roots, course, exclude,
+        )
+        meta_cache[tag.qid] = {"grounded": grounded, "sources": sources, "context": stored_context}
         missing_answers.append((tag.qid, prompt))
     if not missing_answers:
         return
+    save_json_cache(meta_path, meta_cache)
     try:
         staged = driver.stage_answers(raw_path, missing_answers)
     except AgentPending:
@@ -250,7 +289,7 @@ def _collect_note_questions(
     keyterms_path = keyterms_cache_path_for(raw_path)
     keyterms_cache = load_json_cache(keyterms_path)
     missing_key_terms = [
-        (t.qid, _KEY_TERM_PROMPT_TEMPLATE.format(question=f"{t.text}"))
+        (t.qid, _build_key_term_prompt(t, body))
         for t in pending_tags if t.qid not in keyterms_cache
     ]
     if missing_key_terms:
@@ -270,7 +309,7 @@ def _collect_note_questions(
         if missing_key_terms:
             return  # still incomplete; nothing more to do this call
 
-    _collect_note_answers(raw_path, body, pending_tags, client, roots, course, exclude, driver, keyterms_cache)
+    _collect_note_answers(raw_path, body, pending_tags, client, roots, course, exclude, driver, keyterms_cache, redo=redo)
 
 
 def resolve_note(
@@ -393,6 +432,9 @@ def main(argv: list[str] | None = None) -> int:
 """)
         return 0
 
+    if args.dry_run and (args.collect or args.submit):
+        print("--dry-run cannot be combined with --collect/--submit.")
+        return 1
     if args.collect and args.driver != "agent":
         print("--collect requires --driver agent.")
         return 1
@@ -458,7 +500,7 @@ def main(argv: list[str] | None = None) -> int:
             try:
                 status = submit_doc(
                     hub, hub, args.submit, doc_slug, raw_path, hub, client, args.model,
-                    allow_api_fallback=args.allow_api_fallback,
+                    allow_api_fallback=args.allow_api_fallback, redo=args.redo,
                 )
             except Exception as err:
                 print(f"[{doc_slug}] error: {err}")
