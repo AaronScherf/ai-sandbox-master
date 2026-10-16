@@ -28,6 +28,7 @@ from tools.git_workflow import (
     main_checkout,
     run_git,
 )
+from tools.run_tests_chunked import run_all
 
 PROJECT_SUBDIR = "ai-sandbox/academic-rag-model"
 
@@ -167,7 +168,15 @@ def select_test_targets(changed: set[str], project_root: Path) -> list[str]:
 def run_checks(project_root: Path, changed: set[str], full: bool) -> tuple[str, list[str], float]:
     if not full and _is_documentation_only(changed):
         return "skipped", [], 0.0
-    targets = ["tests/"] if full else select_test_targets(changed, project_root)
+    if full:
+        status, results, seconds = run_all(project_root)
+        targets = [f"tests/{r.name}" for r in results]
+        for r in results:
+            if r.returncode == 1:
+                print(f"[FAILED] tests/{r.name}")
+                print(r.stdout[-4000:])
+        return status, targets, seconds
+    targets = select_test_targets(changed, project_root)
     if not targets:
         targets = ["tests/"]  # code changed but no mapped tests: run everything
     started = time.monotonic()

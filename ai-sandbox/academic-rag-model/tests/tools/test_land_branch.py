@@ -1,6 +1,7 @@
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from git_fixture import git, make_repo, write_and_commit
 from tools.git_workflow import dirty_files
@@ -11,8 +12,10 @@ from tools.land_branch import (
     preflight,
     project_relative,
     rebase_onto_main,
+    run_checks,
     select_test_targets,
 )
+from tools.run_tests_chunked import ChunkResult
 
 
 class LandBranchTests(unittest.TestCase):
@@ -231,6 +234,31 @@ class LandingLogTests(unittest.TestCase):
         from tools.land_branch import record
         with self.assertRaises(ValueError):
             record(self.wt, "abc123", "merged")
+
+
+class RunChecksFullSuiteTests(unittest.TestCase):
+    def setUp(self):
+        self._tmp = tempfile.TemporaryDirectory()
+        self.tmp = Path(self._tmp.name)
+
+    def tearDown(self):
+        self._tmp.cleanup()
+
+    def test_full_run_uses_chunked_runner_and_reports_failure(self):
+        fake_results = [
+            ChunkResult(name="agent", returncode=0, seconds=1.0, stdout="ok"),
+            ChunkResult(name="core", returncode=1, seconds=2.0, stdout="boom"),
+        ]
+        with patch(
+            "tools.land_branch.run_all",
+            return_value=("failed", fake_results, 3.0),
+        ) as mock_run_all:
+            status, targets, seconds = run_checks(self.tmp, changed=set(), full=True)
+
+        mock_run_all.assert_called_once_with(self.tmp)
+        self.assertEqual(status, "failed")
+        self.assertEqual(targets, ["tests/agent", "tests/core"])
+        self.assertEqual(seconds, 3.0)
 
 
 if __name__ == "__main__":
