@@ -149,6 +149,79 @@ def test_bounced_keyterms_card_is_marked_and_not_written_to_cache():
         assert entries[0].status == "bounced"
 
 
+def test_bounced_answer_card_is_marked_and_not_written_to_cache():
+    # Review Focus 4, answers half: a bounced answer card must not land in
+    # the answers cache either -- only the key-terms half was covered before.
+    with tempfile.TemporaryDirectory() as hub:
+        notes_dir = os.path.join(hub, "academic_notes", "c", "lecture_notes", "processed_outputs")
+        os.makedirs(notes_dir)
+        raw_path = os.path.join(notes_dir, "N.excalidraw.md")
+        with open(raw_path, "w", encoding="utf-8") as f:
+            f.write("---\n---\n\n[Question] what is the Hausdorff distance?\n")
+        from core.indexer.questions import find_tags
+        qid = find_tags("[Question] what is the Hausdorff distance?")[0].qid
+
+        doc_slug = doc_slug_for(raw_path, compute_file_id(raw_path))
+        doc_dir = os.path.join(hub, ".agent_work", "run-1", doc_slug)
+        os.makedirs(doc_dir)
+        task_id = "task-0001"
+        with open(os.path.join(doc_dir, f"{task_id}.md"), "w", encoding="utf-8") as f:
+            f.write("## Agent output\n\n--- ANSWER wrong-qid ---\nan answer\n")
+        save_manifest(doc_dir, [ManifestEntry(task_id=task_id, tier="answers", pages=[qid], status="pending")])
+
+        status = submit_doc(hub, hub, "run-1", doc_slug, raw_path, hub, client=object(), model_override="m")
+
+        assert "incomplete" in status
+        cache = load_json_cache(answers_cache_path_for(raw_path))
+        assert qid not in cache
+        entries = load_manifest(doc_dir)
+        assert entries[0].status == "bounced"
+
+
+def test_submit_doc_allow_api_fallback_finishes_the_answer_stage_when_only_keyterms_was_collected(tmp_path):
+    # Review Focus 3, second half: a note collected only through the
+    # key-terms stage (never re-collected for answers) must still finish
+    # via --allow-api-fallback, generating and finalizing the missing
+    # answer through the API driver.
+    hub = str(tmp_path / "hub")
+    notes_dir = os.path.join(hub, "academic_notes", "c", "lecture_notes", "processed_outputs")
+    os.makedirs(notes_dir)
+    raw_path = os.path.join(notes_dir, "N.excalidraw.md")
+    question = "[Question] what is the Hausdorff distance?"
+    with open(raw_path, "w", encoding="utf-8") as f:
+        f.write(f"---\n---\n\n{question}\n")
+    rag_path = raw_path.replace(".excalidraw.md", ".excalidraw.rag.md")
+    with open(rag_path, "w", encoding="utf-8") as f:
+        f.write(f"---\n---\n\n{question}\n")
+
+    from core.indexer.questions import find_tags
+    qid = find_tags(question)[0].qid
+    doc_slug = doc_slug_for(raw_path, compute_file_id(raw_path))
+    doc_dir = os.path.join(hub, ".agent_work", "run-1", doc_slug)
+    os.makedirs(doc_dir)
+    save_manifest(doc_dir, [ManifestEntry(task_id="task-0001", tier="keyterms", pages=[qid], status="submitted")])
+    import json
+    with open(keyterms_cache_path_for(raw_path), "w", encoding="utf-8") as f:
+        json.dump({qid: ["Hausdorff"]}, f)
+
+    with unittest.mock.patch(
+        "agent.rag.resolve_questions_submit.QuestionResolverApiDriver",
+    ) as MockApiDriver, unittest.mock.patch(
+        "agent.rag.resolve_questions.retrieve_passages", return_value=[],
+    ):
+        mock_instance = MockApiDriver.return_value
+        mock_instance.stage_answers.return_value = {qid: "A fallback-generated answer."}
+        status = submit_doc(
+            hub, hub, "run-1", doc_slug, raw_path, hub, client=object(), model_override="m",
+            allow_api_fallback=True,
+        )
+
+    assert status.startswith("complete")
+    mock_instance.stage_answers.assert_called_once()
+    _, entries = read_sidecar(sidecar_path_for(raw_path))
+    assert entries[0].answer == "A fallback-generated answer."
+
+
 def test_submit_doc_warns_on_an_orphaned_manifest_qid_but_still_finalizes_the_rest(tmp_path, capsys):
     # Final-review Important finding #5: a manifest qid that no longer
     # matches any tag in the note (the question's text changed between
