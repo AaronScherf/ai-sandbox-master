@@ -19,6 +19,7 @@ from core.indexer.index_card import (
     find_card_by_file_id,
     reconcile_and_write,
     set_rag_md_path,
+    update_card_content_hash,
     update_card_paths,
     list_courses,
     load_tags,
@@ -679,6 +680,32 @@ class TestUpdateCardPaths(unittest.TestCase):
     def test_returns_false_and_writes_nothing_when_no_card_matches(self):
         with tempfile.TemporaryDirectory() as tmp:
             found = update_card_paths(tmp, "no-such-file-id", "new_name.md")
+            self.assertFalse(found)
+
+
+class TestUpdateCardContentHash(unittest.TestCase):
+    # resolve_questions.py calls this after apply_markers() rewrites a
+    # note's .rag.md with resolved-answer markers -- the card's stored hash
+    # must reflect that rewrite, or chunk_index's own staleness check
+    # (comparing stored chunk hashes against the card's hash, never the
+    # live file) would never notice the change.
+
+    def test_updates_content_hash_without_touching_other_fields(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            reconcile_and_write(tmp, file_id="fid1", path="a.md", source_pdf_path="a.pdf",
+                                 course="econ-101", folder_category="textbooks-and-papers",
+                                 content_sample="text", page_count=10, client=_fake_client(),
+                                 content_hash="hash1")
+            found = update_card_content_hash(tmp, "fid1", "hash2")
+            self.assertTrue(found)
+            card = load_shard(tmp, "econ-101")[0]
+            self.assertEqual(card["content_hash"], "hash2")
+            self.assertEqual(card["title"], "Linear Algebra Done Right")  # untouched, no regeneration
+            self.assertEqual(card["course"], "econ-101")  # untouched, no course move
+
+    def test_returns_false_and_writes_nothing_when_no_card_matches(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            found = update_card_content_hash(tmp, "no-such-file-id", "hash2")
             self.assertFalse(found)
 
 

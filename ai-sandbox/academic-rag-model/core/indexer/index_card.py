@@ -562,3 +562,25 @@ def update_card_paths(
         load_shard(academic_hub_root, course), file_id, updated,
     ))
     return True
+
+
+def update_card_content_hash(academic_hub_root: str, file_id: str, content_hash: str) -> bool:
+    """Refreshes only `content_hash` on an existing card by file_id -- no
+    regeneration, no path/course change, same no-op-if-missing contract as
+    update_card_paths(). Called by resolve_questions.py after
+    apply_markers() rewrites a note's .rag.md with resolved-answer markers:
+    the card's stored hash must reflect that rewrite, or
+    chunk_index.chunk()'s own staleness check (which compares its stored
+    chunks' hash against the card's hash, never the live file) would never
+    notice the change. Returns False (never raises) if no card exists yet
+    for this file_id."""
+    found = find_card_by_file_id(academic_hub_root, file_id)
+    if found is None:
+        return False
+    course, card = found
+    updated = dict(card)
+    updated["content_hash"] = content_hash
+    save_shard(academic_hub_root, course, _replace_card(
+        load_shard(academic_hub_root, course), file_id, updated,
+    ))
+    return True
