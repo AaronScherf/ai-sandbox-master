@@ -307,6 +307,47 @@ def test_build_plan_tracks_skipped_alongside_todo(tmp_path):
     assert [os.path.basename(p) for p in plan.pdf_skipped] == ["done.pdf"]
 
 
+def test_build_plan_records_the_target_courses(tmp_path):
+    _make_course(tmp_path, "econometrics", "lecture_notes", {})
+    _make_course(tmp_path, "microecon", "lecture_notes", {})
+    plan = build_plan(str(tmp_path))
+    assert plan.courses == ["econometrics", "microecon"]
+
+
+def test_build_plan_respects_course_filter_for_courses_list(tmp_path):
+    _make_course(tmp_path, "econometrics", "lecture_notes", {})
+    _make_course(tmp_path, "microecon", "lecture_notes", {})
+    plan = build_plan(str(tmp_path), courses=["microecon"])
+    assert plan.courses == ["microecon"]
+
+
+def _make_note_with_an_unanswered_question(tmp_path, course, name="N 2026-09-15"):
+    out = tmp_path / "academic_notes" / course / "lecture_notes" / "processed_outputs"
+    out.mkdir(parents=True, exist_ok=True)
+    raw = out / f"{name}.excalidraw.md"
+    raw.write_text("---\nchunks: 1\n---\n\n**[Handwritten]**\n[Question] why?\n", encoding="utf-8")
+    (out / f"{name}.excalidraw.rag.md").write_text(
+        "---\nx: y\n---\n\n[Question] why?\n", encoding="utf-8",
+    )
+    return str(raw)
+
+
+def test_build_plan_includes_notes_with_unanswered_questions(tmp_path):
+    raw = _make_note_with_an_unanswered_question(tmp_path, "microecon")
+    plan = build_plan(str(tmp_path), courses=["microecon"])
+    assert plan.resolve_questions_todo == [raw]
+
+
+def test_build_plan_excludes_notes_with_no_question_tags(tmp_path):
+    _make_course(tmp_path, "microecon", "lecture_notes", {})
+    out = tmp_path / "academic_notes" / "microecon" / "lecture_notes" / "processed_outputs"
+    out.mkdir(parents=True, exist_ok=True)
+    (out / "N.excalidraw.md").write_text("---\nchunks: 1\n---\n\nno questions here\n", encoding="utf-8")
+    (out / "N.excalidraw.rag.md").write_text("---\nx: y\n---\n\nno questions here\n", encoding="utf-8")
+    plan = build_plan(str(tmp_path), courses=["microecon"])
+    assert plan.resolve_questions_todo == []
+
+
 def test_run_plan_dispatches_pdfs_and_excalidraw_to_the_right_function(tmp_path):
     ta_dir = _make_course(tmp_path, "econometrics", "ta_notes", {"a.pdf": b"x"})
     lecture_dir = _make_course(

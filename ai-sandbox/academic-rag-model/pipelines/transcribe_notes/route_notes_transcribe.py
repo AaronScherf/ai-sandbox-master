@@ -55,6 +55,7 @@ from pipelines.transcribe_notes.transcribe_excalidraw import (
 )
 from pipelines.transcribe_notes.agent_driver import AgentPending
 from pipelines.transcribe_notes.transcribe_notes import discover_pdf_files, process_pdf
+from agent.rag.resolve_questions import discover_pending_notes
 
 if TYPE_CHECKING:
     from pipelines.transcribe_notes.agent_driver import TranscriptionDriver
@@ -304,12 +305,14 @@ class PipelinePlan:
     pdf_skipped: list[str] = field(default_factory=list)
     excalidraw_todo: list[tuple[str, str]] = field(default_factory=list)
     excalidraw_skipped: list[tuple[str, str]] = field(default_factory=list)
+    courses: list[str] = field(default_factory=list)
+    resolve_questions_todo: list[str] = field(default_factory=list)
 
 
 def build_plan(academic_hub_root: str, courses: list[str] | None = None, force: bool = False) -> PipelinePlan:
     notes_root = os.path.join(academic_hub_root, "academic_notes")
     target_courses = courses if courses is not None else find_course_dirs(academic_hub_root)
-    plan = PipelinePlan()
+    plan = PipelinePlan(courses=list(target_courses))
     for course in target_courses:
         course_dir = os.path.join(notes_root, course)
         if not os.path.isdir(course_dir):
@@ -337,6 +340,7 @@ def build_plan(academic_hub_root: str, courses: list[str] | None = None, force: 
         todo_pair_set = set(todo_pairs)
         plan.excalidraw_todo.extend(todo_pairs)
         plan.excalidraw_skipped.extend(p for p in pairs if p not in todo_pair_set)
+        plan.resolve_questions_todo.extend(discover_pending_notes(academic_hub_root, course=course))
     return plan
 
 
