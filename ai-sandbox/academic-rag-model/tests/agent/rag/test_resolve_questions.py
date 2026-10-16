@@ -331,6 +331,29 @@ def test_resolve_note_writes_the_sidecar_and_marks_the_rag(tmp_path):
     assert rag.count("[Question: answered ->") == 2
 
 
+def test_resolve_note_refreshes_the_index_cards_content_hash(tmp_path):
+    from core.indexer.index_card import compute_content_hash, load_shard, save_shard
+
+    hub, raw = _hub(tmp_path)
+    rel_rag = os.path.relpath(rag_path_for(raw), hub).replace(os.sep, "/")
+    save_shard(hub, "microecon", [{"file_id": "fid1", "path": rel_rag, "content_hash": "stale-hash"}])
+    with patch.object(rq, "resolve_question", side_effect=_fake_resolve()):
+        resolve_note(raw, hub, client=object(), roots=[hub])
+    card = load_shard(hub, "microecon")[0]
+    assert card["content_hash"] == compute_content_hash(rag_path_for(raw))
+    assert card["content_hash"] != "stale-hash"
+
+
+def test_resolve_note_warns_instead_of_crashing_when_no_card_exists(capsys):
+    import tempfile as _tempfile
+    with _tempfile.TemporaryDirectory() as tmp_dir:
+        import pathlib
+        hub, raw = _hub(pathlib.Path(tmp_dir))
+        with patch.object(rq, "resolve_question", side_effect=_fake_resolve()):
+            resolve_note(raw, hub, client=object(), roots=[hub])  # no card ever created for this hub
+        assert "content_hash not refreshed" in capsys.readouterr().out
+
+
 def test_second_run_skips_answered_questions_and_redo_redoes_them(tmp_path):
     hub, raw = _hub(tmp_path)
     with patch.object(rq, "resolve_question", side_effect=_fake_resolve()) as mock:

@@ -23,7 +23,7 @@ if TYPE_CHECKING:
 from core.env.excalidraw_text import QUESTION_TAG_RE, split_labeled_segments
 from core.env.frontmatter import parse_frontmatter
 from core.env.gemini_utils import call_with_retries, get_gemini_client, load_dotenv_override
-from core.indexer.index_card import derive_course, load_shard
+from core.indexer.index_card import compute_content_hash, derive_course, load_shard, update_card_content_hash
 from core.indexer.questions import (
     Entry,
     Tag,
@@ -372,6 +372,11 @@ def resolve_note(
         }
         write_sidecar(sidecar, fields, ordered)
     apply_markers(raw_path, rag_path)
+    if card:
+        update_card_content_hash(hub, card["file_id"], compute_content_hash(rag_path))
+    else:
+        print(f"WARNING: no index card found for {raw_path} -- content_hash not refreshed; "
+              f"chunk_index will not notice resolved answers until the card exists.")
     return result
 
 

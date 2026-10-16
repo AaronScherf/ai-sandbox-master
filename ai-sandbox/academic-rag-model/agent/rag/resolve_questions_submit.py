@@ -16,6 +16,7 @@ from core.env.gemini_utils import load_json_cache, save_json_cache
 from agent.rag.resolve_questions import (
     _build_answer_staging,
     _build_key_term_prompt,
+    _note_card,
     _rel,
     answers_cache_path_for,
     answers_meta_cache_path_for,
@@ -23,7 +24,7 @@ from agent.rag.resolve_questions import (
     _parse_key_terms,
 )
 from core.indexer.questions import Entry, find_tags, read_sidecar, sidecar_path_for, write_sidecar
-from core.indexer.index_card import derive_course
+from core.indexer.index_card import compute_content_hash, derive_course, update_card_content_hash
 from pipelines.transcribe_notes.agent_driver import AgentPending
 from pipelines.transcribe_notes.agent_work import doc_work_dir, load_manifest, render_worklist, save_manifest
 from agent.rag.resolve_questions_agent_work import QuestionResolverAgentDriver, parse_card_output
@@ -243,3 +244,9 @@ def finalize_note_answers(raw_path: str, hub: str, model_label: str = "antigravi
     }
     write_sidecar(sidecar, fields, ordered)
     apply_markers(raw_path, rag_path)
+    card = _note_card(hub, raw_path)
+    if card:
+        update_card_content_hash(hub, card["file_id"], compute_content_hash(rag_path))
+    else:
+        print(f"WARNING: no index card found for {raw_path} -- content_hash not refreshed; "
+              f"chunk_index will not notice resolved answers until the card exists.")

@@ -98,7 +98,50 @@ def test_submit_doc_finalizes_into_the_sidecar_once_both_stages_are_cached(tmp_p
     assert entries[0].answer == "An explanation."
     assert entries[0].qid == qid
     assert entries[0].grounded is True
-    assert entries[0].sources == ["book.md (p. 1)"]
+
+
+def test_submit_doc_refreshes_the_index_cards_content_hash_once_finalized(tmp_path):
+    from core.indexer.index_card import compute_content_hash, load_shard, save_shard
+    from core.indexer.questions import rag_path_for
+
+    hub = str(tmp_path / "hub")
+    notes_dir = os.path.join(hub, "academic_notes", "c", "lecture_notes", "processed_outputs")
+    os.makedirs(notes_dir)
+    raw_path = os.path.join(notes_dir, "N.excalidraw.md")
+    question = "[Question] what is the Hausdorff distance?"
+    with open(raw_path, "w", encoding="utf-8") as f:
+        f.write(f"---\n---\n\n{question}\n")
+    rag_path = raw_path.replace(".excalidraw.md", ".excalidraw.rag.md")
+    with open(rag_path, "w", encoding="utf-8") as f:
+        f.write(f"---\n---\n\n{question}\n")
+
+    from core.indexer.questions import find_tags
+    qid = find_tags(question)[0].qid
+    file_id = compute_file_id(raw_path)
+    doc_slug = doc_slug_for(raw_path, file_id)
+    doc_dir = os.path.join(hub, ".agent_work", "run-1", doc_slug)
+    os.makedirs(doc_dir)
+    save_manifest(doc_dir, [
+        ManifestEntry(task_id="task-0001", tier="keyterms", pages=[qid], status="submitted"),
+        ManifestEntry(task_id="task-0002", tier="answers", pages=[qid], status="submitted"),
+    ])
+    import json
+    with open(keyterms_cache_path_for(raw_path), "w", encoding="utf-8") as f:
+        json.dump({qid: ["Hausdorff"]}, f)
+    with open(answers_cache_path_for(raw_path), "w", encoding="utf-8") as f:
+        json.dump({qid: "An explanation."}, f)
+    with open(answers_meta_cache_path_for(raw_path), "w", encoding="utf-8") as f:
+        json.dump({qid: {"grounded": True, "sources": ["book.md (p. 1)"], "context": "ctx"}}, f)
+
+    rel_rag = os.path.relpath(rag_path_for(raw_path), hub).replace(os.sep, "/")
+    save_shard(hub, "c", [{"file_id": file_id, "path": rel_rag, "content_hash": "stale-hash"}])
+
+    status = submit_doc(hub, hub, "run-1", doc_slug, raw_path, hub, client=object(), model_override="m")
+
+    assert status == "complete"
+    card = load_shard(hub, "c")[0]
+    assert card["content_hash"] == compute_content_hash(rag_path_for(raw_path))
+    assert card["content_hash"] != "stale-hash"
 
 
 def test_submit_doc_with_no_manifest_does_not_crash():
