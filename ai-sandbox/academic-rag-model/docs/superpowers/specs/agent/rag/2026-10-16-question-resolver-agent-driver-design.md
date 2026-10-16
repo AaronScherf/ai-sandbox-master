@@ -1,6 +1,6 @@
 # Question-resolver agent driver — design spec
 
-**Status:** draft, not yet implemented.
+**Status:** implemented (branch `claude/question-resolver-agent-driver`, 2026-10-16). See `docs/superpowers/plans/2026-10-16-question-resolver-agent-driver.md` for the task breakdown; full test suite green (3715 passed, 41 subtests passed).
 **Branch:** `claude/question-resolver-agent-driver`.
 **Follows:** `docs/superpowers/specs/transcribe_notes/
 2026-10-15-consolidated-pipeline-design.md`'s Stage 3, first half ("Agent-
