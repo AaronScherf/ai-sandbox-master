@@ -9,6 +9,7 @@ from pathlib import Path
 from core.agent_tasks.tasks import Passage, Task
 
 from . import schema
+from .compare import reconcile
 from .papers import Paper
 from .proposals import Proposals
 from .store import RecordStore
@@ -160,6 +161,7 @@ def apply_result(target: Target, entry: dict, result: dict, provenance: dict) ->
         "vocab_versions": s["vocab_versions"]}
     record["review"] = {"status": "unreviewed", "items_flagged": []}
     target.records.write(record, label)
+    reconcile(target.records, s["file_id"])
     for vocab_name, fact in _proposed_facts(result):
         if fact.get("proposed"):
             target.proposals.add(s["file_id"], vocab_name, fact["value"], fact["quote"], fact["locator"], label)
