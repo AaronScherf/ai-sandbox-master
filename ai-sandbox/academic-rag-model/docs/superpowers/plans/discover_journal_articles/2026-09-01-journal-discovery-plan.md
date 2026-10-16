@@ -2170,6 +2170,7 @@ git commit -m "docs(journal_discovery): add usage instructions and config placeh
 
 - [2026-08-31-journal-discovery-design](../../specs/discover_journal_articles/2026-08-31-journal-discovery-design.md)
 - [2026-09-02-journal-discovery-snowball-design](../../specs/discover_journal_articles/2026-09-02-journal-discovery-snowball-design.md)
+- [2026-10-14-reliability-and-classification-design](../../specs/discover_journal_articles/2026-10-14-reliability-and-classification-design.md)
 
 ### Tests
 

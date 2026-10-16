@@ -583,11 +583,13 @@
           "supersedes": [],
           "specs": [
             "ai-sandbox/academic-rag-model/docs/superpowers/specs/discover_journal_articles/2026-08-31-journal-discovery-design.md",
-            "ai-sandbox/academic-rag-model/docs/superpowers/specs/discover_journal_articles/2026-09-02-journal-discovery-snowball-design.md"
+            "ai-sandbox/academic-rag-model/docs/superpowers/specs/discover_journal_articles/2026-09-02-journal-discovery-snowball-design.md",
+            "ai-sandbox/academic-rag-model/docs/superpowers/specs/discover_journal_articles/2026-10-14-reliability-and-classification-design.md"
           ],
           "implementation_plans": [
             "ai-sandbox/academic-rag-model/docs/superpowers/plans/discover_journal_articles/2026-09-01-journal-discovery-plan.md",
-            "ai-sandbox/academic-rag-model/docs/superpowers/plans/discover_journal_articles/2026-09-02-journal-discovery-snowball-plan.md"
+            "ai-sandbox/academic-rag-model/docs/superpowers/plans/discover_journal_articles/2026-09-02-journal-discovery-snowball-plan.md",
+            "ai-sandbox/academic-rag-model/docs/superpowers/plans/discover_journal_articles/2026-10-14-reliability-and-classification-plan.md"
           ],
           "test_paths": [
             "ai-sandbox/academic-rag-model/tests/discovery/discover_journal_articles/test_discover.py"

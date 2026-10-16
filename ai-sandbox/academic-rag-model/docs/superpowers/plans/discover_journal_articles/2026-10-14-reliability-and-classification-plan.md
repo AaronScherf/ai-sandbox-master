@@ -2123,3 +2123,15 @@ Expected: PASS (every file in the package, including `test_snowball.py`, `test_w
 ```bash
 <main-checkout>/ai-sandbox/academic-rag-model/.venv/Scripts/python.exe -m tools.land_branch check --full
 ```
+
+## Lifecycle references
+
+### Specs
+
+- [2026-08-31-journal-discovery-design](../../specs/discover_journal_articles/2026-08-31-journal-discovery-design.md)
+- [2026-09-02-journal-discovery-snowball-design](../../specs/discover_journal_articles/2026-09-02-journal-discovery-snowball-design.md)
+- [2026-10-14-reliability-and-classification-design](../../specs/discover_journal_articles/2026-10-14-reliability-and-classification-design.md)
+
+### Tests
+
+- [test_discover](../../../../tests/discovery/discover_journal_articles/test_discover.py)

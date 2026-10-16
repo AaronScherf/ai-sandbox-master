@@ -99,11 +99,13 @@ future runs).
 
 - [2026-08-31-journal-discovery-design](../../superpowers/specs/discover_journal_articles/2026-08-31-journal-discovery-design.md)
 - [2026-09-02-journal-discovery-snowball-design](../../superpowers/specs/discover_journal_articles/2026-09-02-journal-discovery-snowball-design.md)
+- [2026-10-14-reliability-and-classification-design](../../superpowers/specs/discover_journal_articles/2026-10-14-reliability-and-classification-design.md)
 
 ### Implementation plans
 
 - [2026-09-01-journal-discovery-plan](../../superpowers/plans/discover_journal_articles/2026-09-01-journal-discovery-plan.md)
 - [2026-09-02-journal-discovery-snowball-plan](../../superpowers/plans/discover_journal_articles/2026-09-02-journal-discovery-snowball-plan.md)
+- [2026-10-14-reliability-and-classification-plan](../../superpowers/plans/discover_journal_articles/2026-10-14-reliability-and-classification-plan.md)
 
 ### Tests
 
