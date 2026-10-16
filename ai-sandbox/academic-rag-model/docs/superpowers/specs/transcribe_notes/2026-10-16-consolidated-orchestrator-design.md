@@ -1,6 +1,6 @@
 # Consolidated notes orchestrator (Stage 3, part 2) — design spec
 
-**Status:** draft, not yet implemented.
+**Status:** implemented and merged to `main` (2026-10-16), branch `claude/notes-pipeline-orchestrator`. See `docs/superpowers/plans/2026-10-16-consolidated-orchestrator-plan.md` for the implementation plan and acceptance evidence.
 **Branch:** `claude/notes-pipeline-orchestrator`.
 **Follows:** `2026-10-15-consolidated-pipeline-design.md` (Stage 3's first bullet —
 the question-resolver agent driver — shipped separately on

@@ -237,7 +237,18 @@ cd .\ai-sandbox\academic-rag-model; .\.venv\Scripts\python.exe -m tools.project_
   the `gemini-3.1-flash-lite` expansion model contributes to the loss versus prompt/context behavior before
   treating it as the cause. Re-expand and review the affected notes after the fix.
   Only then reconsider enabling the corpus-health orchestrator's note repair
-  adapters; leave discovery active in the meantime. (added 2026-10-08; updated 2026-10-09)
+  adapters; leave discovery active in the meantime.
+  **Partially addressed 2026-10-16:** the consolidated orchestrator
+  (`pipelines/transcribe_notes/route_notes_transcribe.py`, see
+  `docs/superpowers/specs/transcribe_notes/2026-10-16-consolidated-orchestrator-design.md`)
+  now automatically sequences transcribe → expand → SVG backup →
+  resolve-questions → chunk/embed on every invocation, so a transcribed/expanded
+  note's tagged questions get queued for resolution without a separate manual
+  step. This does NOT touch the underlying content-loss bug this item opened
+  with (expansion dropping/compressing themes and graph details, stale sidecar
+  answers, unpaired expanded tags) -- that investigation and the "end-to-end
+  post-resolution check for zero stale answers/unpaired tags" are still open.
+  (added 2026-10-08; updated 2026-10-09, 2026-10-16)
 - <!-- TODO-0031 --> Move the `*_pages_cache.json` resume caches out of `processed_outputs/` into `processed_outputs/_cache/`, to cut clutter when browsing folders (89 files, ~2.2 MB, all tracked in the `academic_notes` repo). Plan: the cache path is built in one place (`transcribe_notes.py`, `cache_path`, around line 1095) so change it there; read `_cache/` first and fall back to the old location so unmigrated caches still resume; update `tools/audit_metadata.py`, which moves a cache along with its `.md`; one-shot `git mv` of the existing 89 in the `academic_notes` repo; test both locations plus the fallback. The caches are only read when the same document is rerun or `--force`d (to skip pages already paid for); the indexer, search and tutor never touch them. Deferred by the user (added 2026-10-04)
 - <!-- TODO-0032 --> Reprocess `LN_Analysis.pdf` and `LN_Linear Algebra.pdf` using whole-document batching and PyMuPDF dict-mode: their existing outputs predate the dict-mode/subscript reconstruction and whole-document batching improvements. Estimated cost under $0.30 total. Paused at user request pending review. (added 2026-10-04)
 - <!-- TODO-0033 --> Radical/square-root font encoding repair: in PDF font extractions (e.g. `Analysis_Exercises.pdf` page 6), square-root signs can extract as plain ASCII 'p' or missing glyphs due to broken ToUnicode font mappings; implement a regex/post-processing repair pass. (added 2026-10-04)

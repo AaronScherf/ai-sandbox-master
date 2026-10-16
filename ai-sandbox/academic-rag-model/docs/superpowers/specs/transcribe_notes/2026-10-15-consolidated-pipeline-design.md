@@ -1,6 +1,6 @@
 # Consolidated notes pipeline + SVG backup — design spec
 
-**Status:** Stage 1 and Stage 2 (Excalidraw agent driver, see sibling spec `2026-10-15-excalidraw-agent-driver-design.md`) implemented and merged; Stages 3-4 are future work.
+**Status:** Stages 1-3 implemented and merged (Stage 2: Excalidraw agent driver, see sibling spec `2026-10-15-excalidraw-agent-driver-design.md`; Stage 3: question-resolver agent driver + consolidated orchestrator, see `2026-10-16-consolidated-orchestrator-design.md`). Stage 4 (`--maintain-guides`) is future work.
 **Branch:** `claude/notes-pipeline-consolidation`.
 **Follows:** `docs/status/transcribe_notes/2026-10-14-subscription-pipeline-investigation.md`
 (Codex's investigation; code-verified, no implementation). This spec turns its
