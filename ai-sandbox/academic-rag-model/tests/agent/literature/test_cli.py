@@ -1,0 +1,152 @@
+import contextlib
+import io
+import tempfile
+import unittest
+from pathlib import Path
+
+import yaml
+
+from agent.literature import cli
+from lit_helpers import good, fill_card, make_index, write_vocab_dir
+
+FID = "0123456789abcdef"
+
+
+def _run(argv, **kw):
+    out = io.StringIO()
+    with contextlib.redirect_stdout(out):
+        code = cli.main(argv, **kw)
+    return code, out.getvalue()
+
+
+class Env:
+    def __init__(self, root: str):
+        self.root = root
+        self.vocabs = str(Path(root) / "vocabs")
+        Path(self.vocabs).mkdir()
+        write_vocab_dir(self.vocabs)
+        make_index(root)
+        make_index(root, file_id="fedcba9876543210", card_extra={"needs_indexing": True})
+
+    def args(self, *more):
+        return ["--index-root", self.root, "--vocab-dir", self.vocabs, *more]
+
+    def card(self, run_id, name):
+        return Path(self.root) / ".agent_work" / run_id / "cards" / f"{name}.md"
+
+
+class TestCollect(unittest.TestCase):
+    def test_collect_writes_a_card_per_eligible_paper_and_reports_skips(self):
+        with tempfile.TemporaryDirectory() as root:
+            env = Env(root)
+            code, out = _run(env.args("collect", "--run-id", "r1"))
+            self.assertEqual(code, 0)
+            self.assertTrue(env.card("r1", f"extract-{FID}").is_file())
+            self.assertIn("fedcba9876543210", out)
+            self.assertIn("needs indexing", out)
+
+    def test_collect_again_with_the_same_run_id_is_reported_not_a_traceback(self):
+        with tempfile.TemporaryDirectory() as root:
+            env = Env(root)
+            _run(env.args("collect", "--run-id", "r1"))
+            code, out = _run(env.args("collect", "--run-id", "r1", "--redo"))
+            self.assertEqual(code, 2)
+            self.assertIn("r1", out)
+
+    def test_double_also_stages_a_pass_b_card(self):
+        with tempfile.TemporaryDirectory() as root:
+            env = Env(root)
+            _run(env.args("collect", "--run-id", "r1", "--double"))
+            self.assertTrue(env.card("r1", f"extract-{FID}-b").is_file())
+
+    def test_unknown_file_id_is_reported(self):
+        with tempfile.TemporaryDirectory() as root:
+            env = Env(root)
+            code, out = _run(env.args("collect", "--file-id", "deadbeefdeadbeef"))
+            self.assertIn("deadbeefdeadbeef", out)
+
+    def test_a_work_root_inside_the_records_folder_is_refused(self):
+        with tempfile.TemporaryDirectory() as root:
+            env = Env(root)
+            bad = str(Path(root) / ".index" / "study_records" / "work")
+            code, out = _run(env.args("--work-root", bad, "collect", "--run-id", "r1"))
+            self.assertEqual(code, 2)
+            self.assertIn("inside", out)
+
+
+class TestSubmit(unittest.TestCase):
+    def test_a_filled_card_becomes_a_record_and_a_bad_one_bounces_with_its_reason(self):
+        with tempfile.TemporaryDirectory() as root:
+            env = Env(root)
+            make_index(root, file_id="1111111111111111")
+            _run(env.args("collect", "--run-id", "r1"))
+            fill_card(env.card("r1", f"extract-{FID}"), good())
+            bad = good()
+            bad["core"]["outcome"][0]["quote"] = "hunger fell by forty percent everywhere"
+            fill_card(env.card("r1", "extract-1111111111111111"), bad)
+            code, out = _run(env.args("submit", "r1"))
+            self.assertEqual(code, 0)
+            self.assertTrue((Path(root) / ".index" / "study_records" / f"{FID}.json").is_file())
+            self.assertFalse((Path(root) / ".index" / "study_records" / "1111111111111111.json").exists())
+            self.assertIn("core.outcome[0].quote", out)
+
+    def test_an_unfilled_run_reports_untouched(self):
+        with tempfile.TemporaryDirectory() as root:
+            env = Env(root)
+            _run(env.args("collect", "--run-id", "r1"))
+            code, out = _run(env.args("submit", "r1"))
+            self.assertIn("untouched", out)
+
+    def test_an_unknown_run_is_a_clear_error(self):
+        with tempfile.TemporaryDirectory() as root:
+            env = Env(root)
+            code, out = _run(env.args("submit", "nope"))
+            self.assertEqual(code, 2)
+            self.assertIn("nope", out)
+
+
+class TestBootstrapAndStatus(unittest.TestCase):
+    def test_bootstrap_names_the_run_and_the_result_block(self):
+        with tempfile.TemporaryDirectory() as root:
+            env = Env(root)
+            code, out = _run(env.args("bootstrap", "r7"))
+            self.assertIn("r7", out)
+            self.assertIn("## Result", out)
+            self.assertIn("submit r7", out)
+
+    def test_status_counts_papers_records_and_proposals(self):
+        with tempfile.TemporaryDirectory() as root:
+            env = Env(root)
+            _, before = _run(env.args("status"))
+            self.assertIn("eligible papers: 1", before)
+            self.assertIn("records: 0", before)
+            _run(env.args("collect", "--run-id", "r1"))
+            fill_card(env.card("r1", f"extract-{FID}"), good())
+            _run(env.args("submit", "r1"))
+            _, after = _run(env.args("status"))
+            self.assertIn("records: 1", after)
+
+
+class TestApi(unittest.TestCase):
+    def test_over_budget_sends_nothing(self):
+        calls = []
+        with tempfile.TemporaryDirectory() as root:
+            env = Env(root)
+            _run(env.args("collect", "--run-id", "r1"))
+            code, out = _run(env.args("api", "r1", "--approve-cost", "0.0000001"), complete=lambda p: calls.append(p) or "")
+        self.assertEqual(code, 2)
+        self.assertEqual(calls, [])
+        self.assertIn("exceeds the approved", out)
+
+    def test_an_approved_run_applies_the_reply(self):
+        with tempfile.TemporaryDirectory() as root:
+            env = Env(root)
+            _run(env.args("collect", "--run-id", "r1"))
+            reply = "```yaml\n" + yaml.safe_dump(good(), sort_keys=False, allow_unicode=True) + "```"
+            code, out = _run(env.args("api", "r1", "--approve-cost", "5"), complete=lambda p: reply)
+            self.assertEqual(code, 0)
+            self.assertTrue((Path(root) / ".index" / "study_records" / f"{FID}.json").is_file())
+
+
+if __name__ == "__main__":
+    unittest.main()
