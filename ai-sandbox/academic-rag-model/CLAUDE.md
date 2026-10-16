@@ -4,7 +4,7 @@ Python 3.13 packages that convert academic PDFs/docs into Markdown, index them, 
 
 ## Commands (run from this directory, venv at `.venv/`)
 - Run scripts as modules: `python -m pipelines.transcribe_notes.transcribe_notes ...`, `python -m core.indexer.index_search query "..."` (never as bare file paths).
-- Tests: `python -m pytest tests/` — prefer a single file or `-k` filter over the full suite. `tests/` mirrors the package tree (`tests/pipelines/...`, `tests/agent/...`, `tests/core/...`, etc.).
+- Tests: `python -m pytest tests/` for a single file or `-k` filter while iterating. `tests/` mirrors the package tree (`tests/pipelines/...`, `tests/agent/...`, `tests/core/...`, etc.). For the full suite, use `python tools/run_tests_chunked.py` instead of `pytest tests/` directly — it runs one subprocess per top-level package so memory is freed between them; a single long-lived `pytest tests/` process has OOM'd on this machine. Pass `--include-local-llm` to also run tests marked `local_llm` (none exist yet; see `pytest.ini`).
 - To look something up in the corpus, use `python -m core.indexer.index_search query "..."` rather than grepping `academic-hub/`.
 
 ## Scope
