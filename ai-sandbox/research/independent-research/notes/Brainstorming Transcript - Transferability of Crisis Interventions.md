@@ -100,4 +100,47 @@ The agent proposed five structural questions to probe the boundaries of the rese
 
 ---
 
-*(Additional rounds and research question synthesis will be appended below as the brainstorming dialogue continues.)*
+---
+
+## Round 2: Sharpening the Theoretical Mechanisms & Candidate Research Questions
+
+### Agent Synthesis & Feedback on Round 1 (October 15, 2026)
+
+The user's responses in Round 1 established several decisive analytical anchors:
+1. **Empirical Identification Strategy:** Hold the intervention functionally fixed (standardized financial social safety nets: cash transfers, digital credit, index insurance) and evaluate how contextual variation drives divergence in outcomes, using uniform remote-sensing rasters (satellite data) to circumvent incompatible survey instruments.
+2. **Success Criterion:** Directional and qualitative consistency (same sign, comparable magnitude, avoiding harm), rather than brittle point-estimate equality or unidentifiable structural decomposition.
+3. **Epistemic & Ethical Alignment:** Applied crisis response framework designed for international humanitarian practitioners and host-country governments. Strict refusal of esoteric statistical modeling that offers no practical utility to crisis-affected populations.
+4. **The Central Phenomenological Puzzle:** The collision of **isomorphic mimicry** (bureaucratic donor compliance templates from USAID, World Bank) with **context divergence**—specifically, why tools developed for natural disasters break down when transplanted into armed conflict and complex emergencies.
+5. **Multi-Modal Data Innovation:** Fusing evaluation meta-registries (3ie, J-PAL), satellite environmental covariates, and LLM-extracted administrative M&E implementation data from institutional PDF reports.
+
+---
+
+### Agent Round 2 Probing Questions & Candidate RQs
+
+#### Follow-up Probing Dimensions:
+
+1. **The Conflict Friction Hierarchy:**
+   When disaster tools (such as anticipatory cash or parametric insurance) fail in conflict environments, which specific breakdown mechanism is most critical to isolate?
+   - *Epistemic / Verification Breakdown:* Remote sensing can detect drought but cannot detect frontlines, curfews, or road blockades; physical M&E becomes unsafe and shuts down.
+   - *Strategic / Adversarial Distortion:* Aid is taxed, diverted, or weaponized by armed factions; mobile towers are jammed or targeted.
+   - *Macro / Market Failure:* Cash arrives, but food supply corridors are blockaded, triggering acute local price inflation rather than consumption smoothing.
+   - *Regulatory / Sanctions Friction:* Counter-terrorism vetting, anti-money-laundering (AML/CFT), and OFAC sanctions freeze digital banking rails.
+
+2. **Operationalizing the LLM Administrative Extraction:**
+   In using LLMs on World Bank / USAID Implementation Completion Reports (ICRs) and independent evaluations:
+   - Do you see this primarily as an **independent variable** (measuring the degree of "institutional rigidity" or compliance friction across projects)?
+   - Or as an **empirical audit of failure modes** (systematically classifying the stated reasons why programs were restructured, delayed, or abandoned in conflict vs. disaster settings)?
+
+3. **Host-Country Agency vs. Humanitarian Substitution:**
+   How should the research reflect the contrast between state-led digital infrastructure (e.g., Ukraine’s *Diia* app and domestic banking system) versus international humanitarian substitution in areas of limited statehood (e.g., Somalia’s UN/NGO parallel delivery systems)?
+
+#### Draft "Strawman" Research Questions for Critique:
+
+- **Candidate RQ 1 (Empirical / Context-Matching):** When holding social protection mechanisms (cash transfers, digital credit) constant, to what extent do objective environmental (satellite-derived) and conflict covariates predict directional efficacy and outcome consistency across diverse crisis settings?
+- **Candidate RQ 2 (Institutional / Isomorphic Mimicry):** How do donor-mandated monitoring, evaluation, and operational standards ("isomorphic mimicry") distort the delivery of disaster-derived humanitarian tools in active conflict zones, and what operational workarounds emerge in practice?
+- **Candidate RQ 3 (Governance / Local Agency):** Under what conditions can host-country digital infrastructure (e.g., national ID registries, mobile banking rails, e-governance platforms) overcome the failure modes of external humanitarian toolkits during compounded climate-conflict shocks?
+
+---
+
+*(Brainstorming dialogue continues...)*
+
