@@ -1,5 +1,6 @@
 import json
 import os
+import unittest.mock
 from unittest.mock import patch
 
 from pipelines.transcribe_notes.route_notes_transcribe import (
@@ -798,6 +799,56 @@ def test_run_plan_reports_excalidraw_agent_pending_as_collected_not_failed():
             excalidraw_driver=object(), collect_mode=True,
         )
     assert report.excalidraw_results[0].status == "collected"
+
+
+def test_run_plan_resolves_pending_questions_via_the_api_driver(tmp_path):
+    raw = _make_note_with_an_unanswered_question(tmp_path, "microecon")
+    plan = PipelinePlan(courses=["microecon"], resolve_questions_todo=[raw])
+    with patch("pipelines.transcribe_notes.route_notes_transcribe.resolve_note") as mock_resolve:
+        from agent.rag.resolve_questions import NoteResult
+        mock_resolve.return_value = NoteResult(resolved=1, skipped=0, failed=[])
+        report = run_plan(plan, object(), str(tmp_path))
+    mock_resolve.assert_called_once_with(raw, str(tmp_path), unittest.mock.ANY, [str(tmp_path)])
+    assert report.resolve_questions_resolved == 1
+    assert report.resolve_questions_failed == []
+
+
+def test_run_plan_records_resolve_questions_failures_without_stopping(tmp_path):
+    raw1 = _make_note_with_an_unanswered_question(tmp_path, "microecon", name="N1")
+    raw2 = _make_note_with_an_unanswered_question(tmp_path, "microecon", name="N2")
+    plan = PipelinePlan(courses=["microecon"], resolve_questions_todo=[raw1, raw2])
+    from agent.rag.resolve_questions import NoteResult
+    with patch(
+        "pipelines.transcribe_notes.route_notes_transcribe.resolve_note",
+        side_effect=[RuntimeError("boom"), NoteResult(resolved=1, skipped=0, failed=[])],
+    ):
+        report = run_plan(plan, object(), str(tmp_path))
+    assert report.resolve_questions_resolved == 1
+    assert report.resolve_questions_failed == [raw1]
+
+
+def test_run_plan_does_not_resolve_questions_in_collect_mode(tmp_path):
+    raw = _make_note_with_an_unanswered_question(tmp_path, "microecon")
+    plan = PipelinePlan(courses=["microecon"], resolve_questions_todo=[raw])
+    with patch("pipelines.transcribe_notes.route_notes_transcribe.resolve_note") as mock_resolve:
+        run_plan(plan, None, str(tmp_path), collect_mode=True)
+    mock_resolve.assert_not_called()
+
+
+def test_run_plan_chunks_every_targeted_course(tmp_path):
+    plan = PipelinePlan(courses=["microecon", "econometrics"])
+    with patch("pipelines.transcribe_notes.route_notes_transcribe.chunk_notes") as mock_chunk:
+        mock_chunk.return_value = {"chunked": 1, "unchanged": 2, "failed": 0, "skipped_no_embedding": 0}
+        report = run_plan(plan, object(), str(tmp_path))
+    assert mock_chunk.call_count == 2
+    assert report.chunk_stats == {"chunked": 2, "unchanged": 4, "failed": 0, "skipped_no_embedding": 0}
+
+
+def test_run_plan_does_not_chunk_in_collect_mode(tmp_path):
+    plan = PipelinePlan(courses=["microecon"])
+    with patch("pipelines.transcribe_notes.route_notes_transcribe.chunk_notes") as mock_chunk:
+        run_plan(plan, None, str(tmp_path), collect_mode=True)
+    mock_chunk.assert_not_called()
 
 
 def _make_excalidraw_pair(tmp_path, course, category, name, svg_bytes=b"<svg></svg>"):

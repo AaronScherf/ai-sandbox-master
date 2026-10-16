@@ -55,7 +55,8 @@ from pipelines.transcribe_notes.transcribe_excalidraw import (
 )
 from pipelines.transcribe_notes.agent_driver import AgentPending
 from pipelines.transcribe_notes.transcribe_notes import discover_pdf_files, process_pdf
-from agent.rag.resolve_questions import discover_pending_notes
+from agent.rag.resolve_questions import discover_pending_notes, resolve_note
+from core.indexer.chunk_index import chunk as chunk_notes
 
 if TYPE_CHECKING:
     from pipelines.transcribe_notes.agent_driver import TranscriptionDriver
@@ -355,6 +356,11 @@ class RunResult:
 class RunReport:
     pdf_results: list[RunResult] = field(default_factory=list)
     excalidraw_results: list[RunResult] = field(default_factory=list)
+    resolve_questions_resolved: int = 0
+    resolve_questions_failed: list[str] = field(default_factory=list)
+    chunk_stats: dict = field(default_factory=lambda: {
+        "chunked": 0, "unchanged": 0, "failed": 0, "skipped_no_embedding": 0,
+    })
 
 
 def run_plan(
@@ -363,7 +369,7 @@ def run_plan(
     expand_backend: str = "gemini", use_grounding: bool = False,
     force_vision: bool = False,
     driver: "TranscriptionDriver | None" = None, collect_mode: bool = False,
-    excalidraw_driver=None,
+    excalidraw_driver=None, resolve_questions_model: str | None = None,
 ) -> RunReport:
     """driver/excalidraw_driver/collect_mode plumb transcribe_notes.py's and
     transcribe_excalidraw.py's agent-driven transport through unchanged."""
@@ -415,6 +421,25 @@ def run_plan(
             print(f"WARNING: {md_path} ran with no error but produced no output -- flagging, not trusting.")
         report.excalidraw_results.append(RunResult(md_path, status))
 
+    if not collect_mode:
+        for raw_path in plan.resolve_questions_todo:
+            try:
+                note_result = resolve_note(
+                    raw_path, academic_hub_root, client, [academic_hub_root],
+                    **({"model": resolve_questions_model} if resolve_questions_model else {}),
+                )
+            except Exception as err:
+                print(f"ERROR: resolve-questions failed for {raw_path}: {err}")
+                report.resolve_questions_failed.append(raw_path)
+                continue
+            report.resolve_questions_resolved += note_result.resolved
+            report.resolve_questions_failed.extend(note_result.failed)
+
+        for course_name in plan.courses:
+            stats = chunk_notes(academic_hub_root, client, course=course_name)
+            for key in report.chunk_stats:
+                report.chunk_stats[key] += stats.get(key, 0)
+
     return report
 
 
@@ -432,6 +457,13 @@ def print_summary(plan: PipelinePlan, report: RunReport | None = None) -> None:
     print(f"Completed: {ok} succeeded, {len(problems)} failed/incomplete")
     for r in problems:
         print(f"  [{r.status}] {r.path}" + (f": {r.error}" if r.error else ""))
+    if report.resolve_questions_resolved or report.resolve_questions_failed:
+        print(f"Resolve-questions: {report.resolve_questions_resolved} resolved, "
+              f"{len(report.resolve_questions_failed)} failed")
+    cs = report.chunk_stats
+    if any(cs.values()):
+        print(f"Chunk/embed: {cs['chunked']} chunked, {cs['unchanged']} unchanged, "
+              f"{cs['failed']} failed, {cs['skipped_no_embedding']} skipped (no embedding)")
 
 
 def print_backup_summary(results: list[BackupResult]) -> None:
