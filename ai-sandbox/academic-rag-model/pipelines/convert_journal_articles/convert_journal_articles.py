@@ -159,6 +159,8 @@ def _finish_locally(pdf_path: str, client, args) -> str:
         process_pdf(pdf_path, client, args.model, args.index_root, driver=NullDriver(), **_process_kwargs())
     except NullDriverFired:
         return "needs agent transcription: run --collect first"
+    except Exception as err:  # one unreadable paper must not stop the rest of the batch
+        return f"error: {err}"
     return "converted locally (0 transcription calls)"
 
 

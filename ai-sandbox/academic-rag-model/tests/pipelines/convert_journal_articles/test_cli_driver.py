@@ -187,5 +187,26 @@ class TestIdentityWiring(unittest.TestCase):
             attach.assert_called_once_with(pdf, tmp)
 
 
+class TestLocalFinishIsolation(unittest.TestCase):
+    def test_one_unreadable_paper_does_not_stop_the_rest(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            a = _pdf(tmp, "economics/a.pdf")
+            b = _pdf(tmp, "economics/b.pdf")
+            os.makedirs(os.path.join(tmp, ".agent_work", "r1"))
+            seen = []
+
+            def fake_process(pdf_path, *args, **kwargs):
+                seen.append(pdf_path)
+                if pdf_path == a:
+                    raise RuntimeError("corrupt pdf")
+
+            with patch(f"{M}.get_gemini_client", return_value=MagicMock()), patch(f"{M}.process_pdf", side_effect=fake_process), \
+                    patch(f"{M}.attach_identity"), patch(f"{M}._page_count", return_value=5), \
+                    patch(f"{M}.corpus_write_lock"), patch("builtins.print") as out:
+                _run(["--articles-dir", tmp, "--index-root", tmp, "--submit", "r1"])
+            self.assertEqual(sorted(seen), sorted([a, b]))
+            self.assertTrue(any("error" in " ".join(map(str, c.args)) for c in out.call_args_list))
+
+
 if __name__ == "__main__":
     unittest.main()
