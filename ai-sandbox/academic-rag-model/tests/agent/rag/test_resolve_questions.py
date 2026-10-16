@@ -92,6 +92,34 @@ def _resolve(client, passages, key_terms, exclude=()):
     )
 
 
+def test_resolve_question_routes_key_terms_and_answer_through_a_driver():
+    class FakeDriver:
+        def __init__(self):
+            self.calls = []
+
+        def extract_key_terms(self, note_key, qid, prompt):
+            self.calls.append(("extract", note_key, qid))
+            return "Hausdorff"
+
+        def generate_answer(self, note_key, qid, prompt):
+            self.calls.append(("answer", note_key, qid))
+            assert "Hausdorff metric" in prompt  # the retrieved passage reached the prompt
+            return "An explanation via the driver."
+
+    driver = FakeDriver()
+    tag = find_tags("[Question] what is the Hausdorff distance?")[0]
+    entry = resolve_question(
+        tag, "ctx text", ["Slide text"], client=object(), roots=["/r"], course="c", model="m",
+        exclude_paths=set(), retrieve=lambda *a, **k: [_passage("The Hausdorff metric is defined as ...")],
+        driver=driver, note_key="note.excalidraw.md",
+    )
+    assert entry.answer == "An explanation via the driver."
+    assert entry.grounded is True
+    assert [c[0] for c in driver.calls] == ["extract", "answer"]
+    assert all(c[1] == "note.excalidraw.md" for c in driver.calls)
+    assert all(c[2] == tag.qid for c in driver.calls)
+
+
 def test_grounded_when_a_passage_mentions_a_key_term():
     client = _client()
     entry = _resolve(client, [_passage("The Hausdorff metric is defined as ...")], ["Hausdorff"])

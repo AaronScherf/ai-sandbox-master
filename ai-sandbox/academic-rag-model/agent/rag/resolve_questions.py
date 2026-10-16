@@ -14,8 +14,12 @@ import os
 import sys
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
+from typing import TYPE_CHECKING
 
-from agent.rag.rag_agent import _extract_key_terms, _term_match_count, retrieve_passages
+from agent.rag.rag_agent import _KEY_TERM_PROMPT_TEMPLATE, _extract_key_terms, _term_match_count, retrieve_passages
+
+if TYPE_CHECKING:
+    from agent.rag.resolve_questions_driver import QuestionResolverDriver
 from core.env.excalidraw_text import QUESTION_TAG_RE, split_labeled_segments
 from core.env.frontmatter import parse_frontmatter
 from core.env.gemini_utils import call_with_retries, get_gemini_client, load_dotenv_override
@@ -103,25 +107,48 @@ def build_answer_prompt(question: str, context: str, neighbor_slides: list[str],
     )
 
 
+def _parse_key_terms(text: str) -> list[str]:
+    """Same comma-split logic as rag_agent._extract_key_terms's own parsing
+    -- duplicated deliberately rather than calling that function, which must
+    stay untouched (shared with /hint and the tutor)."""
+    text = (text or "").strip()
+    if not text:
+        return []
+    return [t.strip() for t in text.split(",") if t.strip()]
+
+
 def resolve_question(
     tag: Tag, context: str, neighbors: list[str], *, client, roots: list[str], course: str | None,
     model: str, exclude_paths: set[str], retrieve=retrieve_passages, extract=_extract_key_terms,
+    driver: "QuestionResolverDriver | None" = None, note_key: str | None = None,
 ) -> Entry:
     """One question -> one Entry. Raises on any failure (including an empty
     answer) so the caller records nothing for it. Grounded means a passage
     survived own-note exclusion and (no key terms, or one mentions a key
     term) -- /hint's check, plus a guard so an empty retrieval can never count
-    as grounded."""
-    key_terms = extract(f"{tag.text}\n{context}", client)
+    as grounded.
+
+    driver=None (the default) reproduces today's behavior exactly via
+    `extract`/`retrieve` and a direct generate_content call. A given driver
+    routes key-term extraction and answer generation through it instead;
+    retrieval (`retrieve`) always stays local regardless."""
+    if driver is not None:
+        key_term_prompt = _KEY_TERM_PROMPT_TEMPLATE.format(question=f"{tag.text}\n{context}")
+        key_terms = _parse_key_terms(driver.extract_key_terms(note_key, tag.qid, key_term_prompt))
+    else:
+        key_terms = extract(f"{tag.text}\n{context}", client)
     found = retrieve(roots, f"{tag.text}\n{context[:300]}", client, course=course, key_terms=key_terms)
     # Hub-relative paths, not basenames: a same-named note in another folder is a legitimate source.
     passages = [p for p in found if p.path.replace("\\", "/") not in exclude_paths]
     grounded = bool(passages) and (not key_terms or any(_term_match_count(p.text, key_terms) for p in passages))
     prompt = build_answer_prompt(tag.text, context, neighbors, passages if grounded else None)
-    response = call_with_retries(lambda: client.models.generate_content(
-        model=model, contents=prompt, config={"temperature": 0.2},
-    ))
-    answer = (response.text or "").strip()
+    if driver is not None:
+        answer = driver.generate_answer(note_key, tag.qid, prompt).strip()
+    else:
+        response = call_with_retries(lambda: client.models.generate_content(
+            model=model, contents=prompt, config={"temperature": 0.2},
+        ))
+        answer = (response.text or "").strip()
     if not answer:
         raise ValueError(f"model returned an empty answer for {tag.qid}")
     return Entry(
