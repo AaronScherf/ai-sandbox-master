@@ -359,11 +359,18 @@ def test_discover_notes_finds_only_raw_transcripts_that_have_tags(tmp_path):
     assert discover_notes(hub, note="nomatch") == []
 
 
+def test_cli_default_driver_is_agent_not_api():
+    parser = rq._build_arg_parser()
+    parsed = parser.parse_args([])
+    assert parsed.driver == "agent"
+    assert parsed.allow_api_fallback is False
+
+
 def test_cli_dry_run_lists_questions_without_any_api_call(tmp_path, capsys):
     hub, raw = _hub(tmp_path)
     with patch.object(rq, "get_gemini_client", side_effect=AssertionError("no client in dry-run")), \
          patch.object(rq, "resolve_question", side_effect=AssertionError("no resolve in dry-run")):
-        assert rq.main(["--root", hub, "--dry-run"]) == 0
+        assert rq.main(["--root", hub, "--dry-run", "--driver", "api"]) == 0
     out = capsys.readouterr().out
     assert "2 question(s)" in out and "why not reflexivity?" in out
     assert not os.path.exists(sidecar_path_for(raw))
@@ -375,7 +382,7 @@ def test_cli_skips_notes_that_are_a_subset_of_another(tmp_path, capsys):
     save_shard(hub, "microecon", [{"file_id": "x", "path": rel_rag, "subset_of": "y"}])
     with patch.object(rq, "load_dotenv_override"), patch.object(rq, "get_gemini_client", return_value=object()), \
          patch.object(rq, "resolve_question", side_effect=AssertionError("subset must be skipped")):
-        assert rq.main(["--root", hub]) == 0
+        assert rq.main(["--root", hub, "--driver", "api"]) == 0
     assert "subset" in capsys.readouterr().out
     assert not os.path.exists(sidecar_path_for(raw))
 
@@ -384,19 +391,32 @@ def test_cli_full_run_returns_zero_and_nonzero_on_failure(tmp_path):
     hub, raw = _hub(tmp_path)
     with patch.object(rq, "load_dotenv_override"), patch.object(rq, "get_gemini_client", return_value=object()), \
          patch.object(rq, "resolve_question", side_effect=_fake_resolve()):
-        assert rq.main(["--root", hub]) == 0
+        assert rq.main(["--root", hub, "--driver", "api"]) == 0
     os.remove(sidecar_path_for(raw))
     with patch.object(rq, "load_dotenv_override"), patch.object(rq, "get_gemini_client", return_value=object()), \
          patch.object(rq, "resolve_question", side_effect=_fake_resolve(failing_ordinals={1})):
-        assert rq.main(["--root", hub]) == 1
+        assert rq.main(["--root", hub, "--driver", "api"]) == 1
 
 
 def test_cli_max_questions_stops_after_the_budget(tmp_path):
     hub, raw = _hub(tmp_path)
     with patch.object(rq, "load_dotenv_override"), patch.object(rq, "get_gemini_client", return_value=object()), \
          patch.object(rq, "resolve_question", side_effect=_fake_resolve()) as mock:
-        rq.main(["--root", hub, "--max-questions", "1"])
+        rq.main(["--root", hub, "--max-questions", "1", "--driver", "api"])
     assert mock.call_count == 1
+
+
+def test_cli_submit_warns_and_skips_an_orphaned_collected_doc(tmp_path, capsys):
+    # Review Focus: if a note's raw transcript changes between --collect and
+    # --submit (e.g. a retranscription ran in between), compute_file_id
+    # changes, so the doc_slug under .agent_work/<run>/ no longer matches
+    # any currently-discoverable note. Must warn and skip, never crash.
+    hub, raw = _hub(tmp_path)
+    run_dir = os.path.join(hub, ".agent_work", "run-1", "orphaned-doc--deadbeef")
+    os.makedirs(run_dir)
+    with patch.object(rq, "load_dotenv_override"), patch.object(rq, "get_gemini_client", return_value=object()):
+        assert rq.main(["--root", hub, "--submit", "run-1"]) == 0
+    assert "no matching pending note" in capsys.readouterr().out
 
 
 def test_resolve_note_reuses_an_answer_whose_ordinal_shifted_in_a_retranscription(tmp_path):

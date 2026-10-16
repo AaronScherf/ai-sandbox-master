@@ -336,7 +336,7 @@ def resolve_note(
     return result
 
 
-def main(argv: list[str] | None = None) -> int:
+def _build_arg_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Answer the [Question] tags in Excalidraw notes.")
     parser.add_argument("--root", default=_DEFAULT_ROOT, help="Corpus root (academic-hub).")
     parser.add_argument("--course", default=None)
@@ -345,9 +345,128 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--redo", action="store_true", help="Re-answer questions that already have an entry.")
     parser.add_argument("--model", default=RESOLVER_MODEL)
     parser.add_argument("--max-questions", type=int, default=None)
+    parser.add_argument(
+        "--driver", choices=["api", "agent"], default="agent",
+        help="Generation transport. Default: agent (the Antigravity subscription). "
+             "Use 'api' for a fully metered run.",
+    )
+    parser.add_argument("--collect", action="store_true",
+                         help="With --driver agent: write task cards instead of resolving.")
+    parser.add_argument("--run-id", default=None,
+                         help="Run id for --collect/--submit's .agent_work/ directory (default: a timestamp).")
+    parser.add_argument("--submit", default=None, metavar="RUN_ID",
+                         help="Validate this run's filled task cards and write them through.")
+    parser.add_argument(
+        "--allow-api-fallback", action="store_true",
+        help="With --submit: finish any still-pending/bounced cards via the metered API instead of "
+             "leaving them pending. Explicit opt-in only -- never automatic.",
+    )
+    parser.add_argument("--bootstrap", default=None, metavar="RUN_ID",
+                         help="Print the agent's operating contract for this run.")
+    return parser
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = _build_arg_parser()
     args = parser.parse_args(argv)
 
+    if args.bootstrap:
+        print(f"""Agent-driven question-resolution contract for run '{args.bootstrap}':
+
+1. Open each note's directory under .agent_work/{args.bootstrap}/<doc-slug>/.
+2. Read worklist.md to see which task cards are pending.
+3. For a key-terms card: fill ONLY the "Agent output" section with one
+   "--- KEYTERMS <qid> ---" section per question listed, in order, using
+   exactly the qids the card lists. A comma-separated list of specific named
+   terms, or nothing if none apply -- never answer the question itself here.
+4. For an answers card: fill ONLY the "Agent output" section with one
+   "--- ANSWER <qid> ---" section per question listed, in order. Write the
+   full explanation markdown for that question.
+5. Once you've filled one or more cards, run:
+   python -m agent.rag.resolve_questions --submit {args.bootstrap}
+6. If a card comes back marked "bounced: <reason>" in worklist.md, redo only
+   that card in place and re-run step 5.
+7. Stop once worklist.md shows nothing "pending"/"filled" left for this run.
+   A note's key-terms card must be fully submitted before its answers card
+   is staged -- submit stages the answers card automatically once that
+   happens, on your next --submit call.
+""")
+        return 0
+
+    if args.collect and args.driver != "agent":
+        print("--collect requires --driver agent.")
+        return 1
+    if args.driver == "agent" and not args.collect and not args.submit:
+        print("--driver agent requires --collect or --submit.")
+        return 1
+
     hub = os.path.abspath(args.root)
+
+    if args.collect:
+        import datetime
+
+        from agent.rag.resolve_questions_agent_work import QuestionResolverAgentDriver
+
+        load_dotenv_override()
+        client = get_gemini_client("PAID_GEMINI_KEY")
+        if client is None:
+            return 1
+        run_id = args.run_id or datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+        driver = QuestionResolverAgentDriver(hub, run_id)
+        for raw_path in discover_notes(hub, args.course, args.note):
+            card = _note_card(hub, raw_path)
+            if card and card.get("subset_of"):
+                continue
+            try:
+                resolve_note(raw_path, hub, client, [hub], model=args.model, redo=args.redo,
+                             driver=driver, collect_mode=True)
+            except Exception as err:
+                from pipelines.transcribe_notes.agent_driver import AgentPending
+
+                if isinstance(err, AgentPending):
+                    print(f"[{os.path.basename(raw_path)}] collected")
+                else:
+                    print(f"ERROR: {raw_path} failed: {err}")
+        print(f"Collect run '{run_id}' complete under {os.path.join(hub, '.agent_work', run_id)}.")
+        return 0
+
+    if args.submit:
+        from core.indexer.index_card import compute_file_id
+        from pipelines.transcribe_notes.agent_work import agent_work_dir, doc_slug_for
+        from agent.rag.resolve_questions_submit import submit_doc
+
+        load_dotenv_override()
+        client = get_gemini_client("PAID_GEMINI_KEY")
+        if client is None:
+            return 1
+        run_dir = agent_work_dir(hub, args.submit)
+        if not os.path.isdir(run_dir):
+            print(f"No .agent_work run directory found for run '{args.submit}' at {run_dir}.")
+            return 1
+
+        notes_by_slug = {
+            doc_slug_for(raw_path, compute_file_id(raw_path)): raw_path
+            for raw_path in discover_notes(hub, args.course, args.note)
+        }
+        failed = []
+        for doc_slug in sorted(os.listdir(run_dir)):
+            raw_path = notes_by_slug.get(doc_slug)
+            if raw_path is None:
+                print(f"WARNING: no matching pending note for collected doc '{doc_slug}' "
+                      f"(already submitted, or outside this --course/--note filter?) -- skipping.")
+                continue
+            try:
+                status = submit_doc(
+                    hub, hub, args.submit, doc_slug, raw_path, hub, client, args.model,
+                    allow_api_fallback=args.allow_api_fallback,
+                )
+            except Exception as err:
+                print(f"[{doc_slug}] error: {err}")
+                failed.append(doc_slug)
+                continue
+            print(f"[{doc_slug}] {status}")
+        return 1 if failed else 0
+
     jobs = []
     for raw_path in discover_notes(hub, args.course, args.note):
         card = _note_card(hub, raw_path)
