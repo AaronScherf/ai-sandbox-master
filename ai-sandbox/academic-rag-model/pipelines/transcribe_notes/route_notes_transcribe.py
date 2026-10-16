@@ -477,6 +477,18 @@ def print_backup_summary(results: list[BackupResult]) -> None:
         print(f"  [failed] {r.source} -> {r.dest}: {r.error}")
 
 
+def resolve_questions_slug_map(plan: PipelinePlan) -> dict[str, str]:
+    """doc_slug -> raw_path for every note in plan.resolve_questions_todo,
+    using the same file_id-derived slug scheme resolve_questions.py's own
+    --collect/--submit use -- lets this module's submit loop match
+    resolve-questions task-card directories alongside its own PDF/
+    Excalidraw ones under the same .agent_work/<run-id>/ tree."""
+    from core.indexer.index_card import compute_file_id
+    from pipelines.transcribe_notes.agent_work import doc_slug_for
+
+    return {doc_slug_for(p, compute_file_id(p)): p for p in plan.resolve_questions_todo}
+
+
 def _build_arg_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description="Discover notes with no existing transcription across every course under "
@@ -492,6 +504,8 @@ def _build_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument("--dry-run", action="store_true", help="Show what would be processed without calling any API.")
     parser.add_argument("--pdf-model", default=None, help="Model override for transcribe_notes.py (default: its own auto-selection).")
     parser.add_argument("--excalidraw-model", default=None, help=f"Gemini vision model for Excalidraw transcription. Default: {_EXCALIDRAW_MODEL}.")
+    parser.add_argument("--resolve-questions-model", default=None,
+                         help="Model override for agent/rag/resolve_questions.py (default: its own RESOLVER_MODEL).")
     parser.add_argument("--expand-backend", default="gemini", choices=("gemini", "ollama"))
     parser.add_argument("--grounding", action="store_true", help="Retrieve textbook passages to ground Excalidraw expansion.")
     parser.add_argument(
@@ -570,6 +584,8 @@ def main():
         for r in sync_resource_backups(all_excalidraw_pairs, dry_run=True):
             if r.status == "copied":
                 print(f"  [backup] would copy: {r.source} -> {r.dest}")
+        for raw_path in plan.resolve_questions_todo:
+            print(f"  [resolve-questions] would process: {raw_path}")
         return
 
     if args.collect and args.driver != "agent":
@@ -592,8 +608,15 @@ def main():
         plan.excalidraw_todo = [
             (md, img) for md, img in plan.excalidraw_todo if md in canonical_excalidraw_md_paths
         ]
+        from agent.rag.resolve_questions_agent_work import QuestionResolverAgentDriver
+
         pdf_driver = AgentDriver(str(academic_hub_dir), run_id)
         excalidraw_driver = ExcalidrawAgentDriver(str(academic_hub_dir), run_id)
+        rq_client = None
+        if plan.resolve_questions_todo:
+            rq_client = get_gemini_client("PAID_GEMINI_KEY" if args.use_paid_key else "GEMINI_API_KEY")
+            if rq_client is None:
+                sys.exit(1)
         try:
             with corpus_write_lock(
                 [academic_hub_dir, academic_hub_dir / "academic_notes"],
@@ -605,6 +628,17 @@ def main():
                     force_vision=args.force_vision, driver=pdf_driver, collect_mode=True,
                     excalidraw_driver=excalidraw_driver, use_grounding=args.grounding,
                 )
+                rq_driver = QuestionResolverAgentDriver(str(academic_hub_dir), run_id)
+                for raw_path in plan.resolve_questions_todo:
+                    try:
+                        resolve_note(
+                            raw_path, str(academic_hub_dir), rq_client, [str(academic_hub_dir)],
+                            driver=rq_driver, collect_mode=True,
+                        )
+                    except AgentPending:
+                        pass
+                    except Exception as err:
+                        print(f"ERROR: resolve-questions collect failed for {raw_path}: {err}")
         except CorpusWriteLockError as exc:
             raise SystemExit(str(exc)) from exc
         print_backup_summary(backup_results)
@@ -631,10 +665,13 @@ def main():
         # from whatever is still pending transcription under this course
         # filter -- a collected-but-not-yet-submitted document has no output
         # file yet, so it's still in plan.pdf_todo/plan.excalidraw_todo.
+        from agent.rag.resolve_questions_submit import submit_doc as submit_resolve_questions_doc
+
         pdf_by_slug = {doc_slug_for(p, compute_file_id(p)): p for p in plan.pdf_todo}
         excalidraw_by_slug = {
             doc_slug_for(md, compute_file_id(md)): (md, img) for md, img in plan.excalidraw_todo
         }
+        resolve_questions_by_slug = resolve_questions_slug_map(plan)
         try:
             with corpus_write_lock(
                 [academic_hub_dir, academic_hub_dir / "academic_notes"],
@@ -644,7 +681,8 @@ def main():
                 for doc_slug in sorted(os.listdir(run_dir)):
                     pdf_path = pdf_by_slug.get(doc_slug)
                     excalidraw_pair = excalidraw_by_slug.get(doc_slug)
-                    if pdf_path is None and excalidraw_pair is None:
+                    raw_path = resolve_questions_by_slug.get(doc_slug)
+                    if pdf_path is None and excalidraw_pair is None and raw_path is None:
                         print(f"WARNING: no matching pending document for collected doc '{doc_slug}' "
                               f"(already submitted, or outside this --course filter?) -- skipping.")
                         continue
@@ -655,7 +693,7 @@ def main():
                                 pdf_path, client, args.pdf_model, force_vision=args.force_vision,
                                 allow_api_fallback=args.allow_api_fallback,
                             )
-                        else:
+                        elif excalidraw_pair is not None:
                             md_path, image_path = excalidraw_pair
                             status = submit_excalidraw_doc(
                                 str(academic_hub_dir), str(academic_hub_dir), args.submit, doc_slug,
@@ -663,25 +701,31 @@ def main():
                                 expand_backend=args.expand_backend, allow_api_fallback=args.allow_api_fallback,
                                 use_grounding=args.grounding,
                             )
+                        else:
+                            status = submit_resolve_questions_doc(
+                                str(academic_hub_dir), str(academic_hub_dir), args.submit, doc_slug,
+                                raw_path, str(academic_hub_dir), client, args.resolve_questions_model,
+                                allow_api_fallback=args.allow_api_fallback,
+                            )
                     except Exception as err:
                         print(f"[{doc_slug}] error: {err}")
                         continue
                     print(f"[{doc_slug}] {status}")
+                for course_name in plan.courses:
+                    chunk_notes(str(academic_hub_dir), client, course=course_name)
         except CorpusWriteLockError as exc:
             raise SystemExit(str(exc)) from exc
         print_backup_summary(backup_results)
         return
 
-    total_todo = len(plan.pdf_todo) + len(plan.excalidraw_todo)
-    if total_todo == 0 and not all_excalidraw_pairs:
+    total_todo = len(plan.pdf_todo) + len(plan.excalidraw_todo) + len(plan.resolve_questions_todo)
+    if total_todo == 0 and not all_excalidraw_pairs and not plan.courses:
         print("Nothing to do.")
         return
 
-    client = None
-    if total_todo > 0:
-        client = get_gemini_client("PAID_GEMINI_KEY" if args.use_paid_key else "GEMINI_API_KEY")
-        if client is None:
-            sys.exit(1)
+    client = get_gemini_client("PAID_GEMINI_KEY" if args.use_paid_key else "GEMINI_API_KEY")
+    if client is None:
+        sys.exit(1)
 
     try:
         # The router writes Markdown in the nested notes repository and
@@ -691,14 +735,11 @@ def main():
             "route notes transcription",
         ):
             backup_results = sync_resource_backups(all_excalidraw_pairs)
-            report = (
-                run_plan(
-                    plan, client, str(academic_hub_dir),
-                    pdf_model=args.pdf_model, excalidraw_model=args.excalidraw_model,
-                    expand_backend=args.expand_backend, use_grounding=args.grounding,
-                    force_vision=args.force_vision,
-                )
-                if total_todo > 0 else RunReport()
+            report = run_plan(
+                plan, client, str(academic_hub_dir),
+                pdf_model=args.pdf_model, excalidraw_model=args.excalidraw_model,
+                expand_backend=args.expand_backend, use_grounding=args.grounding,
+                force_vision=args.force_vision, resolve_questions_model=args.resolve_questions_model,
             )
     except CorpusWriteLockError as exc:
         raise SystemExit(str(exc)) from exc

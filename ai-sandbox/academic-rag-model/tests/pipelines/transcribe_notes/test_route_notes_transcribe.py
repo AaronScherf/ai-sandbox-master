@@ -18,6 +18,7 @@ from pipelines.transcribe_notes.route_notes_transcribe import (
     find_course_dirs,
     find_subset_roots,
     pdf_output_path,
+    resolve_questions_slug_map,
     run_plan,
     sync_resource_backups,
 )
@@ -849,6 +850,17 @@ def test_run_plan_does_not_chunk_in_collect_mode(tmp_path):
     with patch("pipelines.transcribe_notes.route_notes_transcribe.chunk_notes") as mock_chunk:
         run_plan(plan, None, str(tmp_path), collect_mode=True)
     mock_chunk.assert_not_called()
+
+
+def test_resolve_questions_slug_map_matches_resolve_questions_own_slug_scheme(tmp_path):
+    from core.indexer.index_card import compute_file_id
+    from pipelines.transcribe_notes.agent_work import doc_slug_for
+
+    raw = tmp_path / "N.excalidraw.md"
+    raw.write_text("content", encoding="utf-8")
+    plan = PipelinePlan(resolve_questions_todo=[str(raw)])
+    slug_map = resolve_questions_slug_map(plan)
+    assert slug_map == {doc_slug_for(str(raw), compute_file_id(str(raw))): str(raw)}
 
 
 def _make_excalidraw_pair(tmp_path, course, category, name, svg_bytes=b"<svg></svg>"):
