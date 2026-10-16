@@ -436,7 +436,12 @@ def run_plan(
             report.resolve_questions_failed.extend(note_result.failed)
 
         for course_name in plan.courses:
-            stats = chunk_notes(academic_hub_root, client, course=course_name)
+            try:
+                stats = chunk_notes(academic_hub_root, client, course=course_name)
+            except Exception as err:
+                print(f"ERROR: chunking failed for course {course_name!r}: {err}")
+                report.chunk_stats["failed"] += 1
+                continue
             for key in report.chunk_stats:
                 report.chunk_stats[key] += stats.get(key, 0)
 
@@ -444,6 +449,12 @@ def run_plan(
 
 
 _TERMINAL_OK_STATUSES = frozenset({"ok", "collected"})
+
+
+def print_chunk_stats(chunk_stats: dict) -> None:
+    if any(chunk_stats.values()):
+        print(f"Chunk/embed: {chunk_stats['chunked']} chunked, {chunk_stats['unchanged']} unchanged, "
+              f"{chunk_stats['failed']} failed, {chunk_stats['skipped_no_embedding']} skipped (no embedding)")
 
 
 def print_summary(plan: PipelinePlan, report: RunReport | None = None) -> None:
@@ -460,10 +471,7 @@ def print_summary(plan: PipelinePlan, report: RunReport | None = None) -> None:
     if report.resolve_questions_resolved or report.resolve_questions_failed:
         print(f"Resolve-questions: {report.resolve_questions_resolved} resolved, "
               f"{len(report.resolve_questions_failed)} failed")
-    cs = report.chunk_stats
-    if any(cs.values()):
-        print(f"Chunk/embed: {cs['chunked']} chunked, {cs['unchanged']} unchanged, "
-              f"{cs['failed']} failed, {cs['skipped_no_embedding']} skipped (no embedding)")
+    print_chunk_stats(report.chunk_stats)
 
 
 def print_backup_summary(results: list[BackupResult]) -> None:
@@ -586,6 +594,13 @@ def main():
                 print(f"  [backup] would copy: {r.source} -> {r.dest}")
         for raw_path in plan.resolve_questions_todo:
             print(f"  [resolve-questions] would process: {raw_path}")
+        for course_name in plan.courses:
+            try:
+                stats = chunk_notes(str(academic_hub_dir), None, course=course_name, dry_run=True)
+            except Exception as err:
+                print(f"  [chunk] {course_name}: ERROR previewing ({err})")
+                continue
+            print(f"  [chunk] {course_name}: {stats['chunked']} to (re)chunk, {stats['unchanged']} unchanged")
         return
 
     if args.collect and args.driver != "agent":
@@ -711,11 +726,20 @@ def main():
                         print(f"[{doc_slug}] error: {err}")
                         continue
                     print(f"[{doc_slug}] {status}")
+                chunk_stats = {"chunked": 0, "unchanged": 0, "failed": 0, "skipped_no_embedding": 0}
                 for course_name in plan.courses:
-                    chunk_notes(str(academic_hub_dir), client, course=course_name)
+                    try:
+                        stats = chunk_notes(str(academic_hub_dir), client, course=course_name)
+                    except Exception as err:
+                        print(f"ERROR: chunking failed for course {course_name!r}: {err}")
+                        chunk_stats["failed"] += 1
+                        continue
+                    for key in chunk_stats:
+                        chunk_stats[key] += stats.get(key, 0)
         except CorpusWriteLockError as exc:
             raise SystemExit(str(exc)) from exc
         print_backup_summary(backup_results)
+        print_chunk_stats(chunk_stats)
         return
 
     total_todo = len(plan.pdf_todo) + len(plan.excalidraw_todo) + len(plan.resolve_questions_todo)

@@ -852,6 +852,19 @@ def test_run_plan_does_not_chunk_in_collect_mode(tmp_path):
     mock_chunk.assert_not_called()
 
 
+def test_run_plan_isolates_a_chunk_failure_to_one_course(tmp_path):
+    # Review Focus #4: chunk() failing for one course must not abort the
+    # batch for other courses, and must not throw away the already-built
+    # RunReport (pdf/excalidraw results, resolve-questions counts).
+    plan = PipelinePlan(courses=["bad", "microecon"])
+    with patch(
+        "pipelines.transcribe_notes.route_notes_transcribe.chunk_notes",
+        side_effect=[RuntimeError("corrupt shard"), {"chunked": 1, "unchanged": 0, "failed": 0, "skipped_no_embedding": 0}],
+    ):
+        report = run_plan(plan, object(), str(tmp_path))
+    assert report.chunk_stats == {"chunked": 1, "unchanged": 0, "failed": 1, "skipped_no_embedding": 0}
+
+
 def test_resolve_questions_slug_map_matches_resolve_questions_own_slug_scheme(tmp_path):
     from core.indexer.index_card import compute_file_id
     from pipelines.transcribe_notes.agent_work import doc_slug_for

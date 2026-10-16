@@ -98,6 +98,7 @@ def test_submit_doc_finalizes_into_the_sidecar_once_both_stages_are_cached(tmp_p
     assert entries[0].answer == "An explanation."
     assert entries[0].qid == qid
     assert entries[0].grounded is True
+    assert entries[0].sources == ["book.md (p. 1)"]
 
 
 def test_submit_doc_refreshes_the_index_cards_content_hash_once_finalized(tmp_path):

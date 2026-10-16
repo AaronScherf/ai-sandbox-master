@@ -19,7 +19,7 @@ def _git_init(path):
     return path
 
 
-def _setup(tmp_path, monkeypatch, argv, pdf_todo=None, excalidraw_todo=None):
+def _setup(tmp_path, monkeypatch, argv, pdf_todo=None, excalidraw_todo=None, courses=None, resolve_questions_todo=None):
     outer = _git_init(tmp_path / "ai-sandbox")
     hub = outer / "academic-hub"
     hub.mkdir()
@@ -30,7 +30,7 @@ def _setup(tmp_path, monkeypatch, argv, pdf_todo=None, excalidraw_todo=None):
     monkeypatch.setattr(router, "build_plan", lambda *args, **kwargs: SimpleNamespace(
         pdf_todo=list(pdf_todo or []), pdf_skipped=[],
         excalidraw_todo=list(excalidraw_todo or []), excalidraw_skipped=[],
-        courses=[], resolve_questions_todo=[],
+        courses=list(courses or []), resolve_questions_todo=list(resolve_questions_todo or []),
     ))
     monkeypatch.setattr(router, "print_summary", lambda *args: None)
     monkeypatch.setattr(router, "sync_resource_backups", lambda *args, **kwargs: [])
@@ -56,6 +56,19 @@ def test_bootstrap_prints_contract_without_touching_the_corpus(tmp_path, monkeyp
     assert "run1" in out
     assert "route_notes_transcribe --submit run1" in out
     assert "SEGMENT" in out
+
+
+def test_dry_run_previews_chunk_eligibility_per_course(tmp_path, monkeypatch, capsys):
+    _setup(tmp_path, monkeypatch, ["--dry-run"], courses=["microecon"])
+    monkeypatch.setattr(
+        router, "chunk_notes",
+        lambda *args, **kwargs: {"chunked": 3, "unchanged": 5, "failed": 0, "skipped_no_embedding": 0},
+    )
+
+    router.main()
+
+    out = capsys.readouterr().out
+    assert "[chunk] microecon: 3 to (re)chunk, 5 unchanged" in out
 
 
 def test_driver_agent_without_collect_or_submit_exits(tmp_path, monkeypatch):
@@ -128,3 +141,116 @@ def test_submit_matches_collected_docs_by_slug_and_skips_unmatched(tmp_path, mon
     assert submitted[0][3] == known_slug
     out = capsys.readouterr().out
     assert "no matching pending document" in out
+
+
+def test_collect_stages_resolve_questions_via_its_own_agent_driver(tmp_path, monkeypatch):
+    raw_path = tmp_path / "ai-sandbox" / "N.excalidraw.md"
+    _setup(
+        tmp_path, monkeypatch, ["--driver", "agent", "--collect", "--run-id", "r1"],
+        resolve_questions_todo=[str(raw_path)],
+    )
+    raw_path.parent.mkdir(parents=True, exist_ok=True)
+    raw_path.write_text("content", encoding="utf-8")
+
+    monkeypatch.setattr(
+        router, "run_plan",
+        lambda *a, **k: SimpleNamespace(pdf_results=[], excalidraw_results=[]),
+    )
+    monkeypatch.setattr(agent_work, "dedupe_by_file_id", lambda paths: (list(paths), {}))
+    monkeypatch.setattr(agent_work, "AgentDriver", lambda hub_root, run_id: SimpleNamespace())
+    monkeypatch.setattr(excalidraw_agent_work, "ExcalidrawAgentDriver", lambda hub_root, run_id: SimpleNamespace())
+    monkeypatch.setattr(
+        "agent.rag.resolve_questions_agent_work.QuestionResolverAgentDriver",
+        lambda hub_root, run_id: SimpleNamespace(run_id=run_id),
+    )
+
+    resolved = []
+    monkeypatch.setattr(
+        "pipelines.transcribe_notes.route_notes_transcribe.resolve_note",
+        lambda raw, hub, client, roots, **kwargs: resolved.append((raw, kwargs)),
+    )
+
+    router.main()
+
+    assert len(resolved) == 1
+    assert resolved[0][0] == str(raw_path)
+    assert resolved[0][1]["collect_mode"] is True
+    assert resolved[0][1]["driver"].run_id == "r1"
+
+
+def test_collect_resolve_questions_tolerates_agent_pending_and_other_errors(tmp_path, monkeypatch, capsys):
+    raw1 = tmp_path / "ai-sandbox" / "N1.excalidraw.md"
+    raw2 = tmp_path / "ai-sandbox" / "N2.excalidraw.md"
+    _setup(
+        tmp_path, monkeypatch, ["--driver", "agent", "--collect", "--run-id", "r1"],
+        resolve_questions_todo=[str(raw1), str(raw2)],
+    )
+    for raw in (raw1, raw2):
+        raw.parent.mkdir(parents=True, exist_ok=True)
+        raw.write_text("content", encoding="utf-8")
+
+    monkeypatch.setattr(
+        router, "run_plan",
+        lambda *a, **k: SimpleNamespace(pdf_results=[], excalidraw_results=[]),
+    )
+    monkeypatch.setattr(agent_work, "dedupe_by_file_id", lambda paths: (list(paths), {}))
+    monkeypatch.setattr(agent_work, "AgentDriver", lambda hub_root, run_id: SimpleNamespace())
+    monkeypatch.setattr(excalidraw_agent_work, "ExcalidrawAgentDriver", lambda hub_root, run_id: SimpleNamespace())
+    monkeypatch.setattr(
+        "agent.rag.resolve_questions_agent_work.QuestionResolverAgentDriver",
+        lambda hub_root, run_id: SimpleNamespace(run_id=run_id),
+    )
+
+    from pipelines.transcribe_notes.agent_driver import AgentPending
+
+    def fake_resolve_note(raw, hub, client, roots, **kwargs):
+        if raw == str(raw1):
+            raise AgentPending()
+        raise RuntimeError("boom")
+
+    monkeypatch.setattr(
+        "pipelines.transcribe_notes.route_notes_transcribe.resolve_note", fake_resolve_note,
+    )
+
+    router.main()  # must not raise -- both outcomes are handled per-note
+
+    out = capsys.readouterr().out
+    assert "ERROR: resolve-questions collect failed" in out
+
+
+def test_submit_dispatches_a_resolve_questions_slug_and_isolates_chunk_failures(tmp_path, monkeypatch, capsys):
+    from core.indexer.index_card import compute_file_id as _cfid
+    from pipelines.transcribe_notes.agent_work import doc_slug_for as _dsf
+
+    raw_path = tmp_path / "ai-sandbox" / "N.excalidraw.md"
+    hub = _setup(
+        tmp_path, monkeypatch, ["--submit", "r1"],
+        courses=["bad", "good"],
+        resolve_questions_todo=[str(raw_path)],
+    )
+    raw_path.parent.mkdir(parents=True, exist_ok=True)
+    raw_path.write_text("content", encoding="utf-8")
+
+    known_slug = _dsf(str(raw_path), _cfid(str(raw_path)))
+    run_dir = hub / ".agent_work" / "r1"
+    (run_dir / known_slug).mkdir(parents=True)
+
+    submitted = []
+    monkeypatch.setattr(
+        "agent.rag.resolve_questions_submit.submit_doc",
+        lambda *args, **kwargs: submitted.append(args) or "complete",
+    )
+    monkeypatch.setattr(
+        router, "chunk_notes",
+        lambda *args, **kwargs: (_ for _ in ()).throw(RuntimeError("corrupt shard"))
+        if kwargs.get("course") == "bad"
+        else {"chunked": 1, "unchanged": 0, "failed": 0, "skipped_no_embedding": 0},
+    )
+
+    router.main()
+
+    assert len(submitted) == 1
+    assert submitted[0][3] == known_slug
+    out = capsys.readouterr().out
+    assert "chunking failed for course 'bad'" in out
+    assert "Chunk/embed: 1 chunked, 0 unchanged, 1 failed, 0 skipped (no embedding)" in out
