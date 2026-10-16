@@ -46,10 +46,13 @@ downstream correction pass over this pipeline's own output — see the root
   across every course under `academic_notes/`: finds source files (`.pdf`,
   or `.excalidraw.md` + its image sibling) with no existing output yet, and
   dispatches each to the matching pipeline above by extension alone — no
-  LLM decides routing, so this is safe to run unattended
+  LLM decides routing
   (`python -m pipelines.transcribe_notes.route_notes_transcribe [--course NAME] [--dry-run] [--force]`).
   Re-verifies after each call that the expected output file actually landed
   on disk rather than trusting a "no exception raised" result.
+  `--driver` defaults to `agent` (the Antigravity subscription), which
+  requires `--collect`/`--submit` — an unattended/cron invocation needs an
+  explicit `--driver api` to run the old fully-metered loop.
 
   A whole prior course offering (e.g. a full previous year's worth of
   content, nested several folders deep) can also be swept into an existing

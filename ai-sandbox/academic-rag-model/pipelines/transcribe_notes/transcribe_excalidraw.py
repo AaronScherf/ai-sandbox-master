@@ -396,6 +396,19 @@ def _expansion_segments(raw_markdown: str, has_slides: bool) -> list[tuple[str, 
     return split_labeled_segments(raw_markdown)
 
 
+def _expansion_provenance(driver) -> tuple[str, str]:
+    """Reports which backend/model actually produced the expansion, instead
+    of assuming ExcalidrawApiDriver's gemini default -- a driver with no
+    `.backend` attribute (ExcalidrawAgentDriver, ExcalidrawNullDriver) is
+    agent-driven, not a silent gemini call."""
+    backend_used = getattr(driver, "backend", None)
+    if backend_used is None:
+        agent_name = getattr(driver, "agent_name", None) or "agent"
+        return agent_name, agent_name
+    model_used = _EXPANSION_MODEL_OLLAMA if backend_used == "ollama" else _EXPANSION_MODEL_GEMINI
+    return backend_used, model_used
+
+
 def expand_transcription(
     client, raw_markdown: str, backend: str = "gemini", retrieved_passages: list[str] | None = None,
     has_slides: bool = False, driver: "ExcalidrawDriver | None" = None,
@@ -407,7 +420,7 @@ def expand_transcription(
     each segment's expanded text by its position in `_expansion_segments`'s
     output so a resumed call never re-expands an already-cached segment.
     Slide segments are never generated (kept verbatim) and never cached."""
-    from pipelines.transcribe_notes.agent_driver import AgentPending
+    from pipelines.transcribe_notes.agent_driver import AgentPending, NullDriverFired
     from pipelines.transcribe_notes.excalidraw_agent_driver import ExcalidrawApiDriver
 
     if driver is None:
@@ -445,16 +458,18 @@ def expand_transcription(
         # Single segment covering the whole document -- output format must
         # stay the bare expanded text, no "**[Notes]**" wrapper.
         if cache.get("0", "").strip():
-            return cache["0"], {"expansion_backend": driver.backend if hasattr(driver, "backend") else backend,
-                                 "expansion_model": _EXPANSION_MODEL_GEMINI, "grounded": grounded}
+            backend_used, model_used = _expansion_provenance(driver)
+            return cache["0"], {
+                "expansion_backend": backend_used, "expansion_model": model_used, "grounded": grounded,
+            }
         prompt = build_expansion_prompt(raw_markdown, retrieved_passages, has_slides=False)
         try:
             text = driver.expand(excalidraw_md_path, prompt, 0, 1)
         except AgentPending:
             raise
         cache["0"] = text
-        backend_used = driver.backend if hasattr(driver, "backend") else backend
-        return text, {"expansion_backend": backend_used, "expansion_model": _EXPANSION_MODEL_GEMINI, "grounded": grounded}
+        backend_used, model_used = _expansion_provenance(driver)
+        return text, {"expansion_backend": backend_used, "expansion_model": model_used, "grounded": grounded}
 
     out: list[str] = []
     for i, (label, text) in enumerate(segments):
@@ -470,16 +485,29 @@ def expand_transcription(
         ]
         prompt = build_handwriting_expansion_prompt(text, neighbors, retrieved_passages)
         try:
-            expanded = driver.expand(excalidraw_md_path, prompt, i, len(segments))
-        except AgentPending:
+            raw_expanded = driver.expand(excalidraw_md_path, prompt, i, len(segments))
+        except (AgentPending, NullDriverFired):
             raise
-        expanded = (expanded or "").strip() or text  # keep raw text if generation came back empty
-        cache[str(i)] = expanded
+        except Exception as err:
+            # One transient generation failure must not abort the whole
+            # note -- keep the raw (terse) handwriting for this segment,
+            # same fallback expand_with_verbatim_slides used before this
+            # module routed through a driver.
+            print(f"WARNING: handwriting expansion failed ({err}); keeping the raw transcription for that block.")
+            raw_expanded = ""
+        expanded = (raw_expanded or "").strip()
+        if expanded:
+            cache[str(i)] = expanded
+        else:
+            # A transient/empty result must not be cached as if it were
+            # real content -- that would freeze the fallback permanently
+            # and a later resumed call would never retry this segment.
+            expanded = text
         out.append(f"**[Notes]**\n{expanded}")
 
-    backend_used = driver.backend if hasattr(driver, "backend") else backend
+    backend_used, model_used = _expansion_provenance(driver)
     return "\n\n".join(out), {
-        "expansion_backend": backend_used, "expansion_model": _EXPANSION_MODEL_GEMINI,
+        "expansion_backend": backend_used, "expansion_model": model_used,
         "grounded": grounded, "slides_verbatim": True,
     }
 
@@ -609,6 +637,26 @@ def chunk_cache_paths_for(excalidraw_md_path: str) -> tuple[str, str]:
     return cache_path, driver_path
 
 
+def _load_cache_if_source_matches(cache_path: str, driver_path: str, source_hash: str) -> dict:
+    """Final review finding: re-running on an edited canvas (or an edited
+    PDF's own frontmatter never mattered here, but a re-saved .excalidraw.md
+    or .svg export does) must not silently reuse a stale cache -- discard it
+    when the recorded source hash doesn't match."""
+    from core.env.gemini_utils import load_json_cache
+
+    driver_info = load_json_cache(driver_path)
+    if driver_info.get("source_hash") != source_hash:
+        return {}
+    return load_json_cache(cache_path)
+
+
+def _save_cache_with_source(cache_path: str, driver_path: str, cache: dict, source_hash: str) -> None:
+    from core.env.gemini_utils import save_json_cache
+
+    save_json_cache(cache_path, cache)
+    save_json_cache(driver_path, {"source_hash": source_hash})
+
+
 def process_excalidraw_note(
     excalidraw_md_path: str, image_path: str, client, model: str,
     expand_backend: str, academic_hub_root: str, use_grounding: bool = False, dry_run: bool = False,
@@ -631,14 +679,17 @@ def process_excalidraw_note(
     print(f"  {len(chunks)} chunks")
     chunk_bytes = [resize_chunk_for_api(c) for c in chunks]
 
-    from core.env.gemini_utils import load_json_cache, save_json_cache
-    cache_path, _ = chunk_cache_paths_for(excalidraw_md_path)
+    from core.indexer.index_card import compute_file_id
+
+    cache_path, driver_path = chunk_cache_paths_for(excalidraw_md_path)
     os.makedirs(os.path.dirname(cache_path), exist_ok=True)
+    image_hash = compute_file_id(image_path)
     cache = transcribe_chunks(
-        client, model, chunk_bytes, has_slides=has_slides, cache=load_json_cache(cache_path),
+        client, model, chunk_bytes, has_slides=has_slides,
+        cache=_load_cache_if_source_matches(cache_path, driver_path, image_hash),
         driver=driver, excalidraw_md_path=excalidraw_md_path, collect_mode=collect_mode,
     )
-    save_json_cache(cache_path, cache)
+    _save_cache_with_source(cache_path, driver_path, cache, image_hash)
     if collect_mode:
         missing_after_collect = [i + 1 for i in range(len(chunks)) if not cache.get(str(i), "").strip()]
         if missing_after_collect:
@@ -654,23 +705,27 @@ def process_excalidraw_note(
         excalidraw_md_path, raw_markdown, client, academic_hub_root, use_grounding,
     )
 
+    from core.indexer.index_card import compute_id_from_parts
+
+    raw_markdown_hash = compute_id_from_parts([raw_markdown])
+
     if collect_mode:
-        exp_cache_path, _ = expansion_cache_paths_for(excalidraw_md_path)
-        exp_cache = load_json_cache(exp_cache_path)
+        exp_cache_path, exp_driver_path = expansion_cache_paths_for(excalidraw_md_path)
+        exp_cache = _load_cache_if_source_matches(exp_cache_path, exp_driver_path, raw_markdown_hash)
         expand_transcription(
             client, raw_markdown, expand_backend, retrieved_passages, has_slides=has_slides,
             driver=driver, excalidraw_md_path=excalidraw_md_path, cache=exp_cache, collect_mode=True,
         )
-        save_json_cache(exp_cache_path, exp_cache)
+        _save_cache_with_source(exp_cache_path, exp_driver_path, exp_cache, raw_markdown_hash)
         return True
 
-    exp_cache_path, _ = expansion_cache_paths_for(excalidraw_md_path)
-    exp_cache = load_json_cache(exp_cache_path)
+    exp_cache_path, exp_driver_path = expansion_cache_paths_for(excalidraw_md_path)
+    exp_cache = _load_cache_if_source_matches(exp_cache_path, exp_driver_path, raw_markdown_hash)
     expanded_markdown, expansion_meta = expand_transcription(
         client, raw_markdown, expand_backend, retrieved_passages, has_slides=has_slides,
         driver=driver, excalidraw_md_path=excalidraw_md_path, cache=exp_cache,
     )
-    save_json_cache(exp_cache_path, exp_cache)
+    _save_cache_with_source(exp_cache_path, exp_driver_path, exp_cache, raw_markdown_hash)
 
     write_outputs(
         excalidraw_md_path=excalidraw_md_path, image_path=image_path,

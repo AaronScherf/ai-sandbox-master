@@ -313,6 +313,25 @@ def test_expand_transcription_ollama_backend_success():
         text, meta = expand_transcription(client=object(), raw_markdown="shorthand", backend="ollama")
     assert text == "Ollama prose"
     assert meta["expansion_backend"] == "ollama"
+    assert meta["expansion_model"] != "gemini-3.1-flash-lite"  # must report the ollama model, not a hardcoded gemini one
+
+
+def test_expand_transcription_reports_agent_provenance_not_a_fake_gemini_call():
+    # Final review finding: a driver with no .backend attribute (the agent
+    # driver) was previously reported as "gemini"/gemini-3.1-flash-lite,
+    # which is simply false -- no Gemini call happened.
+    class FakeAgentDriver:
+        agent_name = "antigravity"
+
+        def expand(self, excalidraw_md_path, prompt, segment_index, total_segments):
+            return "agent-written text"
+
+    text, meta = expand_transcription(
+        client=object(), raw_markdown="shorthand", driver=FakeAgentDriver(),
+        excalidraw_md_path="note.excalidraw.md", cache={},
+    )
+    assert meta["expansion_backend"] == "antigravity"
+    assert meta["expansion_model"] == "antigravity"
 
 
 def test_expand_transcription_ollama_falls_back_to_gemini_when_unreachable():
@@ -363,6 +382,28 @@ def test_expand_transcription_slide_aware_only_generates_missing_segments():
     assert "already expanded note one" in text
     assert "expanded segment 3" in text
     assert "Slide one" in text and "Slide two" in text
+
+
+def test_expand_transcription_slide_aware_keeps_raw_text_on_generation_failure():
+    # Final review finding: a transient generation failure for one segment
+    # must not abort the whole note (old expand_with_verbatim_slides had
+    # this fallback; the driver-routed rewrite had dropped it).
+    class FailingDriver:
+        backend = "gemini"
+
+        def expand(self, excalidraw_md_path, prompt, segment_index, total_segments):
+            raise ValueError("simulated transient failure")
+
+    raw = "**[Handwritten]**\nraw handwriting text"
+    cache = {}
+    text, meta = expand_transcription(
+        client=object(), raw_markdown=raw, has_slides=True, driver=FailingDriver(),
+        excalidraw_md_path="note.excalidraw.md", cache=cache,
+    )
+    assert "raw handwriting text" in text
+    # The failure must not be cached as if it were real content -- a later
+    # resumed call must retry this segment, not treat it as done.
+    assert cache == {}
 
 
 def test_expand_transcription_collect_mode_stages_all_missing_segments_in_one_call():
@@ -510,6 +551,41 @@ def test_process_excalidraw_note_writes_and_reuses_a_chunk_cache(tmp_path):
     with open(cache_path, encoding="utf-8") as f:
         saved = json.load(f)
     assert saved == {"0": "transcribed", "1": "transcribed"}
+
+
+def test_process_excalidraw_note_discards_chunk_cache_when_the_image_changes(tmp_path):
+    # Final review finding: re-running on an edited canvas made zero driver
+    # calls and rewrote the stale cached text -- the cache must invalidate
+    # when the source image's content changes.
+    hub = tmp_path / "hub"
+    notes_dir = hub / "academic_notes" / "econ" / "lecture_notes"
+    notes_dir.mkdir(parents=True)
+    md_path = notes_dir / "canvas.excalidraw.md"
+    img_path = notes_dir / "canvas.excalidraw.svg"
+    md_path.write_text("scene")
+    img_path.write_bytes(b"<svg>original</svg>")
+
+    with patch("pipelines.transcribe_notes.transcribe_excalidraw.load_canvas_image", return_value=object()), \
+         patch("pipelines.transcribe_notes.transcribe_excalidraw.chunk_image", return_value=[object()]), \
+         patch("pipelines.transcribe_notes.transcribe_excalidraw.resize_chunk_for_api", side_effect=lambda c: b"bytes"), \
+         patch("pipelines.transcribe_notes.excalidraw_agent_driver.transcribe_page_via_gemini", return_value="first transcription"), \
+         patch("pipelines.transcribe_notes.transcribe_excalidraw.expand_transcription", return_value=("expanded", {"expansion_backend": "gemini", "expansion_model": "m", "grounded": False})):
+        process_excalidraw_note(str(md_path), str(img_path), object(), "model", "gemini", str(hub))
+
+    img_path.write_bytes(b"<svg>edited, more ink added</svg>")
+
+    with patch("pipelines.transcribe_notes.transcribe_excalidraw.load_canvas_image", return_value=object()), \
+         patch("pipelines.transcribe_notes.transcribe_excalidraw.chunk_image", return_value=[object()]), \
+         patch("pipelines.transcribe_notes.transcribe_excalidraw.resize_chunk_for_api", side_effect=lambda c: b"bytes"), \
+         patch("pipelines.transcribe_notes.excalidraw_agent_driver.transcribe_page_via_gemini", return_value="second transcription") as mock_transcribe, \
+         patch("pipelines.transcribe_notes.transcribe_excalidraw.expand_transcription", return_value=("expanded", {"expansion_backend": "gemini", "expansion_model": "m", "grounded": False})):
+        process_excalidraw_note(str(md_path), str(img_path), object(), "model", "gemini", str(hub))
+
+    mock_transcribe.assert_called_once()  # the edited image was re-transcribed, not skipped
+    cache_path, _ = chunk_cache_paths_for(str(md_path))
+    with open(cache_path, encoding="utf-8") as f:
+        saved = json.load(f)
+    assert saved == {"0": "second transcription"}
 
 
 def test_process_excalidraw_note_runs_full_pipeline_from_an_svg_source(tmp_path):

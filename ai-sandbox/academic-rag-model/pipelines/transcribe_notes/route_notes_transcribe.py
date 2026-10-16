@@ -10,11 +10,15 @@ finds source files with no existing output, and dispatches each to the
 matching pipeline's own per-file function -- .pdf to
 transcribe_notes.process_pdf, .excalidraw.md (+ its .png/.svg sibling) to
 transcribe_excalidraw.process_excalidraw_note. No LLM makes the routing
-decision: it's pure extension/filename dispatch, so this is safe to run
-unattended (cron, or a plain `python -m pipelines.transcribe_notes.route_notes_transcribe` call)
-without an agent deciding what to run each time. After dispatch, re-checks
+decision: it's pure extension/filename dispatch. After dispatch, re-checks
 that each expected output file actually landed on disk rather than
 trusting a "no exception raised" result.
+
+`--driver` defaults to "agent" (the Antigravity subscription), which
+requires `--collect` or `--submit` -- a bare unattended invocation (cron, or
+a plain `python -m pipelines.transcribe_notes.route_notes_transcribe` call)
+now needs an explicit `--driver api` to run the old fully-metered, no-agent
+loop without anyone deciding what to run each time.
 
 A directory under academic_resources/<course>/ marked with a
 .notes_subset.json file (see README.md) is additionally swept at
@@ -49,6 +53,7 @@ from pipelines.transcribe_notes.transcribe_excalidraw import (
     discover_excalidraw_files,
     process_excalidraw_note,
 )
+from pipelines.transcribe_notes.agent_driver import AgentPending
 from pipelines.transcribe_notes.transcribe_notes import discover_pdf_files, process_pdf
 
 if TYPE_CHECKING:
@@ -387,6 +392,13 @@ def run_plan(
                 academic_hub_root, use_grounding=use_grounding,
                 driver=excalidraw_driver, collect_mode=collect_mode,
             )
+        except AgentPending:
+            # A card was staged for this note -- expected and not a failure,
+            # same as process_pdf's own AgentPending contract (process_pdf
+            # catches it internally; process_excalidraw_note deliberately
+            # lets it propagate, so it must be caught here instead).
+            report.excalidraw_results.append(RunResult(md_path, "collected"))
+            continue
         except Exception as err:
             print(f"ERROR: {md_path} failed: {err}")
             report.excalidraw_results.append(RunResult(md_path, "failed", str(err)))
@@ -555,7 +567,7 @@ def main():
                 report = run_plan(
                     plan, None, str(academic_hub_dir), pdf_model=args.pdf_model,
                     force_vision=args.force_vision, driver=pdf_driver, collect_mode=True,
-                    excalidraw_driver=excalidraw_driver,
+                    excalidraw_driver=excalidraw_driver, use_grounding=args.grounding,
                 )
         except CorpusWriteLockError as exc:
             raise SystemExit(str(exc)) from exc
@@ -613,6 +625,7 @@ def main():
                                 str(academic_hub_dir), str(academic_hub_dir), args.submit, doc_slug,
                                 md_path, image_path, client, args.excalidraw_model or _EXCALIDRAW_MODEL,
                                 expand_backend=args.expand_backend, allow_api_fallback=args.allow_api_fallback,
+                                use_grounding=args.grounding,
                             )
                     except Exception as err:
                         print(f"[{doc_slug}] error: {err}")

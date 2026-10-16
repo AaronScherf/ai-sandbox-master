@@ -740,6 +740,25 @@ def test_run_plan_passes_agent_driver_and_collect_mode_to_process_pdf():
     assert report.pdf_results[0].status == "collected"
 
 
+def test_run_plan_reports_excalidraw_agent_pending_as_collected_not_failed():
+    # Final review finding: process_excalidraw_note deliberately lets
+    # AgentPending propagate (same contract as process_pdf), but run_plan's
+    # Excalidraw loop must not let a bare `except Exception` catch it first --
+    # that would report every successfully-staged collect as "failed".
+    from pipelines.transcribe_notes.agent_driver import AgentPending
+
+    plan = PipelinePlan(excalidraw_todo=[("note.excalidraw.md", "note.excalidraw.svg")])
+    with patch(
+        "pipelines.transcribe_notes.route_notes_transcribe.process_excalidraw_note",
+        side_effect=AgentPending(),
+    ):
+        report = run_plan(
+            plan, client=None, academic_hub_root="/dummy",
+            excalidraw_driver=object(), collect_mode=True,
+        )
+    assert report.excalidraw_results[0].status == "collected"
+
+
 def _make_excalidraw_pair(tmp_path, course, category, name, svg_bytes=b"<svg></svg>"):
     notes_dir = tmp_path / "academic_notes" / course / category
     notes_dir.mkdir(parents=True, exist_ok=True)

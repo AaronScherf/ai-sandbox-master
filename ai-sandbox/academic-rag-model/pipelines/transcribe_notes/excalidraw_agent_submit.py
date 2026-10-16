@@ -72,6 +72,7 @@ def submit_doc(
     hub_root: str, academic_hub_root: str, run_id: str, doc_slug: str,
     excalidraw_md_path: str, image_path: str, client, model_override: str | None,
     expand_backend: str = "gemini", agent_name: str = "antigravity", allow_api_fallback: bool = False,
+    use_grounding: bool = False,
 ) -> str:
     doc_dir = doc_work_dir(hub_root, run_id, doc_slug)
     entries = load_manifest(doc_dir)
@@ -123,7 +124,7 @@ def submit_doc(
         try:
             process_excalidraw_note(
                 excalidraw_md_path, image_path, client, model_override, expand_backend,
-                academic_hub_root, driver=driver,
+                academic_hub_root, use_grounding=use_grounding, driver=driver,
             )
         except Exception as err:
             return f"write failed: {err}"
@@ -138,7 +139,7 @@ def submit_doc(
     try:
         process_excalidraw_note(
             excalidraw_md_path, image_path, None, model_override, expand_backend,
-            academic_hub_root, driver=agent_driver, collect_mode=True,
+            academic_hub_root, use_grounding=use_grounding, driver=agent_driver, collect_mode=True,
         )
     except AgentPending:
         return "incomplete: expansion card staged, awaiting agent fill"
@@ -150,8 +151,8 @@ def submit_doc(
     # requires for AgentPending.
     try:
         process_excalidraw_note(
-            excalidraw_md_path, image_path, None, model_override, expand_backend,
-            academic_hub_root, driver=ExcalidrawNullDriver(), collect_mode=False,
+            excalidraw_md_path, image_path, client, model_override, expand_backend,
+            academic_hub_root, use_grounding=use_grounding, driver=ExcalidrawNullDriver(), collect_mode=False,
         )
     except NullDriverFired:
         return "incomplete: a stage still has missing chunks/segments after restaging"
