@@ -496,6 +496,26 @@ def reconcile_and_write(
     return card
 
 
+IDENTITY_FIELDS = frozenset({"openalex_id", "doi", "openalex_topics", "publication_year"})
+
+
+def set_card_fields(academic_hub_root: str, file_id: str, fields: dict) -> bool:
+    """Stamps external-identity fields (see IDENTITY_FIELDS) onto an existing card without touching anything
+    else. Returns False, never raises, when no card exists yet; raises ValueError for any other key so this
+    cannot be used to rewrite paths or hashes."""
+    extra = set(fields) - IDENTITY_FIELDS
+    if extra:
+        raise ValueError(f"not identity fields: {sorted(extra)}")
+    found = find_card_by_file_id(academic_hub_root, file_id)
+    if found is None:
+        return False
+    course, card = found
+    updated = {**card, **fields}
+    if updated != card:
+        save_shard(academic_hub_root, course, _replace_card(load_shard(academic_hub_root, course), file_id, updated))
+    return True
+
+
 def set_rag_md_path(academic_hub_root: str, file_id: str, rag_md_path: str) -> bool:
     """Called by describe_images.py's hook (Task 10) once it produces
     .rag.md -- finds the existing card by file_id (reusing

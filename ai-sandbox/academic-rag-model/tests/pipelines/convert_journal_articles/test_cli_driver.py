@@ -148,5 +148,44 @@ class TestSubmit(unittest.TestCase):
                     _run(["--articles-dir", tmp, "--index-root", tmp, "--submit", "nope"])
 
 
+class TestIdentityWiring(unittest.TestCase):
+    def _slug(self, path):
+        from core.indexer.index_card import compute_file_id
+        from pipelines.transcribe_notes.agent_work import doc_slug_for
+        return doc_slug_for(path, compute_file_id(path))
+
+    def test_backfill_stamps_each_eligible_paper_and_needs_no_client(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            a = _pdf(tmp, "economics/a.pdf")
+            b = _pdf(tmp, "economics/b.pdf")
+            with patch(f"{M}.get_gemini_client") as client, patch(f"{M}.attach_identity", return_value=True) as attach, \
+                    patch(f"{M}._page_count", return_value=5), patch(f"{M}.corpus_write_lock"), \
+                    patch(f"{M}.process_pdf") as proc:
+                _run(["--articles-dir", tmp, "--index-root", tmp, "--backfill-identity"])
+            client.assert_not_called()
+            proc.assert_not_called()
+            self.assertEqual(sorted(c.args[0] for c in attach.call_args_list), sorted([a, b]))
+
+    def test_submit_stamps_only_completed_papers(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            pdf = _pdf(tmp)
+            os.makedirs(os.path.join(tmp, ".agent_work", "r1", self._slug(pdf)))
+            for status, expected_calls in (("complete", 1), ("incomplete: 1 card(s) still pending/bounced", 0)):
+                with patch(f"{M}.get_gemini_client", return_value=MagicMock()), \
+                        patch(f"{M}.submit_doc", return_value=status), \
+                        patch(f"{M}.attach_identity") as attach, patch(f"{M}._page_count", return_value=5), \
+                        patch(f"{M}.corpus_write_lock"):
+                    _run(["--articles-dir", tmp, "--index-root", tmp, "--submit", "r1"])
+                self.assertEqual(attach.call_count, expected_calls, status)
+
+    def test_api_loop_stamps_after_each_paper(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            pdf = _pdf(tmp)
+            with patch(f"{M}.get_gemini_client", return_value=MagicMock()), patch(f"{M}.process_pdf"), \
+                    patch(f"{M}.attach_identity") as attach, patch(f"{M}._page_count", return_value=5):
+                _run(["--articles-dir", tmp, "--index-root", tmp, "--driver", "api"])
+            attach.assert_called_once_with(pdf, tmp)
+
+
 if __name__ == "__main__":
     unittest.main()

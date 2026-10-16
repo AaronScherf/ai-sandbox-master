@@ -39,6 +39,7 @@ from core.env.academic_hub_paths import resolve_output_dir
 from core.env.corpus_write_lock import corpus_write_lock
 from core.env.gemini_utils import get_gemini_client, load_dotenv_override
 from core.indexer.index_card import compute_file_id
+from pipelines.convert_journal_articles.identity import attach_identity
 from pipelines.transcribe_notes.agent_driver import NullDriver, NullDriverFired
 from pipelines.transcribe_notes.agent_submit import submit_doc
 from pipelines.transcribe_notes.agent_work import AgentDriver, agent_work_dir, dedupe_by_file_id, doc_slug_for
@@ -188,9 +189,25 @@ def _submit(pdf_paths: list[str], args) -> None:
                 print(f"[{slug}] error: {err}")
                 continue
             print(f"[{slug}] {status}")
+            if status.startswith("complete"):
+                attach_identity(pdf_path, args.index_root)
         for slug, pdf_path in sorted(by_slug.items()):
             if slug not in staged:
-                print(f"[{slug}] {_finish_locally(pdf_path, client, args)}")
+                status = _finish_locally(pdf_path, client, args)
+                print(f"[{slug}] {status}")
+                if status.startswith("converted"):
+                    attach_identity(pdf_path, args.index_root)
+
+
+def _backfill_identity(pdf_paths: list[str], args) -> None:
+    """Stamps sidecar identity onto cards of papers converted before this existed. No client, no transcription."""
+    stamped = 0
+    with corpus_write_lock([args.index_root], "journal identity backfill"):
+        for pdf_path in pdf_paths:
+            if attach_identity(pdf_path, args.index_root):
+                stamped += 1
+    print(f"Identity backfill: stamped {stamped} of {len(pdf_paths)} paper(s) "
+          f"(the rest have no sidecar or no index card yet).")
 
 
 def main():
@@ -240,6 +257,11 @@ def main():
              "of leaving them pending. Explicit opt-in only -- never automatic.",
     )
     parser.add_argument("--bootstrap", default=None, metavar="RUN_ID", help="Print the agent's operating contract for this run.")
+    parser.add_argument(
+        "--backfill-identity", action="store_true",
+        help="Stamp OpenAlex identity from each paper's .meta.json sidecar onto its existing index card. "
+             "No transcription, no API calls.",
+    )
     args = parser.parse_args()
 
     if args.bootstrap:
@@ -253,6 +275,10 @@ def main():
 
     load_dotenv_override()
     pdf_paths = _eligible_pdfs(pdf_paths, args.max_pages)
+
+    if args.backfill_identity:
+        _backfill_identity(pdf_paths, args)
+        return
 
     if args.submit:
         _submit(pdf_paths, args)
@@ -281,6 +307,7 @@ def main():
         sys.exit(1)
     for pdf_path in pdf_paths:
         process_pdf(pdf_path, client, args.model, args.index_root, **_process_kwargs())
+        attach_identity(pdf_path, args.index_root)
 
 
 if __name__ == "__main__":
