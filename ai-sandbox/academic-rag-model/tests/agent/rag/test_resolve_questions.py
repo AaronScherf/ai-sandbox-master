@@ -4,12 +4,24 @@ import pytest
 
 from agent.rag.resolve_questions import (
     RESOLVER_MODEL,
+    answers_cache_path_for,
     build_answer_prompt,
+    keyterms_cache_path_for,
     question_context,
     resolve_question,
 )
 from core.indexer.index_search import PassageResult
 from core.indexer.questions import find_tags
+
+
+def test_keyterms_cache_path_sits_next_to_the_sidecar():
+    path = keyterms_cache_path_for("/hub/academic_notes/c/lecture_notes/processed_outputs/N.excalidraw.md")
+    assert path == "/hub/academic_notes/c/lecture_notes/processed_outputs/N.excalidraw.keyterms_cache.json"
+
+
+def test_answers_cache_path_sits_next_to_the_sidecar():
+    path = answers_cache_path_for("/hub/academic_notes/c/lecture_notes/processed_outputs/N.excalidraw.md")
+    assert path == "/hub/academic_notes/c/lecture_notes/processed_outputs/N.excalidraw.answers_cache.json"
 
 BODY = (
     "**[Slide]**\nSlide A text about completeness\n\n"

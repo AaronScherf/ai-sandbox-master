@@ -32,6 +32,14 @@ from core.indexer.questions import (
     write_sidecar,
 )
 
+def keyterms_cache_path_for(raw_path: str) -> str:
+    return raw_path[: -len(".excalidraw.md")] + ".excalidraw.keyterms_cache.json"
+
+
+def answers_cache_path_for(raw_path: str) -> str:
+    return raw_path[: -len(".excalidraw.md")] + ".excalidraw.answers_cache.json"
+
+
 RESOLVER_MODEL = "gemini-3.6-flash"  # the stronger tier: answers are persisted and indexed
 _CONTEXT_CHARS = 1500
 _NEIGHBOR_CHARS = 800
