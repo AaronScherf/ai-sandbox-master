@@ -137,7 +137,11 @@ class LandBranchTests(unittest.TestCase):
         result = check(self.wt / "core", subdir="")
         self.assertEqual(result.overlaps, [])
         self.assertEqual(result.branch, "claude/t")
-        self.assertEqual(result.check_targets, ["tests/"])
+        # "run everything" now goes through the chunked runner (final
+        # review, Important), which reports the real chunks it found
+        # instead of the literal "tests/" placeholder -- this fixture has
+        # no tests/ directory at all, so that's an empty chunk list.
+        self.assertEqual(result.check_targets, [])
 
     def test_check_maps_test_helper_only_change_to_its_directory(self):
         (self.repo / "tests" / "core").mkdir(parents=True)
@@ -173,13 +177,16 @@ class LandBranchTests(unittest.TestCase):
         write_and_commit(wt2, {"requirements.txt": "pytest==9\n"}, "pin a dependency")
         result = check(wt2, subdir="")
         self.assertEqual(result.checks, "passed")
-        self.assertEqual(result.check_targets, ["tests/"])
+        # Real chunk list (this fixture has tests/core/), not the literal
+        # "tests/" placeholder -- see test_check_run_from_subfolder_uses_worktree_root.
+        self.assertEqual(result.check_targets, ["tests/core"])
 
     def test_check_runs_full_suite_for_docs_mixed_with_other_change(self):
         write_and_commit(self.wt, {"docs/note.md": "hi\n", "requirements.txt": "pytest==9\n"}, "mixed")
         result = check(self.wt, subdir="")
         self.assertNotEqual(result.checks, "skipped")
-        self.assertEqual(result.check_targets, ["tests/"])
+        # This fixture has no tests/ directory, so the real chunk list is empty.
+        self.assertEqual(result.check_targets, [])
 
 
 class LandingLogTests(unittest.TestCase):
@@ -259,6 +266,34 @@ class RunChecksFullSuiteTests(unittest.TestCase):
         self.assertEqual(status, "failed")
         self.assertEqual(targets, ["tests/agent", "tests/core"])
         self.assertEqual(seconds, 3.0)
+
+    def test_full_run_reports_failure_for_a_non_one_exit_code(self):
+        """Final review, Critical: a collection error (exit 2) or a crash
+        must still fail the gate, not just exit code 1."""
+        fake_results = [ChunkResult(name="tools", returncode=2, seconds=1.0, stdout="ImportError")]
+        with patch("tools.land_branch.run_all", return_value=("failed", fake_results, 1.0)):
+            status, targets, seconds = run_checks(self.tmp, changed=set(), full=True)
+
+        self.assertEqual(status, "failed")
+
+    def test_non_full_run_with_no_mapped_targets_also_uses_chunked_runner(self):
+        """Final review, Important: `full=False` with no mapped test targets
+        falls back to running tests/ as a whole -- that fallback must go
+        through the chunked runner too, or a routine incremental
+        `land_branch check` (e.g. after a requirements.txt pin, which maps
+        to no test directory) can OOM the same way `--full` used to."""
+        fake_results = [ChunkResult(name="agent", returncode=0, seconds=1.0, stdout="ok")]
+        with patch(
+            "tools.land_branch.run_all",
+            return_value=("passed", fake_results, 1.0),
+        ) as mock_run_all:
+            status, targets, seconds = run_checks(
+                self.tmp, changed={"requirements.txt"}, full=False
+            )
+
+        mock_run_all.assert_called_once_with(self.tmp)
+        self.assertEqual(status, "passed")
+        self.assertEqual(targets, ["tests/agent"])
 
 
 if __name__ == "__main__":

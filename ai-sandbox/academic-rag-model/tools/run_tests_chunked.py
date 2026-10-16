@@ -13,12 +13,38 @@ from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
+# pytest exit codes that are not a real failure of the tests themselves:
+# 0 = all passed, 5 = no tests were collected for that target.
+# Everything else (1 = test failures, 2 = collection error, 3 = internal
+# error, 4 = usage error, or a crash/kill code) counts as failed -- the
+# chunked gate must not be weaker than a plain `pytest tests/ -q` run,
+# whose caller already treated `returncode != 0` as failed.
+_NON_FAILING_RETURNCODES = {0, 5}
+
+
+def chunk_failed(returncode: int) -> bool:
+    return returncode not in _NON_FAILING_RETURNCODES
+
 
 def discover_chunks(tests_dir: Path) -> list[str]:
+    if not tests_dir.is_dir():
+        return []
     return sorted(
         p.name
         for p in tests_dir.iterdir()
         if p.is_dir() and p.name != "__pycache__"
+    )
+
+
+def discover_root_test_files(tests_dir: Path) -> list[str]:
+    """Loose tests/test_*.py files that discover_chunks (directories only)
+    would otherwise silently drop."""
+    if not tests_dir.is_dir():
+        return []
+    return sorted(
+        f"tests/{p.name}"
+        for p in tests_dir.iterdir()
+        if p.is_file() and p.name.startswith("test_") and p.suffix == ".py"
     )
 
 
@@ -28,6 +54,39 @@ class ChunkResult:
     returncode: int
     seconds: float
     stdout: str
+
+
+# Sentinel returncode for a subprocess that never ran at all (e.g. the
+# interpreter path was wrong) -- not in _NON_FAILING_RETURNCODES, so
+# chunk_failed() correctly flags it, and distinct from any real pytest
+# exit code.
+_COULD_NOT_START = -1
+
+
+def _run_one(name: str, cmd: list[str], project_root: Path, runner) -> ChunkResult:
+    started = time.monotonic()
+    try:
+        proc = runner(
+            cmd,
+            cwd=project_root,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+        )
+    except OSError as exc:
+        return ChunkResult(
+            name=name,
+            returncode=_COULD_NOT_START,
+            seconds=time.monotonic() - started,
+            stdout=f"could not start subprocess for {cmd!r}: {exc}",
+        )
+    return ChunkResult(
+        name=name,
+        returncode=proc.returncode,
+        seconds=time.monotonic() - started,
+        stdout=proc.stdout,
+    )
 
 
 def run_all(
@@ -41,43 +100,19 @@ def run_all(
     total_started = time.monotonic()
 
     for chunk in discover_chunks(tests_dir):
-        started = time.monotonic()
-        proc = runner(
-            [
-                sys.executable, "-m", "pytest", f"tests/{chunk}", "-q",
-                "-m", "not local_llm",
-            ],
-            cwd=project_root,
-            capture_output=True,
-            text=True,
-            encoding="utf-8",
-            errors="replace",
-        )
-        results.append(ChunkResult(
-            name=chunk,
-            returncode=proc.returncode,
-            seconds=time.monotonic() - started,
-            stdout=proc.stdout,
-        ))
+        cmd = [sys.executable, "-m", "pytest", f"tests/{chunk}", "-q", "-m", "not local_llm"]
+        results.append(_run_one(chunk, cmd, project_root, runner))
+
+    root_files = discover_root_test_files(tests_dir)
+    if root_files:
+        cmd = [sys.executable, "-m", "pytest", *root_files, "-q", "-m", "not local_llm"]
+        results.append(_run_one("(root)", cmd, project_root, runner))
 
     if include_local_llm:
-        started = time.monotonic()
-        proc = runner(
-            [sys.executable, "-m", "pytest", "tests/", "-q", "-m", "local_llm"],
-            cwd=project_root,
-            capture_output=True,
-            text=True,
-            encoding="utf-8",
-            errors="replace",
-        )
-        results.append(ChunkResult(
-            name="local_llm (opt-in)",
-            returncode=proc.returncode,
-            seconds=time.monotonic() - started,
-            stdout=proc.stdout,
-        ))
+        cmd = [sys.executable, "-m", "pytest", "tests/", "-q", "-m", "local_llm"]
+        results.append(_run_one("local_llm (opt-in)", cmd, project_root, runner))
 
-    status = "failed" if any(r.returncode == 1 for r in results) else "passed"
+    status = "failed" if any(chunk_failed(r.returncode) for r in results) else "passed"
     return status, results, time.monotonic() - total_started
 
 
@@ -95,9 +130,9 @@ def main(argv: list[str] | None = None) -> int:
     )
 
     for r in results:
-        outcome = "FAILED" if r.returncode == 1 else "passed"
+        outcome = "FAILED" if chunk_failed(r.returncode) else "passed"
         print(f"[{outcome}] tests/{r.name} ({r.seconds:.1f}s)")
-        if r.returncode == 1:
+        if chunk_failed(r.returncode):
             print(r.stdout[-4000:])
 
     print(f"=== {status} in {total_seconds:.1f}s across {len(results)} chunk(s) ===")
