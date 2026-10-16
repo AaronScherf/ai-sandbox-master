@@ -205,12 +205,58 @@ def discover_notes(hub: str, course: str | None = None, note: str | None = None)
     return sorted(found)
 
 
+def _collect_note_answers(*args, **kwargs) -> None:
+    pass  # implemented in Task 4
+
+
+def _collect_note_questions(
+    raw_path: str, body: str, tags: list[Tag], by_id: dict, client, roots: list[str],
+    course: str | None, exclude: set[str], model: str, driver, redo: bool,
+) -> None:
+    from core.env.gemini_utils import load_json_cache, save_json_cache
+    from pipelines.transcribe_notes.agent_driver import AgentPending
+
+    pending_tags = [t for t in tags if redo or t.qid not in by_id]
+    if not pending_tags:
+        return
+
+    keyterms_path = keyterms_cache_path_for(raw_path)
+    keyterms_cache = load_json_cache(keyterms_path)
+    missing_key_terms = [
+        (t.qid, _KEY_TERM_PROMPT_TEMPLATE.format(question=f"{t.text}"))
+        for t in pending_tags if t.qid not in keyterms_cache
+    ]
+    if missing_key_terms:
+        try:
+            staged = driver.stage_key_terms(raw_path, missing_key_terms)
+        except AgentPending:
+            raise
+        for qid, text in staged.items():
+            keyterms_cache[qid] = _parse_key_terms(text)
+        save_json_cache(keyterms_path, keyterms_cache)
+        # Re-check: an ApiDriver-style call returns synchronously and may have
+        # filled everything in this same call; an AgentDriver always raises
+        # AgentPending above and never reaches here.
+        missing_key_terms = [
+            (t.qid, "") for t in pending_tags if t.qid not in keyterms_cache
+        ]
+        if missing_key_terms:
+            return  # still incomplete; nothing more to do this call
+
+    _collect_note_answers(raw_path, body, pending_tags, client, roots, course, exclude, driver, keyterms_cache)
+
+
 def resolve_note(
     raw_path: str, hub: str, client, roots: list[str], model: str = RESOLVER_MODEL, redo: bool = False,
     budget: int | None = None, retrieve=retrieve_passages, extract=_extract_key_terms,
+    driver: "QuestionResolverDriver | None" = None, collect_mode: bool = False,
 ) -> NoteResult:
     """Resolves a note's unanswered questions into its sidecar, then applies
-    markers. A question that fails records nothing and is retried next run."""
+    markers. A question that fails records nothing and is retried next run.
+
+    collect_mode=True stages task cards instead of resolving anything, and
+    returns before reaching the sidecar-writing loop below -- callers in
+    agent mode never see a NoteResult that means anything beyond "ran"."""
     body = _read_body(raw_path)
     tags = find_tags(body)
     sidecar = sidecar_path_for(raw_path)
@@ -221,6 +267,12 @@ def resolve_note(
     card = _note_card(hub, raw_path)
     course = derive_course(_rel(hub, raw_path))
     exclude = {_rel(hub, rag_path), _rel(hub, sidecar)}
+
+    if collect_mode:
+        _collect_note_questions(
+            raw_path, body, tags, by_id, client, roots, course, exclude, model, driver, redo,
+        )
+        return NoteResult()
 
     result = NoteResult()
     for tag in tags:

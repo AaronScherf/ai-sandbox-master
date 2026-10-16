@@ -24,6 +24,16 @@ def test_api_driver_generate_answer_calls_gemini():
     assert result == "An explanation."
 
 
+def test_api_driver_stage_key_terms_extracts_each_missing_one():
+    client = unittest.mock.MagicMock()
+    client.models.generate_content.side_effect = [
+        unittest.mock.MagicMock(text="Hausdorff"), unittest.mock.MagicMock(text="Luce, Marschak"),
+    ]
+    driver = QuestionResolverApiDriver(client)
+    result = driver.stage_key_terms("note.excalidraw.md", [("q1-a", "prompt 1"), ("q2-b", "prompt 2")])
+    assert result == {"q1-a": "Hausdorff", "q2-b": "Luce, Marschak"}
+
+
 def test_null_driver_raises_on_every_method():
     driver = QuestionResolverNullDriver()
     with pytest.raises(NullDriverFired):

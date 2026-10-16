@@ -199,6 +199,59 @@ def _hub(tmp_path, course="microecon", raw_body=BODY, name="N 2026-09-15"):
     return str(hub), str(raw)
 
 
+def test_resolve_note_collect_mode_stages_key_terms_for_every_pending_question(tmp_path):
+    hub, raw = _hub(tmp_path)
+
+    class FakeDriver:
+        def __init__(self):
+            self.staged = None
+
+        def stage_key_terms(self, note_key, missing):
+            self.staged = missing
+            return {}  # nothing returned yet -- simulates an AgentDriver-style "card written" collect
+
+    driver = FakeDriver()
+    resolve_note(raw, hub, client=None, roots=[hub], driver=driver, collect_mode=True)
+    assert driver.staged is not None
+    assert {qid for qid, _prompt in driver.staged} == {
+        t.qid for t in find_tags(_read_body_for_test(raw))
+    }
+
+
+def _read_body_for_test(raw_path):
+    from core.env.frontmatter import parse_frontmatter
+    with open(raw_path, encoding="utf-8") as f:
+        return parse_frontmatter(f.read())[1]
+
+
+def test_redo_in_collect_mode_does_not_re_extract_already_cached_key_terms(tmp_path):
+    # Review Focus: redo must force re-answering, not force re-extracting
+    # key terms that are already cached under the same qid (the question
+    # text, and therefore its qid, hasn't changed just because --redo was
+    # passed) -- a deliberate scope decision, pinned here so it isn't later
+    # "fixed" into silently diverging from the plain API path.
+    hub, raw = _hub(tmp_path)
+    tags = find_tags(BODY)
+    import json
+    with open(keyterms_cache_path_for(raw), "w", encoding="utf-8") as f:
+        json.dump({t.qid: ["already cached"] for t in tags}, f)
+    # Also mark both questions already answered, so only --redo makes them pending.
+    from core.indexer.questions import Entry, write_sidecar
+    write_sidecar(sidecar_path_for(raw), {}, [
+        Entry(qid=t.qid, question=t.text, grounded=True, model="m", resolved_at="t", answer="old answer")
+        for t in tags
+    ])
+
+    class FakeDriver:
+        def stage_key_terms(self, note_key, missing):
+            pytest.fail("key-term stage must not run -- every qid is already cached")
+
+        def stage_answers(self, note_key, missing):
+            return {}
+
+    resolve_note(raw, hub, client=object(), roots=[hub], driver=FakeDriver(), collect_mode=True, redo=True)
+
+
 def _fake_resolve(failing_ordinals=()):
     def fake(tag, context, neighbors, **kwargs):
         if tag.ordinal in failing_ordinals:
