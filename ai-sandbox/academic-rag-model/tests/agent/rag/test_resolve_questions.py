@@ -4,12 +4,24 @@ import pytest
 
 from agent.rag.resolve_questions import (
     RESOLVER_MODEL,
+    answers_cache_path_for,
     build_answer_prompt,
+    keyterms_cache_path_for,
     question_context,
     resolve_question,
 )
 from core.indexer.index_search import PassageResult
 from core.indexer.questions import find_tags
+
+
+def test_keyterms_cache_path_sits_next_to_the_sidecar():
+    path = keyterms_cache_path_for("/hub/academic_notes/c/lecture_notes/processed_outputs/N.excalidraw.md")
+    assert path == "/hub/academic_notes/c/lecture_notes/processed_outputs/N.excalidraw.keyterms_cache.json"
+
+
+def test_answers_cache_path_sits_next_to_the_sidecar():
+    path = answers_cache_path_for("/hub/academic_notes/c/lecture_notes/processed_outputs/N.excalidraw.md")
+    assert path == "/hub/academic_notes/c/lecture_notes/processed_outputs/N.excalidraw.answers_cache.json"
 
 BODY = (
     "**[Slide]**\nSlide A text about completeness\n\n"
@@ -78,6 +90,34 @@ def _resolve(client, passages, key_terms, exclude=()):
         tag, "ctx text", ["Slide text"], client=client, roots=["/r"], course="c", model="m",
         exclude_paths=set(exclude), retrieve=lambda *a, **k: passages, extract=lambda q, c: key_terms,
     )
+
+
+def test_resolve_question_routes_key_terms_and_answer_through_a_driver():
+    class FakeDriver:
+        def __init__(self):
+            self.calls = []
+
+        def extract_key_terms(self, note_key, qid, prompt):
+            self.calls.append(("extract", note_key, qid))
+            return "Hausdorff"
+
+        def generate_answer(self, note_key, qid, prompt):
+            self.calls.append(("answer", note_key, qid))
+            assert "Hausdorff metric" in prompt  # the retrieved passage reached the prompt
+            return "An explanation via the driver."
+
+    driver = FakeDriver()
+    tag = find_tags("[Question] what is the Hausdorff distance?")[0]
+    entry = resolve_question(
+        tag, "ctx text", ["Slide text"], client=object(), roots=["/r"], course="c", model="m",
+        exclude_paths=set(), retrieve=lambda *a, **k: [_passage("The Hausdorff metric is defined as ...")],
+        driver=driver, note_key="note.excalidraw.md",
+    )
+    assert entry.answer == "An explanation via the driver."
+    assert entry.grounded is True
+    assert [c[0] for c in driver.calls] == ["extract", "answer"]
+    assert all(c[1] == "note.excalidraw.md" for c in driver.calls)
+    assert all(c[2] == tag.qid for c in driver.calls)
 
 
 def test_grounded_when_a_passage_mentions_a_key_term():
@@ -159,6 +199,118 @@ def _hub(tmp_path, course="microecon", raw_body=BODY, name="N 2026-09-15"):
     return str(hub), str(raw)
 
 
+def test_resolve_note_collect_mode_stages_key_terms_for_every_pending_question(tmp_path):
+    hub, raw = _hub(tmp_path)
+
+    class FakeDriver:
+        def __init__(self):
+            self.staged = None
+
+        def stage_key_terms(self, note_key, missing):
+            self.staged = missing
+            return {}  # nothing returned yet -- simulates an AgentDriver-style "card written" collect
+
+    driver = FakeDriver()
+    resolve_note(raw, hub, client=None, roots=[hub], driver=driver, collect_mode=True)
+    assert driver.staged is not None
+    assert {qid for qid, _prompt in driver.staged} == {
+        t.qid for t in find_tags(_read_body_for_test(raw))
+    }
+
+
+def _read_body_for_test(raw_path):
+    from core.env.frontmatter import parse_frontmatter
+    with open(raw_path, encoding="utf-8") as f:
+        return parse_frontmatter(f.read())[1]
+
+
+def test_redo_in_collect_mode_does_not_re_extract_already_cached_key_terms(tmp_path):
+    # Review Focus: redo must force re-answering, not force re-extracting
+    # key terms that are already cached under the same qid (the question
+    # text, and therefore its qid, hasn't changed just because --redo was
+    # passed) -- a deliberate scope decision, pinned here so it isn't later
+    # "fixed" into silently diverging from the plain API path.
+    hub, raw = _hub(tmp_path)
+    tags = find_tags(BODY)
+    import json
+    with open(keyterms_cache_path_for(raw), "w", encoding="utf-8") as f:
+        json.dump({t.qid: ["already cached"] for t in tags}, f)
+    # Also mark both questions already answered, so only --redo makes them pending.
+    from core.indexer.questions import Entry, write_sidecar
+    write_sidecar(sidecar_path_for(raw), {}, [
+        Entry(qid=t.qid, question=t.text, grounded=True, model="m", resolved_at="t", answer="old answer")
+        for t in tags
+    ])
+
+    class FakeDriver:
+        def stage_key_terms(self, note_key, missing):
+            pytest.fail("key-term stage must not run -- every qid is already cached")
+
+        def stage_answers(self, note_key, missing):
+            return {}
+
+    with patch.object(rq, "retrieve_passages", return_value=[]):
+        resolve_note(raw, hub, client=object(), roots=[hub], driver=FakeDriver(), collect_mode=True, redo=True)
+
+
+def test_redo_in_collect_mode_forces_restaging_an_already_cached_answer(tmp_path):
+    # Final-review Important finding #1: --redo must force re-answering
+    # end-to-end, not silently no-op because the answer is already in the
+    # per-note answers cache from a prior run.
+    hub, raw = _hub(tmp_path)
+    tags = find_tags(BODY)
+    import json
+    with open(keyterms_cache_path_for(raw), "w", encoding="utf-8") as f:
+        json.dump({t.qid: ["term"] for t in tags}, f)
+    with open(answers_cache_path_for(raw), "w", encoding="utf-8") as f:
+        json.dump({t.qid: "stale cached answer" for t in tags}, f)
+    from core.indexer.questions import Entry, write_sidecar
+    write_sidecar(sidecar_path_for(raw), {}, [
+        Entry(qid=t.qid, question=t.text, grounded=True, model="m", resolved_at="t", answer="stale cached answer")
+        for t in tags
+    ])
+
+    class FakeDriver:
+        def stage_key_terms(self, note_key, missing):
+            pytest.fail("key-term stage must not run -- every qid is already cached")
+
+        def stage_answers(self, note_key, missing):
+            self.answer_calls = missing
+            return {}
+
+    driver = FakeDriver()
+    with patch.object(rq, "retrieve_passages", return_value=[]):
+        resolve_note(raw, hub, client=object(), roots=[hub], driver=driver, collect_mode=True, redo=True)
+    assert {qid for qid, _prompt in driver.answer_calls} == {t.qid for t in tags}
+
+
+def test_resolve_note_collect_mode_stages_answers_once_key_terms_are_cached(tmp_path):
+    hub, raw = _hub(tmp_path)
+
+    class FakeDriver:
+        def __init__(self):
+            self.answer_calls = None
+
+        def stage_key_terms(self, note_key, missing):
+            pytest.fail("key-term stage must not run again -- cache already has both questions")
+
+        def stage_answers(self, note_key, missing):
+            self.answer_calls = missing
+            return {}
+
+    # Pre-seed the key-terms cache as if a prior collect already filled it.
+    tags = find_tags(BODY)
+    import json
+    with open(keyterms_cache_path_for(raw), "w", encoding="utf-8") as f:
+        json.dump({t.qid: ["term"] for t in tags}, f)
+
+    driver = FakeDriver()
+    with patch.object(rq, "retrieve_passages", return_value=[]):
+        resolve_note(raw, hub, client=object(), roots=[hub], driver=driver, collect_mode=True)
+    assert driver.answer_calls is not None
+    assert {qid for qid, _prompt in driver.answer_calls} == {t.qid for t in tags}
+
+
 def _fake_resolve(failing_ordinals=()):
     def fake(tag, context, neighbors, **kwargs):
         if tag.ordinal in failing_ordinals:
@@ -238,14 +390,49 @@ def test_discover_notes_finds_only_raw_transcripts_that_have_tags(tmp_path):
     assert discover_notes(hub, note="nomatch") == []
 
 
+def test_cli_default_driver_is_agent_not_api():
+    parser = rq._build_arg_parser()
+    parsed = parser.parse_args([])
+    assert parsed.driver == "agent"
+    assert parsed.allow_api_fallback is False
+
+
 def test_cli_dry_run_lists_questions_without_any_api_call(tmp_path, capsys):
+    hub, raw = _hub(tmp_path)
+    with patch.object(rq, "get_gemini_client", side_effect=AssertionError("no client in dry-run")), \
+         patch.object(rq, "resolve_question", side_effect=AssertionError("no resolve in dry-run")):
+        assert rq.main(["--root", hub, "--dry-run", "--driver", "api"]) == 0
+    out = capsys.readouterr().out
+    assert "2 question(s)" in out and "why not reflexivity?" in out
+    assert not os.path.exists(sidecar_path_for(raw))
+
+
+def test_cli_dry_run_rejects_collect(tmp_path, capsys):
+    # Final-review Important finding #2: --dry-run must never run the real
+    # operation when combined with --collect/--submit -- it's the flag a
+    # cautious user adds before risking a paid run.
+    hub, raw = _hub(tmp_path)
+    with patch.object(rq, "get_gemini_client", side_effect=AssertionError("dry-run must make no client")):
+        assert rq.main(["--root", hub, "--dry-run", "--collect"]) == 1
+    assert "cannot be combined" in capsys.readouterr().out
+
+
+def test_cli_dry_run_rejects_submit(tmp_path, capsys):
+    hub, raw = _hub(tmp_path)
+    with patch.object(rq, "get_gemini_client", side_effect=AssertionError("dry-run must make no client")):
+        assert rq.main(["--root", hub, "--dry-run", "--submit", "run-1"]) == 1
+    assert "cannot be combined" in capsys.readouterr().out
+
+
+def test_cli_dry_run_works_under_the_default_agent_driver_without_collect_or_submit(tmp_path, capsys):
+    # --dry-run never calls a driver at all, so it must not be blocked by
+    # the "--driver agent requires --collect or --submit" guard.
     hub, raw = _hub(tmp_path)
     with patch.object(rq, "get_gemini_client", side_effect=AssertionError("no client in dry-run")), \
          patch.object(rq, "resolve_question", side_effect=AssertionError("no resolve in dry-run")):
         assert rq.main(["--root", hub, "--dry-run"]) == 0
     out = capsys.readouterr().out
     assert "2 question(s)" in out and "why not reflexivity?" in out
-    assert not os.path.exists(sidecar_path_for(raw))
 
 
 def test_cli_skips_notes_that_are_a_subset_of_another(tmp_path, capsys):
@@ -254,7 +441,7 @@ def test_cli_skips_notes_that_are_a_subset_of_another(tmp_path, capsys):
     save_shard(hub, "microecon", [{"file_id": "x", "path": rel_rag, "subset_of": "y"}])
     with patch.object(rq, "load_dotenv_override"), patch.object(rq, "get_gemini_client", return_value=object()), \
          patch.object(rq, "resolve_question", side_effect=AssertionError("subset must be skipped")):
-        assert rq.main(["--root", hub]) == 0
+        assert rq.main(["--root", hub, "--driver", "api"]) == 0
     assert "subset" in capsys.readouterr().out
     assert not os.path.exists(sidecar_path_for(raw))
 
@@ -263,19 +450,32 @@ def test_cli_full_run_returns_zero_and_nonzero_on_failure(tmp_path):
     hub, raw = _hub(tmp_path)
     with patch.object(rq, "load_dotenv_override"), patch.object(rq, "get_gemini_client", return_value=object()), \
          patch.object(rq, "resolve_question", side_effect=_fake_resolve()):
-        assert rq.main(["--root", hub]) == 0
+        assert rq.main(["--root", hub, "--driver", "api"]) == 0
     os.remove(sidecar_path_for(raw))
     with patch.object(rq, "load_dotenv_override"), patch.object(rq, "get_gemini_client", return_value=object()), \
          patch.object(rq, "resolve_question", side_effect=_fake_resolve(failing_ordinals={1})):
-        assert rq.main(["--root", hub]) == 1
+        assert rq.main(["--root", hub, "--driver", "api"]) == 1
 
 
 def test_cli_max_questions_stops_after_the_budget(tmp_path):
     hub, raw = _hub(tmp_path)
     with patch.object(rq, "load_dotenv_override"), patch.object(rq, "get_gemini_client", return_value=object()), \
          patch.object(rq, "resolve_question", side_effect=_fake_resolve()) as mock:
-        rq.main(["--root", hub, "--max-questions", "1"])
+        rq.main(["--root", hub, "--max-questions", "1", "--driver", "api"])
     assert mock.call_count == 1
+
+
+def test_cli_submit_warns_and_skips_an_orphaned_collected_doc(tmp_path, capsys):
+    # Review Focus: if a note's raw transcript changes between --collect and
+    # --submit (e.g. a retranscription ran in between), compute_file_id
+    # changes, so the doc_slug under .agent_work/<run>/ no longer matches
+    # any currently-discoverable note. Must warn and skip, never crash.
+    hub, raw = _hub(tmp_path)
+    run_dir = os.path.join(hub, ".agent_work", "run-1", "orphaned-doc--deadbeef")
+    os.makedirs(run_dir)
+    with patch.object(rq, "load_dotenv_override"), patch.object(rq, "get_gemini_client", return_value=object()):
+        assert rq.main(["--root", hub, "--submit", "run-1"]) == 0
+    assert "no matching pending note" in capsys.readouterr().out
 
 
 def test_resolve_note_reuses_an_answer_whose_ordinal_shifted_in_a_retranscription(tmp_path):
