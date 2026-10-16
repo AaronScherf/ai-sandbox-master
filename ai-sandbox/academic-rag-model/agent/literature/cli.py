@@ -2,12 +2,14 @@
 from __future__ import annotations
 
 import argparse
+import json
 from pathlib import Path
 
 from core.agent_tasks.loop import BudgetError, api_run, collect_run, provenance, submit_run
 from core.agent_tasks.work import load_run
 
 from . import stage
+from .gold import DEFAULT_PATH, load_gold, score_record, summarize
 from .papers import eligible_papers
 from .proposals import Proposals
 from .store import RecordStore
@@ -118,6 +120,43 @@ def cmd_proposals(args) -> int:
     return 0
 
 
+def _extract_manifests(work_root: Path) -> list[dict]:
+    out = []
+    for path in sorted(work_root.glob("*/manifest.json")) if work_root.is_dir() else []:
+        try:
+            data = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            continue
+        if isinstance(data, dict) and data.get("stage") == stage.STAGE:
+            out.append(data)
+    return out
+
+
+def cmd_eval(args) -> int:
+    path = Path(args.gold) if args.gold else DEFAULT_PATH
+    try:
+        papers = load_gold(path)
+    except (OSError, ValueError) as exc:
+        print(f"cannot load the gold set {path}: {exc}")
+        return 2
+    target = _target(args)
+    per_paper, expects = {}, {}
+    for paper in papers:
+        fid = paper["file_id"]
+        expects[fid] = paper.get("expect") or {}
+        record = target.records.read(fid)
+        per_paper[fid] = score_record(record, expects[fid], target.vocabs) if record else None
+    compared = agreed = 0
+    for fid in target.records.ids():
+        if target.records.read(fid, "b") is not None:
+            compared += 1
+            agreed += (target.records.read(fid) or {}).get("review", {}).get("double_pass") == "agreed"
+    report = summarize(per_paper, expects=expects, proposals=target.proposals.all(), records=len(target.records.ids()),
+                       manifests=_extract_manifests(_work_root(args)), double={"compared": compared, "agreed": agreed})
+    print(json.dumps(report, indent=2))
+    return 0
+
+
 def _gemini_complete(model: str):
     """A complete(prompt) -> reply using the paid key. The only place this package can spend money; not unit-tested."""
     from core.env.gemini_utils import call_with_retries, get_gemini_client
@@ -162,6 +201,8 @@ def build_parser() -> argparse.ArgumentParser:
     sub.add_parser("status", help="Counts of papers, records and open proposals.")
     pr = sub.add_parser("proposals", help="Terms the agent proposed that no vocabulary term covered.")
     pr.add_argument("action", choices=["list"])
+    ev = sub.add_parser("eval", help="Score the records against the gold set (aggregates only).")
+    ev.add_argument("--gold", default=None, help=f"Gold set YAML (default: {DEFAULT_PATH}).")
     a = sub.add_parser("api", help="Send pending cards to the paid API (explicit opt-in, cost-gated).")
     a.add_argument("run_id")
     a.add_argument("--approve-cost", type=float, default=None, help="Approve up to this many dollars.")
@@ -174,4 +215,4 @@ def main(argv: list[str] | None = None, *, complete=None) -> int:
     if args.command == "api":
         return cmd_api(args, complete)
     return {"collect": cmd_collect, "submit": cmd_submit, "bootstrap": cmd_bootstrap, "status": cmd_status,
-            "proposals": cmd_proposals}[args.command](args)
+            "proposals": cmd_proposals, "eval": cmd_eval}[args.command](args)

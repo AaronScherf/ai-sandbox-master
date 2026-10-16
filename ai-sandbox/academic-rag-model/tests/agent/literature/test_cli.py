@@ -1,5 +1,6 @@
 import contextlib
 import io
+import json
 import tempfile
 import unittest
 from pathlib import Path
@@ -146,6 +147,45 @@ class TestApi(unittest.TestCase):
             code, out = _run(env.args("api", "r1", "--approve-cost", "5"), complete=lambda p: reply)
             self.assertEqual(code, 0)
             self.assertTrue((Path(root) / ".index" / "study_records" / f"{FID}.json").is_file())
+
+
+class TestEval(unittest.TestCase):
+    def _gold(self, root, papers):
+        path = Path(root) / "gold_set.yaml"
+        path.write_text(yaml.safe_dump({"version": 1, "papers": papers}), encoding="utf-8")
+        return str(path)
+
+    def test_eval_scores_a_submitted_record_and_reports_aggregates_only(self):
+        with tempfile.TemporaryDirectory() as root:
+            env = Env(root)
+            _run(env.args("collect", "--run-id", "r1"))
+            fill_card(env.card("r1", f"extract-{FID}"), good())
+            _run(env.args("submit", "r1"))
+            gold = self._gold(root, [{"file_id": FID, "expect": {"countries": ["SO"], "study_design": ["study_design.panel"]}}])
+            code, out = _run(env.args("eval", "--gold", gold))
+            report = json.loads(out)
+        self.assertEqual(code, 0)
+        self.assertEqual((report["facet_precision"], report["facet_recall"]), (1.0, 1.0))
+        self.assertEqual(report["papers_missing_a_record"], [])
+        self.assertEqual(report["bounce_rate"], 0.0)
+        self.assertNotIn("Somalia", out)
+
+    def test_a_gold_paper_without_a_record_counts_against_recall(self):
+        with tempfile.TemporaryDirectory() as root:
+            env = Env(root)
+            gold = self._gold(root, [{"file_id": FID, "expect": {"countries": ["SO"]}}])
+            code, out = _run(env.args("eval", "--gold", gold))
+            report = json.loads(out)
+        self.assertEqual(code, 0)
+        self.assertEqual(report["facet_recall"], 0.0)
+        self.assertEqual(report["papers_missing_a_record"], [FID])
+
+    def test_a_missing_gold_file_is_reported_not_a_traceback(self):
+        with tempfile.TemporaryDirectory() as root:
+            env = Env(root)
+            code, out = _run(env.args("eval", "--gold", str(Path(root) / "nope.yaml")))
+        self.assertEqual(code, 2)
+        self.assertIn("nope.yaml", out)
 
 
 if __name__ == "__main__":
