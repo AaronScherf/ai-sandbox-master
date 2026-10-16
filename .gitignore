@@ -80,6 +80,8 @@ ai-sandbox/academic-hub/.agent_work/
 ai-sandbox/research/.agent_work/
 # 2026-10-16: extracted study records hold verbatim quotes from copyrighted papers
 ai-sandbox/research/.index/study_records/
+# 2026-10-16: 3ie site downloads (usage terms unknown); local only, never commit
+ai-sandbox/research/resources/3ie/
 # local MCP server config (may hold tokens)
 /.mcp.json
 ai-sandbox/academic-hub/**/lecture-slides/
