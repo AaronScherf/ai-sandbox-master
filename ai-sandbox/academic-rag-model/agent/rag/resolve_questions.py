@@ -214,6 +214,24 @@ def discover_notes(hub: str, course: str | None = None, note: str | None = None)
     return sorted(found)
 
 
+def discover_pending_notes(hub: str, course: str | None = None, note: str | None = None) -> list[str]:
+    """Notes from discover_notes() that still have at least one unanswered
+    question and are not a subset-of duplicate of another note -- the same
+    filter resolve_questions.py's own CLI already applies before resolving
+    or staging anything (see main()'s collect/plain-run loops), factored
+    out so a caller like the consolidated orchestrator can compute
+    eligibility without duplicating it."""
+    pending = []
+    for raw_path in discover_notes(hub, course, note):
+        card = _note_card(hub, raw_path)
+        if card and card.get("subset_of"):
+            continue
+        answered = {e.qid for e in read_sidecar(sidecar_path_for(raw_path))[1]}
+        if any(t.qid not in answered for t in find_tags(_read_body(raw_path))):
+            pending.append(raw_path)
+    return pending
+
+
 def _build_key_term_prompt(tag: Tag, body: str) -> str:
     """Same question+context shape the API path (`resolve_question`) feeds
     to `_extract_key_terms` -- used identically by the agent/collect path

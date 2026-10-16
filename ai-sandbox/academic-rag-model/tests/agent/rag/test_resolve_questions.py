@@ -181,7 +181,7 @@ import os
 from unittest.mock import patch
 
 from agent.rag import resolve_questions as rq
-from agent.rag.resolve_questions import discover_notes, resolve_note
+from agent.rag.resolve_questions import discover_notes, discover_pending_notes, resolve_note
 from core.indexer.index_card import save_shard
 from core.indexer.questions import Entry, read_sidecar, rag_path_for, sidecar_path_for
 
@@ -411,6 +411,27 @@ def test_discover_notes_finds_only_raw_transcripts_that_have_tags(tmp_path):
     assert discover_notes(hub, course="other") == []
     assert discover_notes(hub, note="2026-09-15") == [raw]
     assert discover_notes(hub, note="nomatch") == []
+
+
+def test_discover_pending_notes_includes_a_note_with_unanswered_tags(tmp_path):
+    hub, raw = _hub(tmp_path)
+    assert discover_pending_notes(hub) == [raw]
+
+
+def test_discover_pending_notes_excludes_a_fully_answered_note(tmp_path):
+    hub, raw = _hub(tmp_path)
+    with patch.object(rq, "resolve_question", side_effect=_fake_resolve()):
+        resolve_note(raw, hub, client=object(), roots=[hub])
+    assert discover_pending_notes(hub) == []
+
+
+def test_discover_pending_notes_excludes_a_subset_of_note(tmp_path):
+    from core.indexer.index_card import save_shard
+
+    hub, raw = _hub(tmp_path)
+    rel_rag = os.path.relpath(rag_path_for(raw), hub).replace(os.sep, "/")
+    save_shard(hub, "microecon", [{"file_id": "fid1", "path": rel_rag, "subset_of": "other-fid"}])
+    assert discover_pending_notes(hub) == []
 
 
 def test_cli_default_driver_is_agent_not_api():
