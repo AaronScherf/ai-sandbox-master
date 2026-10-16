@@ -1152,7 +1152,8 @@ def link_duplicate_note(academic_hub_root: str, canonical_course: str, canonical
 
 def process_pdf(pdf_path: str, client, model_override: str | None, academic_hub_root: str,
                 dry_run: bool = False, known_doc_types=KNOWN_DOC_TYPES, force_vision: bool = False,
-                driver: TranscriptionDriver | None = None, collect_mode: bool = False) -> None:
+                driver: TranscriptionDriver | None = None, collect_mode: bool = False,
+                check_math_notation: bool = True) -> None:
     from pipelines.transcribe_notes.agent_driver import AgentPending, ApiDriver, NullDriverFired
 
     if driver is None:
@@ -1207,7 +1208,8 @@ def process_pdf(pdf_path: str, client, model_override: str | None, academic_hub_
     if reliable_pagination:
         all_page_texts = extract_all_page_texts(pdf_path, total_pages)
         defective_page_numbers = [
-            n for n in range(1, total_pages + 1) if page_looks_defective(all_page_texts[n - 1])
+            n for n in range(1, total_pages + 1)
+            if page_looks_defective(all_page_texts[n - 1], check_math_notation=check_math_notation)
         ]
     defect_ratio = (len(defective_page_numbers) / total_pages) if (reliable_pagination and total_pages) else 1.0
 

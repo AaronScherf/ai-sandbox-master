@@ -113,7 +113,13 @@ def submit_doc(
     hub_root: str, academic_hub_root: str, run_id: str, doc_slug: str,
     pdf_path: str, client, model_override: str | None, agent_name: str = "antigravity",
     force_vision: bool = False, allow_api_fallback: bool = False,
+    known_doc_types=None, check_math_notation: bool = True,
 ) -> str:
+    # known_doc_types / check_math_notation must match what collect used, or the rerun below routes the
+    # document differently from the way its cards were staged. None keeps process_pdf's own default.
+    extra = {"check_math_notation": check_math_notation}
+    if known_doc_types is not None:
+        extra["known_doc_types"] = known_doc_types
     doc_dir = doc_work_dir(hub_root, run_id, doc_slug)
     entries = load_manifest(doc_dir)
     if not entries:
@@ -183,7 +189,7 @@ def submit_doc(
             next_driver = AgentDriver(hub_root, run_id, agent_name=agent_name)
             process_pdf(
                 pdf_path, None, model_override, academic_hub_root,
-                force_vision=force_vision, driver=next_driver, collect_mode=True,
+                force_vision=force_vision, driver=next_driver, collect_mode=True, **extra,
             )
             return f"incomplete: {len(cache)}/{total_pages} page(s) cached, next card staged"
 
@@ -193,7 +199,7 @@ def submit_doc(
         driver = ApiDriver(client) if allow_api_fallback else NullDriver()
         process_pdf(
             pdf_path, client, model_override, academic_hub_root,
-            force_vision=force_vision, driver=driver,
+            force_vision=force_vision, driver=driver, **extra,
         )
     except Exception as err:
         # Don't leave the document stuck "complete" if the final write
