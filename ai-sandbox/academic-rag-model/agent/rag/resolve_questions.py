@@ -205,8 +205,35 @@ def discover_notes(hub: str, course: str | None = None, note: str | None = None)
     return sorted(found)
 
 
-def _collect_note_answers(*args, **kwargs) -> None:
-    pass  # implemented in Task 4
+def _collect_note_answers(
+    raw_path: str, body: str, pending_tags: list[Tag], client, roots: list[str],
+    course: str | None, exclude: set[str], driver, keyterms_cache: dict,
+) -> None:
+    from core.env.gemini_utils import load_json_cache, save_json_cache
+    from pipelines.transcribe_notes.agent_driver import AgentPending
+
+    answers_path = answers_cache_path_for(raw_path)
+    answers_cache = load_json_cache(answers_path)
+    missing_answers = []
+    for tag in pending_tags:
+        if tag.qid in answers_cache:
+            continue
+        key_terms = keyterms_cache.get(tag.qid, [])
+        context, neighbors = question_context(body, tag.ordinal)
+        found = retrieve_passages(roots, f"{tag.text}\n{context[:300]}", client, course=course, key_terms=key_terms)
+        passages = [p for p in found if p.path.replace("\\", "/") not in exclude]
+        grounded = bool(passages) and (not key_terms or any(_term_match_count(p.text, key_terms) for p in passages))
+        prompt = build_answer_prompt(tag.text, context, neighbors, passages if grounded else None)
+        missing_answers.append((tag.qid, prompt))
+    if not missing_answers:
+        return
+    try:
+        staged = driver.stage_answers(raw_path, missing_answers)
+    except AgentPending:
+        raise
+    for qid, text in staged.items():
+        answers_cache[qid] = text
+    save_json_cache(answers_path, answers_cache)
 
 
 def _collect_note_questions(

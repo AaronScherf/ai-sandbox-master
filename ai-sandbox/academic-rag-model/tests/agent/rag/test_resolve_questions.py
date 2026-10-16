@@ -249,7 +249,35 @@ def test_redo_in_collect_mode_does_not_re_extract_already_cached_key_terms(tmp_p
         def stage_answers(self, note_key, missing):
             return {}
 
-    resolve_note(raw, hub, client=object(), roots=[hub], driver=FakeDriver(), collect_mode=True, redo=True)
+    with patch.object(rq, "retrieve_passages", return_value=[]):
+        resolve_note(raw, hub, client=object(), roots=[hub], driver=FakeDriver(), collect_mode=True, redo=True)
+
+
+def test_resolve_note_collect_mode_stages_answers_once_key_terms_are_cached(tmp_path):
+    hub, raw = _hub(tmp_path)
+
+    class FakeDriver:
+        def __init__(self):
+            self.answer_calls = None
+
+        def stage_key_terms(self, note_key, missing):
+            pytest.fail("key-term stage must not run again -- cache already has both questions")
+
+        def stage_answers(self, note_key, missing):
+            self.answer_calls = missing
+            return {}
+
+    # Pre-seed the key-terms cache as if a prior collect already filled it.
+    tags = find_tags(BODY)
+    import json
+    with open(keyterms_cache_path_for(raw), "w", encoding="utf-8") as f:
+        json.dump({t.qid: ["term"] for t in tags}, f)
+
+    driver = FakeDriver()
+    with patch.object(rq, "retrieve_passages", return_value=[]):
+        resolve_note(raw, hub, client=object(), roots=[hub], driver=driver, collect_mode=True)
+    assert driver.answer_calls is not None
+    assert {qid for qid, _prompt in driver.answer_calls} == {t.qid for t in tags}
 
 
 def _fake_resolve(failing_ordinals=()):
