@@ -121,7 +121,7 @@ class TestMainOversizedPageGate(unittest.TestCase):
                  patch("pipelines.convert_journal_articles.convert_journal_articles.load_dotenv_override"), \
                  patch("sys.argv", [
                      "convert_journal_articles.py",
-                     "--articles-dir", articles_dir, "--index-root", tmp, "--max-pages", "150",
+                     "--articles-dir", articles_dir, "--index-root", tmp, "--max-pages", "150", "--driver", "api",
                  ]):
                 from pipelines.convert_journal_articles.convert_journal_articles import main
                 main()
@@ -139,7 +139,7 @@ class TestMainOversizedPageGate(unittest.TestCase):
                  patch("pipelines.convert_journal_articles.convert_journal_articles.load_dotenv_override"), \
                  patch("sys.argv", [
                      "convert_journal_articles.py",
-                     "--articles-dir", articles_dir, "--index-root", tmp, "--max-pages", "150",
+                     "--articles-dir", articles_dir, "--index-root", tmp, "--max-pages", "150", "--driver", "api",
                  ]):
                 from pipelines.convert_journal_articles.convert_journal_articles import main
                 main()
