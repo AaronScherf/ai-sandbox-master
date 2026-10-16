@@ -6,7 +6,10 @@ import json
 import os
 from pathlib import Path
 
+import yaml
+
 from .transcript import normalize
+from .vocab import DATA_DIR, validate_vocabulary
 
 
 class Proposals:
@@ -37,3 +40,37 @@ class Proposals:
                       "quote": quote, "locator": locator, "pass": pass_label, "status": "open"})
         self._save(items)
         return True
+
+    def _get(self, items: list[dict], proposal_id: str) -> dict:
+        for p in items:
+            if p["id"] == proposal_id:
+                if p["status"] != "open":
+                    raise ValueError(f"proposal {proposal_id} is already {p['status']}")
+                return p
+        raise ValueError(f"no proposal {proposal_id}")
+
+    def accept(self, proposal_id: str, term_id: str, label: str, *, parent: str | None = None,
+               definition: str = "", vocab_dir=None) -> None:
+        items = self.all()
+        p = self._get(items, proposal_id)
+        path = Path(vocab_dir or DATA_DIR) / f"{p['vocabulary']}.yaml"
+        data = yaml.safe_load(path.read_text(encoding="utf-8"))
+        term = {"id": term_id, "label": label, "source": "local"}
+        if parent:
+            term["parent"] = parent
+        if definition:
+            term["definition"] = definition
+        data["terms"].append(term)
+        data["version"] += 1
+        problems = validate_vocabulary(data)
+        if problems:
+            raise ValueError("; ".join(problems))  # nothing has been written yet
+        path.write_text(yaml.safe_dump(data, sort_keys=False, allow_unicode=True), encoding="utf-8", newline="\n")
+        p["status"], p["term_id"] = "accepted", term_id
+        self._save(items)
+
+    def reject(self, proposal_id: str, reason: str = "") -> None:
+        items = self.all()
+        p = self._get(items, proposal_id)
+        p["status"], p["reason"] = "rejected", reason
+        self._save(items)

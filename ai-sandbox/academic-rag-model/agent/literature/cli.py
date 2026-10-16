@@ -110,6 +110,14 @@ def cmd_status(args) -> int:
     return 0
 
 
+def cmd_proposals(args) -> int:
+    for p in _target(args).proposals.open():
+        loc = p["locator"]
+        page = f"pages {', '.join(map(str, loc))}" if isinstance(loc, list) else f"page {loc}"
+        print(f"{p['id']}  {p['vocabulary']}  {p['value']!r}  paper {p['file_id']}  {page}")
+    return 0
+
+
 def _gemini_complete(model: str):
     """A complete(prompt) -> reply using the paid key. The only place this package can spend money; not unit-tested."""
     from core.env.gemini_utils import call_with_retries, get_gemini_client
@@ -152,6 +160,8 @@ def build_parser() -> argparse.ArgumentParser:
     b = sub.add_parser("bootstrap", help="Print the agent's operating contract.")
     b.add_argument("run_id")
     sub.add_parser("status", help="Counts of papers, records and open proposals.")
+    pr = sub.add_parser("proposals", help="Terms the agent proposed that no vocabulary term covered.")
+    pr.add_argument("action", choices=["list"])
     a = sub.add_parser("api", help="Send pending cards to the paid API (explicit opt-in, cost-gated).")
     a.add_argument("run_id")
     a.add_argument("--approve-cost", type=float, default=None, help="Approve up to this many dollars.")
@@ -163,4 +173,5 @@ def main(argv: list[str] | None = None, *, complete=None) -> int:
     args = build_parser().parse_args(argv)
     if args.command == "api":
         return cmd_api(args, complete)
-    return {"collect": cmd_collect, "submit": cmd_submit, "bootstrap": cmd_bootstrap, "status": cmd_status}[args.command](args)
+    return {"collect": cmd_collect, "submit": cmd_submit, "bootstrap": cmd_bootstrap, "status": cmd_status,
+            "proposals": cmd_proposals}[args.command](args)
