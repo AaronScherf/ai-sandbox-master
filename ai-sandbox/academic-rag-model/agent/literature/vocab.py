@@ -134,6 +134,14 @@ def load_vocab_dir(path=None) -> dict[str, Vocabulary]:
     return out
 
 
+def load_vocabularies(path=None) -> dict[str, Vocabulary]:
+    """The committed lists in vocab_data, overlaid by any same-named file in `path` (e.g. the ignored 3ie directory)."""
+    out = load_vocab_dir()
+    if path:
+        out.update(load_vocab_dir(path))
+    return out
+
+
 _COUNTRIES: dict[str, frozenset[str]] = {}
 
 

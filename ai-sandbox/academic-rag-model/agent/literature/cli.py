@@ -13,7 +13,7 @@ from .gold import DEFAULT_PATH, load_gold, score_record, summarize
 from .papers import eligible_papers
 from .proposals import Proposals
 from .store import RecordStore
-from .vocab import DATA_DIR, load_vocab_dir
+from .vocab import DATA_DIR, load_vocabularies
 
 _DEFAULT_ROOT = Path(__file__).resolve().parent.parent.parent.parent / "research"
 
@@ -32,7 +32,7 @@ BOOTSTRAP = """Agent contract for study-record extraction, run '{run}':
 
 def _target(args) -> stage.Target:
     records = RecordStore(Path(args.index_root) / ".index" / "study_records")
-    return stage.Target(str(args.index_root), records, load_vocab_dir(args.vocab_dir), Proposals(records.dir))
+    return stage.Target(str(args.index_root), records, load_vocabularies(args.vocab_dir), Proposals(records.dir))
 
 
 def _work_root(args) -> Path:

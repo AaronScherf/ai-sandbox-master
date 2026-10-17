@@ -1,0 +1,29 @@
+vocabulary: data_source
+version: 1
+provenance: provisional
+source: Starter list written for this project; replace or reconcile when an authoritative list is adopted.
+terms:
+- id: data_source.household_survey
+  label: Household survey
+- id: data_source.panel_survey
+  label: Panel survey
+- id: data_source.administrative_records
+  label: Administrative records
+- id: data_source.census
+  label: Census
+- id: data_source.remote_sensing
+  label: Remote sensing or satellite data
+- id: data_source.market_price_data
+  label: Market price data
+- id: data_source.early_warning_data
+  label: Early-warning or food-security monitoring data
+- id: data_source.conflict_event_data
+  label: Conflict event data
+- id: data_source.weather_climate_data
+  label: Weather or climate data
+- id: data_source.mobile_phone_data
+  label: Mobile phone or digital trace data
+- id: data_source.experimental_primary_data
+  label: Primary data collected for the trial
+- id: data_source.interviews_fieldwork
+  label: Interviews or fieldwork

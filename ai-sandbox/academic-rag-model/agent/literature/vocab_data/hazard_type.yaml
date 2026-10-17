@@ -1,0 +1,23 @@
+vocabulary: hazard_type
+version: 1
+provenance: provisional
+source: Starter list written for this project; replace or reconcile when an authoritative list is adopted.
+terms:
+- id: hazard_type.drought
+  label: Drought
+- id: hazard_type.flood
+  label: Flood
+- id: hazard_type.cyclone_storm
+  label: Cyclone or storm
+- id: hazard_type.earthquake
+  label: Earthquake
+- id: hazard_type.conflict
+  label: Armed conflict
+- id: hazard_type.epidemic
+  label: Epidemic or disease outbreak
+- id: hazard_type.heat_wave
+  label: Heat wave
+- id: hazard_type.pest_outbreak
+  label: Pest or locust outbreak
+- id: hazard_type.economic_shock
+  label: Economic or price shock

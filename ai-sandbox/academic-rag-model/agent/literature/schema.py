@@ -1,7 +1,7 @@
 """Constants for the study record and the agent's result shape (stage 2). Versioned: bump SCHEMA_VERSION when a
 record's shape changes incompatibly, PROMPT_VERSION when the card instructions change."""
 SCHEMA_VERSION = 1
-PROMPT_VERSION = "extract-v1"
+PROMPT_VERSION = "extract-v2"
 
 # result facet -> vocabulary name (vocab/<name>.yaml)
 FACETS = {

@@ -1,0 +1,29 @@
+vocabulary: population
+version: 1
+provenance: provisional
+source: Starter list written for this project; replace or reconcile when an authoritative list is adopted.
+terms:
+- id: population.households
+  label: Households
+- id: population.children_under_five
+  label: Children under five
+- id: population.women
+  label: Women
+- id: population.smallholder_farmers
+  label: Smallholder farmers
+- id: population.pastoralists
+  label: Pastoralists
+- id: population.refugees_idps
+  label: Refugees and internally displaced people
+- id: population.youth
+  label: Youth
+- id: population.firms
+  label: Firms and enterprises
+- id: population.communities
+  label: Communities or villages
+- id: population.schools_students
+  label: Schools and students
+- id: population.health_facilities
+  label: Health facilities and workers
+- id: population.general_population
+  label: General population

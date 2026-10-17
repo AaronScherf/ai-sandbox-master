@@ -17,6 +17,7 @@ from .transcript import split_pages
 from .validate import check_result
 
 STAGE = "extract"
+LISTING_LIMIT = 150  # a vocabulary with more terms than this is listed by its grouping levels only
 MAX_CARD_CHARS = 240_000  # about 60k tokens of transcript; longer papers need chunked extraction, which is not built
 
 
@@ -50,7 +51,7 @@ Rules:
 - Every fact needs a `quote` copied exactly from the page text (8 to 300 characters; the shortest passage that
   supports the fact) and a `locator`: the page number from the passage's ref (`ref: page 3` means locator 3), or a
   list of page numbers. A quote that is not on the page you cite is rejected.
-- Use a `vocab_id` from the vocabularies below when a term fits. If none fits, write `proposed: true` instead of a
+- Use a `vocab_id` from the vocabularies below when a term fits; pick the most specific listed term. If none fits, write `proposed: true` instead of a
   `vocab_id` and a short `value`. Never give both. Do not propose a term that is already listed.
 - `countries` are upper-case ISO 3166-1 alpha-2 codes. `scale` is one of local, subnational, national, multi_country,
   global, not_stated. `effect_direction` is one of positive, negative, null, mixed, not_reported.
@@ -73,8 +74,15 @@ def _vocab_listing(vocabs: dict) -> str:
         v = vocabs.get(name)
         if v is None:
             continue
-        lines += ["", f"Vocabulary {name} (version {v.version}, {v.provenance}):"]
-        for t in v.terms.values():
+        terms = list(v.terms.values())
+        note = ""
+        if len(terms) > LISTING_LIMIT:
+            parents = {t.parent for t in terms if t.parent}
+            terms = [t for t in terms if t.id in parents]
+            note = (f"; {len(v.terms)} terms in all, only the grouping levels are listed. Use the most specific listed "
+                    f"id and put the paper's own wording in `value`")
+        lines += ["", f"Vocabulary {name} (version {v.version}, {v.provenance}{note}):"]
+        for t in terms:
             lines.append(f"- {t.id}: {t.label}" + (f" - {t.definition}" if t.definition else ""))
     return "\n".join(lines)
 

@@ -1,0 +1,47 @@
+vocabulary: study_design
+version: 1
+provenance: provisional
+source: Starter list written for this project; replace or reconcile when an authoritative list is adopted.
+terms:
+- id: study_design.randomized_controlled_trial
+  label: Randomized controlled trial
+  definition: Units are randomly assigned to treatment and comparison groups.
+- id: study_design.cluster_randomized_trial
+  label: Cluster randomized trial
+  definition: Whole clusters (villages, schools) are randomly assigned.
+- id: study_design.difference_in_differences
+  label: Difference-in-differences
+  definition: Compares before/after change in treated units with change in comparison units.
+- id: study_design.regression_discontinuity
+  label: Regression discontinuity
+  definition: Exploits an assignment threshold to compare units just either side of it.
+- id: study_design.instrumental_variables
+  label: Instrumental variables
+  definition: Uses an exogenous instrument to identify the causal effect.
+- id: study_design.propensity_score_matching
+  label: Propensity score or covariate matching
+  definition: Matches treated and comparison units on observed characteristics.
+- id: study_design.synthetic_control
+  label: Synthetic control
+  definition: Builds a weighted comparison unit from untreated units.
+- id: study_design.panel_fixed_effects
+  label: Panel fixed effects
+  definition: Panel regression with unit and/or time fixed effects.
+- id: study_design.interrupted_time_series
+  label: Interrupted time series
+  definition: Tests for a change in level or trend at a known intervention date.
+- id: study_design.natural_experiment
+  label: Natural experiment
+  definition: Uses as-good-as-random variation arising outside the researchers' control.
+- id: study_design.cross_sectional_regression
+  label: Cross-sectional regression
+  definition: Controls for observables at one point in time; weak causal identification.
+- id: study_design.qualitative
+  label: Qualitative study
+  definition: Interviews, focus groups, case study or other non-numeric evidence.
+- id: study_design.simulation_model
+  label: Simulation or structural model
+  definition: Results come from a calibrated or estimated model.
+- id: study_design.systematic_review
+  label: Systematic review or meta-analysis
+  definition: Synthesises many primary studies by a stated search protocol.

@@ -118,7 +118,7 @@ class TestApply(unittest.TestCase):
         self.assertNotIn("modules", rec)
         self.assertEqual(rec["extractor"]["agent_name"], "antigravity")
         self.assertEqual(rec["extractor"]["run_id"], "r1")
-        self.assertEqual(rec["extractor"]["prompt_version"], "extract-v1")
+        self.assertEqual(rec["extractor"]["prompt_version"], "extract-v2")
         self.assertEqual(rec["extractor"]["pass"], "a")
         self.assertEqual(rec["review"], {"status": "unreviewed", "items_flagged": []})
 
