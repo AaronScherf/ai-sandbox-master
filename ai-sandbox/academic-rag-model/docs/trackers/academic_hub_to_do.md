@@ -258,6 +258,38 @@ cd .\ai-sandbox\academic-rag-model; .\.venv\Scripts\python.exe -m tools.project_
 - <!-- TODO-0032 --> Reprocess `LN_Analysis.pdf` and `LN_Linear Algebra.pdf` using whole-document batching and PyMuPDF dict-mode: their existing outputs predate the dict-mode/subscript reconstruction and whole-document batching improvements. Estimated cost under $0.30 total. Paused at user request pending review. (added 2026-10-04)
 - <!-- TODO-0033 --> Radical/square-root font encoding repair: in PDF font extractions (e.g. `Analysis_Exercises.pdf` page 6), square-root signs can extract as plain ASCII 'p' or missing glyphs due to broken ToUnicode font mappings; implement a regex/post-processing repair pass. (added 2026-10-04)
 - <!-- TODO-0034 --> Process the prior-year microecon class folders `academic-hub/academic_resources/microecon/2024_class/` (52 files: Exam, Exam Prep, Homeworks + Solutions, Pre/Post lecture notes, Proofs, Recitation) and `2025_class/` (36 files: Homeworks + Solutions, Post-Lecture Notes, Recitation notes, Midterm suggested solutions, Pre-exam survivals kit, proofs). Together 86 PDFs plus one `.md` and one `.Rmd`; none have been converted into `academic_notes/microecon/` yet, so the index and RAG don't see them. Also check `professor_notes/` items 4-6 (`Random_choice`, `Failures Of Rationality`, `Consumer_Choice_1`): `academic_notes/microecon/professor_notes/processed_outputs/` showed only items 1-3 plus the proofs file when last listed, so verify before assuming. Motivation: these feed the microecon concept-graph project (corpus for node explanations and edge citations) and the tutor/RAG. Approach so far: run `python -m pipelines.transcribe_notes.transcribe_notes --dry-run` on the folders first to see the tier split, since the local text tier costs nothing and only defective-text or handwritten/scanned documents need Gemini. For those Gemini tiers, consider an agent-driven mode modeled on `agent/tutor` (CLI renders page images and writes a worklist, the Antigravity IDE agent transcribes under the subscription, a `submit` step validates) instead of metered API calls; with `--driver api` kept as the fallback. A truly local Ollama vision model is untested here and likely weak on handwritten math (the transcribe_notes README says even Marker/Surya OCR does poorly on handwriting). Ask the user before any batch run estimated over $1. (added 2026-10-09)
+- <!-- TODO-0070 --> Deferred Minor findings from the Stage 3 consolidated-orchestrator whole-branch
+  review (`pipelines/transcribe_notes/route_notes_transcribe.py` and
+  `core/indexer/index_shard.py`/`core/indexer/chunk_index.py`), left unfixed by the reviewer's own
+  severity call and never filed anywhere durable before now (the plan's review ledger at
+  `.superpowers/sdd/2026-10-16-consolidated-orchestrator-plan/progress.md` was deleted on completion
+  per the executing-plans skill). None are blocking; each is a one-off polish or edge case:
+  - `update_card_content_hash` looks the card up by global `file_id` via `find_card_by_file_id` rather
+    than by `(course, path)` like the caller already resolved it through `_note_card` -- same
+    pre-existing hazard as `update_card_paths`; a `file_id` collision across two courses would update
+    the wrong card.
+  - The index shard is rewritten even when `content_hash` is unchanged (`resolve_note` /
+    `finalize_note_answers` always call `update_card_content_hash`, never skip when the hash already
+    matches).
+  - `RunReport.resolve_questions_failed` mixes note paths (from the exception branch) and qids (from
+    `NoteResult.failed`) in the same list -- the printed "N failed" count conflates two different units.
+  - `main()`'s exit-status check (`sys.exit(1)` on pdf/excalidraw problems) does not consider
+    `resolve_questions_failed` or `chunk_stats["failed"]` -- a run with only resolve-questions/chunk
+    failures still exits 0.
+  - `print_summary`'s resolve-questions line is a single aggregate (resolved/failed), not the
+    per-course counts the spec describes; the collect path's `AgentPending` catch is silent (no
+    per-note "[note] collected" line, unlike the standalone `resolve_questions` CLI).
+  - Spec says chunk runs "regardless of `--collect`/`--submit`", but the plan's own test
+    (`test_run_plan_does_not_chunk_in_collect_mode`) deliberately asserts collect mode skips chunking
+    -- an unrecorded plan-vs-spec deviation; low impact since collect finalizes nothing anyway.
+  - `--bootstrap`'s printed contract was not updated for the resolve-questions KEYTERMS/ANSWER card
+    format -- it still only describes the PDF/Excalidraw PAGE/SEGMENT format.
+  - The plain (`--driver api`) path now always requires a Gemini client even when there's truly
+    nothing to do but SVG backups; previously it skipped client construction when `total_todo` was 0.
+  - Collect/plain paths default to `GEMINI_API_KEY` (possibly free-tier, 20 req/day) for
+    resolve-questions work, whereas the standalone `resolve_questions` CLI always uses
+    `PAID_GEMINI_KEY`.
+  (added 2026-10-17)
 - <!-- TODO-0069 --> `agent_submit.submit_doc` (`pipelines/transcribe_notes/agent_submit.py`) unconditionally writes `<name>_pages_cache.json`/`<name>_pages_driver.json` next to whichever `pdf_path` it's called with, even when that call validates nothing (every manifest entry already `submitted`, e.g. a `--submit` invocation against the wrong folder for a byte-identical duplicate PDF). Found during the 2026-10-10 real-corpus validation run of the agent-driven transcription mode: the duplicate pair `academic_resources/microecon/2024_class/Post lecture notes/5.Failures Of Rationality.pdf` and `.../Pre Lecture Notes/5.Failures Of Rationality.pdf` share one task manifest (same `file_id`-derived doc slug); the canonical `.md` was written correctly under `Pre Lecture Notes/processed_outputs/` (28/28 pages), but `Post lecture notes/processed_outputs/` ended up with two empty (`{}`) orphaned sidecar files from a no-op submit call against that path. Harmless today (a future real run against that PDF hits `find_existing_transcription` and links to the canonical before ever touching these sidecars; no duplicate `.md`, no duplicate task, no data loss observed), but confusing clutter and worth guarding: in `submit_doc`, skip the `save_json_cache` calls for `cache_path`/`driver_path` when nothing was actually validated this call (e.g. track whether any entry's status changed, or skip the writes when the loop touched zero `pending`/`filled`/`bounced` entries). Also delete the two existing empty sidecar files under `academic_notes/microecon/2024_class/Post lecture notes/processed_outputs/` as part of the fix. (added 2026-10-10)
 
 ## Journal Article Discovery (`discovery/discover_journal_articles`)
