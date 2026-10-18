@@ -104,6 +104,49 @@ def diff_records(a: dict, b: dict, vocabs: dict | None = None) -> list[str]:
     return out
 
 
+def single_pass_facts(a: dict, b: dict, vocabs: dict | None = None) -> list[dict]:
+    """The facts only one pass found, after the same rules diff_records applies. Each item carries the fact's own quote."""
+    vocabs = vocabs or {}
+    out: list[dict] = []
+    for facet in schema.FACETS:
+        voc = vocabs.get(schema.FACETS[facet])
+        by = {p: {_key(f, voc): f for f in (r["core"].get(facet) or [])} for p, r in (("a", a), ("b", b))}
+        fa, fb = _apply_rules(_facts(a["core"].get(facet), voc), _facts(b["core"].get(facet), voc), voc)
+        for p, left, right in (("a", fa, fb), ("b", fb, fa)):
+            for key in left.keys() - right.keys():
+                fact = by[p][key]
+                term = voc.terms.get(fact.get("vocab_id")) if voc is not None and fact.get("vocab_id") else None
+                out.append({"facet": facet, "pass": p, "shown": left[key], "label": term.label if term else fact.get("value", ""),
+                            "value": fact.get("value", ""), "quote": fact["quote"], "locator": fact["locator"]})
+    ga, gb = a["core"].get("geography", {}), b["core"].get("geography", {})
+    for p, g, other in (("a", ga, gb), ("b", gb, ga)):
+        for code in sorted(set(g.get("countries", [])) - set(other.get("countries", []))):
+            out.append({"facet": "countries", "pass": p, "shown": code, "label": code, "value": code,
+                        "quote": g["quote"], "locator": g["locator"]})
+    return sorted(out, key=lambda i: (i["facet"], i["shown"], i["pass"]))
+
+
+def agreed_facts(a: dict, b: dict, vocabs: dict | None = None) -> list[dict]:
+    """The facts both passes found (pass a's copy of each), after the same rules diff_records applies."""
+    vocabs = vocabs or {}
+    only_a = {(i["facet"], i["shown"]) for i in single_pass_facts(a, b, vocabs) if i["pass"] == "a"}
+    out: list[dict] = []
+    for facet in schema.FACETS:
+        voc = vocabs.get(schema.FACETS[facet])
+        for fact in a["core"].get(facet) or []:
+            shown = _shown(fact)
+            if (facet, shown) in only_a:
+                continue
+            term = voc.terms.get(fact.get("vocab_id")) if voc is not None and fact.get("vocab_id") else None
+            out.append({"facet": facet, "shown": shown, "label": term.label if term else fact.get("value", ""),
+                        "quote": fact["quote"], "locator": fact["locator"]})
+    g = a["core"].get("geography", {})
+    for code in g.get("countries", []):
+        if ("countries", code) not in only_a:
+            out.append({"facet": "countries", "shown": code, "label": code, "quote": g["quote"], "locator": g["locator"]})
+    return out
+
+
 def reconcile(records: RecordStore, file_id: str, vocabs: dict | None = None) -> None:
     a, b = records.read(file_id, "a"), records.read(file_id, "b")
     if a is None or b is None:

@@ -8,7 +8,7 @@ from pathlib import Path
 from core.agent_tasks.loop import BudgetError, api_run, collect_run, provenance, submit_run
 from core.agent_tasks.work import load_run
 
-from . import stage
+from . import stage, verify
 from .gold import DEFAULT_PATH, load_gold, score_record, summarize
 from .papers import eligible_papers
 from .proposals import Proposals
@@ -90,8 +90,43 @@ def cmd_submit(args) -> int:
     run = _load(args)
     if run is None:
         return 2
-    report = submit_run(run, stage, _target(args), args.agent_name, provenance_fn=provenance, target_label="study records")
+    module = verify if run.stage == verify.STAGE else stage
+    report = submit_run(run, module, _target(args), args.agent_name, provenance_fn=provenance, target_label="study records")
     _print_report(report)
+    return 0
+
+
+def cmd_verify(args) -> int:
+    target = _target(args)
+    papers, _ = eligible_papers(args.index_root)
+    if args.file_id:
+        papers = [p for p in papers if p.file_id in set(args.file_id)]
+    tasks, skips = verify.make_tasks(target, papers, redo=args.redo)
+    for fid, reason in skips.items():
+        print(f"skipped {fid}: {reason}")
+    try:
+        run = collect_run(verify.STAGE, tasks, _work_root(args), target.records.dir, run_id=args.run_id, repo_label="records")
+    except (ValueError, FileExistsError) as exc:
+        print(f"cannot create the run: {exc}")
+        return 2
+    if run is None:
+        print("nothing to verify")
+        return 0
+    print(f"collected {len(tasks)} verification card(s) in run {run.run_id}: {run.root}")
+    return 0
+
+
+def cmd_silver(args) -> int:
+    target = _target(args)
+    totals = {"agreed": 0, "confirmed": 0, "open": 0}
+    for fid in target.records.ids():
+        split = verify.silver_split(target.records, fid, target.vocabs)
+        if not any(split.values()):
+            continue
+        for k in totals:
+            totals[k] += len(split[k])
+        print(f"{fid}  agreed {len(split['agreed'])}  confirmed {len(split['confirmed'])}  open {len(split['open'])}")
+    print(f"total  agreed {totals['agreed']}  confirmed {totals['confirmed']}  open {totals['open']}")
     return 0
 
 
@@ -193,6 +228,11 @@ def build_parser() -> argparse.ArgumentParser:
     c.add_argument("--run-id", default=None)
     c.add_argument("--redo", action="store_true", help="Extract again even if a current record exists.")
     c.add_argument("--double", action="store_true", help="Also stage an independent second pass for each paper.")
+    v = sub.add_parser("verify", help="Write cards that ask for an independent check of facts only one pass found.")
+    v.add_argument("--file-id", action="append", default=[], help="Only this paper (repeatable).")
+    v.add_argument("--run-id", default=None)
+    v.add_argument("--redo", action="store_true", help="Verify again even if the paper was already verified.")
+    sub.add_parser("silver", help="Per paper: facts both passes agree on, facts the verifier confirmed, facts still open.")
     s = sub.add_parser("submit", help="Validate filled cards and write records.")
     s.add_argument("run_id")
     s.add_argument("--agent-name", default="antigravity")
@@ -214,5 +254,5 @@ def main(argv: list[str] | None = None, *, complete=None) -> int:
     args = build_parser().parse_args(argv)
     if args.command == "api":
         return cmd_api(args, complete)
-    return {"collect": cmd_collect, "submit": cmd_submit, "bootstrap": cmd_bootstrap, "status": cmd_status,
+    return {"collect": cmd_collect, "verify": cmd_verify, "silver": cmd_silver, "submit": cmd_submit, "bootstrap": cmd_bootstrap, "status": cmd_status,
             "proposals": cmd_proposals, "eval": cmd_eval}[args.command](args)
