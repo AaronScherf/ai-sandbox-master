@@ -169,7 +169,7 @@ def apply_result(target: Target, entry: dict, result: dict, provenance: dict) ->
         "vocab_versions": s["vocab_versions"]}
     record["review"] = {"status": "unreviewed", "items_flagged": []}
     target.records.write(record, label)
-    reconcile(target.records, s["file_id"])
+    reconcile(target.records, s["file_id"], target.vocabs)
     for vocab_name, fact in _proposed_facts(result):
         if fact.get("proposed"):
             target.proposals.add(s["file_id"], vocab_name, fact["value"], fact["quote"], fact["locator"], label)

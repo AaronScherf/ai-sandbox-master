@@ -8,28 +8,41 @@ from .store import RecordStore
 from .transcript import normalize
 
 
-def _identity(fact: dict) -> str:
+def _key(fact: dict, vocab=None) -> str:
+    """A vocabulary term, or a proposed value. Ids that share one label (the same wording filed under two branches)
+    are one fact when the vocabulary is known."""
+    vid = fact.get("vocab_id")
+    if not vid:
+        return "proposed:" + normalize(fact.get("value", ""))
+    term = vocab.terms.get(vid) if vocab is not None else None
+    return "term:" + normalize(term.label) if term is not None else vid
+
+
+def _shown(fact: dict) -> str:
     return fact["vocab_id"] if fact.get("vocab_id") else "proposed:" + normalize(fact.get("value", ""))
 
 
-def _set(facts) -> set[str]:
-    return {_identity(f) for f in (facts or [])}
+def _facts(facts, vocab=None) -> dict[str, str]:
+    return {_key(f, vocab): _shown(f) for f in (facts or [])}
 
 
-def _only(label: str, sa: set, sb: set) -> str:
-    return f"{label}: only in pass a {sorted(sa - sb)}; only in pass b {sorted(sb - sa)}"
+def _only(label: str, fa: dict, fb: dict) -> str:
+    return (f"{label}: only in pass a {sorted(v for k, v in fa.items() if k not in fb)}; "
+            f"only in pass b {sorted(v for k, v in fb.items() if k not in fa)}")
 
 
-def diff_records(a: dict, b: dict) -> list[str]:
+def diff_records(a: dict, b: dict, vocabs: dict | None = None) -> list[str]:
+    vocabs = vocabs or {}
     out: list[str] = []
     for facet in schema.FACETS:
-        sa, sb = _set(a["core"].get(facet)), _set(b["core"].get(facet))
-        if sa != sb:
-            out.append(_only(f"core.{facet}", sa, sb))
+        voc = vocabs.get(schema.FACETS[facet])
+        fa, fb = _facts(a["core"].get(facet), voc), _facts(b["core"].get(facet), voc)
+        if fa.keys() != fb.keys():
+            out.append(_only(f"core.{facet}", fa, fb))
     ga, gb = a["core"].get("geography", {}), b["core"].get("geography", {})
     ca, cb = set(ga.get("countries", [])), set(gb.get("countries", []))
     if ca != cb:
-        out.append(_only("core.geography.countries", ca, cb))
+        out.append(f"core.geography.countries: only in pass a {sorted(ca - cb)}; only in pass b {sorted(cb - ca)}")
     if ga.get("scale") != gb.get("scale"):
         out.append(f"core.geography.scale: pass a {ga.get('scale')!r}; pass b {gb.get('scale')!r}")
     ra, rb = a["core"].get("results", []), b["core"].get("results", [])
@@ -42,18 +55,20 @@ def diff_records(a: dict, b: dict) -> list[str]:
         for facet in facets:
             ma = (a.get("modules", {}).get(module) or {}).get(facet, [])
             mb = (b.get("modules", {}).get(module) or {}).get(facet, [])
-            if _set(ma) != _set(mb):
-                out.append(_only(f"modules.{module}.{facet}", _set(ma), _set(mb)))
+            voc = vocabs.get(facets[facet])
+            fa, fb = _facts(ma, voc), _facts(mb, voc)
+            if fa.keys() != fb.keys():
+                out.append(_only(f"modules.{module}.{facet}", fa, fb))
     return out
 
 
-def reconcile(records: RecordStore, file_id: str) -> None:
+def reconcile(records: RecordStore, file_id: str, vocabs: dict | None = None) -> None:
     a, b = records.read(file_id, "a"), records.read(file_id, "b")
     if a is None or b is None:
         return
     if a.get("review", {}).get("status") in ("accepted", "corrected"):
         return  # a human has already ruled; never override
-    diffs = diff_records(a, b)
+    diffs = diff_records(a, b, vocabs)
     review = {"status": "needs_review" if diffs else "unreviewed", "items_flagged": diffs}
     if not diffs:
         review["double_pass"] = "agreed"
