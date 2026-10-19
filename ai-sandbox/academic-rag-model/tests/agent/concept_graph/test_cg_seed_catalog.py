@@ -58,12 +58,13 @@ def test_recitation_material_offers_its_statements_and_headings(tmp_path):
     assert "Matrix algebra review" in rec and "Definition 4 (Statistic). A statistic is a function of a sample." in rec
 
 
-def test_recitation_is_capped_at_fifteen_files(tmp_path):
+def test_recitation_is_capped_at_twenty_five_files(tmp_path):
+    # econometrics has 19 TA notes and counting; the appendices (A1-A4: convergence, MDS) sort last.
     hub = econ_hub(tmp_path)
-    for i in range(20):
+    for i in range(30):
         write(hub / "academic_notes" / ECON / f"ta_notes/processed_outputs/{i:02d}-topic.md", f"# Distinct topic number {i}\n")
     _, passages = seed.outline_context(str(hub), ECON)
-    assert len([p for p in passages if p.source == "recitation"]) == 15
+    assert len([p for p in passages if p.source == "recitation"]) == 25
 
 
 def test_a_near_duplicate_syllabus_is_offered_once(tmp_path):
