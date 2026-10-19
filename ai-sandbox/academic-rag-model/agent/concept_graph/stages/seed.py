@@ -8,6 +8,8 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
+from core.course_materials import Catalog, load_catalog
+
 from ..ipguard import check_meta, check_prose
 from ..schema import SLUG, SeedConfig
 from ..sources import Passage, classify_passage
@@ -26,7 +28,8 @@ _FRONTMATTER = re.compile(r"\A---\n.*?\n---\s*\n", re.DOTALL)
 _PAGE_MARK = re.compile(r"<!--.*?-->")
 _PRIVATE_LINE = re.compile(r"(?i)(e-?mail|@|https?://|office hours|professor:|teaching assistant|recitation|website|courseworks|classes:)")
 _STATEMENT = re.compile(
-    r"^[\s*_#>\-]*(definition|theorem|axiom|lemma|proposition|corollary|assumption|property|postulate)\b[\s:.\-–—]*(.*)$",
+    r"^[\s*_#>\-]*(definitions?|theorems?|axioms?|lemmas?|propositions?|corollar(?:y|ies)|assumptions?|"
+    r"propert(?:y|ies)|postulates?)(\s+\d[\d.]*)?\b[\s:.\-–—]*(.*)$",
     re.IGNORECASE)
 _HEADING = re.compile(r"^(#{1,3})\s+(.+?)\s*#*\s*$")
 _BORING_HEADINGS = ("related notes", "bibliographic notes", "bibliography", "references", "table of contents", "contents")
@@ -57,6 +60,10 @@ How to work
 2. Read the offered passages. They are extracts of the course's own materials: the syllabus, slide decks (with the
    definitions, axioms and theorems they state), lecture notes, and the contents and section headings of the
    textbook chapters that are in scope. They are your evidence for what the course covers and in what order.
+   Weigh them by where they come from: the syllabus, the instructor's slides and notes, recitation material and the
+   textbooks are authoritative. Passages whose source is `lecture` are the student's own notes (sometimes expanded by
+   a model) and may contain mistakes: use them for teaching order, dates and coverage, and where they disagree with
+   class material, follow the class material.
 3. Write the result in the format below, then run the self-check.
 
 Sections
@@ -143,7 +150,8 @@ def statement_anchors(text: str, limit: int = 25, width: int = 180) -> list[str]
         m = _STATEMENT.match(line)
         if not m:
             continue
-        parts = [m.group(2).strip(" *_#>:-")] if m.group(2).strip(" *_#>:-") else []
+        rest = m.group(3).strip(" *_#>:-")
+        parts = [rest] if rest else []
         j = i + 1
         while len(" ".join(parts)) < 60 and j < len(lines) and len(parts) < 3:
             nxt = lines[j]
@@ -155,7 +163,8 @@ def statement_anchors(text: str, limit: int = 25, width: int = 180) -> list[str]
             parts.append(nxt)
         if not parts:
             continue
-        anchor = re.sub(r"\s+", " ", " ".join([m.group(1).capitalize(), *parts])).strip()[:width]
+        label = m.group(1).capitalize() + (m.group(2) or "").rstrip(".")
+        anchor = re.sub(r"\s+", " ", " ".join([label, *parts])).strip()[:width]
         if anchor.lower() in seen:
             continue
         seen.add(anchor.lower())
@@ -185,98 +194,121 @@ def _bullets(items: list[str]) -> str:
     return "\n".join(f"- {i}" for i in items)
 
 
-def outline_context(hub_root: str, course: str, *, config: SeedConfig | None = None,
-                    max_chars: int = 12000) -> tuple[str, list[Passage]]:
-    """Describe the course from files on disk only (no model, no embedding).
+# Upper bounds on passages per kind of material, so a large role (34 TA notes) cannot crowd out the slides.
+ROLE_CAPS = {"instructor": 30, "student_notes": 30, "recitation": 8, "prior": 15}
+_CHAPTER_FILE = re.compile(r"/chapters/(\d+)_[^/]*$")
 
-    Offered passages: the syllabus excerpt (contact details removed), the labelled statements found in each slide
-    deck and lecture note, each textbook's chapter titles, and the section headings of the chapters the config puts
-    in scope. The context text carries the lecture dates and slide-set order and points to the passages."""
+
+def _evidence(text: str, *, statements: int, headings: int) -> str:
+    parts = []
+    anchors = statement_anchors(text, limit=statements)
+    if anchors:
+        parts.append("Statements:\n" + _bullets(anchors))
+    heads = section_headings(text, limit=headings) if headings else []
+    if heads:
+        parts.append("Section headings:\n" + _bullets(heads))
+    return "\n\n".join(parts)
+
+
+def outline_context(hub_root: str, course: str, *, config: SeedConfig | None = None, catalog: Catalog | None = None,
+                    max_chars: int = 12000) -> tuple[str, list[Passage]]:
+    """Describe the course from its files only (no model, no embedding), by what each file is, class material first.
+
+    Offered passages: the syllabus excerpt (contact details removed); the statements and section headings of the
+    instructor's slides and notes; recitation headings; earlier offerings' slide statements; each textbook's contents
+    and the headings of the chapters the config puts in scope; and last, the statements and headings of the student's
+    lecture notes. The context text carries the lecture dates and teaching order and points to the passages."""
     config = config or SeedConfig()
-    base = Path(hub_root) / "academic_notes" / course
+    catalog = catalog if catalog is not None else load_catalog(hub_root, course)
+    hub = Path(hub_root)
     lines: list[str] = []
     passages: list[Passage] = []
 
-    def add(path: Path, text: str, ref: str | None = None, source: str | None = None) -> None:
-        s, r = classify_passage(str(path))
-        passages.append(Passage(id="", source=source or s, ref=ref or r, text=text, path=str(path)))
+    def read(m) -> str:
+        return (hub / m.path).read_text(encoding="utf-8", errors="ignore")
+
+    def add(m, text: str, ref: str | None = None) -> None:
+        source, default_ref = classify_passage(m.path, "", catalog)
+        passages.append(Passage(id="", source=source, ref=ref or default_ref, text=text, path=str(hub / m.path)))
 
     seen_text: set[str] = set()
-    for f in sorted((base / "syllabus" / "processed_outputs").glob("*.md")):
-        text = _clean_syllabus(f.read_text(encoding="utf-8", errors="ignore"))[:3000].strip()
+    for m in catalog.by_role("syllabus"):
+        text = _clean_syllabus(read(m))[:3000].strip()
         if text and text not in seen_text:
             seen_text.add(text)
-            add(f, text)
+            add(m, text)
 
-    def slide_key(f: Path):
-        m = re.match(r"(\d+)\.", f.name)
-        return (int(m.group(1)) if m else 10_000, f.name)
+    titles: list[str] = []
+    lecture_dates: set[str] = set()
+    for m in catalog.by_role("instructor")[: ROLE_CAPS["instructor"]]:
+        label = classify_passage(m.path, "", catalog)[1]
+        evidence = _evidence(read(m), statements=25, headings=20)
+        handwritten = m.format == "handwritten"
+        if evidence:
+            what = f"the instructor's notes of {label}" if handwritten else "these slides"
+            add(m, f"Found in {what}:\n\n{evidence}")
+        if handwritten and m.date:
+            lecture_dates.add(m.date)
+        if label not in titles:
+            titles.append(label)
 
-    slides: list[str] = []
-    for f in sorted((base / "professor_notes" / "processed_outputs").glob("*.md"), key=slide_key):
-        title = classify_passage(str(f))[1]
-        anchors = statement_anchors(f.read_text(encoding="utf-8", errors="ignore"))
-        if anchors:
-            add(f, "Statements found in these slides:\n" + _bullets(anchors))
-        if "proof" not in f.name.lower() and title not in slides:
-            slides.append(title)
+    for m in catalog.by_role("recitation")[: ROLE_CAPS["recitation"]]:
+        heads = section_headings(read(m), limit=15)
+        if heads:
+            add(m, "Section headings:\n" + _bullets(heads))
 
-    lecture_dir = base / "lecture_notes"
-    by_date: dict[str, Path] = {}
-    for f in [*lecture_dir.glob("*.md"), *(lecture_dir / "processed_outputs").glob("*.md")]:
-        m = _DATE.search(f.name)
-        if m and (m.group(0) not in by_date or f.name.endswith(".rag.md")):
-            by_date[m.group(0)] = f
-    for date in sorted(by_date):
-        anchors = statement_anchors(by_date[date].read_text(encoding="utf-8", errors="ignore"), limit=12)
-        if anchors:
-            add(by_date[date], f"Statements found in the lecture notes of {date}:\n" + _bullets(anchors),
-                ref=date, source="lecture")
-
-    for chapters in sorted((base / "textbooks" / "processed_outputs").glob("*/chapters")):
-        source = classify_passage(str(chapters / "x.rag.md"))[0]
-        titles = []
-        # Known books are listed by source key (mwg, rubinstein, ok); any other book by its folder name.
-        by_name = {k.lower(): v for k, v in config.textbook_chapters.items()}
-        wanted = set(config.textbook_chapters.get(source) or by_name.get(chapters.parent.name.lower(), []))
-        for ch in sorted(chapters.glob("*.rag.md")):
-            stem = ch.name[: -len(".rag.md")]
-            m = re.match(r"(\d+)_", stem)
-            if not (m and int(m.group(1)) > 0):
-                continue
-            number = int(m.group(1))
-            titles.append(f"{number}. {_title(stem)}")
-            if number in wanted:
-                heads = section_headings(ch.read_text(encoding="utf-8", errors="ignore"))
-                if heads:
-                    add(ch, f"Section headings of chapter {number} ({_title(stem)}):\n" + _bullets(heads),
-                        ref=f"ch. {number} section headings", source=source)
-        if titles:
-            add(chapters, "\n".join(titles), ref="table of contents", source=source)
-
-    # Earlier years of the course: their post-lecture slide sets show how the later topics (consumer choice 2,
-    # production, risk and uncertainty) are taught, before this year's lectures reach them.
-    prior_decks: list[str] = []
-    for year_dir in sorted(base.glob("20??_class")):
-        decks = []
-        for f in sorted(year_dir.glob("*ost*ecture*/processed_outputs/*.md"), key=slide_key):
-            anchors = statement_anchors(f.read_text(encoding="utf-8", errors="ignore"))
-            title = classify_passage(str(f))[1]
+    prior_lines: list[str] = []
+    for label in catalog.offerings():
+        decks: list[str] = []
+        for m in [x for x in catalog.by_role("instructor", offering=label) if x.format == "slides"][: ROLE_CAPS["prior"]]:
+            title = classify_passage(m.path, "", catalog)[1]
+            anchors = statement_anchors(read(m))
             if anchors:
-                add(f, f"Statements found in the {year_dir.name[:4]} class slides:\n" + _bullets(anchors))
+                add(m, f"Statements found in the {label} offering slides:\n" + _bullets(anchors))
             if title not in decks:
                 decks.append(title)
         if decks:
-            prior_decks.append(f"{year_dir.name[:4]} class slide sets (in order): " + "; ".join(decks))
+            prior_lines += [f"{label} offering slide sets (in order): " + "; ".join(decks), ""]
 
-    if by_date:
-        lines += ["Lecture dates with notes: " + ", ".join(sorted(by_date)), ""]
-    if slides:
-        lines += ["Professor slide sets (in course order): " + "; ".join(slides), ""]
-    if prior_decks:
-        lines += [*prior_decks, ""]
-    lines += ["The syllabus excerpt, the statements found in slides and lecture notes, and the textbook contents and "
-              "section headings are under 'Offered passages' below."]
+    by_name = {k.lower(): v for k, v in config.textbook_chapters.items()}
+    books: dict[str, list] = {}
+    for m in catalog.by_role("textbook"):
+        books.setdefault(m.book or "book", []).append(m)
+    for key in sorted(books):
+        chapters = sorted(((int(c.group(1)), m) for m in books[key] if (c := _CHAPTER_FILE.search(m.path))
+                           and int(c.group(1)) > 0), key=lambda pair: (pair[0], pair[1].path))
+        if not chapters:
+            continue
+        folder = chapters[0][1].path.split("/")[-3].lower()
+        wanted = set(config.textbook_chapters.get(key) or by_name.get(key.lower()) or by_name.get(folder) or [])
+        toc = []
+        for number, m in chapters:
+            toc.append(f"{number}. {_title(m.stem)}")
+            if number in wanted:
+                heads = section_headings(read(m))
+                if heads:
+                    add(m, f"Section headings of chapter {number} ({_title(m.stem)}):\n" + _bullets(heads),
+                        ref=f"ch. {number} section headings")
+        add(chapters[0][1], "\n".join(toc), ref="table of contents")
+
+    # The student's own notes come last: they fix teaching order and dates, but class material outranks them.
+    by_date: dict[str, list] = {}
+    for m in catalog.by_role("student_notes"):
+        if m.date:
+            by_date.setdefault(m.date, []).append(m)
+    for date in sorted(by_date)[: ROLE_CAPS["student_notes"]]:
+        evidence = "\n\n".join(e for e in (_evidence(read(m), statements=12, headings=12) for m in by_date[date]) if e)
+        if evidence:
+            add(by_date[date][0], f"Found in the student's lecture notes of {date}:\n\n{evidence}", ref=date)
+    lecture_dates |= set(by_date)
+
+    if lecture_dates:
+        lines += ["Lecture dates with notes: " + ", ".join(sorted(lecture_dates)), ""]
+    if titles:
+        lines += ["Instructor slides and notes (in course order): " + "; ".join(titles), ""]
+    lines += prior_lines
+    lines += ["The syllabus excerpt, what was found in the instructor's slides and notes and in the lecture notes, and "
+              "the textbook contents and section headings are under 'Offered passages' below."]
     context = "\n".join(lines).strip()
     if len(context) > max_chars:
         context = context[:max_chars] + "\n[context truncated]"
@@ -297,7 +329,7 @@ def _matches(alias: str, name: str) -> bool:
 
 
 def make_tasks(store: GraphStore, retriever=None, *, hub_root: str | None = None, course: str | None = None,
-               redo: bool = False, **_ignored) -> list[Task]:
+               redo: bool = False, catalog: Catalog | None = None, **_ignored) -> list[Task]:
     if not hub_root or not course:
         raise ValueError("seed needs --hub-root and --course")
     graph = store.read_all()
@@ -305,7 +337,7 @@ def make_tasks(store: GraphStore, retriever=None, *, hub_root: str | None = None
     if any(s.state in ("taught", "in_progress") for s in graph.sections) and not redo:
         raise ValueError("the graph already has taught sections; seed is for starting a graph (use --redo to add to it)")
     config = store.read_seed_config()
-    context, passages = outline_context(hub_root, course, config=config)
+    context, passages = outline_context(hub_root, course, config=config, catalog=catalog)
 
     existing =[f"- section {s.id} (order {s.order:g}, {s.state}): {s.title}" for s in graph.sections]
     existing += [f"- node {n.id}: {n.name} (section {n.section})" for n in graph.nodes]

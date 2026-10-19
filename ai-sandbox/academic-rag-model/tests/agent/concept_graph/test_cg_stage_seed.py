@@ -86,7 +86,7 @@ def task_for(tmp_path, store=None):
 def test_outline_context_lists_chapters_and_dates_from_a_tmp_hub(tmp_path):
     context, passages = seed.outline_context(str(make_hub(tmp_path)), "microecon")
     assert "2026-09-07" in context and "2026-09-10" in context and "Utility Maximization 1" in context
-    toc = next(p for p in passages if p.source == "rubinstein")
+    toc = next(p for p in passages if p.source == "rubenstein")
     assert "Introduction" in toc.text and "Preferences" in toc.text and "front matter" not in toc.text.lower()
 
 
@@ -168,7 +168,7 @@ def test_seeded_graph_validates_apart_from_unfilled_warnings(tmp_path):
 
 def test_syllabus_excerpt_drops_contact_details_and_file_metadata_and_is_not_duplicated(tmp_path):
     context, passages = seed.outline_context(str(make_hub(tmp_path)), "microecon")
-    syllabi = [p for p in passages if p.source == "other"]
+    syllabi = [p for p in passages if p.source == "syllabus"]
     assert len(syllabi) == 1  # the two near-identical syllabi differ only in office hours
     text = syllabi[0].text
     assert "Course topics: preferences and choice" in text
@@ -187,8 +187,7 @@ def test_lecture_dates_include_notes_that_have_not_been_processed_yet(tmp_path):
     assert "2026-09-29" in context
 
 
-def test_slide_sets_are_in_numeric_course_order_and_proofs_are_left_out(tmp_path):
+def test_slide_sets_are_in_numeric_course_order(tmp_path):
     context, _ = seed.outline_context(str(make_hub(tmp_path)), "microecon")
-    line = next(l for l in context.splitlines() if l.startswith("Professor slide sets"))
+    line = next(l for l in context.splitlines() if l.startswith("Instructor slides and notes"))
     assert line.index("Course Intro") < line.index("Utility Maximization 1") < line.index("Late Topic")
-    assert "Proofs" not in line

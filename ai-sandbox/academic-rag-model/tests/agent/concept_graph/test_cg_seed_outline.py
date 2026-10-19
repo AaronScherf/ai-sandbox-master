@@ -106,7 +106,7 @@ def test_textbook_section_headings_appear_only_for_configured_chapters(tmp_path)
     hub = str(rich_hub(tmp_path))
     _, plain = seed.outline_context(hub, "microecon")
     assert not any("1.B Preference Relations" in p.text for p in plain)
-    _, scoped = seed.outline_context(hub, "microecon", config=SeedConfig(textbook_chapters={"mwg": [1]}))
+    _, scoped = seed.outline_context(hub, "microecon", config=SeedConfig(textbook_chapters={"press": [1]}))
     joined = "\n".join(p.text for p in scoped)
     assert "1.B Preference Relations" in joined and "Utility Functions" in joined
     assert "2.B Commodities" not in joined and "Related notes" not in joined
@@ -166,14 +166,24 @@ def test_duplicate_names_are_bounced_even_with_different_ids_or_punctuation(tmp_
     assert any("already" in m and "Preference relation" in m for m in seed.validate_result(entry, again, store))
 
 
-def test_outline_offers_earlier_years_post_lecture_slides_under_their_own_source(tmp_path):
+def test_outline_offers_earlier_offerings_slides_under_their_own_source(tmp_path):
+    from pypdf import PdfWriter
+
     hub = rich_hub(tmp_path)
     for year, folder in (("2024", "Post lecture notes"), ("2025", "Post-Lecture Notes")):
+        res = hub / "academic_resources" / "microecon" / f"{year}_class"
+        (res / folder).mkdir(parents=True)
+        (res / ".notes_subset.json").write_text('{"label": "%s"}' % year, encoding="utf-8")
+        writer = PdfWriter()
+        writer.add_blank_page(width=792, height=612)
+        with open(res / folder / "8.Production.pdf", "wb") as fh:
+            writer.write(fh)
         d = hub / "academic_notes" / "microecon" / f"{year}_class" / folder / "processed_outputs"
         d.mkdir(parents=True)
-        (d / "8.Production.md").write_text("Production\n\nDefinition\nA production set is a set of feasible input-output plans\n",
-                                           encoding="utf-8")
+        (d / "8.Production.md").write_text(
+            f"---\nsource_pdf: academic_resources/microecon/{year}_class/{folder}/8.Production.pdf\n---\n\n"
+            "Production\n\nDefinition\nA production set is a set of feasible input-output plans\n", encoding="utf-8")
     context, passages = seed.outline_context(str(hub), "microecon")
     assert {p.source for p in passages if p.source.endswith(("2024", "2025"))} == {"slides-2024", "slides-2025"}
     assert any(p.source == "slides-2025" and p.ref == "Production" for p in passages)
-    assert "2024 class slide sets (in order): Production" in context
+    assert "2024 offering slide sets (in order): Production" in context
