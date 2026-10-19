@@ -1,0 +1,8166 @@
+{
+ "course": "microecon",
+ "materials": [
+  {
+   "path": "academic_notes/microecon/2024_class/Exam/processed_outputs/Exam_Part_I_Sols.md",
+   "role": "exam",
+   "format": "handwritten",
+   "offering": "2024",
+   "date": null,
+   "book": null,
+   "order": [
+    1000000,
+    "",
+    "exam_part_i_sols"
+   ],
+   "confidence": 6.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "pdf portrait",
+     "format",
+     "portrait",
+     0
+    ],
+    [
+     "index card problem_set",
+     "role",
+     "problem_set",
+     3
+    ],
+    [
+     "content: exam wording",
+     "role",
+     "exam",
+     2
+    ],
+    [
+     "path word 'exam'",
+     "role",
+     "exam",
+     1
+    ],
+    [
+     "portrait scan, few headings",
+     "format",
+     "handwritten",
+     1
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/microecon/2024_class/Exam Prep/processed_outputs/2019.md",
+   "role": "problem_set",
+   "format": "typeset",
+   "offering": "2024",
+   "date": null,
+   "book": null,
+   "order": [
+    1000000,
+    "",
+    "2019"
+   ],
+   "confidence": 6.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "pdf portrait",
+     "format",
+     "portrait",
+     0
+    ],
+    [
+     "index card problem_set",
+     "role",
+     "problem_set",
+     3
+    ],
+    [
+     "content: problem_set wording",
+     "role",
+     "problem_set",
+     2
+    ],
+    [
+     "path word 'exam'",
+     "role",
+     "exam",
+     1
+    ],
+    [
+     "default",
+     "format",
+     "typeset",
+     1
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/microecon/2024_class/Exam Prep/processed_outputs/2019_solution.md",
+   "role": "exam",
+   "format": "typeset",
+   "offering": "2024",
+   "date": null,
+   "book": null,
+   "order": [
+    1000000,
+    "",
+    "2019_solution"
+   ],
+   "confidence": 9.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "pdf portrait",
+     "format",
+     "portrait",
+     0
+    ],
+    [
+     "index card ta_notes",
+     "authority",
+     "class",
+     3
+    ],
+    [
+     "content: problem_set wording",
+     "role",
+     "problem_set",
+     2
+    ],
+    [
+     "content: exam wording",
+     "role",
+     "exam",
+     2
+    ],
+    [
+     "path word 'exam'",
+     "role",
+     "exam",
+     1
+    ],
+    [
+     "path word 'solution'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "default",
+     "format",
+     "typeset",
+     1
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/microecon/2024_class/Exam Prep/processed_outputs/2022.md",
+   "role": "problem_set",
+   "format": "handwritten",
+   "offering": "2024",
+   "date": null,
+   "book": null,
+   "order": [
+    1000000,
+    "",
+    "2022"
+   ],
+   "confidence": 8.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "pdf portrait",
+     "format",
+     "portrait",
+     0
+    ],
+    [
+     "index card problem_set",
+     "role",
+     "problem_set",
+     3
+    ],
+    [
+     "content: problem_set wording",
+     "role",
+     "problem_set",
+     2
+    ],
+    [
+     "content: exam wording",
+     "role",
+     "exam",
+     2
+    ],
+    [
+     "path word 'exam'",
+     "role",
+     "exam",
+     1
+    ],
+    [
+     "portrait scan, few headings",
+     "format",
+     "handwritten",
+     1
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/microecon/2024_class/Exam Prep/processed_outputs/2022_solution.md",
+   "role": "exam",
+   "format": "typeset",
+   "offering": "2024",
+   "date": null,
+   "book": null,
+   "order": [
+    1000000,
+    "",
+    "2022_solution"
+   ],
+   "confidence": 5.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "pdf portrait",
+     "format",
+     "portrait",
+     0
+    ],
+    [
+     "index card ta_notes",
+     "authority",
+     "class",
+     3
+    ],
+    [
+     "path word 'exam'",
+     "role",
+     "exam",
+     1
+    ],
+    [
+     "path word 'solution'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "default",
+     "format",
+     "typeset",
+     1
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/microecon/2024_class/Exam Prep/processed_outputs/2023 solution.md",
+   "role": "problem_set",
+   "format": "typeset",
+   "offering": "2024",
+   "date": null,
+   "book": null,
+   "order": [
+    1000000,
+    "",
+    "2023 solution"
+   ],
+   "confidence": 5.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "pdf portrait",
+     "format",
+     "portrait",
+     0
+    ],
+    [
+     "index card problem_set",
+     "role",
+     "problem_set",
+     3
+    ],
+    [
+     "path word 'exam'",
+     "role",
+     "exam",
+     1
+    ],
+    [
+     "path word 'solution'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "default",
+     "format",
+     "typeset",
+     1
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/microecon/2024_class/Exam Prep/processed_outputs/2023.md",
+   "role": "problem_set",
+   "format": "handwritten",
+   "offering": "2024",
+   "date": null,
+   "book": null,
+   "order": [
+    1000000,
+    "",
+    "2023"
+   ],
+   "confidence": 6.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "pdf portrait",
+     "format",
+     "portrait",
+     0
+    ],
+    [
+     "index card problem_set",
+     "role",
+     "problem_set",
+     3
+    ],
+    [
+     "content: problem_set wording",
+     "role",
+     "problem_set",
+     2
+    ],
+    [
+     "path word 'exam'",
+     "role",
+     "exam",
+     1
+    ],
+    [
+     "portrait scan, few headings",
+     "format",
+     "handwritten",
+     1
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/microecon/2024_class/Homeworks/processed_outputs/Homework_1.md",
+   "role": "problem_set",
+   "format": "handwritten",
+   "offering": "2024",
+   "date": null,
+   "book": null,
+   "order": [
+    1000000,
+    "",
+    "homework_1"
+   ],
+   "confidence": 7.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "pdf portrait",
+     "format",
+     "portrait",
+     0
+    ],
+    [
+     "index card problem_set",
+     "role",
+     "problem_set",
+     3
+    ],
+    [
+     "content: problem_set wording",
+     "role",
+     "problem_set",
+     2
+    ],
+    [
+     "path word 'homework'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "path word 'homeworks'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "portrait scan, few headings",
+     "format",
+     "handwritten",
+     1
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/microecon/2024_class/Homeworks/processed_outputs/Homework_2.md",
+   "role": "problem_set",
+   "format": "handwritten",
+   "offering": "2024",
+   "date": null,
+   "book": null,
+   "order": [
+    1000000,
+    "",
+    "homework_2"
+   ],
+   "confidence": 7.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "pdf portrait",
+     "format",
+     "portrait",
+     0
+    ],
+    [
+     "index card problem_set",
+     "role",
+     "problem_set",
+     3
+    ],
+    [
+     "content: problem_set wording",
+     "role",
+     "problem_set",
+     2
+    ],
+    [
+     "path word 'homework'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "path word 'homeworks'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "portrait scan, few headings",
+     "format",
+     "handwritten",
+     1
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/microecon/2024_class/Homeworks/processed_outputs/Homework_3.md",
+   "role": "problem_set",
+   "format": "handwritten",
+   "offering": "2024",
+   "date": null,
+   "book": null,
+   "order": [
+    1000000,
+    "",
+    "homework_3"
+   ],
+   "confidence": 7.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "pdf portrait",
+     "format",
+     "portrait",
+     0
+    ],
+    [
+     "index card problem_set",
+     "role",
+     "problem_set",
+     3
+    ],
+    [
+     "content: problem_set wording",
+     "role",
+     "problem_set",
+     2
+    ],
+    [
+     "path word 'homework'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "path word 'homeworks'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "portrait scan, few headings",
+     "format",
+     "handwritten",
+     1
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/microecon/2024_class/Homeworks/processed_outputs/Homework_4.md",
+   "role": "problem_set",
+   "format": "typeset",
+   "offering": "2024",
+   "date": null,
+   "book": null,
+   "order": [
+    1000000,
+    "",
+    "homework_4"
+   ],
+   "confidence": 7.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "pdf portrait",
+     "format",
+     "portrait",
+     0
+    ],
+    [
+     "index card problem_set",
+     "role",
+     "problem_set",
+     3
+    ],
+    [
+     "content: problem_set wording",
+     "role",
+     "problem_set",
+     2
+    ],
+    [
+     "path word 'homework'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "path word 'homeworks'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "default",
+     "format",
+     "typeset",
+     1
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/microecon/2024_class/Homeworks/processed_outputs/Homework_5.md",
+   "role": "problem_set",
+   "format": "typeset",
+   "offering": "2024",
+   "date": null,
+   "book": null,
+   "order": [
+    1000000,
+    "",
+    "homework_5"
+   ],
+   "confidence": 7.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "pdf portrait",
+     "format",
+     "portrait",
+     0
+    ],
+    [
+     "index card problem_set",
+     "role",
+     "problem_set",
+     3
+    ],
+    [
+     "content: problem_set wording",
+     "role",
+     "problem_set",
+     2
+    ],
+    [
+     "path word 'homework'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "path word 'homeworks'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "default",
+     "format",
+     "typeset",
+     1
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/microecon/2024_class/Homeworks/processed_outputs/Homework_6_For_Practice.md",
+   "role": "problem_set",
+   "format": "handwritten",
+   "offering": "2024",
+   "date": null,
+   "book": null,
+   "order": [
+    1000000,
+    "",
+    "homework_6_for_practice"
+   ],
+   "confidence": 7.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "pdf portrait",
+     "format",
+     "portrait",
+     0
+    ],
+    [
+     "index card problem_set",
+     "role",
+     "problem_set",
+     3
+    ],
+    [
+     "content: problem_set wording",
+     "role",
+     "problem_set",
+     2
+    ],
+    [
+     "path word 'homework'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "path word 'homeworks'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "portrait scan, few headings",
+     "format",
+     "handwritten",
+     1
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/microecon/2024_class/Homeworks/processed_outputs/Homework_6_Sol.md",
+   "role": "problem_set",
+   "format": "typeset",
+   "offering": "2024",
+   "date": null,
+   "book": null,
+   "order": [
+    1000000,
+    "",
+    "homework_6_sol"
+   ],
+   "confidence": 5.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "pdf portrait",
+     "format",
+     "portrait",
+     0
+    ],
+    [
+     "index card problem_set",
+     "role",
+     "problem_set",
+     3
+    ],
+    [
+     "path word 'homework'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "path word 'homeworks'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "default",
+     "format",
+     "typeset",
+     1
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/microecon/2024_class/Homeworks/Solutions/HW2/processed_outputs/HW2_Q4.md",
+   "role": "problem_set",
+   "format": "typeset",
+   "offering": "2024",
+   "date": null,
+   "book": null,
+   "order": [
+    1000000,
+    "",
+    "hw2_q4"
+   ],
+   "confidence": 6.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "pdf portrait",
+     "format",
+     "portrait",
+     0
+    ],
+    [
+     "index card problem_set",
+     "role",
+     "problem_set",
+     3
+    ],
+    [
+     "path word 'homeworks'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "path word 'hw'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "path word 'solutions'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "default",
+     "format",
+     "typeset",
+     1
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/microecon/2024_class/Homeworks/Solutions/HW2/processed_outputs/HW2_sols_final.md",
+   "role": "problem_set",
+   "format": "typeset",
+   "offering": "2024",
+   "date": null,
+   "book": null,
+   "order": [
+    1000000,
+    "",
+    "hw2_sols_final"
+   ],
+   "confidence": 8.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "pdf portrait",
+     "format",
+     "portrait",
+     0
+    ],
+    [
+     "index card problem_set",
+     "role",
+     "problem_set",
+     3
+    ],
+    [
+     "content: problem_set wording",
+     "role",
+     "problem_set",
+     2
+    ],
+    [
+     "path word 'homeworks'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "path word 'hw'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "path word 'solutions'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "default",
+     "format",
+     "typeset",
+     1
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/microecon/2024_class/Homeworks/Solutions/processed_outputs/Homework_6_Sol.md",
+   "role": "problem_set",
+   "format": "typeset",
+   "offering": "2024",
+   "date": null,
+   "book": null,
+   "order": [
+    1000000,
+    "",
+    "homework_6_sol"
+   ],
+   "confidence": 6.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "pdf portrait",
+     "format",
+     "portrait",
+     0
+    ],
+    [
+     "index card problem_set",
+     "role",
+     "problem_set",
+     3
+    ],
+    [
+     "path word 'homework'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "path word 'homeworks'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "path word 'solutions'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "default",
+     "format",
+     "typeset",
+     1
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/microecon/2024_class/Homeworks/Solutions/processed_outputs/HW1_sols_final.md",
+   "role": "problem_set",
+   "format": "typeset",
+   "offering": "2024",
+   "date": null,
+   "book": null,
+   "order": [
+    1000000,
+    "",
+    "hw1_sols_final"
+   ],
+   "confidence": 8.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "pdf portrait",
+     "format",
+     "portrait",
+     0
+    ],
+    [
+     "index card problem_set",
+     "role",
+     "problem_set",
+     3
+    ],
+    [
+     "content: problem_set wording",
+     "role",
+     "problem_set",
+     2
+    ],
+    [
+     "path word 'homeworks'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "path word 'hw'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "path word 'solutions'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "default",
+     "format",
+     "typeset",
+     1
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/microecon/2024_class/Homeworks/Solutions/processed_outputs/HW3_sols.md",
+   "role": "problem_set",
+   "format": "handwritten",
+   "offering": "2024",
+   "date": null,
+   "book": null,
+   "order": [
+    1000000,
+    "",
+    "hw3_sols"
+   ],
+   "confidence": 8.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "pdf portrait",
+     "format",
+     "portrait",
+     0
+    ],
+    [
+     "index card problem_set",
+     "role",
+     "problem_set",
+     3
+    ],
+    [
+     "content: problem_set wording",
+     "role",
+     "problem_set",
+     2
+    ],
+    [
+     "path word 'homeworks'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "path word 'hw'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "path word 'solutions'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "portrait scan, few headings",
+     "format",
+     "handwritten",
+     1
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/microecon/2024_class/Homeworks/Solutions/processed_outputs/HW4_sols_final.md",
+   "role": "problem_set",
+   "format": "typeset",
+   "offering": "2024",
+   "date": null,
+   "book": null,
+   "order": [
+    1000000,
+    "",
+    "hw4_sols_final"
+   ],
+   "confidence": 8.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "pdf portrait",
+     "format",
+     "portrait",
+     0
+    ],
+    [
+     "index card problem_set",
+     "role",
+     "problem_set",
+     3
+    ],
+    [
+     "content: problem_set wording",
+     "role",
+     "problem_set",
+     2
+    ],
+    [
+     "path word 'homeworks'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "path word 'hw'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "path word 'solutions'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "default",
+     "format",
+     "typeset",
+     1
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/microecon/2024_class/Homeworks/Solutions/processed_outputs/hw5_sols.md",
+   "role": "problem_set",
+   "format": "typeset",
+   "offering": "2024",
+   "date": null,
+   "book": null,
+   "order": [
+    1000000,
+    "",
+    "hw5_sols"
+   ],
+   "confidence": 6.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "pdf portrait",
+     "format",
+     "portrait",
+     0
+    ],
+    [
+     "index card ta_notes",
+     "authority",
+     "class",
+     3
+    ],
+    [
+     "path word 'homeworks'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "path word 'hw'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "path word 'solutions'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "default",
+     "format",
+     "typeset",
+     1
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/microecon/2024_class/Post lecture notes/processed_outputs/1.Course_Intro.md",
+   "role": "instructor",
+   "format": "typeset",
+   "offering": "2024",
+   "date": null,
+   "book": null,
+   "order": [
+    1,
+    "",
+    "1.course_intro"
+   ],
+   "confidence": 3.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "pdf portrait",
+     "format",
+     "portrait",
+     0
+    ],
+    [
+     "index card ta_notes",
+     "authority",
+     "class",
+     3
+    ],
+    [
+     "default",
+     "format",
+     "typeset",
+     1
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/microecon/2024_class/Post lecture notes/processed_outputs/10.Risk and Uncertainty 2.md",
+   "role": "instructor",
+   "format": "slides",
+   "offering": "2024",
+   "date": null,
+   "book": null,
+   "order": [
+    10,
+    "",
+    "10.risk and uncertainty 2"
+   ],
+   "confidence": 5.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "pdf landscape",
+     "format",
+     "slides",
+     2
+    ],
+    [
+     "index card ta_notes",
+     "authority",
+     "class",
+     3
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/microecon/2024_class/Post lecture notes/processed_outputs/2.Utility_Maximization_1.md",
+   "role": "instructor",
+   "format": "slides",
+   "offering": "2024",
+   "date": null,
+   "book": null,
+   "order": [
+    2,
+    "",
+    "2.utility_maximization_1"
+   ],
+   "confidence": 5.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "pdf landscape",
+     "format",
+     "slides",
+     2
+    ],
+    [
+     "index card ta_notes",
+     "authority",
+     "class",
+     3
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/microecon/2024_class/Post lecture notes/processed_outputs/3.Utility_Maximization_2.md",
+   "role": "instructor",
+   "format": "slides",
+   "offering": "2024",
+   "date": null,
+   "book": null,
+   "order": [
+    3,
+    "",
+    "3.utility_maximization_2"
+   ],
+   "confidence": 5.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "pdf landscape",
+     "format",
+     "slides",
+     2
+    ],
+    [
+     "index card ta_notes",
+     "authority",
+     "class",
+     3
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/microecon/2024_class/Post lecture notes/processed_outputs/4.Random_choice.md",
+   "role": "instructor",
+   "format": "slides",
+   "offering": "2024",
+   "date": null,
+   "book": null,
+   "order": [
+    4,
+    "",
+    "4.random_choice"
+   ],
+   "confidence": 5.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "pdf landscape",
+     "format",
+     "slides",
+     2
+    ],
+    [
+     "index card ta_notes",
+     "authority",
+     "class",
+     3
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/microecon/2024_class/Post lecture notes/processed_outputs/6.Consumer_Choice_1.md",
+   "role": "instructor",
+   "format": "slides",
+   "offering": "2024",
+   "date": null,
+   "book": null,
+   "order": [
+    6,
+    "",
+    "6.consumer_choice_1"
+   ],
+   "confidence": 5.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "pdf landscape",
+     "format",
+     "slides",
+     2
+    ],
+    [
+     "index card ta_notes",
+     "authority",
+     "class",
+     3
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/microecon/2024_class/Post lecture notes/processed_outputs/7.Consumer_Choice_2.md",
+   "role": "instructor",
+   "format": "slides",
+   "offering": "2024",
+   "date": null,
+   "book": null,
+   "order": [
+    7,
+    "",
+    "7.consumer_choice_2"
+   ],
+   "confidence": 5.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "pdf landscape",
+     "format",
+     "slides",
+     2
+    ],
+    [
+     "index card ta_notes",
+     "authority",
+     "class",
+     3
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/microecon/2024_class/Post lecture notes/processed_outputs/8.Production.md",
+   "role": "instructor",
+   "format": "slides",
+   "offering": "2024",
+   "date": null,
+   "book": null,
+   "order": [
+    8,
+    "",
+    "8.production"
+   ],
+   "confidence": 5.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "pdf landscape",
+     "format",
+     "slides",
+     2
+    ],
+    [
+     "index card ta_notes",
+     "authority",
+     "class",
+     3
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/microecon/2024_class/Post lecture notes/processed_outputs/9.Risk and Uncertainty 1.md",
+   "role": "instructor",
+   "format": "slides",
+   "offering": "2024",
+   "date": null,
+   "book": null,
+   "order": [
+    9,
+    "",
+    "9.risk and uncertainty 1"
+   ],
+   "confidence": 5.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "pdf landscape",
+     "format",
+     "slides",
+     2
+    ],
+    [
+     "index card ta_notes",
+     "authority",
+     "class",
+     3
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/microecon/2024_class/Pre Lecture Notes/processed_outputs/10.Risk and Uncertainty_2_for_circulation.md",
+   "role": "instructor",
+   "format": "slides",
+   "offering": "2024",
+   "date": null,
+   "book": null,
+   "order": [
+    10,
+    "",
+    "10.risk and uncertainty_2_for_circulation"
+   ],
+   "confidence": 5.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "pdf landscape",
+     "format",
+     "slides",
+     2
+    ],
+    [
+     "index card ta_notes",
+     "authority",
+     "class",
+     3
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/microecon/2024_class/Pre Lecture Notes/processed_outputs/2.Utility_Maximization_1_for_circulation.md",
+   "role": "instructor",
+   "format": "slides",
+   "offering": "2024",
+   "date": null,
+   "book": null,
+   "order": [
+    2,
+    "",
+    "2.utility_maximization_1_for_circulation"
+   ],
+   "confidence": 5.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "pdf landscape",
+     "format",
+     "slides",
+     2
+    ],
+    [
+     "index card ta_notes",
+     "authority",
+     "class",
+     3
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/microecon/2024_class/Pre Lecture Notes/processed_outputs/2.Utility_Maximization_2_for_circulation-1.md",
+   "role": "instructor",
+   "format": "slides",
+   "offering": "2024",
+   "date": null,
+   "book": null,
+   "order": [
+    2,
+    "",
+    "2.utility_maximization_2_for_circulation-1"
+   ],
+   "confidence": 5.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "pdf landscape",
+     "format",
+     "slides",
+     2
+    ],
+    [
+     "index card ta_notes",
+     "authority",
+     "class",
+     3
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/microecon/2024_class/Pre Lecture Notes/processed_outputs/2.Utility_Maximization_2_for_circulation-2.md",
+   "role": "instructor",
+   "format": "slides",
+   "offering": "2024",
+   "date": null,
+   "book": null,
+   "order": [
+    2,
+    "",
+    "2.utility_maximization_2_for_circulation-2"
+   ],
+   "confidence": 0.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "pdf landscape",
+     "format",
+     "slides",
+     2
+    ],
+    [
+     "index card handwritten_notes",
+     "format",
+     "handwritten",
+     3
+    ]
+   ],
+   "decided_by": "review"
+  },
+  {
+   "path": "academic_notes/microecon/2024_class/Pre Lecture Notes/processed_outputs/4.Random_choice_for_circulation.md",
+   "role": "instructor",
+   "format": "slides",
+   "offering": "2024",
+   "date": null,
+   "book": null,
+   "order": [
+    4,
+    "",
+    "4.random_choice_for_circulation"
+   ],
+   "confidence": 5.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "pdf landscape",
+     "format",
+     "slides",
+     2
+    ],
+    [
+     "index card ta_notes",
+     "authority",
+     "class",
+     3
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/microecon/2024_class/Pre Lecture Notes/processed_outputs/5.Failures Of Rationality.md",
+   "role": "instructor",
+   "format": "typeset",
+   "offering": "2024",
+   "date": null,
+   "book": null,
+   "order": [
+    5,
+    "",
+    "5.failures of rationality"
+   ],
+   "confidence": 3.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "pdf portrait",
+     "format",
+     "portrait",
+     0
+    ],
+    [
+     "index card ta_notes",
+     "authority",
+     "class",
+     3
+    ],
+    [
+     "default",
+     "format",
+     "typeset",
+     1
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/microecon/2024_class/Pre Lecture Notes/processed_outputs/6.Consumer_Choice_1_for_circulation.md",
+   "role": "instructor",
+   "format": "slides",
+   "offering": "2024",
+   "date": null,
+   "book": null,
+   "order": [
+    6,
+    "",
+    "6.consumer_choice_1_for_circulation"
+   ],
+   "confidence": 5.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "pdf landscape",
+     "format",
+     "slides",
+     2
+    ],
+    [
+     "index card ta_notes",
+     "authority",
+     "class",
+     3
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/microecon/2024_class/Pre Lecture Notes/processed_outputs/6.Consumer_Choice_2_for_circulation.md",
+   "role": "instructor",
+   "format": "slides",
+   "offering": "2024",
+   "date": null,
+   "book": null,
+   "order": [
+    6,
+    "",
+    "6.consumer_choice_2_for_circulation"
+   ],
+   "confidence": 5.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "pdf landscape",
+     "format",
+     "slides",
+     2
+    ],
+    [
+     "index card ta_notes",
+     "authority",
+     "class",
+     3
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/microecon/2024_class/Pre Lecture Notes/processed_outputs/8.Production_for_circulation.md",
+   "role": "instructor",
+   "format": "slides",
+   "offering": "2024",
+   "date": null,
+   "book": null,
+   "order": [
+    8,
+    "",
+    "8.production_for_circulation"
+   ],
+   "confidence": 5.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "pdf landscape",
+     "format",
+     "slides",
+     2
+    ],
+    [
+     "index card ta_notes",
+     "authority",
+     "class",
+     3
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/microecon/2024_class/Pre Lecture Notes/processed_outputs/9.Risk and Uncertainty 1_for_circulation.md",
+   "role": "instructor",
+   "format": "slides",
+   "offering": "2024",
+   "date": null,
+   "book": null,
+   "order": [
+    9,
+    "",
+    "9.risk and uncertainty 1_for_circulation"
+   ],
+   "confidence": 5.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "pdf landscape",
+     "format",
+     "slides",
+     2
+    ],
+    [
+     "index card ta_notes",
+     "authority",
+     "class",
+     3
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/microecon/2024_class/processed_outputs/G6211_Fall_2024_Syllabus_Part1.md",
+   "role": "syllabus",
+   "format": "typeset",
+   "offering": "2024",
+   "date": null,
+   "book": null,
+   "order": [
+    1000000,
+    "",
+    "g6211_fall_2024_syllabus_part1"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "pdf portrait",
+     "format",
+     "portrait",
+     0
+    ],
+    [
+     "index card ta_notes",
+     "authority",
+     "class",
+     3
+    ],
+    [
+     "content: syllabus wording",
+     "role",
+     "syllabus",
+     2
+    ],
+    [
+     "content: exam wording",
+     "role",
+     "exam",
+     2
+    ],
+    [
+     "content: recitation wording",
+     "role",
+     "recitation",
+     2
+    ],
+    [
+     "path word 'syllabus'",
+     "role",
+     "syllabus",
+     1
+    ],
+    [
+     "default",
+     "format",
+     "typeset",
+     1
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/microecon/2024_class/Proofs/processed_outputs/Proofs-Risk and Uncertainty.md",
+   "role": "instructor",
+   "format": "slides",
+   "offering": "2024",
+   "date": null,
+   "book": null,
+   "order": [
+    1000000,
+    "",
+    "proofs-risk and uncertainty"
+   ],
+   "confidence": 6.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "pdf landscape",
+     "format",
+     "slides",
+     2
+    ],
+    [
+     "index card ta_notes",
+     "authority",
+     "class",
+     3
+    ],
+    [
+     "path word 'proofs'",
+     "role",
+     "instructor",
+     1
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/microecon/2024_class/Proofs/processed_outputs/Proofs_Consumer_Choice_1.md",
+   "role": "instructor",
+   "format": "slides",
+   "offering": "2024",
+   "date": null,
+   "book": null,
+   "order": [
+    1000000,
+    "",
+    "proofs_consumer_choice_1"
+   ],
+   "confidence": 6.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "pdf landscape",
+     "format",
+     "slides",
+     2
+    ],
+    [
+     "index card ta_notes",
+     "authority",
+     "class",
+     3
+    ],
+    [
+     "path word 'proofs'",
+     "role",
+     "instructor",
+     1
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/microecon/2024_class/Proofs/processed_outputs/Utility_Maximization_1_Proofs.md",
+   "role": "instructor",
+   "format": "slides",
+   "offering": "2024",
+   "date": null,
+   "book": null,
+   "order": [
+    1000000,
+    "",
+    "utility_maximization_1_proofs"
+   ],
+   "confidence": 6.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "pdf landscape",
+     "format",
+     "slides",
+     2
+    ],
+    [
+     "index card ta_notes",
+     "authority",
+     "class",
+     3
+    ],
+    [
+     "path word 'proofs'",
+     "role",
+     "instructor",
+     1
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/microecon/2024_class/Proofs/processed_outputs/Utility_Maximization_2_Proofs.md",
+   "role": "instructor",
+   "format": "slides",
+   "offering": "2024",
+   "date": null,
+   "book": null,
+   "order": [
+    1000000,
+    "",
+    "utility_maximization_2_proofs"
+   ],
+   "confidence": 6.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "pdf landscape",
+     "format",
+     "slides",
+     2
+    ],
+    [
+     "index card ta_notes",
+     "authority",
+     "class",
+     3
+    ],
+    [
+     "path word 'proofs'",
+     "role",
+     "instructor",
+     1
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/microecon/2024_class/Recitation/processed_outputs/Recitation_I.md",
+   "role": "recitation",
+   "format": "slides",
+   "offering": "2024",
+   "date": null,
+   "book": null,
+   "order": [
+    1000000,
+    "",
+    "recitation_i"
+   ],
+   "confidence": 8.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "pdf landscape",
+     "format",
+     "slides",
+     2
+    ],
+    [
+     "index card ta_notes",
+     "authority",
+     "class",
+     3
+    ],
+    [
+     "content: recitation wording",
+     "role",
+     "recitation",
+     2
+    ],
+    [
+     "path word 'recitation'",
+     "role",
+     "recitation",
+     1
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/microecon/2024_class/Recitation/processed_outputs/Recitation_II.md",
+   "role": "recitation",
+   "format": "slides",
+   "offering": "2024",
+   "date": null,
+   "book": null,
+   "order": [
+    1000000,
+    "",
+    "recitation_ii"
+   ],
+   "confidence": 8.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "pdf landscape",
+     "format",
+     "slides",
+     2
+    ],
+    [
+     "index card ta_notes",
+     "authority",
+     "class",
+     3
+    ],
+    [
+     "content: recitation wording",
+     "role",
+     "recitation",
+     2
+    ],
+    [
+     "path word 'recitation'",
+     "role",
+     "recitation",
+     1
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/microecon/2024_class/Recitation/processed_outputs/Recitation_III.md",
+   "role": "recitation",
+   "format": "slides",
+   "offering": "2024",
+   "date": null,
+   "book": null,
+   "order": [
+    1000000,
+    "",
+    "recitation_iii"
+   ],
+   "confidence": 8.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "pdf landscape",
+     "format",
+     "slides",
+     2
+    ],
+    [
+     "index card ta_notes",
+     "authority",
+     "class",
+     3
+    ],
+    [
+     "content: recitation wording",
+     "role",
+     "recitation",
+     2
+    ],
+    [
+     "path word 'recitation'",
+     "role",
+     "recitation",
+     1
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/microecon/2024_class/Recitation/processed_outputs/Recitation_IV.md",
+   "role": "recitation",
+   "format": "slides",
+   "offering": "2024",
+   "date": null,
+   "book": null,
+   "order": [
+    1000000,
+    "",
+    "recitation_iv"
+   ],
+   "confidence": 8.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "pdf landscape",
+     "format",
+     "slides",
+     2
+    ],
+    [
+     "index card ta_notes",
+     "authority",
+     "class",
+     3
+    ],
+    [
+     "content: recitation wording",
+     "role",
+     "recitation",
+     2
+    ],
+    [
+     "path word 'recitation'",
+     "role",
+     "recitation",
+     1
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/microecon/2024_class/Recitation/processed_outputs/Recitation_V.md",
+   "role": "recitation",
+   "format": "slides",
+   "offering": "2024",
+   "date": null,
+   "book": null,
+   "order": [
+    1000000,
+    "",
+    "recitation_v"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "pdf landscape",
+     "format",
+     "slides",
+     2
+    ],
+    [
+     "index card ta_notes",
+     "authority",
+     "class",
+     3
+    ],
+    [
+     "content: exam wording",
+     "role",
+     "exam",
+     2
+    ],
+    [
+     "content: recitation wording",
+     "role",
+     "recitation",
+     2
+    ],
+    [
+     "path word 'recitation'",
+     "role",
+     "recitation",
+     1
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/microecon/2025_class/Homeworks/processed_outputs/Homework_1.md",
+   "role": "problem_set",
+   "format": "typeset",
+   "offering": "2025",
+   "date": null,
+   "book": null,
+   "order": [
+    1000000,
+    "",
+    "homework_1"
+   ],
+   "confidence": 7.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "pdf portrait",
+     "format",
+     "portrait",
+     0
+    ],
+    [
+     "index card problem_set",
+     "role",
+     "problem_set",
+     3
+    ],
+    [
+     "content: problem_set wording",
+     "role",
+     "problem_set",
+     2
+    ],
+    [
+     "path word 'homework'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "path word 'homeworks'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "default",
+     "format",
+     "typeset",
+     1
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/microecon/2025_class/Homeworks/processed_outputs/Homework_2.md",
+   "role": "problem_set",
+   "format": "handwritten",
+   "offering": "2025",
+   "date": null,
+   "book": null,
+   "order": [
+    1000000,
+    "",
+    "homework_2"
+   ],
+   "confidence": 7.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "pdf portrait",
+     "format",
+     "portrait",
+     0
+    ],
+    [
+     "index card problem_set",
+     "role",
+     "problem_set",
+     3
+    ],
+    [
+     "content: problem_set wording",
+     "role",
+     "problem_set",
+     2
+    ],
+    [
+     "path word 'homework'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "path word 'homeworks'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "portrait scan, few headings",
+     "format",
+     "handwritten",
+     1
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/microecon/2025_class/Homeworks/processed_outputs/Homework_3.md",
+   "role": "problem_set",
+   "format": "handwritten",
+   "offering": "2025",
+   "date": null,
+   "book": null,
+   "order": [
+    1000000,
+    "",
+    "homework_3"
+   ],
+   "confidence": 7.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "pdf portrait",
+     "format",
+     "portrait",
+     0
+    ],
+    [
+     "index card problem_set",
+     "role",
+     "problem_set",
+     3
+    ],
+    [
+     "content: problem_set wording",
+     "role",
+     "problem_set",
+     2
+    ],
+    [
+     "path word 'homework'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "path word 'homeworks'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "portrait scan, few headings",
+     "format",
+     "handwritten",
+     1
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/microecon/2025_class/Homeworks/processed_outputs/Homework_4.md",
+   "role": "problem_set",
+   "format": "typeset",
+   "offering": "2025",
+   "date": null,
+   "book": null,
+   "order": [
+    1000000,
+    "",
+    "homework_4"
+   ],
+   "confidence": 7.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "pdf portrait",
+     "format",
+     "portrait",
+     0
+    ],
+    [
+     "index card problem_set",
+     "role",
+     "problem_set",
+     3
+    ],
+    [
+     "content: problem_set wording",
+     "role",
+     "problem_set",
+     2
+    ],
+    [
+     "path word 'homework'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "path word 'homeworks'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "default",
+     "format",
+     "typeset",
+     1
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/microecon/2025_class/Homeworks/processed_outputs/Homework_5.md",
+   "role": "problem_set",
+   "format": "typeset",
+   "offering": "2025",
+   "date": null,
+   "book": null,
+   "order": [
+    1000000,
+    "",
+    "homework_5"
+   ],
+   "confidence": 7.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "pdf portrait",
+     "format",
+     "portrait",
+     0
+    ],
+    [
+     "index card problem_set",
+     "role",
+     "problem_set",
+     3
+    ],
+    [
+     "content: problem_set wording",
+     "role",
+     "problem_set",
+     2
+    ],
+    [
+     "path word 'homework'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "path word 'homeworks'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "default",
+     "format",
+     "typeset",
+     1
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/microecon/2025_class/Homeworks/processed_outputs/Homework_6_For_Practice.md",
+   "role": "problem_set",
+   "format": "handwritten",
+   "offering": "2025",
+   "date": null,
+   "book": null,
+   "order": [
+    1000000,
+    "",
+    "homework_6_for_practice"
+   ],
+   "confidence": 7.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "pdf portrait",
+     "format",
+     "portrait",
+     0
+    ],
+    [
+     "index card problem_set",
+     "role",
+     "problem_set",
+     3
+    ],
+    [
+     "content: problem_set wording",
+     "role",
+     "problem_set",
+     2
+    ],
+    [
+     "path word 'homework'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "path word 'homeworks'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "portrait scan, few headings",
+     "format",
+     "handwritten",
+     1
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/microecon/2025_class/Homeworks/processed_outputs/Homework_6_Sol.md",
+   "role": "problem_set",
+   "format": "typeset",
+   "offering": "2025",
+   "date": null,
+   "book": null,
+   "order": [
+    1000000,
+    "",
+    "homework_6_sol"
+   ],
+   "confidence": 5.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "pdf portrait",
+     "format",
+     "portrait",
+     0
+    ],
+    [
+     "index card problem_set",
+     "role",
+     "problem_set",
+     3
+    ],
+    [
+     "path word 'homework'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "path word 'homeworks'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "default",
+     "format",
+     "typeset",
+     1
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/microecon/2025_class/Homeworks/Solutions/processed_outputs/HW1_Sol.md",
+   "role": "problem_set",
+   "format": "typeset",
+   "offering": "2025",
+   "date": null,
+   "book": null,
+   "order": [
+    1000000,
+    "",
+    "hw1_sol"
+   ],
+   "confidence": 6.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "pdf portrait",
+     "format",
+     "portrait",
+     0
+    ],
+    [
+     "index card ta_notes",
+     "authority",
+     "class",
+     3
+    ],
+    [
+     "path word 'homeworks'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "path word 'hw'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "path word 'solutions'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "default",
+     "format",
+     "typeset",
+     1
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/microecon/2025_class/Homeworks/Solutions/processed_outputs/HW2_Sol.md",
+   "role": "problem_set",
+   "format": "typeset",
+   "offering": "2025",
+   "date": null,
+   "book": null,
+   "order": [
+    1000000,
+    "",
+    "hw2_sol"
+   ],
+   "confidence": 8.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "pdf portrait",
+     "format",
+     "portrait",
+     0
+    ],
+    [
+     "index card problem_set",
+     "role",
+     "problem_set",
+     3
+    ],
+    [
+     "content: problem_set wording",
+     "role",
+     "problem_set",
+     2
+    ],
+    [
+     "path word 'homeworks'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "path word 'hw'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "path word 'solutions'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "default",
+     "format",
+     "typeset",
+     1
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/microecon/2025_class/Homeworks/Solutions/processed_outputs/HW3_Sol.md",
+   "role": "problem_set",
+   "format": "typeset",
+   "offering": "2025",
+   "date": null,
+   "book": null,
+   "order": [
+    1000000,
+    "",
+    "hw3_sol"
+   ],
+   "confidence": 8.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "pdf portrait",
+     "format",
+     "portrait",
+     0
+    ],
+    [
+     "index card problem_set",
+     "role",
+     "problem_set",
+     3
+    ],
+    [
+     "content: problem_set wording",
+     "role",
+     "problem_set",
+     2
+    ],
+    [
+     "path word 'homeworks'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "path word 'hw'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "path word 'solutions'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "default",
+     "format",
+     "typeset",
+     1
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/microecon/2025_class/Homeworks/Solutions/processed_outputs/HW4_Sol.md",
+   "role": "problem_set",
+   "format": "typeset",
+   "offering": "2025",
+   "date": null,
+   "book": null,
+   "order": [
+    1000000,
+    "",
+    "hw4_sol"
+   ],
+   "confidence": 8.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "pdf portrait",
+     "format",
+     "portrait",
+     0
+    ],
+    [
+     "index card problem_set",
+     "role",
+     "problem_set",
+     3
+    ],
+    [
+     "content: problem_set wording",
+     "role",
+     "problem_set",
+     2
+    ],
+    [
+     "path word 'homeworks'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "path word 'hw'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "path word 'solutions'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "default",
+     "format",
+     "typeset",
+     1
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/microecon/2025_class/Homeworks/Solutions/processed_outputs/HW5_Sol.md",
+   "role": "problem_set",
+   "format": "typeset",
+   "offering": "2025",
+   "date": null,
+   "book": null,
+   "order": [
+    1000000,
+    "",
+    "hw5_sol"
+   ],
+   "confidence": 8.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "pdf portrait",
+     "format",
+     "portrait",
+     0
+    ],
+    [
+     "index card problem_set",
+     "role",
+     "problem_set",
+     3
+    ],
+    [
+     "content: problem_set wording",
+     "role",
+     "problem_set",
+     2
+    ],
+    [
+     "path word 'homeworks'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "path word 'hw'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "path word 'solutions'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "default",
+     "format",
+     "typeset",
+     1
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/microecon/2025_class/Post-Lecture Notes/processed_outputs/1.Course_Intro.md",
+   "role": "instructor",
+   "format": "typeset",
+   "offering": "2025",
+   "date": null,
+   "book": null,
+   "order": [
+    1,
+    "",
+    "1.course_intro"
+   ],
+   "confidence": 3.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "pdf portrait",
+     "format",
+     "portrait",
+     0
+    ],
+    [
+     "index card ta_notes",
+     "authority",
+     "class",
+     3
+    ],
+    [
+     "default",
+     "format",
+     "typeset",
+     1
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/microecon/2025_class/Post-Lecture Notes/processed_outputs/11.Production.md",
+   "role": "instructor",
+   "format": "slides",
+   "offering": "2025",
+   "date": null,
+   "book": null,
+   "order": [
+    11,
+    "",
+    "11.production"
+   ],
+   "confidence": 5.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "pdf landscape",
+     "format",
+     "slides",
+     2
+    ],
+    [
+     "index card ta_notes",
+     "authority",
+     "class",
+     3
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/microecon/2025_class/Post-Lecture Notes/processed_outputs/2.Utility_Maximization_1.md",
+   "role": "instructor",
+   "format": "slides",
+   "offering": "2025",
+   "date": null,
+   "book": null,
+   "order": [
+    2,
+    "",
+    "2.utility_maximization_1"
+   ],
+   "confidence": 5.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "pdf landscape",
+     "format",
+     "slides",
+     2
+    ],
+    [
+     "index card ta_notes",
+     "authority",
+     "class",
+     3
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/microecon/2025_class/Post-Lecture Notes/processed_outputs/3.Utility_Maximization_2.md",
+   "role": "instructor",
+   "format": "slides",
+   "offering": "2025",
+   "date": null,
+   "book": null,
+   "order": [
+    3,
+    "",
+    "3.utility_maximization_2"
+   ],
+   "confidence": 5.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "pdf landscape",
+     "format",
+     "slides",
+     2
+    ],
+    [
+     "index card ta_notes",
+     "authority",
+     "class",
+     3
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/microecon/2025_class/Post-Lecture Notes/processed_outputs/4.Random_choice.md",
+   "role": "instructor",
+   "format": "slides",
+   "offering": "2025",
+   "date": null,
+   "book": null,
+   "order": [
+    4,
+    "",
+    "4.random_choice"
+   ],
+   "confidence": 5.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "pdf landscape",
+     "format",
+     "slides",
+     2
+    ],
+    [
+     "index card ta_notes",
+     "authority",
+     "class",
+     3
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/microecon/2025_class/Post-Lecture Notes/processed_outputs/5.Failures Of Rationality.md",
+   "role": "instructor",
+   "format": "typeset",
+   "offering": "2025",
+   "date": null,
+   "book": null,
+   "order": [
+    5,
+    "",
+    "5.failures of rationality"
+   ],
+   "confidence": 3.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "pdf portrait",
+     "format",
+     "portrait",
+     0
+    ],
+    [
+     "index card ta_notes",
+     "authority",
+     "class",
+     3
+    ],
+    [
+     "default",
+     "format",
+     "typeset",
+     1
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/microecon/2025_class/Post-Lecture Notes/processed_outputs/6.Consumer_Choice_1.md",
+   "role": "instructor",
+   "format": "slides",
+   "offering": "2025",
+   "date": null,
+   "book": null,
+   "order": [
+    6,
+    "",
+    "6.consumer_choice_1"
+   ],
+   "confidence": 5.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "pdf landscape",
+     "format",
+     "slides",
+     2
+    ],
+    [
+     "index card ta_notes",
+     "authority",
+     "class",
+     3
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/microecon/2025_class/Post-Lecture Notes/processed_outputs/7.Consumer_Choice_2.md",
+   "role": "instructor",
+   "format": "slides",
+   "offering": "2025",
+   "date": null,
+   "book": null,
+   "order": [
+    7,
+    "",
+    "7.consumer_choice_2"
+   ],
+   "confidence": 5.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "pdf landscape",
+     "format",
+     "slides",
+     2
+    ],
+    [
+     "index card ta_notes",
+     "authority",
+     "class",
+     3
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/microecon/2025_class/Post-Lecture Notes/processed_outputs/8.Risk and Uncertainty 1.md",
+   "role": "instructor",
+   "format": "slides",
+   "offering": "2025",
+   "date": null,
+   "book": null,
+   "order": [
+    8,
+    "",
+    "8.risk and uncertainty 1"
+   ],
+   "confidence": 5.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "pdf landscape",
+     "format",
+     "slides",
+     2
+    ],
+    [
+     "index card ta_notes",
+     "authority",
+     "class",
+     3
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/microecon/2025_class/Post-Lecture Notes/processed_outputs/9.Risk and Uncertainty 2.md",
+   "role": "instructor",
+   "format": "slides",
+   "offering": "2025",
+   "date": null,
+   "book": null,
+   "order": [
+    9,
+    "",
+    "9.risk and uncertainty 2"
+   ],
+   "confidence": 5.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "pdf landscape",
+     "format",
+     "slides",
+     2
+    ],
+    [
+     "index card ta_notes",
+     "authority",
+     "class",
+     3
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/microecon/2025_class/Pre exam survivals kit/processed_outputs/2022.md",
+   "role": "problem_set",
+   "format": "handwritten",
+   "offering": "2025",
+   "date": null,
+   "book": null,
+   "order": [
+    1000000,
+    "",
+    "2022"
+   ],
+   "confidence": 8.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "pdf portrait",
+     "format",
+     "portrait",
+     0
+    ],
+    [
+     "index card problem_set",
+     "role",
+     "problem_set",
+     3
+    ],
+    [
+     "content: problem_set wording",
+     "role",
+     "problem_set",
+     2
+    ],
+    [
+     "content: exam wording",
+     "role",
+     "exam",
+     2
+    ],
+    [
+     "path word 'exam'",
+     "role",
+     "exam",
+     1
+    ],
+    [
+     "portrait scan, few headings",
+     "format",
+     "handwritten",
+     1
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/microecon/2025_class/Pre exam survivals kit/processed_outputs/2022_solution.md",
+   "role": "exam",
+   "format": "typeset",
+   "offering": "2025",
+   "date": null,
+   "book": null,
+   "order": [
+    1000000,
+    "",
+    "2022_solution"
+   ],
+   "confidence": 5.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "pdf portrait",
+     "format",
+     "portrait",
+     0
+    ],
+    [
+     "index card ta_notes",
+     "authority",
+     "class",
+     3
+    ],
+    [
+     "path word 'exam'",
+     "role",
+     "exam",
+     1
+    ],
+    [
+     "path word 'solution'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "default",
+     "format",
+     "typeset",
+     1
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/microecon/2025_class/Pre exam survivals kit/processed_outputs/2023 solution.md",
+   "role": "problem_set",
+   "format": "typeset",
+   "offering": "2025",
+   "date": null,
+   "book": null,
+   "order": [
+    1000000,
+    "",
+    "2023 solution"
+   ],
+   "confidence": 5.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "pdf portrait",
+     "format",
+     "portrait",
+     0
+    ],
+    [
+     "index card problem_set",
+     "role",
+     "problem_set",
+     3
+    ],
+    [
+     "path word 'exam'",
+     "role",
+     "exam",
+     1
+    ],
+    [
+     "path word 'solution'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "default",
+     "format",
+     "typeset",
+     1
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/microecon/2025_class/Pre exam survivals kit/processed_outputs/2023.md",
+   "role": "problem_set",
+   "format": "handwritten",
+   "offering": "2025",
+   "date": null,
+   "book": null,
+   "order": [
+    1000000,
+    "",
+    "2023"
+   ],
+   "confidence": 6.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "pdf portrait",
+     "format",
+     "portrait",
+     0
+    ],
+    [
+     "index card problem_set",
+     "role",
+     "problem_set",
+     3
+    ],
+    [
+     "content: problem_set wording",
+     "role",
+     "problem_set",
+     2
+    ],
+    [
+     "path word 'exam'",
+     "role",
+     "exam",
+     1
+    ],
+    [
+     "portrait scan, few headings",
+     "format",
+     "handwritten",
+     1
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/microecon/2025_class/Pre exam survivals kit/processed_outputs/2024 solutions.md",
+   "role": "problem_set",
+   "format": "handwritten",
+   "offering": "2025",
+   "date": null,
+   "book": null,
+   "order": [
+    1000000,
+    "",
+    "2024 solutions"
+   ],
+   "confidence": 7.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "pdf portrait",
+     "format",
+     "portrait",
+     0
+    ],
+    [
+     "index card problem_set",
+     "role",
+     "problem_set",
+     3
+    ],
+    [
+     "content: exam wording",
+     "role",
+     "exam",
+     2
+    ],
+    [
+     "path word 'exam'",
+     "role",
+     "exam",
+     1
+    ],
+    [
+     "path word 'solutions'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "portrait scan, few headings",
+     "format",
+     "handwritten",
+     1
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/microecon/2025_class/Pre exam survivals kit/processed_outputs/2024.md",
+   "role": "problem_set",
+   "format": "handwritten",
+   "offering": "2025",
+   "date": null,
+   "book": null,
+   "order": [
+    1000000,
+    "",
+    "2024"
+   ],
+   "confidence": 6.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "pdf portrait",
+     "format",
+     "portrait",
+     0
+    ],
+    [
+     "index card problem_set",
+     "role",
+     "problem_set",
+     3
+    ],
+    [
+     "content: problem_set wording",
+     "role",
+     "problem_set",
+     2
+    ],
+    [
+     "path word 'exam'",
+     "role",
+     "exam",
+     1
+    ],
+    [
+     "portrait scan, few headings",
+     "format",
+     "handwritten",
+     1
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/microecon/2025_class/processed_outputs/G6211_Fall_2025_Syllabus_Part1.md",
+   "role": "syllabus",
+   "format": "typeset",
+   "offering": "2025",
+   "date": null,
+   "book": null,
+   "order": [
+    1000000,
+    "",
+    "g6211_fall_2025_syllabus_part1"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "pdf portrait",
+     "format",
+     "portrait",
+     0
+    ],
+    [
+     "index card ta_notes",
+     "authority",
+     "class",
+     3
+    ],
+    [
+     "content: syllabus wording",
+     "role",
+     "syllabus",
+     2
+    ],
+    [
+     "content: exam wording",
+     "role",
+     "exam",
+     2
+    ],
+    [
+     "content: recitation wording",
+     "role",
+     "recitation",
+     2
+    ],
+    [
+     "path word 'syllabus'",
+     "role",
+     "syllabus",
+     1
+    ],
+    [
+     "default",
+     "format",
+     "typeset",
+     1
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/microecon/2025_class/processed_outputs/Micro_I_Recitation_Notes.md",
+   "role": "recitation",
+   "format": "typeset",
+   "offering": "2025",
+   "date": null,
+   "book": null,
+   "order": [
+    1000000,
+    "",
+    "micro_i_recitation_notes"
+   ],
+   "confidence": 8.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "pdf portrait",
+     "format",
+     "portrait",
+     0
+    ],
+    [
+     "index card ta_notes",
+     "authority",
+     "class",
+     3
+    ],
+    [
+     "content: problem_set wording",
+     "role",
+     "problem_set",
+     2
+    ],
+    [
+     "content: recitation wording",
+     "role",
+     "recitation",
+     2
+    ],
+    [
+     "path word 'recitation'",
+     "role",
+     "recitation",
+     1
+    ],
+    [
+     "default",
+     "format",
+     "typeset",
+     1
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/microecon/2025_class/processed_outputs/Midterm_Suggested Solutions.md",
+   "role": "exam",
+   "format": "typeset",
+   "offering": "2025",
+   "date": null,
+   "book": null,
+   "order": [
+    1000000,
+    "",
+    "midterm_suggested solutions"
+   ],
+   "confidence": 5.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "pdf portrait",
+     "format",
+     "portrait",
+     0
+    ],
+    [
+     "index card ta_notes",
+     "authority",
+     "class",
+     3
+    ],
+    [
+     "path word 'midterm'",
+     "role",
+     "exam",
+     1
+    ],
+    [
+     "path word 'solutions'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "default",
+     "format",
+     "typeset",
+     1
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/microecon/2025_class/proofs/processed_outputs/Proofs-Risk and Uncertainty.md",
+   "role": "instructor",
+   "format": "slides",
+   "offering": "2025",
+   "date": null,
+   "book": null,
+   "order": [
+    1000000,
+    "",
+    "proofs-risk and uncertainty"
+   ],
+   "confidence": 6.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "pdf landscape",
+     "format",
+     "slides",
+     2
+    ],
+    [
+     "index card ta_notes",
+     "authority",
+     "class",
+     3
+    ],
+    [
+     "path word 'proofs'",
+     "role",
+     "instructor",
+     1
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/microecon/2025_class/proofs/processed_outputs/Proofs_Consumer_Choice_1.md",
+   "role": "instructor",
+   "format": "slides",
+   "offering": "2025",
+   "date": null,
+   "book": null,
+   "order": [
+    1000000,
+    "",
+    "proofs_consumer_choice_1"
+   ],
+   "confidence": 6.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "pdf landscape",
+     "format",
+     "slides",
+     2
+    ],
+    [
+     "index card ta_notes",
+     "authority",
+     "class",
+     3
+    ],
+    [
+     "path word 'proofs'",
+     "role",
+     "instructor",
+     1
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/microecon/2025_class/proofs/processed_outputs/Utility_Maximization_1_Proofs.md",
+   "role": "instructor",
+   "format": "slides",
+   "offering": "2025",
+   "date": null,
+   "book": null,
+   "order": [
+    1000000,
+    "",
+    "utility_maximization_1_proofs"
+   ],
+   "confidence": 6.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "pdf landscape",
+     "format",
+     "slides",
+     2
+    ],
+    [
+     "index card ta_notes",
+     "authority",
+     "class",
+     3
+    ],
+    [
+     "path word 'proofs'",
+     "role",
+     "instructor",
+     1
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/microecon/2025_class/proofs/processed_outputs/Utility_Maximization_2_Proofs.md",
+   "role": "instructor",
+   "format": "slides",
+   "offering": "2025",
+   "date": null,
+   "book": null,
+   "order": [
+    1000000,
+    "",
+    "utility_maximization_2_proofs"
+   ],
+   "confidence": 6.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "pdf landscape",
+     "format",
+     "slides",
+     2
+    ],
+    [
+     "index card ta_notes",
+     "authority",
+     "class",
+     3
+    ],
+    [
+     "path word 'proofs'",
+     "role",
+     "instructor",
+     1
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/microecon/lecture_notes/Microecon 2026-09-29 10.07.07.excalidraw.md",
+   "role": "student_notes",
+   "format": "excalidraw",
+   "offering": null,
+   "date": "2026-09-29",
+   "book": null,
+   "order": [
+    1000000,
+    "2026-09-29",
+    "microecon 2026-09-29 10.07.07.excalidraw"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "excalidraw source",
+     "format",
+     "excalidraw",
+     10
+    ],
+    [
+     "excalidraw source",
+     "role",
+     "student_notes",
+     10
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/microecon/lecture_notes/Microeconomics 2026-09-22 10.12.57.excalidraw.md",
+   "role": "student_notes",
+   "format": "excalidraw",
+   "offering": null,
+   "date": "2026-09-22",
+   "book": null,
+   "order": [
+    1000000,
+    "2026-09-22",
+    "microeconomics 2026-09-22 10.12.57.excalidraw"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "excalidraw source",
+     "format",
+     "excalidraw",
+     10
+    ],
+    [
+     "excalidraw source",
+     "role",
+     "student_notes",
+     10
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/microecon/lecture_notes/Microeconomics 2026-09-29 10.07.07.excalidraw.md",
+   "role": "student_notes",
+   "format": "excalidraw",
+   "offering": null,
+   "date": "2026-09-29",
+   "book": null,
+   "order": [
+    1000000,
+    "2026-09-29",
+    "microeconomics 2026-09-29 10.07.07.excalidraw"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "excalidraw source",
+     "format",
+     "excalidraw",
+     10
+    ],
+    [
+     "excalidraw source",
+     "role",
+     "student_notes",
+     10
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/microecon/lecture_notes/Microeconomics 2026-10-01 08.04.56.excalidraw.md",
+   "role": "student_notes",
+   "format": "excalidraw",
+   "offering": null,
+   "date": "2026-10-01",
+   "book": null,
+   "order": [
+    1000000,
+    "2026-10-01",
+    "microeconomics 2026-10-01 08.04.56.excalidraw"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "excalidraw source",
+     "format",
+     "excalidraw",
+     10
+    ],
+    [
+     "excalidraw source",
+     "role",
+     "student_notes",
+     10
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/microecon/lecture_notes/Microeconomics 2026-10-01 10.13.43.excalidraw.md",
+   "role": "student_notes",
+   "format": "excalidraw",
+   "offering": null,
+   "date": "2026-10-01",
+   "book": null,
+   "order": [
+    1000000,
+    "2026-10-01",
+    "microeconomics 2026-10-01 10.13.43.excalidraw"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "excalidraw source",
+     "format",
+     "excalidraw",
+     10
+    ],
+    [
+     "excalidraw source",
+     "role",
+     "student_notes",
+     10
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/microecon/lecture_notes/Microeconomics 2026-10-13 09.38.59.excalidraw.md",
+   "role": "student_notes",
+   "format": "excalidraw",
+   "offering": null,
+   "date": "2026-10-13",
+   "book": null,
+   "order": [
+    1000000,
+    "2026-10-13",
+    "microeconomics 2026-10-13 09.38.59.excalidraw"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "excalidraw source",
+     "format",
+     "excalidraw",
+     10
+    ],
+    [
+     "excalidraw source",
+     "role",
+     "student_notes",
+     10
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/microecon/lecture_notes/processed_outputs/Microeconomics 2026-09-07 19.53.03.excalidraw.rag.md",
+   "role": "student_notes",
+   "format": "excalidraw",
+   "offering": null,
+   "date": "2026-09-07",
+   "book": null,
+   "order": [
+    1000000,
+    "2026-09-07",
+    "microeconomics 2026-09-07 19.53.03.excalidraw"
+   ],
+   "confidence": 13.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "excalidraw source",
+     "format",
+     "excalidraw",
+     10
+    ],
+    [
+     "excalidraw source",
+     "role",
+     "student_notes",
+     10
+    ],
+    [
+     "index card excalidraw_notes",
+     "role",
+     "student_notes",
+     3
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/microecon/lecture_notes/processed_outputs/Microeconomics 2026-09-10 10.09.33.excalidraw.rag.md",
+   "role": "student_notes",
+   "format": "excalidraw",
+   "offering": null,
+   "date": "2026-09-10",
+   "book": null,
+   "order": [
+    1000000,
+    "2026-09-10",
+    "microeconomics 2026-09-10 10.09.33.excalidraw"
+   ],
+   "confidence": 13.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "excalidraw source",
+     "format",
+     "excalidraw",
+     10
+    ],
+    [
+     "excalidraw source",
+     "role",
+     "student_notes",
+     10
+    ],
+    [
+     "index card excalidraw_notes",
+     "role",
+     "student_notes",
+     3
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/microecon/lecture_notes/processed_outputs/Microeconomics 2026-09-15 10.15.55.excalidraw.rag.md",
+   "role": "student_notes",
+   "format": "excalidraw",
+   "offering": null,
+   "date": "2026-09-15",
+   "book": null,
+   "order": [
+    1000000,
+    "2026-09-15",
+    "microeconomics 2026-09-15 10.15.55.excalidraw"
+   ],
+   "confidence": 13.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "excalidraw source",
+     "format",
+     "excalidraw",
+     10
+    ],
+    [
+     "excalidraw source",
+     "role",
+     "student_notes",
+     10
+    ],
+    [
+     "index card excalidraw_notes",
+     "role",
+     "student_notes",
+     3
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/microecon/lecture_notes/processed_outputs/Microeconomics 2026-09-17 10.12.38.excalidraw.rag.md",
+   "role": "student_notes",
+   "format": "excalidraw",
+   "offering": null,
+   "date": "2026-09-17",
+   "book": null,
+   "order": [
+    1000000,
+    "2026-09-17",
+    "microeconomics 2026-09-17 10.12.38.excalidraw"
+   ],
+   "confidence": 13.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "excalidraw source",
+     "format",
+     "excalidraw",
+     10
+    ],
+    [
+     "excalidraw source",
+     "role",
+     "student_notes",
+     10
+    ],
+    [
+     "index card excalidraw_notes",
+     "role",
+     "student_notes",
+     3
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/microecon/lecture_notes/processed_outputs/Microeconomics 2026-10-06 10.09.07.excalidraw.rag.md",
+   "role": "student_notes",
+   "format": "excalidraw",
+   "offering": null,
+   "date": "2026-10-06",
+   "book": null,
+   "order": [
+    1000000,
+    "2026-10-06",
+    "microeconomics 2026-10-06 10.09.07.excalidraw"
+   ],
+   "confidence": 13.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "excalidraw source",
+     "format",
+     "excalidraw",
+     10
+    ],
+    [
+     "excalidraw source",
+     "role",
+     "student_notes",
+     10
+    ],
+    [
+     "index card excalidraw_notes",
+     "role",
+     "student_notes",
+     3
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/microecon/lecture_notes/processed_outputs/Microeconomics 2026-10-06 10.09.07.excalidraw.questions.md",
+   "role": "student_notes",
+   "format": "excalidraw",
+   "offering": null,
+   "date": "2026-10-06",
+   "book": null,
+   "order": [
+    1000000,
+    "2026-10-06",
+    "microeconomics 2026-10-06 10.09.07.excalidraw.questions"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "excalidraw source",
+     "format",
+     "excalidraw",
+     10
+    ],
+    [
+     "excalidraw source",
+     "role",
+     "student_notes",
+     10
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/microecon/lecture_notes/processed_outputs/Microeconomics 2026-10-08 08.21.20.excalidraw.rag.md",
+   "role": "student_notes",
+   "format": "excalidraw",
+   "offering": null,
+   "date": "2026-10-08",
+   "book": null,
+   "order": [
+    1000000,
+    "2026-10-08",
+    "microeconomics 2026-10-08 08.21.20.excalidraw"
+   ],
+   "confidence": 9.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "excalidraw source",
+     "format",
+     "excalidraw",
+     10
+    ],
+    [
+     "excalidraw source",
+     "role",
+     "student_notes",
+     10
+    ],
+    [
+     "index card excalidraw_notes",
+     "role",
+     "student_notes",
+     3
+    ],
+    [
+     "content: problem_set wording",
+     "role",
+     "problem_set",
+     2
+    ],
+    [
+     "content: recitation wording",
+     "role",
+     "recitation",
+     2
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/microecon/lecture_notes/processed_outputs/Microeconomics 2026-10-08 08.21.20.excalidraw.questions.md",
+   "role": "student_notes",
+   "format": "excalidraw",
+   "offering": null,
+   "date": "2026-10-08",
+   "book": null,
+   "order": [
+    1000000,
+    "2026-10-08",
+    "microeconomics 2026-10-08 08.21.20.excalidraw.questions"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "excalidraw source",
+     "format",
+     "excalidraw",
+     10
+    ],
+    [
+     "excalidraw source",
+     "role",
+     "student_notes",
+     10
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/microecon/lecture_notes/processed_outputs/Microeconomics 2026-10-08 10.14.58.excalidraw.rag.md",
+   "role": "student_notes",
+   "format": "excalidraw",
+   "offering": null,
+   "date": "2026-10-08",
+   "book": null,
+   "order": [
+    1000000,
+    "2026-10-08",
+    "microeconomics 2026-10-08 10.14.58.excalidraw"
+   ],
+   "confidence": 13.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "excalidraw source",
+     "format",
+     "excalidraw",
+     10
+    ],
+    [
+     "excalidraw source",
+     "role",
+     "student_notes",
+     10
+    ],
+    [
+     "index card excalidraw_notes",
+     "role",
+     "student_notes",
+     3
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/microecon/lecture_notes/processed_outputs/Microeconomics 2026-10-08 10.14.58.excalidraw.questions.md",
+   "role": "student_notes",
+   "format": "excalidraw",
+   "offering": null,
+   "date": "2026-10-08",
+   "book": null,
+   "order": [
+    1000000,
+    "2026-10-08",
+    "microeconomics 2026-10-08 10.14.58.excalidraw.questions"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "excalidraw source",
+     "format",
+     "excalidraw",
+     10
+    ],
+    [
+     "excalidraw source",
+     "role",
+     "student_notes",
+     10
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/microecon/lecture_notes/processed_outputs/Microeconomics with slides 2026-09-07.excalidraw.rag.md",
+   "role": "student_notes",
+   "format": "excalidraw",
+   "offering": null,
+   "date": "2026-09-07",
+   "book": null,
+   "order": [
+    1000000,
+    "2026-09-07",
+    "microeconomics with slides 2026-09-07.excalidraw"
+   ],
+   "confidence": 13.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "excalidraw source",
+     "format",
+     "excalidraw",
+     10
+    ],
+    [
+     "excalidraw source",
+     "role",
+     "student_notes",
+     10
+    ],
+    [
+     "index card excalidraw_notes",
+     "role",
+     "student_notes",
+     3
+    ],
+    [
+     "path word 'slides'",
+     "format",
+     "slides",
+     1
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/microecon/lecture_notes/processed_outputs/Microeconomics with slides 2026-09-07.excalidraw.questions.md",
+   "role": "student_notes",
+   "format": "excalidraw",
+   "offering": null,
+   "date": "2026-09-07",
+   "book": null,
+   "order": [
+    1000000,
+    "2026-09-07",
+    "microeconomics with slides 2026-09-07.excalidraw.questions"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "excalidraw source",
+     "format",
+     "excalidraw",
+     10
+    ],
+    [
+     "excalidraw source",
+     "role",
+     "student_notes",
+     10
+    ],
+    [
+     "path word 'slides'",
+     "format",
+     "slides",
+     1
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/microecon/lecture_notes/processed_outputs/Microeconomics with slides 2026-09-10 10.09.33.excalidraw.rag.md",
+   "role": "student_notes",
+   "format": "excalidraw",
+   "offering": null,
+   "date": "2026-09-10",
+   "book": null,
+   "order": [
+    1000000,
+    "2026-09-10",
+    "microeconomics with slides 2026-09-10 10.09.33.excalidraw"
+   ],
+   "confidence": 13.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "excalidraw source",
+     "format",
+     "excalidraw",
+     10
+    ],
+    [
+     "excalidraw source",
+     "role",
+     "student_notes",
+     10
+    ],
+    [
+     "index card excalidraw_notes",
+     "role",
+     "student_notes",
+     3
+    ],
+    [
+     "path word 'slides'",
+     "format",
+     "slides",
+     1
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/microecon/lecture_notes/processed_outputs/Microeconomics with slides 2026-09-10 10.09.33.excalidraw.questions.md",
+   "role": "student_notes",
+   "format": "excalidraw",
+   "offering": null,
+   "date": "2026-09-10",
+   "book": null,
+   "order": [
+    1000000,
+    "2026-09-10",
+    "microeconomics with slides 2026-09-10 10.09.33.excalidraw.questions"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "excalidraw source",
+     "format",
+     "excalidraw",
+     10
+    ],
+    [
+     "excalidraw source",
+     "role",
+     "student_notes",
+     10
+    ],
+    [
+     "path word 'slides'",
+     "format",
+     "slides",
+     1
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/microecon/lecture_notes/processed_outputs/Microeconomics with slides 2026-09-15 10.15.55.excalidraw.rag.md",
+   "role": "student_notes",
+   "format": "excalidraw",
+   "offering": null,
+   "date": "2026-09-15",
+   "book": null,
+   "order": [
+    1000000,
+    "2026-09-15",
+    "microeconomics with slides 2026-09-15 10.15.55.excalidraw"
+   ],
+   "confidence": 13.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "excalidraw source",
+     "format",
+     "excalidraw",
+     10
+    ],
+    [
+     "excalidraw source",
+     "role",
+     "student_notes",
+     10
+    ],
+    [
+     "index card excalidraw_notes",
+     "role",
+     "student_notes",
+     3
+    ],
+    [
+     "path word 'slides'",
+     "format",
+     "slides",
+     1
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/microecon/lecture_notes/processed_outputs/Microeconomics with slides 2026-09-17 10.12.38.excalidraw.rag.md",
+   "role": "student_notes",
+   "format": "excalidraw",
+   "offering": null,
+   "date": "2026-09-17",
+   "book": null,
+   "order": [
+    1000000,
+    "2026-09-17",
+    "microeconomics with slides 2026-09-17 10.12.38.excalidraw"
+   ],
+   "confidence": 13.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "excalidraw source",
+     "format",
+     "excalidraw",
+     10
+    ],
+    [
+     "excalidraw source",
+     "role",
+     "student_notes",
+     10
+    ],
+    [
+     "index card excalidraw_notes",
+     "role",
+     "student_notes",
+     3
+    ],
+    [
+     "path word 'slides'",
+     "format",
+     "slides",
+     1
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/microecon/lecture_notes/processed_outputs/Microeconomics with slides 2026-09-17 10.12.38.excalidraw.questions.md",
+   "role": "student_notes",
+   "format": "excalidraw",
+   "offering": null,
+   "date": "2026-09-17",
+   "book": null,
+   "order": [
+    1000000,
+    "2026-09-17",
+    "microeconomics with slides 2026-09-17 10.12.38.excalidraw.questions"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "excalidraw source",
+     "format",
+     "excalidraw",
+     10
+    ],
+    [
+     "excalidraw source",
+     "role",
+     "student_notes",
+     10
+    ],
+    [
+     "path word 'slides'",
+     "format",
+     "slides",
+     1
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/microecon/lecture_notes/processed_outputs/Microeconomics with slides 2026-09-22 10.12.57.excalidraw.rag.md",
+   "role": "student_notes",
+   "format": "excalidraw",
+   "offering": null,
+   "date": "2026-09-22",
+   "book": null,
+   "order": [
+    1000000,
+    "2026-09-22",
+    "microeconomics with slides 2026-09-22 10.12.57.excalidraw"
+   ],
+   "confidence": 13.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "excalidraw source",
+     "format",
+     "excalidraw",
+     10
+    ],
+    [
+     "excalidraw source",
+     "role",
+     "student_notes",
+     10
+    ],
+    [
+     "index card excalidraw_notes",
+     "role",
+     "student_notes",
+     3
+    ],
+    [
+     "path word 'slides'",
+     "format",
+     "slides",
+     1
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/microecon/lecture_notes/processed_outputs/Microeconomics with slides 2026-09-22 10.12.57.excalidraw.questions.md",
+   "role": "student_notes",
+   "format": "excalidraw",
+   "offering": null,
+   "date": "2026-09-22",
+   "book": null,
+   "order": [
+    1000000,
+    "2026-09-22",
+    "microeconomics with slides 2026-09-22 10.12.57.excalidraw.questions"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "excalidraw source",
+     "format",
+     "excalidraw",
+     10
+    ],
+    [
+     "excalidraw source",
+     "role",
+     "student_notes",
+     10
+    ],
+    [
+     "path word 'slides'",
+     "format",
+     "slides",
+     1
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/microecon/lecture_notes/processed_outputs/Microeconomics with slides 2026-09-29 10.07.07.excalidraw.rag.md",
+   "role": "student_notes",
+   "format": "excalidraw",
+   "offering": null,
+   "date": "2026-09-29",
+   "book": null,
+   "order": [
+    1000000,
+    "2026-09-29",
+    "microeconomics with slides 2026-09-29 10.07.07.excalidraw"
+   ],
+   "confidence": 13.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "excalidraw source",
+     "format",
+     "excalidraw",
+     10
+    ],
+    [
+     "excalidraw source",
+     "role",
+     "student_notes",
+     10
+    ],
+    [
+     "index card excalidraw_notes",
+     "role",
+     "student_notes",
+     3
+    ],
+    [
+     "path word 'slides'",
+     "format",
+     "slides",
+     1
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/microecon/lecture_notes/processed_outputs/Microeconomics with slides 2026-09-29 10.07.07.excalidraw.questions.md",
+   "role": "student_notes",
+   "format": "excalidraw",
+   "offering": null,
+   "date": "2026-09-29",
+   "book": null,
+   "order": [
+    1000000,
+    "2026-09-29",
+    "microeconomics with slides 2026-09-29 10.07.07.excalidraw.questions"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "excalidraw source",
+     "format",
+     "excalidraw",
+     10
+    ],
+    [
+     "excalidraw source",
+     "role",
+     "student_notes",
+     10
+    ],
+    [
+     "path word 'slides'",
+     "format",
+     "slides",
+     1
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/microecon/lecture_notes/processed_outputs/Microeconomics with slides 2026-10-01 10.13.43.excalidraw.rag.md",
+   "role": "student_notes",
+   "format": "excalidraw",
+   "offering": null,
+   "date": "2026-10-01",
+   "book": null,
+   "order": [
+    1000000,
+    "2026-10-01",
+    "microeconomics with slides 2026-10-01 10.13.43.excalidraw"
+   ],
+   "confidence": 13.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "excalidraw source",
+     "format",
+     "excalidraw",
+     10
+    ],
+    [
+     "excalidraw source",
+     "role",
+     "student_notes",
+     10
+    ],
+    [
+     "index card excalidraw_notes",
+     "role",
+     "student_notes",
+     3
+    ],
+    [
+     "path word 'slides'",
+     "format",
+     "slides",
+     1
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/microecon/lecture_notes/processed_outputs/Microeconomics with slides 2026-10-01 10.13.43.excalidraw.questions.md",
+   "role": "student_notes",
+   "format": "excalidraw",
+   "offering": null,
+   "date": "2026-10-01",
+   "book": null,
+   "order": [
+    1000000,
+    "2026-10-01",
+    "microeconomics with slides 2026-10-01 10.13.43.excalidraw.questions"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "excalidraw source",
+     "format",
+     "excalidraw",
+     10
+    ],
+    [
+     "excalidraw source",
+     "role",
+     "student_notes",
+     10
+    ],
+    [
+     "path word 'slides'",
+     "format",
+     "slides",
+     1
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/microecon/lecture_notes/processed_outputs/Microeconomics with slides 2026-10-06 10.09.07.excalidraw.rag.md",
+   "role": "student_notes",
+   "format": "excalidraw",
+   "offering": null,
+   "date": "2026-10-06",
+   "book": null,
+   "order": [
+    1000000,
+    "2026-10-06",
+    "microeconomics with slides 2026-10-06 10.09.07.excalidraw"
+   ],
+   "confidence": 13.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "excalidraw source",
+     "format",
+     "excalidraw",
+     10
+    ],
+    [
+     "excalidraw source",
+     "role",
+     "student_notes",
+     10
+    ],
+    [
+     "index card excalidraw_notes",
+     "role",
+     "student_notes",
+     3
+    ],
+    [
+     "path word 'slides'",
+     "format",
+     "slides",
+     1
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/microecon/lecture_notes/processed_outputs/Microeconomics with slides 2026-10-06 10.09.07.excalidraw.questions.md",
+   "role": "student_notes",
+   "format": "excalidraw",
+   "offering": null,
+   "date": "2026-10-06",
+   "book": null,
+   "order": [
+    1000000,
+    "2026-10-06",
+    "microeconomics with slides 2026-10-06 10.09.07.excalidraw.questions"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "excalidraw source",
+     "format",
+     "excalidraw",
+     10
+    ],
+    [
+     "excalidraw source",
+     "role",
+     "student_notes",
+     10
+    ],
+    [
+     "path word 'slides'",
+     "format",
+     "slides",
+     1
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/microecon/lecture_notes/processed_outputs/Microeconomics with slides 2026-10-08 10.14.58.excalidraw.rag.md",
+   "role": "student_notes",
+   "format": "excalidraw",
+   "offering": null,
+   "date": "2026-10-08",
+   "book": null,
+   "order": [
+    1000000,
+    "2026-10-08",
+    "microeconomics with slides 2026-10-08 10.14.58.excalidraw"
+   ],
+   "confidence": 13.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "excalidraw source",
+     "format",
+     "excalidraw",
+     10
+    ],
+    [
+     "excalidraw source",
+     "role",
+     "student_notes",
+     10
+    ],
+    [
+     "index card excalidraw_notes",
+     "role",
+     "student_notes",
+     3
+    ],
+    [
+     "path word 'slides'",
+     "format",
+     "slides",
+     1
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/microecon/lecture_notes/processed_outputs/Microeconomics with slides 2026-10-08 10.14.58.excalidraw.questions.md",
+   "role": "student_notes",
+   "format": "excalidraw",
+   "offering": null,
+   "date": "2026-10-08",
+   "book": null,
+   "order": [
+    1000000,
+    "2026-10-08",
+    "microeconomics with slides 2026-10-08 10.14.58.excalidraw.questions"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "excalidraw source",
+     "format",
+     "excalidraw",
+     10
+    ],
+    [
+     "excalidraw source",
+     "role",
+     "student_notes",
+     10
+    ],
+    [
+     "path word 'slides'",
+     "format",
+     "slides",
+     1
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/microecon/lecture_notes/processed_outputs/Microeconomics with slides 2026-10-13 09.38.59.excalidraw.rag.md",
+   "role": "student_notes",
+   "format": "excalidraw",
+   "offering": null,
+   "date": "2026-10-13",
+   "book": null,
+   "order": [
+    1000000,
+    "2026-10-13",
+    "microeconomics with slides 2026-10-13 09.38.59.excalidraw"
+   ],
+   "confidence": 13.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "excalidraw source",
+     "format",
+     "excalidraw",
+     10
+    ],
+    [
+     "excalidraw source",
+     "role",
+     "student_notes",
+     10
+    ],
+    [
+     "index card excalidraw_notes",
+     "role",
+     "student_notes",
+     3
+    ],
+    [
+     "path word 'slides'",
+     "format",
+     "slides",
+     1
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/microecon/lecture_notes/processed_outputs/Microeconomics with slides 2026-10-13 09.38.59.excalidraw.questions.md",
+   "role": "student_notes",
+   "format": "excalidraw",
+   "offering": null,
+   "date": "2026-10-13",
+   "book": null,
+   "order": [
+    1000000,
+    "2026-10-13",
+    "microeconomics with slides 2026-10-13 09.38.59.excalidraw.questions"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "excalidraw source",
+     "format",
+     "excalidraw",
+     10
+    ],
+    [
+     "excalidraw source",
+     "role",
+     "student_notes",
+     10
+    ],
+    [
+     "path word 'slides'",
+     "format",
+     "slides",
+     1
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/microecon/problem_sets/homework_1_solutions.md",
+   "role": "problem_set",
+   "format": "typeset",
+   "offering": null,
+   "date": null,
+   "book": null,
+   "order": [
+    1000000,
+    "",
+    "homework_1_solutions"
+   ],
+   "confidence": 7.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "category folder problem_sets",
+     "role",
+     "problem_set",
+     2
+    ],
+    [
+     "pdf portrait",
+     "format",
+     "portrait",
+     0
+    ],
+    [
+     "content: problem_set wording",
+     "role",
+     "problem_set",
+     2
+    ],
+    [
+     "path word 'homework'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "path word 'problem'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "path word 'solutions'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "default",
+     "format",
+     "typeset",
+     1
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/microecon/problem_sets/homework_1_solutions_notes.md",
+   "role": "problem_set",
+   "format": "typeset",
+   "offering": null,
+   "date": null,
+   "book": null,
+   "order": [
+    1000000,
+    "",
+    "homework_1_solutions_notes"
+   ],
+   "confidence": 7.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "category folder problem_sets",
+     "role",
+     "problem_set",
+     2
+    ],
+    [
+     "content: problem_set wording",
+     "role",
+     "problem_set",
+     2
+    ],
+    [
+     "path word 'homework'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "path word 'problem'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "path word 'solutions'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "default",
+     "format",
+     "typeset",
+     1
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/microecon/problem_sets/homework_2_solutions.md",
+   "role": "problem_set",
+   "format": "typeset",
+   "offering": null,
+   "date": null,
+   "book": null,
+   "order": [
+    1000000,
+    "",
+    "homework_2_solutions"
+   ],
+   "confidence": 7.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "category folder problem_sets",
+     "role",
+     "problem_set",
+     2
+    ],
+    [
+     "pdf portrait",
+     "format",
+     "portrait",
+     0
+    ],
+    [
+     "content: problem_set wording",
+     "role",
+     "problem_set",
+     2
+    ],
+    [
+     "path word 'homework'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "path word 'problem'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "path word 'solutions'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "default",
+     "format",
+     "typeset",
+     1
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/microecon/problem_sets/homework_2_solutions_guided.md",
+   "role": "problem_set",
+   "format": "typeset",
+   "offering": null,
+   "date": null,
+   "book": null,
+   "order": [
+    1000000,
+    "",
+    "homework_2_solutions_guided"
+   ],
+   "confidence": 7.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "category folder problem_sets",
+     "role",
+     "problem_set",
+     2
+    ],
+    [
+     "content: problem_set wording",
+     "role",
+     "problem_set",
+     2
+    ],
+    [
+     "path word 'homework'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "path word 'problem'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "path word 'solutions'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "default",
+     "format",
+     "typeset",
+     1
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/microecon/problem_sets/homework_3_guided_solutions.md",
+   "role": "problem_set",
+   "format": "typeset",
+   "offering": null,
+   "date": null,
+   "book": null,
+   "order": [
+    1000000,
+    "",
+    "homework_3_guided_solutions"
+   ],
+   "confidence": 5.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "category folder problem_sets",
+     "role",
+     "problem_set",
+     2
+    ],
+    [
+     "path word 'homework'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "path word 'problem'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "path word 'solutions'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "default",
+     "format",
+     "typeset",
+     1
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/microecon/problem_sets/homework_3_hints.md",
+   "role": "problem_set",
+   "format": "typeset",
+   "offering": null,
+   "date": null,
+   "book": null,
+   "order": [
+    1000000,
+    "",
+    "homework_3_hints"
+   ],
+   "confidence": 6.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "category folder problem_sets",
+     "role",
+     "problem_set",
+     2
+    ],
+    [
+     "content: problem_set wording",
+     "role",
+     "problem_set",
+     2
+    ],
+    [
+     "path word 'homework'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "path word 'problem'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "default",
+     "format",
+     "typeset",
+     1
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/microecon/problem_sets/homework_3_solutions.md",
+   "role": "problem_set",
+   "format": "typeset",
+   "offering": null,
+   "date": null,
+   "book": null,
+   "order": [
+    1000000,
+    "",
+    "homework_3_solutions"
+   ],
+   "confidence": 5.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "category folder problem_sets",
+     "role",
+     "problem_set",
+     2
+    ],
+    [
+     "pdf portrait",
+     "format",
+     "portrait",
+     0
+    ],
+    [
+     "path word 'homework'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "path word 'problem'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "path word 'solutions'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "default",
+     "format",
+     "typeset",
+     1
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/microecon/problem_sets/homework_3_tutoring_audit.md",
+   "role": "problem_set",
+   "format": "typeset",
+   "offering": null,
+   "date": null,
+   "book": null,
+   "order": [
+    1000000,
+    "",
+    "homework_3_tutoring_audit"
+   ],
+   "confidence": 6.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "category folder problem_sets",
+     "role",
+     "problem_set",
+     2
+    ],
+    [
+     "content: problem_set wording",
+     "role",
+     "problem_set",
+     2
+    ],
+    [
+     "path word 'homework'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "path word 'problem'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "default",
+     "format",
+     "typeset",
+     1
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/microecon/problem_sets/homework_4_guided_solutions.md",
+   "role": "problem_set",
+   "format": "typeset",
+   "offering": null,
+   "date": null,
+   "book": null,
+   "order": [
+    1000000,
+    "",
+    "homework_4_guided_solutions"
+   ],
+   "confidence": 5.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "category folder problem_sets",
+     "role",
+     "problem_set",
+     2
+    ],
+    [
+     "path word 'homework'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "path word 'problem'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "path word 'solutions'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "default",
+     "format",
+     "typeset",
+     1
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/microecon/problem_sets/homework_4_hints.md",
+   "role": "problem_set",
+   "format": "typeset",
+   "offering": null,
+   "date": null,
+   "book": null,
+   "order": [
+    1000000,
+    "",
+    "homework_4_hints"
+   ],
+   "confidence": 4.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "category folder problem_sets",
+     "role",
+     "problem_set",
+     2
+    ],
+    [
+     "path word 'homework'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "path word 'problem'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "default",
+     "format",
+     "typeset",
+     1
+    ]
+   ],
+   "decided_by": "review"
+  },
+  {
+   "path": "academic_notes/microecon/problem_sets/homework_4_solutions.md",
+   "role": "problem_set",
+   "format": "typeset",
+   "offering": null,
+   "date": null,
+   "book": null,
+   "order": [
+    1000000,
+    "",
+    "homework_4_solutions"
+   ],
+   "confidence": 5.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "category folder problem_sets",
+     "role",
+     "problem_set",
+     2
+    ],
+    [
+     "pdf portrait",
+     "format",
+     "portrait",
+     0
+    ],
+    [
+     "path word 'homework'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "path word 'problem'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "path word 'solutions'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "default",
+     "format",
+     "typeset",
+     1
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/microecon/problem_sets/Homework_5_solutions.md",
+   "role": "problem_set",
+   "format": "typeset",
+   "offering": null,
+   "date": null,
+   "book": null,
+   "order": [
+    1000000,
+    "",
+    "homework_5_solutions"
+   ],
+   "confidence": 5.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "category folder problem_sets",
+     "role",
+     "problem_set",
+     2
+    ],
+    [
+     "pdf portrait",
+     "format",
+     "portrait",
+     0
+    ],
+    [
+     "path word 'homework'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "path word 'problem'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "path word 'solutions'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "default",
+     "format",
+     "typeset",
+     1
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/microecon/problem_sets/Homework_5_solutions_extended.md",
+   "role": "problem_set",
+   "format": "typeset",
+   "offering": null,
+   "date": null,
+   "book": null,
+   "order": [
+    1000000,
+    "",
+    "homework_5_solutions_extended"
+   ],
+   "confidence": 5.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "category folder problem_sets",
+     "role",
+     "problem_set",
+     2
+    ],
+    [
+     "pdf portrait",
+     "format",
+     "portrait",
+     0
+    ],
+    [
+     "path word 'homework'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "path word 'problem'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "path word 'solutions'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "default",
+     "format",
+     "typeset",
+     1
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/microecon/problem_sets/HW4Graphs 2026-10-09 15.54.08.excalidraw.md",
+   "role": "student_notes",
+   "format": "excalidraw",
+   "offering": null,
+   "date": "2026-10-09",
+   "book": null,
+   "order": [
+    1000000,
+    "2026-10-09",
+    "hw4graphs 2026-10-09 15.54.08.excalidraw"
+   ],
+   "confidence": 6.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "excalidraw source",
+     "format",
+     "excalidraw",
+     10
+    ],
+    [
+     "excalidraw source",
+     "role",
+     "student_notes",
+     10
+    ],
+    [
+     "category folder problem_sets",
+     "role",
+     "problem_set",
+     2
+    ],
+    [
+     "path word 'hw'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "path word 'problem'",
+     "role",
+     "problem_set",
+     1
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/microecon/problem_sets/processed_outputs/Homework_1.md",
+   "role": "problem_set",
+   "format": "typeset",
+   "offering": null,
+   "date": null,
+   "book": null,
+   "order": [
+    1000000,
+    "",
+    "homework_1"
+   ],
+   "confidence": 9.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "category folder problem_sets",
+     "role",
+     "problem_set",
+     2
+    ],
+    [
+     "pdf portrait",
+     "format",
+     "portrait",
+     0
+    ],
+    [
+     "index card problem_set",
+     "role",
+     "problem_set",
+     3
+    ],
+    [
+     "content: problem_set wording",
+     "role",
+     "problem_set",
+     2
+    ],
+    [
+     "path word 'homework'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "path word 'problem'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "default",
+     "format",
+     "typeset",
+     1
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/microecon/problem_sets/processed_outputs/Homework_2.md",
+   "role": "problem_set",
+   "format": "handwritten",
+   "offering": null,
+   "date": null,
+   "book": null,
+   "order": [
+    1000000,
+    "",
+    "homework_2"
+   ],
+   "confidence": 9.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "category folder problem_sets",
+     "role",
+     "problem_set",
+     2
+    ],
+    [
+     "pdf portrait",
+     "format",
+     "portrait",
+     0
+    ],
+    [
+     "index card problem_set",
+     "role",
+     "problem_set",
+     3
+    ],
+    [
+     "content: problem_set wording",
+     "role",
+     "problem_set",
+     2
+    ],
+    [
+     "path word 'homework'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "path word 'problem'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "portrait scan, few headings",
+     "format",
+     "handwritten",
+     1
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/microecon/problem_sets/processed_outputs/Homework_3.md",
+   "role": "problem_set",
+   "format": "typeset",
+   "offering": null,
+   "date": null,
+   "book": null,
+   "order": [
+    1000000,
+    "",
+    "homework_3"
+   ],
+   "confidence": 9.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "category folder problem_sets",
+     "role",
+     "problem_set",
+     2
+    ],
+    [
+     "pdf portrait",
+     "format",
+     "portrait",
+     0
+    ],
+    [
+     "index card problem_set",
+     "role",
+     "problem_set",
+     3
+    ],
+    [
+     "content: problem_set wording",
+     "role",
+     "problem_set",
+     2
+    ],
+    [
+     "path word 'homework'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "path word 'problem'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "default",
+     "format",
+     "typeset",
+     1
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/microecon/problem_sets/processed_outputs/Homework_4.md",
+   "role": "problem_set",
+   "format": "typeset",
+   "offering": null,
+   "date": null,
+   "book": null,
+   "order": [
+    1000000,
+    "",
+    "homework_4"
+   ],
+   "confidence": 9.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "category folder problem_sets",
+     "role",
+     "problem_set",
+     2
+    ],
+    [
+     "pdf portrait",
+     "format",
+     "portrait",
+     0
+    ],
+    [
+     "index card problem_set",
+     "role",
+     "problem_set",
+     3
+    ],
+    [
+     "content: problem_set wording",
+     "role",
+     "problem_set",
+     2
+    ],
+    [
+     "path word 'homework'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "path word 'problem'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "default",
+     "format",
+     "typeset",
+     1
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/microecon/problem_sets/processed_outputs/Homework_5.md",
+   "role": "problem_set",
+   "format": "typeset",
+   "offering": null,
+   "date": null,
+   "book": null,
+   "order": [
+    1000000,
+    "",
+    "homework_5"
+   ],
+   "confidence": 9.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "category folder problem_sets",
+     "role",
+     "problem_set",
+     2
+    ],
+    [
+     "pdf portrait",
+     "format",
+     "portrait",
+     0
+    ],
+    [
+     "index card problem_set",
+     "role",
+     "problem_set",
+     3
+    ],
+    [
+     "content: problem_set wording",
+     "role",
+     "problem_set",
+     2
+    ],
+    [
+     "path word 'homework'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "path word 'problem'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "default",
+     "format",
+     "typeset",
+     1
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/microecon/problem_sets/TA_solutions/processed_outputs/Part_I_HW1_Sol.md",
+   "role": "problem_set",
+   "format": "handwritten",
+   "offering": null,
+   "date": null,
+   "book": null,
+   "order": [
+    1000000,
+    "",
+    "part_i_hw1_sol"
+   ],
+   "confidence": 9.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "category folder problem_sets",
+     "role",
+     "problem_set",
+     2
+    ],
+    [
+     "pdf portrait",
+     "format",
+     "portrait",
+     0
+    ],
+    [
+     "index card ta_notes",
+     "authority",
+     "class",
+     3
+    ],
+    [
+     "path word 'hw'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "path word 'problem'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "path word 'solutions'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "path word 'ta'",
+     "role",
+     "recitation",
+     1
+    ],
+    [
+     "portrait scan, few headings",
+     "format",
+     "handwritten",
+     1
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/microecon/problem_sets/TA_solutions/processed_outputs/Part_I_HW2_Sol.md",
+   "role": "problem_set",
+   "format": "handwritten",
+   "offering": null,
+   "date": null,
+   "book": null,
+   "order": [
+    1000000,
+    "",
+    "part_i_hw2_sol"
+   ],
+   "confidence": 9.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "category folder problem_sets",
+     "role",
+     "problem_set",
+     2
+    ],
+    [
+     "pdf portrait",
+     "format",
+     "portrait",
+     0
+    ],
+    [
+     "index card ta_notes",
+     "authority",
+     "class",
+     3
+    ],
+    [
+     "path word 'hw'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "path word 'problem'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "path word 'solutions'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "path word 'ta'",
+     "role",
+     "recitation",
+     1
+    ],
+    [
+     "portrait scan, few headings",
+     "format",
+     "handwritten",
+     1
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/microecon/problem_sets/TA_solutions/processed_outputs/Part_I_HW3_Sol.md",
+   "role": "problem_set",
+   "format": "handwritten",
+   "offering": null,
+   "date": null,
+   "book": null,
+   "order": [
+    1000000,
+    "",
+    "part_i_hw3_sol"
+   ],
+   "confidence": 9.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "category folder problem_sets",
+     "role",
+     "problem_set",
+     2
+    ],
+    [
+     "pdf portrait",
+     "format",
+     "portrait",
+     0
+    ],
+    [
+     "index card ta_notes",
+     "authority",
+     "class",
+     3
+    ],
+    [
+     "path word 'hw'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "path word 'problem'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "path word 'solutions'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "path word 'ta'",
+     "role",
+     "recitation",
+     1
+    ],
+    [
+     "portrait scan, few headings",
+     "format",
+     "handwritten",
+     1
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/microecon/professor_notes/Drawing 2026-09-30 09.53.49.excalidraw.md",
+   "role": "student_notes",
+   "format": "excalidraw",
+   "offering": null,
+   "date": "2026-09-30",
+   "book": null,
+   "order": [
+    1000000,
+    "2026-09-30",
+    "drawing 2026-09-30 09.53.49.excalidraw"
+   ],
+   "confidence": 7.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "excalidraw source",
+     "format",
+     "excalidraw",
+     10
+    ],
+    [
+     "excalidraw source",
+     "role",
+     "student_notes",
+     10
+    ],
+    [
+     "category folder professor_notes",
+     "role",
+     "instructor",
+     2
+    ],
+    [
+     "path word 'professor'",
+     "role",
+     "instructor",
+     1
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/microecon/professor_notes/processed_outputs/1.Course_Intro.md",
+   "role": "instructor",
+   "format": "typeset",
+   "offering": null,
+   "date": null,
+   "book": null,
+   "order": [
+    1,
+    "",
+    "1.course_intro"
+   ],
+   "confidence": 6.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "category folder professor_notes",
+     "role",
+     "instructor",
+     2
+    ],
+    [
+     "pdf portrait",
+     "format",
+     "portrait",
+     0
+    ],
+    [
+     "index card ta_notes",
+     "authority",
+     "class",
+     3
+    ],
+    [
+     "path word 'professor'",
+     "role",
+     "instructor",
+     1
+    ],
+    [
+     "default",
+     "format",
+     "typeset",
+     1
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/microecon/professor_notes/processed_outputs/2.Utility_Maximization_1.md",
+   "role": "instructor",
+   "format": "slides",
+   "offering": null,
+   "date": null,
+   "book": null,
+   "order": [
+    2,
+    "",
+    "2.utility_maximization_1"
+   ],
+   "confidence": 8.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "category folder professor_notes",
+     "role",
+     "instructor",
+     2
+    ],
+    [
+     "pdf landscape",
+     "format",
+     "slides",
+     2
+    ],
+    [
+     "index card ta_notes",
+     "authority",
+     "class",
+     3
+    ],
+    [
+     "path word 'professor'",
+     "role",
+     "instructor",
+     1
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/microecon/professor_notes/processed_outputs/3.Utility_Maximization_2_part_1.md",
+   "role": "instructor",
+   "format": "slides",
+   "offering": null,
+   "date": null,
+   "book": null,
+   "order": [
+    3,
+    "",
+    "3.utility_maximization_2_part_1"
+   ],
+   "confidence": 8.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "category folder professor_notes",
+     "role",
+     "instructor",
+     2
+    ],
+    [
+     "pdf landscape",
+     "format",
+     "slides",
+     2
+    ],
+    [
+     "index card ta_notes",
+     "authority",
+     "class",
+     3
+    ],
+    [
+     "path word 'professor'",
+     "role",
+     "instructor",
+     1
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/microecon/professor_notes/processed_outputs/4.Random_choice.md",
+   "role": "instructor",
+   "format": "slides",
+   "offering": null,
+   "date": null,
+   "book": null,
+   "order": [
+    4,
+    "",
+    "4.random_choice"
+   ],
+   "confidence": 8.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "category folder professor_notes",
+     "role",
+     "instructor",
+     2
+    ],
+    [
+     "pdf landscape",
+     "format",
+     "slides",
+     2
+    ],
+    [
+     "index card ta_notes",
+     "authority",
+     "class",
+     3
+    ],
+    [
+     "path word 'professor'",
+     "role",
+     "instructor",
+     1
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/microecon/professor_notes/processed_outputs/5.Failures Of Rationality.md",
+   "role": "instructor",
+   "format": "typeset",
+   "offering": null,
+   "date": null,
+   "book": null,
+   "order": [
+    5,
+    "",
+    "5.failures of rationality"
+   ],
+   "confidence": 6.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "category folder professor_notes",
+     "role",
+     "instructor",
+     2
+    ],
+    [
+     "pdf portrait",
+     "format",
+     "portrait",
+     0
+    ],
+    [
+     "index card ta_notes",
+     "authority",
+     "class",
+     3
+    ],
+    [
+     "path word 'professor'",
+     "role",
+     "instructor",
+     1
+    ],
+    [
+     "default",
+     "format",
+     "typeset",
+     1
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/microecon/professor_notes/processed_outputs/6.Consumer_Choice_1.md",
+   "role": "instructor",
+   "format": "slides",
+   "offering": null,
+   "date": null,
+   "book": null,
+   "order": [
+    6,
+    "",
+    "6.consumer_choice_1"
+   ],
+   "confidence": 8.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "category folder professor_notes",
+     "role",
+     "instructor",
+     2
+    ],
+    [
+     "pdf landscape",
+     "format",
+     "slides",
+     2
+    ],
+    [
+     "index card ta_notes",
+     "authority",
+     "class",
+     3
+    ],
+    [
+     "path word 'professor'",
+     "role",
+     "instructor",
+     1
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/microecon/professor_notes/processed_outputs/Utility_Maximization_1_Proofs.md",
+   "role": "instructor",
+   "format": "slides",
+   "offering": null,
+   "date": null,
+   "book": null,
+   "order": [
+    1000000,
+    "",
+    "utility_maximization_1_proofs"
+   ],
+   "confidence": 9.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "category folder professor_notes",
+     "role",
+     "instructor",
+     2
+    ],
+    [
+     "pdf landscape",
+     "format",
+     "slides",
+     2
+    ],
+    [
+     "index card ta_notes",
+     "authority",
+     "class",
+     3
+    ],
+    [
+     "path word 'professor'",
+     "role",
+     "instructor",
+     1
+    ],
+    [
+     "path word 'proofs'",
+     "role",
+     "instructor",
+     1
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/microecon/syllabus/ECON6211_syllabus.md",
+   "role": "syllabus",
+   "format": "typeset",
+   "offering": null,
+   "date": null,
+   "book": null,
+   "order": [
+    1000000,
+    "",
+    "econ6211_syllabus"
+   ],
+   "confidence": 9.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "category folder syllabus",
+     "role",
+     "syllabus",
+     2
+    ],
+    [
+     "content: syllabus wording",
+     "role",
+     "syllabus",
+     2
+    ],
+    [
+     "content: exam wording",
+     "role",
+     "exam",
+     2
+    ],
+    [
+     "content: recitation wording",
+     "role",
+     "recitation",
+     2
+    ],
+    [
+     "path word 'syllabus'",
+     "role",
+     "syllabus",
+     1
+    ],
+    [
+     "default",
+     "format",
+     "typeset",
+     1
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/microecon/syllabus/processed_outputs/G6211_Fall_2025_Syllabus_Part1 (1).md",
+   "role": "syllabus",
+   "format": "handwritten",
+   "offering": null,
+   "date": null,
+   "book": null,
+   "order": [
+    1000000,
+    "",
+    "g6211_fall_2025_syllabus_part1 (1)"
+   ],
+   "confidence": 12.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "category folder syllabus",
+     "role",
+     "syllabus",
+     2
+    ],
+    [
+     "pdf portrait",
+     "format",
+     "portrait",
+     0
+    ],
+    [
+     "index card ta_notes",
+     "authority",
+     "class",
+     3
+    ],
+    [
+     "content: syllabus wording",
+     "role",
+     "syllabus",
+     2
+    ],
+    [
+     "content: exam wording",
+     "role",
+     "exam",
+     2
+    ],
+    [
+     "content: recitation wording",
+     "role",
+     "recitation",
+     2
+    ],
+    [
+     "path word 'syllabus'",
+     "role",
+     "syllabus",
+     1
+    ],
+    [
+     "portrait scan, few headings",
+     "format",
+     "handwritten",
+     1
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/microecon/syllabus/processed_outputs/G6211_Fall_2025_Syllabus_Part1.md",
+   "role": "syllabus",
+   "format": "handwritten",
+   "offering": null,
+   "date": null,
+   "book": null,
+   "order": [
+    1000000,
+    "",
+    "g6211_fall_2025_syllabus_part1"
+   ],
+   "confidence": 12.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "category folder syllabus",
+     "role",
+     "syllabus",
+     2
+    ],
+    [
+     "pdf portrait",
+     "format",
+     "portrait",
+     0
+    ],
+    [
+     "index card ta_notes",
+     "authority",
+     "class",
+     3
+    ],
+    [
+     "content: syllabus wording",
+     "role",
+     "syllabus",
+     2
+    ],
+    [
+     "content: exam wording",
+     "role",
+     "exam",
+     2
+    ],
+    [
+     "content: recitation wording",
+     "role",
+     "recitation",
+     2
+    ],
+    [
+     "path word 'syllabus'",
+     "role",
+     "syllabus",
+     1
+    ],
+    [
+     "portrait scan, few headings",
+     "format",
+     "handwritten",
+     1
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/microecon/textbooks/Bonus/processed_outputs/Administrator_59306pre_2000/Administrator_59306pre_2000.rag.md",
+   "role": "textbook",
+   "format": "chapter",
+   "offering": null,
+   "date": null,
+   "book": "administrator",
+   "order": [
+    1000000,
+    "",
+    "administrator_59306pre_2000"
+   ],
+   "confidence": 3.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "textbook folder",
+     "format",
+     "chapter",
+     3
+    ],
+    [
+     "textbook folder",
+     "role",
+     "textbook",
+     3
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/microecon/textbooks/Bonus/processed_outputs/Rubenstein_Corel_Ventura_INDEXCHP_2001/Rubenstein_Corel_Ventura_INDEXCHP_2001.rag.md",
+   "role": "textbook",
+   "format": "chapter",
+   "offering": null,
+   "date": null,
+   "book": "rubenstein",
+   "order": [
+    1000000,
+    "",
+    "rubenstein_corel_ventura_indexchp_2001"
+   ],
+   "confidence": 3.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "textbook folder",
+     "format",
+     "chapter",
+     3
+    ],
+    [
+     "textbook folder",
+     "role",
+     "textbook",
+     3
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/microecon/textbooks/Bonus/processed_outputs/Rubenstein_Models_in_Microeconomic_Theory_2023/Rubenstein_Models_in_Microeconomic_Theory_2023.rag.md",
+   "role": "textbook",
+   "format": "chapter",
+   "offering": null,
+   "date": null,
+   "book": "rubenstein",
+   "order": [
+    1000000,
+    "",
+    "rubenstein_models_in_microeconomic_theory_2023"
+   ],
+   "confidence": 3.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "textbook folder",
+     "format",
+     "chapter",
+     3
+    ],
+    [
+     "textbook folder",
+     "role",
+     "textbook",
+     3
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/microecon/textbooks/processed_outputs/Ok_Real_Analysis_with_Economic_Applications_2026/chapters/00_front_matter.rag.md",
+   "role": "textbook",
+   "format": "chapter",
+   "offering": null,
+   "date": null,
+   "book": "ok",
+   "order": [
+    0,
+    "",
+    "00_front_matter"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "textbook layout",
+     "format",
+     "chapter",
+     10
+    ],
+    [
+     "textbook layout",
+     "role",
+     "textbook",
+     10
+    ]
+   ],
+   "decided_by": "review"
+  },
+  {
+   "path": "academic_notes/microecon/textbooks/processed_outputs/Ok_Real_Analysis_with_Economic_Applications_2026/chapters/01_preliminaries_of_real_analysis.rag.md",
+   "role": "textbook",
+   "format": "chapter",
+   "offering": null,
+   "date": null,
+   "book": "ok",
+   "order": [
+    1,
+    "",
+    "01_preliminaries_of_real_analysis"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "textbook layout",
+     "format",
+     "chapter",
+     10
+    ],
+    [
+     "textbook layout",
+     "role",
+     "textbook",
+     10
+    ]
+   ],
+   "decided_by": "review"
+  },
+  {
+   "path": "academic_notes/microecon/textbooks/processed_outputs/Ok_Real_Analysis_with_Economic_Applications_2026/chapters/02_countability.rag.md",
+   "role": "textbook",
+   "format": "chapter",
+   "offering": null,
+   "date": null,
+   "book": "ok",
+   "order": [
+    2,
+    "",
+    "02_countability"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "textbook layout",
+     "format",
+     "chapter",
+     10
+    ],
+    [
+     "textbook layout",
+     "role",
+     "textbook",
+     10
+    ]
+   ],
+   "decided_by": "review"
+  },
+  {
+   "path": "academic_notes/microecon/textbooks/processed_outputs/Ok_Real_Analysis_with_Economic_Applications_2026/chapters/03_metric_spaces.rag.md",
+   "role": "textbook",
+   "format": "chapter",
+   "offering": null,
+   "date": null,
+   "book": "ok",
+   "order": [
+    3,
+    "",
+    "03_metric_spaces"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "textbook layout",
+     "format",
+     "chapter",
+     10
+    ],
+    [
+     "textbook layout",
+     "role",
+     "textbook",
+     10
+    ]
+   ],
+   "decided_by": "review"
+  },
+  {
+   "path": "academic_notes/microecon/textbooks/processed_outputs/Ok_Real_Analysis_with_Economic_Applications_2026/chapters/04_continuity_i.rag.md",
+   "role": "textbook",
+   "format": "chapter",
+   "offering": null,
+   "date": null,
+   "book": "ok",
+   "order": [
+    4,
+    "",
+    "04_continuity_i"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "textbook layout",
+     "format",
+     "chapter",
+     10
+    ],
+    [
+     "textbook layout",
+     "role",
+     "textbook",
+     10
+    ]
+   ],
+   "decided_by": "review"
+  },
+  {
+   "path": "academic_notes/microecon/textbooks/processed_outputs/Ok_Real_Analysis_with_Economic_Applications_2026/chapters/05_continuity_ii.rag.md",
+   "role": "textbook",
+   "format": "chapter",
+   "offering": null,
+   "date": null,
+   "book": "ok",
+   "order": [
+    5,
+    "",
+    "05_continuity_ii"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "textbook layout",
+     "format",
+     "chapter",
+     10
+    ],
+    [
+     "textbook layout",
+     "role",
+     "textbook",
+     10
+    ]
+   ],
+   "decided_by": "review"
+  },
+  {
+   "path": "academic_notes/microecon/textbooks/processed_outputs/Ok_Real_Analysis_with_Economic_Applications_2026/chapters/06_linear_spaces.rag.md",
+   "role": "textbook",
+   "format": "chapter",
+   "offering": null,
+   "date": null,
+   "book": "ok",
+   "order": [
+    6,
+    "",
+    "06_linear_spaces"
+   ],
+   "confidence": 8.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "textbook layout",
+     "format",
+     "chapter",
+     10
+    ],
+    [
+     "textbook layout",
+     "role",
+     "textbook",
+     10
+    ],
+    [
+     "content: problem_set wording",
+     "role",
+     "problem_set",
+     2
+    ]
+   ],
+   "decided_by": "review"
+  },
+  {
+   "path": "academic_notes/microecon/textbooks/processed_outputs/Ok_Real_Analysis_with_Economic_Applications_2026/chapters/07_convexity.rag.md",
+   "role": "textbook",
+   "format": "chapter",
+   "offering": null,
+   "date": null,
+   "book": "ok",
+   "order": [
+    7,
+    "",
+    "07_convexity"
+   ],
+   "confidence": 8.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "textbook layout",
+     "format",
+     "chapter",
+     10
+    ],
+    [
+     "textbook layout",
+     "role",
+     "textbook",
+     10
+    ],
+    [
+     "content: problem_set wording",
+     "role",
+     "problem_set",
+     2
+    ]
+   ],
+   "decided_by": "review"
+  },
+  {
+   "path": "academic_notes/microecon/textbooks/processed_outputs/Ok_Real_Analysis_with_Economic_Applications_2026/chapters/08_economic_applications.rag.md",
+   "role": "textbook",
+   "format": "chapter",
+   "offering": null,
+   "date": null,
+   "book": "ok",
+   "order": [
+    8,
+    "",
+    "08_economic_applications"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "textbook layout",
+     "format",
+     "chapter",
+     10
+    ],
+    [
+     "textbook layout",
+     "role",
+     "textbook",
+     10
+    ]
+   ],
+   "decided_by": "review"
+  },
+  {
+   "path": "academic_notes/microecon/textbooks/processed_outputs/Ok_Real_Analysis_with_Economic_Applications_2026/chapters/09_metric_linear_spaces.rag.md",
+   "role": "textbook",
+   "format": "chapter",
+   "offering": null,
+   "date": null,
+   "book": "ok",
+   "order": [
+    9,
+    "",
+    "09_metric_linear_spaces"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "textbook layout",
+     "format",
+     "chapter",
+     10
+    ],
+    [
+     "textbook layout",
+     "role",
+     "textbook",
+     10
+    ]
+   ],
+   "decided_by": "review"
+  },
+  {
+   "path": "academic_notes/microecon/textbooks/processed_outputs/Ok_Real_Analysis_with_Economic_Applications_2026/chapters/10_normed_linear_spaces.rag.md",
+   "role": "textbook",
+   "format": "chapter",
+   "offering": null,
+   "date": null,
+   "book": "ok",
+   "order": [
+    10,
+    "",
+    "10_normed_linear_spaces"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "textbook layout",
+     "format",
+     "chapter",
+     10
+    ],
+    [
+     "textbook layout",
+     "role",
+     "textbook",
+     10
+    ]
+   ],
+   "decided_by": "review"
+  },
+  {
+   "path": "academic_notes/microecon/textbooks/processed_outputs/Ok_Real_Analysis_with_Economic_Applications_2026/chapters/11_differential_calculus.rag.md",
+   "role": "textbook",
+   "format": "chapter",
+   "offering": null,
+   "date": null,
+   "book": "ok",
+   "order": [
+    11,
+    "",
+    "11_differential_calculus"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "textbook layout",
+     "format",
+     "chapter",
+     10
+    ],
+    [
+     "textbook layout",
+     "role",
+     "textbook",
+     10
+    ]
+   ],
+   "decided_by": "review"
+  },
+  {
+   "path": "academic_notes/microecon/textbooks/processed_outputs/Press_Microeconomic_Theory_2011/chapters/00_front_matter.rag.md",
+   "role": "textbook",
+   "format": "chapter",
+   "offering": null,
+   "date": null,
+   "book": "mwg",
+   "order": [
+    0,
+    "",
+    "00_front_matter"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "textbook layout",
+     "format",
+     "chapter",
+     10
+    ],
+    [
+     "textbook layout",
+     "role",
+     "textbook",
+     10
+    ]
+   ],
+   "decided_by": "review"
+  },
+  {
+   "path": "academic_notes/microecon/textbooks/processed_outputs/Press_Microeconomic_Theory_2011/chapters/01_preference_and_choice.rag.md",
+   "role": "textbook",
+   "format": "chapter",
+   "offering": null,
+   "date": null,
+   "book": "mwg",
+   "order": [
+    1,
+    "",
+    "01_preference_and_choice"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "textbook layout",
+     "format",
+     "chapter",
+     10
+    ],
+    [
+     "textbook layout",
+     "role",
+     "textbook",
+     10
+    ]
+   ],
+   "decided_by": "review"
+  },
+  {
+   "path": "academic_notes/microecon/textbooks/processed_outputs/Press_Microeconomic_Theory_2011/chapters/02_consumer_choice.rag.md",
+   "role": "textbook",
+   "format": "chapter",
+   "offering": null,
+   "date": null,
+   "book": "mwg",
+   "order": [
+    2,
+    "",
+    "02_consumer_choice"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "textbook layout",
+     "format",
+     "chapter",
+     10
+    ],
+    [
+     "textbook layout",
+     "role",
+     "textbook",
+     10
+    ]
+   ],
+   "decided_by": "review"
+  },
+  {
+   "path": "academic_notes/microecon/textbooks/processed_outputs/Press_Microeconomic_Theory_2011/chapters/03_classical_demand_theory.rag.md",
+   "role": "textbook",
+   "format": "chapter",
+   "offering": null,
+   "date": null,
+   "book": "mwg",
+   "order": [
+    3,
+    "",
+    "03_classical_demand_theory"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "textbook layout",
+     "format",
+     "chapter",
+     10
+    ],
+    [
+     "textbook layout",
+     "role",
+     "textbook",
+     10
+    ]
+   ],
+   "decided_by": "review"
+  },
+  {
+   "path": "academic_notes/microecon/textbooks/processed_outputs/Press_Microeconomic_Theory_2011/chapters/04_aggregate_demand.rag.md",
+   "role": "textbook",
+   "format": "chapter",
+   "offering": null,
+   "date": null,
+   "book": "mwg",
+   "order": [
+    4,
+    "",
+    "04_aggregate_demand"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "textbook layout",
+     "format",
+     "chapter",
+     10
+    ],
+    [
+     "textbook layout",
+     "role",
+     "textbook",
+     10
+    ]
+   ],
+   "decided_by": "review"
+  },
+  {
+   "path": "academic_notes/microecon/textbooks/processed_outputs/Press_Microeconomic_Theory_2011/chapters/05_production.rag.md",
+   "role": "textbook",
+   "format": "chapter",
+   "offering": null,
+   "date": null,
+   "book": "mwg",
+   "order": [
+    5,
+    "",
+    "05_production"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "textbook layout",
+     "format",
+     "chapter",
+     10
+    ],
+    [
+     "textbook layout",
+     "role",
+     "textbook",
+     10
+    ]
+   ],
+   "decided_by": "review"
+  },
+  {
+   "path": "academic_notes/microecon/textbooks/processed_outputs/Press_Microeconomic_Theory_2011/chapters/06_choice_under_uncertainty.rag.md",
+   "role": "textbook",
+   "format": "chapter",
+   "offering": null,
+   "date": null,
+   "book": "mwg",
+   "order": [
+    6,
+    "",
+    "06_choice_under_uncertainty"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "textbook layout",
+     "format",
+     "chapter",
+     10
+    ],
+    [
+     "textbook layout",
+     "role",
+     "textbook",
+     10
+    ]
+   ],
+   "decided_by": "review"
+  },
+  {
+   "path": "academic_notes/microecon/textbooks/processed_outputs/Press_Microeconomic_Theory_2011/chapters/07_basic_elements_of_noncooperative_games.rag.md",
+   "role": "textbook",
+   "format": "chapter",
+   "offering": null,
+   "date": null,
+   "book": "mwg",
+   "order": [
+    7,
+    "",
+    "07_basic_elements_of_noncooperative_games"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "textbook layout",
+     "format",
+     "chapter",
+     10
+    ],
+    [
+     "textbook layout",
+     "role",
+     "textbook",
+     10
+    ]
+   ],
+   "decided_by": "review"
+  },
+  {
+   "path": "academic_notes/microecon/textbooks/processed_outputs/Press_Microeconomic_Theory_2011/chapters/08_simultaneous_move_games.rag.md",
+   "role": "textbook",
+   "format": "chapter",
+   "offering": null,
+   "date": null,
+   "book": "mwg",
+   "order": [
+    8,
+    "",
+    "08_simultaneous_move_games"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "textbook layout",
+     "format",
+     "chapter",
+     10
+    ],
+    [
+     "textbook layout",
+     "role",
+     "textbook",
+     10
+    ]
+   ],
+   "decided_by": "review"
+  },
+  {
+   "path": "academic_notes/microecon/textbooks/processed_outputs/Press_Microeconomic_Theory_2011/chapters/09_market_power.rag.md",
+   "role": "textbook",
+   "format": "chapter",
+   "offering": null,
+   "date": null,
+   "book": "mwg",
+   "order": [
+    9,
+    "",
+    "09_market_power"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "textbook layout",
+     "format",
+     "chapter",
+     10
+    ],
+    [
+     "textbook layout",
+     "role",
+     "textbook",
+     10
+    ]
+   ],
+   "decided_by": "review"
+  },
+  {
+   "path": "academic_notes/microecon/textbooks/processed_outputs/Press_Microeconomic_Theory_2011/chapters/10_adverse_selection_signaling_and_screening.rag.md",
+   "role": "textbook",
+   "format": "chapter",
+   "offering": null,
+   "date": null,
+   "book": "mwg",
+   "order": [
+    10,
+    "",
+    "10_adverse_selection_signaling_and_screening"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "textbook layout",
+     "format",
+     "chapter",
+     10
+    ],
+    [
+     "textbook layout",
+     "role",
+     "textbook",
+     10
+    ]
+   ],
+   "decided_by": "review"
+  },
+  {
+   "path": "academic_notes/microecon/textbooks/processed_outputs/Press_Microeconomic_Theory_2011/chapters/11_the_principal_agent_problem.rag.md",
+   "role": "textbook",
+   "format": "chapter",
+   "offering": null,
+   "date": null,
+   "book": "mwg",
+   "order": [
+    11,
+    "",
+    "11_the_principal_agent_problem"
+   ],
+   "confidence": 9.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "textbook layout",
+     "format",
+     "chapter",
+     10
+    ],
+    [
+     "textbook layout",
+     "role",
+     "textbook",
+     10
+    ],
+    [
+     "path word 'problem'",
+     "role",
+     "problem_set",
+     1
+    ]
+   ],
+   "decided_by": "review"
+  },
+  {
+   "path": "academic_notes/microecon/textbooks/processed_outputs/Press_Microeconomic_Theory_2011/chapters/12_general_equilibrium_theory_some_examples.rag.md",
+   "role": "textbook",
+   "format": "chapter",
+   "offering": null,
+   "date": null,
+   "book": "mwg",
+   "order": [
+    12,
+    "",
+    "12_general_equilibrium_theory_some_examples"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "textbook layout",
+     "format",
+     "chapter",
+     10
+    ],
+    [
+     "textbook layout",
+     "role",
+     "textbook",
+     10
+    ]
+   ],
+   "decided_by": "review"
+  },
+  {
+   "path": "academic_notes/microecon/textbooks/processed_outputs/Press_Microeconomic_Theory_2011/chapters/13_equilibrium_and_its_basic_welfare_properties.rag.md",
+   "role": "textbook",
+   "format": "chapter",
+   "offering": null,
+   "date": null,
+   "book": "mwg",
+   "order": [
+    13,
+    "",
+    "13_equilibrium_and_its_basic_welfare_properties"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "textbook layout",
+     "format",
+     "chapter",
+     10
+    ],
+    [
+     "textbook layout",
+     "role",
+     "textbook",
+     10
+    ]
+   ],
+   "decided_by": "review"
+  },
+  {
+   "path": "academic_notes/microecon/textbooks/processed_outputs/Press_Microeconomic_Theory_2011/chapters/14_some_foundations_for_competitive_equilibria.rag.md",
+   "role": "textbook",
+   "format": "chapter",
+   "offering": null,
+   "date": null,
+   "book": "mwg",
+   "order": [
+    14,
+    "",
+    "14_some_foundations_for_competitive_equilibria"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "textbook layout",
+     "format",
+     "chapter",
+     10
+    ],
+    [
+     "textbook layout",
+     "role",
+     "textbook",
+     10
+    ]
+   ],
+   "decided_by": "review"
+  },
+  {
+   "path": "academic_notes/microecon/textbooks/processed_outputs/Press_Microeconomic_Theory_2011/chapters/15_general_equilibrium_under_uncertainty.rag.md",
+   "role": "textbook",
+   "format": "chapter",
+   "offering": null,
+   "date": null,
+   "book": "mwg",
+   "order": [
+    15,
+    "",
+    "15_general_equilibrium_under_uncertainty"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "textbook layout",
+     "format",
+     "chapter",
+     10
+    ],
+    [
+     "textbook layout",
+     "role",
+     "textbook",
+     10
+    ]
+   ],
+   "decided_by": "review"
+  },
+  {
+   "path": "academic_notes/microecon/textbooks/processed_outputs/Press_Microeconomic_Theory_2011/chapters/16_equilibrium_and_time.rag.md",
+   "role": "textbook",
+   "format": "chapter",
+   "offering": null,
+   "date": null,
+   "book": "mwg",
+   "order": [
+    16,
+    "",
+    "16_equilibrium_and_time"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "textbook layout",
+     "format",
+     "chapter",
+     10
+    ],
+    [
+     "textbook layout",
+     "role",
+     "textbook",
+     10
+    ]
+   ],
+   "decided_by": "review"
+  },
+  {
+   "path": "academic_notes/microecon/textbooks/processed_outputs/Press_Microeconomic_Theory_2011/chapters/17_elements_of_welfare_economics_and_axiomatic_bargaining.rag.md",
+   "role": "textbook",
+   "format": "chapter",
+   "offering": null,
+   "date": null,
+   "book": "mwg",
+   "order": [
+    17,
+    "",
+    "17_elements_of_welfare_economics_and_axiomatic_bargaining"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "textbook layout",
+     "format",
+     "chapter",
+     10
+    ],
+    [
+     "textbook layout",
+     "role",
+     "textbook",
+     10
+    ]
+   ],
+   "decided_by": "review"
+  },
+  {
+   "path": "academic_notes/microecon/textbooks/processed_outputs/Press_Microeconomic_Theory_2011/chapters/18_incentives_and_mechanism_design.rag.md",
+   "role": "textbook",
+   "format": "chapter",
+   "offering": null,
+   "date": null,
+   "book": "mwg",
+   "order": [
+    18,
+    "",
+    "18_incentives_and_mechanism_design"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "textbook layout",
+     "format",
+     "chapter",
+     10
+    ],
+    [
+     "textbook layout",
+     "role",
+     "textbook",
+     10
+    ]
+   ],
+   "decided_by": "review"
+  },
+  {
+   "path": "academic_notes/microecon/textbooks/processed_outputs/Rubenstein_Lecture_Notes_in_Microeconomic_Theory_2026/chapters/00_front_matter.rag.md",
+   "role": "textbook",
+   "format": "chapter",
+   "offering": null,
+   "date": null,
+   "book": "rubinstein",
+   "order": [
+    0,
+    "",
+    "00_front_matter"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "textbook layout",
+     "format",
+     "chapter",
+     10
+    ],
+    [
+     "textbook layout",
+     "role",
+     "textbook",
+     10
+    ]
+   ],
+   "decided_by": "review"
+  },
+  {
+   "path": "academic_notes/microecon/textbooks/processed_outputs/Rubenstein_Lecture_Notes_in_Microeconomic_Theory_2026/chapters/01_introduction.rag.md",
+   "role": "textbook",
+   "format": "chapter",
+   "offering": null,
+   "date": null,
+   "book": "rubinstein",
+   "order": [
+    1,
+    "",
+    "01_introduction"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "textbook layout",
+     "format",
+     "chapter",
+     10
+    ],
+    [
+     "textbook layout",
+     "role",
+     "textbook",
+     10
+    ]
+   ],
+   "decided_by": "review"
+  },
+  {
+   "path": "academic_notes/microecon/textbooks/processed_outputs/Rubenstein_Lecture_Notes_in_Microeconomic_Theory_2026/chapters/02_preferences.rag.md",
+   "role": "textbook",
+   "format": "chapter",
+   "offering": null,
+   "date": null,
+   "book": "rubinstein",
+   "order": [
+    2,
+    "",
+    "02_preferences"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "textbook layout",
+     "format",
+     "chapter",
+     10
+    ],
+    [
+     "textbook layout",
+     "role",
+     "textbook",
+     10
+    ]
+   ],
+   "decided_by": "review"
+  },
+  {
+   "path": "academic_notes/microecon/textbooks/processed_outputs/Rubenstein_Lecture_Notes_in_Microeconomic_Theory_2026/chapters/03_utility.rag.md",
+   "role": "textbook",
+   "format": "chapter",
+   "offering": null,
+   "date": null,
+   "book": "rubinstein",
+   "order": [
+    3,
+    "",
+    "03_utility"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "textbook layout",
+     "format",
+     "chapter",
+     10
+    ],
+    [
+     "textbook layout",
+     "role",
+     "textbook",
+     10
+    ]
+   ],
+   "decided_by": "review"
+  },
+  {
+   "path": "academic_notes/microecon/textbooks/processed_outputs/Rubenstein_Lecture_Notes_in_Microeconomic_Theory_2026/chapters/04_choice.rag.md",
+   "role": "textbook",
+   "format": "chapter",
+   "offering": null,
+   "date": null,
+   "book": "rubinstein",
+   "order": [
+    4,
+    "",
+    "04_choice"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "textbook layout",
+     "format",
+     "chapter",
+     10
+    ],
+    [
+     "textbook layout",
+     "role",
+     "textbook",
+     10
+    ]
+   ],
+   "decided_by": "review"
+  },
+  {
+   "path": "academic_notes/microecon/textbooks/processed_outputs/Rubenstein_Lecture_Notes_in_Microeconomic_Theory_2026/chapters/05_consumer_preferences.rag.md",
+   "role": "textbook",
+   "format": "chapter",
+   "offering": null,
+   "date": null,
+   "book": "rubinstein",
+   "order": [
+    5,
+    "",
+    "05_consumer_preferences"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "textbook layout",
+     "format",
+     "chapter",
+     10
+    ],
+    [
+     "textbook layout",
+     "role",
+     "textbook",
+     10
+    ]
+   ],
+   "decided_by": "review"
+  },
+  {
+   "path": "academic_notes/microecon/textbooks/processed_outputs/Rubenstein_Lecture_Notes_in_Microeconomic_Theory_2026/chapters/06_demand_consumer_choice.rag.md",
+   "role": "textbook",
+   "format": "chapter",
+   "offering": null,
+   "date": null,
+   "book": "rubinstein",
+   "order": [
+    6,
+    "",
+    "06_demand_consumer_choice"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "textbook layout",
+     "format",
+     "chapter",
+     10
+    ],
+    [
+     "textbook layout",
+     "role",
+     "textbook",
+     10
+    ]
+   ],
+   "decided_by": "review"
+  },
+  {
+   "path": "academic_notes/microecon/textbooks/processed_outputs/Rubenstein_Lecture_Notes_in_Microeconomic_Theory_2026/chapters/07_more_economic_agents.rag.md",
+   "role": "textbook",
+   "format": "chapter",
+   "offering": null,
+   "date": null,
+   "book": "rubinstein",
+   "order": [
+    7,
+    "",
+    "07_more_economic_agents"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "textbook layout",
+     "format",
+     "chapter",
+     10
+    ],
+    [
+     "textbook layout",
+     "role",
+     "textbook",
+     10
+    ]
+   ],
+   "decided_by": "review"
+  },
+  {
+   "path": "academic_notes/microecon/textbooks/processed_outputs/Rubenstein_Lecture_Notes_in_Microeconomic_Theory_2026/chapters/08_expected_utility.rag.md",
+   "role": "textbook",
+   "format": "chapter",
+   "offering": null,
+   "date": null,
+   "book": "rubinstein",
+   "order": [
+    8,
+    "",
+    "08_expected_utility"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "textbook layout",
+     "format",
+     "chapter",
+     10
+    ],
+    [
+     "textbook layout",
+     "role",
+     "textbook",
+     10
+    ]
+   ],
+   "decided_by": "review"
+  },
+  {
+   "path": "academic_notes/microecon/textbooks/processed_outputs/Rubenstein_Lecture_Notes_in_Microeconomic_Theory_2026/chapters/09_risk_aversion.rag.md",
+   "role": "textbook",
+   "format": "chapter",
+   "offering": null,
+   "date": null,
+   "book": "rubinstein",
+   "order": [
+    9,
+    "",
+    "09_risk_aversion"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "textbook layout",
+     "format",
+     "chapter",
+     10
+    ],
+    [
+     "textbook layout",
+     "role",
+     "textbook",
+     10
+    ]
+   ],
+   "decided_by": "review"
+  },
+  {
+   "path": "academic_notes/microecon/textbooks/processed_outputs/Rubenstein_Lecture_Notes_in_Microeconomic_Theory_2026/chapters/10_social_choice.rag.md",
+   "role": "textbook",
+   "format": "chapter",
+   "offering": null,
+   "date": null,
+   "book": "rubinstein",
+   "order": [
+    10,
+    "",
+    "10_social_choice"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "textbook layout",
+     "format",
+     "chapter",
+     10
+    ],
+    [
+     "textbook layout",
+     "role",
+     "textbook",
+     10
+    ]
+   ],
+   "decided_by": "review"
+  },
+  {
+   "path": "academic_notes/microecon/textbooks/processed_outputs/Rubenstein_Lecture_Notes_in_Microeconomic_Theory_2026/chapters/11_76_review_problems.rag.md",
+   "role": "textbook",
+   "format": "chapter",
+   "offering": null,
+   "date": null,
+   "book": "rubinstein",
+   "order": [
+    11,
+    "",
+    "11_76_review_problems"
+   ],
+   "confidence": 9.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "textbook layout",
+     "format",
+     "chapter",
+     10
+    ],
+    [
+     "textbook layout",
+     "role",
+     "textbook",
+     10
+    ],
+    [
+     "path word 'problems'",
+     "role",
+     "problem_set",
+     1
+    ]
+   ],
+   "decided_by": "review"
+  }
+ ],
+ "unknown_decisions": []
+}

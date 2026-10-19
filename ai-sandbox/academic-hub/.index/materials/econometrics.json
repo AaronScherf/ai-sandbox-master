@@ -1,0 +1,6687 @@
+{
+ "course": "econometrics",
+ "materials": [
+  {
+   "path": "academic_notes/econometrics/class_2024/Class Notes/Hand-Written Notes/processed_outputs/090424.md",
+   "role": "instructor",
+   "format": "handwritten",
+   "offering": "2024",
+   "date": "2024-09-04",
+   "book": null,
+   "order": [
+    1000000,
+    "2024-09-04",
+    "090424"
+   ],
+   "confidence": 0.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "pdf portrait",
+     "format",
+     "portrait",
+     0
+    ],
+    [
+     "index card handwritten_notes",
+     "format",
+     "handwritten",
+     3
+    ]
+   ],
+   "decided_by": "review"
+  },
+  {
+   "path": "academic_notes/econometrics/class_2024/Class Notes/Hand-Written Notes/processed_outputs/090924.md",
+   "role": "instructor",
+   "format": "handwritten",
+   "offering": "2024",
+   "date": "2024-09-09",
+   "book": null,
+   "order": [
+    1000000,
+    "2024-09-09",
+    "090924"
+   ],
+   "confidence": 0.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "pdf portrait",
+     "format",
+     "portrait",
+     0
+    ],
+    [
+     "index card handwritten_notes",
+     "format",
+     "handwritten",
+     3
+    ]
+   ],
+   "decided_by": "review"
+  },
+  {
+   "path": "academic_notes/econometrics/class_2024/Class Notes/Hand-Written Notes/processed_outputs/091124.md",
+   "role": "instructor",
+   "format": "handwritten",
+   "offering": "2024",
+   "date": "2024-09-11",
+   "book": null,
+   "order": [
+    1000000,
+    "2024-09-11",
+    "091124"
+   ],
+   "confidence": 0.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "pdf portrait",
+     "format",
+     "portrait",
+     0
+    ],
+    [
+     "index card handwritten_notes",
+     "format",
+     "handwritten",
+     3
+    ]
+   ],
+   "decided_by": "review"
+  },
+  {
+   "path": "academic_notes/econometrics/class_2024/Class Notes/Hand-Written Notes/processed_outputs/091624.md",
+   "role": "instructor",
+   "format": "handwritten",
+   "offering": "2024",
+   "date": "2024-09-16",
+   "book": null,
+   "order": [
+    1000000,
+    "2024-09-16",
+    "091624"
+   ],
+   "confidence": 0.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "pdf portrait",
+     "format",
+     "portrait",
+     0
+    ],
+    [
+     "index card handwritten_notes",
+     "format",
+     "handwritten",
+     3
+    ]
+   ],
+   "decided_by": "review"
+  },
+  {
+   "path": "academic_notes/econometrics/class_2024/Class Notes/Hand-Written Notes/processed_outputs/091824.md",
+   "role": "instructor",
+   "format": "handwritten",
+   "offering": "2024",
+   "date": "2024-09-18",
+   "book": null,
+   "order": [
+    1000000,
+    "2024-09-18",
+    "091824"
+   ],
+   "confidence": 0.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "pdf portrait",
+     "format",
+     "portrait",
+     0
+    ],
+    [
+     "index card handwritten_notes",
+     "format",
+     "handwritten",
+     3
+    ]
+   ],
+   "decided_by": "review"
+  },
+  {
+   "path": "academic_notes/econometrics/class_2024/Class Notes/Hand-Written Notes/processed_outputs/092324.md",
+   "role": "instructor",
+   "format": "handwritten",
+   "offering": "2024",
+   "date": "2024-09-23",
+   "book": null,
+   "order": [
+    1000000,
+    "2024-09-23",
+    "092324"
+   ],
+   "confidence": 0.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "pdf portrait",
+     "format",
+     "portrait",
+     0
+    ],
+    [
+     "index card handwritten_notes",
+     "format",
+     "handwritten",
+     3
+    ]
+   ],
+   "decided_by": "review"
+  },
+  {
+   "path": "academic_notes/econometrics/class_2024/Class Notes/Hand-Written Notes/processed_outputs/092524.md",
+   "role": "instructor",
+   "format": "handwritten",
+   "offering": "2024",
+   "date": "2024-09-25",
+   "book": null,
+   "order": [
+    1000000,
+    "2024-09-25",
+    "092524"
+   ],
+   "confidence": 0.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "pdf portrait",
+     "format",
+     "portrait",
+     0
+    ],
+    [
+     "index card handwritten_notes",
+     "format",
+     "handwritten",
+     3
+    ]
+   ],
+   "decided_by": "review"
+  },
+  {
+   "path": "academic_notes/econometrics/class_2024/Class Notes/Hand-Written Notes/processed_outputs/093024.md",
+   "role": "instructor",
+   "format": "handwritten",
+   "offering": "2024",
+   "date": "2024-09-30",
+   "book": null,
+   "order": [
+    1000000,
+    "2024-09-30",
+    "093024"
+   ],
+   "confidence": 0.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "pdf portrait",
+     "format",
+     "portrait",
+     0
+    ],
+    [
+     "index card handwritten_notes",
+     "format",
+     "handwritten",
+     3
+    ]
+   ],
+   "decided_by": "review"
+  },
+  {
+   "path": "academic_notes/econometrics/class_2024/Class Notes/Hand-Written Notes/processed_outputs/100224.md",
+   "role": "instructor",
+   "format": "handwritten",
+   "offering": "2024",
+   "date": "2024-10-02",
+   "book": null,
+   "order": [
+    1000000,
+    "2024-10-02",
+    "100224"
+   ],
+   "confidence": 0.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "pdf portrait",
+     "format",
+     "portrait",
+     0
+    ],
+    [
+     "index card handwritten_notes",
+     "format",
+     "handwritten",
+     3
+    ]
+   ],
+   "decided_by": "review"
+  },
+  {
+   "path": "academic_notes/econometrics/class_2024/Class Notes/Hand-Written Notes/processed_outputs/100724.md",
+   "role": "instructor",
+   "format": "handwritten",
+   "offering": "2024",
+   "date": "2024-10-07",
+   "book": null,
+   "order": [
+    1000000,
+    "2024-10-07",
+    "100724"
+   ],
+   "confidence": 0.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "pdf portrait",
+     "format",
+     "portrait",
+     0
+    ],
+    [
+     "index card handwritten_notes",
+     "format",
+     "handwritten",
+     3
+    ]
+   ],
+   "decided_by": "review"
+  },
+  {
+   "path": "academic_notes/econometrics/class_2024/Class Notes/Hand-Written Notes/processed_outputs/101424.md",
+   "role": "instructor",
+   "format": "handwritten",
+   "offering": "2024",
+   "date": "2024-10-14",
+   "book": null,
+   "order": [
+    1000000,
+    "2024-10-14",
+    "101424"
+   ],
+   "confidence": 0.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "pdf portrait",
+     "format",
+     "portrait",
+     0
+    ],
+    [
+     "index card handwritten_notes",
+     "format",
+     "handwritten",
+     3
+    ]
+   ],
+   "decided_by": "review"
+  },
+  {
+   "path": "academic_notes/econometrics/class_2024/Class Notes/Slides/processed_outputs/review.md",
+   "role": "instructor",
+   "format": "slides",
+   "offering": "2024",
+   "date": null,
+   "book": null,
+   "order": [
+    1000000,
+    "",
+    "review"
+   ],
+   "confidence": 6.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "pdf landscape",
+     "format",
+     "slides",
+     2
+    ],
+    [
+     "index card ta_notes",
+     "authority",
+     "class",
+     3
+    ],
+    [
+     "path word 'slides'",
+     "format",
+     "slides",
+     1
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/econometrics/class_2024/Class Notes/Slides/processed_outputs/slides1.md",
+   "role": "instructor",
+   "format": "slides",
+   "offering": "2024",
+   "date": null,
+   "book": null,
+   "order": [
+    1000000,
+    "",
+    "slides1"
+   ],
+   "confidence": 6.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "pdf landscape",
+     "format",
+     "slides",
+     2
+    ],
+    [
+     "index card ta_notes",
+     "authority",
+     "class",
+     3
+    ],
+    [
+     "path word 'slides'",
+     "format",
+     "slides",
+     1
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/econometrics/class_2024/Class Notes/Slides/processed_outputs/slides2.md",
+   "role": "instructor",
+   "format": "slides",
+   "offering": "2024",
+   "date": null,
+   "book": null,
+   "order": [
+    1000000,
+    "",
+    "slides2"
+   ],
+   "confidence": 6.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "pdf landscape",
+     "format",
+     "slides",
+     2
+    ],
+    [
+     "index card ta_notes",
+     "authority",
+     "class",
+     3
+    ],
+    [
+     "path word 'slides'",
+     "format",
+     "slides",
+     1
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/econometrics/class_2024/Class Notes/Slides/processed_outputs/slides3.md",
+   "role": "instructor",
+   "format": "slides",
+   "offering": "2024",
+   "date": null,
+   "book": null,
+   "order": [
+    1000000,
+    "",
+    "slides3"
+   ],
+   "confidence": 6.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "pdf landscape",
+     "format",
+     "slides",
+     2
+    ],
+    [
+     "index card ta_notes",
+     "authority",
+     "class",
+     3
+    ],
+    [
+     "path word 'slides'",
+     "format",
+     "slides",
+     1
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/econometrics/class_2024/Class Notes/Slides/processed_outputs/slidesASYM.md",
+   "role": "instructor",
+   "format": "slides",
+   "offering": "2024",
+   "date": null,
+   "book": null,
+   "order": [
+    1000000,
+    "",
+    "slidesasym"
+   ],
+   "confidence": 6.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "pdf landscape",
+     "format",
+     "slides",
+     2
+    ],
+    [
+     "index card ta_notes",
+     "authority",
+     "class",
+     3
+    ],
+    [
+     "path word 'slides'",
+     "format",
+     "slides",
+     1
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/econometrics/class_2024/Problem Sets with Solutions/processed_outputs/GR6411_pset1_1.md",
+   "role": "problem_set",
+   "format": "typeset",
+   "offering": "2024",
+   "date": null,
+   "book": null,
+   "order": [
+    1000000,
+    "",
+    "gr6411_pset1_1"
+   ],
+   "confidence": 6.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "pdf portrait",
+     "format",
+     "portrait",
+     0
+    ],
+    [
+     "index card problem_set",
+     "role",
+     "problem_set",
+     3
+    ],
+    [
+     "path word 'problem'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "path word 'pset'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "path word 'solutions'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "default",
+     "format",
+     "typeset",
+     1
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/econometrics/class_2024/Problem Sets with Solutions/processed_outputs/GR6411_pset1_2.md",
+   "role": "problem_set",
+   "format": "typeset",
+   "offering": "2024",
+   "date": null,
+   "book": null,
+   "order": [
+    1000000,
+    "",
+    "gr6411_pset1_2"
+   ],
+   "confidence": 6.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "pdf portrait",
+     "format",
+     "portrait",
+     0
+    ],
+    [
+     "index card problem_set",
+     "role",
+     "problem_set",
+     3
+    ],
+    [
+     "path word 'problem'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "path word 'pset'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "path word 'solutions'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "default",
+     "format",
+     "typeset",
+     1
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/econometrics/class_2024/Problem Sets with Solutions/processed_outputs/GR6411_pset2.md",
+   "role": "problem_set",
+   "format": "typeset",
+   "offering": "2024",
+   "date": null,
+   "book": null,
+   "order": [
+    1000000,
+    "",
+    "gr6411_pset2"
+   ],
+   "confidence": 6.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "pdf portrait",
+     "format",
+     "portrait",
+     0
+    ],
+    [
+     "index card problem_set",
+     "role",
+     "problem_set",
+     3
+    ],
+    [
+     "path word 'problem'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "path word 'pset'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "path word 'solutions'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "default",
+     "format",
+     "typeset",
+     1
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/econometrics/class_2024/Problem Sets with Solutions/processed_outputs/Solutions-pset1-part1 .md",
+   "role": "problem_set",
+   "format": "typeset",
+   "offering": "2024",
+   "date": null,
+   "book": null,
+   "order": [
+    1000000,
+    "",
+    "solutions-pset1-part1 "
+   ],
+   "confidence": 6.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "pdf portrait",
+     "format",
+     "portrait",
+     0
+    ],
+    [
+     "index card problem_set",
+     "role",
+     "problem_set",
+     3
+    ],
+    [
+     "path word 'problem'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "path word 'pset'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "path word 'solutions'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "default",
+     "format",
+     "typeset",
+     1
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/econometrics/class_2024/Problem Sets with Solutions/processed_outputs/Solutions-pset1-part2.md",
+   "role": "problem_set",
+   "format": "typeset",
+   "offering": "2024",
+   "date": null,
+   "book": null,
+   "order": [
+    1000000,
+    "",
+    "solutions-pset1-part2"
+   ],
+   "confidence": 6.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "pdf portrait",
+     "format",
+     "portrait",
+     0
+    ],
+    [
+     "index card problem_set",
+     "role",
+     "problem_set",
+     3
+    ],
+    [
+     "path word 'problem'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "path word 'pset'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "path word 'solutions'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "default",
+     "format",
+     "typeset",
+     1
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/econometrics/class_2024/Problem Sets with Solutions/processed_outputs/Solutions-pset2.md",
+   "role": "problem_set",
+   "format": "typeset",
+   "offering": "2024",
+   "date": null,
+   "book": null,
+   "order": [
+    1000000,
+    "",
+    "solutions-pset2"
+   ],
+   "confidence": 6.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "pdf portrait",
+     "format",
+     "portrait",
+     0
+    ],
+    [
+     "index card problem_set",
+     "role",
+     "problem_set",
+     3
+    ],
+    [
+     "path word 'problem'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "path word 'pset'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "path word 'solutions'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "default",
+     "format",
+     "typeset",
+     1
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/econometrics/class_2024/processed_outputs/2023exam1.md",
+   "role": "problem_set",
+   "format": "typeset",
+   "offering": "2024",
+   "date": null,
+   "book": null,
+   "order": [
+    1000000,
+    "",
+    "2023exam1"
+   ],
+   "confidence": 4.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "pdf portrait",
+     "format",
+     "portrait",
+     0
+    ],
+    [
+     "index card problem_set",
+     "role",
+     "problem_set",
+     3
+    ],
+    [
+     "path word 'exam'",
+     "role",
+     "exam",
+     1
+    ],
+    [
+     "default",
+     "format",
+     "typeset",
+     1
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/econometrics/class_2024/processed_outputs/2024 midterm-ans-key.md",
+   "role": "exam",
+   "format": "typeset",
+   "offering": "2024",
+   "date": null,
+   "book": null,
+   "order": [
+    1000000,
+    "",
+    "2024 midterm-ans-key"
+   ],
+   "confidence": 4.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "pdf portrait",
+     "format",
+     "portrait",
+     0
+    ],
+    [
+     "index card ta_notes",
+     "authority",
+     "class",
+     3
+    ],
+    [
+     "path word 'midterm'",
+     "role",
+     "exam",
+     1
+    ],
+    [
+     "default",
+     "format",
+     "typeset",
+     1
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/econometrics/class_2024/Recitations/processed_outputs/Recitation 1.md",
+   "role": "recitation",
+   "format": "typeset",
+   "offering": "2024",
+   "date": null,
+   "book": null,
+   "order": [
+    1000000,
+    "",
+    "recitation 1"
+   ],
+   "confidence": 7.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "pdf portrait",
+     "format",
+     "portrait",
+     0
+    ],
+    [
+     "index card ta_notes",
+     "authority",
+     "class",
+     3
+    ],
+    [
+     "content: recitation wording",
+     "role",
+     "recitation",
+     2
+    ],
+    [
+     "path word 'recitation'",
+     "role",
+     "recitation",
+     1
+    ],
+    [
+     "path word 'recitations'",
+     "role",
+     "recitation",
+     1
+    ],
+    [
+     "default",
+     "format",
+     "typeset",
+     1
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/econometrics/class_2024/Recitations/processed_outputs/Recitation 2.md",
+   "role": "recitation",
+   "format": "typeset",
+   "offering": "2024",
+   "date": null,
+   "book": null,
+   "order": [
+    1000000,
+    "",
+    "recitation 2"
+   ],
+   "confidence": 7.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "pdf portrait",
+     "format",
+     "portrait",
+     0
+    ],
+    [
+     "index card ta_notes",
+     "authority",
+     "class",
+     3
+    ],
+    [
+     "content: recitation wording",
+     "role",
+     "recitation",
+     2
+    ],
+    [
+     "path word 'recitation'",
+     "role",
+     "recitation",
+     1
+    ],
+    [
+     "path word 'recitations'",
+     "role",
+     "recitation",
+     1
+    ],
+    [
+     "default",
+     "format",
+     "typeset",
+     1
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/econometrics/class_2024/Recitations/processed_outputs/Recitation 3.md",
+   "role": "recitation",
+   "format": "typeset",
+   "offering": "2024",
+   "date": null,
+   "book": null,
+   "order": [
+    1000000,
+    "",
+    "recitation 3"
+   ],
+   "confidence": 7.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "pdf portrait",
+     "format",
+     "portrait",
+     0
+    ],
+    [
+     "index card ta_notes",
+     "authority",
+     "class",
+     3
+    ],
+    [
+     "content: recitation wording",
+     "role",
+     "recitation",
+     2
+    ],
+    [
+     "path word 'recitation'",
+     "role",
+     "recitation",
+     1
+    ],
+    [
+     "path word 'recitations'",
+     "role",
+     "recitation",
+     1
+    ],
+    [
+     "default",
+     "format",
+     "typeset",
+     1
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/econometrics/class_2024/Recitations/processed_outputs/Recitation 4.md",
+   "role": "recitation",
+   "format": "typeset",
+   "offering": "2024",
+   "date": null,
+   "book": null,
+   "order": [
+    1000000,
+    "",
+    "recitation 4"
+   ],
+   "confidence": 7.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "pdf portrait",
+     "format",
+     "portrait",
+     0
+    ],
+    [
+     "index card ta_notes",
+     "authority",
+     "class",
+     3
+    ],
+    [
+     "content: recitation wording",
+     "role",
+     "recitation",
+     2
+    ],
+    [
+     "path word 'recitation'",
+     "role",
+     "recitation",
+     1
+    ],
+    [
+     "path word 'recitations'",
+     "role",
+     "recitation",
+     1
+    ],
+    [
+     "default",
+     "format",
+     "typeset",
+     1
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/econometrics/class_2024/Recitations/processed_outputs/Recitation 5.md",
+   "role": "recitation",
+   "format": "typeset",
+   "offering": "2024",
+   "date": null,
+   "book": null,
+   "order": [
+    1000000,
+    "",
+    "recitation 5"
+   ],
+   "confidence": 7.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "pdf portrait",
+     "format",
+     "portrait",
+     0
+    ],
+    [
+     "index card ta_notes",
+     "authority",
+     "class",
+     3
+    ],
+    [
+     "content: recitation wording",
+     "role",
+     "recitation",
+     2
+    ],
+    [
+     "path word 'recitation'",
+     "role",
+     "recitation",
+     1
+    ],
+    [
+     "path word 'recitations'",
+     "role",
+     "recitation",
+     1
+    ],
+    [
+     "default",
+     "format",
+     "typeset",
+     1
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/econometrics/class_2024/Recitations/processed_outputs/Recitation 6 (corrected).md",
+   "role": "recitation",
+   "format": "typeset",
+   "offering": "2024",
+   "date": null,
+   "book": null,
+   "order": [
+    1000000,
+    "",
+    "recitation 6 (corrected)"
+   ],
+   "confidence": 7.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "pdf portrait",
+     "format",
+     "portrait",
+     0
+    ],
+    [
+     "index card ta_notes",
+     "authority",
+     "class",
+     3
+    ],
+    [
+     "content: recitation wording",
+     "role",
+     "recitation",
+     2
+    ],
+    [
+     "path word 'recitation'",
+     "role",
+     "recitation",
+     1
+    ],
+    [
+     "path word 'recitations'",
+     "role",
+     "recitation",
+     1
+    ],
+    [
+     "default",
+     "format",
+     "typeset",
+     1
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/econometrics/class_2024/Recitations/processed_outputs/Recitation-0.md",
+   "role": "recitation",
+   "format": "typeset",
+   "offering": "2024",
+   "date": null,
+   "book": null,
+   "order": [
+    1000000,
+    "",
+    "recitation-0"
+   ],
+   "confidence": 5.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "pdf portrait",
+     "format",
+     "portrait",
+     0
+    ],
+    [
+     "index card ta_notes",
+     "authority",
+     "class",
+     3
+    ],
+    [
+     "path word 'recitation'",
+     "role",
+     "recitation",
+     1
+    ],
+    [
+     "path word 'recitations'",
+     "role",
+     "recitation",
+     1
+    ],
+    [
+     "default",
+     "format",
+     "typeset",
+     1
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/econometrics/lecture_notes/Econometrics 2026-09-21 10.05.20.excalidraw.md",
+   "role": "student_notes",
+   "format": "excalidraw",
+   "offering": null,
+   "date": "2026-09-21",
+   "book": null,
+   "order": [
+    1000000,
+    "2026-09-21",
+    "econometrics 2026-09-21 10.05.20.excalidraw"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "excalidraw source",
+     "format",
+     "excalidraw",
+     10
+    ],
+    [
+     "excalidraw source",
+     "role",
+     "student_notes",
+     10
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/econometrics/lecture_notes/Econometrics 2026-09-22 08.09.47.excalidraw.md",
+   "role": "student_notes",
+   "format": "excalidraw",
+   "offering": null,
+   "date": "2026-09-22",
+   "book": null,
+   "order": [
+    1000000,
+    "2026-09-22",
+    "econometrics 2026-09-22 08.09.47.excalidraw"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "excalidraw source",
+     "format",
+     "excalidraw",
+     10
+    ],
+    [
+     "excalidraw source",
+     "role",
+     "student_notes",
+     10
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/econometrics/lecture_notes/Econometrics 2026-09-28 10.05.35.excalidraw.md",
+   "role": "student_notes",
+   "format": "excalidraw",
+   "offering": null,
+   "date": "2026-09-28",
+   "book": null,
+   "order": [
+    1000000,
+    "2026-09-28",
+    "econometrics 2026-09-28 10.05.35.excalidraw"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "excalidraw source",
+     "format",
+     "excalidraw",
+     10
+    ],
+    [
+     "excalidraw source",
+     "role",
+     "student_notes",
+     10
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/econometrics/lecture_notes/Econometrics 2026-09-29 08.06.09.excalidraw.md",
+   "role": "student_notes",
+   "format": "excalidraw",
+   "offering": null,
+   "date": "2026-09-29",
+   "book": null,
+   "order": [
+    1000000,
+    "2026-09-29",
+    "econometrics 2026-09-29 08.06.09.excalidraw"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "excalidraw source",
+     "format",
+     "excalidraw",
+     10
+    ],
+    [
+     "excalidraw source",
+     "role",
+     "student_notes",
+     10
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/econometrics/lecture_notes/Econometrics 2026-09-29 08.51.53.excalidraw.md",
+   "role": "student_notes",
+   "format": "excalidraw",
+   "offering": null,
+   "date": "2026-09-29",
+   "book": null,
+   "order": [
+    1000000,
+    "2026-09-29",
+    "econometrics 2026-09-29 08.51.53.excalidraw"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "excalidraw source",
+     "format",
+     "excalidraw",
+     10
+    ],
+    [
+     "excalidraw source",
+     "role",
+     "student_notes",
+     10
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/econometrics/lecture_notes/Econometrics 2026-10-12 10.09.36.excalidraw.md",
+   "role": "student_notes",
+   "format": "excalidraw",
+   "offering": null,
+   "date": "2026-10-12",
+   "book": null,
+   "order": [
+    1000000,
+    "2026-10-12",
+    "econometrics 2026-10-12 10.09.36.excalidraw"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "excalidraw source",
+     "format",
+     "excalidraw",
+     10
+    ],
+    [
+     "excalidraw source",
+     "role",
+     "student_notes",
+     10
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/econometrics/lecture_notes/Econometrics 2026-10-13 08.04.27.excalidraw.md",
+   "role": "student_notes",
+   "format": "excalidraw",
+   "offering": null,
+   "date": "2026-10-13",
+   "book": null,
+   "order": [
+    1000000,
+    "2026-10-13",
+    "econometrics 2026-10-13 08.04.27.excalidraw"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "excalidraw source",
+     "format",
+     "excalidraw",
+     10
+    ],
+    [
+     "excalidraw source",
+     "role",
+     "student_notes",
+     10
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/econometrics/lecture_notes/Econometrics 2026-10-14 10.07.54.excalidraw.md",
+   "role": "student_notes",
+   "format": "excalidraw",
+   "offering": null,
+   "date": "2026-10-14",
+   "book": null,
+   "order": [
+    1000000,
+    "2026-10-14",
+    "econometrics 2026-10-14 10.07.54.excalidraw"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "excalidraw source",
+     "format",
+     "excalidraw",
+     10
+    ],
+    [
+     "excalidraw source",
+     "role",
+     "student_notes",
+     10
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/econometrics/lecture_notes/Econometrics 2026-10-14 11.07.16.excalidraw.md",
+   "role": "student_notes",
+   "format": "excalidraw",
+   "offering": null,
+   "date": "2026-10-14",
+   "book": null,
+   "order": [
+    1000000,
+    "2026-10-14",
+    "econometrics 2026-10-14 11.07.16.excalidraw"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "excalidraw source",
+     "format",
+     "excalidraw",
+     10
+    ],
+    [
+     "excalidraw source",
+     "role",
+     "student_notes",
+     10
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/econometrics/lecture_notes/processed_outputs/Econometrics 2026-09-09 10.11.39.excalidraw.rag.md",
+   "role": "student_notes",
+   "format": "excalidraw",
+   "offering": null,
+   "date": "2026-09-09",
+   "book": null,
+   "order": [
+    1000000,
+    "2026-09-09",
+    "econometrics 2026-09-09 10.11.39.excalidraw"
+   ],
+   "confidence": 13.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "excalidraw source",
+     "format",
+     "excalidraw",
+     10
+    ],
+    [
+     "excalidraw source",
+     "role",
+     "student_notes",
+     10
+    ],
+    [
+     "index card excalidraw_notes",
+     "role",
+     "student_notes",
+     3
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/econometrics/lecture_notes/processed_outputs/Econometrics 2026-09-14 10.08.12.excalidraw.rag.md",
+   "role": "student_notes",
+   "format": "excalidraw",
+   "offering": null,
+   "date": "2026-09-14",
+   "book": null,
+   "order": [
+    1000000,
+    "2026-09-14",
+    "econometrics 2026-09-14 10.08.12.excalidraw"
+   ],
+   "confidence": 13.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "excalidraw source",
+     "format",
+     "excalidraw",
+     10
+    ],
+    [
+     "excalidraw source",
+     "role",
+     "student_notes",
+     10
+    ],
+    [
+     "index card excalidraw_notes",
+     "role",
+     "student_notes",
+     3
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/econometrics/lecture_notes/processed_outputs/Econometrics 2026-09-15 08.06.01.excalidraw.rag.md",
+   "role": "student_notes",
+   "format": "excalidraw",
+   "offering": null,
+   "date": "2026-09-15",
+   "book": null,
+   "order": [
+    1000000,
+    "2026-09-15",
+    "econometrics 2026-09-15 08.06.01.excalidraw"
+   ],
+   "confidence": 13.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "excalidraw source",
+     "format",
+     "excalidraw",
+     10
+    ],
+    [
+     "excalidraw source",
+     "role",
+     "student_notes",
+     10
+    ],
+    [
+     "index card excalidraw_notes",
+     "role",
+     "student_notes",
+     3
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/econometrics/lecture_notes/processed_outputs/Econometrics 2026-09-16 10.06.15.excalidraw.rag.md",
+   "role": "student_notes",
+   "format": "excalidraw",
+   "offering": null,
+   "date": "2026-09-16",
+   "book": null,
+   "order": [
+    1000000,
+    "2026-09-16",
+    "econometrics 2026-09-16 10.06.15.excalidraw"
+   ],
+   "confidence": 13.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "excalidraw source",
+     "format",
+     "excalidraw",
+     10
+    ],
+    [
+     "excalidraw source",
+     "role",
+     "student_notes",
+     10
+    ],
+    [
+     "index card excalidraw_notes",
+     "role",
+     "student_notes",
+     3
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/econometrics/lecture_notes/processed_outputs/Econometrics 2026-09-30 10.09.59.excalidraw.rag.md",
+   "role": "student_notes",
+   "format": "excalidraw",
+   "offering": null,
+   "date": "2026-09-30",
+   "book": null,
+   "order": [
+    1000000,
+    "2026-09-30",
+    "econometrics 2026-09-30 10.09.59.excalidraw"
+   ],
+   "confidence": 13.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "excalidraw source",
+     "format",
+     "excalidraw",
+     10
+    ],
+    [
+     "excalidraw source",
+     "role",
+     "student_notes",
+     10
+    ],
+    [
+     "index card excalidraw_notes",
+     "role",
+     "student_notes",
+     3
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/econometrics/lecture_notes/processed_outputs/Econometrics 2026-09-30 10.09.59.excalidraw.questions.md",
+   "role": "student_notes",
+   "format": "excalidraw",
+   "offering": null,
+   "date": "2026-09-30",
+   "book": null,
+   "order": [
+    1000000,
+    "2026-09-30",
+    "econometrics 2026-09-30 10.09.59.excalidraw.questions"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "excalidraw source",
+     "format",
+     "excalidraw",
+     10
+    ],
+    [
+     "excalidraw source",
+     "role",
+     "student_notes",
+     10
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/econometrics/lecture_notes/processed_outputs/Econometrics 2026-10-05 10.09.00.excalidraw.rag.md",
+   "role": "student_notes",
+   "format": "excalidraw",
+   "offering": null,
+   "date": "2026-10-05",
+   "book": null,
+   "order": [
+    1000000,
+    "2026-10-05",
+    "econometrics 2026-10-05 10.09.00.excalidraw"
+   ],
+   "confidence": 13.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "excalidraw source",
+     "format",
+     "excalidraw",
+     10
+    ],
+    [
+     "excalidraw source",
+     "role",
+     "student_notes",
+     10
+    ],
+    [
+     "index card excalidraw_notes",
+     "role",
+     "student_notes",
+     3
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/econometrics/lecture_notes/processed_outputs/Econometrics 2026-10-05 10.09.00.excalidraw.questions.md",
+   "role": "student_notes",
+   "format": "excalidraw",
+   "offering": null,
+   "date": "2026-10-05",
+   "book": null,
+   "order": [
+    1000000,
+    "2026-10-05",
+    "econometrics 2026-10-05 10.09.00.excalidraw.questions"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "excalidraw source",
+     "format",
+     "excalidraw",
+     10
+    ],
+    [
+     "excalidraw source",
+     "role",
+     "student_notes",
+     10
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/econometrics/lecture_notes/processed_outputs/Econometrics 2026-10-06 08.13.36.excalidraw.rag.md",
+   "role": "student_notes",
+   "format": "excalidraw",
+   "offering": null,
+   "date": "2026-10-06",
+   "book": null,
+   "order": [
+    1000000,
+    "2026-10-06",
+    "econometrics 2026-10-06 08.13.36.excalidraw"
+   ],
+   "confidence": 13.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "excalidraw source",
+     "format",
+     "excalidraw",
+     10
+    ],
+    [
+     "excalidraw source",
+     "role",
+     "student_notes",
+     10
+    ],
+    [
+     "index card excalidraw_notes",
+     "role",
+     "student_notes",
+     3
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/econometrics/lecture_notes/processed_outputs/Econometrics 2026-10-06 08.13.36.excalidraw.questions.md",
+   "role": "student_notes",
+   "format": "excalidraw",
+   "offering": null,
+   "date": "2026-10-06",
+   "book": null,
+   "order": [
+    1000000,
+    "2026-10-06",
+    "econometrics 2026-10-06 08.13.36.excalidraw.questions"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "excalidraw source",
+     "format",
+     "excalidraw",
+     10
+    ],
+    [
+     "excalidraw source",
+     "role",
+     "student_notes",
+     10
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/econometrics/lecture_notes/processed_outputs/Econometrics 2026-10-07 10.19.22.excalidraw.rag.md",
+   "role": "student_notes",
+   "format": "excalidraw",
+   "offering": null,
+   "date": "2026-10-07",
+   "book": null,
+   "order": [
+    1000000,
+    "2026-10-07",
+    "econometrics 2026-10-07 10.19.22.excalidraw"
+   ],
+   "confidence": 13.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "excalidraw source",
+     "format",
+     "excalidraw",
+     10
+    ],
+    [
+     "excalidraw source",
+     "role",
+     "student_notes",
+     10
+    ],
+    [
+     "index card excalidraw_notes",
+     "role",
+     "student_notes",
+     3
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/econometrics/lecture_notes/processed_outputs/Econometrics 2026-10-07 10.19.22.excalidraw.questions.md",
+   "role": "student_notes",
+   "format": "excalidraw",
+   "offering": null,
+   "date": "2026-10-07",
+   "book": null,
+   "order": [
+    1000000,
+    "2026-10-07",
+    "econometrics 2026-10-07 10.19.22.excalidraw.questions"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "excalidraw source",
+     "format",
+     "excalidraw",
+     10
+    ],
+    [
+     "excalidraw source",
+     "role",
+     "student_notes",
+     10
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/econometrics/lecture_notes/processed_outputs/Econometrics 2026-10-07 14.16.17.excalidraw.rag.md",
+   "role": "student_notes",
+   "format": "excalidraw",
+   "offering": null,
+   "date": "2026-10-07",
+   "book": null,
+   "order": [
+    1000000,
+    "2026-10-07",
+    "econometrics 2026-10-07 14.16.17.excalidraw"
+   ],
+   "confidence": 13.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "excalidraw source",
+     "format",
+     "excalidraw",
+     10
+    ],
+    [
+     "excalidraw source",
+     "role",
+     "student_notes",
+     10
+    ],
+    [
+     "index card excalidraw_notes",
+     "role",
+     "student_notes",
+     3
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/econometrics/lecture_notes/processed_outputs/Econometrics 2026-10-07 14.16.17.excalidraw.questions.md",
+   "role": "student_notes",
+   "format": "excalidraw",
+   "offering": null,
+   "date": "2026-10-07",
+   "book": null,
+   "order": [
+    1000000,
+    "2026-10-07",
+    "econometrics 2026-10-07 14.16.17.excalidraw.questions"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "excalidraw source",
+     "format",
+     "excalidraw",
+     10
+    ],
+    [
+     "excalidraw source",
+     "role",
+     "student_notes",
+     10
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/econometrics/problem_sets/00-review-question-answers.md",
+   "role": "problem_set",
+   "format": "typeset",
+   "offering": null,
+   "date": null,
+   "book": null,
+   "order": [
+    0,
+    "",
+    "00-review-question-answers"
+   ],
+   "confidence": 3.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "category folder problem_sets",
+     "role",
+     "problem_set",
+     2
+    ],
+    [
+     "path word 'problem'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "default",
+     "format",
+     "typeset",
+     1
+    ]
+   ],
+   "decided_by": "review"
+  },
+  {
+   "path": "academic_notes/econometrics/problem_sets/problem_set_1_gemini_solutions.md",
+   "role": "problem_set",
+   "format": "typeset",
+   "offering": null,
+   "date": null,
+   "book": null,
+   "order": [
+    1000000,
+    "",
+    "problem_set_1_gemini_solutions"
+   ],
+   "confidence": 4.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "category folder problem_sets",
+     "role",
+     "problem_set",
+     2
+    ],
+    [
+     "path word 'problem'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "path word 'solutions'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "default",
+     "format",
+     "typeset",
+     1
+    ]
+   ],
+   "decided_by": "review"
+  },
+  {
+   "path": "academic_notes/econometrics/problem_sets/problem_set_1_solutions.md",
+   "role": "problem_set",
+   "format": "typeset",
+   "offering": null,
+   "date": null,
+   "book": null,
+   "order": [
+    1000000,
+    "",
+    "problem_set_1_solutions"
+   ],
+   "confidence": 4.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "category folder problem_sets",
+     "role",
+     "problem_set",
+     2
+    ],
+    [
+     "path word 'problem'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "path word 'solutions'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "default",
+     "format",
+     "typeset",
+     1
+    ]
+   ],
+   "decided_by": "review"
+  },
+  {
+   "path": "academic_notes/econometrics/problem_sets/problem_set_2_solutions.md",
+   "role": "problem_set",
+   "format": "typeset",
+   "offering": null,
+   "date": null,
+   "book": null,
+   "order": [
+    1000000,
+    "",
+    "problem_set_2_solutions"
+   ],
+   "confidence": 4.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "category folder problem_sets",
+     "role",
+     "problem_set",
+     2
+    ],
+    [
+     "path word 'problem'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "path word 'solutions'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "default",
+     "format",
+     "typeset",
+     1
+    ]
+   ],
+   "decided_by": "review"
+  },
+  {
+   "path": "academic_notes/econometrics/problem_sets/problem_set_2_solutions_long.md",
+   "role": "problem_set",
+   "format": "typeset",
+   "offering": null,
+   "date": null,
+   "book": null,
+   "order": [
+    1000000,
+    "",
+    "problem_set_2_solutions_long"
+   ],
+   "confidence": 4.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "category folder problem_sets",
+     "role",
+     "problem_set",
+     2
+    ],
+    [
+     "path word 'problem'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "path word 'solutions'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "default",
+     "format",
+     "typeset",
+     1
+    ]
+   ],
+   "decided_by": "review"
+  },
+  {
+   "path": "academic_notes/econometrics/problem_sets/problem_set_2_solutions_short.md",
+   "role": "problem_set",
+   "format": "typeset",
+   "offering": null,
+   "date": null,
+   "book": null,
+   "order": [
+    1000000,
+    "",
+    "problem_set_2_solutions_short"
+   ],
+   "confidence": 4.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "category folder problem_sets",
+     "role",
+     "problem_set",
+     2
+    ],
+    [
+     "path word 'problem'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "path word 'solutions'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "default",
+     "format",
+     "typeset",
+     1
+    ]
+   ],
+   "decided_by": "review"
+  },
+  {
+   "path": "academic_notes/econometrics/problem_sets/processed_outputs/00-review-questions.md",
+   "role": "problem_set",
+   "format": "typeset",
+   "offering": null,
+   "date": null,
+   "book": null,
+   "order": [
+    0,
+    "",
+    "00-review-questions"
+   ],
+   "confidence": 8.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "category folder problem_sets",
+     "role",
+     "problem_set",
+     2
+    ],
+    [
+     "pdf portrait",
+     "format",
+     "portrait",
+     0
+    ],
+    [
+     "index card problem_set",
+     "role",
+     "problem_set",
+     3
+    ],
+    [
+     "content: recitation wording",
+     "role",
+     "recitation",
+     2
+    ],
+    [
+     "path word 'problem'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "portrait scan, few headings",
+     "format",
+     "handwritten",
+     1
+    ]
+   ],
+   "decided_by": "review"
+  },
+  {
+   "path": "academic_notes/econometrics/problem_sets/processed_outputs/problem_set_1.md",
+   "role": "problem_set",
+   "format": "typeset",
+   "offering": null,
+   "date": null,
+   "book": null,
+   "order": [
+    1000000,
+    "",
+    "problem_set_1"
+   ],
+   "confidence": 5.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "category folder problem_sets",
+     "role",
+     "problem_set",
+     2
+    ],
+    [
+     "content: exam wording",
+     "role",
+     "exam",
+     2
+    ],
+    [
+     "path word 'problem'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "default",
+     "format",
+     "typeset",
+     1
+    ]
+   ],
+   "decided_by": "review"
+  },
+  {
+   "path": "academic_notes/econometrics/problem_sets/processed_outputs/problem_set_2.md",
+   "role": "problem_set",
+   "format": "typeset",
+   "offering": null,
+   "date": null,
+   "book": null,
+   "order": [
+    1000000,
+    "",
+    "problem_set_2"
+   ],
+   "confidence": 3.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "category folder problem_sets",
+     "role",
+     "problem_set",
+     2
+    ],
+    [
+     "path word 'problem'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "default",
+     "format",
+     "typeset",
+     1
+    ]
+   ],
+   "decided_by": "review"
+  },
+  {
+   "path": "academic_notes/econometrics/problem_sets/processed_outputs/pset3.md",
+   "role": "problem_set",
+   "format": "typeset",
+   "offering": null,
+   "date": null,
+   "book": null,
+   "order": [
+    1000000,
+    "",
+    "pset3"
+   ],
+   "confidence": 4.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "category folder problem_sets",
+     "role",
+     "problem_set",
+     2
+    ],
+    [
+     "pdf portrait",
+     "format",
+     "portrait",
+     0
+    ],
+    [
+     "path word 'problem'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "path word 'pset'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "default",
+     "format",
+     "typeset",
+     1
+    ]
+   ],
+   "decided_by": "review"
+  },
+  {
+   "path": "academic_notes/econometrics/problem_sets/processed_outputs/solution-pset2.md",
+   "role": "problem_set",
+   "format": "typeset",
+   "offering": null,
+   "date": null,
+   "book": null,
+   "order": [
+    1000000,
+    "",
+    "solution-pset2"
+   ],
+   "confidence": 5.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "category folder problem_sets",
+     "role",
+     "problem_set",
+     2
+    ],
+    [
+     "pdf portrait",
+     "format",
+     "portrait",
+     0
+    ],
+    [
+     "path word 'problem'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "path word 'pset'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "path word 'solution'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "portrait scan, few headings",
+     "format",
+     "handwritten",
+     1
+    ]
+   ],
+   "decided_by": "review"
+  },
+  {
+   "path": "academic_notes/econometrics/professor_notes/processed_outputs/090926.md",
+   "role": "instructor",
+   "format": "handwritten",
+   "offering": null,
+   "date": "2026-09-09",
+   "book": null,
+   "order": [
+    1000000,
+    "2026-09-09",
+    "090926"
+   ],
+   "confidence": 5.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "category folder professor_notes",
+     "role",
+     "instructor",
+     2
+    ],
+    [
+     "pdf portrait",
+     "format",
+     "portrait",
+     0
+    ],
+    [
+     "index card handwritten_notes",
+     "format",
+     "handwritten",
+     3
+    ],
+    [
+     "content: recitation wording",
+     "role",
+     "recitation",
+     2
+    ],
+    [
+     "path word 'professor'",
+     "role",
+     "instructor",
+     1
+    ]
+   ],
+   "decided_by": "review"
+  },
+  {
+   "path": "academic_notes/econometrics/professor_notes/processed_outputs/091426.md",
+   "role": "instructor",
+   "format": "handwritten",
+   "offering": null,
+   "date": "2026-09-14",
+   "book": null,
+   "order": [
+    1000000,
+    "2026-09-14",
+    "091426"
+   ],
+   "confidence": 3.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "category folder professor_notes",
+     "role",
+     "instructor",
+     2
+    ],
+    [
+     "pdf portrait",
+     "format",
+     "portrait",
+     0
+    ],
+    [
+     "index card handwritten_notes",
+     "format",
+     "handwritten",
+     3
+    ],
+    [
+     "path word 'professor'",
+     "role",
+     "instructor",
+     1
+    ]
+   ],
+   "decided_by": "review"
+  },
+  {
+   "path": "academic_notes/econometrics/professor_notes/processed_outputs/091626.md",
+   "role": "instructor",
+   "format": "handwritten",
+   "offering": null,
+   "date": "2026-09-16",
+   "book": null,
+   "order": [
+    1000000,
+    "2026-09-16",
+    "091626"
+   ],
+   "confidence": 3.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "category folder professor_notes",
+     "role",
+     "instructor",
+     2
+    ],
+    [
+     "pdf portrait",
+     "format",
+     "portrait",
+     0
+    ],
+    [
+     "index card handwritten_notes",
+     "format",
+     "handwritten",
+     3
+    ],
+    [
+     "path word 'professor'",
+     "role",
+     "instructor",
+     1
+    ]
+   ],
+   "decided_by": "review"
+  },
+  {
+   "path": "academic_notes/econometrics/professor_notes/processed_outputs/092126.md",
+   "role": "instructor",
+   "format": "handwritten",
+   "offering": null,
+   "date": "2026-09-21",
+   "book": null,
+   "order": [
+    1000000,
+    "2026-09-21",
+    "092126"
+   ],
+   "confidence": 6.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "category folder professor_notes",
+     "role",
+     "instructor",
+     2
+    ],
+    [
+     "pdf portrait",
+     "format",
+     "portrait",
+     0
+    ],
+    [
+     "index card ta_notes",
+     "authority",
+     "class",
+     3
+    ],
+    [
+     "path word 'professor'",
+     "role",
+     "instructor",
+     1
+    ],
+    [
+     "portrait scan, few headings",
+     "format",
+     "handwritten",
+     1
+    ]
+   ],
+   "decided_by": "review"
+  },
+  {
+   "path": "academic_notes/econometrics/professor_notes/processed_outputs/092826.md",
+   "role": "instructor",
+   "format": "handwritten",
+   "offering": null,
+   "date": "2026-09-28",
+   "book": null,
+   "order": [
+    1000000,
+    "2026-09-28",
+    "092826"
+   ],
+   "confidence": 3.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "category folder professor_notes",
+     "role",
+     "instructor",
+     2
+    ],
+    [
+     "pdf portrait",
+     "format",
+     "portrait",
+     0
+    ],
+    [
+     "index card handwritten_notes",
+     "format",
+     "handwritten",
+     3
+    ],
+    [
+     "path word 'professor'",
+     "role",
+     "instructor",
+     1
+    ]
+   ],
+   "decided_by": "review"
+  },
+  {
+   "path": "academic_notes/econometrics/professor_notes/processed_outputs/093026.md",
+   "role": "instructor",
+   "format": "handwritten",
+   "offering": null,
+   "date": "2026-09-30",
+   "book": null,
+   "order": [
+    1000000,
+    "2026-09-30",
+    "093026"
+   ],
+   "confidence": 3.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "category folder professor_notes",
+     "role",
+     "instructor",
+     2
+    ],
+    [
+     "pdf portrait",
+     "format",
+     "portrait",
+     0
+    ],
+    [
+     "index card handwritten_notes",
+     "format",
+     "handwritten",
+     3
+    ],
+    [
+     "path word 'professor'",
+     "role",
+     "instructor",
+     1
+    ]
+   ],
+   "decided_by": "review"
+  },
+  {
+   "path": "academic_notes/econometrics/professor_notes/processed_outputs/100526.md",
+   "role": "instructor",
+   "format": "handwritten",
+   "offering": null,
+   "date": "2026-10-05",
+   "book": null,
+   "order": [
+    1000000,
+    "2026-10-05",
+    "100526"
+   ],
+   "confidence": 6.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "category folder professor_notes",
+     "role",
+     "instructor",
+     2
+    ],
+    [
+     "pdf portrait",
+     "format",
+     "portrait",
+     0
+    ],
+    [
+     "index card ta_notes",
+     "authority",
+     "class",
+     3
+    ],
+    [
+     "path word 'professor'",
+     "role",
+     "instructor",
+     1
+    ],
+    [
+     "default",
+     "format",
+     "typeset",
+     1
+    ]
+   ],
+   "decided_by": "review"
+  },
+  {
+   "path": "academic_notes/econometrics/professor_notes/processed_outputs/101226.md",
+   "role": "instructor",
+   "format": "handwritten",
+   "offering": null,
+   "date": "2026-10-12",
+   "book": null,
+   "order": [
+    1000000,
+    "2026-10-12",
+    "101226"
+   ],
+   "confidence": 3.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "category folder professor_notes",
+     "role",
+     "instructor",
+     2
+    ],
+    [
+     "pdf portrait",
+     "format",
+     "portrait",
+     0
+    ],
+    [
+     "index card handwritten_notes",
+     "format",
+     "handwritten",
+     3
+    ],
+    [
+     "path word 'professor'",
+     "role",
+     "instructor",
+     1
+    ]
+   ],
+   "decided_by": "review"
+  },
+  {
+   "path": "academic_notes/econometrics/professor_notes/processed_outputs/slides1.md",
+   "role": "instructor",
+   "format": "handwritten",
+   "offering": null,
+   "date": null,
+   "book": null,
+   "order": [
+    1000000,
+    "",
+    "slides1"
+   ],
+   "confidence": 9.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "category folder professor_notes",
+     "role",
+     "instructor",
+     2
+    ],
+    [
+     "pdf landscape",
+     "format",
+     "slides",
+     2
+    ],
+    [
+     "index card ta_notes",
+     "authority",
+     "class",
+     3
+    ],
+    [
+     "path word 'professor'",
+     "role",
+     "instructor",
+     1
+    ],
+    [
+     "path word 'slides'",
+     "format",
+     "slides",
+     1
+    ]
+   ],
+   "decided_by": "review"
+  },
+  {
+   "path": "academic_notes/econometrics/professor_notes/processed_outputs/slides2.md",
+   "role": "instructor",
+   "format": "handwritten",
+   "offering": null,
+   "date": null,
+   "book": null,
+   "order": [
+    1000000,
+    "",
+    "slides2"
+   ],
+   "confidence": 9.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "category folder professor_notes",
+     "role",
+     "instructor",
+     2
+    ],
+    [
+     "pdf landscape",
+     "format",
+     "slides",
+     2
+    ],
+    [
+     "index card ta_notes",
+     "authority",
+     "class",
+     3
+    ],
+    [
+     "path word 'professor'",
+     "role",
+     "instructor",
+     1
+    ],
+    [
+     "path word 'slides'",
+     "format",
+     "slides",
+     1
+    ]
+   ],
+   "decided_by": "review"
+  },
+  {
+   "path": "academic_notes/econometrics/professor_notes/processed_outputs/slides3.md",
+   "role": "instructor",
+   "format": "handwritten",
+   "offering": null,
+   "date": null,
+   "book": null,
+   "order": [
+    1000000,
+    "",
+    "slides3"
+   ],
+   "confidence": 9.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "category folder professor_notes",
+     "role",
+     "instructor",
+     2
+    ],
+    [
+     "pdf landscape",
+     "format",
+     "slides",
+     2
+    ],
+    [
+     "index card ta_notes",
+     "authority",
+     "class",
+     3
+    ],
+    [
+     "path word 'professor'",
+     "role",
+     "instructor",
+     1
+    ],
+    [
+     "path word 'slides'",
+     "format",
+     "slides",
+     1
+    ]
+   ],
+   "decided_by": "review"
+  },
+  {
+   "path": "academic_notes/econometrics/professor_notes/processed_outputs/slidesMLE_updated.md",
+   "role": "instructor",
+   "format": "handwritten",
+   "offering": null,
+   "date": null,
+   "book": null,
+   "order": [
+    1000000,
+    "",
+    "slidesmle_updated"
+   ],
+   "confidence": 8.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "category folder professor_notes",
+     "role",
+     "instructor",
+     2
+    ],
+    [
+     "pdf landscape",
+     "format",
+     "slides",
+     2
+    ],
+    [
+     "index card ta_notes",
+     "authority",
+     "class",
+     3
+    ],
+    [
+     "path word 'professor'",
+     "role",
+     "instructor",
+     1
+    ]
+   ],
+   "decided_by": "review"
+  },
+  {
+   "path": "academic_notes/econometrics/professor_notes/processed_outputs/slidesTS_updated.md",
+   "role": "instructor",
+   "format": "handwritten",
+   "offering": null,
+   "date": null,
+   "book": null,
+   "order": [
+    1000000,
+    "",
+    "slidests_updated"
+   ],
+   "confidence": 8.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "category folder professor_notes",
+     "role",
+     "instructor",
+     2
+    ],
+    [
+     "pdf landscape",
+     "format",
+     "slides",
+     2
+    ],
+    [
+     "index card ta_notes",
+     "authority",
+     "class",
+     3
+    ],
+    [
+     "path word 'professor'",
+     "role",
+     "instructor",
+     1
+    ]
+   ],
+   "decided_by": "review"
+  },
+  {
+   "path": "academic_notes/econometrics/syllabus/ECON6411_syllabus.md",
+   "role": "syllabus",
+   "format": "typeset",
+   "offering": null,
+   "date": null,
+   "book": null,
+   "order": [
+    1000000,
+    "",
+    "econ6411_syllabus"
+   ],
+   "confidence": 9.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "category folder syllabus",
+     "role",
+     "syllabus",
+     2
+    ],
+    [
+     "content: syllabus wording",
+     "role",
+     "syllabus",
+     2
+    ],
+    [
+     "content: exam wording",
+     "role",
+     "exam",
+     2
+    ],
+    [
+     "content: recitation wording",
+     "role",
+     "recitation",
+     2
+    ],
+    [
+     "path word 'syllabus'",
+     "role",
+     "syllabus",
+     1
+    ],
+    [
+     "default",
+     "format",
+     "typeset",
+     1
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/econometrics/ta_notes/processed_outputs/00-review-questions.md",
+   "role": "recitation",
+   "format": "handwritten",
+   "offering": null,
+   "date": null,
+   "book": null,
+   "order": [
+    0,
+    "",
+    "00-review-questions"
+   ],
+   "confidence": 8.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "category folder ta_notes",
+     "role",
+     "recitation",
+     2
+    ],
+    [
+     "pdf portrait",
+     "format",
+     "portrait",
+     0
+    ],
+    [
+     "index card problem_set",
+     "role",
+     "problem_set",
+     3
+    ],
+    [
+     "content: recitation wording",
+     "role",
+     "recitation",
+     2
+    ],
+    [
+     "path word 'ta'",
+     "role",
+     "recitation",
+     1
+    ],
+    [
+     "portrait scan, few headings",
+     "format",
+     "handwritten",
+     1
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/econometrics/ta_notes/processed_outputs/01-defining-terms.md",
+   "role": "recitation",
+   "format": "handwritten",
+   "offering": null,
+   "date": null,
+   "book": null,
+   "order": [
+    1,
+    "",
+    "01-defining-terms"
+   ],
+   "confidence": 8.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "category folder ta_notes",
+     "role",
+     "recitation",
+     2
+    ],
+    [
+     "pdf portrait",
+     "format",
+     "portrait",
+     0
+    ],
+    [
+     "index card ta_notes",
+     "authority",
+     "class",
+     3
+    ],
+    [
+     "content: recitation wording",
+     "role",
+     "recitation",
+     2
+    ],
+    [
+     "path word 'ta'",
+     "role",
+     "recitation",
+     1
+    ],
+    [
+     "portrait scan, few headings",
+     "format",
+     "handwritten",
+     1
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/econometrics/ta_notes/processed_outputs/02-conditional-expectation-and-population-regression.md",
+   "role": "recitation",
+   "format": "handwritten",
+   "offering": null,
+   "date": null,
+   "book": null,
+   "order": [
+    2,
+    "",
+    "02-conditional-expectation-and-population-regression"
+   ],
+   "confidence": 8.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "category folder ta_notes",
+     "role",
+     "recitation",
+     2
+    ],
+    [
+     "pdf portrait",
+     "format",
+     "portrait",
+     0
+    ],
+    [
+     "index card ta_notes",
+     "authority",
+     "class",
+     3
+    ],
+    [
+     "content: recitation wording",
+     "role",
+     "recitation",
+     2
+    ],
+    [
+     "path word 'ta'",
+     "role",
+     "recitation",
+     1
+    ],
+    [
+     "portrait scan, few headings",
+     "format",
+     "handwritten",
+     1
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/econometrics/ta_notes/processed_outputs/03-ols-algebraic-properties.md",
+   "role": "recitation",
+   "format": "typeset",
+   "offering": null,
+   "date": null,
+   "book": null,
+   "order": [
+    3,
+    "",
+    "03-ols-algebraic-properties"
+   ],
+   "confidence": 8.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "category folder ta_notes",
+     "role",
+     "recitation",
+     2
+    ],
+    [
+     "pdf portrait",
+     "format",
+     "portrait",
+     0
+    ],
+    [
+     "index card ta_notes",
+     "authority",
+     "class",
+     3
+    ],
+    [
+     "content: recitation wording",
+     "role",
+     "recitation",
+     2
+    ],
+    [
+     "path word 'ta'",
+     "role",
+     "recitation",
+     1
+    ],
+    [
+     "default",
+     "format",
+     "typeset",
+     1
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/econometrics/ta_notes/processed_outputs/04-ols-finite-sample-properties.md",
+   "role": "recitation",
+   "format": "typeset",
+   "offering": null,
+   "date": null,
+   "book": null,
+   "order": [
+    4,
+    "",
+    "04-ols-finite-sample-properties"
+   ],
+   "confidence": 8.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "category folder ta_notes",
+     "role",
+     "recitation",
+     2
+    ],
+    [
+     "pdf portrait",
+     "format",
+     "portrait",
+     0
+    ],
+    [
+     "index card ta_notes",
+     "authority",
+     "class",
+     3
+    ],
+    [
+     "content: recitation wording",
+     "role",
+     "recitation",
+     2
+    ],
+    [
+     "path word 'ta'",
+     "role",
+     "recitation",
+     1
+    ],
+    [
+     "default",
+     "format",
+     "typeset",
+     1
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/econometrics/ta_notes/processed_outputs/05-ols-large-sample-properties.md",
+   "role": "recitation",
+   "format": "typeset",
+   "offering": null,
+   "date": null,
+   "book": null,
+   "order": [
+    5,
+    "",
+    "05-ols-large-sample-properties"
+   ],
+   "confidence": 8.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "category folder ta_notes",
+     "role",
+     "recitation",
+     2
+    ],
+    [
+     "pdf portrait",
+     "format",
+     "portrait",
+     0
+    ],
+    [
+     "index card ta_notes",
+     "authority",
+     "class",
+     3
+    ],
+    [
+     "content: recitation wording",
+     "role",
+     "recitation",
+     2
+    ],
+    [
+     "path word 'ta'",
+     "role",
+     "recitation",
+     1
+    ],
+    [
+     "default",
+     "format",
+     "typeset",
+     1
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/econometrics/ta_notes/processed_outputs/06-maximum-likelihood.md",
+   "role": "recitation",
+   "format": "typeset",
+   "offering": null,
+   "date": null,
+   "book": null,
+   "order": [
+    6,
+    "",
+    "06-maximum-likelihood"
+   ],
+   "confidence": 8.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "category folder ta_notes",
+     "role",
+     "recitation",
+     2
+    ],
+    [
+     "pdf portrait",
+     "format",
+     "portrait",
+     0
+    ],
+    [
+     "index card ta_notes",
+     "authority",
+     "class",
+     3
+    ],
+    [
+     "content: recitation wording",
+     "role",
+     "recitation",
+     2
+    ],
+    [
+     "path word 'ta'",
+     "role",
+     "recitation",
+     1
+    ],
+    [
+     "default",
+     "format",
+     "typeset",
+     1
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/econometrics/ta_notes/processed_outputs/07-hypothesis-testing-basics.md",
+   "role": "recitation",
+   "format": "typeset",
+   "offering": null,
+   "date": null,
+   "book": null,
+   "order": [
+    7,
+    "",
+    "07-hypothesis-testing-basics"
+   ],
+   "confidence": 8.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "category folder ta_notes",
+     "role",
+     "recitation",
+     2
+    ],
+    [
+     "pdf portrait",
+     "format",
+     "portrait",
+     0
+    ],
+    [
+     "index card ta_notes",
+     "authority",
+     "class",
+     3
+    ],
+    [
+     "content: recitation wording",
+     "role",
+     "recitation",
+     2
+    ],
+    [
+     "path word 'ta'",
+     "role",
+     "recitation",
+     1
+    ],
+    [
+     "default",
+     "format",
+     "typeset",
+     1
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/econometrics/ta_notes/processed_outputs/08-hypothesis-testing-trinity.md",
+   "role": "recitation",
+   "format": "typeset",
+   "offering": null,
+   "date": null,
+   "book": null,
+   "order": [
+    8,
+    "",
+    "08-hypothesis-testing-trinity"
+   ],
+   "confidence": 8.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "category folder ta_notes",
+     "role",
+     "recitation",
+     2
+    ],
+    [
+     "pdf portrait",
+     "format",
+     "portrait",
+     0
+    ],
+    [
+     "index card ta_notes",
+     "authority",
+     "class",
+     3
+    ],
+    [
+     "content: recitation wording",
+     "role",
+     "recitation",
+     2
+    ],
+    [
+     "path word 'ta'",
+     "role",
+     "recitation",
+     1
+    ],
+    [
+     "default",
+     "format",
+     "typeset",
+     1
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/econometrics/ta_notes/processed_outputs/09-confidence-interval.md",
+   "role": "recitation",
+   "format": "typeset",
+   "offering": null,
+   "date": null,
+   "book": null,
+   "order": [
+    9,
+    "",
+    "09-confidence-interval"
+   ],
+   "confidence": 8.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "category folder ta_notes",
+     "role",
+     "recitation",
+     2
+    ],
+    [
+     "pdf portrait",
+     "format",
+     "portrait",
+     0
+    ],
+    [
+     "index card ta_notes",
+     "authority",
+     "class",
+     3
+    ],
+    [
+     "content: recitation wording",
+     "role",
+     "recitation",
+     2
+    ],
+    [
+     "path word 'ta'",
+     "role",
+     "recitation",
+     1
+    ],
+    [
+     "default",
+     "format",
+     "typeset",
+     1
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/econometrics/ta_notes/processed_outputs/10-time-series-basics.md",
+   "role": "recitation",
+   "format": "typeset",
+   "offering": null,
+   "date": null,
+   "book": null,
+   "order": [
+    10,
+    "",
+    "10-time-series-basics"
+   ],
+   "confidence": 8.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "category folder ta_notes",
+     "role",
+     "recitation",
+     2
+    ],
+    [
+     "pdf portrait",
+     "format",
+     "portrait",
+     0
+    ],
+    [
+     "index card ta_notes",
+     "authority",
+     "class",
+     3
+    ],
+    [
+     "content: recitation wording",
+     "role",
+     "recitation",
+     2
+    ],
+    [
+     "path word 'ta'",
+     "role",
+     "recitation",
+     1
+    ],
+    [
+     "default",
+     "format",
+     "typeset",
+     1
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/econometrics/ta_notes/processed_outputs/11-time-series-models.md",
+   "role": "recitation",
+   "format": "typeset",
+   "offering": null,
+   "date": null,
+   "book": null,
+   "order": [
+    11,
+    "",
+    "11-time-series-models"
+   ],
+   "confidence": 8.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "category folder ta_notes",
+     "role",
+     "recitation",
+     2
+    ],
+    [
+     "pdf portrait",
+     "format",
+     "portrait",
+     0
+    ],
+    [
+     "index card ta_notes",
+     "authority",
+     "class",
+     3
+    ],
+    [
+     "content: recitation wording",
+     "role",
+     "recitation",
+     2
+    ],
+    [
+     "path word 'ta'",
+     "role",
+     "recitation",
+     1
+    ],
+    [
+     "default",
+     "format",
+     "typeset",
+     1
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/econometrics/ta_notes/processed_outputs/12-model-selection.md",
+   "role": "recitation",
+   "format": "typeset",
+   "offering": null,
+   "date": null,
+   "book": null,
+   "order": [
+    12,
+    "",
+    "12-model-selection"
+   ],
+   "confidence": 8.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "category folder ta_notes",
+     "role",
+     "recitation",
+     2
+    ],
+    [
+     "pdf portrait",
+     "format",
+     "portrait",
+     0
+    ],
+    [
+     "index card ta_notes",
+     "authority",
+     "class",
+     3
+    ],
+    [
+     "content: recitation wording",
+     "role",
+     "recitation",
+     2
+    ],
+    [
+     "path word 'ta'",
+     "role",
+     "recitation",
+     1
+    ],
+    [
+     "default",
+     "format",
+     "typeset",
+     1
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/econometrics/ta_notes/processed_outputs/13-gls.md",
+   "role": "recitation",
+   "format": "typeset",
+   "offering": null,
+   "date": null,
+   "book": null,
+   "order": [
+    13,
+    "",
+    "13-gls"
+   ],
+   "confidence": 8.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "category folder ta_notes",
+     "role",
+     "recitation",
+     2
+    ],
+    [
+     "pdf portrait",
+     "format",
+     "portrait",
+     0
+    ],
+    [
+     "index card ta_notes",
+     "authority",
+     "class",
+     3
+    ],
+    [
+     "content: recitation wording",
+     "role",
+     "recitation",
+     2
+    ],
+    [
+     "path word 'ta'",
+     "role",
+     "recitation",
+     1
+    ],
+    [
+     "default",
+     "format",
+     "typeset",
+     1
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/econometrics/ta_notes/processed_outputs/A0-little-o-big-o.md",
+   "role": "recitation",
+   "format": "handwritten",
+   "offering": null,
+   "date": null,
+   "book": null,
+   "order": [
+    1000000,
+    "",
+    "a0-little-o-big-o"
+   ],
+   "confidence": 8.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "category folder ta_notes",
+     "role",
+     "recitation",
+     2
+    ],
+    [
+     "pdf portrait",
+     "format",
+     "portrait",
+     0
+    ],
+    [
+     "index card ta_notes",
+     "authority",
+     "class",
+     3
+    ],
+    [
+     "content: problem_set wording",
+     "role",
+     "problem_set",
+     2
+    ],
+    [
+     "path word 'ta'",
+     "role",
+     "recitation",
+     1
+    ],
+    [
+     "portrait scan, few headings",
+     "format",
+     "handwritten",
+     1
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/econometrics/ta_notes/processed_outputs/A1-modes-of-convergence-and-theorems.md",
+   "role": "recitation",
+   "format": "typeset",
+   "offering": null,
+   "date": null,
+   "book": null,
+   "order": [
+    1000000,
+    "",
+    "a1-modes-of-convergence-and-theorems"
+   ],
+   "confidence": 6.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "category folder ta_notes",
+     "role",
+     "recitation",
+     2
+    ],
+    [
+     "pdf portrait",
+     "format",
+     "portrait",
+     0
+    ],
+    [
+     "index card ta_notes",
+     "authority",
+     "class",
+     3
+    ],
+    [
+     "path word 'ta'",
+     "role",
+     "recitation",
+     1
+    ],
+    [
+     "default",
+     "format",
+     "typeset",
+     1
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/econometrics/ta_notes/processed_outputs/A2-distributions-of-hypothesis-testing.md",
+   "role": "recitation",
+   "format": "typeset",
+   "offering": null,
+   "date": null,
+   "book": null,
+   "order": [
+    1000000,
+    "",
+    "a2-distributions-of-hypothesis-testing"
+   ],
+   "confidence": 6.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "category folder ta_notes",
+     "role",
+     "recitation",
+     2
+    ],
+    [
+     "pdf portrait",
+     "format",
+     "portrait",
+     0
+    ],
+    [
+     "index card ta_notes",
+     "authority",
+     "class",
+     3
+    ],
+    [
+     "path word 'ta'",
+     "role",
+     "recitation",
+     1
+    ],
+    [
+     "default",
+     "format",
+     "typeset",
+     1
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/econometrics/ta_notes/processed_outputs/A3-martingale-difference-sequence.md",
+   "role": "recitation",
+   "format": "typeset",
+   "offering": null,
+   "date": null,
+   "book": null,
+   "order": [
+    1000000,
+    "",
+    "a3-martingale-difference-sequence"
+   ],
+   "confidence": 2.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "index card textbook",
+     "role",
+     "textbook",
+     1
+    ],
+    [
+     "category folder ta_notes",
+     "role",
+     "recitation",
+     2
+    ],
+    [
+     "pdf portrait",
+     "format",
+     "portrait",
+     0
+    ],
+    [
+     "path word 'ta'",
+     "role",
+     "recitation",
+     1
+    ],
+    [
+     "default",
+     "format",
+     "typeset",
+     1
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/econometrics/ta_notes/processed_outputs/A4-time-series-regression-examples.md",
+   "role": "recitation",
+   "format": "typeset",
+   "offering": null,
+   "date": null,
+   "book": null,
+   "order": [
+    1000000,
+    "",
+    "a4-time-series-regression-examples"
+   ],
+   "confidence": 6.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "category folder ta_notes",
+     "role",
+     "recitation",
+     2
+    ],
+    [
+     "pdf portrait",
+     "format",
+     "portrait",
+     0
+    ],
+    [
+     "index card ta_notes",
+     "authority",
+     "class",
+     3
+    ],
+    [
+     "path word 'ta'",
+     "role",
+     "recitation",
+     1
+    ],
+    [
+     "default",
+     "format",
+     "typeset",
+     1
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/econometrics/textbooks/processed_outputs/Cameron_Microeconometrics_Methods_and_Applications_2013/chapters/00_front_matter.rag.md",
+   "role": "textbook",
+   "format": "chapter",
+   "offering": null,
+   "date": null,
+   "book": "cameron",
+   "order": [
+    0,
+    "",
+    "00_front_matter"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "textbook layout",
+     "format",
+     "chapter",
+     10
+    ],
+    [
+     "textbook layout",
+     "role",
+     "textbook",
+     10
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/econometrics/textbooks/processed_outputs/Cameron_Microeconometrics_Methods_and_Applications_2013/chapters/01_overview.rag.md",
+   "role": "textbook",
+   "format": "chapter",
+   "offering": null,
+   "date": null,
+   "book": "cameron",
+   "order": [
+    1,
+    "",
+    "01_overview"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "textbook layout",
+     "format",
+     "chapter",
+     10
+    ],
+    [
+     "textbook layout",
+     "role",
+     "textbook",
+     10
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/econometrics/textbooks/processed_outputs/Cameron_Microeconometrics_Methods_and_Applications_2013/chapters/02_causal_and_noncausal_models.rag.md",
+   "role": "textbook",
+   "format": "chapter",
+   "offering": null,
+   "date": null,
+   "book": "cameron",
+   "order": [
+    2,
+    "",
+    "02_causal_and_noncausal_models"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "textbook layout",
+     "format",
+     "chapter",
+     10
+    ],
+    [
+     "textbook layout",
+     "role",
+     "textbook",
+     10
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/econometrics/textbooks/processed_outputs/Cameron_Microeconometrics_Methods_and_Applications_2013/chapters/03_microeconomic_data_structures.rag.md",
+   "role": "textbook",
+   "format": "chapter",
+   "offering": null,
+   "date": null,
+   "book": "cameron",
+   "order": [
+    3,
+    "",
+    "03_microeconomic_data_structures"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "textbook layout",
+     "format",
+     "chapter",
+     10
+    ],
+    [
+     "textbook layout",
+     "role",
+     "textbook",
+     10
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/econometrics/textbooks/processed_outputs/Cameron_Microeconometrics_Methods_and_Applications_2013/chapters/04_linear_models.rag.md",
+   "role": "textbook",
+   "format": "chapter",
+   "offering": null,
+   "date": null,
+   "book": "cameron",
+   "order": [
+    4,
+    "",
+    "04_linear_models"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "textbook layout",
+     "format",
+     "chapter",
+     10
+    ],
+    [
+     "textbook layout",
+     "role",
+     "textbook",
+     10
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/econometrics/textbooks/processed_outputs/Cameron_Microeconometrics_Methods_and_Applications_2013/chapters/05_maximum_likelihood_and_nonlinear_least_squares_e_stim_ation.rag.md",
+   "role": "textbook",
+   "format": "chapter",
+   "offering": null,
+   "date": null,
+   "book": "cameron",
+   "order": [
+    5,
+    "",
+    "05_maximum_likelihood_and_nonlinear_least_squares_e_stim_ation"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "textbook layout",
+     "format",
+     "chapter",
+     10
+    ],
+    [
+     "textbook layout",
+     "role",
+     "textbook",
+     10
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/econometrics/textbooks/processed_outputs/Cameron_Microeconometrics_Methods_and_Applications_2013/chapters/06_generalized_method_of_moments_and_systems_estima_tion.rag.md",
+   "role": "textbook",
+   "format": "chapter",
+   "offering": null,
+   "date": null,
+   "book": "cameron",
+   "order": [
+    6,
+    "",
+    "06_generalized_method_of_moments_and_systems_estima_tion"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "textbook layout",
+     "format",
+     "chapter",
+     10
+    ],
+    [
+     "textbook layout",
+     "role",
+     "textbook",
+     10
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/econometrics/textbooks/processed_outputs/Cameron_Microeconometrics_Methods_and_Applications_2013/chapters/07_hypothesis_tests_223_71_introduction_223_72_wald_test_224.rag.md",
+   "role": "textbook",
+   "format": "chapter",
+   "offering": null,
+   "date": null,
+   "book": "cameron",
+   "order": [
+    7,
+    "",
+    "07_hypothesis_tests_223_71_introduction_223_72_wald_test_224"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "textbook layout",
+     "format",
+     "chapter",
+     10
+    ],
+    [
+     "textbook layout",
+     "role",
+     "textbook",
+     10
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/econometrics/textbooks/processed_outputs/Cameron_Microeconometrics_Methods_and_Applications_2013/chapters/08_specification_tests_and_model_selection_259_81_introduction.rag.md",
+   "role": "textbook",
+   "format": "chapter",
+   "offering": null,
+   "date": null,
+   "book": "cameron",
+   "order": [
+    8,
+    "",
+    "08_specification_tests_and_model_selection_259_81_introduction"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "textbook layout",
+     "format",
+     "chapter",
+     10
+    ],
+    [
+     "textbook layout",
+     "role",
+     "textbook",
+     10
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/econometrics/textbooks/processed_outputs/Cameron_Microeconometrics_Methods_and_Applications_2013/chapters/09_semiparametric_methods_294_91_introduction_294_92.rag.md",
+   "role": "textbook",
+   "format": "chapter",
+   "offering": null,
+   "date": null,
+   "book": "cameron",
+   "order": [
+    9,
+    "",
+    "09_semiparametric_methods_294_91_introduction_294_92"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "textbook layout",
+     "format",
+     "chapter",
+     10
+    ],
+    [
+     "textbook layout",
+     "role",
+     "textbook",
+     10
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/econometrics/textbooks/processed_outputs/Cameron_Microeconometrics_Methods_and_Applications_2013/chapters/10_numerical_optimization_336_101_introduction_336_102_general.rag.md",
+   "role": "textbook",
+   "format": "chapter",
+   "offering": null,
+   "date": null,
+   "book": "cameron",
+   "order": [
+    10,
+    "",
+    "10_numerical_optimization_336_101_introduction_336_102_general"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "textbook layout",
+     "format",
+     "chapter",
+     10
+    ],
+    [
+     "textbook layout",
+     "role",
+     "textbook",
+     10
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/econometrics/textbooks/processed_outputs/Cameron_Microeconometrics_Methods_and_Applications_2013/chapters/11_bootstrap_methods.rag.md",
+   "role": "textbook",
+   "format": "chapter",
+   "offering": null,
+   "date": null,
+   "book": "cameron",
+   "order": [
+    11,
+    "",
+    "11_bootstrap_methods"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "textbook layout",
+     "format",
+     "chapter",
+     10
+    ],
+    [
+     "textbook layout",
+     "role",
+     "textbook",
+     10
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/econometrics/textbooks/processed_outputs/Cameron_Microeconometrics_Methods_and_Applications_2013/chapters/12_simulation_based_methods.rag.md",
+   "role": "textbook",
+   "format": "chapter",
+   "offering": null,
+   "date": null,
+   "book": "cameron",
+   "order": [
+    12,
+    "",
+    "12_simulation_based_methods"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "textbook layout",
+     "format",
+     "chapter",
+     10
+    ],
+    [
+     "textbook layout",
+     "role",
+     "textbook",
+     10
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/econometrics/textbooks/processed_outputs/Cameron_Microeconometrics_Methods_and_Applications_2013/chapters/13_bayesian_methods.rag.md",
+   "role": "textbook",
+   "format": "chapter",
+   "offering": null,
+   "date": null,
+   "book": "cameron",
+   "order": [
+    13,
+    "",
+    "13_bayesian_methods"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "textbook layout",
+     "format",
+     "chapter",
+     10
+    ],
+    [
+     "textbook layout",
+     "role",
+     "textbook",
+     10
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/econometrics/textbooks/processed_outputs/Cameron_Microeconometrics_Methods_and_Applications_2013/chapters/14_binary_outcome_models.rag.md",
+   "role": "textbook",
+   "format": "chapter",
+   "offering": null,
+   "date": null,
+   "book": "cameron",
+   "order": [
+    14,
+    "",
+    "14_binary_outcome_models"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "textbook layout",
+     "format",
+     "chapter",
+     10
+    ],
+    [
+     "textbook layout",
+     "role",
+     "textbook",
+     10
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/econometrics/textbooks/processed_outputs/Cameron_Microeconometrics_Methods_and_Applications_2013/chapters/15_mixture_models_and_unobserved_heterogeneity.rag.md",
+   "role": "textbook",
+   "format": "chapter",
+   "offering": null,
+   "date": null,
+   "book": "cameron",
+   "order": [
+    15,
+    "",
+    "15_mixture_models_and_unobserved_heterogeneity"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "textbook layout",
+     "format",
+     "chapter",
+     10
+    ],
+    [
+     "textbook layout",
+     "role",
+     "textbook",
+     10
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/econometrics/textbooks/processed_outputs/Cameron_Microeconometrics_Methods_and_Applications_2013/chapters/16_linear_panel_models_basics_697_211_linear_panels.rag.md",
+   "role": "textbook",
+   "format": "chapter",
+   "offering": null,
+   "date": null,
+   "book": "cameron",
+   "order": [
+    16,
+    "",
+    "16_linear_panel_models_basics_697_211_linear_panels"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "textbook layout",
+     "format",
+     "chapter",
+     10
+    ],
+    [
+     "textbook layout",
+     "role",
+     "textbook",
+     10
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/econometrics/textbooks/processed_outputs/Cameron_Microeconometrics_Methods_and_Applications_2013/chapters/17_nonlinear_panel_models.rag.md",
+   "role": "textbook",
+   "format": "chapter",
+   "offering": null,
+   "date": null,
+   "book": "cameron",
+   "order": [
+    17,
+    "",
+    "17_nonlinear_panel_models"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "textbook layout",
+     "format",
+     "chapter",
+     10
+    ],
+    [
+     "textbook layout",
+     "role",
+     "textbook",
+     10
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/econometrics/textbooks/processed_outputs/Cameron_Microeconometrics_Methods_and_Applications_2013/chapters/18_stratified_and_clustered_samples.rag.md",
+   "role": "textbook",
+   "format": "chapter",
+   "offering": null,
+   "date": null,
+   "book": "cameron",
+   "order": [
+    18,
+    "",
+    "18_stratified_and_clustered_samples"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "textbook layout",
+     "format",
+     "chapter",
+     10
+    ],
+    [
+     "textbook layout",
+     "role",
+     "textbook",
+     10
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/econometrics/textbooks/processed_outputs/Cameron_Microeconometrics_Methods_and_Applications_2013/chapters/19_treatment_evaluation.rag.md",
+   "role": "textbook",
+   "format": "chapter",
+   "offering": null,
+   "date": null,
+   "book": "cameron",
+   "order": [
+    19,
+    "",
+    "19_treatment_evaluation"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "textbook layout",
+     "format",
+     "chapter",
+     10
+    ],
+    [
+     "textbook layout",
+     "role",
+     "textbook",
+     10
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/econometrics/textbooks/processed_outputs/Cameron_Microeconometrics_Methods_and_Applications_2013/chapters/20_measurement_error_models_899_261_introduction_899_262.rag.md",
+   "role": "textbook",
+   "format": "chapter",
+   "offering": null,
+   "date": null,
+   "book": "cameron",
+   "order": [
+    20,
+    "",
+    "20_measurement_error_models_899_261_introduction_899_262"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "textbook layout",
+     "format",
+     "chapter",
+     10
+    ],
+    [
+     "textbook layout",
+     "role",
+     "textbook",
+     10
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/econometrics/textbooks/processed_outputs/Cameron_Microeconometrics_Methods_and_Applications_2013/chapters/21_missing_data_and_imputation_923_271_introduction_923_272.rag.md",
+   "role": "textbook",
+   "format": "chapter",
+   "offering": null,
+   "date": null,
+   "book": "cameron",
+   "order": [
+    21,
+    "",
+    "21_missing_data_and_imputation_923_271_introduction_923_272"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "textbook layout",
+     "format",
+     "chapter",
+     10
+    ],
+    [
+     "textbook layout",
+     "role",
+     "textbook",
+     10
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/econometrics/textbooks/processed_outputs/Hansen_ECONOMETRICS_2022/chapters/00_front_matter.rag.md",
+   "role": "textbook",
+   "format": "chapter",
+   "offering": null,
+   "date": null,
+   "book": "hansen",
+   "order": [
+    0,
+    "",
+    "00_front_matter"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "textbook layout",
+     "format",
+     "chapter",
+     10
+    ],
+    [
+     "textbook layout",
+     "role",
+     "textbook",
+     10
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/econometrics/textbooks/processed_outputs/Hansen_ECONOMETRICS_2022/chapters/01_introduction.rag.md",
+   "role": "textbook",
+   "format": "chapter",
+   "offering": null,
+   "date": null,
+   "book": "hansen",
+   "order": [
+    1,
+    "",
+    "01_introduction"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "textbook layout",
+     "format",
+     "chapter",
+     10
+    ],
+    [
+     "textbook layout",
+     "role",
+     "textbook",
+     10
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/econometrics/textbooks/processed_outputs/Hansen_ECONOMETRICS_2022/chapters/02_conditional_expectation_and_projection.rag.md",
+   "role": "textbook",
+   "format": "chapter",
+   "offering": null,
+   "date": null,
+   "book": "hansen",
+   "order": [
+    2,
+    "",
+    "02_conditional_expectation_and_projection"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "textbook layout",
+     "format",
+     "chapter",
+     10
+    ],
+    [
+     "textbook layout",
+     "role",
+     "textbook",
+     10
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/econometrics/textbooks/processed_outputs/Hansen_ECONOMETRICS_2022/chapters/03_the_algebra_of_least_squares.rag.md",
+   "role": "textbook",
+   "format": "chapter",
+   "offering": null,
+   "date": null,
+   "book": "hansen",
+   "order": [
+    3,
+    "",
+    "03_the_algebra_of_least_squares"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "textbook layout",
+     "format",
+     "chapter",
+     10
+    ],
+    [
+     "textbook layout",
+     "role",
+     "textbook",
+     10
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/econometrics/textbooks/processed_outputs/Hansen_ECONOMETRICS_2022/chapters/04_least_squares_regression.rag.md",
+   "role": "textbook",
+   "format": "chapter",
+   "offering": null,
+   "date": null,
+   "book": "hansen",
+   "order": [
+    4,
+    "",
+    "04_least_squares_regression"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "textbook layout",
+     "format",
+     "chapter",
+     10
+    ],
+    [
+     "textbook layout",
+     "role",
+     "textbook",
+     10
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/econometrics/textbooks/processed_outputs/Hansen_ECONOMETRICS_2022/chapters/05_normal_regression.rag.md",
+   "role": "textbook",
+   "format": "chapter",
+   "offering": null,
+   "date": null,
+   "book": "hansen",
+   "order": [
+    5,
+    "",
+    "05_normal_regression"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "textbook layout",
+     "format",
+     "chapter",
+     10
+    ],
+    [
+     "textbook layout",
+     "role",
+     "textbook",
+     10
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/econometrics/textbooks/processed_outputs/Hansen_ECONOMETRICS_2022/chapters/06_a_review_of_large_sample_asymptotics.rag.md",
+   "role": "textbook",
+   "format": "chapter",
+   "offering": null,
+   "date": null,
+   "book": "hansen",
+   "order": [
+    6,
+    "",
+    "06_a_review_of_large_sample_asymptotics"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "textbook layout",
+     "format",
+     "chapter",
+     10
+    ],
+    [
+     "textbook layout",
+     "role",
+     "textbook",
+     10
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/econometrics/textbooks/processed_outputs/Hansen_ECONOMETRICS_2022/chapters/07_asymptotic_theory_for_least_squares.rag.md",
+   "role": "textbook",
+   "format": "chapter",
+   "offering": null,
+   "date": null,
+   "book": "hansen",
+   "order": [
+    7,
+    "",
+    "07_asymptotic_theory_for_least_squares"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "textbook layout",
+     "format",
+     "chapter",
+     10
+    ],
+    [
+     "textbook layout",
+     "role",
+     "textbook",
+     10
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/econometrics/textbooks/processed_outputs/Hansen_ECONOMETRICS_2022/chapters/08_restricted_estimation.rag.md",
+   "role": "textbook",
+   "format": "chapter",
+   "offering": null,
+   "date": null,
+   "book": "hansen",
+   "order": [
+    8,
+    "",
+    "08_restricted_estimation"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "textbook layout",
+     "format",
+     "chapter",
+     10
+    ],
+    [
+     "textbook layout",
+     "role",
+     "textbook",
+     10
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/econometrics/textbooks/processed_outputs/Hansen_ECONOMETRICS_2022/chapters/09_hypothesis_testing.rag.md",
+   "role": "textbook",
+   "format": "chapter",
+   "offering": null,
+   "date": null,
+   "book": "hansen",
+   "order": [
+    9,
+    "",
+    "09_hypothesis_testing"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "textbook layout",
+     "format",
+     "chapter",
+     10
+    ],
+    [
+     "textbook layout",
+     "role",
+     "textbook",
+     10
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/econometrics/textbooks/processed_outputs/Hansen_ECONOMETRICS_2022/chapters/10_resampling_methods.rag.md",
+   "role": "textbook",
+   "format": "chapter",
+   "offering": null,
+   "date": null,
+   "book": "hansen",
+   "order": [
+    10,
+    "",
+    "10_resampling_methods"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "textbook layout",
+     "format",
+     "chapter",
+     10
+    ],
+    [
+     "textbook layout",
+     "role",
+     "textbook",
+     10
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/econometrics/textbooks/processed_outputs/Hansen_ECONOMETRICS_2022/chapters/11_multivariate_regression.rag.md",
+   "role": "textbook",
+   "format": "chapter",
+   "offering": null,
+   "date": null,
+   "book": "hansen",
+   "order": [
+    11,
+    "",
+    "11_multivariate_regression"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "textbook layout",
+     "format",
+     "chapter",
+     10
+    ],
+    [
+     "textbook layout",
+     "role",
+     "textbook",
+     10
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/econometrics/textbooks/processed_outputs/Hansen_ECONOMETRICS_2022/chapters/12_instrumental_variables.rag.md",
+   "role": "textbook",
+   "format": "chapter",
+   "offering": null,
+   "date": null,
+   "book": "hansen",
+   "order": [
+    12,
+    "",
+    "12_instrumental_variables"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "textbook layout",
+     "format",
+     "chapter",
+     10
+    ],
+    [
+     "textbook layout",
+     "role",
+     "textbook",
+     10
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/econometrics/textbooks/processed_outputs/Hansen_ECONOMETRICS_2022/chapters/13_generalized_method_of_moments.rag.md",
+   "role": "textbook",
+   "format": "chapter",
+   "offering": null,
+   "date": null,
+   "book": "hansen",
+   "order": [
+    13,
+    "",
+    "13_generalized_method_of_moments"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "textbook layout",
+     "format",
+     "chapter",
+     10
+    ],
+    [
+     "textbook layout",
+     "role",
+     "textbook",
+     10
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/econometrics/textbooks/processed_outputs/Hansen_ECONOMETRICS_2022/chapters/14_time_series.rag.md",
+   "role": "textbook",
+   "format": "chapter",
+   "offering": null,
+   "date": null,
+   "book": "hansen",
+   "order": [
+    14,
+    "",
+    "14_time_series"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "textbook layout",
+     "format",
+     "chapter",
+     10
+    ],
+    [
+     "textbook layout",
+     "role",
+     "textbook",
+     10
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/econometrics/textbooks/processed_outputs/Hansen_ECONOMETRICS_2022/chapters/15_multivariate_time_series.rag.md",
+   "role": "textbook",
+   "format": "chapter",
+   "offering": null,
+   "date": null,
+   "book": "hansen",
+   "order": [
+    15,
+    "",
+    "15_multivariate_time_series"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "textbook layout",
+     "format",
+     "chapter",
+     10
+    ],
+    [
+     "textbook layout",
+     "role",
+     "textbook",
+     10
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/econometrics/textbooks/processed_outputs/Hansen_ECONOMETRICS_2022/chapters/16_nonstationary_time_series.rag.md",
+   "role": "textbook",
+   "format": "chapter",
+   "offering": null,
+   "date": null,
+   "book": "hansen",
+   "order": [
+    16,
+    "",
+    "16_nonstationary_time_series"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "textbook layout",
+     "format",
+     "chapter",
+     10
+    ],
+    [
+     "textbook layout",
+     "role",
+     "textbook",
+     10
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/econometrics/textbooks/processed_outputs/Hansen_ECONOMETRICS_2022/chapters/17_panel_data.rag.md",
+   "role": "textbook",
+   "format": "chapter",
+   "offering": null,
+   "date": null,
+   "book": "hansen",
+   "order": [
+    17,
+    "",
+    "17_panel_data"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "textbook layout",
+     "format",
+     "chapter",
+     10
+    ],
+    [
+     "textbook layout",
+     "role",
+     "textbook",
+     10
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/econometrics/textbooks/processed_outputs/Hansen_ECONOMETRICS_2022/chapters/18_difference_in_differences.rag.md",
+   "role": "textbook",
+   "format": "chapter",
+   "offering": null,
+   "date": null,
+   "book": "hansen",
+   "order": [
+    18,
+    "",
+    "18_difference_in_differences"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "textbook layout",
+     "format",
+     "chapter",
+     10
+    ],
+    [
+     "textbook layout",
+     "role",
+     "textbook",
+     10
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/econometrics/textbooks/processed_outputs/Hansen_ECONOMETRICS_2022/chapters/19_nonparametric_regression.rag.md",
+   "role": "textbook",
+   "format": "chapter",
+   "offering": null,
+   "date": null,
+   "book": "hansen",
+   "order": [
+    19,
+    "",
+    "19_nonparametric_regression"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "textbook layout",
+     "format",
+     "chapter",
+     10
+    ],
+    [
+     "textbook layout",
+     "role",
+     "textbook",
+     10
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/econometrics/textbooks/processed_outputs/Hansen_ECONOMETRICS_2022/chapters/20_series_regression.rag.md",
+   "role": "textbook",
+   "format": "chapter",
+   "offering": null,
+   "date": null,
+   "book": "hansen",
+   "order": [
+    20,
+    "",
+    "20_series_regression"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "textbook layout",
+     "format",
+     "chapter",
+     10
+    ],
+    [
+     "textbook layout",
+     "role",
+     "textbook",
+     10
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/econometrics/textbooks/processed_outputs/Hansen_ECONOMETRICS_2022/chapters/21_regression_discontinuity.rag.md",
+   "role": "textbook",
+   "format": "chapter",
+   "offering": null,
+   "date": null,
+   "book": "hansen",
+   "order": [
+    21,
+    "",
+    "21_regression_discontinuity"
+   ],
+   "confidence": 8.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "textbook layout",
+     "format",
+     "chapter",
+     10
+    ],
+    [
+     "textbook layout",
+     "role",
+     "textbook",
+     10
+    ],
+    [
+     "content: exam wording",
+     "role",
+     "exam",
+     2
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/econometrics/textbooks/processed_outputs/Hansen_ECONOMETRICS_2022/chapters/22_m_estimators.rag.md",
+   "role": "textbook",
+   "format": "chapter",
+   "offering": null,
+   "date": null,
+   "book": "hansen",
+   "order": [
+    22,
+    "",
+    "22_m_estimators"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "textbook layout",
+     "format",
+     "chapter",
+     10
+    ],
+    [
+     "textbook layout",
+     "role",
+     "textbook",
+     10
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/econometrics/textbooks/processed_outputs/Hansen_ECONOMETRICS_2022/chapters/23_nonlinear_least_squares.rag.md",
+   "role": "textbook",
+   "format": "chapter",
+   "offering": null,
+   "date": null,
+   "book": "hansen",
+   "order": [
+    23,
+    "",
+    "23_nonlinear_least_squares"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "textbook layout",
+     "format",
+     "chapter",
+     10
+    ],
+    [
+     "textbook layout",
+     "role",
+     "textbook",
+     10
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/econometrics/textbooks/processed_outputs/Hansen_ECONOMETRICS_2022/chapters/24_quantile_regression.rag.md",
+   "role": "textbook",
+   "format": "chapter",
+   "offering": null,
+   "date": null,
+   "book": "hansen",
+   "order": [
+    24,
+    "",
+    "24_quantile_regression"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "textbook layout",
+     "format",
+     "chapter",
+     10
+    ],
+    [
+     "textbook layout",
+     "role",
+     "textbook",
+     10
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/econometrics/textbooks/processed_outputs/Hansen_ECONOMETRICS_2022/chapters/25_binary_choice.rag.md",
+   "role": "textbook",
+   "format": "chapter",
+   "offering": null,
+   "date": null,
+   "book": "hansen",
+   "order": [
+    25,
+    "",
+    "25_binary_choice"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "textbook layout",
+     "format",
+     "chapter",
+     10
+    ],
+    [
+     "textbook layout",
+     "role",
+     "textbook",
+     10
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/econometrics/textbooks/processed_outputs/Hansen_ECONOMETRICS_2022/chapters/26_multiple_choice.rag.md",
+   "role": "textbook",
+   "format": "chapter",
+   "offering": null,
+   "date": null,
+   "book": "hansen",
+   "order": [
+    26,
+    "",
+    "26_multiple_choice"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "textbook layout",
+     "format",
+     "chapter",
+     10
+    ],
+    [
+     "textbook layout",
+     "role",
+     "textbook",
+     10
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/econometrics/textbooks/processed_outputs/Hansen_ECONOMETRICS_2022/chapters/27_censoring_and_selection.rag.md",
+   "role": "textbook",
+   "format": "chapter",
+   "offering": null,
+   "date": null,
+   "book": "hansen",
+   "order": [
+    27,
+    "",
+    "27_censoring_and_selection"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "textbook layout",
+     "format",
+     "chapter",
+     10
+    ],
+    [
+     "textbook layout",
+     "role",
+     "textbook",
+     10
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/econometrics/textbooks/processed_outputs/Hansen_ECONOMETRICS_2022/chapters/28_model_selection_stein_shrinkage_and_model_averaging.rag.md",
+   "role": "textbook",
+   "format": "chapter",
+   "offering": null,
+   "date": null,
+   "book": "hansen",
+   "order": [
+    28,
+    "",
+    "28_model_selection_stein_shrinkage_and_model_averaging"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "textbook layout",
+     "format",
+     "chapter",
+     10
+    ],
+    [
+     "textbook layout",
+     "role",
+     "textbook",
+     10
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/econometrics/textbooks/processed_outputs/Hansen_ECONOMETRICS_2022/chapters/29_machine_learning.rag.md",
+   "role": "textbook",
+   "format": "chapter",
+   "offering": null,
+   "date": null,
+   "book": "hansen",
+   "order": [
+    29,
+    "",
+    "29_machine_learning"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "textbook layout",
+     "format",
+     "chapter",
+     10
+    ],
+    [
+     "textbook layout",
+     "role",
+     "textbook",
+     10
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/econometrics/textbooks/processed_outputs/Hayashi_Contents_2007/chapters/00_front_matter.rag.md",
+   "role": "textbook",
+   "format": "chapter",
+   "offering": null,
+   "date": null,
+   "book": "hayashi",
+   "order": [
+    0,
+    "",
+    "00_front_matter"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "textbook layout",
+     "format",
+     "chapter",
+     10
+    ],
+    [
+     "textbook layout",
+     "role",
+     "textbook",
+     10
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/econometrics/textbooks/processed_outputs/Hayashi_Contents_2007/chapters/01_table_of_contents.rag.md",
+   "role": "textbook",
+   "format": "chapter",
+   "offering": null,
+   "date": null,
+   "book": "hayashi",
+   "order": [
+    1,
+    "",
+    "01_table_of_contents"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "textbook layout",
+     "format",
+     "chapter",
+     10
+    ],
+    [
+     "textbook layout",
+     "role",
+     "textbook",
+     10
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/econometrics/textbooks/processed_outputs/Hayashi_Contents_2007/chapters/02_preface.rag.md",
+   "role": "textbook",
+   "format": "chapter",
+   "offering": null,
+   "date": null,
+   "book": "hayashi",
+   "order": [
+    2,
+    "",
+    "02_preface"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "textbook layout",
+     "format",
+     "chapter",
+     10
+    ],
+    [
+     "textbook layout",
+     "role",
+     "textbook",
+     10
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/econometrics/textbooks/processed_outputs/Hayashi_Contents_2007/chapters/03_1_finite_sample_properties_of_ols.rag.md",
+   "role": "textbook",
+   "format": "chapter",
+   "offering": null,
+   "date": null,
+   "book": "hayashi",
+   "order": [
+    3,
+    "",
+    "03_1_finite_sample_properties_of_ols"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "textbook layout",
+     "format",
+     "chapter",
+     10
+    ],
+    [
+     "textbook layout",
+     "role",
+     "textbook",
+     10
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/econometrics/textbooks/processed_outputs/Hayashi_Contents_2007/chapters/04_2_large_sample_theory.rag.md",
+   "role": "textbook",
+   "format": "chapter",
+   "offering": null,
+   "date": null,
+   "book": "hayashi",
+   "order": [
+    4,
+    "",
+    "04_2_large_sample_theory"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "textbook layout",
+     "format",
+     "chapter",
+     10
+    ],
+    [
+     "textbook layout",
+     "role",
+     "textbook",
+     10
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/econometrics/textbooks/processed_outputs/Hayashi_Contents_2007/chapters/05_3_single_equation_gmm.rag.md",
+   "role": "textbook",
+   "format": "chapter",
+   "offering": null,
+   "date": null,
+   "book": "hayashi",
+   "order": [
+    5,
+    "",
+    "05_3_single_equation_gmm"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "textbook layout",
+     "format",
+     "chapter",
+     10
+    ],
+    [
+     "textbook layout",
+     "role",
+     "textbook",
+     10
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/econometrics/textbooks/processed_outputs/Hayashi_Contents_2007/chapters/06_4_multiple_equation_gmm.rag.md",
+   "role": "textbook",
+   "format": "chapter",
+   "offering": null,
+   "date": null,
+   "book": "hayashi",
+   "order": [
+    6,
+    "",
+    "06_4_multiple_equation_gmm"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "textbook layout",
+     "format",
+     "chapter",
+     10
+    ],
+    [
+     "textbook layout",
+     "role",
+     "textbook",
+     10
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/econometrics/textbooks/processed_outputs/Hayashi_Contents_2007/chapters/07_5_panel_data.rag.md",
+   "role": "textbook",
+   "format": "chapter",
+   "offering": null,
+   "date": null,
+   "book": "hayashi",
+   "order": [
+    7,
+    "",
+    "07_5_panel_data"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "textbook layout",
+     "format",
+     "chapter",
+     10
+    ],
+    [
+     "textbook layout",
+     "role",
+     "textbook",
+     10
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/econometrics/textbooks/processed_outputs/Hayashi_Contents_2007/chapters/08_6_serial_correlation.rag.md",
+   "role": "textbook",
+   "format": "chapter",
+   "offering": null,
+   "date": null,
+   "book": "hayashi",
+   "order": [
+    8,
+    "",
+    "08_6_serial_correlation"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "textbook layout",
+     "format",
+     "chapter",
+     10
+    ],
+    [
+     "textbook layout",
+     "role",
+     "textbook",
+     10
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/econometrics/textbooks/processed_outputs/Hayashi_Contents_2007/chapters/09_7_extremum_estimators.rag.md",
+   "role": "textbook",
+   "format": "chapter",
+   "offering": null,
+   "date": null,
+   "book": "hayashi",
+   "order": [
+    9,
+    "",
+    "09_7_extremum_estimators"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "textbook layout",
+     "format",
+     "chapter",
+     10
+    ],
+    [
+     "textbook layout",
+     "role",
+     "textbook",
+     10
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/econometrics/textbooks/processed_outputs/Hayashi_Contents_2007/chapters/10_8_examples_of_maximum_likelihood.rag.md",
+   "role": "textbook",
+   "format": "chapter",
+   "offering": null,
+   "date": null,
+   "book": "hayashi",
+   "order": [
+    10,
+    "",
+    "10_8_examples_of_maximum_likelihood"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "textbook layout",
+     "format",
+     "chapter",
+     10
+    ],
+    [
+     "textbook layout",
+     "role",
+     "textbook",
+     10
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/econometrics/textbooks/processed_outputs/Hayashi_Contents_2007/chapters/11_9_unit_root_econometrics.rag.md",
+   "role": "textbook",
+   "format": "chapter",
+   "offering": null,
+   "date": null,
+   "book": "hayashi",
+   "order": [
+    11,
+    "",
+    "11_9_unit_root_econometrics"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "textbook layout",
+     "format",
+     "chapter",
+     10
+    ],
+    [
+     "textbook layout",
+     "role",
+     "textbook",
+     10
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/econometrics/textbooks/processed_outputs/Hayashi_Contents_2007/chapters/12_10_cointegration.rag.md",
+   "role": "textbook",
+   "format": "chapter",
+   "offering": null,
+   "date": null,
+   "book": "hayashi",
+   "order": [
+    12,
+    "",
+    "12_10_cointegration"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "textbook layout",
+     "format",
+     "chapter",
+     10
+    ],
+    [
+     "textbook layout",
+     "role",
+     "textbook",
+     10
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/econometrics/textbooks/processed_outputs/Stock_Question_Help_2019/chapters/00_front_matter.rag.md",
+   "role": "textbook",
+   "format": "chapter",
+   "offering": null,
+   "date": null,
+   "book": "stock",
+   "order": [
+    0,
+    "",
+    "00_front_matter"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "textbook layout",
+     "format",
+     "chapter",
+     10
+    ],
+    [
+     "textbook layout",
+     "role",
+     "textbook",
+     10
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/econometrics/textbooks/processed_outputs/Stock_Question_Help_2019/chapters/01_economic_questions_and_data.rag.md",
+   "role": "textbook",
+   "format": "chapter",
+   "offering": null,
+   "date": null,
+   "book": "stock",
+   "order": [
+    1,
+    "",
+    "01_economic_questions_and_data"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "textbook layout",
+     "format",
+     "chapter",
+     10
+    ],
+    [
+     "textbook layout",
+     "role",
+     "textbook",
+     10
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/econometrics/textbooks/processed_outputs/Stock_Question_Help_2019/chapters/02_review_of_probability.rag.md",
+   "role": "textbook",
+   "format": "chapter",
+   "offering": null,
+   "date": null,
+   "book": "stock",
+   "order": [
+    2,
+    "",
+    "02_review_of_probability"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "textbook layout",
+     "format",
+     "chapter",
+     10
+    ],
+    [
+     "textbook layout",
+     "role",
+     "textbook",
+     10
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/econometrics/textbooks/processed_outputs/Stock_Question_Help_2019/chapters/03_review_of_statistics.rag.md",
+   "role": "textbook",
+   "format": "chapter",
+   "offering": null,
+   "date": null,
+   "book": "stock",
+   "order": [
+    3,
+    "",
+    "03_review_of_statistics"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "textbook layout",
+     "format",
+     "chapter",
+     10
+    ],
+    [
+     "textbook layout",
+     "role",
+     "textbook",
+     10
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/econometrics/textbooks/processed_outputs/Stock_Question_Help_2019/chapters/04_linear_regression_with_one_regressor.rag.md",
+   "role": "textbook",
+   "format": "chapter",
+   "offering": null,
+   "date": null,
+   "book": "stock",
+   "order": [
+    4,
+    "",
+    "04_linear_regression_with_one_regressor"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "textbook layout",
+     "format",
+     "chapter",
+     10
+    ],
+    [
+     "textbook layout",
+     "role",
+     "textbook",
+     10
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/econometrics/textbooks/processed_outputs/Stock_Question_Help_2019/chapters/05_linear_regression_with_multiple_regressors.rag.md",
+   "role": "textbook",
+   "format": "chapter",
+   "offering": null,
+   "date": null,
+   "book": "stock",
+   "order": [
+    5,
+    "",
+    "05_linear_regression_with_multiple_regressors"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "textbook layout",
+     "format",
+     "chapter",
+     10
+    ],
+    [
+     "textbook layout",
+     "role",
+     "textbook",
+     10
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/econometrics/textbooks/processed_outputs/Stock_Question_Help_2019/chapters/06_hypothesis_tests_and_confidence_intervals_in_multiple.rag.md",
+   "role": "textbook",
+   "format": "chapter",
+   "offering": null,
+   "date": null,
+   "book": "stock",
+   "order": [
+    6,
+    "",
+    "06_hypothesis_tests_and_confidence_intervals_in_multiple"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "textbook layout",
+     "format",
+     "chapter",
+     10
+    ],
+    [
+     "textbook layout",
+     "role",
+     "textbook",
+     10
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/econometrics/textbooks/processed_outputs/Stock_Question_Help_2019/chapters/07_nonlinear_regression_functions.rag.md",
+   "role": "textbook",
+   "format": "chapter",
+   "offering": null,
+   "date": null,
+   "book": "stock",
+   "order": [
+    7,
+    "",
+    "07_nonlinear_regression_functions"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "textbook layout",
+     "format",
+     "chapter",
+     10
+    ],
+    [
+     "textbook layout",
+     "role",
+     "textbook",
+     10
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/econometrics/textbooks/processed_outputs/Stock_Question_Help_2019/chapters/08_assessing_studies_based_on_multiple_regression.rag.md",
+   "role": "textbook",
+   "format": "chapter",
+   "offering": null,
+   "date": null,
+   "book": "stock",
+   "order": [
+    8,
+    "",
+    "08_assessing_studies_based_on_multiple_regression"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "textbook layout",
+     "format",
+     "chapter",
+     10
+    ],
+    [
+     "textbook layout",
+     "role",
+     "textbook",
+     10
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/econometrics/textbooks/processed_outputs/Stock_Question_Help_2019/chapters/09_regression_with_panel_data.rag.md",
+   "role": "textbook",
+   "format": "chapter",
+   "offering": null,
+   "date": null,
+   "book": "stock",
+   "order": [
+    9,
+    "",
+    "09_regression_with_panel_data"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "textbook layout",
+     "format",
+     "chapter",
+     10
+    ],
+    [
+     "textbook layout",
+     "role",
+     "textbook",
+     10
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/econometrics/textbooks/processed_outputs/Stock_Question_Help_2019/chapters/10_regression_with_a_binary_dependent_variable.rag.md",
+   "role": "textbook",
+   "format": "chapter",
+   "offering": null,
+   "date": null,
+   "book": "stock",
+   "order": [
+    10,
+    "",
+    "10_regression_with_a_binary_dependent_variable"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "textbook layout",
+     "format",
+     "chapter",
+     10
+    ],
+    [
+     "textbook layout",
+     "role",
+     "textbook",
+     10
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/econometrics/textbooks/processed_outputs/Stock_Question_Help_2019/chapters/11_instrumental_variables_regression.rag.md",
+   "role": "textbook",
+   "format": "chapter",
+   "offering": null,
+   "date": null,
+   "book": "stock",
+   "order": [
+    11,
+    "",
+    "11_instrumental_variables_regression"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "textbook layout",
+     "format",
+     "chapter",
+     10
+    ],
+    [
+     "textbook layout",
+     "role",
+     "textbook",
+     10
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/econometrics/textbooks/processed_outputs/Stock_Question_Help_2019/chapters/12_experiments_and_quasi_experiments.rag.md",
+   "role": "textbook",
+   "format": "chapter",
+   "offering": null,
+   "date": null,
+   "book": "stock",
+   "order": [
+    12,
+    "",
+    "12_experiments_and_quasi_experiments"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "textbook layout",
+     "format",
+     "chapter",
+     10
+    ],
+    [
+     "textbook layout",
+     "role",
+     "textbook",
+     10
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/econometrics/textbooks/processed_outputs/Stock_Question_Help_2019/chapters/13_prediction_with_many_regressors_and_big_data.rag.md",
+   "role": "textbook",
+   "format": "chapter",
+   "offering": null,
+   "date": null,
+   "book": "stock",
+   "order": [
+    13,
+    "",
+    "13_prediction_with_many_regressors_and_big_data"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "textbook layout",
+     "format",
+     "chapter",
+     10
+    ],
+    [
+     "textbook layout",
+     "role",
+     "textbook",
+     10
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/econometrics/textbooks/processed_outputs/Stock_Question_Help_2019/chapters/14_introduction_to_time_series_regression_and_forecasting.rag.md",
+   "role": "textbook",
+   "format": "chapter",
+   "offering": null,
+   "date": null,
+   "book": "stock",
+   "order": [
+    14,
+    "",
+    "14_introduction_to_time_series_regression_and_forecasting"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "textbook layout",
+     "format",
+     "chapter",
+     10
+    ],
+    [
+     "textbook layout",
+     "role",
+     "textbook",
+     10
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/econometrics/textbooks/processed_outputs/Stock_Question_Help_2019/chapters/15_estimation_of_dynamic_causal_effects.rag.md",
+   "role": "textbook",
+   "format": "chapter",
+   "offering": null,
+   "date": null,
+   "book": "stock",
+   "order": [
+    15,
+    "",
+    "15_estimation_of_dynamic_causal_effects"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "textbook layout",
+     "format",
+     "chapter",
+     10
+    ],
+    [
+     "textbook layout",
+     "role",
+     "textbook",
+     10
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/econometrics/textbooks/processed_outputs/Stock_Question_Help_2019/chapters/16_additional_topics_in_time_series_regression.rag.md",
+   "role": "textbook",
+   "format": "chapter",
+   "offering": null,
+   "date": null,
+   "book": "stock",
+   "order": [
+    16,
+    "",
+    "16_additional_topics_in_time_series_regression"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "textbook layout",
+     "format",
+     "chapter",
+     10
+    ],
+    [
+     "textbook layout",
+     "role",
+     "textbook",
+     10
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/econometrics/textbooks/processed_outputs/Stock_Question_Help_2019/chapters/17_the_theory_of_linear_regression_with_one_regressor.rag.md",
+   "role": "textbook",
+   "format": "chapter",
+   "offering": null,
+   "date": null,
+   "book": "stock",
+   "order": [
+    17,
+    "",
+    "17_the_theory_of_linear_regression_with_one_regressor"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "textbook layout",
+     "format",
+     "chapter",
+     10
+    ],
+    [
+     "textbook layout",
+     "role",
+     "textbook",
+     10
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/econometrics/textbooks/processed_outputs/Stock_Question_Help_2019/chapters/18_the_theory_of_multiple_regression.rag.md",
+   "role": "textbook",
+   "format": "chapter",
+   "offering": null,
+   "date": null,
+   "book": "stock",
+   "order": [
+    18,
+    "",
+    "18_the_theory_of_multiple_regression"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "textbook layout",
+     "format",
+     "chapter",
+     10
+    ],
+    [
+     "textbook layout",
+     "role",
+     "textbook",
+     10
+    ]
+   ],
+   "decided_by": "rules"
+  }
+ ],
+ "unknown_decisions": [],
+ "excluded": [
+  "academic_notes/econometrics/syllabus/processed_outputs/ec6411A.md"
+ ]
+}

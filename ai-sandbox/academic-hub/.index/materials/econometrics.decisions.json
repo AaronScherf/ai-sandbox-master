@@ -1,0 +1,18 @@
+{
+  "academic_notes/econometrics/class_2024/Class Notes/Hand-Written Notes/processed_outputs/": {
+    "format": "handwritten",
+    "offering": "2024",
+    "role": "instructor"
+  },
+  "academic_notes/econometrics/problem_sets/": {
+    "format": "typeset",
+    "role": "problem_set"
+  },
+  "academic_notes/econometrics/professor_notes/processed_outputs/": {
+    "format": "handwritten",
+    "role": "instructor"
+  },
+  "academic_notes/econometrics/syllabus/processed_outputs/ec6411A.md": {
+    "exclude": true
+  }
+}
