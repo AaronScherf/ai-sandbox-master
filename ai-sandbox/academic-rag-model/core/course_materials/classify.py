@@ -36,9 +36,18 @@ def _read(path: Path, limit: int = _HEAD_CHARS) -> str:
     return path.read_text(encoding="utf-8", errors="ignore").replace("\r\n", "\n")[:limit]
 
 
+def _is_raw_scene(f: Path) -> bool:
+    return bool(_RAW_SCENE.search(_read(f, 400)))
+
+
+def _stem_of(f: Path) -> str:
+    return f.name[: -len(".rag.md")] if f.name.endswith(".rag.md") else f.name[: -len(".md")]
+
+
 def discover(hub_root, course: str) -> list[Path]:
-    """Every converted .md in the course: one per source (the .rag.md when both exist), without raw Excalidraw
-    scene files or other pipelines' output folders."""
+    """Every converted .md in the course: one per source (the .rag.md when both exist), outside other pipelines'
+    output folders. A raw Excalidraw drawing is left out when it has been converted (its conversion stands for it)
+    and kept otherwise, so a lecture not yet transcribed still has its date."""
     base = _course_dir(hub_root, course)
     found: dict[str, Path] = {}
     for f in sorted(base.rglob("*.md")):
@@ -48,7 +57,9 @@ def discover(hub_root, course: str) -> list[Path]:
         if key in found and not f.name.endswith(".rag.md"):
             continue
         found[key] = f
-    return [f for f in found.values() if not _RAW_SCENE.search(_read(f, 400))]
+    raw = {f for f in found.values() if _is_raw_scene(f)}
+    converted = {_stem_of(f) for f in found.values() if f not in raw}
+    return [f for f in found.values() if f not in raw or _stem_of(f) not in converted]
 
 
 def date_from_stem(stem: str) -> str | None:
@@ -123,7 +134,10 @@ def _material(norm: str, facts: Facts, offering: str | None) -> Material:
 
 def classify_file(hub_root, path: Path, cards: dict | None = None) -> Material:
     norm = normalize(str(path)) or str(path).replace("\\", "/")
-    fm, body = parse_frontmatter(_read(path)) if path.is_file() else ({}, "")
+    text = _read(path) if path.is_file() else ""
+    fm, body = parse_frontmatter(text)
+    if _RAW_SCENE.search(text[:400]):  # an Excalidraw drawing itself (its hyphenated plugin key is not parsed)
+        fm, body = {**fm, "source_excalidraw": path.name}, ""
     pdf = _source_pdf(hub_root, fm)
     facts = Facts(path=norm, frontmatter=fm, body=body, card_doc_type=(cards or {}).get(norm),
                   pdf_shape=pdf_shape(pdf) if pdf else None)

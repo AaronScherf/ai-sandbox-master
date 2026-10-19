@@ -170,3 +170,16 @@ def test_dates_from_iso_and_mmddyy_stems():
     assert date_from_stem("Econometrics 2026-09-09 10.11.39.excalidraw") == "2026-09-09"
     assert date_from_stem("092126") == "2026-09-21"
     assert date_from_stem("133126") is None and date_from_stem("slides1") is None
+
+
+def test_an_unconverted_drawing_still_counts_as_a_dated_student_note(tmp_path):
+    # econometrics has seven lecture dates that exist only as Excalidraw drawings not yet transcribed; their dates
+    # belong in the lecture timeline. A drawing that has been converted is represented by its conversion instead.
+    hub = build_course(tmp_path)
+    scene = "---\n\nexcalidraw-plugin: parsed\ntags: [excalidraw]\n\n---\n==Switch to EXCALIDRAW VIEW==\n"
+    write(hub / N / "notes" / "Demo 2026-09-21 10.05.20.excalidraw.md", scene)
+    cat = by_stem(classify_course(hub, COURSE))
+    m = cat["Demo 2026-09-21 10.05.20.excalidraw"]
+    assert (m.role, m.format, m.date, m.flagged) == ("student_notes", "excalidraw", "2026-09-21", False)
+    assert [s for s in cat if s.startswith("Demo 2026-09-09")] == ["Demo 2026-09-09 10.00.00.excalidraw"]
+    assert cat["Demo 2026-09-09 10.00.00.excalidraw"].path.endswith(".rag.md")
