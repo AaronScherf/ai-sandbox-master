@@ -14,6 +14,11 @@ def test_every_stage_has_steps_and_a_name():
     assert set(stages.STAGES) <= set(STEPS) and set(stages.STAGES) <= set(STAGE_NOUN)
 
 
+def test_seed_steps_hold_for_a_first_seed_and_any_course():
+    # The same steps are printed for a first seed of an empty graph and for `--redo`, in any course.
+    assert "additive" not in STEPS["seed"] and "axioms" not in STEPS["seed"]
+
+
 def test_collect_fill_prints_and_saves_a_prompt_that_names_the_run_and_stage(tmp_path, capsys):
     root = copy_sample(tmp_path)
     blank_explanations(GraphStore(root), ["preorder"])

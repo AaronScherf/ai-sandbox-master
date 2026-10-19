@@ -14,9 +14,10 @@ COMMON = """\
 
 STEPS = {
     "seed": """\
-- This is an additive seed: add only the concepts that are missing; never repeat an existing node or section.
+- Add only sections and concepts the graph does not have yet (the card lists what exists, if anything); never
+  repeat an existing node or section.
 - Meet every section's minimum node count stated on the card, with real concepts from the passages (definitions,
-  axioms, theorems, properties, standard examples), not padding.
+  assumptions, theorems, properties, standard examples), not padding.
 - Use only the kinds, topics and section ids the card lists.""",
     "fill": """\
 - Fill gist, explanation, an optional example, and `formal` (LaTeX) where the concept has a formal statement.
