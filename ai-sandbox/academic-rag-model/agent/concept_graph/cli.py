@@ -119,14 +119,37 @@ def _work_root(args) -> Path:
     raise ValueError("pass --work-dir (or --hub-root, which implies <hub-root>/.agent_work/concept_graph)")
 
 
+def _catalog(args):
+    """The course's material catalog for this run, or None without --hub-root/--course or a course folder."""
+    if not (args.hub_root and args.course and (Path(args.hub_root) / "academic_notes" / args.course).is_dir()):
+        return None
+    return load_catalog(args.hub_root, args.course)
+
+
 def _default_retriever(args):
     if not args.hub_root or not args.course:
         raise ValueError("retrieval needs --hub-root and --course")
-    return make_resilient_retriever(args.hub_root, args.course)
+    return make_resilient_retriever(args.hub_root, args.course, catalog=args.catalog)
+
+
+def _report_misses(args) -> None:
+    catalog = getattr(args, "catalog", None)
+    if catalog is not None and catalog.misses:
+        print(f"note: {len(catalog.misses)} retrieved file(s) are not in the course catalog (classified by path only); "
+              "re-run course_materials classify if they are new:")
+        for path in sorted(catalog.misses):
+            print("   ", path)
 
 
 def _collect_run(args):
     store = GraphStore(args.graph_repo)
+    args.catalog = _catalog(args)
+    flagged = args.catalog.flagged() if args.catalog is not None else []
+    if args.stage == "seed" and flagged and not args.allow_unreviewed:
+        names = "\n  ".join(m.path for m in flagged)
+        raise ValueError(f"{len(flagged)} course file(s) are flagged for review; decide them with "
+                         f"python -m core.course_materials.cli --hub-root {args.hub_root} --course {args.course} "
+                         f"decide <path> --role ... (or pass --allow-unreviewed):\n  {names}")
     retriever = None if args.stage == "seed" else args.retriever_factory(args)
     nodes, redo, top_k = args.node or None, args.redo, args.top_k
     if args.orphans:
@@ -138,7 +161,8 @@ def _collect_run(args):
             return store, None
         redo, top_k = True, max(top_k, 10)
     run = drivers.collect(args.stage, store, retriever, _work_root(args), run_id=args.run_id, section=args.section,
-                          nodes=nodes, redo=redo, top_k=top_k, hub_root=args.hub_root, course=args.course)
+                          nodes=nodes, redo=redo, top_k=top_k, hub_root=args.hub_root, course=args.course,
+                          catalog=args.catalog)
     return store, run
 
 
@@ -160,6 +184,7 @@ def _cmd_collect(args) -> int:
         print("Nothing to do: no items need this stage right now.")
         return 0
     print(f"run {run.run_id}: {len(run.tasks)} card(s) in {run.root}")
+    _report_misses(args)
     print(f"Fill each card's result block (see {run.root / 'worklist.md'}), then run: submit {run.run_id}")
     prompt = agent_prompt(run)
     (run.root / "PROMPT.md").write_text(prompt, encoding="utf-8", newline="\n")
@@ -219,6 +244,7 @@ def _cmd_api(args) -> int:
     report = drivers.api_run(args.stage, run, store, args.complete_factory(args), args.approve_cost, agent_name=args.model)
     print(f"run {run.run_id}")
     _print_report(report)
+    _report_misses(args)
     return 0
 
 
@@ -258,6 +284,8 @@ def build_parser() -> argparse.ArgumentParser:
     staged.add_argument("--redo", action="store_true", help="regenerate proposed items that already have a draft")
     staged.add_argument("--top-k", type=int, default=6, help="passages retrieved per card")
     staged.add_argument("--run-id", help="name for this run (default: <stage>-<timestamp>)")
+    staged.add_argument("--allow-unreviewed", action="store_true",
+                        help="seed even while some course files are flagged for review")
     sub.add_parser("collect", parents=[common, staged], help="write task cards for an agent to fill in")
     sm = sub.add_parser("submit", parents=[common], help="validate and apply the cards an agent has filled in")
     sm.add_argument("run_id")
