@@ -48,6 +48,8 @@ Verified by reading code and docs in this session (main at `c406ce3`). Items mar
 | Discovery | OpenAlex-only candidate discovery; sidecars (`metadata_sidecar.py`), `manifest.py`, snowball. Folder routing uses level-0 Concepts and a single label (known issue, see the 2026-10-14 audit). |
 | Pitch schema | `EmpiricalStudyTaxonomy` (countries, scale, methods, datasets, hazards, intervention, outcomes, study type). Assumes an API/Instructor extraction call; this spec replaces that with task cards. |
 
+*Amendment 2026-10-16 (corpus):* when stage 2 was planned only 21 of about 106 downloaded papers were converted, and the pitch's Warsame et al. check paper was not among them (no index card names that author). By 2026-10-18 the index held 87 eligible converted journal papers, still without the Warsame paper; the Warsame check is therefore deferred until it is converted. The index also contains duplicate conversions of the same paper under different file_ids (manual downloads), to be removed before a full run.
+
 ## 4. Architecture
 
 Option **A (file contracts, derived database)** was chosen over database-first and knowledge-graph alternatives (section 11).
@@ -129,6 +131,15 @@ Task cards: one per paper (small batches allowed), carrying the relevant section
 
 Review Artifact: only flagged items (low appraisal confidence, proposed terms, quote mismatches, disagreement between two extractions if double-extraction is enabled for the gold set).
 
+**Amendment 2026-10-18 (as built, `agent/literature/`):**
+- Locators are page numbers: one `Passage` per transcript page, `ref: page N`; a locator may be one page or a list. Quotes are 8 to 300 characters and are verified against the exact page text offered on the card (Unicode, curly quotes and dashes, Markdown markup, and line-break hyphenation normalized).
+- A result has three groups: `core`, `appraisal`, `modules`. A fact carries `vocab_id` or `proposed: true` (never both); proposed terms go to `_proposals.json`, never into a vocabulary until accepted (accepted terms get `source: local`).
+- Vocabularies are YAML files. The 3ie intervention and outcome taxonomies were built from the saved taxonomy-explorer pages and stay in an ignored directory (`research/resources/3ie/`, usage terms unknown) passed with `--vocab-dir`; the builder script (`vocab_data/build_3ie.py`) holds no 3ie text. Vocabularies over 150 terms are listed on a card by their grouping levels only. `study_design`, `population`, `data_source`, `hazard_type` are committed `provisional` lists. The supplied 3ie material has no appraisal criteria, so `appraisal` uses the project's own rubric.
+- Records are per paper, uncommitted, under `research/.index/study_records/` (pass b as `<id>.b.json`).
+- Double extraction: a second independent pass (`collect --double`) is diffed by fact identity, not by quote; ids with the same label count as one fact, and parent/child terms, contained proposed wording and "general population" are treated as agreeing. Real disagreements set `review.status: needs_review`; a human review is never overridden.
+- Verification (`verify` stage): facts only one pass found go on a card to an independent checker, which answers supported (with a verified quote), not_supported or unclear. `silver` splits each paper's facts into agreed, confirmed and open. The owner then reviews only the open facts plus a random audit sample of accepted ones (interactive Artifact).
+- The interactive review page for proposed vocabulary terms is stage 2b and is not built.
+
 ### Stage 3: synthesis (text artifact)
 
 - **Grouping**: candidate clusters from OpenAlex topic IDs, similarity over the card embeddings already stored in the index (`gemini-embedding-001`; no new API calls at clustering time) and 3ie facet overlap; or a facet query supplied by the owner. Proposals are reviewed through an Artifact.
@@ -174,6 +185,8 @@ A thin conversational layer in the style of `agent/tutor`'s bootstrap contract. 
 - Stage 0: baseline and post-move concept_graph suite; shim identity test; card/manifest golden files.
 - Stage 1: dry-run and collect/submit tests with fixtures (no live API); defect-rate regression on a small fixture set.
 - Stage 2: unit tests for validators (quote missing, vocab miss, bad locator); **gold set of ~10 hand-checked papers** including the pitch's check (a Warsame et al. record must yield Somalia / ACLED / FSNAU / panel). Metrics: facet accuracy, quote-verification rate, vocab-proposal rate, bounce rate.
+
+*Amendment 2026-10-18 (metric definitions):* `eval` reports micro-averaged facet precision and recall against `gold/gold_set.yaml` (expected values only, no quotes), `proposal_rate` (proposed facts per record), `bounce_rate` (cards bounced at least once over cards, replacing "quote-verification rate", since accepted records contain only verified quotes by construction), and `double_pass_agreement` (share of papers whose two passes disagree on no fact). The first gold file (pilot 1, 12 papers) is a silver set built from pass agreement plus checker confirmation and an owner-audited random sample (11 of 12 correct, 0 wrong); it overstates accuracy and cannot measure facts both passes missed. A hand-built gold set remains the only measure of recall, and the Warsame check waits for that paper to be converted.
 - Stages 3-5: deterministic rendering and SQL tests; citation-integrity validation tests; gap-analysis verdict tests against a fixture corpus with known answers.
 
 ## 10. Build order and milestones
@@ -202,6 +215,8 @@ Each numbered item gets its own implementation plan; this spec is the umbrella.
 2. May short evidence quotes live in committed files, or does `research/.index/` stay uncommitted (default)?
 3. Double-extraction (two agent passes, diff flagged) for the gold set only, or for every paper?
 4. Which Obsidian/vault location, if any, should receive the rendered review and bibliography?
+
+**Resolved 2026-10-16:** (1) use the real 3ie codebook now; (2) records stay uncommitted under `research/.index/study_records/`; (3) double extraction for the gold set plus a per-paper `--double` flag; table images are text-only for v1 (`Task.attachments` unused). Decision 4 (vault location for the rendered review) stays open for stage 3.
 
 ## 13. Overlapping work (as of this commit)
 

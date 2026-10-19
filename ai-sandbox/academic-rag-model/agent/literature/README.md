@@ -1,13 +1,59 @@
 # agent/literature
 
 Stage 2 of the literature taxonomy: extract one structured, quote-verified study record per converted journal paper.
-Records are written to `research/.index/study_records/` (gitignored; they hold verbatim quotes).
+Design: `docs/superpowers/specs/literature_taxonomy/2026-10-15-literature-taxonomy-pipeline-design.md` (section 6, with
+the 2026-10-18 amendment). Status and pilot results: `docs/status/literature/2026-10-16-stage2-extraction.md`.
+
+The default route uses a subscription agent (Antigravity) and no paid API: this package writes task cards, the agent
+fills them, this package validates the answers and writes records. Run everything from `ai-sandbox/academic-rag-model/`.
+
+## Commands
+
+Global options come before the subcommand: `--index-root` (default `research/`), `--vocab-dir` (a directory of
+vocabulary YAML files layered over the committed ones in `vocab_data/`), `--work-root`.
 
 ```powershell
-python -m agent.literature collect --run-id r1            # write cards (no API calls); --double adds a second pass
-python -m agent.literature bootstrap r1                   # the contract to give the agent
-python -m agent.literature submit r1                      # validate filled cards, write records
+python -m agent.literature collect --run-id r1 [--double] [--file-id ID] [--redo]   # extraction cards, no API calls
+python -m agent.literature bootstrap r1                    # the contract to give the agent
+python -m agent.literature submit r1                       # validate filled cards, write records; bounced cards say why
+python -m agent.literature verify --run-id v1              # cards that ask a checker about facts only one pass found
+python -m agent.literature silver                          # per paper: agreed / confirmed / open fact counts
 python -m agent.literature status
+python -m agent.literature proposals list                  # terms the agent proposed that no vocabulary term covered
+python -m agent.literature eval [--gold PATH]              # aggregates against gold/gold_set.yaml
+python -m agent.literature api r1 --approve-cost 1.0       # explicit paid-API opt-in for extraction cards (cost-gated)
 ```
 
-Full usage, the record format and the evaluation commands are documented in Task 11 of the plan.
+`submit` picks the right stage from the run. Cards live in `<index-root>/.agent_work/<run>/` (gitignored). A pending or
+bounced card stays pending; nothing is sent to the API unless `api` is invoked.
+
+## Record
+
+One JSON file per paper, `<file_id>.json` (pass b: `<file_id>.b.json`; proposals: `_proposals.json`):
+`identity`, `core` (intervention, outcome, study_design, sector, population, data_sources, geography, results),
+`appraisal`, optional `modules`, `extractor` (driver, agent, run, schema and prompt versions, vocabulary versions),
+`review` (`unreviewed`, `needs_review`, `accepted`, `corrected`) and, after `verify`, `verification`. Every fact is
+`{value, vocab_id | proposed: true, quote, locator}`; the quote is checked against the exact page text offered on the card
+and the locator is a page number that was offered. Records are **not committed**: they hold verbatim quotes.
+
+## Vocabularies
+
+YAML files in `vocab_data/` (format and provenance rules in `vocab_data/README.md`). The real 3ie intervention, outcome
+and sector lists are generated locally from saved 3ie taxonomy-explorer pages by `vocab_data/build_3ie.py` into
+`research/resources/3ie/vocab/` (gitignored: 3ie's reuse terms are unknown) and used with `--vocab-dir`. Vocabularies
+over 150 terms are listed on a card by their grouping levels only. The study design, population, data source and hazard
+type lists are committed starter lists marked `provisional`.
+
+## Double extraction and verification
+
+`collect --double` stages an independent second pass. The two records are compared by fact (ids with the same label,
+parent and child terms, and contained proposed wording count as one fact); real disagreements set
+`review.status: needs_review`. `verify` sends the facts only one pass found to a checker pass, which answers supported
+(with a verified quote), not_supported or unclear. `silver` then splits facts into agreed, confirmed and open; people
+review only the open facts and a random audit sample.
+
+## Not built
+
+Chunked extraction for papers over about 60k tokens of transcript (they are skipped with a reason); table-image
+attachments (text only for v1); the interactive review page for proposed vocabulary terms (stage 2b); adjudication or a
+third pass for real disagreements (see the status doc); the Warsame check, since that paper is not converted.
