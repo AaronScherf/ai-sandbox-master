@@ -60,7 +60,9 @@ def make_hub(tmp_path):
 def empty_store(tmp_path):
     root = tmp_path / "empty-graph"
     scaffold(root, "someone/g", "Some One", 2026, fetch_text=lambda url: "license")
-    return GraphStore(root)
+    store = GraphStore(root)
+    store.add_vocab(topics=["order-theory", "rational-choice"])  # a graph that already has topics
+    return store
 
 
 GOOD = {

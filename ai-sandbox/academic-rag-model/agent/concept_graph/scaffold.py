@@ -98,7 +98,7 @@ body:
 """
 
 VOCAB = """kinds: [object, structure, property, axiom, definition, theorem, lemma, model, function, correspondence, identity, technique, example]
-topics: [order-theory, rational-choice, revealed-preference, demand]
+topics: []
 """
 
 

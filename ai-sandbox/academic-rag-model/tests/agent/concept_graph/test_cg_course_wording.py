@@ -61,3 +61,11 @@ def test_scaffold_uses_title_subject_and_book_keys(tmp_path):
     site = yaml.safe_load((root / "config/site.yaml").read_text(encoding="utf-8"))
     assert site["title"] == "Econometrics concept graph" and site["subject"] == "graduate econometrics"
     assert "Source keys: hansen, hayashi" in (root / "config/seed.yaml").read_text(encoding="utf-8")
+
+
+def test_scaffold_starts_a_new_course_with_no_topics(tmp_path):
+    root = tmp_path / "g"
+    scaffold(root, "someone/g", "Some One", 2026, fetch_text=lambda url: "license",
+             title="Econometrics concept graph", subject="graduate econometrics")
+    vocab = yaml.safe_load((root / "config/vocab.yaml").read_text(encoding="utf-8"))
+    assert vocab["topics"] == []  # seed proposes them; microecon's topics must not leak into another course
