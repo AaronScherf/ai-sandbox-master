@@ -55,3 +55,32 @@ Owner review (interactive Artifact): the 7 open facts and a random audit of 12 a
 are optimistic: facets from `eval` (pass a vs silver) were precision 0.96, recall 0.88, proposal rate 0.92 per record,
 bounce rate 0.08, strict double-pass agreement 0.08 (1 of 12 papers fully agree). Recall of facts both passes missed is
 unmeasured; only a small hand-built gold set would measure it.
+
+## Verification summary (2026-10-19)
+
+Full suite run per directory from `ai-sandbox/academic-rag-model/` with the shared venv, after the last code change:
+
+| Directory | Result |
+|---|---|
+| `tests/agent` (includes 129 in `tests/agent/literature`) | 1770 passed |
+| `tests/audio_generator` | 89 passed |
+| `tests/core` | 570 passed |
+| `tests/discovery` | 202 passed |
+| `tests/pipelines` | 757 passed |
+| `tests/resume_manager` | 271 passed |
+| `tests/tools` | 230 passed |
+
+No existing code or test files were edited except one assertion pinning the prompt version (`extract-v1` to `extract-v2`).
+A first full run found a real clash: a bare `tests/agent/literature/test_store.py` collided with
+`tests/agent/problem_corpus/test_store.py` when the whole agent tree ran. The literature test files now carry a
+`test_lit_` prefix. Mutation checks for the quote matcher, validator and diff are recorded in the plan ledger.
+
+## Not done
+
+- Hand-built gold set (the committed gold file is a silver set); recall of facts both passes missed is unmeasured.
+- The Warsame et al. check (paper not converted) and dedupe of duplicate conversions before a full run.
+- A full run over all converted papers, and accepting or rejecting the 11 open vocabulary proposals.
+- Stage 2b: interactive review page for proposed vocabulary terms.
+- Chunked extraction for papers over the one-card size cap; table-image attachments.
+- Adjudication or a third pass for real disagreements, if the full run shows the same prevalence.
+- `api` subcommand handles extraction cards only, not verification cards.
