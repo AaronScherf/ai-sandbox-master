@@ -48,6 +48,12 @@ KIND_HELP = {
     "identity": "an equation that always holds (Roy's identity, Walras' law)",
     "technique": "a method of proof or analysis (a Lagrangian argument, a revealed-preference test)",
     "example": "a named standard example or counterexample",
+    "estimator": "a rule that turns a sample into an estimate (OLS, IV, maximum likelihood)",
+    "assumption": "a condition placed on the data-generating process (exogeneity, homoskedasticity, iid sampling)",
+    "test": "a hypothesis test or test procedure (Wald, likelihood ratio, t test)",
+    "statistic": "a quantity computed from the sample (a t statistic, R squared, a residual)",
+    "distribution": "a probability distribution or limiting law (normal, chi-squared)",
+    "result": "an asymptotic or finite-sample property of an estimator or statistic (consistency, unbiasedness)",
 }
 
 INSTRUCTIONS = """\
@@ -73,7 +79,7 @@ Sections
   planned = in the syllabus or in the textbook scope but with no lecture material yet.
 - `lectures`: the ISO dates from the timeline that belong to the section (leave out if none).
 - Follow the order the course teaches (slide-set order and lecture dates) where it differs from the textbooks'. If
-  the course relies on background mathematics (sets, relations, orders), give it a first section, however brief.
+  the course relies on background mathematics or other prerequisites, give it a first section, however brief.
 
 Concepts
 - Include every definition, property, axiom, named theorem or lemma, model, function, correspondence and identity
@@ -345,9 +351,9 @@ def make_tasks(store: GraphStore, retriever=None, *, hub_root: str | None = None
     for entry in config.must_include:
         names = _aliases(entry)
         required.append(names[0] + (f"   (also written: {'; '.join(names[1:])})" if len(names) > 1 else ""))
-    kinds = [f"- {k}: {KIND_HELP.get(k, '(no description)')}" for k in graph.vocab.kinds]
+    kinds = [f"- {k}: {graph.vocab.kind_help.get(k) or KIND_HELP.get(k, '(no description)')}" for k in graph.vocab.kinds]
     body = "\n".join([
-        f"Course: {course}", "",
+        f"Course: {course}", f"Subject: {graph.site.get('subject') or 'this course'}", "",
         "Scope (from the owner):", config.scope.strip() or "(none given: use the syllabus)", "",
         "Required concepts (each must appear as a node; this list is only a floor):", *(required or ["(none specified)"]), "",
         f"Every section must end up with at least {config.min_nodes_per_section} nodes (existing nodes count).", "",

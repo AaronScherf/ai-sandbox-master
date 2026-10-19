@@ -5,6 +5,8 @@ import shutil
 import urllib.request
 from pathlib import Path
 
+import yaml
+
 SAMPLE = Path(__file__).resolve().parent / "sample_data"
 CC_LEGALCODE_URL = "https://creativecommons.org/licenses/by-nc-sa/4.0/legalcode.txt"
 
@@ -31,11 +33,10 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 
-README = """# Microeconomics concept graph
+README = """# {title}
 
-An interactive study aid: a map of the key concepts in a graduate microeconomic theory course, from binary
-relations up through consumer demand, showing how the ideas connect, which results imply or are equivalent to
-which, and under what conditions.
+An interactive study aid: a map of the key concepts in {subject}, showing how the ideas connect, which results imply
+or are equivalent to which, and under what conditions.
 
 **Open it:** https://{owner}.github.io/{name}/
 
@@ -115,7 +116,7 @@ scope: ""
 must_include: []
 
 # Textbook chapters whose section headings the seed stage should see: source key -> chapter numbers.
-# Source keys: rubinstein, mwg, ok.   Example:  textbook_chapters: {mwg: [1, 2, 3]}
+# Source keys: {book_keys}.   Example:  textbook_chapters: {first_key: [1, 2, 3]}
 textbook_chapters: {}
 
 # Every section must end up with at least this many nodes. The required list above is only a floor;
@@ -132,21 +133,27 @@ def fetch_url_text(url: str) -> str:
 
 
 def scaffold(root: Path, repo: str, holder: str, year: int, with_sample: bool = False,
-             contact: str | None = None, fetch_text=None) -> list[str]:
+             contact: str | None = None, fetch_text=None, *, title: str = "Concept graph",
+             subject: str = "this course", book_keys=()) -> list[str]:
     fetch_text = fetch_text or fetch_url_text
     root = Path(root)
     owner, name = repo.split("/", 1)
     contact = contact or f"open an issue at https://github.com/{repo}/issues"
+    keys = list(book_keys)
+    seed_text = (SEED_TEMPLATE
+                 .replace("{book_keys}", ", ".join(keys) or
+                          "run `python -m core.course_materials.cli --course <course> classify` to list them")
+                 .replace("{first_key", "{" + (keys[0] if keys else "book")))
     files: dict[str, str] = {
-        "README.md": README.format(owner=owner, name=name),
+        "README.md": README.format(owner=owner, name=name, title=title, subject=subject),
         "NOTICE.md": NOTICE.format(contact=contact),
         "LICENSE": fetch_text(CC_LEGALCODE_URL),
         "LICENSE-CODE": MIT.format(year=year, holder=holder),
         ".gitignore": ".venv/\n__pycache__/\n*.pyc\nwork/\n",
         ".github/ISSUE_TEMPLATE/review.yml": ISSUE_FORM,
         "config/vocab.yaml": VOCAB,
-        "config/seed.yaml": SEED_TEMPLATE,
-        "config/site.yaml": f"title: Microeconomics concept graph\nrepo: {repo}\n",
+        "config/seed.yaml": seed_text,
+        "config/site.yaml": yaml.safe_dump({"title": title, "subject": subject, "repo": repo}, sort_keys=False),
         "data/sections.yaml": "[]\n",
         "data/rejected.yaml": "[]\n",
         "data/nodes/.gitkeep": "",

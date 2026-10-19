@@ -11,12 +11,14 @@ ALLOWED = {"gist", "explanation", "formal", "example", "citations"}
 GIST_MAX = 160
 
 INSTRUCTIONS = """\
-Explain this concept for a graduate student studying microeconomic theory, using the offered passages as your source.
+Explain this concept for a student studying {subject}, using the offered passages as your source.
 
 Rules:
 - Write in your OWN words. Do not copy phrases from the passages: a run of 8 or more consecutive words shared with
   any passage is rejected. (A formal statement in LaTeX may follow the source's notation.)
 - Cite only what was offered: each citation is the exact `source` and `ref` shown in an offered passage's header.
+- Passages whose source is `lecture` are a student's own notes and may contain mistakes; where they disagree with
+  slides, notes, recitation material or a textbook, follow those.
 - Say how the concept connects to its neighbours where that helps, but do not invent connections.
 - Never mention the passages, the sources, or what they do or do not cover: write as a textbook would, about the
   concept itself. If the passages are thin, write less (and cite what you used); do not comment on it. A result that
@@ -54,6 +56,8 @@ def make_tasks(store: GraphStore, retriever, *, section: str | None = None, node
             continue
         chosen.append(n)
     hints = store.read_seed_config().fill_hints
+    # replace, not format: the instructions contain literal braces ({source: ..., ref: ...})
+    instructions = INSTRUCTIONS.replace("{subject}", graph.site.get("subject") or "this course")
     tasks = []
     for n in chosen:
         passages = with_ids(retriever.retrieve(f"{n.name} {n.gist} {n.kind}".strip(), top_k))
@@ -64,7 +68,7 @@ def make_tasks(store: GraphStore, retriever, *, section: str | None = None, node
         if hints.get(n.id):
             lines += ["", "The owner asks that this node also covers (state it in the explanation, and put any "
                           "formulas in `formal`):", hints[n.id].strip()]
-        tasks.append(Task(id=f"fill-{n.id}", stage=STAGE, subject={"node": n.id}, instructions=INSTRUCTIONS,
+        tasks.append(Task(id=f"fill-{n.id}", stage=STAGE, subject={"node": n.id}, instructions=instructions,
                           context="\n".join(lines), passages=passages))
     return tasks
 

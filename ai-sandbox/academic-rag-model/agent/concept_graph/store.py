@@ -203,9 +203,11 @@ class GraphStore:
         if data is None:
             raise GraphDataError(f"missing vocab file: {path}")
         for key, wanted in (("kinds", kinds), ("topics", topics)):
+            present = {e.get("name") if isinstance(e, dict) else e for e in data[key]}  # a kind may be {name, help}
             for entry in wanted:
-                if entry not in data[key]:
+                if entry not in present:
                     data[key].append(entry)
+                    present.add(entry)
         self._save(path, data)
 
     def add_rejected(self, kind: Literal["node", "edge"], item_id: str) -> None:

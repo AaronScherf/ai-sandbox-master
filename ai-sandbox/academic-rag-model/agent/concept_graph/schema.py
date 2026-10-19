@@ -5,7 +5,7 @@ import hashlib
 from dataclasses import dataclass, field
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 SLUG = r"^[a-z0-9][a-z0-9-]*$"
 
@@ -101,14 +101,33 @@ class Edge(_Item):
 
 
 class Vocab(_Model):
+    """config/vocab.yaml. A kind is a name, or {name, help} where help explains it on the seed card."""
+
     kinds: list[str]
     topics: list[str]
+    kind_help: dict[str, str] = Field(default_factory=dict, exclude=True)
+
+    @model_validator(mode="before")
+    @classmethod
+    def _split_described_kinds(cls, data):
+        if isinstance(data, dict) and isinstance(data.get("kinds"), list):
+            names, helps = [], dict(data.get("kind_help") or {})
+            for k in data["kinds"]:
+                if isinstance(k, dict):
+                    names.append(k.get("name"))
+                    if k.get("help"):
+                        helps[k.get("name")] = k["help"]
+                else:
+                    names.append(k)
+            data = {**data, "kinds": names, "kind_help": helps}
+        return data
 
 
 class Site(_Model):
     """config/site.yaml: the only per-site settings, shipped into the public page, so validated like the rest."""
 
     title: str = "Concept graph"
+    subject: str = "this course"
     repo: str | None = Field(default=None, pattern=r"^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$")
 
 

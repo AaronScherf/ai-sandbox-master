@@ -10,6 +10,8 @@ from pathlib import Path
 
 from pydantic import ValidationError
 
+from core.course_materials import load_catalog
+
 from . import drivers, stages
 from . import scaffold as scaffold_mod
 from .build import BuildError, build
@@ -97,9 +99,11 @@ def _cmd_apply_review(args) -> int:
 
 
 def _cmd_scaffold(args) -> int:
+    book_keys = load_catalog(args.hub_root, args.course).book_keys() if args.hub_root and args.course else ()
     created = scaffold_mod.scaffold(
         args.graph_repo, args.repo, args.holder, dt.date.today().year,
         with_sample=args.with_sample, contact=args.contact,
+        title=args.title, subject=args.subject, book_keys=book_keys,
     )
     print(f"scaffolded {args.graph_repo}:")
     for rel in created:
@@ -235,6 +239,10 @@ def build_parser() -> argparse.ArgumentParser:
     sc.add_argument("--holder", required=True, help="copyright holder name for LICENSE-CODE")
     sc.add_argument("--with-sample", action="store_true", help="include the 17-node sample graph")
     sc.add_argument("--contact", help="takedown contact text; defaults to the repo's GitHub issues page")
+    sc.add_argument("--title", default="Concept graph", help="page and README title")
+    sc.add_argument("--subject", default="this course", help="what the course is, e.g. 'graduate econometrics'")
+    sc.add_argument("--hub-root", help="with --course: list the course's textbook keys in seed.yaml")
+    sc.add_argument("--course", help="course folder name under academic_notes/")
 
     common = argparse.ArgumentParser(add_help=False)
     common.add_argument("--hub-root", help="the academic-hub folder (retrieval, outline, default work directory)")
