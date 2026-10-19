@@ -20,10 +20,11 @@ def split_pages(md: str) -> dict[int, str]:
 
 def normalize(text: str) -> str:
     """Fold what transcription and typesetting vary on, so a faithful quote matches and little else does:
-    ligatures (NFKC), curly quotes and dashes, Markdown emphasis and table marks, and every hyphen (so a word
-    broken across a line, 'trans-\\nfers', matches 'transfers'), then case and whitespace."""
+    ligatures (NFKC), curly quotes and dashes, Markdown emphasis and table marks, and a hyphen between letters
+    (so a word broken across a line, 'trans-\\nfers', matches 'transfers'), then case
+    and whitespace. Minus signs and range dashes are kept: a dropped sign must not verify."""
     t = unicodedata.normalize("NFKC", text).replace("\u00ad", "").translate(_QUOTES)
-    t = re.sub(r"-\s*", "", _MARKUP.sub(" ", t))
+    t = re.sub(r"(?<=[^\W\d_])-\s*(?=[^\W\d_])", "", _MARKUP.sub(" ", t))
     return re.sub(r"\s+", " ", t).strip().casefold()
 
 

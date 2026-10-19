@@ -153,7 +153,11 @@ def reconcile(records: RecordStore, file_id: str, vocabs: dict | None = None) ->
         return
     if a.get("review", {}).get("status") in ("accepted", "corrected"):
         return  # a human has already ruled; never override
-    diffs = diff_records(a, b, vocabs)
+    if a.get("transcript_sha") != b.get("transcript_sha"):
+        diffs = ["the two passes were extracted from different transcript versions; extract the older pass again "
+                 "(collect --redo) before comparing"]
+    else:
+        diffs = diff_records(a, b, vocabs)
     review = {"status": "needs_review" if diffs else "unreviewed", "items_flagged": diffs}
     if not diffs:
         review["double_pass"] = "agreed"
