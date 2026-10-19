@@ -317,39 +317,39 @@ class TestExtractProblems(unittest.TestCase):
 
 
 class TestBuildArgParser(unittest.TestCase):
-    def test_extract_subcommand_defaults(self):
-        args = build_arg_parser().parse_args(["extract"])
-        self.assertEqual(args.command, "extract")
+    def test_collect_subcommand_defaults(self):
+        args = build_arg_parser().parse_args(["collect"])
+        self.assertEqual(args.command, "collect")
         self.assertIsNone(args.course)
         self.assertIsNone(args.file)
-        self.assertFalse(args.dry_run)
+        self.assertFalse(args.redo)
 
-    def test_extract_subcommand_with_flags(self):
-        args = build_arg_parser().parse_args(["extract", "--course", "math-camp", "--file", "a.md", "--dry-run"])
+    def test_collect_subcommand_with_flags(self):
+        args = build_arg_parser().parse_args(["collect", "--course", "math-camp", "--file", "a.md", "--redo"])
         self.assertEqual(args.course, "math-camp")
         self.assertEqual(args.file, "a.md")
-        self.assertTrue(args.dry_run)
+        self.assertTrue(args.redo)
 
     def test_root_defaults_to_none_when_omitted(self):
-        args = build_arg_parser().parse_args(["extract"])
+        args = build_arg_parser().parse_args(["collect"])
         self.assertIsNone(args.root)
 
     def test_root_is_repeatable_at_parse_time(self):
-        args = build_arg_parser().parse_args(["--root", "a", "--root", "b", "extract"])
+        args = build_arg_parser().parse_args(["--root", "a", "--root", "b", "collect"])
         self.assertEqual(args.root, ["a", "b"])
 
 
 class TestSingleRoot(unittest.TestCase):
     def test_defaults_when_no_root_given(self):
-        args = build_arg_parser().parse_args(["extract"])
+        args = build_arg_parser().parse_args(["collect"])
         self.assertEqual(_single_root(args), _DEFAULT_ROOT)
 
     def test_returns_the_one_given_root(self):
-        args = build_arg_parser().parse_args(["--root", "/x", "extract"])
+        args = build_arg_parser().parse_args(["--root", "/x", "collect"])
         self.assertEqual(_single_root(args), "/x")
 
     def test_raises_on_more_than_one_root(self):
-        args = build_arg_parser().parse_args(["--root", "/x", "--root", "/y", "extract"])
+        args = build_arg_parser().parse_args(["--root", "/x", "--root", "/y", "collect"])
         with self.assertRaises(SystemExit):
             _single_root(args)
 

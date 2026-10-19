@@ -1,24 +1,15 @@
-"""
-extractor.py
-Orchestration and CLI for the problem corpus extraction tool (spec:
-docs/superpowers/specs/agent/problem_corpus/2026-09-06-problem-corpus-extraction-design.md
-Section 6). Iterates indexed cards via core/indexer/index_card.py (the same
-public interface core/indexer/chunk_index.py's chunk() already uses for its
-own per-file iteration) -- never that or any other module's private
-internals. Own standalone CLI entry point, mirroring agent/viz/viz_agent.py's
-and agent/rag/rag_agent.py's own argparse-based main(), rather than a new
-index_search.py subcommand: extraction is a problem_gen-adjacent
-subproject that depends on the indexer, not an indexer-internal
-operation (core/indexer/ gains no new dependency in the other direction).
+"""Legacy direct extractor helpers and the subscription CLI entry point.
+
+The CLI delegates to :mod:`agent.problem_corpus.cli`; API use is its explicit
+``api`` subcommand. The direct ``extract_problems`` Python function remains
+for existing callers.
 """
 from __future__ import annotations
 
-import argparse
 import hashlib
 import os
 import re
 
-from core.env.gemini_utils import get_gemini_client, load_dotenv_override
 from core.indexer.index_card import list_courses, load_shard, now_iso
 from agent.problem_corpus.boundaries import detect_spans
 from agent.problem_corpus.llm_extract import extract_record
@@ -155,8 +146,7 @@ def extract_problems(
             try:
                 result = _extract_file(academic_hub_root, course_name, card, client)
             except Exception as err:
-                print(f"WARNING: extraction failed for {card['path']} ({err}); "
-                      f"rerun `python -m agent.problem_corpus.extractor extract` later to retry.")
+                print(f"WARNING: extraction failed for {card['path']} ({err}); retry this file later.")
                 stats["failed"] += 1
                 continue
 
@@ -171,25 +161,14 @@ def extract_problems(
     return stats
 
 
-def build_arg_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="Extract a structured problem corpus from indexed course content.")
-    parser.add_argument(
-        "--root", action="append", default=None,
-        help=f"Path to a corpus root's own .index/ (default: {_DEFAULT_ROOT}). Exactly one root.",
-    )
-    subparsers = parser.add_subparsers(dest="command", required=True)
-    extract_p = subparsers.add_parser("extract", help="Extract problems into .problem_corpus/<course>.json.")
-    extract_p.add_argument("--course", default=None)
-    extract_p.add_argument("--file", default=None)
-    extract_p.add_argument("--dry-run", action="store_true")
-    return parser
+def build_arg_parser():
+    """Keep the historical parser import while using the subscription CLI."""
+    from .cli import build_parser
+    return build_parser()
 
 
 def _single_root(args) -> str:
-    """extract is a per-corpus maintenance operation, not query-time
-    federation -- it writes into exactly one root's own .problem_corpus/,
-    so more than one --root is a usage error, matching
-    indexer/index_search.py's own _single_root for the same reason."""
+    """One task run belongs to exactly one corpus root."""
     roots = args.root or [_DEFAULT_ROOT]
     if len(roots) > 1:
         raise SystemExit(
@@ -199,19 +178,10 @@ def _single_root(args) -> str:
     return roots[0]
 
 
-def main() -> None:
-    args = build_arg_parser().parse_args()
-    load_dotenv_override()
-    client = get_gemini_client()
-    if client is None:
-        raise SystemExit(1)
-
-    if args.command == "extract":
-        stats = extract_problems(
-            _single_root(args), client, course=args.course, file=args.file, dry_run=args.dry_run,
-        )
-        print(stats)
+def main(argv: list[str] | None = None) -> int:
+    from .cli import main as cli_main
+    return cli_main(argv)
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

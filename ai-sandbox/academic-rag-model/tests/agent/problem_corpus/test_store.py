@@ -1,6 +1,7 @@
 import os
 import tempfile
 import unittest
+from unittest.mock import patch
 
 from agent.problem_corpus.store import corpus_dir, corpus_path, load_records, save_file_records
 
@@ -66,6 +67,18 @@ class TestSaveFileRecords(unittest.TestCase):
             save_file_records(tmp, "econ-101", "bbb", [_record("bbb", "id2")])
             self.assertEqual(len(load_records(tmp, "math-camp")), 1)
             self.assertEqual(len(load_records(tmp, "econ-101")), 1)
+
+    def test_failed_write_preserves_previous_course_file(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            save_file_records(tmp, "math-camp", "aaa", [_record("aaa", "id1")])
+            with open(corpus_path(tmp, "math-camp"), "rb") as f:
+                original = f.read()
+            with patch("agent.problem_corpus.store.json.dump", side_effect=OSError("disk full")):
+                with self.assertRaises(OSError):
+                    save_file_records(tmp, "math-camp", "aaa", [_record("aaa", "id2")])
+            with open(corpus_path(tmp, "math-camp"), "rb") as f:
+                self.assertEqual(f.read(), original)
+            self.assertEqual(os.listdir(corpus_dir(tmp)), ["math-camp.json"])
 
 
 if __name__ == "__main__":

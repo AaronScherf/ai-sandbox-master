@@ -1,67 +1,49 @@
 # Problem Corpus Extraction
 
-Extracts a structured, persistent corpus of practice problems (topic
-tag, problem text, solution text if present, course, provenance) from
-math-camp's own problem sets, textbooks, and recitation slides. First
-of six future-development ideas flagged in
-[`../../docs/status/agent/problem_gen/2026-09-05-problem-generation-status.md`](../../docs/status/agent/problem_gen/2026-09-05-problem-generation-status.md)'s
-"Future development ideas" section — the one everything else there
-depends on.
+Builds a persistent corpus of practice problems from indexed problem sets,
+textbooks, and recitation slides. Each record contains a topic tag, problem
+text, any student solution attempt, course, and source citation. Solutions are
+never marked verified; `solution_provenance` is `student_attempt` or `null`.
+The corpus is stored at `<root>/.problem_corpus/<course>.json`.
 
-**No `"verified"` solutions here.** Inspecting the actual corpus found
-no answer-key tier at all: textbook exercises have no solutions in the
-converted text, and problem sets are either solution-less or carry the
-student's own worked attempt under an explicit `### Handwritten
-Solutions:` heading — unverified, possibly wrong. Every extracted
-record's `solution_provenance` is either `"student_attempt"` or
-`null`, never `"verified"`.
-
-**This subproject stops at producing the stored corpus.** Wiring it
-into `problem_gen`'s generation prompt or any direct-serve matching is
-a separate, later idea — see the status doc above.
-
-Run directly:
+The default route uses subscription agent task cards. From
+`ai-sandbox/academic-rag-model/`:
 
 ```powershell
-python -m agent.problem_corpus.extractor --root ../academic-hub extract --course math-camp
-python -m agent.problem_corpus.extractor --root ../academic-hub extract --dry-run
+python -m agent.problem_corpus.extractor --root ../academic-hub collect --course math-camp
+python -m agent.problem_corpus.extractor --root ../academic-hub bootstrap <run-id>
+python -m agent.problem_corpus.extractor --root ../academic-hub submit <run-id>
+python -m agent.problem_corpus.extractor --root ../academic-hub status
 ```
 
-Uses the same `GEMINI_API_KEY` this project already requires for
-retrieval — no extra setup. One Gemini call (`gemini-3.1-flash-lite` by
-default, override with `PROBLEM_CORPUS_GEMINI_MODEL`) per detected
-problem span.
+`collect` makes one card per eligible, changed source file and prints its run
+ID. It makes no API calls and writes no corpus records. The cards and worklist
+live in `<root>/.agent_work/<run-id>/`, a private, ignored directory. Give the
+agent the `bootstrap` contract, have it fill the YAML result blocks in the
+cards, then run `submit`. Invalid answers bounce with specific reasons; correct
+those blocks and submit again. Applied cards are never reapplied. `collect`
+accepts `--file`, `--run-id`, and `--redo` as well as `--course`.
 
-## Key files
+The API backup is **explicit opt-in** on a collected run:
 
-- `extractor.py` — the one public entry point, `extract_problems()`,
-  plus this subproject's own CLI (`main()`). Iterates indexed cards via
-  [`core/indexer/`](../../core/indexer/)'s `index_card.load_shard()`/
-  `list_courses()` — the same public interface
-  `core/indexer/chunk_index.py`'s own `chunk()` already uses — filtered to
-  problem-bearing folder categories (`problem_sets`, `textbooks`,
-  `recitation_slides`). Content-hash-based incremental extraction: an
-  unchanged file since its last run costs nothing (no re-read, no
-  Gemini call), mirroring `chunk_index.py`'s own idempotency. Failure
-  is isolated at both file granularity (one unreadable file doesn't
-  stop the rest of a run) and per-problem granularity (one failed
-  extraction within an otherwise-fine file doesn't drop its other
-  problems).
-- `boundaries.py` — pure, no-I/O detection of per-problem text spans.
-  Regex patterns duplicated from `core/indexer/chunk_index.py`'s own
-  proven problem-boundary detection, not imported (avoids reaching
-  into another package's private internals for one piece of logic).
-- `llm_extract.py` — one Gemini call per detected span, turning its raw
-  text into a structured record (cleaned problem statement, solution
-  verbatim if present, a short topic tag).
-- `store.py` — read/write for `<root>/.problem_corpus/<course>.json`,
-  mirroring `core/indexer/chunk_index.py`'s `.index/chunks/<course>.json`
-  convention exactly.
+```powershell
+python -m agent.problem_corpus.extractor --root ../academic-hub api <run-id> --approve-cost 1.00
+```
 
-Output goes to `<root>/.problem_corpus/<course>.json`, gitignored by
-default (see the root `.gitignore`) — same IP posture as
-`.index/chunks/`, since extracted problem text is pulled directly from
-the corpus rather than being an LLM-authored summary of it.
+It uses `PAID_GEMINI_KEY` and the `core.agent_tasks` cost gate. Without
+`--approve-cost`, estimates over $1 are refused before any card is sent. The
+API result passes through the same validation and storage path as a filled
+subscription card. The old `extract_problems()` Python function remains for
+existing callers, but the CLI no longer offers an implicit API `extract`
+command.
 
-See the design spec for the full reasoning:
-`../../docs/superpowers/specs/agent/problem_corpus/2026-09-06-problem-corpus-extraction-design.md`.
+`boundaries.py` detects the same numbered spans as the original pipeline.
+`stage.py` collects cards, checks that the source and index are still current,
+validates one answer per span, and assembles records. `store.py` retains the
+course-scoped file layout and replacement by source file ID. Unchanged files
+are skipped unless `--redo` is given. Files without detected spans are
+reported as skipped.
+
+This package stops at producing stored records. Using them in `problem_gen`
+is a separate project; see
+[`docs/status/agent/problem_gen/2026-09-05-problem-generation-status.md`](../../docs/status/agent/problem_gen/2026-09-05-problem-generation-status.md).

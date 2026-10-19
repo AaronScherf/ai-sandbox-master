@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import json
 import os
+import tempfile
 
 
 def corpus_dir(academic_hub_root: str) -> str:
@@ -38,5 +39,11 @@ def save_file_records(academic_hub_root: str, course: str, file_id: str, records
     remaining = [r for r in existing if r["source"]["file_id"] != file_id]
     path = corpus_path(academic_hub_root, course)
     os.makedirs(os.path.dirname(path), exist_ok=True)
-    with open(path, "w", encoding="utf-8") as f:
-        json.dump(remaining + records, f, indent=2, ensure_ascii=False)
+    fd, temporary = tempfile.mkstemp(prefix="problem-corpus-", suffix=".tmp", dir=os.path.dirname(path))
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            json.dump(remaining + records, f, indent=2, ensure_ascii=False)
+        os.replace(temporary, path)
+    finally:
+        if os.path.exists(temporary):
+            os.unlink(temporary)
