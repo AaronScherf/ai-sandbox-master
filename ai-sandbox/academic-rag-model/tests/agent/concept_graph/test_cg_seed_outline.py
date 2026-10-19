@@ -182,7 +182,9 @@ def test_outline_offers_earlier_offerings_slides_under_their_own_source(tmp_path
         d.mkdir(parents=True)
         (d / "8.Production.md").write_text(
             f"---\nsource_pdf: academic_resources/microecon/{year}_class/{folder}/8.Production.pdf\n---\n\n"
-            "Production\n\nDefinition\nA production set is a set of feasible input-output plans\n", encoding="utf-8")
+            "Production\n\nDefinition\n" + {"2024": "A production set is a set of feasible input-output plans\n",
+                                            "2025": "A technology lists every netput vector the firm can achieve\n"}[year],
+            encoding="utf-8")  # distinct decks: an identical one would be dropped as a near-duplicate
     context, passages = seed.outline_context(str(hub), "microecon")
     assert {p.source for p in passages if p.source.endswith(("2024", "2025"))} == {"slides-2024", "slides-2025"}
     assert any(p.source == "slides-2025" and p.ref == "Production" for p in passages)

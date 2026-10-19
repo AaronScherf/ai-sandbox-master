@@ -209,10 +209,12 @@ def classify_course(hub_root, course: str, *, write: bool = True) -> Catalog:
     cards = _cards(hub_root, course)
     files = discover(hub_root, course)
     materials: list[Material] = []
+    excluded: list[str] = []
     for f in files:
         m = classify_file(hub_root, f, cards)
         decision = _decision_for(m.path, decisions)
         if decision.get("exclude"):
+            excluded.append(m.path)
             continue
         if decision:
             _apply(m, decision)
@@ -221,7 +223,7 @@ def classify_course(hub_root, course: str, *, write: bool = True) -> Catalog:
     seen |= {rag_twin(p) for p in seen}
     unknown = sorted(k for k in decisions
                      if not (any(p.startswith(k) for p in seen) if k.endswith("/") else k in seen))
-    catalog = Catalog(course=course, materials=materials, unknown_decisions=unknown)
+    catalog = Catalog(course=course, materials=materials, unknown_decisions=unknown, excluded=excluded)
     if write:
         p = catalog_path(hub_root, course)
         p.parent.mkdir(parents=True, exist_ok=True)

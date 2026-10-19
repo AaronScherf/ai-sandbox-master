@@ -80,6 +80,18 @@ def test_decisions_win_survive_reclassification_and_can_exclude(tmp_path):
     assert json.loads(decisions_path(hub, COURSE).read_text(encoding="utf-8"))[f"{N}/stuff/processed_outputs/week3.md"] == {"role": "exam"}
 
 
+def test_an_excluded_file_is_remembered_so_retrieval_can_drop_it(tmp_path):
+    hub = build_course(tmp_path)
+    excluded = f"{N}/misc/processed_outputs/week1.md"
+    record_decision(hub, COURSE, excluded, exclude=True)
+    cat = classify_course(hub, COURSE)
+    again = Catalog.from_json(cat.to_json())
+    for c in (cat, again):
+        assert c.is_excluded(excluded) and c.is_excluded(str(hub / excluded))
+        assert not c.is_excluded(f"{N}/stuff/processed_outputs/week3.md")
+    assert cat.lookup(str(hub / excluded)) is None and not cat.misses  # excluded on purpose, not missing
+
+
 def test_a_folder_decision_applies_to_everything_under_it(tmp_path):
     hub = build_course(tmp_path)
     key = record_decision(hub, COURSE, f"{N}/reading/processed_outputs/Greene_Econometric_Analysis_2018", book="greene-ea")

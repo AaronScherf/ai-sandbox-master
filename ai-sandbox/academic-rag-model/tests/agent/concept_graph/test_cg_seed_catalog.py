@@ -48,10 +48,48 @@ def test_two_lecture_notes_on_one_date_are_both_offered(tmp_path):
     assert len(lecture) == 1 and "Delta method" in lecture[0].text and "Wald test" in lecture[0].text
 
 
-def test_recitation_material_offers_headings_only(tmp_path):
-    _, passages = seed.outline_context(str(econ_hub(tmp_path)), ECON)
-    rec = [p for p in passages if p.source == "recitation"]
-    assert rec and "Matrix algebra review" in rec[0].text
+def test_recitation_material_offers_its_statements_and_headings(tmp_path):
+    # Econometrics' TA notes hold most of the course's labelled statements (111 against the instructor's 15).
+    hub = econ_hub(tmp_path)
+    write(hub / "academic_notes" / ECON / "ta_notes/processed_outputs/TA2.md",
+          "# Sampling\n\nDefinition 4 (Statistic). A statistic is a function of a sample.\n")
+    _, passages = seed.outline_context(str(hub), ECON)
+    rec = "\n".join(p.text for p in passages if p.source == "recitation")
+    assert "Matrix algebra review" in rec and "Definition 4 (Statistic). A statistic is a function of a sample." in rec
+
+
+def test_recitation_is_capped_at_fifteen_files(tmp_path):
+    hub = econ_hub(tmp_path)
+    for i in range(20):
+        write(hub / "academic_notes" / ECON / f"ta_notes/processed_outputs/{i:02d}-topic.md", f"# Distinct topic number {i}\n")
+    _, passages = seed.outline_context(str(hub), ECON)
+    assert len([p for p in passages if p.source == "recitation"]) == 15
+
+
+def test_a_near_duplicate_syllabus_is_offered_once(tmp_path):
+    # econometrics has the syllabus twice: a Markdown copy and the conversion of its PDF, with different line breaks.
+    hub = econ_hub(tmp_path)
+    body = ("Introduction to Econometrics. Part A consists of 13 classes. Evaluation: 2 problem sets, two 30 minute "
+            "exams and a final exam. Topics: linear regression model, hypothesis testing and model selection, "
+            "Bayesian estimation, time series regression and forecasting.")
+    write(hub / "academic_notes" / ECON / "syllabus/ECON6411_syllabus.md", "#syllabus\n\n" + body)
+    write(hub / "academic_notes" / ECON / "syllabus/processed_outputs/ec6411A.md",
+          "---\nsource_pdf: x.pdf\n---\n\n<!-- page 1 -->\n\n" + body.replace(". ", ".\n"))
+    _, passages = seed.outline_context(str(hub), ECON)
+    assert len([p for p in passages if p.source == "syllabus"]) == 1
+
+
+def test_an_earlier_offerings_deck_that_repeats_this_years_is_listed_but_not_offered_again(tmp_path):
+    hub = econ_hub(tmp_path)
+    n = hub / "academic_notes" / ECON
+    deck = "Definition 1 (OLS). The least squares estimator minimizes the sum of squared residuals over b.\n"
+    write(n / "professor_notes/processed_outputs/slides1.md", deck)
+    write(n / "class_2024/Slides/processed_outputs/slides1.md", deck)
+    record_decision(hub, ECON, f"academic_notes/{ECON}/class_2024/Slides/processed_outputs/slides1.md",
+                    role="instructor", format="slides", offering="2024")
+    context, passages = seed.outline_context(str(hub), ECON)
+    assert not [p for p in passages if p.source == "slides-2024"]
+    assert "2024 offering slide sets (in order): slides1" in context
 
 
 def test_role_caps_limit_instructor_passages(tmp_path, monkeypatch):

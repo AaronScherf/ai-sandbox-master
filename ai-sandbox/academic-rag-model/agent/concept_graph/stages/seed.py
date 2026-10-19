@@ -12,7 +12,7 @@ from core.course_materials import Catalog, load_catalog
 
 from ..ipguard import check_meta, check_prose
 from ..schema import SLUG, SeedConfig
-from ..sources import Passage, classify_passage
+from ..sources import Passage, classify_passage, near_duplicate, shingles
 from ..store import GraphStore
 from ..tasks import Task
 from .common import passage_texts, with_ids
@@ -201,7 +201,7 @@ def _bullets(items: list[str]) -> str:
 
 
 # Upper bounds on passages per kind of material, so a large role (34 TA notes) cannot crowd out the slides.
-ROLE_CAPS = {"instructor": 30, "student_notes": 30, "recitation": 8, "prior": 30}  # prior: per earlier offering
+ROLE_CAPS = {"instructor": 30, "student_notes": 30, "recitation": 15, "prior": 30}  # prior: per earlier offering
 _CHAPTER_FILE = re.compile(r"/chapters/(\d+)_[^/]*$")
 
 
@@ -233,15 +233,18 @@ def outline_context(hub_root: str, course: str, *, config: SeedConfig | None = N
     def read(m) -> str:
         return (hub / m.path).read_text(encoding="utf-8", errors="ignore")
 
+    offered: list[frozenset[str]] = []
+
     def add(m, text: str, ref: str | None = None) -> None:
+        if near_duplicate(text, offered):
+            return
+        offered.append(shingles(text))
         source, default_ref = classify_passage(m.path, "", catalog)
         passages.append(Passage(id="", source=source, ref=ref or default_ref, text=text, path=str(hub / m.path)))
 
-    seen_text: set[str] = set()
     for m in catalog.by_role("syllabus"):
         text = _clean_syllabus(read(m))[:3000].strip()
-        if text and text not in seen_text:
-            seen_text.add(text)
+        if text:
             add(m, text)
 
     titles: list[str] = []
@@ -259,9 +262,9 @@ def outline_context(hub_root: str, course: str, *, config: SeedConfig | None = N
             titles.append(label)
 
     for m in catalog.by_role("recitation")[: ROLE_CAPS["recitation"]]:
-        heads = section_headings(read(m), limit=15)
-        if heads:
-            add(m, "Section headings:\n" + _bullets(heads))
+        evidence = _evidence(read(m), statements=25, headings=15)
+        if evidence:
+            add(m, evidence)
 
     prior_lines: list[str] = []
     for label in catalog.offerings():

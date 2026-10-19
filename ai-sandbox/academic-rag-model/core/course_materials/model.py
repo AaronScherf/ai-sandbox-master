@@ -68,16 +68,22 @@ class Catalog:
     course: str
     materials: list[Material]
     unknown_decisions: list[str] = field(default_factory=list)
+    excluded: list[str] = field(default_factory=list)  # files the owner excluded (a duplicate, an unrelated file)
     misses: set = field(default_factory=set, repr=False, compare=False)
 
     def __post_init__(self) -> None:
         self._by_path = {m.path: m for m in self.materials}
+        self._excluded = set(self.excluded)
+
+    def is_excluded(self, path: str) -> bool:
+        norm = normalize(path)
+        return norm is not None and (norm in self._excluded or rag_twin(norm) in self._excluded)
 
     def lookup(self, path: str) -> Material | None:
         """The material at `path` (either hub root, either slash), its .rag twin, or the nearest catalogued ancestor
         folder whose materials all share one role, book and offering (so a book's front matter maps to the book)."""
         norm = normalize(path)
-        if norm is None:
+        if norm is None or self.is_excluded(norm):
             return None
         for candidate in (norm, rag_twin(norm)):
             if candidate in self._by_path:
@@ -108,12 +114,13 @@ class Catalog:
 
     def to_json(self) -> dict:
         return {"course": self.course, "materials": [asdict(m) for m in self.materials],
-                "unknown_decisions": list(self.unknown_decisions)}
+                "unknown_decisions": list(self.unknown_decisions), "excluded": list(self.excluded)}
 
     @classmethod
     def from_json(cls, data: dict, source: str = "catalog") -> Catalog:
         try:
             return cls(course=data["course"], materials=[Material(**m) for m in data["materials"]],
-                       unknown_decisions=list(data.get("unknown_decisions", [])))
+                       unknown_decisions=list(data.get("unknown_decisions", [])),
+                       excluded=list(data.get("excluded", [])))
         except (KeyError, TypeError) as exc:
             raise CatalogError(f"{source}: not a course-materials catalog ({exc})") from exc

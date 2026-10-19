@@ -38,6 +38,26 @@ def _deck_title(stem: str) -> str:
     return re.sub(r"^\d+\.\s*", "", stem).replace("_", " ").strip() or stem
 
 
+_WORDS = re.compile(r"\w+")
+
+
+def shingles(text: str, n: int = 3) -> frozenset[str]:
+    """Word n-grams of a passage, ignoring label lines ("Statements:", "Found in these slides:") and layout, so two
+    copies of one document match however each was converted."""
+    content = " ".join(ln for ln in (text or "").splitlines() if not ln.rstrip().endswith(":"))
+    words = _WORDS.findall(content.lower())
+    if len(words) < n:
+        return frozenset([" ".join(words)]) if words else frozenset()
+    return frozenset(" ".join(words[i:i + n]) for i in range(len(words) - n + 1))
+
+
+def near_duplicate(text: str, offered: list[frozenset[str]], threshold: float = 0.8) -> bool:
+    """Whether at least `threshold` of this passage's word n-grams already appear in one offered passage: a second
+    copy of a file, or an earlier offering's deck repeating this year's, adds nothing but weight."""
+    mine = shingles(text)
+    return bool(mine) and any(len(mine & other) >= threshold * len(mine) for other in offered)
+
+
 def source_key(m: Material) -> str:
     if m.role == "textbook":
         return m.book or "book"

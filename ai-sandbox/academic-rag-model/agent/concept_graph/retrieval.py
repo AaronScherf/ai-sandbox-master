@@ -9,11 +9,27 @@ import sys
 from collections import Counter
 from typing import Callable, Protocol
 
-from .sources import Passage, classify_passage
+from .sources import Passage, classify_passage, near_duplicate, shingles
+
+OVERFETCH = 4  # extra index hits asked for, so dropping excluded files and second copies still fills top_k
 
 
 class Retriever(Protocol):
     def retrieve(self, query: str, top_k: int) -> list[Passage]: ...
+
+
+class _Distinct:
+    """Accepts a passage unless its file was excluded in the course-materials review or its text repeats one already
+    accepted (the index holds both copies of a duplicated file)."""
+
+    def __init__(self, catalog):
+        self.catalog, self.offered = catalog, []
+
+    def accept(self, path: str, text: str) -> bool:
+        if (self.catalog is not None and self.catalog.is_excluded(path)) or near_duplicate(text, self.offered):
+            return False
+        self.offered.append(shingles(text))
+        return True
 
 
 class IndexRetriever:
@@ -27,11 +43,15 @@ class IndexRetriever:
     def retrieve(self, query: str, top_k: int = 6) -> list[Passage]:
         from agent.rag.rag_agent import retrieve_passages  # heavy import, kept lazy
 
-        found = retrieve_passages([self.hub_root], query, self.client, course=self.course, top_k=top_k)
-        out = []
+        found = retrieve_passages([self.hub_root], query, self.client, course=self.course, top_k=top_k + OVERFETCH)
+        out, distinct = [], _Distinct(self.catalog)
         for r in found:
+            if not distinct.accept(r.path, r.text):
+                continue
             source, ref = classify_passage(r.path, r.citation, self.catalog)
             out.append(Passage(id="", source=source, ref=ref, text=r.text, path=r.path))
+            if len(out) >= top_k:
+                break
         return out
 
 
@@ -86,12 +106,14 @@ class LexicalRetriever:
             if hit > 0:
                 scored.append((hit / math.sqrt(c["_len"]), c))
         scored.sort(key=lambda pair: pair[0], reverse=True)
-        out, per_file = [], Counter()
+        out, per_file, distinct = [], Counter(), _Distinct(self.catalog)
         for _, c in scored:
             if per_file[c["file_id"]] >= self.max_per_file:
                 continue
-            per_file[c["file_id"]] += 1
             path = self._paths.get(c["file_id"], "")
+            if not distinct.accept(path, c.get("text", "")):
+                continue
+            per_file[c["file_id"]] += 1
             source, ref = classify_passage(path, _render_citation(c), self.catalog)
             out.append(Passage(id="", source=source, ref=ref, text=c.get("text", ""), path=path))
             if len(out) >= top_k:
