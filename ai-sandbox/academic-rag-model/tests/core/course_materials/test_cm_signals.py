@@ -62,10 +62,33 @@ def test_class_against_student_evidence_is_flagged():
     assert d.flagged
 
 
-def test_a_portrait_scan_in_a_professor_folder_is_handwritten_and_flagged():
+def test_a_portrait_scan_in_the_professor_category_folder_is_instructor_handwriting():
+    # The course's category folder is the owner's own filing (econometrics review, 2026-10-19: every such scan was
+    # confirmed as the instructor's), so it clears review without any other class signal.
     body = "<!-- page 1 -->\n\nSept 21\n\nAssumptions 7.1\n(1) iid\n\n<!-- page 2 -->\n\nY = Xb + e\n"
     d = decide(facts("professor_notes/processed_outputs/092126.md", shape="portrait", body=body))
-    assert (d.role, d.format, d.flagged) == ("instructor", "handwritten", True)
+    assert (d.role, d.format, d.flagged) == ("instructor", "handwritten", False)
+
+
+def test_the_category_folder_outvotes_an_index_card_calling_a_ta_note_a_textbook():
+    # econometrics ta_notes/A3-martingale-difference-sequence.md: the indexer labelled it textbook.
+    d = decide(facts("ta_notes/processed_outputs/A3-martingale-difference-sequence.md", card="textbook"))
+    assert (d.role, d.format, d.flagged) == ("recitation", "typeset", False)
+
+
+def test_an_index_card_saying_textbook_is_decisive_only_with_a_chapters_layout():
+    loose = decide(facts("reading/processed_outputs/survey.md", card="textbook"))
+    assert loose.role == "textbook" and loose.flagged  # a hint to review, not a verdict
+    assert decide(facts("reading/processed_outputs/Greene_2018/chapters/03_ols.rag.md", card="textbook")).flagged is False
+
+
+def test_the_category_folders_vote_for_their_roles():
+    assert decide(facts("problem_sets/processed_outputs/ps1.md")).role == "problem_set"
+    assert decide(facts("syllabus/processed_outputs/s.md")).role == "syllabus"
+    assert decide(facts("ta_notes/processed_outputs/01-terms.md")).role == "recitation"
+    assert any(v.signal == "category folder ta_notes" for v in decide(facts("ta_notes/processed_outputs/01.md")).votes)
+    # Deeper folders with the same names are not the course's category folder.
+    assert not any(v.signal.startswith("category folder") for v in decide(facts("class_2024/syllabus/s.md")).votes)
 
 
 def test_a_portrait_document_with_headings_and_long_lines_is_typeset():

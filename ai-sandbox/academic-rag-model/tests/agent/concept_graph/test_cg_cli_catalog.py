@@ -7,9 +7,9 @@ def setup(tmp_path):
     graph = tmp_path / "graph"
     scaffold(graph, "someone/g", "Some One", 2026, fetch_text=lambda url: "license")
     hub = tmp_path / "hub"
-    s = hub / "academic_notes" / "demo" / "syllabus" / "processed_outputs" / "Syllabus.md"
+    s = hub / "academic_notes" / "demo" / "course_info" / "processed_outputs" / "Syllabus.md"
     s.parent.mkdir(parents=True)
-    s.write_text("Topics: regression.\n", encoding="utf-8")  # path word only: flagged
+    s.write_text("Topics: regression.\n", encoding="utf-8")  # file-name word only: flagged
     return graph, hub
 
 
@@ -28,7 +28,7 @@ def test_seed_stops_while_materials_are_flagged_and_names_them(tmp_path, capsys)
 def test_seed_runs_once_reviewed_or_when_allowed(tmp_path, capsys):
     graph, hub = setup(tmp_path)
     assert cli.main(args(graph, hub, "--allow-unreviewed")) == 0
-    record_decision(hub, "demo", "academic_notes/demo/syllabus/processed_outputs/Syllabus.md", role="syllabus")
+    record_decision(hub, "demo", "academic_notes/demo/course_info/processed_outputs/Syllabus.md", role="syllabus")
     assert cli.main(args(graph, hub, "--run-id", "seed-2")) == 0
     assert "Topics: regression." in (hub.parent / "work" / "seed-2" / "cards" / "seed.md").read_text(encoding="utf-8")
 
@@ -52,7 +52,7 @@ def test_collect_reports_retrieved_files_missing_from_the_catalog(tmp_path, caps
 
     graph = copy_sample(tmp_path)
     _, hub = setup(tmp_path / "x")
-    record_decision(hub, "demo", "academic_notes/demo/syllabus/processed_outputs/Syllabus.md", role="syllabus")
+    record_decision(hub, "demo", "academic_notes/demo/course_info/processed_outputs/Syllabus.md", role="syllabus")
 
     class Retriever:
         def __init__(self, catalog):

@@ -84,11 +84,26 @@ _CHAPTER_FILE = re.compile(r"^\d+_")
 def textbook_signal(f: Facts) -> list[Vote]:
     parts = f.path.split("/")
     chapter = len(parts) >= 2 and parts[-2] == "chapters" and bool(_CHAPTER_FILE.match(parts[-1]))
-    if f.card_doc_type == "textbook" or chapter:
+    if chapter:
         return [Vote("textbook layout", "format", "chapter", DECISIVE), Vote("textbook layout", "role", "textbook", DECISIVE)]
     if any(p in TEXTBOOK_FOLDER_NAMES for p in parts[:-1]):
         return [Vote("textbook folder", "format", "chapter", STRONG), Vote("textbook folder", "role", "textbook", STRONG)]
+    if f.card_doc_type == "textbook":
+        # The indexer's model also labels structured handouts "textbook" (econometrics ta_notes/A3, 2026-10-19).
+        return [Vote("index card textbook", "role", "textbook", WEAK)]
     return []
+
+
+# The hub files each course's material under one category folder (academic_notes/<course>/<category>/...): the
+# owner's own filing, so it outranks a file-name word or the indexer's label, but not decisive evidence.
+_CATEGORY_FOLDERS = {"ta_notes": "recitation", "professor_notes": "instructor", "problem_sets": "problem_set",
+                     "syllabus": "syllabus"}
+
+
+def category_signal(f: Facts) -> list[Vote]:
+    parts = f.path.split("/")
+    role = _CATEGORY_FOLDERS.get(parts[2]) if len(parts) > 3 else None
+    return [Vote(f"category folder {parts[2]}", "role", role, MEDIUM)] if role else []
 
 
 def pdf_signal(f: Facts) -> list[Vote]:
@@ -160,7 +175,7 @@ def format_fallback(f: Facts) -> list[Vote]:
     return [Vote("default", "format", "typeset", WEAK)]
 
 
-SIGNALS = (excalidraw_signal, textbook_signal, pdf_signal, card_signal, content_signal, path_signal)
+SIGNALS = (excalidraw_signal, textbook_signal, category_signal, pdf_signal, card_signal, content_signal, path_signal)
 
 
 def _tally(votes: list[Vote], field_name: str) -> dict[str, int]:

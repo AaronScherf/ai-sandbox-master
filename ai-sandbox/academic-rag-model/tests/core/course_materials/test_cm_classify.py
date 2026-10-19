@@ -49,7 +49,7 @@ def test_classifies_a_course_with_unconventional_names(tmp_path):
     assert (cat["week1"].role, cat["week1"].format, cat["week1"].flagged) == ("instructor", "slides", True)  # orientation only
     assert cat["week3"].role == "problem_set"
     assert (cat["092126"].role, cat["092126"].format, cat["092126"].date) == ("instructor", "handwritten", "2026-09-21")
-    assert cat["092126"].flagged
+    assert not cat["092126"].flagged  # the professor_notes category folder settles it
     assert (cat["01_intro"].role, cat["01_intro"].book) == ("textbook", "greene")
     assert cat["1.Intro"].offering == "2023" and cat["1.Intro"].role == "instructor"
     assert "week1" in cat and cat["week1"].offering is None

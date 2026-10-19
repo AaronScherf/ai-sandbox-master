@@ -15,7 +15,7 @@ def test_classify_prints_counts_and_flagged_files_with_their_evidence(tmp_path, 
     assert code == 0
     assert "demo: 7 materials" in out.out
     assert "instructor:" in out.out and "flagged (" in out.out
-    assert "092126.md" in out.out and "path word 'professor'" in out.out
+    assert "week1.md" in out.out and "pdf landscape" in out.out
 
 
 def test_flagged_prints_json_rows(tmp_path, capsys):
@@ -23,7 +23,7 @@ def test_flagged_prints_json_rows(tmp_path, capsys):
     run(capsys, hub, "classify")
     code, out = run(capsys, hub, "flagged")
     rows = json.loads(out.out)
-    assert code == 0 and any(r["path"].endswith("092126.md") for r in rows)
+    assert code == 0 and any(r["path"].endswith("week1.md") for r in rows)
     assert set(rows[0]) == {"path", "role", "format", "offering", "book", "confidence", "evidence"}
 
 
