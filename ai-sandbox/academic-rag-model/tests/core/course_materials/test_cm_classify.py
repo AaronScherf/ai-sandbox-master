@@ -145,7 +145,8 @@ def test_index_cards_vote_and_a_corrupt_card_file_only_loses_that_signal(tmp_pat
     write(hub / N / "loose/processed_outputs/n1.md", "plain text\n")
     cards = [{"path": f"academic_resources/{COURSE}/loose/processed_outputs/n1.md", "doc_type": "ta_notes"}]
     write(hub / ".index" / f"{COURSE}.json", json.dumps(cards))
-    assert by_stem(classify_course(hub, COURSE))["n1"].role == "recitation"
+    n1 = by_stem(classify_course(hub, COURSE))["n1"]
+    assert n1.authority == "class" and n1.flagged is False  # the card vouches for class material, not for its author
 
 
 def test_a_corrupt_index_card_file_only_loses_that_signal(tmp_path):

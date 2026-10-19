@@ -80,6 +80,15 @@ def test_index_card_doc_type_is_a_strong_role_vote():
     assert d.role == "recitation" and d.flagged is False
 
 
+def test_an_index_card_saying_ta_notes_only_vouches_for_class_material():
+    # The indexer's model must pick one of four labels and files the professor's decks under ta_notes (microecon,
+    # 2026-10-19): the label says "class handout", not who wrote it, so it must not outvote a professor hint.
+    d = decide(facts("professor_notes/processed_outputs/2.Utility_Maximization_1.md", card="ta_notes", shape="landscape"))
+    assert (d.role, d.flagged) == ("instructor", False)
+    alone = decide(facts("loose/processed_outputs/n1.md", card="ta_notes"))
+    assert alone.flagged is False and alone.role == "instructor"  # class material, role unknown: the class default
+
+
 def test_syllabus_wording_and_path_words():
     body = "Office hours: Tuesday. Grading: homework 40%. Course description: econometrics."
     d = decide(facts("syllabus/processed_outputs/s.md", body=body))

@@ -23,7 +23,7 @@ logging.getLogger("pypdf").setLevel(logging.ERROR)
 @dataclass(frozen=True)
 class Vote:
     signal: str
-    field: str  # "role" or "format"
+    field: str  # "role", "format", or "authority" (vouches for a group without naming a role)
     value: str
     weight: int  # 0 = evidence only
 
@@ -100,7 +100,9 @@ def pdf_signal(f: Facts) -> list[Vote]:
     return []
 
 
-_CARD_VOTES = {"problem_set": ("role", "problem_set"), "ta_notes": ("role", "recitation"),
+# The indexer's model picks one of only four labels, and files any class handout it cannot place (the professor's
+# decks included) under ta_notes; so that label vouches for class material, not for who wrote it.
+_CARD_VOTES = {"problem_set": ("role", "problem_set"), "ta_notes": ("authority", "class"),
                "syllabus": ("role", "syllabus"), "handwritten_notes": ("format", "handwritten"),
                "lecture_notes": ("role", "student_notes"), "excalidraw_notes": ("role", "student_notes")}
 
@@ -185,6 +187,8 @@ def decide(f: Facts) -> Decision:
     groups: dict[str, int] = {}
     for role, score in roles.items():
         groups[AUTHORITY[role]] = groups.get(AUTHORITY[role], 0) + score
+    for group_name, score in _tally(votes, "authority").items():
+        groups[group_name] = groups.get(group_name, 0) + score
     if fmt == "slides":  # a slide deck is class material rather than a student's notes or a book, whoever presented it
         groups["class"] = groups.get("class", 0) + formats["slides"]
     ranked = _best(groups)
