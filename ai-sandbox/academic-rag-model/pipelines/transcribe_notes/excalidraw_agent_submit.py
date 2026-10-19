@@ -12,11 +12,14 @@ import os
 import re
 from dataclasses import dataclass, field
 
-from core.env.gemini_utils import load_json_cache, save_json_cache
+from core.env.gemini_utils import load_json_cache
+from core.indexer.index_card import compute_file_id, compute_id_from_parts
 from pipelines.transcribe_notes.agent_work import doc_work_dir, load_manifest, render_worklist, save_manifest
 from pipelines.transcribe_notes.excalidraw_agent_driver import ExcalidrawApiDriver, ExcalidrawNullDriver
 from pipelines.transcribe_notes.excalidraw_agent_work import parse_card_output
+from pipelines.transcribe_notes import transcribe_excalidraw as excalidraw
 from pipelines.transcribe_notes.transcribe_excalidraw import (
+    _save_cache_with_source,
     chunk_cache_paths_for,
     expansion_cache_paths_for,
     process_excalidraw_note,
@@ -82,7 +85,7 @@ def submit_doc(
     chunk_entries = [e for e in entries if e.tier == "chunks"]
     segment_entries = [e for e in entries if e.tier == "segments"]
 
-    def _apply(card_entries: list, cache_path: str, validator) -> None:
+    def _apply(card_entries: list, cache_path: str, driver_path: str, source_hash: str, validator) -> None:
         if not card_entries:
             return
         cache = load_json_cache(cache_path)
@@ -102,12 +105,25 @@ def submit_doc(
             entry.status = "submitted"
             entry.bounce_reason = None
         os.makedirs(os.path.dirname(cache_path), exist_ok=True)
-        save_json_cache(cache_path, cache)
+        _save_cache_with_source(cache_path, driver_path, cache, source_hash)
 
-    chunk_cache_path, _ = chunk_cache_paths_for(excalidraw_md_path)
-    exp_cache_path, _ = expansion_cache_paths_for(excalidraw_md_path)
-    _apply(chunk_entries, chunk_cache_path, validate_chunk_card_output)
-    _apply(segment_entries, exp_cache_path, validate_expansion_card_output)
+    chunk_cache_path, chunk_driver_path = chunk_cache_paths_for(excalidraw_md_path)
+    exp_cache_path, exp_driver_path = expansion_cache_paths_for(excalidraw_md_path)
+    if chunk_entries:
+        _apply(
+            chunk_entries, chunk_cache_path, chunk_driver_path, compute_file_id(image_path),
+            validate_chunk_card_output,
+        )
+    if segment_entries:
+        # Match process_excalidraw_note's expansion identity exactly: it hashes
+        # the assembled transcription for the current image's chunk count.
+        chunk_cache = load_json_cache(chunk_cache_path)
+        total_chunks = len(excalidraw.chunk_image(excalidraw.load_canvas_image(image_path)))
+        raw_markdown = excalidraw.assemble_raw_markdown(chunk_cache, total_chunks)
+        _apply(
+            segment_entries, exp_cache_path, exp_driver_path,
+            compute_id_from_parts([raw_markdown]), validate_expansion_card_output,
+        )
     save_manifest(doc_dir, entries)
     render_worklist(doc_dir, entries)
 
