@@ -20,10 +20,14 @@
 - Stage explicit paths only (never `git add -A` / `git add .`). Every commit message ends with `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`.
 - Match the surrounding style: lines up to about 120 characters, short docstrings, `from __future__ import annotations`.
 - Real hub writes (`academic-hub/.index/materials/`) happen only in Task 10. Tests use `tmp_path` fixture trees.
-- Signal weights (spec): decisive 10, strong 3, medium 2, weak 1. Flag when the top role scores below 3 or leads the runner-up by less than 2.
+- Signal weights (spec): decisive 10, strong 3, medium 2, weak 1. Flag when the top **authority group** scores below 3 or leads the runner-up group by less than 2. PDF orientation is a format vote only.
 
 **Refinements to the spec made while planning.** Task 9 also records each of these in the spec.
-1. A landscape source PDF votes `instructor` at **strong** (3), not weak. Microecon's prior decks have no other role signal, so at weak every one would be flagged. Recitation decks still get flagged, because their `ta`/`recitation` path word plus recitation wording ties the score.
+1. **Authority, not orientation, decides provenance** (owner's review of this plan; the spec is already updated).
+   - A landscape PDF is a medium vote for format `slides` only, never a role vote.
+   - Flagging works on the authority group (`class`, `reference`, `student`, `unknown`), where slides add to `class`.
+   - Within `class`, confusing instructor with recitation material is cheap, so it is never flagged.
+   - Seed and fill cards list and weigh class material above the student's notes.
 2. The spec's `review`/`resolve` commands become `flagged` and `decide`, following the `offering_links` pattern. `flagged` prints JSON rows for Claude to load into the review Artifact. `decide` applies one decision. Claude builds the Artifact at review time (Task 10), and nothing in code calls it.
 3. A decision may be keyed by a **directory** (`academic_notes/<course>/<folder>/`), which applies it to every file under that folder. Without this, the microecon book keys would need one decision per chapter file.
 4. A path missing from the catalog gets a **path-only classification** (`classify_path`), not a flat `other`. It is still counted in `Catalog.misses` and reported by `collect`.
@@ -50,6 +54,7 @@
 **Interfaces:**
 - Produces:
   - `ROLES: tuple[str, ...]`, `FORMATS: tuple[str, ...]`, `DECIDABLE: tuple[str, ...]`
+  - `AUTHORITY: dict[str, str]` (role → `class` / `reference` / `student` / `unknown`), and `Material.authority` (property)
   - `class CatalogError(ValueError)`
   - `normalize(path: str) -> str | None`: the hub-relative posix path under `academic_notes/`
   - `rag_twin(path: str) -> str`
@@ -70,9 +75,16 @@
 # tests/core/course_materials/test_cm_model.py
 import pytest
 
-from core.course_materials.model import Catalog, CatalogError, Material, normalize, rag_twin
+from core.course_materials.model import AUTHORITY, ROLES, Catalog, CatalogError, Material, normalize, rag_twin
 
 N = "academic_notes/econometrics"
+
+
+def test_every_role_has_an_authority_group():
+    assert set(AUTHORITY) == set(ROLES)
+    assert Material(path="x", role="recitation").authority == Material(path="x", role="instructor").authority == "class"
+    assert Material(path="x", role="student_notes").authority == "student"
+    assert Material(path="x", role="textbook").authority == "reference"
 
 
 def test_normalize_maps_either_root_to_a_hub_relative_notes_path():
@@ -159,7 +171,7 @@ Expected: FAIL with `ModuleNotFoundError: No module named 'core.course_materials
 # core/course_materials/__init__.py
 """What each converted file in a course is (role, format, offering), decided once per course. See
 docs/superpowers/specs/agent/2026-10-19-course-agnostic-concept-graph-design.md."""
-from .model import DECIDABLE, FORMATS, ROLES, Catalog, CatalogError, Material, normalize, rag_twin  # noqa: F401
+from .model import AUTHORITY, DECIDABLE, FORMATS, ROLES, Catalog, CatalogError, Material, normalize, rag_twin  # noqa: F401
 ```
 
 ```python
@@ -173,6 +185,10 @@ from pathlib import PurePosixPath
 ROLES = ("syllabus", "instructor", "student_notes", "recitation", "problem_set", "exam", "textbook", "other")
 FORMATS = ("slides", "handwritten", "typeset", "excalidraw", "chapter")
 DECIDABLE = ("role", "format", "offering", "book", "date", "order")
+# Who stands behind a file. Class material is ground truth; mixing up roles inside `class` costs little, while
+# mistaking a student's notes for class material (or the reverse) changes what the evidence is worth.
+AUTHORITY = {"syllabus": "class", "instructor": "class", "recitation": "class", "problem_set": "class", "exam": "class",
+             "textbook": "reference", "student_notes": "student", "other": "unknown"}
 _ROOTS = ("academic_notes", "academic_resources")
 
 
@@ -211,6 +227,10 @@ class Material:
     flagged: bool = True
     evidence: list = field(default_factory=list)
     decided_by: str = "rules"
+
+    @property
+    def authority(self) -> str:
+        return AUTHORITY.get(self.role, "unknown")
 
     @property
     def stem(self) -> str:
@@ -280,7 +300,7 @@ class Catalog:
 - [ ] **Step 4: Run the tests to verify they pass**
 
 Run: `$PY -m pytest tests/core/course_materials/test_cm_model.py -q`
-Expected: PASS (8 tests)
+Expected: PASS (9 tests)
 
 - [ ] **Step 5: Commit**
 
@@ -301,7 +321,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 - Test: `tests/core/course_materials/test_cm_signals.py`
 
 **Interfaces:**
-- Consumes: nothing from Task 1 except the package.
+- Consumes: `AUTHORITY` from `core.course_materials.model` (Task 1).
 - Produces:
   - `DECISIVE=10, STRONG=3, MEDIUM=2, WEAK=1`, `FLAG_BELOW=3`, `FLAG_MARGIN=2`
   - `@dataclass(frozen=True) Vote(signal: str, field: str, value: str, weight: int)`
@@ -381,13 +401,30 @@ def test_a_chapters_layout_is_a_decisive_textbook_under_any_folder_name():
     assert front.role == "textbook" and front.flagged is False
 
 
-def test_a_landscape_deck_is_instructor_slides_without_any_path_hint():
+def test_orientation_alone_names_the_format_not_the_provenance():
     d = decide(facts("misc/processed_outputs/week1.md", shape="landscape"))
+    assert (d.role, d.format) == ("instructor", "slides")  # class material by default, but not confident
+    assert d.flagged
+    assert not any(v.signal == "pdf landscape" and v.field == "role" for v in d.votes)
+
+
+def test_a_landscape_deck_with_any_class_signal_clears_review():
+    d = decide(facts("professor_notes/processed_outputs/slides1.md", shape="landscape"))
     assert (d.role, d.format, d.flagged) == ("instructor", "slides", False)
 
 
-def test_a_landscape_recitation_deck_ties_and_is_flagged():
+def test_a_recitation_deck_is_class_material_and_not_flagged():
     d = decide(facts("ta_sessions/processed_outputs/r1.md", shape="landscape", body="Recitation 1: review"))
+    assert (d.role, d.flagged) == ("recitation", False)
+
+
+def test_class_roles_that_tie_are_not_flagged():
+    d = decide(facts("professor_proofs/processed_outputs/r2.md", body="Recitation 2"))
+    assert d.role == "instructor" and d.flagged is False  # instructor 2 vs recitation 2: both ground truth
+
+
+def test_class_against_student_evidence_is_flagged():
+    d = decide(facts("professor_notes/E 2026-09-09 10.00.00.excalidraw.rag.md"))
     assert d.flagged
 
 
@@ -442,6 +479,8 @@ from dataclasses import dataclass, field
 from pathlib import Path, PurePosixPath
 
 from core.env.academic_hub_paths import TEXTBOOK_FOLDER_NAMES
+
+from .model import AUTHORITY
 
 DECISIVE, STRONG, MEDIUM, WEAK = 10, 3, 2, 1
 FLAG_BELOW, FLAG_MARGIN = 3, 2
@@ -522,8 +561,8 @@ def textbook_signal(f: Facts) -> list[Vote]:
 
 def pdf_signal(f: Facts) -> list[Vote]:
     if f.pdf_shape == "landscape":
-        # Lecture slides are by far the commonest landscape PDF; recitation and TA decks carry their own signals.
-        return [Vote("pdf landscape", "format", "slides", STRONG), Vote("pdf landscape", "role", "instructor", STRONG)]
+        # A convention of the courses seen so far, not a rule: it hints at a slide deck and says nothing about who made it.
+        return [Vote("pdf landscape", "format", "slides", MEDIUM)]
     if f.pdf_shape in ("portrait", "unavailable"):
         return [Vote(f"pdf {f.pdf_shape}", "format", f.pdf_shape, 0)]
     return []
@@ -598,15 +637,31 @@ def _tally(votes: list[Vote], field_name: str) -> dict[str, int]:
     return scores
 
 
+def _best(scores: dict[str, int]) -> list[tuple[str, int]]:
+    return sorted(scores.items(), key=lambda kv: (-kv[1], kv[0]))
+
+
 def decide(f: Facts) -> Decision:
+    """Authority first (class, reference, student), then the role inside it. Only the authority is flagged when unsure:
+    mixing up two kinds of class material costs little, mixing up class material and a student's notes does not."""
     votes = [v for signal in SIGNALS for v in signal(f)]
     if not any(v.field == "format" and v.weight > 0 for v in votes):
         votes += format_fallback(f)
-    ranked = sorted(_tally(votes, "role").items(), key=lambda kv: (-kv[1], kv[0]))
-    role, top = ranked[0] if ranked else ("other", 0)
-    runner = ranked[1][1] if len(ranked) > 1 else 0
     formats = _tally(votes, "format")
-    fmt = sorted(formats.items(), key=lambda kv: (-kv[1], kv[0]))[0][0] if formats else "typeset"
+    fmt = _best(formats)[0][0] if formats else "typeset"
+    roles = _tally(votes, "role")
+    groups: dict[str, int] = {}
+    for role, score in roles.items():
+        groups[AUTHORITY[role]] = groups.get(AUTHORITY[role], 0) + score
+    if fmt == "slides":  # a slide deck is class material rather than a student's notes or a book, whoever presented it
+        groups["class"] = groups.get("class", 0) + formats["slides"]
+    ranked = _best(groups)
+    if not ranked:
+        return Decision(role="other", format=fmt, confidence=0.0, flagged=True, votes=votes)
+    group, top = ranked[0]
+    runner = ranked[1][1] if len(ranked) > 1 else 0
+    inside = _best({r: s for r, s in roles.items() if AUTHORITY[r] == group})
+    role = inside[0][0] if inside else "instructor"  # only `class` is reachable without role votes (via slides)
     margin = top - runner
     return Decision(role=role, format=fmt, confidence=float(margin),
                     flagged=top < FLAG_BELOW or margin < FLAG_MARGIN, votes=votes)
@@ -615,7 +670,12 @@ def decide(f: Facts) -> Decision:
 - [ ] **Step 4: Run the tests to verify they pass**
 
 Run: `$PY -m pytest tests/core/course_materials/test_cm_signals.py -q`
-Expected: PASS (11 tests). If `test_a_landscape_recitation_deck_ties_and_is_flagged` fails, check the scores: instructor 3 (landscape) against recitation 1 (`ta`) + 2 (content) = 3. That's a margin of 0, which is flagged.
+Expected: PASS (14 tests). Worked scores, for checking a failure:
+- **Orientation-only deck:** class 2 (slides) is below 3, so it's flagged.
+- **`professor` deck:** class 2 + 1 = 3, which clears.
+- **Recitation deck:** class 2 (slides) + 1 (`ta`) + 2 (content) = 5; inside `class`, recitation 3 beats instructor 0.
+- **Tie:** instructor 2 (`professor`, `proofs`) and recitation 2 (content) give class 4, so it's not flagged and the alphabetical tiebreak picks instructor.
+- **Class against student:** student 2 (excalidraw name) against class 1 (`professor`), so it's flagged.
 
 - [ ] **Step 5: Commit**
 
@@ -703,7 +763,7 @@ def by_stem(catalog):
 
 def test_classifies_a_course_with_unconventional_names(tmp_path):
     cat = by_stem(classify_course(build_course(tmp_path), COURSE))
-    assert (cat["week1"].role, cat["week1"].format, cat["week1"].flagged) == ("instructor", "slides", False)
+    assert (cat["week1"].role, cat["week1"].format, cat["week1"].flagged) == ("instructor", "slides", True)  # orientation only
     assert cat["week3"].role == "problem_set"
     assert (cat["092126"].role, cat["092126"].format, cat["092126"].date) == ("instructor", "handwritten", "2026-09-21")
     assert cat["092126"].flagged
@@ -1621,6 +1681,23 @@ def test_a_book_key_decision_scopes_textbook_chapters(tmp_path):
     joined = "\n".join(p.text for p in passages)
     assert "4.2 Projection" in joined and "1.1 What is econometrics" not in joined
     assert {p.source for p in passages} == {"hansen22"}
+
+
+def test_class_material_comes_before_the_students_notes(tmp_path):
+    _, passages = seed.outline_context(str(econ_hub(tmp_path)), ECON)
+    sources = [p.source for p in passages]
+    assert sources.index("slides") < sources.index("lecture") and sources.index("recitation") < sources.index("lecture")
+
+
+def test_the_seed_card_says_class_material_outranks_the_students_notes(tmp_path):
+    from agent.concept_graph.scaffold import scaffold
+    from agent.concept_graph.store import GraphStore
+
+    root = tmp_path / "g"
+    scaffold(root, "someone/g", "Some One", 2026, fetch_text=lambda url: "license")
+    task = seed.make_tasks(GraphStore(root), None, hub_root=str(econ_hub(tmp_path)), course=ECON)[0]
+    text = task.instructions.lower()
+    assert "authoritative" in text and "may contain mistakes" in text
 ```
 
 - [ ] **Step 2: Run the tests to verify they fail**
@@ -1729,20 +1806,23 @@ def outline_context(hub_root: str, course: str, *, config: SeedConfig | None = N
         if label not in titles:
             titles.append(label)
 
-    by_date: dict[str, list] = {}
-    for m in catalog.by_role("student_notes"):
-        if m.date:
-            by_date.setdefault(m.date, []).append(m)
-    for date in sorted(by_date)[: ROLE_CAPS["student_notes"]]:
-        evidence = "\n\n".join(e for e in (_evidence(read(m), statements=12, headings=12) for m in by_date[date]) if e)
-        if evidence:
-            add(by_date[date][0], f"Found in the lecture notes of {date}:\n\n{evidence}", ref=date)
-    lecture_dates |= set(by_date)
-
     for m in catalog.by_role("recitation")[: ROLE_CAPS["recitation"]]:
         heads = section_headings(read(m), limit=15)
         if heads:
             add(m, "Section headings:\n" + _bullets(heads))
+
+    prior_lines: list[str] = []
+    for label in catalog.offerings():
+        decks: list[str] = []
+        for m in [x for x in catalog.by_role("instructor", offering=label) if x.format == "slides"][: ROLE_CAPS["prior"]]:
+            title = classify_passage(m.path, "", catalog)[1]
+            anchors = statement_anchors(read(m))
+            if anchors:
+                add(m, f"Statements found in the {label} offering slides:\n" + _bullets(anchors))
+            if title not in decks:
+                decks.append(title)
+        if decks:
+            prior_lines += [f"{label} offering slide sets (in order): " + "; ".join(decks), ""]
 
     by_name = {k.lower(): v for k, v in config.textbook_chapters.items()}
     books: dict[str, list] = {}
@@ -1765,18 +1845,16 @@ def outline_context(hub_root: str, course: str, *, config: SeedConfig | None = N
                         ref=f"ch. {number} section headings")
         add(chapters[0][1], "\n".join(titles_toc), ref="table of contents")
 
-    prior_lines: list[str] = []
-    for label in catalog.offerings():
-        decks: list[str] = []
-        for m in [x for x in catalog.by_role("instructor", offering=label) if x.format == "slides"][: ROLE_CAPS["prior"]]:
-            title = classify_passage(m.path, "", catalog)[1]
-            anchors = statement_anchors(read(m))
-            if anchors:
-                add(m, f"Statements found in the {label} offering slides:\n" + _bullets(anchors))
-            if title not in decks:
-                decks.append(title)
-        if decks:
-            prior_lines += [f"{label} offering slide sets (in order): " + "; ".join(decks), ""]
+    # The student's own notes come last: they fix teaching order and dates, but class material outranks them.
+    by_date: dict[str, list] = {}
+    for m in catalog.by_role("student_notes"):
+        if m.date:
+            by_date.setdefault(m.date, []).append(m)
+    for date in sorted(by_date)[: ROLE_CAPS["student_notes"]]:
+        evidence = "\n\n".join(e for e in (_evidence(read(m), statements=12, headings=12) for m in by_date[date]) if e)
+        if evidence:
+            add(by_date[date][0], f"Found in the student's lecture notes of {date}:\n\n{evidence}", ref=date)
+    lecture_dates |= set(by_date)
 
     if lecture_dates:
         lines += ["Lecture dates with notes: " + ", ".join(sorted(lecture_dates)), ""]
@@ -1792,6 +1870,15 @@ def outline_context(hub_root: str, course: str, *, config: SeedConfig | None = N
 ```
 
 In `make_tasks`, add `catalog: Catalog | None = None` before `**_ignored`, and pass it through: `context, passages = outline_context(hub_root, course, config=config, catalog=catalog)`.
+
+In `INSTRUCTIONS`, step 2 of "How to work", append after "...what the course covers and in what order.":
+
+```
+   Weigh them by where they come from: the syllabus, the instructor's slides and notes, recitation material and the
+   textbooks are authoritative. Passages whose source is `lecture` are the student's own notes (sometimes expanded by
+   a model) and may contain mistakes: use them for teaching order, dates and coverage, and where they disagree with
+   class material, follow the class material.
+```
 
 Then delete `_DATE` (line 24) if nothing else references it. `slide_key` was local to the old `outline_context` and goes with it. Check with `grep -n "_DATE\|slide_key" agent/concept_graph/stages/seed.py`, which should print nothing.
 
@@ -1873,6 +1960,7 @@ def test_fill_card_names_the_subject(tmp_path):
     task = fill.make_tasks(store, FakeRetriever(), nodes=[store.read_all().nodes[0].id], redo=True)[0]
     assert "studying graduate econometrics" in task.instructions and "{subject}" not in task.instructions
     assert "microeconomic" not in task.instructions.lower()
+    assert "`lecture`" in task.instructions and "may contain mistakes" in task.instructions
 
 
 def test_seed_card_prefers_the_vocab_files_kind_help_and_names_the_subject(tmp_path):
@@ -1955,6 +2043,11 @@ class Site(_Model):
 
 `fill.py`:
 - Make line 14 `Explain this concept for a student studying {subject}, using the offered passages as your source.`
+- Add this rule after "Cite only what was offered: ...":
+  ```
+  - Passages whose source is `lecture` are a student's own notes and may contain mistakes; where they disagree with
+    slides, notes, recitation material or a textbook, follow those.
+  ```
 - In `make_tasks`, compute `subject = graph.site.get("subject") or "this course"`.
 - Pass `instructions=INSTRUCTIONS.replace("{subject}", subject)` (use `replace`, not `format`: the text contains `{source: ..., ref: ...}`).
 
@@ -2233,7 +2326,6 @@ Keep it under about 120 lines.
 - [ ] **Step 3: Record the planning refinements in the spec**
 
 Edit the spec:
-- **Signals:** landscape role vote is strong.
 - **Commands:** `flagged`/`decide`, and the review Artifact built by Claude from `flagged`.
 - **Storage:** folder decisions.
 - **Citation keys:** a path missing from the catalog is classified alone and reported; instructor `typeset` keys as `slides`.
@@ -2266,9 +2358,11 @@ Expected:
 - The professor decks and the 2024/2025 post-lecture decks are `instructor`/`slides`.
 - Excalidraw notes are `student_notes`.
 - The three books are `textbook`.
-- Few files are flagged.
+- Flagged files are mostly decks known only by orientation, chiefly the 2024/2025 decks under folders like "Post lecture notes". This is by design: orientation names the format, not the provenance.
 
-For each misclassification, tune the weight or word list in `signals.py` only when the cause is systematic (it would hit any course). Add a failing test in `test_cm_signals.py` first. Otherwise leave it for review.
+Record the classify summary (counts and flagged list) for the status doc.
+
+For each misclassification, tune the weights or word lists in `signals.py` only when the cause is systematic (it would hit any course). Add a failing test in `test_cm_signals.py` first. Otherwise leave it for review. Do **not** raise the orientation weight to cut the flagged count: the owner ruled that out.
 
 - [ ] **Step 2: Record microecon's book keys and other decisions**
 

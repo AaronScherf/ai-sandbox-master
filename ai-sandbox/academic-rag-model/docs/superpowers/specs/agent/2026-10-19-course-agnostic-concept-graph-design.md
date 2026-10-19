@@ -64,11 +64,23 @@ nondeterminism) and embedding prototypes (needs labelled examples, and only cove
 | `date` | ISO date from the file name or frontmatter, if any |
 | `book` | textbooks only: a short key, by default the first word of the book folder lowercased (`hansen`, `cameron`) |
 | `order` | sort key within a role: a leading number in the file name, else the date, else the name |
-| `confidence` | margin between the winning and runner-up role scores |
+| `confidence` | margin between the winning and runner-up *authority* scores (below) |
 | `evidence` | list of `(signal, vote, weight)` behind the decision |
 | `decided_by` | `rules` or `review` |
 
 The professor's handwritten notes and their slide decks share `role: instructor` and differ by `format`.
+
+Each role belongs to one **authority** group, a derived property, not stored:
+
+| authority | roles | meaning |
+|---|---|---|
+| `class` | `syllabus`, `instructor`, `recitation`, `problem_set`, `exam` | material handed out by the class: ground truth |
+| `reference` | `textbook` | published reference |
+| `student` | `student_notes` | the student's own notes or their LLM expansions: may contain mistakes |
+| `unknown` | `other` | |
+
+Telling the groups apart matters; telling roles apart within `class` matters much less (an instructor deck read as a
+recitation deck, or the reverse, is still ground truth). Flagging and confidence therefore work on authority.
 
 ### Signals
 
@@ -78,17 +90,29 @@ Each signal votes for a `format`, a `role`, or both, with a weight. All are loca
 |---|---|---|
 | frontmatter `source_excalidraw` | `excalidraw` + `student_notes` | decisive |
 | `chapters/NN_*.rag.md` layout, or index card `doc_type: textbook` | `chapter` + `textbook` | decisive |
-| source PDF page shape (pypdf, first pages, rotation applied) | landscape: `slides`; portrait: not `slides` | strong (format only) |
+| source PDF page shape (pypdf, first pages, rotation applied) | landscape: format `slides`; portrait: evidence only. Never a role vote. | medium (format only) |
 | index card `doc_type` where a card exists | `problem_set`, `ta_notes` (`recitation`), `syllabus`, `handwritten_notes` (`handwritten`) | strong |
 | content patterns | syllabus wording (grading, office hours, schedule); numbered problems with lettered parts (`problem_set`); "solution", "midterm", "final exam" (`exam`/`problem_set`); "recitation", "section", "TA" (`recitation`) | medium |
 | path words | `professor`, `slides`, `lecture`, `ta`, `recitation`, `hw`, `homework`, `problem`, `exam`, `syllabus`, `proof` | weak, one vote per word |
 | fallthrough for format | portrait PDF with few headings and short lines: `handwritten`, else `typeset` | weak |
 
-Starting weights: decisive 10, strong 3, medium 2, weak 1. A file is **flagged** when its top role scores below 3 or
-leads the runner-up by less than 2. Landscape decks with no role signal are `instructor` by default (weak): the
-lecture slides are by far the commonest landscape PDF, and recitation decks and proof decks usually carry a path or
-content signal that outvotes it. Weights are tuned against the microecon and econometrics trees during
-implementation and recorded in the module.
+Starting weights: decisive 10, strong 3, medium 2, weak 1.
+
+Page orientation is a convention of these two courses, not a rule: it is a medium vote for the slide *format* and
+says nothing about who made the file. A file whose format is `slides` (from any signal) adds its slides score to the
+`class` authority, since a slide deck is class material rather than a student's notes or a book, but it does not
+pick a role within `class`.
+
+The decision then runs in two steps:
+
+1. **Authority.** Each group's score is the sum of its roles' votes, plus the slides contribution to `class`. A file is
+   **flagged** when the top group scores below 3 or leads the runner-up group by less than 2.
+2. **Role within the group.** The group's highest-scoring role; for `class` with no role votes (a deck known only to
+   be slides) the role is `instructor`. A tie between two `class` roles is resolved this way and never flagged.
+
+So a landscape deck with no other signal scores `class` 2 and is flagged for review; with a `professor` path word, a
+recitation wording match or an index card it clears the threshold. Weights are tuned against the microecon and
+econometrics trees during implementation and recorded in the module.
 
 Offerings come from the existing subset markers (`.notes_subset.json`, read by
 `core/env/academic_hub_paths.find_containing_offering_label`), not from folder names.
@@ -156,16 +180,21 @@ keys, so only new cards use the new keys. Unmatched paths are reported once per 
 
 ### Seed evidence
 
-`outline_context` builds the card from the catalog by role, in this order:
+`outline_context` builds the card from the catalog by role, authoritative material first:
 
 1. **syllabus** (current offering): cleaned excerpt, as today.
 2. **instructor** (current offering, by `order`): labelled statements and, new, section headings of every deck and
    note. Dated instructor notes join the lecture timeline.
-3. **student_notes**: statements and headings by date.
-4. **recitation**: headings only.
+3. **recitation**: headings only.
+4. **prior offerings**: instructor slides by offering label, as the microecon 2024 and 2025 decks are offered today.
 5. **textbook**: each book's contents, and the section headings of the chapters `seed.yaml` puts in scope.
    `textbook_chapters` is keyed by `book` (folder names still accepted).
-6. **prior offerings**: instructor slides by offering label, as the microecon 2024 and 2025 decks are offered today.
+6. **student_notes**: statements and headings by date; their dates still form the lecture timeline.
+
+The seed instructions say how to weigh them: the syllabus, the instructor's and recitation material and the textbooks
+are authoritative; the student's lecture notes (source key `lecture`) are transcriptions and may contain mistakes, so
+they show teaching order, dates and coverage, and where they disagree with class material the class material wins.
+The fill instructions carry the same rule for the passages a fill card offers.
 
 `problem_set` and `exam` material is not offered to seed (as today); retrieval still finds it for later stages.
 
@@ -177,7 +206,7 @@ role cannot crowd out the slides.
 ## 3. Course wording and per-course setup
 
 - **Subject.** `config/site.yaml` gains `subject` (validated by `Site`; default `the course`). The fill prompt says
-  "studying {subject}". The seed prompt's hint becomes "If the course relies on background mathematics or other
+  "studying {subject}", plus the authority rule above. The seed prompt's hint becomes "If the course relies on background mathematics or other
   prerequisites, give it a first section, however brief." Microecon's `site.yaml` gets
   `subject: graduate microeconomic theory`, so its cards read as before.
 - **Kinds.** `vocab.yaml` `kinds` entries may be plain names (as today) or `{name, help}` mappings. File help wins;
