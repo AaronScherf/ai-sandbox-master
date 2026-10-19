@@ -1,5 +1,5 @@
 vocabulary: data_source
-version: 1
+version: 2
 provenance: provisional
 source: Starter list written for this project; replace or reconcile when an authoritative list is adopted.
 terms:
@@ -9,6 +9,10 @@ terms:
   label: Panel survey
 - id: data_source.administrative_records
   label: Administrative records
+  definition: Records an agency keeps about individuals, households or transactions while running a programme or service (registries, beneficiary lists, tax or health-facility records).
+- id: data_source.government_statistics
+  label: Government statistics
+  definition: Published aggregate figures from an official agency, such as county, district or national totals, accounts and price indices, rather than the underlying records.
 - id: data_source.census
   label: Census
 - id: data_source.remote_sensing
