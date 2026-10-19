@@ -1,0 +1,267 @@
+# Silver set from pilot 1 (2026-10-19): expected values only, no quotes or paper text.
+version: 1
+papers:
+- file_id: 0042bbf509eab659
+  expect:
+    countries:
+    - SO
+    intervention:
+    - intervention.emergency_response_management
+    outcome:
+    - outcome.child_health
+    - outcome.resilience
+    population:
+    - population.children_under_five
+    sector:
+    - sector.conflict_security_fragility
+    study_design:
+    - study_design.qualitative
+  notes: 'silver set: facts both passes found or the checker confirmed; audit-sample items the owner marked unsure are left
+    out'
+- file_id: 0bc75ee4d419ba1e
+  expect:
+    countries:
+    - RW
+    data_sources:
+    - data_source.mobile_phone_data
+    intervention:
+    - intervention.subsidies
+    outcome:
+    - net welfare
+    - operator revenue from nonrecipients
+    - outcome.financial_performance
+    - outcome.household_technology_use
+    population:
+    - population.general_population
+    - population.households
+    sector:
+    - sector.information_communications_technologies
+    study_design:
+    - study_design.simulation_model
+  notes: 'silver set: facts both passes found or the checker confirmed; audit-sample items the owner marked unsure are left
+    out'
+- file_id: 0d683d8c58e1fd52
+  expect:
+    countries:
+    - NP
+    data_sources:
+    - data_source.household_survey
+    - data_source.weather_climate_data
+    intervention:
+    - intervention.agricultural_insurance
+    - intervention.social_transfers_social_assistance
+    - remittance bank
+    outcome:
+    - community inequality
+    - outcome.household_income
+    - outcome.migration
+    population:
+    - population.smallholder_farmers
+    sector:
+    - sector.agriculture_forestry
+    study_design:
+    - study_design.simulation_model
+  notes: 'silver set: facts both passes found or the checker confirmed; audit-sample items the owner marked unsure are left
+    out'
+- file_id: 2f30f1372f72c7db
+  expect:
+    countries:
+    - SS
+    - YE
+    intervention:
+    - intervention.public_works_programmes
+    - intervention.social_transfers
+    outcome:
+    - outcome.resilience
+    - outcome.social_cohesion
+    population:
+    - population.households
+    - population.refugees_idps
+    sector:
+    - sector.conflict_security_fragility
+    - sector.social_protection_development
+    study_design:
+    - study_design.qualitative
+  notes: 'silver set: facts both passes found or the checker confirmed; audit-sample items the owner marked unsure are left
+    out'
+- file_id: 48d94bf75a026f64
+  expect:
+    countries:
+    - SO
+    data_sources:
+    - data_source.remote_sensing
+    - data_source.weather_climate_data
+    outcome:
+    - internal displacement
+    - outcome.crop_losses
+    - outcome.migration
+    population:
+    - population.refugees_idps
+    sector:
+    - sector.agriculture_forestry
+    - sector.conflict_security_fragility
+    study_design:
+    - remote sensing analytics and spatial mapping
+  notes: 'silver set: facts both passes found or the checker confirmed; audit-sample items the owner marked unsure are left
+    out'
+- file_id: 555051c6142cc197
+  expect:
+    countries:
+    - US
+    data_sources:
+    - data_source.census
+    - data_source.weather_climate_data
+    intervention:
+    - intervention.climate_adaption_mitigation_strategies
+    outcome:
+    - outcome.crop_production
+    - outcome.soya_yield
+    population:
+    - farmers
+    sector:
+    - sector.agriculture_forestry
+    study_design:
+    - study_design.panel_fixed_effects
+  notes: 'silver set: facts both passes found or the checker confirmed; audit-sample items the owner marked unsure are left
+    out'
+- file_id: 82c2c29a65248284
+  expect:
+    countries:
+    - ZA
+    data_sources:
+    - data_source.interviews_fieldwork
+    intervention:
+    - intervention.climate_adaption_mitigation_strategies
+    - intervention.imported_water_source
+    - intervention.irrigation_and_water_supply
+    outcome:
+    - outcome.crop_production
+    - outcome.food_security
+    - outcome.nutrition
+    population:
+    - population.smallholder_farmers
+    sector:
+    - sector.agriculture_forestry
+    study_design:
+    - study_design.qualitative
+  notes: 'silver set: facts both passes found or the checker confirmed; audit-sample items the owner marked unsure are left
+    out'
+- file_id: 98049fc423ba0aab
+  expect:
+    countries:
+    - AF
+    - JO
+    intervention:
+    - intervention.social_transfers
+    outcome:
+    - cost-effectiveness of safety nets
+    - outcome.household_income
+    - outcome.resilience
+    population:
+    - population.refugees_idps
+    sector:
+    - sector.conflict_security_fragility
+    - sector.social_protection_development
+    study_design:
+    - study_design.qualitative
+  notes: 'silver set: facts both passes found or the checker confirmed; audit-sample items the owner marked unsure are left
+    out'
+- file_id: a2ad72f7f7ecb19a
+  expect:
+    countries:
+    - CM
+    data_sources:
+    - data_source.household_survey
+    - data_source.weather_climate_data
+    intervention:
+    - agro-forestry practices
+    - intervention.climate_adaption_mitigation_strategies
+    outcome:
+    - outcome.agricultural_adoption
+    population:
+    - population.smallholder_farmers
+    sector:
+    - sector.agriculture_forestry
+    study_design:
+    - study_design.cross_sectional_regression
+  notes: 'silver set: facts both passes found or the checker confirmed; audit-sample items the owner marked unsure are left
+    out'
+- file_id: b52cb3c54136c4df
+  expect:
+    countries:
+    - AF
+    - CD
+    - CO
+    - ET
+    - HT
+    - IQ
+    - JO
+    - LB
+    - ML
+    - MZ
+    - NE
+    - NG
+    - PK
+    - SO
+    - SS
+    - SY
+    - YE
+    data_sources:
+    - data_source.conflict_event_data
+    - programme documents and evaluation reports
+    intervention:
+    - intervention.economic_foundations_livelihoods
+    - intervention.social_transfers_social_assistance
+    outcome:
+    - outcome.food_security_human_development_welfare_social_protection_development
+    - outcome.household_income_human_development_welfare_social_protection_development
+    - outcome.household_livelihood
+    - outcome.household_savings_assets_human_development_welfare_social_protection_development
+    population:
+    - population.households
+    - population.refugees_idps
+    - population.women
+    sector:
+    - sector.conflict_security_fragility
+    - sector.social_protection_development
+    study_design:
+    - study_design.systematic_review
+  notes: 'silver set: facts both passes found or the checker confirmed; audit-sample items the owner marked unsure are left
+    out'
+- file_id: c0bcc65b0d30ff3e
+  expect:
+    countries:
+    - NG
+    data_sources:
+    - data_source.household_survey
+    intervention:
+    - intervention.microfinance
+    outcome:
+    - outcome.credit_and_loan_uptake
+    - outcome.depression
+    - outcome.health_and_wellbeing
+    - subjective well-being
+    population:
+    - population.general_population
+    sector:
+    - sector.financial_sector
+    study_design:
+    - study_design.randomized_controlled_trial
+  notes: 'silver set: facts both passes found or the checker confirmed; audit-sample items the owner marked unsure are left
+    out'
+- file_id: d688c2e9cec6e735
+  expect:
+    data_sources:
+    - data_source.conflict_event_data
+    - data_source.weather_climate_data
+    outcome:
+    - outcome.physical_security_violence
+    - outcome.risk_of_violence
+    population:
+    - population.general_population
+    sector:
+    - sector.conflict_security_fragility
+    study_design:
+    - study_design.systematic_review
+  notes: 'silver set: facts both passes found or the checker confirmed; audit-sample items the owner marked unsure are left
+    out'

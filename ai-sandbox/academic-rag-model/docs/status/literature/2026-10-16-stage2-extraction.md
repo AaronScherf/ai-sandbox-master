@@ -36,3 +36,22 @@ If the full run shows the same prevalence, expand to more elaborate methods:
 
 - The index holds duplicate conversions of one paper under different file_ids (manual downloads); dedupe before a full run.
 - Two papers (about 295 KB and 273 KB of text) exceed the one-card size cap and are skipped until chunking exists.
+
+## Verification and silver set (2026-10-19)
+
+Instead of hand-reading every paper, facts were split three ways (`python -m agent.literature silver`):
+88 facts both passes found (auto-accepted), 59 found by one pass only and sent to an independent checker pass
+(`verify`, stage `verify`, 11 cards): 52 confirmed with a verified quote, 7 not confirmed.
+
+Owner review (interactive Artifact): the 7 open facts and a random audit of 12 accepted facts.
+- Audit: 11 of 12 correct, 0 wrong, 1 unsure ("administrative records" for county-level statistics). The automatic
+  acceptance looks reliable on this sample, but the sample is small and one model family did both passes and the check.
+- Open facts: the checker was right more often than not (2 wrong, 4 unsure, 1 correct on the owner's guess only; not
+  accepted into the silver set).
+- Recurring weak term: `data_source.administrative_records` appeared in 5 of the 19 reviewed items and is too vague
+  (government statistics vs true administrative records vs sampling frames). Split or redefine it before the full run.
+
+`gold/gold_set.yaml` is this silver set (12 papers, 138 expected values), not a hand-built gold set. Scores against it
+are optimistic: facets from `eval` (pass a vs silver) were precision 0.96, recall 0.88, proposal rate 0.92 per record,
+bounce rate 0.08, strict double-pass agreement 0.08 (1 of 12 papers fully agree). Recall of facts both passes missed is
+unmeasured; only a small hand-built gold set would measure it.
