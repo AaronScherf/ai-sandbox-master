@@ -90,3 +90,20 @@ def test_the_seed_card_says_class_material_outranks_the_students_notes(tmp_path)
     task = seed.make_tasks(GraphStore(root), None, hub_root=str(econ_hub(tmp_path)), course=ECON)[0]
     text = task.instructions.lower()
     assert "authoritative" in text and "may contain mistakes" in text
+
+
+def test_an_earlier_offering_keeps_its_late_topics(tmp_path):
+    # microecon 2024 has pre- and post-lecture versions of each deck plus proofs (about 21 decks); the late topics
+    # (risk and uncertainty) are why earlier offerings are offered at all, so a cap must not cut them off.
+    from core.course_materials import Catalog, Material
+
+    hub = tmp_path / "hub"
+    mats = []
+    for i in range(1, 12):
+        for kind in ("pre", "post"):
+            rel = f"academic_notes/{ECON}/class_2024/{kind}/processed_outputs/{i}.Topic_{i}_{kind}.md"
+            write(hub / rel, f"Definition\nConcept {i} {kind} is defined here\n")
+            mats.append(Material(path=rel, role="instructor", format="slides", offering="2024", order=[i, "", rel]))
+    _, passages = seed.outline_context(str(hub), ECON, catalog=Catalog(course=ECON, materials=mats))
+    refs = {p.ref for p in passages if p.source == "slides-2024"}
+    assert "Topic 11 post" in refs and "Topic 11 pre" in refs

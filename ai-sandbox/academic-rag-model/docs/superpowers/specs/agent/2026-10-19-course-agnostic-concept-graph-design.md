@@ -207,7 +207,7 @@ The fill instructions carry the same rule for the passages a fill card offers.
 
 The statement pattern also accepts plurals and numbering (`Assumptions 7.1`, `Theorem 3.2`). The context keeps its
 12,000-character cap; offered passages are capped per role (starting values: instructor 30, student-note dates 30,
-recitation 8, prior offerings 15 per offering, textbook contents 1 per book plus in-scope chapters) so a large
+recitation 8, prior offerings 30 per offering, textbook contents 1 per book plus in-scope chapters) so a large
 role cannot crowd out the slides.
 
 ## 3. Course wording and per-course setup

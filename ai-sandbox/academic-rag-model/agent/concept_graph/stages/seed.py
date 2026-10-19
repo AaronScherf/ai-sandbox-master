@@ -201,7 +201,7 @@ def _bullets(items: list[str]) -> str:
 
 
 # Upper bounds on passages per kind of material, so a large role (34 TA notes) cannot crowd out the slides.
-ROLE_CAPS = {"instructor": 30, "student_notes": 30, "recitation": 8, "prior": 15}
+ROLE_CAPS = {"instructor": 30, "student_notes": 30, "recitation": 8, "prior": 30}  # prior: per earlier offering
 _CHAPTER_FILE = re.compile(r"/chapters/(\d+)_[^/]*$")
 
 
