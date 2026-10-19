@@ -266,7 +266,7 @@ def outline_context(hub_root: str, course: str, *, config: SeedConfig | None = N
     prior_lines: list[str] = []
     for label in catalog.offerings():
         decks: list[str] = []
-        for m in [x for x in catalog.by_role("instructor", offering=label) if x.format == "slides"][: ROLE_CAPS["prior"]]:
+        for m in catalog.by_role("instructor", offering=label)[: ROLE_CAPS["prior"]]:
             title = classify_passage(m.path, "", catalog)[1]
             anchors = statement_anchors(read(m))
             if anchors:

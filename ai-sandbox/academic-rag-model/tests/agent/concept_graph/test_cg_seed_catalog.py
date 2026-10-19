@@ -107,3 +107,17 @@ def test_an_earlier_offering_keeps_its_late_topics(tmp_path):
     _, passages = seed.outline_context(str(hub), ECON, catalog=Catalog(course=ECON, materials=mats))
     refs = {p.ref for p in passages if p.source == "slides-2024"}
     assert "Topic 11 post" in refs and "Topic 11 pre" in refs
+
+
+def test_an_earlier_offering_offers_instructor_material_of_any_format(tmp_path):
+    # microecon's 2024/2025 "Course Intro" and "Failures Of Rationality" decks have portrait pages (format typeset):
+    # page shape must not decide which instructor material reaches the card.
+    from core.course_materials import Catalog, Material
+
+    hub = tmp_path / "hub"
+    rel = f"academic_notes/{ECON}/class_2024/deck/processed_outputs/1.Course_Intro.md"
+    write(hub / rel, "Definition\nA course is a sequence of lectures on one subject\n")
+    cat = Catalog(course=ECON, materials=[Material(path=rel, role="instructor", format="typeset", offering="2024")])
+    context, passages = seed.outline_context(str(hub), ECON, catalog=cat)
+    assert any(p.source == "slides-2024" and p.ref == "Course Intro" for p in passages)
+    assert "2024 offering slide sets (in order): Course Intro" in context

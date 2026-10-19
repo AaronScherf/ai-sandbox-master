@@ -193,7 +193,7 @@ keys, so only new cards use the new keys. Unmatched paths are reported once per 
 2. **instructor** (current offering, by `order`): labelled statements and, new, section headings of every deck and
    note. Dated instructor notes join the lecture timeline.
 3. **recitation**: headings only.
-4. **prior offerings**: instructor slides by offering label, as the microecon 2024 and 2025 decks are offered today.
+4. **prior offerings**: instructor material of any format by offering label, as the microecon 2024 and 2025 decks are offered today.
 5. **textbook**: each book's contents, and the section headings of the chapters `seed.yaml` puts in scope.
    `textbook_chapters` is keyed by `book` (folder names still accepted).
 6. **student_notes**: statements and headings by date; their dates still form the lecture timeline.
