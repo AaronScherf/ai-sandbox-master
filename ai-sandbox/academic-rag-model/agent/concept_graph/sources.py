@@ -1,30 +1,18 @@
-"""Retrieved passages and the citation keys they are offered under."""
+"""Retrieved passages and the citation keys they are offered under.
+
+A passage's key comes from what its file is (core.course_materials): a textbook by its book key, instructor slides
+or notes, the student's lecture notes, and so on, with an earlier offering's label as a suffix."""
 from __future__ import annotations
 
 import re
-from pathlib import PurePosixPath
 
 from core.agent_tasks.tasks import Passage  # noqa: F401  (re-exported: the very object core defines)
+from core.course_materials import Catalog, Material, classify_path, date_from_stem, normalize
 
-_DATE = re.compile(r"\d{4}-\d{2}-\d{2}")
 _CHAPTER = re.compile(r"/chapters/(\d+)_")
-_PRIOR_YEAR = re.compile(r"/(20\d\d)_class/(.*)$")
-# Earlier years of the course: (words in the path under the year folder, source key). First match wins.
-_PRIOR_KINDS = (("proof", "proofs"), ("recitation", "recitation"), ("homework", "hw"), ("/hw", "hw"),
-                ("exam", "exam"), ("midterm", "exam"), ("survival", "exam"), ("syllabus", "syllabus"),
-                ("pre lecture", "slides-pre"), ("post", "slides"))
-
-
-def _stem(path: str) -> str:
-    name = PurePosixPath(path).name
-    for suffix in (".rag.md", ".excalidraw.rag.md", ".md"):
-        if name.endswith(suffix):
-            name = name[: -len(suffix)]
-            break
-    return name
-
-
 _PAGE = re.compile(r",?\s*(p\. ?[\d\-–]+)$")
+_ROLE_KEYS = {"student_notes": "lecture", "recitation": "recitation", "problem_set": "hw", "exam": "exam",
+              "syllabus": "syllabus"}
 
 
 def _clean_citation(citation: str, limit: int = 110) -> str:
@@ -39,38 +27,44 @@ def _clean_citation(citation: str, limit: int = 110) -> str:
     return head + tail
 
 
-def _chapter_ref(path: str, citation: str) -> str:
+def _chapter_ref(path: str, stem: str, citation: str) -> str:
     m = _CHAPTER.search(path)
-    base = f"ch. {int(m.group(1))}" if m else (_stem(path) or "unknown")
+    base = f"ch. {int(m.group(1))}" if m else (stem or "unknown")
     citation = _clean_citation(citation)
     return f"{base}, {citation}" if citation else base
 
 
-def classify_passage(path: str, citation: str = "") -> tuple[str, str]:
-    """Map a retrieved passage's file path (and rendered citation) to a (source, ref) pair.
+def _deck_title(stem: str) -> str:
+    return re.sub(r"^\d+\.\s*", "", stem).replace("_", " ").strip() or stem
 
-    The pair is what a card offers and what an agent must cite, so the ref is never empty."""
-    p = (path or "").replace("\\", "/")
-    low = p.lower()
-    if "rubenstein" in low or "rubinstein" in low:
-        return ("rubinstein", _chapter_ref(p, citation))
-    if "press_microeconomic_theory" in low or "mas-colell" in low:
-        return ("mwg", _chapter_ref(p, citation))
-    if "ok_real_analysis" in low:
-        return ("ok", _chapter_ref(p, citation))
-    stem = _stem(p) or "unknown"
-    prior = _PRIOR_YEAR.search(low)
-    if prior:  # an earlier year's class folder, kept apart from this year's material by a year suffix on the key
-        rest = "/" + prior.group(2)
-        kind = next((key for word, key in _PRIOR_KINDS if word in rest), "other")
-        topic = re.sub(r"^\d+\.\s*", "", re.sub(r"_for_circulation.*$", "", stem)).replace("_", " ").strip()
-        return (f"{kind}-{prior.group(1)}", topic or stem)
-    if "/lecture_notes/" in low:
-        m = _DATE.search(stem)
-        return ("lecture", m.group(0) if m else stem)
-    if "/professor_notes/" in low:
-        topic = re.sub(r"^\d+\.\s*", "", stem).replace("_", " ").strip()
-        return ("slides", topic or stem)
-    if "/problem_sets/" in low:
-        return ("hw", stem)
-    return ("other", stem)
+
+def source_key(m: Material) -> str:
+    if m.role == "textbook":
+        return m.book or "book"
+    if m.role == "instructor":
+        key = "notes" if m.format == "handwritten" else "slides"
+    else:
+        key = _ROLE_KEYS.get(m.role, "other")
+    return f"{key}-{m.offering}" if m.offering else key
+
+
+def classify_passage(path: str, citation: str = "", catalog: Catalog | None = None) -> tuple[str, str]:
+    """Map a retrieved passage's file path (and rendered citation) to the (source, ref) pair a card offers.
+
+    The ref is always built from `path` itself (a book's front matter found through its folder still cites its own
+    file); the catalog only says what kind of file it is. The ref is never empty."""
+    m = (catalog.lookup(path) if catalog is not None else None) or classify_path(path)
+    p = normalize(path) or (path or "").replace("\\", "/")
+    stem = Material(path=p).stem
+    date = date_from_stem(stem)
+    if m.role == "textbook":
+        ref = _chapter_ref(p, stem, citation)
+    elif m.role == "student_notes":
+        ref = date or stem
+    elif m.role == "instructor":
+        ref = (date or _deck_title(stem)) if m.format == "handwritten" else _deck_title(stem)
+    elif m.role == "recitation":
+        ref = _deck_title(stem) or date or stem
+    else:
+        ref = stem
+    return source_key(m), ref or "unknown"

@@ -5,7 +5,7 @@ BOOK = "C:/hub/academic_notes/microecon/textbooks/processed_outputs/Rubenstein_M
 
 def test_markdown_emphasis_is_stripped_from_refs():
     source, ref = classify_passage(BOOK, "§**Definition 1.1: Complete binary relation**, p. 23")
-    assert source == "rubinstein"
+    assert source == "rubenstein"
     assert "*" not in ref and "Definition 1.1 - Complete binary relation" in ref and ref.endswith("p. 23")
 
 

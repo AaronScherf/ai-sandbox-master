@@ -21,8 +21,8 @@ class IndexRetriever:
 
     Not unit-tested (it needs the live index and a key); the stages are tested with a fake retriever."""
 
-    def __init__(self, hub_root: str, course: str, client):
-        self.hub_root, self.course, self.client = hub_root, course, client
+    def __init__(self, hub_root: str, course: str, client, catalog=None):
+        self.hub_root, self.course, self.client, self.catalog = hub_root, course, client, catalog
 
     def retrieve(self, query: str, top_k: int = 6) -> list[Passage]:
         from agent.rag.rag_agent import retrieve_passages  # heavy import, kept lazy
@@ -30,7 +30,7 @@ class IndexRetriever:
         found = retrieve_passages([self.hub_root], query, self.client, course=self.course, top_k=top_k)
         out = []
         for r in found:
-            source, ref = classify_passage(r.path, r.citation)
+            source, ref = classify_passage(r.path, r.citation, self.catalog)
             out.append(Passage(id="", source=source, ref=ref, text=r.text, path=r.path))
         return out
 
@@ -51,8 +51,8 @@ class LexicalRetriever:
     keeps at most `max_per_file` per file so one long document cannot fill a card. It has no notion of synonyms, so it
     is weaker than the embedding search."""
 
-    def __init__(self, hub_root: str, course: str, max_per_file: int = 3):
-        self.hub_root, self.course, self.max_per_file = hub_root, course, max_per_file
+    def __init__(self, hub_root: str, course: str, max_per_file: int = 3, catalog=None):
+        self.hub_root, self.course, self.max_per_file, self.catalog = hub_root, course, max_per_file, catalog
         self._chunks: list[dict] | None = None
         self._idf: dict[str, float] = {}
         self._paths: dict[str, str] = {}
@@ -92,7 +92,7 @@ class LexicalRetriever:
                 continue
             per_file[c["file_id"]] += 1
             path = self._paths.get(c["file_id"], "")
-            source, ref = classify_passage(path, _render_citation(c))
+            source, ref = classify_passage(path, _render_citation(c), self.catalog)
             out.append(Passage(id="", source=source, ref=ref, text=c.get("text", ""), path=path))
             if len(out) >= top_k:
                 break
@@ -143,13 +143,15 @@ def make_gemini_client(key_env_var: str = "PAID_GEMINI_KEY"):
     return client
 
 
-def make_resilient_retriever(hub_root: str, course: str, notify: Callable[[str], None] | None = None) -> ResilientRetriever:
-    """paid key, then the free key, then local keyword search. Keys that are not set are skipped."""
+def make_resilient_retriever(hub_root: str, course: str, notify: Callable[[str], None] | None = None,
+                             catalog=None) -> ResilientRetriever:
+    """paid key, then the free key, then local keyword search. Keys that are not set are skipped. `catalog` (the
+    course's materials catalog) decides each passage's citation key."""
     backends: list[tuple[str, Retriever]] = []
     for label, env in (("paid key", "PAID_GEMINI_KEY"), ("free key", "GEMINI_API_KEY")):
         try:
-            backends.append((label, IndexRetriever(hub_root, course, make_gemini_client(env))))
+            backends.append((label, IndexRetriever(hub_root, course, make_gemini_client(env), catalog=catalog)))
         except RuntimeError:
             continue
-    backends.append(("keyword", LexicalRetriever(hub_root, course)))
+    backends.append(("keyword", LexicalRetriever(hub_root, course, catalog=catalog)))
     return ResilientRetriever(backends, notify)

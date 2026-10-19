@@ -1,27 +1,18 @@
-from agent.concept_graph.sources import Passage, classify_passage
+from agent.concept_graph.sources import Passage, classify_passage, source_key
+from core.course_materials import Catalog, Material
 
 HUB = "C:/hub/academic-hub/academic_notes/microecon"
+N = "academic_notes/microecon"
 
 
-def test_rubinstein_chapter_file_maps_to_source_and_chapter():
-    path = f"{HUB}/textbooks/processed_outputs/Rubenstein_Lecture_Notes_in_Microeconomic_Theory_2026/chapters/02_preferences.rag.md"
-    assert classify_passage(path, "§2.1 Preference relations, p. 12") == ("rubinstein", "ch. 2, §2.1 Preference relations, p. 12")
-    assert classify_passage(path, "") == ("rubinstein", "ch. 2")
-
-
-def test_mwg_ok_lecture_slides_hw_and_other_sources():
-    mwg = f"{HUB}/textbooks/processed_outputs/Press_Microeconomic_Theory_2011/chapters/01_preference_and_choice.rag.md"
-    ok = f"{HUB}/textbooks/processed_outputs/Ok_Real_Analysis_with_Economic_Applications_2026/chapters/04_continuity_i.rag.md"
-    lecture = f"{HUB}/lecture_notes/processed_outputs/Microeconomics 2026-09-15 10.15.55.excalidraw.rag.md"
-    slides = f"{HUB}/professor_notes/processed_outputs/2.Utility_Maximization_1.md"
-    hw = f"{HUB}/problem_sets/processed_outputs/Homework_2.md"
-    other = f"{HUB}/summaries/study_guide.md"
-    assert classify_passage(mwg, "") == ("mwg", "ch. 1")
-    assert classify_passage(ok, "") == ("ok", "ch. 4")
-    assert classify_passage(lecture, "") == ("lecture", "2026-09-15")
-    assert classify_passage(slides, "") == ("slides", "Utility Maximization 1")
-    assert classify_passage(hw, "") == ("hw", "Homework_2")
-    assert classify_passage(other, "") == ("other", "study_guide")
+def test_without_a_catalog_paths_are_classified_by_their_own_shape():
+    rub = f"{HUB}/textbooks/processed_outputs/Rubenstein_Lecture_Notes_2026/chapters/02_preferences.rag.md"
+    assert classify_passage(rub, "§2.1 Preference relations, p. 12") == ("rubenstein", "ch. 2, §2.1 Preference relations, p. 12")
+    assert classify_passage(f"{HUB}/textbooks/processed_outputs/Press_Microeconomic_Theory_2011/chapters/01_x.rag.md") == ("press", "ch. 1")
+    assert classify_passage(f"{HUB}/lecture_notes/processed_outputs/Microeconomics 2026-09-15 10.15.55.excalidraw.rag.md") == ("lecture", "2026-09-15")
+    assert classify_passage(f"{HUB}/professor_notes/processed_outputs/2.Utility_Maximization_1.md") == ("slides", "Utility Maximization 1")
+    assert classify_passage(f"{HUB}/problem_sets/processed_outputs/Homework_2.md") == ("hw", "Homework_2")
+    assert classify_passage(f"{HUB}/summaries/study_guide.md") == ("other", "study_guide")
 
 
 def test_ref_is_never_empty():
@@ -35,17 +26,32 @@ def test_passage_exposes_its_offered_citation():
     assert p.offered == ("mwg", "ch. 1")
 
 
-def test_earlier_years_keep_their_own_source_keys():
-    hub = "C:/hub/academic-hub/academic_notes/microecon"
-    cases = {
-        f"{hub}/2024_class/Post lecture notes/processed_outputs/7.Consumer_Choice_2.md": ("slides-2024", "Consumer Choice 2"),
-        f"{hub}/2024_class/Pre Lecture Notes/processed_outputs/6.Consumer_Choice_1_for_circulation.md": ("slides-pre-2024", "Consumer Choice 1"),
-        f"{hub}/2025_class/Post-Lecture Notes/processed_outputs/11.Production.md": ("slides-2025", "Production"),
-        f"{hub}/2025_class/Homeworks/Solutions/processed_outputs/HW3_Sol.md": ("hw-2025", "HW3 Sol"),
-        f"{hub}/2025_class/proofs/processed_outputs/Proofs_Consumer_Choice_1.md": ("proofs-2025", "Proofs Consumer Choice 1"),
-        f"{hub}/2024_class/Exam Prep/processed_outputs/2023 solution.md": ("exam-2024", "2023 solution"),
-        f"{hub}/2025_class/processed_outputs/Micro_I_Recitation_Notes.md": ("recitation-2025", "Micro I Recitation Notes"),
-        f"{hub}/2025_class/processed_outputs/Midterm_Suggested Solutions.md": ("exam-2025", "Midterm Suggested Solutions"),
-    }
-    for path, expected in cases.items():
-        assert classify_passage(path, "") == expected, path
+def test_the_catalog_decides_book_keys_offerings_and_handwritten_notes():
+    cat = Catalog(course="microecon", materials=[
+        Material(path=f"{N}/textbooks/processed_outputs/Press_MT_2011/chapters/01_x.rag.md", role="textbook", format="chapter", book="mwg"),
+        Material(path=f"{N}/2024_class/Post lecture notes/processed_outputs/7.Consumer_Choice_2.md", role="instructor",
+                 format="slides", offering="2024"),
+        Material(path=f"{N}/2025_class/Homeworks/Solutions/processed_outputs/HW3_Sol.md", role="problem_set", offering="2025"),
+        Material(path=f"{N}/2025_class/processed_outputs/Micro_I_Recitation_Notes.md", role="recitation", offering="2025"),
+        Material(path=f"{N}/professor_notes/processed_outputs/092126.md", role="instructor", format="handwritten", date="2026-09-21"),
+    ])
+    assert classify_passage(f"{HUB}/textbooks/processed_outputs/Press_MT_2011/chapters/01_x.rag.md", "", cat) == ("mwg", "ch. 1")
+    assert classify_passage(f"{HUB}/textbooks/processed_outputs/Press_MT_2011/Press_MT_2011.rag.md", "", cat)[0] == "mwg"
+    assert classify_passage(f"{HUB}/2024_class/Post lecture notes/processed_outputs/7.Consumer_Choice_2.md", "", cat) == ("slides-2024", "Consumer Choice 2")
+    assert classify_passage(f"{HUB}/2025_class/Homeworks/Solutions/processed_outputs/HW3_Sol.md", "", cat) == ("hw-2025", "HW3_Sol")
+    assert classify_passage(f"{HUB}/2025_class/processed_outputs/Micro_I_Recitation_Notes.md", "", cat) == ("recitation-2025", "Micro I Recitation Notes")
+    assert classify_passage(f"{HUB}/professor_notes/processed_outputs/092126.md", "", cat) == ("notes", "2026-09-21")
+
+
+def test_a_path_the_catalog_lacks_is_classified_alone_and_remembered_as_a_miss():
+    cat = Catalog(course="microecon", materials=[])
+    assert classify_passage(f"{HUB}/problem_sets/processed_outputs/Homework_2.md", "", cat) == ("hw", "Homework_2")
+    assert f"{N}/problem_sets/processed_outputs/Homework_2.md" in cat.misses
+
+
+def test_source_key_rules():
+    assert source_key(Material(path="x", role="instructor", format="slides")) == "slides"
+    assert source_key(Material(path="x", role="instructor", format="typeset")) == "slides"
+    assert source_key(Material(path="x", role="instructor", format="handwritten", offering="2024")) == "notes-2024"
+    assert source_key(Material(path="x", role="textbook", book="hansen", offering="2024")) == "hansen"
+    assert source_key(Material(path="x", role="syllabus")) == "syllabus"
