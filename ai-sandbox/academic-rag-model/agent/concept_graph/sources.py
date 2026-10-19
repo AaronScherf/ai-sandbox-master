@@ -51,11 +51,12 @@ def shingles(text: str, n: int = 3) -> frozenset[str]:
     return frozenset(" ".join(words[i:i + n]) for i in range(len(words) - n + 1))
 
 
-def near_duplicate(text: str, offered: list[frozenset[str]], threshold: float = 0.8) -> bool:
+def near_duplicate(text: str, offered: list[frozenset[str]], threshold: float = 0.9, min_grams: int = 10) -> bool:
     """Whether at least `threshold` of this passage's word n-grams already appear in one offered passage: a second
-    copy of a file, or an earlier offering's deck repeating this year's, adds nothing but weight."""
+    copy of a file, or an earlier offering's deck repeating this year's, adds nothing but weight. A revision with a
+    tenth or more new material is kept, and a passage too short to judge (a heading or two) never counts as a copy."""
     mine = shingles(text)
-    return bool(mine) and any(len(mine & other) >= threshold * len(mine) for other in offered)
+    return len(mine) >= min_grams and any(len(mine & other) >= threshold * len(mine) for other in offered)
 
 
 def source_key(m: Material) -> str:

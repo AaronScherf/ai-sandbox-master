@@ -1,4 +1,4 @@
-from agent.concept_graph.sources import Passage, classify_passage, source_key
+from agent.concept_graph.sources import Passage, classify_passage, near_duplicate, shingles, source_key
 from core.course_materials import Catalog, Material
 
 HUB = "C:/hub/academic-hub/academic_notes/microecon"
@@ -55,3 +55,25 @@ def test_source_key_rules():
     assert source_key(Material(path="x", role="instructor", format="handwritten", offering="2024")) == "notes-2024"
     assert source_key(Material(path="x", role="textbook", book="hansen", offering="2024")) == "hansen"
     assert source_key(Material(path="x", role="syllabus")) == "syllabus"
+
+SENTENCE = ("the least squares estimator minimizes the sum of squared residuals and under the classical assumptions "
+            "it is the best linear unbiased estimator of the regression coefficients in the linear model with "
+            "homoskedastic errors and full rank regressors")
+
+
+def test_a_second_copy_is_a_near_duplicate_whatever_its_labels_and_line_breaks():
+    copy = "Statements found in the 2024 offering slides:\n" + SENTENCE.replace(" and ", "\nand ")
+    assert near_duplicate(copy, [shingles("Found in these slides:\n\n" + SENTENCE)])
+
+
+def test_a_revision_with_over_a_tenth_new_material_is_kept():
+    # microecon 2025 "Utility Maximization 2 Proofs" matched 2024's at 0.81: the rest is new, so it stays.
+    words = SENTENCE.split()
+    revised = " ".join(words[: int(len(words) * 0.7)]) + " plus efficiency proof"
+    assert not near_duplicate(revised, [shingles(SENTENCE)])
+
+
+def test_a_tiny_passage_is_never_a_duplicate_by_coincidence():
+    # microecon lecture 2026-10-09 was three words, all found in another date's notes.
+    assert not near_duplicate("Section headings:\n- Revealed preference relation",
+                              [shingles("- Revealed preference relation " + SENTENCE)])

@@ -22,7 +22,7 @@ from core.course_materials import load_catalog
 
 UNLIMITED = 10_000
 # (statements, headings) offered per file; 0 means that kind is not offered for this material by design.
-LIMITS = {"instructor": (25, 20), "recitation": (0, 15), "prior": (25, 0), "textbook": (0, 40), "student_notes": (12, 12)}
+LIMITS = {"instructor": (25, 20), "recitation": (25, 15), "prior": (25, 0), "textbook": (0, 40), "student_notes": (12, 12)}
 
 
 def _norm(text: str) -> str:

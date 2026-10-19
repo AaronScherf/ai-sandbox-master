@@ -27,11 +27,12 @@ def test_index_retriever_drops_excluded_files_and_second_copies(monkeypatch):
     from core.course_materials import Catalog
 
     n = "C:/hub/academic_notes/econometrics"
+    GM = "Gauss Markov. Under assumptions A1 to A4 the OLS estimator is the best linear unbiased estimator of beta."
     syllabus = "Part A consists of 13 classes. Topics: linear regression, hypothesis testing, Bayesian estimation."
     found = [SimpleNamespace(path=f"{n}/syllabus/processed_outputs/ec6411A.md", citation="", text=syllabus),
              SimpleNamespace(path=f"{n}/syllabus/ECON6411_syllabus.md", citation="", text=syllabus),
-             SimpleNamespace(path=f"{n}/notes/copy_b.md", citation="", text="Gauss Markov: OLS is BLUE under A1 to A4."),
-             SimpleNamespace(path=f"{n}/notes/copy_c.md", citation="", text="Gauss Markov:\nOLS is BLUE under A1 to A4."),
+             SimpleNamespace(path=f"{n}/notes/copy_b.md", citation="", text=GM),
+             SimpleNamespace(path=f"{n}/notes/copy_c.md", citation="", text=GM.replace(". ", ".\n")),
              SimpleNamespace(path=f"{n}/notes/other.md", citation="", text="The delta method linearizes g at theta.")]
     fake = types.ModuleType("agent.rag.rag_agent")
     fake.retrieve_passages = lambda roots, query, client, course=None, top_k=6, **kw: found[:top_k]
