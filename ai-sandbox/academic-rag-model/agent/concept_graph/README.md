@@ -1,7 +1,7 @@
 # concept_graph
 
-A study aid for the microeconomics course: a directed **concept graph** whose nodes are the course's key ideas
-(binary relation, preorder, WARP, Szpilrajn extension, ... up through demand) and whose edges say how they
+A study aid for a course (first built for microeconomics): a directed **concept graph** whose nodes are the course's
+key ideas (binary relation, preorder, WARP, Szpilrajn extension, ... up through demand) and whose edges say how they
 connect and **under what conditions** one implies another. It is read by people, in a single self-contained
 HTML page, and reviewed by colleagues through that page. Design: [`docs/superpowers/specs/agent/2026-10-09-concept-graph-design.md`](../../docs/superpowers/specs/agent/2026-10-09-concept-graph-design.md).
 
@@ -20,8 +20,9 @@ python -m agent.concept_graph.cli --graph-repo <path> <command> ...
 Data lives in a separate checkout (the public mini repo), never in this monorepo:
 
 ```
-config/vocab.yaml        kinds and topics (open vocabularies)
-config/site.yaml         page title and the GitHub repo reviews are submitted to
+config/vocab.yaml        kinds and topics (open vocabularies); a kind may be {name, help}, help shown on the seed card
+config/site.yaml         page title, the course subject (named on fill and seed cards), and the GitHub repo
+                         reviews are submitted to
 data/sections.yaml       the course outline, in order
 data/nodes/<section>.yaml    concepts, one file per course section
 data/edges/<section>.yaml    connections
@@ -40,7 +41,7 @@ review-comments.md, review-conflicts.md    reviewer notes and unapplied edits
 | `validate` | Checks the graph; prints errors and warnings; exits 1 on errors. |
 | `build` | Validates, then writes `build/graph.json` and a single `index.html` (libraries inlined, works offline). |
 | `apply-review FILE... [--from-issues OWNER/REPO] [--commit] [--close-applied]` | Merges review files (or open GitHub issues labelled `review`) into the YAML. |
-| `scaffold --repo OWNER/NAME --holder "Name" [--with-sample] [--contact TEXT]` | Creates a new graph repo skeleton with README, NOTICE, licenses, issue form. Needs network once, for the Creative Commons legal text. |
+| `scaffold --repo OWNER/NAME --holder "Name" [--title T] [--subject S] [--hub-root H --course C] [--with-sample] [--contact TEXT]` | Creates a new graph repo skeleton with README, NOTICE, licenses, issue form, titled and described for the course; with `--hub-root/--course` the `seed.yaml` template lists the course's textbook keys. Needs network once, for the Creative Commons legal text. |
 
 Examples against the sample:
 
@@ -85,21 +86,28 @@ scope: "Choice theory only: consumer behaviour, producer theory, risk, time. No 
 must_include:                 # each must end up as a node (a name, or a list of alternative names)
   - Preorder
   - [GARP, Generalized axiom of revealed preference]
-textbook_chapters:            # chapters whose section headings the seed card shows (source key or textbook folder name -> numbers)
+textbook_chapters:            # chapters whose section headings the seed card shows (book key or textbook folder name -> numbers)
   mwg: [1, 2, 3]
 min_nodes_per_section: 6   # every section must end with at least this many nodes (default 1)
 ```
 
-`seed` builds its evidence from files on disk: the syllabus (contact details stripped), the definitions, axioms and
-theorems labelled in each slide deck and lecture note (repeats dropped), textbook chapter titles, and the section
-headings of the chapters listed above. The card explains each vocabulary kind, shows a format example, and ends with a
+**Course materials.** What each file in the course is (syllabus, instructor slides or notes, recitation, problem
+set, exam, textbook, the student's own notes) comes from the shared catalog in
+[`core/course_materials/`](../../core/course_materials/README.md), not from folder names. `collect` loads it once per
+run (rebuilding it when the course's files changed); `collect seed` stops while files are flagged for review and names
+them (decide them with `python -m core.course_materials.cli ... decide`, or pass `--allow-unreviewed`).
+
+`seed` builds its evidence from that catalog, class material first: the syllabus (contact details stripped); the
+labelled statements (definitions, assumptions, theorems ..., numbered or not) and section headings of the
+instructor's slides and notes; recitation headings; earlier offerings' slides; textbook chapter titles and the
+section headings of the chapters listed above; and last, the student's lecture notes, which the card says may contain
+mistakes (class material wins where they disagree; the fill card says the same). The card explains each vocabulary kind, shows a format example, and ends with a
 self-check. The required list is only a floor (an agent tends to deliver exactly what is required), so `submit` also
 bounces any section that would end with fewer than `min_nodes_per_section` nodes, as well as a result that omits a required concept, repeats an existing name (compared ignoring case
 and punctuation), or uses a kind, topic or section that does not exist. With `--redo`, `seed` is additive: the card
-lists what is already in the graph and asks only for what is missing. To use it for another course, run
-`scaffold`, fill in `config/seed.yaml`, and `collect seed --course <name>`; the hub is expected to have
-`academic_notes/<course>/{syllabus,professor_notes,lecture_notes,textbooks}/processed_outputs/`, and any folder that
-is missing is skipped.
+lists what is already in the graph and asks only for what is missing. To use it for another course: classify the
+course and review its flagged files (`core/course_materials`), `scaffold --title --subject --hub-root --course`, fill
+in `config/seed.yaml` and the `vocab.yaml` kinds, and `collect seed --course <name>`. Folder names do not matter.
 
 **Agent workflow (default; costs subscription quota, not API dollars):**
 
@@ -129,7 +137,10 @@ definitional cycle. Verified items are never overwritten, and `submit` twice doe
 first and refuses above $1 without `--approve-cost`; replies go through the same validation.
 
 Retrieval uses the repo's passage search (`agent.rag.rag_agent.retrieve_passages`); its only network call is the
-query embedding. Source keys: `rubinstein`, `mwg`, `ok`, `lecture`, `slides`, `hw`, `other`.
+query embedding. Source keys come from the catalog: each textbook's book key (`mwg`, `hansen`, ...), `slides`
+(instructor slides), `notes` (instructor's handwritten notes), `lecture` (the student's notes), `recitation`, `hw`,
+`exam`, `syllabus`, `other`; an earlier offering adds its label (`slides-2024`). A retrieved file missing from the
+catalog is classified from its path alone, and `collect` lists such files at the end.
 
 ## Reviewing
 
