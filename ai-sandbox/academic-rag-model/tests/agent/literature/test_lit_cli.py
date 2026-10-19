@@ -79,7 +79,7 @@ class TestSubmit(unittest.TestCase):
     def test_a_filled_card_becomes_a_record_and_a_bad_one_bounces_with_its_reason(self):
         with tempfile.TemporaryDirectory() as root:
             env = Env(root)
-            make_index(root, file_id="1111111111111111")
+            make_index(root, file_id="1111111111111111", title="A different paper")
             _run(env.args("collect", "--run-id", "r1"))
             fill_card(env.card("r1", f"extract-{FID}"), good())
             bad = good()

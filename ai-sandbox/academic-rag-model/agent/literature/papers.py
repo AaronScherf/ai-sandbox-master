@@ -1,6 +1,7 @@
 """Which converted papers can be extracted, and the identity each carries from its index card."""
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -49,3 +50,24 @@ def eligible_papers(index_root: str) -> tuple[list[Paper], dict[str, str]]:
             identity.update({k: card[k] for k in _IDENTITY_KEYS if card.get(k) is not None})
             papers.append(Paper(fid, rel, identity["title"], identity))
     return papers, skipped
+
+
+def _title_key(title: str) -> str:
+    return " ".join(re.sub(r"[^a-z0-9]+", " ", (title or "").lower()).split())
+
+
+def drop_duplicate_titles(papers: list[Paper], have_record: set[str]) -> tuple[list[Paper], dict[str, str]]:
+    """Keep one copy of each title (manual downloads produce duplicates): the copy that already has a record, else the
+    lowest file_id. Papers without a title are never treated as duplicates. Returns (kept, file_id -> reason)."""
+    groups: dict[str, list[Paper]] = {}
+    for p in papers:
+        groups.setdefault(_title_key(p.title) or f"\0{p.file_id}", []).append(p)
+    keep: dict[str, str] = {}
+    skipped: dict[str, str] = {}
+    for members in groups.values():
+        chosen = sorted(members, key=lambda p: (p.file_id not in have_record, p.file_id))[0]
+        keep[chosen.file_id] = chosen.file_id
+        for p in members:
+            if p is not chosen:
+                skipped[p.file_id] = f"duplicate of {chosen.file_id} (same title); use --include-duplicates to extract it anyway"
+    return [p for p in papers if p.file_id in keep], skipped

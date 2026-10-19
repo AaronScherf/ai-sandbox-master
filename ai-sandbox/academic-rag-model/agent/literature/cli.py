@@ -10,7 +10,7 @@ from core.agent_tasks.work import load_run
 
 from . import stage, verify
 from .gold import DEFAULT_PATH, load_gold, score_record, summarize
-from .papers import eligible_papers
+from .papers import drop_duplicate_titles, eligible_papers
 from .proposals import Proposals
 from .store import RecordStore
 from .vocab import DATA_DIR, load_vocabularies
@@ -48,6 +48,9 @@ def cmd_collect(args) -> int:
             if fid not in known:
                 print(f"{fid}: not an eligible paper ({skipped.get(fid, 'not found in the index')})")
         papers = [p for p in papers if p.file_id in set(args.file_id)]
+    if not args.include_duplicates:
+        papers, dupes = drop_duplicate_titles(papers, set(target.records.ids()))
+        skipped = {**skipped, **dupes}
     tasks, task_skips = stage.make_tasks(target, papers, redo=args.redo)
     if args.double:
         b_tasks, b_skips = stage.make_tasks(target, papers, pass_label="b", redo=args.redo)
@@ -228,6 +231,7 @@ def build_parser() -> argparse.ArgumentParser:
     c.add_argument("--run-id", default=None)
     c.add_argument("--redo", action="store_true", help="Extract again even if a current record exists.")
     c.add_argument("--double", action="store_true", help="Also stage an independent second pass for each paper.")
+    c.add_argument("--include-duplicates", action="store_true", help="Also extract extra copies of a title already kept.")
     v = sub.add_parser("verify", help="Write cards that ask for an independent check of facts only one pass found.")
     v.add_argument("--file-id", action="append", default=[], help="Only this paper (repeatable).")
     v.add_argument("--run-id", default=None)
