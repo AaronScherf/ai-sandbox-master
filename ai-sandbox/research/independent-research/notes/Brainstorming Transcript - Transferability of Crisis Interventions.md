@@ -170,8 +170,38 @@ The user's response cuts straight through extraneous administrative complexity t
    - **Sovereign / Integrated Delivery:** National social safety nets, formal banking rails, and civil registries (requires baseline state legitimacy, capacity, and territorial control).
    - **Parallel / Humanitarian Substitution:** UN/ICRC/INGO systems using independent biometric registries, private telecom mobile money, or hawala networks (designed to maintain humanitarian neutrality and bypass predatory or excluded state structures).
 
+### Agent Synthesis & Insights on Round 3
+
+The user's response cuts straight through extraneous administrative complexity to establish two fundamental, highly defensible pillars for the research design:
+
+1. **The Primary Economic Mechanism: General Equilibrium & Supply Capacity Frictions**  
+   The single most tractable and consequential economic failure mode when transferring disaster cash tools into conflict is **market supply elasticity**. In a natural disaster, roads may wash out, but once supply corridors reopen, trade responds elastically to cash-backed purchasing power. In an active conflict, markets are systematically distorted—siege lines, checkpoints, extortion, monopolistic import cartels, or physical blockades render supply highly inelastic. Injecting cash into an inelastic conflict market generates hyper-localized price inflation and rent capture rather than consumption smoothing.
+2. **The Primary Political Economy Mechanism: The Government Neutrality & Delivery Dilemma**  
+   In natural disaster response, the host government is conventionally modeled as a non-hostile coordinator seeking relief for its citizens. In armed conflict, the state is often a belligerent, actively contesting sovereignty, withholding aid from insurgent-sympathetic populations, or weaponizing social protection. This forces a structural split in delivery architecture:
+   - **Sovereign / Integrated Delivery:** National social safety nets, formal banking rails, and civil registries (requires baseline state legitimacy, capacity, and territorial control).
+   - **Parallel / Humanitarian Substitution:** UN/ICRC/INGO systems using independent biometric registries, private telecom mobile money, or hawala networks (designed to maintain humanitarian neutrality and bypass predatory or excluded state structures).
+
 ---
 
-*(Continuing to draft final research questions and transition to Step 2...)*
+## Formulated Research Questions (Synthesis for Step 1 Approval)
+
+Based on the three rounds of brainstorming, the sprawling theme of "transferability of crisis toolkits" is synthesized into three distinct, complementary, and tractable research questions:
+
+### RQ 1 (The Microeconomic & Market Frontier):
+> **How does the transferability of disaster-tested financial social safety nets (unconditional mobile cash, index insurance) depend on local market integration and supply elasticity, and under what conflict-induced market conditions do cash transfers transition from welfare-enhancing consumption smoothing to hyper-localized price inflation?**
+- *Focus:* General equilibrium effects, market accessibility, local price formation, and trader supply responses across disaster vs. conflict settings.
+
+### RQ 2 (The Political Economy & Delivery Architecture Frontier):
+> **How do differing institutional delivery modalities (state-led social registries, hybrid shadow-aligned platforms, and parallel humanitarian substitution) mediate the effectiveness and transferability of social protection in environments characterized by contested sovereignty, non-neutral state actors, or armed blockades?**
+- *Focus:* State capacity, belligerent behavior, humanitarian neutrality, and the trade-offs of bypassing vs. strengthening host-country delivery rails.
+
+### RQ 3 (The Applied Empirical & Matching Frontier):
+> **To what extent can objective, high-resolution environmental covariates (satellite remote sensing of climate anomalies and physical damage) combined with conflict intensity proxies serve as a quantitative similarity-matching framework to predict the directional success and transferability of crisis interventions out-of-sample?**
+- *Focus:* Statistical transportability, covariate matching, meta-evaluation registries (3ie/J-PAL), and predicting program efficacy without relying on fragmented household surveys.
+
+---
+
+*(Step 1 finalized; ready to proceed to Step 2: Literature Audit & Gap Identification.)*
+
 
 
