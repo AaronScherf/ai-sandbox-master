@@ -163,7 +163,7 @@ Illustrative migrations, pending exact passage checks:
 
 Keep the current `condition` field and its required status for `implies` and
 `iff`. Preserve `is_a`'s “that also: …” differentiator meaning. For every
-other existing or new type, append a visible “, when: …” clause whenever
+other existing or new type, append a visible “; context: …” clause whenever
 `condition` is nonempty. Match this behavior in Python task-card sentences
 and JavaScript viewer sentences, including the node connection list and edge
 heading. Do not globally require conditions for `has_property`: some

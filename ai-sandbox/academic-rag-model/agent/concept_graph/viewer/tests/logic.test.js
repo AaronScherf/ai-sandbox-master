@@ -29,10 +29,10 @@ test("edgeSentence reads naturally for each type and includes condition and via"
   };
   Object.entries(newTypes).forEach(([type, sentence]) => {
     assert.equal(CG.edgeSentence({ type, source: "a", target: "b" }, nameOf), sentence);
-    assert.equal(CG.edgeSentence({ type, source: "a", target: "b", condition: "context" }, nameOf), sentence + ", when: context");
+    assert.equal(CG.edgeSentence({ type, source: "a", target: "b", condition: "context" }, nameOf), sentence + "; context: context");
   });
   ["has_property", "defined_on", "component_of", "hypothesis_of", "yields", "counterexample_to"].forEach(type => {
-    assert.match(CG.edgeSentence({ type, source: "a", target: "b", condition: "context" }, nameOf), /, when: context$/);
+    assert.match(CG.edgeSentence({ type, source: "a", target: "b", condition: "context" }, nameOf), /; context: context$/);
   });
 });
 

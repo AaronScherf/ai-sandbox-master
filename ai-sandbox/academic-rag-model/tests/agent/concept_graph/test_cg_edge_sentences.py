@@ -18,10 +18,10 @@ def test_new_method_relations_have_distinct_sentences_and_visible_conditions():
     }
     for type_, plain in expected.items():
         assert sentence(type_) == plain
-        assert sentence(type_, "context") == f"{plain}, when: context"
+        assert sentence(type_, "context") == f"{plain}; context: context"
 
 
 def test_existing_conditional_relations_show_the_condition():
     for type_ in ("has_property", "defined_on", "component_of", "hypothesis_of", "yields", "counterexample_to"):
-        assert sentence(type_, "context").endswith(", when: context")
+        assert sentence(type_, "context").endswith("; context: context")
     assert sentence("is_a", "it adds a restriction") == "Alpha is a Beta, that also: it adds a restriction"

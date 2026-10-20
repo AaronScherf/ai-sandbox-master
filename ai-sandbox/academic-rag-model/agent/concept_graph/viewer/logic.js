@@ -5,7 +5,7 @@
 })(typeof self !== "undefined" ? self : this, function () {
   "use strict";
 
-  function when(text, condition) { return text + (condition ? ", when: " + condition : ""); }
+  function when(text, condition) { return text + (condition ? "; context: " + condition : ""); }
 
   var SENTENCE = {
     is_a: function (s, t, c) { return s + " is a " + t + (c ? ", that also: " + c : ""); },

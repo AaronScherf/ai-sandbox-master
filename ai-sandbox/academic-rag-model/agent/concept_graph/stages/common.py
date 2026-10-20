@@ -10,7 +10,7 @@ from ..sources import Passage
 
 
 def _when(sentence: str, condition: str | None) -> str:
-    return sentence + (f", when: {condition}" if condition else "")
+    return sentence + (f"; context: {condition}" if condition else "")
 
 
 _SENTENCES = {
