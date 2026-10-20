@@ -299,7 +299,57 @@ Following the agreement on the three core research questions in Step 1, this sec
 
 ---
 
-*(Literature audit complete; findings ready to inform dissertation project design.)*
+## Synthesis with Prior Research Plans & PhD Trajectory
+
+### Connecting the Brainstorming Insights to the "Ground Truth" Corpus
+
+This section synthesizes the transferability inquiry with the existing research planning documents:
+- `Ground Truth - PhD Research Plan.md` (August 2026 Admissions Baseline)
+- `Ground Truth - PhD Research Plan - 3R Revision.md` (October 2026 Strategic Revision)
+- `research_projects_plan_fall26 - 3R Revision.md` (Operational Roadmap)
+- `Somalia Three-Shock Case Study.md` & `Data Sources - Climate Displacement Cash Conflict.md`
+
+---
+
+### 1. What is Substantially NEW (The Conceptual Breakthroughs)
+
+1. **The "Inverse Matching" Paradigm (Intervention-Fixed Context Matching):**
+   - *Previous Framing (Theme 04 in Ground Truth):* Causal ML was framed as estimating individual heterogeneous treatment effects (HTEs) within an RCT (via causal forests/DML) and pooling them via hierarchical meta-analysis (CEGA IDEAL framework).
+   - *What is NEW:* You inverted the matching problem. Rather than matching individuals or struggling to balance high-dimensional, survey-incompatible contexts, you **hold the intervention functionally fixed** (tractable financial safety nets: unconditional cash, index insurance) and treat the **crisis environment as the unit of matching**.
+2. **The "Geospatial Evaluation Matcher" (Earth Observation Meets Causal Transportability):**
+   - *Previous Framing:* Remote sensing (Theme 02) was an empirical covariate source for descriptive regression; causal transportability (Pearl/Bareinboim, Vivalt, Meager) was an abstract econometric topic.
+   - *What is NEW:* Merging the two. No study in development economics has ever constructed a quantitative transportability framework using **continuous satellite rasters (CHIRPS precipitation, Sentinel-1 SAR damage, VIIRS nightlights)** and conflict event point processes (ACLED) to predict out-of-sample treatment effects across evaluation registries (3ie, J-PAL). This completely bypasses the Achilles' heel of cross-country meta-evaluations: fragmented, non-harmonized household surveys.
+3. **Adversarial Market Inelasticity & Evacuation as an Endpoint (RQ 1):**
+   - *Previous Framing:* The Somalia case study focused on *attribution* (disentangling drought vs. Ukraine food price shock vs. al-Shabaab).
+   - *What is NEW:* Identifying **strategic supply chain blockades and market inelasticity** as the primary economic failure mode of cash transfers in conflict. Furthermore, expanding outcomes beyond 30-day food recall to evaluate **survival (mortality), distress evacuation, and asset preservation**, while introducing **subjective conflict duration expectations** as a critical behavioral mediator.
+4. **The State-Capacity Gradient in Humanitarian Delivery Rails (RQ 2):**
+   - *Previous Framing:* Contrasted Ukraine’s *Diia* app (state-led) with Somalia (UN/NGO parallel aid) as isolated descriptive cases.
+   - *What is NEW:* Formalized this into a comparative humanitarian economics framework across a state-capacity continuum (e.g., Colombia’s SISBEN vs. Haiti/Venezuela’s parallel substitution), analyzing the switching costs, political capture risks, and biometric surveillance trade-offs when peacetime disaster rails are adapted to active conflict.
+
+---
+
+### 2. What is an Immediate Extension / Operationalization of Past Plans
+
+- **Project 01 (Evidence Map):** Receives its precise geocoded architecture and analytical taxonomy. Instead of a passive bibliography, it becomes a spatial evidence map linking trial coordinates from 3ie/J-PAL/World Bank to satellite rasters and classifying delivery modalities (State-Led vs. Shadow-Aligned vs. Parallel).
+- **Project 02 (Fused Multi-Shock Empirical Studies):** Gains its core theoretical mechanism. In both Somalia (Phase A) and Ukraine (Phase B), market accessibility, checkpoint extortion, and supply chain elasticity provide the economic transmission channels connecting conflict exposure to household welfare.
+- **Project 03 (Disaster-to-Conflict Transferability Working Paper):** Receives its definitive structure. The three research questions formulated in Step 1 (Welfare/Markets, Delivery Rails, Empirical Transportability) provide the three substantive analytical chapters of this flagship paper.
+- **Project 04 (Disaster & Conflict Analytics Toolkit):** Directly incorporates the Python implementation of the "Context Similarity Matcher"—an automated pipeline that extracts satellite raster grids around evaluation coordinates and computes spatial distance metrics.
+- **Faculty Alignment:** Directly operationalizes Daniel Björkegren’s research on distribution shift and manipulation-robust prediction, Jack Willis’s work on crop insurance and risk, and Alexander de Sherbinin’s spatial displacement modeling.
+
+---
+
+### 3. What from Prior Brainstorms DOES NOT Intersect (Pruned / Shelved)
+
+- **Agronomic & Crop-Science Specifics (Theme 01 in Ground Truth):** Seed genetics, drought-resistant varieties, fertilizer trials, and soil agronomy have zero intersection with this financial safety net and market elasticity framework.
+- **Chatbot-Administered Field Surveys (Theme IV / Old Project 03):** Formally dropped in the 3R revision; reconfirmed as completely disjoint from this macro-spatial and policy transportability agenda.
+- **Heterodox Theories & Non-Parametric Optimization (Section 02 footnote in Ground Truth):** Post-Keynesian agent-based models, Data Envelopment Analysis (DEA), and radical critique do not fit this applied causal-inference, remote-sensing, and humanitarian economics architecture.
+- **Firm-Level Industrial Recovery:** While industrial reconstruction in Ukraine is interesting, this transferability framework strictly bounds its scope to household survival safety nets, humanitarian delivery rails, and consumer food market chains.
+- **Math Thesis Rewrite (Project 06):** Remains a valuable sandbox for R refactoring and agentic stats pipelines, but operates independently from the substantive disaster-to-conflict transferability research agenda.
+
+---
+
+*(Transcript updated and fully synchronized with PhD research planning corpus.)*
+
 
 
 
