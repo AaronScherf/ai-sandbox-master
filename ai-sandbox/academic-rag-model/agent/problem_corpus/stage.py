@@ -3,7 +3,9 @@ from __future__ import annotations
 
 import hashlib
 import os
+import re
 from dataclasses import dataclass
+from pathlib import PurePosixPath
 
 from core.agent_tasks.tasks import Passage, Task
 from core.indexer.index_card import compute_content_hash, load_shard, now_iso
@@ -51,13 +53,47 @@ def _current(target: Target, subject: dict) -> bool:
         return False
 
 
+def _normalized_path(path: str) -> str:
+    return path.replace("\\", "/").strip("/")
+
+
+def _under_prefix(path: str, prefix: str | None) -> bool:
+    if prefix is None:
+        return True
+    directory = _normalized_path(prefix)
+    return bool(directory) and _normalized_path(path).startswith(directory + "/")
+
+
+def _solution_only(path: str) -> bool:
+    """A separate answer key has Q labels but is not a source of problem statements."""
+    stem = PurePosixPath(_normalized_path(path)).stem
+    return re.match(r"solutions?(?:[-_ ]|$)", stem, re.IGNORECASE) is not None
+
+
+def source_selected(path: str, *, path_prefix: str | None = None,
+                    include_categories: tuple[str, ...] | list[str] = (),
+                    exclude_paths: tuple[str, ...] | list[str] = ()) -> bool:
+    """The same source selection used by collect and status."""
+    if not _under_prefix(path, path_prefix):
+        return False
+    if _folder_category_from_path(path) not in set(_PROBLEM_BEARING_FOLDER_CATEGORIES) | set(include_categories):
+        return False
+    if _solution_only(path):
+        return False
+    return _normalized_path(path) not in {_normalized_path(excluded) for excluded in exclude_paths}
+
+
 def make_tasks(target: Target, *, course: str | None = None, file: str | None = None,
-               redo: bool = False) -> tuple[list[Task], dict[str, str]]:
+               redo: bool = False, path_prefix: str | None = None,
+               include_categories: tuple[str, ...] | list[str] = (),
+               exclude_paths: tuple[str, ...] | list[str] = ()) -> tuple[list[Task], dict[str, str]]:
     """Collect one task per changed problem-bearing file, using the existing span detector."""
     from core.indexer.index_card import list_courses
 
     tasks: list[Task] = []
     skipped: dict[str, str] = {}
+    allowed_categories = set(_PROBLEM_BEARING_FOLDER_CATEGORIES) | set(include_categories)
+    excluded_paths = {_normalized_path(excluded) for excluded in exclude_paths}
     for course_name in list_courses(target.root):
         if course is not None and course_name != course:
             continue
@@ -66,9 +102,17 @@ def make_tasks(target: Target, *, course: str | None = None, file: str | None = 
             if card.get("orphaned") or card.get("needs_indexing"):
                 continue
             path = card["path"]
-            if _folder_category_from_path(path) not in _PROBLEM_BEARING_FOLDER_CATEGORIES:
+            if not _under_prefix(path, path_prefix):
+                continue
+            if _folder_category_from_path(path) not in allowed_categories:
                 continue
             if file is not None and not path.endswith(file):
+                continue
+            if _solution_only(path):
+                skipped[path] = "standalone solution file; no problem statements collected"
+                continue
+            if _normalized_path(path) in excluded_paths:
+                skipped[path] = "excluded by --exclude-path"
                 continue
             file_id = card["file_id"]
             md_path = os.path.join(target.root, path)
@@ -85,7 +129,7 @@ def make_tasks(target: Target, *, course: str | None = None, file: str | None = 
             if current and all(r["content_hash"] == card["content_hash"] for r in current) and not redo:
                 skipped[path] = "current records already exist (use --redo to extract again)"
                 continue
-            spans = detect_spans(body)
+            spans = detect_spans(body, require_explicit_label=_folder_category_from_path(path) == "Recitations")
             if not spans:
                 skipped[path] = "no problem spans detected"
                 continue

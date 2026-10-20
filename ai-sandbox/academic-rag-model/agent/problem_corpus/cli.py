@@ -9,7 +9,7 @@ from core.agent_tasks.work import load_run
 from core.indexer.index_card import list_courses, load_shard
 
 from . import stage
-from .extractor import _DEFAULT_ROOT, _PROBLEM_BEARING_FOLDER_CATEGORIES, _folder_category_from_path, _single_root
+from .extractor import _DEFAULT_ROOT, _single_root
 from .store import corpus_dir, load_records
 
 BOOTSTRAP = """Problem corpus subscription contract for run '{run}':
@@ -48,7 +48,10 @@ def _print_report(report) -> None:
 
 
 def cmd_collect(args, root: str) -> int:
-    tasks, skipped = stage.make_tasks(stage.Target(root), course=args.course, file=args.file, redo=args.redo)
+    tasks, skipped = stage.make_tasks(
+        stage.Target(root), course=args.course, file=args.file, redo=args.redo,
+        path_prefix=args.path_prefix, include_categories=args.include_category,
+        exclude_paths=args.exclude_path)
     for path, reason in skipped.items():
         print(f"skipped {path}: {reason}")
     try:
@@ -75,13 +78,19 @@ def cmd_submit(args, root: str) -> int:
 
 def cmd_status(args, root: str) -> int:
     cards = records = 0
+    scoped = bool(args.path_prefix or args.include_category or args.exclude_path)
     for course in list_courses(root):
         if args.course is not None and course != args.course:
             continue
         cards += sum(not c.get("orphaned") and not c.get("needs_indexing")
-                     and _folder_category_from_path(c["path"]) in _PROBLEM_BEARING_FOLDER_CATEGORIES
+                     and stage.source_selected(c["path"], path_prefix=args.path_prefix,
+                                               include_categories=args.include_category,
+                                               exclude_paths=args.exclude_path)
                      for c in load_shard(root, course))
-        records += len(load_records(root, course))
+        stored = load_records(root, course)
+        records += sum(stage.source_selected(r["source"]["path"], path_prefix=args.path_prefix,
+                                             include_categories=args.include_category,
+                                             exclude_paths=args.exclude_path) for r in stored) if scoped else len(stored)
     print(f"eligible index cards: {cards}; stored problems: {records}")
     work = _work_root(args, root)
     for manifest in sorted(work.glob("*/manifest.json")) if work.is_dir() else []:
@@ -131,6 +140,7 @@ def build_parser() -> argparse.ArgumentParser:
     collect = sub.add_parser("collect", help="Create subscription task cards; no API calls.")
     collect.add_argument("--course", default=None)
     collect.add_argument("--file", default=None)
+    _add_source_options(collect)
     collect.add_argument("--run-id", default=None)
     collect.add_argument("--redo", action="store_true")
     submit = sub.add_parser("submit", help="Validate filled cards and store records.")
@@ -140,11 +150,21 @@ def build_parser() -> argparse.ArgumentParser:
     bootstrap.add_argument("run_id")
     status = sub.add_parser("status", help="Show stored records and task runs.")
     status.add_argument("--course", default=None)
+    _add_source_options(status)
     api = sub.add_parser("api", help="Send pending cards to the paid API (explicit opt-in, cost-gated).")
     api.add_argument("run_id")
     api.add_argument("--approve-cost", type=float, default=None)
     api.add_argument("--model", default="gemini-3.8-flash")
     return parser
+
+
+def _add_source_options(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument("--path-prefix", default=None,
+                        help="Only indexed paths under this corpus-relative directory (forward slashes).")
+    parser.add_argument("--include-category", action="append", default=[],
+                        help="Also allow this exact folder category (repeatable; default categories remain).")
+    parser.add_argument("--exclude-path", action="append", default=[],
+                        help="Skip this exact corpus-relative indexed path (repeatable).")
 
 
 def main(argv: list[str] | None = None, *, complete=None) -> int:

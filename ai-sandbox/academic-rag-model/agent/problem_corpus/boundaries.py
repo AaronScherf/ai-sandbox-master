@@ -2,9 +2,10 @@
 boundaries.py
 Pure, no-I/O detection of per-problem text spans in a file's body (spec:
 docs/superpowers/specs/2026-09-06-problem-corpus-extraction-design.md
-Section 3). Regex patterns and the label-extraction logic are
+Section 3). The original patterns and label-extraction logic are
 duplicated from indexer/chunk_index.py's _detect_problem_boundaries /
-_problem_label_at / _PROBLEM_BOUNDARY_PATTERNS, not imported -- same
+_problem_label_at / _PROBLEM_BOUNDARY_PATTERNS, with Q-numbered course
+problem sets supported here. They are not imported -- same
 precedent as rag/report_builder.py's _slugify (explicitly duplicated
 from viz/viz_agent.py rather than imported), so this lower-level,
 independently-testable module never reaches into another package's
@@ -20,10 +21,11 @@ _PROBLEM_BOUNDARY_PATTERNS = [
     re.compile(r"(?m)^\*\*Practice Problem \d+"),
     re.compile(r"(?m)^Problem \d+"),
     re.compile(r"(?m)^Question \d+"),
+    re.compile(r"(?m)^(?:\*\*)?Q\d+\.(?:\*\*)?(?=\s|$)"),
 ]
 _MIN_PROBLEM_MATCHES = 3  # same threshold and reasoning as chunk_index.py's
 # own constant -- a weak/sparse match count isn't trusted as real structure.
-_PROBLEM_LABEL_RE = re.compile(r"^\**\s*(?:Practice Problem|Problem|Question)?\s*(\d+)", re.IGNORECASE)
+_PROBLEM_LABEL_RE = re.compile(r"^\**\s*(?:(?:Practice Problem|Problem|Question)\s*|Q)?\s*(\d+)", re.IGNORECASE)
 
 
 @dataclass
@@ -44,15 +46,18 @@ def _problem_label_at(body: str, start: int) -> str:
     return f"Problem {m.group(1)}" if m else "Problem"
 
 
-def detect_spans(body: str) -> list[ProblemSpan]:
+def detect_spans(body: str, *, require_explicit_label: bool = False) -> list[ProblemSpan]:
     """Returns one span per detected problem boundary (that problem's own
     text through the start of the next one, or end of document for the
     last one), or an empty list if fewer than _MIN_PROBLEM_MATCHES
     boundaries are found -- a file whose folder_category qualifies but
     whose content isn't actually numbered problems (e.g. a mini-lecture
-    chapter intro) degrades to "nothing extracted here", not an error."""
+    chapter intro) degrades to "nothing extracted here", not an error.
+    In lecture-like folders, require_explicit_label prevents numbered lists
+    of definitions or steps from being mistaken for exercises."""
     starts = set()
-    for pattern in _PROBLEM_BOUNDARY_PATTERNS:
+    patterns = _PROBLEM_BOUNDARY_PATTERNS[1:] if require_explicit_label else _PROBLEM_BOUNDARY_PATTERNS
+    for pattern in patterns:
         starts.update(m.start() for m in pattern.finditer(body))
     if len(starts) < _MIN_PROBLEM_MATCHES:
         return []

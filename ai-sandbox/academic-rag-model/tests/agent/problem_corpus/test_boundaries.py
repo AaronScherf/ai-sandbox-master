@@ -43,6 +43,31 @@ class TestDetectSpans(unittest.TestCase):
         self.assertEqual(len(spans), 3)
         self.assertEqual(spans[0].problem_label, "Problem 1")  # label word is always "Problem"
 
+    def test_q_numbered_econometrics_problem_set(self):
+        body = (
+            "Problem Set 1\nDirections for the class.\n\n"
+            "Q1. Let Y be random.\n(a) Show its mean.\n\n"
+            "Q2. Consider OLS.\n\n"
+            "Q3. Estimate a treatment effect.\n"
+        )
+        spans = detect_spans(body)
+        self.assertEqual([span.problem_label for span in spans],
+                         ["Problem 1", "Problem 2", "Problem 3"])
+        self.assertNotIn("Q2.", spans[0].text)
+
+    def test_bold_q_labels_in_solution_document_are_detectable(self):
+        # Detection is content-only; the stage must exclude standalone solution files.
+        spans = detect_spans("**Q1.** Solution one.\n**Q2.** Solution two.\n**Q3.** Solution three.\n")
+        self.assertEqual([span.problem_label for span in spans],
+                         ["Problem 1", "Problem 2", "Problem 3"])
+
+    def test_explicit_labels_ignore_numbered_recitation_lists(self):
+        body = "1. Definition one.\n2. Definition two.\n3. Definition three.\n"
+        self.assertEqual(len(detect_spans(body)), 3)
+        self.assertEqual(detect_spans(body, require_explicit_label=True), [])
+        exercises = "Q1. First exercise.\nQ2. Second exercise.\nQ3. Third exercise.\n"
+        self.assertEqual(len(detect_spans(exercises, require_explicit_label=True)), 3)
+
     def test_too_few_matches_returns_empty_list(self):
         # A single accidental match (e.g. one stray "1." in prose) must
         # not be trusted as real document structure -- same bar

@@ -24,6 +24,27 @@ cards, then run `submit`. Invalid answers bounce with specific reasons; correct
 those blocks and submit again. Applied cards are never reapplied. `collect`
 accepts `--file`, `--run-id`, and `--redo` as well as `--course`.
 
+Folder categories are exact names immediately before `processed_outputs/`.
+For a course with other folder names, `--include-category` adds those names
+for that collection without changing the defaults. `--path-prefix` restricts
+indexed sources to a corpus-relative directory, and repeatable
+`--exclude-path` omits exact indexed paths. `status` accepts the same source
+selection options. For example, to stage only econometrics notes, including
+the 2024 problem-set folder:
+
+```powershell
+python -m agent.problem_corpus.extractor --root ../academic-hub collect --course econometrics --path-prefix academic_notes/econometrics/ --include-category "Problem Sets with Solutions" --include-category Recitations
+```
+
+The detector recognizes numbered `Q1.`, `Q2.` headings as well as its earlier
+problem formats. Standalone files whose names begin `Solution` or `Solutions`
+are skipped even if they contain Q labels; they are answer keys, not problem
+statements. Other files without at least three recognized problem headings
+are also skipped with a reason. The opt-in `Recitations` category requires
+explicit problem labels; bare numbered lists in lecture notes are not treated
+as exercises. `status` counts source files matching the folder and path
+selectors; `collect` may skip some of those files when they have no spans.
+
 The API backup is **explicit opt-in** on a collected run:
 
 ```powershell
