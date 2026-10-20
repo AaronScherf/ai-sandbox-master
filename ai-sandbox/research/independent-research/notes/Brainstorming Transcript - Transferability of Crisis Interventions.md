@@ -211,7 +211,96 @@ The user's response cuts straight through extraneous administrative complexity t
 
 ---
 
-*(Step 1 fully agreed upon; proceeding to Step 2: Literature Audit & Gap Identification.)*
+## Literature Audit & Research Frontiers (Steps 2, 3, and 4)
+
+Following the agreement on the three core research questions in Step 1, this section executes:
+- **Step 2:** Assessing the extent to which each question is addressed by existing literature vs. where major gaps remain.
+- **Step 3:** Analyzing the disciplinary fields and methodological paradigms currently deployed.
+- **Step 4:** Diagnosing why critical gaps persist and identifying high-yield research frontiers.
+
+---
+
+### RQ 1: The Welfare, Market & Survival Frontier
+
+> *How does the effectiveness of emergency financial safety nets (cash transfers, index insurance) on vital survival and recovery outcomes—mortality, distress displacement, and asset preservation—vary across disaster versus conflict environments, and how do market supply chain bottlenecks and conflict duration expectations mediate these impacts?*
+
+#### 1. Coverage in Existing Literature (Step 2)
+- **Mature in Peaceful / Rural Settings:** A vast empirical literature establishes that cash transfers and index insurance smooth consumption, protect nutritional intake, and prevent distress asset sales during biophysical shocks (e.g., Baird et al., 2011; Banerjee et al., 2015; Jensen, Barrett, & Mude, 2017).
+- **Emerging General Equilibrium (GE) Literature in Peacetime:**
+  - *Egger, Haushofer, Miguel, Niehaus, & Walker (2022, Econometrica):* Large-scale cash transfers in rural Kenya produced a fiscal multiplier of ~2.5 with minimal price inflation due to substantial local economic slack.
+  - *Cunha, De Giorgi, & Jayachandran (2019, AER) / Filmer et al. (2023, JHR):* In remote, geographically isolated markets with high transportation frictions, cash transfers drive up local food prices, creating negative externalities for non-recipient households; in-kind food aid depresses prices.
+- **The Critical Gap in Conflict:**
+  - *Severe Under-Theorization of Conflict Sieges & Military Blockades:* The existing GE literature assumes transport costs are physical and passive (bad roads). In active conflict, supply inelasticity is **strategic and adversarial** (military checkpoints, extortion tariffs, maritime/land blockades, deliberate starvation tactics).
+  - *Narrow Outcome Metrics:* Studies of cash in conflict (e.g., Schwab, 2020 on Yemen; Lehmann & Masterson, 2020 on Syrian refugees in Lebanon; Tranchant et al., 2019 on Mali) evaluate short-term household food consumption scores. Almost none evaluate whether cash enables or deters **distress migration/evacuation, cross-border flight, or mortality**.
+  - *Absence of Conflict Duration Expectations:* Standard models treat shocks as transient liquidity drops. In armed conflict, household behavioral responses to liquidity depend entirely on their subjective expectation of conflict duration (e.g., whether fighting is expected to last 3 weeks vs. 5 years).
+
+#### 2. Fields & Methods Currently Used (Step 3)
+- **Fields:** Development economics, agricultural economics, humanitarian policy.
+- **Methods:** Clustered randomized controlled trials (RCTs), spatial price regression, structural IO models of trader networks, high-frequency price monitoring (WFP VAM, FEWS NET).
+
+#### 3. Why Gaps Persist & High-Yield Frontiers (Step 4)
+- **Why Gaps Persist:** In-person survey enumeration is dangerous or unethical during active combat; conflict lines fluctuate rapidly; standard RCT randomization of emergency aid during famine/siege raises severe humanitarian ethics concerns.
+- **Promising Research Threads:**
+  1. *Spatial Price Transmission Under Siege:* Coupling high-frequency food market price feeds (WFP/FSNAU) with ACLED conflict point events and open-source road network graphs to measure how conflict-induced blockades alter the supply elasticity of cash interventions.
+  2. *Cash-Assisted Evacuation vs. Entrapment:* Utilizing displacement monitoring (UNHCR PRMN / IOM DTM) and mobile phone mobility data to test whether mobile cash disbursements facilitate safe evacuation or financially trap populations in escalating combat zones.
+
+---
+
+### RQ 2: The Delivery Architecture & State-Capacity Frontier
+
+> *How do delivery modalities developed across different disaster governance contexts (state-administered social protection in capable states vs. parallel humanitarian substitution in fragile settings) perform when adapted to active armed conflict, and what economic and operational frictions emerge when transitioning between these delivery rails?*
+
+#### 1. Coverage in Existing Literature (Step 2)
+- **Extensively Covered in Policy Gray Literature:** Think-tanks and multilateral institutions have codified the concept of "Shock-Responsive Social Protection" (SRSP) (e.g., Oxford Policy Management / OPM; World Bank Social Protection & Jobs; CaLP; UNICEF; Barca & O'Brien, 2017). They establish a core operational taxonomy: *vertical expansion* (topping up payments), *horizontal expansion* (enrolling new shock-affected cohorts), *piggybacking* (humanitarians using state registries), and *shadow alignment* (parallel donor systems mimicking state rules).
+- **The Critical Gap in Economics:**
+  - *Lack of Causal Micro-Foundations:* The SRSP literature is heavily descriptive, institutional, and prescriptive; it rarely features rigorous econometric identification of delivery frictions, administrative costs, or leakage rates across delivery modalities.
+  - *Disaster-to-Conflict Transition Failure:* Systems refined in stable, capable states responding to natural hazards (e.g., Colombia’s SISBEN/Familias en Acción, Mexico’s FONDEN) rely on the state being a legitimate, non-hostile coordinator. When transplanted to fragile or conflict-affected contexts (e.g., Haiti, Venezuela, Syria, Somalia), the state is either partisan, predatory, or physically absent.
+  - *The "Handover" Trap:* Virtually no empirical literature measures the institutional friction and welfare loss when parallel humanitarian systems attempt to transition back into national social safety nets post-conflict.
+
+#### 2. Fields & Methods Currently Used (Step 3)
+- **Fields:** Public administration, international development studies, humanitarian policy.
+- **Methods:** Qualitative institutional process tracing, comparative policy case studies, post-implementation desk reviews.
+
+#### 3. Why Gaps Persist & High-Yield Frontiers (Step 4)
+- **Why Gaps Persist:** Methodological siloing. Econometricians prefer evaluating program *parameters* (cash amount, frequency) holding delivery mechanics constant; political scientists study rebel governance without tracking economic efficiency; humanitarians lack the time, mandate, or data to compare alternative delivery architectures head-to-head during emergencies.
+- **Promising Research Threads:**
+  1. *Comparative State-Capacity Response Curves:* Evaluating crisis response speed, leakage, and exclusion errors across a state-capacity gradient (e.g., Colombia vs. Dominican Republic vs. Haiti/Venezuela) during compounded climate-economic shocks.
+  2. *Neutrality vs. Scale Trade-offs in Digital Social Registries:* Modeling the empirical risks of centralized biometric/digital safety nets (e.g., state surveillance, weaponized exclusion) versus the inefficiencies of fragmented, parallel NGO delivery rails.
+
+---
+
+### RQ 3: The Empirical Transportability & Covariate-Matching Frontier
+
+> *When holding financial safety nets (unconditional cash transfers and parametric insurance) functionally constant, to what extent can objective environmental covariates (satellite remote sensing of climate anomalies and physical damage) and conflict/governance indicators serve as a quantitative similarity-matching framework to predict program transferability and directional success out-of-sample?*
+
+#### 1. Coverage in Existing Literature (Step 2)
+- **Theoretical Econometrics & Causal Transportability:**
+  - *Pearl & Bareinboim (2011, 2014):* Formalized causal transportability theory using directed acyclic graphs (DAGs), selection diagrams, and do-calculus to identify when causal relations can be transferred across populations.
+  - *Hotz, Imbens, & Mortimer (2005) / Gechter (2016) / Hartman et al. (2021):* Formulated econometric estimators for out-of-sample prediction of treatment effects using covariate adjustment and propensity reweighting.
+- **Empirical Metascience in Development Economics:**
+  - *Eva Vivalt (2020, JEEA):* "How Much Can We Generalize from Impact Evaluations?" Examined 635 studies across 20 intervention types (via AidGrade); proved that treatment effects exhibit substantial cross-site dispersion, with observable program/implementer characteristics explaining significant heterogeneity.
+  - *Rachael Meager (2019, AEJ: Applied):* Applied Bayesian hierarchical models across seven microcredit RCTs, showing that while average effects are close to zero, cross-study variance is substantial and prior beliefs must be heavily regularized.
+  - *Pritchett & Sandefur (2015, AER):* "Learning from Experiments When Context Matters." Demonstrated that non-experimental estimates from the *same local context* frequently have lower mean squared error in predicting policy impact than gold-standard RCTs imported from an external context.
+  - *Dehejia, Pop-Eleches, & Samii (2021):* Showed that micro-level demographic covariates fail to account for cross-site effect heterogeneity because macro-institutional and structural context dominates.
+- **The Critical Gap:**
+  - **No study has ever built or tested a quantitative transportability framework for crisis interventions using objective geospatial rasters.**
+  - All existing empirical transportability papers rely on micro-level household survey variables (which are non-harmonized, sparse, and incompatible across borders) or coarse country-level indicators (which erase subnational crisis variation).
+  - Nobody has tested whether satellite-derived environmental similarity (vegetation anomalies, drought intensity, nightlight density) combined with conflict intensity metrics can predict out-of-sample treatment effect concordance.
+
+#### 2. Fields & Methods Currently Used (Step 3)
+- **Fields:** Theoretical econometrics, Bayesian meta-analysis, metascience, computational social science.
+- **Methods:** Bayesian hierarchical modeling, sample reweighting (IPSW), G-computation, meta-regression.
+
+#### 3. Why Gaps Persist & High-Yield Frontiers (Step 4)
+- **Why Gaps Persist:** Disciplinary data walls. Econometricians studying transportability work with tabular survey microdata. Remote sensing scientists work with geospatial rasters (GeoTIFFs/NetCDF) and rarely estimate causal treatment effects. Evaluation registries (3ie, J-PAL, World Bank DIME) have not historically linked trial locations to spatial polygon coordinates.
+- **Promising Research Threads (The Core PhD Methodological Breakthrough):**
+  1. *The Geospatial Evaluation Matcher:* Geocoding the trial boundaries of a harmonized corpus of cash transfer and index insurance evaluations (from 3ie, J-PAL, World Bank), extracting standardized 5km/10km multi-modal satellite rasters (CHIRPS precipitation, Sentinel-1 SAR, VIIRS nightlights) and conflict exposure (ACLED).
+  2. *Leave-One-Context-Out Transportability Testing:* Constructing a multidimensional "Context Similarity Index" (Mahalanobis / Propensity Distance on spatial covariates) and running leave-one-study-out cross-validation to test whether context similarity predicts treatment effect directional consistency and magnitude.
+
+---
+
+*(Literature audit complete; findings ready to inform dissertation project design.)*
+
 
 
 
