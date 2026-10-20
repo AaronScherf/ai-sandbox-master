@@ -27,6 +27,11 @@ Edge types (source -> target):
   hypothesis_of     source is an input to the theorem target
   yields            the theorem source yields target
   counterexample_to source shows the converse of target fails
+  uses              source uses target as an essential input to a calculation, test or derivation
+  applies_to        source can be applied to target; this is a nonexclusive application, not a prerequisite
+  estimates         source is a sample-based rule estimating the population target
+  computed_from     source is calculated from target by a stated formula
+  variant_of        source modifies target's method or objective but is not a taxonomic subtype
 `via` (only on implies/iff) names the theorem node that justifies the edge.
 
 Rules:
@@ -35,6 +40,7 @@ Rules:
 - Write `explanation` (and `condition`) in your OWN words; 8 or more consecutive words shared with a passage is rejected.
 - Cite only offered passages: copy `source` and `ref` exactly.
 - Explain the relationship itself; never mention the passages or sources in `explanation` or `condition`.
+- State any condition needed for the relationship to hold; it is shown in the graph sentence.
 - It is fine to propose no edges: return `edges: []`. A wrong implication is worse than a missing one.
 
 Result: one YAML mapping:

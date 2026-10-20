@@ -58,7 +58,10 @@ python -m agent.concept_graph.cli --graph-repo agent/concept_graph/sample_data b
   graph), `gist`, `explanation`, optional `formal` and `example`, `citations`, and review fields.
 - **Edge types** (code constant `EDGE_TYPES`): `is_a` (A is a B that also ...), `has_property`, `defined_on`,
   `component_of` (A is one of the conditions making up bundle B), `implies` and `iff` (both need a `condition`;
-  optional `via` names a theorem), `hypothesis_of` and `yields` (wire a named theorem node), `counterexample_to`.
+  optional `via` names a theorem), `hypothesis_of` and `yields` (wire a named theorem node), `counterexample_to`,
+  `uses` (essential input), `applies_to` (nonexclusive application), `estimates` (sample rule to population target),
+  `computed_from` (formula dependency), and `variant_of` (method lineage without strict subtype identity).
+  A nonempty `condition` appears in the graph sentence for every type; for `is_a` it describes what the subtype adds.
   Edge id is always `<source>--<type>--<target>`.
 - **Status**: `proposed` (dashed in the viewer) or `verified`. Only a person's accept or edit sets `verified`.
 - **Sections** have a `state`: `taught`, `in_progress` or `planned` (faded; skipped by the unfilled/orphan checks).

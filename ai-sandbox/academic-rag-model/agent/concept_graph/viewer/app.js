@@ -110,7 +110,12 @@
     iff: { color: "#7e22ce", arrow: "triangle", label: "iff" },
     hypothesis_of: { color: "#be185d", arrow: "triangle", label: "hypothesis of" },
     yields: { color: "#be185d", arrow: "triangle", label: "yields" },
-    counterexample_to: { color: "#b91c1c", arrow: "tee", label: "counterexample to" }
+    counterexample_to: { color: "#b91c1c", arrow: "tee", label: "counterexample to" },
+    uses: { color: "#0f766e", arrow: "vee", label: "uses" },
+    applies_to: { color: "#0d9488", arrow: "vee", label: "applies to" },
+    estimates: { color: "#15803d", arrow: "vee", label: "estimates" },
+    computed_from: { color: "#b45309", arrow: "vee", label: "computed from" },
+    variant_of: { color: "#475569", arrow: "triangle-tee", label: "variant of" }
   };
   var pos = CG.spreadLayout(G.nodes, G.edges, G.sections);
   var elements = G.nodes.map(function (n) {
@@ -548,7 +553,7 @@
       '<select data-f="direction"><option value="out"' + (c.direction === "in" ? "" : " selected") + '>this → that</option>' +
       '<option value="in"' + (c.direction === "in" ? " selected" : "") + '>that → this</option></select>' +
       '<button type="button" data-remove-row>×</button>' +
-      '<input type="text" data-f="condition" placeholder="Condition (needed for implies / iff)" value="' + esc(c.condition || "") + '" style="grid-column: 1 / -1">' +
+      '<input type="text" data-f="condition" placeholder="Condition (required for implies / iff; shown for every type)" value="' + esc(c.condition || "") + '" style="grid-column: 1 / -1">' +
       '<input type="text" data-f="note" maxlength="200" placeholder="Note (optional)" style="grid-column: 1 / -1">' +
       '</div>';
   }
@@ -624,7 +629,7 @@
             '<select data-f="b">' + nodeOptions(r.b) + "</select>" +
             '<button type="button" data-reverse="' + i + '" title="Reverse this row">\u21c4</button>' +
             '<button type="button" data-del="' + i + '">\u00d7</button>' +
-            '<input type="text" data-f="condition" placeholder="Condition (needed for implies / iff)" value="' + esc(r.condition) + '" style="grid-column: 1 / -1">' +
+            '<input type="text" data-f="condition" placeholder="Condition (required for implies / iff; shown for every type)" value="' + esc(r.condition) + '" style="grid-column: 1 / -1">' +
             '<input type="text" data-f="note" maxlength="200" placeholder="Note (optional)" value="' + esc(r.note || "") + '" style="grid-column: 1 / -1">' +
             "</div>";
         }).join("") + "</div>" +

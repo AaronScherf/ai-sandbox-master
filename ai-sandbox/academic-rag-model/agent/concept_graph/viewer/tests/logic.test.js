@@ -20,6 +20,20 @@ test("edgeSentence reads naturally for each type and includes condition and via"
   assert.equal(CG.edgeSentence({ type: "yields", source: "t", target: "b" }, nameOf), "Theorem T yields Beta");
   assert.equal(CG.edgeSentence({ type: "counterexample_to", source: "a", target: "b" }, nameOf),
     "Alpha is a counterexample showing the converse of Beta fails");
+  const newTypes = {
+    uses: "Alpha uses Beta",
+    applies_to: "Alpha applies to Beta",
+    estimates: "Alpha estimates Beta",
+    computed_from: "Alpha is computed from Beta",
+    variant_of: "Alpha is a variant of Beta"
+  };
+  Object.entries(newTypes).forEach(([type, sentence]) => {
+    assert.equal(CG.edgeSentence({ type, source: "a", target: "b" }, nameOf), sentence);
+    assert.equal(CG.edgeSentence({ type, source: "a", target: "b", condition: "context" }, nameOf), sentence + ", when: context");
+  });
+  ["has_property", "defined_on", "component_of", "hypothesis_of", "yields", "counterexample_to"].forEach(type => {
+    assert.match(CG.edgeSentence({ type, source: "a", target: "b", condition: "context" }, nameOf), /, when: context$/);
+  });
 });
 
 const E = (source, type, target, extra = {}) => ({ source, type, target, ...extra });
@@ -46,6 +60,16 @@ test("prerequisites is safe on cycles and never includes the start node", () => 
 test("prerequisites treats via as a prerequisite of the conclusion", () => {
   const edges = [E("a", "implies", "b", { condition: "x", via: "t" })];
   assert.deepEqual([...CG.prerequisites("b", edges)].sort(), ["a", "t"]);
+});
+
+test("method dependencies and nonexclusive applications have different prerequisite directions", () => {
+  const dependencyTypes = ["uses", "estimates", "computed_from", "variant_of"];
+  dependencyTypes.forEach(type => {
+    assert.deepEqual([...CG.prerequisites("a", [E("a", type, "b")])], ["b"], type);
+    assert.deepEqual([...CG.prerequisites("b", [E("a", type, "b")])], [], type);
+  });
+  assert.deepEqual([...CG.prerequisites("a", [E("a", "applies_to", "b")])], []);
+  assert.deepEqual([...CG.prerequisites("b", [E("a", "applies_to", "b")])], []);
 });
 
 const sections = [{ id: "s1", order: 1 }, { id: "s2", order: 2 }];

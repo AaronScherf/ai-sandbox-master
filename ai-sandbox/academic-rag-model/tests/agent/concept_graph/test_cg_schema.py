@@ -48,6 +48,7 @@ def test_edge_requires_slug_endpoints():
     assert e.condition is None and e.via is None and e.status == "proposed"
 
 
-def test_there_are_nine_edge_types_including_component_of():
-    assert len(EDGE_TYPES) == 9
-    assert "component_of" in EDGE_TYPES
+def test_edge_types_include_method_relations_without_dropping_logical_types():
+    assert len(EDGE_TYPES) == 14
+    expected = {"component_of", "implies", "iff", "uses", "applies_to", "estimates", "computed_from", "variant_of"}
+    assert expected <= set(EDGE_TYPES)

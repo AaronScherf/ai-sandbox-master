@@ -8,16 +8,26 @@ from core.agent_tasks.loop import provenance  # noqa: F401  (the shared definiti
 from ..schema import Graph
 from ..sources import Passage
 
+
+def _when(sentence: str, condition: str | None) -> str:
+    return sentence + (f", when: {condition}" if condition else "")
+
+
 _SENTENCES = {
     "is_a": lambda s, t, c: f"{s} is a {t}" + (f", that also: {c}" if c else ""),
-    "has_property": lambda s, t, c: f"{s} has the property {t}",
-    "defined_on": lambda s, t, c: f"{s} is defined on {t}",
-    "component_of": lambda s, t, c: f"{s} is one of the conditions making up {t}",
+    "has_property": lambda s, t, c: _when(f"{s} has the property {t}", c),
+    "defined_on": lambda s, t, c: _when(f"{s} is defined on {t}", c),
+    "component_of": lambda s, t, c: _when(f"{s} is one of the conditions making up {t}", c),
     "implies": lambda s, t, c: f"{s} implies {t}" + (f", when: {c}" if c else ""),
     "iff": lambda s, t, c: f"{s} holds exactly when {t}" + (f", given: {c}" if c else ""),
-    "hypothesis_of": lambda s, t, c: f"{s} is a hypothesis of {t}",
-    "yields": lambda s, t, c: f"{s} yields {t}",
-    "counterexample_to": lambda s, t, c: f"{s} is a counterexample showing the converse of {t} fails",
+    "hypothesis_of": lambda s, t, c: _when(f"{s} is a hypothesis of {t}", c),
+    "yields": lambda s, t, c: _when(f"{s} yields {t}", c),
+    "counterexample_to": lambda s, t, c: _when(f"{s} is a counterexample showing the converse of {t} fails", c),
+    "uses": lambda s, t, c: _when(f"{s} uses {t}", c),
+    "applies_to": lambda s, t, c: _when(f"{s} applies to {t}", c),
+    "estimates": lambda s, t, c: _when(f"{s} estimates {t}", c),
+    "computed_from": lambda s, t, c: _when(f"{s} is computed from {t}", c),
+    "variant_of": lambda s, t, c: _when(f"{s} is a variant of {t}", c),
 }
 
 

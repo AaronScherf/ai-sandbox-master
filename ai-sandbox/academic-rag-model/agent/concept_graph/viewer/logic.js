@@ -5,16 +5,23 @@
 })(typeof self !== "undefined" ? self : this, function () {
   "use strict";
 
+  function when(text, condition) { return text + (condition ? ", when: " + condition : ""); }
+
   var SENTENCE = {
     is_a: function (s, t, c) { return s + " is a " + t + (c ? ", that also: " + c : ""); },
-    has_property: function (s, t) { return s + " has the property " + t; },
-    defined_on: function (s, t) { return s + " is defined on " + t; },
-    component_of: function (s, t) { return s + " is one of the conditions making up " + t; },
+    has_property: function (s, t, c) { return when(s + " has the property " + t, c); },
+    defined_on: function (s, t, c) { return when(s + " is defined on " + t, c); },
+    component_of: function (s, t, c) { return when(s + " is one of the conditions making up " + t, c); },
     implies: function (s, t, c) { return s + " implies " + t + (c ? ", when: " + c : ""); },
     iff: function (s, t, c) { return s + " holds exactly when " + t + (c ? ", given: " + c : ""); },
-    hypothesis_of: function (s, t) { return s + " is a hypothesis of " + t; },
-    yields: function (s, t) { return s + " yields " + t; },
-    counterexample_to: function (s, t) { return s + " is a counterexample showing the converse of " + t + " fails"; }
+    hypothesis_of: function (s, t, c) { return when(s + " is a hypothesis of " + t, c); },
+    yields: function (s, t, c) { return when(s + " yields " + t, c); },
+    counterexample_to: function (s, t, c) { return when(s + " is a counterexample showing the converse of " + t + " fails", c); },
+    uses: function (s, t, c) { return when(s + " uses " + t, c); },
+    applies_to: function (s, t, c) { return when(s + " applies to " + t, c); },
+    estimates: function (s, t, c) { return when(s + " estimates " + t, c); },
+    computed_from: function (s, t, c) { return when(s + " is computed from " + t, c); },
+    variant_of: function (s, t, c) { return when(s + " is a variant of " + t, c); }
   };
 
   function edgeSentence(edge, nameOf) {
@@ -29,6 +36,7 @@
     var pairs = [];
     switch (e.type) {
       case "is_a": case "has_property": case "defined_on":
+      case "uses": case "estimates": case "computed_from": case "variant_of":
         pairs.push([e.source, e.target]); break;
       case "component_of": case "hypothesis_of": case "yields":
         pairs.push([e.target, e.source]); break;

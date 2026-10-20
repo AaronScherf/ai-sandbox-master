@@ -19,6 +19,11 @@ EDGE_TYPES = (
     "hypothesis_of",
     "yields",
     "counterexample_to",
+    "uses",
+    "applies_to",
+    "estimates",
+    "computed_from",
+    "variant_of",
 )
 CONDITION_REQUIRED = ("implies", "iff")
 VIA_ALLOWED = ("implies", "iff")
