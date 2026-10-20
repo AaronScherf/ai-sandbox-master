@@ -142,5 +142,36 @@ The user's responses in Round 1 established several decisive analytical anchors:
 
 ---
 
-*(Brainstorming dialogue continues...)*
+### User Response: Pruning Bureaucratic Noise & Centering Market Friction (October 19, 2026)
+
+> **On Probing Question 2.1 (Breakdown Mechanisms):**  
+> "In response to probing question 2.1, those are all good questions but they would be entirely context specific. Each failure would be unique to the conflict itself and therefore inherently hard to predict in advance. Identifying consistent evidence of any of these individual failures, attributing it, and determining what contextual features may have led to it would be an entire project by itself. If I had to pick just one, I would think that the epistemic breakdown is interesting but tractable (I would be interested in this if it were really the main block but it seems unlikely, unless the issue is logistical issues with delivering assistance due to those verification challenges) and the adversarial distortion would be hard to do much about without military personnel, so the macro-market blockades would be the most tractable as a research question. The general equilibrium and supply capacity effects of mobile money transfers in an already heavily distorted market would be the number one question for this use case, which I'm sure has received some interest in the literature but is likely still active."
+>
+> **On Probing Question 2.2 (LLM Extraction of Bureaucratic Reports):**  
+> "The LLM extracted data from donor reports would be interesting but likely not the main driver here. If there were specific case studies to investigate it might provide helpful context, but now that I think about it, analyzing the entire bureaucratic record would probably have too much noise to be useful. There could be something more there from the 'how to operationalize this research' perspective, but I don't think that critiquing bureaucratic procedures is the main highlight."
+>
+> **On Probing Question 2.3 & Candidate Questions (State Agency, Neutrality, and Delivery Rails):**  
+> "Good question on the degree of autonomy / state agency as a context specific issue. These examples seem too far apart to make many useful parallels, but there must be other examples which are more nuanced. Perhaps looking into some kind of classification system to identify which interventions relied on ad-hoc or donor controlled response vs host country government response would be helpful.
+>
+> Q1 and Q3 are definitely the more interesting ones. There could be an interaction between the two as well, particularly looking at the degree of institutional autonomy, since one of the fundamental differences between conflict zones and disaster zones would be that the government itself may no longer be a neutral actors; if the government is engaged in a civil conflict, then it may either lack the capacity to respond or be part of the problem (as a party to the conflict). So then would the solution be external aid actors (if they are allowed to operate)? Or do we just have to assume that the population we are trying to help is at least within government controlled territory and the government is working to help them as a baseline?"
+
+---
+
+## Round 3: Resolving the Analytical Core — Market Frictions, Delivery Modalities, and Sovereign Neutrality
+
+### Agent Synthesis & Insights
+
+The user's response cuts straight through extraneous administrative complexity to establish two fundamental, highly defensible pillars for the research design:
+
+1. **The Primary Economic Mechanism: General Equilibrium & Supply Capacity Frictions**  
+   The single most tractable and consequential economic failure mode when transferring disaster cash tools into conflict is **market supply elasticity**. In a natural disaster, roads may wash out, but once supply corridors reopen, trade responds elastically to cash-backed purchasing power. In an active conflict, markets are systematically distorted—siege lines, checkpoints, extortion, monopolistic import cartels, or physical blockades render supply highly inelastic. Injecting cash into an inelastic conflict market generates hyper-localized price inflation and rent capture rather than consumption smoothing.
+2. **The Primary Political Economy Mechanism: The Government Neutrality & Delivery Dilemma**  
+   In natural disaster response, the host government is conventionally modeled as a non-hostile coordinator seeking relief for its citizens. In armed conflict, the state is often a belligerent, actively contesting sovereignty, withholding aid from insurgent-sympathetic populations, or weaponizing social protection. This forces a structural split in delivery architecture:
+   - **Sovereign / Integrated Delivery:** National social safety nets, formal banking rails, and civil registries (requires baseline state legitimacy, capacity, and territorial control).
+   - **Parallel / Humanitarian Substitution:** UN/ICRC/INGO systems using independent biometric registries, private telecom mobile money, or hawala networks (designed to maintain humanitarian neutrality and bypass predatory or excluded state structures).
+
+---
+
+*(Continuing to draft final research questions and transition to Step 2...)*
+
 
