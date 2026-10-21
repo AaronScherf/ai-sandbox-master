@@ -1,7 +1,8 @@
 vocabulary: data_source
-version: 2
+version: 4
 provenance: provisional
-source: Starter list written for this project; replace or reconcile when an authoritative list is adopted.
+source: Starter list written for this project; replace or reconcile when an authoritative
+  list is adopted.
 terms:
 - id: data_source.household_survey
   label: Household survey
@@ -9,10 +10,14 @@ terms:
   label: Panel survey
 - id: data_source.administrative_records
   label: Administrative records
-  definition: Records an agency keeps about individuals, households or transactions while running a programme or service (registries, beneficiary lists, tax or health-facility records).
+  definition: Records an agency keeps about individuals, households or transactions
+    while running a programme or service (registries, beneficiary lists, tax or health-facility
+    records).
 - id: data_source.government_statistics
   label: Government statistics
-  definition: Published aggregate figures from an official agency, such as county, district or national totals, accounts and price indices, rather than the underlying records.
+  definition: Published aggregate figures from an official agency, such as county,
+    district or national totals, accounts and price indices, rather than the underlying
+    records.
 - id: data_source.census
   label: Census
 - id: data_source.remote_sensing
@@ -31,3 +36,13 @@ terms:
   label: Primary data collected for the trial
 - id: data_source.interviews_fieldwork
   label: Interviews or fieldwork
+- id: data_source.programme_documents_evaluation_reports
+  label: Programme documents and evaluation reports
+  source: local
+  definition: Non-academic project documents, evaluation reports, policy briefs and
+    funding agency records synthesized in literature reviews.
+- id: data_source.peer_reviewed_literature
+  label: Peer-reviewed literature
+  source: local
+  definition: Published academic articles, scientific journals and peer-reviewed studies
+    synthesized as the evidence base in systematic reviews.

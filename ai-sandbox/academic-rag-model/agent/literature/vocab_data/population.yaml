@@ -1,7 +1,8 @@
 vocabulary: population
-version: 1
+version: 3
 provenance: provisional
-source: Starter list written for this project; replace or reconcile when an authoritative list is adopted.
+source: Starter list written for this project; replace or reconcile when an authoritative
+  list is adopted.
 terms:
 - id: population.households
   label: Households
@@ -27,3 +28,13 @@ terms:
   label: Health facilities and workers
 - id: population.general_population
   label: General population
+- id: population.farmers
+  label: Farmers
+  source: local
+  definition: Agricultural producers and farm operators, encompassing commercial and
+    non-smallholder farming enterprises.
+- id: population.children
+  label: Children
+  source: local
+  definition: Individuals under 18 years of age, representing the general child demographic
+    cohort beyond children under five.
