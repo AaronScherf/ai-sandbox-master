@@ -18,6 +18,8 @@ python -m agent.literature bootstrap r1                    # the contract to giv
 python -m agent.literature submit r1                       # validate filled cards, write records; bounced cards say why
 python -m agent.literature verify --run-id v1              # cards that ask a checker about facts only one pass found
 python -m agent.literature silver                          # per paper: agreed / confirmed / open fact counts
+python -m agent.literature tiers                           # facts by confidence tier A/B/C; writes _tiers.json
+python -m agent.literature remap                           # point facts at terms whose proposal was accepted or merged
 python -m agent.literature status
 python -m agent.literature proposals list                  # terms the agent proposed that no vocabulary term covered
 python -m agent.literature eval [--gold PATH]              # aggregates against gold/gold_set.yaml
@@ -51,6 +53,11 @@ parent and child terms, and contained proposed wording count as one fact); real 
 `review.status: needs_review`. `verify` sends the facts only one pass found to a checker pass, which answers supported
 (with a verified quote), not_supported or unclear. `silver` then splits facts into agreed, confirmed and open; people
 review only the open facts and a random audit sample.
+
+`tiers` names the same split as confidence tiers and writes `_tiers.json` for the later stages: **A** both passes found the fact,
+**B** one pass found it and the checker found support in the paper, **C** one pass found it and the checker did not support it
+(or has not looked). Analyses should start from A and B (`tiers.at_least(items, "B")`) and treat C as excluded.
+After a proposed term is accepted or merged (`Proposals.accept` / `Proposals.merge`), `remap` re-points the facts that proposed it.
 
 ## Not built
 

@@ -8,7 +8,7 @@ from pathlib import Path
 from core.agent_tasks.loop import BudgetError, api_run, collect_run, provenance, submit_run
 from core.agent_tasks.work import load_run
 
-from . import stage, verify
+from . import stage, tiers, verify
 from .remap import remap_record
 from .gold import DEFAULT_PATH, load_gold, score_record, summarize
 from .papers import drop_duplicate_titles, eligible_papers
@@ -134,6 +134,26 @@ def cmd_silver(args) -> int:
     return 0
 
 
+def cmd_tiers(args) -> int:
+    """Count facts by confidence tier and write the derived `_tiers.json` next to the records."""
+    target = _target(args)
+    papers = {}
+    for fid in target.records.ids():
+        if items := tiers.tiered_facts(target.records, fid, target.vocabs):
+            papers[fid] = items
+    count = {t: sum(1 for items in papers.values() for i in items if i["tier"] == t) for t in tiers.ORDER}
+    for t in tiers.ORDER:
+        print(f"tier {t}: {count[t]:4d}  {tiers.LEGEND[t]}")
+    facets = sorted({i["facet"] for items in papers.values() for i in items})
+    for facet in facets:
+        row = {t: sum(1 for items in papers.values() for i in items if i["facet"] == facet and i["tier"] == t) for t in tiers.ORDER}
+        print(f"  {facet:14s} A {row['A']:3d}  B {row['B']:3d}  C {row['C']:3d}")
+    out = Path(target.records.dir) / "_tiers.json"
+    out.write_text(json.dumps({"legend": tiers.LEGEND, "papers": papers}, indent=2, ensure_ascii=False), encoding="utf-8", newline="\n")
+    print(f"{len(papers)} papers written to {out}")
+    return 0
+
+
 def cmd_bootstrap(args) -> int:
     print(BOOTSTRAP.format(run=args.run_id))
     return 0
@@ -256,6 +276,7 @@ def build_parser() -> argparse.ArgumentParser:
     b = sub.add_parser("bootstrap", help="Print the agent's operating contract.")
     b.add_argument("run_id")
     sub.add_parser("status", help="Counts of papers, records and open proposals.")
+    sub.add_parser("tiers", help="Count facts by confidence tier (A both passes, B checker-supported, C open) and write _tiers.json.")
     sub.add_parser("remap", help="Point facts whose proposal was accepted or merged at the vocabulary term.")
     pr = sub.add_parser("proposals", help="Terms the agent proposed that no vocabulary term covered.")
     pr.add_argument("action", choices=["list"])
@@ -273,4 +294,4 @@ def main(argv: list[str] | None = None, *, complete=None) -> int:
     if args.command == "api":
         return cmd_api(args, complete)
     return {"collect": cmd_collect, "verify": cmd_verify, "silver": cmd_silver, "submit": cmd_submit, "bootstrap": cmd_bootstrap, "status": cmd_status,
-            "proposals": cmd_proposals, "eval": cmd_eval, "remap": cmd_remap}[args.command](args)
+            "proposals": cmd_proposals, "eval": cmd_eval, "remap": cmd_remap, "tiers": cmd_tiers}[args.command](args)
