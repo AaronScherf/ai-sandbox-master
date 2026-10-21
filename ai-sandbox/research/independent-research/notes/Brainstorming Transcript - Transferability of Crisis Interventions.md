@@ -398,7 +398,91 @@ To ground these mathematical structures in the literature review, search queries
 
 ---
 
-*(Transcript updated with Bayesian Hierarchical and Non-Exchangeability Methodological Architecture.)*
+## Practical Pivot: Grounding the Agenda in Empirical Sprints (Fall 2026)
+
+### Taking Stock & Moving from Theoretical Complexity to Data Ground-Truthing
+
+To avoid premature methodological lock-in and high-dimensional modeling before verifying data viability, this section outlines a **pragmatic, empirical proof-of-concept strategy**. In Year 1 of the doctoral program, the objective is to explore the actual granularity, sample sizes, and missingness patterns of real-world crisis data across a 2-to-4 week horizon before committing to complex Bayesian or transportability architectures.
+
+---
+
+### 1. Shared First Steps: The Core Data Fusion Spine
+
+Across all proposed dissertation directions, four shared data engineering and exploratory steps form the necessary foundation:
+
+```
+┌─────────────────────────────────────────────────────────────────────────────────────────────────┐
+│ THE SHARED DATA FUSION SPINE                                                                    │
+│                                                                                                 │
+│  [Point Process]         [Continuous Rasters]        [Tabular Time-Series]    [Boundaries]      │
+│  ACLED Conflict Events   CHIRPS Rainfall (5km)       WFP Market Prices (SOS)  Admin 2 Polygons  │
+│  (Coords, Fatalities)    VIIRS Night Lights (500m)   UNHCR PRMN Displacement  (Districts)       │
+│         │                         │                           │                    │            │
+│         └─────────────────────────┼───────────────────────────┴────────────────────┘            │
+│                                   ▼                                                             │
+│                   [SPATIAL AGGREGATION & HARMONIZATION]                                         │
+│                   Zonal Statistics + Corridor Buffer Graphs                                     │
+│                                   │                                                             │
+│                                   ▼                                                             │
+│              [TIDY HARMONIZED DISTRICT-MONTH PANEL (N × T)]                                     │
+│              EDA • Missingness Audit • Baseline TWFE / Matching Models                          │
+└─────────────────────────────────────────────────────────────────────────────────────────────────┘
+```
+
+1. **Spatial Harmonization & Boundary Alignment:**
+   - Define a consistent spatiotemporal indexing spine: Somalia's 74 Admin-2 districts $\times$ monthly timestamps (2018–2024), or a standardized 10km hexagonal grid.
+   - Aggregate discrete ACLED points into district-month counts, battle fatalities, and violence-against-civilian indices.
+   - Extract continuous raster zonal statistics (mean CHIRPS rainfall anomaly, SPI-3, mean VIIRS radiance, Sentinel-1 SAR backscatter).
+2. **Missingness & Conflict Bias Audit:**
+   - Quantify non-random missingness in market price and displacement data across insurgent-controlled zones (e.g., al-Shabaab strongholds in Lower Shabelle vs. government-held Mogadishu).
+   - Test whether remote-sensing proxies (vegetation health, night lights) can reliably track economic activity where ground enumerators cannot go.
+3. **Baseline Empirical Benchmarks (Before Complex Modeling):**
+   - Estimate simple Two-Way Fixed Effects (TWFE) panel regressions with interaction terms ($ClimateShock_{it} \times Conflict_{it} \times Cash_{it}$).
+   - Test a standard Propensity Score / Mahalanobis covariate match across districts to observe actual common support and overlap.
+   - Run a baseline Double Machine Learning (`EconML`) regression to determine whether the sample size supports heterogeneous treatment effect estimation.
+
+---
+
+### 2. Three Candidate 2-to-4 Week "Sprint Projects"
+
+#### Sprint Project 1: The Somalia Fused Multi-Shock Data & EDA Sprint (2–3 Weeks)
+- **Primary Data:** ACLED, WFP/FSNAU commodity prices (cereal & goat terms of trade), CHIRPS rainfall, and UNHCR PRMN displacement records.
+- **Immediate Task:** Build the end-to-end Python pipeline to ingest, clean, and harmonize these four public datasets into a tidy district-month panel (2018–2024).
+- **Core Questions Explored:**
+  - Did the 2022 Ukraine grain price shock hit conflict-affected districts differently than peaceful districts?
+  - Do climate shocks drive displacement directly, or only when mediated by food price spikes and local clashes?
+- **Deliverable:** A polished 15-page Exploratory Data Analysis (EDA) notebook with publication-ready maps, shock timelines, and baseline panel regression tables. Ready for the November student brownbag presentation.
+
+#### Sprint Project 2: The Geospatial Evaluation Matcher Pilot (2–3 Weeks)
+- **Primary Data:** 20 benchmark cash transfer and index insurance evaluations from the 3ie Development Evidence Portal and J-PAL evaluation database across East Africa and the Sahel (Kenya, Somalia, Ethiopia, Mali, Niger).
+- **Immediate Task:** Geocode the trial implementation boundaries (administrative polygons or district centroids). Extract standardized 5km/10km satellite environmental rasters (CHIRPS precipitation z-scores, NDVI anomalies, night lights) and ACLED conflict exposure within a 20km buffer during the trial window.
+- **Core Questions Explored:**
+  - Do published evaluation effect sizes correlate with objective satellite environmental stress and conflict exposure at the trial sites?
+  - What does the joint distribution of trial covariates look like? Is there sufficient common support to predict effects across borders?
+- **Deliverable:** A curated, reproducible pilot dataset fusing impact evaluation effect sizes with spatial Earth observation data, accompanied by a simple meta-regression and matching proof-of-concept.
+
+#### Sprint Project 3: Spatial Price Transmission & Checkpoint Blockade Pilot (2–3 Weeks)
+- **Primary Data:** WFP market prices across 40+ market towns in Somalia or Yemen, ACLED road-clash/checkpoint events, and OpenStreetMap primary/secondary road networks.
+- **Immediate Task:** Calculate pairwise price differentials for imported wheat and local sorghum between regional import ports (e.g., Mogadishu, Berbera) and peripheral inland markets. Measure spatial network distance and count conflict events along connecting transit corridors.
+- **Core Questions Explored:**
+  - Under what conflict conditions does the spatial Law of One Price break down?
+  - Do armed checkpoints create localized price spikes and market segmentation, rendering local supply inelastic?
+- **Deliverable:** An empirical proof-of-concept testing the core economic mechanism of RQ 1 (market supply elasticity under siege).
+
+---
+
+### 3. Faculty Outreach Decision Matrix Based on Sprint Evidence
+
+| Completed Sprint | Concrete Evidence Produced | Target Columbia Faculty | Pitch / Discussion Hook |
+| :--- | :--- | :--- | :--- |
+| **Sprint 1 (Somalia Panel & EDA)** | Fused district panel, spatial displacement maps, triple-shock decomposition | **Alexander de Sherbinin** (CIESIN)<br>**Macartan Humphreys** (Pol Sci) | "Here is a clean subnational panel disentangling climate vs. conflict displacement; I want to explore spatial vulnerability modeling." |
+| **Sprint 2 (Geospatial Matcher Pilot)** | Corpus of geocoded RCTs linked to satellite rasters, out-of-sample matching test | **Daniel Björkegren** (SIPA)<br>**Jack Willis** (Economics) | "I built an Earth-observation feature store for 20 cash/insurance RCTs to test distribution shift and out-of-sample transportability." |
+| **Sprint 3 (Market Blockades)** | Spatial price transmission graph, checkpoint price wedge regressions | **Eric Verhoogen** (Economics)<br>**Suresh Naidu** (Economics) | "I'm testing spatial price transmission and market segmentation under armed blockades in fragile states." |
+
+---
+
+*(Transcript updated with empirical sprint architecture and practical faculty roadmap.)*
+
 
 
 
