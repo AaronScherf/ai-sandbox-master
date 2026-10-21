@@ -104,7 +104,7 @@ def cmd_verify(args) -> int:
     papers, _ = eligible_papers(args.index_root)
     if args.file_id:
         papers = [p for p in papers if p.file_id in set(args.file_id)]
-    tasks, skips = verify.make_tasks(target, papers, redo=args.redo)
+    tasks, skips = verify.make_tasks(target, papers, redo=args.redo, full_paper=args.full_paper)
     for fid, reason in skips.items():
         print(f"skipped {fid}: {reason}")
     try:
@@ -236,6 +236,7 @@ def build_parser() -> argparse.ArgumentParser:
     v.add_argument("--file-id", action="append", default=[], help="Only this paper (repeatable).")
     v.add_argument("--run-id", default=None)
     v.add_argument("--redo", action="store_true", help="Verify again even if the paper was already verified.")
+    v.add_argument("--full-paper", action="store_true", help="Second look: offer the whole paper for facts the first check did not support.")
     sub.add_parser("silver", help="Per paper: facts both passes agree on, facts the verifier confirmed, facts still open.")
     s = sub.add_parser("submit", help="Validate filled cards and write records.")
     s.add_argument("run_id")

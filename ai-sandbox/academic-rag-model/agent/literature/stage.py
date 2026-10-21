@@ -56,6 +56,10 @@ Rules:
 - `countries` are upper-case ISO 3166-1 alpha-2 codes. `scale` is one of local, subnational, national, multi_country,
   global, not_stated. `effect_direction` is one of positive, negative, null, mixed, not_reported.
 - `confidence` is your overall confidence in the study's causal claims: low, medium or high, with a one-line rationale.
+- Extract what this study itself does, uses and measures. Do not extract topics that appear only in the background or
+  literature review, in cited studies, or in recommendations and future work.
+- Be complete: list every distinct outcome, intervention and data source the study itself reports, not only the
+  main one.
 - Write [] for any facet list the paper does not give. Give at least one result."""
 
 
@@ -169,8 +173,9 @@ def apply_result(target: Target, entry: dict, result: dict, provenance: dict) ->
         "vocab_versions": s["vocab_versions"]}
     record["review"] = {"status": "unreviewed", "items_flagged": []}
     earlier = target.records.read(s["file_id"], label)
-    if earlier and earlier.get("verification") and earlier["verification"].get("transcript_sha") == s["transcript_sha"]:
-        record["verification"] = earlier["verification"]  # verdicts are keyed by fact, so changed facts just go unmatched
+    for key in ("verification", "verification_full"):
+        if earlier and earlier.get(key) and earlier[key].get("transcript_sha") == s["transcript_sha"]:
+            record[key] = earlier[key]  # verdicts are keyed by fact, so changed facts just go unmatched
     target.records.write(record, label)
     reconcile(target.records, s["file_id"], target.vocabs)
     for vocab_name, fact in _proposed_facts(result):
