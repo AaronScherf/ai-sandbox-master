@@ -15,6 +15,8 @@ def test_new_method_relations_have_distinct_sentences_and_visible_conditions():
         "estimates": "Alpha estimates Beta",
         "computed_from": "Alpha is computed from Beta",
         "variant_of": "Alpha is a variant of Beta",
+        "defined_via": "Alpha is defined via Beta",
+        "assumption_of": "Alpha is an assumption of Beta",
     }
     for type_, plain in expected.items():
         assert sentence(type_) == plain

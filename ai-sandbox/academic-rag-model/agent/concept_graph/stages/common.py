@@ -28,6 +28,8 @@ _SENTENCES = {
     "estimates": lambda s, t, c: _when(f"{s} estimates {t}", c),
     "computed_from": lambda s, t, c: _when(f"{s} is computed from {t}", c),
     "variant_of": lambda s, t, c: _when(f"{s} is a variant of {t}", c),
+    "defined_via": lambda s, t, c: _when(f"{s} is defined via {t}", c),
+    "assumption_of": lambda s, t, c: _when(f"{s} is an assumption of {t}", c),
 }
 
 

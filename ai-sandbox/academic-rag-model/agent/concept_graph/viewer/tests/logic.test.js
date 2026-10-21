@@ -25,7 +25,9 @@ test("edgeSentence reads naturally for each type and includes condition and via"
     applies_to: "Alpha applies to Beta",
     estimates: "Alpha estimates Beta",
     computed_from: "Alpha is computed from Beta",
-    variant_of: "Alpha is a variant of Beta"
+    variant_of: "Alpha is a variant of Beta",
+    defined_via: "Alpha is defined via Beta",
+    assumption_of: "Alpha is an assumption of Beta"
   };
   Object.entries(newTypes).forEach(([type, sentence]) => {
     assert.equal(CG.edgeSentence({ type, source: "a", target: "b" }, nameOf), sentence);
@@ -63,13 +65,16 @@ test("prerequisites treats via as a prerequisite of the conclusion", () => {
 });
 
 test("method dependencies and nonexclusive applications have different prerequisite directions", () => {
-  const dependencyTypes = ["uses", "estimates", "computed_from", "variant_of"];
+  const dependencyTypes = ["uses", "estimates", "computed_from", "variant_of", "defined_via"];
   dependencyTypes.forEach(type => {
     assert.deepEqual([...CG.prerequisites("a", [E("a", type, "b")])], ["b"], type);
     assert.deepEqual([...CG.prerequisites("b", [E("a", type, "b")])], [], type);
   });
   assert.deepEqual([...CG.prerequisites("a", [E("a", "applies_to", "b")])], []);
   assert.deepEqual([...CG.prerequisites("b", [E("a", "applies_to", "b")])], []);
+  // an assumption is a prerequisite of the model that imposes it
+  assert.deepEqual([...CG.prerequisites("b", [E("a", "assumption_of", "b")])], ["a"]);
+  assert.deepEqual([...CG.prerequisites("a", [E("a", "assumption_of", "b")])], []);
 });
 
 const sections = [{ id: "s1", order: 1 }, { id: "s2", order: 2 }];

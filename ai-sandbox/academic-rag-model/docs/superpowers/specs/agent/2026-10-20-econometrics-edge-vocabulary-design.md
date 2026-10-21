@@ -243,3 +243,22 @@ tracking, and new course migrations can wait until a later release.
 
 No implementation, live corrected graph, or owner review is claimed by
 this decision record.
+
+## Second release: `defined_via` and `assumption_of` (2026-10-20)
+
+An independent Claude critic pass over the corrected graph (run
+`critic-claude-econ-20261020`, graph commit `e1b98a2`) supported 78 of 80
+edges but found `applies_to`/`uses` standing in for relations the vocabulary
+could not state. The owner asked for new categories. Two are added; the
+five-type limit above applied to the first release only.
+
+| Type | Sentence and direction | Prerequisite behavior | Valid example / boundary |
+|---|---|---|---|
+| `defined_via` | "A is defined via B" (`A -> B`): A's definition is stated in terms of B. Definitional, so cycle-checked with `is_a`/`defined_on`. | A needs B. | little-o_p notation is defined via convergence in probability; the MLE is defined via the maximum-likelihood principle. Not a calculation (`computed_from`) or a subtype (`is_a`). |
+| `assumption_of` | "A is an assumption of B" (`A -> B`): a condition imposed by a model, estimator or procedure B. | B needs A. | MDS innovations are an assumption of the AR model. A premise of a *theorem* stays `hypothesis_of`. |
+
+`hypothesis_of` is clarified, not changed: a theorem invoked in another
+theorem's proof is an input to it (CLT -> OLS asymptotic normality; WLLN ->
+OLS consistency), so those two edges move from `applies_to` to
+`hypothesis_of`. Retyped edges get a fresh critic verdict; the old
+`supports` is not carried over.

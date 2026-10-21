@@ -21,7 +21,9 @@
     applies_to: function (s, t, c) { return when(s + " applies to " + t, c); },
     estimates: function (s, t, c) { return when(s + " estimates " + t, c); },
     computed_from: function (s, t, c) { return when(s + " is computed from " + t, c); },
-    variant_of: function (s, t, c) { return when(s + " is a variant of " + t, c); }
+    variant_of: function (s, t, c) { return when(s + " is a variant of " + t, c); },
+    defined_via: function (s, t, c) { return when(s + " is defined via " + t, c); },
+    assumption_of: function (s, t, c) { return when(s + " is an assumption of " + t, c); }
   };
 
   function edgeSentence(edge, nameOf) {
@@ -36,9 +38,9 @@
     var pairs = [];
     switch (e.type) {
       case "is_a": case "has_property": case "defined_on":
-      case "uses": case "estimates": case "computed_from": case "variant_of":
+      case "uses": case "estimates": case "computed_from": case "variant_of": case "defined_via":
         pairs.push([e.source, e.target]); break;
-      case "component_of": case "hypothesis_of": case "yields":
+      case "component_of": case "hypothesis_of": case "yields": case "assumption_of":
         pairs.push([e.target, e.source]); break;
       case "implies":
         pairs.push([e.target, e.source]);

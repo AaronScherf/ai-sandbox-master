@@ -24,11 +24,13 @@ EDGE_TYPES = (
     "estimates",
     "computed_from",
     "variant_of",
+    "defined_via",
+    "assumption_of",
 )
 CONDITION_REQUIRED = ("implies", "iff")
 VIA_ALLOWED = ("implies", "iff")
 VIA_KINDS = ("theorem", "lemma")
-DEFINITIONAL_TYPES = ("is_a", "defined_on", "has_property", "component_of")
+DEFINITIONAL_TYPES = ("is_a", "defined_on", "has_property", "component_of", "defined_via")
 LOGICAL_TYPES = ("implies", "hypothesis_of", "yields")
 EDITABLE_NODE_FIELDS = ("gist", "explanation", "formal", "example")
 EDITABLE_EDGE_FIELDS = ("condition", "explanation")

@@ -115,7 +115,9 @@
     applies_to: { color: "#0d9488", arrow: "vee", label: "applies to" },
     estimates: { color: "#15803d", arrow: "vee", label: "estimates" },
     computed_from: { color: "#b45309", arrow: "vee", label: "computed from" },
-    variant_of: { color: "#475569", arrow: "triangle-tee", label: "variant of" }
+    variant_of: { color: "#475569", arrow: "triangle-tee", label: "variant of" },
+    defined_via: { color: "#4338ca", arrow: "vee", label: "defined via" },
+    assumption_of: { color: "#9d174d", arrow: "diamond", label: "assumption of" }
   };
   var pos = CG.spreadLayout(G.nodes, G.edges, G.sections);
   var elements = G.nodes.map(function (n) {

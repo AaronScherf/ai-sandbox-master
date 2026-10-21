@@ -24,7 +24,8 @@ Edge types (source -> target):
   defined_on        source is defined on target (a set or a relation)
   component_of      source is one of the conditions making up the bundle target
   implies / iff     source implies (or is equivalent to) target; `condition` is REQUIRED: the assumptions needed
-  hypothesis_of     source is an input to the theorem target
+  hypothesis_of     source is a premise or input of the theorem target (another theorem used in its proof counts)
+  assumption_of     source is a condition imposed by the model, estimator or procedure target (not a theorem)
   yields            the theorem source yields target
   counterexample_to source shows the converse of target fails
   uses              source uses target as an essential input to a calculation, test or derivation
@@ -32,6 +33,7 @@ Edge types (source -> target):
   estimates         source is a sample-based rule estimating the population target
   computed_from     source is calculated from target by a stated formula
   variant_of        source modifies target's method or objective but is not a taxonomic subtype
+  defined_via       source's definition is stated in terms of target (not a calculation: use computed_from)
 `via` (only on implies/iff) names the theorem node that justifies the edge.
 
 Rules:

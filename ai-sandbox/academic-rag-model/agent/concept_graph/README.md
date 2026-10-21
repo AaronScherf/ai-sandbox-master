@@ -60,7 +60,9 @@ python -m agent.concept_graph.cli --graph-repo agent/concept_graph/sample_data b
   `component_of` (A is one of the conditions making up bundle B), `implies` and `iff` (both need a `condition`;
   optional `via` names a theorem), `hypothesis_of` and `yields` (wire a named theorem node), `counterexample_to`,
   `uses` (essential input), `applies_to` (nonexclusive application), `estimates` (sample rule to population target),
-  `computed_from` (formula dependency), and `variant_of` (method lineage without strict subtype identity).
+  `computed_from` (formula dependency), `variant_of` (method lineage without strict subtype identity),
+  `defined_via` (A's definition is stated in terms of B; definitional, cycle-checked), and `assumption_of` (A is a
+  condition imposed by model, estimator or procedure B; theorem premises stay `hypothesis_of`).
   A nonempty `condition` appears in the graph sentence for every type; for `is_a` it describes what the subtype adds.
   Edge id is always `<source>--<type>--<target>`.
 - **Status**: `proposed` (dashed in the viewer) or `verified`. Only a person's accept or edit sets `verified`.

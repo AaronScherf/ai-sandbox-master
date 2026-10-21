@@ -2,6 +2,7 @@ import pytest
 from pydantic import ValidationError
 
 from agent.concept_graph.schema import (
+    DEFINITIONAL_TYPES,
     EDGE_TYPES,
     Edge,
     Node,
@@ -49,6 +50,8 @@ def test_edge_requires_slug_endpoints():
 
 
 def test_edge_types_include_method_relations_without_dropping_logical_types():
-    assert len(EDGE_TYPES) == 14
-    expected = {"component_of", "implies", "iff", "uses", "applies_to", "estimates", "computed_from", "variant_of"}
+    assert len(EDGE_TYPES) == 16
+    expected = {"component_of", "implies", "iff", "uses", "applies_to", "estimates", "computed_from", "variant_of",
+                "defined_via", "assumption_of"}
     assert expected <= set(EDGE_TYPES)
+    assert "defined_via" in DEFINITIONAL_TYPES and "assumption_of" not in DEFINITIONAL_TYPES
