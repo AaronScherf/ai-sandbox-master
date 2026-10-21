@@ -1,8 +1,18 @@
 # Markdown-only academic notes: implementation plan
 
-**Status:** proposed; implementation, fixture verification, and live indexing pending.
+**Status:** implementation and fixture verification complete on `codex/markdown-only-index-implementation`; full suite and live indexing pending.
 **Spec:** [2026-10-20-markdown-only-indexing-design.md](../../specs/indexer/2026-10-20-markdown-only-indexing-design.md).
 **Goal:** Index eligible Markdown-only files and substantive generated companions throughout `academic_notes/` as first-class shared-corpus cards with honest provenance and parent links, then make them usable by existing search and chunk consumers.
+
+## Implementation tracking (2026-10-21)
+
+| Milestone | Status | Evidence still required |
+| --- | --- | --- |
+| Discovery and varied live read-only classification | Implemented and fixture-tested | Live sample recorded in status doc; broader sample during bounded live run |
+| Card provenance, identity, and reconciliation | Implemented and fixture-tested | Live card audit pending |
+| Rebuild, exact target, and bounded apply | Implemented and fixture-tested | Writer coordination and live audit pending |
+| Search, passage, and caller coverage | Indexer suite passed (493 tests); full suite pending | Live chunk/query observations pending |
+| Bounded live indexing | Deferred | Coordinated writers and audited API run |
 
 ## Execution context and global constraints
 

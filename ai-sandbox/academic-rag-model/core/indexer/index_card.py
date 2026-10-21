@@ -157,8 +157,16 @@ def load_courses(academic_hub_root: str) -> dict[str, dict]:
 def save_courses(academic_hub_root: str, courses: dict[str, dict]) -> None:
     path = courses_path(academic_hub_root)
     os.makedirs(os.path.dirname(path), exist_ok=True)
-    with open(path, "w", encoding="utf-8") as f:
-        json.dump(list(courses.values()), f, indent=2, ensure_ascii=False)
+    fd, temporary = tempfile.mkstemp(prefix="courses-", suffix=".tmp", dir=os.path.dirname(path))
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            json.dump(list(courses.values()), f, indent=2, ensure_ascii=False)
+            f.flush()
+            os.fsync(f.fileno())
+        os.replace(temporary, path)
+    finally:
+        if os.path.exists(temporary):
+            os.unlink(temporary)
 
 
 def list_courses(academic_hub_root: str) -> list[str]:
@@ -255,10 +263,12 @@ not just problem statements).
 
 
 def generate_index_card(
-    file_id: str, path: str, source_pdf_path: str, course: str, folder_category: str,
+    file_id: str, path: str, source_pdf_path: str | None, course: str, folder_category: str,
     content_sample: str, page_count: int, client, content_hash: str | None = None,
     known_doc_types: frozenset[str] = KNOWN_DOC_TYPES, source_asset_path: str | None = None,
     offering_label: str | None = None,
+    source_kind: str | None = None, companion_of_file_id: str | None = None,
+    companion_role: str | None = None, relationship_basis: str | None = None,
 ) -> dict:
     """One structured-JSON generation call plus one embedding call. Never
     proposes `tags` -- that's the corpus-wide retag pass's job (spec §5),
@@ -314,7 +324,7 @@ def generate_index_card(
     )
     embedding = list(embed_response.embeddings[0].values)
 
-    return {
+    card = {
         "file_id": file_id,
         "path": path,
         "source_pdf_path": source_pdf_path,
@@ -335,17 +345,23 @@ def generate_index_card(
         "content_hash": content_hash,
         "needs_indexing": False,
     }
+    if source_kind is not None:
+        card.update(source_kind=source_kind, companion_of_file_id=companion_of_file_id,
+                    companion_role=companion_role, relationship_basis=relationship_basis)
+    return card
 
 
 def make_failure_card(
-    file_id: str, path: str, source_pdf_path: str, course: str, folder_category: str,
+    file_id: str, path: str, source_pdf_path: str | None, course: str, folder_category: str,
     content_hash: str | None = None, source_asset_path: str | None = None,
     offering_label: str | None = None,
+    source_kind: str | None = None, companion_of_file_id: str | None = None,
+    companion_role: str | None = None, relationship_basis: str | None = None,
 ) -> dict:
     """Written when generate_index_card() raises -- keeps file_id/path so
     §4.3 reconciliation can find and complete this exact card on a later
     rebuild, rather than mistaking it for a new file each time."""
-    return {
+    card = {
         "file_id": file_id,
         "path": path,
         "source_pdf_path": source_pdf_path,
@@ -366,6 +382,10 @@ def make_failure_card(
         "content_hash": content_hash,
         "needs_indexing": True,
     }
+    if source_kind is not None:
+        card.update(source_kind=source_kind, companion_of_file_id=companion_of_file_id,
+                    companion_role=companion_role, relationship_basis=relationship_basis)
+    return card
 
 
 def find_card_by_file_id(academic_hub_root: str, file_id: str) -> tuple[str, dict] | None:
@@ -415,10 +435,12 @@ def move_card(academic_hub_root: str, file_id: str, new_course: str) -> bool:
 
 
 def reconcile_and_write(
-    academic_hub_root: str, file_id: str, path: str, source_pdf_path: str, course: str,
+    academic_hub_root: str, file_id: str, path: str, source_pdf_path: str | None, course: str,
     folder_category: str, content_sample: str, page_count: int, client,
     content_hash: str | None = None, known_doc_types: frozenset[str] = KNOWN_DOC_TYPES,
     source_asset_path: str | None = None, offering_label: str | None = None,
+    source_kind: str | None = None, companion_of_file_id: str | None = None,
+    companion_role: str | None = None, relationship_basis: str | None = None,
 ) -> dict:
     """The single entry point both pipeline hooks (and rebuild) call.
     Implements spec §4.3: never treats `path` as identity -- reconciles by
@@ -442,6 +464,12 @@ def reconcile_and_write(
             or old_card.get("source_pdf_path") != source_pdf_path
             or old_card.get("source_asset_path") != resolved_asset_path
             or old_card.get("orphaned")
+            or (source_kind is not None and (
+                old_card.get("source_kind") != source_kind
+                or old_card.get("companion_of_file_id") != companion_of_file_id
+                or old_card.get("companion_role") != companion_role
+                or old_card.get("relationship_basis") != relationship_basis
+            ))
         )
         updated = dict(old_card)
         updated["path"] = path
@@ -450,6 +478,9 @@ def reconcile_and_write(
         updated["course"] = course
         updated["offering_label"] = offering_label
         updated["content_hash"] = content_hash
+        if source_kind is not None:
+            updated.update(source_kind=source_kind, companion_of_file_id=companion_of_file_id,
+                           companion_role=companion_role, relationship_basis=relationship_basis)
         updated.pop("orphaned", None)
         if changed:
             updated["source_updated_at"] = now_iso()
@@ -480,6 +511,8 @@ def reconcile_and_write(
             page_count=page_count, client=client, content_hash=content_hash,
             known_doc_types=known_doc_types, source_asset_path=source_asset_path,
             offering_label=offering_label,
+            source_kind=source_kind, companion_of_file_id=companion_of_file_id,
+            companion_role=companion_role, relationship_basis=relationship_basis,
         )
     except Exception as err:
         print(f"WARNING: index card generation failed for {path} ({err}); writing needs_indexing card.")
@@ -487,6 +520,8 @@ def reconcile_and_write(
             file_id=file_id, path=path, source_pdf_path=source_pdf_path,
             course=course, folder_category=folder_category, content_hash=content_hash,
             source_asset_path=source_asset_path, offering_label=offering_label,
+            source_kind=source_kind, companion_of_file_id=companion_of_file_id,
+            companion_role=companion_role, relationship_basis=relationship_basis,
         )
 
     cards = load_shard(academic_hub_root, course)

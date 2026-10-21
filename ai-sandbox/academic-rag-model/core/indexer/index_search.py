@@ -43,6 +43,7 @@ from core.indexer.index_card import (
     cosine_similarity,
     derive_course,
     find_card_by_file_id,
+    generate_index_card,
     list_courses,
     load_courses,
     load_shard,
@@ -53,6 +54,7 @@ from core.indexer.index_card import (
 )
 from core.indexer.related import link_subsets
 from core.indexer.retag import retag
+from core.indexer.markdown_sources import SOURCE_KINDS, exact_markdown_path, plan_markdown
 
 DEFAULT_COURSE_CANDIDATES = 3
 
@@ -116,6 +118,10 @@ def search(
             # needs_indexing (generation failed, no real card yet) and a
             # missing embedding still exclude a card.
             if card.get("needs_indexing") or not card.get("embedding"):
+                continue
+            if card.get("source_kind") in SOURCE_KINDS and (
+                card.get("orphaned") or not os.path.isfile(os.path.join(root, *card["path"].split("/")))
+            ):
                 continue
             if doc_type is not None and card.get("doc_type") != doc_type:
                 continue
@@ -202,13 +208,21 @@ def search_passages(
 
     query_embedding = _embed_query(query, client)
     chunks_by_root_course: dict[tuple[str, str], list[dict]] = {}
+    cards_by_root_course: dict[tuple[str, str], dict[str, dict]] = {}
     scored: list[PassageResult] = []
     for file_result in file_results:
         key = (file_result.root, file_result.course)
         if key not in chunks_by_root_course:
             chunks_by_root_course[key] = load_chunks(file_result.root, file_result.course)
+            cards_by_root_course[key] = {
+                card["file_id"]: card for card in load_shard(file_result.root, file_result.course)
+            }
         for c in chunks_by_root_course[key]:
             if c["file_id"] != file_result.file_id:
+                continue
+            card = cards_by_root_course[key][file_result.file_id]
+            if (card.get("source_kind") in SOURCE_KINDS
+                    and c.get("content_hash") != card.get("content_hash")):
                 continue
             score = cosine_similarity(query_embedding, c["embedding"])
             scored.append(PassageResult(
@@ -471,7 +485,9 @@ def _backfill_source_asset_path(academic_hub_root: str, course: str, file_id: st
 
 def _reconcile_one(academic_hub_root, course_name, folder_category, file_id, rel_path,
                     rel_pdf_path, content_sample, page_count, client, force, stats, source_mtime,
-                    content_hash, known_doc_types=KNOWN_DOC_TYPES, source_asset_path=None):
+                    content_hash, known_doc_types=KNOWN_DOC_TYPES, source_asset_path=None,
+                    source_kind=None, companion_of_file_id=None, companion_role=None,
+                    relationship_basis=None):
     existing = None
     for c in load_shard(academic_hub_root, course_name):
         if c.get("file_id") == file_id:
@@ -496,6 +512,12 @@ def _reconcile_one(academic_hub_root, course_name, folder_category, file_id, rel
         and existing.get("path") == rel_path
         and existing.get("source_pdf_path") == rel_pdf_path
         and not source_asset_path_changed
+        and (source_kind is None or (
+            existing.get("source_kind") == source_kind
+            and existing.get("companion_of_file_id") == companion_of_file_id
+            and existing.get("companion_role") == companion_role
+            and existing.get("relationship_basis") == relationship_basis
+        ))
     )
     if already_current:
         if existing.get("content_hash") is None:
@@ -534,6 +556,8 @@ def _reconcile_one(academic_hub_root, course_name, folder_category, file_id, rel
         course=course_name, folder_category=folder_category, content_sample=content_sample,
         page_count=page_count, client=client, content_hash=content_hash,
         known_doc_types=known_doc_types, source_asset_path=source_asset_path,
+        source_kind=source_kind, companion_of_file_id=companion_of_file_id,
+        companion_role=companion_role, relationship_basis=relationship_basis,
     )
     if is_first_time:
         stats["generated"] += 1
@@ -552,8 +576,121 @@ def _link_subsets_safely(academic_hub_root: str, course_filter: str | None) -> N
                   f"rerun `python -m core.indexer.related` later.")
 
 
+def _markdown_reserved_paths(academic_hub_root: str, course: str | None) -> set[str]:
+    """Paths claimed by current producer walks, including not-yet-carded output."""
+    reserved: set[str] = set()
+    for _, _, pdf_path in _notes_pdf_paths(academic_hub_root, course):
+        stem = os.path.splitext(os.path.basename(pdf_path))[0]
+        md_path = os.path.join(resolve_output_dir(pdf_path), f"{stem}.md")
+        reserved.add(os.path.relpath(md_path, academic_hub_root).replace(os.sep, "/"))
+    for _, _, folder_name, book_dir in _textbook_book_dirs(academic_hub_root, course):
+        metadata_path = os.path.join(book_dir, f"{folder_name}_metadata.json")
+        if os.path.isfile(metadata_path):
+            try:
+                with open(metadata_path, encoding="utf-8") as handle:
+                    rag_path = json.load(handle).get("rag_md_path")
+                if rag_path:
+                    reserved.add(rag_path.replace("\\", "/"))
+            except (OSError, ValueError, TypeError):
+                pass  # the existing textbook pass reports invalid metadata
+    notes = os.path.join(academic_hub_root, "academic_notes")
+    if os.path.isdir(notes):
+        for course_name in sorted(os.listdir(notes)):
+            if course and course != course_name:
+                continue
+            lecture_dir = os.path.join(notes, course_name, "lecture_notes")
+            if not os.path.isdir(lecture_dir):
+                continue
+            for name in os.listdir(lecture_dir):
+                if name.lower().endswith(".md") and os.path.isfile(os.path.join(lecture_dir, name[:-3] + ".meta.json")):
+                    reserved.add(os.path.relpath(os.path.join(lecture_dir, name), academic_hub_root).replace(os.sep, "/"))
+    for _, _, raw_path in _excalidraw_note_paths(academic_hub_root, course):
+        base = os.path.basename(raw_path)[:-len(".excalidraw.md")]
+        output = os.path.join(os.path.dirname(raw_path), "processed_outputs")
+        rag_path = os.path.join(output, base + ".excalidraw.rag.md")
+        reserved.add(os.path.relpath(rag_path, academic_hub_root).replace(os.sep, "/"))
+        if os.path.isfile(rag_path) and os.path.getsize(rag_path) > 0:
+            question_path = os.path.join(output, base + ".excalidraw.questions.md")
+            reserved.add(os.path.relpath(question_path, academic_hub_root).replace(os.sep, "/"))
+    return reserved
+
+
+def markdown_preview(academic_hub_root: str, course: str | None = None,
+                     rel_path: str | None = None, force: bool = False) -> list[dict]:
+    exact = exact_markdown_path(academic_hub_root, course, rel_path) if rel_path else None
+    return plan_markdown(academic_hub_root, course, exact,
+                         _markdown_reserved_paths(academic_hub_root, course), force)
+
+
+def _apply_markdown_row(academic_hub_root: str, row: dict, client) -> dict:
+    """Apply one preflighted target and audit its durable card immediately."""
+    result = dict(row)
+    if row["action"] in ("skip", "attach", "unchanged", "error"):
+        result["status"] = "skipped" if row["action"] != "error" else "error"
+        return result
+    path = os.path.join(academic_hub_root, *row["path"].split("/"))
+    if not os.path.isfile(path) or compute_content_hash(path) != row["content_hash"]:
+        result.update(status="changed_since_preview", action="error")
+        return result
+    with open(path, encoding="utf-8") as handle:
+        content = handle.read()
+    content_sample = content[:TEXTBOOK_CONTENT_SAMPLE_CHARS] if row["companion_role"] == "chapter" else content
+    found = find_card_by_file_id(academic_hub_root, row["file_id"])
+    known_types = EXCALIDRAW_QUESTION_DOC_TYPES if row["companion_role"] == "questions" else KNOWN_DOC_TYPES
+    card_args = dict(
+        file_id=row["file_id"], path=row["path"], source_pdf_path=None,
+        course=row["course"], folder_category=row["folder_category"], content_sample=content_sample,
+        page_count=None, client=client, content_hash=row["content_hash"], known_doc_types=known_types,
+        source_kind=row["source_kind"], companion_of_file_id=row["companion_of_file_id"],
+        companion_role=row["companion_role"], relationship_basis=row["relationship_basis"],
+    )
+    if row["action"] == "refresh" and found is not None:
+        # Generate before replacing the old card: API failure or interruption
+        # cannot leave a missing card between two shard writes.
+        try:
+            card = generate_index_card(**card_args)
+        except Exception as exc:
+            result.update(status="generation_failed", error=str(exc))
+            return result
+        old_course, _ = found
+        old_cards = load_shard(academic_hub_root, old_course)
+        save_shard(academic_hub_root, old_course, [
+            card if c.get("file_id") == row["file_id"] else c for c in old_cards
+        ])
+        recompute_course_entry(academic_hub_root, old_course)
+    else:
+        card = reconcile_and_write(academic_hub_root, **card_args)
+    audited = find_card_by_file_id(academic_hub_root, row["file_id"])
+    valid = (audited is not None and audited[0] == row["course"]
+             and audited[1].get("path") == row["path"]
+             and audited[1].get("content_hash") == row["content_hash"]
+             and audited[1].get("source_kind") == row["source_kind"]
+             and audited[1].get("companion_of_file_id") == row["companion_of_file_id"]
+             and audited[1].get("companion_role") == row["companion_role"]
+             and audited[1].get("relationship_basis") == row["relationship_basis"]
+             and audited[1].get("source_pdf_path") is None
+             and audited[1].get("source_asset_path") is None)
+    result["status"] = "needs_indexing" if card.get("needs_indexing") else ("applied" if valid else "audit_failed")
+    return result
+
+
+def apply_markdown_plan(academic_hub_root: str, rows: list[dict], client,
+                        max_paid: int = 25) -> list[dict]:
+    if max_paid < 0:
+        raise ValueError("--max-markdown-paid must be non-negative")
+    paid = sum(row["estimated_paid_cards"] for row in rows)
+    if paid > max_paid:
+        raise ValueError(f"Markdown preflight requires {paid} paid card operations; cap is {max_paid}")
+    return [_apply_markdown_row(academic_hub_root, row, client) for row in rows]
+
+
 def rebuild(academic_hub_root: str, client, course: str | None = None,
-            force: bool = False, prune: bool = False) -> dict:
+            force: bool = False, prune: bool = False, max_markdown_paid: int = 25) -> dict:
+    # Preflight before any producer mutates .index/. The final plan is refreshed
+    # after those producers run, so newly written parent cards can link children.
+    preview = markdown_preview(academic_hub_root, course, force=force)
+    if sum(row["estimated_paid_cards"] for row in preview) > max_markdown_paid:
+        raise ValueError("Markdown preflight exceeds --max-markdown-paid; run index-md preview first")
     stats = {
         "generated": 0, "updated": 0, "unchanged": 0, "moved": 0,
         "orphaned": 0, "pruned": 0, "skipped_no_source_pdf": 0, "skipped_empty_md": 0,
@@ -766,8 +903,58 @@ def rebuild(academic_hub_root: str, client, course: str | None = None,
                            rel_md_path, sidecar_text, None, client, force, stats,
                            source_mtime=os.path.getmtime(sidecar_path),
                            content_hash=compute_content_hash(sidecar_path),
-                           known_doc_types=EXCALIDRAW_QUESTION_DOC_TYPES, source_asset_path=rel_image_path)
+                           known_doc_types=EXCALIDRAW_QUESTION_DOC_TYPES, source_asset_path=rel_image_path,
+                           source_kind="generated_companion", companion_of_file_id=file_id,
+                           companion_role="questions", relationship_basis="excalidraw_question_producer")
 
+    # A parent-dependent specialized walker may miss an existing question
+    # sidecar whose raw note vanished. The present child still has useful text.
+    for course_name in list_courses(academic_hub_root):
+        if course and course_name != course:
+            continue
+        for card in load_shard(academic_hub_root, course_name):
+            if card.get("doc_type") != "excalidraw_questions" or card["file_id"] in seen_file_ids:
+                continue
+            child_path = os.path.join(academic_hub_root, *card["path"].split("/"))
+            if os.path.isfile(child_path):
+                seen_file_ids.add(card["file_id"])
+                with open(child_path, encoding="utf-8") as handle:
+                    text = handle.read()
+                fields, _ = parse_frontmatter(text)
+                parent_id = fields.get("source_note_file_id") or None
+                _reconcile_one(
+                    academic_hub_root, course_name, os.path.basename(os.path.dirname(child_path)),
+                    card["file_id"], card["path"], card.get("source_pdf_path"), text, None,
+                    client, force, stats, source_mtime=os.path.getmtime(child_path),
+                    content_hash=compute_content_hash(child_path),
+                    known_doc_types=EXCALIDRAW_QUESTION_DOC_TYPES,
+                    source_asset_path=card.get("source_asset_path"),
+                    source_kind="generated_companion", companion_of_file_id=parent_id,
+                    companion_role="questions", relationship_basis="question_sidecar_frontmatter",
+                )
+    markdown_rows = markdown_preview(academic_hub_root, course, force=force)
+    deferred = {r["path"] for r in markdown_rows if r["classification"] == "unlinked_auxiliary"}
+    ordered_rows = [r for r in markdown_rows if r["path"] not in deferred]
+    for row in ordered_rows:
+        if row.get("file_id") and row["index_separately"]:
+            seen_file_ids.add(row["file_id"])
+        outcome = _apply_markdown_row(academic_hub_root, row, client)
+        if outcome["status"] == "applied":
+            stats["generated" if row["action"] == "new" else "updated"] += 1
+        elif row["action"] == "unchanged":
+            stats["unchanged"] += 1
+    if deferred:
+        # Parent notes in processed_outputs/ may have been carded above.
+        for row in markdown_preview(academic_hub_root, course, force=force):
+            if row["path"] not in deferred:
+                continue
+            if row.get("file_id") and row["index_separately"]:
+                seen_file_ids.add(row["file_id"])
+            outcome = _apply_markdown_row(academic_hub_root, row, client)
+            if outcome["status"] == "applied":
+                stats["generated" if row["action"] == "new" else "updated"] += 1
+            elif row["action"] == "unchanged":
+                stats["unchanged"] += 1
     _flag_or_prune_orphans(academic_hub_root, seen_file_ids, course, prune, stats)
     _link_subsets_safely(academic_hub_root, course)
     return stats
@@ -839,6 +1026,17 @@ def build_arg_parser() -> argparse.ArgumentParser:
     rebuild_p.add_argument("--course", default=None)
     rebuild_p.add_argument("--force", action="store_true")
     rebuild_p.add_argument("--prune", action="store_true")
+    rebuild_p.add_argument("--max-markdown-paid", type=int, default=25,
+                           help="Maximum new/changed Markdown cards (default: 25); preflight fails before writes")
+
+    markdown_p = subparsers.add_parser("index-md", help="Preview or index academic_notes Markdown with provenance.")
+    markdown_p.add_argument("--course", required=True)
+    markdown_p.add_argument("--file", help="Exact hub-relative academic_notes/<course>/... .md path")
+    markdown_p.add_argument("--apply", action="store_true", help="Index the exact selected file")
+    markdown_p.add_argument("--writer-coordinated", action="store_true",
+                            help="Assert no other writer is changing this corpus's .index/")
+    markdown_p.add_argument("--max-markdown-paid", type=int, default=25)
+    markdown_p.add_argument("--json", action="store_true", help="Machine-readable per-target output (default)")
 
     retag_p = subparsers.add_parser("retag", help="Mine and apply tags across the whole corpus.")
     retag_p.add_argument("--dry-run", action="store_true")
@@ -881,6 +1079,27 @@ def _single_root(args) -> str:
 
 def main() -> None:
     args = build_arg_parser().parse_args()
+    if args.command == "index-md":
+        root = _single_root(args)
+        if args.apply and (not args.file or not args.writer_coordinated):
+            raise SystemExit("index-md --apply requires --file and --writer-coordinated")
+        try:
+            rows = markdown_preview(root, args.course, args.file)
+            if args.apply:
+                load_dotenv_override()
+                client = get_gemini_client()
+                if client is None:
+                    raise SystemExit(1)
+                with corpus_write_lock([root], "index markdown"):
+                    # Refresh the plan under the lease; reject changed targets.
+                    rows = markdown_preview(root, args.course, args.file)
+                    rows = apply_markdown_plan(root, rows, client, args.max_markdown_paid)
+        except (ValueError, CorpusWriteLockError) as exc:
+            raise SystemExit(str(exc)) from exc
+        print(json.dumps(rows, sort_keys=True))
+        if args.apply and any(r["status"] not in ("applied", "skipped") for r in rows):
+            raise SystemExit(1)
+        return
     load_dotenv_override()
     client = get_gemini_client()
     if client is None:
@@ -907,8 +1126,11 @@ def main() -> None:
             # Rebuild reads corpus files but writes cards and course rollups
             # only in this root's .index/. Hold the lease through all writes.
             with corpus_write_lock([root], "index rebuild"):
-                stats = rebuild(root, client, course=args.course, force=args.force, prune=args.prune)
-        except CorpusWriteLockError as exc:
+                selected = {"course": args.course, "force": args.force, "prune": args.prune}
+                if args.max_markdown_paid != 25:
+                    selected["max_markdown_paid"] = args.max_markdown_paid
+                stats = rebuild(root, client, **selected)
+        except (CorpusWriteLockError, ValueError) as exc:
             raise SystemExit(str(exc)) from exc
         print(stats)
     elif args.command == "retag":

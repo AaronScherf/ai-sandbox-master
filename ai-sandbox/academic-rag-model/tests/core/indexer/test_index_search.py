@@ -816,14 +816,17 @@ class TestRebuildVideoLectureNotes(unittest.TestCase):
             cards = load_shard(tmp, "math-camp")
             self.assertEqual(cards[0]["doc_type"], "lecture_notes")
 
-    def test_missing_sidecar_is_skipped_not_crashed(self):
+    def test_missing_video_sidecar_is_indexed_as_unknown_origin_markdown(self):
         with tempfile.TemporaryDirectory() as tmp:
             lecture_notes_dir = os.path.join(tmp, "academic_notes", "math-camp", "lecture_notes")
             os.makedirs(lecture_notes_dir)
             with open(os.path.join(lecture_notes_dir, "orphaned.md"), "w", encoding="utf-8") as f:
                 f.write("# No sidecar")
             stats = rebuild(tmp, client=_fake_client())
-            self.assertEqual(stats["generated"], 0)
+            self.assertEqual(stats["generated"], 1)
+            card = load_shard(tmp, "math-camp")[0]
+            self.assertEqual(card["source_kind"], "markdown_only")
+            self.assertIsNone(card["source_pdf_path"])
 
     def test_unchanged_note_is_not_regenerated_on_second_rebuild(self):
         with tempfile.TemporaryDirectory() as tmp:

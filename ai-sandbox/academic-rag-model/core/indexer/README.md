@@ -80,6 +80,48 @@ Markdown frontmatter. Dry runs remain read-only. Other index writers have not
 adopted this lock yet, so this does not enable corpus-health apply actions or
 guarantee exclusion against those writers.
 
+## Markdown-only notes and companions
+
+`rebuild` recursively discovers useful Markdown under `academic_notes/<course>/`,
+including `processed_outputs/`, after reserving paths owned by the PDF, video,
+textbook, and Excalidraw producers. A Markdown file with no verified upstream
+producer gets `source_kind: "markdown_only"` and null `source_pdf_path` /
+`source_asset_path`. This means its origin is unknown; it does not assert that
+the file is derivative. Producer-confirmed generated children, such as distinct
+textbook chapters and Excalidraw question sidecars, get
+`source_kind: "generated_companion"` and, when known, `companion_of_file_id`,
+`companion_role`, and `relationship_basis`. An authored hint can have a verified
+parent link while retaining unknown origin. Existing specialized sidecar IDs
+are preserved. A `.rag.md` already attached through a parent card's
+`rag_md_path` is one alternate rendering of that card, not a duplicate card.
+Machine manifests and raw Excalidraw canvas files are excluded; ambiguous
+producer ownership is reported for review. New and changed Markdown cards
+are capped at 25 per `rebuild` invocation unless `--max-markdown-paid N` is
+raised after a preview. Each paid card normally uses one generation and one
+embedding call; passage chunking is a separate API step.
+
+Read-only preview (no API client or index write):
+
+```powershell
+python -m core.indexer.index_search --root <academic-hub> index-md --course econometrics --json
+python -m core.indexer.index_search --root <academic-hub> index-md --course econometrics --file academic_notes/econometrics/problem_sets/processed_outputs/problem_set_1.md --json
+```
+
+Exact-file application requires the corpus writer to be coordinated with all
+other `.index/` writers. It holds the shared corpus lock, writes cards and
+course rollups atomically, and returns a JSON result with a post-write audit:
+
+```powershell
+python -m core.indexer.index_search --root <academic-hub> index-md --course econometrics --file academic_notes/econometrics/problem_sets/processed_outputs/problem_set_1.md --apply --writer-coordinated --max-markdown-paid 1 --json
+```
+
+`index-md --apply` requires `--file`; use `rebuild --course` for a bounded
+course batch. The `index-md` JSON result gives path, classification, origin,
+parent relationship, action, content hash, estimated paid calls, and status.
+Run `chunk --course <course> --file-id <id> --json` after indexing when
+passage-level search is needed. The scanner does not edit the nested
+`academic_notes/` repository.
+
 ## Design docs
 
 `docs/superpowers/specs/indexer/2026-08-27-source-indexer-design.md` for the schema;
