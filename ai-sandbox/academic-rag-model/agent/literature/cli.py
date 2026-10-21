@@ -9,6 +9,7 @@ from core.agent_tasks.loop import BudgetError, api_run, collect_run, provenance,
 from core.agent_tasks.work import load_run
 
 from . import stage, verify
+from .remap import remap_record
 from .gold import DEFAULT_PATH, load_gold, score_record, summarize
 from .papers import drop_duplicate_titles, eligible_papers
 from .proposals import Proposals
@@ -153,6 +154,14 @@ def cmd_status(args) -> int:
     return 0
 
 
+def cmd_remap(args) -> int:
+    target = _target(args)
+    papers, _ = eligible_papers(args.index_root)
+    changed = {p.file_id: n for p in papers if (n := remap_record(target.records, target.proposals, target.vocabs, p.file_id))}
+    print(f"facts re-pointed to vocabulary terms: {sum(changed.values())} in {len(changed)} papers")
+    return 0
+
+
 def cmd_proposals(args) -> int:
     for p in _target(args).proposals.open():
         loc = p["locator"]
@@ -247,6 +256,7 @@ def build_parser() -> argparse.ArgumentParser:
     b = sub.add_parser("bootstrap", help="Print the agent's operating contract.")
     b.add_argument("run_id")
     sub.add_parser("status", help="Counts of papers, records and open proposals.")
+    sub.add_parser("remap", help="Point facts whose proposal was accepted or merged at the vocabulary term.")
     pr = sub.add_parser("proposals", help="Terms the agent proposed that no vocabulary term covered.")
     pr.add_argument("action", choices=["list"])
     ev = sub.add_parser("eval", help="Score the records against the gold set (aggregates only).")
@@ -263,4 +273,4 @@ def main(argv: list[str] | None = None, *, complete=None) -> int:
     if args.command == "api":
         return cmd_api(args, complete)
     return {"collect": cmd_collect, "verify": cmd_verify, "silver": cmd_silver, "submit": cmd_submit, "bootstrap": cmd_bootstrap, "status": cmd_status,
-            "proposals": cmd_proposals, "eval": cmd_eval}[args.command](args)
+            "proposals": cmd_proposals, "eval": cmd_eval, "remap": cmd_remap}[args.command](args)

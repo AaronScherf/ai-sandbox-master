@@ -74,3 +74,17 @@ class Proposals:
         p = self._get(items, proposal_id)
         p["status"], p["reason"] = "rejected", reason
         self._save(items)
+
+    def merge(self, proposal_id: str, term_id: str, reason: str = "") -> None:
+        """The proposal means a term the vocabulary already has; records that proposed it can point at that term."""
+        items = self.all()
+        p = self._get(items, proposal_id)
+        p["status"], p["term_id"] = "merged", term_id
+        if reason:
+            p["reason"] = reason
+        self._save(items)
+
+    def resolutions(self) -> dict[tuple, str]:
+        """(file_id, vocabulary, normalized value) -> the term an accepted or merged proposal now stands for."""
+        return {(p["file_id"], p["vocabulary"], normalize(p["value"])): p["term_id"]
+                for p in self.all() if p["status"] in ("accepted", "merged") and p.get("term_id")}
