@@ -9,7 +9,7 @@ from agent.literature.papers import eligible_papers
 from agent.literature.proposals import Proposals
 from agent.literature.store import RecordStore
 from core.agent_tasks.work import task_entry
-from lit_helpers import VOCABS, good, make_index
+from lit_helpers import VOCABS, good, make_index, rewritten
 
 PROV = {"driver": "agent", "agent": "antigravity", "run": "r1"}
 
@@ -88,7 +88,7 @@ class TestReconcile(unittest.TestCase):
         with tempfile.TemporaryDirectory() as root:
             target, papers = _setup(root)
             _apply(target, papers, good(), "a")
-            _apply(target, papers, good(), "b")
+            _apply(target, papers, rewritten(), "b")
             review = target.records.read("0123456789abcdef", "a")["review"]
         self.assertEqual(review, {"status": "unreviewed", "items_flagged": [], "double_pass": "agreed"})
 

@@ -146,7 +146,10 @@ def cmd_status(args) -> int:
     print(f"skipped papers: {len(skipped)}")
     print(f"records: {len(have & {p.file_id for p in papers})}")
     print(f"papers without a record: {len([p for p in papers if p.file_id not in have])}")
+    copies = sum(1 for fid in have & {p.file_id for p in papers}
+                 if any("may not be independent" in m for m in ((target.records.read(fid, "a") or {}).get("review") or {}).get("items_flagged", [])))
     print(f"open vocabulary proposals: {len(target.proposals.open())}")
+    print(f"pairs that may not be independent: {copies}")
     return 0
 
 

@@ -147,6 +147,25 @@ def agreed_facts(a: dict, b: dict, vocabs: dict | None = None) -> list[dict]:
     return out
 
 
+COPY_RATIO = 0.95  # honest passes quote the same sentence for some facts, and rarely for all of them (2 of 62 real pairs)
+COPY_MIN_FACTS = 5
+
+
+def _support(record: dict) -> list[tuple]:
+    out = []
+    for facet, value in record["core"].items():
+        rows = [value] if facet == "geography" else (value or [])
+        out += [(facet, normalize(r.get("quote", "")), repr(r.get("locator"))) for r in rows]
+    return out
+
+
+def copy_ratio(a: dict, b: dict) -> float:
+    """The share of pass b's supporting quotes (same text on the same page) that pass a also used."""
+    in_a = set(_support(a))
+    mine = _support(b)
+    return sum(1 for f in mine if f in in_a) / len(mine) if mine else 0.0
+
+
 def reconcile(records: RecordStore, file_id: str, vocabs: dict | None = None) -> None:
     a, b = records.read(file_id, "a"), records.read(file_id, "b")
     if a is None or b is None:
@@ -158,6 +177,9 @@ def reconcile(records: RecordStore, file_id: str, vocabs: dict | None = None) ->
                  "(collect --redo) before comparing"]
     else:
         diffs = diff_records(a, b, vocabs)
+    if len(_support(b)) >= COPY_MIN_FACTS and copy_ratio(a, b) >= COPY_RATIO:
+        diffs = diffs + ["the two passes cite the same quotes for almost every fact, so they may not be independent; "
+                         "extract pass b again without access to pass a"]
     review = {"status": "needs_review" if diffs else "unreviewed", "items_flagged": diffs}
     if not diffs:
         review["double_pass"] = "agreed"

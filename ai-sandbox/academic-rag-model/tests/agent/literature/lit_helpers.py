@@ -53,6 +53,19 @@ def good():
     }
 
 
+def rewritten():
+    """good() again, with every fact supported by a different sentence (what an independent second read looks like)."""
+    import copy
+    b = copy.deepcopy(good())
+    b["core"]["intervention"][0]["quote"] = "cash transfers in rural Somalia using a panel"
+    b["core"]["outcome"][0]["quote"] = "Cash transfers raised household food consumption"
+    b["core"]["study_design"][0]["quote"] = "a panel of 1,200 households from 2015 to 2019"
+    b["core"]["data_sources"][0]["quote"] = "Data come from FSNAU food security surveys"
+    b["core"]["geography"]["quote"] = "district level across Gedo region"
+    b["core"]["results"][0]["quote"] = "raised household food consumption by twelve percent in the treated districts"
+    return b
+
+
 def make_index(root, file_id="0123456789abcdef", *, md_text=None, card_extra=None, write_md=True, title="Cash transfers in Somalia"):
     """An index root (research-style) holding one converted journal paper. Appends to the 'economics' shard."""
     rel = f"journal-articles/economics/processed_outputs/{file_id}.md"
