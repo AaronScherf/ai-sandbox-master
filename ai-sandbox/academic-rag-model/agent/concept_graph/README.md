@@ -17,7 +17,9 @@ python -m agent.concept_graph.cli --graph-repo <path> <command> ...
 
 ## The graph repo
 
-Data lives in a separate checkout (the public mini repo), never in this monorepo:
+Data lives in a separate checkout, never in this monorepo. Microecon's graph repo is public and serves its own page;
+econometrics keeps its graph repo private and publishes only the built page from a public site repo (see
+"Publishing").
 
 ```
 config/vocab.yaml        kinds and topics (open vocabularies); a kind may be {name, help}, help shown on the seed card
@@ -141,6 +143,20 @@ definitional cycle. Verified items are never overwritten, and `submit` twice doe
 **API fallback:** `api <stage> --approve-cost USD` sends the same cards to Gemini (paid key), prints an estimate
 first and refuses above $1 without `--approve-cost`; replies go through the same validation.
 
+**Order for a new course** (learned on econometrics, the second course; details and reasons in
+[`docs/status/agent/concept_graph/2026-10-21-econometrics-second-course-status.md`](../../docs/status/agent/concept_graph/2026-10-21-econometrics-second-course-status.md)):
+
+1. `seed`, then `fill` and `link`, then `critic` from a different agent than the drafter.
+2. Check the edge vocabulary: if `applies_to`/`uses` carry about a third of the edges, the course needs more types.
+3. After any relink, remove and tombstone edges that a new edge supersedes (link only adds edges).
+4. `seed --redo`, then a **syllabus gap check**: compare the syllabus's assigned readings with the node list and enter
+   the gaps as reviewer proposals (a schema-version-2 review file through `apply-review`). On econometrics the gap
+   check found 21 missing concepts after the corpus seed found 7.
+5. Draft the new items (`fill --node`, `link --node --redo`), then `collect critic` **without** `--redo`: it picks up
+   only edges with no verdict, while `--redo` overwrites every edge's single critic slot. A retype clears a verdict,
+   so critique again after retyping.
+6. `build` and publish after each landing round.
+
 Retrieval uses the repo's passage search (`agent.rag.rag_agent.retrieve_passages`); its only network call is the
 query embedding. Source keys come from the catalog: each textbook's book key (`mwg`, `hansen`, ...), `slides`
 (instructor slides), `notes` (instructor's handwritten notes), `lecture` (the student's notes), `recitation`, `hw`,
@@ -158,6 +174,14 @@ field has changed since (or two reviewers edited it differently) the edit goes t
 maintainer. Rejecting a node also removes and tombstones its edges. Accepting sets `status: verified` with the
 reviewer's name and date. Use `--commit` for one `review: apply <name>` commit per reviewer.
 
+### Publishing
+
+`build` output is not refreshed by landing graph commits, so rebuild after each round. With a public graph repo
+(microecon), Pages serves `index.html` from the repo itself. With a private graph repo (econometrics), copy the built
+`index.html` into the public site repo (`AaronScherf/econometrics-concept-graph-site`), commit and push. In that setup
+`config/site.yaml` `repo:` must name the **site** repo, since reviewers cannot open issues on a private repo, and
+`apply-review --from-issues` then reads the site repo too.
+
 ### Proposing concepts and connections
 
 The **Propose** menu adds two kinds of decision to a review (review file `schema_version` 2; version 1 files still
@@ -173,7 +197,9 @@ rules in `proposals.py`, mirrored in `viewer/logic.js`). Concepts with similar n
 connections become edge proposals against the existing concept and its note goes to `review-comments.md`. Invalid
 proposals go to `review-conflicts.md` with the reason. Accepted proposals are written as `status: proposed` with
 `provenance.driver: reviewer`. Then draft them like any other node: `collect fill --node <id>`,
-`collect link --node <id> --redo`, `collect critic`.
+`collect link --node <id> --redo`, `collect critic`. The similar-name check can merge different concepts whose
+names share most words ("Distributed lag model" was merged into "Autoregressive distributed lag model"), so read
+`review-conflicts.md` after each round and re-propose under a distinct name if needed.
 
 ### Sections, selection and layouts
 
