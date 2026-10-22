@@ -8,7 +8,7 @@ from pathlib import Path
 from core.agent_tasks.loop import BudgetError, api_run, collect_run, provenance, submit_run
 from core.agent_tasks.work import load_run
 
-from . import stage, tiers, verify
+from . import cluster as clusters, contribute, review, stage, synth, tiers, verify
 from .remap import remap_record
 from .gold import DEFAULT_PATH, load_gold, score_record, summarize
 from .papers import drop_duplicate_titles, eligible_papers
@@ -94,7 +94,7 @@ def cmd_submit(args) -> int:
     run = _load(args)
     if run is None:
         return 2
-    module = verify if run.stage == verify.STAGE else stage
+    module = {verify.STAGE: verify, contribute.STAGE: contribute, synth.STAGE: synth}.get(run.stage, stage)
     report = submit_run(run, module, _target(args), args.agent_name, provenance_fn=provenance, target_label="study records")
     _print_report(report)
     return 0
@@ -151,6 +151,72 @@ def cmd_tiers(args) -> int:
     out = Path(target.records.dir) / "_tiers.json"
     out.write_text(json.dumps({"legend": tiers.LEGEND, "papers": papers}, indent=2, ensure_ascii=False), encoding="utf-8", newline="\n")
     print(f"{len(papers)} papers written to {out}")
+    return 0
+
+
+def cmd_cluster(args) -> int:
+    target = _target(args)
+    try:
+        if args.action == "show":
+            c = clusters.load_cluster(args.index_root, args.name)
+        else:
+            c = clusters.define_cluster(target.records, target.vocabs, args.name, args.where, args.floor)
+            clusters.save_cluster(args.index_root, c)
+    except clusters.ClusterError as exc:
+        print(f"cluster: {exc}")
+        return 2
+    print(f"cluster {c.name}: {len(c.file_ids)} papers at tier {c.floor} or better")
+    for fid in c.file_ids:
+        print(f"  {fid}")
+    return 0
+
+
+def _collect(args, stage_name, tasks, skips, label) -> int:
+    for fid, reason in skips.items():
+        print(f"skipped {fid}: {reason}")
+    try:
+        run = collect_run(stage_name, tasks, _work_root(args), clusters.topic_dir(args.index_root, args.name),
+                          run_id=args.run_id, repo_label="literature review folder")
+    except (ValueError, FileExistsError) as exc:
+        print(f"cannot create the run: {exc}")
+        return 2
+    if run is None:
+        print(f"nothing to {label}")
+        return 0
+    print(f"collected {len(tasks)} {label} card(s) in run {run.run_id}: {run.root}")
+    return 0
+
+
+def cmd_annotate(args) -> int:
+    target = _target(args)
+    try:
+        cluster = clusters.load_cluster(args.index_root, args.name)
+    except clusters.ClusterError as exc:
+        print(f"annotate: {exc}")
+        return 2
+    papers, _ = eligible_papers(args.index_root)
+    tasks, skips = contribute.make_tasks(target, cluster, papers, redo=args.redo)
+    return _collect(args, contribute.STAGE, tasks, skips, "annotation")
+
+
+def cmd_synthesize(args) -> int:
+    target = _target(args)
+    try:
+        cluster = clusters.load_cluster(args.index_root, args.name)
+        tasks, skips = synth.make_tasks(target, cluster, max_papers=args.max_papers, merge=args.merge)
+    except (clusters.ClusterError, ValueError) as exc:
+        print(f"synthesize: {exc}")
+        return 2
+    return _collect(args, synth.STAGE, tasks, skips, "synthesis")
+
+
+def cmd_render(args) -> int:
+    try:
+        review_path, bib_path = review.render(_target(args), args.name)
+    except (clusters.ClusterError, ValueError) as exc:
+        print(f"render: {exc}")
+        return 2
+    print(f"wrote {review_path}\nwrote {bib_path}")
     return 0
 
 
@@ -280,6 +346,22 @@ def build_parser() -> argparse.ArgumentParser:
     sub.add_parser("remap", help="Point facts whose proposal was accepted or merged at the vocabulary term.")
     pr = sub.add_parser("proposals", help="Terms the agent proposed that no vocabulary term covered.")
     pr.add_argument("action", choices=["list"])
+    cl = sub.add_parser("cluster", help="Choose the papers of a review by facet constraints on tier A/B facts.")
+    cl.add_argument("action", choices=["define", "show"])
+    cl.add_argument("name")
+    cl.add_argument("--where", action="append", default=[], help="facet=value, repeatable (facet: intervention, outcome, study_design, sector, population, data_sources, countries).")
+    cl.add_argument("--floor", choices=["A", "B", "C"], default="B")
+    an = sub.add_parser("annotate", help="Cards for a contribution and limitation note per paper of a cluster.")
+    an.add_argument("name")
+    an.add_argument("--run-id", default=None)
+    an.add_argument("--redo", action="store_true")
+    sy = sub.add_parser("synthesize", help="Cards that write the cluster review; --merge joins chunk answers.")
+    sy.add_argument("name")
+    sy.add_argument("--run-id", default=None)
+    sy.add_argument("--merge", action="store_true")
+    sy.add_argument("--max-papers", type=int, default=synth.MAX_PAPERS)
+    rd = sub.add_parser("render", help="Write review.md and bibliography.md under literature_reviews/<name>/.")
+    rd.add_argument("name")
     ev = sub.add_parser("eval", help="Score the records against the gold set (aggregates only).")
     ev.add_argument("--gold", default=None, help=f"Gold set YAML (default: {DEFAULT_PATH}).")
     a = sub.add_parser("api", help="Send pending cards to the paid API (explicit opt-in, cost-gated).")
@@ -294,4 +376,5 @@ def main(argv: list[str] | None = None, *, complete=None) -> int:
     if args.command == "api":
         return cmd_api(args, complete)
     return {"collect": cmd_collect, "verify": cmd_verify, "silver": cmd_silver, "submit": cmd_submit, "bootstrap": cmd_bootstrap, "status": cmd_status,
-            "proposals": cmd_proposals, "eval": cmd_eval, "remap": cmd_remap, "tiers": cmd_tiers}[args.command](args)
+            "proposals": cmd_proposals, "eval": cmd_eval, "remap": cmd_remap, "tiers": cmd_tiers,
+            "cluster": cmd_cluster, "annotate": cmd_annotate, "synthesize": cmd_synthesize, "render": cmd_render}[args.command](args)
