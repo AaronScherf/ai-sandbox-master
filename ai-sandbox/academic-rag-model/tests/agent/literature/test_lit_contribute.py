@@ -5,16 +5,7 @@ from agent.literature import contribute
 from agent.literature.cluster import define_cluster
 from core.agent_tasks.work import task_entry
 from lit_helpers import PAGES, VOCABS
-from synth_helpers import F1, F2, PROV, build, three_papers
-
-
-def _answer(**over):
-    r = {"contribution": {"text": "It shows that cash transfers raised food consumption among treated households.",
-                          "quote": "Cash transfers raised household food consumption", "locator": 3},
-         "limitations": {"text": "The authors note attrition between survey waves.",
-                         "quote": "given attrition between survey waves", "locator": 4}}
-    r.update(over)
-    return r
+from synth_helpers import F1, F2, PROV, _answer, build, three_papers
 
 
 class TestAnnotateStage(unittest.TestCase):

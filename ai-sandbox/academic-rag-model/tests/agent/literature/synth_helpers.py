@@ -38,3 +38,12 @@ def three_papers():
     voucher = copy.deepcopy(good())
     voucher["core"]["intervention"][0].update(vocab_id="intervention.voucher", value="vouchers")
     return {F1: with_sector(good()), F2: voucher, F3: with_sector(good())}
+
+
+def _answer(**over):
+    r = {"contribution": {"text": "It shows that cash transfers raised food consumption among treated households.",
+                          "quote": "Cash transfers raised household food consumption", "locator": 3},
+         "limitations": {"text": "The authors note attrition between survey waves.",
+                         "quote": "given attrition between survey waves", "locator": 4}}
+    r.update(over)
+    return r
