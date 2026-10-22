@@ -31,6 +31,8 @@ plan in `docs/superpowers/plans/literature_taxonomy/2026-10-21-stage3-synthesis.
 - Clusters are by facet only, no embeddings or OpenAlex neighbours.
 - Numbers are traced to result text, not to the underlying table.
 - The bibliography has title words and year as the key because the index cards carry no author names.
+- The validator checks digits, not direction or sign: a paragraph could reverse a finding's direction while quoting the right magnitude, and a number written as a word is not checked. Read the review against the bibliography before relying on a direction.
+- Numbers are compared as text, so `1,200` vs `1200` or `12.5` vs `12.50` bounce; the bounce message names the number so the agent can copy the cited form.
 - Only facts in tiers A and B are used; tier C facts never reach an annotation or a card.
 
 ## Not done

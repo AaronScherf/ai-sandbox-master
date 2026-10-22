@@ -36,12 +36,18 @@ def render_annotation_md(ann: dict, label: str) -> str:
 def cite_keys(identities: dict) -> dict:
     """A short readable key per paper: first words of the title and the year; clashes get a letter."""
     taken: dict = {}
+    used: set = set()
     out = {}
     for fid in sorted(identities):
         ident = identities[fid]
         words = re.findall(r"[A-Za-z0-9]+", (ident.get("title") or "paper").split(":")[0])[:5]
         base = " ".join(words) + (f" {ident['publication_year']}" if ident.get("publication_year") else "")
         n = taken.get(base, 0)
+        key = base
+        while key in used or key == base and n:
+            n += 1
+            key = f"{base}{chr(ord('a') + n)}" if n < 26 else f"{base} {n}"
         taken[base] = n + 1
-        out[fid] = base if n == 0 else f"{base}{chr(ord('a') + n)}"
+        used.add(key)
+        out[fid] = key
     return out

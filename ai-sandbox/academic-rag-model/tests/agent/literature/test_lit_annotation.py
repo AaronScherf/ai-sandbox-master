@@ -35,6 +35,13 @@ class TestAnnotation(unittest.TestCase):
         self.assertTrue(all("2019" in k for k in keys.values()))
         self.assertEqual(keys[F1], "Cash transfers in Somalia 2019")
 
+    def test_a_suffixed_key_never_equals_another_papers_natural_key(self):
+        same = {"title": "Cash transfers in Somalia", "publication_year": 2019}
+        ids = {F1: dict(same), F2: dict(same), "c" * 16: {"title": "Cash transfers in Somalia", "publication_year": "2019b"}}
+        ids["d" * 16] = {"title": "Cash transfers in Somalia 2019b"}
+        keys = cite_keys(ids)
+        self.assertEqual(len(set(keys.values())), 4, keys)
+
 
 if __name__ == "__main__":
     unittest.main()

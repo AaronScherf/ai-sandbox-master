@@ -53,6 +53,15 @@ class TestAnnotateStage(unittest.TestCase):
         self.assertIn("already annotated", skipped[entry["subject"]["file_id"]])
         self.assertEqual(len(self.tasks(redo=True)[0]), 2)
 
+    def test_a_result_quoted_across_pages_still_offers_its_pages(self):
+        rec = self.target.records.read(F1, "a")
+        rec["core"]["results"][0]["locator"] = [3, 4]
+        rec["appraisal"]["locator"] = None
+        self.target.records.write(rec, "a")
+        tasks, skipped = self.tasks()
+        t = next(x for x in tasks if x.subject["file_id"] == F1)
+        self.assertEqual({p.ref for p in t.passages}, {"page 3", "page 4"})
+
 
 if __name__ == "__main__":
     unittest.main()

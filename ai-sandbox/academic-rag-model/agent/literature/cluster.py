@@ -67,6 +67,8 @@ def define_cluster(records, vocabs: dict, name: str, where: list, floor: str = "
         items = at_least(tiered_facts(records, fid, vocabs), floor)
         if items and all(any(m(i) for i in items) for m in matchers):
             members.append(fid)
+    if not members:
+        raise ClusterError("no paper has tier A/B facts matching every constraint; check the values or lower --floor")
     return Cluster(name, constraints, floor, members)
 
 

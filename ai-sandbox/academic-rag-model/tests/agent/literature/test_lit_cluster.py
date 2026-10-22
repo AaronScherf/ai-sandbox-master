@@ -20,7 +20,11 @@ class TestCluster(unittest.TestCase):
         self.assertEqual(self.define("sector=social protection").file_ids, [F1, F3])
         self.assertEqual(self.define("intervention=voucher").file_ids, [F2])
         self.assertEqual(self.define("sector=social protection", "intervention=cash transfer").file_ids, [F1, F3])
-        self.assertEqual(self.define("sector=social protection", "intervention=voucher").file_ids, [])
+
+    def test_a_cluster_that_matches_no_paper_fails_loudly(self):
+        with self.assertRaises(ClusterError) as ctx:
+            self.define("sector=social protection", "intervention=voucher")
+        self.assertIn("no paper", str(ctx.exception))
 
     def test_a_term_id_and_a_country_code_work_as_values(self):
         self.assertEqual(self.define("sector=sector.social_protection").file_ids, [F1, F3])

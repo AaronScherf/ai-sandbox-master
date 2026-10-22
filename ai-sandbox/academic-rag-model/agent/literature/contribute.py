@@ -57,9 +57,9 @@ def make_tasks(target: Target, cluster: Cluster, papers: list[Paper], *, redo: b
         ann = annotation_of(target.records, paper.file_id, target.vocabs, cluster.floor)
         record = target.records.read(paper.file_id, "a")
         pages = split_pages(md)
-        wanted = {r["locator"] for r in ann["results"] if isinstance(r["locator"], int)}
-        for loc in [(record.get("appraisal") or {}).get("locator")]:
-            wanted |= {loc} if isinstance(loc, int) else set(loc or [])
+        wanted: set = set()
+        for loc in [r["locator"] for r in ann["results"]] + [(record.get("appraisal") or {}).get("locator")]:
+            wanted |= {loc} if isinstance(loc, int) else {n for n in (loc or []) if isinstance(n, int)}
         wanted = sorted(n for n in wanted if n in pages)
         if not wanted:
             skipped[paper.file_id] = "none of the cited pages is in the transcript"
