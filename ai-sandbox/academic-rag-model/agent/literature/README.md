@@ -20,6 +20,10 @@ python -m agent.literature verify --run-id v1              # cards that ask a ch
 python -m agent.literature silver                          # per paper: agreed / confirmed / open fact counts
 python -m agent.literature tiers                           # facts by confidence tier A/B/C; writes _tiers.json
 python -m agent.literature remap                           # point facts at terms whose proposal was accepted or merged
+python -m agent.literature cluster define NAME --where sector=<term> --where countries=SO   # papers of a review (tier A/B facts)
+python -m agent.literature annotate NAME --run-id a1       # cards: contribution + limitation note per paper
+python -m agent.literature synthesize NAME --run-id s1     # cards: the review (chunks of up to 20 papers; --merge joins them)
+python -m agent.literature render NAME                     # review.md + bibliography.md under research/literature_reviews/NAME/
 python -m agent.literature status
 python -m agent.literature proposals list                  # terms the agent proposed that no vocabulary term covered
 python -m agent.literature eval [--gold PATH]              # aggregates against gold/gold_set.yaml
@@ -58,6 +62,17 @@ review only the open facts and a random audit sample.
 **B** one pass found it and the checker found support in the paper, **C** one pass found it and the checker did not support it
 (or has not looked). Analyses should start from A and B (`tiers.at_least(items, "B")`) and treat C as excluded.
 After a proposed term is accepted or merged (`Proposals.accept` / `Proposals.merge`), `remap` re-points the facts that proposed it.
+
+## Synthesis (stage 3)
+
+Order: `cluster define`, `annotate` (submit), `synthesize` (submit; with `--merge` after chunk cards, then submit again),
+`render`. Output is local only: `research/literature_reviews/<name>/` is gitignored because it quotes paper text.
+Papers join a cluster when every `--where facet=value` matches one of their tier A/B facts (a term id, label or a
+country code). `annotate` asks for a one-sentence contribution and limitation per paper, each with a verified quote.
+`synthesize` cards cite papers by short ids (`P3`, `P3.R2`); `submit` bounces a paragraph that has no citation, cites an
+id that is not on the card, names a raw id in prose, or states a number that is not in a cited result (or that paper's
+year), and bounces a card that leaves a paper uncited. `render` writes the review with citation keys (title words and
+year) and the bibliography, which comes only from the index card, the record and the annotations, never from model prose.
 
 ## Not built
 
