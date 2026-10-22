@@ -303,7 +303,8 @@
     return all.filter(function (t, i) { return all.indexOf(t) === i; }); // a set, as on the server
   }
   var QUALIFIERS = ["strictly", "strict", "locally", "globally", "weak", "weakly", "strong", "strongly", "non", "not",
-    "anti", "quasi", "marginal", "relative", "absolute", "average"];
+    "anti", "quasi", "marginal", "relative", "absolute", "average",
+    "autoregressive", "cumulative", "partial", "conditional", "generalized"];
   var NEGATING_PREFIXES = ["un", "non", "in", "im", "ir", "dis"];
   function opposed(ta, tb) {
     var onlyA = ta.filter(function (t) { return tb.indexOf(t) === -1; });

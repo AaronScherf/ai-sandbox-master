@@ -27,6 +27,14 @@
   ],
   "different": [
     [
+      "Distributed lag model",
+      "Autoregressive distributed lag model"
+    ],
+    [
+      "Cumulative dynamic effect",
+      "Dynamic effect"
+    ],
+    [
       "Utility function",
       "Indirect utility function"
     ],

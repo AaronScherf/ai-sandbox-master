@@ -21,7 +21,8 @@ GENERIC = frozenset({"function", "correspondence", "relation", "problem", "theor
 _FILLER = frozenset({"of", "the", "a", "an", "and", "for", "in", "to"})
 # A word like these in only one of two names makes them different concepts, however close the spelling.
 QUALIFIERS = frozenset({"strictly", "strict", "locally", "globally", "weak", "weakly", "strong", "strongly", "non",
-                        "not", "anti", "quasi", "marginal", "relative", "absolute", "average"})
+                        "not", "anti", "quasi", "marginal", "relative", "absolute", "average",
+                        "autoregressive", "cumulative", "partial", "conditional", "generalized"})
 _NEGATING_PREFIXES = ("un", "non", "in", "im", "ir", "dis")
 
 
