@@ -42,6 +42,17 @@ class TestAnnotation(unittest.TestCase):
         keys = cite_keys(ids)
         self.assertEqual(len(set(keys.values())), 4, keys)
 
+    def test_keys_stop_at_the_first_clause_and_never_end_on_a_stopword(self):
+        ids = {F1: {"title": "Social safety nets in fragile and conflict-affected states"},
+               F2: {"title": "Climate change, cash transfers and health"},
+               "c" * 16: {"title": "Cash and livelihoods in contexts of conflict and fragility: implications", "publication_year": 2020},
+               "d" * 16: {"title": "Is it enough? A review of the evidence"}}
+        keys = cite_keys(ids)
+        self.assertEqual(keys[F1], "Social safety nets in fragile and conflict affected")
+        self.assertEqual(keys[F2], "Climate change cash transfers and health")
+        self.assertEqual(keys["c" * 16], "Cash and livelihoods in contexts of conflict 2020")
+        self.assertEqual(keys["d" * 16], "Is it enough")
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -33,6 +33,19 @@ def render_annotation_md(ann: dict, label: str) -> str:
     return "\n".join(lines)
 
 
+_STOP = {"a", "an", "and", "as", "at", "by", "for", "from", "in", "of", "on", "or", "the", "to", "with"}
+_KEY_WORDS = 8
+
+
+def _key_words(title: str) -> list:
+    """The first clause of the title (up to a colon, question mark or dash), at most 8 words, never ending on a stopword."""
+    clause = re.split(r"[:?–—]| - ", title)[0]
+    words = re.findall(r"[A-Za-z0-9]+", clause)[:_KEY_WORDS] or ["paper"]
+    while len(words) > 1 and words[-1].lower() in _STOP:
+        words.pop()
+    return words
+
+
 def cite_keys(identities: dict) -> dict:
     """A short readable key per paper: first words of the title and the year; clashes get a letter."""
     taken: dict = {}
@@ -40,7 +53,7 @@ def cite_keys(identities: dict) -> dict:
     out = {}
     for fid in sorted(identities):
         ident = identities[fid]
-        words = re.findall(r"[A-Za-z0-9]+", (ident.get("title") or "paper").split(":")[0])[:5]
+        words = _key_words(ident.get("title") or "paper")
         base = " ".join(words) + (f" {ident['publication_year']}" if ident.get("publication_year") else "")
         n = taken.get(base, 0)
         key = base

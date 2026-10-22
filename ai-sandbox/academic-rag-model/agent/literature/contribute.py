@@ -38,7 +38,7 @@ def load_annotations(index_root, topic: str) -> dict:
     return {p.stem: json.loads(p.read_text(encoding="utf-8")) for p in sorted(folder.glob("*.json"))} if folder.is_dir() else {}
 
 
-def make_tasks(target: Target, cluster: Cluster, papers: list[Paper], *, redo: bool = False):
+def make_tasks(target: Target, cluster: Cluster, papers: list[Paper], *, redo: bool = False, limit: int | None = None):
     tasks: list[Task] = []
     skipped: dict[str, str] = {}
     done = load_annotations(target.index_root, cluster.name)
@@ -71,6 +71,8 @@ def make_tasks(target: Target, cluster: Cluster, papers: list[Paper], *, redo: b
             subject={"file_id": paper.file_id, "topic": cluster.name, "transcript_sha": sha},
             instructions=INSTRUCTIONS, context=render_annotation_md(ann, "This paper"),
             passages=[Passage(id=f"P{n}", source=paper.title or paper.file_id, ref=f"page {n}", text=pages[n]) for n in wanted]))
+    if limit is not None:
+        tasks = tasks[:limit]
     return tasks, skipped
 
 

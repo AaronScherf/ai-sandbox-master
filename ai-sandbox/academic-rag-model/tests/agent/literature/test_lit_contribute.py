@@ -62,6 +62,14 @@ class TestAnnotateStage(unittest.TestCase):
         t = next(x for x in tasks if x.subject["file_id"] == F1)
         self.assertEqual({p.ref for p in t.passages}, {"page 3", "page 4"})
 
+    def test_limit_caps_the_cards_and_the_rest_stay_for_the_next_run(self):
+        first = self.tasks(limit=1)[0]
+        self.assertEqual(len(first), 1)
+        contribute.apply_result(self.target, task_entry(first[0]), _answer(), PROV)
+        second = self.tasks(limit=1)[0]
+        self.assertEqual(len(second), 1)
+        self.assertNotEqual(first[0].subject["file_id"], second[0].subject["file_id"])
+
 
 if __name__ == "__main__":
     unittest.main()

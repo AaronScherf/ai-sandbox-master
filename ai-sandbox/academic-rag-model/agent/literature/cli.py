@@ -195,7 +195,7 @@ def cmd_annotate(args) -> int:
         print(f"annotate: {exc}")
         return 2
     papers, _ = eligible_papers(args.index_root)
-    tasks, skips = contribute.make_tasks(target, cluster, papers, redo=args.redo)
+    tasks, skips = contribute.make_tasks(target, cluster, papers, redo=args.redo, limit=args.limit)
     return _collect(args, contribute.STAGE, tasks, skips, "annotation")
 
 
@@ -355,6 +355,7 @@ def build_parser() -> argparse.ArgumentParser:
     an.add_argument("name")
     an.add_argument("--run-id", default=None)
     an.add_argument("--redo", action="store_true")
+    an.add_argument("--limit", type=int, default=None, help="At most this many cards, so a large cluster is annotated in batches.")
     sy = sub.add_parser("synthesize", help="Cards that write the cluster review; --merge joins chunk answers.")
     sy.add_argument("name")
     sy.add_argument("--run-id", default=None)

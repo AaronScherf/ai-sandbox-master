@@ -21,7 +21,7 @@ python -m agent.literature silver                          # per paper: agreed /
 python -m agent.literature tiers                           # facts by confidence tier A/B/C; writes _tiers.json
 python -m agent.literature remap                           # point facts at terms whose proposal was accepted or merged
 python -m agent.literature cluster define NAME --where sector=<term> --where countries=SO   # papers of a review (tier A/B facts)
-python -m agent.literature annotate NAME --run-id a1       # cards: contribution + limitation note per paper
+python -m agent.literature annotate NAME --run-id a1 [--limit 11]   # cards: contribution + limitation note per paper (--limit = a batch)
 python -m agent.literature synthesize NAME --run-id s1     # cards: the review (chunks of up to 20 papers; --merge joins them)
 python -m agent.literature render NAME                     # review.md + bibliography.md under research/literature_reviews/NAME/
 python -m agent.literature status
