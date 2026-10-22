@@ -42,8 +42,13 @@ review-comments.md, review-conflicts.md    reviewer notes and unapplied edits
 |---|---|
 | `validate` | Checks the graph; prints errors and warnings; exits 1 on errors. |
 | `build` | Validates, then writes `build/graph.json` and a single `index.html` (libraries inlined, works offline). |
+| `retype EDGE-ID [--type T] [--target ID] [--condition TEXT] [--agent-name NAME] [--run-id ID]` | Changes one edge after the same duplicate, tombstone, condition, and cycle checks as submit; clears its critic verdict and records agent provenance. The run id defaults to a UTC timestamp. |
+| `reject-edge EDGE-ID` | Removes and tombstones one edge; warns if either endpoint becomes an orphan. |
 | `apply-review FILE... [--from-issues OWNER/REPO] [--commit] [--close-applied]` | Merges review files (or open GitHub issues labelled `review`) into the YAML. |
 | `scaffold --repo OWNER/NAME --holder "Name" [--title T] [--subject S] [--hub-root H --course C] [--with-sample] [--contact TEXT]` | Creates a new graph repo skeleton with README, NOTICE, licenses, issue form, titled and described for the course; with `--hub-root/--course` the `seed.yaml` template lists the course's textbook keys. Needs network once, for the Creative Commons legal text. |
+
+Run edge maintenance in your assigned graph-repo worktree while it has no other writer. Each command prints one JSON
+result with the exact edge id and any warnings, then reads the graph back to audit the change.
 
 Examples against the sample:
 

@@ -2,6 +2,9 @@
 from __future__ import annotations
 
 import datetime as dt
+import os
+import tempfile
+from dataclasses import replace
 from pathlib import Path
 from typing import Literal
 
@@ -9,7 +12,8 @@ from pydantic import ValidationError
 from ruamel.yaml import YAML
 from ruamel.yaml.scalarstring import LiteralScalarString
 
-from .schema import Edge, Graph, Node, Rejected, SeedConfig, Section, Site, Vocab
+from .proposals import check_edge
+from .schema import VIA_ALLOWED, Edge, Graph, Node, Rejected, SeedConfig, Section, Site, Vocab, edge_id
 
 
 class GraphDataError(Exception):
@@ -49,8 +53,18 @@ class GraphStore:
 
     def _save(self, path: Path, data) -> None:
         path.parent.mkdir(parents=True, exist_ok=True)
-        with path.open("w", encoding="utf-8", newline="\n") as fh:
-            _yaml().dump(data, fh)
+        temp_path = None
+        try:
+            with tempfile.NamedTemporaryFile(mode="w", encoding="utf-8", newline="\n", delete=False,
+                                             dir=path.parent, prefix=f".{path.name}.", suffix=".tmp") as fh:
+                temp_path = Path(fh.name)
+                _yaml().dump(data, fh)
+                fh.flush()
+                os.fsync(fh.fileno())
+            os.replace(temp_path, path)
+        finally:
+            if temp_path is not None:
+                temp_path.unlink(missing_ok=True)
 
     def _files(self, kind: Literal["node", "edge"]) -> list[Path]:
         folder = self.root / "data" / ("nodes" if kind == "node" else "edges")
@@ -133,6 +147,51 @@ class GraphStore:
                     self._save(path, data)
                     return
         raise KeyError(f"{kind} {item_id!r} not found")
+
+    def retype_edge(self, item_id: str, *, type_: str | None = None, target: str | None = None,
+                    condition: str | None = None, provenance: dict) -> tuple[str, list[str]]:
+        """Validate and rewrite exactly one edge, preserving its other fields and YAML comments."""
+        graph = self.read_all()
+        matches = [e for e in graph.edges if e.id == item_id]
+        if len(matches) != 1:
+            raise ValueError(f"edge {item_id!r} {'not found' if not matches else 'is ambiguous'}")
+        old = matches[0]
+        new_type = type_ if type_ is not None else old.type
+        new_target = target if target is not None else old.target
+        new_condition = condition if condition is not None else old.condition
+        without_old = replace(graph, edges=[e for e in graph.edges if e.id != item_id])
+        problems, warnings = check_edge(without_old, old.source, new_type, new_target, new_condition, "")
+        if old.via is not None and new_type not in VIA_ALLOWED:
+            problems.append(f"via is not allowed for {new_type!r}; this edge has via {old.via!r}")
+        if problems:
+            raise ValueError("; ".join(problems))
+        new_id = edge_id(old.source, new_type, new_target)
+        changes = {"id": new_id, "type": new_type, "target": new_target,
+                   "condition": new_condition, "critic": None, "provenance": provenance}
+        Edge.model_validate({**old.model_dump(), **changes})
+        self.update_item("edge", item_id, changes)
+        updated = [e for e in self.read_all().edges if e.id == new_id]
+        if (len(updated) != 1 or updated[0].type != new_type or updated[0].target != new_target
+                or updated[0].condition != new_condition or updated[0].critic is not None
+                or updated[0].provenance is None
+                or updated[0].provenance.model_dump(exclude_none=True) != provenance):
+            raise GraphDataError(f"edge {new_id!r} failed post-write audit")
+        return new_id, warnings
+
+    def reject_edge(self, item_id: str) -> list[str]:
+        """Remove and tombstone one edge, reporting endpoints that become orphans."""
+        graph = self.read_all()
+        matches = [e for e in graph.edges if e.id == item_id]
+        if len(matches) != 1:
+            raise ValueError(f"edge {item_id!r} {'not found' if not matches else 'is ambiguous'}")
+        edge = matches[0]
+        self.remove_item("edge", item_id)
+        self.add_rejected("edge", item_id)
+        after = self.read_all()
+        if any(e.id == item_id for e in after.edges) or not any(r.kind == "edge" and r.id == item_id for r in after.rejected):
+            raise GraphDataError(f"edge {item_id!r} failed post-write audit")
+        linked = {end for e in after.edges for end in (e.source, e.target)}
+        return sorted({end for end in (edge.source, edge.target) if end not in linked})
 
     # -- adding new items (used by the drafting stages) ----------------------------
     @staticmethod

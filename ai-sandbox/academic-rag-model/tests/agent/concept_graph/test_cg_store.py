@@ -43,6 +43,23 @@ def test_update_unknown_item_raises(tmp_path):
         GraphStore(copy_sample(tmp_path)).update_item("edge", "nope", {"status": "verified"})
 
 
+def test_failed_yaml_write_keeps_the_original_file(tmp_path, monkeypatch):
+    root = copy_sample(tmp_path)
+    path = root / "data" / "edges" / "s01-binary-relations.yaml"
+    before = path.read_bytes()
+
+    class BrokenYaml:
+        def dump(self, data, fh):
+            fh.write("partial output")
+            raise RuntimeError("interrupted dump")
+
+    monkeypatch.setattr("agent.concept_graph.store._yaml", BrokenYaml)
+    with pytest.raises(RuntimeError, match="interrupted dump"):
+        GraphStore(root)._save(path, [])
+    assert path.read_bytes() == before
+    assert list(path.parent.glob(f".{path.name}.*.tmp")) == []
+
+
 def test_remove_item_and_tombstone(tmp_path):
     store = GraphStore(copy_sample(tmp_path))
     store.remove_item("edge", "preorder--has_property--reflexivity")
