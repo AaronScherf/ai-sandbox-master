@@ -42,6 +42,7 @@ review-comments.md, review-conflicts.md    reviewer notes and unapplied edits
 |---|---|
 | `validate` | Checks the graph; prints errors and warnings; exits 1 on errors. |
 | `build` | Validates, then writes `build/graph.json` and a single `index.html` (libraries inlined, works offline). |
+| `publish --site-repo PATH` | Builds the graph, checks that `config/site.yaml` names the site repo's GitHub `origin`, copies `index.html`, and commits it with the graph SHA. Prints the push command; does not push. |
 | `retype EDGE-ID [--type T] [--target ID] [--condition TEXT] [--agent-name NAME] [--run-id ID]` | Changes one edge after the same duplicate, tombstone, condition, and cycle checks as submit; clears its critic verdict and records agent provenance. The run id defaults to a UTC timestamp. |
 | `reject-edge EDGE-ID` | Removes and tombstones one edge; warns if either endpoint becomes an orphan. |
 | `apply-review FILE... [--from-issues OWNER/REPO] [--commit] [--close-applied]` | Merges review files (or open GitHub issues labelled `review`) into the YAML. |
@@ -182,10 +183,18 @@ reviewer's name and date. Use `--commit` for one `review: apply <name>` commit p
 ### Publishing
 
 `build` output is not refreshed by landing graph commits, so rebuild after each round. With a public graph repo
-(microecon), Pages serves `index.html` from the repo itself. With a private graph repo (econometrics), copy the built
-`index.html` into the public site repo (`AaronScherf/econometrics-concept-graph-site`), commit and push. In that setup
-`config/site.yaml` `repo:` must name the **site** repo, since reviewers cannot open issues on a private repo, and
-`apply-review --from-issues` then reads the site repo too.
+(microecon), Pages serves `index.html` from the repo itself. With a private graph repo (econometrics), run:
+
+```
+python -m agent.concept_graph.cli --graph-repo G publish --site-repo S
+```
+
+The command requires committed graph `data/` and `config/`, confirms that `config/site.yaml` `repo:` names the site
+repo's GitHub `origin`, then builds, copies `index.html`, and commits only that file in the site repo. Its commit
+message includes the full graph SHA. It prints a `git -C S push origin <branch>` command for the owner to run; it
+never pushes. Repeating it when the page is already current creates no new site commit. Reviewers submit issues to
+the public site repo, and `apply-review --from-issues` reads that repo too. Use an assigned site-repo checkout with
+no concurrent writer.
 
 ### Proposing concepts and connections
 

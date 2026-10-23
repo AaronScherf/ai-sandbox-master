@@ -17,6 +17,7 @@ from . import scaffold as scaffold_mod
 from .build import BuildError, build
 from .gh_issues import close_issue, fetch_review_issues
 from .prompts import agent_prompt
+from .publish import PublishError, publish
 from .retrieval import make_resilient_retriever
 from .reviews import ReviewFile, apply_proposals, apply_review, archive_review
 from .store import GraphDataError, GraphStore
@@ -39,6 +40,18 @@ def _cmd_build(args) -> int:
     for w in result.warnings:
         print(f"WARNING [{w.code}] {w.message}")
     print(f"built {result.index_html} and {result.graph_json} (graph_version {result.graph_version})")
+    return 0
+
+
+def _cmd_publish(args) -> int:
+    result = publish(args.graph_repo, args.site_repo)
+    for warning in result.build_result.warnings:
+        print(f"WARNING [{warning.code}] {warning.message}")
+    if result.changed:
+        print(f"committed site page {result.site_sha} from graph {result.graph_sha}")
+    else:
+        print(f"site page already current at {result.site_sha} (graph {result.graph_sha})")
+    print(result.push_command)
     return 0
 
 
@@ -277,6 +290,8 @@ def build_parser() -> argparse.ArgumentParser:
     sub = p.add_subparsers(dest="cmd", required=True)
     sub.add_parser("validate", help="check the graph data; exit 1 on errors")
     sub.add_parser("build", help="write build/graph.json and index.html")
+    pub = sub.add_parser("publish", help="build and commit the page in a separate site repo; never push")
+    pub.add_argument("--site-repo", required=True, type=Path, help="local checkout of the public GitHub Pages repo")
     rt = sub.add_parser("retype", help="rewrite an edge type, target, or condition after checking graph rules")
     rt.add_argument("edge_id", metavar="EDGE-ID")
     rt.add_argument("--type", help="new edge type")
@@ -337,7 +352,8 @@ def main(argv: list[str] | None = None, *, retriever_factory=None, complete_fact
     args.graph_repo = Path(args.graph_repo)
     args.retriever_factory = retriever_factory or _default_retriever
     args.complete_factory = complete_factory or (lambda a: drivers.gemini_complete(a.model))
-    handlers = {"validate": _cmd_validate, "build": _cmd_build, "retype": _cmd_retype,
+    handlers = {"validate": _cmd_validate, "build": _cmd_build, "publish": _cmd_publish,
+                "retype": _cmd_retype,
                 "reject-edge": _cmd_reject_edge, "apply-review": _cmd_apply_review,
                 "scaffold": _cmd_scaffold, "collect": _cmd_collect, "submit": _cmd_submit, "status": _cmd_status,
                 "bootstrap": _cmd_bootstrap, "api": _cmd_api}
@@ -346,7 +362,7 @@ def main(argv: list[str] | None = None, *, retriever_factory=None, complete_fact
     except drivers.BudgetError as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2
-    except (GraphDataError, BuildError, FileExistsError, FileNotFoundError, ValueError, RuntimeError) as exc:
+    except (GraphDataError, BuildError, PublishError, FileExistsError, FileNotFoundError, ValueError, RuntimeError) as exc:
         print(f"error: {exc}", file=sys.stderr)
         if args.cmd in ("retype", "reject-edge"):
             print(json.dumps({"action": args.cmd, "id": args.edge_id, "error": str(exc)}))
