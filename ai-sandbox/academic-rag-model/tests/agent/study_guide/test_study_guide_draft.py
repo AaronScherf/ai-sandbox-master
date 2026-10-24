@@ -319,3 +319,38 @@ def test_strip_removes_the_empty_text_commands_left_by_citations_inside_math():
     text = r"$$p \cdot x \leq w \quad \text{(Example 3.E.1, p. 66)}$$ and $$y = 2 \quad \text{;}$$ keep $a \text{ if } b$"
     cleaned, _ = strip_citations(text, [])
     assert cleaned == r"$$p \cdot x \leq w$$ and $$y = 2$$ keep $a \text{ if } b$"
+
+
+def test_strip_removes_multi_item_citations_where_only_some_items_have_a_page_number():
+    # A multi-citation parenthetical where one sibling item names only a section (no "p. NN") used to make
+    # the whole bracket fail to match, so only an inner self-contained item (e.g. "[§Proof, p. 79]") got
+    # removed on its own, leaving a dangling "(§3.B, p. 52;" open and/or a "; §4.C, p. 119)" close behind.
+    from agent.study_guide.draft import strip_citations
+    text = ("Prices are taken as fixed (§3.A, p. 51; [§Budget Sets]; [§Proof, p. 79]). "
+            "Given wealth, choices are constrained by the budget set.")
+    cleaned, residual = strip_citations(text, [])
+    assert cleaned == ("Prices are taken as fixed. "
+                        "Given wealth, choices are constrained by the budget set.") and residual == 0
+
+
+def test_strip_removes_a_backtick_wrapped_citation_without_leaving_empty_backticks():
+    from agent.study_guide.draft import strip_citations
+    text = "The domain is assumed finite `[p. 6, 7, 8]`. In this setting choice is well defined."
+    cleaned, residual = strip_citations(text, [])
+    assert cleaned == "The domain is assumed finite. In this setting choice is well defined." and residual == 0
+
+
+def test_strip_cleans_a_stray_semicolon_left_before_the_sentence_period():
+    # "ibid" has neither a page number nor a "§", so the whole bracket can't match; only the adjacent,
+    # fully self-contained "[§3.A, p. 51]" sibling is removed, which used to leave a bare "; ." behind.
+    from agent.study_guide.draft import strip_citations
+    text = "Markets clear in equilibrium (ibid; [§3.A, p. 51]). Then demand responds smoothly."
+    cleaned, residual = strip_citations(text, [])
+    assert cleaned == "Markets clear in equilibrium (ibid. Then demand responds smoothly." and residual == 0
+
+
+def test_strip_removes_a_dangling_citation_left_inside_a_latex_text_command():
+    from agent.study_guide.draft import strip_citations
+    text = r"$$p \cdot x \le w \quad \text{(ibid; [§3.D, p. 61])}$$ The result follows directly."
+    cleaned, residual = strip_citations(text, [])
+    assert cleaned == r"$$p \cdot x \le w$$ The result follows directly." and residual == 0

@@ -22,10 +22,18 @@ INTRO_STRIPPED = "Each section below was written from the source passages planne
 _TAG_RE = re.compile(r"^[A-Za-z0-9_-]+$")
 _RESIDUAL_CITATION_RE = re.compile(r"\bpp?\.\s?\d+(?:\s*[-–]\s*\d+)?\s*[\)\]]")
 _PAGE_PIECE = r"[^;()\[\]]*?\bpp?\.\s?\d+(?:\s*[-\u2013]\s*\d+)?[^;()\[\]]*?"
-_PAGE_ITEM = rf"\[?{_PAGE_PIECE}\]?"
+_SECTION_PIECE = r"[^;()\[\]]*?\u00a7[^;()\[\]]*?"  # a citation item that names a section but carries no page number
+_CITATION_PIECE = rf"(?:{_PAGE_PIECE}|{_SECTION_PIECE})"
+_PAGE_ITEM = rf"\[?{_CITATION_PIECE}\]?"
 _PAGE_CITATION_RE = re.compile(rf"\s*[\(\[]\s*{_PAGE_ITEM}(?:\s*;\s*{_PAGE_ITEM})*[\s;,]*[\)\]]")
 _EMPTY_PARENS_RE = re.compile(r"[ \t]+\([\s;,]*\)")
 _EMPTY_TEXT_RE = re.compile(r"(?:[ \t]*\\q?quad)?[ \t]*\\text\{[\s;,.]*\}")  # a citation removed from inside math
+# a multi-citation list where one sibling has no page number and no "\u00a7" (e.g. "ibid") can't be matched as a
+# whole, so only an inner self-contained bracket is removed -- this cleans up what's left: a dangling citation
+# still sitting inside a \text{} span (display math), e.g. "\text{(ibid; [\u00a73.D, p. 61])}" -> "\text{(ibid;}"
+_DANGLING_TEXT_CITATION_RE = re.compile(r"(?:[ \t]*\\q?quad)?[ \t]*\\text\{[\(\[]?[^{}]*?;\s*\}")
+_EMPTY_BACKTICKS_RE = re.compile(r"[ \t]*(?<!`)`[ \t]*`(?!`)")  # an inline-code citation emptied out above
+_STRAY_SEPARATOR_RE = re.compile(r"[ \t]*;[ \t]*(?=[.,])")  # a separator left over from a partially matched list
 _LINK_CITATION_RE =re.compile(r"[ \t]*\[[^\]\n]*\]\(#\)")  # the model sometimes writes a citation as [label](#)
 _HEADING_RE = re.compile(r"^(#{1,2})\s+(.*?)\s*$")
 
@@ -98,8 +106,11 @@ def strip_citations(text: str, labels: list[str]) -> tuple[str, int]:
         sep = r"\s*(?:[;,]|and)?\s*"
         text = re.sub(rf"\s*[\(\[]\s*{item}(?:{sep}{item})*[\s;,]*[\)\]]", "", text)
     text = _PAGE_CITATION_RE.sub("", text)  # the model often shortens labels, e.g. "(Hansen, p. 268)"
+    text = _DANGLING_TEXT_CITATION_RE.sub("", text)  # a dangling "(...;" left behind inside \text{} in display math
     text = _EMPTY_PARENS_RE.sub("", text)
     text = _EMPTY_TEXT_RE.sub("", text)
+    text = _EMPTY_BACKTICKS_RE.sub("", text)  # a backtick-wrapped citation, e.g. "`[p. 6, 7, 8]`", emptied above
+    text = _STRAY_SEPARATOR_RE.sub("", text)
     return text, len(_RESIDUAL_CITATION_RE.findall(text))
 
 
