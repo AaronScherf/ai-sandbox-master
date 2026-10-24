@@ -34,11 +34,11 @@ def render_annotation_md(ann: dict, label: str) -> str:
 
 
 _STOP = {"a", "an", "and", "as", "at", "by", "for", "from", "in", "of", "on", "or", "the", "to", "with"}
-_KEY_WORDS = 8
+_KEY_WORDS = 12
 
 
 def _key_words(title: str) -> list:
-    """The first clause of the title (up to a colon, question mark or dash), at most 8 words, never ending on a stopword."""
+    """The first clause of the title (up to a colon, question mark or dash), at most 12 words, never ending on a stopword."""
     clause = re.split(r"[:?–—]| - ", title)[0]
     words = re.findall(r"[A-Za-z0-9]+", clause)[:_KEY_WORDS] or ["paper"]
     while len(words) > 1 and words[-1].lower() in _STOP:

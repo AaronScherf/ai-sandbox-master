@@ -48,10 +48,16 @@ class TestAnnotation(unittest.TestCase):
                "c" * 16: {"title": "Cash and livelihoods in contexts of conflict and fragility: implications", "publication_year": 2020},
                "d" * 16: {"title": "Is it enough? A review of the evidence"}}
         keys = cite_keys(ids)
-        self.assertEqual(keys[F1], "Social safety nets in fragile and conflict affected")
+        self.assertEqual(keys[F1], "Social safety nets in fragile and conflict affected states")
         self.assertEqual(keys[F2], "Climate change cash transfers and health")
-        self.assertEqual(keys["c" * 16], "Cash and livelihoods in contexts of conflict 2020")
+        self.assertEqual(keys["c" * 16], "Cash and livelihoods in contexts of conflict and fragility 2020")
         self.assertEqual(keys["d" * 16], "Is it enough")
+
+    def test_a_clause_of_up_to_twelve_words_is_kept_whole(self):
+        title = "The potential of digital cash transfers to strengthen resilience in protracted crises"
+        keys = cite_keys({F1: {"title": title}, F2: {"title": title + " in many more places than expected"}})
+        self.assertEqual(keys[F1], "The potential of digital cash transfers to strengthen resilience in protracted crises")
+        self.assertEqual(len(keys[F2].split()), 12)
 
 
 if __name__ == "__main__":
