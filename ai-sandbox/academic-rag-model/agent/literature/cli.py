@@ -290,7 +290,7 @@ def cmd_backfill_years(args) -> int:
     if not mailto:
         print("backfill-years: no --mailto and OPENALEX_CONTACT_EMAIL is not set")
         return 2
-    outcomes = backfill_years(args.index_root, mailto)
+    outcomes = backfill_years(args.index_root, mailto, records=_target(args).records)
     for fid, outcome in sorted(outcomes.items()):
         print(f"{fid}\t{outcome}")
     print(f"{sum(o == 'backfilled' for o in outcomes.values())} of {len(outcomes)} backfilled")

@@ -3,6 +3,7 @@ import unittest
 from pathlib import Path
 
 from agent.literature.backfill_years import backfill_years, cards_missing_year, parse_manual_downloads
+from agent.literature.store import RecordStore
 from core.indexer.index_card import load_shard
 from discovery.discover_journal_articles.discovery import Work
 from lit_helpers import make_index
@@ -153,6 +154,27 @@ class TestBackfillYears(unittest.TestCase):
     def test_an_empty_index_backfills_nothing(self):
         with tempfile.TemporaryDirectory() as root:
             self.assertEqual(backfill_years(root, "me@example.com"), {})
+
+    def test_also_updates_an_existing_record_s_identity_so_db_build_picks_it_up(self):
+        with tempfile.TemporaryDirectory() as root:
+            make_index(root, file_id="0000000000000001", card_extra={"doi": "10.1/x"})
+            records = RecordStore(str(Path(root) / ".index" / "study_records"))
+            records.write({"identity": {"file_id": "0000000000000001", "title": "T"}, "core": {}})
+            records.write({"identity": {"file_id": "0000000000000001", "title": "T"}, "core": {}}, "b")
+            backfill_years(root, "me@example.com", records=records,
+                            resolve_doi=lambda doi, mailto: _work(2018),
+                            resolve_openalex=lambda oid, mailto: None)
+            self.assertEqual(records.read("0000000000000001")["identity"]["publication_year"], 2018)
+            self.assertEqual(records.read("0000000000000001", "b")["identity"]["publication_year"], 2018)
+
+    def test_record_update_is_skipped_when_no_record_exists_yet(self):
+        with tempfile.TemporaryDirectory() as root:
+            make_index(root, file_id="0000000000000001", card_extra={"doi": "10.1/x"})
+            records = RecordStore(str(Path(root) / ".index" / "study_records"))
+            outcomes = backfill_years(root, "me@example.com", records=records,
+                                       resolve_doi=lambda doi, mailto: _work(2018),
+                                       resolve_openalex=lambda oid, mailto: None)
+            self.assertEqual(outcomes, {"0000000000000001": "backfilled"})
 
 
 if __name__ == "__main__":

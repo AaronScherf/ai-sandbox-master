@@ -65,13 +65,27 @@ def resolve_year(card: dict, mailto: str, *, resolve_doi=resolve_work_by_doi,
     return None
 
 
+def _update_record_identity(records, file_id: str, fields: dict) -> None:
+    """Carries the same identity fields onto any already-extracted record (both passes), so a later `db build`
+    reflects the fix without re-extraction -- records snapshot identity at extraction time and don't otherwise
+    see a later card correction."""
+    if records is None:
+        return
+    for pass_label in ("a", "b"):
+        record = records.read(file_id, pass_label)
+        if record is not None:
+            record["identity"].update(fields)
+            records.write(record, pass_label)
+
+
 def backfill_years(index_root: str, mailto: str, *, resolve_doi=resolve_work_by_doi,
                     resolve_openalex=resolve_work_by_openalex_id, resolve_title=resolve_work_by_title,
-                    manual_downloads: dict[str, tuple[str, str]] | None = None) -> dict[str, str]:
-    """Fills publication_year on every journal_article card missing it. Returns file_id -> outcome:
-    'backfilled', 'no identifier' (nothing resolved it), 'not found in OpenAlex' (the card's own identifier
-    didn't resolve), or 'uncertain title match: <title>' (a title search found a different-looking paper; not
-    applied)."""
+                    manual_downloads: dict[str, tuple[str, str]] | None = None, records=None) -> dict[str, str]:
+    """Fills publication_year on every journal_article card missing it, and on any already-extracted record for
+    the same paper (records is a RecordStore; pass it so `db build` picks up the fix without re-extraction).
+    Returns file_id -> outcome: 'backfilled', 'no identifier' (nothing resolved it), 'not found in OpenAlex' (the
+    card's own identifier didn't resolve), or 'uncertain title match: <title>' (a title search found a
+    different-looking paper; not applied)."""
     if manual_downloads is None:
         manual_downloads = parse_manual_downloads(_default_manual_downloads_path(index_root))
     outcomes: dict[str, str] = {}
@@ -84,6 +98,7 @@ def backfill_years(index_root: str, mailto: str, *, resolve_doi=resolve_work_by_
                 outcomes[fid] = "not found in OpenAlex"
             else:
                 set_card_fields(index_root, fid, {"publication_year": year})
+                _update_record_identity(records, fid, {"publication_year": year})
                 outcomes[fid] = "backfilled"
             continue
         match = manual_downloads.get(_normalize_title(title))
@@ -91,7 +106,9 @@ def backfill_years(index_root: str, mailto: str, *, resolve_doi=resolve_work_by_
             kind, ident = match
             work = resolve_doi(ident, mailto) if kind == "doi" else resolve_openalex(ident, mailto)
             if work and work.year:
-                set_card_fields(index_root, fid, {"publication_year": work.year, kind: ident})
+                fields = {"publication_year": work.year, kind: ident}
+                set_card_fields(index_root, fid, fields)
+                _update_record_identity(records, fid, fields)
                 outcomes[fid] = "backfilled"
                 continue
         work = resolve_title(title, mailto)
@@ -101,5 +118,6 @@ def backfill_years(index_root: str, mailto: str, *, resolve_doi=resolve_work_by_
             outcomes[fid] = f"uncertain title match: {work.title}"
         else:
             set_card_fields(index_root, fid, {"publication_year": work.year})
+            _update_record_identity(records, fid, {"publication_year": work.year})
             outcomes[fid] = "backfilled"
     return outcomes
