@@ -1,6 +1,7 @@
 import contextlib
 import io
 import json
+import os
 import tempfile
 import unittest
 from pathlib import Path
@@ -126,6 +127,33 @@ class TestBootstrapAndStatus(unittest.TestCase):
             _run(env.args("submit", "r1"))
             _, after = _run(env.args("status"))
             self.assertIn("records: 1", after)
+
+
+class TestBackfillYears(unittest.TestCase):
+    def test_reports_outcomes_and_a_total(self):
+        with tempfile.TemporaryDirectory() as root:
+            env = Env(root)
+            real = cli.backfill_years
+            cli.backfill_years = lambda index_root, mailto, **kw: {FID: "backfilled"}
+            try:
+                code, out = _run(env.args("backfill-years", "--mailto", "me@example.com"))
+            finally:
+                cli.backfill_years = real
+            self.assertEqual(code, 0)
+            self.assertIn(f"{FID}\tbackfilled", out)
+            self.assertIn("1 of 1 backfilled", out)
+
+    def test_no_mailto_is_a_clear_error(self):
+        with tempfile.TemporaryDirectory() as root:
+            env = Env(root)
+            old = os.environ.pop("OPENALEX_CONTACT_EMAIL", None)
+            try:
+                code, out = _run(env.args("backfill-years"))
+            finally:
+                if old is not None:
+                    os.environ["OPENALEX_CONTACT_EMAIL"] = old
+            self.assertEqual(code, 2)
+            self.assertIn("mailto", out)
 
 
 class TestApi(unittest.TestCase):

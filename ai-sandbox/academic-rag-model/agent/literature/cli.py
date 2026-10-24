@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sqlite3
 from pathlib import Path
 
@@ -10,6 +11,7 @@ from core.agent_tasks.loop import BudgetError, api_run, collect_run, provenance,
 from core.agent_tasks.work import load_run
 
 from . import cluster as clusters, contribute, db as litdb, review, stage, synth, tiers, verify
+from .backfill_years import backfill_years
 from .remap import remap_record
 from .gold import DEFAULT_PATH, load_gold, score_record, summarize
 from .papers import drop_duplicate_titles, eligible_papers
@@ -283,6 +285,18 @@ def cmd_remap(args) -> int:
     return 0
 
 
+def cmd_backfill_years(args) -> int:
+    mailto = args.mailto or os.environ.get("OPENALEX_CONTACT_EMAIL")
+    if not mailto:
+        print("backfill-years: no --mailto and OPENALEX_CONTACT_EMAIL is not set")
+        return 2
+    outcomes = backfill_years(args.index_root, mailto)
+    for fid, outcome in sorted(outcomes.items()):
+        print(f"{fid}\t{outcome}")
+    print(f"{sum(o == 'backfilled' for o in outcomes.values())} of {len(outcomes)} backfilled")
+    return 0
+
+
 def cmd_proposals(args) -> int:
     for p in _target(args).proposals.open():
         loc = p["locator"]
@@ -379,6 +393,8 @@ def build_parser() -> argparse.ArgumentParser:
     sub.add_parser("status", help="Counts of papers, records and open proposals.")
     sub.add_parser("tiers", help="Count facts by confidence tier (A both passes, B checker-supported, C open) and write _tiers.json.")
     sub.add_parser("remap", help="Point facts whose proposal was accepted or merged at the vocabulary term.")
+    by = sub.add_parser("backfill-years", help="Fill publication_year on journal_article cards that lack it, from OpenAlex (no LLM).")
+    by.add_argument("--mailto", default=None, help="Contact email for OpenAlex's polite pool (default: $OPENALEX_CONTACT_EMAIL).")
     pr = sub.add_parser("proposals", help="Terms the agent proposed that no vocabulary term covered.")
     pr.add_argument("action", choices=["list"])
     cl = sub.add_parser("cluster", help="Choose the papers of a review by facet constraints on tier A/B facts.")
@@ -418,5 +434,5 @@ def main(argv: list[str] | None = None, *, complete=None) -> int:
     if args.command == "api":
         return cmd_api(args, complete)
     return {"collect": cmd_collect, "verify": cmd_verify, "silver": cmd_silver, "submit": cmd_submit, "bootstrap": cmd_bootstrap, "status": cmd_status,
-            "proposals": cmd_proposals, "eval": cmd_eval, "remap": cmd_remap, "tiers": cmd_tiers,
+            "proposals": cmd_proposals, "eval": cmd_eval, "remap": cmd_remap, "tiers": cmd_tiers, "backfill-years": cmd_backfill_years,
             "cluster": cmd_cluster, "annotate": cmd_annotate, "synthesize": cmd_synthesize, "render": cmd_render, "db": cmd_db}[args.command](args)

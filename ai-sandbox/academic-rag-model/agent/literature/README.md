@@ -31,6 +31,7 @@ python -m agent.literature db cooccur                      # pairs of data sourc
 python -m agent.literature db query --where facet=value    # papers matching every constraint (same rules as cluster define)
 python -m agent.literature db export [--out PATH]          # Markdown evidence matrix
 python -m agent.literature status
+python -m agent.literature backfill-years [--mailto you@example.com]  # fill publication_year from OpenAlex, no LLM
 python -m agent.literature proposals list                  # terms the agent proposed that no vocabulary term covered
 python -m agent.literature eval [--gold PATH]              # aggregates against gold/gold_set.yaml
 python -m agent.literature api r1 --approve-cost 1.0       # explicit paid-API opt-in for extraction cards (cost-gated)
