@@ -190,6 +190,30 @@ class TestParsePrintedToc(unittest.TestCase):
         chapters = parse_printed_toc(text)
         self.assertEqual([c.title for c in chapters], ["Sets"])
 
+    def test_filters_roman_numeral_frontmatter_entry(self):
+        # TODO-0067: a frontmatter heading can pick up a bogus leading
+        # chapter-style digit from table-cell bleed (the same OCR/table-
+        # misalignment mechanism as the "1 = 2" case in
+        # test_skips_bare_number_line_with_no_real_title below), making it
+        # match _BARE_CHAPTER_NUM_RE -- but its real folio is roman, since
+        # frontmatter in these books is always roman-paginated while real
+        # chapters are arabic-paginated. A roman folio on an otherwise
+        # chapter-shaped line is proof the line is frontmatter bleed, not
+        # a genuine chapter, and must not be returned as one.
+        #
+        # No real Hammack .rag.md is checked into this repo (its converted
+        # output lives in the separate academic_notes tablet repo -- see
+        # docs/status/convert_textbook/2026-08-22-chapter-aware-chunking-status.md,
+        # which documents the real spurious-entry bug this reproduces);
+        # this fixture is constructed to match that documented mechanism.
+        text = (
+            "| 0. Preface                           |                         |                            | iv         |\n"
+            "|---------------------------------------|-------------------------|----------------------------|------------|\n"
+            "| 1. Sets                               |                         |                            | 3          |\n"
+        )
+        chapters = parse_printed_toc(text)
+        self.assertEqual([c.title for c in chapters], ["Sets"])
+
     def test_rudin_style_two_block_table_chapter_word_prefix(self):
         # Real excerpt shape from Rudin_Principles_of_Mathematical_Analysis_2014.md:
         # the TOC is rendered as two separate markdown tables (a page break

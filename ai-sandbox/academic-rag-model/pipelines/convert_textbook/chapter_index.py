@@ -241,6 +241,19 @@ def parse_printed_toc(markdown_text: str) -> list[ChapterEntry]:
         folio_page, folio_is_roman, folio_raw = _parse_folio_token(last_token)
         if folio_page is None:
             continue
+        if folio_is_roman:
+            # A roman-numeral folio can never belong to a real numbered
+            # chapter -- in these books, roman numerals paginate the
+            # front matter exclusively, while chapters live in the
+            # arabic-paginated body (the same assumption already made by
+            # compute_folio_offset). A line that otherwise pattern-
+            # matched as "Chapter N ... <folio>" but carries a roman
+            # folio is frontmatter bleed (e.g. a stray leading digit from
+            # table-cell misalignment, the same OCR mechanism as the
+            # "1 = 2" case below) masquerading as a chapter, not a real
+            # one -- confirmed from a spurious Hammack front-matter entry
+            # (TODO-0067).
+            continue
 
         title_text = title_text.strip(" .")
         if not title_text or not any(ch.isalnum() for ch in title_text):
