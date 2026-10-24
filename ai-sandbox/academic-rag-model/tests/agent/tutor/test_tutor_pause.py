@@ -2,6 +2,7 @@
 import datetime
 import json
 import os
+import shutil
 import tempfile
 import unittest
 
@@ -78,6 +79,34 @@ class TestPause(unittest.TestCase):
             s2 = Session.start(paths, now=NOW)
             s2.pause()
             self.assertEqual(json.dumps(load_profile(paths.profile_json), sort_keys=True), first)
+
+
+class TestLatestOpenDirectoryScan(unittest.TestCase):
+    """_latest_open must recognize real session directories by their id shape, not just
+    by scanning every directory under sessions/ for an events.jsonl without session_end."""
+
+    def test_ignores_a_renamed_or_copied_directory_that_sorts_after_the_real_session(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            paths, s = make(tmp)
+            real_sid = s.session_id
+            s.turn("attempt", M2)              # leave the real session genuinely open (WORKING)
+            # Simulate a renamed/copied session folder left under sessions/ (e.g. a manual trial
+            # copy for debugging). Its name sorts after every real "YYYY-MM-DD-HHMM[-n]" session id
+            # and its events.jsonl is a verbatim copy, so it is non-empty and has no session_end --
+            # the old scan-every-directory logic would mistake it for the open session.
+            trial_dir = os.path.join(paths.sessions_dir, "zz-trial-copy")
+            shutil.copytree(os.path.join(paths.sessions_dir, real_sid), trial_dir)
+
+            self.assertEqual(Session._latest_open(paths), real_sid)
+            # start() must resume the real session, not silently adopt the trial copy.
+            resumed = Session.start(paths, now=NOW)
+            self.assertEqual(resumed.session_id, real_sid)
+
+    def test_still_detects_a_genuinely_open_session(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            paths, s = make(tmp)
+            s.turn("attempt", M2)
+            self.assertEqual(Session._latest_open(paths), s.session_id)
 
 
 class TestPauseCli(unittest.TestCase):

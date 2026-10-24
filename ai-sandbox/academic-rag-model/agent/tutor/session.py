@@ -26,6 +26,12 @@ from agent.tutor.skip import counts_as_skip, is_real_attempt
 
 CHECK_STATUSES = ("confirmed", "missing", "wrong")
 
+# Real session directories are always named base("%Y-%m-%d-%H%M") or base + "-N" for a same-minute
+# collision (see start()). Anything else under sessions/ -- a renamed or copied folder left there for
+# a trial run, a backup, etc. -- is not a session this process created and must never be mistaken for
+# one, no matter what its events.jsonl contains or how it sorts against real session ids.
+SESSION_ID_RE = re.compile(r"^\d{4}-\d{2}-\d{2}-\d{4}(-\d+)?$")
+
 _NEXT = {
     LAUNCH: ["say (send the launch line)", "turn (once the student replies)"],
     WORKING: ["turn (the student's next message)", "say (your reply)", "verify (only when verify_available is true)"],
@@ -117,7 +123,7 @@ class Session:
         if not os.path.isdir(paths.sessions_dir):
             return None
         for sid in sorted(os.listdir(paths.sessions_dir), reverse=True):
-            if cls._is_open(paths, sid):
+            if SESSION_ID_RE.match(sid) and cls._is_open(paths, sid):
                 return sid
         return None
 
@@ -161,7 +167,7 @@ class Session:
         if not os.path.isdir(paths.sessions_dir):
             return None
         ids = sorted(d for d in os.listdir(paths.sessions_dir)
-                     if os.path.exists(os.path.join(paths.sessions_dir, d, "events.jsonl")))
+                     if SESSION_ID_RE.match(d) and os.path.exists(os.path.join(paths.sessions_dir, d, "events.jsonl")))
         return ids[-1] if ids else None
 
     # ---- helpers ------------------------------------------------------
