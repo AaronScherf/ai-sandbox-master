@@ -146,6 +146,76 @@ class TestValidateTailored(unittest.TestCase):
         self.assertFalse(any("[responsibility wording]" in p for p in problems))
 
 
+class TestValidateTailoredNamedEntities(unittest.TestCase):
+    # TODO-0044: award names, degrees, and core tools named in a work
+    # experience bullet shouldn't silently disappear when that bullet is
+    # rewritten -- same "dropped" pattern as metrics, but drawing its
+    # vocabulary from the master's structured awards/education/skills
+    # fields rather than a regex, since those are the fields the schema
+    # actually models them with (schema.py: AWARDS_REQUIRED, EDUCATION_REQUIRED
+    # 'degree', SKILLS_LIST_FIELDS 'items').
+    def _master(self, bullets):
+        return {
+            "work_experience": [{"id": "acme-1", "bullets": bullets}],
+            "awards": [{"name": "Presidential Volunteer Service Award", "description": "", "date": "2019"}],
+            "education": [{"institution": "State U", "degree": "MBA", "location": "", "start_date": "", "end_date": ""}],
+            "skills": [{"category": "Tools", "items": ["Python", "Tableau"]}],
+        }
+
+    def test_dropped_tool_mentioned_in_bullet_is_flagged(self):
+        master = self._master(["Built dashboards using Python and Tableau for leadership."])
+        tailored = _tailored([{"id": "acme-1", "bullets": ["Built dashboards for leadership."]}])
+        problems = validate_tailored(master, tailored)
+        self.assertTrue(any("[named entities]" in p and "Tableau" in p for p in problems))
+
+    def test_dropped_award_mentioned_in_bullet_is_flagged(self):
+        master = self._master(["Received the Presidential Volunteer Service Award for 200+ hours served."])
+        tailored = _tailored([{"id": "acme-1", "bullets": ["Served the community for 200+ hours."]}])
+        problems = validate_tailored(master, tailored)
+        self.assertTrue(any("[named entities]" in p and "Presidential Volunteer Service Award" in p for p in problems))
+
+    def test_dropped_degree_mentioned_in_bullet_is_flagged(self):
+        master = self._master(["Completed an MBA while working full-time."])
+        tailored = _tailored([{"id": "acme-1", "bullets": ["Worked full-time while studying."]}])
+        problems = validate_tailored(master, tailored)
+        self.assertTrue(any("[named entities]" in p and "MBA" in p for p in problems))
+
+    def test_retained_tool_award_and_degree_are_not_flagged(self):
+        master = self._master([
+            "Built dashboards using Python and Tableau.",
+            "Received the Presidential Volunteer Service Award.",
+            "Completed an MBA.",
+        ])
+        tailored = _tailored([{"id": "acme-1", "bullets": [
+            "Built interactive dashboards using Python and Tableau for leadership.",
+            "Earned the Presidential Volunteer Service Award for community work.",
+            "Completed an MBA while working full-time.",
+        ]}])
+        problems = validate_tailored(master, tailored)
+        self.assertFalse(any("[named entities]" in p for p in problems))
+
+    def test_entity_only_checked_against_its_own_entry(self):
+        master = {
+            "work_experience": [
+                {"id": "acme-1", "bullets": ["Built dashboards using Python and Tableau."]},
+                {"id": "globex-1", "bullets": ["Managed a regional team."]},
+            ],
+            "awards": [], "education": [], "skills": [{"category": "Tools", "items": ["Tableau"]}],
+        }
+        # globex-1 never mentioned Tableau, so dropping it from globex-1's
+        # rewrite isn't a drop at all.
+        tailored = _tailored([
+            {"id": "acme-1", "bullets": ["Built dashboards using Python and Tableau."]},
+            {"id": "globex-1", "bullets": ["Managed a regional team."]},
+        ])
+        self.assertEqual(validate_tailored(master, tailored), [])
+
+    def test_no_vocabulary_sections_does_not_crash(self):
+        master = {"work_experience": [{"id": "acme-1", "bullets": ["Grew revenue 30%"]}]}
+        tailored = _tailored([{"id": "acme-1", "bullets": ["Grew revenue 30% via new pricing"]}])
+        self.assertEqual(validate_tailored(master, tailored), [])
+
+
 class TestFormatReport(unittest.TestCase):
     def test_empty_problems_reports_clean(self):
         self.assertIn("no discrepancies", format_report([]))

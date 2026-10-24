@@ -23,6 +23,21 @@ opened two different roles' first bullet with the near-identical
 echo of the job description's own repeated phrasing, not a fabrication
 or a dropped fact, but real quality loss the metric checks above have no
 way to see).
+
+Also flags a dropped named entity -- an award name, degree, or
+skill/tool -- within one entry's own bullets (TODO-0044). Work
+experience is the only section the LLM ever rewrites (tailor.py/
+apply_tailoring: every other section is copied through unchanged by
+code), so an award/degree/tool can only actually disappear from the
+tailored output by being lost mid-bullet-rewrite, not by the top-level
+awards/education/skills sections themselves being altered -- hence this
+checks bullet text, scoped per entry like the metrics check, rather
+than diffing the master's awards/education/skills sections directly
+against the tailored ones (those are never independently touched).
+The vocabulary comes from the master's own structured fields
+(`awards[].name`, `education[].degree`, `skills[].items`) rather than
+freeform extraction, since the schema already names these things
+explicitly.
 """
 from __future__ import annotations
 
@@ -30,7 +45,7 @@ import re
 
 from rapidfuzz import fuzz
 
-from resume_manager.fact_diff import metrics_not_traceable
+from resume_manager.fact_diff import entities_not_traceable, metrics_not_traceable
 
 _OPENING_WORD_COUNT = 6
 _BULLET_DUPLICATE_THRESHOLD = 80
@@ -71,6 +86,29 @@ def _opening_phrase(bullet: str) -> str:
     return " ".join(words).lower()
 
 
+def _named_entity_vocabulary(master: dict) -> list[str]:
+    """Collects the literal strings from the master's own structured
+    awards/education/skills fields (TODO-0044) to check for against
+    bullet text -- never freeform NER, since these are exactly the
+    fields the schema already names them with (schema.py:
+    AWARDS_REQUIRED's 'name', EDUCATION_REQUIRED's 'degree',
+    SKILLS_LIST_FIELDS's 'items')."""
+    vocabulary: list[str] = []
+    for award in master.get("awards") or []:
+        name = award.get("name")
+        if name:
+            vocabulary.append(name)
+    for entry in master.get("education") or []:
+        degree = entry.get("degree")
+        if degree:
+            vocabulary.append(degree)
+    for category in master.get("skills") or []:
+        for item in category.get("items") or []:
+            if item:
+                vocabulary.append(item)
+    return vocabulary
+
+
 def validate_tailored(master: dict, tailored: dict, user_facts: list[dict] | None = None) -> list[str]:
     """Returns a list of human-readable warnings; empty means nothing was
     flagged.
@@ -95,6 +133,7 @@ def validate_tailored(master: dict, tailored: dict, user_facts: list[dict] | Non
     sees `tailored`, that check has nothing left to catch."""
     master_by_id = {e["id"]: e for e in master.get("work_experience") or []}
     tailored_by_id = {e["id"]: e for e in tailored.get("work_experience") or []}
+    entity_vocabulary = _named_entity_vocabulary(master)
     problems: list[str] = []
     openings: dict[str, int] = {}
     for entry in tailored.get("work_experience") or []:
@@ -110,6 +149,8 @@ def validate_tailored(master: dict, tailored: dict, user_facts: list[dict] | Non
             problems.append(f"[metrics] {entry_id}: possible invented metric '{metric}' not found in original bullets")
         for metric in metrics_not_traceable(original_text, rewritten_text):
             problems.append(f"[metrics] {entry_id}: possible dropped metric '{metric}' from original bullets not found in rewritten bullets")
+        for entity in entities_not_traceable(rewritten_text, original_text, entity_vocabulary):
+            problems.append(f"[named entities] {entry_id}: possible dropped award/degree/tool '{entity}' from original bullets not found in rewritten bullets")
         for index, bullet in enumerate(rewritten_bullets):
             for other in rewritten_bullets[index + 1:]:
                 similarity = fuzz.ratio(bullet, other)
@@ -157,6 +198,7 @@ def format_report(problems: list[str], brainstorm_status: str = "not used") -> s
     lines.append(f"Validation flagged {len(problems)} possible issue(s) -- review before submitting:")
     labels = {
         "[metrics]": "Numeric traceability",
+        "[named entities]": "Named entity preservation",
         "[user fact coverage]": "User-provided fact coverage",
         "[duplicate bullets]": "Possible duplicate bullets",
         "[responsibility wording]": "Responsibility wording review",
