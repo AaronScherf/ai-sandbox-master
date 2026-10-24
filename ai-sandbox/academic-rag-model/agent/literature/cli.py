@@ -3,12 +3,13 @@ from __future__ import annotations
 
 import argparse
 import json
+import sqlite3
 from pathlib import Path
 
 from core.agent_tasks.loop import BudgetError, api_run, collect_run, provenance, submit_run
 from core.agent_tasks.work import load_run
 
-from . import cluster as clusters, contribute, review, stage, synth, tiers, verify
+from . import cluster as clusters, contribute, db as litdb, review, stage, synth, tiers, verify
 from .remap import remap_record
 from .gold import DEFAULT_PATH, load_gold, score_record, summarize
 from .papers import drop_duplicate_titles, eligible_papers
@@ -210,6 +211,40 @@ def cmd_synthesize(args) -> int:
     return _collect(args, synth.STAGE, tasks, skips, "synthesis")
 
 
+def cmd_db(args) -> int:
+    path = litdb.db_path(args.index_root)
+    if args.action == "build":
+        counts = litdb.build(_target(args), path, args.floor)
+        print(f"built {path}: " + ", ".join(f"{n} {t.replace('_', ' ')}" for t, n in counts.items()))
+        return 0
+    if not path.is_file():
+        print("db: no database yet; run `db build` first")
+        return 2
+    conn = sqlite3.connect(path)
+    try:
+        if args.action == "matrix":
+            for r in litdb.matrix(conn):
+                print(f"{r['intervention']}	{r['outcome']}	{r['study_design']}	{r['papers']}")
+        elif args.action == "dist":
+            for label, n in litdb.distribution(conn, args.facet):
+                print(f"{label}	{n}")
+        elif args.action == "cooccur":
+            for a, b, n in litdb.cooccurrence(conn):
+                print(f"{a}	{b}	{n}")
+        elif args.action == "query":
+            for r in litdb.query(conn, _target(args).vocabs, args.where):
+                print(f"{r['file_id']}	{r['year'] or ''}	{r['title']}")
+        else:
+            out = args.out or Path(args.index_root) / "literature_db" / "evidence_matrix.md"
+            print(f"wrote {litdb.export_markdown(conn, out)}")
+    except (ValueError, clusters.ClusterError) as exc:
+        print(f"db: {exc}")
+        return 2
+    finally:
+        conn.close()
+    return 0
+
+
 def cmd_render(args) -> int:
     try:
         review_path, bib_path = review.render(_target(args), args.name)
@@ -363,6 +398,12 @@ def build_parser() -> argparse.ArgumentParser:
     sy.add_argument("--max-papers", type=int, default=synth.MAX_PAPERS)
     rd = sub.add_parser("render", help="Write review.md and bibliography.md under literature_reviews/<name>/.")
     rd.add_argument("name")
+    d = sub.add_parser("db", help="Derived SQLite database: build it, then matrix, dist, cooccur, query or export.")
+    d.add_argument("action", choices=["build", "matrix", "dist", "cooccur", "query", "export"])
+    d.add_argument("facet", nargs="?", default=None, help="For dist: the facet to count.")
+    d.add_argument("--where", action="append", default=[], help="For query: facet=value, repeatable.")
+    d.add_argument("--floor", choices=["A", "B", "C"], default="B", help="For build: lowest confidence tier to load.")
+    d.add_argument("--out", default=None, help="For export: the Markdown file to write.")
     ev = sub.add_parser("eval", help="Score the records against the gold set (aggregates only).")
     ev.add_argument("--gold", default=None, help=f"Gold set YAML (default: {DEFAULT_PATH}).")
     a = sub.add_parser("api", help="Send pending cards to the paid API (explicit opt-in, cost-gated).")
@@ -378,4 +419,4 @@ def main(argv: list[str] | None = None, *, complete=None) -> int:
         return cmd_api(args, complete)
     return {"collect": cmd_collect, "verify": cmd_verify, "silver": cmd_silver, "submit": cmd_submit, "bootstrap": cmd_bootstrap, "status": cmd_status,
             "proposals": cmd_proposals, "eval": cmd_eval, "remap": cmd_remap, "tiers": cmd_tiers,
-            "cluster": cmd_cluster, "annotate": cmd_annotate, "synthesize": cmd_synthesize, "render": cmd_render}[args.command](args)
+            "cluster": cmd_cluster, "annotate": cmd_annotate, "synthesize": cmd_synthesize, "render": cmd_render, "db": cmd_db}[args.command](args)

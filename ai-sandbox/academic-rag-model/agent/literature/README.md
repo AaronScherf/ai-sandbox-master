@@ -24,6 +24,12 @@ python -m agent.literature cluster define NAME --where sector=<term> --where cou
 python -m agent.literature annotate NAME --run-id a1 [--limit 11]   # cards: contribution + limitation note per paper (--limit = a batch)
 python -m agent.literature synthesize NAME --run-id s1     # cards: the review (chunks of up to 20 papers; --merge joins them)
 python -m agent.literature render NAME                     # review.md + bibliography.md under research/literature_reviews/NAME/
+python -m agent.literature db build [--floor B]            # rebuild research/literature_db/literature.sqlite from records, tiers, annotations, clusters
+python -m agent.literature db matrix                       # papers per intervention x outcome x study design
+python -m agent.literature db dist <facet>                 # papers per label for one facet (countries, data_sources, ...)
+python -m agent.literature db cooccur                      # pairs of data sources used in the same paper
+python -m agent.literature db query --where facet=value    # papers matching every constraint (same rules as cluster define)
+python -m agent.literature db export [--out PATH]          # Markdown evidence matrix
 python -m agent.literature status
 python -m agent.literature proposals list                  # terms the agent proposed that no vocabulary term covered
 python -m agent.literature eval [--gold PATH]              # aggregates against gold/gold_set.yaml
@@ -73,6 +79,13 @@ country code). `annotate` asks for a one-sentence contribution and limitation pe
 id that is not on the card, names a raw id in prose, or states a number that is not in a cited result (or that paper's
 year), and bounces a card that leaves a paper uncited. `render` writes the review with citation keys (title words and
 year) and the bibliography, which comes only from the index card, the record and the annotations, never from model prose.
+
+## Database (stage 4)
+
+`db build` recreates `research/literature_db/literature.sqlite` (gitignored: it holds quotes) from the records, so build
+again after any change; nothing is edited in the database. Tables: `papers`, `facts` (tier A/B by default, with quote and
+page), `results`, `annotations`, `cluster_members`. Matrix, distribution, co-occurrence and query read only those tables
+and use no LLM. A paper with several terms in a facet counts under each, so matrix rows can sum to more than the paper count.
 
 ## Not built
 
