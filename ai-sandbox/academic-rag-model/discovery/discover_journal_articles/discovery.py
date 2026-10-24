@@ -207,6 +207,20 @@ def resolve_work_by_doi(doi: str, mailto: str) -> Work | None:
     return _work_from_openalex(response.json())
 
 
+def resolve_work_by_title(title: str, mailto: str) -> Work | None:
+    """The best OpenAlex match for a free-text title (GET /works?filter=title.search:...), for papers with no
+    DOI or OpenAlex ID on hand. Callers must check the result's own title before trusting it: a title search can
+    return a different paper with similar wording."""
+    quoted = f'"{title}"' if "," in title else title
+    try:
+        response = fetch_with_retries("GET", f"{_OPENALEX_BASE}/works",
+                                      params={"filter": f"title.search:{quoted}", "per-page": 1, "mailto": mailto})
+    except FetchError:
+        return None
+    results = response.json().get("results", [])
+    return _work_from_openalex(results[0]) if results else None
+
+
 def resolve_work_by_openalex_id(openalex_id: str, mailto: str) -> Work | None:
     """Looks a Work up directly by its OpenAlex ID (GET /works/{id}),
     for manifest keys that were built from an OpenAlex ID rather than a

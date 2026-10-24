@@ -218,6 +218,33 @@ class TestResolveWorkByOpenalexId(unittest.TestCase):
         self.assertIsNone(resolve_work_by_openalex_id("https://openalex.org/W999", "me@example.com"))
 
 
+class TestResolveWorkByTitle(unittest.TestCase):
+    @patch("discovery.discover_journal_articles.discovery.fetch_with_retries")
+    def test_returns_the_first_result(self, mock_fetch):
+        from discovery.discover_journal_articles.discovery import resolve_work_by_title
+        mock_fetch.return_value = _response({"results": [_openalex_work(title="Exact Match")]})
+
+        work = resolve_work_by_title("Exact Match", "me@example.com")
+
+        self.assertIsInstance(work, Work)
+        self.assertEqual(work.title, "Exact Match")
+        args, kwargs = mock_fetch.call_args
+        self.assertIn("title.search:Exact Match", kwargs["params"]["filter"])
+
+    @patch("discovery.discover_journal_articles.discovery.fetch_with_retries")
+    def test_none_when_nothing_matches(self, mock_fetch):
+        from discovery.discover_journal_articles.discovery import resolve_work_by_title
+        mock_fetch.return_value = _response({"results": []})
+        self.assertIsNone(resolve_work_by_title("Nothing Like This", "me@example.com"))
+
+    @patch("discovery.discover_journal_articles.discovery.fetch_with_retries")
+    def test_none_on_fetch_error(self, mock_fetch):
+        from discovery.discover_journal_articles.discovery import resolve_work_by_title
+        from discovery.discover_journal_articles.http_utils import FetchError
+        mock_fetch.side_effect = FetchError("not found")
+        self.assertIsNone(resolve_work_by_title("Anything", "me@example.com"))
+
+
 class TestIterCitingWorks(unittest.TestCase):
     @patch("discovery.discover_journal_articles.discovery.fetch_with_retries")
     def test_pages_until_empty(self, mock_fetch):
