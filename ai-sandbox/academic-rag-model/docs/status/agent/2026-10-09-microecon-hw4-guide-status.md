@@ -62,6 +62,22 @@ was $1.46 of the $1.51; relevance, dedup and organization together were about $0
 7. **Coverage gap.** The draft covered only one of the five utility functions' demands and none of
    the CES demand limits that question 3 asks for. The spec's topic instructions did not list them.
    Written by hand and verified numerically.
+8. **Multi-unit granularity limit and lack of thematic clustering (2026-10-24 evaluation).**
+   The pipeline has no built-in mechanism for hierarchical topic clustering or multi-unit
+   synthesis. It requires a manually authored TOML spec with flat, topic-by-topic chunk retrieval
+   rules. When evaluated for a comprehensive guide spanning multiple assignments (e.g.,
+   Microeconomics Homeworks 1–3, covering 36 concepts across order theory, preference representation,
+   and revealed preference), the topic-by-topic approach fails on three counts:
+   - *Excessive granularity:* Generating 30+ separate topic sections produces an unreadable,
+     redundant guide instead of cohesive thematic review.
+   - *Fragmented proof narrative:* Isolated top-k chunk retrieval misses cross-problem-set
+     theoretical connections (such as how Szpilrajn extension and preorder peeling underpin both
+     incomplete utility representation and multi-utility revealed preference).
+   - *Cost and friction:* Metered draft and revise passes scale linearly in topic count; a 30-topic
+     guide would cost $10–$15 on metered API calls and generate hundreds of review ledger items.
+   For multi-unit synthesis, the pipeline should group concepts into 3–5 macro-themes and leverage
+   subscription agents (Antigravity/Gemini) with full-context window ingestion of problem sets and
+   solutions rather than isolated per-topic RAG retrieval (tracked in TODO-0084).
 
 ## Assignment check (done by hand; should become a pipeline step)
 
