@@ -63,5 +63,22 @@ Or via the tutor's own `--visualize` flag — see [`../rag/README.md`](../rag/RE
 Output goes to `<root>/.viz/<course>/<slug>.html`, gitignored by default
 (see the root `.gitignore`) — same IP posture as `.index/chunks/`.
 
+- `vault_emitter.py` — **Decoupled Asset Injection** (TODO-0053; design doc:
+  `../../docs/brainstorms/agent/viz/2026-10-06-interactive-plotly-obsidian-pipeline.md`).
+  Takes a `VizResult`'s already-produced `fragment_html` (or a raw fragment
+  string via the lower-level `emit_vault_asset()`) and writes it unmodified
+  to `<note_dir>/assets/<slug>_div.html` *inside the vault*, next to the
+  note that will embed it — a different output location from `.viz/`
+  above, which is a disposable render cache, not vault content. Returns a
+  `VaultAsset` with the vault-relative path and a standardized, ready-to-paste
+  DataviewJS mounting snippet (`app.vault.adapter.read` + script
+  re-execution + an explicit pixel-height container). This sidesteps
+  Pyodide's in-memory filesystem, the Webpage HTML Export plugin's
+  iframe/transclusion deadlock, `file:///` CORS on embedded iframes, and
+  0px container collapse — see the design doc for the full rationale. The
+  caller (e.g. a future `agent/study_guide` `--visualize-interactive` flag)
+  decides `note_dir` and inserts the returned snippet into the note; this
+  module does no note-editing of its own.
+
 See the design spec for the full reasoning:
 `../../docs/superpowers/specs/agent/viz/2026-09-02-visualization-agent-design.md`.
