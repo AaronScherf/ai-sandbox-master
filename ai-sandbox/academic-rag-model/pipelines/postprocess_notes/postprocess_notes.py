@@ -63,9 +63,16 @@ _MASKED_PROBABILITY_THRESHOLD = 0.01
 # high-surprisal to GPT-2 regardless of correctness. Raising to 5.0 cuts
 # that sample's raw hits to 20/2150 (~67% reduction) without a clean cutoff
 # fully separating signal from noise -- some correct words (e.g. "subject",
-# z=5.91-6.27) still clear even this bar. This is a noise-volume mitigation,
-# not a fix for the underlying precision problem; see
-# docs/status/2026-08-27-notes-postprocessing-status.md.
+# z=5.91-6.27) still clear even this bar. Raising the threshold alone was a
+# noise-volume mitigation, not a fix for the underlying precision problem
+# (see docs/status/postprocess_notes/2026-08-27-notes-postprocessing-status.md,
+# "Remaining open items"). TODO-0060's calibration fix addresses the actual
+# root cause instead, in local_model_scoring.py's `_local_zscores`: a
+# page-stdev floor on the local-neighborhood stdev, so a deflated local
+# variance (common in short/symbolic-math-heavy context) can no longer
+# manufacture an oversized z-score on its own. This threshold is kept at
+# 5.0 rather than lowered back down, since the floor -- not a lower bar --
+# is what's now doing the false-positive-reduction work.
 _CAUSAL_ZSCORE_THRESHOLD = 5.0
 _PATTERN_REVIEW_THRESHOLD = 5
 

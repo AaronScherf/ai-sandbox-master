@@ -12,7 +12,11 @@ project's established split for anything model- or network-dependent
 (transcribe_page_via_gemini, render_page_to_image_bytes, etc. are the
 same way). Validated instead against real documents; see Task 8's
 validation script in the implementation plan for the concrete real-bug
-check this was built against.
+check this was built against. The one exception is `_local_zscores`,
+the pure-math core of score_causal_zscore's z-score calculation -- it
+has no model dependency and is unit-tested directly (see
+tests/pipelines/postprocess_notes/test_local_model_scoring.py and
+TODO-0060's calibration fix in its own docstring).
 """
 from __future__ import annotations
 
@@ -108,6 +112,67 @@ def score_masked_candidates(
     return results
 
 
+def _local_zscores(
+    surprisal: list[float], window: int = 10, min_stdev_fraction: float = 0.5,
+) -> list[float]:
+    """
+    Pure-math core of the per-token local z-score -- split out from
+    score_causal_zscore so it's unit-testable without transformers/torch
+    (the rest of this module is deliberately not unit-tested locally; see
+    the module docstring. This helper has no model dependency at all, so
+    it's the one exception).
+
+    Calibration fix for TODO-0060 / the precision problem documented in
+    docs/status/postprocess_notes/2026-08-27-notes-postprocessing-status.md
+    ("Remaining open items"): raising `_CAUSAL_ZSCORE_THRESHOLD` alone
+    (3.0 -> 5.0, and as far as 6.0 in further analysis) never found a
+    clean cutoff against real terse, LaTeX-heavy problem-set prose
+    (Practice Sheet.md) -- correct words like "Let" (z=11.60) and
+    "subject" (z=5.91-6.27) still cleared even the highest bar tried.
+
+    Root cause: a token's local window (+/- `window` tokens) in short or
+    symbolic-math-heavy text is often itself very low-variance -- it's
+    surrounded by highly predictable digits, operators, and single-letter
+    variables GPT-2 scores confidently. An ordinary English word only
+    *moderately* more surprising than those neighbors still produces a
+    huge z-score, not because the word is anomalous in absolute terms,
+    but because the neighborhood's own stdev is artificially tiny. No
+    fixed z-score threshold can separate that from a genuine anomaly,
+    which also produces a high z-score, but for the right reason (an
+    actually large gap between its surprisal and its neighbors', not a
+    deflated denominator).
+
+    Fix: floor each token's local stdev at `min_stdev_fraction` of the
+    *whole page's* own stdev, so a deflated local-window variance can no
+    longer manufacture an oversized z-score by itself -- a token now also
+    has to be surprising relative to the page's overall register, not
+    merely relative to an unusually uniform immediate neighborhood. A
+    real anomaly (surprisal far outside the page's own range) clears that
+    bar easily either way; a rare-but-correct word sitting in a locally
+    uniform pocket of otherwise-ordinary text typically no longer does.
+    This is a mitigation tuned against the documented examples above, not
+    re-validated against a live model run this session -- see this
+    change's commit message for the honest caveat.
+    """
+    n = len(surprisal)
+    if n == 0:
+        return []
+    page_stdev = statistics.pstdev(surprisal) if n >= 2 else 0.0
+    stdev_floor = min_stdev_fraction * page_stdev
+    z_scores = []
+    for i in range(n):
+        lo, hi = max(0, i - window), min(n, i + window + 1)
+        neighborhood = surprisal[lo:i] + surprisal[i + 1:hi]
+        if len(neighborhood) < 4:
+            z_scores.append(0.0)
+            continue
+        mean = statistics.mean(neighborhood)
+        local_stdev = statistics.pstdev(neighborhood)
+        stdev = max(local_stdev, stdev_floor) or 1e-6
+        z_scores.append((surprisal[i] - mean) / stdev)
+    return z_scores
+
+
 def score_causal_zscore(model_name: str, text: str, window: int = 10) -> list[dict]:
     """
     Per-token causal surprisal, converted to a local z-score against
@@ -119,6 +184,11 @@ def score_causal_zscore(model_name: str, text: str, window: int = 10) -> list[di
     for an entire page, versus one pass per candidate span for masked
     scoring, so it's a cheaper first coarse pass. Returns one dict per
     token: {"text", "start", "end", "surprisal", "z_score"}.
+
+    The z-score itself is computed by `_local_zscores` (see its
+    docstring for the TODO-0060 calibration fix: a page-stdev floor on
+    the local neighborhood's stdev, to curb false positives on short or
+    symbolic-math-heavy notes).
 
     Truncated to GPT-2's own 1024-token position-embedding limit --
     confirmed necessary against a real corpus run (a dense LaTeX-typeset
@@ -145,20 +215,13 @@ def score_causal_zscore(model_name: str, text: str, window: int = 10) -> list[di
     surprisal = (-token_logprob).tolist()
     token_strs = tokenizer.convert_ids_to_tokens(input_ids[0])[1:]
 
+    z_scores = _local_zscores(surprisal, window=window)
+
     results = []
-    n = len(surprisal)
-    for i in range(n):
-        lo, hi = max(0, i - window), min(n, i + window + 1)
-        neighborhood = surprisal[lo:i] + surprisal[i + 1:hi]
-        if len(neighborhood) < 4:
-            z = 0.0
-        else:
-            mean = statistics.mean(neighborhood)
-            stdev = statistics.pstdev(neighborhood) or 1e-6
-            z = (surprisal[i] - mean) / stdev
+    for i in range(len(surprisal)):
         start, end = offsets[i]
         results.append({
             "text": token_strs[i], "start": start, "end": end,
-            "surprisal": surprisal[i], "z_score": z,
+            "surprisal": surprisal[i], "z_score": z_scores[i],
         })
     return results
