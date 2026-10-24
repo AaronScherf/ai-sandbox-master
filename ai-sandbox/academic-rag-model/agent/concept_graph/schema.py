@@ -144,6 +144,7 @@ class SeedConfig(_Model):
     scope:             free text, shown on the seed card (what is in and out of this graph)
     must_include:      concepts that must end up as nodes; an entry is a name or a list of aliases
     textbook_chapters: source key or textbook folder name -> chapter numbers whose section headings should be shown
+    reading_aliases: syllabus abbreviation -> catalog book key for collect gaps
     min_nodes_per_section: every section must end up with at least this many nodes (the required list is a floor,
                        not the target; raise this to demand a fuller skeleton)
     fill_hints:        node id -> what the owner wants that node's explanation to cover (shown on its fill card)"""
@@ -151,6 +152,7 @@ class SeedConfig(_Model):
     scope: str = ""
     must_include: list[str | list[str]] = Field(default_factory=list)
     textbook_chapters: dict[str, list[int]] = Field(default_factory=dict)
+    reading_aliases: dict[str, str] = Field(default_factory=dict)
     min_nodes_per_section: int = Field(default=1, ge=1)
     fill_hints: dict[str, str] = Field(default_factory=dict)
 

@@ -88,6 +88,7 @@ The task cards, run manifests and the collect/submit/api loop behind these stage
 | Stage | What it proposes |
 |---|---|
 | `seed` | The course outline (sections) and a skeleton of concept nodes, from the hub's syllabus, textbook chapter titles, lecture dates and slide titles. For starting a graph. |
+| `gaps` | One syllabus-reading comparison card with assigned textbook headings and current node names by section. Submit creates reviewer proposals through the existing clustering and tombstone checks. Run after additive seed. |
 | `fill` | `gist`, `explanation`, optional `formal`/`example`, and citations for each unfilled node in a taught section. |
 | `link` | Typed edges between existing nodes (with conditions and `via`), each citing evidence. |
 | `critic` | A blind second look at each proposed edge: `supports`, `weak` or `unsupported`, with a note. |
@@ -102,6 +103,7 @@ must_include:                 # each must end up as a node (a name, or a list of
 textbook_chapters:            # chapters whose section headings the seed card shows (book key or textbook folder name -> numbers)
   mwg: [1, 2, 3]
 min_nodes_per_section: 6   # every section must end with at least this many nodes (default 1)
+reading_aliases: {SW: stock, CT: cameron}  # optional syllabus abbreviations -> catalog book keys for collect gaps
 ```
 
 **Course materials.** What each file in the course is (syllabus, instructor slides or notes, recitation, problem
@@ -137,9 +139,19 @@ python -m agent.concept_graph.cli --graph-repo G submit <run-id> --work-dir W --
 Cards that fail validation are bounced with the reasons written onto the card; fix only those and submit again.
 `status` shows the worklist.
 
-**What `submit` enforces:** the result must match the stage's shape; prose must be in the drafter's own words
-(8 or more consecutive words shared with an offered passage is rejected, LaTeX `formal` text excepted); every
-citation must be a `(source, ref)` pair that was offered on that card; edges may only connect existing node ids,
+After `seed --redo`, `collect gaps --hub-root H --course C` makes one private card listing the syllabus's topics and
+assigned readings, the matching textbook section headings, and every graph section's current concept names. It
+resolves syllabus abbreviations through `reading_aliases` and matches textbook chapter numbers in their headings,
+which may differ from source filenames. Missing assigned readings stop collection with a diagnostic. When a book's
+chapter extraction omitted an assigned section but its table of contents names it, the card labels that heading
+`contents only; section text unavailable`. The result uses
+`proposals` and `edges` lists; an explicit pair of empty lists means no gaps. `submit` bounces a stale card if its
+sources or graph changed, and sends valid additions through `reviews.apply_proposals`. Proposed items appear in the
+existing review page for human acceptance or rejection; this stage does not mark them verified.
+
+**What `submit` enforces:** the result must match the stage's shape; drafted explanations must be in the agent's own
+words (8 or more consecutive words shared with an offered passage is rejected, LaTeX `formal` text excepted); every
+required citation must be a `(source, ref)` pair that was offered on that card; edges may only connect existing node ids,
 need a `condition` when they are `implies`/`iff`, and must not repeat an existing or rejected edge or create a
 definitional cycle. Verified items are never overwritten, and `submit` twice does nothing the second time.
 

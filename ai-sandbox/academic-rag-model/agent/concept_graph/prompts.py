@@ -13,6 +13,11 @@ COMMON = """\
 - Close every $ in LaTeX. Put any value that contains a colon in double quotes."""
 
 STEPS = {
+    "gaps": """\
+- Compare every syllabus assignment with the textbook headings and all graph sections, including sections with no nodes.
+- Write proposed names and notes in your own words. Put the syllabus reading reference (for example SW 16.2) in each
+  note. Use only the card's existing kinds, topics and sections; do not repeat an existing or rejected concept.
+- Return both `proposals` and `edges` lists, even if both are empty. These are proposals for human review.""",
     "seed": """\
 - Add only sections and concepts the graph does not have yet (the card lists what exists, if anything); never
   repeat an existing node or section.
@@ -37,7 +42,8 @@ STEPS = {
 - Be strict with implies and iff claims: check the direction and that the condition is actually given.""",
 }
 
-STAGE_NOUN = {"seed": "SEED", "fill": "FILL", "link": "LINK", "critic": "CRITIC", "summary": "SUMMARY"}
+STAGE_NOUN = {"seed": "SEED", "fill": "FILL", "link": "LINK", "critic": "CRITIC", "summary": "SUMMARY",
+              "gaps": "GAPS"}
 
 
 def _first_instruction(run: Run) -> str:
@@ -64,7 +70,9 @@ def agent_prompt(run: Run, *, submit_hint: str | None = None) -> str:
     check = (f'\nCheck first: this is a {noun} run. Open any one card; the first line under "## Instructions" should be:\n'
              f'  "{first}"\nIf it is not, you were given the wrong run: stop and tell me.\n') if first else ""
     steps = STEPS.get(stage, "- Follow each card's instructions.")
-    common = "\n".join(l for l in COMMON.splitlines() if not (stage == "summary" and "citation" in l.lower()))
+    common = "\n".join(l for l in COMMON.splitlines()
+                       if not (stage in ("summary", "gaps") and "citation" in l.lower())
+                       and not (stage == "gaps" and "Never mention" in l))
     return f"""\
 Run the concept-graph {noun} run {run.run_id} ({count} card{"s" if count != 1 else ""}).
 Run dir: {run.root}

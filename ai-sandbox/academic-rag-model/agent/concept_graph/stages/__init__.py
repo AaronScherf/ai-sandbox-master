@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import importlib
 
-STAGES = ("seed", "fill", "link", "critic", "summary")
+STAGES = ("seed", "fill", "link", "critic", "summary", "gaps")
 
 
 def get(name: str):

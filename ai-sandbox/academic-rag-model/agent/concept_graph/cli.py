@@ -186,7 +186,7 @@ def _collect_run(args):
         raise ValueError(f"{len(flagged)} course file(s) are flagged for review; decide them with "
                          f"python -m core.course_materials.cli --hub-root {args.hub_root} --course {args.course} "
                          f"decide <path> --role ... (or pass --allow-unreviewed):\n  {names}")
-    retriever = None if args.stage == "seed" else args.retriever_factory(args)
+    retriever = None if args.stage in ("seed", "gaps") else args.retriever_factory(args)
     nodes, redo, top_k = args.node or None, args.redo, args.top_k
     if args.orphans:
         # a node with no edges at all: ask again with every candidate and a wider retrieval
@@ -253,8 +253,8 @@ Work directory: {work}
 2. Read ## Instructions, ## Subject and ## Offered passages. Use only the offered passages as evidence.
 3. Write ONLY the YAML mapping inside the ```yaml fence under ## Result. Do not edit any other part of the card,
    and do not edit any other file.
-4. Write in your own words: 8 or more consecutive words shared with a passage is rejected. Cite only the
-   (source, ref) pairs shown in the passage headers.
+4. Write in your own words. Cite only offered (source, ref) pairs when a result requires citations; for gaps,
+   include the syllabus reading reference in each proposal note.
 5. When the cards are done, run:
    python -m agent.concept_graph.cli --graph-repo "{repo}" submit {run_id} --work-dir "{work}" --agent-name YOUR-NAME
 6. A card that bounces gets a ## Bounced section listing why. Fix only those cards, then run submit again.
