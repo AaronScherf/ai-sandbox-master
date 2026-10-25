@@ -28,7 +28,15 @@ from audio_generator.sections import (
     narrate_sections,
     split_into_sections,
 )
-from audio_generator.state import compute_content_hash, episode_state_key, load_state, needs_regeneration, save_state
+from audio_generator.state import (
+    chapter_state_key,
+    compute_content_hash,
+    episode_state_key,
+    load_state,
+    needs_regeneration,
+    save_state,
+)
+from audio_generator.textbook_chapters import split_into_chapters
 
 DEFAULT_ACADEMIC_HUB_ROOT = "../academic-hub"
 
@@ -141,17 +149,16 @@ def _run_notes_source(source, state: dict, engine: str, summary: dict) -> None:
     _write_index_manifest(md_base, episodes)
 
 
-def _run_textbook_source(source, state: dict, engine: str, summary: dict) -> None:
-    """Unchanged one-file-one-MP3 path (spec §3.2's scope is notes-only;
-    textbook chapter-boundary reuse via chapter_index.py is a separate,
-    unstarted investigation, spec §9)."""
-    current_hash = compute_content_hash(source.abs_md_path)
+def _run_textbook_source_single(source, state: dict, engine: str, summary: dict, current_hash: str, md_text: str) -> None:
+    """The original one-file-one-MP3 path -- used whenever
+    textbook_chapters.split_into_chapters() can't confidently resolve at
+    least two chapter boundaries for this book (no parseable TOC, or no
+    folio tags anywhere in its converted markdown, e.g. because its
+    conversion run never found a confident folio offset)."""
     if not needs_regeneration(state, source, current_hash):
         summary["skipped_unchanged"] += 1
         return
 
-    with open(source.abs_md_path, "r", encoding="utf-8") as f:
-        md_text = f.read()
     narrated_md = narrate_for_speech(md_text)
     text = clean_markdown_for_speech(narrated_md)
     if not text:
@@ -171,6 +178,72 @@ def _run_textbook_source(source, state: dict, engine: str, summary: dict) -> Non
 
     state[source.rel_md_path] = current_hash
     summary["generated"] += 1
+
+
+def _run_textbook_source_chapters(source, state: dict, engine: str, summary: dict, current_hash: str, chapters: list) -> None:
+    """Chapter-aware textbook path (TODO-0057): one MP3/.narrated.md per
+    resolved chapter (`<name>__chNN.mp3`, mirroring notes' `__partNN`
+    naming but with a distinct infix so the two content types' outputs
+    are never visually confusable). Each chapter is narrated/cleaned
+    independently via the same narrate_for_speech()/
+    clean_markdown_for_speech() calls the single-file path already used
+    -- deliberately not reusing sections.py's multi-section concurrent
+    dispatch, which is notes-specific (spec §3.2) and out of scope here.
+    Idempotency is tracked per-chapter but still hashed on the whole
+    source file (chapter_state_key), the same deliberate simplification
+    episode_state_key already documents for notes."""
+    md_base, _ext = os.path.splitext(source.abs_md_path)
+    mp3_base, _ext = os.path.splitext(source.abs_mp3_path)
+
+    for chapter in chapters:
+        key = chapter_state_key(source.rel_md_path, chapter.index)
+        abs_mp3_path = f"{mp3_base}__ch{chapter.index:02d}.mp3"
+        chapter_source = dataclasses.replace(source, rel_md_path=key, abs_mp3_path=abs_mp3_path)
+        if not needs_regeneration(state, chapter_source, current_hash):
+            summary["skipped_unchanged"] += 1
+            continue
+
+        narrated_md = narrate_for_speech(chapter.text)
+        text = clean_markdown_for_speech(narrated_md)
+        if not text:
+            print(
+                f"WARNING: {source.rel_md_path} chapter {chapter.index} "
+                f"({chapter.title}) has no speakable text after cleaning -- skipping.",
+            )
+            summary["skipped_empty"] += 1
+            continue
+
+        try:
+            synthesize_speech(text, abs_mp3_path, engine=engine)
+        except Exception as err:
+            print(f"WARNING: failed to synthesize {key}: {err}")
+            summary["failed"] += 1
+            continue
+
+        with open(f"{md_base}__ch{chapter.index:02d}.narrated.md", "w", encoding="utf-8") as f:
+            f.write(text)
+
+        state[key] = current_hash
+        summary["generated"] += 1
+
+
+def _run_textbook_source(source, state: dict, engine: str, summary: dict) -> None:
+    """Textbook content type (TODO-0057): splits at chapter boundaries
+    when textbook_chapters.split_into_chapters() can resolve at least
+    two of them for this book (reusing chapter_index.py's printed-TOC
+    parser and the folio tags convert_textbook already burned into the
+    converted markdown); otherwise falls back to the original
+    one-file-one-MP3 behavior unchanged."""
+    current_hash = compute_content_hash(source.abs_md_path)
+    with open(source.abs_md_path, "r", encoding="utf-8") as f:
+        md_text = f.read()
+
+    chapters = split_into_chapters(md_text)
+    if not chapters:
+        _run_textbook_source_single(source, state, engine, summary, current_hash, md_text)
+        return
+
+    _run_textbook_source_chapters(source, state, engine, summary, current_hash, chapters)
 
 
 def run_pipeline(

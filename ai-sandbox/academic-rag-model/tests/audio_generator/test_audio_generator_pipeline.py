@@ -152,6 +152,113 @@ class TestRunPipelineTextbookSources(unittest.TestCase):
             self.assertEqual(mock_synthesize.call_args[0][0], written)
 
 
+class TestRunPipelineTextbookChapters(unittest.TestCase):
+    """Chapter-aware textbook path (TODO-0057): a textbook source whose
+    markdown resolves >=2 chapter boundaries (textbook_chapters.split_into_chapters)
+    produces one <name>__chNN.mp3/.narrated.md per chapter instead of a
+    single <name>.mp3 -- split_into_chapters() itself runs unmocked (pure,
+    already covered by test_textbook_chapters.py); only narrate_for_speech/
+    synthesize_speech are mocked."""
+
+    # Minimal synthetic markdown that resolves exactly two chapters --
+    # same structural pattern test_textbook_chapters.py uses (confirmed
+    # against a real converted textbook; see that file's own comment).
+    _TWO_CHAPTER_MD = (
+        "#### Chapter 1\n"
+        "# *First* **1**\n"
+        "#### Chapter 2\n"
+        "# *Second* **10**\n"
+        "\n<!-- page 5 --><!-- folio 1 -->\n\nChapter one body.\n"
+        "\n<!-- page 14 --><!-- folio 10 -->\n\nChapter two body.\n"
+    )
+
+    @patch("audio_generator.pipeline.synthesize_speech")
+    @patch("audio_generator.pipeline.narrate_for_speech", side_effect=lambda text: text)
+    @patch("audio_generator.pipeline.discover_source_files")
+    def test_resolved_chapters_produce_one_mp3_each(self, mock_discover, mock_narrate, mock_synthesize):
+        with tempfile.TemporaryDirectory() as hub, tempfile.TemporaryDirectory() as audio_generator_root:
+            source = _make_source(hub, content=self._TWO_CHAPTER_MD, content_type="textbook")
+            mock_discover.return_value = [source]
+
+            summary = run_pipeline("math-camp", hub, audio_generator_root, ["textbook"], engine="piper")
+
+            self.assertEqual(summary["generated"], 2)
+            mp3_base = os.path.splitext(source.abs_mp3_path)[0]
+            called_paths = {call.args[1] for call in mock_synthesize.call_args_list}
+            self.assertEqual(called_paths, {f"{mp3_base}__ch01.mp3", f"{mp3_base}__ch02.mp3"})
+            # No single-file <name>.mp3 is produced once chapters resolve.
+            mock_synthesize.assert_any_call("Chapter one body.", f"{mp3_base}__ch01.mp3", engine="piper")
+            state = load_state(audio_generator_root)
+            self.assertIn(f"{source.rel_md_path}::ch01", state)
+            self.assertIn(f"{source.rel_md_path}::ch02", state)
+            self.assertNotIn(source.rel_md_path, state)
+
+            base = source.abs_md_path[:-3]
+            self.assertTrue(os.path.exists(f"{base}__ch01.narrated.md"))
+            self.assertTrue(os.path.exists(f"{base}__ch02.narrated.md"))
+
+    @patch("audio_generator.pipeline.synthesize_speech")
+    @patch("audio_generator.pipeline.narrate_for_speech", side_effect=lambda text: text)
+    @patch("audio_generator.pipeline.discover_source_files")
+    def test_rerun_with_no_change_skips_all_chapters(self, mock_discover, mock_narrate, mock_synthesize):
+        with tempfile.TemporaryDirectory() as hub, tempfile.TemporaryDirectory() as audio_generator_root:
+            source = _make_source(hub, content=self._TWO_CHAPTER_MD, content_type="textbook")
+            mock_discover.return_value = [source]
+            run_pipeline("math-camp", hub, audio_generator_root, ["textbook"], engine="piper")
+            mp3_base = os.path.splitext(source.abs_mp3_path)[0]
+            os.makedirs(os.path.dirname(mp3_base), exist_ok=True)
+            with open(f"{mp3_base}__ch01.mp3", "wb") as f:
+                f.write(b"fake")
+            with open(f"{mp3_base}__ch02.mp3", "wb") as f:
+                f.write(b"fake")
+            mock_synthesize.reset_mock()
+
+            summary = run_pipeline("math-camp", hub, audio_generator_root, ["textbook"], engine="piper")
+
+            self.assertEqual(summary["skipped_unchanged"], 2)
+            mock_synthesize.assert_not_called()
+
+    @patch("audio_generator.pipeline.synthesize_speech")
+    @patch("audio_generator.pipeline.narrate_for_speech", side_effect=lambda text: text)
+    @patch("audio_generator.pipeline.discover_source_files")
+    def test_editing_the_source_regenerates_all_chapters(self, mock_discover, mock_narrate, mock_synthesize):
+        with tempfile.TemporaryDirectory() as hub, tempfile.TemporaryDirectory() as audio_generator_root:
+            source = _make_source(hub, content=self._TWO_CHAPTER_MD, content_type="textbook")
+            mock_discover.return_value = [source]
+            run_pipeline("math-camp", hub, audio_generator_root, ["textbook"], engine="piper")
+            mp3_base = os.path.splitext(source.abs_mp3_path)[0]
+            os.makedirs(os.path.dirname(mp3_base), exist_ok=True)
+            with open(f"{mp3_base}__ch01.mp3", "wb") as f:
+                f.write(b"fake")
+            with open(f"{mp3_base}__ch02.mp3", "wb") as f:
+                f.write(b"fake")
+
+            with open(source.abs_md_path, "w", encoding="utf-8") as f:
+                f.write(self._TWO_CHAPTER_MD.replace("Chapter one body.", "Chapter one body, changed."))
+            mock_synthesize.reset_mock()
+
+            summary = run_pipeline("math-camp", hub, audio_generator_root, ["textbook"], engine="piper")
+
+            self.assertEqual(summary["generated"], 2)
+            self.assertEqual(mock_synthesize.call_count, 2)
+
+    @patch("audio_generator.pipeline.synthesize_speech", side_effect=RuntimeError("engine crashed"))
+    @patch("audio_generator.pipeline.narrate_for_speech", side_effect=lambda text: text)
+    @patch("audio_generator.pipeline.discover_source_files")
+    def test_a_failed_chapter_synthesis_is_recorded_and_does_not_raise(self, mock_discover, mock_narrate, mock_synthesize):
+        with tempfile.TemporaryDirectory() as hub, tempfile.TemporaryDirectory() as audio_generator_root:
+            source = _make_source(hub, content=self._TWO_CHAPTER_MD, content_type="textbook")
+            mock_discover.return_value = [source]
+
+            summary = run_pipeline("math-camp", hub, audio_generator_root, ["textbook"], engine="piper")
+
+            self.assertEqual(summary["failed"], 2)
+            state = load_state(audio_generator_root)
+            self.assertNotIn(f"{source.rel_md_path}::ch01", state)
+            base = source.abs_md_path[:-3]
+            self.assertFalse(os.path.exists(f"{base}__ch01.narrated.md"))
+
+
 class TestRunPipelineNotesEpisodes(unittest.TestCase):
     """notes content goes through spec §3.2's episode-splitting path:
     one or more <name>__partNN.mp3/.narrated.md per source, plus a

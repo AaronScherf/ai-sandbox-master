@@ -25,9 +25,22 @@ python -m audio_generator.pipeline --course math-camp --dry-run
 
 ## Output
 
-**`textbook` content:** each source `<name>.md` gets a sibling `<name>.mp3`
-— the source already lives under `academic_resources/`, so no path
-translation is needed.
+**`textbook` content:** chapter-aware (TODO-0057) — when
+`pipelines/convert_textbook/chapter_index.py`'s printed-TOC parser and the
+folio tags `convert_textbook` already burned into the converted markdown
+(`<!-- page N --><!-- folio F -->`) together resolve at least two chapter
+boundaries, each chapter gets its own `<name>__ch01.mp3`,
+`<name>__ch02.mp3`, etc. (mirroring notes' `__partNN` naming, with a
+distinct `ch` infix so the two content types' outputs are never visually
+confusable), plus a sibling `__chNN.narrated.md` per chapter — all next to
+the source `<name>.md`, which already lives under `academic_resources/`,
+so no path translation is needed. Content before the first resolved
+chapter (title page, table of contents, preface, ...) is dropped, not
+narrated as its own chapter. A book whose conversion run never derived a
+folio offset (so its converted markdown has no folio tags at all), or
+whose TOC can't be parsed, falls back to the original single
+`<name>.mp3`/`<name>.narrated.md` per source — unchanged from before this
+revision. See `audio_generator/textbook_chapters.py`.
 
 **`notes` content:** split into one or more **episodes** targeting 10-20
 minutes of listening each (see "Episode splitting" below), instead of one
@@ -114,11 +127,11 @@ split at paragraph boundaries before narration, which otherwise removes
 those boundaries. Episode grouping treats the maximum as a ceiling when a
 boundary is available; a single indivisible paragraph may still exceed it.
 
-`textbook` content is unaffected (still exactly one `<name>.mp3` per
-source) — it has its own separate, more sophisticated chapter-boundary
-system (`pipelines/convert_textbook/chapter_index.py`) that's a better fit than reusing
-this header-based approach; reusing it here is a separate, not-yet-started
-investigation.
+`textbook` content is unaffected by *this* header-based approach — it has
+its own separate, more sophisticated chapter-boundary system
+(`pipelines/convert_textbook/chapter_index.py`), reused directly (not
+reimplemented) by `audio_generator/textbook_chapters.py`; see "Output"
+above (TODO-0057).
 
 Idempotency is tracked per-episode but still hashed on the whole source
 file — a deliberate simplification: editing any part of a note
@@ -143,6 +156,5 @@ to delete manually.
 ## Non-goals (see spec for rationale)
 
 Journal-articles, auto-triggering from other pipelines, reading
-image/figure descriptions aloud, indexer/RAG registration, and
-`convert_textbook` chapter-boundary reuse are all explicitly out of scope for this
-version.
+image/figure descriptions aloud, and indexer/RAG registration are all
+explicitly out of scope for this version.

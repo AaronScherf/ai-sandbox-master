@@ -534,6 +534,42 @@ def pack_chapters_into_chunks(
     return chunks
 
 
+_PAGE_AND_FOLIO_RE = re.compile(r"<!-- page (\d+) -->(?:<!-- folio (\d+) -->)?")
+
+
+def map_folios_to_physical_pages(markdown_text: str) -> dict[int, int]:
+    """
+    Scans every page tag page_markers.py's remap_page_markers() already
+    burns into the final, fully-converted book markdown (`<!-- page N
+    -->`, optionally immediately followed by `<!-- folio F -->` when a
+    folio offset was found during conversion -- see page_markers.py's own
+    _folio_tag) and returns {folio_page: physical_page} for every page
+    carrying both. A book whose conversion run never found a confident
+    folio offset has no folio tags anywhere in its output and this
+    returns {} -- callers must treat that the same as "no chapter
+    boundaries available," not guess one from folio_page alone.
+
+    This is the final-markdown counterpart to
+    bootstrap_chapter_index_from_front_matter: that function derives a
+    folio offset by OCR-scanning raw front-matter text for printed page
+    numbers, for use *during* conversion, before any folio tag exists
+    yet. Once a book has already been converted, any offset it found is
+    already burned into every page's own tag -- confirmed against real
+    converted output (Axler's Linear Algebra Done Right): re-running
+    bootstrap_chapter_index_from_front_matter's OCR-based scan against
+    the whole already-converted book finds zero printed-folio matches
+    (an arbitrary body page rarely prints an isolated, cleanly-OCR'd page
+    number the way a front-matter page does), while this tag-based
+    lookup resolves every one of its real chapters correctly from the
+    same file.
+    """
+    mapping: dict[int, int] = {}
+    for m in _PAGE_AND_FOLIO_RE.finditer(markdown_text):
+        if m.group(2) is not None:
+            mapping.setdefault(int(m.group(2)), int(m.group(1)))
+    return mapping
+
+
 def resolve_probe_boundaries(packed, front_matter_end, total_pages, known_chapter_pages, probe_fn):
     """
     Walks `packed` (a contiguous partition from pack_chapters_into_chunks)

@@ -58,3 +58,15 @@ def episode_state_key(rel_md_path: str, part_number: int) -> str:
     simplification, spec §3.2/§9): a change anywhere in the source
     regenerates every episode for that file, not just the changed one."""
     return f"{rel_md_path}::part{part_number:02d}"
+
+
+def chapter_state_key(rel_md_path: str, chapter_number: int) -> str:
+    """Key for one textbook chapter's state entry (TODO-0057) -- mirrors
+    episode_state_key's per-part keys exactly, but with a "ch" infix
+    (matching the __chNN output filename suffix) so a textbook chapter
+    and a notes episode can never collide in state.json even if they
+    happened to share the same number. Still hashed on the whole source
+    file's content, the same deliberate simplification episode_state_key
+    documents: editing any part of a textbook regenerates every chapter
+    for that book, not just the changed one."""
+    return f"{rel_md_path}::ch{chapter_number:02d}"

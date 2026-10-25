@@ -3,7 +3,7 @@ import unittest
 
 from pypdf import PdfReader, PdfWriter
 
-from pipelines.convert_textbook.chapter_index import ChapterEntry, get_all_outline_entries, _parse_folio_token, parse_printed_toc, detect_printed_folio, match_chapter_titles, compute_folio_offset, resolve_chapters_from_outline_and_toc, bootstrap_chapter_index_from_front_matter, pack_chapters_into_chunks, resolve_probe_boundaries, _consensus_offset
+from pipelines.convert_textbook.chapter_index import ChapterEntry, get_all_outline_entries, _parse_folio_token, parse_printed_toc, detect_printed_folio, match_chapter_titles, compute_folio_offset, resolve_chapters_from_outline_and_toc, bootstrap_chapter_index_from_front_matter, pack_chapters_into_chunks, resolve_probe_boundaries, _consensus_offset, map_folios_to_physical_pages
 
 
 def _pdf_with_outline(entries):
@@ -529,6 +529,31 @@ class TestResolveProbeBoundaries(unittest.TestCase):
             known_chapter_pages={50}, probe_fn=recording_probe_fn,
         )
         self.assertEqual(seen_hard_limits, [50])
+
+
+class TestMapFoliosToPhysicalPages(unittest.TestCase):
+    """map_folios_to_physical_pages (TODO-0057) -- the already-converted-
+    markdown counterpart to bootstrap_chapter_index_from_front_matter's
+    OCR-based offset scan: reads the folio tags page_markers.py already
+    burned into the final text, instead of re-deriving them."""
+
+    def test_maps_folio_to_physical_page_when_both_are_tagged(self):
+        text = "<!-- page 14 --><!-- folio 1 -->\n\nbody\n\n<!-- page 40 --><!-- folio 27 -->\n\nmore body"
+        self.assertEqual(map_folios_to_physical_pages(text), {1: 14, 27: 40})
+
+    def test_page_tag_with_no_folio_tag_is_not_included(self):
+        # A book whose conversion run never found a confident folio
+        # offset tags every page with only "<!-- page N -->", never a
+        # trailing "<!-- folio F -->".
+        text = "<!-- page 0 -->\n\nbody\n\n<!-- page 1 -->\n\nmore body"
+        self.assertEqual(map_folios_to_physical_pages(text), {})
+
+    def test_first_occurrence_of_a_folio_wins_on_a_duplicate(self):
+        text = "<!-- page 5 --><!-- folio 2 -->\n\nbody\n\n<!-- page 99 --><!-- folio 2 -->\n\nmore body"
+        self.assertEqual(map_folios_to_physical_pages(text), {2: 5})
+
+    def test_empty_text_returns_empty_mapping(self):
+        self.assertEqual(map_folios_to_physical_pages(""), {})
 
 
 if __name__ == "__main__":
