@@ -130,6 +130,29 @@ def test_classify_document_returns_none_for_a_lecture_number_with_no_slides_or_n
                                     course="econometrics")) is None
 
 
+def test_classify_document_ignores_a_four_digit_year_as_the_pairing_number():
+    # Real-corpus bug: a dated Excalidraw export ("... with slides
+    # 2026-09-10 10.09.33.excalidraw.rag.md") and an unrelated textbook
+    # whose title happens to end in the same year ("..._Theory_2026.md")
+    # both contain the literal token "2026" as their first isdigit()
+    # token. Treating any bare digit token as "the" lecture number
+    # falsely grouped every dated slides note in a course together with
+    # that textbook under one group_key. A year-shaped token (len 4)
+    # must never be picked as the identifying number.
+    textbook = classify_document(_card(
+        "academic_resources/microecon/textbooks/processed_outputs/"
+        "Rubenstein_Lecture_Notes_in_Microeconomic_Theory_2026.md",
+        course="microecon",
+    ))
+    dated_slides = classify_document(_card(
+        "academic_notes/microecon/lecture_notes/processed_outputs/"
+        "Microeconomics with slides 2026-09-10 10.09.33.excalidraw.rag.md",
+        course="microecon",
+    ))
+    assert textbook is None
+    assert dated_slides is None
+
+
 def test_classify_document_separates_different_offering_years_into_different_groups():
     y2024 = classify_document(_card("academic_notes/microecon/2024_class/Homeworks/Homework_4.md"))
     y2025 = classify_document(_card("academic_notes/microecon/2025_class/Homeworks/Homework_4.md"))

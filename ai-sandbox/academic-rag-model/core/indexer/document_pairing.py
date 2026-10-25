@@ -187,7 +187,26 @@ def classify_document(card: dict) -> dict | None:
     stem = os.path.splitext(os.path.basename(card["path"]))[0]
     tokens = _tokenize(stem)
     token_set = set(tokens)
-    number = next((t for t in tokens if t.isdigit()), None)
+    # A candidate homework/lecture index must be a short (1-2 digit),
+    # *isolated* digit token -- not immediately next to another
+    # digit-only token. A bare isdigit() check also matches 4-digit
+    # years (a textbook title ending "..._2026") and the runs of
+    # 2-digit date/time fragments embedded in Excalidraw export
+    # filenames ("2026-09-10 10.09.33" tokenizes to six consecutive
+    # digit tokens) -- none of those are an identifying number. On real
+    # corpus data, picking the first bare digit token collapsed every
+    # dated lecture note in a course together with an unrelated
+    # textbook into one false "same lecture number" group, because both
+    # happened to contain the literal string "2026".
+    number = next(
+        (
+            t for i, t in enumerate(tokens)
+            if t.isdigit() and len(t) <= 2
+            and not (i > 0 and tokens[i - 1].isdigit())
+            and not (i + 1 < len(tokens) and tokens[i + 1].isdigit())
+        ),
+        None,
+    )
     if number is None:
         return None
 
