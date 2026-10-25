@@ -126,20 +126,53 @@ def single_pass_facts(a: dict, b: dict, vocabs: dict | None = None) -> list[dict
     return sorted(out, key=lambda i: (i["facet"], i["shown"], i["pass"]))
 
 
+def _closed_partners(facts_a: list, facts_b: list, vocab) -> dict[str, dict]:
+    """_key() of a pass-a fact -> the pass-b fact it closed against (same matching _apply_rules does), for every
+    ancestor/descendant or near-duplicate-proposed pair treated as one agreed concept rather than two different
+    facts. Lets agreed_facts tell which side of a closed pair is the finer (descendant) term."""
+    by_b = {_key(f, vocab): f for f in facts_b}
+    fa = {k: v for k, v in _facts(facts_a, vocab).items() if v not in IGNORED}
+    fb = {k: v for k, v in _facts(facts_b, vocab).items() if v not in IGNORED}
+    ua = {k: v for k, v in fa.items() if k not in fb}
+    ub = {k: v for k, v in fb.items() if k not in fa}
+    out: dict[str, dict] = {}
+    used_b: set[str] = set()
+    for ka, va in ua.items():
+        for kb, vb in ub.items():
+            if kb in used_b:
+                continue
+            if _close(va, vb, vocab):
+                out[ka] = by_b[kb]
+                used_b.add(kb)
+                break
+    return out
+
+
 def agreed_facts(a: dict, b: dict, vocabs: dict | None = None) -> list[dict]:
-    """The facts both passes found (pass a's copy of each), after the same rules diff_records applies."""
+    """The facts both passes found. Normally pass a's own copy; but when a parent/child pair closed the
+    disagreement (one pass named the broad vocabulary bucket, the other its more specific child), shows the
+    child's copy instead -- otherwise a paper whose second pass found the specific term would still display only
+    the coarser one forever."""
     vocabs = vocabs or {}
     only_a = {(i["facet"], i["shown"]) for i in single_pass_facts(a, b, vocabs) if i["pass"] == "a"}
     out: list[dict] = []
     for facet in schema.FACETS:
         voc = vocabs.get(schema.FACETS[facet])
-        for fact in a["core"].get(facet) or []:
+        facts_a = a["core"].get(facet) or []
+        closed = _closed_partners(facts_a, b["core"].get(facet) or [], voc)
+        for fact in facts_a:
             shown = _shown(fact)
             if (facet, shown) in only_a:
                 continue
-            term = voc.terms.get(fact.get("vocab_id")) if voc is not None and fact.get("vocab_id") else None
-            out.append({"facet": facet, "shown": shown, "label": term.label if term else fact.get("value", ""),
-                        "quote": fact["quote"], "locator": fact["locator"]})
+            chosen = fact
+            partner = closed.get(_key(fact, voc))
+            if partner is not None:
+                vid_a, vid_b = fact.get("vocab_id"), partner.get("vocab_id")
+                if vid_a and vid_b and vid_a in _ancestors(vid_b, voc):
+                    chosen = partner  # partner's term is the descendant (finer) one
+            term = voc.terms.get(chosen.get("vocab_id")) if voc is not None and chosen.get("vocab_id") else None
+            out.append({"facet": facet, "shown": _shown(chosen), "label": term.label if term else chosen.get("value", ""),
+                        "quote": chosen["quote"], "locator": chosen["locator"]})
     g = a["core"].get("geography", {})
     for code in g.get("countries", []):
         if ("countries", code) not in only_a:

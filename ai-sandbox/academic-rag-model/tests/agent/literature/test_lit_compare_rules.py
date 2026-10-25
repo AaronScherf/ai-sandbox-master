@@ -1,6 +1,6 @@
 import unittest
 
-from agent.literature.compare import diff_records
+from agent.literature.compare import agreed_facts, diff_records
 from agent.literature.vocab import Term, Vocabulary
 from lit_helpers import VOCABS, good
 
@@ -52,6 +52,49 @@ class TestRules(unittest.TestCase):
         v = dict(VOCABS)
         self.assertEqual(diff_records(_with("population", [gen]), _with("population", []), v), [])
         self.assertEqual(len(diff_records(_with("population", [gen]), _with("population", [hh]), v)), 1)
+
+
+class TestAgreedFactsPrefersTheFinerTerm(unittest.TestCase):
+    """When a parent/child pair closes diff_records' disagreement, agreed_facts used to always keep pass a's own
+    copy -- even when pass b found the more specific child. That silently threw away grain the second pass
+    contributed (e.g. a paper always showing the broad parent bucket in the matrix, never the child a human
+    reviewer would want). It should show whichever side is the more specific (descendant) term instead."""
+
+    def test_pass_b_s_more_specific_child_wins_over_pass_a_s_parent(self):
+        a = _with("intervention", [{"value": "transfers", "vocab_id": "intervention.transfers",
+                                     "quote": "q" * 10, "locator": 1}])
+        b = _with("intervention", [{"value": "cash", "vocab_id": "intervention.cash_transfer",
+                                     "quote": "w" * 10, "locator": 2}])
+        agreed = agreed_facts(a, b, _vocabs())
+        item = next(i for i in agreed if i["facet"] == "intervention")
+        self.assertEqual(item["shown"], "intervention.cash_transfer")
+        self.assertEqual(item["label"], "Cash transfer")
+        self.assertEqual(item["quote"], "w" * 10)
+
+    def test_pass_a_s_more_specific_child_is_kept_as_before(self):
+        a = _with("intervention", [{"value": "cash", "vocab_id": "intervention.cash_transfer",
+                                     "quote": "q" * 10, "locator": 1}])
+        b = _with("intervention", [{"value": "transfers", "vocab_id": "intervention.transfers",
+                                     "quote": "w" * 10, "locator": 2}])
+        agreed = agreed_facts(a, b, _vocabs())
+        item = next(i for i in agreed if i["facet"] == "intervention")
+        self.assertEqual(item["shown"], "intervention.cash_transfer")
+        self.assertEqual(item["quote"], "q" * 10)
+
+    def test_two_proposed_values_that_merely_overlap_in_words_keep_pass_a_as_before(self):
+        a, b = _with("outcome", [_p("subjective wellbeing")]), _with("outcome", [_p("Wellbeing")])
+        agreed = agreed_facts(a, b)
+        item = next(i for i in agreed if i["facet"] == "outcome")
+        self.assertEqual(item["shown"], "proposed:subjective wellbeing")
+
+    def test_an_exact_match_is_unaffected(self):
+        a = _with("intervention", [{"value": "cash", "vocab_id": "intervention.cash_transfer",
+                                     "quote": "q" * 10, "locator": 1}])
+        b = _with("intervention", [{"value": "cash transfers", "vocab_id": "intervention.cash_transfer",
+                                     "quote": "w" * 10, "locator": 2}])
+        agreed = agreed_facts(a, b, _vocabs())
+        item = next(i for i in agreed if i["facet"] == "intervention")
+        self.assertEqual(item["quote"], "q" * 10)  # pass a's own copy, same as before this fix
 
 
 if __name__ == "__main__":
