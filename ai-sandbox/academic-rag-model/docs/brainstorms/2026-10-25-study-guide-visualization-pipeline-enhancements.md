@@ -47,6 +47,19 @@ The table below catalogs the visual elements encountered, the failure mode obser
 
 ---
 
+### 2.1 Obsidian PDF Export & DOM Sanitizer Failure Modes Matrix
+
+During live testing in Obsidian and headless Chromium print-to-PDF export, four successive technical failure modes were uncovered and resolved. These are documented below to ensure automated generator pipelines avoid repeating them:
+
+| Failure Mode / Defect | Trigger Condition | Engine Mechanism | Observed Result in PDF / UI | Validated Architectural Resolution |
+| :--- | :--- | :--- | :--- | :--- |
+| **Print Backend Assertion Crash** | Using `<marker orient="auto-start-reverse">` or complex `<defs>` for arrowheads. | Chromium's Skia PDF backend (`SkPDFDevice`) fails to serialize reverse transformation matrices. | Export aborts abruptly; diagrams render blank; subsequent document sections are dropped. | **Native Polygons:** Replace all markers with explicit `<polygon points="..." fill="currentColor" />` tags directly in the SVG body. |
+| **Premature Block Termination** | Blank / empty lines placed inside inline `<svg>` blocks. | CommonMark classifies `<svg>` as a **Type 7 HTML block**, which strictly terminates on the first empty line. | Parser splits SVG; downstream SVG tags turn into broken `<p>` tags; MathJax halts. | **Zero Blank Lines + `<div>` Wrapper:** Strip all empty lines inside `<svg>` and wrap in a Type 6 `<div style="page-break-inside: avoid; break-inside: avoid;">`. |
+| **Missing Axes & Solid Black Boxes** | Defining CSS classes inside an SVG `<style>` block (e.g. `@media print`). | Obsidian's DOM sanitizer (DOMPurify) **strips all `<style>` elements** inside inline SVGs. | Stripped classes fall back to W3C defaults: `stroke: none` (axes vanish!), `fill: #000000` (cards turn into solid black boxes!). | **100% Inline Attributes + `currentColor`:** Declare all colors inline (`stroke="currentColor"`, `fill="rgba(..., 0.08)"`). |
+| **Right-Margin Formula Clipping** | Single-row LaTeX display arrays exceeding 120 characters or 4 columns. | MathJax arrays do not wrap automatically; width exceeded printable paper width (~620px on Letter/A4). | Right column formula text truncated (e.g. `\textbf{Machina Resolution...}` cut off at paper edge). | **Strict 2-Column Math Budget:** Use `\begin{array}{ll}` with <65 chars per column and concise mathematical notation. |
+
+---
+
 ## 3. Core Architectural Rules for Pipeline Automation
 
 To ensure that automated pipelines (such as `academic-rag-model` study guide generators, flashcard exporters, and visual note summarizers) produce production-ready materials that render cleanly in Obsidian and export crisply to PDF, future agent workflows and generation code must enforce the following five principles:
@@ -163,11 +176,71 @@ When authoring study materials for dual-theme PKM environments (Obsidian dark th
 
 ---
 
+### Rule 9: Canonical Dual-Theme SVG & KaTeX Companion Box Blueprints
+
+To eliminate trial-and-error in future generations, pipelines must adhere to the following verified structural templates:
+
+#### Template A: Dual-Theme Inline Vector SVG
+```html
+<div style="page-break-inside: avoid; break-inside: avoid;">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 740 420" style="width: 100%; max-width: 740px; height: auto; display: block; margin: 16px auto; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+  <!-- Coordinate Axes: currentColor adapts dynamically (white on dark, black on light/print) -->
+  <line x1="80" y1="340" x2="620" y2="340" stroke="currentColor" stroke-width="1.8" />
+  <polygon points="628,340 618,335 618,345" fill="currentColor" />
+  <text x="635" y="344" fill="currentColor" font-size="13" font-weight="600" font-style="italic">X Axis Label</text>
+  <line x1="80" y1="340" x2="80" y2="40" stroke="currentColor" stroke-width="1.8" />
+  <polygon points="80,32 75,42 85,42" fill="currentColor" />
+  <text x="80" y="22" fill="currentColor" font-size="13" font-weight="600" font-style="italic" text-anchor="middle">Y Axis Label</text>
+  <!-- Curves & Highlights -->
+  <path d="M 80,340 C 150,200 300,100 580,70" fill="none" stroke="#3b82f6" stroke-width="2.8" />
+  <!-- Decision / Summary Card: Translucent fill with crisp colored border (zero black-box risk) -->
+  <rect x="480" y="70" width="230" height="200" rx="8" fill="rgba(59, 130, 246, 0.06)" stroke="#3b82f6" stroke-width="1.3" />
+  <text x="595" y="95" fill="#3b82f6" font-size="13" font-weight="bold" text-anchor="middle">Card Header</text>
+  <line x1="495" y1="105" x2="695" y2="105" stroke="#3b82f6" stroke-width="0.8" opacity="0.4" />
+  <text x="495" y="128" fill="currentColor" font-size="12" font-weight="600">• Point One</text>
+  <text x="495" y="150" fill="#64748b" font-size="11">Subtext / details</text>
+  <!-- Caption Footer -->
+  <text x="360" y="395" fill="currentColor" font-size="12" text-anchor="middle">
+    <tspan font-weight="bold" fill="#3b82f6">Figure Title:</tspan>
+    <tspan fill="#64748b"> Descriptive take-away grounded in theoretical principles.</tspan>
+  </text>
+</svg>
+</div>
+```
+
+#### Template B: 2-Column Margin-Safe KaTeX Summary Box
+```latex
+$$
+\boxed{\begin{array}{ll}
+\rule{0pt}{14pt}\textbf{Term 1:} \; \text{Compact Math} & \textbf{Term 2:} \; \text{Compact Math} \\[4pt]
+\textbf{Property 1:} \; \text{Inequality / Form} & \textbf{Property 2:} \; \text{Inequality / Form} \\[4pt]
+\textbf{Implication:} \; \text{Concise theoretical outcome} & \textbf{Order Type:} \; \text{Classification} \\[3pt]
+\end{array}}
+$$
+```
+
+#### Template C: 9-Point Pre-Flight Generation Checklist
+Before committing or writing any generated study guide or visualization file to disk, the generator or review agent must verify:
+- [x] **1. No ASCII Art:** Monospaced lattice boxes replaced by GFM tables, KaTeX arrays, or vector SVGs.
+- [x] **2. No Table Pipe Explosions:** All LaTeX equations in Markdown tables use `\lvert ... \rvert` or `\vert` instead of raw `|`.
+- [x] **3. No Markdown in Raw Block HTML:** No LaTeX equations enclosed within `<div>` or `<section>` tags.
+- [x] **4. No `<marker>` Elements:** All vector arrowheads rendered as inline `<polygon>` elements.
+- [x] **5. No Internal Blank Lines in SVGs:** The SVG markup is contiguous without empty whitespace lines.
+- [x] **6. Enclosed in Block `<div>`:** Each SVG is wrapped in `<div style="page-break-inside: avoid; break-inside: avoid;">`.
+- [x] **7. Zero `<style>` Tags in SVGs:** Colors and dimensions declared via direct inline XML attributes to prevent DOMPurify stripping.
+- [x] **8. Dynamic Contrast Inheritance:** Coordinate systems and primary text use `currentColor`; cards use translucent `rgba(...)` fills.
+- [x] **9. Margin-Safe Math Arrays:** All companion display math boxes use 2-column arrays with fewer than 65 characters per column.
+
+---
+
 ## 4. Next Steps & Pipeline Integration Roadmap
 
-1. **Linting & Validation Hook:** Add a diagnostic check to the corpus health / validator script (`tools/lint_notes.py` or equivalent) that flags:
+1. **Linting & Validation Hook:** Add a diagnostic check to the corpus health / validator script (`tools/lint_notes.py` or equivalent) that automatically flags:
    * Code blocks containing ASCII art boxes (`+---+` or `|   |` lattices).
    * Unescaped pipes (`|`) inside LaTeX math blocks in Markdown table lines.
    * Unrendered MathJax markers inside raw HTML tags.
+   * `<marker>` or `<style>` tags embedded inside inline SVGs.
+   * Blank lines occurring between `<svg>` and `</svg>`.
+   * Display math arrays (`\boxed{\begin{array}}`) whose raw row strings exceed 130 characters.
 2. **Reusable Vector Template Library:** Package the validated SVG generators developed in this session (`gen_pt_coords.py`, `test_machina.py`, `test_fosd.py`, `test_svg.py`) into a modular Python visualization library (`academic-rag-model/tools/visualizers/econ_svg.py`) that can be invoked programmatically during automated study guide generation.
 3. **Prompt Engineering Updates:** Update the system prompts for study guide generation agents (both Gemini and Codex) to explicitly disallow ASCII art and specify the required KaTeX / SVG formatting standards.
