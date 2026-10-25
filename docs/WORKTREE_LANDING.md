@@ -23,29 +23,31 @@ on their own. When a task branch is finished, the agent:
    don't treat "mostly docs" as equivalent to doc-only.
 2. Commits its finished work to its own task branch if not already committed.
    Local commits to a task branch in its own worktree are pre-authorized and
-   need no ask. Then asks the user in one message: may I merge and push commit
-   `<SHA>` to `main`? The message includes the branch, SHA, changed paths, check
-   result, overlaps, the main checkout's `git status --short` snapshot, and known
-   risks.
-3. On a yes, lands in the main checkout only after these checks pass:
-   - `git branch --show-current` prints `main`. If it does not, stop and tell the
-     user; never merge into whatever branch the main checkout happens to be on.
-   - `git status --short` matches the snapshot the agent recorded when it asked
-     for approval (include that snapshot in the approval message). Any
-     difference means another session has changed the checkout: stop and ask.
+   need no ask. Then asks the user in one message: may I land change `<ID>` on
+   `main`? `<ID>` is the `Change ID:` the check printed. The message includes the
+   branch, change ID, changed paths, check result, overlaps, and known risks.
+3. On a yes, lands with one command from inside the worktree:
+   `C:\Users\theaa\ai-sandbox-master\ai-sandbox\academic-rag-model\.venv\Scripts\python.exe -m tools.land_branch land --change-id <ID>`.
+   It refuses unless the main checkout is on `main`; rebases onto the current
+   `main`; stops if the change ID no longer matches, if the rebase conflicts, or
+   if `main` has since changed a file the branch also changes; re-runs the
+   approved check's tests only when `main` gained non-Markdown commits; stops on
+   a failure or an overlap (a tracked file the branch changes that is dirty in
+   the main checkout or changed on another open branch); then runs
+   `git merge --ff-only` and `git push origin main` in the main checkout and
+   logs the landing. If `main` moves mid-landing it retries: without limit while
+   only Markdown commits arrive (up to a 20-attempt guard), and at most 3 times
+   when a test re-run is needed. It prints `LANDED <sha>` or `STOP: <reason>`.
+   On a STOP, report the reason and ask again. Never fall back to a manual
+   merge, and never run a bare `git push`.
+4. On a no, records it: `C:\Users\theaa\ai-sandbox-master\ai-sandbox\academic-rag-model\.venv\Scripts\python.exe -m tools.land_branch record --sha <SHA> --outcome declined`.
+   (`land` records successful landings itself.)
 
-   Then:
-
-   ```powershell
-   git merge --ff-only <branch>
-   git push origin main
-   ```
-
-   Then verify with `git log -1`. Never run a bare `git push`.
-4. Records the answer: `C:\Users\theaa\ai-sandbox-master\ai-sandbox\academic-rag-model\.venv\Scripts\python.exe -m tools.land_branch record --sha <SHA> --outcome landed|declined`.
-
-Approval covers one commit SHA. If the SHA changes, including after a rebase,
-ask again. Approval does not carry over to other sessions or branches.
+Approval covers one change ID on one branch, for the session that asked. A clean
+rebase keeps the change ID, so `main` moving does not by itself need a new
+approval; any edit to the change does. Approval does not carry over to other
+sessions or branches. Untracked or unrelated files in the main checkout do not
+block a landing.
 
 Merge style is rebase onto `main`, then `--ff-only`. Do not use `--no-ff`
 merges. Rebasing is allowed only on a branch that is exclusively owned and not

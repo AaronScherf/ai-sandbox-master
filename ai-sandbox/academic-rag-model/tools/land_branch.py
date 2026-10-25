@@ -1,12 +1,15 @@
-"""Pre-landing checks for an agent branch.
+"""Pre-landing checks and approved landings for an agent branch.
 
 `check` verifies the branch, rebases it onto main, runs the tests for the
-changed packages, reports overlaps, and prints a summary. It never merges or
-pushes: the user approves each landing by commit SHA (spec decision 1).
+changed packages, reports overlaps, and prints a summary with the branch's
+change ID. It never merges or pushes. The user approves a change ID, and
+`land` then rebases, re-checks only what main's movement could affect, and
+fast-forwards and pushes main (spec 2026-10-25-landing-approval-by-change-design.md).
 """
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import subprocess
 import sys
@@ -67,6 +70,25 @@ class CheckResult:
     check_seconds: float = 0.0
     days_since_cut: float = 0.0
     overlaps: list[str] = field(default_factory=list)
+    change_id: str = ""
+    base: str = ""  # the main commit the check ran against
+    full: bool = False
+
+
+def change_id(worktree: Path) -> str:
+    """Fingerprint of the branch's diff against its merge-base with main.
+
+    Whitespace-sensitive (unlike `git patch-id`), and blind to `index` and `@@`
+    lines, which change when unrelated lines move, so a clean rebase keeps it.
+    """
+    base = run_git(["merge-base", MAIN_BRANCH, "HEAD"], worktree).strip()
+    diff = run_git(
+        ["diff", "--no-color", "--no-ext-diff", "--binary", "-U0",
+         "--src-prefix=a/", "--dst-prefix=b/", base, "HEAD"],
+        worktree,
+    )
+    kept = [line for line in diff.splitlines() if not line.startswith(("index ", "@@"))]
+    return hashlib.sha256("\n".join(kept).encode("utf-8")).hexdigest()
 
 
 def project_relative(paths: set[str], subdir: str) -> set[str]:
@@ -233,17 +255,120 @@ def _run_check(worktree: Path, subdir: str, full: bool) -> CheckResult:
         check_seconds=round(seconds, 1),
         days_since_cut=round(age_days, 1),
         overlaps=overlaps,
+        change_id=change_id(worktree),
+        base=run_git(["rev-parse", MAIN_BRANCH], worktree).strip(),
+        full=full,
     )
 
 
 def print_summary(r: CheckResult) -> None:
     print(f"Branch:      {r.branch}")
     print(f"Commit SHA:  {r.sha}")
+    print(f"Change ID:   {r.change_id}")
+    print(f"Base:        {r.base}")
     print(f"Rebased:     {'yes' if r.rebased else 'no (already contains main)'}")
     print(f"Checks:      {r.checks} {r.check_targets} ({r.check_seconds}s)")
     print(f"Branch age:  {r.days_since_cut} days since cut")
     print("Overlaps:    " + (", ".join(r.overlaps) if r.overlaps else "none"))
-    print("Nothing has been merged or pushed. Ask the user to approve this SHA.")
+    print(f"Nothing has been merged or pushed. Ask the user to approve change {r.change_id}.")
+
+
+# A test re-run follows any code commit on main, so cap those retries; retries
+# caused only by Markdown commits are unlimited apart from this loop guard.
+MAX_RETEST_ATTEMPTS = 3
+MAX_ATTEMPTS = 20
+
+
+@dataclass
+class LandResult:
+    branch: str
+    sha: str
+    change_id: str
+    attempts: int
+    retested: bool
+
+
+def approved_check(worktree: Path, branch: str, cid: str) -> dict:
+    """The newest passing `check` log entry for this branch and change ID."""
+    path = log_path(worktree)
+    entries = path.read_text(encoding="utf-8").splitlines() if path.exists() else []
+    for line in reversed(entries):
+        entry = json.loads(line)
+        if (entry.get("event") == "check" and entry.get("branch") == branch
+                and entry.get("change_id") == cid and entry.get("checks") in ("passed", "skipped")):
+            return entry
+    raise LandingError(f"no passing check for change {cid} on {branch}; run check and ask again")
+
+
+def _ff_main(main_path: Path, branch: str) -> bool:
+    """Fast-forward main to the branch. False if main moved and no longer allows it."""
+    try:
+        run_git(["merge", "--ff-only", branch], main_path)
+    except GitError:
+        if not is_ancestor(main_path, MAIN_BRANCH, branch):
+            return False
+        raise
+    return True
+
+
+def _files_between(cwd: Path, old: str, new: str) -> set[str]:
+    out = run_git(["diff", "--name-only", old, new], cwd)
+    return {line for line in out.splitlines() if line}
+
+
+def land(worktree: Path, cid: str, subdir: str = PROJECT_SUBDIR) -> LandResult:
+    worktree = Path(run_git(["rev-parse", "--show-toplevel"], worktree).strip())
+    branch = current_branch(worktree) or ""
+    try:
+        result = _run_land(worktree, cid, subdir)
+    except (LandingError, GitError) as exc:
+        append_log(worktree, {"event": "land", "branch": branch, "change_id": cid, "result": str(exc)})
+        raise LandingError(str(exc)) from exc
+    append_log(worktree, {"event": "land", "result": "landed", **asdict(result)})
+    append_log(worktree, {"event": "outcome", "sha": result.sha, "outcome": "landed"})
+    return result
+
+
+def _run_land(worktree: Path, cid: str, subdir: str) -> LandResult:
+    branch = preflight(worktree)
+    approved = approved_check(worktree, branch, cid)
+    main_path = main_checkout(worktree).path
+    if current_branch(main_path) != MAIN_BRANCH:
+        raise LandingError("the main checkout is not on main; never land onto another branch")
+    tested_base = approved["base"]
+    retests = 0
+    for attempt in range(1, MAX_ATTEMPTS + 1):
+        rebase_onto_main(worktree)
+        if change_id(worktree) != cid:
+            raise LandingError(f"the change differs from approved change {cid}; ask again")
+        branch_files = changed_since_merge_base(worktree, MAIN_BRANCH, "HEAD")
+        main_now = run_git(["rev-parse", MAIN_BRANCH], worktree).strip()
+        touched = sorted(branch_files & _files_between(worktree, approved["base"], main_now))
+        if touched:
+            raise LandingError("main changed files this branch also changes: " + ", ".join(touched))
+        code_delta = [p for p in project_relative(_files_between(worktree, tested_base, main_now), subdir)
+                      if not p.endswith(".md")]
+        if code_delta and approved["checks"] != "skipped":
+            retests += 1
+            if retests > MAX_RETEST_ATTEMPTS:
+                raise LandingError(f"main kept moving: {MAX_RETEST_ATTEMPTS} test re-runs without landing")
+            status, _, _ = run_checks(worktree / subdir, project_relative(branch_files, subdir),
+                                      approved.get("full", False))
+            if status not in ("passed", "skipped"):
+                raise LandingError("tests failed after rebasing onto the new main")
+            tested_base = main_now
+        overlaps = find_overlaps(worktree, branch_files)
+        if overlaps:
+            raise LandingError("overlaps with uncommitted or in-progress work: " + ", ".join(overlaps))
+        sha = run_git(["rev-parse", "HEAD"], worktree).strip()
+        if not _ff_main(main_path, branch):
+            continue
+        try:
+            run_git(["push", "origin", MAIN_BRANCH], main_path)
+        except GitError as exc:
+            raise LandingError(f"main was fast-forwarded locally to {sha} but the push failed: {exc}") from exc
+        return LandResult(branch=branch, sha=sha, change_id=cid, attempts=attempt, retested=retests > 0)
+    raise LandingError(f"main kept moving: no landing after {MAX_ATTEMPTS} attempts")
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -256,9 +381,22 @@ def main(argv: list[str] | None = None) -> int:
     p_rec.add_argument("--worktree", type=Path, default=Path.cwd())
     p_rec.add_argument("--sha", required=True)
     p_rec.add_argument("--outcome", required=True, choices=OUTCOMES)
+    p_land = sub.add_parser("land", help="land a change the user approved; merges and pushes main")
+    p_land.add_argument("--worktree", type=Path, default=Path.cwd())
+    p_land.add_argument("--change-id", required=True)
+    p_land.add_argument("--subdir", default=PROJECT_SUBDIR, help=argparse.SUPPRESS)
     args = parser.parse_args(argv)
     if args.cmd == "record":
         record(args.worktree.resolve(), args.sha, args.outcome)
+        return 0
+    if args.cmd == "land":
+        try:
+            landed = land(args.worktree.resolve(), args.change_id, subdir=args.subdir)
+        except LandingError as exc:
+            print(f"STOP: {exc}", file=sys.stderr)
+            return 1
+        print(f"LANDED {landed.sha} ({landed.attempts} attempt(s), "
+              f"{'re-tested' if landed.retested else 'no re-test'})")
         return 0
     try:
         result = check(args.worktree.resolve(), full=args.full)

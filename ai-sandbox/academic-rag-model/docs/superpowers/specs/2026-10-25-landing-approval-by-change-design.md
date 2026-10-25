@@ -1,7 +1,8 @@
 # Landing approval by change, not by commit SHA
 
-**Status:** proposal, awaiting owner review (2026-10-25). Amends decision 1 of
-`2026-10-06-agent-git-workflow-design.md`. Nothing below is built.
+**Status:** approved by the owner 2026-10-25 (open question 1 answered: keep
+retrying while only Markdown commits arrive; question 2 left as proposed).
+Amends decision 1 of `2026-10-06-agent-git-workflow-design.md`.
 **Scope:** `tools/land_branch.py`, its tests, and `docs/WORKTREE_LANDING.md`.
 
 ## 1. Problem
@@ -63,7 +64,9 @@ different, or when a check that protects `main` fails. Keep: nothing reaches
       needed.
 
    If the fast-forward fails because `main` moved during steps 2-6, it goes back
-   to step 2, at most **3 attempts** in total. After that it stops with
+   to step 2. Retries caused only by Markdown commits on `main` are unlimited
+   (owner decision), apart from a 20-attempt guard against an endless loop.
+   Retries that need a test re-run are capped at **3**; after that it stops with
    "main kept moving".
 3. **Re-test only when `main`'s new commits could affect the result.** Let *delta*
    be the files changed between the `main` commit the approved check ran
@@ -72,6 +75,8 @@ different, or when a check that protects `main` fails. Keep: nothing reaches
    - Delta is Markdown-only: reuse the approved check's result.
    - Otherwise: re-run the same targets the approved check ran (`tests/` in chunks
      if it was `--full`). A failure stops the command.
+   - Only delta paths inside `ai-sandbox/academic-rag-model/` count: vault data,
+     `.index` JSON or website files elsewhere cannot change this package's tests.
 4. **The snapshot rule becomes an overlap rule.** At landing time, stop only if a
    *tracked* file that the branch changes is modified in the main checkout, or
    changed on another open worktree's branch (the existing `find_overlaps`).
@@ -128,8 +133,8 @@ results of that revisit.
   - `land` stops when the change ID differs;
   - untracked files in the main checkout do not block it, but a dirty tracked
     file the branch changes does;
-  - the retry loop gives up after 3 attempts (simulate `main` moving between
-    rebase and merge).
+  - Markdown-only movement of `main` is retried past 3 attempts;
+  - code movement that needs re-tests gives up after 3 test re-runs.
 - Update `docs/WORKTREE_LANDING.md` steps 2-4 and the approval paragraph
   ("Approval covers one commit SHA ...") to match section 4.
 - Routing: design stays with Claude. The implementation is mechanical script and
@@ -156,7 +161,7 @@ is not changed here.
 
 ## 9. Open questions for the owner
 
-1. Is a retry cap of 3 right, or should `land` keep retrying for as long as only
-   Markdown commits arrive?
+1. *Resolved:* keep retrying while only Markdown commits arrive; cap re-test
+   retries at 3.
 2. Should "`main` touched the same files" stop the landing for Markdown files
    too, or only for code? This proposal stops for both.
