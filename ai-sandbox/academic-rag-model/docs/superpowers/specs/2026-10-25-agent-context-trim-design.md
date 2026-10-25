@@ -1,6 +1,9 @@
 # Agent context trim: to-do tracker, worktree procedure, memory index
 
-Status: proposal, awaiting owner decision (2026-10-25). Nothing below is implemented.
+Status (2026-10-25): approved and implemented. 1b in 3c11103; 1a in b17c53b
+(7 items archived; TODO-0016 and 0018 kept as partly open; colliding TODO-0070
+renumbered to TODO-0090); 1c-1f in fb6572c; 2A (split) in the commit that adds
+this line; 3 applied to Claude's local memory.
 
 Goal: cut the text every agent session (Claude, Codex, Gemini) reads by default,
 without losing information or changing what any rule requires. Sizes are bytes;
