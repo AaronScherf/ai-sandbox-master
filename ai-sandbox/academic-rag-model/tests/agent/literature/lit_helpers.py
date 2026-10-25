@@ -85,7 +85,9 @@ def write_vocab_dir(directory, vocabs=None):
     """Writes the fixture vocabularies as vocab_data-style YAML files."""
     for name, v in (vocabs or VOCABS).items():
         data = {"vocabulary": name, "version": v.version, "provenance": v.provenance, "source": v.source,
-                "terms": [{"id": t.id, "label": t.label, **({"definition": t.definition} if t.definition else {})}
+                "terms": [{"id": t.id, "label": t.label,
+                           **({"parent": t.parent} if t.parent else {}),
+                           **({"definition": t.definition} if t.definition else {})}
                           for t in v.terms.values()]}
         (Path(directory) / f"{name}.yaml").write_text(yaml.safe_dump(data, sort_keys=False, allow_unicode=True),
                                                        encoding="utf-8", newline="\n")

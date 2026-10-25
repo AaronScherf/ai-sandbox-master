@@ -10,7 +10,7 @@ from pathlib import Path
 from core.agent_tasks.loop import BudgetError, api_run, collect_run, provenance, submit_run
 from core.agent_tasks.work import load_run
 
-from . import cluster as clusters, contribute, db as litdb, review, stage, synth, tiers, verify
+from . import cluster as clusters, contribute, db as litdb, refine_grain, review, stage, synth, tiers, verify
 from .backfill_years import backfill_years
 from .remap import remap_record
 from .gold import DEFAULT_PATH, load_gold, score_record, summarize
@@ -97,7 +97,8 @@ def cmd_submit(args) -> int:
     run = _load(args)
     if run is None:
         return 2
-    module = {verify.STAGE: verify, contribute.STAGE: contribute, synth.STAGE: synth}.get(run.stage, stage)
+    module = {verify.STAGE: verify, contribute.STAGE: contribute, synth.STAGE: synth,
+              refine_grain.STAGE: refine_grain}.get(run.stage, stage)
     report = submit_run(run, module, _target(args), args.agent_name, provenance_fn=provenance, target_label="study records")
     _print_report(report)
     return 0
@@ -120,6 +121,29 @@ def cmd_verify(args) -> int:
         print("nothing to verify")
         return 0
     print(f"collected {len(tasks)} verification card(s) in run {run.run_id}: {run.root}")
+    return 0
+
+
+def cmd_refine_grain(args) -> int:
+    target = _target(args)
+    papers, _ = eligible_papers(args.index_root)
+    if args.file_id:
+        papers = [p for p in papers if p.file_id in set(args.file_id)]
+    tasks, skipped = refine_grain.make_tasks(target, papers, pass_label="a", redo=args.redo)
+    b_tasks, b_skipped = refine_grain.make_tasks(target, papers, pass_label="b", redo=args.redo)
+    tasks += b_tasks
+    skipped.update({f"{k} (pass b)": v for k, v in b_skipped.items()})
+    for fid, reason in skipped.items():
+        print(f"skipped {fid}: {reason}")
+    try:
+        run = collect_run(refine_grain.STAGE, tasks, _work_root(args), target.records.dir, run_id=args.run_id, repo_label="records")
+    except (ValueError, FileExistsError) as exc:
+        print(f"cannot create the run: {exc}")
+        return 2
+    if run is None:
+        print("nothing to refine")
+        return 0
+    print(f"collected {len(tasks)} refine-grain card(s) in run {run.run_id}: {run.root}")
     return 0
 
 
@@ -384,6 +408,10 @@ def build_parser() -> argparse.ArgumentParser:
     v.add_argument("--run-id", default=None)
     v.add_argument("--redo", action="store_true", help="Verify again even if the paper was already verified.")
     v.add_argument("--full-paper", action="store_true", help="Second look: offer the whole paper for facts the first check did not support.")
+    rg = sub.add_parser("refine-grain", help="Re-extract only intervention/outcome, scoped to each paper's own vocabulary branch (TODO-0085).")
+    rg.add_argument("--file-id", action="append", default=[], help="Only this paper (repeatable).")
+    rg.add_argument("--run-id", default=None)
+    rg.add_argument("--redo", action="store_true", help="Refine again even if the paper was already refined.")
     sub.add_parser("silver", help="Per paper: facts both passes agree on, facts the verifier confirmed, facts still open.")
     s = sub.add_parser("submit", help="Validate filled cards and write records.")
     s.add_argument("run_id")
@@ -435,4 +463,5 @@ def main(argv: list[str] | None = None, *, complete=None) -> int:
         return cmd_api(args, complete)
     return {"collect": cmd_collect, "verify": cmd_verify, "silver": cmd_silver, "submit": cmd_submit, "bootstrap": cmd_bootstrap, "status": cmd_status,
             "proposals": cmd_proposals, "eval": cmd_eval, "remap": cmd_remap, "tiers": cmd_tiers, "backfill-years": cmd_backfill_years,
-            "cluster": cmd_cluster, "annotate": cmd_annotate, "synthesize": cmd_synthesize, "render": cmd_render, "db": cmd_db}[args.command](args)
+            "cluster": cmd_cluster, "annotate": cmd_annotate, "synthesize": cmd_synthesize, "render": cmd_render, "db": cmd_db,
+            "refine-grain": cmd_refine_grain}[args.command](args)

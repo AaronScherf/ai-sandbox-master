@@ -216,5 +216,76 @@ class TestEval(unittest.TestCase):
         self.assertIn("nope.yaml", out)
 
 
+class TestRefineGrain(unittest.TestCase):
+    def _collected(self, root):
+        env = Env(root)
+        _run(env.args("collect", "--run-id", "c1", "--double"))
+        fill_card(env.card("c1", f"extract-{FID}"), good())
+        fill_card(env.card("c1", f"extract-{FID}-b"), good())
+        _run(env.args("submit", "c1"))
+        return env
+
+    def test_stages_a_card_for_each_pass(self):
+        with tempfile.TemporaryDirectory() as root:
+            env = self._collected(root)
+            code, out = _run(env.args("refine-grain", "--run-id", "r1"))
+            self.assertEqual(code, 0)
+            self.assertTrue(env.card("r1", f"refine-{FID}").is_file())
+            self.assertTrue(env.card("r1", f"refine-{FID}-b").is_file())
+
+    def test_submit_merges_the_filled_card_without_disturbing_other_fields(self):
+        with tempfile.TemporaryDirectory() as root:
+            env = self._collected(root)
+            before = json.loads((Path(root) / ".index" / "study_records" / f"{FID}.json").read_text(encoding="utf-8"))
+            _run(env.args("refine-grain", "--run-id", "r1"))
+            fill_card(env.card("r1", f"refine-{FID}"), {"intervention": [], "outcome": []})
+            fill_card(env.card("r1", f"refine-{FID}-b"), {"intervention": [], "outcome": []})
+            code, _ = _run(env.args("submit", "r1"))
+            after = json.loads((Path(root) / ".index" / "study_records" / f"{FID}.json").read_text(encoding="utf-8"))
+        self.assertEqual(code, 0)
+        self.assertEqual(after["core"]["intervention"], [])
+        self.assertEqual(after["core"]["study_design"], before["core"]["study_design"])
+        self.assertEqual(after["core"]["data_sources"], before["core"]["data_sources"])
+
+    def test_file_id_filters_to_one_paper(self):
+        with tempfile.TemporaryDirectory() as root:
+            env = self._collected(root)
+            make_index(root, file_id="1111111111111111", title="A different paper")
+            _run(env.args("collect", "--run-id", "c2", "--file-id", "1111111111111111"))
+            fill_card(env.card("c2", "extract-1111111111111111"), good())
+            _run(env.args("submit", "c2"))
+            code, out = _run(env.args("refine-grain", "--run-id", "r1", "--file-id", FID))
+            self.assertEqual(code, 0)
+            self.assertTrue(env.card("r1", f"refine-{FID}").is_file())
+            self.assertFalse(env.card("r1", "refine-1111111111111111").is_file())
+
+    def test_the_scoped_listing_reaches_the_card_through_real_vocab_files_on_disk(self):
+        from lit_helpers import VOCABS, write_vocab_dir
+        from test_lit_refine_grain import _hierarchical_vocabs
+
+        with tempfile.TemporaryDirectory() as root:
+            vocab_dir = Path(root) / "vocabs"
+            vocab_dir.mkdir()
+            # good()'s other facets (study_design, data_sources) need VOCABS' flat terms for those vocabularies;
+            # only intervention/outcome/sector are overridden with the hierarchical fixture under test here.
+            write_vocab_dir(vocab_dir, {**VOCABS, **_hierarchical_vocabs()})
+            make_index(root)
+            result = good()
+            result["core"]["intervention"] = [{"value": "crop diversification",
+                                                "vocab_id": "intervention.crop_diversification",
+                                                "quote": "We study cash transfers in rural Somalia", "locator": 1}]
+            result["core"]["outcome"] = [{"value": "crop production", "vocab_id": "outcome.crop_production",
+                                           "quote": "raised household food consumption by twelve percent", "locator": 3}]
+            argv_base = ["--index-root", root, "--vocab-dir", str(vocab_dir)]
+            _run([*argv_base, "collect", "--run-id", "c1"])
+            fill_card(Path(root) / ".agent_work" / "c1" / "cards" / f"extract-{FID}.md", result)
+            _run([*argv_base, "submit", "c1"])
+            _run([*argv_base, "refine-grain", "--run-id", "r1"])
+            card_text = (Path(root) / ".agent_work" / "r1" / "cards" / f"refine-{FID}.md").read_text(encoding="utf-8")
+        # the scoped listing must show the sibling child term, not just the root the paper already had
+        self.assertIn("intervention.climate_adaption_mitigation_strategies", card_text)
+        self.assertNotIn("intervention.land_titling_reform", card_text)
+
+
 if __name__ == "__main__":
     unittest.main()
