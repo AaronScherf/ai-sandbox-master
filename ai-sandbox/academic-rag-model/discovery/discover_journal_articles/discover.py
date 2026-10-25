@@ -77,6 +77,12 @@ def run(args: argparse.Namespace) -> dict:
     counts = {
         "retrieved": 0, "examined": 0, "accepted": 0, "already_seen": 0,
         "fetched": 0, "needs_manual": 0, "stopped_reason": None,
+        # Populated below with the on-disk path of every PDF this run
+        # actually fetched -- run_all.py (TODO-0037) scopes its downstream
+        # conversion/index-card stage to exactly these, never the whole
+        # corpus, so a combined discover+convert invocation never silently
+        # reconverts papers that were already on disk before this run.
+        "fetched_paths": [],
     }
 
     time_budget_seconds = getattr(args, "time_budget_seconds", None)
@@ -108,6 +114,7 @@ def run(args: argparse.Namespace) -> dict:
             write_sidecar(pdf_path, work, scored_work.score, result.tier)
             record_outcome(manifest, key, "fetched", folder=folder.name)
             counts["fetched"] += 1
+            counts["fetched_paths"].append(str(pdf_path))
             if args.zotero:
                 _sync_zotero_if_configured(work, pdf_path, folder.name, args)
         else:
