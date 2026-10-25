@@ -8,6 +8,7 @@ from pathlib import Path
 
 from core.agent_tasks.tasks import Passage, Task
 
+from .compare import reconcile
 from .papers import Paper
 from .stage import MAX_CARD_CHARS, Target, _offered_pages, _sha
 from .transcript import split_pages
@@ -168,3 +169,27 @@ def validate_result(entry: dict, result, target) -> list[str]:
     out += _facts("intervention", result.get("intervention"), target.vocabs, "intervention", pages)
     out += _facts("outcome", result.get("outcome"), target.vocabs, "outcome", pages)
     return out
+
+
+def apply_result(target: Target, entry: dict, result: dict, provenance: dict) -> str | None:
+    s = entry["subject"]
+    fid, label = s["file_id"], s["pass"]
+    record = target.records.read(fid, label)
+    record["core"]["intervention"] = result.get("intervention") or []
+    record["core"]["outcome"] = result.get("outcome") or []
+    extractor = dict(record.get("extractor") or {})
+    extractor["grain_refine_version"] = PROMPT_VERSION
+    vocab_versions = dict(extractor.get("vocab_versions") or {})
+    for facet in ("intervention", "outcome"):
+        vocab = target.vocabs.get(facet)
+        if vocab is not None:
+            vocab_versions[facet] = vocab.version
+    extractor["vocab_versions"] = vocab_versions
+    record["extractor"] = extractor
+    target.records.write(record, label)
+    for facet in ("intervention", "outcome"):
+        for fact in result.get(facet) or []:
+            if fact.get("proposed"):
+                target.proposals.add(fid, facet, fact["value"], fact["quote"], fact["locator"], label)
+    reconcile(target.records, fid, target.vocabs)
+    return None

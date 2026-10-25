@@ -247,6 +247,65 @@ class TestMakeTasks(unittest.TestCase):
         self.assertNotIn("intervention.climate_adaption_mitigation_strategies", refine_b[0].context)
 
 
+class TestApplyResult(unittest.TestCase):
+    def test_merges_only_intervention_and_outcome_leaving_everything_else_untouched(self):
+        with tempfile.TemporaryDirectory() as root:
+            target, papers = _setup(root)
+            before = target.records.read(FID, "a")
+            tasks, _ = refine_grain.make_tasks(target, papers, pass_label="a")
+            entry = task_entry(tasks[0])
+            result = {"intervention": [{"value": "vouchers", "vocab_id": "intervention.voucher",
+                                         "quote": "We study cash transfers in rural Somalia", "locator": 1}],
+                      "outcome": []}
+            refine_grain.apply_result(target, entry, result, PROV)
+            after = target.records.read(FID, "a")
+        self.assertEqual(after["core"]["intervention"], result["intervention"])
+        self.assertEqual(after["core"]["outcome"], [])
+        for key in ("study_design", "population", "sector", "data_sources", "geography", "results"):
+            self.assertEqual(after["core"][key], before["core"][key])
+        self.assertEqual(after["appraisal"], before["appraisal"])
+        self.assertEqual(after["identity"], before["identity"])
+        self.assertEqual(after["transcript_sha"], before["transcript_sha"])
+
+    def test_sets_the_refine_version_marker_and_updates_only_the_two_vocab_versions(self):
+        with tempfile.TemporaryDirectory() as root:
+            target, papers = _setup(root)
+            before_versions = dict(target.records.read(FID, "a")["extractor"]["vocab_versions"])
+            tasks, _ = refine_grain.make_tasks(target, papers, pass_label="a")
+            refine_grain.apply_result(target, task_entry(tasks[0]), {"intervention": [], "outcome": []}, PROV)
+            after = target.records.read(FID, "a")
+        self.assertEqual(after["extractor"]["grain_refine_version"], refine_grain.PROMPT_VERSION)
+        self.assertEqual(after["extractor"]["vocab_versions"]["intervention"], target.vocabs["intervention"].version)
+        self.assertEqual(after["extractor"]["vocab_versions"]["outcome"], target.vocabs["outcome"].version)
+        for k, v in before_versions.items():
+            if k not in ("intervention", "outcome"):
+                self.assertEqual(after["extractor"]["vocab_versions"][k], v)
+
+    def test_a_new_proposed_fact_is_filed_as_a_proposal(self):
+        with tempfile.TemporaryDirectory() as root:
+            target, papers = _setup(root)
+            tasks, _ = refine_grain.make_tasks(target, papers, pass_label="a")
+            entry = task_entry(tasks[0])
+            result = {"intervention": [], "outcome": [{"value": "a brand new outcome", "proposed": True,
+                                                         "quote": "raised household food consumption by twelve percent",
+                                                         "locator": 3}]}
+            refine_grain.apply_result(target, entry, result, PROV)
+            self.assertEqual(len(target.proposals.open()), 1)
+            self.assertEqual(target.proposals.open()[0]["value"], "a brand new outcome")
+
+    def test_reconcile_runs_after_the_merge(self):
+        with tempfile.TemporaryDirectory() as root:
+            target, papers = _setup(root)
+            b_tasks, _ = stage.make_tasks(target, papers, pass_label="b", redo=True)
+            stage.apply_result(target, task_entry(b_tasks[0]), good(), PROV)
+            # only pass a is refined to empty; pass b keeps good()'s real facts -- a genuine new mismatch that
+            # proves reconcile re-diffed the whole record after this merge, not merely left the prior status alone
+            tasks, _ = refine_grain.make_tasks(target, papers, pass_label="a")
+            refine_grain.apply_result(target, task_entry(tasks[0]), {"intervention": [], "outcome": []}, PROV)
+            record = target.records.read(FID, "a")
+        self.assertEqual(record["review"]["status"], "needs_review")
+
+
 class TestValidateResult(unittest.TestCase):
     def _entry(self):
         return {"passages": [{"id": "P1", "ref": "page 1", "text": PAGES[1]}]}
