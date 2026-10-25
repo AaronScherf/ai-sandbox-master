@@ -50,3 +50,36 @@ def scope_roots(record: dict, facet: str, vocab, sector_vocab) -> set[str]:
     labels = {sector_vocab.terms[sid].label for sid in sector_ids
               if sector_vocab is not None and sid in sector_vocab.terms}
     return {r for label in labels if (r := _root_by_label(vocab, label))}
+
+
+def _subtree_listing(vocab, root_ids: set[str]) -> str:
+    """Every term in `vocab` whose top-level ancestor is in `root_ids` (the roots themselves included), full
+    depth, no LISTING_LIMIT collapse -- one `- id: label` line per term."""
+    lines = [f"- {t.id}: {t.label}" + (f" - {t.definition}" if t.definition else "")
+             for t in vocab.terms.values() if _root(t.id, vocab) in root_ids]
+    return "\n".join(lines)
+
+
+def _vocab_listing_for(record: dict, vocabs: dict) -> str:
+    """The scoped intervention/outcome listing for one paper's refine card. Falls back to stage._vocab_listing's
+    existing grouping-only rendering for a facet when scope_roots finds nothing to anchor on (should not occur in
+    practice -- every paper carries a sector fact -- but keeps today's behavior as a safety net rather than
+    showing an empty listing)."""
+    from .stage import _vocab_listing
+
+    sector_vocab = vocabs.get("sector")
+    lines: list[str] = []
+    for facet in ("intervention", "outcome"):
+        vocab = vocabs.get(facet)
+        if vocab is None:
+            continue
+        roots = scope_roots(record, facet, vocab, sector_vocab)
+        if roots:
+            lines += ["", f"Vocabulary {facet} (version {vocab.version}, {vocab.provenance}; scoped to this "
+                           "paper's own category, full depth, no grouping collapse):",
+                      _subtree_listing(vocab, roots)]
+        else:
+            # facet name and vocabulary name coincide for intervention/outcome (schema.FACETS maps each to
+            # itself), so this single-entry dict is exactly what stage._vocab_listing expects.
+            lines.append(_vocab_listing({facet: vocab}))
+    return "\n".join(lines)

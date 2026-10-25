@@ -134,6 +134,55 @@ class TestScopeRoots(unittest.TestCase):
         self.assertEqual(scope_roots(self._record(), "intervention", vocabs["intervention"], vocabs["sector"]), set())
 
 
+class TestSubtreeListing(unittest.TestCase):
+    def test_lists_every_term_under_the_given_roots_full_depth(self):
+        from agent.literature.refine_grain import _subtree_listing
+        vocabs = _hierarchical_vocabs()
+        text = _subtree_listing(vocabs["intervention"], {"intervention.agriculture_forestry"})
+        for tid in ("intervention.agriculture_forestry", "intervention.climate_adaption_mitigation_strategies",
+                    "intervention.crop_diversification"):
+            self.assertIn(tid, text)
+        self.assertNotIn("intervention.land_titling_reform", text)
+        self.assertNotIn("intervention.public_administration_2", text)
+
+    def test_two_root_ids_combine_both_branches(self):
+        from agent.literature.refine_grain import _subtree_listing
+        vocabs = _hierarchical_vocabs()
+        text = _subtree_listing(vocabs["intervention"],
+                                 {"intervention.agriculture_forestry", "intervention.public_administration_2"})
+        self.assertIn("intervention.crop_diversification", text)
+        self.assertIn("intervention.land_titling_reform", text)
+
+    def test_an_empty_root_set_is_an_empty_listing(self):
+        from agent.literature.refine_grain import _subtree_listing
+        vocabs = _hierarchical_vocabs()
+        self.assertEqual(_subtree_listing(vocabs["intervention"], set()), "")
+
+
+class TestVocabListingFor(unittest.TestCase):
+    def _record(self, intervention=None, outcome=None, sector=None):
+        return {"core": {"intervention": intervention or [], "outcome": outcome or [], "sector": sector or []}}
+
+    def test_scopes_each_facet_to_its_own_roots(self):
+        from agent.literature.refine_grain import _vocab_listing_for
+        vocabs = _hierarchical_vocabs()
+        record = self._record(
+            intervention=[{"value": "x", "vocab_id": "intervention.crop_diversification", "quote": "q" * 10, "locator": 1}],
+            outcome=[{"value": "y", "vocab_id": "outcome.crop_production", "quote": "q" * 10, "locator": 1}])
+        text = _vocab_listing_for(record, vocabs)
+        self.assertIn("intervention.climate_adaption_mitigation_strategies", text)
+        self.assertIn("outcome.crop_production", text)
+        self.assertNotIn("intervention.land_titling_reform", text)
+        self.assertNotIn("outcome.public_administration", text)
+
+    def test_falls_back_to_grouping_only_when_a_facet_has_no_anchor_at_all(self):
+        from agent.literature.refine_grain import _vocab_listing_for
+        vocabs = _hierarchical_vocabs()
+        text = _vocab_listing_for(self._record(), vocabs)
+        self.assertIn("Vocabulary intervention", text)
+        self.assertIn("Vocabulary outcome", text)
+
+
 class TestWriteVocabDirPreservesParent(unittest.TestCase):
     def test_a_written_and_reloaded_vocab_keeps_its_parent_links(self):
         import tempfile
