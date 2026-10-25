@@ -65,6 +65,18 @@ class TestRejectAndList(unittest.TestCase):
             self.assertEqual(props.open(), [])
             self.assertEqual(props.all()[0]["reason"], "duplicate of panel")
 
+    def test_rejected_keys_includes_only_rejected_proposals(self):
+        with tempfile.TemporaryDirectory() as d:
+            _, props = _setup(d)
+            props.add("0123456789abcdef", "outcome", "too vague a topic", "a quote long enough", 1)
+            props.reject("P0002", "triage: too vague")
+            self.assertEqual(props.rejected_keys(), {("0123456789abcdef", "outcome", "too vague a topic")})
+            # P0001 is still open, so it must not show up as rejected
+            props.reject("P0001", "duplicate of panel")
+            self.assertEqual(props.rejected_keys(),
+                              {("0123456789abcdef", "outcome", "too vague a topic"),
+                               ("0123456789abcdef", "study_design", "synthetic control")})
+
     def test_list_shows_open_proposals(self):
         with tempfile.TemporaryDirectory() as d:
             records = Path(d) / ".index" / "study_records"

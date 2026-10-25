@@ -1,4 +1,5 @@
 import contextlib
+import copy
 import io
 import json
 import tempfile
@@ -9,7 +10,7 @@ from agent.literature import tiers, verify
 from agent.literature.cli import main
 from core.agent_tasks.work import task_entry
 from test_lit_verify import PROV, FID, _answer, _different, _setup
-from lit_helpers import VOCABS, write_vocab_dir
+from lit_helpers import VOCABS, good, write_vocab_dir
 
 
 def _verified(root, verdicts):
@@ -42,6 +43,22 @@ class TestTiers(unittest.TestCase):
             target = _verified(root, ["supported"] * 3)
             target.records.path(FID, "b").unlink()
             self.assertEqual(tiers.tiered_facts(target.records, FID, VOCABS), [])
+
+    def test_a_rejected_proposal_s_fact_is_dropped_when_proposals_is_given(self):
+        with tempfile.TemporaryDirectory() as root:
+            both = copy.deepcopy(good())
+            both["core"]["outcome"].append(
+                {"value": "too vague a topic", "proposed": True,
+                 "quote": "given attrition between survey waves", "locator": 4})
+            target, _ = _setup(root, both)
+            items = tiers.tiered_facts(target.records, FID, VOCABS)
+            self.assertIn("proposed:too vague a topic", {i["shown"] for i in items})
+            # apply_result already auto-filed this as proposal P0001 (see stage.apply_result's _proposed_facts loop)
+            target.proposals.reject("P0001", "triage: too vague")
+            with_filter = tiers.tiered_facts(target.records, FID, VOCABS, target.proposals)
+            self.assertNotIn("proposed:too vague a topic", {i["shown"] for i in with_filter})
+            # an open (not yet decided) proposal for a different fact must not be dropped
+            self.assertIn("outcome.food_consumption", {i["shown"] for i in with_filter})
 
     def test_floor_drops_the_lower_tiers(self):
         items = [{"tier": "A"}, {"tier": "B"}, {"tier": "C"}]

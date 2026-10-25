@@ -54,7 +54,7 @@ def build(target, path, floor: str = "B") -> dict:
             conn.execute("INSERT INTO papers VALUES (?,?,?,?,?,?)", (
                 fid, ident.get("title"), int(year) if str(year).isdigit() else None, ident.get("doi"),
                 ident.get("openalex_id"), (record.get("appraisal") or {}).get("confidence")))
-            for item in at_least(tiered_facts(target.records, fid, target.vocabs), floor):
+            for item in at_least(tiered_facts(target.records, fid, target.vocabs, target.proposals), floor):
                 conn.execute("INSERT INTO facts VALUES (?,?,?,?,?,?,?)", (
                     fid, item["facet"], item["shown"], item["label"], item["tier"], item["quote"], _json(item["locator"])))
             for n, r in enumerate(record["core"].get("results") or [], 1):

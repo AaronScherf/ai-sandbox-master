@@ -146,7 +146,7 @@ def make_tasks(target: Target, cluster: Cluster, *, max_papers: int = MAX_PAPERS
     missing = [f for f in cluster.file_ids if f not in notes]
     if missing:
         raise ValueError("annotate these papers first (run `annotate`): " + ", ".join(missing))
-    anns = {f: annotation_of(target.records, f, target.vocabs, cluster.floor) for f in cluster.file_ids}
+    anns = {f: annotation_of(target.records, f, target.vocabs, cluster.floor, target.proposals) for f in cluster.file_ids}
     ids = assign_ids(cluster.file_ids)
     parts = chunks(cluster, anns, max_papers)
     if len(parts) == 1:

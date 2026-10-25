@@ -8,10 +8,10 @@ from .tiers import at_least, tiered_facts
 _RESULT_KEYS = ("claim", "effect_direction", "magnitude", "quote", "locator")
 
 
-def annotation_of(records, file_id: str, vocabs: dict | None = None, floor: str = "B") -> dict:
+def annotation_of(records, file_id: str, vocabs: dict | None = None, floor: str = "B", proposals=None) -> dict:
     record = records.read(file_id, "a")
     facts: dict = {}
-    for item in at_least(tiered_facts(records, file_id, vocabs), floor):
+    for item in at_least(tiered_facts(records, file_id, vocabs, proposals), floor):
         facts.setdefault(item["facet"], []).append(
             {k: item[k] for k in ("label", "tier", "quote", "locator")})
     results = [{"id": f"R{n}", **{k: r.get(k) for k in _RESULT_KEYS}}

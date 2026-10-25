@@ -54,7 +54,7 @@ def make_tasks(target: Target, cluster: Cluster, papers: list[Paper], *, redo: b
         if not redo and done.get(paper.file_id, {}).get("transcript_sha") == sha:
             skipped[paper.file_id] = "already annotated (use --redo to annotate again)"
             continue
-        ann = annotation_of(target.records, paper.file_id, target.vocabs, cluster.floor)
+        ann = annotation_of(target.records, paper.file_id, target.vocabs, cluster.floor, target.proposals)
         record = target.records.read(paper.file_id, "a")
         pages = split_pages(md)
         wanted: set = set()

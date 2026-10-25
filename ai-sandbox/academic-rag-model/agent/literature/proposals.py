@@ -88,3 +88,9 @@ class Proposals:
         """(file_id, vocabulary, normalized value) -> the term an accepted or merged proposal now stands for."""
         return {(p["file_id"], p["vocabulary"], normalize(p["value"])): p["term_id"]
                 for p in self.all() if p["status"] in ("accepted", "merged") and p.get("term_id")}
+
+    def rejected_keys(self) -> set[tuple]:
+        """(file_id, vocabulary, normalized value) for every rejected proposal -- a human already decided the
+        value is not a real taxonomy concept, so tiered_facts drops the matching fact instead of displaying its
+        raw free text as if it were one."""
+        return {(p["file_id"], p["vocabulary"], normalize(p["value"])) for p in self.all() if p["status"] == "rejected"}

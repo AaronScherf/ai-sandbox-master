@@ -44,7 +44,7 @@ def render(target: Target, name: str):
     if final is None:
         raise ValueError("synth-final is missing: run `synthesize` (and `synthesize --merge` if it made chunk cards), "
                          "fill the cards and submit them")
-    anns = {f: annotation_of(target.records, f, target.vocabs, cluster.floor) for f in cluster.file_ids}
+    anns = {f: annotation_of(target.records, f, target.vocabs, cluster.floor, target.proposals) for f in cluster.file_ids}
     keys = cite_keys({f: anns[f]["identity"] for f in cluster.file_ids})
     by_pid = {pid: fid for fid, pid in assign_ids(cluster.file_ids).items()}
     where = ", ".join(f"{c['facet']}={c['value']}" for c in cluster.constraints)

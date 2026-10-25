@@ -56,7 +56,7 @@ def _matcher(constraint: dict, vocabs: dict):
                                                 or term.id in _ancestors(i["shown"], vocab))
 
 
-def define_cluster(records, vocabs: dict, name: str, where: list, floor: str = "B") -> Cluster:
+def define_cluster(records, vocabs: dict, name: str, where: list, floor: str = "B", proposals=None) -> Cluster:
     topic_dir("", name)  # validates the name
     if not where:
         raise ClusterError("give at least one facet=value constraint")
@@ -64,7 +64,7 @@ def define_cluster(records, vocabs: dict, name: str, where: list, floor: str = "
     matchers = [_matcher(c, vocabs) for c in constraints]
     members = []
     for fid in sorted(records.ids()):
-        items = at_least(tiered_facts(records, fid, vocabs), floor)
+        items = at_least(tiered_facts(records, fid, vocabs, proposals), floor)
         if items and all(any(m(i) for i in items) for m in matchers):
             members.append(fid)
     if not members:

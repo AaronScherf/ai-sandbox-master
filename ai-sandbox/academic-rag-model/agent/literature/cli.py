@@ -142,7 +142,7 @@ def cmd_tiers(args) -> int:
     target = _target(args)
     papers = {}
     for fid in target.records.ids():
-        if items := tiers.tiered_facts(target.records, fid, target.vocabs):
+        if items := tiers.tiered_facts(target.records, fid, target.vocabs, target.proposals):
             papers[fid] = items
     count = {t: sum(1 for items in papers.values() for i in items if i["tier"] == t) for t in tiers.ORDER}
     for t in tiers.ORDER:
@@ -163,7 +163,7 @@ def cmd_cluster(args) -> int:
         if args.action == "show":
             c = clusters.load_cluster(args.index_root, args.name)
         else:
-            c = clusters.define_cluster(target.records, target.vocabs, args.name, args.where, args.floor)
+            c = clusters.define_cluster(target.records, target.vocabs, args.name, args.where, args.floor, target.proposals)
             clusters.save_cluster(args.index_root, c)
     except clusters.ClusterError as exc:
         print(f"cluster: {exc}")
