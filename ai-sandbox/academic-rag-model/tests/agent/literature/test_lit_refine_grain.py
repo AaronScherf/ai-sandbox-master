@@ -1,6 +1,17 @@
+import tempfile
 import unittest
+from pathlib import Path
 
+from agent.literature import refine_grain, stage
+from agent.literature.papers import eligible_papers
+from agent.literature.proposals import Proposals
+from agent.literature.store import RecordStore
 from agent.literature.vocab import Term, Vocabulary
+from core.agent_tasks.work import task_entry
+from lit_helpers import PAGES, VOCABS, good, make_index
+
+PROV = {"driver": "agent", "agent": "antigravity", "run": "r1"}
+FID = "0123456789abcdef"
 
 
 def _hierarchical_vocabs():
@@ -132,6 +143,108 @@ class TestScopeRoots(unittest.TestCase):
         from agent.literature.refine_grain import scope_roots
         vocabs = _hierarchical_vocabs()
         self.assertEqual(scope_roots(self._record(), "intervention", vocabs["intervention"], vocabs["sector"]), set())
+
+
+def _setup(root, vocabs=None):
+    """An index with one eligible paper that already has a pass-"a" extraction record, as every one of the real
+    62 papers already does (confirmed: zero papers are missing either pass in the real corpus)."""
+    make_index(root)
+    vocabs = vocabs or VOCABS
+    records = RecordStore(Path(root) / ".index" / "study_records")
+    target = stage.Target(str(root), records, vocabs, Proposals(records.dir))
+    papers, _ = eligible_papers(str(root))
+    tasks, _ = stage.make_tasks(target, papers, pass_label="a", redo=True)
+    stage.apply_result(target, task_entry(tasks[0]), good(), PROV)
+    return target, papers
+
+
+class TestMakeTasks(unittest.TestCase):
+    def test_builds_one_task_per_paper_with_an_existing_record_for_this_pass(self):
+        with tempfile.TemporaryDirectory() as root:
+            target, papers = _setup(root)
+            tasks, skipped = refine_grain.make_tasks(target, papers, pass_label="a")
+        self.assertEqual(len(tasks), 1)
+        self.assertEqual(tasks[0].id, f"refine-{FID}")
+        self.assertEqual(tasks[0].stage, refine_grain.STAGE)
+        self.assertEqual(skipped, {})
+
+    def test_skips_a_pass_with_no_record_yet(self):
+        with tempfile.TemporaryDirectory() as root:
+            target, papers = _setup(root)
+            tasks, skipped = refine_grain.make_tasks(target, papers, pass_label="b")
+        self.assertEqual(tasks, [])
+        self.assertIn("refine_grain record", skipped[FID])
+
+    def test_a_pass_b_task_has_the_pass_b_suffix_in_its_id(self):
+        with tempfile.TemporaryDirectory() as root:
+            target, papers = _setup(root)
+            b_tasks, _ = stage.make_tasks(target, papers, pass_label="b", redo=True)
+            stage.apply_result(target, task_entry(b_tasks[0]), good(), PROV)
+            tasks, _ = refine_grain.make_tasks(target, papers, pass_label="b")
+        self.assertEqual(tasks[0].id, f"refine-{FID}-b")
+
+    def test_the_context_carries_the_scoped_vocabulary_listing(self):
+        with tempfile.TemporaryDirectory() as root:
+            target, papers = _setup(root)
+            tasks, _ = refine_grain.make_tasks(target, papers, pass_label="a")
+        self.assertIn("intervention.cash_transfer", tasks[0].context)
+
+    def test_already_refined_is_skipped_unless_redo(self):
+        with tempfile.TemporaryDirectory() as root:
+            target, papers = _setup(root)
+            record = target.records.read(FID, "a")
+            record["extractor"]["grain_refine_version"] = refine_grain.PROMPT_VERSION
+            target.records.write(record, "a")
+            tasks, skipped = refine_grain.make_tasks(target, papers, pass_label="a")
+            self.assertEqual(tasks, [])
+            self.assertIn("already refined", skipped[FID])
+            tasks, _ = refine_grain.make_tasks(target, papers, pass_label="a", redo=True)
+            self.assertEqual(len(tasks), 1)
+
+    def test_an_unreadable_transcript_is_skipped(self):
+        with tempfile.TemporaryDirectory() as root:
+            target, papers = _setup(root)
+            (Path(root) / papers[0].path).unlink()
+            tasks, skipped = refine_grain.make_tasks(target, papers, pass_label="a")
+        self.assertEqual(tasks, [])
+        self.assertIn("cannot read the transcript", skipped[FID])
+
+    def test_offers_the_same_pages_as_the_original_extraction(self):
+        with tempfile.TemporaryDirectory() as root:
+            target, papers = _setup(root)
+            tasks, _ = refine_grain.make_tasks(target, papers, pass_label="a")
+        refs = sorted(p.ref for p in tasks[0].passages)
+        self.assertEqual(refs, sorted(f"page {n}" for n in PAGES))
+
+    def test_each_pass_is_scoped_from_its_own_record_not_the_other_pass_s(self):
+        """Pass a and pass b can currently disagree even on the coarse root (this is exactly the comparison
+        scenario diff_records flags). Each pass's refine card must reflect its OWN current record's branch, not
+        a shared/union scope -- otherwise a disagreement on the broad bucket would leak one pass's scope into
+        the other's card."""
+        vocabs = _hierarchical_vocabs()
+        with tempfile.TemporaryDirectory() as root:
+            make_index(root)
+            records = RecordStore(Path(root) / ".index" / "study_records")
+            target = stage.Target(str(root), records, vocabs, Proposals(records.dir))
+            papers, _ = eligible_papers(str(root))
+            a_result, b_result = good(), good()
+            a_result["core"]["intervention"] = [{"value": "crop diversification",
+                                                   "vocab_id": "intervention.crop_diversification",
+                                                   "quote": "We study cash transfers in rural Somalia", "locator": 1}]
+            b_result["core"]["intervention"] = [{"value": "land titling", "vocab_id": "intervention.land_titling_reform",
+                                                   "quote": "We study cash transfers in rural Somalia", "locator": 1}]
+            for result in (a_result, b_result):
+                result["core"]["outcome"] = []
+            a_tasks, _ = stage.make_tasks(target, papers, pass_label="a", redo=True)
+            stage.apply_result(target, task_entry(a_tasks[0]), a_result, PROV)
+            b_tasks, _ = stage.make_tasks(target, papers, pass_label="b", redo=True)
+            stage.apply_result(target, task_entry(b_tasks[0]), b_result, PROV)
+            refine_a, _ = refine_grain.make_tasks(target, papers, pass_label="a")
+            refine_b, _ = refine_grain.make_tasks(target, papers, pass_label="b")
+        self.assertIn("intervention.climate_adaption_mitigation_strategies", refine_a[0].context)
+        self.assertNotIn("intervention.land_titling_reform", refine_a[0].context)
+        self.assertIn("intervention.land_titling_reform", refine_b[0].context)
+        self.assertNotIn("intervention.climate_adaption_mitigation_strategies", refine_b[0].context)
 
 
 class TestSubtreeListing(unittest.TestCase):

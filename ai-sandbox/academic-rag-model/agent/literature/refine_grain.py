@@ -4,6 +4,14 @@ forces it into for a vocabulary over LISTING_LIMIT (docs/superpowers/specs/liter
 2026-10-25-grain-refinement-design.md, TODO-0085)."""
 from __future__ import annotations
 
+from pathlib import Path
+
+from core.agent_tasks.tasks import Passage, Task
+
+from .papers import Paper
+from .stage import MAX_CARD_CHARS, Target, _sha
+from .transcript import split_pages
+
 
 def _root(term_id: str | None, vocab) -> str | None:
     """`term_id`'s top-level ancestor (a term with no parent) in `vocab`, or None when `vocab` is None, `term_id`
@@ -83,3 +91,69 @@ def _vocab_listing_for(record: dict, vocabs: dict) -> str:
             # itself), so this single-entry dict is exactly what stage._vocab_listing expects.
             lines.append(_vocab_listing({facet: vocab}))
     return "\n".join(lines)
+
+
+STAGE = "refine_grain"
+PROMPT_VERSION = "refine-v1"
+
+INSTRUCTIONS = """\
+Below is this paper's intervention and outcome vocabulary, narrowed to the specific category this paper already
+uses (full depth, not the usual grouping-only view). Re-identify this paper's intervention and outcome facts from
+the pages listed under "Offered passages", picking the most specific listed term that fits -- do not settle for a
+broad category when a listed child describes the paper's own wording better. Answer as a YAML mapping under
+`## Result`:
+
+  intervention: [{value: "cash transfers", vocab_id: "intervention.cash_transfer", quote: "...", locator: 4}]
+  outcome: [{value: "food consumption", proposed: true, quote: "...", locator: 3}]
+
+Rules:
+- State only what the paper itself says; do not extract from the reference list or from other papers it cites.
+- Every fact needs a `quote` copied exactly from the page text (8 to 300 characters) and a `locator`: the page
+  number, or a list of page numbers.
+- Use a `vocab_id` from the listing below when a term fits, picking the most specific one. If none fits, write
+  `proposed: true` instead of a `vocab_id` and a short `value`. Never give both. Do not propose a term that is
+  already listed.
+- Be complete: list every distinct intervention and outcome the study itself reports, not only the main one.
+- Write [] for a facet the paper does not give."""
+
+
+def make_tasks(target: Target, papers: list[Paper], *, pass_label: str = "a", redo: bool = False):
+    """Cards that re-extract only intervention and outcome, scoped to each paper's own vocabulary branch. Only
+    builds a task for a paper that already has a record for `pass_label` -- every one of the real 62 papers
+    already has both passes, so this is not a narrowing of the real rollout, just a precondition the merge step
+    (apply_result) needs satisfied."""
+    tasks: list[Task] = []
+    skipped: dict[str, str] = {}
+    for paper in papers:
+        record = target.records.read(paper.file_id, pass_label)
+        if record is None:
+            skipped[paper.file_id] = "no refine_grain record for this pass yet (run collect --double first)"
+            continue
+        try:
+            md = (Path(target.index_root) / paper.path).read_text(encoding="utf-8")
+        except OSError as exc:
+            skipped[paper.file_id] = f"cannot read the transcript: {exc}"
+            continue
+        pages = split_pages(md)
+        if not pages:
+            skipped[paper.file_id] = "transcript has no page markers"
+            continue
+        size = sum(len(t) for t in pages.values())
+        if size > MAX_CARD_CHARS:
+            skipped[paper.file_id] = (f"transcript is {size} characters, over the {MAX_CARD_CHARS} limit for one "
+                                      "card (chunked extraction is not built)")
+            continue
+        sha = _sha(md)
+        if (not redo and record.get("extractor", {}).get("grain_refine_version") == PROMPT_VERSION
+                and record.get("transcript_sha") == sha):
+            skipped[paper.file_id] = "already refined (use --redo to refine again)"
+            continue
+        context = "\n".join([f"Paper: {paper.title or paper.file_id}", f"file_id: {paper.file_id}",
+                             _vocab_listing_for(record, target.vocabs)])
+        passages = [Passage(id=f"P{n}", source=paper.title or paper.file_id, ref=f"page {n}", text=text)
+                    for n, text in sorted(pages.items())]
+        task_id = f"refine-{paper.file_id}" if pass_label == "a" else f"refine-{paper.file_id}-{pass_label}"
+        tasks.append(Task(id=task_id, stage=STAGE, subject={"file_id": paper.file_id, "pass": pass_label,
+                                                              "transcript_sha": sha},
+                           instructions=INSTRUCTIONS, context=context, passages=passages))
+    return tasks, skipped
