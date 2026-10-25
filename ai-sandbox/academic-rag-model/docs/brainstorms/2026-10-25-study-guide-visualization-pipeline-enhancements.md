@@ -143,20 +143,23 @@ Under the CommonMark / GitHub Flavored Markdown specification, `<svg>` is catego
    ```
    `<div>` is a CommonMark Type 6 HTML block, guaranteeing that the parser treats the entire container and its enclosed SVG as an atomic, unbroken HTML unit.
 
-### Rule 8: Dual-Theme Contrast Engineering & Page-Width Boundaries for Companion Math Arrays
+### Rule 8: Universal Dual-Theme Contrast Engineering & LaTeX Array Width Budgets
 When authoring study materials for dual-theme PKM environments (Obsidian dark theme on screen vs. white paper print-to-PDF):
-* **The Low-Contrast Trap on White Paper:** Styling vector text with light slate tints (`#cbd5e1`, `#f1f5f9`) or dark text halos (`stroke: #18181b`) looks crisp in dark mode, but completely washes out or produces jarring dark blobs on a white PDF page.
-* **The 4-Column LaTeX Array Overflow:** Packing 4 tabular columns side-by-side (`\boxed{\begin{array}{r@{\quad}l@{\qquad\qquad}r@{\quad}l}}`) forces equations to exceed 900px in width. On a standard Letter page with 20mm margins (printable width ~620px), the rightmost column is aggressively clipped by the paper boundary.
+* **The Fatal Obsidian `<style>` Sanitization Trap:** In Obsidian, the DOM sanitizer (DOMPurify) strips `<style>` tags embedded inside inline SVGs. Under the W3C SVG specification, if an element relies on stripped CSS classes, its `stroke` defaults to `none` (causing axes and ticks to vanish completely!) and its `fill` defaults to `#000000` (causing callout cards, badges, and text to turn into solid black boxes with black-on-black invisible text!).
+* **The Low-Contrast Trap on White Paper:** Hardcoding light slate fills (`#cbd5e1`, `#f1f5f9`) or dark text halos (`stroke: #18181b`) looks crisp in dark mode, but washes out or produces jarring dark blobs on a white PDF page.
+* **The LaTeX Array Margin Overflow:** Packing long descriptive prose or wide tabular columns side-by-side inside `\boxed{\begin{array}{ll}}` (e.g. lines over 120 characters) causes the box to exceed ~650px. On standard Letter paper with 20mm margins (printable width ~600–620px), the right edge is clipped off by the paper boundary.
 
 **Pipeline Mandate for Themes and Math Arrays:**
-1. **Embed `@media print, (prefers-color-scheme: light)` Styles Inside SVGs:**
-   Use semantic classes (`.tx-primary`, `.tx-secondary`, `.card-bg`, `.pill-bg`, `.halo`) that automatically invert in print mode:
-   * Dark mode: text is `#f8fafc` / `#cbd5e1`, halos are `#18181b`, cards/pills are dark translucent slate.
-   * Print mode: text dynamically flips to high-contrast `#0f172a` / `#334155`, halos invert to white (`#ffffff`), and card/pill backgrounds become clean white or subtle gray (`#f8fafc`) with crisp colored borders.
-2. **Limit Companion LaTeX Arrays to 2 Columns (`\begin{array}{ll}`):**
-   * Keep each equation statement concise and compact (e.g. `\textbf{Key:} \; formula & \textbf{Key:} \; formula`).
-   * Avoid bloated spacing operators (`\qquad\qquad`) that consume fixed pixel budgets.
-   * Keep total line width under ~580px so that companion boxed summaries fit within both Letter and A4 page printable margins with zero clipping.
+1. **Never Rely on `<style>` Tags or CSS Classes in Inline SVGs:**
+   Every styling property must be declared as an explicit inline XML attribute on the element itself:
+   * **`currentColor` as the Theme Bridge:** Set `stroke="currentColor"` and `fill="currentColor"` on all coordinate axes, arrowheads, ticks, axis labels, and primary body text. In Obsidian dark mode, `currentColor` automatically inherits light text (`#dcddde`); during PDF export, it automatically inherits pure black (`#000000`) on white paper.
+   * **Theme-Neutral Translucent Fills for Cards and Badges:** For callout cards, decision boxes, and badges, never use solid dark or light fills. Instead, use soft translucent tints (`rgba(r, g, b, 0.06)` to `0.12`) paired with crisp colored borders (`#8b5cf6`, `#ef4444`, `#10b981`, `#f59e0b`). Translucent tints render beautifully on dark slate backgrounds and equally clean on bright white print paper, with zero black-box fallback risk.
+   * **Clean Text Over Heavy Rectangles:** For angled annotations (such as the Machina hypotenuse), use rotated SVG text (`fill="#64748b"`) without wrapping it in an opaque rectangular container.
+2. **Strict Character & Width Budget for LaTeX Companion Arrays:**
+   * Limit arrays to 2 columns: `\boxed{\begin{array}{ll}...}`.
+   * Enforce a strict length budget: maximum **60–65 characters per column** (~110–120 total characters across both columns per row).
+   * Replace long sentences with compact mathematical notations (e.g., replace `\textbf{Machina Resolution: Fanning Out:} curves steepen toward North-West` with `\textbf{Resolution:} \; \text{Fanning Out (slope steepens NW)}`).
+   * This guarantees a total box width under ~480–520px, leaving >100px of comfortable margin safety on both Letter and A4 PDF exports.
 
 ---
 
