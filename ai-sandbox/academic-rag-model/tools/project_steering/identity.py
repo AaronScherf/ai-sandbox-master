@@ -15,6 +15,8 @@ from tools.project_steering.report import _write_atomic
 
 TRACKER_RELATIVE = Path("ai-sandbox/academic-rag-model/docs/trackers/academic_hub_to_do.md")
 MARKER = re.compile(r"<!-- TODO-(\d{4,}) -->")
+# Completed items move here with their IDs, so new IDs must count them too.
+COMPLETED_NAME = "academic_hub_completed.md"
 
 
 @dataclass(frozen=True)
@@ -26,11 +28,18 @@ class IdPreview:
     output: str
 
 
-def preview_ids(source: str) -> IdPreview:
+def archived_source(tracker: Path) -> str:
+    """Text of the completed tracker beside `tracker`, or "" if there is none."""
+    completed = tracker.parent / COMPLETED_NAME
+    return completed.read_bytes().decode("utf-8") if completed.is_file() else ""
+
+
+def preview_ids(source: str, archived: str = "") -> IdPreview:
     parsed = parse_tracker(source)
     lines = source.splitlines(keepends=True)
     updated = lines.copy()
-    next_id = max((int(match.group(1)) for match in MARKER.finditer(source)), default=0) + 1
+    next_id = max((int(match.group(1)) for match in MARKER.finditer(source + "\n" + archived)),
+                  default=0) + 1
     needs_id = {item.first_line for item in parsed.warnings if item.kind != "needs_id"}
     assigned = 0
     for task in parsed.tasks:
@@ -66,7 +75,7 @@ def apply_ids(path: Path, expected_sha256: str) -> IdPreview:
     if hashlib.sha256(source_bytes).hexdigest() != expected_sha256:
         raise ValueError("stale tracker; run preview-ids again")
     source = source_bytes.decode("utf-8")
-    preview = preview_ids(source)
+    preview = preview_ids(source, archived_source(path))
     if preview.needs_id:
         raise ValueError(f"unresolved needs_id at lines {preview.needs_id}; review before migration")
     if preview.assigned == 0:

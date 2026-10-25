@@ -13,7 +13,7 @@ from tools.git_workflow import GitError, git_common_dir, run_git
 from tools.corpus_health.state import StateError
 from tools.project_steering.parser import parse_tracker
 from tools.project_steering.report import make_report, publish_report, render_markdown
-from tools.project_steering.identity import apply_ids, preview_ids
+from tools.project_steering.identity import apply_ids, archived_source, preview_ids
 from tools.project_steering.ranking import rank
 from tools.project_steering.routing import route_view
 from tools.project_steering.state import DecisionStore
@@ -96,7 +96,8 @@ def main(argv: list[str] | None = None) -> int:
     if args.command in {"preview-ids", "apply-ids"}:
         try:
             if args.command == "preview-ids":
-                preview = preview_ids(args.tracker.read_bytes().decode("utf-8"))
+                preview = preview_ids(args.tracker.read_bytes().decode("utf-8"),
+                                      archived_source(args.tracker))
             else:
                 preview = apply_ids(args.tracker, args.source_sha256)
         except (OSError, UnicodeError, ValueError, GitError) as exc:

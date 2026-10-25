@@ -48,6 +48,26 @@ def test_id_migration_rejects_stale_source_and_requires_fresh_preview(tmp_path: 
     assert preview_ids(path.read_text(encoding="utf-8")).assigned == 0
 
 
+def test_id_preview_never_reuses_an_archived_id():
+    # TODO-0009 was the newest item and has been moved to the completed tracker.
+    preview = preview_ids("## A\n- <!-- TODO-0004 --> Old.\n- New.\n",
+                          archived="## 2026-10-25\n- <!-- TODO-0009 --> Done.\n")
+    assert [t.task_id for t in parse_tracker(preview.output).tasks] == ["TODO-0004", "TODO-0010"]
+
+
+def test_id_migration_reads_the_completed_tracker_beside_it(tmp_path: Path):
+    subprocess.run(["git", "init", "-q", str(tmp_path)], check=True)
+    path = tmp_path / TRACKER_RELATIVE
+    path.parent.mkdir(parents=True)
+    path.write_text("## A\n- <!-- TODO-0002 --> Old.\n- New.\n", encoding="utf-8")
+    (path.parent / "academic_hub_completed.md").write_text(
+        "## 2026-10-25\n- <!-- TODO-0007 --> Done.\n", encoding="utf-8")
+    subprocess.run(["git", "add", str(TRACKER_RELATIVE)], cwd=tmp_path, check=True)
+    applied = apply_ids(path, preview_ids(path.read_bytes().decode("utf-8")).source_sha256)
+    assert applied.assigned == 1
+    assert "- <!-- TODO-0008 --> New." in path.read_text(encoding="utf-8")
+
+
 def test_duplicate_body_and_ambiguous_marker_remain_unassigned():
     parsed = parse_tracker("## A\n- Same.\n- Same.\n- <!-- unknown --> Maybe.\n")
     assert [w.kind for w in parsed.warnings] == ["duplicate_body", "ambiguous_marker"]
