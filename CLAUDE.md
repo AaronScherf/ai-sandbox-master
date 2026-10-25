@@ -21,8 +21,9 @@ and keep shell and IDE edits inside it. Main is for the designated integrator.
 ## Pending to-dos
 
 When I say "add this as a pending to-do" (or "add to pending", "put it on the to-do list"), record it right away without asking first, and do not start the work. Append one bullet to [`ai-sandbox/academic-rag-model/docs/trackers/academic_hub_to_do.md`](ai-sandbox/academic-rag-model/docs/trackers/academic_hub_to_do.md):
-- Put it under the matching `## <subproject>` heading (e.g. `## Notes Transcription`, `## Textbook Conversion`). If none fits, add a new `##` section directly under the file's title: the file ends in pasted example text, so never append at the end of the file.
-- Write it so someone without this conversation can act on it: what and why, the files or functions involved, and any approach or decision already reached. End with `(added YYYY-MM-DD)`.
+- Don't read the whole tracker (it is long). Grep `^## ` for its headings, then read only the target section.
+- Put it under the matching `## <subproject>` heading (e.g. `## Notes Transcription`, `## Textbook Conversion`). If none fits, add a new `##` section directly under the file's title.
+- Write it so someone without this conversation can act on it: what and why, the files or functions involved, and any approach or decision already reached. Aim for ~800 characters; put longer evidence in a status doc and link it. End with `(added YYYY-MM-DD)`.
 - Reply with one line naming the heading used.
 - **Exempt from the worktree rule.** Make this edit directly in the main checkout, on `main`, without creating a worktree or branch. Stage only that one file by path (never `git add -A`), commit it to `main` with a message starting `todo:`, and leave everything else in the checkout untouched. Standing authorization for this single file only; any other change keeps the worktree procedure.
 

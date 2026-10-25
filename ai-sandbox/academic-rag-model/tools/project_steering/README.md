@@ -17,8 +17,8 @@ stdout; the default prints the generated Markdown view.
 
 The scan recognizes eligible task bullets under `##` headings, including dated
 bullets in subsections and undated textbook tasks (`added: "unknown"`). It retains
-line-numbered diagnostics. The Git-workflow brainstorm notes and pasted example
-remain excluded. Exit `0` means complete coverage; exit `2` means unresolved
+line-numbered diagnostics. Prose that is not a task bullet (such as the
+Textbook Conversion example notes) is ignored. Exit `0` means complete coverage; exit `2` means unresolved
 classification or an operational error. A partial report is published with
 `coverage_complete=false`; source-change and operational errors publish nothing.
 
