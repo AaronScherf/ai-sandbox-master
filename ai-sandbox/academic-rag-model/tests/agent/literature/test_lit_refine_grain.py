@@ -247,6 +247,48 @@ class TestMakeTasks(unittest.TestCase):
         self.assertNotIn("intervention.climate_adaption_mitigation_strategies", refine_b[0].context)
 
 
+class TestValidateResult(unittest.TestCase):
+    def _entry(self):
+        return {"passages": [{"id": "P1", "ref": "page 1", "text": PAGES[1]}]}
+
+    def test_a_good_result_has_no_problems(self):
+        from types import SimpleNamespace
+        target = SimpleNamespace(vocabs=VOCABS)
+        result = {"intervention": [{"value": "cash transfers", "vocab_id": "intervention.cash_transfer",
+                                     "quote": "We study cash transfers in rural Somalia", "locator": 1}],
+                  "outcome": []}
+        self.assertEqual(refine_grain.validate_result(self._entry(), result, target), [])
+
+    def test_an_unknown_vocab_id_is_reported(self):
+        from types import SimpleNamespace
+        target = SimpleNamespace(vocabs=VOCABS)
+        result = {"intervention": [{"value": "x", "vocab_id": "intervention.nonexistent",
+                                     "quote": "We study cash transfers in rural Somalia", "locator": 1}],
+                  "outcome": []}
+        problems = refine_grain.validate_result(self._entry(), result, target)
+        self.assertTrue(any("intervention[0].vocab_id" in p for p in problems))
+
+    def test_a_quote_not_on_the_offered_page_is_reported(self):
+        from types import SimpleNamespace
+        target = SimpleNamespace(vocabs=VOCABS)
+        result = {"intervention": [], "outcome": [{"value": "x", "proposed": True,
+                                                     "quote": "this sentence is not on the page", "locator": 1}]}
+        problems = refine_grain.validate_result(self._entry(), result, target)
+        self.assertTrue(any("outcome[0]" in p for p in problems))
+
+    def test_an_unknown_top_level_key_is_reported(self):
+        from types import SimpleNamespace
+        target = SimpleNamespace(vocabs=VOCABS)
+        result = {"intervention": [], "outcome": [], "sector": []}
+        problems = refine_grain.validate_result(self._entry(), result, target)
+        self.assertTrue(any("sector" in p for p in problems))
+
+    def test_a_non_mapping_result_is_reported(self):
+        from types import SimpleNamespace
+        target = SimpleNamespace(vocabs=VOCABS)
+        self.assertTrue(refine_grain.validate_result(self._entry(), "not a mapping", target))
+
+
 class TestSubtreeListing(unittest.TestCase):
     def test_lists_every_term_under_the_given_roots_full_depth(self):
         from agent.literature.refine_grain import _subtree_listing

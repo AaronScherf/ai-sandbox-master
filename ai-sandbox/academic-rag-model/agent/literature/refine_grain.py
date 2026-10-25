@@ -9,8 +9,9 @@ from pathlib import Path
 from core.agent_tasks.tasks import Passage, Task
 
 from .papers import Paper
-from .stage import MAX_CARD_CHARS, Target, _sha
+from .stage import MAX_CARD_CHARS, Target, _offered_pages, _sha
 from .transcript import split_pages
+from .validate import _facts
 
 
 def _root(term_id: str | None, vocab) -> str | None:
@@ -157,3 +158,13 @@ def make_tasks(target: Target, papers: list[Paper], *, pass_label: str = "a", re
                                                               "transcript_sha": sha},
                            instructions=INSTRUCTIONS, context=context, passages=passages))
     return tasks, skipped
+
+
+def validate_result(entry: dict, result, target) -> list[str]:
+    if not isinstance(result, dict):
+        return ["result: must be a mapping with intervention and outcome lists"]
+    out = [f"result: unknown key {k!r}" for k in sorted(set(result) - {"intervention", "outcome"})]
+    pages = _offered_pages(entry)
+    out += _facts("intervention", result.get("intervention"), target.vocabs, "intervention", pages)
+    out += _facts("outcome", result.get("outcome"), target.vocabs, "outcome", pages)
+    return out
