@@ -143,6 +143,21 @@ Under the CommonMark / GitHub Flavored Markdown specification, `<svg>` is catego
    ```
    `<div>` is a CommonMark Type 6 HTML block, guaranteeing that the parser treats the entire container and its enclosed SVG as an atomic, unbroken HTML unit.
 
+### Rule 8: Dual-Theme Contrast Engineering & Page-Width Boundaries for Companion Math Arrays
+When authoring study materials for dual-theme PKM environments (Obsidian dark theme on screen vs. white paper print-to-PDF):
+* **The Low-Contrast Trap on White Paper:** Styling vector text with light slate tints (`#cbd5e1`, `#f1f5f9`) or dark text halos (`stroke: #18181b`) looks crisp in dark mode, but completely washes out or produces jarring dark blobs on a white PDF page.
+* **The 4-Column LaTeX Array Overflow:** Packing 4 tabular columns side-by-side (`\boxed{\begin{array}{r@{\quad}l@{\qquad\qquad}r@{\quad}l}}`) forces equations to exceed 900px in width. On a standard Letter page with 20mm margins (printable width ~620px), the rightmost column is aggressively clipped by the paper boundary.
+
+**Pipeline Mandate for Themes and Math Arrays:**
+1. **Embed `@media print, (prefers-color-scheme: light)` Styles Inside SVGs:**
+   Use semantic classes (`.tx-primary`, `.tx-secondary`, `.card-bg`, `.pill-bg`, `.halo`) that automatically invert in print mode:
+   * Dark mode: text is `#f8fafc` / `#cbd5e1`, halos are `#18181b`, cards/pills are dark translucent slate.
+   * Print mode: text dynamically flips to high-contrast `#0f172a` / `#334155`, halos invert to white (`#ffffff`), and card/pill backgrounds become clean white or subtle gray (`#f8fafc`) with crisp colored borders.
+2. **Limit Companion LaTeX Arrays to 2 Columns (`\begin{array}{ll}`):**
+   * Keep each equation statement concise and compact (e.g. `\textbf{Key:} \; formula & \textbf{Key:} \; formula`).
+   * Avoid bloated spacing operators (`\qquad\qquad`) that consume fixed pixel budgets.
+   * Keep total line width under ~580px so that companion boxed summaries fit within both Letter and A4 page printable margins with zero clipping.
+
 ---
 
 ## 4. Next Steps & Pipeline Integration Roadmap
