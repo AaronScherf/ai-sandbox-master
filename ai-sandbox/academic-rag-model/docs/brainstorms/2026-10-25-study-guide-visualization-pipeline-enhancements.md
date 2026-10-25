@@ -125,6 +125,24 @@ When Obsidian exports a document to PDF, it uses Chromium's headless print raste
 3. **Keep vertical viewports compact:** Keep diagram heights under 380px (ideally 340–360px) so the SVG and any companion KaTeX explanation card can co-exist on a single printed page.
 4. **Sanitize non-ASCII Unicode glyphs in `<text>` tags:** Avoid multi-byte mathematical minus (`\u2212`) or unstyled Greek letters inside raw SVG `<text>` elements; use standard ASCII `-` or clean HTML entities to prevent headless PDF font subsetting crashes.
 
+### Rule 7: Zero Blank Lines Inside `<svg>` & Wrap in Block-Level `<div>`
+Under the CommonMark / GitHub Flavored Markdown specification, `<svg>` is categorized as a **Type 7 HTML block**, NOT a standard Type 6 block (such as `<div>` or `<table>`).
+* **The Fatal Blank-Line Termination Trap:** According to the CommonMark spec, a Type 7 HTML block *terminates immediately upon encountering a blank line*.
+* **Consequence of Internal Blank Lines:** When decorative blank lines exist inside an inline `<svg>` (e.g. separating axes from labels), the Markdown parser prematurely terminates the `<svg>` at the first empty line and wraps the remainder of the chart elements (`<text>`, `<polygon>`, `<line>`) into invalid HTML `<p>` paragraph tags outside the SVG canvas. The trailing `</svg>` becomes an unmatched, orphaned closing tag.
+* **Impact on PDF Export:** While interactive Live Preview may forgivingly display partial or cached DOM fragments, Obsidian's clean print renderer attempts to construct a strict HTML print DOM. The broken, malformed SVG DOM causes Chromium's print pipeline to fail, rendering only the elements preceding the first blank line and then crashing before rendering adjacent MathJax display blocks.
+
+**Pipeline Mandate for Markdown Embedding:**
+1. **Never allow blank lines inside `<svg>` blocks:** Strip all empty lines between `<svg>` and `</svg>`.
+2. **Always wrap `<svg>` in a block-level `<div>`:**
+   ```html
+   <div style="page-break-inside: avoid; break-inside: avoid;">
+   <svg ...>
+   ...
+   </svg>
+   </div>
+   ```
+   `<div>` is a CommonMark Type 6 HTML block, guaranteeing that the parser treats the entire container and its enclosed SVG as an atomic, unbroken HTML unit.
+
 ---
 
 ## 4. Next Steps & Pipeline Integration Roadmap
