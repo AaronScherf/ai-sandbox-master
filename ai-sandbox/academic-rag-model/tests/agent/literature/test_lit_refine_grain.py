@@ -201,6 +201,31 @@ class TestMakeTasks(unittest.TestCase):
             tasks, _ = refine_grain.make_tasks(target, papers, pass_label="a", redo=True)
             self.assertEqual(len(tasks), 1)
 
+    def test_a_record_a_human_already_accepted_or_corrected_is_skipped(self):
+        """compare.reconcile never touches a record whose review status is 'accepted' or 'corrected' (a human has
+        ruled). refine_grain must not silently overwrite that human decision's intervention/outcome facts either --
+        it has to skip the paper, the same way reconcile itself refuses to override a human ruling."""
+        with tempfile.TemporaryDirectory() as root:
+            target, papers = _setup(root)
+            record = target.records.read(FID, "a")
+            record["review"] = {"status": "accepted", "items_flagged": []}
+            target.records.write(record, "a")
+            tasks, skipped = refine_grain.make_tasks(target, papers, pass_label="a")
+        self.assertEqual(tasks, [])
+        self.assertIn("accepted", skipped[FID])
+
+    def test_a_record_from_an_older_transcript_is_skipped(self):
+        """The card is built from the CURRENT transcript on disk. If the record's own transcript_sha doesn't match
+        that current transcript, refining against it would mix old-transcript facts with new-transcript ones."""
+        with tempfile.TemporaryDirectory() as root:
+            target, papers = _setup(root)
+            record = target.records.read(FID, "a")
+            record["transcript_sha"] = "not-the-real-sha"
+            target.records.write(record, "a")
+            tasks, skipped = refine_grain.make_tasks(target, papers, pass_label="a")
+        self.assertEqual(tasks, [])
+        self.assertIn("older transcript", skipped[FID])
+
     def test_an_unreadable_transcript_is_skipped(self):
         with tempfile.TemporaryDirectory() as root:
             target, papers = _setup(root)

@@ -1132,6 +1132,10 @@ Once the branch is landed, run the pass for all 62 real papers:
 python -m agent.literature --index-root <research> --vocab-dir <resources/3ie/vocab> refine-grain --run-id grain1
 # relay all 124 cards through Antigravity/Gemini, same workflow as the original extraction
 python -m agent.literature --index-root <research> --vocab-dir <resources/3ie/vocab> submit grain1
+# each record's verification block still has its pre-refinement transcript_sha, so verify would otherwise skip
+# every paper as "already verified" and leave new single-pass facts stuck open in the confidence tiers
+python -m agent.literature --index-root <research> --vocab-dir <resources/3ie/vocab> verify --redo
+python -m agent.literature --index-root <research> --vocab-dir <resources/3ie/vocab> verify --full-paper --redo
 python -m agent.literature --index-root <research> --vocab-dir <resources/3ie/vocab> db build
 ```
 

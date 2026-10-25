@@ -199,9 +199,17 @@ regardless of whether it currently shows the coarse-bucket symptom, so there
 is no cheaper meaningful subset to run first (checked: a mechanical "has a
 non-leaf term" filter catches 60 of 62 papers; the stricter "every current
 fact in the facet is non-leaf" filter still catches 56 of 62 -- effectively
-the whole corpus either way). After the run, rebuild
-`literature_db/literature.sqlite` and recheck the intervention/outcome label
-distributions against today's baseline (34 papers on "Climate adaption &
-mitigation strategies," "Agriculture & Forestry" appearing as an
-intervention) to confirm the fix actually reduced the coarse-bucket
-concentration before considering this done.
+the whole corpus either way).
+
+After `submit`, each record's `verification` block still carries its
+pre-refinement `transcript_sha`/support, so `verify.make_tasks` would skip
+every paper as "already verified" and leave any new single-pass
+intervention/outcome fact stuck "open" in the confidence tiers. Run
+`verify --redo` and then `verify --full-paper --redo` before rebuilding the
+database, so the refreshed facts actually get re-verified.
+
+After that, rebuild `literature_db/literature.sqlite` and recheck the
+intervention/outcome label distributions against today's baseline (34 papers
+on "Climate adaption & mitigation strategies," "Agriculture & Forestry"
+appearing as an intervention) to confirm the fix actually reduced the
+coarse-bucket concentration before considering this done.

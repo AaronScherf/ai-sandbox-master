@@ -131,6 +131,10 @@ def make_tasks(target: Target, papers: list[Paper], *, pass_label: str = "a", re
         if record is None:
             skipped[paper.file_id] = "no refine_grain record for this pass yet (run collect --double first)"
             continue
+        review_status = record.get("review", {}).get("status")
+        if review_status in ("accepted", "corrected"):
+            skipped[paper.file_id] = f"record was already {review_status} by a human; refining would overwrite that ruling"
+            continue
         try:
             md = (Path(target.index_root) / paper.path).read_text(encoding="utf-8")
         except OSError as exc:
@@ -146,8 +150,11 @@ def make_tasks(target: Target, papers: list[Paper], *, pass_label: str = "a", re
                                       "card (chunked extraction is not built)")
             continue
         sha = _sha(md)
-        if (not redo and record.get("extractor", {}).get("grain_refine_version") == PROMPT_VERSION
-                and record.get("transcript_sha") == sha):
+        if record.get("transcript_sha") != sha:
+            skipped[paper.file_id] = ("record is from an older transcript; run collect --redo first "
+                                      "to re-extract it against the current transcript")
+            continue
+        if not redo and record.get("extractor", {}).get("grain_refine_version") == PROMPT_VERSION:
             skipped[paper.file_id] = "already refined (use --redo to refine again)"
             continue
         context = "\n".join([f"Paper: {paper.title or paper.file_id}", f"file_id: {paper.file_id}",
