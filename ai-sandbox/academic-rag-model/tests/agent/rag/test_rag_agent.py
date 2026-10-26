@@ -678,5 +678,130 @@ class TestAnswerQuestionProblemGenerationReport(unittest.TestCase):
         self.assertEqual(result.report_path, "/x/report.html")
 
 
+class TestReconstructSessionState(unittest.TestCase):
+    """TODO-0046: the REPL's in-memory conversational state (history,
+    last_question, last_answer, last_passages) must survive a process
+    restart by being rebuilt from the on-disk session log, the same way
+    diagnostic records already do via _recent_gap_tags()."""
+
+    def test_course_none_returns_empty_state_without_touching_session_log(self):
+        from agent.rag.rag_agent import _reconstruct_session_state
+        with patch("agent.rag.session_log.load_events") as mock_load:
+            history, last_q, last_a, last_p = _reconstruct_session_state(["/root"], None, None)
+        self.assertEqual(history, [])
+        self.assertIsNone(last_q)
+        self.assertIsNone(last_a)
+        self.assertEqual(last_p, [])
+        mock_load.assert_not_called()
+
+    def test_no_log_file_yet_returns_empty_state(self):
+        from agent.rag.rag_agent import _reconstruct_session_state
+        with patch("agent.rag.session_log.load_events", return_value=[]):
+            history, last_q, last_a, last_p = _reconstruct_session_state(["/root"], "microecon", None)
+        self.assertEqual(history, [])
+        self.assertIsNone(last_q)
+        self.assertIsNone(last_a)
+        self.assertEqual(last_p, [])
+
+    def test_load_events_error_returns_empty_state_instead_of_raising(self):
+        from agent.rag.rag_agent import _reconstruct_session_state
+        with patch("agent.rag.session_log.load_events", side_effect=OSError("permission denied")):
+            history, last_q, last_a, last_p = _reconstruct_session_state(["/root"], "microecon", None)
+        self.assertEqual(history, [])
+        self.assertIsNone(last_q)
+        self.assertIsNone(last_a)
+        self.assertEqual(last_p, [])
+
+    def test_unit_is_passed_through_to_load_events(self):
+        from agent.rag.rag_agent import _reconstruct_session_state
+        with patch("agent.rag.session_log.load_events", return_value=[]) as mock_load:
+            _reconstruct_session_state(["/root"], "microecon", "homework_3")
+        mock_load.assert_called_once_with(["/root"], "microecon", unit="homework_3")
+
+    def test_rebuilds_history_as_user_assistant_turns_from_answer_events(self):
+        from agent.rag.rag_agent import _reconstruct_session_state
+        events = [
+            MagicMock(type="answer", question="q1", text="a1", citations=[]),
+            MagicMock(type="answer", question="q2", text="a2", citations=[]),
+        ]
+        with patch("agent.rag.session_log.load_events", return_value=events):
+            history, last_q, last_a, last_p = _reconstruct_session_state(["/root"], "microecon", None)
+        self.assertEqual(
+            history,
+            [
+                Turn(role="user", text="q1"), Turn(role="assistant", text="a1"),
+                Turn(role="user", text="q2"), Turn(role="assistant", text="a2"),
+            ],
+        )
+        self.assertEqual(last_q, "q2")
+        self.assertEqual(last_a, "a2")
+
+    def test_history_caps_at_the_last_six_turns(self):
+        from agent.rag.rag_agent import _reconstruct_session_state
+        events = [
+            MagicMock(type="answer", question=f"q{i}", text=f"a{i}", citations=[])
+            for i in range(5)
+        ]
+        with patch("agent.rag.session_log.load_events", return_value=events):
+            history, *_ = _reconstruct_session_state(["/root"], "microecon", None)
+        self.assertEqual(len(history), 6)
+        self.assertEqual(history[0], Turn(role="user", text="q2"))
+        self.assertEqual(history[-1], Turn(role="assistant", text="a4"))
+
+    def test_draft_events_do_not_change_last_question_or_answer(self):
+        from agent.rag.rag_agent import _reconstruct_session_state
+        events = [
+            MagicMock(type="answer", question="q1", text="a1", citations=[]),
+            MagicMock(type="draft", question="q1", text="diagnosis text", citations=[], gap_tag="x"),
+        ]
+        with patch("agent.rag.session_log.load_events", return_value=events):
+            history, last_q, last_a, last_p = _reconstruct_session_state(["/root"], "microecon", None)
+        self.assertEqual(last_q, "q1")
+        self.assertEqual(last_a, "a1")
+
+    def test_verify_events_do_not_change_last_question_or_answer(self):
+        from agent.rag.rag_agent import _reconstruct_session_state
+        events = [
+            MagicMock(type="answer", question="q1", text="a1", citations=[]),
+            MagicMock(type="verify", question="q1", text="verification text", citations=[]),
+        ]
+        with patch("agent.rag.session_log.load_events", return_value=events):
+            history, last_q, last_a, last_p = _reconstruct_session_state(["/root"], "microecon", None)
+        self.assertEqual(last_q, "q1")
+        self.assertEqual(last_a, "a1")
+
+    def test_hint_event_sets_last_question_and_clears_last_answer(self):
+        from agent.rag.rag_agent import _reconstruct_session_state
+        events = [MagicMock(type="hint", question="q1", text="hint text", citations=[])]
+        with patch("agent.rag.session_log.load_events", return_value=events):
+            history, last_q, last_a, last_p = _reconstruct_session_state(["/root"], "microecon", None)
+        self.assertEqual(last_q, "q1")
+        self.assertIsNone(last_a)
+
+    def test_most_recent_hint_after_an_answer_overrides_last_answer(self):
+        from agent.rag.rag_agent import _reconstruct_session_state
+        events = [
+            MagicMock(type="answer", question="q1", text="a1", citations=[]),
+            MagicMock(type="hint", question="q2", text="hint text", citations=[]),
+        ]
+        with patch("agent.rag.session_log.load_events", return_value=events):
+            history, last_q, last_a, last_p = _reconstruct_session_state(["/root"], "microecon", None)
+        self.assertEqual(last_q, "q2")
+        self.assertIsNone(last_a)
+
+    def test_last_passages_rebuilt_from_the_most_recent_events_citations(self):
+        from agent.rag.rag_agent import _reconstruct_session_state
+        citation = Citation(chunk_id="c1", file_id="f1", path="p.md", citation="p. 1", root="/root")
+        events = [MagicMock(type="answer", question="q1", text="a1", citations=[citation])]
+        with patch("agent.rag.session_log.load_events", return_value=events):
+            history, last_q, last_a, last_p = _reconstruct_session_state(["/root"], "microecon", None)
+        self.assertEqual(len(last_p), 1)
+        self.assertEqual(last_p[0].chunk_id, "c1")
+        self.assertEqual(last_p[0].file_id, "f1")
+        self.assertEqual(last_p[0].path, "p.md")
+        self.assertEqual(last_p[0].citation, "p. 1")
+        self.assertEqual(last_p[0].root, "/root")
+
+
 if __name__ == "__main__":
     unittest.main()

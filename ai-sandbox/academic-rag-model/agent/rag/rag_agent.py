@@ -187,6 +187,73 @@ def _recent_gap_tags(roots: list[str], course: str | None, limit: int = 5) -> li
     return tags[-limit:]
 
 
+def _reconstruct_session_state(
+    roots: list[str], course: str | None, unit: str | None,
+) -> tuple[list[Turn], str | None, str | None, list[PassageResult]]:
+    """TODO-0046: rebuilds the REPL's in-memory conversational state --
+    `history`, `last_question`, `last_answer`, `last_passages` -- from the
+    on-disk session log at main() startup, so a restarted REPL doesn't have
+    amnesia about the last few turns even though diagnostic records (gap
+    tags, rubric scores) already survive restarts via append_event()/
+    _recent_gap_tags(). course=None returns empty state without touching
+    the session log at all, same graceful-degradation shape as
+    _recent_gap_tags(). unit scopes reconstruction to that unit via
+    load_events()'s own unit= filter, matching /summarize's target_unit
+    handling below; unit=None (the default) reconstructs from the whole
+    course log.
+
+    Only the "answer" and "hint" handlers in main() ever set these three
+    variables -- "draft" and "verify" only read them. So scanning events
+    newest-first and taking the first "answer"/"hint" found reproduces
+    exactly what main() would have left last_question/last_answer/
+    last_passages at before the process restarted, without needing to
+    replay every event type's (non-)effect explicitly."""
+    if course is None:
+        return [], None, None, []
+    from agent.rag.session_log import load_events  # function-scoped: see _recent_gap_tags()
+    # above for why -- keeps session_log's file I/O out of every call path that doesn't
+    # set course.
+    try:
+        events = load_events(roots, course, unit=unit)
+    except Exception as err:  # noqa: BLE001 -- deliberately broad, same reasoning as
+        # _recent_gap_tags(): restoring prior conversational state is a convenience on
+        # top of the REPL starting up, not the feature itself -- an unreadable log must
+        # degrade to a cold start, never crash main().
+        print(f"WARNING: couldn't read session log to restore prior session state: {err}")
+        return [], None, None, []
+
+    history: list[Turn] = []
+    for event in events:
+        if event.type == "answer":
+            history.append(Turn(role="user", text=event.question))
+            history.append(Turn(role="assistant", text=event.text))
+    history = history[-6:]  # same last-3-exchanges window _generate_answer() and
+    # _reformulate_query() already slice history to (history[-6:]) -- carrying forward
+    # more than the REPL itself would ever look at is pointless.
+
+    last_question: str | None = None
+    last_answer: str | None = None
+    last_passages: list[PassageResult] = []
+    for event in reversed(events):
+        if event.type in ("answer", "hint"):
+            last_question = event.question
+            last_answer = event.text if event.type == "answer" else None
+            last_passages = [
+                PassageResult(
+                    chunk_id=c.chunk_id, file_id=c.file_id, path=c.path, course=course,
+                    score=0.0, text="", citation=c.citation, root=c.root,
+                )
+                for c in event.citations
+            ]  # score/text have no logged value to restore -- session_log.Event stores
+            # Citation (chunk_id/file_id/path/citation/root), not the full PassageResult,
+            # by design (see session_log.py's module docstring: derived, corpus-grounded
+            # content, not a second copy of the corpus itself). That's fine for how
+            # last_passages gets used after a restart -- /draft and /verify cite them,
+            # they don't re-quote passage text.
+            break
+    return history, last_question, last_answer, last_passages
+
+
 _ANSWER_PROMPT_TEMPLATE = """You are tutoring a student using ONLY the excerpts below, drawn from \
 their own course materials. Answer their question clearly and thoroughly, the way a good TA would \
 explain it -- but do not introduce any claim, fact, or worked step that isn't supported by the \
@@ -512,11 +579,12 @@ def main() -> None:
     if client is None:
         raise SystemExit(1)
 
-    history: list[Turn] = []
     unit = args.unit
-    last_question: str | None = None
-    last_answer: str | None = None
-    last_passages: list[PassageResult] = []
+    history, last_question, last_answer, last_passages = _reconstruct_session_state(
+        roots, args.course, unit,
+    )  # TODO-0046: survives a process restart -- see _reconstruct_session_state()'s
+    # own docstring. A cold start (no course, or no log yet) returns the same empty
+    # state main() initialized unconditionally before this existed.
 
     print("Ask a question (Ctrl+C to exit).")
     print("Commands: /draft, /hint <file> <question-ref>, /verify, /summarize [unit]")
