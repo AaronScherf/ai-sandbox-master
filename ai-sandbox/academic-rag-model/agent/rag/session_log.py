@@ -38,6 +38,13 @@ class Event:
     # model's general knowledge, not the corpus (2026-09-28). Defaults True so
     # every event logged before this field existed, and every other event
     # type, reads back as the grounded case they actually were.
+    adjudication: str | None = None             # set only for a "verify" event where the
+    # student opted into /verify --adjudicate (TODO-0047) -- the adjudicator's reasoning
+    # comparing the tutor's answer against the independent verification. None for every
+    # event logged before this field existed, and every "verify" that skipped adjudication.
+    adjudication_agreement: bool | None = None  # Adjudication.agreement, or None if unset
+    adjudication_verdict: str | None = None     # Adjudication.more_likely_correct
+    # ("tutor" | "verification" | "inconclusive"), or None if unset
 
 
 def _log_path(roots: list[str], course: str) -> str:

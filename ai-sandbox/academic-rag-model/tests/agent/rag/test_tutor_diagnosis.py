@@ -8,6 +8,7 @@ from agent.rag.tutor_diagnosis import (
     Diagnosis, DiagnosisParseError, diagnose_draft, generate_hint, generate_ungrounded_hint,
     VERIFY_MODEL, generate_verification, summarize_unit, _rubric_averages_line,
     _ungrounded_fallback_line, _question_snippet, _format_event,
+    Adjudication, AdjudicationParseError, adjudicate_verification,
 )
 
 
@@ -184,6 +185,76 @@ class TestGenerateVerification(unittest.TestCase):
         client = _fake_client("  solution text  \n")
         result = generate_verification("q", client)
         self.assertEqual(result, "solution text")
+
+
+_WELL_FORMED_ADJUDICATION_AGREE = """Both the tutor's answer and the independent verification reach the \
+same conclusion (the budget set is convex) through equivalent reasoning about the constraint set.
+
+AGREEMENT: yes
+MORE_LIKELY_CORRECT: inconclusive"""
+
+
+_WELL_FORMED_ADJUDICATION_DISAGREE = """The tutor's answer asserts the function is quasi-concave but \
+never checks the boundary case, while the independent verification explicitly rules it out there. The \
+verification's reasoning is more complete and its conclusion should be trusted over the tutor's.
+
+AGREEMENT: no
+MORE_LIKELY_CORRECT: verification"""
+
+
+class TestAdjudicateVerificationWellFormed(unittest.TestCase):
+    def test_parses_text_and_agreement_true(self):
+        client = _fake_client(_WELL_FORMED_ADJUDICATION_AGREE)
+        adjudication = adjudicate_verification("q", "tutor answer", "verification text", client)
+        self.assertIsInstance(adjudication, Adjudication)
+        self.assertIn("same conclusion", adjudication.text)
+        self.assertNotIn("AGREEMENT", adjudication.text)
+        self.assertTrue(adjudication.agreement)
+        self.assertEqual(adjudication.more_likely_correct, "inconclusive")
+
+    def test_parses_disagreement_and_verdict(self):
+        client = _fake_client(_WELL_FORMED_ADJUDICATION_DISAGREE)
+        adjudication = adjudicate_verification("q", "tutor answer", "verification text", client)
+        self.assertFalse(adjudication.agreement)
+        self.assertEqual(adjudication.more_likely_correct, "verification")
+
+    def test_uses_verify_model_not_tutor_model(self):
+        client = _fake_client(_WELL_FORMED_ADJUDICATION_AGREE)
+        adjudicate_verification("q", "tutor answer", "verification text", client)
+        self.assertEqual(client.models.generate_content.call_args.kwargs["model"], VERIFY_MODEL)
+
+    def test_prompt_includes_question_tutor_answer_and_verification(self):
+        client = _fake_client(_WELL_FORMED_ADJUDICATION_AGREE)
+        adjudicate_verification("what is X", "tutor says X is Y", "verification says X is Z", client)
+        prompt = client.models.generate_content.call_args.kwargs["contents"]
+        self.assertIn("what is X", prompt)
+        self.assertIn("tutor says X is Y", prompt)
+        self.assertIn("verification says X is Z", prompt)
+
+    def test_tolerates_markdown_bold_and_case(self):
+        client = _fake_client(
+            "Reasoning here.\n\n**Agreement:** NO\n**More_Likely_Correct:** Tutor"
+        )
+        adjudication = adjudicate_verification("q", "a", "v", client)
+        self.assertFalse(adjudication.agreement)
+        self.assertEqual(adjudication.more_likely_correct, "tutor")
+
+
+class TestAdjudicateVerificationMalformed(unittest.TestCase):
+    def test_missing_lines_raises_instead_of_defaulting(self):
+        client = _fake_client("Just some prose with no verdict lines at all.")
+        with self.assertRaises(AdjudicationParseError):
+            adjudicate_verification("q", "a", "v", client)
+
+    def test_invalid_verdict_value_raises(self):
+        client = _fake_client("Reasoning.\n\nAGREEMENT: no\nMORE_LIKELY_CORRECT: both")
+        with self.assertRaises(AdjudicationParseError):
+            adjudicate_verification("q", "a", "v", client)
+
+    def test_invalid_agreement_value_raises(self):
+        client = _fake_client("Reasoning.\n\nAGREEMENT: maybe\nMORE_LIKELY_CORRECT: tutor")
+        with self.assertRaises(AdjudicationParseError):
+            adjudicate_verification("q", "a", "v", client)
 
 
 def _event(**overrides):

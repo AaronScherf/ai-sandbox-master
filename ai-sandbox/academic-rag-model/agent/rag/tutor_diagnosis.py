@@ -196,6 +196,89 @@ def generate_verification(question: str, client) -> str:
     return (response.text or "").strip()
 
 
+@dataclass
+class Adjudication:
+    text: str                 # reasoning for the verdict, grounded in specifics of where
+                               # the two answers align or diverge -- not just a bare verdict
+    agreement: bool            # True if the tutor's answer and the independent verification
+                                # substantively agree (same conclusion via compatible reasoning)
+    more_likely_correct: str   # "tutor" | "verification" | "inconclusive" -- only meaningful
+                                # when agreement is False; "inconclusive" covers both the
+                                # agreement=True case and a genuine disagreement the adjudicator
+                                # can't resolve either way
+
+
+class AdjudicationParseError(ValueError):
+    """Raised when an adjudication response is missing or malforms its AGREEMENT/
+    MORE_LIKELY_CORRECT lines, or gives a value outside the fixed vocabulary -- same
+    "surface, don't silently default" principle as DiagnosisParseError: a fabricated
+    verdict would be worse than no verdict, since /verify's whole point is giving the
+    student something to double-check, not a false sense of resolution."""
+
+
+# TODO-0047: automated third-model adjudication for /verify. generate_verification()
+# already gives the student a second, independent opinion; this is the module's third
+# opinion, written specifically to compare the first two rather than re-solve the
+# problem from scratch. It is deliberately NOT called automatically by /verify --
+# it is a third paid LLM call layered on top of two existing ones, so the REPL only
+# invokes it on an explicit opt-in (/verify --adjudicate; see rag_agent.py's handler).
+# Shown alongside both raw outputs, never in place of them, so a human can still
+# check the adjudicator's own reasoning rather than trust a bare verdict.
+_ADJUDICATION_PROMPT_TEMPLATE = """You are adjudicating between two independently produced answers to \
+the same question: one from a tutoring system grounded in the student's own course materials, one from \
+a model that solved the question from scratch without seeing the first answer. Your job is only to \
+compare them -- do not re-derive the answer yourself from first principles.
+
+Identify where the two answers agree and where they diverge, grounding each claim in specifics from \
+both texts (not just restating that they differ). If they diverge, judge which one is more likely \
+correct based on which reasoning is more complete, more rigorous, or better justified -- or say the \
+disagreement is inconclusive if you can't tell from the texts alone.
+
+End your response with exactly these two lines, in this order, and nothing after them:
+AGREEMENT: <yes or no -- do the two answers substantively agree?>
+MORE_LIKELY_CORRECT: <tutor, verification, or inconclusive -- "inconclusive" whenever AGREEMENT is yes, \
+or whenever you can't resolve a genuine disagreement either way>
+
+Question: {question}
+
+Tutor's answer:
+{tutor_answer}
+
+Independent verification:
+{verification}
+
+Adjudication:"""
+
+
+_ADJUDICATION_LINE_PATTERN = re.compile(
+    r"\*{0,2}AGREEMENT\*{0,2}:\*{0,2}\s*\*{0,2}(yes|no)\*{0,2}\s*\n"
+    r"\*{0,2}MORE_LIKELY_CORRECT\*{0,2}:\*{0,2}\s*\*{0,2}(tutor|verification|inconclusive)\*{0,2}\s*$",
+    re.IGNORECASE | re.MULTILINE,
+)
+# Same markdown/case tolerance as _DIAGNOSIS_LINE_PATTERN -- the stronger VERIFY_MODEL
+# tier formats instructed output with bold labels just as often as the cheap tier does.
+
+
+def adjudicate_verification(question: str, tutor_answer: str, verification: str, client) -> Adjudication:
+    prompt = _ADJUDICATION_PROMPT_TEMPLATE.format(
+        question=question, tutor_answer=tutor_answer, verification=verification,
+    )
+    response = call_with_retries(lambda: client.models.generate_content(
+        model=VERIFY_MODEL, contents=prompt, config={"temperature": 0.2},
+    ))
+    raw = (response.text or "").strip()
+    match = _ADJUDICATION_LINE_PATTERN.search(raw)
+    if match is None:
+        raise AdjudicationParseError(
+            f"adjudication response missing AGREEMENT/MORE_LIKELY_CORRECT lines: {raw!r}"
+        )
+    text = raw[:match.start()].strip()
+    agreement_str, verdict = match.groups()
+    return Adjudication(
+        text=text, agreement=agreement_str.lower() == "yes", more_likely_correct=verdict.lower(),
+    )
+
+
 _SUMMARY_PROMPT_TEMPLATE = """Below is a session's worth of events from a student working through one \
 unit of a course (their questions, your grounded answers, their own draft attempts and how those were \
 diagnosed, and any independent verifications). Using only this history, write two sections:

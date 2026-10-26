@@ -551,7 +551,7 @@ def main() -> None:
     from agent.rag.session_log import Event, append_event, load_events
     from agent.rag.tutor_diagnosis import (
         diagnose_draft, generate_hint, generate_ungrounded_hint, generate_verification, summarize_unit,
-        DiagnosisParseError,
+        DiagnosisParseError, adjudicate_verification, AdjudicationParseError,
     )
     from agent.rag.problem_set_parser import extract_question, QuestionNotFoundError
 
@@ -587,7 +587,7 @@ def main() -> None:
     # state main() initialized unconditionally before this existed.
 
     print("Ask a question (Ctrl+C to exit).")
-    print("Commands: /draft, /hint <file> <question-ref>, /verify, /summarize [unit]")
+    print("Commands: /draft, /hint <file> <question-ref>, /verify [--adjudicate], /summarize [unit]")
     while True:
         line = input("> ").strip()
         if not line:
@@ -693,18 +693,39 @@ def main() -> None:
                 ))
             continue
 
-        if line == "/verify":
+        if line == "/verify" or line.startswith("/verify "):
             if last_question is None:
                 print("Ask a question, request a hint, or draft an attempt first.\n")
                 continue
+            parts = line.split(maxsplit=1)
+            adjudicate = len(parts) == 2 and parts[1].strip() == "--adjudicate"
+            # Opt-in only (TODO-0047): a third paid LLM call on top of the tutor's original
+            # answer and this independent verification, so it must be asked for explicitly
+            # rather than running -- and costing extra -- on every /verify by default.
             verification = generate_verification(last_question, client)
             shown_answer = last_answer or "(no grounded answer yet -- only a hint/draft exists for this question)"
             print(f"\n--- Tutor's answer ---\n{shown_answer}\n")
             print(f"--- Independent verification ---\n{verification}\n")
+            adjudication = None
+            if adjudicate:
+                try:
+                    adjudication = adjudicate_verification(last_question, shown_answer, verification, client)
+                except AdjudicationParseError as err:
+                    print(f"Couldn't parse an adjudication from the model's response ({err}); "
+                          f"not logged -- compare the two answers above yourself.\n")
+                else:
+                    print(f"--- Adjudication ---\n{adjudication.text}\n")
+                    print(
+                        f"Agreement: {'yes' if adjudication.agreement else 'no'}  "
+                        f"More likely correct: {adjudication.more_likely_correct}\n"
+                    )
             if args.course:
                 append_event(roots, Event(
                     type="verify", course=args.course, unit=unit, question=last_question,
                     text=verification, citations=[], timestamp=datetime.now(timezone.utc).isoformat(),
+                    adjudication=adjudication.text if adjudication else None,
+                    adjudication_agreement=adjudication.agreement if adjudication else None,
+                    adjudication_verdict=adjudication.more_likely_correct if adjudication else None,
                 ))
             continue
 
