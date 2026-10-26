@@ -1,5 +1,5 @@
 vocabulary: study_design
-version: 2
+version: 3
 provenance: provisional
 source: Starter list written for this project; replace or reconcile when an authoritative
   list is adopted.
@@ -48,6 +48,11 @@ terms:
 - id: study_design.systematic_review
   label: Systematic review or meta-analysis
   definition: Synthesises many primary studies by a stated search protocol.
+- id: study_design.narrative_review
+  label: Narrative or non-systematic review
+  source: local
+  definition: Synthesises other studies without a stated search protocol (a literature
+    review or comprehensive review of prior work, not a primary study).
 - id: study_design.machine_learning_models
   label: Machine learning models
   source: local
