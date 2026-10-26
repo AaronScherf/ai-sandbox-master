@@ -44,9 +44,14 @@ because Git may not recognize the branch as merged. git worktree lock
 protects against administrative removal/pruning, not concurrent file edits.
 
 On Windows, `git worktree remove` can unregister the worktree successfully
-while the directory deletion itself fails with `Invalid argument` or
-`Device or resource busy` -- a transient file-handle lock, not a
-content-safety refusal. This is a different case from the paragraph above:
+while the directory deletion itself fails with `Invalid argument`,
+`Device or resource busy` or `Permission denied` -- a file-handle lock, not a
+content-safety refusal. The usual cause is the removing session itself: its
+shell (or IDE) still has its working directory inside the worktree, as it does
+right after `land_branch land`. Prevent it by leaving first: run the removal
+from a fresh shell started in the main checkout (a `cd` within the same
+PowerShell process is not always enough). This is a different case from the
+paragraph above:
 confirm with `git worktree list` that the path is no longer registered
 before treating it as safe. Once it's gone from that list, Git tracks
 nothing there, and a plain filesystem `rm -rf` /
