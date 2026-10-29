@@ -129,6 +129,24 @@ class TestBootstrapAndStatus(unittest.TestCase):
             self.assertIn("records: 1", after)
 
 
+    def test_exclude_hides_a_paper_from_tiers_but_status_still_counts_its_record(self):
+        with tempfile.TemporaryDirectory() as root:
+            env = Env(root)
+            _run(env.args("collect", "--run-id", "r1"))
+            fill_card(env.card("r1", f"extract-{FID}"), good())
+            _run(env.args("submit", "r1"))
+            _, out = _run(env.args("exclude", FID))
+            self.assertIn("excluded: 1", out)
+            _, status = _run(env.args("status"))
+            self.assertIn("records: 1", status)
+            self.assertIn("excluded papers: 1", status)
+            self.assertIn("open vocabulary proposals: 0", status)
+            _, collected = _run(env.args("collect", "--run-id", "r2"))
+            self.assertNotIn("collected 1", collected)
+            _, undone = _run(env.args("exclude", FID, "--undo"))
+            self.assertIn("excluded: 0", undone)
+
+
 class TestBackfillYears(unittest.TestCase):
     def test_reports_outcomes_and_a_total(self):
         with tempfile.TemporaryDirectory() as root:

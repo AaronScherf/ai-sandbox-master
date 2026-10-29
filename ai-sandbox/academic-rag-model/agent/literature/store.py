@@ -40,7 +40,33 @@ class RecordStore:
         os.replace(tmp, p)
         return p
 
-    def ids(self) -> list[str]:
+    def all_ids(self) -> list[str]:
+        """Every paper with a record, including ones set aside with `exclude`."""
         if not self.dir.is_dir():
             return []
         return sorted(p.stem for p in self.dir.glob("*.json") if p.stem.count(".") == 0 and not p.name.startswith("_"))
+
+    def ids(self) -> list[str]:
+        """Papers with a record that analysis should use (excluded ones left out)."""
+        out = self.excluded()
+        return [fid for fid in self.all_ids() if fid not in out]
+
+    def excluded(self) -> set[str]:
+        p = self.dir / "_excluded.json"
+        if not p.is_file():
+            return set()
+        return set(json.loads(p.read_text(encoding="utf-8")))
+
+    def _write_excluded(self, ids: set[str]) -> None:
+        self.dir.mkdir(parents=True, exist_ok=True)
+        p = self.dir / "_excluded.json"
+        tmp = p.with_suffix(".json.tmp")
+        tmp.write_text(json.dumps(sorted(ids), indent=2), encoding="utf-8", newline="\n")
+        os.replace(tmp, p)
+
+    def exclude(self, file_ids) -> None:
+        """Set papers aside (off-topic for the corpus). Records stay on disk; analysis stages skip them."""
+        self._write_excluded(self.excluded() | {check_file_id(f) for f in file_ids})
+
+    def include(self, file_ids) -> None:
+        self._write_excluded(self.excluded() - {check_file_id(f) for f in file_ids})

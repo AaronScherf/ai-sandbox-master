@@ -40,6 +40,29 @@ class TestRecordStore(unittest.TestCase):
             self.assertEqual(s.read("abc123", "b")["marker"], "b")
             self.assertEqual(s.ids(), ["abc123"])
 
+    def test_excluded_ids_are_hidden_from_ids_but_not_all_ids(self):
+        with tempfile.TemporaryDirectory() as root:
+            s = RecordStore(root)
+            for fid in ("aaa", "bbb", "ccc"):
+                s.write({"identity": {"file_id": fid}})
+            self.assertEqual(s.excluded(), set())
+            s.exclude(["bbb"])
+            self.assertEqual(s.excluded(), {"bbb"})
+            self.assertEqual(s.ids(), ["aaa", "ccc"])
+            self.assertEqual(s.all_ids(), ["aaa", "bbb", "ccc"])
+            self.assertIsNotNone(s.read("bbb"))
+
+    def test_exclude_is_additive_validates_ids_and_can_be_undone(self):
+        with tempfile.TemporaryDirectory() as root:
+            s = RecordStore(root)
+            s.exclude(["aaa"])
+            s.exclude(["bbb"])
+            self.assertEqual(s.excluded(), {"aaa", "bbb"})
+            with self.assertRaises(ValueError):
+                s.exclude(["../x"])
+            s.include(["aaa"])
+            self.assertEqual(s.excluded(), {"bbb"})
+
     def test_missing_record_is_none(self):
         with tempfile.TemporaryDirectory() as root:
             self.assertIsNone(RecordStore(root).read("nope"))

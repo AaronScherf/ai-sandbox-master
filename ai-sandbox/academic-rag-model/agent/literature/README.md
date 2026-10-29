@@ -30,6 +30,7 @@ python -m agent.literature db dist <facet>                 # papers per label fo
 python -m agent.literature db cooccur                      # pairs of data sources used in the same paper
 python -m agent.literature db query --where facet=value    # papers matching every constraint (same rules as cluster define)
 python -m agent.literature db export [--out PATH]          # Markdown evidence matrix
+python -m agent.literature exclude FILE_ID [FILE_ID ...] [--undo]   # set off-topic papers aside (_excluded.json); records stay on disk
 python -m agent.literature status
 python -m agent.literature backfill-years [--mailto you@example.com]  # fill publication_year from OpenAlex, no LLM
 python -m agent.literature refine-grain [--file-id ID] [--redo]       # re-extract only intervention/outcome, scoped per paper (TODO-0085)

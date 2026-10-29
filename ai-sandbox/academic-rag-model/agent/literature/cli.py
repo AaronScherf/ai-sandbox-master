@@ -53,7 +53,7 @@ def cmd_collect(args) -> int:
                 print(f"{fid}: not an eligible paper ({skipped.get(fid, 'not found in the index')})")
         papers = [p for p in papers if p.file_id in set(args.file_id)]
     if not args.include_duplicates:
-        papers, dupes = drop_duplicate_titles(papers, set(target.records.ids()))
+        papers, dupes = drop_duplicate_titles(papers, set(target.records.all_ids()))
         skipped = {**skipped, **dupes}
     tasks, task_skips = stage.make_tasks(target, papers, redo=args.redo)
     if args.double:
@@ -289,15 +289,23 @@ def cmd_bootstrap(args) -> int:
 def cmd_status(args) -> int:
     papers, skipped = eligible_papers(args.index_root)
     target = _target(args)
-    have = set(target.records.ids())
+    have = set(target.records.all_ids())
     print(f"eligible papers: {len(papers)}")
     print(f"skipped papers: {len(skipped)}")
     print(f"records: {len(have & {p.file_id for p in papers})}")
     print(f"papers without a record: {len([p for p in papers if p.file_id not in have])}")
     copies = sum(1 for fid in have & {p.file_id for p in papers}
                  if any("may not be independent" in m for m in ((target.records.read(fid, "a") or {}).get("review") or {}).get("items_flagged", [])))
-    print(f"open vocabulary proposals: {len(target.proposals.open())}")
+    print(f"open vocabulary proposals: {len([p for p in target.proposals.open() if p['file_id'] not in target.records.excluded()])}")
     print(f"pairs that may not be independent: {copies}")
+    print(f"excluded papers: {len(target.records.excluded())}")
+    return 0
+
+
+def cmd_exclude(args) -> int:
+    records = _target(args).records
+    (records.include if args.undo else records.exclude)(args.file_ids)
+    print(f"excluded: {len(records.excluded())}")
     return 0
 
 
@@ -322,7 +330,11 @@ def cmd_backfill_years(args) -> int:
 
 
 def cmd_proposals(args) -> int:
-    for p in _target(args).proposals.open():
+    target = _target(args)
+    out = target.records.excluded()
+    for p in target.proposals.open():
+        if p["file_id"] in out:
+            continue
         loc = p["locator"]
         page = f"pages {', '.join(map(str, loc))}" if isinstance(loc, list) else f"page {loc}"
         print(f"{p['id']}  {p['vocabulary']}  {p['value']!r}  paper {p['file_id']}  {page}")
@@ -419,6 +431,9 @@ def build_parser() -> argparse.ArgumentParser:
     b = sub.add_parser("bootstrap", help="Print the agent's operating contract.")
     b.add_argument("run_id")
     sub.add_parser("status", help="Counts of papers, records and open proposals.")
+    p_ex = sub.add_parser("exclude", help="Set off-topic papers aside: tiers, clusters, silver, eval and the db skip them; records stay on disk.")
+    p_ex.add_argument("file_ids", nargs="+")
+    p_ex.add_argument("--undo", action="store_true", help="Put the papers back.")
     sub.add_parser("tiers", help="Count facts by confidence tier (A both passes, B checker-supported, C open) and write _tiers.json.")
     sub.add_parser("remap", help="Point facts whose proposal was accepted or merged at the vocabulary term.")
     by = sub.add_parser("backfill-years", help="Fill publication_year on journal_article cards that lack it, from OpenAlex (no LLM).")
@@ -464,4 +479,4 @@ def main(argv: list[str] | None = None, *, complete=None) -> int:
     return {"collect": cmd_collect, "verify": cmd_verify, "silver": cmd_silver, "submit": cmd_submit, "bootstrap": cmd_bootstrap, "status": cmd_status,
             "proposals": cmd_proposals, "eval": cmd_eval, "remap": cmd_remap, "tiers": cmd_tiers, "backfill-years": cmd_backfill_years,
             "cluster": cmd_cluster, "annotate": cmd_annotate, "synthesize": cmd_synthesize, "render": cmd_render, "db": cmd_db,
-            "refine-grain": cmd_refine_grain}[args.command](args)
+            "refine-grain": cmd_refine_grain, "exclude": cmd_exclude}[args.command](args)
