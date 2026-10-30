@@ -29,3 +29,10 @@ Bump `version` whenever a file changes; every extracted record stores the vocabu
 
 If 3ie's terms forbid committing a machine-readable copy of its lists, keep the real files in an ignored
 directory and point the CLI at it with `--vocab-dir`. Do not commit them.
+
+## Not a vocabulary: the gap analysis subregion table
+
+`agent/literature/gap/country_subregions.yaml` maps each ISO 3166-1 alpha-2 code to a UN M49 subregion (the public UN
+Statistics Division standard) for the gap analysis's "same subregion" adjacency. It lives under `gap/`, not here,
+because `load_vocab_dir` reads every `*.yaml` in this directory as a vocabulary. It holds no country names; those come
+from `countries.yaml`. AQ and UM have no subregion and are left out.

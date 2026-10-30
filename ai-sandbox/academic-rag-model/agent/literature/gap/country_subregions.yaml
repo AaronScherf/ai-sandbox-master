@@ -1,0 +1,501 @@
+# ISO 3166-1 alpha-2 code -> UN M49 geographic subregion, used by the gap analysis to decide what counts as an
+# adjacent country. Subregion names follow the UN Statistics Division's M49 standard (public); Sub-Saharan Africa is
+# split into its four M49 subregions. Assigned by the usual convention where M49 lists no row: TW (Eastern Asia),
+# BV and GS (South America), TF (Eastern Africa), HM (Australia and New Zealand). AQ and UM have no subregion and
+# are left out, so a constraint on them cannot be widened. Country names are not repeated here: they come from
+# vocab_data/countries.yaml. Codes are quoted because an unquoted NO (Norway) is read as a boolean.
+countries:
+- code: "AD"
+  subregion: Southern Europe
+- code: "AE"
+  subregion: Western Asia
+- code: "AF"
+  subregion: Southern Asia
+- code: "AG"
+  subregion: Caribbean
+- code: "AI"
+  subregion: Caribbean
+- code: "AL"
+  subregion: Southern Europe
+- code: "AM"
+  subregion: Western Asia
+- code: "AO"
+  subregion: Middle Africa
+- code: "AR"
+  subregion: South America
+- code: "AS"
+  subregion: Polynesia
+- code: "AT"
+  subregion: Western Europe
+- code: "AU"
+  subregion: Australia and New Zealand
+- code: "AW"
+  subregion: Caribbean
+- code: "AX"
+  subregion: Northern Europe
+- code: "AZ"
+  subregion: Western Asia
+- code: "BA"
+  subregion: Southern Europe
+- code: "BB"
+  subregion: Caribbean
+- code: "BD"
+  subregion: Southern Asia
+- code: "BE"
+  subregion: Western Europe
+- code: "BF"
+  subregion: Western Africa
+- code: "BG"
+  subregion: Eastern Europe
+- code: "BH"
+  subregion: Western Asia
+- code: "BI"
+  subregion: Eastern Africa
+- code: "BJ"
+  subregion: Western Africa
+- code: "BL"
+  subregion: Caribbean
+- code: "BM"
+  subregion: Northern America
+- code: "BN"
+  subregion: South-eastern Asia
+- code: "BO"
+  subregion: South America
+- code: "BQ"
+  subregion: Caribbean
+- code: "BR"
+  subregion: South America
+- code: "BS"
+  subregion: Caribbean
+- code: "BT"
+  subregion: Southern Asia
+- code: "BV"
+  subregion: South America
+- code: "BW"
+  subregion: Southern Africa
+- code: "BY"
+  subregion: Eastern Europe
+- code: "BZ"
+  subregion: Central America
+- code: "CA"
+  subregion: Northern America
+- code: "CC"
+  subregion: Australia and New Zealand
+- code: "CD"
+  subregion: Middle Africa
+- code: "CF"
+  subregion: Middle Africa
+- code: "CG"
+  subregion: Middle Africa
+- code: "CH"
+  subregion: Western Europe
+- code: "CI"
+  subregion: Western Africa
+- code: "CK"
+  subregion: Polynesia
+- code: "CL"
+  subregion: South America
+- code: "CM"
+  subregion: Middle Africa
+- code: "CN"
+  subregion: Eastern Asia
+- code: "CO"
+  subregion: South America
+- code: "CR"
+  subregion: Central America
+- code: "CU"
+  subregion: Caribbean
+- code: "CV"
+  subregion: Western Africa
+- code: "CW"
+  subregion: Caribbean
+- code: "CX"
+  subregion: Australia and New Zealand
+- code: "CY"
+  subregion: Western Asia
+- code: "CZ"
+  subregion: Eastern Europe
+- code: "DE"
+  subregion: Western Europe
+- code: "DJ"
+  subregion: Eastern Africa
+- code: "DK"
+  subregion: Northern Europe
+- code: "DM"
+  subregion: Caribbean
+- code: "DO"
+  subregion: Caribbean
+- code: "DZ"
+  subregion: Northern Africa
+- code: "EC"
+  subregion: South America
+- code: "EE"
+  subregion: Northern Europe
+- code: "EG"
+  subregion: Northern Africa
+- code: "EH"
+  subregion: Northern Africa
+- code: "ER"
+  subregion: Eastern Africa
+- code: "ES"
+  subregion: Southern Europe
+- code: "ET"
+  subregion: Eastern Africa
+- code: "FI"
+  subregion: Northern Europe
+- code: "FJ"
+  subregion: Melanesia
+- code: "FK"
+  subregion: South America
+- code: "FM"
+  subregion: Micronesia
+- code: "FO"
+  subregion: Northern Europe
+- code: "FR"
+  subregion: Western Europe
+- code: "GA"
+  subregion: Middle Africa
+- code: "GB"
+  subregion: Northern Europe
+- code: "GD"
+  subregion: Caribbean
+- code: "GE"
+  subregion: Western Asia
+- code: "GF"
+  subregion: South America
+- code: "GG"
+  subregion: Northern Europe
+- code: "GH"
+  subregion: Western Africa
+- code: "GI"
+  subregion: Southern Europe
+- code: "GL"
+  subregion: Northern America
+- code: "GM"
+  subregion: Western Africa
+- code: "GN"
+  subregion: Western Africa
+- code: "GP"
+  subregion: Caribbean
+- code: "GQ"
+  subregion: Middle Africa
+- code: "GR"
+  subregion: Southern Europe
+- code: "GS"
+  subregion: South America
+- code: "GT"
+  subregion: Central America
+- code: "GU"
+  subregion: Micronesia
+- code: "GW"
+  subregion: Western Africa
+- code: "GY"
+  subregion: South America
+- code: "HK"
+  subregion: Eastern Asia
+- code: "HM"
+  subregion: Australia and New Zealand
+- code: "HN"
+  subregion: Central America
+- code: "HR"
+  subregion: Southern Europe
+- code: "HT"
+  subregion: Caribbean
+- code: "HU"
+  subregion: Eastern Europe
+- code: "ID"
+  subregion: South-eastern Asia
+- code: "IE"
+  subregion: Northern Europe
+- code: "IL"
+  subregion: Western Asia
+- code: "IM"
+  subregion: Northern Europe
+- code: "IN"
+  subregion: Southern Asia
+- code: "IO"
+  subregion: Eastern Africa
+- code: "IQ"
+  subregion: Western Asia
+- code: "IR"
+  subregion: Southern Asia
+- code: "IS"
+  subregion: Northern Europe
+- code: "IT"
+  subregion: Southern Europe
+- code: "JE"
+  subregion: Northern Europe
+- code: "JM"
+  subregion: Caribbean
+- code: "JO"
+  subregion: Western Asia
+- code: "JP"
+  subregion: Eastern Asia
+- code: "KE"
+  subregion: Eastern Africa
+- code: "KG"
+  subregion: Central Asia
+- code: "KH"
+  subregion: South-eastern Asia
+- code: "KI"
+  subregion: Micronesia
+- code: "KM"
+  subregion: Eastern Africa
+- code: "KN"
+  subregion: Caribbean
+- code: "KP"
+  subregion: Eastern Asia
+- code: "KR"
+  subregion: Eastern Asia
+- code: "KW"
+  subregion: Western Asia
+- code: "KY"
+  subregion: Caribbean
+- code: "KZ"
+  subregion: Central Asia
+- code: "LA"
+  subregion: South-eastern Asia
+- code: "LB"
+  subregion: Western Asia
+- code: "LC"
+  subregion: Caribbean
+- code: "LI"
+  subregion: Western Europe
+- code: "LK"
+  subregion: Southern Asia
+- code: "LR"
+  subregion: Western Africa
+- code: "LS"
+  subregion: Southern Africa
+- code: "LT"
+  subregion: Northern Europe
+- code: "LU"
+  subregion: Western Europe
+- code: "LV"
+  subregion: Northern Europe
+- code: "LY"
+  subregion: Northern Africa
+- code: "MA"
+  subregion: Northern Africa
+- code: "MC"
+  subregion: Western Europe
+- code: "MD"
+  subregion: Eastern Europe
+- code: "ME"
+  subregion: Southern Europe
+- code: "MF"
+  subregion: Caribbean
+- code: "MG"
+  subregion: Eastern Africa
+- code: "MH"
+  subregion: Micronesia
+- code: "MK"
+  subregion: Southern Europe
+- code: "ML"
+  subregion: Western Africa
+- code: "MM"
+  subregion: South-eastern Asia
+- code: "MN"
+  subregion: Eastern Asia
+- code: "MO"
+  subregion: Eastern Asia
+- code: "MP"
+  subregion: Micronesia
+- code: "MQ"
+  subregion: Caribbean
+- code: "MR"
+  subregion: Western Africa
+- code: "MS"
+  subregion: Caribbean
+- code: "MT"
+  subregion: Southern Europe
+- code: "MU"
+  subregion: Eastern Africa
+- code: "MV"
+  subregion: Southern Asia
+- code: "MW"
+  subregion: Eastern Africa
+- code: "MX"
+  subregion: Central America
+- code: "MY"
+  subregion: South-eastern Asia
+- code: "MZ"
+  subregion: Eastern Africa
+- code: "NA"
+  subregion: Southern Africa
+- code: "NC"
+  subregion: Melanesia
+- code: "NE"
+  subregion: Western Africa
+- code: "NF"
+  subregion: Australia and New Zealand
+- code: "NG"
+  subregion: Western Africa
+- code: "NI"
+  subregion: Central America
+- code: "NL"
+  subregion: Western Europe
+- code: "NO"
+  subregion: Northern Europe
+- code: "NP"
+  subregion: Southern Asia
+- code: "NR"
+  subregion: Micronesia
+- code: "NU"
+  subregion: Polynesia
+- code: "NZ"
+  subregion: Australia and New Zealand
+- code: "OM"
+  subregion: Western Asia
+- code: "PA"
+  subregion: Central America
+- code: "PE"
+  subregion: South America
+- code: "PF"
+  subregion: Polynesia
+- code: "PG"
+  subregion: Melanesia
+- code: "PH"
+  subregion: South-eastern Asia
+- code: "PK"
+  subregion: Southern Asia
+- code: "PL"
+  subregion: Eastern Europe
+- code: "PM"
+  subregion: Northern America
+- code: "PN"
+  subregion: Polynesia
+- code: "PR"
+  subregion: Caribbean
+- code: "PS"
+  subregion: Western Asia
+- code: "PT"
+  subregion: Southern Europe
+- code: "PW"
+  subregion: Micronesia
+- code: "PY"
+  subregion: South America
+- code: "QA"
+  subregion: Western Asia
+- code: "RE"
+  subregion: Eastern Africa
+- code: "RO"
+  subregion: Eastern Europe
+- code: "RS"
+  subregion: Southern Europe
+- code: "RU"
+  subregion: Eastern Europe
+- code: "RW"
+  subregion: Eastern Africa
+- code: "SA"
+  subregion: Western Asia
+- code: "SB"
+  subregion: Melanesia
+- code: "SC"
+  subregion: Eastern Africa
+- code: "SD"
+  subregion: Northern Africa
+- code: "SE"
+  subregion: Northern Europe
+- code: "SG"
+  subregion: South-eastern Asia
+- code: "SH"
+  subregion: Western Africa
+- code: "SI"
+  subregion: Southern Europe
+- code: "SJ"
+  subregion: Northern Europe
+- code: "SK"
+  subregion: Eastern Europe
+- code: "SL"
+  subregion: Western Africa
+- code: "SM"
+  subregion: Southern Europe
+- code: "SN"
+  subregion: Western Africa
+- code: "SO"
+  subregion: Eastern Africa
+- code: "SR"
+  subregion: South America
+- code: "SS"
+  subregion: Eastern Africa
+- code: "ST"
+  subregion: Middle Africa
+- code: "SV"
+  subregion: Central America
+- code: "SX"
+  subregion: Caribbean
+- code: "SY"
+  subregion: Western Asia
+- code: "SZ"
+  subregion: Southern Africa
+- code: "TC"
+  subregion: Caribbean
+- code: "TD"
+  subregion: Middle Africa
+- code: "TF"
+  subregion: Eastern Africa
+- code: "TG"
+  subregion: Western Africa
+- code: "TH"
+  subregion: South-eastern Asia
+- code: "TJ"
+  subregion: Central Asia
+- code: "TK"
+  subregion: Polynesia
+- code: "TL"
+  subregion: South-eastern Asia
+- code: "TM"
+  subregion: Central Asia
+- code: "TN"
+  subregion: Northern Africa
+- code: "TO"
+  subregion: Polynesia
+- code: "TR"
+  subregion: Western Asia
+- code: "TT"
+  subregion: Caribbean
+- code: "TV"
+  subregion: Polynesia
+- code: "TW"
+  subregion: Eastern Asia
+- code: "TZ"
+  subregion: Eastern Africa
+- code: "UA"
+  subregion: Eastern Europe
+- code: "UG"
+  subregion: Eastern Africa
+- code: "US"
+  subregion: Northern America
+- code: "UY"
+  subregion: South America
+- code: "UZ"
+  subregion: Central Asia
+- code: "VA"
+  subregion: Southern Europe
+- code: "VC"
+  subregion: Caribbean
+- code: "VE"
+  subregion: South America
+- code: "VG"
+  subregion: Caribbean
+- code: "VI"
+  subregion: Caribbean
+- code: "VN"
+  subregion: South-eastern Asia
+- code: "VU"
+  subregion: Melanesia
+- code: "WF"
+  subregion: Polynesia
+- code: "WS"
+  subregion: Polynesia
+- code: "YE"
+  subregion: Western Asia
+- code: "YT"
+  subregion: Eastern Africa
+- code: "ZA"
+  subregion: Southern Africa
+- code: "ZM"
+  subregion: Eastern Africa
+- code: "ZW"
+  subregion: Eastern Africa
