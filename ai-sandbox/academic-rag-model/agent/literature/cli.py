@@ -97,10 +97,18 @@ def cmd_submit(args) -> int:
     run = _load(args)
     if run is None:
         return 2
-    module = {verify.STAGE: verify, contribute.STAGE: contribute, synth.STAGE: synth,
+    from .gap import card as gap_card
+
+    module = {verify.STAGE: verify, contribute.STAGE: contribute, synth.STAGE: synth, gap_card.STAGE: gap_card,
               refine_grain.STAGE: refine_grain}.get(run.stage, stage)
     report = submit_run(run, module, _target(args), args.agent_name, provenance_fn=provenance, target_label="study records")
     _print_report(report)
+    if run.stage == gap_card.STAGE and report.applied:
+        hint = f"next: python -m agent.literature gap run --run-id {run.run_id}"
+        root = run.tasks[0]["subject"]["report_root"]
+        if Path(root) != Path(args.index_root) / "literature_gap":
+            hint += f" --report-root {root}"
+        print(hint)
     return 0
 
 
@@ -285,8 +293,46 @@ def _gap_items(args, run_dir: Path):
             data.get("question", ""), data.get("unmapped", []))
 
 
+def _gap_question(args) -> int:
+    from .gap import card as gap_card, report as greport
+    from .gap.corpus import Corpus, load_corpus
+
+    if not args.text:
+        print("gap: give the question as text: gap question \"...\" --run-id ID")
+        return 2
+    try:
+        report_root = Path(args.report_root) if args.report_root else Path(args.index_root) / "literature_gap"
+        run_dir = greport.gap_dir(report_root, args.run_id)
+    except ValueError as exc:
+        print(f"gap: {exc}")
+        return 2
+    target = _target(args)
+    path = litdb.db_path(args.index_root)
+    corpus = Corpus()
+    if path.is_file():
+        conn = sqlite3.connect(path)
+        try:
+            corpus = load_corpus(conn)
+        finally:
+            conn.close()
+    else:
+        print("gap: no database yet, so the card's shortlist shows no paper counts; run `db build` before `gap run`")
+    tasks, _ = gap_card.make_tasks(target, args.text, args.run_id, report_root, corpus)
+    try:
+        run = collect_run(gap_card.STAGE, tasks, _work_root(args), run_dir, run_id=args.run_id, repo_label="gap report folder")
+    except (ValueError, FileExistsError) as exc:
+        print(f"cannot create the run: {exc}")
+        return 2
+    print(f"collected 1 gap card in run {run.run_id}: {run.root}\n"
+          f"Give the agent the contract (python -m agent.literature bootstrap {run.run_id}), then submit the filled card.")
+    return 0
+
+
 def cmd_gap(args) -> int:
     from dataclasses import asdict
+
+    if args.action == "question":
+        return _gap_question(args)
 
     from .gap import classify as gclassify, coverage as gcoverage, report as greport, resolve as gresolve
     from .gap.corpus import load_corpus
@@ -536,7 +582,8 @@ def build_parser() -> argparse.ArgumentParser:
     d.add_argument("--floor", choices=["A", "B", "C"], default="B", help="For build: lowest confidence tier to load.")
     d.add_argument("--out", default=None, help="For export: the Markdown file to write.")
     g = sub.add_parser("gap", help="Gap analysis over the database: has this been studied, and in what context? (offline)")
-    g.add_argument("action", choices=["run"])
+    g.add_argument("action", choices=["run", "question"])
+    g.add_argument("text", nargs="?", default=None, help="For question: the research question in plain words.")
     g.add_argument("--run-id", required=True)
     g.add_argument("--where", action="append", default=[], help="facet=value, repeatable (a term id, label, alias or country code).")
     g.add_argument("--pick", action="append", default=[], help="facet=term_id: choose from the candidates a stopped run printed.")
