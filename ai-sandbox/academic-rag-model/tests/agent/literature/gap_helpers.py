@@ -26,6 +26,7 @@ OUTCOME = [
     ("o.food", "o.welfare", "Food security", ()),
     ("o.food_cons", "o.food", "Food consumption", ()),
     ("o.food_div", "o.food", "Dietary diversity", ()),
+    ("o.food_div_hh", "o.food_div", "Household dietary diversity", ()),
     ("o.health", "o.welfare", "Health", ()),
     ("o.health_child", "o.health", "Child health", ()),
 ]
