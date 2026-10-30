@@ -30,6 +30,8 @@ python -m agent.literature db dist <facet>                 # papers per label fo
 python -m agent.literature db cooccur                      # pairs of data sources used in the same paper
 python -m agent.literature db query --where facet=value    # papers matching every constraint (same rules as cluster define)
 python -m agent.literature db export [--out PATH]          # Markdown evidence matrix
+python -m agent.literature gap run --run-id g1 --where intervention="cash transfers" --where countries=SO [--pick facet=term_id] [--quotes]   # gap analysis, offline
+python -m agent.literature gap question "free text" --run-id g1   # optional: a card that turns a question into constraints (then `submit g1`, then `gap run --run-id g1`)
 python -m agent.literature exclude FILE_ID [FILE_ID ...] [--undo]   # set off-topic papers aside (_excluded.json); records stay on disk
 python -m agent.literature status
 python -m agent.literature backfill-years [--mailto you@example.com]  # fill publication_year from OpenAlex, no LLM
@@ -90,7 +92,28 @@ again after any change; nothing is edited in the database. Tables: `papers`, `fa
 page), `results`, `annotations`, `cluster_members`. Matrix, distribution, co-occurrence and query read only those tables
 and use no LLM. A paper with several terms in a facet counts under each, so matrix rows can sum to more than the paper count.
 
+## Gap analysis (stage 5, slice 1)
+
+Design: `docs/superpowers/specs/literature_taxonomy/2026-10-29-literature-gap-analysis-design.md`. Reads only
+`literature.sqlite`: no network, no LLM (the `gap question` card is optional and goes through `submit` like any other).
+Each `--where facet=value` is resolved to one vocabulary term (or an ISO country code). A phrase that is not exactly one
+term **stops** the run and writes `candidates.json` with ranked candidates (level, children, ancestor path, how many papers
+each would match); re-run with `--pick facet=term_id`. Matching is by term id, descendants included (a label is compared
+only for `proposed:` facts), so a label that 3ie lists under several branches is several distinct terms.
+
+- **direct**: a paper whose tier A/B facts match every constraint.
+- **adjacent**: all but one relaxable constraint (intervention, outcome, country) match, and that one matches a sibling
+  term (other children of its parent; a term under a top-level grouping is not widened) or a country in the same UN M49
+  subregion (`gap/country_subregions.yaml`). Each hit is labelled with the facet relaxed. Two relaxations is a partial match.
+- **verdict**: `tried_directly`, `tried_adjacent` or `no_evidence_in_corpus` (corpus only). `found_externally_not_in_corpus`
+  is reserved for slice 2 (OpenAlex), which is not built.
+- The report (`report.json`, `report.md` under `<index-root>/literature_gap/<run-id>/`, gitignored) carries coverage
+  counts, thin-cell flag, blind spots (papers with `proposed:` values, no country fact, multi-country or global scale),
+  a stale-database warning and the evidence list. It never claims a percent complete.
+
 ## Not built
+
+Gap analysis slice 2: OpenAlex recall probe, live search and classification, the discovery queue Artifact.
 
 Chunked extraction for papers over about 60k tokens of transcript (they are skipped with a reason); table-image
 attachments (text only for v1); the interactive review page for proposed vocabulary terms (stage 2b); adjudication or a
