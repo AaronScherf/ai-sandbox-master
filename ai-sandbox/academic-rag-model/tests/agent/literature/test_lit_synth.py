@@ -89,5 +89,56 @@ class TestDirectionWords(unittest.TestCase):
         self.assertEqual(out["P1"]["directions"], {"R1": "negative"})
 
 
+VALUES = {"P1": {"year": 2019, "results": {"R1": "Transfers reached 1,200 households and cut costs by 12.50 percent",
+                                           "R2": "Coverage rose 8.0 points to 45"}}}
+
+
+class TestNumberForms(unittest.TestCase):
+    def check(self, text, *cites):
+        return synth.check_sections(paragraph(text, *cites)["sections"], VALUES, [])
+
+    def test_numbers_match_by_value_not_by_spelling(self):
+        self.assertEqual(self.check("Transfers reached 1200 households in the sampled districts.", "P1.R1"), [])
+        self.assertEqual(self.check("Transfers reached 1,200 households in the sampled districts.", "P1.R1"), [])
+        self.assertEqual(self.check("Costs fell by 12.5 percent in the sampled districts.", "P1.R1"), [])
+        self.assertEqual(self.check("Coverage rose 8 points to 45 in the sampled districts.", "P1.R2"), [])
+
+    def test_a_different_value_still_bounces_and_names_the_number_as_written(self):
+        msgs = self.check("Transfers reached 1,300 households in the sampled districts.", "P1.R1")
+        self.assertTrue(any("1,300" in m for m in msgs), msgs)
+        msgs = self.check("Costs fell by 12.6 percent in the sampled districts.", "P1.R1")
+        self.assertTrue(any("12.6" in m for m in msgs), msgs)
+
+
+class TestNumberWords(unittest.TestCase):
+    def check(self, text):
+        return synth.check_sections(paragraph(text, "P1.R1")["sections"], VALUES, [])
+
+    def test_a_spelled_out_figure_bounces_and_names_the_word(self):
+        for text, word in [("Costs fell by about twelve percent in the sampled districts.", "twelve"),
+                           ("Coverage rose by five percentage points in the sampled districts.", "five"),
+                           ("Roughly twenty households per village were reached in the sampled districts.", "twenty"),
+                           ("Transfers reached three thousand households in the sampled districts.", "thousand")]:
+            with self.subTest(word=word):
+                msgs = self.check(text)
+                self.assertTrue(any(word in m and "digits" in m for m in msgs), msgs)
+
+    def test_study_counts_in_words_and_ordinary_uses_pass(self):
+        for text in ("Three studies found that transfers reached households in the sampled districts.",
+                     "Across the twenty papers reviewed, transfers reached households in the districts.",
+                     "One mechanism is that transfers reached households in the sampled districts.",
+                     "Transfers reached households in two countries and a third setting in the districts."):
+            with self.subTest(text=text):
+                self.assertEqual(self.check(text), [])
+
+    def test_a_word_the_cited_result_itself_uses_is_allowed(self):
+        allowed = {"P1": {"year": 2019, "results": {"R1": "Droughts displaced over three million people since 2016",
+                                                    "R2": "Aid reached many households"}}}
+        doc = paragraph("Droughts displaced over three million people in the region.", "P1.R1")["sections"]
+        self.assertEqual(synth.check_sections(doc, allowed, []), [])
+        doc = paragraph("Droughts displaced over three million people in the region.", "P1.R2")["sections"]
+        self.assertTrue(any("three" in m or "million" in m for m in synth.check_sections(doc, allowed, [])))
+
+
 if __name__ == "__main__":
     unittest.main()

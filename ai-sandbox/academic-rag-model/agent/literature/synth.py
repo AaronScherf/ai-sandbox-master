@@ -45,8 +45,49 @@ def allowed_for(annotations: dict, ids: dict) -> dict:
     return out
 
 
-def _numbers(text: str) -> set:
-    return {n.rstrip(".,") for n in _NUM.findall(text or "")}
+def _norm(n: str) -> str:
+    """A number by value: no thousands separators, no trailing zeros (1,200 -> 1200, 12.50 -> 12.5, 8.0 -> 8)."""
+    if re.fullmatch(r"\d{1,3}(?:,\d{3})+(?:\.\d+)?", n):
+        n = n.replace(",", "")
+    if "." in n and "," not in n:
+        n = n.rstrip("0").rstrip(".")
+    return n
+
+
+def _numbers(text: str) -> dict:
+    """normalised number -> the number as written (first occurrence)."""
+    out: dict = {}
+    for raw in _NUM.findall(text or ""):
+        raw = raw.rstrip(".,")
+        out.setdefault(_norm(raw), raw)
+    return out
+
+
+_LOW_WORDS = {"one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten"}
+_HIGH_WORDS = {"eleven", "twelve", "thirteen", "fourteen", "fifteen", "sixteen", "seventeen", "eighteen", "nineteen",
+               "twenty", "thirty", "forty", "fifty", "sixty", "seventy", "eighty", "ninety", "hundred", "thousand",
+               "million", "billion"}
+_UNITS = {"percent", "per", "percentage", "points", "point", "fold", "times"}
+_STUDY_NOUNS = {"study", "studies", "paper", "papers", "trial", "trials", "review", "reviews", "article", "articles",
+                "evaluation", "evaluations", "experiment", "experiments", "source", "sources", "reports", "report"}
+
+
+def _spelled_figures(text: str) -> list[str]:
+    """Number words that state a figure: any word of eleven or more unless it counts studies, and any number word
+    followed by a unit (percent, percentage points, fold, times). Small counts such as "two countries" pass."""
+    words = re.findall(r"[A-Za-z]+(?:-[A-Za-z]+)*", text)
+    out = []
+    for i, w in enumerate(words):
+        head = w.lower().split("-")[0]
+        whole = w.lower()
+        if whole not in _LOW_WORDS | _HIGH_WORDS and head not in _HIGH_WORDS:
+            continue
+        nxt = [x.lower() for x in words[i + 1:i + 3]]
+        if nxt[:1] and nxt[0] in _UNITS:
+            out.append(w)
+        elif (whole in _HIGH_WORDS or head in _HIGH_WORDS) and not set(nxt) & _STUDY_NOUNS:
+            out.append(w)
+    return out
 
 
 def _flagged(pattern, exempt: set, text: str) -> list[str]:
@@ -83,6 +124,7 @@ def check_sections(sections, allowed: dict, must_cover: list) -> list[str]:
                 out.append(f"{path}.cites: every paragraph needs at least one citation")
                 continue
             evidence: set = set()
+            cited_words: set = set()
             directions: set = set()
             bad = False
             for c in para["cites"]:
@@ -105,13 +147,20 @@ def check_sections(sections, allowed: dict, must_cover: list) -> list[str]:
                     texts = [paper["results"][rid]]
                     directions.add((paper.get("directions") or {}).get(rid))
                 for t in texts:
-                    evidence |= _numbers(t)
+                    evidence |= set(_numbers(t))
+                    cited_words |= set(re.findall(r"[a-z]+(?:-[a-z]+)*", t.lower()))
                 if paper.get("year"):
                     evidence.add(str(paper["year"]))
             if bad:
                 continue
-            for n in sorted(_numbers(text) - evidence):
-                out.append(f"{path}.text: the number {n} does not appear in any result you cite")
+            written = _numbers(text)
+            for n in sorted(set(written) - evidence):
+                out.append(f"{path}.text: the number {written[n]} does not appear in any result you cite")
+            for w in _spelled_figures(text):
+                if w.lower() in cited_words:
+                    continue
+                out.append(f"{path}.text: the figure '{w}' is written as a word; write it in digits, copied from the result you cite "
+                           "(only counts of studies may be words)")
             known = directions - {None, "not_reported"}
             if known:
                 shown = ", ".join(sorted(known))
