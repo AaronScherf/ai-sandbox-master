@@ -1,5 +1,5 @@
 vocabulary: study_design
-version: 3
+version: 4
 provenance: provisional
 source: Starter list written for this project; replace or reconcile when an authoritative
   list is adopted.
@@ -58,3 +58,6 @@ terms:
   source: local
   definition: Supervised or unsupervised computational learning algorithms evaluated
     through predictive cross-validation or out-of-sample testing.
+- id: study_design.structural_equation_modeling
+  label: Structural equation modeling
+  source: local
