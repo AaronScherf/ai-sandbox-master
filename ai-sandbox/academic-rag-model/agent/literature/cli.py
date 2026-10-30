@@ -271,6 +271,78 @@ def cmd_db(args) -> int:
     return 0
 
 
+def _gap_items(args, run_dir: Path):
+    """(facet, phrase, pick, resolved_by) for each constraint, plus the question text and unmapped phrases."""
+    if args.where:
+        items = [(c["facet"], c["value"], None, "user") for c in map(clusters.parse_constraint, args.where)]
+        return items, "; ".join(args.where), []
+    saved = run_dir / "constraints.json"
+    if not saved.is_file():
+        raise ValueError("give at least one --where facet=value constraint, or submit a `gap question` card first "
+                         "(no constraints.json in the run folder)")
+    data = json.loads(saved.read_text(encoding="utf-8"))
+    return ([(c["facet"], c["phrase"], c["value"], "card") for c in data["constraints"]],
+            data.get("question", ""), data.get("unmapped", []))
+
+
+def cmd_gap(args) -> int:
+    from dataclasses import asdict
+
+    from .gap import classify as gclassify, coverage as gcoverage, report as greport, resolve as gresolve
+    from .gap.corpus import load_corpus
+    from .gap.subregions import load_subregions
+
+    path = litdb.db_path(args.index_root)
+    if not path.is_file():
+        print("gap: no database yet; run `db build` first")
+        return 2
+    report_root = Path(args.report_root) if args.report_root else Path(args.index_root) / "literature_gap"
+    target = _target(args)
+    subregions = load_subregions()
+    try:
+        run_dir = greport.gap_dir(report_root, args.run_id)
+        items, question, unmapped = _gap_items(args, run_dir)
+        picks = {c["facet"]: c["value"] for c in map(clusters.parse_constraint, args.pick)}
+        conn = sqlite3.connect(path)
+        try:
+            corpus = load_corpus(conn)
+        finally:
+            conn.close()
+        constraints, stopped = [], []
+        for facet, phrase, pick, by in items:
+            res = gresolve.resolve(corpus, target.vocabs, facet, phrase, pick=pick, resolved_by=by, subregions=subregions)
+            if res.constraint is None and pick is None and facet in picks:
+                res = gresolve.resolve(corpus, target.vocabs, facet, phrase, pick=picks.pop(facet), subregions=subregions)
+            if res.constraint is not None:
+                constraints.append(res.constraint)
+            else:
+                stopped.append({"facet": facet, "phrase": phrase, "message": res.message,
+                                "candidates": [asdict(c) for c in res.candidates]})
+        if stopped:
+            run_dir.mkdir(parents=True, exist_ok=True)
+            (run_dir / "candidates.json").write_text(json.dumps({"constraints": stopped}, indent=2, ensure_ascii=False) + "\n",
+                                                     encoding="utf-8", newline="\n")
+            for s in stopped:
+                print(f"gap: {s['facet']}={s['phrase']}: {s['message']}")
+                for c in s["candidates"]:
+                    print(f"  {c['term_id']}\t{c['label']} (level {c['level']}, {c['children']} children, {c['papers']} papers)"
+                          f"\t--pick {s['facet']}={c['term_id']}")
+            print(f"stopped; candidates in {run_dir / 'candidates.json'}")
+            return 2
+        result = gclassify.classify(corpus, constraints, target.vocabs, subregions)
+        cov = gcoverage.coverage(corpus, result, constraints, gcoverage.read_sidecar(target, args.index_root, path))
+        report = greport.build_report(question, constraints, target.vocabs, result, cov, corpus,
+                                      unmapped=unmapped, include_quotes=args.quotes)
+        js, md = greport.write_report(report, run_dir)
+    except (ValueError, clusters.ClusterError, KeyError) as exc:
+        print(f"gap: {exc}")
+        return 2
+    print(f"verdict: {result.verdict}\n{result.rule}")
+    print(f"direct {len(result.direct)}, adjacent {len(result.adjacent)}, partial {len(result.partial)}")
+    print(f"wrote {js}\nwrote {md}")
+    return 0
+
+
 def cmd_render(args) -> int:
     try:
         review_path, bib_path = review.render(_target(args), args.name)
@@ -463,6 +535,13 @@ def build_parser() -> argparse.ArgumentParser:
     d.add_argument("--where", action="append", default=[], help="For query: facet=value, repeatable.")
     d.add_argument("--floor", choices=["A", "B", "C"], default="B", help="For build: lowest confidence tier to load.")
     d.add_argument("--out", default=None, help="For export: the Markdown file to write.")
+    g = sub.add_parser("gap", help="Gap analysis over the database: has this been studied, and in what context? (offline)")
+    g.add_argument("action", choices=["run"])
+    g.add_argument("--run-id", required=True)
+    g.add_argument("--where", action="append", default=[], help="facet=value, repeatable (a term id, label, alias or country code).")
+    g.add_argument("--pick", action="append", default=[], help="facet=term_id: choose from the candidates a stopped run printed.")
+    g.add_argument("--quotes", action="store_true", help="Include verbatim quotes in the report (default: claims and directions only).")
+    g.add_argument("--report-root", default=None, help="Where reports are written (default: <index-root>/literature_gap).")
     ev = sub.add_parser("eval", help="Score the records against the gold set (aggregates only).")
     ev.add_argument("--gold", default=None, help=f"Gold set YAML (default: {DEFAULT_PATH}).")
     a = sub.add_parser("api", help="Send pending cards to the paid API (explicit opt-in, cost-gated).")
@@ -479,4 +558,4 @@ def main(argv: list[str] | None = None, *, complete=None) -> int:
     return {"collect": cmd_collect, "verify": cmd_verify, "silver": cmd_silver, "submit": cmd_submit, "bootstrap": cmd_bootstrap, "status": cmd_status,
             "proposals": cmd_proposals, "eval": cmd_eval, "remap": cmd_remap, "tiers": cmd_tiers, "backfill-years": cmd_backfill_years,
             "cluster": cmd_cluster, "annotate": cmd_annotate, "synthesize": cmd_synthesize, "render": cmd_render, "db": cmd_db,
-            "refine-grain": cmd_refine_grain, "exclude": cmd_exclude}[args.command](args)
+            "gap": cmd_gap, "refine-grain": cmd_refine_grain, "exclude": cmd_exclude}[args.command](args)
