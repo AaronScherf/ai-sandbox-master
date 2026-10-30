@@ -55,10 +55,13 @@ Package `agent/literature/gap/` (module split is the builder's call). New subcom
 ```
 python -m agent.literature gap run --run-id g1 --where intervention="cash transfers" --where countries=SO [--pick intervention=<term_id>]
 python -m agent.literature gap question "free text" --run-id g1     # writes the constraint card
-python -m agent.literature gap submit g1                            # validates the filled card, then runs
+python -m agent.literature submit g1                                # validates the filled card, writes constraints.json
+python -m agent.literature gap run --run-id g1                      # no --where: reads that run's constraints.json
 ```
 
-`gap run` and `gap submit` share one pipeline after constraints exist. Global options (`--index-root`, `--vocab-dir`)
+Amended during planning: there is no `gap submit`. The existing `submit RUN_ID` dispatches by run stage, so the card
+goes through it like every other card and prints `next: python -m agent.literature gap run --run-id g1` when it is
+applied. Constraints come from `--where` or from the card's `constraints.json`, and both feed one pipeline. Global options (`--index-root`, `--vocab-dir`)
 behave as for the other subcommands.
 
 ### 4.2 Constraints and resolution
@@ -177,7 +180,7 @@ deterministically from `report.json`; no model writes any of its text. Contents:
 `gap question` writes one task card using the shared card layer, following the pattern of `annotate`/`synthesize`. The card
 holds the question, the vocabulary listing (grouping levels for lists over 150 terms, as other cards do) and a lexical
 candidate shortlist per facet computed from the question text. The agent returns constraints:
-`{facet, term_id | country code, phrase}` plus a list of phrases it could not map. `gap submit` bounces a card with a term
+`{facet, term_id | country code, phrase}` plus a list of phrases it could not map. `submit` bounces a gap card with a term
 that is not in the named facet's vocabulary, a facet outside the list, a country that is not a valid code, or no
 constraint at all. It does not need quotes. Unmapped phrases are shown to the owner and the run proceeds only with the
 mapped constraints, with the unmapped phrases printed at the top of the report. The card route needs no API calls;
