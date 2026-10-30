@@ -83,6 +83,7 @@ ai-sandbox/research/.index/study_records/
 # Stage 3 literature reviews quote paper text: local only.
 ai-sandbox/research/literature_reviews/
 ai-sandbox/research/literature_db/
+ai-sandbox/research/literature_gap/
 # 2026-10-16: 3ie site downloads (usage terms unknown); local only, never commit
 ai-sandbox/research/resources/3ie/
 # local MCP server config (may hold tokens)
