@@ -53,7 +53,7 @@ Failure modes the spec implies that no single task's happy path covers (each get
 | `tests/agent/literature/test_lit_gap_*.py` | one test file per module |
 | `.gitignore` | `ai-sandbox/research/literature_gap/` |
 
-Deviations from the spec, deliberate: (a) the subregion table lives at `gap/country_subregions.yaml`, not `vocab_data/`, because `load_vocab_dir` loads every `*.yaml` there as a vocabulary and would reject it; it also carries country names so a name phrase can be resolved; (b) there is no `gap submit`: the existing `submit RUN_ID` dispatches by run stage, so the card is submitted with it, `submit` prints a `next: ... gap run --run-id ID` hint, and `gap run` then reads the `constraints.json` the card wrote (the spec was amended to match); (c) test files follow the existing `test_lit_*` prefix, `test_lit_gap_*.py`; (d) `--report-root` is added so a smoke run against the main checkout's data does not write into it.
+Deviations from the spec, deliberate: (a) the subregion table lives at `gap/country_subregions.yaml`, not `vocab_data/`, because `load_vocab_dir` loads every `*.yaml` there as a vocabulary and would reject it (the loader itself is left alone; see the to-do filed for it); the table holds only `code` and `subregion`, and country names for the name lookup are read from the existing `vocab_data/countries.yaml`, never copied; (b) there is no `gap submit`: the existing `submit RUN_ID` dispatches by run stage, so the card is submitted with it, `submit` prints a `next: ... gap run --run-id ID` hint, and `gap run` then reads the `constraints.json` the card wrote (the spec was amended to match); (c) test files follow the existing `test_lit_*` prefix, `test_lit_gap_*.py`; (d) `--report-root` is added so a smoke run against the main checkout's data does not write into it.
 
 ---
 
@@ -101,16 +101,17 @@ Synthetic tree for `gap_helpers.VOCABS` (ids invented): intervention `i.social` 
 - Test: `tests/agent/literature/test_lit_gap_subregions.py`
 
 **Interfaces:**
-- Produces: `Subregions` dataclass with `by_code: dict[str, tuple[str, str]]` (code → (name, subregion)); methods `region_of(code: str) -> str | None`, `members(subregion: str) -> frozenset[str]`, `codes_for_name(text: str) -> list[str]` (normalized exact name match). `load_subregions(path=None) -> Subregions` (cached like `load_countries`).
-- Consumes: `agent.literature.vocab.load_countries`.
-- YAML shape: `countries: [{code: SO, name: Somalia, subregion: Eastern Africa}, ...]`.
+- Produces: `Subregions` dataclass with `by_code: dict[str, str]` (code → subregion) and `names: dict[str, str]` (code → country name, read from `countries.yaml`); methods `region_of(code: str) -> str | None`, `members(subregion: str) -> frozenset[str]`, `codes_for_name(text: str) -> list[str]` (normalized exact match on `names`). `load_subregions(path=None, countries_path=None) -> Subregions` (cached like `load_countries`; `countries_path` defaults to `vocab_data/countries.yaml`, and tests pass a toy file).
+- Consumes: `agent.literature.vocab.load_countries`, `vocab.DATA_DIR`; `vocab.py` is not modified.
+- YAML shape of the new file: `countries: [{code: SO, subregion: Eastern Africa}, ...]`; no names.
 
 - [ ] **Step 1: Write the failing tests**:
   - `test_every_code_in_countries_yaml_has_a_subregion`: for each code in `load_countries()`, `load_subregions().region_of(code)` is not None.
   - `test_every_subregion_code_is_a_valid_country`: each key passes `is_country`.
   - `test_somalia_neighbours`: `region_of("SO") == "Eastern Africa"` and `"KE" in members("Eastern Africa")`.
   - `test_name_lookup_is_case_and_space_insensitive`: `codes_for_name("  somalia ") == ["SO"]`.
-  - `test_toy_table_loads_from_a_path`: write a four-row YAML in a temp dir and load it.
+  - `test_toy_table_loads_from_a_path`: write a four-row subregion YAML and a four-row `countries.yaml` (code and name) in a temp dir and load both.
+  - `test_names_come_from_countries_yaml_and_the_table_holds_none`: the committed `country_subregions.yaml` has no `name` key in any row, and `names["SO"] == "Somalia"`.
 - [ ] **Step 2: Run to verify failure** (`-k subregions`).
 - [ ] **Step 3: Implement** `subregions.py` and author `country_subregions.yaml` for every code in `vocab_data/countries.yaml`, using UN M49 subregion names (public UN statistical standard); note provenance in the README paragraph and as a header comment in the YAML. A code the standard does not place gets no row; the first test then names it, and the builder adds it or documents the exception in the README.
 - [ ] **Step 4: Run to verify pass.**

@@ -112,8 +112,9 @@ matches every other constraint exactly (descendants included) and matches the wi
   roots, which the vocabulary refuses as facts), cannot be widened: its siblings would span a whole bucket. Grandparent-
   level matches are not adjacent. The label states the sibling count so a wide widening is visible.
 - `countries` code: any other country in the same UN M49 subregion, from a committed table
-  `vocab_data/country_subregions.yaml` (ISO alpha-2 to subregion name; public UN standard, provenance noted in
-  `vocab_data/README.md`). A country absent from the table cannot be widened, and the report lists it.
+  `gap/country_subregions.yaml` (ISO alpha-2 to subregion name; public UN standard, provenance noted in
+  `vocab_data/README.md`). Amended during planning: it lives under `gap/`, not `vocab_data/`, because the vocabulary
+  loader reads every `*.yaml` there as a vocabulary; it holds no country names (those come from `vocab_data/countries.yaml`). A country absent from the table cannot be widened, and the report lists it.
 
 Each adjacent hit carries one label per qualifying relaxation, for example
 `different outcome (sibling: <label> <- <label>)` or `different country (same subregion: <subregion>)`. A paper adjacent
