@@ -49,6 +49,11 @@ class Vocabulary:
     def contains(self, term_id: str) -> bool:
         return term_id in self.terms
 
+    def is_sector_grouping(self, term_id: str) -> bool:
+        """A top-level term that other terms hang under: a sector bucket, not a specific concept."""
+        t = self.terms.get(term_id)
+        return t is not None and t.parent is None and any(o.parent == term_id for o in self.terms.values())
+
     def find(self, value) -> Term | None:
         tid = self._by_key.get(_key(value))
         return self.terms.get(tid) if tid else None

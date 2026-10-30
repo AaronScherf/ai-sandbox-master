@@ -32,6 +32,10 @@ def _fact(path: str, fact, vocab: Vocabulary | None, vocab_name: str, pages, ext
         out.append(f"{path}: the {vocab_name!r} vocabulary is not loaded, so this fact cannot be checked")
     elif has_id and not vocab.contains(fact["vocab_id"]):
         out.append(f"{path}.vocab_id: {fact['vocab_id']!r} is not a term in the {vocab_name} vocabulary")
+    elif has_id and vocab_name in ("intervention", "outcome") and vocab.is_sector_grouping(fact["vocab_id"]):
+        label = vocab.terms[fact["vocab_id"]].label
+        out.append(f"{path}.vocab_id: {label!r} is a sector grouping, not a specific {vocab_name}; pick a more specific term "
+                   f"under it, propose a new term, or leave the {vocab_name} out when the paper states none")
     elif proposed and isinstance(value, str) and (hit := vocab.find(value)) is not None:
         out.append(f"{path}: {value!r} is already in the vocabulary as {hit.id}; use vocab_id instead of proposed")
     problem = check_quote(fact.get("quote"), fact.get("locator"), pages)

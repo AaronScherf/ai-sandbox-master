@@ -1,6 +1,8 @@
 import copy
 import unittest
 
+from agent.literature.vocab import Term, Vocabulary
+
 from agent.literature.validate import check_result
 from lit_helpers import PAGES, VOCABS, good
 
@@ -93,6 +95,36 @@ class TestProblems(unittest.TestCase):
         snapshot = copy.deepcopy(r)
         problems(r)
         self.assertEqual(r, snapshot)
+
+
+class TestSectorGroupings(unittest.TestCase):
+    """A top-level term that has children is a sector bucket, not something a study did or measured."""
+
+    def vocabs(self):
+        v = dict(VOCABS)
+        v["outcome"] = Vocabulary("outcome", 1, "provisional", "fixture", {
+            "outcome.social_protection": Term("outcome.social_protection", "Social Protection"),
+            "outcome.food_consumption": Term("outcome.food_consumption", "Food consumption", parent="outcome.social_protection"),
+            "outcome.financial_inclusion": Term("outcome.financial_inclusion", "Financial inclusion")})
+        v["intervention"] = Vocabulary("intervention", 1, "provisional", "fixture", {
+            "intervention.agriculture": Term("intervention.agriculture", "Agriculture"),
+            "intervention.cash_transfer": Term("intervention.cash_transfer", "Cash transfer", parent="intervention.agriculture")})
+        return v
+
+    def run_with(self, facet, vocab_id):
+        r = good()
+        r["core"][facet][0]["vocab_id"] = vocab_id
+        return check_result(r, self.vocabs(), PAGES)
+
+    def test_a_sector_root_is_refused_for_outcome_and_intervention_naming_the_term(self):
+        msgs = self.run_with("outcome", "outcome.social_protection")
+        self.assertTrue(any("core.outcome[0]" in m and "sector grouping" in m and "Social Protection" in m for m in msgs), msgs)
+        msgs = self.run_with("intervention", "intervention.agriculture")
+        self.assertTrue(any("core.intervention[0]" in m and "sector grouping" in m for m in msgs), msgs)
+
+    def test_a_child_term_and_a_childless_top_level_term_pass(self):
+        self.assertEqual(self.run_with("outcome", "outcome.food_consumption"), [])
+        self.assertEqual(self.run_with("outcome", "outcome.financial_inclusion"), [])
 
 
 if __name__ == "__main__":

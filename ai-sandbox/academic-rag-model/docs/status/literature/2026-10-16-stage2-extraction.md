@@ -75,6 +75,15 @@ A first full run found a real clash: a bare `tests/agent/literature/test_store.p
 `tests/agent/problem_corpus/test_store.py` when the whole agent tree ran. The literature test files now carry a
 `test_lit_` prefix. Mutation checks for the quote matcher, validator and diff are recorded in the plan ledger.
 
+## Sector groupings refused as facts (2026-10-29)
+
+`validate._fact` now bounces an intervention or outcome `vocab_id` that is a top-level term with children (a sector bucket such
+as "Social Protection & Development"), naming the term and asking for a more specific one, a proposal, or nothing. A top-level
+term with no children (a local term such as `outcome.financial_inclusion`) is allowed. The first real run had this on two
+conceptual papers ("sustaining social protection", "humanitarian and social protection integration"); those two pass-b facts
+were removed by hand. Those papers' pass-a outcomes ("food assistance", "delivering assistance in response to shocks") are
+also weak and are tier C or B only through the checker; revisit if either paper matters to an analysis.
+
 ## Not done
 
 - Hand-built gold set (the committed gold file is a silver set); recall of facts both passes missed is unmeasured.
