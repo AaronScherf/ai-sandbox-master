@@ -371,8 +371,9 @@ def cmd_gap(args) -> int:
             for s in stopped:
                 print(f"gap: {s['facet']}={s['phrase']}: {s['message']}")
                 for c in s["candidates"]:
-                    print(f"  {c['term_id']}\t{c['label']} (level {c['level']}, {c['children']} children, {c['papers']} papers)"
-                          f"\t--pick {s['facet']}={c['term_id']}")
+                    where = f" under {c['path']}" if c["path"] else ""
+                    print(f"  {c['term_id']}\t{c['label']}{where} (level {c['level']}, {c['children']} children, "
+                          f"{c['papers']} papers)\t--pick {s['facet']}={c['term_id']}")
             print(f"stopped; candidates in {run_dir / 'candidates.json'}")
             return 2
         result = gclassify.classify(corpus, constraints, target.vocabs, subregions)

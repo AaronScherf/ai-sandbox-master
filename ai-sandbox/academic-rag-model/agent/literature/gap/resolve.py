@@ -22,6 +22,7 @@ class Candidate:
     level: int
     children: int
     papers: int
+    path: str = ""  # ancestor labels, root first: tells same-label terms in different branches apart
 
 
 @dataclass
@@ -40,11 +41,19 @@ def _tokens(text) -> set[str]:
     return {w[:-1] if len(w) > 3 and w.endswith("s") else w for w in words if w not in _STOP}
 
 
+def _path(term_id: str, vocab) -> str:
+    labels, parent = [], vocab.terms[term_id].parent
+    while parent in vocab.terms and len(labels) < 20:
+        labels.append(vocab.terms[parent].label)
+        parent = vocab.terms[parent].parent
+    return " > ".join(reversed(labels))
+
+
 def _candidate(corpus: Corpus, vocabs: dict, facet: str, vocab, term_id: str) -> Candidate:
     term = vocab.terms[term_id]
     return Candidate(term_id, term.label, level_of(term_id, vocab),
                      sum(1 for t in vocab.terms.values() if t.parent == term_id),
-                     len(papers_matching(corpus, [Constraint(facet, term_id)], vocabs)))
+                     len(papers_matching(corpus, [Constraint(facet, term_id)], vocabs)), _path(term_id, vocab))
 
 
 def shortlist(corpus: Corpus, vocabs: dict, facet: str, text: str, limit: int = 8) -> list[Candidate]:

@@ -34,6 +34,7 @@ class TestResolve(unittest.TestCase):
         self.assertIsNone(res.constraint)
         first = res.candidates[0]
         self.assertEqual((first.term_id, first.level, first.children, first.papers), ("i.cash_uncond", 2, 0, 1))
+        self.assertEqual(first.path, "Social protection programmes > Cash transfers")  # tells same-label positions apart
         res = self.run_resolve("intervention", "transfer")
         self.assertEqual([c.term_id for c in res.candidates], ["i.cash", "i.cash_cond", "i.cash_uncond"])
         self.assertEqual((res.candidates[0].children, res.candidates[0].papers), (2, 2))
