@@ -80,7 +80,7 @@ Papers join a cluster when every `--where facet=value` matches one of their tier
 country code). `annotate` asks for a one-sentence contribution and limitation per paper, each with a verified quote.
 `synthesize` cards cite papers by short ids (`P3`, `P3.R2`); `submit` bounces a paragraph that has no citation, cites an
 id that is not on the card, names a raw id in prose, or states a number that is not in a cited result (or that paper's
-year), and bounces a card that leaves a paper uncited. `render` writes the review with citation keys (title words and
+year), uses evaluative wording (improved, harmful, ...) that no cited result's direction supports, and bounces a card that leaves a paper uncited. `render` writes the review with citation keys (title words and
 year) and the bibliography, which comes only from the index card, the record and the annotations, never from model prose.
 
 ## Database (stage 4)

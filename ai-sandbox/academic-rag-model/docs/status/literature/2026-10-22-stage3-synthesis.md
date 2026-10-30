@@ -20,6 +20,7 @@ plan in `docs/superpowers/plans/literature_taxonomy/2026-10-21-stage3-synthesis.
 - No raw `P3` or `P3.R2` in the sentence text.
 - Every number in a paragraph appears in the claim, magnitude or quote of a cited result (a paper-level cite covers all of its results) or equals a cited paper's year. Counts of studies must be written as words.
 - Every paper on the card is cited at least once.
+- Evaluative wording agrees with the `effect_direction` of the cited results (see Known limits for what is and is not checked).
 
 ## Plan for the first runs
 
@@ -31,7 +32,7 @@ plan in `docs/superpowers/plans/literature_taxonomy/2026-10-21-stage3-synthesis.
 - Clusters are by facet only, no embeddings or OpenAlex neighbours.
 - Numbers are traced to result text, not to the underlying table.
 - The bibliography has title words and year as the key because the index cards carry no author names.
-- The validator checks digits, not direction or sign: a paragraph could reverse a finding's direction while quoting the right magnitude, and a number written as a word is not checked. Read the review against the bibliography before relying on a direction.
+- Direction is checked only through evaluative wording: a paragraph that says improved, beneficial, enhanced or positive needs a cited result marked positive or mixed, and worsened, harmful, adverse or negative needs one marked negative or mixed (words after a negation or a mitigation verb, such as "did not improve" or "mitigate the harm", are skipped; unknown directions are not checked). Plain increase and decrease words are not checked, because `effect_direction` is the sign of the welfare effect ("reduced poverty" and "reduced yields" point opposite ways). A number written as a word is not checked either. Read the review against the bibliography before relying on a direction.
 - Numbers are compared as text, so `1,200` vs `1200` or `12.5` vs `12.50` bounce; the bounce message names the number so the agent can copy the cited form.
 - Only facts in tiers A and B are used; tier C facts never reach an annotation or a card.
 

@@ -17,6 +17,17 @@ STAGE = "synthesize"
 _CITE = re.compile(r"P(\d+)(?:\.R(\d+))?")
 _RAW_ID = re.compile(r"\bP\d+(?:\.R\d+)?\b")
 _NUM = re.compile(r"\d+(?:[.,]\d+)*")
+# Evaluative wording only: effect_direction is the sign of the welfare effect, so "reduced poverty" and "reduced yields"
+# point opposite ways and the plain increase/decrease words cannot be checked against it.
+_GOOD = re.compile(r"\b(?:improv\w*|benefit\w*|beneficial|enhanc\w*|strengthen\w*|favou?rabl\w*|positive\w*)\b", re.I)
+_BAD = re.compile(r"\b(?:worsen\w*|harm\w*|adverse\w*|undermin\w*|deteriorat\w*|degrad\w*|detriment\w*|damag\w*|negative\w*)\b", re.I)
+_NEGATION = {"not", "no", "never", "without", "little", "limited", "hardly", "fail", "fails", "failed", "failing"}
+_MITIGATION = _NEGATION | {"mitigate", "mitigates", "mitigated", "mitigating", "reduce", "reduces", "reduced", "reducing",
+                           "prevent", "prevents", "prevented", "avoid", "avoids", "avoided", "offset", "offsets", "cushion",
+                           "cushions", "buffer", "buffers", "alleviate", "alleviates", "alleviated", "protect", "protects",
+                           "protected", "against", "counter", "counters", "address", "addresses", "addressed"}
+_SUPPORTS_GOOD = {"positive", "mixed"}
+_SUPPORTS_BAD = {"negative", "mixed"}
 
 
 def assign_ids(file_ids) -> dict:
@@ -29,12 +40,23 @@ def allowed_for(annotations: dict, ids: dict) -> dict:
     for fid, pid in ids.items():
         ann = annotations[fid]
         out[pid] = {"year": ann["identity"].get("publication_year"),
-                    "results": {r["id"]: f"{r['claim']} {r['magnitude']} {r['quote']}" for r in ann["results"]}}
+                    "results": {r["id"]: f"{r['claim']} {r['magnitude']} {r['quote']}" for r in ann["results"]},
+                    "directions": {r["id"]: r.get("effect_direction") for r in ann["results"]}}
     return out
 
 
 def _numbers(text: str) -> set:
     return {n.rstrip(".,") for n in _NUM.findall(text or "")}
+
+
+def _flagged(pattern, exempt: set, text: str) -> list[str]:
+    """Evaluative words in the text, leaving out one with a negation or mitigation word in the three words before it."""
+    out = []
+    for m in pattern.finditer(text):
+        before = re.findall(r"[A-Za-z']+", text[:m.start()])[-3:]
+        if not {w.lower() for w in before} & exempt:
+            out.append(m.group().lower())
+    return out
 
 
 def check_sections(sections, allowed: dict, must_cover: list) -> list[str]:
@@ -61,6 +83,7 @@ def check_sections(sections, allowed: dict, must_cover: list) -> list[str]:
                 out.append(f"{path}.cites: every paragraph needs at least one citation")
                 continue
             evidence: set = set()
+            directions: set = set()
             bad = False
             for c in para["cites"]:
                 m = _CITE.fullmatch(c) if isinstance(c, str) else None
@@ -72,6 +95,7 @@ def check_sections(sections, allowed: dict, must_cover: list) -> list[str]:
                 cited.add(f"P{m.group(1)}")
                 if m.group(2) is None:
                     texts = list(paper["results"].values())
+                    directions |= set((paper.get("directions") or {}).values())
                 else:
                     rid = f"R{m.group(2)}"
                     if rid not in paper["results"]:
@@ -79,6 +103,7 @@ def check_sections(sections, allowed: dict, must_cover: list) -> list[str]:
                         bad = True
                         continue
                     texts = [paper["results"][rid]]
+                    directions.add((paper.get("directions") or {}).get(rid))
                 for t in texts:
                     evidence |= _numbers(t)
                 if paper.get("year"):
@@ -87,6 +112,17 @@ def check_sections(sections, allowed: dict, must_cover: list) -> list[str]:
                 continue
             for n in sorted(_numbers(text) - evidence):
                 out.append(f"{path}.text: the number {n} does not appear in any result you cite")
+            known = directions - {None, "not_reported"}
+            if known:
+                shown = ", ".join(sorted(known))
+                for word in _flagged(_GOOD, _NEGATION, text):
+                    if not known & _SUPPORTS_GOOD:
+                        out.append(f"{path}.text: '{word}' implies a positive result, but the results you cite are {shown}; "
+                                   "cite a result that shows it or reword")
+                for word in _flagged(_BAD, _MITIGATION, text):
+                    if not known & _SUPPORTS_BAD:
+                        out.append(f"{path}.text: '{word}' implies a negative result, but the results you cite are {shown}; "
+                                   "cite a result that shows it or reword")
     for pid in must_cover:
         if pid not in cited:
             out.append(f"{pid} is not cited anywhere; every paper on this card must appear")
