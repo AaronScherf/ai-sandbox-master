@@ -57,7 +57,7 @@ Add one shared helper in `core/env/academic_hub_paths.py`. It parses `academic_{
 8. **`folder_category`:** PDFs keep their immediate parent; Markdown and Excalidraw use the content category. No function may return `part_N`.
 9. **`markdown_sources` and reserved paths:**
    - `_book_parent` locates `<textbook>/**/processed_outputs/<book>/chapters` and supports `Bonus/`.
-   - `_auxiliary_parent` compares `(part, category)`, so a hint cannot link across offerings.
+   - `_auxiliary_parent` links a solution or hint only when the candidate parent has the same `(part, category)`, the same stem, and the same folder after removing any `processed_outputs` segment. An old copy in another folder therefore cannot link to a current file or across offerings. A solution with no qualifying parent stays indexed, with no invented parent.
    - Book renderings come from `textbook_rag_md_path(book_dir)`, not the metadata value.
 
 ### Functions affected
@@ -111,8 +111,9 @@ Work in a `claude/part-path-discovery` worktree from `main`. Pass `--root` expli
 1. Add the path helper and use it in the functions listed above.
 2. Fix the clone seen-ID, the textbook rendering path, and `reconcile_and_write` so `None` no longer erases `offering_label`.
 3. Add `rebuild --plan --json`, which creates no client. Add `--max-paid` (default 25) covering producer and Markdown work, enforced before any write.
-4. Add the relocation tool. Regenerate the catalog after relocation with the existing `core/course_materials` step. This should be local (a grep found no client use in `classify.py`), but confirm that first.
-5. Update the indexer and transcription READMEs.
+4. Add `rebuild --course <c> --file <hub-relative-md>`, the exact retry selector specified under "Problem-set coverage follow-up".
+5. Add the relocation tool. Regenerate the catalog after relocation with the existing `core/course_materials` step. This should be local (a grep found no client use in `classify.py`), but confirm that first.
+6. Update the indexer and transcription READMEs.
 
 The owner then commits the `academic_notes` moves separately in that repo, and relocation runs in the main checkout. The release needs no rebuild, server or new store. Relocation needs no new human review surface, since each row is either proven or fails closed.
 
@@ -133,8 +134,18 @@ Add these to `tests/core/indexer/test_index_search.py`, `test_markdown_sources.p
 - **Textbooks:** `part_1/textbooks`, `Bonus/`, the alias, Title-Case, and stale metadata.
 - **Outputs:** Excalidraw and video notes nested, with `processed_outputs` never rediscovered, including `*.excalidraw.md` raw transcripts.
 - **Categories:** a parametrized check that `part_N` never appears as `folder_category`, plus the `doc_type` fallback.
+- **Solution links:**
+  - `problem_sets/problem_set_1_solutions.md` links to `problem_sets/processed_outputs/problem_set_1.md`.
+  - `problem_sets/old/homework_1_solutions.md` does not link to `problem_sets/processed_outputs/homework_1.md`.
+  - A solution with no problem file is classified `unlinked_auxiliary`, with `index_separately` true and a paid `new` action, so it still gets a card.
+  - No unlinked card has an invented parent.
 - **Relocation:** CRLF and LF baselines; allowed frontmatter changes, wrong value, extra key, and body edit; clone ID kept and chunk hash patched; label kept, decisions remapped, and interrupted rerun.
 - **Cost guards:** a fake client asserts zero calls for `--plan`, for relocation, and when the cap is exceeded.
+- **Retry selector:**
+  - One `needs_indexing` card is retried with its `file_id`, source fields and `offering_label` unchanged.
+  - A healthy card, a missing path, a path outside the course, an unsupported producer, and a generation failure each leave every other card untouched.
+  - The Markdown pass, orphan pass and subset linking do not run.
+  - `--plan` makes no calls.
 
 ## Read-only live audit before any rebuild
 
@@ -158,11 +169,65 @@ The full backlog comes to about $1.40, which needs the owner's go-ahead under th
 
 To avoid an accidental bulk run: do not use `--force`, `--prune` or a raised cap; run `chunk` only after a `--dry-run`; and do not run `rebuild` before relocation.
 
+## Problem-set coverage follow-up
+
+This is a separate paid step after relocation, not part of it. Relocation stays zero-API, so a failure there can only mean a failed move. Indexing these files first would put cards on paths that are about to change.
+
+The baseline commit `f1cf14e0` removed 12 econometrics cards. Eleven were replaced: 7 by a new card at the same path, and 4 raw-transcript cards by a `.rag.md` card. The twelfth was `problem_sets/processed_outputs/problem_set_1_solutions.md`. That file is gone, and its Markdown now sits in `problem_sets/` with no card.
+
+All targets are below `academic_notes/econometrics/part_1/`.
+
+| Gap | Targets | Fix |
+|---|---|---|
+| Problem statements with no card | `problem_sets/processed_outputs/problem_set_1.md`, `problem_sets/processed_outputs/problem_set_2.md` | `index-md`, first |
+| Solutions and answers with no card | `problem_sets/problem_set_1_solutions.md`, `problem_set_1_gemini_solutions.md`, `problem_set_2_solutions.md`, `problem_set_2_solutions_long.md`, `problem_set_2_solutions_short.md`, `00-review-question-answers.md` | `index-md`, second |
+| Failed problem-set cards | `problem_sets/processed_outputs/pset3.md`, `problem_sets/processed_outputs/solution-pset2.md` | Retry selector |
+| Failed TA-note cards | `ta_notes/processed_outputs/12-model-selection.md`, `ta_notes/processed_outputs/A4-time-series-regression-examples.md` | Retry selector |
+
+### Retry selector
+
+`index-md` skips producer-owned cards, and only `rebuild` retries a failed one. `rebuild` is refused at the cap once the 208-row backlog counts, so an exact selector is needed.
+
+`rebuild --course <c> --file <hub-relative-md> [--plan --json]` must:
+
+- Resolve exactly one card in that course by exact `path` or `rag_md_path`, and refuse anything else.
+- Act only on a card with `needs_indexing: true` and no `source_kind`, whose source PDF exists and whose `file_id` matches that PDF. Any other card is refused, with a reason.
+- Keep the card's `file_id`, source fields and `offering_label`.
+- Generate the replacement before writing, so a failed call leaves the existing failure card in place.
+- Skip the Markdown pass, orphan pass and subset linking.
+- Allow at most one paid card per invocation, and hold the corpus lock.
+- With `--plan`, create no client and make no calls.
+
+### Order
+
+Run only after relocation and its audit pass, and only when the owner asks.
+
+1. Preview and apply `problem_set_1.md`, then `problem_set_2.md`, with `index-md --file ... --apply --writer-coordinated --max-markdown-paid 1`.
+2. Preview the six solution and answer files. The solutions should now link to the statement cards; before step 1, the prototype showed them as unlinked. `00-review-question-answers.md` should stay unknown-origin with no invented parent. Stop if any link looks wrong.
+3. Apply those six one at a time.
+4. Retry the 4 failed cards, previewing each with `--plan` first.
+5. Run `chunk --course econometrics --file-id <id> --json` for each of the 12 cards.
+6. Run one `query --passages` per problem-set target, and confirm that target comes back.
+
+### Cost and acceptance
+
+About 24 card calls plus chunk embeddings, at roughly $0.03 at the assumed rates. The two TA-note sizes were not measured, so read the actual total from the previews before applying.
+
+- All 12 cards have a current `content_hash`, an embedding, and no `needs_indexing`.
+- All 12 have chunks matching that hash.
+- `rebuild --plan` shows 200 Markdown rows instead of 208.
+- `needs_indexing` cards fall from 6 to 2 (the 2 in microecon).
+- No other card or chunk changes, and `academic_notes` is unchanged by the run.
+
 ## Decisions
+
+**Resolved:**
+
+- **`.index` baseline:** the pending shard changes were committed as `f1cf14e0`, which is the relocation's input. Stop if `.index/` has changed since then.
 
 **Needed before relocation:**
 
-- **Dirty `.index` files:** the outer repo has large uncommitted changes to `courses.json`, the `econometrics` and `microecon` shards, and `materials/econometrics.json`. Their owner must confirm or commit them first, because they are the relocation's input.
+- **Live writes:** the owner must explicitly approve `--apply` after reviewing the read-only audit, and must commit the `academic_notes` moves in that repo.
 
 **Owner decisions, with the recommended answer:**
 
