@@ -27,7 +27,8 @@ class TestResolve(unittest.TestCase):
     def test_duplicate_label_is_ambiguous_and_lists_both_positions(self):
         res = self.run_resolve("intervention", "training")
         self.assertIsNone(res.constraint)
-        self.assertEqual(sorted(c.term_id for c in res.candidates), ["i.agri.training", "i.social.training"])
+        self.assertEqual(sorted(c.term_id for c in res.candidates if not c.term_id.startswith("group:")),
+                         ["i.agri.training", "i.social.training"])
 
     def test_unresolved_phrase_gives_ranked_candidates_with_level_children_and_paper_counts(self):
         res = self.run_resolve("intervention", "unconditional payments")

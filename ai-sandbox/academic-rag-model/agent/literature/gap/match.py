@@ -15,6 +15,11 @@ class Constraint:
     value: str  # a resolved term id, or an upper-case ISO alpha-2 code for `countries`
     phrase: str = ""
     resolved_by: str = "exact"
+    members: tuple[str, ...] = ()  # a label group: every term that shares one label (value is one of them); empty otherwise
+
+    @property
+    def term_ids(self) -> tuple[str, ...]:
+        return self.members or (self.value,)
 
 
 def vocab_for(facet: str, vocabs: dict):
@@ -23,6 +28,8 @@ def vocab_for(facet: str, vocabs: dict):
 
 
 def fact_matches(c: Constraint, fact: Fact, vocabs: dict) -> bool:
+    if len(c.term_ids) > 1:
+        return any(fact_matches(Constraint(c.facet, tid), fact, vocabs) for tid in c.term_ids)
     if c.facet == "countries":
         return fact.facet == "countries" and fact.shown.upper() == c.value.upper()
     if fact.facet != c.facet:

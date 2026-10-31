@@ -41,3 +41,10 @@ Read-only against the main checkout's db and records; reports written to a scrat
 
 Slice 2: OpenAlex recall probe, live search and classification, the discovery queue Artifact, the
 `found_externally_not_in_corpus` verdict. Precedence of an external direct hit over corpus-adjacent evidence is open.
+
+## Same-label branches: decided 2026-10-31
+
+Opt-in label group, per-branch breakdown and path-qualified labels (branch `claude/literature-gap-label-groups`). Term ids stay
+distinct; `--pick facet=group:<term_id>` unions every term with that label. Rulings: a group widens to the union of its members'
+siblings minus the members; a group is offered only when all exact matches share one label. Real-db check: picking the UCT group
+keeps 5 direct papers (all under one branch) and finds 6 adjacent papers (was 2) via the other copies' siblings.

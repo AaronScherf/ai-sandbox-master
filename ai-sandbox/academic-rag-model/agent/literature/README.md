@@ -100,6 +100,9 @@ Each `--where facet=value` is resolved to one vocabulary term (or an ISO country
 term **stops** the run and writes `candidates.json` with ranked candidates (level, children, ancestor path, how many papers
 each would match); re-run with `--pick facet=term_id`. Matching is by term id, descendants included (a label is compared
 only for `proposed:` facts), so a label that 3ie lists under several branches is several distinct terms.
+When a phrase names several terms with one label, the stop-and-pick list starts with `group:<term_id>` ("all N terms labelled X"):
+picking it matches the union of those terms and their descendants (`resolved_by: label_group`), widens to the siblings of every member,
+and adds a `breakdown` of direct papers per branch. Reports show each term's full path (`Education > Access > Term`).
 
 - **direct**: a paper whose tier A/B facts match every constraint.
 - **adjacent**: all but one relaxable constraint (intervention, outcome, country) match, and that one matches a sibling

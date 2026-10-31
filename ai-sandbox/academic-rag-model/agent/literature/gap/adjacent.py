@@ -46,6 +46,10 @@ def widen(c: Constraint, vocabs: dict, subregions: Subregions) -> Widening | Non
     if c.facet not in ("intervention", "outcome"):
         return None
     vocab = vocab_for(c.facet, vocabs)
+    if len(c.term_ids) > 1:  # a label group widens to the siblings of every member, never to the members themselves
+        parts = [widen(Constraint(c.facet, tid), vocabs, subregions) for tid in c.term_ids]
+        siblings = frozenset().union(*(p.term_ids for p in parts if p)) - set(c.term_ids)
+        return Widening(c, term_ids=siblings) if siblings else None
     term = vocab.terms.get(c.value) if vocab is not None else None
     # a term whose parent is a top-level grouping would widen to a whole bucket, so it is not widened
     if term is None or term.parent is None or vocab.terms[term.parent].parent is None:

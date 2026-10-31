@@ -49,11 +49,26 @@ def _path(term_id: str, vocab) -> str:
     return " > ".join(reversed(labels))
 
 
+def full_path(term_id: str, vocab) -> str:
+    """Ancestor labels and the term's own label, root first; the label alone for a root term."""
+    above = _path(term_id, vocab)
+    return f"{above} > {vocab.terms[term_id].label}" if above else vocab.terms[term_id].label
+
+
 def _candidate(corpus: Corpus, vocabs: dict, facet: str, vocab, term_id: str) -> Candidate:
     term = vocab.terms[term_id]
     return Candidate(term_id, term.label, level_of(term_id, vocab),
                      sum(1 for t in vocab.terms.values() if t.parent == term_id),
                      len(papers_matching(corpus, [Constraint(facet, term_id)], vocabs)), _path(term_id, vocab))
+
+
+GROUP_PREFIX = "group:"
+
+
+def label_group(vocab, term_id: str) -> list[str]:
+    """Every term id (sorted) that shares `term_id`'s label, case- and space-insensitively."""
+    key = _key(vocab.terms[term_id].label)
+    return sorted(t.id for t in vocab.terms.values() if _key(t.label) == key)
 
 
 def shortlist(corpus: Corpus, vocabs: dict, facet: str, text: str, limit: int = 8) -> list[Candidate]:
@@ -102,6 +117,12 @@ def resolve(corpus: Corpus, vocabs: dict, facet: str, value: str, *, pick: str |
     if vocab is None:
         raise ValueError(f"no vocabulary is loaded for facet {facet!r}")
     if pick is not None:
+        if pick.startswith(GROUP_PREFIX):
+            base = pick[len(GROUP_PREFIX):]
+            members = label_group(vocab, base) if base in vocab.terms else []
+            if len(members) < 2:
+                return Resolution(message=f"{pick!r}: no other term of the {vocab.name} vocabulary has the same label")
+            return Resolution(Constraint(facet, members[0], value, "label_group", tuple(members)))
         if pick in vocab.terms:
             return Resolution(Constraint(facet, pick, value, resolved_by))
         return Resolution(message=f"{pick!r} is not a term of the {vocab.name} vocabulary")
@@ -111,6 +132,11 @@ def resolve(corpus: Corpus, vocabs: dict, facet: str, value: str, *, pick: str |
         return Resolution(Constraint(facet, exact[0], value, "exact"))
     if exact:
         cands = [_candidate(corpus, vocabs, facet, vocab, tid) for tid in sorted(exact)[:limit]]
+        if len({_key(vocab.terms[t].label) for t in exact}) == 1:  # same label in several branches: offer them as one group
+            members = tuple(sorted(exact))
+            union = Constraint(facet, members[0], value, "label_group", members)
+            cands.insert(0, Candidate(GROUP_PREFIX + members[0], vocab.terms[members[0]].label, 0, 0,
+                                      len(papers_matching(corpus, [union], vocabs)), f"all {len(members)} terms labelled this"))
         return Resolution(candidates=cands, message=f"{value!r} names {len(exact)} terms; pick one")
     cands = shortlist(corpus, vocabs, facet, value, limit)
     if not cands:
