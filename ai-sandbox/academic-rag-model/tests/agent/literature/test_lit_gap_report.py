@@ -2,6 +2,7 @@ import json
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 from agent.literature.gap.classify import classify
 from agent.literature.gap.coverage import COMPLETENESS, Sidecar, coverage
@@ -97,6 +98,27 @@ class TestReport(unittest.TestCase):
         for name in ("console", "com10", "nul2", "g1"):
             with self.subTest(name=name):
                 self.assertEqual(gap_dir("root", name), Path("root") / name)
+
+    def test_write_report_keeps_old_pair_if_second_temp_write_fails(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            run_dir = Path(tmp)
+            js, md = run_dir / "report.json", run_dir / "report.md"
+            old_json, old_md = b"old json\n", b"old markdown\n"
+            js.write_bytes(old_json)
+            md.write_bytes(old_md)
+            original_write_text = Path.write_text
+
+            def fail_second_temp(path, text, **kwargs):
+                if path.name == "report.md.tmp":
+                    raise OSError("second temp write failed")
+                return original_write_text(path, text, **kwargs)
+
+            with mock.patch.object(Path, "write_text", new=fail_second_temp):
+                with self.assertRaisesRegex(OSError, "second temp write failed"):
+                    write_report(self.report(), run_dir)
+            self.assertEqual(js.read_bytes(), old_json)
+            self.assertEqual(md.read_bytes(), old_md)
+            self.assertEqual(list(run_dir.glob("*.tmp")), [])
 
     def test_gitignore_lists_literature_gap(self):
         root = Path(__file__).resolve().parents[5]

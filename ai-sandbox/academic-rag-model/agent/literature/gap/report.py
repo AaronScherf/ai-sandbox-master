@@ -169,12 +169,16 @@ def render_markdown(report: dict) -> str:
 def write_report(report: dict, run_dir) -> tuple[Path, Path]:
     run_dir = Path(run_dir)
     run_dir.mkdir(parents=True, exist_ok=True)
-    paths = []
-    for name, text in (("report.json", json.dumps(report, indent=2, ensure_ascii=False) + "\n"),
-                       ("report.md", render_markdown(report))):
-        path = run_dir / name
-        tmp = path.with_suffix(path.suffix + ".tmp")
-        tmp.write_text(text, encoding="utf-8", newline="\n")
-        os.replace(tmp, path)
-        paths.append(path)
-    return paths[0], paths[1]
+    json_path, md_path = run_dir / "report.json", run_dir / "report.md"
+    json_tmp = json_path.with_suffix(json_path.suffix + ".tmp")
+    md_tmp = md_path.with_suffix(md_path.suffix + ".tmp")
+    try:
+        json_tmp.write_text(json.dumps(report, indent=2, ensure_ascii=False) + "\n", encoding="utf-8", newline="\n")
+        md_tmp.write_text(render_markdown(report), encoding="utf-8", newline="\n")
+    except Exception:
+        json_tmp.unlink(missing_ok=True)
+        md_tmp.unlink(missing_ok=True)
+        raise
+    os.replace(json_tmp, json_path)
+    os.replace(md_tmp, md_path)
+    return json_path, md_path
