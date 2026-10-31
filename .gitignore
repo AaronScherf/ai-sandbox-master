@@ -71,6 +71,7 @@ ai-sandbox/academic-hub/**/textbooks/**/images/
 # problem sets, solutions). Only academic_notes/ is synced between devices.
 ai-sandbox/academic-hub/academic_resources/**/*.pdf
 ai-sandbox/academic-hub/academic_resources/microecon/2024_class/
+ai-sandbox/academic-hub/academic_resources/microecon/part_1/2024_class/
 # Keep moved source bundles, other students' answers, and textbook full-text
 # backups local. The .md rule above does not match files ending in .md.bak.
 ai-sandbox/academic-hub/academic_resources/**/*.zip
