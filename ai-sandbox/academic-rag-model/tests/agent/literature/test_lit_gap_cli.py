@@ -60,6 +60,7 @@ class TestGapRun(GapCliCase):
         code, out = self.run_cli("gap", "run", "--run-id", "g1", "--where", "intervention=transfer",
                                  "--pick", "intervention=intervention.cash_transfer")
         self.assertEqual(code, 0)
+        self.assertFalse((Path(self.root) / "literature_gap" / "g1" / "candidates.json").exists())
         first = self.report()["constraints"][0]
         self.assertEqual((first["phrase"], first["value"], first["resolved_by"]), ("transfer", "intervention.cash_transfer", "user"))
 

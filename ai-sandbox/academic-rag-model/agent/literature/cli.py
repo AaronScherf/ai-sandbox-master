@@ -386,6 +386,7 @@ def cmd_gap(args) -> int:
         report = greport.build_report(question, constraints, target.vocabs, result, cov, corpus,
                                       unmapped=unmapped, include_quotes=args.quotes, probe=probe)
         js, md = greport.write_report(report, run_dir)
+        (run_dir / "candidates.json").unlink(missing_ok=True)
     except (ValueError, clusters.ClusterError, KeyError) as exc:
         print(f"gap: {exc}")
         return 2
