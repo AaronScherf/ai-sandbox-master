@@ -67,7 +67,7 @@ def make_conn(papers: dict) -> sqlite3.Connection:
     conn.executescript(db._TABLES)
     for fid, p in papers.items():
         conn.execute("INSERT INTO papers VALUES (?,?,?,?,?,?)", (fid, p.get("title", f"Study {fid}"), p.get("year", 2020),
-                                                                  p.get("doi"), None, "medium"))
+                                                                  p.get("doi"), p.get("openalex_id"), "medium"))
         for n, (facet, term_id, label, tier) in enumerate(p.get("facts", []), 1):
             conn.execute("INSERT INTO facts VALUES (?,?,?,?,?,?,?)", (fid, facet, term_id, label, tier, f"quote {fid}-{n}", "1"))
         for n, (claim, direction) in enumerate(p.get("results", []), 1):

@@ -21,6 +21,7 @@ class PaperRow:
     title: str | None
     year: int | None
     doi: str | None
+    openalex_id: str | None = None
 
 
 @dataclass
@@ -32,8 +33,9 @@ class Corpus:
 
 def load_corpus(conn: sqlite3.Connection) -> Corpus:
     corpus = Corpus()
-    for fid, title, year, doi in conn.execute("SELECT file_id, title, year, doi FROM papers ORDER BY file_id"):
-        corpus.papers[fid] = PaperRow(fid, title, year, doi)
+    for fid, title, year, doi, oa in conn.execute(
+            "SELECT file_id, title, year, doi, openalex_id FROM papers ORDER BY file_id"):
+        corpus.papers[fid] = PaperRow(fid, title, year, doi, oa)
     for row in conn.execute("SELECT file_id, facet, term_id, label, tier, quote, locator FROM facts ORDER BY rowid"):
         corpus.facts.setdefault(row[0], []).append(Fact(*row[1:]))
     for fid, claim, direction, magnitude, quote in conn.execute(
