@@ -70,6 +70,50 @@ class TestGapRun(GapCliCase):
         self.assertEqual(code, 2)
         self.assertIn("no candidate", out.lower())
 
+    def test_pick_without_matching_where_is_rejected(self):
+        self.build_db()
+        code, out = self.run_cli("gap", "run", "--run-id", "g1", "--where", "countries=SO",
+                                 "--pick", "intervention=intervention.cash_transfer")
+        self.assertEqual(code, 2)
+        self.assertIn("gap: --pick not used: intervention=intervention.cash_transfer", out)
+        self.assertFalse((Path(self.root) / "literature_gap" / "g1").exists())
+
+    def test_pick_for_exact_phrase_is_rejected(self):
+        self.build_db()
+        code, out = self.run_cli("gap", "run", "--run-id", "g1", "--where", "intervention=cash transfer",
+                                 "--pick", "intervention=intervention.cash_transfer")
+        self.assertEqual(code, 2)
+        self.assertIn("gap: --pick not used: intervention=intervention.cash_transfer", out)
+        self.assertFalse((Path(self.root) / "literature_gap" / "g1").exists())
+
+    def test_pick_for_submitted_question_card_is_rejected(self):
+        self.build_db()
+        run_dir = Path(self.root) / "literature_gap" / "g1"
+        run_dir.mkdir(parents=True)
+        (run_dir / "constraints.json").write_text(json.dumps({"question": "Somalia?", "unmapped": [],
+            "constraints": [{"facet": "countries", "phrase": "Somalia", "value": "SO"}]}), encoding="utf-8")
+        code, out = self.run_cli("gap", "run", "--run-id", "g1", "--pick", "countries=SO")
+        self.assertEqual(code, 2)
+        self.assertIn("gap: --pick not used: countries=SO", out)
+        self.assertFalse((run_dir / "report.json").exists())
+
+    def test_duplicate_pick_facet_is_rejected(self):
+        self.build_db()
+        code, out = self.run_cli("gap", "run", "--run-id", "g1", "--where", "intervention=transfer",
+                                 "--pick", "intervention=intervention.cash_transfer",
+                                 "--pick", "intervention=intervention.cash_transfer")
+        self.assertEqual(code, 2)
+        self.assertIn("gap: --pick not used: intervention=intervention.cash_transfer", out)
+        self.assertIn("facet was picked twice", out)
+        self.assertFalse((Path(self.root) / "literature_gap" / "g1").exists())
+
+    def test_used_pick_still_succeeds(self):
+        self.build_db()
+        code, out = self.run_cli("gap", "run", "--run-id", "g1", "--where", "intervention=transfer",
+                                 "--pick", "intervention=intervention.cash_transfer")
+        self.assertEqual(code, 0)
+        self.assertEqual(self.report()["constraints"][0]["value"], "intervention.cash_transfer")
+
     def test_no_database_exits_2(self):
         code, out = self.run_cli("gap", "run", "--run-id", "g1", "--where", "countries=SO")
         self.assertEqual(code, 2)

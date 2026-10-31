@@ -352,7 +352,13 @@ def cmd_gap(args) -> int:
     try:
         run_dir = greport.gap_dir(report_root, args.run_id)
         items, question, unmapped = _gap_items(args, run_dir)
-        picks = {c["facet"]: c["value"] for c in map(clusters.parse_constraint, args.pick)}
+        parsed_picks = list(map(clusters.parse_constraint, args.pick))
+        picks = {c["facet"]: c["value"] for c in parsed_picks}
+        seen, duplicate_facets = set(), set()
+        for pick in parsed_picks:
+            if pick["facet"] in seen:
+                duplicate_facets.add(pick["facet"])
+            seen.add(pick["facet"])
         conn = sqlite3.connect(path)
         try:
             try:
@@ -372,6 +378,12 @@ def cmd_gap(args) -> int:
             else:
                 stopped.append({"facet": facet, "phrase": phrase, "message": res.message,
                                 "candidates": [asdict(c) for c in res.candidates]})
+        unused = [f"{c['facet']}={c['value']}" for c in parsed_picks
+                  if c["facet"] in picks or c["facet"] in duplicate_facets]
+        if unused:
+            print(f"gap: --pick not used: {', '.join(unused)} "
+                  "(no matching unresolved --where, or the facet was picked twice)")
+            return 2
         if stopped:
             run_dir.mkdir(parents=True, exist_ok=True)
             (run_dir / "candidates.json").write_text(json.dumps({"constraints": stopped}, indent=2, ensure_ascii=False) + "\n",
