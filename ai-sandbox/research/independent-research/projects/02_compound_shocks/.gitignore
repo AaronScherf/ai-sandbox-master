@@ -1,0 +1,12 @@
+/data/raw/*
+!/data/raw/.gitkeep
+/data/derived/*
+!/data/derived/.gitkeep
+/outputs/*
+!/outputs/.gitkeep
+/.env
+/.env.*
+/.venv/
+/__pycache__/
+/scripts/__pycache__/
+/.ipynb_checkpoints/

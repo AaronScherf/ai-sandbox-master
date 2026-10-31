@@ -1,0 +1,5 @@
+source_id,provider,dataset_title,provider_identifier,landing_page,acquired_utc,release_or_version,coverage_space,coverage_time,local_path,sha256,access_class,reuse_terms,verification_status,notes
+acled,ACLED,unverified,unverified,unverified,unverified,unverified,unverified,unverified,unverified,unverified,account_required,unverified,planned,Registration in progress; record exact export and terms after download
+prmn,UNHCR/NRC,unverified,unverified,unverified,unverified,unverified,unverified,unverified,unverified,unverified,unverified,unverified,planned,Check available Somalia displacement release and reason codes
+prices,WFP/FSNAU,unverified,unverified,unverified,unverified,unverified,unverified,unverified,unverified,unverified,unverified,unverified,planned,Choose and document exact market price series
+rainfall,UCSB CHC,unverified,unverified,unverified,unverified,unverified,unverified,unverified,unverified,unverified,unverified,unverified,planned,Choose and document exact CHIRPS product
