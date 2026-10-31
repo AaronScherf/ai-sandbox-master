@@ -75,6 +75,14 @@ class TestGapRun(GapCliCase):
         self.assertEqual(code, 2)
         self.assertIn("db build", out)
 
+    def test_empty_database_exits_2_without_traceback(self):
+        path = db.db_path(self.root)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(b"")
+        code, out = self.run_cli("gap", "run", "--run-id", "g1", "--where", "countries=SO")
+        self.assertEqual(code, 2)
+        self.assertIn("gap: the database is empty or unreadable; run `db build`", out)
+
     def test_unknown_facet_in_where_exits_2_without_traceback(self):
         self.build_db()
         code, out = self.run_cli("gap", "run", "--run-id", "g1", "--where", "nonsense=x")

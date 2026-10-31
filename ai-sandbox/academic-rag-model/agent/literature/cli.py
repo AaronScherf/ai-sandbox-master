@@ -355,7 +355,11 @@ def cmd_gap(args) -> int:
         picks = {c["facet"]: c["value"] for c in map(clusters.parse_constraint, args.pick)}
         conn = sqlite3.connect(path)
         try:
-            corpus = load_corpus(conn)
+            try:
+                corpus = load_corpus(conn)
+            except sqlite3.Error:
+                print("gap: the database is empty or unreadable; run `db build`")
+                return 2
         finally:
             conn.close()
         constraints, stopped = [], []
