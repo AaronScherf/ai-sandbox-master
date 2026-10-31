@@ -27,7 +27,7 @@ tells the owner an empty or thin verdict reflects how the corpus was assembled, 
    the existing `iter_topic_works(keywords, mailto, batch_size)` (OpenAlex `default.search`, relevance order); first N taken.
    A label group contributes its one shared label. Study design, sector, population and data source are left out:
    keyword search handles them poorly and they would shrink N to nothing. Descendant terms are not added.
-2. **N**: default 25, `--probe-n`. Fewer returned results means a smaller stated N; zero results gives no interval.
+2. **N**: default 25 (owner confirmed 2026-10-31), `--probe-n`. Fewer returned results means a smaller stated N; zero results gives no interval.
 3. **Matching** (against every paper in the db): OpenAlex id (`papers.openalex_id`, new column in `PaperRow`), then bare
    DOI (case-insensitive), then normalized title (`_normalize_title` rule: lowercase, alphanumerics only). A paper
    matches once; the first rule that hits is recorded. A corpus paper counts whether or not it satisfies the constraints
@@ -41,7 +41,7 @@ tells the owner an empty or thin verdict reflects how the corpus was assembled, 
    misses are stored (my call: that is the discovery queue, out of scope).
 6. **Failure**: a network error or non-200 after the helper's retries is reported as `{"probe": {"error": "..."}}` plus a
    console warning; the offline report is still written and the exit code is unchanged.
-7. **CLI**: `--probe`, `--probe-n N`, `--mailto ADDR` (required with `--probe`; no default, never read from git config).
+7. **CLI**: `--probe`, `--probe-n N`, `--mailto ADDR` (required with `--probe`, or `$OPENALEX_CONTACT_EMAIL` as `backfill-years` does; never read from git config).
    `--probe` with a stopped (unresolved) run does nothing, as the run stops first.
 
 ## Tests
