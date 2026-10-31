@@ -6,6 +6,7 @@ from pathlib import Path
 from agent.literature.gap.classify import classify
 from agent.literature.gap.coverage import COMPLETENESS, Sidecar, coverage
 from agent.literature.gap.match import Constraint
+from agent.literature.gap.probe import wilson
 from agent.literature.gap.report import SCHEMA_VERSION, build_report, gap_dir, render_markdown, write_report
 from agent.literature.gap.subregions import load_subregions
 from gap_helpers import VOCABS, fx, make_corpus, write_toy_tables
@@ -91,6 +92,31 @@ class TestReport(unittest.TestCase):
     def test_gitignore_lists_literature_gap(self):
         root = Path(__file__).resolve().parents[5]
         self.assertIn("ai-sandbox/research/literature_gap/", (root / ".gitignore").read_text(encoding="utf-8").splitlines())
+
+
+class TestProbeSection(TestReport):
+    OK = {"query": "Cash transfers Somalia", "requested": 25, "retrieved": 25, "in_corpus": 2, "interval": list(wilson(2, 25)),
+          "matched": [], "not_in_corpus": 23, "fetched": "2026-10-31"}
+
+    def test_probe_fills_external_without_changing_the_verdict(self):
+        plain, probed = self.report(), self.report(probe=self.OK)
+        self.assertIsNone(plain["external"])
+        self.assertEqual(probed["external"], {"probe": self.OK})
+        self.assertEqual((probed["verdict"], probed["counts"]), (plain["verdict"], plain["counts"]))
+        json.dumps(probed)
+
+    def test_markdown_states_k_of_n_and_the_interval(self):
+        lo, hi = wilson(2, 25)
+        md = render_markdown(self.report(probe=self.OK))
+        self.assertIn(f'Top 25 OpenAlex results by relevance for "Cash transfers Somalia"; 2 are in the corpus '
+                      f"({lo:.0%} to {hi:.0%} interval).", md)
+        self.assertIn("not against all the literature", md)
+
+    def test_markdown_for_no_results_and_for_an_error(self):
+        none = {**self.OK, "retrieved": 0, "in_corpus": 0, "interval": None}
+        self.assertIn('OpenAlex returned no results for "Cash transfers Somalia".', render_markdown(self.report(probe=none)))
+        err = {"query": "q", "requested": 25, "error": "RuntimeError: boom"}
+        self.assertIn("Probe not run: RuntimeError: boom", render_markdown(self.report(probe=err)))
 
 
 if __name__ == "__main__":

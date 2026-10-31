@@ -57,7 +57,7 @@ def _paper(corpus: Corpus, fid: str) -> dict:
 
 
 def build_report(question: str, constraints: list[Constraint], vocabs: dict, result: GapResult, cov: dict, corpus: Corpus,
-                 *, unmapped=(), include_quotes: bool = False) -> dict:
+                 *, unmapped=(), include_quotes: bool = False, probe: dict | None = None) -> dict:
     facets = {c.facet for c in constraints}
     evidence = []
     for fid, kind, labels in ([(f, "direct", []) for f in result.direct]
@@ -84,7 +84,7 @@ def build_report(question: str, constraints: list[Constraint], vocabs: dict, res
         "evidence": evidence,
         "partial": [{**_paper(corpus, fid), "matched": n} for fid, n in result.partial],
         "different_method": [_paper(corpus, fid) for fid in result.different_method],
-        "external": None,
+        "external": {"probe": probe} if probe else None,
     }
 
 
@@ -134,6 +134,18 @@ def render_markdown(report: dict) -> str:
             out.append(f"- {len(spots['no_country_fact'])} paper(s) have no country fact: {', '.join(spots['no_country_fact']) or 'none'}")
             out.append(f"- {len(spots['broad_scale'])} paper(s) are multi-country or global and not direct: "
                        f"{', '.join(spots['broad_scale']) or 'none'}")
+    probe = (report.get("external") or {}).get("probe")
+    if probe:
+        out += ["", "## Recall probe", ""]
+        if "error" in probe:
+            out.append(f"Probe not run: {probe['error']}")
+        elif not probe["retrieved"]:
+            out.append(f'OpenAlex returned no results for "{probe["query"]}".')
+        else:
+            lo, hi = probe["interval"]
+            out.append(f'Top {probe["retrieved"]} OpenAlex results by relevance for "{probe["query"]}"; {probe["in_corpus"]} are in '
+                       f"the corpus ({lo:.0%} to {hi:.0%} interval). This measures the corpus against OpenAlex's ranking for this "
+                       "wording, not against all the literature.")
     out += ["", "## Evidence", ""]
     for e in report["evidence"]:
         out += [f"### {_paper_line(e)}: {e['kind']}"]
