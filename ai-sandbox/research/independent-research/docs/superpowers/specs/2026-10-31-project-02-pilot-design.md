@@ -191,4 +191,7 @@ dataset IDs and fields against the actual downloaded files.
    ACLED lag cutoff; exact window is a decision for the Sudan instance.
 5. ~~Repo name / ACLED registration~~ `compound-shocks-panel` confirmed; ACLED registration done and a Somalia
    export (through 2025-10-31) is already in the ignored `data/raw/`.
-6. Whether to send the ACLED consultation email (draft in the findings, section 3.3).
+6. Whether to send the ACLED consultation email (draft in the findings, section 3.3). On hold over the holiday weekend.
+7. ~~Somalia window and CHIRPS version~~ Decided 2026-10-31: window 2021-01 to 2023-08 (the HDX PRMN dataset
+   `somalia-internally-displaced-persons-idps` ends 2023-08; the dataset ID in the data-sources note is wrong),
+   CHIRPS v2.0. Looking for a newer PRMN release (UNHCR portal or Microdata Library) is a non-blocking check.

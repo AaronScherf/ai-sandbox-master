@@ -1,0 +1,244 @@
+# compound-shocks-panel pilot Implementation Plan
+
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+
+**Goal:** Build the Project 02 pilot as a standalone study repo, `compound-shocks-panel`, that reproduces a Somalia district-month panel (Layer 1) from acquired data and re-runs the same method on Sudan.
+
+**Architecture:** A study repo generated from the reprokit template. Code under `src/compound_shocks/` is country-neutral; each country is an instance folder (`instances/<name>/`: config, raw data, descriptors, harmonization records). Per-role, per-provider adapters turn raw files into canonical tables; spatial functions assign events and rainfall to OCHA COD-AB Admin 2 districts; a fuse step builds a panel keyed by `(admin2_id, month)` whose columns are marked `core` or `extension`; `doit` runs the step graph behind one `reproduce` command. Cross-country tests use core columns only.
+
+**Tech Stack:** Python >=3.11, uv, reprokit (installed from its git tag), pandas, geopandas, rasterio, shapely, statsmodels, matplotlib, doit, requests, pytest, ruff.
+
+**Spec:** `ai-sandbox/research/independent-research/docs/superpowers/specs/2026-10-31-project-02-pilot-design.md` (sections 3 to 10; 4.1 and 7.1 are binding). Framework context: `.../specs/2026-10-31-reproducible-research-framework-design.md`. Builds on reprokit v0.1.0 (`https://github.com/AaronScherf/reprokit`, tag `v0.1.0`).
+
+## Global Constraints
+
+- Standalone repo at `C:\Users\theaa\compound-shocks-panel` (outside the monorepo), generated from the reprokit template (`kind: study`, `purpose: academic_publication`, `confidentiality: public`); MIT; Python `>=3.11`; `uv.lock` committed; CI uses `uv sync --locked`. The reprokit-side change (Task 1) is a separate repo and release.
+- Layer 1 only: prices, rainfall, conflict, displacement, boundaries. No narrative/LLM layers, no cash-transfer data, no causal claims; analysis is descriptive.
+- Inputs are located by role directory (`instances/<name>/data/raw/<role>/`), never by hard-coded filename. Cosmetic changes (renamed column or file) are logged; provider or definition changes require a harmonization record, enforced by `reprokit gate`.
+- ACLED (Spec 7.1): never commit event-level rows or any subset; committed aggregates are totals only (events, fatalities) per district-month, no per-event-type cells, no coordinates or event IDs; every figure and map carries the caption `Source: ACLED (acleddata.com), accessed <date>`; credentials only from `ACLED_EMAIL` and `ACLED_PASSWORD` environment variables; raw rows are never sent to external AI services.
+- Boundaries: OCHA COD-AB per country with geoBoundaries as fallback; record boundary vintage in the descriptor and manifest. Maps at district level or coarser.
+- Tests run on synthetic seeded fixtures with no network and finish in under 60 seconds. Real-data tests are marked `real_data` and skipped when the raw files are absent.
+- Month assignment: calendar month of the event date as `YYYY-MM`. Zero conflict events in a district-month is `0`; a missing price or unreported displacement is `NaN`, never `0`.
+- Spend rule: warn and require go-ahead before any step estimated over $1 (none expected).
+- Stage explicit paths only; never `git add -A` / `git add .`. Creating GitHub repos and pushing needs the owner's go-ahead (public-repo creation is blocked for agents; the owner runs it).
+
+## Source facts checked 2026-10-31 (unauthenticated HTTP calls; files not yet downloaded or opened)
+
+- **WFP prices:** HDX dataset `wfp-food-prices-for-somalia` (CC BY-IGO), coverage 1995-01 to 2026-08, updated monthly; resources "Somalia - Food Prices" (CSV) and "Somalia - Markets" (CSV). The global `wfp-food-prices` dataset on HDX is stale (ends 2021-08): do not use it. Columns, units, and market coverage are still unverified.
+- **Boundaries:** HDX dataset `cod-ab-som` (CC BY-IGO), formats GDB, SHP, GeoJSON, XLSX; dataset dates 2025-01-08 to 2025-10-30. Boundary vintage ("valid on") is not yet read from the metadata.
+- **Rainfall:** CHIRPS v2.0 monthly Africa GeoTIFFs, no login: `https://data.chc.ucsb.edu/products/CHIRPS/v2.0/africa_monthly/tifs/chirps-v2.0.YYYY.MM.tif.gz` (about 4.4 MB each; 2021 and 2023 months present). The older `CHIRPS-2.0` path in the data-sources note returns 404 and must not be used. v3.0 also exists at `/products/CHIRPS/v3.0/`; decided by the owner: the plan uses v2.0 and records the version in the descriptor.
+- **Displacement (problem):** the dataset ID in the data-sources note (`unhcr-somalia-prmn-displacement-and-return-events`) returns 404. The actual HDX dataset is `somalia-internally-displaced-persons-idps` (CC BY; CSV and XLSX), but its coverage is **2016-01 to 2023-08**. September to December 2023 are absent, so the 2021 to 2023 window cannot be fully covered from this dataset. Whether it has origin and destination districts and a reason field is unverified. A newer or by-request PRMN release (UNHCR Operational Data Portal or Microdata Library) is unchecked.
+- **API access:** the HDX metadata API (`/api/3/action/package_show`) answers without a key or account. The fetch layer should use plain HTTP; no HDX credentials are needed. ACLED is the only source needing an account (OAuth with email and password).
+- **FSNAU** market data (separate portal) has not been checked for an API.
+
+## Review Focus
+
+1. The real ACLED export starts with a UTF-8 BOM (`\ufeffevent_id_cnty`); the adapter must still find the first column.
+2. A district-month with no events is `0`, a market-month with no price is `NaN`, and unreported displacement is `NaN`; the fused panel preserves all three distinctly.
+3. An event whose coordinates fall exactly on a district boundary, or outside every polygon (offshore, low `geo_precision`), is assigned deterministically or logged as unassigned, never silently dropped or double-counted.
+4. Events join to districts by point-in-polygon, never by ACLED's own `admin2` name; name-based joins (prices, displacement) go through an explicit crosswalk and report every unmatched name.
+5. A second `reproduce` with unchanged inputs does no work and writes an identical panel; changing one input file's bytes reruns exactly the dependent steps.
+6. A provider swap for any role stops the run before processing with a message naming the missing harmonization record.
+7. Publishable aggregates contain no coordinates, event IDs, actor strings, or event-type columns.
+
+## Execution routing (per `docs/AGENT_ROUTING.md`)
+
+| Tasks | Owner | Notes |
+| --- | --- | --- |
+| 1 | Codex (Claude reviews) | reprokit v0.2.0 |
+| 2 to 3 | Claude (architecture/spike), Codex for scaffold steps | Spike decides doit vs own runner |
+| 4 to 12 | Codex in slices from this plan; Claude reviews each adapter and the fuse step | Escalate any schema change to Claude |
+| 13 | Codex | Mocked HTTP only |
+| 14 | Owner downloads; Gemini operates documented runs; Claude judges findings | Real data; ACLED rows never go to Gemini or any external AI |
+| 15 | Codex (code), Gemini (run), Claude (harmonization judgment) | |
+| 16 | Claude (review), owner (publish) | |
+
+### Task 1: reprokit v0.2.0: instance discovery and gate command
+
+**Repo:** `C:\Users\theaa\reprokit`. **Files:**
+- Modify: `src/reprokit/cli.py`, `README.md`, `CHANGELOG.md`
+- Test: `tests/test_cli.py`, `tests/fixtures/repo_instances/` (a study repo with `instances/a/` and `instances/b/`)
+
+**Interfaces:**
+- Produces: `reprokit validate` also checks, for every `instances/*/`: `config.yaml` (schema `config` + period rule), `data/descriptors/*.yaml`, `harmonization/*.yaml`; problems name the full path. New command `reprokit gate --baseline <config.yaml> --config <config.yaml> --records <dir>` prints `Problem` lines from `check_gate(baseline["sources"], config["sources"], records)` and exits 1 on any.
+
+- [ ] **Step 1: Write failing tests:** `test_validate_walks_every_instance` (a broken descriptor in `instances/b` is reported with its path, `instances/a` clean); `test_validate_instance_period_rule`; `test_gate_blocks_provider_swap_without_record` (message names the role and expected record path); `test_gate_passes_with_valid_record`; `test_gate_exit_0_when_providers_match_ignoring_case`. Run; expect FAIL.
+- [ ] **Step 2:** Implement in `cli.py` (extend `_validate`; add `_gate` using `harmonization.check_gate`). Run `uv run pytest -q`; expect PASS.
+- [ ] **Step 3:** Document in README and CHANGELOG (`0.2.0`), bump `pyproject.toml` version, commit, tag `v0.2.0`. Pushing is the owner's go-ahead.
+
+### Task 2: Generate the study repo and migrate the intake scaffold
+
+**Repo:** new `compound-shocks-panel`. **Files:**
+- Create: everything from `copier copy` plus `instances/somalia/{config.yaml,data/raw/.gitkeep,data/descriptors/*.yaml,harmonization/.gitkeep}`, `instances/sudan/` (same, empty roles), `docs/decisions/`
+- Modify: `pyproject.toml` (dependencies, `reprokit @ git+https://github.com/AaronScherf/reprokit@v0.2.0`), `protocol.md`, `.gitignore` (ignore `instances/*/data/raw/*`, `instances/*/data/derived/*`, `instances/*/outputs/*`, keep `.gitkeep`)
+
+**Interfaces:**
+- Produces: an instance config for Somalia with roles `conflict_events`, `displacement`, `prices`, `rainfall`, `admin_boundaries` (providers ACLED, UNHCR/NRC PRMN, WFP, UCSB CHC CHIRPS, OCHA COD-AB), period `2021-01-01` to `2023-08-31` (decided 2026-10-31: the HDX PRMN dataset ends 2023-08; extend later by config change if a newer release is found), geography `Somalia`, parameters from Task 11. One descriptor per role from the pilot design's table; every unverified field is the literal `unverified`, `access_class` set correctly (`conflict_events: account_required`, with `accessed`, `applied_filters`, `manipulation` filled from the existing export: accessed `2026-10-31`, filters `Somalia, event dates 1997-01-01 to 2025-10-31`).
+
+- [ ] **Step 1:** `uv run copier copy` the reprokit template into `C:\Users\theaa\compound-shocks-panel` (project_name `Compound Shocks Panel`). Add the dependencies listed in the stack to `pyproject.toml`, run `uv lock`, `uv sync`.
+- [ ] **Step 2: Write failing test** `tests/test_repo_layout.py::test_reprokit_validate_passes_on_repo` running `reprokit.cli.main(["validate", "."])` expects 0 and `test_somalia_and_sudan_instances_exist`. Fill the instances and descriptors until it passes.
+- [ ] **Step 3:** Copy `protocol.md` content from the monorepo's `projects/02_compound_shocks/protocol.md` (verification gates, decision log) into the new `protocol.md`; copy the existing ACLED export from `...projects/02_compound_shocks/data/raw/ACLED Data_2026-10-31_...csv` into `instances/somalia/data/raw/conflict_events/` (local only, ignored; confirm `git status` does not list it).
+- [ ] **Step 4:** Commit with explicit paths. Owner creates the GitHub repo and pushes.
+
+### Task 3: Step-runner spike and decision
+
+**Files:**
+- Create: `src/compound_shocks/__init__.py`, `src/compound_shocks/cli.py`, `src/compound_shocks/pipeline.py`, `dodo.py`, `docs/decisions/001-step-runner.md`, `tests/test_reproduce_skeleton.py`, `.github/workflows/ci.yml` (matrix `ubuntu-latest`, `windows-latest`)
+
+**Interfaces:**
+- Produces: `compound_shocks.cli.main(argv: list[str] | None = None) -> int` with `reproduce --instance NAME`; `compound_shocks.pipeline.tasks(instance_dir: Path) -> list[dict]` (doit task dicts with `name`, `file_dep`, `targets`, `actions`). Skeleton steps: `read` then `aggregate` then `fuse`, each writing a small file under `instances/<name>/data/derived/`.
+
+- [ ] **Step 1: Write failing tests:** `test_reproduce_runs_skeleton_on_fixture_instance` (tmp instance with two tiny input files; exit 0; outputs exist); `test_second_run_does_no_work` (capture doit's up-to-date count, all tasks skipped); `test_changed_input_reruns_only_dependents` (touch one role's file bytes; only its chain reruns); `test_runs_with_no_make_installed` (the command never shells out to `make`).
+- [ ] **Step 2:** Implement with doit's Python API (`DoitMain` with a `ModuleTaskLoader`), no `dodo.py` logic beyond importing `pipeline.tasks`. Run tests; expect PASS on this Windows machine.
+- [ ] **Step 3:** Push the branch and read the CI matrix result for Linux. Write `docs/decisions/001-step-runner.md`: chosen runner, the evidence (test results on both OSes), and the fallback (own minimal runner with the same `tasks()` interface) if either OS fails. If the spike fails on either OS, stop and report to Claude before continuing.
+- [ ] **Step 4:** Commit.
+
+### Task 4: Canonical schemas, adapter protocol, mapping loader
+
+**Files:**
+- Create: `src/compound_shocks/schema.py`, `src/compound_shocks/adapters/__init__.py`, `src/compound_shocks/adapters/base.py`, `src/compound_shocks/adapters/mapping.py`, `tests/test_schema.py`, `tests/test_adapters_base.py`
+
+**Interfaces:**
+- Produces: `ROLE_COLUMNS: dict[str, list[str]]` (the five canonical tables from Spec section 4); `PANEL_COLUMNS: dict[str, Literal["core", "extension"]]` (core: `events`, `fatalities`, `precip_mm`, `coverage_frac`, `price_sorghum`, `price_wheat`; extension: displacement columns, terms-of-trade columns); `check_frame(df, role: str) -> list[reprokit.problems.Problem]` (missing/extra columns, wrong dtype kinds, duplicate keys); `class Adapter(Protocol)` with `role: str`, `provider: str`, `find(raw_dir: Path) -> list[Path]`, `read(paths: list[Path], instance: dict) -> pd.DataFrame`; `register(adapter: Adapter) -> None`; `get_adapter(role: str, provider: str) -> Adapter` (provider compared with `strip().casefold()`; `KeyError` message lists registered providers for the role); `load_mapping(path: Path) -> dict[str, str]`; `apply_mapping(df, mapping) -> pd.DataFrame` (rename, then missing-source-column Problem naming the column).
+
+- [ ] **Step 1: Write failing tests:** `test_check_frame_names_missing_column`; `test_check_frame_flags_duplicate_keys`; `test_get_adapter_ignores_case_and_whitespace`; `test_get_adapter_unknown_provider_lists_registered`; `test_apply_mapping_renames_and_reports_missing_source_column`; `test_every_core_panel_column_is_documented` (every key in `PANEL_COLUMNS` appears in `README.md`).
+- [ ] **Step 2:** Implement; run; commit.
+
+### Task 5: ACLED adapter and mapping
+
+**Files:**
+- Create: `src/compound_shocks/adapters/acled.py`, `src/compound_shocks/adapters/mappings/acled.yaml`, `tests/test_acled_adapter.py`, `tests/fixtures/make_fixtures.py` (seeded generator, ACLED part), `tests/fixtures/acled_fixture.csv`
+
+**Interfaces:**
+- Produces: `AcledAdapter` (`role="conflict_events"`, `provider="ACLED"`), `find` globs `*.csv` in the role dir; `read` returns canonical `event_id, date, lat, lon, event_type, sub_event_type, actor1, fatalities, geo_precision` (date as ISO string, `fatalities` int). Mapping file: `event_id_cnty -> event_id`, `event_date -> date`, `latitude -> lat`, `longitude -> lon`; a `lat_long` variant is handled by the same adapter via an optional split mapping key.
+
+- [ ] **Step 1: Write failing tests:** `test_reads_fixture_with_bom` (fixture written with a UTF-8 BOM, first column found); `test_lat_long_single_column_variant_is_split`; `test_output_passes_check_frame`; `test_find_ignores_non_csv_and_gitkeep`; `test_real_export_header_maps` (marked `real_data`: reads only the header of the real export, asserts all mapping source columns exist; never loads rows into any external service).
+- [ ] **Step 2:** Implement (`encoding="utf-8-sig"`); run; commit.
+
+### Task 6: Boundaries adapter and point-in-polygon
+
+**Files:**
+- Create: `src/compound_shocks/adapters/boundaries.py`, `src/compound_shocks/spatial.py`, `tests/test_boundaries.py`, `tests/test_spatial.py`, fixture GeoJSON (3 tiny districts) from the generator
+
+**Interfaces:**
+- Produces: `CodAbAdapter` (`role="admin_boundaries"`, `provider="OCHA COD-AB"`) returning a GeoDataFrame with `admin2_id, name, geometry` and `gdf.attrs["vintage"]`; `GeoBoundariesAdapter` with the same output (fallback provider, so using it requires a harmonization record); `assign_admin2(points: pd.DataFrame, boundaries: gpd.GeoDataFrame) -> pd.DataFrame` adds `admin2_id` (`<NA>` when none) and never changes row count; a point on a shared boundary goes to the district with the lowest `admin2_id`; returns unassigned count in `result.attrs["unassigned"]`.
+
+- [ ] **Step 1: Write failing tests:** `test_point_on_shared_boundary_is_assigned_to_lowest_id`; `test_point_outside_all_polygons_is_unassigned_and_counted`; `test_row_count_preserved`; `test_vintage_recorded`; `test_geoboundaries_output_matches_canonical_columns`.
+- [ ] **Step 2:** Implement with geopandas `sjoin` (`predicate="intersects"`, then drop duplicates by lowest id); run; commit.
+
+### Task 7: Rainfall adapter and zonal statistics
+
+**Files:**
+- Create: `src/compound_shocks/adapters/chirps.py`, extend `src/compound_shocks/spatial.py`, `tests/test_chirps.py`; generator makes two tiny monthly GeoTIFFs with a nodata cell
+
+**Interfaces:**
+- Produces: `ChirpsAdapter` (`role="rainfall"`, `provider="UCSB CHC CHIRPS"`); `zonal_monthly(rasters: dict[str, Path], boundaries: gpd.GeoDataFrame) -> pd.DataFrame` with columns `admin2_id, month, precip_mm, coverage_frac` (`rasters` maps `YYYY-MM` to a file; area-weighted mean over valid cells; `coverage_frac` is the share of the district's area with valid cells).
+
+- [ ] **Step 1: Write failing tests:** `test_area_weighted_mean_on_known_grid`; `test_nodata_cells_lower_coverage_frac_not_precip`; `test_district_with_no_valid_cells_has_nan_precip_and_zero_coverage`; `test_month_taken_from_mapping_keys`.
+- [ ] **Step 2:** Implement with rasterio masks (no extra zonal library unless needed); run; commit.
+
+### Task 8: Prices and displacement adapters
+
+**Files:**
+- Create: `src/compound_shocks/adapters/wfp_prices.py`, `src/compound_shocks/adapters/prmn.py`, `src/compound_shocks/adapters/mappings/{wfp_prices,prmn}.yaml`, `src/compound_shocks/crosswalk.py`, `tests/test_wfp_prices.py`, `tests/test_prmn.py`, `tests/test_crosswalk.py`
+
+**Interfaces:**
+- Produces: `WfpPricesAdapter` (`role="prices"`, `provider="WFP"`) canonical `date, market, admin2, commodity, unit, currency, price` (rows with a different unit or currency for the same commodity-market are flagged, not merged); `PrmnAdapter` (`role="displacement"`, `provider="UNHCR/NRC PRMN"`) canonical `month, origin_admin2, dest_admin2, individuals, reason` with `reason` mapped to `drought|conflict|flood|other`; `apply_crosswalk(df, column: str, crosswalk: dict[str, str], role: str) -> tuple[pd.DataFrame, list[Problem]]` replaces provider district names with COD-AB `admin2_id`s and returns a Problem per unmatched name.
+
+- [ ] **Step 1: Write failing tests:** `test_prices_mixed_units_are_flagged`; `test_prmn_unreported_month_is_nan_not_zero`; `test_prmn_reason_categories_mapped_and_unknown_reported`; `test_crosswalk_reports_every_unmatched_name`; `test_adapters_output_passes_check_frame`.
+- [ ] **Step 2:** Implement; run; commit. Real column names are unverified; Task 14 confirms them against actual downloads.
+
+### Task 9: Panel fusion
+
+**Files:**
+- Create: `src/compound_shocks/panel.py`, `tests/test_panel.py`
+
+**Interfaces:**
+- Consumes: canonical tables from Tasks 5 to 8, `assign_admin2`, `zonal_monthly`, `PANEL_COLUMNS`.
+- Produces: `month_of(date: str) -> str` (`"2021-02-28"` to `"2021-02"`); `aggregate_conflict(events: pd.DataFrame) -> pd.DataFrame` (columns `admin2_id, month, events, fatalities`); `fuse_panel(conflict, rainfall, prices, displacement, admin2_ids: list[str], months: list[str]) -> pd.DataFrame` with one row per `(admin2_id, month)` over the full cross product; conflict missing means `0`, price and displacement missing mean `NaN`; `panel.attrs["column_kinds"]` copies `PANEL_COLUMNS`; `publishable_aggregates(panel) -> pd.DataFrame` returns only `admin2_id, month, events, fatalities`.
+
+- [ ] **Step 1: Write failing tests:** `test_month_boundaries` (Jan 31, Feb 28, Dec 31); `test_district_month_without_events_is_zero`; `test_missing_price_is_nan_not_zero`; `test_panel_keys_unique_and_complete`; `test_unassigned_events_are_not_in_panel_but_counted`; `test_publishable_aggregates_has_no_coordinates_ids_actors_or_event_types`.
+- [ ] **Step 2:** Implement; run; commit.
+
+### Task 10: Pipeline wiring, gate and manifest
+
+**Files:**
+- Modify: `src/compound_shocks/pipeline.py`, `src/compound_shocks/cli.py`
+- Create: `tests/test_pipeline_end_to_end.py`, instance fixtures under `tests/fixtures/instance_somalia/`
+
+**Interfaces:**
+- Consumes: Tasks 3 to 9, `reprokit.manifest`, `reprokit gate`.
+- Produces: `reproduce --instance NAME` runs `gate` (against `instances/somalia/config.yaml` as the baseline), then `read` per role through `get_adapter`, `spatial`, `aggregate`, `fuse`, `manifest`; outputs `data/derived/panel.csv`, `outputs/manifest.json`, `outputs/publishable_aggregates.csv`. Stops with exit 1 before processing if the gate fails or `check_frame` finds problems.
+
+- [ ] **Step 1: Write failing tests:** `test_end_to_end_on_fixture_instance`; `test_provider_swap_without_record_stops_before_processing` (no derived file written); `test_provider_swap_with_record_proceeds`; `test_manifest_lists_core_and_extension_columns`; `test_rerun_is_idempotent` (panel bytes identical; manifest identical except `created_utc`).
+- [ ] **Step 2:** Implement; run; commit.
+
+### Task 11: Analysis defaults and figures
+
+**Files:**
+- Create: `src/compound_shocks/analysis.py`, `src/compound_shocks/figures.py`, `tests/test_analysis.py`, `tests/test_figures.py`; extend `instances/somalia/config.yaml` `parameters`
+
+**Interfaces:**
+- Produces: `price_index(prices: pd.DataFrame, basket: list[str], base_month: str) -> pd.DataFrame` (`month, index`, base month = 100); `price_decomposition(prices, imported: list[str], local: list[str], base_month: str) -> pd.DataFrame` (`month, imported_index, local_index`); `make_price_figure(df, out: Path, accessed: str) -> None` and `make_district_map(panel, boundaries, column: str, out: Path, accessed: str) -> None`; every figure with ACLED-derived content has the caption `Source: ACLED (acleddata.com), accessed <date>`. Default parameters: `imported: [wheat flour, cooking oil]`, `local: [red sorghum, white maize]`, `base_month: 2021-01`.
+
+- [ ] **Step 1: Write failing tests:** `test_index_is_100_in_base_month`; `test_decomposition_separates_baskets`; `test_missing_base_price_gives_nan_not_error`; `test_conflict_figure_has_acled_caption` (inspect the saved figure's text objects); `test_price_figure_without_acled_has_no_caption_requirement`.
+- [ ] **Step 2:** Implement with matplotlib (Agg backend); run; commit.
+
+### Task 12: Report build
+
+**Files:**
+- Create: `report/main.tex`, `report/build.py`, `tests/test_report.py`; add `report` step to `pipeline.py`
+
+**Interfaces:**
+- Produces: `build_report(instance_dir: Path) -> Path` fills `report/main.tex` from the instance's figures and manifest summary (country, period, access dates, verification states, ACLED citation block with the three required answers: access date, applied filters, manipulation); compiles to PDF with `latexmk` when installed, otherwise leaves the `.tex` and prints one line telling the user how to install LaTeX.
+
+- [ ] **Step 1: Write failing tests:** `test_tex_contains_acled_citation_block_and_three_answers`; `test_without_latexmk_builds_tex_and_explains`; `test_report_step_is_part_of_reproduce`.
+- [ ] **Step 2:** Implement; run; commit.
+
+### Task 13: Fetch layer (mocked HTTP only)
+
+**Files:**
+- Create: `src/compound_shocks/fetch/{__init__.py,hdx.py,acled.py,chirps.py,codab.py}`, `tests/test_fetch.py`, `.env.example` (entries `ACLED_EMAIL`, `ACLED_PASSWORD`)
+
+**Interfaces:**
+- Pinned sources (from "Source facts checked"): `fetch_hdx` takes the dataset IDs `wfp-food-prices-for-somalia`, `cod-ab-som` (GeoJSON resource) and `somalia-internally-displaced-persons-idps`; `fetch_chirps(months: list[str], out_dir: Path)` builds the v2.0 Africa monthly URL for each `YYYY-MM`, downloads, and gunzips. Add a test that a 404 on any pinned URL raises an error naming the source and URL (providers move files, as CHIRPS already did once).
+- Produces: `fetch_file(url: str, out_dir: Path, expected_sha256: str | None, refresh: bool = False) -> Path` (writes the file; with `expected_sha256` set, a mismatch raises `ProviderRevisedData` naming both hashes and the access date unless `refresh=True`); `fetch_hdx(dataset_id: str, resource_name: str, out_dir: Path, ...) -> Path` using the HDX CKAN API with pinned IDs from the descriptor; `fetch_acled(params: dict, out_dir: Path) -> Path` reads credentials from `ACLED_EMAIL` and `ACLED_PASSWORD`, raises a plain-language error with registration instructions if unset, and never logs them; all fetchers write the descriptor's `accessed` and `sha256`.
+
+- [ ] **Step 1: Write failing tests with `requests` mocked:** `test_hash_mismatch_raises_provider_revised_data_unless_refresh`; `test_acled_missing_credentials_explains_how_to_register`; `test_credentials_never_appear_in_logs_or_exceptions`; `test_fetch_writes_into_role_directory`.
+- [ ] **Step 2:** Implement; run; commit. No test touches the network.
+
+### Task 14: Somalia real run (owner and Gemini operate; Claude reviews)
+
+**Files:** `instances/somalia/data/raw/*` (ignored), `instances/somalia/data/descriptors/*.yaml`, `docs/verification/somalia-2026-XX-XX.md`
+
+- [x] **Step 0 (decided by owner 2026-10-31):** Somalia window is 2021-01 through 2023-08 because the HDX PRMN dataset ends 2023-08; CHIRPS v2.0. A newer PRMN release (UNHCR portal or Microdata Library request) is a parallel, non-blocking check; record the outcome in the verification note.
+- [ ] **Step 1:** Owner downloads PRMN, WFP prices, CHIRPS (months in the chosen window), COD-AB Somalia into the role directories (or runs the Task 13 fetchers). The ACLED export already exists.
+- [ ] **Step 2:** For each role, replace every `unverified` field in the descriptor from the provider's page and the actual file; set `verification_status: source-verified`. Confirm or correct the canonical columns and mapping files against real headers; any mismatch is a Task 5 or 8 fix with a test.
+- [ ] **Step 3:** Run `uv run python -m compound_shocks reproduce --instance somalia`. Record in `docs/verification/` the commands, row counts per role, unassigned-event count, price-gap pattern, and any harmonization or boundary-vintage finding. Set `verification_status: run on acquired data` only after a clean run.
+- [ ] **Step 4:** Claude reviews the verification note before anything is committed to the public repo. Raw ACLED rows are never pasted into any external AI tool; only counts and column names are shared.
+
+### Task 15: Sudan instance and common-core comparison
+
+**Files:**
+- Create: `instances/sudan/config.yaml`, `instances/sudan/data/descriptors/*.yaml`, `instances/sudan/harmonization/displacement.yaml`, `src/compound_shocks/adapters/iom_dtm.py`, `src/compound_shocks/compare.py`, `tests/test_iom_dtm.py`, `tests/test_compare.py`
+
+**Interfaces:**
+- Produces: `IomDtmAdapter` (`role="displacement"`, `provider="IOM DTM"`) canonical `month, dest_admin2, origin_admin1, stock` (stock, not flow); `stock_change(df) -> pd.DataFrame` (first difference per `dest_admin2`, NaN where a month is missing, documented caveat on re-displacement and returnees); `compare.nested_f_test(panels: dict[str, pd.DataFrame], formula: str) -> dict` fits a pooled model and a country-specific model on `core` columns only (raises `ValueError` naming any non-core column in the formula) and returns `{"f": float, "p": float, "df_num": int, "df_den": int}`.
+
+- [ ] **Step 1: Write failing tests:** `test_stock_change_nan_when_month_missing`; `test_nested_f_test_rejects_extension_columns`; `test_nested_f_test_detects_known_difference_in_synthetic_panels` (two seeded panels with different slopes give p < 0.01; identical slopes give p > 0.2); `test_sudan_reproduce_blocked_without_displacement_record`.
+- [ ] **Step 2:** Implement; run; commit.
+- [ ] **Step 3:** Owner downloads Sudan data (ACLED within the 12-month lag, CHIRPS, WFP, COD-AB `cod-ab-sdn`, IOM DTM); re-check the Gemini findings (dataset IDs, fields, WFP market coverage) against the real files; write `harmonization/displacement.yaml` (flow vs stock, geography, reasons, proxy and its biases, approved by the owner). Run `reproduce --instance sudan` and the comparison on common-core columns; write `docs/verification/sudan-2026-XX-XX.md`. Claude reviews the harmonization record.
+
+### Task 16: Clean-room check and release
+
+**Files:** `README.md` (replication guide for a non-technical reader), `CHANGELOG.md`, `CITATION.cff`
+
+- [ ] **Step 1:** Fresh clone into a scratch directory; `uv sync --locked`; `uv run pytest`; `uv run reprokit validate .`; `uv run python -m compound_shocks reproduce --instance somalia` on the fixture instance; expect all PASS in under 60 seconds with no network.
+- [ ] **Step 2:** README: what the project is, quick start, how to get each data source (with the account steps and costs; no paid AI needed), how to run another country (the Sudan walkthrough), the common-core rule, ACLED terms and the capture-date caveat, how to cite.
+- [ ] **Step 3:** Claude reviews security and licensing (no raw data, no credentials, ACLED aggregates only, boundaries and data licenses stated). Tag `v0.1.0` after the owner approves; the owner creates the GitHub repo and pushes.
+
+## Self-review notes
+
+- Spec coverage: scope and repo shape (T2), roles and canonical schemas (T4 to T8), common core vs extension (T4, T9, T15), adapters and mappings (T4 to T8), step graph decision and spike (T3), fetching with hash and revised-data semantics and ACLED credentials (T13), fixtures and tests (T5 to T9 and generator), deliverables with ACLED caption (T11, T12), Sudan portability test with harmonization record (T10, T15), ACLED constraints in 7.1 (Global Constraints, T9, T11, T13), open items left to the owner (ACLED email, low-count policy: totals only until answered).
+- Interfaces are consistent: `check_frame`, `get_adapter`, `assign_admin2`, `zonal_monthly`, `fuse_panel`, `publishable_aggregates` carry the same signatures wherever used.
+- Not in this plan: narrative layers, cash data, causal estimation, slides or web app, the communication hook (plan 3).
