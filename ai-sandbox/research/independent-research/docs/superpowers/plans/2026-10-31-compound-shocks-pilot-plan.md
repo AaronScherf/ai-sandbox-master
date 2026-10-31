@@ -1,19 +1,19 @@
-# compound-shocks-panel pilot Implementation Plan
+# compound-shocks-panel pilot Implementation Plan (Phase A: data exploration)
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Build the Project 02 pilot as a standalone study repo, `compound-shocks-panel`, that reproduces a Somalia district-month panel (Layer 1) from acquired data and re-runs the same method on Sudan.
+**Goal:** Build the Project 02 pilot as a standalone study repo, `compound-shocks-panel`, that reproducibly ingests and fuses Somalia's data into a district-month panel, audits its quality, and shows the same code ports to Sudan. **Phase A only**: no modeling, causal inference, cross-country regressions or paper drafting; those are gated behind a review (see "Phase structure and review gate" and [the realignment note](../../../notes/Pilot%20Scope%20Realignment%20-%20Exploratory%20Review%20Gate.md)).
 
-**Architecture:** A study repo generated from the reprokit template. Code under `src/compound_shocks/` is country-neutral; each country is an instance folder (`instances/<name>/`: config, raw data, descriptors, harmonization records). Per-role, per-provider adapters turn raw files into canonical tables; spatial functions assign events and rainfall to OCHA COD-AB Admin 2 districts; a fuse step builds a panel keyed by `(admin2_id, month)` whose columns are marked `core` or `extension`; `doit` runs the step graph behind one `reproduce` command. Cross-country tests use core columns only.
+**Architecture:** A study repo generated from the reprokit template. Code under `src/compound_shocks/` is country-neutral; each country is an instance folder (`instances/<name>/`: config, raw data, descriptors, harmonization records). Per-role, per-provider adapters turn raw files into canonical tables; spatial functions assign events and rainfall to OCHA COD-AB Admin 2 districts; a fuse step builds a panel keyed by `(admin2_id, month)` whose columns are marked `core` or `extension`; `doit` runs the step graph behind one `reproduce` command; EDA figures and an audit memo summarize what the data support.
 
-**Tech Stack:** Python >=3.11, uv, reprokit (installed from its git tag), pandas, geopandas, rasterio, shapely, statsmodels, matplotlib, doit, requests, pytest, ruff.
+**Tech Stack:** Python >=3.11, uv, reprokit (installed from its git tag), pandas, geopandas, rasterio, shapely, matplotlib, doit, requests, pytest, ruff. (`statsmodels` is a Phase B dependency; Task 11 removes it from `pyproject.toml`, and Phase B re-adds it.)
 
 **Spec:** `ai-sandbox/research/independent-research/docs/superpowers/specs/2026-10-31-project-02-pilot-design.md` (sections 3 to 10; 4.1 and 7.1 are binding). Framework context: `.../specs/2026-10-31-reproducible-research-framework-design.md`. Builds on reprokit v0.1.0 (`https://github.com/AaronScherf/reprokit`, tag `v0.1.0`).
 
 ## Global Constraints
 
 - Standalone repo at `C:\Users\theaa\compound-shocks-panel` (outside the monorepo), generated from the reprokit template (`kind: study`, `purpose: academic_publication`, `confidentiality: public`); MIT; Python `>=3.11`; `uv.lock` committed; CI uses `uv sync --locked`. The reprokit-side change (Task 1) is a separate repo and release.
-- Layer 1 only: prices, rainfall, conflict, displacement, boundaries. No narrative/LLM layers, no cash-transfer data, no causal claims; analysis is descriptive.
+- Layer 1 only: prices, rainfall, conflict, displacement, boundaries. No narrative/LLM layers, no cash-transfer data. **Phase A only: no regressions, price-basket decompositions, causal claims, hypothesis tests, cross-country comparisons, LaTeX papers or slides.** Exploratory data analysis and the audit memo are the only analysis.
 - Inputs are located by role directory (`instances/<name>/data/raw/<role>/`), never by hard-coded filename. Cosmetic changes (renamed column or file) are logged; provider or definition changes require a harmonization record, enforced by `reprokit gate`.
 - ACLED (Spec 7.1): never commit event-level rows or any subset; committed aggregates are totals only (events, fatalities) per district-month, no per-event-type cells, no coordinates or event IDs; every figure and map carries the caption `Source: ACLED (acleddata.com), accessed <date>`; credentials only from `ACLED_EMAIL` and `ACLED_PASSWORD` environment variables; raw rows are never sent to external AI services.
 - Boundaries: OCHA COD-AB per country with geoBoundaries as fallback; record boundary vintage in the descriptor and manifest. Maps at district level or coarser.
@@ -21,6 +21,20 @@
 - Month assignment: calendar month of the event date as `YYYY-MM`. Zero conflict events in a district-month is `0`; a missing price or unreported displacement is `NaN`, never `0`.
 - Spend rule: warn and require go-ahead before any step estimated over $1 (none expected).
 - Stage explicit paths only; never `git add -A` / `git add .`. Creating GitHub repos and pushing needs the owner's go-ahead (public-repo creation is blocked for agents; the owner runs it).
+
+## Phase structure and review gate (owner decision 2026-10-31)
+
+```
+PHASE A (this plan): adapters, spatial joins, zonal stats, panel fusion, EDA + audit memo, Sudan portability
+        |
+   REVIEW GATE: (A) data audit  (B) literature gap analysis  (C) owner approves question and modeling plan
+        |
+PHASE B (separate plan, not started): modeling, decompositions, cross-country tests, paper
+```
+
+Phase A stops after Task 16. Nothing in Phase B starts until the gate clears. Deferred and preserved in git history (original
+Tasks 11, 12, 15 in commit `cbeb9ce6`): `price_index` and `price_decomposition` baskets, the LaTeX `report/main.tex` build,
+`compare.nested_f_test` and all cross-country regressions. Source of the realignment: [Pilot Scope Realignment](../../../notes/Pilot%20Scope%20Realignment%20-%20Exploratory%20Review%20Gate.md).
 
 ## Source facts checked 2026-10-31 (unauthenticated HTTP calls; files not yet downloaded or opened)
 
@@ -47,10 +61,11 @@
 | --- | --- | --- |
 | 1 | Codex (Claude reviews) | reprokit v0.2.0 |
 | 2 to 3 | Claude (architecture/spike), Codex for scaffold steps | Spike decides doit vs own runner |
-| 4 to 12 | Codex in slices from this plan; Claude reviews each adapter and the fuse step | Escalate any schema change to Claude |
+| 4 to 12 | Codex in slices from this plan; Claude reviews each adapter and the fuse step | Escalate any schema change to Claude; Tasks 11 and 12 are EDA only |
 | 13 | Codex | Mocked HTTP only |
 | 14 | Owner downloads; Gemini operates documented runs; Claude judges findings | Real data; ACLED rows never go to Gemini or any external AI |
-| 15 | Codex (code), Gemini (run), Claude (harmonization judgment) | |
+| 15 | Codex (code), Gemini (run), Claude (harmonization judgment) | No regressions |
+| Gate | Owner, with Gemini (literature pipeline, large reads) and Claude (audit review) | After Task 16; no coding |
 | 16 | Claude (review), owner (publish) | |
 
 ### Task 1: reprokit v0.2.0: instance discovery and gate command
@@ -173,27 +188,29 @@
 - [ ] **Step 1: Write failing tests:** `test_end_to_end_on_fixture_instance`; `test_provider_swap_without_record_stops_before_processing` (no derived file written); `test_provider_swap_with_record_proceeds`; `test_manifest_lists_core_and_extension_columns`; `test_rerun_is_idempotent` (panel bytes identical; manifest identical except `created_utc`).
 - [ ] **Step 2:** Implement; run; commit.
 
-### Task 11: Analysis defaults and figures
+### Task 11: Exploratory data analysis and diagnostics
 
 **Files:**
-- Create: `src/compound_shocks/analysis.py`, `src/compound_shocks/figures.py`, `tests/test_analysis.py`, `tests/test_figures.py`; extend `instances/somalia/config.yaml` `parameters`
+- Create: `src/compound_shocks/eda.py`, `src/compound_shocks/figures.py`, `tests/test_eda.py`, `tests/test_figures.py`
+- Modify: `pyproject.toml` (remove `statsmodels`; Phase B re-adds it), `uv.lock`
 
 **Interfaces:**
-- Produces: `price_index(prices: pd.DataFrame, basket: list[str], base_month: str) -> pd.DataFrame` (`month, index`, base month = 100); `price_decomposition(prices, imported: list[str], local: list[str], base_month: str) -> pd.DataFrame` (`month, imported_index, local_index`); `make_price_figure(df, out: Path, accessed: str) -> None` and `make_district_map(panel, boundaries, column: str, out: Path, accessed: str) -> None`; every figure with ACLED-derived content has the caption `Source: ACLED (acleddata.com), accessed <date>`. Default parameters: `imported: [wheat flour, cooking oil]`, `local: [red sorghum, white maize]`, `base_month: 2021-01`.
+- Produces: `data_profile(panel: pd.DataFrame) -> dict` (per column: non-null count, zero count, min and max month, number of distinct districts with any non-null value; per source group the same); `missingness_matrix(panel, out: Path) -> None` (heatmap, districts by month, one panel per source column, saved as PNG); `plot_commodity_series(prices: pd.DataFrame, out: Path) -> None` (raw market-level price lines by commodity, no index, no basket weighting); `plot_conflict_rainfall_trends(panel, out: Path, accessed: str) -> None` (monthly national totals of events and fatalities with mean precipitation); `make_district_audit_map(panel, boundaries: gpd.GeoDataFrame, column: str, out: Path, accessed: str) -> None` (coarse choropleth). Every figure with ACLED-derived content has the caption `Source: ACLED (acleddata.com), accessed <accessed>`.
 
-- [ ] **Step 1: Write failing tests:** `test_index_is_100_in_base_month`; `test_decomposition_separates_baskets`; `test_missing_base_price_gives_nan_not_error`; `test_conflict_figure_has_acled_caption` (inspect the saved figure's text objects); `test_price_figure_without_acled_has_no_caption_requirement`.
-- [ ] **Step 2:** Implement with matplotlib (Agg backend); run; commit.
+- [ ] **Step 1: Write failing tests:** `test_profile_counts_zeros_and_nans_separately` (a conflict zero is counted as a zero, a missing price as null); `test_profile_reports_district_coverage_per_source`; `test_missingness_matrix_writes_png_with_one_panel_per_column`; `test_price_series_uses_raw_prices_not_an_index` (plotted y-values equal the input prices); `test_conflict_figures_have_acled_caption` (inspect saved figure text objects); `test_price_figure_has_no_acled_caption`; `test_no_modeling_imports` (importing the package imports neither `statsmodels` nor `sklearn`).
+- [ ] **Step 2:** Implement with matplotlib (Agg backend); run; remove `statsmodels` from `pyproject.toml`, run `uv lock`; commit.
 
-### Task 12: Report build
+### Task 12: Exploratory data audit memo
 
 **Files:**
-- Create: `report/main.tex`, `report/build.py`, `tests/test_report.py`; add `report` step to `pipeline.py`
+- Create: `src/compound_shocks/audit_memo.py`, `tests/test_audit_memo.py`; add an `audit` step to `pipeline.py`
+- Modify: `project.yaml` (deliverable `data-audit-memo`, format `markdown`, build `python -m compound_shocks reproduce --instance NAME`)
 
 **Interfaces:**
-- Produces: `build_report(instance_dir: Path) -> Path` fills `report/main.tex` from the instance's figures and manifest summary (country, period, access dates, verification states, ACLED citation block with the three required answers: access date, applied filters, manipulation); compiles to PDF with `latexmk` when installed, otherwise leaves the `.tex` and prints one line telling the user how to install LaTeX.
+- Produces: `build_audit_memo(instance_dir: Path) -> Path` writes `outputs/audit_memo.md` (and a copy as HTML) from the instance's manifest, descriptors, panel profile and EDA figures. Sections: dataset provenance (provider, dataset ID, access dates, hashes, boundary vintage); coverage and missingness findings (districts with no market, months with no displacement report, unassigned-event count, share of district-months with any price); the figures; the three ACLED answers (access date, applied filters, manipulation); observations and caveats to inform the literature review and research design. It states no causal or hypothesis claim.
 
-- [ ] **Step 1: Write failing tests:** `test_tex_contains_acled_citation_block_and_three_answers`; `test_without_latexmk_builds_tex_and_explains`; `test_report_step_is_part_of_reproduce`.
-- [ ] **Step 2:** Implement; run; commit.
+- [ ] **Step 1: Write failing tests:** `test_memo_contains_provenance_hashes_and_access_dates`; `test_memo_reports_districts_with_no_price_observations`; `test_memo_contains_acled_citation_block_and_three_answers`; `test_memo_makes_no_causal_claims` (the memo template contains none of the words "effect of", "causes", "impact of", "significant"); `test_audit_step_is_part_of_reproduce`.
+- [ ] **Step 2:** Implement (plain string templates, no LaTeX); run; commit.
 
 ### Task 13: Fetch layer (mocked HTTP only)
 
@@ -217,28 +234,34 @@
 - [ ] **Step 3:** Run `uv run python -m compound_shocks reproduce --instance somalia`. Record in `docs/verification/` the commands, row counts per role, unassigned-event count, price-gap pattern, and any harmonization or boundary-vintage finding. Set `verification_status: run on acquired data` only after a clean run.
 - [ ] **Step 4:** Claude reviews the verification note before anything is committed to the public repo. Raw ACLED rows are never pasted into any external AI tool; only counts and column names are shared.
 
-### Task 15: Sudan instance and common-core comparison
+### Task 15: Sudan portability (data pipeline only)
 
 **Files:**
-- Create: `instances/sudan/config.yaml`, `instances/sudan/data/descriptors/*.yaml`, `instances/sudan/harmonization/displacement.yaml`, `src/compound_shocks/adapters/iom_dtm.py`, `src/compound_shocks/compare.py`, `tests/test_iom_dtm.py`, `tests/test_compare.py`
+- Create: `instances/sudan/config.yaml`, `instances/sudan/data/descriptors/*.yaml`, `instances/sudan/harmonization/displacement.yaml`, `src/compound_shocks/adapters/iom_dtm.py`, `tests/test_iom_dtm.py`
 
 **Interfaces:**
-- Produces: `IomDtmAdapter` (`role="displacement"`, `provider="IOM DTM"`) canonical `month, dest_admin2, origin_admin1, stock` (stock, not flow); `stock_change(df) -> pd.DataFrame` (first difference per `dest_admin2`, NaN where a month is missing, documented caveat on re-displacement and returnees); `compare.nested_f_test(panels: dict[str, pd.DataFrame], formula: str) -> dict` fits a pooled model and a country-specific model on `core` columns only (raises `ValueError` naming any non-core column in the formula) and returns `{"f": float, "p": float, "df_num": int, "df_den": int}`.
+- Produces: `IomDtmAdapter` (`role="displacement"`, `provider="IOM DTM"`) canonical `month, dest_admin2, origin_admin1, stock` (stock, not flow); `stock_change(df: pd.DataFrame) -> pd.DataFrame` (first difference per `dest_admin2`, NaN where a month is missing, documented caveat on re-displacement and returnees).
 
-- [ ] **Step 1: Write failing tests:** `test_stock_change_nan_when_month_missing`; `test_nested_f_test_rejects_extension_columns`; `test_nested_f_test_detects_known_difference_in_synthetic_panels` (two seeded panels with different slopes give p < 0.01; identical slopes give p > 0.2); `test_sudan_reproduce_blocked_without_displacement_record`.
+- [ ] **Step 1: Write failing tests:** `test_stock_change_nan_when_month_missing`; `test_iom_dtm_output_passes_check_frame`; `test_sudan_reproduce_blocked_without_displacement_record`; `test_sudan_reproduce_with_record_produces_panel_and_manifest` (fixture instance).
 - [ ] **Step 2:** Implement; run; commit.
-- [ ] **Step 3:** Owner downloads Sudan data (ACLED within the 12-month lag, CHIRPS, WFP, COD-AB `cod-ab-sdn`, IOM DTM); re-check the Gemini findings (dataset IDs, fields, WFP market coverage) against the real files; write `harmonization/displacement.yaml` (flow vs stock, geography, reasons, proxy and its biases, approved by the owner). Run `reproduce --instance sudan` and the comparison on common-core columns; write `docs/verification/sudan-2026-XX-XX.md`. Claude reviews the harmonization record.
+- [ ] **Step 3:** Owner downloads Sudan data (ACLED within the 12-month lag, CHIRPS, WFP, COD-AB `cod-ab-sdn`, IOM DTM); re-check the Gemini findings (dataset IDs, fields, WFP market coverage) against the real files; write `harmonization/displacement.yaml` (flow vs stock, geography, reasons, proxy and its biases, approved by the owner). Run `reproduce --instance sudan`, generate the Sudan audit memo, write `docs/verification/sudan-2026-XX-XX.md`. Claude reviews the harmonization record. **No regressions or model comparisons.**
 
 ### Task 16: Clean-room check and release
 
 **Files:** `README.md` (replication guide for a non-technical reader), `CHANGELOG.md`, `CITATION.cff`
 
 - [ ] **Step 1:** Fresh clone into a scratch directory; `uv sync --locked`; `uv run pytest`; `uv run reprokit validate .`; `uv run python -m compound_shocks reproduce --instance somalia` on the fixture instance; expect all PASS in under 60 seconds with no network.
-- [ ] **Step 2:** README: what the project is, quick start, how to get each data source (with the account steps and costs; no paid AI needed), how to run another country (the Sudan walkthrough), the common-core rule, ACLED terms and the capture-date caveat, how to cite.
-- [ ] **Step 3:** Claude reviews security and licensing (no raw data, no credentials, ACLED aggregates only, boundaries and data licenses stated). Tag `v0.1.0` after the owner approves; the owner creates the GitHub repo and pushes.
+- [ ] **Step 2:** README: what the project is, quick start, how to get each data source (with the account steps and costs; no paid AI needed), how to run another country (the Sudan walkthrough), the core/extension column marking, ACLED terms and the capture-date caveat, how to cite.
+- [ ] **Step 3:** Claude reviews security and licensing (no raw data, no credentials, ACLED aggregates only, boundaries and data licenses stated). Tag `v0.1.0` (the Phase A data pipeline) after the owner approves; the repo already exists. Then stop: the Review Gate follows.
+
+## Review Gate (after Task 16; no coding)
+
+1. **Data audit:** review both audit memos; ask whether price gaps track conflict intensity (survival or selection bias in who reports), whether Admin 2 aggregation hides or creates patterns, and what is too sparse to use.
+2. **Literature gap memo:** use the literature pipeline and `notes/lit_review.md` to answer what is already published on Somalia 2021 to 2023 and on import-price and climate interactions in East Africa, what the contribution would be, and which identification strategy the observed gaps allow.
+3. **Owner decision:** approve the research question, the modeling plan, and which deferred components to reactivate (price decompositions, nested tests, report build). Only then write the Phase B plan.
 
 ## Self-review notes
 
-- Spec coverage: scope and repo shape (T2), roles and canonical schemas (T4 to T8), common core vs extension (T4, T9, T15), adapters and mappings (T4 to T8), step graph decision and spike (T3), fetching with hash and revised-data semantics and ACLED credentials (T13), fixtures and tests (T5 to T9 and generator), deliverables with ACLED caption (T11, T12), Sudan portability test with harmonization record (T10, T15), ACLED constraints in 7.1 (Global Constraints, T9, T11, T13), open items left to the owner (ACLED email, low-count policy: totals only until answered).
-- Interfaces are consistent: `check_frame`, `get_adapter`, `assign_admin2`, `zonal_monthly`, `fuse_panel`, `publishable_aggregates` carry the same signatures wherever used.
-- Not in this plan: narrative layers, cash data, causal estimation, slides or web app, the communication hook (plan 3).
+- Spec coverage (Phase A): scope and repo shape (T2), roles and canonical schemas (T4 to T8), core/extension marking (T4, T9), adapters and mappings (T4 to T8), step graph decision and spike (T3), fetching with hash and revised-data semantics and ACLED credentials (T13), fixtures and tests (T5 to T9 and generator), EDA figures with ACLED caption and audit memo (T11, T12), Sudan portability with harmonization record (T10, T15), ACLED constraints in 7.1 (Global Constraints, T9, T11, T13), open items left to the owner (ACLED email, low-count policy: totals only until answered).
+- Interfaces are consistent: `check_frame`, `get_adapter`, `assign_admin2`, `zonal_monthly`, `fuse_panel`, `publishable_aggregates`, `data_profile` carry the same signatures wherever used.
+- Not in this plan: narrative layers, cash data, econometric modeling, price decompositions, cross-country regressions, LaTeX paper, slides or web app (all Phase B or later), and the communication hook (plan 3).

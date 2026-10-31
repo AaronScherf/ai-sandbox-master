@@ -1,17 +1,20 @@
 # Project 02 pilot: architecture design (plan 2 input)
 
-Status: draft for owner review, 2026-10-31. Covers spec phase 5 of the
+Status: draft for owner review, 2026-10-31. **Scope realigned 2026-10-31 to Phase A (data exploration); see section 12.** Covers spec phase 5 of the
 [framework design](2026-10-31-reproducible-research-framework-design.md). Depends on
 reprokit v0.1 ([plan 1](../plans/2026-10-31-reprokit-core-plan.md)). Choices marked
 **[Claude's call]** were not decided by the owner.
 
 ## 1. What the pilot proves
 
-One study repo that reproduces the Somalia result from acquired data, then re-runs
-unchanged on Sudan with only a new instance config, new downloaded files, and (where a
-provider changes) a harmonization record. It exercises the framework's hard parts: role-based
-inputs, cosmetic vs structural harmonization, restricted-data fetching, fixtures, manifests,
-and the `reproduce` command.
+**Phase A (this pilot): data exploration and portability.** One study repo that ingests, harmonizes and fuses
+Somalia's prices, rainfall, conflict, displacement and boundaries into a district-month panel, reproducibly, and
+whose same code then ingests Sudan with only a new instance config, new downloaded files, and (where a provider
+changes) a harmonization record. It exercises the framework's hard parts: role-based inputs, cosmetic vs
+structural harmonization, restricted-data fetching, fixtures, manifests, and the `reproduce` command. It answers
+"what data are possible", not a research question. Formal modeling, causal inference, cross-country regressions and
+paper drafting are **Phase B**, gated behind a data audit and a literature gap analysis (section 12; owner decision,
+guidance in [the realignment note](../../../notes/Pilot%20Scope%20Realignment%20-%20Exploratory%20Review%20Gate.md)).
 
 ## 2. Scope [Claude's call, needs owner decision]
 
@@ -22,8 +25,9 @@ claim coding, claim lineage) are excluded: they are subscription-heavy, depend o
 different set of sources, and are not what the portability test needs. They become a later
 module (the note already suggests folding claim-lineage into the Project 04 toolkit).
 Cash-transfer data is also excluded: it is request-only and the protocol warns that
-transfer presence is endogenous. No causal claims; the analysis is descriptive, matching
-the case-study note ("causal identification deferred to the full Project 02 panel").
+transfer presence is endogenous. No models, price decompositions, causal claims or cross-country regressions in Phase A; the work is
+exploratory data analysis only, matching the case-study note ("causal identification deferred to the full Project 02
+panel"). Phase B is gated (section 12).
 
 ## 3. Repo shape
 
@@ -65,10 +69,11 @@ study design defines:
   reason; Sudan (IOM DTM) is mostly a **stock** with state-level origin, almost no reason variation
   after April 2023, and no continuous monthly series before it. Terms-of-trade measures need a casual
   wage and live-goat price that WFP Sudan does not publish, so they are Somalia-only.
-- **Comparison rule**: the nested/pooled cross-country tests use the common core only. Displacement
-  models run per country and are not pooled. The displacement provider change is recorded in a
-  harmonization record (flow vs stock, geography, reason categories, how any flow proxy such as
-  first-differenced stock is built and its known biases: re-displacement, returnees).
+- **Comparison rule** (Phase B, gated): any pooled or nested cross-country test uses the common core only, and
+  displacement models run per country and are not pooled. Phase A builds both panels and marks columns `core` or
+  `extension` but runs no cross-country tests. The displacement provider change is recorded in a harmonization
+  record (flow vs stock, geography, reason categories, how any flow proxy such as first-differenced stock is built and
+  its known biases: re-displacement, returnees).
 - The panel schema marks each column `core` or `extension` so a run can state which columns the
   comparison used, and the manifest records it.
 
@@ -156,26 +161,28 @@ queries) when a later project needs it.
   the join; fused panel keys unique; the harmonization gate blocks a provider swap; the whole
   pipeline runs on fixtures in under a minute with no network.
 
-## 9. Deliverables [Claude's call]
+## 9. Deliverables [Claude's call; revised by the Phase A realignment]
 
-Price decomposition charts, district-level maps, a fused panel (CSV, regenerable), a short LaTeX
-report built by `reproduce`. Slides and any web app are out of the pilot. Maps stay at district level
-or coarser (case-study ethics). Derived outputs from ACLED are not published until its terms
-are checked (open item).
+Fused district-month panels for Somalia and Sudan (CSV, regenerable), run manifests, EDA figures (missingness heatmaps,
+raw market price series, conflict and rainfall trends, coarse district audit maps), and an **Exploratory Data Audit Memo**
+per instance (provenance and access dates, hash checks, coverage and missingness findings, caveats for the research
+design). No LaTeX paper, slides or web app in Phase A. Maps stay at district level or coarser (case-study ethics). Every
+ACLED-derived figure carries `Source: ACLED (acleddata.com), accessed <date>`. Derived outputs from ACLED are not published
+until its terms are checked (open item).
 
-## 10. Sudan portability test
+## 10. Sudan portability test (Phase A)
 
-Changes `instances/sudan/config.yaml`, downloads and one structural harmonization record. The
-common core (4.1) is portable: ACLED Sudan (from 1997, within the 12-month lag), CHIRPS (satellite-only
-after April 2023 because station feeds collapsed), and OCHA COD-AB Sudan (19 Admin 1, 189 Admin 2
-localities, p-codes `SD...`, CC BY 4.0, 2020 vintage per the findings). WFP Sudan prices cover few
-markets and break down around May 2023, so the study window and missingness handling are documented in the
-instance config and the record. Displacement (IOM DTM instead of PRMN) is the structural change and
-needs the harmonization record described in 4.1; the Sudan displacement models are a country extension.
-The portability test passes if the same code and manifest-recorded method produce the common-core
-panel for both countries and the pooled/nested common-core tests run; matching coefficients is
-not a criterion. Findings are Gemini's and unverified: the first Sudan task re-checks the
-dataset IDs and fields against the actual downloaded files.
+Changes `instances/sudan/config.yaml`, downloads and one structural harmonization record. The common core (4.1) is
+portable: ACLED Sudan (from 1997, within the 12-month lag), CHIRPS (satellite-only after April 2023 because station feeds
+collapsed), and OCHA COD-AB Sudan (19 Admin 1, 189 Admin 2 localities, p-codes `SD...`, CC BY 4.0, 2020 vintage per the
+findings). WFP Sudan prices cover few markets and break down around May 2023, so the study window and missingness handling
+are documented in the instance config and the record. Displacement (IOM DTM instead of PRMN) is the structural change and
+needs the harmonization record described in 4.1; the Sudan displacement series is a country extension.
+
+The portability test passes if the same code and manifest-recorded method produce a fused panel for Sudan, `reproduce
+--instance sudan` succeeds, the harmonization record is complete, and the Sudan audit memo can be generated. **No regressions or
+model comparisons** (deferred to Phase B). Findings about Sudan sources are Gemini's and unverified: the first Sudan task
+re-checks the dataset IDs and fields against the actual downloaded files.
 
 ## 11. Open items for the owner
 
@@ -195,3 +202,18 @@ dataset IDs and fields against the actual downloaded files.
 7. ~~Somalia window and CHIRPS version~~ Decided 2026-10-31: window 2021-01 to 2023-08 (the HDX PRMN dataset
    `somalia-internally-displaced-persons-idps` ends 2023-08; the dataset ID in the data-sources note is wrong),
    CHIRPS v2.0. Looking for a newer PRMN release (UNHCR portal or Microdata Library) is a non-blocking check.
+8. Phase B (modeling and paper) is gated: it needs the data audit, a literature gap memo, and owner approval (section 12).
+
+## 12. Phase B and the review gate (owner decision 2026-10-31)
+
+Guidance: [Pilot Scope Realignment](../../../notes/Pilot%20Scope%20Realignment%20-%20Exploratory%20Review%20Gate.md) (Gemini, reviewed by Claude). Phase A stops with the two audit memos. Before any
+modeling the owner and agents run the **Review Gate**: (A) review the audit memos, including whether price gaps track
+conflict intensity and whether Admin 2 aggregation hides or creates patterns; (B) a literature review and gap analysis (the
+literature pipeline plus project notes) answering what is already published, what the contribution is, and which identification
+strategy the observed data gaps allow; (C) owner approval of the research question, the modeling plan, and which deferred
+components to reactivate.
+
+**Deferred to Phase B, preserved in git history** (original text in `cbeb9ce6`; design in `29753f0a`, `b2bcb4a9`):
+the imported-vs-local price basket decomposition (`price_index`, `price_decomposition`), the LaTeX paper build, pooled and
+nested cross-country tests (`compare.nested_f_test`), and the framework design's deliverables, website communication hook and
+audience derivatives (phases 13 to 16 of the framework design).
