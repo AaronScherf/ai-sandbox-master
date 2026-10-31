@@ -31,6 +31,7 @@ python -m agent.literature db cooccur                      # pairs of data sourc
 python -m agent.literature db query --where facet=value    # papers matching every constraint (same rules as cluster define)
 python -m agent.literature db export [--out PATH]          # Markdown evidence matrix
 python -m agent.literature gap run --run-id g1 --where intervention="cash transfers" --where countries=SO [--pick facet=term_id] [--quotes]   # gap analysis, offline
+python -m agent.literature gap run --run-id g1 --where intervention="cash transfers" --probe --mailto you@example.com [--probe-n 25]   # also count how many of OpenAlex's top works are in the corpus (network)
 python -m agent.literature gap question "free text" --run-id g1   # optional: a card that turns a question into constraints (then `submit g1`, then `gap run --run-id g1`)
 python -m agent.literature exclude FILE_ID [FILE_ID ...] [--undo]   # set off-topic papers aside (_excluded.json); records stay on disk
 python -m agent.literature status
@@ -110,13 +111,17 @@ and adds a `breakdown` of direct papers per branch. Reports show each term's ful
   subregion (`gap/country_subregions.yaml`). Each hit is labelled with the facet relaxed. Two relaxations is a partial match.
 - **verdict**: `tried_directly`, `tried_adjacent` or `no_evidence_in_corpus` (corpus only). `found_externally_not_in_corpus`
   is reserved for slice 2 (OpenAlex), which is not built.
+- **recall probe** (`--probe`, opt-in, network): the top N (default 25) OpenAlex works for the labels of the intervention, outcome and
+  country terms, matched to the corpus by OpenAlex id, DOI, then title; the report states "k of N in the corpus" with a Wilson 95%
+  interval under `external.probe`. It measures the corpus against OpenAlex's ranking for that wording, never a percent complete, and does not change the verdict.
+  Needs `--mailto` or `$OPENALEX_CONTACT_EMAIL`; a failed search is recorded as an error and the offline report is still written.
 - The report (`report.json`, `report.md` under `<index-root>/literature_gap/<run-id>/`, gitignored) carries coverage
   counts, thin-cell flag, blind spots (papers with `proposed:` values, no country fact, multi-country or global scale),
   a stale-database warning and the evidence list. It never claims a percent complete.
 
 ## Not built
 
-Gap analysis slice 2: OpenAlex recall probe, live search and classification, the discovery queue Artifact.
+Gap analysis: live OpenAlex search and classification of works not in the corpus, the discovery queue Artifact, and the `found_externally_not_in_corpus` verdict.
 
 Chunked extraction for papers over about 60k tokens of transcript (they are skipped with a reason); table-image
 attachments (text only for v1); the interactive review page for proposed vocabulary terms (stage 2b); adjudication or a

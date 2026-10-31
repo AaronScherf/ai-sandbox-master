@@ -98,5 +98,76 @@ class TestGapRun(GapCliCase):
         self.assertIn('"quote"', json.dumps(self.report("g2")))
 
 
+class TestGapProbeFlag(GapCliCase):
+    WHERE = ("--where", "intervention=cash transfer", "--where", "countries=SO")
+
+    def titles(self):
+        import sqlite3
+        conn = sqlite3.connect(str(db.db_path(self.root)))
+        try:
+            return [t for (t,) in conn.execute("SELECT title FROM papers ORDER BY file_id")]
+        finally:
+            conn.close()
+
+    def works(self):
+        from discovery.discover_journal_articles.discovery import Work
+        titles = [self.titles()[0], "Not in the corpus", "Also absent"]
+        return [Work(openalex_id=f"https://openalex.org/W{i}", doi=None, title=t, authors=[], year=2020, abstract=None)
+                for i, t in enumerate(titles)]
+
+    def probe_run(self, *extra, fetch=None):
+        from unittest import mock
+        spy = mock.MagicMock(side_effect=fetch or (lambda *a: iter(self.works())))
+        with mock.patch("agent.literature.gap.probe.iter_topic_works", spy) as m:
+            code, out = self.run_cli("gap", "run", "--run-id", "g1", *self.WHERE, *extra)
+        return code, out, m
+
+    def test_probe_without_a_contact_email_is_refused_before_anything_is_written(self):
+        import os
+        from unittest import mock
+        self.build_db()
+        with mock.patch.dict(os.environ, {}, clear=True):
+            code, out, m = self.probe_run("--probe")
+        self.assertEqual(code, 2)
+        self.assertIn("--mailto", out)
+        m.assert_not_called()
+        self.assertFalse((Path(self.root) / "literature_gap" / "g1").exists())
+
+    def test_probe_reports_k_of_n_and_fills_external(self):
+        self.build_db()
+        code, out, m = self.probe_run("--probe", "--mailto", "a@b.c")
+        self.assertEqual(code, 0)
+        self.assertIn("probe: 1 of 3 in the corpus", out)
+        probe = self.report()["external"]["probe"]
+        self.assertEqual((probe["in_corpus"], probe["retrieved"], probe["requested"]), (1, 3, 25))
+        self.assertEqual(m.call_args.args[1:], ("a@b.c", 25))
+
+    def test_probe_n_flag_and_env_email(self):
+        import os
+        from unittest import mock
+        self.build_db()
+        with mock.patch.dict(os.environ, {"OPENALEX_CONTACT_EMAIL": "env@b.c"}):
+            code, _, m = self.probe_run("--probe", "--probe-n", "5")
+        self.assertEqual(code, 0)
+        self.assertEqual(m.call_args.args[1:], ("env@b.c", 5))
+
+    def test_a_failing_search_still_writes_the_offline_report(self):
+        def boom(*a):
+            raise RuntimeError("boom")
+        self.build_db()
+        code, out, _ = self.probe_run("--probe", "--mailto", "a@b.c", fetch=boom)
+        self.assertEqual(code, 0)
+        self.assertIn("probe: not run", out)
+        self.assertIn("boom", self.report()["external"]["probe"]["error"])
+        self.assertEqual(self.report()["verdict"], "tried_directly")
+
+    def test_without_probe_nothing_is_fetched(self):
+        self.build_db()
+        code, _, m = self.probe_run()
+        self.assertEqual(code, 0)
+        m.assert_not_called()
+        self.assertIsNone(self.report()["external"])
+
+
 if __name__ == "__main__":
     unittest.main()

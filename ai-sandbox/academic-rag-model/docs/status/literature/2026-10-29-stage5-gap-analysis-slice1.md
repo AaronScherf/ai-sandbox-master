@@ -48,3 +48,10 @@ Opt-in label group, per-branch breakdown and path-qualified labels (branch `clau
 distinct; `--pick facet=group:<term_id>` unions every term with that label. Rulings: a group widens to the union of its members'
 siblings minus the members; a group is offered only when all exact matches share one label. Real-db check: picking the UCT group
 keeps 5 direct papers (all under one branch) and finds 6 adjacent papers (was 2) via the other copies' siblings.
+
+## Slice 2: recall probe (2026-10-31)
+
+`gap run --probe [--probe-n 25] --mailto ADDR` (`gap/probe.py`; spec `2026-10-31-literature-gap-recall-probe-design.md`). Built:
+Wilson interval, query from intervention, outcome and country labels, matching by OpenAlex id, DOI, title, error-tolerant run, report
+section. Not built, by decision: listing or classifying works that are not in the corpus, the discovery queue, and the
+`found_externally_not_in_corpus` verdict. The `--mailto` fallback to `$OPENALEX_CONTACT_EMAIL` follows `backfill-years`.

@@ -334,10 +334,14 @@ def cmd_gap(args) -> int:
     if args.action == "question":
         return _gap_question(args)
 
-    from .gap import classify as gclassify, coverage as gcoverage, report as greport, resolve as gresolve
+    from .gap import classify as gclassify, coverage as gcoverage, probe as gprobe, report as greport, resolve as gresolve
     from .gap.corpus import load_corpus
     from .gap.subregions import load_subregions
 
+    mailto = args.mailto or os.environ.get("OPENALEX_CONTACT_EMAIL")
+    if args.probe and not mailto:
+        print("gap: --probe needs --mailto or OPENALEX_CONTACT_EMAIL (OpenAlex asks for a contact address)")
+        return 2
     path = litdb.db_path(args.index_root)
     if not path.is_file():
         print("gap: no database yet; run `db build` first")
@@ -378,14 +382,18 @@ def cmd_gap(args) -> int:
             return 2
         result = gclassify.classify(corpus, constraints, target.vocabs, subregions)
         cov = gcoverage.coverage(corpus, result, constraints, gcoverage.read_sidecar(target, args.index_root, path))
+        probe = gprobe.run_probe(corpus, constraints, target.vocabs, subregions, mailto, args.probe_n) if args.probe else None
         report = greport.build_report(question, constraints, target.vocabs, result, cov, corpus,
-                                      unmapped=unmapped, include_quotes=args.quotes)
+                                      unmapped=unmapped, include_quotes=args.quotes, probe=probe)
         js, md = greport.write_report(report, run_dir)
     except (ValueError, clusters.ClusterError, KeyError) as exc:
         print(f"gap: {exc}")
         return 2
     print(f"verdict: {result.verdict}\n{result.rule}")
     print(f"direct {len(result.direct)}, adjacent {len(result.adjacent)}, partial {len(result.partial)}")
+    if probe is not None:
+        print(f"probe: {probe['in_corpus']} of {probe['retrieved']} in the corpus (top {probe['requested']} requested)"
+              if "error" not in probe else f"probe: not run ({probe['error']})")
     print(f"wrote {js}\nwrote {md}")
     return 0
 
@@ -590,6 +598,9 @@ def build_parser() -> argparse.ArgumentParser:
     g.add_argument("--pick", action="append", default=[], help="facet=term_id: choose from the candidates a stopped run printed.")
     g.add_argument("--quotes", action="store_true", help="Include verbatim quotes in the report (default: claims and directions only).")
     g.add_argument("--report-root", default=None, help="Where reports are written (default: <index-root>/literature_gap).")
+    g.add_argument("--probe", action="store_true", help="Run only: also ask OpenAlex for the top works on this wording and count how many are in the corpus (network).")
+    g.add_argument("--probe-n", type=int, default=25, help="How many OpenAlex results the probe takes (default 25).")
+    g.add_argument("--mailto", default=None, help="Contact email for OpenAlex's polite pool, needed with --probe (default: $OPENALEX_CONTACT_EMAIL).")
     ev = sub.add_parser("eval", help="Score the records against the gold set (aggregates only).")
     ev.add_argument("--gold", default=None, help=f"Gold set YAML (default: {DEFAULT_PATH}).")
     a = sub.add_parser("api", help="Send pending cards to the paid API (explicit opt-in, cost-gated).")
