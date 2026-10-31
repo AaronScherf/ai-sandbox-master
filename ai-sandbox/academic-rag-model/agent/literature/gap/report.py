@@ -14,11 +14,14 @@ from .resolve import full_path, level_of
 SCHEMA_VERSION = 1
 CAVEAT = "Facets are per paper: a direct hit means the paper has all the facts, not that it links them; check each paper's results."
 _RUN_ID = re.compile(r"[a-z0-9][a-z0-9_-]{0,63}")
+_RESERVED_RUN_ID = re.compile(r"(?:con|prn|aux|nul|com[1-9]|lpt[1-9])")
 
 
 def gap_dir(report_root, run_id: str) -> Path:
     if not _RUN_ID.fullmatch(run_id or ""):
         raise ValueError(f"run id {run_id!r}: use lowercase letters, digits, - and _ (up to 64 characters)")
+    if _RESERVED_RUN_ID.fullmatch(run_id):
+        raise ValueError(f"run id {run_id!r} is a reserved name on Windows")
     return Path(report_root) / run_id
 
 

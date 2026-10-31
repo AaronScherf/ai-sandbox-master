@@ -89,6 +89,15 @@ class TestReport(unittest.TestCase):
             with self.assertRaises(ValueError):
                 gap_dir("root", bad)
 
+    def test_gap_dir_rejects_windows_reserved_names(self):
+        for name in ("con", "prn", "aux", "nul", *(f"com{i}" for i in range(1, 10)),
+                     *(f"lpt{i}" for i in range(1, 10))):
+            with self.subTest(name=name), self.assertRaisesRegex(ValueError, f"{name}.*reserved name"):
+                gap_dir("root", name)
+        for name in ("console", "com10", "nul2", "g1"):
+            with self.subTest(name=name):
+                self.assertEqual(gap_dir("root", name), Path("root") / name)
+
     def test_gitignore_lists_literature_gap(self):
         root = Path(__file__).resolve().parents[5]
         self.assertIn("ai-sandbox/research/literature_gap/", (root / ".gitignore").read_text(encoding="utf-8").splitlines())
