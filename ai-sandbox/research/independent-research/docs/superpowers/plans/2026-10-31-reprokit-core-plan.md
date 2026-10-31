@@ -20,6 +20,8 @@
 - Confidentiality classes: `public`, `private_until_release`, `confidential`. Verification states: `proposed`, `source-verified`, `fixture-tested`, `run on acquired data`, `independently reproduced`.
 - Every schema document carries `schema_version` (SemVer string, initial `"0.1.0"`).
 - Code license MIT (**plan author's call**, owner may change before first release). Package name `reprokit` and copier (not cookiecutter) are also plan-author calls.
+- Inputs are located by **role directory** (`<raw-dir>/<role>/`), never by hard-coded filenames or paths in config.
+- Tooling: `uv` may not be installed. Installing it (`winget install --id=astral-sh.uv -e`, or `pip install uv`) is pre-approved by the owner for Task 1.
 - Stage explicit paths only; never `git add -A` / `git add .`. Creating the GitHub remote or pushing needs the owner's go-ahead and is not part of this plan.
 - Concise modules: if a module passes ~150 lines, split it by responsibility.
 
@@ -111,7 +113,7 @@ reprokit/
 - Consumes: `validate_document`.
 - Produces: schema names `"descriptor"` and `"config"`.
 
-- [ ] **Step 1: Write failing tests:** `test_valid_descriptor_passes`; `test_descriptor_requires_find_in_other_geography` (the field the spec requires so a user knows what to look for elsewhere); `test_descriptor_variables_need_meaning_and_unit`; `test_valid_config_passes`; `test_config_unknown_parameter_key_fails`; `test_config_source_needs_role_and_provider`.
+- [ ] **Step 1: Write failing tests:** `test_valid_descriptor_passes`; `test_descriptor_requires_find_in_other_geography` (the field the spec requires so a user knows what to look for elsewhere); `test_descriptor_variables_need_meaning_and_unit`; `test_valid_config_passes`; `test_config_unknown_top_level_key_fails` (a stray top-level key such as `geografy:` fails; keys *inside* the free-form `parameters` object are never rejected, since parameters vary by study); `test_config_source_needs_role_and_provider`.
 - [ ] **Step 2:** Run; expect FAIL.
 - [ ] **Step 3:** Write `descriptor.json`: required `schema_version`, `role`, `provider`, `title`, `query`, `coverage_space`, `coverage_time`, `variables` (array of `{name, meaning, unit}`), `access_class` (enum `open`, `account_required`, `request_required`, `unverified`), `reuse_terms`, `verification_status` (enum of the five states), `find_in_other_geography`. Write `config.json`: required `schema_version`, `geography`, `period` (`{start, end}` ISO dates), `sources` (object keyed by role, each `{provider, dataset}`), `parameters` (free-form object, since parameters vary by study).
 - [ ] **Step 4:** Run; expect PASS.
@@ -139,9 +141,9 @@ reprokit/
 
 **Interfaces:**
 - Consumes: `validate_document`.
-- Produces: `hash_file(path: Path) -> str` (SHA-256 hex, streamed in 1 MiB blocks); `build_manifest(config: dict, inputs: dict[str, Path], code_version: str, resolved_packages: dict[str, str]) -> dict`; `write_manifest(manifest: dict, out: Path) -> None` (stable key order, trailing newline). `inputs` is keyed by role.
+- Produces: `hash_file(path: Path) -> str` (SHA-256 hex, streamed in 1 MiB blocks); `collect_role_files(raw_dir: Path, roles: Iterable[str]) -> dict[str, list[Path]]` (inputs are found **by role directory convention**, `raw_dir/<role>/`, all files recursively, sorted by POSIX relative path, ignoring `.gitkeep`; a role with no files raises `FileNotFoundError` naming the role and the directory); `build_manifest(config: dict, inputs: dict[str, list[Path]], raw_dir: Path, code_version: str, resolved_packages: dict[str, str], now: datetime | None = None) -> dict`; `write_manifest(manifest: dict, out: Path) -> None` (stable key order, trailing newline). Manifest `inputs` maps role to a list of `{path, sha256}` with `path` relative to `raw_dir` in POSIX form. Config `sources` entries stay `{provider, dataset}` only: `dataset` is a human-readable dataset name, never a file path.
 
-- [ ] **Step 1: Write failing tests:** `test_hash_file_matches_hashlib` (known bytes); `test_hash_of_empty_file_is_sha256_of_empty` (`e3b0c442...b855`); `test_build_manifest_records_role_hash_and_params`; `test_missing_input_raises_filenotfounderror_naming_role`; `test_written_manifest_validates_against_schema`; `test_two_writes_of_same_manifest_are_byte_identical`.
+- [ ] **Step 1: Write failing tests:** `test_hash_file_matches_hashlib` (known bytes); `test_hash_of_empty_file_is_sha256_of_empty` (`e3b0c442...b855`); `test_collect_role_files_is_sorted_recursive_and_skips_gitkeep`; `test_build_manifest_records_role_files_hashes_and_params`; `test_role_with_no_files_raises_filenotfounderror_naming_role`; `test_written_manifest_validates_against_schema`; `test_two_writes_of_same_manifest_are_byte_identical`.
 - [ ] **Step 2:** Run; expect FAIL.
 - [ ] **Step 3:** Implement as signatures state; manifest keys: `schema_version`, `code_version`, `parameters`, `inputs` (role to `{path, sha256}`), `packages`, `created_utc` (injectable through an optional `now` argument for the determinism test). Write `manifest.json`.
 - [ ] **Step 4:** Run; expect PASS.
@@ -169,7 +171,7 @@ reprokit/
 
 **Interfaces:**
 - Consumes: `validate_document`, `check_charter_consistency`, `build_manifest`, `write_manifest`.
-- Produces: `main(argv: list[str] | None = None) -> int`. `reprokit validate [repo_dir=.]` validates each known file that exists (`project.yaml`→charter plus consistency rules, `compute.yaml`, `agents.yaml`, `config.yaml`, every `data/descriptors/*.yaml`), prints one `Problem` per line, returns 1 if any, else 0. `reprokit manifest --config config.yaml --out outputs/manifest.json` builds and writes a manifest from the config's input paths.
+- Produces: `main(argv: list[str] | None = None) -> int`. `reprokit validate [repo_dir=.]` validates each known file that exists (`project.yaml`→charter plus consistency rules, `compute.yaml`, `agents.yaml`, `config.yaml`, every `data/descriptors/*.yaml`), prints one `Problem` per line, returns 1 if any, else 0. `reprokit manifest --config config.yaml --raw-dir data/raw --out outputs/manifest.json` builds and writes a manifest: roles are the keys of the config's `sources`, files come from `collect_role_files(raw_dir, roles)`, `code_version` from `git rev-parse HEAD` (or `"unknown"` outside a git repo), and `resolved_packages` from `importlib.metadata` for the repo's declared dependencies.
 
 - [ ] **Step 1: Write failing tests** using `capsys` and `main([...])`: `test_validate_clean_repo_returns_0`; `test_validate_reports_every_problem_and_returns_1` (two broken files, both named in output); `test_validate_skips_absent_optional_files`; `test_validate_checks_every_descriptor`; `test_manifest_command_writes_valid_file`.
 - [ ] **Step 2:** Run; expect FAIL.
