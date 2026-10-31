@@ -137,7 +137,9 @@ matching coefficients.
 
 1. Confirm pilot scope: Layer 1 only (section 2).
 2. ACLED terms: may district-month aggregates derived from ACLED be published in the repo?
-3. Boundary source and vintage (OCHA common operational boundaries is the usual choice;
-   not verified here).
+3. ~~Boundary source and vintage~~ Decided by owner 2026-10-31: **OCHA COD-AB** per country,
+   with **geoBoundaries** as fallback where COD-AB is missing or unusable. The vintage used is
+   recorded in each instance's descriptor and manifest. License and Sudan COD-AB coverage still
+   to be verified (Sudan sources prompt).
 4. Sudan displacement and price sources actually obtainable, and the window.
 5. Repo name and whether the Somalia data account setup (ACLED registration) is done.
