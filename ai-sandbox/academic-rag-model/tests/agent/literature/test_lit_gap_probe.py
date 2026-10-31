@@ -2,7 +2,7 @@ import tempfile
 import unittest
 
 from agent.literature.gap.match import Constraint
-from agent.literature.gap.probe import build_query, match_work, wilson
+from agent.literature.gap.probe import build_query, match_work, run_probe, wilson
 from agent.literature.gap.subregions import load_subregions
 from discovery.discover_journal_articles.discovery import Work
 from gap_helpers import VOCABS, make_corpus, write_toy_tables
@@ -59,6 +59,53 @@ class TestMatch(unittest.TestCase):
 
     def test_missing_fields_never_match_missing_fields(self):
         self.assertIsNone(match_work(work(openalex_id=None, doi=None, title=None), self.corpus))
+
+
+class TestRunProbe(unittest.TestCase):
+    def setUp(self):
+        self.corpus = make_corpus({"p1": {"title": "Study One", "openalex_id": "W1"},
+                                   "p2": {"title": "Cash Transfers in Somalia"}})
+        self.sub = load_subregions(*write_toy_tables(tempfile.mkdtemp()))
+        self.constraints = [Constraint("intervention", "i.cash"), Constraint("countries", "SO")]
+        self.calls = []
+
+    def fetch_of(self, works):
+        def fetch(keywords, mailto, batch_size):
+            self.calls.append((keywords, mailto, batch_size))
+            return iter(works)
+        return fetch
+
+    def probe(self, works, constraints=None, **kw):
+        return run_probe(self.corpus, constraints or self.constraints, VOCABS, self.sub, "a@b.c",
+                         fetch=self.fetch_of(works), today="2026-10-31", **kw)
+
+    def test_probe_counts_matches_and_intervals(self):
+        out = self.probe([work("W1"), work(title="Cash Transfers in Somalia"), work("W7", title="x"), work("W8", title="y")])
+        self.assertEqual((out["retrieved"], out["in_corpus"], out["not_in_corpus"], out["requested"]), (4, 2, 2, 25))
+        self.assertEqual(out["interval"], list(wilson(2, 4)))
+        self.assertEqual(out["matched"], [{"file_id": "p1", "by": "openalex_id"}, {"file_id": "p2", "by": "title"}])
+        self.assertEqual((out["query"], out["fetched"]), ("Cash transfers Somalia", "2026-10-31"))
+        self.assertEqual(self.calls, [("Cash transfers Somalia", "a@b.c", 25)])
+
+    def test_probe_takes_at_most_n_works(self):
+        out = self.probe([work(f"W{i}", title=f"t{i}") for i in range(10)], n=3)
+        self.assertEqual((out["retrieved"], out["requested"]), (3, 3))
+
+    def test_empty_result_has_no_interval(self):
+        out = self.probe([])
+        self.assertEqual((out["retrieved"], out["in_corpus"], out["interval"]), (0, 0, None))
+
+    def test_empty_query_errors_without_calling_fetch(self):
+        out = self.probe([work()], constraints=[Constraint("study_design", "d.rct")])
+        self.assertIn("error", out)
+        self.assertEqual(self.calls, [])
+
+    def test_fetch_exception_becomes_error(self):
+        def boom(*a):
+            raise RuntimeError("boom")
+        out = run_probe(self.corpus, self.constraints, VOCABS, self.sub, "a@b.c", fetch=boom)
+        self.assertIn("boom", out["error"])
+        self.assertEqual(out["query"], "Cash transfers Somalia")
 
 
 if __name__ == "__main__":

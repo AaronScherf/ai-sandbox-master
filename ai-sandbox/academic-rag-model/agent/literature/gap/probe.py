@@ -2,11 +2,14 @@
 from __future__ import annotations
 
 import math
+from datetime import date
+from itertools import islice
 
 from ..backfill_years import _normalize_title
 from .corpus import Corpus
 from .match import Constraint, vocab_for
 from .subregions import Subregions
+from discovery.discover_journal_articles.discovery import iter_topic_works
 
 _QUERY_FACETS = ("intervention", "outcome")
 
@@ -58,3 +61,25 @@ def match_work(work, corpus: Corpus) -> tuple[str, str] | None:
             if get(paper) == key:
                 return fid, rule
     return None
+
+
+def run_probe(corpus: Corpus, constraints: list[Constraint], vocabs: dict, subregions: Subregions, mailto: str,
+              n: int = 25, fetch=None, today: str | None = None) -> dict:
+    """Top-`n` OpenAlex works for the question's wording, matched to the corpus. Never raises: a failure is reported as `error`."""
+    fetch = fetch or iter_topic_works
+    query = build_query(constraints, vocabs, subregions)
+    if not query:
+        return {"query": query, "requested": n, "error": "the question has no intervention, outcome or country to search for"}
+    matched, retrieved = [], 0
+    try:
+        for found in islice(fetch(query, mailto, n), n):
+            retrieved += 1
+            hit = match_work(found, corpus)
+            if hit:
+                matched.append({"file_id": hit[0], "by": hit[1]})
+    except Exception as exc:  # network and HTTP failures vary by layer; the offline report must still be written
+        return {"query": query, "requested": n, "error": f"{type(exc).__name__}: {exc}"}
+    interval = wilson(len(matched), retrieved)
+    return {"query": query, "requested": n, "retrieved": retrieved, "in_corpus": len(matched),
+            "interval": list(interval) if interval else None, "matched": matched,
+            "not_in_corpus": retrieved - len(matched), "fetched": today or date.today().isoformat()}
