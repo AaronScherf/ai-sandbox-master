@@ -1442,126 +1442,6 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/econometrics/lecture_notes/Econometrics 2026-10-12 10.09.36.excalidraw.md",
-   "role": "student_notes",
-   "format": "excalidraw",
-   "offering": null,
-   "date": "2026-10-12",
-   "book": null,
-   "order": [
-    1000000,
-    "2026-10-12",
-    "econometrics 2026-10-12 10.09.36.excalidraw"
-   ],
-   "confidence": 10.0,
-   "flagged": false,
-   "evidence": [
-    [
-     "excalidraw source",
-     "format",
-     "excalidraw",
-     10
-    ],
-    [
-     "excalidraw source",
-     "role",
-     "student_notes",
-     10
-    ]
-   ],
-   "decided_by": "rules"
-  },
-  {
-   "path": "academic_notes/econometrics/lecture_notes/Econometrics 2026-10-13 08.04.27.excalidraw.md",
-   "role": "student_notes",
-   "format": "excalidraw",
-   "offering": null,
-   "date": "2026-10-13",
-   "book": null,
-   "order": [
-    1000000,
-    "2026-10-13",
-    "econometrics 2026-10-13 08.04.27.excalidraw"
-   ],
-   "confidence": 10.0,
-   "flagged": false,
-   "evidence": [
-    [
-     "excalidraw source",
-     "format",
-     "excalidraw",
-     10
-    ],
-    [
-     "excalidraw source",
-     "role",
-     "student_notes",
-     10
-    ]
-   ],
-   "decided_by": "rules"
-  },
-  {
-   "path": "academic_notes/econometrics/lecture_notes/Econometrics 2026-10-14 10.07.54.excalidraw.md",
-   "role": "student_notes",
-   "format": "excalidraw",
-   "offering": null,
-   "date": "2026-10-14",
-   "book": null,
-   "order": [
-    1000000,
-    "2026-10-14",
-    "econometrics 2026-10-14 10.07.54.excalidraw"
-   ],
-   "confidence": 10.0,
-   "flagged": false,
-   "evidence": [
-    [
-     "excalidraw source",
-     "format",
-     "excalidraw",
-     10
-    ],
-    [
-     "excalidraw source",
-     "role",
-     "student_notes",
-     10
-    ]
-   ],
-   "decided_by": "rules"
-  },
-  {
-   "path": "academic_notes/econometrics/lecture_notes/Econometrics 2026-10-14 11.07.16.excalidraw.md",
-   "role": "student_notes",
-   "format": "excalidraw",
-   "offering": null,
-   "date": "2026-10-14",
-   "book": null,
-   "order": [
-    1000000,
-    "2026-10-14",
-    "econometrics 2026-10-14 11.07.16.excalidraw"
-   ],
-   "confidence": 10.0,
-   "flagged": false,
-   "evidence": [
-    [
-     "excalidraw source",
-     "format",
-     "excalidraw",
-     10
-    ],
-    [
-     "excalidraw source",
-     "role",
-     "student_notes",
-     10
-    ]
-   ],
-   "decided_by": "rules"
-  },
-  {
    "path": "academic_notes/econometrics/lecture_notes/processed_outputs/Econometrics 2026-09-09 10.11.39.excalidraw.rag.md",
    "role": "student_notes",
    "format": "excalidraw",
@@ -2036,6 +1916,156 @@
    "decided_by": "rules"
   },
   {
+   "path": "academic_notes/econometrics/lecture_notes/processed_outputs/Econometrics 2026-10-12 10.09.36.excalidraw.rag.md",
+   "role": "student_notes",
+   "format": "excalidraw",
+   "offering": null,
+   "date": "2026-10-12",
+   "book": null,
+   "order": [
+    1000000,
+    "2026-10-12",
+    "econometrics 2026-10-12 10.09.36.excalidraw"
+   ],
+   "confidence": 13.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "excalidraw source",
+     "format",
+     "excalidraw",
+     10
+    ],
+    [
+     "excalidraw source",
+     "role",
+     "student_notes",
+     10
+    ],
+    [
+     "index card excalidraw_notes",
+     "role",
+     "student_notes",
+     3
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/econometrics/lecture_notes/processed_outputs/Econometrics 2026-10-13 08.04.27.excalidraw.rag.md",
+   "role": "student_notes",
+   "format": "excalidraw",
+   "offering": null,
+   "date": "2026-10-13",
+   "book": null,
+   "order": [
+    1000000,
+    "2026-10-13",
+    "econometrics 2026-10-13 08.04.27.excalidraw"
+   ],
+   "confidence": 11.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "excalidraw source",
+     "format",
+     "excalidraw",
+     10
+    ],
+    [
+     "excalidraw source",
+     "role",
+     "student_notes",
+     10
+    ],
+    [
+     "index card excalidraw_notes",
+     "role",
+     "student_notes",
+     3
+    ],
+    [
+     "content: recitation wording",
+     "role",
+     "recitation",
+     2
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/econometrics/lecture_notes/processed_outputs/Econometrics 2026-10-14 10.07.54.excalidraw.rag.md",
+   "role": "student_notes",
+   "format": "excalidraw",
+   "offering": null,
+   "date": "2026-10-14",
+   "book": null,
+   "order": [
+    1000000,
+    "2026-10-14",
+    "econometrics 2026-10-14 10.07.54.excalidraw"
+   ],
+   "confidence": 13.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "excalidraw source",
+     "format",
+     "excalidraw",
+     10
+    ],
+    [
+     "excalidraw source",
+     "role",
+     "student_notes",
+     10
+    ],
+    [
+     "index card excalidraw_notes",
+     "role",
+     "student_notes",
+     3
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/econometrics/lecture_notes/processed_outputs/Econometrics 2026-10-14 11.07.16.excalidraw.rag.md",
+   "role": "student_notes",
+   "format": "excalidraw",
+   "offering": null,
+   "date": "2026-10-14",
+   "book": null,
+   "order": [
+    1000000,
+    "2026-10-14",
+    "econometrics 2026-10-14 11.07.16.excalidraw"
+   ],
+   "confidence": 13.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "excalidraw source",
+     "format",
+     "excalidraw",
+     10
+    ],
+    [
+     "excalidraw source",
+     "role",
+     "student_notes",
+     10
+    ],
+    [
+     "index card excalidraw_notes",
+     "role",
+     "student_notes",
+     3
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
    "path": "academic_notes/econometrics/problem_sets/00-review-question-answers.md",
    "role": "problem_set",
    "format": "typeset",
@@ -2487,6 +2517,66 @@
      "format",
      "portrait",
      0
+    ],
+    [
+     "path word 'problem'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "path word 'pset'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "path word 'solution'",
+     "role",
+     "problem_set",
+     1
+    ],
+    [
+     "portrait scan, few headings",
+     "format",
+     "handwritten",
+     1
+    ]
+   ],
+   "decided_by": "review"
+  },
+  {
+   "path": "academic_notes/econometrics/problem_sets/processed_outputs/solution-pset3.md",
+   "role": "problem_set",
+   "format": "typeset",
+   "offering": null,
+   "date": null,
+   "book": null,
+   "order": [
+    1000000,
+    "",
+    "solution-pset3"
+   ],
+   "confidence": 8.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "category folder problem_sets",
+     "role",
+     "problem_set",
+     2
+    ],
+    [
+     "pdf portrait",
+     "format",
+     "portrait",
+     0
+    ],
+    [
+     "index card ta_notes",
+     "authority",
+     "class",
+     3
     ],
     [
      "path word 'problem'",
