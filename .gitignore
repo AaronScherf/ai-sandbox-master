@@ -1,5 +1,10 @@
 ai-sandbox/personal-website/
 
+# Independent research projects are separate Git repositories; keep their
+# working trees local. See projects/repositories.json for URLs and commit pins.
+ai-sandbox/research/independent-research/projects/berkeley_thesis/wheat_yield_prediction_gee/
+ai-sandbox/research/independent-research/projects/math_thesis/Novel-Omnibus-Normality-Test-and-Power-Comparison-with-the-Shapiro-Wilk-Test/
+
 # academic_notes/ is now its own separate git repo (same pattern as
 # personal-website/ above), so the tablet's Obsidian gitsync plugin can
 # clone/sync just this lightweight subtree instead of the whole,

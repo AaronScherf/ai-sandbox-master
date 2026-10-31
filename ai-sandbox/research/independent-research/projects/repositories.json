@@ -1,0 +1,14 @@
+{
+  "repositories": [
+    {
+      "path": "berkeley_thesis/wheat_yield_prediction_gee",
+      "url": "https://github.com/AaronScherf/wheat_yield_prediction_gee.git",
+      "commit": "9caf0f99aac65d01aed1c006291c0760c3e57e6e"
+    },
+    {
+      "path": "math_thesis/Novel-Omnibus-Normality-Test-and-Power-Comparison-with-the-Shapiro-Wilk-Test",
+      "url": "https://github.com/AaronScherf/Novel-Omnibus-Normality-Test-and-Power-Comparison-with-the-Shapiro-Wilk-Test.git",
+      "commit": "db711c47d691f93e51d11afa78c495ec4b38bf4f"
+    }
+  ]
+}
