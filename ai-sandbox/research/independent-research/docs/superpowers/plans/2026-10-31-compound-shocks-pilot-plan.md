@@ -185,6 +185,8 @@ Tasks 11, 12, 15 in commit `cbeb9ce6`): `price_index` and `price_decomposition` 
 - Consumes: Tasks 3 to 9, `reprokit.manifest`, `reprokit gate`.
 - Produces: `reproduce --instance NAME` runs `gate` (against `instances/somalia/config.yaml` as the baseline), then `read` per role through `get_adapter`, `spatial`, `aggregate`, `fuse`, `manifest`; outputs `data/derived/panel.csv`, `outputs/manifest.json`, `outputs/publishable_aggregates.csv`. Stops with exit 1 before processing if the gate fails or `check_frame` finds problems.
 
+- **Carry-over from review of Task 8:** adapters put their problem lists in `df.attrs["problems"]`, which pandas can drop on `concat`/`copy`; collect them immediately after each `read` and add `test_adapter_problems_reach_the_run_report`.
+
 - [ ] **Step 1: Write failing tests:** `test_end_to_end_on_fixture_instance`; `test_provider_swap_without_record_stops_before_processing` (no derived file written); `test_provider_swap_with_record_proceeds`; `test_manifest_lists_core_and_extension_columns`; `test_rerun_is_idempotent` (panel bytes identical; manifest identical except `created_utc`).
 - [ ] **Step 2:** Implement; run; commit.
 
@@ -231,6 +233,7 @@ Tasks 11, 12, 15 in commit `cbeb9ce6`): `price_index` and `price_decomposition` 
 - [x] **Step 0 (decided by owner 2026-10-31):** Somalia window is 2021-01 through 2023-08 because the HDX PRMN dataset ends 2023-08; CHIRPS v2.0. A newer PRMN release (UNHCR portal or Microdata Library request) is a parallel, non-blocking check; record the outcome in the verification note.
 - [ ] **Step 1:** Owner downloads PRMN, WFP prices, CHIRPS (months in the chosen window), COD-AB Somalia into the role directories (or runs the Task 13 fetchers). The ACLED export already exists.
 - [ ] **Step 2:** For each role, replace every `unverified` field in the descriptor from the provider's page and the actual file; set `verification_status: source-verified`. Confirm or correct the canonical columns and mapping files against real headers; any mismatch is a Task 5 or 8 fix with a test.
+- [ ] **Step 2b (review findings on Tasks 6 to 8, 2026-10-31; each fix needs a test):** (1) the real WFP CSV has an HXL tag row (`#date`, `#adm2+name`, ...) under the header; `WfpPricesAdapter` must skip it. (2) `pricetype` (retail/wholesale) is dropped by the canonical `prices` table; filter to retail or flag mixed price types per market and commodity. (3) `CodAbAdapter.find` only globs `*.geojson`; handle the HDX shapefile/GDB download too. (4) Time `zonal_monthly` on the real window (about 74 districts x 32 months); if it takes minutes, switch the per-cell loop to `rasterio.mask`, keeping the area-weighted tests green.
 - [ ] **Step 3:** Run `uv run python -m compound_shocks reproduce --instance somalia`. Record in `docs/verification/` the commands, row counts per role, unassigned-event count, price-gap pattern, and any harmonization or boundary-vintage finding. Set `verification_status: run on acquired data` only after a clean run.
 - [ ] **Step 4:** Claude reviews the verification note before anything is committed to the public repo. Raw ACLED rows are never pasted into any external AI tool; only counts and column names are shared.
 
