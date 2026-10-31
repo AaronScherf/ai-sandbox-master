@@ -4,6 +4,7 @@ import json
 import os
 import tempfile
 import unittest
+from unittest import mock
 from pathlib import Path
 
 import yaml
@@ -166,7 +167,8 @@ class TestBackfillYears(unittest.TestCase):
             env = Env(root)
             old = os.environ.pop("OPENALEX_CONTACT_EMAIL", None)
             try:
-                code, out = _run(env.args("backfill-years"))
+                with mock.patch("core.env.gemini_utils._resolve_env_path", lambda *a: Path(root) / "no.env"):  # not the real .env
+                    code, out = _run(env.args("backfill-years"))
             finally:
                 if old is not None:
                     os.environ["OPENALEX_CONTACT_EMAIL"] = old

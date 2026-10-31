@@ -114,7 +114,7 @@ and adds a `breakdown` of direct papers per branch. Reports show each term's ful
 - **recall probe** (`--probe`, opt-in, network): the top N (default 25) OpenAlex works for the labels of the intervention, outcome and
   country terms, matched to the corpus by OpenAlex id, DOI, then title; the report states "k of N in the corpus" with a Wilson 95%
   interval under `external.probe`. It measures the corpus against OpenAlex's ranking for that wording, never a percent complete, and does not change the verdict.
-  Needs `--mailto` or `$OPENALEX_CONTACT_EMAIL`; a failed search is recorded as an error and the offline report is still written.
+  Needs `--mailto`, `$OPENALEX_CONTACT_EMAIL` or that key in `ai-sandbox/.env` (read for this one key only); a failed search is recorded as an error and the offline report is still written.
 - The report (`report.json`, `report.md` under `<index-root>/literature_gap/<run-id>/`, gitignored) carries coverage
   counts, thin-cell flag, blind spots (papers with `proposed:` values, no country fact, multi-country or global scale),
   a stale-database warning and the evidence list. It never claims a percent complete.

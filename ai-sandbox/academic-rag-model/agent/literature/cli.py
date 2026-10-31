@@ -338,7 +338,7 @@ def cmd_gap(args) -> int:
     from .gap.corpus import load_corpus
     from .gap.subregions import load_subregions
 
-    mailto = args.mailto or os.environ.get("OPENALEX_CONTACT_EMAIL")
+    mailto = _contact_email(args.mailto) if args.probe else None
     if args.probe and not mailto:
         print("gap: --probe needs --mailto or OPENALEX_CONTACT_EMAIL (OpenAlex asks for a contact address)")
         return 2
@@ -444,8 +444,22 @@ def cmd_remap(args) -> int:
     return 0
 
 
+def _contact_email(explicit: str | None) -> str | None:
+    """OpenAlex contact address: the flag, then the environment, then ai-sandbox/.env (read for this one key, not loaded)."""
+    value = explicit or os.environ.get("OPENALEX_CONTACT_EMAIL")
+    if value:
+        return value
+    try:
+        from dotenv import dotenv_values
+        from core.env import gemini_utils
+        path = gemini_utils._resolve_env_path()
+        return (dotenv_values(path).get("OPENALEX_CONTACT_EMAIL") or None) if path.is_file() else None
+    except ImportError:
+        return None
+
+
 def cmd_backfill_years(args) -> int:
-    mailto = args.mailto or os.environ.get("OPENALEX_CONTACT_EMAIL")
+    mailto = _contact_email(args.mailto)
     if not mailto:
         print("backfill-years: no --mailto and OPENALEX_CONTACT_EMAIL is not set")
         return 2
@@ -564,7 +578,7 @@ def build_parser() -> argparse.ArgumentParser:
     sub.add_parser("tiers", help="Count facts by confidence tier (A both passes, B checker-supported, C open) and write _tiers.json.")
     sub.add_parser("remap", help="Point facts whose proposal was accepted or merged at the vocabulary term.")
     by = sub.add_parser("backfill-years", help="Fill publication_year on journal_article cards that lack it, from OpenAlex (no LLM).")
-    by.add_argument("--mailto", default=None, help="Contact email for OpenAlex's polite pool (default: $OPENALEX_CONTACT_EMAIL).")
+    by.add_argument("--mailto", default=None, help="Contact email for OpenAlex's polite pool (default: $OPENALEX_CONTACT_EMAIL, then ai-sandbox/.env).")
     pr = sub.add_parser("proposals", help="Terms the agent proposed that no vocabulary term covered.")
     pr.add_argument("action", choices=["list"])
     cl = sub.add_parser("cluster", help="Choose the papers of a review by facet constraints on tier A/B facts.")
@@ -600,7 +614,7 @@ def build_parser() -> argparse.ArgumentParser:
     g.add_argument("--report-root", default=None, help="Where reports are written (default: <index-root>/literature_gap).")
     g.add_argument("--probe", action="store_true", help="Run only: also ask OpenAlex for the top works on this wording and count how many are in the corpus (network).")
     g.add_argument("--probe-n", type=int, default=25, help="How many OpenAlex results the probe takes (default 25).")
-    g.add_argument("--mailto", default=None, help="Contact email for OpenAlex's polite pool, needed with --probe (default: $OPENALEX_CONTACT_EMAIL).")
+    g.add_argument("--mailto", default=None, help="Contact email for OpenAlex's polite pool, needed with --probe (default: $OPENALEX_CONTACT_EMAIL, then ai-sandbox/.env).")
     ev = sub.add_parser("eval", help="Score the records against the gold set (aggregates only).")
     ev.add_argument("--gold", default=None, help=f"Gold set YAML (default: {DEFAULT_PATH}).")
     a = sub.add_parser("api", help="Send pending cards to the paid API (explicit opt-in, cost-gated).")

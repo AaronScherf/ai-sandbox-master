@@ -4,6 +4,7 @@ import json
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 from agent.literature import db
 from agent.literature.cli import main
@@ -17,6 +18,9 @@ class GapCliCase(unittest.TestCase):
         self.addCleanup(self.tmp.cleanup)
         self.root = self.tmp.name
         self.target, _ = build(self.root, three_papers())
+        patcher = mock.patch("core.env.gemini_utils._resolve_env_path", lambda *a: Path(self.root) / "no.env")  # never read the real .env
+        patcher.start()
+        self.addCleanup(patcher.stop)
         self.vocab_dir = Path(self.root) / "vocab"
         self.vocab_dir.mkdir()
         write_vocab_dir(self.vocab_dir)
