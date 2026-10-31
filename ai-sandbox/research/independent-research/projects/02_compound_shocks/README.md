@@ -6,6 +6,8 @@ The first reproducible unit is a **Somalia exploratory analysis**, based on the 
 
 The [data-sources note](../../notes/Data%20Sources%20-%20Climate%20Displacement%20Cash%20Conflict.md) names candidate datasets. Verify the provider, download endpoint, release/version, coverage, variables, geographic identifiers, and reuse terms against the actual files and provider documentation before analysis. Do not infer that a reported cash-program location equals a completed transfer, or that a recorded displacement reason is a causal attribution.
 
+The first ACLED download is recorded in [`data/acled_2026-10-31_export.md`](data/acled_2026-10-31_export.md). Its repeated event IDs are an unresolved intake issue; do not use row counts as event counts until resolved.
+
 ## Layout
 
 | Path | Purpose | Git policy |
