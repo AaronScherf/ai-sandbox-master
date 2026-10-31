@@ -10,6 +10,7 @@ import yaml
 
 PROVENANCES = ("3ie", "provisional", "local")
 DATA_DIR = Path(__file__).resolve().parent / "vocab_data"
+REFERENCE_DIR = Path(__file__).resolve().parent / "reference_data"
 _NAME = re.compile(r"^[a-z][a-z_]*$")
 _TERM_KEYS = {"id", "label", "parent", "definition", "aliases", "source"}
 
@@ -130,8 +131,6 @@ def load_vocabulary(path) -> Vocabulary:
 def load_vocab_dir(path=None) -> dict[str, Vocabulary]:
     out: dict[str, Vocabulary] = {}
     for p in sorted(Path(path or DATA_DIR).glob("*.yaml")):
-        if p.stem == "countries":
-            continue
         v = load_vocabulary(p)
         if v.name != p.stem:
             raise VocabularyError(f"{p.name}: the vocabulary is named {v.name!r}; the file must be {v.name}.yaml")
@@ -151,7 +150,7 @@ _COUNTRIES: dict[str, frozenset[str]] = {}
 
 
 def load_countries(path=None) -> frozenset[str]:
-    p = Path(path or DATA_DIR / "countries.yaml")
+    p = Path(path or REFERENCE_DIR / "countries.yaml")
     key = str(p)
     if key not in _COUNTRIES:
         data = yaml.safe_load(p.read_text(encoding="utf-8"))

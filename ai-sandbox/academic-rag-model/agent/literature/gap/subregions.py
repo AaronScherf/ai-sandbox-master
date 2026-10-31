@@ -7,10 +7,10 @@ from pathlib import Path
 import yaml
 
 from ..transcript import normalize
-from ..vocab import DATA_DIR
+from ..vocab import REFERENCE_DIR
 
-DEFAULT_PATH = Path(__file__).with_name("country_subregions.yaml")
-_DEFAULT_COUNTRIES = DATA_DIR / "countries.yaml"
+DEFAULT_PATH = REFERENCE_DIR / "country_subregions.yaml"
+_DEFAULT_COUNTRIES = REFERENCE_DIR / "countries.yaml"
 _cache: dict[tuple, "Subregions"] = {}
 
 

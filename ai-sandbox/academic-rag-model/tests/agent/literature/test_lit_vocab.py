@@ -5,7 +5,8 @@ import unittest
 import yaml
 
 from agent.literature.vocab import (
-    PROVENANCES, Vocabulary, VocabularyError, is_country, load_countries, load_vocab_dir, load_vocabulary,
+    DATA_DIR, PROVENANCES, REFERENCE_DIR, Vocabulary, VocabularyError, is_country, load_countries, load_vocab_dir,
+    load_vocabulary,
     validate_vocabulary,
 )
 
@@ -92,13 +93,25 @@ class TestLoadAndFind(unittest.TestCase):
             with self.assertRaises(VocabularyError):
                 load_vocab_dir(d)
 
-    def test_load_vocab_dir_skips_countries_and_non_yaml(self):
+    def test_load_vocab_dir_skips_non_yaml(self):
         with tempfile.TemporaryDirectory() as d:
             _write(d, "intervention", _data())
-            _write(d, "countries", {"countries": [{"code": "SO", "name": "Somalia"}]})
             with open(os.path.join(d, "README.md"), "w", encoding="utf-8") as f:
                 f.write("x")
             self.assertEqual(sorted(load_vocab_dir(d)), ["intervention"])
+
+    def test_load_vocab_dir_no_longer_exempts_countries(self):
+        with tempfile.TemporaryDirectory() as d:
+            _write(d, "countries", {"countries": [{"code": "SO", "name": "Somalia"}]})
+            with self.assertRaises(VocabularyError):
+                load_vocab_dir(d)
+
+    def test_default_dirs_are_split(self):
+        self.assertEqual(set(load_vocab_dir()), {p.stem for p in DATA_DIR.glob("*.yaml")})
+        self.assertFalse((DATA_DIR / "countries.yaml").exists())
+        self.assertTrue((REFERENCE_DIR / "countries.yaml").exists())
+        self.assertTrue((REFERENCE_DIR / "country_subregions.yaml").exists())
+        self.assertTrue(is_country("SO"))
 
 
 class TestCountries(unittest.TestCase):

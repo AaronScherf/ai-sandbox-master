@@ -108,7 +108,7 @@ and adds a `breakdown` of direct papers per branch. Reports show each term's ful
 - **direct**: a paper whose tier A/B facts match every constraint.
 - **adjacent**: all but one relaxable constraint (intervention, outcome, country) match, and that one matches a sibling
   term (other children of its parent; a term under a top-level grouping is not widened) or a country in the same UN M49
-  subregion (`gap/country_subregions.yaml`). Each hit is labelled with the facet relaxed. Two relaxations is a partial match.
+  subregion (`reference_data/country_subregions.yaml`). Each hit is labelled with the facet relaxed. Two relaxations is a partial match.
 - **verdict**: `tried_directly`, `tried_adjacent` or `no_evidence_in_corpus` (corpus only). `found_externally_not_in_corpus`
   is reserved for slice 2 (OpenAlex), which is not built.
 - **recall probe** (`--probe`, opt-in, network): the top N (default 25) OpenAlex works for the labels of the intervention, outcome and

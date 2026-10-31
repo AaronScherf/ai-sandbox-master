@@ -3,7 +3,7 @@
 # split into its four M49 subregions. Assigned by the usual convention where M49 lists no row: TW (Eastern Asia),
 # BV and GS (South America), TF (Eastern Africa), HM (Australia and New Zealand). AQ and UM have no subregion and
 # are left out, so a constraint on them cannot be widened. Country names are not repeated here: they come from
-# vocab_data/countries.yaml. Codes are quoted because an unquoted NO (Norway) is read as a boolean.
+# reference_data/countries.yaml. Codes are quoted because an unquoted NO (Norway) is read as a boolean.
 countries:
 - code: "AD"
   subregion: Southern Europe
