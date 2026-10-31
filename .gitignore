@@ -71,6 +71,17 @@ ai-sandbox/academic-hub/**/textbooks/**/images/
 # problem sets, solutions). Only academic_notes/ is synced between devices.
 ai-sandbox/academic-hub/academic_resources/**/*.pdf
 ai-sandbox/academic-hub/academic_resources/microecon/2024_class/
+# Keep moved source bundles, other students' answers, and textbook full-text
+# backups local. The .md rule above does not match files ending in .md.bak.
+ai-sandbox/academic-hub/academic_resources/**/*.zip
+ai-sandbox/academic-hub/academic_resources/**/student answers/
+ai-sandbox/academic-hub/**/textbooks/**/*.md.bak
+# Course-provided exam images, recording URLs, datasets, and lecture code
+# are source material; keep them local alongside the already-ignored PDFs.
+ai-sandbox/academic-hub/academic_resources/**/Exams/*
+ai-sandbox/academic-hub/academic_resources/**/*Recording Link.txt
+ai-sandbox/academic-hub/academic_resources/**/problem_sets/data.csv
+ai-sandbox/academic-hub/academic_resources/math_methods/**/Lecture Notes/*.m
 # 2026-10-09: agent-driven transcription mode's working directory --
 # rendered page images and task cards, never meant to be committed (the
 # page images are course material and this repo is public).
