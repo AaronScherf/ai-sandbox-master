@@ -202,7 +202,7 @@ Tasks 11, 12, 15 in commit `cbeb9ce6`): `price_index` and `price_decomposition` 
 - [ ] **Step 1: Write failing tests:** `test_profile_counts_zeros_and_nans_separately` (a conflict zero is counted as a zero, a missing price as null); `test_profile_reports_district_coverage_per_source`; `test_missingness_matrix_writes_png_with_one_panel_per_column`; `test_price_series_uses_raw_prices_not_an_index` (plotted y-values equal the input prices); `test_conflict_figures_have_acled_caption` (inspect saved figure text objects); `test_price_figure_has_no_acled_caption`; `test_no_modeling_imports` (importing the package imports neither `statsmodels` nor `sklearn`).
 - [ ] **Step 2:** Implement with matplotlib (Agg backend); run; remove `statsmodels` from `pyproject.toml`, run `uv lock`; commit.
 
-### Task 12: Exploratory data audit memo
+### Task 12: Exploratory data audit memo (done 2026-11-02, `01af18c`; 162 tests; `audit` step runs in `reproduce`, memo reads descriptors for access dates and ACLED answers)
 
 **Files:**
 - Create: `src/compound_shocks/audit_memo.py`, `tests/test_audit_memo.py`; add an `audit` step to `pipeline.py`
@@ -231,11 +231,22 @@ Tasks 11, 12, 15 in commit `cbeb9ce6`): `price_index` and `price_decomposition` 
 **Files:** `instances/somalia/data/raw/*` (ignored), `instances/somalia/data/descriptors/*.yaml`, `docs/verification/somalia-2026-XX-XX.md`
 
 - [x] **Step 0 (decided by owner 2026-10-31):** Somalia window is 2021-01 through 2023-08 because the HDX PRMN dataset ends 2023-08; CHIRPS v2.0. A newer PRMN release (UNHCR portal or Microdata Library request) is a parallel, non-blocking check; record the outcome in the verification note.
-- [ ] **Step 1:** Owner downloads PRMN, WFP prices, CHIRPS (months in the chosen window), COD-AB Somalia into the role directories (or runs the Task 13 fetchers). The ACLED export already exists.
-- [ ] **Step 2:** For each role, replace every `unverified` field in the descriptor from the provider's page and the actual file; set `verification_status: source-verified`. Confirm or correct the canonical columns and mapping files against real headers; any mismatch is a Task 5 or 8 fix with a test.
-- [ ] **Step 2b (review findings on Tasks 6 to 8, 2026-10-31; each fix needs a test):** (1) the real WFP CSV has an HXL tag row (`#date`, `#adm2+name`, ...) under the header; `WfpPricesAdapter` must skip it. (2) `pricetype` (retail/wholesale) is dropped by the canonical `prices` table; filter to retail or flag mixed price types per market and commodity. (3) `CodAbAdapter.find` only globs `*.geojson`; handle the HDX shapefile/GDB download too. (4) Time `zonal_monthly` on the real window (about 74 districts x 32 months); if it takes minutes, switch the per-cell loop to `rasterio.mask`, keeping the area-weighted tests green.
-- [ ] **Step 3:** Run `uv run python -m compound_shocks reproduce --instance somalia`. Record in `docs/verification/` the commands, row counts per role, unassigned-event count, price-gap pattern, and any harmonization or boundary-vintage finding. Set `verification_status: run on acquired data` only after a clean run.
-- [ ] **Step 4:** Claude reviews the verification note before anything is committed to the public repo. Raw ACLED rows are never pasted into any external AI tool; only counts and column names are shared.
+- [x] **Step 1 (done 2026-11-02, via the Task 13 fetchers):** Owner downloads PRMN, WFP prices, CHIRPS (months in the chosen window), COD-AB Somalia into the role directories (or runs the Task 13 fetchers). The ACLED export already exists.
+- [x] **Step 2 (done 2026-11-02; descriptors filled in `01af18c`):** For each role, replace every `unverified` field in the descriptor from the provider's page and the actual file; set `verification_status: source-verified`. Confirm or correct the canonical columns and mapping files against real headers; any mismatch is a Task 5 or 8 fix with a test.
+- [x] **Step 2b (all four fixed with tests; review findings on Tasks 6 to 8, 2026-10-31; each fix needs a test):** (1) the real WFP CSV has an HXL tag row (`#date`, `#adm2+name`, ...) under the header; `WfpPricesAdapter` must skip it. (2) `pricetype` (retail/wholesale) is dropped by the canonical `prices` table; filter to retail or flag mixed price types per market and commodity. (3) `CodAbAdapter.find` only globs `*.geojson`; handle the HDX shapefile/GDB download too. (4) Time `zonal_monthly` on the real window (about 74 districts x 32 months); if it takes minutes, switch the per-cell loop to `rasterio.mask`, keeping the area-weighted tests green.
+- [x] **Step 3 (done 2026-11-02; note at `docs/verification/somalia-2026-11-02.md` in the compound-shocks-panel repo, fresh-clone hashes match):** Run `uv run python -m compound_shocks reproduce --instance somalia`. Record in `docs/verification/` the commands, row counts per role, unassigned-event count, price-gap pattern, and any harmonization or boundary-vintage finding. Set `verification_status: run on acquired data` only after a clean run.
+- [ ] **Step 4 (pending owner review):** Claude reviews the verification note before anything is committed to the public repo. Raw ACLED rows are never pasted into any external AI tool; only counts and column names are shared.
+
+**Findings from the real run (2026-11-02), all fixed with tests and recorded in the repo's `protocol.md` decision log:**
+- COD-AB v03 zip holds two admin2 files (`_em` edge-matched copy dropped); properties are lowercase `adm2_pcode`, `adm2_name`.
+- The HDX PRMN CSV is a 3 KB per-district summary; the real data is the XLSX (sheet `OutputsArrivals`, weekly rows, day-first dates).
+- CHIRPS GeoTIFFs have no nodata tag and mark sea cells -9999; unmasked, they corrupted district means.
+- The ACLED export repeats each event once per actor row (101,144 rows, 52,925 events); collapsed to one row per `event_id`.
+- PRMN and WFP report Mogadishu only as "Banadir", so the 17 Mogadishu districts and "Unspecified" are merged into one unit (74 units). Owner decision.
+- Three provider spellings are aliased; Badhan and Dhahar are absent from COD-AB v03 and stay unassigned; 204 WFP rows with a blank district are assigned by market.
+- Reproducibility: code fingerprint invalidates stale steps, CSVs use LF, text hashes ignore line endings; a fresh clone reproduces `panel.csv` and `publishable_aggregates.csv` byte for byte.
+- Panel: 2,368 rows; prices in 21% of district-months (37 of 74 districts); displacement in 90%.
+- Open for the review gate: nominal local-currency prices versus USD; venue and purpose.
 
 ### Task 15: Sudan portability (data pipeline only)
 
