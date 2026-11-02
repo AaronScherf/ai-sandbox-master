@@ -2,7 +2,7 @@
  "course": "microecon",
  "materials": [
   {
-   "path": "academic_notes/microecon/2024_class/Exam/processed_outputs/Exam_Part_I_Sols.md",
+   "path": "academic_notes/microecon/part_1/2024_class/Exam/processed_outputs/Exam_Part_I_Sols.md",
    "role": "exam",
    "format": "handwritten",
    "offering": "2024",
@@ -50,7 +50,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/microecon/2024_class/Exam Prep/processed_outputs/2019.md",
+   "path": "academic_notes/microecon/part_1/2024_class/Exam Prep/processed_outputs/2019.md",
    "role": "problem_set",
    "format": "typeset",
    "offering": "2024",
@@ -98,7 +98,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/microecon/2024_class/Exam Prep/processed_outputs/2019_solution.md",
+   "path": "academic_notes/microecon/part_1/2024_class/Exam Prep/processed_outputs/2019_solution.md",
    "role": "exam",
    "format": "typeset",
    "offering": "2024",
@@ -158,7 +158,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/microecon/2024_class/Exam Prep/processed_outputs/2022.md",
+   "path": "academic_notes/microecon/part_1/2024_class/Exam Prep/processed_outputs/2022.md",
    "role": "problem_set",
    "format": "handwritten",
    "offering": "2024",
@@ -212,7 +212,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/microecon/2024_class/Exam Prep/processed_outputs/2022_solution.md",
+   "path": "academic_notes/microecon/part_1/2024_class/Exam Prep/processed_outputs/2022_solution.md",
    "role": "exam",
    "format": "typeset",
    "offering": "2024",
@@ -260,7 +260,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/microecon/2024_class/Exam Prep/processed_outputs/2023 solution.md",
+   "path": "academic_notes/microecon/part_1/2024_class/Exam Prep/processed_outputs/2023 solution.md",
    "role": "problem_set",
    "format": "typeset",
    "offering": "2024",
@@ -308,7 +308,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/microecon/2024_class/Exam Prep/processed_outputs/2023.md",
+   "path": "academic_notes/microecon/part_1/2024_class/Exam Prep/processed_outputs/2023.md",
    "role": "problem_set",
    "format": "handwritten",
    "offering": "2024",
@@ -356,7 +356,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/microecon/2024_class/Homeworks/processed_outputs/Homework_1.md",
+   "path": "academic_notes/microecon/part_1/2024_class/Homeworks/processed_outputs/Homework_1.md",
    "role": "problem_set",
    "format": "handwritten",
    "offering": "2024",
@@ -410,7 +410,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/microecon/2024_class/Homeworks/processed_outputs/Homework_2.md",
+   "path": "academic_notes/microecon/part_1/2024_class/Homeworks/processed_outputs/Homework_2.md",
    "role": "problem_set",
    "format": "handwritten",
    "offering": "2024",
@@ -464,7 +464,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/microecon/2024_class/Homeworks/processed_outputs/Homework_3.md",
+   "path": "academic_notes/microecon/part_1/2024_class/Homeworks/processed_outputs/Homework_3.md",
    "role": "problem_set",
    "format": "handwritten",
    "offering": "2024",
@@ -518,7 +518,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/microecon/2024_class/Homeworks/processed_outputs/Homework_4.md",
+   "path": "academic_notes/microecon/part_1/2024_class/Homeworks/processed_outputs/Homework_4.md",
    "role": "problem_set",
    "format": "typeset",
    "offering": "2024",
@@ -572,7 +572,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/microecon/2024_class/Homeworks/processed_outputs/Homework_5.md",
+   "path": "academic_notes/microecon/part_1/2024_class/Homeworks/processed_outputs/Homework_5.md",
    "role": "problem_set",
    "format": "typeset",
    "offering": "2024",
@@ -626,7 +626,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/microecon/2024_class/Homeworks/processed_outputs/Homework_6_For_Practice.md",
+   "path": "academic_notes/microecon/part_1/2024_class/Homeworks/processed_outputs/Homework_6_For_Practice.md",
    "role": "problem_set",
    "format": "handwritten",
    "offering": "2024",
@@ -680,7 +680,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/microecon/2024_class/Homeworks/processed_outputs/Homework_6_Sol.md",
+   "path": "academic_notes/microecon/part_1/2024_class/Homeworks/processed_outputs/Homework_6_Sol.md",
    "role": "problem_set",
    "format": "typeset",
    "offering": "2024",
@@ -728,7 +728,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/microecon/2024_class/Homeworks/Solutions/HW2/processed_outputs/HW2_Q4.md",
+   "path": "academic_notes/microecon/part_1/2024_class/Homeworks/Solutions/HW2/processed_outputs/HW2_Q4.md",
    "role": "problem_set",
    "format": "typeset",
    "offering": "2024",
@@ -782,7 +782,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/microecon/2024_class/Homeworks/Solutions/HW2/processed_outputs/HW2_sols_final.md",
+   "path": "academic_notes/microecon/part_1/2024_class/Homeworks/Solutions/HW2/processed_outputs/HW2_sols_final.md",
    "role": "problem_set",
    "format": "typeset",
    "offering": "2024",
@@ -842,7 +842,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/microecon/2024_class/Homeworks/Solutions/processed_outputs/Homework_6_Sol.md",
+   "path": "academic_notes/microecon/part_1/2024_class/Homeworks/Solutions/processed_outputs/Homework_6_Sol.md",
    "role": "problem_set",
    "format": "typeset",
    "offering": "2024",
@@ -896,7 +896,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/microecon/2024_class/Homeworks/Solutions/processed_outputs/HW1_sols_final.md",
+   "path": "academic_notes/microecon/part_1/2024_class/Homeworks/Solutions/processed_outputs/HW1_sols_final.md",
    "role": "problem_set",
    "format": "typeset",
    "offering": "2024",
@@ -956,7 +956,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/microecon/2024_class/Homeworks/Solutions/processed_outputs/HW3_sols.md",
+   "path": "academic_notes/microecon/part_1/2024_class/Homeworks/Solutions/processed_outputs/HW3_sols.md",
    "role": "problem_set",
    "format": "handwritten",
    "offering": "2024",
@@ -1016,7 +1016,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/microecon/2024_class/Homeworks/Solutions/processed_outputs/HW4_sols_final.md",
+   "path": "academic_notes/microecon/part_1/2024_class/Homeworks/Solutions/processed_outputs/HW4_sols_final.md",
    "role": "problem_set",
    "format": "typeset",
    "offering": "2024",
@@ -1076,7 +1076,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/microecon/2024_class/Homeworks/Solutions/processed_outputs/hw5_sols.md",
+   "path": "academic_notes/microecon/part_1/2024_class/Homeworks/Solutions/processed_outputs/hw5_sols.md",
    "role": "problem_set",
    "format": "typeset",
    "offering": "2024",
@@ -1130,7 +1130,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/microecon/2024_class/Post lecture notes/processed_outputs/1.Course_Intro.md",
+   "path": "academic_notes/microecon/part_1/2024_class/Post lecture notes/processed_outputs/1.Course_Intro.md",
    "role": "instructor",
    "format": "typeset",
    "offering": "2024",
@@ -1166,7 +1166,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/microecon/2024_class/Post lecture notes/processed_outputs/10.Risk and Uncertainty 2.md",
+   "path": "academic_notes/microecon/part_1/2024_class/Post lecture notes/processed_outputs/10.Risk and Uncertainty 2.md",
    "role": "instructor",
    "format": "slides",
    "offering": "2024",
@@ -1196,7 +1196,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/microecon/2024_class/Post lecture notes/processed_outputs/2.Utility_Maximization_1.md",
+   "path": "academic_notes/microecon/part_1/2024_class/Post lecture notes/processed_outputs/2.Utility_Maximization_1.md",
    "role": "instructor",
    "format": "slides",
    "offering": "2024",
@@ -1226,7 +1226,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/microecon/2024_class/Post lecture notes/processed_outputs/3.Utility_Maximization_2.md",
+   "path": "academic_notes/microecon/part_1/2024_class/Post lecture notes/processed_outputs/3.Utility_Maximization_2.md",
    "role": "instructor",
    "format": "slides",
    "offering": "2024",
@@ -1256,7 +1256,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/microecon/2024_class/Post lecture notes/processed_outputs/4.Random_choice.md",
+   "path": "academic_notes/microecon/part_1/2024_class/Post lecture notes/processed_outputs/4.Random_choice.md",
    "role": "instructor",
    "format": "slides",
    "offering": "2024",
@@ -1286,7 +1286,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/microecon/2024_class/Post lecture notes/processed_outputs/6.Consumer_Choice_1.md",
+   "path": "academic_notes/microecon/part_1/2024_class/Post lecture notes/processed_outputs/6.Consumer_Choice_1.md",
    "role": "instructor",
    "format": "slides",
    "offering": "2024",
@@ -1316,7 +1316,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/microecon/2024_class/Post lecture notes/processed_outputs/7.Consumer_Choice_2.md",
+   "path": "academic_notes/microecon/part_1/2024_class/Post lecture notes/processed_outputs/7.Consumer_Choice_2.md",
    "role": "instructor",
    "format": "slides",
    "offering": "2024",
@@ -1346,7 +1346,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/microecon/2024_class/Post lecture notes/processed_outputs/8.Production.md",
+   "path": "academic_notes/microecon/part_1/2024_class/Post lecture notes/processed_outputs/8.Production.md",
    "role": "instructor",
    "format": "slides",
    "offering": "2024",
@@ -1376,7 +1376,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/microecon/2024_class/Post lecture notes/processed_outputs/9.Risk and Uncertainty 1.md",
+   "path": "academic_notes/microecon/part_1/2024_class/Post lecture notes/processed_outputs/9.Risk and Uncertainty 1.md",
    "role": "instructor",
    "format": "slides",
    "offering": "2024",
@@ -1406,7 +1406,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/microecon/2024_class/Pre Lecture Notes/processed_outputs/10.Risk and Uncertainty_2_for_circulation.md",
+   "path": "academic_notes/microecon/part_1/2024_class/Pre Lecture Notes/processed_outputs/10.Risk and Uncertainty_2_for_circulation.md",
    "role": "instructor",
    "format": "slides",
    "offering": "2024",
@@ -1436,7 +1436,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/microecon/2024_class/Pre Lecture Notes/processed_outputs/2.Utility_Maximization_1_for_circulation.md",
+   "path": "academic_notes/microecon/part_1/2024_class/Pre Lecture Notes/processed_outputs/2.Utility_Maximization_1_for_circulation.md",
    "role": "instructor",
    "format": "slides",
    "offering": "2024",
@@ -1466,7 +1466,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/microecon/2024_class/Pre Lecture Notes/processed_outputs/2.Utility_Maximization_2_for_circulation-1.md",
+   "path": "academic_notes/microecon/part_1/2024_class/Pre Lecture Notes/processed_outputs/2.Utility_Maximization_2_for_circulation-1.md",
    "role": "instructor",
    "format": "slides",
    "offering": "2024",
@@ -1496,7 +1496,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/microecon/2024_class/Pre Lecture Notes/processed_outputs/2.Utility_Maximization_2_for_circulation-2.md",
+   "path": "academic_notes/microecon/part_1/2024_class/Pre Lecture Notes/processed_outputs/2.Utility_Maximization_2_for_circulation-2.md",
    "role": "instructor",
    "format": "slides",
    "offering": "2024",
@@ -1526,7 +1526,7 @@
    "decided_by": "review"
   },
   {
-   "path": "academic_notes/microecon/2024_class/Pre Lecture Notes/processed_outputs/4.Random_choice_for_circulation.md",
+   "path": "academic_notes/microecon/part_1/2024_class/Pre Lecture Notes/processed_outputs/4.Random_choice_for_circulation.md",
    "role": "instructor",
    "format": "slides",
    "offering": "2024",
@@ -1556,7 +1556,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/microecon/2024_class/Pre Lecture Notes/processed_outputs/5.Failures Of Rationality.md",
+   "path": "academic_notes/microecon/part_1/2024_class/Pre Lecture Notes/processed_outputs/5.Failures Of Rationality.md",
    "role": "instructor",
    "format": "typeset",
    "offering": "2024",
@@ -1592,7 +1592,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/microecon/2024_class/Pre Lecture Notes/processed_outputs/6.Consumer_Choice_1_for_circulation.md",
+   "path": "academic_notes/microecon/part_1/2024_class/Pre Lecture Notes/processed_outputs/6.Consumer_Choice_1_for_circulation.md",
    "role": "instructor",
    "format": "slides",
    "offering": "2024",
@@ -1622,7 +1622,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/microecon/2024_class/Pre Lecture Notes/processed_outputs/6.Consumer_Choice_2_for_circulation.md",
+   "path": "academic_notes/microecon/part_1/2024_class/Pre Lecture Notes/processed_outputs/6.Consumer_Choice_2_for_circulation.md",
    "role": "instructor",
    "format": "slides",
    "offering": "2024",
@@ -1652,7 +1652,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/microecon/2024_class/Pre Lecture Notes/processed_outputs/8.Production_for_circulation.md",
+   "path": "academic_notes/microecon/part_1/2024_class/Pre Lecture Notes/processed_outputs/8.Production_for_circulation.md",
    "role": "instructor",
    "format": "slides",
    "offering": "2024",
@@ -1682,7 +1682,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/microecon/2024_class/Pre Lecture Notes/processed_outputs/9.Risk and Uncertainty 1_for_circulation.md",
+   "path": "academic_notes/microecon/part_1/2024_class/Pre Lecture Notes/processed_outputs/9.Risk and Uncertainty 1_for_circulation.md",
    "role": "instructor",
    "format": "slides",
    "offering": "2024",
@@ -1712,7 +1712,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/microecon/2024_class/processed_outputs/G6211_Fall_2024_Syllabus_Part1.md",
+   "path": "academic_notes/microecon/part_1/2024_class/processed_outputs/G6211_Fall_2024_Syllabus_Part1.md",
    "role": "syllabus",
    "format": "typeset",
    "offering": "2024",
@@ -1772,7 +1772,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/microecon/2024_class/Proofs/processed_outputs/Proofs-Risk and Uncertainty.md",
+   "path": "academic_notes/microecon/part_1/2024_class/Proofs/processed_outputs/Proofs-Risk and Uncertainty.md",
    "role": "instructor",
    "format": "slides",
    "offering": "2024",
@@ -1808,7 +1808,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/microecon/2024_class/Proofs/processed_outputs/Proofs_Consumer_Choice_1.md",
+   "path": "academic_notes/microecon/part_1/2024_class/Proofs/processed_outputs/Proofs_Consumer_Choice_1.md",
    "role": "instructor",
    "format": "slides",
    "offering": "2024",
@@ -1844,7 +1844,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/microecon/2024_class/Proofs/processed_outputs/Utility_Maximization_1_Proofs.md",
+   "path": "academic_notes/microecon/part_1/2024_class/Proofs/processed_outputs/Utility_Maximization_1_Proofs.md",
    "role": "instructor",
    "format": "slides",
    "offering": "2024",
@@ -1880,7 +1880,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/microecon/2024_class/Proofs/processed_outputs/Utility_Maximization_2_Proofs.md",
+   "path": "academic_notes/microecon/part_1/2024_class/Proofs/processed_outputs/Utility_Maximization_2_Proofs.md",
    "role": "instructor",
    "format": "slides",
    "offering": "2024",
@@ -1916,7 +1916,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/microecon/2024_class/Recitation/processed_outputs/Recitation_I.md",
+   "path": "academic_notes/microecon/part_1/2024_class/Recitation/processed_outputs/Recitation_I.md",
    "role": "recitation",
    "format": "slides",
    "offering": "2024",
@@ -1958,7 +1958,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/microecon/2024_class/Recitation/processed_outputs/Recitation_II.md",
+   "path": "academic_notes/microecon/part_1/2024_class/Recitation/processed_outputs/Recitation_II.md",
    "role": "recitation",
    "format": "slides",
    "offering": "2024",
@@ -2000,7 +2000,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/microecon/2024_class/Recitation/processed_outputs/Recitation_III.md",
+   "path": "academic_notes/microecon/part_1/2024_class/Recitation/processed_outputs/Recitation_III.md",
    "role": "recitation",
    "format": "slides",
    "offering": "2024",
@@ -2042,7 +2042,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/microecon/2024_class/Recitation/processed_outputs/Recitation_IV.md",
+   "path": "academic_notes/microecon/part_1/2024_class/Recitation/processed_outputs/Recitation_IV.md",
    "role": "recitation",
    "format": "slides",
    "offering": "2024",
@@ -2084,7 +2084,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/microecon/2024_class/Recitation/processed_outputs/Recitation_V.md",
+   "path": "academic_notes/microecon/part_1/2024_class/Recitation/processed_outputs/Recitation_V.md",
    "role": "recitation",
    "format": "slides",
    "offering": "2024",
@@ -2132,7 +2132,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/microecon/2025_class/Homeworks/processed_outputs/Homework_1.md",
+   "path": "academic_notes/microecon/part_1/2025_class/Homeworks/processed_outputs/Homework_1.md",
    "role": "problem_set",
    "format": "typeset",
    "offering": "2025",
@@ -2186,7 +2186,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/microecon/2025_class/Homeworks/processed_outputs/Homework_2.md",
+   "path": "academic_notes/microecon/part_1/2025_class/Homeworks/processed_outputs/Homework_2.md",
    "role": "problem_set",
    "format": "handwritten",
    "offering": "2025",
@@ -2240,7 +2240,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/microecon/2025_class/Homeworks/processed_outputs/Homework_3.md",
+   "path": "academic_notes/microecon/part_1/2025_class/Homeworks/processed_outputs/Homework_3.md",
    "role": "problem_set",
    "format": "handwritten",
    "offering": "2025",
@@ -2294,7 +2294,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/microecon/2025_class/Homeworks/processed_outputs/Homework_4.md",
+   "path": "academic_notes/microecon/part_1/2025_class/Homeworks/processed_outputs/Homework_4.md",
    "role": "problem_set",
    "format": "typeset",
    "offering": "2025",
@@ -2348,7 +2348,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/microecon/2025_class/Homeworks/processed_outputs/Homework_5.md",
+   "path": "academic_notes/microecon/part_1/2025_class/Homeworks/processed_outputs/Homework_5.md",
    "role": "problem_set",
    "format": "typeset",
    "offering": "2025",
@@ -2402,7 +2402,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/microecon/2025_class/Homeworks/processed_outputs/Homework_6_For_Practice.md",
+   "path": "academic_notes/microecon/part_1/2025_class/Homeworks/processed_outputs/Homework_6_For_Practice.md",
    "role": "problem_set",
    "format": "handwritten",
    "offering": "2025",
@@ -2456,7 +2456,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/microecon/2025_class/Homeworks/processed_outputs/Homework_6_Sol.md",
+   "path": "academic_notes/microecon/part_1/2025_class/Homeworks/processed_outputs/Homework_6_Sol.md",
    "role": "problem_set",
    "format": "typeset",
    "offering": "2025",
@@ -2504,7 +2504,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/microecon/2025_class/Homeworks/Solutions/processed_outputs/HW1_Sol.md",
+   "path": "academic_notes/microecon/part_1/2025_class/Homeworks/Solutions/processed_outputs/HW1_Sol.md",
    "role": "problem_set",
    "format": "typeset",
    "offering": "2025",
@@ -2558,7 +2558,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/microecon/2025_class/Homeworks/Solutions/processed_outputs/HW2_Sol.md",
+   "path": "academic_notes/microecon/part_1/2025_class/Homeworks/Solutions/processed_outputs/HW2_Sol.md",
    "role": "problem_set",
    "format": "typeset",
    "offering": "2025",
@@ -2618,7 +2618,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/microecon/2025_class/Homeworks/Solutions/processed_outputs/HW3_Sol.md",
+   "path": "academic_notes/microecon/part_1/2025_class/Homeworks/Solutions/processed_outputs/HW3_Sol.md",
    "role": "problem_set",
    "format": "typeset",
    "offering": "2025",
@@ -2678,7 +2678,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/microecon/2025_class/Homeworks/Solutions/processed_outputs/HW4_Sol.md",
+   "path": "academic_notes/microecon/part_1/2025_class/Homeworks/Solutions/processed_outputs/HW4_Sol.md",
    "role": "problem_set",
    "format": "typeset",
    "offering": "2025",
@@ -2738,7 +2738,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/microecon/2025_class/Homeworks/Solutions/processed_outputs/HW5_Sol.md",
+   "path": "academic_notes/microecon/part_1/2025_class/Homeworks/Solutions/processed_outputs/HW5_Sol.md",
    "role": "problem_set",
    "format": "typeset",
    "offering": "2025",
@@ -2798,7 +2798,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/microecon/2025_class/Post-Lecture Notes/processed_outputs/1.Course_Intro.md",
+   "path": "academic_notes/microecon/part_1/2025_class/Post-Lecture Notes/processed_outputs/1.Course_Intro.md",
    "role": "instructor",
    "format": "typeset",
    "offering": "2025",
@@ -2834,7 +2834,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/microecon/2025_class/Post-Lecture Notes/processed_outputs/11.Production.md",
+   "path": "academic_notes/microecon/part_1/2025_class/Post-Lecture Notes/processed_outputs/11.Production.md",
    "role": "instructor",
    "format": "slides",
    "offering": "2025",
@@ -2864,7 +2864,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/microecon/2025_class/Post-Lecture Notes/processed_outputs/2.Utility_Maximization_1.md",
+   "path": "academic_notes/microecon/part_1/2025_class/Post-Lecture Notes/processed_outputs/2.Utility_Maximization_1.md",
    "role": "instructor",
    "format": "slides",
    "offering": "2025",
@@ -2894,7 +2894,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/microecon/2025_class/Post-Lecture Notes/processed_outputs/3.Utility_Maximization_2.md",
+   "path": "academic_notes/microecon/part_1/2025_class/Post-Lecture Notes/processed_outputs/3.Utility_Maximization_2.md",
    "role": "instructor",
    "format": "slides",
    "offering": "2025",
@@ -2924,7 +2924,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/microecon/2025_class/Post-Lecture Notes/processed_outputs/4.Random_choice.md",
+   "path": "academic_notes/microecon/part_1/2025_class/Post-Lecture Notes/processed_outputs/4.Random_choice.md",
    "role": "instructor",
    "format": "slides",
    "offering": "2025",
@@ -2954,7 +2954,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/microecon/2025_class/Post-Lecture Notes/processed_outputs/5.Failures Of Rationality.md",
+   "path": "academic_notes/microecon/part_1/2025_class/Post-Lecture Notes/processed_outputs/5.Failures Of Rationality.md",
    "role": "instructor",
    "format": "typeset",
    "offering": "2025",
@@ -2990,7 +2990,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/microecon/2025_class/Post-Lecture Notes/processed_outputs/6.Consumer_Choice_1.md",
+   "path": "academic_notes/microecon/part_1/2025_class/Post-Lecture Notes/processed_outputs/6.Consumer_Choice_1.md",
    "role": "instructor",
    "format": "slides",
    "offering": "2025",
@@ -3020,7 +3020,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/microecon/2025_class/Post-Lecture Notes/processed_outputs/7.Consumer_Choice_2.md",
+   "path": "academic_notes/microecon/part_1/2025_class/Post-Lecture Notes/processed_outputs/7.Consumer_Choice_2.md",
    "role": "instructor",
    "format": "slides",
    "offering": "2025",
@@ -3050,7 +3050,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/microecon/2025_class/Post-Lecture Notes/processed_outputs/8.Risk and Uncertainty 1.md",
+   "path": "academic_notes/microecon/part_1/2025_class/Post-Lecture Notes/processed_outputs/8.Risk and Uncertainty 1.md",
    "role": "instructor",
    "format": "slides",
    "offering": "2025",
@@ -3080,7 +3080,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/microecon/2025_class/Post-Lecture Notes/processed_outputs/9.Risk and Uncertainty 2.md",
+   "path": "academic_notes/microecon/part_1/2025_class/Post-Lecture Notes/processed_outputs/9.Risk and Uncertainty 2.md",
    "role": "instructor",
    "format": "slides",
    "offering": "2025",
@@ -3110,7 +3110,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/microecon/2025_class/Pre exam survivals kit/processed_outputs/2022.md",
+   "path": "academic_notes/microecon/part_1/2025_class/Pre exam survivals kit/processed_outputs/2022.md",
    "role": "problem_set",
    "format": "handwritten",
    "offering": "2025",
@@ -3164,7 +3164,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/microecon/2025_class/Pre exam survivals kit/processed_outputs/2022_solution.md",
+   "path": "academic_notes/microecon/part_1/2025_class/Pre exam survivals kit/processed_outputs/2022_solution.md",
    "role": "exam",
    "format": "typeset",
    "offering": "2025",
@@ -3212,7 +3212,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/microecon/2025_class/Pre exam survivals kit/processed_outputs/2023 solution.md",
+   "path": "academic_notes/microecon/part_1/2025_class/Pre exam survivals kit/processed_outputs/2023 solution.md",
    "role": "problem_set",
    "format": "typeset",
    "offering": "2025",
@@ -3260,7 +3260,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/microecon/2025_class/Pre exam survivals kit/processed_outputs/2023.md",
+   "path": "academic_notes/microecon/part_1/2025_class/Pre exam survivals kit/processed_outputs/2023.md",
    "role": "problem_set",
    "format": "handwritten",
    "offering": "2025",
@@ -3308,7 +3308,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/microecon/2025_class/Pre exam survivals kit/processed_outputs/2024 solutions.md",
+   "path": "academic_notes/microecon/part_1/2025_class/Pre exam survivals kit/processed_outputs/2024 solutions.md",
    "role": "problem_set",
    "format": "handwritten",
    "offering": "2025",
@@ -3362,7 +3362,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/microecon/2025_class/Pre exam survivals kit/processed_outputs/2024.md",
+   "path": "academic_notes/microecon/part_1/2025_class/Pre exam survivals kit/processed_outputs/2024.md",
    "role": "problem_set",
    "format": "handwritten",
    "offering": "2025",
@@ -3410,7 +3410,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/microecon/2025_class/processed_outputs/G6211_Fall_2025_Syllabus_Part1.md",
+   "path": "academic_notes/microecon/part_1/2025_class/processed_outputs/G6211_Fall_2025_Syllabus_Part1.md",
    "role": "syllabus",
    "format": "typeset",
    "offering": "2025",
@@ -3470,7 +3470,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/microecon/2025_class/processed_outputs/Micro_I_Recitation_Notes.md",
+   "path": "academic_notes/microecon/part_1/2025_class/processed_outputs/Micro_I_Recitation_Notes.md",
    "role": "recitation",
    "format": "typeset",
    "offering": "2025",
@@ -3524,7 +3524,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/microecon/2025_class/processed_outputs/Midterm_Suggested Solutions.md",
+   "path": "academic_notes/microecon/part_1/2025_class/processed_outputs/Midterm_Suggested Solutions.md",
    "role": "exam",
    "format": "typeset",
    "offering": "2025",
@@ -3572,7 +3572,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/microecon/2025_class/proofs/processed_outputs/Proofs-Risk and Uncertainty.md",
+   "path": "academic_notes/microecon/part_1/2025_class/proofs/processed_outputs/Proofs-Risk and Uncertainty.md",
    "role": "instructor",
    "format": "slides",
    "offering": "2025",
@@ -3608,7 +3608,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/microecon/2025_class/proofs/processed_outputs/Proofs_Consumer_Choice_1.md",
+   "path": "academic_notes/microecon/part_1/2025_class/proofs/processed_outputs/Proofs_Consumer_Choice_1.md",
    "role": "instructor",
    "format": "slides",
    "offering": "2025",
@@ -3644,7 +3644,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/microecon/2025_class/proofs/processed_outputs/Utility_Maximization_1_Proofs.md",
+   "path": "academic_notes/microecon/part_1/2025_class/proofs/processed_outputs/Utility_Maximization_1_Proofs.md",
    "role": "instructor",
    "format": "slides",
    "offering": "2025",
@@ -3680,7 +3680,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/microecon/2025_class/proofs/processed_outputs/Utility_Maximization_2_Proofs.md",
+   "path": "academic_notes/microecon/part_1/2025_class/proofs/processed_outputs/Utility_Maximization_2_Proofs.md",
    "role": "instructor",
    "format": "slides",
    "offering": "2025",
@@ -3716,7 +3716,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/microecon/lecture_notes/Microecon 2026-09-29 10.07.07.excalidraw.md",
+   "path": "academic_notes/microecon/part_1/lecture_notes/Microecon 2026-09-29 10.07.07.excalidraw.md",
    "role": "student_notes",
    "format": "excalidraw",
    "offering": null,
@@ -3746,7 +3746,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/microecon/lecture_notes/Microeconomics 2026-09-22 10.12.57.excalidraw.md",
+   "path": "academic_notes/microecon/part_1/lecture_notes/Microeconomics 2026-09-22 10.12.57.excalidraw.md",
    "role": "student_notes",
    "format": "excalidraw",
    "offering": null,
@@ -3776,7 +3776,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/microecon/lecture_notes/Microeconomics 2026-09-29 10.07.07.excalidraw.md",
+   "path": "academic_notes/microecon/part_1/lecture_notes/Microeconomics 2026-09-29 10.07.07.excalidraw.md",
    "role": "student_notes",
    "format": "excalidraw",
    "offering": null,
@@ -3806,7 +3806,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/microecon/lecture_notes/Microeconomics 2026-10-01 08.04.56.excalidraw.md",
+   "path": "academic_notes/microecon/part_1/lecture_notes/Microeconomics 2026-10-01 08.04.56.excalidraw.md",
    "role": "student_notes",
    "format": "excalidraw",
    "offering": null,
@@ -3836,7 +3836,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/microecon/lecture_notes/Microeconomics 2026-10-01 10.13.43.excalidraw.md",
+   "path": "academic_notes/microecon/part_1/lecture_notes/Microeconomics 2026-10-01 10.13.43.excalidraw.md",
    "role": "student_notes",
    "format": "excalidraw",
    "offering": null,
@@ -3866,7 +3866,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/microecon/lecture_notes/Microeconomics 2026-10-13 09.38.59.excalidraw.md",
+   "path": "academic_notes/microecon/part_1/lecture_notes/Microeconomics 2026-10-13 09.38.59.excalidraw.md",
    "role": "student_notes",
    "format": "excalidraw",
    "offering": null,
@@ -3896,7 +3896,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/microecon/lecture_notes/processed_outputs/Microeconomics 2026-09-07 19.53.03.excalidraw.rag.md",
+   "path": "academic_notes/microecon/part_1/lecture_notes/processed_outputs/Microeconomics 2026-09-07 19.53.03.excalidraw.rag.md",
    "role": "student_notes",
    "format": "excalidraw",
    "offering": null,
@@ -3932,7 +3932,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/microecon/lecture_notes/processed_outputs/Microeconomics 2026-09-10 10.09.33.excalidraw.rag.md",
+   "path": "academic_notes/microecon/part_1/lecture_notes/processed_outputs/Microeconomics 2026-09-10 10.09.33.excalidraw.rag.md",
    "role": "student_notes",
    "format": "excalidraw",
    "offering": null,
@@ -3968,7 +3968,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/microecon/lecture_notes/processed_outputs/Microeconomics 2026-09-15 10.15.55.excalidraw.rag.md",
+   "path": "academic_notes/microecon/part_1/lecture_notes/processed_outputs/Microeconomics 2026-09-15 10.15.55.excalidraw.rag.md",
    "role": "student_notes",
    "format": "excalidraw",
    "offering": null,
@@ -4004,7 +4004,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/microecon/lecture_notes/processed_outputs/Microeconomics 2026-09-17 10.12.38.excalidraw.rag.md",
+   "path": "academic_notes/microecon/part_1/lecture_notes/processed_outputs/Microeconomics 2026-09-17 10.12.38.excalidraw.rag.md",
    "role": "student_notes",
    "format": "excalidraw",
    "offering": null,
@@ -4040,7 +4040,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/microecon/lecture_notes/processed_outputs/Microeconomics 2026-10-06 10.09.07.excalidraw.rag.md",
+   "path": "academic_notes/microecon/part_1/lecture_notes/processed_outputs/Microeconomics 2026-10-06 10.09.07.excalidraw.rag.md",
    "role": "student_notes",
    "format": "excalidraw",
    "offering": null,
@@ -4076,7 +4076,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/microecon/lecture_notes/processed_outputs/Microeconomics 2026-10-06 10.09.07.excalidraw.questions.md",
+   "path": "academic_notes/microecon/part_1/lecture_notes/processed_outputs/Microeconomics 2026-10-06 10.09.07.excalidraw.questions.md",
    "role": "student_notes",
    "format": "excalidraw",
    "offering": null,
@@ -4106,7 +4106,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/microecon/lecture_notes/processed_outputs/Microeconomics 2026-10-08 08.21.20.excalidraw.rag.md",
+   "path": "academic_notes/microecon/part_1/lecture_notes/processed_outputs/Microeconomics 2026-10-08 08.21.20.excalidraw.rag.md",
    "role": "student_notes",
    "format": "excalidraw",
    "offering": null,
@@ -4154,7 +4154,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/microecon/lecture_notes/processed_outputs/Microeconomics 2026-10-08 08.21.20.excalidraw.questions.md",
+   "path": "academic_notes/microecon/part_1/lecture_notes/processed_outputs/Microeconomics 2026-10-08 08.21.20.excalidraw.questions.md",
    "role": "student_notes",
    "format": "excalidraw",
    "offering": null,
@@ -4184,7 +4184,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/microecon/lecture_notes/processed_outputs/Microeconomics 2026-10-08 10.14.58.excalidraw.rag.md",
+   "path": "academic_notes/microecon/part_1/lecture_notes/processed_outputs/Microeconomics 2026-10-08 10.14.58.excalidraw.rag.md",
    "role": "student_notes",
    "format": "excalidraw",
    "offering": null,
@@ -4220,7 +4220,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/microecon/lecture_notes/processed_outputs/Microeconomics 2026-10-08 10.14.58.excalidraw.questions.md",
+   "path": "academic_notes/microecon/part_1/lecture_notes/processed_outputs/Microeconomics 2026-10-08 10.14.58.excalidraw.questions.md",
    "role": "student_notes",
    "format": "excalidraw",
    "offering": null,
@@ -4250,7 +4250,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/microecon/lecture_notes/processed_outputs/Microeconomics with slides 2026-09-07.excalidraw.rag.md",
+   "path": "academic_notes/microecon/part_1/lecture_notes/processed_outputs/Microeconomics with slides 2026-09-07.excalidraw.rag.md",
    "role": "student_notes",
    "format": "excalidraw",
    "offering": null,
@@ -4292,7 +4292,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/microecon/lecture_notes/processed_outputs/Microeconomics with slides 2026-09-07.excalidraw.questions.md",
+   "path": "academic_notes/microecon/part_1/lecture_notes/processed_outputs/Microeconomics with slides 2026-09-07.excalidraw.questions.md",
    "role": "student_notes",
    "format": "excalidraw",
    "offering": null,
@@ -4328,7 +4328,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/microecon/lecture_notes/processed_outputs/Microeconomics with slides 2026-09-10 10.09.33.excalidraw.rag.md",
+   "path": "academic_notes/microecon/part_1/lecture_notes/processed_outputs/Microeconomics with slides 2026-09-10 10.09.33.excalidraw.rag.md",
    "role": "student_notes",
    "format": "excalidraw",
    "offering": null,
@@ -4370,7 +4370,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/microecon/lecture_notes/processed_outputs/Microeconomics with slides 2026-09-10 10.09.33.excalidraw.questions.md",
+   "path": "academic_notes/microecon/part_1/lecture_notes/processed_outputs/Microeconomics with slides 2026-09-10 10.09.33.excalidraw.questions.md",
    "role": "student_notes",
    "format": "excalidraw",
    "offering": null,
@@ -4406,7 +4406,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/microecon/lecture_notes/processed_outputs/Microeconomics with slides 2026-09-15 10.15.55.excalidraw.rag.md",
+   "path": "academic_notes/microecon/part_1/lecture_notes/processed_outputs/Microeconomics with slides 2026-09-15 10.15.55.excalidraw.rag.md",
    "role": "student_notes",
    "format": "excalidraw",
    "offering": null,
@@ -4448,7 +4448,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/microecon/lecture_notes/processed_outputs/Microeconomics with slides 2026-09-17 10.12.38.excalidraw.rag.md",
+   "path": "academic_notes/microecon/part_1/lecture_notes/processed_outputs/Microeconomics with slides 2026-09-17 10.12.38.excalidraw.rag.md",
    "role": "student_notes",
    "format": "excalidraw",
    "offering": null,
@@ -4490,7 +4490,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/microecon/lecture_notes/processed_outputs/Microeconomics with slides 2026-09-17 10.12.38.excalidraw.questions.md",
+   "path": "academic_notes/microecon/part_1/lecture_notes/processed_outputs/Microeconomics with slides 2026-09-17 10.12.38.excalidraw.questions.md",
    "role": "student_notes",
    "format": "excalidraw",
    "offering": null,
@@ -4526,7 +4526,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/microecon/lecture_notes/processed_outputs/Microeconomics with slides 2026-09-22 10.12.57.excalidraw.rag.md",
+   "path": "academic_notes/microecon/part_1/lecture_notes/processed_outputs/Microeconomics with slides 2026-09-22 10.12.57.excalidraw.rag.md",
    "role": "student_notes",
    "format": "excalidraw",
    "offering": null,
@@ -4568,7 +4568,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/microecon/lecture_notes/processed_outputs/Microeconomics with slides 2026-09-22 10.12.57.excalidraw.questions.md",
+   "path": "academic_notes/microecon/part_1/lecture_notes/processed_outputs/Microeconomics with slides 2026-09-22 10.12.57.excalidraw.questions.md",
    "role": "student_notes",
    "format": "excalidraw",
    "offering": null,
@@ -4604,7 +4604,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/microecon/lecture_notes/processed_outputs/Microeconomics with slides 2026-09-29 10.07.07.excalidraw.rag.md",
+   "path": "academic_notes/microecon/part_1/lecture_notes/processed_outputs/Microeconomics with slides 2026-09-29 10.07.07.excalidraw.rag.md",
    "role": "student_notes",
    "format": "excalidraw",
    "offering": null,
@@ -4646,7 +4646,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/microecon/lecture_notes/processed_outputs/Microeconomics with slides 2026-09-29 10.07.07.excalidraw.questions.md",
+   "path": "academic_notes/microecon/part_1/lecture_notes/processed_outputs/Microeconomics with slides 2026-09-29 10.07.07.excalidraw.questions.md",
    "role": "student_notes",
    "format": "excalidraw",
    "offering": null,
@@ -4682,7 +4682,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/microecon/lecture_notes/processed_outputs/Microeconomics with slides 2026-10-01 10.13.43.excalidraw.rag.md",
+   "path": "academic_notes/microecon/part_1/lecture_notes/processed_outputs/Microeconomics with slides 2026-10-01 10.13.43.excalidraw.rag.md",
    "role": "student_notes",
    "format": "excalidraw",
    "offering": null,
@@ -4724,7 +4724,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/microecon/lecture_notes/processed_outputs/Microeconomics with slides 2026-10-01 10.13.43.excalidraw.questions.md",
+   "path": "academic_notes/microecon/part_1/lecture_notes/processed_outputs/Microeconomics with slides 2026-10-01 10.13.43.excalidraw.questions.md",
    "role": "student_notes",
    "format": "excalidraw",
    "offering": null,
@@ -4760,7 +4760,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/microecon/lecture_notes/processed_outputs/Microeconomics with slides 2026-10-06 10.09.07.excalidraw.rag.md",
+   "path": "academic_notes/microecon/part_1/lecture_notes/processed_outputs/Microeconomics with slides 2026-10-06 10.09.07.excalidraw.rag.md",
    "role": "student_notes",
    "format": "excalidraw",
    "offering": null,
@@ -4802,7 +4802,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/microecon/lecture_notes/processed_outputs/Microeconomics with slides 2026-10-06 10.09.07.excalidraw.questions.md",
+   "path": "academic_notes/microecon/part_1/lecture_notes/processed_outputs/Microeconomics with slides 2026-10-06 10.09.07.excalidraw.questions.md",
    "role": "student_notes",
    "format": "excalidraw",
    "offering": null,
@@ -4838,7 +4838,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/microecon/lecture_notes/processed_outputs/Microeconomics with slides 2026-10-08 10.14.58.excalidraw.rag.md",
+   "path": "academic_notes/microecon/part_1/lecture_notes/processed_outputs/Microeconomics with slides 2026-10-08 10.14.58.excalidraw.rag.md",
    "role": "student_notes",
    "format": "excalidraw",
    "offering": null,
@@ -4880,7 +4880,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/microecon/lecture_notes/processed_outputs/Microeconomics with slides 2026-10-08 10.14.58.excalidraw.questions.md",
+   "path": "academic_notes/microecon/part_1/lecture_notes/processed_outputs/Microeconomics with slides 2026-10-08 10.14.58.excalidraw.questions.md",
    "role": "student_notes",
    "format": "excalidraw",
    "offering": null,
@@ -4916,7 +4916,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/microecon/lecture_notes/processed_outputs/Microeconomics with slides 2026-10-13 09.38.59.excalidraw.rag.md",
+   "path": "academic_notes/microecon/part_1/lecture_notes/processed_outputs/Microeconomics with slides 2026-10-13 09.38.59.excalidraw.rag.md",
    "role": "student_notes",
    "format": "excalidraw",
    "offering": null,
@@ -4958,7 +4958,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/microecon/lecture_notes/processed_outputs/Microeconomics with slides 2026-10-13 09.38.59.excalidraw.questions.md",
+   "path": "academic_notes/microecon/part_1/lecture_notes/processed_outputs/Microeconomics with slides 2026-10-13 09.38.59.excalidraw.questions.md",
    "role": "student_notes",
    "format": "excalidraw",
    "offering": null,
@@ -4994,7 +4994,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/microecon/problem_sets/homework_1_solutions.md",
+   "path": "academic_notes/microecon/part_1/problem_sets/homework_1_solutions.md",
    "role": "problem_set",
    "format": "typeset",
    "offering": null,
@@ -5054,7 +5054,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/microecon/problem_sets/homework_1_solutions_notes.md",
+   "path": "academic_notes/microecon/part_1/problem_sets/homework_1_solutions_notes.md",
    "role": "problem_set",
    "format": "typeset",
    "offering": null,
@@ -5108,7 +5108,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/microecon/problem_sets/homework_2_solutions.md",
+   "path": "academic_notes/microecon/part_1/problem_sets/homework_2_solutions.md",
    "role": "problem_set",
    "format": "typeset",
    "offering": null,
@@ -5168,7 +5168,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/microecon/problem_sets/homework_2_solutions_guided.md",
+   "path": "academic_notes/microecon/part_1/problem_sets/homework_2_solutions_guided.md",
    "role": "problem_set",
    "format": "typeset",
    "offering": null,
@@ -5222,7 +5222,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/microecon/problem_sets/homework_3_guided_solutions.md",
+   "path": "academic_notes/microecon/part_1/problem_sets/homework_3_guided_solutions.md",
    "role": "problem_set",
    "format": "typeset",
    "offering": null,
@@ -5270,7 +5270,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/microecon/problem_sets/homework_3_hints.md",
+   "path": "academic_notes/microecon/part_1/problem_sets/homework_3_hints.md",
    "role": "problem_set",
    "format": "typeset",
    "offering": null,
@@ -5318,7 +5318,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/microecon/problem_sets/homework_3_solutions.md",
+   "path": "academic_notes/microecon/part_1/problem_sets/homework_3_solutions.md",
    "role": "problem_set",
    "format": "typeset",
    "offering": null,
@@ -5372,7 +5372,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/microecon/problem_sets/homework_3_tutoring_audit.md",
+   "path": "academic_notes/microecon/part_1/problem_sets/homework_3_tutoring_audit.md",
    "role": "problem_set",
    "format": "typeset",
    "offering": null,
@@ -5420,7 +5420,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/microecon/problem_sets/homework_4_guided_solutions.md",
+   "path": "academic_notes/microecon/part_1/problem_sets/homework_4_guided_solutions.md",
    "role": "problem_set",
    "format": "typeset",
    "offering": null,
@@ -5468,7 +5468,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/microecon/problem_sets/homework_4_hints.md",
+   "path": "academic_notes/microecon/part_1/problem_sets/homework_4_hints.md",
    "role": "problem_set",
    "format": "typeset",
    "offering": null,
@@ -5510,7 +5510,7 @@
    "decided_by": "review"
   },
   {
-   "path": "academic_notes/microecon/problem_sets/homework_4_solutions.md",
+   "path": "academic_notes/microecon/part_1/problem_sets/homework_4_solutions.md",
    "role": "problem_set",
    "format": "typeset",
    "offering": null,
@@ -5564,7 +5564,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/microecon/problem_sets/Homework_5_solutions.md",
+   "path": "academic_notes/microecon/part_1/problem_sets/Homework_5_solutions.md",
    "role": "problem_set",
    "format": "typeset",
    "offering": null,
@@ -5618,7 +5618,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/microecon/problem_sets/Homework_5_solutions_extended.md",
+   "path": "academic_notes/microecon/part_1/problem_sets/Homework_5_solutions_extended.md",
    "role": "problem_set",
    "format": "typeset",
    "offering": null,
@@ -5672,7 +5672,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/microecon/problem_sets/HW4Graphs 2026-10-09 15.54.08.excalidraw.md",
+   "path": "academic_notes/microecon/part_1/problem_sets/HW4Graphs 2026-10-09 15.54.08.excalidraw.md",
    "role": "student_notes",
    "format": "excalidraw",
    "offering": null,
@@ -5720,7 +5720,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/microecon/problem_sets/processed_outputs/Homework_1.md",
+   "path": "academic_notes/microecon/part_1/problem_sets/processed_outputs/Homework_1.md",
    "role": "problem_set",
    "format": "typeset",
    "offering": null,
@@ -5780,7 +5780,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/microecon/problem_sets/processed_outputs/Homework_2.md",
+   "path": "academic_notes/microecon/part_1/problem_sets/processed_outputs/Homework_2.md",
    "role": "problem_set",
    "format": "handwritten",
    "offering": null,
@@ -5840,7 +5840,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/microecon/problem_sets/processed_outputs/Homework_3.md",
+   "path": "academic_notes/microecon/part_1/problem_sets/processed_outputs/Homework_3.md",
    "role": "problem_set",
    "format": "typeset",
    "offering": null,
@@ -5900,7 +5900,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/microecon/problem_sets/processed_outputs/Homework_4.md",
+   "path": "academic_notes/microecon/part_1/problem_sets/processed_outputs/Homework_4.md",
    "role": "problem_set",
    "format": "typeset",
    "offering": null,
@@ -5960,7 +5960,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/microecon/problem_sets/processed_outputs/Homework_5.md",
+   "path": "academic_notes/microecon/part_1/problem_sets/processed_outputs/Homework_5.md",
    "role": "problem_set",
    "format": "typeset",
    "offering": null,
@@ -6020,7 +6020,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/microecon/problem_sets/TA_solutions/processed_outputs/Part_I_HW1_Sol.md",
+   "path": "academic_notes/microecon/part_1/problem_sets/TA_solutions/processed_outputs/Part_I_HW1_Sol.md",
    "role": "problem_set",
    "format": "handwritten",
    "offering": null,
@@ -6086,7 +6086,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/microecon/problem_sets/TA_solutions/processed_outputs/Part_I_HW2_Sol.md",
+   "path": "academic_notes/microecon/part_1/problem_sets/TA_solutions/processed_outputs/Part_I_HW2_Sol.md",
    "role": "problem_set",
    "format": "handwritten",
    "offering": null,
@@ -6152,7 +6152,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/microecon/problem_sets/TA_solutions/processed_outputs/Part_I_HW3_Sol.md",
+   "path": "academic_notes/microecon/part_1/problem_sets/TA_solutions/processed_outputs/Part_I_HW3_Sol.md",
    "role": "problem_set",
    "format": "handwritten",
    "offering": null,
@@ -6218,7 +6218,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/microecon/professor_notes/Drawing 2026-09-30 09.53.49.excalidraw.md",
+   "path": "academic_notes/microecon/part_1/professor_notes/Drawing 2026-09-30 09.53.49.excalidraw.md",
    "role": "student_notes",
    "format": "excalidraw",
    "offering": null,
@@ -6260,7 +6260,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/microecon/professor_notes/processed_outputs/1.Course_Intro.md",
+   "path": "academic_notes/microecon/part_1/professor_notes/processed_outputs/1.Course_Intro.md",
    "role": "instructor",
    "format": "typeset",
    "offering": null,
@@ -6308,7 +6308,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/microecon/professor_notes/processed_outputs/2.Utility_Maximization_1.md",
+   "path": "academic_notes/microecon/part_1/professor_notes/processed_outputs/2.Utility_Maximization_1.md",
    "role": "instructor",
    "format": "slides",
    "offering": null,
@@ -6350,7 +6350,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/microecon/professor_notes/processed_outputs/3.Utility_Maximization_2_part_1.md",
+   "path": "academic_notes/microecon/part_1/professor_notes/processed_outputs/3.Utility_Maximization_2_part_1.md",
    "role": "instructor",
    "format": "slides",
    "offering": null,
@@ -6392,7 +6392,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/microecon/professor_notes/processed_outputs/4.Random_choice.md",
+   "path": "academic_notes/microecon/part_1/professor_notes/processed_outputs/4.Random_choice.md",
    "role": "instructor",
    "format": "slides",
    "offering": null,
@@ -6434,7 +6434,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/microecon/professor_notes/processed_outputs/5.Failures Of Rationality.md",
+   "path": "academic_notes/microecon/part_1/professor_notes/processed_outputs/5.Failures Of Rationality.md",
    "role": "instructor",
    "format": "typeset",
    "offering": null,
@@ -6482,7 +6482,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/microecon/professor_notes/processed_outputs/6.Consumer_Choice_1.md",
+   "path": "academic_notes/microecon/part_1/professor_notes/processed_outputs/6.Consumer_Choice_1.md",
    "role": "instructor",
    "format": "slides",
    "offering": null,
@@ -6524,7 +6524,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/microecon/professor_notes/processed_outputs/Utility_Maximization_1_Proofs.md",
+   "path": "academic_notes/microecon/part_1/professor_notes/processed_outputs/Utility_Maximization_1_Proofs.md",
    "role": "instructor",
    "format": "slides",
    "offering": null,
@@ -6572,7 +6572,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/microecon/syllabus/ECON6211_syllabus.md",
+   "path": "academic_notes/microecon/part_1/syllabus/ECON6211_syllabus.md",
    "role": "syllabus",
    "format": "typeset",
    "offering": null,
@@ -6626,7 +6626,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/microecon/syllabus/processed_outputs/G6211_Fall_2025_Syllabus_Part1 (1).md",
+   "path": "academic_notes/microecon/part_1/syllabus/processed_outputs/G6211_Fall_2025_Syllabus_Part1 (1).md",
    "role": "syllabus",
    "format": "handwritten",
    "offering": null,
@@ -6692,7 +6692,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/microecon/syllabus/processed_outputs/G6211_Fall_2025_Syllabus_Part1.md",
+   "path": "academic_notes/microecon/part_1/syllabus/processed_outputs/G6211_Fall_2025_Syllabus_Part1.md",
    "role": "syllabus",
    "format": "handwritten",
    "offering": null,
@@ -6758,7 +6758,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/microecon/textbooks/Bonus/processed_outputs/Administrator_59306pre_2000/Administrator_59306pre_2000.rag.md",
+   "path": "academic_notes/microecon/part_1/textbooks/Bonus/processed_outputs/Administrator_59306pre_2000/Administrator_59306pre_2000.rag.md",
    "role": "textbook",
    "format": "chapter",
    "offering": null,
@@ -6788,7 +6788,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/microecon/textbooks/Bonus/processed_outputs/Rubenstein_Corel_Ventura_INDEXCHP_2001/Rubenstein_Corel_Ventura_INDEXCHP_2001.rag.md",
+   "path": "academic_notes/microecon/part_1/textbooks/Bonus/processed_outputs/Rubenstein_Corel_Ventura_INDEXCHP_2001/Rubenstein_Corel_Ventura_INDEXCHP_2001.rag.md",
    "role": "textbook",
    "format": "chapter",
    "offering": null,
@@ -6818,7 +6818,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/microecon/textbooks/Bonus/processed_outputs/Rubenstein_Models_in_Microeconomic_Theory_2023/Rubenstein_Models_in_Microeconomic_Theory_2023.rag.md",
+   "path": "academic_notes/microecon/part_1/textbooks/Bonus/processed_outputs/Rubenstein_Models_in_Microeconomic_Theory_2023/Rubenstein_Models_in_Microeconomic_Theory_2023.rag.md",
    "role": "textbook",
    "format": "chapter",
    "offering": null,
@@ -6848,7 +6848,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/microecon/textbooks/processed_outputs/Ok_Real_Analysis_with_Economic_Applications_2026/chapters/00_front_matter.rag.md",
+   "path": "academic_notes/microecon/part_1/textbooks/processed_outputs/Ok_Real_Analysis_with_Economic_Applications_2026/chapters/00_front_matter.rag.md",
    "role": "textbook",
    "format": "chapter",
    "offering": null,
@@ -6878,7 +6878,7 @@
    "decided_by": "review"
   },
   {
-   "path": "academic_notes/microecon/textbooks/processed_outputs/Ok_Real_Analysis_with_Economic_Applications_2026/chapters/01_preliminaries_of_real_analysis.rag.md",
+   "path": "academic_notes/microecon/part_1/textbooks/processed_outputs/Ok_Real_Analysis_with_Economic_Applications_2026/chapters/01_preliminaries_of_real_analysis.rag.md",
    "role": "textbook",
    "format": "chapter",
    "offering": null,
@@ -6908,7 +6908,7 @@
    "decided_by": "review"
   },
   {
-   "path": "academic_notes/microecon/textbooks/processed_outputs/Ok_Real_Analysis_with_Economic_Applications_2026/chapters/02_countability.rag.md",
+   "path": "academic_notes/microecon/part_1/textbooks/processed_outputs/Ok_Real_Analysis_with_Economic_Applications_2026/chapters/02_countability.rag.md",
    "role": "textbook",
    "format": "chapter",
    "offering": null,
@@ -6938,7 +6938,7 @@
    "decided_by": "review"
   },
   {
-   "path": "academic_notes/microecon/textbooks/processed_outputs/Ok_Real_Analysis_with_Economic_Applications_2026/chapters/03_metric_spaces.rag.md",
+   "path": "academic_notes/microecon/part_1/textbooks/processed_outputs/Ok_Real_Analysis_with_Economic_Applications_2026/chapters/03_metric_spaces.rag.md",
    "role": "textbook",
    "format": "chapter",
    "offering": null,
@@ -6968,7 +6968,7 @@
    "decided_by": "review"
   },
   {
-   "path": "academic_notes/microecon/textbooks/processed_outputs/Ok_Real_Analysis_with_Economic_Applications_2026/chapters/04_continuity_i.rag.md",
+   "path": "academic_notes/microecon/part_1/textbooks/processed_outputs/Ok_Real_Analysis_with_Economic_Applications_2026/chapters/04_continuity_i.rag.md",
    "role": "textbook",
    "format": "chapter",
    "offering": null,
@@ -6998,7 +6998,7 @@
    "decided_by": "review"
   },
   {
-   "path": "academic_notes/microecon/textbooks/processed_outputs/Ok_Real_Analysis_with_Economic_Applications_2026/chapters/05_continuity_ii.rag.md",
+   "path": "academic_notes/microecon/part_1/textbooks/processed_outputs/Ok_Real_Analysis_with_Economic_Applications_2026/chapters/05_continuity_ii.rag.md",
    "role": "textbook",
    "format": "chapter",
    "offering": null,
@@ -7028,7 +7028,7 @@
    "decided_by": "review"
   },
   {
-   "path": "academic_notes/microecon/textbooks/processed_outputs/Ok_Real_Analysis_with_Economic_Applications_2026/chapters/06_linear_spaces.rag.md",
+   "path": "academic_notes/microecon/part_1/textbooks/processed_outputs/Ok_Real_Analysis_with_Economic_Applications_2026/chapters/06_linear_spaces.rag.md",
    "role": "textbook",
    "format": "chapter",
    "offering": null,
@@ -7064,7 +7064,7 @@
    "decided_by": "review"
   },
   {
-   "path": "academic_notes/microecon/textbooks/processed_outputs/Ok_Real_Analysis_with_Economic_Applications_2026/chapters/07_convexity.rag.md",
+   "path": "academic_notes/microecon/part_1/textbooks/processed_outputs/Ok_Real_Analysis_with_Economic_Applications_2026/chapters/07_convexity.rag.md",
    "role": "textbook",
    "format": "chapter",
    "offering": null,
@@ -7100,7 +7100,7 @@
    "decided_by": "review"
   },
   {
-   "path": "academic_notes/microecon/textbooks/processed_outputs/Ok_Real_Analysis_with_Economic_Applications_2026/chapters/08_economic_applications.rag.md",
+   "path": "academic_notes/microecon/part_1/textbooks/processed_outputs/Ok_Real_Analysis_with_Economic_Applications_2026/chapters/08_economic_applications.rag.md",
    "role": "textbook",
    "format": "chapter",
    "offering": null,
@@ -7130,7 +7130,7 @@
    "decided_by": "review"
   },
   {
-   "path": "academic_notes/microecon/textbooks/processed_outputs/Ok_Real_Analysis_with_Economic_Applications_2026/chapters/09_metric_linear_spaces.rag.md",
+   "path": "academic_notes/microecon/part_1/textbooks/processed_outputs/Ok_Real_Analysis_with_Economic_Applications_2026/chapters/09_metric_linear_spaces.rag.md",
    "role": "textbook",
    "format": "chapter",
    "offering": null,
@@ -7160,7 +7160,7 @@
    "decided_by": "review"
   },
   {
-   "path": "academic_notes/microecon/textbooks/processed_outputs/Ok_Real_Analysis_with_Economic_Applications_2026/chapters/10_normed_linear_spaces.rag.md",
+   "path": "academic_notes/microecon/part_1/textbooks/processed_outputs/Ok_Real_Analysis_with_Economic_Applications_2026/chapters/10_normed_linear_spaces.rag.md",
    "role": "textbook",
    "format": "chapter",
    "offering": null,
@@ -7190,7 +7190,7 @@
    "decided_by": "review"
   },
   {
-   "path": "academic_notes/microecon/textbooks/processed_outputs/Ok_Real_Analysis_with_Economic_Applications_2026/chapters/11_differential_calculus.rag.md",
+   "path": "academic_notes/microecon/part_1/textbooks/processed_outputs/Ok_Real_Analysis_with_Economic_Applications_2026/chapters/11_differential_calculus.rag.md",
    "role": "textbook",
    "format": "chapter",
    "offering": null,
@@ -7220,7 +7220,7 @@
    "decided_by": "review"
   },
   {
-   "path": "academic_notes/microecon/textbooks/processed_outputs/Press_Microeconomic_Theory_2011/chapters/00_front_matter.rag.md",
+   "path": "academic_notes/microecon/part_1/textbooks/processed_outputs/Press_Microeconomic_Theory_2011/chapters/00_front_matter.rag.md",
    "role": "textbook",
    "format": "chapter",
    "offering": null,
@@ -7250,7 +7250,7 @@
    "decided_by": "review"
   },
   {
-   "path": "academic_notes/microecon/textbooks/processed_outputs/Press_Microeconomic_Theory_2011/chapters/01_preference_and_choice.rag.md",
+   "path": "academic_notes/microecon/part_1/textbooks/processed_outputs/Press_Microeconomic_Theory_2011/chapters/01_preference_and_choice.rag.md",
    "role": "textbook",
    "format": "chapter",
    "offering": null,
@@ -7280,7 +7280,7 @@
    "decided_by": "review"
   },
   {
-   "path": "academic_notes/microecon/textbooks/processed_outputs/Press_Microeconomic_Theory_2011/chapters/02_consumer_choice.rag.md",
+   "path": "academic_notes/microecon/part_1/textbooks/processed_outputs/Press_Microeconomic_Theory_2011/chapters/02_consumer_choice.rag.md",
    "role": "textbook",
    "format": "chapter",
    "offering": null,
@@ -7310,7 +7310,7 @@
    "decided_by": "review"
   },
   {
-   "path": "academic_notes/microecon/textbooks/processed_outputs/Press_Microeconomic_Theory_2011/chapters/03_classical_demand_theory.rag.md",
+   "path": "academic_notes/microecon/part_1/textbooks/processed_outputs/Press_Microeconomic_Theory_2011/chapters/03_classical_demand_theory.rag.md",
    "role": "textbook",
    "format": "chapter",
    "offering": null,
@@ -7340,7 +7340,7 @@
    "decided_by": "review"
   },
   {
-   "path": "academic_notes/microecon/textbooks/processed_outputs/Press_Microeconomic_Theory_2011/chapters/04_aggregate_demand.rag.md",
+   "path": "academic_notes/microecon/part_1/textbooks/processed_outputs/Press_Microeconomic_Theory_2011/chapters/04_aggregate_demand.rag.md",
    "role": "textbook",
    "format": "chapter",
    "offering": null,
@@ -7370,7 +7370,7 @@
    "decided_by": "review"
   },
   {
-   "path": "academic_notes/microecon/textbooks/processed_outputs/Press_Microeconomic_Theory_2011/chapters/05_production.rag.md",
+   "path": "academic_notes/microecon/part_1/textbooks/processed_outputs/Press_Microeconomic_Theory_2011/chapters/05_production.rag.md",
    "role": "textbook",
    "format": "chapter",
    "offering": null,
@@ -7400,7 +7400,7 @@
    "decided_by": "review"
   },
   {
-   "path": "academic_notes/microecon/textbooks/processed_outputs/Press_Microeconomic_Theory_2011/chapters/06_choice_under_uncertainty.rag.md",
+   "path": "academic_notes/microecon/part_1/textbooks/processed_outputs/Press_Microeconomic_Theory_2011/chapters/06_choice_under_uncertainty.rag.md",
    "role": "textbook",
    "format": "chapter",
    "offering": null,
@@ -7430,7 +7430,7 @@
    "decided_by": "review"
   },
   {
-   "path": "academic_notes/microecon/textbooks/processed_outputs/Press_Microeconomic_Theory_2011/chapters/07_basic_elements_of_noncooperative_games.rag.md",
+   "path": "academic_notes/microecon/part_1/textbooks/processed_outputs/Press_Microeconomic_Theory_2011/chapters/07_basic_elements_of_noncooperative_games.rag.md",
    "role": "textbook",
    "format": "chapter",
    "offering": null,
@@ -7460,7 +7460,7 @@
    "decided_by": "review"
   },
   {
-   "path": "academic_notes/microecon/textbooks/processed_outputs/Press_Microeconomic_Theory_2011/chapters/08_simultaneous_move_games.rag.md",
+   "path": "academic_notes/microecon/part_1/textbooks/processed_outputs/Press_Microeconomic_Theory_2011/chapters/08_simultaneous_move_games.rag.md",
    "role": "textbook",
    "format": "chapter",
    "offering": null,
@@ -7490,7 +7490,7 @@
    "decided_by": "review"
   },
   {
-   "path": "academic_notes/microecon/textbooks/processed_outputs/Press_Microeconomic_Theory_2011/chapters/09_market_power.rag.md",
+   "path": "academic_notes/microecon/part_1/textbooks/processed_outputs/Press_Microeconomic_Theory_2011/chapters/09_market_power.rag.md",
    "role": "textbook",
    "format": "chapter",
    "offering": null,
@@ -7520,7 +7520,7 @@
    "decided_by": "review"
   },
   {
-   "path": "academic_notes/microecon/textbooks/processed_outputs/Press_Microeconomic_Theory_2011/chapters/10_adverse_selection_signaling_and_screening.rag.md",
+   "path": "academic_notes/microecon/part_1/textbooks/processed_outputs/Press_Microeconomic_Theory_2011/chapters/10_adverse_selection_signaling_and_screening.rag.md",
    "role": "textbook",
    "format": "chapter",
    "offering": null,
@@ -7550,7 +7550,7 @@
    "decided_by": "review"
   },
   {
-   "path": "academic_notes/microecon/textbooks/processed_outputs/Press_Microeconomic_Theory_2011/chapters/11_the_principal_agent_problem.rag.md",
+   "path": "academic_notes/microecon/part_1/textbooks/processed_outputs/Press_Microeconomic_Theory_2011/chapters/11_the_principal_agent_problem.rag.md",
    "role": "textbook",
    "format": "chapter",
    "offering": null,
@@ -7586,7 +7586,7 @@
    "decided_by": "review"
   },
   {
-   "path": "academic_notes/microecon/textbooks/processed_outputs/Press_Microeconomic_Theory_2011/chapters/12_general_equilibrium_theory_some_examples.rag.md",
+   "path": "academic_notes/microecon/part_1/textbooks/processed_outputs/Press_Microeconomic_Theory_2011/chapters/12_general_equilibrium_theory_some_examples.rag.md",
    "role": "textbook",
    "format": "chapter",
    "offering": null,
@@ -7616,7 +7616,7 @@
    "decided_by": "review"
   },
   {
-   "path": "academic_notes/microecon/textbooks/processed_outputs/Press_Microeconomic_Theory_2011/chapters/13_equilibrium_and_its_basic_welfare_properties.rag.md",
+   "path": "academic_notes/microecon/part_1/textbooks/processed_outputs/Press_Microeconomic_Theory_2011/chapters/13_equilibrium_and_its_basic_welfare_properties.rag.md",
    "role": "textbook",
    "format": "chapter",
    "offering": null,
@@ -7646,7 +7646,7 @@
    "decided_by": "review"
   },
   {
-   "path": "academic_notes/microecon/textbooks/processed_outputs/Press_Microeconomic_Theory_2011/chapters/14_some_foundations_for_competitive_equilibria.rag.md",
+   "path": "academic_notes/microecon/part_1/textbooks/processed_outputs/Press_Microeconomic_Theory_2011/chapters/14_some_foundations_for_competitive_equilibria.rag.md",
    "role": "textbook",
    "format": "chapter",
    "offering": null,
@@ -7676,7 +7676,7 @@
    "decided_by": "review"
   },
   {
-   "path": "academic_notes/microecon/textbooks/processed_outputs/Press_Microeconomic_Theory_2011/chapters/15_general_equilibrium_under_uncertainty.rag.md",
+   "path": "academic_notes/microecon/part_1/textbooks/processed_outputs/Press_Microeconomic_Theory_2011/chapters/15_general_equilibrium_under_uncertainty.rag.md",
    "role": "textbook",
    "format": "chapter",
    "offering": null,
@@ -7706,7 +7706,7 @@
    "decided_by": "review"
   },
   {
-   "path": "academic_notes/microecon/textbooks/processed_outputs/Press_Microeconomic_Theory_2011/chapters/16_equilibrium_and_time.rag.md",
+   "path": "academic_notes/microecon/part_1/textbooks/processed_outputs/Press_Microeconomic_Theory_2011/chapters/16_equilibrium_and_time.rag.md",
    "role": "textbook",
    "format": "chapter",
    "offering": null,
@@ -7736,7 +7736,7 @@
    "decided_by": "review"
   },
   {
-   "path": "academic_notes/microecon/textbooks/processed_outputs/Press_Microeconomic_Theory_2011/chapters/17_elements_of_welfare_economics_and_axiomatic_bargaining.rag.md",
+   "path": "academic_notes/microecon/part_1/textbooks/processed_outputs/Press_Microeconomic_Theory_2011/chapters/17_elements_of_welfare_economics_and_axiomatic_bargaining.rag.md",
    "role": "textbook",
    "format": "chapter",
    "offering": null,
@@ -7766,7 +7766,7 @@
    "decided_by": "review"
   },
   {
-   "path": "academic_notes/microecon/textbooks/processed_outputs/Press_Microeconomic_Theory_2011/chapters/18_incentives_and_mechanism_design.rag.md",
+   "path": "academic_notes/microecon/part_1/textbooks/processed_outputs/Press_Microeconomic_Theory_2011/chapters/18_incentives_and_mechanism_design.rag.md",
    "role": "textbook",
    "format": "chapter",
    "offering": null,
@@ -7796,7 +7796,7 @@
    "decided_by": "review"
   },
   {
-   "path": "academic_notes/microecon/textbooks/processed_outputs/Rubenstein_Lecture_Notes_in_Microeconomic_Theory_2026/chapters/00_front_matter.rag.md",
+   "path": "academic_notes/microecon/part_1/textbooks/processed_outputs/Rubenstein_Lecture_Notes_in_Microeconomic_Theory_2026/chapters/00_front_matter.rag.md",
    "role": "textbook",
    "format": "chapter",
    "offering": null,
@@ -7826,7 +7826,7 @@
    "decided_by": "review"
   },
   {
-   "path": "academic_notes/microecon/textbooks/processed_outputs/Rubenstein_Lecture_Notes_in_Microeconomic_Theory_2026/chapters/01_introduction.rag.md",
+   "path": "academic_notes/microecon/part_1/textbooks/processed_outputs/Rubenstein_Lecture_Notes_in_Microeconomic_Theory_2026/chapters/01_introduction.rag.md",
    "role": "textbook",
    "format": "chapter",
    "offering": null,
@@ -7856,7 +7856,7 @@
    "decided_by": "review"
   },
   {
-   "path": "academic_notes/microecon/textbooks/processed_outputs/Rubenstein_Lecture_Notes_in_Microeconomic_Theory_2026/chapters/02_preferences.rag.md",
+   "path": "academic_notes/microecon/part_1/textbooks/processed_outputs/Rubenstein_Lecture_Notes_in_Microeconomic_Theory_2026/chapters/02_preferences.rag.md",
    "role": "textbook",
    "format": "chapter",
    "offering": null,
@@ -7886,7 +7886,7 @@
    "decided_by": "review"
   },
   {
-   "path": "academic_notes/microecon/textbooks/processed_outputs/Rubenstein_Lecture_Notes_in_Microeconomic_Theory_2026/chapters/03_utility.rag.md",
+   "path": "academic_notes/microecon/part_1/textbooks/processed_outputs/Rubenstein_Lecture_Notes_in_Microeconomic_Theory_2026/chapters/03_utility.rag.md",
    "role": "textbook",
    "format": "chapter",
    "offering": null,
@@ -7916,7 +7916,7 @@
    "decided_by": "review"
   },
   {
-   "path": "academic_notes/microecon/textbooks/processed_outputs/Rubenstein_Lecture_Notes_in_Microeconomic_Theory_2026/chapters/04_choice.rag.md",
+   "path": "academic_notes/microecon/part_1/textbooks/processed_outputs/Rubenstein_Lecture_Notes_in_Microeconomic_Theory_2026/chapters/04_choice.rag.md",
    "role": "textbook",
    "format": "chapter",
    "offering": null,
@@ -7946,7 +7946,7 @@
    "decided_by": "review"
   },
   {
-   "path": "academic_notes/microecon/textbooks/processed_outputs/Rubenstein_Lecture_Notes_in_Microeconomic_Theory_2026/chapters/05_consumer_preferences.rag.md",
+   "path": "academic_notes/microecon/part_1/textbooks/processed_outputs/Rubenstein_Lecture_Notes_in_Microeconomic_Theory_2026/chapters/05_consumer_preferences.rag.md",
    "role": "textbook",
    "format": "chapter",
    "offering": null,
@@ -7976,7 +7976,7 @@
    "decided_by": "review"
   },
   {
-   "path": "academic_notes/microecon/textbooks/processed_outputs/Rubenstein_Lecture_Notes_in_Microeconomic_Theory_2026/chapters/06_demand_consumer_choice.rag.md",
+   "path": "academic_notes/microecon/part_1/textbooks/processed_outputs/Rubenstein_Lecture_Notes_in_Microeconomic_Theory_2026/chapters/06_demand_consumer_choice.rag.md",
    "role": "textbook",
    "format": "chapter",
    "offering": null,
@@ -8006,7 +8006,7 @@
    "decided_by": "review"
   },
   {
-   "path": "academic_notes/microecon/textbooks/processed_outputs/Rubenstein_Lecture_Notes_in_Microeconomic_Theory_2026/chapters/07_more_economic_agents.rag.md",
+   "path": "academic_notes/microecon/part_1/textbooks/processed_outputs/Rubenstein_Lecture_Notes_in_Microeconomic_Theory_2026/chapters/07_more_economic_agents.rag.md",
    "role": "textbook",
    "format": "chapter",
    "offering": null,
@@ -8036,7 +8036,7 @@
    "decided_by": "review"
   },
   {
-   "path": "academic_notes/microecon/textbooks/processed_outputs/Rubenstein_Lecture_Notes_in_Microeconomic_Theory_2026/chapters/08_expected_utility.rag.md",
+   "path": "academic_notes/microecon/part_1/textbooks/processed_outputs/Rubenstein_Lecture_Notes_in_Microeconomic_Theory_2026/chapters/08_expected_utility.rag.md",
    "role": "textbook",
    "format": "chapter",
    "offering": null,
@@ -8066,7 +8066,7 @@
    "decided_by": "review"
   },
   {
-   "path": "academic_notes/microecon/textbooks/processed_outputs/Rubenstein_Lecture_Notes_in_Microeconomic_Theory_2026/chapters/09_risk_aversion.rag.md",
+   "path": "academic_notes/microecon/part_1/textbooks/processed_outputs/Rubenstein_Lecture_Notes_in_Microeconomic_Theory_2026/chapters/09_risk_aversion.rag.md",
    "role": "textbook",
    "format": "chapter",
    "offering": null,
@@ -8096,7 +8096,7 @@
    "decided_by": "review"
   },
   {
-   "path": "academic_notes/microecon/textbooks/processed_outputs/Rubenstein_Lecture_Notes_in_Microeconomic_Theory_2026/chapters/10_social_choice.rag.md",
+   "path": "academic_notes/microecon/part_1/textbooks/processed_outputs/Rubenstein_Lecture_Notes_in_Microeconomic_Theory_2026/chapters/10_social_choice.rag.md",
    "role": "textbook",
    "format": "chapter",
    "offering": null,
@@ -8126,7 +8126,7 @@
    "decided_by": "review"
   },
   {
-   "path": "academic_notes/microecon/textbooks/processed_outputs/Rubenstein_Lecture_Notes_in_Microeconomic_Theory_2026/chapters/11_76_review_problems.rag.md",
+   "path": "academic_notes/microecon/part_1/textbooks/processed_outputs/Rubenstein_Lecture_Notes_in_Microeconomic_Theory_2026/chapters/11_76_review_problems.rag.md",
    "role": "textbook",
    "format": "chapter",
    "offering": null,

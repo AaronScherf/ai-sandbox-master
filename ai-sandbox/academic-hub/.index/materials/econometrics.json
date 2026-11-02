@@ -2,7 +2,7 @@
  "course": "econometrics",
  "materials": [
   {
-   "path": "academic_notes/econometrics/class_2024/Class Notes/Hand-Written Notes/processed_outputs/090424.md",
+   "path": "academic_notes/econometrics/part_1/class_2024/Class Notes/Hand-Written Notes/processed_outputs/090424.md",
    "role": "instructor",
    "format": "handwritten",
    "offering": "2024",
@@ -32,7 +32,7 @@
    "decided_by": "review"
   },
   {
-   "path": "academic_notes/econometrics/class_2024/Class Notes/Hand-Written Notes/processed_outputs/090924.md",
+   "path": "academic_notes/econometrics/part_1/class_2024/Class Notes/Hand-Written Notes/processed_outputs/090924.md",
    "role": "instructor",
    "format": "handwritten",
    "offering": "2024",
@@ -62,7 +62,7 @@
    "decided_by": "review"
   },
   {
-   "path": "academic_notes/econometrics/class_2024/Class Notes/Hand-Written Notes/processed_outputs/091124.md",
+   "path": "academic_notes/econometrics/part_1/class_2024/Class Notes/Hand-Written Notes/processed_outputs/091124.md",
    "role": "instructor",
    "format": "handwritten",
    "offering": "2024",
@@ -92,7 +92,7 @@
    "decided_by": "review"
   },
   {
-   "path": "academic_notes/econometrics/class_2024/Class Notes/Hand-Written Notes/processed_outputs/091624.md",
+   "path": "academic_notes/econometrics/part_1/class_2024/Class Notes/Hand-Written Notes/processed_outputs/091624.md",
    "role": "instructor",
    "format": "handwritten",
    "offering": "2024",
@@ -122,7 +122,7 @@
    "decided_by": "review"
   },
   {
-   "path": "academic_notes/econometrics/class_2024/Class Notes/Hand-Written Notes/processed_outputs/091824.md",
+   "path": "academic_notes/econometrics/part_1/class_2024/Class Notes/Hand-Written Notes/processed_outputs/091824.md",
    "role": "instructor",
    "format": "handwritten",
    "offering": "2024",
@@ -152,7 +152,7 @@
    "decided_by": "review"
   },
   {
-   "path": "academic_notes/econometrics/class_2024/Class Notes/Hand-Written Notes/processed_outputs/092324.md",
+   "path": "academic_notes/econometrics/part_1/class_2024/Class Notes/Hand-Written Notes/processed_outputs/092324.md",
    "role": "instructor",
    "format": "handwritten",
    "offering": "2024",
@@ -182,7 +182,7 @@
    "decided_by": "review"
   },
   {
-   "path": "academic_notes/econometrics/class_2024/Class Notes/Hand-Written Notes/processed_outputs/092524.md",
+   "path": "academic_notes/econometrics/part_1/class_2024/Class Notes/Hand-Written Notes/processed_outputs/092524.md",
    "role": "instructor",
    "format": "handwritten",
    "offering": "2024",
@@ -212,7 +212,7 @@
    "decided_by": "review"
   },
   {
-   "path": "academic_notes/econometrics/class_2024/Class Notes/Hand-Written Notes/processed_outputs/093024.md",
+   "path": "academic_notes/econometrics/part_1/class_2024/Class Notes/Hand-Written Notes/processed_outputs/093024.md",
    "role": "instructor",
    "format": "handwritten",
    "offering": "2024",
@@ -242,7 +242,7 @@
    "decided_by": "review"
   },
   {
-   "path": "academic_notes/econometrics/class_2024/Class Notes/Hand-Written Notes/processed_outputs/100224.md",
+   "path": "academic_notes/econometrics/part_1/class_2024/Class Notes/Hand-Written Notes/processed_outputs/100224.md",
    "role": "instructor",
    "format": "handwritten",
    "offering": "2024",
@@ -272,7 +272,7 @@
    "decided_by": "review"
   },
   {
-   "path": "academic_notes/econometrics/class_2024/Class Notes/Hand-Written Notes/processed_outputs/100724.md",
+   "path": "academic_notes/econometrics/part_1/class_2024/Class Notes/Hand-Written Notes/processed_outputs/100724.md",
    "role": "instructor",
    "format": "handwritten",
    "offering": "2024",
@@ -302,7 +302,7 @@
    "decided_by": "review"
   },
   {
-   "path": "academic_notes/econometrics/class_2024/Class Notes/Hand-Written Notes/processed_outputs/101424.md",
+   "path": "academic_notes/econometrics/part_1/class_2024/Class Notes/Hand-Written Notes/processed_outputs/101424.md",
    "role": "instructor",
    "format": "handwritten",
    "offering": "2024",
@@ -332,7 +332,7 @@
    "decided_by": "review"
   },
   {
-   "path": "academic_notes/econometrics/class_2024/Class Notes/Slides/processed_outputs/review.md",
+   "path": "academic_notes/econometrics/part_1/class_2024/Class Notes/Slides/processed_outputs/review.md",
    "role": "instructor",
    "format": "slides",
    "offering": "2024",
@@ -368,7 +368,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/econometrics/class_2024/Class Notes/Slides/processed_outputs/slides1.md",
+   "path": "academic_notes/econometrics/part_1/class_2024/Class Notes/Slides/processed_outputs/slides1.md",
    "role": "instructor",
    "format": "slides",
    "offering": "2024",
@@ -404,7 +404,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/econometrics/class_2024/Class Notes/Slides/processed_outputs/slides2.md",
+   "path": "academic_notes/econometrics/part_1/class_2024/Class Notes/Slides/processed_outputs/slides2.md",
    "role": "instructor",
    "format": "slides",
    "offering": "2024",
@@ -440,7 +440,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/econometrics/class_2024/Class Notes/Slides/processed_outputs/slides3.md",
+   "path": "academic_notes/econometrics/part_1/class_2024/Class Notes/Slides/processed_outputs/slides3.md",
    "role": "instructor",
    "format": "slides",
    "offering": "2024",
@@ -476,7 +476,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/econometrics/class_2024/Class Notes/Slides/processed_outputs/slidesASYM.md",
+   "path": "academic_notes/econometrics/part_1/class_2024/Class Notes/Slides/processed_outputs/slidesASYM.md",
    "role": "instructor",
    "format": "slides",
    "offering": "2024",
@@ -512,7 +512,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/econometrics/class_2024/Problem Sets with Solutions/processed_outputs/GR6411_pset1_1.md",
+   "path": "academic_notes/econometrics/part_1/class_2024/Problem Sets with Solutions/processed_outputs/GR6411_pset1_1.md",
    "role": "problem_set",
    "format": "typeset",
    "offering": "2024",
@@ -566,7 +566,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/econometrics/class_2024/Problem Sets with Solutions/processed_outputs/GR6411_pset1_2.md",
+   "path": "academic_notes/econometrics/part_1/class_2024/Problem Sets with Solutions/processed_outputs/GR6411_pset1_2.md",
    "role": "problem_set",
    "format": "typeset",
    "offering": "2024",
@@ -620,7 +620,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/econometrics/class_2024/Problem Sets with Solutions/processed_outputs/GR6411_pset2.md",
+   "path": "academic_notes/econometrics/part_1/class_2024/Problem Sets with Solutions/processed_outputs/GR6411_pset2.md",
    "role": "problem_set",
    "format": "typeset",
    "offering": "2024",
@@ -674,7 +674,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/econometrics/class_2024/Problem Sets with Solutions/processed_outputs/Solutions-pset1-part1 .md",
+   "path": "academic_notes/econometrics/part_1/class_2024/Problem Sets with Solutions/processed_outputs/Solutions-pset1-part1 .md",
    "role": "problem_set",
    "format": "typeset",
    "offering": "2024",
@@ -728,7 +728,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/econometrics/class_2024/Problem Sets with Solutions/processed_outputs/Solutions-pset1-part2.md",
+   "path": "academic_notes/econometrics/part_1/class_2024/Problem Sets with Solutions/processed_outputs/Solutions-pset1-part2.md",
    "role": "problem_set",
    "format": "typeset",
    "offering": "2024",
@@ -782,7 +782,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/econometrics/class_2024/Problem Sets with Solutions/processed_outputs/Solutions-pset2.md",
+   "path": "academic_notes/econometrics/part_1/class_2024/Problem Sets with Solutions/processed_outputs/Solutions-pset2.md",
    "role": "problem_set",
    "format": "typeset",
    "offering": "2024",
@@ -836,7 +836,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/econometrics/class_2024/processed_outputs/2023exam1.md",
+   "path": "academic_notes/econometrics/part_1/class_2024/processed_outputs/2023exam1.md",
    "role": "problem_set",
    "format": "typeset",
    "offering": "2024",
@@ -878,7 +878,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/econometrics/class_2024/processed_outputs/2024 midterm-ans-key.md",
+   "path": "academic_notes/econometrics/part_1/class_2024/processed_outputs/2024 midterm-ans-key.md",
    "role": "exam",
    "format": "typeset",
    "offering": "2024",
@@ -920,7 +920,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/econometrics/class_2024/Recitations/processed_outputs/Recitation 1.md",
+   "path": "academic_notes/econometrics/part_1/class_2024/Recitations/processed_outputs/Recitation 1.md",
    "role": "recitation",
    "format": "typeset",
    "offering": "2024",
@@ -974,7 +974,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/econometrics/class_2024/Recitations/processed_outputs/Recitation 2.md",
+   "path": "academic_notes/econometrics/part_1/class_2024/Recitations/processed_outputs/Recitation 2.md",
    "role": "recitation",
    "format": "typeset",
    "offering": "2024",
@@ -1028,7 +1028,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/econometrics/class_2024/Recitations/processed_outputs/Recitation 3.md",
+   "path": "academic_notes/econometrics/part_1/class_2024/Recitations/processed_outputs/Recitation 3.md",
    "role": "recitation",
    "format": "typeset",
    "offering": "2024",
@@ -1082,7 +1082,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/econometrics/class_2024/Recitations/processed_outputs/Recitation 4.md",
+   "path": "academic_notes/econometrics/part_1/class_2024/Recitations/processed_outputs/Recitation 4.md",
    "role": "recitation",
    "format": "typeset",
    "offering": "2024",
@@ -1136,7 +1136,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/econometrics/class_2024/Recitations/processed_outputs/Recitation 5.md",
+   "path": "academic_notes/econometrics/part_1/class_2024/Recitations/processed_outputs/Recitation 5.md",
    "role": "recitation",
    "format": "typeset",
    "offering": "2024",
@@ -1190,7 +1190,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/econometrics/class_2024/Recitations/processed_outputs/Recitation 6 (corrected).md",
+   "path": "academic_notes/econometrics/part_1/class_2024/Recitations/processed_outputs/Recitation 6 (corrected).md",
    "role": "recitation",
    "format": "typeset",
    "offering": "2024",
@@ -1244,7 +1244,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/econometrics/class_2024/Recitations/processed_outputs/Recitation-0.md",
+   "path": "academic_notes/econometrics/part_1/class_2024/Recitations/processed_outputs/Recitation-0.md",
    "role": "recitation",
    "format": "typeset",
    "offering": "2024",
@@ -1292,7 +1292,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/econometrics/lecture_notes/Econometrics 2026-09-21 10.05.20.excalidraw.md",
+   "path": "academic_notes/econometrics/part_1/lecture_notes/Econometrics 2026-09-21 10.05.20.excalidraw.md",
    "role": "student_notes",
    "format": "excalidraw",
    "offering": null,
@@ -1322,7 +1322,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/econometrics/lecture_notes/Econometrics 2026-09-22 08.09.47.excalidraw.md",
+   "path": "academic_notes/econometrics/part_1/lecture_notes/Econometrics 2026-09-22 08.09.47.excalidraw.md",
    "role": "student_notes",
    "format": "excalidraw",
    "offering": null,
@@ -1352,7 +1352,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/econometrics/lecture_notes/Econometrics 2026-09-28 10.05.35.excalidraw.md",
+   "path": "academic_notes/econometrics/part_1/lecture_notes/Econometrics 2026-09-28 10.05.35.excalidraw.md",
    "role": "student_notes",
    "format": "excalidraw",
    "offering": null,
@@ -1382,7 +1382,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/econometrics/lecture_notes/Econometrics 2026-09-29 08.06.09.excalidraw.md",
+   "path": "academic_notes/econometrics/part_1/lecture_notes/Econometrics 2026-09-29 08.06.09.excalidraw.md",
    "role": "student_notes",
    "format": "excalidraw",
    "offering": null,
@@ -1412,7 +1412,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/econometrics/lecture_notes/Econometrics 2026-09-29 08.51.53.excalidraw.md",
+   "path": "academic_notes/econometrics/part_1/lecture_notes/Econometrics 2026-09-29 08.51.53.excalidraw.md",
    "role": "student_notes",
    "format": "excalidraw",
    "offering": null,
@@ -1442,7 +1442,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/econometrics/lecture_notes/processed_outputs/Econometrics 2026-09-09 10.11.39.excalidraw.rag.md",
+   "path": "academic_notes/econometrics/part_1/lecture_notes/processed_outputs/Econometrics 2026-09-09 10.11.39.excalidraw.rag.md",
    "role": "student_notes",
    "format": "excalidraw",
    "offering": null,
@@ -1478,7 +1478,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/econometrics/lecture_notes/processed_outputs/Econometrics 2026-09-14 10.08.12.excalidraw.rag.md",
+   "path": "academic_notes/econometrics/part_1/lecture_notes/processed_outputs/Econometrics 2026-09-14 10.08.12.excalidraw.rag.md",
    "role": "student_notes",
    "format": "excalidraw",
    "offering": null,
@@ -1514,7 +1514,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/econometrics/lecture_notes/processed_outputs/Econometrics 2026-09-15 08.06.01.excalidraw.rag.md",
+   "path": "academic_notes/econometrics/part_1/lecture_notes/processed_outputs/Econometrics 2026-09-15 08.06.01.excalidraw.rag.md",
    "role": "student_notes",
    "format": "excalidraw",
    "offering": null,
@@ -1550,7 +1550,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/econometrics/lecture_notes/processed_outputs/Econometrics 2026-09-16 10.06.15.excalidraw.rag.md",
+   "path": "academic_notes/econometrics/part_1/lecture_notes/processed_outputs/Econometrics 2026-09-16 10.06.15.excalidraw.rag.md",
    "role": "student_notes",
    "format": "excalidraw",
    "offering": null,
@@ -1586,7 +1586,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/econometrics/lecture_notes/processed_outputs/Econometrics 2026-09-30 10.09.59.excalidraw.rag.md",
+   "path": "academic_notes/econometrics/part_1/lecture_notes/processed_outputs/Econometrics 2026-09-30 10.09.59.excalidraw.rag.md",
    "role": "student_notes",
    "format": "excalidraw",
    "offering": null,
@@ -1622,7 +1622,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/econometrics/lecture_notes/processed_outputs/Econometrics 2026-09-30 10.09.59.excalidraw.questions.md",
+   "path": "academic_notes/econometrics/part_1/lecture_notes/processed_outputs/Econometrics 2026-09-30 10.09.59.excalidraw.questions.md",
    "role": "student_notes",
    "format": "excalidraw",
    "offering": null,
@@ -1652,7 +1652,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/econometrics/lecture_notes/processed_outputs/Econometrics 2026-10-05 10.09.00.excalidraw.rag.md",
+   "path": "academic_notes/econometrics/part_1/lecture_notes/processed_outputs/Econometrics 2026-10-05 10.09.00.excalidraw.rag.md",
    "role": "student_notes",
    "format": "excalidraw",
    "offering": null,
@@ -1688,7 +1688,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/econometrics/lecture_notes/processed_outputs/Econometrics 2026-10-05 10.09.00.excalidraw.questions.md",
+   "path": "academic_notes/econometrics/part_1/lecture_notes/processed_outputs/Econometrics 2026-10-05 10.09.00.excalidraw.questions.md",
    "role": "student_notes",
    "format": "excalidraw",
    "offering": null,
@@ -1718,7 +1718,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/econometrics/lecture_notes/processed_outputs/Econometrics 2026-10-06 08.13.36.excalidraw.rag.md",
+   "path": "academic_notes/econometrics/part_1/lecture_notes/processed_outputs/Econometrics 2026-10-06 08.13.36.excalidraw.rag.md",
    "role": "student_notes",
    "format": "excalidraw",
    "offering": null,
@@ -1754,7 +1754,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/econometrics/lecture_notes/processed_outputs/Econometrics 2026-10-06 08.13.36.excalidraw.questions.md",
+   "path": "academic_notes/econometrics/part_1/lecture_notes/processed_outputs/Econometrics 2026-10-06 08.13.36.excalidraw.questions.md",
    "role": "student_notes",
    "format": "excalidraw",
    "offering": null,
@@ -1784,7 +1784,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/econometrics/lecture_notes/processed_outputs/Econometrics 2026-10-07 10.19.22.excalidraw.rag.md",
+   "path": "academic_notes/econometrics/part_1/lecture_notes/processed_outputs/Econometrics 2026-10-07 10.19.22.excalidraw.rag.md",
    "role": "student_notes",
    "format": "excalidraw",
    "offering": null,
@@ -1820,7 +1820,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/econometrics/lecture_notes/processed_outputs/Econometrics 2026-10-07 10.19.22.excalidraw.questions.md",
+   "path": "academic_notes/econometrics/part_1/lecture_notes/processed_outputs/Econometrics 2026-10-07 10.19.22.excalidraw.questions.md",
    "role": "student_notes",
    "format": "excalidraw",
    "offering": null,
@@ -1850,7 +1850,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/econometrics/lecture_notes/processed_outputs/Econometrics 2026-10-07 14.16.17.excalidraw.rag.md",
+   "path": "academic_notes/econometrics/part_1/lecture_notes/processed_outputs/Econometrics 2026-10-07 14.16.17.excalidraw.rag.md",
    "role": "student_notes",
    "format": "excalidraw",
    "offering": null,
@@ -1886,7 +1886,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/econometrics/lecture_notes/processed_outputs/Econometrics 2026-10-07 14.16.17.excalidraw.questions.md",
+   "path": "academic_notes/econometrics/part_1/lecture_notes/processed_outputs/Econometrics 2026-10-07 14.16.17.excalidraw.questions.md",
    "role": "student_notes",
    "format": "excalidraw",
    "offering": null,
@@ -1916,7 +1916,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/econometrics/lecture_notes/processed_outputs/Econometrics 2026-10-12 10.09.36.excalidraw.rag.md",
+   "path": "academic_notes/econometrics/part_1/lecture_notes/processed_outputs/Econometrics 2026-10-12 10.09.36.excalidraw.rag.md",
    "role": "student_notes",
    "format": "excalidraw",
    "offering": null,
@@ -1952,7 +1952,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/econometrics/lecture_notes/processed_outputs/Econometrics 2026-10-13 08.04.27.excalidraw.rag.md",
+   "path": "academic_notes/econometrics/part_1/lecture_notes/processed_outputs/Econometrics 2026-10-13 08.04.27.excalidraw.rag.md",
    "role": "student_notes",
    "format": "excalidraw",
    "offering": null,
@@ -1994,7 +1994,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/econometrics/lecture_notes/processed_outputs/Econometrics 2026-10-14 10.07.54.excalidraw.rag.md",
+   "path": "academic_notes/econometrics/part_1/lecture_notes/processed_outputs/Econometrics 2026-10-14 10.07.54.excalidraw.rag.md",
    "role": "student_notes",
    "format": "excalidraw",
    "offering": null,
@@ -2030,7 +2030,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/econometrics/lecture_notes/processed_outputs/Econometrics 2026-10-14 11.07.16.excalidraw.rag.md",
+   "path": "academic_notes/econometrics/part_1/lecture_notes/processed_outputs/Econometrics 2026-10-14 11.07.16.excalidraw.rag.md",
    "role": "student_notes",
    "format": "excalidraw",
    "offering": null,
@@ -2066,7 +2066,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/econometrics/problem_sets/00-review-question-answers.md",
+   "path": "academic_notes/econometrics/part_1/problem_sets/00-review-question-answers.md",
    "role": "problem_set",
    "format": "typeset",
    "offering": null,
@@ -2102,7 +2102,7 @@
    "decided_by": "review"
   },
   {
-   "path": "academic_notes/econometrics/problem_sets/problem_set_1_gemini_solutions.md",
+   "path": "academic_notes/econometrics/part_1/problem_sets/problem_set_1_gemini_solutions.md",
    "role": "problem_set",
    "format": "typeset",
    "offering": null,
@@ -2144,7 +2144,7 @@
    "decided_by": "review"
   },
   {
-   "path": "academic_notes/econometrics/problem_sets/problem_set_1_solutions.md",
+   "path": "academic_notes/econometrics/part_1/problem_sets/problem_set_1_solutions.md",
    "role": "problem_set",
    "format": "typeset",
    "offering": null,
@@ -2186,7 +2186,7 @@
    "decided_by": "review"
   },
   {
-   "path": "academic_notes/econometrics/problem_sets/problem_set_2_solutions.md",
+   "path": "academic_notes/econometrics/part_1/problem_sets/problem_set_2_solutions.md",
    "role": "problem_set",
    "format": "typeset",
    "offering": null,
@@ -2228,7 +2228,7 @@
    "decided_by": "review"
   },
   {
-   "path": "academic_notes/econometrics/problem_sets/problem_set_2_solutions_long.md",
+   "path": "academic_notes/econometrics/part_1/problem_sets/problem_set_2_solutions_long.md",
    "role": "problem_set",
    "format": "typeset",
    "offering": null,
@@ -2270,7 +2270,7 @@
    "decided_by": "review"
   },
   {
-   "path": "academic_notes/econometrics/problem_sets/problem_set_2_solutions_short.md",
+   "path": "academic_notes/econometrics/part_1/problem_sets/problem_set_2_solutions_short.md",
    "role": "problem_set",
    "format": "typeset",
    "offering": null,
@@ -2312,7 +2312,7 @@
    "decided_by": "review"
   },
   {
-   "path": "academic_notes/econometrics/problem_sets/processed_outputs/00-review-questions.md",
+   "path": "academic_notes/econometrics/part_1/problem_sets/processed_outputs/00-review-questions.md",
    "role": "problem_set",
    "format": "typeset",
    "offering": null,
@@ -2366,7 +2366,7 @@
    "decided_by": "review"
   },
   {
-   "path": "academic_notes/econometrics/problem_sets/processed_outputs/problem_set_1.md",
+   "path": "academic_notes/econometrics/part_1/problem_sets/processed_outputs/problem_set_1.md",
    "role": "problem_set",
    "format": "typeset",
    "offering": null,
@@ -2408,7 +2408,7 @@
    "decided_by": "review"
   },
   {
-   "path": "academic_notes/econometrics/problem_sets/processed_outputs/problem_set_2.md",
+   "path": "academic_notes/econometrics/part_1/problem_sets/processed_outputs/problem_set_2.md",
    "role": "problem_set",
    "format": "typeset",
    "offering": null,
@@ -2444,7 +2444,7 @@
    "decided_by": "review"
   },
   {
-   "path": "academic_notes/econometrics/problem_sets/processed_outputs/pset3.md",
+   "path": "academic_notes/econometrics/part_1/problem_sets/processed_outputs/pset3.md",
    "role": "problem_set",
    "format": "typeset",
    "offering": null,
@@ -2492,7 +2492,7 @@
    "decided_by": "review"
   },
   {
-   "path": "academic_notes/econometrics/problem_sets/processed_outputs/solution-pset2.md",
+   "path": "academic_notes/econometrics/part_1/problem_sets/processed_outputs/solution-pset2.md",
    "role": "problem_set",
    "format": "typeset",
    "offering": null,
@@ -2546,7 +2546,7 @@
    "decided_by": "review"
   },
   {
-   "path": "academic_notes/econometrics/problem_sets/processed_outputs/solution-pset3.md",
+   "path": "academic_notes/econometrics/part_1/problem_sets/processed_outputs/solution-pset3.md",
    "role": "problem_set",
    "format": "typeset",
    "offering": null,
@@ -2606,7 +2606,7 @@
    "decided_by": "review"
   },
   {
-   "path": "academic_notes/econometrics/professor_notes/processed_outputs/090926.md",
+   "path": "academic_notes/econometrics/part_1/professor_notes/processed_outputs/090926.md",
    "role": "instructor",
    "format": "handwritten",
    "offering": null,
@@ -2654,7 +2654,7 @@
    "decided_by": "review"
   },
   {
-   "path": "academic_notes/econometrics/professor_notes/processed_outputs/091426.md",
+   "path": "academic_notes/econometrics/part_1/professor_notes/processed_outputs/091426.md",
    "role": "instructor",
    "format": "handwritten",
    "offering": null,
@@ -2696,7 +2696,7 @@
    "decided_by": "review"
   },
   {
-   "path": "academic_notes/econometrics/professor_notes/processed_outputs/091626.md",
+   "path": "academic_notes/econometrics/part_1/professor_notes/processed_outputs/091626.md",
    "role": "instructor",
    "format": "handwritten",
    "offering": null,
@@ -2738,7 +2738,7 @@
    "decided_by": "review"
   },
   {
-   "path": "academic_notes/econometrics/professor_notes/processed_outputs/092126.md",
+   "path": "academic_notes/econometrics/part_1/professor_notes/processed_outputs/092126.md",
    "role": "instructor",
    "format": "handwritten",
    "offering": null,
@@ -2786,7 +2786,7 @@
    "decided_by": "review"
   },
   {
-   "path": "academic_notes/econometrics/professor_notes/processed_outputs/092826.md",
+   "path": "academic_notes/econometrics/part_1/professor_notes/processed_outputs/092826.md",
    "role": "instructor",
    "format": "handwritten",
    "offering": null,
@@ -2828,7 +2828,7 @@
    "decided_by": "review"
   },
   {
-   "path": "academic_notes/econometrics/professor_notes/processed_outputs/093026.md",
+   "path": "academic_notes/econometrics/part_1/professor_notes/processed_outputs/093026.md",
    "role": "instructor",
    "format": "handwritten",
    "offering": null,
@@ -2870,7 +2870,7 @@
    "decided_by": "review"
   },
   {
-   "path": "academic_notes/econometrics/professor_notes/processed_outputs/100526.md",
+   "path": "academic_notes/econometrics/part_1/professor_notes/processed_outputs/100526.md",
    "role": "instructor",
    "format": "handwritten",
    "offering": null,
@@ -2918,7 +2918,7 @@
    "decided_by": "review"
   },
   {
-   "path": "academic_notes/econometrics/professor_notes/processed_outputs/101226.md",
+   "path": "academic_notes/econometrics/part_1/professor_notes/processed_outputs/101226.md",
    "role": "instructor",
    "format": "handwritten",
    "offering": null,
@@ -2960,7 +2960,7 @@
    "decided_by": "review"
   },
   {
-   "path": "academic_notes/econometrics/professor_notes/processed_outputs/slides1.md",
+   "path": "academic_notes/econometrics/part_1/professor_notes/processed_outputs/slides1.md",
    "role": "instructor",
    "format": "handwritten",
    "offering": null,
@@ -3008,7 +3008,7 @@
    "decided_by": "review"
   },
   {
-   "path": "academic_notes/econometrics/professor_notes/processed_outputs/slides2.md",
+   "path": "academic_notes/econometrics/part_1/professor_notes/processed_outputs/slides2.md",
    "role": "instructor",
    "format": "handwritten",
    "offering": null,
@@ -3056,7 +3056,7 @@
    "decided_by": "review"
   },
   {
-   "path": "academic_notes/econometrics/professor_notes/processed_outputs/slides3.md",
+   "path": "academic_notes/econometrics/part_1/professor_notes/processed_outputs/slides3.md",
    "role": "instructor",
    "format": "handwritten",
    "offering": null,
@@ -3104,7 +3104,7 @@
    "decided_by": "review"
   },
   {
-   "path": "academic_notes/econometrics/professor_notes/processed_outputs/slidesMLE_updated.md",
+   "path": "academic_notes/econometrics/part_1/professor_notes/processed_outputs/slidesMLE_updated.md",
    "role": "instructor",
    "format": "handwritten",
    "offering": null,
@@ -3146,7 +3146,7 @@
    "decided_by": "review"
   },
   {
-   "path": "academic_notes/econometrics/professor_notes/processed_outputs/slidesTS_updated.md",
+   "path": "academic_notes/econometrics/part_1/professor_notes/processed_outputs/slidesTS_updated.md",
    "role": "instructor",
    "format": "handwritten",
    "offering": null,
@@ -3188,7 +3188,7 @@
    "decided_by": "review"
   },
   {
-   "path": "academic_notes/econometrics/syllabus/ECON6411_syllabus.md",
+   "path": "academic_notes/econometrics/part_1/syllabus/ECON6411_syllabus.md",
    "role": "syllabus",
    "format": "typeset",
    "offering": null,
@@ -3242,7 +3242,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/econometrics/ta_notes/processed_outputs/00-review-questions.md",
+   "path": "academic_notes/econometrics/part_1/ta_notes/processed_outputs/00-review-questions.md",
    "role": "recitation",
    "format": "handwritten",
    "offering": null,
@@ -3296,7 +3296,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/econometrics/ta_notes/processed_outputs/01-defining-terms.md",
+   "path": "academic_notes/econometrics/part_1/ta_notes/processed_outputs/01-defining-terms.md",
    "role": "recitation",
    "format": "handwritten",
    "offering": null,
@@ -3350,7 +3350,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/econometrics/ta_notes/processed_outputs/02-conditional-expectation-and-population-regression.md",
+   "path": "academic_notes/econometrics/part_1/ta_notes/processed_outputs/02-conditional-expectation-and-population-regression.md",
    "role": "recitation",
    "format": "handwritten",
    "offering": null,
@@ -3404,7 +3404,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/econometrics/ta_notes/processed_outputs/03-ols-algebraic-properties.md",
+   "path": "academic_notes/econometrics/part_1/ta_notes/processed_outputs/03-ols-algebraic-properties.md",
    "role": "recitation",
    "format": "typeset",
    "offering": null,
@@ -3458,7 +3458,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/econometrics/ta_notes/processed_outputs/04-ols-finite-sample-properties.md",
+   "path": "academic_notes/econometrics/part_1/ta_notes/processed_outputs/04-ols-finite-sample-properties.md",
    "role": "recitation",
    "format": "typeset",
    "offering": null,
@@ -3512,7 +3512,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/econometrics/ta_notes/processed_outputs/05-ols-large-sample-properties.md",
+   "path": "academic_notes/econometrics/part_1/ta_notes/processed_outputs/05-ols-large-sample-properties.md",
    "role": "recitation",
    "format": "typeset",
    "offering": null,
@@ -3566,7 +3566,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/econometrics/ta_notes/processed_outputs/06-maximum-likelihood.md",
+   "path": "academic_notes/econometrics/part_1/ta_notes/processed_outputs/06-maximum-likelihood.md",
    "role": "recitation",
    "format": "typeset",
    "offering": null,
@@ -3620,7 +3620,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/econometrics/ta_notes/processed_outputs/07-hypothesis-testing-basics.md",
+   "path": "academic_notes/econometrics/part_1/ta_notes/processed_outputs/07-hypothesis-testing-basics.md",
    "role": "recitation",
    "format": "typeset",
    "offering": null,
@@ -3674,7 +3674,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/econometrics/ta_notes/processed_outputs/08-hypothesis-testing-trinity.md",
+   "path": "academic_notes/econometrics/part_1/ta_notes/processed_outputs/08-hypothesis-testing-trinity.md",
    "role": "recitation",
    "format": "typeset",
    "offering": null,
@@ -3728,7 +3728,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/econometrics/ta_notes/processed_outputs/09-confidence-interval.md",
+   "path": "academic_notes/econometrics/part_1/ta_notes/processed_outputs/09-confidence-interval.md",
    "role": "recitation",
    "format": "typeset",
    "offering": null,
@@ -3782,7 +3782,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/econometrics/ta_notes/processed_outputs/10-time-series-basics.md",
+   "path": "academic_notes/econometrics/part_1/ta_notes/processed_outputs/10-time-series-basics.md",
    "role": "recitation",
    "format": "typeset",
    "offering": null,
@@ -3836,7 +3836,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/econometrics/ta_notes/processed_outputs/11-time-series-models.md",
+   "path": "academic_notes/econometrics/part_1/ta_notes/processed_outputs/11-time-series-models.md",
    "role": "recitation",
    "format": "typeset",
    "offering": null,
@@ -3890,7 +3890,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/econometrics/ta_notes/processed_outputs/12-model-selection.md",
+   "path": "academic_notes/econometrics/part_1/ta_notes/processed_outputs/12-model-selection.md",
    "role": "recitation",
    "format": "typeset",
    "offering": null,
@@ -3944,7 +3944,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/econometrics/ta_notes/processed_outputs/13-gls.md",
+   "path": "academic_notes/econometrics/part_1/ta_notes/processed_outputs/13-gls.md",
    "role": "recitation",
    "format": "typeset",
    "offering": null,
@@ -3998,7 +3998,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/econometrics/ta_notes/processed_outputs/A0-little-o-big-o.md",
+   "path": "academic_notes/econometrics/part_1/ta_notes/processed_outputs/A0-little-o-big-o.md",
    "role": "recitation",
    "format": "handwritten",
    "offering": null,
@@ -4052,7 +4052,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/econometrics/ta_notes/processed_outputs/A1-modes-of-convergence-and-theorems.md",
+   "path": "academic_notes/econometrics/part_1/ta_notes/processed_outputs/A1-modes-of-convergence-and-theorems.md",
    "role": "recitation",
    "format": "typeset",
    "offering": null,
@@ -4100,7 +4100,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/econometrics/ta_notes/processed_outputs/A2-distributions-of-hypothesis-testing.md",
+   "path": "academic_notes/econometrics/part_1/ta_notes/processed_outputs/A2-distributions-of-hypothesis-testing.md",
    "role": "recitation",
    "format": "typeset",
    "offering": null,
@@ -4148,7 +4148,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/econometrics/ta_notes/processed_outputs/A3-martingale-difference-sequence.md",
+   "path": "academic_notes/econometrics/part_1/ta_notes/processed_outputs/A3-martingale-difference-sequence.md",
    "role": "recitation",
    "format": "typeset",
    "offering": null,
@@ -4196,7 +4196,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/econometrics/ta_notes/processed_outputs/A4-time-series-regression-examples.md",
+   "path": "academic_notes/econometrics/part_1/ta_notes/processed_outputs/A4-time-series-regression-examples.md",
    "role": "recitation",
    "format": "typeset",
    "offering": null,
@@ -4244,7 +4244,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/econometrics/textbooks/processed_outputs/Cameron_Microeconometrics_Methods_and_Applications_2013/chapters/00_front_matter.rag.md",
+   "path": "academic_notes/econometrics/part_1/textbooks/processed_outputs/Cameron_Microeconometrics_Methods_and_Applications_2013/chapters/00_front_matter.rag.md",
    "role": "textbook",
    "format": "chapter",
    "offering": null,
@@ -4274,7 +4274,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/econometrics/textbooks/processed_outputs/Cameron_Microeconometrics_Methods_and_Applications_2013/chapters/01_overview.rag.md",
+   "path": "academic_notes/econometrics/part_1/textbooks/processed_outputs/Cameron_Microeconometrics_Methods_and_Applications_2013/chapters/01_overview.rag.md",
    "role": "textbook",
    "format": "chapter",
    "offering": null,
@@ -4304,7 +4304,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/econometrics/textbooks/processed_outputs/Cameron_Microeconometrics_Methods_and_Applications_2013/chapters/02_causal_and_noncausal_models.rag.md",
+   "path": "academic_notes/econometrics/part_1/textbooks/processed_outputs/Cameron_Microeconometrics_Methods_and_Applications_2013/chapters/02_causal_and_noncausal_models.rag.md",
    "role": "textbook",
    "format": "chapter",
    "offering": null,
@@ -4334,7 +4334,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/econometrics/textbooks/processed_outputs/Cameron_Microeconometrics_Methods_and_Applications_2013/chapters/03_microeconomic_data_structures.rag.md",
+   "path": "academic_notes/econometrics/part_1/textbooks/processed_outputs/Cameron_Microeconometrics_Methods_and_Applications_2013/chapters/03_microeconomic_data_structures.rag.md",
    "role": "textbook",
    "format": "chapter",
    "offering": null,
@@ -4364,7 +4364,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/econometrics/textbooks/processed_outputs/Cameron_Microeconometrics_Methods_and_Applications_2013/chapters/04_linear_models.rag.md",
+   "path": "academic_notes/econometrics/part_1/textbooks/processed_outputs/Cameron_Microeconometrics_Methods_and_Applications_2013/chapters/04_linear_models.rag.md",
    "role": "textbook",
    "format": "chapter",
    "offering": null,
@@ -4394,7 +4394,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/econometrics/textbooks/processed_outputs/Cameron_Microeconometrics_Methods_and_Applications_2013/chapters/05_maximum_likelihood_and_nonlinear_least_squares_e_stim_ation.rag.md",
+   "path": "academic_notes/econometrics/part_1/textbooks/processed_outputs/Cameron_Microeconometrics_Methods_and_Applications_2013/chapters/05_maximum_likelihood_and_nonlinear_least_squares_e_stim_ation.rag.md",
    "role": "textbook",
    "format": "chapter",
    "offering": null,
@@ -4424,7 +4424,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/econometrics/textbooks/processed_outputs/Cameron_Microeconometrics_Methods_and_Applications_2013/chapters/06_generalized_method_of_moments_and_systems_estima_tion.rag.md",
+   "path": "academic_notes/econometrics/part_1/textbooks/processed_outputs/Cameron_Microeconometrics_Methods_and_Applications_2013/chapters/06_generalized_method_of_moments_and_systems_estima_tion.rag.md",
    "role": "textbook",
    "format": "chapter",
    "offering": null,
@@ -4454,7 +4454,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/econometrics/textbooks/processed_outputs/Cameron_Microeconometrics_Methods_and_Applications_2013/chapters/07_hypothesis_tests_223_71_introduction_223_72_wald_test_224.rag.md",
+   "path": "academic_notes/econometrics/part_1/textbooks/processed_outputs/Cameron_Microeconometrics_Methods_and_Applications_2013/chapters/07_hypothesis_tests_223_71_introduction_223_72_wald_test_224.rag.md",
    "role": "textbook",
    "format": "chapter",
    "offering": null,
@@ -4484,7 +4484,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/econometrics/textbooks/processed_outputs/Cameron_Microeconometrics_Methods_and_Applications_2013/chapters/08_specification_tests_and_model_selection_259_81_introduction.rag.md",
+   "path": "academic_notes/econometrics/part_1/textbooks/processed_outputs/Cameron_Microeconometrics_Methods_and_Applications_2013/chapters/08_specification_tests_and_model_selection_259_81_introduction.rag.md",
    "role": "textbook",
    "format": "chapter",
    "offering": null,
@@ -4514,7 +4514,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/econometrics/textbooks/processed_outputs/Cameron_Microeconometrics_Methods_and_Applications_2013/chapters/09_semiparametric_methods_294_91_introduction_294_92.rag.md",
+   "path": "academic_notes/econometrics/part_1/textbooks/processed_outputs/Cameron_Microeconometrics_Methods_and_Applications_2013/chapters/09_semiparametric_methods_294_91_introduction_294_92.rag.md",
    "role": "textbook",
    "format": "chapter",
    "offering": null,
@@ -4544,7 +4544,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/econometrics/textbooks/processed_outputs/Cameron_Microeconometrics_Methods_and_Applications_2013/chapters/10_numerical_optimization_336_101_introduction_336_102_general.rag.md",
+   "path": "academic_notes/econometrics/part_1/textbooks/processed_outputs/Cameron_Microeconometrics_Methods_and_Applications_2013/chapters/10_numerical_optimization_336_101_introduction_336_102_general.rag.md",
    "role": "textbook",
    "format": "chapter",
    "offering": null,
@@ -4574,7 +4574,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/econometrics/textbooks/processed_outputs/Cameron_Microeconometrics_Methods_and_Applications_2013/chapters/11_bootstrap_methods.rag.md",
+   "path": "academic_notes/econometrics/part_1/textbooks/processed_outputs/Cameron_Microeconometrics_Methods_and_Applications_2013/chapters/11_bootstrap_methods.rag.md",
    "role": "textbook",
    "format": "chapter",
    "offering": null,
@@ -4604,7 +4604,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/econometrics/textbooks/processed_outputs/Cameron_Microeconometrics_Methods_and_Applications_2013/chapters/12_simulation_based_methods.rag.md",
+   "path": "academic_notes/econometrics/part_1/textbooks/processed_outputs/Cameron_Microeconometrics_Methods_and_Applications_2013/chapters/12_simulation_based_methods.rag.md",
    "role": "textbook",
    "format": "chapter",
    "offering": null,
@@ -4634,7 +4634,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/econometrics/textbooks/processed_outputs/Cameron_Microeconometrics_Methods_and_Applications_2013/chapters/13_bayesian_methods.rag.md",
+   "path": "academic_notes/econometrics/part_1/textbooks/processed_outputs/Cameron_Microeconometrics_Methods_and_Applications_2013/chapters/13_bayesian_methods.rag.md",
    "role": "textbook",
    "format": "chapter",
    "offering": null,
@@ -4664,7 +4664,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/econometrics/textbooks/processed_outputs/Cameron_Microeconometrics_Methods_and_Applications_2013/chapters/14_binary_outcome_models.rag.md",
+   "path": "academic_notes/econometrics/part_1/textbooks/processed_outputs/Cameron_Microeconometrics_Methods_and_Applications_2013/chapters/14_binary_outcome_models.rag.md",
    "role": "textbook",
    "format": "chapter",
    "offering": null,
@@ -4694,7 +4694,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/econometrics/textbooks/processed_outputs/Cameron_Microeconometrics_Methods_and_Applications_2013/chapters/15_mixture_models_and_unobserved_heterogeneity.rag.md",
+   "path": "academic_notes/econometrics/part_1/textbooks/processed_outputs/Cameron_Microeconometrics_Methods_and_Applications_2013/chapters/15_mixture_models_and_unobserved_heterogeneity.rag.md",
    "role": "textbook",
    "format": "chapter",
    "offering": null,
@@ -4724,7 +4724,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/econometrics/textbooks/processed_outputs/Cameron_Microeconometrics_Methods_and_Applications_2013/chapters/16_linear_panel_models_basics_697_211_linear_panels.rag.md",
+   "path": "academic_notes/econometrics/part_1/textbooks/processed_outputs/Cameron_Microeconometrics_Methods_and_Applications_2013/chapters/16_linear_panel_models_basics_697_211_linear_panels.rag.md",
    "role": "textbook",
    "format": "chapter",
    "offering": null,
@@ -4754,7 +4754,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/econometrics/textbooks/processed_outputs/Cameron_Microeconometrics_Methods_and_Applications_2013/chapters/17_nonlinear_panel_models.rag.md",
+   "path": "academic_notes/econometrics/part_1/textbooks/processed_outputs/Cameron_Microeconometrics_Methods_and_Applications_2013/chapters/17_nonlinear_panel_models.rag.md",
    "role": "textbook",
    "format": "chapter",
    "offering": null,
@@ -4784,7 +4784,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/econometrics/textbooks/processed_outputs/Cameron_Microeconometrics_Methods_and_Applications_2013/chapters/18_stratified_and_clustered_samples.rag.md",
+   "path": "academic_notes/econometrics/part_1/textbooks/processed_outputs/Cameron_Microeconometrics_Methods_and_Applications_2013/chapters/18_stratified_and_clustered_samples.rag.md",
    "role": "textbook",
    "format": "chapter",
    "offering": null,
@@ -4814,7 +4814,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/econometrics/textbooks/processed_outputs/Cameron_Microeconometrics_Methods_and_Applications_2013/chapters/19_treatment_evaluation.rag.md",
+   "path": "academic_notes/econometrics/part_1/textbooks/processed_outputs/Cameron_Microeconometrics_Methods_and_Applications_2013/chapters/19_treatment_evaluation.rag.md",
    "role": "textbook",
    "format": "chapter",
    "offering": null,
@@ -4844,7 +4844,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/econometrics/textbooks/processed_outputs/Cameron_Microeconometrics_Methods_and_Applications_2013/chapters/20_measurement_error_models_899_261_introduction_899_262.rag.md",
+   "path": "academic_notes/econometrics/part_1/textbooks/processed_outputs/Cameron_Microeconometrics_Methods_and_Applications_2013/chapters/20_measurement_error_models_899_261_introduction_899_262.rag.md",
    "role": "textbook",
    "format": "chapter",
    "offering": null,
@@ -4874,7 +4874,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/econometrics/textbooks/processed_outputs/Cameron_Microeconometrics_Methods_and_Applications_2013/chapters/21_missing_data_and_imputation_923_271_introduction_923_272.rag.md",
+   "path": "academic_notes/econometrics/part_1/textbooks/processed_outputs/Cameron_Microeconometrics_Methods_and_Applications_2013/chapters/21_missing_data_and_imputation_923_271_introduction_923_272.rag.md",
    "role": "textbook",
    "format": "chapter",
    "offering": null,
@@ -4904,7 +4904,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/econometrics/textbooks/processed_outputs/Hansen_ECONOMETRICS_2022/chapters/00_front_matter.rag.md",
+   "path": "academic_notes/econometrics/part_1/textbooks/processed_outputs/Hansen_ECONOMETRICS_2022/chapters/00_front_matter.rag.md",
    "role": "textbook",
    "format": "chapter",
    "offering": null,
@@ -4934,7 +4934,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/econometrics/textbooks/processed_outputs/Hansen_ECONOMETRICS_2022/chapters/01_introduction.rag.md",
+   "path": "academic_notes/econometrics/part_1/textbooks/processed_outputs/Hansen_ECONOMETRICS_2022/chapters/01_introduction.rag.md",
    "role": "textbook",
    "format": "chapter",
    "offering": null,
@@ -4964,7 +4964,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/econometrics/textbooks/processed_outputs/Hansen_ECONOMETRICS_2022/chapters/02_conditional_expectation_and_projection.rag.md",
+   "path": "academic_notes/econometrics/part_1/textbooks/processed_outputs/Hansen_ECONOMETRICS_2022/chapters/02_conditional_expectation_and_projection.rag.md",
    "role": "textbook",
    "format": "chapter",
    "offering": null,
@@ -4994,7 +4994,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/econometrics/textbooks/processed_outputs/Hansen_ECONOMETRICS_2022/chapters/03_the_algebra_of_least_squares.rag.md",
+   "path": "academic_notes/econometrics/part_1/textbooks/processed_outputs/Hansen_ECONOMETRICS_2022/chapters/03_the_algebra_of_least_squares.rag.md",
    "role": "textbook",
    "format": "chapter",
    "offering": null,
@@ -5024,7 +5024,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/econometrics/textbooks/processed_outputs/Hansen_ECONOMETRICS_2022/chapters/04_least_squares_regression.rag.md",
+   "path": "academic_notes/econometrics/part_1/textbooks/processed_outputs/Hansen_ECONOMETRICS_2022/chapters/04_least_squares_regression.rag.md",
    "role": "textbook",
    "format": "chapter",
    "offering": null,
@@ -5054,7 +5054,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/econometrics/textbooks/processed_outputs/Hansen_ECONOMETRICS_2022/chapters/05_normal_regression.rag.md",
+   "path": "academic_notes/econometrics/part_1/textbooks/processed_outputs/Hansen_ECONOMETRICS_2022/chapters/05_normal_regression.rag.md",
    "role": "textbook",
    "format": "chapter",
    "offering": null,
@@ -5084,7 +5084,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/econometrics/textbooks/processed_outputs/Hansen_ECONOMETRICS_2022/chapters/06_a_review_of_large_sample_asymptotics.rag.md",
+   "path": "academic_notes/econometrics/part_1/textbooks/processed_outputs/Hansen_ECONOMETRICS_2022/chapters/06_a_review_of_large_sample_asymptotics.rag.md",
    "role": "textbook",
    "format": "chapter",
    "offering": null,
@@ -5114,7 +5114,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/econometrics/textbooks/processed_outputs/Hansen_ECONOMETRICS_2022/chapters/07_asymptotic_theory_for_least_squares.rag.md",
+   "path": "academic_notes/econometrics/part_1/textbooks/processed_outputs/Hansen_ECONOMETRICS_2022/chapters/07_asymptotic_theory_for_least_squares.rag.md",
    "role": "textbook",
    "format": "chapter",
    "offering": null,
@@ -5144,7 +5144,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/econometrics/textbooks/processed_outputs/Hansen_ECONOMETRICS_2022/chapters/08_restricted_estimation.rag.md",
+   "path": "academic_notes/econometrics/part_1/textbooks/processed_outputs/Hansen_ECONOMETRICS_2022/chapters/08_restricted_estimation.rag.md",
    "role": "textbook",
    "format": "chapter",
    "offering": null,
@@ -5174,7 +5174,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/econometrics/textbooks/processed_outputs/Hansen_ECONOMETRICS_2022/chapters/09_hypothesis_testing.rag.md",
+   "path": "academic_notes/econometrics/part_1/textbooks/processed_outputs/Hansen_ECONOMETRICS_2022/chapters/09_hypothesis_testing.rag.md",
    "role": "textbook",
    "format": "chapter",
    "offering": null,
@@ -5204,7 +5204,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/econometrics/textbooks/processed_outputs/Hansen_ECONOMETRICS_2022/chapters/10_resampling_methods.rag.md",
+   "path": "academic_notes/econometrics/part_1/textbooks/processed_outputs/Hansen_ECONOMETRICS_2022/chapters/10_resampling_methods.rag.md",
    "role": "textbook",
    "format": "chapter",
    "offering": null,
@@ -5234,7 +5234,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/econometrics/textbooks/processed_outputs/Hansen_ECONOMETRICS_2022/chapters/11_multivariate_regression.rag.md",
+   "path": "academic_notes/econometrics/part_1/textbooks/processed_outputs/Hansen_ECONOMETRICS_2022/chapters/11_multivariate_regression.rag.md",
    "role": "textbook",
    "format": "chapter",
    "offering": null,
@@ -5264,7 +5264,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/econometrics/textbooks/processed_outputs/Hansen_ECONOMETRICS_2022/chapters/12_instrumental_variables.rag.md",
+   "path": "academic_notes/econometrics/part_1/textbooks/processed_outputs/Hansen_ECONOMETRICS_2022/chapters/12_instrumental_variables.rag.md",
    "role": "textbook",
    "format": "chapter",
    "offering": null,
@@ -5294,7 +5294,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/econometrics/textbooks/processed_outputs/Hansen_ECONOMETRICS_2022/chapters/13_generalized_method_of_moments.rag.md",
+   "path": "academic_notes/econometrics/part_1/textbooks/processed_outputs/Hansen_ECONOMETRICS_2022/chapters/13_generalized_method_of_moments.rag.md",
    "role": "textbook",
    "format": "chapter",
    "offering": null,
@@ -5324,7 +5324,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/econometrics/textbooks/processed_outputs/Hansen_ECONOMETRICS_2022/chapters/14_time_series.rag.md",
+   "path": "academic_notes/econometrics/part_1/textbooks/processed_outputs/Hansen_ECONOMETRICS_2022/chapters/14_time_series.rag.md",
    "role": "textbook",
    "format": "chapter",
    "offering": null,
@@ -5354,7 +5354,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/econometrics/textbooks/processed_outputs/Hansen_ECONOMETRICS_2022/chapters/15_multivariate_time_series.rag.md",
+   "path": "academic_notes/econometrics/part_1/textbooks/processed_outputs/Hansen_ECONOMETRICS_2022/chapters/15_multivariate_time_series.rag.md",
    "role": "textbook",
    "format": "chapter",
    "offering": null,
@@ -5384,7 +5384,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/econometrics/textbooks/processed_outputs/Hansen_ECONOMETRICS_2022/chapters/16_nonstationary_time_series.rag.md",
+   "path": "academic_notes/econometrics/part_1/textbooks/processed_outputs/Hansen_ECONOMETRICS_2022/chapters/16_nonstationary_time_series.rag.md",
    "role": "textbook",
    "format": "chapter",
    "offering": null,
@@ -5414,7 +5414,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/econometrics/textbooks/processed_outputs/Hansen_ECONOMETRICS_2022/chapters/17_panel_data.rag.md",
+   "path": "academic_notes/econometrics/part_1/textbooks/processed_outputs/Hansen_ECONOMETRICS_2022/chapters/17_panel_data.rag.md",
    "role": "textbook",
    "format": "chapter",
    "offering": null,
@@ -5444,7 +5444,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/econometrics/textbooks/processed_outputs/Hansen_ECONOMETRICS_2022/chapters/18_difference_in_differences.rag.md",
+   "path": "academic_notes/econometrics/part_1/textbooks/processed_outputs/Hansen_ECONOMETRICS_2022/chapters/18_difference_in_differences.rag.md",
    "role": "textbook",
    "format": "chapter",
    "offering": null,
@@ -5474,7 +5474,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/econometrics/textbooks/processed_outputs/Hansen_ECONOMETRICS_2022/chapters/19_nonparametric_regression.rag.md",
+   "path": "academic_notes/econometrics/part_1/textbooks/processed_outputs/Hansen_ECONOMETRICS_2022/chapters/19_nonparametric_regression.rag.md",
    "role": "textbook",
    "format": "chapter",
    "offering": null,
@@ -5504,7 +5504,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/econometrics/textbooks/processed_outputs/Hansen_ECONOMETRICS_2022/chapters/20_series_regression.rag.md",
+   "path": "academic_notes/econometrics/part_1/textbooks/processed_outputs/Hansen_ECONOMETRICS_2022/chapters/20_series_regression.rag.md",
    "role": "textbook",
    "format": "chapter",
    "offering": null,
@@ -5534,7 +5534,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/econometrics/textbooks/processed_outputs/Hansen_ECONOMETRICS_2022/chapters/21_regression_discontinuity.rag.md",
+   "path": "academic_notes/econometrics/part_1/textbooks/processed_outputs/Hansen_ECONOMETRICS_2022/chapters/21_regression_discontinuity.rag.md",
    "role": "textbook",
    "format": "chapter",
    "offering": null,
@@ -5570,7 +5570,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/econometrics/textbooks/processed_outputs/Hansen_ECONOMETRICS_2022/chapters/22_m_estimators.rag.md",
+   "path": "academic_notes/econometrics/part_1/textbooks/processed_outputs/Hansen_ECONOMETRICS_2022/chapters/22_m_estimators.rag.md",
    "role": "textbook",
    "format": "chapter",
    "offering": null,
@@ -5600,7 +5600,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/econometrics/textbooks/processed_outputs/Hansen_ECONOMETRICS_2022/chapters/23_nonlinear_least_squares.rag.md",
+   "path": "academic_notes/econometrics/part_1/textbooks/processed_outputs/Hansen_ECONOMETRICS_2022/chapters/23_nonlinear_least_squares.rag.md",
    "role": "textbook",
    "format": "chapter",
    "offering": null,
@@ -5630,7 +5630,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/econometrics/textbooks/processed_outputs/Hansen_ECONOMETRICS_2022/chapters/24_quantile_regression.rag.md",
+   "path": "academic_notes/econometrics/part_1/textbooks/processed_outputs/Hansen_ECONOMETRICS_2022/chapters/24_quantile_regression.rag.md",
    "role": "textbook",
    "format": "chapter",
    "offering": null,
@@ -5660,7 +5660,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/econometrics/textbooks/processed_outputs/Hansen_ECONOMETRICS_2022/chapters/25_binary_choice.rag.md",
+   "path": "academic_notes/econometrics/part_1/textbooks/processed_outputs/Hansen_ECONOMETRICS_2022/chapters/25_binary_choice.rag.md",
    "role": "textbook",
    "format": "chapter",
    "offering": null,
@@ -5690,7 +5690,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/econometrics/textbooks/processed_outputs/Hansen_ECONOMETRICS_2022/chapters/26_multiple_choice.rag.md",
+   "path": "academic_notes/econometrics/part_1/textbooks/processed_outputs/Hansen_ECONOMETRICS_2022/chapters/26_multiple_choice.rag.md",
    "role": "textbook",
    "format": "chapter",
    "offering": null,
@@ -5720,7 +5720,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/econometrics/textbooks/processed_outputs/Hansen_ECONOMETRICS_2022/chapters/27_censoring_and_selection.rag.md",
+   "path": "academic_notes/econometrics/part_1/textbooks/processed_outputs/Hansen_ECONOMETRICS_2022/chapters/27_censoring_and_selection.rag.md",
    "role": "textbook",
    "format": "chapter",
    "offering": null,
@@ -5750,7 +5750,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/econometrics/textbooks/processed_outputs/Hansen_ECONOMETRICS_2022/chapters/28_model_selection_stein_shrinkage_and_model_averaging.rag.md",
+   "path": "academic_notes/econometrics/part_1/textbooks/processed_outputs/Hansen_ECONOMETRICS_2022/chapters/28_model_selection_stein_shrinkage_and_model_averaging.rag.md",
    "role": "textbook",
    "format": "chapter",
    "offering": null,
@@ -5780,7 +5780,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/econometrics/textbooks/processed_outputs/Hansen_ECONOMETRICS_2022/chapters/29_machine_learning.rag.md",
+   "path": "academic_notes/econometrics/part_1/textbooks/processed_outputs/Hansen_ECONOMETRICS_2022/chapters/29_machine_learning.rag.md",
    "role": "textbook",
    "format": "chapter",
    "offering": null,
@@ -5810,7 +5810,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/econometrics/textbooks/processed_outputs/Hayashi_Contents_2007/chapters/00_front_matter.rag.md",
+   "path": "academic_notes/econometrics/part_1/textbooks/processed_outputs/Hayashi_Contents_2007/chapters/00_front_matter.rag.md",
    "role": "textbook",
    "format": "chapter",
    "offering": null,
@@ -5840,7 +5840,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/econometrics/textbooks/processed_outputs/Hayashi_Contents_2007/chapters/01_table_of_contents.rag.md",
+   "path": "academic_notes/econometrics/part_1/textbooks/processed_outputs/Hayashi_Contents_2007/chapters/01_table_of_contents.rag.md",
    "role": "textbook",
    "format": "chapter",
    "offering": null,
@@ -5870,7 +5870,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/econometrics/textbooks/processed_outputs/Hayashi_Contents_2007/chapters/02_preface.rag.md",
+   "path": "academic_notes/econometrics/part_1/textbooks/processed_outputs/Hayashi_Contents_2007/chapters/02_preface.rag.md",
    "role": "textbook",
    "format": "chapter",
    "offering": null,
@@ -5900,7 +5900,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/econometrics/textbooks/processed_outputs/Hayashi_Contents_2007/chapters/03_1_finite_sample_properties_of_ols.rag.md",
+   "path": "academic_notes/econometrics/part_1/textbooks/processed_outputs/Hayashi_Contents_2007/chapters/03_1_finite_sample_properties_of_ols.rag.md",
    "role": "textbook",
    "format": "chapter",
    "offering": null,
@@ -5930,7 +5930,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/econometrics/textbooks/processed_outputs/Hayashi_Contents_2007/chapters/04_2_large_sample_theory.rag.md",
+   "path": "academic_notes/econometrics/part_1/textbooks/processed_outputs/Hayashi_Contents_2007/chapters/04_2_large_sample_theory.rag.md",
    "role": "textbook",
    "format": "chapter",
    "offering": null,
@@ -5960,7 +5960,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/econometrics/textbooks/processed_outputs/Hayashi_Contents_2007/chapters/05_3_single_equation_gmm.rag.md",
+   "path": "academic_notes/econometrics/part_1/textbooks/processed_outputs/Hayashi_Contents_2007/chapters/05_3_single_equation_gmm.rag.md",
    "role": "textbook",
    "format": "chapter",
    "offering": null,
@@ -5990,7 +5990,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/econometrics/textbooks/processed_outputs/Hayashi_Contents_2007/chapters/06_4_multiple_equation_gmm.rag.md",
+   "path": "academic_notes/econometrics/part_1/textbooks/processed_outputs/Hayashi_Contents_2007/chapters/06_4_multiple_equation_gmm.rag.md",
    "role": "textbook",
    "format": "chapter",
    "offering": null,
@@ -6020,7 +6020,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/econometrics/textbooks/processed_outputs/Hayashi_Contents_2007/chapters/07_5_panel_data.rag.md",
+   "path": "academic_notes/econometrics/part_1/textbooks/processed_outputs/Hayashi_Contents_2007/chapters/07_5_panel_data.rag.md",
    "role": "textbook",
    "format": "chapter",
    "offering": null,
@@ -6050,7 +6050,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/econometrics/textbooks/processed_outputs/Hayashi_Contents_2007/chapters/08_6_serial_correlation.rag.md",
+   "path": "academic_notes/econometrics/part_1/textbooks/processed_outputs/Hayashi_Contents_2007/chapters/08_6_serial_correlation.rag.md",
    "role": "textbook",
    "format": "chapter",
    "offering": null,
@@ -6080,7 +6080,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/econometrics/textbooks/processed_outputs/Hayashi_Contents_2007/chapters/09_7_extremum_estimators.rag.md",
+   "path": "academic_notes/econometrics/part_1/textbooks/processed_outputs/Hayashi_Contents_2007/chapters/09_7_extremum_estimators.rag.md",
    "role": "textbook",
    "format": "chapter",
    "offering": null,
@@ -6110,7 +6110,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/econometrics/textbooks/processed_outputs/Hayashi_Contents_2007/chapters/10_8_examples_of_maximum_likelihood.rag.md",
+   "path": "academic_notes/econometrics/part_1/textbooks/processed_outputs/Hayashi_Contents_2007/chapters/10_8_examples_of_maximum_likelihood.rag.md",
    "role": "textbook",
    "format": "chapter",
    "offering": null,
@@ -6140,7 +6140,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/econometrics/textbooks/processed_outputs/Hayashi_Contents_2007/chapters/11_9_unit_root_econometrics.rag.md",
+   "path": "academic_notes/econometrics/part_1/textbooks/processed_outputs/Hayashi_Contents_2007/chapters/11_9_unit_root_econometrics.rag.md",
    "role": "textbook",
    "format": "chapter",
    "offering": null,
@@ -6170,7 +6170,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/econometrics/textbooks/processed_outputs/Hayashi_Contents_2007/chapters/12_10_cointegration.rag.md",
+   "path": "academic_notes/econometrics/part_1/textbooks/processed_outputs/Hayashi_Contents_2007/chapters/12_10_cointegration.rag.md",
    "role": "textbook",
    "format": "chapter",
    "offering": null,
@@ -6200,7 +6200,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/econometrics/textbooks/processed_outputs/Stock_Question_Help_2019/chapters/00_front_matter.rag.md",
+   "path": "academic_notes/econometrics/part_1/textbooks/processed_outputs/Stock_Question_Help_2019/chapters/00_front_matter.rag.md",
    "role": "textbook",
    "format": "chapter",
    "offering": null,
@@ -6230,7 +6230,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/econometrics/textbooks/processed_outputs/Stock_Question_Help_2019/chapters/01_economic_questions_and_data.rag.md",
+   "path": "academic_notes/econometrics/part_1/textbooks/processed_outputs/Stock_Question_Help_2019/chapters/01_economic_questions_and_data.rag.md",
    "role": "textbook",
    "format": "chapter",
    "offering": null,
@@ -6260,7 +6260,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/econometrics/textbooks/processed_outputs/Stock_Question_Help_2019/chapters/02_review_of_probability.rag.md",
+   "path": "academic_notes/econometrics/part_1/textbooks/processed_outputs/Stock_Question_Help_2019/chapters/02_review_of_probability.rag.md",
    "role": "textbook",
    "format": "chapter",
    "offering": null,
@@ -6290,7 +6290,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/econometrics/textbooks/processed_outputs/Stock_Question_Help_2019/chapters/03_review_of_statistics.rag.md",
+   "path": "academic_notes/econometrics/part_1/textbooks/processed_outputs/Stock_Question_Help_2019/chapters/03_review_of_statistics.rag.md",
    "role": "textbook",
    "format": "chapter",
    "offering": null,
@@ -6320,7 +6320,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/econometrics/textbooks/processed_outputs/Stock_Question_Help_2019/chapters/04_linear_regression_with_one_regressor.rag.md",
+   "path": "academic_notes/econometrics/part_1/textbooks/processed_outputs/Stock_Question_Help_2019/chapters/04_linear_regression_with_one_regressor.rag.md",
    "role": "textbook",
    "format": "chapter",
    "offering": null,
@@ -6350,7 +6350,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/econometrics/textbooks/processed_outputs/Stock_Question_Help_2019/chapters/05_linear_regression_with_multiple_regressors.rag.md",
+   "path": "academic_notes/econometrics/part_1/textbooks/processed_outputs/Stock_Question_Help_2019/chapters/05_linear_regression_with_multiple_regressors.rag.md",
    "role": "textbook",
    "format": "chapter",
    "offering": null,
@@ -6380,7 +6380,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/econometrics/textbooks/processed_outputs/Stock_Question_Help_2019/chapters/06_hypothesis_tests_and_confidence_intervals_in_multiple.rag.md",
+   "path": "academic_notes/econometrics/part_1/textbooks/processed_outputs/Stock_Question_Help_2019/chapters/06_hypothesis_tests_and_confidence_intervals_in_multiple.rag.md",
    "role": "textbook",
    "format": "chapter",
    "offering": null,
@@ -6410,7 +6410,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/econometrics/textbooks/processed_outputs/Stock_Question_Help_2019/chapters/07_nonlinear_regression_functions.rag.md",
+   "path": "academic_notes/econometrics/part_1/textbooks/processed_outputs/Stock_Question_Help_2019/chapters/07_nonlinear_regression_functions.rag.md",
    "role": "textbook",
    "format": "chapter",
    "offering": null,
@@ -6440,7 +6440,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/econometrics/textbooks/processed_outputs/Stock_Question_Help_2019/chapters/08_assessing_studies_based_on_multiple_regression.rag.md",
+   "path": "academic_notes/econometrics/part_1/textbooks/processed_outputs/Stock_Question_Help_2019/chapters/08_assessing_studies_based_on_multiple_regression.rag.md",
    "role": "textbook",
    "format": "chapter",
    "offering": null,
@@ -6470,7 +6470,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/econometrics/textbooks/processed_outputs/Stock_Question_Help_2019/chapters/09_regression_with_panel_data.rag.md",
+   "path": "academic_notes/econometrics/part_1/textbooks/processed_outputs/Stock_Question_Help_2019/chapters/09_regression_with_panel_data.rag.md",
    "role": "textbook",
    "format": "chapter",
    "offering": null,
@@ -6500,7 +6500,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/econometrics/textbooks/processed_outputs/Stock_Question_Help_2019/chapters/10_regression_with_a_binary_dependent_variable.rag.md",
+   "path": "academic_notes/econometrics/part_1/textbooks/processed_outputs/Stock_Question_Help_2019/chapters/10_regression_with_a_binary_dependent_variable.rag.md",
    "role": "textbook",
    "format": "chapter",
    "offering": null,
@@ -6530,7 +6530,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/econometrics/textbooks/processed_outputs/Stock_Question_Help_2019/chapters/11_instrumental_variables_regression.rag.md",
+   "path": "academic_notes/econometrics/part_1/textbooks/processed_outputs/Stock_Question_Help_2019/chapters/11_instrumental_variables_regression.rag.md",
    "role": "textbook",
    "format": "chapter",
    "offering": null,
@@ -6560,7 +6560,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/econometrics/textbooks/processed_outputs/Stock_Question_Help_2019/chapters/12_experiments_and_quasi_experiments.rag.md",
+   "path": "academic_notes/econometrics/part_1/textbooks/processed_outputs/Stock_Question_Help_2019/chapters/12_experiments_and_quasi_experiments.rag.md",
    "role": "textbook",
    "format": "chapter",
    "offering": null,
@@ -6590,7 +6590,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/econometrics/textbooks/processed_outputs/Stock_Question_Help_2019/chapters/13_prediction_with_many_regressors_and_big_data.rag.md",
+   "path": "academic_notes/econometrics/part_1/textbooks/processed_outputs/Stock_Question_Help_2019/chapters/13_prediction_with_many_regressors_and_big_data.rag.md",
    "role": "textbook",
    "format": "chapter",
    "offering": null,
@@ -6620,7 +6620,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/econometrics/textbooks/processed_outputs/Stock_Question_Help_2019/chapters/14_introduction_to_time_series_regression_and_forecasting.rag.md",
+   "path": "academic_notes/econometrics/part_1/textbooks/processed_outputs/Stock_Question_Help_2019/chapters/14_introduction_to_time_series_regression_and_forecasting.rag.md",
    "role": "textbook",
    "format": "chapter",
    "offering": null,
@@ -6650,7 +6650,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/econometrics/textbooks/processed_outputs/Stock_Question_Help_2019/chapters/15_estimation_of_dynamic_causal_effects.rag.md",
+   "path": "academic_notes/econometrics/part_1/textbooks/processed_outputs/Stock_Question_Help_2019/chapters/15_estimation_of_dynamic_causal_effects.rag.md",
    "role": "textbook",
    "format": "chapter",
    "offering": null,
@@ -6680,7 +6680,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/econometrics/textbooks/processed_outputs/Stock_Question_Help_2019/chapters/16_additional_topics_in_time_series_regression.rag.md",
+   "path": "academic_notes/econometrics/part_1/textbooks/processed_outputs/Stock_Question_Help_2019/chapters/16_additional_topics_in_time_series_regression.rag.md",
    "role": "textbook",
    "format": "chapter",
    "offering": null,
@@ -6710,7 +6710,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/econometrics/textbooks/processed_outputs/Stock_Question_Help_2019/chapters/17_the_theory_of_linear_regression_with_one_regressor.rag.md",
+   "path": "academic_notes/econometrics/part_1/textbooks/processed_outputs/Stock_Question_Help_2019/chapters/17_the_theory_of_linear_regression_with_one_regressor.rag.md",
    "role": "textbook",
    "format": "chapter",
    "offering": null,
@@ -6740,7 +6740,7 @@
    "decided_by": "rules"
   },
   {
-   "path": "academic_notes/econometrics/textbooks/processed_outputs/Stock_Question_Help_2019/chapters/18_the_theory_of_multiple_regression.rag.md",
+   "path": "academic_notes/econometrics/part_1/textbooks/processed_outputs/Stock_Question_Help_2019/chapters/18_the_theory_of_multiple_regression.rag.md",
    "role": "textbook",
    "format": "chapter",
    "offering": null,
@@ -6772,6 +6772,6 @@
  ],
  "unknown_decisions": [],
  "excluded": [
-  "academic_notes/econometrics/syllabus/processed_outputs/ec6411A.md"
+  "academic_notes/econometrics/part_1/syllabus/processed_outputs/ec6411A.md"
  ]
 }

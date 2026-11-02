@@ -1,8 +1,8 @@
 [
   {
     "file_id": "6bcb515f64867f0a",
-    "path": "academic_resources/microecon/textbooks/processed_outputs/Ok_Real_Analysis_with_Economic_Applications_2026/Ok_Real_Analysis_with_Economic_Applications_2026.md",
-    "source_pdf_path": "academic_resources/microecon/textbooks/Real Analysis with Economic Applications -- Ok, Efe A_; -- Princeton University Press, Princeton, 2007.pdf",
+    "path": "academic_resources/microecon/part_1/textbooks/processed_outputs/Ok_Real_Analysis_with_Economic_Applications_2026/Ok_Real_Analysis_with_Economic_Applications_2026.md",
+    "source_pdf_path": "academic_resources/microecon/part_1/textbooks/Real Analysis with Economic Applications -- Ok, Efe A_; -- Princeton University Press, Princeton, 2007.pdf",
     "course": "microecon",
     "doc_type": "textbook",
     "title": "Real Analysis with Economic Applications",
@@ -11,7 +11,7 @@
     "level": "advanced",
     "has_solutions": false,
     "page_count": 709,
-    "rag_md_path": "academic_notes/microecon/textbooks/processed_outputs/Ok_Real_Analysis_with_Economic_Applications_2026/Ok_Real_Analysis_with_Economic_Applications_2026.rag.md",
+    "rag_md_path": "academic_notes/microecon/part_1/textbooks/processed_outputs/Ok_Real_Analysis_with_Economic_Applications_2026/Ok_Real_Analysis_with_Economic_Applications_2026.rag.md",
     "embedding": [
       0.0106619,
       -0.010242174,
@@ -789,8 +789,8 @@
   },
   {
     "file_id": "bcd5a61453be86b0",
-    "path": "academic_resources/microecon/textbooks/processed_outputs/Press_Microeconomic_Theory_2011/Press_Microeconomic_Theory_2011.md",
-    "source_pdf_path": "academic_resources/microecon/textbooks/Microeconomic Theory by Mas-Colell, Andreu (1995) Paperback -- Andreu Mas-Colell, Michael D_ Whinston, and Jerry R_ Green -- Illustrated, 1, PS, 1995 -- isbn13 9780195073409 -- 7c8a1c3d6a60923ac8d4bb873c31a24d -- A.pdf",
+    "path": "academic_resources/microecon/part_1/textbooks/processed_outputs/Press_Microeconomic_Theory_2011/Press_Microeconomic_Theory_2011.md",
+    "source_pdf_path": "academic_resources/microecon/part_1/textbooks/Microeconomic Theory by Mas-Colell, Andreu (1995) Paperback -- Andreu Mas-Colell, Michael D_ Whinston, and Jerry R_ Green -- Illustrated, 1, PS, 1995 -- isbn13 9780195073409 -- 7c8a1c3d6a60923ac8d4bb873c31a24d -- A.pdf",
     "course": "microecon",
     "doc_type": "textbook",
     "title": "Microeconomic Theory",
@@ -799,7 +799,7 @@
     "level": "advanced",
     "has_solutions": false,
     "page_count": 987,
-    "rag_md_path": "academic_notes/microecon/textbooks/processed_outputs/Press_Microeconomic_Theory_2011/Press_Microeconomic_Theory_2011.rag.md",
+    "rag_md_path": "academic_notes/microecon/part_1/textbooks/processed_outputs/Press_Microeconomic_Theory_2011/Press_Microeconomic_Theory_2011.rag.md",
     "embedding": [
       0.019814614,
       -0.016043717,
@@ -1577,8 +1577,8 @@
   },
   {
     "file_id": "4067ec2d0d48d45c",
-    "path": "academic_resources/microecon/textbooks/processed_outputs/Rubenstein_Lecture_Notes_in_Microeconomic_Theory_2026/Rubenstein_Lecture_Notes_in_Microeconomic_Theory_2026.md",
-    "source_pdf_path": "academic_resources/microecon/textbooks/Rubenstein_Microeconomic_Theory.pdf",
+    "path": "academic_resources/microecon/part_1/textbooks/processed_outputs/Rubenstein_Lecture_Notes_in_Microeconomic_Theory_2026/Rubenstein_Lecture_Notes_in_Microeconomic_Theory_2026.md",
+    "source_pdf_path": "academic_resources/microecon/part_1/textbooks/Rubenstein_Microeconomic_Theory.pdf",
     "course": "microecon",
     "doc_type": "textbook",
     "title": "Lecture Notes in Microeconomic Theory: The Economic Agent",
@@ -1587,7 +1587,7 @@
     "level": "advanced",
     "has_solutions": false,
     "page_count": 192,
-    "rag_md_path": "academic_notes/microecon/textbooks/processed_outputs/Rubenstein_Lecture_Notes_in_Microeconomic_Theory_2026/Rubenstein_Lecture_Notes_in_Microeconomic_Theory_2026.rag.md",
+    "rag_md_path": "academic_notes/microecon/part_1/textbooks/processed_outputs/Rubenstein_Lecture_Notes_in_Microeconomic_Theory_2026/Rubenstein_Lecture_Notes_in_Microeconomic_Theory_2026.rag.md",
     "embedding": [
       0.020750433,
       -0.01466809,
@@ -2365,8 +2365,8 @@
   },
   {
     "file_id": "6081e6355000f2c9",
-    "path": "academic_resources/microecon/textbooks/Bonus/processed_outputs/Administrator_59306pre_2000/Administrator_59306pre_2000.md",
-    "source_pdf_path": "academic_resources/microecon/textbooks/Bonus/Rubenstein_Economics_and_Language.pdf",
+    "path": "academic_resources/microecon/part_1/textbooks/Bonus/processed_outputs/Administrator_59306pre_2000/Administrator_59306pre_2000.md",
+    "source_pdf_path": "academic_resources/microecon/part_1/textbooks/Bonus/Rubenstein_Economics_and_Language.pdf",
     "course": "microecon",
     "doc_type": "textbook",
     "title": "Economics and Language: Five Essays",
@@ -2375,7 +2375,7 @@
     "level": "advanced",
     "has_solutions": false,
     "page_count": 136,
-    "rag_md_path": "academic_notes/microecon/textbooks/Bonus/processed_outputs/Administrator_59306pre_2000/Administrator_59306pre_2000.rag.md",
+    "rag_md_path": "academic_notes/microecon/part_1/textbooks/Bonus/processed_outputs/Administrator_59306pre_2000/Administrator_59306pre_2000.rag.md",
     "embedding": [
       0.01084171,
       -0.0010341179,
@@ -3153,8 +3153,8 @@
   },
   {
     "file_id": "1bfe815aa3403820",
-    "path": "academic_resources/microecon/textbooks/Bonus/processed_outputs/Rubenstein_Corel_Ventura_INDEXCHP_2001/Rubenstein_Corel_Ventura_INDEXCHP_2001.md",
-    "source_pdf_path": "academic_resources/microecon/textbooks/Bonus/Rubenstein_Modeling_Bounded_Rationality.pdf",
+    "path": "academic_resources/microecon/part_1/textbooks/Bonus/processed_outputs/Rubenstein_Corel_Ventura_INDEXCHP_2001/Rubenstein_Corel_Ventura_INDEXCHP_2001.md",
+    "source_pdf_path": "academic_resources/microecon/part_1/textbooks/Bonus/Rubenstein_Modeling_Bounded_Rationality.pdf",
     "course": "microecon",
     "doc_type": "textbook",
     "title": "Modeling Bounded Rationality",
@@ -3163,7 +3163,7 @@
     "level": "advanced",
     "has_solutions": false,
     "page_count": 220,
-    "rag_md_path": "academic_notes/microecon/textbooks/Bonus/processed_outputs/Rubenstein_Corel_Ventura_INDEXCHP_2001/Rubenstein_Corel_Ventura_INDEXCHP_2001.rag.md",
+    "rag_md_path": "academic_notes/microecon/part_1/textbooks/Bonus/processed_outputs/Rubenstein_Corel_Ventura_INDEXCHP_2001/Rubenstein_Corel_Ventura_INDEXCHP_2001.rag.md",
     "embedding": [
       0.009530389,
       -0.032250933,
@@ -3941,8 +3941,8 @@
   },
   {
     "file_id": "79e1af4504f18487",
-    "path": "academic_resources/microecon/textbooks/Bonus/processed_outputs/Rubenstein_Models_in_Microeconomic_Theory_2023/Rubenstein_Models_in_Microeconomic_Theory_2023.md",
-    "source_pdf_path": "academic_resources/microecon/textbooks/Bonus/Rubenstein_Models_Microeconomic_Theory.pdf",
+    "path": "academic_resources/microecon/part_1/textbooks/Bonus/processed_outputs/Rubenstein_Models_in_Microeconomic_Theory_2023/Rubenstein_Models_in_Microeconomic_Theory_2023.md",
+    "source_pdf_path": "academic_resources/microecon/part_1/textbooks/Bonus/Rubenstein_Models_Microeconomic_Theory.pdf",
     "course": "microecon",
     "doc_type": "textbook",
     "title": "Models in Microeconomic Theory",
@@ -3951,7 +3951,7 @@
     "level": "intermediate",
     "has_solutions": false,
     "page_count": 382,
-    "rag_md_path": "academic_notes/microecon/textbooks/Bonus/processed_outputs/Rubenstein_Models_in_Microeconomic_Theory_2023/Rubenstein_Models_in_Microeconomic_Theory_2023.rag.md",
+    "rag_md_path": "academic_notes/microecon/part_1/textbooks/Bonus/processed_outputs/Rubenstein_Models_in_Microeconomic_Theory_2023/Rubenstein_Models_in_Microeconomic_Theory_2023.rag.md",
     "embedding": [
       0.02853246,
       -0.007026994,
@@ -4729,8 +4729,8 @@
   },
   {
     "file_id": "3cac411ce2ca2722",
-    "path": "academic_notes/microecon/lecture_notes/processed_outputs/Microeconomics 2026-09-15 10.15.55.excalidraw.rag.md",
-    "source_pdf_path": "academic_notes/microecon/lecture_notes/Microeconomics 2026-09-15 10.15.55.excalidraw.md",
+    "path": "academic_notes/microecon/part_1/lecture_notes/processed_outputs/Microeconomics 2026-09-15 10.15.55.excalidraw.rag.md",
+    "source_pdf_path": "academic_notes/microecon/part_1/lecture_notes/Microeconomics 2026-09-15 10.15.55.excalidraw.md",
     "course": "microecon",
     "doc_type": "excalidraw_notes",
     "title": "Preference Relations and Choice Theory",
@@ -5514,14 +5514,14 @@
     "source_updated_at": "2026-09-21T13:26:16.947554+00:00",
     "content_hash": "70e182e815776373",
     "needs_indexing": false,
-    "source_asset_path": "academic_resources/microecon/lecture_notes/Microeconomics 2026-09-15 10.15.55.excalidraw.svg",
+    "source_asset_path": "academic_resources/microecon/part_1/lecture_notes/Microeconomics 2026-09-15 10.15.55.excalidraw.svg",
     "subset_of": "660c64375c21926b",
     "subset_link_score": 0.626
   },
   {
     "file_id": "6e36534e239cbeb9",
-    "path": "academic_notes/microecon/lecture_notes/processed_outputs/Microeconomics 2026-09-10 10.09.33.excalidraw.rag.md",
-    "source_pdf_path": "academic_notes/microecon/lecture_notes/Microeconomics 2026-09-10 10.09.33.excalidraw.md",
+    "path": "academic_notes/microecon/part_1/lecture_notes/processed_outputs/Microeconomics 2026-09-10 10.09.33.excalidraw.rag.md",
+    "source_pdf_path": "academic_notes/microecon/part_1/lecture_notes/Microeconomics 2026-09-10 10.09.33.excalidraw.md",
     "course": "microecon",
     "doc_type": "excalidraw_notes",
     "title": "Utility Maximization and Choice Theory",
@@ -6305,16 +6305,16 @@
     "source_updated_at": "2026-10-04T17:22:31.253967+00:00",
     "content_hash": "bad3681761acd330",
     "needs_indexing": false,
-    "source_asset_path": "academic_resources/microecon/lecture_notes/Microeconomics lecture 2026-09-10 10.09.33.excalidraw.svg",
+    "source_asset_path": "academic_resources/microecon/part_1/lecture_notes/Microeconomics lecture 2026-09-10 10.09.33.excalidraw.svg",
     "subset_of": "4967e9549f98b766",
     "subset_link_score": 0.7696,
     "offering_label": null
   },
   {
     "file_id": "e9edcf095c5e3aa3",
-    "path": "academic_notes/microecon/problem_sets/processed_outputs/Homework_1.md",
-    "source_pdf_path": "academic_resources/microecon/problem_sets/Homework_1.pdf",
-    "source_asset_path": "academic_resources/microecon/problem_sets/Homework_1.pdf",
+    "path": "academic_notes/microecon/part_1/problem_sets/processed_outputs/Homework_1.md",
+    "source_pdf_path": "academic_resources/microecon/part_1/problem_sets/Homework_1.pdf",
+    "source_asset_path": "academic_resources/microecon/part_1/problem_sets/Homework_1.pdf",
     "course": "microecon",
     "doc_type": "problem_set",
     "title": "Microeconomic Analysis Homework 1",
@@ -7096,7 +7096,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-09-23T17:07:09.847462+00:00",
-    "content_hash": "107967dde4c22ccc",
+    "content_hash": "e8360a8fcd49d8da",
     "needs_indexing": false,
     "related_offerings": [
       {
@@ -7121,9 +7121,9 @@
   },
   {
     "file_id": "0d2d70f656801bcd",
-    "path": "academic_notes/microecon/problem_sets/processed_outputs/Homework_2.md",
-    "source_pdf_path": "academic_resources/microecon/problem_sets/Homework_2.pdf",
-    "source_asset_path": "academic_resources/microecon/problem_sets/Homework_2.pdf",
+    "path": "academic_notes/microecon/part_1/problem_sets/processed_outputs/Homework_2.md",
+    "source_pdf_path": "academic_resources/microecon/part_1/problem_sets/Homework_2.pdf",
+    "source_asset_path": "academic_resources/microecon/part_1/problem_sets/Homework_2.pdf",
     "course": "microecon",
     "doc_type": "problem_set",
     "title": "Microeconomic Analysis Homework 2",
@@ -7905,7 +7905,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-09-23T17:07:11.588629+00:00",
-    "content_hash": "5a644fbee0f1737b",
+    "content_hash": "1ffbe79891b26d4b",
     "needs_indexing": false,
     "related_offerings": [
       {
@@ -7930,9 +7930,9 @@
   },
   {
     "file_id": "420270ba7597b534",
-    "path": "academic_notes/microecon/professor_notes/processed_outputs/1.Course_Intro.md",
-    "source_pdf_path": "academic_resources/microecon/professor_notes/1.Course_Intro.pdf",
-    "source_asset_path": "academic_resources/microecon/professor_notes/1.Course_Intro.pdf",
+    "path": "academic_notes/microecon/part_1/professor_notes/processed_outputs/1.Course_Intro.md",
+    "source_pdf_path": "academic_resources/microecon/part_1/professor_notes/1.Course_Intro.pdf",
+    "source_asset_path": "academic_resources/microecon/part_1/professor_notes/1.Course_Intro.pdf",
     "course": "microecon",
     "doc_type": "ta_notes",
     "title": "Microeconomic Analysis 1: Choice Theory Introduction",
@@ -8714,7 +8714,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-09-23T17:09:50.343375+00:00",
-    "content_hash": "3e31870a65c38045",
+    "content_hash": "783e790bd697542a",
     "needs_indexing": false,
     "related_offerings": [
       {
@@ -8733,9 +8733,9 @@
   },
   {
     "file_id": "2619426b6a9f93d7",
-    "path": "academic_notes/microecon/professor_notes/processed_outputs/2.Utility_Maximization_1.md",
-    "source_pdf_path": "academic_resources/microecon/professor_notes/2.Utility_Maximization_1.pdf",
-    "source_asset_path": "academic_resources/microecon/professor_notes/2.Utility_Maximization_1.pdf",
+    "path": "academic_notes/microecon/part_1/professor_notes/processed_outputs/2.Utility_Maximization_1.md",
+    "source_pdf_path": "academic_resources/microecon/part_1/professor_notes/2.Utility_Maximization_1.pdf",
+    "source_asset_path": "academic_resources/microecon/part_1/professor_notes/2.Utility_Maximization_1.pdf",
     "course": "microecon",
     "doc_type": "ta_notes",
     "title": "Preferences, Utility and Choice",
@@ -9517,7 +9517,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-09-23T17:09:54.648914+00:00",
-    "content_hash": "97ae0a2926936725",
+    "content_hash": "441c3504a4b95410",
     "needs_indexing": false,
     "related_offerings": [
       {
@@ -9554,9 +9554,9 @@
   },
   {
     "file_id": "5de7a103f4d83320",
-    "path": "academic_notes/microecon/professor_notes/processed_outputs/3.Utility_Maximization_2_part_1.md",
-    "source_pdf_path": "academic_resources/microecon/professor_notes/3.Utility_Maximization_2_part_1.pdf",
-    "source_asset_path": "academic_resources/microecon/professor_notes/3.Utility_Maximization_2_part_1.pdf",
+    "path": "academic_notes/microecon/part_1/professor_notes/processed_outputs/3.Utility_Maximization_2_part_1.md",
+    "source_pdf_path": "academic_resources/microecon/part_1/professor_notes/3.Utility_Maximization_2_part_1.pdf",
+    "source_asset_path": "academic_resources/microecon/part_1/professor_notes/3.Utility_Maximization_2_part_1.pdf",
     "course": "microecon",
     "doc_type": "ta_notes",
     "title": "Utility Maximization: Extensions to Non-Finite Sets",
@@ -10338,7 +10338,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-09-23T17:09:56.123810+00:00",
-    "content_hash": "d759322a91f1bb75",
+    "content_hash": "93905720a9361fc0",
     "needs_indexing": false,
     "related_offerings": [
       {
@@ -10357,9 +10357,9 @@
   },
   {
     "file_id": "5e7674c2515d0707",
-    "path": "academic_notes/microecon/professor_notes/processed_outputs/Utility_Maximization_1_Proofs.md",
-    "source_pdf_path": "academic_resources/microecon/professor_notes/Utility_Maximization_1_Proofs.pdf",
-    "source_asset_path": "academic_resources/microecon/professor_notes/Utility_Maximization_1_Proofs.pdf",
+    "path": "academic_notes/microecon/part_1/professor_notes/processed_outputs/Utility_Maximization_1_Proofs.md",
+    "source_pdf_path": "academic_resources/microecon/part_1/professor_notes/Utility_Maximization_1_Proofs.pdf",
+    "source_asset_path": "academic_resources/microecon/part_1/professor_notes/Utility_Maximization_1_Proofs.pdf",
     "course": "microecon",
     "doc_type": "ta_notes",
     "title": "A Representation Theorem for Utility Maximization: Proofs",
@@ -11141,7 +11141,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-09-23T17:09:57.471832+00:00",
-    "content_hash": "cd29126a857d9cff",
+    "content_hash": "68ba5f91fea3c6cd",
     "needs_indexing": false,
     "related_offerings": [
       {
@@ -11160,9 +11160,9 @@
   },
   {
     "file_id": "bfc80856cc09617d",
-    "path": "academic_notes/microecon/syllabus/processed_outputs/G6211_Fall_2025_Syllabus_Part1 (1).md",
-    "source_pdf_path": "academic_resources/microecon/syllabus/G6211_Fall_2025_Syllabus_Part1 (1).pdf",
-    "source_asset_path": "academic_resources/microecon/syllabus/G6211_Fall_2025_Syllabus_Part1 (1).pdf",
+    "path": "academic_notes/microecon/part_1/syllabus/processed_outputs/G6211_Fall_2025_Syllabus_Part1 (1).md",
+    "source_pdf_path": "academic_resources/microecon/part_1/syllabus/G6211_Fall_2025_Syllabus_Part1 (1).pdf",
+    "source_asset_path": "academic_resources/microecon/part_1/syllabus/G6211_Fall_2025_Syllabus_Part1 (1).pdf",
     "course": "microecon",
     "doc_type": "ta_notes",
     "title": "GR6211: Microeconomic Analysis I Syllabus",
@@ -11944,7 +11944,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-09-23T17:10:13.681397+00:00",
-    "content_hash": "eb12a5bcdaf91ffe",
+    "content_hash": "e9b75c61c3b43a0c",
     "needs_indexing": false,
     "related_offerings": [
       {
@@ -11963,9 +11963,9 @@
   },
   {
     "file_id": "4d67431462c70d2b",
-    "path": "academic_notes/microecon/syllabus/processed_outputs/G6211_Fall_2025_Syllabus_Part1.md",
-    "source_pdf_path": "academic_resources/microecon/syllabus/G6211_Fall_2025_Syllabus_Part1.pdf",
-    "source_asset_path": "academic_resources/microecon/syllabus/G6211_Fall_2025_Syllabus_Part1.pdf",
+    "path": "academic_notes/microecon/part_1/syllabus/processed_outputs/G6211_Fall_2025_Syllabus_Part1.md",
+    "source_pdf_path": "academic_resources/microecon/part_1/syllabus/G6211_Fall_2025_Syllabus_Part1.pdf",
+    "source_asset_path": "academic_resources/microecon/part_1/syllabus/G6211_Fall_2025_Syllabus_Part1.pdf",
     "course": "microecon",
     "doc_type": "ta_notes",
     "title": "GR6211: Microeconomic Analysis I Syllabus",
@@ -12747,7 +12747,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-09-23T17:10:28.579738+00:00",
-    "content_hash": "5a0d0af4302d088d",
+    "content_hash": "54cc35ba7b3ec1db",
     "needs_indexing": false,
     "related_offerings": [
       {
@@ -12766,9 +12766,9 @@
   },
   {
     "file_id": "16a8a95f6514d542",
-    "path": "academic_notes/microecon/lecture_notes/processed_outputs/Microeconomics 2026-09-17 10.12.38.excalidraw.rag.md",
-    "source_pdf_path": "academic_notes/microecon/lecture_notes/Microeconomics 2026-09-17 10.12.38.excalidraw.md",
-    "source_asset_path": "academic_resources/microecon/lecture_notes/Microeconomics 2026-09-17 10.12.38.excalidraw.svg",
+    "path": "academic_notes/microecon/part_1/lecture_notes/processed_outputs/Microeconomics 2026-09-17 10.12.38.excalidraw.rag.md",
+    "source_pdf_path": "academic_notes/microecon/part_1/lecture_notes/Microeconomics 2026-09-17 10.12.38.excalidraw.md",
+    "source_asset_path": "academic_resources/microecon/part_1/lecture_notes/Microeconomics 2026-09-17 10.12.38.excalidraw.svg",
     "course": "microecon",
     "offering_label": null,
     "doc_type": "excalidraw_notes",
@@ -13558,9 +13558,9 @@
   },
   {
     "file_id": "4967e9549f98b766",
-    "path": "academic_notes/microecon/lecture_notes/processed_outputs/Microeconomics with slides 2026-09-10 10.09.33.excalidraw.rag.md",
-    "source_pdf_path": "academic_notes/microecon/lecture_notes/Microeconomics with slides 2026-09-10 10.09.33.excalidraw.md",
-    "source_asset_path": "academic_notes/microecon/lecture_notes/Microeconomics with slides 2026-09-10 10.09.33.excalidraw.svg",
+    "path": "academic_notes/microecon/part_1/lecture_notes/processed_outputs/Microeconomics with slides 2026-09-10 10.09.33.excalidraw.rag.md",
+    "source_pdf_path": "academic_notes/microecon/part_1/lecture_notes/Microeconomics with slides 2026-09-10 10.09.33.excalidraw.md",
+    "source_asset_path": "academic_notes/microecon/part_1/lecture_notes/Microeconomics with slides 2026-09-10 10.09.33.excalidraw.svg",
     "course": "microecon",
     "offering_label": null,
     "doc_type": "excalidraw_notes",
@@ -14343,14 +14343,14 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-04T15:04:43.352212+00:00",
-    "content_hash": "24e5b4d391690079",
+    "content_hash": "d0fa701506d9543a",
     "needs_indexing": false
   },
   {
     "file_id": "e114a5a19fee0e08",
-    "path": "academic_notes/microecon/lecture_notes/processed_outputs/Microeconomics with slides 2026-09-10 10.09.33.excalidraw.questions.md",
-    "source_pdf_path": "academic_notes/microecon/lecture_notes/Microeconomics with slides 2026-09-10 10.09.33.excalidraw.md",
-    "source_asset_path": "academic_notes/microecon/lecture_notes/Microeconomics with slides 2026-09-10 10.09.33.excalidraw.svg",
+    "path": "academic_notes/microecon/part_1/lecture_notes/processed_outputs/Microeconomics with slides 2026-09-10 10.09.33.excalidraw.questions.md",
+    "source_pdf_path": "academic_notes/microecon/part_1/lecture_notes/Microeconomics with slides 2026-09-10 10.09.33.excalidraw.md",
+    "source_asset_path": "academic_notes/microecon/part_1/lecture_notes/Microeconomics with slides 2026-09-10 10.09.33.excalidraw.svg",
     "course": "microecon",
     "offering_label": null,
     "doc_type": "excalidraw_questions",
@@ -15133,14 +15133,14 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-04T15:04:45.650562+00:00",
-    "content_hash": "b97f1fdc2735ff6d",
+    "content_hash": "a9566470b115d2dd",
     "needs_indexing": false
   },
   {
     "file_id": "660c64375c21926b",
-    "path": "academic_notes/microecon/lecture_notes/processed_outputs/Microeconomics with slides 2026-09-15 10.15.55.excalidraw.rag.md",
-    "source_pdf_path": "academic_notes/microecon/lecture_notes/Microeconomics with slides 2026-09-15 10.15.55.excalidraw.md",
-    "source_asset_path": "academic_notes/microecon/lecture_notes/Microeconomics with slides 2026-09-15 10.15.55.excalidraw.svg",
+    "path": "academic_notes/microecon/part_1/lecture_notes/processed_outputs/Microeconomics with slides 2026-09-15 10.15.55.excalidraw.rag.md",
+    "source_pdf_path": "academic_notes/microecon/part_1/lecture_notes/Microeconomics with slides 2026-09-15 10.15.55.excalidraw.md",
+    "source_asset_path": "academic_notes/microecon/part_1/lecture_notes/Microeconomics with slides 2026-09-15 10.15.55.excalidraw.svg",
     "course": "microecon",
     "offering_label": null,
     "doc_type": "excalidraw_notes",
@@ -15923,14 +15923,14 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-04T15:04:50.081267+00:00",
-    "content_hash": "a5ff48a1cfdb26d1",
+    "content_hash": "4612653934cff8c7",
     "needs_indexing": false
   },
   {
     "file_id": "8a72f68b64b44c14",
-    "path": "academic_notes/microecon/lecture_notes/processed_outputs/Microeconomics with slides 2026-09-17 10.12.38.excalidraw.rag.md",
-    "source_pdf_path": "academic_notes/microecon/lecture_notes/Microeconomics with slides 2026-09-17 10.12.38.excalidraw.md",
-    "source_asset_path": "academic_notes/microecon/lecture_notes/Microeconomics with slides 2026-09-17 10.12.38.excalidraw.svg",
+    "path": "academic_notes/microecon/part_1/lecture_notes/processed_outputs/Microeconomics with slides 2026-09-17 10.12.38.excalidraw.rag.md",
+    "source_pdf_path": "academic_notes/microecon/part_1/lecture_notes/Microeconomics with slides 2026-09-17 10.12.38.excalidraw.md",
+    "source_asset_path": "academic_notes/microecon/part_1/lecture_notes/Microeconomics with slides 2026-09-17 10.12.38.excalidraw.svg",
     "course": "microecon",
     "offering_label": null,
     "doc_type": "excalidraw_notes",
@@ -16713,14 +16713,14 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-04T15:04:51.599569+00:00",
-    "content_hash": "7a5ca84abb95c807",
+    "content_hash": "36a46b90adb2f05d",
     "needs_indexing": false
   },
   {
     "file_id": "c6bb2529f6d0f3d8",
-    "path": "academic_notes/microecon/lecture_notes/processed_outputs/Microeconomics with slides 2026-09-17 10.12.38.excalidraw.questions.md",
-    "source_pdf_path": "academic_notes/microecon/lecture_notes/Microeconomics with slides 2026-09-17 10.12.38.excalidraw.md",
-    "source_asset_path": "academic_notes/microecon/lecture_notes/Microeconomics with slides 2026-09-17 10.12.38.excalidraw.svg",
+    "path": "academic_notes/microecon/part_1/lecture_notes/processed_outputs/Microeconomics with slides 2026-09-17 10.12.38.excalidraw.questions.md",
+    "source_pdf_path": "academic_notes/microecon/part_1/lecture_notes/Microeconomics with slides 2026-09-17 10.12.38.excalidraw.md",
+    "source_asset_path": "academic_notes/microecon/part_1/lecture_notes/Microeconomics with slides 2026-09-17 10.12.38.excalidraw.svg",
     "course": "microecon",
     "offering_label": null,
     "doc_type": "excalidraw_questions",
@@ -17503,14 +17503,14 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-04T15:04:57.843679+00:00",
-    "content_hash": "28ea0357e86576ed",
+    "content_hash": "7d660d50d87f459e",
     "needs_indexing": false
   },
   {
     "file_id": "2035693b00624f02",
-    "path": "academic_notes/microecon/lecture_notes/processed_outputs/Microeconomics 2026-09-07 19.53.03.excalidraw.rag.md",
-    "source_pdf_path": "academic_notes/microecon/lecture_notes/Microeconomics 2026-09-07 19.53.03.excalidraw.md",
-    "source_asset_path": "academic_notes/microecon/lecture_notes/Microeconomics 2026-09-07 19.53.03.excalidraw.svg",
+    "path": "academic_notes/microecon/part_1/lecture_notes/processed_outputs/Microeconomics 2026-09-07 19.53.03.excalidraw.rag.md",
+    "source_pdf_path": "academic_notes/microecon/part_1/lecture_notes/Microeconomics 2026-09-07 19.53.03.excalidraw.md",
+    "source_asset_path": "academic_notes/microecon/part_1/lecture_notes/Microeconomics 2026-09-07 19.53.03.excalidraw.svg",
     "course": "microecon",
     "offering_label": null,
     "doc_type": "excalidraw_notes",
@@ -18300,9 +18300,9 @@
   },
   {
     "file_id": "889b31400468cef6",
-    "path": "academic_notes/microecon/professor_notes/processed_outputs/4.Random_choice.md",
-    "source_pdf_path": "academic_resources/microecon/professor_notes/4.Random_choice.pdf",
-    "source_asset_path": "academic_resources/microecon/professor_notes/4.Random_choice.pdf",
+    "path": "academic_notes/microecon/part_1/professor_notes/processed_outputs/4.Random_choice.md",
+    "source_pdf_path": "academic_resources/microecon/part_1/professor_notes/4.Random_choice.pdf",
+    "source_asset_path": "academic_resources/microecon/part_1/professor_notes/4.Random_choice.pdf",
     "course": "microecon",
     "offering_label": null,
     "doc_type": "ta_notes",
@@ -19085,7 +19085,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-07T02:17:26.992345+00:00",
-    "content_hash": "28120cf3405d0c96",
+    "content_hash": "a54b2be04aafefbc",
     "needs_indexing": false,
     "related_offerings": [
       {
@@ -19110,9 +19110,9 @@
   },
   {
     "file_id": "122afde3b57dd353",
-    "path": "academic_notes/microecon/professor_notes/processed_outputs/5.Failures Of Rationality.md",
-    "source_pdf_path": "academic_resources/microecon/professor_notes/5.Failures Of Rationality.pdf",
-    "source_asset_path": "academic_resources/microecon/professor_notes/5.Failures Of Rationality.pdf",
+    "path": "academic_notes/microecon/part_1/professor_notes/processed_outputs/5.Failures Of Rationality.md",
+    "source_pdf_path": "academic_resources/microecon/part_1/professor_notes/5.Failures Of Rationality.pdf",
+    "source_asset_path": "academic_resources/microecon/part_1/professor_notes/5.Failures Of Rationality.pdf",
     "course": "microecon",
     "offering_label": null,
     "doc_type": "ta_notes",
@@ -19895,14 +19895,14 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-07T02:20:06.827345+00:00",
-    "content_hash": "458554bbb41eb199",
+    "content_hash": "145f0f9bcfd997d2",
     "needs_indexing": false
   },
   {
     "file_id": "8abf862093d38d6f",
-    "path": "academic_notes/microecon/professor_notes/processed_outputs/6.Consumer_Choice_1.md",
-    "source_pdf_path": "academic_resources/microecon/professor_notes/6.Consumer_Choice_1.pdf",
-    "source_asset_path": "academic_resources/microecon/professor_notes/6.Consumer_Choice_1.pdf",
+    "path": "academic_notes/microecon/part_1/professor_notes/processed_outputs/6.Consumer_Choice_1.md",
+    "source_pdf_path": "academic_resources/microecon/part_1/professor_notes/6.Consumer_Choice_1.pdf",
+    "source_asset_path": "academic_resources/microecon/part_1/professor_notes/6.Consumer_Choice_1.pdf",
     "course": "microecon",
     "offering_label": null,
     "doc_type": "ta_notes",
@@ -20685,7 +20685,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-09T04:32:49.457461+00:00",
-    "content_hash": "a47edae723b2cd23",
+    "content_hash": "42fba904b6b24705",
     "needs_indexing": false,
     "related_offerings": [
       {
@@ -20710,9 +20710,9 @@
   },
   {
     "file_id": "ea6c6f30487857f9",
-    "path": "academic_notes/microecon/lecture_notes/processed_outputs/Microeconomics 2026-10-06 10.09.07.excalidraw.rag.md",
-    "source_pdf_path": "academic_notes/microecon/lecture_notes/Microeconomics 2026-10-06 10.09.07.excalidraw.md",
-    "source_asset_path": "academic_notes/microecon/lecture_notes/Microeconomics 2026-10-06 10.09.07.excalidraw.svg",
+    "path": "academic_notes/microecon/part_1/lecture_notes/processed_outputs/Microeconomics 2026-10-06 10.09.07.excalidraw.rag.md",
+    "source_pdf_path": "academic_notes/microecon/part_1/lecture_notes/Microeconomics 2026-10-06 10.09.07.excalidraw.md",
+    "source_asset_path": "academic_notes/microecon/part_1/lecture_notes/Microeconomics 2026-10-06 10.09.07.excalidraw.svg",
     "course": "microecon",
     "offering_label": null,
     "doc_type": "excalidraw_notes",
@@ -21495,14 +21495,14 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-09T04:33:59.593444+00:00",
-    "content_hash": "552f5f7062689ac2",
+    "content_hash": "38d8a117c33099a2",
     "needs_indexing": false
   },
   {
     "file_id": "0403880760ac0057",
-    "path": "academic_notes/microecon/lecture_notes/processed_outputs/Microeconomics 2026-10-06 10.09.07.excalidraw.questions.md",
-    "source_pdf_path": "academic_notes/microecon/lecture_notes/Microeconomics 2026-10-06 10.09.07.excalidraw.md",
-    "source_asset_path": "academic_notes/microecon/lecture_notes/Microeconomics 2026-10-06 10.09.07.excalidraw.svg",
+    "path": "academic_notes/microecon/part_1/lecture_notes/processed_outputs/Microeconomics 2026-10-06 10.09.07.excalidraw.questions.md",
+    "source_pdf_path": "academic_notes/microecon/part_1/lecture_notes/Microeconomics 2026-10-06 10.09.07.excalidraw.md",
+    "source_asset_path": "academic_notes/microecon/part_1/lecture_notes/Microeconomics 2026-10-06 10.09.07.excalidraw.svg",
     "course": "microecon",
     "offering_label": null,
     "doc_type": "excalidraw_questions",
@@ -22285,14 +22285,14 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-09T04:34:13.179365+00:00",
-    "content_hash": "3ed68db17d2c2543",
+    "content_hash": "9daaeee50d940036",
     "needs_indexing": false
   },
   {
     "file_id": "cbe88d240da9ec93",
-    "path": "academic_notes/microecon/lecture_notes/processed_outputs/Microeconomics 2026-10-08 08.21.20.excalidraw.rag.md",
-    "source_pdf_path": "academic_notes/microecon/lecture_notes/Microeconomics 2026-10-08 08.21.20.excalidraw.md",
-    "source_asset_path": "academic_notes/microecon/lecture_notes/Microeconomics 2026-10-08 08.21.20.excalidraw.svg",
+    "path": "academic_notes/microecon/part_1/lecture_notes/processed_outputs/Microeconomics 2026-10-08 08.21.20.excalidraw.rag.md",
+    "source_pdf_path": "academic_notes/microecon/part_1/lecture_notes/Microeconomics 2026-10-08 08.21.20.excalidraw.md",
+    "source_asset_path": "academic_notes/microecon/part_1/lecture_notes/Microeconomics 2026-10-08 08.21.20.excalidraw.svg",
     "course": "microecon",
     "offering_label": null,
     "doc_type": "excalidraw_notes",
@@ -23075,14 +23075,14 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-09T04:34:49.493455+00:00",
-    "content_hash": "b58e28cdf0928dc0",
+    "content_hash": "42ada8fc30990225",
     "needs_indexing": false
   },
   {
     "file_id": "29f390b912c10e01",
-    "path": "academic_notes/microecon/lecture_notes/processed_outputs/Microeconomics 2026-10-08 08.21.20.excalidraw.questions.md",
-    "source_pdf_path": "academic_notes/microecon/lecture_notes/Microeconomics 2026-10-08 08.21.20.excalidraw.md",
-    "source_asset_path": "academic_notes/microecon/lecture_notes/Microeconomics 2026-10-08 08.21.20.excalidraw.svg",
+    "path": "academic_notes/microecon/part_1/lecture_notes/processed_outputs/Microeconomics 2026-10-08 08.21.20.excalidraw.questions.md",
+    "source_pdf_path": "academic_notes/microecon/part_1/lecture_notes/Microeconomics 2026-10-08 08.21.20.excalidraw.md",
+    "source_asset_path": "academic_notes/microecon/part_1/lecture_notes/Microeconomics 2026-10-08 08.21.20.excalidraw.svg",
     "course": "microecon",
     "offering_label": null,
     "doc_type": "excalidraw_questions",
@@ -23865,14 +23865,14 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-09T04:35:05.853706+00:00",
-    "content_hash": "a59a2b57b90f9da7",
+    "content_hash": "9c5be31d62da23b9",
     "needs_indexing": false
   },
   {
     "file_id": "f637ea3497633b41",
-    "path": "academic_notes/microecon/lecture_notes/processed_outputs/Microeconomics 2026-10-08 10.14.58.excalidraw.rag.md",
-    "source_pdf_path": "academic_notes/microecon/lecture_notes/Microeconomics 2026-10-08 10.14.58.excalidraw.md",
-    "source_asset_path": "academic_notes/microecon/lecture_notes/Microeconomics 2026-10-08 10.14.58.excalidraw.svg",
+    "path": "academic_notes/microecon/part_1/lecture_notes/processed_outputs/Microeconomics 2026-10-08 10.14.58.excalidraw.rag.md",
+    "source_pdf_path": "academic_notes/microecon/part_1/lecture_notes/Microeconomics 2026-10-08 10.14.58.excalidraw.md",
+    "source_asset_path": "academic_notes/microecon/part_1/lecture_notes/Microeconomics 2026-10-08 10.14.58.excalidraw.svg",
     "course": "microecon",
     "offering_label": null,
     "doc_type": "excalidraw_notes",
@@ -24655,7 +24655,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-09T04:35:42.509185+00:00",
-    "content_hash": "ec5005ee485ca004",
+    "content_hash": "9c574e9f4078105d",
     "needs_indexing": false,
     "related_offerings": [
       {
@@ -24668,9 +24668,9 @@
   },
   {
     "file_id": "df820992ec03320b",
-    "path": "academic_notes/microecon/lecture_notes/processed_outputs/Microeconomics 2026-10-08 10.14.58.excalidraw.questions.md",
-    "source_pdf_path": "academic_notes/microecon/lecture_notes/Microeconomics 2026-10-08 10.14.58.excalidraw.md",
-    "source_asset_path": "academic_notes/microecon/lecture_notes/Microeconomics 2026-10-08 10.14.58.excalidraw.svg",
+    "path": "academic_notes/microecon/part_1/lecture_notes/processed_outputs/Microeconomics 2026-10-08 10.14.58.excalidraw.questions.md",
+    "source_pdf_path": "academic_notes/microecon/part_1/lecture_notes/Microeconomics 2026-10-08 10.14.58.excalidraw.md",
+    "source_asset_path": "academic_notes/microecon/part_1/lecture_notes/Microeconomics 2026-10-08 10.14.58.excalidraw.svg",
     "course": "microecon",
     "offering_label": null,
     "doc_type": "excalidraw_questions",
@@ -25453,14 +25453,14 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-09T04:35:55.872791+00:00",
-    "content_hash": "99d6be7be164dd94",
+    "content_hash": "0847a5d9f544118c",
     "needs_indexing": false
   },
   {
     "file_id": "6cdf654fbc7c77ae",
-    "path": "academic_notes/microecon/lecture_notes/processed_outputs/Microeconomics with slides 2026-09-07.excalidraw.rag.md",
-    "source_pdf_path": "academic_notes/microecon/lecture_notes/Microeconomics with slides 2026-09-07.excalidraw.md",
-    "source_asset_path": "academic_notes/microecon/lecture_notes/Microeconomics with slides 2026-09-07.excalidraw.svg",
+    "path": "academic_notes/microecon/part_1/lecture_notes/processed_outputs/Microeconomics with slides 2026-09-07.excalidraw.rag.md",
+    "source_pdf_path": "academic_notes/microecon/part_1/lecture_notes/Microeconomics with slides 2026-09-07.excalidraw.md",
+    "source_asset_path": "academic_notes/microecon/part_1/lecture_notes/Microeconomics with slides 2026-09-07.excalidraw.svg",
     "course": "microecon",
     "offering_label": null,
     "doc_type": "excalidraw_notes",
@@ -26243,14 +26243,14 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-09T04:36:08.205422+00:00",
-    "content_hash": "4cca613af9ee63f9",
+    "content_hash": "c9b344cb47509bc5",
     "needs_indexing": false
   },
   {
     "file_id": "b5501c9f344b589d",
-    "path": "academic_notes/microecon/lecture_notes/processed_outputs/Microeconomics with slides 2026-09-07.excalidraw.questions.md",
-    "source_pdf_path": "academic_notes/microecon/lecture_notes/Microeconomics with slides 2026-09-07.excalidraw.md",
-    "source_asset_path": "academic_notes/microecon/lecture_notes/Microeconomics with slides 2026-09-07.excalidraw.svg",
+    "path": "academic_notes/microecon/part_1/lecture_notes/processed_outputs/Microeconomics with slides 2026-09-07.excalidraw.questions.md",
+    "source_pdf_path": "academic_notes/microecon/part_1/lecture_notes/Microeconomics with slides 2026-09-07.excalidraw.md",
+    "source_asset_path": "academic_notes/microecon/part_1/lecture_notes/Microeconomics with slides 2026-09-07.excalidraw.svg",
     "course": "microecon",
     "offering_label": null,
     "doc_type": "excalidraw_questions",
@@ -27033,14 +27033,14 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-09T04:36:40.511302+00:00",
-    "content_hash": "d5c4a6ad0c8fdd77",
+    "content_hash": "0518e462eb5fb09d",
     "needs_indexing": false
   },
   {
     "file_id": "687dd3fe32a476d2",
-    "path": "academic_notes/microecon/lecture_notes/processed_outputs/Microeconomics with slides 2026-09-22 10.12.57.excalidraw.rag.md",
-    "source_pdf_path": "academic_notes/microecon/lecture_notes/Microeconomics with slides 2026-09-22 10.12.57.excalidraw.md",
-    "source_asset_path": "academic_notes/microecon/lecture_notes/Microeconomics with slides 2026-09-22 10.12.57.excalidraw.svg",
+    "path": "academic_notes/microecon/part_1/lecture_notes/processed_outputs/Microeconomics with slides 2026-09-22 10.12.57.excalidraw.rag.md",
+    "source_pdf_path": "academic_notes/microecon/part_1/lecture_notes/Microeconomics with slides 2026-09-22 10.12.57.excalidraw.md",
+    "source_asset_path": "academic_notes/microecon/part_1/lecture_notes/Microeconomics with slides 2026-09-22 10.12.57.excalidraw.svg",
     "course": "microecon",
     "offering_label": null,
     "doc_type": "excalidraw_notes",
@@ -27823,14 +27823,14 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-09T04:37:19.796239+00:00",
-    "content_hash": "86f4ff360c71a583",
+    "content_hash": "f6eccfa282543551",
     "needs_indexing": false
   },
   {
     "file_id": "c632993a5e9d1760",
-    "path": "academic_notes/microecon/lecture_notes/processed_outputs/Microeconomics with slides 2026-09-22 10.12.57.excalidraw.questions.md",
-    "source_pdf_path": "academic_notes/microecon/lecture_notes/Microeconomics with slides 2026-09-22 10.12.57.excalidraw.md",
-    "source_asset_path": "academic_notes/microecon/lecture_notes/Microeconomics with slides 2026-09-22 10.12.57.excalidraw.svg",
+    "path": "academic_notes/microecon/part_1/lecture_notes/processed_outputs/Microeconomics with slides 2026-09-22 10.12.57.excalidraw.questions.md",
+    "source_pdf_path": "academic_notes/microecon/part_1/lecture_notes/Microeconomics with slides 2026-09-22 10.12.57.excalidraw.md",
+    "source_asset_path": "academic_notes/microecon/part_1/lecture_notes/Microeconomics with slides 2026-09-22 10.12.57.excalidraw.svg",
     "course": "microecon",
     "offering_label": null,
     "doc_type": "excalidraw_questions",
@@ -28613,14 +28613,14 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-09T04:37:44.002135+00:00",
-    "content_hash": "d8c725324187be42",
+    "content_hash": "da409b260cd5da28",
     "needs_indexing": false
   },
   {
     "file_id": "4eecad4b33544a81",
-    "path": "academic_notes/microecon/problem_sets/processed_outputs/Homework_3.md",
-    "source_pdf_path": "academic_resources/microecon/problem_sets/Homework_3.pdf",
-    "source_asset_path": "academic_resources/microecon/problem_sets/Homework_3.pdf",
+    "path": "academic_notes/microecon/part_1/problem_sets/processed_outputs/Homework_3.md",
+    "source_pdf_path": "academic_resources/microecon/part_1/problem_sets/Homework_3.pdf",
+    "source_asset_path": "academic_resources/microecon/part_1/problem_sets/Homework_3.pdf",
     "course": "microecon",
     "offering_label": null,
     "doc_type": "problem_set",
@@ -29403,7 +29403,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-09T12:44:26.712606+00:00",
-    "content_hash": "eabc3de5f715d2b2",
+    "content_hash": "5b0b5924f3b74b33",
     "needs_indexing": false,
     "related_offerings": [
       {
@@ -29428,9 +29428,9 @@
   },
   {
     "file_id": "369b2f2fe8f6b390",
-    "path": "academic_notes/microecon/problem_sets/TA_solutions/processed_outputs/Part_I_HW1_Sol.md",
-    "source_pdf_path": "academic_resources/microecon/problem_sets/TA_solutions/Part_I_HW1_Sol.pdf",
-    "source_asset_path": "academic_resources/microecon/problem_sets/TA_solutions/Part_I_HW1_Sol.pdf",
+    "path": "academic_notes/microecon/part_1/problem_sets/TA_solutions/processed_outputs/Part_I_HW1_Sol.md",
+    "source_pdf_path": "academic_resources/microecon/part_1/problem_sets/TA_solutions/Part_I_HW1_Sol.pdf",
+    "source_asset_path": "academic_resources/microecon/part_1/problem_sets/TA_solutions/Part_I_HW1_Sol.pdf",
     "course": "microecon",
     "offering_label": null,
     "doc_type": "ta_notes",
@@ -30213,7 +30213,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-09T12:47:31.442834+00:00",
-    "content_hash": "e88fd32a60cd5de5",
+    "content_hash": "6813a8f94b6466e4",
     "needs_indexing": false,
     "related_offerings": [
       {
@@ -30244,9 +30244,9 @@
   },
   {
     "file_id": "79da190a612ed4e6",
-    "path": "academic_notes/microecon/problem_sets/TA_solutions/processed_outputs/Part_I_HW2_Sol.md",
-    "source_pdf_path": "academic_resources/microecon/problem_sets/TA_solutions/Part_I_HW2_Sol.pdf",
-    "source_asset_path": "academic_resources/microecon/problem_sets/TA_solutions/Part_I_HW2_Sol.pdf",
+    "path": "academic_notes/microecon/part_1/problem_sets/TA_solutions/processed_outputs/Part_I_HW2_Sol.md",
+    "source_pdf_path": "academic_resources/microecon/part_1/problem_sets/TA_solutions/Part_I_HW2_Sol.pdf",
+    "source_asset_path": "academic_resources/microecon/part_1/problem_sets/TA_solutions/Part_I_HW2_Sol.pdf",
     "course": "microecon",
     "offering_label": null,
     "doc_type": "ta_notes",
@@ -31029,7 +31029,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-09T12:48:32.498932+00:00",
-    "content_hash": "7f7be79e413e81a0",
+    "content_hash": "01ad449555400cd5",
     "needs_indexing": false,
     "related_offerings": [
       {
@@ -31048,9 +31048,9 @@
   },
   {
     "file_id": "173eedd21b0092f4",
-    "path": "academic_notes/microecon/problem_sets/TA_solutions/processed_outputs/Part_I_HW3_Sol.md",
-    "source_pdf_path": "academic_resources/microecon/problem_sets/TA_solutions/Part_I_HW3_Sol.pdf",
-    "source_asset_path": "academic_resources/microecon/problem_sets/TA_solutions/Part_I_HW3_Sol.pdf",
+    "path": "academic_notes/microecon/part_1/problem_sets/TA_solutions/processed_outputs/Part_I_HW3_Sol.md",
+    "source_pdf_path": "academic_resources/microecon/part_1/problem_sets/TA_solutions/Part_I_HW3_Sol.pdf",
+    "source_asset_path": "academic_resources/microecon/part_1/problem_sets/TA_solutions/Part_I_HW3_Sol.pdf",
     "course": "microecon",
     "offering_label": null,
     "doc_type": "ta_notes",
@@ -31833,7 +31833,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-09T12:49:31.386542+00:00",
-    "content_hash": "f14d114e7592ca6a",
+    "content_hash": "18ecd5b76b28b8cd",
     "needs_indexing": false,
     "related_offerings": [
       {
@@ -31852,9 +31852,9 @@
   },
   {
     "file_id": "8b9fe3f07106f6b6",
-    "path": "academic_notes/microecon/2024_class/Exam/processed_outputs/Exam_Part_I_Sols.md",
-    "source_pdf_path": "academic_resources/microecon/2024_class/Exam/Exam_Part_I_Sols.pdf",
-    "source_asset_path": "academic_resources/microecon/2024_class/Exam/Exam_Part_I_Sols.pdf",
+    "path": "academic_notes/microecon/part_1/2024_class/Exam/processed_outputs/Exam_Part_I_Sols.md",
+    "source_pdf_path": "academic_resources/microecon/part_1/2024_class/Exam/Exam_Part_I_Sols.pdf",
+    "source_asset_path": "academic_resources/microecon/part_1/2024_class/Exam/Exam_Part_I_Sols.pdf",
     "course": "microecon",
     "offering_label": "2024",
     "doc_type": "problem_set",
@@ -32637,7 +32637,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-10T02:55:46.740236+00:00",
-    "content_hash": "24d848ccc8d3d1b0",
+    "content_hash": "8a6734602788ce80",
     "needs_indexing": false,
     "related_offerings": [
       {
@@ -32650,9 +32650,9 @@
   },
   {
     "file_id": "dcbd8879324a6ea8",
-    "path": "academic_notes/microecon/2024_class/Exam Prep/processed_outputs/2019.md",
-    "source_pdf_path": "academic_resources/microecon/2024_class/Exam Prep/2019.pdf",
-    "source_asset_path": "academic_resources/microecon/2024_class/Exam Prep/2019.pdf",
+    "path": "academic_notes/microecon/part_1/2024_class/Exam Prep/processed_outputs/2019.md",
+    "source_pdf_path": "academic_resources/microecon/part_1/2024_class/Exam Prep/2019.pdf",
+    "source_asset_path": "academic_resources/microecon/part_1/2024_class/Exam Prep/2019.pdf",
     "course": "microecon",
     "offering_label": "2024",
     "doc_type": "problem_set",
@@ -33435,7 +33435,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-10T02:56:19.684574+00:00",
-    "content_hash": "cf880a113c7087a7",
+    "content_hash": "36b7b8436b841a90",
     "needs_indexing": false,
     "related_offerings": [
       {
@@ -33448,9 +33448,9 @@
   },
   {
     "file_id": "7ab81c4cd9a9c909",
-    "path": "academic_notes/microecon/2024_class/Exam Prep/processed_outputs/2019_solution.md",
-    "source_pdf_path": "academic_resources/microecon/2024_class/Exam Prep/2019_solution.pdf",
-    "source_asset_path": "academic_resources/microecon/2024_class/Exam Prep/2019_solution.pdf",
+    "path": "academic_notes/microecon/part_1/2024_class/Exam Prep/processed_outputs/2019_solution.md",
+    "source_pdf_path": "academic_resources/microecon/part_1/2024_class/Exam Prep/2019_solution.pdf",
+    "source_asset_path": "academic_resources/microecon/part_1/2024_class/Exam Prep/2019_solution.pdf",
     "course": "microecon",
     "offering_label": "2024",
     "doc_type": "ta_notes",
@@ -34233,14 +34233,14 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-10T02:56:49.081150+00:00",
-    "content_hash": "65b4e1b54c71eec5",
+    "content_hash": "8eca115ead130e8d",
     "needs_indexing": false
   },
   {
     "file_id": "eeef7f148f89777c",
-    "path": "academic_notes/microecon/2024_class/Exam Prep/processed_outputs/2022.md",
-    "source_pdf_path": "academic_resources/microecon/2024_class/Exam Prep/2022.pdf",
-    "source_asset_path": "academic_resources/microecon/2024_class/Exam Prep/2022.pdf",
+    "path": "academic_notes/microecon/part_1/2024_class/Exam Prep/processed_outputs/2022.md",
+    "source_pdf_path": "academic_resources/microecon/part_1/2024_class/Exam Prep/2022.pdf",
+    "source_asset_path": "academic_resources/microecon/part_1/2024_class/Exam Prep/2022.pdf",
     "course": "microecon",
     "offering_label": "2024",
     "doc_type": "problem_set",
@@ -35023,7 +35023,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-10T02:56:53.252632+00:00",
-    "content_hash": "992dd8a17850e580",
+    "content_hash": "efce0ac6546c8b7c",
     "needs_indexing": false,
     "related_offerings": [
       {
@@ -35042,9 +35042,9 @@
   },
   {
     "file_id": "b861b29664c5502b",
-    "path": "academic_notes/microecon/2024_class/Exam Prep/processed_outputs/2022_solution.md",
-    "source_pdf_path": "academic_resources/microecon/2024_class/Exam Prep/2022_solution.pdf",
-    "source_asset_path": "academic_resources/microecon/2024_class/Exam Prep/2022_solution.pdf",
+    "path": "academic_notes/microecon/part_1/2024_class/Exam Prep/processed_outputs/2022_solution.md",
+    "source_pdf_path": "academic_resources/microecon/part_1/2024_class/Exam Prep/2022_solution.pdf",
+    "source_asset_path": "academic_resources/microecon/part_1/2024_class/Exam Prep/2022_solution.pdf",
     "course": "microecon",
     "offering_label": "2024",
     "doc_type": "ta_notes",
@@ -35827,7 +35827,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-10T02:57:12.180437+00:00",
-    "content_hash": "453efd01ad91155f",
+    "content_hash": "dc6f4e660c0cdf56",
     "needs_indexing": false,
     "related_offerings": [
       {
@@ -35846,9 +35846,9 @@
   },
   {
     "file_id": "6c16249603551416",
-    "path": "academic_notes/microecon/2024_class/Exam Prep/processed_outputs/2023 solution.md",
-    "source_pdf_path": "academic_resources/microecon/2024_class/Exam Prep/2023 solution.pdf",
-    "source_asset_path": "academic_resources/microecon/2024_class/Exam Prep/2023 solution.pdf",
+    "path": "academic_notes/microecon/part_1/2024_class/Exam Prep/processed_outputs/2023 solution.md",
+    "source_pdf_path": "academic_resources/microecon/part_1/2024_class/Exam Prep/2023 solution.pdf",
+    "source_asset_path": "academic_resources/microecon/part_1/2024_class/Exam Prep/2023 solution.pdf",
     "course": "microecon",
     "offering_label": "2024",
     "doc_type": "problem_set",
@@ -36631,7 +36631,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-10T02:57:29.845844+00:00",
-    "content_hash": "030ae2e592b0130b",
+    "content_hash": "498494d2c6c05d81",
     "needs_indexing": false,
     "related_offerings": [
       {
@@ -36644,9 +36644,9 @@
   },
   {
     "file_id": "9ed4ea750a061296",
-    "path": "academic_notes/microecon/2024_class/Exam Prep/processed_outputs/2023.md",
-    "source_pdf_path": "academic_resources/microecon/2024_class/Exam Prep/2023.pdf",
-    "source_asset_path": "academic_resources/microecon/2024_class/Exam Prep/2023.pdf",
+    "path": "academic_notes/microecon/part_1/2024_class/Exam Prep/processed_outputs/2023.md",
+    "source_pdf_path": "academic_resources/microecon/part_1/2024_class/Exam Prep/2023.pdf",
+    "source_asset_path": "academic_resources/microecon/part_1/2024_class/Exam Prep/2023.pdf",
     "course": "microecon",
     "offering_label": "2024",
     "doc_type": "problem_set",
@@ -37429,7 +37429,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-10T02:57:42.789400+00:00",
-    "content_hash": "5c4e37c987aa6647",
+    "content_hash": "29703fadb6e68a8f",
     "needs_indexing": false,
     "related_offerings": [
       {
@@ -37442,9 +37442,9 @@
   },
   {
     "file_id": "58a34c1da31ba04b",
-    "path": "academic_notes/microecon/2024_class/Homeworks/processed_outputs/Homework_1.md",
-    "source_pdf_path": "academic_resources/microecon/2024_class/Homeworks/Homework_1.pdf",
-    "source_asset_path": "academic_resources/microecon/2024_class/Homeworks/Homework_1.pdf",
+    "path": "academic_notes/microecon/part_1/2024_class/Homeworks/processed_outputs/Homework_1.md",
+    "source_pdf_path": "academic_resources/microecon/part_1/2024_class/Homeworks/Homework_1.pdf",
+    "source_asset_path": "academic_resources/microecon/part_1/2024_class/Homeworks/Homework_1.pdf",
     "course": "microecon",
     "offering_label": "2024",
     "doc_type": "problem_set",
@@ -38227,7 +38227,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-10T02:57:45.488933+00:00",
-    "content_hash": "a7916ef3b59f3303",
+    "content_hash": "6cea6365dca1e2f2",
     "needs_indexing": false,
     "related_offerings": [
       {
@@ -38264,9 +38264,9 @@
   },
   {
     "file_id": "f9033345cd978bac",
-    "path": "academic_notes/microecon/2024_class/Homeworks/processed_outputs/Homework_2.md",
-    "source_pdf_path": "academic_resources/microecon/2024_class/Homeworks/Homework_2.pdf",
-    "source_asset_path": "academic_resources/microecon/2024_class/Homeworks/Homework_2.pdf",
+    "path": "academic_notes/microecon/part_1/2024_class/Homeworks/processed_outputs/Homework_2.md",
+    "source_pdf_path": "academic_resources/microecon/part_1/2024_class/Homeworks/Homework_2.pdf",
+    "source_asset_path": "academic_resources/microecon/part_1/2024_class/Homeworks/Homework_2.pdf",
     "course": "microecon",
     "offering_label": "2024",
     "doc_type": "problem_set",
@@ -39049,7 +39049,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-10T02:57:48.635297+00:00",
-    "content_hash": "bb40220f2492caca",
+    "content_hash": "5ed40912df72e6d7",
     "needs_indexing": false,
     "related_offerings": [
       {
@@ -39068,9 +39068,9 @@
   },
   {
     "file_id": "338d6f95a93aacac",
-    "path": "academic_notes/microecon/2024_class/Homeworks/processed_outputs/Homework_3.md",
-    "source_pdf_path": "academic_resources/microecon/2024_class/Homeworks/Homework_3.pdf",
-    "source_asset_path": "academic_resources/microecon/2024_class/Homeworks/Homework_3.pdf",
+    "path": "academic_notes/microecon/part_1/2024_class/Homeworks/processed_outputs/Homework_3.md",
+    "source_pdf_path": "academic_resources/microecon/part_1/2024_class/Homeworks/Homework_3.pdf",
+    "source_asset_path": "academic_resources/microecon/part_1/2024_class/Homeworks/Homework_3.pdf",
     "course": "microecon",
     "offering_label": "2024",
     "doc_type": "problem_set",
@@ -39853,7 +39853,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-10T02:58:00.312422+00:00",
-    "content_hash": "44f26867d8abb82b",
+    "content_hash": "8adb0062763549b7",
     "needs_indexing": false,
     "related_offerings": [
       {
@@ -39878,9 +39878,9 @@
   },
   {
     "file_id": "ff8c1619e1388a91",
-    "path": "academic_notes/microecon/2024_class/Homeworks/processed_outputs/Homework_4.md",
-    "source_pdf_path": "academic_resources/microecon/2024_class/Homeworks/Homework_4.pdf",
-    "source_asset_path": "academic_resources/microecon/2024_class/Homeworks/Homework_4.pdf",
+    "path": "academic_notes/microecon/part_1/2024_class/Homeworks/processed_outputs/Homework_4.md",
+    "source_pdf_path": "academic_resources/microecon/part_1/2024_class/Homeworks/Homework_4.pdf",
+    "source_asset_path": "academic_resources/microecon/part_1/2024_class/Homeworks/Homework_4.pdf",
     "course": "microecon",
     "offering_label": "2024",
     "doc_type": "problem_set",
@@ -40663,7 +40663,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-10T02:58:04.030069+00:00",
-    "content_hash": "a187d70105055708",
+    "content_hash": "72470823e00b75d7",
     "needs_indexing": false,
     "related_offerings": [
       {
@@ -40682,9 +40682,9 @@
   },
   {
     "file_id": "2ad2c1fb2fa4b2f8",
-    "path": "academic_notes/microecon/2024_class/Homeworks/processed_outputs/Homework_5.md",
-    "source_pdf_path": "academic_resources/microecon/2024_class/Homeworks/Homework_5.pdf",
-    "source_asset_path": "academic_resources/microecon/2024_class/Homeworks/Homework_5.pdf",
+    "path": "academic_notes/microecon/part_1/2024_class/Homeworks/processed_outputs/Homework_5.md",
+    "source_pdf_path": "academic_resources/microecon/part_1/2024_class/Homeworks/Homework_5.pdf",
+    "source_asset_path": "academic_resources/microecon/part_1/2024_class/Homeworks/Homework_5.pdf",
     "course": "microecon",
     "offering_label": "2024",
     "doc_type": "problem_set",
@@ -41467,14 +41467,14 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-10T02:58:13.265638+00:00",
-    "content_hash": "d0739df1fbce345a",
+    "content_hash": "1a1f4fc2043214e2",
     "needs_indexing": false
   },
   {
     "file_id": "6a9f4202b44ab3ac",
-    "path": "academic_notes/microecon/2024_class/Homeworks/processed_outputs/Homework_6_For_Practice.md",
-    "source_pdf_path": "academic_resources/microecon/2024_class/Homeworks/Homework_6_For_Practice.pdf",
-    "source_asset_path": "academic_resources/microecon/2024_class/Homeworks/Homework_6_For_Practice.pdf",
+    "path": "academic_notes/microecon/part_1/2024_class/Homeworks/processed_outputs/Homework_6_For_Practice.md",
+    "source_pdf_path": "academic_resources/microecon/part_1/2024_class/Homeworks/Homework_6_For_Practice.pdf",
+    "source_asset_path": "academic_resources/microecon/part_1/2024_class/Homeworks/Homework_6_For_Practice.pdf",
     "course": "microecon",
     "offering_label": "2024",
     "doc_type": "problem_set",
@@ -42257,7 +42257,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-10T02:58:16.966636+00:00",
-    "content_hash": "f9f766eb9ceec722",
+    "content_hash": "bcb3624382223fa7",
     "needs_indexing": false,
     "related_offerings": [
       {
@@ -42270,9 +42270,9 @@
   },
   {
     "file_id": "a610f9dfe8d1f4dc",
-    "path": "academic_notes/microecon/2024_class/Homeworks/processed_outputs/Homework_6_Sol.md",
-    "source_pdf_path": "academic_resources/microecon/2024_class/Homeworks/Homework_6_Sol.pdf",
-    "source_asset_path": "academic_resources/microecon/2024_class/Homeworks/Homework_6_Sol.pdf",
+    "path": "academic_notes/microecon/part_1/2024_class/Homeworks/processed_outputs/Homework_6_Sol.md",
+    "source_pdf_path": "academic_resources/microecon/part_1/2024_class/Homeworks/Homework_6_Sol.pdf",
+    "source_asset_path": "academic_resources/microecon/part_1/2024_class/Homeworks/Homework_6_Sol.pdf",
     "course": "microecon",
     "offering_label": "2024",
     "doc_type": "problem_set",
@@ -43055,7 +43055,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-10T02:58:35.009836+00:00",
-    "content_hash": "fd924ffe986a981e",
+    "content_hash": "fcf09a134b9f7078",
     "needs_indexing": false,
     "related_offerings": [
       {
@@ -43068,9 +43068,9 @@
   },
   {
     "file_id": "8771b48db4730004",
-    "path": "academic_notes/microecon/2024_class/Homeworks/Solutions/processed_outputs/HW1_sols_final.md",
-    "source_pdf_path": "academic_resources/microecon/2024_class/Homeworks/Solutions/HW1_sols_final.pdf",
-    "source_asset_path": "academic_resources/microecon/2024_class/Homeworks/Solutions/HW1_sols_final.pdf",
+    "path": "academic_notes/microecon/part_1/2024_class/Homeworks/Solutions/processed_outputs/HW1_sols_final.md",
+    "source_pdf_path": "academic_resources/microecon/part_1/2024_class/Homeworks/Solutions/HW1_sols_final.pdf",
+    "source_asset_path": "academic_resources/microecon/part_1/2024_class/Homeworks/Solutions/HW1_sols_final.pdf",
     "course": "microecon",
     "offering_label": "2024",
     "doc_type": "problem_set",
@@ -43853,7 +43853,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-10T02:59:08.534812+00:00",
-    "content_hash": "45c62fc1f5537530",
+    "content_hash": "e1cb5ae779a37591",
     "needs_indexing": false,
     "related_offerings": [
       {
@@ -43884,9 +43884,9 @@
   },
   {
     "file_id": "ace4e4b478320d48",
-    "path": "academic_notes/microecon/2024_class/Homeworks/Solutions/processed_outputs/HW3_sols.md",
-    "source_pdf_path": "academic_resources/microecon/2024_class/Homeworks/Solutions/HW3_sols.pdf",
-    "source_asset_path": "academic_resources/microecon/2024_class/Homeworks/Solutions/HW3_sols.pdf",
+    "path": "academic_notes/microecon/part_1/2024_class/Homeworks/Solutions/processed_outputs/HW3_sols.md",
+    "source_pdf_path": "academic_resources/microecon/part_1/2024_class/Homeworks/Solutions/HW3_sols.pdf",
+    "source_asset_path": "academic_resources/microecon/part_1/2024_class/Homeworks/Solutions/HW3_sols.pdf",
     "course": "microecon",
     "offering_label": "2024",
     "doc_type": "problem_set",
@@ -44669,7 +44669,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-10T02:59:41.446237+00:00",
-    "content_hash": "bc98d469cba55b2f",
+    "content_hash": "3006e7cba9dd6fb4",
     "needs_indexing": false,
     "related_offerings": [
       {
@@ -44706,9 +44706,9 @@
   },
   {
     "file_id": "25853b47be7a2fac",
-    "path": "academic_notes/microecon/2024_class/Homeworks/Solutions/processed_outputs/HW4_sols_final.md",
-    "source_pdf_path": "academic_resources/microecon/2024_class/Homeworks/Solutions/HW4_sols_final.pdf",
-    "source_asset_path": "academic_resources/microecon/2024_class/Homeworks/Solutions/HW4_sols_final.pdf",
+    "path": "academic_notes/microecon/part_1/2024_class/Homeworks/Solutions/processed_outputs/HW4_sols_final.md",
+    "source_pdf_path": "academic_resources/microecon/part_1/2024_class/Homeworks/Solutions/HW4_sols_final.pdf",
+    "source_asset_path": "academic_resources/microecon/part_1/2024_class/Homeworks/Solutions/HW4_sols_final.pdf",
     "course": "microecon",
     "offering_label": "2024",
     "doc_type": "problem_set",
@@ -45491,14 +45491,14 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-10T03:00:10.994918+00:00",
-    "content_hash": "0afbfd117ef4539f",
+    "content_hash": "7b2b3d6afce8dda1",
     "needs_indexing": false
   },
   {
     "file_id": "c0e830246c090f89",
-    "path": "academic_notes/microecon/2024_class/Homeworks/Solutions/processed_outputs/Homework_6_Sol.md",
-    "source_pdf_path": "academic_resources/microecon/2024_class/Homeworks/Solutions/Homework_6_Sol.pdf",
-    "source_asset_path": "academic_resources/microecon/2024_class/Homeworks/Solutions/Homework_6_Sol.pdf",
+    "path": "academic_notes/microecon/part_1/2024_class/Homeworks/Solutions/processed_outputs/Homework_6_Sol.md",
+    "source_pdf_path": "academic_resources/microecon/part_1/2024_class/Homeworks/Solutions/Homework_6_Sol.pdf",
+    "source_asset_path": "academic_resources/microecon/part_1/2024_class/Homeworks/Solutions/Homework_6_Sol.pdf",
     "course": "microecon",
     "offering_label": "2024",
     "doc_type": "problem_set",
@@ -46281,9 +46281,9 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-10T03:00:13.018007+00:00",
-    "content_hash": "33dfc09d347e0cd0",
+    "content_hash": "b030f12adae811fb",
     "duplicate_of_file_id": "a610f9dfe8d1f4dc",
-    "duplicate_of_path": "academic_notes/microecon/2024_class/Homeworks/processed_outputs/Homework_6_Sol.md",
+    "duplicate_of_path": "academic_notes/microecon/part_1/2024_class/Homeworks/processed_outputs/Homework_6_Sol.md",
     "related_offerings": [
       {
         "file_id": "df8eb8bf0a83eae0",
@@ -46295,9 +46295,9 @@
   },
   {
     "file_id": "70c2c31c948eb4fc",
-    "path": "academic_notes/microecon/2024_class/Homeworks/Solutions/processed_outputs/hw5_sols.md",
-    "source_pdf_path": "academic_resources/microecon/2024_class/Homeworks/Solutions/hw5_sols.pdf",
-    "source_asset_path": "academic_resources/microecon/2024_class/Homeworks/Solutions/hw5_sols.pdf",
+    "path": "academic_notes/microecon/part_1/2024_class/Homeworks/Solutions/processed_outputs/hw5_sols.md",
+    "source_pdf_path": "academic_resources/microecon/part_1/2024_class/Homeworks/Solutions/hw5_sols.pdf",
+    "source_asset_path": "academic_resources/microecon/part_1/2024_class/Homeworks/Solutions/hw5_sols.pdf",
     "course": "microecon",
     "offering_label": "2024",
     "doc_type": "ta_notes",
@@ -47080,14 +47080,14 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-10T03:00:36.162026+00:00",
-    "content_hash": "428d0d61df192178",
+    "content_hash": "a632b197d64692c3",
     "needs_indexing": false
   },
   {
     "file_id": "e9179c1218034321",
-    "path": "academic_notes/microecon/2024_class/Homeworks/Solutions/HW2/processed_outputs/HW2_Q4.md",
-    "source_pdf_path": "academic_resources/microecon/2024_class/Homeworks/Solutions/HW2/HW2_Q4.pdf",
-    "source_asset_path": "academic_resources/microecon/2024_class/Homeworks/Solutions/HW2/HW2_Q4.pdf",
+    "path": "academic_notes/microecon/part_1/2024_class/Homeworks/Solutions/HW2/processed_outputs/HW2_Q4.md",
+    "source_pdf_path": "academic_resources/microecon/part_1/2024_class/Homeworks/Solutions/HW2/HW2_Q4.pdf",
+    "source_asset_path": "academic_resources/microecon/part_1/2024_class/Homeworks/Solutions/HW2/HW2_Q4.pdf",
     "course": "microecon",
     "offering_label": "2024",
     "doc_type": "problem_set",
@@ -47870,14 +47870,14 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-10T03:00:40.607274+00:00",
-    "content_hash": "88392d9bee773f4c",
+    "content_hash": "d53d1ac1b3f569c0",
     "needs_indexing": false
   },
   {
     "file_id": "e7a3194aa3738178",
-    "path": "academic_notes/microecon/2024_class/Homeworks/Solutions/HW2/processed_outputs/HW2_sols_final.md",
-    "source_pdf_path": "academic_resources/microecon/2024_class/Homeworks/Solutions/HW2/HW2_sols_final.pdf",
-    "source_asset_path": "academic_resources/microecon/2024_class/Homeworks/Solutions/HW2/HW2_sols_final.pdf",
+    "path": "academic_notes/microecon/part_1/2024_class/Homeworks/Solutions/HW2/processed_outputs/HW2_sols_final.md",
+    "source_pdf_path": "academic_resources/microecon/part_1/2024_class/Homeworks/Solutions/HW2/HW2_sols_final.pdf",
+    "source_asset_path": "academic_resources/microecon/part_1/2024_class/Homeworks/Solutions/HW2/HW2_sols_final.pdf",
     "course": "microecon",
     "offering_label": "2024",
     "doc_type": "problem_set",
@@ -48660,7 +48660,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-10T03:01:02.974976+00:00",
-    "content_hash": "075a230afa3356e4",
+    "content_hash": "86a92d9d8066b5d5",
     "needs_indexing": false,
     "related_offerings": [
       {
@@ -48697,9 +48697,9 @@
   },
   {
     "file_id": "aa752ce6a6631a1b",
-    "path": "academic_notes/microecon/2024_class/Post lecture notes/processed_outputs/10.Risk and Uncertainty 2.md",
-    "source_pdf_path": "academic_resources/microecon/2024_class/Post lecture notes/10.Risk and Uncertainty 2.pdf",
-    "source_asset_path": "academic_resources/microecon/2024_class/Post lecture notes/10.Risk and Uncertainty 2.pdf",
+    "path": "academic_notes/microecon/part_1/2024_class/Post lecture notes/processed_outputs/10.Risk and Uncertainty 2.md",
+    "source_pdf_path": "academic_resources/microecon/part_1/2024_class/Post lecture notes/10.Risk and Uncertainty 2.pdf",
+    "source_asset_path": "academic_resources/microecon/part_1/2024_class/Post lecture notes/10.Risk and Uncertainty 2.pdf",
     "course": "microecon",
     "offering_label": "2024",
     "doc_type": "ta_notes",
@@ -49482,7 +49482,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-10T03:01:13.466732+00:00",
-    "content_hash": "671294035cb5cb5c",
+    "content_hash": "6ccac8b99b69b583",
     "needs_indexing": false,
     "related_offerings": [
       {
@@ -49495,9 +49495,9 @@
   },
   {
     "file_id": "12e751e31bcbc673",
-    "path": "academic_notes/microecon/2024_class/Post lecture notes/processed_outputs/2.Utility_Maximization_1.md",
-    "source_pdf_path": "academic_resources/microecon/2024_class/Post lecture notes/2.Utility_Maximization_1.pdf",
-    "source_asset_path": "academic_resources/microecon/2024_class/Post lecture notes/2.Utility_Maximization_1.pdf",
+    "path": "academic_notes/microecon/part_1/2024_class/Post lecture notes/processed_outputs/2.Utility_Maximization_1.md",
+    "source_pdf_path": "academic_resources/microecon/part_1/2024_class/Post lecture notes/2.Utility_Maximization_1.pdf",
+    "source_asset_path": "academic_resources/microecon/part_1/2024_class/Post lecture notes/2.Utility_Maximization_1.pdf",
     "course": "microecon",
     "offering_label": "2024",
     "doc_type": "ta_notes",
@@ -50280,7 +50280,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-10T03:01:21.247235+00:00",
-    "content_hash": "6a2168cd0ffb78eb",
+    "content_hash": "c5f03a64e2b068af",
     "needs_indexing": false,
     "related_offerings": [
       {
@@ -50305,9 +50305,9 @@
   },
   {
     "file_id": "b06d78cfb7cac43b",
-    "path": "academic_notes/microecon/2024_class/Post lecture notes/processed_outputs/3.Utility_Maximization_2.md",
-    "source_pdf_path": "academic_resources/microecon/2024_class/Post lecture notes/3.Utility_Maximization_2.pdf",
-    "source_asset_path": "academic_resources/microecon/2024_class/Post lecture notes/3.Utility_Maximization_2.pdf",
+    "path": "academic_notes/microecon/part_1/2024_class/Post lecture notes/processed_outputs/3.Utility_Maximization_2.md",
+    "source_pdf_path": "academic_resources/microecon/part_1/2024_class/Post lecture notes/3.Utility_Maximization_2.pdf",
+    "source_asset_path": "academic_resources/microecon/part_1/2024_class/Post lecture notes/3.Utility_Maximization_2.pdf",
     "course": "microecon",
     "offering_label": "2024",
     "doc_type": "ta_notes",
@@ -51090,7 +51090,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-10T03:01:28.068727+00:00",
-    "content_hash": "938c76b30350ee2f",
+    "content_hash": "5edfcb2c04bd1b07",
     "needs_indexing": false,
     "related_offerings": [
       {
@@ -51109,9 +51109,9 @@
   },
   {
     "file_id": "1e3dd4a2890a46a7",
-    "path": "academic_notes/microecon/2024_class/Post lecture notes/processed_outputs/4.Random_choice.md",
-    "source_pdf_path": "academic_resources/microecon/2024_class/Post lecture notes/4.Random_choice.pdf",
-    "source_asset_path": "academic_resources/microecon/2024_class/Post lecture notes/4.Random_choice.pdf",
+    "path": "academic_notes/microecon/part_1/2024_class/Post lecture notes/processed_outputs/4.Random_choice.md",
+    "source_pdf_path": "academic_resources/microecon/part_1/2024_class/Post lecture notes/4.Random_choice.pdf",
+    "source_asset_path": "academic_resources/microecon/part_1/2024_class/Post lecture notes/4.Random_choice.pdf",
     "course": "microecon",
     "offering_label": "2024",
     "doc_type": "ta_notes",
@@ -51894,7 +51894,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-10T03:01:34.318100+00:00",
-    "content_hash": "dacbf4344857d3af",
+    "content_hash": "66bb2a27cc2b7efb",
     "needs_indexing": false,
     "related_offerings": [
       {
@@ -51913,9 +51913,9 @@
   },
   {
     "file_id": "3ad3cef511a43b54",
-    "path": "academic_notes/microecon/2024_class/Post lecture notes/processed_outputs/6.Consumer_Choice_1.md",
-    "source_pdf_path": "academic_resources/microecon/2024_class/Post lecture notes/6.Consumer_Choice_1.pdf",
-    "source_asset_path": "academic_resources/microecon/2024_class/Post lecture notes/6.Consumer_Choice_1.pdf",
+    "path": "academic_notes/microecon/part_1/2024_class/Post lecture notes/processed_outputs/6.Consumer_Choice_1.md",
+    "source_pdf_path": "academic_resources/microecon/part_1/2024_class/Post lecture notes/6.Consumer_Choice_1.pdf",
+    "source_asset_path": "academic_resources/microecon/part_1/2024_class/Post lecture notes/6.Consumer_Choice_1.pdf",
     "course": "microecon",
     "offering_label": "2024",
     "doc_type": "ta_notes",
@@ -52698,7 +52698,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-10T03:01:43.782991+00:00",
-    "content_hash": "7a781f40427f3e26",
+    "content_hash": "c5bbdc7e09023915",
     "needs_indexing": false,
     "related_offerings": [
       {
@@ -52723,9 +52723,9 @@
   },
   {
     "file_id": "b880ce3ced8c5cb2",
-    "path": "academic_notes/microecon/2024_class/Post lecture notes/processed_outputs/7.Consumer_Choice_2.md",
-    "source_pdf_path": "academic_resources/microecon/2024_class/Post lecture notes/7.Consumer_Choice_2.pdf",
-    "source_asset_path": "academic_resources/microecon/2024_class/Post lecture notes/7.Consumer_Choice_2.pdf",
+    "path": "academic_notes/microecon/part_1/2024_class/Post lecture notes/processed_outputs/7.Consumer_Choice_2.md",
+    "source_pdf_path": "academic_resources/microecon/part_1/2024_class/Post lecture notes/7.Consumer_Choice_2.pdf",
+    "source_asset_path": "academic_resources/microecon/part_1/2024_class/Post lecture notes/7.Consumer_Choice_2.pdf",
     "course": "microecon",
     "offering_label": "2024",
     "doc_type": "ta_notes",
@@ -53508,7 +53508,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-10T03:01:55.842280+00:00",
-    "content_hash": "c8602fa230fb41c3",
+    "content_hash": "69fe8a45d1275a7e",
     "needs_indexing": false,
     "related_offerings": [
       {
@@ -53521,9 +53521,9 @@
   },
   {
     "file_id": "273806bea3998354",
-    "path": "academic_notes/microecon/2024_class/Post lecture notes/processed_outputs/8.Production.md",
-    "source_pdf_path": "academic_resources/microecon/2024_class/Post lecture notes/8.Production.pdf",
-    "source_asset_path": "academic_resources/microecon/2024_class/Post lecture notes/8.Production.pdf",
+    "path": "academic_notes/microecon/part_1/2024_class/Post lecture notes/processed_outputs/8.Production.md",
+    "source_pdf_path": "academic_resources/microecon/part_1/2024_class/Post lecture notes/8.Production.pdf",
+    "source_asset_path": "academic_resources/microecon/part_1/2024_class/Post lecture notes/8.Production.pdf",
     "course": "microecon",
     "offering_label": "2024",
     "doc_type": "ta_notes",
@@ -54306,7 +54306,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-10T03:02:05.231728+00:00",
-    "content_hash": "5509ffcdf67d616c",
+    "content_hash": "2a634d635a5b6429",
     "needs_indexing": false,
     "related_offerings": [
       {
@@ -54319,9 +54319,9 @@
   },
   {
     "file_id": "b0458a770e311b18",
-    "path": "academic_notes/microecon/2024_class/Post lecture notes/processed_outputs/9.Risk and Uncertainty 1.md",
-    "source_pdf_path": "academic_resources/microecon/2024_class/Post lecture notes/9.Risk and Uncertainty 1.pdf",
-    "source_asset_path": "academic_resources/microecon/2024_class/Post lecture notes/9.Risk and Uncertainty 1.pdf",
+    "path": "academic_notes/microecon/part_1/2024_class/Post lecture notes/processed_outputs/9.Risk and Uncertainty 1.md",
+    "source_pdf_path": "academic_resources/microecon/part_1/2024_class/Post lecture notes/9.Risk and Uncertainty 1.pdf",
+    "source_asset_path": "academic_resources/microecon/part_1/2024_class/Post lecture notes/9.Risk and Uncertainty 1.pdf",
     "course": "microecon",
     "offering_label": "2024",
     "doc_type": "ta_notes",
@@ -55104,14 +55104,14 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-10T03:02:16.146997+00:00",
-    "content_hash": "d9504bada90f6d42",
+    "content_hash": "709eb241decdba3b",
     "needs_indexing": false
   },
   {
     "file_id": "7491fa181ce56d76",
-    "path": "academic_notes/microecon/2024_class/Pre Lecture Notes/processed_outputs/10.Risk and Uncertainty_2_for_circulation.md",
-    "source_pdf_path": "academic_resources/microecon/2024_class/Pre Lecture Notes/10.Risk and Uncertainty_2_for_circulation.pdf",
-    "source_asset_path": "academic_resources/microecon/2024_class/Pre Lecture Notes/10.Risk and Uncertainty_2_for_circulation.pdf",
+    "path": "academic_notes/microecon/part_1/2024_class/Pre Lecture Notes/processed_outputs/10.Risk and Uncertainty_2_for_circulation.md",
+    "source_pdf_path": "academic_resources/microecon/part_1/2024_class/Pre Lecture Notes/10.Risk and Uncertainty_2_for_circulation.pdf",
+    "source_asset_path": "academic_resources/microecon/part_1/2024_class/Pre Lecture Notes/10.Risk and Uncertainty_2_for_circulation.pdf",
     "course": "microecon",
     "offering_label": "2024",
     "doc_type": "ta_notes",
@@ -55894,7 +55894,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-10T03:02:25.192947+00:00",
-    "content_hash": "f022e5ca3d64577a",
+    "content_hash": "99346bd39e513604",
     "needs_indexing": false,
     "related_offerings": [
       {
@@ -55907,9 +55907,9 @@
   },
   {
     "file_id": "6cf9ace33a91f1ee",
-    "path": "academic_notes/microecon/2024_class/Pre Lecture Notes/processed_outputs/2.Utility_Maximization_1_for_circulation.md",
-    "source_pdf_path": "academic_resources/microecon/2024_class/Pre Lecture Notes/2.Utility_Maximization_1_for_circulation.pdf",
-    "source_asset_path": "academic_resources/microecon/2024_class/Pre Lecture Notes/2.Utility_Maximization_1_for_circulation.pdf",
+    "path": "academic_notes/microecon/part_1/2024_class/Pre Lecture Notes/processed_outputs/2.Utility_Maximization_1_for_circulation.md",
+    "source_pdf_path": "academic_resources/microecon/part_1/2024_class/Pre Lecture Notes/2.Utility_Maximization_1_for_circulation.pdf",
+    "source_asset_path": "academic_resources/microecon/part_1/2024_class/Pre Lecture Notes/2.Utility_Maximization_1_for_circulation.pdf",
     "course": "microecon",
     "offering_label": "2024",
     "doc_type": "ta_notes",
@@ -56692,7 +56692,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-10T03:02:33.239329+00:00",
-    "content_hash": "9ec7b7280acb4fa0",
+    "content_hash": "f4efabcd0fa9f6ef",
     "needs_indexing": false,
     "related_offerings": [
       {
@@ -56717,9 +56717,9 @@
   },
   {
     "file_id": "9e4075d8d2ddb607",
-    "path": "academic_notes/microecon/2024_class/Pre Lecture Notes/processed_outputs/2.Utility_Maximization_2_for_circulation-1.md",
-    "source_pdf_path": "academic_resources/microecon/2024_class/Pre Lecture Notes/2.Utility_Maximization_2_for_circulation-1.pdf",
-    "source_asset_path": "academic_resources/microecon/2024_class/Pre Lecture Notes/2.Utility_Maximization_2_for_circulation-1.pdf",
+    "path": "academic_notes/microecon/part_1/2024_class/Pre Lecture Notes/processed_outputs/2.Utility_Maximization_2_for_circulation-1.md",
+    "source_pdf_path": "academic_resources/microecon/part_1/2024_class/Pre Lecture Notes/2.Utility_Maximization_2_for_circulation-1.pdf",
+    "source_asset_path": "academic_resources/microecon/part_1/2024_class/Pre Lecture Notes/2.Utility_Maximization_2_for_circulation-1.pdf",
     "course": "microecon",
     "offering_label": "2024",
     "doc_type": "ta_notes",
@@ -57502,7 +57502,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-10T03:02:39.878572+00:00",
-    "content_hash": "b84bf38b833a9d87",
+    "content_hash": "9fcd64cf8e81061d",
     "needs_indexing": false,
     "related_offerings": [
       {
@@ -57515,9 +57515,9 @@
   },
   {
     "file_id": "589ed63216330cf9",
-    "path": "academic_notes/microecon/2024_class/Pre Lecture Notes/processed_outputs/2.Utility_Maximization_2_for_circulation-2.md",
-    "source_pdf_path": "academic_resources/microecon/2024_class/Pre Lecture Notes/2.Utility_Maximization_2_for_circulation-2.pdf",
-    "source_asset_path": "academic_resources/microecon/2024_class/Pre Lecture Notes/2.Utility_Maximization_2_for_circulation-2.pdf",
+    "path": "academic_notes/microecon/part_1/2024_class/Pre Lecture Notes/processed_outputs/2.Utility_Maximization_2_for_circulation-2.md",
+    "source_pdf_path": "academic_resources/microecon/part_1/2024_class/Pre Lecture Notes/2.Utility_Maximization_2_for_circulation-2.pdf",
+    "source_asset_path": "academic_resources/microecon/part_1/2024_class/Pre Lecture Notes/2.Utility_Maximization_2_for_circulation-2.pdf",
     "course": "microecon",
     "offering_label": "2024",
     "doc_type": "handwritten_notes",
@@ -58300,14 +58300,14 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-10T03:02:47.244960+00:00",
-    "content_hash": "19de8adf766d93d1",
+    "content_hash": "d8d2b4e2ad1ce2eb",
     "needs_indexing": false
   },
   {
     "file_id": "db2fffc154ca6206",
-    "path": "academic_notes/microecon/2024_class/Pre Lecture Notes/processed_outputs/4.Random_choice_for_circulation.md",
-    "source_pdf_path": "academic_resources/microecon/2024_class/Pre Lecture Notes/4.Random_choice_for_circulation.pdf",
-    "source_asset_path": "academic_resources/microecon/2024_class/Pre Lecture Notes/4.Random_choice_for_circulation.pdf",
+    "path": "academic_notes/microecon/part_1/2024_class/Pre Lecture Notes/processed_outputs/4.Random_choice_for_circulation.md",
+    "source_pdf_path": "academic_resources/microecon/part_1/2024_class/Pre Lecture Notes/4.Random_choice_for_circulation.pdf",
+    "source_asset_path": "academic_resources/microecon/part_1/2024_class/Pre Lecture Notes/4.Random_choice_for_circulation.pdf",
     "course": "microecon",
     "offering_label": "2024",
     "doc_type": "ta_notes",
@@ -59090,7 +59090,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-10T03:02:54.910007+00:00",
-    "content_hash": "784fa7d6b310de20",
+    "content_hash": "43153ebba435543a",
     "needs_indexing": false,
     "related_offerings": [
       {
@@ -59109,9 +59109,9 @@
   },
   {
     "file_id": "f2f434214ec62047",
-    "path": "academic_notes/microecon/2024_class/Pre Lecture Notes/processed_outputs/6.Consumer_Choice_1_for_circulation.md",
-    "source_pdf_path": "academic_resources/microecon/2024_class/Pre Lecture Notes/6.Consumer_Choice_1_for_circulation.pdf",
-    "source_asset_path": "academic_resources/microecon/2024_class/Pre Lecture Notes/6.Consumer_Choice_1_for_circulation.pdf",
+    "path": "academic_notes/microecon/part_1/2024_class/Pre Lecture Notes/processed_outputs/6.Consumer_Choice_1_for_circulation.md",
+    "source_pdf_path": "academic_resources/microecon/part_1/2024_class/Pre Lecture Notes/6.Consumer_Choice_1_for_circulation.pdf",
+    "source_asset_path": "academic_resources/microecon/part_1/2024_class/Pre Lecture Notes/6.Consumer_Choice_1_for_circulation.pdf",
     "course": "microecon",
     "offering_label": "2024",
     "doc_type": "ta_notes",
@@ -59894,7 +59894,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-10T03:03:04.494500+00:00",
-    "content_hash": "f803315f19751eb5",
+    "content_hash": "70a40998b7d656f4",
     "needs_indexing": false,
     "related_offerings": [
       {
@@ -59925,9 +59925,9 @@
   },
   {
     "file_id": "0189326453ca90ed",
-    "path": "academic_notes/microecon/2024_class/Pre Lecture Notes/processed_outputs/6.Consumer_Choice_2_for_circulation.md",
-    "source_pdf_path": "academic_resources/microecon/2024_class/Pre Lecture Notes/6.Consumer_Choice_2_for_circulation.pdf",
-    "source_asset_path": "academic_resources/microecon/2024_class/Pre Lecture Notes/6.Consumer_Choice_2_for_circulation.pdf",
+    "path": "academic_notes/microecon/part_1/2024_class/Pre Lecture Notes/processed_outputs/6.Consumer_Choice_2_for_circulation.md",
+    "source_pdf_path": "academic_resources/microecon/part_1/2024_class/Pre Lecture Notes/6.Consumer_Choice_2_for_circulation.pdf",
+    "source_asset_path": "academic_resources/microecon/part_1/2024_class/Pre Lecture Notes/6.Consumer_Choice_2_for_circulation.pdf",
     "course": "microecon",
     "offering_label": "2024",
     "doc_type": "ta_notes",
@@ -60710,7 +60710,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-10T03:03:12.968246+00:00",
-    "content_hash": "924d0655636d16c3",
+    "content_hash": "d907a56d31d96975",
     "needs_indexing": false,
     "related_offerings": [
       {
@@ -60723,9 +60723,9 @@
   },
   {
     "file_id": "831a4aaa3ba39d1f",
-    "path": "academic_notes/microecon/2024_class/Pre Lecture Notes/processed_outputs/8.Production_for_circulation.md",
-    "source_pdf_path": "academic_resources/microecon/2024_class/Pre Lecture Notes/8.Production_for_circulation.pdf",
-    "source_asset_path": "academic_resources/microecon/2024_class/Pre Lecture Notes/8.Production_for_circulation.pdf",
+    "path": "academic_notes/microecon/part_1/2024_class/Pre Lecture Notes/processed_outputs/8.Production_for_circulation.md",
+    "source_pdf_path": "academic_resources/microecon/part_1/2024_class/Pre Lecture Notes/8.Production_for_circulation.pdf",
+    "source_asset_path": "academic_resources/microecon/part_1/2024_class/Pre Lecture Notes/8.Production_for_circulation.pdf",
     "course": "microecon",
     "offering_label": "2024",
     "doc_type": "ta_notes",
@@ -61508,7 +61508,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-10T03:03:20.551064+00:00",
-    "content_hash": "86c1b95fdc2f1aba",
+    "content_hash": "e67e66986ab7372a",
     "needs_indexing": false,
     "related_offerings": [
       {
@@ -61521,9 +61521,9 @@
   },
   {
     "file_id": "7084d6589128f85d",
-    "path": "academic_notes/microecon/2024_class/Pre Lecture Notes/processed_outputs/9.Risk and Uncertainty 1_for_circulation.md",
-    "source_pdf_path": "academic_resources/microecon/2024_class/Pre Lecture Notes/9.Risk and Uncertainty 1_for_circulation.pdf",
-    "source_asset_path": "academic_resources/microecon/2024_class/Pre Lecture Notes/9.Risk and Uncertainty 1_for_circulation.pdf",
+    "path": "academic_notes/microecon/part_1/2024_class/Pre Lecture Notes/processed_outputs/9.Risk and Uncertainty 1_for_circulation.md",
+    "source_pdf_path": "academic_resources/microecon/part_1/2024_class/Pre Lecture Notes/9.Risk and Uncertainty 1_for_circulation.pdf",
+    "source_asset_path": "academic_resources/microecon/part_1/2024_class/Pre Lecture Notes/9.Risk and Uncertainty 1_for_circulation.pdf",
     "course": "microecon",
     "offering_label": "2024",
     "doc_type": "ta_notes",
@@ -62306,7 +62306,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-10T03:03:28.890319+00:00",
-    "content_hash": "b04ba320b3b09bc5",
+    "content_hash": "5c44b6c41c40e40f",
     "needs_indexing": false,
     "related_offerings": [
       {
@@ -62319,9 +62319,9 @@
   },
   {
     "file_id": "dc430437590b69f6",
-    "path": "academic_notes/microecon/2024_class/Proofs/processed_outputs/Proofs-Risk and Uncertainty.md",
-    "source_pdf_path": "academic_resources/microecon/2024_class/Proofs/Proofs-Risk and Uncertainty.pdf",
-    "source_asset_path": "academic_resources/microecon/2024_class/Proofs/Proofs-Risk and Uncertainty.pdf",
+    "path": "academic_notes/microecon/part_1/2024_class/Proofs/processed_outputs/Proofs-Risk and Uncertainty.md",
+    "source_pdf_path": "academic_resources/microecon/part_1/2024_class/Proofs/Proofs-Risk and Uncertainty.pdf",
+    "source_asset_path": "academic_resources/microecon/part_1/2024_class/Proofs/Proofs-Risk and Uncertainty.pdf",
     "course": "microecon",
     "offering_label": "2024",
     "doc_type": "ta_notes",
@@ -63104,7 +63104,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-10T03:03:45.047610+00:00",
-    "content_hash": "00ca17cca52918d5",
+    "content_hash": "bbf06b6805899d9f",
     "needs_indexing": false,
     "related_offerings": [
       {
@@ -63117,9 +63117,9 @@
   },
   {
     "file_id": "1bb685b0c39b85b9",
-    "path": "academic_notes/microecon/2024_class/Proofs/processed_outputs/Proofs_Consumer_Choice_1.md",
-    "source_pdf_path": "academic_resources/microecon/2024_class/Proofs/Proofs_Consumer_Choice_1.pdf",
-    "source_asset_path": "academic_resources/microecon/2024_class/Proofs/Proofs_Consumer_Choice_1.pdf",
+    "path": "academic_notes/microecon/part_1/2024_class/Proofs/processed_outputs/Proofs_Consumer_Choice_1.md",
+    "source_pdf_path": "academic_resources/microecon/part_1/2024_class/Proofs/Proofs_Consumer_Choice_1.pdf",
+    "source_asset_path": "academic_resources/microecon/part_1/2024_class/Proofs/Proofs_Consumer_Choice_1.pdf",
     "course": "microecon",
     "offering_label": "2024",
     "doc_type": "ta_notes",
@@ -63902,7 +63902,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-10T03:04:03.763947+00:00",
-    "content_hash": "f8c5b9e7025918fc",
+    "content_hash": "85b4c2583c160869",
     "needs_indexing": false,
     "related_offerings": [
       {
@@ -63915,9 +63915,9 @@
   },
   {
     "file_id": "f639a1b898b80cc0",
-    "path": "academic_notes/microecon/2024_class/Proofs/processed_outputs/Utility_Maximization_1_Proofs.md",
-    "source_pdf_path": "academic_resources/microecon/2024_class/Proofs/Utility_Maximization_1_Proofs.pdf",
-    "source_asset_path": "academic_resources/microecon/2024_class/Proofs/Utility_Maximization_1_Proofs.pdf",
+    "path": "academic_notes/microecon/part_1/2024_class/Proofs/processed_outputs/Utility_Maximization_1_Proofs.md",
+    "source_pdf_path": "academic_resources/microecon/part_1/2024_class/Proofs/Utility_Maximization_1_Proofs.pdf",
+    "source_asset_path": "academic_resources/microecon/part_1/2024_class/Proofs/Utility_Maximization_1_Proofs.pdf",
     "course": "microecon",
     "offering_label": "2024",
     "doc_type": "ta_notes",
@@ -64700,7 +64700,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-10T03:04:07.995689+00:00",
-    "content_hash": "8a5f93c140d44c14",
+    "content_hash": "5236ecba0cbdedcb",
     "needs_indexing": false,
     "related_offerings": [
       {
@@ -64731,9 +64731,9 @@
   },
   {
     "file_id": "77c886e945284337",
-    "path": "academic_notes/microecon/2024_class/Proofs/processed_outputs/Utility_Maximization_2_Proofs.md",
-    "source_pdf_path": "academic_resources/microecon/2024_class/Proofs/Utility_Maximization_2_Proofs.pdf",
-    "source_asset_path": "academic_resources/microecon/2024_class/Proofs/Utility_Maximization_2_Proofs.pdf",
+    "path": "academic_notes/microecon/part_1/2024_class/Proofs/processed_outputs/Utility_Maximization_2_Proofs.md",
+    "source_pdf_path": "academic_resources/microecon/part_1/2024_class/Proofs/Utility_Maximization_2_Proofs.pdf",
+    "source_asset_path": "academic_resources/microecon/part_1/2024_class/Proofs/Utility_Maximization_2_Proofs.pdf",
     "course": "microecon",
     "offering_label": "2024",
     "doc_type": "ta_notes",
@@ -65516,7 +65516,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-10T03:04:12.378613+00:00",
-    "content_hash": "81a5d6ee395ea367",
+    "content_hash": "f3e659f3149aea66",
     "needs_indexing": false,
     "related_offerings": [
       {
@@ -65529,9 +65529,9 @@
   },
   {
     "file_id": "a1dd131b2d5e55c3",
-    "path": "academic_notes/microecon/2024_class/Recitation/processed_outputs/Recitation_I.md",
-    "source_pdf_path": "academic_resources/microecon/2024_class/Recitation/Recitation_I.pdf",
-    "source_asset_path": "academic_resources/microecon/2024_class/Recitation/Recitation_I.pdf",
+    "path": "academic_notes/microecon/part_1/2024_class/Recitation/processed_outputs/Recitation_I.md",
+    "source_pdf_path": "academic_resources/microecon/part_1/2024_class/Recitation/Recitation_I.pdf",
+    "source_asset_path": "academic_resources/microecon/part_1/2024_class/Recitation/Recitation_I.pdf",
     "course": "microecon",
     "offering_label": "2024",
     "doc_type": "ta_notes",
@@ -66314,14 +66314,14 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-10T03:04:18.756269+00:00",
-    "content_hash": "6b3735494ec2953c",
+    "content_hash": "cbd45e870c0e0e23",
     "needs_indexing": false
   },
   {
     "file_id": "952f812beebdb6a8",
-    "path": "academic_notes/microecon/2024_class/Recitation/processed_outputs/Recitation_II.md",
-    "source_pdf_path": "academic_resources/microecon/2024_class/Recitation/Recitation_II.pdf",
-    "source_asset_path": "academic_resources/microecon/2024_class/Recitation/Recitation_II.pdf",
+    "path": "academic_notes/microecon/part_1/2024_class/Recitation/processed_outputs/Recitation_II.md",
+    "source_pdf_path": "academic_resources/microecon/part_1/2024_class/Recitation/Recitation_II.pdf",
+    "source_asset_path": "academic_resources/microecon/part_1/2024_class/Recitation/Recitation_II.pdf",
     "course": "microecon",
     "offering_label": "2024",
     "doc_type": "ta_notes",
@@ -67104,14 +67104,14 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-10T03:04:27.393682+00:00",
-    "content_hash": "40c82d37a46bead0",
+    "content_hash": "79fe441f0c4b0817",
     "needs_indexing": false
   },
   {
     "file_id": "9ac46146310a2c2b",
-    "path": "academic_notes/microecon/2024_class/Recitation/processed_outputs/Recitation_III.md",
-    "source_pdf_path": "academic_resources/microecon/2024_class/Recitation/Recitation_III.pdf",
-    "source_asset_path": "academic_resources/microecon/2024_class/Recitation/Recitation_III.pdf",
+    "path": "academic_notes/microecon/part_1/2024_class/Recitation/processed_outputs/Recitation_III.md",
+    "source_pdf_path": "academic_resources/microecon/part_1/2024_class/Recitation/Recitation_III.pdf",
+    "source_asset_path": "academic_resources/microecon/part_1/2024_class/Recitation/Recitation_III.pdf",
     "course": "microecon",
     "offering_label": "2024",
     "doc_type": "ta_notes",
@@ -67894,14 +67894,14 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-10T03:04:32.117553+00:00",
-    "content_hash": "be57b589b6d406fe",
+    "content_hash": "91e25291b322469c",
     "needs_indexing": false
   },
   {
     "file_id": "6a6865da018233e6",
-    "path": "academic_notes/microecon/2024_class/Recitation/processed_outputs/Recitation_IV.md",
-    "source_pdf_path": "academic_resources/microecon/2024_class/Recitation/Recitation_IV.pdf",
-    "source_asset_path": "academic_resources/microecon/2024_class/Recitation/Recitation_IV.pdf",
+    "path": "academic_notes/microecon/part_1/2024_class/Recitation/processed_outputs/Recitation_IV.md",
+    "source_pdf_path": "academic_resources/microecon/part_1/2024_class/Recitation/Recitation_IV.pdf",
+    "source_asset_path": "academic_resources/microecon/part_1/2024_class/Recitation/Recitation_IV.pdf",
     "course": "microecon",
     "offering_label": "2024",
     "doc_type": "ta_notes",
@@ -68684,14 +68684,14 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-10T03:05:08.429863+00:00",
-    "content_hash": "1fe4f2ddf2e0bb46",
+    "content_hash": "fc6cbafc4b40819d",
     "needs_indexing": false
   },
   {
     "file_id": "d6267e27a2fa0873",
-    "path": "academic_notes/microecon/2024_class/Recitation/processed_outputs/Recitation_V.md",
-    "source_pdf_path": "academic_resources/microecon/2024_class/Recitation/Recitation_V.pdf",
-    "source_asset_path": "academic_resources/microecon/2024_class/Recitation/Recitation_V.pdf",
+    "path": "academic_notes/microecon/part_1/2024_class/Recitation/processed_outputs/Recitation_V.md",
+    "source_pdf_path": "academic_resources/microecon/part_1/2024_class/Recitation/Recitation_V.pdf",
+    "source_asset_path": "academic_resources/microecon/part_1/2024_class/Recitation/Recitation_V.pdf",
     "course": "microecon",
     "offering_label": "2024",
     "doc_type": "ta_notes",
@@ -69474,14 +69474,14 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-10T03:05:15.479040+00:00",
-    "content_hash": "b6fc6200e0e61832",
+    "content_hash": "359150d2ca00224d",
     "needs_indexing": false
   },
   {
     "file_id": "b8791e5cb78888f4",
-    "path": "academic_notes/microecon/2025_class/processed_outputs/Micro_I_Recitation_Notes.md",
-    "source_pdf_path": "academic_resources/microecon/2025_class/Micro_I_Recitation_Notes.pdf",
-    "source_asset_path": "academic_resources/microecon/2025_class/Micro_I_Recitation_Notes.pdf",
+    "path": "academic_notes/microecon/part_1/2025_class/processed_outputs/Micro_I_Recitation_Notes.md",
+    "source_pdf_path": "academic_resources/microecon/part_1/2025_class/Micro_I_Recitation_Notes.pdf",
+    "source_asset_path": "academic_resources/microecon/part_1/2025_class/Micro_I_Recitation_Notes.pdf",
     "course": "microecon",
     "offering_label": "2025",
     "doc_type": "ta_notes",
@@ -70264,14 +70264,14 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-10T03:12:39.987073+00:00",
-    "content_hash": "5c049f1cfc86c30d",
+    "content_hash": "befcad67e5e8ecf0",
     "needs_indexing": false
   },
   {
     "file_id": "8e26cc9d3df50338",
-    "path": "academic_notes/microecon/2025_class/processed_outputs/Midterm_Suggested Solutions.md",
-    "source_pdf_path": "academic_resources/microecon/2025_class/Midterm_Suggested Solutions.pdf",
-    "source_asset_path": "academic_resources/microecon/2025_class/Midterm_Suggested Solutions.pdf",
+    "path": "academic_notes/microecon/part_1/2025_class/processed_outputs/Midterm_Suggested Solutions.md",
+    "source_pdf_path": "academic_resources/microecon/part_1/2025_class/Midterm_Suggested Solutions.pdf",
+    "source_asset_path": "academic_resources/microecon/part_1/2025_class/Midterm_Suggested Solutions.pdf",
     "course": "microecon",
     "offering_label": "2025",
     "doc_type": "ta_notes",
@@ -71054,14 +71054,14 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-10T03:13:20.234756+00:00",
-    "content_hash": "f2bc251de85dc76a",
+    "content_hash": "fa20fa23b2cec0a4",
     "needs_indexing": false
   },
   {
     "file_id": "e1e70f80695607bd",
-    "path": "academic_notes/microecon/2025_class/Homeworks/processed_outputs/Homework_1.md",
-    "source_pdf_path": "academic_resources/microecon/2025_class/Homeworks/Homework_1.pdf",
-    "source_asset_path": "academic_resources/microecon/2025_class/Homeworks/Homework_1.pdf",
+    "path": "academic_notes/microecon/part_1/2025_class/Homeworks/processed_outputs/Homework_1.md",
+    "source_pdf_path": "academic_resources/microecon/part_1/2025_class/Homeworks/Homework_1.pdf",
+    "source_asset_path": "academic_resources/microecon/part_1/2025_class/Homeworks/Homework_1.pdf",
     "course": "microecon",
     "offering_label": "2025",
     "doc_type": "problem_set",
@@ -71844,7 +71844,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-10T03:13:24.150456+00:00",
-    "content_hash": "01a2088c7e91ae27",
+    "content_hash": "68c81555b99bf676",
     "needs_indexing": false,
     "related_offerings": [
       {
@@ -71881,9 +71881,9 @@
   },
   {
     "file_id": "d1f22743e86d02a3",
-    "path": "academic_notes/microecon/2025_class/Homeworks/processed_outputs/Homework_2.md",
-    "source_pdf_path": "academic_resources/microecon/2025_class/Homeworks/Homework_2.pdf",
-    "source_asset_path": "academic_resources/microecon/2025_class/Homeworks/Homework_2.pdf",
+    "path": "academic_notes/microecon/part_1/2025_class/Homeworks/processed_outputs/Homework_2.md",
+    "source_pdf_path": "academic_resources/microecon/part_1/2025_class/Homeworks/Homework_2.pdf",
+    "source_asset_path": "academic_resources/microecon/part_1/2025_class/Homeworks/Homework_2.pdf",
     "course": "microecon",
     "offering_label": "2025",
     "doc_type": "problem_set",
@@ -72666,7 +72666,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-10T03:13:29.121877+00:00",
-    "content_hash": "d533b0fcbb31203b",
+    "content_hash": "3840ee03fc8fc3fb",
     "needs_indexing": false,
     "related_offerings": [
       {
@@ -72697,9 +72697,9 @@
   },
   {
     "file_id": "7412401dd5af11ab",
-    "path": "academic_notes/microecon/2025_class/Homeworks/processed_outputs/Homework_3.md",
-    "source_pdf_path": "academic_resources/microecon/2025_class/Homeworks/Homework_3.pdf",
-    "source_asset_path": "academic_resources/microecon/2025_class/Homeworks/Homework_3.pdf",
+    "path": "academic_notes/microecon/part_1/2025_class/Homeworks/processed_outputs/Homework_3.md",
+    "source_pdf_path": "academic_resources/microecon/part_1/2025_class/Homeworks/Homework_3.pdf",
+    "source_asset_path": "academic_resources/microecon/part_1/2025_class/Homeworks/Homework_3.pdf",
     "course": "microecon",
     "offering_label": "2025",
     "doc_type": "problem_set",
@@ -73482,7 +73482,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-10T03:13:33.367431+00:00",
-    "content_hash": "b36ea47cb03766dc",
+    "content_hash": "18118a93959432e3",
     "needs_indexing": false,
     "related_offerings": [
       {
@@ -73519,9 +73519,9 @@
   },
   {
     "file_id": "6a6490ee9282ea48",
-    "path": "academic_notes/microecon/2025_class/Homeworks/processed_outputs/Homework_4.md",
-    "source_pdf_path": "academic_resources/microecon/2025_class/Homeworks/Homework_4.pdf",
-    "source_asset_path": "academic_resources/microecon/2025_class/Homeworks/Homework_4.pdf",
+    "path": "academic_notes/microecon/part_1/2025_class/Homeworks/processed_outputs/Homework_4.md",
+    "source_pdf_path": "academic_resources/microecon/part_1/2025_class/Homeworks/Homework_4.pdf",
+    "source_asset_path": "academic_resources/microecon/part_1/2025_class/Homeworks/Homework_4.pdf",
     "course": "microecon",
     "offering_label": "2025",
     "doc_type": "problem_set",
@@ -74304,7 +74304,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-10T03:13:40.209293+00:00",
-    "content_hash": "51c964bfefe91ad3",
+    "content_hash": "4a014c0b46c87401",
     "needs_indexing": false,
     "related_offerings": [
       {
@@ -74323,9 +74323,9 @@
   },
   {
     "file_id": "3784ac92ca84e019",
-    "path": "academic_notes/microecon/2025_class/Homeworks/processed_outputs/Homework_5.md",
-    "source_pdf_path": "academic_resources/microecon/2025_class/Homeworks/Homework_5.pdf",
-    "source_asset_path": "academic_resources/microecon/2025_class/Homeworks/Homework_5.pdf",
+    "path": "academic_notes/microecon/part_1/2025_class/Homeworks/processed_outputs/Homework_5.md",
+    "source_pdf_path": "academic_resources/microecon/part_1/2025_class/Homeworks/Homework_5.pdf",
+    "source_asset_path": "academic_resources/microecon/part_1/2025_class/Homeworks/Homework_5.pdf",
     "course": "microecon",
     "offering_label": "2025",
     "doc_type": "problem_set",
@@ -75108,14 +75108,14 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-10T03:13:49.611504+00:00",
-    "content_hash": "5e1e2058efbb5c39",
+    "content_hash": "e342246d7b551d61",
     "needs_indexing": false
   },
   {
     "file_id": "57ef33b95c6968bf",
-    "path": "academic_notes/microecon/2025_class/Homeworks/processed_outputs/Homework_6_For_Practice.md",
-    "source_pdf_path": "academic_resources/microecon/2025_class/Homeworks/Homework_6_For_Practice.pdf",
-    "source_asset_path": "academic_resources/microecon/2025_class/Homeworks/Homework_6_For_Practice.pdf",
+    "path": "academic_notes/microecon/part_1/2025_class/Homeworks/processed_outputs/Homework_6_For_Practice.md",
+    "source_pdf_path": "academic_resources/microecon/part_1/2025_class/Homeworks/Homework_6_For_Practice.pdf",
+    "source_asset_path": "academic_resources/microecon/part_1/2025_class/Homeworks/Homework_6_For_Practice.pdf",
     "course": "microecon",
     "offering_label": "2025",
     "doc_type": "problem_set",
@@ -75898,7 +75898,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-10T03:13:53.650831+00:00",
-    "content_hash": "c2e28cb7685464dc",
+    "content_hash": "5022d2707210a73e",
     "needs_indexing": false,
     "related_offerings": [
       {
@@ -75911,9 +75911,9 @@
   },
   {
     "file_id": "df8eb8bf0a83eae0",
-    "path": "academic_notes/microecon/2025_class/Homeworks/processed_outputs/Homework_6_Sol.md",
-    "source_pdf_path": "academic_resources/microecon/2025_class/Homeworks/Homework_6_Sol.pdf",
-    "source_asset_path": "academic_resources/microecon/2025_class/Homeworks/Homework_6_Sol.pdf",
+    "path": "academic_notes/microecon/part_1/2025_class/Homeworks/processed_outputs/Homework_6_Sol.md",
+    "source_pdf_path": "academic_resources/microecon/part_1/2025_class/Homeworks/Homework_6_Sol.pdf",
+    "source_asset_path": "academic_resources/microecon/part_1/2025_class/Homeworks/Homework_6_Sol.pdf",
     "course": "microecon",
     "offering_label": "2025",
     "doc_type": "problem_set",
@@ -76696,9 +76696,9 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-10T03:13:56.749992+00:00",
-    "content_hash": "889e13c089829ae4",
+    "content_hash": "144b26fcfeeff2c6",
     "duplicate_of_file_id": "a610f9dfe8d1f4dc",
-    "duplicate_of_path": "academic_notes/microecon/2024_class/Homeworks/processed_outputs/Homework_6_Sol.md",
+    "duplicate_of_path": "academic_notes/microecon/part_1/2024_class/Homeworks/processed_outputs/Homework_6_Sol.md",
     "related_offerings": [
       {
         "file_id": "a610f9dfe8d1f4dc",
@@ -76716,9 +76716,9 @@
   },
   {
     "file_id": "06d7ac72ba541860",
-    "path": "academic_notes/microecon/2025_class/Homeworks/Solutions/processed_outputs/HW1_Sol.md",
-    "source_pdf_path": "academic_resources/microecon/2025_class/Homeworks/Solutions/HW1_Sol.pdf",
-    "source_asset_path": "academic_resources/microecon/2025_class/Homeworks/Solutions/HW1_Sol.pdf",
+    "path": "academic_notes/microecon/part_1/2025_class/Homeworks/Solutions/processed_outputs/HW1_Sol.md",
+    "source_pdf_path": "academic_resources/microecon/part_1/2025_class/Homeworks/Solutions/HW1_Sol.pdf",
+    "source_asset_path": "academic_resources/microecon/part_1/2025_class/Homeworks/Solutions/HW1_Sol.pdf",
     "course": "microecon",
     "offering_label": "2025",
     "doc_type": "ta_notes",
@@ -77501,7 +77501,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-10T03:14:24.661336+00:00",
-    "content_hash": "d6656776464cb256",
+    "content_hash": "da7e4ac28b3fcacf",
     "needs_indexing": false,
     "related_offerings": [
       {
@@ -77538,9 +77538,9 @@
   },
   {
     "file_id": "b5731f4acd90f280",
-    "path": "academic_notes/microecon/2025_class/Homeworks/Solutions/processed_outputs/HW2_Sol.md",
-    "source_pdf_path": "academic_resources/microecon/2025_class/Homeworks/Solutions/HW2_Sol.pdf",
-    "source_asset_path": "academic_resources/microecon/2025_class/Homeworks/Solutions/HW2_Sol.pdf",
+    "path": "academic_notes/microecon/part_1/2025_class/Homeworks/Solutions/processed_outputs/HW2_Sol.md",
+    "source_pdf_path": "academic_resources/microecon/part_1/2025_class/Homeworks/Solutions/HW2_Sol.pdf",
+    "source_asset_path": "academic_resources/microecon/part_1/2025_class/Homeworks/Solutions/HW2_Sol.pdf",
     "course": "microecon",
     "offering_label": "2025",
     "doc_type": "problem_set",
@@ -78323,7 +78323,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-10T03:14:42.734518+00:00",
-    "content_hash": "a8d5469e0f9d942d",
+    "content_hash": "4d1179e010992221",
     "needs_indexing": false,
     "related_offerings": [
       {
@@ -78348,9 +78348,9 @@
   },
   {
     "file_id": "a02d375da8a21e0c",
-    "path": "academic_notes/microecon/2025_class/Homeworks/Solutions/processed_outputs/HW3_Sol.md",
-    "source_pdf_path": "academic_resources/microecon/2025_class/Homeworks/Solutions/HW3_Sol.pdf",
-    "source_asset_path": "academic_resources/microecon/2025_class/Homeworks/Solutions/HW3_Sol.pdf",
+    "path": "academic_notes/microecon/part_1/2025_class/Homeworks/Solutions/processed_outputs/HW3_Sol.md",
+    "source_pdf_path": "academic_resources/microecon/part_1/2025_class/Homeworks/Solutions/HW3_Sol.pdf",
+    "source_asset_path": "academic_resources/microecon/part_1/2025_class/Homeworks/Solutions/HW3_Sol.pdf",
     "course": "microecon",
     "offering_label": "2025",
     "doc_type": "problem_set",
@@ -79133,7 +79133,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-10T03:15:15.664299+00:00",
-    "content_hash": "d1e1befd41478ff3",
+    "content_hash": "71982f944aaa1936",
     "needs_indexing": false,
     "related_offerings": [
       {
@@ -79152,9 +79152,9 @@
   },
   {
     "file_id": "39c65317a8e91386",
-    "path": "academic_notes/microecon/2025_class/Homeworks/Solutions/processed_outputs/HW4_Sol.md",
-    "source_pdf_path": "academic_resources/microecon/2025_class/Homeworks/Solutions/HW4_Sol.pdf",
-    "source_asset_path": "academic_resources/microecon/2025_class/Homeworks/Solutions/HW4_Sol.pdf",
+    "path": "academic_notes/microecon/part_1/2025_class/Homeworks/Solutions/processed_outputs/HW4_Sol.md",
+    "source_pdf_path": "academic_resources/microecon/part_1/2025_class/Homeworks/Solutions/HW4_Sol.pdf",
+    "source_asset_path": "academic_resources/microecon/part_1/2025_class/Homeworks/Solutions/HW4_Sol.pdf",
     "course": "microecon",
     "offering_label": "2025",
     "doc_type": "problem_set",
@@ -79937,14 +79937,14 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-10T03:15:31.107685+00:00",
-    "content_hash": "5f244ee972764029",
+    "content_hash": "c12d5274154a594c",
     "needs_indexing": false
   },
   {
     "file_id": "98fe79ff5227b91a",
-    "path": "academic_notes/microecon/2025_class/Homeworks/Solutions/processed_outputs/HW5_Sol.md",
-    "source_pdf_path": "academic_resources/microecon/2025_class/Homeworks/Solutions/HW5_Sol.pdf",
-    "source_asset_path": "academic_resources/microecon/2025_class/Homeworks/Solutions/HW5_Sol.pdf",
+    "path": "academic_notes/microecon/part_1/2025_class/Homeworks/Solutions/processed_outputs/HW5_Sol.md",
+    "source_pdf_path": "academic_resources/microecon/part_1/2025_class/Homeworks/Solutions/HW5_Sol.pdf",
+    "source_asset_path": "academic_resources/microecon/part_1/2025_class/Homeworks/Solutions/HW5_Sol.pdf",
     "course": "microecon",
     "offering_label": "2025",
     "doc_type": "problem_set",
@@ -80727,14 +80727,14 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-10T03:15:41.097437+00:00",
-    "content_hash": "2faf43d4cf225a59",
+    "content_hash": "6fdfd7414d96c586",
     "needs_indexing": false
   },
   {
     "file_id": "026e118793b34e18",
-    "path": "academic_notes/microecon/2025_class/Post-Lecture Notes/processed_outputs/11.Production.md",
-    "source_pdf_path": "academic_resources/microecon/2025_class/Post-Lecture Notes/11.Production.pdf",
-    "source_asset_path": "academic_resources/microecon/2025_class/Post-Lecture Notes/11.Production.pdf",
+    "path": "academic_notes/microecon/part_1/2025_class/Post-Lecture Notes/processed_outputs/11.Production.md",
+    "source_pdf_path": "academic_resources/microecon/part_1/2025_class/Post-Lecture Notes/11.Production.pdf",
+    "source_asset_path": "academic_resources/microecon/part_1/2025_class/Post-Lecture Notes/11.Production.pdf",
     "course": "microecon",
     "offering_label": "2025",
     "doc_type": "ta_notes",
@@ -81517,7 +81517,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-10T03:15:47.727122+00:00",
-    "content_hash": "832c678594e9bb1f",
+    "content_hash": "8624bbfafd5df956",
     "needs_indexing": false,
     "related_offerings": [
       {
@@ -81536,9 +81536,9 @@
   },
   {
     "file_id": "6aeb669a0e9e9f75",
-    "path": "academic_notes/microecon/2025_class/Post-Lecture Notes/processed_outputs/2.Utility_Maximization_1.md",
-    "source_pdf_path": "academic_resources/microecon/2025_class/Post-Lecture Notes/2.Utility_Maximization_1.pdf",
-    "source_asset_path": "academic_resources/microecon/2025_class/Post-Lecture Notes/2.Utility_Maximization_1.pdf",
+    "path": "academic_notes/microecon/part_1/2025_class/Post-Lecture Notes/processed_outputs/2.Utility_Maximization_1.md",
+    "source_pdf_path": "academic_resources/microecon/part_1/2025_class/Post-Lecture Notes/2.Utility_Maximization_1.pdf",
+    "source_asset_path": "academic_resources/microecon/part_1/2025_class/Post-Lecture Notes/2.Utility_Maximization_1.pdf",
     "course": "microecon",
     "offering_label": "2025",
     "doc_type": "ta_notes",
@@ -82321,7 +82321,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-10T03:15:53.084697+00:00",
-    "content_hash": "737998a9cec74cee",
+    "content_hash": "226a4f841425e20e",
     "needs_indexing": false,
     "related_offerings": [
       {
@@ -82352,9 +82352,9 @@
   },
   {
     "file_id": "8640cf460b28f5dc",
-    "path": "academic_notes/microecon/2025_class/Post-Lecture Notes/processed_outputs/3.Utility_Maximization_2.md",
-    "source_pdf_path": "academic_resources/microecon/2025_class/Post-Lecture Notes/3.Utility_Maximization_2.pdf",
-    "source_asset_path": "academic_resources/microecon/2025_class/Post-Lecture Notes/3.Utility_Maximization_2.pdf",
+    "path": "academic_notes/microecon/part_1/2025_class/Post-Lecture Notes/processed_outputs/3.Utility_Maximization_2.md",
+    "source_pdf_path": "academic_resources/microecon/part_1/2025_class/Post-Lecture Notes/3.Utility_Maximization_2.pdf",
+    "source_asset_path": "academic_resources/microecon/part_1/2025_class/Post-Lecture Notes/3.Utility_Maximization_2.pdf",
     "course": "microecon",
     "offering_label": "2025",
     "doc_type": "ta_notes",
@@ -83137,7 +83137,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-10T03:15:58.461525+00:00",
-    "content_hash": "7bca64e0f2335170",
+    "content_hash": "fe8e2b73cb748877",
     "needs_indexing": false,
     "related_offerings": [
       {
@@ -83150,9 +83150,9 @@
   },
   {
     "file_id": "c6158e675717aeae",
-    "path": "academic_notes/microecon/2025_class/Post-Lecture Notes/processed_outputs/4.Random_choice.md",
-    "source_pdf_path": "academic_resources/microecon/2025_class/Post-Lecture Notes/4.Random_choice.pdf",
-    "source_asset_path": "academic_resources/microecon/2025_class/Post-Lecture Notes/4.Random_choice.pdf",
+    "path": "academic_notes/microecon/part_1/2025_class/Post-Lecture Notes/processed_outputs/4.Random_choice.md",
+    "source_pdf_path": "academic_resources/microecon/part_1/2025_class/Post-Lecture Notes/4.Random_choice.pdf",
+    "source_asset_path": "academic_resources/microecon/part_1/2025_class/Post-Lecture Notes/4.Random_choice.pdf",
     "course": "microecon",
     "offering_label": "2025",
     "doc_type": "ta_notes",
@@ -83935,7 +83935,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-10T03:16:04.101976+00:00",
-    "content_hash": "d8a5963810350c69",
+    "content_hash": "6ec64c5d22052d05",
     "needs_indexing": false,
     "related_offerings": [
       {
@@ -83960,9 +83960,9 @@
   },
   {
     "file_id": "23174782dd9dea56",
-    "path": "academic_notes/microecon/2025_class/Post-Lecture Notes/processed_outputs/6.Consumer_Choice_1.md",
-    "source_pdf_path": "academic_resources/microecon/2025_class/Post-Lecture Notes/6.Consumer_Choice_1.pdf",
-    "source_asset_path": "academic_resources/microecon/2025_class/Post-Lecture Notes/6.Consumer_Choice_1.pdf",
+    "path": "academic_notes/microecon/part_1/2025_class/Post-Lecture Notes/processed_outputs/6.Consumer_Choice_1.md",
+    "source_pdf_path": "academic_resources/microecon/part_1/2025_class/Post-Lecture Notes/6.Consumer_Choice_1.pdf",
+    "source_asset_path": "academic_resources/microecon/part_1/2025_class/Post-Lecture Notes/6.Consumer_Choice_1.pdf",
     "course": "microecon",
     "offering_label": "2025",
     "doc_type": "ta_notes",
@@ -84745,9 +84745,9 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-10T03:16:06.492799+00:00",
-    "content_hash": "efeb86a5fa626dba",
+    "content_hash": "33b28f259777549d",
     "duplicate_of_file_id": "3ad3cef511a43b54",
-    "duplicate_of_path": "academic_notes/microecon/2024_class/Post lecture notes/processed_outputs/6.Consumer_Choice_1.md",
+    "duplicate_of_path": "academic_notes/microecon/part_1/2024_class/Post lecture notes/processed_outputs/6.Consumer_Choice_1.md",
     "related_offerings": [
       {
         "file_id": "66247a5edbec08df",
@@ -84777,9 +84777,9 @@
   },
   {
     "file_id": "09103a7a607c6e51",
-    "path": "academic_notes/microecon/2025_class/Post-Lecture Notes/processed_outputs/7.Consumer_Choice_2.md",
-    "source_pdf_path": "academic_resources/microecon/2025_class/Post-Lecture Notes/7.Consumer_Choice_2.pdf",
-    "source_asset_path": "academic_resources/microecon/2025_class/Post-Lecture Notes/7.Consumer_Choice_2.pdf",
+    "path": "academic_notes/microecon/part_1/2025_class/Post-Lecture Notes/processed_outputs/7.Consumer_Choice_2.md",
+    "source_pdf_path": "academic_resources/microecon/part_1/2025_class/Post-Lecture Notes/7.Consumer_Choice_2.pdf",
+    "source_asset_path": "academic_resources/microecon/part_1/2025_class/Post-Lecture Notes/7.Consumer_Choice_2.pdf",
     "course": "microecon",
     "offering_label": "2025",
     "doc_type": "ta_notes",
@@ -85562,7 +85562,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-10T03:16:12.642960+00:00",
-    "content_hash": "bfacececd99accd9",
+    "content_hash": "5d98cb570095da71",
     "needs_indexing": false,
     "related_offerings": [
       {
@@ -85581,9 +85581,9 @@
   },
   {
     "file_id": "f554cd4b27fd304e",
-    "path": "academic_notes/microecon/2025_class/Post-Lecture Notes/processed_outputs/8.Risk and Uncertainty 1.md",
-    "source_pdf_path": "academic_resources/microecon/2025_class/Post-Lecture Notes/8.Risk and Uncertainty 1.pdf",
-    "source_asset_path": "academic_resources/microecon/2025_class/Post-Lecture Notes/8.Risk and Uncertainty 1.pdf",
+    "path": "academic_notes/microecon/part_1/2025_class/Post-Lecture Notes/processed_outputs/8.Risk and Uncertainty 1.md",
+    "source_pdf_path": "academic_resources/microecon/part_1/2025_class/Post-Lecture Notes/8.Risk and Uncertainty 1.pdf",
+    "source_asset_path": "academic_resources/microecon/part_1/2025_class/Post-Lecture Notes/8.Risk and Uncertainty 1.pdf",
     "course": "microecon",
     "offering_label": "2025",
     "doc_type": "ta_notes",
@@ -86366,7 +86366,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-10T03:16:20.336127+00:00",
-    "content_hash": "616b08d4a2762e2d",
+    "content_hash": "52694cd5b4bbf986",
     "needs_indexing": false,
     "related_offerings": [
       {
@@ -86379,9 +86379,9 @@
   },
   {
     "file_id": "33698994b0b8782f",
-    "path": "academic_notes/microecon/2025_class/Post-Lecture Notes/processed_outputs/9.Risk and Uncertainty 2.md",
-    "source_pdf_path": "academic_resources/microecon/2025_class/Post-Lecture Notes/9.Risk and Uncertainty 2.pdf",
-    "source_asset_path": "academic_resources/microecon/2025_class/Post-Lecture Notes/9.Risk and Uncertainty 2.pdf",
+    "path": "academic_notes/microecon/part_1/2025_class/Post-Lecture Notes/processed_outputs/9.Risk and Uncertainty 2.md",
+    "source_pdf_path": "academic_resources/microecon/part_1/2025_class/Post-Lecture Notes/9.Risk and Uncertainty 2.pdf",
+    "source_asset_path": "academic_resources/microecon/part_1/2025_class/Post-Lecture Notes/9.Risk and Uncertainty 2.pdf",
     "course": "microecon",
     "offering_label": "2025",
     "doc_type": "ta_notes",
@@ -87164,7 +87164,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-10T03:16:29.919466+00:00",
-    "content_hash": "22409e9ccbbdcae0",
+    "content_hash": "e9f09095a71d754e",
     "needs_indexing": false,
     "related_offerings": [
       {
@@ -87183,9 +87183,9 @@
   },
   {
     "file_id": "bd10323cfc04f39f",
-    "path": "academic_notes/microecon/2025_class/Pre exam survivals kit/processed_outputs/2022.md",
-    "source_pdf_path": "academic_resources/microecon/2025_class/Pre exam survivals kit/2022.pdf",
-    "source_asset_path": "academic_resources/microecon/2025_class/Pre exam survivals kit/2022.pdf",
+    "path": "academic_notes/microecon/part_1/2025_class/Pre exam survivals kit/processed_outputs/2022.md",
+    "source_pdf_path": "academic_resources/microecon/part_1/2025_class/Pre exam survivals kit/2022.pdf",
+    "source_asset_path": "academic_resources/microecon/part_1/2025_class/Pre exam survivals kit/2022.pdf",
     "course": "microecon",
     "offering_label": "2025",
     "doc_type": "problem_set",
@@ -87968,9 +87968,9 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-10T03:16:34.509722+00:00",
-    "content_hash": "e3183a29a8e5b260",
+    "content_hash": "1d2b80b346d3f3d0",
     "duplicate_of_file_id": "eeef7f148f89777c",
-    "duplicate_of_path": "academic_notes/microecon/2024_class/Exam Prep/processed_outputs/2022.md",
+    "duplicate_of_path": "academic_notes/microecon/part_1/2024_class/Exam Prep/processed_outputs/2022.md",
     "related_offerings": [
       {
         "file_id": "dcbd8879324a6ea8",
@@ -87994,9 +87994,9 @@
   },
   {
     "file_id": "8ebdc957ee0e4239",
-    "path": "academic_notes/microecon/2025_class/Pre exam survivals kit/processed_outputs/2022_solution.md",
-    "source_pdf_path": "academic_resources/microecon/2025_class/Pre exam survivals kit/2022_solution.pdf",
-    "source_asset_path": "academic_resources/microecon/2025_class/Pre exam survivals kit/2022_solution.pdf",
+    "path": "academic_notes/microecon/part_1/2025_class/Pre exam survivals kit/processed_outputs/2022_solution.md",
+    "source_pdf_path": "academic_resources/microecon/part_1/2025_class/Pre exam survivals kit/2022_solution.pdf",
+    "source_asset_path": "academic_resources/microecon/part_1/2025_class/Pre exam survivals kit/2022_solution.pdf",
     "course": "microecon",
     "offering_label": "2025",
     "doc_type": "ta_notes",
@@ -88779,9 +88779,9 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-10T03:16:38.774154+00:00",
-    "content_hash": "c84700da1dd703cd",
+    "content_hash": "ad2ce7bf5f4dc4c3",
     "duplicate_of_file_id": "b861b29664c5502b",
-    "duplicate_of_path": "academic_notes/microecon/2024_class/Exam Prep/processed_outputs/2022_solution.md",
+    "duplicate_of_path": "academic_notes/microecon/part_1/2024_class/Exam Prep/processed_outputs/2022_solution.md",
     "related_offerings": [
       {
         "file_id": "eeef7f148f89777c",
@@ -88799,9 +88799,9 @@
   },
   {
     "file_id": "77e762a83059acaf",
-    "path": "academic_notes/microecon/2025_class/Pre exam survivals kit/processed_outputs/2023 solution.md",
-    "source_pdf_path": "academic_resources/microecon/2025_class/Pre exam survivals kit/2023 solution.pdf",
-    "source_asset_path": "academic_resources/microecon/2025_class/Pre exam survivals kit/2023 solution.pdf",
+    "path": "academic_notes/microecon/part_1/2025_class/Pre exam survivals kit/processed_outputs/2023 solution.md",
+    "source_pdf_path": "academic_resources/microecon/part_1/2025_class/Pre exam survivals kit/2023 solution.pdf",
+    "source_asset_path": "academic_resources/microecon/part_1/2025_class/Pre exam survivals kit/2023 solution.pdf",
     "course": "microecon",
     "offering_label": "2025",
     "doc_type": "problem_set",
@@ -89584,9 +89584,9 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-10T03:16:46.153794+00:00",
-    "content_hash": "a02b02d481a2a397",
+    "content_hash": "0c7fa20a9a435de9",
     "duplicate_of_file_id": "6c16249603551416",
-    "duplicate_of_path": "academic_notes/microecon/2024_class/Exam Prep/processed_outputs/2023 solution.md",
+    "duplicate_of_path": "academic_notes/microecon/part_1/2024_class/Exam Prep/processed_outputs/2023 solution.md",
     "related_offerings": [
       {
         "file_id": "6c16249603551416",
@@ -89598,9 +89598,9 @@
   },
   {
     "file_id": "ab38e9cc89dea5d3",
-    "path": "academic_notes/microecon/2025_class/Pre exam survivals kit/processed_outputs/2023.md",
-    "source_pdf_path": "academic_resources/microecon/2025_class/Pre exam survivals kit/2023.pdf",
-    "source_asset_path": "academic_resources/microecon/2025_class/Pre exam survivals kit/2023.pdf",
+    "path": "academic_notes/microecon/part_1/2025_class/Pre exam survivals kit/processed_outputs/2023.md",
+    "source_pdf_path": "academic_resources/microecon/part_1/2025_class/Pre exam survivals kit/2023.pdf",
+    "source_asset_path": "academic_resources/microecon/part_1/2025_class/Pre exam survivals kit/2023.pdf",
     "course": "microecon",
     "offering_label": "2025",
     "doc_type": "problem_set",
@@ -90383,9 +90383,9 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-10T03:16:50.736220+00:00",
-    "content_hash": "f82416e55be039d6",
+    "content_hash": "50d8f7957f2bafd3",
     "duplicate_of_file_id": "9ed4ea750a061296",
-    "duplicate_of_path": "academic_notes/microecon/2024_class/Exam Prep/processed_outputs/2023.md",
+    "duplicate_of_path": "academic_notes/microecon/part_1/2024_class/Exam Prep/processed_outputs/2023.md",
     "related_offerings": [
       {
         "file_id": "9ed4ea750a061296",
@@ -90397,9 +90397,9 @@
   },
   {
     "file_id": "ed5317cbf67b0579",
-    "path": "academic_notes/microecon/2025_class/Pre exam survivals kit/processed_outputs/2024.md",
-    "source_pdf_path": "academic_resources/microecon/2025_class/Pre exam survivals kit/2024.pdf",
-    "source_asset_path": "academic_resources/microecon/2025_class/Pre exam survivals kit/2024.pdf",
+    "path": "academic_notes/microecon/part_1/2025_class/Pre exam survivals kit/processed_outputs/2024.md",
+    "source_pdf_path": "academic_resources/microecon/part_1/2025_class/Pre exam survivals kit/2024.pdf",
+    "source_asset_path": "academic_resources/microecon/part_1/2025_class/Pre exam survivals kit/2024.pdf",
     "course": "microecon",
     "offering_label": "2025",
     "doc_type": "problem_set",
@@ -91182,14 +91182,14 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-10T03:17:03.791186+00:00",
-    "content_hash": "8c2a6ead7b5f1ccb",
+    "content_hash": "0fe103176e4aa6cc",
     "needs_indexing": false
   },
   {
     "file_id": "fd8f2ccbe22d74e0",
-    "path": "academic_notes/microecon/2025_class/proofs/processed_outputs/Proofs-Risk and Uncertainty.md",
-    "source_pdf_path": "academic_resources/microecon/2025_class/proofs/Proofs-Risk and Uncertainty.pdf",
-    "source_asset_path": "academic_resources/microecon/2025_class/proofs/Proofs-Risk and Uncertainty.pdf",
+    "path": "academic_notes/microecon/part_1/2025_class/proofs/processed_outputs/Proofs-Risk and Uncertainty.md",
+    "source_pdf_path": "academic_resources/microecon/part_1/2025_class/proofs/Proofs-Risk and Uncertainty.pdf",
+    "source_asset_path": "academic_resources/microecon/part_1/2025_class/proofs/Proofs-Risk and Uncertainty.pdf",
     "course": "microecon",
     "offering_label": "2025",
     "doc_type": "ta_notes",
@@ -91972,7 +91972,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-10T03:17:16.801265+00:00",
-    "content_hash": "3479ba9b002451d9",
+    "content_hash": "d224fc7cc7d87ddb",
     "needs_indexing": false,
     "related_offerings": [
       {
@@ -91985,9 +91985,9 @@
   },
   {
     "file_id": "e4660ca2c4a1075a",
-    "path": "academic_notes/microecon/2025_class/proofs/processed_outputs/Proofs_Consumer_Choice_1.md",
-    "source_pdf_path": "academic_resources/microecon/2025_class/proofs/Proofs_Consumer_Choice_1.pdf",
-    "source_asset_path": "academic_resources/microecon/2025_class/proofs/Proofs_Consumer_Choice_1.pdf",
+    "path": "academic_notes/microecon/part_1/2025_class/proofs/processed_outputs/Proofs_Consumer_Choice_1.md",
+    "source_pdf_path": "academic_resources/microecon/part_1/2025_class/proofs/Proofs_Consumer_Choice_1.pdf",
+    "source_asset_path": "academic_resources/microecon/part_1/2025_class/proofs/Proofs_Consumer_Choice_1.pdf",
     "course": "microecon",
     "offering_label": "2025",
     "doc_type": "ta_notes",
@@ -92770,7 +92770,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-10T03:17:36.003923+00:00",
-    "content_hash": "2861d771ce149ee7",
+    "content_hash": "722b721a276e745b",
     "needs_indexing": false,
     "related_offerings": [
       {
@@ -92783,9 +92783,9 @@
   },
   {
     "file_id": "e853a9555b296998",
-    "path": "academic_notes/microecon/2025_class/proofs/processed_outputs/Utility_Maximization_1_Proofs.md",
-    "source_pdf_path": "academic_resources/microecon/2025_class/proofs/Utility_Maximization_1_Proofs.pdf",
-    "source_asset_path": "academic_resources/microecon/2025_class/proofs/Utility_Maximization_1_Proofs.pdf",
+    "path": "academic_notes/microecon/part_1/2025_class/proofs/processed_outputs/Utility_Maximization_1_Proofs.md",
+    "source_pdf_path": "academic_resources/microecon/part_1/2025_class/proofs/Utility_Maximization_1_Proofs.pdf",
+    "source_asset_path": "academic_resources/microecon/part_1/2025_class/proofs/Utility_Maximization_1_Proofs.pdf",
     "course": "microecon",
     "offering_label": "2025",
     "doc_type": "ta_notes",
@@ -93568,7 +93568,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-10T03:17:41.740216+00:00",
-    "content_hash": "b7dc8f818bd98708",
+    "content_hash": "66bfd291346b76ee",
     "needs_indexing": false,
     "related_offerings": [
       {
@@ -93605,9 +93605,9 @@
   },
   {
     "file_id": "2a6a0f018177e644",
-    "path": "academic_notes/microecon/2025_class/proofs/processed_outputs/Utility_Maximization_2_Proofs.md",
-    "source_pdf_path": "academic_resources/microecon/2025_class/proofs/Utility_Maximization_2_Proofs.pdf",
-    "source_asset_path": "academic_resources/microecon/2025_class/proofs/Utility_Maximization_2_Proofs.pdf",
+    "path": "academic_notes/microecon/part_1/2025_class/proofs/processed_outputs/Utility_Maximization_2_Proofs.md",
+    "source_pdf_path": "academic_resources/microecon/part_1/2025_class/proofs/Utility_Maximization_2_Proofs.pdf",
+    "source_asset_path": "academic_resources/microecon/part_1/2025_class/proofs/Utility_Maximization_2_Proofs.pdf",
     "course": "microecon",
     "offering_label": "2025",
     "doc_type": "ta_notes",
@@ -94390,7 +94390,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-10T03:17:47.734384+00:00",
-    "content_hash": "fe1adac71975367e",
+    "content_hash": "35efd0008601795d",
     "needs_indexing": false,
     "related_offerings": [
       {
@@ -94403,9 +94403,9 @@
   },
   {
     "file_id": "3b584ee4943d61f6",
-    "path": "academic_notes/microecon/2025_class/Pre exam survivals kit/processed_outputs/2024 solutions.md",
-    "source_pdf_path": "academic_resources/microecon/2025_class/Pre exam survivals kit/2024 solutions.pdf",
-    "source_asset_path": "academic_resources/microecon/2025_class/Pre exam survivals kit/2024 solutions.pdf",
+    "path": "academic_notes/microecon/part_1/2025_class/Pre exam survivals kit/processed_outputs/2024 solutions.md",
+    "source_pdf_path": "academic_resources/microecon/part_1/2025_class/Pre exam survivals kit/2024 solutions.pdf",
+    "source_asset_path": "academic_resources/microecon/part_1/2025_class/Pre exam survivals kit/2024 solutions.pdf",
     "course": "microecon",
     "offering_label": "2025",
     "doc_type": "problem_set",
@@ -95188,9 +95188,9 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-10T03:19:07.749175+00:00",
-    "content_hash": "c915aad31d7cd338",
+    "content_hash": "a8788a0330c1c86b",
     "duplicate_of_file_id": "8b9fe3f07106f6b6",
-    "duplicate_of_path": "academic_notes/microecon/2024_class/Exam/processed_outputs/Exam_Part_I_Sols.md",
+    "duplicate_of_path": "academic_notes/microecon/part_1/2024_class/Exam/processed_outputs/Exam_Part_I_Sols.md",
     "related_offerings": [
       {
         "file_id": "8b9fe3f07106f6b6",
@@ -95202,9 +95202,9 @@
   },
   {
     "file_id": "5e8762f05be1f20c",
-    "path": "academic_notes/microecon/2024_class/processed_outputs/G6211_Fall_2024_Syllabus_Part1.md",
-    "source_pdf_path": "academic_resources/microecon/2024_class/G6211_Fall_2024_Syllabus_Part1.pdf",
-    "source_asset_path": "academic_resources/microecon/2024_class/G6211_Fall_2024_Syllabus_Part1.pdf",
+    "path": "academic_notes/microecon/part_1/2024_class/processed_outputs/G6211_Fall_2024_Syllabus_Part1.md",
+    "source_pdf_path": "academic_resources/microecon/part_1/2024_class/G6211_Fall_2024_Syllabus_Part1.pdf",
+    "source_asset_path": "academic_resources/microecon/part_1/2024_class/G6211_Fall_2024_Syllabus_Part1.pdf",
     "course": "microecon",
     "offering_label": null,
     "doc_type": "ta_notes",
@@ -95987,7 +95987,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-10T15:29:22.545805+00:00",
-    "content_hash": "218d185d668e2562",
+    "content_hash": "68fc5b9f786ffc7c",
     "needs_indexing": false,
     "related_offerings": [
       {
@@ -96012,9 +96012,9 @@
   },
   {
     "file_id": "4be39f26074f71e6",
-    "path": "academic_notes/microecon/2025_class/Post-Lecture Notes/processed_outputs/1.Course_Intro.md",
-    "source_pdf_path": "academic_resources/microecon/2025_class/Post-Lecture Notes/1.Course_Intro.pdf",
-    "source_asset_path": "academic_resources/microecon/2025_class/Post-Lecture Notes/1.Course_Intro.pdf",
+    "path": "academic_notes/microecon/part_1/2025_class/Post-Lecture Notes/processed_outputs/1.Course_Intro.md",
+    "source_pdf_path": "academic_resources/microecon/part_1/2025_class/Post-Lecture Notes/1.Course_Intro.pdf",
+    "source_asset_path": "academic_resources/microecon/part_1/2025_class/Post-Lecture Notes/1.Course_Intro.pdf",
     "course": "microecon",
     "offering_label": null,
     "doc_type": "ta_notes",
@@ -96797,7 +96797,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-10T15:41:18.551156+00:00",
-    "content_hash": "455bbc737fe12851",
+    "content_hash": "eb3b02b66e988c47",
     "needs_indexing": false,
     "related_offerings": [
       {
@@ -96816,9 +96816,9 @@
   },
   {
     "file_id": "72cfac00720bf867",
-    "path": "academic_notes/microecon/2024_class/Post lecture notes/processed_outputs/1.Course_Intro.md",
-    "source_pdf_path": "academic_resources/microecon/2024_class/Post lecture notes/1.Course_Intro.pdf",
-    "source_asset_path": "academic_resources/microecon/2024_class/Post lecture notes/1.Course_Intro.pdf",
+    "path": "academic_notes/microecon/part_1/2024_class/Post lecture notes/processed_outputs/1.Course_Intro.md",
+    "source_pdf_path": "academic_resources/microecon/part_1/2024_class/Post lecture notes/1.Course_Intro.pdf",
+    "source_asset_path": "academic_resources/microecon/part_1/2024_class/Post lecture notes/1.Course_Intro.pdf",
     "course": "microecon",
     "offering_label": null,
     "doc_type": "ta_notes",
@@ -97601,7 +97601,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-10T15:44:37.608829+00:00",
-    "content_hash": "db8aa55d16f439dc",
+    "content_hash": "be6c8e3f5dbc6fbc",
     "needs_indexing": false,
     "related_offerings": [
       {
@@ -97620,9 +97620,9 @@
   },
   {
     "file_id": "745332b11f915901",
-    "path": "academic_notes/microecon/2025_class/processed_outputs/G6211_Fall_2025_Syllabus_Part1.md",
-    "source_pdf_path": "academic_resources/microecon/2025_class/G6211_Fall_2025_Syllabus_Part1.pdf",
-    "source_asset_path": "academic_resources/microecon/2025_class/G6211_Fall_2025_Syllabus_Part1.pdf",
+    "path": "academic_notes/microecon/part_1/2025_class/processed_outputs/G6211_Fall_2025_Syllabus_Part1.md",
+    "source_pdf_path": "academic_resources/microecon/part_1/2025_class/G6211_Fall_2025_Syllabus_Part1.pdf",
+    "source_asset_path": "academic_resources/microecon/part_1/2025_class/G6211_Fall_2025_Syllabus_Part1.pdf",
     "course": "microecon",
     "offering_label": null,
     "doc_type": "ta_notes",
@@ -98405,7 +98405,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-10T15:46:38.607454+00:00",
-    "content_hash": "101717a4f04aaad6",
+    "content_hash": "4c4a8d73a285af66",
     "needs_indexing": false,
     "related_offerings": [
       {
@@ -98430,9 +98430,9 @@
   },
   {
     "file_id": "c2424362fee2f345",
-    "path": "academic_notes/microecon/2025_class/Post-Lecture Notes/processed_outputs/5.Failures Of Rationality.md",
-    "source_pdf_path": "academic_resources/microecon/2025_class/Post-Lecture Notes/5.Failures Of Rationality.pdf",
-    "source_asset_path": "academic_resources/microecon/2025_class/Post-Lecture Notes/5.Failures Of Rationality.pdf",
+    "path": "academic_notes/microecon/part_1/2025_class/Post-Lecture Notes/processed_outputs/5.Failures Of Rationality.md",
+    "source_pdf_path": "academic_resources/microecon/part_1/2025_class/Post-Lecture Notes/5.Failures Of Rationality.pdf",
+    "source_asset_path": "academic_resources/microecon/part_1/2025_class/Post-Lecture Notes/5.Failures Of Rationality.pdf",
     "course": "microecon",
     "offering_label": null,
     "doc_type": "ta_notes",
@@ -99215,7 +99215,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-10T15:55:57.959925+00:00",
-    "content_hash": "0baf66f2a4ebb973",
+    "content_hash": "5f9acfd22d06e01c",
     "needs_indexing": false,
     "related_offerings": [
       {
@@ -99228,9 +99228,9 @@
   },
   {
     "file_id": "da6415b8028cb817",
-    "path": "academic_notes/microecon/2024_class/Pre Lecture Notes/processed_outputs/5.Failures Of Rationality.md",
-    "source_pdf_path": "academic_resources/microecon/2024_class/Pre Lecture Notes/5.Failures Of Rationality.pdf",
-    "source_asset_path": "academic_resources/microecon/2024_class/Pre Lecture Notes/5.Failures Of Rationality.pdf",
+    "path": "academic_notes/microecon/part_1/2024_class/Pre Lecture Notes/processed_outputs/5.Failures Of Rationality.md",
+    "source_pdf_path": "academic_resources/microecon/part_1/2024_class/Pre Lecture Notes/5.Failures Of Rationality.pdf",
+    "source_asset_path": "academic_resources/microecon/part_1/2024_class/Pre Lecture Notes/5.Failures Of Rationality.pdf",
     "course": "microecon",
     "offering_label": null,
     "doc_type": "ta_notes",
@@ -100013,7 +100013,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-10T15:56:21.262686+00:00",
-    "content_hash": "970ce8f735720426",
+    "content_hash": "e25b4c555c948a85",
     "needs_indexing": false,
     "related_offerings": [
       {
@@ -100026,9 +100026,9 @@
   },
   {
     "file_id": "d968eac4f6352b16",
-    "path": "academic_notes/microecon/problem_sets/processed_outputs/Homework_5.md",
-    "source_pdf_path": "academic_resources/microecon/problem_sets/Homework_5.pdf",
-    "source_asset_path": "academic_resources/microecon/problem_sets/Homework_5.pdf",
+    "path": "academic_notes/microecon/part_1/problem_sets/processed_outputs/Homework_5.md",
+    "source_pdf_path": "academic_resources/microecon/part_1/problem_sets/Homework_5.pdf",
+    "source_asset_path": "academic_resources/microecon/part_1/problem_sets/Homework_5.pdf",
     "course": "microecon",
     "offering_label": null,
     "doc_type": "problem_set",
@@ -100811,14 +100811,14 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-11T03:51:35.402721+00:00",
-    "content_hash": "3a63598f13080cea",
+    "content_hash": "5bcc10bd8483dce7",
     "needs_indexing": false
   },
   {
     "file_id": "2bf6006b79560fbd",
-    "path": "academic_notes/microecon/problem_sets/processed_outputs/Homework_4.md",
-    "source_pdf_path": "academic_resources/microecon/problem_sets/Homework_4.pdf",
-    "source_asset_path": "academic_resources/microecon/problem_sets/Homework_4.pdf",
+    "path": "academic_notes/microecon/part_1/problem_sets/processed_outputs/Homework_4.md",
+    "source_pdf_path": "academic_resources/microecon/part_1/problem_sets/Homework_4.pdf",
+    "source_asset_path": "academic_resources/microecon/part_1/problem_sets/Homework_4.pdf",
     "course": "microecon",
     "offering_label": null,
     "doc_type": "problem_set",
@@ -101601,14 +101601,14 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-12T00:30:44.861890+00:00",
-    "content_hash": "af74945a4ead76fb",
+    "content_hash": "9c7d7ebcda83f0f3",
     "needs_indexing": false
   },
   {
     "file_id": "da98a3d4b7e97c54",
-    "path": "academic_notes/microecon/lecture_notes/processed_outputs/Microeconomics with slides 2026-09-29 10.07.07.excalidraw.rag.md",
-    "source_pdf_path": "academic_notes/microecon/lecture_notes/Microeconomics with slides 2026-09-29 10.07.07.excalidraw.md",
-    "source_asset_path": "academic_resources/microecon/lecture_notes/Microeconomics with slides 2026-09-29 10.07.07.excalidraw.svg",
+    "path": "academic_notes/microecon/part_1/lecture_notes/processed_outputs/Microeconomics with slides 2026-09-29 10.07.07.excalidraw.rag.md",
+    "source_pdf_path": "academic_notes/microecon/part_1/lecture_notes/Microeconomics with slides 2026-09-29 10.07.07.excalidraw.md",
+    "source_asset_path": "academic_resources/microecon/part_1/lecture_notes/Microeconomics with slides 2026-09-29 10.07.07.excalidraw.svg",
     "course": "microecon",
     "offering_label": null,
     "doc_type": "excalidraw_notes",
@@ -102391,14 +102391,14 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-13T23:39:56.023033+00:00",
-    "content_hash": "7dd88047f84572f4",
+    "content_hash": "64cba1bdf788bf8c",
     "needs_indexing": false
   },
   {
     "file_id": "1a40ad76d115ae07",
-    "path": "academic_notes/microecon/lecture_notes/processed_outputs/Microeconomics with slides 2026-10-01 10.13.43.excalidraw.rag.md",
-    "source_pdf_path": "academic_notes/microecon/lecture_notes/Microeconomics with slides 2026-10-01 10.13.43.excalidraw.md",
-    "source_asset_path": "academic_resources/microecon/lecture_notes/Microeconomics with slides 2026-10-01 10.13.43.excalidraw.svg",
+    "path": "academic_notes/microecon/part_1/lecture_notes/processed_outputs/Microeconomics with slides 2026-10-01 10.13.43.excalidraw.rag.md",
+    "source_pdf_path": "academic_notes/microecon/part_1/lecture_notes/Microeconomics with slides 2026-10-01 10.13.43.excalidraw.md",
+    "source_asset_path": "academic_resources/microecon/part_1/lecture_notes/Microeconomics with slides 2026-10-01 10.13.43.excalidraw.svg",
     "course": "microecon",
     "offering_label": null,
     "doc_type": "excalidraw_notes",
@@ -103181,14 +103181,14 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-13T23:40:27.171371+00:00",
-    "content_hash": "154624e74c31aefc",
+    "content_hash": "62a41c9d9c4a1239",
     "needs_indexing": false
   },
   {
     "file_id": "f02820c795989f8f",
-    "path": "academic_notes/microecon/lecture_notes/processed_outputs/Microeconomics with slides 2026-10-06 10.09.07.excalidraw.rag.md",
-    "source_pdf_path": "academic_notes/microecon/lecture_notes/Microeconomics with slides 2026-10-06 10.09.07.excalidraw.md",
-    "source_asset_path": "academic_resources/microecon/lecture_notes/Microeconomics with slides 2026-10-06 10.09.07.excalidraw.svg",
+    "path": "academic_notes/microecon/part_1/lecture_notes/processed_outputs/Microeconomics with slides 2026-10-06 10.09.07.excalidraw.rag.md",
+    "source_pdf_path": "academic_notes/microecon/part_1/lecture_notes/Microeconomics with slides 2026-10-06 10.09.07.excalidraw.md",
+    "source_asset_path": "academic_resources/microecon/part_1/lecture_notes/Microeconomics with slides 2026-10-06 10.09.07.excalidraw.svg",
     "course": "microecon",
     "offering_label": null,
     "doc_type": "excalidraw_notes",
@@ -103971,14 +103971,14 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-13T23:41:33.955460+00:00",
-    "content_hash": "74dbea17cad8d9da",
+    "content_hash": "3c960202e2251618",
     "needs_indexing": false
   },
   {
     "file_id": "16187f3e31e80158",
-    "path": "academic_notes/microecon/lecture_notes/processed_outputs/Microeconomics with slides 2026-10-08 10.14.58.excalidraw.rag.md",
-    "source_pdf_path": "academic_notes/microecon/lecture_notes/Microeconomics with slides 2026-10-08 10.14.58.excalidraw.md",
-    "source_asset_path": "academic_resources/microecon/lecture_notes/Microeconomics with slides 2026-10-08 10.14.58.excalidraw.svg",
+    "path": "academic_notes/microecon/part_1/lecture_notes/processed_outputs/Microeconomics with slides 2026-10-08 10.14.58.excalidraw.rag.md",
+    "source_pdf_path": "academic_notes/microecon/part_1/lecture_notes/Microeconomics with slides 2026-10-08 10.14.58.excalidraw.md",
+    "source_asset_path": "academic_resources/microecon/part_1/lecture_notes/Microeconomics with slides 2026-10-08 10.14.58.excalidraw.svg",
     "course": "microecon",
     "offering_label": null,
     "doc_type": "excalidraw_notes",
@@ -104761,14 +104761,14 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-13T23:42:58.869082+00:00",
-    "content_hash": "d551c13d2e44319a",
+    "content_hash": "b084189b4b97eaac",
     "needs_indexing": false
   },
   {
     "file_id": "101c0c767a72298d",
-    "path": "academic_notes/microecon/lecture_notes/processed_outputs/Microeconomics with slides 2026-10-13 09.38.59.excalidraw.rag.md",
-    "source_pdf_path": "academic_notes/microecon/lecture_notes/Microeconomics with slides 2026-10-13 09.38.59.excalidraw.md",
-    "source_asset_path": "academic_resources/microecon/lecture_notes/Microeconomics with slides 2026-10-13 09.38.59.excalidraw.svg",
+    "path": "academic_notes/microecon/part_1/lecture_notes/processed_outputs/Microeconomics with slides 2026-10-13 09.38.59.excalidraw.rag.md",
+    "source_pdf_path": "academic_notes/microecon/part_1/lecture_notes/Microeconomics with slides 2026-10-13 09.38.59.excalidraw.md",
+    "source_asset_path": "academic_resources/microecon/part_1/lecture_notes/Microeconomics with slides 2026-10-13 09.38.59.excalidraw.svg",
     "course": "microecon",
     "offering_label": null,
     "doc_type": "excalidraw_notes",
@@ -105551,14 +105551,14 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-14T03:23:25.014111+00:00",
-    "content_hash": "69936e92f9fbc1f1",
+    "content_hash": "f145a1f4ffb04e4e",
     "needs_indexing": false
   },
   {
     "file_id": "bc71bbd404ede0d7",
-    "path": "academic_notes/microecon/exam_kit/processed_outputs/2022.md",
-    "source_pdf_path": "academic_resources/microecon/exam_kit/2022.pdf",
-    "source_asset_path": "academic_resources/microecon/exam_kit/2022.pdf",
+    "path": "academic_notes/microecon/part_1/exam_kit/processed_outputs/2022.md",
+    "source_pdf_path": "academic_resources/microecon/part_1/exam_kit/2022.pdf",
+    "source_asset_path": "academic_resources/microecon/part_1/exam_kit/2022.pdf",
     "course": "microecon",
     "offering_label": null,
     "doc_type": "problem_set",
@@ -106341,7 +106341,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-24T18:39:09.474778+00:00",
-    "content_hash": "3575736f3446659c",
+    "content_hash": "40d64d2ecefb0445",
     "related_offerings": [
       {
         "file_id": "bd10323cfc04f39f",
@@ -106357,13 +106357,13 @@
       }
     ],
     "duplicate_of_file_id": "eeef7f148f89777c",
-    "duplicate_of_path": "academic_notes/microecon/2024_class/Exam Prep/processed_outputs/2022.md"
+    "duplicate_of_path": "academic_notes/microecon/part_1/2024_class/Exam Prep/processed_outputs/2022.md"
   },
   {
     "file_id": "b14150e0b6a26786",
-    "path": "academic_notes/microecon/exam_kit/processed_outputs/2022_solution.md",
-    "source_pdf_path": "academic_resources/microecon/exam_kit/2022_solution.pdf",
-    "source_asset_path": "academic_resources/microecon/exam_kit/2022_solution.pdf",
+    "path": "academic_notes/microecon/part_1/exam_kit/processed_outputs/2022_solution.md",
+    "source_pdf_path": "academic_resources/microecon/part_1/exam_kit/2022_solution.pdf",
+    "source_asset_path": "academic_resources/microecon/part_1/exam_kit/2022_solution.pdf",
     "course": "microecon",
     "offering_label": null,
     "doc_type": "ta_notes",
@@ -107146,7 +107146,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-24T18:39:09.797978+00:00",
-    "content_hash": "d7915ba4f7966309",
+    "content_hash": "307a5a41313356a0",
     "related_offerings": [
       {
         "file_id": "bd10323cfc04f39f",
@@ -107162,13 +107162,13 @@
       }
     ],
     "duplicate_of_file_id": "b861b29664c5502b",
-    "duplicate_of_path": "academic_notes/microecon/2024_class/Exam Prep/processed_outputs/2022_solution.md"
+    "duplicate_of_path": "academic_notes/microecon/part_1/2024_class/Exam Prep/processed_outputs/2022_solution.md"
   },
   {
     "file_id": "a572fa7f85be018f",
-    "path": "academic_notes/microecon/exam_kit/processed_outputs/2023.md",
-    "source_pdf_path": "academic_resources/microecon/exam_kit/2023.pdf",
-    "source_asset_path": "academic_resources/microecon/exam_kit/2023.pdf",
+    "path": "academic_notes/microecon/part_1/exam_kit/processed_outputs/2023.md",
+    "source_pdf_path": "academic_resources/microecon/part_1/exam_kit/2023.pdf",
+    "source_asset_path": "academic_resources/microecon/part_1/exam_kit/2023.pdf",
     "course": "microecon",
     "offering_label": null,
     "doc_type": "problem_set",
@@ -107951,7 +107951,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-24T18:39:10.121192+00:00",
-    "content_hash": "bffb6fd8d8db466a",
+    "content_hash": "0f20c461f7056d4d",
     "related_offerings": [
       {
         "file_id": "ab38e9cc89dea5d3",
@@ -107961,13 +107961,13 @@
       }
     ],
     "duplicate_of_file_id": "9ed4ea750a061296",
-    "duplicate_of_path": "academic_notes/microecon/2024_class/Exam Prep/processed_outputs/2023.md"
+    "duplicate_of_path": "academic_notes/microecon/part_1/2024_class/Exam Prep/processed_outputs/2023.md"
   },
   {
     "file_id": "13afc9870ce36b89",
-    "path": "academic_notes/microecon/exam_kit/processed_outputs/2023 solution.md",
-    "source_pdf_path": "academic_resources/microecon/exam_kit/2023 solution.pdf",
-    "source_asset_path": "academic_resources/microecon/exam_kit/2023 solution.pdf",
+    "path": "academic_notes/microecon/part_1/exam_kit/processed_outputs/2023 solution.md",
+    "source_pdf_path": "academic_resources/microecon/part_1/exam_kit/2023 solution.pdf",
+    "source_asset_path": "academic_resources/microecon/part_1/exam_kit/2023 solution.pdf",
     "course": "microecon",
     "offering_label": null,
     "doc_type": "problem_set",
@@ -108750,7 +108750,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-24T18:39:10.417873+00:00",
-    "content_hash": "ceb00dcae37cd200",
+    "content_hash": "05985a6ba8243131",
     "related_offerings": [
       {
         "file_id": "77e762a83059acaf",
@@ -108760,13 +108760,13 @@
       }
     ],
     "duplicate_of_file_id": "6c16249603551416",
-    "duplicate_of_path": "academic_notes/microecon/2024_class/Exam Prep/processed_outputs/2023 solution.md"
+    "duplicate_of_path": "academic_notes/microecon/part_1/2024_class/Exam Prep/processed_outputs/2023 solution.md"
   },
   {
     "file_id": "3ef68c8d3271c541",
-    "path": "academic_notes/microecon/exam_kit/processed_outputs/2024.md",
-    "source_pdf_path": "academic_resources/microecon/exam_kit/2024.pdf",
-    "source_asset_path": "academic_resources/microecon/exam_kit/2024.pdf",
+    "path": "academic_notes/microecon/part_1/exam_kit/processed_outputs/2024.md",
+    "source_pdf_path": "academic_resources/microecon/part_1/exam_kit/2024.pdf",
+    "source_asset_path": "academic_resources/microecon/part_1/exam_kit/2024.pdf",
     "course": "microecon",
     "offering_label": null,
     "doc_type": "problem_set",
@@ -109549,15 +109549,15 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-24T18:39:10.715850+00:00",
-    "content_hash": "45b77e71649003e6",
+    "content_hash": "9366da6526dad625",
     "duplicate_of_file_id": "ed5317cbf67b0579",
-    "duplicate_of_path": "academic_notes/microecon/2025_class/Pre exam survivals kit/processed_outputs/2024.md"
+    "duplicate_of_path": "academic_notes/microecon/part_1/2025_class/Pre exam survivals kit/processed_outputs/2024.md"
   },
   {
     "file_id": "02d86a8b28a9cabe",
-    "path": "academic_notes/microecon/exam_kit/processed_outputs/2024 solutions.md",
-    "source_pdf_path": "academic_resources/microecon/exam_kit/2024 solutions.pdf",
-    "source_asset_path": "academic_resources/microecon/exam_kit/2024 solutions.pdf",
+    "path": "academic_notes/microecon/part_1/exam_kit/processed_outputs/2024 solutions.md",
+    "source_pdf_path": "academic_resources/microecon/part_1/exam_kit/2024 solutions.pdf",
+    "source_asset_path": "academic_resources/microecon/part_1/exam_kit/2024 solutions.pdf",
     "course": "microecon",
     "offering_label": null,
     "doc_type": "problem_set",
@@ -110340,7 +110340,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-24T18:39:11.018505+00:00",
-    "content_hash": "62d532ca4c5080bd",
+    "content_hash": "40f5604b6bd3e0a1",
     "related_offerings": [
       {
         "file_id": "3b584ee4943d61f6",
@@ -110350,13 +110350,13 @@
       }
     ],
     "duplicate_of_file_id": "8b9fe3f07106f6b6",
-    "duplicate_of_path": "academic_notes/microecon/2024_class/Exam/processed_outputs/Exam_Part_I_Sols.md"
+    "duplicate_of_path": "academic_notes/microecon/part_1/2024_class/Exam/processed_outputs/Exam_Part_I_Sols.md"
   },
   {
     "file_id": "71fa6284015ff08f",
-    "path": "academic_notes/microecon/2024_class/Post lecture notes/processed_outputs/5.Failures Of Rationality.md",
-    "source_pdf_path": "academic_resources/microecon/2024_class/Post lecture notes/5.Failures Of Rationality.pdf",
-    "source_asset_path": "academic_resources/microecon/2024_class/Post lecture notes/5.Failures Of Rationality.pdf",
+    "path": "academic_notes/microecon/part_1/2024_class/Post lecture notes/processed_outputs/5.Failures Of Rationality.md",
+    "source_pdf_path": "academic_resources/microecon/part_1/2024_class/Post lecture notes/5.Failures Of Rationality.pdf",
+    "source_asset_path": "academic_resources/microecon/part_1/2024_class/Post lecture notes/5.Failures Of Rationality.pdf",
     "course": "microecon",
     "offering_label": "2024",
     "doc_type": "ta_notes",
@@ -111139,7 +111139,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-24T18:39:11.391641+00:00",
-    "content_hash": "f41d9c9aae7589a3",
+    "content_hash": "df70d8a068c29876",
     "related_offerings": [
       {
         "file_id": "c2424362fee2f345",
@@ -111149,13 +111149,13 @@
       }
     ],
     "duplicate_of_file_id": "da6415b8028cb817",
-    "duplicate_of_path": "academic_notes/microecon/2024_class/Pre Lecture Notes/processed_outputs/5.Failures Of Rationality.md"
+    "duplicate_of_path": "academic_notes/microecon/part_1/2024_class/Pre Lecture Notes/processed_outputs/5.Failures Of Rationality.md"
   },
   {
     "file_id": "e0b01da19aa85d28",
-    "path": "academic_notes/microecon/problem_sets/processed_outputs/Homework_6_For_Practice.md",
-    "source_pdf_path": "academic_resources/microecon/problem_sets/Homework_6_For_Practice.pdf",
-    "source_asset_path": "academic_resources/microecon/problem_sets/Homework_6_For_Practice.pdf",
+    "path": "academic_notes/microecon/part_1/problem_sets/processed_outputs/Homework_6_For_Practice.md",
+    "source_pdf_path": "academic_resources/microecon/part_1/problem_sets/Homework_6_For_Practice.pdf",
+    "source_asset_path": "academic_resources/microecon/part_1/problem_sets/Homework_6_For_Practice.pdf",
     "course": "microecon",
     "offering_label": null,
     "doc_type": "problem_sets",
@@ -111169,14 +111169,14 @@
     "embedding": [],
     "embedding_model": null,
     "source_updated_at": "2026-10-24T18:39:46.008371+00:00",
-    "content_hash": "d35f890e93041ac8",
+    "content_hash": "ad609c91dd350dcb",
     "needs_indexing": true
   },
   {
     "file_id": "d012c83b3f822061",
-    "path": "academic_notes/microecon/exam_kit/processed_outputs/2025.md",
-    "source_pdf_path": "academic_resources/microecon/exam_kit/2025.pdf",
-    "source_asset_path": "academic_resources/microecon/exam_kit/2025.pdf",
+    "path": "academic_notes/microecon/part_1/exam_kit/processed_outputs/2025.md",
+    "source_pdf_path": "academic_resources/microecon/part_1/exam_kit/2025.pdf",
+    "source_asset_path": "academic_resources/microecon/part_1/exam_kit/2025.pdf",
     "course": "microecon",
     "offering_label": null,
     "doc_type": "exam_kit",
@@ -111190,14 +111190,14 @@
     "embedding": [],
     "embedding_model": null,
     "source_updated_at": "2026-10-24T18:40:02.764942+00:00",
-    "content_hash": "a02deb1d27ca111d",
+    "content_hash": "d473df4d4e543c4c",
     "needs_indexing": true
   },
   {
     "file_id": "b7e809c89f1f38b5",
-    "path": "academic_notes/microecon/professor_notes/processed_outputs/10.Production.md",
-    "source_pdf_path": "academic_resources/microecon/professor_notes/10.Production.pdf",
-    "source_asset_path": "academic_resources/microecon/professor_notes/10.Production.pdf",
+    "path": "academic_notes/microecon/part_1/professor_notes/processed_outputs/10.Production.md",
+    "source_pdf_path": "academic_resources/microecon/part_1/professor_notes/10.Production.pdf",
+    "source_asset_path": "academic_resources/microecon/part_1/professor_notes/10.Production.pdf",
     "course": "microecon",
     "offering_label": null,
     "doc_type": "ta_notes",
@@ -111980,14 +111980,14 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-24T18:42:16.854060+00:00",
-    "content_hash": "088b9a7cea6830c9",
+    "content_hash": "6e25fe3f3491adb8",
     "needs_indexing": false
   },
   {
     "file_id": "9cf9619ec6038d56",
-    "path": "academic_notes/microecon/professor_notes/processed_outputs/7.Consumer_Choice_2.md",
-    "source_pdf_path": "academic_resources/microecon/professor_notes/7.Consumer_Choice_2.pdf",
-    "source_asset_path": "academic_resources/microecon/professor_notes/7.Consumer_Choice_2.pdf",
+    "path": "academic_notes/microecon/part_1/professor_notes/processed_outputs/7.Consumer_Choice_2.md",
+    "source_pdf_path": "academic_resources/microecon/part_1/professor_notes/7.Consumer_Choice_2.pdf",
+    "source_asset_path": "academic_resources/microecon/part_1/professor_notes/7.Consumer_Choice_2.pdf",
     "course": "microecon",
     "offering_label": null,
     "doc_type": "ta_notes",
@@ -112770,14 +112770,14 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-24T18:44:18.040594+00:00",
-    "content_hash": "838544586f307096",
+    "content_hash": "3023755866d3e8e8",
     "needs_indexing": false
   },
   {
     "file_id": "4230dfbfd95cb2a3",
-    "path": "academic_notes/microecon/professor_notes/processed_outputs/8.Risk and Uncertainty 1.md",
-    "source_pdf_path": "academic_resources/microecon/professor_notes/8.Risk and Uncertainty 1.pdf",
-    "source_asset_path": "academic_resources/microecon/professor_notes/8.Risk and Uncertainty 1.pdf",
+    "path": "academic_notes/microecon/part_1/professor_notes/processed_outputs/8.Risk and Uncertainty 1.md",
+    "source_pdf_path": "academic_resources/microecon/part_1/professor_notes/8.Risk and Uncertainty 1.pdf",
+    "source_asset_path": "academic_resources/microecon/part_1/professor_notes/8.Risk and Uncertainty 1.pdf",
     "course": "microecon",
     "offering_label": null,
     "doc_type": "ta_notes",
@@ -113560,14 +113560,14 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-24T18:44:21.350545+00:00",
-    "content_hash": "8701bea8663198a4",
+    "content_hash": "fc63fb32103efd73",
     "needs_indexing": false
   },
   {
     "file_id": "7286b50e1f1888d5",
-    "path": "academic_notes/microecon/professor_notes/processed_outputs/9.Risk and Uncertainty 2.md",
-    "source_pdf_path": "academic_resources/microecon/professor_notes/9.Risk and Uncertainty 2.pdf",
-    "source_asset_path": "academic_resources/microecon/professor_notes/9.Risk and Uncertainty 2.pdf",
+    "path": "academic_notes/microecon/part_1/professor_notes/processed_outputs/9.Risk and Uncertainty 2.md",
+    "source_pdf_path": "academic_resources/microecon/part_1/professor_notes/9.Risk and Uncertainty 2.pdf",
+    "source_asset_path": "academic_resources/microecon/part_1/professor_notes/9.Risk and Uncertainty 2.pdf",
     "course": "microecon",
     "offering_label": null,
     "doc_type": "ta_notes",
@@ -114350,14 +114350,14 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-24T18:45:17.512590+00:00",
-    "content_hash": "d8127603c61ba32e",
+    "content_hash": "1fa82600287605bd",
     "needs_indexing": false
   },
   {
     "file_id": "113e0c3e6d2b665f",
-    "path": "academic_notes/microecon/problem_sets/TA_solutions/processed_outputs/Part_I_HW4_Sol.md",
-    "source_pdf_path": "academic_resources/microecon/problem_sets/TA_solutions/Part_I_HW4_Sol.pdf",
-    "source_asset_path": "academic_resources/microecon/problem_sets/TA_solutions/Part_I_HW4_Sol.pdf",
+    "path": "academic_notes/microecon/part_1/problem_sets/TA_solutions/processed_outputs/Part_I_HW4_Sol.md",
+    "source_pdf_path": "academic_resources/microecon/part_1/problem_sets/TA_solutions/Part_I_HW4_Sol.pdf",
+    "source_asset_path": "academic_resources/microecon/part_1/problem_sets/TA_solutions/Part_I_HW4_Sol.pdf",
     "course": "microecon",
     "offering_label": null,
     "doc_type": "ta_notes",
@@ -115140,14 +115140,14 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-24T18:49:15.864874+00:00",
-    "content_hash": "7d68962d4da8543c",
+    "content_hash": "f1f654de649be81c",
     "needs_indexing": false
   },
   {
     "file_id": "e7ae347ac509d9ef",
-    "path": "academic_notes/microecon/problem_sets/TA_solutions/processed_outputs/Part_I_HW5_Sol.md",
-    "source_pdf_path": "academic_resources/microecon/problem_sets/TA_solutions/Part_I_HW5_Sol.pdf",
-    "source_asset_path": "academic_resources/microecon/problem_sets/TA_solutions/Part_I_HW5_Sol.pdf",
+    "path": "academic_notes/microecon/part_1/problem_sets/TA_solutions/processed_outputs/Part_I_HW5_Sol.md",
+    "source_pdf_path": "academic_resources/microecon/part_1/problem_sets/TA_solutions/Part_I_HW5_Sol.pdf",
+    "source_asset_path": "academic_resources/microecon/part_1/problem_sets/TA_solutions/Part_I_HW5_Sol.pdf",
     "course": "microecon",
     "offering_label": null,
     "doc_type": "problem_set",
@@ -115930,14 +115930,14 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-24T18:49:20.272469+00:00",
-    "content_hash": "473a2c85464e1bb0",
+    "content_hash": "4f4ded98394bfa20",
     "needs_indexing": false
   },
   {
     "file_id": "123809ab6de19c6e",
-    "path": "academic_notes/microecon/problem_sets/TA_solutions/processed_outputs/Part_I_HW6_Sol.md",
-    "source_pdf_path": "academic_resources/microecon/problem_sets/TA_solutions/Part_I_HW6_Sol.pdf",
-    "source_asset_path": "academic_resources/microecon/problem_sets/TA_solutions/Part_I_HW6_Sol.pdf",
+    "path": "academic_notes/microecon/part_1/problem_sets/TA_solutions/processed_outputs/Part_I_HW6_Sol.md",
+    "source_pdf_path": "academic_resources/microecon/part_1/problem_sets/TA_solutions/Part_I_HW6_Sol.pdf",
+    "source_asset_path": "academic_resources/microecon/part_1/problem_sets/TA_solutions/Part_I_HW6_Sol.pdf",
     "course": "microecon",
     "offering_label": null,
     "doc_type": "ta_notes",
@@ -116720,14 +116720,14 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-24T18:49:24.894148+00:00",
-    "content_hash": "f08f6a7ad0350d81",
+    "content_hash": "7fad75e2c5b10b93",
     "needs_indexing": false
   },
   {
     "file_id": "42e031ba737a2118",
-    "path": "academic_notes/microecon/exam_kit/processed_outputs/2025_solutions.md",
-    "source_pdf_path": "academic_resources/microecon/exam_kit/2025_solutions.pdf",
-    "source_asset_path": "academic_resources/microecon/exam_kit/2025_solutions.pdf",
+    "path": "academic_notes/microecon/part_1/exam_kit/processed_outputs/2025_solutions.md",
+    "source_pdf_path": "academic_resources/microecon/part_1/exam_kit/2025_solutions.pdf",
+    "source_asset_path": "academic_resources/microecon/part_1/exam_kit/2025_solutions.pdf",
     "course": "microecon",
     "offering_label": null,
     "doc_type": "ta_notes",
@@ -117510,7 +117510,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-24T18:49:44.472616+00:00",
-    "content_hash": "84af2ebea7eea2f1",
+    "content_hash": "cce29d022108415e",
     "needs_indexing": false
   }
 ]
