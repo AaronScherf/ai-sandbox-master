@@ -6,6 +6,7 @@ from agent.literature.gap import VERDICTS
 from agent.literature.gap.classify import classify
 from agent.literature.gap.match import Constraint
 from agent.literature.gap.subregions import load_subregions
+from agent.literature.vocab import Term, Vocabulary
 from gap_helpers import VOCABS, fx, make_corpus, write_toy_tables
 
 
@@ -60,6 +61,31 @@ class TestClassify(unittest.TestCase):
                               Constraint("outcome", "o.food_cons"), Constraint("outcome", "o.health"))
         self.assertEqual(r.direct, ["paper-b"])
         self.assertEqual(r.partial, [("paper-a", 1)])
+
+    def test_one_fact_cannot_satisfy_another_intervention_and_its_sibling_widening(self):
+        r = self.run_classify({"paper-a": paper(fx("intervention", "i.cash_uncond"))},
+                              Constraint("intervention", "i.cash_cond"), Constraint("intervention", "i.cash_uncond"))
+        self.assertEqual(r.adjacent, {})
+        self.assertEqual(r.partial, [("paper-a", 1)])
+
+    def test_separate_sibling_fact_can_satisfy_intervention_widening(self):
+        original = VOCABS["intervention"]
+        terms = {**original.terms, "i.cash_other": Term("i.cash_other", "Other cash transfer", "i.cash")}
+        vocabs = {**VOCABS, "intervention": Vocabulary(original.name, original.version, original.provenance,
+                                                      original.source, terms)}
+        corpus = make_corpus({"paper-a": paper(fx("intervention", "i.cash_uncond"),
+                                               ("intervention", "i.cash_other", "Other cash transfer", "A"))})
+        r = classify(corpus, [Constraint("intervention", "i.cash_cond"), Constraint("intervention", "i.cash_uncond")],
+                     vocabs, self.toy)
+        self.assertEqual(list(r.adjacent), ["paper-a"])
+        self.assertIn("Other cash transfer", r.adjacent["paper-a"][0])
+
+    def test_country_widening_still_works_with_two_intervention_constraints(self):
+        r = self.run_classify({"paper-a": paper(fx("intervention", "i.cash_cond"),
+                                                 fx("intervention", "i.cash_uncond"), fx("countries", "KE"))},
+                              Constraint("intervention", "i.cash_cond"), Constraint("intervention", "i.cash_uncond"),
+                              Constraint("countries", "SO"))
+        self.assertEqual(r.adjacent["paper-a"], ["different country (same subregion: Eastern Africa)"])
 
     def test_single_constraint_question_can_be_relaxed_and_has_no_partial_list(self):
         r = self.run_classify({"paper-a": paper(fx("outcome", "o.food_div")), "paper-b": paper(fx("outcome", "o.health"))},

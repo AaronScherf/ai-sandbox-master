@@ -38,7 +38,9 @@ def classify(corpus: Corpus, constraints: list[Constraint], vocabs: dict, subreg
         for i, w in widenings.items():
             if w is None or not all(h for j, h in enumerate(hit) if j != i):
                 continue
-            matched = next((f for f in facts if w.matches(f, vocabs)), None)
+            matched = next((f for f in facts if w.matches(f, vocabs)
+                            and not any(j != i and c.facet == constraints[i].facet and fact_matches(c, f, vocabs)
+                                        for j, c in enumerate(constraints))), None)
             if matched is not None:
                 labels.append(w.label_for(matched, vocabs))
         if labels:
