@@ -10,6 +10,7 @@ from core.indexer.chunk_index import chunk, load_chunks
 from core.indexer.index_card import compute_content_hash, compute_file_id, compute_id_from_parts, load_shard, save_shard
 from core.indexer.index_search import (
     apply_markdown_plan, build_arg_parser, main, markdown_preview, rebuild, search, search_passages,
+    rebuild_plan, retry_file, retry_file_plan,
 )
 from core.indexer.markdown_sources import exact_markdown_path
 
@@ -29,6 +30,159 @@ def _md(root, rel, text="# Problem 1\n\nEstimate beta."):
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(text, encoding="utf-8")
     return path
+
+
+def test_rebuild_exact_retry_preserves_source_and_other_cards(tmp_path, monkeypatch, capsys):
+    root = tmp_path
+    rel = "academic_notes/econometrics/part_1/problem_sets/processed_outputs/pset3.md"
+    _md(root, rel)
+    pdf = root / "academic_resources/econometrics/part_1/problem_sets/pset3.pdf"
+    pdf.parent.mkdir(parents=True)
+    pdf.write_bytes(b"source")
+    source = "academic_resources/econometrics/part_1/problem_sets/pset3.pdf"
+    card = {"file_id": compute_file_id(str(pdf)), "path": rel, "source_pdf_path": source,
+            "source_asset_path": source, "offering_label": "Fall 2026", "needs_indexing": True,
+            "content_hash": "old", "course": "econometrics", "source_kind": None}
+    other = {"file_id": "other", "path": "other.md", "embedding": [7, 8]}
+    save_shard(str(root), "econometrics", [card, other])
+    assert retry_file_plan(str(root), "econometrics", rel)["estimated_paid_cards"] == 1
+    import core.indexer.index_search as search_module
+    def unrelated_pass(*_args, **_kwargs):
+        pytest.fail("exact retry ran an unrelated pass")
+    for name in ("markdown_preview", "_flag_or_prune_orphans", "_link_subsets_safely"):
+        monkeypatch.setattr(search_module, name, unrelated_pass)
+    monkeypatch.setattr(search_module, "get_gemini_client", lambda: pytest.fail("plan created client"))
+    monkeypatch.setattr("sys.argv", ["index_search", "--root", str(root), "rebuild", "--course",
+                                    "econometrics", "--file", rel, "--plan", "--json"])
+    main()
+    assert json.loads(capsys.readouterr().out)["file_id"] == card["file_id"]
+    client = _client()
+    assert retry_file(str(root), "econometrics", rel, client)["status"] == "applied"
+    cards = load_shard(str(root), "econometrics")
+    assert cards[1] == other
+    assert cards[0]["file_id"] == card["file_id"]
+    assert cards[0]["source_pdf_path"] == source
+    assert cards[0]["source_asset_path"] == source
+    assert cards[0]["offering_label"] == "Fall 2026"
+    assert not cards[0]["needs_indexing"]
+
+
+def test_rebuild_exact_retry_refuses_invalid_targets_and_preserves_failure(tmp_path):
+    root = tmp_path
+    rel = "academic_notes/econometrics/problem_sets/processed_outputs/failed.md"
+    _md(root, rel)
+    pdf = root / "academic_resources/econometrics/problem_sets/failed.pdf"
+    pdf.parent.mkdir(parents=True)
+    pdf.write_bytes(b"pdf")
+    card = {"file_id": compute_file_id(str(pdf)), "path": rel,
+            "source_pdf_path": "academic_resources/econometrics/problem_sets/failed.pdf",
+            "needs_indexing": True, "course": "econometrics"}
+    save_shard(str(root), "econometrics", [card])
+    for bad in ("academic_notes/econometrics/problem_sets/missing.md",
+                "academic_notes/other/problem_sets/processed_outputs/failed.md"):
+        with pytest.raises(ValueError):
+            retry_file_plan(str(root), "econometrics", bad)
+    for change in ({"needs_indexing": False}, {"source_kind": "markdown_only"},
+                   {"source_pdf_path": None}, {"file_id": "wrong"}):
+        save_shard(str(root), "econometrics", [{**card, **change}])
+        with pytest.raises(ValueError):
+            retry_file_plan(str(root), "econometrics", rel)
+    save_shard(str(root), "econometrics", [card])
+    client = _client()
+    client.models.generate_content.side_effect = RuntimeError("fixture generation failure")
+    assert retry_file(str(root), "econometrics", rel, client)["status"] == "generation_failed"
+    assert load_shard(str(root), "econometrics") == [card]
+
+
+def test_rebuild_plan_never_creates_client_and_cap_covers_producers(tmp_path, monkeypatch, capsys):
+    pdf = tmp_path / "academic_notes/econometrics/problem_sets/new.pdf"
+    pdf.parent.mkdir(parents=True)
+    pdf.write_bytes(b"pdf")
+    _md(tmp_path, "academic_notes/econometrics/problem_sets/processed_outputs/new.md")
+    assert rebuild_plan(str(tmp_path), "econometrics")["estimated_paid_cards"] >= 1
+    import core.indexer.index_search as search_module
+    monkeypatch.setattr(search_module, "get_gemini_client", lambda: pytest.fail("client constructed"))
+    monkeypatch.setattr("sys.argv", ["index_search", "--root", str(tmp_path), "rebuild",
+                                    "--course", "econometrics", "--plan", "--json"])
+    main()
+    assert json.loads(capsys.readouterr().out)["would_refuse"] is False
+    monkeypatch.setattr("sys.argv", ["index_search", "--root", str(tmp_path), "rebuild",
+                                    "--course", "econometrics", "--max-paid", "0"])
+    with pytest.raises(SystemExit, match="cap is 0"):
+        main()
+
+
+@pytest.mark.parametrize("relative,category", [
+    ("problem_sets/one.md", "problem_sets"),
+    ("part_1/problem_sets/one.md", "problem_sets"),
+    ("part_12/lecture_notes/deep/one.md", "lecture_notes"),
+])
+def test_part_is_never_markdown_folder_category(tmp_path, relative, category):
+    rel = "academic_notes/econometrics/" + relative
+    _md(tmp_path, rel)
+    row = markdown_preview(str(tmp_path), "econometrics", rel)[0]
+    assert row["folder_category"] == category
+
+
+def test_stray_markdown_under_part_is_reported_but_not_indexed(tmp_path):
+    rel = "academic_notes/econometrics/part_1/stray.md"
+    _md(tmp_path, rel)
+    row = markdown_preview(str(tmp_path), "econometrics", rel)[0]
+    assert row["classification"] == "uncategorized"
+    assert not row["index_separately"] and row["estimated_paid_cards"] == 0
+
+
+def test_part_markdown_invalid_doc_type_falls_back_to_content_category(tmp_path):
+    rel = "academic_notes/econometrics/part_1/problem_sets/one.md"
+    _md(tmp_path, rel)
+    client = _client()
+    client.models.generate_content.return_value.text = json.dumps({
+        "title": "One", "doc_type": "invalid", "summary": "Summary", "level": "introductory",
+        "has_solutions": False})
+    rows = markdown_preview(str(tmp_path), "econometrics", rel)
+    assert apply_markdown_plan(str(tmp_path), rows, client)[0]["status"] == "applied"
+    assert load_shard(str(tmp_path), "econometrics")[0]["doc_type"] == "problem_sets"
+
+
+def test_solution_links_only_same_folder_after_processed_outputs(tmp_path):
+    parent = "academic_notes/econometrics/part_1/problem_sets/processed_outputs/problem_set_1.md"
+    solution = "academic_notes/econometrics/part_1/problem_sets/problem_set_1_solutions.md"
+    old_copy = "academic_notes/econometrics/part_1/problem_sets/old/homework_1_solutions.md"
+    no_parent = "academic_notes/econometrics/part_1/problem_sets/no_parent_solutions.md"
+    for path in (parent, solution, old_copy, no_parent):
+        _md(tmp_path, path, path)
+    save_shard(str(tmp_path), "econometrics", [
+        {"file_id": "parent", "path": parent, "course": "econometrics", "embedding": [1, 0]},
+        {"file_id": "other", "path": "academic_notes/econometrics/part_1/problem_sets/processed_outputs/homework_1.md",
+         "course": "econometrics", "embedding": [1, 0]},
+    ])
+    rows = {r["path"]: r for r in markdown_preview(str(tmp_path), "econometrics")}
+    assert rows[solution]["classification"] == "linked_auxiliary"
+    assert rows[solution]["companion_of_file_id"] == "parent"
+    for path in (old_copy, no_parent):
+        assert rows[path]["classification"] == "unlinked_auxiliary"
+        assert rows[path]["companion_of_file_id"] is None
+        assert rows[path]["companion_of_path"] is None
+        assert rows[path]["index_separately"] and rows[path]["action"] == "new"
+
+
+def test_part_book_chapter_and_hint_link_to_relocated_parents(tmp_path):
+    book = "academic_notes/econometrics/part_1/textbooks/Bonus/processed_outputs/Book/Book.rag.md"
+    chapter = "academic_notes/econometrics/part_1/textbooks/Bonus/processed_outputs/Book/chapters/01_intro.rag.md"
+    parent = "academic_notes/econometrics/part_1/problem_sets/processed_outputs/problem_set_1.md"
+    hint = "academic_notes/econometrics/part_1/problem_sets/problem_set_1_hints.md"
+    for path in (book, chapter, parent, hint):
+        _md(tmp_path, path, path)
+    save_shard(str(tmp_path), "econometrics", [
+        {"file_id": "book", "path": "academic_resources/econometrics/part_1/textbooks/Bonus/processed_outputs/Book/Book.md",
+         "rag_md_path": book, "doc_type": "textbook", "course": "econometrics", "embedding": [1, 0]},
+        {"file_id": "problem", "path": parent, "course": "econometrics", "embedding": [1, 0]},
+    ])
+    rows = {r["path"]: r for r in markdown_preview(str(tmp_path), "econometrics")}
+    assert rows[chapter]["classification"] == "generated_companion"
+    assert rows[chapter]["companion_of_file_id"] == "book"
+    assert rows[hint]["classification"] == "linked_auxiliary"
+    assert rows[hint]["companion_of_file_id"] == "problem"
 
 
 def test_recursive_discovery_and_producer_ownership(tmp_path):

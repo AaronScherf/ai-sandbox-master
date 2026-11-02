@@ -42,7 +42,9 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from core.env.academic_hub_paths import (
-    TEXTBOOK_FOLDER_NAMES,
+    course_part_category,
+    eligible_resource_note_pdf,
+    is_textbook_folder,
     read_subset_marker,
     resolve_output_dir,
     to_resources_root,
@@ -80,7 +82,8 @@ def _walk_content_dirs(course_dir: str):
     what's inside them is a pipeline's own output or plugin state, never a
     new source."""
     for dirpath, dirnames, _filenames in os.walk(course_dir):
-        dirnames[:] = [d for d in dirnames if d not in _SKIP_DIR_NAMES and not d.startswith(".")]
+        dirnames[:] = [d for d in dirnames if d not in _SKIP_DIR_NAMES and not d.startswith(".")
+                       and not is_textbook_folder(d)]
         yield dirpath
 
 
@@ -98,7 +101,8 @@ def _dedupe(items):
 def discover_pdf_sources(course_dir: str, subset_roots: list[str] | None = None) -> list[str]:
     paths = []
     for dirpath in _walk_content_dirs(course_dir):
-        paths.extend(discover_pdf_files(dirpath))
+        if course_part_category(os.path.join(dirpath, "placeholder.pdf"))[2] is not None:
+            paths.extend(discover_pdf_files(dirpath))
     paths.extend(_discover_migrated_pdf_sources(course_dir))
     try:
         resources_course_dir = to_resources_root(course_dir)
@@ -122,17 +126,18 @@ def _discover_migrated_pdf_sources(course_dir: str) -> list[str]:
         return []
     if not os.path.isdir(resources_course_dir):
         return []
-    notes_categories = {
-        name for name in os.listdir(course_dir) if os.path.isdir(os.path.join(course_dir, name))
-    }
     paths = []
-    for category in sorted(os.listdir(resources_course_dir)):
-        if category not in notes_categories or category in TEXTBOOK_FOLDER_NAMES:
+    for dirpath, dirnames, _ in os.walk(resources_course_dir):
+        dirnames[:] = [d for d in sorted(dirnames) if not d.startswith(".") and d != "processed_outputs"
+                       and not is_textbook_folder(d)]
+        parsed = course_part_category(os.path.join(dirpath, "placeholder.pdf"))
+        if parsed is None or parsed[2] is None:
             continue
-        category_dir = os.path.join(resources_course_dir, category)
-        if not os.path.isdir(category_dir):
-            continue
-        paths.extend(discover_pdf_files(category_dir))
+        rel_parts = os.path.relpath(dirpath, resources_course_dir).split(os.sep)
+        if parsed[1] is None and len(rel_parts) != 1:
+            continue  # preserve the legacy migrated-PDF walk
+        if eligible_resource_note_pdf(os.path.join(dirpath, "placeholder.pdf"), course_dir):
+            paths.extend(discover_pdf_files(dirpath))
     return paths
 
 
@@ -141,7 +146,7 @@ def _is_textbook_dir_name(name: str) -> bool:
     "Textbooks" nested inside a marked subset (this project's folder names
     are otherwise Title Case, e.g. "Class Notes") must be excluded exactly
     like the lowercase convention used elsewhere in this corpus."""
-    return name.lower() in TEXTBOOK_FOLDER_NAMES
+    return is_textbook_folder(name)
 
 
 def find_subset_roots(resources_course_dir: str) -> list[str]:
@@ -186,7 +191,8 @@ def discover_marked_subset_pdf_sources(
     roots = subset_roots if subset_roots is not None else find_subset_roots(resources_course_dir)
     for subset_root in roots:
         for dirpath in _walk_marked_subset(subset_root):
-            paths.extend(discover_pdf_files(dirpath))
+            if course_part_category(os.path.join(dirpath, "placeholder.pdf"))[2] is not None:
+                paths.extend(discover_pdf_files(dirpath))
     return paths
 
 
@@ -308,6 +314,34 @@ class PipelinePlan:
     excalidraw_skipped: list[tuple[str, str]] = field(default_factory=list)
     courses: list[str] = field(default_factory=list)
     resolve_questions_todo: list[str] = field(default_factory=list)
+    source_only_pdfs: list[str] = field(default_factory=list)
+    textbook_pdfs: list[str] = field(default_factory=list)
+    uncategorized_pdfs: list[str] = field(default_factory=list)
+
+
+def _report_excluded_resource_pdfs(resources_course_dir: str, notes_course_dir: str,
+                                  subset_roots: list[str]) -> tuple[list[str], list[str], list[str]]:
+    source_only, textbooks, uncategorized = [], [], []
+    if not os.path.isdir(resources_course_dir):
+        return source_only, textbooks, uncategorized
+    for dirpath, dirnames, filenames in os.walk(resources_course_dir):
+        dirnames[:] = [d for d in sorted(dirnames) if not d.startswith(".") and d != "processed_outputs"]
+        for name in sorted(filenames):
+            if not name.lower().endswith(".pdf"):
+                continue
+            path = os.path.join(dirpath, name)
+            parts = os.path.relpath(path, resources_course_dir).replace(os.sep, "/").split("/")
+            if any(is_textbook_folder(part) for part in parts[:-1]):
+                textbooks.append(path)
+                continue
+            parsed = course_part_category(path)
+            if parsed is None or parsed[2] is None:
+                uncategorized.append(path)
+                continue
+            marked = any(dirpath == root or dirpath.startswith(root + os.sep) for root in subset_roots)
+            if not eligible_resource_note_pdf(path, notes_course_dir, marked):
+                source_only.append(path)
+    return source_only, textbooks, uncategorized
 
 
 def build_plan(academic_hub_root: str, courses: list[str] | None = None, force: bool = False) -> PipelinePlan:
@@ -329,6 +363,21 @@ def build_plan(academic_hub_root: str, courses: list[str] | None = None, force: 
         # find_subset_roots from both separately walked the whole
         # marked-subset tree twice per course.
         subset_roots = find_subset_roots(resources_course_dir) if resources_course_dir is not None else []
+        if resources_course_dir is not None:
+            source_only, textbooks, uncategorized = _report_excluded_resource_pdfs(
+                resources_course_dir, course_dir, subset_roots)
+            plan.source_only_pdfs.extend(source_only)
+            plan.textbook_pdfs.extend(textbooks)
+            plan.uncategorized_pdfs.extend(uncategorized)
+        for root_dir in [course_dir] + [
+            os.path.join(course_dir, entry) for entry in os.listdir(course_dir)
+            if os.path.isdir(os.path.join(course_dir, entry)) and
+            course_part_category(os.path.join(course_dir, entry, "placeholder.pdf"))[1] == entry
+        ]:
+            for name in os.listdir(root_dir):
+                path = os.path.join(root_dir, name)
+                if name.lower().endswith(".pdf") and os.path.isfile(path):
+                    plan.uncategorized_pdfs.append(path)
 
         pdfs = discover_pdf_sources(course_dir, subset_roots=subset_roots)
         todo_pdfs = filter_unprocessed_pdfs(pdfs, force=force)
@@ -459,6 +508,8 @@ def print_chunk_stats(chunk_stats: dict) -> None:
 
 def print_summary(plan: PipelinePlan, report: RunReport | None = None) -> None:
     print(f"PDF: {len(plan.pdf_todo)} to process, {len(plan.pdf_skipped)} already done")
+    print(f"PDF excluded: {len(plan.source_only_pdfs)} source-only, "
+          f"{len(plan.textbook_pdfs)} textbooks, {len(plan.uncategorized_pdfs)} uncategorized")
     print(f"Excalidraw: {len(plan.excalidraw_todo)} to process, {len(plan.excalidraw_skipped)} already done")
     if report is None:
         return
@@ -506,6 +557,7 @@ def _build_arg_parser() -> argparse.ArgumentParser:
                     "Also backs up every discovered Excalidraw note's auto-exported .svg/.png "
                     "into academic_resources/, independent of transcription status."
     )
+    parser.add_argument("--root", default=None, help="Explicit academic-hub root (recommended from a worktree).")
     parser.add_argument("--course", action="append", default=None,
                          help="Limit to this course (repeatable). Default: every course under academic_notes/.")
     parser.add_argument("--force", action="store_true", help="Reprocess files even if output already exists.")
@@ -577,9 +629,10 @@ def main():
         return
 
     from core.env.gemini_utils import get_gemini_client, load_dotenv_override
-    load_dotenv_override()
+    if not args.dry_run:
+        load_dotenv_override()
 
-    academic_hub_dir = Path(__file__).resolve().parent.parent.parent.parent / "academic-hub"
+    academic_hub_dir = Path(args.root).resolve() if args.root else Path(__file__).resolve().parent.parent.parent.parent / "academic-hub"
     plan = build_plan(str(academic_hub_dir), courses=args.course, force=args.force)
     print_summary(plan)
     all_excalidraw_pairs = plan.excalidraw_todo + plan.excalidraw_skipped

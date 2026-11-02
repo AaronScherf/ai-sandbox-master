@@ -476,7 +476,8 @@ def reconcile_and_write(
         updated["source_pdf_path"] = source_pdf_path
         updated["source_asset_path"] = resolved_asset_path
         updated["course"] = course
-        updated["offering_label"] = offering_label
+        if offering_label is not None:
+            updated["offering_label"] = offering_label
         updated["content_hash"] = content_hash
         if source_kind is not None:
             updated.update(source_kind=source_kind, companion_of_file_id=companion_of_file_id,

@@ -80,6 +80,47 @@ Markdown frontmatter. Dry runs remain read-only. Other index writers have not
 adopted this lock yet, so this does not enable corpus-health apply actions or
 guarantee exclusion against those writers.
 
+## Part-layout discovery and safe rebuilds
+
+For `academic_{notes,resources}/<course>/part_N/<category>/...`, discovery
+matches resources to notes by `(part_N, category)`. A valid
+`.notes_subset.json` marker also admits resources in an otherwise unmatched
+offering. Textbook folders are excluded from notes-PDF discovery at any depth
+and found by the separate book walker. Files directly under a course or
+`part_N` have no category and are reported without indexing. Legacy courses
+retain their prior discovery behavior. In part-layout courses, an authored
+same-stem Markdown source supersedes its PDF export in both route and rebuild
+discovery.
+
+Preview all producer and Markdown work without constructing an API client:
+
+```powershell
+python -m core.indexer.index_search --root <academic-hub> rebuild --course econometrics --plan --json
+```
+
+The plan reports each target's action and estimated paid cards, and whether
+the default `--max-paid 25` cap would refuse a run. The cap covers producer
+and Markdown card work before any index write. `--max-markdown-paid` remains
+a separate Markdown cap. A failed producer card can be retried in isolation:
+
+```powershell
+python -m core.indexer.index_search --root <academic-hub> rebuild --course econometrics --file academic_notes/econometrics/part_1/problem_sets/processed_outputs/pset3.md --plan --json
+```
+
+The exact retry requires `needs_indexing`, a matching source PDF, and a
+single card in that course. It keeps the existing identity and source fields,
+generates before replacing the failure card, and skips the Markdown, orphan,
+and subset passes. Run the corresponding command without `--plan` only after
+coordinating the index writer and approving its paid call.
+
+`python -m tools.relocate_index_paths --root <academic-hub> --course <course> --baseline ca3b286`
+previews the one-shot path migration without API calls or
+writes. Its opt-in `--apply --writer-coordinated` verifies moved content and
+frontmatter, remaps matching chunk hashes and catalog paths, and backs up the
+changed index files outside the repository. Catalog roles and owner decisions
+are preserved. Catalog regeneration is deferred until the course-materials
+part-layout fixes land; new files remain uncatalogued until then.
+
 ## Markdown-only notes and companions
 
 `rebuild` recursively discovers useful Markdown under `academic_notes/<course>/`,
@@ -104,7 +145,7 @@ Read-only preview (no API client or index write):
 
 ```powershell
 python -m core.indexer.index_search --root <academic-hub> index-md --course econometrics --json
-python -m core.indexer.index_search --root <academic-hub> index-md --course econometrics --file academic_notes/econometrics/problem_sets/processed_outputs/problem_set_1.md --json
+python -m core.indexer.index_search --root <academic-hub> index-md --course econometrics --file academic_notes/econometrics/part_1/problem_sets/processed_outputs/problem_set_1.md --json
 ```
 
 Exact-file application requires the corpus writer to be coordinated with all
@@ -112,7 +153,7 @@ other `.index/` writers. It holds the shared corpus lock, writes cards and
 course rollups atomically, and returns a JSON result with a post-write audit:
 
 ```powershell
-python -m core.indexer.index_search --root <academic-hub> index-md --course econometrics --file academic_notes/econometrics/problem_sets/processed_outputs/problem_set_1.md --apply --writer-coordinated --max-markdown-paid 1 --json
+python -m core.indexer.index_search --root <academic-hub> index-md --course econometrics --file academic_notes/econometrics/part_1/problem_sets/processed_outputs/problem_set_1.md --apply --writer-coordinated --max-markdown-paid 1 --json
 ```
 
 `index-md --apply` requires `--file`; use `rebuild --course` for a bounded

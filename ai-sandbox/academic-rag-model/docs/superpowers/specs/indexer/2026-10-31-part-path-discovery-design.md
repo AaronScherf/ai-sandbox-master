@@ -92,14 +92,25 @@ Add a one-shot `tools/relocate_index_paths.py --root <hub> --course <c> --baseli
   - The baseline blob (LF or CRLF form) hashes to the card's hash.
   - The body matches after normalizing line endings.
   - Only the four allowed keys differ.
-  - Each new value equals the old value with `part_1` inserted.
+  - Each new value equals the old value with `part_1` inserted, except for a `source_image` value that passes the root correction proof below.
 - **`edited` or `ambiguous`:** fails closed, nothing is written for that row, and it is reported.
+
+Root correction proof (`source_image` only). Every condition must hold, on top of the baseline hash, body and key-set checks:
+
+- The old value is `academic_notes/<course>/<rel>`, with `<rel>` not starting `part_`, and the new value is `academic_resources/<course>/part_1/<rel>`.
+- `<rel>` ends `.excalidraw.svg` or `.excalidraw.png`, and its stem equals the stem of the baseline `source_excalidraw` value `academic_notes/<course>/<rel-stem>.excalidraw.md`.
+- The card's `source_asset_path` equals `academic_resources/<course>/<rel>` exactly.
+- The new value is an existing regular file.
+- Neither the old value nor its `part_1` form under `academic_notes` exists on disk, and the old value is absent from the baseline tree. Use `git ls-tree`: a git error blocks the row and never counts as absent.
+
+Any failure makes the row `edited`: nothing is written for it and it is reported. Passing rows report `proof: source_image_root_corrected`. The Markdown and the SVG are not rewritten. This proves the SVG's location, not its bytes.
 
 Pinning `ca3b286` means the proof still works after `academic_notes` commits the move. On apply the tool:
 
 - Patches `path`, `source_pdf_path`, `source_asset_path` and `rag_md_path`.
 - Updates `content_hash` on the card and its matching chunks, keeping embeddings, summaries and labels.
 - Remaps the path keys in `materials/<course>.decisions.json`.
+- Remaps `materials[].path`, `excluded` and `unknown_decisions` in `materials/<course>.json`, plus the path keys in `materials/<course>.decisions.json`, including folder keys ending in `/`. It does not reclassify: `role`, `format`, `offering`, `date`, `book`, `order`, `confidence`, `flagged`, `evidence` and `decided_by` stay unchanged. Every remapped file or folder must exist; otherwise the catalog write fails closed and the row is reported. Paths already under `part_N` stay unchanged, so a rerun changes nothing.
 - Keeps a backup of the files it changes outside the repo, and is safe to rerun because already-relocated cards are recognized.
 
 Uncarded Markdown is reported as `moved_uncarded` if the old path exists at baseline, otherwise `new_since_baseline`. Equal bytes alone never merge two files that both exist.
@@ -112,7 +123,7 @@ Work in a `claude/part-path-discovery` worktree from `main`. Pass `--root` expli
 2. Fix the clone seen-ID, the textbook rendering path, and `reconcile_and_write` so `None` no longer erases `offering_label`.
 3. Add `rebuild --plan --json`, which creates no client. Add `--max-paid` (default 25) covering producer and Markdown work, enforced before any write.
 4. Add `rebuild --course <c> --file <hub-relative-md>`, the exact retry selector specified under "Problem-set coverage follow-up".
-5. Add the relocation tool. Regenerate the catalog after relocation with the existing `core/course_materials` step. This should be local (a grep found no client use in `classify.py`), but confirm that first.
+5. Add the relocation tool. Catalog regeneration is deferred until `signals.py:105` and `model.py:92` are fixed; relocation remaps the stored catalog paths instead.
 6. Update the indexer and transcription READMEs.
 
 The owner then commits the `academic_notes` moves separately in that repo, and relocation runs in the main checkout. The release needs no rebuild, server or new store. Relocation needs no new human review surface, since each row is either proven or fails closed.
@@ -139,7 +150,7 @@ Add these to `tests/core/indexer/test_index_search.py`, `test_markdown_sources.p
   - `problem_sets/old/homework_1_solutions.md` does not link to `problem_sets/processed_outputs/homework_1.md`.
   - A solution with no problem file is classified `unlinked_auxiliary`, with `index_separately` true and a paid `new` action, so it still gets a card.
   - No unlinked card has an invented parent.
-- **Relocation:** CRLF and LF baselines; allowed frontmatter changes, wrong value, extra key, and body edit; clone ID kept and chunk hash patched; label kept, decisions remapped, and interrupted rerun.
+- **Relocation:** CRLF and LF baselines; allowed frontmatter changes, wrong value, extra key, and body edit; clone ID kept and chunk hash patched; label kept, decisions remapped, and interrupted rerun; catalog and decisions paths remapped with every other field unchanged, folder and file decision keys, a missing target failing closed, and a rerun making no change. Root correction passes for an SVG and a PNG. It fails closed for: a missing or different `source_asset_path`; a different `<rel>` or stem; a missing target; the old value in the baseline tree; a live file at the old path or its `part_1` form under `academic_notes`; a git error; the same root change on `source_pdf`, `source_excalidraw` or `duplicate_of_path`; the reverse direction; and a changed body with otherwise valid values.
 - **Cost guards:** a fake client asserts zero calls for `--plan`, for relocation, and when the cap is exceeded.
 - **Retry selector:**
   - One `needs_indexing` card is retried with its `file_id`, source fields and `offering_label` unchanged.
@@ -246,8 +257,8 @@ About 24 card calls plus chunk embeddings, at roughly $0.03 at the assumed rates
 | Location | Effect | When to fix |
 |---|---|---|
 | `tools/corpus_health/discovery.py:122` | False missing-output results for source-only PDFs | This release |
-| `core/course_materials/signals.py:105` | Loses role votes, because the category reads as `part_1` | Before rerunning the catalog or concept graph |
-| `core/course_materials/model.py:92` | Prefix match can widen to a whole part | Before rerunning the catalog or concept graph |
+| `core/course_materials/signals.py:105` | Loses role votes, because the category reads as `part_1` | Next release, before any catalog regeneration or new material needs classifying. |
+| `core/course_materials/model.py:92` | Prefix match can widen to a whole part | Next release, before any catalog regeneration or new material needs classifying. |
 | `audio_generator/discovery.py:94,116` | Misses nested notes and textbooks | Before the next audio run |
 | `agent/study_guide/cli.py:43-51`, `draft.py:47,238`, `revise/run.py:37` | Writes and reads legacy paths; moved `guide_plans` are not found | Before the next guide run |
 | `agent/rag/generate_quiz_guide.py:26`, `report_builder.py:54`, `pipelines/generate_video_notes/note_indexing.py:29` | New output lands outside `part_N` | Before their next write |
@@ -272,7 +283,8 @@ The expected numbers come from the prototype, so any difference needs explaining
 | Books found | 4 | 6 |
 
 - **Other courses:** math-camp stays at 33 discovered PDFs with 5 video sidecars, and math_methods stays at 2.
-- **Relocation dry run:** 239 cards split into 18 `path_only` and 221 `moved_frontmatter`, with 0 `edited`. All 16 clone IDs are unchanged.
+- **Relocation dry run:** 239 cards split into 18 `path_only` and 221 `moved_frontmatter`, with 0 `edited` and 0 `ambiguous`. Of the 221, 5 econometrics rows and 0 microecon rows carry `source_image_root_corrected`: `af04139416f07fe5`, `c43e246cf076699e`, `0e1b98e431e6713e`, `4e923e57d776c15a`, `190d66f7ef0ca3e6`. All 16 clone IDs are unchanged.
+- **Catalog relocation dry run:** 183 econometrics and 199 microecon rows remapped, 382 total with 0 missing. The 4 + 5 decision keys and the 1 excluded path are remapped.
 - **After apply:**
   - Every card and chunk `file_id` and embedding is unchanged, and all 80 labels are present.
   - Every card path exists and its hash matches the file.

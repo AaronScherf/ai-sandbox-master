@@ -48,6 +48,8 @@ downstream correction pass over this pipeline's own output — see the root
   dispatches each to the matching pipeline above by extension alone — no
   LLM decides routing
   (`python -m pipelines.transcribe_notes.route_notes_transcribe [--course NAME] [--dry-run] [--force]`).
+  Pass `--root <academic-hub>` explicitly when running from a Git worktree.
+  A dry run does not load API credentials or create a client.
   Re-verifies after each call that the expected output file actually landed
   on disk rather than trusting a "no exception raised" result.
   `--driver` defaults to `agent` (the Antigravity subscription), which
@@ -65,6 +67,17 @@ downstream correction pass over this pipeline's own output — see the root
   `textbooks-and-papers` folders) is discovered and routed the same as any
   other source. Run with `--dry-run` first to confirm the full file list
   before spending any API calls.
+
+  For courses using `part_N`, PDFs under `academic_resources/<course>/part_N/`
+  qualify only when the notes side has the same `(part_N, category)` folder or
+  a valid resources-side subset marker covers them. The router recurses below
+  the category for these courses, excludes textbook folders at every depth,
+  and reports uncategorized files under `part_N` without processing them.
+  Existing legacy layouts retain their prior discovery behavior. For example:
+
+  ```powershell
+  python -m pipelines.transcribe_notes.route_notes_transcribe --root <academic-hub> --course econometrics --dry-run
+  ```
 
 - `migrate_sources_to_resources.py` — one-shot migration: moves heavy note
   sources (PDFs, Excalidraw `.svg`/`.png` exports, `.docx`/`.pptx`) from

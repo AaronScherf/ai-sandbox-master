@@ -18,12 +18,15 @@ from __future__ import annotations
 import argparse
 import json
 import os
+from pathlib import Path
 from dataclasses import dataclass
 from datetime import datetime, timezone
 
 from google.genai import types
 
-from core.env.academic_hub_paths import TEXTBOOK_FOLDER_NAMES, resolve_output_dir, to_resources_root
+from core.env.academic_hub_paths import (course_part_category, has_authored_markdown_peer,
+    eligible_resource_note_pdf, is_textbook_folder, read_subset_marker,
+    resolve_output_dir, textbook_rag_md_path, to_resources_root)
 from core.env.corpus_write_lock import CorpusWriteLockError, corpus_write_lock
 from core.env.frontmatter import parse_frontmatter
 from core.env.gemini_utils import get_gemini_client, load_dotenv_override
@@ -236,30 +239,11 @@ def search_passages(
 
 
 def _notes_pdf_paths(academic_hub_root: str, course_filter: str | None):
-    """Recursive as of 2026-09-22 (was hardcoded to exactly course/category/
-    *.pdf, two levels, no deeper) -- a user reorganizing ta_notes/ into year
-    subfolders (ta_notes/2026/foo.pdf) found those PDFs silently invisible
-    to rebuild(), even though route_notes_transcribe.py's own discovery
-    already recursed and found them fine. `category` is the PDF's own
-    immediate parent directory basename, whatever the depth -- matches
-    transcribe_notes.py's derive_folder_category() exactly (same value for
-    a flat course/category/foo.pdf as before this change; the actual
-    subfolder name, e.g. "2026", for a nested one), so folder_category
-    classification stays consistent between the live transcription
-    pipeline and this rebuild-time walker.
+    """Walk note PDFs with the part/category mirror or marker gate.
 
-    Also discovers PDFs already migrated to academic_resources/ (2026-09-23,
-    real finding from the first real migration run) -- without this, a
-    previously-transcribed PDF becomes invisible to this walker the moment
-    its source moves, so its file_id is never re-added to seen_file_ids and
-    the orphan pass silently flags its still-good card. Only descends into
-    an academic_resources/<course>/<category>/ whose <category> also
-    exists directly under academic_notes/<course>/ -- same guard
-    route_notes_transcribe.py's own _discover_migrated_pdf_sources uses --
-    and never into a textbook folder, even though academic_notes/<course>/
-    textbooks/ exists to hold each book's mirrored .rag.md, so
-    academic_resources/<course>/textbooks/ (a different pipeline's home)
-    never gets swept in."""
+    Rebuild retains recursive legacy discovery. The yielded category is the
+    PDF's immediate parent; part_N is never emitted as a category.
+    """
     notes_root = os.path.join(academic_hub_root, "academic_notes")
     if not os.path.isdir(notes_root):
         return
@@ -270,35 +254,37 @@ def _notes_pdf_paths(academic_hub_root: str, course_filter: str | None):
         if not os.path.isdir(course_dir):
             continue
         for dirpath, dirnames, filenames in os.walk(course_dir):
-            dirnames[:] = [d for d in sorted(dirnames) if d != "processed_outputs" and not d.startswith(".")]
+            dirnames[:] = [d for d in sorted(dirnames) if d != "processed_outputs" and not d.startswith(".")
+                           and not is_textbook_folder(d)]
             category = os.path.basename(dirpath)
             for name in sorted(filenames):
-                if name.lower().endswith(".pdf"):
-                    yield course, category, os.path.join(dirpath, name)
+                path = os.path.join(dirpath, name)
+                parsed = course_part_category(path)
+                if name.lower().endswith(".pdf") and parsed and parsed[2] and (
+                        parsed[1] is None or not has_authored_markdown_peer(path)):
+                    yield course, category, path
 
-        notes_top_level_categories = {
-            name for name in os.listdir(course_dir) if os.path.isdir(os.path.join(course_dir, name))
-        }
         try:
             resources_course_dir = to_resources_root(course_dir)
         except ValueError:
             resources_course_dir = None
         if resources_course_dir and os.path.isdir(resources_course_dir):
-            for top_category in sorted(os.listdir(resources_course_dir)):
-                # textbooks/ is excluded by name: it has an academic_notes/
-                # counterpart only because each book's .rag.md is mirrored
-                # there, not because its PDFs are notes.
-                if top_category not in notes_top_level_categories or top_category in TEXTBOOK_FOLDER_NAMES:
-                    continue
-                top_category_dir = os.path.join(resources_course_dir, top_category)
-                if not os.path.isdir(top_category_dir):
-                    continue
-                for dirpath, dirnames, filenames in os.walk(top_category_dir):
-                    dirnames[:] = [d for d in sorted(dirnames) if not d.startswith(".")]
-                    category = os.path.basename(dirpath)
-                    for name in sorted(filenames):
-                        if name.lower().endswith(".pdf"):
-                            yield course, category, os.path.join(dirpath, name)
+            marked_roots = set()
+            for dirpath, dirnames, _ in os.walk(resources_course_dir):
+                dirnames[:] = [d for d in sorted(dirnames) if not d.startswith(".")
+                               and d != "processed_outputs" and not is_textbook_folder(d)]
+                if read_subset_marker(dirpath) is not None:
+                    marked_roots.add(dirpath)
+            for dirpath, dirnames, filenames in os.walk(resources_course_dir):
+                dirnames[:] = [d for d in sorted(dirnames) if not d.startswith(".")
+                               and d != "processed_outputs" and not is_textbook_folder(d)]
+                marked = any(dirpath == root or dirpath.startswith(root + os.sep) for root in marked_roots)
+                for name in sorted(filenames):
+                    path = os.path.join(dirpath, name)
+                    parsed = course_part_category(path)
+                    if name.lower().endswith(".pdf") and eligible_resource_note_pdf(path, course_dir, marked) and (
+                            parsed[1] is None or not has_authored_markdown_peer(path)):
+                        yield course, os.path.basename(dirpath), path
 
 
 def _excalidraw_note_paths(academic_hub_root: str, course_filter: str | None):
@@ -311,13 +297,14 @@ def _excalidraw_note_paths(academic_hub_root: str, course_filter: str | None):
         course_dir = os.path.join(notes_root, course)
         if not os.path.isdir(course_dir):
             continue
-        for category in sorted(os.listdir(course_dir)):
-            category_dir = os.path.join(course_dir, category)
-            if not os.path.isdir(category_dir):
-                continue
-            for name in sorted(os.listdir(category_dir)):
-                if name.lower().endswith(".excalidraw.md"):
-                    yield course, category, os.path.join(category_dir, name)
+        for dirpath, dirnames, filenames in os.walk(course_dir):
+            dirnames[:] = [d for d in sorted(dirnames) if not d.startswith(".")
+                           and d != "processed_outputs" and not is_textbook_folder(d)]
+            for name in sorted(filenames):
+                path = os.path.join(dirpath, name)
+                parsed = course_part_category(path)
+                if name.lower().endswith(".excalidraw.md") and parsed and parsed[2]:
+                    yield course, parsed[2], path
 
 
 _EXCALIDRAW_IMAGE_EXTENSIONS = (".png", ".svg")
@@ -348,9 +335,6 @@ def _find_excalidraw_image(excalidraw_md_path: str, academic_hub_root: str) -> s
 # with no error to signal it (see docs/status/2026-09-06-problem-corpus-extraction-status.md).
 # Checking both aliases makes the walk match whichever name a course
 # actually uses on disk.
-_TEXTBOOK_FOLDER_NAMES = ("textbooks", "textbooks-and-papers")
-
-
 def _textbook_book_dirs(academic_hub_root: str, course_filter: str | None):
     resources_root = os.path.join(academic_hub_root, "academic_resources")
     if not os.path.isdir(resources_root):
@@ -358,10 +342,13 @@ def _textbook_book_dirs(academic_hub_root: str, course_filter: str | None):
     for course in sorted(os.listdir(resources_root)):
         if course_filter and course != course_filter:
             continue
-        for category_folder_name in _TEXTBOOK_FOLDER_NAMES:
-            category_root = os.path.join(resources_root, course, category_folder_name)
-            if not os.path.isdir(category_root):
+        course_root = os.path.join(resources_root, course)
+        if not os.path.isdir(course_root):
+            continue
+        for category_root, _dirs, _files in os.walk(course_root):
+            if not is_textbook_folder(os.path.basename(category_root)):
                 continue
+            category_folder_name = os.path.relpath(category_root, course_root).replace(os.sep, "/")
             # A course's textbook folder can itself have subfolders -- e.g.
             # "Bonus", for supplementary readings deliberately converted in
             # their own later batch rather than the main run (see
@@ -403,20 +390,19 @@ def _video_lecture_note_paths(academic_hub_root: str, course_filter: str | None)
     for course in sorted(os.listdir(notes_root)):
         if course_filter and course != course_filter:
             continue
-        lecture_notes_dir = os.path.join(notes_root, course, "lecture_notes")
-        if not os.path.isdir(lecture_notes_dir):
-            continue
-        for name in sorted(os.listdir(lecture_notes_dir)):
-            lower = name.lower()
-            if not lower.endswith(".md") or lower.endswith(".excalidraw.md"):
-                continue
-            slug = name[:-3]
-            meta_path = os.path.join(lecture_notes_dir, f"{slug}.meta.json")
-            if not os.path.exists(meta_path):
-                print(f"WARNING: {os.path.join(lecture_notes_dir, name)} has no sidecar "
-                      f"{slug}.meta.json -- skipping.")
-                continue
-            yield course, os.path.join(lecture_notes_dir, name), meta_path
+        course_dir = os.path.join(notes_root, course)
+        for dirpath, dirnames, filenames in os.walk(course_dir):
+            dirnames[:] = [d for d in sorted(dirnames) if not d.startswith(".")
+                           and d != "processed_outputs" and not is_textbook_folder(d)]
+            for name in sorted(filenames):
+                lower = name.lower()
+                path = os.path.join(dirpath, name)
+                parsed = course_part_category(path)
+                if not lower.endswith(".md") or lower.endswith(".excalidraw.md") or not parsed or parsed[2] != "lecture_notes":
+                    continue
+                meta_path = os.path.join(dirpath, f"{name[:-3]}.meta.json")
+                if os.path.isfile(meta_path):
+                    yield course, path, meta_path
 
 
 def _is_stale(existing: dict, source_mtime: float, content_hash: str) -> bool:
@@ -584,26 +570,9 @@ def _markdown_reserved_paths(academic_hub_root: str, course: str | None) -> set[
         md_path = os.path.join(resolve_output_dir(pdf_path), f"{stem}.md")
         reserved.add(os.path.relpath(md_path, academic_hub_root).replace(os.sep, "/"))
     for _, _, folder_name, book_dir in _textbook_book_dirs(academic_hub_root, course):
-        metadata_path = os.path.join(book_dir, f"{folder_name}_metadata.json")
-        if os.path.isfile(metadata_path):
-            try:
-                with open(metadata_path, encoding="utf-8") as handle:
-                    rag_path = json.load(handle).get("rag_md_path")
-                if rag_path:
-                    reserved.add(rag_path.replace("\\", "/"))
-            except (OSError, ValueError, TypeError):
-                pass  # the existing textbook pass reports invalid metadata
-    notes = os.path.join(academic_hub_root, "academic_notes")
-    if os.path.isdir(notes):
-        for course_name in sorted(os.listdir(notes)):
-            if course and course != course_name:
-                continue
-            lecture_dir = os.path.join(notes, course_name, "lecture_notes")
-            if not os.path.isdir(lecture_dir):
-                continue
-            for name in os.listdir(lecture_dir):
-                if name.lower().endswith(".md") and os.path.isfile(os.path.join(lecture_dir, name[:-3] + ".meta.json")):
-                    reserved.add(os.path.relpath(os.path.join(lecture_dir, name), academic_hub_root).replace(os.sep, "/"))
+        reserved.add(os.path.relpath(textbook_rag_md_path(book_dir), academic_hub_root).replace(os.sep, "/"))
+    for _, md_path, _ in _video_lecture_note_paths(academic_hub_root, course):
+        reserved.add(os.path.relpath(md_path, academic_hub_root).replace(os.sep, "/"))
     for _, _, raw_path in _excalidraw_note_paths(academic_hub_root, course):
         base = os.path.basename(raw_path)[:-len(".excalidraw.md")]
         output = os.path.join(os.path.dirname(raw_path), "processed_outputs")
@@ -684,13 +653,139 @@ def apply_markdown_plan(academic_hub_root: str, rows: list[dict], client,
     return [_apply_markdown_row(academic_hub_root, row, client) for row in rows]
 
 
+def retry_file_plan(root: str, course: str, rel_path: str) -> dict:
+    """Validate one failed producer card without constructing a paid client."""
+    exact_markdown_path(root, course, rel_path)
+    matches = [card for card in load_shard(root, course)
+               if card.get("path") == rel_path or card.get("rag_md_path") == rel_path]
+    if len(matches) != 1:
+        raise ValueError("--file must match exactly one card path or rag_md_path in the course")
+    card = matches[0]
+    if not card.get("needs_indexing") or card.get("source_kind") is not None:
+        raise ValueError("--file requires a needs_indexing producer card")
+    source = card.get("source_pdf_path")
+    if not source or not source.lower().endswith(".pdf") or "\\" in source or ".." in source.split("/") or not (
+            source.startswith(f"academic_resources/{course}/") or
+            source.startswith(f"academic_notes/{course}/")):
+        raise ValueError("--file card has no source PDF in the course")
+    pdf = os.path.join(root, *source.split("/"))
+    if Path(pdf).is_symlink() or not os.path.isfile(pdf) or compute_file_id(pdf) != card.get("file_id"):
+        raise ValueError("--file source PDF is missing or does not match file_id")
+    return {"path": rel_path, "course": course, "file_id": card["file_id"],
+            "action": "retry", "reason": "needs_indexing", "estimated_paid_cards": 1,
+            "source_pdf_path": source}
+
+
+def retry_file(root: str, course: str, rel_path: str, client) -> dict:
+    row = retry_file_plan(root, course, rel_path)
+    card = next(c for c in load_shard(root, course) if c["file_id"] == row["file_id"])
+    actual_path = card["path"]
+    md = os.path.join(root, *actual_path.split("/"))
+    if not os.path.isfile(md):
+        raise ValueError("producer Markdown is missing")
+    with open(md, encoding="utf-8") as handle:
+        content = handle.read()
+    parsed = course_part_category(actual_path)
+    category = parsed[2] if parsed else None
+    if category is None:
+        raise ValueError("producer Markdown has no category")
+    # The old failure card stays durable until both paid calls have completed.
+    try:
+        replacement = generate_index_card(
+            file_id=card["file_id"], path=actual_path, source_pdf_path=card["source_pdf_path"],
+            course=course, folder_category=category, content_sample=content,
+            page_count=card.get("page_count"), client=client, content_hash=compute_content_hash(md),
+            source_asset_path=card.get("source_asset_path"), offering_label=card.get("offering_label"),
+        )
+    except Exception as exc:
+        return {**row, "status": "generation_failed", "error": str(exc)}
+    for key in ("source_pdf_path", "source_asset_path", "offering_label", "rag_md_path"):
+        replacement[key] = card.get(key)
+    save_shard(root, course, [replacement if c.get("file_id") == card["file_id"] else c
+                              for c in load_shard(root, course)])
+    recompute_course_entry(root, course)
+    return {**row, "status": "applied"}
+
+
+def rebuild_plan(root: str, course: str | None = None, force: bool = False) -> dict:
+    """Read-only preflight for both producer and Markdown card operations."""
+    cards = {c.get("file_id"): c for name in list_courses(root)
+             if course is None or course == name for c in load_shard(root, name)}
+    producer: list[dict] = []
+
+    def add(path: str, file_id: str, kind: str) -> None:
+        if not os.path.isfile(path) or not os.path.getsize(path):
+            return
+        rel = os.path.relpath(path, root).replace(os.sep, "/")
+        card = cards.get(file_id)
+        content_hash = compute_content_hash(path)
+        if card is None:
+            action = "new"
+            reason = "no_card"
+        elif force or card.get("needs_indexing") or card.get("content_hash") != content_hash:
+            action = "refresh"
+            reason = "force" if force else "needs_indexing" if card.get("needs_indexing") else "content_changed"
+        elif card.get("path") != rel:
+            action = "move"
+            reason = "path_changed"
+        else:
+            action = "unchanged"
+            reason = "current"
+        producer.append({"path": rel, "file_id": file_id, "kind": kind, "action": action,
+                         "reason": reason,
+                         "estimated_paid_cards": int(action in ("new", "refresh"))})
+
+    for _, _, pdf in _notes_pdf_paths(root, course):
+        md = os.path.join(resolve_output_dir(pdf), os.path.splitext(os.path.basename(pdf))[0] + ".md")
+        if not os.path.isfile(md):
+            continue
+        with open(md, encoding="utf-8") as handle:
+            frontmatter, _ = parse_frontmatter(handle.read(4096))
+        if frontmatter.get("duplicate_of_file_id"):
+            continue
+        add(md, compute_file_id(pdf), "pdf")
+    for book_course, category, name, book in _textbook_book_dirs(root, course):
+        metadata_path = os.path.join(book, f"{name}_metadata.json")
+        if not os.path.isfile(metadata_path):
+            continue
+        with open(metadata_path, encoding="utf-8") as handle:
+            metadata = json.load(handle)
+        if metadata.get("duplicate_of_file_id"):
+            continue
+        source = metadata.get("source_pdf_path")
+        pdf = os.path.join(root, *source.split("/")) if source else ""
+        if not os.path.isfile(pdf) and metadata.get("source_pdf_filename"):
+            pdf = os.path.join(root, "academic_resources", book_course, category,
+                               metadata["source_pdf_filename"])
+        if os.path.isfile(pdf):
+            add(os.path.join(book, f"{name}.md"), compute_file_id(pdf), "textbook")
+    for _, md, meta in _video_lecture_note_paths(root, course):
+        with open(meta, encoding="utf-8") as handle:
+            ids = json.load(handle).get("member_video_ids") or []
+        if ids:
+            add(md, compute_id_from_parts(ids), "video")
+    for _, _, scene in _excalidraw_note_paths(root, course):
+        name = os.path.basename(scene)[:-len(".excalidraw.md")]
+        output = os.path.join(os.path.dirname(scene), "processed_outputs")
+        scene_id = compute_file_id(scene)
+        add(os.path.join(output, name + ".excalidraw.rag.md"), scene_id, "scene")
+        add(os.path.join(output, name + ".excalidraw.questions.md"),
+            compute_id_from_parts(["excalidraw_questions", scene_id]), "questions")
+    markdown = markdown_preview(root, course, force=force)
+    paid = sum(r["estimated_paid_cards"] for r in producer + markdown)
+    return {"producer": producer, "markdown": markdown, "estimated_paid_cards": paid}
+
+
 def rebuild(academic_hub_root: str, client, course: str | None = None,
-            force: bool = False, prune: bool = False, max_markdown_paid: int = 25) -> dict:
+            force: bool = False, prune: bool = False, max_markdown_paid: int = 25,
+            max_paid: int = 25) -> dict:
     # Preflight before any producer mutates .index/. The final plan is refreshed
     # after those producers run, so newly written parent cards can link children.
     preview = markdown_preview(academic_hub_root, course, force=force)
     if sum(row["estimated_paid_cards"] for row in preview) > max_markdown_paid:
         raise ValueError("Markdown preflight exceeds --max-markdown-paid; run index-md preview first")
+    if rebuild_plan(academic_hub_root, course, force)["estimated_paid_cards"] > max_paid:
+        raise ValueError(f"Rebuild preflight exceeds --max-paid {max_paid}")
     stats = {
         "generated": 0, "updated": 0, "unchanged": 0, "moved": 0,
         "orphaned": 0, "pruned": 0, "skipped_no_source_pdf": 0, "skipped_empty_md": 0,
@@ -736,7 +831,10 @@ def rebuild(academic_hub_root: str, client, course: str | None = None,
         frontmatter_fields, _body = parse_frontmatter(content_sample)
         duplicate_of_file_id = frontmatter_fields.get("duplicate_of_file_id")
         if duplicate_of_file_id:
-            seen_file_ids.add(compute_id_from_parts([duplicate_of_file_id, rel_pdf_path]))
+            matching_clone = next((c for c in load_shard(academic_hub_root, course_name)
+                                   if c.get("path") == rel_md_path), None)
+            seen_file_ids.add(matching_clone["file_id"] if matching_clone else
+                              compute_id_from_parts([duplicate_of_file_id, rel_pdf_path]))
             stats["skipped_duplicate_clone"] += 1
             continue
 
@@ -831,7 +929,8 @@ def rebuild(academic_hub_root: str, client, course: str | None = None,
         # automatic way to catch up. _metadata.json is the durable
         # record, so reconcile from it here every time; cheap local I/O,
         # no LLM/embedding call, safe to repeat even when already correct.
-        rag_md_path = metadata.get("rag_md_path")
+        rag_md_path = (os.path.relpath(textbook_rag_md_path(book_dir), academic_hub_root).replace(os.sep, "/")
+                       if metadata.get("rag_md_path") else None)
         if rag_md_path:
             found = find_card_by_file_id(academic_hub_root, file_id)
             if found is not None and found[1].get("rag_md_path") != rag_md_path:
@@ -923,7 +1022,8 @@ def rebuild(academic_hub_root: str, client, course: str | None = None,
                 fields, _ = parse_frontmatter(text)
                 parent_id = fields.get("source_note_file_id") or None
                 _reconcile_one(
-                    academic_hub_root, course_name, os.path.basename(os.path.dirname(child_path)),
+                    academic_hub_root, course_name,
+                    (course_part_category(card["path"]) or (None, None, None))[2] or os.path.basename(os.path.dirname(child_path)),
                     card["file_id"], card["path"], card.get("source_pdf_path"), text, None,
                     client, force, stats, source_mtime=os.path.getmtime(child_path),
                     content_hash=compute_content_hash(child_path),
@@ -1024,6 +1124,11 @@ def build_arg_parser() -> argparse.ArgumentParser:
 
     rebuild_p = subparsers.add_parser("rebuild", help="Backfill/reconcile index cards.")
     rebuild_p.add_argument("--course", default=None)
+    rebuild_p.add_argument("--file", default=None, help="Exact failed producer card Markdown path; requires --course")
+    rebuild_p.add_argument("--plan", action="store_true", help="Read-only paid-work preflight")
+    rebuild_p.add_argument("--json", action="store_true", help="Machine-readable preflight or result")
+    rebuild_p.add_argument("--max-paid", type=int, default=25,
+                           help="Maximum paid producer and Markdown cards (default: 25)")
     rebuild_p.add_argument("--force", action="store_true")
     rebuild_p.add_argument("--prune", action="store_true")
     rebuild_p.add_argument("--max-markdown-paid", type=int, default=25,
@@ -1079,6 +1184,37 @@ def _single_root(args) -> str:
 
 def main() -> None:
     args = build_arg_parser().parse_args()
+    if args.command == "rebuild":
+        root = _single_root(args)
+        if args.max_paid < 0:
+            raise SystemExit("--max-paid must be non-negative")
+        if args.file and (not args.course or args.force or args.prune):
+            raise SystemExit("rebuild --file requires --course and cannot use --force or --prune")
+        if args.file and args.max_paid < 1 and not args.plan:
+            raise SystemExit("rebuild --file requires --max-paid at least 1")
+        try:
+            plan = retry_file_plan(root, args.course, args.file) if args.file else rebuild_plan(root, args.course, args.force)
+            if args.plan:
+                if not args.file:
+                    plan["max_paid"] = args.max_paid
+                    plan["would_refuse"] = plan["estimated_paid_cards"] > args.max_paid
+                print(json.dumps(plan, sort_keys=True) if args.json else plan)
+                return
+            if args.file:
+                load_dotenv_override()
+                client = get_gemini_client()
+                if client is None:
+                    raise SystemExit(1)
+                with corpus_write_lock([root], "index rebuild exact retry"):
+                    result = retry_file(root, args.course, args.file, client)
+                print(json.dumps(result, sort_keys=True) if args.json else result)
+                if result["status"] != "applied":
+                    raise SystemExit(1)
+                return
+            if plan["estimated_paid_cards"] > args.max_paid:
+                raise SystemExit(f"Rebuild preflight requires {plan['estimated_paid_cards']} paid cards; cap is {args.max_paid}")
+        except (ValueError, CorpusWriteLockError) as exc:
+            raise SystemExit(str(exc)) from exc
     if args.command == "index-md":
         root = _single_root(args)
         if args.apply and (not args.file or not args.writer_coordinated):
@@ -1129,10 +1265,12 @@ def main() -> None:
                 selected = {"course": args.course, "force": args.force, "prune": args.prune}
                 if args.max_markdown_paid != 25:
                     selected["max_markdown_paid"] = args.max_markdown_paid
+                if args.max_paid != 25:
+                    selected["max_paid"] = args.max_paid
                 stats = rebuild(root, client, **selected)
         except (CorpusWriteLockError, ValueError) as exc:
             raise SystemExit(str(exc)) from exc
-        print(stats)
+        print(json.dumps(stats, sort_keys=True) if args.json else stats)
     elif args.command == "retag":
         root = _single_root(args)
         if args.dry_run:

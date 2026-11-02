@@ -58,7 +58,9 @@ if TYPE_CHECKING:
     # process_pdf() instead, where they're actually used at runtime.
     from pipelines.transcribe_notes.agent_driver import TranscriptionDriver
 
-from core.env.academic_hub_paths import find_containing_offering_label, resolve_output_dir, to_notes_root
+from core.env.academic_hub_paths import (find_containing_offering_label,
+    has_authored_markdown_peer as _shared_authored_markdown_peer,
+    resolve_output_dir, to_notes_root)
 from core.env.corpus_write_lock import CorpusWriteLockError, corpus_write_lock
 from core.env.frontmatter import parse_frontmatter, render_frontmatter
 from core.env.gemini_utils import (
@@ -631,28 +633,7 @@ def build_frontmatter(metadata: dict) -> str:
 
 def has_authored_markdown_peer(pdf_path: str) -> bool:
     """A same-stem Markdown source outside processed_outputs supersedes its PDF export."""
-    stem, _ = os.path.splitext(pdf_path)
-    candidates = [stem + ".md"]
-    try:
-        mirrored = to_notes_root(pdf_path)
-    except ValueError:
-        pass
-    else:
-        if mirrored != pdf_path:
-            candidates.append(os.path.splitext(mirrored)[0] + ".md")
-    for path in candidates:
-        if "processed_outputs" in Path(path).parts or not os.path.isfile(path):
-            continue
-        with open(path, encoding="utf-8-sig") as source:
-            prefix = source.read(4096)
-        if not prefix.strip():
-            continue
-        fields, _ = parse_frontmatter(prefix)
-        if fields.get("authored_source", "").lower() == "true" or (
-            "source_pdf" not in fields and "source_excalidraw" not in fields
-        ):
-            return True
-    return False
+    return _shared_authored_markdown_peer(pdf_path)
 
 
 def discover_pdf_files(notes_dir: str, file_filter: str | None = None) -> list[str]:

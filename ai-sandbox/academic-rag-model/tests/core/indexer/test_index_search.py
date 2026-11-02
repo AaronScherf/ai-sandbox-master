@@ -17,6 +17,94 @@ from core.indexer.index_search import (
 )
 
 
+def test_part_layout_pdf_discovery_matrix(tmp_path):
+    from core.indexer.index_search import _notes_pdf_paths
+    def pdf(rel):
+        target = tmp_path / rel
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(b"fixture")
+    (tmp_path / "academic_notes/econometrics/part_1/problem_sets").mkdir(parents=True)
+    (tmp_path / "academic_notes/econometrics/part_2").mkdir(parents=True)
+    pdf("academic_resources/econometrics/part_1/problem_sets/deep/yes.pdf")
+    pdf("academic_resources/econometrics/part_2/problem_sets/no.pdf")
+    pdf("academic_resources/econometrics/part_1/textbooks/book.pdf")
+    pdf("academic_resources/econometrics/part_1/stray.pdf")
+    pdf("academic_resources/econometrics/part_1/problem_sets/solution.pdf")
+    authored = tmp_path / "academic_notes/econometrics/part_1/problem_sets/solution.md"
+    authored.write_text("Authored solution")
+    pdf("academic_notes/econometrics/part_1/problem_sets/local.pdf")
+    paths = {os.path.relpath(path, tmp_path).replace(os.sep, "/")
+             for _, _, path in _notes_pdf_paths(str(tmp_path), "econometrics")}
+    assert paths == {
+        "academic_resources/econometrics/part_1/problem_sets/deep/yes.pdf",
+        "academic_notes/econometrics/part_1/problem_sets/local.pdf",
+    }
+
+
+def test_nested_book_scene_video_and_reserved_outputs(tmp_path):
+    from core.indexer.index_search import (_textbook_book_dirs, _excalidraw_note_paths,
+        _video_lecture_note_paths, _markdown_reserved_paths)
+    book = tmp_path / "academic_resources/econometrics/part_1/Textbooks/Bonus/processed_outputs/Book"
+    book.mkdir(parents=True)
+    scene = tmp_path / "academic_notes/econometrics/part_1/lecture_notes/deep/Scene.excalidraw.md"
+    scene.parent.mkdir(parents=True)
+    scene.write_text("scene")
+    video = scene.parent / "Video.md"
+    video.write_text("lecture")
+    (scene.parent / "Video.meta.json").write_text('{"member_video_ids": ["one"]}')
+    (scene.parent / "NoSidecar.md").write_text("unknown")
+    output = scene.parent / "processed_outputs"
+    output.mkdir()
+    (output / "Raw.excalidraw.md").write_text("transcript")
+    books = list(_textbook_book_dirs(str(tmp_path), "econometrics"))
+    assert len(books) == 1 and books[0][3] == str(book)
+    assert books[0][1] == "part_1/Textbooks/Bonus"
+    assert list(_excalidraw_note_paths(str(tmp_path), "econometrics")) == [
+        ("econometrics", "lecture_notes", str(scene))]
+    assert list(_video_lecture_note_paths(str(tmp_path), "econometrics")) == [
+        ("econometrics", str(video), str(scene.parent / "Video.meta.json"))]
+    reserved = _markdown_reserved_paths(str(tmp_path), "econometrics")
+    assert "academic_notes/econometrics/part_1/Textbooks/Bonus/processed_outputs/Book/Book.rag.md" in reserved
+    assert "academic_notes/econometrics/part_1/lecture_notes/deep/Video.md" in reserved
+    assert "academic_notes/econometrics/part_1/lecture_notes/deep/processed_outputs/Scene.excalidraw.rag.md" in reserved
+    assert not any("Raw.excalidraw" in path for path in reserved)
+
+
+def test_reconcile_none_does_not_erase_offering_label(tmp_path):
+    from core.indexer.index_card import reconcile_and_write
+    save_shard(str(tmp_path), "econometrics", [{
+        "file_id": "existing", "path": "academic_notes/econometrics/problem_sets/old.md",
+        "source_pdf_path": None, "source_asset_path": None, "course": "econometrics",
+        "offering_label": "2024", "embedding": [1, 0], "content_hash": "old",
+    }])
+    result = reconcile_and_write(
+        str(tmp_path), file_id="existing", path="academic_notes/econometrics/part_1/problem_sets/new.md",
+        source_pdf_path=None, course="econometrics", folder_category="problem_sets",
+        content_sample="body", page_count=None, client=None, content_hash="new", offering_label=None)
+    assert result["offering_label"] == "2024"
+    assert load_shard(str(tmp_path), "econometrics")[0]["offering_label"] == "2024"
+
+
+def test_moved_pdf_clone_keeps_original_id_on_prune(tmp_path):
+    root = tmp_path
+    resources = root / "academic_resources/econometrics/part_1/problem_sets"
+    resources.mkdir(parents=True)
+    pdf = resources / "clone.pdf"
+    pdf.write_bytes(b"same source")
+    notes = root / "academic_notes/econometrics/part_1/problem_sets/processed_outputs"
+    notes.mkdir(parents=True)
+    md = notes / "clone.md"
+    md.write_text("---\nduplicate_of_file_id: canonical\n---\n\nClone")
+    rel_md = md.relative_to(root).as_posix()
+    save_shard(str(root), "econometrics", [{
+        "file_id": "old-clone-id", "path": rel_md, "source_pdf_path": "old/path/clone.pdf",
+        "duplicate_of_file_id": "canonical", "course": "econometrics",
+        "embedding": [1, 0], "content_hash": "old",
+    }])
+    rebuild(str(root), _fake_client(), course="econometrics", prune=True)
+    assert [c["file_id"] for c in load_shard(str(root), "econometrics")] == ["old-clone-id"]
+
+
 def _fake_client():
     client = MagicMock()
     gen_response = MagicMock()
@@ -555,7 +643,7 @@ class TestRebuild(unittest.TestCase):
 
             rebuild(tmp, client=_fake_client())
             cards = load_shard(tmp, "math-camp")
-            self.assertEqual(cards[0]["rag_md_path"], metadata["rag_md_path"])
+            self.assertEqual(cards[0]["rag_md_path"], metadata["rag_md_path"].replace("academic_resources/", "academic_notes/"))
 
     def test_rebuild_recognizes_a_clone_directory_and_never_rehashes_it(self):
         # Regression for the original corruption bug (pipeline-autonomy-

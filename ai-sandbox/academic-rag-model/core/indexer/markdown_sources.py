@@ -10,6 +10,7 @@ from collections import Counter
 from pathlib import Path
 
 from core.env.frontmatter import parse_frontmatter
+from core.env.academic_hub_paths import course_part_category, is_textbook_folder
 from core.indexer.index_card import (
     compute_content_hash, compute_id_from_parts, list_courses, load_shard,
 )
@@ -86,9 +87,13 @@ def _other_live_copy(root: str, rel_path: str, content_hash: str) -> bool:
 
 def _book_parent(rel_path: str, cards: list[dict]) -> tuple[dict | None, bool]:
     parts = rel_path.split("/")
-    if len(parts) < 7 or parts[2] != "textbooks" or parts[3] != "processed_outputs" or parts[5] != "chapters":
+    textbook_at = next((i for i, p in enumerate(parts) if is_textbook_folder(p)), None)
+    if textbook_at is None or "processed_outputs" not in parts[textbook_at + 1:]:
         return None, False
-    prefix = "/".join(parts[:5]) + "/"
+    output_at = parts.index("processed_outputs", textbook_at + 1)
+    if len(parts) < output_at + 4 or parts[output_at + 2] != "chapters":
+        return None, False
+    prefix = "/".join(parts[:output_at + 2]) + "/"
     matches = [c for c in cards if c.get("doc_type") == "textbook" and (c.get("rag_md_path") or "").startswith(prefix)]
     return (matches[0] if len(matches) == 1 else None), len(matches) > 1
 
@@ -104,13 +109,17 @@ def _auxiliary_parent(rel_path: str, cards: list[dict]) -> tuple[dict | None, st
             break
     if not base:
         return None, None, False
-    parts = rel_path.split("/")
-    category = parts[:3]
+    parsed = course_part_category(rel_path)
+    if parsed is None or parsed[2] is None:
+        return None, role, False
+    def parent_folder(path: str) -> str:
+        parts = path.split("/")[:-1]
+        return "/".join(p for p in parts if p != "processed_outputs")
+    folder = parent_folder(rel_path)
     matches = []
     for card in cards:
         card_path = card.get("path") or ""
-        card_parts = card_path.split("/")
-        if card_parts[:3] != category or card_path == rel_path:
+        if course_part_category(card_path) != parsed or parent_folder(card_path) != folder or card_path == rel_path:
             continue
         card_stem = Path(card_path).stem.lower()
         if card_stem == base:
@@ -132,12 +141,16 @@ def classify_markdown(root: str, course: str | None = None, exact: str | None = 
         rel = _rel(root, path)
         parts = rel.split("/")
         row = {
-            "path": rel, "course": parts[1], "folder_category": parts[2] if len(parts) > 3 else parts[-2],
+            "path": rel, "course": parts[1], "folder_category": (course_part_category(rel) or (None, None, None))[2],
             "classification": "unknown_origin", "source_kind": "markdown_only",
             "index_separately": True, "companion_of_file_id": None, "companion_of_path": None,
             "companion_role": None, "relationship_basis": None,
             "existing_file_id": (by_path.get(rel) or {}).get("file_id"),
         }
+        if row["folder_category"] is None:
+            row.update(classification="uncategorized", index_separately=False)
+            found.append(row)
+            continue
         lower = rel.casefold()
         if lower in seen_case and seen_case[lower] != rel:
             row.update(classification="case_collision", index_separately=False)

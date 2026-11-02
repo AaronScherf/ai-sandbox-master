@@ -53,6 +53,51 @@ def test_find_course_dirs_missing_academic_notes_returns_empty(tmp_path):
     assert find_course_dirs(str(tmp_path)) == []
 
 
+def test_part_resource_gate_and_nested_discovery(tmp_path):
+    notes = tmp_path / "academic_notes/econometrics"
+    (notes / "part_1/problem_sets").mkdir(parents=True)
+    resources = tmp_path / "academic_resources/econometrics"
+    for rel in ("part_1/problem_sets/deep/yes.pdf", "part_2/problem_sets/no.pdf",
+                "part_1/Textbooks/book.pdf", "part_1/stray.pdf"):
+        path = resources / rel
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(b"pdf")
+    found = {str(p).replace("\\", "/") for p in discover_pdf_sources(str(notes))}
+    assert found == {str(resources / "part_1/problem_sets/deep/yes.pdf").replace("\\", "/")}
+
+
+def test_part_markers_admit_source_only_offerings_but_never_textbooks(tmp_path):
+    notes = tmp_path / "academic_notes/econometrics"
+    (notes / "problem_sets").mkdir(parents=True)
+    resources = tmp_path / "academic_resources/econometrics"
+    def pdf(rel):
+        path = resources / rel
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(b"pdf")
+        return path
+    part_marked = pdf("part_2/professor_notes/deep/part.pdf")
+    offering_marked = pdf("part_3/class_2025/deep/offering.pdf")
+    textbook = pdf("part_3/Textbooks/book.pdf")
+    unmarked = pdf("part_4/professor_notes/no.pdf")
+    (resources / "part_2/.notes_subset.json").write_text("{}")
+    (resources / "part_3/class_2025/.notes_subset.json").write_text("{}")
+    (resources / "part_3/Textbooks/.notes_subset.json").write_text("{}")
+    found = set(discover_pdf_sources(str(notes)))
+    assert found == {str(part_marked), str(offering_marked)}
+    assert str(textbook) not in found and str(unmarked) not in found
+
+
+def test_legacy_migrated_walk_stays_one_level(tmp_path):
+    notes = tmp_path / "academic_notes/math-camp"
+    (notes / "problem_sets").mkdir(parents=True)
+    resources = tmp_path / "academic_resources/math-camp/problem_sets"
+    resources.mkdir(parents=True)
+    (resources / "direct.pdf").write_bytes(b"pdf")
+    (resources / "nested").mkdir()
+    (resources / "nested/leave_out.pdf").write_bytes(b"pdf")
+    assert discover_pdf_sources(str(notes)) == [str(resources / "direct.pdf")]
+
+
 def test_discover_pdf_sources_finds_pdfs_recursively(tmp_path):
     _make_course(tmp_path, "econometrics", "ta_notes", {"01-terms.pdf": b"fake-pdf"})
     _make_course(tmp_path, "econometrics", "professor_notes", {"090926.pdf": b"fake-pdf"})

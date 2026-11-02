@@ -11,6 +11,7 @@ from pathlib import PurePosixPath
 from dataclasses import replace
 
 from core.indexer.audit import MarkdownIndexTarget, audit_markdown_index
+from core.env.academic_hub_paths import eligible_resource_note_pdf
 from core.indexer.index_card import compute_content_hash, compute_file_id, list_courses, load_shard
 from tools.corpus_health.config import MarkdownPolicy, ScanConfig
 from tools.corpus_health.finding import Finding
@@ -114,14 +115,11 @@ def _has_valid_subset_marker(path: Path, resources_root: Path, on_error=None) ->
 
 
 def _eligible_resource_note_pdf(path: Path, resources_root: Path, notes_root: Path, on_error=None) -> bool:
-    if _is_textbook(path, resources_root):
-        return False
     relative = path.relative_to(resources_root)
-    if len(relative.parts) < 3:
+    if len(relative.parts) < 3 or any(p.startswith(".") or p == "processed_outputs" for p in relative.parts[1:-1]):
         return False
-    course, category = relative.parts[0], relative.parts[1]
-    notes_course = notes_root / course
-    return (notes_course / category).is_dir() or _has_valid_subset_marker(path, resources_root, on_error)
+    return eligible_resource_note_pdf(str(path), str(notes_root / relative.parts[0]),
+                                      _has_valid_subset_marker(path, resources_root, on_error))
 
 
 def _expected_note_output(source: Path, resources_root: Path, notes_root: Path) -> Path:

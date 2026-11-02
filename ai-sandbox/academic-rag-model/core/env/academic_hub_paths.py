@@ -5,13 +5,17 @@ files, processed_outputs/, each textbook's final .rag.md) and
 academic_resources/ (heavy: PDFs, Excalidraw .svg/.png exports, a
 textbook's raw .md/images/JSON sidecars). See
 docs/superpowers/specs/2026-09-21-source-asset-relocation-design.md.
-Pure string/path manipulation -- no filesystem I/O, no network -- safe to
-import at module scope anywhere.
+Path parsing is pure; eligibility checks only local directory existence.
+No network access is used.
 """
 from __future__ import annotations
 
 import json
 import os
+import re
+from pathlib import Path
+
+from core.env.frontmatter import parse_frontmatter
 
 _NOTES_ROOT_NAME = "academic_notes"
 _RESOURCES_ROOT_NAME = "academic_resources"
@@ -24,6 +28,64 @@ _SUBSET_MARKER_FILENAME = ".notes_subset.json"
 # must still never sweep academic_resources/<course>/textbooks/ into the
 # notes-transcription pipeline because of it.
 TEXTBOOK_FOLDER_NAMES = ("textbooks", "textbooks-and-papers")
+
+
+def is_textbook_folder(name: str) -> bool:
+    return name.casefold() in TEXTBOOK_FOLDER_NAMES
+
+
+def course_part_category(path: str) -> tuple[str, str | None, str | None] | None:
+    """Parse a file path below either hub root without treating part_N as category."""
+    parts = path.replace("\\", "/").split("/")
+    roots = [i for i, name in enumerate(parts) if name in (_NOTES_ROOT_NAME, _RESOURCES_ROOT_NAME)]
+    if not roots:
+        return None
+    tail = parts[roots[-1] + 1:]
+    if len(tail) < 2:
+        return None
+    part = tail[1] if re.fullmatch(r"part_\d+", tail[1]) else None
+    category_at = 2 if part else 1
+    return tail[0], part, tail[category_at] if len(tail) > category_at + 1 else None
+
+
+def eligible_resource_note_pdf(path: str, notes_course_dir: str, marked: bool = False) -> bool:
+    parsed = course_part_category(path)
+    if parsed is None or parsed[2] is None:
+        return False
+    parts = path.replace("\\", "/").split("/")
+    root_at = parts.index(_RESOURCES_ROOT_NAME)
+    if any(p.startswith(".") or p == "processed_outputs" or is_textbook_folder(p)
+           for p in parts[root_at + 2:-1]):
+        return False
+    _, part, category = parsed
+    mirror = os.path.join(notes_course_dir, *((part,) if part else ()), category)
+    return marked or os.path.isdir(mirror)
+
+
+def has_authored_markdown_peer(pdf_path: str) -> bool:
+    """A same-stem authored Markdown source supersedes its PDF export."""
+    stem, _ = os.path.splitext(pdf_path)
+    candidates = [stem + ".md"]
+    try:
+        mirrored = to_notes_root(pdf_path)
+    except ValueError:
+        pass
+    else:
+        if mirrored != pdf_path:
+            candidates.append(os.path.splitext(mirrored)[0] + ".md")
+    for path in candidates:
+        if "processed_outputs" in Path(path).parts or not os.path.isfile(path):
+            continue
+        with open(path, encoding="utf-8-sig") as source:
+            prefix = source.read(4096)
+        if not prefix.strip():
+            continue
+        fields, _ = parse_frontmatter(prefix)
+        if fields.get("authored_source", "").lower() == "true" or (
+            "source_pdf" not in fields and "source_excalidraw" not in fields
+        ):
+            return True
+    return False
 
 
 def _swap_root(path: str, old_root: str, new_root: str) -> str:
