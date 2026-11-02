@@ -118,6 +118,7 @@ and adds a `breakdown` of direct papers per branch. Reports show each term's ful
 - The report (`report.json`, `report.md` under `<index-root>/literature_gap/<run-id>/`, gitignored) carries coverage
   counts, thin-cell flag, blind spots (papers with `proposed:` values, no country fact, multi-country or global scale),
   a stale-database warning and the evidence list. It never claims a percent complete.
+  `gap run` warns if the report folder is not gitignored; do not commit reports containing paper titles or claim text.
 
 ## Not built
 

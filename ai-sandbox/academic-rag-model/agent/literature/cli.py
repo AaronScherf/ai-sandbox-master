@@ -5,6 +5,7 @@ import argparse
 import json
 import os
 import sqlite3
+import subprocess
 from pathlib import Path
 
 from core.agent_tasks.loop import BudgetError, api_run, collect_run, provenance, submit_run
@@ -328,6 +329,19 @@ def _gap_question(args) -> int:
     return 0
 
 
+def _warn_if_report_untracked_risk(run_dir: Path) -> None:
+    try:
+        parent = run_dir.parent.resolve()
+        while not parent.exists():
+            parent = parent.parent
+        result = subprocess.run(["git", "-C", str(parent), "check-ignore", "-q", str(run_dir.resolve())],
+                                capture_output=True, timeout=5, shell=False)
+    except (OSError, subprocess.SubprocessError):
+        return
+    if result.returncode == 1:
+        print(f"gap: warning: {run_dir} is not gitignored; the report holds paper titles and claim text, so do not commit it")
+
+
 def cmd_gap(args) -> int:
     from dataclasses import asdict
 
@@ -385,6 +399,7 @@ def cmd_gap(args) -> int:
                   "(no matching unresolved --where, or the facet was picked twice)")
             return 2
         if stopped:
+            _warn_if_report_untracked_risk(run_dir)
             run_dir.mkdir(parents=True, exist_ok=True)
             (run_dir / "candidates.json").write_text(json.dumps({"constraints": stopped}, indent=2, ensure_ascii=False) + "\n",
                                                      encoding="utf-8", newline="\n")
@@ -401,6 +416,7 @@ def cmd_gap(args) -> int:
         probe = gprobe.run_probe(corpus, constraints, target.vocabs, subregions, mailto, args.probe_n) if args.probe else None
         report = greport.build_report(question, constraints, target.vocabs, result, cov, corpus,
                                       unmapped=unmapped, include_quotes=args.quotes, probe=probe)
+        _warn_if_report_untracked_risk(run_dir)
         js, md = greport.write_report(report, run_dir)
         (run_dir / "candidates.json").unlink(missing_ok=True)
     except (ValueError, clusters.ClusterError, KeyError) as exc:

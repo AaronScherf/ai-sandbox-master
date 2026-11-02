@@ -46,6 +46,7 @@ class TestGapRun(GapCliCase):
         code, out = self.run_cli("gap", "run", "--run-id", "g1", "--where", "intervention=cash transfer", "--where", "countries=SO")
         self.assertEqual(code, 0)
         self.assertIn("verdict: tried_directly", out)
+        self.assertNotIn("gap: warning:", out)
         report = self.report()
         self.assertEqual(report["counts"]["direct"], 2)
         self.assertTrue((Path(self.root) / "literature_gap" / "g1" / "report.md").is_file())
@@ -157,6 +158,45 @@ class TestGapRun(GapCliCase):
         self.assertEqual(code, 0)
         self.assertTrue((elsewhere / "g1" / "report.json").is_file())
         self.assertFalse((Path(self.root) / "literature_gap").exists())
+
+    def test_report_gitignore_check_warns_only_for_unignored_path(self):
+        self.build_db()
+        for n, returncode in enumerate((1, 0, 128), 1):
+            with self.subTest(returncode=returncode):
+                run_dir = Path(self.root) / "literature_gap" / f"g{n}"
+                existing_parent = run_dir.parent
+                while not existing_parent.exists():
+                    existing_parent = existing_parent.parent
+                with mock.patch("subprocess.run", return_value=mock.MagicMock(returncode=returncode)) as git_run:
+                    code, out = self.run_cli("gap", "run", "--run-id", f"g{n}", "--where", "countries=SO")
+                self.assertEqual(code, 0)
+                self.assertTrue((run_dir / "report.json").is_file())
+                warning = (f"gap: warning: {run_dir} is not gitignored; the report holds paper titles and claim text, "
+                           "so do not commit it")
+                self.assertEqual(warning in out, returncode == 1)
+                git_run.assert_called_once()
+                command = git_run.call_args.args[0]
+                self.assertEqual(command, ["git", "-C", str(existing_parent), "check-ignore", "-q", str(run_dir)])
+                self.assertEqual(git_run.call_args.kwargs["capture_output"], True)
+                self.assertEqual(git_run.call_args.kwargs["timeout"], 5)
+
+    def test_report_gitignore_check_missing_git_is_silent(self):
+        self.build_db()
+        with mock.patch("subprocess.run", side_effect=FileNotFoundError) as git_run:
+            code, out = self.run_cli("gap", "run", "--run-id", "g1", "--where", "countries=SO")
+        self.assertEqual(code, 0)
+        self.assertNotIn("gap: warning:", out)
+        self.assertTrue((Path(self.root) / "literature_gap" / "g1" / "report.json").is_file())
+        git_run.assert_called_once()
+
+    def test_stopped_gap_run_warns_before_writing_candidates(self):
+        self.build_db()
+        with mock.patch("subprocess.run", return_value=mock.MagicMock(returncode=1)):
+            code, out = self.run_cli("gap", "run", "--run-id", "g1", "--where", "intervention=transfer")
+        self.assertEqual(code, 2)
+        self.assertIn("gap: warning:", out)
+        self.assertLess(out.index("gap: warning:"), out.index("stopped; candidates in"))
+        self.assertTrue((Path(self.root) / "literature_gap" / "g1" / "candidates.json").is_file())
 
     def test_quotes_flag_adds_quotes_to_the_report(self):
         self.build_db()
