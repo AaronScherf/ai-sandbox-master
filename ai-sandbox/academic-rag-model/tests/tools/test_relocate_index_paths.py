@@ -130,14 +130,17 @@ def test_catalog_paths_chunks_and_clone_survive_interrupted_apply(tmp_path, monk
             "content_hash": _hash(old_bytes), "offering_label": "Fall", "embedding": [1, 2]}
     clone = {"file_id": "clone-id", "path": clone_old, "duplicate_of_file_id": "id-one",
              "duplicate_of_path": old, "content_hash": _hash(b"Clone"), "embedding": [5, 6],
-             "source_pdf_path": None, "source_asset_path": None, "rag_md_path": None}
+             "source_pdf_path": None, "rag_md_path": None}
     chunk = {"file_id": "id-one", "content_hash": _hash(old_bytes), "embedding": [3, 4]}
-    _write(root, ".index/econometrics.json", json.dumps([card, clone], indent=2))
-    _write(root, ".index/chunks/econometrics.json", json.dumps([chunk], indent=2))
-    _write(root, ".index/microecon.json", json.dumps([{
+    card_raw = json.dumps([card, clone], indent=2)
+    chunk_raw = json.dumps([chunk], indent=2)
+    micro_card_raw = json.dumps([{
         "file_id": "micro-id", "path": micro_old, "content_hash": _hash(b"micro body"),
         "embedding": [1, 2], "source_pdf_path": None, "source_asset_path": None,
-    }]))
+    }])
+    _write(root, ".index/econometrics.json", card_raw)
+    _write(root, ".index/chunks/econometrics.json", chunk_raw)
+    _write(root, ".index/microecon.json", micro_card_raw)
     material = {"path": old, "role": "problem_set", "format": "typeset", "offering": "2024",
                 "date": "2024-09-01", "book": None, "order": [1, "a", "b"],
                 "confidence": 0.8, "flagged": False, "evidence": ["kept"], "decided_by": "owner"}
@@ -148,10 +151,13 @@ def test_catalog_paths_chunks_and_clone_survive_interrupted_apply(tmp_path, monk
         "academic_notes/econometrics/problem_sets/": {"role": "problem_set"}}, indent=1) + "\n"
     _write(root, ".index/materials/econometrics.json", catalog_raw)
     _write(root, ".index/materials/econometrics.decisions.json", decisions_raw)
+    micro_catalog = {"course": "microecon", "materials": [{"path": micro_old, "role": "lecture_note"}]}
+    micro_catalog_raw = json.dumps(micro_catalog, indent=1) + "\n"
+    _write(root, ".index/materials/microecon.json", micro_catalog_raw)
     (root / "academic_notes/econometrics/part_1/problem_sets").mkdir(parents=True, exist_ok=True)
     subprocess.run(["git", "-C", str(root), "add", ".index/econometrics.json",
                     ".index/microecon.json", ".index/chunks/econometrics.json", ".index/materials/econometrics.json",
-                    ".index/materials/econometrics.decisions.json"], check=True)
+                    ".index/materials/econometrics.decisions.json", ".index/materials/microecon.json"], check=True)
     subprocess.run(["git", "-C", str(root), "-c", "user.name=Fixture", "-c", "user.email=fixture@example.test",
                     "commit", "-qm", "index baseline"], check=True)
     index_base = subprocess.check_output(["git", "-C", str(root), "rev-parse", "HEAD"], text=True).strip()
@@ -179,8 +185,10 @@ def test_catalog_paths_chunks_and_clone_survive_interrupted_apply(tmp_path, monk
     after = cards_after[0]
     assert after["path"] == new and after["content_hash"] == _hash(new_bytes)
     assert after["embedding"] == [1, 2] and after["offering_label"] == "Fall"
+    assert set(after) == set(card)  # duplicate_of_path stays absent
     assert cards_after[1] == {**clone, "path": clone_new, "duplicate_of_path": new}
     assert cards_after[1]["file_id"] == "clone-id"
+    assert set(cards_after[1]) == set(clone)  # source_asset_path stays absent
     assert json.loads((root / ".index/chunks/econometrics.json").read_text())[0] == {
         **chunk, "content_hash": _hash(new_bytes)}
     catalog_after = json.loads((root / ".index/materials/econometrics.json").read_text())
@@ -195,6 +203,13 @@ def test_catalog_paths_chunks_and_clone_survive_interrupted_apply(tmp_path, monk
     assert decisions_path.read_bytes() == decisions_raw.replace(old, new).replace(
         "academic_notes/econometrics/problem_sets/",
         "academic_notes/econometrics/part_1/problem_sets/").encode()
+    assert (root / ".index/econometrics.json").read_bytes() == card_raw.replace(
+        old, new).replace(clone_old, clone_new).replace(
+        "academic_resources/econometrics/problem_sets/one.pdf",
+        "academic_resources/econometrics/part_1/problem_sets/one.pdf").replace(
+        _hash(old_bytes), _hash(new_bytes)).encode()
+    assert (root / ".index/chunks/econometrics.json").read_bytes() == chunk_raw.replace(
+        _hash(old_bytes), _hash(new_bytes)).encode()
     for rel in (".index/econometrics.json", ".index/chunks/econometrics.json"):
         data = (root / rel).read_bytes()
         assert b"\n  {" in data and not data.endswith(b"\n")
@@ -204,6 +219,11 @@ def test_catalog_paths_chunks_and_clone_survive_interrupted_apply(tmp_path, monk
     assert relocate.apply(str(root), "econometrics", baseline)["status"] == "unchanged"
     assert relocate.apply(str(root), "microecon", baseline)["status"] == "applied"
     assert json.loads((root / ".index/microecon.json").read_text())[0]["path"] == micro_new
+    assert (root / ".index/microecon.json").read_bytes() == micro_card_raw.replace(micro_old, micro_new).encode()
+    micro_catalog_after = json.loads((root / ".index/materials/microecon.json").read_text())
+    assert set(micro_catalog_after) == set(micro_catalog)
+    assert (root / ".index/materials/microecon.json").read_bytes() == micro_catalog_raw.replace(
+        micro_old, micro_new).encode()
 
 
 def test_catalog_missing_target_blocks_all_writes(tmp_path, monkeypatch):

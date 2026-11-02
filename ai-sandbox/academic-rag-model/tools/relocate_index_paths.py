@@ -280,9 +280,11 @@ def _catalog_plan(root: Path, course: str) -> tuple[list[dict], dict[Path, objec
     if catalog:
         copy = json.loads(json.dumps(catalog))
         for material in copy.get("materials", []):
-            material["path"] = transform(material["path"])
+            if material.get("path"):
+                material["path"] = transform(material["path"])
         for key in ("excluded", "unknown_decisions"):
-            copy[key] = [transform(path) for path in copy.get(key, [])]
+            if copy.get(key):
+                copy[key] = [transform(path) for path in copy[key]]
         if copy != catalog:
             updated[catalog_path] = copy
     if decisions:
@@ -332,7 +334,8 @@ def plan(root: str, course: str, baseline: str = "ca3b286") -> tuple[dict, dict[
             old_hash = card.get("content_hash")
             card["content_hash"] = _hash(new_file.read_bytes())
             for field in PATH_FIELDS:
-                card[field] = moved(card.get(field), course)
+                if card.get(field):
+                    card[field] = moved(card[field], course)
             for chunk in new_chunks:
                 if chunk.get("file_id") == card.get("file_id") and chunk.get("content_hash") == old_hash:
                     chunk["content_hash"] = card["content_hash"]
