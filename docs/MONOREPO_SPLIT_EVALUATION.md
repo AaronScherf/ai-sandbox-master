@@ -205,7 +205,7 @@ Proposed order, cheapest first:
 
 Spec-first before any code; Claude owns the design, Codex the implementation per `docs/AGENT_ROUTING.md`.
 
-## Remaining open questions
+## Resolved and remaining
 
-- Which extensions are safe to skip (`.json`, `.txt`, `.yaml`)? Check that no test reads them.
-- Should `core/` changes always trigger the full suite, as the simplest correct rule, until the import-graph selector is trusted?
+- **Decided:** until the import-graph selector is trusted, any `core/` change runs the full suite.
+- **Still to determine (first step of the landing-speed task):** which non-`.py` extensions (`.json`, `.txt`, `.yaml`) are safe to skip. Method: for each extension, grep `tests/` and the code under test for reads of files with that extension, and check the landing log for runs it triggered. Skip only extensions with no test or fixture reads; leave the rest on the full-suite fallback.
