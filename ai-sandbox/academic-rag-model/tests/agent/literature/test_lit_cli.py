@@ -109,6 +109,18 @@ class TestSubmit(unittest.TestCase):
 
 
 class TestBootstrapAndStatus(unittest.TestCase):
+    def assert_status_counts(self, env, *, eligible, records, without_record, duplicates, excluded):
+        code, out = _run(env.args("status"))
+        self.assertEqual(code, 0)
+        self.assertEqual(out, (f"eligible papers: {eligible}\n"
+                               "skipped papers: 1\n"
+                               f"records: {records}\n"
+                               f"papers without a record: {without_record}\n"
+                               f"duplicate titles (not extracted): {duplicates}\n"
+                               "open vocabulary proposals: 0\n"
+                               "pairs that may not be independent: 0\n"
+                               f"excluded papers: {excluded}\n"))
+
     def test_bootstrap_names_the_run_and_the_result_block(self):
         with tempfile.TemporaryDirectory() as root:
             env = Env(root)
@@ -128,6 +140,37 @@ class TestBootstrapAndStatus(unittest.TestCase):
             _run(env.args("submit", "r1"))
             _, after = _run(env.args("status"))
             self.assertIn("records: 1", after)
+
+    def test_status_counts_unique_unrecorded_paper(self):
+        with tempfile.TemporaryDirectory() as root:
+            env = Env(root)
+            self.assert_status_counts(env, eligible=1, records=0, without_record=1, duplicates=0, excluded=0)
+
+    def test_status_drops_unrecorded_duplicate_when_other_copy_has_a_record(self):
+        with tempfile.TemporaryDirectory() as root:
+            env = Env(root)
+            recorded_copy = "1111111111111111"
+            make_index(root, file_id=recorded_copy)
+            _run(env.args("collect", "--run-id", "r1", "--file-id", recorded_copy))
+            fill_card(env.card("r1", f"extract-{recorded_copy}"), good())
+            _run(env.args("submit", "r1"))
+            self.assert_status_counts(env, eligible=2, records=1, without_record=0, duplicates=1, excluded=0)
+
+    def test_status_counts_one_unrecorded_copy_of_a_duplicate_title(self):
+        with tempfile.TemporaryDirectory() as root:
+            env = Env(root)
+            duplicate = "1111111111111111"
+            make_index(root, file_id=duplicate)
+            self.assert_status_counts(env, eligible=2, records=0, without_record=1, duplicates=1, excluded=0)
+            _run(env.args("collect", "--run-id", "r1"))
+            self.assertTrue(env.card("r1", f"extract-{FID}").is_file())
+            self.assertFalse(env.card("r1", f"extract-{duplicate}").exists())
+
+    def test_status_does_not_count_unrecorded_excluded_paper_as_missing(self):
+        with tempfile.TemporaryDirectory() as root:
+            env = Env(root)
+            _run(env.args("exclude", FID))
+            self.assert_status_counts(env, eligible=1, records=0, without_record=0, duplicates=0, excluded=1)
 
 
     def test_exclude_hides_a_paper_from_tiers_but_status_still_counts_its_record(self):
