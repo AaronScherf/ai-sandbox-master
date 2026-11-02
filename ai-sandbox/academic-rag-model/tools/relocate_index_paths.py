@@ -15,7 +15,7 @@ from core.env.corpus_write_lock import CorpusWriteLockError, corpus_write_lock
 from core.env.frontmatter import parse_frontmatter
 
 ALLOWED = frozenset({"source_pdf", "source_excalidraw", "source_image", "duplicate_of_path"})
-PATH_FIELDS = ("path", "source_pdf_path", "source_asset_path", "rag_md_path")
+PATH_FIELDS = ("path", "source_pdf_path", "source_asset_path", "rag_md_path", "duplicate_of_path")
 INDEX_BASELINE = "f1cf14e0"
 
 
@@ -164,11 +164,25 @@ def _backup_location(root: Path, course: str) -> Path:
     return Path(tempfile.gettempdir()) / f"index-relocation-backup-{identity}"
 
 
-def _write_json_atomic(path: Path, data: object) -> None:
+def _json_bytes(data: object, original: bytes | None = None) -> bytes:
+    """Serialize with the existing file's indent, line endings and final newline."""
+    if original is None:
+        return json.dumps(data, indent=2, ensure_ascii=False).encode("utf-8")
+    match = re.search(rb"(?m)^([ \t]+)\S", original)
+    indent = match.group(1).decode("ascii") if match else None
+    line_ending = "\r\n" if b"\r\n" in original else "\n"
+    final_newlines = re.search(rb"(?:\r?\n)+$", original)
+    result = json.dumps(data, indent=indent, ensure_ascii=False)
+    if line_ending != "\n":
+        result = result.replace("\n", line_ending)
+    return result.encode("utf-8") + (final_newlines.group() if final_newlines else b"")
+
+
+def _write_bytes_atomic(path: Path, data: bytes) -> None:
     fd, temp = tempfile.mkstemp(prefix="relocate-", suffix=".tmp", dir=path.parent)
     try:
-        with os.fdopen(fd, "w", encoding="utf-8", newline="\n") as handle:
-            json.dump(data, handle, indent=2, ensure_ascii=False)
+        with os.fdopen(fd, "wb") as handle:
+            handle.write(data)
             handle.flush()
             os.fsync(handle.fileno())
         os.replace(temp, path)
@@ -350,6 +364,8 @@ def apply(root: str, course: str, baseline: str = "ca3b286") -> dict:
         if not updated:
             report["status"] = "unchanged"
             return report
+        originals = {path: path.read_bytes() for path in updated}
+        encoded = {path: _json_bytes(data, originals[path]) for path, data in updated.items()}
         if manifest is None:
             backup.mkdir(parents=True, exist_ok=True)
             entries = {}
@@ -358,23 +374,21 @@ def apply(root: str, course: str, baseline: str = "ca3b286") -> dict:
                 target = backup / relative
                 target.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copy2(path, target)
-                before = path.read_bytes()
-                after = json.dumps(data, indent=2, ensure_ascii=False).encode("utf-8")
-                entries[relative.as_posix()] = {"before": _full_hash(before), "after": _full_hash(after)}
+                entries[relative.as_posix()] = {"before": _full_hash(originals[path]),
+                                               "after": _full_hash(encoded[path])}
             manifest = {"root": str(hub), "course": course, "baseline": baseline, "files": entries}
-            _write_json_atomic(backup / "manifest.json", manifest)
+            _write_bytes_atomic(backup / "manifest.json", _json_bytes(manifest))
         else:
-            for path, data in updated.items():
+            for path in updated:
                 entry = manifest["files"].get(path.relative_to(hub).as_posix())
-                if entry is None or entry["after"] != _full_hash(
-                        json.dumps(data, indent=2, ensure_ascii=False).encode("utf-8")):
+                if entry is None or entry["after"] != _full_hash(encoded[path]):
                     raise ValueError(f"rerun target differs from relocation backup: {path}")
         # A rerun treats the moved card path as the completion marker. Write
         # matching chunk hashes first so interruption cannot expose a moved
         # card with stale chunks.
         ordered = sorted(updated.items(), key=lambda item: _write_order(item[0], course))
-        for path, data in ordered:
-            _write_json_atomic(path, data)
+        for path, _ in ordered:
+            _write_bytes_atomic(path, encoded[path])
         audit, _ = plan(root, course, baseline)
         verified = (all(_json(path, None) == data for path, data in updated.items())
                     and not audit["cards"] and not audit["catalog"])

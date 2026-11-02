@@ -95,36 +95,45 @@ def test_frontmatter_exact_insertion_rejects_wrong_value_extra_key_and_body(tmp_
     assert proof(good + b" edited") == (False, False)
 
 
-def test_catalog_paths_and_chunks_survive_interrupted_apply(tmp_path, monkeypatch):
+def test_catalog_paths_chunks_and_clone_survive_interrupted_apply(tmp_path, monkeypatch):
     root = tmp_path
     subprocess.run(["git", "init", "-q", str(root)], check=True)
     monkeypatch.setattr(relocate, "_index_baseline_unchanged", lambda *_: None)
     notes = root / "academic_notes"
     old = "academic_notes/econometrics/problem_sets/processed_outputs/one.md"
     new = relocate.moved(old, "econometrics")
+    clone_old = "academic_notes/econometrics/problem_sets/processed_outputs/one-copy.md"
+    clone_new = relocate.moved(clone_old, "econometrics")
     old_bytes = b"---\nsource_pdf: academic_resources/econometrics/problem_sets/one.pdf\n---\n\nBody"
     new_bytes = old_bytes.replace(b"econometrics/problem_sets", b"econometrics/part_1/problem_sets")
     _write(root, old, old_bytes)
+    _write(root, clone_old, b"Clone")
     micro_old = "academic_notes/microecon/lecture_notes/one.md"
     micro_new = relocate.moved(micro_old, "microecon")
     _write(root, micro_old, b"micro body")
     subprocess.run(["git", "init", "-q", str(notes)], check=True)
     subprocess.run(["git", "-C", str(notes), "add", "econometrics/problem_sets/processed_outputs/one.md",
+                    "econometrics/problem_sets/processed_outputs/one-copy.md",
                     "microecon/lecture_notes/one.md"], check=True)
     subprocess.run(["git", "-C", str(notes), "-c", "user.name=Fixture", "-c", "user.email=fixture@example.test",
                     "commit", "-qm", "baseline"], check=True)
     baseline = subprocess.check_output(["git", "-C", str(notes), "rev-parse", "HEAD"], text=True).strip()
     (root / old).unlink()
     _write(root, new, new_bytes)
+    (root / clone_old).unlink()
+    _write(root, clone_new, b"Clone")
     (root / micro_old).unlink()
     _write(root, micro_new, b"micro body")
     _write(root, "academic_resources/econometrics/part_1/problem_sets/one.pdf", b"pdf")
     card = {"file_id": "id-one", "path": old, "source_pdf_path": "academic_resources/econometrics/problem_sets/one.pdf",
             "source_asset_path": "academic_resources/econometrics/problem_sets/one.pdf", "rag_md_path": None,
             "content_hash": _hash(old_bytes), "offering_label": "Fall", "embedding": [1, 2]}
+    clone = {"file_id": "clone-id", "path": clone_old, "duplicate_of_file_id": "id-one",
+             "duplicate_of_path": old, "content_hash": _hash(b"Clone"), "embedding": [5, 6],
+             "source_pdf_path": None, "source_asset_path": None, "rag_md_path": None}
     chunk = {"file_id": "id-one", "content_hash": _hash(old_bytes), "embedding": [3, 4]}
-    _write(root, ".index/econometrics.json", json.dumps([card]))
-    _write(root, ".index/chunks/econometrics.json", json.dumps([chunk]))
+    _write(root, ".index/econometrics.json", json.dumps([card, clone], indent=2))
+    _write(root, ".index/chunks/econometrics.json", json.dumps([chunk], indent=2))
     _write(root, ".index/microecon.json", json.dumps([{
         "file_id": "micro-id", "path": micro_old, "content_hash": _hash(b"micro body"),
         "embedding": [1, 2], "source_pdf_path": None, "source_asset_path": None,
@@ -134,9 +143,11 @@ def test_catalog_paths_and_chunks_survive_interrupted_apply(tmp_path, monkeypatc
                 "confidence": 0.8, "flagged": False, "evidence": ["kept"], "decided_by": "owner"}
     catalog = {"course": "econometrics", "materials": [material],
                "excluded": [old], "unknown_decisions": []}
-    _write(root, ".index/materials/econometrics.json", json.dumps(catalog))
-    _write(root, ".index/materials/econometrics.decisions.json", json.dumps({old: {"role": "problem_set"},
-        "academic_notes/econometrics/problem_sets/": {"role": "problem_set"}}))
+    catalog_raw = json.dumps(catalog, indent=1) + "\n"
+    decisions_raw = json.dumps({old: {"role": "problem_set"},
+        "academic_notes/econometrics/problem_sets/": {"role": "problem_set"}}, indent=1) + "\n"
+    _write(root, ".index/materials/econometrics.json", catalog_raw)
+    _write(root, ".index/materials/econometrics.decisions.json", decisions_raw)
     (root / "academic_notes/econometrics/part_1/problem_sets").mkdir(parents=True, exist_ok=True)
     subprocess.run(["git", "-C", str(root), "add", ".index/econometrics.json",
                     ".index/microecon.json", ".index/chunks/econometrics.json", ".index/materials/econometrics.json",
@@ -164,9 +175,12 @@ def test_catalog_paths_and_chunks_survive_interrupted_apply(tmp_path, monkeypatc
     unrelated.unlink()
     applied = relocate.apply(str(root), "econometrics", baseline)
     assert applied["status"] == "applied" and applied["post_run_audit"] is True
-    after = json.loads((root / ".index/econometrics.json").read_text())[0]
+    cards_after = json.loads((root / ".index/econometrics.json").read_text())
+    after = cards_after[0]
     assert after["path"] == new and after["content_hash"] == _hash(new_bytes)
     assert after["embedding"] == [1, 2] and after["offering_label"] == "Fall"
+    assert cards_after[1] == {**clone, "path": clone_new, "duplicate_of_path": new}
+    assert cards_after[1]["file_id"] == "clone-id"
     assert json.loads((root / ".index/chunks/econometrics.json").read_text())[0] == {
         **chunk, "content_hash": _hash(new_bytes)}
     catalog_after = json.loads((root / ".index/materials/econometrics.json").read_text())
@@ -175,6 +189,18 @@ def test_catalog_paths_and_chunks_survive_interrupted_apply(tmp_path, monkeypatc
     decisions_after = json.loads((root / ".index/materials/econometrics.decisions.json").read_text())
     assert decisions_after == {new: {"role": "problem_set"},
                                "academic_notes/econometrics/part_1/problem_sets/": {"role": "problem_set"}}
+    catalog_path = root / ".index/materials/econometrics.json"
+    decisions_path = root / ".index/materials/econometrics.decisions.json"
+    assert catalog_path.read_bytes() == catalog_raw.replace(old, new).encode()
+    assert decisions_path.read_bytes() == decisions_raw.replace(old, new).replace(
+        "academic_notes/econometrics/problem_sets/",
+        "academic_notes/econometrics/part_1/problem_sets/").encode()
+    for rel in (".index/econometrics.json", ".index/chunks/econometrics.json"):
+        data = (root / rel).read_bytes()
+        assert b"\n  {" in data and not data.endswith(b"\n")
+    manifest = json.loads((relocate._backup_location(root, "econometrics") / "manifest.json").read_text())
+    for rel in manifest["files"]:
+        assert manifest["files"][rel]["after"] == relocate._full_hash((root / rel).read_bytes())
     assert relocate.apply(str(root), "econometrics", baseline)["status"] == "unchanged"
     assert relocate.apply(str(root), "microecon", baseline)["status"] == "applied"
     assert json.loads((root / ".index/microecon.json").read_text())[0]["path"] == micro_new
