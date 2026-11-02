@@ -3,9 +3,11 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass, field
+from difflib import SequenceMatcher
 
 from ..cluster import FACETS
 from ..compare import _ancestors
+from ..transcript import normalize
 from ..vocab import _key, is_country
 from .corpus import Corpus
 from .match import Constraint, papers_matching, vocab_for
@@ -101,7 +103,20 @@ def _resolve_country(corpus, vocabs, value, pick, resolved_by, subregions, limit
     if len(codes) == 1:
         return Resolution(Constraint("countries", codes[0], value, "exact"))
     if not codes:
-        return Resolution(message=f"no country matches {value!r}; use an ISO 3166-1 alpha-2 code")
+        query = normalize(value)
+        tokens = query.split()
+        names = {code: normalize(name) for code, name in subregions.names.items()}
+        contained = sorted((code for code, name in names.items() if tokens and all(t in name for t in tokens)),
+                           key=lambda code: (len(names[code]), code))
+        listed = set(contained)
+        similar = sorted((-score, code) for code, name in names.items() if code not in listed
+                         if (score := SequenceMatcher(None, query, name).ratio()) >= 0.8)
+        codes = (contained + [code for _, code in similar])[:limit]
+        if not codes:
+            return Resolution(message=f"no country matches {value!r}; use an ISO 3166-1 alpha-2 code")
+        cands = [Candidate(c, subregions.names.get(c, c), 0, 0,
+                           len(papers_matching(corpus, [Constraint("countries", c)], vocabs))) for c in codes]
+        return Resolution(candidates=cands, message=f"no country is named {value!r}; did you mean one of these? pick a code")
     cands = [Candidate(c, subregions.names.get(c, c), 0, 0,
                        len(papers_matching(corpus, [Constraint("countries", c)], vocabs))) for c in codes[:limit]]
     return Resolution(candidates=cands, message=f"{value!r} matches several countries; pick a code")

@@ -8,6 +8,7 @@ from unittest import mock
 
 from agent.literature import db
 from agent.literature.cli import main
+from agent.literature.gap.subregions import Subregions
 from lit_helpers import write_vocab_dir
 from synth_helpers import build, three_papers
 
@@ -63,6 +64,16 @@ class TestGapRun(GapCliCase):
         self.assertFalse((Path(self.root) / "literature_gap" / "g1" / "candidates.json").exists())
         first = self.report()["constraints"][0]
         self.assertEqual((first["phrase"], first["value"], first["resolved_by"]), ("transfer", "intervention.cash_transfer", "user"))
+
+    def test_fuzzy_country_name_stops_with_candidate_codes(self):
+        self.build_db()
+        toy = Subregions({}, {"CG": "Congo, Republic of the", "CD": "Congo, Democratic Republic of the"})
+        with mock.patch("agent.literature.gap.subregions.load_subregions", return_value=toy):
+            code, out = self.run_cli("gap", "run", "--run-id", "g1", "--where", "countries=Congo")
+        self.assertEqual(code, 2)
+        self.assertIn("did you mean one of these? pick a code", out)
+        stopped = json.loads((Path(self.root) / "literature_gap" / "g1" / "candidates.json").read_text(encoding="utf-8"))
+        self.assertEqual([c["term_id"] for c in stopped["constraints"][0]["candidates"]], ["CG", "CD"])
 
     def test_phrase_with_no_candidates_exits_2_with_a_message(self):
         self.build_db()

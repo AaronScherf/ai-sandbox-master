@@ -2,7 +2,7 @@ import tempfile
 import unittest
 
 from agent.literature.gap.resolve import level_of, resolve, shortlist
-from agent.literature.gap.subregions import load_subregions
+from agent.literature.gap.subregions import Subregions, load_subregions
 from agent.literature.vocab import Term, Vocabulary
 from gap_helpers import VOCABS, fx, make_corpus, write_toy_tables
 
@@ -78,6 +78,36 @@ class TestResolve(unittest.TestCase):
         bad = self.run_resolve("countries", "XX", subregions=toy)
         self.assertIsNone(bad.constraint)
         self.assertTrue(bad.message)
+
+    def test_country_name_tokens_offer_both_congos_in_name_length_order(self):
+        toy = Subregions({}, {"CD": "Congo, Democratic Republic of the", "CG": "Congo, Republic of the"})
+        res = self.run_resolve("countries", "Congo", subregions=toy)
+        self.assertIsNone(res.constraint)
+        self.assertEqual([c.term_id for c in res.candidates], ["CG", "CD"])
+        self.assertEqual([(c.label, c.level, c.children, c.papers, c.path) for c in res.candidates],
+                         [("Congo, Republic of the", 0, 0, 0, ""),
+                          ("Congo, Democratic Republic of the", 0, 0, 0, "")])
+        self.assertEqual(res.message, "no country is named 'Congo'; did you mean one of these? pick a code")
+
+    def test_misspelled_country_name_offers_single_candidate_without_resolving(self):
+        toy = Subregions({}, {"SO": "Somalia", "KE": "Kenya"})
+        res = self.run_resolve("countries", "Somalai", subregions=toy)
+        self.assertIsNone(res.constraint)
+        self.assertEqual([c.term_id for c in res.candidates], ["SO"])
+
+    def test_country_name_with_no_fuzzy_match_keeps_old_message(self):
+        toy = Subregions({}, {"SO": "Somalia", "KE": "Kenya"})
+        res = self.run_resolve("countries", "Atlantis", subregions=toy)
+        self.assertIsNone(res.constraint)
+        self.assertEqual(res.candidates, [])
+        self.assertEqual(res.message, "no country matches 'Atlantis'; use an ISO 3166-1 alpha-2 code")
+
+    def test_fuzzy_country_candidates_are_capped_without_changing_exact_resolution(self):
+        toy = Subregions({}, {"AA": "Congo Alpha", "AB": "Congo Beta", "AC": "Congo Gamma", "AD": "Congo Delta"})
+        res = self.run_resolve("countries", "Congo", subregions=toy, limit=2)
+        self.assertEqual([c.term_id for c in res.candidates], ["AB", "AA"])
+        self.assertEqual(self.run_resolve("countries", "Congo Alpha", subregions=toy).constraint.value, "AA")
+        self.assertEqual(self.run_resolve("countries", "SO", subregions=toy).constraint.value, "SO")
 
     def test_unknown_facet_raises_value_error(self):
         with self.assertRaises(ValueError):
