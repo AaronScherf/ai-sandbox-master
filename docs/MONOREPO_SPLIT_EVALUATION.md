@@ -179,3 +179,33 @@ Landing-test speed is tracked separately from this decision.
 3. Where should `trading` and `utility-scripts` land (`research/` vs `academic-rag-model/`)?
 4. Should a pre-commit or landing guard block PDFs and SVGs under `academic-hub/` for good?
 5. Do you want the full-suite-fallback speedup scoped as its own task?
+
+---
+
+# Update 3 (2026-11-02): decisions on the open questions
+
+## Decided by the owner
+
+1. **Private hub repo: deferred.**
+2. **`.index/` stays in the hub.** It is the hub's own catalog: per-course file cards (`<course>.json`), `courses.json`, `tags.json`, `materials/*` (material decisions) and `offering_links/*` (review and dismissals). Passage-level `.index/chunks/` is already gitignored. The data describes hub content, so it travels with the hub; the rag-model code only generates it, writing through `ACADEMIC_HUB_ROOT` (`core/indexer/index_card.py`, `chunk_index.py`). The earlier question of moving it to rag-model is closed. (`research/.index/` is the separate research-side equivalent.)
+3. **`trading` and `utility-scripts` fold into `academic-rag-model`.**
+4. **Block PDFs and SVGs under `academic-hub/`** with a durable guard (pre-commit and landing check).
+5. **Landing-test speed is its own task** (scope below).
+
+## Task scope: faster landing checks
+
+Owner's idea: split subprojects by dependency in a hub-and-spokes layout (light `core/`, spokes `agent`, `audio_generator`, `discovery`, `pipelines`, `resume_manager`, `tools`), so a change does not run unrelated spokes' tests.
+
+Current behavior (`tools/land_branch.py`): changed `.py` files map to the matching `tests/<top-level dir>` only, markdown-only changes skip tests, and anything else (non-`.py`, non-`.md` files, `conftest.py`, unmapped paths) falls back to the full chunked suite. A change under `core/` runs only `tests/core`, even though spokes import it.
+
+Proposed order, cheapest first:
+1. **Measure:** count how often each fallback trigger fires in `.git/agent-landing-log.jsonl` (163 checks, median 348 s).
+2. **Dependency-aware selection inside the existing repo:** build the import graph from `core/` to the spokes, so a spoke change runs only its tests and a `core/` change runs `core` plus its dependents. Add safe extensions (`.json`, `.txt`, config files that tests do not read) to the skip list. This gives the hub-and-spokes benefit with no layout change.
+3. **Physical split into separate packages or repos** only if step 2 is not enough. The cost is versioning `core/` across repos (pin or published package, no submodules) and cross-repo commits, so it is not the first move.
+
+Spec-first before any code; Claude owns the design, Codex the implementation per `docs/AGENT_ROUTING.md`.
+
+## Remaining open questions
+
+- Which extensions are safe to skip (`.json`, `.txt`, `.yaml`)? Check that no test reads them.
+- Should `core/` changes always trigger the full suite, as the simplest correct rule, until the import-graph selector is trusted?
