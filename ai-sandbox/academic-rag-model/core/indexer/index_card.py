@@ -89,6 +89,11 @@ def compute_id_from_parts(parts: list[str]) -> str:
 LOCATION_FIELDS: tuple[str, ...] = ("source_pdf", "source_excalidraw", "source_image", "duplicate_of_path")
 
 
+# Frontmatter keys that give a note a stable identity across moves; written by
+# hub_identity.write_hub_id and likewise ignored by the content hash.
+NOTE_IDENTITY_FIELDS: tuple[str, ...] = ("hub_id",)
+
+
 def compute_legacy_content_hash(md_path: str) -> str:
     """Truncated SHA-256 of the .md file's own bytes -- the staleness
     signal (spec §4.3), immune to anything that touches a file's mtime
@@ -106,9 +111,9 @@ def compute_legacy_content_hash(md_path: str) -> str:
     return digest[:16]
 
 
-def _strip_location_lines(data: bytes) -> bytes:
-    """Remove LOCATION_FIELDS lines from a leading frontmatter block,
-    leaving every other byte (BOM, CRLF, body) untouched."""
+def strip_location_lines(data: bytes) -> bytes:
+    """Remove LOCATION_FIELDS and NOTE_IDENTITY_FIELDS lines from a leading
+    frontmatter block, leaving every other byte (BOM, CRLF, body) untouched."""
     lines = data.split(b"\n")
     if lines[0].removeprefix(b"\xef\xbb\xbf").rstrip(b"\r") != b"---":
         return data
@@ -120,10 +125,13 @@ def _strip_location_lines(data: bytes) -> bytes:
     kept = [lines[0]]
     for line in lines[1:end]:
         key = line.split(b":", 1)[0].strip().decode("utf-8", "replace")
-        if b":" in line and key in LOCATION_FIELDS:
+        if b":" in line and (key in LOCATION_FIELDS or key in NOTE_IDENTITY_FIELDS):
             continue
         kept.append(line)
     return b"\n".join(kept + lines[end:])
+
+
+_strip_location_lines = strip_location_lines  # back-compat alias
 
 
 def compute_content_hash(md_path: str) -> str:
@@ -133,7 +141,7 @@ def compute_content_hash(md_path: str) -> str:
     hash exactly as before."""
     with open(md_path, "rb") as f:
         data = f.read()
-    return hashlib.sha256(_strip_location_lines(data)).hexdigest()[:16]
+    return hashlib.sha256(strip_location_lines(data)).hexdigest()[:16]
 
 
 def content_hash_matches(md_path: str, stored: str | None) -> bool:
