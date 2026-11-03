@@ -10,6 +10,7 @@ from core.agent_tasks.tasks import Passage, Task
 
 from . import schema
 from .compare import reconcile
+from .listing import tree_listing
 from .papers import Paper
 from .proposals import Proposals
 from .store import RecordStore
@@ -78,7 +79,7 @@ def _task_id(file_id: str, pass_label: str) -> str:
     return f"extract-{file_id}" if pass_label == "a" else f"extract-{file_id}-{pass_label}"
 
 
-def _vocab_listing(vocabs: dict) -> str:
+def _vocab_listing(vocabs: dict, pass_label: str = "a", file_id: str = "") -> str:
     names = list(schema.FACETS.values()) + [v for m in schema.MODULE_FACETS.values() for v in m.values()]
     lines: list[str] = []
     for name in names:
@@ -90,11 +91,11 @@ def _vocab_listing(vocabs: dict) -> str:
         if len(terms) > LISTING_LIMIT:
             parents = {t.parent for t in terms if t.parent}
             terms = [t for t in terms if t.id in parents]
-            note = (f"; {len(v.terms)} terms in all, only the grouping levels are listed. Use the most specific listed "
-                    f"id and put the paper's own wording in `value`")
+            note = (f"; {len(v.terms)} terms in all, only the grouping levels are listed. Choose the closest listed "
+                    "grouping term and put the paper's own wording in `value`; a later pass narrows it to a specific "
+                    "term using definitions")
         lines += ["", f"Vocabulary {name} (version {v.version}, {v.provenance}{note}):"]
-        for t in terms:
-            lines.append(f"- {t.id}: {t.label}" + (f" - {t.definition}" if t.definition else ""))
+        lines.append(tree_listing(v, terms, pass_label, file_id, name))
     return "\n".join(lines)
 
 
@@ -125,7 +126,7 @@ def make_tasks(target: Target, papers: list[Paper], *, pass_label: str = "a", re
         ident = paper.identity
         context = "\n".join([f"Paper: {paper.title or paper.file_id}", f"file_id: {paper.file_id}",
                              *(f"{k}: {ident[k]}" for k in ("doi", "openalex_id", "publication_year") if k in ident),
-                             _vocab_listing(target.vocabs)])
+                             _vocab_listing(target.vocabs, pass_label, paper.file_id)])
         passages = [Passage(id=f"P{n}", source=paper.title or paper.file_id, ref=f"page {n}", text=text)
                     for n, text in sorted(pages.items())]
         tasks.append(Task(

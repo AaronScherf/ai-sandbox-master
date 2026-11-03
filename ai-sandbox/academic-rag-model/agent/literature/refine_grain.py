@@ -9,6 +9,7 @@ from pathlib import Path
 from core.agent_tasks.tasks import Passage, Task
 
 from .compare import reconcile
+from .listing import tree_listing
 from .papers import Paper
 from .stage import MAX_CARD_CHARS, Target, _offered_pages, _sha
 from .transcript import split_pages
@@ -62,15 +63,14 @@ def scope_roots(record: dict, facet: str, vocab, sector_vocab) -> set[str]:
     return {r for label in labels if (r := _root_by_label(vocab, label))}
 
 
-def _subtree_listing(vocab, root_ids: set[str]) -> str:
+def _subtree_listing(vocab, root_ids: set[str], pass_label: str = "a", file_id: str = "") -> str:
     """Every term in `vocab` whose top-level ancestor is in `root_ids` (the roots themselves included), full
     depth, no LISTING_LIMIT collapse -- one `- id: label` line per term."""
-    lines = [f"- {t.id}: {t.label}" + (f" - {t.definition}" if t.definition else "")
-             for t in vocab.terms.values() if _root(t.id, vocab) in root_ids]
-    return "\n".join(lines)
+    terms = [t for t in vocab.terms.values() if _root(t.id, vocab) in root_ids]
+    return tree_listing(vocab, terms, pass_label, file_id, vocab.name)
 
 
-def _vocab_listing_for(record: dict, vocabs: dict) -> str:
+def _vocab_listing_for(record: dict, vocabs: dict, pass_label: str = "a", file_id: str = "") -> str:
     """The scoped intervention/outcome listing for one paper's refine card. Falls back to stage._vocab_listing's
     existing grouping-only rendering for a facet when scope_roots finds nothing to anchor on (should not occur in
     practice -- every paper carries a sector fact -- but keeps today's behavior as a safety net rather than
@@ -87,11 +87,11 @@ def _vocab_listing_for(record: dict, vocabs: dict) -> str:
         if roots:
             lines += ["", f"Vocabulary {facet} (version {vocab.version}, {vocab.provenance}; scoped to this "
                            "paper's own category, full depth, no grouping collapse):",
-                      _subtree_listing(vocab, roots)]
+                      _subtree_listing(vocab, roots, pass_label, file_id)]
         else:
             # facet name and vocabulary name coincide for intervention/outcome (schema.FACETS maps each to
             # itself), so this single-entry dict is exactly what stage._vocab_listing expects.
-            lines.append(_vocab_listing({facet: vocab}))
+            lines.append(_vocab_listing({facet: vocab}, pass_label, file_id))
     return "\n".join(lines)
 
 
@@ -158,7 +158,7 @@ def make_tasks(target: Target, papers: list[Paper], *, pass_label: str = "a", re
             skipped[paper.file_id] = "already refined (use --redo to refine again)"
             continue
         context = "\n".join([f"Paper: {paper.title or paper.file_id}", f"file_id: {paper.file_id}",
-                             _vocab_listing_for(record, target.vocabs)])
+                             _vocab_listing_for(record, target.vocabs, pass_label, paper.file_id)])
         passages = [Passage(id=f"P{n}", source=paper.title or paper.file_id, ref=f"page {n}", text=text)
                     for n, text in sorted(pages.items())]
         task_id = f"refine-{paper.file_id}" if pass_label == "a" else f"refine-{paper.file_id}-{pass_label}"

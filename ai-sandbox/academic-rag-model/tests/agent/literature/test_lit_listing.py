@@ -3,6 +3,7 @@ from unittest.mock import patch
 
 from agent.literature import schema, stage, verify
 from agent.literature.vocab import Term, Vocabulary
+from agent.literature.listing import tree_listing
 
 
 def _tree():
@@ -17,6 +18,20 @@ def _tree():
 
 
 class TestListing(unittest.TestCase):
+    def test_tree_order_and_indentation(self):
+        v = _tree()
+        first = tree_listing(v, list(v.terms.values()), "a", "paper", "intervention")
+        self.assertEqual(first.splitlines(), ["- intervention.health: Health",
+            "  - intervention.vaccines: Vaccines - Immunisation programmes",
+            "    - intervention.measles_shot: Measles shot"])
+        siblings = {f"intervention.child{i}": Term(id=f"intervention.child{i}", label=f"Child {i}",
+                    parent="intervention.health") for i in range(12)}
+        v.terms.update(siblings)
+        a = tree_listing(v, list(v.terms.values()), "a", "paper", "intervention")
+        b = tree_listing(v, list(v.terms.values()), "b", "paper", "intervention")
+        self.assertEqual(b, tree_listing(v, list(v.terms.values()), "b", "paper", "intervention"))
+        self.assertNotEqual(a, b)
+        self.assertEqual(set(a.splitlines()), set(b.splitlines()))
     def test_a_small_vocabulary_is_listed_in_full(self):
         text = stage._vocab_listing({"intervention": _tree()})
         self.assertIn("intervention.measles_shot", text)
