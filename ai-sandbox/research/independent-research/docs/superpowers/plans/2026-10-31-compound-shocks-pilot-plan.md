@@ -77,9 +77,9 @@ Tasks 11, 12, 15 in commit `cbeb9ce6`): `price_index` and `price_decomposition` 
 **Interfaces:**
 - Produces: `reprokit validate` also checks, for every `instances/*/`: `config.yaml` (schema `config` + period rule), `data/descriptors/*.yaml`, `harmonization/*.yaml`; problems name the full path. New command `reprokit gate --baseline <config.yaml> --config <config.yaml> --records <dir>` prints `Problem` lines from `check_gate(baseline["sources"], config["sources"], records)` and exits 1 on any.
 
-- [ ] **Step 1: Write failing tests:** `test_validate_walks_every_instance` (a broken descriptor in `instances/b` is reported with its path, `instances/a` clean); `test_validate_instance_period_rule`; `test_gate_blocks_provider_swap_without_record` (message names the role and expected record path); `test_gate_passes_with_valid_record`; `test_gate_exit_0_when_providers_match_ignoring_case`. Run; expect FAIL.
-- [ ] **Step 2:** Implement in `cli.py` (extend `_validate`; add `_gate` using `harmonization.check_gate`). Run `uv run pytest -q`; expect PASS.
-- [ ] **Step 3:** Document in README and CHANGELOG (`0.2.0`), bump `pyproject.toml` version, commit, tag `v0.2.0`. Pushing is the owner's go-ahead.
+- [x] **Step 1: Write failing tests:** `test_validate_walks_every_instance` (a broken descriptor in `instances/b` is reported with its path, `instances/a` clean); `test_validate_instance_period_rule`; `test_gate_blocks_provider_swap_without_record` (message names the role and expected record path); `test_gate_passes_with_valid_record`; `test_gate_exit_0_when_providers_match_ignoring_case`. Run; expect FAIL.
+- [x] **Step 2:** Implement in `cli.py` (extend `_validate`; add `_gate` using `harmonization.check_gate`). Run `uv run pytest -q`; expect PASS.
+- [x] **Step 3:** Document in README and CHANGELOG (`0.2.0`), bump `pyproject.toml` version, commit, tag `v0.2.0`. Pushing is the owner's go-ahead.
 
 ### Task 2: Generate the study repo and migrate the intake scaffold
 
@@ -90,10 +90,10 @@ Tasks 11, 12, 15 in commit `cbeb9ce6`): `price_index` and `price_decomposition` 
 **Interfaces:**
 - Produces: an instance config for Somalia with roles `conflict_events`, `displacement`, `prices`, `rainfall`, `admin_boundaries` (providers ACLED, UNHCR/NRC PRMN, WFP, UCSB CHC CHIRPS, OCHA COD-AB), period `2021-01-01` to `2023-08-31` (decided 2026-10-31: the HDX PRMN dataset ends 2023-08; extend later by config change if a newer release is found), geography `Somalia`, parameters from Task 11. One descriptor per role from the pilot design's table; every unverified field is the literal `unverified`, `access_class` set correctly (`conflict_events: account_required`, with `accessed`, `applied_filters`, `manipulation` filled from the existing export: accessed `2026-10-31`, filters `Somalia, event dates 1997-01-01 to 2025-10-31`).
 
-- [ ] **Step 1:** `uv run copier copy` the reprokit template into `C:\Users\theaa\compound-shocks-panel` (project_name `Compound Shocks Panel`). Add the dependencies listed in the stack to `pyproject.toml`, run `uv lock`, `uv sync`.
-- [ ] **Step 2: Write failing test** `tests/test_repo_layout.py::test_reprokit_validate_passes_on_repo` running `reprokit.cli.main(["validate", "."])` expects 0 and `test_somalia_and_sudan_instances_exist`. Fill the instances and descriptors until it passes.
-- [ ] **Step 3:** Copy `protocol.md` content from the monorepo's `projects/02_compound_shocks/protocol.md` (verification gates, decision log) into the new `protocol.md`; copy the existing ACLED export from `...projects/02_compound_shocks/data/raw/ACLED Data_2026-10-31_...csv` into `instances/somalia/data/raw/conflict_events/` (local only, ignored; confirm `git status` does not list it).
-- [ ] **Step 4:** Commit with explicit paths. Owner creates the GitHub repo and pushes.
+- [x] **Step 1:** `uv run copier copy` the reprokit template into `C:\Users\theaa\compound-shocks-panel` (project_name `Compound Shocks Panel`). Add the dependencies listed in the stack to `pyproject.toml`, run `uv lock`, `uv sync`.
+- [x] **Step 2: Write failing test** `tests/test_repo_layout.py::test_reprokit_validate_passes_on_repo` running `reprokit.cli.main(["validate", "."])` expects 0 and `test_somalia_and_sudan_instances_exist`. Fill the instances and descriptors until it passes.
+- [x] **Step 3:** Copy `protocol.md` content from the monorepo's `projects/02_compound_shocks/protocol.md` (verification gates, decision log) into the new `protocol.md`; copy the existing ACLED export from `...projects/02_compound_shocks/data/raw/ACLED Data_2026-10-31_...csv` into `instances/somalia/data/raw/conflict_events/` (local only, ignored; confirm `git status` does not list it).
+- [x] **Step 4:** Commit with explicit paths. Owner creates the GitHub repo and pushes.
 
 ### Task 3: Step-runner spike and decision
 
@@ -103,10 +103,10 @@ Tasks 11, 12, 15 in commit `cbeb9ce6`): `price_index` and `price_decomposition` 
 **Interfaces:**
 - Produces: `compound_shocks.cli.main(argv: list[str] | None = None) -> int` with `reproduce --instance NAME`; `compound_shocks.pipeline.tasks(instance_dir: Path) -> list[dict]` (doit task dicts with `name`, `file_dep`, `targets`, `actions`). Skeleton steps: `read` then `aggregate` then `fuse`, each writing a small file under `instances/<name>/data/derived/`.
 
-- [ ] **Step 1: Write failing tests:** `test_reproduce_runs_skeleton_on_fixture_instance` (tmp instance with two tiny input files; exit 0; outputs exist); `test_second_run_does_no_work` (capture doit's up-to-date count, all tasks skipped); `test_changed_input_reruns_only_dependents` (touch one role's file bytes; only its chain reruns); `test_runs_with_no_make_installed` (the command never shells out to `make`).
-- [ ] **Step 2:** Implement with doit's Python API (`DoitMain` with a `ModuleTaskLoader`), no `dodo.py` logic beyond importing `pipeline.tasks`. Run tests; expect PASS on this Windows machine.
-- [ ] **Step 3:** Push the branch and read the CI matrix result for Linux. Write `docs/decisions/001-step-runner.md`: chosen runner, the evidence (test results on both OSes), and the fallback (own minimal runner with the same `tasks()` interface) if either OS fails. If the spike fails on either OS, stop and report to Claude before continuing.
-- [ ] **Step 4:** Commit.
+- [x] **Step 1: Write failing tests:** `test_reproduce_runs_skeleton_on_fixture_instance` (tmp instance with two tiny input files; exit 0; outputs exist); `test_second_run_does_no_work` (capture doit's up-to-date count, all tasks skipped); `test_changed_input_reruns_only_dependents` (touch one role's file bytes; only its chain reruns); `test_runs_with_no_make_installed` (the command never shells out to `make`).
+- [x] **Step 2:** Implement with doit's Python API (`DoitMain` with a `ModuleTaskLoader`), no `dodo.py` logic beyond importing `pipeline.tasks`. Run tests; expect PASS on this Windows machine.
+- [x] **Step 3:** Push the branch and read the CI matrix result for Linux. Write `docs/decisions/001-step-runner.md`: chosen runner, the evidence (test results on both OSes), and the fallback (own minimal runner with the same `tasks()` interface) if either OS fails. If the spike fails on either OS, stop and report to Claude before continuing.
+- [x] **Step 4:** Commit.
 
 ### Task 4: Canonical schemas, adapter protocol, mapping loader
 
@@ -116,8 +116,8 @@ Tasks 11, 12, 15 in commit `cbeb9ce6`): `price_index` and `price_decomposition` 
 **Interfaces:**
 - Produces: `ROLE_COLUMNS: dict[str, list[str]]` (the five canonical tables from Spec section 4); `PANEL_COLUMNS: dict[str, Literal["core", "extension"]]` (core: `events`, `fatalities`, `precip_mm`, `coverage_frac`, `price_sorghum`, `price_wheat`; extension: displacement columns, terms-of-trade columns); `check_frame(df, role: str) -> list[reprokit.problems.Problem]` (missing/extra columns, wrong dtype kinds, duplicate keys); `class Adapter(Protocol)` with `role: str`, `provider: str`, `find(raw_dir: Path) -> list[Path]`, `read(paths: list[Path], instance: dict) -> pd.DataFrame`; `register(adapter: Adapter) -> None`; `get_adapter(role: str, provider: str) -> Adapter` (provider compared with `strip().casefold()`; `KeyError` message lists registered providers for the role); `load_mapping(path: Path) -> dict[str, str]`; `apply_mapping(df, mapping) -> pd.DataFrame` (rename, then missing-source-column Problem naming the column).
 
-- [ ] **Step 1: Write failing tests:** `test_check_frame_names_missing_column`; `test_check_frame_flags_duplicate_keys`; `test_get_adapter_ignores_case_and_whitespace`; `test_get_adapter_unknown_provider_lists_registered`; `test_apply_mapping_renames_and_reports_missing_source_column`; `test_every_core_panel_column_is_documented` (every key in `PANEL_COLUMNS` appears in `README.md`).
-- [ ] **Step 2:** Implement; run; commit.
+- [x] **Step 1: Write failing tests:** `test_check_frame_names_missing_column`; `test_check_frame_flags_duplicate_keys`; `test_get_adapter_ignores_case_and_whitespace`; `test_get_adapter_unknown_provider_lists_registered`; `test_apply_mapping_renames_and_reports_missing_source_column`; `test_every_core_panel_column_is_documented` (every key in `PANEL_COLUMNS` appears in `README.md`).
+- [x] **Step 2:** Implement; run; commit.
 
 ### Task 5: ACLED adapter and mapping
 
@@ -127,8 +127,8 @@ Tasks 11, 12, 15 in commit `cbeb9ce6`): `price_index` and `price_decomposition` 
 **Interfaces:**
 - Produces: `AcledAdapter` (`role="conflict_events"`, `provider="ACLED"`), `find` globs `*.csv` in the role dir; `read` returns canonical `event_id, date, lat, lon, event_type, sub_event_type, actor1, fatalities, geo_precision` (date as ISO string, `fatalities` int). Mapping file: `event_id_cnty -> event_id`, `event_date -> date`, `latitude -> lat`, `longitude -> lon`; a `lat_long` variant is handled by the same adapter via an optional split mapping key.
 
-- [ ] **Step 1: Write failing tests:** `test_reads_fixture_with_bom` (fixture written with a UTF-8 BOM, first column found); `test_lat_long_single_column_variant_is_split`; `test_output_passes_check_frame`; `test_find_ignores_non_csv_and_gitkeep`; `test_real_export_header_maps` (marked `real_data`: reads only the header of the real export, asserts all mapping source columns exist; never loads rows into any external service).
-- [ ] **Step 2:** Implement (`encoding="utf-8-sig"`); run; commit.
+- [x] **Step 1: Write failing tests:** `test_reads_fixture_with_bom` (fixture written with a UTF-8 BOM, first column found); `test_lat_long_single_column_variant_is_split`; `test_output_passes_check_frame`; `test_find_ignores_non_csv_and_gitkeep`; `test_real_export_header_maps` (marked `real_data`: reads only the header of the real export, asserts all mapping source columns exist; never loads rows into any external service).
+- [x] **Step 2:** Implement (`encoding="utf-8-sig"`); run; commit.
 
 ### Task 6: Boundaries adapter and point-in-polygon
 
@@ -138,8 +138,8 @@ Tasks 11, 12, 15 in commit `cbeb9ce6`): `price_index` and `price_decomposition` 
 **Interfaces:**
 - Produces: `CodAbAdapter` (`role="admin_boundaries"`, `provider="OCHA COD-AB"`) returning a GeoDataFrame with `admin2_id, name, geometry` and `gdf.attrs["vintage"]`; `GeoBoundariesAdapter` with the same output (fallback provider, so using it requires a harmonization record); `assign_admin2(points: pd.DataFrame, boundaries: gpd.GeoDataFrame) -> pd.DataFrame` adds `admin2_id` (`<NA>` when none) and never changes row count; a point on a shared boundary goes to the district with the lowest `admin2_id`; returns unassigned count in `result.attrs["unassigned"]`.
 
-- [ ] **Step 1: Write failing tests:** `test_point_on_shared_boundary_is_assigned_to_lowest_id`; `test_point_outside_all_polygons_is_unassigned_and_counted`; `test_row_count_preserved`; `test_vintage_recorded`; `test_geoboundaries_output_matches_canonical_columns`.
-- [ ] **Step 2:** Implement with geopandas `sjoin` (`predicate="intersects"`, then drop duplicates by lowest id); run; commit.
+- [x] **Step 1: Write failing tests:** `test_point_on_shared_boundary_is_assigned_to_lowest_id`; `test_point_outside_all_polygons_is_unassigned_and_counted`; `test_row_count_preserved`; `test_vintage_recorded`; `test_geoboundaries_output_matches_canonical_columns`.
+- [x] **Step 2:** Implement with geopandas `sjoin` (`predicate="intersects"`, then drop duplicates by lowest id); run; commit.
 
 ### Task 7: Rainfall adapter and zonal statistics
 
@@ -149,8 +149,8 @@ Tasks 11, 12, 15 in commit `cbeb9ce6`): `price_index` and `price_decomposition` 
 **Interfaces:**
 - Produces: `ChirpsAdapter` (`role="rainfall"`, `provider="UCSB CHC CHIRPS"`); `zonal_monthly(rasters: dict[str, Path], boundaries: gpd.GeoDataFrame) -> pd.DataFrame` with columns `admin2_id, month, precip_mm, coverage_frac` (`rasters` maps `YYYY-MM` to a file; area-weighted mean over valid cells; `coverage_frac` is the share of the district's area with valid cells).
 
-- [ ] **Step 1: Write failing tests:** `test_area_weighted_mean_on_known_grid`; `test_nodata_cells_lower_coverage_frac_not_precip`; `test_district_with_no_valid_cells_has_nan_precip_and_zero_coverage`; `test_month_taken_from_mapping_keys`.
-- [ ] **Step 2:** Implement with rasterio masks (no extra zonal library unless needed); run; commit.
+- [x] **Step 1: Write failing tests:** `test_area_weighted_mean_on_known_grid`; `test_nodata_cells_lower_coverage_frac_not_precip`; `test_district_with_no_valid_cells_has_nan_precip_and_zero_coverage`; `test_month_taken_from_mapping_keys`.
+- [x] **Step 2:** Implement with rasterio masks (no extra zonal library unless needed); run; commit.
 
 ### Task 8: Prices and displacement adapters
 
@@ -160,8 +160,8 @@ Tasks 11, 12, 15 in commit `cbeb9ce6`): `price_index` and `price_decomposition` 
 **Interfaces:**
 - Produces: `WfpPricesAdapter` (`role="prices"`, `provider="WFP"`) canonical `date, market, admin2, commodity, unit, currency, price` (rows with a different unit or currency for the same commodity-market are flagged, not merged); `PrmnAdapter` (`role="displacement"`, `provider="UNHCR/NRC PRMN"`) canonical `month, origin_admin2, dest_admin2, individuals, reason` with `reason` mapped to `drought|conflict|flood|other`; `apply_crosswalk(df, column: str, crosswalk: dict[str, str], role: str) -> tuple[pd.DataFrame, list[Problem]]` replaces provider district names with COD-AB `admin2_id`s and returns a Problem per unmatched name.
 
-- [ ] **Step 1: Write failing tests:** `test_prices_mixed_units_are_flagged`; `test_prmn_unreported_month_is_nan_not_zero`; `test_prmn_reason_categories_mapped_and_unknown_reported`; `test_crosswalk_reports_every_unmatched_name`; `test_adapters_output_passes_check_frame`.
-- [ ] **Step 2:** Implement; run; commit. Real column names are unverified; Task 14 confirms them against actual downloads.
+- [x] **Step 1: Write failing tests:** `test_prices_mixed_units_are_flagged`; `test_prmn_unreported_month_is_nan_not_zero`; `test_prmn_reason_categories_mapped_and_unknown_reported`; `test_crosswalk_reports_every_unmatched_name`; `test_adapters_output_passes_check_frame`.
+- [x] **Step 2:** Implement; run; commit. Real column names are unverified; Task 14 confirms them against actual downloads.
 
 ### Task 9: Panel fusion
 
@@ -172,8 +172,8 @@ Tasks 11, 12, 15 in commit `cbeb9ce6`): `price_index` and `price_decomposition` 
 - Consumes: canonical tables from Tasks 5 to 8, `assign_admin2`, `zonal_monthly`, `PANEL_COLUMNS`.
 - Produces: `month_of(date: str) -> str` (`"2021-02-28"` to `"2021-02"`); `aggregate_conflict(events: pd.DataFrame) -> pd.DataFrame` (columns `admin2_id, month, events, fatalities`); `fuse_panel(conflict, rainfall, prices, displacement, admin2_ids: list[str], months: list[str]) -> pd.DataFrame` with one row per `(admin2_id, month)` over the full cross product; conflict missing means `0`, price and displacement missing mean `NaN`; `panel.attrs["column_kinds"]` copies `PANEL_COLUMNS`; `publishable_aggregates(panel) -> pd.DataFrame` returns only `admin2_id, month, events, fatalities`.
 
-- [ ] **Step 1: Write failing tests:** `test_month_boundaries` (Jan 31, Feb 28, Dec 31); `test_district_month_without_events_is_zero`; `test_missing_price_is_nan_not_zero`; `test_panel_keys_unique_and_complete`; `test_unassigned_events_are_not_in_panel_but_counted`; `test_publishable_aggregates_has_no_coordinates_ids_actors_or_event_types`.
-- [ ] **Step 2:** Implement; run; commit.
+- [x] **Step 1: Write failing tests:** `test_month_boundaries` (Jan 31, Feb 28, Dec 31); `test_district_month_without_events_is_zero`; `test_missing_price_is_nan_not_zero`; `test_panel_keys_unique_and_complete`; `test_unassigned_events_are_not_in_panel_but_counted`; `test_publishable_aggregates_has_no_coordinates_ids_actors_or_event_types`.
+- [x] **Step 2:** Implement; run; commit.
 
 ### Task 10: Pipeline wiring, gate and manifest
 
@@ -187,8 +187,8 @@ Tasks 11, 12, 15 in commit `cbeb9ce6`): `price_index` and `price_decomposition` 
 
 - **Carry-over from review of Task 8:** adapters put their problem lists in `df.attrs["problems"]`, which pandas can drop on `concat`/`copy`; collect them immediately after each `read` and add `test_adapter_problems_reach_the_run_report`.
 
-- [ ] **Step 1: Write failing tests:** `test_end_to_end_on_fixture_instance`; `test_provider_swap_without_record_stops_before_processing` (no derived file written); `test_provider_swap_with_record_proceeds`; `test_manifest_lists_core_and_extension_columns`; `test_rerun_is_idempotent` (panel bytes identical; manifest identical except `created_utc`).
-- [ ] **Step 2:** Implement; run; commit.
+- [x] **Step 1: Write failing tests:** `test_end_to_end_on_fixture_instance`; `test_provider_swap_without_record_stops_before_processing` (no derived file written); `test_provider_swap_with_record_proceeds`; `test_manifest_lists_core_and_extension_columns`; `test_rerun_is_idempotent` (panel bytes identical; manifest identical except `created_utc`).
+- [x] **Step 2:** Implement; run; commit.
 
 ### Task 11: Exploratory data analysis and diagnostics
 
@@ -199,8 +199,8 @@ Tasks 11, 12, 15 in commit `cbeb9ce6`): `price_index` and `price_decomposition` 
 **Interfaces:**
 - Produces: `data_profile(panel: pd.DataFrame) -> dict` (per column: non-null count, zero count, min and max month, number of distinct districts with any non-null value; per source group the same); `missingness_matrix(panel, out: Path) -> None` (heatmap, districts by month, one panel per source column, saved as PNG); `plot_commodity_series(prices: pd.DataFrame, out: Path) -> None` (raw market-level price lines by commodity, no index, no basket weighting); `plot_conflict_rainfall_trends(panel, out: Path, accessed: str) -> None` (monthly national totals of events and fatalities with mean precipitation); `make_district_audit_map(panel, boundaries: gpd.GeoDataFrame, column: str, out: Path, accessed: str) -> None` (coarse choropleth). Every figure with ACLED-derived content has the caption `Source: ACLED (acleddata.com), accessed <accessed>`.
 
-- [ ] **Step 1: Write failing tests:** `test_profile_counts_zeros_and_nans_separately` (a conflict zero is counted as a zero, a missing price as null); `test_profile_reports_district_coverage_per_source`; `test_missingness_matrix_writes_png_with_one_panel_per_column`; `test_price_series_uses_raw_prices_not_an_index` (plotted y-values equal the input prices); `test_conflict_figures_have_acled_caption` (inspect saved figure text objects); `test_price_figure_has_no_acled_caption`; `test_no_modeling_imports` (importing the package imports neither `statsmodels` nor `sklearn`).
-- [ ] **Step 2:** Implement with matplotlib (Agg backend); run; remove `statsmodels` from `pyproject.toml`, run `uv lock`; commit.
+- [x] **Step 1: Write failing tests:** `test_profile_counts_zeros_and_nans_separately` (a conflict zero is counted as a zero, a missing price as null); `test_profile_reports_district_coverage_per_source`; `test_missingness_matrix_writes_png_with_one_panel_per_column`; `test_price_series_uses_raw_prices_not_an_index` (plotted y-values equal the input prices); `test_conflict_figures_have_acled_caption` (inspect saved figure text objects); `test_price_figure_has_no_acled_caption`; `test_no_modeling_imports` (importing the package imports neither `statsmodels` nor `sklearn`).
+- [x] **Step 2:** Implement with matplotlib (Agg backend); run; remove `statsmodels` from `pyproject.toml`, run `uv lock`; commit.
 
 ### Task 12: Exploratory data audit memo (done 2026-11-02, `01af18c`; 162 tests; `audit` step runs in `reproduce`, memo reads descriptors for access dates and ACLED answers)
 
@@ -211,8 +211,8 @@ Tasks 11, 12, 15 in commit `cbeb9ce6`): `price_index` and `price_decomposition` 
 **Interfaces:**
 - Produces: `build_audit_memo(instance_dir: Path) -> Path` writes `outputs/audit_memo.md` (and a copy as HTML) from the instance's manifest, descriptors, panel profile and EDA figures. Sections: dataset provenance (provider, dataset ID, access dates, hashes, boundary vintage); coverage and missingness findings (districts with no market, months with no displacement report, unassigned-event count, share of district-months with any price); the figures; the three ACLED answers (access date, applied filters, manipulation); observations and caveats to inform the literature review and research design. It states no causal or hypothesis claim.
 
-- [ ] **Step 1: Write failing tests:** `test_memo_contains_provenance_hashes_and_access_dates`; `test_memo_reports_districts_with_no_price_observations`; `test_memo_contains_acled_citation_block_and_three_answers`; `test_memo_makes_no_causal_claims` (the memo template contains none of the words "effect of", "causes", "impact of", "significant"); `test_audit_step_is_part_of_reproduce`.
-- [ ] **Step 2:** Implement (plain string templates, no LaTeX); run; commit.
+- [x] **Step 1: Write failing tests:** `test_memo_contains_provenance_hashes_and_access_dates`; `test_memo_reports_districts_with_no_price_observations`; `test_memo_contains_acled_citation_block_and_three_answers`; `test_memo_makes_no_causal_claims` (the memo template contains none of the words "effect of", "causes", "impact of", "significant"); `test_audit_step_is_part_of_reproduce`.
+- [x] **Step 2:** Implement (plain string templates, no LaTeX); run; commit.
 
 ### Task 13: Fetch layer (mocked HTTP only)
 
@@ -223,8 +223,8 @@ Tasks 11, 12, 15 in commit `cbeb9ce6`): `price_index` and `price_decomposition` 
 - Pinned sources (from "Source facts checked"): `fetch_hdx` takes the dataset IDs `wfp-food-prices-for-somalia`, `cod-ab-som` (GeoJSON resource) and `somalia-internally-displaced-persons-idps`; `fetch_chirps(months: list[str], out_dir: Path)` builds the v2.0 Africa monthly URL for each `YYYY-MM`, downloads, and gunzips. Add a test that a 404 on any pinned URL raises an error naming the source and URL (providers move files, as CHIRPS already did once).
 - Produces: `fetch_file(url: str, out_dir: Path, expected_sha256: str | None, refresh: bool = False) -> Path` (writes the file; with `expected_sha256` set, a mismatch raises `ProviderRevisedData` naming both hashes and the access date unless `refresh=True`); `fetch_hdx(dataset_id: str, resource_name: str, out_dir: Path, ...) -> Path` using the HDX CKAN API with pinned IDs from the descriptor; `fetch_acled(params: dict, out_dir: Path) -> Path` reads credentials from `ACLED_EMAIL` and `ACLED_PASSWORD`, raises a plain-language error with registration instructions if unset, and never logs them; all fetchers write the descriptor's `accessed` and `sha256`.
 
-- [ ] **Step 1: Write failing tests with `requests` mocked:** `test_hash_mismatch_raises_provider_revised_data_unless_refresh`; `test_acled_missing_credentials_explains_how_to_register`; `test_credentials_never_appear_in_logs_or_exceptions`; `test_fetch_writes_into_role_directory`.
-- [ ] **Step 2:** Implement; run; commit. No test touches the network.
+- [x] **Step 1: Write failing tests with `requests` mocked:** `test_hash_mismatch_raises_provider_revised_data_unless_refresh`; `test_acled_missing_credentials_explains_how_to_register`; `test_credentials_never_appear_in_logs_or_exceptions`; `test_fetch_writes_into_role_directory`.
+- [x] **Step 2:** Implement; run; commit. No test touches the network.
 
 ### Task 14: Somalia real run (owner and Gemini operate; Claude reviews)
 
@@ -235,7 +235,7 @@ Tasks 11, 12, 15 in commit `cbeb9ce6`): `price_index` and `price_decomposition` 
 - [x] **Step 2 (done 2026-11-02; descriptors filled in `01af18c`):** For each role, replace every `unverified` field in the descriptor from the provider's page and the actual file; set `verification_status: source-verified`. Confirm or correct the canonical columns and mapping files against real headers; any mismatch is a Task 5 or 8 fix with a test.
 - [x] **Step 2b (all four fixed with tests; review findings on Tasks 6 to 8, 2026-10-31; each fix needs a test):** (1) the real WFP CSV has an HXL tag row (`#date`, `#adm2+name`, ...) under the header; `WfpPricesAdapter` must skip it. (2) `pricetype` (retail/wholesale) is dropped by the canonical `prices` table; filter to retail or flag mixed price types per market and commodity. (3) `CodAbAdapter.find` only globs `*.geojson`; handle the HDX shapefile/GDB download too. (4) Time `zonal_monthly` on the real window (about 74 districts x 32 months); if it takes minutes, switch the per-cell loop to `rasterio.mask`, keeping the area-weighted tests green.
 - [x] **Step 3 (done 2026-11-02; note at `docs/verification/somalia-2026-11-02.md` in the compound-shocks-panel repo, fresh-clone hashes match):** Run `uv run python -m compound_shocks reproduce --instance somalia`. Record in `docs/verification/` the commands, row counts per role, unassigned-event count, price-gap pattern, and any harmonization or boundary-vintage finding. Set `verification_status: run on acquired data` only after a clean run.
-- [ ] **Step 4 (pending owner review):** Claude reviews the verification note before anything is committed to the public repo. Raw ACLED rows are never pasted into any external AI tool; only counts and column names are shared.
+- [x] **Step 4 (done 2026-11-02; the notes are counts only, no ACLED rows):** Claude reviews the verification note before anything is committed to the public repo. Raw ACLED rows are never pasted into any external AI tool; only counts and column names are shared.
 
 **Findings from the real run (2026-11-02), all fixed with tests and recorded in the repo's `protocol.md` decision log:**
 - COD-AB v03 zip holds two admin2 files (`_em` edge-matched copy dropped); properties are lowercase `adm2_pcode`, `adm2_name`.
@@ -273,9 +273,9 @@ Tasks 11, 12, 15 in commit `cbeb9ce6`): `price_index` and `price_decomposition` 
 
 **Files:** `README.md` (replication guide for a non-technical reader), `CHANGELOG.md`, `CITATION.cff`
 
-- [ ] **Step 1:** Fresh clone into a scratch directory; `uv sync --locked`; `uv run pytest`; `uv run reprokit validate .`; `uv run python -m compound_shocks reproduce --instance somalia` on the fixture instance; expect all PASS in under 60 seconds with no network. The earlier real-data clean-room hashes cover the old 2021-01 to 2023-08 window and are void: repeat the real-data check for Somalia (74 x 58, 2021-01 to 2025-10; expected `panel.csv` 785f6c1d…, `publishable_aggregates.csv` d7ff4f77…) and, if the owner agrees, Sudan (189 x 58; ff16c5bc…, d3030e1b…, memory-heavy, run alone).
-- [ ] **Step 2:** README: what the project is, quick start, how to get each data source (with the account steps and costs; no paid AI needed), how to run another country (the Sudan walkthrough), the core/extension column marking, ACLED terms and the capture-date caveat, how to cite. State that the Somalia flow (`displaced_individuals`) and the Sudan stock (`displaced_stock`, `displaced_stock_change`) are not comparable and never share a cross-country statistic; remove the "planned portability test" wording and the old 2023-08 window.
-- [ ] **Step 3:** Claude reviews security and licensing (no raw data, no credentials, ACLED aggregates only, boundaries and data licenses stated). Tag `v0.1.0` (the Phase A data pipeline) after the owner approves; the repo already exists. Then stop: the Review Gate follows.
+- [x] **Step 1 (done 2026-11-02, fresh clone at `fb279f2`):** Fresh clone into a scratch directory; `uv sync --locked` (26s); `uv run pytest` (182 passed, 1 skipped; about 3 minutes, because the end-to-end tests run the real pipeline on fixtures); `uv run reprokit validate .` (pass). There is no CLI fixture instance, so `reproduce --instance somalia` needs the real raw data; the fixture pipeline run is covered by `tests/test_pipeline_end_to_end.py`. The original expectation of PASS in under 60 seconds was wrong and is dropped. The earlier real-data clean-room hashes cover the old 2021-01 to 2023-08 window and are void: repeat the real-data check for Somalia (74 x 58, 2021-01 to 2025-10; `panel.csv` 785f6c1d…, `publishable_aggregates.csv` d7ff4f77…; **both matched exactly, 13m13s**) and Sudan (189 x 58; ff16c5bc…, d3030e1b…; **both matched exactly, 17m23s**, memory-heavy, run alone). Raw files were copied from the working copy, not re-downloaded.
+- [x] **Step 2 (done 2026-11-02, `fb279f2`, timings corrected in `d2ce302`):** README: what the project is, quick start, how to get each data source (with the account steps and costs; no paid AI needed), how to run another country (the Sudan walkthrough), the core/extension column marking, ACLED terms and the capture-date caveat, how to cite. State that the Somalia flow (`displaced_individuals`) and the Sudan stock (`displaced_stock`, `displaced_stock_change`) are not comparable and never share a cross-country statistic; remove the "planned portability test" wording and the old 2023-08 window.
+- [x] **Step 3 (review done 2026-11-02: no credentials in tree or history, no raw rows, aggregates are totals only; owner approved the tag; `v0.1.0` tagged at `d2ce302`):** Claude reviews security and licensing (no raw data, no credentials, ACLED aggregates only, boundaries and data licenses stated). Tag `v0.1.0` (the Phase A data pipeline) after the owner approves; the repo already exists. Then stop: the Review Gate follows.
 
 ## Review Gate (after Task 16; no coding)
 
