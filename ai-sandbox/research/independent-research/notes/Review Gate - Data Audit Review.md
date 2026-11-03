@@ -44,11 +44,11 @@ The only consistent, dense, cross-country variables are the core ones: `events`,
 
 These do not change the panels or hashes, but they affect how the memos read.
 
-1. **Stale text in the working-copy memos.** The Somalia memo on disk says the pipeline keeps 2021-01 to 2023-08 and that 111 events fall outside districts (correct: 2025-10 and 278). The Sudan memo says it keeps 2021-01 to 2024-12 and 296 events (correct: 2025-10 and 344). The fresh-clone memos are correct. The audit step evidently does not rerun when only a descriptor changes, so a memo can describe an older descriptor. Rerun the memos before sharing them.
+1. **Stale text in the working-copy memos.** The Somalia memo on disk says the pipeline keeps 2021-01 to 2023-08 and that 111 events fall outside districts (correct: 2025-10 and 278). The Sudan memo says it keeps 2021-01 to 2024-12 and 296 events (correct: 2025-10 and 344). The fresh-clone memos are correct. This is not a pipeline bug: the audit step lists the descriptors as dependencies (`pipeline.py`), so it reruns when they change. The working copy had simply not been rerun since the descriptors were edited. **Fixed 2026-11-03 by rerunning both instances in v0.1.2** (see the Resolution section).
 2. **Boilerplate wrong for Sudan.** The "Points to carry" list says "A missing displacement row is a missing value: PRMN lists reported flows only." For Sudan the source is a DTM stock. The same list also describes sorghum price coverage while the warnings are about millet.
 3. **Sudan unit label.** The memo says "189 districts" where the unit is localities.
 
-None is a data error. Item 1 is a small reproducibility bug in the audit step. Items 2 and 3 are template wording. I made no code changes, per the gate rules. A `v0.1.2` could fix them if you want the memos publishable as is.
+None is a data error. Item 1 was a stale local output. Items 2 and 3 were template wording.
 
 ## 5. What this implies for the research question
 
@@ -61,6 +61,11 @@ Not a recommendation yet, since Part B (what is already published) is missing. B
 
 ## Open items for you
 
-1. Whether to fix the memo defects (item 4) in a `v0.1.2` or leave them documented.
+1. Resolved: the memo defects were fixed in `compound-shocks-panel` v0.1.2 (see Resolution).
 2. Which window and country the research question should centre on, once Part B is done.
 3. Part B needs the literature pipeline and Gemini. I have not run it.
+
+## Resolution (2026-11-03)
+
+- Template wording fixed in `audit_memo.py` (displacement caveat no longer says PRMN; units called Admin 2 units), with a test. Version 0.1.2.
+- Both instances rerun in the working copy to regenerate the memos. Panel and aggregate hashes were unchanged for both countries (Somalia 785f6c1d, d7ff4f77; Sudan ff16c5bc, d3030e1b); `pytest` 184 passed; tagged `v0.1.2`.
