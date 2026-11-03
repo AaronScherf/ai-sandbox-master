@@ -71,6 +71,14 @@ def load_allowlist(path: Path = ALLOWLIST_PATH) -> list[re.Pattern[str]]:
     return parse_allowlist(path.read_text(encoding="utf-8"), path.name)
 
 
+# A usable allowlist glob must be narrow: it may not match any of these.
+_BROAD_SAMPLES = (
+    "a.pdf", "x/y.pdf", "x/y/z.png", "research/p/big.bin", "ai-sandbox/a.pdf",
+    "ai-sandbox/academic-hub/a.pdf", "ai-sandbox/academic-hub/a/b.pdf",
+    "ai-sandbox/academic-hub/academic_resources/c/textbooks/b.md",
+)
+
+
 def parse_allowlist(text: str, name: str = "allowlist") -> list[re.Pattern[str]]:
     patterns: list[re.Pattern[str]] = []
     for number, raw in enumerate(text.splitlines(), 1):
@@ -80,9 +88,10 @@ def parse_allowlist(text: str, name: str = "allowlist") -> list[re.Pattern[str]]
         glob, _, reason = line.partition("#")
         if not glob.strip() or not reason.strip():
             raise ValueError(f"{name}:{number}: every entry needs `glob  # reason`")
-        if glob.strip().strip("/") in ("*", "**", "**/*") or glob.strip().startswith("**"):
+        compiled = _glob_to_regex(glob.strip())
+        if any(compiled.match(sample) for sample in _BROAD_SAMPLES):
             raise ValueError(f"{name}:{number}: glob `{glob.strip()}` is too broad")
-        patterns.append(_glob_to_regex(glob.strip()))
+        patterns.append(compiled)
     return patterns
 
 
@@ -170,7 +179,7 @@ def check_range(cwd: Path, base: str, head: str = "HEAD") -> list[Violation]:
     allow = _base_allowlist(cwd, base)
     seen: set[tuple[str, str]] = set()
     found: list[Violation] = []
-    for commit in _git(["rev-list", "--reverse", "--no-merges", f"{base}..{head}"], cwd).split():
+    for commit in _git(["rev-list", "--reverse", f"{base}..{head}"], cwd).split():
         for v in check_entries(_changed(cwd, [f"{commit}^", commit], commit), allow):
             if (v.rule, v.path) not in seen:
                 seen.add((v.rule, v.path))

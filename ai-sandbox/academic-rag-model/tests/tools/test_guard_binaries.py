@@ -61,7 +61,7 @@ class CheckEntriesTests(unittest.TestCase):
             self.assertEqual(len(g.load_allowlist(p)), 1)
 
     def test_overbroad_globs_rejected(self):
-        for glob in ("**", "*", "**/*.pdf"):
+        for glob in ("**", "*", "**/*.pdf", "ai-sandbox/**", "ai-sandbox/academic-hub/**", "*/*.pdf"):
             with self.assertRaises(ValueError):
                 g.parse_allowlist(f"{glob}  # why\n")
 
@@ -112,6 +112,15 @@ class GitIntegrationTests(unittest.TestCase):
         write_and_commit(self.repo, {HUB + "course/f.svg": "<svg/>"}, "add")
         git(self.repo, "rm", "-q", HUB + "course/f.svg")
         git(self.repo, "commit", "-q", "-m", "remove")
+        self.assertEqual([v.path for v in g.check_range(self.repo, "main")], [HUB + "course/f.svg"])
+
+    def test_range_checks_merge_commits(self):
+        git(self.repo, "checkout", "-q", "-b", "claude/side")
+        write_and_commit(self.repo, {HUB + "course/f.svg": "<svg/>"}, "side")
+        git(self.repo, "checkout", "-q", "main")
+        git(self.repo, "checkout", "-q", "-b", "claude/t")
+        write_and_commit(self.repo, {"ok.py": "x=1\n"}, "own")
+        git(self.repo, "merge", "-q", "--no-ff", "-m", "merge side", "claude/side")
         self.assertEqual([v.path for v in g.check_range(self.repo, "main")], [HUB + "course/f.svg"])
 
     def test_branch_cannot_allowlist_itself(self):
