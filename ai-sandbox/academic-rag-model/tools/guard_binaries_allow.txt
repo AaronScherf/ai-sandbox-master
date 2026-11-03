@@ -1,0 +1,6 @@
+# Paths the binary guard (tools/guard_binaries.py) lets through.
+# One glob per line, then `# reason`. `**` crosses folders, `*` does not.
+# Adding a line is a reviewed change.
+
+ai-sandbox/academic-hub/.index/*.json  # generated index cards; legitimately over 1 MB and rewritten often
+ai-sandbox/.obsidian/plugins/*/main.js  # vendored obsidian plugin bundles, over 1 MB

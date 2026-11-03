@@ -540,6 +540,24 @@ class LandByChangeIdTests(unittest.TestCase):
         with self.assertRaisesRegex(LandingError, "change"):
             land(self.wt, cid, subdir="")
 
+    def test_check_reports_guard_failure_with_path(self):
+        write_and_commit(self.wt, {"ai-sandbox/academic-hub/c/slide.svg": "<svg/>"}, "add hub svg")
+        result = self._approve()
+        self.assertEqual(result.guard, "failed")
+        self.assertTrue(any("ai-sandbox/academic-hub/c/slide.svg" in v for v in result.guard_violations))
+
+    def test_check_guard_passes_for_normal_branch(self):
+        write_and_commit(self.wt, {"core/a.py": "x = 2\n"}, "branch edit")
+        self.assertEqual(self._approve().guard, "passed")
+
+    def test_land_refuses_when_guard_fails(self):
+        from tools.land_branch import LandingError, land
+        write_and_commit(self.wt, {"ai-sandbox/academic-hub/c/slide.svg": "<svg/>"}, "add hub svg")
+        cid = self._approve().change_id
+        with self.assertRaisesRegex(LandingError, r"(?s)binary guard.*slide.svg"):
+            land(self.wt, cid, subdir="")
+        self.assertNotEqual(self._head(self.repo, "main"), self._head(self.wt))
+
     def test_land_refuses_a_change_with_no_passing_check(self):
         from tools.land_branch import LandingError, land
         write_and_commit(self.wt, {"core/a.py": "x = 2\n"}, "branch edit")

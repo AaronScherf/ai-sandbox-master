@@ -1,0 +1,8 @@
+#!/bin/sh
+# Blocks heavy/copyrighted files before they enter a commit (tools/guard_binaries.py).
+# Enable once per clone: git config core.hooksPath .githooks
+# --no-verify skips this; `land_branch` re-runs the guard and is the authority.
+root=$(git rev-parse --show-toplevel) || exit 1
+cd "$root/ai-sandbox/academic-rag-model" || exit 0
+if command -v python >/dev/null 2>&1; then py=python; else py=python3; fi
+exec "$py" -m tools.guard_binaries --staged

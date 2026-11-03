@@ -212,6 +212,17 @@ fi
 echo "✅ Local config and docs ready."
 
 # ==========================================================================
+# 3b. GIT HOOKS: binary guard (tools/guard_binaries.py)
+# ==========================================================================
+# Blocks heavy/copyrighted files at commit time. core.hooksPath lives in the
+# shared repo config, so one run covers every worktree of this clone.
+# land_branch re-runs the guard, so this layer only catches mistakes early.
+if [ -d .githooks ] && git rev-parse --git-dir >/dev/null 2>&1; then
+    git config core.hooksPath .githooks
+    echo "🪝 Pre-commit binary guard enabled (core.hooksPath=.githooks)."
+fi
+
+# ==========================================================================
 # 4. RCLONE BISYNC -- the actual IP-sensitive PDFs (textbooks, journal
 #    articles), backed up across local/external/Google Drive
 # ==========================================================================

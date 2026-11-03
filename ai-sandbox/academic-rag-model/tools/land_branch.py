@@ -31,6 +31,7 @@ from tools.git_workflow import (
     main_checkout,
     run_git,
 )
+from tools import guard_binaries
 from tools.run_tests_chunked import ChunkResult, chunk_failed, run_all
 
 PROJECT_SUBDIR = "ai-sandbox/academic-rag-model"
@@ -81,6 +82,8 @@ class CheckResult:
     changed_extensions: list[str] = field(default_factory=list)
     outside_paths: int = 0
     chunk_timings: list[dict] = field(default_factory=list)
+    guard: str = "passed"  # binary guard over the branch's added/modified paths
+    guard_violations: list[str] = field(default_factory=list)
 
 
 def change_id(worktree: Path) -> str:
@@ -296,6 +299,7 @@ def _run_check(worktree: Path, subdir: str, full: bool) -> CheckResult:
     rebased = rebase_onto_main(worktree)
     sha = run_git(["rev-parse", "HEAD"], worktree).strip()
     changed = changed_since_merge_base(worktree, MAIN_BRANCH, "HEAD")
+    guard_violations = [str(v) for v in guard_binaries.check_range(worktree, MAIN_BRANCH)]
     overlaps = find_overlaps(worktree, changed)
     relative = project_relative(changed, subdir)
     prefix = subdir.rstrip("/") + "/" if subdir else ""
@@ -325,6 +329,8 @@ def _run_check(worktree: Path, subdir: str, full: bool) -> CheckResult:
         outside_paths=len(outside),
         chunk_timings=[{"name": r.name, "returncode": r.returncode, "seconds": r.seconds}
                        for r in chunks],
+        guard="failed" if guard_violations else "passed",
+        guard_violations=guard_violations,
     )
 
 
@@ -337,6 +343,9 @@ def print_summary(r: CheckResult) -> None:
     print(f"Checks:      {r.checks} {r.check_targets} ({r.check_seconds}s)")
     print(f"Branch age:  {r.days_since_cut} days since cut")
     print("Overlaps:    " + (", ".join(r.overlaps) if r.overlaps else "none"))
+    print(f"Guard:       {r.guard}")
+    for violation in r.guard_violations:
+        print(f"  {violation}")
     print(f"Nothing has been merged or pushed. Ask the user to approve change {r.change_id}.")
 
 
@@ -447,6 +456,10 @@ def _run_land(worktree: Path, cid: str, subdir: str) -> LandResult:
             if status not in ("passed", "skipped"):
                 raise LandingError("tests failed after rebasing onto the new main")
             tested_base = main_now
+        violations = guard_binaries.check_range(worktree, MAIN_BRANCH)
+        if violations:
+            raise LandingError(
+                "binary guard refused the landing:\n  " + "\n  ".join(map(str, violations)))
         overlaps = find_overlaps(worktree, branch_files)
         if overlaps:
             raise LandingError("overlaps with uncommitted or in-progress work: " + ", ".join(overlaps))
