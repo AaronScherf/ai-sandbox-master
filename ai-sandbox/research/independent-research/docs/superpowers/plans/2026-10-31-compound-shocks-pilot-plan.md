@@ -246,26 +246,35 @@ Tasks 11, 12, 15 in commit `cbeb9ce6`): `price_index` and `price_decomposition` 
 - Three provider spellings are aliased; Badhan and Dhahar are absent from COD-AB v03 and stay unassigned; 204 WFP rows with a blank district are assigned by market.
 - Reproducibility: code fingerprint invalidates stale steps, CSVs use LF, text hashes ignore line endings; a fresh clone reproduces `panel.csv` and `publishable_aggregates.csv` byte for byte.
 - Panel: 2,368 rows; prices in 21% of district-months (37 of 74 districts); displacement in 90%.
+- Update 2026-11-02: the owner extended the Somalia window to 2021-01 through 2025-10 (latest month ACLED and WFP prices both cover). PRMN still ends 2023-08, so `displaced_individuals` is missing from 2023-09 on. The panel is now 74 x 58 = 4,292 rows with prices in 33% of district-months (35% of market-district months in 2021, 94% in 2024) and a `population` context column (OCHA COD-PS, 2014 UNFPA estimate, one fixed figure per district). The clean-room hashes above predate this and must be redone (Task 16).
 - Open for the review gate: nominal local-currency prices versus USD; venue and purpose.
 
-### Task 15: Sudan portability (data pipeline only)
+### Task 15: Sudan portability (data pipeline only) (done 2026-11-02)
 
 **Files:**
-- Create: `instances/sudan/config.yaml`, `instances/sudan/data/descriptors/*.yaml`, `instances/sudan/harmonization/displacement.yaml`, `src/compound_shocks/adapters/iom_dtm.py`, `tests/test_iom_dtm.py`
+- Create: `instances/sudan/config.yaml`, `instances/sudan/crosswalks/district_names.yaml`, `instances/sudan/data/descriptors/*.yaml`, `instances/sudan/harmonization/displacement.yaml`, `src/compound_shocks/adapters/iom_dtm.py` (plus its mapping), `tests/test_iom_dtm.py`, `docs/verification/sudan-2026-11-02.md`
+- Also built in this task: the `displacement_stock` canonical schema and the `displaced_stock` / `displaced_stock_change` panel columns; the `fetch/hdx.py` `SOURCES` registry keyed by instance; the missingness-versus-conflict section of the audit memo; and a new `population` role (OCHA COD-PS: `adapters/population.py`, `units.merge_populations`, a `population` source in both configs and descriptors, events per 100,000 residents and a market-district coverage table in the memo).
 
 **Interfaces:**
-- Produces: `IomDtmAdapter` (`role="displacement"`, `provider="IOM DTM"`) canonical `month, dest_admin2, origin_admin1, stock` (stock, not flow); `stock_change(df: pd.DataFrame) -> pd.DataFrame` (first difference per `dest_admin2`, NaN where a month is missing, documented caveat on re-displacement and returnees).
+- Produces: `IomDtmAdapter` (`role="displacement"`, `provider="IOM DTM"`) canonical `month, dest_admin2, origin_admin1, stock` (stock, not flow); `stock_change(df: pd.DataFrame) -> pd.DataFrame` (first difference per `dest_admin2`, NaN where a month is missing, documented caveat on re-displacement and returnees). Only the "Armed Clashes in Sudan (Overview)" operation is read; other DTM operations are dropped, not filled in, because they run 2.4 to 3 times higher where they overlap and a first version that mixed them switched series in 184 of 185 localities.
 
-- [ ] **Step 1: Write failing tests:** `test_stock_change_nan_when_month_missing`; `test_iom_dtm_output_passes_check_frame`; `test_sudan_reproduce_blocked_without_displacement_record`; `test_sudan_reproduce_with_record_produces_panel_and_manifest` (fixture instance).
-- [ ] **Step 2:** Implement; run; commit.
-- [ ] **Step 3:** Owner downloads Sudan data (ACLED within the 12-month lag, CHIRPS, WFP, COD-AB `cod-ab-sdn`, IOM DTM); re-check the Gemini findings (dataset IDs, fields, WFP market coverage) against the real files; write `harmonization/displacement.yaml` (flow vs stock, geography, reasons, proxy and its biases, approved by the owner). Run `reproduce --instance sudan`, generate the Sudan audit memo, write `docs/verification/sudan-2026-XX-XX.md`. Claude reviews the harmonization record. **No regressions or model comparisons.**
+- [x] **Step 1: Write failing tests:** `test_stock_change_nan_when_month_missing`; `test_iom_dtm_output_passes_check_frame`; `test_sudan_reproduce_blocked_without_displacement_record`; `test_sudan_reproduce_with_record_produces_panel_and_manifest` (fixture instance); and `test_only_the_overview_series_is_used_and_others_are_not_mixed_in`.
+- [x] **Step 2:** Implement; run; commit (`81f9bc7`, population `2450f7d`, Overview-only and period `c1c545b`).
+- [x] **Step 3 (done 2026-11-02; Gemini state codes were wrong, COD-AB v03 uses SD01 Khartoum):** Sudan data downloaded and the Gemini findings re-checked against the real files (DTM P-codes match COD-AB v03 exactly; WFP covers 18 markets in 18 of 189 localities). `harmonization/displacement.yaml` approved by the owner (`e303780`). The owner set the Sudan period to 2021-01 through 2025-10. `reproduce --instance sudan` ran clean and the audit memo was generated; note at `docs/verification/sudan-2026-11-02.md`. **No regressions or model comparisons.**
+
+**Findings (2026-11-02, recorded in the repo's `protocol.md`):**
+- Sudan panel: 189 localities x 58 months = 10,962 rows. Sorghum or wheat prices in 7% of locality-months (18 of 189 localities, 17% of the population); displacement stock in 32% (none before 2023-08); ACLED 23,418 events in the panel, 344 unassigned.
+- Price gaps and conflict (descriptive, no test): localities that ever have a price have more events (6.39 vs 1.69 per month; 2.33 vs 0.96 per 100,000 residents). Within market localities, months without a price have more events in 2023 (12.19 vs 5.57) and 2024 (10.72 vs 6.24), about equal in 2025, and fewer in 2021. Somalia shows the same direction between districts; within its market districts months without a price have more events from 2024 (7.52 vs 4.30) while 2021 to 2022 show the reverse (3.24 vs 6.43 in 2021). These are descriptive and cannot separate where markets are placed from collection lapsing where fighting is heavier; that question goes to the Review Gate.
+- Somalia's thin map is mostly market placement: 37 of 74 districts have a price, holding 68% of the population, but only 13 have one in 75% of months.
+- Sudan displacement is a stock; Somalia's is a flow. A Gemini review (2026-11-02) concluded they are not comparable, must stay distinct columns, and must not share a cross-country statistic.
+- Open for the review gate: wholesale rows (318 in Sudan); mixed millet units (3.5 KG vs 90 KG); SDG nominal prices; the Somalia population is a 2014 estimate.
 
 ### Task 16: Clean-room check and release
 
 **Files:** `README.md` (replication guide for a non-technical reader), `CHANGELOG.md`, `CITATION.cff`
 
-- [ ] **Step 1:** Fresh clone into a scratch directory; `uv sync --locked`; `uv run pytest`; `uv run reprokit validate .`; `uv run python -m compound_shocks reproduce --instance somalia` on the fixture instance; expect all PASS in under 60 seconds with no network.
-- [ ] **Step 2:** README: what the project is, quick start, how to get each data source (with the account steps and costs; no paid AI needed), how to run another country (the Sudan walkthrough), the core/extension column marking, ACLED terms and the capture-date caveat, how to cite.
+- [ ] **Step 1:** Fresh clone into a scratch directory; `uv sync --locked`; `uv run pytest`; `uv run reprokit validate .`; `uv run python -m compound_shocks reproduce --instance somalia` on the fixture instance; expect all PASS in under 60 seconds with no network. The earlier real-data clean-room hashes cover the old 2021-01 to 2023-08 window and are void: repeat the real-data check for Somalia (74 x 58, 2021-01 to 2025-10; expected `panel.csv` 785f6c1d…, `publishable_aggregates.csv` d7ff4f77…) and, if the owner agrees, Sudan (189 x 58; ff16c5bc…, d3030e1b…, memory-heavy, run alone).
+- [ ] **Step 2:** README: what the project is, quick start, how to get each data source (with the account steps and costs; no paid AI needed), how to run another country (the Sudan walkthrough), the core/extension column marking, ACLED terms and the capture-date caveat, how to cite. State that the Somalia flow (`displaced_individuals`) and the Sudan stock (`displaced_stock`, `displaced_stock_change`) are not comparable and never share a cross-country statistic; remove the "planned portability test" wording and the old 2023-08 window.
 - [ ] **Step 3:** Claude reviews security and licensing (no raw data, no credentials, ACLED aggregates only, boundaries and data licenses stated). Tag `v0.1.0` (the Phase A data pipeline) after the owner approves; the repo already exists. Then stop: the Review Gate follows.
 
 ## Review Gate (after Task 16; no coding)
