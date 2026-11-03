@@ -41,6 +41,9 @@ from core.indexer.index_card import (
     KNOWN_LEVELS,
     LECTURE_NOTE_DOC_TYPES,
     compute_content_hash,
+    compute_legacy_content_hash,
+    content_hash_matches,
+    find_clone_card,
     compute_file_id,
     compute_id_from_parts,
     cosine_similarity,
@@ -405,7 +408,21 @@ def _video_lecture_note_paths(academic_hub_root: str, course_filter: str | None)
                     yield course, path, meta_path
 
 
-def _is_stale(existing: dict, source_mtime: float, content_hash: str) -> bool:
+def _clone_card_id(cards: list[dict], duplicate_of_file_id: str, rel_md_path: str,
+                   rel_pdf_path: str, stats: dict) -> str:
+    """file_id of the clone card for a duplicate-linked note. Finds the
+    existing card even after the note moved (see find_clone_card); only
+    when none is found does it derive an id, and that case is counted in
+    stats["clone_card_unresolved"] so it is visible, not silent."""
+    card = find_clone_card(cards, duplicate_of_file_id, rel_md_path)
+    if card is not None:
+        return card["file_id"]
+    stats["clone_card_unresolved"] = stats.get("clone_card_unresolved", 0) + 1
+    return compute_id_from_parts([duplicate_of_file_id, rel_pdf_path])
+
+
+def _is_stale(existing: dict, source_mtime: float, content_hash: str,
+              legacy_content_hash: str | None = None) -> bool:
     """True if the .md file's content actually changed since this card
     was last written -- i.e. its file_id (derived from the unchanged
     PDF) and path didn't move, so reconciliation would otherwise never
@@ -424,7 +441,9 @@ def _is_stale(existing: dict, source_mtime: float, content_hash: str) -> bool:
     path), so the mtime branch only ever fires once per card."""
     stored_hash = existing.get("content_hash")
     if stored_hash is not None:
-        return stored_hash != content_hash
+        # A card written before location fields were excluded from the hash
+        # stores the raw-bytes (legacy) hash; accept either.
+        return stored_hash not in (content_hash, legacy_content_hash)
 
     raw = existing.get("source_updated_at")
     if not raw:
@@ -480,7 +499,13 @@ def _reconcile_one(academic_hub_root, course_name, folder_category, file_id, rel
             existing = c
             break
 
-    stale = existing is not None and _is_stale(existing, source_mtime, content_hash)
+    legacy_hash = None
+    if existing is not None and existing.get("content_hash") not in (None, content_hash):
+        try:
+            legacy_hash = compute_legacy_content_hash(os.path.join(academic_hub_root, rel_path))
+        except OSError:
+            legacy_hash = None
+    stale = existing is not None and _is_stale(existing, source_mtime, content_hash, legacy_hash)
     # source_asset_path=None means "this caller can't currently determine
     # it" (Task 2's convention), not "no change". A legacy card that never
     # had the key at all (pre-Task-2) is a silent backfill below, same
@@ -598,7 +623,7 @@ def _apply_markdown_row(academic_hub_root: str, row: dict, client) -> dict:
         result["status"] = "skipped" if row["action"] != "error" else "error"
         return result
     path = os.path.join(academic_hub_root, *row["path"].split("/"))
-    if not os.path.isfile(path) or compute_content_hash(path) != row["content_hash"]:
+    if not os.path.isfile(path) or not content_hash_matches(path, row["content_hash"]):
         result.update(status="changed_since_preview", action="error")
         return result
     with open(path, encoding="utf-8") as handle:
@@ -722,7 +747,7 @@ def rebuild_plan(root: str, course: str | None = None, force: bool = False) -> d
         if card is None:
             action = "new"
             reason = "no_card"
-        elif force or card.get("needs_indexing") or card.get("content_hash") != content_hash:
+        elif force or card.get("needs_indexing") or not content_hash_matches(path, card.get("content_hash")):
             action = "refresh"
             reason = "force" if force else "needs_indexing" if card.get("needs_indexing") else "content_changed"
         elif card.get("path") != rel:
@@ -790,6 +815,7 @@ def rebuild(academic_hub_root: str, client, course: str | None = None,
         "generated": 0, "updated": 0, "unchanged": 0, "moved": 0,
         "orphaned": 0, "pruned": 0, "skipped_no_source_pdf": 0, "skipped_empty_md": 0,
         "skipped_duplicate_clone": 0,
+        "clone_card_unresolved": 0,
     }
     seen_file_ids: set[str] = set()
 
@@ -831,10 +857,8 @@ def rebuild(academic_hub_root: str, client, course: str | None = None,
         frontmatter_fields, _body = parse_frontmatter(content_sample)
         duplicate_of_file_id = frontmatter_fields.get("duplicate_of_file_id")
         if duplicate_of_file_id:
-            matching_clone = next((c for c in load_shard(academic_hub_root, course_name)
-                                   if c.get("path") == rel_md_path), None)
-            seen_file_ids.add(matching_clone["file_id"] if matching_clone else
-                              compute_id_from_parts([duplicate_of_file_id, rel_pdf_path]))
+            seen_file_ids.add(_clone_card_id(load_shard(academic_hub_root, course_name),
+                                             duplicate_of_file_id, rel_md_path, rel_pdf_path, stats))
             stats["skipped_duplicate_clone"] += 1
             continue
 
@@ -1061,6 +1085,12 @@ def rebuild(academic_hub_root: str, client, course: str | None = None,
 
 
 def _flag_or_prune_orphans(academic_hub_root, seen_file_ids, course_filter, prune, stats):
+    if prune and stats.get("clone_card_unresolved"):
+        # A clone card could not be matched to its moved note, so an unseen card
+        # may be a live clone: flag instead of deleting, and say so.
+        print(f"WARNING: {stats['clone_card_unresolved']} duplicate-clone card(s) could not be "
+              f"matched; skipping --prune (orphans are flagged only).")
+        prune = False
     index_dir = os.path.join(academic_hub_root, ".index")
     if not os.path.isdir(index_dir):
         return

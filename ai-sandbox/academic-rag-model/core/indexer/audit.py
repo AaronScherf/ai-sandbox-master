@@ -10,7 +10,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from core.indexer.chunk_index import load_chunks
-from core.indexer.index_card import compute_content_hash, list_courses, load_shard
+from core.indexer.index_card import compute_content_hash, compute_legacy_content_hash, list_courses, load_shard
 
 
 @dataclass(frozen=True)
@@ -115,6 +115,9 @@ def audit_markdown_index(
             size = target.file_path.stat().st_size
             current_hash = (compute_content_hash(str(target.file_path))
                             if size <= max_hash_bytes else None)
+            # Cards written before location fields left the hash store the raw-bytes hash.
+            accepted_hashes = ((current_hash, compute_legacy_content_hash(str(target.file_path)))
+                               if current_hash is not None else ())
         except OSError as exc:
             records.append(IndexAuditRecord(index_path, course, "unreadable", "unknown", None,
                                             f"cannot read Markdown file: {exc}"))
@@ -141,7 +144,7 @@ def audit_markdown_index(
                 card_status = "unverified_large"
             elif not stored_hash:
                 card_status = "unverified_legacy"
-            elif stored_hash == current_hash:
+            elif stored_hash in accepted_hashes:
                 card_status = "current"
             else:
                 card_status = "stale_card"
@@ -154,7 +157,7 @@ def audit_markdown_index(
                 chunks_status = "missing_chunks"
             elif current_hash is None:
                 chunks_status = "unverified_large"
-            elif all(chunk.get("content_hash") == current_hash for chunk in chunks):
+            elif all(chunk.get("content_hash") in accepted_hashes for chunk in chunks):
                 chunks_status = "current"
             else:
                 chunks_status = "stale_chunks"

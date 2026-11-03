@@ -83,7 +83,13 @@ def compute_id_from_parts(parts: list[str]) -> str:
     return hashlib.sha256(joined.encode("utf-8")).hexdigest()[:16]
 
 
-def compute_content_hash(md_path: str) -> str:
+# Frontmatter keys that record where a note's sources live, not what the note
+# says. A move or rename rewrites them, so the content hash must ignore them
+# (spec: 2026-11-03-hub-path-resilience-design.md, section 2).
+LOCATION_FIELDS: tuple[str, ...] = ("source_pdf", "source_excalidraw", "source_image", "duplicate_of_path")
+
+
+def compute_legacy_content_hash(md_path: str) -> str:
     """Truncated SHA-256 of the .md file's own bytes -- the staleness
     signal (spec §4.3), immune to anything that touches a file's mtime
     without changing its content (a container/session remount, a sync
@@ -93,10 +99,48 @@ def compute_content_hash(md_path: str) -> str:
     changed). Reads the file directly rather than reusing
     `content_sample` -- the textbook loop truncates that sample to
     TEXTBOOK_CONTENT_SAMPLE_CHARS for the LLM prompt, which would miss a
-    real change past that point."""
+    real change past that point. This is the hash cards stored before
+    location fields were excluded; kept so those cards still compare."""
     with open(md_path, "rb") as f:
         digest = hashlib.sha256(f.read()).hexdigest()
     return digest[:16]
+
+
+def _strip_location_lines(data: bytes) -> bytes:
+    """Remove LOCATION_FIELDS lines from a leading frontmatter block,
+    leaving every other byte (BOM, CRLF, body) untouched."""
+    lines = data.split(b"\n")
+    if lines[0].removeprefix(b"\xef\xbb\xbf").rstrip(b"\r") != b"---":
+        return data
+    for end in range(1, len(lines)):
+        if lines[end].rstrip(b"\r") == b"---":
+            break
+    else:
+        return data
+    kept = [lines[0]]
+    for line in lines[1:end]:
+        key = line.split(b":", 1)[0].strip().decode("utf-8", "replace")
+        if b":" in line and key in LOCATION_FIELDS:
+            continue
+        kept.append(line)
+    return b"\n".join(kept + lines[end:])
+
+
+def compute_content_hash(md_path: str) -> str:
+    """Like compute_legacy_content_hash, but frontmatter LOCATION_FIELDS
+    lines are excluded, so moving or renaming a note (which rewrites its
+    source_* paths) does not change its hash. Files with no such lines
+    hash exactly as before."""
+    with open(md_path, "rb") as f:
+        data = f.read()
+    return hashlib.sha256(_strip_location_lines(data)).hexdigest()[:16]
+
+
+def content_hash_matches(md_path: str, stored: str | None) -> bool:
+    """True if `stored` is this file's current hash under either scheme."""
+    if not stored:
+        return False
+    return stored in (compute_content_hash(md_path), compute_legacy_content_hash(md_path))
 
 
 def derive_course(relative_path: str) -> str:
@@ -394,6 +438,19 @@ def find_card_by_file_id(academic_hub_root: str, file_id: str) -> tuple[str, dic
             if card.get("file_id") == file_id:
                 return course, card
     return None
+
+
+def find_clone_card(cards: list[dict], duplicate_of_file_id: str, rel_md_path: str) -> dict | None:
+    """The existing clone card for a duplicate-linked note: the card at
+    exactly this path if there is one, else the single card that names
+    this canonical document, else None. Never picks among several, so a
+    moved clone keeps its card without a guess being made silently."""
+    wanted = rel_md_path.replace("\\", "/")
+    for card in cards:
+        if str(card.get("path", "")).replace("\\", "/") == wanted:
+            return card
+    candidates = [c for c in cards if c.get("duplicate_of_file_id") == duplicate_of_file_id]
+    return candidates[0] if len(candidates) == 1 else None
 
 
 def _replace_card(cards: list[dict], file_id: str, updated: dict) -> list[dict]:
