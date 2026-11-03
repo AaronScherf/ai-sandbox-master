@@ -228,6 +228,10 @@ class LandingLogTests(unittest.TestCase):
         self.assertEqual(entry["branch"], "claude/t")
         self.assertIn("rebased", entry)
         self.assertIn("check_seconds", entry)
+        self.assertEqual(entry["full_reason"], "core_change")
+        self.assertEqual(entry["changed_packages"], ["core"])
+        self.assertEqual(entry["changed_extensions"], [".py"])
+        self.assertIn("chunk_timings", entry)
 
     def test_record_writes_outcome_for_sha(self):
         from tools.land_branch import record
@@ -250,6 +254,31 @@ class RunChecksFullSuiteTests(unittest.TestCase):
 
     def tearDown(self):
         self._tmp.cleanup()
+
+    def test_mixed_python_and_json_runs_full_suite(self):
+        (self.tmp / "tests" / "agent").mkdir(parents=True)
+        fake = [ChunkResult(name="agent", returncode=0, seconds=1.0, stdout="ok")]
+        with patch("tools.land_branch.run_all", return_value=("passed", fake, 1.0)) as runner:
+            run_checks(self.tmp, {"agent/a.py", "agent/data.json"}, False)
+        runner.assert_called_once_with(self.tmp)
+
+    def test_selection_rules(self):
+        from tools.land_branch import selection_reason
+        for package in ("agent", "pipelines"):
+            (self.tmp / "tests" / package).mkdir(parents=True)
+        cases = [
+            ({"docs/a.md", "core/a.py"}, False, "core_change"),
+            ({"agent/a.py", "agent/data.json"}, False, "non_py_file"),
+            ({"agent/a.py", "pipelines/b.py"}, False, "multi_package"),
+            ({"core/a.py"}, False, "core_change"),
+            ({"conftest.py"}, False, "helper_change"),
+            ({"mystery/a.py"}, False, "unmapped_file"),
+            ({"docs/a.md"}, False, "doc_only"),
+            ({"agent/a.py"}, True, "explicit_full"),
+        ]
+        for changed, full, expected in cases:
+            with self.subTest(changed=changed):
+                self.assertEqual(selection_reason(changed, self.tmp, full), expected)
 
     def test_full_run_uses_chunked_runner_and_reports_failure(self):
         fake_results = [

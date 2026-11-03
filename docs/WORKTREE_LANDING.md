@@ -10,17 +10,13 @@ on their own. When a task branch is finished, the agent:
 
 1. Runs the landing check from any folder inside its worktree. A worktree has no
    `.venv` of its own (it is gitignored), so use the main checkout's interpreter:
-   `C:\Users\theaa\ai-sandbox-master\ai-sandbox\academic-rag-model\.venv\Scripts\python.exe -m tools.land_branch check --full`.
+   `C:\Users\theaa\ai-sandbox-master\ai-sandbox\academic-rag-model\.venv\Scripts\python.exe -m tools.land_branch check`.
    The check verifies the branch is clean, not on `main`, and not already
-   published; rebases it onto `main`; runs the full test suite (`--full` is the
-   landing gate, spec decision 7); and reports overlaps. It never merges or pushes.
-   Omit `--full` only when every file the branch changed since its merge-base
-   with `main` is Markdown (check with `git diff --name-only main...HEAD`
-   inside the worktree): `land_branch` itself then reports `checks: skipped`
-   with no pytest run, since nothing a test can read changed. Pass `--full`
-   for every other branch, including one that mixes a Markdown file with
-   anything else (a dependency pin, a lockfile, a non-`.py` test fixture) --
-   don't treat "mostly docs" as equivalent to doc-only.
+   published; rebases it onto `main`; selects test targets; and reports overlaps.
+   It never merges or pushes. Markdown-only changes skip pytest. Changes under
+   `core/` or with unrecognized file types run the full chunked suite. Other
+   mapped Python changes run their package tests. Pass `--full` to override
+   selection and run the full suite explicitly.
 2. Commits its finished work to its own task branch if not already committed.
    Local commits to a task branch in its own worktree are pre-authorized and
    need no ask. Then asks the user in one message: may I land change `<ID>` on

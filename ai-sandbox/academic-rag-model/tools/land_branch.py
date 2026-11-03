@@ -73,6 +73,10 @@ class CheckResult:
     change_id: str = ""
     base: str = ""  # the main commit the check ran against
     full: bool = False
+    full_reason: str = ""
+    changed_packages: list[str] = field(default_factory=list)
+    changed_extensions: list[str] = field(default_factory=list)
+    chunk_timings: list[dict] = field(default_factory=list)
 
 
 def change_id(worktree: Path) -> str:
@@ -187,10 +191,35 @@ def select_test_targets(changed: set[str], project_root: Path) -> list[str]:
     return sorted(t for t in targets if t in dirs or not any(t.startswith(d + "/") for d in dirs))
 
 
+def selection_reason(changed: set[str], project_root: Path, full: bool = False) -> str:
+    if full:
+        return "explicit_full"
+    if _is_documentation_only(changed):
+        return "doc_only"
+    if any(p.startswith("core/") for p in changed):
+        return "core_change"
+    if any(Path(p).suffix not in (".py", ".md") for p in changed):
+        return "non_py_file"
+    if any(p in ("conftest.py", "tests/conftest.py") or
+           (p.startswith("tests/") and p.count("/") == 1 and
+            not Path(p).name.startswith("test_")) for p in changed):
+        return "helper_change"
+    if not select_test_targets(changed, project_root) or any(
+        p.endswith(".py") and p.split("/")[0] != "tests" and
+        not (project_root / "tests" / p.split("/")[0]).is_dir()
+        for p in changed
+    ):
+        return "unmapped_file"
+    packages = {p.split("/")[1] if p.startswith("tests/") and "/" in p[6:]
+                else p.split("/")[0] for p in changed if p.endswith(".py")}
+    return "multi_package" if len(packages) > 1 else "targeted"
+
+
 def run_checks(project_root: Path, changed: set[str], full: bool) -> tuple[str, list[str], float]:
-    if not full and _is_documentation_only(changed):
+    reason = selection_reason(changed, project_root, full)
+    if reason == "doc_only":
         return "skipped", [], 0.0
-    targets = ["tests/"] if full else select_test_targets(changed, project_root)
+    targets = ["tests/"] if reason not in ("targeted", "multi_package") else select_test_targets(changed, project_root)
     if not targets:
         targets = ["tests/"]  # code changed but no mapped tests: run everything
     if targets == ["tests/"]:
@@ -242,9 +271,23 @@ def _run_check(worktree: Path, subdir: str, full: bool) -> CheckResult:
     sha = run_git(["rev-parse", "HEAD"], worktree).strip()
     changed = changed_since_merge_base(worktree, MAIN_BRANCH, "HEAD")
     overlaps = find_overlaps(worktree, changed)
-    checks, targets, seconds = run_checks(
-        worktree / subdir, project_relative(changed, subdir), full
-    )
+    relative = project_relative(changed, subdir)
+    reason = selection_reason(relative, worktree / subdir, full)
+    timings = []
+    original_run_all = run_all
+    def measured_run_all(root):
+        status, results, elapsed = original_run_all(root)
+        timings.extend({"name": r.name, "returncode": r.returncode, "seconds": r.seconds}
+                       for r in results)
+        return status, results, elapsed
+    # run_checks is also used directly by landing retests; capture details here
+    # without changing its public three-value result.
+    if reason not in ("targeted", "multi_package", "doc_only"):
+        from unittest.mock import patch
+        with patch("tools.land_branch.run_all", side_effect=measured_run_all):
+            checks, targets, seconds = run_checks(worktree / subdir, relative, full)
+    else:
+        checks, targets, seconds = run_checks(worktree / subdir, relative, full)
     age_days = (datetime.now(timezone.utc) - cut_date).total_seconds() / 86400
     return CheckResult(
         branch=branch,
@@ -258,6 +301,10 @@ def _run_check(worktree: Path, subdir: str, full: bool) -> CheckResult:
         change_id=change_id(worktree),
         base=run_git(["rev-parse", MAIN_BRANCH], worktree).strip(),
         full=full,
+        full_reason=reason,
+        changed_packages=sorted({p.split("/")[0] for p in relative if "/" in p}),
+        changed_extensions=sorted({Path(p).suffix for p in relative}),
+        chunk_timings=timings,
     )
 
 
