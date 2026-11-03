@@ -123,11 +123,21 @@ def strip_location_lines(data: bytes) -> bytes:
     else:
         return data
     kept = [lines[0]]
+    removed_identity = removed_location = False
     for line in lines[1:end]:
         key = line.split(b":", 1)[0].strip().decode("utf-8", "replace")
-        if b":" in line and (key in LOCATION_FIELDS or key in NOTE_IDENTITY_FIELDS):
+        if b":" in line and key in NOTE_IDENTITY_FIELDS:
+            removed_identity = True
+            continue
+        if b":" in line and key in LOCATION_FIELDS:
+            removed_location = True
             continue
         kept.append(line)
+    if removed_identity and not removed_location and len(kept) == 1:
+        # The block existed only to carry hub_id (stamped onto a note that had
+        # no frontmatter): drop it whole so the hash matches the unstamped file.
+        bom = b"\xef\xbb\xbf" if lines[0].startswith(b"\xef\xbb\xbf") else b""
+        return bom + b"\n".join(lines[end + 1:])
     return b"\n".join(kept + lines[end:])
 
 

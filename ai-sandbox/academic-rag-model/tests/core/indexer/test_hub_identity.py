@@ -87,3 +87,42 @@ def test_hub_id_line_does_not_change_content_hash(tmp_path):
     before = compute_content_hash(p)
     write_hub_id(p)
     assert compute_content_hash(p) == before
+
+
+import pytest
+
+
+@pytest.mark.parametrize(
+    "orig",
+    [b"body line\nmore\n", b"body line\r\nmore\r\n", b"\xef\xbb\xbfbody line\r\nmore\r\n", b"\xef\xbb\xbfbody\n"],
+)
+def test_stamping_frontmatterless_file_keeps_hash(tmp_path, orig):
+    p = _w(tmp_path, "a.md", orig)
+    before = compute_content_hash(p)
+    write_hub_id(p)
+    assert open(p, "rb").read() != orig
+    assert compute_content_hash(p) == before
+
+
+@pytest.mark.parametrize("orig", [b"---\n---\nbody\n", b"\xef\xbb\xbf---\r\n---\r\nbody\r\n"])
+def test_genuinely_empty_frontmatter_hashes_as_before(orig):
+    import hashlib
+    from core.indexer.index_card import strip_location_lines
+
+    assert strip_location_lines(orig) == orig
+    assert hashlib.sha256(strip_location_lines(orig)).digest() == hashlib.sha256(orig).digest()
+
+
+def test_location_only_block_not_dropped(tmp_path):
+    p = _w(tmp_path, "a.md", b"---\nsource_pdf: x.pdf\n---\nbody\n")
+    before = compute_content_hash(p)
+    write_hub_id(p)
+    assert compute_content_hash(p) == before
+
+
+@pytest.mark.parametrize("empty", [b"hub_id:", b"hub_id: ", b"hub_id: ''"])
+def test_empty_hub_id_line_filled_in_place(tmp_path, empty):
+    p = _w(tmp_path, "a.md", b"---\r\ntitle: A\r\n" + empty + b"\r\n---\r\nbody\r\n")
+    hid = write_hub_id(p)
+    assert read_hub_id(p) == hid
+    assert open(p, "rb").read() == f"---\r\ntitle: A\r\nhub_id: {hid}\r\n---\r\nbody\r\n".encode()

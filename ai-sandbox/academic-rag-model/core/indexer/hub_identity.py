@@ -79,6 +79,12 @@ def _insert_frontmatter(data: bytes, hub_id: str) -> bytes:
     if end is None:
         bom = _BOM if data.startswith(_BOM) else b""
         return bom + b"---" + eol + line + b"---" + eol + data.removeprefix(_BOM)
+    for i in range(1, end):
+        if _FM_ID.match(lines[i].rstrip(b"\r")):
+            # Existing but empty `hub_id:` line: fill it in place, no duplicate key.
+            cr = b"\r" if lines[i].endswith(b"\r") else b""
+            lines[i] = b"hub_id: " + hub_id.encode("ascii") + cr
+            return b"\n".join(lines)
     # Insert before the closing fence (line `end`), keeping every other byte.
     before = b"\n".join(lines[:end]) + b"\n"
     return before + line + b"\n".join(lines[end:])
