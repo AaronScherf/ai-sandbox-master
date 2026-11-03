@@ -41,12 +41,13 @@ Reviewer: Claude. Subject: `reprokit` v0.2.0 (template, schemas, validators) and
 1. **Validation is structural, not truthful.** `reprokit validate .` returns 0 silently. It checks schemas and that `period.start` is not after `period.end`. It does not check that `reuse_terms` was actually verified, that a descriptor's coverage matches the config period, or that `verification_status: run on acquired data` has a current verification note. The licence error and every stale-period error got through it.
 2. **The same facts are hand-copied into many documents, so they drift.** This session found: the README's window and "planned portability test" wording; run times (3 minutes versus 13 and 17); `AGENTS.md` paths; the memo's "2021-01 to 2023-08" and event counts out of date with the descriptor; Sudan memo text about PRMN; the plan's stale checkboxes. None of these is a data error. All came from numbers or claims typed by hand into prose.
 3. **No cheap proof that a fresh clone works.** The plan assumed a fixture instance runnable from the CLI. There isn't one, and `pytest` takes 3 minutes. Every future project will hit this: a newcomer's first question is "does it work on my machine?"
-4. **Orientation for a newcomer.** I agree with Gemini that the root has too many meta files (about 11) and that docs point to paths that do not exist. I disagree with its "Exceptional" ratings on provenance and transparency, which did not account for the licence and stale-descriptor defects. I did not test the `pip` fallback, so I take no side on that finding.
-5. **Core edits to add a second source type.** Not a defect, but the framework should say so: a new measurement type means core changes plus a harmonization record, and the design doc's "change config only" claim holds only for same-kind sources.
+4. **Orientation for a newcomer.** I agree with Gemini that the root has too many meta files (about 11), that `AGENTS.md` versus `agents.yaml` is confusing by name, that `compute.yaml` and parts of `project.yaml` (taxonomy, siblings) read as administrative overhead to a human collaborator, and that docs point to paths that do not exist. I disagree with its "Exceptional" ratings on provenance and transparency, which did not account for the licence and stale-descriptor defects. I did not test the `pip` fallback, so I take no side on that finding.
+5. **The run is a black box to a reader.** Gemini's Finding 3 holds: `reproduce` prints only step names (`steps:read:conflict_events` and so on), and the transformations are spread across `adapters/`, `spatial.py`, `panel.py` and `pipeline.py`. The run report records every decision, but nothing tells a reader at run time what each step is doing, and `protocol.md` has no lineage diagram. A new researcher cannot follow raw file to final table without reading source.
+6. **Core edits to add a second source type.** Not a defect, but the framework should say so: a new measurement type means core changes plus a harmonization record, and the design doc's "change config only" claim holds only for same-kind sources.
 
 ## Recommendations for `reprokit` v0.3 and the next project
 
-Ordered by value for effort. None is built.
+Ordered by value for effort; items 8 to 10 come from Gemini's audit. None is built.
 
 1. **Make `validate` check claims, not just shape.** Fail on `reuse_terms` or `access` fields containing "confirm", "unverified" or empty; require each descriptor's coverage dates to fall inside or be explained against the config period; require a verification note for any `run on acquired data` claim, matching the current commit.
 2. **Generate numbers; do not type them.** Have `reproduce` write a short run card (row counts, hashes, timings, window, peak memory) from `manifest.json` and `run_report.json`, and have the README and verification notes quote or link it. This removes most of the drift above.
@@ -55,6 +56,9 @@ Ordered by value for effort. None is built.
 5. **Record measured cost.** Add runtime and peak memory per step to the run card and compare against `compute.yaml`, so cost claims come from runs.
 6. **Add a "second source type" section to the framework doc** and a template stub for a harmonization record, so the cost of a new measurement type is expected.
 7. **Add an exploratory purpose** to the charter schema.
+8. **Make `reproduce` narrate.** Print one readable line per step (what it reads, the main rule it applies, row counts in and out), taken from the run report, and add a lineage diagram (raw files, adapters, spatial join, fuse, outputs) to `protocol.md` or the README. Gemini's Proposal C is right; the line counts come from data the run already records.
+9. **Document a `pip` path, and test it.** Gemini's Proposal D (a standard `venv` plus `pip install -e .` route for people without `uv`) is reasonable, but I have not tested it. Test it on a clean machine before documenting it.
+10. **Hide empty scaffolding.** Gemini's Finding 5 (`.gitkeep` placeholders such as `comms/` and the empty Sudan folders) is minor. Ship empty folders only when a step needs them, and create the rest on first use.
 
 ## Secondary: did it serve the research subject?
 
