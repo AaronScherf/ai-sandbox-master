@@ -89,6 +89,225 @@
     "assets": {
       "kind": "ignore",
       "source": "seed"
+    },
+    "past_exams": {
+      "kind": "category",
+      "source": "owner"
+    },
+    "summaries": {
+      "kind": "category",
+      "source": "owner"
+    },
+    "class notes": {
+      "kind": "category",
+      "source": "owner",
+      "alias_of": "lecture_notes"
+    },
+    "Hand-Written Notes": {
+      "kind": "category",
+      "source": "owner",
+      "alias_of": "handwritten_notes"
+    },
+    "Homeworks": {
+      "kind": "category",
+      "source": "owner",
+      "alias_of": "problem_sets"
+    },
+    "Lecture Notes": {
+      "kind": "category",
+      "source": "owner",
+      "alias_of": "lecture_notes"
+    },
+    "Problem set": {
+      "kind": "category",
+      "source": "owner",
+      "alias_of": "problem_sets"
+    },
+    "Problem Sets": {
+      "kind": "category",
+      "source": "owner",
+      "alias_of": "problem_sets"
+    },
+    "Problem Sets and Solutions": {
+      "kind": "category",
+      "source": "owner",
+      "alias_of": "problem_sets"
+    },
+    "Problem Sets with Solutions": {
+      "kind": "category",
+      "source": "owner",
+      "alias_of": "problem_sets"
+    },
+    "PS1": {
+      "kind": "category",
+      "source": "owner",
+      "alias_of": "problem_sets"
+    },
+    "PS2": {
+      "kind": "category",
+      "source": "owner",
+      "alias_of": "problem_sets"
+    },
+    "PS3": {
+      "kind": "category",
+      "source": "owner",
+      "alias_of": "problem_sets"
+    },
+    "PS4": {
+      "kind": "category",
+      "source": "owner",
+      "alias_of": "problem_sets"
+    },
+    "Recitation": {
+      "kind": "category",
+      "source": "owner",
+      "alias_of": "ta_notes"
+    },
+    "Recitation Notes": {
+      "kind": "category",
+      "source": "owner",
+      "alias_of": "ta_notes"
+    },
+    "Recitation Slides": {
+      "kind": "category",
+      "source": "owner",
+      "alias_of": "recitation_slides"
+    },
+    "Recitations": {
+      "kind": "category",
+      "source": "owner",
+      "alias_of": "ta_notes"
+    },
+    "Slides": {
+      "kind": "category",
+      "source": "owner",
+      "alias_of": "lecture_slides"
+    },
+    "Syllabus and Course Outline": {
+      "kind": "category",
+      "source": "owner",
+      "alias_of": "syllabus"
+    },
+    "2024_class": {
+      "kind": "group",
+      "source": "owner"
+    },
+    "2025": {
+      "kind": "group",
+      "source": "owner"
+    },
+    "2025_class": {
+      "kind": "group",
+      "source": "owner"
+    },
+    "2026": {
+      "kind": "group",
+      "source": "owner"
+    },
+    "class_2023": {
+      "kind": "group",
+      "source": "owner"
+    },
+    "class_2024": {
+      "kind": "group",
+      "source": "owner"
+    },
+    "class_2025": {
+      "kind": "group",
+      "source": "owner"
+    },
+    "part_1": {
+      "kind": "group",
+      "source": "owner"
+    },
+    "part_2": {
+      "kind": "group",
+      "source": "owner"
+    },
+    "Danny": {
+      "kind": "ignore",
+      "source": "owner"
+    },
+    "Downloaded": {
+      "kind": "ignore",
+      "source": "owner"
+    },
+    "HW2": {
+      "kind": "ignore",
+      "source": "owner"
+    },
+    "lab_1": {
+      "kind": "ignore",
+      "source": "owner"
+    },
+    "lab_1_figures": {
+      "kind": "ignore",
+      "source": "owner"
+    },
+    "lab_2": {
+      "kind": "ignore",
+      "source": "owner"
+    },
+    "LaTeX and GitHub Lecture": {
+      "kind": "ignore",
+      "source": "owner"
+    },
+    "previous": {
+      "kind": "ignore",
+      "source": "owner"
+    },
+    "Rodrigo": {
+      "kind": "ignore",
+      "source": "owner"
+    },
+    "Solutions": {
+      "kind": "ignore",
+      "source": "owner"
+    },
+    "Exam": {
+      "kind": "category",
+      "source": "owner",
+      "alias_of": "past_exams"
+    },
+    "Exams": {
+      "kind": "category",
+      "source": "owner",
+      "alias_of": "past_exams"
+    },
+    "Midterm": {
+      "kind": "category",
+      "source": "owner",
+      "alias_of": "past_exams"
+    },
+    "Midterm Exam": {
+      "kind": "category",
+      "source": "owner",
+      "alias_of": "past_exams"
+    },
+    "Past Midterm Exam": {
+      "kind": "category",
+      "source": "owner",
+      "alias_of": "past_exams"
+    },
+    "old_exams": {
+      "kind": "category",
+      "source": "owner",
+      "alias_of": "past_exams"
+    },
+    "Exam Prep": {
+      "kind": "category",
+      "source": "owner",
+      "alias_of": "past_exams"
+    },
+    "exam_kit": {
+      "kind": "category",
+      "source": "owner",
+      "alias_of": "past_exams"
+    },
+    "Pre exam survivals kit": {
+      "kind": "category",
+      "source": "owner",
+      "alias_of": "past_exams"
     }
   }
 }
