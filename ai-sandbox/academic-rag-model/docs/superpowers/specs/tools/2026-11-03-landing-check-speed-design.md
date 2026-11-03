@@ -45,7 +45,7 @@ The reconstruction used `git merge-base <sha> main` for each logged sha; 7 shas 
 
 ### Step 3: determine safe extensions
 
-- For each non-`.py`/`.md` extension seen in the diffs (`.js`, `.html`, `.json`, then `.txt`, `.yaml`, `.svg`, `.png`), search `tests/` and the code under test for reads of that extension or of the specific file. An extension is skippable only if no test reads files of that type from the changed location.
+- (Findings below supersede this plan.) For each non-`.py`/`.md` extension seen in the diffs (`.js`, `.html`, `.json`, then `.txt`, `.yaml`, `.svg`, `.png`), search `tests/` and the code under test for reads of that extension or of the specific file. An extension is skippable only if no test reads files of that type from the changed location.
 - Output is an allowlist with the evidence per entry. Until then these stay on the full-suite fallback.
 
 ### Step 4: dependency-aware selection (spokes)
@@ -71,3 +71,27 @@ Median targeted check at most 90 s; median over all checks at most 3 min; full s
 
 - **Hub path model:** the `part_N` fix handled one nesting layer by name. A more general path model (match notes and resources by relative path, configurable category depth, stable card identity) and the `ACADEMIC_HUB_ROOT` setting touch the same module (`core/env/academic_hub_paths.py`) and should be one separate effort, sequenced after this one.
 - **PDF/SVG guard:** a pre-commit and landing check blocking those files under `academic-hub/`.
+
+## Step 3 findings (2026-11-03, read-only audit)
+
+Scanned the 66 tracked non-`.py`/`.md` files under `academic-rag-model/` (by extension: 19 `.yaml`, 11 `.js`, 7 `.txt`, 5 `.json`, 4 `.toml`, 3 `.sh`, 3 `.html`, plus singletons) against every `.py` under `tests/` and the code under test. Method: file basename referenced in a test or in non-test code, and which `tests/<package>` references it. Name matching undercounts files loaded by directory or glob, so "unreferenced" below means "not safe to assume skippable".
+
+**Result: no extension is safe to skip.** Every common extension is read somewhere:
+
+| Extension | Read by | Notes |
+|---|---|---|
+| `.yaml` (19), `.json` (5), `.toml` (4), `.txt` (7) | tests and code in the owning package | Fixtures and config: `agent/concept_graph/sample_data`, `agent/literature/*_data`, `docs/trackers/subproject_registry*.json` (read by `tests/tools`), `guide_specs/*.toml` (read by `tests/agent`) |
+| `.js`, `.html`, `.css` | code in the owning package (`agent/concept_graph/build.py`, the `tools/*/review_server.py` files) | Not named in tests directly, but those modules' tests exercise them |
+| `.gitignore`, `pytest.ini`, `requirements.txt` | tests in `tools` / `agent` / a root test | Environment-wide: always full suite |
+| `.codex-validation-run/**` | `tests/resume_manager` | An oddly placed fixture directory |
+| `.LICENSE`, `.gitattributes`, `.ipynb`, `.ps1`, `.sh` | nothing found | Candidate skips, but low value; leave on full-suite fallback unless they start changing often |
+| `Dockerfile`, `.python-version` | nothing in tests, but they define the runtime | Always full suite |
+
+**Consequence for the design:** an extension allowlist is the wrong mechanism. Replace it with **ownership mapping**:
+
+1. A non-`.py` file under `<package>/...` maps to `tests/<package>` plus any test file that names its basename.
+2. Fixed exceptions: `.codex-validation-run/**` maps to `tests/resume_manager`; `docs/trackers/*.json` to `tests/tools`; `guide_specs/**` to `tests/agent`.
+3. Environment files (`.gitignore`, `pytest.ini`, `requirements*.txt`, `Dockerfile`, `.python-version`, `.gitattributes`) and anything that maps to no package or no reader: full suite.
+4. Validate by replaying the logged diffs: the ownership map must select every test that references the changed file.
+
+The 6 historical runs with non-`.py`/`.md` files (`.js`, `.html`, `.json`) would have been targeted under this rule instead of full.
