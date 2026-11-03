@@ -119,10 +119,49 @@ Every scenario runs with the model client mocked to fail on any call:
 | Delete a file | orphaned card reported; nothing deleted |
 | Pipeline run with an unresolved item it needs | refuses with a pointer to the queue |
 
+## Decisions (owner, 2026-11-03)
+
+1. **Automatic repair of a single exact match: yes**, logged and reversible.
+2. **`hub_id` in authored-note frontmatter: yes.** The edit lands in `academic_notes/` (separate repo); the owner commits it there.
+3. **Category vocabulary is learned from the existing tree**, not hand-edited. See the audit and rule below.
+4. **No preflight in landing checks.** See reasoning below.
+5. **One review page, separate ledgers.** See below.
+
+### Vocabulary audit (the owner asked to double-check that it updates automatically)
+
+It does not, because there is no vocabulary to update. Categories today are just folder names read from disk, with hard-coded subsets in several places (`KNOWN_DOC_TYPES` in `index_card.py`, `LECTURE_NOTE_DOC_TYPES`, `_PROBLEM_TIER_FOLDER_CATEGORIES` in `chunk_index.py`, `TEXTBOOK_FOLDER_NAMES` in `academic_hub_paths.py`). The things the repo calls "vocabulary" elsewhere are different: the topic-tag vocabulary (`.index/tags.json`, mined by `retag.py` on its own schedule) and `agent/literature/vocab_data`. Nothing watches the folder tree for new category names.
+
+The live tree shows why that matters. Folder names under courses include `problem_sets`, `ta_notes`, `lecture_notes`, `syllabus`, `textbooks`, `handwritten_notes`, `cheat_sheet`, `recitation_slides`, `study_plan`, `labs`, `articles`, `briefings`, `latex`, `lecture_slides`, `lecture_recordings`, and also group-like names (`part_1`, `part_2`, `2023_class`, `2024_class`, `2025_class`). A learner must separate categories from groups.
+
+**Learning rule (my proposal):**
+- A folder name is a **category candidate** if it directly contains content files in at least two courses, or in one course and appears in the seeded list above.
+- A name that is numbered, year-based or `part_N`-shaped, or that sits above category folders, is a **group candidate**.
+- Both are only proposals. The scan writes the learned vocabulary to the hub config and raises a review item for each **new** folder name ("category or group?"). Your answer is stored, so each name is asked once. Nothing is classified from an unconfirmed name.
+- Seed with the names above so existing courses keep working on day one.
+
+### Why preflight stays out of landing checks
+
+Landing checks run the code's tests on a branch. Hub state (`academic_notes/`, `academic_resources/`) is gitignored or in a separate repo, so a branch cannot change it, and a hub fingerprint would test nothing about the branch. The fingerprint walk itself is cheap (names, sizes, mtimes; seconds even on a few thousand files), but it belongs in pipeline starts and the daily scan, where hub changes actually happen. The reconcile logic is covered by the fixture-hub tests, which run in the normal suite.
+
+### Combining the review queues: one page, separate ledgers
+
+Today there are three things that look like one queue:
+
+| Ledger | Holds | Where stored | Resolved by |
+|---|---|---|---|
+| `offering_links` review/dismissals | semantic proposals: this course offering relates to that one | `.index/offering_links/*.json`, tracked in the hub | `offering_links.py` resolve/reject |
+| `document_pairing` (same pattern) | proposed document pairings and dismissals | `.index/` links dir | `document_pairing.py` |
+| corpus-health decision ledger | operational findings: accept / decline / defer | local, under the repo's Git common directory, not tracked | `tools.corpus_health review` and `apply --accepted` |
+
+Combining the **storage** would couple three modules with different lifecycles (one tracked in git, one local per machine) and force a data migration for little gain. Combining the **review surface** has real value: you answer everything in one place.
+
+Recommendation:
+- **Relink items go into the corpus-health ledger**, since detection lives in the scan and the ledger already has accept/decline/defer and apply semantics.
+- A shared **item envelope** (type, subject IDs, ranked candidates, status, timestamps) so one Artifact review page can show items from all three ledgers, each applied through its own resolve/reject function.
+- No storage merge now. Revisit if a fourth ledger appears.
+
 ## Open questions
 
-1. Is automatic repair of a single exact-match move acceptable (logged, reversible), or should every repair go through review?
-2. Is writing a `hub_id` into the frontmatter of authored notes acceptable? It edits files in `academic_notes/` (a separate repo), so you would commit that change there.
-3. Where does the category vocabulary live, and who edits it: you by hand, or learned from the existing tree on first run?
-4. Should the preflight fingerprint also run in landing checks, or only in pipelines?
-5. Should the `offering_links` / `document_pairing` queue and the corpus-health ledger become one queue, or stay two with a link between them? The Artifact review page would be shared either way.
+1. Is the category/group learning rule right, in particular "directly contains content files in at least two courses" as the category signal?
+2. Should the daily scan itself create the first learned-vocabulary proposal, or should it be a one-off command you run once against the current tree?
+3. Do you want the shared review page built in P3 with the reconcile engine, or after (relink items first, merging the three ledgers' view later)?
