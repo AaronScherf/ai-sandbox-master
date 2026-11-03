@@ -55,6 +55,15 @@ class GitWorkflowTests(unittest.TestCase):
             {"core/branch.py"},
         )
 
+    def test_rename_reports_source_and_destination(self):
+        wt = self.tmp / "rename-wt"
+        git(self.repo, "worktree", "add", "-q", "-b", "claude/rename", str(wt), "main")
+        (wt / "agent").mkdir()
+        git(wt, "mv", "core/a.py", "agent/a.py")
+        git(wt, "commit", "-qm", "move core file")
+        self.assertEqual(changed_since_merge_base(wt, "main", "HEAD"),
+                         {"core/a.py", "agent/a.py"})
+
 
 if __name__ == "__main__":
     unittest.main()

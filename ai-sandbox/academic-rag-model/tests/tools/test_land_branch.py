@@ -193,6 +193,16 @@ class LandBranchTests(unittest.TestCase):
         result = check(self.wt, subdir="ai-sandbox/academic-rag-model")
         self.assertEqual(result.checks, "passed")
         self.assertEqual(result.selection_reason, "non_py_file")
+        self.assertEqual(result.outside_paths, 1)
+
+    def test_core_to_agent_rename_runs_full(self):
+        (self.wt / "agent").mkdir()
+        git(self.wt, "mv", "core/a.py", "agent/a.py")
+        git(self.wt, "commit", "-qm", "move core file")
+        with patch("tools.land_branch.run_all", return_value=("passed", [], 0.1)) as runner:
+            result = check(self.wt, subdir="")
+        self.assertEqual(result.selection_reason, "core_change")
+        runner.assert_called_once()
 
 
 class LandingLogTests(unittest.TestCase):
@@ -274,6 +284,14 @@ class LandingLogTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             record(self.wt, "abc123", "merged")
 
+    def test_approved_check_prefers_stronger_pass(self):
+        from tools.land_branch import append_log, approved_check
+        base = {"event": "check", "branch": "claude/t", "change_id": "same",
+                "checks": "passed", "sha": "a", "base": "base"}
+        append_log(self.wt, {**base, "selection_reason": "explicit_full", "full": True})
+        append_log(self.wt, {**base, "selection_reason": "targeted", "full": False, "sha": "b"})
+        self.assertEqual(approved_check(self.wt, "claude/t", "same")["sha"], "a")
+
 
 class RunChecksFullSuiteTests(unittest.TestCase):
     def setUp(self):
@@ -297,7 +315,7 @@ class RunChecksFullSuiteTests(unittest.TestCase):
         cases = [
             ({"docs/a.md", "core/a.py"}, False, "core_change"),
             ({"agent/a.py", "agent/data.json"}, False, "non_py_file"),
-            ({"agent/a.py", "pipelines/b.py"}, False, "multi_package"),
+            ({"agent/a.py", "pipelines/b.py"}, False, "targeted_multi"),
             ({"core/a.py"}, False, "core_change"),
             ({"conftest.py"}, False, "helper_change"),
             ({"mystery/a.py"}, False, "unmapped_file"),
@@ -307,6 +325,10 @@ class RunChecksFullSuiteTests(unittest.TestCase):
         for changed, full, expected in cases:
             with self.subTest(changed=changed):
                 self.assertEqual(selection_reason(changed, self.tmp, full), expected)
+
+    def test_empty_diff_skips(self):
+        from tools.land_branch import selection_reason
+        self.assertEqual(selection_reason(set(), self.tmp), "doc_only")
 
     def test_full_run_uses_chunked_runner_and_reports_failure(self):
         fake_results = [
@@ -444,6 +466,26 @@ class LandByChangeIdTests(unittest.TestCase):
         rerun.assert_not_called()
         self.assertFalse(result.retested)
 
+    def test_root_gitignore_change_retests_project_check(self):
+        from tools.land_branch import land
+        write_and_commit(self.wt, {"ai-sandbox/academic-rag-model/agent/a.py": "x = 1\n"}, "branch edit")
+        cid = self._approve_project().change_id
+        write_and_commit(self.repo, {".gitignore": "*.cache\n"}, "ignore change")
+        with patch("tools.land_branch.run_checks", return_value=("passed", [], 0.1)) as rerun:
+            result = land(self.wt, cid)
+        rerun.assert_called_once()
+        self.assertTrue(result.retested)
+
+    def test_obsidian_change_retests_project_check(self):
+        from tools.land_branch import land
+        write_and_commit(self.wt, {"ai-sandbox/academic-rag-model/agent/a.py": "x = 1\n"}, "branch edit")
+        cid = self._approve_project().change_id
+        write_and_commit(self.repo, {"ai-sandbox/.obsidian/app.json": "{}\n"}, "vault config")
+        with patch("tools.land_branch.run_checks", return_value=("passed", [], 0.1)) as rerun:
+            result = land(self.wt, cid)
+        rerun.assert_called_once()
+        self.assertTrue(result.retested)
+
     def test_project_main_python_change_retests_project_check(self):
         from tools.land_branch import land
         write_and_commit(self.wt, {"ai-sandbox/academic-rag-model/agent/a.py": "x = 1\n"}, "branch edit")
@@ -466,6 +508,18 @@ class LandByChangeIdTests(unittest.TestCase):
         with patch("tools.land_branch.run_checks", return_value=("passed", ["tests/agent"], 0.1)) as rerun:
             land(self.wt, cid)
         self.assertEqual(rerun.call_args.kwargs["outside"], {"ai-sandbox/research/branch.json"})
+
+    def test_retest_uses_approved_reason(self):
+        from tools.land_branch import land
+        write_and_commit(self.wt, {"ai-sandbox/academic-rag-model/agent/a.py": "x = 1\n"}, "branch edit")
+        with patch("tools.land_branch.selection_reason", return_value="targeted"):
+            cid = self._approve_project().change_id
+        write_and_commit(self.repo, {"ai-sandbox/academic-rag-model/agent/b.py": "y = 1\n"}, "main code")
+        with patch("tools.land_branch.selection_reason", return_value="core_change"), \
+             patch("tools.land_branch.run_checks", return_value=("passed", [], 0.1)) as rerun:
+            land(self.wt, cid)
+        self.assertEqual(rerun.call_args.kwargs["reason"], "targeted")
+        self.assertEqual(rerun.call_args.kwargs["selected_targets"], ["tests/agent"])
 
     def test_land_stops_when_main_touched_a_branch_file_without_conflict(self):
         from tools.land_branch import LandingError, land

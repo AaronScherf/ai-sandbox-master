@@ -93,7 +93,7 @@ def dirty_files(cwd: Path) -> set[str]:
 
 def changed_since_merge_base(cwd: Path, base: str, ref: str) -> set[str]:
     """Files `ref` changed since it forked from `base` (git's `base...ref`)."""
-    out = run_git(["diff", "--name-only", f"{base}...{ref}"], cwd)
+    out = run_git(["diff", "--no-renames", "--name-only", f"{base}...{ref}"], cwd)
     return {line for line in out.splitlines() if line}
 
 

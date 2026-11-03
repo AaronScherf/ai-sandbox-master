@@ -35,11 +35,17 @@ class LandingsTests(unittest.TestCase):
         self.assertEqual(rows[0].minutes, 30)
 
     def test_legacy_log_fields_are_optional(self):
-        old = check(T0, "claude/a", "s1")
-        old_with_prior_name = check(T0, "claude/b", "s2")
-        old_with_prior_name["full_reason"] = "targeted"
-        rows = landings([old, old_with_prior_name, landed(T1, "s1"), landed(T1, "s2")])
-        self.assertEqual({r.branch for r in rows}, {"claude/a", "claude/b"})
+        from tools.land_branch import approved_check, append_log
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = make_repo(Path(tmp) / "repo")
+            old = check(T0, "claude/a", "s1", change_id="legacy")
+            old["base"] = "base"
+            append_log(repo, old)
+            approved = approved_check(repo, "claude/a", "legacy")
+            self.assertNotIn("selection_reason", approved)
+            self.assertFalse(approved.get("full", False))
+            rows = landings([approved, landed(T1, "s1")])
+            self.assertEqual(summarize(rows)["landed"], 1)
 
     def test_each_new_passing_sha_is_another_approval(self):
         rows = landings([check(T0, "claude/a", "s1"), check(T1, "claude/a", "s2"), landed(T2, "s2")])

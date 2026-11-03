@@ -34,6 +34,9 @@ from tools.git_workflow import (
 from tools.run_tests_chunked import ChunkResult, chunk_failed, run_all
 
 PROJECT_SUBDIR = "ai-sandbox/academic-rag-model"
+# Live tests read these outside-project paths: test_lit_gap_report.py reads
+# the root .gitignore; test_audit_website_sync.py validates .obsidian targets.
+RETEST_OUTSIDE_PATHS = (".gitignore", "ai-sandbox/.obsidian")
 
 
 class LandingError(RuntimeError):
@@ -76,6 +79,7 @@ class CheckResult:
     selection_reason: str = ""
     changed_packages: list[str] = field(default_factory=list)
     changed_extensions: list[str] = field(default_factory=list)
+    outside_paths: int = 0
     chunk_timings: list[dict] = field(default_factory=list)
 
 
@@ -198,11 +202,8 @@ def selection_reason(
     outside = outside or set()
     if full:
         return "explicit_full"
-    if changed or outside:
-        if _is_documentation_only(changed | outside):
-            return "doc_only"
-    else:
-        return "unmapped_file"
+    if _is_documentation_only(changed | outside):
+        return "doc_only"
     if any(Path(p).suffix not in (".py", ".md") for p in outside):
         return "non_py_file"
     if any(p.endswith(".py") for p in outside):
@@ -223,19 +224,21 @@ def selection_reason(
         return "unmapped_file"
     packages = {p.split("/")[1] if p.startswith("tests/") and "/" in p[6:]
                 else p.split("/")[0] for p in changed if p.endswith(".py")}
-    return "multi_package" if len(packages) > 1 else "targeted"
+    return "targeted_multi" if len(packages) > 1 else "targeted"
 
 
 def run_checks(
     project_root: Path, changed: set[str], full: bool,
     *, outside: set[str] | None = None, chunk_results: list[ChunkResult] | None = None,
-    reason: str | None = None,
+    reason: str | None = None, selected_targets: list[str] | None = None,
 ) -> tuple[str, list[str], float]:
     if reason is None:
         reason = selection_reason(changed, project_root, full, outside)
     if reason == "doc_only":
         return "skipped", [], 0.0
-    targets = ["tests/"] if reason not in ("targeted", "multi_package") else select_test_targets(changed, project_root)
+    targets = (["tests/"] if reason not in ("targeted", "targeted_multi", "multi_package")
+               else list(selected_targets) if selected_targets is not None
+               else select_test_targets(changed, project_root))
     if not targets:
         targets = ["tests/"]  # code changed but no mapped tests: run everything
     if targets == ["tests/"]:
@@ -266,7 +269,7 @@ def run_checks(
     if chunk_results is not None:
         chunk_results.append(ChunkResult(
             name=", ".join(targets), returncode=proc.returncode,
-            seconds=seconds, stdout=proc.stdout,
+            seconds=seconds, stdout="",
         ))
     if proc.returncode != 0:
         print(proc.stdout[-4000:])
@@ -319,6 +322,7 @@ def _run_check(worktree: Path, subdir: str, full: bool) -> CheckResult:
         selection_reason=reason,
         changed_packages=sorted({p.split("/")[0] for p in relative if "/" in p}),
         changed_extensions=sorted({Path(p).suffix for p in changed}),
+        outside_paths=len(outside),
         chunk_timings=[{"name": r.name, "returncode": r.returncode, "seconds": r.seconds}
                        for r in chunks],
     )
@@ -349,17 +353,27 @@ class LandResult:
     change_id: str
     attempts: int
     retested: bool
+    retest_chunk_timings: list[dict] = field(default_factory=list)
 
 
 def approved_check(worktree: Path, branch: str, cid: str) -> dict:
-    """The newest passing `check` log entry for this branch and change ID."""
+    """The strongest passing check for this branch and change ID; newest wins ties."""
     path = log_path(worktree)
     entries = path.read_text(encoding="utf-8").splitlines() if path.exists() else []
+    best: dict | None = None
+    best_rank = -1
     for line in reversed(entries):
         entry = json.loads(line)
         if (entry.get("event") == "check" and entry.get("branch") == branch
                 and entry.get("change_id") == cid and entry.get("checks") in ("passed", "skipped")):
-            return entry
+            reason = entry.get("selection_reason") or entry.get("full_reason")
+            rank = (3 if entry.get("full") or reason == "explicit_full" else
+                    2 if reason in {"core_change", "non_py_file", "unmapped_file", "helper_change"} else
+                    1 if entry["checks"] == "passed" else 0)
+            if rank > best_rank:
+                best, best_rank = entry, rank
+    if best is not None:
+        return best
     raise LandingError(f"no passing check for change {cid} on {branch}; run check and ask again")
 
 
@@ -375,7 +389,7 @@ def _ff_main(main_path: Path, branch: str) -> bool:
 
 
 def _files_between(cwd: Path, old: str, new: str) -> set[str]:
-    out = run_git(["diff", "--name-only", old, new], cwd)
+    out = run_git(["diff", "--no-renames", "--name-only", old, new], cwd)
     return {line for line in out.splitlines() if line}
 
 
@@ -400,6 +414,7 @@ def _run_land(worktree: Path, cid: str, subdir: str) -> LandResult:
         raise LandingError("the main checkout is not on main; never land onto another branch")
     tested_base = approved["base"]
     retests = 0
+    retest_chunks: list[ChunkResult] = []
     for attempt in range(1, MAX_ATTEMPTS + 1):
         rebase_onto_main(worktree)
         if change_id(worktree) != cid:
@@ -409,9 +424,11 @@ def _run_land(worktree: Path, cid: str, subdir: str) -> LandResult:
         touched = sorted(branch_files & _files_between(worktree, approved["base"], main_now))
         if touched:
             raise LandingError("main changed files this branch also changes: " + ", ".join(touched))
-        code_delta = [p for p in project_relative(
-            _files_between(worktree, tested_base, main_now), subdir)
+        main_changed = _files_between(worktree, tested_base, main_now)
+        code_delta = [p for p in project_relative(main_changed, subdir)
                       if not p.endswith(".md")]
+        code_delta.extend(p for p in main_changed if any(
+            p == target or p.startswith(target + "/") for target in RETEST_OUTSIDE_PATHS))
         if code_delta and approved["checks"] != "skipped":
             retests += 1
             if retests > MAX_RETEST_ATTEMPTS:
@@ -421,6 +438,11 @@ def _run_land(worktree: Path, cid: str, subdir: str) -> LandResult:
                 worktree / subdir, project_relative(branch_files, subdir),
                 approved.get("full", False),
                 outside={p for p in branch_files if not p.startswith(prefix)},
+                reason=approved.get("selection_reason") or approved.get("full_reason"),
+                selected_targets=(approved.get("check_targets") if
+                                  approved.get("selection_reason") or approved.get("full_reason")
+                                  else None),
+                chunk_results=retest_chunks,
             )
             if status not in ("passed", "skipped"):
                 raise LandingError("tests failed after rebasing onto the new main")
@@ -435,7 +457,12 @@ def _run_land(worktree: Path, cid: str, subdir: str) -> LandResult:
             run_git(["push", "origin", MAIN_BRANCH], main_path)
         except GitError as exc:
             raise LandingError(f"main was fast-forwarded locally to {sha} but the push failed: {exc}") from exc
-        return LandResult(branch=branch, sha=sha, change_id=cid, attempts=attempt, retested=retests > 0)
+        return LandResult(
+            branch=branch, sha=sha, change_id=cid, attempts=attempt,
+            retested=retests > 0,
+            retest_chunk_timings=[{"name": r.name, "returncode": r.returncode, "seconds": r.seconds}
+                                  for r in retest_chunks],
+        )
     raise LandingError(f"main kept moving: no landing after {MAX_ATTEMPTS} attempts")
 
 
