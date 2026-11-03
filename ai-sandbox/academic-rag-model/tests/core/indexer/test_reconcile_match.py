@@ -211,6 +211,90 @@ def test_file_claimed_by_another_card_is_not_a_candidate(tmp_path):
     assert (d.file_id, d.kind) == ("f1", "orphan")
 
 
+def test_two_cards_never_both_moved_to_one_file(tmp_path):
+    hub = make_hub(tmp_path)
+    write_note(hub, f"{LN}/a.md", {"title": "a"}, BODY)
+    shutil.copyfile(hub / LN / "a.md", hub / LN / "b.md")
+    save_shard(str(hub), "econ", [_md_card(hub, f"{LN}/a.md"), _md_card(hub, f"{LN}/b.md", file_id="f2")])
+    _move(hub, f"{LN}/a.md", f"{LN}/c.md")
+    (hub / LN / "b.md").unlink()
+    diffs = _by_id(reconcile(str(hub)))
+    assert {d.kind for d in diffs.values()} == {"ambiguous"}
+    for d in diffs.values():
+        assert [c.path for c in d.candidates] == [f"{LN}/c.md"]
+        assert "several cards" in d.evidence
+
+
+def test_clone_with_its_own_hub_id_is_not_moved_onto_original_card(tmp_path):
+    hub = make_hub(tmp_path)
+    note = write_note(hub, f"{LN}/mine.md", {"title": "mine"}, BODY)
+    hub_id = write_hub_id(str(note))
+    save_shard(str(hub), "econ", [_md_card(hub, f"{LN}/mine.md", hub_id=hub_id)])
+    clone = write_note(hub, f"{LN}/clone.md", {"title": "mine"}, BODY)
+    write_hub_id(str(clone), "OTHERID000")
+    note.unlink()
+    [d] = reconcile(str(hub))
+    assert d.kind == "ambiguous"
+    assert [c.path for c in d.candidates] == [f"{LN}/clone.md"]
+    assert "different hub_id" in d.evidence
+
+
+def test_hub_id_card_matches_file_whose_id_was_lost_by_content(tmp_path):
+    hub = make_hub(tmp_path)
+    note = write_note(hub, f"{LN}/mine.md", {"title": "mine"}, BODY)
+    hub_id = write_hub_id(str(note))
+    save_shard(str(hub), "econ", [_md_card(hub, f"{LN}/mine.md", hub_id=hub_id)])
+    write_note(hub, f"{LN}/moved_without_id.md", {"title": "mine"}, BODY)
+    note.unlink()
+    [d] = reconcile(str(hub))
+    assert d.kind == "moved"
+    assert [c.path for c in d.candidates] == [f"{LN}/moved_without_id.md"]
+
+
+def test_casefold_only_lookalike_name_is_not_the_card_file(tmp_path):
+    # str.casefold maps "ß" to "ss"; NTFS and case-sensitive filesystems treat them as different names.
+    hub = make_hub(tmp_path)
+    write_note(hub, f"{LN}/strasse.md", {"title": "a"}, BODY)
+    save_shard(str(hub), "econ", [_md_card(hub, f"{LN}/strasse.md")])
+    (hub / LN / "strasse.md").unlink()
+    write_note(hub, f"{LN}/straße.md", {"title": "b"}, "# Different\n")
+    [d] = reconcile(str(hub))
+    assert d.old_path == f"{LN}/strasse.md"
+    assert d.kind != "moved"
+
+
+def test_case_variant_collision_keeps_both_files_and_never_guesses(tmp_path, monkeypatch):
+    import core.indexer.reconcile as reconcile_module
+
+    hub = make_hub(tmp_path)
+    write_note(hub, f"{LN}/Week1.md", {"title": "a"}, BODY)
+    try:
+        write_note(hub, f"{LN}/week1.md", {"title": "b"}, BODY + "different\n")
+        real = len([p for p in (hub / LN).iterdir() if p.name.casefold() == "week1.md"]) == 2
+    except OSError:
+        real = False
+    if not real:
+        # Case-insensitive filesystem (Windows/macOS default) cannot hold both names: simulate a
+        # case-sensitive directory listing; os.stat resolves both spellings to the one real file.
+        (hub / LN / "Week1.md").write_text("---\ntitle: a\n---\n\n" + BODY, encoding="utf-8", newline="\n")
+        real_walk = os.walk
+
+        def walk(top):
+            for dirpath, dirnames, filenames in real_walk(top):
+                if Path(dirpath) == hub / LN:
+                    filenames = sorted(set(filenames) | {"week1.md"})
+                yield dirpath, dirnames, filenames
+
+        monkeypatch.setattr(reconcile_module.os, "walk", walk)
+    snap = snapshot(str(hub))
+    assert {e.path for e in snap.values() if e.path.casefold().endswith("week1.md")} == {
+        f"{LN}/Week1.md", f"{LN}/week1.md"}
+    save_shard(str(hub), "econ", [_card("f1", f"{LN}/WEEK1.md", content_hash="nomatch")])
+    [d] = reconcile(str(hub))
+    assert d.old_path == f"{LN}/WEEK1.md"
+    assert d.kind != "moved"
+
+
 def test_reconcile_makes_no_api_call(tmp_path, monkeypatch):
     import core.env.gemini_utils as gemini_utils
     from google import genai

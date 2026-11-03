@@ -26,6 +26,12 @@ Rules (spec section 4, strongest first):
   runs. Content-tier files are not hashed at their own path: a changed hash there is an in-place edit,
   which is the indexer's staleness check, not a location problem.
 - Exact candidates (hub_id / hash) among files no card claims: one -> `moved`, several -> `ambiguous`.
+  A hub_id-tier card's content-hash fallback is decisive only for files with no hub_id; a file that
+  matches by content but carries a different hub_id (a clone) is an `ambiguous` candidate only.
+- After all cards are classified, a `moved` whose target is also an exact or git candidate of another
+  card becomes `ambiguous`: two cards never both move onto one file.
+- Path lookup is case-insensitive (per-character lowercase, not str.casefold); when several on-disk
+  names share a key, only the exact spelling resolves.
 - Only with no exact candidate: a git rename of the card path is a candidate; it is `moved` only if
   the renamed file also passes the tier's exact check, else an `ambiguous` candidate (`git_rename`).
 - Filename stem + course + body shingles similarity adds ranked `ambiguous` candidates
@@ -88,18 +94,39 @@ class Difference:
     evidence: str = ""
 
 
+_COLLISION = "\0"
+
+
 def _key(rel: str) -> str:
-    return rel.replace("\\", "/").casefold()
+    """Case-insensitive lookup key. Per-character simple lowercase, length-preserving, closer to NTFS
+    than str.casefold (which maps "ß" to "ss" and so would equate names NTFS keeps distinct)."""
+    out = []
+    for ch in rel.replace("\\", "/"):
+        low = ch.lower()
+        out.append(low if len(low) == 1 else ch)
+    return "".join(out)
+
+
+def _lookup(snap: dict[str, FileEntry], rel: str) -> FileEntry | None:
+    """The file a hub-relative path resolves to: its case-insensitive key, or, when several on-disk
+    names share that key (case-sensitive filesystem), only the exact spelling. Never a guess."""
+    key = _key(rel)
+    entry = snap.get(key)
+    if entry is not None:
+        return entry
+    return snap.get(key + _COLLISION + rel.replace("\\", "/"))
 
 
 def snapshot(hub_root: str) -> dict[str, FileEntry]:
-    """Every regular file under the hub, keyed by casefolded hub-relative path.
+    """Every regular file under the hub, keyed by case-insensitive hub-relative path (`_key`).
 
     Dot-directories (.index, .git, .obsidian, .trash) and dotfiles are skipped, as are symlinks.
-    No file is opened. On a case-sensitive filesystem two names differing only in case collide on
-    one key; the later one (sorted order) wins.
+    No file is opened. When two on-disk names share a key (a case-sensitive filesystem), neither
+    keeps the plain key: both are stored under `key + "\\0" + exact spelling`, so `_lookup` resolves
+    them only by exact spelling.
     """
     entries: dict[str, FileEntry] = {}
+    collided: set[str] = set()
     for dirpath, dirnames, filenames in os.walk(hub_root):
         dirnames[:] = sorted(d for d in dirnames if not d.startswith("."))
         for name in sorted(filenames):
@@ -113,7 +140,16 @@ def snapshot(hub_root: str) -> dict[str, FileEntry]:
             except OSError:
                 continue
             rel = os.path.relpath(full, hub_root).replace(os.sep, "/")
-            entries[_key(rel)] = FileEntry(rel, st.st_size, st.st_mtime)
+            entry, key = FileEntry(rel, st.st_size, st.st_mtime), _key(rel)
+            if key in collided:
+                entries[key + _COLLISION + rel] = entry
+            elif key in entries:
+                first = entries.pop(key)
+                collided.add(key)
+                entries[key + _COLLISION + first.path] = first
+                entries[key + _COLLISION + rel] = entry
+            else:
+                entries[key] = entry
     return entries
 
 
@@ -165,12 +201,12 @@ class _Matcher:
         self.hub_root = hub_root
         self.snap = snap
         self.vocab = vocab
-        self.unclaimed = [e for k, e in snap.items() if k not in claimed]
+        self.unclaimed = [e for e in snap.values() if e.path not in claimed]
         self._hashes: dict[str, tuple[str, str] | None] = {}
         self._file_ids: dict[str, str | None] = {}
         self._hub_ids: dict[str, list[FileEntry]] | None = None
         self._renames: dict[str, str] | None = None
-        self._repos: list[str] | None = None
+        self._repos: list[tuple[str, str]] | None = None
         self._shingles: dict[str, set] = {}
 
     def abspath(self, entry: FileEntry) -> str:
@@ -203,18 +239,27 @@ class _Matcher:
             return None
 
     def by_hub_id(self, hub_id: str) -> list[FileEntry]:
-        if self._hub_ids is None:
-            self._hub_ids = {}
+        index = self._hub_ids
+        if index is None:
+            index = {}
             for entry in self.unclaimed:
                 found = self.hub_id_of(entry)
                 if found:
-                    self._hub_ids.setdefault(found, []).append(entry)
-        return self._hub_ids.get(hub_id, [])
+                    index.setdefault(found, []).append(entry)
+            self._hub_ids = index
+        return index.get(hub_id, [])
 
     def is_exact(self, card: dict, entry: FileEntry, tier: str) -> str | None:
-        """The exact-match evidence label if `entry` is this card's file, else None."""
-        if tier == "hub_id" and self.hub_id_of(entry) == card["hub_id"]:
-            return "hub_id"
+        """The exact-match evidence label if `entry` is this card's file, else None.
+
+        A hub_id-tier card falls back to its content hash only for a file that carries no hub_id
+        (the id was lost); a file with a different hub_id is a different note, whatever its body."""
+        if tier == "hub_id":
+            found = self.hub_id_of(entry)
+            if found == card["hub_id"]:
+                return "hub_id"
+            if found is not None:
+                return None
         if tier in ("hub_id", "content") and card.get("content_hash") and _ext(entry.path) == _ext(card["path"]):
             hashes = self.hashes(entry)
             if hashes and card["content_hash"] in hashes:
@@ -224,41 +269,56 @@ class _Matcher:
                 return "byte hash"
         return None
 
-    def exact(self, card: dict, tier: str) -> tuple[list[Candidate], str]:
+    def exact(self, card: dict, tier: str) -> tuple[list[Candidate], str, bool]:
+        """(candidates, evidence label, decisive). Only a decisive single candidate may become `moved`.
+
+        For a hub_id-tier card with no file carrying its id, files that match by content hash but
+        carry a different hub_id are returned as non-decisive candidates: they surface for review
+        (a clone or a re-stamped copy) but never resolve the card on their own."""
         if tier == "hub_id":
             hits = self.by_hub_id(card["hub_id"])
             if hits:
-                return [Candidate(e.path, "hub_id", 1.0) for e in hits], "hub_id"
+                return [Candidate(e.path, "hub_id", 1.0) for e in hits], "hub_id", True
         same_ext = [e for e in self.unclaimed if _ext(e.path) == _ext(card["path"])]
         if tier in ("hub_id", "content"):
             if not card.get("content_hash"):
-                return [], ""
+                return [], "", True
             hits = [e for e in same_ext if (h := self.hashes(e)) and card["content_hash"] in h]
-            return [Candidate(e.path, "byte_hash", 1.0) for e in hits], "canonical content hash"
+            candidates = [Candidate(e.path, "byte_hash", 1.0) for e in hits]
+            if tier == "hub_id":
+                foreign = [e for e in hits if self.hub_id_of(e) is not None]
+                if foreign:
+                    return (candidates, f"canonical content hash ({len(foreign)} of them carry a different "
+                            f"hub_id, so none is decisive)", False)
+            return candidates, "canonical content hash", True
         if not card.get("file_id"):
-            return [], ""
+            return [], "", True
         hits = [e for e in same_ext if self.file_id(e) == card["file_id"]]
-        return [Candidate(e.path, "byte_hash", 1.0) for e in hits], "byte hash"
+        return [Candidate(e.path, "byte_hash", 1.0) for e in hits], "byte hash", True
 
     # --- git evidence -----------------------------------------------------------------------------
     def repos(self) -> list[tuple[str, str]]:
         """(repo dir, its hub-relative prefix with trailing `/` or ''), deepest first."""
-        if self._repos is None:
-            self._repos = find_repo_roots(self.hub_root)
-        out = []
-        for repo in self._repos:
-            rel = os.path.relpath(repo, self.hub_root).replace(os.sep, "/")
-            out.append((repo, "" if rel == "." else rel + "/"))
-        return sorted(out, key=lambda r: -len(r[1]))
+        repos = self._repos
+        if repos is None:
+            repos = []
+            for repo in find_repo_roots(self.hub_root):
+                rel = os.path.relpath(repo, self.hub_root).replace(os.sep, "/")
+                repos.append((repo, "" if rel == "." else rel + "/"))
+            repos.sort(key=lambda r: -len(r[1]))
+            self._repos = repos
+        return repos
 
     def git_target(self, old_path: str) -> FileEntry | None:
-        if self._renames is None:
-            self._renames = {}
+        renames = self._renames
+        if renames is None:
+            renames = {}
             for repo, prefix in reversed(self.repos()):  # deeper repos override the outer one
                 for old, new in git_renames(repo).items():
-                    self._renames[_key(prefix + old)] = prefix + new
-        new = self._renames.get(_key(old_path))
-        return self.snap.get(_key(new)) if new else None
+                    renames[_key(prefix + old)] = prefix + new
+            self._renames = renames
+        new = renames.get(_key(old_path))
+        return _lookup(self.snap, new) if new else None
 
     def old_text(self, old_path: str) -> str | None:
         for repo, prefix in self.repos():
@@ -318,26 +378,40 @@ def _vocabulary(hub_root: str) -> Vocabulary:
     return load_vocabulary(config if config.is_file() else None)
 
 
-def _from_exact(card: dict, old: str, candidates: list[Candidate], label: str, why: str) -> Difference:
-    if len(candidates) == 1:
+def _from_exact(card: dict, old: str, candidates: list[Candidate], label: str, decisive: bool,
+                why: str) -> Difference:
+    if len(candidates) == 1 and decisive:
         return Difference("moved", card["file_id"], old, candidates,
                           f"{why}; single exact match by {label}")
     return Difference("ambiguous", card["file_id"], old, _ranked(candidates),
-                      f"{why}; {len(candidates)} files match by {label}, none chosen")
+                      f"{why}; {len(candidates)} file(s) match by {label}, none chosen")
+
+
+def _demote_contested(differences: list[Difference]) -> None:
+    """A `moved` whose target is also a non-similarity candidate of another difference becomes
+    `ambiguous`: several cards compete for one file, and choosing would be a silent guess."""
+    claims: dict[str, int] = {}
+    for d in differences:
+        for key in {_key(c.path) for c in d.candidates if c.basis != "similarity"}:
+            claims[key] = claims.get(key, 0) + 1
+    for d in differences:
+        if d.kind == "moved" and claims.get(_key(d.candidates[0].path), 0) > 1:
+            d.kind = "ambiguous"
+            d.evidence += f"; several cards compete for the same target {d.candidates[0].path}, none chosen"
 
 
 def reconcile(hub_root: str) -> list[Difference]:
     """Classify every card whose `path` no longer leads to its file. Pure read."""
     snap = snapshot(hub_root)
     cards = [c for c in _all_cards(hub_root) if c.get("path") and c.get("file_id")]
-    claimed = {_key(c[f]) for c in cards for f in _HINT_FIELDS
-               if isinstance(c.get(f), str) and _key(c[f]) in snap}
+    claimed = {entry.path for c in cards for f in _HINT_FIELDS
+               if isinstance(c.get(f), str) and (entry := _lookup(snap, c[f])) is not None}
     matcher = _Matcher(hub_root, snap, claimed, _vocabulary(hub_root))
     differences: list[Difference] = []
     for card in cards:
         card = dict(card, path=card["path"].replace("\\", "/"))
         old, tier = card["path"], _tier(card)
-        here = snap.get(_key(old))
+        here = _lookup(snap, old)
         if here is not None:
             if tier == "hub_id":
                 found = matcher.hub_id_of(here)
@@ -350,22 +424,22 @@ def reconcile(hub_root: str) -> list[Difference]:
                 why = "file at card path has different bytes"
             else:
                 continue
-            exact, label = matcher.exact(card, tier)
+            exact, label, decisive = matcher.exact(card, tier)
             if exact:
-                differences.append(_from_exact(card, old, exact, label, why))
+                differences.append(_from_exact(card, old, exact, label, decisive, why))
             elif tier == "hub_id":
                 differences.append(Difference("orphan", card["file_id"], old, [],
                                               f"{why}; no other file carries the card's hub_id or hash"))
             continue
 
         why = "card path does not exist"
-        exact, label = matcher.exact(card, tier)
+        exact, label, decisive = matcher.exact(card, tier)
         if exact:
-            differences.append(_from_exact(card, old, exact, label, why))
+            differences.append(_from_exact(card, old, exact, label, decisive, why))
             continue
         candidates: list[Candidate] = []
         target = matcher.git_target(old)
-        if target is not None and _key(target.path) not in claimed:
+        if target is not None and target.path not in claimed:
             proof = matcher.is_exact(card, target, tier)
             if proof:
                 differences.append(Difference("moved", card["file_id"], old,
@@ -381,4 +455,5 @@ def reconcile(hub_root: str) -> list[Difference]:
         else:
             differences.append(Difference("orphan", card["file_id"], old, [],
                                           f"{why}; no hub_id, hash, git rename or similar file found"))
+    _demote_contested(differences)
     return differences
