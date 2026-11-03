@@ -13,11 +13,11 @@ Landing checks take too long: 175 logged runs of the landing gate (`.git/agent-l
 |---|---|---|
 | Targeted selection almost never runs | 174 of 175 checks ran the whole suite (all 9 `tests/` chunks); one ran targeted | `select_test_targets` exists but is effectively dead code |
 | Agents are told to pass `--full` | `docs/WORKTREE_LANDING.md:13-20` makes `--full` the gate for every non-Markdown branch; every check since 2026-10-25 has `full=True` (33 of 33 with a recorded flag) | The documented procedure, not the code, forces the full suite |
-| Reconstructed from diffs, most branches did not need it | Of the 135 pre-`--full`-flag checks whose diff could be rebuilt: 110 touched at most 2 packages and not `core/`; 17 touched `core/`; 6 had a non-`.py`/`.md` file (`.js`, `.html`, `.json`); 2 touched 3+ packages. The 33 runs with `--full` set were not reconstructed | About 80% of those runs (720 min) are candidates for targeted runs |
+| Roughly half of runs could have been targeted (corrected 2026-11-03) | Replaying 169 logged checks through Codex's selector (branch diffs rebuilt from the log's `base`, else the sha's last commit, so multi-commit branches are under-counted): 87 targeted (687 min), 31 non-`.py` file, 29 doc-only, 20 `core/`, 2 multi-package | Expect about half of the check time to drop to targeted runs; the rest still needs step 5 |
 | Failures are costly | 22 failed checks, 69 min | Run likely-failing tests first and fail fast |
 | No per-chunk timing is logged | `ChunkResult.seconds` exists but is not written to the log | We cannot yet say which chunk dominates; measure before optimizing |
 
-The reconstruction used `git merge-base <sha> main` for each logged sha; 7 shas no longer resolve (175 = 135 + 33 + 7). Counts are indicative, not exact.
+**Correction:** the first version of this table used `git merge-base <sha> main`, which is empty for branches already fast-forwarded into `main`, and wrongly counted those as targetable (110 runs, 80%). The row above replaces it. Counts are still indicative, not exact.
 
 ## Decisions already made (owner, 2026-11-03)
 
@@ -94,4 +94,4 @@ Scanned the 66 tracked non-`.py`/`.md` files under `academic-rag-model/` (by ext
 3. Environment files (`.gitignore`, `pytest.ini`, `requirements*.txt`, `Dockerfile`, `.python-version`, `.gitattributes`) and anything that maps to no package or no reader: full suite.
 4. Validate by replaying the logged diffs: the ownership map must select every test that references the changed file.
 
-The 6 historical runs with non-`.py`/`.md` files (`.js`, `.html`, `.json`) would have been targeted under this rule instead of full.
+The 31 replayed runs that Codex's selector sends to the full suite for a non-`.py` file are the ones this rule would move to targeted runs; measure the exact number when it is implemented.
