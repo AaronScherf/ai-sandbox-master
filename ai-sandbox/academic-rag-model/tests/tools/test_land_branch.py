@@ -188,6 +188,12 @@ class LandBranchTests(unittest.TestCase):
         # This fixture has no tests/ directory, so the real chunk list is empty.
         self.assertEqual(result.check_targets, [])
 
+    def test_check_does_not_skip_non_markdown_outside_project(self):
+        write_and_commit(self.wt, {"other/data.json": "{}\n"}, "non-project data")
+        result = check(self.wt, subdir="ai-sandbox/academic-rag-model")
+        self.assertEqual(result.checks, "passed")
+        self.assertEqual(result.full_reason, "non_py_file")
+
 
 class LandingLogTests(unittest.TestCase):
     def setUp(self):
@@ -232,6 +238,20 @@ class LandingLogTests(unittest.TestCase):
         self.assertEqual(entry["changed_packages"], ["core"])
         self.assertEqual(entry["changed_extensions"], [".py"])
         self.assertIn("chunk_timings", entry)
+
+    def test_targeted_check_logs_timing_and_returncode(self):
+        (self.repo / "tests" / "agent").mkdir(parents=True)
+        write_and_commit(self.repo, {"tests/agent/test_ok.py": "def test_ok():\n    assert True\n"}, "seed tests")
+        git(self.wt, "rebase", "main")
+        write_and_commit(self.wt, {"agent/a.py": "x = 1\n"}, "agent change")
+        result = check(self.wt, subdir="")
+        self.assertEqual(result.checks, "passed")
+        self.assertEqual(result.full_reason, "targeted")
+        self.assertEqual(len(result.chunk_timings), 1)
+        self.assertEqual(result.chunk_timings[0]["name"], "tests/agent")
+        self.assertEqual(result.chunk_timings[0]["returncode"], 0)
+        self.assertGreater(result.chunk_timings[0]["seconds"], 0)
+        self.assertEqual(self._entries()[-1]["chunk_timings"], result.chunk_timings)
 
     def test_record_writes_outcome_for_sha(self):
         from tools.land_branch import record

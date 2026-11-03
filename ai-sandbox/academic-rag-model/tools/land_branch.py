@@ -31,7 +31,7 @@ from tools.git_workflow import (
     main_checkout,
     run_git,
 )
-from tools.run_tests_chunked import chunk_failed, run_all
+from tools.run_tests_chunked import ChunkResult, chunk_failed, run_all
 
 PROJECT_SUBDIR = "ai-sandbox/academic-rag-model"
 
@@ -191,11 +191,22 @@ def select_test_targets(changed: set[str], project_root: Path) -> list[str]:
     return sorted(t for t in targets if t in dirs or not any(t.startswith(d + "/") for d in dirs))
 
 
-def selection_reason(changed: set[str], project_root: Path, full: bool = False) -> str:
+def selection_reason(
+    changed: set[str], project_root: Path, full: bool = False,
+    outside: set[str] | None = None,
+) -> str:
+    outside = outside or set()
     if full:
         return "explicit_full"
-    if _is_documentation_only(changed):
-        return "doc_only"
+    if changed or outside:
+        if _is_documentation_only(changed | outside):
+            return "doc_only"
+    else:
+        return "unmapped_file"
+    if any(Path(p).suffix not in (".py", ".md") for p in outside):
+        return "non_py_file"
+    if any(p.endswith(".py") for p in outside):
+        return "unmapped_file"
     if any(p.startswith("core/") for p in changed):
         return "core_change"
     if any(Path(p).suffix not in (".py", ".md") for p in changed):
@@ -215,8 +226,11 @@ def selection_reason(changed: set[str], project_root: Path, full: bool = False) 
     return "multi_package" if len(packages) > 1 else "targeted"
 
 
-def run_checks(project_root: Path, changed: set[str], full: bool) -> tuple[str, list[str], float]:
-    reason = selection_reason(changed, project_root, full)
+def run_checks(
+    project_root: Path, changed: set[str], full: bool,
+    *, outside: set[str] | None = None, chunk_results: list[ChunkResult] | None = None,
+) -> tuple[str, list[str], float]:
+    reason = selection_reason(changed, project_root, full, outside)
     if reason == "doc_only":
         return "skipped", [], 0.0
     targets = ["tests/"] if reason not in ("targeted", "multi_package") else select_test_targets(changed, project_root)
@@ -229,6 +243,8 @@ def run_checks(project_root: Path, changed: set[str], full: bool) -> tuple[str, 
         # tests/ -q` process, which is the OOM this chunked runner exists
         # to avoid (spec: docs/superpowers/specs/2026-10-16-test-suite-memory.md).
         status, results, seconds = run_all(project_root)
+        if chunk_results is not None:
+            chunk_results.extend(results)
         targets = [f"tests/{r.name}" for r in results]
         for r in results:
             if chunk_failed(r.returncode):
@@ -245,6 +261,11 @@ def run_checks(project_root: Path, changed: set[str], full: bool) -> tuple[str, 
         errors="replace",
     )
     seconds = time.monotonic() - started
+    if chunk_results is not None:
+        chunk_results.append(ChunkResult(
+            name=", ".join(targets), returncode=proc.returncode,
+            seconds=seconds, stdout=proc.stdout,
+        ))
     if proc.returncode != 0:
         print(proc.stdout[-4000:])
         return "failed", targets, seconds
@@ -272,22 +293,13 @@ def _run_check(worktree: Path, subdir: str, full: bool) -> CheckResult:
     changed = changed_since_merge_base(worktree, MAIN_BRANCH, "HEAD")
     overlaps = find_overlaps(worktree, changed)
     relative = project_relative(changed, subdir)
-    reason = selection_reason(relative, worktree / subdir, full)
-    timings = []
-    original_run_all = run_all
-    def measured_run_all(root):
-        status, results, elapsed = original_run_all(root)
-        timings.extend({"name": r.name, "returncode": r.returncode, "seconds": r.seconds}
-                       for r in results)
-        return status, results, elapsed
-    # run_checks is also used directly by landing retests; capture details here
-    # without changing its public three-value result.
-    if reason not in ("targeted", "multi_package", "doc_only"):
-        from unittest.mock import patch
-        with patch("tools.land_branch.run_all", side_effect=measured_run_all):
-            checks, targets, seconds = run_checks(worktree / subdir, relative, full)
-    else:
-        checks, targets, seconds = run_checks(worktree / subdir, relative, full)
+    prefix = subdir.rstrip("/") + "/" if subdir else ""
+    outside = {p for p in changed if not p.startswith(prefix)}
+    reason = selection_reason(relative, worktree / subdir, full, outside)
+    chunks: list[ChunkResult] = []
+    checks, targets, seconds = run_checks(
+        worktree / subdir, relative, full, outside=outside, chunk_results=chunks,
+    )
     age_days = (datetime.now(timezone.utc) - cut_date).total_seconds() / 86400
     return CheckResult(
         branch=branch,
@@ -303,8 +315,9 @@ def _run_check(worktree: Path, subdir: str, full: bool) -> CheckResult:
         full=full,
         full_reason=reason,
         changed_packages=sorted({p.split("/")[0] for p in relative if "/" in p}),
-        changed_extensions=sorted({Path(p).suffix for p in relative}),
-        chunk_timings=timings,
+        changed_extensions=sorted({Path(p).suffix for p in changed}),
+        chunk_timings=[{"name": r.name, "returncode": r.returncode, "seconds": r.seconds}
+                       for r in chunks],
     )
 
 
@@ -393,14 +406,18 @@ def _run_land(worktree: Path, cid: str, subdir: str) -> LandResult:
         touched = sorted(branch_files & _files_between(worktree, approved["base"], main_now))
         if touched:
             raise LandingError("main changed files this branch also changes: " + ", ".join(touched))
-        code_delta = [p for p in project_relative(_files_between(worktree, tested_base, main_now), subdir)
+        code_delta = [p for p in _files_between(worktree, tested_base, main_now)
                       if not p.endswith(".md")]
         if code_delta and approved["checks"] != "skipped":
             retests += 1
             if retests > MAX_RETEST_ATTEMPTS:
                 raise LandingError(f"main kept moving: {MAX_RETEST_ATTEMPTS} test re-runs without landing")
-            status, _, _ = run_checks(worktree / subdir, project_relative(branch_files, subdir),
-                                      approved.get("full", False))
+            prefix = subdir.rstrip("/") + "/" if subdir else ""
+            status, _, _ = run_checks(
+                worktree / subdir, project_relative(branch_files, subdir),
+                approved.get("full", False),
+                outside={p for p in branch_files if not p.startswith(prefix)},
+            )
             if status not in ("passed", "skipped"):
                 raise LandingError("tests failed after rebasing onto the new main")
             tested_base = main_now
