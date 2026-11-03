@@ -209,3 +209,17 @@ Spec-first before any code; Claude owns the design, Codex the implementation per
 
 - **Decided:** until the import-graph selector is trusted, any `core/` change runs the full suite.
 - **Still to determine (first step of the landing-speed task):** which non-`.py` extensions (`.json`, `.txt`, `.yaml`) are safe to skip. Method: for each extension, grep `tests/` and the code under test for reads of files with that extension, and check the landing log for runs it triggered. Skip only extensions with no test or fixture reads; leave the rest on the full-suite fallback.
+
+---
+
+# Update 4 (2026-11-03): three lines of effort
+
+The `part_N` structure fix (commits `1530b8f4`, `29fefc3d`, `b05e94f4`, `2b505104`) showed that the hub is brittle: one extra folder layer cost about two days of refactoring and tests. `core/env/academic_hub_paths.py` recognizes only a folder named `part_N` (`^part_\d+$`) directly under a course; any other new layer is read as the content category, which breaks the notes/resources mirror check and makes index cards look stale (card hashes and clone IDs depend on source paths).
+
+**Decision (owner, 2026-11-03): this is a separate effort, not part of the monorepo split.** The work is now three tracks:
+
+1. **Landing check speed (first).** Spec: `ai-sandbox/academic-rag-model/docs/superpowers/specs/tools/2026-11-03-landing-check-speed-design.md` on branch `claude/landing-speed-spec`. Steps 1-2 are with Codex (`codex/landing-speed-impl`). Step 3 audit is done: no extension is safe to skip, so selection uses ownership mapping instead of an allowlist.
+2. **Hub path model (second).** A general fix: match notes and resources by relative path below the course, make category depth configurable, and give index cards a stable identity independent of path. The `ACADEMIC_HUB_ROOT` setting from Option 2b step 2 and the temp-scaffold test fixtures fold into this track, since they touch the same module and about 50 callers. Needs its own design spec before any code.
+3. **Monorepo hygiene (small, any time).** `repositories.json` pointers for `reprokit` and `compound-shocks-panel`, removal of the migrated `02_compound_shocks/` scaffold, folding `trading` and `utility-scripts` into `academic-rag-model`, the PDF/SVG guard, tracking the two GCP/journal docs after a secrets check, and the stale-doc fixes.
+
+Option 2b stays the recommendation, with step 2 (hub root) and step 4 (fixtures) moved under track 2. The deferred private hub repo and the physical hub-and-spokes split remain deferred.
