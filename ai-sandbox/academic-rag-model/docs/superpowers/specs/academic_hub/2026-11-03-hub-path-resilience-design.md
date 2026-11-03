@@ -1,6 +1,6 @@
 # Hub path resilience: design
 
-**Status:** draft for owner review. No code changed. Owner: Claude (design); Codex implements per `docs/AGENT_ROUTING.md`.
+**Status:** approved by owner 2026-11-03; implementation plan next. No code changed. Owner: Claude (design); Codex implements per `docs/AGENT_ROUTING.md`.
 **Related:** `docs/MONOREPO_SPLIT_EVALUATION.md` (track 2), `specs/indexer/2026-10-31-part-path-discovery-design.md` (the fix this generalizes), `specs/tools/2026-11-03-hub-binary-guard-design.md`.
 **Scope:** `core/env/academic_hub_paths.py`, `core/indexer/*`, `pipelines/transcribe_notes/*`, `tools/corpus_health/*`, plus a hub-root setting.
 
@@ -160,8 +160,10 @@ Recommendation:
 - A shared **item envelope** (type, subject IDs, ranked candidates, status, timestamps) so one Artifact review page can show items from all three ledgers, each applied through its own resolve/reject function.
 - No storage merge now. Revisit if a fourth ledger appears.
 
-## Open questions
+## Resolved open questions (owner, 2026-11-03)
 
-1. Is the category/group learning rule right, in particular "directly contains content files in at least two courses" as the category signal?
-2. Should the daily scan itself create the first learned-vocabulary proposal, or should it be a one-off command you run once against the current tree?
-3. Do you want the shared review page built in P3 with the reconcile engine, or after (relink items first, merging the three ledgers' view later)?
+1. **Learning rule approved:** a category is a folder that directly contains content files in at least two courses (or is in the seed list).
+2. **Rollout:** first a one-off command run against the current tree to produce the initial proposal and review items; then the same logic becomes part of the daily scan, which raises review items only for new folder names.
+3. **Shared review page:** built together with the reconcile engine in P3, not later.
+
+Status: design approved by the owner; next step is the implementation plan (phases P0-P5, P1 first).
