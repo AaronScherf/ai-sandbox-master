@@ -1,6 +1,6 @@
 # Literature taxonomy: term selection and grain refinement, redesign
 
-Date: 2026-11-03. Status: design for the owner's approval; nothing here is built. Scope: `agent/literature`. Follows the Phase 1 audit
+Date: 2026-11-03. Status: **approved by the owner 2026-11-03**; implementation handed to Codex, nothing built yet. Scope: `agent/literature`. Follows the Phase 1 audit
 ([status](../../../status/literature/2026-11-02-phase1-quality-gate.md), [subproject status](../../../status/literature/2026-11-03-subproject-status.md)) and the
 earlier [grain-refinement design](2026-10-25-grain-refinement-design.md), whose rollout this document corrects.
 
@@ -133,7 +133,8 @@ Success (proposed; the owner sets the final numbers):
   group terms for papers that clearly study a specific intervention is not.
 
 Rollout if the trial passes, in this order: the 8 re-extracted papers, the `extract-v3` papers (about 22), then every already-refined paper (110 record
-files) once more under the new wording, because their tier A facts include the old attractor. Each batch is followed by `verify`, `tiers`, `db build`, and a
+files) once more under the new wording, because their tier A facts include the old attractor. Bumping the refinement prompt version makes `refine-grain`
+treat every paper as unrefined, so the whole corpus is covered without `--redo`. Each batch is followed by `verify`, `tiers`, `db build`, and a
 re-check of the term distribution. Rerun the paper-level precision sample at the end and record it in the Phase 1 doc.
 
 ### D8. Documentation deliverables
@@ -166,8 +167,10 @@ These are definition edits to our own local vocabularies (`vocab_data/`), made t
 | D7 audit and success numbers | Owner | Only the owner judges correctness |
 | Landing | Owner | After `land_branch check --full` |
 
-## Open questions for the owner
+## Owner decisions (2026-11-03)
 
-1. The success numbers in D7 (0.85 precision, 10% concentration cap).
-2. Whether the portal's terms allow the fetch in D1 (a read of their terms page, not a code question).
-3. Whether to refine the 110 already-refined records again after the trial passes (my recommendation: yes, one batch after the first two).
+1. Success numbers in D7 accepted: paper-level precision at least 0.85 on the trial set, no single leaf term above 10% of a facet's facts.
+2. The portal's terms of use are being checked by the owner (https://www.3ieimpact.org/terms-of-use, linked from 3ie's own site footer). The code may be
+   written and tested on fixtures now; **the real fetch waits for the owner's go-ahead**.
+3. Rollout covers the whole corpus: after the trial passes, every paper's intervention and outcome facets are refined again under the new wording, not only the
+   unrefined ones ("start over"). The order in D7 still applies, with the already-refined papers going in the last batch.
