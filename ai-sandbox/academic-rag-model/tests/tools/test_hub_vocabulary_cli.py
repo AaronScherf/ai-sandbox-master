@@ -86,3 +86,16 @@ def test_confirm_rejects_an_unknown_kind_and_a_missing_config(tmp_path, capsys):
     bare.mkdir()
     assert main(["confirm", "x", "category", "--hub-root", str(bare)]) == 2
     assert "hub_config.json" in capsys.readouterr().err
+
+
+def test_impact_lists_pdfs_that_would_become_eligible_for_transcription(tmp_path):
+    hub = _hub(tmp_path)
+    config = _config(hub)
+    config["names"]["past_exams"] = {"kind": "category", "source": "owner"}
+    (hub / "hub_config.json").write_text(json.dumps(config), encoding="utf-8")
+    pdf = hub / "academic_resources/econ/problem_sets/past_exams/e.pdf"
+    pdf.parent.mkdir(parents=True)
+    pdf.write_bytes(b"%PDF-1.4\n")
+    (hub / "academic_notes/econ/problem_sets/past_exams").mkdir(parents=True)
+    result = impact(str(hub), hub / "hub_config.json")
+    assert result["newly_eligible_pdfs"] == ["academic_resources/econ/problem_sets/past_exams/e.pdf"]

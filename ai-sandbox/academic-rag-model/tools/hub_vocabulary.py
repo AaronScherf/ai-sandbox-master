@@ -35,6 +35,34 @@ def _differs(rel_path: str, vocab: Vocabulary, legacy: Vocabulary) -> tuple | No
     return old, new
 
 
+def _transcribable_pdfs(hub_root: str, config_path: Path) -> set[str]:
+    """PDFs the notes-transcription discovery would pick up under the given vocabulary file (real discovery code)."""
+    from pipelines.transcribe_notes.route_notes_transcribe import discover_pdf_sources
+    previous = os.environ.get("ACADEMIC_HUB_CONFIG")
+    os.environ["ACADEMIC_HUB_CONFIG"] = str(config_path)
+    try:
+        found: set[str] = set()
+        notes_root = os.path.join(hub_root, "academic_notes")
+        for course in sorted(os.listdir(notes_root)) if os.path.isdir(notes_root) else []:
+            if os.path.isdir(os.path.join(notes_root, course)) and not course.startswith("."):
+                found.update(os.path.relpath(p, hub_root).replace(os.sep, "/")
+                             for p in discover_pdf_sources(os.path.join(notes_root, course)))
+        return found
+    finally:
+        if previous is None:
+            os.environ.pop("ACADEMIC_HUB_CONFIG", None)
+        else:
+            os.environ["ACADEMIC_HUB_CONFIG"] = previous
+
+
+def newly_eligible_pdfs(hub_root: str, config_path: Path) -> list[str]:
+    with tempfile.TemporaryDirectory() as tmp:
+        legacy_config = Path(tmp) / CONFIG_NAME
+        legacy_config.write_text('{"names": {}}', encoding="utf-8")
+        before = _transcribable_pdfs(hub_root, legacy_config)
+    return sorted(_transcribable_pdfs(hub_root, config_path) - before)
+
+
 def impact(hub_root: str, config_path: Path, limit: int = 20) -> dict:
     vocab, legacy = load_vocabulary(config_path), Vocabulary()
     by_course: Counter = Counter()
@@ -63,7 +91,7 @@ def impact(hub_root: str, config_path: Path, limit: int = 20) -> dict:
             if card.get("path") and _differs(card["path"], vocab, legacy) is not None:
                 cards_changed += 1
     return {"changed": changed, "by_course": dict(sorted(by_course.items())), "cards_changed": cards_changed,
-            "samples": samples}
+            "newly_eligible_pdfs": newly_eligible_pdfs(hub_root, config_path), "samples": samples}
 
 
 def _find_key(names: dict, name: str) -> str | None:

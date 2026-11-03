@@ -37,12 +37,12 @@ def is_textbook_folder(name: str) -> bool:
     return name.casefold() in textbook_folder_names()
 
 
-def course_part_category(path: str) -> tuple[str, str | None, str | None] | None:
+def course_part_category(path: str, vocab=None) -> tuple[str, str | None, str | None] | None:
     """Parse a file path below either hub root: (course, first group layer, category).
 
     Delegates to the hub vocabulary (core.env.hub_vocabulary.parse_hub_path); a path with no known
     category keeps the legacy part_N parse."""
-    parsed = parse_hub_path(path)
+    parsed = parse_hub_path(path, vocab)
     if parsed is None:
         return None
     return parsed.course, parsed.groups[0] if parsed.groups else None, parsed.category
@@ -65,8 +65,8 @@ def course_output_dir(hub_root: str | Path, course: str, category: str, part: st
     return course_dir / parts[0] / category if parts else course_dir / category
 
 
-def eligible_resource_note_pdf(path: str, notes_course_dir: str, marked: bool = False) -> bool:
-    parsed = course_part_category(path)
+def eligible_resource_note_pdf(path: str, notes_course_dir: str, marked: bool = False, vocab=None) -> bool:
+    parsed = course_part_category(path, vocab)
     if parsed is None or parsed[2] is None:
         return False
     parts = path.replace("\\", "/").split("/")
@@ -74,8 +74,8 @@ def eligible_resource_note_pdf(path: str, notes_course_dir: str, marked: bool = 
     if any(p.startswith(".") or p == "processed_outputs" or is_textbook_folder(p)
            for p in parts[root_at + 2:-1]):
         return False
-    hub_path = parse_hub_path(path)
-    mirror = os.path.join(notes_course_dir, *hub_path.groups, hub_path.category)
+    hub_path = parse_hub_path(path, vocab)
+    mirror = os.path.join(notes_course_dir, *hub_path.groups, hub_path.folder)
     return marked or os.path.isdir(mirror)
 
 

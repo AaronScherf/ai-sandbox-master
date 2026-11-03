@@ -108,7 +108,7 @@ def _discover_notes(academic_hub_root: str, course: str) -> list:
         if is_textbook_folder(name):
             continue
         parsed = parse_hub_path(os.path.join(path, "placeholder.md"))
-        if parsed is not None and parsed.category == name:
+        if parsed is not None and parsed.folder == name:
             category_dirs.append((depth, parent_rel, name, path))
     sources = []
     for _, _, _, category_dir in sorted(category_dirs, key=lambda item: item[:3]):

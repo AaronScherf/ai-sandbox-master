@@ -50,7 +50,7 @@ def default_config_path() -> Path:
     return Path(__file__).resolve().parents[3] / "academic-hub" / "hub_config.json"
 
 
-_CACHE: dict[Path, tuple[float, Vocabulary]] = {}
+_CACHE: dict[Path, tuple[float | None, Vocabulary]] = {}  # mtime (None = file missing) -> result, failures included
 
 
 def _parse(data: object) -> Vocabulary:
@@ -75,21 +75,27 @@ def _parse(data: object) -> Vocabulary:
 
 
 def load_vocabulary(path: Path | None = None) -> Vocabulary:
-    """Load the vocabulary; any problem returns LEGACY_VOCABULARY and logs one warning naming the file."""
+    """Load the vocabulary; any problem returns LEGACY_VOCABULARY and logs one warning naming the file.
+
+    The warning is logged once per file state (missing, or a given mtime), not once per call.
+    """
     path = Path(path) if path is not None else default_config_path()
     try:
-        mtime = path.stat().st_mtime
+        mtime: float | None = path.stat().st_mtime
     except OSError:
-        log.warning("hub vocabulary %s not found; using legacy path rules", path)
-        return LEGACY_VOCABULARY
+        mtime = None
     cached = _CACHE.get(path)
     if cached and cached[0] == mtime:
         return cached[1]
-    try:
-        vocab = _parse(json.loads(path.read_text(encoding="utf-8")))
-    except (OSError, ValueError, re.error) as exc:  # JSONDecodeError is a ValueError
-        log.warning("hub vocabulary %s is invalid (%s); using legacy path rules", path, exc)
-        return LEGACY_VOCABULARY
+    if mtime is None:
+        log.warning("hub vocabulary %s not found; using legacy path rules", path)
+        vocab = LEGACY_VOCABULARY
+    else:
+        try:
+            vocab = _parse(json.loads(path.read_text(encoding="utf-8-sig")))
+        except (OSError, ValueError, TypeError, AttributeError, re.error) as exc:  # JSONDecodeError is a ValueError
+            log.warning("hub vocabulary %s is invalid (%s); using legacy path rules", path, exc)
+            vocab = LEGACY_VOCABULARY
     _CACHE[path] = (mtime, vocab)
     return vocab
 
@@ -105,8 +111,9 @@ class HubPath:
     root: str
     course: str
     groups: tuple[str, ...]
-    category: str | None
+    category: str | None  # canonical name (an alias resolves to its target)
     source: str  # "vocabulary" or "legacy"
+    folder: str | None = field(default=None, compare=False)  # category folder as spelled on disk
 
 
 def _legacy_parse(root: str, tail: list[str]) -> HubPath:
@@ -114,7 +121,7 @@ def _legacy_parse(root: str, tail: list[str]) -> HubPath:
     part = tail[1] if _LEGACY_PART.fullmatch(tail[1]) else None
     category_at = 2 if part else 1
     category = tail[category_at] if len(tail) > category_at + 1 else None
-    return HubPath(root, tail[0], (part,) if part else (), category, "legacy")
+    return HubPath(root, tail[0], (part,) if part else (), category, "legacy", category)
 
 
 def parse_hub_path(path: str, vocab: Vocabulary | None = None) -> HubPath | None:
@@ -137,7 +144,7 @@ def parse_hub_path(path: str, vocab: Vocabulary | None = None) -> HubPath | None
     for i in range(len(folders) - 1, -1, -1):
         if vocab.kind_of(folders[i]) == "category":
             return HubPath(root, tail[0], tuple(folders[:i]), vocab.aliases.get(folders[i].casefold(), folders[i]),
-                           "vocabulary")
+                           "vocabulary", folders[i])
     return _legacy_parse(root, tail)
 
 

@@ -44,8 +44,10 @@ def test_invalid_json_unknown_kind_or_bad_regex_fall_back(tmp_path, caplog):
         _write(tmp_path, {"names": {"x": {"kind": "weird", "source": "owner"}}}),
         _write(tmp_path, {"group_patterns": ["("]}),
     ]
+    from core.env import hub_vocabulary
     for path in cases:
         caplog.clear()
+        hub_vocabulary._CACHE.clear()  # the cases reuse one file name within one mtime tick
         with caplog.at_level(logging.WARNING):
             assert load_vocabulary(path) == LEGACY_VOCABULARY
         assert path.name in caplog.text
@@ -184,3 +186,45 @@ def test_alias_with_a_non_string_target_is_ignored(tmp_path):
     path = _write(tmp_path, {"names": {"X": {"kind": "category", "source": "owner", "alias_of": 7}}})
     vocab = load_vocabulary(path)
     assert parse_hub_path("academic_notes/econ/X/a.md", vocab).category == "X"
+
+
+# --- Final review fixes ---------------------------------------------------------------------------
+def test_alias_keeps_audio_discovery_and_notes_mirror_working(tmp_path, monkeypatch):
+    from audio_generator.discovery import discover_source_files
+    from core.env.academic_hub_paths import eligible_resource_note_pdf
+    cfg = _write(tmp_path, {"names": {
+        "problem_sets": {"kind": "category", "source": "seed"},
+        "Problem Sets": {"kind": "category", "source": "owner", "alias_of": "problem_sets"},
+    }})
+    monkeypatch.setenv("ACADEMIC_HUB_CONFIG", str(cfg))
+    hub = tmp_path / "hub"
+    note = hub / "academic_notes/econ/Problem Sets/a.md"
+    note.parent.mkdir(parents=True)
+    note.write_text("# a", encoding="utf-8")
+    sources = discover_source_files(str(hub), "econ", ["notes"])
+    assert [s.rel_md_path for s in sources] == ["academic_notes/econ/Problem Sets/a.md"]
+    pdf = hub / "academic_resources/econ/Problem Sets/x.pdf"
+    assert eligible_resource_note_pdf(str(pdf), str(hub / "academic_notes" / "econ"))
+
+
+@pytest.mark.parametrize("data", [{"names": ["a"]}, {"textbook_folders": None}, {"textbook_folders": 5},
+                                  {"group_patterns": 3}, {"names": {"a": 5}}])
+def test_wrong_typed_config_fields_fall_back_instead_of_raising(tmp_path, data):
+    assert load_vocabulary(_write(tmp_path, data)) == LEGACY_VOCABULARY
+
+
+def test_a_bad_config_warns_once_not_once_per_call(tmp_path, caplog):
+    missing = tmp_path / "nope.json"
+    bad = tmp_path / "bad.json"
+    bad.write_text("{not json", encoding="utf-8")
+    with caplog.at_level(logging.WARNING):
+        for _ in range(5):
+            load_vocabulary(missing)
+            load_vocabulary(bad)
+    assert len([r for r in caplog.records if r.levelno == logging.WARNING]) == 2
+
+
+def test_config_with_a_utf8_bom_loads(tmp_path):
+    path = tmp_path / "hub_config.json"
+    path.write_bytes(b"\xef\xbb\xbf" + json.dumps({"names": {"a": {"kind": "category"}}}).encode())
+    assert load_vocabulary(path).kind_of("a") == "category"
