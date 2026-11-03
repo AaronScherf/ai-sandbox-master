@@ -784,7 +784,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-09-23T17:10:51.726899+00:00",
-    "content_hash": "f1c77622bfc3aa1e",
+    "content_hash": "364fe46beb44b512",
     "needs_indexing": false,
     "source_asset_path": "academic_resources/math_methods/lecture_notes/Drawing 2026-09-08 11.51.12.excalidraw.png"
   },
@@ -1574,7 +1574,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-09-23T17:06:59.329115+00:00",
-    "content_hash": "c6cf7ab2fb2d29d2",
+    "content_hash": "109127a5669fcd81",
     "needs_indexing": false
   },
   {
@@ -2363,7 +2363,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-09-23T17:07:08.707811+00:00",
-    "content_hash": "94d6a824d3cb84dc",
+    "content_hash": "69de4cd727c9b4cd",
     "needs_indexing": false
   }
 ]

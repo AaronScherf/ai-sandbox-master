@@ -4753,7 +4753,7 @@
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-09-23T12:45:11.687019+00:00",
     "needs_indexing": false,
-    "content_hash": "e5cfe58dc6c81a36",
+    "content_hash": "31d05eed508792f9",
     "source_asset_path": "academic_resources/math-camp/ta_notes/2026/LN_Probability.pdf"
   },
   {
@@ -5544,7 +5544,7 @@
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-09-23T12:45:11.061773+00:00",
     "needs_indexing": false,
-    "content_hash": "19b9265a00113fe3",
+    "content_hash": "f9ed46ac4b3e51f4",
     "source_asset_path": "academic_resources/math-camp/ta_notes/Part I Linear Algebra 08.10.pdf"
   },
   {
@@ -6335,7 +6335,7 @@
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-09-23T12:45:11.138617+00:00",
     "needs_indexing": false,
-    "content_hash": "0cba42875b2c5679",
+    "content_hash": "7b8101c2f68c8e05",
     "source_asset_path": "academic_resources/math-camp/ta_notes/Part I Linear Algebra 08.11 (1).pdf"
   },
   {
@@ -7126,7 +7126,7 @@
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-09-23T12:45:11.224862+00:00",
     "needs_indexing": false,
-    "content_hash": "283e213a23c0ef24",
+    "content_hash": "7e9f5b9531789d0f",
     "source_asset_path": "academic_resources/math-camp/ta_notes/Part I Linear Algebra 08.12 (1).pdf"
   },
   {
@@ -7917,7 +7917,7 @@
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-09-23T12:45:11.293768+00:00",
     "needs_indexing": false,
-    "content_hash": "0d82cad9843036ee",
+    "content_hash": "bf71537e7b1d3e60",
     "source_asset_path": "academic_resources/math-camp/ta_notes/Part I Linear Algebra 08.13 (1).pdf"
   },
   {
@@ -8708,7 +8708,7 @@
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-09-23T12:45:11.444262+00:00",
     "needs_indexing": false,
-    "content_hash": "684b351955910c98",
+    "content_hash": "966672b051f0787c",
     "source_asset_path": "academic_resources/math-camp/ta_notes/Part II Analysis in Euclidean Spaces 08.14.pdf"
   },
   {
@@ -9498,7 +9498,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-09-23T12:45:10.316357+00:00",
-    "content_hash": "0062484bb36e6725",
+    "content_hash": "ed5ae440f60a9074",
     "needs_indexing": false,
     "source_asset_path": "academic_resources/math-camp/problem_sets/Linear Algebra Problem Set AMS Solutions.pdf"
   },
@@ -10289,7 +10289,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-09-23T12:45:10.396465+00:00",
-    "content_hash": "3c024e4b148dcdd0",
+    "content_hash": "248964cbe52bc6e8",
     "needs_indexing": false,
     "source_asset_path": "academic_resources/math-camp/problem_sets/Linear Algebra Problem Set.pdf"
   },
@@ -11081,7 +11081,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-09-23T12:45:10.594852+00:00",
-    "content_hash": "eefe84e978e1fb77",
+    "content_hash": "3732f7e427c65dbf",
     "needs_indexing": false,
     "source_asset_path": "academic_resources/math-camp/problem_sets/old_problem_set.pdf"
   },
@@ -11872,7 +11872,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-09-23T12:45:10.668348+00:00",
-    "content_hash": "7bf1705aa4ccbbf3",
+    "content_hash": "63d1b65e3ac46e86",
     "needs_indexing": false,
     "source_asset_path": "academic_resources/math-camp/recitation_slides/Math_Camp_Recitation_1 with solution.pdf"
   },
@@ -12663,7 +12663,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-09-23T12:45:10.762560+00:00",
-    "content_hash": "d8eab571c5058af9",
+    "content_hash": "fd0877d387dcdcd3",
     "needs_indexing": false,
     "source_asset_path": "academic_resources/math-camp/recitation_slides/Math_Camp_Recitation_1.pdf"
   },
@@ -13454,7 +13454,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-09-23T12:45:10.845788+00:00",
-    "content_hash": "7cd8dfd252b889f8",
+    "content_hash": "06e955ddf238179c",
     "needs_indexing": false,
     "source_asset_path": "academic_resources/math-camp/recitation_slides/Math_Camp_Recitation_2 with solution.pdf"
   },
@@ -14245,7 +14245,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-09-23T12:45:10.901483+00:00",
-    "content_hash": "e9d7a7ffdd6dd773",
+    "content_hash": "524da350bbe0c090",
     "needs_indexing": false,
     "source_asset_path": "academic_resources/math-camp/recitation_slides/Math_Camp_Recitation_2.pdf"
   },
@@ -15036,7 +15036,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-09-23T12:45:10.959595+00:00",
-    "content_hash": "b7dd340fdc447b70",
+    "content_hash": "e36be577ead75bc1",
     "needs_indexing": false,
     "source_asset_path": "academic_resources/math-camp/syllabus/Summer_Maths_Camp_2026.pdf"
   },
@@ -15825,7 +15825,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-09-23T12:45:10.230675+00:00",
-    "content_hash": "4a6a57d774db9a6a",
+    "content_hash": "bd9dec1118fb07d8",
     "needs_indexing": false,
     "source_asset_path": "academic_resources/math-camp/problem_sets/Analysis_Exercises.pdf"
   },
@@ -16614,7 +16614,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-09-23T12:45:10.457841+00:00",
-    "content_hash": "8f46ec6656c51b36",
+    "content_hash": "e34db337c072d27c",
     "needs_indexing": false,
     "source_asset_path": "academic_resources/math-camp/problem_sets/Practice Sheet.pdf"
   },
@@ -17403,7 +17403,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-09-23T12:45:10.529175+00:00",
-    "content_hash": "7e657d5895a6e0ed",
+    "content_hash": "e23f958c4ea3faf1",
     "needs_indexing": false,
     "source_asset_path": "academic_resources/math-camp/problem_sets/Real Analysis Problem Set_Solutions.pdf"
   },
@@ -18192,7 +18192,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-08-30T17:04:49.886483+00:00",
-    "content_hash": "390537c1bdc67d65",
+    "content_hash": "7b334668e77bc2a8",
     "needs_indexing": false,
     "orphaned": true
   },
@@ -18981,7 +18981,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-08-30T17:04:51.029988+00:00",
-    "content_hash": "30fed76e57593bf0",
+    "content_hash": "36ae0ed2641b5a07",
     "needs_indexing": false,
     "orphaned": true
   },
@@ -19770,7 +19770,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-09-23T12:45:11.501462+00:00",
-    "content_hash": "958c4b3089823d15",
+    "content_hash": "14b416f8b31d5a76",
     "needs_indexing": false,
     "source_asset_path": "academic_resources/math-camp/ta_notes/2026/LN_Analysis.pdf"
   },
@@ -20559,7 +20559,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-09-23T12:45:11.566779+00:00",
-    "content_hash": "7a3b99f74ffc65c6",
+    "content_hash": "001929b6becc53fb",
     "needs_indexing": false,
     "source_asset_path": "academic_resources/math-camp/ta_notes/2026/LN_Linear Algebra.pdf"
   },
@@ -21348,7 +21348,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-09-23T12:45:11.625676+00:00",
-    "content_hash": "906c8e28391a3bde",
+    "content_hash": "68d1842d8f4dd876",
     "needs_indexing": false,
     "source_asset_path": "academic_resources/math-camp/ta_notes/2026/LN_Optimization.pdf"
   },
@@ -22137,7 +22137,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-09-23T12:45:11.357243+00:00",
-    "content_hash": "affd15fd3672d283",
+    "content_hash": "f521f5371c474910",
     "needs_indexing": false,
     "source_asset_path": "academic_resources/math-camp/ta_notes/Part II Analysis in Euclidean Spaces 08.13 (1).pdf"
   },
@@ -26872,7 +26872,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-09-23T13:09:30.535398+00:00",
-    "content_hash": "02943fd6a7485875",
+    "content_hash": "b1949042d048286d",
     "needs_indexing": false
   },
   {
@@ -27661,7 +27661,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-09-23T13:10:39.831966+00:00",
-    "content_hash": "aab334f96a8710c3",
+    "content_hash": "afdc62bc289f9027",
     "needs_indexing": false
   },
   {
@@ -28450,7 +28450,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-09-23T16:52:44.087490+00:00",
-    "content_hash": "16f664b48483097a",
+    "content_hash": "ea443e43d8eb994a",
     "needs_indexing": false
   },
   {
@@ -29239,7 +29239,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-09-23T16:53:16.999605+00:00",
-    "content_hash": "0c10576558b8370d",
+    "content_hash": "918d510356799af0",
     "needs_indexing": false
   },
   {
@@ -30028,7 +30028,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-09-23T16:53:53.251014+00:00",
-    "content_hash": "ac6854f17ee9021c",
+    "content_hash": "061fc541650705de",
     "needs_indexing": false
   },
   {
@@ -30817,7 +30817,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-09-23T16:55:17.714495+00:00",
-    "content_hash": "fba0af93d78942ef",
+    "content_hash": "d7ec76b565605136",
     "needs_indexing": false
   },
   {
@@ -31606,7 +31606,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-09-23T16:56:36.098903+00:00",
-    "content_hash": "4f59745e2602e9b3",
+    "content_hash": "93a58439a01c3bcf",
     "needs_indexing": false
   },
   {
@@ -32395,7 +32395,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-09-23T16:56:59.537636+00:00",
-    "content_hash": "5d6f7c28766049b6",
+    "content_hash": "9ba22d30a7128786",
     "needs_indexing": false
   },
   {
@@ -33184,7 +33184,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-09-23T16:57:38.721145+00:00",
-    "content_hash": "51c727148bf7dca3",
+    "content_hash": "eeca82e6f4b0b3eb",
     "needs_indexing": false
   },
   {
@@ -33973,7 +33973,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-09-23T16:59:25.837104+00:00",
-    "content_hash": "7d015c8f98a7a8f1",
+    "content_hash": "ebc234826b83dd8d",
     "needs_indexing": false
   },
   {
@@ -34762,7 +34762,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-09-23T17:01:26.253473+00:00",
-    "content_hash": "80a3989c5fc03b00",
+    "content_hash": "adfd2980d6d24460",
     "needs_indexing": false
   },
   {
@@ -35551,7 +35551,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-09-23T17:02:05.735766+00:00",
-    "content_hash": "b21797b15b26a34d",
+    "content_hash": "2fd10bf029a2161f",
     "needs_indexing": false
   },
   {
@@ -36340,7 +36340,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-09-23T17:02:53.182412+00:00",
-    "content_hash": "4faf72eac710c197",
+    "content_hash": "f17fa3df6e5a98fa",
     "needs_indexing": false
   },
   {
@@ -37129,7 +37129,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-09-23T17:03:35.014946+00:00",
-    "content_hash": "8e7cd4d34dfc970b",
+    "content_hash": "33e4e5941156342e",
     "needs_indexing": false
   },
   {
@@ -37918,7 +37918,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-09-23T17:04:06.883684+00:00",
-    "content_hash": "56fcad02fa092252",
+    "content_hash": "cc809c86899cb770",
     "needs_indexing": false
   },
   {
@@ -38707,7 +38707,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-09-23T17:05:48.587257+00:00",
-    "content_hash": "6e161aaef2559dad",
+    "content_hash": "9f691787d92c9d6c",
     "needs_indexing": false
   },
   {
@@ -39496,7 +39496,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-09-23T17:06:22.533430+00:00",
-    "content_hash": "ab43088cee91752d",
+    "content_hash": "70f571bf5fa7e6f7",
     "needs_indexing": false
   }
 ]
