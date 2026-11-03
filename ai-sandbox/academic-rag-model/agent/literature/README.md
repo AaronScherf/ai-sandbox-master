@@ -54,6 +54,28 @@ One JSON file per paper, `<file_id>.json` (pass b: `<file_id>.b.json`; proposals
 `{value, vocab_id | proposed: true, quote, locator}`; the quote is checked against the exact page text offered on the card
 and the locator is a page number that was offered. Records are **not committed**: they hold verbatim quotes.
 
+## Run order and known failure modes
+
+For each paper, run `collect --double`, `submit`, `refine-grain --double`, `submit`, `verify`, and `verify --full-paper` when the first check leaves a fact unresolved. Then run `tiers` and `db build`. The `status` and `tiers` commands report records not refined under the current prompt version, including older and never-refined counts and file ids. `db build` refuses never-refined records; older stamps are warned about. Until the whole corpus has been refined under the current version, use `db build --allow-unrefined` to include the never-refined records explicitly.
+
+F1: Missing leaf definitions made nearby terms hard to distinguish. Enrich local vocabulary YAML from a saved portal bundle before making new cards; keep that output in the ignored vocabulary directory.
+
+F2: A flat refinement list hid parent and child relationships. Cards now indent terms by their position in the tree.
+
+F3: Earlier wording pushed the extractor toward the most specific term even when a child did not fit. The fit test allows a grouping term when no child's definition describes the paper's own work.
+
+F4: Refinement shifted a concentration from one term to a different child term. Review term distributions after a trial; a change in concentration alone does not establish better labels.
+
+F5: Identical term order across the two passes could contribute to shared mistakes. Pass b shuffles siblings deterministically while preserving the tree and term set.
+
+F6: Refinement was not enforced after extraction or re-extraction. The version stamp and command warnings expose missing or older refinement, and the database guard blocks never-refined records by default.
+
+F7: A verdict could survive a fact rewrite or be reused when its supporting quote changed. Rewriting facts clears affected verdicts, and new verdicts use a hash of each fact's facet, shown term and supporting quote.
+
+F8: The same label can occur under several sector branches, splitting counts across ids. Reporting should merge labels when counting concepts; record ids and the taxonomy remain unchanged.
+
+The evidence, design and rollout conditions are in [the approved term-selection spec](../../docs/superpowers/specs/literature_taxonomy/2026-11-03-term-selection-design.md).
+
 ## Vocabularies
 
 YAML files in `vocab_data/` (format and provenance rules in `vocab_data/README.md`). The real 3ie intervention, outcome
