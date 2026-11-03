@@ -71,7 +71,17 @@ def _parse(data: object) -> Vocabulary:
     for pattern in (*patterns, part_pattern):
         re.compile(pattern)
     return Vocabulary(names=names, textbook_folders=textbooks, group_patterns=patterns, part_pattern=part_pattern,
-                      aliases=aliases)
+                      aliases={name: _final_alias(name, aliases) for name in aliases})
+
+
+def _final_alias(name: str, aliases: dict[str, str]) -> str:
+    """Follow an alias chain to its end; a cycle stops where it would repeat."""
+    seen = {name}
+    target = aliases[name]
+    while target.casefold() in aliases and target.casefold() not in seen:
+        seen.add(target.casefold())
+        target = aliases[target.casefold()]
+    return target
 
 
 def load_vocabulary(path: Path | None = None) -> Vocabulary:
@@ -141,6 +151,10 @@ def parse_hub_path(path: str, vocab: Vocabulary | None = None) -> HubPath | None
         return None
     vocab = vocab if vocab is not None else load_vocabulary()
     folders = tail[1:-1]  # directories between the course and the file name
+    for i, folder in enumerate(folders):  # a textbook folder owns everything below it (per-book names must not win)
+        if folder.casefold() in vocab.textbook_folders and vocab.kind_of(folder) == "category":
+            return HubPath(root, tail[0], tuple(folders[:i]), vocab.aliases.get(folder.casefold(), folder),
+                           "vocabulary", folder)
     for i in range(len(folders) - 1, -1, -1):
         if vocab.kind_of(folders[i]) == "category":
             return HubPath(root, tail[0], tuple(folders[:i]), vocab.aliases.get(folders[i].casefold(), folders[i]),
@@ -157,4 +171,4 @@ def is_group_name(name: str, vocab: Vocabulary | None = None) -> bool:
 def is_part_name(name: str, vocab: Vocabulary | None = None) -> bool:
     """True when the folder name is a `part_N` folder, the layer pipelines address with --part."""
     vocab = vocab if vocab is not None else load_vocabulary()
-    return re.search(vocab.part_pattern, name) is not None
+    return re.fullmatch(vocab.part_pattern, name) is not None

@@ -228,3 +228,28 @@ def test_config_with_a_utf8_bom_loads(tmp_path):
     path = tmp_path / "hub_config.json"
     path.write_bytes(b"\xef\xbb\xbf" + json.dumps({"names": {"a": {"kind": "category"}}}).encode())
     assert load_vocabulary(path).kind_of("a") == "category"
+
+
+# --- Deferred-minor cleanups -----------------------------------------------------------------------
+def test_alias_chains_resolve_to_the_final_target_and_cycles_do_not_loop(tmp_path):
+    path = _write(tmp_path, {"names": {
+        "a": {"kind": "category", "source": "owner", "alias_of": "b"},
+        "b": {"kind": "category", "source": "owner", "alias_of": "c"},
+        "c": {"kind": "category", "source": "seed"},
+        "x": {"kind": "category", "source": "owner", "alias_of": "y"},
+        "y": {"kind": "category", "source": "owner", "alias_of": "x"},
+    }})
+    vocab = load_vocabulary(path)
+    assert parse_hub_path("academic_notes/econ/a/f.md", vocab).category == "c"
+    assert parse_hub_path("academic_notes/econ/x/f.md", vocab).category in ("x", "y")
+
+
+def test_part_name_must_match_the_whole_folder_name():
+    vocab = Vocabulary(part_pattern=r"part_\d+")
+    assert is_part_name("part_3", vocab) and not is_part_name("my_part_3_old", vocab)
+
+
+def test_a_textbook_folder_ancestor_beats_a_nearer_category_name():
+    vocab = Vocabulary(names={"textbooks": "category", "labs": "category", "processed_outputs": "ignore"})
+    got = parse_hub_path("academic_resources/econ/textbooks/processed_outputs/Labs/x.md", vocab)
+    assert (got.category, got.groups) == ("textbooks", ())
