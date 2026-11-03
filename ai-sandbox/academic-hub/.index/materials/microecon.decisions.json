@@ -3,8 +3,32 @@
     "format": "slides",
     "role": "instructor"
   },
+  "academic_notes/microecon/part_1/exam_kit/processed_outputs/2022.md": {
+    "role": "exam"
+  },
+  "academic_notes/microecon/part_1/exam_kit/processed_outputs/2023 solution.md": {
+    "role": "exam"
+  },
+  "academic_notes/microecon/part_1/exam_kit/processed_outputs/2023.md": {
+    "role": "exam"
+  },
+  "academic_notes/microecon/part_1/exam_kit/processed_outputs/2024 solutions.md": {
+    "role": "exam"
+  },
+  "academic_notes/microecon/part_1/exam_kit/processed_outputs/2024.md": {
+    "role": "exam"
+  },
+  "academic_notes/microecon/part_1/exam_kit/processed_outputs/2025.md": {
+    "role": "exam"
+  },
+  "academic_notes/microecon/part_1/exam_kit/processed_outputs/2025_solutions.md": {
+    "role": "exam"
+  },
   "academic_notes/microecon/part_1/problem_sets/homework_4_hints.md": {
     "role": "problem_set"
+  },
+  "academic_notes/microecon/part_1/reviews/expected_utility_risk_study_guide_audit_2026-10-25.md": {
+    "exclude": true
   },
   "academic_notes/microecon/part_1/textbooks/processed_outputs/Ok_Real_Analysis_with_Economic_Applications_2026/": {
     "book": "ok"

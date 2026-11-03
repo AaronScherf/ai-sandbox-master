@@ -1442,6 +1442,126 @@
    "decided_by": "rules"
   },
   {
+   "path": "academic_notes/econometrics/part_1/lecture_notes/Econometrics 2026-10-19 10.00.41.excalidraw.md",
+   "role": "student_notes",
+   "format": "excalidraw",
+   "offering": null,
+   "date": "2026-10-19",
+   "book": null,
+   "order": [
+    1000000,
+    "2026-10-19",
+    "econometrics 2026-10-19 10.00.41.excalidraw"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "excalidraw source",
+     "format",
+     "excalidraw",
+     10
+    ],
+    [
+     "excalidraw source",
+     "role",
+     "student_notes",
+     10
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/econometrics/part_1/lecture_notes/Econometrics 2026-10-20 08.05.00.excalidraw.md",
+   "role": "student_notes",
+   "format": "excalidraw",
+   "offering": null,
+   "date": "2026-10-20",
+   "book": null,
+   "order": [
+    1000000,
+    "2026-10-20",
+    "econometrics 2026-10-20 08.05.00.excalidraw"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "excalidraw source",
+     "format",
+     "excalidraw",
+     10
+    ],
+    [
+     "excalidraw source",
+     "role",
+     "student_notes",
+     10
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/econometrics/part_1/lecture_notes/Econometrics 2026-10-20 08.54.51.excalidraw.md",
+   "role": "student_notes",
+   "format": "excalidraw",
+   "offering": null,
+   "date": "2026-10-20",
+   "book": null,
+   "order": [
+    1000000,
+    "2026-10-20",
+    "econometrics 2026-10-20 08.54.51.excalidraw"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "excalidraw source",
+     "format",
+     "excalidraw",
+     10
+    ],
+    [
+     "excalidraw source",
+     "role",
+     "student_notes",
+     10
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
+   "path": "academic_notes/econometrics/part_1/lecture_notes/Econometrics 2026-10-26 10.15.51.excalidraw.md",
+   "role": "student_notes",
+   "format": "excalidraw",
+   "offering": null,
+   "date": "2026-10-26",
+   "book": null,
+   "order": [
+    1000000,
+    "2026-10-26",
+    "econometrics 2026-10-26 10.15.51.excalidraw"
+   ],
+   "confidence": 10.0,
+   "flagged": false,
+   "evidence": [
+    [
+     "excalidraw source",
+     "format",
+     "excalidraw",
+     10
+    ],
+    [
+     "excalidraw source",
+     "role",
+     "student_notes",
+     10
+    ]
+   ],
+   "decided_by": "rules"
+  },
+  {
    "path": "academic_notes/econometrics/part_1/lecture_notes/processed_outputs/Econometrics 2026-09-09 10.11.39.excalidraw.rag.md",
    "role": "student_notes",
    "format": "excalidraw",
@@ -2077,7 +2197,7 @@
     "",
     "00-review-question-answers"
    ],
-   "confidence": 3.0,
+   "confidence": 6.0,
    "flagged": false,
    "evidence": [
     [
@@ -2085,6 +2205,12 @@
      "role",
      "problem_set",
      2
+    ],
+    [
+     "index card problem_set",
+     "role",
+     "problem_set",
+     3
     ],
     [
      "path word 'problem'",
@@ -2113,7 +2239,7 @@
     "",
     "problem_set_1_gemini_solutions"
    ],
-   "confidence": 4.0,
+   "confidence": 7.0,
    "flagged": false,
    "evidence": [
     [
@@ -2121,6 +2247,12 @@
      "role",
      "problem_set",
      2
+    ],
+    [
+     "index card problem_set",
+     "role",
+     "problem_set",
+     3
     ],
     [
      "path word 'problem'",
@@ -2155,7 +2287,7 @@
     "",
     "problem_set_1_solutions"
    ],
-   "confidence": 4.0,
+   "confidence": 7.0,
    "flagged": false,
    "evidence": [
     [
@@ -2163,6 +2295,12 @@
      "role",
      "problem_set",
      2
+    ],
+    [
+     "index card problem_set",
+     "role",
+     "problem_set",
+     3
     ],
     [
      "path word 'problem'",
@@ -2197,7 +2335,7 @@
     "",
     "problem_set_2_solutions"
    ],
-   "confidence": 4.0,
+   "confidence": 7.0,
    "flagged": false,
    "evidence": [
     [
@@ -2205,6 +2343,12 @@
      "role",
      "problem_set",
      2
+    ],
+    [
+     "index card problem_set",
+     "role",
+     "problem_set",
+     3
     ],
     [
      "path word 'problem'",
@@ -2239,7 +2383,7 @@
     "",
     "problem_set_2_solutions_long"
    ],
-   "confidence": 4.0,
+   "confidence": 7.0,
    "flagged": false,
    "evidence": [
     [
@@ -2247,6 +2391,12 @@
      "role",
      "problem_set",
      2
+    ],
+    [
+     "index card problem_set",
+     "role",
+     "problem_set",
+     3
     ],
     [
      "path word 'problem'",
@@ -2281,7 +2431,7 @@
     "",
     "problem_set_2_solutions_short"
    ],
-   "confidence": 4.0,
+   "confidence": 7.0,
    "flagged": false,
    "evidence": [
     [
@@ -2289,6 +2439,12 @@
      "role",
      "problem_set",
      2
+    ],
+    [
+     "index card problem_set",
+     "role",
+     "problem_set",
+     3
     ],
     [
      "path word 'problem'",
@@ -2377,7 +2533,7 @@
     "",
     "problem_set_1"
    ],
-   "confidence": 5.0,
+   "confidence": 8.0,
    "flagged": false,
    "evidence": [
     [
@@ -2385,6 +2541,12 @@
      "role",
      "problem_set",
      2
+    ],
+    [
+     "index card problem_set",
+     "role",
+     "problem_set",
+     3
     ],
     [
      "content: exam wording",
@@ -2419,7 +2581,7 @@
     "",
     "problem_set_2"
    ],
-   "confidence": 3.0,
+   "confidence": 6.0,
    "flagged": false,
    "evidence": [
     [
@@ -2427,6 +2589,12 @@
      "role",
      "problem_set",
      2
+    ],
+    [
+     "index card problem_set",
+     "role",
+     "problem_set",
+     3
     ],
     [
      "path word 'problem'",
@@ -2455,7 +2623,7 @@
     "",
     "pset3"
    ],
-   "confidence": 4.0,
+   "confidence": 7.0,
    "flagged": false,
    "evidence": [
     [
@@ -2469,6 +2637,12 @@
      "format",
      "portrait",
      0
+    ],
+    [
+     "index card problem_set",
+     "role",
+     "problem_set",
+     3
     ],
     [
      "path word 'problem'",
@@ -2503,7 +2677,7 @@
     "",
     "solution-pset2"
    ],
-   "confidence": 5.0,
+   "confidence": 8.0,
    "flagged": false,
    "evidence": [
     [
@@ -2517,6 +2691,12 @@
      "format",
      "portrait",
      0
+    ],
+    [
+     "index card problem_set",
+     "role",
+     "problem_set",
+     3
     ],
     [
      "path word 'problem'",
