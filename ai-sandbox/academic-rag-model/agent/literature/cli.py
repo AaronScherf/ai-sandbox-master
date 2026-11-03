@@ -173,6 +173,8 @@ def cmd_silver(args) -> int:
 def cmd_tiers(args) -> int:
     """Count facts by confidence tier and write the derived `_tiers.json` next to the records."""
     target = _target(args)
+    from .refinement_state import report as refinement_report
+    refinement_report(target.records, target.records.ids())
     papers = {}
     for fid in target.records.ids():
         if items := tiers.tiered_facts(target.records, fid, target.vocabs, target.proposals):
@@ -249,7 +251,16 @@ def cmd_synthesize(args) -> int:
 def cmd_db(args) -> int:
     path = litdb.db_path(args.index_root)
     if args.action == "build":
-        counts = litdb.build(_target(args), path, args.floor)
+        target = _target(args)
+        from .refinement_state import report as refinement_report
+        _, missing = refinement_report(target.records, target.records.ids())
+        if missing and not args.allow_unrefined:
+            print(f"db build refused: {len(missing)} records never refined: {', '.join(missing[:20])}" +
+                  (f" and {len(missing) - 20} more" if len(missing) > 20 else ""))
+            return 2
+        if missing:
+            print(f"db build including {len(missing)} unrefined records: {', '.join(missing[:20])}")
+        counts = litdb.build(target, path, args.floor)
         print(f"built {path}: " + ", ".join(f"{n} {t.replace('_', ' ')}" for t, n in counts.items()))
         return 0
     if not path.is_file():
@@ -449,6 +460,8 @@ def cmd_bootstrap(args) -> int:
 def cmd_status(args) -> int:
     papers, skipped = eligible_papers(args.index_root)
     target = _target(args)
+    from .refinement_state import report as refinement_report
+    refinement_report(target.records, [p.file_id for p in papers if p.file_id not in target.records.excluded()])
     have = set(target.records.all_ids())
     missing, duplicate_count = unrecorded_papers(papers, have, target.records.excluded())
     print(f"eligible papers: {len(papers)}")
@@ -638,6 +651,7 @@ def build_parser() -> argparse.ArgumentParser:
     d.add_argument("facet", nargs="?", default=None, help="For dist: the facet to count.")
     d.add_argument("--where", action="append", default=[], help="For query: facet=value, repeatable.")
     d.add_argument("--floor", choices=["A", "B", "C"], default="B", help="For build: lowest confidence tier to load.")
+    d.add_argument("--allow-unrefined", action="store_true", help="For build: include records never refined under any version.")
     d.add_argument("--out", default=None, help="For export: the Markdown file to write.")
     g = sub.add_parser("gap", help="Gap analysis over the database: has this been studied, and in what context? (offline)")
     g.add_argument("action", choices=["run", "question"])

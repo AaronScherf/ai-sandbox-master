@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+import hashlib
 
 from core.agent_tasks.tasks import Passage, Task
 
@@ -45,6 +46,15 @@ def _supported_keys(record: dict, key: str) -> set:
     return {(i["facet"], i["shown"], i["pass"]) for i in (record.get(key) or {}).get("items", []) if i["verdict"] == "supported"}
 
 
+def fact_hash(item: dict) -> str:
+    return hashlib.sha256(f"{item['facet']}|{item['shown']}|{item['quote']}".encode("utf-8")).hexdigest()[:16]
+
+
+def _matches(verdict: dict, item: dict) -> bool:
+    return (verdict["facet"], verdict["shown"], verdict["pass"]) == (item["facet"], item["shown"], item["pass"]) and (
+        "fact_hash" not in verdict or verdict["fact_hash"] == item.get("fact_hash", fact_hash(item) if "quote" in item else None))
+
+
 def make_tasks(target: Target, papers: list[Paper], *, redo: bool = False, full_paper: bool = False):
     """Cards for the facts only one pass found. With full_paper, only facts the first check did not support, and every
     page of the paper is offered (a second look for claims the cited pages could not settle)."""
@@ -61,8 +71,8 @@ def make_tasks(target: Target, papers: list[Paper], *, redo: bool = False, full_
             skipped[paper.file_id] = "the two passes agree on every fact"
             continue
         if full_paper:
-            first = _supported_keys(a, "verification")
-            items = [i for i in items if (i["facet"], i["shown"], i["pass"]) not in first]
+            first = [v for v in (a.get("verification") or {}).get("items", []) if v["verdict"] == "supported"]
+            items = [i for i in items if not any(_matches(v, i) for v in first)]
             if not items:
                 skipped[paper.file_id] = "nothing left to check on the whole text (the first check supported every fact)"
                 continue
@@ -72,10 +82,12 @@ def make_tasks(target: Target, papers: list[Paper], *, redo: bool = False, full_
             skipped[paper.file_id] = f"cannot read the transcript: {exc}"
             continue
         sha = _sha(md)
-        done = a.get(record_key)
-        if done and done.get("transcript_sha") == sha and not redo:
-            skipped[paper.file_id] = "already verified (use --redo to verify again)"
-            continue
+        done = a.get(record_key) or {}
+        if not redo:
+            items = [i for i in items if not any(_matches(v, i) for v in done.get("items", []))]
+            if not items:
+                skipped[paper.file_id] = "every fact has a current verdict (use --redo to verify again)"
+                continue
         pages = split_pages(md)
         wanted = sorted(pages) if full_paper else sorted({n for i in items for n in _pages_of(i["locator"]) if n in pages})
         if not wanted:
@@ -92,7 +104,8 @@ def make_tasks(target: Target, papers: list[Paper], *, redo: bool = False, full_
         tasks.append(Task(
             id=f"{'verifyfull' if full_paper else 'verify'}-{paper.file_id}", stage=STAGE,
             subject={"file_id": paper.file_id, "transcript_sha": sha, "full": full_paper,
-                     "items": [{k: i[k] for k in ("n", "facet", "shown", "label", "pass")} for i in items]},
+                     "items": [{**{k: i[k] for k in ("n", "facet", "shown", "label", "pass")},
+                                "fact_hash": fact_hash(i)} for i in items]},
             instructions=INSTRUCTIONS + (FULL_NOTE if full_paper else ""), context="\n".join(lines),
             passages=[Passage(id=f"P{n}", source=paper.title or paper.file_id, ref=f"page {n}", text=pages[n]) for n in wanted]))
     return tasks, skipped
@@ -142,12 +155,18 @@ def apply_result(target: Target, entry: dict, result: dict, provenance: dict) ->
         row = by_item[it["n"]]
         out = {"facet": it["facet"], "shown": it["shown"], "label": it["label"], "pass": it["pass"],
                "verdict": row["verdict"], "reason": row["reason"].strip()}
+        if "fact_hash" in it:
+            out["fact_hash"] = it["fact_hash"]
         if row["verdict"] == "supported":
             out.update(quote=row["quote"], locator=row["locator"])
         items.append(out)
     record = target.records.read(s["file_id"], "a")
-    record["verification_full" if s.get("full") else "verification"] = {
-        "transcript_sha": s["transcript_sha"], "run_id": provenance["run"], "agent_name": provenance["agent"], "items": items}
+    key = "verification_full" if s.get("full") else "verification"
+    prior = (record.get(key) or {}).get("items", [])
+    record[key] = {
+        "transcript_sha": s["transcript_sha"], "run_id": provenance["run"], "agent_name": provenance["agent"],
+        "items": [old for old in prior if not any((old["facet"], old["shown"], old["pass"]) ==
+                 (new["facet"], new["shown"], new["pass"]) for new in items)] + items}
     target.records.write(record, "a")
     return None
 
@@ -160,8 +179,9 @@ def silver_split(records, file_id: str, vocabs: dict | None = None) -> dict:
     a, b = records.read(file_id, "a"), records.read(file_id, "b")
     if a is None or b is None:
         return {"agreed": [], "confirmed": [], "open": []}
-    supported = _supported_keys(a, "verification") | _supported_keys(a, "verification_full")
+    supported = [v for key in ("verification", "verification_full") for v in (a.get(key) or {}).get("items", [])
+                 if v["verdict"] == "supported"]
     confirmed, open_ = [], []
     for item in single_pass_facts(a, b, vocabs):
-        (confirmed if (item["facet"], item["shown"], item["pass"]) in supported else open_).append(item)
+        (confirmed if any(_matches(v, item) for v in supported) else open_).append(item)
     return {"agreed": agreed_facts(a, b, vocabs), "confirmed": confirmed, "open": open_}

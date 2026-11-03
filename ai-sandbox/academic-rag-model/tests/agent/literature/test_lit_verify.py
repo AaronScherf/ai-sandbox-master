@@ -94,6 +94,27 @@ def _answer(entry, verdict="supported", **over):
 
 
 class TestVerifyResults(unittest.TestCase):
+    def test_reextraction_drops_old_verdicts(self):
+        with tempfile.TemporaryDirectory() as root:
+            target, papers = _setup(root, _different())
+            record = target.records.read(FID, "a")
+            record["verification"] = {"transcript_sha": record["transcript_sha"], "items": [{"facet": "intervention", "shown": "old"}]}
+            target.records.write(record, "a")
+            tasks, _ = stage.make_tasks(target, papers, redo=True)
+            stage.apply_result(target, task_entry(tasks[0]), good(), PROV)
+            self.assertNotIn("verification", target.records.read(FID, "a"))
+
+    def test_pass_b_reextraction_drops_its_old_verdicts_from_pass_a(self):
+        with tempfile.TemporaryDirectory() as root:
+            target, papers = _setup(root, _different())
+            record = target.records.read(FID, "a")
+            record["verification"] = {"items": [{"facet": "intervention", "pass": "b", "shown": "old"},
+                                                  {"facet": "intervention", "pass": "a", "shown": "keep"}]}
+            target.records.write(record, "a")
+            tasks, _ = stage.make_tasks(target, papers, pass_label="b", redo=True)
+            stage.apply_result(target, task_entry(tasks[0]), _different(), PROV)
+            self.assertEqual([i["shown"] for i in target.records.read(FID, "a")["verification"]["items"]], ["keep"])
+
     def _entry(self, root):
         target, papers = _setup(root, _different())
         tasks, _ = verify.make_tasks(target, papers)
@@ -109,6 +130,21 @@ class TestVerifyResults(unittest.TestCase):
         self.assertEqual(len(v["items"]), 3)
         self.assertEqual({i["verdict"] for i in v["items"]}, {"supported"})
         self.assertEqual({i["pass"] for i in v["items"]}, {"a", "b"})
+        self.assertTrue(all(len(i["fact_hash"]) == 16 for i in v["items"]))
+
+    def test_changed_quote_gets_no_inherited_verdict(self):
+        with tempfile.TemporaryDirectory() as root:
+            target, papers = _setup(root, _different())
+            tasks, _ = verify.make_tasks(target, papers)
+            entry = task_entry(tasks[0])
+            verify.apply_result(target, entry, _answer(entry), PROV)
+            record = target.records.read(FID, "a")
+            record["core"]["intervention"][0]["quote"] = "different supporting quote"
+            target.records.write(record, "a")
+            tasks, _ = verify.make_tasks(target, papers)
+            self.assertTrue(any(i["facet"] == "intervention" and i["pass"] == "a"
+                                for i in tasks[0].subject["items"]))
+            self.assertTrue(any(i["facet"] == "intervention" for i in verify.silver_split(target.records, FID, VOCABS)["open"]))
 
     def test_missing_unknown_and_bad_verdicts_bounce(self):
         with tempfile.TemporaryDirectory() as root:

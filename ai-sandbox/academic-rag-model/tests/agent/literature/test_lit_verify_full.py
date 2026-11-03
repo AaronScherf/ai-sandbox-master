@@ -93,7 +93,7 @@ class TestWholePaperPass(unittest.TestCase):
             again, skipped = verify.make_tasks(target, papers, full_paper=True)
             redo, _ = verify.make_tasks(target, papers, full_paper=True, redo=True)
         self.assertEqual(again, [])
-        self.assertIn("already", skipped[FID])
+        self.assertIn("current verdict", skipped[FID])
         self.assertEqual(len(redo), 1)
 
 

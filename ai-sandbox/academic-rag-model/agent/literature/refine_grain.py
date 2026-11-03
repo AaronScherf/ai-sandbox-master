@@ -189,6 +189,10 @@ def apply_result(target: Target, entry: dict, result: dict, provenance: dict) ->
     record = target.records.read(fid, label)
     record["core"]["intervention"] = result.get("intervention") or []
     record["core"]["outcome"] = result.get("outcome") or []
+    for key in ("verification", "verification_full"):
+        if key in record:
+            record[key]["items"] = [item for item in record[key].get("items", [])
+                                     if item["facet"] not in ("intervention", "outcome")]
     extractor = dict(record.get("extractor") or {})
     extractor["grain_refine_version"] = PROMPT_VERSION
     vocab_versions = dict(extractor.get("vocab_versions") or {})
@@ -199,6 +203,14 @@ def apply_result(target: Target, entry: dict, result: dict, provenance: dict) ->
     extractor["vocab_versions"] = vocab_versions
     record["extractor"] = extractor
     target.records.write(record, label)
+    if label != "a":
+        primary = target.records.read(fid, "a")
+        if primary:
+            for key in ("verification", "verification_full"):
+                if key in primary:
+                    primary[key]["items"] = [item for item in primary[key].get("items", [])
+                                             if item.get("pass") != label or item["facet"] not in ("intervention", "outcome")]
+            target.records.write(primary, "a")
     for facet in ("intervention", "outcome"):
         for fact in result.get(facet) or []:
             if fact.get("proposed"):

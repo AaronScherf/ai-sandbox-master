@@ -109,6 +109,13 @@ class TestDbCli(unittest.TestCase):
                 return code, out.getvalue()
 
             self.assertEqual(run("db", "matrix")[0], 2)  # nothing built yet
+            from agent.literature.refine_grain import PROMPT_VERSION
+            from agent.literature.store import RecordStore
+            records = RecordStore(Path(root) / ".index" / "study_records")
+            for fid in records.ids():
+                record = records.read(fid)
+                record["extractor"]["grain_refine_version"] = PROMPT_VERSION
+                records.write(record)
             code, out = run("db", "build")
             self.assertEqual(code, 0)
             self.assertIn("3 papers", out)

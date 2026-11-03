@@ -42,7 +42,7 @@ def _apply(target, papers, result, label, **kw):
 
 
 class TestStaleState(unittest.TestCase):
-    def test_re_extracting_pass_a_keeps_a_verification_made_on_the_same_transcript(self):
+    def test_re_extracting_pass_a_drops_verification_made_on_the_same_transcript(self):
         with tempfile.TemporaryDirectory() as root:
             target, papers = _env(root)
             b = good()
@@ -54,7 +54,7 @@ class TestStaleState(unittest.TestCase):
             rows = [{"item": i["n"], "verdict": "unclear", "reason": "x"} for i in entry["subject"]["items"]]
             verify.apply_result(target, entry, {"verdicts": rows}, PROV)
             _apply(target, papers, good(), "a")
-            self.assertIn("verification", target.records.read(FID, "a"))
+            self.assertNotIn("verification", target.records.read(FID, "a"))
 
     def test_passes_from_different_transcripts_are_flagged_not_compared(self):
         with tempfile.TemporaryDirectory() as root:

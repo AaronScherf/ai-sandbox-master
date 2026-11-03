@@ -188,11 +188,15 @@ def apply_result(target: Target, entry: dict, result: dict, provenance: dict) ->
         "schema_version": schema.SCHEMA_VERSION, "prompt_version": schema.PROMPT_VERSION, "pass": label,
         "vocab_versions": s["vocab_versions"]}
     record["review"] = {"status": "unreviewed", "items_flagged": []}
-    earlier = target.records.read(s["file_id"], label)
-    for key in ("verification", "verification_full"):
-        if earlier and earlier.get(key) and earlier[key].get("transcript_sha") == s["transcript_sha"]:
-            record[key] = earlier[key]  # verdicts are keyed by fact, so changed facts just go unmatched
     target.records.write(record, label)
+    if label != "a":
+        primary = target.records.read(s["file_id"], "a")
+        if primary:
+            for key in ("verification", "verification_full"):
+                if key in primary:
+                    primary[key]["items"] = [item for item in primary[key].get("items", [])
+                                             if item.get("pass") != label]
+            target.records.write(primary, "a")
     reconcile(target.records, s["file_id"], target.vocabs)
     for vocab_name, fact in _proposed_facts(result):
         if fact.get("proposed"):
