@@ -16,7 +16,7 @@ import re
 from pathlib import Path
 
 from core.env.frontmatter import parse_frontmatter
-from core.env.hub_vocabulary import parse_hub_path
+from core.env.hub_vocabulary import is_part_name, load_vocabulary, parse_hub_path
 
 _NOTES_ROOT_NAME = "academic_notes"
 _RESOURCES_ROOT_NAME = "academic_resources"
@@ -28,11 +28,13 @@ _SUBSET_MARKER_FILENAME = ".notes_subset.json"
 # same-named academic_notes/ category now exists -- notes-PDF discovery
 # must still never sweep academic_resources/<course>/textbooks/ into the
 # notes-transcription pipeline because of it.
-TEXTBOOK_FOLDER_NAMES = ("textbooks", "textbooks-and-papers")
+# The names now live in the hub vocabulary (academic-hub/hub_config.json, `textbook_folders`).
+def textbook_folder_names() -> tuple[str, ...]:
+    return load_vocabulary().textbook_folders
 
 
 def is_textbook_folder(name: str) -> bool:
-    return name.casefold() in TEXTBOOK_FOLDER_NAMES
+    return name.casefold() in textbook_folder_names()
 
 
 def course_part_category(path: str) -> tuple[str, str | None, str | None] | None:
@@ -49,9 +51,9 @@ def course_part_category(path: str) -> tuple[str, str | None, str | None] | None
 def course_output_dir(hub_root: str | Path, course: str, category: str, part: str | None = None) -> Path:
     """Resolve an output category, requiring a part when the layout is ambiguous."""
     course_dir = Path(hub_root) / "academic_notes" / course
-    parts = sorted(p.name for p in course_dir.iterdir() if p.is_dir() and re.fullmatch(r"part_\d+", p.name)) if course_dir.is_dir() else []
+    parts = sorted(p.name for p in course_dir.iterdir() if p.is_dir() and is_part_name(p.name)) if course_dir.is_dir() else []
     if part is not None:
-        if not re.fullmatch(r"part_\d+", part):
+        if not is_part_name(part):
             raise ValueError(f"invalid part {part!r}; expected part_N")
         if parts and part not in parts:
             raise ValueError(f"part {part!r} does not exist for {course}")

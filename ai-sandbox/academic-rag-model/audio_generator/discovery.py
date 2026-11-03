@@ -25,14 +25,11 @@ from __future__ import annotations
 import os
 from dataclasses import dataclass
 
-from core.env.academic_hub_paths import to_resources_root
+from core.env.academic_hub_paths import is_textbook_folder, textbook_folder_names, to_resources_root
+from core.env.hub_vocabulary import is_part_name
 
-# Mirrors indexer/index_search.py's _TEXTBOOK_FOLDER_NAMES (spec §5) --
-# duplicated locally rather than imported, matching this project's existing
-# pattern of each subproject owning its own small pieces of hub-layout
-# knowledge (e.g. video_notes's own DEFAULT_ACADEMIC_HUB_ROOT) rather than a
-# shared hub-layout module.
-_TEXTBOOK_FOLDER_NAMES = ("textbooks", "textbooks-and-papers")
+# Textbook folder names and the part_N pattern come from the hub vocabulary
+# (academic-hub/hub_config.json), shared with the indexer.
 
 CONTENT_TYPES = ("notes", "textbook")
 
@@ -90,7 +87,7 @@ def _course_roots(course_dir: str) -> list[str]:
     if not os.path.isdir(course_dir):
         return []
     parts = [os.path.join(course_dir, name) for name in sorted(os.listdir(course_dir))
-             if name.startswith("part_") and name[5:].isdigit()
+             if is_part_name(name)
              and os.path.isdir(os.path.join(course_dir, name))]
     return [course_dir, *parts]
 
@@ -100,7 +97,7 @@ def _discover_notes(academic_hub_root: str, course: str) -> list:
     sources = []
     for root in _course_roots(course_dir):
         for category in sorted(os.listdir(root)):
-            if category.startswith(".") or category in _TEXTBOOK_FOLDER_NAMES or (root == course_dir and category.startswith("part_")):
+            if category.startswith(".") or is_textbook_folder(category) or (root == course_dir and is_part_name(category)):
                 continue
             category_dir = os.path.join(root, category)
             if not os.path.isdir(category_dir):
@@ -119,7 +116,7 @@ def _discover_textbooks(academic_hub_root: str, course: str) -> list:
     sources = []
     course_dir = os.path.join(academic_hub_root, "academic_resources", course)
     for root in _course_roots(course_dir):
-        for folder_name in _TEXTBOOK_FOLDER_NAMES:
+        for folder_name in textbook_folder_names():
             processed_outputs_dir = os.path.join(root, folder_name, "processed_outputs")
             if not os.path.isdir(processed_outputs_dir):
                 continue

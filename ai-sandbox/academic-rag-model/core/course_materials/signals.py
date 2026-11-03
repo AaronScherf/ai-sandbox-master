@@ -10,7 +10,7 @@ import re
 from dataclasses import dataclass, field
 from pathlib import Path, PurePosixPath
 
-from core.env.academic_hub_paths import TEXTBOOK_FOLDER_NAMES, course_part_category
+from core.env.academic_hub_paths import course_part_category, is_textbook_folder
 
 from .model import AUTHORITY
 
@@ -86,7 +86,7 @@ def textbook_signal(f: Facts) -> list[Vote]:
     chapter = len(parts) >= 2 and parts[-2] == "chapters" and bool(_CHAPTER_FILE.match(parts[-1]))
     if chapter:
         return [Vote("textbook layout", "format", "chapter", DECISIVE), Vote("textbook layout", "role", "textbook", DECISIVE)]
-    if any(p in TEXTBOOK_FOLDER_NAMES for p in parts[:-1]):
+    if any(is_textbook_folder(p) for p in parts[:-1]):
         return [Vote("textbook folder", "format", "chapter", STRONG), Vote("textbook folder", "role", "textbook", STRONG)]
     if f.card_doc_type == "textbook":
         # The indexer's model also labels structured handouts "textbook" (econometrics ta_notes/A3, 2026-10-19).

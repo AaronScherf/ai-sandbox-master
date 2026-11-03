@@ -22,6 +22,7 @@ log = logging.getLogger(__name__)
 KINDS = ("category", "group", "ignore")
 _DEFAULT_TEXTBOOK_FOLDERS = ("textbooks", "textbooks-and-papers")
 _DEFAULT_GROUP_PATTERNS = (r"^part_\d+$",)
+_DEFAULT_PART_PATTERN = r"^part_\d+$"
 
 
 @dataclass(frozen=True)
@@ -29,6 +30,8 @@ class Vocabulary:
     names: Mapping[str, str] = field(default_factory=dict)  # casefolded folder name -> kind
     textbook_folders: tuple[str, ...] = _DEFAULT_TEXTBOOK_FOLDERS
     group_patterns: tuple[str, ...] = _DEFAULT_GROUP_PATTERNS
+    # `part_N` is a pipeline concept (--part, course_output_dir), narrower than a group layer.
+    part_pattern: str = _DEFAULT_PART_PATTERN
 
     def kind_of(self, name: str) -> str | None:
         return self.names.get(name.casefold())
@@ -59,9 +62,10 @@ def _parse(data: object) -> Vocabulary:
         names[name.casefold()] = kind
     textbooks = tuple(str(n).casefold() for n in data.get("textbook_folders", _DEFAULT_TEXTBOOK_FOLDERS))
     patterns = tuple(str(p) for p in data.get("group_patterns", _DEFAULT_GROUP_PATTERNS))
-    for pattern in patterns:
+    part_pattern = str(data.get("part_pattern", _DEFAULT_PART_PATTERN))
+    for pattern in (*patterns, part_pattern):
         re.compile(pattern)
-    return Vocabulary(names=names, textbook_folders=textbooks, group_patterns=patterns)
+    return Vocabulary(names=names, textbook_folders=textbooks, group_patterns=patterns, part_pattern=part_pattern)
 
 
 def load_vocabulary(path: Path | None = None) -> Vocabulary:
@@ -128,3 +132,15 @@ def parse_hub_path(path: str, vocab: Vocabulary | None = None) -> HubPath | None
         if vocab.kind_of(folders[i]) == "category":
             return HubPath(root, tail[0], tuple(folders[:i]), folders[i], "vocabulary")
     return _legacy_parse(root, tail)
+
+
+def is_group_name(name: str, vocab: Vocabulary | None = None) -> bool:
+    """True when the folder name looks like a group layer (part_N, class_2024, 2025_class, ...)."""
+    vocab = vocab if vocab is not None else load_vocabulary()
+    return vocab.kind_of(name) == "group" or any(re.search(p, name) for p in vocab.group_patterns)
+
+
+def is_part_name(name: str, vocab: Vocabulary | None = None) -> bool:
+    """True when the folder name is a `part_N` folder, the layer pipelines address with --part."""
+    vocab = vocab if vocab is not None else load_vocabulary()
+    return re.search(vocab.part_pattern, name) is not None

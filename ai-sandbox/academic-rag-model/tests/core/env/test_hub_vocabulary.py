@@ -134,3 +134,36 @@ def test_file_name_is_never_a_folder():
 def test_folder_names_match_case_insensitively():
     got = parse_hub_path("academic_notes/econ/Lecture_Notes/a.md", SEEDED)
     assert got.category == "Lecture_Notes"
+
+
+# --- Task 4: one source for textbook names and the part/group patterns -----------------------------
+from core.env.hub_vocabulary import is_group_name, is_part_name
+
+
+def test_group_and_part_name_patterns():
+    vocab = Vocabulary(group_patterns=(r"^part_\d+$", r"^class_\d{4}$", r"^\d{4}_class$"))
+    assert all(is_group_name(n, vocab) for n in ("part_3", "class_2024", "2025_class"))
+    assert not is_group_name("lecture_notes", vocab)
+    assert is_part_name("part_3", vocab) and not is_part_name("class_2024", vocab)
+
+
+def test_textbook_folder_follows_the_configured_vocabulary(tmp_path, monkeypatch):
+    from core.env.academic_hub_paths import is_textbook_folder, textbook_folder_names
+    cfg = _write(tmp_path, {"textbook_folders": ["textbooks", "course_readers"], "names": {}})
+    monkeypatch.setenv("ACADEMIC_HUB_CONFIG", str(cfg))
+    assert is_textbook_folder("Course_Readers") and "course_readers" in textbook_folder_names()
+    assert not is_textbook_folder("textbooks-and-papers")
+
+
+def test_audio_discovery_honors_a_configured_textbook_folder(tmp_path, monkeypatch):
+    from audio_generator.discovery import discover_source_files
+    cfg = _write(tmp_path, {"textbook_folders": ["course_readers"], "names": {}})
+    monkeypatch.setenv("ACADEMIC_HUB_CONFIG", str(cfg))
+    book = tmp_path / "hub" / "academic_resources" / "econ" / "course_readers" / "processed_outputs" / "Book"
+    book.mkdir(parents=True)
+    (book / "Book.rag.md").write_text("# x", encoding="utf-8")
+    notes = tmp_path / "hub" / "academic_notes" / "econ" / "course_readers" / "n.md"
+    notes.parent.mkdir(parents=True)
+    notes.write_text("# n", encoding="utf-8")
+    sources = discover_source_files(str(tmp_path / "hub"), "econ", ["notes"])
+    assert all("course_readers" not in s.rel_md_path for s in sources)
