@@ -34,6 +34,13 @@ class LandingsTests(unittest.TestCase):
         self.assertEqual(rows[0].approvals, 1)
         self.assertEqual(rows[0].minutes, 30)
 
+    def test_legacy_log_fields_are_optional(self):
+        old = check(T0, "claude/a", "s1")
+        old_with_prior_name = check(T0, "claude/b", "s2")
+        old_with_prior_name["full_reason"] = "targeted"
+        rows = landings([old, old_with_prior_name, landed(T1, "s1"), landed(T1, "s2")])
+        self.assertEqual({r.branch for r in rows}, {"claude/a", "claude/b"})
+
     def test_each_new_passing_sha_is_another_approval(self):
         rows = landings([check(T0, "claude/a", "s1"), check(T1, "claude/a", "s2"), landed(T2, "s2")])
         self.assertEqual(rows[0].approvals, 2)

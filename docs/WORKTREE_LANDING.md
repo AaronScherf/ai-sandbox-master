@@ -27,7 +27,8 @@ on their own. When a task branch is finished, the agent:
    It refuses unless the main checkout is on `main`; rebases onto the current
    `main`; stops if the change ID no longer matches, if the rebase conflicts, or
    if `main` has since changed a file the branch also changes; re-runs the
-   approved check's tests only when `main` gained non-Markdown commits; stops on
+   approved check's tests only when `main` gained non-Markdown changes inside
+   `academic-rag-model/`; stops on
    a failure or an overlap (a tracked file the branch changes that is dirty in
    the main checkout or changed on another open branch); then runs
    `git merge --ff-only` and `git push origin main` in the main checkout and

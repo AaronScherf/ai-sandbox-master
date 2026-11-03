@@ -73,7 +73,7 @@ class CheckResult:
     change_id: str = ""
     base: str = ""  # the main commit the check ran against
     full: bool = False
-    full_reason: str = ""
+    selection_reason: str = ""
     changed_packages: list[str] = field(default_factory=list)
     changed_extensions: list[str] = field(default_factory=list)
     chunk_timings: list[dict] = field(default_factory=list)
@@ -229,8 +229,10 @@ def selection_reason(
 def run_checks(
     project_root: Path, changed: set[str], full: bool,
     *, outside: set[str] | None = None, chunk_results: list[ChunkResult] | None = None,
+    reason: str | None = None,
 ) -> tuple[str, list[str], float]:
-    reason = selection_reason(changed, project_root, full, outside)
+    if reason is None:
+        reason = selection_reason(changed, project_root, full, outside)
     if reason == "doc_only":
         return "skipped", [], 0.0
     targets = ["tests/"] if reason not in ("targeted", "multi_package") else select_test_targets(changed, project_root)
@@ -299,6 +301,7 @@ def _run_check(worktree: Path, subdir: str, full: bool) -> CheckResult:
     chunks: list[ChunkResult] = []
     checks, targets, seconds = run_checks(
         worktree / subdir, relative, full, outside=outside, chunk_results=chunks,
+        reason=reason,
     )
     age_days = (datetime.now(timezone.utc) - cut_date).total_seconds() / 86400
     return CheckResult(
@@ -313,7 +316,7 @@ def _run_check(worktree: Path, subdir: str, full: bool) -> CheckResult:
         change_id=change_id(worktree),
         base=run_git(["rev-parse", MAIN_BRANCH], worktree).strip(),
         full=full,
-        full_reason=reason,
+        selection_reason=reason,
         changed_packages=sorted({p.split("/")[0] for p in relative if "/" in p}),
         changed_extensions=sorted({Path(p).suffix for p in changed}),
         chunk_timings=[{"name": r.name, "returncode": r.returncode, "seconds": r.seconds}
@@ -406,7 +409,8 @@ def _run_land(worktree: Path, cid: str, subdir: str) -> LandResult:
         touched = sorted(branch_files & _files_between(worktree, approved["base"], main_now))
         if touched:
             raise LandingError("main changed files this branch also changes: " + ", ".join(touched))
-        code_delta = [p for p in _files_between(worktree, tested_base, main_now)
+        code_delta = [p for p in project_relative(
+            _files_between(worktree, tested_base, main_now), subdir)
                       if not p.endswith(".md")]
         if code_delta and approved["checks"] != "skipped":
             retests += 1
