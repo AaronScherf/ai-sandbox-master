@@ -1,11 +1,13 @@
 vocabulary: data_source
-version: 4
+version: 5
 provenance: provisional
 source: Starter list written for this project; replace or reconcile when an authoritative
   list is adopted.
 terms:
 - id: data_source.household_survey
   label: Household survey
+  definition: A survey of households or of individuals within them. Includes individual-level surveys, since survey reporting commonly
+    says "household" for either.
 - id: data_source.panel_survey
   label: Panel survey
 - id: data_source.administrative_records

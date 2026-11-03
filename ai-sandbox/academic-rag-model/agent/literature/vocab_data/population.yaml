@@ -1,11 +1,13 @@
 vocabulary: population
-version: 3
+version: 4
 provenance: provisional
 source: Starter list written for this project; replace or reconcile when an authoritative
   list is adopted.
 terms:
 - id: population.households
   label: Households
+  definition: Households as the unit studied. Includes studies of individuals, since survey reporting commonly says
+    "household" for either.
 - id: population.children_under_five
   label: Children under five
 - id: population.women

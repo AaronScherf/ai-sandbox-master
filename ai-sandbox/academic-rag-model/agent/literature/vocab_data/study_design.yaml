@@ -1,5 +1,5 @@
 vocabulary: study_design
-version: 4
+version: 5
 provenance: provisional
 source: Starter list written for this project; replace or reconcile when an authoritative
   list is adopted.
@@ -41,7 +41,7 @@ terms:
   definition: Controls for observables at one point in time; weak causal identification.
 - id: study_design.qualitative
   label: Qualitative study
-  definition: Interviews, focus groups, case study or other non-numeric evidence.
+  definition: Interviews, focus groups, case study or other non-numeric evidence. Not a review or commentary; those are narrative_review.
 - id: study_design.simulation_model
   label: Simulation or structural model
   definition: Results come from a calibrated or estimated model.
@@ -52,7 +52,8 @@ terms:
   label: Narrative or non-systematic review
   source: local
   definition: Synthesises other studies without a stated search protocol (a literature
-    review or comprehensive review of prior work, not a primary study).
+    review or comprehensive review of prior work), or a commentary, conceptual or policy-discussion paper that
+    reports no primary data of its own. Not a primary study.
 - id: study_design.machine_learning_models
   label: Machine learning models
   source: local
