@@ -95,6 +95,27 @@ class TestCooccurrence(unittest.TestCase):
 
 
 class TestDbCli(unittest.TestCase):
+    def test_build_refuses_never_refined_unless_overridden(self):
+        with tempfile.TemporaryDirectory() as root:
+            build(root, three_papers())
+            vocab_dir = Path(root) / "vocab"
+            vocab_dir.mkdir()
+            write_vocab_dir(vocab_dir)
+
+            def run(*args):
+                out = io.StringIO()
+                with contextlib.redirect_stdout(out):
+                    code = main(["--index-root", root, "--vocab-dir", str(vocab_dir), "db", "build", *args])
+                return code, out.getvalue()
+
+            code, out = run()
+            self.assertEqual(code, 2)
+            self.assertIn("3 records never refined", out)
+            self.assertIn(F1, out)
+            code, out = run("--allow-unrefined")
+            self.assertEqual(code, 0)
+            self.assertIn("including 3 unrefined records", out)
+
     def test_build_then_matrix_and_query(self):
         with tempfile.TemporaryDirectory() as root:
             build(root, three_papers())

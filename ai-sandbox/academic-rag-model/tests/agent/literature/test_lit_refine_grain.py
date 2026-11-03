@@ -3,6 +3,7 @@ import unittest
 from pathlib import Path
 
 from agent.literature import refine_grain, stage
+from agent.literature.refinement_state import refinement_state
 from agent.literature.papers import eligible_papers
 from agent.literature.proposals import Proposals
 from agent.literature.store import RecordStore
@@ -12,6 +13,12 @@ from lit_helpers import PAGES, VOCABS, good, make_index
 
 PROV = {"driver": "agent", "agent": "antigravity", "run": "r1"}
 FID = "0123456789abcdef"
+
+
+def test_refinement_state_versions():
+    assert refinement_state({}) == "missing"
+    assert refinement_state({"extractor": {"grain_refine_version": "refine-v1"}}) == "older"
+    assert refinement_state({"extractor": {"grain_refine_version": refine_grain.PROMPT_VERSION}}) == "current"
 
 
 def _hierarchical_vocabs():
