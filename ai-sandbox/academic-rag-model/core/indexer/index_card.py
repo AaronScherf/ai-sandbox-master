@@ -440,6 +440,19 @@ def find_card_by_file_id(academic_hub_root: str, file_id: str) -> tuple[str, dic
     return None
 
 
+def find_clone_card(cards: list[dict], duplicate_of_file_id: str, rel_md_path: str) -> dict | None:
+    """The existing clone card for a duplicate-linked note: the card at
+    exactly this path if there is one, else the single card that names
+    this canonical document, else None. Never picks among several, so a
+    moved clone keeps its card without a guess being made silently."""
+    wanted = rel_md_path.replace("\\", "/")
+    for card in cards:
+        if str(card.get("path", "")).replace("\\", "/") == wanted:
+            return card
+    candidates = [c for c in cards if c.get("duplicate_of_file_id") == duplicate_of_file_id]
+    return candidates[0] if len(candidates) == 1 else None
+
+
 def _replace_card(cards: list[dict], file_id: str, updated: dict) -> list[dict]:
     return [updated if c.get("file_id") == file_id else c for c in cards]
 

@@ -43,6 +43,7 @@ from core.indexer.index_card import (
     compute_content_hash,
     compute_legacy_content_hash,
     content_hash_matches,
+    find_clone_card,
     compute_file_id,
     compute_id_from_parts,
     cosine_similarity,
@@ -405,6 +406,19 @@ def _video_lecture_note_paths(academic_hub_root: str, course_filter: str | None)
                 meta_path = os.path.join(dirpath, f"{name[:-3]}.meta.json")
                 if os.path.isfile(meta_path):
                     yield course, path, meta_path
+
+
+def _clone_card_id(cards: list[dict], duplicate_of_file_id: str, rel_md_path: str,
+                   rel_pdf_path: str, stats: dict) -> str:
+    """file_id of the clone card for a duplicate-linked note. Finds the
+    existing card even after the note moved (see find_clone_card); only
+    when none is found does it derive an id, and that case is counted in
+    stats["clone_card_unresolved"] so it is visible, not silent."""
+    card = find_clone_card(cards, duplicate_of_file_id, rel_md_path)
+    if card is not None:
+        return card["file_id"]
+    stats["clone_card_unresolved"] = stats.get("clone_card_unresolved", 0) + 1
+    return compute_id_from_parts([duplicate_of_file_id, rel_pdf_path])
 
 
 def _is_stale(existing: dict, source_mtime: float, content_hash: str,
@@ -801,6 +815,7 @@ def rebuild(academic_hub_root: str, client, course: str | None = None,
         "generated": 0, "updated": 0, "unchanged": 0, "moved": 0,
         "orphaned": 0, "pruned": 0, "skipped_no_source_pdf": 0, "skipped_empty_md": 0,
         "skipped_duplicate_clone": 0,
+        "clone_card_unresolved": 0,
     }
     seen_file_ids: set[str] = set()
 
@@ -842,10 +857,8 @@ def rebuild(academic_hub_root: str, client, course: str | None = None,
         frontmatter_fields, _body = parse_frontmatter(content_sample)
         duplicate_of_file_id = frontmatter_fields.get("duplicate_of_file_id")
         if duplicate_of_file_id:
-            matching_clone = next((c for c in load_shard(academic_hub_root, course_name)
-                                   if c.get("path") == rel_md_path), None)
-            seen_file_ids.add(matching_clone["file_id"] if matching_clone else
-                              compute_id_from_parts([duplicate_of_file_id, rel_pdf_path]))
+            seen_file_ids.add(_clone_card_id(load_shard(academic_hub_root, course_name),
+                                             duplicate_of_file_id, rel_md_path, rel_pdf_path, stats))
             stats["skipped_duplicate_clone"] += 1
             continue
 
