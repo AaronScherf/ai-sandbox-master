@@ -29,6 +29,7 @@ HUB_BINARY_EXTENSIONS = frozenset(
 SIZE_LIMIT = 1_000_000  # 1 MB
 TEXTBOOK_DIRS = frozenset({"textbooks", "textbooks-and-papers"})
 ALLOWLIST_PATH = Path(__file__).with_name("guard_binaries_allow.txt")
+ALLOWLIST_REPO_PATH = "ai-sandbox/academic-rag-model/tools/guard_binaries_allow.txt"
 
 
 @dataclass(frozen=True)
@@ -65,16 +66,22 @@ def _glob_to_regex(pattern: str) -> re.Pattern[str]:
 
 def load_allowlist(path: Path = ALLOWLIST_PATH) -> list[re.Pattern[str]]:
     """One glob per line followed by `# reason`. A glob without a reason is an error."""
-    patterns: list[re.Pattern[str]] = []
     if not path.exists():
-        return patterns
-    for number, raw in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+        return []
+    return parse_allowlist(path.read_text(encoding="utf-8"), path.name)
+
+
+def parse_allowlist(text: str, name: str = "allowlist") -> list[re.Pattern[str]]:
+    patterns: list[re.Pattern[str]] = []
+    for number, raw in enumerate(text.splitlines(), 1):
         line = raw.strip()
         if not line or line.startswith("#"):
             continue
         glob, _, reason = line.partition("#")
         if not glob.strip() or not reason.strip():
-            raise ValueError(f"{path.name}:{number}: every entry needs `glob  # reason`")
+            raise ValueError(f"{name}:{number}: every entry needs `glob  # reason`")
+        if glob.strip().strip("/") in ("*", "**", "**/*") or glob.strip().startswith("**"):
+            raise ValueError(f"{name}:{number}: glob `{glob.strip()}` is too broad")
         patterns.append(_glob_to_regex(glob.strip()))
     return patterns
 
@@ -149,8 +156,26 @@ def check_staged(cwd: Path) -> list[Violation]:
     return check_entries(_changed(cwd, ["--cached"], ""))
 
 
+def _base_allowlist(cwd: Path, base: str) -> list[re.Pattern[str]]:
+    """Allowlist as it exists on `base` (main), so a branch cannot exempt itself."""
+    try:
+        text = _git(["show", f"{base}:{ALLOWLIST_REPO_PATH}"], cwd)
+    except RuntimeError:
+        return []
+    return parse_allowlist(text, f"{base}:guard_binaries_allow.txt")
+
+
 def check_range(cwd: Path, base: str, head: str = "HEAD") -> list[Violation]:
-    return check_entries(_changed(cwd, [f"{base}...{head}"], head))
+    """Check every commit in base..head (history is published too), against base's allowlist."""
+    allow = _base_allowlist(cwd, base)
+    seen: set[tuple[str, str]] = set()
+    found: list[Violation] = []
+    for commit in _git(["rev-list", "--reverse", "--no-merges", f"{base}..{head}"], cwd).split():
+        for v in check_entries(_changed(cwd, [f"{commit}^", commit], commit), allow):
+            if (v.rule, v.path) not in seen:
+                seen.add((v.rule, v.path))
+                found.append(v)
+    return found
 
 
 def main(argv: list[str] | None = None) -> int:

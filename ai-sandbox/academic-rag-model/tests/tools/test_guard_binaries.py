@@ -60,6 +60,11 @@ class CheckEntriesTests(unittest.TestCase):
             p.write_text("# c\nfoo/*.pdf  # why\n", encoding="utf-8")
             self.assertEqual(len(g.load_allowlist(p)), 1)
 
+    def test_overbroad_globs_rejected(self):
+        for glob in ("**", "*", "**/*.pdf"):
+            with self.assertRaises(ValueError):
+                g.parse_allowlist(f"{glob}  # why\n")
+
     def test_shipped_allowlist_loads(self):
         patterns = g.load_allowlist()
         self.assertTrue(any(p.match(HUB + ".index/microecon.json") for p in patterns))
@@ -101,6 +106,26 @@ class GitIntegrationTests(unittest.TestCase):
         git(self.repo, "checkout", "-q", "-b", "claude/t")
         write_and_commit(self.repo, {HUB + "course/f.svg": "<svg/>", "ok.py": "x=1\n"}, "add")
         self.assertEqual([v.path for v in g.check_range(self.repo, "main")], [HUB + "course/f.svg"])
+
+    def test_range_flags_file_added_then_deleted_in_branch(self):
+        git(self.repo, "checkout", "-q", "-b", "claude/t")
+        write_and_commit(self.repo, {HUB + "course/f.svg": "<svg/>"}, "add")
+        git(self.repo, "rm", "-q", HUB + "course/f.svg")
+        git(self.repo, "commit", "-q", "-m", "remove")
+        self.assertEqual([v.path for v in g.check_range(self.repo, "main")], [HUB + "course/f.svg"])
+
+    def test_branch_cannot_allowlist_itself(self):
+        git(self.repo, "checkout", "-q", "-b", "claude/t")
+        write_and_commit(self.repo, {
+            g.ALLOWLIST_REPO_PATH: HUB + "course/*.svg  # trust me\n",
+            HUB + "course/f.svg": "<svg/>"}, "self-exempt")
+        self.assertEqual([v.rule for v in g.check_range(self.repo, "main")], ["R1"])
+
+    def test_allowlist_on_base_is_honoured(self):
+        write_and_commit(self.repo, {g.ALLOWLIST_REPO_PATH: HUB + "course/*.svg  # approved\n"}, "allow")
+        git(self.repo, "checkout", "-q", "-b", "claude/t")
+        write_and_commit(self.repo, {HUB + "course/f.svg": "<svg/>"}, "add")
+        self.assertEqual(g.check_range(self.repo, "main"), [])
 
     def test_hook_script_exits_nonzero_for_staged_hub_pdf(self):
         # Run the guard CLI directly (not through git) as the hook does.
