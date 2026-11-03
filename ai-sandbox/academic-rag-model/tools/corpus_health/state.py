@@ -230,13 +230,16 @@ class StateStore:
             self._write_unlocked(data)
         return result
 
-    def pending(self, *, include_deferred: bool = False) -> list[dict]:
+    def pending(self, *, include_deferred: bool = False, exclude_kinds: Collection[str] = ()) -> list[dict]:
+        """Entries awaiting review. The corpus-health review surfaces pass
+        `exclude_kinds=SELF_REFRESHED_KINDS`: those entries are decided through their own producer."""
         with _exclusive_lock(self.lock_path):
             data = self._load_unlocked()
         statuses = {"pending_review"}
         if include_deferred:
             statuses.add("deferred")
-        return [entry for entry in data["findings"].values() if entry.get("status") in statuses]
+        return [entry for entry in data["findings"].values() if entry.get("status") in statuses
+                and entry.get("finding", {}).get("kind") not in exclude_kinds]
 
     def entries(self, *, kinds: Collection[str] | None = None) -> list[dict]:
         """Every ledger entry (any status), optionally limited to finding kinds."""
@@ -250,11 +253,12 @@ class StateStore:
             data = self._load_unlocked()
         return data["findings"].get(finding_id)
 
-    def accepted(self) -> list[dict]:
+    def accepted(self, *, exclude_kinds: Collection[str] = ()) -> list[dict]:
         with _exclusive_lock(self.lock_path):
             data = self._load_unlocked()
         return [entry for entry in data["findings"].values()
-                if entry.get("status") in {"accepted", "blocked"}]
+                if entry.get("status") in {"accepted", "blocked"}
+                and entry.get("finding", {}).get("kind") not in exclude_kinds]
 
     def record_action(self, finding_id: str, fingerprint: str | None, status: str,
                       detail: dict) -> dict:

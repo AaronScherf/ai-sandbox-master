@@ -87,6 +87,63 @@ def test_review_server_rejects_bad_origin_and_stale_fingerprint(tmp_path):
         thread.join(timeout=2)
 
 
+def _post(server, path, payload):
+    request = urllib.request.Request(
+        f"{server.expected_origin}{path}", data=json.dumps(payload).encode(),
+        headers={"Content-Type": "application/json", "X-Corpus-Health-Token": server.token,
+                 "Origin": server.expected_origin},
+        method="POST",
+    )
+    return json.loads(urllib.request.urlopen(request, timeout=2).read())
+
+
+def _add_relink(store):
+    # Raised by core.indexer.reconcile_apply.raise_relink_items, never by a scan.
+    return store.refresh([Finding("relink", "academic-hub-index", "academic_notes/econ/b.md", "Relink b.md",
+                                  "ambiguous", suggested_action="choose", fingerprint="r1",
+                                  scope="file_id:f1")], sweep_kinds=("relink",))[0]
+
+
+def test_review_listing_excludes_self_refreshed_relink_entries(tmp_path):
+    store, server, thread = _running_server(tmp_path)
+    _add_relink(store)
+    try:
+        api_url = f"{server.expected_origin}/api/findings?token={server.token}"
+        entries = json.loads(urllib.request.urlopen(api_url, timeout=2).read())
+        assert [e["finding"]["kind"] for e in entries] == ["index_card_missing"]
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=2)
+
+
+def test_bulk_decision_on_scan_findings_unaffected_by_relink_entry(tmp_path):
+    store, server, thread = _running_server(tmp_path)
+    relink = _add_relink(store)
+    scan_ids = {e["finding_id"] for e in store.pending() if e["finding"]["kind"] != "relink"}
+    server.validator = lambda entries: all(e["finding_id"] in scan_ids for e in entries)  # like a fresh scan
+    try:
+        entry = next(e for e in store.pending() if e["finding_id"] in scan_ids)
+        result = _post(server, "/api/batch", {"decisions": [
+            {"finding_id": entry["finding_id"], "fingerprint": "sha256:x", "decision": "declined"}]})
+        assert result == {"updated": 1}
+        assert store.get_entry(entry["finding_id"])["status"] == "declined"
+        assert store.get_entry(relink.finding_id)["status"] == "pending_review"
+        server.validator = None  # even without a scan validator, relink entries are not decidable here
+        try:
+            _post(server, "/api/decision", {"finding_id": relink.finding_id, "fingerprint": "r1",
+                                            "decision": "accepted"})
+        except urllib.error.HTTPError as exc:
+            assert exc.code == 409
+        else:
+            raise AssertionError("relink entry was decided through the corpus-health review server")
+        assert store.get_entry(relink.finding_id)["status"] == "pending_review"
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=2)
+
+
 def test_review_server_rejects_current_finding_that_has_been_resolved(tmp_path):
     store, server, thread = _running_server(tmp_path)
     server.validator = lambda _entries: False

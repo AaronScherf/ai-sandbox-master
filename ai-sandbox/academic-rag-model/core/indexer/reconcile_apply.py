@@ -21,7 +21,9 @@ whole action (the lock is not reentrant, so internals never lock).
 Review items (Task 5). `ambiguous` and `orphan` differences become findings in the corpus-health
 decision ledger (`tools.corpus_health.state.StateStore`; kinds `relink` / `orphan_card`), shaped for
 the shared review page by `core.indexer.review_envelope`:
-- `raise_relink_items(hub_root, differences, store)`: upserts one finding per non-moved difference
+- `raise_relink_items(hub_root, differences=None, store=None)` (lock held for the whole call;
+  `raise_relink_items_unlocked` for lock holders; `differences` defaults to `reconcile(hub_root)` and
+  if given must be a FULL reconcile result): upserts one finding per non-moved difference
   (fingerprint = envelope item_id, scope `file_id:<id>`, root `academic-hub-index`, path = the card's
   old path), sweeps relink/orphan findings no longer present, marks each open `relink` card
   `link_state: "unresolved"` and clears the mark from every other card. Declined items are kept
@@ -270,7 +272,8 @@ def undo_repair(hub_root: str, repair_id: str) -> bool:
 
 # --- review items: relink / orphan findings in the corpus-health ledger (Task 5) ---
 
-RELINK_KINDS = ("relink", "orphan_card")
+# The relink kinds ("relink", "orphan_card") are defined once, as
+# tools.corpus_health.state.SELF_REFRESHED_KINDS, and imported lazily where needed.
 LEDGER_ROOT = "academic-hub-index"
 _OPEN = {"pending_review", "deferred"}
 _ENVELOPE_STATUS = {"pending_review": "pending", "failed": "pending", "deferred": "deferred",
@@ -316,15 +319,30 @@ def _with_ledger(item: ReviewItem, entry: dict) -> ReviewItem:
     return item
 
 
-def raise_relink_items(hub_root: str, differences: list[Difference], store) -> list[ReviewItem]:
+def raise_relink_items(hub_root: str, differences: list[Difference] | None = None,
+                       store=None) -> list[ReviewItem]:
     """Upsert a ledger finding per ambiguous/orphan difference and mark open relink cards unresolved.
 
-    `differences` must be a full `reconcile(hub_root)` result: relink/orphan findings and
-    `link_state` marks absent from it are swept/cleared. Returns the items the owner has not
-    declined, with ledger status and timestamps."""
+    `differences` defaults to `reconcile(hub_root)` run here. If given it MUST be a full reconcile
+    result: every relink/orphan finding and `link_state` mark absent from it is swept (vanished) /
+    cleared, so a partial list un-raises the rest. Returns the items the owner has not declined, with
+    ledger status and timestamps. Takes the corpus write lock for the whole call (not reentrant):
+    callers already holding it use `raise_relink_items_unlocked`. `store=None` = the hub's default
+    ledger."""
+    with corpus_write_lock([hub_root], "reconcile relink raise"):
+        return raise_relink_items_unlocked(hub_root, differences, store)
+
+
+def raise_relink_items_unlocked(hub_root: str, differences: list[Difference] | None = None,
+                                store=None) -> list[ReviewItem]:
+    """`raise_relink_items` for callers that already hold the corpus write lock."""
+    from tools.corpus_health.state import SELF_REFRESHED_KINDS
+    if differences is None:
+        differences = reconcile(hub_root)
+    store = store or _default_store(hub_root)
     raised = [(d, difference_to_item(d)) for d in differences if d.kind != "moved"]
-    refreshed = store.refresh([_finding(d, item) for d, item in raised], sweep_kinds=RELINK_KINDS)
-    ledger = {e.get("finding_id"): e for e in store.entries(kinds=RELINK_KINDS)}
+    refreshed = store.refresh([_finding(d, item) for d, item in raised], sweep_kinds=SELF_REFRESHED_KINDS)
+    ledger = {e.get("finding_id"): e for e in store.entries(kinds=SELF_REFRESHED_KINDS)}
     out: list[ReviewItem] = []
     unresolved: set[str] = set()
     for (d, item), finding in zip(raised, refreshed):
@@ -335,14 +353,13 @@ def raise_relink_items(hub_root: str, differences: list[Difference], store) -> l
         out.append(item)
         if item.type == "relink" and entry.get("status") in _OPEN:
             unresolved.add(d.file_id)
-    with corpus_write_lock([hub_root], "reconcile relink mark"):
-        for course in list_courses(hub_root):
-            for card in load_shard(hub_root, course):
-                fid = card.get("file_id")
-                if fid in unresolved and not is_unresolved(card):
-                    set_link_state(hub_root, fid, "unresolved")
-                elif fid not in unresolved and is_unresolved(card):
-                    set_link_state(hub_root, fid, None)
+    for course in list_courses(hub_root):
+        for card in load_shard(hub_root, course):
+            fid = card.get("file_id")
+            if fid in unresolved and not is_unresolved(card):
+                set_link_state(hub_root, fid, "unresolved")
+            elif fid not in unresolved and is_unresolved(card):
+                set_link_state(hub_root, fid, None)
     return out
 
 
@@ -387,7 +404,8 @@ def reject(hub_root: str, file_id: str, *, store=None) -> bool:
     candidate set), clear `link_state`, leave the card path as is. Idempotent; False only when there
     is neither a ledger item nor a current ambiguous/orphan difference for `file_id`."""
     store = store or _default_store(hub_root)
-    entries = [e for e in store.entries(kinds=RELINK_KINDS)
+    from tools.corpus_health.state import SELF_REFRESHED_KINDS
+    entries = [e for e in store.entries(kinds=SELF_REFRESHED_KINDS)
                if e.get("finding", {}).get("scope") == _scope(file_id) and e.get("status") != "vanished"]
     for e in entries:
         if e.get("status") in _OPEN:

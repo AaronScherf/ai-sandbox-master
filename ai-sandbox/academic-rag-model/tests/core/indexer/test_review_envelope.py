@@ -13,7 +13,7 @@ import pytest
 from core.indexer import reconcile_apply
 from core.indexer.index_card import compute_content_hash, find_card_by_file_id, load_shard, save_shard
 from core.indexer.reconcile import Candidate, Difference, reconcile
-from core.indexer.reconcile_apply import raise_relink_items, reject, resolve
+from core.indexer.reconcile_apply import raise_relink_items, raise_relink_items_unlocked, reject, resolve
 from core.indexer.review_envelope import (
     ReviewItem, difference_to_item, is_unresolved, offering_link_to_item, pairing_to_item,
 )
@@ -104,21 +104,63 @@ def test_orphan_difference_is_report_only_item_and_moved_is_not_an_item():
         difference_to_item(Difference("moved", "f1", f"{LN}/a.md", [Candidate(f"{PS}/a.md", "byte_hash", 1.0)]))
 
 
-def test_envelope_adapters_cover_offering_links_entry():
-    entry = {"file_id_a": "fa", "file_id_b": "fb", "similarity": 0.85, "course": "econometrics"}
+def _real_offering_review(tmp_path):
+    """review.json written by the real producer (offering_links.run_for_course, review band)."""
+    from core.indexer.offering_links import load_review, run_for_course
+    subset = tmp_path / "academic_resources" / "econometrics" / "class_2024"
+    subset.mkdir(parents=True)
+    (subset / ".notes_subset.json").write_text(json.dumps({"label": "2024"}))
+    cards = [{"file_id": "fa", "path": "academic_notes/econometrics/professor_notes/a.md",
+              "title": "A", "embedding": [1.0, 0.0]},
+             {"file_id": "fb", "path": "academic_notes/econometrics/class_2024/b.md",
+              "title": "B", "embedding": [0.85, 0.5266403851195171]}]
+    for card in cards:
+        (tmp_path / card["path"]).parent.mkdir(parents=True, exist_ok=True)
+        (tmp_path / card["path"]).write_text("body\n")
+    save_shard(str(tmp_path), "econometrics", cards)
+    assert run_for_course(str(tmp_path), "econometrics")["review_matches"] == 1
+    return load_review(str(tmp_path))
+
+
+def test_envelope_adapters_cover_offering_links_entry(tmp_path):
+    (entry,) = _real_offering_review(tmp_path)
+    snapshot = json.dumps(entry, sort_keys=True)
     item = offering_link_to_item(entry)
     assert item.type == "offering_link" and item.subject_ids == ["fa", "fb"]
-    assert item.status == "pending" and item.candidates[0]["score"] == 0.85
-    assert offering_link_to_item(dict(entry)).item_id == item.item_id
-    assert entry == {"file_id_a": "fa", "file_id_b": "fb", "similarity": 0.85, "course": "econometrics"}
+    assert item.status == "pending" and (item.created, item.updated) == ("", "")
+    (cand,) = item.candidates
+    assert cand["file_id"] == "fb" and cand["score"] == entry["similarity"]
+    assert cand["path"] is None and cand["subject_paths"] == [None, None]
+    with_paths = offering_link_to_item(entry, hub_root=str(tmp_path))
+    assert with_paths.candidates[0]["subject_paths"] == [
+        "academic_notes/econometrics/professor_notes/a.md", "academic_notes/econometrics/class_2024/b.md"]
+    assert with_paths.candidates[0]["path"] == "academic_notes/econometrics/class_2024/b.md"
+    assert with_paths.item_id == item.item_id
+    assert json.dumps(entry, sort_keys=True) == snapshot  # read only
 
 
-def test_envelope_adapter_covers_document_pairing_entry():
-    entry = {"file_id_a": "fa", "file_id_b": "fb", "pair_type": "problem_solution", "course": "microecon"}
-    item = pairing_to_item(entry)
-    assert item.type == "document_pairing" and item.subject_ids == ["fa", "fb"]
-    assert item.candidates[0]["basis"] == "problem_solution"
-    assert item.item_id != offering_link_to_item({**entry, "similarity": 0.9}).item_id
+def test_envelope_adapter_covers_document_pairing_entry(tmp_path):
+    from core.indexer.document_pairing import load_review, run_for_course
+    cards = [{"file_id": "fa", "path": "academic_notes/microecon/problem_sets/processed_outputs/Homework_4.md",
+              "course": "microecon"},
+             {"file_id": "fb", "path": "academic_notes/microecon/problem_sets/processed_outputs/HW_4.md",
+              "course": "microecon"},
+             {"file_id": "fc", "path": "academic_notes/microecon/problem_sets/homework_4_solutions.md",
+              "course": "microecon"}]
+    (tmp_path / "academic_notes" / "microecon").mkdir(parents=True)
+    save_shard(str(tmp_path), "microecon", cards)
+    run_for_course(str(tmp_path), "microecon")
+    review = load_review(str(tmp_path))
+    assert len(review) == 2
+    items = [pairing_to_item(e, hub_root=str(tmp_path)) for e in review]
+    paths = {c["file_id"]: c["path"] for c in cards}
+    for entry, item in zip(review, items):
+        assert item.type == "document_pairing"
+        assert item.subject_ids == [entry["file_id_a"], entry["file_id_b"]]
+        assert item.candidates[0]["basis"] == entry["pair_type"] and item.candidates[0]["score"] is None
+        assert item.candidates[0]["subject_paths"] == [paths[entry["file_id_a"]], paths[entry["file_id_b"]]]
+    assert len({i.item_id for i in items}) == 2
+    assert items[0].item_id != offering_link_to_item({**review[0], "similarity": 0.9}).item_id
 
 
 def test_is_unresolved():
@@ -177,6 +219,46 @@ def test_raise_clears_stale_unresolved_mark_when_difference_gone(tmp_path, store
     assert reconcile(str(hub)) == []
     assert raise_relink_items(str(hub), [], store) == []
     assert not is_unresolved(_card(hub))
+
+
+def test_raise_defaults_to_running_reconcile_and_holds_the_lock(tmp_path, store, monkeypatch):
+    hub, _ = _ambiguous(tmp_path)
+    held = []
+
+    @contextlib.contextmanager
+    def fake(roots, action, **kw):
+        held.append(action)
+        yield None
+
+    monkeypatch.setattr(reconcile_apply, "corpus_write_lock", fake)
+    items = raise_relink_items(str(hub), store=store)
+    assert [i.type for i in items] == ["relink"] and is_unresolved(_card(hub))
+    assert held == ["reconcile relink raise"]
+    held.clear()
+    assert [i.item_id for i in raise_relink_items_unlocked(str(hub), store=store)] == [items[0].item_id]
+    assert held == []
+
+
+def test_raise_with_partial_list_unraises_the_rest_as_documented(tmp_path, store):
+    hub, _ = _ambiguous(tmp_path)
+    note = write_note(hub, f"{LN}/b.md", {"title": "b"}, "# Probit\n\nLatent index model. " * 9)
+    cards = load_shard(str(hub), "econ") + [{"file_id": "f2", "path": f"{LN}/b.md", "course": "econ",
+                                            "content_hash": compute_content_hash(str(note))}]
+    save_shard(str(hub), "econ", cards)
+    text = note.read_bytes()
+    (hub / f"{PS}/b1.md").write_bytes(text)
+    (hub / f"{PS}/b2.md").write_bytes(text)
+    os.remove(note)
+    full = reconcile(str(hub))
+    assert sorted(d.file_id for d in full if d.kind == "ambiguous") == ["f1", "f2"]
+    raise_relink_items(str(hub), full, store)
+    assert is_unresolved(_card(hub, "f1")) and is_unresolved(_card(hub, "f2"))
+    partial = [d for d in full if d.file_id == "f1"]
+    raise_relink_items(str(hub), partial, store)  # documented: a partial list un-raises the rest
+    assert is_unresolved(_card(hub, "f1")) and not is_unresolved(_card(hub, "f2"))
+    assert [e["finding"]["scope"] for e in store.pending()] == ["file_id:f1"]
+    raise_relink_items(str(hub), store=store)  # the default (full reconcile) restores it
+    assert is_unresolved(_card(hub, "f2")) and len(store.pending()) == 2
 
 
 # --- resolve / reject ---

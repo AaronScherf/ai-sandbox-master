@@ -13,7 +13,7 @@ from tools.corpus_health import actions
 from tools.corpus_health.cli import build_parser
 from tools.corpus_health.config import ScanConfig
 from tools.corpus_health.finding import Finding
-from tools.corpus_health.state import StateStore
+from tools.corpus_health.state import SELF_REFRESHED_KINDS, StateStore
 
 
 def _setup(tmp_path, monkeypatch):
@@ -113,6 +113,22 @@ def test_unsupported_accepted_card_repair_is_blocked(tmp_path, monkeypatch):
     result = actions.apply_accepted(config, store, runner=lambda *a, **k: (_ for _ in ()).throw(AssertionError("called")))
     assert result[0]["status"] == "blocked"
     assert "no exact-file" in result[0]["reason"]
+
+
+def test_accepted_relink_entry_is_never_applied_by_apply_accepted(tmp_path, monkeypatch):
+    config, store, _, _, finding, _ = _setup(tmp_path, monkeypatch)
+    relink = Finding("relink", "academic-hub-index", "academic_notes/econ/b.md", "Relink b.md", "ambiguous",
+                     suggested_action="choose", fingerprint="r1", scope="file_id:f1")
+    raised = store.refresh([relink], sweep_kinds=("relink",))[0]
+    store.decide(raised.finding_id, "accepted", raised.fingerprint)
+    # even if a scan somehow reported it, apply must leave relink entries to reconcile_apply.resolve
+    monkeypatch.setattr(actions, "scan", lambda _: SimpleNamespace(complete=True, findings=[finding, relink]))
+    result = actions.apply_accepted(config, store, runner=lambda *a, **k: SimpleNamespace(
+        returncode=1, stdout="", stderr=""))
+    assert all(item["kind"] != "relink" for item in result)
+    assert store.get_entry(raised.finding_id)["status"] == "accepted"
+    assert "relink" in {e["finding"]["kind"] for e in store.accepted()}
+    assert "relink" not in {e["finding"]["kind"] for e in store.accepted(exclude_kinds=SELF_REFRESHED_KINDS)}
 
 
 def test_failed_command_is_recorded_and_requires_new_review_after_scan(tmp_path, monkeypatch):

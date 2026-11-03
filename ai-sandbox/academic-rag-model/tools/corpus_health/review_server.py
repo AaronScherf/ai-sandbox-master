@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Callable
 from urllib.parse import parse_qs, urlsplit
 
-from tools.corpus_health.state import StateError, StateStore
+from tools.corpus_health.state import SELF_REFRESHED_KINDS, StateError, StateStore
 
 _MAX_BODY_BYTES = 64 * 1024
 
@@ -83,7 +83,8 @@ def _make_handler():
                 content_type = "text/html; charset=utf-8" if filename.endswith(".html") else "text/javascript; charset=utf-8"
                 self._send(200, body, content_type)
                 return
-            data = self.server.store.pending(include_deferred=self.server.include_deferred)
+            data = self.server.store.pending(include_deferred=self.server.include_deferred,
+                                             exclude_kinds=SELF_REFRESHED_KINDS)
             body = json.dumps(data, ensure_ascii=False).encode("utf-8")
             self._send(200, body, "application/json; charset=utf-8")
 
@@ -125,9 +126,12 @@ def _make_handler():
             self._send(200, json.dumps(payload).encode("utf-8"), "application/json; charset=utf-8")
 
         def _validate_current_many(self, finding_ids: list[str]) -> None:
+            entries = [self.server.store.get_entry(finding_id) for finding_id in finding_ids]
+            if any(entry is not None and entry.get("finding", {}).get("kind") in SELF_REFRESHED_KINDS
+                   for entry in entries):
+                raise StateError("relink/orphan findings are decided through the hub review page, not here")
             if self.server.validator is None:
                 return
-            entries = [self.server.store.get_entry(finding_id) for finding_id in finding_ids]
             if any(entry is None for entry in entries) or not self.server.validator(entries):
                 raise StateError("finding changed or no longer needs repair; run scan before reviewing")
 

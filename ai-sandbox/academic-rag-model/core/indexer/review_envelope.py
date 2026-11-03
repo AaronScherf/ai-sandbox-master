@@ -1,4 +1,5 @@
-"""Shared review-item envelope (hub-path-resilience P3, Task 5). PURE: no I/O, no writes.
+"""Shared review-item envelope (hub-path-resilience P3, Task 5). No writes; the only I/O is the
+optional read-only card lookup the pair adapters do when given `hub_root`.
 
 One shape for the three human-decision ledgers so a single review page can list them all, while each
 item is still applied through its own ledger's resolve/reject (spec: "Combining the review queues:
@@ -24,6 +25,7 @@ import hashlib
 from dataclasses import asdict, dataclass, field
 from typing import Literal
 
+from core.indexer.index_card import find_card_by_file_id
 from core.indexer.reconcile import Difference
 
 Status = Literal["pending", "accepted", "declined", "deferred"]
@@ -75,24 +77,36 @@ def difference_to_item(d: Difference) -> ReviewItem:
     raise ValueError(f"unknown difference kind {d.kind!r}")
 
 
-def _pair_item(kind: str, entry: dict, basis: str, score) -> ReviewItem:
+def _card_path(hub_root: str | None, file_id: str) -> str | None:
+    if hub_root is None:
+        return None
+    found = find_card_by_file_id(hub_root, file_id)
+    return found[1].get("path") if found else None
+
+
+def _pair_item(kind: str, entry: dict, basis: str, score, hub_root: str | None) -> ReviewItem:
+    """Both pair ledgers' review.json entries carry exactly {file_id_a, file_id_b, similarity |
+    pair_type, course}: no paths, no timestamps, no status (an entry in review.json is pending; resolved
+    and rejected ones are removed). The one candidate is the proposed pairing itself:
+    `{file_id: b, path: b's card path, subject_paths: [a's, b's], basis, score}`; paths are filled from
+    the cards (read only) when `hub_root` is given, else None. created/updated stay ""."""
     a, b = entry["file_id_a"], entry["file_id_b"]
+    path_a, path_b = _card_path(hub_root, a), _card_path(hub_root, b)
     return ReviewItem(
         _digest(kind, *sorted([a, b])), kind, [a, b],
-        [{"path": entry.get("path_b"), "file_id": b, "basis": basis, "score": score}],
-        "pending", entry.get("created", ""), entry.get("updated", ""),
+        [{"file_id": b, "path": path_b, "subject_paths": [path_a, path_b], "basis": basis, "score": score}],
+        "pending", "", "",
     )
 
 
-def offering_link_to_item(entry: dict) -> ReviewItem:
-    """An `offering_links` review.json entry ({file_id_a, file_id_b, similarity, course}). Read only:
-    entries in review.json are pending by construction (resolved/rejected ones are removed)."""
-    return _pair_item("offering_link", entry, "embedding_similarity", entry.get("similarity"))
+def offering_link_to_item(entry: dict, hub_root: str | None = None) -> ReviewItem:
+    """An `offering_links` review.json entry ({file_id_a, file_id_b, similarity, course}). Read only."""
+    return _pair_item("offering_link", entry, "embedding_similarity", entry.get("similarity"), hub_root)
 
 
-def pairing_to_item(entry: dict) -> ReviewItem:
+def pairing_to_item(entry: dict, hub_root: str | None = None) -> ReviewItem:
     """A `document_pairing` review.json entry ({file_id_a, file_id_b, pair_type, course}). Read only."""
-    return _pair_item("document_pairing", entry, entry.get("pair_type") or "document_pairing", None)
+    return _pair_item("document_pairing", entry, entry.get("pair_type") or "document_pairing", None, hub_root)
 
 
 def is_unresolved(card: dict) -> bool:
