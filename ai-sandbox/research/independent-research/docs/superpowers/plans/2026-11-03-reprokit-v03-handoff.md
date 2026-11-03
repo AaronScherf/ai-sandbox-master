@@ -1,4 +1,4 @@
-# reprokit v0.3 handoff (for a Claude session focused on reprokit)
+# reprokit v0.3 handoff (for a codex session focused on reprokit)
 
 Written 2026-11-03 by the Claude session that ran Phase A of Project 02. This is a brief, not an approved plan: the session picking it up should confirm scope with Aaron before building. Nothing below is built.
 
