@@ -53,6 +53,40 @@ def read_hub_id(path: str) -> str | None:
     return None
 
 
+def check_stampable(path: str, data: bytes | None = None) -> None:
+    """Raise ValueError if write_hub_id would refuse this file (empty
+    frontmatter block). Lets a dry run report exactly what --apply skips."""
+    if _is_json_scene(path):
+        return
+    if data is None:
+        with open(path, "rb") as f:
+            data = f.read()
+    lines = data.split(b"\n")
+    end = _frontmatter_end(lines)
+    if end is not None and not any(l.strip() for l in lines[1:end]):
+        raise ValueError(f"cannot stamp hub_id: empty frontmatter block in {path}")
+
+
+def replace_hub_id(path: str) -> str:
+    """Give a (possibly copied) note a fresh hub_id, replacing any existing
+    one in place, and return it. For clones, which must not share the
+    canonical's identity."""
+    with open(path, "rb") as f:
+        data = f.read()
+    lines = data.split(b"\n")
+    end = _frontmatter_end(lines)
+    if end is not None and not _is_json_scene(path):
+        for i in range(1, end):
+            if _FM_ID.match(lines[i].rstrip(b"\r")):
+                hub_id = new_hub_id()
+                cr = b"\r" if lines[i].endswith(b"\r") else b""
+                lines[i] = b"hub_id: " + hub_id.encode("ascii") + cr
+                with open(path, "wb") as f:
+                    f.write(b"\n".join(lines))
+                return hub_id
+    return write_hub_id(path)
+
+
 def write_hub_id(path: str, hub_id: str | None = None) -> str:
     """Stamp `hub_id` into the file and return it. Returns the existing id
     (file untouched) if one is already present.
@@ -67,11 +101,7 @@ def write_hub_id(path: str, hub_id: str | None = None) -> str:
         return existing
     with open(path, "rb") as f:
         data = f.read()
-    if not _is_json_scene(path):
-        lines = data.split(b"\n")
-        end = _frontmatter_end(lines)
-        if end is not None and not any(l.strip() for l in lines[1:end]):
-            raise ValueError(f"cannot stamp hub_id: empty frontmatter block in {path}")
+    check_stampable(path, data)
     hub_id = hub_id or new_hub_id()
     if _is_json_scene(path):
         new = _insert_json_key(data, hub_id)

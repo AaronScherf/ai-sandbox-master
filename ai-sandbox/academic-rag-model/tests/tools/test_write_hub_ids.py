@@ -74,3 +74,14 @@ def test_empty_frontmatter_is_skipped_and_reported(tmp_path):
     assert summary["skipped"][0][0].endswith("e.md") and "empty frontmatter" in summary["skipped"][0][1]
     assert empty.read_bytes() == b"---\n---\nbody\n"
     assert read_hub_id(str(ok))
+
+
+def test_dry_run_reports_empty_frontmatter_as_skipped(tmp_path):
+    hub = make_hub(tmp_path)
+    empty = hub / "academic_notes/econ/lecture_notes/e.md"
+    empty.write_bytes(b"---\n---\nbody\n")
+    write_note(hub, "academic_notes/econ/lecture_notes/ok.md", {"t": "1"}, "b\n")
+    summary = write_hub_ids.plan(str(hub))
+    assert summary["would_write"] == {"econ": 1}
+    assert len(summary["skipped"]) == 1 and "empty frontmatter" in summary["skipped"][0][1]
+    assert empty.read_bytes() == b"---\n---\nbody\n"

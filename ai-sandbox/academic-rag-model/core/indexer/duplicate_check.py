@@ -23,7 +23,7 @@ import sys
 from pathlib import Path
 
 from core.env.academic_hub_paths import textbook_rag_md_path
-from core.indexer.hub_identity import new_hub_id, write_hub_id
+from core.indexer.hub_identity import new_hub_id, replace_hub_id
 from core.indexer.index_card import compute_file_id, compute_id_from_parts, derive_course, find_card_by_file_id, list_courses, load_shard, now_iso, recompute_course_entry, save_shard
 from pipelines.convert_textbook.bib_info import extract_bibliographic_info_from_filename
 
@@ -389,7 +389,7 @@ def copy_duplicate_artifacts(
     # The clone is its own note: it gets a stored hub_id (written into the
     # copied book .md when there is one) alongside its stored file_id.
     clone_md = os.path.join(new_book_dir, f"{folder_name}.md")
-    clone_hub_id = write_hub_id(clone_md) if os.path.isfile(clone_md) else new_hub_id()
+    clone_hub_id = replace_hub_id(clone_md) if os.path.isfile(clone_md) else new_hub_id()
 
     # The copied _metadata.json is a byte-for-byte clone and so still names
     # the CANONICAL course's PDF. index_search.py's `rebuild` textbook

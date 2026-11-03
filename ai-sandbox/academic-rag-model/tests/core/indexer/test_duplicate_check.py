@@ -332,6 +332,26 @@ class TestCopyDuplicateArtifacts(unittest.TestCase):
         save_shard(academic_hub_root, course, [canonical_card])
         return book_dir, folder_name, canonical_card
 
+    def test_clone_gets_its_own_hub_id_distinct_from_canonicals(self):
+        from core.indexer.hub_identity import read_hub_id, write_hub_id
+        with tempfile.TemporaryDirectory() as academic_hub_root:
+            book_dir, folder_name, canonical_card = self._make_canonical_book(academic_hub_root)
+            canonical_md = os.path.join(book_dir, f"{folder_name}.md")
+            canonical_id = write_hub_id(canonical_md)
+
+            new_card = copy_duplicate_artifacts(
+                academic_hub_root, "econometrics", canonical_card, "microecon", "textbooks",
+                "academic_resources/microecon/textbooks/Ok.pdf",
+            )
+
+            clone_md = os.path.join(academic_hub_root, "academic_resources", "microecon", "textbooks",
+                                    "processed_outputs", folder_name, f"{folder_name}.md")
+            clone_id = read_hub_id(clone_md)
+            self.assertTrue(clone_id)
+            self.assertEqual(new_card["hub_id"], clone_id)
+            self.assertNotEqual(clone_id, canonical_id)
+            self.assertEqual(read_hub_id(canonical_md), canonical_id)
+
     def test_copies_all_artifact_files(self):
         with tempfile.TemporaryDirectory() as academic_hub_root:
             _, folder_name, canonical_card = self._make_canonical_book(academic_hub_root)

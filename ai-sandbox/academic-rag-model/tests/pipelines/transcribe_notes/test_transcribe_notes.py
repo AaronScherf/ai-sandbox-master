@@ -1019,6 +1019,21 @@ class TestLinkDuplicateNote(unittest.TestCase):
             f.write(pdf_bytes)
         return pdf_path
 
+    def test_clone_gets_its_own_hub_id_distinct_from_canonicals(self):
+        from core.indexer.hub_identity import read_hub_id, write_hub_id
+        with tempfile.TemporaryDirectory() as tmp:
+            _pdf_path, md_path, card = _make_canonical_card(tmp, "econometrics", "problem_sets", "00-review-questions")
+            canonical_id = write_hub_id(md_path)
+            clone_pdf_path = self._make_clone_pdf(tmp, "econometrics", "ta_notes", "00-review-questions")
+
+            new_card = link_duplicate_note(tmp, "econometrics", card, clone_pdf_path, "ta_notes")
+
+            clone_md = os.path.join(tmp, new_card["path"])
+            clone_id = read_hub_id(clone_md)
+            self.assertTrue(clone_id)
+            self.assertEqual(new_card["hub_id"], clone_id)
+            self.assertNotEqual(clone_id, canonical_id)
+
     def test_copies_canonical_body_with_repointed_frontmatter(self):
         with tempfile.TemporaryDirectory() as tmp:
             _pdf_path, _md_path, card = _make_canonical_card(tmp, "econometrics", "problem_sets", "00-review-questions")

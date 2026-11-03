@@ -17,7 +17,7 @@ import argparse
 import os
 
 from core.env.corpus_write_lock import corpus_write_lock
-from core.indexer.hub_identity import read_hub_id, write_hub_id
+from core.indexer.hub_identity import check_stampable, read_hub_id, write_hub_id
 from core.indexer.index_card import list_courses, load_shard, save_shard
 
 
@@ -42,10 +42,16 @@ def _authored_files(hub_root: str, include_excalidraw_json: bool):
 
 def plan(hub_root: str, include_excalidraw_json: bool = False) -> dict:
     would: dict[str, int] = {}
+    skipped: list[tuple[str, str]] = []
     for course, path in _authored_files(hub_root, include_excalidraw_json):
         if not read_hub_id(path):
+            try:
+                check_stampable(path)
+            except ValueError as err:
+                skipped.append((path, str(err)))
+                continue
             would[course] = would.get(course, 0) + 1
-    return {"would_write": would}
+    return {"would_write": would, "skipped": skipped}
 
 
 def apply(hub_root: str, include_excalidraw_json: bool = False) -> dict:
@@ -92,6 +98,8 @@ def main() -> None:
         summary = plan(args.hub_root, args.include_excalidraw_json)
         for course, count in summary["would_write"].items():
             print(f"{course}: would write {count}")
+        for path, reason in summary["skipped"]:
+            print(f"would skip: {path}: {reason}")
         print(f"total would write: {sum(summary['would_write'].values())} (dry run; pass --apply)")
         return
     print("NOTE: writes land in academic_notes/, a separate git repo; commit them there yourself.")
