@@ -52,8 +52,14 @@ Rules:
 - Every fact needs a `quote` copied exactly from the page text (8 to 300 characters; the shortest passage that
   supports the fact) and a `locator`: the page number from the passage's ref (`ref: page 3` means locator 3), or a
   list of page numbers. A quote that is not on the page you cite is rejected.
-- Use a `vocab_id` from the vocabularies below when a term fits; pick the most specific listed term. If none fits, write `proposed: true` instead of a
-  `vocab_id` and a short `value`. Never give both. Do not propose a term that is already listed.
+- Choosing a `vocab_id`: the vocabularies below are trees. An indented term is a child of the term above it, and most terms carry a definition. Read the
+  definitions. Choose a child term only when its definition describes something this paper itself does, studies or measures. If the paper deals with a grouping
+  term's topic in general terms, or none of its children matches what the paper itself reports, choose the grouping term itself: a grouping term is a valid
+  answer. Do not choose a child only because its label shares a theme with the paper. `value` is the paper's own wording for the thing, and the chosen term
+  must describe the same thing as `value`. If no listed term fits, write `proposed: true` instead of a `vocab_id` and a short `value`. Never give both. Do not
+  propose a term that is already listed.
+- Resilience outcomes concern a household's capacity to cope with shocks. A paper's adoption of adaptation or coping measures is not itself a resilience
+  outcome: record the measures as an intervention, or as an adoption outcome where the vocabulary has one.
 - `countries` are upper-case ISO 3166-1 alpha-2 codes. `scale` is one of local, subnational, national, multi_country,
   global, not_stated. `effect_direction` is one of positive, negative, null, mixed, not_reported.
 - `confidence` is your overall confidence in the study's causal claims: low, medium or high, with a one-line rationale.
@@ -68,6 +74,8 @@ Rules:
 - For a review, overview or competition paper, `data_sources` are only data the paper analysed itself. Data that the
   reviewed studies used, data described as other people's, and programme delivery channels are not data sources of the
   paper: leave them out.
+- Examples of the fit test. A child fits: the paper evaluates a cash grant and a child's definition describes cash grants, so use that child. No child fits: the
+  paper discusses adaptation strategies in general, so use the grouping term for adaptation strategies, not any one practice beneath it.
 - Write [] for any facet list the paper does not give. Give at least one result."""
 
 

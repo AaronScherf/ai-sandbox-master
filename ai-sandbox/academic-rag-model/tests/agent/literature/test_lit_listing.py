@@ -45,8 +45,10 @@ class TestListing(unittest.TestCase):
         self.assertIn("grouping levels", text)
 
     def test_the_prompt_version_names_the_3ie_instructions(self):
-        self.assertEqual(schema.PROMPT_VERSION, "extract-v4")
-        self.assertIn("most specific", stage.INSTRUCTIONS)
+        self.assertEqual(schema.PROMPT_VERSION, "extract-v5")
+        self.assertIn("Choose a child term only when its definition", stage.INSTRUCTIONS)
+        self.assertIn("Resilience outcomes concern a household's capacity", stage.INSTRUCTIONS)
+        self.assertNotIn("most specific listed term", stage.INSTRUCTIONS)
         self.assertIn("this study itself", stage.INSTRUCTIONS)
         self.assertIn("every distinct", stage.INSTRUCTIONS)
 
