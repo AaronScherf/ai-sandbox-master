@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from .. import tiers
-from ..papers import eligible_papers
+from ..papers import eligible_papers, unrecorded_papers
 from .classify import GapResult
 from .corpus import Corpus
 from .match import Constraint
@@ -36,6 +36,7 @@ def read_sidecar(target, index_root, db_file) -> Sidecar:
     db_file = Path(db_file)
     papers, _ = eligible_papers(str(index_root))
     have = set(target.records.all_ids())
+    missing, _ = unrecorded_papers(papers, have, target.records.excluded())
     ids = target.records.ids()
     open_c = 0
     scales = {}
@@ -52,7 +53,7 @@ def read_sidecar(target, index_root, db_file) -> Sidecar:
         if conn:
             conn.close()
     return Sidecar(eligible=len(papers), excluded=len(target.records.excluded()),
-                   without_record=len([p for p in papers if p.file_id not in have]), open_tier_c=open_c,
+                   without_record=len(missing), open_tier_c=open_c,
                    db_stale=any(p.stat().st_mtime > db_mtime for p in watched), db_path=str(db_file),
                    db_mtime=db_mtime, db_papers=db_papers, scales=scales)
 

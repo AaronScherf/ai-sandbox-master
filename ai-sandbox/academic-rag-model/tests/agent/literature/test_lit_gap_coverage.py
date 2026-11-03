@@ -4,13 +4,14 @@ import time
 import unittest
 from pathlib import Path
 
-from agent.literature import db
+from agent.literature import cli, db
 from agent.literature.gap.classify import classify
 from agent.literature.gap.coverage import COMPLETENESS, Sidecar, coverage, read_sidecar
 from agent.literature.gap.match import Constraint
 from agent.literature.gap.subregions import load_subregions
 from gap_helpers import VOCABS, fx, make_corpus, write_toy_tables
 from synth_helpers import F1, F2, F3, build, three_papers
+from lit_helpers import make_index
 
 
 def sidecar(**over):
@@ -87,6 +88,28 @@ class TestCoverage(unittest.TestCase):
 
 
 class TestReadSidecar(unittest.TestCase):
+    def test_without_record_matches_status_with_exclusion_and_duplicate(self):
+        import contextlib
+        import io
+        from types import SimpleNamespace
+        from unittest.mock import patch
+
+        with tempfile.TemporaryDirectory() as tmp:
+            target, _ = build(tmp, {F1: three_papers()[F1]})
+            make_index(tmp, F2, title="Unrecorded")
+            make_index(tmp, F3, title="Unrecorded")
+            extra = "d" * 16
+            make_index(tmp, extra, title="Excluded")
+            target.records.exclude([extra])
+            side = read_sidecar(target, tmp, db.db_path(tmp))
+            out = io.StringIO()
+            with patch.object(cli, "_target", return_value=target), contextlib.redirect_stdout(out):
+                cli.cmd_status(SimpleNamespace(index_root=tmp))
+            status_count = int(next(line.rsplit(": ", 1)[1] for line in out.getvalue().splitlines()
+                                    if line.startswith("papers without a record:")))
+            self.assertEqual(status_count, 1)
+            self.assertEqual(side.without_record, status_count)
+
     def test_counts_with_a_built_target_and_stale_detection(self):
         with tempfile.TemporaryDirectory() as tmp:
             target, _ = build(tmp, three_papers())

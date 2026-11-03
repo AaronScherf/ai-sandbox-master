@@ -71,3 +71,9 @@ def drop_duplicate_titles(papers: list[Paper], have_record: set[str]) -> tuple[l
             if p is not chosen:
                 skipped[p.file_id] = f"duplicate of {chosen.file_id} (same title); use --include-duplicates to extract it anyway"
     return [p for p in papers if p.file_id in keep], skipped
+
+
+def unrecorded_papers(papers: list[Paper], have: set[str], excluded) -> tuple[list[Paper], int]:
+    """Return unrecorded, non-excluded papers after title deduplication, and duplicate count."""
+    kept, dupes = drop_duplicate_titles(papers, have)
+    return [p for p in kept if p.file_id not in have and p.file_id not in excluded], len(dupes)

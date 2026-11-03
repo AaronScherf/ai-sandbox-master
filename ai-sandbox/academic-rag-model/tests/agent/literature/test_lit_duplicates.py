@@ -5,7 +5,7 @@ import unittest
 from pathlib import Path
 
 from agent.literature import cli
-from agent.literature.papers import Paper, drop_duplicate_titles
+from agent.literature.papers import Paper, drop_duplicate_titles, unrecorded_papers
 from lit_helpers import make_index, write_vocab_dir
 
 
@@ -29,6 +29,22 @@ class TestDropDuplicates(unittest.TestCase):
         kept, skipped = drop_duplicate_titles([_p("a1", ""), _p("b2", "")], set())
         self.assertEqual(len(kept), 2)
         self.assertEqual(skipped, {})
+
+
+class TestUnrecordedPapers(unittest.TestCase):
+    def test_counts(self):
+        cases = [
+            ([_p("a1", "Unique")], set(), set(), ["a1"], 0),
+            ([_p("a1", "Same"), _p("b2", "Same")], {"b2"}, set(), [], 1),
+            ([_p("a1", "Same"), _p("b2", "Same")], set(), set(), ["a1"], 1),
+            ([_p("a1", "Unique")], set(), {"a1"}, [], 0),
+            ([_p("a1", ""), _p("b2", "")], set(), set(), ["a1", "b2"], 0),
+        ]
+        for papers, have, excluded, expected, duplicates in cases:
+            with self.subTest(expected=expected, duplicates=duplicates):
+                missing, dupes = unrecorded_papers(papers, have, excluded)
+                self.assertEqual([p.file_id for p in missing], expected)
+                self.assertEqual(dupes, duplicates)
 
 
 class TestCollectSkipsDuplicates(unittest.TestCase):

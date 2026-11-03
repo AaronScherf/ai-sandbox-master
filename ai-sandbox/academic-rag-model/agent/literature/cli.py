@@ -15,7 +15,7 @@ from . import cluster as clusters, contribute, db as litdb, refine_grain, review
 from .backfill_years import backfill_years
 from .remap import remap_record
 from .gold import DEFAULT_PATH, load_gold, score_record, summarize
-from .papers import drop_duplicate_titles, eligible_papers
+from .papers import drop_duplicate_titles, eligible_papers, unrecorded_papers
 from .proposals import Proposals
 from .store import RecordStore
 from .vocab import DATA_DIR, load_vocabularies
@@ -450,13 +450,12 @@ def cmd_status(args) -> int:
     papers, skipped = eligible_papers(args.index_root)
     target = _target(args)
     have = set(target.records.all_ids())
-    kept, dupes = drop_duplicate_titles(papers, have)
-    excluded = target.records.excluded()
+    missing, duplicate_count = unrecorded_papers(papers, have, target.records.excluded())
     print(f"eligible papers: {len(papers)}")
     print(f"skipped papers: {len(skipped)}")
     print(f"records: {len(have & {p.file_id for p in papers})}")
-    print(f"papers without a record: {len([p for p in kept if p.file_id not in have and p.file_id not in excluded])}")
-    print(f"duplicate titles (not extracted): {len(dupes)}")
+    print(f"papers without a record: {len(missing)}")
+    print(f"duplicate titles (not extracted): {duplicate_count}")
     copies = sum(1 for fid in have & {p.file_id for p in papers}
                  if any("may not be independent" in m for m in ((target.records.read(fid, "a") or {}).get("review") or {}).get("items_flagged", [])))
     print(f"open vocabulary proposals: {len([p for p in target.proposals.open() if p['file_id'] not in target.records.excluded()])}")
