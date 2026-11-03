@@ -60,6 +60,13 @@ Rules:
   literature review, in cited studies, or in recommendations and future work.
 - Be complete: list every distinct outcome, intervention and data source the study itself reports, not only the
   main one.
+- `countries` are the countries of the paper's own sample or setting. For a review or overview, they are the countries
+  it explicitly says it covers. A country named only in examples, in a list of illustrative programmes, in background
+  statistics, or in funding and acknowledgements text is not a country of the study. A paper with no stated sample or
+  setting (a global or multi-country overview) gets `countries: []` and a `scale` of multi_country or global.
+- For a review, overview or competition paper, `data_sources` are only data the paper analysed itself. Data that the
+  reviewed studies used, data described as other people's, and programme delivery channels are not data sources of the
+  paper: leave them out.
 - Write [] for any facet list the paper does not give. Give at least one result."""
 
 

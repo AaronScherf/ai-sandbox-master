@@ -26,7 +26,9 @@ Rules:
 - Answer every item once. `verdict` is supported, not_supported or unclear.
 - `supported` needs a `quote` copied exactly from the page text (8 to 300 characters) and the page number as `locator`.
 - Judge only from the paper's own statements, not the reference list and not what you know of the topic.
-- A claim is supported only if the paper itself says it holds for this study. A passing mention of a topic is not support."""
+- A claim is supported only if the paper itself says it holds for this study. A passing mention of a topic is not support.
+- A country is supported only if it belongs to the paper's own sample or setting (for a review, the scope it explicitly
+  covers). A country named in examples, background or acknowledgements is not support."""
 
 
 def _pages_of(locator) -> list[int]:

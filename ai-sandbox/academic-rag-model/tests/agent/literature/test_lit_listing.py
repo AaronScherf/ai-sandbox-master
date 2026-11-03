@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import patch
 
-from agent.literature import schema, stage
+from agent.literature import schema, stage, verify
 from agent.literature.vocab import Term, Vocabulary
 
 
@@ -30,10 +30,22 @@ class TestListing(unittest.TestCase):
         self.assertIn("grouping levels", text)
 
     def test_the_prompt_version_names_the_3ie_instructions(self):
-        self.assertEqual(schema.PROMPT_VERSION, "extract-v3")
+        self.assertEqual(schema.PROMPT_VERSION, "extract-v4")
         self.assertIn("most specific", stage.INSTRUCTIONS)
         self.assertIn("this study itself", stage.INSTRUCTIONS)
         self.assertIn("every distinct", stage.INSTRUCTIONS)
+
+    def test_the_instructions_limit_countries_and_review_data_sources(self):
+        text = stage.INSTRUCTIONS
+        self.assertIn("own sample or setting", text)
+        self.assertIn("examples", text)
+        self.assertIn("acknowledgements", text)
+        self.assertIn("countries: []", text)
+        self.assertIn("review, overview or competition", text)
+        self.assertIn("analysed itself", text)
+
+    def test_the_checker_applies_the_same_country_test(self):
+        self.assertIn("own sample or setting", verify.INSTRUCTIONS)
 
 
 if __name__ == "__main__":
