@@ -30,7 +30,7 @@ Landing checks take too long: 175 logged runs of the landing gate (`.git/agent-l
 ### Step 1: measure (no behavior change)
 
 - Log `ChunkResult.seconds` per chunk in `check` events, plus the changed-path summary (top-level packages, extensions) and the reason the run was full.
-- Report the slowest tests with `--durations`, so a handful of slow tests can be isolated.
+- Report the slowest tests with `--durations`, so a handful of slow tests can be isolated. **Deferred (2026-11-03):** not implemented in steps 1-2; per-chunk timings are logged first, and `--durations` is added only if one chunk dominates.
 - Acceptance: one week of log data answers which chunk dominates and how often each trigger fires.
 
 ### Step 2: stop forcing `--full` (biggest win, lowest risk)
