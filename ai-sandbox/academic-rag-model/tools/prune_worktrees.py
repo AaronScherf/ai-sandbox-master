@@ -222,24 +222,24 @@ def run(root: Path, cwd: Path, argv: list[str]) -> tuple[int, list[str]]:
         return 0, lines
     failed = discovery_failed
     for owner, group in all_groups:
-      for item, _ in group["removable"]:
-        path = str(item["worktree"])
-        branch = str(item["branch"]).removeprefix("refs/heads/")
-        if Path(path).is_symlink() or Path(path).is_junction():
-            lines.append(f"Skipped junction/symlink: {path}")
-            failed = True
-            continue
-        lines.append(f"git worktree remove {path}")
-        removed = git(owner, "worktree", "remove", path)
-        if removed.returncode:
-            lines.append((removed.stderr or removed.stdout).strip())
-            failed = True
-            continue
-        lines.append(f"git branch -d {branch}")
-        deleted = git(owner, "branch", "-d", branch)
-        if deleted.returncode:
-            lines.append((deleted.stderr or deleted.stdout).strip())
-            failed = True
+        for item, _ in group["removable"]:
+            path = str(item["worktree"])
+            branch = str(item["branch"]).removeprefix("refs/heads/")
+            if Path(path).is_symlink() or Path(path).is_junction():
+                lines.append(f"Skipped junction/symlink: {path}")
+                failed = True
+                continue
+            lines.append(f"git worktree remove {path}")
+            removed = git(owner, "worktree", "remove", path)
+            if removed.returncode:
+                lines.append((removed.stderr or removed.stdout).strip())
+                failed = True
+                continue
+            lines.append(f"git branch -d {branch}")
+            deleted = git(owner, "branch", "-d", branch)
+            if deleted.returncode:
+                lines.append((deleted.stderr or deleted.stdout).strip())
+                failed = True
     for owner, _ in all_groups:
         lines.append("git worktree prune")
         pruned = git(owner, "worktree", "prune")
@@ -269,7 +269,7 @@ def main(argv: list[str] | None = None) -> int:
     known, rest = parser.parse_known_args(argv)
     cwd = Path.cwd()
     root = known.root or Path(git(cwd, "rev-parse", "--path-format=absolute", "--git-common-dir").stdout.strip()).parent
-    code, lines = run(root, root, rest)
+    code, lines = run(root, cwd, rest)
     print("\n".join(lines))
     return code
 

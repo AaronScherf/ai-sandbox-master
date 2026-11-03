@@ -171,7 +171,36 @@ class PruneWorktreesTests(unittest.TestCase):
             os.chdir(path)
             with contextlib.redirect_stdout(io.StringIO()) as worktree_output:
                 self.assertEqual(main([]), 0)
-            self.assertEqual(main_output.getvalue(), worktree_output.getvalue())
+            self.assertIn(f"main-checkout  main  {self.repo.as_posix()}", main_output.getvalue())
+            self.assertIn(f"main-checkout  main  {self.repo.as_posix()}", worktree_output.getvalue())
+        finally:
+            os.chdir(original)
+
+    def test_main_refuses_apply_inside_worktree(self):
+        import contextlib
+        import io
+        path = self.add("current")
+        original = Path.cwd()
+        try:
+            os.chdir(path)
+            with contextlib.redirect_stdout(io.StringIO()) as output:
+                code = main(["--apply"])
+            self.assertEqual(code, 2)
+            self.assertIn("Refusing --apply", output.getvalue())
+            self.assertTrue(path.exists())
+        finally:
+            os.chdir(original)
+
+    def test_main_classifies_invoking_worktree_current(self):
+        import contextlib
+        import io
+        path = self.add("current")
+        original = Path.cwd()
+        try:
+            os.chdir(path)
+            with contextlib.redirect_stdout(io.StringIO()) as output:
+                self.assertEqual(main([]), 0)
+            self.assertIn(f"current  current  {path.as_posix()}", output.getvalue())
         finally:
             os.chdir(original)
 
