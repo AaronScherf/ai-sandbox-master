@@ -26,7 +26,7 @@ import os
 from dataclasses import dataclass
 
 from core.env.academic_hub_paths import is_textbook_folder, textbook_folder_names, to_resources_root
-from core.env.hub_vocabulary import is_part_name
+from core.env.hub_vocabulary import parse_hub_path
 
 # Textbook folder names and the part_N pattern come from the hub vocabulary
 # (academic-hub/hub_config.json), shared with the indexer.
@@ -83,50 +83,63 @@ def _make_source_file(academic_hub_root: str, course: str, content_type: str, ab
     )
 
 
-def _course_roots(course_dir: str) -> list[str]:
+def _walk_layout_dirs(course_dir: str):
+    """Yield (parent_depth, parent_rel, name, path) for every directory below the course, depth-first,
+    skipping hidden folders and processed_outputs. Textbook folders are yielded but not descended into."""
     if not os.path.isdir(course_dir):
-        return []
-    parts = [os.path.join(course_dir, name) for name in sorted(os.listdir(course_dir))
-             if is_part_name(name)
-             and os.path.isdir(os.path.join(course_dir, name))]
-    return [course_dir, *parts]
+        return
+    for dirpath, dirnames, _ in os.walk(course_dir):
+        dirnames[:] = sorted(d for d in dirnames if not d.startswith(".") and d != "processed_outputs")
+        rel = os.path.relpath(dirpath, course_dir)
+        parent_rel = "" if rel == "." else rel.replace(os.sep, "/")
+        depth = 0 if not parent_rel else parent_rel.count("/") + 1
+        for name in list(dirnames):
+            yield depth, parent_rel, name, os.path.join(dirpath, name)
+            if is_textbook_folder(name):
+                dirnames.remove(name)
 
 
 def _discover_notes(academic_hub_root: str, course: str) -> list:
+    """A category directory is one the hub vocabulary names the category of its own contents (or, with no
+    known category, the legacy first folder), at any group-layer depth."""
     course_dir = os.path.join(academic_hub_root, "academic_notes", course)
+    category_dirs = []
+    for depth, parent_rel, name, path in _walk_layout_dirs(course_dir):
+        if is_textbook_folder(name):
+            continue
+        parsed = parse_hub_path(os.path.join(path, "placeholder.md"))
+        if parsed is not None and parsed.category == name:
+            category_dirs.append((depth, parent_rel, name, path))
     sources = []
-    for root in _course_roots(course_dir):
-        for category in sorted(os.listdir(root)):
-            if category.startswith(".") or is_textbook_folder(category) or (root == course_dir and is_part_name(category)):
+    for _, _, _, category_dir in sorted(category_dirs, key=lambda item: item[:3]):
+        for scan_dir in (category_dir, os.path.join(category_dir, "processed_outputs")):
+            if not os.path.isdir(scan_dir):
                 continue
-            category_dir = os.path.join(root, category)
-            if not os.path.isdir(category_dir):
-                continue
-            for scan_dir in (category_dir, os.path.join(category_dir, "processed_outputs")):
-                if not os.path.isdir(scan_dir):
-                    continue
-                for name in sorted(os.listdir(scan_dir)):
-                    candidate = os.path.join(scan_dir, name)
-                    if not name.startswith(".") and _is_real_md_file(name) and os.path.isfile(candidate):
-                        sources.append(_make_source_file(academic_hub_root, course, "notes", candidate))
+            for name in sorted(os.listdir(scan_dir)):
+                candidate = os.path.join(scan_dir, name)
+                if not name.startswith(".") and _is_real_md_file(name) and os.path.isfile(candidate):
+                    sources.append(_make_source_file(academic_hub_root, course, "notes", candidate))
     return sources
 
 
 def _discover_textbooks(academic_hub_root: str, course: str) -> list:
     sources = []
     course_dir = os.path.join(academic_hub_root, "academic_resources", course)
-    for root in _course_roots(course_dir):
-        for folder_name in textbook_folder_names():
-            processed_outputs_dir = os.path.join(root, folder_name, "processed_outputs")
-            if not os.path.isdir(processed_outputs_dir):
+    order = textbook_folder_names()
+    found = sorted(((depth, parent_rel, order.index(name.casefold()), path)
+                    for depth, parent_rel, name, path in _walk_layout_dirs(course_dir) if is_textbook_folder(name)),
+                   key=lambda item: item[:3])
+    for _, _, _, textbook_dir in found:
+        processed_outputs_dir = os.path.join(textbook_dir, "processed_outputs")
+        if not os.path.isdir(processed_outputs_dir):
+            continue
+        for book_folder in sorted(os.listdir(processed_outputs_dir)):
+            book_dir = os.path.join(processed_outputs_dir, book_folder)
+            if book_folder.startswith(".") or not os.path.isdir(book_dir):
                 continue
-            for book_folder in sorted(os.listdir(processed_outputs_dir)):
-                book_dir = os.path.join(processed_outputs_dir, book_folder)
-                if book_folder.startswith(".") or not os.path.isdir(book_dir):
-                    continue
-                md_path = os.path.join(book_dir, f"{book_folder}.md")
-                if os.path.isfile(md_path):
-                    sources.append(_make_source_file(academic_hub_root, course, "textbook", md_path))
+            md_path = os.path.join(book_dir, f"{book_folder}.md")
+            if os.path.isfile(md_path):
+                sources.append(_make_source_file(academic_hub_root, course, "textbook", md_path))
     return sources
 
 

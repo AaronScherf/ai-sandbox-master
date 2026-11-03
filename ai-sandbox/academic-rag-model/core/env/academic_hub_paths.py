@@ -74,8 +74,8 @@ def eligible_resource_note_pdf(path: str, notes_course_dir: str, marked: bool = 
     if any(p.startswith(".") or p == "processed_outputs" or is_textbook_folder(p)
            for p in parts[root_at + 2:-1]):
         return False
-    _, part, category = parsed
-    mirror = os.path.join(notes_course_dir, *((part,) if part else ()), category)
+    hub_path = parse_hub_path(path)
+    mirror = os.path.join(notes_course_dir, *hub_path.groups, hub_path.category)
     return marked or os.path.isdir(mirror)
 
 

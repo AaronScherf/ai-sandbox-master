@@ -78,10 +78,6 @@
       "kind": "category",
       "source": "seed"
     },
-    "past_exams": {
-      "kind": "category",
-      "source": "seed"
-    },
     "processed_outputs": {
       "kind": "ignore",
       "source": "seed"

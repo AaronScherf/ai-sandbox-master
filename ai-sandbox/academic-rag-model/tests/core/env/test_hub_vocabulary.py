@@ -10,7 +10,7 @@ from core.env.hub_vocabulary import (
 SEED_CATEGORIES = [
     "lecture_notes", "problem_sets", "ta_notes", "professor_notes", "textbooks", "textbooks-and-papers",
     "syllabus", "handwritten_notes", "cheat_sheet", "recitation_slides", "study_plan", "labs", "articles",
-    "briefings", "latex", "lecture_slides", "lecture_recordings", "past_exams",
+    "briefings", "latex", "lecture_slides", "lecture_recordings",
 ]
 
 
@@ -66,7 +66,7 @@ def test_shipped_config_has_the_seed():
         assert vocab.kind_of(name) == "category", name
     for name in ("processed_outputs", "images", "assets"):
         assert vocab.kind_of(name) == "ignore", name
-    for name in ("chapters", "summaries", "previous", "Solutions"):
+    for name in ("chapters", "summaries", "previous", "Solutions", "past_exams"):
         assert vocab.kind_of(name) is None, name
     assert vocab.textbook_folders == ("textbooks", "textbooks-and-papers")
 

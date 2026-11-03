@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from dataclasses import asdict, dataclass, field
 from pathlib import PurePosixPath
-from core.env.academic_hub_paths import course_part_category
+from core.env.hub_vocabulary import parse_hub_path
 
 ROLES = ("syllabus", "instructor", "student_notes", "recitation", "problem_set", "exam", "textbook", "other")
 FORMATS = ("slides", "handwritten", "typeset", "excalidraw", "chapter")
@@ -90,8 +90,8 @@ class Catalog:
             if candidate in self._by_path:
                 return self._by_path[candidate]
         parts = norm.split("/")
-        parsed = course_part_category(norm)
-        floor = 4 if parsed and parsed[1] else 3
+        parsed = parse_hub_path(norm)
+        floor = 3 + (len(parsed.groups) if parsed else 0)
         for depth in range(len(parts) - 1, floor - 1, -1):
             prefix = "/".join(parts[:depth]) + "/"
             under = [m for m in self.materials if m.path.startswith(prefix)]
