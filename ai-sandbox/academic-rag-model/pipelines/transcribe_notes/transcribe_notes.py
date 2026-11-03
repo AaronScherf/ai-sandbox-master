@@ -70,6 +70,7 @@ from core.env.gemini_utils import (
     load_json_cache,
     save_json_cache,
 )
+from core.indexer.hub_identity import write_hub_id
 from core.indexer.index_card import (
     KNOWN_DOC_TYPES,
     compute_content_hash,
@@ -1098,6 +1099,7 @@ def link_duplicate_note(academic_hub_root: str, canonical_course: str, canonical
     fields["folder_category"] = folder_category
     fields["duplicate_of_file_id"] = canonical_card["file_id"]
     fields["duplicate_of_path"] = canonical_card["path"]
+    fields.pop("hub_id", None)  # the clone is its own note: never inherit the canonical's identity
 
     output_dir = resolve_output_dir(pdf_path)
     os.makedirs(output_dir, exist_ok=True)
@@ -1105,6 +1107,7 @@ def link_duplicate_note(academic_hub_root: str, canonical_course: str, canonical
     new_md_path = os.path.join(output_dir, f"{basename}.md")
     with open(new_md_path, "w", encoding="utf-8") as f:
         f.write(render_frontmatter(fields) + body)
+    clone_hub_id = write_hub_id(new_md_path)
 
     rel_md_path = os.path.relpath(new_md_path, academic_hub_root).replace(os.sep, "/")
     course = derive_course(rel_pdf_path)
@@ -1119,6 +1122,7 @@ def link_duplicate_note(academic_hub_root: str, canonical_course: str, canonical
     new_card["offering_label"] = offering_label
     new_card["duplicate_of_file_id"] = canonical_card["file_id"]
     new_card["duplicate_of_path"] = canonical_card["path"]
+    new_card["hub_id"] = clone_hub_id
     new_card["content_hash"] = compute_content_hash(new_md_path)
     new_card["source_updated_at"] = now_iso()
     new_card.pop("orphaned", None)

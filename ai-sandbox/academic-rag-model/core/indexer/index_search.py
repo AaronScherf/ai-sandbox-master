@@ -409,12 +409,12 @@ def _video_lecture_note_paths(academic_hub_root: str, course_filter: str | None)
 
 
 def _clone_card_id(cards: list[dict], duplicate_of_file_id: str, rel_md_path: str,
-                   rel_pdf_path: str, stats: dict) -> str:
+                   rel_pdf_path: str, stats: dict, hub_id: str | None = None) -> str:
     """file_id of the clone card for a duplicate-linked note. Finds the
-    existing card even after the note moved (see find_clone_card); only
+    existing card even after the note moved, by its stored hub_id (see find_clone_card); only
     when none is found does it derive an id, and that case is counted in
     stats["clone_card_unresolved"] so it is visible, not silent."""
-    card = find_clone_card(cards, duplicate_of_file_id, rel_md_path)
+    card = find_clone_card(cards, duplicate_of_file_id, rel_md_path, hub_id)
     if card is not None:
         return card["file_id"]
     stats["clone_card_unresolved"] = stats.get("clone_card_unresolved", 0) + 1
@@ -858,7 +858,8 @@ def rebuild(academic_hub_root: str, client, course: str | None = None,
         duplicate_of_file_id = frontmatter_fields.get("duplicate_of_file_id")
         if duplicate_of_file_id:
             seen_file_ids.add(_clone_card_id(load_shard(academic_hub_root, course_name),
-                                             duplicate_of_file_id, rel_md_path, rel_pdf_path, stats))
+                                             duplicate_of_file_id, rel_md_path, rel_pdf_path, stats,
+                                             frontmatter_fields.get("hub_id") or None))
             stats["skipped_duplicate_clone"] += 1
             continue
 

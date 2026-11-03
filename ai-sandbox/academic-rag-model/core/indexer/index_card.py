@@ -458,17 +458,23 @@ def find_card_by_file_id(academic_hub_root: str, file_id: str) -> tuple[str, dic
     return None
 
 
-def find_clone_card(cards: list[dict], duplicate_of_file_id: str, rel_md_path: str) -> dict | None:
-    """The existing clone card for a duplicate-linked note: the card at
-    exactly this path if there is one, else the single card that names
-    this canonical document, else None. Never picks among several, so a
-    moved clone keeps its card without a guess being made silently."""
+def find_clone_card(cards: list[dict], duplicate_of_file_id: str, rel_md_path: str,
+                    hub_id: str | None = None) -> dict | None:
+    """The existing clone card for a duplicate-linked note: the card with
+    this note's stored `hub_id` if given (survives a move), else the card at
+    exactly this path, else None. It never infers a card from
+    `duplicate_of_file_id` alone (several clones can share one canonical, so
+    that was a silent guess); `duplicate_of_file_id` is kept in the signature
+    for callers but is not used for matching."""
+    if hub_id:
+        for card in cards:
+            if card.get("hub_id") == hub_id:
+                return card
     wanted = rel_md_path.replace("\\", "/")
     for card in cards:
         if str(card.get("path", "")).replace("\\", "/") == wanted:
             return card
-    candidates = [c for c in cards if c.get("duplicate_of_file_id") == duplicate_of_file_id]
-    return candidates[0] if len(candidates) == 1 else None
+    return None
 
 
 def _replace_card(cards: list[dict], file_id: str, updated: dict) -> list[dict]:

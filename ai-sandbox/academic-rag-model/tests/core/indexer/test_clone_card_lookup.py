@@ -11,12 +11,23 @@ def test_prefers_exact_path():
     assert find_clone_card([a, b], "canon", "notes/b.md") is b
 
 
-def test_after_move_uses_duplicate_id():
+def test_find_clone_card_prefers_hub_id_over_path():
+    a = dict(_clone("a", "notes/a.md"), hub_id="h1")
+    b = dict(_clone("b", "notes/b.md"), hub_id="h2")
+    assert find_clone_card([a, b], "canon", "notes/a.md", hub_id="h2") is b
+
+
+def test_moved_clone_with_hub_id_keeps_its_card():
+    a = dict(_clone("a", "notes/old/a.md"), hub_id="h1")
+    assert find_clone_card([a, {"file_id": "c", "path": "x.md"}], "canon", "notes/part_1/a.md", hub_id="h1") is a
+
+
+def test_moved_clone_without_hub_id_returns_none_even_if_single_candidate():
     a = _clone("a", "notes/old/a.md")
-    assert find_clone_card([a, {"file_id": "c", "path": "x.md"}], "canon", "notes/part_1/a.md") is a
+    assert find_clone_card([a], "canon", "notes/part_1/a.md") is None
 
 
-def test_ambiguous_returns_none():
+def test_two_clones_of_one_canonical_without_hub_id_returns_none():
     cards = [_clone("a", "notes/one/a.md"), _clone("b", "notes/two/b.md")]
     assert find_clone_card(cards, "canon", "notes/three/c.md") is None
 
@@ -28,8 +39,8 @@ def test_normalizes_windows_separators():
 
 def test_clone_card_id_keeps_existing_id_after_move():
     stats = {"clone_card_unresolved": 0}
-    cards = [_clone("existing-id", "notes/old/a.md")]
-    assert _clone_card_id(cards, "canon", "notes/new/a.md", "res/new/a.pdf", stats) == "existing-id"
+    cards = [dict(_clone("existing-id", "notes/old/a.md"), hub_id="h1")]
+    assert _clone_card_id(cards, "canon", "notes/new/a.md", "res/new/a.pdf", stats, hub_id="h1") == "existing-id"
     assert stats["clone_card_unresolved"] == 0
 
 

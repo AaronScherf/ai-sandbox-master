@@ -23,6 +23,7 @@ import sys
 from pathlib import Path
 
 from core.env.academic_hub_paths import textbook_rag_md_path
+from core.indexer.hub_identity import new_hub_id, write_hub_id
 from core.indexer.index_card import compute_file_id, compute_id_from_parts, derive_course, find_card_by_file_id, list_courses, load_shard, now_iso, recompute_course_entry, save_shard
 from pipelines.convert_textbook.bib_info import extract_bibliographic_info_from_filename
 
@@ -385,6 +386,11 @@ def copy_duplicate_artifacts(
 
     new_file_id = compute_id_from_parts([canonical_card["file_id"], new_course])
 
+    # The clone is its own note: it gets a stored hub_id (written into the
+    # copied book .md when there is one) alongside its stored file_id.
+    clone_md = os.path.join(new_book_dir, f"{folder_name}.md")
+    clone_hub_id = write_hub_id(clone_md) if os.path.isfile(clone_md) else new_hub_id()
+
     # The copied _metadata.json is a byte-for-byte clone and so still names
     # the CANONICAL course's PDF. index_search.py's `rebuild` textbook
     # backfill reads source_pdf_path (not source_pdf_file_id -- that field
@@ -424,6 +430,7 @@ def copy_duplicate_artifacts(
     new_card["path"] = f"{rel_new_book_dir}/{folder_name}.md"
     new_card["source_pdf_path"] = new_source_pdf_path
     new_card["duplicate_of_file_id"] = canonical_card["file_id"]
+    new_card["hub_id"] = clone_hub_id
     if new_rag_md_rel:
         new_card["rag_md_path"] = new_rag_md_rel
     new_card["source_updated_at"] = now_iso()
