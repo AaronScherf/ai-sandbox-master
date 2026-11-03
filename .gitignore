@@ -215,6 +215,15 @@ ai-sandbox/.gemini/
 # text), and large besides -- excluded by extension since it can land
 # anywhere under either tree.
 ai-sandbox/academic-hub/**/*.mp3
+
+# Hub heavy/copyrighted binaries: keep local only (guard rule R1). Docs
+# images under obsidian_styles stay trackable.
+ai-sandbox/academic-hub/**/*.pdf
+ai-sandbox/academic-hub/**/*.svg
+ai-sandbox/academic-hub/**/*.png
+ai-sandbox/academic-hub/**/*.jpg
+ai-sandbox/academic-hub/**/*.jpeg
+!ai-sandbox/academic-hub/obsidian_styles/**
 ai-sandbox/research/**/*.mp3
 
 # Local agent bug reports and evidence; may contain private source data.
