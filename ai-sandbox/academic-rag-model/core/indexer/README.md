@@ -22,7 +22,7 @@ Run any script here as a module from the `academic-rag-model/` root, e.g.
   is a parameter here, not a hardcoded constant, so a non-academic-hub corpus
   (e.g. `convert_essays/`, `convert_journal_articles/`) can classify into its own vocabulary
   instead of being force-fit into `textbook`/`problem_set`/`ta_notes`/
-  `handwritten_notes`. `source_pdf_path` is the identity anchor
+  `handwritten_notes`. The Markdown content hash (`compute_content_hash`) ignores location-only frontmatter fields (`LOCATION_FIELDS`), so moving a note does not make its card stale; cards that stored the old raw-bytes hash still compare via `content_hash_matches`. `source_pdf_path` is the identity anchor
   (`compute_file_id()` hashes its bytes); `source_asset_path` (2026-09-21)
   is a separate, additive field tracking the true heavy-asset location for
   academic-hub's `academic_notes`/`academic_resources` split — defaults to

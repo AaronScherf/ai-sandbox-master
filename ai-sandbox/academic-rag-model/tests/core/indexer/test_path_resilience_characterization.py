@@ -1,5 +1,3 @@
-import pytest
-
 from core.indexer.index_card import compute_content_hash
 from hub_fixture import make_hub, write_note
 
@@ -13,7 +11,6 @@ def _pair(tmp_path, body_a="body", body_b="body"):
     return a, b
 
 
-@pytest.mark.xfail(strict=True, reason="fixed by Task 2")
 def test_pure_move_keeps_content_hash(tmp_path):
     a, b = _pair(tmp_path)
     assert compute_content_hash(str(a)) == compute_content_hash(str(b))
