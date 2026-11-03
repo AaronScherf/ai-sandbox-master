@@ -5,6 +5,17 @@ from core.course_materials.model import AUTHORITY, ROLES, Catalog, CatalogError,
 N = "academic_notes/econometrics"
 
 
+def test_lookup_stops_at_category_in_part_layout():
+    c = Catalog("econometrics", [Material(path=f"{N}/part_1/ta_notes/a.md", role="recitation")])
+    assert c.lookup(f"{N}/part_1/professor_notes/missing.md") is None
+    assert c.lookup(f"{N}/part_1/ta_notes/other.md") is not None
+
+
+def test_lookup_keeps_legacy_category_fallback():
+    c = Catalog("econometrics", [Material(path=f"{N}/ta_notes/a.md", role="recitation")])
+    assert c.lookup(f"{N}/ta_notes/other.md") is not None
+
+
 def test_every_role_has_an_authority_group():
     assert set(AUTHORITY) == set(ROLES)
     assert Material(path="x", role="recitation").authority == Material(path="x", role="instructor").authority == "class"

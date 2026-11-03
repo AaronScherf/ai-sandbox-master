@@ -1,8 +1,14 @@
 from cm_helpers import LANDSCAPE, PORTRAIT, make_pdf
 
-from core.course_materials.signals import Facts, decide, pdf_shape
+from core.course_materials.signals import Facts, category_signal, decide, pdf_shape
 
 N = "academic_notes/demo"
+
+
+def test_category_vote_in_legacy_and_part_layouts():
+    for prefix in ("", "part_1/"):
+        votes = category_signal(facts(f"{prefix}ta_notes/processed_outputs/a.md"))
+        assert [(v.signal, v.value) for v in votes] == [("category folder ta_notes", "recitation")]
 
 
 def facts(path, fm=None, body="", card=None, shape=None):

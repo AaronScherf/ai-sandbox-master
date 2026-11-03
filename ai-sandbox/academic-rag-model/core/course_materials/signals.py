@@ -10,7 +10,7 @@ import re
 from dataclasses import dataclass, field
 from pathlib import Path, PurePosixPath
 
-from core.env.academic_hub_paths import TEXTBOOK_FOLDER_NAMES
+from core.env.academic_hub_paths import TEXTBOOK_FOLDER_NAMES, course_part_category
 
 from .model import AUTHORITY
 
@@ -101,9 +101,10 @@ _CATEGORY_FOLDERS = {"ta_notes": "recitation", "professor_notes": "instructor", 
 
 
 def category_signal(f: Facts) -> list[Vote]:
-    parts = f.path.split("/")
-    role = _CATEGORY_FOLDERS.get(parts[2]) if len(parts) > 3 else None
-    return [Vote(f"category folder {parts[2]}", "role", role, MEDIUM)] if role else []
+    parsed = course_part_category(f.path)
+    category = parsed[2] if parsed else None
+    role = _CATEGORY_FOLDERS.get(category)
+    return [Vote(f"category folder {category}", "role", role, MEDIUM)] if role else []
 
 
 def pdf_signal(f: Facts) -> list[Vote]:
