@@ -24,7 +24,7 @@ from dataclasses import dataclass
 from google.genai import types
 
 from core.env.gemini_utils import call_with_retries
-from core.indexer.index_card import EMBEDDING_DIMENSIONALITY, EMBEDDING_MODEL, EMBEDDING_MODEL_ID, compute_content_hash, list_courses, load_shard
+from core.indexer.index_card import EMBEDDING_DIMENSIONALITY, EMBEDDING_MODEL, EMBEDDING_MODEL_ID, content_hash_matches, list_courses, load_shard
 
 
 def chunks_dir(academic_hub_root: str) -> str:
@@ -441,7 +441,7 @@ def chunk(
                     target_status = "no_embedding"
                 elif not os.path.isfile(md_path):
                     target_status = "missing_source"
-                elif compute_content_hash(md_path) != card.get("content_hash"):
+                elif not content_hash_matches(md_path, card.get("content_hash")):
                     target_status = "stale_card"
                 else:
                     target_status = "current"

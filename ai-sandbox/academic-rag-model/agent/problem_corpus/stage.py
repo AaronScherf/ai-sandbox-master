@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from pathlib import PurePosixPath
 
 from core.agent_tasks.tasks import Passage, Task
-from core.indexer.index_card import compute_content_hash, load_shard, now_iso
+from core.indexer.index_card import content_hash_matches, load_shard, now_iso
 
 from .boundaries import detect_spans
 from .extractor import (_FRONTMATTER_RE, _PROBLEM_BEARING_FOLDER_CATEGORIES,
@@ -48,7 +48,7 @@ def _current(target: Target, subject: dict) -> bool:
     if not matches or matches[0].get("content_hash") != subject["content_hash"]:
         return False
     try:
-        return compute_content_hash(os.path.join(target.root, subject["path"])) == subject["content_hash"]
+        return content_hash_matches(os.path.join(target.root, subject["path"]), subject["content_hash"])
     except OSError:
         return False
 
@@ -117,7 +117,7 @@ def make_tasks(target: Target, *, course: str | None = None, file: str | None = 
             file_id = card["file_id"]
             md_path = os.path.join(target.root, path)
             try:
-                if compute_content_hash(md_path) != card["content_hash"]:
+                if not content_hash_matches(md_path, card["content_hash"]):
                     skipped[path] = "source changed since indexing; reindex before collecting"
                     continue
                 with open(md_path, encoding="utf-8") as source:

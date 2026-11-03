@@ -41,6 +41,8 @@ from core.indexer.index_card import (
     KNOWN_LEVELS,
     LECTURE_NOTE_DOC_TYPES,
     compute_content_hash,
+    compute_legacy_content_hash,
+    content_hash_matches,
     compute_file_id,
     compute_id_from_parts,
     cosine_similarity,
@@ -405,7 +407,8 @@ def _video_lecture_note_paths(academic_hub_root: str, course_filter: str | None)
                     yield course, path, meta_path
 
 
-def _is_stale(existing: dict, source_mtime: float, content_hash: str) -> bool:
+def _is_stale(existing: dict, source_mtime: float, content_hash: str,
+              legacy_content_hash: str | None = None) -> bool:
     """True if the .md file's content actually changed since this card
     was last written -- i.e. its file_id (derived from the unchanged
     PDF) and path didn't move, so reconciliation would otherwise never
@@ -424,7 +427,9 @@ def _is_stale(existing: dict, source_mtime: float, content_hash: str) -> bool:
     path), so the mtime branch only ever fires once per card."""
     stored_hash = existing.get("content_hash")
     if stored_hash is not None:
-        return stored_hash != content_hash
+        # A card written before location fields were excluded from the hash
+        # stores the raw-bytes (legacy) hash; accept either.
+        return stored_hash not in (content_hash, legacy_content_hash)
 
     raw = existing.get("source_updated_at")
     if not raw:
@@ -480,7 +485,13 @@ def _reconcile_one(academic_hub_root, course_name, folder_category, file_id, rel
             existing = c
             break
 
-    stale = existing is not None and _is_stale(existing, source_mtime, content_hash)
+    legacy_hash = None
+    if existing is not None and existing.get("content_hash") not in (None, content_hash):
+        try:
+            legacy_hash = compute_legacy_content_hash(os.path.join(academic_hub_root, rel_path))
+        except OSError:
+            legacy_hash = None
+    stale = existing is not None and _is_stale(existing, source_mtime, content_hash, legacy_hash)
     # source_asset_path=None means "this caller can't currently determine
     # it" (Task 2's convention), not "no change". A legacy card that never
     # had the key at all (pre-Task-2) is a silent backfill below, same
@@ -598,7 +609,7 @@ def _apply_markdown_row(academic_hub_root: str, row: dict, client) -> dict:
         result["status"] = "skipped" if row["action"] != "error" else "error"
         return result
     path = os.path.join(academic_hub_root, *row["path"].split("/"))
-    if not os.path.isfile(path) or compute_content_hash(path) != row["content_hash"]:
+    if not os.path.isfile(path) or not content_hash_matches(path, row["content_hash"]):
         result.update(status="changed_since_preview", action="error")
         return result
     with open(path, encoding="utf-8") as handle:

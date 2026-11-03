@@ -121,3 +121,14 @@ def test_api_is_explicit_and_uses_same_validation(tmp_path):
                 complete=lambda prompt: prompts.append(prompt) or RESULT) == 0
     assert len(prompts) == 1
     assert len(load_records(str(root), "math-camp")) == 3
+
+
+def test_current_accepts_legacy_stored_hash_for_note_with_location_fields(tmp_path):
+    from core.indexer.index_card import compute_legacy_content_hash
+    root, source = corpus(tmp_path)
+    source.write_text("---\nsource_pdf: a/x.pdf\n---\n\n" + BODY, encoding="utf-8", newline="\n")
+    legacy = compute_legacy_content_hash(str(source))
+    save_shard(str(root), "math-camp", [{"file_id": "aaa", "path": PATH, "course": "math-camp",
+                                         "content_hash": legacy, "orphaned": False, "needs_indexing": False}])
+    subject = {"course": "math-camp", "file_id": "aaa", "path": PATH, "content_hash": legacy}
+    assert stage._current(stage.Target(str(root)), subject) is True
