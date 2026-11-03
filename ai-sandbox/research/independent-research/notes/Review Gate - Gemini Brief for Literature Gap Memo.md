@@ -4,11 +4,12 @@ Drafted by Claude, 2026-11-03, for Gemini (Antigravity) to execute and Aaron to 
 
 ## Purpose
 
-Produce one document, **`ai-sandbox/research/independent-research/notes/Literature Gap Memo.md`**, that answers the three questions the gate requires (`Pilot Scope Realignment - Exploratory Review Gate.md`, section 6, step 2):
+Produce one document, **`ai-sandbox/research/independent-research/notes/Literature Gap Memo.md`**, that answers the three questions the gate requires (`Pilot Scope Realignment - Exploratory Review Gate.md`, section 6, step 2) plus a fourth that Aaron added on 2026-11-03:
 
 1. **What has already been published?** Are we duplicating an existing paper?
 2. **What is the specific contribution?** Does it advance Direction I of the PhD plan (climate adaptation, migration and cash transfers under conflict; `Ground Truth - PhD Research Plan.md`, section 03)?
 3. **What identification strategy is credible given the data gaps found in Phase A?**
+4. **What additional data would be useful or interesting to add to the panel?** Look at what the closest papers use that we lack, and at what would close the gaps the audit found.
 
 Aaron uses the memo to choose the research question, so the memo must tell him what is known and what was only searched for and not found. It must not propose or run any model.
 
@@ -46,6 +47,7 @@ Topics, each answered separately:
 4. **Selection in market-price data under conflict:** studies of WFP or FEWS NET price series with missing markets, access constraints or survival bias. This matters because the audit found that missing prices look programme-driven in Somalia and conflict-linked in Sudan.
 5. **Sudan since April 2023:** published or preprint work using ACLED and DTM or price data.
 6. **Datasets and methods papers** that fuse ACLED, CHIRPS, WFP and displacement data into district-month panels (the Project 02 tool angle).
+7. **Candidate additional data** (question 4). Start from what the closest papers use, then check at least these families: food-security classification (IPC, FEWS NET); malnutrition and health surveys; vegetation and drought indices beyond rainfall (NDVI/VHI, soil moisture, temperature, SPEI); exchange rates and USD or import prices; market access and roads; territorial control and humanitarian access constraints; other conflict sources (UCDP GED, GDELT); remittances and cash or social-protection programme data (the Direction I link); refugee and cross-border movement data (UNHCR, IDMC); night lights or settlement data as a population proxy.
 
 ### C. Write the memo
 
@@ -55,13 +57,14 @@ Structure it to match the three questions, plus:
 - **Evidence table:** each claim, its source, and whether you read the paper, the abstract only, or a record in the corpus.
 - **Not found:** queries that returned nothing relevant, so absence is documented, not asserted.
 - **Identification options the data allow**, as a list for Aaron to choose from, with each option's main threat from the audit (for example: a Somalia price design must start around 2023-07; a Sudan design cannot use prices as exposure). Do not rank them beyond saying which the gaps rule out.
+- **Additional data (question 4).** A table of the five to ten most worthwhile candidates. For each: source and provider, spatial and time resolution, coverage of Somalia and Sudan for 2021-01 to 2025-10, access route, licence and cost, and **which audit gap or paper-identified need it addresses** (for example: Somalia's thin pre-2023-07 prices, Sudan's pre-2023-08 displacement gap, price series not in a comparable currency, a population denominator that is a fixed 2014 estimate, no direct measure of access or market functioning). Mark each as core-style (could apply to both countries) or extension-style (one country only), and say whether it fits Direction I. Flag licences that restrict use: the Somalia COD-PS population file is limited to humanitarian operations, which is the kind of restriction to look for. End with a recommended shortlist of at most three, and say what each would allow that the current panel cannot.
 - **Open questions** for Aaron.
 
 ## Rules
 
 - **No fabrication.** Every citation needs a DOI or URL that you opened. If you cannot verify a paper, mark it unverified and say why.
 - **No raw ACLED rows** in any prompt, file or external AI tool. Counts and aggregates only.
-- **No modelling, regressions or new data collection.** This is a reading task.
+- **No modelling, regressions or data downloads into the panel.** This is a reading task: identify and describe candidate data, do not fetch or build it.
 - **Cost:** the default route is a subscription agent and no paid API. If any step would cost more than $1, stop and ask Aaron first.
 - **Verification states** as in `protocol.md`: label claims proposed, source-verified or corpus-derived. Nothing is "independently reproduced".
 - Work in your own `gemini/<task>` branch and worktree (`docs/WORKTREE_WORKFLOW.md`). Do not land on `main`; hand the branch to Aaron.
