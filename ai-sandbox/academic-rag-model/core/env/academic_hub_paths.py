@@ -16,6 +16,7 @@ import re
 from pathlib import Path
 
 from core.env.frontmatter import parse_frontmatter
+from core.env.hub_vocabulary import parse_hub_path
 
 _NOTES_ROOT_NAME = "academic_notes"
 _RESOURCES_ROOT_NAME = "academic_resources"
@@ -35,17 +36,14 @@ def is_textbook_folder(name: str) -> bool:
 
 
 def course_part_category(path: str) -> tuple[str, str | None, str | None] | None:
-    """Parse a file path below either hub root without treating part_N as category."""
-    parts = path.replace("\\", "/").split("/")
-    roots = [i for i, name in enumerate(parts) if name in (_NOTES_ROOT_NAME, _RESOURCES_ROOT_NAME)]
-    if not roots:
+    """Parse a file path below either hub root: (course, first group layer, category).
+
+    Delegates to the hub vocabulary (core.env.hub_vocabulary.parse_hub_path); a path with no known
+    category keeps the legacy part_N parse."""
+    parsed = parse_hub_path(path)
+    if parsed is None:
         return None
-    tail = parts[roots[-1] + 1:]
-    if len(tail) < 2:
-        return None
-    part = tail[1] if re.fullmatch(r"part_\d+", tail[1]) else None
-    category_at = 2 if part else 1
-    return tail[0], part, tail[category_at] if len(tail) > category_at + 1 else None
+    return parsed.course, parsed.groups[0] if parsed.groups else None, parsed.category
 
 
 def course_output_dir(hub_root: str | Path, course: str, category: str, part: str | None = None) -> Path:

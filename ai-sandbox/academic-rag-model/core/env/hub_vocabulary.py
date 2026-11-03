@@ -82,3 +82,49 @@ def load_vocabulary(path: Path | None = None) -> Vocabulary:
         return LEGACY_VOCABULARY
     _CACHE[path] = (mtime, vocab)
     return vocab
+
+
+# --- path parsing ---------------------------------------------------------------------------------
+_NOTES_ROOT_NAME = "academic_notes"
+_RESOURCES_ROOT_NAME = "academic_resources"
+_LEGACY_PART = re.compile(r"part_\d+")
+
+
+@dataclass(frozen=True)
+class HubPath:
+    root: str
+    course: str
+    groups: tuple[str, ...]
+    category: str | None
+    source: str  # "vocabulary" or "legacy"
+
+
+def _legacy_parse(root: str, tail: list[str]) -> HubPath:
+    """The position-based parse used before the vocabulary: only a `part_N` folder is a layer."""
+    part = tail[1] if _LEGACY_PART.fullmatch(tail[1]) else None
+    category_at = 2 if part else 1
+    category = tail[category_at] if len(tail) > category_at + 1 else None
+    return HubPath(root, tail[0], (part,) if part else (), category, "legacy")
+
+
+def parse_hub_path(path: str, vocab: Vocabulary | None = None) -> HubPath | None:
+    """Split a path below either hub root into course, group layers and category.
+
+    The category is the nearest ancestor folder the vocabulary knows as a category; folders between the
+    course and it are group layers. With no known category the legacy positional parse is returned
+    unchanged, so nothing moves until the owner confirms a name.
+    """
+    parts = path.replace("\\", "/").split("/")
+    roots = [i for i, name in enumerate(parts) if name in (_NOTES_ROOT_NAME, _RESOURCES_ROOT_NAME)]
+    if not roots:
+        return None
+    root = parts[roots[-1]]
+    tail = parts[roots[-1] + 1:]
+    if len(tail) < 2:
+        return None
+    vocab = vocab if vocab is not None else load_vocabulary()
+    folders = tail[1:-1]  # directories between the course and the file name
+    for i in range(len(folders) - 1, -1, -1):
+        if vocab.kind_of(folders[i]) == "category":
+            return HubPath(root, tail[0], tuple(folders[:i]), folders[i], "vocabulary")
+    return _legacy_parse(root, tail)
