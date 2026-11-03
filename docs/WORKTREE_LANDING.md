@@ -8,7 +8,9 @@ when a task branch is finished.
 Only the user lands work on `main`. Agents never merge into or push to `main`
 on their own. When a task branch is finished, the agent:
 
-1. Runs the landing check from any folder inside its worktree. A worktree has no
+1. Runs the landing check from `ai-sandbox/academic-rag-model/` inside its
+   worktree (the `tools` package must be importable, so the worktree root fails
+   with `No module named 'tools'`). A worktree has no
    `.venv` of its own (it is gitignored), so use the main checkout's interpreter:
    `C:\Users\theaa\ai-sandbox-master\ai-sandbox\academic-rag-model\.venv\Scripts\python.exe -m tools.land_branch check`.
    The check verifies the branch is clean, not on `main`, and not already
