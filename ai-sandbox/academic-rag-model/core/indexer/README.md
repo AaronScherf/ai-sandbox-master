@@ -169,3 +169,13 @@ passage-level search is needed. The scanner does not edit the nested
 `docs/status/indexer/2026-08-29-source-indexer-status.md` for narrative history — real bugs
 found and fixed, and the generalizations that let a second and third corpus
 (essays, journal articles) reuse this unchanged.
+
+## Hub folder vocabulary
+
+Which folder names are categories, group layers or plain sub-structure lives in `academic-hub/hub_config.json` (loaded by `core/env/hub_vocabulary.py`), not in code. `parse_hub_path` takes the nearest ancestor folder the vocabulary knows as a category; folders between the course and it are group layers (any depth). A path with no known category parses exactly as before, so an unconfirmed folder name changes nothing. A missing or invalid config falls back to the old rules with a warning.
+
+Maintaining it (no API calls):
+
+1. `python -m tools.hub_vocabulary propose --hub-root <hub>` prints candidate names learned from the tree (category = content in two or more courses; group = numbered/year/`part_N` or above a known category; ignore = infrastructure-looking names). Read-only.
+2. `python -m tools.hub_vocabulary confirm NAME {category,group,ignore} --hub-root <hub> [--alias-of CANONICAL]` stores one answer (`source: owner`). A different later answer needs `--replace`.
+3. `python -m tools.hub_vocabulary impact --hub-root <hub>` lists the files and cards whose category or groups would parse differently from the pre-vocabulary rules. Run it after confirming names and before the next transcription or index run: a newly confirmed category can make PDFs eligible for transcription that were skipped before, and `newly_eligible_pdfs` in its output lists exactly those (a paid run). The pipelines read `academic-hub/hub_config.json` (or `ACADEMIC_HUB_CONFIG`); pass `--config` if `<hub-root>/hub_config.json` is not that file, and note other worktrees see a confirmation only once it is merged.

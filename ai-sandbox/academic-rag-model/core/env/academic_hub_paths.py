@@ -16,6 +16,7 @@ import re
 from pathlib import Path
 
 from core.env.frontmatter import parse_frontmatter
+from core.env.hub_vocabulary import is_part_name, load_vocabulary, parse_hub_path
 
 _NOTES_ROOT_NAME = "academic_notes"
 _RESOURCES_ROOT_NAME = "academic_resources"
@@ -27,33 +28,32 @@ _SUBSET_MARKER_FILENAME = ".notes_subset.json"
 # same-named academic_notes/ category now exists -- notes-PDF discovery
 # must still never sweep academic_resources/<course>/textbooks/ into the
 # notes-transcription pipeline because of it.
-TEXTBOOK_FOLDER_NAMES = ("textbooks", "textbooks-and-papers")
+# The names now live in the hub vocabulary (academic-hub/hub_config.json, `textbook_folders`).
+def textbook_folder_names() -> tuple[str, ...]:
+    return load_vocabulary().textbook_folders
 
 
 def is_textbook_folder(name: str) -> bool:
-    return name.casefold() in TEXTBOOK_FOLDER_NAMES
+    return name.casefold() in textbook_folder_names()
 
 
-def course_part_category(path: str) -> tuple[str, str | None, str | None] | None:
-    """Parse a file path below either hub root without treating part_N as category."""
-    parts = path.replace("\\", "/").split("/")
-    roots = [i for i, name in enumerate(parts) if name in (_NOTES_ROOT_NAME, _RESOURCES_ROOT_NAME)]
-    if not roots:
+def course_part_category(path: str, vocab=None) -> tuple[str, str | None, str | None] | None:
+    """Parse a file path below either hub root: (course, first group layer, category).
+
+    Delegates to the hub vocabulary (core.env.hub_vocabulary.parse_hub_path); a path with no known
+    category keeps the legacy part_N parse."""
+    parsed = parse_hub_path(path, vocab)
+    if parsed is None:
         return None
-    tail = parts[roots[-1] + 1:]
-    if len(tail) < 2:
-        return None
-    part = tail[1] if re.fullmatch(r"part_\d+", tail[1]) else None
-    category_at = 2 if part else 1
-    return tail[0], part, tail[category_at] if len(tail) > category_at + 1 else None
+    return parsed.course, parsed.groups[0] if parsed.groups else None, parsed.category
 
 
 def course_output_dir(hub_root: str | Path, course: str, category: str, part: str | None = None) -> Path:
     """Resolve an output category, requiring a part when the layout is ambiguous."""
     course_dir = Path(hub_root) / "academic_notes" / course
-    parts = sorted(p.name for p in course_dir.iterdir() if p.is_dir() and re.fullmatch(r"part_\d+", p.name)) if course_dir.is_dir() else []
+    parts = sorted(p.name for p in course_dir.iterdir() if p.is_dir() and is_part_name(p.name)) if course_dir.is_dir() else []
     if part is not None:
-        if not re.fullmatch(r"part_\d+", part):
+        if not is_part_name(part):
             raise ValueError(f"invalid part {part!r}; expected part_N")
         if parts and part not in parts:
             raise ValueError(f"part {part!r} does not exist for {course}")
@@ -65,8 +65,8 @@ def course_output_dir(hub_root: str | Path, course: str, category: str, part: st
     return course_dir / parts[0] / category if parts else course_dir / category
 
 
-def eligible_resource_note_pdf(path: str, notes_course_dir: str, marked: bool = False) -> bool:
-    parsed = course_part_category(path)
+def eligible_resource_note_pdf(path: str, notes_course_dir: str, marked: bool = False, vocab=None) -> bool:
+    parsed = course_part_category(path, vocab)
     if parsed is None or parsed[2] is None:
         return False
     parts = path.replace("\\", "/").split("/")
@@ -74,8 +74,8 @@ def eligible_resource_note_pdf(path: str, notes_course_dir: str, marked: bool = 
     if any(p.startswith(".") or p == "processed_outputs" or is_textbook_folder(p)
            for p in parts[root_at + 2:-1]):
         return False
-    _, part, category = parsed
-    mirror = os.path.join(notes_course_dir, *((part,) if part else ()), category)
+    hub_path = parse_hub_path(path, vocab)
+    mirror = os.path.join(notes_course_dir, *hub_path.groups, hub_path.folder)
     return marked or os.path.isdir(mirror)
 
 

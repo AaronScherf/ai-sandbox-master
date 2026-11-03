@@ -93,8 +93,10 @@ def test_the_category_folders_vote_for_their_roles():
     assert decide(facts("syllabus/processed_outputs/s.md")).role == "syllabus"
     assert decide(facts("ta_notes/processed_outputs/01-terms.md")).role == "recitation"
     assert any(v.signal == "category folder ta_notes" for v in decide(facts("ta_notes/processed_outputs/01.md")).votes)
-    # Deeper folders with the same names are not the course's category folder.
-    assert not any(v.signal.startswith("category folder") for v in decide(facts("class_2024/syllabus/s.md")).votes)
+    # A group layer (class_2024) above a known category no longer hides it (hub vocabulary, P2).
+    assert any(v.signal == "category folder syllabus" for v in decide(facts("class_2024/syllabus/s.md")).votes)
+    # A name the vocabulary does not know is still not a category folder.
+    assert not any(v.signal.startswith("category folder") for v in decide(facts("class_2024/Syllabus Pack/s.md")).votes)
 
 
 def test_a_portrait_document_with_headings_and_long_lines_is_typeset():

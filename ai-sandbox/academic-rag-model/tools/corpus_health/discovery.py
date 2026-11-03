@@ -11,7 +11,7 @@ from pathlib import PurePosixPath
 from dataclasses import replace
 
 from core.indexer.audit import MarkdownIndexTarget, audit_markdown_index
-from core.env.academic_hub_paths import eligible_resource_note_pdf
+from core.env.academic_hub_paths import eligible_resource_note_pdf, is_textbook_folder
 from core.indexer.index_card import compute_content_hash, compute_file_id, list_courses, load_shard
 from tools.corpus_health.config import MarkdownPolicy, ScanConfig
 from tools.corpus_health.finding import Finding
@@ -20,7 +20,6 @@ from tools.git_workflow import GitError, current_branch, dirty_files
 from tools.active_work import build_report as active_work_report
 
 _PRUNED_DIRS = {".git", ".index", ".obsidian", "__pycache__", "processed_outputs"}
-_TEXTBOOK_DIRS = {"textbooks", "textbooks-and-papers"}
 _FIELD_RE = re.compile(r"^([A-Za-z0-9_-]+)\s*:")
 _POLICY_PRUNED_DIRS = {".git", ".index", ".obsidian", "__pycache__"}
 
@@ -84,7 +83,7 @@ def _is_textbook(path: Path, resources_root: Path) -> bool:
         relative = path.relative_to(resources_root)
     except ValueError:
         return False
-    return any(part.casefold() in _TEXTBOOK_DIRS for part in relative.parts[:-1])
+    return any(is_textbook_folder(part) for part in relative.parts[:-1])
 
 
 def _has_valid_subset_marker(path: Path, resources_root: Path, on_error=None) -> bool:
@@ -94,7 +93,7 @@ def _has_valid_subset_marker(path: Path, resources_root: Path, on_error=None) ->
         return False
     if not relative.parts:
         return False
-    if any(part.casefold() in _TEXTBOOK_DIRS for part in relative.parts[:-1]):
+    if any(is_textbook_folder(part) for part in relative.parts[:-1]):
         return False
     course_root = resources_root / relative.parts[0]
     current = path.parent
