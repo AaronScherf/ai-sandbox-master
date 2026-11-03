@@ -114,8 +114,11 @@ Guards (code, with tests):
 
 ### D6. Duplicate terms across sector branches
 
-Not changed in this work. Document it (F8) and add a reporting view that groups term ids by their shared label for counts and the gap report, so "Resilience"
-is counted once. Changing ids would invalidate every record; that is out of scope.
+Not changed in this work. Document it (F8). Changing ids would invalidate every record; that is out of scope.
+
+**Correction (2026-11-03, after Codex review):** the reporting view this section first asked for is not needed. `db dist` already groups by label
+(`GROUP BY label`) and the gap resolver already treats same-label terms as one group, so "Resilience" is already counted once. T5 was dropped. The 10%
+success criterion in D7 is therefore counted per label.
 
 ### D7. Trial, success criteria and rollout
 
@@ -174,3 +177,20 @@ These are definition edits to our own local vocabularies (`vocab_data/`), made t
    written and tested on fixtures now; **the real fetch waits for the owner's go-ahead**.
 3. Rollout covers the whole corpus: after the trial passes, every paper's intervention and outcome facets are refined again under the new wording, not only the
    unrefined ones ("start over"). The order in D7 still applies, with the already-refined papers going in the last batch.
+
+## Update (2026-11-03, later)
+
+- **Terms of use.** The owner read 3ie's terms: browsing, copying and downloading are allowed for personal and non-commercial use; commercial use and
+  misuse are prohibited; republished content needs the attribution "This [item] was first published by the International Initiative for Impact
+  Evaluation (3ie)" with a link. This project is non-commercial. Enriched vocabularies stay in the gitignored research directory, never in the public repo.
+  **If any public page (for example the personal website) ever shows 3ie definitions or the taxonomy, it needs that attribution.**
+- **Real fetch done.** The portal bundle was fetched once (home page, then `main.*.chunk.js`) and enrichment run on 2026-11-03: intervention 1,583 matched
+  (all 1,586 leaves now defined, up from 49), outcome 3,016 matched (3,017 of 3,032 leaves defined). The 13 existing definitions that differ from 3ie's are
+  group-level wording differences; we keep ours. Unmatched terms are our own additions (index outcomes and a few interventions).
+- **Codex review follow-ups (not yet built).** (1) `verify` treats an old verdict without a fact hash as current even if the transcript changed; it should treat
+  verdicts with a different `transcript_sha` as non-matching. (2) `enrich_3ie` bumps `version` and appends to `source` on every run; make it skip if the
+  bundle hash is already recorded, and tolerate a missing `source`. (3) Refine cards now carry leaf definitions (largest top-level branch about 64k
+  characters, intervention plus outcome up to about 125k on top of the paper); the 300k limit checks the transcript only. Measure real card sizes before the
+  trial.
+- **D9 applied** on the Codex branch (commit e55425d1): households and household survey include individuals; narrative_review covers commentary and
+  conceptual papers; qualitative excludes reviews. Versions bumped (population 4, data_source 5, study_design 5).
