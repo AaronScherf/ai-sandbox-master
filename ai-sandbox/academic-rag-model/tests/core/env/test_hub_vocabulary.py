@@ -167,3 +167,20 @@ def test_audio_discovery_honors_a_configured_textbook_folder(tmp_path, monkeypat
     notes.write_text("# n", encoding="utf-8")
     sources = discover_source_files(str(tmp_path / "hub"), "econ", ["notes"])
     assert all("course_readers" not in s.rel_md_path for s in sources)
+
+
+# --- Task 7 support: aliases (confirm --alias-of) -------------------------------------------------
+def test_alias_returns_the_canonical_category_name(tmp_path):
+    path = _write(tmp_path, {"names": {
+        "problem_sets": {"kind": "category", "source": "seed"},
+        "Problem Sets": {"kind": "category", "source": "owner", "alias_of": "problem_sets"},
+    }})
+    vocab = load_vocabulary(path)
+    got = parse_hub_path("academic_notes/econ/class_2024/Problem Sets/a.md", vocab)
+    assert (got.category, got.groups) == ("problem_sets", ("class_2024",))
+
+
+def test_alias_with_a_non_string_target_is_ignored(tmp_path):
+    path = _write(tmp_path, {"names": {"X": {"kind": "category", "source": "owner", "alias_of": 7}}})
+    vocab = load_vocabulary(path)
+    assert parse_hub_path("academic_notes/econ/X/a.md", vocab).category == "X"

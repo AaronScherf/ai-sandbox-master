@@ -32,6 +32,8 @@ class Vocabulary:
     group_patterns: tuple[str, ...] = _DEFAULT_GROUP_PATTERNS
     # `part_N` is a pipeline concept (--part, course_output_dir), narrower than a group layer.
     part_pattern: str = _DEFAULT_PART_PATTERN
+    # owner-confirmed spellings of a category: casefolded folder name -> canonical category name
+    aliases: Mapping[str, str] = field(default_factory=dict)
 
     def kind_of(self, name: str) -> str | None:
         return self.names.get(name.casefold())
@@ -55,17 +57,21 @@ def _parse(data: object) -> Vocabulary:
     if not isinstance(data, dict):
         raise ValueError("config root must be an object")
     names: dict[str, str] = {}
+    aliases: dict[str, str] = {}
     for name, entry in (data.get("names") or {}).items():
         kind = entry.get("kind") if isinstance(entry, dict) else None
         if kind not in KINDS:
             raise ValueError(f"name {name!r} has unknown kind {kind!r}")
         names[name.casefold()] = kind
+        if kind == "category" and isinstance(entry.get("alias_of"), str):
+            aliases[name.casefold()] = entry["alias_of"]
     textbooks = tuple(str(n).casefold() for n in data.get("textbook_folders", _DEFAULT_TEXTBOOK_FOLDERS))
     patterns = tuple(str(p) for p in data.get("group_patterns", _DEFAULT_GROUP_PATTERNS))
     part_pattern = str(data.get("part_pattern", _DEFAULT_PART_PATTERN))
     for pattern in (*patterns, part_pattern):
         re.compile(pattern)
-    return Vocabulary(names=names, textbook_folders=textbooks, group_patterns=patterns, part_pattern=part_pattern)
+    return Vocabulary(names=names, textbook_folders=textbooks, group_patterns=patterns, part_pattern=part_pattern,
+                      aliases=aliases)
 
 
 def load_vocabulary(path: Path | None = None) -> Vocabulary:
@@ -130,7 +136,8 @@ def parse_hub_path(path: str, vocab: Vocabulary | None = None) -> HubPath | None
     folders = tail[1:-1]  # directories between the course and the file name
     for i in range(len(folders) - 1, -1, -1):
         if vocab.kind_of(folders[i]) == "category":
-            return HubPath(root, tail[0], tuple(folders[:i]), folders[i], "vocabulary")
+            return HubPath(root, tail[0], tuple(folders[:i]), vocab.aliases.get(folders[i].casefold(), folders[i]),
+                           "vocabulary")
     return _legacy_parse(root, tail)
 
 
