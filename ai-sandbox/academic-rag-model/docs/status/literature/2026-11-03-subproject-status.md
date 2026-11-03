@@ -67,7 +67,16 @@ good enough, then design and build an opt-in loop that finds external works when
 
 ## Questions for the taxonomy (from the owner's audit, 2026-11-03)
 
-Checked against the vocabularies in `agent/literature/vocab_data/` and `research/resources/3ie/vocab/`. Each needs an owner decision.
+Checked against the vocabularies in `agent/literature/vocab_data/` and `research/resources/3ie/vocab/`.
+
+**Decided by the owner, 2026-11-03:** (1) households includes individuals, stated in the definitions; (2) follow 3ie's framework for resilience (a
+household's ability to weather shocks; climate adaptation is an intervention in 3ie, so adopting adaptation measures is not resilience); (3) commentary
+and conceptual papers go under `narrative_review`; (4) term selection has a systematic fault and gets fixed before any further refinement run; (5) plain
+wrong picks are extraction errors. The fix is designed in the
+[term-selection spec](../../superpowers/specs/literature_taxonomy/2026-11-03-term-selection-design.md), which also records the failure modes (F1 to F8)
+so a later run on a clean corpus does not repeat them. Headline findings there: 3ie defines every leaf term but our vocabularies hold group definitions
+only; the refinement listing is flat; the instruction pushes toward children; refinement was a one-time rollout that later papers skipped; the same
+over-picked term appears in both passes. The original notes follow for the record.
 
 1. **Individuals against households.** No individual-level term exists. Population has `households`, `general_population`, `women`, `children` and
    so on; data sources have `household_survey` and `panel_survey`. A survey of camp residents and a study of phone subscribers were labelled
@@ -93,7 +102,9 @@ Checked against the vocabularies in `agent/literature/vocab_data/` and `research
 ## Next steps, in order
 
 1. Done: paper-level precision pass, owner audit of the contested labels, Phase 1 doc updated.
-2. Owner decisions on the taxonomy questions above; then a prompt or vocabulary change and a re-extraction trial, if any.
+2. Term-selection redesign, per the [spec](../../superpowers/specs/literature_taxonomy/2026-11-03-term-selection-design.md): owner approves it; Codex builds
+   the leaf-definition enrichment, tree listing, instruction change and guards; Gemini runs a trial on about 28 papers; then refine the unrefined papers and,
+   if the trial passes, the already-refined ones again. No refinement run until this is done.
 3. Find out why two proposals are open on eligible papers (Phase 1 said none), then review them.
 4. Make re-extraction invalidate stale verification (spec for Codex: clear or re-key a record's verification when its transcript or facts change, with
    a test). Not started.
@@ -109,6 +120,7 @@ Checked against the vocabularies in `agent/literature/vocab_data/` and `research
   [synthesis](../../superpowers/specs/literature_taxonomy/2026-10-21-stage3-synthesis-design.md),
   [gap analysis](../../superpowers/specs/literature_taxonomy/2026-10-29-literature-gap-analysis-design.md),
   [recall probe](../../superpowers/specs/literature_taxonomy/2026-10-31-literature-gap-recall-probe-design.md),
+  [term selection redesign](../../superpowers/specs/literature_taxonomy/2026-11-03-term-selection-design.md),
   [roadmap](../../superpowers/specs/literature_taxonomy/2026-10-31-literature-discovery-roadmap.md).
 - Plans:
   [grain refinement](../../superpowers/plans/2026-10-25-literature-grain-refinement.md),
