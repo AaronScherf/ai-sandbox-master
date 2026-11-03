@@ -15,6 +15,10 @@ All figures are on the real database of 2026-11-02. Aggregates only: no quotes o
 
 Bar: at least 0.80 facet precision on tier A and B facts.
 
+> **2026-11-03: the method below judged one quote per fact, which cannot score paper-level labels (the owner could not do better
+> than the screen on short fragments). Re-measured at paper level on the corrected data; see "Criterion 1, re-measured" further down.
+> The table that follows is kept for history.**
+
 Method (replaces hand-checking 18 papers, which would have taken hours and mostly measured recall): a stratified sample of
 90 facts (30 each from tiers A, B and C, spread across facets, fixed seed, papers already in the gold set excluded). Each
 fact was judged blind to its tier on one question: does its supporting quote support the label as a fact about the paper?
@@ -130,8 +134,43 @@ Trial 2 (valid re-extraction of 10 papers, results restored afterwards; 20 passe
 This was the second trial; the first was not a valid re-extraction. Re-extraction runs must be checked for byte-identity against
 the backed-up records. Next: re-extract the eight papers, watch the outcome-fact counts, and fix the portal fact by hand.
 
+## Criterion 1, re-measured at paper level (2026-11-03)
+
+Data: after the eight papers were re-extracted under `extract-v4` and their stale verification redone. Tiers A 411, B 130, C 77.
+
+First attempt, discarded as a measure: 150 A/B facts (75 per tier, fixed seed, at most 4 per paper per tier) judged blind to tier on one quote
+each: 85 supported, 28 not supported, 37 unsure (strict 0.56). The unsure and not-supported facts were mostly labels no single sentence could settle
+(sector, population, data source), and the owner met the same limit when starting an audit. It measured the method.
+
+Method used: the same 150 facts, grouped by paper. Gemini (subscription) read each full paper and judged each label alone, blind to quote and tier:
+is the label a fair description of the paper's own work? Mention-only labels fail. Then the owner audited all 17 labels Gemini judged not fair plus
+10 random supported ones, reading the evidence pages in an Artifact. Owner verdicts replace Gemini's. Result: 135 supported, 9 not supported, 6 unsure.
+
+| Tier | n | Supported | Precision | 95% interval (Wilson) |
+|---|---|---|---|---|
+| A | 75 | 65 | 0.87 | 0.77 to 0.93 |
+| B | 75 | 70 | 0.93 | 0.85 to 0.97 |
+| **A+B weighted** (411 A, 130 B) | 150 | 135 | **0.88** | not computed |
+| A+B unweighted | 150 | 135 | 0.90 | 0.84 to 0.94 |
+
+Unsure counts as a failure here. By facet: countries 16 of 16, data sources 20 of 21, sector 18 of 19, outcome 29 of 33, population 20 of 23,
+intervention 18 of 21, study design 14 of 17.
+
+Reading it:
+- **Meets the 0.80 bar on the measured criterion**, by a clearer margin than the first check. Tier A's interval reaches down to 0.77.
+- Of the 17 contested labels the owner upheld 9 as not fair, reversed 3 to supported, and called 5 unsure. Of the 10 random supported, 9 were
+  confirmed and 1 became unsure, so Gemini's "supported" was reliable in a small check. If that one-in-ten rate held on the 123 unaudited
+  supported facts, precision would be about 0.82. Ten facts is a thin basis for that figure.
+- **Tier A is not more precise than tier B** (0.87 against 0.93; the difference is within noise). Two-pass agreement does not buy precision in
+  this sample; it may mainly select facts that are easy to find.
+- The 11 facts from re-extracted papers were all supported by Gemini (the owner audited none of them); too few to say more.
+- Of the 17 contested labels, Gemini's reasons put roughly ten down to a wrong or over-specific vocabulary term and about five to a label the paper
+  only mentions (my reading of the reasons, not an audited split). Several of the owner's "unsure" calls were questions about the taxonomy, not the
+  extraction; see the subproject status doc, "Questions for the taxonomy".
+
 ## Next
 
-- Re-extract the eight papers with `extract-v4` (above), then run the larger precision sample on the corrected data.
+- Phase 1 criterion 1 is met. Criterion 2 needs a re-check: two proposals are open on eligible papers (see the subproject status doc).
+- Taxonomy questions from the audit (individuals against households, "resilience", non-empirical designs): decide before the discovery loop.
 - Gap coverage `without_record` (`gap/coverage.py`) still counts excluded papers and duplicate-title copies; make it agree with `status`.
 - Phase 2: design the discovery loop (brainstorm, then spec). Chunked extraction goes on that list if the limit trial fails.
