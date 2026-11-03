@@ -36,6 +36,8 @@ def _blocked_reason(kind: str) -> str:
         return "no exact-file index-card reconciliation exists; rebuild scans a whole course"
     if kind in {"note_transcription_missing", "excalidraw_export_missing", "textbook_rag_output_missing"}:
         return "notes source pipeline quality and academic_notes sync-quiescence gates remain unresolved"
+    if kind in {"relink", "orphan_card"}:
+        return "relink findings are applied by core.indexer.reconcile_apply.resolve/reject"
     if kind == "textbook_conversion_missing":
         return "remote textbook conversion is outside automated apply in v1"
     return "no reviewed exact-file repair adapter exists for this finding kind"

@@ -30,6 +30,7 @@ from core.indexer.index_card import (
     recompute_course_entry,
     save_shard,
 )
+from core.indexer.review_envelope import is_unresolved
 
 OFFERING_LINK_AUTO_THRESHOLD = 0.90  # starting guess -- calibrate against real data via `--dry-run`
 OFFERING_LINK_REVIEW_THRESHOLD = 0.80  # starting guess -- calibrate against real data via `--dry-run`
@@ -342,6 +343,7 @@ def run_for_course(academic_hub_root: str, course: str, dry_run: bool = False) -
     all_cards = [
         c for c in load_shard(academic_hub_root, course)
         if c.get("embedding") and not c.get("orphaned") and not c.get("needs_indexing")
+        and not is_unresolved(c)  # an open relink item: its path is not trusted yet
     ]
     offerings = {c["file_id"]: derive_offering_for_card(c, academic_hub_root) for c in all_cards}
     cards_with_offerings = [(c, offerings[c["file_id"]]) for c in all_cards]

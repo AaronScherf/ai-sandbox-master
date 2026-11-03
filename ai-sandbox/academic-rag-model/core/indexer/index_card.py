@@ -633,6 +633,27 @@ def set_card_fields(academic_hub_root: str, file_id: str, fields: dict) -> bool:
     return True
 
 
+LINK_STATES = frozenset({"unresolved"})
+
+
+def set_link_state(academic_hub_root: str, file_id: str, state: str | None) -> bool:
+    """Sets (or with None removes) the card's `link_state` (hub-path-resilience P3: "unresolved" while
+    a relink review item is open, so consumers skip the card) and touches nothing else. Returns False,
+    never raises, when no card exists; raises ValueError for a state outside LINK_STATES."""
+    if state is not None and state not in LINK_STATES:
+        raise ValueError(f"unknown link_state: {state!r}")
+    found = find_card_by_file_id(academic_hub_root, file_id)
+    if found is None:
+        return False
+    course, card = found
+    updated = {k: v for k, v in card.items() if k != "link_state"}
+    if state is not None:
+        updated["link_state"] = state
+    if updated != card:
+        save_shard(academic_hub_root, course, _replace_card(load_shard(academic_hub_root, course), file_id, updated))
+    return True
+
+
 def set_rag_md_path(academic_hub_root: str, file_id: str, rag_md_path: str) -> bool:
     """Called by describe_images.py's hook (Task 10) once it produces
     .rag.md -- finds the existing card by file_id (reusing

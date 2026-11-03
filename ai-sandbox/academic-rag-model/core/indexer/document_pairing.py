@@ -34,6 +34,7 @@ from core.indexer.index_card import (
     recompute_course_entry,
     save_shard,
 )
+from core.indexer.review_envelope import is_unresolved
 
 PROBLEM_SOLUTION_PAIR_TYPE = "problem_solution"
 LECTURE_SLIDES_NOTES_PAIR_TYPE = "lecture_slides_notes"
@@ -355,7 +356,9 @@ def _pair_summary(card_a: dict, card_b: dict, pair_type: str) -> dict:
 
 
 def run_for_course(academic_hub_root: str, course: str, dry_run: bool = False) -> dict:
-    all_cards = [c for c in load_shard(academic_hub_root, course) if not c.get("orphaned")]
+    # An unresolved card has an open relink item: its path is not trusted yet, so it is no pair candidate.
+    all_cards = [c for c in load_shard(academic_hub_root, course)
+                 if not c.get("orphaned") and not is_unresolved(c)]
     auto_pairs, review_pairs = find_document_pairs(all_cards)
 
     dismissals = load_dismissals(academic_hub_root)

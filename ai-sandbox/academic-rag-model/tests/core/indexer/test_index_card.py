@@ -748,5 +748,20 @@ class TestComputeIdFromParts(unittest.TestCase):
         int(result, 16)  # raises ValueError if not valid hex
 
 
+class TestSetLinkState(unittest.TestCase):
+    def test_sets_and_clears_only_link_state(self):
+        from core.indexer.index_card import load_shard, save_shard, set_link_state
+        with tempfile.TemporaryDirectory() as hub:
+            card = {"file_id": "f1", "path": "academic_notes/econ/a.md", "content_hash": "h"}
+            save_shard(hub, "econ", [card])
+            self.assertTrue(set_link_state(hub, "f1", "unresolved"))
+            self.assertEqual(load_shard(hub, "econ"), [{**card, "link_state": "unresolved"}])
+            self.assertTrue(set_link_state(hub, "f1", None))
+            self.assertEqual(load_shard(hub, "econ"), [card])
+            self.assertFalse(set_link_state(hub, "missing", None))
+            with self.assertRaises(ValueError):
+                set_link_state(hub, "f1", "linked")
+
+
 if __name__ == "__main__":
     unittest.main()

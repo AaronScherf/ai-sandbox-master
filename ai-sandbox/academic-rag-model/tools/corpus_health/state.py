@@ -9,12 +9,15 @@ from contextlib import contextmanager
 from dataclasses import replace
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Iterator
+from typing import Collection, Iterator
 
 from tools.corpus_health.finding import Finding
 from tools.git_workflow import GitError, git_common_dir
 
 STATE_VERSION = 1
+# Finding kinds raised outside the corpus scan (core/indexer/reconcile_apply.raise_relink_items).
+# A full scan's refresh leaves them alone; their producer sweeps them itself.
+SELF_REFRESHED_KINDS = frozenset({"relink", "orphan_card"})
 
 
 class StateError(RuntimeError):
@@ -137,7 +140,14 @@ class StateStore:
                             finding.cost_category))
         return hashlib.sha256(value.encode("utf-8")).hexdigest()
 
-    def refresh(self, findings: list[Finding]) -> list[Finding]:
+    def refresh(self, findings: list[Finding], *,
+                sweep_kinds: Collection[str] | None = None) -> list[Finding]:
+        """Upsert `findings`; entries absent from them are marked vanished.
+
+        The vanish sweep is limited by kind: with `sweep_kinds=None` (a full corpus scan) every kind
+        except SELF_REFRESHED_KINDS is swept, since those are raised by their own producer (the
+        reconcile engine's `raise_relink_items`) and a scan that does not produce them must not vanish
+        them. A producer passes its own kinds; `()` upserts without sweeping anything."""
         now = _now()
         with _exclusive_lock(self.lock_path):
             data = self._load_unlocked()
@@ -211,7 +221,9 @@ class StateStore:
                 result.append(replace(finding, finding_id=finding_id))
 
             for finding_id, entry in entries.items():
-                if finding_id not in current_ids and entry.get("status") != "vanished":
+                kind = str(entry.get("finding", {}).get("kind", ""))
+                swept = (kind not in SELF_REFRESHED_KINDS) if sweep_kinds is None else (kind in sweep_kinds)
+                if swept and finding_id not in current_ids and entry.get("status") != "vanished":
                     entry["previous_status"] = entry.get("status")
                     entry["status"] = "vanished"
                     entry["vanished_at"] = now
@@ -225,6 +237,13 @@ class StateStore:
         if include_deferred:
             statuses.add("deferred")
         return [entry for entry in data["findings"].values() if entry.get("status") in statuses]
+
+    def entries(self, *, kinds: Collection[str] | None = None) -> list[dict]:
+        """Every ledger entry (any status), optionally limited to finding kinds."""
+        with _exclusive_lock(self.lock_path):
+            data = self._load_unlocked()
+        return [entry for entry in data["findings"].values()
+                if kinds is None or entry.get("finding", {}).get("kind") in kinds]
 
     def get_entry(self, finding_id: str) -> dict | None:
         with _exclusive_lock(self.lock_path):
