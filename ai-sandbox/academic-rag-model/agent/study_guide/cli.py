@@ -40,10 +40,6 @@ def default_root() -> str:
     return os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "academic-hub"))
 
 
-def _vault_dir(root: str, spec) -> Path:
-    return Path(root) / "academic_notes" / spec.course
-
-
 def plan_path_for(root: str, spec) -> Path:
     return course_output_dir(root, spec.course, "guide_plans", spec.part) / f"{spec.id}.plan.json"
 

@@ -37,6 +37,7 @@ def build_course(tmp_path, with_pdfs=True):
     converted("class_2023/deck/processed_outputs/1.Intro.md", "# Intro\n", "class_2023/deck/1.Intro.pdf", LANDSCAPE)
     write(res / "class_2023" / ".notes_subset.json", json.dumps({"label": "2023"}))
     write(notes / "summaries/guide.md", "# A generated study guide\n")
+    write(notes / "reviews/guide_audit_2026-10-25.md", "# A generated study-guide audit\n")
     return hub
 
 
@@ -59,7 +60,7 @@ def test_one_record_per_source_preferring_rag_and_raw_scenes_and_generated_dirs_
     paths = [m.path for m in classify_course(build_course(tmp_path), COURSE).materials]
     excal = [p for p in paths if "Demo 2026-09-09" in p]
     assert excal == [f"{N}/notes/processed_outputs/Demo 2026-09-09 10.00.00.excalidraw.rag.md"]
-    assert not any("summaries" in p for p in paths)
+    assert not any("summaries" in p or "/reviews/" in p for p in paths)
 
 
 def test_the_catalog_is_written_and_reloaded(tmp_path):

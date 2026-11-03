@@ -11,8 +11,8 @@ from core.env.frontmatter import parse_frontmatter
 from .model import DECIDABLE, FORMATS, ROLES, Catalog, CatalogError, Material, normalize, rag_twin
 from .signals import Facts, decide, pdf_shape
 
-# Folders other pipelines write into a course (study guides, guide plans, tutoring logs): outputs, not materials.
-GENERATED_DIRS = frozenset({"summaries", "guide_plans", "tutoring"})
+# Folders other pipelines write into a course (study guides, guide plans, tutoring logs, guide audits): outputs, not materials.
+GENERATED_DIRS = frozenset({"summaries", "guide_plans", "tutoring", "reviews"})
 _RAW_SCENE = re.compile(r"(?m)^excalidraw-plugin:")
 _ISO_DATE = re.compile(r"20\d\d-\d\d-\d\d")
 _MMDDYY = re.compile(r"^(\d\d)(\d\d)(\d\d)$")

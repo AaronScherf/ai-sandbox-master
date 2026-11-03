@@ -21,6 +21,14 @@ def _write(root, rel, data):
     return path
 
 
+@pytest.fixture(autouse=True)
+def _private_tempdir(tmp_path, monkeypatch):
+    """Keep backup folders, which are named under tempfile.gettempdir(), inside each test's tmp_path."""
+    tmp = tmp_path / "tmp"
+    tmp.mkdir()
+    monkeypatch.setattr(relocate.tempfile, "tempdir", str(tmp))
+
+
 @pytest.mark.parametrize("extension", ["svg", "png"])
 def test_source_image_root_correction_proof(tmp_path, monkeypatch, extension):
     root = tmp_path
