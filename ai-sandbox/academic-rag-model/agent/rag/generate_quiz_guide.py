@@ -15,6 +15,7 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
+from core.env.academic_hub_paths import course_output_dir
 from core.env.gemini_utils import call_with_retries, get_gemini_client, load_dotenv_override
 from core.indexer.index_search import search_passages
 from agent.rag.rag_agent import TUTOR_MODEL
@@ -23,7 +24,7 @@ from agent.rag.rag_agent import TUTOR_MODEL
 HUB_ROOT = Path(r"C:\Users\theaa\ai-sandbox-master\ai-sandbox\academic-hub").resolve()
 
 # Output destination in notes vault
-OUTPUT_DIR = HUB_ROOT / "academic_notes" / "econometrics" / "summaries"
+OUTPUT_DIR = course_output_dir(HUB_ROOT, "econometrics", "summaries")
 OUTPUT_FILE = OUTPUT_DIR / "wald_hypothesis_testing_quiz_prep.enhanced.md"
 
 SECTION_SPECS = [

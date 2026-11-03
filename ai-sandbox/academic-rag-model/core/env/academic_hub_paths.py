@@ -48,6 +48,23 @@ def course_part_category(path: str) -> tuple[str, str | None, str | None] | None
     return tail[0], part, tail[category_at] if len(tail) > category_at + 1 else None
 
 
+def course_output_dir(hub_root: str | Path, course: str, category: str, part: str | None = None) -> Path:
+    """Resolve an output category, requiring a part when the layout is ambiguous."""
+    course_dir = Path(hub_root) / "academic_notes" / course
+    parts = sorted(p.name for p in course_dir.iterdir() if p.is_dir() and re.fullmatch(r"part_\d+", p.name)) if course_dir.is_dir() else []
+    if part is not None:
+        if not re.fullmatch(r"part_\d+", part):
+            raise ValueError(f"invalid part {part!r}; expected part_N")
+        if parts and part not in parts:
+            raise ValueError(f"part {part!r} does not exist for {course}")
+        if not parts:
+            raise ValueError(f"course {course!r} has no part folders")
+        return course_dir / part / category
+    if len(parts) > 1:
+        raise ValueError(f"course {course!r} has multiple parts; specify --part")
+    return course_dir / parts[0] / category if parts else course_dir / category
+
+
 def eligible_resource_note_pdf(path: str, notes_course_dir: str, marked: bool = False) -> bool:
     parsed = course_part_category(path)
     if parsed is None or parsed[2] is None:

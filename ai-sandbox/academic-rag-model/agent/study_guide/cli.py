@@ -20,6 +20,7 @@ import os
 import sys
 from pathlib import Path
 
+from core.env.academic_hub_paths import course_output_dir
 from agent.study_guide.draft import DraftError, check_output, draft_guide, output_path, validate_tag
 from agent.study_guide.plan import (
     PlanError, accepted, apply_decisions, build_plan, check_fresh, load_plan, pending_entries, plan_sha256,
@@ -44,11 +45,11 @@ def _vault_dir(root: str, spec) -> Path:
 
 
 def plan_path_for(root: str, spec) -> Path:
-    return _vault_dir(root, spec) / "guide_plans" / f"{spec.id}.plan.json"
+    return course_output_dir(root, spec.course, "guide_plans", spec.part) / f"{spec.id}.plan.json"
 
 
 def review_path_for(root: str, spec) -> Path:
-    return _vault_dir(root, spec) / "guide_plans" / f"{spec.id}.review.json"
+    return course_output_dir(root, spec.course, "guide_plans", spec.part) / f"{spec.id}.review.json"
 
 
 def _paid_client(env_file: str | None):

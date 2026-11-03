@@ -86,44 +86,50 @@ def _make_source_file(academic_hub_root: str, course: str, content_type: str, ab
     )
 
 
-def _discover_notes(academic_hub_root: str, course: str) -> list:
-    course_dir = os.path.join(academic_hub_root, "academic_notes", course)
+def _course_roots(course_dir: str) -> list[str]:
     if not os.path.isdir(course_dir):
         return []
+    parts = [os.path.join(course_dir, name) for name in sorted(os.listdir(course_dir))
+             if name.startswith("part_") and name[5:].isdigit()
+             and os.path.isdir(os.path.join(course_dir, name))]
+    return [course_dir, *parts]
+
+
+def _discover_notes(academic_hub_root: str, course: str) -> list:
+    course_dir = os.path.join(academic_hub_root, "academic_notes", course)
     sources = []
-    for category in sorted(os.listdir(course_dir)):
-        category_dir = os.path.join(course_dir, category)
-        if not os.path.isdir(category_dir):
-            continue
-        # A category holds its .md files either directly (plain markdown
-        # notes, e.g. "markdown"/"lecture_notes") or under its own
-        # processed_outputs/ (OCR'd/converted notes, e.g. "ta_notes") --
-        # both are checked, non-recursively (spec §5).
-        for scan_dir in (category_dir, os.path.join(category_dir, "processed_outputs")):
-            if not os.path.isdir(scan_dir):
+    for root in _course_roots(course_dir):
+        for category in sorted(os.listdir(root)):
+            if category.startswith(".") or category in _TEXTBOOK_FOLDER_NAMES or (root == course_dir and category.startswith("part_")):
                 continue
-            for name in sorted(os.listdir(scan_dir)):
-                candidate = os.path.join(scan_dir, name)
-                if _is_real_md_file(name) and os.path.isfile(candidate):
-                    sources.append(_make_source_file(academic_hub_root, course, "notes", candidate))
+            category_dir = os.path.join(root, category)
+            if not os.path.isdir(category_dir):
+                continue
+            for scan_dir in (category_dir, os.path.join(category_dir, "processed_outputs")):
+                if not os.path.isdir(scan_dir):
+                    continue
+                for name in sorted(os.listdir(scan_dir)):
+                    candidate = os.path.join(scan_dir, name)
+                    if not name.startswith(".") and _is_real_md_file(name) and os.path.isfile(candidate):
+                        sources.append(_make_source_file(academic_hub_root, course, "notes", candidate))
     return sources
 
 
 def _discover_textbooks(academic_hub_root: str, course: str) -> list:
     sources = []
-    for folder_name in _TEXTBOOK_FOLDER_NAMES:
-        processed_outputs_dir = os.path.join(
-            academic_hub_root, "academic_resources", course, folder_name, "processed_outputs",
-        )
-        if not os.path.isdir(processed_outputs_dir):
-            continue
-        for book_folder in sorted(os.listdir(processed_outputs_dir)):
-            book_dir = os.path.join(processed_outputs_dir, book_folder)
-            if not os.path.isdir(book_dir):
+    course_dir = os.path.join(academic_hub_root, "academic_resources", course)
+    for root in _course_roots(course_dir):
+        for folder_name in _TEXTBOOK_FOLDER_NAMES:
+            processed_outputs_dir = os.path.join(root, folder_name, "processed_outputs")
+            if not os.path.isdir(processed_outputs_dir):
                 continue
-            md_path = os.path.join(book_dir, f"{book_folder}.md")
-            if os.path.isfile(md_path):
-                sources.append(_make_source_file(academic_hub_root, course, "textbook", md_path))
+            for book_folder in sorted(os.listdir(processed_outputs_dir)):
+                book_dir = os.path.join(processed_outputs_dir, book_folder)
+                if book_folder.startswith(".") or not os.path.isdir(book_dir):
+                    continue
+                md_path = os.path.join(book_dir, f"{book_folder}.md")
+                if os.path.isfile(md_path):
+                    sources.append(_make_source_file(academic_hub_root, course, "textbook", md_path))
     return sources
 
 

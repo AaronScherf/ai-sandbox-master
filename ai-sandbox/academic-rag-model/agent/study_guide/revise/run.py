@@ -25,6 +25,7 @@ from agent.study_guide.revise.organize import organize_edits
 from agent.study_guide.revise.relevance import Relevance, relevance_edits, score_blocks
 from agent.study_guide.revise.review import accepted_ids, write_review_items
 from agent.study_guide.revise.segment import segment, split_frontmatter
+from core.env.academic_hub_paths import course_output_dir
 from agent.study_guide.spec import GuideSpec, SpecError, load_spec
 from agent.summary_enhance.llm import usage_line
 
@@ -34,7 +35,7 @@ EXIT_OK, EXIT_INPUT, EXIT_CAP, EXIT_LLM = 0, 2, 3, 4
 
 def report_path(root: str, spec: GuideSpec, guide_path: str, tag: str) -> Path:
     name = Path(guide_path).stem + (f".{tag}" if tag else "") + ".revise.json"
-    return Path(root) / "academic_notes" / spec.course / "guide_plans" / name
+    return course_output_dir(root, spec.course, "guide_plans", spec.part) / name
 
 
 def revised_path(guide_path: str, tag: str) -> Path:

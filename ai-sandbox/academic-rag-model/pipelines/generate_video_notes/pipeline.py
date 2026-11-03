@@ -84,7 +84,7 @@ def _ensure_transcribed(video, course: str, video_notes_root: str, transcripts_b
 
 
 def run_pipeline(
-    course: str, urls: list, playlists: list, academic_hub_root: str, video_notes_root: str, client,
+    course: str, urls: list, playlists: list, academic_hub_root: str, video_notes_root: str, client, part: str | None = None,
 ) -> dict:
     videos = [fetch_video_metadata(url) for url in urls]
     for playlist_url in playlists:
@@ -139,7 +139,7 @@ def run_pipeline(
             "tier": group.tier,
             "synthesized_at": now_iso(),
         }
-        rel_md_path, rel_meta_path = write_group_note(academic_hub_root, course, group.slug, markdown, sidecar)
+        rel_md_path, rel_meta_path = write_group_note(academic_hub_root, course, group.slug, markdown, sidecar, part=part)
         index_group_note(academic_hub_root, course, group.member_video_ids, rel_md_path, rel_meta_path, client)
 
         new_group_states[group.group_id] = {
@@ -160,6 +160,7 @@ def main() -> None:
         description="Turn a batch of YouTube lecture videos into synthesized Markdown notes.",
     )
     parser.add_argument("--course", required=True, help="Matches an existing academic_notes/<course>/ folder.")
+    parser.add_argument("--part", help="Part folder, required when a course has multiple parts.")
     parser.add_argument("--urls", nargs="+", default=[], help="Individual YouTube video URLs.")
     parser.add_argument("--playlist", action="append", default=[], dest="playlists", help="A YouTube playlist URL (repeatable).")
     parser.add_argument("--urls-file", help="A text file with one URL per line, video or playlist (blank lines and #-comments are skipped).")
@@ -186,7 +187,7 @@ def main() -> None:
         parser.error("GEMINI_API_KEY is required to index the synthesized notes -- see ../.env.example")
 
     video_notes_root = os.path.dirname(os.path.abspath(__file__))
-    summary = run_pipeline(args.course, urls, playlists, args.academic_hub_root, video_notes_root, client)
+    summary = run_pipeline(args.course, urls, playlists, args.academic_hub_root, video_notes_root, client, part=args.part)
     print(f"Done: {summary}")
 
 

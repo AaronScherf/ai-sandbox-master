@@ -11,6 +11,7 @@ from pathlib import Path
 
 from agent.study_guide.plan import Plan, PlanEntry, accepted
 from agent.study_guide.prompts import guide_v1_prompt, tutor_v1_prompt, tutor_v1_question
+from core.env.academic_hub_paths import course_output_dir
 from agent.study_guide.spec import GuideSpec, TopicSpec
 from agent.study_guide.revise.cost import CostCapReached, cost_usd
 from agent.summary_enhance.llm import UnusableResponse, usage_line
@@ -44,7 +45,7 @@ class DraftError(Exception):
 
 def output_path(root: str, spec: GuideSpec, tag: str = "") -> Path:
     name = f"{spec.id}.{tag}.md" if tag else f"{spec.id}.md"
-    return Path(root) / "academic_notes" / spec.course / "summaries" / name
+    return course_output_dir(root, spec.course, "summaries", spec.part) / name
 
 
 def validate_tag(tag: str) -> None:
@@ -235,7 +236,7 @@ def draft_guide(spec: GuideSpec, plan: Plan, *, root: str, llm, chunks: list[dic
     document = frontmatter + f"# {spec.title}\n\n{INTRO if spec.citations == 'inline' else INTRO_STRIPPED}\n\n" + "\n\n---\n\n".join(blocks) + "\n"
 
     if spec.citations == "strip":
-        cited = Path(root) / "academic_notes" / spec.course / "guide_plans" / (out.stem + ".cited.json")
+        cited = course_output_dir(root, spec.course, "guide_plans", spec.part) / (out.stem + ".cited.json")
         cited.parent.mkdir(parents=True, exist_ok=True)
         cited.write_text(json.dumps(raw_answers, indent=1, ensure_ascii=False), encoding="utf-8", newline="\n")
     out.parent.mkdir(parents=True, exist_ok=True)

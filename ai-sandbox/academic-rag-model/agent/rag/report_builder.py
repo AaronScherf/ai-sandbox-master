@@ -27,6 +27,8 @@ import os
 import re
 from urllib.parse import quote
 
+from core.env.academic_hub_paths import course_output_dir
+
 _SLUG_MAX_LENGTH = 80
 
 
@@ -42,7 +44,7 @@ def report_path(question: str, reports_root: str, course: str | None) -> str:
     return os.path.join(reports_root, course or "uncategorized", f"{_slugify(question)}.html")
 
 
-def summary_path(question: str, academic_hub_root: str, course: str | None) -> str | None:
+def summary_path(question: str, academic_hub_root: str, course: str | None, part: str | None = None) -> str | None:
     """Returns the tablet-readable Markdown destination for a reported
     tutor answer. Keep it in the course's source-notes vault so the summary
     is available alongside the materials it cites. A non-academic corpus
@@ -51,7 +53,7 @@ def summary_path(question: str, academic_hub_root: str, course: str | None) -> s
     if not os.path.isdir(notes_root):
         return None
     course_dir = _slugify(course) if course else "uncategorized"
-    return os.path.join(notes_root, course_dir, "summaries", f"{_slugify(question)}.md")
+    return str(course_output_dir(academic_hub_root, course_dir, "summaries", part) / f"{_slugify(question)}.md")
 
 
 def build_markdown_summary(

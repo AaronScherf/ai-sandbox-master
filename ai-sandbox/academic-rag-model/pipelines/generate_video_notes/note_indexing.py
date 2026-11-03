@@ -20,13 +20,14 @@ from __future__ import annotations
 import json
 import os
 
+from core.env.academic_hub_paths import course_output_dir
 from core.indexer.index_card import LECTURE_NOTE_DOC_TYPES, compute_content_hash, compute_id_from_parts, reconcile_and_write
 
 
-def write_group_note(academic_hub_root: str, course: str, slug: str, markdown: str, sidecar: dict) -> tuple[str, str]:
+def write_group_note(academic_hub_root: str, course: str, slug: str, markdown: str, sidecar: dict, part: str | None = None) -> tuple[str, str]:
     """Writes the note + its `.meta.json` sidecar, returns their paths
     relative to academic_hub_root (what reconcile_and_write expects)."""
-    lecture_notes_dir = os.path.join(academic_hub_root, "academic_notes", course, "lecture_notes")
+    lecture_notes_dir = str(course_output_dir(academic_hub_root, course, "lecture_notes", part))
     os.makedirs(lecture_notes_dir, exist_ok=True)
 
     md_path = os.path.join(lecture_notes_dir, f"{slug}.md")

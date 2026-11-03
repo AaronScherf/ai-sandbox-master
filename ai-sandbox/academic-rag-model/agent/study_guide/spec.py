@@ -104,6 +104,7 @@ class GuideSpec:
     min_words: int = 800
     citations: str = "inline"
     revise: ReviseSpec | None = None
+    part: str | None = None
 
 
 _RULE_KEYS = {
@@ -244,7 +245,7 @@ def load_spec(path: str | Path) -> GuideSpec:
     guide = data.get("guide")
     if not isinstance(guide, dict):
         raise SpecError("spec: missing [guide] table")
-    _check_keys(guide, {"id", "title", "course"}, "[guide]")
+    _check_keys(guide, {"id", "title", "course", "part"}, "[guide]")
     guide_id = _str(guide, "id", "[guide]")
     if not _ID_RE.match(guide_id):
         raise SpecError(f"[guide]: id {guide_id!r} must be lowercase letters, digits and underscores")
@@ -315,4 +316,5 @@ def load_spec(path: str | Path) -> GuideSpec:
         prompt=prompt, label_match=label_match, top_k=_int(draft, "top_k", "[draft]", 180),
         file_top_k=_int(draft, "file_top_k", "[draft]", 80), notes=tuple(notes), topics=tuple(topics),
         comparisons=tuple(comparisons), path=str(p), sha256=hashlib.sha256(raw_bytes).hexdigest(),
-        min_words=min_words, citations=citations, revise=_parse_revise(data))
+        min_words=min_words, citations=citations, revise=_parse_revise(data),
+        part=_optional_str(guide, "part", "[guide]") or None)
