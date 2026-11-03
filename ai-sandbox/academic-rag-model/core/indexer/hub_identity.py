@@ -55,13 +55,24 @@ def read_hub_id(path: str) -> str | None:
 
 def write_hub_id(path: str, hub_id: str | None = None) -> str:
     """Stamp `hub_id` into the file and return it. Returns the existing id
-    (file untouched) if one is already present."""
+    (file untouched) if one is already present.
+
+    Raises ValueError, leaving the file untouched, if the file has a literal
+    empty frontmatter block (`---` fences with no key lines): stamping it would
+    change the content hash, since that block is indistinguishable from one
+    created for a bare note. Callers (the write_hub_ids tool) must catch this
+    and report the file as skipped."""
     existing = read_hub_id(path)
     if existing:
         return existing
-    hub_id = hub_id or new_hub_id()
     with open(path, "rb") as f:
         data = f.read()
+    if not _is_json_scene(path):
+        lines = data.split(b"\n")
+        end = _frontmatter_end(lines)
+        if end is not None and not any(l.strip() for l in lines[1:end]):
+            raise ValueError(f"cannot stamp hub_id: empty frontmatter block in {path}")
+    hub_id = hub_id or new_hub_id()
     if _is_json_scene(path):
         new = _insert_json_key(data, hub_id)
     else:

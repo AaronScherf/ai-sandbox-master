@@ -126,3 +126,11 @@ def test_empty_hub_id_line_filled_in_place(tmp_path, empty):
     hid = write_hub_id(p)
     assert read_hub_id(p) == hid
     assert open(p, "rb").read() == f"---\r\ntitle: A\r\nhub_id: {hid}\r\n---\r\nbody\r\n".encode()
+
+
+@pytest.mark.parametrize("orig", [b"---\n---\nbody\n", b"\xef\xbb\xbf---\r\n---\r\nbody\r\n"])
+def test_write_raises_on_empty_frontmatter_block(tmp_path, orig):
+    p = _w(tmp_path, "a.md", orig)
+    with pytest.raises(ValueError, match="a.md"):
+        write_hub_id(p)
+    assert open(p, "rb").read() == orig
