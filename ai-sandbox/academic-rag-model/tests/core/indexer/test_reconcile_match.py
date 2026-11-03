@@ -289,10 +289,54 @@ def test_case_variant_collision_keeps_both_files_and_never_guesses(tmp_path, mon
     snap = snapshot(str(hub))
     assert {e.path for e in snap.values() if e.path.casefold().endswith("week1.md")} == {
         f"{LN}/Week1.md", f"{LN}/week1.md"}
-    save_shard(str(hub), "econ", [_card("f1", f"{LN}/WEEK1.md", content_hash="nomatch")])
+    # The card's spelling is neither on-disk name, and its hash matches the Week1.md content.
+    save_shard(str(hub), "econ", [_card("f1", f"{LN}/WEEK1.md",
+                                        content_hash=compute_content_hash(str(hub / LN / "Week1.md")))])
     [d] = reconcile(str(hub))
     assert d.old_path == f"{LN}/WEEK1.md"
-    assert d.kind != "moved"
+    if real:
+        # Two distinct files: only the one whose hash matches is proven; the other is never chosen.
+        assert d.kind == "moved"
+        assert [c.path for c in d.candidates] == [f"{LN}/Week1.md"]
+    else:
+        # Both names list the same bytes: picking one spelling would be a guess.
+        assert d.kind == "ambiguous"
+        assert sorted(c.path for c in d.candidates) == [f"{LN}/Week1.md", f"{LN}/week1.md"]
+
+
+def test_clone_candidate_does_not_veto_clones_own_proven_move(tmp_path):
+    hub = make_hub(tmp_path)
+    original = write_note(hub, f"{LN}/o.md", {"title": "o"}, BODY)
+    clone = write_note(hub, f"{LN}/c.md", {"title": "o"}, BODY)
+    write_hub_id(str(original), "ORIGINAL0001")
+    write_hub_id(str(clone), "CLONE0000001")
+    cards = [_md_card(hub, f"{LN}/o.md", file_id="O", hub_id="ORIGINAL0001"),
+             _md_card(hub, f"{LN}/c.md", file_id="C", hub_id="CLONE0000001")]
+    original.unlink()
+    _move(hub, f"{LN}/c.md", f"{LN}/c2.md")
+    for order in (cards, cards[::-1]):
+        save_shard(str(hub), "econ", order)
+        diffs = _by_id(reconcile(str(hub)))
+        assert diffs["C"].kind == "moved"
+        assert [c.path for c in diffs["C"].candidates] == [f"{LN}/c2.md"]
+        assert diffs["O"].kind != "moved"
+
+
+def test_idless_twin_card_does_not_demote_hub_id_proven_move(tmp_path):
+    hub = make_hub(tmp_path)
+    note = write_note(hub, f"{LN}/h.md", {"title": "h"}, BODY)
+    write_hub_id(str(note), "HUBID0000001")
+    write_note(hub, f"{LN}/t.md", {"title": "h"}, BODY)  # same canonical hash, no hub_id
+    cards = [_md_card(hub, f"{LN}/h.md", file_id="H", hub_id="HUBID0000001"),
+             _md_card(hub, f"{LN}/t.md", file_id="T")]
+    (hub / LN / "t.md").unlink()
+    _move(hub, f"{LN}/h.md", f"{LN}/h2.md")
+    for order in (cards, cards[::-1]):
+        save_shard(str(hub), "econ", order)
+        diffs = _by_id(reconcile(str(hub)))
+        assert diffs["H"].kind == "moved"
+        assert [(c.path, c.basis) for c in diffs["H"].candidates] == [(f"{LN}/h2.md", "hub_id")]
+        assert diffs["T"].kind == "ambiguous"
 
 
 def test_reconcile_makes_no_api_call(tmp_path, monkeypatch):

@@ -28,8 +28,11 @@ Rules (spec section 4, strongest first):
 - Exact candidates (hub_id / hash) among files no card claims: one -> `moved`, several -> `ambiguous`.
   A hub_id-tier card's content-hash fallback is decisive only for files with no hub_id; a file that
   matches by content but carries a different hub_id (a clone) is an `ambiguous` candidate only.
-- After all cards are classified, a `moved` whose target is also an exact or git candidate of another
-  card becomes `ambiguous`: two cards never both move onto one file.
+- A content-tier card's hash match onto a file carrying another card's hub_id is not decisive: the
+  hub_id proof belongs to that card.
+- After all cards are classified, a `moved` whose target is also a decisive exact candidate of another
+  card becomes `ambiguous`: two cards never both move onto one file. Non-decisive candidates never
+  veto a proven move.
 - Path lookup is case-insensitive (per-character lowercase, not str.casefold); when several on-disk
   names share a key, only the exact spelling resolves.
 - Only with no exact candidate: a git rename of the card path is a candidate; it is `moved` only if
@@ -197,8 +200,10 @@ def _jaccard(a: set, b: set) -> float:
 class _Matcher:
     """Lazy, cached evidence over the files no card claims."""
 
-    def __init__(self, hub_root: str, snap: dict[str, FileEntry], claimed: set[str], vocab: Vocabulary):
+    def __init__(self, hub_root: str, snap: dict[str, FileEntry], claimed: set[str], vocab: Vocabulary,
+                 card_hub_ids: frozenset[str] = frozenset()):
         self.hub_root = hub_root
+        self.card_hub_ids = card_hub_ids
         self.snap = snap
         self.vocab = vocab
         self.unclaimed = [e for e in snap.values() if e.path not in claimed]
@@ -260,6 +265,8 @@ class _Matcher:
                 return "hub_id"
             if found is not None:
                 return None
+        if tier == "content" and self.hub_id_of(entry) in self.card_hub_ids:
+            return None
         if tier in ("hub_id", "content") and card.get("content_hash") and _ext(entry.path) == _ext(card["path"]):
             hashes = self.hashes(entry)
             if hashes and card["content_hash"] in hashes:
@@ -290,6 +297,11 @@ class _Matcher:
                 if foreign:
                     return (candidates, f"canonical content hash ({len(foreign)} of them carry a different "
                             f"hub_id, so none is decisive)", False)
+            else:
+                owned = [e for e in hits if self.hub_id_of(e) in self.card_hub_ids]
+                if owned:
+                    return (candidates, f"canonical content hash ({len(owned)} of them carry the hub_id of "
+                            f"another card, so none is decisive)", False)
             return candidates, "canonical content hash", True
         if not card.get("file_id"):
             return [], "", True
@@ -387,11 +399,18 @@ def _from_exact(card: dict, old: str, candidates: list[Candidate], label: str, d
                       f"{why}; {len(candidates)} file(s) match by {label}, none chosen")
 
 
-def _demote_contested(differences: list[Difference]) -> None:
-    """A `moved` whose target is also a non-similarity candidate of another difference becomes
-    `ambiguous`: several cards compete for one file, and choosing would be a silent guess."""
+def _demote_contested(differences: list[Difference], decisive: list[bool]) -> None:
+    """A `moved` whose target is also a decisive exact candidate of another difference becomes
+    `ambiguous`: several cards have proof for one file, and choosing would be a silent guess.
+
+    Only decisive evidence counts as a claim (a `moved`, or several decisive exact matches); a
+    non-decisive candidate (a clone carrying another hub_id, an unproven git rename, a similarity
+    hint) never vetoes another card's proven move. Computed over all differences, so card order
+    does not matter."""
     claims: dict[str, int] = {}
-    for d in differences:
+    for d, strong in zip(differences, decisive):
+        if not strong:
+            continue
         for key in {_key(c.path) for c in d.candidates if c.basis != "similarity"}:
             claims[key] = claims.get(key, 0) + 1
     for d in differences:
@@ -406,8 +425,10 @@ def reconcile(hub_root: str) -> list[Difference]:
     cards = [c for c in _all_cards(hub_root) if c.get("path") and c.get("file_id")]
     claimed = {entry.path for c in cards for f in _HINT_FIELDS
                if isinstance(c.get(f), str) and (entry := _lookup(snap, c[f])) is not None}
-    matcher = _Matcher(hub_root, snap, claimed, _vocabulary(hub_root))
+    card_hub_ids = frozenset(c["hub_id"] for c in cards if isinstance(c.get("hub_id"), str) and c["hub_id"])
+    matcher = _Matcher(hub_root, snap, claimed, _vocabulary(hub_root), card_hub_ids)
     differences: list[Difference] = []
+    decisive: list[bool] = []  # parallel to differences: does this one carry proof for its candidates
     for card in cards:
         card = dict(card, path=card["path"].replace("\\", "/"))
         old, tier = card["path"], _tier(card)
@@ -424,18 +445,21 @@ def reconcile(hub_root: str) -> list[Difference]:
                 why = "file at card path has different bytes"
             else:
                 continue
-            exact, label, decisive = matcher.exact(card, tier)
+            exact, label, strong = matcher.exact(card, tier)
             if exact:
-                differences.append(_from_exact(card, old, exact, label, decisive, why))
+                differences.append(_from_exact(card, old, exact, label, strong, why))
+                decisive.append(strong)
             elif tier == "hub_id":
                 differences.append(Difference("orphan", card["file_id"], old, [],
                                               f"{why}; no other file carries the card's hub_id or hash"))
+                decisive.append(False)
             continue
 
         why = "card path does not exist"
-        exact, label, decisive = matcher.exact(card, tier)
+        exact, label, strong = matcher.exact(card, tier)
         if exact:
-            differences.append(_from_exact(card, old, exact, label, decisive, why))
+            differences.append(_from_exact(card, old, exact, label, strong, why))
+            decisive.append(strong)
             continue
         candidates: list[Candidate] = []
         target = matcher.git_target(old)
@@ -445,6 +469,7 @@ def reconcile(hub_root: str) -> list[Difference]:
                 differences.append(Difference("moved", card["file_id"], old,
                                               [Candidate(target.path, "git_rename", 1.0)],
                                               f"{why}; git rename confirmed by {proof}"))
+                decisive.append(True)
                 continue
             candidates.append(Candidate(target.path, "git_rename", 1.0))
         candidates += matcher.similar(card, {c.path for c in candidates})
@@ -455,5 +480,6 @@ def reconcile(hub_root: str) -> list[Difference]:
         else:
             differences.append(Difference("orphan", card["file_id"], old, [],
                                           f"{why}; no hub_id, hash, git rename or similar file found"))
-    _demote_contested(differences)
+        decisive.append(False)
+    _demote_contested(differences, decisive)
     return differences
