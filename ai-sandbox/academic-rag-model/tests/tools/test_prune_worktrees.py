@@ -6,7 +6,7 @@ import unittest
 from pathlib import Path
 
 from git_fixture import git, make_repo, write_and_commit
-from tools.prune_worktrees import run
+from tools.prune_worktrees import main, run
 
 
 class PruneWorktreesTests(unittest.TestCase):
@@ -96,6 +96,84 @@ class PruneWorktreesTests(unittest.TestCase):
         self.assertTrue(full.exists())
         self.assertIn("git branch -d removable", "\n".join(lines))
         self.assertIn("git worktree prune", "\n".join(lines))
+
+    def test_child_repo_categories_and_apply(self):
+        child = make_repo(Path(self.temp.name) / "child")
+        old = self.repo / ".worktrees" / "child-old"
+        new = self.repo / ".worktrees" / "child-new"
+        dirty = self.repo / ".worktrees" / "child-dirty"
+        ahead = self.repo / ".worktrees" / "child-ahead"
+        for name, path in [("old", old), ("new", new), ("dirty", dirty), ("ahead", ahead)]:
+            git(child, "worktree", "add", "-q", "-b", name, str(path), "main")
+        for path in (old, dirty, ahead):
+            stamp = time.time() - 172800
+            os.utime(path / ".git", (stamp, stamp))
+        (dirty / "scratch.txt").write_text("dirty")
+        write_and_commit(ahead, {"extra.txt": "extra\n"}, "extra")
+        code, lines = self.report()
+        report = "\n".join(lines)
+        self.assertEqual(code, 0)
+        self.assertIn(f"repo: {child}", report)
+        for category, name in [("removable", "old"), ("recent", "new"),
+                               ("dirty", "dirty"), ("unmerged", "ahead")]:
+            self.assertIn(f"{category}  {name}", report)
+        outer_before = git(self.repo, "worktree", "list")
+        code, _ = self.report("--apply")
+        self.assertEqual(code, 0)
+        self.assertFalse(old.exists())
+        self.assertNotIn(str(old), git(child, "worktree", "list"))
+        self.assertNotIn("old", git(child, "branch"))
+        self.assertEqual(outer_before, git(self.repo, "worktree", "list"))
+
+    def test_child_without_main(self):
+        child = make_repo(Path(self.temp.name) / "child")
+        path = self.repo / ".worktrees" / "child"
+        git(child, "worktree", "add", "-q", "-b", "topic", str(path), "main")
+        git(child, "branch", "-m", "main", "trunk")
+        code, lines = self.report("--apply")
+        self.assertEqual(code, 0)
+        self.assertIn("unknown-base  topic", "\n".join(lines))
+        self.assertTrue(path.exists())
+
+    def test_stale_remains(self):
+        write_and_commit(self.repo, {"same.txt": "same\n"}, "same")
+        paths = [self.repo / ".worktrees" / name for name in ("same", "extra", "_kept", "linked")]
+        for path in paths:
+            path.mkdir()
+            (path / "same.txt").write_text("same\n")
+            (path / ".git").write_text("gitdir: /missing/repo/.git/worktrees/gone\n")
+        (paths[1] / "extra.txt").write_text("unique")
+        try:
+            (paths[3] / "link").symlink_to(paths[0], target_is_directory=True)
+        except OSError:
+            self.skipTest("symlinks unavailable")
+        code, lines = self.report()
+        report = "\n".join(lines)
+        for category, name in [("identical-to-main", "same"), ("differs", "extra"),
+                               ("kept-by-name", "_kept"), ("manual-review", "linked")]:
+            self.assertIn(f"{category}  {self.repo / '.worktrees' / name}", report)
+        self.assertIn("extra.txt", report)
+        code, _ = self.report("--apply")
+        self.assertEqual(code, 0)
+        self.assertFalse(paths[0].exists())
+        for path in paths[1:]:
+            self.assertTrue(path.exists())
+
+    def test_main_finds_root_from_worktree(self):
+        path = self.add("current")
+        import contextlib
+        import io
+        original = Path.cwd()
+        try:
+            os.chdir(self.repo)
+            with contextlib.redirect_stdout(io.StringIO()) as main_output:
+                self.assertEqual(main([]), 0)
+            os.chdir(path)
+            with contextlib.redirect_stdout(io.StringIO()) as worktree_output:
+                self.assertEqual(main([]), 0)
+            self.assertEqual(main_output.getvalue(), worktree_output.getvalue())
+        finally:
+            os.chdir(original)
 
 
 if __name__ == "__main__":
