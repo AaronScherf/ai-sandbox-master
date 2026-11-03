@@ -18,7 +18,7 @@ from .validate import check_result
 
 STAGE = "extract"
 LISTING_LIMIT = 150  # a vocabulary with more terms than this is listed by its grouping levels only
-MAX_CARD_CHARS = 240_000  # about 60k tokens of transcript; longer papers need chunked extraction, which is not built
+MAX_CARD_CHARS = 300_000  # about 75k tokens of transcript; longer papers need chunked extraction, which is not built (raised from 240_000 after the 2026-11-02 trial, see docs/status/literature/2026-11-02-phase1-quality-gate.md)
 
 
 @dataclass

@@ -60,8 +60,8 @@ Papers without a record (8 on `status`) are two different things:
 - **3 papers over the 240,000-character card limit** (`3268b7062f1745f2`, `ffee575e1b75d109`, `7f88458c5df631df`; 268k, 279k
   and 267k characters, 12 to 16% over). Chunked extraction is not built. **Known gap.** Priority: `ffee575e1b75d109`, a systematic
   review of large-scale cash transfers in low- and lower-middle-income countries (poverty and climate resilience outcomes),
-  which is directly on topic for the cash-transfer gap questions. A cheap alternative to chunking is a higher limit; see the
-  open question below.
+  which is directly on topic for the cash-transfer gap questions. **Resolved:** the limit was raised to 300,000 and all three
+  now have records; see "Resolved: card limit" below.
 
 ## Criterion 4: adjudication for real disagreements
 
@@ -83,19 +83,31 @@ up, on 4 or 5 papers chosen for outcome and intervention richness.
    reviews, or a separate label for secondary sources. A contract or vocabulary change, so it needs a design pass.
 2. **Mention-only countries.** A country named in a list of examples is extracted as a country of the study. Worth a check in
    the extraction contract before expansion.
-3. **Card limit.** See below.
+3. **Card limit.** Done (300,000); see below.
 4. **Larger precision sample** before declaring the 0.80 bar firmly met (about 150 A/B facts).
 
-## Open question: is the 240,000-character limit too strict?
+## Resolved: card limit raised from 240,000 to 300,000 characters
 
-`stage.py` sets `MAX_CARD_CHARS = 240_000` ("about 60k tokens of transcript"). The three papers exceed it by 12 to 16%, so about
-10,000 tokens each. The constant is also used by `verify`, `contribute` and `refine_grain`. I found no recorded reason for 240,000
-beyond that comment, so I cannot say it is a hard model limit. A modest increase would admit all three with no code beyond the
-constant, at an untested cost in extraction quality on long documents. Suggested trial: raise it to 300,000, extract the three
-with `--double`, and compare their records with the corpus norm before adopting it.
+`stage.py` had `MAX_CARD_CHARS = 240_000` ("about 60k tokens"), with no recorded reason beyond that comment. The three papers
+exceeded it by 12 to 16%. Trial (2026-11-02, Gemini, `--double`, subscription): raised to 300,000 and extracted all three.
+**Adopted.** The constant is also used by `verify`, `contribute` and `refine_grain`.
+
+| | Trial (3 papers) | Baseline (64 papers) |
+|---|---|---|
+| Facts per paper | 13, 21, 16 (mean 16.7) | mean 9.4, median 8.5 |
+| Tier A / B / C | 88% / 8% / 4% | 61% / 25% / 14% |
+| Quote-location failures | 0 | not tracked |
+| First-attempt bounces | 2 (one paper, bad vocabulary ids; fixed on retry) | n/a |
+
+- No loss at the end of long documents: each paper has facts cited from its conclusion pages; later pages are references and appendices.
+- Independence: the share of pass b's quotes also used by pass a was 0.0 for all three (baseline median 0.33), so the passes did not copy each other.
+- Caveats: only three papers; the higher tier A share probably reflects long reports stating facts plainly and repeatedly, not a general quality gain. Both passes were filled by one agent.
+- Paper `ffee575e1b75d109` (the priority gap) has two tier C facts of the known review-paper kind (a study design and a data source the review discusses, not used). This strengthens recommendation 1.
+- To look at when next reading `7f88458c5df631df`: its record lists a randomized controlled trial while tier B includes a natural experiment.
+- Records now: 82 with a record; tiers A 411, B 156, C 85.
 
 ## Next
 
-- Land the `status` fix (Codex, in progress).
-- Owner decision on the card limit trial and on recommendations 1 and 2.
+- Owner decision on recommendations 1 and 2 (review-paper data sources, mention-only countries).
+- Gap coverage `without_record` (`gap/coverage.py`) still counts excluded papers and duplicate-title copies; make it agree with `status`.
 - Phase 2: design the discovery loop (brainstorm, then spec). Chunked extraction goes on that list if the limit trial fails.
