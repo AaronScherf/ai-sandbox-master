@@ -106,8 +106,32 @@ exceeded it by 12 to 16%. Trial (2026-11-02, Gemini, `--double`, subscription): 
 - To look at when next reading `7f88458c5df631df`: its record lists a randomized controlled trial while tier B includes a natural experiment.
 - Records now: 82 with a record; tiers A 411, B 156, C 85.
 
+## Resolved: review-paper rule (`extract-v4`, 2026-11-03)
+
+Recommendations 1 and 2 are addressed by one rule, landed as `6db5f9e3`: a country must be the paper's own sample or setting,
+a review or overview paper lists only data it analysed, and the checker applies the same country test. The prompt version is
+now `extract-v4`.
+
+Existing records were **not** re-extracted; they keep `extract-v2/v3` provenance (tiers A 411, B 156, C 85). Eight papers still
+hold wrong facts (`2f30f1372f72c7db`, `32d269e4d88f17cb` with 10 wrong countries, `6dc85fe4875ce8ef`, `98049fc423ba0aab`,
+`c51f7e59bb550dee`, `d688c2e9cec6e735`, `ffee575e1b75d109`, `2c52c3e38095bd14`).
+
+Trial 2 (valid re-extraction of 10 papers, results restored afterwards; 20 passes):
+
+| Measure | Result |
+|---|---|
+| Wrong countries removed | 14 of 14 |
+| Correct countries lost | 0 |
+| Wrong data sources removed | 4 of 5 |
+| Correct data sources lost | 1 (`ffee575e1b75d109`, programme documents) |
+| Wrong fact surviving | 1 (`c51f7e59bb550dee`, a portal for one country, now tier A) |
+| Outcome facts | 37 down to 27 (probably variance; unconfirmed) |
+
+This was the second trial; the first was not a valid re-extraction. Re-extraction runs must be checked for byte-identity against
+the backed-up records. Next: re-extract the eight papers, watch the outcome-fact counts, and fix the portal fact by hand.
+
 ## Next
 
-- Owner decision on recommendations 1 and 2 (review-paper data sources, mention-only countries).
+- Re-extract the eight papers with `extract-v4` (above), then run the larger precision sample on the corrected data.
 - Gap coverage `without_record` (`gap/coverage.py`) still counts excluded papers and duplicate-title copies; make it agree with `status`.
 - Phase 2: design the discovery loop (brainstorm, then spec). Chunked extraction goes on that list if the limit trial fails.
