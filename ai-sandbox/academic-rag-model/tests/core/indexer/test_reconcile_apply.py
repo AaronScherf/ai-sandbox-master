@@ -66,11 +66,13 @@ def _moved(hub, new=f"{PS}/a.md"):
 
 def test_move_repairs_card_path_and_hash_still_valid(tmp_path):
     hub = _setup(tmp_path)
+    before = _card(hub)["content_hash"]
     recs = apply_repairs(str(hub), _moved(hub))
     assert len(recs) == 1 and recs[0].status == "done"
     card = _card(hub)
     assert card["path"] == f"{PS}/a.md"
-    assert content_hash_matches(str(hub / card["path"]), card["content_hash"])
+    assert card["content_hash"] == before
+    assert content_hash_matches(str(hub / f"{PS}/a.md"), card["content_hash"])
     assert locks == ["reconcile repair"]
     assert reconcile(str(hub)) == []
 
@@ -87,22 +89,135 @@ def test_repair_logged_and_undo_restores_card(tmp_path):
     assert undo_repair(str(hub), "nope") is False
 
 
+def _pending(hub, new, **extra):
+    rec = {"repair_id": "abc-1", "file_id": "f1", "old": f"{LN}/a.md", "new": new,
+           "old_rag_md_path": None, "new_rag_md_path": None, "ts": "t", "status": "pending", **extra}
+    Path(log_path(str(hub))).parent.mkdir(exist_ok=True)
+    with open(log_path(str(hub)), "a", encoding="utf-8", newline="\n") as f:
+        f.write(json.dumps(rec) + "\n")
+
+
 def test_rerun_after_interrupted_repair_is_idempotent(tmp_path):
+    # crash before the card write: pending line only, fresh Difference
     hub = _setup(tmp_path)
     diffs = _moved(hub)
     new = diffs[0].candidates[0].path
-    pending = {"repair_id": "abc-1", "file_id": "f1", "old": f"{LN}/a.md", "new": new,
-               "old_rag_md_path": None, "new_rag_md_path": None, "ts": "t", "status": "pending"}
-    Path(log_path(str(hub))).parent.mkdir(exist_ok=True)
-    Path(log_path(str(hub))).write_text(json.dumps(pending) + "\n", encoding="utf-8")
+    _pending(hub, new)
     recs = apply_repairs(str(hub), diffs)
     assert [r.repair_id for r in recs] == ["abc-1"]
     assert _card(hub)["path"] == new
     assert [e["status"] for e in _log(hub)] == ["pending", "done"]
-    # card already written but done missing: completes with just a done line
-    Path(log_path(str(hub))).write_text(json.dumps(pending) + "\n", encoding="utf-8")
-    assert apply_one(str(hub), diffs[0]).repair_id == "abc-1"
+
+
+def test_crash_after_card_write_is_recovered_and_undoable(tmp_path):
+    hub = _setup(tmp_path)
+    diffs = _moved(hub)
+    new = diffs[0].candidates[0].path
+    _pending(hub, new)
+    save_shard(str(hub), "econ", [{**_card(hub), "path": new}])  # card written, no done
+    assert reconcile(str(hub)) == []
+    assert apply_repairs(str(hub), reconcile(str(hub))) == []
     assert [e["status"] for e in _log(hub)] == ["pending", "done"]
+    assert undo_repair(str(hub), "abc-1") is True
+    assert _card(hub)["path"] == f"{LN}/a.md"
+
+
+def test_undo_recovers_pending_itself(tmp_path):
+    hub = _setup(tmp_path)
+    new = _moved(hub)[0].candidates[0].path
+    _pending(hub, new)
+    save_shard(str(hub), "econ", [{**_card(hub), "path": new}])
+    assert undo_repair(str(hub), "abc-1") is True
+
+
+def test_resume_leaves_rag_alone_when_recorded_target_missing(tmp_path):
+    hub = _setup(tmp_path, rag_md_path=f"{LN}/a.rag.md")
+    diffs = _moved(hub)
+    _pending(hub, diffs[0].candidates[0].path, old_rag_md_path=f"{LN}/a.rag.md",
+             new_rag_md_path=f"{PS}/a.rag.md")
+    apply_repairs(str(hub), diffs)
+    assert _card(hub)["rag_md_path"] == f"{LN}/a.rag.md"
+
+
+def test_torn_last_log_line_does_not_swallow_next_record(tmp_path):
+    hub = _setup(tmp_path)
+    Path(log_path(str(hub))).parent.mkdir(exist_ok=True)
+    Path(log_path(str(hub))).write_text('{"repair_id": "x", "stat', encoding="utf-8")
+    rec = apply_repairs(str(hub), _moved(hub))[0]
+    assert [e["status"] for e in _log_ok(hub)] == ["pending", "done"]
+    assert undo_repair(str(hub), rec.repair_id) is True
+
+
+def _log_ok(hub):
+    out = []
+    for l in Path(log_path(str(hub))).read_text(encoding="utf-8").splitlines():
+        try:
+            out.append(json.loads(l))
+        except ValueError:
+            pass
+    return out
+
+
+def test_ambiguous_applied_only_with_explicit_candidate(tmp_path):
+    hub = _setup(tmp_path)
+    _move(hub, f"{LN}/a.md", f"{PS}/a.md")
+    c1 = Candidate(f"{PS}/a.md", "byte_hash", 1.0)
+    d = Difference("ambiguous", "f1", f"{LN}/a.md", [c1, Candidate(f"{PS}/b.md", "similarity", .6)], "")
+    assert apply_one(str(hub), d) is None
+    with pytest.raises(ValueError):
+        apply_one(str(hub), d, new_path=f"{PS}/zzz.md")
+    assert apply_repairs(str(hub), [d]) == []
+    assert _card(hub)["path"] == f"{LN}/a.md"
+    assert apply_one(str(hub), d, new_path=c1.path).status == "done"
+    assert _card(hub)["path"] == f"{PS}/a.md"
+
+
+def test_apply_one_unlocked_takes_no_lock(tmp_path):
+    hub = _setup(tmp_path)
+    assert reconcile_apply.apply_one_unlocked(str(hub), _moved(hub)[0]) is not None
+    assert locks == []
+
+
+def test_another_card_now_holding_new_skips_and_raises_for_explicit(tmp_path):
+    hub = _setup(tmp_path)
+    diffs = _moved(hub)
+    new = diffs[0].candidates[0].path
+    other = {"file_id": "f2", "path": new.upper(), "course": "econ", "content_hash": "h"}
+    save_shard(str(hub), "econ", [_card(hub), other])
+    assert apply_repairs(str(hub), diffs) == []
+    assert _log(hub) == []
+    with pytest.raises(ValueError):
+        apply_one(str(hub), diffs[0], new_path=new)
+    assert _card(hub)["path"] == f"{LN}/a.md"
+
+
+def test_two_differences_same_new_second_skipped(tmp_path):
+    hub = _setup(tmp_path)
+    d1 = _moved(hub)[0]
+    c = d1.candidates[0]
+    other = {"file_id": "f2", "path": f"{LN}/gone.md", "course": "econ", "content_hash": "h"}
+    save_shard(str(hub), "econ", [_card(hub), other])
+    d2 = Difference("moved", "f2", f"{LN}/gone.md", [Candidate(c.path, "byte_hash", 1.0)], "")
+    recs = apply_repairs(str(hub), [d1, d2])
+    assert [r.file_id for r in recs] == ["f1"]
+    assert _card(hub, "f2")["path"] == f"{LN}/gone.md"
+
+
+def test_moved_with_empty_candidates_is_skipped_not_fatal(tmp_path):
+    hub = _setup(tmp_path)
+    bad = Difference("moved", "zz", f"{LN}/q.md", [], "")
+    recs = apply_repairs(str(hub), [bad] + _moved(hub))
+    assert len(recs) == 1
+    assert apply_one(str(hub), bad) is None
+
+
+def test_undo_false_after_second_repair_of_same_card(tmp_path):
+    hub = _setup(tmp_path)
+    first = apply_repairs(str(hub), _moved(hub))[0]
+    _move(hub, f"{PS}/a.md", f"{LN}/c.md")
+    second = apply_repairs(str(hub), reconcile(str(hub)))[0]
+    assert undo_repair(str(hub), first.repair_id) is False
+    assert undo_repair(str(hub), second.repair_id) is True
 
 
 def test_ambiguous_and_orphan_are_never_applied(tmp_path):

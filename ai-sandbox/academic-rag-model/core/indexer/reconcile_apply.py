@@ -27,7 +27,9 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 
 from core.env.corpus_write_lock import corpus_write_lock
-from core.indexer.index_card import _index_dir, find_card_by_file_id, update_card_paths
+from core.indexer.index_card import (
+    _index_dir, find_card_by_file_id, list_courses, load_shard, update_card_paths,
+)
 from core.indexer.reconcile import Difference
 
 LOG_NAME = "reconcile_log.jsonl"
@@ -75,8 +77,14 @@ def _read_log(hub_root: str) -> list[dict]:
 def _append(hub_root: str, record: RepairRecord) -> None:
     path = log_path(hub_root)
     os.makedirs(os.path.dirname(path), exist_ok=True)
+    lead = ""
+    if os.path.exists(path) and os.path.getsize(path) > 0:
+        with open(path, "rb") as f:
+            f.seek(-1, os.SEEK_END)
+            if f.read(1) != b"\n":
+                lead = "\n"  # torn last line: keep it from fusing with this record
     with open(path, "a", encoding="utf-8", newline="\n") as f:
-        f.write(json.dumps(record.__dict__, ensure_ascii=False) + "\n")
+        f.write(lead + json.dumps(record.__dict__, ensure_ascii=False) + "\n")
         f.flush()
         os.fsync(f.fileno())
 
@@ -112,12 +120,39 @@ def _new_rag(hub_root: str, card: dict, old: str, new: str) -> str | None:
     return candidate if os.path.isfile(os.path.join(hub_root, candidate)) else None
 
 
+def _recover(hub_root: str) -> None:
+    """Complete interrupted repairs: a `pending` whose card already sits at `new` (crash between the
+    card write and the `done` line) gets its `done` appended."""
+    state = _latest(_read_log(hub_root))
+    for entry in state.values():
+        if entry["status"] != "pending":
+            continue
+        found = find_card_by_file_id(hub_root, entry["file_id"])
+        if found is not None and found[1].get("path") == entry["new"]:
+            _append(hub_root, _as_record(entry, "done"))
+
+
+def _claimed_by_other(hub_root: str, new: str, file_id: str) -> bool:
+    target = _norm(new).lower()
+    for course in list_courses(hub_root):
+        for card in load_shard(hub_root, course):
+            if card.get("file_id") != file_id and _norm(card.get("path") or "").lower() == target:
+                return True
+    return False
+
+
 def _apply_unlocked(hub_root: str, diff: Difference, new_path: str | None) -> RepairRecord | None:
-    if diff.kind != "moved":
+    """Skip (None) when: orphan; ambiguous without new_path; moved with no candidate; the card's path
+    is no longer `old_path`; the target file is gone; or another card already holds the target (only
+    when the target was defaulted). Raises ValueError for a `new_path` that is not a candidate or that
+    another card already holds (an explicit choice that cannot be honored should be loud)."""
+    if diff.kind == "orphan" or (diff.kind == "ambiguous" and new_path is None):
         return None
     allowed = [c.path for c in diff.candidates]
-    new = new_path if new_path is not None else (allowed[0] if allowed else None)
-    if new is None or new not in allowed:
+    if new_path is None and not allowed:
+        return None
+    new = new_path if new_path is not None else allowed[0]
+    if new not in allowed:
         raise ValueError(f"{new_path!r} is not a candidate for {diff.file_id}")
     old = diff.old_path
     found = find_card_by_file_id(hub_root, diff.file_id)
@@ -126,6 +161,10 @@ def _apply_unlocked(hub_root: str, diff: Difference, new_path: str | None) -> Re
     _, card = found
     if not os.path.isfile(os.path.join(hub_root, new)):
         return None
+    if _claimed_by_other(hub_root, new, diff.file_id):
+        if new_path is not None:
+            raise ValueError(f"{new!r} is already the path of another card")
+        return None
 
     entries = _read_log(hub_root)
     state = _latest(entries)
@@ -133,13 +172,15 @@ def _apply_unlocked(hub_root: str, diff: Difference, new_path: str | None) -> Re
                     if e["status"] == "pending" and state[e["repair_id"]]["status"] == "pending"
                     and (e["file_id"], e["old"], e["new"]) == (diff.file_id, old, new)), None)
 
-    if pending is not None:  # interrupted run: finish it, no second pending
-        if card.get("path") not in (old, new):
+    if pending is not None:  # interrupted before the card write: finish it, no second pending
+        if card.get("path") != old:
             return None
         rec = _as_record(pending, "done")
-        if card.get("path") == old:
-            update_card_paths(hub_root, diff.file_id, new, rec.new_rag_md_path
-                              if rec.new_rag_md_path != rec.old_rag_md_path else None)
+        rag = rec.new_rag_md_path
+        if rag == rec.old_rag_md_path or not rag or not os.path.isfile(os.path.join(hub_root, rag)):
+            rag = None
+            rec.new_rag_md_path = rec.old_rag_md_path
+        update_card_paths(hub_root, diff.file_id, new, rag)
         _append(hub_root, rec)
         return rec
 
@@ -158,19 +199,32 @@ def _apply_unlocked(hub_root: str, diff: Difference, new_path: str | None) -> Re
     return done
 
 
+def apply_one_unlocked(hub_root: str, difference: Difference, new_path: str | None = None) -> RepairRecord | None:
+    """`apply_one` for callers that already hold the corpus write lock (it is not reentrant).
+
+    `moved`: applies its sole candidate (or `new_path`, which must be a candidate). `ambiguous`:
+    applies only when `new_path` is given and is a candidate. `orphan`: never. Raises ValueError for a
+    `new_path` that is not a candidate or is already another card's path."""
+    _recover(hub_root)
+    return _apply_unlocked(hub_root, difference, new_path)
+
+
 def apply_one(hub_root: str, difference: Difference, new_path: str | None = None) -> RepairRecord | None:
-    """Apply one `moved` difference (or, for review, a user-chosen candidate via `new_path`, which
-    must be one of the difference's candidates else ValueError). None when skipped: not `moved`, the
-    card's path is no longer `old_path`, or the target file is gone."""
+    """Lock + `apply_one_unlocked`."""
     with corpus_write_lock([hub_root], "reconcile repair"):
-        return _apply_unlocked(hub_root, difference, new_path)
+        return apply_one_unlocked(hub_root, difference, new_path)
 
 
 def apply_repairs(hub_root: str, differences: list[Difference]) -> list[RepairRecord]:
-    """Apply every `moved` difference under one lock hold; return the repairs actually made."""
+    """Apply every `moved` difference under one lock hold; return the repairs actually made. Because
+    each repair is written to its card before the next is checked, a later difference aiming at an
+    already-taken path is skipped."""
     out: list[RepairRecord] = []
     with corpus_write_lock([hub_root], "reconcile repair"):
+        _recover(hub_root)
         for diff in differences:
+            if diff.kind != "moved":
+                continue
             rec = _apply_unlocked(hub_root, diff, None)
             if rec is not None:
                 out.append(rec)
@@ -181,6 +235,7 @@ def undo_repair(hub_root: str, repair_id: str) -> bool:
     """Restore the card's `path`/`rag_md_path` from the log. False (never raises) if the repair is
     unknown, not `done` (pending or already undone), or the card's path is no longer its `new`."""
     with corpus_write_lock([hub_root], "reconcile undo"):
+        _recover(hub_root)
         last = _latest(_read_log(hub_root)).get(repair_id)
         if last is None or last["status"] != "done":
             return False
