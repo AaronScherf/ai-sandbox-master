@@ -254,3 +254,50 @@ validator library.
 - How far the charter's stakeholder analysis should go (a short structured list per
   audience is the proposal; a full stakeholder-mapping method is not).
 - The pilot's deliverables: paper and figures are assumed; confirm whether slides belong in v1.
+
+---
+
+## Addendum, 2026-11-03: what Phase A showed
+
+This addendum was added after the Project 02 pilot's Phase A. **Sections 1 to 9 above are unchanged and
+remain the original intent.** Where the evidence below differs from them, the evidence is newer, not a
+correction of what was designed. Full evidence and per-goal ratings are in
+`../../../notes/Pipeline Review - Reproducible Research Framework after Phase A.md`.
+
+### A1. Status against section 6
+
+- The pilot (phases 6 to 9: adapters, real runs, docs, Sudan portability) was delivered as
+  `compound-shocks-panel` v0.1.0 to v0.1.2 on `reprokit` v0.2.0. Both countries reproduced byte for byte in
+  fresh clones (one machine) and CI passes on Windows and Linux.
+- Phase 11 is partly done: a security and licensing review and same-machine clean-room checks happened. An
+  outside reproduction has **not** been done, and the owner decided on 2026-11-03 to defer it until the
+  project holds data worth reproducing.
+- Phases 12 to 16 (taxonomy hooks, deliverable builds beyond figures and the audit memo, communication
+  hook, derivative test, future-kind check) were not attempted. Goals 10, 13, 14 and 15 are untested.
+
+### A2. Amendments to the design, from the evidence
+
+1. **Goal 2 (Adapt) holds for same-kind sources only.** Swapping a source of the same kind is a config and
+   crosswalk change. A new *measurement type* (Sudan's displacement stock versus Somalia's flow) needed a new
+   adapter, about 200 changed lines in core modules, and a harmonization record. The core is country-neutral,
+   not source-neutral. Templates should expect this and provide a harmonization-record stub.
+2. **Validation must check claims, not only shape (goals 6, 9).** `reprokit validate` accepts placeholder
+   licence text such as "confirm before reuse", does not compare descriptor coverage with the config
+   period, and does not tie `verification_status` to a current verification note. A wrong licence and
+   several stale periods passed it.
+3. **Numbers in prose drift (goals 1, 8).** Windows, run times, counts and paths were typed into several
+   documents and went stale. Projects should generate a run card (counts, hashes, timings, peak memory) from
+   the run and quote it.
+4. **A newcomer needs a cheap check (goals 4, 7).** Templates should ship a `smoke` command that runs a
+   synthetic fixture instance in under 60 seconds, and a front-page orientation table mapping developer files
+   to research concepts.
+5. **Readable runs (goals 7, 11).** `reproduce` should narrate each step and the protocol should carry a
+   lineage diagram. The charter schema should gain an exploratory purpose (the pilot used `side_project` as a
+   workaround).
+6. **Scaffolding (goal 7).** Ship empty folders only where a step needs them; settle single-instance versus
+   multi-instance layout in the template so generated docs use the right paths.
+
+### A3. Work
+
+The revisions are handed off in
+`../plans/2026-11-03-reprokit-v03-handoff.md` for a session focused on `reprokit`. They are not built yet.
