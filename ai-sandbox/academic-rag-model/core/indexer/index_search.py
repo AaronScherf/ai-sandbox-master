@@ -747,7 +747,7 @@ def rebuild_plan(root: str, course: str | None = None, force: bool = False) -> d
         if card is None:
             action = "new"
             reason = "no_card"
-        elif force or card.get("needs_indexing") or card.get("content_hash") != content_hash:
+        elif force or card.get("needs_indexing") or not content_hash_matches(path, card.get("content_hash")):
             action = "refresh"
             reason = "force" if force else "needs_indexing" if card.get("needs_indexing") else "content_changed"
         elif card.get("path") != rel:
@@ -1085,6 +1085,12 @@ def rebuild(academic_hub_root: str, client, course: str | None = None,
 
 
 def _flag_or_prune_orphans(academic_hub_root, seen_file_ids, course_filter, prune, stats):
+    if prune and stats.get("clone_card_unresolved"):
+        # A clone card could not be matched to its moved note, so an unseen card
+        # may be a live clone: flag instead of deleting, and say so.
+        print(f"WARNING: {stats['clone_card_unresolved']} duplicate-clone card(s) could not be "
+              f"matched; skipping --prune (orphans are flagged only).")
+        prune = False
     index_dir = os.path.join(academic_hub_root, ".index")
     if not os.path.isdir(index_dir):
         return

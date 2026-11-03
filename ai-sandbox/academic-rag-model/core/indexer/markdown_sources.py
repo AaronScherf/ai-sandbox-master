@@ -12,7 +12,7 @@ from pathlib import Path
 from core.env.frontmatter import parse_frontmatter
 from core.env.academic_hub_paths import course_part_category, is_textbook_folder
 from core.indexer.index_card import (
-    compute_content_hash, compute_id_from_parts, list_courses, load_shard,
+    compute_content_hash, compute_legacy_content_hash, compute_id_from_parts, list_courses, load_shard,
 )
 
 SOURCE_KINDS = frozenset({"markdown_only", "generated_companion"})
@@ -236,10 +236,12 @@ def plan_markdown(root: str, course: str | None = None, exact: str | None = None
     active_paths = {r["path"] for r in rows}
     for row in rows:
         row["content_hash"] = None
+        row["legacy_content_hash"] = None
         if row["index_separately"]:
             path = os.path.join(root, *row["path"].split("/"))
             try:
                 row["content_hash"] = compute_content_hash(path)
+                row["legacy_content_hash"] = compute_legacy_content_hash(path)
             except OSError:
                 pass
     new_hash_counts = Counter(r["content_hash"] for r in rows
@@ -257,7 +259,7 @@ def plan_markdown(root: str, course: str | None = None, exact: str | None = None
         old = by_path.get(row["path"])
         if old is None and new_hash_counts[row["content_hash"]] == 1:
             matches = [c for c in cards if c.get("source_kind") == row["source_kind"]
-                       and c.get("content_hash") == row["content_hash"]
+                       and c.get("content_hash") in (row["content_hash"], row["legacy_content_hash"])
                        and c.get("path") not in active_paths
                        and not os.path.isfile(os.path.join(root, *(c.get("path") or "").split("/")))]
             old = matches[0] if len(matches) == 1 else None
@@ -278,7 +280,8 @@ def plan_markdown(root: str, course: str | None = None, exact: str | None = None
             row["action"] = "new"
         elif old.get("path") != row["path"]:
             row["action"] = "move"
-        elif force or old.get("content_hash") != row["content_hash"] or old.get("needs_indexing"):
+        elif (force or old.get("content_hash") not in (row["content_hash"], row["legacy_content_hash"])
+              or old.get("needs_indexing")):
             row["action"] = "refresh"
         elif (old.get("source_kind") != row["source_kind"]
               or old.get("companion_of_file_id") != row["companion_of_file_id"]
