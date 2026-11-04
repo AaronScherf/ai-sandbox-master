@@ -99,3 +99,20 @@ def test_impact_lists_pdfs_that_would_become_eligible_for_transcription(tmp_path
     (hub / "academic_notes/econ/problem_sets/past_exams").mkdir(parents=True)
     result = impact(str(hub), hub / "hub_config.json")
     assert result["newly_eligible_pdfs"] == ["academic_resources/econ/problem_sets/past_exams/e.pdf"]
+
+
+@pytest.mark.parametrize("text", ["[1, 2]", '{"names": []}', '{"names": {"problem_sets": 5}}'])
+def test_confirm_reports_an_unexpected_config_shape_instead_of_crashing(tmp_path, capsys, text):
+    hub = _hub(tmp_path)
+    (hub / "hub_config.json").write_text(text, encoding="utf-8")
+    assert main(["confirm", "problem_sets", "category", "--hub-root", str(hub)]) == 2
+    assert "error" in capsys.readouterr().err
+
+
+def test_confirm_keeps_the_files_line_endings(tmp_path):
+    hub = _hub(tmp_path)
+    path = hub / "hub_config.json"
+    path.write_bytes(path.read_bytes().replace(b"\n", b"\r\n"))
+    assert main(["confirm", "Odd Folder", "group", "--hub-root", str(hub)]) == 0
+    data = path.read_bytes()
+    assert b"\r\n" in data and b"\n" not in data.replace(b"\r\n", b"")

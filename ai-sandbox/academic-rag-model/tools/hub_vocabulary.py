@@ -16,6 +16,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import shutil
 import sys
 import tempfile
 from collections import Counter
@@ -99,9 +100,11 @@ def _find_key(names: dict, name: str) -> str | None:
 
 
 def _write_config(path: Path, data: dict) -> None:
+    newline = "\r\n" if b"\r\n" in path.read_bytes() else "\n"  # keep the file's own line endings
     fd, temporary = tempfile.mkstemp(prefix="hub_config-", suffix=".tmp", dir=str(path.parent))
     try:
-        with os.fdopen(fd, "w", encoding="utf-8", newline="\n") as handle:
+        shutil.copymode(path, temporary)  # mkstemp creates 0600; keep the file's mode
+        with os.fdopen(fd, "w", encoding="utf-8", newline=newline) as handle:
             handle.write(json.dumps(data, indent=2, ensure_ascii=False) + "\n")
         os.replace(temporary, path)
     except BaseException:
@@ -119,7 +122,11 @@ def confirm(config_path: Path, name: str, kind: str, alias_of: str | None, repla
     except ValueError as exc:
         print(f"error: {config_path} is not valid JSON ({exc})", file=sys.stderr)
         return 2
-    names = data.setdefault("names", {})
+    names = data.setdefault("names", {}) if isinstance(data, dict) else None
+    if not isinstance(names, dict) or not all(isinstance(v, dict) for v in names.values()):
+        print(f"error: {config_path} does not look like a hub vocabulary (expected an object with a 'names' object)",
+              file=sys.stderr)
+        return 2
     if alias_of is not None:
         target = _find_key(names, alias_of)
         if kind != "category" or target is None or names[target].get("kind") != "category":
