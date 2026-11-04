@@ -37,7 +37,14 @@ from tools.run_tests_chunked import ChunkResult, chunk_failed, run_all
 PROJECT_SUBDIR = "ai-sandbox/academic-rag-model"
 # Live tests read these outside-project paths: test_lit_gap_report.py reads
 # the root .gitignore; test_audit_website_sync.py validates .obsidian targets.
-RETEST_OUTSIDE_PATHS = (".gitignore", "ai-sandbox/.obsidian")
+# Files that decide what may land. A branch that edits them is judged by its own edited copy.
+GUARD_POLICY_PATHS = (
+    "ai-sandbox/academic-rag-model/tools/guard_binaries.py",
+    "ai-sandbox/academic-rag-model/tools/guard_binaries_allow.txt",
+    "ai-sandbox/academic-rag-model/tools/land_branch.py",
+    ".githooks/pre-commit",
+)
+RETEST_OUTSIDE_PATHS =(".gitignore", "ai-sandbox/.obsidian")
 
 
 class LandingError(RuntimeError):
@@ -84,6 +91,7 @@ class CheckResult:
     chunk_timings: list[dict] = field(default_factory=list)
     guard: str = "passed"  # binary guard over the branch's added/modified paths
     guard_violations: list[str] = field(default_factory=list)
+    guard_policy_changed: list[str] = field(default_factory=list)  # branch edits the guard or the landing tool
 
 
 def change_id(worktree: Path) -> str:
@@ -300,6 +308,7 @@ def _run_check(worktree: Path, subdir: str, full: bool) -> CheckResult:
     sha = run_git(["rev-parse", "HEAD"], worktree).strip()
     changed = changed_since_merge_base(worktree, MAIN_BRANCH, "HEAD")
     guard_violations = [str(v) for v in guard_binaries.check_range(worktree, MAIN_BRANCH)]
+    policy_changed = sorted(changed & set(GUARD_POLICY_PATHS))
     overlaps = find_overlaps(worktree, changed)
     relative = project_relative(changed, subdir)
     prefix = subdir.rstrip("/") + "/" if subdir else ""
@@ -331,6 +340,7 @@ def _run_check(worktree: Path, subdir: str, full: bool) -> CheckResult:
                        for r in chunks],
         guard="failed" if guard_violations else "passed",
         guard_violations=guard_violations,
+        guard_policy_changed=policy_changed,
     )
 
 
@@ -346,6 +356,9 @@ def print_summary(r: CheckResult) -> None:
     print(f"Guard:       {r.guard}")
     for violation in r.guard_violations:
         print(f"  {violation}")
+    if r.guard_policy_changed:
+        # This branch runs its own copy of the guard, so read these changes before approving.
+        print("GUARD POLICY CHANGED -- review before approving: " + ", ".join(r.guard_policy_changed))
     print(f"Nothing has been merged or pushed. Ask the user to approve change {r.change_id}.")
 
 

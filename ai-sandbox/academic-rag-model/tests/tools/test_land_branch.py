@@ -550,6 +550,28 @@ class LandByChangeIdTests(unittest.TestCase):
         write_and_commit(self.wt, {"core/a.py": "x = 2\n"}, "branch edit")
         self.assertEqual(self._approve().guard, "passed")
 
+    def test_check_flags_changes_to_guard_policy_files(self):
+        from tools.land_branch import GUARD_POLICY_PATHS
+        path = GUARD_POLICY_PATHS[1]  # the allowlist
+        write_and_commit(self.wt, {path: "ai-sandbox/x/*.json  # reason\n"}, "edit allowlist")
+        result = self._approve()
+        self.assertEqual(result.guard_policy_changed, [path])
+
+    def test_check_does_not_flag_ordinary_branches(self):
+        write_and_commit(self.wt, {"core/a.py": "x = 2\n"}, "branch edit")
+        self.assertEqual(self._approve().guard_policy_changed, [])
+
+    def test_summary_prints_guard_policy_warning(self):
+        import io
+        from contextlib import redirect_stdout
+        from tools.land_branch import GUARD_POLICY_PATHS, print_summary
+        write_and_commit(self.wt, {GUARD_POLICY_PATHS[0]: "x = 1\n"}, "edit guard")
+        buf = io.StringIO()
+        with redirect_stdout(buf):
+            print_summary(self._approve())
+        self.assertIn("GUARD POLICY CHANGED", buf.getvalue())
+        self.assertIn(GUARD_POLICY_PATHS[0], buf.getvalue())
+
     def test_land_refuses_when_guard_fails(self):
         from tools.land_branch import LandingError, land
         write_and_commit(self.wt, {"ai-sandbox/academic-hub/c/slide.svg": "<svg/>"}, "add hub svg")
