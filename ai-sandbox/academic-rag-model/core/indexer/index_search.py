@@ -40,6 +40,7 @@ from core.indexer.index_card import (
     KNOWN_DOC_TYPES,
     KNOWN_LEVELS,
     LECTURE_NOTE_DOC_TYPES,
+    carry_note_identity,
     compute_content_hash,
     compute_legacy_content_hash,
     content_hash_matches,
@@ -569,6 +570,7 @@ def _reconcile_one(academic_hub_root, course_name, folder_category, file_id, rel
         known_doc_types=known_doc_types, source_asset_path=source_asset_path,
         source_kind=source_kind, companion_of_file_id=companion_of_file_id,
         companion_role=companion_role, relationship_basis=relationship_basis,
+        previous_card=existing,
     )
     if is_first_time:
         stats["generated"] += 1
@@ -646,7 +648,8 @@ def _apply_markdown_row(academic_hub_root: str, row: dict, client) -> dict:
         except Exception as exc:
             result.update(status="generation_failed", error=str(exc))
             return result
-        old_course, _ = found
+        old_course, old_card = found
+        carry_note_identity(academic_hub_root, card, old_card)
         old_cards = load_shard(academic_hub_root, old_course)
         save_shard(academic_hub_root, old_course, [
             card if c.get("file_id") == row["file_id"] else c for c in old_cards
@@ -726,6 +729,7 @@ def retry_file(root: str, course: str, rel_path: str, client) -> dict:
         return {**row, "status": "generation_failed", "error": str(exc)}
     for key in ("source_pdf_path", "source_asset_path", "offering_label", "rag_md_path"):
         replacement[key] = card.get(key)
+    carry_note_identity(root, replacement, card)
     save_shard(root, course, [replacement if c.get("file_id") == card["file_id"] else c
                               for c in load_shard(root, course)])
     recompute_course_entry(root, course)

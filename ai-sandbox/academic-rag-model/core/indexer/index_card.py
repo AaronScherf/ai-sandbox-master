@@ -20,6 +20,7 @@ from datetime import datetime, timezone
 import numpy as np
 
 from core.env.gemini_utils import call_with_retries
+from core.indexer.hub_identity import read_hub_id
 from google.genai import types
 
 EMBEDDING_MODEL = "gemini-embedding-001"
@@ -514,6 +515,30 @@ def move_card(academic_hub_root: str, file_id: str, new_course: str) -> bool:
     return True
 
 
+def _file_hub_id(academic_hub_root: str, path: str | None) -> str | None:
+    """The hub_id stamped in the `.md` (incl. `.excalidraw.md`) at hub-relative `path`, else None."""
+    if not isinstance(path, str) or not path.lower().endswith(".md"):
+        return None
+    try:
+        return read_hub_id(os.path.join(academic_hub_root, *path.replace("\\", "/").split("/")))
+    except OSError:
+        return None
+
+
+def carry_note_identity(academic_hub_root: str, card: dict, previous: dict | None = None) -> dict:
+    """Keep a note's identity on a freshly built or replacing card (hub-path-resilience P3, I5).
+
+    `hub_id`: the one stamped in the card's `.md` when it has one, else the previous card's (a producer
+    may rewrite a derived file and drop the frontmatter line). `link_state`: carried from the previous
+    card (an open relink review item still applies). Mutates and returns `card`."""
+    hub_id = _file_hub_id(academic_hub_root, card.get("path")) or (previous or {}).get("hub_id")
+    if hub_id:
+        card["hub_id"] = hub_id
+    if previous and previous.get("link_state") and "link_state" not in card:
+        card["link_state"] = previous["link_state"]
+    return card
+
+
 def reconcile_and_write(
     academic_hub_root: str, file_id: str, path: str, source_pdf_path: str | None, course: str,
     folder_category: str, content_sample: str, page_count: int, client,
@@ -521,6 +546,7 @@ def reconcile_and_write(
     source_asset_path: str | None = None, offering_label: str | None = None,
     source_kind: str | None = None, companion_of_file_id: str | None = None,
     companion_role: str | None = None, relationship_basis: str | None = None,
+    previous_card: dict | None = None,
 ) -> dict:
     """The single entry point both pipeline hooks (and rebuild) call.
     Implements spec §4.3: never treats `path` as identity -- reconciles by
@@ -531,7 +557,11 @@ def reconcile_and_write(
     additive: a new card defaults it to source_pdf_path when not given;
     reconciling an existing card only overwrites it when a non-None value
     is passed, so a caller that can't currently determine the asset
-    location doesn't blow away a previously-known-good one."""
+    location doesn't blow away a previously-known-good one.
+
+    Note identity (`carry_note_identity`): a card keeps its `hub_id`; one with none takes the hub_id
+    stamped in its `.md`. A newly generated card takes the file's hub_id, else `previous_card`'s
+    (the card a caller removed to force regeneration), and that card's `link_state`."""
     found = find_card_by_file_id(academic_hub_root, file_id)
 
     if found is not None:
@@ -563,6 +593,11 @@ def reconcile_and_write(
             updated.update(source_kind=source_kind, companion_of_file_id=companion_of_file_id,
                            companion_role=companion_role, relationship_basis=relationship_basis)
         updated.pop("orphaned", None)
+        if not updated.get("hub_id"):
+            file_hub_id = _file_hub_id(academic_hub_root, path)
+            if file_hub_id:
+                updated["hub_id"] = file_hub_id
+                changed = True
         if changed:
             updated["source_updated_at"] = now_iso()
 
@@ -604,6 +639,7 @@ def reconcile_and_write(
             source_kind=source_kind, companion_of_file_id=companion_of_file_id,
             companion_role=companion_role, relationship_basis=relationship_basis,
         )
+    carry_note_identity(academic_hub_root, card, previous_card)
 
     cards = load_shard(academic_hub_root, course)
     cards.append(card)
