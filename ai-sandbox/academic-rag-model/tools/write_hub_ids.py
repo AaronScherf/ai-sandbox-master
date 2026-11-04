@@ -6,8 +6,12 @@ Dry run by default. `--apply` writes the id into each note's frontmatter
 (`.md`, including `.excalidraw.md`) and sets `hub_id` on the matching index
 card (matched by `path`), leaving `content_hash` untouched (the id line is
 hash-neutral). Plain `.excalidraw` JSON files are skipped unless
-`--include-excalidraw-json` is given. Derived `.rag.md` outputs,
-`academic_resources/` and `.index/` are never touched. No API calls.
+`--include-excalidraw-json` is given. `academic_resources/` and `.index/` are
+never touched. Derived outputs, whose producers rewrite them and would drop the
+id, are never stamped and are listed as skipped ("derived output"): anything
+under a `processed_outputs/` directory (note transcriptions, raw Excalidraw
+transcripts), `*.rag.md`, `*.excalidraw.questions.md` sidecars, and video
+lecture notes (a `.md` with a sibling `<stem>.meta.json`). No API calls.
 
 Writes land in academic_notes/, a separate git repo that you commit yourself.
 """
@@ -21,8 +25,22 @@ from core.indexer.hub_identity import check_stampable, read_hub_id, write_hub_id
 from core.indexer.index_card import list_courses, load_shard, save_shard
 
 
-def _authored_files(hub_root: str, include_excalidraw_json: bool):
-    """Yield (course, abs_path) for every authored note, sorted."""
+DERIVED = "derived output"
+_DERIVED_SUFFIXES = (".rag.md", ".excalidraw.questions.md")
+
+
+def _derived(dirpath: str, name: str, filenames: list[str]) -> bool:
+    lower = name.lower()
+    if lower.endswith(_DERIVED_SUFFIXES):
+        return True
+    if "processed_outputs" in dirpath.replace("\\", "/").split("/"):
+        return True
+    return lower.endswith(".md") and f"{name[:-3]}.meta.json" in filenames  # a video lecture note
+
+
+def _candidate_files(hub_root: str, include_excalidraw_json: bool):
+    """Yield (course, abs_path, derived) for every `.md` (and opted-in `.excalidraw`) under academic_notes/,
+    sorted."""
     notes_root = os.path.join(hub_root, "academic_notes")
     if not os.path.isdir(notes_root):
         return
@@ -34,16 +52,17 @@ def _authored_files(hub_root: str, include_excalidraw_json: bool):
             dirnames[:] = sorted(d for d in dirnames if not d.startswith("."))
             for name in sorted(filenames):
                 lower = name.lower()
-                if lower.endswith(".rag.md"):
-                    continue
                 if lower.endswith(".md") or (include_excalidraw_json and lower.endswith(".excalidraw")):
-                    yield course, os.path.join(dirpath, name)
+                    yield course, os.path.join(dirpath, name), _derived(dirpath, name, filenames)
 
 
 def plan(hub_root: str, include_excalidraw_json: bool = False) -> dict:
     would: dict[str, int] = {}
     skipped: list[tuple[str, str]] = []
-    for course, path in _authored_files(hub_root, include_excalidraw_json):
+    for course, path, derived in _candidate_files(hub_root, include_excalidraw_json):
+        if derived:
+            skipped.append((path, DERIVED))
+            continue
         if not read_hub_id(path):
             try:
                 check_stampable(path)
@@ -58,7 +77,10 @@ def apply(hub_root: str, include_excalidraw_json: bool = False) -> dict:
     written = 0
     skipped: list[tuple[str, str]] = []
     stamped: dict[str, dict[str, str]] = {}  # course -> {rel path: hub_id}
-    for course, path in _authored_files(hub_root, include_excalidraw_json):
+    for course, path, derived in _candidate_files(hub_root, include_excalidraw_json):
+        if derived:
+            skipped.append((path, DERIVED))
+            continue
         rel = os.path.relpath(path, hub_root).replace(os.sep, "/")
         had = read_hub_id(path)
         try:

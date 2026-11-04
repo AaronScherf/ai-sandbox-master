@@ -85,3 +85,26 @@ def test_dry_run_reports_empty_frontmatter_as_skipped(tmp_path):
     assert summary["would_write"] == {"econ": 1}
     assert len(summary["skipped"]) == 1 and "empty frontmatter" in summary["skipped"][0][1]
     assert empty.read_bytes() == b"---\n---\nbody\n"
+
+
+def test_derived_outputs_are_skipped_and_reported(tmp_path):
+    hub = make_hub(tmp_path)
+    ln = "academic_notes/econ/lecture_notes"
+    authored = write_note(hub, f"{ln}/scene.excalidraw.md", {"t": "1"}, "scene\n")
+    derived = [
+        write_note(hub, f"{ln}/processed_outputs/scene.excalidraw.md", {"t": "raw"}, "raw\n"),
+        write_note(hub, f"{ln}/processed_outputs/scene.excalidraw.rag.md", {"t": "rag"}, "rag\n"),
+        write_note(hub, f"{ln}/processed_outputs/scene.excalidraw.questions.md", {"t": "q"}, "q\n"),
+        write_note(hub, "academic_notes/econ/problem_sets/processed_outputs/hw1.md", {"t": "hw"}, "hw\n"),
+        write_note(hub, f"{ln}/elsewhere.excalidraw.questions.md", {"t": "q"}, "q\n"),
+        write_note(hub, f"{ln}/video_lecture.md", {"t": "v"}, "video\n"),
+    ]
+    (hub / f"{ln}/video_lecture.meta.json").write_text("{}", encoding="utf-8")
+    before = {p: p.read_bytes() for p in derived}
+    plan = write_hub_ids.plan(str(hub))
+    assert plan["would_write"] == {"econ": 1}
+    assert sorted(p for p, reason in plan["skipped"] if reason == "derived output") == sorted(str(p) for p in derived)
+    summary = write_hub_ids.apply(str(hub))
+    assert summary["written"] == 1 and read_hub_id(str(authored))
+    assert sorted(p for p, reason in summary["skipped"] if reason == "derived output") == sorted(str(p) for p in derived)
+    assert {p: p.read_bytes() for p in derived} == before
