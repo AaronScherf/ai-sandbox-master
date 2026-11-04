@@ -30,6 +30,23 @@ class Target:
     proposals: Proposals
 
 
+CHOOSING_RULE = """\n- Choosing a `vocab_id`: the vocabularies below are trees. An indented term is a child of the term above it, and most terms carry a definition. Work down the tree one level at a time:
+  1. Start at the grouping term that holds the topic. It is a valid answer.
+  2. Go to a child only if you can quote a passage showing that the paper itself does, studies or measures exactly what that child's definition says. The quote you give must be that passage. A
+     passage about the topic in general, or about something close to the child, does not count.
+  3. If you cannot, stay at the grouping term. Staying is correct, not a fallback or a lower-quality answer.
+  4. Never choose a child because its label shares a theme with the paper, because the paper could be read as implying it, or because the child is the only one left after you rule out the others.
+  `value` is the paper's own wording for the thing, and the chosen term must describe the same thing as `value`. If no listed term fits, write `proposed: true` instead of a `vocab_id` and a short
+  `value`. Never give both. Do not propose a term that is already listed.
+"""
+
+FIT_TEST_EXAMPLES = """\n- Examples of the fit test.
+  - A child fits: the paper evaluates a cash grant, the quote shows the grant, and a child's definition describes cash grants, so use that child.
+  - Stay at the group: the paper discusses adaptation strategies in general, so use the grouping term for adaptation strategies, not any one practice beneath it.
+  - A shared theme is not enough: the paper studies microcredit loans. A sibling term for savings groups is also about household finance, but the paper does not do or measure it, so do not choose it.
+  - Report level decides the term: the paper reports household income overall. Use the income term at that level, not a child about one income source, unless the paper reports that source separately.
+"""
+
 INSTRUCTIONS = """\
 Extract a structured study record from the paper whose pages are listed under "Offered passages". Put the answer as
 a YAML mapping under `## Result`, in exactly this shape (quote every value that contains a colon):
@@ -52,13 +69,7 @@ Rules:
 - Every fact needs a `quote` copied exactly from the page text (8 to 300 characters; the shortest passage that
   supports the fact) and a `locator`: the page number from the passage's ref (`ref: page 3` means locator 3), or a
   list of page numbers. A quote that is not on the page you cite is rejected.
-- Choosing a `vocab_id`: the vocabularies below are trees. An indented term is a child of the term above it, and most terms carry a definition. Read the
-  definitions. Choose a child term only when its definition describes something this paper itself does, studies or measures. If the paper deals with a grouping
-  term's topic in general terms, or none of its children matches what the paper itself reports, choose the grouping term itself: a grouping term is a valid
-  answer. Do not choose a child only because its label shares a theme with the paper. `value` is the paper's own wording for the thing, and the chosen term
-  must describe the same thing as `value`. If no listed term fits, write `proposed: true` instead of a `vocab_id` and a short `value`. Never give both. Do not
-  propose a term that is already listed.
-- Resilience outcomes concern a household's capacity to cope with shocks. A paper's adoption of adaptation or coping measures is not itself a resilience
+""" + CHOOSING_RULE + """- Resilience outcomes concern a household's capacity to cope with shocks. A paper's adoption of adaptation or coping measures is not itself a resilience
   outcome: record the measures as an intervention, or as an adoption outcome where the vocabulary has one.
 - `countries` are upper-case ISO 3166-1 alpha-2 codes. `scale` is one of local, subnational, national, multi_country,
   global, not_stated. `effect_direction` is one of positive, negative, null, mixed, not_reported.
@@ -74,9 +85,7 @@ Rules:
 - For a review, overview or competition paper, `data_sources` are only data the paper analysed itself. Data that the
   reviewed studies used, data described as other people's, and programme delivery channels are not data sources of the
   paper: leave them out.
-- Examples of the fit test. A child fits: the paper evaluates a cash grant and a child's definition describes cash grants, so use that child. No child fits: the
-  paper discusses adaptation strategies in general, so use the grouping term for adaptation strategies, not any one practice beneath it.
-- Write [] for any facet list the paper does not give. Give at least one result."""
+""" + FIT_TEST_EXAMPLES + """- Write [] for any facet list the paper does not give. Give at least one result."""
 
 
 def _sha(text: str) -> str:

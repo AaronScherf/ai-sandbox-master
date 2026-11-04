@@ -11,7 +11,7 @@ from core.agent_tasks.tasks import Passage, Task
 from .compare import reconcile
 from .listing import tree_listing
 from .papers import Paper
-from .stage import MAX_CARD_CHARS, Target, _offered_pages, _sha
+from .stage import CHOOSING_RULE, FIT_TEST_EXAMPLES, MAX_CARD_CHARS, Target, _offered_pages, _sha
 from .transcript import split_pages
 from .validate import _facts
 
@@ -139,7 +139,7 @@ def _vocab_listing_for(record: dict, vocabs: dict, pass_label: str = "a", file_i
 
 
 STAGE = "refine_grain"
-PROMPT_VERSION = "refine-v2"
+PROMPT_VERSION = "refine-v3"
 
 INSTRUCTIONS = """\
 Below is this paper's intervention and outcome vocabulary, narrowed to the category this paper already uses and shown as a tree with definitions (full
@@ -153,18 +153,10 @@ Rules:
 - State only what the paper itself says; do not extract from the reference list or from other papers it cites.
 - Every fact needs a `quote` copied exactly from the page text (8 to 300 characters) and a `locator`: the page
   number, or a list of page numbers.
-- Choosing a `vocab_id`: the vocabularies below are trees. An indented term is a child of the term above it, and most terms carry a definition. Read the
-  definitions. Choose a child term only when its definition describes something this paper itself does, studies or measures. If the paper deals with a grouping
-  term's topic in general terms, or none of its children matches what the paper itself reports, choose the grouping term itself: a grouping term is a valid
-  answer. Do not choose a child only because its label shares a theme with the paper. `value` is the paper's own wording for the thing, and the chosen term
-  must describe the same thing as `value`. If no listed term fits, write `proposed: true` instead of a `vocab_id` and a short `value`. Never give both. Do not
-  propose a term that is already listed.
-- Resilience outcomes concern a household's capacity to cope with shocks. A paper's adoption of adaptation or coping measures is not itself a resilience
+""" + CHOOSING_RULE + """- Resilience outcomes concern a household's capacity to cope with shocks. A paper's adoption of adaptation or coping measures is not itself a resilience
   outcome: record the measures as an intervention, or as an adoption outcome where the vocabulary has one.
 - Be complete: list every distinct intervention and outcome the study itself reports, not only the main one.
-- Examples of the fit test. A child fits: the paper evaluates a cash grant and a child's definition describes cash grants, so use that child. No child fits: the
-  paper discusses adaptation strategies in general, so use the grouping term for adaptation strategies, not any one practice beneath it.
-- Write [] for a facet the paper does not give."""
+""" + FIT_TEST_EXAMPLES + """- Write [] for a facet the paper does not give."""
 
 
 def make_tasks(target: Target, papers: list[Paper], *, pass_label: str = "a", redo: bool = False):

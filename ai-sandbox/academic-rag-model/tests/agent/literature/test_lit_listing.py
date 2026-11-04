@@ -45,12 +45,21 @@ class TestListing(unittest.TestCase):
         self.assertIn("grouping levels", text)
 
     def test_the_prompt_version_names_the_3ie_instructions(self):
-        self.assertEqual(schema.PROMPT_VERSION, "extract-v5")
-        self.assertIn("Choose a child term only when its definition", stage.INSTRUCTIONS)
+        self.assertEqual(schema.PROMPT_VERSION, "extract-v6")
+        self.assertIn("Go to a child only if you can quote a passage", stage.INSTRUCTIONS)
         self.assertIn("Resilience outcomes concern a household's capacity", stage.INSTRUCTIONS)
         self.assertNotIn("most specific listed term", stage.INSTRUCTIONS)
         self.assertIn("this study itself", stage.INSTRUCTIONS)
         self.assertIn("every distinct", stage.INSTRUCTIONS)
+
+    def test_the_fit_test_is_a_stepwise_check_shared_with_the_refine_card(self):
+        from agent.literature import refine_grain
+        for text in (stage.INSTRUCTIONS, refine_grain.INSTRUCTIONS):
+            self.assertIn("Work down the tree one level at a time", text)
+            self.assertIn("Staying is correct", text)
+            self.assertIn("A shared theme is not enough", text)
+            self.assertIn("Report level decides the term", text)
+            self.assertNotIn("Choose a child term only when its definition", text)
 
     def test_the_instructions_limit_countries_and_review_data_sources(self):
         text = stage.INSTRUCTIONS

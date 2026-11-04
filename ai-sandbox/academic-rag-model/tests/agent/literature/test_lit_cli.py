@@ -112,7 +112,7 @@ class TestBootstrapAndStatus(unittest.TestCase):
     def assert_status_counts(self, env, *, eligible, records, without_record, duplicates, excluded):
         code, out = _run(env.args("status"))
         self.assertEqual(code, 0)
-        self.assertIn(f"records not refined under refine-v2: {records} (older: 0, never: {records})", out)
+        self.assertIn(f"records not refined under refine-v3: {records} (older: 0, never: {records})", out)
         out = "\n".join(line for line in out.splitlines() if not line.startswith("records not refined")
                         and not line.startswith("  ")) + "\n"
         self.assertEqual(out, (f"eligible papers: {eligible}\n"
