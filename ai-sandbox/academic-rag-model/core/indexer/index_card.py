@@ -141,14 +141,13 @@ def strip_location_lines(data: bytes) -> bytes:
     return b"\n".join(kept + lines[end:])
 
 
-_strip_location_lines = strip_location_lines  # back-compat alias
-
-
 def compute_content_hash(md_path: str) -> str:
     """Like compute_legacy_content_hash, but frontmatter LOCATION_FIELDS
     lines are excluded, so moving or renaming a note (which rewrites its
-    source_* paths) does not change its hash. Files with no such lines
-    hash exactly as before."""
+    source_* paths) does not change its hash; NOTE_IDENTITY_FIELDS (the
+    `hub_id` line, and a frontmatter block that exists only to carry it)
+    are excluded too, so stamping a hub_id never changes the hash. Files
+    with no such lines hash exactly as before."""
     with open(md_path, "rb") as f:
         data = f.read()
     return hashlib.sha256(strip_location_lines(data)).hexdigest()[:16]

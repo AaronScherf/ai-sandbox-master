@@ -134,3 +134,25 @@ def test_write_raises_on_empty_frontmatter_block(tmp_path, orig):
     with pytest.raises(ValueError, match="a.md"):
         write_hub_id(p)
     assert open(p, "rb").read() == orig
+
+
+# M-a: stamping is atomic -- a failure while writing leaves the original bytes intact.
+@pytest.mark.parametrize("fn", ["write", "replace"])
+def test_failed_write_leaves_original_intact(tmp_path, monkeypatch, fn):
+    import os as _os
+    from core.indexer import hub_identity
+    p = tmp_path / "n.md"
+    orig = b"\xef\xbb\xbf---\r\ntitle: x\r\n" + (b"hub_id: old\r\n" if fn == "replace" else b"") + b"---\r\nbody\r\n"
+    p.write_bytes(orig)
+
+    def boom(src, dst):
+        raise OSError("disk full")
+
+    monkeypatch.setattr(hub_identity.os, "replace", boom)
+    with pytest.raises(OSError):
+        if fn == "write":
+            hub_identity.write_hub_id(str(p))
+        else:
+            hub_identity.replace_hub_id(str(p))
+    assert p.read_bytes() == orig
+    assert sorted(_os.listdir(tmp_path)) == ["n.md"]  # no temp file left behind

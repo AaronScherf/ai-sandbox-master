@@ -4,11 +4,15 @@ The id lives in frontmatter (`.md`, including `.excalidraw.md`) or, for plain
 `.excalidraw` JSON, as a top-level `"hub_id"` key. Writes are byte-level
 insertions so BOM, CRLF, key order and formatting are preserved. An existing
 id is never overwritten. The content hash ignores the frontmatter line (see
-index_card.NOTE_IDENTITY_FIELDS).
+index_card.NOTE_IDENTITY_FIELDS). Every write is atomic (temp file in the same
+directory, then os.replace), so a failure mid-write leaves the original intact.
 """
 
 import json
+import os
 import re
+import shutil
+import tempfile
 import uuid
 
 _BOM = b"\xef\xbb\xbf"
@@ -30,6 +34,28 @@ def _frontmatter_end(lines: list[bytes]) -> int | None:
         if lines[i].rstrip(b"\r") == b"---":
             return i
     return None
+
+
+def _atomic_write(path: str, data: bytes) -> None:
+    """Replace `path` with exactly `data`: write a temp file beside it, fsync, then os.replace.
+    On any failure the temp file is removed and the original is untouched."""
+    fd, tmp = tempfile.mkstemp(prefix=".hub_id-", suffix=".tmp", dir=os.path.dirname(os.path.abspath(path)))
+    try:
+        with os.fdopen(fd, "wb") as f:
+            f.write(data)
+            f.flush()
+            os.fsync(f.fileno())
+        try:
+            shutil.copymode(path, tmp)
+        except OSError:
+            pass
+        os.replace(tmp, path)
+    except BaseException:
+        try:
+            os.unlink(tmp)
+        except OSError:
+            pass
+        raise
 
 
 def read_hub_id(path: str) -> str | None:
@@ -81,8 +107,7 @@ def replace_hub_id(path: str) -> str:
                 hub_id = new_hub_id()
                 cr = b"\r" if lines[i].endswith(b"\r") else b""
                 lines[i] = b"hub_id: " + hub_id.encode("ascii") + cr
-                with open(path, "wb") as f:
-                    f.write(b"\n".join(lines))
+                _atomic_write(path, b"\n".join(lines))
                 return hub_id
     return write_hub_id(path)
 
@@ -107,8 +132,7 @@ def write_hub_id(path: str, hub_id: str | None = None) -> str:
         new = _insert_json_key(data, hub_id)
     else:
         new = _insert_frontmatter(data, hub_id)
-    with open(path, "wb") as f:
-        f.write(new)
+    _atomic_write(path, new)
     return hub_id
 
 
