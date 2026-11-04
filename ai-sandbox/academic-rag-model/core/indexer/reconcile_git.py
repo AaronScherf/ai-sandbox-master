@@ -23,14 +23,17 @@ GIT_TIMEOUT_SECONDS = 120
 # programs while we read history. `-c` on the command line overrides repo config, `--no-ext-diff` and
 # `--no-textconv` disable configured diff drivers, and GIT_EXTERNAL_DIFF is dropped from the environment.
 _HARDENING_CONFIG = ("-c", "core.quotePath=false", "-c", "core.fsmonitor=false",
-                     "-c", f"core.hooksPath={os.devnull}", "-c", "diff.external=")
+                     "-c", f"core.hooksPath={os.devnull}", "-c", "diff.external=",
+                     "-c", "log.showSignature=false")
 _DIFF_COMMANDS = frozenset({"diff", "log", "show"})
 _NO_DRIVER_FLAGS = ("--no-ext-diff", "--no-textconv")
+_SIGNATURE_COMMANDS = frozenset({"log", "show"})  # `diff` has no signature display to disable
 
 
 def _git_command(args: tuple[str, ...]) -> list[str]:
     if args and args[0] in _DIFF_COMMANDS:
-        args = (args[0], *_NO_DRIVER_FLAGS, *args[1:])
+        extra = _NO_DRIVER_FLAGS + (("--no-show-signature",) if args[0] in _SIGNATURE_COMMANDS else ())
+        args = (args[0], *extra, *args[1:])
     return ["git", *_HARDENING_CONFIG, *args]
 
 

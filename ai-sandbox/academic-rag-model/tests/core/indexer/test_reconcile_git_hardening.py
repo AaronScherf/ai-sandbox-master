@@ -45,3 +45,10 @@ def test_gitdir_pointer_outside_hub_is_not_a_repo_root(tmp_path):
     assert str(hub / "real") in roots
     assert str(hub / "inside") in roots
     assert str(hub / "outside") not in roots
+
+
+def test_signature_display_is_disabled_for_log_and_show_only():
+    assert "log.showSignature=false" in reconcile_git._git_command(("rev-parse",))
+    for sub in ("log", "show"):
+        assert "--no-show-signature" in reconcile_git._git_command((sub, "HEAD"))
+    assert "--no-show-signature" not in reconcile_git._git_command(("diff", "HEAD"))
