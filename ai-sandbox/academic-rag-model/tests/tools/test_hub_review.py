@@ -201,9 +201,9 @@ def test_dry_run_writes_nothing(tmp_path, store):
 def test_main_apply_unreadable_file_exits_nonzero(tmp_path, capsys):
     bad = tmp_path / "d.json"
     bad.write_text("{not json")
-    assert hub_review.main(["--hub-root", str(tmp_path), "apply", str(bad)]) == 2
+    assert hub_review.main(["apply", str(bad), "--hub-root", str(tmp_path)]) == 2
     bad.write_text('{"a": 1}')
-    assert hub_review.main(["--hub-root", str(tmp_path), "apply", str(bad)]) == 2
+    assert hub_review.main(["apply", str(bad), "--hub-root", str(tmp_path)]) == 2
 
 
 # --- page ---
@@ -219,7 +219,7 @@ def test_page_embeds_items_and_survives_script_breakers():
         {"item_id": "i1", "type": "relink", "subject_ids": ["f"], "subject_paths": [nasty],
          "candidates": [{"path": nasty, "basis": "b", "score": 1.0}], "status": "pending"}]}
     html = hub_review.render_page(payload)
-    assert _embedded(html) == payload
+    assert _embedded(html) == {k: v for k, v in payload.items() if k != "hub_root"}
     assert html.count("</script>") == 2 and "<!--" not in html.split('id="review-items">')[1].split("</script>")[0]
     assert "__REVIEW_ITEMS__" not in html
 
@@ -231,3 +231,79 @@ def test_page_template_has_dark_mode_tokens_and_decisions_collection():
     assert "prefers-color-scheme: dark" in html and "--bg:" in html
     assert 'collection("decisions")' in html and 'claude.use("db")' in html
     assert "<script src=" not in html
+
+
+# --- fix round 1 ---
+
+def test_deferred_relink_stays_listed_and_can_be_decided_later(tmp_path, store):
+    hub = build_hub(tmp_path, offering=False, pairing=False)
+    relink = _by_type(hub_review.export(str(hub), store=store)["items"], "relink")[0]
+    for _ in range(2):  # defer twice is fine
+        res = hub_review.apply_decisions(str(hub), [_decision(relink, "defer")], store=store)
+        assert res[0]["outcome"] == "deferred"
+    for raise_items in (True, False):
+        (item,) = hub_review.export(str(hub), store=store, raise_items=raise_items)["items"]
+        assert item["status"] == "deferred" and item["item_id"] == relink["item_id"]
+    res = hub_review.apply_decisions(str(hub), [_decision(relink, "accept", f"{PS}/a.md")], store=store)
+    assert res[0]["outcome"] == "applied" and _card_path(hub, "f1") == f"{PS}/a.md"
+
+
+def test_decline_after_defer_works(tmp_path, store):
+    hub = build_hub(tmp_path, offering=False, pairing=False)
+    relink = _by_type(hub_review.export(str(hub), store=store)["items"], "relink")[0]
+    hub_review.apply_decisions(str(hub), [_decision(relink, "defer")], store=store)
+    res = hub_review.apply_decisions(str(hub), [_decision(relink, "decline")], store=store)
+    assert res[0]["outcome"] == "applied"
+    assert hub_review.export(str(hub), store=store)["items"] == []
+
+
+def test_no_raise_export_is_a_pure_read(tmp_path, store):
+    hub = build_hub(tmp_path)
+    before = _snapshot(hub, store)
+    items = hub_review.export(str(hub), store=store, raise_items=False)["items"]
+    assert {i["type"] for i in items} == {"relink", "offering_link", "document_pairing"}
+    assert _snapshot(hub, store) == before
+    assert not store.state_path.exists()
+    hub_review.export(str(hub), store=store)  # plain export raises into the ledger
+    assert store.state_path.exists()
+    assert find_card_by_file_id(str(hub), "f1")[1].get("link_state") == "unresolved"
+
+
+def test_export_help_documents_writes(capsys):
+    assert "WRITES" in (hub_review.__doc__ or "")
+    with pytest.raises(SystemExit):
+        hub_review.main(["export", "--help"])
+    out = capsys.readouterr().out
+    assert "WRITES" in out and "--no-raise" in out
+
+
+def test_hub_root_is_required():
+    with pytest.raises(SystemExit):
+        hub_review.main(["export"])
+
+
+def test_orphan_accept_refused_decline_rejects(tmp_path, store):
+    hub = make_hub(tmp_path)
+    note = write_note(hub, f"{LN}/a.md", {"title": "a"}, BODY)
+    save_shard(str(hub), "econ", [{"file_id": "f1", "path": f"{LN}/a.md", "course": "econ",
+                                   "content_hash": compute_content_hash(str(note))}])
+    os.remove(note)
+    (orphan,) = hub_review.export(str(hub), store=store)["items"]
+    assert orphan["type"] == "orphan"
+    res = hub_review.apply_decisions(str(hub), [_decision(orphan, "accept", f"{PS}/a.md")], store=store)
+    assert res[0]["outcome"] == "error"
+    res = hub_review.apply_decisions(str(hub), [_decision(orphan, "decline")], store=store)
+    assert res[0]["outcome"] == "applied"
+    assert hub_review.export(str(hub), store=store)["items"] == []
+
+
+def test_duplicate_decisions_first_non_error_wins(tmp_path, store):
+    hub = build_hub(tmp_path)
+    offer = _by_type(hub_review.export(str(hub), store=store)["items"], "offering_link")[0]
+    res = hub_review.apply_decisions(str(hub), [_decision(offer, "decline"), _decision(offer, "accept")], store=store)
+    assert [r["outcome"] for r in res] == ["applied", "stale"]
+
+
+def test_page_payload_has_no_hub_root():
+    html = hub_review.render_page({"hub_root": "C:/secret/hub", "items": []})
+    assert "secret" not in html and "hub_root" not in html

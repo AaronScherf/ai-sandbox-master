@@ -1,9 +1,17 @@
 """Shared hub review page: export pending items, build the page, apply recorded decisions
 (hub-path-resilience P3, Task 6).
 
-    python -m tools.hub_review export [--out PATH]
-    python -m tools.hub_review page [--out PATH]
-    python -m tools.hub_review apply DECISIONS.json [--dry-run]
+    python -m tools.hub_review --hub-root HUB export [--out PATH] [--no-raise]
+    python -m tools.hub_review --hub-root HUB page [--out PATH] [--no-raise]
+    python -m tools.hub_review --hub-root HUB apply DECISIONS.json [--dry-run]
+    (--hub-root is required and may also follow the subcommand)
+
+WRITES: plain `export` and `page` first run `reconcile_apply.raise_relink_items`, which takes the corpus
+write lock, runs a full reconcile, upserts relink/orphan findings in the corpus-health ledger and sets
+`link_state` on cards with an open relink (the ledger must hold an item before it can be resolved). Use
+`--no-raise` for a pure read: items come from a fresh reconcile minus what the ledger already closed,
+plus the offering/pairing review files; nothing is written. Deferred relink/orphan items stay listed
+(status "deferred") until decided. `apply --dry-run` is also write-free.
 
 One page, separate ledgers: relink/orphan items live in the corpus-health ledger, offering links and
 document pairings in their own review.json files; each decision is applied through the owning module's
@@ -29,11 +37,7 @@ from core.indexer.review_envelope import (
 
 PAGE_TEMPLATE = Path(__file__).with_name("hub_review_page.html")
 ACTIONS = {"accept", "decline", "defer"}
-_CLOSED = {"declined", "deferred", "accepted", "applied", "vanished"}
-
-
-def default_hub_root() -> str:
-    return str(Path(__file__).resolve().parents[2] / "academic-hub")
+_CLOSED = {"declined", "accepted", "applied", "vanished"}
 
 
 def _default_store(hub_root: str):
@@ -42,17 +46,24 @@ def _default_store(hub_root: str):
 
 def _pending_relink(hub_root: str, store, raise_items: bool) -> list[ReviewItem]:
     if raise_items:
-        return [i for i in reconcile_apply.raise_relink_items(hub_root, store=store) if i.status == "pending"]
+        return [i for i in reconcile_apply.raise_relink_items(hub_root, store=store)
+                if i.status in ("pending", "deferred")]
     # read only (dry run): derive from reconcile and drop what the ledger already closed
     from tools.corpus_health.state import SELF_REFRESHED_KINDS
-    closed = {e.get("finding", {}).get("fingerprint") for e in store.entries(kinds=SELF_REFRESHED_KINDS)
-              if e.get("status") in _CLOSED}
+    entries = store.entries(kinds=SELF_REFRESHED_KINDS)
+    closed = {e.get("finding", {}).get("fingerprint") for e in entries if e.get("status") in _CLOSED}
+    deferred = {e.get("finding", {}).get("fingerprint") for e in entries if e.get("status") == "deferred"}
     items = [difference_to_item(d) for d in reconcile(hub_root) if d.kind != "moved"]
-    return [i for i in items if i.item_id not in closed]
+    items = [i for i in items if i.item_id not in closed]
+    for i in items:
+        if i.item_id in deferred:
+            i.status = "deferred"
+    return items
 
 
 def collect(hub_root: str, store=None, raise_items: bool = True) -> list[ReviewItem]:
-    """Pending items from the three ledgers, sorted by (type, item_id). `raise_items=False` writes nothing."""
+    """Open (pending or deferred) items from the three ledgers, sorted by (type, item_id).
+    `raise_items=True` writes the ledger and card link_state (see module docstring); False writes nothing."""
     store = store or _default_store(hub_root)
     items = _pending_relink(hub_root, store, raise_items)
     items += [offering_link_to_item(e, hub_root) for e in offering_links.load_review(hub_root)]
@@ -72,14 +83,15 @@ def _exported(hub_root: str, item: ReviewItem) -> dict:
     return d
 
 
-def export(hub_root: str, store=None) -> dict:
-    items = collect(hub_root, store)
+def export(hub_root: str, store=None, raise_items: bool = True) -> dict:
+    items = collect(hub_root, store, raise_items)
     return {"generated": datetime.now(timezone.utc).isoformat(timespec="seconds"), "hub_root": hub_root,
             "items": [_exported(hub_root, i) for i in items]}
 
 
 def render_page(payload: dict) -> str:
     # '<' escaped so neither </script> nor <!-- can occur inside the embedded JSON; U+2028/9 for old parsers
+    payload = {k: v for k, v in payload.items() if k != "hub_root"}  # no absolute local paths in the page
     blob = (json.dumps(payload, sort_keys=True).replace("<", "\\u003c")
             .replace("\u2028", "\\u2028").replace("\u2029", "\\u2029"))
     return PAGE_TEMPLATE.read_text(encoding="utf-8").replace("__REVIEW_ITEMS__", blob)
@@ -89,7 +101,11 @@ def _defer_in_ledger(store, item: ReviewItem) -> bool:
     from tools.corpus_health.state import SELF_REFRESHED_KINDS
     for e in store.entries(kinds=SELF_REFRESHED_KINDS):
         fp = e.get("finding", {}).get("fingerprint")
-        if fp == item.item_id and e.get("status") == "pending_review":
+        if fp != item.item_id:
+            continue
+        if e.get("status") == "deferred":
+            return True  # idempotent
+        if e.get("status") == "pending_review":
             store.decide(e["finding_id"], "deferred", fp)
             return True
     return False
@@ -165,19 +181,24 @@ def _write(text: str, out: str | None) -> None:
 
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(prog="python -m tools.hub_review")
-    p.add_argument("--hub-root", default=default_hub_root())
+    common = argparse.ArgumentParser(add_help=False)
+    common.add_argument("--hub-root", required=True)
     sub = p.add_subparsers(dest="cmd", required=True)
+    helps = {"export": "write the pending items as JSON. WRITES the ledger and card link_state unless --no-raise",
+             "page": "write the review page. WRITES the ledger and card link_state unless --no-raise"}
     for name in ("export", "page"):
-        sub.add_parser(name).add_argument("--out")
-    ap = sub.add_parser("apply")
+        sp = sub.add_parser(name, parents=[common], help=helps[name], description=helps[name])
+        sp.add_argument("--out")
+        sp.add_argument("--no-raise", action="store_true", help="read only: do not raise relink items into the ledger")
+    ap = sub.add_parser("apply", parents=[common])
     ap.add_argument("decisions")
     ap.add_argument("--dry-run", action="store_true")
     args = p.parse_args(argv)
     if args.cmd == "export":
-        _write(json.dumps(export(args.hub_root), indent=2, sort_keys=True), args.out)
+        _write(json.dumps(export(args.hub_root, raise_items=not args.no_raise), indent=2, sort_keys=True), args.out)
         return 0
     if args.cmd == "page":
-        _write(render_page(export(args.hub_root)), args.out)
+        _write(render_page(export(args.hub_root, raise_items=not args.no_raise)), args.out)
         return 0
     try:
         decisions = json.loads(Path(args.decisions).read_text(encoding="utf-8"))
