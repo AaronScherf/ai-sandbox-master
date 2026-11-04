@@ -163,6 +163,73 @@ Run `chunk --course <course> --file-id <id> --json` after indexing when
 passage-level search is needed. The scanner does not edit the nested
 `academic_notes/` repository.
 
+## Reconcile and review
+
+When files are moved or renamed, cards point at dead paths. `reconcile.py` finds them (pure read, no model
+calls) and `reconcile_apply.py` repairs or raises them for review. Spec:
+`docs/superpowers/specs/academic_hub/2026-11-03-hub-path-resilience-design.md`.
+
+Commands (run from `academic-rag-model/`; flags go AFTER the subcommand):
+- `python -m tools.write_hub_ids --hub-root HUB [--apply]` stamps a stable `hub_id` into note
+  frontmatter (dry run by default). It edits files in `academic_notes/`, a separate git repo: run the
+  dry run first, then `--apply`, then commit there yourself. Notes with an empty frontmatter block and
+  plain `.excalidraw` JSON scenes are skipped (`--include-excalidraw-json` opts the latter in once
+  Excalidraw is verified to keep the key). Derived outputs (anything under `processed_outputs/`,
+  `*.rag.md`, `*.excalidraw.questions.md`, video notes with a `.meta.json` sidecar) are listed as
+  skipped "derived output": their producers rewrite them and would drop the id.
+- `python -m tools.hub_review repair --hub-root HUB [--apply]` is the only command that applies exact
+  moves. Without `--apply` it lists each `moved` difference (dry run); with `--apply` it repairs them
+  (takes the corpus write lock once) and prints each `repair_id`.
+- `python -m tools.hub_review undo REPAIR_ID --hub-root HUB` reverts one repair (exit 1 if the id is
+  unknown, already undone, or the card has moved since). An undone move is never auto-applied again;
+  it shows up on the review page as a relink candidate instead. Undoing a relink chosen on the page
+  reopens that item.
+- `python -m tools.hub_review export|page --hub-root HUB [--out PATH] [--no-raise]` lists pending
+  relink / orphan / offering-link / pairing items; `page` bakes them into one review HTML page. Without
+  `--no-raise` it first raises relink items into the corpus-health ledger (takes the write lock, sets
+  `link_state: unresolved` on cards). It never applies moves; when some are waiting it prints
+  "N exact moves are waiting: run `repair`" to stderr.
+- `python -m tools.hub_review apply decisions.json --hub-root HUB [--dry-run]` applies decisions.
+- Decision flow: publish the page as an Artifact with a `db` capability; viewers write
+  `{item_id, action: accept|decline|defer, chosen, ts}` into its `decisions` collection; dump that to
+  `decisions.json`; run `apply`. Each decision goes through the owning module's `resolve`/`reject`.
+
+Typical order after reorganizing folders: `write_hub_ids` (dry run, then `--apply`, commit in
+`academic_notes/`) BEFORE moving anything, so moved notes and clones are matched by `hub_id`; move
+files; `rebuild`; `hub_review repair` (dry run, then `--apply`); `hub_review page` for what is left.
+
+Caveats:
+- Stamping hub_ids rewrites the notes' raw bytes. The content hash ignores the `hub_id` line, but two
+  consumers still key on a legacy raw-bytes hash: the concept-graph syllabus digest
+  (`agent/concept_graph/stages/gaps.py`) and audio states that still hold a legacy hash re-run once
+  after stamping. To avoid the audio re-run, run the audio pipeline once before stamping (it upgrades
+  its states to the canonical hash); otherwise accept one local TTS regeneration (local, not paid).
+- A repair clears the card's `orphaned` flag, and `rebuild` clears it on every card it sees again.
+
+Repairs are logged to `.index/reconcile_log.jsonl` (pending then done, crash-recoverable).
+`undo_repair(hub_root, repair_id)` restores the card's `path`/`rag_md_path` (and an `orphaned` flag
+only if the log recorded it). Repairs touch card fields only; note frontmatter `source_*` hints are
+not rewritten. A card keeps its `hub_id` and `link_state` when it is regenerated.
+
+Matching tiers (strongest first): `hub_id` (notes), canonical content hash (derived `.md`), byte hash
+(PDFs and other binaries), git rename of the card path, then filename/course/body similarity.
+Safety rules:
+- Only exact evidence yields `moved`, and only `hub_review repair --apply` (or `apply_repairs` from
+  Python) applies it. Git renames and similarity only ever produce ranked `ambiguous` candidates for
+  a human.
+- Two stamped notes that swapped places are two `ambiguous` items (each offered the other's path),
+  never a move. Accepting one is refused while the other card still holds that path; swap the files
+  back (or rename one aside), then reconcile again.
+- Several exact candidates, or one target contested by two cards, is `ambiguous`: nothing is linked.
+- No candidate is `orphan`: report only. Reconcile and apply never delete or modify a content file.
+- A content-tier card whose path still exists is never hashed (an in-place edit is staleness, not a
+  location problem).
+- A target already held by another card is never used; an explicit choice must be a listed candidate.
+
+Not in P3: no scan or preflight hook (P4: scans must pass `sweep_kinds` or call `raise_relink_items`,
+and pipelines should refuse to run on an unresolved item they need), and no `ACADEMIC_HUB_ROOT`
+discovery (P5). Status: `docs/status/indexer/2026-11-03-hub-path-resilience-p3-status.md`.
+
 ## Design docs
 
 `docs/superpowers/specs/indexer/2026-08-27-source-indexer-design.md` for the schema;

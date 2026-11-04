@@ -32,6 +32,32 @@ def test_identical_content_at_a_new_path_does_not_inherit_a_prior_decline(tmp_pa
     assert data["findings"][first.finding_id]["status"] == "vanished"
 
 
+def _relink(fingerprint="r1", path="academic_notes/econ/a.md"):
+    return Finding("relink", "academic-hub-index", path, "a.md", "ambiguous move",
+                   suggested_action="choose the card's new location", fingerprint=fingerprint,
+                   scope="file_id:f1")
+
+
+def test_full_scan_refresh_does_not_vanish_self_refreshed_relink_findings(tmp_path):
+    store = StateStore(tmp_path / "state")
+    store.refresh([_relink()], sweep_kinds={"relink", "orphan_card"})
+    store.refresh([_finding()])  # a scan that knows nothing about relinks
+    data = json.loads(store.state_path.read_text(encoding="utf-8"))
+    statuses = {e["finding"]["kind"]: e["status"] for e in data["findings"].values()}
+    assert statuses == {"relink": "pending_review", "index_card_missing": "pending_review"}
+
+
+def test_scoped_sweep_vanishes_only_named_kinds(tmp_path):
+    store = StateStore(tmp_path / "state")
+    store.refresh([_finding(), _relink()])
+    store.refresh([], sweep_kinds={"relink"})
+    data = json.loads(store.state_path.read_text(encoding="utf-8"))
+    statuses = {e["finding"]["kind"]: e["status"] for e in data["findings"].values()}
+    assert statuses == {"relink": "vanished", "index_card_missing": "pending_review"}
+    store.refresh([_relink(fingerprint="r2")], sweep_kinds=())
+    assert len(store.entries(kinds={"relink"})) == 2
+
+
 def test_identical_content_in_distinct_locations_keeps_separate_decisions(tmp_path):
     store = StateStore(tmp_path / "state")
     findings = store.refresh([_finding(path="C:/notes/a.md"), _finding(path="C:/notes/b.md")])

@@ -20,6 +20,7 @@ from datetime import datetime, timezone
 import numpy as np
 
 from core.env.gemini_utils import call_with_retries
+from core.indexer.hub_identity import read_hub_id
 from google.genai import types
 
 EMBEDDING_MODEL = "gemini-embedding-001"
@@ -89,6 +90,11 @@ def compute_id_from_parts(parts: list[str]) -> str:
 LOCATION_FIELDS: tuple[str, ...] = ("source_pdf", "source_excalidraw", "source_image", "duplicate_of_path")
 
 
+# Frontmatter keys that give a note a stable identity across moves; written by
+# hub_identity.write_hub_id and likewise ignored by the content hash.
+NOTE_IDENTITY_FIELDS: tuple[str, ...] = ("hub_id",)
+
+
 def compute_legacy_content_hash(md_path: str) -> str:
     """Truncated SHA-256 of the .md file's own bytes -- the staleness
     signal (spec §4.3), immune to anything that touches a file's mtime
@@ -106,9 +112,9 @@ def compute_legacy_content_hash(md_path: str) -> str:
     return digest[:16]
 
 
-def _strip_location_lines(data: bytes) -> bytes:
-    """Remove LOCATION_FIELDS lines from a leading frontmatter block,
-    leaving every other byte (BOM, CRLF, body) untouched."""
+def strip_location_lines(data: bytes) -> bytes:
+    """Remove LOCATION_FIELDS and NOTE_IDENTITY_FIELDS lines from a leading
+    frontmatter block, leaving every other byte (BOM, CRLF, body) untouched."""
     lines = data.split(b"\n")
     if lines[0].removeprefix(b"\xef\xbb\xbf").rstrip(b"\r") != b"---":
         return data
@@ -118,22 +124,34 @@ def _strip_location_lines(data: bytes) -> bytes:
     else:
         return data
     kept = [lines[0]]
+    removed_identity = removed_location = False
     for line in lines[1:end]:
         key = line.split(b":", 1)[0].strip().decode("utf-8", "replace")
+        if b":" in line and key in NOTE_IDENTITY_FIELDS:
+            removed_identity = True
+            continue
         if b":" in line and key in LOCATION_FIELDS:
+            removed_location = True
             continue
         kept.append(line)
+    if removed_identity and not removed_location and len(kept) == 1:
+        # The block existed only to carry hub_id (stamped onto a note that had
+        # no frontmatter): drop it whole so the hash matches the unstamped file.
+        bom = b"\xef\xbb\xbf" if lines[0].startswith(b"\xef\xbb\xbf") else b""
+        return bom + b"\n".join(lines[end + 1:])
     return b"\n".join(kept + lines[end:])
 
 
 def compute_content_hash(md_path: str) -> str:
     """Like compute_legacy_content_hash, but frontmatter LOCATION_FIELDS
     lines are excluded, so moving or renaming a note (which rewrites its
-    source_* paths) does not change its hash. Files with no such lines
-    hash exactly as before."""
+    source_* paths) does not change its hash; NOTE_IDENTITY_FIELDS (the
+    `hub_id` line, and a frontmatter block that exists only to carry it)
+    are excluded too, so stamping a hub_id never changes the hash. Files
+    with no such lines hash exactly as before."""
     with open(md_path, "rb") as f:
         data = f.read()
-    return hashlib.sha256(_strip_location_lines(data)).hexdigest()[:16]
+    return hashlib.sha256(strip_location_lines(data)).hexdigest()[:16]
 
 
 def content_hash_matches(md_path: str, stored: str | None) -> bool:
@@ -440,17 +458,23 @@ def find_card_by_file_id(academic_hub_root: str, file_id: str) -> tuple[str, dic
     return None
 
 
-def find_clone_card(cards: list[dict], duplicate_of_file_id: str, rel_md_path: str) -> dict | None:
-    """The existing clone card for a duplicate-linked note: the card at
-    exactly this path if there is one, else the single card that names
-    this canonical document, else None. Never picks among several, so a
-    moved clone keeps its card without a guess being made silently."""
+def find_clone_card(cards: list[dict], duplicate_of_file_id: str, rel_md_path: str,
+                    hub_id: str | None = None) -> dict | None:
+    """The existing clone card for a duplicate-linked note: the card with
+    this note's stored `hub_id` if given (survives a move), else the card at
+    exactly this path, else None. It never infers a card from
+    `duplicate_of_file_id` alone (several clones can share one canonical, so
+    that was a silent guess); `duplicate_of_file_id` is kept in the signature
+    for callers but is not used for matching."""
+    if hub_id:
+        for card in cards:
+            if card.get("hub_id") == hub_id:
+                return card
     wanted = rel_md_path.replace("\\", "/")
     for card in cards:
         if str(card.get("path", "")).replace("\\", "/") == wanted:
             return card
-    candidates = [c for c in cards if c.get("duplicate_of_file_id") == duplicate_of_file_id]
-    return candidates[0] if len(candidates) == 1 else None
+    return None
 
 
 def _replace_card(cards: list[dict], file_id: str, updated: dict) -> list[dict]:
@@ -491,6 +515,30 @@ def move_card(academic_hub_root: str, file_id: str, new_course: str) -> bool:
     return True
 
 
+def _file_hub_id(academic_hub_root: str, path: str | None) -> str | None:
+    """The hub_id stamped in the `.md` (incl. `.excalidraw.md`) at hub-relative `path`, else None."""
+    if not isinstance(path, str) or not path.lower().endswith(".md"):
+        return None
+    try:
+        return read_hub_id(os.path.join(academic_hub_root, *path.replace("\\", "/").split("/")))
+    except OSError:
+        return None
+
+
+def carry_note_identity(academic_hub_root: str, card: dict, previous: dict | None = None) -> dict:
+    """Keep a note's identity on a freshly built or replacing card (hub-path-resilience P3, I5).
+
+    `hub_id`: the one stamped in the card's `.md` when it has one, else the previous card's (a producer
+    may rewrite a derived file and drop the frontmatter line). `link_state`: carried from the previous
+    card (an open relink review item still applies). Mutates and returns `card`."""
+    hub_id = _file_hub_id(academic_hub_root, card.get("path")) or (previous or {}).get("hub_id")
+    if hub_id:
+        card["hub_id"] = hub_id
+    if previous and previous.get("link_state") and "link_state" not in card:
+        card["link_state"] = previous["link_state"]
+    return card
+
+
 def reconcile_and_write(
     academic_hub_root: str, file_id: str, path: str, source_pdf_path: str | None, course: str,
     folder_category: str, content_sample: str, page_count: int, client,
@@ -498,6 +546,7 @@ def reconcile_and_write(
     source_asset_path: str | None = None, offering_label: str | None = None,
     source_kind: str | None = None, companion_of_file_id: str | None = None,
     companion_role: str | None = None, relationship_basis: str | None = None,
+    previous_card: dict | None = None,
 ) -> dict:
     """The single entry point both pipeline hooks (and rebuild) call.
     Implements spec §4.3: never treats `path` as identity -- reconciles by
@@ -508,7 +557,11 @@ def reconcile_and_write(
     additive: a new card defaults it to source_pdf_path when not given;
     reconciling an existing card only overwrites it when a non-None value
     is passed, so a caller that can't currently determine the asset
-    location doesn't blow away a previously-known-good one."""
+    location doesn't blow away a previously-known-good one.
+
+    Note identity (`carry_note_identity`): a card keeps its `hub_id`; one with none takes the hub_id
+    stamped in its `.md`. A newly generated card takes the file's hub_id, else `previous_card`'s
+    (the card a caller removed to force regeneration), and that card's `link_state`."""
     found = find_card_by_file_id(academic_hub_root, file_id)
 
     if found is not None:
@@ -540,6 +593,11 @@ def reconcile_and_write(
             updated.update(source_kind=source_kind, companion_of_file_id=companion_of_file_id,
                            companion_role=companion_role, relationship_basis=relationship_basis)
         updated.pop("orphaned", None)
+        if not updated.get("hub_id"):
+            file_hub_id = _file_hub_id(academic_hub_root, path)
+            if file_hub_id:
+                updated["hub_id"] = file_hub_id
+                changed = True
         if changed:
             updated["source_updated_at"] = now_iso()
 
@@ -581,6 +639,7 @@ def reconcile_and_write(
             source_kind=source_kind, companion_of_file_id=companion_of_file_id,
             companion_role=companion_role, relationship_basis=relationship_basis,
         )
+    carry_note_identity(academic_hub_root, card, previous_card)
 
     cards = load_shard(academic_hub_root, course)
     cards.append(card)
@@ -609,6 +668,27 @@ def set_card_fields(academic_hub_root: str, file_id: str, fields: dict) -> bool:
     return True
 
 
+LINK_STATES = frozenset({"unresolved"})
+
+
+def set_link_state(academic_hub_root: str, file_id: str, state: str | None) -> bool:
+    """Sets (or with None removes) the card's `link_state` (hub-path-resilience P3: "unresolved" while
+    a relink review item is open, so consumers skip the card) and touches nothing else. Returns False,
+    never raises, when no card exists; raises ValueError for a state outside LINK_STATES."""
+    if state is not None and state not in LINK_STATES:
+        raise ValueError(f"unknown link_state: {state!r}")
+    found = find_card_by_file_id(academic_hub_root, file_id)
+    if found is None:
+        return False
+    course, card = found
+    updated = {k: v for k, v in card.items() if k != "link_state"}
+    if state is not None:
+        updated["link_state"] = state
+    if updated != card:
+        save_shard(academic_hub_root, course, _replace_card(load_shard(academic_hub_root, course), file_id, updated))
+    return True
+
+
 def set_rag_md_path(academic_hub_root: str, file_id: str, rag_md_path: str) -> bool:
     """Called by describe_images.py's hook (Task 10) once it produces
     .rag.md -- finds the existing card by file_id (reusing
@@ -631,6 +711,7 @@ def set_rag_md_path(academic_hub_root: str, file_id: str, rag_md_path: str) -> b
 
 def update_card_paths(
     academic_hub_root: str, file_id: str, path: str, rag_md_path: str | None = None,
+    orphaned: bool | None = None,
 ) -> bool:
     """Called by describe_images.py's naming-reconciliation pass when a
     book's output folder gets renamed (a better author/title/year guess
@@ -642,7 +723,9 @@ def update_card_paths(
     reconcile_and_write(), which always requires content_sample/page_count/
     client for its genuinely-new-content path even though a pure rename
     never touches any of those. Returns False (never raises) if no card
-    exists yet for this file_id."""
+    exists yet for this file_id. `orphaned`: None leaves the flag as is,
+    False removes it (the card's file was found again: reconcile repair),
+    True sets it (an undo restoring a flag the repair log recorded)."""
     found = find_card_by_file_id(academic_hub_root, file_id)
     if found is None:
         return False
@@ -651,6 +734,10 @@ def update_card_paths(
     updated["path"] = path
     if rag_md_path is not None:
         updated["rag_md_path"] = rag_md_path
+    if orphaned is False:
+        updated.pop("orphaned", None)
+    elif orphaned:
+        updated["orphaned"] = True
     save_shard(academic_hub_root, course, _replace_card(
         load_shard(academic_hub_root, course), file_id, updated,
     ))

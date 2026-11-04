@@ -16,7 +16,7 @@ from core.indexer.audit import MarkdownIndexTarget, audit_markdown_index
 from core.indexer.index_card import load_shard
 from tools.corpus_health.config import ScanConfig
 from tools.corpus_health.discovery import scan
-from tools.corpus_health.state import StateError, StateStore
+from tools.corpus_health.state import SELF_REFRESHED_KINDS, StateError, StateStore
 
 _CHUNK_KIND = "index_chunks_missing_or_stale"
 _PACKAGE_ROOT = Path(__file__).resolve().parents[2]
@@ -119,7 +119,8 @@ def apply_accepted(
     current = {StateStore.finding_id(finding): finding for finding in report.findings}
     store.refresh(report.findings)
     outcomes: list[dict] = []
-    for entry in store.accepted():
+    # relink/orphan_card entries are applied only by core.indexer.reconcile_apply.resolve/reject.
+    for entry in store.accepted(exclude_kinds=SELF_REFRESHED_KINDS):
         finding_id = entry["finding_id"]
         finding = entry["finding"]
         fingerprint = finding.get("fingerprint")

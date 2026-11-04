@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hub Review Queue</title>
+<style>
+:root {
+  --bg: #f7f7f5; --card: #ffffff; --fg: #1f2328; --muted: #656d76; --line: #d8dade;
+  --accent: #1f6feb; --accent-fg: #ffffff; --ok: #1a7f37; --warn: #9a6700; --err: #cf222e;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #12151a; --card: #1b2027; --fg: #e6e9ee; --muted: #9aa4b2; --line: #2f3742;
+    --accent: #4c8dff; --accent-fg: #0b0d10; --ok: #3fb950; --warn: #d29922; --err: #f85149;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #12151a; --card: #1b2027; --fg: #e6e9ee; --muted: #9aa4b2; --line: #2f3742;
+  --accent: #4c8dff; --accent-fg: #0b0d10; --ok: #3fb950; --warn: #d29922; --err: #f85149;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--fg);
+  font: 15px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; }
+main { max-width: 760px; margin: 0 auto; padding: 16px; }
+h1 { font-size: 1.3rem; margin: 0 0 4px; }
+h2 { font-size: 1rem; margin: 24px 0 8px; }
+.muted { color: var(--muted); font-size: 0.85rem; }
+.notice { border: 1px solid var(--warn); color: var(--warn); border-radius: 6px; padding: 8px 12px; margin: 12px 0; }
+.item { background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 12px; margin: 8px 0; }
+.item.done { opacity: 0.75; }
+.path { word-break: break-all; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 0.85rem; }
+.cand { display: flex; gap: 8px; align-items: flex-start; margin: 6px 0; }
+.cand input { margin-top: 4px; }
+.row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+button { font: inherit; padding: 6px 14px; border-radius: 6px; border: 1px solid var(--line);
+  background: var(--card); color: var(--fg); cursor: pointer; }
+button.primary { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }
+button:disabled { opacity: 0.5; cursor: default; }
+.status { margin-top: 8px; font-size: 0.85rem; color: var(--ok); }
+.status.err { color: var(--err); }
+</style>
+</head>
+<body>
+<main>
+  <h1>Hub Review Queue</h1>
+  <div class="muted" id="summary"></div>
+  <div id="notices"></div>
+  <div id="groups"></div>
+</main>
+<script type="application/json" id="review-items">__REVIEW_ITEMS__</script>
+<script>
+const PAYLOAD = JSON.parse(document.getElementById("review-items").textContent);
+const ITEMS = PAYLOAD.items || [];
+const GROUPS = [["relink", "Relink"], ["orphan", "Orphaned cards (report only)"],
+  ["offering_link", "Offering links"], ["document_pairing", "Document pairings"]];
+let db = null;
+const decided = new Map();   // item_id -> recorded decision doc
+const picked = new Map();    // item_id -> chosen candidate path (not yet saved)
+const errors = new Map();    // item_id -> save error text
+
+function el(tag, text, cls) {
+  const e = document.createElement(tag);
+  if (text !== undefined && text !== null) e.textContent = text;
+  if (cls) e.className = cls;
+  return e;
+}
+function notice(text, id) {
+  const n = el("div", text, "notice");
+  if (id) n.id = id;
+  document.getElementById("notices").appendChild(n);
+}
+
+async function save(item, action, chosen) {
+  errors.delete(item.item_id);
+  try {
+    await db.collection("decisions").doc(item.item_id)
+      .set({ item_id: item.item_id, action: action, chosen: chosen, ts: Date.now() });
+  } catch (e) {
+    errors.set(item.item_id, "Could not save: " + ((e && e.code) || "error"));
+    render();
+  }
+}
+
+function renderItem(item) {
+  const rec = decided.get(item.item_id);
+  const box = el("div", null, "item" + (rec ? " done" : ""));
+  const paths = (item.subject_paths || []).filter(Boolean);
+  if (item.status === "deferred" && !rec) box.appendChild(el("span", "deferred", "muted"));
+  box.appendChild(el("div", paths.length ? paths.join("  <->  ") : item.subject_ids.join(", "), "path"));
+  if (item.type === "relink") {
+    (item.candidates || []).forEach((c) => {
+      const row = el("label", null, "cand");
+      const radio = document.createElement("input");
+      radio.type = "radio"; radio.name = "pick-" + item.item_id; radio.value = c.path;
+      radio.checked = rec ? rec.chosen === c.path : picked.get(item.item_id) === c.path;
+      radio.disabled = !db || !!rec;
+      radio.addEventListener("change", () => { picked.set(item.item_id, c.path); });
+      row.appendChild(radio);
+      const text = el("span");
+      text.appendChild(el("span", c.path, "path"));
+      text.appendChild(el("div", c.basis + (c.score != null ? " " + Number(c.score).toFixed(2) : ""), "muted"));
+      row.appendChild(text);
+      box.appendChild(row);
+    });
+  } else if (item.type !== "orphan") {
+    (item.candidates || []).forEach((c) => {
+      const line = c.basis + (c.score != null ? " " + Number(c.score).toFixed(2) : "");
+      box.appendChild(el("div", "Proposed pair: " + line, "muted"));
+    });
+  }
+  const buttons = el("div", null, "row");
+  const make = (label, action, primary) => {
+    const b = el("button", label, primary ? "primary" : "");
+    b.disabled = !db || !!rec;
+    b.addEventListener("click", () => {
+      if (action === "accept" && item.type === "relink" && !picked.get(item.item_id)) {
+        errors.set(item.item_id, "Choose a candidate first.");
+        render();
+        return;
+      }
+      save(item, action, action === "accept" && item.type === "relink" ? picked.get(item.item_id) : null);
+    });
+    buttons.appendChild(b);
+  };
+  if (item.type !== "orphan") make("Accept", "accept", true);
+  make("Decline", "decline", false);
+  make("Defer", "defer", false);
+  box.appendChild(buttons);
+  if (rec) box.appendChild(el("div", "Decided: " + rec.action + (rec.chosen ? " " + rec.chosen : ""), "status"));
+  if (errors.has(item.item_id)) box.appendChild(el("div", errors.get(item.item_id), "status err"));
+  return box;
+}
+
+function render() {
+  const root = document.getElementById("groups");
+  root.replaceChildren();
+  document.getElementById("summary").textContent =
+    ITEMS.length + " items, " + decided.size + " decided" + (db ? "" : " (read only)");
+  if (!ITEMS.length) { root.appendChild(el("p", "Nothing to review")); return; }
+  GROUPS.forEach(([type, label]) => {
+    const items = ITEMS.filter((i) => i.type === type);
+    if (!items.length) return;
+    const done = items.filter((i) => decided.has(i.item_id)).length;
+    root.appendChild(el("h2", label + " (" + done + "/" + items.length + " decided)"));
+    items.forEach((i) => root.appendChild(renderItem(i)));
+  });
+}
+
+async function init() {
+  render();
+  let t;
+  const timeout = new Promise((resolve) => { t = setTimeout(() => resolve(null), 10000); });
+  try { db = await Promise.race([window.claude.use("db"), timeout]); } catch (e) { db = null; }
+  clearTimeout(t);
+  if (!db) { notice("Decisions cannot be saved in this view; showing the queue read only."); render(); return; }
+  render();
+  const slow = setTimeout(() => notice("Saved decisions can't be reached yet; the list may be out of date.", "slow"), 10000);
+  db.collection("decisions").onSnapshot((snap) => {
+    if (!snap.metadata.fromCache) {
+      clearTimeout(slow);
+      const n = document.getElementById("slow");
+      if (n) n.remove();
+    }
+    decided.clear();
+    snap.docs.forEach((d) => { const v = d.data(); if (v) decided.set(d.id, v); });
+    render();
+  }, (e) => { clearTimeout(slow); notice("Could not read saved decisions: " + ((e && e.code) || "error")); });
+}
+init();
+</script>
+</body>
+</html>

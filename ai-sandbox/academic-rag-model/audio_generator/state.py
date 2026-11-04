@@ -12,6 +12,8 @@ import hashlib
 import json
 import os
 
+from core.indexer.index_card import strip_location_lines
+
 
 def _state_dir(audio_generator_root: str) -> str:
     return os.path.join(audio_generator_root, ".cache")
@@ -22,6 +24,17 @@ def _state_path(audio_generator_root: str) -> str:
 
 
 def compute_content_hash(md_path: str) -> str:
+    """Canonical, location-neutral full sha256: frontmatter source_*/hub_id
+    lines are stripped first, so moving a note's source PDF (which rewrites
+    those lines) does not regenerate its audio. Equals legacy_content_hash
+    whenever nothing is stripped."""
+    with open(md_path, "rb") as f:
+        return hashlib.sha256(strip_location_lines(f.read())).hexdigest()
+
+
+def legacy_content_hash(md_path: str) -> str:
+    """The pre-canonical raw-bytes full sha256, still accepted when
+    comparing against states written before the canonical hash existed."""
     with open(md_path, "rb") as f:
         return hashlib.sha256(f.read()).hexdigest()
 
@@ -43,12 +56,26 @@ def save_state(audio_generator_root: str, state: dict) -> None:
         json.dump(state, f, indent=2, ensure_ascii=False)
 
 
-def needs_regeneration(state: dict, source, current_hash: str) -> bool:
+def needs_regeneration(state: dict, source, current_hash: str, legacy_hash: str | None = None) -> bool:
     """True if source's .mp3 is missing, or its .md content hash has
-    changed since the .mp3 was last (re)generated (spec §5)."""
+    changed since the .mp3 was last (re)generated (spec §5). A stored hash
+    equal to legacy_hash (the old raw-bytes hash) also counts as current."""
     if not os.path.exists(source.abs_mp3_path):
         return True
-    return state.get(source.rel_md_path) != current_hash
+    stored = state.get(source.rel_md_path)
+    return stored != current_hash and (legacy_hash is None or stored != legacy_hash)
+
+
+def upgrade_legacy_entry(state: dict, source, current_hash: str, legacy_hash: str | None) -> bool:
+    """If source's stored hash is the legacy one (and differs from the
+    canonical one), rewrite it to the canonical hash so the entry survives
+    a later location-line rewrite. Mutates state; returns True if changed.
+    The caller persists state (never call this on a dry run)."""
+    stored = state.get(source.rel_md_path)
+    if legacy_hash is not None and stored == legacy_hash and stored != current_hash:
+        state[source.rel_md_path] = current_hash
+        return True
+    return False
 
 
 def episode_state_key(rel_md_path: str, part_number: int) -> str:

@@ -40,6 +40,7 @@ from core.indexer.index_card import (
     KNOWN_DOC_TYPES,
     KNOWN_LEVELS,
     LECTURE_NOTE_DOC_TYPES,
+    carry_note_identity,
     compute_content_hash,
     compute_legacy_content_hash,
     content_hash_matches,
@@ -409,12 +410,12 @@ def _video_lecture_note_paths(academic_hub_root: str, course_filter: str | None)
 
 
 def _clone_card_id(cards: list[dict], duplicate_of_file_id: str, rel_md_path: str,
-                   rel_pdf_path: str, stats: dict) -> str:
+                   rel_pdf_path: str, stats: dict, hub_id: str | None = None) -> str:
     """file_id of the clone card for a duplicate-linked note. Finds the
-    existing card even after the note moved (see find_clone_card); only
+    existing card even after the note moved, by its stored hub_id (see find_clone_card); only
     when none is found does it derive an id, and that case is counted in
     stats["clone_card_unresolved"] so it is visible, not silent."""
-    card = find_clone_card(cards, duplicate_of_file_id, rel_md_path)
+    card = find_clone_card(cards, duplicate_of_file_id, rel_md_path, hub_id)
     if card is not None:
         return card["file_id"]
     stats["clone_card_unresolved"] = stats.get("clone_card_unresolved", 0) + 1
@@ -569,6 +570,7 @@ def _reconcile_one(academic_hub_root, course_name, folder_category, file_id, rel
         known_doc_types=known_doc_types, source_asset_path=source_asset_path,
         source_kind=source_kind, companion_of_file_id=companion_of_file_id,
         companion_role=companion_role, relationship_basis=relationship_basis,
+        previous_card=existing,
     )
     if is_first_time:
         stats["generated"] += 1
@@ -646,7 +648,8 @@ def _apply_markdown_row(academic_hub_root: str, row: dict, client) -> dict:
         except Exception as exc:
             result.update(status="generation_failed", error=str(exc))
             return result
-        old_course, _ = found
+        old_course, old_card = found
+        carry_note_identity(academic_hub_root, card, old_card)
         old_cards = load_shard(academic_hub_root, old_course)
         save_shard(academic_hub_root, old_course, [
             card if c.get("file_id") == row["file_id"] else c for c in old_cards
@@ -726,6 +729,7 @@ def retry_file(root: str, course: str, rel_path: str, client) -> dict:
         return {**row, "status": "generation_failed", "error": str(exc)}
     for key in ("source_pdf_path", "source_asset_path", "offering_label", "rag_md_path"):
         replacement[key] = card.get(key)
+    carry_note_identity(root, replacement, card)
     save_shard(root, course, [replacement if c.get("file_id") == card["file_id"] else c
                               for c in load_shard(root, course)])
     recompute_course_entry(root, course)
@@ -858,7 +862,8 @@ def rebuild(academic_hub_root: str, client, course: str | None = None,
         duplicate_of_file_id = frontmatter_fields.get("duplicate_of_file_id")
         if duplicate_of_file_id:
             seen_file_ids.add(_clone_card_id(load_shard(academic_hub_root, course_name),
-                                             duplicate_of_file_id, rel_md_path, rel_pdf_path, stats))
+                                             duplicate_of_file_id, rel_md_path, rel_pdf_path, stats,
+                                             frontmatter_fields.get("hub_id") or None))
             stats["skipped_duplicate_clone"] += 1
             continue
 
@@ -1105,6 +1110,11 @@ def _flag_or_prune_orphans(academic_hub_root, seen_file_ids, course_filter, prun
         kept = []
         for card in cards:
             if card.get("file_id") in seen_file_ids:
+                # Seen in this rebuild: its file is back (e.g. a clone card repaired by
+                # reconcile_apply, which never passes through reconcile_and_write), so a flag
+                # from an earlier rebuild no longer holds.
+                if card.pop("orphaned", None) is not None:
+                    changed = True
                 kept.append(card)
                 continue
             if prune:

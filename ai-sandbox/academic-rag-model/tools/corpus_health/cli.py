@@ -11,7 +11,7 @@ from tools.corpus_health.config import load_config
 from tools.corpus_health.actions import apply_accepted
 from tools.corpus_health.discovery import scan
 from tools.corpus_health.review_server import ReviewServer
-from tools.corpus_health.state import StateError, StateStore, default_state_dir
+from tools.corpus_health.state import SELF_REFRESHED_KINDS, StateError, StateStore, default_state_dir
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -96,7 +96,7 @@ def main(argv: list[str] | None = None) -> int:
             raise ValueError("review timeout must be positive")
         directory = args.state_dir or default_state_dir(config.academic_hub_root)
         store = StateStore(directory)
-        pending = store.pending(include_deferred=args.include_deferred)
+        pending = store.pending(include_deferred=args.include_deferred, exclude_kinds=SELF_REFRESHED_KINDS)
         if not pending:
             print("No pending findings to review.")
             return 0
