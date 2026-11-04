@@ -163,6 +163,46 @@ Run `chunk --course <course> --file-id <id> --json` after indexing when
 passage-level search is needed. The scanner does not edit the nested
 `academic_notes/` repository.
 
+## Reconcile and review
+
+When files are moved or renamed, cards point at dead paths. `reconcile.py` finds them (pure read, no model
+calls) and `reconcile_apply.py` repairs or raises them for review. Spec:
+`docs/superpowers/specs/academic_hub/2026-11-03-hub-path-resilience-design.md`.
+
+Commands (run from `academic-rag-model/`; flags go AFTER the subcommand):
+- `python -m tools.write_hub_ids --hub-root HUB [--apply]` stamps a stable `hub_id` into note
+  frontmatter (dry run by default). It edits files in `academic_notes/`, a separate git repo: run the
+  dry run first, then `--apply`, then commit there yourself. Notes with an empty frontmatter block and
+  plain `.excalidraw` JSON scenes are skipped (`--include-excalidraw-json` opts the latter in once
+  Excalidraw is verified to keep the key).
+- `python -m tools.hub_review export|page --hub-root HUB [--out PATH] [--no-raise]` lists pending
+  relink / orphan / offering-link / pairing items; `page` bakes them into one review HTML page. Without
+  `--no-raise` it first raises relink items into the corpus-health ledger (takes the write lock, sets
+  `link_state: unresolved` on cards).
+- `python -m tools.hub_review apply --hub-root HUB decisions.json [--dry-run]` applies decisions.
+- Decision flow: publish the page as an Artifact with a `db` capability; viewers write
+  `{item_id, action: accept|decline|defer, chosen, ts}` into its `decisions` collection; dump that to
+  `decisions.json`; run `apply`. Each decision goes through the owning module's `resolve`/`reject`.
+
+Repairs are logged to `.index/reconcile_log.jsonl` (pending then done, crash-recoverable).
+`undo_repair(hub_root, repair_id)` restores the card's `path`/`rag_md_path`. Repairs touch card fields
+only; note frontmatter `source_*` hints are not rewritten.
+
+Matching tiers (strongest first): `hub_id` (notes), canonical content hash (derived `.md`), byte hash
+(PDFs and other binaries), git rename of the card path, then filename/course/body similarity.
+Safety rules:
+- Only exact evidence yields `moved`, and it is auto-applied. Git renames and similarity only ever
+  produce ranked `ambiguous` candidates for a human.
+- Several exact candidates, or one target contested by two cards, is `ambiguous`: nothing is linked.
+- No candidate is `orphan`: report only. Reconcile and apply never delete or modify a content file.
+- A content-tier card whose path still exists is never hashed (an in-place edit is staleness, not a
+  location problem).
+- A target already held by another card is never used; an explicit choice must be a listed candidate.
+
+Not in P3: no scan or preflight hook (P4: scans must pass `sweep_kinds` or call `raise_relink_items`,
+and pipelines should refuse to run on an unresolved item they need), and no `ACADEMIC_HUB_ROOT`
+discovery (P5). Status: `docs/status/indexer/2026-11-03-hub-path-resilience-p3-status.md`.
+
 ## Design docs
 
 `docs/superpowers/specs/indexer/2026-08-27-source-indexer-design.md` for the schema;
