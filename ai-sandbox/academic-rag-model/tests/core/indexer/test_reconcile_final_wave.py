@@ -196,3 +196,30 @@ def test_undo_after_resolve_reopens_the_item_and_marks_the_card_unresolved(tmp_p
     assert [(i.item_id, i.status) for i in items] == [(item.item_id, "pending")]
     assert _card(hub, "n1").get("link_state") == "unresolved"
 
+
+
+# --- I4: swapped stamped notes are offered, never auto-applied ------------------------------------
+
+def test_swapped_stamped_notes_are_two_ambiguous_items_nothing_applied(tmp_path, store):
+    hub = make_hub(tmp_path)
+    write_note(hub, f"{LN}/a.md", {"title": "a"}, BODY)
+    write_note(hub, f"{LN}/b.md", {"title": "b"}, "# Game theory\n\nNash equilibrium of a two-player game.\n")
+    ha = write_hub_id(str(hub / f"{LN}/a.md"))
+    hb = write_hub_id(str(hub / f"{LN}/b.md"))
+    save_shard(str(hub), "econ", [_note_card(hub, f"{LN}/a.md", "n1", hub_id=ha),
+                                  _note_card(hub, f"{LN}/b.md", "n2", hub_id=hb)])
+    os.replace(hub / f"{LN}/a.md", hub / f"{LN}/tmp.md")
+    os.replace(hub / f"{LN}/b.md", hub / f"{LN}/a.md")
+    os.replace(hub / f"{LN}/tmp.md", hub / f"{LN}/b.md")
+
+    diffs = sorted(reconcile(str(hub)), key=lambda d: d.file_id)
+    assert [(d.kind, d.file_id, [c.path for c in d.candidates]) for d in diffs] == [
+        ("ambiguous", "n1", [f"{LN}/b.md"]),
+        ("ambiguous", "n2", [f"{LN}/a.md"]),
+    ]
+    assert all("another card already points at" in d.evidence for d in diffs)
+    assert all("no other file" not in d.evidence for d in diffs)
+    assert apply_repairs(str(hub), diffs) == []
+    assert _card(hub, "n1")["path"] == f"{LN}/a.md" and _card(hub, "n2")["path"] == f"{LN}/b.md"
+    items = raise_relink_items(str(hub), diffs, store)
+    assert sorted(i.type for i in items) == ["relink", "relink"]

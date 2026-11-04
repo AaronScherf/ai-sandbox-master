@@ -30,6 +30,9 @@ Rules (spec section 4, strongest first):
   matches by content but carries a different hub_id (a clone) is an `ambiguous` candidate only.
 - A content-tier card's hash match onto a file carrying another card's hub_id is not decisive: the
   hub_id proof belongs to that card.
+- A hub_id-tier card whose path holds a file with a DIFFERENT hub_id (e.g. two stamped notes swapped
+  places) also looks for its hub_id among files other cards claim; any found are `ambiguous`
+  candidates only (never `moved`, so never auto-applied): another card points at them.
 - After all cards are classified, a `moved` whose target is also a decisive exact candidate of another
   card becomes `ambiguous`: two cards never both move onto one file. Non-decisive candidates never
   veto a proven move.
@@ -207,6 +210,8 @@ class _Matcher:
         self.snap = snap
         self.vocab = vocab
         self.unclaimed = [e for e in snap.values() if e.path not in claimed]
+        self.claimed = [e for e in snap.values() if e.path in claimed]
+        self._claimed_hub_ids: dict[str, list[FileEntry]] | None = None
         self._hashes: dict[str, tuple[str, str] | None] = {}
         self._file_ids: dict[str, str | None] = {}
         self._hub_ids: dict[str, list[FileEntry]] | None = None
@@ -252,6 +257,19 @@ class _Matcher:
                 if found:
                     index.setdefault(found, []).append(entry)
             self._hub_ids = index
+        return index.get(hub_id, [])
+
+    def claimed_by_hub_id(self, hub_id: str) -> list[FileEntry]:
+        """Files some card already points at that carry `hub_id` (read lazily, only when a card's own
+        path holds a file with a different hub_id)."""
+        index = self._claimed_hub_ids
+        if index is None:
+            index = {}
+            for entry in self.claimed:
+                found = self.hub_id_of(entry)
+                if found:
+                    index.setdefault(found, []).append(entry)
+            self._claimed_hub_ids = index
         return index.get(hub_id, [])
 
     def is_exact(self, card: dict, entry: FileEntry, tier: str) -> str | None:
@@ -446,12 +464,23 @@ def reconcile(hub_root: str) -> list[Difference]:
             else:
                 continue
             exact, label, strong = matcher.exact(card, tier)
-            if exact:
+            elsewhere = ([e for e in matcher.claimed_by_hub_id(card["hub_id"]) if e.path != here.path]
+                         if tier == "hub_id" else [])
+            if elsewhere:
+                known = {c.path for c in exact}
+                candidates = exact + [Candidate(e.path, "hub_id", 1.0) for e in elsewhere if e.path not in known]
+                differences.append(Difference(
+                    "ambiguous", card["file_id"], old, _ranked(candidates),
+                    f"{why}; the card's hub_id is carried by {len(elsewhere)} file(s) another card already "
+                    f"points at (swapped or copied notes?), none chosen"))
+                decisive.append(False)
+            elif exact:
                 differences.append(_from_exact(card, old, exact, label, strong, why))
                 decisive.append(strong)
             elif tier == "hub_id":
-                differences.append(Difference("orphan", card["file_id"], old, [],
-                                              f"{why}; no other file carries the card's hub_id or hash"))
+                differences.append(Difference(
+                    "orphan", card["file_id"], old, [],
+                    f"{why}; no file carries the card's hub_id and no unclaimed file matches its hash"))
                 decisive.append(False)
             continue
 
