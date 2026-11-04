@@ -23,6 +23,7 @@ LEGACY_CASES = [
 ]
 
 
+@pytest.mark.usefixtures("seed_hub_config")
 @pytest.mark.parametrize(("path", "expected"), LEGACY_CASES)
 def test_legacy_behavior(path, expected):
     assert course_part_category(path) == expected

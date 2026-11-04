@@ -81,9 +81,10 @@ def test_textbooks_are_found_under_extra_layers(tmp_path):
     assert [s.rel_md_path for s in sources] == [f"academic_resources/econ/{LAYERS}/textbooks/processed_outputs/Book/Book.md"]
 
 
-def test_an_unconfirmed_subfolder_does_not_newly_enable_transcription(tmp_path):
+def test_an_unconfirmed_subfolder_does_not_newly_enable_transcription(tmp_path, seed_hub_config):
     """Live-tree regression: math-camp/problem_sets/past_exams held 14 PDFs that discovery skipped. Seeding
-    `past_exams` as a category made them eligible (a paid run); it must stay unconfirmed until the owner says so."""
+    `past_exams` as a category made them eligible (a paid run), so an unconfirmed folder must not be. Uses the
+    frozen seed config; the owner has since confirmed `past_exams` in the shipped config."""
     from pipelines.transcribe_notes.route_notes_transcribe import discover_pdf_sources
     hub = tmp_path / "hub"
     pdf = hub / "academic_resources/math-camp/problem_sets/past_exams/exam.pdf"

@@ -1,0 +1,94 @@
+{
+  "version": 1,
+  "textbook_folders": [
+    "textbooks",
+    "textbooks-and-papers"
+  ],
+  "group_patterns": [
+    "^part_\\d+$",
+    "^class_\\d{4}$",
+    "^\\d{4}_class$"
+  ],
+  "names": {
+    "lecture_notes": {
+      "kind": "category",
+      "source": "seed"
+    },
+    "problem_sets": {
+      "kind": "category",
+      "source": "seed"
+    },
+    "ta_notes": {
+      "kind": "category",
+      "source": "seed"
+    },
+    "professor_notes": {
+      "kind": "category",
+      "source": "seed"
+    },
+    "textbooks": {
+      "kind": "category",
+      "source": "seed"
+    },
+    "textbooks-and-papers": {
+      "kind": "category",
+      "source": "seed"
+    },
+    "syllabus": {
+      "kind": "category",
+      "source": "seed"
+    },
+    "handwritten_notes": {
+      "kind": "category",
+      "source": "seed"
+    },
+    "cheat_sheet": {
+      "kind": "category",
+      "source": "seed"
+    },
+    "recitation_slides": {
+      "kind": "category",
+      "source": "seed"
+    },
+    "study_plan": {
+      "kind": "category",
+      "source": "seed"
+    },
+    "labs": {
+      "kind": "category",
+      "source": "seed"
+    },
+    "articles": {
+      "kind": "category",
+      "source": "seed"
+    },
+    "briefings": {
+      "kind": "category",
+      "source": "seed"
+    },
+    "latex": {
+      "kind": "category",
+      "source": "seed"
+    },
+    "lecture_slides": {
+      "kind": "category",
+      "source": "seed"
+    },
+    "lecture_recordings": {
+      "kind": "category",
+      "source": "seed"
+    },
+    "processed_outputs": {
+      "kind": "ignore",
+      "source": "seed"
+    },
+    "images": {
+      "kind": "ignore",
+      "source": "seed"
+    },
+    "assets": {
+      "kind": "ignore",
+      "source": "seed"
+    }
+  }
+}
