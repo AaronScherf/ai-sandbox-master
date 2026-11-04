@@ -18,5 +18,5 @@ pipelines that populate and index this folder.
   excerpts, gitignored).
 
 `academic-hub` and `research` are independent search roots — 
-`academic-rag-model/indexer/index_search.py`'s `--root` flag is repeatable,
+`python -m core.indexer.index_search`'s `--root` flag (in `academic-rag-model/`) is repeatable,
 so a query can span both corpora at once.
