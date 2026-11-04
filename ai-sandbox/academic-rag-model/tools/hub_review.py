@@ -1,10 +1,18 @@
-"""Shared hub review page: export pending items, build the page, apply recorded decisions
-(hub-path-resilience P3, Task 6).
+"""Shared hub review page: export pending items, build the page, apply recorded decisions, and run
+or undo exact-move repairs (hub-path-resilience P3, Task 6 + final wave).
 
-    python -m tools.hub_review --hub-root HUB export [--out PATH] [--no-raise]
-    python -m tools.hub_review --hub-root HUB page [--out PATH] [--no-raise]
-    python -m tools.hub_review --hub-root HUB apply DECISIONS.json [--dry-run]
-    (--hub-root is required and may also follow the subcommand)
+    python -m tools.hub_review export --hub-root HUB [--out PATH] [--no-raise]
+    python -m tools.hub_review page --hub-root HUB [--out PATH] [--no-raise]
+    python -m tools.hub_review apply DECISIONS.json --hub-root HUB [--dry-run]
+    python -m tools.hub_review repair --hub-root HUB [--apply]
+    python -m tools.hub_review undo REPAIR_ID --hub-root HUB
+    (--hub-root is required and goes AFTER the subcommand; before it, it is rejected)
+
+`repair` lists the exact (`moved`) differences reconcile found; with `--apply` it applies them through
+`reconcile_apply.apply_repairs` (one corpus-lock hold, logged in `.index/reconcile_log.jsonl`) and
+prints each repair_id. `undo REPAIR_ID` reverts one (`reconcile_apply.undo_repair`; exit 1 if refused);
+an undone move is never auto-applied again but is offered on the review page instead. `export`/`page`
+never apply moves: when some are waiting they print a one-line note to stderr.
 
 WRITES: plain `export` and `page` first run `reconcile_apply.raise_relink_items`, which takes the corpus
 write lock, runs a full reconcile, upserts relink/orphan findings in the corpus-health ledger and sets
@@ -44,16 +52,25 @@ def _default_store(hub_root: str):
     return reconcile_apply._default_store(hub_root)
 
 
-def _pending_relink(hub_root: str, store, raise_items: bool) -> list[ReviewItem]:
+def _pending_moves(hub_root: str, differences) -> list:
+    """The exact moves `repair --apply` would apply (undone moves excluded: they are review items)."""
+    return [d for d in reconcile_apply.demote_undone(hub_root, differences) if d.kind == "moved"]
+
+
+def _pending_relink(hub_root: str, store, raise_items: bool, moves_out: list | None = None) -> list[ReviewItem]:
+    differences = reconcile(hub_root)
+    if moves_out is not None:
+        moves_out.extend(_pending_moves(hub_root, differences))
     if raise_items:
-        return [i for i in reconcile_apply.raise_relink_items(hub_root, store=store)
+        return [i for i in reconcile_apply.raise_relink_items(hub_root, differences, store=store)
                 if i.status in ("pending", "deferred")]
     # read only (dry run): derive from reconcile and drop what the ledger already closed
     from tools.corpus_health.state import SELF_REFRESHED_KINDS
     entries = store.entries(kinds=SELF_REFRESHED_KINDS)
     closed = {e.get("finding", {}).get("fingerprint") for e in entries if e.get("status") in _CLOSED}
     deferred = {e.get("finding", {}).get("fingerprint") for e in entries if e.get("status") == "deferred"}
-    items = [difference_to_item(d) for d in reconcile(hub_root) if d.kind != "moved"]
+    items = [difference_to_item(d) for d in reconcile_apply.demote_undone(hub_root, differences)
+             if d.kind != "moved"]
     items = [i for i in items if i.item_id not in closed]
     for i in items:
         if i.item_id in deferred:
@@ -61,11 +78,12 @@ def _pending_relink(hub_root: str, store, raise_items: bool) -> list[ReviewItem]
     return items
 
 
-def collect(hub_root: str, store=None, raise_items: bool = True) -> list[ReviewItem]:
+def collect(hub_root: str, store=None, raise_items: bool = True, moves_out: list | None = None) -> list[ReviewItem]:
     """Open (pending or deferred) items from the three ledgers, sorted by (type, item_id).
-    `raise_items=True` writes the ledger and card link_state (see module docstring); False writes nothing."""
+    `raise_items=True` writes the ledger and card link_state (see module docstring); False writes nothing.
+    `moves_out`, if given, receives the pending exact moves (`repair` applies them; they are not items)."""
     store = store or _default_store(hub_root)
-    items = _pending_relink(hub_root, store, raise_items)
+    items = _pending_relink(hub_root, store, raise_items, moves_out)
     items += [offering_link_to_item(e, hub_root) for e in offering_links.load_review(hub_root)]
     items += [pairing_to_item(e, hub_root) for e in document_pairing.load_review(hub_root)]
     return sorted(items, key=lambda i: (i.type, i.item_id))
@@ -83,8 +101,8 @@ def _exported(hub_root: str, item: ReviewItem) -> dict:
     return d
 
 
-def export(hub_root: str, store=None, raise_items: bool = True) -> dict:
-    items = collect(hub_root, store, raise_items)
+def export(hub_root: str, store=None, raise_items: bool = True, moves_out: list | None = None) -> dict:
+    items = collect(hub_root, store, raise_items, moves_out)
     return {"generated": datetime.now(timezone.utc).isoformat(timespec="seconds"), "hub_root": hub_root,
             "items": [_exported(hub_root, i) for i in items]}
 
@@ -172,6 +190,37 @@ def apply_decisions(hub_root: str, decisions: list, dry_run: bool = False, store
     return results
 
 
+def repair(hub_root: str, apply: bool = False) -> int:
+    """List (dry run) or apply the pending exact moves. Prints one line per move/repair and a summary."""
+    moves = _pending_moves(hub_root, reconcile(hub_root))
+    if not apply:
+        for d in moves:
+            print(f"would move {d.file_id}: {d.old_path} -> {d.candidates[0].path}  ({d.evidence})")
+        print(f"dry run: {len(moves)} exact move(s) would be applied; rerun with --apply")
+        return 0
+    records = reconcile_apply.apply_repairs(hub_root, moves)
+    for r in records:
+        print(f"repaired {r.repair_id} {r.file_id}: {r.old} -> {r.new}")
+    skipped = len(moves) - len(records)
+    print(f"{len(records)} repair(s) applied" + (f", {skipped} skipped (card or target changed)" if skipped else "")
+          + "; undo one with: python -m tools.hub_review undo REPAIR_ID --hub-root HUB")
+    return 0
+
+
+def undo(hub_root: str, repair_id: str) -> int:
+    if reconcile_apply.undo_repair(hub_root, repair_id):
+        print(f"undone {repair_id}; this move will be offered on the review page, not re-applied")
+        return 0
+    print(f"cannot undo {repair_id}: unknown id, not a completed repair, already undone, "
+          f"or the card has moved since", file=sys.stderr)
+    return 1
+
+
+def _note_moves(moves: list) -> None:
+    if moves:
+        print(f"{len(moves)} exact moves are waiting: run `repair`", file=sys.stderr)
+
+
 def _write(text: str, out: str | None) -> None:
     if out:
         Path(out).write_text(text, encoding="utf-8", newline="\n")
@@ -193,12 +242,22 @@ def main(argv: list[str] | None = None) -> int:
     ap = sub.add_parser("apply", parents=[common])
     ap.add_argument("decisions")
     ap.add_argument("--dry-run", action="store_true")
+    rp = sub.add_parser("repair", parents=[common],
+                        help="list exact moves; --apply applies them (logged, undoable)")
+    rp.add_argument("--apply", action="store_true", help="apply the moves (takes the corpus write lock)")
+    up = sub.add_parser("undo", parents=[common], help="undo one repair by its repair_id")
+    up.add_argument("repair_id")
     args = p.parse_args(argv)
-    if args.cmd == "export":
-        _write(json.dumps(export(args.hub_root, raise_items=not args.no_raise), indent=2, sort_keys=True), args.out)
-        return 0
-    if args.cmd == "page":
-        _write(render_page(export(args.hub_root, raise_items=not args.no_raise)), args.out)
+    if args.cmd == "repair":
+        return repair(args.hub_root, apply=args.apply)
+    if args.cmd == "undo":
+        return undo(args.hub_root, args.repair_id)
+    if args.cmd in ("export", "page"):
+        moves: list = []
+        payload = export(args.hub_root, raise_items=not args.no_raise, moves_out=moves)
+        _write(json.dumps(payload, indent=2, sort_keys=True) if args.cmd == "export" else render_page(payload),
+               args.out)
+        _note_moves(moves)
         return 0
     try:
         decisions = json.loads(Path(args.decisions).read_text(encoding="utf-8"))

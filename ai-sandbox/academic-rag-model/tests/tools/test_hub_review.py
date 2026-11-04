@@ -307,3 +307,75 @@ def test_duplicate_decisions_first_non_error_wins(tmp_path, store):
 def test_page_payload_has_no_hub_root():
     html = hub_review.render_page({"hub_root": "C:/secret/hub", "items": []})
     assert "secret" not in html and "hub_root" not in html
+
+
+# --- final wave (I2): repair / undo subcommands, pending-moves note -------------------------------
+
+def _moved_hub(tmp_path):
+    hub = make_hub(tmp_path)
+    note = write_note(hub, f"{LN}/x.md", {"title": "x"}, BODY)
+    save_shard(str(hub), "econ", [{"file_id": "m1", "path": f"{LN}/x.md", "course": "econ",
+                                   "content_hash": compute_content_hash(str(note))}])
+    (hub / f"{LN}/g").mkdir()
+    os.replace(note, hub / f"{LN}/g/x.md")
+    return hub
+
+
+def test_repair_dry_run_lists_moves_and_writes_nothing(tmp_path, capsys):
+    hub = _moved_hub(tmp_path)
+    assert hub_review.main(["repair", "--hub-root", str(hub)]) == 0
+    out = capsys.readouterr().out
+    assert f"would move m1: {LN}/x.md -> {LN}/g/x.md" in out
+    assert "dry run: 1 exact move(s) would be applied" in out
+    assert find_card_by_file_id(str(hub), "m1")[1]["path"] == f"{LN}/x.md"
+    assert not os.path.exists(reconcile_apply.log_path(str(hub)))
+
+
+def test_repair_apply_prints_repair_ids_and_moves_the_card(tmp_path, capsys):
+    hub = _moved_hub(tmp_path)
+    assert hub_review.main(["repair", "--apply", "--hub-root", str(hub)]) == 0
+    out = capsys.readouterr().out
+    (rec,) = [l for l in out.splitlines() if l.startswith("repaired ")]
+    rid = rec.split()[1]
+    assert re.fullmatch(r"[0-9a-f]{12}-1", rid)
+    assert "1 repair(s) applied" in out
+    assert find_card_by_file_id(str(hub), "m1")[1]["path"] == f"{LN}/g/x.md"
+
+
+def test_undo_reverts_and_the_move_is_not_reapplied(tmp_path, capsys):
+    hub = _moved_hub(tmp_path)
+    hub_review.main(["repair", "--apply", "--hub-root", str(hub)])
+    rid = [l for l in capsys.readouterr().out.splitlines() if l.startswith("repaired ")][0].split()[1]
+    assert hub_review.main(["undo", rid, "--hub-root", str(hub)]) == 0
+    assert f"undone {rid}" in capsys.readouterr().out
+    assert find_card_by_file_id(str(hub), "m1")[1]["path"] == f"{LN}/x.md"
+    assert hub_review.main(["repair", "--apply", "--hub-root", str(hub)]) == 0
+    assert "0 repair(s) applied" in capsys.readouterr().out
+    assert find_card_by_file_id(str(hub), "m1")[1]["path"] == f"{LN}/x.md"
+
+
+def test_undo_unknown_id_exits_nonzero(tmp_path, capsys):
+    hub = _moved_hub(tmp_path)
+    assert hub_review.main(["undo", "deadbeef0000-1", "--hub-root", str(hub)]) == 1
+    assert "cannot undo deadbeef0000-1" in capsys.readouterr().err
+
+
+def test_hub_root_before_subcommand_is_rejected(tmp_path):
+    with pytest.raises(SystemExit):
+        hub_review.main(["--hub-root", str(tmp_path), "repair"])
+
+
+def test_export_and_page_note_pending_moves_on_stderr_only(tmp_path, store, capsys, monkeypatch):
+    hub = _moved_hub(tmp_path)
+    monkeypatch.setattr(hub_review, "_default_store", lambda root: store)
+    out_json = tmp_path / "items.json"
+    assert hub_review.main(["export", "--hub-root", str(hub), "--out", str(out_json)]) == 0
+    err = capsys.readouterr().err
+    assert "1 exact moves are waiting: run `repair`" in err
+    assert "waiting" not in out_json.read_text(encoding="utf-8")
+    assert json.loads(out_json.read_text(encoding="utf-8"))["items"] == []
+    out_html = tmp_path / "page.html"
+    assert hub_review.main(["page", "--hub-root", str(hub), "--out", str(out_html), "--no-raise"]) == 0
+    assert "exact moves are waiting" in capsys.readouterr().err
+    assert "waiting" not in out_html.read_text(encoding="utf-8")
+    assert find_card_by_file_id(str(hub), "m1")[1]["path"] == f"{LN}/x.md"  # export never applies
