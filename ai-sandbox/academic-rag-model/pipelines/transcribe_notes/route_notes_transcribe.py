@@ -310,6 +310,7 @@ def sync_resource_backups(pairs, dry_run: bool = False) -> list[BackupResult]:
 class PipelinePlan:
     pdf_todo: list[str] = field(default_factory=list)
     pdf_skipped: list[str] = field(default_factory=list)
+    pdf_oversize: list[str] = field(default_factory=list)  # to-do PDFs held back by --max-pdf-mb
     excalidraw_todo: list[tuple[str, str]] = field(default_factory=list)
     excalidraw_skipped: list[tuple[str, str]] = field(default_factory=list)
     courses: list[str] = field(default_factory=list)
@@ -344,7 +345,8 @@ def _report_excluded_resource_pdfs(resources_course_dir: str, notes_course_dir: 
     return source_only, textbooks, uncategorized
 
 
-def build_plan(academic_hub_root: str, courses: list[str] | None = None, force: bool = False) -> PipelinePlan:
+def build_plan(academic_hub_root: str, courses: list[str] | None = None, force: bool = False,
+               max_pdf_mb: float | None = None) -> PipelinePlan:
     notes_root = os.path.join(academic_hub_root, "academic_notes")
     target_courses = courses if courses is not None else find_course_dirs(academic_hub_root)
     plan = PipelinePlan(courses=list(target_courses))
@@ -381,6 +383,10 @@ def build_plan(academic_hub_root: str, courses: list[str] | None = None, force: 
 
         pdfs = discover_pdf_sources(course_dir, subset_roots=subset_roots)
         todo_pdfs = filter_unprocessed_pdfs(pdfs, force=force)
+        if max_pdf_mb is not None:
+            limit = max_pdf_mb * 1_000_000
+            plan.pdf_oversize.extend(p for p in todo_pdfs if os.path.getsize(p) > limit)
+            todo_pdfs = [p for p in todo_pdfs if os.path.getsize(p) <= limit]
         todo_pdf_set = set(todo_pdfs)
         plan.pdf_todo.extend(todo_pdfs)
         plan.pdf_skipped.extend(p for p in pdfs if p not in todo_pdf_set)
@@ -508,6 +514,8 @@ def print_chunk_stats(chunk_stats: dict) -> None:
 
 def print_summary(plan: PipelinePlan, report: RunReport | None = None) -> None:
     print(f"PDF: {len(plan.pdf_todo)} to process, {len(plan.pdf_skipped)} already done")
+    if plan.pdf_oversize:
+        print(f"PDF: {len(plan.pdf_oversize)} skipped as over the --max-pdf-mb limit")
     print(f"PDF excluded: {len(plan.source_only_pdfs)} source-only, "
           f"{len(plan.textbook_pdfs)} textbooks, {len(plan.uncategorized_pdfs)} uncategorized")
     print(f"Excalidraw: {len(plan.excalidraw_todo)} to process, {len(plan.excalidraw_skipped)} already done")
@@ -561,6 +569,8 @@ def _build_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument("--course", action="append", default=None,
                          help="Limit to this course (repeatable). Default: every course under academic_notes/.")
     parser.add_argument("--force", action="store_true", help="Reprocess files even if output already exists.")
+    parser.add_argument("--max-pdf-mb", type=float, default=None,
+                        help="Skip PDFs larger than this many MB (reported, not transcribed).")
     parser.add_argument("--dry-run", action="store_true", help="Show what would be processed without calling any API.")
     parser.add_argument("--pdf-model", default=None, help="Model override for transcribe_notes.py (default: its own auto-selection).")
     parser.add_argument("--excalidraw-model", default=None, help=f"Gemini vision model for Excalidraw transcription. Default: {_EXCALIDRAW_MODEL}.")
@@ -633,7 +643,7 @@ def main():
         load_dotenv_override()
 
     academic_hub_dir = Path(args.root).resolve() if args.root else Path(__file__).resolve().parent.parent.parent.parent / "academic-hub"
-    plan = build_plan(str(academic_hub_dir), courses=args.course, force=args.force)
+    plan = build_plan(str(academic_hub_dir), courses=args.course, force=args.force, max_pdf_mb=args.max_pdf_mb)
     print_summary(plan)
     all_excalidraw_pairs = plan.excalidraw_todo + plan.excalidraw_skipped
 
