@@ -19,11 +19,28 @@ _SKIP_DIRS = frozenset({".git", ".index", ".obsidian", ".trash", "node_modules"}
 GIT_TIMEOUT_SECONDS = 120
 
 
+# A nested repo under the hub is data, not trusted code: its own `.git/config` must not be able to run
+# programs while we read history. `-c` on the command line overrides repo config, `--no-ext-diff` and
+# `--no-textconv` disable configured diff drivers, and GIT_EXTERNAL_DIFF is dropped from the environment.
+_HARDENING_CONFIG = ("-c", "core.quotePath=false", "-c", "core.fsmonitor=false",
+                     "-c", f"core.hooksPath={os.devnull}", "-c", "diff.external=")
+_DIFF_COMMANDS = frozenset({"diff", "log", "show"})
+_NO_DRIVER_FLAGS = ("--no-ext-diff", "--no-textconv")
+
+
+def _git_command(args: tuple[str, ...]) -> list[str]:
+    if args and args[0] in _DIFF_COMMANDS:
+        args = (args[0], *_NO_DRIVER_FLAGS, *args[1:])
+    return ["git", *_HARDENING_CONFIG, *args]
+
+
 def _git(repo_root: str, *args: str) -> str | None:
     if shutil.which("git") is None:
         return None
+    env = {k: v for k, v in os.environ.items() if k != "GIT_EXTERNAL_DIFF"}
+    env["GIT_OPTIONAL_LOCKS"] = "0"  # a read must not take the index lock or refresh the index
     try:
-        result = subprocess.run(["git", "-c", "core.quotePath=false", *args], cwd=repo_root,
+        result = subprocess.run(_git_command(args), cwd=repo_root, env=env,
                                 capture_output=True, timeout=GIT_TIMEOUT_SECONDS)
     except subprocess.TimeoutExpired:
         print(f"WARNING: reconcile: `git {' '.join(args[:2])}` timed out after {GIT_TIMEOUT_SECONDS}s in "
@@ -101,13 +118,34 @@ def git_last_text(repo_root: str, rel_path: str) -> str | None:
     return _git(repo_root, "show", f"{last.strip()}^:./{rel_path}")
 
 
+def _git_pointer_stays_inside(dirpath: str, hub_root: str) -> bool:
+    """A `.git` directory is always fine. A `.git` FILE is a `gitdir: <path>` pointer; accept it only when
+    the target is inside the hub, so a nested folder cannot aim git at a repo (and config) elsewhere."""
+    marker = os.path.join(dirpath, ".git")
+    if os.path.isdir(marker):
+        return True
+    try:
+        with open(marker, "r", encoding="utf-8", errors="replace") as f:
+            first = f.readline().strip()
+    except OSError:
+        return False
+    if not first.startswith("gitdir:"):
+        return False
+    target = os.path.realpath(os.path.join(dirpath, first[len("gitdir:"):].strip()))
+    base = os.path.realpath(hub_root)
+    return os.path.commonpath([target, base]) == base if os.path.splitdrive(target)[0] == os.path.splitdrive(base)[0] else False
+
+
 def find_repo_roots(hub_root: str, max_depth: int = 2) -> list[str]:
-    """`hub_root` plus every directory up to `max_depth` levels below it that is its own repo."""
+    """`hub_root` plus every directory up to `max_depth` levels below it that is its own repo.
+
+    A nested `.git` file whose `gitdir:` pointer leads outside the hub is not treated as a repo root."""
     roots = [hub_root]
     base_depth = hub_root.rstrip("\\/").count(os.sep)
     for dirpath, dirnames, _ in os.walk(hub_root):
         depth = dirpath.rstrip("\\/").count(os.sep) - base_depth
-        if dirpath != hub_root and os.path.exists(os.path.join(dirpath, ".git")):
+        if (dirpath != hub_root and os.path.exists(os.path.join(dirpath, ".git"))
+                and _git_pointer_stays_inside(dirpath, hub_root)):
             roots.append(dirpath)
         if depth >= max_depth:
             dirnames[:] = []

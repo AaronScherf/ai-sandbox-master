@@ -442,7 +442,7 @@ def test_git_history_scan_is_limited_to_the_repo_dir_pathspec(tmp_path, monkeypa
     from core.indexer import reconcile_git
     calls = []
 
-    def fake_run(cmd, cwd=None, capture_output=None, timeout=None):
+    def fake_run(cmd, cwd=None, capture_output=None, timeout=None, env=None):
         calls.append(cmd)
         return subprocess.CompletedProcess(cmd, 0, stdout=b"hub/" if "rev-parse" in cmd else b"")
 
@@ -457,7 +457,7 @@ def test_git_history_scan_is_limited_to_the_repo_dir_pathspec(tmp_path, monkeypa
 def test_git_timeout_warns_on_stderr(tmp_path, monkeypatch, capsys):
     from core.indexer import reconcile_git
 
-    def slow(cmd, cwd=None, capture_output=None, timeout=None):
+    def slow(cmd, cwd=None, capture_output=None, timeout=None, env=None):
         raise subprocess.TimeoutExpired(cmd, timeout)
 
     monkeypatch.setattr(reconcile_git.shutil, "which", lambda name: "git")
