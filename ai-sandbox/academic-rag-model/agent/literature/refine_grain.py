@@ -129,6 +129,10 @@ def make_tasks(target: Target, papers: list[Paper], *, pass_label: str = "a", re
     builds a task for a paper that already has a record for `pass_label` -- every one of the real 62 papers
     already has both passes, so this is not a narrowing of the real rollout, just a precondition the merge step
     (apply_result) needs satisfied."""
+    for facet in ("intervention", "outcome"):
+        if not getattr(target.vocabs.get(facet), "terms", None):
+            raise ValueError(f"the {facet} vocabulary is not loaded, so the cards would carry no term listing; "
+                             "pass --vocab-dir with the directory that holds it (research/resources/3ie/vocab)")
     tasks: list[Task] = []
     skipped: dict[str, str] = {}
     for paper in papers:

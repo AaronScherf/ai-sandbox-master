@@ -138,8 +138,12 @@ def cmd_refine_grain(args) -> int:
     papers, _ = eligible_papers(args.index_root)
     if args.file_id:
         papers = [p for p in papers if p.file_id in set(args.file_id)]
-    tasks, skipped = refine_grain.make_tasks(target, papers, pass_label="a", redo=args.redo)
-    b_tasks, b_skipped = refine_grain.make_tasks(target, papers, pass_label="b", redo=args.redo)
+    try:
+        tasks, skipped = refine_grain.make_tasks(target, papers, pass_label="a", redo=args.redo)
+        b_tasks, b_skipped = refine_grain.make_tasks(target, papers, pass_label="b", redo=args.redo)
+    except ValueError as exc:
+        print(f"cannot build refine-grain cards: {exc}")
+        return 2
     tasks += b_tasks
     skipped.update({f"{k} (pass b)": v for k, v in b_skipped.items()})
     for fid, reason in skipped.items():

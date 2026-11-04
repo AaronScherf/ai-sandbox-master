@@ -58,6 +58,8 @@ and the locator is a page number that was offered. Records are **not committed**
 
 For each paper, run `collect --double`, `submit`, `refine-grain --double`, `submit`, `verify`, and `verify --full-paper` when the first check leaves a fact unresolved. Then run `tiers` and `db build`. The `status` and `tiers` commands report records not refined under the current prompt version, including older and never-refined counts and file ids. `db build` refuses never-refined records; older stamps are warned about. Until the whole corpus has been refined under the current version, use `db build --allow-unrefined` to include the never-refined records explicitly.
 
+`refine-grain` exits with code 2 when the intervention or outcome vocabulary is not loaded: the default `--vocab-dir` holds only the local lists, so pass `--vocab-dir research/resources/3ie/vocab` (before the subcommand) or the cards would carry no term listing.
+
 F1: Missing leaf definitions made nearby terms hard to distinguish. Enrich local vocabulary YAML from a saved portal bundle before making new cards; keep that output in the ignored vocabulary directory.
 
 F2: A flat refinement list hid parent and child relationships. Cards now indent terms by their position in the tree.

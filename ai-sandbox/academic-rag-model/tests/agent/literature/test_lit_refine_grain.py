@@ -447,3 +447,34 @@ class TestWriteVocabDirPreservesParent(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestVocabularyGuard(unittest.TestCase):
+    def test_refuses_to_build_cards_without_the_intervention_or_outcome_vocabulary(self):
+        for missing in ("intervention", "outcome"):
+            with self.subTest(missing=missing), tempfile.TemporaryDirectory() as root:
+                target, papers = _setup(root)
+                target.vocabs = {k: v for k, v in target.vocabs.items() if k != missing}
+                with self.assertRaises(ValueError) as caught:
+                    refine_grain.make_tasks(target, papers, pass_label="a")
+                self.assertIn(missing, str(caught.exception))
+                self.assertIn("--vocab-dir", str(caught.exception))
+
+    def test_cli_exits_with_code_2_and_a_message(self):
+        import contextlib
+        import io
+        from agent.literature import cli
+        with tempfile.TemporaryDirectory() as root:
+            target, _ = _setup(root)
+            target.vocabs = {k: v for k, v in target.vocabs.items() if k != "intervention"}
+            args = type("A", (), {"file_id": [], "redo": False, "run_id": None, "index_root": root, "work_root": None})()
+            buffer = io.StringIO()
+            original = cli._target
+            cli._target = lambda a: target
+            try:
+                with contextlib.redirect_stdout(buffer):
+                    code = cli.cmd_refine_grain(args)
+            finally:
+                cli._target = original
+        self.assertEqual(code, 2)
+        self.assertIn("--vocab-dir", buffer.getvalue())
