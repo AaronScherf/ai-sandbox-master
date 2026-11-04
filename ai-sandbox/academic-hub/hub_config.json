@@ -308,6 +308,35 @@
       "kind": "category",
       "source": "owner",
       "alias_of": "past_exams"
+    },
+    "Experimental Economics": {
+      "kind": "ignore",
+      "source": "owner"
+    },
+    "Guest Lecture Material": {
+      "kind": "category",
+      "source": "owner",
+      "alias_of": "lecture_slides"
+    },
+    "Post lecture notes": {
+      "kind": "category",
+      "source": "owner",
+      "alias_of": "lecture_slides"
+    },
+    "Post-Lecture Notes": {
+      "kind": "category",
+      "source": "owner",
+      "alias_of": "lecture_slides"
+    },
+    "Pre Lecture Notes": {
+      "kind": "category",
+      "source": "owner",
+      "alias_of": "lecture_slides"
+    },
+    "Proofs": {
+      "kind": "category",
+      "source": "owner",
+      "alias_of": "professor_notes"
     }
   }
 }
