@@ -70,7 +70,42 @@ def _subtree_listing(vocab, root_ids: set[str], pass_label: str = "a", file_id: 
     return tree_listing(vocab, terms, pass_label, file_id, vocab.name)
 
 
-def _vocab_listing_for(record: dict, vocabs: dict, pass_label: str = "a", file_id: str = "") -> str:
+# A refine card is the instructions, the vocabulary listing and every page. The largest card Gemini processed was about 310k
+# characters; two of 484k and 546k could not be processed. Above this budget the listing is narrowed (see _narrow_term_ids).
+# 400k is an estimate between those two, not a measured limit.
+REFINE_CARD_BUDGET = 400_000
+
+
+def _narrow_term_ids(facts: list[dict] | None, vocab) -> set[str]:
+    """For a card that would be too large: the ids to list when the listing is limited to what the paper's current
+    facts point to. For each fact's term, its ancestors (so the tree reads from the top) and the whole group that
+    holds it (the term's parent with every descendant, so its siblings and their children stay choosable); a fact on
+    a root keeps that root's subtree. Proposed, unknown and missing facts add nothing."""
+    keep: set[str] = set()
+    if vocab is None:
+        return keep
+    for fact in facts or []:
+        vid = fact.get("vocab_id")
+        if vid not in vocab.terms:
+            continue
+        anchor = vocab.terms[vid].parent or vid
+        cur, seen = anchor, set()
+        while cur and cur in vocab.terms and cur not in seen:  # the anchor and its ancestors
+            seen.add(cur)
+            keep.add(cur)
+            cur = vocab.terms[cur].parent
+        for term in vocab.terms.values():  # everything beneath the anchor
+            cur, seen = term.parent, set()
+            while cur and cur not in seen:
+                if cur == anchor:
+                    keep.add(term.id)
+                    break
+                seen.add(cur)
+                cur = vocab.terms[cur].parent if cur in vocab.terms else None
+    return keep
+
+
+def _vocab_listing_for(record: dict, vocabs: dict, pass_label: str = "a", file_id: str = "", narrow: bool = False) -> str:
     """The scoped intervention/outcome listing for one paper's refine card. Falls back to stage._vocab_listing's
     existing grouping-only rendering for a facet when scope_roots finds nothing to anchor on (should not occur in
     practice -- every paper carries a sector fact -- but keeps today's behavior as a safety net rather than
@@ -83,6 +118,14 @@ def _vocab_listing_for(record: dict, vocabs: dict, pass_label: str = "a", file_i
         vocab = vocabs.get(facet)
         if vocab is None:
             continue
+        if narrow:
+            ids = _narrow_term_ids((record.get("core") or {}).get(facet), vocab)
+            if ids:
+                lines += ["", f"Vocabulary {facet} (version {vocab.version}, {vocab.provenance}; narrowed to the groups that "
+                               "hold this paper's current terms because the full tree would make the card too large. If "
+                               "nothing listed fits, write `proposed: true`):",
+                          tree_listing(vocab, [t for t in vocab.terms.values() if t.id in ids], pass_label, file_id, facet)]
+                continue
         roots = scope_roots(record, facet, vocab, sector_vocab)
         if roots:
             lines += ["", f"Vocabulary {facet} (version {vocab.version}, {vocab.provenance}; scoped to this "
@@ -166,8 +209,14 @@ def make_tasks(target: Target, papers: list[Paper], *, pass_label: str = "a", re
         if not redo and record.get("extractor", {}).get("grain_refine_version") == PROMPT_VERSION:
             skipped[paper.file_id] = "already refined (use --redo to refine again)"
             continue
-        context = "\n".join([f"Paper: {paper.title or paper.file_id}", f"file_id: {paper.file_id}",
-                             _vocab_listing_for(record, target.vocabs, pass_label, paper.file_id)])
+        header = [f"Paper: {paper.title or paper.file_id}", f"file_id: {paper.file_id}"]
+        context = "\n".join(header + [_vocab_listing_for(record, target.vocabs, pass_label, paper.file_id)])
+        if len(INSTRUCTIONS) + len(context) + size > REFINE_CARD_BUDGET:
+            context = "\n".join(header + [_vocab_listing_for(record, target.vocabs, pass_label, paper.file_id, narrow=True)])
+            if len(INSTRUCTIONS) + len(context) + size > REFINE_CARD_BUDGET:
+                skipped[paper.file_id] = (f"card would be {len(INSTRUCTIONS) + len(context) + size} characters even with the "
+                                          f"listing narrowed, over the {REFINE_CARD_BUDGET} budget")
+                continue
         passages = [Passage(id=f"P{n}", source=paper.title or paper.file_id, ref=f"page {n}", text=text)
                     for n, text in sorted(pages.items())]
         task_id = f"refine-{paper.file_id}" if pass_label == "a" else f"refine-{paper.file_id}-{pass_label}"

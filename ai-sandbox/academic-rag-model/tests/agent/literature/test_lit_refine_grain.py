@@ -478,3 +478,70 @@ class TestVocabularyGuard(unittest.TestCase):
                 cli._target = original
         self.assertEqual(code, 2)
         self.assertIn("--vocab-dir", buffer.getvalue())
+
+
+def _narrow_vocab():
+    terms = {
+        "i.root": Term(id="i.root", label="Root"),
+        "i.group_a": Term(id="i.group_a", label="Group A", parent="i.root"),
+        "i.a1": Term(id="i.a1", label="A one", parent="i.group_a"),
+        "i.a2": Term(id="i.a2", label="A two", parent="i.group_a"),
+        "i.a2x": Term(id="i.a2x", label="A two child", parent="i.a2"),
+        "i.group_b": Term(id="i.group_b", label="Group B", parent="i.root"),
+        "i.b1": Term(id="i.b1", label="B one", parent="i.group_b"),
+        "i.other_root": Term(id="i.other_root", label="Other root"),
+        "i.o1": Term(id="i.o1", label="Other one", parent="i.other_root"),
+    }
+    return Vocabulary("intervention", 1, "3ie", "test", terms)
+
+
+class TestNarrowTerms(unittest.TestCase):
+    def test_keeps_ancestors_and_the_whole_group_of_each_current_fact(self):
+        vocab = _narrow_vocab()
+        ids = refine_grain._narrow_term_ids([{"vocab_id": "i.a1"}], vocab)
+        self.assertEqual(ids, {"i.root", "i.group_a", "i.a1", "i.a2", "i.a2x"})
+
+    def test_a_fact_on_a_root_keeps_its_whole_subtree(self):
+        ids = refine_grain._narrow_term_ids([{"vocab_id": "i.other_root"}], _narrow_vocab())
+        self.assertEqual(ids, {"i.other_root", "i.o1"})
+
+    def test_proposed_unknown_and_empty_facts_give_nothing(self):
+        vocab = _narrow_vocab()
+        self.assertEqual(refine_grain._narrow_term_ids([{"proposed": True, "value": "x"}, {"vocab_id": "nope"}], vocab), set())
+        self.assertEqual(refine_grain._narrow_term_ids(None, vocab), set())
+
+
+class TestOversizeCardFallback(unittest.TestCase):
+    def test_a_card_over_budget_is_rebuilt_with_the_narrowed_listing(self):
+        with tempfile.TemporaryDirectory() as root:
+            target, papers = _setup(root)
+            full, _ = refine_grain.make_tasks(target, papers, pass_label="a")
+            size = len(full[0].instructions) + len(full[0].context) + sum(len(p.text) for p in full[0].passages)
+            original = refine_grain.REFINE_CARD_BUDGET
+            refine_grain.REFINE_CARD_BUDGET = size - 1
+            try:
+                tasks, skipped = refine_grain.make_tasks(target, papers, pass_label="a")
+            finally:
+                refine_grain.REFINE_CARD_BUDGET = original
+        if tasks:
+            self.assertIn("narrowed", tasks[0].context)
+        else:
+            self.assertIn("budget", skipped[FID])
+
+    def test_a_card_within_budget_is_unchanged(self):
+        with tempfile.TemporaryDirectory() as root:
+            target, papers = _setup(root)
+            tasks, _ = refine_grain.make_tasks(target, papers, pass_label="a")
+        self.assertNotIn("narrowed", tasks[0].context)
+
+    def test_a_card_whose_pages_alone_exceed_the_budget_is_skipped(self):
+        with tempfile.TemporaryDirectory() as root:
+            target, papers = _setup(root)
+            original = refine_grain.REFINE_CARD_BUDGET
+            refine_grain.REFINE_CARD_BUDGET = 10
+            try:
+                tasks, skipped = refine_grain.make_tasks(target, papers, pass_label="a")
+            finally:
+                refine_grain.REFINE_CARD_BUDGET = original
+        self.assertEqual(tasks, [])
+        self.assertIn("budget", skipped[FID])
