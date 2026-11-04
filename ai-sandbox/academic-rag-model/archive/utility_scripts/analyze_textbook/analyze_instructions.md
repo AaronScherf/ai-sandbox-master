@@ -19,7 +19,7 @@ the machine.
 1. `textbook_analysis.py index` chunks each textbook's markdown (tracking
    marker's `<span id="page-N-M">` page anchors and headings as it goes),
    embeds each chunk via the Gemini embeddings API, and saves the result to
-   `utility-scripts/analyze_textbook/.index/` (gitignored -- regenerate it
+   `academic-rag-model/archive/utility_scripts/analyze_textbook/.index/` (gitignored -- regenerate it
    any time from the source markdown).
 2. `textbook_analysis.py chat` starts a REPL: each question is embedded,
    matched against the indexed chunks by cosine similarity (plain numpy, no
@@ -74,14 +74,14 @@ for citations).
 Index every processed textbook in one go:
 
 ```bash
-python ai-sandbox/utility-scripts/analyze_textbook/textbook_analysis.py index \
+python ai-sandbox/academic-rag-model/archive/utility_scripts/analyze_textbook/textbook_analysis.py index \
   --books ai-sandbox/academic-hub/processed_outputs
 ```
 
 Or index specific books/files (useful when you've just added one):
 
 ```bash
-python ai-sandbox/utility-scripts/analyze_textbook/textbook_analysis.py index \
+python ai-sandbox/academic-rag-model/archive/utility_scripts/analyze_textbook/textbook_analysis.py index \
   --books "ai-sandbox/academic-hub/processed_outputs/Axler_Linear_Algebra_Done_Right_2026/Axler_Linear_Algebra_Done_Right_2026.md"
 ```
 
@@ -99,7 +99,7 @@ left alone.
 ### Chat
 
 ```bash
-python ai-sandbox/utility-scripts/analyze_textbook/textbook_analysis.py chat
+python ai-sandbox/academic-rag-model/archive/utility_scripts/analyze_textbook/textbook_analysis.py chat
 ```
 
 Then just type math questions at the `you>` prompt, e.g.:
@@ -134,4 +134,4 @@ Type `exit` (or Ctrl+C/Ctrl+D) to leave the chat.
 - If you see an auth error, double check `GEMINI_API_KEY` in
   `ai-sandbox/.env` is set and correct.
 - To fully rebuild an index from scratch, delete its files under
-  `utility-scripts/analyze_textbook/.index/` and re-run `index`.
+  `academic-rag-model/archive/utility_scripts/analyze_textbook/.index/` and re-run `index`.

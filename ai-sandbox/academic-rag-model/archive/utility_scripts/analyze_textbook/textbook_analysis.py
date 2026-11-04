@@ -39,7 +39,7 @@ from google import genai
 from google.genai import errors, types
 
 INDEX_DIR = Path(__file__).parent / ".index"
-ENV_FILE = Path(__file__).parents[2] / ".env"
+ENV_FILE = Path(__file__).parents[4] / ".env"  # ai-sandbox/.env
 
 PAGE_ANCHOR_RE = re.compile(r'<span id="page-(\d+)-\d+"></span>')
 IMAGE_RE = re.compile(r'!\[[^\]]*\]\([^)]*\)')
