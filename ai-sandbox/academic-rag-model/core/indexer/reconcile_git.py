@@ -12,9 +12,11 @@ import os
 import re
 import shutil
 import subprocess
+import sys
 
 _STATUS = re.compile(r"^[A-Z]\d*$")
 _SKIP_DIRS = frozenset({".git", ".index", ".obsidian", ".trash", "node_modules"})
+GIT_TIMEOUT_SECONDS = 120
 
 
 def _git(repo_root: str, *args: str) -> str | None:
@@ -22,8 +24,12 @@ def _git(repo_root: str, *args: str) -> str | None:
         return None
     try:
         result = subprocess.run(["git", "-c", "core.quotePath=false", *args], cwd=repo_root,
-                                capture_output=True, timeout=120)
-    except (OSError, subprocess.TimeoutExpired):
+                                capture_output=True, timeout=GIT_TIMEOUT_SECONDS)
+    except subprocess.TimeoutExpired:
+        print(f"WARNING: reconcile: `git {' '.join(args[:2])}` timed out after {GIT_TIMEOUT_SECONDS}s in "
+              f"{repo_root}; git rename evidence from it is lost for this run", file=sys.stderr)
+        return None
+    except OSError:
         return None
     if result.returncode != 0:
         return None
@@ -54,7 +60,8 @@ def git_renames(repo_root: str) -> dict[str, str]:
 
     Committed renames come from `git log -M` over the whole history (oldest first, chained, so
     a->b then b->c gives a->c and b->c); renames staged but not committed come from
-    `git diff -M --name-status HEAD` and are applied last. `git log --follow` only walks backwards
+    `git diff -M --name-status HEAD` and are applied last. Both are limited to `repo_root` with the
+    pathspec `-- .` (the hub can be a subdirectory of a much larger monorepo). `git log --follow` only walks backwards
     from a path that exists now, so it cannot say where a vanished card path went; the full-history
     rename log answers that in one call. A move done outside git and not yet staged shows as a delete
     plus an untracked file and is not reported (the hash and similarity passes cover it).
@@ -64,10 +71,11 @@ def git_renames(repo_root: str) -> dict[str, str]:
         return {}
     prefix = prefix.strip()
     events: list[tuple[str, str]] = []
-    log = _git(repo_root, "log", "--reverse", "-M", "--diff-filter=R", "--name-status", "-z", "--format=")
+    log = _git(repo_root, "log", "--reverse", "-M", "--diff-filter=R", "--name-status", "-z", "--format=",
+               "--", ".")
     if log:
         events += _renames_in(log)
-    diff = _git(repo_root, "diff", "-M", "--diff-filter=R", "--name-status", "-z", "HEAD")
+    diff = _git(repo_root, "diff", "-M", "--diff-filter=R", "--name-status", "-z", "HEAD", "--", ".")
     if diff:
         events += _renames_in(diff)
     renames: dict[str, str] = {}

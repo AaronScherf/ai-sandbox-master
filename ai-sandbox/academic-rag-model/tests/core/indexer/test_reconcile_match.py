@@ -434,3 +434,34 @@ def test_git_rename_target_with_matching_hash_is_moved(tmp_path):
     [d] = reconcile(str(hub))
     assert d.kind == "moved"
     assert d.candidates[0].path == f"{LN}/b.md"
+
+
+# --- final wave (M-e): history scan limited to the hub path; timeouts are reported -----------------
+
+def test_git_history_scan_is_limited_to_the_repo_dir_pathspec(tmp_path, monkeypatch):
+    from core.indexer import reconcile_git
+    calls = []
+
+    def fake_run(cmd, cwd=None, capture_output=None, timeout=None):
+        calls.append(cmd)
+        return subprocess.CompletedProcess(cmd, 0, stdout=b"hub/" if "rev-parse" in cmd else b"")
+
+    monkeypatch.setattr(reconcile_git.shutil, "which", lambda name: "git")
+    monkeypatch.setattr(reconcile_git.subprocess, "run", fake_run)
+    reconcile_git.git_renames(str(tmp_path))
+    scans = [c for c in calls if "log" in c or "diff" in c]
+    assert len(scans) == 2
+    assert all(c[-2:] == ["--", "."] for c in scans)
+
+
+def test_git_timeout_warns_on_stderr(tmp_path, monkeypatch, capsys):
+    from core.indexer import reconcile_git
+
+    def slow(cmd, cwd=None, capture_output=None, timeout=None):
+        raise subprocess.TimeoutExpired(cmd, timeout)
+
+    monkeypatch.setattr(reconcile_git.shutil, "which", lambda name: "git")
+    monkeypatch.setattr(reconcile_git.subprocess, "run", slow)
+    assert reconcile_git.git_renames(str(tmp_path)) == {}
+    err = capsys.readouterr().err
+    assert "timed out" in err and "rev-parse" in err
