@@ -1106,6 +1106,11 @@ def _flag_or_prune_orphans(academic_hub_root, seen_file_ids, course_filter, prun
         kept = []
         for card in cards:
             if card.get("file_id") in seen_file_ids:
+                # Seen in this rebuild: its file is back (e.g. a clone card repaired by
+                # reconcile_apply, which never passes through reconcile_and_write), so a flag
+                # from an earlier rebuild no longer holds.
+                if card.pop("orphaned", None) is not None:
+                    changed = True
                 kept.append(card)
                 continue
             if prune:

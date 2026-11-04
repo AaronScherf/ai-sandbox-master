@@ -675,6 +675,7 @@ def set_rag_md_path(academic_hub_root: str, file_id: str, rag_md_path: str) -> b
 
 def update_card_paths(
     academic_hub_root: str, file_id: str, path: str, rag_md_path: str | None = None,
+    orphaned: bool | None = None,
 ) -> bool:
     """Called by describe_images.py's naming-reconciliation pass when a
     book's output folder gets renamed (a better author/title/year guess
@@ -686,7 +687,9 @@ def update_card_paths(
     reconcile_and_write(), which always requires content_sample/page_count/
     client for its genuinely-new-content path even though a pure rename
     never touches any of those. Returns False (never raises) if no card
-    exists yet for this file_id."""
+    exists yet for this file_id. `orphaned`: None leaves the flag as is,
+    False removes it (the card's file was found again: reconcile repair),
+    True sets it (an undo restoring a flag the repair log recorded)."""
     found = find_card_by_file_id(academic_hub_root, file_id)
     if found is None:
         return False
@@ -695,6 +698,10 @@ def update_card_paths(
     updated["path"] = path
     if rag_md_path is not None:
         updated["rag_md_path"] = rag_md_path
+    if orphaned is False:
+        updated.pop("orphaned", None)
+    elif orphaned:
+        updated["orphaned"] = True
     save_shard(academic_hub_root, course, _replace_card(
         load_shard(academic_hub_root, course), file_id, updated,
     ))

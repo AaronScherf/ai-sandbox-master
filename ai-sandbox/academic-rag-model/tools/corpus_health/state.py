@@ -278,6 +278,25 @@ class StateStore:
             self._write_unlocked(data)
             return entry
 
+    def reopen(self, finding_id: str) -> bool:
+        """Return a decided finding to `pending_review` (its decision is cleared). Used when the action
+        that applied it was undone (e.g. `reconcile_apply.undo_repair` of a relink resolve). A vanished
+        entry is set to revive as pending on its next refresh. False if the finding is unknown or
+        already open."""
+        with _exclusive_lock(self.lock_path):
+            data = self._load_unlocked()
+            entry = data["findings"].get(finding_id)
+            if entry is None or entry.get("status") in {"pending_review", "deferred"}:
+                return False
+            if entry.get("status") == "vanished":
+                entry["previous_status"] = "pending_review"
+            else:
+                entry["status"] = "pending_review"
+            entry["decision"] = None
+            entry["reopened_at"] = _now()
+            self._write_unlocked(data)
+            return True
+
     def decide(self, finding_id: str, decision: str, fingerprint: str | None) -> dict:
         if decision not in {"accepted", "declined", "deferred"}:
             raise StateError(f"invalid review decision: {decision}")
