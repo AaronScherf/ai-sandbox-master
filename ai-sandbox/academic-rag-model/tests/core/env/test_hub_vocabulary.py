@@ -68,8 +68,7 @@ def test_shipped_config_has_the_seed():
         assert vocab.kind_of(name) == "category", name
     for name in ("processed_outputs", "images", "assets"):
         assert vocab.kind_of(name) == "ignore", name
-    for name in ("chapters", "summaries", "previous", "Solutions", "past_exams"):
-        assert vocab.kind_of(name) is None, name
+    # Owner answers (past_exams, summaries, ...) are added over time, so this only pins the seed.
     assert vocab.textbook_folders == ("textbooks", "textbooks-and-papers")
 
 
@@ -88,6 +87,7 @@ SEEDED = _vocab(lecture_notes="category", problem_sets="category", textbooks="ca
                 processed_outputs="ignore", part_1="group", class_2024="group")
 
 
+@pytest.mark.usefixtures("seed_hub_config")
 @pytest.mark.parametrize(("path", "legacy"), LEGACY_CASES)
 def test_every_legacy_case_survives_with_an_empty_vocabulary(path, legacy):
     from core.env.academic_hub_paths import course_part_category
