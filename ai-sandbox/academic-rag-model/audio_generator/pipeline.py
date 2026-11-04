@@ -31,6 +31,8 @@ from audio_generator.sections import (
 from audio_generator.state import (
     chapter_state_key,
     compute_content_hash,
+    legacy_content_hash,
+    upgrade_legacy_entry,
     episode_state_key,
     load_state,
     needs_regeneration,
@@ -102,6 +104,7 @@ def _run_notes_source(source, state: dict, engine: str, summary: dict) -> None:
     concurrency. Idempotency is tracked per-episode but still hashed on
     the whole source file (a deliberate simplification -- spec §3.2/§9)."""
     current_hash = compute_content_hash(source.abs_md_path)
+    legacy_hash = legacy_content_hash(source.abs_md_path)
     with open(source.abs_md_path, "r", encoding="utf-8") as f:
         md_text = f.read()
 
@@ -122,7 +125,8 @@ def _run_notes_source(source, state: dict, engine: str, summary: dict) -> None:
         key = episode_state_key(source.rel_md_path, i)
         abs_mp3_path = f"{mp3_base}__part{i:02d}.mp3"
         episode_source = dataclasses.replace(source, rel_md_path=key, abs_mp3_path=abs_mp3_path)
-        if not needs_regeneration(state, episode_source, current_hash):
+        if not needs_regeneration(state, episode_source, current_hash, legacy_hash):
+            upgrade_legacy_entry(state, episode_source, current_hash, legacy_hash)
             summary["skipped_unchanged"] += 1
             continue
         to_synthesize.append((i, episode))
@@ -149,13 +153,14 @@ def _run_notes_source(source, state: dict, engine: str, summary: dict) -> None:
     _write_index_manifest(md_base, episodes)
 
 
-def _run_textbook_source_single(source, state: dict, engine: str, summary: dict, current_hash: str, md_text: str) -> None:
+def _run_textbook_source_single(source, state: dict, engine: str, summary: dict, current_hash: str, md_text: str, legacy_hash: str | None = None) -> None:
     """The original one-file-one-MP3 path -- used whenever
     textbook_chapters.split_into_chapters() can't confidently resolve at
     least two chapter boundaries for this book (no parseable TOC, or no
     folio tags anywhere in its converted markdown, e.g. because its
     conversion run never found a confident folio offset)."""
-    if not needs_regeneration(state, source, current_hash):
+    if not needs_regeneration(state, source, current_hash, legacy_hash):
+        upgrade_legacy_entry(state, source, current_hash, legacy_hash)
         summary["skipped_unchanged"] += 1
         return
 
@@ -180,7 +185,7 @@ def _run_textbook_source_single(source, state: dict, engine: str, summary: dict,
     summary["generated"] += 1
 
 
-def _run_textbook_source_chapters(source, state: dict, engine: str, summary: dict, current_hash: str, chapters: list) -> None:
+def _run_textbook_source_chapters(source, state: dict, engine: str, summary: dict, current_hash: str, chapters: list, legacy_hash: str | None = None) -> None:
     """Chapter-aware textbook path (TODO-0057): one MP3/.narrated.md per
     resolved chapter (`<name>__chNN.mp3`, mirroring notes' `__partNN`
     naming but with a distinct infix so the two content types' outputs
@@ -199,7 +204,8 @@ def _run_textbook_source_chapters(source, state: dict, engine: str, summary: dic
         key = chapter_state_key(source.rel_md_path, chapter.index)
         abs_mp3_path = f"{mp3_base}__ch{chapter.index:02d}.mp3"
         chapter_source = dataclasses.replace(source, rel_md_path=key, abs_mp3_path=abs_mp3_path)
-        if not needs_regeneration(state, chapter_source, current_hash):
+        if not needs_regeneration(state, chapter_source, current_hash, legacy_hash):
+            upgrade_legacy_entry(state, chapter_source, current_hash, legacy_hash)
             summary["skipped_unchanged"] += 1
             continue
 
@@ -235,15 +241,16 @@ def _run_textbook_source(source, state: dict, engine: str, summary: dict) -> Non
     converted markdown); otherwise falls back to the original
     one-file-one-MP3 behavior unchanged."""
     current_hash = compute_content_hash(source.abs_md_path)
+    legacy_hash = legacy_content_hash(source.abs_md_path)
     with open(source.abs_md_path, "r", encoding="utf-8") as f:
         md_text = f.read()
 
     chapters = split_into_chapters(md_text)
     if not chapters:
-        _run_textbook_source_single(source, state, engine, summary, current_hash, md_text)
+        _run_textbook_source_single(source, state, engine, summary, current_hash, md_text, legacy_hash)
         return
 
-    _run_textbook_source_chapters(source, state, engine, summary, current_hash, chapters)
+    _run_textbook_source_chapters(source, state, engine, summary, current_hash, chapters, legacy_hash)
 
 
 def run_pipeline(
@@ -291,7 +298,8 @@ def main() -> None:
         state = load_state(audio_generator_root)
         for source in sources:
             current_hash = compute_content_hash(source.abs_md_path)
-            status = "regenerate" if needs_regeneration(state, source, current_hash) else "up to date"
+            legacy_hash = legacy_content_hash(source.abs_md_path)
+            status = "regenerate" if needs_regeneration(state, source, current_hash, legacy_hash) else "up to date"
             print(f"{status}: {source.rel_md_path}")
         return
 
