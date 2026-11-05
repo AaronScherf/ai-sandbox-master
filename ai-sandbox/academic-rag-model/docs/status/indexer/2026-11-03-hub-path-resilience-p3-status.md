@@ -1,4 +1,4 @@
-# Hub path resilience P3: reconcile and review (status, 2026-11-03)
+# Hub path resilience P3: reconcile and review (status, updated 2026-11-04)
 
 Spec: `docs/superpowers/specs/academic_hub/2026-11-03-hub-path-resilience-design.md`. Usage: "Reconcile and review" in `core/indexer/README.md`.
 
@@ -22,6 +22,13 @@ Spec: `docs/superpowers/specs/academic_hub/2026-11-03-hub-path-resilience-design
 - R14: the single-`duplicate_of_file_id` clone fallback in `find_clone_card` stays removed (no silent guess). A moved clone without a `hub_id` is flagged `orphaned` by the next `rebuild`, then repaired by its exact content hash (`hub_review repair --apply`), which clears the flag; the following `rebuild` sees it again. Cost: until `repair` runs, such a clone is out of search/pairing. Run `write_hub_ids --apply` before moving anything.
 - Undo sticks: `apply_repairs` skips a move whose latest log status is `undone`; it is offered as an `ambiguous` relink item instead (`reconcile_apply.demote_undone`). Undoing a `resolve`-chosen relink reopens its ledger item (`StateStore.reopen`) and re-marks `link_state`.
 - Scenario (e) (course folder renamed): every file matches exactly (hub_id for notes, byte hash for PDFs), so one `apply_repairs` fixes all and no review item is raised. Card `course` fields stay the old name (reconcile does not touch them).
+
+## Landing and post-merge hardening (2026-11-04)
+
+- P3 landed on `main` via PR #26 (merge `ec81f7ff`, 2026-11-04). Full suite green on the rebased branch before the PR; the branch, its worktree and the remote branch are deleted.
+- Security hardening of `core/indexer/reconcile_git.py` (a nested repo's own `.git/config` is untrusted): every git call overrides `core.fsmonitor`, `core.hooksPath` and `diff.external`, runs with `GIT_EXTERNAL_DIFF` removed and `GIT_OPTIONAL_LOCKS=0`, and `diff`/`log`/`show` get `--no-ext-diff --no-textconv` (`df94eae7`); `log.showSignature=false` plus `--no-show-signature` on `log`/`show` (`6fd4cf7f`). `find_repo_roots` skips a nested `.git` pointer file whose `gitdir:` leads outside the hub. Tests: `tests/core/indexer/test_reconcile_git_hardening.py`.
+- Known remaining gap: `git diff -M ... HEAD` reads the working tree, so a nested repo's `filter.*` clean/smudge drivers can still run. Only matters for a repo cloned from someone else and placed under the hub. Tracked in `docs/trackers/academic_hub_to_do.md` (Source Indexer and Search); leaning toward refusing nested repos whose local config defines `filter.*`.
+- Nothing has been run against the live hub: `write_hub_ids --apply`, `hub_review repair --apply` and publishing the review page are all still pending. Held on purpose while the transcription pipeline runs over the not-yet-transcribed PDFs in `academic_resources/`, to avoid concurrent writes to the corpus and index.
 
 ## Deferred minors
 
@@ -48,6 +55,7 @@ Spec: `docs/superpowers/specs/academic_hub/2026-11-03-hub-path-resilience-design
 
 ## To-do
 
+- NEXT, in order, once transcription has finished and no pipeline is writing to the hub: (1) `write_hub_ids` dry run, review, `--apply`, Aaron commits `academic_notes` (see the stamping item below); (2) `hub_review export` and `repair` dry run on the live hub to see real moves/orphans; (3) publish and validate the review page; (4) tune similarity weights on what (2) shows; (5) plan P4, then P5 (spec phases table).
 - P4: the scan hook must pass `sweep_kinds` or call `raise_relink_items` (a bare ledger refresh would sweep relink/orphan findings); preflight so pipelines refuse to run on an unresolved item they need (turns the xfail row green); fold the vocabulary learner in.
 - P5: `ACADEMIC_HUB_ROOT` discovery.
 - Verify Excalidraw keeps a top-level `hub_id` key in plain `.excalidraw` JSON, then decide on `--include-excalidraw-json` by default.
