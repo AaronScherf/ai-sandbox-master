@@ -75,6 +75,12 @@ _SUB_SUFFIXES = (".excalidraw", ".rag", ".questions")
 SIMILARITY_THRESHOLD = 0.5
 MAX_SIMILARITY_CANDIDATES = 5
 _W_STEM, _W_COURSE, _W_BODY = 0.6, 0.15, 0.25
+# Shared 3-word shingles needed before containment is trusted in full. A note this short or shorter cannot
+# reach a high body score on a coincidental overlap, however small it is: the bar is evidence, not a ratio.
+MIN_SHARED_SHINGLES = 12
+_BODY_ALONE = 0.7  # ceiling of the score body evidence earns without any name/course support
+_PASSAGE_MIN_WORDS, _PASSAGE_MAX_WORDS, _PASSAGE_SCAN_WORDS = 6, 40, 20000
+_OPENING_CHARS = 200
 
 
 @dataclass(frozen=True)
@@ -89,6 +95,9 @@ class Candidate:
     path: str
     basis: Basis
     score: float
+    # similarity candidates only: {"shared": passage in both files, "old_opening": ..., "new_opening": ...}
+    # (each key present only when known), shown on the review page so a human can confirm the match.
+    evidence: dict = field(default_factory=dict)
 
 
 @dataclass
@@ -198,6 +207,38 @@ def _shingles(text: str, k: int = 3) -> set[tuple[str, ...]]:
 
 def _jaccard(a: set, b: set) -> float:
     return len(a & b) / len(a | b) if a and b else 0.0
+
+
+def _body_score(old: set, new: set) -> float:
+    """0..1 evidence that `new` is an edited copy of `old`. Jaccard drops when a file grows a lot, so also
+    take containment (shared / the smaller side), but only in proportion to how much text is actually
+    shared: min(1, shared / MIN_SHARED_SHINGLES). Long verbatim passages are strong evidence for any note
+    length; a handful of coincident words is not."""
+    if not old or not new:
+        return 0.0
+    shared = len(old & new)
+    if not shared:
+        return 0.0
+    contained = shared / min(len(old), len(new)) * min(1.0, shared / MIN_SHARED_SHINGLES)
+    return max(len(old & new) / len(old | new), contained)
+
+
+def _shared_passage(old_text: str, new_text: str, max_words: int = _PASSAGE_MAX_WORDS) -> str:
+    """The longest run of words both bodies share, cut to `max_words`; "" when under 6 words."""
+    a = _body(old_text).split()[:_PASSAGE_SCAN_WORDS]
+    b = _body(new_text).split()[:_PASSAGE_SCAN_WORDS]
+    if not a or not b:
+        return ""
+    m = SequenceMatcher(None, a, b, autojunk=False).find_longest_match(0, len(a), 0, len(b))
+    if m.size < _PASSAGE_MIN_WORDS:
+        return ""
+    return " ".join(a[m.a:m.a + min(m.size, max_words)])
+
+
+def _opening(text: str, limit: int = _OPENING_CHARS) -> str:
+    """First `limit` characters of the body, whitespace collapsed (frontmatter skipped)."""
+    flat = " ".join(_body(text).split())
+    return flat if len(flat) <= limit else flat[:limit].rstrip() + "…"
 
 
 class _Matcher:
@@ -375,24 +416,42 @@ class _Matcher:
         course = card.get("course") or self.course_of(old)
         stem = _stem(old)
         old_shingles: set = set()
+        old_text = None
         if _ext(old) in _TEXT_EXTS:
-            text = self.old_text(old)
-            old_shingles = _shingles(text) if text else set()
+            old_text = self.old_text(old)
+            old_shingles = _shingles(old_text) if old_text else set()
         out = []
         for entry in self.unclaimed:
             if _ext(entry.path) != _ext(old) or entry.path in exclude:
                 continue
             stem_score = SequenceMatcher(None, stem, _stem(entry.path)).ratio()
             course_score = 1.0 if course and self.course_of(entry.path) == course else 0.0
+            # Name and course alone never rescale to full weight: without body evidence the best score is
+            # _W_STEM + _W_COURSE, so a shared name fragment in the same course cannot clear the threshold.
+            score = _W_STEM * stem_score + _W_COURSE * course_score
             if old_shingles:
-                score = (_W_STEM * stem_score + _W_COURSE * course_score
-                         + _W_BODY * _jaccard(old_shingles, self.shingles_of(entry)))
-            else:
-                score = (_W_STEM * stem_score + _W_COURSE * course_score) / (_W_STEM + _W_COURSE)
+                body = _body_score(old_shingles, self.shingles_of(entry))
+                # Shared text is evidence on its own: a renamed note that kept (or grew around) its old text
+                # must be offered even when the new name shares nothing with the old one.
+                score = max(score + _W_BODY * body, _BODY_ALONE * body)
             if score >= SIMILARITY_THRESHOLD:
                 out.append(Candidate(entry.path, "similarity", round(score, 4)))
         out.sort(key=lambda c: (-c.score, c.path))
-        return out[:MAX_SIMILARITY_CANDIDATES]
+        out = out[:MAX_SIMILARITY_CANDIDATES]
+        if old_text:
+            for c in out:
+                c.evidence = self._evidence(old_text, c.path)
+        return out
+
+    def _evidence(self, old_text: str, path: str) -> dict:
+        try:
+            with open(os.path.join(self.hub_root, *path.split("/")), encoding="utf-8", errors="replace") as f:
+                new_text = f.read()
+        except OSError:
+            return {}
+        ev = {"shared": _shared_passage(old_text, new_text), "old_opening": _opening(old_text),
+              "new_opening": _opening(new_text)}
+        return {k: v for k, v in ev.items() if v}
 
 
 def _ranked(candidates: list[Candidate]) -> list[Candidate]:

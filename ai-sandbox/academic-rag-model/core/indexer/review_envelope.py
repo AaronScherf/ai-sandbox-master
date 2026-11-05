@@ -69,7 +69,8 @@ def difference_to_item(d: Difference) -> ReviewItem:
     if d.kind == "moved":
         raise ValueError(f"a moved difference is not a review item ({d.file_id})")
     if d.kind == "ambiguous":
-        candidates = [{"path": c.path, "basis": c.basis, "score": c.score} for c in d.candidates]
+        candidates = [{"path": c.path, "basis": c.basis, "score": c.score,
+                       **({"evidence": c.evidence} if c.evidence else {})} for c in d.candidates]
         return ReviewItem(relink_item_id(d.file_id, [c.path for c in d.candidates]), "relink",
                           [d.file_id], candidates)
     if d.kind == "orphan":

@@ -32,6 +32,9 @@ h2 { font-size: 1rem; margin: 24px 0 8px; }
 .path { word-break: break-all; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 0.85rem; }
 .cand { display: flex; gap: 8px; align-items: flex-start; margin: 6px 0; }
 .cand input { margin-top: 4px; }
+.evidence { margin-top: 4px; font-size: 0.85rem; }
+.evidence summary { cursor: pointer; color: var(--muted); }
+.snippet { border-left: 3px solid var(--line); padding: 2px 0 2px 8px; margin: 2px 0 8px; overflow-wrap: anywhere; }
 .row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
 button { font: inherit; padding: 6px 14px; border-radius: 6px; border: 1px solid var(--line);
   background: var(--card); color: var(--fg); cursor: pointer; }
@@ -100,6 +103,18 @@ function renderItem(item) {
       const text = el("span");
       text.appendChild(el("span", c.path, "path"));
       text.appendChild(el("div", c.basis + (c.score != null ? " " + Number(c.score).toFixed(2) : ""), "muted"));
+      const ev = c.evidence;
+      if (ev && (ev.shared || ev.old_opening || ev.new_opening)) {
+        const det = el("details", null, "evidence");
+        det.appendChild(el("summary", "Compare text"));
+        [["Same text in both", ev.shared], ["Was begins", ev.old_opening], ["Now begins", ev.new_opening]]
+          .forEach((p) => {
+            if (!p[1]) return;
+            det.appendChild(el("div", p[0], "muted"));
+            det.appendChild(el("div", p[1], "snippet"));
+          });
+        text.appendChild(det);
+      }
       row.appendChild(text);
       box.appendChild(row);
     });

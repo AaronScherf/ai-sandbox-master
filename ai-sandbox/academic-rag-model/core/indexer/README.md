@@ -213,6 +213,12 @@ not rewritten. A card keeps its `hub_id` and `link_state` when it is regenerated
 
 Matching tiers (strongest first): `hub_id` (notes), canonical content hash (derived `.md`), byte hash
 (PDFs and other binaries), git rename of the card path, then filename/course/body similarity.
+Similarity needs evidence, not just a high ratio: name and course alone top out below the threshold
+(no rescaling when the old text is unavailable), and the body term counts shared 3-word shingles by
+containment scaled by `min(1, shared / MIN_SHARED_SHINGLES)`, so a note that grew tenfold around its old
+text is still offered while a short note cannot match on coincident words. Each similarity candidate
+carries `evidence` (the shared passage plus the opening of the old and new file) and the review page
+shows it under "Compare text".
 Safety rules:
 - Only exact evidence yields `moved`, and only `hub_review repair --apply` (or `apply_repairs` from
   Python) applies it. Git renames and similarity only ever produce ranked `ambiguous` candidates for
