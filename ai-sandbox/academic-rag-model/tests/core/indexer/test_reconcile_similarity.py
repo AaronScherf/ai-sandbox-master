@@ -93,6 +93,41 @@ def test_heavily_extended_and_renamed_note_is_a_candidate_with_evidence(tmp_path
     assert c.evidence["shared"].startswith("dual0 dual1") and c.evidence["old_opening"].startswith("# Duality")
 
 
+@pytest.mark.parametrize("a,b,conflict", [
+    ("lecture_03", "lecture_04", True),
+    ("hw1", "hw2", True),
+    ("2024-09-01", "2024-09-02", True),
+    ("lecture_03", "lecture_03_v2", False),       # extra trailing number is a version, not another lecture
+    ("lecture3", "lecture_03", False),            # same number spelled differently
+    ("lecture_03_regression", "lecture_03_regression_final", False),
+    ("syllabus", "syllabus_2", False),            # one side has no number to disagree with
+    ("midterm", "final", False),
+])
+def test_numbered_stems_that_disagree_conflict(a, b, conflict):
+    assert rc._numbers_conflict(a, b) is conflict
+
+
+def _orphan_pdf_hub(tmp_path, old_name, new_name):
+    hub = make_hub(tmp_path)
+    old, new = f"academic_resources/econ/{old_name}", f"academic_resources/econ/{new_name}"
+    (hub / old).write_bytes(b"%PDF-1.4 first")
+    save_shard(str(hub), "econ", [{"file_id": "f1", "path": old, "course": "econ"}])
+    (hub / old).unlink()
+    (hub / new).write_bytes(b"%PDF-1.4 something else entirely")
+    return hub
+
+
+def test_pdf_with_next_index_number_is_not_offered_as_a_rename(tmp_path):
+    """No text, no git history: name is the only evidence, and a different index number is not a rename."""
+    [d] = reconcile(str(_orphan_pdf_hub(tmp_path, "lecture_03.pdf", "lecture_04.pdf")))
+    assert (d.kind, d.candidates) == ("orphan", [])
+
+
+def test_pdf_renamed_with_same_index_number_is_still_offered(tmp_path):
+    [d] = reconcile(str(_orphan_pdf_hub(tmp_path, "lecture_03.pdf", "lecture_03_slides.pdf")))
+    assert d.kind == "ambiguous" and d.candidates[0].path.endswith("lecture_03_slides.pdf")
+
+
 def test_candidate_carries_evidence_into_review_item():
     c = Candidate("p.md", "similarity", 0.7, {"shared": "a b c d e f", "old_opening": "x", "new_opening": "y"})
     item = difference_to_item(Difference("ambiguous", "f1", "old.md", [c]))

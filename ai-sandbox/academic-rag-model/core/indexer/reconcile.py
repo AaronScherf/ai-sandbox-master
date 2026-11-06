@@ -189,6 +189,16 @@ def _stem(path: str) -> str:
     return stem.casefold()
 
 
+def _numbers_conflict(stem_a: str, stem_b: str) -> bool:
+    """True when two file stems carry index numbers that disagree (lecture_03 vs lecture_04, hw1 vs hw2,
+    two dates). Numbers are compared in order as integers, over the numbers both stems have, so a trailing
+    version number (lecture_03 vs lecture_03_v2) or different zero padding is not a conflict. Files that
+    differ only by an index number are siblings, not renames, so the name must give no evidence for them."""
+    a = [int(n) for n in re.findall(r"\d+", stem_a)]
+    b = [int(n) for n in re.findall(r"\d+", stem_b)]
+    return any(x != y for x, y in zip(a, b))
+
+
 def _body(text: str) -> str:
     lines = text.split("\n")
     if lines and lines[0].lstrip("﻿").rstrip("\r") == "---":
@@ -424,7 +434,8 @@ class _Matcher:
         for entry in self.unclaimed:
             if _ext(entry.path) != _ext(old) or entry.path in exclude:
                 continue
-            stem_score = SequenceMatcher(None, stem, _stem(entry.path)).ratio()
+            new_stem = _stem(entry.path)
+            stem_score = 0.0 if _numbers_conflict(stem, new_stem) else SequenceMatcher(None, stem, new_stem).ratio()
             course_score = 1.0 if course and self.course_of(entry.path) == course else 0.0
             # Name and course alone never rescale to full weight: without body evidence the best score is
             # _W_STEM + _W_COURSE, so a shared name fragment in the same course cannot clear the threshold.
