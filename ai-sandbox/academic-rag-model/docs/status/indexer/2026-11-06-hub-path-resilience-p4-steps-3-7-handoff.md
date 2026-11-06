@@ -7,7 +7,23 @@ Read this first, then grep (do not read whole) `2026-11-05-hub-path-resilience-p
 - P3 (reconcile engine, review page) and P4 (scan hook, pipeline preflight, duplicate `hub_id` tool, vocabulary review items) are on `main` (PR #26, PR #28 merged 2026-11-06). Row 7 of the scenario matrix is green.
 - `academic_notes` (separate repo `academic-notes-vault`) is committed and pushed through `7eaf8f0` (2026-11-06): 151 `hub_id` stamps (`cf8b8c2`), the microecon duplicate-id fix, new part_2 notes. The live hub has **0 duplicate `hub_id`s** (dry run 2026-11-06).
 - **Nothing P3/P4 has been run for real against the live hub except `write_hub_ids` stamping and the duplicate dry run.** The live `hub_review export`, `repair`, review page, and the first `corpus_health scan` with the new findings are all still to do.
-- Quirk: `academic_notes` shows ~208 files as modified, all **line-ending only** (working tree CRLF, repo blobs LF, `core.autocrlf=false`). They were hidden by git's cached stats until the index was rebuilt on 2026-11-06. Never `git add -A` there; stage explicit paths. Do not "fix" the line endings without asking Aaron (Obsidian Git / Direct Git Sync write that repo too).
+- Quirk: `academic_notes` shows ~208 files as modified, all **line-ending only** (working tree CRLF, repo blobs LF, `core.autocrlf=false`). They were hidden by git's cached stats until the index was rebuilt on 2026-11-06. By type: 123 `.md` (mostly `math-camp/` textbook `.rag.md` and `processed_outputs`, `ta_notes`, `handwritten_notes`, `problem_sets`), 59 `.json`, 8 `.css`, 6 `.tex`, 4 `.js`, 2 `.gitignore`; 20 are `.obsidian/plugins`. Every line of each file differs (`git ls-files --eol` shows `i/lf w/crlf`); content is identical. Exact cause unknown (a Windows tool rewrote them locally without committing). Never `git add -A` there; stage explicit paths. Do not "fix" the line endings without asking Aaron (Obsidian Git / Direct Git Sync write that repo too).
+
+## Decision gate: is more work on this worth doing? (read before step 3)
+
+P3/P4 may be more than the original small fix ("a moved file triggers a paid rebuild") needed. Aaron asked this directly on 2026-11-06 and the honest answer was "partly yes". Treat step 3 as the evidence, and say plainly in your step 3 report which case applies:
+
+- **Few or zero real moves, no ambiguous items:** recommend freezing the system as built. Skip step 6 (record "untuned, no data"), do not plan P5 beyond a one-paragraph note, and leave the unwired pipelines in the tracker.
+- **Real ambiguity (several ambiguous items with plausible candidates):** the similarity engine and review page are earning their keep. Proceed to steps 4, 5, 6.
+- **Either way:** before steps 6 and 7, ask Aaron whether the work is worth doing. Do not start new feature work (new pipelines wired to preflight, new item kinds, new heuristics) on your own.
+
+What to look for in the step 3 dry run:
+1. Count of exact moves vs ambiguous vs orphans. Exact moves are the cheap, safe case (hash match, `repair` handles them).
+2. For each ambiguous item: is the top candidate obviously right to a human glance? If the top-1 is nearly always right, the thresholds are fine. If it is often wrong or there are several near-ties, that is the tuning evidence for step 6.
+3. Orphans: are they real deletions, or moves the engine failed to match (false negatives)? Spot-check a few against the vault.
+4. False positives: anything proposed as moved that was not (e.g. same-stem notes across courses, templated files).
+5. Noise: items raised for derived outputs, `processed_outputs/`, `.rag.md`, or the CRLF-only files below (they change mtimes and may trip the preflight fingerprint but must not create items).
+6. Cost of living with it: would you, as the owner, have noticed these problems without the tool? If the answer is "no, nothing was stale", that supports freezing.
 
 ## Ground rules (from CLAUDE.md and the P4 work)
 
@@ -50,4 +66,4 @@ Plan P5 first (spec phases table): a single `hub_root()` resolver (env `ACADEMIC
 
 ## Suggested first message for the new session
 
-> Continue hub path resilience from `docs/status/indexer/2026-11-06-hub-path-resilience-p4-steps-3-7-handoff.md`. Start with step 3 (pure-read dry runs only), report what the live hub shows, and wait for my go-ahead before any `--apply`.
+> Continue hub path resilience from `docs/status/indexer/2026-11-06-hub-path-resilience-p4-steps-3-7-handoff.md`. Read its "Decision gate" section first. I am not sure the P3/P4 work is proportionate to the original small fix, so treat step 3 as the evidence. Start with step 3 (pure-read dry runs only: export with `--no-raise`, and `repair` without `--apply`). Report counts of exact moves, ambiguous items and orphans, whether the top candidate is right for each ambiguous item, and any false positives or noise. Then tell me plainly whether the data says to freeze the system or keep tuning. Wait for my go-ahead before any `--apply`, any raise, and before starting steps 6 or 7. Do not begin new feature work.
