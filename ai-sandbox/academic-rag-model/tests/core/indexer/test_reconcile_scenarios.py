@@ -217,7 +217,8 @@ def test_pipeline_refuses_with_unresolved_item_it_needs(tmp_path, store, monkeyp
     monkeypatch.setattr(preflight, "_default_store", lambda hub_root: store)
     monkeypatch.setattr(index_search, "load_dotenv_override", lambda: None)
     worked = []
-    monkeypatch.setattr(index_search, "get_gemini_client", lambda *a, **k: object())
+    clients = []
+    monkeypatch.setattr(index_search, "get_gemini_client", lambda *a, **k: clients.append(1) or object())
     monkeypatch.setattr(index_search, "chunk",
                         lambda *a, **k: worked.append(1) or {"failed": 0, "chunked": 0})
     monkeypatch.setattr("sys.argv", ["index_search", "--root", str(hub), "chunk", "--course", "econ"])
@@ -227,9 +228,9 @@ def test_pipeline_refuses_with_unresolved_item_it_needs(tmp_path, store, monkeyp
         index_search.main()
     assert exc.value.code == 2
     assert "hub_review page" in capsys.readouterr().err
-    assert worked == [] and _digest(hub) == before
+    assert worked == [] and clients == [] and _digest(hub) == before
+    assert len(store.pending()) == 1
 
-    [item] = store.pending()
     assert resolve(str(hub), "f1", f"{LN}/lecture_03_regression_v2.md", store=store) is True
     index_search.main()  # same call now gets past preflight to the (stubbed) work
     assert worked == [1]

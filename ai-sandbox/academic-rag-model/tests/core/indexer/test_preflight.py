@@ -151,3 +151,25 @@ def test_fingerprint_changes_on_rename_and_edit_and_ignores_obsidian_dir(tmp_pat
     assert tree_fingerprint(str(hub)) == base
     _rename_and_edit(hub, f"{LN}/a.md", f"{LN}/b.md")
     assert tree_fingerprint(str(hub)) != base
+
+
+def _boom(*a, **k):
+    from core.env.corpus_write_lock import CorpusWriteLockError
+    raise CorpusWriteLockError("writer already active")
+
+
+def test_enforce_fails_closed_when_check_cannot_run(tmp_path, monkeypatch, capsys):
+    monkeypatch.setattr(preflight, "check", _boom)
+    with pytest.raises(SystemExit) as exc:
+        preflight.enforce(str(tmp_path), Needs(), refuse=True)
+    assert exc.value.code == 2
+    err = capsys.readouterr().err
+    assert "writer already active" in err and "--ignore-unresolved" in err
+
+
+def test_enforce_warn_only_paths_and_ignore_continue(tmp_path, monkeypatch, capsys):
+    monkeypatch.setattr(preflight, "check", _boom)
+    preflight.enforce(str(tmp_path), Needs(), refuse=False)
+    assert "skipped" in capsys.readouterr().err
+    preflight.enforce(str(tmp_path), Needs(), ignore=True, refuse=True)
+    assert "skipped" in capsys.readouterr().err

@@ -184,8 +184,8 @@ def require_resolved(hub_root: str, needs: Needs, store=None, *, ignore: bool = 
 def enforce(hub_root: str, needs: Needs, *, ignore: bool = False, refuse: bool = True) -> None:
     """Entry-point wrapper: exit code 2 with the message on stderr when blocked.
 
-    `refuse=False` (read-only commands) only warns. A preflight that cannot run at all (no repo common
-    dir, unreadable hub) warns and continues rather than breaking the pipeline.
+    `refuse=False` (read-only commands) only warns and continues if preflight cannot run. With
+    `refuse=True` a preflight that cannot run (lock held, no repo) fails closed (exit 2) unless `ignore`.
     """
     try:
         require_resolved(hub_root, needs, ignore=ignore or not refuse)
@@ -195,5 +195,11 @@ def enforce(hub_root: str, needs: Needs, *, ignore: bool = False, refuse: bool =
             return
         print(str(exc), file=sys.stderr)
         raise SystemExit(2) from exc
-    except Exception as exc:  # noqa: BLE001 - preflight must never be the reason a run breaks
-        print(f"warning: link preflight skipped ({type(exc).__name__}: {exc})", file=sys.stderr)
+    except Exception as exc:  # noqa: BLE001
+        reason = f"{type(exc).__name__}: {exc}"
+        if refuse and not ignore:
+            # Fail closed: a concurrent writer or an unresolvable repo is when the check matters most.
+            print(f"link preflight could not run ({reason}); refusing. "
+                  f"Fix the cause or pass --ignore-unresolved to run anyway.", file=sys.stderr)
+            raise SystemExit(2) from exc
+        print(f"warning: link preflight skipped ({reason})", file=sys.stderr)
