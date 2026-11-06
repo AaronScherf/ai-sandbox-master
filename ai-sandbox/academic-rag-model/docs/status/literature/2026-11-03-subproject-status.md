@@ -112,6 +112,20 @@ over-picked term appears in both passes. The original notes follow for the recor
 6. Worktree cleanup: dry run, then `--apply` once the merged worktrees are over 24 hours old.
 7. Landing: owner runs `land_branch check --full`; nothing on this branch is landed.
 
+## Requirements for owner-review and judging tools (owner request, 2026-11-06)
+
+Applies to every future label audit (Artifact) and every judging prompt for this project.
+
+- Show the official 3ie definition of the label's last term next to the label. Trial 2 showed why: judges and the owner saw only the label path and rejected
+  Agrobiodiversity for drought-tolerant crop varieties, but the official 3ie definition names stress-tolerant crops and cultivars (checked word for word in the
+  3ie evidence-gap-map files under `research/resources/3ie`). The rejections were label-versus-definition mismatches, not extraction errors.
+- Search each cited page for the term and a synonym list, and put the matching sentence first, flagged "exact phrase", "close match" or "not found, infer from
+  context". Most of the owner's review time goes to combing paragraphs for the phrase.
+- Lead with the extractor's own quote and say whether it appears word for word on the page.
+- Synonym lists are data the owner can approve (stored with the vocabulary, not hidden in code); generate once per term and cache.
+- Builders to change: the `build_trial*_audit.py`-style scripts (scratchpad of the 2026-11-06 session; to become a tracked tool) and the judging prompts.
+  The definition-aware prompt is `haiku_trial2_defjudging_prompt.md`.
+
 ## Where the detail is
 
 - Spec and plan (design):
