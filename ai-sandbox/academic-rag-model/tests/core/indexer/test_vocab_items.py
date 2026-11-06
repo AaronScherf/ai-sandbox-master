@@ -149,6 +149,26 @@ def test_accept_writes_hub_config_via_confirm(tmp_path, capsys):
     assert "impact of '2026' as group" in capsys.readouterr().out
 
 
+def test_refused_confirm_is_an_error_and_ledger_entry_stays_retryable(tmp_path, capsys):
+    hub = _hub(tmp_path)
+    store = _scan(tmp_path, hub, capsys)
+    # classified (as group) after the scan: accepting it as category makes confirm refuse with exit 1.
+    # apply_decisions would call this "stale" (a classified name leaves the fresh list), so dispatch directly.
+    cfg = hub / "hub_config.json"
+    cfg.write_text(json.dumps({"names": {"2026": {"kind": "group", "source": "owner"}}}) + "\n", encoding="utf-8")
+    before = cfg.read_text(encoding="utf-8")
+    item = vocab_name_to_item("2026", ["econ"], "group")
+    entry = _vocab_entries(store)["2026"]
+    outcome, detail = hub_review._dispatch_vocab(str(hub), item, "accept", "category", store, False)
+    assert outcome == "error" and "refused" in detail
+    assert cfg.read_text(encoding="utf-8") == before
+    after = _vocab_entries(store)["2026"]
+    assert after["status"] == entry["status"] == "pending_review"
+    assert after == entry  # not decided, no action recorded
+    retry = hub_review._dispatch_vocab(str(hub), item, "accept", "group", store, False)
+    assert retry[0] == "applied"
+
+
 def test_defer_keeps_item_listed_as_deferred(tmp_path, capsys):
     hub = _hub(tmp_path)
     store = _scan(tmp_path, hub, capsys)

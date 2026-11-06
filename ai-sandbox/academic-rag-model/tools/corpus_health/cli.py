@@ -78,7 +78,7 @@ def _raise_relink(config, store, report) -> None:
             report.notices.append(f"{moved} exact moves waiting: run hub_review repair")
         raise_relink_items(hub_root, differences, store=store, mark_link_state=False)
     except Exception as exc:  # noqa: BLE001 - infra failures must not break the scan
-        report.warnings.append(f"relink check skipped: {exc}")
+        report.warnings.append(f"relink check skipped: {type(exc).__name__}: {exc}")
 
 
 def main(argv: list[str] | None = None) -> int:

@@ -89,6 +89,20 @@ def test_failed_producer_leaves_that_kinds_entries_pending_on_scan_and_apply(tmp
     assert _statuses(store, "vocab_name") == {"exam_kits": "pending_review"}
 
 
+def test_missing_hub_config_warns_and_keeps_pending_vocab_entry(tmp_path, capsys):
+    hub = _hub(tmp_path)
+    state = tmp_path / "state"
+    cfg = _cfg(tmp_path, hub)
+    main(["scan", "--config", str(cfg), "--state-dir", str(state)])
+    store = StateStore(state)
+    assert _statuses(store, "vocab_name") == {"exam_kits": "pending_review"}
+    (hub / "hub_config.json").unlink()
+    capsys.readouterr()
+    main(["scan", "--config", str(cfg), "--state-dir", str(state)])
+    assert "no hub_config.json; folder-name review disabled" in capsys.readouterr().out
+    assert _statuses(store, "vocab_name") == {"exam_kits": "pending_review"}
+
+
 def test_resolved_name_is_swept_when_producer_ran(tmp_path, monkeypatch, capsys):
     hub = _hub(tmp_path)
     state = tmp_path / "state"
@@ -129,3 +143,11 @@ def test_moved_notice_excludes_undone_moves(tmp_path, monkeypatch, capsys):
     hub = _hub(tmp_path)
     main(["scan", "--config", str(_cfg(tmp_path, hub)), "--state-dir", str(tmp_path / "state")])
     assert "1 exact moves waiting" in capsys.readouterr().out
+
+
+def test_relink_warning_names_the_exception_type(tmp_path, monkeypatch, capsys):
+    from core.indexer import reconcile as reconcile_mod
+    monkeypatch.setattr(reconcile_mod, "reconcile", lambda _: (_ for _ in ()).throw(KeyError("x")))
+    hub = _hub(tmp_path)
+    main(["scan", "--config", str(_cfg(tmp_path, hub)), "--state-dir", str(tmp_path / "state")])
+    assert "relink check skipped: KeyError: 'x'" in capsys.readouterr().out

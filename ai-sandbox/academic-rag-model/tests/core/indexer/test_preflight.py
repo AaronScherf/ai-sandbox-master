@@ -97,6 +97,38 @@ def test_item_in_other_course_does_not_block(tmp_path, store):
     assert len(check(str(hub), Needs(file_ids=frozenset({"f1"}), courses=frozenset()), store)) == 1
 
 
+def test_waiting_exact_move_in_other_course_does_not_block(tmp_path, store):
+    hub = make_hub(tmp_path)
+    write_note(hub, f"{LN}/a.md", {"title": "a"}, BODY)
+    save_shard(str(hub), "econ", [_card(hub, f"{LN}/a.md", "f1")])
+    write_note(hub, "academic_notes/stats/lecture_notes/s.md", {"title": "s"}, BODY)
+    save_shard(str(hub), "stats", [_card(hub, "academic_notes/stats/lecture_notes/s.md", "f2", course="stats")])
+    os.replace(hub / f"{LN}/a.md", hub / f"{LN}/renamed.md")
+    require_resolved(str(hub), Needs(courses=frozenset({"stats"})), store)
+    assert [i.type for i in check(str(hub), Needs(courses=None), store)] == ["moved"]
+    assert check(str(hub), Needs(file_ids=frozenset({"f2"}), courses=frozenset()), store) == []
+
+
+def test_unknown_ledger_kind_is_ignored(tmp_path, store, monkeypatch):
+    from tools.corpus_health import state
+    from tools.corpus_health.finding import Finding
+    monkeypatch.setattr(state, "SELF_REFRESHED_KINDS", state.SELF_REFRESHED_KINDS | {"brand_new_kind"})
+    hub = make_hub(tmp_path)
+    finding = Finding("brand_new_kind", "hub", "x", "t", "d", fingerprint="fp", scope="file_id:f1")
+    store.refresh([finding], exclude_kinds=frozenset())
+    assert check(str(hub), Needs(), store) == []
+
+
+def test_save_removes_temp_file_when_dump_fails(tmp_path, monkeypatch):
+    def boom(*a, **k):
+        raise RuntimeError("disk")
+
+    monkeypatch.setattr(preflight.json, "dump", boom)
+    with pytest.raises(RuntimeError):
+        preflight._save(str(tmp_path / "sub" / "f.json"), {"a": 1})
+    assert list((tmp_path / "sub").iterdir()) == []
+
+
 def test_preflight_does_not_touch_cards(tmp_path, store):
     hub = _ambiguous_hub(tmp_path)
     check(str(hub), Needs(), store)

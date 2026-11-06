@@ -104,9 +104,16 @@ def _load(path: str) -> dict:
 def _save(path: str, data: dict) -> None:
     os.makedirs(os.path.dirname(path), exist_ok=True)
     fd, tmp = tempfile.mkstemp(dir=os.path.dirname(path), suffix=".tmp")
-    with os.fdopen(fd, "w", encoding="utf-8") as f:
-        json.dump(data, f)
-    os.replace(tmp, path)
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            json.dump(data, f)
+        os.replace(tmp, path)
+    except BaseException:
+        try:
+            os.unlink(tmp)
+        except OSError:
+            pass
+        raise
 
 
 def _course_of(hub_root: str, file_id: str) -> str | None:
@@ -128,9 +135,12 @@ def _ledger_items(store) -> list[ReviewItem]:
         if entry.get("status") not in _OPEN:
             continue
         finding = entry.get("finding") or {}
+        item_type = _KIND_TO_TYPE.get(finding.get("kind"))
+        if item_type is None:  # a kind this reader does not know how to present
+            continue
         fid = str(finding.get("scope") or "").removeprefix("file_id:")
         items.append(ReviewItem(finding.get("fingerprint") or entry.get("finding_id") or fid,
-                                _KIND_TO_TYPE[finding["kind"]], [fid], [], "pending"))
+                                item_type, [fid], [], "pending"))
     return items
 
 

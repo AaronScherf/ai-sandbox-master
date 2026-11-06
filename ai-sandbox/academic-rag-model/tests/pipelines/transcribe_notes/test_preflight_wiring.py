@@ -57,6 +57,33 @@ def test_router_whole_hub_without_course_and_ignore_flag(tmp_path, monkeypatch, 
     assert "ignoring" in capsys.readouterr().err
 
 
+class _PastPreflight(Exception):
+    pass
+
+
+def test_router_whole_hub_refuses_without_dry_run(tmp_path, monkeypatch, seen, capsys):
+    planned = _route(monkeypatch, tmp_path, "--driver", "api")
+    with pytest.raises(SystemExit) as e:
+        router.main()
+    assert e.value.code == 2 and planned == []
+    assert seen[0][1].courses is None
+
+
+def test_router_ignore_flag_gets_past_preflight_without_dry_run(tmp_path, monkeypatch, seen, capsys):
+    _route(monkeypatch, tmp_path, "--driver", "api", "--ignore-unresolved")
+    reached = []
+
+    def stop(*a, **k):
+        reached.append(1)
+        raise _PastPreflight
+
+    monkeypatch.setattr(router, "build_plan", stop)
+    with pytest.raises(_PastPreflight):
+        router.main()
+    assert reached == [1] and seen[0][1].courses is None
+    assert "ignoring" in capsys.readouterr().err
+
+
 def test_router_dry_run_only_warns(tmp_path, monkeypatch, seen, capsys):
     planned = _route(monkeypatch, tmp_path, "--driver", "api", "--dry-run")
     router.main()
@@ -99,6 +126,19 @@ def test_excalidraw_dry_run_warns_and_ignore_flag_runs(tmp_path, monkeypatch, se
     monkeypatch.setattr(exc_cli, "process_excalidraw_note", lambda *a, **k: None)
     exc_cli.main()
     assert found == [1]
+    assert "unresolved" in capsys.readouterr().err
     monkeypatch.setattr(sys, "argv", ["x", "--notes-subdir", "academic_notes/econ/x", "--dry-run",
                                       "--ignore-unresolved"])
     exc_cli.main()
+    assert found == [1, 1]
+    assert "ignoring" in capsys.readouterr().err
+
+
+def test_excalidraw_ignore_flag_gets_past_preflight_without_dry_run(tmp_path, monkeypatch, seen, capsys):
+    found = _excalidraw(monkeypatch, tmp_path, "--ignore-unresolved")
+    clients = []
+    monkeypatch.setattr(gemini_utils, "get_gemini_client", lambda *a, **k: clients.append(1))  # None -> exit 1
+    with pytest.raises(SystemExit) as e:
+        exc_cli.main()
+    assert e.value.code == 1 and found == [1] and clients == [1]
+    assert "ignoring" in capsys.readouterr().err

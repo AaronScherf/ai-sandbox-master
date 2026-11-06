@@ -17,7 +17,7 @@ CONFIG_NAME = "hub_config.json"
 def vocab_findings(hub_root: str) -> list[Finding]:
     config = Path(hub_root) / CONFIG_NAME
     if not config.is_file():  # without a vocabulary file `confirm` has nowhere to write
-        return []
+        raise FileNotFoundError(f"no {CONFIG_NAME}; folder-name review disabled")
     items = proposal_items(propose_vocabulary(Path(hub_root), load_vocabulary(config)))
     findings = []
     for item in items:

@@ -122,7 +122,7 @@ def test_accepted_relink_entry_is_never_applied_by_apply_accepted(tmp_path, monk
     raised = store.refresh([relink], sweep_kinds=("relink",))[0]
     store.decide(raised.finding_id, "accepted", raised.fingerprint)
     # even if a scan somehow reported it, apply must leave relink entries to reconcile_apply.resolve
-    monkeypatch.setattr(actions, "scan", lambda _: SimpleNamespace(complete=True, findings=[finding, relink]))
+    monkeypatch.setattr(actions, "scan", lambda _: SimpleNamespace(complete=True, findings=[finding, relink], warnings=[]))
     result = actions.apply_accepted(config, store, runner=lambda *a, **k: SimpleNamespace(
         returncode=1, stdout="", stderr=""))
     assert all(item["kind"] != "relink" for item in result)

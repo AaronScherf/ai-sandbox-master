@@ -64,8 +64,12 @@ def _first_commit_time(hub_root: str, rel: str) -> float | None:
     top = reconcile_git._git(folder, "rev-parse", "--show-toplevel")
     if not top or not top.strip():
         return None
-    repo_rel = _norm(os.path.relpath(os.path.join(hub_root, rel), top.strip()))
-    out = reconcile_git._git(top.strip(), "log", "--follow", "--diff-filter=A", "--format=%ct", "--", repo_rel)
+    try:
+        repo_rel = _norm(os.path.relpath(os.path.join(hub_root, rel), top.strip()))
+    except ValueError:  # different drives / UNC roots: no relative path, fall back to name order
+        return None
+    out = reconcile_git._git(top.strip(), "log", "--follow", "--diff-filter=A", "--format=%ct",
+                             "--", ":(literal)" + repo_rel)
     times = [int(t) for t in (out or "").split() if t.isdigit()]
     return float(min(times)) if times else None
 

@@ -32,11 +32,8 @@ Two live notes in `academic_notes` carried `hub_id` `fcf8dd35633a` after the sta
 
 ## Deferred minors (P4)
 
-- Preflight: `_KIND_TO_TYPE` KeyError if `SELF_REFRESHED_KINDS` grows; `demote_undone` applied twice per reconcile; `_save` leaks a temp file on `json.dump` error; no test for a waiting move in another course.
-- Entry points: `query`/`ask` run the full check (reconcile and state writes) though read-only; `ignore=True` still takes the write lock and runs the check; no subprocess test of a real exit 2 in the transcribe CLI.
-- Scan: warning lacks the exception type name; no test that a successful second raise keeps items; the lock is faked in all tests.
-- Duplicate ids: `relpath` ValueError on cross-drive in `_first_commit_time`; git pathspec not `:(literal)`; the orphan-card duplicate finding persists after `--fix-duplicates --apply`; hash neutrality untested for no-frontmatter and CRLF files.
-- Vocabulary: no `hub_config.json` means the feature is silently off (should warn, `cli._add_vocab_findings`); the confirm-refused path is untested; no real apply run over an accepted `vocab_name`.
+- Fixed 2026-11-06: preflight `_KIND_TO_TYPE` unknown kinds, `_save` temp leak, waiting-move-in-other-course test; scan warning type name; `_first_commit_time` cross-drive `relpath` and `:(literal)` pathspec; missing `hub_config.json` warning (kind still treated as skipped); confirm-refused vocab test; non-dry-run `--ignore-unresolved` wiring tests.
+- Still open: `demote_undone` applied twice per reconcile; `query`/`ask` run the full check though read-only; `ignore=True` still takes the write lock and runs the check; no subprocess test of a real exit 2 in the transcribe CLI; no test that a successful second raise keeps items; the lock is faked in all tests; orphan-card duplicate finding persists after `--fix-duplicates --apply`; hash neutrality untested for no-frontmatter and CRLF files; no real apply run over an accepted `vocab_name`.
 
 ## To-do
 

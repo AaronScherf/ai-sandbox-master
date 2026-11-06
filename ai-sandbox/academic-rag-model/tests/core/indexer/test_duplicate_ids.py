@@ -164,7 +164,34 @@ def test_first_commit_lookup_uses_hardened_git(tmp_path, monkeypatch):
         assert "GIT_EXTERNAL_DIFF" not in env and env["GIT_OPTIONAL_LOCKS"] == "0"
     log = [c for c, _ in calls if "log" in c][0]
     assert "--no-show-signature" in log and "--no-ext-diff" in log
-    assert log[-2:] == ["--", "academic_notes/econ/a.md"]
+    assert log[-2:] == ["--", ":(literal)academic_notes/econ/a.md"]
+
+
+def test_first_commit_time_cross_drive_relpath_falls_back_to_none(tmp_path, monkeypatch):
+    from core.indexer import duplicate_ids, reconcile_git
+
+    monkeypatch.setattr(reconcile_git, "_git", lambda *a, **k: str(tmp_path))
+
+    def no_relpath(*a, **k):
+        raise ValueError("path is on mount 'C:', start on mount 'D:'")
+
+    monkeypatch.setattr(duplicate_ids.os.path, "relpath", no_relpath)
+    assert duplicate_ids._first_commit_time(str(tmp_path), "a.md") is None
+
+
+def test_first_commit_time_pathspec_is_literal(tmp_path, monkeypatch):
+    from core.indexer import duplicate_ids
+    from tests.tools.git_fixture import git
+
+    git(tmp_path, "init", "-q")
+    for name, when in (("a.md", "1000000000"), ("[ab].md", "1100000000")):
+        (tmp_path / name).write_text(name, encoding="utf-8")
+        git(tmp_path, "add", "--", f":(literal){name}")
+        monkeypatch.setenv("GIT_COMMITTER_DATE", f"{when} +0000")
+        monkeypatch.setenv("GIT_AUTHOR_DATE", f"{when} +0000")
+        git(tmp_path, "commit", "-q", "-m", name)
+    # an unescaped "[ab].md" would also match a.md and report its older commit
+    assert duplicate_ids._first_commit_time(str(tmp_path), "[ab].md") == 1100000000.0
 
 
 def test_git_ordered_keeper_oldest_first_commit_wins(tmp_path):
