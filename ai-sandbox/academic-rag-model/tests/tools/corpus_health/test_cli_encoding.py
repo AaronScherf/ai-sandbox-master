@@ -5,13 +5,13 @@ import sys
 
 from tools.corpus_health.cli import _use_utf8_streams
 
+NL = chr(10)
+
 
 def test_streams_become_utf8_so_combining_accents_print(monkeypatch):
     raw_out, raw_err = io.BytesIO(), io.BytesIO()
-    out = io.TextIOWrapper(raw_out, encoding="cp1252", newline="
-")
-    err = io.TextIOWrapper(raw_err, encoding="cp1252", newline="
-")
+    out = io.TextIOWrapper(raw_out, encoding="cp1252", newline=NL)
+    err = io.TextIOWrapper(raw_err, encoding="cp1252", newline=NL)
     monkeypatch.setattr(sys, "stdout", out)
     monkeypatch.setattr(sys, "stderr", err)
 
