@@ -1231,12 +1231,13 @@ def _single_root(args) -> str:
 
 def _link_preflight(args) -> None:
     """Refuse (exit 2) on unresolved relink items for the writers; query/ask only warn. Runs before any
-    key load or model client. `rebuild --plan` is read-only, so it only warns."""
+    key load. Modes that write nothing (`rebuild --plan`, `index-md` without `--apply`, `--dry-run`) only
+    warn; note `chunk`/`retag --dry-run` still build a model client, they just write no card."""
     from core.indexer.preflight import Needs, enforce
     roots = args.root or [_DEFAULT_ROOT]
     course = getattr(args, "course", None)
     needs = Needs(courses=frozenset({course}) if course else None)
-    # Modes that write nothing and build no client only warn.
+    # Modes that write nothing only warn (some, like chunk/retag --dry-run, still build a model client).
     read_only = (getattr(args, "dry_run", False)
                  or (args.command == "rebuild" and args.plan)
                  or (args.command == "index-md" and not args.apply))

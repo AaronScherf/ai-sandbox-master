@@ -245,12 +245,17 @@ Scan, preflight and vocabulary (P4):
   folder names (`vocab_name`) as findings, and prints "N exact moves waiting: run `hub_review repair`".
   Failures here are non-fatal `warnings` on the report.
 - Preflight (`core/indexer/preflight.py`): `index_search chunk|rebuild|index-md --apply|retag`,
-  `transcribe_notes` and the audio pipeline refuse (exit 2, pointing at `python -m tools.hub_review page
+  `transcribe_notes`, `route_notes_transcribe`, `transcribe_excalidraw` and the audio pipeline refuse
+  (exit 2, pointing at `python -m tools.hub_review page
   --hub-root HUB`, or `repair` for waiting moves) when an open relink item or a waiting exact move is
   in their way. Orphans only warn. Read-only modes (`chunk`/`retag --dry-run`, `index-md` without
-  `--apply`, `rebuild --plan`, `query`/`ask`) warn instead of refusing. `--ignore-unresolved` bypasses.
-  The tree fingerprint and remembered waiting moves live in `<state_dir>/preflight.json` (local, not
-  `.index/`: mtimes are per machine).
+  `--apply`, `rebuild --plan`, `query`/`ask`) warn instead of refusing; `transcribe_notes`,
+  `route_notes_transcribe`, `transcribe_excalidraw` and audio refuse except for `--dry-run` (transcribe
+  and route: `--dry-run` without `--submit`/`--collect`). `--ignore-unresolved` bypasses.
+  The tree fingerprint (notes, resources and the hub's `.index/`) and remembered waiting moves live in
+  `<state_dir>/preflight.json` (local, not `.index/`: mtimes are per machine). When another writer holds
+  the write lock, preflight reconciles read-only and writes nothing. Not yet wired: postprocess_notes,
+  textbook conversion, video notes, migrate_sources_to_resources and the agent CLIs (tracker).
 - `python -m tools.write_hub_ids --hub-root HUB --fix-duplicates [--apply]` repairs two live notes that
   carry the same `hub_id` (dry run by default).
 - Vocabulary: folder names not yet in `hub_config.json` become `vocab_name` items on the review page;
