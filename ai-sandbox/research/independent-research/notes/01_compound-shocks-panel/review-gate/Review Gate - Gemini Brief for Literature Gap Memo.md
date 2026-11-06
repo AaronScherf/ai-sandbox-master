@@ -4,7 +4,7 @@ Drafted by Claude, 2026-11-03, for Gemini (Antigravity) to execute and Aaron to 
 
 ## Purpose
 
-Produce one document, **`ai-sandbox/research/independent-research/notes/Literature Gap Memo.md`**, that answers the three questions the gate requires (`Pilot Scope Realignment - Exploratory Review Gate.md`, section 6, step 2) plus a fourth that Aaron added on 2026-11-03:
+Produce one document, **`ai-sandbox/research/independent-research/notes/01_compound-shocks-panel/review-gate/Literature Gap Memo.md`**, that answers the three questions the gate requires (`Pilot Scope Realignment - Exploratory Review Gate.md`, section 6, step 2) plus a fourth that Aaron added on 2026-11-03:
 
 1. **What has already been published?** Are we duplicating an existing paper?
 2. **What is the specific contribution?** Does it advance Direction I of the PhD plan (climate adaptation, migration and cash transfers under conflict; `Ground Truth - PhD Research Plan.md`, section 03)?

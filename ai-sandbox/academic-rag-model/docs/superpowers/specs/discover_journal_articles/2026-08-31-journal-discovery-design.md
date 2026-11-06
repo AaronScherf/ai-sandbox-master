@@ -9,7 +9,7 @@ Status: approved in brainstorming, not yet planned/implemented
 whatever PDFs sit under `research/journal-articles/<topic>/` — but nothing
 puts PDFs there in the first place. Today that folder is populated by hand
 (`economics/`, `misc/`, four real papers converted so far). A brainstormed
-plan (`research/independent-research/notes/lit_review.md`) sketched an
+plan (`research/independent-research/notes/02_literature-and-evidence-map/Literature Pipeline - Early Prototype.md`) sketched an
 end-to-end pipeline — discovery via OpenAlex/Semantic Scholar, full-text
 resolution via Unpaywall/EZProxy/arXiv, conversion via `pymupdf4llm`, and
 indexing/RAG via Chroma + LangChain + Ollama — but its last two stages

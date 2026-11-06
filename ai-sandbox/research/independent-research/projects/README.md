@@ -1,6 +1,6 @@
 # Independent research projects
 
-The [3R revision](../notes/Ground%20Truth%20-%20PhD%20Research%20Plan%20-%203R%20Revision.md) and its [operational roadmap](research_projects_plan_fall26%20-%203R%20Revision.md) describe the current research scope. The original Ground Truth memo and `research_projects_plan_fall26.md` are historical baselines. The [data-sources note](../notes/Data%20Sources%20-%20Climate%20Displacement%20Cash%20Conflict.md) is a candidate-source list, not a verified data dictionary or license grant. In particular, its Project 03 chatbot description predates the 3R revision.
+The [3R revision](../notes/00_overview-and-strategy/Ground%20Truth%20-%20PhD%20Research%20Plan%20-%203R%20Revision.md) and its [operational roadmap](research_projects_plan_fall26%20-%203R%20Revision.md) describe the current research scope. The original Ground Truth memo and `research_projects_plan_fall26.md` are historical baselines. The [data-sources note](../notes/01_compound-shocks-panel/data-sources/Data%20Sources%20-%20Climate%20Displacement%20Cash%20Conflict.md) is a candidate-source list, not a verified data dictionary or license grant. In particular, its Project 03 chatbot description predates the 3R revision.
 
 | Folder | Current role |
 | --- | --- |

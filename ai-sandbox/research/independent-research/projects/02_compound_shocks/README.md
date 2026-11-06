@@ -2,9 +2,9 @@
 
 ## Current scope
 
-The first reproducible unit is a **Somalia exploratory analysis**, based on the [three-shock case-study note](../../notes/Somalia%20Three-Shock%20Case%20Study.md): approximately 2021–2023, with prices, rainfall, conflict, and displacement as initial data streams. The 3R roadmap also proposes a later Ukraine phase and a comparative paper. Neither that expansion nor a causal specification is fixed by this scaffold.
+The first reproducible unit is a **Somalia exploratory analysis**, based on the [three-shock case-study note](../../notes/01_compound-shocks-panel/case-study/Somalia%20Three-Shock%20Case%20Study.md): approximately 2021–2023, with prices, rainfall, conflict, and displacement as initial data streams. The 3R roadmap also proposes a later Ukraine phase and a comparative paper. Neither that expansion nor a causal specification is fixed by this scaffold.
 
-The [data-sources note](../../notes/Data%20Sources%20-%20Climate%20Displacement%20Cash%20Conflict.md) names candidate datasets. Verify the provider, download endpoint, release/version, coverage, variables, geographic identifiers, and reuse terms against the actual files and provider documentation before analysis. Do not infer that a reported cash-program location equals a completed transfer, or that a recorded displacement reason is a causal attribution.
+The [data-sources note](../../notes/01_compound-shocks-panel/data-sources/Data%20Sources%20-%20Climate%20Displacement%20Cash%20Conflict.md) names candidate datasets. Verify the provider, download endpoint, release/version, coverage, variables, geographic identifiers, and reuse terms against the actual files and provider documentation before analysis. Do not infer that a reported cash-program location equals a completed transfer, or that a recorded displacement reason is a causal attribution.
 
 ## Layout
 

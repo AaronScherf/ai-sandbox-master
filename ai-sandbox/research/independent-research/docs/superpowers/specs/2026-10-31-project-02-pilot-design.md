@@ -14,7 +14,7 @@ changes) a harmonization record. It exercises the framework's hard parts: role-b
 structural harmonization, restricted-data fetching, fixtures, manifests, and the `reproduce` command. It answers
 "what data are possible", not a research question. Formal modeling, causal inference, cross-country regressions and
 paper drafting are **Phase B**, gated behind a data audit and a literature gap analysis (section 12; owner decision,
-guidance in [the realignment note](../../../notes/Pilot%20Scope%20Realignment%20-%20Exploratory%20Review%20Gate.md)).
+guidance in [the realignment note](../../../notes/01_compound-shocks-panel/review-gate/Pilot%20Scope%20Realignment%20-%20Exploratory%20Review%20Gate.md)).
 
 ## 2. Scope [Claude's call, needs owner decision]
 
@@ -57,7 +57,7 @@ Fields below come from the data-sources note and are **unverified against real f
 
 ### 4.1 Common core and country extensions (decided 2026-10-31)
 
-The Sudan source check ([findings](../../../notes/Sudan%20Data%20Sources%20-%20Portability%20Check.md), Gemini, unverified by Claude) showed the two countries cannot share every variable. So the
+The Sudan source check ([findings](../../../notes/01_compound-shocks-panel/data-sources/Sudan%20Data%20Sources%20-%20Portability%20Check.md), Gemini, unverified by Claude) showed the two countries cannot share every variable. So the
 study design defines:
 
 - **Common core panel**: variables available and defined the same way in both countries: conflict
@@ -206,7 +206,7 @@ re-checks the dataset IDs and fields against the actual downloaded files.
 
 ## 12. Phase B and the review gate (owner decision 2026-10-31)
 
-Guidance: [Pilot Scope Realignment](../../../notes/Pilot%20Scope%20Realignment%20-%20Exploratory%20Review%20Gate.md) (Gemini, reviewed by Claude). Phase A stops with the two audit memos. Before any
+Guidance: [Pilot Scope Realignment](../../../notes/01_compound-shocks-panel/review-gate/Pilot%20Scope%20Realignment%20-%20Exploratory%20Review%20Gate.md) (Gemini, reviewed by Claude). Phase A stops with the two audit memos. Before any
 modeling the owner and agents run the **Review Gate**: (A) review the audit memos, including whether price gaps track
 conflict intensity and whether Admin 2 aggregation hides or creates patterns; (B) a literature review and gap analysis (the
 literature pipeline plus project notes) answering what is already published, what the contribution is, and which identification

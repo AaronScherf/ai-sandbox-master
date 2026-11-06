@@ -6,7 +6,7 @@
 - **Associated Dissertation Projects:**
   - `Project 01: Evidence Map: Anticipatory Action, Cash & Social Protection in Disasters and Conflict`
   - `Project 03: Disaster-to-Conflict Transferability Working Paper`
-- **Location:** `ai-sandbox/research/independent-research/notes/Brainstorming Transcript - Transferability of Crisis Interventions.md`
+- **Location:** `ai-sandbox/research/independent-research/notes/03_rct-transportability/Brainstorming Transcript - Transferability of Crisis Interventions.md`
 
 ---
 
@@ -26,7 +26,7 @@ This ongoing brainstorming transcript records the iterative development of a res
 
 ### User Initial Prompt (October 14, 2026)
 
-> "I have done a few rounds of brainstorming on my research plans with this agent, and stored them in the notes section of my independent-research folder, particularly the `ai-sandbox/research/independent-research/notes/Ground Truth - PhD Research Plan - 3R Revision.md` document.
+> "I have done a few rounds of brainstorming on my research plans with this agent, and stored them in the notes section of my independent-research folder, particularly the `ai-sandbox/research/independent-research/notes/00_overview-and-strategy/Ground Truth - PhD Research Plan - 3R Revision.md` document.
 >
 > I would like to commence a new brainstorming session specifically on the question of 'how is transferability of 'best practices', 'lessons learned', 'case studies', 'toolkits', and other programmatic or intervention specific methodology conceptualized, not only in the natural disaster or humanitarian space but in a broader set of economic, political science, public administration, international affairs, and environmental literature?' Are there any well understood and agreed upon frameworks for determining when a successful program implemented and evaluated in one location would be applicable in a different (but potentially related) context? I know there is some significant literature on 'scaling up' interventions, particularly from the randomized control trial sub-branch of economics and development economics, but I'm interested in the broader study of whether transferability has actually been measured or assessed. Is anyone studying this from a covariate matching or propensity score matching perspective, developing similarity scores, and then seeing if similar interventions yield similar results?
 >

@@ -3,7 +3,7 @@
 *Group C (Project 01). Files: Pitch (taxonomy extension) and `lit_review.md`. Written 2026-11-05. "(inference)" marks my own reading.*
 
 ## Relationship between the two files
-`lit_review.md` (Sep 7) is a saved AI answer with draft scripts for harvesting, indexing and summarizing papers. The Pitch (Oct 9) adds a structured-extraction layer on top: a Pydantic schema for method, dataset, geography, hazard, intervention and outcome. The Gemini Brief (Nov 3) refers to `python -m agent.literature` in `academic-rag-model`, which looks like where this work went (inference; I did not check the code). The Pilot Scope Realignment still names `notes/lit_review.md` as an input to gate Part B.
+`lit_review.md` (Sep 7) is a saved AI answer with draft scripts for harvesting, indexing and summarizing papers. The Pitch (Oct 9) adds a structured-extraction layer on top: a Pydantic schema for method, dataset, geography, hazard, intervention and outcome. The Gemini Brief (Nov 3) refers to `python -m agent.literature` in `academic-rag-model`, which looks like where this work went (inference; I did not check the code). The Pilot Scope Realignment still names `notes/02_literature-and-evidence-map/Literature Pipeline - Early Prototype.md` as an input to gate Part B.
 
 ## What other groups need from this one
 

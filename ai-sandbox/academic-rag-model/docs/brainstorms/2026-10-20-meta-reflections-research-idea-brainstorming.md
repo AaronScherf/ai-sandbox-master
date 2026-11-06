@@ -3,7 +3,7 @@
 - **Author:** Aaron Scherf (with Antigravity / Gemini Operator)
 - **Date:** 2026-10-20
 - **Scope:** Methodological evaluation of the multi-round research brainstorming session on *"Transferability of Crisis Interventions across Disasters, Conflict, and Political-Economic Settings."*
-- **Primary Deliverable Reference:** `ai-sandbox/research/independent-research/notes/Brainstorming Transcript - Transferability of Crisis Interventions.md`
+- **Primary Deliverable Reference:** `ai-sandbox/research/independent-research/notes/03_rct-transportability/Brainstorming Transcript - Transferability of Crisis Interventions.md`
 - **Companion Operational Plans:** `ai-sandbox/research/independent-research/projects/empirical_sprints/`
 
 ---

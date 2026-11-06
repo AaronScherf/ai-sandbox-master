@@ -140,7 +140,7 @@ Once Phase A is complete, all autonomous coding stops. The owner and agents will
 - Assess whether Admin 2 spatial aggregation obscures local conflict-drought dynamics or creates aggregation artifacts.
 
 ### Step 2: Comprehensive Literature Review & Gap Analysis
-- Utilize the literature pipeline (`ai-sandbox/academic-rag-model/agent/literature/`) and project notes in `ai-sandbox/research/independent-research/notes/lit_review.md`.
+- Utilize the literature pipeline (`ai-sandbox/academic-rag-model/agent/literature/`) and project notes in `ai-sandbox/research/independent-research/notes/02_literature-and-evidence-map/Literature Pipeline - Early Prototype.md`.
 - Search recent academic literature (OpenAlex, Semantic Scholar, NBER, CEPR, 3ie) for:
   - Existing empirical papers on Somalia's 2021–2023 crisis (drought, Ukraine food price shocks, and al-Shabaab conflict).
   - Studies examining the interaction of food import prices and localized climate shocks in East Africa.

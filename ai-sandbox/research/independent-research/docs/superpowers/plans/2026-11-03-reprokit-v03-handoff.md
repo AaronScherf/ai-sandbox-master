@@ -8,7 +8,7 @@ Written 2026-11-03 by the Claude session that ran Phase A of Project 02. This is
 | --- | --- |
 | Framework repo (validators, schemas, template) | `C:\Users\theaa\reprokit`, tags `v0.1.0`, `v0.2.0` (standalone git repo, MIT) |
 | First project built on it | `C:\Users\theaa\compound-shocks-panel`, tags `v0.1.0` to `v0.1.2`, GitHub `AaronScherf/compound-shocks-panel` |
-| Evidence and ratings | `ai-sandbox/research/independent-research/notes/Pipeline Review - Reproducible Research Framework after Phase A.md` (monorepo, on `main`) |
+| Evidence and ratings | `ai-sandbox/research/independent-research/notes/05_reprokit-reproducibility-framework/Pipeline Review - Reproducible Research Framework after Phase A.md` (monorepo, on `main`) |
 | Gemini's structure audit | `.agent-reports/reviews/20261102-133500-reprokit-structure-audit/review.md` |
 | Design doc and addendum | `ai-sandbox/research/independent-research/docs/superpowers/specs/2026-10-31-reproducible-research-framework-design.md` (sections 1 to 9 are original intent; the addendum at the bottom records Phase A) |
 

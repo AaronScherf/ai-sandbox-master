@@ -5,18 +5,18 @@
 **Author:** Gemini (Antigravity) — Literature Pipeline Execution & Synthesis  
 **Reviewer:** Aaron (Project Owner) & Claude (Architecture Review)  
 **Framework Context:** Review Gate for `compound-shocks-panel` v0.1.2 (`Pilot Scope Realignment - Exploratory Review Gate.md`, Section 6, Step 2)  
-**Target File Location:** [C:\Users\theaa\ai-sandbox-master\ai-sandbox\research\independent-research\notes\Literature Gap Memo.md](<C:/Users/theaa/ai-sandbox-master/ai-sandbox/research/independent-research/notes/Literature Gap Memo.md>)  
+**Target File Location:** [C:\Users\theaa\ai-sandbox-master\ai-sandbox\research\independent-research\notes/01_compound-shocks-panel/review-gate/Literature Gap Memo.md](<C:/Users/theaa/ai-sandbox-master/ai-sandbox/research/independent-research/notes/01_compound-shocks-panel/review-gate/Literature Gap Memo.md>)  
 **Associated Repository Branch / Worktree:** `gemini/compound-shocks-lit-memo` at `.worktrees/gemini-compound-shocks-lit-memo`  
 
 ---
 
 ## Executive Summary
 
-This memorandum provides the empirical and theoretical literature review required for **Part B of the Exploratory Review Gate**. Following the descriptive findings of **Part A (Data Audit Review)** ([Review Gate - Data Audit Review.md](<C:/Users/theaa/ai-sandbox-master/ai-sandbox/research/independent-research/notes/Review Gate - Data Audit Review.md>)), this memo systematically maps published and preprint literature against the actual capabilities and limitations of the Somalia (74 districts $\times$ 58 months) and Sudan (189 localities $\times$ 58 months) panels (2021-01 to 2025-10).
+This memorandum provides the empirical and theoretical literature review required for **Part B of the Exploratory Review Gate**. Following the descriptive findings of **Part A (Data Audit Review)** ([Review Gate - Data Audit Review.md](<C:/Users/theaa/ai-sandbox-master/ai-sandbox/research/independent-research/notes/01_compound-shocks-panel/review-gate/Review Gate - Data Audit Review.md>)), this memo systematically maps published and preprint literature against the actual capabilities and limitations of the Somalia (74 districts $\times$ 58 months) and Sudan (189 localities $\times$ 58 months) panels (2021-01 to 2025-10).
 
 The objective is to equip Aaron to select a defensible research question and econometric identification strategy before any modeling begins. In accordance with the Review Gate charter, this memo:
 1. Evaluates existing publications to determine whether the proposed compound-shock research duplicates prior work;
-2. Assesses the theoretical contribution against **Direction I** of the PhD research plan (climate adaptation, forced migration, and cash transfers under conflict; [Ground Truth - PhD Research Plan.md](<C:/Users/theaa/ai-sandbox-master/ai-sandbox/research/independent-research/notes/Ground Truth - PhD Research Plan.md>), section 03);
+2. Assesses the theoretical contribution against **Direction I** of the PhD research plan (climate adaptation, forced migration, and cash transfers under conflict; [Ground Truth - PhD Research Plan.md](<C:/Users/theaa/ai-sandbox-master/ai-sandbox/research/independent-research/notes/00_overview-and-strategy/Ground Truth - PhD Research Plan.md>), section 03);
 3. Examines what econometric identification strategies remain credible given the severe price sparsity, temporal disjoints, and selection biases uncovered in Phase A;
 4. Identifies and evaluates candidate additional datasets to address the audit's data gaps and bridge the panel toward Direction I.
 
@@ -120,7 +120,7 @@ A comprehensive external search across OpenAlex, Semantic Scholar, NBER, CEPR, 3
   * Numerous papers assemble ad-hoc panels linking subsets of these sources (e.g., ACLED + CHIRPS for conflict-climate studies; WFP + CHIRPS for early warning; ACLED + PRMN for displacement forecasting) `[source-verified]`.
 * **What is absent:**
   * **No public, standardized, reusable district-month panel fusing all four streams (ACLED, CHIRPS, WFP prices, PRMN/DTM) has been published in data journals such as *Scientific Data* or *Data in Brief*.**
-  * The primary barrier is **licensing restrictions**: ACLED's End User License Agreement (EULA, updated July 2025; see [ACLED Terms - Redistribution Findings.md](<C:/Users/theaa/ai-sandbox-master/ai-sandbox/research/independent-research/notes/ACLED Terms - Redistribution Findings.md>)) strictly prohibits redistributing disaggregated event data or derivative datasets that permit reverse engineering of the raw database `[source-verified]`.
+  * The primary barrier is **licensing restrictions**: ACLED's End User License Agreement (EULA, updated July 2025; see [ACLED Terms - Redistribution Findings.md](<C:/Users/theaa/ai-sandbox-master/ai-sandbox/research/independent-research/notes/01_compound-shocks-panel/data-sources/ACLED Terms - Redistribution Findings.md>)) strictly prohibits redistributing disaggregated event data or derivative datasets that permit reverse engineering of the raw database `[source-verified]`.
   * Consequently, researchers build one-off internal panels rather than publishing persistent, version-controlled open data artifacts. This confirms that the `reprokit` architecture (providing scripted adapters and local deterministic pipelines rather than redistributing raw data) represents a substantial workflow and reproducibility contribution `[proposed]`.
 
 ---
@@ -139,7 +139,7 @@ A comprehensive external search across OpenAlex, Semantic Scholar, NBER, CEPR, 3
 ### Question 2: What Is the Specific Contribution? Does It Advance Direction I of the PhD Plan?
 **Finding:** A compound climate-conflict paper advances the **thematic foundation** of Direction I, but **fails to complete the core empirical requirement** unless social protection or cash transfer data is added.
 * **Alignment with PhD Plan Direction I:**
-  * [Ground Truth - PhD Research Plan.md](<C:/Users/theaa/ai-sandbox-master/ai-sandbox/research/independent-research/notes/Ground Truth - PhD Research Plan.md>) (Section 03) defines Direction I as: *"Climate adaptation, migration & cash transfers under conflict... The core question: does investment in climate-adaptive resilience reduce the probability that a shock becomes a displacement event, and does that relationship change — or break down — once you condition on active conflict?"*
+  * [Ground Truth - PhD Research Plan.md](<C:/Users/theaa/ai-sandbox-master/ai-sandbox/research/independent-research/notes/00_overview-and-strategy/Ground Truth - PhD Research Plan.md>) (Section 03) defines Direction I as: *"Climate adaptation, migration & cash transfers under conflict... The core question: does investment in climate-adaptive resilience reduce the probability that a shock becomes a displacement event, and does that relationship change — or break down — once you condition on active conflict?"*
 * **The Contribution Gap:**
   * The current panel contains only *shocks* (`events`, `fatalities`, `precip_mm`) and *outcomes* (`displacement`). It contains **zero social assistance, cash transfer, or climate adaptation variables**.
   * If executed solely on the current panel, the paper contributes to the *climate-security and environmental displacement literature* (joining Thalheimer et al. 2023 and Harari & La Ferrara 2018). It does *not* advance the reputation-defining cash transfer / social protection component of Direction I.
@@ -186,7 +186,7 @@ The following ten papers represent the closest published or working empirical be
 
 ## 5. Identification Options the Data Allow (For Aaron's Selection)
 
-Based on the empirical audit of the fused panel ([Review Gate - Data Audit Review.md](<C:/Users/theaa/ai-sandbox-master/ai-sandbox/research/independent-research/notes/Review Gate - Data Audit Review.md>)), the data rule out certain naive regressions (such as pooling countries or treating missing local prices as random). Below are the five identification options that the data can genuinely support, along with the fatal threats that Aaron must weigh:
+Based on the empirical audit of the fused panel ([Review Gate - Data Audit Review.md](<C:/Users/theaa/ai-sandbox-master/ai-sandbox/research/independent-research/notes/01_compound-shocks-panel/review-gate/Review Gate - Data Audit Review.md>)), the data rule out certain naive regressions (such as pooling countries or treating missing local prices as random). Below are the five identification options that the data can genuinely support, along with the fatal threats that Aaron must weigh:
 
 ```
 [ IDENTIFICATION OPTIONS FOR PHASE B ]
@@ -295,7 +295,7 @@ In compliance with anti-fabrication rules, every claim in this memo is linked to
 | 113 African markets 3SLS simultaneous equations for food prices, climate, and conflict | Raleigh, Choi, & Kniveton (2015), *Global Environmental Change* ([10.1016/j.gloenvcha.2015.03.005](https://doi.org/10.1016/j.gloenvcha.2015.03.005)) | Full text read | `[source-verified]` |
 | Economywide CGE modeling of Sudan 2023 conflict disruptions | Abushama, Resnick, Siddig, & Kirui (2023), IFPRI SSSP WP ([10.2499/p15738coll2.137021](https://doi.org/10.2499/p15738coll2.137021)) | Full report read | `[source-verified]` |
 | ACLED EULA prohibits redistribution of derived datasets allowing reverse engineering | ACLED EULA (Updated 8 July 2025), [acleddata.com/eula/](https://acleddata.com/eula/) | Legal agreement read | `[source-verified]` |
-| Somalia WFP price expansion in 2023-07 represents mVAM monitoring network expansion | Review Gate Part A ([Review Gate - Data Audit Review.md](<C:/Users/theaa/ai-sandbox-master/ai-sandbox/research/independent-research/notes/Review Gate - Data Audit Review.md>)) | Internal audit report | `[source-verified]` |
+| Somalia WFP price expansion in 2023-07 represents mVAM monitoring network expansion | Review Gate Part A ([Review Gate - Data Audit Review.md](<C:/Users/theaa/ai-sandbox-master/ai-sandbox/research/independent-research/notes/01_compound-shocks-panel/review-gate/Review Gate - Data Audit Review.md>)) | Internal audit report | `[source-verified]` |
 | Somalia Baxnaano project reached 200,000 households with unconditional digital cash transfers | World Bank Project P171346 / Samuel Hall Targeting Evaluation (2022) | Institutional report | `[source-verified]` |
 | Local corpus has 67 papers, 8 in Somalia, 0 in Sudan, 0 combining ACLED+CHIRPS+WFP | Literature SQLite database (`research/literature_db/literature.sqlite`) | Database query | `[corpus-derived]` |
 

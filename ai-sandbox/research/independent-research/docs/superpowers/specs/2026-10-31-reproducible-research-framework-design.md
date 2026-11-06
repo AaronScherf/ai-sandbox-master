@@ -262,7 +262,7 @@ validator library.
 This addendum was added after the Project 02 pilot's Phase A. **Sections 1 to 9 above are unchanged and
 remain the original intent.** Where the evidence below differs from them, the evidence is newer, not a
 correction of what was designed. Full evidence and per-goal ratings are in
-`../../../notes/Pipeline Review - Reproducible Research Framework after Phase A.md`.
+`../../../notes/05_reprokit-reproducibility-framework/Pipeline Review - Reproducible Research Framework after Phase A.md`.
 
 ### A1. Status against section 6
 

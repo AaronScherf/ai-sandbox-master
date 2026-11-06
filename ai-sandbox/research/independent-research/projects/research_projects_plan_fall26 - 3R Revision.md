@@ -2,7 +2,7 @@
 
 *Operational Project Roadmap — Revised Focus: Compounded Disasters, Conflict Economics, and the 3R Framework*
 
-This document tracks the execution and publishing timeline for first-year doctoral research projects at Columbia SIPA (Sustainable Development). It operationalizes the strategic vision outlined in `ai-sandbox/research/independent-research/notes/Ground Truth - PhD Research Plan - 3R Revision.md`, while keeping `research_projects_plan_fall26.md` intact for comparison.
+This document tracks the execution and publishing timeline for first-year doctoral research projects at Columbia SIPA (Sustainable Development). It operationalizes the strategic vision outlined in `ai-sandbox/research/independent-research/notes/00_overview-and-strategy/Ground Truth - PhD Research Plan - 3R Revision.md`, while keeping `research_projects_plan_fall26.md` intact for comparison.
 
 ---
 
@@ -104,9 +104,9 @@ Per the calibrated month-by-month timeline (September 2026 – May 2027, integra
 
 ## Linked Documents & References
 
-- **Strategic Planning Memo:** `ai-sandbox/research/independent-research/notes/Ground Truth - PhD Research Plan - 3R Revision.md` (Primary strategic narrative).
-- **Historical Baseline Memo:** `ai-sandbox/research/independent-research/notes/Ground Truth - PhD Research Plan.md` (Original admissions synthesis).
-- **Somalia Case Study Specification:** `ai-sandbox/research/independent-research/notes/Somalia Three-Shock Case Study.md`.
-- **Data Source Catalog:** `ai-sandbox/research/independent-research/notes/Data Sources - Climate Displacement Cash Conflict.md`.
+- **Strategic Planning Memo:** `ai-sandbox/research/independent-research/notes/00_overview-and-strategy/Ground Truth - PhD Research Plan - 3R Revision.md` (Primary strategic narrative).
+- **Historical Baseline Memo:** `ai-sandbox/research/independent-research/notes/00_overview-and-strategy/Ground Truth - PhD Research Plan.md` (Original admissions synthesis).
+- **Somalia Case Study Specification:** `ai-sandbox/research/independent-research/notes/01_compound-shocks-panel/case-study/Somalia Three-Shock Case Study.md`.
+- **Data Source Catalog:** `ai-sandbox/research/independent-research/notes/01_compound-shocks-panel/data-sources/Data Sources - Climate Displacement Cash Conflict.md`.
 - **Math Thesis Revision Strategy:** `ai-sandbox/research/independent-research/projects/math_thesis/rewrite/Gemini Plan for Thesis Revision.md`.
 - **Website & Blog Strategy:** `ai-sandbox/research/independent-research/projects/blogging_strategy/website_blog_plan.md`.

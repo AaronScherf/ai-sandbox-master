@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Build the Project 02 pilot as a standalone study repo, `compound-shocks-panel`, that reproducibly ingests and fuses Somalia's data into a district-month panel, audits its quality, and shows the same code ports to Sudan. **Phase A only**: no modeling, causal inference, cross-country regressions or paper drafting; those are gated behind a review (see "Phase structure and review gate" and [the realignment note](../../../notes/Pilot%20Scope%20Realignment%20-%20Exploratory%20Review%20Gate.md)).
+**Goal:** Build the Project 02 pilot as a standalone study repo, `compound-shocks-panel`, that reproducibly ingests and fuses Somalia's data into a district-month panel, audits its quality, and shows the same code ports to Sudan. **Phase A only**: no modeling, causal inference, cross-country regressions or paper drafting; those are gated behind a review (see "Phase structure and review gate" and [the realignment note](../../../notes/01_compound-shocks-panel/review-gate/Pilot%20Scope%20Realignment%20-%20Exploratory%20Review%20Gate.md)).
 
 **Architecture:** A study repo generated from the reprokit template. Code under `src/compound_shocks/` is country-neutral; each country is an instance folder (`instances/<name>/`: config, raw data, descriptors, harmonization records). Per-role, per-provider adapters turn raw files into canonical tables; spatial functions assign events and rainfall to OCHA COD-AB Admin 2 districts; a fuse step builds a panel keyed by `(admin2_id, month)` whose columns are marked `core` or `extension`; `doit` runs the step graph behind one `reproduce` command; EDA figures and an audit memo summarize what the data support.
 
@@ -34,7 +34,7 @@ PHASE B (separate plan, not started): modeling, decompositions, cross-country te
 
 Phase A stops after Task 16. Nothing in Phase B starts until the gate clears. Deferred and preserved in git history (original
 Tasks 11, 12, 15 in commit `cbeb9ce6`): `price_index` and `price_decomposition` baskets, the LaTeX `report/main.tex` build,
-`compare.nested_f_test` and all cross-country regressions. Source of the realignment: [Pilot Scope Realignment](../../../notes/Pilot%20Scope%20Realignment%20-%20Exploratory%20Review%20Gate.md).
+`compare.nested_f_test` and all cross-country regressions. Source of the realignment: [Pilot Scope Realignment](../../../notes/01_compound-shocks-panel/review-gate/Pilot%20Scope%20Realignment%20-%20Exploratory%20Review%20Gate.md).
 
 ## Source facts checked 2026-10-31 (unauthenticated HTTP calls; files not yet downloaded or opened)
 

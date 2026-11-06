@@ -4,9 +4,9 @@
 - **Date:** October 2026
 - **Status:** Planning Baseline — Fall 2026 First-Year Sprints
 - **Associated Core Documents:**
-  - `ai-sandbox/research/independent-research/notes/Ground Truth - PhD Research Plan - 3R Revision.md`
+  - `ai-sandbox/research/independent-research/notes/00_overview-and-strategy/Ground Truth - PhD Research Plan - 3R Revision.md`
   - `ai-sandbox/research/independent-research/projects/research_projects_plan_fall26 - 3R Revision.md`
-  - `ai-sandbox/research/independent-research/notes/Brainstorming Transcript - Transferability of Crisis Interventions.md`
+  - `ai-sandbox/research/independent-research/notes/03_rct-transportability/Brainstorming Transcript - Transferability of Crisis Interventions.md`
 
 ---
 

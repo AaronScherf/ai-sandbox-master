@@ -4,7 +4,7 @@
 **Retrieval & Review Date:** 2026-10-31  
 **Target Repository Context:** Open-source, reproducible academic research repository (Somalia compound shocks pilot, expanding to Sudan). Pipeline fetches ACLED conflict data via an academic-registered account (`myACLED` Research Tier), calculates aggregated panel counts (district-month / region-month), generates maps and econometric figures, and runs unit tests against synthetic schema fixtures.  
 **Branch / Worktree:** `gemini/acled-terms` (`.worktrees/gemini-acled-terms`)  
-**Relative Path:** `ai-sandbox/research/independent-research/notes/ACLED Terms - Redistribution Findings.md`  
+**Relative Path:** `ai-sandbox/research/independent-research/notes/01_compound-shocks-panel/data-sources/ACLED Terms - Redistribution Findings.md`  
 
 ---
 

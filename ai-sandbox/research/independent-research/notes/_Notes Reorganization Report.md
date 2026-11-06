@@ -2,6 +2,8 @@
 
 *Prepared 2026-11-05 by Claude. Scope: the 14 files sitting directly in `ai-sandbox/research/independent-research/notes/` (13 `.md`, `Research Ideas.docx`, plus the `Ground Truth - PhD Research Plan.html` duplicate). `application_essays/` and `processed_outputs/` were not read. Nothing was moved or renamed; this report and the five `Cross-Group Connections.md` files are the only additions.*
 
+> **Outcome (2026-11-06): the moves in section 3 were carried out** on branch `claude/notes-reorg-moves` (`git mv`, so history follows). Differences from the plan: `lit_review.md` became `Literature Pipeline - Early Prototype.md`; `RCT_replication_gemini_brainstorm.md` became `RCT Replication and Transportability - Gemini Brainstorm.md`; the `Ground Truth - PhD Research Plan.html` copy was deleted; the Literature Gap Memo and the Transferability transcript were added to the layout. Path-bearing links were repaired in the notes and in live docs elsewhere; bare filename mentions and dated prose were left as written. Sections 1 and 2 describe the notes as they were on 2026-11-05; sections 3 and 5 are the plan that was executed.
+
 Contents: **1.** file summaries in edit order, **2.** grouping, **3.** proposed folder structure, **4.** pointers to the per-group connection documents, **5.** things to know before moving anything.
 
 ---
