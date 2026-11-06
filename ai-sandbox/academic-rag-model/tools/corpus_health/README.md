@@ -97,9 +97,10 @@ Start in: C:\Users\theaa\ai-sandbox-master\ai-sandbox\academic-rag-model
 ```
 
 Set the task to run under an account that can read both roots. The current
-October 10–16 trial uses the user's interactive logon: it runs while signed in
-and can catch up after a missed 7:00 a.m. trigger when the user next signs in;
-it does not run while signed out. Use "Do not start a new instance" if a previous
+task `AcademicHubCorpusHealthDaily` (registered 2026-11-06, replacing the
+October 10–16 `...DailyTrial`) uses the user's interactive logon with an "At log
+on" trigger (2-minute delay, no end date) and `-OncePerDay -Notify`: it runs at
+the first sign-in each day and does not run while signed out. Use "Do not start a new instance" if a previous
 scan is still running. Check Task Scheduler's Last Run Result and the latest
 `corpus-health-*.log`; `0` means a complete scan and `2` means a configuration
 or incomplete-scan error. The JSON report is written alongside the log, and
@@ -126,5 +127,9 @@ every metadata lookup, so a precise metadata-check count is unavailable.
 The installed trial task passed one manual launch on October 9 (exit `0`,
 20.25 seconds, 696 files considered, 445 hashes, 306 findings, zero scan
 errors). This establishes installation, not the multi-day observation period.
+The October trial then ran under a fixed 7:00 a.m. trigger: 3 of 7 days
+produced a complete report (all exit `0`, 20–36 seconds, zero scan errors), 3
+left empty logs from catch-up launches killed at about 10:36, and one day had no
+attempt. See the retrospective's "Trial outcome" section.
 Compare the daily reports and manually review a sample of findings before changing
 scan policy or considering any unattended repair.
