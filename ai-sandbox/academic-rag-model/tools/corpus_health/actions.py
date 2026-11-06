@@ -16,6 +16,7 @@ from core.indexer.audit import MarkdownIndexTarget, audit_markdown_index
 from core.indexer.index_card import load_shard
 from tools.corpus_health.config import ScanConfig
 from tools.corpus_health.discovery import scan
+from tools.corpus_health.p4_findings import add_p4_findings, skipped_kinds
 from tools.corpus_health.state import SELF_REFRESHED_KINDS, StateError, StateStore
 
 _CHUNK_KIND = "index_chunks_missing_or_stale"
@@ -120,8 +121,9 @@ def apply_accepted(
     report = scan(config)
     if not report.complete:
         raise StateError("cannot apply from an incomplete corpus scan")
+    ran = add_p4_findings(report, config)
     current = {StateStore.finding_id(finding): finding for finding in report.findings}
-    store.refresh(report.findings)
+    store.refresh(report.findings, exclude_kinds=skipped_kinds(ran))
     outcomes: list[dict] = []
     # relink/orphan_card entries are applied only by core.indexer.reconcile_apply.resolve/reject.
     for entry in store.accepted(exclude_kinds=SELF_REFRESHED_KINDS):

@@ -10,6 +10,7 @@ import webbrowser
 from tools.corpus_health.config import load_config
 from tools.corpus_health.actions import apply_accepted
 from tools.corpus_health.discovery import scan
+from tools.corpus_health.p4_findings import add_p4_findings, skipped_kinds
 from tools.corpus_health.review_server import ReviewServer
 from tools.corpus_health.state import SELF_REFRESHED_KINDS, StateError, StateStore, default_state_dir
 
@@ -59,28 +60,6 @@ def _review_snapshot_validator(config):
     return validate
 
 
-def _add_duplicate_findings(config, report) -> None:
-    """Add duplicate-hub_id findings before `store.refresh` so the sweep clears them once fixed."""
-    if not config.academic_hub_root.is_dir():
-        return
-    try:
-        from tools.corpus_health.duplicates import duplicate_findings
-        report.findings.extend(duplicate_findings(str(config.academic_hub_root)))
-    except Exception as exc:  # noqa: BLE001 - infra failures must not break the scan
-        report.warnings.append(f"duplicate hub_id check skipped: {exc}")
-
-
-def _add_vocab_findings(config, report) -> None:
-    """Add new-folder-name findings before `store.refresh` so a confirmed name's finding is swept."""
-    if not config.academic_hub_root.is_dir():
-        return
-    try:
-        from tools.corpus_health.vocab import vocab_findings
-        report.findings.extend(vocab_findings(str(config.academic_hub_root)))
-    except Exception as exc:  # noqa: BLE001 - infra failures must not break the scan
-        report.warnings.append(f"vocabulary check skipped: {exc}")
-
-
 def _raise_relink(config, store, report) -> None:
     """Raise relink/orphan ledger items from one reconcile pass; never touches cards or corpus files.
 
@@ -91,9 +70,10 @@ def _raise_relink(config, store, report) -> None:
         return
     try:
         from core.indexer.reconcile import reconcile
-        from core.indexer.reconcile_apply import raise_relink_items
+        from core.indexer.reconcile_apply import demote_undone, raise_relink_items
         differences = reconcile(hub_root)
-        moved = sum(1 for d in differences if d.kind == "moved")
+        # undone moves are review items, not waiting repairs (same filter as hub_review repair)
+        moved = sum(1 for d in demote_undone(hub_root, differences) if d.kind == "moved")
         if moved:
             report.notices.append(f"{moved} exact moves waiting: run hub_review repair")
         raise_relink_items(hub_root, differences, store=store, mark_link_state=False)
@@ -112,13 +92,12 @@ def main(argv: list[str] | None = None) -> int:
             return 1 if any(item["status"] == "failed" for item in outcomes) else 0
         if args.command == "scan":
             report = scan(config)
-            _add_duplicate_findings(config, report)  # read-only; shown even with --no-state
-            _add_vocab_findings(config, report)  # read-only; hub_config.json is written only by hub_review accept
+            ran = add_p4_findings(report, config)  # read-only; shown even with --no-state
             if not args.no_state:
                 try:
                     directory = args.state_dir or default_state_dir(config.academic_hub_root)
                     store = StateStore(directory)
-                    report.findings = store.refresh(report.findings)
+                    report.findings = store.refresh(report.findings, exclude_kinds=skipped_kinds(ran))
                     _raise_relink(config, store, report)
                     store.record_run(report.to_dict())
                 except (OSError, StateError) as exc:
