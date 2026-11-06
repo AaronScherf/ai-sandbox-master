@@ -1,6 +1,6 @@
 # Literature taxonomy: term-selection trials and rollout readiness (2026-11-06)
 
-Branch `claude/literature-reextract-v4` (docs only; nothing landed). Code is on `codex/term-selection` (commit 5edc1a61, not landed). Design:
+Branch `claude/literature-reextract-v4` (docs only; nothing landed). Code was on `codex/term-selection` (commit 5edc1a61, rebased to 73b2b1b5) and is stacked under this docs branch, to land together. Design:
 [term selection](../../superpowers/specs/literature_taxonomy/2026-11-03-term-selection-design.md). Earlier state: [subproject status](2026-11-03-subproject-status.md).
 Working data, keys and scripts: `ai-sandbox/research/.agent_work/term-selection-trials/` (gitignored; its README says how to use it).
 

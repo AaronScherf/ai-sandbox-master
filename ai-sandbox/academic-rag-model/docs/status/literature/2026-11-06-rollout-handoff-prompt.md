@@ -15,8 +15,8 @@ Work from your own `claude/<task>` worktree for any file write (see `docs/WORKTR
 
 ## What is decided (do not reopen)
 
-- Method: stepwise fit test, `refine-v3` / `extract-v6`, code on branch `codex/term-selection` in worktree `.worktrees/codex-term-selection` (commit 5edc1a61, not
-  landed; do not prune that worktree). Trial 2 estimated label precision 0.93 to 0.96 against a 0.85 bar; no leaf term over 10% of a facet.
+- Method: stepwise fit test, `refine-v3` / `extract-v6`, code on branch `codex/term-selection` (commit 5edc1a61, rebased to 73b2b1b5; stacked under `claude/literature-reextract-v4`, landing with it; check `git log main`
+  for `refine-v3`; do not prune the Codex worktree before it lands). Trial 2 estimated label precision 0.93 to 0.96 against a 0.85 bar; no leaf term over 10% of a facet.
 - Follow the official 3ie vocabulary and definitions as they are (Agrobiodiversity includes stress-tolerant crop varieties). No vocabulary edits.
 - Owner decisions: households includes individuals; follow 3ie's resilience framework (adopting adaptation measures is not resilience); commentary and conceptual
   papers go under `narrative_review`; term selection is fixed before any further refinement run; rollout covers the whole corpus.
@@ -82,11 +82,9 @@ Interpreter: `C:\Users\theaa\ai-sandbox-master\ai-sandbox\academic-rag-model\.ve
 
 ## Follow-ups that are not part of the rollout (raise them with the owner at the right time)
 
-- **Landing the code.** The Claude session of 2026-11-06 ran `land_branch check --full` for `codex/term-selection` (it rebases the branch onto `main`, so commit hashes,
-  including 5edc1a61, will have changed) and asked the owner for approval of the change ID. Check `git log main` for the landing before you start. If it landed, run the rollout
-  from the main checkout (same v3 code) and not the Codex worktree; if not, ask the owner. Then rebase `claude/literature-reextract-v4`: it and the Codex branch both change
-  `2026-11-02-phase1-quality-gate.md`, `2026-11-03-subproject-status.md` and `2026-11-03-term-selection-design.md`, so expect doc conflicts; keep both sides' content.
-  The owner lands that branch with the same check and approval.
+- **Landing the code and docs.** On 2026-11-06 the owner approved landing `codex/term-selection`; the tool stopped because the three literature docs also changed on this
+  docs branch. The docs branch was rebased onto the Codex branch (stacked) so both land in one change; the check was rerun and a new change-ID approval requested. Check
+  `git log main` for the landing before you start. If it landed, run the rollout from the main checkout (same v3 code), not the Codex worktree; if not, ask the owner.
 - **Codex fixes, after the Gemini rollout and after the landing** (small, not blocking): (1) `verify` treats a stored verdict with a different `transcript_sha` as
   non-matching; (2) `enrich_3ie` is idempotent (no second `; bundle ...` suffix) and tolerates a missing `source`. Ready-made prompt:
   `ai-sandbox/research/.agent_work/term-selection-trials/prompts/codex_followups_prompt.md`. Give it to Codex in a new worktree off `main` once the branch has landed.
