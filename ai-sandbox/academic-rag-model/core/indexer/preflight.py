@@ -5,7 +5,7 @@ raises `UnresolvedLinksError` when there are any. It never applies a repair and 
 (`raise_relink_items_unlocked(..., mark_link_state=False)`): it may only write the local ledger and
 `<state_dir>/preflight.json`.
 
-Cost: a stat-only `tree_fingerprint` of `academic_notes/` + `academic_resources/` is compared with the
+Cost: a stat-only `tree_fingerprint` of `academic_notes/` + `academic_resources/` + the hub's `.index/` is compared with the
 one stored after the last finished reconcile. Equal -> no reconcile, read the open ledger items (and the
 remembered waiting exact moves, which are not ledger items) so an unchanged tree with an open item still
 refuses. Different -> reconcile, raise ledger items, remember the new fingerprint.
@@ -58,26 +58,28 @@ class UnresolvedLinksError(RuntimeError):
 
 
 def tree_fingerprint(hub_root: str) -> str:
-    """sha256 over sorted (relpath, size, mtime_ns) of the files under the note/resource roots."""
+    """sha256 over sorted (relpath, size, mtime_ns) of the files under the note/resource roots and the
+    hub's own `.index/` (a pull, rebuild or undo can change cards while the notes stay the same)."""
     rows: list[tuple[str, int, int]] = []
 
-    def walk(abs_dir: str, rel: str) -> None:
+    def walk(abs_dir: str, rel: str, skip=_SKIP) -> None:
         try:
             it = list(os.scandir(abs_dir))
         except OSError:
             return
         for e in it:
-            if e.name in _SKIP:
+            if e.name in skip:
                 continue
             r = f"{rel}/{e.name}"
             if e.is_dir(follow_symlinks=False):
-                walk(e.path, r)
+                walk(e.path, r, skip)
             elif e.is_file():
                 st = e.stat()
                 rows.append((r, st.st_size, st.st_mtime_ns))
 
     for root in _ROOTS:
         walk(os.path.join(hub_root, root), root)
+    walk(os.path.join(hub_root, ".index"), ".index", {".git"})
     h = hashlib.sha256()
     for row in sorted(rows):
         h.update(repr(row).encode("utf-8"))

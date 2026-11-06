@@ -173,3 +173,38 @@ def test_enforce_warn_only_paths_and_ignore_continue(tmp_path, monkeypatch, caps
     assert "skipped" in capsys.readouterr().err
     preflight.enforce(str(tmp_path), Needs(), ignore=True, refuse=True)
     assert "skipped" in capsys.readouterr().err
+
+
+def test_edited_card_shard_re_reconciles_with_unchanged_notes(tmp_path, store, monkeypatch):
+    hub = make_hub(tmp_path)
+    write_note(hub, f"{LN}/a.md", {"title": "a"}, BODY)
+    save_shard(str(hub), "econ", [_card(hub, f"{LN}/a.md", "f1")])
+    check(str(hub), Needs(), store)
+    calls = _count_reconciles(monkeypatch)
+    check(str(hub), Needs(), store)
+    assert calls == []
+    # a pull brings a card repair that points at a file that is not there; the notes did not change
+    save_shard(str(hub), "econ", [_card(hub, f"{LN}/a.md", "f1") | {"path": f"{LN}/gone.md"}])
+    shard = next((hub / ".index").glob("*.json"))
+    os.utime(shard, ns=(shard.stat().st_atime_ns, shard.stat().st_mtime_ns + 5_000_000_000))
+    check(str(hub), Needs(), store)
+    assert calls == [1]
+
+
+def test_root_without_note_trees_re_reconciles_on_index_change(tmp_path, store, monkeypatch):
+    root = tmp_path / "research"
+    (root / ".index").mkdir(parents=True)
+    (root / ".index" / "x.json").write_text("[]")
+    base = tree_fingerprint(str(root))
+    assert tree_fingerprint(str(root)) == base
+    (root / ".index" / "x.json").write_text("[{}, {}]")
+    assert tree_fingerprint(str(root)) != base
+    monkeypatch.setattr(preflight, "reconcile", lambda *a, **k: [])
+    monkeypatch.setattr(preflight, "raise_relink_items_unlocked", lambda *a, **k: None)
+    calls = _count_reconciles(monkeypatch)
+    check(str(root), Needs(), store)
+    check(str(root), Needs(), store)
+    assert calls == [1]
+    (root / ".index" / "x.json").write_text("[1, 2, 3, 4]")
+    check(str(root), Needs(), store)
+    assert calls == [1, 1]
