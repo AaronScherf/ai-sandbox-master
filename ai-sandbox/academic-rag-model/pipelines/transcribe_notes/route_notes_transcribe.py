@@ -603,6 +603,8 @@ def _build_arg_parser() -> argparse.ArgumentParser:
         help="With --submit: finish any still-pending/bounced cards via the metered API instead of "
              "leaving them pending. Explicit opt-in only -- never automatic.",
     )
+    parser.add_argument("--ignore-unresolved", action="store_true",
+                         help="Run even though unresolved link decisions are open (results may use stale paths).")
     parser.add_argument("--bootstrap", default=None, metavar="RUN_ID",
                          help="Print the agent's operating contract for this run.")
     return parser
@@ -643,6 +645,9 @@ def main():
         load_dotenv_override()
 
     academic_hub_dir = Path(args.root).resolve() if args.root else Path(__file__).resolve().parent.parent.parent.parent / "academic-hub"
+    from core.indexer.preflight import Needs, enforce
+    enforce(str(academic_hub_dir), Needs(courses=frozenset(args.course) if args.course else None),
+            ignore=args.ignore_unresolved, refuse=not (args.dry_run and not args.submit and not args.collect))
     plan = build_plan(str(academic_hub_dir), courses=args.course, force=args.force, max_pdf_mb=args.max_pdf_mb)
     print_summary(plan)
     all_excalidraw_pairs = plan.excalidraw_todo + plan.excalidraw_skipped

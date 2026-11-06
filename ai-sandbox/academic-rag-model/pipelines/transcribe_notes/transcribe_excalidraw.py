@@ -758,12 +758,19 @@ def main():
         help="Skip transcription: regenerate only the expanded .rag.md from each note's saved raw transcript.",
     )
     parser.add_argument("--dry-run", action="store_true", help="List files that would be processed without calling any API.")
+    parser.add_argument("--ignore-unresolved", action="store_true",
+                        help="Run even though unresolved link decisions are open (results may use stale paths).")
     args = parser.parse_args()
 
     from core.env.gemini_utils import get_gemini_client, load_dotenv_override
     load_dotenv_override()
 
     academic_hub_dir = Path(__file__).resolve().parent.parent.parent.parent / "academic-hub"
+    from core.indexer.preflight import Needs, enforce
+    _parts = Path(args.notes_subdir).parts
+    _course = _parts[1] if len(_parts) > 1 and _parts[0] in ("academic_notes", "academic_resources") else None
+    enforce(str(academic_hub_dir), Needs(courses=frozenset({_course}) if _course else None),
+            ignore=args.ignore_unresolved, refuse=not args.dry_run)
     notes_dir = academic_hub_dir / args.notes_subdir
     pairs = discover_excalidraw_files(str(notes_dir), args.file)
     if not pairs:
