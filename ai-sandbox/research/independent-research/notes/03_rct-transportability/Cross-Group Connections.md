@@ -1,6 +1,24 @@
 # Cross-Group Connections: RCT Replication & Transportability
 
-*Group D (new; closest to Direction III and Project 03). File: `RCT_replication_gemini_brainstorm.md`. Written 2026-11-05. "(inference)" marks my own reading. The brainstorm's citations are Gemini output and I did not verify them.*
+*Group D (new; closest to Direction III and Project 03). Files: `RCT_replication_gemini_brainstorm.md` and `Brainstorming Transcript - Transferability of Crisis Interventions.md`. Written 2026-11-05. "(inference)" marks my own reading. The brainstorm's citations are Gemini output and I did not verify them.*
+
+## Precursor: the Transferability brainstorm transcript (Oct 14-20)
+`Brainstorming Transcript - Transferability of Crisis Interventions.md` (from branch `gemini/transferability-brainstorm`) came three weeks before the RCT brainstorm and is where most of this group's thinking was first laid out. The RCT brainstorm reads as a more technical restatement of its Sprint 2 and RQ 3.
+
+| Transcript | RCT brainstorm | Relationship |
+|---|---|---|
+| RQ 3 / Sprint 2: geocode 15-20 cash and insurance trials from 3ie and J-PAL, attach CHIRPS, NDVI, night lights and ACLED, check common support | Steps 2 and 4: add locality covariates and proxies, then match proxies and covariates in a new location | Same idea; Sprint 2 is the concrete data-collection plan |
+| "Inverse matching": hold the intervention fixed, match on crisis context | Out-of-sample projection by matching on covariates and proxies | Same; the transcript frames the context as the unit of matching |
+| Bayesian hierarchical model that relaxes exchangeability, with a variance penalty growing with context distance, and situational-proximity CAR priors | Bayesian hierarchical pooling of related RCTs with leave-one-site-out checks | The transcript adds the non-exchangeability argument and a penalty term; the brainstorm adds the leave-one-out validation |
+| Your view that naive RCT extrapolation is already well studied and unobserved confounders are one question among many | The brainstorm's overlap and conditional-independence assumptions | Consistent; the transcript puts the novelty elsewhere (isomorphic mimicry, delivery rails, practitioner use) |
+| Success = same sign and similar magnitude; practitioner usefulness over statistical elegance | Gemini's LIML, DML, JIVE and Bai-Ng detail | Tension: the transcript warns against models "too dense for anyone to actually use". The brainstorm's technical menu should be filtered through that |
+| Sprint 1 (Somalia fused panel) and Sprint 3 (price transmission under checkpoints) | Compound shocks panel (group B) | Sprint 1 became the Project 02 pilot; Sprint 3 is closest to the Literature Gap Memo's Option 3 (inference) |
+
+Other points from the transcript that bear on this group:
+- Project 03's three chapters come straight from its three research questions (welfare and markets, delivery rails, empirical transportability). That is the policy sense of "transferability" the overview note separates from statistical transportability, and RQ 3 is the bridge between them.
+- It argues that satellite covariates avoid the problem of non-harmonized household surveys. That is why the RCT brainstorm's proxy-outcome step matters, and also why its measurement-error caveats (spillovers, attenuation) matter.
+- It warns against methodological lock-in before touching the data, and proposes green, yellow and red diagnostic signals in `projects/empirical_sprints/empirical_sprints_overview.md` (not read in full). The RCT brainstorm's Step 3 (can proxies detect the effect?) needs the same kind of go/no-go test before anything is built.
+- Its faculty matrix pairs Sprint 2 with Björkegren and Willis.
 
 ## What the brainstorm contains
 A four-step design for taking a geocoded RCT (for example a cash-transfer trial) and extending it: (1) replicate; (2) add locality covariates and proxy outcomes such as night lights, NDVI and later displacement; (3) test whether proxies can detect the effect without panel survey data; (4) project impact to new locations by matching covariates and proxies. A companion idea pools several RCTs in a Bayesian hierarchical model with leave-one-site-out checks, and a separate note proposes ACLED/displacement as a forecast outcome. Gemini's reply maps these to DML, surrogate indices, LIML/Fuller, causal transportability, Meager-style shrinkage, JIVE, Bai-Ng factor models and FAVAR. The three questions Aaron then asked have not been answered.

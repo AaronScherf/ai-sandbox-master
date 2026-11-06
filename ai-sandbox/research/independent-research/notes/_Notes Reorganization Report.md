@@ -26,6 +26,7 @@ Contents: **1.** file summaries in edit order, **2.** grouping, **3.** proposed 
 | 12 | 2026-11-03 14:13 | `Review Gate - Gemini Brief for Literature Gap Memo.md` | Claude |
 | 13 | 2026-11-03 14:39 | `Pipeline Review - Reproducible Research Framework after Phase A.md` | Claude |
 | 14 | 2026-11-05 20:40 | `RCT_replication_gemini_brainstorm.md` | Aaron + Gemini |
+| (+1) | 2026-10-20 (branch commit) | `Brainstorming Transcript - Transferability of Crisis Interventions.md` | Aaron + Gemini; added 2026-11-06, see below |
 
 ### 1. `Research Ideas.docx` (2026-08-30)
 **Purpose:** Free-form personal notebook of research identity and methods ideas, from before the plan was narrowed.
@@ -160,6 +161,17 @@ Contents: **1.** file summaries in edit order, **2.** grouping, **3.** proposed 
 - **The transcript ends there. Those three follow-up questions have no answer yet.** The final "Response" block only repeats the questions.
 - Every citation and claim in it is unverified Gemini output.
 
+### (+1) `Brainstorming Transcript - Transferability of Crisis Interventions.md` (branch `gemini/transferability-brainstorm`, Oct 14-20; added to this report 2026-11-06)
+**Purpose:** A 65 KB, multi-round Gemini dialogue that turns a rambling theme (can crisis-response lessons and methods transfer from disasters to conflict?) into three research questions, then into three small empirical sprints. It is the direct precursor of the RCT brainstorm (#14) and the source of Project 03's structure.
+**Main ideas:**
+- Your framing, in your words: judge transfer by same sign and similar magnitude, not exact effect size; the audience is development and humanitarian practitioners, not econometric theorists; hold the intervention fixed (cash, index insurance) and treat the crisis context as the thing being matched.
+- Three research questions: (1) welfare, market and survival effects of safety nets in disaster vs conflict, mediated by supply bottlenecks and expected conflict duration; (2) delivery rails across the state-capacity spectrum (Colombia vs Haiti/Venezuela); (3) whether satellite and conflict covariates can serve as a similarity index to predict out-of-sample transfer.
+- A literature audit and a synthesis with the Ground Truth plans, listing what is new ("inverse matching", a geospatial evaluation matcher, market inelasticity as a failure mode) and what is pruned (agronomy, chatbot, heterodox strand, firm recovery, math thesis).
+- A methods section: Bayesian hierarchical models that relax exchangeability with a context-divergence variance penalty, situational-proximity CAR priors, and dynamic or fuzzy Bayesian networks.
+- A practical pivot to three 2-4 week sprints: (1) Somalia fused panel (the origin of the compound-shocks pilot), (2) geospatial evaluation matcher (geocode 15-20 cash and insurance trials, attach satellite and ACLED covariates, check common support), (3) price transmission under checkpoint blockades.
+- Companion files on the same branch: `projects/empirical_sprints/` (overview plus three sprint plans) and an `academic-rag-model` doc of meta-reflections on brainstorming. Those are outside `notes/` and I did not read them in full.
+- The status line still says "In Progress", but the file ends with "operational handoff complete".
+
 ---
 
 ## 2. Grouping by project
@@ -172,7 +184,7 @@ Six groups: two are cross-cutting overviews or idea pools (A, E), and four are p
 | **B. Compound shocks panel** (Project 02) | Somalia Three-Shock, Data Sources, Sudan Data Sources, ACLED Terms, Pilot Scope Realignment, Data Audit Review, Gemini Brief | Data Sources: Projects 01/03/06. Somalia: Project 04 verification layer. Brief: group C |
 | **F. Reprokit reproducibility framework** (added after your request; Project 04 and the replication goal) | Pipeline Review (moved here from B), plus the new `Reprokit Project Summary.md` covering the spec, plan, v0.3 handoff, CHANGELOG and tracker items | Group B (the pilot), group D (replication), group C (taxonomy hooks) |
 | **C. Literature pipeline & evidence map** (Project 01) | Pitch, `lit_review.md` | Pitch: Project 04 and CTL. `lit_review.md`: the Gemini Brief runs this pipeline |
-| **D. RCT replication & transportability** (new; Direction III, Project 03) | RCT brainstorm | Group B (ACLED/displacement forecasting, satellite proxies), group C (which RCTs have geocoded panel data), group A |
+| **D. RCT replication & transportability** (new; Direction III, Project 03) | RCT brainstorm, Transferability brainstorm transcript | Group B (ACLED/displacement forecasting, satellite proxies), group C (which RCTs have geocoded panel data), group A |
 | **E. Exploratory methods & heterodox ideas** | Research Ideas.docx | Group A (heterodox open question), group B (agent-based models), group D (spectral bias vs DML) |
 
 Why the borderline calls:
@@ -210,6 +222,7 @@ notes/
 │   ├── lit_review.md                                 (consider renaming: "Literature Pipeline - Early Prototype.md")
 │   └── Cross-Group Connections.md                    ← new
 ├── 03_rct-transportability/                          (Direction III, Project 03)
+│   ├── Brainstorming Transcript - Transferability of Crisis Interventions.md
 │   ├── RCT_replication_gemini_brainstorm.md
 │   └── Cross-Group Connections.md                    ← new
 ├── 04_methods-and-exploratory-ideas/
@@ -251,7 +264,7 @@ Each group has one `Cross-Group Connections.md` that pulls the relevant ideas ou
 1. **Path references will break.** Several files point at each other by name or by "in this folder": the Gemini Brief says to read `Review Gate - Data Audit Review.md` "in this folder", the 3R Revision's source context and the Data Sources header link to `Ground Truth - PhD Research Plan.md` and `Somalia Three-Shock Case Study.md`, and the Ground Truth plan says "kept as ... in this folder". Pilot Scope Realignment links the `docs/superpowers` specs by absolute path.
 2. **Gemini's output path is fixed to `notes/`.** The brief tells Gemini to write `notes/Literature Gap Memo.md`. The memo now exists, committed as `d6915e4f` on branch `gemini/compound-shocks-lit-memo`, but it is not on `main` yet. It was not among the 14 files summarized above. See the chat answer or read it on that branch. If you reorganize first, update the brief, or move the memo afterward.
 3. **Other branches write into `notes/`.** The worktree list shows live branches for this area (for example `claude/compound-shocks-*`, `gemini/*-lit-memo`, `codex/acled-source-documentation`). Moving files on main while those are open means merge conflicts for rename vs edit. Better to do the move after they land.
-4. **`RCT_replication_gemini_brainstorm.md` is staged but uncommitted in the main checkout**, so it is not in this worktree. I read it from main. The move should be done by whoever owns that change.
+4. **Landing status (2026-11-06):** the RCT brainstorm is on `main` (`2d75cba4`). The Literature Gap Memo, the transferability transcript and this report are being landed through `docs/WORKTREE_LANDING.md`.
 5. **Several files are Gemini-generated and unverified**: the RCT brainstorm's citations, `lit_review.md`, and the dataset claims in Data Sources and Sudan Data Sources (the Sudan note says it was verified against live repositories, but I did not re-check it).
 6. **Staleness to resolve rather than move blindly:**
    - Ground Truth (original) still lists the chatbot pilot as Project 03 and Direction IV. The 3R Revision drops both.
