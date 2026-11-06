@@ -107,6 +107,17 @@ findings alone do not make the exit status nonzero. There is no automatic
 retry or repair: investigate an error and run the discovery command again.
 The task is intentionally not registered by this package.
 
+**Logon trigger (recommended).** The October trial's fixed 07:00 trigger missed
+days whenever the machine was asleep or signed out (three runs left empty logs
+and no report). Use an "At log on" trigger for your user plus `-OncePerDay` in
+the arguments: the wrapper exits 0 without scanning if a log from today already
+ends in `exit=0`, so only the first sign-in of the day scans. Add `-Notify` to
+show a Windows balloon when the scan needs attention. After each scan the wrapper
+writes `latest-alerts.txt` in the log directory (and deletes it when clean) for
+any of: a nonzero exit, `exact moves waiting` or `need review` notices,
+warnings (a skipped check), or `duplicate_hub_id`/`relink`/`orphan_card`
+findings. Ordinary findings (missing transcriptions, `vocab_name`) never alert.
+
 On 2026-10-09, three read-only scans of the live hub and notes roots completed
 in 21.1–27.7 seconds of scanner time, considering 693–694 files and hashing
 444–445. Each complete run reported 305–306 findings and zero scan errors.

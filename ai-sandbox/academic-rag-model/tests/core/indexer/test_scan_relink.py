@@ -132,3 +132,14 @@ def test_scan_notes_waiting_exact_moves_in_text_report(tmp_path, capsys):
     assert _cards_digest(hub) == before
     kinds = {e["finding"]["kind"] for e in StateStore(tmp_path / "state").entries()}
     assert kinds <= {"relink", "orphan_card"}
+
+
+def test_scan_notes_unresolved_orphans_in_text_report(tmp_path, capsys):
+    hub = make_hub(tmp_path)
+    write_note(hub, f"{LN}/a.md", {"title": "a"}, BODY)
+    save_shard(str(hub), "econ", [_note_card(hub, f"{LN}/a.md", "f1")])
+    os.remove(hub / LN / "a.md")
+    code, out = _scan(tmp_path, hub, capsys)
+    assert code == 0
+    assert "1 moved/orphaned files need review: run hub_review export" in out
+    assert "exact moves waiting" not in out

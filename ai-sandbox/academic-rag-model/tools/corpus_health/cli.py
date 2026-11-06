@@ -76,6 +76,9 @@ def _raise_relink(config, store, report) -> None:
         moved = sum(1 for d in demote_undone(hub_root, differences) if d.kind == "moved")
         if moved:
             report.notices.append(f"{moved} exact moves waiting: run hub_review repair")
+        unresolved = sum(1 for d in differences if d.kind != "moved")
+        if unresolved:
+            report.notices.append(f"{unresolved} moved/orphaned files need review: run hub_review export")
         raise_relink_items(hub_root, differences, store=store, mark_link_state=False)
     except Exception as exc:  # noqa: BLE001 - infra failures must not break the scan
         report.warnings.append(f"relink check skipped: {type(exc).__name__}: {exc}")
