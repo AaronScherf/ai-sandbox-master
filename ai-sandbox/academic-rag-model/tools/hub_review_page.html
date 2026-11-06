@@ -61,6 +61,12 @@ let db = null;
 const decided = new Map();   // item_id -> recorded decision doc
 const picked = new Map();    // item_id -> chosen candidate path (not yet saved)
 const errors = new Map();    // item_id -> save error text
+const copyPicks = new Map(); // item_id -> Set of identical candidate paths to keep as copies
+const EXACT = ["byte_hash", "hub_id"];
+function copiesFor(item) {
+  const chosen = picked.get(item.item_id);
+  return Array.from(copyPicks.get(item.item_id) || []).filter((p) => p !== chosen);
+}
 
 function el(tag, text, cls) {
   const e = document.createElement(tag);
@@ -74,11 +80,12 @@ function notice(text, id) {
   document.getElementById("notices").appendChild(n);
 }
 
-async function save(item, action, chosen) {
+async function save(item, action, chosen, copies) {
   errors.delete(item.item_id);
   try {
-    await db.collection("decisions").doc(item.item_id)
-      .set({ item_id: item.item_id, action: action, chosen: chosen, ts: Date.now() });
+    const doc = { item_id: item.item_id, action: action, chosen: chosen, ts: Date.now() };
+    if (copies && copies.length) doc.copies = copies;
+    await db.collection("decisions").doc(item.item_id).set(doc);
   } catch (e) {
     errors.set(item.item_id, "Could not save: " + ((e && e.code) || "error"));
     render();
@@ -91,6 +98,7 @@ async function retract(item, rec) {
   errors.delete(item.item_id);
   try {
     if (rec.chosen) picked.set(item.item_id, rec.chosen);
+    if (rec.copies) copyPicks.set(item.item_id, new Set(rec.copies));
     await db.collection("decisions").doc(item.item_id).delete();
   } catch (e) {
     errors.set(item.item_id, "Could not change: " + ((e && e.code) || "error"));
@@ -105,6 +113,12 @@ function renderItem(item) {
   if (item.status === "deferred" && !rec) box.appendChild(el("span", "deferred", "muted"));
   box.appendChild(el("div", paths.length ? paths.join("  <->  ") : item.subject_ids.join(", "), "path"));
   if (item.type === "relink") {
+    const identical = (item.candidates || []).filter((c) => EXACT.includes(c.basis));
+    if (identical.length > 1) {
+      box.appendChild(el("div", "These files are identical. Pick the one that keeps this note's tags, " +
+        "links and history, and tick any others you want kept as copies. Each copy gets its own card " +
+        "and stays linked to this note as an identical copy until you edit it.", "muted"));
+    }
     (item.candidates || []).forEach((c) => {
       const row = el("label", null, "cand");
       const radio = document.createElement("input");
@@ -116,6 +130,21 @@ function renderItem(item) {
       const text = el("span");
       text.appendChild(el("span", c.path, "path"));
       text.appendChild(el("div", c.basis + (c.score != null ? " " + Number(c.score).toFixed(2) : ""), "muted"));
+      if (identical.length > 1 && EXACT.includes(c.basis)) {
+        const cl = el("div", null, "muted");   // not a <label>: the candidate row already is one
+        const cb = document.createElement("input");
+        cb.type = "checkbox";
+        cb.checked = rec ? (rec.copies || []).includes(c.path) : (copyPicks.get(item.item_id) || new Set()).has(c.path);
+        cb.disabled = !db || !!rec;
+        cb.addEventListener("change", () => {
+          const s = copyPicks.get(item.item_id) || new Set();
+          if (cb.checked) s.add(c.path); else s.delete(c.path);
+          copyPicks.set(item.item_id, s);
+        });
+        cl.appendChild(cb);
+        cl.appendChild(document.createTextNode(" Also keep as a copy"));
+        text.appendChild(cl);
+      }
       const ev = c.evidence;
       if (ev && (ev.shared || ev.old_opening || ev.new_opening)) {
         const det = el("details", null, "evidence");
@@ -147,7 +176,8 @@ function renderItem(item) {
         render();
         return;
       }
-      save(item, action, action === "accept" && item.type === "relink" ? picked.get(item.item_id) : null);
+      const accepting = action === "accept" && item.type === "relink";
+      save(item, action, accepting ? picked.get(item.item_id) : null, accepting ? copiesFor(item) : null);
     });
     buttons.appendChild(b);
   };
@@ -156,7 +186,8 @@ function renderItem(item) {
   make("Defer", "defer", false);
   box.appendChild(buttons);
   if (rec) {
-    box.appendChild(el("div", "Decided: " + rec.action + (rec.chosen ? " " + rec.chosen : ""), "status"));
+    box.appendChild(el("div", "Decided: " + rec.action + (rec.chosen ? " " + rec.chosen : "") +
+      (rec.copies && rec.copies.length ? " (+ " + rec.copies.length + " kept as copies)" : ""), "status"));
     const change = el("button", "Change decision");
     change.disabled = !db;
     change.addEventListener("click", () => retract(item, rec));

@@ -536,7 +536,20 @@ def carry_note_identity(academic_hub_root: str, card: dict, previous: dict | Non
         card["hub_id"] = hub_id
     if previous and previous.get("link_state") and "link_state" not in card:
         card["link_state"] = previous["link_state"]
+    if previous and previous.get("copy_of_file_id") and "copy_of_file_id" not in card:
+        card["copy_of_file_id"] = previous["copy_of_file_id"]  # provenance outlives any rebuild
     return card
+
+
+def copy_status(card: dict, origin: dict | None) -> str | None:
+    """None for a card that is not a recorded copy; "identical" while its content hash equals its
+    origin's, "diverged" once it was edited (it is then its own note and keeps `copy_of_file_id` only as
+    provenance). Derived on every call so there is no flag to go stale."""
+    if not card.get("copy_of_file_id"):
+        return None
+    if origin is not None and card.get("content_hash") and card.get("content_hash") == origin.get("content_hash"):
+        return "identical"
+    return "diverged"
 
 
 def reconcile_and_write(

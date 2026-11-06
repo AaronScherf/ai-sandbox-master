@@ -219,6 +219,13 @@ containment scaled by `min(1, shared / MIN_SHARED_SHINGLES)`, so a note that gre
 text is still offered while a short note cannot match on coincident words. Each similarity candidate
 carries `evidence` (the shared passage plus the opening of the old and new file) and the review page
 shows it under "Compare text".
+Identical files (several exact candidates for one note): `resolve(..., chosen, copies=[...])` relinks the
+card to `chosen` and gives each copy (a `.md` note whose canonical content hash equals the chosen file's)
+its own card, cloned from the original with `copy_of_file_id` and a fresh `hub_id` (`replace_hub_id`). Whether
+a copy is still identical is derived (`index_card.copy_status`: its `content_hash` equals the origin's), so an
+edited copy simply becomes its own note and keeps the provenance; `carry_note_identity` keeps the field across
+card rebuilds. Not for PDFs: their card id is the byte hash, so identical PDFs cannot hold separate cards.
+Index numbers that disagree between two file names (`lecture_03` / `lecture_04`) give the name no weight.
 Safety rules:
 - Only exact evidence yields `moved`, and only `hub_review repair --apply` (or `apply_repairs` from
   Python) applies it. Git renames and similarity only ever produce ranked `ambiguous` candidates for

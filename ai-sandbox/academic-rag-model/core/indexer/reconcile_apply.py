@@ -59,8 +59,10 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 
 from core.env.corpus_write_lock import corpus_write_lock
+from core.indexer.hub_identity import replace_hub_id
 from core.indexer.index_card import (
-    _index_dir, find_card_by_file_id, list_courses, load_shard, set_link_state, update_card_paths,
+    _index_dir, compute_content_hash, compute_id_from_parts, find_card_by_file_id, list_courses, load_shard,
+    save_shard, set_link_state, update_card_paths,
 )
 from core.indexer.reconcile import Difference, reconcile
 from core.indexer.review_envelope import ReviewItem, difference_to_item, is_unresolved
@@ -444,11 +446,53 @@ def _record_decision(store, diff: Difference, decision: str, detail: dict | None
         store.record_action(finding.finding_id, finding.fingerprint, "applied", detail or {})
 
 
-def resolve(hub_root: str, file_id: str, chosen_path: str, *, store=None) -> bool:
+_COPY_DROPPED = {"file_id", "path", "link_state", "orphaned", "hub_id", "source_pdf_path", "source_asset_path",
+                 "rag_md_path", "needs_indexing", "copy_of_file_id"}
+
+
+def _copy_paths_ok(hub_root: str, diff: Difference, chosen_path: str, copies) -> bool:
+    """Every copy must be another candidate of this item, a note (`.md`), and content-identical to the
+    chosen file: a changed file is its own note, not a copy."""
+    if not isinstance(copies, (list, tuple)) or any(not isinstance(c, str) for c in copies):
+        return False
+    candidates = {c.path for c in diff.candidates}
+    if len(set(copies)) != len(copies) or chosen_path in copies or not set(copies) <= candidates:
+        return False
+    if copies and not chosen_path.lower().endswith(".md"):
+        return False
+    absolute = lambda rel: os.path.join(hub_root, *rel.split("/"))  # noqa: E731
+    try:
+        want = compute_content_hash(absolute(chosen_path))
+        return all(c.lower().endswith(".md") and compute_content_hash(absolute(c)) == want for c in copies)
+    except OSError:
+        return False
+
+
+def _create_copy_card(hub_root: str, origin_id: str, copy_path: str) -> str:
+    """Give the file at `copy_path` its own card, cloned from the origin's (same content, so its summary and
+    tags stay valid) with `copy_of_file_id` provenance and a fresh `hub_id` (a copied note carries its
+    origin's). Returns the new card's file_id."""
+    course, origin = find_card_by_file_id(hub_root, origin_id)
+    absolute = os.path.join(hub_root, *copy_path.split("/"))
+    card = {k: v for k, v in origin.items() if k not in _COPY_DROPPED}
+    card.update(file_id=compute_id_from_parts(["copy", origin_id, copy_path]), path=copy_path,
+                copy_of_file_id=origin_id, hub_id=replace_hub_id(absolute),
+                content_hash=compute_content_hash(absolute))
+    shard = [c for c in load_shard(hub_root, course) if c.get("path") != copy_path]
+    save_shard(hub_root, course, shard + [card])
+    return card["file_id"]
+
+
+def resolve(hub_root: str, file_id: str, chosen_path: str, *, copies=(), store=None) -> bool:
     """Relink the card to `chosen_path` if it is a candidate of the card's CURRENT ambiguous
-    difference. False (never raises) otherwise, or when the apply is refused."""
+    difference. `copies`: other candidates that are content-identical to it; each gets its own card
+    (`copy_of_file_id` = this card), so the item resolves with every file indexed. False (never raises)
+    otherwise, when a copy is not an identical candidate, or when the apply is refused."""
     diff = _current_difference(hub_root, file_id)
     if diff is None or diff.kind != "ambiguous" or chosen_path not in [c.path for c in diff.candidates]:
+        return False
+    copies = list(copies or [])
+    if copies and not _copy_paths_ok(hub_root, diff, chosen_path, copies):
         return False
     with corpus_write_lock([hub_root], "reconcile relink resolve"):
         try:
@@ -458,6 +502,11 @@ def resolve(hub_root: str, file_id: str, chosen_path: str, *, store=None) -> boo
         if rec is None:
             return False
         set_link_state(hub_root, file_id, None)
+        for copy_path in copies:
+            try:
+                _create_copy_card(hub_root, file_id, copy_path)
+            except Exception as exc:  # the relink stands; the next scan indexes the file as a new note
+                print(f"WARNING: relink {file_id} applied but copy {copy_path} got no card: {exc}")
     try:
         _record_decision(store or _default_store(hub_root), diff, "accepted",
                          {"repair_id": rec.repair_id, "path": chosen_path})

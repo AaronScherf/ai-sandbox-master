@@ -129,8 +129,10 @@ def _defer_in_ledger(store, item: ReviewItem) -> bool:
     return False
 
 
-def _dispatch(hub_root: str, item: ReviewItem, action: str, chosen, store, dry_run: bool) -> tuple[str, str]:
-    """-> (outcome, detail). Raises nothing the caller must not catch."""
+def _dispatch(hub_root: str, item: ReviewItem, action: str, chosen, store, dry_run: bool,
+              copies=None) -> tuple[str, str]:
+    """-> (outcome, detail). Raises nothing the caller must not catch. `copies`: extra identical candidates
+    kept as copies of the chosen file (relink accept only)."""
     t = item.type
     if t in ("relink", "orphan"):
         fid = item.subject_ids[0]
@@ -139,10 +141,16 @@ def _dispatch(hub_root: str, item: ReviewItem, action: str, chosen, store, dry_r
                 return "error", "orphan items are report only; decline to dismiss"
             if chosen not in [c["path"] for c in item.candidates]:
                 return "error", "accept needs a chosen path that is one of the candidates"
+            if copies is not None and (not isinstance(copies, list) or any(not isinstance(c, str) for c in copies)):
+                return "error", "copies must be a list of candidate paths"
+            copies = copies or []
+            note = f" (+{len(copies)} cop{'y' if len(copies) == 1 else 'ies'})" if copies else ""
             if dry_run:
-                return "would_apply", f"relink {fid} -> {chosen}"
-            ok = reconcile_apply.resolve(hub_root, fid, chosen, store=store)
-            return ("applied", f"relinked {fid} -> {chosen}") if ok else ("error", "resolve refused")
+                return "would_apply", f"relink {fid} -> {chosen}{note}"
+            ok = reconcile_apply.resolve(hub_root, fid, chosen, copies=copies, store=store)
+            return (("applied", f"relinked {fid} -> {chosen}{note}") if ok
+                    else ("error", "resolve refused (a copy must be an identical candidate)" if copies
+                          else "resolve refused"))
         if action == "decline":
             if dry_run:
                 return "would_apply", f"dismiss {fid}"
@@ -180,7 +188,8 @@ def apply_decisions(hub_root: str, decisions: list, dry_run: bool = False, store
             else:
                 item = current[iid]
                 res["type"] = item.type
-                outcome, detail = _dispatch(hub_root, item, action, dec.get("chosen"), store, dry_run)
+                outcome, detail = _dispatch(hub_root, item, action, dec.get("chosen"), store, dry_run,
+                                            dec.get("copies"))
                 res.update(outcome=outcome, detail=detail)
                 if outcome != "error":
                     seen.add(iid)  # a failed attempt may be retried by a later decision
