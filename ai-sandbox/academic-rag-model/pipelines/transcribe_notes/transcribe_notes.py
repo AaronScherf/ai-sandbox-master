@@ -1494,6 +1494,8 @@ def main():
         help="With --submit: finish any still-pending/bounced cards via the metered API instead "
              "of leaving them pending. Explicit opt-in only -- never automatic.",
     )
+    parser.add_argument("--ignore-unresolved", action="store_true",
+                        help="Run even though unresolved link decisions are open (results may use stale paths).")
     parser.add_argument("--bootstrap", default=None, metavar="RUN_ID", help="Print the agent's operating contract for this run.")
     args = parser.parse_args()
 
@@ -1523,6 +1525,11 @@ def main():
     academic_hub_dir = Path(os.environ.get("ACADEMIC_HUB_ROOT_OVERRIDE") or (
         Path(__file__).resolve().parent.parent.parent.parent / "academic-hub"
     ))
+    from core.indexer.preflight import Needs, enforce
+    _parts = Path(args.notes_subdir).parts
+    _course = _parts[1] if len(_parts) > 1 and _parts[0] in ("academic_notes", "academic_resources") else None
+    enforce(str(academic_hub_dir), Needs(courses=frozenset({_course}) if _course else None),
+            ignore=args.ignore_unresolved)
     notes_dir = academic_hub_dir / args.notes_subdir
     pdf_paths = discover_pdf_files(str(notes_dir), args.file)
     if not pdf_paths:

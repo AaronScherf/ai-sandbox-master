@@ -179,3 +179,21 @@ def require_resolved(hub_root: str, needs: Needs, store=None, *, ignore: bool = 
               file=sys.stderr)
         return
     raise UnresolvedLinksError(items, hub_root)
+
+
+def enforce(hub_root: str, needs: Needs, *, ignore: bool = False, refuse: bool = True) -> None:
+    """Entry-point wrapper: exit code 2 with the message on stderr when blocked.
+
+    `refuse=False` (read-only commands) only warns. A preflight that cannot run at all (no repo common
+    dir, unreadable hub) warns and continues rather than breaking the pipeline.
+    """
+    try:
+        require_resolved(hub_root, needs, ignore=ignore or not refuse)
+    except UnresolvedLinksError as exc:
+        if not refuse:
+            print(f"warning: {exc}", file=sys.stderr)
+            return
+        print(str(exc), file=sys.stderr)
+        raise SystemExit(2) from exc
+    except Exception as exc:  # noqa: BLE001 - preflight must never be the reason a run breaks
+        print(f"warning: link preflight skipped ({type(exc).__name__}: {exc})", file=sys.stderr)

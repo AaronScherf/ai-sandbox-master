@@ -281,9 +281,13 @@ def main() -> None:
         help=f"Comma-separated subset of {CONTENT_TYPES}. Defaults to both.",
     )
     parser.add_argument("--engine", choices=ENGINES, default="piper")
+    parser.add_argument("--ignore-unresolved", action="store_true",
+                        help="Run even though unresolved link decisions are open (results may use stale paths).")
     parser.add_argument("--dry-run", action="store_true", help="List what would be (re)generated without synthesizing anything.")
     args = parser.parse_args()
 
+    from core.indexer.preflight import Needs, enforce
+    enforce(args.academic_hub_root, Needs(courses=frozenset({args.course})), ignore=args.ignore_unresolved)
     content_types = [c.strip() for c in args.content_type.split(",") if c.strip()]
     audio_generator_root = os.path.dirname(os.path.abspath(__file__))
 
