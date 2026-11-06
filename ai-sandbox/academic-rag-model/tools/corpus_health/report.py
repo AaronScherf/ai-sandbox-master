@@ -17,6 +17,8 @@ class ScanReport:
     files_hashed: int = 0
     errors: list[str] = field(default_factory=list)
     complete: bool = True
+    warnings: list[str] = field(default_factory=list)  # non-fatal: never change `complete` / exit code
+    notices: list[str] = field(default_factory=list)  # informational lines
 
     def to_dict(self) -> dict:
         result = asdict(self)
@@ -51,6 +53,9 @@ class ScanReport:
             for item in self.findings:
                 target = f" -> {item.expected_output}" if item.expected_output else ""
                 lines.append(f"- [{item.severity}] {item.kind}: {item.path}{target} ({item.evidence})")
+        lines.extend(self.notices)
+        for warning in self.warnings:
+            lines.append(f"WARNING: {warning}")
         for error in self.errors:
             lines.append(f"ERROR: {error}")
         return "\n".join(lines)

@@ -59,6 +59,26 @@ def _review_snapshot_validator(config):
     return validate
 
 
+def _raise_relink(config, store, report) -> None:
+    """Raise relink/orphan ledger items from one reconcile pass; never touches cards or corpus files.
+
+    Failures (busy write lock, unreadable index) are non-fatal warnings: they do not change
+    `report.complete`, so the exit code is what the scan alone would have returned."""
+    hub_root = str(config.academic_hub_root)
+    if not config.academic_hub_root.is_dir():
+        return
+    try:
+        from core.indexer.reconcile import reconcile
+        from core.indexer.reconcile_apply import raise_relink_items
+        differences = reconcile(hub_root)
+        moved = sum(1 for d in differences if d.kind == "moved")
+        if moved:
+            report.notices.append(f"{moved} exact moves waiting: run hub_review repair")
+        raise_relink_items(hub_root, differences, store=store, mark_link_state=False)
+    except Exception as exc:  # noqa: BLE001 - infra failures must not break the scan
+        report.warnings.append(f"relink check skipped: {exc}")
+
+
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     try:
@@ -75,6 +95,7 @@ def main(argv: list[str] | None = None) -> int:
                     directory = args.state_dir or default_state_dir(config.academic_hub_root)
                     store = StateStore(directory)
                     report.findings = store.refresh(report.findings)
+                    _raise_relink(config, store, report)
                     store.record_run(report.to_dict())
                 except (OSError, StateError) as exc:
                     report.complete = False
