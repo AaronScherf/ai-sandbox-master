@@ -2,7 +2,7 @@
 
 Date: 2026-10-15. Status: **approved by the owner 2026-10-15; amended the same day** (indexer embeddings corrected, API policy for indexing clarified, driver-default alignment added; see sections 3, 6, 8, 10, 13). Stage 0 implementation approved and landed 2026-10-15; stage 1 built 2026-10-16 on `claude/journal-agent-driver` (see the amendments in section 6 and `docs/status/convert_journal_articles/2026-10-16-stage1-driver-wiring.md`); later stages need their own plans.
 Owner: Aaron Scherf. Author: Claude (architecture), from a brainstorm with the owner on 2026-10-15.
-Related pitch: `ai-sandbox/research/independent-research/notes/Pitch - Structured Literature Taxonomy and Research Hub Extension.md`
+Related pitch: `ai-sandbox/research/independent-research/notes/02_literature-and-evidence-map/Pitch - Structured Literature Taxonomy and Research Hub Extension.md`
 (this spec supersedes its Section 03/05 on *how*; its schema ideas, landscape analysis and project synergies stand).
 
 ## 1. Intent
