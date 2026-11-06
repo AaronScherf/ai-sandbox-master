@@ -38,8 +38,10 @@ h2 { font-size: 1rem; margin: 24px 0 8px; }
 .row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
 button { font: inherit; padding: 6px 14px; border-radius: 6px; border: 1px solid var(--line);
   background: var(--card); color: var(--fg); cursor: pointer; }
-button.primary { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }
 button:disabled { opacity: 0.5; cursor: default; }
+/* Only the saved decision is highlighted; every button is neutral while a card is undecided. */
+button.chosen, button.chosen:disabled { background: var(--accent); color: var(--accent-fg); border-color: var(--accent);
+  opacity: 1; font-weight: 600; }
 .status { margin-top: 8px; font-size: 0.85rem; color: var(--ok); }
 .status.err { color: var(--err); }
 </style>
@@ -177,8 +179,10 @@ function renderItem(item) {
     });
   }
   const buttons = el("div", null, "row");
-  const make = (label, action, primary) => {
-    const b = el("button", label, primary ? "primary" : "");
+  const make = (label, action) => {
+    const isChosen = !!rec && rec.action === action;
+    const b = el("button", isChosen ? "✓ " + label : label, isChosen ? "chosen" : "");
+    b.setAttribute && b.setAttribute("aria-pressed", String(isChosen));
     b.disabled = !db || !!rec || busy;
     b.addEventListener("click", () => {
       if (action === "accept" && item.type === "relink" && !picked.get(item.item_id)) {
@@ -191,9 +195,9 @@ function renderItem(item) {
     });
     buttons.appendChild(b);
   };
-  if (item.type !== "orphan") make("Accept", "accept", true);
-  make("Decline", "decline", false);
-  make("Defer", "defer", false);
+  if (item.type !== "orphan") make("Accept", "accept");
+  make("Decline", "decline");
+  make("Defer", "defer");
   box.appendChild(buttons);
   if (rec) {
     box.appendChild(el("div", "Decided: " + rec.action + (rec.chosen ? " " + rec.chosen : "") +

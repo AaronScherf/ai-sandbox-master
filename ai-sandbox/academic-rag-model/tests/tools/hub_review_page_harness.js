@@ -50,22 +50,33 @@ const fail = (m) => { console.error("FAIL:", m); process.exit(1); };
   console.log("items:", items.items.length, "single-candidate relink:", !!target, "twin:", !!twin);
   // the card of one item, found by its subject path; buttons are then looked up inside it only
   const card = () => byId.groups.find((e) => e.className.startsWith("item") && e.textContent.includes(target.subject_paths[0]))[0];
-  const btn = (label) => { const b = card().find((e) => e.tag === "button" && e.textContent === label); return b[0]; };
+  const btn = (label) => card().find((e) => e.tag === "button" && e.textContent.replace("✓ ", "") === label)[0];
   const text = () => card().textContent;
+  // exactly the saved decision is highlighted; none while the card is open for changes
+  const chosenLabels = () => card().find((e) => e.tag === "button" && e.className === "chosen")
+    .map((e) => e.textContent.replace("✓ ", ""));
+  const expectChosen = (want, when) => {
+    const got = chosenLabels().join(",");
+    if (got !== want) fail(`highlighted buttons ${when}: got [${got}], want [${want}]`);
+  };
+  expectChosen("", "before any decision");
 
   // 1. decline the item
   btn("Decline").click(); await tick(); await tick();
   if ((store.get(target.item_id) || {}).action !== "decline") fail("first decision not saved");
   if (!text().includes("Decided: decline")) fail("card not shown as decided");
+  expectChosen("Decline", "after declining");
 
   // 2. change it, then defer instead: must overwrite the stored doc
   btn("Change decision").click(); await tick(); await tick();
   if (text().includes("Decided: decline")) fail("change decision did not reopen the card");
   if (btn("Defer").disabled) fail("buttons not enabled after Change decision");
+  expectChosen("", "while changing");
   btn("Defer").click(); await tick(); await tick();
   const after = store.get(target.item_id);
   if (!after || after.action !== "defer") fail("changed decision not saved, store has " + JSON.stringify(after));
   if (!text().includes("Decided: defer")) fail("card not shown as decided: defer");
+  expectChosen("Defer", "after changing to defer");
 
   // 3. change then keep the earlier decision
   btn("Change decision").click();
