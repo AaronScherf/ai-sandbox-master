@@ -81,7 +81,16 @@ def _raise_relink(config, store, report) -> None:
         report.warnings.append(f"relink check skipped: {type(exc).__name__}: {exc}")
 
 
+def _use_utf8_streams() -> None:
+    """Paths may hold characters (e.g. NFD combining accents) a legacy Windows code page cannot encode."""
+    for stream in (sys.stdout, sys.stderr):
+        reconfigure = getattr(stream, "reconfigure", None)
+        if reconfigure is not None:
+            reconfigure(encoding="utf-8", errors="replace")
+
+
 def main(argv: list[str] | None = None) -> int:
+    _use_utf8_streams()
     args = build_parser().parse_args(argv)
     try:
         config = load_config(args.config)
