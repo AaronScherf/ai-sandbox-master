@@ -2,7 +2,7 @@
 
 **Date:** 2026-10-09
 
-**Status:** Tasks 1-7 and the Task 8 runner are implemented and landed. The seven-day discovery-only trial is installed; Task 8's multi-day observation is still open.
+**Status:** Tasks 1-7 and the Task 8 runner are implemented and landed. The seven-day discovery-only trial ran October 10-16 and was reviewed 2026-11-06 (see "Trial outcome"); the daily task now runs at first logon each day.
 
 **Plan:** [2026-10-08 implementation plan](../../superpowers/plans/academic_hub/2026-10-08-corpus-health-orchestrator.md) and [2026-10-07 design](../../superpowers/specs/academic_hub/2026-10-07-corpus-health-orchestrator-design.md).
 
@@ -23,6 +23,13 @@ The implementation followed the plan's staged value boundary: the scanner is usa
 Synthetic scanner, state, review-server, writer-lock, and apply tests passed, including concurrent ledger writers, vanished sources, exact index-card selection, lock contention, interrupted atomic writes, stale approvals, blocked actions, and post-action auditing. The full repository test gate passed at the Task 7 and Task 8 landings (218.0 and 232.3 seconds respectively, with no worktree overlaps reported). These tests establish behavior on fixtures; they do not prove that every live corpus finding is correctly classified.
 
 Three pre-installation read-only live scans on October 9 took 21.1-27.7 seconds of scanner time, considered 693-694 files, hashed 444-445, reported 305-306 findings, and reported zero scan errors. A manual launch of the installed scheduled task also exited `0`: 20.25 seconds, 696 files considered, 445 hashed, 306 findings, zero errors. The report does not expose an exact filesystem-metadata-check count. The task's next scheduled run was October 10 at 7:00 a.m.; a separate one-time reminder is set for October 17 at 9:00 a.m. local time. Neither a successful exit nor the finding count establishes that all 306 findings are actionable.
+
+## Trial outcome (reviewed 2026-11-06)
+
+- **Reliability:** of the seven scheduled days, three produced a complete report (Oct 12, 15, 16; exit `0`, 20-36 s, zero scan errors). Oct 10, 11 and 13 left empty logs with no `finished=` line and no report: the catch-up launches (about 10:36) were killed, probably because the user signed out or the machine slept. Oct 14 has no attempt. Cause not confirmed (the Task Scheduler event log was unreadable). The fixed 7:00 a.m. trigger is therefore unreliable on this machine.
+- **Scan quality:** findings grew from 306 to 340 with stable kinds. `index_chunks_missing_or_stale` jumped from 27 to 128 between Oct 9 and Oct 12 and was not investigated. The manual sampling of true gaps versus false positives was not done.
+- **Change (2026-11-06):** the task was replaced by `AcademicHubCorpusHealthDaily`: "At log on" trigger (2-minute delay, no end date), `-OncePerDay` so only the first sign-in scans, and `-Notify`. After each scan the wrapper writes `latest-alerts.txt` (deleted when clean) for a nonzero exit, `exact moves waiting` / `need review` notices, warnings, or `duplicate_hub_id`/`relink`/`orphan_card` findings. The scan also gained a `N moved/orphaned files need review` notice. A real run through the new task exited `0` with no alerts. PRs #29 (UTF-8 stdout fix for accented filenames) and #30.
+- **Still open:** the manual finding sample and the decision to keep scanner policies as they are.
 
 ## Revisit after the trial
 
