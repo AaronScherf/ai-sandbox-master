@@ -111,6 +111,11 @@ over-picked term appears in both passes. The original notes follow for the recor
 5. Phase 2: brainstorm the discovery loop with the owner, then write the spec. Held-out probe split and classification card are the first decisions.
 6. Worktree cleanup: dry run, then `--apply` once the merged worktrees are over 24 hours old.
 7. Landing: owner runs `land_branch check --full`; nothing on this branch is landed.
+8. Future work (not scheduled; owner request 2026-11-06): run one clean judging test over the entire corpus in which the judges see the official 3ie
+   definition of each term, not only the label path. All trial-2 judging and the owner audit used labels only, so the first judges' rejections mixed real
+   extraction errors with label-versus-definition mismatches (Agrobiodiversity). A definition-aware re-judge of the 38 contested trial-2 labels reversed
+   28 of the 38 rejections (Haiku). The clean test should also give the 96 already-accepted labels the same definition-aware pass and use two judge
+   families, so the precision figure is not built from mixed judging conditions.
 
 ## Requirements for owner-review and judging tools (owner request, 2026-11-06)
 
