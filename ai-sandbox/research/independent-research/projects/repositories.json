@@ -9,6 +9,16 @@
       "path": "math_thesis/Novel-Omnibus-Normality-Test-and-Power-Comparison-with-the-Shapiro-Wilk-Test",
       "url": "https://github.com/AaronScherf/Novel-Omnibus-Normality-Test-and-Power-Comparison-with-the-Shapiro-Wilk-Test.git",
       "commit": "db711c47d691f93e51d11afa78c495ec4b38bf4f"
+    },
+    {
+      "path": "compound-shocks-panel",
+      "url": "https://github.com/AaronScherf/compound-shocks-panel.git",
+      "commit": "2e1c84bc60f4ecc402913b7e583e90c84d26b5d5"
+    },
+    {
+      "path": "reprokit",
+      "url": "https://github.com/AaronScherf/reprokit.git",
+      "commit": "1df3791a0a52cee8ae4d5e8f37079aad52c607d5"
     }
   ]
 }

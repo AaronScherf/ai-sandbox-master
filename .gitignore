@@ -4,6 +4,8 @@ ai-sandbox/personal-website/
 # working trees local. See projects/repositories.json for URLs and commit pins.
 ai-sandbox/research/independent-research/projects/berkeley_thesis/wheat_yield_prediction_gee/
 ai-sandbox/research/independent-research/projects/math_thesis/Novel-Omnibus-Normality-Test-and-Power-Comparison-with-the-Shapiro-Wilk-Test/
+ai-sandbox/research/independent-research/projects/compound-shocks-panel/
+ai-sandbox/research/independent-research/projects/reprokit/
 
 # academic_notes/ is now its own separate git repo (same pattern as
 # personal-website/ above), so the tablet's Obsidian gitsync plugin can
