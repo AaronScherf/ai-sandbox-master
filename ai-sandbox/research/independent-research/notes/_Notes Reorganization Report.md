@@ -164,12 +164,13 @@ Contents: **1.** file summaries in edit order, **2.** grouping, **3.** proposed 
 
 ## 2. Grouping by project
 
-Five groups. Two are cross-cutting overviews or idea pools, and three are project clusters. A file's *primary* group is where I propose it lives; "also touches" is what the Cross-Group Connections documents track.
+Six groups: two are cross-cutting overviews or idea pools (A, E), and four are project clusters (B, C, D, F). A file's *primary* group is where I propose it lives; "also touches" is what the Cross-Group Connections documents track.
 
 | Group | Files (primary) | Also touches |
 |---|---|---|
 | **A. Program overview & strategy** (multi-project) | Ground Truth (`.md`, `.html`), Ground Truth 3R Revision | Every other group |
-| **B. Compound shocks panel** (Project 02, with the Project 04 toolkit work) | Somalia Three-Shock, Data Sources, Sudan Data Sources, ACLED Terms, Pilot Scope Realignment, Data Audit Review, Gemini Brief, Pipeline Review | Data Sources: Projects 01/03/06. Somalia: Project 04 verification layer. Brief: group C |
+| **B. Compound shocks panel** (Project 02) | Somalia Three-Shock, Data Sources, Sudan Data Sources, ACLED Terms, Pilot Scope Realignment, Data Audit Review, Gemini Brief | Data Sources: Projects 01/03/06. Somalia: Project 04 verification layer. Brief: group C |
+| **F. Reprokit reproducibility framework** (added after your request; Project 04 and the replication goal) | Pipeline Review (moved here from B), plus the new `Reprokit Project Summary.md` covering the spec, plan, v0.3 handoff, CHANGELOG and tracker items | Group B (the pilot), group D (replication), group C (taxonomy hooks) |
 | **C. Literature pipeline & evidence map** (Project 01) | Pitch, `lit_review.md` | Pitch: Project 04 and CTL. `lit_review.md`: the Gemini Brief runs this pipeline |
 | **D. RCT replication & transportability** (new; Direction III, Project 03) | RCT brainstorm | Group B (ACLED/displacement forecasting, satellite proxies), group C (which RCTs have geocoded panel data), group A |
 | **E. Exploratory methods & heterodox ideas** | Research Ideas.docx | Group A (heterodox open question), group B (agent-based models), group D (spectral bias vs DML) |
@@ -203,8 +204,6 @@ notes/
 │   │   ├── Review Gate - Data Audit Review.md
 │   │   ├── Review Gate - Gemini Brief for Literature Gap Memo.md
 │   │   └── Literature Gap Memo.md                    (to be produced by Gemini)
-│   ├── framework/
-│   │   └── Pipeline Review - Reproducible Research Framework after Phase A.md
 │   └── Cross-Group Connections.md                    ← new
 ├── 02_literature-and-evidence-map/                   (Project 01)
 │   ├── Pitch - Structured Literature Taxonomy and Research Hub Extension.md
@@ -216,12 +215,16 @@ notes/
 ├── 04_methods-and-exploratory-ideas/
 │   ├── Research Ideas.docx
 │   └── Cross-Group Connections.md                    ← new
+├── 05_reprokit-reproducibility-framework/            (spec, plan and status live in ../docs/superpowers)
+│   ├── Pipeline Review - Reproducible Research Framework after Phase A.md
+│   ├── Reprokit Project Summary.md                   ← new
+│   └── Cross-Group Connections.md                    ← new
 ├── application_essays/                               (unchanged)
 ├── processed_outputs/                                (unchanged)
 └── _Notes Reorganization Report.md                   (this file; can be deleted once the move is done)
 ```
 
-The five `Cross-Group Connections.md` files are already written in these folders on the `claude/research-notes-reorg` branch. The originals have not been moved.
+The six `Cross-Group Connections.md` files (A to F) are already written in these folders on the `claude/research-notes-reorg` branch. The originals have not been moved.
 
 Naming suggestions, all optional:
 - `RCT_replication_gemini_brainstorm.md` is the only underscore-style name. A matching name would be `RCT Replication and Transportability - Gemini Brainstorm.md`.
@@ -239,13 +242,14 @@ Each group has one `Cross-Group Connections.md` that pulls the relevant ideas ou
 - [`02_literature-and-evidence-map/Cross-Group Connections.md`](02_literature-and-evidence-map/Cross-Group%20Connections.md)
 - [`03_rct-transportability/Cross-Group Connections.md`](03_rct-transportability/Cross-Group%20Connections.md)
 - [`04_methods-and-exploratory-ideas/Cross-Group Connections.md`](04_methods-and-exploratory-ideas/Cross-Group%20Connections.md)
+- [`05_reprokit-reproducibility-framework/Cross-Group Connections.md`](05_reprokit-reproducibility-framework/Cross-Group%20Connections.md) and [`Reprokit Project Summary.md`](05_reprokit-reproducibility-framework/Reprokit%20Project%20Summary.md)
 
 ---
 
 ## 5. Things to know before moving files
 
 1. **Path references will break.** Several files point at each other by name or by "in this folder": the Gemini Brief says to read `Review Gate - Data Audit Review.md` "in this folder", the 3R Revision's source context and the Data Sources header link to `Ground Truth - PhD Research Plan.md` and `Somalia Three-Shock Case Study.md`, and the Ground Truth plan says "kept as ... in this folder". Pilot Scope Realignment links the `docs/superpowers` specs by absolute path.
-2. **Gemini's output path is fixed to `notes/`.** The brief tells Gemini to write `notes/Literature Gap Memo.md`. If you reorganize first, update the brief, or move the memo afterward.
+2. **Gemini's output path is fixed to `notes/`.** The brief tells Gemini to write `notes/Literature Gap Memo.md`. The memo now exists, committed as `d6915e4f` on branch `gemini/compound-shocks-lit-memo`, but it is not on `main` yet. It was not among the 14 files summarized above. See the chat answer or read it on that branch. If you reorganize first, update the brief, or move the memo afterward.
 3. **Other branches write into `notes/`.** The worktree list shows live branches for this area (for example `claude/compound-shocks-*`, `gemini/*-lit-memo`, `codex/acled-source-documentation`). Moving files on main while those are open means merge conflicts for rename vs edit. Better to do the move after they land.
 4. **`RCT_replication_gemini_brainstorm.md` is staged but uncommitted in the main checkout**, so it is not in this worktree. I read it from main. The move should be done by whoever owns that change.
 5. **Several files are Gemini-generated and unverified**: the RCT brainstorm's citations, `lit_review.md`, and the dataset claims in Data Sources and Sudan Data Sources (the Sudan note says it was verified against live repositories, but I did not re-check it).

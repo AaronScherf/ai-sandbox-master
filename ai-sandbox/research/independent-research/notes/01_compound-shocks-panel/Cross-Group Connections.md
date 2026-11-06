@@ -5,7 +5,7 @@
 This group is the most self-contained. What follows is what other groups' files say about it, and what it provides to them.
 
 ## Current state in one paragraph
-Phase A is done: balanced district-month panels for Somalia (74 districts) and Sudan (189 localities), 2021-01 to 2025-10, reproduced byte for byte from fresh clones. The review gate is open: Part A (data audit) is written, Part B (the Literature Gap Memo) is briefed to Gemini and not yet in `notes/`, and Part C is the owner's decision. Modeling is on hold until then.
+Phase A is done: balanced district-month panels for Somalia (74 districts) and Sudan (189 localities), 2021-01 to 2025-10, reproduced byte for byte from fresh clones. The review gate is open: Part A (data audit) is written, Part B (the Literature Gap Memo) is written (Gemini, commit `d6915e4f` on branch `gemini/compound-shocks-lit-memo`, not yet on `main`, and awaiting your and Claude's review), and Part C is the owner's decision. The Pipeline Review that used to be listed here now lives with the reprokit group (`../05_reprokit-reproducibility-framework/`). Modeling is on hold until then.
 
 ## From the overview group (A)
 - The 3R plan states Project 02's question as separating the Ukraine price shock, drought and al-Shabaab on displacement and prices, then testing whether cash transfers moderate it. Of those pieces, the audit says the panel can support only conflict and rainfall for now.
