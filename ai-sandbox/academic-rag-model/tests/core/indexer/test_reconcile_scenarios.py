@@ -200,9 +200,40 @@ def test_delete_file_reports_orphan_deletes_nothing(tmp_path, store):
     assert _digest(hub) == before
 
 
-@pytest.mark.xfail(strict=True, reason="P4 preflight")
-def test_pipeline_refuses_with_unresolved_item_it_needs():
-    assert False, "P4 preflight not built"
+def test_pipeline_refuses_with_unresolved_item_it_needs(tmp_path, store, monkeypatch, capsys):
+    from core.indexer import index_search, preflight
+
+    hub = make_hub(tmp_path)
+    write_note(hub, f"{LN}/lecture_03_regression.md", {"title": "a"}, BODY)
+    save_shard(str(hub), "econ", [_note_card(hub, f"{LN}/lecture_03_regression.md", "f1")])
+    _move(hub, f"{LN}/lecture_03_regression.md", f"{LN}/lecture_03_regression_v2.md")
+    with open(hub / LN / "lecture_03_regression_v2.md", "a", encoding="utf-8", newline="\n") as f:
+        f.write("\nAn added paragraph on heteroskedasticity.\n")
+    raise_relink_items(str(hub), reconcile(str(hub)), store)
+    assert len(store.pending()) == 1
+
+    monkeypatch.setattr(preflight, "corpus_write_lock", reconcile_apply.corpus_write_lock)
+    monkeypatch.setattr(index_search, "corpus_write_lock", reconcile_apply.corpus_write_lock)
+    monkeypatch.setattr(preflight, "_default_store", lambda hub_root: store)
+    monkeypatch.setattr(index_search, "load_dotenv_override", lambda: None)
+    worked = []
+    clients = []
+    monkeypatch.setattr(index_search, "get_gemini_client", lambda *a, **k: clients.append(1) or object())
+    monkeypatch.setattr(index_search, "chunk",
+                        lambda *a, **k: worked.append(1) or {"failed": 0, "chunked": 0})
+    monkeypatch.setattr("sys.argv", ["index_search", "--root", str(hub), "chunk", "--course", "econ"])
+    before = _digest(hub)
+
+    with pytest.raises(SystemExit) as exc:
+        index_search.main()
+    assert exc.value.code == 2
+    assert "hub_review page" in capsys.readouterr().err
+    assert worked == [] and clients == [] and _digest(hub) == before
+    assert len(store.pending()) == 1
+
+    assert resolve(str(hub), "f1", f"{LN}/lecture_03_regression_v2.md", store=store) is True
+    index_search.main()  # same call now gets past preflight to the (stubbed) work
+    assert worked == [1]
 
 
 def test_content_tier_card_with_existing_path_is_not_hashed(tmp_path):
@@ -216,3 +247,27 @@ def test_content_tier_card_with_existing_path_is_not_hashed(tmp_path):
     with open(hub / LN / "a.md", "a", encoding="utf-8", newline="\n") as f:
         f.write("\nEdited in place after indexing.\n")
     assert reconcile(str(hub)) == []
+
+
+def _rename_and_edit_hub(tmp_path):
+    hub = make_hub(tmp_path)
+    write_note(hub, f"{LN}/lecture_03_regression.md", {"title": "a"}, BODY)
+    save_shard(str(hub), "econ", [_note_card(hub, f"{LN}/lecture_03_regression.md", "f1")])
+    _move(hub, f"{LN}/lecture_03_regression.md", f"{LN}/lecture_03_regression_v2.md")
+    with open(hub / LN / "lecture_03_regression_v2.md", "a", encoding="utf-8", newline="\n") as f:
+        f.write("\nAn added paragraph on heteroskedasticity.\n")
+    return hub
+
+
+def test_raise_relink_items_mark_link_state_false_writes_ledger_only(tmp_path, store):
+    hub = _rename_and_edit_hub(tmp_path)
+    before = dict(_card(hub, "f1"))
+    items = raise_relink_items(str(hub), reconcile(str(hub)), store, mark_link_state=False)
+    assert [i.type for i in items] == ["relink"] and len(store.pending()) == 1
+    assert _card(hub, "f1") == before and not _card(hub, "f1").get("link_state")
+
+
+def test_raise_relink_items_mark_link_state_true_is_the_default(tmp_path, store):
+    hub = _rename_and_edit_hub(tmp_path)
+    raise_relink_items(str(hub), reconcile(str(hub)), store)
+    assert _card(hub, "f1")["link_state"] == "unresolved"

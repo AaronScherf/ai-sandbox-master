@@ -1139,6 +1139,9 @@ def _bool_arg(value: str) -> bool:
     raise argparse.ArgumentTypeError(f"expected true/false, got {value!r}")
 
 
+_IGNORE_HELP = "Run even though unresolved link decisions are open (results may use stale paths)."
+
+
 def build_arg_parser() -> argparse.ArgumentParser:
     default_root = os.path.join(os.path.dirname(__file__), "..", "..", "..", "academic-hub")
     parser = argparse.ArgumentParser(description="Search and maintain a source index (academic-hub, research, or any other corpus root).")
@@ -1169,6 +1172,7 @@ def build_arg_parser() -> argparse.ArgumentParser:
     rebuild_p.add_argument("--json", action="store_true", help="Machine-readable preflight or result")
     rebuild_p.add_argument("--max-paid", type=int, default=25,
                            help="Maximum paid producer and Markdown cards (default: 25)")
+    rebuild_p.add_argument("--ignore-unresolved", action="store_true", help=_IGNORE_HELP)
     rebuild_p.add_argument("--force", action="store_true")
     rebuild_p.add_argument("--prune", action="store_true")
     rebuild_p.add_argument("--max-markdown-paid", type=int, default=25,
@@ -1182,9 +1186,11 @@ def build_arg_parser() -> argparse.ArgumentParser:
                             help="Assert no other writer is changing this corpus's .index/")
     markdown_p.add_argument("--max-markdown-paid", type=int, default=25)
     markdown_p.add_argument("--json", action="store_true", help="Machine-readable per-target output (default)")
+    markdown_p.add_argument("--ignore-unresolved", action="store_true", help=_IGNORE_HELP)
 
     retag_p = subparsers.add_parser("retag", help="Mine and apply tags across the whole corpus.")
     retag_p.add_argument("--dry-run", action="store_true")
+    retag_p.add_argument("--ignore-unresolved", action="store_true", help=_IGNORE_HELP)
 
     chunk_p = subparsers.add_parser("chunk", help="Chunk and embed indexed files into citable passages.")
     chunk_p.add_argument("--course", default=None)
@@ -1192,6 +1198,7 @@ def build_arg_parser() -> argparse.ArgumentParser:
     chunk_p.add_argument("--file-id", default=None, help="exact card identity; requires --course")
     chunk_p.add_argument("--json", action="store_true", help="structured result for --file-id")
     chunk_p.add_argument("--dry-run", action="store_true")
+    chunk_p.add_argument("--ignore-unresolved", action="store_true", help=_IGNORE_HELP)
 
     ask_p = subparsers.add_parser("ask", help="Ask a single grounded question (no conversation memory).")
     ask_p.add_argument("question")
@@ -1222,8 +1229,26 @@ def _single_root(args) -> str:
     return roots[0]
 
 
+def _link_preflight(args) -> None:
+    """Refuse (exit 2) on unresolved relink items for the writers; query/ask only warn. Runs before any
+    key load. Modes that write nothing (`rebuild --plan`, `index-md` without `--apply`, `--dry-run`) only
+    warn; note `chunk`/`retag --dry-run` still build a model client, they just write no card."""
+    from core.indexer.preflight import Needs, enforce
+    roots = args.root or [_DEFAULT_ROOT]
+    course = getattr(args, "course", None)
+    needs = Needs(courses=frozenset({course}) if course else None)
+    # Modes that write nothing only warn (some, like chunk/retag --dry-run, still build a model client).
+    read_only = (getattr(args, "dry_run", False)
+                 or (args.command == "rebuild" and args.plan)
+                 or (args.command == "index-md" and not args.apply))
+    refuse = args.command in ("rebuild", "index-md", "retag", "chunk") and not read_only
+    for root in roots:
+        enforce(root, needs, ignore=getattr(args, "ignore_unresolved", False), refuse=refuse)
+
+
 def main() -> None:
     args = build_arg_parser().parse_args()
+    _link_preflight(args)
     if args.command == "rebuild":
         root = _single_root(args)
         if args.max_paid < 0:

@@ -35,7 +35,7 @@ def _setup(tmp_path, monkeypatch):
     store = StateStore(tmp_path / "state")
     approved = store.refresh([finding])[0]
     store.decide(approved.finding_id, "accepted", approved.fingerprint)
-    monkeypatch.setattr(actions, "scan", lambda _: SimpleNamespace(complete=True, findings=[finding]))
+    monkeypatch.setattr(actions, "scan", lambda _: SimpleNamespace(complete=True, findings=[finding], warnings=[]))
     return config, store, source, card, finding, approved
 
 
@@ -109,7 +109,7 @@ def test_unsupported_accepted_card_repair_is_blocked(tmp_path, monkeypatch):
                       fingerprint="1234", cost_category="paid_api")
     approved = store.refresh([finding])[0]
     store.decide(approved.finding_id, "accepted", approved.fingerprint)
-    monkeypatch.setattr(actions, "scan", lambda _: SimpleNamespace(complete=True, findings=[finding]))
+    monkeypatch.setattr(actions, "scan", lambda _: SimpleNamespace(complete=True, findings=[finding], warnings=[]))
     result = actions.apply_accepted(config, store, runner=lambda *a, **k: (_ for _ in ()).throw(AssertionError("called")))
     assert result[0]["status"] == "blocked"
     assert "no exact-file" in result[0]["reason"]
@@ -122,7 +122,7 @@ def test_accepted_relink_entry_is_never_applied_by_apply_accepted(tmp_path, monk
     raised = store.refresh([relink], sweep_kinds=("relink",))[0]
     store.decide(raised.finding_id, "accepted", raised.fingerprint)
     # even if a scan somehow reported it, apply must leave relink entries to reconcile_apply.resolve
-    monkeypatch.setattr(actions, "scan", lambda _: SimpleNamespace(complete=True, findings=[finding, relink]))
+    monkeypatch.setattr(actions, "scan", lambda _: SimpleNamespace(complete=True, findings=[finding, relink], warnings=[]))
     result = actions.apply_accepted(config, store, runner=lambda *a, **k: SimpleNamespace(
         returncode=1, stdout="", stderr=""))
     assert all(item["kind"] != "relink" for item in result)
@@ -207,7 +207,7 @@ def test_index_path_outside_configured_roots_is_blocked(tmp_path, monkeypatch):
                       cost_category="paid_api")
     approved = store.refresh([finding])[0]
     store.decide(approved.finding_id, "accepted", approved.fingerprint)
-    monkeypatch.setattr(actions, "scan", lambda _: SimpleNamespace(complete=True, findings=[finding]))
+    monkeypatch.setattr(actions, "scan", lambda _: SimpleNamespace(complete=True, findings=[finding], warnings=[]))
     result = actions.apply_accepted(config, store, runner=lambda *a, **k: (_ for _ in ()).throw(AssertionError("called")))
     assert result[0]["status"] == "blocked"
     assert "outside configured" in result[0]["reason"]

@@ -107,7 +107,8 @@ def test_rebuild_plan_never_creates_client_and_cap_covers_producers(tmp_path, mo
     main()
     assert json.loads(capsys.readouterr().out)["would_refuse"] is False
     monkeypatch.setattr("sys.argv", ["index_search", "--root", str(tmp_path), "rebuild",
-                                    "--course", "econometrics", "--max-paid", "0"])
+                                    "--course", "econometrics", "--max-paid", "0",
+                                    "--ignore-unresolved"])
     with pytest.raises(SystemExit, match="cap is 0"):
         main()
 

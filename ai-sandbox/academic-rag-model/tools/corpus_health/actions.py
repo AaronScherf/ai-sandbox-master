@@ -16,6 +16,7 @@ from core.indexer.audit import MarkdownIndexTarget, audit_markdown_index
 from core.indexer.index_card import load_shard
 from tools.corpus_health.config import ScanConfig
 from tools.corpus_health.discovery import scan
+from tools.corpus_health.p4_findings import add_p4_findings, skipped_kinds
 from tools.corpus_health.state import SELF_REFRESHED_KINDS, StateError, StateStore
 
 _CHUNK_KIND = "index_chunks_missing_or_stale"
@@ -36,6 +37,10 @@ def _blocked_reason(kind: str) -> str:
         return "no exact-file index-card reconciliation exists; rebuild scans a whole course"
     if kind in {"note_transcription_missing", "excalidraw_export_missing", "textbook_rag_output_missing"}:
         return "notes source pipeline quality and academic_notes sync-quiescence gates remain unresolved"
+    if kind == "duplicate_hub_id":
+        return "manual repair: run tools.write_hub_ids --fix-duplicates (dry run first) outside corpus-health apply"
+    if kind == "vocab_name":
+        return "applied only through tools.hub_review (accept a kind), which writes hub_config.json via confirm"
     if kind == "textbook_conversion_missing":
         return "remote textbook conversion is outside automated apply in v1"
     return "no reviewed exact-file repair adapter exists for this finding kind"
@@ -116,8 +121,9 @@ def apply_accepted(
     report = scan(config)
     if not report.complete:
         raise StateError("cannot apply from an incomplete corpus scan")
+    ran = add_p4_findings(report, config)
     current = {StateStore.finding_id(finding): finding for finding in report.findings}
-    store.refresh(report.findings)
+    store.refresh(report.findings, exclude_kinds=skipped_kinds(ran))
     outcomes: list[dict] = []
     # relink/orphan_card entries are applied only by core.indexer.reconcile_apply.resolve/reject.
     for entry in store.accepted(exclude_kinds=SELF_REFRESHED_KINDS):

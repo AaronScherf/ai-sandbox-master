@@ -10,6 +10,7 @@ import webbrowser
 from tools.corpus_health.config import load_config
 from tools.corpus_health.actions import apply_accepted
 from tools.corpus_health.discovery import scan
+from tools.corpus_health.p4_findings import add_p4_findings, skipped_kinds
 from tools.corpus_health.review_server import ReviewServer
 from tools.corpus_health.state import SELF_REFRESHED_KINDS, StateError, StateStore, default_state_dir
 
@@ -59,6 +60,27 @@ def _review_snapshot_validator(config):
     return validate
 
 
+def _raise_relink(config, store, report) -> None:
+    """Raise relink/orphan ledger items from one reconcile pass; never touches cards or corpus files.
+
+    Failures (busy write lock, unreadable index) are non-fatal warnings: they do not change
+    `report.complete`, so the exit code is what the scan alone would have returned."""
+    hub_root = str(config.academic_hub_root)
+    if not config.academic_hub_root.is_dir():
+        return
+    try:
+        from core.indexer.reconcile import reconcile
+        from core.indexer.reconcile_apply import demote_undone, raise_relink_items
+        differences = reconcile(hub_root)
+        # undone moves are review items, not waiting repairs (same filter as hub_review repair)
+        moved = sum(1 for d in demote_undone(hub_root, differences) if d.kind == "moved")
+        if moved:
+            report.notices.append(f"{moved} exact moves waiting: run hub_review repair")
+        raise_relink_items(hub_root, differences, store=store, mark_link_state=False)
+    except Exception as exc:  # noqa: BLE001 - infra failures must not break the scan
+        report.warnings.append(f"relink check skipped: {type(exc).__name__}: {exc}")
+
+
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     try:
@@ -70,11 +92,13 @@ def main(argv: list[str] | None = None) -> int:
             return 1 if any(item["status"] == "failed" for item in outcomes) else 0
         if args.command == "scan":
             report = scan(config)
+            ran = add_p4_findings(report, config)  # read-only; shown even with --no-state
             if not args.no_state:
                 try:
                     directory = args.state_dir or default_state_dir(config.academic_hub_root)
                     store = StateStore(directory)
-                    report.findings = store.refresh(report.findings)
+                    report.findings = store.refresh(report.findings, exclude_kinds=skipped_kinds(ran))
+                    _raise_relink(config, store, report)
                     store.record_run(report.to_dict())
                 except (OSError, StateError) as exc:
                     report.complete = False

@@ -388,7 +388,7 @@ def _with_ledger(item: ReviewItem, entry: dict) -> ReviewItem:
 
 
 def raise_relink_items(hub_root: str, differences: list[Difference] | None = None,
-                       store=None) -> list[ReviewItem]:
+                       store=None, *, mark_link_state: bool = True) -> list[ReviewItem]:
     """Upsert a ledger finding per ambiguous/orphan difference and mark open relink cards unresolved.
 
     `differences` defaults to `reconcile(hub_root)` run here. If given it MUST be a full reconcile
@@ -396,13 +396,14 @@ def raise_relink_items(hub_root: str, differences: list[Difference] | None = Non
     cleared, so a partial list un-raises the rest. Returns the items the owner has not declined, with
     ledger status and timestamps. Takes the corpus write lock for the whole call (not reentrant):
     callers already holding it use `raise_relink_items_unlocked`. `store=None` = the hub's default
-    ledger."""
+    ledger. `mark_link_state=False` writes the ledger only and leaves every card's `link_state` alone
+    (preflight and the scan must not touch tracked `.index/` files)."""
     with corpus_write_lock([hub_root], "reconcile relink raise"):
-        return raise_relink_items_unlocked(hub_root, differences, store)
+        return raise_relink_items_unlocked(hub_root, differences, store, mark_link_state=mark_link_state)
 
 
 def raise_relink_items_unlocked(hub_root: str, differences: list[Difference] | None = None,
-                                store=None) -> list[ReviewItem]:
+                                store=None, *, mark_link_state: bool = True) -> list[ReviewItem]:
     """`raise_relink_items` for callers that already hold the corpus write lock."""
     from tools.corpus_health.state import SELF_REFRESHED_KINDS
     if differences is None:
@@ -422,6 +423,8 @@ def raise_relink_items_unlocked(hub_root: str, differences: list[Difference] | N
         out.append(item)
         if item.type == "relink" and entry.get("status") in _OPEN:
             unresolved.add(d.file_id)
+    if not mark_link_state:
+        return out
     for course in list_courses(hub_root):
         for card in load_shard(hub_root, course):
             fid = card.get("file_id")

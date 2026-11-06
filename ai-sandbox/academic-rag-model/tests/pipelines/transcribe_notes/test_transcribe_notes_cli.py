@@ -66,7 +66,7 @@ class TestCollectCLI(unittest.TestCase):
             result = subprocess.run(
                 [
                     sys.executable, "-m", "pipelines.transcribe_notes.transcribe_notes",
-                    "--notes-subdir", "academic_notes/course/ta_notes", "--driver", "agent", "--collect",
+                    "--notes-subdir", "academic_notes/course/ta_notes", "--ignore-unresolved", "--driver", "agent", "--collect",
                     "--run-id", "test-run",
                 ],
                 cwd=_PACKAGE_ROOT,
@@ -114,7 +114,7 @@ class TestSubmitAndBootstrapCLI(unittest.TestCase):
 
             collect = subprocess.run(
                 [sys.executable, "-m", "pipelines.transcribe_notes.transcribe_notes",
-                 "--notes-subdir", "notes", "--driver", "agent", "--collect", "--run-id", "e2e"],
+                 "--notes-subdir", "notes", "--ignore-unresolved", "--driver", "agent", "--collect", "--run-id", "e2e"],
                 cwd=_PACKAGE_ROOT,
                 env={**env, "ACADEMIC_HUB_ROOT_OVERRIDE": hub}, capture_output=True, text=True,
             )
@@ -138,7 +138,7 @@ class TestSubmitAndBootstrapCLI(unittest.TestCase):
 
             submit = subprocess.run(
                 [sys.executable, "-m", "pipelines.transcribe_notes.transcribe_notes",
-                 "--notes-subdir", "notes", "--submit", "e2e"],
+                 "--notes-subdir", "notes", "--ignore-unresolved", "--submit", "e2e"],
                 cwd=_PACKAGE_ROOT,
                 env={**env, "ACADEMIC_HUB_ROOT_OVERRIDE": hub}, capture_output=True, text=True,
             )
@@ -167,7 +167,7 @@ class TestDriverAgentRequiresCollectOrSubmit(unittest.TestCase):
             env.pop("PAID_GEMINI_KEY", None)
             result = subprocess.run(
                 [sys.executable, "-m", "pipelines.transcribe_notes.transcribe_notes",
-                 "--notes-subdir", "academic_notes/course/ta_notes", "--driver", "agent"],
+                 "--notes-subdir", "academic_notes/course/ta_notes", "--ignore-unresolved", "--driver", "agent"],
                 cwd=_PACKAGE_ROOT,
                 env={**env, "ACADEMIC_HUB_ROOT_OVERRIDE": hub},
                 capture_output=True, text=True,

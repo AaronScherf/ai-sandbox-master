@@ -141,13 +141,15 @@ class StateStore:
         return hashlib.sha256(value.encode("utf-8")).hexdigest()
 
     def refresh(self, findings: list[Finding], *,
-                sweep_kinds: Collection[str] | None = None) -> list[Finding]:
+                sweep_kinds: Collection[str] | None = None,
+                exclude_kinds: Collection[str] = ()) -> list[Finding]:
         """Upsert `findings`; entries absent from them are marked vanished.
 
         The vanish sweep is limited by kind: with `sweep_kinds=None` (a full corpus scan) every kind
         except SELF_REFRESHED_KINDS is swept, since those are raised by their own producer (the
         reconcile engine's `raise_relink_items`) and a scan that does not produce them must not vanish
-        them. A producer passes its own kinds; `()` upserts without sweeping anything."""
+        them. A producer passes its own kinds; `()` upserts without sweeping anything. `exclude_kinds` removes
+        kinds from the default sweep (a producer that did not run must not vanish its pending entries)."""
         now = _now()
         with _exclusive_lock(self.lock_path):
             data = self._load_unlocked()
@@ -222,7 +224,8 @@ class StateStore:
 
             for finding_id, entry in entries.items():
                 kind = str(entry.get("finding", {}).get("kind", ""))
-                swept = (kind not in SELF_REFRESHED_KINDS) if sweep_kinds is None else (kind in sweep_kinds)
+                swept = ((kind not in SELF_REFRESHED_KINDS and kind not in exclude_kinds) if sweep_kinds is None
+                         else (kind in sweep_kinds))
                 if swept and finding_id not in current_ids and entry.get("status") != "vanished":
                     entry["previous_status"] = entry.get("status")
                     entry["status"] = "vanished"
