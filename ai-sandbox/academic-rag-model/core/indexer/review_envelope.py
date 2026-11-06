@@ -110,6 +110,27 @@ def pairing_to_item(entry: dict, hub_root: str | None = None) -> ReviewItem:
     return _pair_item("document_pairing", entry, entry.get("pair_type") or "document_pairing", None, hub_root)
 
 
+VOCAB_KINDS = ("category", "group", "ignore")
+_PROPOSAL_BUCKETS = (("category_candidates", "category"), ("group_candidates", "group"),
+                     ("ignore_candidates", "ignore"), ("unclassified", None))
+
+
+def vocab_name_to_item(name: str, courses: list[str], proposed: str | None) -> ReviewItem:
+    """A new folder name the owner has not classified (`core.env.hub_vocab_learn`). One candidate per kind,
+    the proposed one flagged (none flagged when unclassified); the courses where the name appears ride on
+    each candidate as `courses`. Accepting with a chosen kind stores it via `tools.hub_vocabulary.confirm`."""
+    return ReviewItem(
+        _digest("vocab_name", name.casefold()), "vocab_name", [name],
+        [{"kind": k, "proposed": k == proposed, "courses": list(courses)} for k in VOCAB_KINDS],
+    )
+
+
+def proposal_items(proposal: dict) -> list[ReviewItem]:
+    """One `vocab_name` item per name in a `propose_vocabulary` result (all four buckets)."""
+    return [vocab_name_to_item(entry["name"], entry["courses"], proposed)
+            for bucket, proposed in _PROPOSAL_BUCKETS for entry in proposal.get(bucket, [])]
+
+
 def is_unresolved(card: dict) -> bool:
     """True while the card has an open relink item: consumers must not use it as a link/pair
     candidate (spec section 4: "Consumers refuse to use the unresolved link")."""

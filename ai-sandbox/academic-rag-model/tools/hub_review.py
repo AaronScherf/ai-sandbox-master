@@ -39,9 +39,13 @@ from pathlib import Path
 from core.indexer import document_pairing, offering_links, reconcile_apply
 from core.indexer.index_card import find_card_by_file_id
 from core.indexer.reconcile import reconcile
+from core.env.hub_vocab_learn import propose_vocabulary
+from core.env.hub_vocabulary import load_vocabulary
 from core.indexer.review_envelope import (
-    ReviewItem, difference_to_item, offering_link_to_item, pairing_to_item,
+    VOCAB_KINDS, ReviewItem, difference_to_item, offering_link_to_item, pairing_to_item, proposal_items,
 )
+from tools import hub_vocabulary
+from tools.hub_vocabulary import CONFIG_NAME
 
 PAGE_TEMPLATE = Path(__file__).with_name("hub_review_page.html")
 ACTIONS = {"accept", "decline", "defer"}
@@ -78,6 +82,64 @@ def _pending_relink(hub_root: str, store, raise_items: bool, moves_out: list | N
     return items
 
 
+def _vocab_entry(store, item_id: str) -> dict | None:
+    """The open (pending or deferred) `vocab_name` ledger entry for an item, else None."""
+    for e in store.entries(kinds={"vocab_name"}):
+        if e.get("finding", {}).get("fingerprint") == item_id and e.get("status") in ("pending_review", "deferred"):
+            return e
+    return None
+
+
+def _vocab_items(hub_root: str, store) -> list[ReviewItem]:
+    """New folder names the scan put in the ledger and the owner has not answered. Read only: names
+    come from a fresh `propose_vocabulary`, so a name confirmed since the scan is not listed."""
+    config = Path(hub_root) / CONFIG_NAME
+    if not config.is_file():
+        return []
+    open_ids = {e["finding"]["fingerprint"]: e["status"] for e in store.entries(kinds={"vocab_name"})
+                if e.get("status") in ("pending_review", "deferred")}
+    if not open_ids:
+        return []
+    items = [i for i in proposal_items(propose_vocabulary(Path(hub_root), load_vocabulary(config)))
+             if i.item_id in open_ids]
+    for i in items:
+        if open_ids[i.item_id] == "deferred":
+            i.status = "deferred"
+    return items
+
+
+def _dispatch_vocab(hub_root: str, item: ReviewItem, action: str, chosen, store, dry_run: bool) -> tuple[str, str]:
+    name = item.subject_ids[0]
+    if action == "accept":
+        if chosen not in VOCAB_KINDS:
+            return "error", f"accept needs a chosen kind: one of {', '.join(VOCAB_KINDS)}"
+        if dry_run:
+            return "would_apply", f"confirm {name!r} as {chosen} in {CONFIG_NAME}"
+        config = Path(hub_root) / CONFIG_NAME
+        if hub_vocabulary.confirm(config, name, chosen, None, False) != 0:
+            return "error", f"confirm refused {name!r} as {chosen} (see message above)"
+        entry = _vocab_entry(store, item.item_id)
+        if entry is not None:
+            fp = entry["finding"]["fingerprint"]
+            store.decide(entry["finding_id"], "accepted", fp)
+            store.record_action(entry["finding_id"], fp, "applied", {"kind": chosen})
+        report = hub_vocabulary.impact(hub_root, config, 5)
+        print(f"impact of {name!r} as {chosen}: {report['changed']} file(s), {report['cards_changed']} card(s) "
+              f"parse differently; {len(report['newly_eligible_pdfs'])} newly transcribable PDF(s)")
+        return "applied", f"confirmed {name!r} as {chosen}"
+    if dry_run:
+        return "would_apply", f"{action} vocab name {name!r}"
+    entry = _vocab_entry(store, item.item_id)
+    if entry is None:
+        return "error", "no open ledger entry"
+    if action == "decline":
+        store.decide(entry["finding_id"], "declined", entry["finding"]["fingerprint"])
+        return "applied", f"declined {name!r}; it will not be asked again"
+    if entry["status"] != "deferred":
+        store.decide(entry["finding_id"], "deferred", entry["finding"]["fingerprint"])
+    return "deferred", "deferred in ledger"
+
+
 def collect(hub_root: str, store=None, raise_items: bool = True, moves_out: list | None = None) -> list[ReviewItem]:
     """Open (pending or deferred) items from the three ledgers, sorted by (type, item_id).
     `raise_items=True` writes the ledger and card link_state (see module docstring); False writes nothing.
@@ -86,6 +148,7 @@ def collect(hub_root: str, store=None, raise_items: bool = True, moves_out: list
     items = _pending_relink(hub_root, store, raise_items, moves_out)
     items += [offering_link_to_item(e, hub_root) for e in offering_links.load_review(hub_root)]
     items += [pairing_to_item(e, hub_root) for e in document_pairing.load_review(hub_root)]
+    items += _vocab_items(hub_root, store)
     return sorted(items, key=lambda i: (i.type, i.item_id))
 
 
@@ -159,6 +222,8 @@ def _dispatch(hub_root: str, item: ReviewItem, action: str, chosen, store, dry_r
         if dry_run:
             return "would_apply", f"defer {fid}"
         return ("deferred", "deferred in ledger") if _defer_in_ledger(store, item) else ("error", "no open ledger entry")
+    if t == "vocab_name":
+        return _dispatch_vocab(hub_root, item, action, chosen, store, dry_run)
     mod = offering_links if t == "offering_link" else document_pairing
     a, b = item.subject_ids
     if action == "defer":

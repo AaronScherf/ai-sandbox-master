@@ -38,6 +38,8 @@ def _blocked_reason(kind: str) -> str:
         return "notes source pipeline quality and academic_notes sync-quiescence gates remain unresolved"
     if kind == "duplicate_hub_id":
         return "manual repair: run tools.write_hub_ids --fix-duplicates (dry run first) outside corpus-health apply"
+    if kind == "vocab_name":
+        return "applied only through tools.hub_review (accept a kind), which writes hub_config.json via confirm"
     if kind == "textbook_conversion_missing":
         return "remote textbook conversion is outside automated apply in v1"
     return "no reviewed exact-file repair adapter exists for this finding kind"

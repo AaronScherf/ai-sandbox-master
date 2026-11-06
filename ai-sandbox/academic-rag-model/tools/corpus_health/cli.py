@@ -70,6 +70,17 @@ def _add_duplicate_findings(config, report) -> None:
         report.warnings.append(f"duplicate hub_id check skipped: {exc}")
 
 
+def _add_vocab_findings(config, report) -> None:
+    """Add new-folder-name findings before `store.refresh` so a confirmed name's finding is swept."""
+    if not config.academic_hub_root.is_dir():
+        return
+    try:
+        from tools.corpus_health.vocab import vocab_findings
+        report.findings.extend(vocab_findings(str(config.academic_hub_root)))
+    except Exception as exc:  # noqa: BLE001 - infra failures must not break the scan
+        report.warnings.append(f"vocabulary check skipped: {exc}")
+
+
 def _raise_relink(config, store, report) -> None:
     """Raise relink/orphan ledger items from one reconcile pass; never touches cards or corpus files.
 
@@ -102,6 +113,7 @@ def main(argv: list[str] | None = None) -> int:
         if args.command == "scan":
             report = scan(config)
             _add_duplicate_findings(config, report)  # read-only; shown even with --no-state
+            _add_vocab_findings(config, report)  # read-only; hub_config.json is written only by hub_review accept
             if not args.no_state:
                 try:
                     directory = args.state_dir or default_state_dir(config.academic_hub_root)

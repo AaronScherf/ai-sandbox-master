@@ -58,7 +58,8 @@ button.chosen, button.chosen:disabled { background: var(--accent); color: var(--
 const PAYLOAD = JSON.parse(document.getElementById("review-items").textContent);
 const ITEMS = PAYLOAD.items || [];
 const GROUPS = [["relink", "Relink"], ["orphan", "Orphaned cards (report only)"],
-  ["offering_link", "Offering links"], ["document_pairing", "Document pairings"]];
+  ["offering_link", "Offering links"], ["document_pairing", "Document pairings"],
+  ["vocab_name", "New folder names"]];
 let db = null;
 const decided = new Map();   // item_id -> recorded decision doc
 const picked = new Map();    // item_id -> chosen candidate path (not yet saved)
@@ -172,6 +173,20 @@ function renderItem(item) {
       row.appendChild(text);
       box.appendChild(row);
     });
+  } else if (item.type === "vocab_name") {
+    const seen = ((item.candidates[0] || {}).courses || []).join(", ");
+    box.appendChild(el("div", "New folder name" + (seen ? ", seen in: " + seen : ""), "muted"));
+    (item.candidates || []).forEach((c) => {
+      const row = el("label", null, "cand");
+      const radio = document.createElement("input");
+      radio.type = "radio"; radio.name = "pick-" + item.item_id; radio.value = c.kind;
+      radio.checked = rec ? rec.chosen === c.kind : (picked.get(item.item_id) || (c.proposed ? c.kind : null)) === c.kind;
+      radio.disabled = !db || !!rec;
+      radio.addEventListener("change", () => { picked.set(item.item_id, c.kind); });
+      row.appendChild(radio);
+      row.appendChild(el("span", c.kind + (c.proposed ? " (proposed)" : ""), "path"));
+      box.appendChild(row);
+    });
   } else if (item.type !== "orphan") {
     (item.candidates || []).forEach((c) => {
       const line = c.basis + (c.score != null ? " " + Number(c.score).toFixed(2) : "");
@@ -185,12 +200,16 @@ function renderItem(item) {
     b.setAttribute && b.setAttribute("aria-pressed", String(isChosen));
     b.disabled = !db || !!rec || busy;
     b.addEventListener("click", () => {
-      if (action === "accept" && item.type === "relink" && !picked.get(item.item_id)) {
-        errors.set(item.item_id, "Choose a candidate first.");
+      if (action === "accept" && item.type === "vocab_name" && !picked.get(item.item_id)) {
+        const proposed = (item.candidates || []).find((c) => c.proposed);   // pre-selected radio counts as a pick
+        if (proposed) picked.set(item.item_id, proposed.kind);
+      }
+      if (action === "accept" && (item.type === "relink" || item.type === "vocab_name") && !picked.get(item.item_id)) {
+        errors.set(item.item_id, item.type === "relink" ? "Choose a candidate first." : "Choose a kind first.");
         render();
         return;
       }
-      const accepting = action === "accept" && item.type === "relink";
+      const accepting = action === "accept" && (item.type === "relink" || item.type === "vocab_name");
       save(item, action, accepting ? picked.get(item.item_id) : null, accepting ? copiesFor(item) : null);
     });
     buttons.appendChild(b);
