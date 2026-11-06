@@ -80,34 +80,44 @@ function notice(text, id) {
   document.getElementById("notices").appendChild(n);
 }
 
+const editing = new Set();   // item_ids being re-decided: shown as undecided until the new write lands
+const saving = new Set();    // item_ids with a write in flight (one write at a time per document)
+
+// One write per click. `set` replaces the whole document, so changing a decision is just saving a new one;
+// nothing is deleted first.
 async function save(item, action, chosen, copies) {
+  if (saving.has(item.item_id)) return;
   errors.delete(item.item_id);
+  saving.add(item.item_id);
+  render();
   try {
     const doc = { item_id: item.item_id, action: action, chosen: chosen, ts: Date.now() };
     if (copies && copies.length) doc.copies = copies;
     await db.collection("decisions").doc(item.item_id).set(doc);
+    decided.set(item.item_id, doc);   // show it now; the snapshot confirms or corrects it
+    editing.delete(item.item_id);
   } catch (e) {
-    errors.set(item.item_id, "Could not save: " + ((e && e.code) || "error"));
+    errors.set(item.item_id, "Could not save: " + ((e && (e.code || e.message)) || "error"));
+  } finally {
+    saving.delete(item.item_id);
     render();
   }
 }
 
-// A decision stays changeable until the controller runs `apply`: deleting the doc returns the card to
-// undecided, keeping the earlier pick selected so it can be adjusted.
-async function retract(item, rec) {
+// A decision stays changeable until the controller runs `apply`. Changing it reopens the card with the
+// earlier pick selected; the next click saves over the old decision.
+function startEdit(item, rec) {
   errors.delete(item.item_id);
-  try {
-    if (rec.chosen) picked.set(item.item_id, rec.chosen);
-    if (rec.copies) copyPicks.set(item.item_id, new Set(rec.copies));
-    await db.collection("decisions").doc(item.item_id).delete();
-  } catch (e) {
-    errors.set(item.item_id, "Could not change: " + ((e && e.code) || "error"));
-    render();
-  }
+  if (rec.chosen) picked.set(item.item_id, rec.chosen);
+  if (rec.copies) copyPicks.set(item.item_id, new Set(rec.copies));
+  editing.add(item.item_id);
+  render();
 }
 
 function renderItem(item) {
-  const rec = decided.get(item.item_id);
+  const stored = decided.get(item.item_id);
+  const rec = stored && !editing.has(item.item_id) ? stored : null;
+  const busy = saving.has(item.item_id);
   const box = el("div", null, "item" + (rec ? " done" : ""));
   const paths = (item.subject_paths || []).filter(Boolean);
   if (item.status === "deferred" && !rec) box.appendChild(el("span", "deferred", "muted"));
@@ -169,7 +179,7 @@ function renderItem(item) {
   const buttons = el("div", null, "row");
   const make = (label, action, primary) => {
     const b = el("button", label, primary ? "primary" : "");
-    b.disabled = !db || !!rec;
+    b.disabled = !db || !!rec || busy;
     b.addEventListener("click", () => {
       if (action === "accept" && item.type === "relink" && !picked.get(item.item_id)) {
         errors.set(item.item_id, "Choose a candidate first.");
@@ -190,9 +200,14 @@ function renderItem(item) {
       (rec.copies && rec.copies.length ? " (+ " + rec.copies.length + " kept as copies)" : ""), "status"));
     const change = el("button", "Change decision");
     change.disabled = !db;
-    change.addEventListener("click", () => retract(item, rec));
+    change.addEventListener("click", () => startEdit(item, rec));
     box.appendChild(change);
+  } else if (stored) {
+    const back = el("button", "Keep earlier decision");
+    back.addEventListener("click", () => { editing.delete(item.item_id); render(); });
+    box.appendChild(back);
   }
+  if (busy) box.appendChild(el("div", "Saving...", "status"));
   if (errors.has(item.item_id)) box.appendChild(el("div", errors.get(item.item_id), "status err"));
   return box;
 }
