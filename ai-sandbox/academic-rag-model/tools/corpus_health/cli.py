@@ -59,6 +59,17 @@ def _review_snapshot_validator(config):
     return validate
 
 
+def _add_duplicate_findings(config, report) -> None:
+    """Add duplicate-hub_id findings before `store.refresh` so the sweep clears them once fixed."""
+    if not config.academic_hub_root.is_dir():
+        return
+    try:
+        from tools.corpus_health.duplicates import duplicate_findings
+        report.findings.extend(duplicate_findings(str(config.academic_hub_root)))
+    except Exception as exc:  # noqa: BLE001 - infra failures must not break the scan
+        report.warnings.append(f"duplicate hub_id check skipped: {exc}")
+
+
 def _raise_relink(config, store, report) -> None:
     """Raise relink/orphan ledger items from one reconcile pass; never touches cards or corpus files.
 
@@ -94,6 +105,7 @@ def main(argv: list[str] | None = None) -> int:
                 try:
                     directory = args.state_dir or default_state_dir(config.academic_hub_root)
                     store = StateStore(directory)
+                    _add_duplicate_findings(config, report)
                     report.findings = store.refresh(report.findings)
                     _raise_relink(config, store, report)
                     store.record_run(report.to_dict())

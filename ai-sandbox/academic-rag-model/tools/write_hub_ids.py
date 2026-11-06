@@ -115,7 +115,21 @@ def main() -> None:
     parser.add_argument("--apply", action="store_true", help="write the ids (default: dry run)")
     parser.add_argument("--include-excalidraw-json", action="store_true",
                         help="also stamp plain .excalidraw JSON files (skipped by default)")
+    parser.add_argument("--fix-duplicates", action="store_true",
+                        help="re-stamp files that share a hub_id (dry run unless --apply)")
     args = parser.parse_args()
+    if args.fix_duplicates:
+        from core.indexer.duplicate_ids import restamp_duplicates
+        if not args.apply:
+            changes = restamp_duplicates(args.hub_root, {}, apply=False)
+        else:
+            print("NOTE: writes land in academic_notes/, a separate git repo; commit them there yourself.")
+            with corpus_write_lock([args.hub_root], "restamp duplicate hub ids"):
+                changes = restamp_duplicates(args.hub_root, {}, apply=True)
+        for path, old, new in changes:
+            print(f"{path}: {old} -> {new}")
+        print(f"{len(changes)} duplicate(s) {'restamped' if args.apply else 'found (dry run; pass --apply)'}")
+        return
     if not args.apply:
         summary = plan(args.hub_root, args.include_excalidraw_json)
         for course, count in summary["would_write"].items():
