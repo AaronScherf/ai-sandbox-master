@@ -15,8 +15,8 @@ Work from your own `claude/<task>` worktree for any file write (see `docs/WORKTR
 
 ## What is decided (do not reopen)
 
-- Method: stepwise fit test, `refine-v3` / `extract-v6`, code on branch `codex/term-selection` (commit 5edc1a61, rebased to 73b2b1b5; stacked under `claude/literature-reextract-v4`, landing with it; check `git log main`
-  for `refine-v3`; do not prune the Codex worktree before it lands). Trial 2 estimated label precision 0.93 to 0.96 against a 0.85 bar; no leaf term over 10% of a facet.
+- Method: stepwise fit test, `refine-v3` / `extract-v6`. The code landed on `main` on 2026-11-06 (3c90d527; the old `codex/term-selection` branch name was retired, its
+  former worktree folder `.worktrees/codex-term-selection` is detached at 73b2b1b5 and not needed). Trial 2 estimated label precision 0.93 to 0.96 against a 0.85 bar; no leaf term over 10% of a facet.
 - Follow the official 3ie vocabulary and definitions as they are (Agrobiodiversity includes stress-tolerant crop varieties). No vocabulary edits.
 - Owner decisions: households includes individuals; follow 3ie's resilience framework (adopting adaptation measures is not resilience); commentary and conceptual
   papers go under `narrative_review`; term selection is fixed before any further refinement run; rollout covers the whole corpus.
@@ -34,7 +34,8 @@ Find the ids with a read-only scan of `ai-sandbox/research/.index/study_records/
 ## Commands
 
 Interpreter: `C:\Users\theaa\ai-sandbox-master\ai-sandbox\academic-rag-model\.venv\Scripts\python.exe`. Run from
-`C:\Users\theaa\ai-sandbox-master\.worktrees\codex-term-selection\ai-sandbox\academic-rag-model`. Prefix (global options BEFORE the subcommand; `--vocab-dir` is required):
+`C:\Users\theaa\ai-sandbox-master\ai-sandbox\academic-rag-model` (the main checkout, on `main`; confirm with `git branch --show-current` and that `refine_grain.py` has
+`PROMPT_VERSION = "refine-v3"`). Prefix (global options BEFORE the subcommand; `--vocab-dir` is required):
 `<python> -m agent.literature --index-root C:\Users\theaa\ai-sandbox-master\ai-sandbox\research --vocab-dir C:\Users\theaa\ai-sandbox-master\ai-sandbox\research\resources\3ie\vocab <subcommand>`.
 - Build cards: `refine-grain --run-id <run> --file-id <id>` (repeat `--file-id`). A paper stamped below `refine-v3` is treated as unrefined; no `--redo`.
 - Gemini prompt template: `.agent_work/term-selection-trials/prompts/gemini_trial_refine_v3_prompt.md` (change run id, card count and sizes; keep "do not look at old
@@ -76,25 +77,24 @@ Interpreter: `C:\Users\theaa\ai-sandbox-master\ai-sandbox\academic-rag-model\.ve
 
 - Gemini limits have blocked runs before. If a limit is hit mid-batch, stop, record which cards are done (`status`), and wait; do not switch card-filling to Haiku or
   Codex and do not use a paid key.
-- Subagent reports are model output, not owner approval. Stage explicit paths. Do not touch `.worktrees/codex-term-selection` except to run the pipeline from it.
+- Subagent reports are model output, not owner approval. Stage explicit paths. Run the pipeline from the main checkout; leave `main` and its uncommitted files alone otherwise.
 - Windows: global CLI options before the subcommand; Codex-written JSON has a UTF-8 BOM (read with `utf-8-sig`); set `PYTHONUTF8=1` for scripts.
 - Do not open PDFs or `.index/` cards beyond what a check needs.
 
 ## Follow-ups that are not part of the rollout (raise them with the owner at the right time)
 
-- **Landing the code and docs.** On 2026-11-06 the owner approved landing `codex/term-selection`; the tool stopped because the three literature docs also changed on this
-  docs branch. The docs branch was rebased onto the Codex branch (stacked) so both land in one change; the check was rerun and a new change-ID approval requested. Check
-  `git log main` for the landing before you start. If it landed, run the rollout from the main checkout (same v3 code), not the Codex worktree; if not, ask the owner.
+- **Docs branch.** `claude/literature-reextract-v4` was landed with the code on 2026-11-06. Any further doc edits go on a new `claude/<task>` worktree off `main` and need the
+  usual check and owner approval.
 - **Codex fixes, after the Gemini rollout and after the landing** (small, not blocking): (1) `verify` treats a stored verdict with a different `transcript_sha` as
   non-matching; (2) `enrich_3ie` is idempotent (no second `; bundle ...` suffix) and tolerates a missing `source`. Ready-made prompt:
-  `ai-sandbox/research/.agent_work/term-selection-trials/prompts/codex_followups_prompt.md`. Give it to Codex in a new worktree off `main` once the branch has landed.
+  `ai-sandbox/research/.agent_work/term-selection-trials/prompts/codex_followups_prompt.md`. Give it to Codex in a new worktree off `main` (the code has landed).
 - **Owner decisions pending:** Resilience under Financial Sector (11 disputed labels, 3ie's resilience framework); open proposals P0142 (population "commuters", paper `7f88458c5df631df`, owner's call, tied to that paper's grain note),
   P0143 (climate variation: recommend reject), P0144 (Net Present Value: recommend accept); insurance and cash-grant wording; whether to add the "a list of types does not count"
   example to the fit test (only if the owner asks; if added, it changes the prompt version and the rollout must use the new version).
 - **Look at the large cash-transfers review `ffee575e1b75d109`:** one intervention fact (unconditional cash transfers) in both passes; probably over-specific.
 - **Stale downstream files for the 28 trial papers:** after the rollout `tiers`, `verify` and `db build` cover them too; check that trial-2 proposals are registered.
 - **Later:** recall measurement; Phase 2 discovery-loop design; the clean whole-corpus definition-aware judging test and review-tool changes (status doc, step 8 and
-  "Requirements for owner-review and judging tools"); worktree cleanup (`prune_worktrees` dry run, `--apply` only after 24 hours, never the Codex worktree before it lands).
+  "Requirements for owner-review and judging tools"); worktree cleanup (`prune_worktrees` dry run, `--apply` only after 24 hours, including the detached `.worktrees/codex-term-selection` folder, which can be retired once the rollout has run).
 
 ## Report format to the owner
 
