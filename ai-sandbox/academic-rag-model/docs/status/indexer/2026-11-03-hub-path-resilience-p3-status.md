@@ -8,7 +8,7 @@ Spec: `docs/superpowers/specs/academic_hub/2026-11-03-hub-path-resilience-design
 - `core/indexer/reconcile.py`: read-only `reconcile(hub_root)` returning `moved | orphan | ambiguous` differences (tiers: hub_id, hash, git rename, similarity).
 - `core/indexer/reconcile_apply.py`: `apply_repairs` / `apply_one` / `undo_repair`, crash-safe repair log `.index/reconcile_log.jsonl`, `raise_relink_items`, `resolve`, `reject` backed by the corpus-health ledger.
 - `core/indexer/review_envelope.py` and `tools/hub_review.py` (+ page HTML): one review page for relink, orphan, offering-link and pairing items; decisions come back as `decisions.json` and are applied through each module's resolve/reject. `hub_review repair [--apply]` / `undo REPAIR_ID` are the CLI for exact-move repairs.
-- Acceptance matrix: `tests/core/indexer/test_reconcile_scenarios.py` (rows 1-6 pass; row 7, pipeline refusal, is a strict xfail until P4). Zero API calls anywhere.
+- Acceptance matrix: `tests/core/indexer/test_reconcile_scenarios.py` (rows 1-6 pass; row 7, pipeline refusal, was a strict xfail until P4 and is green since P4). Zero API calls anywhere.
 
 ## Design decisions and their costs
 
@@ -55,8 +55,8 @@ Spec: `docs/superpowers/specs/academic_hub/2026-11-03-hub-path-resilience-design
 
 ## To-do
 
-- NEXT, in order, once transcription has finished and no pipeline is writing to the hub: (1) `write_hub_ids` dry run, review, `--apply`, Aaron commits `academic_notes` (see the stamping item below); (2) `hub_review export` and `repair` dry run on the live hub to see real moves/orphans; (3) publish and validate the review page; (4) tune similarity weights on what (2) shows; (5) plan P4, then P5 (spec phases table).
-- P4: the scan hook must pass `sweep_kinds` or call `raise_relink_items` (a bare ledger refresh would sweep relink/orphan findings); preflight so pipelines refuse to run on an unresolved item they need (turns the xfail row green); fold the vocabulary learner in.
+- NEXT, in order, once transcription has finished and no pipeline is writing to the hub: (1) `write_hub_ids` dry run, review, `--apply`, Aaron commits `academic_notes` (see the stamping item below); (2) `hub_review export` and `repair` dry run on the live hub to see real moves/orphans; (3) publish and validate the review page; (4) tune similarity weights on what (2) shows; (5) P5 (spec phases table; P4 is done).
+- P4: shipped 2026-11-05, see `docs/status/indexer/2026-11-05-hub-path-resilience-p4-status.md`. (Correction: `SELF_REFRESHED_KINDS` already excluded relink/orphan findings, so a bare refresh never swept them; the real gap was that the scan never produced them. P4 fixed that.)
 - P5: `ACADEMIC_HUB_ROOT` discovery.
 - Verify Excalidraw keeps a top-level `hub_id` key in plain `.excalidraw` JSON, then decide on `--include-excalidraw-json` by default.
 - Run `python -m tools.write_hub_ids --hub-root HUB` (dry run) on the live hub, review, then `--apply`; Aaron commits the changes in `academic_notes`. Do it BEFORE moving notes (moved clones are then matched by `hub_id`), and run the audio pipeline once first if a TTS re-run is unwanted.

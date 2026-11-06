@@ -239,9 +239,26 @@ Safety rules:
   location problem).
 - A target already held by another card is never used; an explicit choice must be a listed candidate.
 
-Not in P3: no scan or preflight hook (P4: scans must pass `sweep_kinds` or call `raise_relink_items`,
-and pipelines should refuse to run on an unresolved item they need), and no `ACADEMIC_HUB_ROOT`
-discovery (P5). Status: `docs/status/indexer/2026-11-03-hub-path-resilience-p3-status.md`.
+Scan, preflight and vocabulary (P4):
+- The corpus-health scan (`tools/corpus_health/cli.py`) raises relink and orphan items into the ledger
+  (ledger only, never `link_state`; skipped with `--no-state`), reports duplicate `hub_id`s and new
+  folder names (`vocab_name`) as findings, and prints "N exact moves waiting: run `hub_review repair`".
+  Failures here are non-fatal `warnings` on the report.
+- Preflight (`core/indexer/preflight.py`): `index_search chunk|rebuild|index-md --apply|retag`,
+  `transcribe_notes` and the audio pipeline refuse (exit 2, pointing at `python -m tools.hub_review page
+  --hub-root HUB`, or `repair` for waiting moves) when an open relink item or a waiting exact move is
+  in their way. Orphans only warn. Read-only modes (`chunk`/`retag --dry-run`, `index-md` without
+  `--apply`, `rebuild --plan`, `query`/`ask`) warn instead of refusing. `--ignore-unresolved` bypasses.
+  The tree fingerprint and remembered waiting moves live in `<state_dir>/preflight.json` (local, not
+  `.index/`: mtimes are per machine).
+- `python -m tools.write_hub_ids --hub-root HUB --fix-duplicates [--apply]` repairs two live notes that
+  carry the same `hub_id` (dry run by default).
+- Vocabulary: folder names not yet in `hub_config.json` become `vocab_name` items on the review page;
+  accepting one goes through `tools.hub_vocabulary.confirm`. A declined name is asked once.
+
+Not yet: `ACADEMIC_HUB_ROOT` discovery (P5). Status:
+`docs/status/indexer/2026-11-05-hub-path-resilience-p4-status.md` (P4),
+`docs/status/indexer/2026-11-03-hub-path-resilience-p3-status.md` (P3).
 
 ## Design docs
 
