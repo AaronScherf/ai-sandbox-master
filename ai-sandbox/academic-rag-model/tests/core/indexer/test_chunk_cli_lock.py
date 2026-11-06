@@ -17,8 +17,7 @@ def _repo(path):
 
 def _run_main(monkeypatch, root, *, dry_run=False):
     argv = ["index_search", "--root", str(root), "chunk", "--file", "one.md"]
-    if dry_run:
-        argv.append("--dry-run")
+    argv.append("--dry-run" if dry_run else "--ignore-unresolved")
     monkeypatch.setattr(sys, "argv", argv)
     monkeypatch.setattr(index_search, "load_dotenv_override", lambda: None)
     monkeypatch.setattr(index_search, "get_gemini_client", lambda: object())

@@ -40,7 +40,7 @@ class TestCollectCLI(unittest.TestCase):
             env.pop("PAID_GEMINI_KEY", None)
             result = subprocess.run(
                 [sys.executable, "-m", "pipelines.transcribe_notes.transcribe_notes",
-                 "--notes-subdir", "academic_notes/course/problem_sets", "--ignore-unresolved", "--file", "homework.pdf", "--dry-run"],
+                 "--notes-subdir", "academic_notes/course/problem_sets", "--file", "homework.pdf", "--dry-run"],
                 cwd=_PACKAGE_ROOT,
                 env={**env, "ACADEMIC_HUB_ROOT_OVERRIDE": hub},
                 capture_output=True, text=True,

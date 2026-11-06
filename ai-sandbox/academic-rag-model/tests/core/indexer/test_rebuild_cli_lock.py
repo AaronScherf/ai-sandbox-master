@@ -18,7 +18,7 @@ def _repo(path):
 def _run_main(monkeypatch, root):
     monkeypatch.setattr(sys, "argv", [
         "index_search", "--root", str(root), "rebuild",
-        "--course", "econometrics", "--force", "--prune",
+        "--course", "econometrics", "--force", "--prune", "--ignore-unresolved",
     ])
     monkeypatch.setattr(index_search, "load_dotenv_override", lambda: None)
     monkeypatch.setattr(index_search, "get_gemini_client", lambda: object())

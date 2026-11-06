@@ -287,7 +287,7 @@ def main() -> None:
     args = parser.parse_args()
 
     from core.indexer.preflight import Needs, enforce
-    enforce(args.academic_hub_root, Needs(courses=frozenset({args.course})), ignore=args.ignore_unresolved)
+    enforce(args.academic_hub_root, Needs(courses=frozenset({args.course})), ignore=args.ignore_unresolved, refuse=not args.dry_run)
     content_types = [c.strip() for c in args.content_type.split(",") if c.strip()]
     audio_generator_root = os.path.dirname(os.path.abspath(__file__))
 

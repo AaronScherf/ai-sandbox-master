@@ -1236,8 +1236,11 @@ def _link_preflight(args) -> None:
     roots = args.root or [_DEFAULT_ROOT]
     course = getattr(args, "course", None)
     needs = Needs(courses=frozenset({course}) if course else None)
-    refuse = args.command in ("rebuild", "index-md", "retag", "chunk") and not (
-        args.command == "rebuild" and args.plan)
+    # Modes that write nothing and build no client only warn.
+    read_only = (getattr(args, "dry_run", False)
+                 or (args.command == "rebuild" and args.plan)
+                 or (args.command == "index-md" and not args.apply))
+    refuse = args.command in ("rebuild", "index-md", "retag", "chunk") and not read_only
     for root in roots:
         enforce(root, needs, ignore=getattr(args, "ignore_unresolved", False), refuse=refuse)
 

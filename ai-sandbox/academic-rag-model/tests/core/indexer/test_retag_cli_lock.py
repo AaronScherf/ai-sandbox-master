@@ -21,7 +21,7 @@ def _setup(tmp_path, monkeypatch, *, dry_run=False, with_notes=True):
     hub.mkdir()
     notes = _repo(hub / "academic_notes") if with_notes else None
     monkeypatch.setattr(sys, "argv", [
-        "index_search", "--root", str(hub), "retag", *(["--dry-run"] if dry_run else []),
+        "index_search", "--root", str(hub), "retag", *(["--dry-run"] if dry_run else ["--ignore-unresolved"]),
     ])
     monkeypatch.setattr(index_search, "load_dotenv_override", lambda: None)
     monkeypatch.setattr(index_search, "get_gemini_client", lambda: object())
