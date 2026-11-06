@@ -80,6 +80,24 @@ Interpreter: `C:\Users\theaa\ai-sandbox-master\ai-sandbox\academic-rag-model\.ve
 - Windows: global CLI options before the subcommand; Codex-written JSON has a UTF-8 BOM (read with `utf-8-sig`); set `PYTHONUTF8=1` for scripts.
 - Do not open PDFs or `.index/` cards beyond what a check needs.
 
+## Follow-ups that are not part of the rollout (raise them with the owner at the right time)
+
+- **Landing the code.** The Claude session of 2026-11-06 ran `land_branch check --full` for `codex/term-selection` (it rebases the branch onto `main`, so commit hashes,
+  including 5edc1a61, will have changed) and asked the owner for approval of the change ID. Check `git log main` for the landing before you start. If it landed, run the rollout
+  from the main checkout (same v3 code) and not the Codex worktree; if not, ask the owner. Then rebase `claude/literature-reextract-v4`: it and the Codex branch both change
+  `2026-11-02-phase1-quality-gate.md`, `2026-11-03-subproject-status.md` and `2026-11-03-term-selection-design.md`, so expect doc conflicts; keep both sides' content.
+  The owner lands that branch with the same check and approval.
+- **Codex fixes, after the Gemini rollout and after the landing** (small, not blocking): (1) `verify` treats a stored verdict with a different `transcript_sha` as
+  non-matching; (2) `enrich_3ie` is idempotent (no second `; bundle ...` suffix) and tolerates a missing `source`. Ready-made prompt:
+  `ai-sandbox/research/.agent_work/term-selection-trials/prompts/codex_followups_prompt.md`. Give it to Codex in a new worktree off `main` once the branch has landed.
+- **Owner decisions pending:** Resilience under Financial Sector (11 disputed labels, 3ie's resilience framework); open proposals P0142 (population "commuters", paper `7f88458c5df631df`, owner's call, tied to that paper's grain note),
+  P0143 (climate variation: recommend reject), P0144 (Net Present Value: recommend accept); insurance and cash-grant wording; whether to add the "a list of types does not count"
+  example to the fit test (only if the owner asks; if added, it changes the prompt version and the rollout must use the new version).
+- **Look at the large cash-transfers review `ffee575e1b75d109`:** one intervention fact (unconditional cash transfers) in both passes; probably over-specific.
+- **Stale downstream files for the 28 trial papers:** after the rollout `tiers`, `verify` and `db build` cover them too; check that trial-2 proposals are registered.
+- **Later:** recall measurement; Phase 2 discovery-loop design; the clean whole-corpus definition-aware judging test and review-tool changes (status doc, step 8 and
+  "Requirements for owner-review and judging tools"); worktree cleanup (`prune_worktrees` dry run, `--apply` only after 24 hours, never the Codex worktree before it lands).
+
 ## Report format to the owner
 
 Per batch: cards submitted/bounced, facts per facet, concentration top terms, new proposals, spot-check result, and the one decision you need. End with what runs next.
