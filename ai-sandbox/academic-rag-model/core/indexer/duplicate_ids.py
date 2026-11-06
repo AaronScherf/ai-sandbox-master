@@ -57,14 +57,17 @@ def find_duplicate_hub_ids(hub_root: str) -> dict[str, list[str]]:
 
 
 def _first_commit_time(hub_root: str, rel: str) -> float | None:
-    try:
-        out = subprocess.run(["git", "log", "--follow", "--diff-filter=A", "--format=%ct", "--", os.path.basename(rel)],
-                             cwd=os.path.dirname(os.path.join(hub_root, rel)), capture_output=True, text=True,
-                             timeout=30, check=False)
-    except (OSError, subprocess.SubprocessError):
+    """Oldest commit time of the file, via the hardened reconcile_git helper (a nested repo's config is untrusted)."""
+    from core.indexer import reconcile_git
+
+    folder = os.path.dirname(os.path.join(hub_root, rel))
+    top = reconcile_git._git(folder, "rev-parse", "--show-toplevel")
+    if not top or not top.strip():
         return None
-    times = [int(t) for t in out.stdout.split() if t.isdigit()]
-    return float(min(times)) if out.returncode == 0 and times else None
+    repo_rel = _norm(os.path.relpath(os.path.join(hub_root, rel), top.strip()))
+    out = reconcile_git._git(top.strip(), "log", "--follow", "--diff-filter=A", "--format=%ct", "--", repo_rel)
+    times = [int(t) for t in (out or "").split() if t.isdigit()]
+    return float(min(times)) if times else None
 
 
 def _default_keeper(hub_root: str, hub_id: str, paths: list[str], cards: dict[str, str]) -> str:
@@ -75,38 +78,44 @@ def _default_keeper(hub_root: str, hub_id: str, paths: list[str], cards: dict[st
     return sorted(pointed)[0]
 
 
+def _set_card_hub_id(hub_root: str, path: str, new_id: str) -> None:
+    for course in list_courses(hub_root):
+        shard = load_shard(hub_root, course)
+        changed = False
+        for card in shard:
+            if _norm(card.get("path", "")) == path and card.get("hub_id") != new_id:
+                card["hub_id"] = new_id  # content_hash deliberately untouched (the id line is hash-neutral)
+                changed = True
+        if changed:
+            save_shard(hub_root, course, shard)
+
+
 def restamp_duplicates(hub_root: str, keep: dict[str, str], apply: bool = False) -> list[tuple[str, str, str]]:
-    """Return (path, old_id, new_id) for every non-keeper. Default keeper: the file its card
-    points at, else oldest by git first commit, else the lexicographically first path."""
+    """Return (path, old_id, new_id) for every non-keeper whose file exists. Default keeper: the file its
+    card points at, else oldest by git first commit, else the lexicographically first path.
+
+    Each card is updated right after its file is restamped, so an interruption leaves every finished
+    file consistent and a rerun completes the rest."""
     duplicates = find_duplicate_hub_ids(hub_root)
     cards = _card_ids(hub_root)
     changes: list[tuple[str, str, str]] = []
-    new_for: dict[str, str] = {}
     for hub_id, paths in duplicates.items():
-        keeper = _norm(keep[hub_id]) if hub_id in keep else _default_keeper(hub_root, hub_id, paths, cards)
+        if hub_id in keep:
+            keeper = _norm(keep[hub_id])
+            if keeper not in paths:
+                raise ValueError(f"keep[{hub_id}]={keep[hub_id]!r} is not one of the files holding that id: {paths}")
+        else:
+            keeper = _default_keeper(hub_root, hub_id, paths, cards)
         for path in paths:
-            if path == keeper:
-                continue
             abs_path = os.path.join(hub_root, path)
-            has_file = os.path.isfile(abs_path)
-            own = read_hub_id(abs_path) if has_file else None
+            if path == keeper or not os.path.isfile(abs_path):
+                continue
+            own = read_hub_id(abs_path)
             if not apply:
-                changes.append((path, hub_id, own if has_file and own and own != hub_id else _PLACEHOLDER))
-            elif has_file and own == hub_id:
-                new_for[path] = replace_hub_id(abs_path)
-                changes.append((path, hub_id, new_for[path]))
-            elif has_file:  # only its card carried the duplicate: adopt the file's own id
-                new_for[path] = own or write_hub_id(abs_path)
-                changes.append((path, hub_id, new_for[path]))
-    if apply and new_for:
-        for course in list_courses(hub_root):
-            shard = load_shard(hub_root, course)
-            changed = False
-            for card in shard:
-                new = new_for.get(_norm(card.get("path", "")))
-                if new and card.get("hub_id") != new:
-                    card["hub_id"] = new  # content_hash deliberately untouched
-                    changed = True
-            if changed:
-                save_shard(hub_root, course, shard)
+                changes.append((path, hub_id, own if own and own != hub_id else _PLACEHOLDER))
+                continue
+            # a card-only duplicate adopts the file's own id (stamping one if absent); a file copy gets a fresh id
+            new = replace_hub_id(abs_path) if own == hub_id else (own or write_hub_id(abs_path))
+            _set_card_hub_id(hub_root, path, new)
+            changes.append((path, hub_id, new))
     return changes

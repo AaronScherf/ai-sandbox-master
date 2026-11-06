@@ -101,11 +101,11 @@ def main(argv: list[str] | None = None) -> int:
             return 1 if any(item["status"] == "failed" for item in outcomes) else 0
         if args.command == "scan":
             report = scan(config)
+            _add_duplicate_findings(config, report)  # read-only; shown even with --no-state
             if not args.no_state:
                 try:
                     directory = args.state_dir or default_state_dir(config.academic_hub_root)
                     store = StateStore(directory)
-                    _add_duplicate_findings(config, report)
                     report.findings = store.refresh(report.findings)
                     _raise_relink(config, store, report)
                     store.record_run(report.to_dict())

@@ -141,3 +141,124 @@ def test_cli_fix_duplicates_dry_run_then_apply(tmp_path, capsys, monkeypatch):
     monkeypatch.setattr("sys.argv", ["x", "--hub-root", str(hub), "--fix-duplicates", "--apply"])
     w.main()
     assert find_duplicate_hub_ids(str(hub)) == {}
+
+
+def test_first_commit_lookup_uses_hardened_git(tmp_path, monkeypatch):
+    import subprocess
+    from core.indexer import duplicate_ids, reconcile_git
+
+    calls = []
+
+    def fake_run(cmd, **kwargs):
+        calls.append((cmd, kwargs["env"]))
+        out = str(tmp_path).encode() if "rev-parse" in cmd else b"100\n"
+        return subprocess.CompletedProcess(cmd, 0, stdout=out, stderr=b"")
+
+    monkeypatch.setattr(reconcile_git.subprocess, "run", fake_run)
+    monkeypatch.setattr(reconcile_git.shutil, "which", lambda _: "git")
+    monkeypatch.setenv("GIT_EXTERNAL_DIFF", "evil")
+    assert duplicate_ids._first_commit_time(str(tmp_path), "academic_notes/econ/a.md") == 100.0
+    assert calls
+    for cmd, env in calls:
+        assert "core.fsmonitor=false" in cmd and f"core.hooksPath={os.devnull}" in cmd
+        assert "GIT_EXTERNAL_DIFF" not in env and env["GIT_OPTIONAL_LOCKS"] == "0"
+    log = [c for c, _ in calls if "log" in c][0]
+    assert "--no-show-signature" in log and "--no-ext-diff" in log
+    assert log[-2:] == ["--", "academic_notes/econ/a.md"]
+
+
+def test_git_ordered_keeper_oldest_first_commit_wins(tmp_path):
+    from tests.tools.git_fixture import git
+
+    hub = make_hub(tmp_path)
+    git(hub, "init", "-q", "-b", "main")
+    env = {"GIT_COMMITTER_DATE": "2020-01-01T00:00:00", "GIT_AUTHOR_DATE": "2020-01-01T00:00:00"}
+    import subprocess
+    write_note(hub, f"{LN}/z_old.md", {"hub_id": "dup000000001"}, BODY_A)
+    git(hub, "add", ".")
+    subprocess.run(["git", "-c", "user.name=T", "-c", "user.email=t@e.x", "commit", "-q", "-m", "old"],
+                   cwd=hub, env={**os.environ, **env}, check=True)
+    write_note(hub, f"{LN}/a_new.md", {"hub_id": "dup000000001"}, BODY_B)
+    git(hub, "add", ".")
+    git(hub, "-c", "commit.gpgsign=false", "commit", "-q", "-m", "new")
+    [(path, _, _)] = restamp_duplicates(str(hub), {}, apply=False)
+    assert path == f"{LN}/a_new.md"  # z_old is oldest, so it keeps the id (lexicographic order would pick a_new)
+
+
+def test_interrupted_apply_is_self_healing(tmp_path, monkeypatch):
+    from core.indexer import duplicate_ids
+
+    hub = make_hub(tmp_path)
+    for name in "abc":
+        write_note(hub, f"{LN}/{name}.md", {"hub_id": "dup000000001"}, BODY_A + name)
+    save_shard(str(hub), "econ", [_card(hub, f"{LN}/{n}.md", f"f{n}", hub_id="dup000000001") for n in "abc"])
+    real, count = duplicate_ids.replace_hub_id, {"n": 0}
+
+    def flaky(path):
+        count["n"] += 1
+        if count["n"] == 2:
+            raise OSError("disk")
+        return real(path)
+
+    monkeypatch.setattr(duplicate_ids, "replace_hub_id", flaky)
+    keep = {"dup000000001": f"{LN}/a.md"}
+    with pytest.raises(OSError):
+        restamp_duplicates(str(hub), keep, apply=True)
+    cards = {c["path"]: c for c in load_shard(str(hub), "econ")}
+    assert cards[f"{LN}/b.md"]["hub_id"] == read_hub_id(str(hub / LN / "b.md")) != "dup000000001"
+    assert cards[f"{LN}/c.md"]["hub_id"] == "dup000000001"
+    monkeypatch.setattr(duplicate_ids, "replace_hub_id", real)
+    restamp_duplicates(str(hub), keep, apply=True)
+    assert find_duplicate_hub_ids(str(hub)) == {}
+
+
+def test_dry_run_and_apply_report_the_same_set_and_skip_missing_files(tmp_path):
+    hub = _dup_hub(tmp_path)
+    save_shard(str(hub), "econ", load_shard(str(hub), "econ")
+               + [{"file_id": "f9", "path": f"{LN}/gone.md", "course": "econ", "hub_id": "dup000000001"}])
+    keep = {"dup000000001": f"{LN}/a.md"}
+    dry = restamp_duplicates(str(hub), keep, apply=False)
+    applied = restamp_duplicates(str(hub), keep, apply=True)
+    assert [p for p, _, _ in dry] == [p for p, _, _ in applied] == [f"{LN}/b.md"]
+
+
+def test_card_only_duplicate_stamps_unstamped_file_and_hash_stays_valid(tmp_path):
+    hub = make_hub(tmp_path)
+    write_note(hub, f"{LN}/a.md", {"hub_id": "aaaaaaaaaaaa"}, BODY_A)
+    write_note(hub, f"{LN}/b.md", {"title": "b"}, BODY_B)
+    save_shard(str(hub), "econ", [_card(hub, f"{LN}/a.md", "f1", hub_id="cccccccccccc"),
+                                  _card(hub, f"{LN}/b.md", "f2", hub_id="cccccccccccc")])
+    [(path, _, new)] = restamp_duplicates(str(hub), {"cccccccccccc": f"{LN}/a.md"}, apply=True)
+    card = {c["path"]: c for c in load_shard(str(hub), "econ")}[path]
+    assert card["hub_id"] == new == read_hub_id(str(hub / path))
+    assert card["content_hash"] == compute_content_hash(str(hub / path))  # stamping is hash-neutral
+
+
+def test_keep_not_among_holders_raises(tmp_path):
+    hub = _dup_hub(tmp_path)
+    with pytest.raises(ValueError):
+        restamp_duplicates(str(hub), {"dup000000001": f"{LN}/c.md"}, apply=False)
+
+
+def _cli_config(tmp_path, hub):
+    import json
+    cfg = tmp_path / "cfg.json"
+    cfg.write_text(json.dumps({"version": 1, "academic_hub_root": str(hub), "academic_notes_root": None,
+                               "required_roots": [], "markdown_policies": []}), encoding="utf-8")
+    return cfg
+
+
+def test_scan_cli_reports_duplicate_and_clears_after_fix(tmp_path, capsys):
+    from tools.corpus_health.cli import main
+
+    hub = _dup_hub(tmp_path)
+    cfg, state = _cli_config(tmp_path, hub), tmp_path / "state"
+    main(["scan", "--config", str(cfg), "--state-dir", str(state)])
+    assert "duplicate_hub_id" in capsys.readouterr().out
+    main(["scan", "--config", str(cfg), "--no-state"])
+    assert "duplicate_hub_id" in capsys.readouterr().out
+    restamp_duplicates(str(hub), {"dup000000001": f"{LN}/a.md"}, apply=True)
+    main(["scan", "--config", str(cfg), "--state-dir", str(state)])
+    assert "duplicate_hub_id" not in capsys.readouterr().out
+    from tools.corpus_health.state import StateStore
+    assert not [e for e in StateStore(state).pending() if e.get("finding", {}).get("kind") == "duplicate_hub_id"]
