@@ -131,6 +131,11 @@ Applies to every future label audit (Artifact) and every judging prompt for this
 - Builders to change: the `build_trial*_audit.py`-style scripts (scratchpad of the 2026-11-06 session; to become a tracked tool) and the judging prompts.
   The definition-aware prompt is `haiku_trial2_defjudging_prompt.md`.
 
+## Update 2026-11-06
+
+Term selection: two trials done, rollout ready and waiting on Gemini's limit. See [trials and rollout readiness](2026-11-06-term-selection-trials.md) and the
+[rollout handoff prompt](2026-11-06-rollout-handoff-prompt.md). Next-steps item 2 above is now "rollout pending"; item 8 stays future work.
+
 ## Where the detail is
 
 - Spec and plan (design):
