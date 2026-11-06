@@ -27,9 +27,6 @@ Auditing:
 - ECON6410 - Math Methods for Economists
 	- Notes: academic-hub/academic_notes/math_methods
 	- Resources: academic-hub/academic_resources/math_methods
-- CLMT5060 - Advanced Quantitative Methods for Climate 
-	- Notes: academic-hub/academic_notes/quant-for-climate
-	- Resources: academic-hub/academic_resources/quant-for-climate
 
 Previous Courses Relevant:
 - Math Camp
@@ -149,7 +146,7 @@ Weekly Schedule:
 - Academic Hub Status
 	- [[Academic Hub Progress Reflections]]
 	- [[2026-08-30-academic-hub-status]]
-- **Keep in sync with `ai-sandbox/research/independent-research/notes/Ground Truth - PhD Research Plan.html`.** That doc owns the full research narrative, faculty outreach plan, and month-by-month timeline; this table only tracks the publishing angle on top of it. If a project in Ground Truth's `#projects` section gets added, dropped, or rescheduled — or its `#timeline` shifts — update this table in the same sitting. Same in reverse: if a blog-driven deadline forces a project's timeline to move, that change belongs in Ground Truth first.
+- **Keep in sync with `ai-sandbox/research/independent-research/notes/00_overview-and-strategy/Ground Truth - PhD Research Plan.md`.** That doc owns the full research narrative, faculty outreach plan, and month-by-month timeline; this table only tracks the publishing angle on top of it. If a project in Ground Truth's `#projects` section gets added, dropped, or rescheduled — or its `#timeline` shifts — update this table in the same sitting. Same in reverse: if a blog-driven deadline forces a project's timeline to move, that change belongs in Ground Truth first.
 	- An evidence map: climate adaptation, cash transfers & conflict
 		- A structured, public catalogue of existing RCTs and quasi-experimental evaluations sitting at the intersection of climate-adaptive agriculture, cash transfers/social protection, and conflict or forced displacement
 	- Climate shocks, conflict & displacement: a fused public-data study
