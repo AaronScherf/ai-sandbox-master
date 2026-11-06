@@ -37,7 +37,7 @@ Two live notes in `academic_notes` carried `hub_id` `fcf8dd35633a` after the sta
 
 ## To-do
 
-- Owner, before any live-hub step: confirm the hub is quiet (no transcribe, audio or rebuild process running) and `academic_notes` has no uncommitted changes from this work.
-- Run `python -m tools.write_hub_ids --hub-root HUB --fix-duplicates` (dry run) on the live hub, review which note keeps `fcf8dd35633a`, then `--apply`, and commit `academic_notes`.
-- Then the P3 live steps still pending: stamping check, `hub_review repair` dry run, publish and validate the review page.
-- P5: `ACADEMIC_HUB_ROOT` discovery, NFD/NFC and alias matching. Tracker bullets are in `docs/trackers/academic_hub_to_do.md` (Source Indexer and Search).
+**Frozen 2026-11-06.** The live hub showed 0 exact moves, 0 ambiguous items and 0 orphans (`hub_review export --no-raise` and `repair` dry run), and the first real `corpus_health scan` raised no relink or orphan findings, only 16 `vocab_name` items. P3/P4 stay as built; see "Outcome" in `2026-11-06-hub-path-resilience-p4-steps-3-7-handoff.md`.
+
+- Not planned: publishing/validating the review page, similarity tuning (untuned, no data), P5 `ACADEMIC_HUB_ROOT`, wiring preflight into the remaining pipelines. Reopen only on a real moved/ambiguous file or a non-Windows hub.
+- Optional, owner's call: decide the 16 `vocab_name` folder names in `hub_config.json`. Tracker bullets are in `docs/trackers/academic_hub_to_do.md` (Source Indexer and Search).

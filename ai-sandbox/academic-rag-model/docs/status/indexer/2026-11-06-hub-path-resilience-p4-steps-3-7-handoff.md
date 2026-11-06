@@ -1,5 +1,20 @@
 # Hub path resilience: steps 3 to 7 handoff (for a new Claude session, 2026-11-06)
 
+> **OUTCOME (2026-11-06): FROZEN.** Steps 3 and 4 were run; the owner decided to freeze P3/P4 as built. Steps 5, 6 and 7 are **not planned**; do not start them without a new trigger (see "Outcome" below). The rest of this document is kept as the record of what was handed off.
+
+## Outcome (2026-11-06)
+
+Step 3 (pure read, nothing written to the hub), live hub:
+- `hub_review export --no-raise`: 0 items. `hub_review repair` (dry run): 0 exact moves. 0 ambiguous items, 0 orphans, 0 false positives, no noise from derived files, `processed_outputs/`, `.rag.md` or the CRLF-only `academic_notes` files.
+- Sanity check that the empty result is real and not a blind engine: all 359 cards in `.index/` (econometrics 98, math-camp 50, math_methods 62, microecon 149) point to paths that exist. No `.index/reconcile_log.jsonl` exists, so no repair has ever run.
+- Owner-visible cost: nothing was stale, so nothing would have been noticed without the tool. The `hub_id` stamps and the duplicate-id fix had already removed the real problems.
+
+Step 4 (`corpus_health scan` with the real config at `%LOCALAPPDATA%\CorpusHealth\scan.json`, 24 s, writes only the local ledger): 286 findings, **no relink, orphan or "exact moves waiting" findings**. The new P4 finding kind is `vocab_name` (16 findings: folder names not in `hub_config.json`, e.g. `class_2021`, `class_2022`, `2023_class`, `packet`, `reviews`, `sealed`, `tutoring`, `TA_solutions`, `student answers`, `Pat`, `Hannah`, `lab_3`, `Scripts`, three timestamp folders under microecon). These are vocabulary decisions for the owner, not defects. The other kinds (`note_transcription_missing` 144, `index_card_missing` 23, `textbook_conversion_missing` 20, `excalidraw_export_missing` 32, and so on) predate P4.
+
+Found while scanning: on Windows, `python -m tools.corpus_health scan` writing to a redirected stdout exits 2 with `'charmap' codec can't encode character '́'` (an NFD filename). `PYTHONUTF8=1` works around it. Tracked in the to-do tracker; the scheduled task may already avoid it by how `run_daily_scan.ps1` captures output.
+
+Decision: freeze. Not done and not planned: step 5 (publish and validate the review page; the `vocab_name` kind radios stay untried in a browser), step 6 (similarity thresholds stay untuned, "untuned, no data"), step 7 (P5 `ACADEMIC_HUB_ROOT`). Unwired pipelines stay in the tracker. Trigger to reopen: a real `hub_review export`/`scan` finding (a moved or renamed file that triggers a paid rebuild, or an ambiguous item), or a non-Windows hub.
+
 Read this first, then grep (do not read whole) `2026-11-05-hub-path-resilience-p4-status.md` and the "Reconcile and review" / "Scan, preflight and vocabulary" sections of `core/indexer/README.md`. Spec: `docs/superpowers/specs/academic_hub/2026-11-03-hub-path-resilience-design.md`.
 
 ## State at handoff
