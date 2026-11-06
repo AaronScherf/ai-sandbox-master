@@ -216,3 +216,27 @@ def test_content_tier_card_with_existing_path_is_not_hashed(tmp_path):
     with open(hub / LN / "a.md", "a", encoding="utf-8", newline="\n") as f:
         f.write("\nEdited in place after indexing.\n")
     assert reconcile(str(hub)) == []
+
+
+def _rename_and_edit_hub(tmp_path):
+    hub = make_hub(tmp_path)
+    write_note(hub, f"{LN}/lecture_03_regression.md", {"title": "a"}, BODY)
+    save_shard(str(hub), "econ", [_note_card(hub, f"{LN}/lecture_03_regression.md", "f1")])
+    _move(hub, f"{LN}/lecture_03_regression.md", f"{LN}/lecture_03_regression_v2.md")
+    with open(hub / LN / "lecture_03_regression_v2.md", "a", encoding="utf-8", newline="\n") as f:
+        f.write("\nAn added paragraph on heteroskedasticity.\n")
+    return hub
+
+
+def test_raise_relink_items_mark_link_state_false_writes_ledger_only(tmp_path, store):
+    hub = _rename_and_edit_hub(tmp_path)
+    before = dict(_card(hub, "f1"))
+    items = raise_relink_items(str(hub), reconcile(str(hub)), store, mark_link_state=False)
+    assert [i.type for i in items] == ["relink"] and len(store.pending()) == 1
+    assert _card(hub, "f1") == before and not _card(hub, "f1").get("link_state")
+
+
+def test_raise_relink_items_mark_link_state_true_is_the_default(tmp_path, store):
+    hub = _rename_and_edit_hub(tmp_path)
+    raise_relink_items(str(hub), reconcile(str(hub)), store)
+    assert _card(hub, "f1")["link_state"] == "unresolved"
