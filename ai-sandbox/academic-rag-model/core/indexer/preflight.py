@@ -22,13 +22,14 @@ import json
 import os
 import sys
 import tempfile
+from contextlib import ExitStack
 from dataclasses import dataclass
 
-from core.env.corpus_write_lock import corpus_write_lock
+from core.env.corpus_write_lock import CorpusWriteLockError, corpus_write_lock
 from core.indexer.index_card import find_card_by_file_id
 from core.indexer.reconcile import reconcile
 from core.indexer.reconcile_apply import demote_undone, raise_relink_items_unlocked
-from core.indexer.review_envelope import ReviewItem, relink_item_id
+from core.indexer.review_envelope import ReviewItem, difference_to_item, relink_item_id
 
 _ROOTS = ("academic_notes", "academic_resources")
 _SKIP = {".git", ".obsidian", ".index"}
@@ -154,7 +155,16 @@ def check(hub_root: str, needs: Needs, store=None) -> list[ReviewItem]:
     fingerprint = tree_fingerprint(hub_root)
     state = _load(path)
     if state.get("fingerprint") != fingerprint:
-        with corpus_write_lock([hub_root], "preflight reconcile"):
+        with ExitStack() as stack:
+            try:
+                stack.enter_context(corpus_write_lock([hub_root], "preflight reconcile"))
+            except CorpusWriteLockError as exc:
+                if "writer already active" not in str(exc):
+                    raise
+                # Another writer holds the lock: a pure read is still safe, so look at the tree as it is
+                # now and write neither the ledger nor preflight.json (the writer owns the state).
+                items = _busy_items(hub_root, store, reconcile(hub_root))
+                return _blocking(hub_root, items, needs)
             differences = reconcile(hub_root)
             raise_relink_items_unlocked(hub_root, differences, store, mark_link_state=False)
             waiting = _waiting_moves(hub_root, differences)
@@ -163,8 +173,38 @@ def check(hub_root: str, needs: Needs, store=None) -> list[ReviewItem]:
     items = _ledger_items(store)
     for m in state.get("waiting_moves") or []:
         if _still_waiting(hub_root, m):
-            items.append(ReviewItem(relink_item_id(m["file_id"], [m["new_path"]]), "moved", [m["file_id"]],
-                                    [{"path": m["new_path"], "basis": "exact_move"}], "pending"))
+            items.append(_moved_item(m["file_id"], m["new_path"]))
+    return _blocking(hub_root, items, needs)
+
+
+def _moved_item(file_id: str, new_path: str) -> ReviewItem:
+    return ReviewItem(relink_item_id(file_id, [new_path]), "moved", [file_id],
+                      [{"path": new_path, "basis": "exact_move"}], "pending")
+
+
+def _busy_items(hub_root: str, store, differences) -> list[ReviewItem]:
+    """Open items when the write lock is busy: the open ledger entries plus what a fresh reconcile shows
+    that the ledger has not closed. Writes nothing."""
+    from tools.corpus_health.state import SELF_REFRESHED_KINDS
+    items = _ledger_items(store)
+    seen = {i.item_id for i in items}
+    closed = {(e.get("finding") or {}).get("fingerprint") for e in store.entries(kinds=SELF_REFRESHED_KINDS)
+              if e.get("status") in {"declined", "accepted", "applied"}}
+    for m in _waiting_moves(hub_root, differences):
+        item = _moved_item(m["file_id"], m["new_path"])
+        if item.item_id not in seen:
+            items.append(item)
+    for d in demote_undone(hub_root, differences):
+        if d.kind == "moved":
+            continue
+        item = difference_to_item(d)
+        if item.item_id not in seen and item.item_id not in closed:
+            seen.add(item.item_id)
+            items.append(item)
+    return items
+
+
+def _blocking(hub_root: str, items: list[ReviewItem], needs: Needs) -> list[ReviewItem]:
     orphans = [i for i in items if i.type == "orphan" and _needed(hub_root, i, needs)]
     if orphans:
         print(f"warning: {len(orphans)} orphan card(s) (file gone) in scope; not blocking. "

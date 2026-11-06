@@ -208,3 +208,70 @@ def test_root_without_note_trees_re_reconciles_on_index_change(tmp_path, store, 
     (root / ".index" / "x.json").write_text("[1, 2, 3, 4]")
     check(str(root), Needs(), store)
     assert calls == [1, 1]
+
+
+# --- busy write lock: pure-read fallback ------------------------------------------------------------
+def _busy_lock(monkeypatch, message="writer already active for /x: other"):
+    from core.env.corpus_write_lock import CorpusWriteLockError
+
+    def busy(roots, action, **kw):
+        raise CorpusWriteLockError(message)
+
+    monkeypatch.setattr(preflight, "corpus_write_lock", busy)
+
+
+def _state_digest(directory):
+    import hashlib
+    return {str(p.relative_to(directory)): hashlib.sha256(p.read_bytes()).hexdigest()
+            for p in sorted(Path(directory).rglob("*")) if p.is_file() and p.suffix != ".lock"}
+
+
+def test_busy_lock_with_fresh_difference_still_refuses_and_writes_nothing(tmp_path, store, monkeypatch):
+    hub = _ambiguous_hub(tmp_path)
+    _busy_lock(monkeypatch)
+    before = _state_digest(tmp_path / "state") if (tmp_path / "state").exists() else {}
+    with pytest.raises(UnresolvedLinksError) as exc:
+        require_resolved(str(hub), Needs(courses=frozenset({"econ"})), store)
+    assert [i.type for i in exc.value.items] == ["relink"]
+    after = _state_digest(tmp_path / "state") if (tmp_path / "state").exists() else {}
+    assert after == before
+    assert not (tmp_path / "state" / "preflight.json").exists()
+
+
+def test_busy_lock_with_nothing_open_passes(tmp_path, store, monkeypatch):
+    hub = make_hub(tmp_path)
+    write_note(hub, f"{LN}/a.md", {"title": "a"}, BODY)
+    save_shard(str(hub), "econ", [_card(hub, f"{LN}/a.md", "f1")])
+    _busy_lock(monkeypatch)
+    require_resolved(str(hub), Needs(), store)
+    assert not (tmp_path / "state" / "preflight.json").exists()
+
+
+def test_busy_lock_uses_existing_ledger_items(tmp_path, store, monkeypatch):
+    hub = _ambiguous_hub(tmp_path)
+    with pytest.raises(UnresolvedLinksError):
+        require_resolved(str(hub), Needs(), store)  # raises the ledger item (lock free)
+    # the owner defers nothing; a later busy run on an unchanged tree still sees the open item
+    _busy_lock(monkeypatch)
+    with pytest.raises(UnresolvedLinksError):
+        require_resolved(str(hub), Needs(courses=frozenset({"econ"})), store)
+    require_resolved(str(hub), Needs(courses=frozenset({"stats"})), store)
+
+
+def test_busy_lock_waiting_exact_move_blocks(tmp_path, store, monkeypatch):
+    hub = make_hub(tmp_path)
+    write_note(hub, f"{LN}/a.md", {"title": "a"}, BODY)
+    save_shard(str(hub), "econ", [_card(hub, f"{LN}/a.md", "f1")])
+    os.replace(hub / f"{LN}/a.md", hub / f"{LN}/renamed.md")
+    _busy_lock(monkeypatch)
+    with pytest.raises(UnresolvedLinksError) as exc:
+        require_resolved(str(hub), Needs(), store)
+    assert [i.type for i in exc.value.items] == ["moved"]
+
+
+def test_other_lock_errors_stay_fail_closed(tmp_path, store, monkeypatch, capsys):
+    hub = make_hub(tmp_path)
+    _busy_lock(monkeypatch, "cannot resolve repository for /x")
+    with pytest.raises(SystemExit) as exc:
+        preflight.enforce(str(hub), Needs(), refuse=True)
+    assert exc.value.code == 2
