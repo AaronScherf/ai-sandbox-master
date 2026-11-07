@@ -7,6 +7,11 @@ Python 3.13 packages that convert academic PDFs/docs into Markdown, index them, 
 - Tests: `python -m pytest tests/` for a single file or `-k` filter while iterating. `tests/` mirrors the package tree (`tests/pipelines/...`, `tests/agent/...`, `tests/core/...`, etc.). For the full suite, use `python tools/run_tests_chunked.py` instead of `pytest tests/` directly — it runs one subprocess per top-level package so memory is freed between them; a single long-lived `pytest tests/` process has OOM'd on this machine. Pass `--include-local-llm` to also run tests marked `local_llm` (none exist yet; see `pytest.ini`).
 - To look something up in the corpus, use `python -m core.indexer.index_search query "..."` rather than grepping `academic-hub/`.
 
+## Line endings (Windows)
+- The monorepo stores LF (`.gitattributes`: `* text=auto`) but working-tree files are CRLF (`core.autocrlf=true`), so files you read and edit here are CRLF. Scripted edits must detect and preserve a file's existing endings: read with `newline=''`, write with `newline=''`.
+- Python text-mode `open(..., 'w')` writes CRLF on Windows. For lists consumed by shell loops, JSON/IDs and anything compared byte-wise, pass `newline='\n'`, end the file with a newline, and strip `\r` before use.
+- Content hashes are currently line-ending sensitive (`compute_content_hash`): an LF/CRLF flip on a note marks its card stale and can cause a paid re-index. Do not normalize line endings in `academic_notes/` (separate repo, mixed LF/CRLF, tablet sync) until the hash is made line-ending-insensitive; see the tracker.
+
 ## Scope
 - `core/env/` and `core/indexer/` are shared by everything; changes there need tests for the callers too.
 - **Any step that needs a human decision produces an interactive Artifact by default**, not a JSON or Markdown file to hand-edit. Use a checkbox/Link/Dismiss page with decisions in its `db` collection, then apply them with the pipeline's own resolve/reject functions. Raw ledger files (e.g. `.index/offering_links/review.json`) are for the code, not for review. Reference: `core/indexer/offering_links.py` and its review artifact (`https://claude.ai/artifact/3xwWTQvW8yfywGbVDqxztE`).
